@@ -1,0 +1,14 @@
+{
+  "total_users": 19,
+  "active_users": 18,
+  "routing_users": 18,
+  "planner_visible_users": 18,
+  "planner_visible_source": "best-available-pool.explicit_users",
+  "candidate_snapshot_item_count": 18,
+  "eligible_users": 18,
+  "pool_budget": 25,
+  "required_user_count": 25,
+  "current_user_count_for_pool": 18,
+  "capacity_gap": 7,
+  "synthetic_users_required": true
+}

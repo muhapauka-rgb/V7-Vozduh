@@ -1,0 +1,233 @@
+{
+  "apply_executed": false,
+  "authority_promoted": false,
+  "candidate_count": 10,
+  "candidates": [
+    {
+      "action": "switch",
+      "chosen": "awg3",
+      "confidence": "medium",
+      "current": "vless",
+      "recommended": "awg3",
+      "route_class": "VIDEO_OPTIMIZED",
+      "user": "10.0.0.2",
+      "why": [
+        "load 0/14 status OK",
+        "speed avg 59.06 Mbps min 49.09 Mbps",
+        "stability 0.831",
+        "quality trend improving score 179.87",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 64.09 risk 0.0",
+        "group default allowed"
+      ]
+    },
+    {
+      "action": "switch",
+      "chosen": "awg3",
+      "confidence": "medium",
+      "current": "vless",
+      "recommended": "awg3",
+      "route_class": "VIDEO_OPTIMIZED",
+      "user": "10.0.0.3",
+      "why": [
+        "load 0/14 status OK",
+        "speed avg 59.06 Mbps min 49.09 Mbps",
+        "stability 0.831",
+        "quality trend improving score 179.87",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 64.09 risk 0.0",
+        "group default allowed"
+      ]
+    },
+    {
+      "action": "switch",
+      "chosen": "awg3",
+      "confidence": "medium",
+      "current": "vless",
+      "recommended": "awg3",
+      "route_class": "VIDEO_OPTIMIZED",
+      "user": "10.0.0.6",
+      "why": [
+        "load 0/14 status OK",
+        "speed avg 59.06 Mbps min 49.09 Mbps",
+        "stability 0.831",
+        "quality trend improving score 179.87",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 64.09 risk 0.0",
+        "group default allowed"
+      ]
+    },
+    {
+      "action": "switch",
+      "chosen": "awg3",
+      "confidence": "medium",
+      "current": "vless",
+      "recommended": "awg3",
+      "route_class": "VIDEO_OPTIMIZED",
+      "user": "10.7.0.3",
+      "why": [
+        "load 0/14 status OK",
+        "speed avg 59.06 Mbps min 49.09 Mbps",
+        "stability 0.831",
+        "quality trend improving score 179.87",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 64.09 risk 0.0",
+        "group default allowed"
+      ]
+    },
+    {
+      "action": "switch",
+      "chosen": "awg3",
+      "confidence": "medium",
+      "current": "vless",
+      "recommended": "awg3",
+      "route_class": "VIDEO_OPTIMIZED",
+      "user": "10.7.0.2",
+      "why": [
+        "load 0/14 status OK",
+        "speed avg 59.06 Mbps min 49.09 Mbps",
+        "stability 0.831",
+        "quality trend improving score 179.87",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 64.09 risk 0.0",
+        "group default allowed"
+      ]
+    },
+    {
+      "action": "switch",
+      "chosen": "awg3",
+      "confidence": "medium",
+      "current": "vless",
+      "recommended": "awg3",
+      "route_class": "VIDEO_OPTIMIZED",
+      "user": "10.7.0.4",
+      "why": [
+        "load 0/14 status OK",
+        "speed avg 59.06 Mbps min 49.09 Mbps",
+        "stability 0.831",
+        "quality trend improving score 179.87",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 64.09 risk 0.0",
+        "group default allowed"
+      ]
+    },
+    {
+      "action": "switch",
+      "chosen": "awg3",
+      "confidence": "medium",
+      "current": "vless",
+      "recommended": "awg3",
+      "route_class": "VIDEO_OPTIMIZED",
+      "user": "10.7.0.5",
+      "why": [
+        "load 0/14 status OK",
+        "speed avg 59.06 Mbps min 49.09 Mbps",
+        "stability 0.831",
+        "quality trend improving score 179.87",
+        "service_telegram_ok",
+        "service_youtube_ok",
+        "service_google_ok",
+        "route_class_VIDEO_OPTIMIZED_ok",
+        "routing intelligence prefer score_part 64.09 risk 0.0",
+        "group default allowed"
+      ]
+    },
+    {
+      "action": "switch",
+      "chosen": "awg3",
+      "confidence": "medium",
+      "current": "vless",
+      "recommended": "awg3",
+      "route_class": "VIDEO_OPTIMIZED",
+      "user": "10.7.0.6",
+      "why": [
+        "load 0/14 status OK",
+        "speed avg 59.06 Mbps min 49.09 Mbps",
+        "stability 0.831",
+        "quality trend improving score 179.87",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 64.09 risk 0.0",
+        "group default allowed"
+      ]
+    },
+    {
+      "action": "switch",
+      "chosen": "awg3",
+      "confidence": "medium",
+      "current": "vless",
+      "recommended": "awg3",
+      "route_class": "VIDEO_OPTIMIZED",
+      "user": "10.7.0.8",
+      "why": [
+        "load 0/14 status OK",
+        "speed avg 59.06 Mbps min 49.09 Mbps",
+        "stability 0.831",
+        "quality trend improving score 179.87",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 64.09 risk 0.0",
+        "group default allowed"
+      ]
+    },
+    {
+      "action": "switch",
+      "chosen": "awg3",
+      "confidence": "medium",
+      "current": "vless",
+      "recommended": "awg3",
+      "route_class": "VIDEO_OPTIMIZED",
+      "user": "10.7.0.9",
+      "why": [
+        "load 0/14 status OK",
+        "speed avg 59.06 Mbps min 49.09 Mbps",
+        "stability 0.831",
+        "quality trend improving score 179.87",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 64.09 risk 0.0",
+        "group default allowed"
+      ]
+    }
+  ],
+  "not_an_approval_packet": true,
+  "primary_recommended_target": "awg3",
+  "required_next_artifacts": [
+    "LARGE_BATCH authority review",
+    "10-user candidate review",
+    "approval packet draft",
+    "rollback manifest draft",
+    "restore barrier review draft"
+  ],
+  "schema": "v7.large-batch-preparation-foundation.v1",
+  "target_pool": [
+    "vless",
+    "awg0",
+    "awg3"
+  ],
+  "users_moved": 0
+}

@@ -1,0 +1,10 @@
+23:DEFAULT_SUMMARY_FILE = DEFAULT_STATE_DIR / "egress-quality-summary.json"
+37:        super().__init__("service_matrix_lifecycle_lock_timeout")
+60:def service_matrix_lifecycle_lock(state_dir: Path, timeout_sec: int) -> Iterator[dict[str, Any]]:
+81:            "decision": "service_matrix_lifecycle_lock_inherited",
+96:                    "decision": "quality_summary_writer_serialized_for_planner_lifecycle",
+105:                        "decision": "service_matrix_lifecycle_lock_timeout",
+183:def build_samples(state_dir: Path) -> list[dict[str, Any]]:
+286:        with service_matrix_lifecycle_lock(state_dir, args.lock_timeout_sec) as lock_status:
+287:            samples = build_samples(state_dir)
+296:            "status": "LOCK_TIMEOUT",

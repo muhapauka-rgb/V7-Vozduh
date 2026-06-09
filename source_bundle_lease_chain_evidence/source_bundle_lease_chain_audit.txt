@@ -1,0 +1,300 @@
+tests/unit/test_v7_users_autoswitch_policy.py:40:        restore_barrier: Optional[dict] = None,
+tests/unit/test_v7_users_autoswitch_policy.py:143:            json.dumps(restore_barrier or {}), encoding="utf-8"
+tests/unit/test_v7_users_autoswitch_policy.py:323:    def governed_source_bundle_lease_plan(
+tests/unit/test_v7_users_autoswitch_policy.py:336:            restore_barrier={
+tests/unit/test_v7_users_autoswitch_policy.py:426:    def approved_plan_lock_from_plan(self, plan: dict, *, expires_at: str = "2999-01-01T00:00:00+00:00") -> dict:
+tests/unit/test_v7_users_autoswitch_policy.py:454:            "restore_barrier_id": "restore-barrier-unit-test",
+tests/unit/test_v7_users_autoswitch_policy.py:455:            "restore_barrier_hash": "restore-barrier-hash-unit-test",
+tests/unit/test_v7_users_autoswitch_policy.py:906:    def test_restore_barrier_suppresses_telegram_service_signal_failover(self):
+tests/unit/test_v7_users_autoswitch_policy.py:912:                restore_barrier={
+tests/unit/test_v7_users_autoswitch_policy.py:921:            self.assertEqual(plan["operation"]["terminal_reason"], "dry_run_restore_barrier_active")
+tests/unit/test_v7_users_autoswitch_policy.py:922:            self.assertTrue(plan["safety"]["restore_barrier"]["active"])
+tests/unit/test_v7_users_autoswitch_policy.py:926:                "restore_barrier_failover_suppressed",
+tests/unit/test_v7_users_autoswitch_policy.py:991:    def test_governed_apply_accepts_service_matrix_drift_with_source_bundle_lease(self):
+tests/unit/test_v7_users_autoswitch_policy.py:994:            planner, plan, switch_calls = self.governed_source_bundle_lease_plan(root)
+tests/unit/test_v7_users_autoswitch_policy.py:1011:        self.assertEqual(validation["state"]["condition"], "SOURCE_BUNDLE_LEASE_VALID")
+tests/unit/test_v7_users_autoswitch_policy.py:1016:            planner, plan, switch_calls = self.governed_source_bundle_lease_plan(root)
+tests/unit/test_v7_users_autoswitch_policy.py:1027:    def test_restore_barrier_accepts_service_matrix_only_source_bundle_lease(self):
+tests/unit/test_v7_users_autoswitch_policy.py:1030:            planner, plan, _switch_calls = self.governed_source_bundle_lease_plan(root)
+tests/unit/test_v7_users_autoswitch_policy.py:1038:        barrier = replanned["safety"]["restore_barrier"]
+tests/unit/test_v7_users_autoswitch_policy.py:1043:            "restore_barrier_clearance_generation_match_source_bundle_lease",
+tests/unit/test_v7_users_autoswitch_policy.py:1045:        self.assertTrue(barrier["source_bundle_lease"]["ok"])
+tests/unit/test_v7_users_autoswitch_policy.py:1046:        self.assertEqual(barrier["source_bundle_lease"]["changed_source_keys"], ["service_matrix"])
+tests/unit/test_v7_users_autoswitch_policy.py:1051:            planner, plan, switch_calls = self.governed_source_bundle_lease_plan(root)
+tests/unit/test_v7_users_autoswitch_policy.py:1068:    def test_governed_apply_blocks_expired_source_bundle_lease(self):
+tests/unit/test_v7_users_autoswitch_policy.py:1071:            planner, plan, switch_calls = self.governed_source_bundle_lease_plan(root)
+tests/unit/test_v7_users_autoswitch_policy.py:1072:            plan["safety"]["restore_barrier"]["clearance_expires_at"] = "2000-01-01T00:00:00+00:00"
+tests/unit/test_v7_users_autoswitch_policy.py:1087:    def test_governed_apply_source_bundle_lease_blocks_unapproved_user(self):
+tests/unit/test_v7_users_autoswitch_policy.py:1090:            planner, plan, switch_calls = self.governed_source_bundle_lease_plan(
+tests/unit/test_v7_users_autoswitch_policy.py:1108:    def test_governed_apply_source_bundle_lease_keeps_two_user_blast_radius(self):
+tests/unit/test_v7_users_autoswitch_policy.py:1111:            planner, plan, switch_calls = self.governed_source_bundle_lease_plan(root, users=4)
+tests/unit/test_v7_users_autoswitch_policy.py:1271:    def test_restore_barrier_suppresses_non_service_failover(self):
+tests/unit/test_v7_users_autoswitch_policy.py:1277:                restore_barrier={
+tests/unit/test_v7_users_autoswitch_policy.py:1284:            self.assertTrue(plan["safety"]["restore_barrier"]["active"])
+tests/unit/test_v7_users_autoswitch_policy.py:1287:            self.assertIn("restore_barrier_failover_suppressed", plan["decisions"][0]["reason"])
+tests/unit/test_v7_users_autoswitch_policy.py:1289:    def test_expired_restore_barrier_requires_generation_clearance(self):
+tests/unit/test_v7_users_autoswitch_policy.py:1295:                restore_barrier={
+tests/unit/test_v7_users_autoswitch_policy.py:1302:            self.assertFalse(plan["safety"]["restore_barrier"]["active"])
+tests/unit/test_v7_users_autoswitch_policy.py:1303:            self.assertTrue(plan["safety"]["restore_barrier"]["expired"])
+tests/unit/test_v7_users_autoswitch_policy.py:1304:            self.assertTrue(plan["safety"]["restore_barrier"]["post_ttl_blocking"])
+tests/unit/test_v7_users_autoswitch_policy.py:1308:                "restore_barrier_post_ttl_generation_clearance_required",
+tests/unit/test_v7_users_autoswitch_policy.py:1312:    def test_expired_restore_barrier_with_clearance_allows_telegram_failover(self):
+tests/unit/test_v7_users_autoswitch_policy.py:1318:                restore_barrier={
+tests/unit/test_v7_users_autoswitch_policy.py:1326:            self.assertFalse(plan["safety"]["restore_barrier"]["active"])
+tests/unit/test_v7_users_autoswitch_policy.py:1327:            self.assertTrue(plan["safety"]["restore_barrier"]["expired"])
+tests/unit/test_v7_users_autoswitch_policy.py:1328:            self.assertTrue(plan["safety"]["restore_barrier"]["cleared"])
+tests/unit/test_v7_users_autoswitch_policy.py:1329:            self.assertFalse(plan["safety"]["restore_barrier"]["post_ttl_blocking"])
+tests/unit/test_v7_users_autoswitch_policy.py:1333:    def test_expired_restore_barrier_clearance_budget_blocks_selected_moves(self):
+tests/unit/test_v7_users_autoswitch_policy.py:1339:                restore_barrier={
+tests/unit/test_v7_users_autoswitch_policy.py:1348:            barrier = plan["safety"]["restore_barrier"]
+tests/unit/test_v7_users_autoswitch_policy.py:1358:                "restore_barrier_clearance_selected_moves_exceed_budget",
+tests/unit/test_v7_users_autoswitch_policy.py:1369:                restore_barrier={
+tests/unit/test_v7_users_autoswitch_policy.py:1378:            barrier = plan["safety"]["restore_barrier"]
+tests/unit/test_v7_users_autoswitch_policy.py:1384:                "restore_barrier_clearance_generation_token_missing",
+tests/unit/test_v7_users_autoswitch_policy.py:1394:                restore_barrier={
+tests/unit/test_v7_users_autoswitch_policy.py:1403:            barrier = bootstrap["safety"]["restore_barrier"]
+tests/unit/test_v7_users_autoswitch_policy.py:1417:            barrier = plan["safety"]["restore_barrier"]
+tests/unit/test_v7_users_autoswitch_policy.py:1421:                "restore_barrier_clearance_budget_and_generation_ok",
+tests/unit/test_v7_users_autoswitch_policy.py:1425:    def test_governed_apply_pre_refresh_reuses_restore_barrier_clearance_metadata(self):
+tests/unit/test_v7_users_autoswitch_policy.py:1431:                restore_barrier={
+tests/unit/test_v7_users_autoswitch_policy.py:1546:                restore_barrier={
+tests/unit/test_v7_users_autoswitch_policy.py:1558:            barrier = plan["safety"]["restore_barrier"]
+tests/unit/test_v7_users_autoswitch_policy.py:1562:                "restore_barrier_clearance_generation_mismatch",
+tests/unit/test_v7_users_autoswitch_policy.py:1572:                restore_barrier={
+tests/unit/test_v7_users_autoswitch_policy.py:1592:            barrier = plan["safety"]["restore_barrier"]
+tests/unit/test_v7_users_autoswitch_policy.py:1596:                "restore_barrier_clearance_selected_moves_hash_mismatch",
+tests/unit/test_v7_users_autoswitch_policy.py:1606:                restore_barrier={
+tests/unit/test_v7_users_autoswitch_policy.py:1614:            barrier = bootstrap["safety"]["restore_barrier"]
+tests/unit/test_v7_users_autoswitch_policy.py:1628:            barrier = plan["safety"]["restore_barrier"]
+tests/unit/test_v7_users_autoswitch_policy.py:1632:                "restore_barrier_clearance_generation_expired",
+tests/unit/test_v7_users_autoswitch_policy.py:1636:    def test_apply_uses_approved_plan_lock_when_recomputed_planner_would_select_zero(self):
+tests/unit/test_v7_users_autoswitch_policy.py:1672:                "approved_plan_lock": self.approved_plan_lock_from_plan(bootstrap),
+tests/unit/test_v7_users_autoswitch_policy.py:1704:            (plan["safety"]["restore_barrier"]["approved_plan_lock_validation"] or {}).get("reason"),
+tests/unit/test_v7_users_autoswitch_policy.py:1705:            "approved_plan_lock_valid",
+tests/unit/test_v7_users_autoswitch_policy.py:1710:    def test_approved_plan_lock_uses_source_bundle_lease_for_service_matrix_snapshot_drift(self):
+tests/unit/test_v7_users_autoswitch_policy.py:1746:                "approved_plan_lock": self.approved_plan_lock_from_plan(bootstrap),
+tests/unit/test_v7_users_autoswitch_policy.py:1755:            planner.intelligence_snapshots = {
+tests/unit/test_v7_users_autoswitch_policy.py:1790:        gate = plan["safety"]["intelligence_snapshots"]
+tests/unit/test_v7_users_autoswitch_policy.py:1791:        self.assertTrue(gate["source_bundle_lease_used"])
+tests/unit/test_v7_users_autoswitch_policy.py:1793:        self.assertEqual(gate["source_bundle_lease_changed_keys"], ["service_matrix"])
+tests/unit/test_v7_users_autoswitch_policy.py:1799:    def test_readiness_dry_run_uses_source_bundle_lease_for_service_matrix_snapshot_drift(self):
+tests/unit/test_v7_users_autoswitch_policy.py:1835:                "approved_plan_lock": self.approved_plan_lock_from_plan(bootstrap),
+tests/unit/test_v7_users_autoswitch_policy.py:1845:            planner.intelligence_snapshots = {
+tests/unit/test_v7_users_autoswitch_policy.py:1869:        gate = plan["safety"]["intelligence_snapshots"]
+tests/unit/test_v7_users_autoswitch_policy.py:1870:        barrier = plan["safety"]["restore_barrier"]
+tests/unit/test_v7_users_autoswitch_policy.py:1872:        self.assertTrue(barrier["source_bundle_lease"]["ok"])
+tests/unit/test_v7_users_autoswitch_policy.py:1873:        self.assertEqual(barrier["source_bundle_lease"]["changed_source_keys"], ["service_matrix"])
+tests/unit/test_v7_users_autoswitch_policy.py:1874:        self.assertTrue(gate["source_bundle_lease_used"])
+tests/unit/test_v7_users_autoswitch_policy.py:1876:        self.assertEqual(gate["source_bundle_lease_scope"], "approved_plan_lock_readiness_recheck")
+tests/unit/test_v7_users_autoswitch_policy.py:1877:        self.assertEqual(gate["source_bundle_lease_changed_keys"], ["service_matrix"])
+tests/unit/test_v7_users_autoswitch_policy.py:1883:    def test_approved_plan_lock_accepts_stable_sources_with_service_matrix_snapshot_drift(self):
+tests/unit/test_v7_users_autoswitch_policy.py:1919:                "approved_plan_lock": self.approved_plan_lock_from_plan(bootstrap),
+tests/unit/test_v7_users_autoswitch_policy.py:1924:            planner.intelligence_snapshots = {
+tests/unit/test_v7_users_autoswitch_policy.py:1959:        barrier = plan["safety"]["restore_barrier"]
+tests/unit/test_v7_users_autoswitch_policy.py:1960:        gate = plan["safety"]["intelligence_snapshots"]
+tests/unit/test_v7_users_autoswitch_policy.py:1963:            barrier["source_bundle_lease"]["reason"],
+tests/unit/test_v7_users_autoswitch_policy.py:1964:            "restore_barrier_source_bundle_lease_hard_sources_stable",
+tests/unit/test_v7_users_autoswitch_policy.py:1966:        self.assertEqual(barrier["source_bundle_lease"]["changed_source_keys"], [])
+tests/unit/test_v7_users_autoswitch_policy.py:1967:        self.assertTrue(gate["source_bundle_lease_used"])
+tests/unit/test_v7_users_autoswitch_policy.py:1969:        self.assertEqual(gate["source_bundle_lease_changed_keys"], [])
+tests/unit/test_v7_users_autoswitch_policy.py:1975:    def test_approved_plan_lock_keeps_snapshot_gate_closed_for_unleased_drift(self):
+tests/unit/test_v7_users_autoswitch_policy.py:2011:                "approved_plan_lock": self.approved_plan_lock_from_plan(bootstrap),
+tests/unit/test_v7_users_autoswitch_policy.py:2020:            planner.intelligence_snapshots = {
+tests/unit/test_v7_users_autoswitch_policy.py:2036:        gate = plan["safety"]["intelligence_snapshots"]
+tests/unit/test_v7_users_autoswitch_policy.py:2037:        self.assertNotIn("source_bundle_lease_used", gate)
+tests/unit/test_v7_users_autoswitch_policy.py:2076:                "approved_plan_lock": self.approved_plan_lock_from_plan(bootstrap),
+tests/unit/test_v7_users_autoswitch_policy.py:2083:            planner.intelligence_snapshots = {
+tests/unit/test_v7_users_autoswitch_policy.py:2101:        gate = plan["safety"]["intelligence_snapshots"]
+tests/unit/test_v7_users_autoswitch_policy.py:2102:        self.assertNotIn("source_bundle_lease_used", gate)
+tests/unit/test_v7_users_autoswitch_policy.py:2108:    def test_approved_plan_lock_rejects_changed_selected_hash(self):
+tests/unit/test_v7_users_autoswitch_policy.py:2124:            lock = self.approved_plan_lock_from_plan(bootstrap)
+tests/unit/test_v7_users_autoswitch_policy.py:2139:                "approved_plan_lock": lock,
+tests/unit/test_v7_users_autoswitch_policy.py:2146:        validation = plan["safety"]["restore_barrier"]["approved_plan_lock_validation"]
+tests/unit/test_v7_users_autoswitch_policy.py:2147:        self.assertIn("approved_plan_lock_selected_hash_mismatch", validation["reasons"])
+tests/unit/test_v7_users_autoswitch_policy.py:2149:    def test_approved_plan_lock_rejects_changed_user_source_and_target_scope(self):
+tests/unit/test_v7_users_autoswitch_policy.py:2179:                "approved_plan_lock": self.approved_plan_lock_from_plan(bootstrap),
+tests/unit/test_v7_users_autoswitch_policy.py:2188:        validation = plan["safety"]["restore_barrier"]["approved_plan_lock_validation"]
+tests/unit/test_v7_users_autoswitch_policy.py:2189:        self.assertIn("approved_plan_lock_user_source_mismatch", validation["reasons"])
+tests/unit/test_v7_users_autoswitch_policy.py:2190:        self.assertIn("approved_plan_lock_target_scope_mismatch", validation["reasons"])
+tests/unit/test_v7_users_autoswitch_policy.py:2192:    def test_approved_plan_lock_rejects_expired_lock(self):
+tests/unit/test_v7_users_autoswitch_policy.py:2221:                "approved_plan_lock": self.approved_plan_lock_from_plan(bootstrap, expires_at="2000-01-01T00:00:00+00:00"),
+tests/unit/test_v7_users_autoswitch_policy.py:2228:        validation = plan["safety"]["restore_barrier"]["approved_plan_lock_validation"]
+tests/unit/test_v7_users_autoswitch_policy.py:2229:        self.assertIn("approved_plan_lock_expired", validation["reasons"])
+tools/v7-users-autoswitch:601:        self.restore_barrier_file = Path(args.restore_barrier_file)
+tools/v7-users-autoswitch:602:        self.restore_barrier = self._restore_barrier_status()
+tools/v7-users-autoswitch:609:        self.intelligence_snapshots = self._load_intelligence_snapshots()
+tools/v7-users-autoswitch:1145:    def _restore_barrier_status(self) -> dict[str, Any]:
+tools/v7-users-autoswitch:1146:        data = read_json(self.restore_barrier_file, {})
+tools/v7-users-autoswitch:1182:            "file": str(self.restore_barrier_file),
+tools/v7-users-autoswitch:1222:        if isinstance((data or {}).get("approved_plan_lock"), dict):
+tools/v7-users-autoswitch:1223:            status["approved_plan_lock"] = (data or {}).get("approved_plan_lock") or {}
+tools/v7-users-autoswitch:1224:            status["approved_plan_lock_hash"] = str((data or {}).get("approved_plan_lock_hash") or "")
+tools/v7-users-autoswitch:1225:            status["approved_plan_lock_id"] = str((data or {}).get("approved_plan_lock_id") or "")
+tools/v7-users-autoswitch:1269:    def _load_intelligence_snapshots(self) -> dict[str, Any]:
+tools/v7-users-autoswitch:1272:            from admin_core.intelligence_snapshots import read_snapshot_bundle
+tools/v7-users-autoswitch:1359:            "written_evidence": "plan.safety.intelligence_snapshots.pre_planner_refresh",
+tools/v7-users-autoswitch:1385:            clearance_max_selected_moves = to_int(self.restore_barrier.get("clearance_max_selected_moves"), 0)
+tools/v7-users-autoswitch:1386:            apply_refresh_clearance = self.restore_barrier.get("apply_refresh_clearance") or {}
+tools/v7-users-autoswitch:1568:            "written_evidence": "plan.safety.intelligence_snapshots.pre_planner_refresh.source_reload",
+tools/v7-users-autoswitch:1625:            "written_evidence": "plan.safety.intelligence_snapshots.pre_planner_refresh.post_source_reload_refresh.source_reload_after_retry",
+tools/v7-users-autoswitch:1674:        gate = dict(self.intelligence_snapshots)
+tools/v7-users-autoswitch:1697:    def _apply_source_bundle_lease_to_intelligence_gate(
+tools/v7-users-autoswitch:1700:        restore_barrier: dict[str, Any],
+tools/v7-users-autoswitch:1701:        approved_plan_lock: dict[str, Any],
+tools/v7-users-autoswitch:1703:        if not approved_plan_lock.get("ok"):
+tools/v7-users-autoswitch:1707:        if not bool_value(restore_barrier.get("clearance_generation_ok")):
+tools/v7-users-autoswitch:1709:        lease = restore_barrier.get("source_bundle_lease") or {}
+tools/v7-users-autoswitch:1737:        leased["stop_required_before_source_bundle_lease"] = True
+tools/v7-users-autoswitch:1742:        leased["source_bundle_lease_used"] = True
+tools/v7-users-autoswitch:1743:        leased["source_bundle_lease_scope"] = "approved_plan_lock_apply" if bool_value(getattr(self.args, "apply", False)) else "approved_plan_lock_readiness_recheck"
+tools/v7-users-autoswitch:1744:        leased["source_bundle_lease_allowed_drift"] = sorted(allowed_drift)
+tools/v7-users-autoswitch:1745:        leased["source_bundle_lease_changed_keys"] = sorted(changed_keys)
+tools/v7-users-autoswitch:1746:        leased["source_bundle_lease_accepted_errors"] = sorted(set(accepted_errors))
+tools/v7-users-autoswitch:1747:        leased["hard_gate_override"] = "approved_source_bundle_lease_for_locked_apply" if bool_value(getattr(self.args, "apply", False)) else "approved_source_bundle_lease_for_locked_readiness_recheck"
+tools/v7-users-autoswitch:2643:                    "exit_criteria": ["explicit_operator_bridge_request", "fresh_restore_barrier", "snapshot_gate_clean"],
+tools/v7-users-autoswitch:2708:            "restore_barrier_missing_or_stale",
+tools/v7-users-autoswitch:2778:                "action": "permit_only_next_blast_radius_step_through_existing_restore_barrier_snapshot_and_apply_path",
+tools/v7-users-autoswitch:2818:                "action": "drop_selected_moves_before_restore_barrier_snapshot_apply",
+tools/v7-users-autoswitch:2842:            "action": "continue_existing_restore_barrier_snapshot_and_apply_path",
+tools/v7-users-autoswitch:2868:            action = "drop_selected_moves_before_restore_barrier_snapshot_apply"
+tools/v7-users-autoswitch:2904:            "trigger": "after_policy_selection_before_restore_barrier_snapshot_apply",
+tools/v7-users-autoswitch:2990:        result = ((self.intelligence_snapshots.get("results") or {}).get(family) or {})
+tools/v7-users-autoswitch:3421:        restore_barrier = dict(self.restore_barrier)
+tools/v7-users-autoswitch:3422:        selected_before_restore_barrier = [
+tools/v7-users-autoswitch:3431:        approved_plan_lock = self._approved_plan_lock_validation(restore_barrier)
+tools/v7-users-autoswitch:3432:        if approved_plan_lock.get("present"):
+tools/v7-users-autoswitch:3433:            restore_barrier["approved_plan_lock_validation"] = approved_plan_lock
+tools/v7-users-autoswitch:3434:            if approved_plan_lock.get("ok"):
+tools/v7-users-autoswitch:3435:                selected = approved_plan_lock["selected_moves"]
+tools/v7-users-autoswitch:3436:                selected_before_restore_barrier = list(selected)
+tools/v7-users-autoswitch:3441:                    "approved_plan_lock_used": True,
+tools/v7-users-autoswitch:3442:                    "approved_plan_lock_scope": "apply" if bool_value(getattr(self.args, "apply", False)) else "readiness_recheck",
+tools/v7-users-autoswitch:3446:                blast_radius_scope = "approved_plan_lock_apply" if bool_value(getattr(self.args, "apply", False)) else "approved_plan_lock_readiness_recheck"
+tools/v7-users-autoswitch:3449:                restore_barrier["clearance_guard_reason"] = str(
+tools/v7-users-autoswitch:3450:                    approved_plan_lock.get("reason") or "approved_plan_lock_invalid"
+tools/v7-users-autoswitch:3454:            bool_value(restore_barrier.get("expired"))
+tools/v7-users-autoswitch:3455:            and bool_value(restore_barrier.get("cleared"))
+tools/v7-users-autoswitch:3456:            and restore_barrier.get("clearance_max_selected_moves") is not None
+tools/v7-users-autoswitch:3458:            clearance_max_selected_moves = to_int(restore_barrier.get("clearance_max_selected_moves"), 0)
+tools/v7-users-autoswitch:3459:            restore_barrier["clearance_selected_moves_before_guard"] = len(selected)
+tools/v7-users-autoswitch:3460:            restore_barrier["clearance_selected_moves_hash"] = selected_hash
+tools/v7-users-autoswitch:3461:            restore_barrier["approved_candidate_moves_before_guard"] = selected_before_restore_barrier
+tools/v7-users-autoswitch:3462:            restore_barrier["clearance_budget_exceeded"] = len(selected) > clearance_max_selected_moves
+tools/v7-users-autoswitch:3463:            if restore_barrier["clearance_budget_exceeded"]:
+tools/v7-users-autoswitch:3464:                restore_barrier["clearance_guard_reason"] = "restore_barrier_clearance_selected_moves_exceed_budget"
+tools/v7-users-autoswitch:3467:                generation_check = self._restore_clearance_generation_check(restore_barrier, selected, selected_hash)
+tools/v7-users-autoswitch:3468:                restore_barrier.update(generation_check)
+tools/v7-users-autoswitch:3470:                    restore_barrier["clearance_guard_reason"] = generation_check["clearance_generation_reason"]
+tools/v7-users-autoswitch:3473:                    restore_barrier["clearance_guard_reason"] = "restore_barrier_clearance_budget_and_generation_ok"
+tools/v7-users-autoswitch:3475:                restore_barrier["clearance_guard_reason"] = "restore_barrier_clearance_budget_ok"
+tools/v7-users-autoswitch:3477:        intelligence_snapshot_gate = self._apply_source_bundle_lease_to_intelligence_gate(
+tools/v7-users-autoswitch:3479:            restore_barrier,
+tools/v7-users-autoswitch:3480:            approved_plan_lock,
+tools/v7-users-autoswitch:3541:                "restore_barrier": restore_barrier,
+tools/v7-users-autoswitch:3542:                "intelligence_snapshots": intelligence_snapshot_gate,
+tools/v7-users-autoswitch:3589:    def _approved_plan_lock_validation(self, restore_barrier: dict[str, Any]) -> dict[str, Any]:
+tools/v7-users-autoswitch:3590:        lock = restore_barrier.get("approved_plan_lock") or {}
+tools/v7-users-autoswitch:3592:            return {"present": False, "ok": False, "reason": "approved_plan_lock_missing"}
+tools/v7-users-autoswitch:3605:        allowed_users = [str(item) for item in (lock.get("allowed_users") or restore_barrier.get("allowed_users") or [])]
+tools/v7-users-autoswitch:3606:        allowed_targets = [str(item) for item in (lock.get("allowed_targets") or restore_barrier.get("allowed_targets") or [])]
+tools/v7-users-autoswitch:3611:            to_int(restore_barrier.get("clearance_expected_selected_moves"), 0),
+tools/v7-users-autoswitch:3616:            reasons.append("approved_plan_lock_schema_invalid")
+tools/v7-users-autoswitch:3618:            reasons.append("approved_plan_lock_selected_moves_missing")
+tools/v7-users-autoswitch:3620:            reasons.append("approved_plan_lock_selected_count_mismatch")
+tools/v7-users-autoswitch:3622:            reasons.append("approved_plan_lock_selected_hash_mismatch")
+tools/v7-users-autoswitch:3624:            reasons.append("approved_plan_lock_allowed_users_mismatch")
+tools/v7-users-autoswitch:3626:            reasons.append("approved_plan_lock_allowed_targets_mismatch")
+tools/v7-users-autoswitch:3628:            reasons.append("approved_plan_lock_target_scope_mismatch")
+tools/v7-users-autoswitch:3629:        if to_int(restore_barrier.get("clearance_max_selected_moves"), 0) < len(selected):
+tools/v7-users-autoswitch:3630:            reasons.append("approved_plan_lock_exceeds_clearance_budget")
+tools/v7-users-autoswitch:3631:        expires_at = str(lock.get("expires_at") or restore_barrier.get("clearance_expires_at") or "")
+tools/v7-users-autoswitch:3633:            reasons.append("approved_plan_lock_expired")
+tools/v7-users-autoswitch:3638:                reasons.append("approved_plan_lock_user_missing")
+tools/v7-users-autoswitch:3641:                reasons.append("approved_plan_lock_user_disabled")
+tools/v7-users-autoswitch:3643:                reasons.append("approved_plan_lock_user_source_mismatch")
+tools/v7-users-autoswitch:3647:                reasons.append("approved_plan_lock_target_missing")
+tools/v7-users-autoswitch:3649:                reasons.append("approved_plan_lock_target_disabled")
+tools/v7-users-autoswitch:3651:            reasons.append("approved_plan_lock_reselection_not_allowed")
+tools/v7-users-autoswitch:3653:            reasons.append("approved_plan_lock_user_replacement_not_allowed")
+tools/v7-users-autoswitch:3655:            reasons.append("approved_plan_lock_target_replacement_not_allowed")
+tools/v7-users-autoswitch:3660:                "reason": "approved_plan_lock_invalid",
+tools/v7-users-autoswitch:3670:            "reason": "approved_plan_lock_valid",
+tools/v7-users-autoswitch:3693:        results = (self.intelligence_snapshots or {}).get("results") or {}
+tools/v7-users-autoswitch:3735:                "action": "require_fresh_approval_packet_and_restore_barrier",
+tools/v7-users-autoswitch:3745:            "SOURCE_BUNDLE_LEASE_VALID": {
+tools/v7-users-autoswitch:3747:                "action": "allow_approved_source_bundle_lease_for_service_matrix_drift",
+tools/v7-users-autoswitch:3753:                "action": "require_restore_barrier_clearance_refresh",
+tools/v7-users-autoswitch:3789:        snapshot_gate = self.intelligence_snapshots or {}
+tools/v7-users-autoswitch:3829:                "restore_barrier_owner": "admin_core/operator_execution.py",
+tools/v7-users-autoswitch:3907:        barrier = safety.get("restore_barrier") or {}
+tools/v7-users-autoswitch:3908:        snapshot_gate = safety.get("intelligence_snapshots") or {}
+tools/v7-users-autoswitch:3922:            reasons.append("source_bundle_lease_requires_source_bundle_only_mismatch")
+tools/v7-users-autoswitch:3924:            reasons.append("source_bundle_lease_requires_service_matrix_only_change")
+tools/v7-users-autoswitch:3926:            reasons.append("source_bundle_lease_runtime_snapshot_changed")
+tools/v7-users-autoswitch:3928:            reasons.append("source_bundle_lease_requires_apply")
+tools/v7-users-autoswitch:3930:            reasons.append("source_bundle_lease_requires_cleared_restore_barrier")
+tools/v7-users-autoswitch:3932:            reasons.append("source_bundle_lease_restore_barrier_post_ttl_blocking")
+tools/v7-users-autoswitch:3934:            reasons.append(str(barrier.get("clearance_guard_reason") or barrier.get("clearance_generation_reason") or "source_bundle_lease_requires_generation_clearance"))
+tools/v7-users-autoswitch:3937:            reasons.append("source_bundle_lease_selected_moves_exceed_clearance_budget")
+tools/v7-users-autoswitch:3941:                reasons.append("source_bundle_lease_unapproved_users")
+tools/v7-users-autoswitch:3945:                reasons.append("source_bundle_lease_unapproved_targets")
+tools/v7-users-autoswitch:3947:            reasons.append("source_bundle_lease_snapshot_gate_stop_required")
+tools/v7-users-autoswitch:3949:            reasons.append("source_bundle_lease_snapshot_source_mismatch")
+tools/v7-users-autoswitch:3951:            reasons.append("source_bundle_lease_requires_pre_planner_refresh_success")
+tools/v7-users-autoswitch:3954:            reasons.append("source_bundle_lease_refresh_source_not_stable")
+tools/v7-users-autoswitch:3961:            reasons.append("source_bundle_lease_generation_clearance_expired")
+tools/v7-users-autoswitch:3972:                "SOURCE_BUNDLE_LEASE_VALID",
+tools/v7-users-autoswitch:3973:                trigger="apply_validation_source_bundle_lease",
+tools/v7-users-autoswitch:3976:            "reason": "approved_source_bundle_lease_for_service_matrix_drift",
+tools/v7-users-autoswitch:3986:            "restore_barrier_clearance": {
+tools/v7-users-autoswitch:4227:        restore_barrier: dict[str, Any],
+tools/v7-users-autoswitch:4233:            restore_barrier.get("clearance_generation_id")
+tools/v7-users-autoswitch:4234:            or restore_barrier.get("approved_generation_id")
+tools/v7-users-autoswitch:4235:            or restore_barrier.get("planner_generation_id")
+tools/v7-users-autoswitch:4236:            or restore_barrier.get("selected_moves_generation")
+tools/v7-users-autoswitch:4240:            restore_barrier.get("approved_selected_moves_hash")
+tools/v7-users-autoswitch:4243:        approved_envelope_id = str(restore_barrier.get("approved_atomic_execution_envelope_id") or "")
+tools/v7-users-autoswitch:4244:        approved_envelope_hash = str(restore_barrier.get("approved_atomic_execution_envelope_hash") or "")
+tools/v7-users-autoswitch:4245:        approved_source_bundle_hash = str(restore_barrier.get("approved_source_bundle_hash") or "")
+tools/v7-users-autoswitch:4247:        if "clearance_expected_selected_moves" in restore_barrier:
+tools/v7-users-autoswitch:4248:            expected_count = to_int(restore_barrier.get("clearance_expected_selected_moves"), 0)
+tools/v7-users-autoswitch:4249:        elif "approved_selected_moves_count" in restore_barrier:
+tools/v7-users-autoswitch:4250:            expected_count = to_int(restore_barrier.get("approved_selected_moves_count"), 0)
+tools/v7-users-autoswitch:4252:            restore_barrier.get("generation_clearance_expires_at")
+tools/v7-users-autoswitch:4253:            or restore_barrier.get("clearance_expires_at")
+tools/v7-users-autoswitch:4256:        token = str(restore_barrier.get("generation_token") or "")
+tools/v7-users-autoswitch:4260:                "clearance_generation_reason": "restore_barrier_clearance_generation_token_missing",
+tools/v7-users-autoswitch:4267:                "clearance_generation_reason": "restore_barrier_clearance_generation_expired",
+tools/v7-users-autoswitch:4275:                "clearance_generation_reason": "restore_barrier_clearance_generation_mismatch",
+tools/v7-users-autoswitch:4282:                "clearance_generation_reason": "restore_barrier_clearance_selected_moves_hash_mismatch",
+tools/v7-users-autoswitch:4291:                "clearance_generation_reason": "restore_barrier_clearance_selected_moves_count_mismatch",
+tools/v7-users-autoswitch:4300:            trigger="restore_barrier_generation_clearance_check",
+tools/v7-users-autoswitch:4302:        envelope_source_lease = self._restore_barrier_source_bundle_lease(
+tools/v7-users-autoswitch:4303:            restore_barrier,
+tools/v7-users-autoswitch:4313:                "clearance_generation_reason": "restore_barrier_clearance_atomic_envelope_id_mismatch",
+tools/v7-users-autoswitch:4318:                "source_bundle_lease": envelope_source_lease,
+tools/v7-users-autoswitch:4327:                "clearance_generation_reason": "restore_barrier_clearance_atomic_envelope_hash_mismatch",
+tools/v7-users-autoswitch:4332:                "source_bundle_lease": envelope_source_lease,
+tools/v7-users-autoswitch:4341:                "clearance_generation_reason": "restore_barrier_clearance_source_bundle_hash_mismatch",
+tools/v7-users-autoswitch:4346:                "source_bundle_lease": envelope_source_lease,
+tools/v7-users-autoswitch:4348:        reason = "restore_barrier_clearance_generation_match"
+tools/v7-users-autoswitch:4350:            reason = "restore_barrier_clearance_generation_match_source_bundle_lease"
+tools/v7-users-autoswitch:4366:            "source_bundle_lease": envelope_source_lease,
+tools/v7-users-autoswitch:4369:    def _restore_barrier_source_bundle_lease(
+tools/v7-users-autoswitch:4371:        restore_barrier: dict[str, Any],
+tools/v7-users-autoswitch:4374:        approved_hashes = restore_barrier.get("approved_source_hashes") or {}
+tools/v7-users-autoswitch:4383:            reason = "restore_barrier_source_bundle_lease_hard_sources_stable"
+tools/v7-users-autoswitch:4385:                reason = "restore_barrier_source_bundle_lease_service_matrix_only"
+tools/v7-users-autoswitch:4396:            "reason": "restore_barrier_source_bundle_lease_hard_source_changed",
+tools/v7-users-autoswitch:4442:            if current and bool_value(self.restore_barrier.get("failover_quarantine")):
+tools/v7-users-autoswitch:4443:                if bool_value(self.restore_barrier.get("post_ttl_blocking")):
+tools/v7-users-autoswitch:4444:                    reason.append("restore_barrier_post_ttl_generation_clearance_required")
+tools/v7-users-autoswitch:4446:                    reason.append("restore_barrier_failover_suppressed")
+tools/v7-users-autoswitch:5358:        snapshot_gate = (plan.get("safety") or {}).get("intelligence_snapshots") or {}
+tools/v7-users-autoswitch:5361:        barrier = (plan.get("safety") or {}).get("restore_barrier") or {}
+tools/v7-users-autoswitch:5363:            return "dry_run_restore_barrier_active"
+tools/v7-users-autoswitch:5365:            return "dry_run_restore_barrier_post_ttl_blocking"
+tools/v7-users-autoswitch:5372:            return f"dry_run_restore_barrier_{barrier_reason}"
+tools/v7-users-autoswitch:5394:    def _restore_barrier_status_label(self, plan: dict[str, Any]) -> str:
+tools/v7-users-autoswitch:5395:        barrier = (plan.get("safety") or {}).get("restore_barrier") or {}
+tools/v7-users-autoswitch:5418:            "restore_barrier_status": self._restore_barrier_status_label(plan),

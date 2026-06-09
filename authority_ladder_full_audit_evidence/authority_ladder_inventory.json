@@ -1,0 +1,68 @@
+{
+  "program": "PROGRAM_AUTHORITY_LADDER_FULL_AUDIT_AND_FUTURE_CERTIFICATION_MAP",
+  "scope": "read_only_architecture_and_governance_audit",
+  "runtime_mutation_performed": false,
+  "user_movement_performed": false,
+  "autoswitch_apply_run": false,
+  "authority_promotion_performed": false,
+  "primary_runtime_owner": "tools/v7-users-autoswitch",
+  "runtime_budget_classes": [
+    {"class": "CANARY", "budget": 1, "next": "SMALL_BATCH"},
+    {"class": "SMALL_BATCH", "budget": 2, "next": "MEDIUM_BATCH"},
+    {"class": "MEDIUM_BATCH", "budget": 5, "next": "LARGE_BATCH"},
+    {"class": "LARGE_BATCH", "budget": 10, "next": "POOL"},
+    {"class": "POOL", "budget": 25, "next": "POOL"}
+  ],
+  "lifecycle_states": [
+    "PREPARED",
+    "CERTIFIED",
+    "PROMOTED",
+    "DEMOTED",
+    "FROZEN",
+    "REVOKED",
+    "CANARY_CERTIFIED",
+    "CANARY_EXPANSION",
+    "PROVISIONAL_SMALL_BATCH",
+    "SMALL_BATCH_CERTIFIED"
+  ],
+  "autonomy_readiness_levels": [
+    "NOT_READY",
+    "SHADOW_READY",
+    "OPERATOR_VISIBLE_READY",
+    "OPERATOR_APPROVAL_READY",
+    "BOUNDED_AUTONOMY_READY",
+    "PRODUCTION_AUTONOMY_READY"
+  ],
+  "capacity_architecture_classes": [
+    "CLASS_1",
+    "CLASS_2",
+    "CLASS_4",
+    "CLASS_10",
+    "CLASS_20",
+    "CLASS_50",
+    "CLASS_100",
+    "PRODUCTION_POOL"
+  ],
+  "current_position": {
+    "prepared_authority": "MEDIUM_BATCH",
+    "certified_authority": "MEDIUM_BATCH",
+    "runtime_authority": "MEDIUM_BATCH",
+    "allowed_budget": 5,
+    "next_authority": "LARGE_BATCH",
+    "next_budget": 10,
+    "evidence_source": "large_batch_completion_execution_loop_evidence/phase3_fresh_planner_max10_summary.json"
+  },
+  "source_files": [
+    "tools/v7-users-autoswitch",
+    "tests/unit/test_v7_users_autoswitch_policy.py",
+    "admin_core/intelligence_platform.py",
+    "PROGRAM_AUTHORITY_PROMOTION_DEMOTION_AND_CERTIFICATION_GOVERNANCE_REPORT.md",
+    "PROGRAM_AUTHORITY_BUDGET_GATE_CANARY_TO_NEXT_COHORT_CERTIFICATION_REPORT.md",
+    "PROGRAM_MEDIUM_BATCH_PROMOTION_IMPLEMENTATION_AND_REAL_5_USER_EXECUTION_REPORT.md",
+    "PROGRAM_LARGE_BATCH_COMPLETION_STABILITY_AND_EXECUTION_LOOP_FOUNDATION_REPORT.md",
+    "BLOCK_E32_1_1_CAPACITY_CLASS_MODEL_REPORT.md",
+    "docs/track7/productization/e32_1_3-evidence/evidence-requirements.md",
+    "docs/track7/productization/e32_1_3-evidence/promotion-model.md",
+    "docs/track7/productization/e32_1_8-evidence/final-certification-decision.md"
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "status": "ALIGNED",
+  "final_verdict": "PASS",
+  "local_commit": "8dda6fa35a7657f28c7a4164bdfd2a3ab6729989",
+  "github_commit": "8dda6fa35a7657f28c7a4164bdfd2a3ab6729989",
+  "production_commit": "8dda6fa35a7657f28c7a4164bdfd2a3ab6729989",
+  "runtime_action_status": "READY_FOR_RUNTIME_ACTION",
+  "runtime_action_safe": true,
+  "diagnosis": [],
+  "deploy_guard": {
+    "changed_files_since_production": [],
+    "deploy_delta_mismatches": [],
+    "deployable_change_classification": {
+      "classification": "NO_CHANGES",
+      "deploy_required_paths": [],
+      "deployment_required": false,
+      "docs_only_mismatch": false,
+      "docs_only_paths": [],
+      "final_verdict": "PASS",
+      "schema": "v7-deployable-change-classification/v1",
+      "unknown_paths": []
+    },
+    "deployment_required": false,
+    "diagnosis": [],
+    "docs_only_mismatch": false,
+    "final_verdict": "PASS",
+    "github_commit": "8dda6fa35a7657f28c7a4164bdfd2a3ab6729989",
+    "local_commit": "8dda6fa35a7657f28c7a4164bdfd2a3ab6729989",
+    "production_commit": "8dda6fa35a7657f28c7a4164bdfd2a3ab6729989",
+    "reason": "local_github_production_aligned",
+    "runtime_action_safe": true,
+    "safe_next_command": "tools/v7-truth-check --all --json",
+    "schema": "v7-runtime-action-deploy-guard/v1",
+    "status": "READY_FOR_RUNTIME_ACTION"
+  }
+}

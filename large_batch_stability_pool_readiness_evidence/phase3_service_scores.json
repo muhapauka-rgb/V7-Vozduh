@@ -1,0 +1,967 @@
+{
+  "confidence": 0.8474,
+  "confidence_factors": {
+    "history_completeness": 1.0,
+    "probe_completeness": 0.3895,
+    "service_completeness": 1.0,
+    "source_completeness": 1.0
+  },
+  "expires_at": "2026-06-07T12:22:58.958358+00:00",
+  "freshness_state": "FRESH",
+  "generated_at": "2026-06-07T12:20:58.958358+00:00",
+  "generator": "admin_core.intelligence_workers",
+  "item_count": 14,
+  "items": [
+    {
+      "average_score": 38.799,
+      "confidence": 0.35,
+      "criteria_seen": [
+        "availability",
+        "confidence",
+        "error_rate",
+        "freshness",
+        "latency",
+        "stability",
+        "throughput"
+      ],
+      "degrading_targets": [],
+      "low_targets": [
+        "1",
+        "openvpn-1779388847-d2ad7c",
+        "vless"
+      ],
+      "quality_model_schema": "ri4cd.service-quality-score.v1",
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 7,
+        "distinct_rounded": 5,
+        "max": 56.141,
+        "mean": 38.799,
+        "min": 13.006,
+        "spread": 43.135,
+        "stdev": 19.097
+      },
+      "service": "anthropic",
+      "target_count": 7,
+      "trend_summary": {
+        "degradation_frequency": 0.4286,
+        "recovery_speed": 0.143,
+        "stability_trend_delta": 0.0017
+      }
+    },
+    {
+      "average_score": 66.55,
+      "confidence": 0.35,
+      "criteria_seen": [
+        "availability",
+        "confidence",
+        "error_rate",
+        "freshness",
+        "latency",
+        "stability",
+        "throughput"
+      ],
+      "degrading_targets": [],
+      "low_targets": [
+        "1",
+        "openvpn-1779388847-d2ad7c"
+      ],
+      "quality_model_schema": "ri4cd.service-quality-score.v1",
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 7,
+        "distinct_rounded": 5,
+        "max": 91.141,
+        "mean": 66.55,
+        "min": 13.006,
+        "spread": 78.135,
+        "stdev": 34.039
+      },
+      "service": "apple",
+      "target_count": 7,
+      "trend_summary": {
+        "degradation_frequency": 0.2857,
+        "recovery_speed": 0.143,
+        "stability_trend_delta": 0.0017
+      }
+    },
+    {
+      "average_score": 65.52,
+      "confidence": 0.3375,
+      "criteria_seen": [
+        "availability",
+        "confidence",
+        "error_rate",
+        "freshness",
+        "response_latency",
+        "stability",
+        "stream_continuity",
+        "stream_start_latency"
+      ],
+      "degrading_targets": [],
+      "low_targets": [
+        "1",
+        "openvpn-1779388847-d2ad7c"
+      ],
+      "quality_model_schema": "ri4cd.service-quality-score.v1",
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 7,
+        "distinct_rounded": 5,
+        "max": 90.141,
+        "mean": 65.52,
+        "min": 19.504,
+        "spread": 70.637,
+        "stdev": 30.336
+      },
+      "service": "chatgpt",
+      "target_count": 7,
+      "trend_summary": {
+        "degradation_frequency": 0.2857,
+        "recovery_speed": 0.143,
+        "stability_trend_delta": 0.0017
+      }
+    },
+    {
+      "average_score": 63.707,
+      "confidence": 0.35,
+      "criteria_seen": [
+        "availability",
+        "confidence",
+        "error_rate",
+        "freshness",
+        "latency",
+        "stability",
+        "throughput"
+      ],
+      "degrading_targets": [],
+      "low_targets": [
+        "1",
+        "openvpn-1779388847-d2ad7c"
+      ],
+      "quality_model_schema": "ri4cd.service-quality-score.v1",
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 7,
+        "distinct_rounded": 5,
+        "max": 91.141,
+        "mean": 63.707,
+        "min": 13.006,
+        "spread": 78.135,
+        "stdev": 33.633
+      },
+      "service": "claude",
+      "target_count": 7,
+      "trend_summary": {
+        "degradation_frequency": 0.2857,
+        "recovery_speed": 0.143,
+        "stability_trend_delta": 0.0017
+      }
+    },
+    {
+      "average_score": 60.387,
+      "confidence": 0.3429,
+      "criteria_seen": [
+        "availability",
+        "confidence",
+        "error_rate",
+        "freshness",
+        "latency",
+        "stability",
+        "throughput"
+      ],
+      "degrading_targets": [],
+      "low_targets": [
+        "1",
+        "openvpn-1779388847-d2ad7c"
+      ],
+      "quality_model_schema": "ri4cd.service-quality-score.v1",
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 7,
+        "distinct_rounded": 6,
+        "max": 91.141,
+        "mean": 60.387,
+        "min": 13.006,
+        "spread": 78.135,
+        "stdev": 31.222
+      },
+      "service": "facebook",
+      "target_count": 7,
+      "trend_summary": {
+        "degradation_frequency": 0.2857,
+        "recovery_speed": 0.143,
+        "stability_trend_delta": 0.0017
+      }
+    },
+    {
+      "average_score": 66.55,
+      "confidence": 0.35,
+      "criteria_seen": [
+        "availability",
+        "confidence",
+        "error_rate",
+        "freshness",
+        "latency",
+        "stability",
+        "throughput"
+      ],
+      "degrading_targets": [],
+      "low_targets": [
+        "1",
+        "openvpn-1779388847-d2ad7c"
+      ],
+      "quality_model_schema": "ri4cd.service-quality-score.v1",
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 7,
+        "distinct_rounded": 5,
+        "max": 91.141,
+        "mean": 66.55,
+        "min": 13.006,
+        "spread": 78.135,
+        "stdev": 34.039
+      },
+      "service": "google",
+      "target_count": 7,
+      "trend_summary": {
+        "degradation_frequency": 0.2857,
+        "recovery_speed": 0.143,
+        "stability_trend_delta": 0.0017
+      }
+    },
+    {
+      "average_score": 66.55,
+      "confidence": 0.35,
+      "criteria_seen": [
+        "availability",
+        "confidence",
+        "error_rate",
+        "freshness",
+        "latency",
+        "stability",
+        "throughput"
+      ],
+      "degrading_targets": [],
+      "low_targets": [
+        "1",
+        "openvpn-1779388847-d2ad7c"
+      ],
+      "quality_model_schema": "ri4cd.service-quality-score.v1",
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 7,
+        "distinct_rounded": 5,
+        "max": 91.141,
+        "mean": 66.55,
+        "min": 13.006,
+        "spread": 78.135,
+        "stdev": 34.039
+      },
+      "service": "google_auth",
+      "target_count": 7,
+      "trend_summary": {
+        "degradation_frequency": 0.2857,
+        "recovery_speed": 0.143,
+        "stability_trend_delta": 0.0017
+      }
+    },
+    {
+      "average_score": 75.946,
+      "confidence": 0.3389,
+      "criteria_seen": [
+        "availability",
+        "error_rate",
+        "feed_load",
+        "freshness",
+        "media_load",
+        "reliability",
+        "stability",
+        "story_load",
+        "video_load"
+      ],
+      "degrading_targets": [],
+      "low_targets": [
+        "1",
+        "openvpn-1779388847-d2ad7c"
+      ],
+      "quality_model_schema": "ri4cd.service-quality-score.v1",
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 7,
+        "distinct_rounded": 4,
+        "max": 97.256,
+        "mean": 75.946,
+        "min": 28.503,
+        "spread": 68.753,
+        "stdev": 30.118
+      },
+      "service": "instagram",
+      "target_count": 7,
+      "trend_summary": {
+        "degradation_frequency": 0.2857,
+        "recovery_speed": 0.1,
+        "stability_trend_delta": 0.0017
+      }
+    },
+    {
+      "average_score": 63.693,
+      "confidence": 0.3429,
+      "criteria_seen": [
+        "availability",
+        "confidence",
+        "error_rate",
+        "freshness",
+        "latency",
+        "stability",
+        "throughput"
+      ],
+      "degrading_targets": [],
+      "low_targets": [
+        "1",
+        "openvpn-1779388847-d2ad7c"
+      ],
+      "quality_model_schema": "ri4cd.service-quality-score.v1",
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 7,
+        "distinct_rounded": 5,
+        "max": 91.141,
+        "mean": 63.693,
+        "min": 13.006,
+        "spread": 78.135,
+        "stdev": 33.635
+      },
+      "service": "openai_auth",
+      "target_count": 7,
+      "trend_summary": {
+        "degradation_frequency": 0.2857,
+        "recovery_speed": 0.143,
+        "stability_trend_delta": 0.0017
+      }
+    },
+    {
+      "average_score": 63.693,
+      "confidence": 0.3429,
+      "criteria_seen": [
+        "availability",
+        "confidence",
+        "error_rate",
+        "freshness",
+        "latency",
+        "stability",
+        "throughput"
+      ],
+      "degrading_targets": [],
+      "low_targets": [
+        "1",
+        "openvpn-1779388847-d2ad7c"
+      ],
+      "quality_model_schema": "ri4cd.service-quality-score.v1",
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 7,
+        "distinct_rounded": 5,
+        "max": 91.141,
+        "mean": 63.693,
+        "min": 13.006,
+        "spread": 78.135,
+        "stdev": 33.635
+      },
+      "service": "soundcloud",
+      "target_count": 7,
+      "trend_summary": {
+        "degradation_frequency": 0.2857,
+        "recovery_speed": 0.143,
+        "stability_trend_delta": 0.0017
+      }
+    },
+    {
+      "average_score": 63.473,
+      "confidence": 0.3429,
+      "criteria_seen": [
+        "availability",
+        "confidence",
+        "error_rate",
+        "freshness",
+        "latency",
+        "stability",
+        "throughput"
+      ],
+      "degrading_targets": [],
+      "low_targets": [
+        "1",
+        "openvpn-1779388847-d2ad7c"
+      ],
+      "quality_model_schema": "ri4cd.service-quality-score.v1",
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 7,
+        "distinct_rounded": 4,
+        "max": 89.855,
+        "mean": 63.473,
+        "min": 13.006,
+        "spread": 76.849,
+        "stdev": 33.459
+      },
+      "service": "spotify",
+      "target_count": 7,
+      "trend_summary": {
+        "degradation_frequency": 0.2857,
+        "recovery_speed": 0.143,
+        "stability_trend_delta": 0.0017
+      }
+    },
+    {
+      "average_score": 77.272,
+      "confidence": 0.7943,
+      "criteria_seen": [
+        "availability",
+        "connection_success",
+        "download_latency",
+        "error_rate",
+        "existing_probe_score",
+        "freshness",
+        "media_latency",
+        "media_success_rate",
+        "message_latency",
+        "stability",
+        "upload_latency"
+      ],
+      "degrading_targets": [],
+      "low_targets": [
+        "1",
+        "openvpn-1779388847-d2ad7c"
+      ],
+      "quality_model_schema": "ri4cd.service-quality-score.v1",
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 7,
+        "distinct_rounded": 5,
+        "max": 98.756,
+        "mean": 77.272,
+        "min": 26.49,
+        "spread": 72.266,
+        "stdev": 32.144
+      },
+      "service": "telegram",
+      "target_count": 7,
+      "trend_summary": {
+        "degradation_frequency": 0.2857,
+        "recovery_speed": 0.043,
+        "stability_trend_delta": 0.0017
+      }
+    },
+    {
+      "average_score": 66.55,
+      "confidence": 0.35,
+      "criteria_seen": [
+        "availability",
+        "confidence",
+        "error_rate",
+        "freshness",
+        "latency",
+        "stability",
+        "throughput"
+      ],
+      "degrading_targets": [],
+      "low_targets": [
+        "1",
+        "openvpn-1779388847-d2ad7c"
+      ],
+      "quality_model_schema": "ri4cd.service-quality-score.v1",
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 7,
+        "distinct_rounded": 5,
+        "max": 91.141,
+        "mean": 66.55,
+        "min": 13.006,
+        "spread": 78.135,
+        "stdev": 34.039
+      },
+      "service": "whatsapp",
+      "target_count": 7,
+      "trend_summary": {
+        "degradation_frequency": 0.2857,
+        "recovery_speed": 0.143,
+        "stability_trend_delta": 0.0017
+      }
+    },
+    {
+      "average_score": 70.94,
+      "confidence": 0.3389,
+      "criteria_seen": [
+        "1080p_viability",
+        "4k_viability",
+        "availability",
+        "buffer_probability",
+        "chunk_throughput",
+        "error_rate",
+        "freshness",
+        "playback_stability",
+        "startup_delay"
+      ],
+      "degrading_targets": [],
+      "low_targets": [
+        "1",
+        "openvpn-1779388847-d2ad7c"
+      ],
+      "quality_model_schema": "ri4cd.service-quality-score.v1",
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 7,
+        "distinct_rounded": 3,
+        "max": 98.64,
+        "mean": 70.94,
+        "min": 10.508,
+        "spread": 88.132,
+        "stdev": 38.683
+      },
+      "service": "youtube",
+      "target_count": 7,
+      "trend_summary": {
+        "degradation_frequency": 0.2857,
+        "recovery_speed": 0.007,
+        "stability_trend_delta": 0.0017
+      }
+    }
+  ],
+  "metadata": {
+    "calibration": {
+      "channel_distribution": {
+        "calibration_state": "OK",
+        "count": 7,
+        "distinct_rounded": 5,
+        "max": 94.514,
+        "mean": 70.464,
+        "min": 18.503,
+        "spread": 76.011,
+        "stdev": 33.134
+      },
+      "distribution_quality": "PASS",
+      "runtime_decision_authority": "none_snapshot_only",
+      "schema": "ri4cd.service-calibration.v1",
+      "service_distributions": {
+        "anthropic": {
+          "calibration_state": "OK",
+          "count": 7,
+          "distinct_rounded": 5,
+          "max": 56.141,
+          "mean": 38.799,
+          "min": 13.006,
+          "spread": 43.135,
+          "stdev": 19.097
+        },
+        "apple": {
+          "calibration_state": "OK",
+          "count": 7,
+          "distinct_rounded": 5,
+          "max": 91.141,
+          "mean": 66.55,
+          "min": 13.006,
+          "spread": 78.135,
+          "stdev": 34.039
+        },
+        "chatgpt": {
+          "calibration_state": "OK",
+          "count": 7,
+          "distinct_rounded": 5,
+          "max": 90.141,
+          "mean": 65.52,
+          "min": 19.504,
+          "spread": 70.637,
+          "stdev": 30.336
+        },
+        "claude": {
+          "calibration_state": "OK",
+          "count": 7,
+          "distinct_rounded": 5,
+          "max": 91.141,
+          "mean": 63.707,
+          "min": 13.006,
+          "spread": 78.135,
+          "stdev": 33.633
+        },
+        "facebook": {
+          "calibration_state": "OK",
+          "count": 7,
+          "distinct_rounded": 6,
+          "max": 91.141,
+          "mean": 60.387,
+          "min": 13.006,
+          "spread": 78.135,
+          "stdev": 31.222
+        },
+        "google": {
+          "calibration_state": "OK",
+          "count": 7,
+          "distinct_rounded": 5,
+          "max": 91.141,
+          "mean": 66.55,
+          "min": 13.006,
+          "spread": 78.135,
+          "stdev": 34.039
+        },
+        "google_auth": {
+          "calibration_state": "OK",
+          "count": 7,
+          "distinct_rounded": 5,
+          "max": 91.141,
+          "mean": 66.55,
+          "min": 13.006,
+          "spread": 78.135,
+          "stdev": 34.039
+        },
+        "instagram": {
+          "calibration_state": "OK",
+          "count": 7,
+          "distinct_rounded": 4,
+          "max": 97.256,
+          "mean": 75.946,
+          "min": 28.503,
+          "spread": 68.753,
+          "stdev": 30.118
+        },
+        "openai_auth": {
+          "calibration_state": "OK",
+          "count": 7,
+          "distinct_rounded": 5,
+          "max": 91.141,
+          "mean": 63.693,
+          "min": 13.006,
+          "spread": 78.135,
+          "stdev": 33.635
+        },
+        "soundcloud": {
+          "calibration_state": "OK",
+          "count": 7,
+          "distinct_rounded": 5,
+          "max": 91.141,
+          "mean": 63.693,
+          "min": 13.006,
+          "spread": 78.135,
+          "stdev": 33.635
+        },
+        "spotify": {
+          "calibration_state": "OK",
+          "count": 7,
+          "distinct_rounded": 4,
+          "max": 89.855,
+          "mean": 63.473,
+          "min": 13.006,
+          "spread": 76.849,
+          "stdev": 33.459
+        },
+        "telegram": {
+          "calibration_state": "OK",
+          "count": 7,
+          "distinct_rounded": 5,
+          "max": 98.756,
+          "mean": 77.272,
+          "min": 26.49,
+          "spread": 72.266,
+          "stdev": 32.144
+        },
+        "whatsapp": {
+          "calibration_state": "OK",
+          "count": 7,
+          "distinct_rounded": 5,
+          "max": 91.141,
+          "mean": 66.55,
+          "min": 13.006,
+          "spread": 78.135,
+          "stdev": 34.039
+        },
+        "youtube": {
+          "calibration_state": "OK",
+          "count": 7,
+          "distinct_rounded": 3,
+          "max": 98.64,
+          "mean": 70.94,
+          "min": 10.508,
+          "spread": 88.132,
+          "stdev": 38.683
+        }
+      }
+    },
+    "explainability": {
+      "authority": {
+        "execution_authority": "none",
+        "governance_authority": "unchanged_existing_governance",
+        "planner_authority": "tools/v7-users-autoswitch",
+        "rollback_authority": "unchanged_existing_rollback",
+        "runtime_mutation_authority": "none",
+        "selected_moves_write_authority": "none"
+      },
+      "payloads": {
+        "best_available_pool": "ranked pool reasons and capacity/risk notes",
+        "candidate_suitability": "reason_breakdown and advisory score parts",
+        "predictions": "forecast factors and confidence",
+        "risk": "risk score inputs and high-risk channels",
+        "service_scores": "components from service quality criteria",
+        "trust": "execution/rollback/governance counters"
+      },
+      "required_fields": [
+        "subject",
+        "score",
+        "components",
+        "confidence",
+        "source",
+        "authority"
+      ],
+      "schema_version": "v7.intelligence.explainability-framework.v1"
+    },
+    "framework": {
+      "authority": {
+        "execution_authority": "none",
+        "governance_authority": "unchanged",
+        "planner_authority": "tools/v7-users-autoswitch",
+        "runtime_decision_authority": "none_shadow_only"
+      },
+      "fallback_model": {
+        "criteria": {
+          "availability": {
+            "weight": 0.35
+          },
+          "confidence": {
+            "weight": 0.05
+          },
+          "error_rate": {
+            "weight": 0.12
+          },
+          "freshness": {
+            "weight": 0.03
+          },
+          "latency": {
+            "max_ms": 5000.0,
+            "target_ms": 1000.0,
+            "weight": 0.2
+          },
+          "stability": {
+            "weight": 0.1
+          },
+          "throughput": {
+            "target_mbps": 25.0,
+            "weight": 0.15
+          }
+        },
+        "schema": "ri4cd.generic-service-quality-model.v1"
+      },
+      "owner": "ServiceIntelligenceEngine",
+      "schema_version": "ri4cd.service-quality-framework.v1",
+      "supported_services": {
+        "chatgpt": {
+          "criteria": {
+            "availability": {
+              "weight": 0.22
+            },
+            "confidence": {
+              "weight": 0.06
+            },
+            "error_rate": {
+              "weight": 0.12
+            },
+            "freshness": {
+              "weight": 0.03
+            },
+            "response_latency": {
+              "max_ms": 12000.0,
+              "target_ms": 1800.0,
+              "weight": 0.18
+            },
+            "stability": {
+              "weight": 0.1
+            },
+            "stream_continuity": {
+              "weight": 0.14
+            },
+            "stream_start_latency": {
+              "max_ms": 8000.0,
+              "target_ms": 1200.0,
+              "weight": 0.15
+            }
+          },
+          "schema": "ri4cd.chatgpt-quality-model.v1"
+        },
+        "instagram": {
+          "criteria": {
+            "availability": {
+              "weight": 0.2
+            },
+            "error_rate": {
+              "weight": 0.09
+            },
+            "feed_load": {
+              "max_ms": 6000.0,
+              "target_ms": 1200.0,
+              "weight": 0.15
+            },
+            "freshness": {
+              "weight": 0.03
+            },
+            "media_load": {
+              "max_ms": 7000.0,
+              "target_ms": 1400.0,
+              "weight": 0.1
+            },
+            "reliability": {
+              "weight": 0.1
+            },
+            "stability": {
+              "weight": 0.07
+            },
+            "story_load": {
+              "max_ms": 5000.0,
+              "target_ms": 1000.0,
+              "weight": 0.13
+            },
+            "video_load": {
+              "max_ms": 8000.0,
+              "target_ms": 1600.0,
+              "weight": 0.13
+            }
+          },
+          "schema": "ri4cd.instagram-quality-model.v1"
+        },
+        "telegram": {
+          "criteria": {
+            "availability": {
+              "weight": 0.22
+            },
+            "connection_success": {
+              "weight": 0.08
+            },
+            "download_latency": {
+              "max_ms": 10000.0,
+              "target_ms": 2000.0,
+              "weight": 0.08
+            },
+            "error_rate": {
+              "weight": 0.08
+            },
+            "freshness": {
+              "weight": 0.03
+            },
+            "media_latency": {
+              "max_ms": 8000.0,
+              "target_ms": 1500.0,
+              "weight": 0.12
+            },
+            "media_success_rate": {
+              "weight": 0.1
+            },
+            "message_latency": {
+              "max_ms": 3000.0,
+              "target_ms": 600.0,
+              "weight": 0.16
+            },
+            "stability": {
+              "weight": 0.05
+            },
+            "upload_latency": {
+              "max_ms": 12000.0,
+              "target_ms": 2500.0,
+              "weight": 0.08
+            }
+          },
+          "schema": "ri4cd.telegram-quality-model.v1"
+        },
+        "youtube": {
+          "criteria": {
+            "1080p_viability": {
+              "target_mbps": 8.0,
+              "weight": 0.1
+            },
+            "4k_viability": {
+              "target_mbps": 25.0,
+              "weight": 0.05
+            },
+            "availability": {
+              "weight": 0.18
+            },
+            "buffer_probability": {
+              "weight": 0.12
+            },
+            "chunk_throughput": {
+              "target_mbps": 25.0,
+              "weight": 0.18
+            },
+            "error_rate": {
+              "weight": 0.07
+            },
+            "freshness": {
+              "weight": 0.03
+            },
+            "playback_stability": {
+              "weight": 0.12
+            },
+            "startup_delay": {
+              "max_ms": 8000.0,
+              "target_ms": 1200.0,
+              "weight": 0.15
+            }
+          },
+          "schema": "ri4cd.youtube-quality-model.v1"
+        }
+      },
+      "truth_sources": [
+        "service-matrix.json",
+        "egress-quality-summary.json",
+        "service-preferences.json"
+      ],
+      "windows": [
+        "1h",
+        "24h",
+        "7d",
+        "30d"
+      ]
+    },
+    "model_governance": {
+      "authority": {
+        "execution_authority": "none",
+        "governance_authority": "unchanged_existing_governance",
+        "planner_authority": "tools/v7-users-autoswitch",
+        "rollback_authority": "unchanged_existing_rollback",
+        "runtime_mutation_authority": "none",
+        "selected_moves_write_authority": "none"
+      },
+      "calibration_version": "v7.intelligence-platform.calibration.v1",
+      "compatibility_rules": {
+        "advisory_snapshots": "may be ignored by runtime when stale or low confidence",
+        "planner_authority": "planner remains tools/v7-users-autoswitch",
+        "runtime_required_snapshots": "must preserve schema, freshness, confidence, source_hashes, and list/summary shape"
+      },
+      "migration_rules": {
+        "calibration_change": "requires distribution comparison before/after",
+        "schema_change": "additive first; breaking changes require new snapshot family or explicit migration report",
+        "weight_change": "requires replay, forecast validation, drift review, and operator-visible certification"
+      },
+      "model_version": "v7.intelligence-platform.model.v1",
+      "schema_version": "v7.intelligence.model-governance.v1",
+      "weights_version": "v7.intelligence-platform.weights.v1"
+    }
+  },
+  "schema": "v7.intelligence.service-scores.v1",
+  "source_hashes": {
+    "quality_summary": "b00c91dc5f412994c09467a2e67cecee21642d9c7d950173d06830ae968381cd",
+    "service_matrix": "ffd2f6305d59d8503af9c7a72db79a206ec5f73d05f89ad4162aa1c75f8e9b25",
+    "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+  },
+  "ttl_seconds": 120,
+  "warnings": []
+}

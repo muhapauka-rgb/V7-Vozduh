@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "login_status": 200,
+  "session_status": 200,
+  "overview_status_before": 200,
+  "policy_update_status": 200,
+  "overview_status_after": 200,
+  "patch": {
+    "load": {
+      "rebalance_max_moves_per_run": 6
+    }
+  },
+  "before_rebalance_max_moves_per_run": 1,
+  "after_rebalance_max_moves_per_run": 1,
+  "backup": "/etc/v7/policy.json.backup.v7-policy.20260607-115015",
+  "action": "policy_update",
+  "result_keys": [
+    "action",
+    "backup",
+    "overview",
+    "policy"
+  ],
+  "users_moved": 0,
+  "autoswitch_apply_run": false,
+  "routing_mutation_performed": false,
+  "policy_mutation_performed": true,
+  "owner": "admin/v7-admin-api:/api/actions/policy-update"
+}

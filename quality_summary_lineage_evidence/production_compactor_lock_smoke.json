@@ -1,0 +1,25 @@
+{
+  "updated": "2026-06-07T08:46:11.051481+00:00",
+  "ok": true,
+  "samples": 7,
+  "summary_file": "/opt/v7/egress/state/egress-quality-summary.json",
+  "ring_file": "/opt/v7/egress/state/egress-quality-ring.json",
+  "ring_items": 2000,
+  "service_matrix_lock": {
+    "schema": "v7.service-matrix-lifecycle-lock.v1",
+    "enabled": true,
+    "acquired": true,
+    "inherited": false,
+    "released": true,
+    "path": "/opt/v7/egress/state/service-matrix.lock",
+    "scope": "quality_summary_writer_lifecycle",
+    "owner": "tools/v7-egress-quality-compact",
+    "runtime_behavior_changed": false,
+    "governance_behavior_changed": false,
+    "execution_behavior_changed": false,
+    "users_moved": false,
+    "timeout_sec": 90,
+    "decision": "quality_summary_writer_serialized_for_planner_lifecycle",
+    "waited_sec": 0.0
+  }
+}

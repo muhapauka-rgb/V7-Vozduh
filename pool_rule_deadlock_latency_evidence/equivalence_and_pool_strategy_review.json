@@ -1,0 +1,60 @@
+{
+  "schema_version": "v7.pool-equivalence-and-strategy-review.v1",
+  "program": "PROGRAM_POOL_RULE_DEADLOCK_REVIEW_EXECUTION_LATENCY_AND_PROMOTION_DECISION",
+  "equivalence_input": {
+    "one_successful_large": true,
+    "stable_large_window": true,
+    "pool_preparation_25_users": true,
+    "healthy_planner": true,
+    "healthy_governance": true,
+    "zero_rollback": true,
+    "balanced_pool": true
+  },
+  "equivalence_decision": {
+    "satisfies_second_large_intent": false,
+    "reason": "The combined evidence satisfies capacity and current stability intent, but it does not prove repeatability of an independent 10-user governed execution.",
+    "confidence": "HIGH",
+    "promotion_equivalence_available_now": false
+  },
+  "performance_review": {
+    "can_architecture_support_25_user_execution": true,
+    "basis": [
+      "Current POOL budget is defined as 25.",
+      "25 planner-visible users exist.",
+      "Safe deploy/truth/convergence are aligned.",
+      "Observed 10-user apply was sub-second inside the autoswitch tool.",
+      "Bottleneck is governance evidence acquisition, not raw route mutation throughput."
+    ],
+    "risk": "MEDIUM",
+    "main_limit": "blast_radius_and_rollback_observability_not_raw_latency"
+  },
+  "strategy_review": [
+    {
+      "strategy": "single_packet_25",
+      "latency": "LOW",
+      "rollback_model": "WIDE_BLAST_RADIUS",
+      "evidence_quality": "LOW_FOR_FIRST_POOL",
+      "risk": "HIGH",
+      "decision": "DO_NOT_USE_FOR_FIRST_POOL_EXECUTION"
+    },
+    {
+      "strategy": "10_10_5",
+      "latency": "MODERATE",
+      "rollback_model": "BOUNDED_BATCHES",
+      "evidence_quality": "HIGH",
+      "risk": "LOW_MEDIUM",
+      "decision": "BEST_FIRST_POOL_OPERATIONAL_MODEL"
+    },
+    {
+      "strategy": "5_5_5_5_5",
+      "latency": "HIGHER",
+      "rollback_model": "SMALLEST_BATCHES",
+      "evidence_quality": "MEDIUM",
+      "risk": "LOW",
+      "decision": "SAFE_BUT_UNNECESSARILY_SLOW_AFTER_LARGE_CERTIFICATION"
+    }
+  ],
+  "best_operational_model": "10+10+5",
+  "best_rollback_model": "batch_scoped_rollback_after_each_sub_batch",
+  "best_blast_radius_model": "bounded_pool_execution_with_verification_between_batches"
+}

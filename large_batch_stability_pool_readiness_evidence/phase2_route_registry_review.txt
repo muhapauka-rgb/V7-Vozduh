@@ -1,0 +1,40 @@
+=== 10.7.0.11 ===
+ip=10.7.0.11 current=awg3 table=1009 enabled=1
+8.8.8.8 from 10.7.0.11 dev awg3 table 1009 
+    cache iif wg0 
+=== 10.7.0.12 ===
+ip=10.7.0.12 current=awg0 table=1010 enabled=1
+8.8.8.8 from 10.7.0.12 dev awg0 table 1010 
+    cache iif wg0 
+=== 10.7.0.14 ===
+ip=10.7.0.14 current=awg3 table=1012 enabled=1
+8.8.8.8 from 10.7.0.14 dev awg3 table 1012 
+    cache iif wg0 
+=== 10.7.0.15 ===
+ip=10.7.0.15 current=awg0 table=1013 enabled=1
+8.8.8.8 from 10.7.0.15 dev awg0 table 1013 
+    cache iif wg0 
+=== 10.7.0.2 ===
+ip=10.7.0.2 current=awg3 table=1000 enabled=1
+8.8.8.8 from 10.7.0.2 dev awg3 table 1000 
+    cache iif wg0 
+=== 10.7.0.4 ===
+ip=10.7.0.4 current=awg0 table=1002 enabled=1
+8.8.8.8 from 10.7.0.4 dev awg0 table 1002 
+    cache iif wg0 
+=== 10.7.0.6 ===
+ip=10.7.0.6 current=awg3 table=1004 enabled=1
+8.8.8.8 from 10.7.0.6 dev awg3 table 1004 
+    cache iif wg0 
+=== 10.7.0.8 ===
+ip=10.7.0.8 current=awg0 table=1006 enabled=1
+8.8.8.8 from 10.7.0.8 dev awg0 table 1006 
+    cache iif wg0 
+=== 10.7.0.9 ===
+ip=10.7.0.9 current=awg3 table=1007 enabled=1
+8.8.8.8 from 10.7.0.9 dev awg3 table 1007 
+    cache iif wg0 
+=== 10.7.0.10 ===
+ip=10.7.0.10 current=awg0 table=1008 enabled=1
+8.8.8.8 from 10.7.0.10 dev awg0 table 1008 
+    cache iif wg0 

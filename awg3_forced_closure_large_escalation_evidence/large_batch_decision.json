@@ -1,0 +1,14 @@
+{
+  "evaluate_with": "vless,awg0,awg3",
+  "large_batch_execution_ready": false,
+  "large_batch_pool_ready": true,
+  "large_batch_preparation_ready": true,
+  "reason": "AWG3 recovered and eligible pool is now vless, awg0, awg3. Slot capacity is sufficient for preparing a LARGE_BATCH packet, but execution still requires authority review, approval packet, restore barrier, and operator confirmation.",
+  "required_next_artifacts": [
+    "LARGE_BATCH authority review",
+    "10-user candidate review",
+    "approval packet draft",
+    "rollback manifest draft",
+    "restore barrier review draft"
+  ]
+}

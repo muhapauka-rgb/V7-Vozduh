@@ -1,0 +1,8 @@
+{
+  "apply_executed": false,
+  "authority_promoted": false,
+  "pool_ready_for_large_batch": false,
+  "safe_next_step": "observe_and_retest_awg3_stability_then_prepare_large_batch_authority_packet_if_eligible_pool_reaches_3",
+  "single_blocker": "POOL_HEALTH_ELIGIBILITY_LIMITED: only 2 eligible production channels; awg3 excluded by stability_below_floor; two legacy channels have health/telegram hard blocks; two channels are intentionally reserved/manual/canary.",
+  "users_moved": 0
+}

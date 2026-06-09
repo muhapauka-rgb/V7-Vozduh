@@ -1,0 +1,57 @@
+{
+  "schema_version": "v7.pool-rule-deadlock-review.v1",
+  "program": "PROGRAM_POOL_RULE_DEADLOCK_REVIEW_EXECUTION_LATENCY_AND_PROMOTION_DECISION",
+  "current_state": {
+    "authority_class": "LARGE_BATCH",
+    "current_allowed_user_budget": 10,
+    "next_authority_class": "POOL",
+    "pool_budget": 25,
+    "planner_visible_users": 25,
+    "successful_large_batch_operation_ids_known": [
+      "runtime_autoswitch_0425741b308df19ccc0c1e03"
+    ],
+    "current_planner_candidate_moves": 0,
+    "production_truth": "PASS",
+    "convergence_status": "FULLY_ALIGNED"
+  },
+  "rule": {
+    "location": "tools/v7-users-autoswitch:199",
+    "target": "POOL",
+    "from": "LARGE_BATCH",
+    "required_successful_runs": 2,
+    "min_users_per_run": 10,
+    "run_label": "large_batch",
+    "evidence_floor": "two_successful_large_batch_runs_with_feedback_closure_and_pool_no_regression_window",
+    "requires_feedback": [
+      "outcome",
+      "trust",
+      "prediction",
+      "recommendation",
+      "closure"
+    ],
+    "requires_stability_window": true,
+    "stability_window_seconds": 3600
+  },
+  "original_intent": [
+    "prove repeatability of 10-user governed execution",
+    "avoid promotion from one lucky LARGE operation",
+    "observe no-regression behavior after LARGE scale",
+    "prove feedback closure at LARGE scale",
+    "protect against planner or restore-barrier instability at higher blast radius",
+    "protect against rollback surprises before 25-user authority"
+  ],
+  "current_effect": {
+    "deadlock_possible_in_healthy_balanced_state": true,
+    "why": "When the pool is healthy and balanced, the planner can correctly return zero candidate moves. The rule still requires a second independent LARGE operation, but the system has no legitimate movement to execute.",
+    "deadlock_type": "evidence_acquisition_deadlock_not_runtime_deadlock",
+    "runtime_defect": false,
+    "governance_defect": false,
+    "rule_is_over_conservative_for_current_state": true,
+    "rule_still_serves_safety_intent": true
+  },
+  "decision": {
+    "promote_pool_now": false,
+    "reason": "The rule protects repeatability at 10-user blast radius. Current evidence proves one LARGE operation plus stable pool preparation, but not repeated LARGE execution.",
+    "single_missing_criterion": "second_independent_successful_large_batch_operation_or_governance_approved_equivalence_rule"
+  }
+}

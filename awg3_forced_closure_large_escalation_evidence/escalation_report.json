@@ -1,0 +1,6 @@
+{
+  "awg3_audit_closed": true,
+  "do_not_open_second_awg3_investigation": true,
+  "safe_next_step": "LARGE_BATCH_AUTHORITY_AND_PACKET_PREPARATION",
+  "single_blocker": "NONE"
+}

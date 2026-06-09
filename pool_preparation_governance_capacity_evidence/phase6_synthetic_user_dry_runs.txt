@@ -1,0 +1,126 @@
+=== dry-run 1 ===
+===== V7 USER CREATE FROM IPAM =====
+2026-06-07T15:34:11+03:00
+mode=dry_run
+name=pool-synthetic-1
+device=synthetic
+egress=vless
+target_cidr=10.7.0.0/22
+next_ip=10.7.0.18
+next_table=1016
+V7_USER_CREATE_DRY_RUN=OK
+name=pool-synthetic-1
+ip=10.7.0.18
+table=1016
+egress=vless
+client_dir=/root/v7-clients/pool-synthetic-1
+live_changes=NO
+V7_USER_CREATE_FROM_IPAM=DRY_RUN_OK
+=== dry-run 2 ===
+===== V7 USER CREATE FROM IPAM =====
+2026-06-07T15:34:12+03:00
+mode=dry_run
+name=pool-synthetic-2
+device=synthetic
+egress=vless
+target_cidr=10.7.0.0/22
+next_ip=10.7.0.18
+next_table=1016
+V7_USER_CREATE_DRY_RUN=OK
+name=pool-synthetic-2
+ip=10.7.0.18
+table=1016
+egress=vless
+client_dir=/root/v7-clients/pool-synthetic-2
+live_changes=NO
+V7_USER_CREATE_FROM_IPAM=DRY_RUN_OK
+=== dry-run 3 ===
+===== V7 USER CREATE FROM IPAM =====
+2026-06-07T15:34:12+03:00
+mode=dry_run
+name=pool-synthetic-3
+device=synthetic
+egress=vless
+target_cidr=10.7.0.0/22
+next_ip=10.7.0.18
+next_table=1016
+V7_USER_CREATE_DRY_RUN=OK
+name=pool-synthetic-3
+ip=10.7.0.18
+table=1016
+egress=vless
+client_dir=/root/v7-clients/pool-synthetic-3
+live_changes=NO
+V7_USER_CREATE_FROM_IPAM=DRY_RUN_OK
+=== dry-run 4 ===
+===== V7 USER CREATE FROM IPAM =====
+2026-06-07T15:34:12+03:00
+mode=dry_run
+name=pool-synthetic-4
+device=synthetic
+egress=vless
+target_cidr=10.7.0.0/22
+next_ip=10.7.0.18
+next_table=1016
+V7_USER_CREATE_DRY_RUN=OK
+name=pool-synthetic-4
+ip=10.7.0.18
+table=1016
+egress=vless
+client_dir=/root/v7-clients/pool-synthetic-4
+live_changes=NO
+V7_USER_CREATE_FROM_IPAM=DRY_RUN_OK
+=== dry-run 5 ===
+===== V7 USER CREATE FROM IPAM =====
+2026-06-07T15:34:13+03:00
+mode=dry_run
+name=pool-synthetic-5
+device=synthetic
+egress=vless
+target_cidr=10.7.0.0/22
+next_ip=10.7.0.18
+next_table=1016
+V7_USER_CREATE_DRY_RUN=OK
+name=pool-synthetic-5
+ip=10.7.0.18
+table=1016
+egress=vless
+client_dir=/root/v7-clients/pool-synthetic-5
+live_changes=NO
+V7_USER_CREATE_FROM_IPAM=DRY_RUN_OK
+=== dry-run 6 ===
+===== V7 USER CREATE FROM IPAM =====
+2026-06-07T15:34:13+03:00
+mode=dry_run
+name=pool-synthetic-6
+device=synthetic
+egress=vless
+target_cidr=10.7.0.0/22
+next_ip=10.7.0.18
+next_table=1016
+V7_USER_CREATE_DRY_RUN=OK
+name=pool-synthetic-6
+ip=10.7.0.18
+table=1016
+egress=vless
+client_dir=/root/v7-clients/pool-synthetic-6
+live_changes=NO
+V7_USER_CREATE_FROM_IPAM=DRY_RUN_OK
+=== dry-run 7 ===
+===== V7 USER CREATE FROM IPAM =====
+2026-06-07T15:34:14+03:00
+mode=dry_run
+name=pool-synthetic-7
+device=synthetic
+egress=vless
+target_cidr=10.7.0.0/22
+next_ip=10.7.0.18
+next_table=1016
+V7_USER_CREATE_DRY_RUN=OK
+name=pool-synthetic-7
+ip=10.7.0.18
+table=1016
+egress=vless
+client_dir=/root/v7-clients/pool-synthetic-7
+live_changes=NO
+V7_USER_CREATE_FROM_IPAM=DRY_RUN_OK

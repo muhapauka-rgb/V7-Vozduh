@@ -1,0 +1,59 @@
+[
+  {
+    "label": "CANARY/SMALL-ish 2-user apply attempt",
+    "file": "canary_expansion_execution_evidence/phase9_live_governed_apply.json",
+    "operation_id": "runtime_autoswitch_b0c50709be91c6cb757bb7ff",
+    "selected_moves_count": 2,
+    "apply_requested": true,
+    "terminal": null,
+    "operation_started_at": "2026-06-06T05:55:52.169271+00:00",
+    "updated": "2026-06-06T05:55:54.376177+00:00",
+    "observed_wall_seconds": 2.207,
+    "pre_planner_refresh_ms": 1484.914,
+    "selected_move_hash": "fcbbb6b0bb355003c3cf794875a78d68ce4a52d05c0c1ecfa94c761b7ef35438"
+  },
+  {
+    "label": "CANARY/SMALL final tight apply",
+    "file": "canary_expansion_execution_evidence/phase9_tight_no_apply_refresh_governed_apply.json",
+    "json_error": "Extra data: line 42 column 1 (char 1694)"
+  },
+  {
+    "label": "MEDIUM promotion apply final",
+    "file": "medium_batch_promotion_execution_evidence/authority_promotion_apply_final.json",
+    "operation_id": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+    "selected_moves_count": null,
+    "apply_requested": null,
+    "terminal": null,
+    "operation_started_at": null,
+    "updated": "2026-06-06T08:54:58+00:00",
+    "observed_wall_seconds": null,
+    "pre_planner_refresh_ms": null,
+    "selected_move_hash": "fcbbb6b0bb355003c3cf794875a78d68ce4a52d05c0c1ecfa94c761b7ef35438"
+  },
+  {
+    "label": "LARGE first apply",
+    "file": "large_batch_execution_evidence/phase7_real_large_apply.json",
+    "operation_id": "runtime_autoswitch_a81cc1f8dd41d502f37a79b2",
+    "selected_moves_count": 0,
+    "apply_requested": true,
+    "terminal": null,
+    "operation_started_at": "2026-06-07T11:57:50.778943+00:00",
+    "updated": "2026-06-07T11:57:50.946450+00:00",
+    "observed_wall_seconds": 0.168,
+    "pre_planner_refresh_ms": null,
+    "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  },
+  {
+    "label": "LARGE retry apply",
+    "file": "large_batch_execution_evidence/phase7_real_large_apply_retry.json",
+    "operation_id": "runtime_autoswitch_0425741b308df19ccc0c1e03",
+    "selected_moves_count": 10,
+    "apply_requested": true,
+    "terminal": null,
+    "operation_started_at": "2026-06-07T12:05:08.333865+00:00",
+    "updated": "2026-06-07T12:05:08.785823+00:00",
+    "observed_wall_seconds": 0.452,
+    "pre_planner_refresh_ms": null,
+    "selected_move_hash": "2ce019855a3db2a74795fc5d41a928400d44b8f20177e542d1bf3740e2608e30"
+  }
+]

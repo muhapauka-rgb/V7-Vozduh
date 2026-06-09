@@ -1,0 +1,26 @@
+DATE=2026-06-07T01:58:47+03:00
+IFACE=awg3
+45: awg3: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/none 
+---ROUTE---
+8.8.8.8 dev awg3 src 10.8.1.13 uid 0 
+    cache 
+---PING---
+PING 8.8.8.8 (8.8.8.8) from 10.8.1.13 awg3: 56(84) bytes of data.
+64 bytes from 8.8.8.8: icmp_seq=1 ttl=116 time=31.3 ms
+64 bytes from 8.8.8.8: icmp_seq=2 ttl=116 time=31.6 ms
+64 bytes from 8.8.8.8: icmp_seq=3 ttl=116 time=46.5 ms
+64 bytes from 8.8.8.8: icmp_seq=4 ttl=116 time=31.8 ms
+64 bytes from 8.8.8.8: icmp_seq=5 ttl=116 time=32.9 ms
+
+--- 8.8.8.8 ping statistics ---
+5 packets transmitted, 5 received, 0% packet loss, time 4007ms
+rtt min/avg/max/mdev = 31.329/34.820/46.458/5.843 ms
+---CURL_GOOGLE---
+code=204 connect=0.033438 start=0.117891 total=0.117980 rc=0
+---CURL_YOUTUBE---
+code=204 connect=0.045779 start=0.139167 total=0.139311 rc=0
+---CURL_INSTAGRAM---
+code=200 connect=0.053670 start=0.328230 total=0.651797 rc=0
+---CURL_GOOGLE_AUTH---
+code=200 connect=0.046993 start=0.372251 total=0.685777 rc=0

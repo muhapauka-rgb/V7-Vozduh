@@ -1,0 +1,92 @@
+[
+  {
+    "user": "10.7.0.11",
+    "expected": "awg3",
+    "registry_current": "awg3",
+    "route_dev": "awg3",
+    "table": "1009",
+    "registry_ok": true,
+    "route_ok": true
+  },
+  {
+    "user": "10.7.0.12",
+    "expected": "awg0",
+    "registry_current": "awg0",
+    "route_dev": "awg0",
+    "table": "1010",
+    "registry_ok": true,
+    "route_ok": true
+  },
+  {
+    "user": "10.7.0.14",
+    "expected": "awg3",
+    "registry_current": "awg3",
+    "route_dev": "awg3",
+    "table": "1012",
+    "registry_ok": true,
+    "route_ok": true
+  },
+  {
+    "user": "10.7.0.15",
+    "expected": "awg0",
+    "registry_current": "awg0",
+    "route_dev": "awg0",
+    "table": "1013",
+    "registry_ok": true,
+    "route_ok": true
+  },
+  {
+    "user": "10.7.0.2",
+    "expected": "awg3",
+    "registry_current": "awg3",
+    "route_dev": "awg3",
+    "table": "1000",
+    "registry_ok": true,
+    "route_ok": true
+  },
+  {
+    "user": "10.7.0.4",
+    "expected": "awg0",
+    "registry_current": "awg0",
+    "route_dev": "awg0",
+    "table": "1002",
+    "registry_ok": true,
+    "route_ok": true
+  },
+  {
+    "user": "10.7.0.6",
+    "expected": "awg3",
+    "registry_current": "awg3",
+    "route_dev": "awg3",
+    "table": "1004",
+    "registry_ok": true,
+    "route_ok": true
+  },
+  {
+    "user": "10.7.0.8",
+    "expected": "awg0",
+    "registry_current": "awg0",
+    "route_dev": "awg0",
+    "table": "1006",
+    "registry_ok": true,
+    "route_ok": true
+  },
+  {
+    "user": "10.7.0.9",
+    "expected": "awg3",
+    "registry_current": "awg3",
+    "route_dev": "awg3",
+    "table": "1007",
+    "registry_ok": true,
+    "route_ok": true
+  },
+  {
+    "user": "10.7.0.10",
+    "expected": "awg0",
+    "registry_current": "awg0",
+    "route_dev": "awg0",
+    "table": "1008",
+    "registry_ok": true,
+    "route_ok": true
+  }
+]

@@ -1,0 +1,82 @@
+[
+  {
+    "operation_id": "runtime_autoswitch_473252c9659f6434a808e6ea",
+    "user": "10.7.0.4",
+    "status": 200,
+    "outcome": true,
+    "stability": 900,
+    "feedback_id": "execfb_deae939e66cbccb05621cd15"
+  },
+  {
+    "operation_id": "runtime_autoswitch_473252c9659f6434a808e6ea",
+    "user": "10.7.0.6",
+    "status": 200,
+    "outcome": true,
+    "stability": 900,
+    "feedback_id": "execfb_1186dc8e5055e4434445ef29"
+  },
+  {
+    "operation_id": "runtime_autoswitch_473252c9659f6434a808e6ea",
+    "user": "10.7.0.8",
+    "status": 200,
+    "outcome": true,
+    "stability": 900,
+    "feedback_id": "execfb_1efcf36e2db79b31d1eee888"
+  },
+  {
+    "operation_id": "runtime_autoswitch_473252c9659f6434a808e6ea",
+    "user": "10.7.0.9",
+    "status": 200,
+    "outcome": true,
+    "stability": 900,
+    "feedback_id": "execfb_5c6f98729202406d64770235"
+  },
+  {
+    "operation_id": "runtime_autoswitch_473252c9659f6434a808e6ea",
+    "user": "10.7.0.10",
+    "status": 200,
+    "outcome": true,
+    "stability": 900,
+    "feedback_id": "execfb_6f1a756e686933e598b46c02"
+  },
+  {
+    "operation_id": "runtime_autoswitch_1ceca614139382db49eed3a4",
+    "user": "10.7.0.5",
+    "status": 200,
+    "outcome": true,
+    "stability": 900,
+    "feedback_id": "execfb_2bd6e136c995476a3a722e78"
+  },
+  {
+    "operation_id": "runtime_autoswitch_1ceca614139382db49eed3a4",
+    "user": "10.0.0.2",
+    "status": 200,
+    "outcome": true,
+    "stability": 900,
+    "feedback_id": "execfb_b0e2199a392180a9495c3de9"
+  },
+  {
+    "operation_id": "runtime_autoswitch_1ceca614139382db49eed3a4",
+    "user": "10.0.0.3",
+    "status": 200,
+    "outcome": true,
+    "stability": 900,
+    "feedback_id": "execfb_43a304d96630b8b25dc2179f"
+  },
+  {
+    "operation_id": "runtime_autoswitch_1ceca614139382db49eed3a4",
+    "user": "10.0.0.6",
+    "status": 200,
+    "outcome": true,
+    "stability": 900,
+    "feedback_id": "execfb_ab7277054c4150cf7054f70f"
+  },
+  {
+    "operation_id": "runtime_autoswitch_1ceca614139382db49eed3a4",
+    "user": "10.7.0.3",
+    "status": 200,
+    "outcome": true,
+    "stability": 900,
+    "feedback_id": "execfb_299c22f2c9c32d35115f1aed"
+  }
+]

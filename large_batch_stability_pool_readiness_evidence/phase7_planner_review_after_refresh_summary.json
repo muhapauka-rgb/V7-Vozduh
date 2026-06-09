@@ -1,0 +1,22 @@
+{
+  "terminal_state": "DRY_RUN",
+  "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired",
+  "candidate_moves_total": 8,
+  "selected_moves_summary": 0,
+  "selected_move_count": 0,
+  "authority_class": "LARGE_BATCH",
+  "prepared_authority_class": "LARGE_BATCH",
+  "certified_authority_class": "LARGE_BATCH",
+  "runtime_authority_class": "LARGE_BATCH",
+  "current_allowed_user_budget": 10,
+  "next_authority_class": "POOL",
+  "next_allowed_user_budget": 25,
+  "requested_max_selected_moves": 25,
+  "authority_cap_applied": false,
+  "selected_before_gate": 6,
+  "selected_after_gate": 6,
+  "snapshot_stop_required": false,
+  "source_mismatch_families": [],
+  "stop_families": [],
+  "apply_requested": false
+}

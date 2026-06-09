@@ -1,0 +1,383 @@
+{
+  "blockers": [],
+  "canonical_branch": "Updatesystem",
+  "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+  "canonical_workspace": "/Users/ponch/Documents/New project",
+  "convergence_status": "FULLY_ALIGNED",
+  "current_branch": "Updatesystem",
+  "current_commit": "8dda6fa35a7657f28c7a4164bdfd2a3ab6729989",
+  "current_workspace": "/Users/ponch/Documents/New project",
+  "final_verdict": "PASS",
+  "git_status_short": "?? PROGRAM_MEDIUM_BATCH_CONTROLLED_LIVE_COMPLETION_AND_EXECUTION_CERTIFICATION_REPORT.md\n?? PROGRAM_MEDIUM_BATCH_PROMOTION_IMPLEMENTATION_AND_REAL_5_USER_EXECUTION_REPORT.md\n?? PROGRAM_MEDIUM_BATCH_STABILITY_WINDOW_AND_LARGE_BATCH_READINESS_CERTIFICATION_REPORT.md\n?? PROGRAM_MEDIUM_BATCH_TARGET_DRIFT_CLOSURE_AND_REAL_5_USER_EXECUTION_REPORT.md\n?? full_egress_pool_large_capacity_evidence/\n?? medium_batch_controlled_live_evidence/\n?? medium_batch_promotion_execution_evidence/\n?? medium_batch_stability_large_readiness_evidence/\n?? medium_batch_target_drift_evidence/\n?? service_matrix_volatility_evidence/final_report_alignment_convergence_status.json\n?? service_matrix_volatility_evidence/final_report_alignment_safe_deploy.json\n?? service_matrix_volatility_evidence/final_report_alignment_truth_check.json\n?? service_matrix_volatility_evidence/post_report_push_convergence_status.json\n?? service_matrix_volatility_evidence/post_report_push_truth_check.json\n?? service_matrix_volatility_evidence/post_report_safe_deploy.json\n?? service_matrix_volatility_evidence/post_report_safe_deploy_convergence_status.json\n?? service_matrix_volatility_evidence/post_report_safe_deploy_truth_check.json",
+  "github": {
+    "blockers": [],
+    "canonical_branch": "Updatesystem",
+    "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+    "convergence_status": "GITHUB_ALIGNED",
+    "final_verdict": "PASS",
+    "local_commit": "8dda6fa35a7657f28c7a4164bdfd2a3ab6729989",
+    "remote_branch_commit": "8dda6fa35a7657f28c7a4164bdfd2a3ab6729989",
+    "remote_read_status": "OK"
+  },
+  "local": {
+    "blockers": [],
+    "canonical_branch": "Updatesystem",
+    "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+    "canonical_workspace": "/Users/ponch/Documents/New project",
+    "checks": {
+      "branch_matches": true,
+      "remote_matches": true,
+      "workspace_clean": false,
+      "workspace_has_no_blocking_dirtiness": true,
+      "workspace_matches": true
+    },
+    "convergence_status": "LOCAL_ALIGNED",
+    "current_branch": "Updatesystem",
+    "current_commit": "8dda6fa35a7657f28c7a4164bdfd2a3ab6729989",
+    "current_workspace": "/Users/ponch/Documents/New project",
+    "dirty_classification": {
+      "blocking": false,
+      "blocking_paths": [],
+      "clean": false,
+      "counts": {
+        "documentation_only": 17,
+        "runtime_critical": 0,
+        "runtime_relevant": 0,
+        "unknown": 0
+      },
+      "documentation_only": true,
+      "entries": [
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_MEDIUM_BATCH_CONTROLLED_LIVE_COMPLETION_AND_EXECUTION_CERTIFICATION_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_MEDIUM_BATCH_PROMOTION_IMPLEMENTATION_AND_REAL_5_USER_EXECUTION_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_MEDIUM_BATCH_STABILITY_WINDOW_AND_LARGE_BATCH_READINESS_CERTIFICATION_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_MEDIUM_BATCH_TARGET_DRIFT_CLOSURE_AND_REAL_5_USER_EXECUTION_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "full_egress_pool_large_capacity_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "medium_batch_controlled_live_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "medium_batch_promotion_execution_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "medium_batch_stability_large_readiness_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "medium_batch_target_drift_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "service_matrix_volatility_evidence/final_report_alignment_convergence_status.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "service_matrix_volatility_evidence/final_report_alignment_safe_deploy.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "service_matrix_volatility_evidence/final_report_alignment_truth_check.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "service_matrix_volatility_evidence/post_report_push_convergence_status.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "service_matrix_volatility_evidence/post_report_push_truth_check.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "service_matrix_volatility_evidence/post_report_safe_deploy.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "service_matrix_volatility_evidence/post_report_safe_deploy_convergence_status.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "service_matrix_volatility_evidence/post_report_safe_deploy_truth_check.json",
+          "status": "??"
+        }
+      ],
+      "info_paths": [
+        "PROGRAM_MEDIUM_BATCH_CONTROLLED_LIVE_COMPLETION_AND_EXECUTION_CERTIFICATION_REPORT.md",
+        "PROGRAM_MEDIUM_BATCH_PROMOTION_IMPLEMENTATION_AND_REAL_5_USER_EXECUTION_REPORT.md",
+        "PROGRAM_MEDIUM_BATCH_STABILITY_WINDOW_AND_LARGE_BATCH_READINESS_CERTIFICATION_REPORT.md",
+        "PROGRAM_MEDIUM_BATCH_TARGET_DRIFT_CLOSURE_AND_REAL_5_USER_EXECUTION_REPORT.md",
+        "full_egress_pool_large_capacity_evidence/",
+        "medium_batch_controlled_live_evidence/",
+        "medium_batch_promotion_execution_evidence/",
+        "medium_batch_stability_large_readiness_evidence/",
+        "medium_batch_target_drift_evidence/",
+        "service_matrix_volatility_evidence/final_report_alignment_convergence_status.json",
+        "service_matrix_volatility_evidence/final_report_alignment_safe_deploy.json",
+        "service_matrix_volatility_evidence/final_report_alignment_truth_check.json",
+        "service_matrix_volatility_evidence/post_report_push_convergence_status.json",
+        "service_matrix_volatility_evidence/post_report_push_truth_check.json",
+        "service_matrix_volatility_evidence/post_report_safe_deploy.json",
+        "service_matrix_volatility_evidence/post_report_safe_deploy_convergence_status.json",
+        "service_matrix_volatility_evidence/post_report_safe_deploy_truth_check.json"
+      ],
+      "warning": false,
+      "warning_paths": []
+    },
+    "final_verdict": "PASS",
+    "git_status_short": "?? PROGRAM_MEDIUM_BATCH_CONTROLLED_LIVE_COMPLETION_AND_EXECUTION_CERTIFICATION_REPORT.md\n?? PROGRAM_MEDIUM_BATCH_PROMOTION_IMPLEMENTATION_AND_REAL_5_USER_EXECUTION_REPORT.md\n?? PROGRAM_MEDIUM_BATCH_STABILITY_WINDOW_AND_LARGE_BATCH_READINESS_CERTIFICATION_REPORT.md\n?? PROGRAM_MEDIUM_BATCH_TARGET_DRIFT_CLOSURE_AND_REAL_5_USER_EXECUTION_REPORT.md\n?? full_egress_pool_large_capacity_evidence/\n?? medium_batch_controlled_live_evidence/\n?? medium_batch_promotion_execution_evidence/\n?? medium_batch_stability_large_readiness_evidence/\n?? medium_batch_target_drift_evidence/\n?? service_matrix_volatility_evidence/final_report_alignment_convergence_status.json\n?? service_matrix_volatility_evidence/final_report_alignment_safe_deploy.json\n?? service_matrix_volatility_evidence/final_report_alignment_truth_check.json\n?? service_matrix_volatility_evidence/post_report_push_convergence_status.json\n?? service_matrix_volatility_evidence/post_report_push_truth_check.json\n?? service_matrix_volatility_evidence/post_report_safe_deploy.json\n?? service_matrix_volatility_evidence/post_report_safe_deploy_convergence_status.json\n?? service_matrix_volatility_evidence/post_report_safe_deploy_truth_check.json",
+    "origin_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+    "warnings": [
+      "documentation_dirty_ignored"
+    ],
+    "worktree_list": "worktree /Users/ponch/Documents/New project\nHEAD 8dda6fa35a7657f28c7a4164bdfd2a3ab6729989\nbranch refs/heads/Updatesystem\n\nworktree /private/tmp/v7-convergence-c\nHEAD c40cae13298594b7ad7040df4b19306c4e2c29d4\nbranch refs/heads/v7-next\nprunable gitdir file points to non-existent location\n\nworktree /private/tmp/v7-vozduh-main\nHEAD 593619d494e215d11fd826086593527a4a555690\ndetached\nprunable gitdir file points to non-existent location"
+  },
+  "mode": "all",
+  "remote_branch_commit": "8dda6fa35a7657f28c7a4164bdfd2a3ab6729989",
+  "runtime": {
+    "allowed_readonly_commands": [
+      [
+        "hostname"
+      ],
+      [
+        "date",
+        "-Is"
+      ],
+      [
+        "pwd"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7"
+      ],
+      [
+        "git",
+        "-C",
+        "/opt/v7",
+        "branch",
+        "--show-current"
+      ],
+      [
+        "git",
+        "-C",
+        "/opt/v7",
+        "rev-parse",
+        "HEAD"
+      ],
+      [
+        "git",
+        "-C",
+        "/opt/v7",
+        "status",
+        "--short"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-users-autoswitch"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-audit-log"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-admin-api"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-intelligence-snapshot-refresh"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-service-matrix-refresh-all"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-service-matrix-test"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-users-autoswitch.service",
+        "--no-pager"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-users-autoswitch.timer",
+        "--no-pager"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-admin-api.service",
+        "--no-pager"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-intelligence-snapshot-refresh.service",
+        "--no-pager"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-intelligence-snapshot-refresh.timer",
+        "--no-pager"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-users-autoswitch"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-audit-log"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-admin-api"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-intelligence-snapshot-refresh"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-service-matrix-refresh-all"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-service-matrix-test"
+      ],
+      [
+        "/usr/local/bin/v7-users-autoswitch",
+        "--pretty"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/egress/state"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/egress/state/intelligence"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/audit"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/events"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/admin"
+      ]
+    ],
+    "blockers": [],
+    "convergence_status": "RUNTIME_ALIGNED",
+    "deployment_model": "copied_binaries_from_safe_sync_manifest",
+    "derived": {
+      "admin_service_active": true,
+      "audit_path_available": true,
+      "autoswitch_scheduler_active": false,
+      "autoswitch_service_active": false,
+      "binary_hashes_known": true,
+      "binary_hashes_match_authoritative": true,
+      "closure_path_available": true,
+      "deploy_branch": "Updatesystem",
+      "deploy_commit": "8dda6fa35a7657f28c7a4164bdfd2a3ab6729989",
+      "deploy_id": "deploy-z8-14-Updatesystem-8dda6fa-20260607T011625",
+      "deployment_model": "copied_binaries_from_safe_sync_manifest",
+      "execution_store_available": true,
+      "operation_wiring_present": true,
+      "restore_barrier_known": true,
+      "runtime_branch": "",
+      "runtime_commit": "",
+      "runtime_fingerprint_known": true,
+      "runtime_identity_model": "copied_binaries_from_safe_sync_manifest",
+      "runtime_provenance_known": true,
+      "runtime_root_is_git_checkout": false,
+      "scheduler_inactive_approved_manual_mode": true,
+      "scheduler_truth_known": true,
+      "service_inactive_explained": true,
+      "service_status_known": true,
+      "snapshot_refresh_cli_available": true,
+      "snapshot_refresh_mechanism_known": true,
+      "snapshot_required_files_known": true,
+      "snapshot_root_known": true,
+      "state_truth_known": true
+    },
+    "expected_binaries": [
+      "/usr/local/bin/v7-users-autoswitch",
+      "/usr/local/bin/v7-audit-log"
+    ],
+    "expected_services": [
+      "v7-users-autoswitch.service",
+      "v7-users-autoswitch.timer"
+    ],
+    "final_verdict": "PASS",
+    "local_commit": "8dda6fa35a7657f28c7a4164bdfd2a3ab6729989",
+    "missing_commands": [],
+    "runtime_access_status": "READY",
+    "runtime_branch": "Updatesystem",
+    "runtime_commit": "8dda6fa35a7657f28c7a4164bdfd2a3ab6729989",
+    "runtime_root": "/opt/v7",
+    "runtime_snapshot_path": ".v7/runtime_convergence_snapshot.json",
+    "runtime_snapshot_schema": "v7-runtime-truth-snapshot/v1",
+    "runtime_truth_status": "KNOWN",
+    "state_root": "/opt/v7/egress/state",
+    "state_truth_status": "KNOWN",
+    "unknown_commands": []
+  },
+  "runtime_access_status": "READY",
+  "runtime_truth_status": "KNOWN",
+  "schema": "v7-truth-check/v1",
+  "state_truth_status": "KNOWN",
+  "warnings": [
+    "documentation_dirty_ignored"
+  ]
+}

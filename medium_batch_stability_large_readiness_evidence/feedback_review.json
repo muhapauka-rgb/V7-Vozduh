@@ -1,0 +1,29 @@
+{
+  "schema": "v7.medium-batch-feedback-review.v1",
+  "operation_id": "runtime_autoswitch_473252c9659f6434a808e6ea",
+  "counts": {
+    "outcome": 5,
+    "trust": 5,
+    "prediction": 5,
+    "recommendation": 5,
+    "closure": 5
+  },
+  "users": [
+    "10.7.0.10",
+    "10.7.0.4",
+    "10.7.0.6",
+    "10.7.0.8",
+    "10.7.0.9"
+  ],
+  "feedback_ids": [
+    "execfb_13b0ff30744f4dad0e91394f",
+    "execfb_19e6d2ab810f5b45381294da",
+    "execfb_6451451e2291a14aafe2e4ff",
+    "execfb_af681b9c8bac98aab45464d7",
+    "execfb_ee3d22b72385da6040c4b21c"
+  ],
+  "statuses": [
+    "success"
+  ],
+  "missing": []
+}

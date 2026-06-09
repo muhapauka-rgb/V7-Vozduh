@@ -1,0 +1,209 @@
+{
+  "best_available_pool_awg3_rank_count": 18,
+  "capacity": {
+    "capacity_users": 0,
+    "failover_hard_limit": 18,
+    "hard_limit": 14,
+    "soft_limit": 11,
+    "status": "OK",
+    "users": 0
+  },
+  "channel_service_score": {
+    "aggregate_score": 93.58,
+    "channel": "awg3",
+    "confidence": 0.4583,
+    "required_low": [],
+    "required_missing": [],
+    "runtime_decision_authority": "none_snapshot_only",
+    "score_distribution": {
+      "calibration_state": "HIGH_SCORE_COMPRESSION",
+      "count": 6,
+      "distinct_rounded": 5,
+      "max": 98.64,
+      "mean": 93.578,
+      "min": 88.739,
+      "spread": 9.901,
+      "stdev": 4.251
+    },
+    "verdict": "OK"
+  },
+  "current_stability": 0.831,
+  "enabled": true,
+  "hist_1h_stability": 0.5598,
+  "id": "awg3",
+  "latency_packet_loss_probe": {
+    "curl_results": {
+      "curl_google": "code=204 connect=0.033438 start=0.117891 total=0.117980 rc=0",
+      "curl_google_auth": "code=200 connect=0.046993 start=0.372251 total=0.685777 rc=0",
+      "curl_instagram": "code=200 connect=0.053670 start=0.328230 total=0.651797 rc=0",
+      "curl_youtube": "code=204 connect=0.045779 start=0.139167 total=0.139311 rc=0"
+    },
+    "latency_avg_ms": 34.82,
+    "packet_loss_percent": 0.0
+  },
+  "planner_blocked": [],
+  "planner_eligible": true,
+  "quality_windows": {
+    "1h": {
+      "avg_mbps": 51.633,
+      "fail_rate": 0.0716,
+      "min_mbps": 30.191,
+      "p95_latency_ms": 2077.3,
+      "samples": 5119,
+      "stability": 0.5598,
+      "updated": "2026-06-06T22:54:49.634929+00:00"
+    },
+    "24h": {
+      "avg_mbps": 43.118,
+      "fail_rate": 0.0722,
+      "min_mbps": 20.724,
+      "p95_latency_ms": 2170.2,
+      "samples": 5119,
+      "stability": 0.4614,
+      "updated": "2026-06-06T22:54:49.634929+00:00"
+    },
+    "5m": {
+      "avg_mbps": 54.462,
+      "fail_rate": 0.0715,
+      "min_mbps": 39.118,
+      "p95_latency_ms": 2116.6,
+      "samples": 5119,
+      "stability": 0.6978,
+      "updated": "2026-06-06T22:54:49.634929+00:00"
+    },
+    "7d": {
+      "avg_mbps": 35.877,
+      "fail_rate": 0.0738,
+      "min_mbps": 16.009,
+      "p95_latency_ms": 2418.1,
+      "samples": 5119,
+      "stability": 0.4146,
+      "updated": "2026-06-06T22:54:49.634929+00:00"
+    }
+  },
+  "registry_row": {
+    "config_path": "/etc/amnezia/amneziawg/awg3.conf",
+    "connect_timeout": "12s",
+    "enabled": "1",
+    "expected_ip": "194.124.210.244",
+    "id": "awg3",
+    "interface": "awg3",
+    "priority": "70",
+    "protocol": "amneziawg",
+    "role": "GLOBAL_STABLE",
+    "service_tags": "telegram,google,youtube,global",
+    "test": "interface",
+    "type": "interface",
+    "weight": "75"
+  },
+  "required_stability": 0.45,
+  "reserved": false,
+  "route_class_fitness": {
+    "DIRECT_RU": {
+      "missing": [],
+      "missing_count": 0,
+      "ok_count": 0,
+      "reason": "not checked yet",
+      "services": [],
+      "status": "UNKNOWN",
+      "tested_count": 0,
+      "total": 0
+    },
+    "GLOBAL_FAST": {
+      "missing": [],
+      "missing_count": 0,
+      "ok_count": 7,
+      "reason": "some required services failed",
+      "services": [
+        "google",
+        "google_auth",
+        "telegram",
+        "facebook",
+        "chatgpt",
+        "openai_auth",
+        "claude",
+        "anthropic"
+      ],
+      "status": "WARN",
+      "tested_count": 8,
+      "total": 8
+    },
+    "GLOBAL_STABLE": {
+      "missing": [],
+      "missing_count": 0,
+      "ok_count": 8,
+      "reason": "some required services failed",
+      "services": [
+        "google",
+        "google_auth",
+        "telegram",
+        "apple",
+        "whatsapp",
+        "chatgpt",
+        "openai_auth",
+        "claude",
+        "anthropic"
+      ],
+      "status": "WARN",
+      "tested_count": 9,
+      "total": 9
+    },
+    "LOW_LATENCY": {
+      "missing": [],
+      "missing_count": 0,
+      "ok_count": 3,
+      "reason": "all required services passed",
+      "services": [
+        "google",
+        "google_auth",
+        "telegram"
+      ],
+      "status": "OK",
+      "tested_count": 3,
+      "total": 3
+    },
+    "TRUSTED_RU_SENSITIVE": {
+      "missing": [],
+      "missing_count": 0,
+      "ok_count": 0,
+      "reason": "not checked yet",
+      "services": [],
+      "status": "UNKNOWN",
+      "tested_count": 0,
+      "total": 0
+    },
+    "VIDEO_OPTIMIZED": {
+      "missing": [],
+      "missing_count": 0,
+      "ok_count": 4,
+      "reason": "all required services passed",
+      "services": [
+        "youtube",
+        "instagram",
+        "spotify",
+        "soundcloud"
+      ],
+      "status": "OK",
+      "tested_count": 4,
+      "total": 4
+    }
+  },
+  "service_matrix_status": "WARN",
+  "service_score": 100.0,
+  "speed": {
+    "avg_mbps": 59.06,
+    "min_mbps": 49.09
+  },
+  "telegram": {
+    "bad_for_seconds": 0.0,
+    "bad_now": false,
+    "degraded": false,
+    "hard_blocked": false,
+    "ok": true,
+    "reason": "telegram tcp endpoints reachable",
+    "required": true,
+    "score": 100.0,
+    "source": "sentinel",
+    "status": "OK"
+  }
+}

@@ -1,0 +1,2 @@
+/usr/local/bin/v7-truth-check
+/usr/local/bin/v7-audit-log

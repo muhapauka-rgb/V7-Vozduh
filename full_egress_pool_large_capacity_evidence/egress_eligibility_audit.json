@@ -1,0 +1,78 @@
+[
+  {
+    "category": "ELIGIBLE",
+    "eligible": true,
+    "exact_reasons": [],
+    "id": "vless",
+    "planner_score": 2153.65,
+    "role": ""
+  },
+  {
+    "category": "ELIGIBLE",
+    "eligible": true,
+    "exact_reasons": [],
+    "id": "awg0",
+    "planner_score": 2103.93,
+    "role": "GLOBAL_STABLE"
+  },
+  {
+    "category": "QUALITY_STABILITY",
+    "eligible": false,
+    "exact_reasons": [
+      "stability_below_floor"
+    ],
+    "id": "awg3",
+    "planner_score": 0.0,
+    "role": "GLOBAL_STABLE"
+  },
+  {
+    "category": "SERVICE_OR_HEALTH",
+    "eligible": false,
+    "exact_reasons": [
+      "health_code_000",
+      "severity_FAIL",
+      "avg_mbps_below_floor",
+      "min_mbps_below_floor",
+      "telegram_required_telegram_down_14s"
+    ],
+    "id": "1",
+    "planner_score": 0.0,
+    "role": "GLOBAL_FAST"
+  },
+  {
+    "category": "SERVICE_OR_HEALTH",
+    "eligible": false,
+    "exact_reasons": [
+      "health_code_000",
+      "severity_FAIL",
+      "avg_mbps_below_floor",
+      "min_mbps_below_floor",
+      "telegram_required_telegram_down_14s"
+    ],
+    "id": "openvpn-1779388847-d2ad7c",
+    "planner_score": 0.0,
+    "role": "GLOBAL_FAST"
+  },
+  {
+    "category": "RESERVED_OR_POLICY",
+    "eligible": false,
+    "exact_reasons": [
+      "canary_reserved_production_assignment_blocked"
+    ],
+    "id": "wireguard-1779454504-c43409",
+    "planner_score": 0.0,
+    "role": "GLOBAL_FAST"
+  },
+  {
+    "category": "RESERVED_OR_POLICY",
+    "eligible": false,
+    "exact_reasons": [
+      "manual_only",
+      "reserve_only",
+      "canary_reserved_production_assignment_blocked"
+    ],
+    "id": "amneziawg-exec-20260528-10-8-1-14",
+    "planner_score": 0.0,
+    "role": "EXECUTION_ONLY"
+  }
+]

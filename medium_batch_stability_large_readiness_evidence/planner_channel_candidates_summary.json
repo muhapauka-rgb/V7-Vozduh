@@ -1,0 +1,204 @@
+[
+  {
+    "egress": "1",
+    "eligible": false,
+    "score": 0.0,
+    "blocked": [
+      "health_code_000",
+      "severity_FAIL",
+      "avg_mbps_below_floor",
+      "min_mbps_below_floor",
+      "telegram_required_telegram_down_14s"
+    ],
+    "avg_mbps": 0.0,
+    "min_mbps": 0.0,
+    "stability": 0.0,
+    "users": 0,
+    "load": {
+      "users": 0,
+      "soft_limit": 21,
+      "hard_limit": 27,
+      "failover_hard_limit": 36,
+      "capacity_users": 0,
+      "status": "OK"
+    },
+    "severity": "FAIL",
+    "service_aggregate_score": 2.834,
+    "route_class_fitness": {},
+    "telegram_status": "TELEGRAM_DOWN_14S",
+    "telegram_ok": false,
+    "telegram_hard_blocked": true,
+    "role": "GLOBAL_FAST",
+    "canary_reserved": false
+  },
+  {
+    "egress": "amneziawg-exec-20260528-10-8-1-14",
+    "eligible": false,
+    "score": 0.0,
+    "blocked": [
+      "manual_only",
+      "reserve_only",
+      "canary_reserved_production_assignment_blocked"
+    ],
+    "avg_mbps": 55.27,
+    "min_mbps": 35.96,
+    "stability": 0.651,
+    "users": 4,
+    "load": {
+      "users": 4,
+      "soft_limit": 21,
+      "hard_limit": 27,
+      "failover_hard_limit": 36,
+      "capacity_users": 0,
+      "status": "OK"
+    },
+    "severity": "OK",
+    "service_aggregate_score": 100.0,
+    "route_class_fitness": {},
+    "telegram_status": "OK",
+    "telegram_ok": true,
+    "telegram_hard_blocked": false,
+    "role": "EXECUTION_ONLY",
+    "canary_reserved": true
+  },
+  {
+    "egress": "awg0",
+    "eligible": true,
+    "score": 2134.44,
+    "blocked": [],
+    "avg_mbps": 59.19,
+    "min_mbps": 36.62,
+    "stability": 0.619,
+    "users": 1,
+    "load": {
+      "users": 1,
+      "soft_limit": 21,
+      "hard_limit": 27,
+      "failover_hard_limit": 36,
+      "capacity_users": 0,
+      "status": "OK"
+    },
+    "severity": "OK",
+    "service_aggregate_score": 100.0,
+    "route_class_fitness": {},
+    "telegram_status": "OK",
+    "telegram_ok": true,
+    "telegram_hard_blocked": false,
+    "role": "GLOBAL_STABLE",
+    "canary_reserved": false
+  },
+  {
+    "egress": "awg3",
+    "eligible": false,
+    "score": 0.0,
+    "blocked": [
+      "stability_below_floor"
+    ],
+    "avg_mbps": 45.73,
+    "min_mbps": 10.21,
+    "stability": 0.223,
+    "users": 0,
+    "load": {
+      "users": 0,
+      "soft_limit": 21,
+      "hard_limit": 27,
+      "failover_hard_limit": 36,
+      "capacity_users": 0,
+      "status": "OK"
+    },
+    "severity": "OK",
+    "service_aggregate_score": 100.0,
+    "route_class_fitness": {},
+    "telegram_status": "OK",
+    "telegram_ok": true,
+    "telegram_hard_blocked": false,
+    "role": "GLOBAL_STABLE",
+    "canary_reserved": false
+  },
+  {
+    "egress": "openvpn-1779388847-d2ad7c",
+    "eligible": false,
+    "score": 0.0,
+    "blocked": [
+      "health_code_000",
+      "severity_FAIL",
+      "avg_mbps_below_floor",
+      "min_mbps_below_floor",
+      "telegram_required_telegram_down_14s"
+    ],
+    "avg_mbps": 0.0,
+    "min_mbps": 0.0,
+    "stability": 0.0,
+    "users": 0,
+    "load": {
+      "users": 0,
+      "soft_limit": 21,
+      "hard_limit": 27,
+      "failover_hard_limit": 36,
+      "capacity_users": 0,
+      "status": "OK"
+    },
+    "severity": "FAIL",
+    "service_aggregate_score": 2.846,
+    "route_class_fitness": {},
+    "telegram_status": "TELEGRAM_DOWN_14S",
+    "telegram_ok": false,
+    "telegram_hard_blocked": true,
+    "role": "GLOBAL_FAST",
+    "canary_reserved": false
+  },
+  {
+    "egress": "vless",
+    "eligible": true,
+    "score": 2140.81,
+    "blocked": [],
+    "avg_mbps": 53.46,
+    "min_mbps": 50.86,
+    "stability": 0.951,
+    "users": 13,
+    "load": {
+      "users": 13,
+      "soft_limit": 21,
+      "hard_limit": 27,
+      "failover_hard_limit": 36,
+      "capacity_users": 0,
+      "status": "OK"
+    },
+    "severity": "SUSPECT",
+    "service_aggregate_score": 99.974,
+    "route_class_fitness": {},
+    "telegram_status": "OK",
+    "telegram_ok": true,
+    "telegram_hard_blocked": false,
+    "role": "GLOBAL_FAST",
+    "canary_reserved": false
+  },
+  {
+    "egress": "wireguard-1779454504-c43409",
+    "eligible": false,
+    "score": 0.0,
+    "blocked": [
+      "canary_reserved_production_assignment_blocked"
+    ],
+    "avg_mbps": 56.64,
+    "min_mbps": 48.66,
+    "stability": 0.859,
+    "users": 0,
+    "load": {
+      "users": 0,
+      "soft_limit": 21,
+      "hard_limit": 27,
+      "failover_hard_limit": 36,
+      "capacity_users": 0,
+      "status": "OK"
+    },
+    "severity": "OK",
+    "service_aggregate_score": 100.0,
+    "route_class_fitness": {},
+    "telegram_status": "OK",
+    "telegram_ok": true,
+    "telegram_hard_blocked": false,
+    "role": "GLOBAL_FAST",
+    "canary_reserved": true
+  }
+]

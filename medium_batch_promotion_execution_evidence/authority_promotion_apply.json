@@ -1,0 +1,178 @@
+{
+  "schema_version": "v7.authority-promotion-action.v1",
+  "action": "authority_promotion",
+  "component": "tools/v7-users-autoswitch",
+  "target_authority_class": "MEDIUM_BATCH",
+  "before": {
+    "raw": {
+      "activation_reason": "successful_2_user_governed_execution_verified_feedback_materialized_snapshot_gate_clean",
+      "authority_class": "SMALL_BATCH",
+      "authority_lifecycle_state": "SMALL_BATCH_CERTIFIED",
+      "certified_authority_class": "SMALL_BATCH",
+      "cooldown_seconds": 180,
+      "current_allowed_user_budget": 2,
+      "demotion_delay_seconds": 0,
+      "enabled": true,
+      "evidence_floor": "successful_2_user_governed_execution_plus_verification_feedback_and_operator_governance",
+      "minimum_residence_seconds": 300,
+      "next_allowed_user_budget": 5,
+      "promotion_delay_seconds": 900,
+      "rollback_penalty_seconds": 3600,
+      "updated_at": "2026-06-06T08:54:58+00:00",
+      "updated_by": "PROGRAM_VLESS_SERVICE_FAILURE_ROOT_CAUSE_CLOSURE_AND_CANARY_EXPANSION_EXECUTION",
+      "certification_evidence": {
+        "operation_id": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+        "selected_move_hash": "fcbbb6b0bb355003c3cf794875a78d68ce4a52d05c0c1ecfa94c761b7ef35438",
+        "users": [
+          "10.0.0.3",
+          "10.0.0.6"
+        ],
+        "target": "vless",
+        "verification_passed": true,
+        "rollback_required": false,
+        "feedback_ids": [
+          "execfb_dfac3391a383f3f76793fea0",
+          "execfb_e42729ab1d2fe5ffad827c56"
+        ],
+        "snapshot_gate_clean_evidence": "phase12_post_feedback_planner_with_pre_refresh"
+      }
+    },
+    "effective": {
+      "enabled": true,
+      "authority_class": "SMALL_BATCH",
+      "certified_authority_class": "SMALL_BATCH",
+      "authority_lifecycle_state": "CERTIFIED",
+      "current_allowed_user_budget": 2,
+      "next_allowed_user_budget": 5,
+      "minimum_residence_seconds": 300,
+      "cooldown_seconds": 180,
+      "promotion_delay_seconds": 900,
+      "demotion_delay_seconds": 0,
+      "rollback_penalty_seconds": 3600,
+      "evidence_floor": "successful_2_user_governed_execution_plus_verification_feedback_and_operator_governance",
+      "activation_reason": "successful_2_user_governed_execution_verified_feedback_materialized_snapshot_gate_clean",
+      "updated_at": "2026-06-06T08:54:58+00:00",
+      "updated_by": "PROGRAM_VLESS_SERVICE_FAILURE_ROOT_CAUSE_CLOSURE_AND_CANARY_EXPANSION_EXECUTION",
+      "certification_evidence": {
+        "operation_id": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+        "selected_move_hash": "fcbbb6b0bb355003c3cf794875a78d68ce4a52d05c0c1ecfa94c761b7ef35438",
+        "users": [
+          "10.0.0.3",
+          "10.0.0.6"
+        ],
+        "target": "vless",
+        "verification_passed": true,
+        "rollback_required": false,
+        "feedback_ids": [
+          "execfb_dfac3391a383f3f76793fea0",
+          "execfb_e42729ab1d2fe5ffad827c56"
+        ],
+        "snapshot_gate_clean_evidence": "phase12_post_feedback_planner_with_pre_refresh"
+      },
+      "prepared_authority_class": "SMALL_BATCH",
+      "next_authority_class": "MEDIUM_BATCH",
+      "truth_source": "existing_policy_files",
+      "runtime_calculation_mode": "prepared_and_certified_min_authority",
+      "authority_bridge": {
+        "schema_version": "v7.authority-transition-bridge.v1",
+        "enabled": false,
+        "state": "",
+        "from_certified_authority": "SMALL_BATCH",
+        "to_prepared_authority": "SMALL_BATCH",
+        "bridge_budget_ceiling": 0,
+        "promotion_certification": false,
+        "truth_source": "existing_policy_files",
+        "new_truth_sources_created": false,
+        "duplicate_systems_created": false
+      }
+    },
+    "policy_hash": "441c1ae7686752f1f0264dda0ecc4c47cb8a79a68e19dc80db20de249d1c7ad8"
+  },
+  "operation_ids": [
+    "runtime_autoswitch_b5063a475a06312ff23c90a7",
+    "runtime_autoswitch_f59ba96b71192a236ae8371b"
+  ],
+  "users_moved": 0,
+  "routing_mutation_performed": false,
+  "autoswitch_apply_run": false,
+  "status": "DENIED",
+  "blockers": [
+    "runtime_truth_check_failed",
+    "medium_batch_evidence_validation_failed"
+  ],
+  "truth_check": {
+    "command": "v7-truth-check",
+    "required": true,
+    "returncode": null,
+    "passed": false,
+    "stdout_tail": "",
+    "error": "[Errno 2] No such file or directory: 'v7-truth-check'"
+  },
+  "evidence_review": {
+    "schema_version": "v7.authority-promotion-evidence-review.v1",
+    "required_successful_small_batch_runs": 2,
+    "operation_ids": [
+      "runtime_autoswitch_b5063a475a06312ff23c90a7",
+      "runtime_autoswitch_f59ba96b71192a236ae8371b"
+    ],
+    "operation_reviews": [
+      {
+        "operation_id": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+        "feedback_record_counts": {
+          "outcome": 2,
+          "trust": 2,
+          "prediction": 2,
+          "recommendation": 0,
+          "closure": 2
+        },
+        "feedback_ids": [
+          "execfb_dfac3391a383f3f76793fea0",
+          "execfb_e42729ab1d2fe5ffad827c56"
+        ],
+        "users": [
+          "10.0.0.3",
+          "10.0.0.6"
+        ],
+        "users_count": 2,
+        "statuses": [
+          "success"
+        ],
+        "missing_feedback_types": [
+          "recommendation"
+        ],
+        "successful": true,
+        "closure_closed": true,
+        "small_batch_success_proven": false
+      },
+      {
+        "operation_id": "runtime_autoswitch_f59ba96b71192a236ae8371b",
+        "feedback_record_counts": {
+          "outcome": 2,
+          "trust": 2,
+          "prediction": 2,
+          "recommendation": 2,
+          "closure": 2
+        },
+        "feedback_ids": [
+          "execfb_9d6b0667f5ba3362e502cfb0",
+          "execfb_bb2a24a9626230d5982ff88c"
+        ],
+        "users": [
+          "10.7.0.2",
+          "10.7.0.3"
+        ],
+        "users_count": 2,
+        "statuses": [
+          "success"
+        ],
+        "missing_feedback_types": [],
+        "successful": true,
+        "closure_closed": true,
+        "small_batch_success_proven": true
+      }
+    ],
+    "successful_small_batch_runs": 1,
+    "evidence_valid": false
+  },
+  "audit_command_available": true
+}

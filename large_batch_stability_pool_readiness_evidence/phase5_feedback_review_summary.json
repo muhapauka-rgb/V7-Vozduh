@@ -1,0 +1,85 @@
+{
+  "total_records": 50,
+  "by_schema": {
+    "v7.execution-outcome-record.v1": 10,
+    "v7.execution-prediction-feedback.v1": 10,
+    "v7.execution-trust-feedback.v1": 10,
+    "v7.execution-recommendation-feedback.v1": 10,
+    "v7.execution-feedback-closure.v1": 10
+  },
+  "users": {
+    "10.7.0.10": [
+      "v7.execution-outcome-record.v1",
+      "v7.execution-prediction-feedback.v1",
+      "v7.execution-trust-feedback.v1",
+      "v7.execution-recommendation-feedback.v1",
+      "v7.execution-feedback-closure.v1"
+    ],
+    "10.7.0.11": [
+      "v7.execution-outcome-record.v1",
+      "v7.execution-prediction-feedback.v1",
+      "v7.execution-trust-feedback.v1",
+      "v7.execution-recommendation-feedback.v1",
+      "v7.execution-feedback-closure.v1"
+    ],
+    "10.7.0.12": [
+      "v7.execution-outcome-record.v1",
+      "v7.execution-prediction-feedback.v1",
+      "v7.execution-trust-feedback.v1",
+      "v7.execution-recommendation-feedback.v1",
+      "v7.execution-feedback-closure.v1"
+    ],
+    "10.7.0.14": [
+      "v7.execution-outcome-record.v1",
+      "v7.execution-prediction-feedback.v1",
+      "v7.execution-trust-feedback.v1",
+      "v7.execution-recommendation-feedback.v1",
+      "v7.execution-feedback-closure.v1"
+    ],
+    "10.7.0.15": [
+      "v7.execution-outcome-record.v1",
+      "v7.execution-prediction-feedback.v1",
+      "v7.execution-trust-feedback.v1",
+      "v7.execution-recommendation-feedback.v1",
+      "v7.execution-feedback-closure.v1"
+    ],
+    "10.7.0.2": [
+      "v7.execution-outcome-record.v1",
+      "v7.execution-prediction-feedback.v1",
+      "v7.execution-trust-feedback.v1",
+      "v7.execution-recommendation-feedback.v1",
+      "v7.execution-feedback-closure.v1"
+    ],
+    "10.7.0.4": [
+      "v7.execution-outcome-record.v1",
+      "v7.execution-prediction-feedback.v1",
+      "v7.execution-trust-feedback.v1",
+      "v7.execution-recommendation-feedback.v1",
+      "v7.execution-feedback-closure.v1"
+    ],
+    "10.7.0.6": [
+      "v7.execution-outcome-record.v1",
+      "v7.execution-prediction-feedback.v1",
+      "v7.execution-trust-feedback.v1",
+      "v7.execution-recommendation-feedback.v1",
+      "v7.execution-feedback-closure.v1"
+    ],
+    "10.7.0.8": [
+      "v7.execution-outcome-record.v1",
+      "v7.execution-prediction-feedback.v1",
+      "v7.execution-trust-feedback.v1",
+      "v7.execution-recommendation-feedback.v1",
+      "v7.execution-feedback-closure.v1"
+    ],
+    "10.7.0.9": [
+      "v7.execution-outcome-record.v1",
+      "v7.execution-prediction-feedback.v1",
+      "v7.execution-trust-feedback.v1",
+      "v7.execution-recommendation-feedback.v1",
+      "v7.execution-feedback-closure.v1"
+    ]
+  },
+  "closure_closed": 10,
+  "outcome_success": 50,
+  "rollback_required_records": 0
+}

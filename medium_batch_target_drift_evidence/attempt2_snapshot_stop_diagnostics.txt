@@ -1,0 +1,49 @@
+stop_required True
+source_mismatch_families ['channel-service-scores', 'service-scores']
+pre_refresh_state SOURCE_VOLATILE_AFTER_POST_RELOAD_RETRY
+pre_refresh_decision freshness_unknown_source_changed_after_retry
+pre_refresh_changed ['service_matrix']
+post_retry_present True
+retry_state REFRESH_SUCCESS
+retry_stop False
+retry_decision freshness_refreshed
+retry_source_reload_after_retry {'schema': 'v7.pre-planner-source-reload-after-retry.v1', 'condition': 'post_source_reload_refresh_success', 'decision': 'reload_sources_after_post_source_reload_refresh', 'action': 'reload_service_matrix_quality_summary_service_preferences', 'executor': 'tools/v7-users-autoswitch', 'trigger': 'POST_SOURCE_RELOAD_REFRESH_SUCCESS', 'written_evidence': 'plan.safety.intelligence_snapshots.pre_planner_refresh.post_source_reload_refresh.source_reload_after_retry', 'blocked_actions': [], 'next_state': 'load_retried_snapshots_with_current_source_inputs', 'before_hashes': {'service_matrix': '374996c7e804160273570deb0bcd35110434b6bc1db930b60c37d68272aec283', 'quality_summary': '65bc810bcce9b705f94ee09833923f36b727f60c90e9eea7cc2ec47d749921e8', 'service_preferences': '88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c'}, 'after_hashes': {'service_matrix': '0f62984953009d4cbabbf52e2f9d4c28d863f90ccc895cfe68c2396064acae87', 'quality_summary': '65bc810bcce9b705f94ee09833923f36b727f60c90e9eea7cc2ec47d749921e8', 'service_preferences': '88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c'}, 'changed_keys': ['service_matrix'], 'runtime_behavior_changed': False, 'governance_behavior_changed': False, 'execution_behavior_changed': False, 'users_moved': False}
+
+ service-scores
+runtime STOP
+errors ['source_hash_mismatch:service-scores:service_matrix']
+source_hashes {'quality_summary': '65bc810bcce9b705f94ee09833923f36b727f60c90e9eea7cc2ec47d749921e8', 'service_matrix': '374996c7e804160273570deb0bcd35110434b6bc1db930b60c37d68272aec283', 'service_preferences': '88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c'}
+
+ channel-service-scores
+runtime STOP
+errors ['source_hash_mismatch:channel-service-scores:service_matrix']
+source_hashes {'quality_summary': '65bc810bcce9b705f94ee09833923f36b727f60c90e9eea7cc2ec47d749921e8', 'service_matrix': '374996c7e804160273570deb0bcd35110434b6bc1db930b60c37d68272aec283', 'service_preferences': '88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c'}
+
+source_reload {
+  "action": "reload_service_matrix_quality_summary_service_preferences",
+  "after_hashes": {
+    "quality_summary": "65bc810bcce9b705f94ee09833923f36b727f60c90e9eea7cc2ec47d749921e8",
+    "service_matrix": "374996c7e804160273570deb0bcd35110434b6bc1db930b60c37d68272aec283",
+    "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+  },
+  "before_hashes": {
+    "quality_summary": "65bc810bcce9b705f94ee09833923f36b727f60c90e9eea7cc2ec47d749921e8",
+    "service_matrix": "3465a8d31d61f71d999d35e9c5bf0b1c5139c9fdd457b692b812b0dbe13d30d7",
+    "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+  },
+  "blocked_actions": [],
+  "changed_keys": [
+    "service_matrix"
+  ],
+  "condition": "pre_planner_refresh_write_success",
+  "decision": "reload_planner_source_inputs_before_snapshot_gate",
+  "execution_behavior_changed": false,
+  "executor": "tools/v7-users-autoswitch",
+  "governance_behavior_changed": false,
+  "next_state": "load_refreshed_snapshots_with_current_source_inputs",
+  "runtime_behavior_changed": false,
+  "schema": "v7.pre-planner-source-reload.v1",
+  "trigger": "REFRESH_SUCCESS",
+  "users_moved": false,
+  "written_evidence": "plan.safety.intelligence_snapshots.pre_planner_refresh.source_reload"
+}

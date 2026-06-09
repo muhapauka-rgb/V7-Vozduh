@@ -1,0 +1,32 @@
+{
+  "user": "10.7.0.9",
+  "source_channel": "vless",
+  "target_channel": "awg3",
+  "execution_result": {
+    "success": true,
+    "status": "applied",
+    "operation_id": "runtime_autoswitch_0425741b308df19ccc0c1e03",
+    "selected_move_hash": "2ce019855a3db2a74795fc5d41a928400d44b8f20177e542d1bf3740e2608e30",
+    "selected_move_index": 8,
+    "move_type": "rebalance",
+    "rc": 0
+  },
+  "verification_result": {
+    "success": true,
+    "status": "verified",
+    "verify_rc": 0,
+    "rollback_required": false
+  },
+  "rollback_result": {
+    "rollback_required": false,
+    "rollback_attempted": false
+  },
+  "recommendation_hash": "2ce019855a3db2a74795fc5d41a928400d44b8f20177e542d1bf3740e2608e30",
+  "prediction_expected": 1.0,
+  "prediction_actual": 1.0,
+  "audit_reference": "runtime_autoswitch_0425741b308df19ccc0c1e03",
+  "closure_reference": "runtime_autoswitch_0425741b308df19ccc0c1e03",
+  "execution_time": "2026-06-07T12:05:31Z",
+  "verification_time": "2026-06-07T12:05:31Z",
+  "stability_window_seconds": 0
+}

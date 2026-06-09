@@ -1,0 +1,171 @@
+{
+  "confidence": 0.8478,
+  "confidence_factors": {
+    "history_completeness": 1.0,
+    "probe_completeness": 0.391,
+    "service_completeness": 1.0,
+    "source_completeness": 1.0
+  },
+  "expires_at": "2026-06-06T22:43:51.765944+00:00",
+  "freshness_state": "FRESH",
+  "generated_at": "2026-06-06T22:41:51.765944+00:00",
+  "generator": "admin_core.intelligence_workers",
+  "item_count": 7,
+  "items": [
+    {
+      "aggregate_score": 18.503,
+      "channel": "1",
+      "confidence": 0.3181,
+      "required_low": [
+        "telegram",
+        "youtube",
+        "instagram",
+        "chatgpt",
+        "google",
+        "google_auth"
+      ],
+      "required_missing": [],
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 6,
+        "distinct_rounded": 5,
+        "max": 28.503,
+        "mean": 18.502,
+        "min": 10.508,
+        "spread": 17.995,
+        "stdev": 6.941
+      },
+      "verdict": "REVIEW_REQUIRED_LOW_SERVICE_SCORE"
+    },
+    {
+      "aggregate_score": 93.088,
+      "channel": "amneziawg-exec-20260528-10-8-1-14",
+      "confidence": 0.4583,
+      "required_low": [],
+      "required_missing": [],
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "HIGH_SCORE_COMPRESSION",
+        "count": 6,
+        "distinct_rounded": 5,
+        "max": 98.64,
+        "mean": 93.087,
+        "min": 88.002,
+        "spread": 10.638,
+        "stdev": 4.518
+      },
+      "verdict": "OK"
+    },
+    {
+      "aggregate_score": 93.235,
+      "channel": "awg0",
+      "confidence": 0.4583,
+      "required_low": [],
+      "required_missing": [],
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "HIGH_SCORE_COMPRESSION",
+        "count": 6,
+        "distinct_rounded": 5,
+        "max": 98.64,
+        "mean": 93.233,
+        "min": 88.222,
+        "spread": 10.418,
+        "stdev": 4.438
+      },
+      "verdict": "OK"
+    },
+    {
+      "aggregate_score": 91.917,
+      "channel": "awg3",
+      "confidence": 0.4583,
+      "required_low": [],
+      "required_missing": [],
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 6,
+        "distinct_rounded": 5,
+        "max": 98.64,
+        "mean": 91.915,
+        "min": 86.245,
+        "spread": 12.395,
+        "stdev": 5.164
+      },
+      "verdict": "OK"
+    },
+    {
+      "aggregate_score": 18.505,
+      "channel": "openvpn-1779388847-d2ad7c",
+      "confidence": 0.3181,
+      "required_low": [
+        "telegram",
+        "youtube",
+        "instagram",
+        "chatgpt",
+        "google",
+        "google_auth"
+      ],
+      "required_missing": [],
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 6,
+        "distinct_rounded": 5,
+        "max": 28.503,
+        "mean": 18.505,
+        "min": 10.508,
+        "spread": 17.995,
+        "stdev": 6.944
+      },
+      "verdict": "REVIEW_REQUIRED_LOW_SERVICE_SCORE"
+    },
+    {
+      "aggregate_score": 84.974,
+      "channel": "vless",
+      "confidence": 0.4583,
+      "required_low": [],
+      "required_missing": [],
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 6,
+        "distinct_rounded": 4,
+        "max": 94.797,
+        "mean": 84.972,
+        "min": 80.657,
+        "spread": 14.14,
+        "stdev": 5.458
+      },
+      "verdict": "OK"
+    },
+    {
+      "aggregate_score": 95.419,
+      "channel": "wireguard-1779454504-c43409",
+      "confidence": 0.4583,
+      "required_low": [],
+      "required_missing": [],
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "HIGH_SCORE_COMPRESSION",
+        "count": 6,
+        "distinct_rounded": 4,
+        "max": 99.163,
+        "mean": 95.417,
+        "min": 91.498,
+        "spread": 7.665,
+        "stdev": 3.281
+      },
+      "verdict": "OK"
+    }
+  ],
+  "schema": "v7.intelligence.channel-service-scores.v1",
+  "source_hashes": {
+    "quality_summary": "bf0052eeff192aa79bea97bd41a55f9792460331f92a4bf2d5b989ae75a338cb",
+    "service_matrix": "d4b31aa7e4b9ebbbe8f04296f1a2a1965586ef4027ad303ca2aac06a572f1ce8",
+    "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+  },
+  "ttl_seconds": 120,
+  "warnings": []
+}

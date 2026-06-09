@@ -1,0 +1,3431 @@
+{
+  "confidence": 0.8466,
+  "confidence_factors": {
+    "history_completeness": 0.9841,
+    "probe_completeness": 0.4022,
+    "service_completeness": 1.0,
+    "source_completeness": 1.0
+  },
+  "expires_at": "2026-06-06T22:43:51.765944+00:00",
+  "freshness_state": "FRESH",
+  "generated_at": "2026-06-06T22:41:51.765944+00:00",
+  "generator": "admin_core.intelligence_workers",
+  "item_count": 18,
+  "items": [
+    {
+      "candidate_count": 5,
+      "candidates": [
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "1",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.656",
+            "weighted_service_score=18.656",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.325",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.033,
+            "service_confidence": -2.729,
+            "service_history": -7.836,
+            "service_weight": -10.97
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.835,
+          "suitability_score": 24.582,
+          "user": "10.0.0.2"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.961",
+            "weighted_service_score=92.961",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.001",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.6,
+            "service_confidence": -0.625,
+            "service_history": 10.74,
+            "service_weight": 15.036
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 63.803,
+          "suitability_score": 81.901,
+          "user": "10.0.0.2"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.147",
+            "weighted_service_score=92.147",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.475",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.553,
+            "service_confidence": -0.625,
+            "service_history": 10.537,
+            "service_weight": 14.751
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 62.731,
+          "suitability_score": 81.366,
+          "user": "10.0.0.2"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "openvpn-1779388847-d2ad7c",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.52",
+            "weighted_service_score=18.52",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.313",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.031,
+            "service_confidence": -2.729,
+            "service_history": -7.87,
+            "service_weight": -11.018
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.997,
+          "suitability_score": 24.502,
+          "user": "10.0.0.2"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=84.294",
+            "weighted_service_score=84.294",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=17.901",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.21,
+            "service_confidence": -0.625,
+            "service_history": 8.573,
+            "service_weight": 12.003
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 52.623,
+          "suitability_score": 76.311,
+          "user": "10.0.0.2"
+        }
+      ],
+      "runtime_decision_authority": "none_snapshot_only",
+      "user": "10.0.0.2"
+    },
+    {
+      "candidate_count": 5,
+      "candidates": [
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "1",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.656",
+            "weighted_service_score=18.656",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.325",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.033,
+            "service_confidence": -2.729,
+            "service_history": -7.836,
+            "service_weight": -10.97
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.835,
+          "suitability_score": 24.582,
+          "user": "10.0.0.3"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.961",
+            "weighted_service_score=92.961",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.001",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.6,
+            "service_confidence": -0.625,
+            "service_history": 10.74,
+            "service_weight": 15.036
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 63.803,
+          "suitability_score": 81.901,
+          "user": "10.0.0.3"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.147",
+            "weighted_service_score=92.147",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.475",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.553,
+            "service_confidence": -0.625,
+            "service_history": 10.537,
+            "service_weight": 14.751
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 62.731,
+          "suitability_score": 81.366,
+          "user": "10.0.0.3"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "openvpn-1779388847-d2ad7c",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.52",
+            "weighted_service_score=18.52",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.313",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.031,
+            "service_confidence": -2.729,
+            "service_history": -7.87,
+            "service_weight": -11.018
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.997,
+          "suitability_score": 24.502,
+          "user": "10.0.0.3"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=84.294",
+            "weighted_service_score=84.294",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=17.901",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.21,
+            "service_confidence": -0.625,
+            "service_history": 8.573,
+            "service_weight": 12.003
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 52.623,
+          "suitability_score": 76.311,
+          "user": "10.0.0.3"
+        }
+      ],
+      "runtime_decision_authority": "none_snapshot_only",
+      "user": "10.0.0.3"
+    },
+    {
+      "candidate_count": 5,
+      "candidates": [
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "1",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.656",
+            "weighted_service_score=18.656",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.325",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.033,
+            "service_confidence": -2.729,
+            "service_history": -7.836,
+            "service_weight": -10.97
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.835,
+          "suitability_score": 24.582,
+          "user": "10.0.0.6"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.961",
+            "weighted_service_score=92.961",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.001",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.6,
+            "service_confidence": -0.625,
+            "service_history": 10.74,
+            "service_weight": 15.036
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 63.803,
+          "suitability_score": 81.901,
+          "user": "10.0.0.6"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.147",
+            "weighted_service_score=92.147",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.475",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.553,
+            "service_confidence": -0.625,
+            "service_history": 10.537,
+            "service_weight": 14.751
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 62.731,
+          "suitability_score": 81.366,
+          "user": "10.0.0.6"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "openvpn-1779388847-d2ad7c",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.52",
+            "weighted_service_score=18.52",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.313",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.031,
+            "service_confidence": -2.729,
+            "service_history": -7.87,
+            "service_weight": -11.018
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.997,
+          "suitability_score": 24.502,
+          "user": "10.0.0.6"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=84.294",
+            "weighted_service_score=84.294",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=17.901",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.21,
+            "service_confidence": -0.625,
+            "service_history": 8.573,
+            "service_weight": 12.003
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 52.623,
+          "suitability_score": 76.311,
+          "user": "10.0.0.6"
+        }
+      ],
+      "runtime_decision_authority": "none_snapshot_only",
+      "user": "10.0.0.6"
+    },
+    {
+      "candidate_count": 5,
+      "candidates": [
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "1",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.656",
+            "weighted_service_score=18.656",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.325",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.033,
+            "service_confidence": -2.729,
+            "service_history": -7.836,
+            "service_weight": -10.97
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.835,
+          "suitability_score": 24.582,
+          "user": "10.7.0.3"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.961",
+            "weighted_service_score=92.961",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.001",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.6,
+            "service_confidence": -0.625,
+            "service_history": 10.74,
+            "service_weight": 15.036
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 63.803,
+          "suitability_score": 81.901,
+          "user": "10.7.0.3"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.147",
+            "weighted_service_score=92.147",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.475",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.553,
+            "service_confidence": -0.625,
+            "service_history": 10.537,
+            "service_weight": 14.751
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 62.731,
+          "suitability_score": 81.366,
+          "user": "10.7.0.3"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "openvpn-1779388847-d2ad7c",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.52",
+            "weighted_service_score=18.52",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.313",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.031,
+            "service_confidence": -2.729,
+            "service_history": -7.87,
+            "service_weight": -11.018
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.997,
+          "suitability_score": 24.502,
+          "user": "10.7.0.3"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=84.294",
+            "weighted_service_score=84.294",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=17.901",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.21,
+            "service_confidence": -0.625,
+            "service_history": 8.573,
+            "service_weight": 12.003
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 52.623,
+          "suitability_score": 76.311,
+          "user": "10.7.0.3"
+        }
+      ],
+      "runtime_decision_authority": "none_snapshot_only",
+      "user": "10.7.0.3"
+    },
+    {
+      "candidate_count": 5,
+      "candidates": [
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "1",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.656",
+            "weighted_service_score=18.656",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.325",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.033,
+            "service_confidence": -2.729,
+            "service_history": -7.836,
+            "service_weight": -10.97
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.835,
+          "suitability_score": 24.582,
+          "user": "10.7.0.2"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.961",
+            "weighted_service_score=92.961",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.001",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.6,
+            "service_confidence": -0.625,
+            "service_history": 10.74,
+            "service_weight": 15.036
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 63.803,
+          "suitability_score": 81.901,
+          "user": "10.7.0.2"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.147",
+            "weighted_service_score=92.147",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.475",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.553,
+            "service_confidence": -0.625,
+            "service_history": 10.537,
+            "service_weight": 14.751
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 62.731,
+          "suitability_score": 81.366,
+          "user": "10.7.0.2"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "openvpn-1779388847-d2ad7c",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.52",
+            "weighted_service_score=18.52",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.313",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.031,
+            "service_confidence": -2.729,
+            "service_history": -7.87,
+            "service_weight": -11.018
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.997,
+          "suitability_score": 24.502,
+          "user": "10.7.0.2"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=84.294",
+            "weighted_service_score=84.294",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=17.901",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.21,
+            "service_confidence": -0.625,
+            "service_history": 8.573,
+            "service_weight": 12.003
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 52.623,
+          "suitability_score": 76.311,
+          "user": "10.7.0.2"
+        }
+      ],
+      "runtime_decision_authority": "none_snapshot_only",
+      "user": "10.7.0.2"
+    },
+    {
+      "candidate_count": 5,
+      "candidates": [
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "1",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.656",
+            "weighted_service_score=18.656",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.325",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.033,
+            "service_confidence": -2.729,
+            "service_history": -7.836,
+            "service_weight": -10.97
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.835,
+          "suitability_score": 24.582,
+          "user": "10.7.0.4"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.961",
+            "weighted_service_score=92.961",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.001",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.6,
+            "service_confidence": -0.625,
+            "service_history": 10.74,
+            "service_weight": 15.036
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 63.803,
+          "suitability_score": 81.901,
+          "user": "10.7.0.4"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.147",
+            "weighted_service_score=92.147",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.475",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.553,
+            "service_confidence": -0.625,
+            "service_history": 10.537,
+            "service_weight": 14.751
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 62.731,
+          "suitability_score": 81.366,
+          "user": "10.7.0.4"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "openvpn-1779388847-d2ad7c",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.52",
+            "weighted_service_score=18.52",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.313",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.031,
+            "service_confidence": -2.729,
+            "service_history": -7.87,
+            "service_weight": -11.018
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.997,
+          "suitability_score": 24.502,
+          "user": "10.7.0.4"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=84.294",
+            "weighted_service_score=84.294",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=17.901",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.21,
+            "service_confidence": -0.625,
+            "service_history": 8.573,
+            "service_weight": 12.003
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 52.623,
+          "suitability_score": 76.311,
+          "user": "10.7.0.4"
+        }
+      ],
+      "runtime_decision_authority": "none_snapshot_only",
+      "user": "10.7.0.4"
+    },
+    {
+      "candidate_count": 5,
+      "candidates": [
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "1",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.656",
+            "weighted_service_score=18.656",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.325",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.033,
+            "service_confidence": -2.729,
+            "service_history": -7.836,
+            "service_weight": -10.97
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.835,
+          "suitability_score": 24.582,
+          "user": "10.7.0.5"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.961",
+            "weighted_service_score=92.961",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.001",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.6,
+            "service_confidence": -0.625,
+            "service_history": 10.74,
+            "service_weight": 15.036
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 63.803,
+          "suitability_score": 81.901,
+          "user": "10.7.0.5"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.147",
+            "weighted_service_score=92.147",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.475",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.553,
+            "service_confidence": -0.625,
+            "service_history": 10.537,
+            "service_weight": 14.751
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 62.731,
+          "suitability_score": 81.366,
+          "user": "10.7.0.5"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "openvpn-1779388847-d2ad7c",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.52",
+            "weighted_service_score=18.52",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.313",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.031,
+            "service_confidence": -2.729,
+            "service_history": -7.87,
+            "service_weight": -11.018
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.997,
+          "suitability_score": 24.502,
+          "user": "10.7.0.5"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=84.294",
+            "weighted_service_score=84.294",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=17.901",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.21,
+            "service_confidence": -0.625,
+            "service_history": 8.573,
+            "service_weight": 12.003
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 52.623,
+          "suitability_score": 76.311,
+          "user": "10.7.0.5"
+        }
+      ],
+      "runtime_decision_authority": "none_snapshot_only",
+      "user": "10.7.0.5"
+    },
+    {
+      "candidate_count": 5,
+      "candidates": [
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "1",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.656",
+            "weighted_service_score=18.656",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.325",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.033,
+            "service_confidence": -2.729,
+            "service_history": -7.836,
+            "service_weight": -10.97
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.835,
+          "suitability_score": 24.582,
+          "user": "10.7.0.6"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.961",
+            "weighted_service_score=92.961",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.001",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.6,
+            "service_confidence": -0.625,
+            "service_history": 10.74,
+            "service_weight": 15.036
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 63.803,
+          "suitability_score": 81.901,
+          "user": "10.7.0.6"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.147",
+            "weighted_service_score=92.147",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.475",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.553,
+            "service_confidence": -0.625,
+            "service_history": 10.537,
+            "service_weight": 14.751
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 62.731,
+          "suitability_score": 81.366,
+          "user": "10.7.0.6"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "openvpn-1779388847-d2ad7c",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.52",
+            "weighted_service_score=18.52",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.313",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.031,
+            "service_confidence": -2.729,
+            "service_history": -7.87,
+            "service_weight": -11.018
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.997,
+          "suitability_score": 24.502,
+          "user": "10.7.0.6"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=84.294",
+            "weighted_service_score=84.294",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=17.901",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.21,
+            "service_confidence": -0.625,
+            "service_history": 8.573,
+            "service_weight": 12.003
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 52.623,
+          "suitability_score": 76.311,
+          "user": "10.7.0.6"
+        }
+      ],
+      "runtime_decision_authority": "none_snapshot_only",
+      "user": "10.7.0.6"
+    },
+    {
+      "candidate_count": 5,
+      "candidates": [
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "1",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.656",
+            "weighted_service_score=18.656",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.325",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.033,
+            "service_confidence": -2.729,
+            "service_history": -7.836,
+            "service_weight": -10.97
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.835,
+          "suitability_score": 24.582,
+          "user": "10.7.0.8"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.961",
+            "weighted_service_score=92.961",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.001",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.6,
+            "service_confidence": -0.625,
+            "service_history": 10.74,
+            "service_weight": 15.036
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 63.803,
+          "suitability_score": 81.901,
+          "user": "10.7.0.8"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.147",
+            "weighted_service_score=92.147",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.475",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.553,
+            "service_confidence": -0.625,
+            "service_history": 10.537,
+            "service_weight": 14.751
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 62.731,
+          "suitability_score": 81.366,
+          "user": "10.7.0.8"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "openvpn-1779388847-d2ad7c",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.52",
+            "weighted_service_score=18.52",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.313",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.031,
+            "service_confidence": -2.729,
+            "service_history": -7.87,
+            "service_weight": -11.018
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.997,
+          "suitability_score": 24.502,
+          "user": "10.7.0.8"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=84.294",
+            "weighted_service_score=84.294",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=17.901",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.21,
+            "service_confidence": -0.625,
+            "service_history": 8.573,
+            "service_weight": 12.003
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 52.623,
+          "suitability_score": 76.311,
+          "user": "10.7.0.8"
+        }
+      ],
+      "runtime_decision_authority": "none_snapshot_only",
+      "user": "10.7.0.8"
+    },
+    {
+      "candidate_count": 5,
+      "candidates": [
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "1",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.656",
+            "weighted_service_score=18.656",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.325",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.033,
+            "service_confidence": -2.729,
+            "service_history": -7.836,
+            "service_weight": -10.97
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.835,
+          "suitability_score": 24.582,
+          "user": "10.7.0.9"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.961",
+            "weighted_service_score=92.961",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.001",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.6,
+            "service_confidence": -0.625,
+            "service_history": 10.74,
+            "service_weight": 15.036
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 63.803,
+          "suitability_score": 81.901,
+          "user": "10.7.0.9"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.147",
+            "weighted_service_score=92.147",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.475",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.553,
+            "service_confidence": -0.625,
+            "service_history": 10.537,
+            "service_weight": 14.751
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 62.731,
+          "suitability_score": 81.366,
+          "user": "10.7.0.9"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "openvpn-1779388847-d2ad7c",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.52",
+            "weighted_service_score=18.52",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.313",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.031,
+            "service_confidence": -2.729,
+            "service_history": -7.87,
+            "service_weight": -11.018
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.997,
+          "suitability_score": 24.502,
+          "user": "10.7.0.9"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=84.294",
+            "weighted_service_score=84.294",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=17.901",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.21,
+            "service_confidence": -0.625,
+            "service_history": 8.573,
+            "service_weight": 12.003
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 52.623,
+          "suitability_score": 76.311,
+          "user": "10.7.0.9"
+        }
+      ],
+      "runtime_decision_authority": "none_snapshot_only",
+      "user": "10.7.0.9"
+    },
+    {
+      "candidate_count": 5,
+      "candidates": [
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "1",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.656",
+            "weighted_service_score=18.656",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.325",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.033,
+            "service_confidence": -2.729,
+            "service_history": -7.836,
+            "service_weight": -10.97
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.835,
+          "suitability_score": 24.582,
+          "user": "10.7.0.10"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.961",
+            "weighted_service_score=92.961",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.001",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.6,
+            "service_confidence": -0.625,
+            "service_history": 10.74,
+            "service_weight": 15.036
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 63.803,
+          "suitability_score": 81.901,
+          "user": "10.7.0.10"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.147",
+            "weighted_service_score=92.147",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.475",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.553,
+            "service_confidence": -0.625,
+            "service_history": 10.537,
+            "service_weight": 14.751
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 62.731,
+          "suitability_score": 81.366,
+          "user": "10.7.0.10"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "openvpn-1779388847-d2ad7c",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.52",
+            "weighted_service_score=18.52",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.313",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.031,
+            "service_confidence": -2.729,
+            "service_history": -7.87,
+            "service_weight": -11.018
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.997,
+          "suitability_score": 24.502,
+          "user": "10.7.0.10"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=84.294",
+            "weighted_service_score=84.294",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=17.901",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.21,
+            "service_confidence": -0.625,
+            "service_history": 8.573,
+            "service_weight": 12.003
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 52.623,
+          "suitability_score": 76.311,
+          "user": "10.7.0.10"
+        }
+      ],
+      "runtime_decision_authority": "none_snapshot_only",
+      "user": "10.7.0.10"
+    },
+    {
+      "candidate_count": 5,
+      "candidates": [
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "1",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.656",
+            "weighted_service_score=18.656",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.325",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.033,
+            "service_confidence": -2.729,
+            "service_history": -7.836,
+            "service_weight": -10.97
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.835,
+          "suitability_score": 24.582,
+          "user": "10.7.0.11"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.961",
+            "weighted_service_score=92.961",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.001",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.6,
+            "service_confidence": -0.625,
+            "service_history": 10.74,
+            "service_weight": 15.036
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 63.803,
+          "suitability_score": 81.901,
+          "user": "10.7.0.11"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.147",
+            "weighted_service_score=92.147",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.475",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.553,
+            "service_confidence": -0.625,
+            "service_history": 10.537,
+            "service_weight": 14.751
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 62.731,
+          "suitability_score": 81.366,
+          "user": "10.7.0.11"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "openvpn-1779388847-d2ad7c",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.52",
+            "weighted_service_score=18.52",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.313",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.031,
+            "service_confidence": -2.729,
+            "service_history": -7.87,
+            "service_weight": -11.018
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.997,
+          "suitability_score": 24.502,
+          "user": "10.7.0.11"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=84.294",
+            "weighted_service_score=84.294",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=17.901",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.21,
+            "service_confidence": -0.625,
+            "service_history": 8.573,
+            "service_weight": 12.003
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 52.623,
+          "suitability_score": 76.311,
+          "user": "10.7.0.11"
+        }
+      ],
+      "runtime_decision_authority": "none_snapshot_only",
+      "user": "10.7.0.11"
+    },
+    {
+      "candidate_count": 5,
+      "candidates": [
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "1",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.656",
+            "weighted_service_score=18.656",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.325",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.033,
+            "service_confidence": -2.729,
+            "service_history": -7.836,
+            "service_weight": -10.97
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.835,
+          "suitability_score": 24.582,
+          "user": "10.7.0.12"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.961",
+            "weighted_service_score=92.961",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.001",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.6,
+            "service_confidence": -0.625,
+            "service_history": 10.74,
+            "service_weight": 15.036
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 63.803,
+          "suitability_score": 81.901,
+          "user": "10.7.0.12"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.147",
+            "weighted_service_score=92.147",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.475",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.553,
+            "service_confidence": -0.625,
+            "service_history": 10.537,
+            "service_weight": 14.751
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 62.731,
+          "suitability_score": 81.366,
+          "user": "10.7.0.12"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "openvpn-1779388847-d2ad7c",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.52",
+            "weighted_service_score=18.52",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.313",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.031,
+            "service_confidence": -2.729,
+            "service_history": -7.87,
+            "service_weight": -11.018
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.997,
+          "suitability_score": 24.502,
+          "user": "10.7.0.12"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=84.294",
+            "weighted_service_score=84.294",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=17.901",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.21,
+            "service_confidence": -0.625,
+            "service_history": 8.573,
+            "service_weight": 12.003
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 52.623,
+          "suitability_score": 76.311,
+          "user": "10.7.0.12"
+        }
+      ],
+      "runtime_decision_authority": "none_snapshot_only",
+      "user": "10.7.0.12"
+    },
+    {
+      "candidate_count": 5,
+      "candidates": [
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "1",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.656",
+            "weighted_service_score=18.656",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.325",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.033,
+            "service_confidence": -2.729,
+            "service_history": -7.836,
+            "service_weight": -10.97
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.835,
+          "suitability_score": 24.582,
+          "user": "10.7.0.13"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.961",
+            "weighted_service_score=92.961",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.001",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.6,
+            "service_confidence": -0.625,
+            "service_history": 10.74,
+            "service_weight": 15.036
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 63.803,
+          "suitability_score": 81.901,
+          "user": "10.7.0.13"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.147",
+            "weighted_service_score=92.147",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.475",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.553,
+            "service_confidence": -0.625,
+            "service_history": 10.537,
+            "service_weight": 14.751
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 62.731,
+          "suitability_score": 81.366,
+          "user": "10.7.0.13"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "openvpn-1779388847-d2ad7c",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.52",
+            "weighted_service_score=18.52",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.313",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.031,
+            "service_confidence": -2.729,
+            "service_history": -7.87,
+            "service_weight": -11.018
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.997,
+          "suitability_score": 24.502,
+          "user": "10.7.0.13"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=84.294",
+            "weighted_service_score=84.294",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=17.901",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.21,
+            "service_confidence": -0.625,
+            "service_history": 8.573,
+            "service_weight": 12.003
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 52.623,
+          "suitability_score": 76.311,
+          "user": "10.7.0.13"
+        }
+      ],
+      "runtime_decision_authority": "none_snapshot_only",
+      "user": "10.7.0.13"
+    },
+    {
+      "candidate_count": 5,
+      "candidates": [
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "1",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.656",
+            "weighted_service_score=18.656",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.325",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.033,
+            "service_confidence": -2.729,
+            "service_history": -7.836,
+            "service_weight": -10.97
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.835,
+          "suitability_score": 24.582,
+          "user": "10.7.0.14"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.961",
+            "weighted_service_score=92.961",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.001",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.6,
+            "service_confidence": -0.625,
+            "service_history": 10.74,
+            "service_weight": 15.036
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 63.803,
+          "suitability_score": 81.901,
+          "user": "10.7.0.14"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.147",
+            "weighted_service_score=92.147",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.475",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.553,
+            "service_confidence": -0.625,
+            "service_history": 10.537,
+            "service_weight": 14.751
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 62.731,
+          "suitability_score": 81.366,
+          "user": "10.7.0.14"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "openvpn-1779388847-d2ad7c",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.52",
+            "weighted_service_score=18.52",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.313",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.031,
+            "service_confidence": -2.729,
+            "service_history": -7.87,
+            "service_weight": -11.018
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.997,
+          "suitability_score": 24.502,
+          "user": "10.7.0.14"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=84.294",
+            "weighted_service_score=84.294",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=17.901",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.21,
+            "service_confidence": -0.625,
+            "service_history": 8.573,
+            "service_weight": 12.003
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 52.623,
+          "suitability_score": 76.311,
+          "user": "10.7.0.14"
+        }
+      ],
+      "runtime_decision_authority": "none_snapshot_only",
+      "user": "10.7.0.14"
+    },
+    {
+      "candidate_count": 5,
+      "candidates": [
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "1",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.656",
+            "weighted_service_score=18.656",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.325",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.033,
+            "service_confidence": -2.729,
+            "service_history": -7.836,
+            "service_weight": -10.97
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.835,
+          "suitability_score": 24.582,
+          "user": "10.7.0.15"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.961",
+            "weighted_service_score=92.961",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.001",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.6,
+            "service_confidence": -0.625,
+            "service_history": 10.74,
+            "service_weight": 15.036
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 63.803,
+          "suitability_score": 81.901,
+          "user": "10.7.0.15"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.147",
+            "weighted_service_score=92.147",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.475",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.553,
+            "service_confidence": -0.625,
+            "service_history": 10.537,
+            "service_weight": 14.751
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 62.731,
+          "suitability_score": 81.366,
+          "user": "10.7.0.15"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "openvpn-1779388847-d2ad7c",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.52",
+            "weighted_service_score=18.52",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.313",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.031,
+            "service_confidence": -2.729,
+            "service_history": -7.87,
+            "service_weight": -11.018
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.997,
+          "suitability_score": 24.502,
+          "user": "10.7.0.15"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=84.294",
+            "weighted_service_score=84.294",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=17.901",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.21,
+            "service_confidence": -0.625,
+            "service_history": 8.573,
+            "service_weight": 12.003
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 52.623,
+          "suitability_score": 76.311,
+          "user": "10.7.0.15"
+        }
+      ],
+      "runtime_decision_authority": "none_snapshot_only",
+      "user": "10.7.0.15"
+    },
+    {
+      "candidate_count": 5,
+      "candidates": [
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "1",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.656",
+            "weighted_service_score=18.656",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.325",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.033,
+            "service_confidence": -2.729,
+            "service_history": -7.836,
+            "service_weight": -10.97
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.835,
+          "suitability_score": 24.582,
+          "user": "10.7.0.16"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.961",
+            "weighted_service_score=92.961",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.001",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.6,
+            "service_confidence": -0.625,
+            "service_history": 10.74,
+            "service_weight": 15.036
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 63.803,
+          "suitability_score": 81.901,
+          "user": "10.7.0.16"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.147",
+            "weighted_service_score=92.147",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.475",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.553,
+            "service_confidence": -0.625,
+            "service_history": 10.537,
+            "service_weight": 14.751
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 62.731,
+          "suitability_score": 81.366,
+          "user": "10.7.0.16"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "openvpn-1779388847-d2ad7c",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.52",
+            "weighted_service_score=18.52",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.313",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.031,
+            "service_confidence": -2.729,
+            "service_history": -7.87,
+            "service_weight": -11.018
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.997,
+          "suitability_score": 24.502,
+          "user": "10.7.0.16"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=84.294",
+            "weighted_service_score=84.294",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=17.901",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.21,
+            "service_confidence": -0.625,
+            "service_history": 8.573,
+            "service_weight": 12.003
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 52.623,
+          "suitability_score": 76.311,
+          "user": "10.7.0.16"
+        }
+      ],
+      "runtime_decision_authority": "none_snapshot_only",
+      "user": "10.7.0.16"
+    },
+    {
+      "candidate_count": 5,
+      "candidates": [
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "1",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.656",
+            "weighted_service_score=18.656",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.325",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.033,
+            "service_confidence": -2.729,
+            "service_history": -7.836,
+            "service_weight": -10.97
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.835,
+          "suitability_score": 24.582,
+          "user": "10.7.0.17"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.961",
+            "weighted_service_score=92.961",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.001",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.6,
+            "service_confidence": -0.625,
+            "service_history": 10.74,
+            "service_weight": 15.036
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 63.803,
+          "suitability_score": 81.901,
+          "user": "10.7.0.17"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=92.147",
+            "weighted_service_score=92.147",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=14.475",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.553,
+            "service_confidence": -0.625,
+            "service_history": 10.537,
+            "service_weight": 14.751
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 62.731,
+          "suitability_score": 81.366,
+          "user": "10.7.0.17"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "openvpn-1779388847-d2ad7c",
+          "confidence": 0.3181,
+          "explainability": [
+            "service_history_score=18.52",
+            "weighted_service_score=18.52",
+            "execution_trust_score=71.0",
+            "service_confidence_score=31.807",
+            "degradation_risk_score=50.313",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "risk_high_channel_penalty=-7",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": -7.031,
+            "service_confidence": -2.729,
+            "service_history": -7.87,
+            "service_weight": -11.018
+          },
+          "recommendation": "deprioritize",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": -36.997,
+          "suitability_score": 24.502,
+          "user": "10.7.0.17"
+        },
+        {
+          "authority": {
+            "candidate_creation": "forbidden",
+            "governance_authority": "none",
+            "hard_gate_override": "forbidden",
+            "routing_intelligence": "advice_only",
+            "runtime_execution_authority": "none",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "explainability": [
+            "service_history_score=84.294",
+            "weighted_service_score=84.294",
+            "execution_trust_score=71.0",
+            "service_confidence_score=45.833",
+            "degradation_risk_score=17.901",
+            "planner_may_use_score_part_only_after_candidate_is_eligible",
+            "candidate_suitability_is_user_specific_advice",
+            "planner_authority_unchanged",
+            "capacity_constraints_considered"
+          ],
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.21,
+            "service_confidence": -0.625,
+            "service_history": 8.573,
+            "service_weight": 12.003
+          },
+          "recommendation": "prefer",
+          "schema_version": "ri4.candidate-suitability-score.v1",
+          "score_part": 52.623,
+          "suitability_score": 76.311,
+          "user": "10.7.0.17"
+        }
+      ],
+      "runtime_decision_authority": "none_snapshot_only",
+      "user": "10.7.0.17"
+    }
+  ],
+  "schema": "v7.intelligence.candidate-suitability-summary.v1",
+  "source_hashes": {
+    "blast_radius": "1be91247e8cc98c2951d62c0c0a4e91d2e1fd4f69dbbffa6878de557eb480dfb",
+    "egress_registry": "51f59e0130201835c2d495c44bce5402653e17d8db9cf3a9c1e67fbfc1cf0e43",
+    "quality_summary": "bf0052eeff192aa79bea97bd41a55f9792460331f92a4bf2d5b989ae75a338cb",
+    "risk_summary": "ef41d54e7a697043df61b02c1d680b1f440cfefc36f4ade4499e07601332ecda",
+    "service_matrix": "d4b31aa7e4b9ebbbe8f04296f1a2a1965586ef4027ad303ca2aac06a572f1ce8",
+    "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+    "trust_summary": "68878facddeee7d1ea11b5f2448e42ecbc6c002f4ee98189e319afd38089a4cc",
+    "users_registry": "d33c9b7d231cdfc1f0b59f4238ed949da8e759167be52ce1908aafdf4a3a0f59"
+  },
+  "ttl_seconds": 120,
+  "warnings": []
+}

@@ -1,0 +1,6 @@
+{
+  "awg3_eligible": true,
+  "awg3_recovered": true,
+  "outcome": "AWG3_RECOVERED",
+  "reason": "Fresh planner dry-run shows awg3 eligible=true, blocked=[], stability=0.831, 1h stability=0.5598."
+}

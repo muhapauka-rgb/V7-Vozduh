@@ -1,0 +1,49 @@
+{
+  "user_ip": "full_egress_pool_large_capacity_evidence/planner_dry_run.json",
+  "eligible": false,
+  "blocked": [
+    "stability_below_floor"
+  ],
+  "reasons": [
+    "service_youtube_ok",
+    "service_instagram_ok",
+    "service_telegram_ok",
+    "service_google_ok",
+    "service_google_auth_ok",
+    "route_class_VIDEO_OPTIMIZED_ok"
+  ],
+  "avg_mbps": 48.59,
+  "min_mbps": 10.21,
+  "stability": 0.21,
+  "quality_decision": {
+    "min_avg_mbps": 15.0,
+    "min_floor_mbps": 10.0,
+    "min_stability": 0.45,
+    "hist_1h_avg_mbps": 47.517,
+    "hist_1h_min_mbps": 14.813,
+    "hist_1h_stability": 0.3104,
+    "evidence_backed_exception": false,
+    "service_aggregate_score": 100.0
+  },
+  "service_aggregate_score": 100.0,
+  "required_missing": [],
+  "required_low": [],
+  "telegram": {
+    "required": true,
+    "status": "OK",
+    "ok": true,
+    "hard_blocked": false,
+    "degraded": false,
+    "bad_now": false,
+    "bad_for_seconds": 0.0,
+    "score": 100.0,
+    "reason": "telegram tcp endpoints reachable",
+    "source": "sentinel"
+  },
+  "severity": {
+    "severity": "OK",
+    "category": "normal",
+    "hard_block": false,
+    "reason": "OK"
+  }
+}

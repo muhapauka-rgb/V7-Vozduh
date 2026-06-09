@@ -1,0 +1,23 @@
+{
+  "enabled": true,
+  "users": {
+    "10.0.0.2": {
+      "services": [
+        "telegram"
+      ],
+      "updated": "2026-05-06T19:55:15.454404+00:00",
+      "updated_by": "admin"
+    },
+    "10.7.0.5": {
+      "services": [
+        "telegram",
+        "youtube",
+        "google"
+      ],
+      "updated": "2026-05-19T17:56:00+00:00",
+      "updated_by": "codex-diagnostic"
+    }
+  },
+  "updated": "2026-05-19T17:56:00+00:00",
+  "updated_by": "codex-diagnostic"
+}

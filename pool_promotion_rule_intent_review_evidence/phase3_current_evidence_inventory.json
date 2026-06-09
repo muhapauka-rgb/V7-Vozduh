@@ -1,0 +1,102 @@
+{
+  "large_report": {
+    "path": "PROGRAM_LARGE_BATCH_EXECUTION_WITH_EMBEDDED_BLOCKER_CLOSURE_REPORT.md",
+    "exists": true
+  },
+  "large_stability_report": {
+    "path": "PROGRAM_LARGE_BATCH_STABILITY_WINDOW_AND_POOL_READINESS_REVIEW_REPORT.md",
+    "exists": true
+  },
+  "pool_prep_report": {
+    "path": "PROGRAM_POOL_PREPARATION_GOVERNANCE_CAPACITY_SYNTHETIC_USERS_AND_EXECUTION_STRATEGY_REPORT.md",
+    "exists": true
+  },
+  "pool_block_report": {
+    "path": "PROGRAM_POOL_AUTHORITY_PROMOTION_AND_BATCHED_EXECUTION_WITH_EMBEDDED_BLOCKER_CLOSURE_REPORT.md",
+    "exists": true
+  },
+  "large_apply": {
+    "path": "large_batch_execution_evidence/phase7_real_large_apply_retry.json",
+    "exists": true,
+    "operation_id": "runtime_autoswitch_0425741b308df19ccc0c1e03",
+    "terminal_state": "APPLIED",
+    "selected_count": 10,
+    "applied": true,
+    "results_count": 10,
+    "all_verify_rc_zero": true
+  },
+  "large_feedback": {
+    "path": "large_batch_execution_evidence/phase9_feedback_materialization_summary.json",
+    "exists": true,
+    "records": 10,
+    "all_success": true,
+    "all_feedback_active": true
+  },
+  "large_stability_user_review": {
+    "path": "large_batch_stability_pool_readiness_evidence/phase2_user_review_summary.json",
+    "exists": true,
+    "users": 10,
+    "all_registry_route_ok": true
+  },
+  "pool_prep_visibility": {
+    "path": "pool_preparation_governance_capacity_evidence/phase6_synthetic_user_visibility_summary.json",
+    "exists": true,
+    "total_users": 26,
+    "active_users": 25,
+    "routing_users": 25,
+    "planner_visible_users": 25,
+    "candidate_snapshot_item_count": 25,
+    "pool_budget": 25,
+    "capacity_gap_after_creation": 0,
+    "synthetic_users_created": 7,
+    "synthetic_users_required": true,
+    "planner_terminal_state": "DRY_RUN",
+    "planner_terminal_reason": "dry_run_restore_barrier_clearance_generation_expired",
+    "planner_candidate_moves_total": 0,
+    "planner_selected_moves_summary": 0,
+    "authority_class": "LARGE_BATCH",
+    "current_allowed_user_budget": 10,
+    "next_authority_class": "POOL",
+    "next_allowed_user_budget": 25,
+    "selected_before_gate": 0,
+    "selected_after_gate": 0,
+    "snapshot_stop_required": false,
+    "source_mismatch_families": [],
+    "apply_requested": false
+  },
+  "pool_block_review": {
+    "path": "pool_authority_promotion_batched_execution_evidence/phase2_pool_authority_review_no_confirm.json",
+    "exists": true,
+    "status": "DENIED",
+    "blockers": [
+      "missing_explicit_authority_promotion_confirmation",
+      "two_successful_large_batch_operation_ids_required",
+      "pool_evidence_validation_failed"
+    ],
+    "target": "POOL"
+  },
+  "pool_block_dry_run": {
+    "path": "pool_authority_promotion_batched_execution_evidence/phase2_second_large_candidate_dry_run_max10.json",
+    "exists": true,
+    "terminal_state": "DRY_RUN",
+    "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired",
+    "candidate_moves_total": 0,
+    "selected_moves": 0,
+    "snapshot_stop_required": false,
+    "source_mismatch_families": [],
+    "authority": "LARGE_BATCH",
+    "budget": 10
+  },
+  "truth": {
+    "final_verdict": "PASS",
+    "status": null,
+    "runtime_action_safe": null,
+    "blockers": []
+  },
+  "convergence": {
+    "final_verdict": "NO-GO",
+    "status": "NOT_ALIGNED",
+    "runtime_action_safe": false,
+    "blockers": null
+  }
+}

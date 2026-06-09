@@ -1,0 +1,39 @@
+{
+  "schema": "v7.medium-batch-rollback-review.v1",
+  "operation_id": "runtime_autoswitch_473252c9659f6434a808e6ea",
+  "signals": {
+    "rollback-records.jsonl": {
+      "exists": false,
+      "matches": 0,
+      "rollback_mentions": 0
+    },
+    "runtime-rollback.jsonl": {
+      "exists": false,
+      "matches": 0,
+      "rollback_mentions": 0
+    },
+    "execution-events.jsonl": {
+      "exists": true,
+      "matches": 10,
+      "rollback_mentions": 5,
+      "tail": [
+        "{\"schema_version\":\"v7.execution-prediction-feedback.v1\",\"feedback_id\":\"execfb_19e6d2ab810f5b45381294da\",\"user\":\"10.7.0.9\",\"source_channel\":\"awg0\",\"target_channel\":\"vless\",\"outcome_status\":\"success\",\"audit_reference\":\"runtime_autoswitch_473252c9659f6434a808e6ea\",\"closure_reference\":\"runtime_autoswitch_473252c9659f6434a808e6ea\",\"created_at\":\"2026-06-06T22:10:51.136953+00:00\",\"prediction_expected\":1.0,\"prediction_actual\":1.0,\"delta\":1.0,\"outcome\":\"success\"}",
+        "{\"schema_version\":\"v7.execution-outcome-record.v1\",\"feedback_id\":\"execfb_6451451e2291a14aafe2e4ff\",\"user\":\"10.7.0.10\",\"source_channel\":\"awg0\",\"target_channel\":\"vless\",\"outcome_status\":\"success\",\"audit_reference\":\"runtime_autoswitch_473252c9659f6434a808e6ea\",\"closure_reference\":\"runtime_autoswitch_473252c9659f6434a808e6ea\",\"created_at\":\"2026-06-06T22:10:51.215454+00:00\",\"execution_outcome\":{\"success\":true,\"result\":\"applied\",\"operation_id\":\"runtime_autoswitch_473252c9659f6434a808e6ea\",\"selected_move_hash\":\"b47437e7614ca203bc6b06498bfb1ab4d97c101a8910310c9448a7c3dc647141\"},\"verification_result\":{\"success\":true,\"result\":\"verified\"},\"rollback_result\":{\"rollback_required\":false}}",
+        "{\"schema_version\":\"v7.execution-prediction-feedback.v1\",\"feedback_id\":\"execfb_6451451e2291a14aafe2e4ff\",\"user\":\"10.7.0.10\",\"source_channel\":\"awg0\",\"target_channel\":\"vless\",\"outcome_status\":\"success\",\"audit_reference\":\"runtime_autoswitch_473252c9659f6434a808e6ea\",\"closure_reference\":\"runtime_autoswitch_473252c9659f6434a808e6ea\",\"created_at\":\"2026-06-06T22:10:51.215454+00:00\",\"prediction_expected\":1.0,\"prediction_actual\":1.0,\"delta\":1.0,\"outcome\":\"success\"}"
+      ]
+    },
+    "autoswitch-safety.json": {
+      "exists": true,
+      "matches": 0,
+      "rollback_mentions": 0,
+      "tail": []
+    },
+    "autoswitch-restore-barrier.json": {
+      "exists": true,
+      "matches": 0,
+      "rollback_mentions": 0,
+      "tail": []
+    }
+  },
+  "rollback_required": false
+}

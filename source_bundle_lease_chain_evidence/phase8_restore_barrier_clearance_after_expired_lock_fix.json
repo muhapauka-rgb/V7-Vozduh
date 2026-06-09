@@ -1,0 +1,412 @@
+{
+  "approval_id": "appr_6b009fccb6562dbdf8ac9943",
+  "audit_store": "/opt/v7/docs/track7/productization/e22-evidence/operator-execution-audit.jsonl",
+  "clearance_result": {
+    "backup_path": "/opt/v7/egress/state/autoswitch-restore-barrier.json.backup-c1-20260607T104733Z",
+    "clearance": {
+      "allow_post_ttl_apply": true,
+      "allowed_target": "awg0",
+      "allowed_targets": [
+        "awg0",
+        "awg3"
+      ],
+      "allowed_user": "10.7.0.5",
+      "allowed_users": [
+        "10.7.0.5",
+        "10.0.0.2",
+        "10.0.0.3",
+        "10.0.0.6",
+        "10.7.0.3"
+      ],
+      "approval_id": "appr_6b009fccb6562dbdf8ac9943",
+      "approved_atomic_execution_envelope_hash": "0d4c6ab341ee3d890032290e984f16f7c30c7d9f9fc7edf4a18258b597167785",
+      "approved_atomic_execution_envelope_id": "aee_0d4c6ab341ee3d890032290e",
+      "approved_plan_lock": {
+        "allowed_targets": [
+          "awg0",
+          "awg3"
+        ],
+        "allowed_users": [
+          "10.7.0.5",
+          "10.0.0.2",
+          "10.0.0.3",
+          "10.0.0.6",
+          "10.7.0.3"
+        ],
+        "atomic_execution_envelope_hash": "0d4c6ab341ee3d890032290e984f16f7c30c7d9f9fc7edf4a18258b597167785",
+        "atomic_execution_envelope_id": "aee_0d4c6ab341ee3d890032290e",
+        "egress_registry_hash": "",
+        "executor_may_replace_targets": false,
+        "executor_may_replace_users": false,
+        "executor_may_reselect": false,
+        "expires_at": "2026-06-07T11:01:34.241562+00:00",
+        "lock_hash": "6cd8593b707e6a6257df6b63530d4eb03fa5c00362333519a31d6a8927a06097",
+        "lock_id": "apl_f00b0fdec2af876ef2ea7872",
+        "owner": "admin_core/operator_execution.py",
+        "packet_hash": "bcf2b8ad6438f7641d76c4bc7bf4d5ec76e93a0e57a5e84a652beed13b816820",
+        "packet_id": "pkt_1d34effc0ed27b09ea51f454",
+        "planner_generation_id": "d4009338edf5d694cded299794a0bf9f3fecf6361f7fb84b2a3041e96602b624",
+        "restore_barrier_hash": "089c72b273c267cd343a0bd2b182a4726165d6abbfa12cf9012f9ed689b6b7a7",
+        "restore_barrier_id": "rbclear_089c72b273c267cd343a0bd2",
+        "schema_version": "v7.approved-plan-lock.v1",
+        "selected_move_count": 5,
+        "selected_move_hash": "a66da877f2c68907fdb47e6cf1accedc2772d45ec218a81865c69d52e3acd2f4",
+        "selected_moves": [
+          {
+            "current_egress": "vless",
+            "move_type": "failover",
+            "recommended_egress": "awg3",
+            "user_ip": "10.7.0.5"
+          },
+          {
+            "current_egress": "vless",
+            "move_type": "failover",
+            "recommended_egress": "awg0",
+            "user_ip": "10.0.0.2"
+          },
+          {
+            "current_egress": "vless",
+            "move_type": "failover",
+            "recommended_egress": "awg3",
+            "user_ip": "10.0.0.3"
+          },
+          {
+            "current_egress": "vless",
+            "move_type": "failover",
+            "recommended_egress": "awg0",
+            "user_ip": "10.0.0.6"
+          },
+          {
+            "current_egress": "vless",
+            "move_type": "failover",
+            "recommended_egress": "awg3",
+            "user_ip": "10.7.0.3"
+          }
+        ],
+        "snapshot_bundle_hash": "b6f3123c085a887c52160e0f929ec6210578437c246312a37fa65344fe16752e",
+        "source_bundle_hash": "bf104d3b74f0df3e7d33f2aca2ee9450269a2f9a448f86951aabd822c4ed77d6",
+        "source_hashes": {
+          "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+          "quality_summary": "b153a58fe4b6a2be66b4d0d1b8f12c1d7ff342e627c2ccad9ca0431553a12844",
+          "service_matrix": "de395d2287637a958d0c03b67aabfc82be856058d9d9ab089046711c4e3bec29",
+          "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+          "users_registry": "0e566ae510941b0a3efe3a716ad49bd91c9b474b595b49d34aefceb85296084d"
+        },
+        "users_registry_hash": ""
+      },
+      "approved_plan_lock_hash": "6cd8593b707e6a6257df6b63530d4eb03fa5c00362333519a31d6a8927a06097",
+      "approved_plan_lock_id": "apl_f00b0fdec2af876ef2ea7872",
+      "approved_selected_moves_hash": "a66da877f2c68907fdb47e6cf1accedc2772d45ec218a81865c69d52e3acd2f4",
+      "approved_snapshot_bundle_hash": "b6f3123c085a887c52160e0f929ec6210578437c246312a37fa65344fe16752e",
+      "approved_source_bundle_hash": "bf104d3b74f0df3e7d33f2aca2ee9450269a2f9a448f86951aabd822c4ed77d6",
+      "approved_source_hashes": {
+        "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+        "quality_summary": "b153a58fe4b6a2be66b4d0d1b8f12c1d7ff342e627c2ccad9ca0431553a12844",
+        "service_matrix": "de395d2287637a958d0c03b67aabfc82be856058d9d9ab089046711c4e3bec29",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+        "users_registry": "0e566ae510941b0a3efe3a716ad49bd91c9b474b595b49d34aefceb85296084d"
+      },
+      "backup_path": "/opt/v7/egress/state/autoswitch-restore-barrier.json.backup-c1-20260607T104733Z",
+      "clearance_expected_selected_moves": 5,
+      "clearance_expires_at": "2026-06-07T11:01:34.241562+00:00",
+      "clearance_generation_id": "d4009338edf5d694cded299794a0bf9f3fecf6361f7fb84b2a3041e96602b624",
+      "clearance_max_selected_moves": 5,
+      "created_at": "2026-06-07T10:47:33.514723+00:00",
+      "enabled": true,
+      "expires_at": "2000-01-01T00:00:00+00:00",
+      "generation_clearance": true,
+      "generation_token": "[REDACTED]",
+      "operation_id": "govexec_e4ce0fc1c3299e1d0a39cce2",
+      "owner": "admin_core/operator_execution.py",
+      "packet_id": "pkt_1d34effc0ed27b09ea51f454",
+      "reason": "C.1 canonical nonzero governance lifecycle clearance",
+      "rollback_manifest_id": "rb_e4ce0fc1c3299e1d0a39cce2",
+      "schema_version": 1,
+      "ttl_reason": "generation-bound execution readiness clearance"
+    },
+    "ok": true,
+    "recheck_verdict": "ALLOW_RESTORE_BARRIER_CLEARANCE",
+    "restore_barrier_file": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+    "verdict": "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+  },
+  "execution_allowed_now": true,
+  "lifecycle_records": {
+    "clearance_record": {
+      "approval_id": "appr_6b009fccb6562dbdf8ac9943",
+      "atomic_execution_envelope_hash": "0d4c6ab341ee3d890032290e984f16f7c30c7d9f9fc7edf4a18258b597167785",
+      "atomic_execution_envelope_id": "aee_0d4c6ab341ee3d890032290e",
+      "audit_record_hash": "07d84e50b7731e1069b30153f6a5650fc0441eca8ced967ed52cb054f234df4e",
+      "autoswitch_apply": false,
+      "clearance_verdict": "RESTORE_BARRIER_CLEARANCE_WRITTEN",
+      "created_at": "2026-06-07T10:47:33.514723+00:00",
+      "operation_id": "govexec_e4ce0fc1c3299e1d0a39cce2",
+      "owner": "admin_core/operator_execution.py",
+      "packet_id": "pkt_1d34effc0ed27b09ea51f454",
+      "previous_record_hash": "b82bee1c795c0229fdbf6445c93cdf36a09e43821bacb4f898bfdcdd8d550777",
+      "record_hash": "b65de6d6ca079c9b4e4baf9d8abbe3fd849291966983cfa238d7f75bf30bc22d",
+      "record_type": "restore_barrier_clearance_created",
+      "restore_barrier_file": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+      "routing_mutation": false,
+      "runtime_mutation_scope": "restore_barrier_clearance_only",
+      "schema_version": "c1.governance-lifecycle-record.v1",
+      "selected_move_count": 5,
+      "selected_move_hash": "a66da877f2c68907fdb47e6cf1accedc2772d45ec218a81865c69d52e3acd2f4",
+      "user_movement": false
+    },
+    "closure_record": {
+      "approval_id": "appr_6b009fccb6562dbdf8ac9943",
+      "atomic_execution_envelope_hash": "0d4c6ab341ee3d890032290e984f16f7c30c7d9f9fc7edf4a18258b597167785",
+      "atomic_execution_envelope_id": "aee_0d4c6ab341ee3d890032290e",
+      "autoswitch_apply": false,
+      "closure_owner": "admin_core/operator_execution.py",
+      "closure_state": "EXECUTION_READY",
+      "created_at": "2026-06-07T10:47:33.514723+00:00",
+      "execution_allowed_now": true,
+      "linked_audit_record_hash": "07d84e50b7731e1069b30153f6a5650fc0441eca8ced967ed52cb054f234df4e",
+      "linked_rollback_manifest_id": "rb_e4ce0fc1c3299e1d0a39cce2",
+      "operation_id": "govexec_e4ce0fc1c3299e1d0a39cce2",
+      "packet_id": "pkt_1d34effc0ed27b09ea51f454",
+      "previous_record_hash": "65016fb26fad0879d5585e68e1e7e3d5d7b1121622f4953e1200de9f1cc4ece1",
+      "record_hash": "c2694a6be01876de9d9b563589e4388f6c1f7e283f744b7efe0d543ec164e0ab",
+      "record_type": "execution_readiness_closure_created",
+      "routing_mutation": false,
+      "schema_version": "c1.governance-lifecycle-record.v1",
+      "selected_move_count": 5,
+      "selected_move_hash": "a66da877f2c68907fdb47e6cf1accedc2772d45ec218a81865c69d52e3acd2f4",
+      "user_movement": false
+    },
+    "rollback_record": {
+      "approval_id": "appr_6b009fccb6562dbdf8ac9943",
+      "atomic_execution_envelope_hash": "0d4c6ab341ee3d890032290e984f16f7c30c7d9f9fc7edf4a18258b597167785",
+      "atomic_execution_envelope_id": "aee_0d4c6ab341ee3d890032290e",
+      "created_at": "2026-06-07T10:47:33.514723+00:00",
+      "linked_audit_record_hash": "07d84e50b7731e1069b30153f6a5650fc0441eca8ced967ed52cb054f234df4e",
+      "operation_id": "govexec_e4ce0fc1c3299e1d0a39cce2",
+      "packet_id": "pkt_1d34effc0ed27b09ea51f454",
+      "previous_record_hash": "b65de6d6ca079c9b4e4baf9d8abbe3fd849291966983cfa238d7f75bf30bc22d",
+      "record_hash": "65016fb26fad0879d5585e68e1e7e3d5d7b1121622f4953e1200de9f1cc4ece1",
+      "record_type": "operation_scoped_rollback_bound",
+      "rollback_execution_performed": false,
+      "rollback_manifest": {
+        "items": [
+          {
+            "forward_target": "awg3",
+            "move_type": "failover",
+            "rollback_target": "vless",
+            "selected_move_hash": "a66da877f2c68907fdb47e6cf1accedc2772d45ec218a81865c69d52e3acd2f4",
+            "source_operation_id": "govexec_e4ce0fc1c3299e1d0a39cce2",
+            "user_ip": "10.7.0.5"
+          },
+          {
+            "forward_target": "awg0",
+            "move_type": "failover",
+            "rollback_target": "vless",
+            "selected_move_hash": "a66da877f2c68907fdb47e6cf1accedc2772d45ec218a81865c69d52e3acd2f4",
+            "source_operation_id": "govexec_e4ce0fc1c3299e1d0a39cce2",
+            "user_ip": "10.0.0.2"
+          },
+          {
+            "forward_target": "awg3",
+            "move_type": "failover",
+            "rollback_target": "vless",
+            "selected_move_hash": "a66da877f2c68907fdb47e6cf1accedc2772d45ec218a81865c69d52e3acd2f4",
+            "source_operation_id": "govexec_e4ce0fc1c3299e1d0a39cce2",
+            "user_ip": "10.0.0.3"
+          },
+          {
+            "forward_target": "awg0",
+            "move_type": "failover",
+            "rollback_target": "vless",
+            "selected_move_hash": "a66da877f2c68907fdb47e6cf1accedc2772d45ec218a81865c69d52e3acd2f4",
+            "source_operation_id": "govexec_e4ce0fc1c3299e1d0a39cce2",
+            "user_ip": "10.0.0.6"
+          },
+          {
+            "forward_target": "awg3",
+            "move_type": "failover",
+            "rollback_target": "vless",
+            "selected_move_hash": "a66da877f2c68907fdb47e6cf1accedc2772d45ec218a81865c69d52e3acd2f4",
+            "source_operation_id": "govexec_e4ce0fc1c3299e1d0a39cce2",
+            "user_ip": "10.7.0.3"
+          }
+        ],
+        "partial_failure_policy": "stop_and_contain",
+        "rollback_execution_owner": "admin_core/operator_execution.py",
+        "rollback_manifest_id": "rb_e4ce0fc1c3299e1d0a39cce2",
+        "source_operation_id": "govexec_e4ce0fc1c3299e1d0a39cce2"
+      },
+      "rollback_owner": "admin_core/operator_execution.py",
+      "schema_version": "c1.governance-lifecycle-record.v1",
+      "selected_move_count": 5,
+      "selected_move_hash": "a66da877f2c68907fdb47e6cf1accedc2772d45ec218a81865c69d52e3acd2f4"
+    }
+  },
+  "lifecycle_store": "/opt/v7/docs/track7/productization/c1-evidence/governance-lifecycle.jsonl",
+  "mode": "runtime_action",
+  "packet_path": "/opt/v7/source_bundle_lease_chain_evidence/phase8_five_user_packet_after_expired_lock_fix.json",
+  "real_runtime_action_performed": true,
+  "recheck": {
+    "allow": true,
+    "checks": {
+      "atomic_execution_envelope_hash": "0d4c6ab341ee3d890032290e984f16f7c30c7d9f9fc7edf4a18258b597167785",
+      "atomic_execution_envelope_id": "aee_0d4c6ab341ee3d890032290e",
+      "constraints": {
+        "allowed_targets": [
+          "awg0",
+          "awg3"
+        ],
+        "allowed_users": [
+          "10.7.0.5",
+          "10.0.0.2",
+          "10.0.0.3",
+          "10.0.0.6",
+          "10.7.0.3"
+        ]
+      },
+      "egress_registry_hash": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+      "moves": [
+        {
+          "current_egress": "vless",
+          "move_type": "failover",
+          "recommended_egress": "awg3",
+          "user_ip": "10.7.0.5"
+        },
+        {
+          "current_egress": "vless",
+          "move_type": "failover",
+          "recommended_egress": "awg0",
+          "user_ip": "10.0.0.2"
+        },
+        {
+          "current_egress": "vless",
+          "move_type": "failover",
+          "recommended_egress": "awg3",
+          "user_ip": "10.0.0.3"
+        },
+        {
+          "current_egress": "vless",
+          "move_type": "failover",
+          "recommended_egress": "awg0",
+          "user_ip": "10.0.0.6"
+        },
+        {
+          "current_egress": "vless",
+          "move_type": "failover",
+          "recommended_egress": "awg3",
+          "user_ip": "10.7.0.3"
+        }
+      ],
+      "planner_generation_id": "d4009338edf5d694cded299794a0bf9f3fecf6361f7fb84b2a3041e96602b624",
+      "real_runtime_action_after_recheck": true,
+      "runtime_action_scope": "restore_barrier_clearance_only",
+      "runtime_snapshot_hash": "717bffaf2053567f6d855e67755bf7bf7d64dcf8d2dff014b33b8dc0fb693bf0",
+      "selected_move_count": 5,
+      "selected_move_hash": "a66da877f2c68907fdb47e6cf1accedc2772d45ec218a81865c69d52e3acd2f4",
+      "snapshot_bundle_hash": "b6f3123c085a887c52160e0f929ec6210578437c246312a37fa65344fe16752e",
+      "source_bundle_hash": "bf104d3b74f0df3e7d33f2aca2ee9450269a2f9a448f86951aabd822c4ed77d6",
+      "source_hashes": {
+        "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+        "quality_summary": "b153a58fe4b6a2be66b4d0d1b8f12c1d7ff342e627c2ccad9ca0431553a12844",
+        "service_matrix": "de395d2287637a958d0c03b67aabfc82be856058d9d9ab089046711c4e3bec29",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+        "users_registry": "0e566ae510941b0a3efe3a716ad49bd91c9b474b595b49d34aefceb85296084d"
+      },
+      "users_registry_hash": "0e566ae510941b0a3efe3a716ad49bd91c9b474b595b49d34aefceb85296084d"
+    },
+    "errors": [],
+    "verdict": "ALLOW_RESTORE_BARRIER_CLEARANCE"
+  },
+  "record": {
+    "approval_id": "appr_6b009fccb6562dbdf8ac9943",
+    "autoswitch_apply": false,
+    "canary": false,
+    "checks": {
+      "atomic_execution_envelope_hash": "0d4c6ab341ee3d890032290e984f16f7c30c7d9f9fc7edf4a18258b597167785",
+      "atomic_execution_envelope_id": "aee_0d4c6ab341ee3d890032290e",
+      "constraints": {
+        "allowed_targets": [
+          "awg0",
+          "awg3"
+        ],
+        "allowed_users": [
+          "10.7.0.5",
+          "10.0.0.2",
+          "10.0.0.3",
+          "10.0.0.6",
+          "10.7.0.3"
+        ]
+      },
+      "egress_registry_hash": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+      "moves": [
+        {
+          "current_egress": "vless",
+          "move_type": "failover",
+          "recommended_egress": "awg3",
+          "user_ip": "10.7.0.5"
+        },
+        {
+          "current_egress": "vless",
+          "move_type": "failover",
+          "recommended_egress": "awg0",
+          "user_ip": "10.0.0.2"
+        },
+        {
+          "current_egress": "vless",
+          "move_type": "failover",
+          "recommended_egress": "awg3",
+          "user_ip": "10.0.0.3"
+        },
+        {
+          "current_egress": "vless",
+          "move_type": "failover",
+          "recommended_egress": "awg0",
+          "user_ip": "10.0.0.6"
+        },
+        {
+          "current_egress": "vless",
+          "move_type": "failover",
+          "recommended_egress": "awg3",
+          "user_ip": "10.7.0.3"
+        }
+      ],
+      "planner_generation_id": "d4009338edf5d694cded299794a0bf9f3fecf6361f7fb84b2a3041e96602b624",
+      "real_runtime_action_after_recheck": true,
+      "runtime_action_scope": "restore_barrier_clearance_only",
+      "runtime_snapshot_hash": "717bffaf2053567f6d855e67755bf7bf7d64dcf8d2dff014b33b8dc0fb693bf0",
+      "selected_move_count": 5,
+      "selected_move_hash": "a66da877f2c68907fdb47e6cf1accedc2772d45ec218a81865c69d52e3acd2f4",
+      "snapshot_bundle_hash": "b6f3123c085a887c52160e0f929ec6210578437c246312a37fa65344fe16752e",
+      "source_bundle_hash": "bf104d3b74f0df3e7d33f2aca2ee9450269a2f9a448f86951aabd822c4ed77d6",
+      "source_hashes": {
+        "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+        "quality_summary": "b153a58fe4b6a2be66b4d0d1b8f12c1d7ff342e627c2ccad9ca0431553a12844",
+        "service_matrix": "de395d2287637a958d0c03b67aabfc82be856058d9d9ab089046711c4e3bec29",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+        "users_registry": "0e566ae510941b0a3efe3a716ad49bd91c9b474b595b49d34aefceb85296084d"
+      },
+      "users_registry_hash": "0e566ae510941b0a3efe3a716ad49bd91c9b474b595b49d34aefceb85296084d"
+    },
+    "clearance_verdict": "RESTORE_BARRIER_CLEARANCE_WRITTEN",
+    "created_at": "2026-06-07T10:47:33.514723+00:00",
+    "errors": [],
+    "kill_switch_mutation": false,
+    "operation_id": "govexec_e4ce0fc1c3299e1d0a39cce2",
+    "packet_id": "pkt_1d34effc0ed27b09ea51f454",
+    "previous_record_hash": "86e545026a2c79028695351585ffd4ea1a9b535ac7ff512fe1dbf633434bd5ab",
+    "record_hash": "07d84e50b7731e1069b30153f6a5650fc0441eca8ced967ed52cb054f234df4e",
+    "record_type": "runtime_action_record_persisted",
+    "routing_mutation": false,
+    "runtime_action": "CREATE_RESTORE_BARRIER_CLEARANCE",
+    "runtime_action_performed": true,
+    "runtime_action_record_hash": "",
+    "runtime_mutation": true,
+    "runtime_mutation_scope": "restore_barrier_clearance_only",
+    "schema_version": "e22.operator-execution-audit-record.v1",
+    "selected_first_action": "NONZERO_MOVEMENT_GENERATION_CLEARANCE_RECHECK",
+    "user_movement": false,
+    "verdict": "ALLOW_RESTORE_BARRIER_CLEARANCE"
+  },
+  "record_written": true,
+  "runtime_action_record": null,
+  "runtime_governance_store": "/opt/v7/docs/track7/productization/e23-evidence/operator-runtime-governance-actions.jsonl"
+}

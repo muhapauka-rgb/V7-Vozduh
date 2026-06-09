@@ -1,0 +1,68 @@
+{
+  "runtime_certification_rules": {
+    "CANARY": {
+      "budget": 1,
+      "promotion_criteria": ["one_successful_governed_production_user", "verification", "rollback_capability", "outcome_closure"],
+      "execution_count_requirement": "1 governed user",
+      "feedback_requirement": ["outcome_closure"],
+      "rollback_requirement": "rollback capability evidence",
+      "verification_requirement": "verification evidence"
+    },
+    "SMALL_BATCH": {
+      "budget": 2,
+      "promotion_criteria": ["prior_CANARY_certification", "successful_2_user_governed_execution", "atomic_execution_envelope", "no_snapshot_source_mismatch", "outcome_feedback"],
+      "execution_count_requirement": "2 governed users in one cohort",
+      "feedback_requirement": ["outcome_feedback", "trust_prediction_recommendation_feedback via later bridge/promotion evidence"],
+      "rollback_requirement": "2-user rollback manifest/readiness",
+      "verification_requirement": "2-user verification"
+    },
+    "MEDIUM_BATCH": {
+      "budget": 5,
+      "promotion_criteria": ["2_successful_SMALL_BATCH_runs", "no_recent_rollback_or_verification_failure", "trust_prediction_recommendation_feedback"],
+      "execution_count_requirement": "2 successful SMALL_BATCH runs",
+      "feedback_requirement": ["trust", "prediction", "recommendation", "closure"],
+      "rollback_requirement": "rollback readiness and no recent rollback failure",
+      "verification_requirement": "no recent verification failure"
+    },
+    "LARGE_BATCH": {
+      "budget": 10,
+      "promotion_criteria": ["2_successful_MEDIUM_BATCH_runs", "stable_runtime_truth_window", "operator_review"],
+      "execution_count_requirement": "2 successful MEDIUM_BATCH runs",
+      "feedback_requirement": ["outcome", "trust", "prediction", "recommendation", "closure for MEDIUM evidence"],
+      "rollback_requirement": "10-user rollback packet before execution plus no recent rollback failure",
+      "verification_requirement": "stable runtime truth and successful prior MEDIUM verification"
+    },
+    "POOL": {
+      "budget": 25,
+      "promotion_criteria": ["LARGE_BATCH_certification", "sustained_no_regression_window", "explicit_pool_governance"],
+      "execution_count_requirement": "not fully implemented in current runtime owner",
+      "feedback_requirement": "pool governance feedback model required",
+      "rollback_requirement": "pool rollback/orchestration model required",
+      "verification_requirement": "sustained no-regression and explicit pool governance"
+    }
+  },
+  "current_action_support": {
+    "authority_budget_gate": "supports CANARY/SMALL_BATCH/MEDIUM_BATCH/LARGE_BATCH/POOL caps",
+    "first_class_promotion_action": "supports target MEDIUM_BATCH only",
+    "large_batch_promotion_action": "missing",
+    "pool_promotion_action": "missing",
+    "autonomy_promotion_action": "not present and not allowed by current runtime authority model"
+  },
+  "stability_window_model": {
+    "implemented_policy_timers": {
+      "minimum_residence_seconds": 300,
+      "cooldown_seconds": 180,
+      "promotion_delay_seconds": 900,
+      "demotion_delay_seconds": 0,
+      "rollback_penalty_seconds": 3600
+    },
+    "large_batch_stable_runtime_truth_window": "required by rule but exact duration is not parameterized in current promotion action",
+    "pool_sustained_no_regression_window": "required by rule but exact duration is not parameterized in current promotion action",
+    "capacity_long_window": "required by E32 capacity model; exact TTL remains an open architecture detail"
+  },
+  "future_surprise_closure": {
+    "known_runtime_ladder_complete": true,
+    "known_current_blockers_explicit": true,
+    "remaining_unknowns_are_architecture_debt_not_hidden_runtime_rules": true
+  }
+}

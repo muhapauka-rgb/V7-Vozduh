@@ -1,0 +1,35 @@
+{
+  "confidence": 0.9619,
+  "confidence_factors": {
+    "history_completeness": 1.0,
+    "probe_completeness": 0.8478,
+    "service_completeness": 1.0,
+    "source_completeness": 1.0
+  },
+  "expires_at": "2026-06-09T21:05:36.898808+00:00",
+  "freshness_state": "FRESH",
+  "generated_at": "2026-06-09T21:03:36.898808+00:00",
+  "generator": "admin_core.intelligence_workers",
+  "item_count": 1,
+  "items": [
+    {
+      "average_channel_score": 68.004,
+      "average_service_score": 63.437,
+      "high_risk_channels": [
+        "1",
+        "openvpn-1779388847-d2ad7c"
+      ],
+      "platform_health": 66.634,
+      "runtime_decision_authority": "none_snapshot_only",
+      "service_risk": 31.996
+    }
+  ],
+  "schema": "v7.intelligence.risk-summaries.v1",
+  "source_hashes": {
+    "channel_service_scores": "8679481f854edf777484605d8afb545893a2ac237a42daf14170d6e6b7a98f32",
+    "quality_summary": "bf0052eeff192aa79bea97bd41a55f9792460331f92a4bf2d5b989ae75a338cb",
+    "service_scores": "b6c9b53ec91d7936b353cf514417a701248e3d1487cfec4516626b7fc989b48d"
+  },
+  "ttl_seconds": 120,
+  "warnings": []
+}

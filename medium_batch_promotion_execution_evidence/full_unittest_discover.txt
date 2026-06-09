@@ -1,0 +1,18 @@
+/Users/ponch/Documents/New project/admin/v7-admin-api:19874: DeprecationWarning: invalid escape sequence \d
+  return """<!doctype html>
+................................./Users/ponch/Documents/New project/admin/v7-admin-api:19874: DeprecationWarning: invalid escape sequence \d
+  return """<!doctype html>
+.........../Users/ponch/Documents/New project/admin/v7-admin-api:19874: DeprecationWarning: invalid escape sequence \d
+  return """<!doctype html>
+............................................................................................................./Users/ponch/Documents/New project/admin/v7-admin-api:19874: DeprecationWarning: invalid escape sequence \d
+  return """<!doctype html>
+....................................................................................................<unknown>:19874: DeprecationWarning: invalid escape sequence \d
+.<unknown>:19874: DeprecationWarning: invalid escape sequence \d
+.<unknown>:19874: DeprecationWarning: invalid escape sequence \d
+..<unknown>:19874: DeprecationWarning: invalid escape sequence \d
+.<unknown>:19874: DeprecationWarning: invalid escape sequence \d
+............................................................................................
+----------------------------------------------------------------------
+Ran 350 tests in 24.369s
+
+OK

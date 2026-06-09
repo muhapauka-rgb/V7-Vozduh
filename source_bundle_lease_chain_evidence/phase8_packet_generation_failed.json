@@ -1,0 +1,5 @@
+{
+  "error": "selected_move_hash_missing_for_nonzero_budget",
+  "execution_allowed_now": false,
+  "real_runtime_action_performed": false
+}

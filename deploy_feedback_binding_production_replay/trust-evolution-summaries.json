@@ -1,0 +1,1913 @@
+{
+  "confidence": 0.9278,
+  "confidence_factors": {
+    "history_completeness": 0.8,
+    "probe_completeness": 0.9113,
+    "service_completeness": 1.0,
+    "source_completeness": 1.0
+  },
+  "expires_at": "2026-06-09T21:18:36.898808+00:00",
+  "freshness_state": "FRESH",
+  "generated_at": "2026-06-09T21:03:36.898808+00:00",
+  "generator": "admin_core.intelligence_workers",
+  "item_count": 1,
+  "items": [
+    {
+      "autonomy_readiness": {
+        "authority": {
+          "execution_authority": "none",
+          "governance_authority": "unchanged_existing_governance",
+          "planner_authority": "tools/v7-users-autoswitch",
+          "rollback_authority": "unchanged_existing_rollback",
+          "runtime_mutation_authority": "none",
+          "selected_moves_write_authority": "none"
+        },
+        "automatic_user_movement_enabled": false,
+        "autonomy_enabled": false,
+        "average_confidence": 42.597,
+        "current_level": "NOT_READY",
+        "execution_changed": false,
+        "explicit_autonomy_approval": false,
+        "governance_changed": false,
+        "levels": [
+          "NOT_READY",
+          "SHADOW_READY",
+          "OPERATOR_VISIBLE_READY",
+          "OPERATOR_APPROVAL_READY",
+          "BOUNDED_AUTONOMY_READY",
+          "PRODUCTION_AUTONOMY_READY"
+        ],
+        "live_calibrated": true,
+        "minimum_confidence": 0.0,
+        "planner_authority_changed": false,
+        "schema_version": "v7.ri6.autonomy-readiness-model.v1"
+      },
+      "blast_radius_confidence_model": {
+        "blast_radius_confidence": 100.0,
+        "confidence_band": "HIGH",
+        "recommended_budget": 0.0,
+        "records_seen": 2,
+        "runtime_decision_authority": "none_evidence_only",
+        "schema_version": "v7.ri6.blast-radius-confidence-model.v1",
+        "successful_small_operations": 2,
+        "unsafe_large_operations": 0
+      },
+      "channel_trust_recovery": {
+        "channels": [
+          {
+            "candidate_suitability": 22.772,
+            "channel": "1",
+            "confidence": 0.3181,
+            "current_service_score": 15.697,
+            "decay": {
+              "applied_delta": -2.0,
+              "reason": "no_recent_live_success",
+              "runtime_behavior_changed": false
+            },
+            "explainability": [
+              "current_service_score=15.697",
+              "candidate_suitability=22.772",
+              "confidence=0.3181",
+              "feedback_successes=0",
+              "feedback_failures=0",
+              "feedback_rollback_successes=0",
+              "feedback_rollback_failures=0",
+              "lifecycle_reason=hard_negative_feedback_or_service_gap",
+              "candidate_suitability_is_user_specific_advice",
+              "capacity_constraints_considered",
+              "degradation_risk_score=51.588",
+              "execution_trust_score=71.0"
+            ],
+            "feedback": {
+              "evidence_confidence": 0.35,
+              "failures": 0,
+              "last_event_time": "2026-06-01T10:41:48.717128+00:00",
+              "last_outcome": "unknown",
+              "partial": 0,
+              "rollback_failures": 0,
+              "rollback_successes": 0,
+              "rollbacks": 0,
+              "successes": 0
+            },
+            "lifecycle": "QUARANTINED",
+            "lifecycle_reason": "hard_negative_feedback_or_service_gap",
+            "recovery": {
+              "operator_review_required": true,
+              "safe_to_restore_eligibility": false,
+              "state": "NOT_NEEDED",
+              "successes_required": 2
+            },
+            "routing_impact": {
+              "mode": "advisory_only_no_runtime_weight_applied",
+              "planner_behavior_changed": false,
+              "recommended_bias": "block_until_operator_review",
+              "runtime_decision_authority": "none_evidence_only",
+              "trust_score": 26.39
+            },
+            "runtime_decision_authority": "none_evidence_only",
+            "trust_score": 26.39
+          },
+          {
+            "candidate_suitability": 90.288,
+            "channel": "amneziawg-exec-20260528-10-8-1-14",
+            "confidence": 0.4583,
+            "current_service_score": 90.288,
+            "decay": {
+              "applied_delta": -2.0,
+              "reason": "no_recent_live_success",
+              "runtime_behavior_changed": false
+            },
+            "explainability": [
+              "current_service_score=90.288",
+              "candidate_suitability=90.288",
+              "confidence=0.4583",
+              "feedback_successes=0",
+              "feedback_failures=0",
+              "feedback_rollback_successes=0",
+              "feedback_rollback_failures=0",
+              "lifecycle_reason=current_services_look_healthy_but_success_history_is_thin"
+            ],
+            "feedback": {
+              "evidence_confidence": 0.35,
+              "failures": 0,
+              "last_event_time": "2026-06-01T14:40:30.356276+00:00",
+              "last_outcome": "unknown",
+              "partial": 0,
+              "rollback_failures": 0,
+              "rollback_successes": 0,
+              "rollbacks": 0,
+              "successes": 0
+            },
+            "lifecycle": "WATCH",
+            "lifecycle_reason": "current_services_look_healthy_but_success_history_is_thin",
+            "recovery": {
+              "operator_review_required": false,
+              "safe_to_restore_eligibility": true,
+              "state": "NOT_NEEDED",
+              "successes_required": 2
+            },
+            "routing_impact": {
+              "mode": "advisory_only_no_runtime_weight_applied",
+              "planner_behavior_changed": false,
+              "recommended_bias": "neutral",
+              "runtime_decision_authority": "none_evidence_only",
+              "trust_score": 75.562
+            },
+            "runtime_decision_authority": "none_evidence_only",
+            "trust_score": 75.562
+          },
+          {
+            "candidate_suitability": 80.095,
+            "channel": "awg0",
+            "confidence": 0.4583,
+            "current_service_score": 90.435,
+            "decay": {
+              "applied_delta": -2.0,
+              "reason": "no_recent_live_success",
+              "runtime_behavior_changed": false
+            },
+            "explainability": [
+              "current_service_score=90.435",
+              "candidate_suitability=80.095",
+              "confidence=0.4583",
+              "feedback_successes=0",
+              "feedback_failures=0",
+              "feedback_rollback_successes=0",
+              "feedback_rollback_failures=0",
+              "lifecycle_reason=current_services_look_healthy_but_success_history_is_thin",
+              "candidate_suitability_is_user_specific_advice",
+              "capacity_constraints_considered",
+              "degradation_risk_score=15.261",
+              "execution_trust_score=71.0"
+            ],
+            "feedback": {
+              "evidence_confidence": 0.35,
+              "failures": 0,
+              "last_event_time": "2026-06-05T22:51:40.064528+00:00",
+              "last_outcome": "unknown",
+              "partial": 0,
+              "rollback_failures": 0,
+              "rollback_successes": 0,
+              "rollbacks": 0,
+              "successes": 0
+            },
+            "lifecycle": "WATCH",
+            "lifecycle_reason": "current_services_look_healthy_but_success_history_is_thin",
+            "recovery": {
+              "operator_review_required": false,
+              "safe_to_restore_eligibility": true,
+              "state": "NOT_NEEDED",
+              "successes_required": 2
+            },
+            "routing_impact": {
+              "mode": "advisory_only_no_runtime_weight_applied",
+              "planner_behavior_changed": false,
+              "recommended_bias": "neutral",
+              "runtime_decision_authority": "none_evidence_only",
+              "trust_score": 73.589
+            },
+            "runtime_decision_authority": "none_evidence_only",
+            "trust_score": 73.589
+          },
+          {
+            "candidate_suitability": 79.56,
+            "channel": "awg3",
+            "confidence": 0.4583,
+            "current_service_score": 89.117,
+            "decay": {
+              "applied_delta": -2.0,
+              "reason": "no_recent_live_success",
+              "runtime_behavior_changed": false
+            },
+            "explainability": [
+              "current_service_score=89.117",
+              "candidate_suitability=79.56",
+              "confidence=0.4583",
+              "feedback_successes=0",
+              "feedback_failures=0",
+              "feedback_rollback_successes=0",
+              "feedback_rollback_failures=0",
+              "lifecycle_reason=current_services_look_healthy_but_success_history_is_thin",
+              "candidate_suitability_is_user_specific_advice",
+              "capacity_constraints_considered",
+              "degradation_risk_score=15.735",
+              "execution_trust_score=71.0"
+            ],
+            "feedback": {
+              "evidence_confidence": 0.0,
+              "failures": 0,
+              "last_event_time": "",
+              "last_outcome": "unknown",
+              "partial": 0,
+              "rollback_failures": 0,
+              "rollback_successes": 0,
+              "rollbacks": 0,
+              "successes": 0
+            },
+            "lifecycle": "WATCH",
+            "lifecycle_reason": "current_services_look_healthy_but_success_history_is_thin",
+            "recovery": {
+              "operator_review_required": false,
+              "safe_to_restore_eligibility": true,
+              "state": "NOT_NEEDED",
+              "successes_required": 2
+            },
+            "routing_impact": {
+              "mode": "advisory_only_no_runtime_weight_applied",
+              "planner_behavior_changed": false,
+              "recommended_bias": "neutral",
+              "runtime_decision_authority": "none_evidence_only",
+              "trust_score": 72.889
+            },
+            "runtime_decision_authority": "none_evidence_only",
+            "trust_score": 72.889
+          },
+          {
+            "candidate_suitability": 22.691,
+            "channel": "openvpn-1779388847-d2ad7c",
+            "confidence": 0.3181,
+            "current_service_score": 15.698,
+            "decay": {
+              "applied_delta": -2.0,
+              "reason": "no_recent_live_success",
+              "runtime_behavior_changed": false
+            },
+            "explainability": [
+              "current_service_score=15.698",
+              "candidate_suitability=22.691",
+              "confidence=0.3181",
+              "feedback_successes=0",
+              "feedback_failures=0",
+              "feedback_rollback_successes=0",
+              "feedback_rollback_failures=0",
+              "lifecycle_reason=hard_negative_feedback_or_service_gap",
+              "candidate_suitability_is_user_specific_advice",
+              "capacity_constraints_considered",
+              "degradation_risk_score=51.576",
+              "execution_trust_score=71.0"
+            ],
+            "feedback": {
+              "evidence_confidence": 0.0,
+              "failures": 0,
+              "last_event_time": "",
+              "last_outcome": "unknown",
+              "partial": 0,
+              "rollback_failures": 0,
+              "rollback_successes": 0,
+              "rollbacks": 0,
+              "successes": 0
+            },
+            "lifecycle": "QUARANTINED",
+            "lifecycle_reason": "hard_negative_feedback_or_service_gap",
+            "recovery": {
+              "operator_review_required": true,
+              "safe_to_restore_eligibility": false,
+              "state": "NOT_NEEDED",
+              "successes_required": 2
+            },
+            "routing_impact": {
+              "mode": "advisory_only_no_runtime_weight_applied",
+              "planner_behavior_changed": false,
+              "recommended_bias": "block_until_operator_review",
+              "runtime_decision_authority": "none_evidence_only",
+              "trust_score": 26.374
+            },
+            "runtime_decision_authority": "none_evidence_only",
+            "trust_score": 26.374
+          },
+          {
+            "candidate_suitability": 74.505,
+            "channel": "vless",
+            "confidence": 0.4583,
+            "current_service_score": 82.174,
+            "decay": {
+              "applied_delta": 0.0,
+              "reason": "recent_success_or_neutral",
+              "runtime_behavior_changed": false
+            },
+            "explainability": [
+              "current_service_score=82.174",
+              "candidate_suitability=74.505",
+              "confidence=0.4583",
+              "feedback_successes=12",
+              "feedback_failures=0",
+              "feedback_rollback_successes=0",
+              "feedback_rollback_failures=0",
+              "lifecycle_reason=high_score_with_successful_channel_feedback",
+              "candidate_suitability_is_user_specific_advice",
+              "capacity_constraints_considered",
+              "degradation_risk_score=19.161",
+              "execution_trust_score=71.0"
+            ],
+            "feedback": {
+              "evidence_confidence": 0.5194,
+              "failures": 0,
+              "last_event_time": "2026-06-06T05:57:45.440653+00:00",
+              "last_outcome": "unknown",
+              "partial": 0,
+              "rollback_failures": 0,
+              "rollback_successes": 0,
+              "rollbacks": 0,
+              "successes": 12
+            },
+            "lifecycle": "TRUSTED",
+            "lifecycle_reason": "high_score_with_successful_channel_feedback",
+            "recovery": {
+              "operator_review_required": false,
+              "safe_to_restore_eligibility": true,
+              "state": "NOT_NEEDED",
+              "successes_required": 2
+            },
+            "routing_impact": {
+              "mode": "advisory_only_no_runtime_weight_applied",
+              "planner_behavior_changed": false,
+              "recommended_bias": "prefer_when_planner_scores_are_close",
+              "runtime_decision_authority": "none_evidence_only",
+              "trust_score": 78.754
+            },
+            "runtime_decision_authority": "none_evidence_only",
+            "trust_score": 78.754
+          },
+          {
+            "candidate_suitability": 92.619,
+            "channel": "wireguard-1779454504-c43409",
+            "confidence": 0.4583,
+            "current_service_score": 92.619,
+            "decay": {
+              "applied_delta": -2.0,
+              "reason": "no_recent_live_success",
+              "runtime_behavior_changed": false
+            },
+            "explainability": [
+              "current_service_score=92.619",
+              "candidate_suitability=92.619",
+              "confidence=0.4583",
+              "feedback_successes=0",
+              "feedback_failures=0",
+              "feedback_rollback_successes=0",
+              "feedback_rollback_failures=0",
+              "lifecycle_reason=current_services_look_healthy_but_success_history_is_thin"
+            ],
+            "feedback": {
+              "evidence_confidence": 0.0,
+              "failures": 0,
+              "last_event_time": "",
+              "last_outcome": "unknown",
+              "partial": 0,
+              "rollback_failures": 0,
+              "rollback_successes": 0,
+              "rollbacks": 0,
+              "successes": 0
+            },
+            "lifecycle": "WATCH",
+            "lifecycle_reason": "current_services_look_healthy_but_success_history_is_thin",
+            "recovery": {
+              "operator_review_required": false,
+              "safe_to_restore_eligibility": true,
+              "state": "NOT_NEEDED",
+              "successes_required": 2
+            },
+            "routing_impact": {
+              "mode": "advisory_only_no_runtime_weight_applied",
+              "planner_behavior_changed": false,
+              "recommended_bias": "neutral",
+              "runtime_decision_authority": "none_evidence_only",
+              "trust_score": 77.077
+            },
+            "runtime_decision_authority": "none_evidence_only",
+            "trust_score": 77.077
+          }
+        ],
+        "decay_policy": {
+          "failure_feedback_delta": -14.0,
+          "mode": "advisory_only_no_runtime_weight_applied",
+          "no_recent_live_success_delta": -2.0,
+          "positive_feedback_delta": 6.0,
+          "recovery_successes_required": 2,
+          "rollback_failure_feedback_delta": -24.0,
+          "rollback_success_feedback_delta": -4.0
+        },
+        "lifecycle_policy": {
+          "DEGRADED": "service score, verdict, or required-service evidence is weak",
+          "NEW": "limited evidence and no negative history",
+          "QUARANTINED": "rollback/failure evidence or hard service gaps require operator review",
+          "RECOVERING": "previous negative evidence exists but current signal has improved",
+          "TRUSTED": "strong current service score plus recent successful channel feedback",
+          "WATCH": "usable current score but positive channel history is still thin"
+        },
+        "owner": "admin_core.intelligence_workers.trust-evolution-summaries",
+        "routing_behavior_changed": false,
+        "runtime_decision_authority": "none_evidence_only",
+        "schema": "v7.intelligence.channel-trust-recovery-explainability.v1",
+        "summary": {
+          "channel_count": 7,
+          "degraded_or_quarantined_count": 2,
+          "lifecycle_counts": {
+            "QUARANTINED": 2,
+            "TRUSTED": 1,
+            "WATCH": 4
+          },
+          "recovering_count": 0,
+          "trusted_or_watch_count": 5
+        },
+        "time_windows": {
+          "current_health_window": "5-15_minutes_from_existing_service_snapshots",
+          "decay_window": "bounded_history_without_recent_success_or_current_service_health",
+          "feedback_window": "last_1000_audit_switch_rollback_records",
+          "initial_recovery_window": "24-72_hours_or_two_successful_observations_after_failure",
+          "maximum_practical_trust_window_days": 7,
+          "recent_stability_window": "6-24_hours_from_existing_quality_summary",
+          "trusted_window": "up_to_7_days_clean_behavior_or_successful_governed_feedback"
+        },
+        "truth_source": "existing_intelligence_snapshots_and_feedback_records"
+      },
+      "confidence_summary": {
+        "blast_radius_confidence": 100.0,
+        "decision_confidence": 50.0,
+        "explicit_autonomy_approval": 0,
+        "live_calibrated": 1,
+        "prediction_confidence": 37.336,
+        "rollback_confidence": 0.0,
+        "service_confidence": 39.225,
+        "suitability_confidence": 29.023
+      },
+      "decision_outcome": {
+        "authority": {
+          "execution_authority": "none",
+          "governance_authority": "unchanged_existing_governance",
+          "planner_authority": "tools/v7-users-autoswitch",
+          "rollback_authority": "unchanged_existing_rollback",
+          "runtime_mutation_authority": "none",
+          "selected_moves_write_authority": "none"
+        },
+        "classifications": [
+          "SUCCESS",
+          "PARTIAL_SUCCESS",
+          "NEUTRAL",
+          "PARTIAL_FAILURE",
+          "FAILURE",
+          "ROLLBACK_REQUIRED"
+        ],
+        "confidence_band": "WATCH",
+        "decision_confidence": 50.0,
+        "outcome_counts": {
+          "NEUTRAL": 40
+        },
+        "records_seen": 40,
+        "rows": [
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          },
+          {
+            "decision_quality": 50.0,
+            "operator_impact": "normal_review",
+            "outcome": "NEUTRAL",
+            "prediction_impact": -0.0,
+            "runtime_decision_authority": "none_evidence_only",
+            "schema_version": "v7.ri6.decision-outcome.v1",
+            "service_impact": 0.0
+          }
+        ],
+        "schema_version": "v7.ri6.decision-outcome-framework.v1",
+        "trust_evolution_status": "TRUST_WATCH"
+      },
+      "deploy_performed": false,
+      "execution_authority": "none",
+      "explainability_foundation": {
+        "generated_fields": [
+          "channel.lifecycle",
+          "channel.lifecycle_reason",
+          "channel.trust_score",
+          "channel.recovery",
+          "channel.decay",
+          "channel.routing_impact",
+          "channel.explainability"
+        ],
+        "owner": "admin_core.intelligence_workers.trust-evolution-summaries",
+        "routing_behavior_changed": false,
+        "runtime_decision_authority": "none_evidence_only",
+        "schema": "v7.intelligence.channel-explainability-foundation.v1",
+        "scope": "channel_trust_recovery_advisory_only"
+      },
+      "governed_to_autonomy_trust_bridge": {
+        "approval_autonomy_review_ready": false,
+        "authority_changed": false,
+        "autonomy_boundary_cap": "OPERATOR_VISIBLE_READY",
+        "autonomy_enabled": false,
+        "autonomy_specific_gap_score": 100.0,
+        "autonomy_specific_trust": 0.0,
+        "bounded_autonomy_blockers": [
+          "autonomous_trigger_not_certified",
+          "autonomous_rollback_decision_not_certified",
+          "operator_free_apply_not_certified",
+          "autonomy_specific_evidence_below_floor"
+        ],
+        "bounded_autonomy_ready": false,
+        "corrected_autonomy_trust": 32.077,
+        "evidence_counts": {
+          "candidate_outcomes_count": 3,
+          "prediction_actuals_count": 21,
+          "service_actuals_count": 21
+        },
+        "execution_authority": "none",
+        "governance_changed": false,
+        "governed_execution_evidence_score": 95.455,
+        "governed_feedback_evidence_score": 68.182,
+        "inherited_execution_trust": 53.461,
+        "mode": "read_only_advisory",
+        "model": "PARTIALLY_INHERITED_GOVERNED_TRUST_WITH_AUTONOMY_CAPS",
+        "new_truth_source_created": false,
+        "operator_summary_ru": "Governed-история уже повышает доверие к выполнению, но автономный запуск и откат остаются отдельно заблокированы.",
+        "planner_decision_changed": false,
+        "production_autonomy_ready": false,
+        "runtime_mutation_performed": false,
+        "schema_version": "v7.governed-to-autonomy-trust-bridge.v1"
+      },
+      "model": {
+        "authority": {
+          "execution_authority": "none",
+          "governance_authority": "unchanged_existing_governance",
+          "planner_authority": "tools/v7-users-autoswitch",
+          "rollback_authority": "unchanged_existing_rollback",
+          "runtime_mutation_authority": "none",
+          "selected_moves_write_authority": "none"
+        },
+        "foundation": {
+          "blast_radius_confidence_events": [
+            "small_successful_operation",
+            "rollback_success",
+            "governance_clean"
+          ],
+          "increase_risk": [
+            "service_degradation",
+            "prediction_drift",
+            "low_confidence",
+            "snapshot_stale",
+            "rollback_failure"
+          ],
+          "increase_trust": [
+            "successful_execution",
+            "successful_rollback",
+            "audit_ok",
+            "closure_ok",
+            "forecast_match"
+          ],
+          "prediction_confidence_events": [
+            "forecast_match",
+            "low_drift",
+            "stable_confidence"
+          ],
+          "reduce_risk": [
+            "service_recovery",
+            "stable_forecast",
+            "high_confidence",
+            "fresh_snapshots",
+            "successful_closure"
+          ],
+          "reduce_trust": [
+            "failed_execution",
+            "failed_rollback",
+            "governance_violation",
+            "audit_failure",
+            "forecast_miss"
+          ],
+          "runtime_decision_authority": "none_foundation_only",
+          "schema_version": "v7.intelligence.trust-evolution-foundation.v1"
+        },
+        "new_truth_sources_created": false,
+        "schema_version": "v7.ri6.trust-evolution-model.v1",
+        "subjects": {
+          "candidate_suitability": {
+            "decrease": [
+              "recommended_candidate_failed",
+              "pool_missed_working_alternative"
+            ],
+            "increase": [
+              "recommended_candidate_succeeded",
+              "pool_contained_working_alternative"
+            ]
+          },
+          "channels": {
+            "decrease": [
+              "service_degradation",
+              "failed_selected_operation",
+              "rollback_required"
+            ],
+            "increase": [
+              "stable_service_score",
+              "successful_selected_operation",
+              "low_rollback_rate"
+            ]
+          },
+          "planner_recommendations": {
+            "decrease": [
+              "operator_rejected",
+              "rollback_or_governance_failure"
+            ],
+            "increase": [
+              "operator_accepted_and_successful",
+              "audit_closure_success"
+            ]
+          },
+          "predictions": {
+            "decrease": [
+              "forecast_miss",
+              "confidence_overstated",
+              "high_drift"
+            ],
+            "increase": [
+              "forecast_match",
+              "confidence_calibrated",
+              "low_drift"
+            ]
+          },
+          "service_intelligence": {
+            "decrease": [
+              "good_channel_missed",
+              "bad_channel_recommended"
+            ],
+            "increase": [
+              "good_channel_correctly_identified",
+              "bad_channel_correctly_avoided"
+            ]
+          }
+        },
+        "truth_source_policy": "reuse_existing_snapshots_and_audit_outcomes"
+      },
+      "outcome_mapper_counts": {
+        "blast_radius_evidence_count": 2,
+        "candidate_outcomes_count": 3,
+        "prediction_actuals_count": 21,
+        "service_actuals_count": 21
+      },
+      "overall_confidence": 42.597,
+      "overall_confidence_band": "LOW",
+      "planner_decision_owner": "tools/v7-users-autoswitch",
+      "prediction_accuracy": {
+        "actuals_seen": 21,
+        "confidence_band": "LOW",
+        "forecast_accuracy": 98.446,
+        "forecast_domains": [
+          "channel_quality",
+          "service_quality",
+          "risk",
+          "trust",
+          "recovery",
+          "degradation"
+        ],
+        "forecasts_seen": 21,
+        "matched_count": 21,
+        "prediction_confidence": 37.336,
+        "rows": [
+          {
+            "accuracy": 96.662,
+            "actual": 15.697,
+            "confidence": 0.3363,
+            "delta": -3.338,
+            "domain": "channel",
+            "id": "1",
+            "predicted": 12.359,
+            "status": "MATCHED"
+          },
+          {
+            "accuracy": 94.509,
+            "actual": 90.288,
+            "confidence": 0.3964,
+            "delta": -5.491,
+            "domain": "channel",
+            "id": "amneziawg-exec-20260528-10-8-1-14",
+            "predicted": 84.797,
+            "status": "MATCHED"
+          },
+          {
+            "accuracy": 94.834,
+            "actual": 90.435,
+            "confidence": 0.3964,
+            "delta": -5.166,
+            "domain": "channel",
+            "id": "awg0",
+            "predicted": 85.269,
+            "status": "MATCHED"
+          },
+          {
+            "accuracy": 94.104,
+            "actual": 89.117,
+            "confidence": 0.3964,
+            "delta": -5.896,
+            "domain": "channel",
+            "id": "awg3",
+            "predicted": 83.221,
+            "status": "MATCHED"
+          },
+          {
+            "accuracy": 96.739,
+            "actual": 15.698,
+            "confidence": 0.3363,
+            "delta": -3.261,
+            "domain": "channel",
+            "id": "openvpn-1779388847-d2ad7c",
+            "predicted": 12.437,
+            "status": "MATCHED"
+          },
+          {
+            "accuracy": 95.91,
+            "actual": 82.174,
+            "confidence": 0.3964,
+            "delta": -4.09,
+            "domain": "channel",
+            "id": "vless",
+            "predicted": 78.084,
+            "status": "MATCHED"
+          },
+          {
+            "accuracy": 95.839,
+            "actual": 92.619,
+            "confidence": 0.3964,
+            "delta": -4.161,
+            "domain": "channel",
+            "id": "wireguard-1779454504-c43409",
+            "predicted": 88.458,
+            "status": "MATCHED"
+          },
+          {
+            "accuracy": 99.904,
+            "actual": 38.519,
+            "confidence": 0.35,
+            "delta": 0.096,
+            "domain": "service",
+            "id": "anthropic",
+            "predicted": 38.615,
+            "status": "MATCHED"
+          },
+          {
+            "accuracy": 99.904,
+            "actual": 63.519,
+            "confidence": 0.35,
+            "delta": 0.096,
+            "domain": "service",
+            "id": "apple",
+            "predicted": 63.615,
+            "status": "MATCHED"
+          },
+          {
+            "accuracy": 99.893,
+            "actual": 64.662,
+            "confidence": 0.3375,
+            "delta": 0.107,
+            "domain": "service",
+            "id": "chatgpt",
+            "predicted": 64.769,
+            "status": "MATCHED"
+          },
+          {
+            "accuracy": 99.904,
+            "actual": 63.519,
+            "confidence": 0.35,
+            "delta": 0.096,
+            "domain": "service",
+            "id": "claude",
+            "predicted": 63.615,
+            "status": "MATCHED"
+          },
+          {
+            "accuracy": 99.904,
+            "actual": 60.474,
+            "confidence": 0.35,
+            "delta": 0.096,
+            "domain": "service",
+            "id": "facebook",
+            "predicted": 60.57,
+            "status": "MATCHED"
+          },
+          {
+            "accuracy": 99.904,
+            "actual": 63.519,
+            "confidence": 0.35,
+            "delta": 0.096,
+            "domain": "service",
+            "id": "google",
+            "predicted": 63.615,
+            "status": "MATCHED"
+          },
+          {
+            "accuracy": 99.904,
+            "actual": 63.519,
+            "confidence": 0.35,
+            "delta": 0.096,
+            "domain": "service",
+            "id": "google_auth",
+            "predicted": 63.615,
+            "status": "MATCHED"
+          },
+          {
+            "accuracy": 99.925,
+            "actual": 72.924,
+            "confidence": 0.3389,
+            "delta": 0.075,
+            "domain": "service",
+            "id": "instagram",
+            "predicted": 72.999,
+            "status": "MATCHED"
+          },
+          {
+            "accuracy": 99.904,
+            "actual": 63.519,
+            "confidence": 0.35,
+            "delta": 0.096,
+            "domain": "service",
+            "id": "openai_auth",
+            "predicted": 63.615,
+            "status": "MATCHED"
+          },
+          {
+            "accuracy": 99.904,
+            "actual": 63.519,
+            "confidence": 0.35,
+            "delta": 0.096,
+            "domain": "service",
+            "id": "soundcloud",
+            "predicted": 63.615,
+            "status": "MATCHED"
+          },
+          {
+            "accuracy": 99.904,
+            "actual": 63.519,
+            "confidence": 0.35,
+            "delta": 0.096,
+            "domain": "service",
+            "id": "spotify",
+            "predicted": 63.615,
+            "status": "MATCHED"
+          },
+          {
+            "accuracy": 99.967,
+            "actual": 75.451,
+            "confidence": 0.7943,
+            "delta": 0.033,
+            "domain": "service",
+            "id": "telegram",
+            "predicted": 75.484,
+            "status": "MATCHED"
+          },
+          {
+            "accuracy": 99.904,
+            "actual": 63.519,
+            "confidence": 0.35,
+            "delta": 0.096,
+            "domain": "service",
+            "id": "whatsapp",
+            "predicted": 63.615,
+            "status": "MATCHED"
+          },
+          {
+            "accuracy": 99.954,
+            "actual": 67.94,
+            "confidence": 0.3389,
+            "delta": -0.046,
+            "domain": "service",
+            "id": "youtube",
+            "predicted": 67.894,
+            "status": "MATCHED"
+          }
+        ],
+        "runtime_decision_authority": "none_accuracy_only",
+        "schema_version": "v7.ri6.prediction-accuracy-model.v1",
+        "validation_status": "VALIDATED"
+      },
+      "rollback_intelligence": {
+        "confidence_band": "UNKNOWN",
+        "records_seen": 0,
+        "rollback_completed": 0,
+        "rollback_confidence": 0.0,
+        "rollback_failed": 0,
+        "rollback_readiness_rate": 0.0,
+        "rollback_readiness_validations": 0,
+        "rollback_required": 0,
+        "rollback_success_rate": 0.0,
+        "runtime_decision_authority": "none_evidence_only",
+        "schema_version": "v7.ri6.rollback-intelligence-model.v1",
+        "validation_status": "NO_ROLLBACK_OUTCOMES"
+      },
+      "runtime_decision_authority": "none_evidence_only",
+      "runtime_mutation_performed": false,
+      "schema_version": "v7.ri6.trust-evolution.v1",
+      "selected_moves_write_authority": "none",
+      "service_intelligence_trust": {
+        "confidence_band": "LOW",
+        "rows": [
+          {
+            "actual_score": 38.519,
+            "bad_channel_correctly_identified": true,
+            "confidence": 0.35,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": false,
+            "id": "anthropic",
+            "predicted_score": 38.519
+          },
+          {
+            "actual_score": 63.519,
+            "bad_channel_correctly_identified": false,
+            "confidence": 0.35,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": false,
+            "id": "apple",
+            "predicted_score": 63.519
+          },
+          {
+            "actual_score": 64.662,
+            "bad_channel_correctly_identified": false,
+            "confidence": 0.3375,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": false,
+            "id": "chatgpt",
+            "predicted_score": 64.662
+          },
+          {
+            "actual_score": 63.519,
+            "bad_channel_correctly_identified": false,
+            "confidence": 0.35,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": false,
+            "id": "claude",
+            "predicted_score": 63.519
+          },
+          {
+            "actual_score": 60.474,
+            "bad_channel_correctly_identified": false,
+            "confidence": 0.35,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": false,
+            "id": "facebook",
+            "predicted_score": 60.474
+          },
+          {
+            "actual_score": 63.519,
+            "bad_channel_correctly_identified": false,
+            "confidence": 0.35,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": false,
+            "id": "google",
+            "predicted_score": 63.519
+          },
+          {
+            "actual_score": 63.519,
+            "bad_channel_correctly_identified": false,
+            "confidence": 0.35,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": false,
+            "id": "google_auth",
+            "predicted_score": 63.519
+          },
+          {
+            "actual_score": 72.924,
+            "bad_channel_correctly_identified": false,
+            "confidence": 0.3389,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": true,
+            "id": "instagram",
+            "predicted_score": 72.924
+          },
+          {
+            "actual_score": 63.519,
+            "bad_channel_correctly_identified": false,
+            "confidence": 0.35,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": false,
+            "id": "openai_auth",
+            "predicted_score": 63.519
+          },
+          {
+            "actual_score": 63.519,
+            "bad_channel_correctly_identified": false,
+            "confidence": 0.35,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": false,
+            "id": "soundcloud",
+            "predicted_score": 63.519
+          },
+          {
+            "actual_score": 63.519,
+            "bad_channel_correctly_identified": false,
+            "confidence": 0.35,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": false,
+            "id": "spotify",
+            "predicted_score": 63.519
+          },
+          {
+            "actual_score": 75.451,
+            "bad_channel_correctly_identified": false,
+            "confidence": 0.7943,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": true,
+            "id": "telegram",
+            "predicted_score": 75.451
+          },
+          {
+            "actual_score": 63.519,
+            "bad_channel_correctly_identified": false,
+            "confidence": 0.35,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": false,
+            "id": "whatsapp",
+            "predicted_score": 63.519
+          },
+          {
+            "actual_score": 67.94,
+            "bad_channel_correctly_identified": false,
+            "confidence": 0.3389,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": false,
+            "id": "youtube",
+            "predicted_score": 67.94
+          },
+          {
+            "actual_score": 15.697,
+            "bad_channel_correctly_identified": true,
+            "confidence": 0.3181,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": false,
+            "id": "1",
+            "predicted_score": 15.697
+          },
+          {
+            "actual_score": 90.288,
+            "bad_channel_correctly_identified": false,
+            "confidence": 0.4583,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": true,
+            "id": "amneziawg-exec-20260528-10-8-1-14",
+            "predicted_score": 90.288
+          },
+          {
+            "actual_score": 90.435,
+            "bad_channel_correctly_identified": false,
+            "confidence": 0.4583,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": true,
+            "id": "awg0",
+            "predicted_score": 90.435
+          },
+          {
+            "actual_score": 89.117,
+            "bad_channel_correctly_identified": false,
+            "confidence": 0.4583,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": true,
+            "id": "awg3",
+            "predicted_score": 89.117
+          },
+          {
+            "actual_score": 15.698,
+            "bad_channel_correctly_identified": true,
+            "confidence": 0.3181,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": false,
+            "id": "openvpn-1779388847-d2ad7c",
+            "predicted_score": 15.698
+          },
+          {
+            "actual_score": 82.174,
+            "bad_channel_correctly_identified": false,
+            "confidence": 0.4583,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": true,
+            "id": "vless",
+            "predicted_score": 82.174
+          },
+          {
+            "actual_score": 92.619,
+            "bad_channel_correctly_identified": false,
+            "confidence": 0.4583,
+            "correctness": 100.0,
+            "good_channel_correctly_identified": true,
+            "id": "wireguard-1779454504-c43409",
+            "predicted_score": 92.619
+          }
+        ],
+        "rows_seen": 21,
+        "runtime_decision_authority": "none_evidence_only",
+        "schema_version": "v7.ri6.service-intelligence-trust-model.v1",
+        "service_confidence": 39.225
+      },
+      "snapshot_confidence": 0.9278,
+      "suitability_trust": {
+        "candidates_seen": 90,
+        "confidence_band": "LOW",
+        "outcomes_seen": 3,
+        "rows": [
+          {
+            "confidence": 0.3181,
+            "correctness": 72.772,
+            "key": "10.0.0.2:1",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 22.772
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 69.905,
+            "key": "10.0.0.2:awg0",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 80.095
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 70.44,
+            "key": "10.0.0.2:awg3",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 79.56
+          },
+          {
+            "confidence": 0.3181,
+            "correctness": 72.691,
+            "key": "10.0.0.2:openvpn-1779388847-d2ad7c",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 22.691
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 74.505,
+            "key": "10.0.0.2:vless",
+            "outcome_seen": true,
+            "succeeded": true,
+            "suitability_score": 74.505
+          },
+          {
+            "confidence": 0.3181,
+            "correctness": 72.772,
+            "key": "10.0.0.3:1",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 22.772
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 69.905,
+            "key": "10.0.0.3:awg0",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 80.095
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 70.44,
+            "key": "10.0.0.3:awg3",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 79.56
+          },
+          {
+            "confidence": 0.3181,
+            "correctness": 72.691,
+            "key": "10.0.0.3:openvpn-1779388847-d2ad7c",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 22.691
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 74.505,
+            "key": "10.0.0.3:vless",
+            "outcome_seen": true,
+            "succeeded": true,
+            "suitability_score": 74.505
+          },
+          {
+            "confidence": 0.3181,
+            "correctness": 72.772,
+            "key": "10.0.0.6:1",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 22.772
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 69.905,
+            "key": "10.0.0.6:awg0",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 80.095
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 70.44,
+            "key": "10.0.0.6:awg3",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 79.56
+          },
+          {
+            "confidence": 0.3181,
+            "correctness": 72.691,
+            "key": "10.0.0.6:openvpn-1779388847-d2ad7c",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 22.691
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 74.505,
+            "key": "10.0.0.6:vless",
+            "outcome_seen": true,
+            "succeeded": true,
+            "suitability_score": 74.505
+          },
+          {
+            "confidence": 0.3181,
+            "correctness": 72.772,
+            "key": "10.7.0.3:1",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 22.772
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 69.905,
+            "key": "10.7.0.3:awg0",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 80.095
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 70.44,
+            "key": "10.7.0.3:awg3",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 79.56
+          },
+          {
+            "confidence": 0.3181,
+            "correctness": 72.691,
+            "key": "10.7.0.3:openvpn-1779388847-d2ad7c",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 22.691
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 75.495,
+            "key": "10.7.0.3:vless",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 74.505
+          },
+          {
+            "confidence": 0.3181,
+            "correctness": 72.772,
+            "key": "10.7.0.2:1",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 22.772
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 69.905,
+            "key": "10.7.0.2:awg0",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 80.095
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 70.44,
+            "key": "10.7.0.2:awg3",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 79.56
+          },
+          {
+            "confidence": 0.3181,
+            "correctness": 72.691,
+            "key": "10.7.0.2:openvpn-1779388847-d2ad7c",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 22.691
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 75.495,
+            "key": "10.7.0.2:vless",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 74.505
+          },
+          {
+            "confidence": 0.3181,
+            "correctness": 72.772,
+            "key": "10.7.0.4:1",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 22.772
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 69.905,
+            "key": "10.7.0.4:awg0",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 80.095
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 70.44,
+            "key": "10.7.0.4:awg3",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 79.56
+          },
+          {
+            "confidence": 0.3181,
+            "correctness": 72.691,
+            "key": "10.7.0.4:openvpn-1779388847-d2ad7c",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 22.691
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 75.495,
+            "key": "10.7.0.4:vless",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 74.505
+          },
+          {
+            "confidence": 0.3181,
+            "correctness": 72.772,
+            "key": "10.7.0.5:1",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 22.772
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 69.905,
+            "key": "10.7.0.5:awg0",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 80.095
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 70.44,
+            "key": "10.7.0.5:awg3",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 79.56
+          },
+          {
+            "confidence": 0.3181,
+            "correctness": 72.691,
+            "key": "10.7.0.5:openvpn-1779388847-d2ad7c",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 22.691
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 75.495,
+            "key": "10.7.0.5:vless",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 74.505
+          },
+          {
+            "confidence": 0.3181,
+            "correctness": 72.772,
+            "key": "10.7.0.6:1",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 22.772
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 69.905,
+            "key": "10.7.0.6:awg0",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 80.095
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 70.44,
+            "key": "10.7.0.6:awg3",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 79.56
+          },
+          {
+            "confidence": 0.3181,
+            "correctness": 72.691,
+            "key": "10.7.0.6:openvpn-1779388847-d2ad7c",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 22.691
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 75.495,
+            "key": "10.7.0.6:vless",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 74.505
+          },
+          {
+            "confidence": 0.3181,
+            "correctness": 72.772,
+            "key": "10.7.0.8:1",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 22.772
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 69.905,
+            "key": "10.7.0.8:awg0",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 80.095
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 70.44,
+            "key": "10.7.0.8:awg3",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 79.56
+          },
+          {
+            "confidence": 0.3181,
+            "correctness": 72.691,
+            "key": "10.7.0.8:openvpn-1779388847-d2ad7c",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 22.691
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 75.495,
+            "key": "10.7.0.8:vless",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 74.505
+          },
+          {
+            "confidence": 0.3181,
+            "correctness": 72.772,
+            "key": "10.7.0.9:1",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 22.772
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 69.905,
+            "key": "10.7.0.9:awg0",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 80.095
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 70.44,
+            "key": "10.7.0.9:awg3",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 79.56
+          },
+          {
+            "confidence": 0.3181,
+            "correctness": 72.691,
+            "key": "10.7.0.9:openvpn-1779388847-d2ad7c",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 22.691
+          },
+          {
+            "confidence": 0.4583,
+            "correctness": 75.495,
+            "key": "10.7.0.9:vless",
+            "outcome_seen": false,
+            "succeeded": false,
+            "suitability_score": 74.505
+          }
+        ],
+        "runtime_decision_authority": "none_evidence_only",
+        "schema_version": "v7.ri6.suitability-trust-model.v1",
+        "suitability_confidence": 29.023,
+        "validation_status": "VALIDATED"
+      }
+    }
+  ],
+  "schema": "v7.intelligence.trust-evolution-summaries.v1",
+  "source_hashes": {
+    "best_available_pool": "415fae2637c5c1031cff64c8942cdca1e264958206b5a33a4cfb120c794e6652",
+    "blast_radius": "95d9135af64dab3d7a50bc13ec1137f582ecea52a9c35727248edf450990ad05",
+    "blast_radius_records": "3b7a626ec2940a57a0acd5d152d6f53ed9d6f7dab77768e34ae32a54a4e2486e",
+    "candidate_outcomes": "041c8b5ba4cb943f2e558914f04654f7a767bd8381c701b88f6ad9c6befc15fa",
+    "candidate_suitability": "edc031be86d734577ad5f827314990de11739bef8824fe78360bb7941ec1b6df",
+    "channel_service_scores": "8679481f854edf777484605d8afb545893a2ac237a42daf14170d6e6b7a98f32",
+    "decisions": "71b6939d5a7bd73f29dffc674743111d45d975b7e26576fb41c5afd2f5172ed8",
+    "prediction_actuals": "57e149015fd8b4a3b7416bcd1151eda8d1e531c0226d2551264fdf41054fb890",
+    "prediction_summary": "58b18a5ba06668d21531143e0efc1d8e30add1c1e12e7641fddaecac88dcdfc0",
+    "rollback_records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "service_actuals": "4ec6b9a7986a63dd2ec1ecefb6231c7ff7820d47573cb3b8d9085853da388c46",
+    "service_scores": "b6c9b53ec91d7936b353cf514417a701248e3d1487cfec4516626b7fc989b48d",
+    "trust_summary": "395da45d053780831c4c60d2e00bd88475774b4776a9baee041bc991b2168dba"
+  },
+  "ttl_seconds": 900,
+  "warnings": []
+}

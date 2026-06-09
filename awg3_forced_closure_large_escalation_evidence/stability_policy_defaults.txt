@@ -1,0 +1,91 @@
+    "channel-service-scores",
+    "risk-summaries",
+    "trust-summaries",
+    "blast-radius-summaries",
+)
+TELEGRAM_HARD_STATUSES = {"NOT_STARTED", "DOWN"}
+TELEGRAM_SOFT_STATUSES = {"DEGRADED", "DOWN_GRACE", "GRACE"}
+DEFAULT_SWITCH_POLICY = {
+    "autoswitch_enabled": True,
+    "autoswitch_mode": "guarded",
+    "cooldown_seconds": 180,
+    "autoswitch_max_planned_per_run": 1,
+    "autoswitch_max_failover_per_run": 25,
+    "autoswitch_max_reconnect_per_run": 10,
+    "min_score_improvement_pct": 0.20,
+    "min_score_delta": 50.0,
+}
+DEFAULT_QUALITY_POLICY = {
+    "min_avg_mbps": 15.0,
+    "min_floor_mbps": 10.0,
+    "min_stability": 0.45,
+    "metrics_fresh_seconds": 900,
+}
+DEFAULT_LOAD_POLICY = {
+    "mode": "dynamic",
+    "reserve_ratio": 0.15,
+    "soft_multiplier": 1.15,
+    "hard_multiplier": 1.45,
+    "failover_hard_multiplier": 2.0,
+    "failover_capacity_multiplier": 1.25,
+    "min_soft_limit": 5,
+    "min_hard_limit": 10,
+    "max_hard_limit": 80,
+    "soft_limit": 15,
+    "hard_limit": 30,
+    "failover_hard_limit": 60,
+    "rebalance_max_moves_per_run": 3,
+    "rebalance_enabled": True,
+    "rebalance_min_gap_users": 2,
+    "rebalance_min_target_score_ratio": 0.75,
+}
+DEFAULT_RECONNECT_POLICY = {
+    "enabled": True,
+    "active_age_seconds": 45,
+    "reconnect_window_seconds": 120,
+    "rotation_cooldown_seconds": 180,
+}
+DEFAULT_SAFETY_POLICY = {
+    "user_freeze_switches_1h": 2,
+    "user_freeze_switches_24h": 5,
+    "user_freeze_1h_seconds": 3600,
+    "user_freeze_24h_seconds": 21600,
+    "target_block_seconds": 1800,
+    "pair_reversal_window_seconds": 900,
+    "egress_quarantine_failed_verifications_1h": 2,
+    "egress_quarantine_seconds": 3600,
+}
+DEFAULT_SERVICE_SIGNAL_POLICY = {
+    "service_failure_persistence_samples": 3,
+    "service_failure_persistence_window_seconds": 180,
+    "service_failure_min_critical_count": 2,
+    "service_truth_fresh_seconds": 900,
+    "service_truth_stale_seconds": 3600,
+    "service_truth_expired_seconds": 7200,
+    "service_truth_revalidation_budget_seconds": 5,
+    "service_truth_revalidation_target_egress_only": True,
+    "service_truth_revalidation_profile_relevant_only": True,
+    "service_truth_probe_methodology_http_codes": [401, 403, 404, 405, 429],
+    "global_ineligibility_confidence_threshold": 0.75,
+    "current_egress_grace_window_seconds": 120,
+    "post_restore_apply_suppression_window_seconds": 120,
+    "max_failover_per_restore_stage": 1,
+    "service_specific_degradation_mode": "penalty_only",
+    "per_service_penalty_weight": 80.0,
+    "apply_restore_approved": False,
+    "restore_stage": False,
+}
+DEFAULT_SERVICE_QUALITY_POLICY = {
+    "min_required_service_score": 50.0,
+    "min_required_service_confidence": 0.35,
+    "quality_exception_min_1h_avg_mbps": 15.0,
+    "quality_exception_min_1h_floor_mbps": 10.0,
+    "quality_exception_min_stability": 0.15,
+}
+AUTHORITY_CLASS_BUDGETS = {
+    "CANARY": 1,
+    "SMALL_BATCH": 2,
+    "MEDIUM_BATCH": 5,
+    "LARGE_BATCH": 10,
+    "POOL": 25,
+}

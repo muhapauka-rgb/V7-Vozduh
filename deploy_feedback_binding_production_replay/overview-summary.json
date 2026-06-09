@@ -1,0 +1,106 @@
+{
+  "confidence": 0.75,
+  "confidence_factors": {
+    "history_completeness": 1.0,
+    "probe_completeness": 1.0,
+    "service_completeness": 1.0,
+    "source_completeness": 0.0
+  },
+  "expires_at": "2026-06-09T21:04:36.898808+00:00",
+  "freshness_state": "FRESH",
+  "generated_at": "2026-06-09T21:03:36.898808+00:00",
+  "generator": "admin_core.intelligence_workers",
+  "item_count": 1,
+  "schema": "v7.intelligence.overview-summary.v1",
+  "source_hashes": {
+    "egress_registry": "51f59e0130201835c2d495c44bce5402653e17d8db9cf3a9c1e67fbfc1cf0e43",
+    "runtime_state": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "snapshot_statuses": "e1e04dd731a9725ba8eaf3b552d522392fde114673a6d93a250fb8f9ff0c224e",
+    "users_registry": "d33c9b7d231cdfc1f0b59f4238ed949da8e759167be52ce1908aafdf4a3a0f59"
+  },
+  "summary": {
+    "egress_total": 7,
+    "runtime_decision_authority": "none_admin_snapshot_only",
+    "runtime_egress_total": 0,
+    "snapshot_families_fresh": 10,
+    "snapshot_families_seen": 10,
+    "snapshot_statuses": {
+      "best-available-pool": {
+        "confidence": 0.9604,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.best-available-pool.v1",
+        "warnings": []
+      },
+      "blast-radius-summaries": {
+        "confidence": 0.978,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.blast-radius-summaries.v1",
+        "warnings": []
+      },
+      "candidate-suitability-summary": {
+        "confidence": 0.8414,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.candidate-suitability-summary.v1",
+        "warnings": []
+      },
+      "channel-service-scores": {
+        "confidence": 0.8478,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.channel-service-scores.v1",
+        "warnings": []
+      },
+      "prediction-summaries": {
+        "confidence": 0.9535,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.prediction-summaries.v1",
+        "warnings": []
+      },
+      "risk-summaries": {
+        "confidence": 0.9619,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.risk-summaries.v1",
+        "warnings": []
+      },
+      "service-scores": {
+        "confidence": 0.8478,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.service-scores.v1",
+        "warnings": []
+      },
+      "trust-evolution-summaries": {
+        "confidence": 0.9278,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.trust-evolution-summaries.v1",
+        "warnings": []
+      },
+      "trust-summaries": {
+        "confidence": 0.95,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.trust-summaries.v1",
+        "warnings": []
+      },
+      "user-service-scores": {
+        "confidence": 0.8546,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.user-service-scores.v1",
+        "warnings": []
+      }
+    },
+    "users_active": 18,
+    "users_total": 19
+  },
+  "ttl_seconds": 60,
+  "warnings": [
+    "runtime_state_missing"
+  ]
+}

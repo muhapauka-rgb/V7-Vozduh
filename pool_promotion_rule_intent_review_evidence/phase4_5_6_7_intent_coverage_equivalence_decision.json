@@ -1,0 +1,87 @@
+{
+  "rule_origin": {
+    "source_files": [
+      "tools/v7-users-autoswitch:199-210",
+      "tests/unit/test_v7_users_autoswitch_policy.py:2600-2656"
+    ],
+    "policy_rule": "POOL from LARGE_BATCH requires required_successful_runs=2, min_users_per_run=10, feedback outcome/trust/prediction/recommendation/closure, stability_window_seconds=3600",
+    "count_blocker": "two_successful_large_batch_operation_ids_required",
+    "failure_blocker": "pool_evidence_validation_failed",
+    "origin_identified": true
+  },
+  "intent": {
+    "repeatability": "prove the platform can execute a 10-user governed cohort more than once before raising budget to 25",
+    "rollback_confidence": "prove rollback-required stays false across independent large operations",
+    "feedback_confidence": "prove all feedback streams materialize across more than one large operation",
+    "planner_confidence": "prove planner/packet/barrier flow is repeatable at large blast radius",
+    "stability_confidence": "prove 3600s no-regression window for POOL promotion evidence",
+    "operator_confidence": "prevent a single successful large run from becoming automatic pool authorization"
+  },
+  "intent_coverage": [
+    {
+      "purpose": "single LARGE execution correctness",
+      "already_proven": true,
+      "evidence": "runtime_autoswitch_0425741b308df19ccc0c1e03 moved 10 users, rc=0, verify_rc=0",
+      "confidence": "HIGH"
+    },
+    {
+      "purpose": "LARGE feedback materialization",
+      "already_proven": true,
+      "evidence": "10 outcome/trust/prediction/recommendation/closure responses success",
+      "confidence": "HIGH"
+    },
+    {
+      "purpose": "post-LARGE user/route stability",
+      "already_proven": true,
+      "evidence": "LARGE stability review: all 10 registry/route OK",
+      "confidence": "HIGH"
+    },
+    {
+      "purpose": "25-user planner/routing visibility",
+      "already_proven": true,
+      "evidence": "POOL preparation: 25 active/routing/planner-visible users after synthetic user creation",
+      "confidence": "HIGH"
+    },
+    {
+      "purpose": "truth/convergence health",
+      "already_proven": true,
+      "evidence": "truth PASS, convergence ALIGNED on retry/final gates",
+      "confidence": "HIGH"
+    },
+    {
+      "purpose": "second independent LARGE execution repeatability",
+      "already_proven": false,
+      "evidence": "only one large operation id exists; planner currently has candidate_moves_total=0",
+      "confidence": "HIGH"
+    },
+    {
+      "purpose": "second LARGE rollback/feedback repeatability",
+      "already_proven": false,
+      "evidence": "no second large operation means no second large rollback/feedback sample",
+      "confidence": "HIGH"
+    },
+    {
+      "purpose": "POOL promotion 3600s operation-linked no-regression window",
+      "already_proven": false,
+      "evidence": "large operation feedback rows have stability_window_seconds=0; rule requires 3600 for POOL",
+      "confidence": "HIGH"
+    }
+  ],
+  "equivalence_review": {
+    "equivalent_to_two_large_runs": false,
+    "reason": "Current evidence proves one large execution plus stable prepared platform, but does not prove independent repeatability of the large execution lifecycle or 3600s operation-linked no-regression evidence required by the rule."
+  },
+  "staging_user_review": {
+    "staging_users_available": true,
+    "current_planner_moves": 0,
+    "valid_if_planner_selects_moves": true,
+    "artificial_if_created_to_force_movement": true,
+    "would_weaken_certification_if_forced": true,
+    "decision": "Do not manufacture movement. Staging/synthetic users are valid only as planner-visible cohort capacity, not as fake movement evidence."
+  },
+  "decision": {
+    "second_large_still_required": true,
+    "pool_promotion_readiness_justified": false,
+    "single_missing_criterion": "second independent planner-approved LARGE_BATCH execution with >=10 users, feedback closure, rollback_required=false, and 3600s no-regression/stability evidence"
+  }
+}

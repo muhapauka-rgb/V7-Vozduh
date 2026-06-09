@@ -1,0 +1,5 @@
+ip=10.7.0.4 current=amneziawg-exec-20260528-10-8-1-14 table=1002 enabled=1
+ip=10.7.0.6 current=amneziawg-exec-20260528-10-8-1-14 table=1004 enabled=1
+ip=10.7.0.8 current=amneziawg-exec-20260528-10-8-1-14 table=1006 enabled=1
+ip=10.7.0.9 current=awg0 table=1007 enabled=1
+ip=10.7.0.10 current=awg0 table=1008 enabled=1

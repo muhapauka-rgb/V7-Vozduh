@@ -1,0 +1,29 @@
+tools/v7-intelligence-snapshot-refresh:69:    quality_summary_file: Path,
+tools/v7-intelligence-snapshot-refresh:82:        "quality_summary": read_json(quality_summary_file, {"items": {}}),
+tools/v7-intelligence-snapshot-refresh:93:def source_hashes_for_inputs(inputs: dict[str, Any]) -> dict[str, str]:
+tools/v7-intelligence-snapshot-refresh:103:    hashes = payload.get("source_hashes") if isinstance(payload, dict) else {}
+tools/v7-intelligence-snapshot-refresh:108:    expected = source_hashes_for_inputs(latest_inputs)
+tools/v7-intelligence-snapshot-refresh:121:    quality_summary_file: Path,
+tools/v7-intelligence-snapshot-refresh:138:            quality_summary_file=quality_summary_file,
+tools/v7-intelligence-snapshot-refresh:160:            quality_summary_file=quality_summary_file,
+tools/v7-intelligence-snapshot-refresh:188:    quality_summary_file = Path(args.quality_summary_file) if args.quality_summary_file else state_dir / "egress-quality-summary.json"
+tools/v7-intelligence-snapshot-refresh:205:        quality_summary_file=quality_summary_file,
+admin_core/intelligence_workers.py:115:def source_hashes(**items: Any) -> dict[str, str]:
+admin_core/intelligence_workers.py:167:    source_hashes_value: dict[str, str],
+admin_core/intelligence_workers.py:176:        source_hashes=source_hashes_value,
+admin_core/intelligence_workers.py:196:                "inputs": ["service-matrix.json", "egress-quality-summary.json", "service-preferences.json"],
+admin_core/intelligence_workers.py:217:                "inputs": ["users.registry", "service-matrix.json", "egress-quality-summary.json", "service-preferences.json"],
+admin_core/intelligence_workers.py:222:                "inputs": ["users.registry", "egress.registry", "service-matrix.json", "egress-quality-summary.json", "service-preferences.json", "risk-summaries.json", "trust-summaries.json"],
+admin_core/intelligence_workers.py:232:                "inputs": ["service-matrix.json", "egress-quality-summary.json", "risk-summaries.json", "trust-summaries.json", "blast-radius-summaries.json"],
+admin_core/intelligence_workers.py:606:    hashes = source_hashes(
+admin_core/intelligence_workers.py:623:        source_hashes_value=hashes,
+admin_core/intelligence_workers.py:641:            source_hashes_value=hashes,
+admin_core/intelligence_workers.py:748:        source_hashes_value=source_hashes(
+admin_core/intelligence_workers.py:798:        source_hashes_value=source_hashes(records=bounded),
+admin_core/intelligence_workers.py:852:        source_hashes_value=source_hashes(
+admin_core/intelligence_workers.py:901:        source_hashes_value=source_hashes(trust_summary=trust_summary_snapshot, risk_summary=risk_summary_snapshot),
+admin_core/intelligence_workers.py:987:        source_hashes_value=source_hashes(
+admin_core/intelligence_workers.py:1057:        source_hashes_value=source_hashes(
+admin_core/intelligence_workers.py:1115:        source_hashes_value=source_hashes(
+admin_core/intelligence_workers.py:1220:        source_hashes_value=source_hashes(
+admin_core/intelligence_workers.py:1276:        source_hashes_value=source_hashes(

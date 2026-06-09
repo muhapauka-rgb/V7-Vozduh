@@ -1,0 +1,15 @@
+{
+  "terminal_state": "DRY_RUN",
+  "terminal_reason": "dry_run_intelligence_snapshot_stop_required",
+  "candidate_moves_total": 8,
+  "selected_moves_summary": 0,
+  "selected_move_count": 0,
+  "authority_class": "LARGE_BATCH",
+  "current_allowed_user_budget": 10,
+  "requested_max_selected_moves": 25,
+  "authority_cap_applied": false,
+  "selected_before_gate": 6,
+  "selected_after_gate": 6,
+  "snapshot_stop_required": null,
+  "source_mismatch_families": null
+}

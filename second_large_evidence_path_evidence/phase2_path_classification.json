@@ -1,0 +1,95 @@
+{
+  "schema_version": "v7.second-large-evidence-path-classification.v1",
+  "program": "PROGRAM_SECOND_LARGE_EVIDENCE_ACQUISITION_STRATEGY_AND_GOVERNED_PATH_TO_POOL",
+  "baseline": {
+    "truth_check": "PASS",
+    "convergence_status": "ALIGNED",
+    "authority_class": "LARGE_BATCH",
+    "current_allowed_user_budget": 10,
+    "active_planner_visible_users": 25,
+    "current_distribution": {
+      "vless": 9,
+      "awg0": 8,
+      "awg3": 8
+    },
+    "planner_max10_candidate_moves_total": 0,
+    "planner_max10_selected_moves": 0,
+    "planner_max10_snapshot_stop_required": false,
+    "planner_max10_source_mismatch_families": []
+  },
+  "candidate_paths": [
+    {
+      "path": "natural_rebalance_now",
+      "classification": "INVALID",
+      "governance_compliance": "COMPLIANT_BUT_NOT_AVAILABLE",
+      "reason": "Current production distribution is already balanced enough for the planner to return zero candidate moves.",
+      "evidence": [
+        "second_large_evidence_path_evidence/phase1_current_state_summary.json",
+        "second_large_evidence_path_evidence/phase0_planner_max10.json"
+      ]
+    },
+    {
+      "path": "real_new_users",
+      "classification": "VALID_WHEN_EXTERNAL_REAL_DEMAND_EXISTS",
+      "governance_compliance": "COMPLIANT_ONLY_IF_USERS_ARE_REAL_OPERATIONAL_ONBOARDING",
+      "reason": "New production users can create legitimate planner demand only if they exist for real operational reasons, not to manufacture a second LARGE movement.",
+      "evidence": [
+        "second_large_evidence_path_evidence/phase0_users.registry",
+        "PROGRAM_POOL_PREPARATION_GOVERNANCE_CAPACITY_SYNTHETIC_USERS_AND_EXECUTION_STRATEGY_REPORT.md"
+      ]
+    },
+    {
+      "path": "test_only_or_synthetic_user_imbalance",
+      "classification": "ARTIFICIAL",
+      "governance_compliance": "NON_COMPLIANT",
+      "reason": "Creating or arranging users solely to trigger planner moves would create artificial movement and would not prove an independent second LARGE operation.",
+      "evidence": [
+        "second_large_evidence_path_evidence/phase1_current_state_summary.json"
+      ]
+    },
+    {
+      "path": "new_eligible_channels",
+      "classification": "UNSAFE_IN_THIS_SCOPE",
+      "governance_compliance": "REQUIRES_SEPARATE_CHANNEL_GOVERNANCE_RELEASE",
+      "reason": "Releasing additional reserved channels may be legitimate in a separate governance program, but doing it here to obtain a second LARGE would mix authority release with evidence creation.",
+      "evidence": [
+        "second_large_evidence_path_evidence/phase0_egress.registry",
+        "second_large_evidence_path_evidence/phase0_load_summary.json"
+      ]
+    },
+    {
+      "path": "new_capacity_state",
+      "classification": "INVALID_NOW",
+      "governance_compliance": "COMPLIANT_BUT_NOT_PRESENT",
+      "reason": "The load summary is ok with active_users=25 and no current overload/failover pressure. Changing capacity policy or load to create movement would be artificial.",
+      "evidence": [
+        "second_large_evidence_path_evidence/phase0_load_summary.json"
+      ]
+    },
+    {
+      "path": "service_degradation_or_failure_opportunity",
+      "classification": "VALID_ONLY_IF_NATURAL",
+      "governance_compliance": "COMPLIANT_ONLY_FOR_REAL_OBSERVED_FAILURES",
+      "reason": "A real channel degradation can create legitimate planner opportunities, but manufacturing degradation or placing users on bad channels is explicitly forbidden.",
+      "evidence": [
+        "second_large_evidence_path_evidence/phase0_channel_service_scores.json"
+      ]
+    },
+    {
+      "path": "force_planner_target_or_lower_floors",
+      "classification": "UNSAFE",
+      "governance_compliance": "NON_COMPLIANT",
+      "reason": "Forcing targets, weakening floors, or bypassing planner gates would duplicate or weaken runtime authority and would invalidate POOL evidence.",
+      "evidence": [
+        "/Users/ponch/.codex/attachments/61a9092a-6e3b-4f10-be95-12506b3d7a06/pasted-text.txt"
+      ]
+    }
+  ],
+  "best_legitimate_path": {
+    "name": "wait_for_or_monitor_real_planner_approved_production_opportunity",
+    "classification": "VALID_BUT_NOT_EXECUTABLE_NOW",
+    "reason": "The only clean path is a real future planner opportunity caused by real onboarding, real service/capacity change, or real channel governance release. No such opportunity exists in the current baseline."
+  },
+  "single_blocker": "no_planner_approved_second_large_moves_without_manufacturing_movement",
+  "safe_path_executable_now": false
+}

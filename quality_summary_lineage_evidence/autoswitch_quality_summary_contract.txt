@@ -1,0 +1,25 @@
+32:DEFAULT_QUALITY_SUMMARY_FILE = DEFAULT_STATE_DIR / "egress-quality-summary.json"
+593:        self.quality_summary = read_json(Path(args.quality_summary_file), {"items": {}})
+1259:            "quality_summary": sha256_file(Path(self.args.quality_summary_file)),
+1461:            "--quality-summary-file", str(Path(self.args.quality_summary_file)),
+1549:            "quality_summary": sha256_json(self.quality_summary or {}),
+1553:        self.quality_summary = read_json(Path(self.args.quality_summary_file), {"items": {}})
+1558:            "quality_summary": sha256_json(self.quality_summary or {}),
+1565:            "action": "reload_service_matrix_quality_summary_service_preferences",
+1605:            "quality_summary": sha256_json(self.quality_summary or {}),
+1609:        self.quality_summary = read_json(Path(self.args.quality_summary_file), {"items": {}})
+1614:            "quality_summary": sha256_json(self.quality_summary or {}),
+1622:            "action": "reload_service_matrix_quality_summary_service_preferences",
+1663:                "quality_summary": sha256_json(self.quality_summary or {}),
+2244:        return ((self.quality_summary.get("items") or {}).get(egress_id) or {})
+3161:            quality_summary=self.quality_summary,
+3344:            quality_summary=self.quality_summary,
+3559:                "file": str(Path(self.args.quality_summary_file)),
+3560:                "updated": self.quality_summary.get("updated"),
+3561:                "tracked_egress": len(self.quality_summary.get("items") or {}),
+3682:        quality_summary = read_json(Path(self.args.quality_summary_file), {"items": {}}) if from_disk else (self.quality_summary or {})
+3686:            "quality_summary": sha256_json(quality_summary or {}),
+3924:            reasons.append("source_bundle_lease_requires_service_matrix_only_change")
+4302:        envelope_source_lease = self._restore_barrier_source_bundle_lease(
+4369:    def _restore_barrier_source_bundle_lease(
+5597:    parser.add_argument("--quality-summary-file", default=str(DEFAULT_QUALITY_SUMMARY_FILE))

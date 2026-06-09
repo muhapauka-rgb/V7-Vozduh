@@ -1,0 +1,84 @@
+{
+  "operation_id": "runtime_autoswitch_0425741b308df19ccc0c1e03",
+  "terminal_state": "APPLIED",
+  "terminal_reason": "selected_moves_applied",
+  "selected_move_hash": "2ce019855a3db2a74795fc5d41a928400d44b8f20177e542d1bf3740e2608e30",
+  "selected_count": 10,
+  "applied": true,
+  "results_count": 10,
+  "all_rc_zero": true,
+  "all_verify_rc_zero": true,
+  "rollback_attempted_any": false,
+  "moved_users": [
+    {
+      "user": "10.7.0.11",
+      "from": "amneziawg-exec-20260528-10-8-1-14",
+      "to": "awg3",
+      "rc": 0,
+      "verify_rc": 0
+    },
+    {
+      "user": "10.7.0.12",
+      "from": "amneziawg-exec-20260528-10-8-1-14",
+      "to": "awg0",
+      "rc": 0,
+      "verify_rc": 0
+    },
+    {
+      "user": "10.7.0.14",
+      "from": "amneziawg-exec-20260528-10-8-1-14",
+      "to": "awg3",
+      "rc": 0,
+      "verify_rc": 0
+    },
+    {
+      "user": "10.7.0.15",
+      "from": "amneziawg-exec-20260528-10-8-1-14",
+      "to": "awg0",
+      "rc": 0,
+      "verify_rc": 0
+    },
+    {
+      "user": "10.7.0.2",
+      "from": "vless",
+      "to": "awg3",
+      "rc": 0,
+      "verify_rc": 0
+    },
+    {
+      "user": "10.7.0.4",
+      "from": "vless",
+      "to": "awg0",
+      "rc": 0,
+      "verify_rc": 0
+    },
+    {
+      "user": "10.7.0.6",
+      "from": "vless",
+      "to": "awg3",
+      "rc": 0,
+      "verify_rc": 0
+    },
+    {
+      "user": "10.7.0.8",
+      "from": "vless",
+      "to": "awg0",
+      "rc": 0,
+      "verify_rc": 0
+    },
+    {
+      "user": "10.7.0.9",
+      "from": "vless",
+      "to": "awg3",
+      "rc": 0,
+      "verify_rc": 0
+    },
+    {
+      "user": "10.7.0.10",
+      "from": "vless",
+      "to": "awg0",
+      "rc": 0,
+      "verify_rc": 0
+    }
+  ]
+}

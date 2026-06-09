@@ -1,0 +1,118 @@
+{
+  "users_total": 26,
+  "active_users": 25,
+  "distribution": {
+    "awg0": 8,
+    "awg3": 8,
+    "vless": 9
+  },
+  "load_summary": {
+    "active_users": 25,
+    "healthy_channels": 3,
+    "working_channels": 2,
+    "avg_load": 12.5,
+    "soft_limit": 15,
+    "hard_limit": 19,
+    "failover_hard_limit": 25,
+    "status": "ok",
+    "per_egress": {
+      "1": {
+        "users": 0,
+        "soft_limit": 15,
+        "hard_limit": 19,
+        "failover_hard_limit": 25,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "amneziawg-exec-20260528-10-8-1-14": {
+        "users": 0,
+        "soft_limit": 15,
+        "hard_limit": 19,
+        "failover_hard_limit": 25,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "awg0": {
+        "users": 8,
+        "soft_limit": 15,
+        "hard_limit": 19,
+        "failover_hard_limit": 25,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "awg3": {
+        "users": 8,
+        "soft_limit": 15,
+        "hard_limit": 19,
+        "failover_hard_limit": 25,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "users": 0,
+        "soft_limit": 15,
+        "hard_limit": 19,
+        "failover_hard_limit": 25,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "vless": {
+        "users": 9,
+        "soft_limit": 15,
+        "hard_limit": 19,
+        "failover_hard_limit": 25,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "wireguard-1779454504-c43409": {
+        "users": 0,
+        "soft_limit": 15,
+        "hard_limit": 19,
+        "failover_hard_limit": 25,
+        "capacity_users": 0,
+        "status": "OK"
+      }
+    }
+  },
+  "phase0_planner_max10.json": {
+    "terminal_state": "DRY_RUN",
+    "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired",
+    "candidate_moves_total": 0,
+    "selected_moves": 0,
+    "selected_before_gate": 0,
+    "selected_after_gate": 0,
+    "authority_class": "LARGE_BATCH",
+    "budget": 10,
+    "snapshot_stop_required": false,
+    "source_mismatch_families": [],
+    "apply_requested": false
+  },
+  "phase0_planner_max25.json": {
+    "terminal_state": "DRY_RUN",
+    "terminal_reason": "dry_run_intelligence_snapshot_stop_required",
+    "candidate_moves_total": 0,
+    "selected_moves": 0,
+    "selected_before_gate": 0,
+    "selected_after_gate": 0,
+    "authority_class": "LARGE_BATCH",
+    "budget": 10,
+    "snapshot_stop_required": true,
+    "source_mismatch_families": [
+      "channel-service-scores",
+      "service-scores"
+    ],
+    "apply_requested": false
+  },
+  "phase0_truth_check.json": {
+    "final_verdict": "PASS",
+    "status": null,
+    "runtime_action_safe": null,
+    "blockers": []
+  },
+  "phase0_convergence_status.json": {
+    "final_verdict": "PASS",
+    "status": "ALIGNED",
+    "runtime_action_safe": true,
+    "blockers": null
+  }
+}

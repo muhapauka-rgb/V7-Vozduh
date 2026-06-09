@@ -1,0 +1,7 @@
+{
+  "fix_applied": false,
+  "fix_available": false,
+  "fix_review": "No fix required. Fresh approved pre-planner refresh/retest cleared the stale stability classification without threshold changes, forced eligibility, or routing mutation.",
+  "safe_to_force_awg3": false,
+  "safe_to_lower_floor": false
+}

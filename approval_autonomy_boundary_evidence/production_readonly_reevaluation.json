@@ -1,0 +1,325 @@
+{
+  "approval_autonomy_ready": true,
+  "autonomous_dry_run": {
+    "apply_executed": false,
+    "autonomy_enabled": false,
+    "canary_autonomy_ready": false,
+    "candidate_count": 1,
+    "outcome_driven_evidence": {
+      "applied": true,
+      "approval_autonomy_review_ready": true,
+      "autonomy_boundary_cap": "OPERATOR_APPROVAL_READY",
+      "autonomy_enabled": false,
+      "autonomy_specific_gap_score": 100.0,
+      "available": true,
+      "bounded_autonomy_blockers": [
+        "autonomous_trigger_not_certified",
+        "autonomous_rollback_decision_not_certified",
+        "operator_free_apply_not_certified",
+        "autonomy_specific_evidence_below_floor"
+      ],
+      "candidate_outcomes_count": 67,
+      "components": {
+        "blast_radius_confidence": 20.0,
+        "decision_confidence": 50.0,
+        "prediction_confidence": 37.069,
+        "rollback_confidence": 100.0,
+        "service_confidence": 39.191,
+        "suitability_confidence": 28.211
+      },
+      "confidence_score": 39.134,
+      "execution_authority": "none",
+      "governed_evidence_score": 100.0,
+      "governed_to_autonomy_trust_bridge": {
+        "approval_autonomy_review_ready": true,
+        "authority_changed": false,
+        "autonomy_boundary_cap": "OPERATOR_APPROVAL_READY",
+        "autonomy_enabled": false,
+        "autonomy_specific_gap_score": 100.0,
+        "autonomy_specific_trust": 0.0,
+        "bounded_autonomy_blockers": [
+          "autonomous_trigger_not_certified",
+          "autonomous_rollback_decision_not_certified",
+          "operator_free_apply_not_certified",
+          "autonomy_specific_evidence_below_floor"
+        ],
+        "bounded_autonomy_ready": false,
+        "corrected_autonomy_trust": 52.18,
+        "evidence_counts": {
+          "candidate_outcomes_count": 67,
+          "prediction_actuals_count": 21,
+          "service_actuals_count": 21
+        },
+        "execution_authority": "none",
+        "governance_changed": false,
+        "governed_execution_evidence_score": 100.0,
+        "governed_feedback_evidence_score": 96.97,
+        "inherited_execution_trust": 86.966,
+        "mode": "read_only_advisory",
+        "model": "PARTIALLY_INHERITED_GOVERNED_TRUST_WITH_AUTONOMY_CAPS",
+        "new_truth_source_created": false,
+        "operator_summary_ru": "Governed-история уже повышает доверие к выполнению, но автономный запуск и откат остаются отдельно заблокированы.",
+        "planner_decision_changed": false,
+        "production_autonomy_ready": false,
+        "runtime_mutation_performed": false,
+        "schema_version": "v7.governed-to-autonomy-trust-bridge.v1"
+      },
+      "inherited_execution_trust": 86.966,
+      "live_calibrated": true,
+      "new_truth_source_created": false,
+      "operator_summary_ru": "Governed-история уже повышает доверие к выполнению, но автономный запуск и откат остаются отдельно заблокированы.",
+      "prediction_actuals_count": 21,
+      "prediction_confidence": 37.069,
+      "raw_available": true,
+      "rollback_confidence": 100.0,
+      "rollback_validation_status": "VALIDATED",
+      "schema_version": "v7.outcome-driven-autonomy-evidence-advice.v1",
+      "service_actuals_count": 21,
+      "source_owner": "trust-evolution-summaries",
+      "trust_score": 34.35
+    },
+    "rollback_executed": false,
+    "safety_gates": {
+      "apply_executed": false,
+      "autonomy_floor": {
+        "apply_executed": false,
+        "confidence_floor": 70.0,
+        "execution_allowed_now": false,
+        "floor_sources": {
+          "confidence": "shadow autonomy minimum earned confidence floor",
+          "prediction_confidence": "same autonomous canary evidence floor as confidence",
+          "trust": "trust snapshot family required confidence floor for intelligence apply"
+        },
+        "normalizes_fractional_inputs": true,
+        "prediction_confidence_floor": 70.0,
+        "safety_effect": "clarifies and strengthens canary gates without enabling autonomy",
+        "schema_version": "v7.autonomy-canary-floor-model.v1",
+        "scope": "dry_run_canary_readiness_only",
+        "score_scale": "0-100",
+        "trust_floor": 70.0
+      },
+      "canary_readiness_blocker": "confidence_too_low",
+      "candidate_floor_evaluation": [
+        {
+          "confidence": 45.8,
+          "confidence_floor_pass": false,
+          "prediction_confidence": 39.6,
+          "prediction_confidence_floor_pass": false,
+          "rollback_confidence": 100.0,
+          "rollback_confidence_observed": true,
+          "trust": 34.35,
+          "trust_floor_pass": false,
+          "user": "10.7.0.16"
+        }
+      ],
+      "defined_gates": [
+        "unknown_trust",
+        "trust_too_low",
+        "unknown_rollback_target",
+        "snapshot_mismatch",
+        "source_drift",
+        "packet_mismatch",
+        "restore_barrier_invalid",
+        "verification_unavailable",
+        "confidence_too_low",
+        "prediction_confidence_too_low",
+        "service_blocker",
+        "capacity_blocker"
+      ],
+      "execution_allowed_now": false,
+      "hard_stop": true,
+      "hard_stop_blockers": [
+        "confidence_too_low",
+        "trust_too_low",
+        "prediction_confidence_too_low"
+      ],
+      "schema_version": "v7.autonomous-dry-run-safety-gates.v1",
+      "users_moved": 0
+    },
+    "single_blocker": "confidence_too_low",
+    "users_moved": 0
+  },
+  "autonomy_specific_evidence": {
+    "apply_executed": false,
+    "authority_changed": false,
+    "autonomous_rollback_decision_evidence": {
+      "proved": true,
+      "rollback_confidence_observed": true,
+      "rollback_decision": "STOP_BEFORE_APPLY",
+      "rollback_items_count": 1,
+      "status": "SIMULATED_ROLLBACK_READY"
+    },
+    "autonomous_trigger_evidence": {
+      "blocker": "confidence_too_low",
+      "candidate_count": 1,
+      "meaning": "I should not act now",
+      "proved": false,
+      "status": "BLOCKED"
+    },
+    "autonomy_comparison_evidence": {
+      "comparisons_total": 0,
+      "earned_confidence": 45.879,
+      "missing_targets": [
+        "minimum_comparisons",
+        "agreement_rate_floor",
+        "earned_confidence_floor"
+      ],
+      "proved": false,
+      "status": "BELOW_FLOOR"
+    },
+    "autonomy_confidence_evidence": {
+      "autonomy_specific_gap_score": 100.0,
+      "candidate_floor_evaluation": [
+        {
+          "confidence": 45.8,
+          "confidence_floor_pass": false,
+          "prediction_confidence": 39.6,
+          "prediction_confidence_floor_pass": false,
+          "rollback_confidence": 100.0,
+          "rollback_confidence_observed": true,
+          "trust": 34.35,
+          "trust_floor_pass": false,
+          "user": "10.7.0.16"
+        }
+      ],
+      "inherited_execution_trust": 86.966,
+      "proved": false,
+      "status": "FLOORS_NOT_MET"
+    },
+    "autonomy_enabled": false,
+    "autonomy_specific_evidence_score": 40.0,
+    "canary_autonomy_ready": false,
+    "current_missing_evidence": [
+      "confidence_too_low",
+      "autonomy_confidence_floor_evidence_missing",
+      "operator_comparison_evidence_below_floor",
+      "operator_free_apply_not_certified"
+    ],
+    "execution_authority": "none",
+    "governance_changed": false,
+    "mode": "read_only_evidence_collection",
+    "new_truth_source_created": false,
+    "operator_free_apply_evidence": {
+      "apply_executed": false,
+      "execution_allowed_now": false,
+      "proved": false,
+      "reason": "operator-free apply requires a later explicitly approved canary execution program",
+      "status": "NOT_CERTIFIED_BY_DESIGN"
+    },
+    "planner_decision_changed": false,
+    "required_evidence": [
+      "autonomous_trigger",
+      "self_stop",
+      "autonomous_rollback_decision",
+      "autonomy_confidence",
+      "operator_comparison",
+      "operator_free_apply_boundary"
+    ],
+    "rollback_executed": false,
+    "runtime_mutation_performed": false,
+    "schema_version": "v7.autonomy-specific-evidence-model.v1",
+    "self_stop_evidence": {
+      "hard_stop_blockers": [
+        "confidence_too_low",
+        "trust_too_low",
+        "prediction_confidence_too_low"
+      ],
+      "meaning": "I should not act",
+      "proved": true,
+      "status": "PROVEN_STOPPED"
+    },
+    "single_blocker": "confidence_too_low",
+    "users_moved": 0
+  },
+  "dashboard_trust_status": {
+    "approval_autonomy_review_ready": true,
+    "autonomy_boundary_cap": "OPERATOR_APPROVAL_READY",
+    "autonomy_specific_gap_score": 100.0,
+    "bounded_autonomy_blockers": [
+      "autonomous_trigger_not_certified",
+      "autonomous_rollback_decision_not_certified",
+      "operator_free_apply_not_certified",
+      "autonomy_specific_evidence_below_floor"
+    ],
+    "channels_with_trust_model": 7,
+    "governed_evidence_score": 100.0,
+    "governed_to_autonomy_trust_bridge": {
+      "approval_autonomy_review_ready": true,
+      "authority_changed": false,
+      "autonomy_boundary_cap": "OPERATOR_APPROVAL_READY",
+      "autonomy_enabled": false,
+      "autonomy_specific_gap_score": 100.0,
+      "autonomy_specific_trust": 0.0,
+      "bounded_autonomy_blockers": [
+        "autonomous_trigger_not_certified",
+        "autonomous_rollback_decision_not_certified",
+        "operator_free_apply_not_certified",
+        "autonomy_specific_evidence_below_floor"
+      ],
+      "bounded_autonomy_ready": false,
+      "corrected_autonomy_trust": 52.18,
+      "evidence_counts": {
+        "candidate_outcomes_count": 67,
+        "prediction_actuals_count": 21,
+        "service_actuals_count": 21
+      },
+      "execution_authority": "none",
+      "governance_changed": false,
+      "governed_execution_evidence_score": 100.0,
+      "governed_feedback_evidence_score": 96.97,
+      "inherited_execution_trust": 86.966,
+      "mode": "read_only_advisory",
+      "model": "PARTIALLY_INHERITED_GOVERNED_TRUST_WITH_AUTONOMY_CAPS",
+      "new_truth_source_created": false,
+      "operator_summary_ru": "Governed-история уже повышает доверие к выполнению, но автономный запуск и откат остаются отдельно заблокированы.",
+      "planner_decision_changed": false,
+      "production_autonomy_ready": false,
+      "runtime_mutation_performed": false,
+      "schema_version": "v7.governed-to-autonomy-trust-bridge.v1"
+    },
+    "inherited_execution_trust": 86.966,
+    "operator_explanation": "Trust is read from the existing channel decision surface.",
+    "operator_summary_ru": "Governed-история уже повышает доверие к выполнению, но автономный запуск и откат остаются отдельно заблокированы.",
+    "states": {
+      "QUARANTINED": 2,
+      "TRUSTED": 5
+    }
+  },
+  "egress_registry_count": 7,
+  "mode": "production_read_only_registry_backed_revaluation",
+  "trust_bridge": {
+    "approval_autonomy_review_ready": true,
+    "authority_changed": false,
+    "autonomy_boundary_cap": "OPERATOR_APPROVAL_READY",
+    "autonomy_enabled": false,
+    "autonomy_specific_gap_score": 100.0,
+    "autonomy_specific_trust": 0.0,
+    "bounded_autonomy_blockers": [
+      "autonomous_trigger_not_certified",
+      "autonomous_rollback_decision_not_certified",
+      "operator_free_apply_not_certified",
+      "autonomy_specific_evidence_below_floor"
+    ],
+    "bounded_autonomy_ready": false,
+    "corrected_autonomy_trust": 52.18,
+    "evidence_counts": {
+      "candidate_outcomes_count": 67,
+      "prediction_actuals_count": 21,
+      "service_actuals_count": 21
+    },
+    "execution_authority": "none",
+    "governance_changed": false,
+    "governed_execution_evidence_score": 100.0,
+    "governed_feedback_evidence_score": 96.97,
+    "inherited_execution_trust": 86.966,
+    "mode": "read_only_advisory",
+    "model": "PARTIALLY_INHERITED_GOVERNED_TRUST_WITH_AUTONOMY_CAPS",
+    "new_truth_source_created": false,
+    "operator_summary_ru": "Governed-история уже повышает доверие к выполнению, но автономный запуск и откат остаются отдельно заблокированы.",
+    "planner_decision_changed": false,
+    "production_autonomy_ready": false,
+    "runtime_mutation_performed": false,
+    "schema_version": "v7.governed-to-autonomy-trust-bridge.v1"
+  },
+  "users_registry_count": 27
+}

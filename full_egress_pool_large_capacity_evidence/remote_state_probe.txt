@@ -1,0 +1,150 @@
+2026-06-07T01:41:09+03:00
+---EGRESS---
+id=vless protocol=vless type=proxy interface=tun0 test=socks5://127.0.0.1:1080 enabled=1 expected_ip=77.110.103.131 config_path=/etc/sing-box/config.json
+id=awg0 protocol=amneziawg type=interface interface=awg0 test=interface enabled=1 expected_ip=194.124.210.244 config_path=/etc/amnezia/amneziawg/awg0.conf role=GLOBAL_STABLE service_tags=telegram,google,youtube,global priority=60 weight=70 connect_timeout=12s
+id=awg3 protocol=amneziawg type=interface interface=awg3 test=interface enabled=1 expected_ip=194.124.210.244 config_path=/etc/amnezia/amneziawg/awg3.conf role=GLOBAL_STABLE service_tags=telegram,google,youtube,global priority=70 weight=75 connect_timeout=12s
+id=1 protocol=amneziawg type=interface interface=v7e356a192b79 test=interface enabled=1 config=/etc/amnezia/amneziawg/v7e356a192b79.conf role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+id=openvpn-1779388847-d2ad7c protocol=openvpn type=interface interface=v7edb0c189291 test=interface enabled=1 config=/etc/v7/egress-openvpn/v7edb0c189291.ovpn role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+id=wireguard-1779454504-c43409 protocol=wireguard type=interface interface=v7e06a394c478 test=interface enabled=1 config=/etc/wireguard/v7e06a394c478.conf role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU canary_reserved=true reservation_reason=second_canary_target reservation_owner=control_plane_governance
+id=amneziawg-exec-20260528-10-8-1-14 protocol=amneziawg type=interface interface=v7execwg0 test=interface enabled=1 config=/etc/amnezia/v7execwg0.conf role=EXECUTION_ONLY route_table=1250 priority=10 weight=1 soft_limit=10 hard_limit=10 manual_only=1 reserve_only=1 canary_reserved=true execution_reserved=true reservation_owner=operator_execution_governance autoswitch_allowed=false rebalance_allowed=false production_assignment_allowed=false service_tags=governance,execution exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+---USERS---
+ip=10.0.0.2 current=vless table=100 enabled=1
+ip=10.0.0.3 current=vless table=101 enabled=1
+ip=10.0.0.6 current=vless table=104 enabled=1
+ip=10.7.0.3 current=vless table=1001 enabled=1
+ip=10.7.0.2 current=vless table=1000 enabled=1
+ip=10.7.0.4 current=vless table=1002 enabled=1
+ip=10.7.0.5 current=vless table=1003 enabled=1
+ip=10.7.0.6 current=vless table=1004 enabled=1
+ip=10.7.0.7 current=vless table=1005 enabled=0
+ip=10.7.0.8 current=vless table=1006 enabled=1
+ip=10.7.0.9 current=vless table=1007 enabled=1
+ip=10.7.0.10 current=vless table=1008 enabled=1
+ip=10.7.0.11 current=amneziawg-exec-20260528-10-8-1-14 table=1009 enabled=1
+ip=10.7.0.12 current=amneziawg-exec-20260528-10-8-1-14 table=1010 enabled=1
+ip=10.7.0.13 current=awg0 table=1011 enabled=1
+ip=10.7.0.14 current=amneziawg-exec-20260528-10-8-1-14 table=1012 enabled=1
+ip=10.7.0.15 current=amneziawg-exec-20260528-10-8-1-14 table=1013 enabled=1
+ip=10.7.0.16 current=vless table=1014 enabled=1
+ip=10.7.0.17 current=vless table=1015 enabled=1
+---STATE---
+total 2824
+drwxr-xr-x 11 1000 1000  28672 Jun  7 01:41 .
+drwxr-xr-x  7 root root   4096 May  2 18:09 ..
+-rw-------  1 root root   5259 Jun  7 01:04 autoswitch-restore-barrier.json
+-rw-r--r--  1 root root    985 Jun  3 00:41 autoswitch-restore-barrier.json.backup-c1-20260602T214125Z
+-rw-r--r--  1 root root   1233 Jun  3 00:54 autoswitch-restore-barrier.json.backup-c1-20260602T215422Z
+-rw-r--r--  1 root root   1233 Jun  3 01:08 autoswitch-restore-barrier.json.backup-c1-20260602T220819Z
+-rw-r--r--  1 root root   1233 Jun  3 01:12 autoswitch-restore-barrier.json.backup-c1-20260602T221218Z
+-rw-r--r--  1 root root   1233 Jun  3 01:34 autoswitch-restore-barrier.json.backup-c1-20260602T223417Z
+-rw-r--r--  1 root root   1233 Jun  3 01:36 autoswitch-restore-barrier.json.backup-c1-20260602T223624Z
+-rw-r--r--  1 root root   1249 Jun  3 10:12 autoswitch-restore-barrier.json.backup-c1-20260603T071201Z
+-rw-r--r--  1 root root   1297 Jun  3 10:12 autoswitch-restore-barrier.json.backup-c1-20260603T071238Z
+-rw-r--r--  1 root root   1385 Jun  5 09:17 autoswitch-restore-barrier.json.backup-c1-20260605T061721Z
+-rw-r--r--  1 root root   1233 Jun  5 09:23 autoswitch-restore-barrier.json.backup-c1-20260605T062338Z
+-rw-r--r--  1 root root   1233 Jun  5 13:27 autoswitch-restore-barrier.json.backup-c1-20260605T102758Z
+-rw-r--r--  1 root root   1249 Jun  5 14:08 autoswitch-restore-barrier.json.backup-c1-20260605T110819Z
+-rw-r--r--  1 root root   1249 Jun  5 15:39 autoswitch-restore-barrier.json.backup-c1-20260605T123907Z
+-rw-r--r--  1 root root   1625 Jun  6 01:51 autoswitch-restore-barrier.json.backup-c1-20260605T225140Z
+-rw-r--r--  1 root root   1639 Jun  6 01:53 autoswitch-restore-barrier.json.backup-c1-20260605T225304Z
+-rw-r--r--  1 root root   1641 Jun  6 02:00 autoswitch-restore-barrier.json.backup-c1-20260605T230000Z
+-rw-r--r--  1 root root   1641 Jun  6 02:22 autoswitch-restore-barrier.json.backup-c1-20260605T232228Z
+-rw-r--r--  1 root root   1641 Jun  6 02:28 autoswitch-restore-barrier.json.backup-c1-20260605T232821Z
+-rw-r--r--  1 root root   1641 Jun  6 08:55 autoswitch-restore-barrier.json.backup-c1-20260606T055524Z
+-rw-r--r--  1 root root   1641 Jun  6 08:57 autoswitch-restore-barrier.json.backup-c1-20260606T055745Z
+-rw-r--r--  1 root root   1641 Jun  6 10:45 autoswitch-restore-barrier.json.backup-c1-20260606T074507Z
+-rw-r--r--  1 root root   1641 Jun  6 11:44 autoswitch-restore-barrier.json.backup-c1-20260606T084402Z
+-rw-r--r--  1 root root   2132 Jun  6 19:19 autoswitch-restore-barrier.json.backup-c1-20260606T161953Z
+-rw-r--r--  1 root root   2130 Jun  6 19:23 autoswitch-restore-barrier.json.backup-c1-20260606T162342Z
+-rw-r--r--  1 root root   2130 Jun  6 19:26 autoswitch-restore-barrier.json.backup-c1-20260606T162646Z
+-rw-r--r--  1 root root   2130 Jun  6 19:30 autoswitch-restore-barrier.json.backup-c1-20260606T163038Z
+-rw-r--r--  1 root root   2130 Jun  6 19:31 autoswitch-restore-barrier.json.backup-c1-20260606T163120Z
+-rw-r--r--  1 root root   2130 Jun  6 19:33 autoswitch-restore-barrier.json.backup-c1-20260606T163343Z
+-rw-r--r--  1 root root   2132 Jun  6 20:16 autoswitch-restore-barrier.json.backup-c1-20260606T171651Z
+-rw-r--r--  1 root root   4666 Jun  6 20:33 autoswitch-restore-barrier.json.backup-c1-20260606T173344Z
+-rw-r--r--  1 root root   4661 Jun  6 20:39 autoswitch-restore-barrier.json.backup-c1-20260606T173903Z
+-rw-r--r--  1 root root   4666 Jun  6 23:15 autoswitch-restore-barrier.json.backup-c1-20260606T201546Z
+-rw-r--r--  1 root root   5259 Jun  6 23:32 autoswitch-restore-barrier.json.backup-c1-20260606T203229Z
+-rw-r--r--  1 root root   5259 Jun  7 00:39 autoswitch-restore-barrier.json.backup-c1-20260606T213948Z
+-rw-r--r--  1 root root   5338 Jun  7 00:53 autoswitch-restore-barrier.json.backup-c1-20260606T215359Z
+-rw-r--r--  1 root root   5259 Jun  7 01:04 autoswitch-restore-barrier.json.backup-c1-20260606T220421Z
+-rw-r--r--  1 root root    598 May 27 16:13 autoswitch-restore-barrier.json.backup-e12-nonzero-20260527T171252Z
+-rw-r--r--  1 root root    447 May 27 13:52 autoswitch-restore-barrier.json.e11_17_backup_20260527T123920Z
+-rw-r--r--  1 root root   8149 Jun  7 01:05 autoswitch-safety.json
+-rw-r--r--  1 1000 1000    197 May  2 18:54 awg-test-194.124.210.244.conf.state
+-rw-r--r--  1 1000 1000    218 May  2 23:59 awg2-94.241.139.241.conf.state
+-rw-r--r--  1 root root    606 Jun  7 01:40 benchmark.state
+-rw-r--r--  1 root root    421 May  7 15:35 client-agents.json
+-rw-r--r--  1 root root   4079 May 21 21:53 client-commands.json
+-rw-r--r--  1 root root  17954 Jun  7 01:05 client-reconnect-state.json
+-rw-r--r--  1 root root     68 May 22 01:42 client-speed-links.json
+-rw-r--r--  1 root root  18770 May 21 21:41 client-speed.json
+-rw-------  1 root root   3293 Jun  7 01:10 closure-records.jsonl
+-rw-------  1 root root   4429 Jun  7 00:15 closure-records.jsonl.1
+-rw-r--r--  1 root root    334 Jun  7 01:34 direct-ru-autosync.state
+drwxr-xr-x  2 root root   4096 May  8 16:26 disabled-peers
+drwxr-xr-x  2 root root   4096 May 28 17:49 e25_11-backups
+drwxr-xr-x  2 root root   4096 May 29 00:40 e27_1-backups
+drwxr-xr-x  2 root root   4096 May 29 09:39 e28_1-backups
+drwxr-xr-x  2 root root   4096 May 29 17:34 e30_2-backups
+-rw-r--r--  1 root root    999 Jun  7 01:40 egress-diagnose.state
+-rw-r--r--  1 root root    156 May 22 16:37 egress-flags.state
+-rw-r--r--  1 root root     63 May 20 08:40 egress-flags.state.backup.remove-duplicate-20260520-054250
+-rw-r--r--  1 root root     20 May 20 08:42 egress-flags.state.backup.v7-egress-delete.20260520-154412
+-rw-r--r--  1 root root      0 May  7 00:04 egress-flags.state.backup.v7-egress-set-state.20260507-000433
+-rw-r--r--  1 root root     20 May 20 01:48 egress-flags.state.backup.v7-egress-set-state.20260520-014833
+-rw-r--r--  1 root root     62 May 20 08:40 egress-flags.state.backup.v7-egress-set-state.20260520-084047
+-rw-r--r--  1 root root     20 May 20 18:50 egress-flags.state.backup.v7-egress-set-state.20260520-185058
+-rw-r--r--  1 root root     36 May 20 23:31 egress-flags.state.backup.v7-egress-set-state.20260520-233128
+-rw-r--r--  1 root root     36 May 21 00:29 egress-flags.state.backup.v7-egress-set-state.20260521-002953
+-rw-r--r--  1 root root     37 May 21 00:31 egress-flags.state.backup.v7-egress-set-state.20260521-003136
+-rw-r--r--  1 root root     36 May 21 11:37 egress-flags.state.backup.v7-egress-set-state.20260521-113713
+-rw-r--r--  1 root root     55 May 21 11:37 egress-flags.state.backup.v7-egress-set-state.20260521-113728
+-rw-r--r--  1 root root     74 May 21 11:43 egress-flags.state.backup.v7-egress-set-state.20260521-114342
+-rw-r--r--  1 root root     74 May 22 10:13 egress-flags.state.backup.v7-egress-set-state.20260522-101315
+-rw-r--r--  1 root root    114 May 22 10:37 egress-flags.state.backup.v7-egress-set-state.20260522-103733
+-rw-r--r--  1 root root    114 May 22 16:28 egress-flags.state.backup.v7-egress-set-state.20260522-162850
+-rw-r--r--  1 root root    156 May 22 16:37 egress-flags.state.backup.v7-egress-set-state.20260522-163703
+-rw-r--r--  1 root root    157 May 22 16:37 egress-flags.state.backup.v7-egress-set-state.20260522-163736
+-rw-r--r--  1 root root  54480 Jun  7 01:40 egress-history.jsonl
+-rw-r--r--  1 root root  54418 Jun  7 00:15 egress-history.jsonl.1
+-rw-r--r--  1 root root   1768 May 31 00:39 egress-history.jsonl.2.gz
+-rw-r--r--  1 root root   1483 May 24 00:49 egress-history.jsonl.3.gz
+-rw-r--r--  1 root root    909 May 17 00:17 egress-history.jsonl.4.gz
+-rw-r--r--  1 root root    837 May 10 00:05 egress-history.jsonl.5.gz
+-rw-r--r--  1 root root    191 May 22 16:22 egress-labels.json
+-rw-r--r--  1 root root   2244 Jun  7 01:40 egress-load-summary.json
+-rw-r--r--  1 root root    823 Jun  7 01:40 egress-load.state
+-rw-r--r--  1 root root 686877 Jun  7 01:39 egress-quality-ring.json
+-rw-r--r--  1 root root  11626 Jun  7 01:39 egress-quality-summary.json
+-rw-------  1 root root   3891 Jun  6 17:02 egress-speed.json
+-rw-------  1 root root   1684 May 20 02:09 egress-speed.json.backup.remove-duplicate-20260520-054250
+-rw-r--r--  1 root root   1106 May 20 08:42 egress-speed.json.backup.v7-egress-delete.20260520-154412
+-rw-r--r--  1 root root    148 May 28 21:00 egress-stability.state
+-rw-r--r--  1 root root   1456 Jun  7 01:40 egress-status.state
+-rw-r--r--  1 root root   2342 May 29 17:34 egress.registry
+-rw-r--r--  1 root root    568 May 19 21:55 egress.registry.backup.awg3-20260519-2155
+-rw-r--r--  1 root root   1811 May 26 21:46 egress.registry.backup.e25_10_exec_import.20260528T143509Z
+-rw-r--r--  1 root root   2323 May 28 17:35 egress.registry.backup.e25_10_remove_active_exec.20260528T143624Z
+-rw-r--r--  1 root root    171 May  7 00:04 egress.registry.backup.phase35-metadata.20260507-105825
+-rw-r--r--  1 root root   1185 May 20 08:40 egress.registry.backup.remove-duplicate-20260520-054250
+-rw-r--r--  1 root root    828 May 20 08:42 egress.registry.backup.v7-egress-delete.20260520-154412
+-rw-r--r--  1 root root    828 May 19 21:55 egress.registry.backup.v7-egress-draft-pool-apply.20260519-224817
+-rw-r--r--  1 root root    674 May 20 18:44 egress.registry.backup.v7-egress-draft-pool-apply.20260520-155040
+-rw-r--r--  1 root root   1005 May 21 11:43 egress.registry.backup.v7-egress-draft-pool-apply.20260521-184052
+-rw-r--r--  1 root root   1358 May 22 10:37 egress.registry.backup.v7-egress-draft-pool-apply.20260522-131659
+-rw-r--r--  1 root root    171 May  5 17:24 egress.registry.backup.v7-egress-set-state.20260507-000433
+-rw-r--r--  1 root root   1185 May 20 01:48 egress.registry.backup.v7-egress-set-state.20260520-014833
+-rw-r--r--  1 root root   1185 May 20 01:48 egress.registry.backup.v7-egress-set-state.20260520-084047
+-rw-r--r--  1 root root   1005 May 20 18:50 egress.registry.backup.v7-egress-set-state.20260520-185058
+-rw-r--r--  1 root root   1005 May 20 18:50 egress.registry.backup.v7-egress-set-state.20260520-233128
+-rw-r--r--  1 root root   1005 May 20 23:31 egress.registry.backup.v7-egress-set-state.20260521-002953
+-rw-r--r--  1 root root   1005 May 21 00:29 egress.registry.backup.v7-egress-set-state.20260521-003136
+-rw-r--r--  1 root root   1005 May 21 00:31 egress.registry.backup.v7-egress-set-state.20260521-113713
+-rw-r--r--  1 root root   1005 May 21 11:37 egress.registry.backup.v7-egress-set-state.20260521-113728
+-rw-r--r--  1 root root   1005 May 21 11:37 egress.registry.backup.v7-egress-set-state.20260521-114342
+-rw-r--r--  1 root root   1358 May 21 21:40 egress.registry.backup.v7-egress-set-state.20260522-101315
+-rw-r--r--  1 root root   1358 May 22 10:13 egress.registry.backup.v7-egress-set-state.20260522-103733
+-rw-r--r--  1 root root   1707 May 22 16:16 egress.registry.backup.v7-egress-set-state.20260522-162850
+-rw-r--r--  1 root root   1707 May 22 16:28 egress.registry.backup.v7-egress-set-state.20260522-163703
+-rw-r--r--  1 root root   1707 May 22 16:37 egress.registry.backup.v7-egress-set-state.20260522-163736

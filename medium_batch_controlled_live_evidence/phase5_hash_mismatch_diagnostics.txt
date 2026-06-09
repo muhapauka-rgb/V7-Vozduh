@@ -1,0 +1,33 @@
+guard_reason restore_barrier_clearance_selected_moves_hash_mismatch
+clearance_before_guard 5
+clearance_hash_current 3112289879fa9640295a6e4fd30783d28fa64245dfa258b745d7c0f2212dd10d
+approved_hash b47437e7614ca203bc6b06498bfb1ab4d97c101a8910310c9448a7c3dc647141
+approved_users ['10.7.0.4', '10.7.0.6', '10.7.0.8', '10.7.0.9', '10.7.0.10']
+approved_targets ['vless']
+
+current approved_candidate_moves_before_guard:
+{'user_ip': '10.7.0.4', 'current_egress': 'amneziawg-exec-20260528-10-8-1-14', 'recommended_egress': 'awg3', 'move_type': 'failover'}
+{'user_ip': '10.7.0.6', 'current_egress': 'amneziawg-exec-20260528-10-8-1-14', 'recommended_egress': 'awg3', 'move_type': 'failover'}
+{'user_ip': '10.7.0.8', 'current_egress': 'amneziawg-exec-20260528-10-8-1-14', 'recommended_egress': 'awg3', 'move_type': 'failover'}
+{'user_ip': '10.7.0.9', 'current_egress': 'awg0', 'recommended_egress': 'awg3', 'move_type': 'failover'}
+{'user_ip': '10.7.0.10', 'current_egress': 'awg0', 'recommended_egress': 'awg3', 'move_type': 'failover'}
+
+first decisions:
+{'user_ip': '10.0.0.2', 'current_egress': 'vless', 'recommended_egress': 'awg3', 'action': 'switch', 'reason': ['load_rebalance_even_distribution'], 'move_type': 'rebalance'}
+{'user_ip': '10.0.0.3', 'current_egress': 'vless', 'recommended_egress': 'awg3', 'action': 'switch', 'reason': ['load_rebalance_even_distribution'], 'move_type': 'rebalance'}
+{'user_ip': '10.0.0.6', 'current_egress': 'vless', 'recommended_egress': 'awg3', 'action': 'switch', 'reason': ['load_rebalance_even_distribution'], 'move_type': 'rebalance'}
+{'user_ip': '10.7.0.3', 'current_egress': 'vless', 'recommended_egress': 'awg3', 'action': 'switch', 'reason': ['load_rebalance_even_distribution'], 'move_type': 'rebalance'}
+{'user_ip': '10.7.0.2', 'current_egress': 'vless', 'recommended_egress': 'awg3', 'action': 'switch', 'reason': ['load_rebalance_even_distribution'], 'move_type': 'rebalance'}
+{'user_ip': '10.7.0.4', 'current_egress': 'amneziawg-exec-20260528-10-8-1-14', 'recommended_egress': 'awg3', 'action': 'switch', 'reason': ['current_egress_not_eligible'], 'move_type': 'failover'}
+{'user_ip': '10.7.0.5', 'current_egress': 'vless', 'recommended_egress': 'awg3', 'action': 'switch', 'reason': ['load_rebalance_even_distribution'], 'move_type': 'rebalance'}
+{'user_ip': '10.7.0.6', 'current_egress': 'amneziawg-exec-20260528-10-8-1-14', 'recommended_egress': 'awg3', 'action': 'switch', 'reason': ['current_egress_not_eligible'], 'move_type': 'failover'}
+{'user_ip': '10.7.0.8', 'current_egress': 'amneziawg-exec-20260528-10-8-1-14', 'recommended_egress': 'awg3', 'action': 'switch', 'reason': ['current_egress_not_eligible'], 'move_type': 'failover'}
+{'user_ip': '10.7.0.9', 'current_egress': 'awg0', 'recommended_egress': 'awg3', 'action': 'switch', 'reason': ['current_egress_not_eligible'], 'move_type': 'failover'}
+{'user_ip': '10.7.0.10', 'current_egress': 'awg0', 'recommended_egress': 'awg3', 'action': 'switch', 'reason': ['current_egress_not_eligible'], 'move_type': 'failover'}
+{'user_ip': '10.7.0.11', 'current_egress': 'amneziawg-exec-20260528-10-8-1-14', 'recommended_egress': 'awg3', 'action': 'switch', 'reason': ['current_egress_not_eligible'], 'move_type': 'failover'}
+{'user_ip': '10.7.0.12', 'current_egress': 'amneziawg-exec-20260528-10-8-1-14', 'recommended_egress': 'awg3', 'action': 'switch', 'reason': ['current_egress_not_eligible'], 'move_type': 'failover'}
+{'user_ip': '10.7.0.13', 'current_egress': 'awg0', 'recommended_egress': 'awg3', 'action': 'switch', 'reason': ['current_egress_not_eligible'], 'move_type': 'failover'}
+{'user_ip': '10.7.0.14', 'current_egress': 'amneziawg-exec-20260528-10-8-1-14', 'recommended_egress': 'awg3', 'action': 'switch', 'reason': ['current_egress_not_eligible'], 'move_type': 'failover'}
+{'user_ip': '10.7.0.15', 'current_egress': 'amneziawg-exec-20260528-10-8-1-14', 'recommended_egress': 'awg3', 'action': 'switch', 'reason': ['current_egress_not_eligible', 'projected_load_target_adjusted'], 'move_type': 'failover'}
+{'user_ip': '10.7.0.16', 'current_egress': 'vless', 'recommended_egress': 'awg3', 'action': 'switch', 'reason': ['load_rebalance_even_distribution'], 'move_type': 'rebalance'}
+{'user_ip': '10.7.0.17', 'current_egress': 'vless', 'recommended_egress': 'awg3', 'action': 'switch', 'reason': ['load_rebalance_even_distribution'], 'move_type': 'rebalance'}

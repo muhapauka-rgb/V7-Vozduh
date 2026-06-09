@@ -1,0 +1,18 @@
+{
+  "production_eligible_channels": [
+    "vless",
+    "awg0",
+    "awg3"
+  ],
+  "healthy_reserved_channels": [
+    "wireguard-1779454504-c43409",
+    "amneziawg-exec-20260528-10-8-1-14"
+  ],
+  "degraded_or_low_service_channels": [
+    "1",
+    "openvpn-1779388847-d2ad7c"
+  ],
+  "blocked_channels": [],
+  "unused_production_eligible_channels": [],
+  "pool_ready_capacity_comment": "Only vless, awg0, awg3 are production eligible under current governance; reserved healthy channels cannot be counted for POOL execution without a separate governance release."
+}

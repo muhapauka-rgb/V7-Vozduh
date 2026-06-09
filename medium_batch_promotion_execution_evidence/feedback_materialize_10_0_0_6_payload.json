@@ -1,0 +1,29 @@
+{
+  "user": "10.0.0.6",
+  "source_channel": "awg3",
+  "target_channel": "vless",
+  "execution_result": {
+    "success": true,
+    "result": "applied",
+    "operation_id": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+    "selected_move_hash": "fcbbb6b0bb355003c3cf794875a78d68ce4a52d05c0c1ecfa94c761b7ef35438",
+    "selected_move_index": 1
+  },
+  "verification_result": {
+    "success": true,
+    "result": "verified",
+    "verify_rc": 0,
+    "verification_passed": true
+  },
+  "rollback_result": {
+    "rollback_required": false,
+    "rollback_attempted": false
+  },
+  "recommendation_hash": "fcbbb6b0bb355003c3cf794875a78d68ce4a52d05c0c1ecfa94c761b7ef35438",
+  "prediction_expected": 0.75,
+  "prediction_actual": 1.0,
+  "audit_reference": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+  "closure_reference": "VERIFIED_READY",
+  "execution_time": "2026-06-06T08:47:41.232753+00:00",
+  "verification_time": "2026-06-06T08:47:41.232753+00:00"
+}

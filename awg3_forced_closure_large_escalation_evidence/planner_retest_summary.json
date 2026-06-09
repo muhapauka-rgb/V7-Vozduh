@@ -1,0 +1,21 @@
+{
+  "summary": {
+    "users_total": 18,
+    "egress_total": 7,
+    "healthy_egress_total": 3,
+    "candidate_moves": 17,
+    "candidate_moves_total": 17,
+    "selected_moves": 0,
+    "reconnect_rotation_candidates": 0,
+    "rebalance_candidates": 13,
+    "org_groups": [
+      "default"
+    ]
+  },
+  "selected_moves_count": 0,
+  "terminal_state": "DRY_RUN",
+  "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired",
+  "snapshot_stop_required": false,
+  "source_mismatch_families": [],
+  "pre_planner_refresh_state": "REFRESH_SUCCESS"
+}

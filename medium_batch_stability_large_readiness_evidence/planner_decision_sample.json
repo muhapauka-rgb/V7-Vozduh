@@ -1,0 +1,452 @@
+[
+  {
+    "user": null,
+    "current": "vless",
+    "action": "switch",
+    "chosen": "awg0",
+    "confidence": "low",
+    "why": [
+      "load 1/27 status OK",
+      "speed avg 59.19 Mbps min 36.62 Mbps",
+      "stability 0.619",
+      "quality trend stable score 154.75",
+      "service_youtube_ok",
+      "service_instagram_ok",
+      "service_telegram_ok",
+      "service_google_ok",
+      "routing intelligence prefer score_part 63.61 risk 0.0",
+      "group default allowed"
+    ],
+    "rejected": [
+      {
+        "egress": "vless",
+        "reason": "score 2140.81 below chosen/current"
+      },
+      {
+        "egress": "1",
+        "reason": "health_code_000, severity_FAIL, avg_mbps_below_floor, min_mbps_below_floor"
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "reason": "manual_only, reserve_only, canary_reserved_production_assignment_blocked"
+      },
+      {
+        "egress": "awg3",
+        "reason": "stability_below_floor"
+      },
+      {
+        "egress": "openvpn-1779388847-d2ad7c",
+        "reason": "health_code_000, severity_FAIL, avg_mbps_below_floor, min_mbps_below_floor"
+      },
+      {
+        "egress": "wireguard-1779454504-c43409",
+        "reason": "canary_reserved_production_assignment_blocked"
+      }
+    ]
+  },
+  {
+    "user": null,
+    "current": "vless",
+    "action": "switch",
+    "chosen": "awg0",
+    "confidence": "low",
+    "why": [
+      "load 1/27 status OK",
+      "speed avg 59.19 Mbps min 36.62 Mbps",
+      "stability 0.619",
+      "quality trend stable score 154.75",
+      "service_youtube_ok",
+      "service_instagram_ok",
+      "service_telegram_ok",
+      "service_google_ok",
+      "routing intelligence prefer score_part 63.61 risk 0.0",
+      "group default allowed"
+    ],
+    "rejected": [
+      {
+        "egress": "vless",
+        "reason": "score 2140.81 below chosen/current"
+      },
+      {
+        "egress": "1",
+        "reason": "health_code_000, severity_FAIL, avg_mbps_below_floor, min_mbps_below_floor"
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "reason": "manual_only, reserve_only, canary_reserved_production_assignment_blocked"
+      },
+      {
+        "egress": "awg3",
+        "reason": "stability_below_floor"
+      },
+      {
+        "egress": "openvpn-1779388847-d2ad7c",
+        "reason": "health_code_000, severity_FAIL, avg_mbps_below_floor, min_mbps_below_floor"
+      },
+      {
+        "egress": "wireguard-1779454504-c43409",
+        "reason": "canary_reserved_production_assignment_blocked"
+      }
+    ]
+  },
+  {
+    "user": null,
+    "current": "vless",
+    "action": "switch",
+    "chosen": "awg0",
+    "confidence": "low",
+    "why": [
+      "load 1/27 status OK",
+      "speed avg 59.19 Mbps min 36.62 Mbps",
+      "stability 0.619",
+      "quality trend stable score 154.75",
+      "service_youtube_ok",
+      "service_instagram_ok",
+      "service_telegram_ok",
+      "service_google_ok",
+      "routing intelligence prefer score_part 63.61 risk 0.0",
+      "group default allowed"
+    ],
+    "rejected": [
+      {
+        "egress": "vless",
+        "reason": "score 2140.81 below chosen/current"
+      },
+      {
+        "egress": "1",
+        "reason": "health_code_000, severity_FAIL, avg_mbps_below_floor, min_mbps_below_floor"
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "reason": "manual_only, reserve_only, canary_reserved_production_assignment_blocked"
+      },
+      {
+        "egress": "awg3",
+        "reason": "stability_below_floor"
+      },
+      {
+        "egress": "openvpn-1779388847-d2ad7c",
+        "reason": "health_code_000, severity_FAIL, avg_mbps_below_floor, min_mbps_below_floor"
+      },
+      {
+        "egress": "wireguard-1779454504-c43409",
+        "reason": "canary_reserved_production_assignment_blocked"
+      }
+    ]
+  },
+  {
+    "user": null,
+    "current": "vless",
+    "action": "switch",
+    "chosen": "awg0",
+    "confidence": "low",
+    "why": [
+      "load 1/27 status OK",
+      "speed avg 59.19 Mbps min 36.62 Mbps",
+      "stability 0.619",
+      "quality trend stable score 154.75",
+      "service_youtube_ok",
+      "service_instagram_ok",
+      "service_telegram_ok",
+      "service_google_ok",
+      "routing intelligence prefer score_part 63.61 risk 0.0",
+      "group default allowed"
+    ],
+    "rejected": [
+      {
+        "egress": "vless",
+        "reason": "score 2140.81 below chosen/current"
+      },
+      {
+        "egress": "1",
+        "reason": "health_code_000, severity_FAIL, avg_mbps_below_floor, min_mbps_below_floor"
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "reason": "manual_only, reserve_only, canary_reserved_production_assignment_blocked"
+      },
+      {
+        "egress": "awg3",
+        "reason": "stability_below_floor"
+      },
+      {
+        "egress": "openvpn-1779388847-d2ad7c",
+        "reason": "health_code_000, severity_FAIL, avg_mbps_below_floor, min_mbps_below_floor"
+      },
+      {
+        "egress": "wireguard-1779454504-c43409",
+        "reason": "canary_reserved_production_assignment_blocked"
+      }
+    ]
+  },
+  {
+    "user": null,
+    "current": "vless",
+    "action": "switch",
+    "chosen": "awg0",
+    "confidence": "low",
+    "why": [
+      "load 1/27 status OK",
+      "speed avg 59.19 Mbps min 36.62 Mbps",
+      "stability 0.619",
+      "quality trend stable score 154.75",
+      "service_youtube_ok",
+      "service_instagram_ok",
+      "service_telegram_ok",
+      "service_google_ok",
+      "routing intelligence prefer score_part 63.61 risk 0.0",
+      "group default allowed"
+    ],
+    "rejected": [
+      {
+        "egress": "vless",
+        "reason": "score 2140.81 below chosen/current"
+      },
+      {
+        "egress": "1",
+        "reason": "health_code_000, severity_FAIL, avg_mbps_below_floor, min_mbps_below_floor"
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "reason": "manual_only, reserve_only, canary_reserved_production_assignment_blocked"
+      },
+      {
+        "egress": "awg3",
+        "reason": "stability_below_floor"
+      },
+      {
+        "egress": "openvpn-1779388847-d2ad7c",
+        "reason": "health_code_000, severity_FAIL, avg_mbps_below_floor, min_mbps_below_floor"
+      },
+      {
+        "egress": "wireguard-1779454504-c43409",
+        "reason": "canary_reserved_production_assignment_blocked"
+      }
+    ]
+  },
+  {
+    "user": null,
+    "current": "vless",
+    "action": "switch",
+    "chosen": "awg0",
+    "confidence": "low",
+    "why": [
+      "load 1/27 status OK",
+      "speed avg 59.19 Mbps min 36.62 Mbps",
+      "stability 0.619",
+      "quality trend stable score 154.75",
+      "service_youtube_ok",
+      "service_instagram_ok",
+      "service_telegram_ok",
+      "service_google_ok",
+      "routing intelligence prefer score_part 63.61 risk 0.0",
+      "group default allowed"
+    ],
+    "rejected": [
+      {
+        "egress": "vless",
+        "reason": "score 2140.81 below chosen/current"
+      },
+      {
+        "egress": "1",
+        "reason": "health_code_000, severity_FAIL, avg_mbps_below_floor, min_mbps_below_floor"
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "reason": "manual_only, reserve_only, canary_reserved_production_assignment_blocked"
+      },
+      {
+        "egress": "awg3",
+        "reason": "stability_below_floor"
+      },
+      {
+        "egress": "openvpn-1779388847-d2ad7c",
+        "reason": "health_code_000, severity_FAIL, avg_mbps_below_floor, min_mbps_below_floor"
+      },
+      {
+        "egress": "wireguard-1779454504-c43409",
+        "reason": "canary_reserved_production_assignment_blocked"
+      }
+    ]
+  },
+  {
+    "user": null,
+    "current": "vless",
+    "action": "switch",
+    "chosen": "awg0",
+    "confidence": "low",
+    "why": [
+      "load 1/27 status OK",
+      "speed avg 59.19 Mbps min 36.62 Mbps",
+      "stability 0.619",
+      "quality trend stable score 154.75",
+      "service_telegram_ok",
+      "service_youtube_ok",
+      "service_google_ok",
+      "route_class_VIDEO_OPTIMIZED_ok",
+      "routing intelligence prefer score_part 63.61 risk 0.0",
+      "group default allowed"
+    ],
+    "rejected": [
+      {
+        "egress": "vless",
+        "reason": "score 2148.74 below chosen/current"
+      },
+      {
+        "egress": "1",
+        "reason": "health_code_000, severity_FAIL, avg_mbps_below_floor, min_mbps_below_floor"
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "reason": "manual_only, reserve_only, canary_reserved_production_assignment_blocked"
+      },
+      {
+        "egress": "awg3",
+        "reason": "stability_below_floor"
+      },
+      {
+        "egress": "openvpn-1779388847-d2ad7c",
+        "reason": "health_code_000, severity_FAIL, avg_mbps_below_floor, min_mbps_below_floor"
+      },
+      {
+        "egress": "wireguard-1779454504-c43409",
+        "reason": "canary_reserved_production_assignment_blocked"
+      }
+    ]
+  },
+  {
+    "user": null,
+    "current": "vless",
+    "action": "switch",
+    "chosen": "awg0",
+    "confidence": "low",
+    "why": [
+      "load 1/27 status OK",
+      "speed avg 59.19 Mbps min 36.62 Mbps",
+      "stability 0.619",
+      "quality trend stable score 154.75",
+      "service_youtube_ok",
+      "service_instagram_ok",
+      "service_telegram_ok",
+      "service_google_ok",
+      "routing intelligence prefer score_part 63.61 risk 0.0",
+      "group default allowed"
+    ],
+    "rejected": [
+      {
+        "egress": "vless",
+        "reason": "score 2140.81 below chosen/current"
+      },
+      {
+        "egress": "1",
+        "reason": "health_code_000, severity_FAIL, avg_mbps_below_floor, min_mbps_below_floor"
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "reason": "manual_only, reserve_only, canary_reserved_production_assignment_blocked"
+      },
+      {
+        "egress": "awg3",
+        "reason": "stability_below_floor"
+      },
+      {
+        "egress": "openvpn-1779388847-d2ad7c",
+        "reason": "health_code_000, severity_FAIL, avg_mbps_below_floor, min_mbps_below_floor"
+      },
+      {
+        "egress": "wireguard-1779454504-c43409",
+        "reason": "canary_reserved_production_assignment_blocked"
+      }
+    ]
+  },
+  {
+    "user": null,
+    "current": "vless",
+    "action": "switch",
+    "chosen": "awg0",
+    "confidence": "low",
+    "why": [
+      "load 1/27 status OK",
+      "speed avg 59.19 Mbps min 36.62 Mbps",
+      "stability 0.619",
+      "quality trend stable score 154.75",
+      "service_youtube_ok",
+      "service_instagram_ok",
+      "service_telegram_ok",
+      "service_google_ok",
+      "routing intelligence prefer score_part 63.61 risk 0.0",
+      "group default allowed"
+    ],
+    "rejected": [
+      {
+        "egress": "vless",
+        "reason": "score 2140.81 below chosen/current"
+      },
+      {
+        "egress": "1",
+        "reason": "health_code_000, severity_FAIL, avg_mbps_below_floor, min_mbps_below_floor"
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "reason": "manual_only, reserve_only, canary_reserved_production_assignment_blocked"
+      },
+      {
+        "egress": "awg3",
+        "reason": "stability_below_floor"
+      },
+      {
+        "egress": "openvpn-1779388847-d2ad7c",
+        "reason": "health_code_000, severity_FAIL, avg_mbps_below_floor, min_mbps_below_floor"
+      },
+      {
+        "egress": "wireguard-1779454504-c43409",
+        "reason": "canary_reserved_production_assignment_blocked"
+      }
+    ]
+  },
+  {
+    "user": null,
+    "current": "vless",
+    "action": "switch",
+    "chosen": "awg0",
+    "confidence": "low",
+    "why": [
+      "load 1/27 status OK",
+      "speed avg 59.19 Mbps min 36.62 Mbps",
+      "stability 0.619",
+      "quality trend stable score 154.75",
+      "service_youtube_ok",
+      "service_instagram_ok",
+      "service_telegram_ok",
+      "service_google_ok",
+      "routing intelligence prefer score_part 63.61 risk 0.0",
+      "group default allowed"
+    ],
+    "rejected": [
+      {
+        "egress": "vless",
+        "reason": "score 2140.81 below chosen/current"
+      },
+      {
+        "egress": "1",
+        "reason": "health_code_000, severity_FAIL, avg_mbps_below_floor, min_mbps_below_floor"
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "reason": "manual_only, reserve_only, canary_reserved_production_assignment_blocked"
+      },
+      {
+        "egress": "awg3",
+        "reason": "stability_below_floor"
+      },
+      {
+        "egress": "openvpn-1779388847-d2ad7c",
+        "reason": "health_code_000, severity_FAIL, avg_mbps_below_floor, min_mbps_below_floor"
+      },
+      {
+        "egress": "wireguard-1779454504-c43409",
+        "reason": "canary_reserved_production_assignment_blocked"
+      }
+    ]
+  }
+]

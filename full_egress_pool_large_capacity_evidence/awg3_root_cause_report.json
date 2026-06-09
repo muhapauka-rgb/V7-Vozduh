@@ -1,0 +1,20 @@
+{
+  "avg_mbps": 48.59,
+  "capacity_cause": false,
+  "class": "QUALITY_STABILITY_BELOW_FLOOR",
+  "current_stability": 0.21,
+  "hist_1h_stability": 0.3104,
+  "identified": true,
+  "measurement_or_quality_history_cause": true,
+  "min_mbps": 10.21,
+  "min_stability_required": 0.45,
+  "planner_reasons": [
+    "stability_below_floor"
+  ],
+  "policy_cause": false,
+  "safe_fix_in_scope": false,
+  "safe_fix_reason": "No code/config defect proven. Lowering threshold or forcing awg3 would create a policy bypass; requires observation/retest, not mutation.",
+  "service_aggregate_score": 100.0,
+  "service_cause": false,
+  "telegram_status": "OK"
+}

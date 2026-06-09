@@ -1,0 +1,898 @@
+{
+  "1": {
+    "anthropic": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005598",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "apple": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8004 milliseconds\n000 0.000000 8.004442",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "chatgpt": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8002 milliseconds\n000 0.000000 8.002827",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "claude": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006926",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "facebook": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006531",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "google": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8001 milliseconds\n000 0.000000 8.001283",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "google_auth": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006095",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "instagram": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8007 milliseconds\n000 0.000000 8.007069",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "openai_auth": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8002 milliseconds\n000 0.000000 8.002520",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "soundcloud": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8002 milliseconds\n000 0.000000 8.002394",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "spotify": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006980",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "telegram": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": null,
+      "latency_sec": 1.037,
+      "ok": false,
+      "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+      "severity": "FAIL",
+      "status": "TELEGRAM_DOWN_14S"
+    },
+    "whatsapp": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8007 milliseconds\n000 0.000000 8.007479",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "youtube": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8007 milliseconds\n000 0.000000 8.007408",
+      "severity": "FAIL",
+      "status": "FAIL"
+    }
+  },
+  "amneziawg-exec-20260528-10-8-1-14": {
+    "anthropic": {
+      "classification": "PROFILE_IRRELEVANT_FAIL",
+      "http_code": "404",
+      "latency_sec": "0.259520",
+      "ok": false,
+      "reason": "curl: (22) The requested URL returned error: 404\n404 0.259520 0.259577",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "apple": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.240097",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "chatgpt": {
+      "classification": "TRANSIENT_FAIL",
+      "http_code": "403",
+      "latency_sec": "0.134530",
+      "ok": true,
+      "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+      "severity": "WARN",
+      "status": "HTTP_LIMITED"
+    },
+    "claude": {
+      "classification": "TRANSIENT_FAIL",
+      "http_code": "403",
+      "latency_sec": "0.170497",
+      "ok": true,
+      "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+      "severity": "WARN",
+      "status": "HTTP_LIMITED"
+    },
+    "facebook": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "2.479551",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "google": {
+      "classification": "HEALTHY",
+      "http_code": "204",
+      "latency_sec": "0.155938",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "google_auth": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.470082",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "instagram": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.415890",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "openai_auth": {
+      "classification": "TRANSIENT_FAIL",
+      "http_code": "403",
+      "latency_sec": "0.108524",
+      "ok": true,
+      "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+      "severity": "WARN",
+      "status": "HTTP_LIMITED"
+    },
+    "soundcloud": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.591429",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "spotify": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.522692",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "telegram": {
+      "classification": "HEALTHY",
+      "http_code": null,
+      "latency_sec": 0.054,
+      "ok": true,
+      "reason": "telegram tcp endpoints reachable",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "whatsapp": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.484447",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "youtube": {
+      "classification": "HEALTHY",
+      "http_code": "204",
+      "latency_sec": "0.224635",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    }
+  },
+  "awg0": {
+    "anthropic": {
+      "classification": "PROFILE_IRRELEVANT_FAIL",
+      "http_code": "404",
+      "latency_sec": "0.256944",
+      "ok": false,
+      "reason": "curl: (22) The requested URL returned error: 404\n404 0.256944 0.257011",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "apple": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.176354",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "chatgpt": {
+      "classification": "TRANSIENT_FAIL",
+      "http_code": "403",
+      "latency_sec": "0.138150",
+      "ok": true,
+      "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+      "severity": "WARN",
+      "status": "HTTP_LIMITED"
+    },
+    "claude": {
+      "classification": "TRANSIENT_FAIL",
+      "http_code": "403",
+      "latency_sec": "0.211841",
+      "ok": true,
+      "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+      "severity": "WARN",
+      "status": "HTTP_LIMITED"
+    },
+    "facebook": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "2.202822",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "google": {
+      "classification": "HEALTHY",
+      "http_code": "204",
+      "latency_sec": "0.153403",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "google_auth": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.362421",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "instagram": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.294787",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "openai_auth": {
+      "classification": "TRANSIENT_FAIL",
+      "http_code": "403",
+      "latency_sec": "0.104720",
+      "ok": true,
+      "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+      "severity": "WARN",
+      "status": "HTTP_LIMITED"
+    },
+    "soundcloud": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.418566",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "spotify": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.572640",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "telegram": {
+      "classification": "HEALTHY",
+      "http_code": null,
+      "latency_sec": 0.069,
+      "ok": true,
+      "reason": "telegram tcp endpoints reachable",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "whatsapp": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.403564",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "youtube": {
+      "classification": "HEALTHY",
+      "http_code": "204",
+      "latency_sec": "0.176274",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    }
+  },
+  "awg3": {
+    "anthropic": {
+      "classification": "PROFILE_IRRELEVANT_FAIL",
+      "http_code": "404",
+      "latency_sec": "0.257270",
+      "ok": false,
+      "reason": "curl: (22) The requested URL returned error: 404\n404 0.257270 0.257331",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "apple": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.222467",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "chatgpt": {
+      "classification": "TRANSIENT_FAIL",
+      "http_code": "403",
+      "latency_sec": "0.195770",
+      "ok": true,
+      "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+      "severity": "WARN",
+      "status": "HTTP_LIMITED"
+    },
+    "claude": {
+      "classification": "TRANSIENT_FAIL",
+      "http_code": "403",
+      "latency_sec": "0.184492",
+      "ok": true,
+      "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+      "severity": "WARN",
+      "status": "HTTP_LIMITED"
+    },
+    "facebook": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "2.318793",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "google": {
+      "classification": "HEALTHY",
+      "http_code": "204",
+      "latency_sec": "0.206905",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "google_auth": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.540638",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "instagram": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.438209",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "openai_auth": {
+      "classification": "TRANSIENT_FAIL",
+      "http_code": "403",
+      "latency_sec": "0.199362",
+      "ok": true,
+      "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+      "severity": "WARN",
+      "status": "HTTP_LIMITED"
+    },
+    "soundcloud": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.566873",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "spotify": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.586597",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "telegram": {
+      "classification": "HEALTHY",
+      "http_code": null,
+      "latency_sec": 0.067,
+      "ok": true,
+      "reason": "telegram tcp endpoints reachable",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "whatsapp": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.543123",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "youtube": {
+      "classification": "HEALTHY",
+      "http_code": "204",
+      "latency_sec": "0.185106",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    }
+  },
+  "openvpn-1779388847-d2ad7c": {
+    "anthropic": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005496",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "apple": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8004 milliseconds\n000 0.000000 8.004645",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "chatgpt": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8002 milliseconds\n000 0.000000 8.002972",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "claude": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005989",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "facebook": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8008 milliseconds\n000 0.000000 8.008381",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "google": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8001 milliseconds\n000 0.000000 8.001823",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "google_auth": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8007 milliseconds\n000 0.000000 8.007910",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "instagram": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006571",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "openai_auth": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8003 milliseconds\n000 0.000000 8.003408",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "soundcloud": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8002 milliseconds\n000 0.000000 8.002457",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "spotify": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006127",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "telegram": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": null,
+      "latency_sec": 1.035,
+      "ok": false,
+      "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+      "severity": "FAIL",
+      "status": "TELEGRAM_DOWN_14S"
+    },
+    "whatsapp": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006565",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "youtube": {
+      "classification": "PERSISTENT_FAIL",
+      "http_code": "000",
+      "latency_sec": "0.000000",
+      "ok": false,
+      "reason": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006659",
+      "severity": "FAIL",
+      "status": "FAIL"
+    }
+  },
+  "vless": {
+    "anthropic": {
+      "classification": "PROFILE_IRRELEVANT_FAIL",
+      "http_code": "404",
+      "latency_sec": "0.387002",
+      "ok": false,
+      "reason": "curl: (22) The requested URL returned error: 404\n404 0.387002 0.387066",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "apple": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.310855",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "chatgpt": {
+      "classification": "TRANSIENT_FAIL",
+      "http_code": "403",
+      "latency_sec": "0.266524",
+      "ok": true,
+      "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+      "severity": "WARN",
+      "status": "HTTP_LIMITED"
+    },
+    "claude": {
+      "classification": "TRANSIENT_FAIL",
+      "http_code": "403",
+      "latency_sec": "0.281772",
+      "ok": true,
+      "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+      "severity": "WARN",
+      "status": "HTTP_LIMITED"
+    },
+    "facebook": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.975500",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "google": {
+      "classification": "HEALTHY",
+      "http_code": "204",
+      "latency_sec": "0.308678",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "google_auth": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.745745",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "instagram": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.413191",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "openai_auth": {
+      "classification": "TRANSIENT_FAIL",
+      "http_code": "403",
+      "latency_sec": "0.290284",
+      "ok": true,
+      "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+      "severity": "WARN",
+      "status": "HTTP_LIMITED"
+    },
+    "soundcloud": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.805386",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "spotify": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.730682",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "telegram": {
+      "classification": "HEALTHY",
+      "http_code": null,
+      "latency_sec": 0.001,
+      "ok": true,
+      "reason": "telegram tcp endpoints reachable",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "whatsapp": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.585279",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "youtube": {
+      "classification": "HEALTHY",
+      "http_code": "204",
+      "latency_sec": "0.370686",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    }
+  },
+  "wireguard-1779454504-c43409": {
+    "anthropic": {
+      "classification": "PROFILE_IRRELEVANT_FAIL",
+      "http_code": "404",
+      "latency_sec": "0.414805",
+      "ok": false,
+      "reason": "curl: (22) The requested URL returned error: 404\n404 0.414805 0.414870",
+      "severity": "FAIL",
+      "status": "FAIL"
+    },
+    "apple": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.212710",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "chatgpt": {
+      "classification": "TRANSIENT_FAIL",
+      "http_code": "403",
+      "latency_sec": "0.175276",
+      "ok": true,
+      "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+      "severity": "WARN",
+      "status": "HTTP_LIMITED"
+    },
+    "claude": {
+      "classification": "TRANSIENT_FAIL",
+      "http_code": "403",
+      "latency_sec": "0.290172",
+      "ok": true,
+      "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+      "severity": "WARN",
+      "status": "HTTP_LIMITED"
+    },
+    "facebook": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "1.262379",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "google": {
+      "classification": "HEALTHY",
+      "http_code": "204",
+      "latency_sec": "0.155270",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "google_auth": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.543943",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "instagram": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.278441",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "openai_auth": {
+      "classification": "TRANSIENT_FAIL",
+      "http_code": "403",
+      "latency_sec": "0.177909",
+      "ok": true,
+      "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+      "severity": "WARN",
+      "status": "HTTP_LIMITED"
+    },
+    "soundcloud": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.637521",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "spotify": {
+      "classification": "TRANSIENT_FAIL",
+      "http_code": "403",
+      "latency_sec": "0.693290",
+      "ok": true,
+      "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+      "severity": "WARN",
+      "status": "HTTP_LIMITED"
+    },
+    "telegram": {
+      "classification": "HEALTHY",
+      "http_code": null,
+      "latency_sec": 0.053,
+      "ok": true,
+      "reason": "telegram tcp endpoints reachable",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "whatsapp": {
+      "classification": "HEALTHY",
+      "http_code": "200",
+      "latency_sec": "0.434678",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    },
+    "youtube": {
+      "classification": "HEALTHY",
+      "http_code": "204",
+      "latency_sec": "0.244626",
+      "ok": true,
+      "reason": "",
+      "severity": "OK",
+      "status": "OK"
+    }
+  }
+}

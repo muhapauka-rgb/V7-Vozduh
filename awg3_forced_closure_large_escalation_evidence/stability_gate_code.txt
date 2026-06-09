@@ -1,0 +1,68 @@
+            self._block(candidate, f"exclusive_to_{egress.exclusive_group}")
+        if egress.groups and user.group not in egress.groups:
+            self._block(candidate, "not_in_egress_group_acl")
+        other_groups = self.group_usage.get(egress.id, set()) - {user.group}
+        if isolation == "exclusive" and other_groups:
+            self._block(candidate, "egress_in_use_by_other_group")
+        if preferred and glob_contains(preferred, egress.id):
+            candidate.reasons.append("group_preferred")
+
+    def _gate_quality(self, candidate: Candidate) -> None:
+        egress = candidate.egress
+        min_avg = to_float(self.quality_policy.get("min_avg_mbps"), 15.0)
+        min_floor = to_float(self.quality_policy.get("min_floor_mbps"), 10.0)
+        min_stability = to_float(self.quality_policy.get("min_stability"), 0.45)
+        hist = self._quality_window(egress.id, "1h")
+        hist_avg = to_float(hist.get("avg_mbps"), 0.0)
+        hist_min = to_float(hist.get("min_mbps"), 0.0)
+        hist_stability = to_float(hist.get("stability"), 0.0)
+        service = candidate.service_suitability or {}
+        severity = candidate.severity_classification or {}
+        protocol_limited = severity.get("category") == "protocol_diagnostic_limited_suspect"
+        service_ok = (
+            to_float(service.get("aggregate_score")) >= to_float(self.service_quality_policy.get("min_required_service_score"), 50.0)
+            and not service.get("required_missing")
+            and not service.get("required_low")
+        )
+        evidence_exception = (
+            protocol_limited
+            and service_ok
+            and egress.health_code == "200"
+            and hist_avg >= to_float(self.service_quality_policy.get("quality_exception_min_1h_avg_mbps"), min_avg)
+            and hist_min >= to_float(self.service_quality_policy.get("quality_exception_min_1h_floor_mbps"), min_floor)
+            and max(egress.stability, hist_stability) >= to_float(self.service_quality_policy.get("quality_exception_min_stability"), 0.15)
+        )
+        decision = {
+            "min_avg_mbps": min_avg,
+            "min_floor_mbps": min_floor,
+            "min_stability": min_stability,
+            "hist_1h_avg_mbps": hist_avg,
+            "hist_1h_min_mbps": hist_min,
+            "hist_1h_stability": hist_stability,
+            "evidence_backed_exception": evidence_exception,
+            "service_aggregate_score": service.get("aggregate_score"),
+        }
+        if egress.avg_mbps < min_avg:
+            if hist and hist_avg >= min_avg:
+                candidate.reasons.append("avg_mbps_below_floor_but_1h_avg_ok")
+            else:
+                self._block(candidate, "avg_mbps_below_floor")
+        if egress.min_mbps < min_floor:
+            if evidence_exception or (hist and hist_min >= min_floor and service_ok):
+                candidate.reasons.append("min_mbps_below_floor_contextual_warning")
+            else:
+                self._block(candidate, "min_mbps_below_floor")
+        if egress.stability and egress.stability < min_stability:
+            if evidence_exception:
+                candidate.reasons.append("stability_below_floor_contextual_warning")
+            elif hist and hist_stability >= min_stability:
+                candidate.reasons.append("stability_below_floor_but_1h_stability_ok")
+            else:
+                self._block(candidate, "stability_below_floor")
+        if evidence_exception:
+            candidate.reasons.append("quality_floor_overridden_by_service_evidence")
+        candidate.quality_decision = decision
+        if hist and to_float(hist.get("fail_rate")) >= 0.75:
+            candidate.reasons.append("quality_history_fail_rate_high_advisory")
+
+    def _telegram_sentinel_row(self, egress_id: str) -> dict[str, Any]:

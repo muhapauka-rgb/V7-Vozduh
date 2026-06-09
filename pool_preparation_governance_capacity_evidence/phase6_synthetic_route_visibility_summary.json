@@ -1,0 +1,72 @@
+[
+  {
+    "user": "10.7.0.18",
+    "registry_current": "vless",
+    "table": "1016",
+    "route_dev": "tun0",
+    "registry_visible": true,
+    "routing_visible": true,
+    "expected_dev": "tun0",
+    "route_ok": true
+  },
+  {
+    "user": "10.7.0.19",
+    "registry_current": "vless",
+    "table": "1017",
+    "route_dev": "tun0",
+    "registry_visible": true,
+    "routing_visible": true,
+    "expected_dev": "tun0",
+    "route_ok": true
+  },
+  {
+    "user": "10.7.0.20",
+    "registry_current": "vless",
+    "table": "1018",
+    "route_dev": "tun0",
+    "registry_visible": true,
+    "routing_visible": true,
+    "expected_dev": "tun0",
+    "route_ok": true
+  },
+  {
+    "user": "10.7.0.21",
+    "registry_current": "vless",
+    "table": "1019",
+    "route_dev": "tun0",
+    "registry_visible": true,
+    "routing_visible": true,
+    "expected_dev": "tun0",
+    "route_ok": true
+  },
+  {
+    "user": "10.7.0.22",
+    "registry_current": "vless",
+    "table": "1020",
+    "route_dev": "tun0",
+    "registry_visible": true,
+    "routing_visible": true,
+    "expected_dev": "tun0",
+    "route_ok": true
+  },
+  {
+    "user": "10.7.0.23",
+    "registry_current": "vless",
+    "table": "1021",
+    "route_dev": "tun0",
+    "registry_visible": true,
+    "routing_visible": true,
+    "expected_dev": "tun0",
+    "route_ok": true
+  },
+  {
+    "user": "10.7.0.24",
+    "registry_current": "vless",
+    "table": "1022",
+    "route_dev": "tun0",
+    "registry_visible": true,
+    "routing_visible": true,
+    "expected_dev": "tun0",
+    "route_ok": true
+  }
+]

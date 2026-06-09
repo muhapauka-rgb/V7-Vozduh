@@ -1,0 +1,17 @@
+{
+  "classification": "STALE_HISTORY",
+  "measurement_artifact_proven": false,
+  "not_capacity_issue": true,
+  "not_policy_issue": true,
+  "not_service_issue": true,
+  "proof": [
+    "previous audit showed stability_below_floor with current stability 0.210 and 1h stability 0.3104",
+    "fresh pre-planner refresh and planner dry-run now show awg3 eligible with no blocks",
+    "current stability 0.831 and 1h stability 0.5598 exceed required floor 0.45",
+    "direct awg3 probe shows 0% packet loss and successful Google/YouTube/Instagram/Google Auth checks",
+    "service score 100 and Telegram OK"
+  ],
+  "quality_history_pollution_possible": false,
+  "root_cause_identified": true,
+  "stale_history": true
+}

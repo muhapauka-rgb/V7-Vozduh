@@ -1,0 +1,30 @@
+{
+  "awg3_values": {
+    "avg_mbps": 59.06,
+    "current_stability": 0.831,
+    "evidence_backed_exception": false,
+    "hist_1h_avg_mbps": 51.633,
+    "hist_1h_min_mbps": 30.191,
+    "hist_1h_stability": 0.5598,
+    "min_mbps": 49.09,
+    "required_stability": 0.45
+  },
+  "blocking_rule": "If current stability exists and is below min_stability, planner allows only evidence_exception or 1h stability >= min_stability; otherwise block stability_below_floor.",
+  "inputs": [
+    "candidate.egress.avg_mbps",
+    "candidate.egress.min_mbps",
+    "candidate.egress.stability",
+    "egress-quality-summary.items[egress].windows.1h.avg_mbps",
+    "egress-quality-summary.items[egress].windows.1h.min_mbps",
+    "egress-quality-summary.items[egress].windows.1h.stability",
+    "service_suitability.aggregate_score",
+    "severity_classification"
+  ],
+  "policy_defaults": {
+    "min_avg_mbps": 15.0,
+    "min_floor_mbps": 10.0,
+    "min_stability": 0.45,
+    "quality_exception_min_stability": 0.15
+  },
+  "source_code": "tools/v7-users-autoswitch"
+}

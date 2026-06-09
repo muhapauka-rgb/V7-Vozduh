@@ -1,0 +1,356 @@
+[
+  {
+    "availability": "WARN",
+    "avg_mbps": 54.22,
+    "best_pool_summary": {
+      "avg_suitability": 76.311,
+      "rank1_count": 0,
+      "rank_count": 18
+    },
+    "blocked": [],
+    "channel_service_score": {
+      "aggregate_score": 84.974,
+      "channel": "vless",
+      "confidence": 0.4583,
+      "required_low": [],
+      "required_missing": [],
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 6,
+        "distinct_rounded": 4,
+        "max": 94.797,
+        "mean": 84.972,
+        "min": 80.657,
+        "spread": 14.14,
+        "stdev": 5.458
+      },
+      "verdict": "OK"
+    },
+    "health": "healthy",
+    "id": "vless",
+    "load_status": "OK",
+    "min_mbps": 51.56,
+    "ok_count": 13,
+    "quality_1h": {
+      "avg_mbps": 50.873,
+      "fail_rate": 0.9998,
+      "min_mbps": 45.133,
+      "p95_latency_ms": 1326.0,
+      "samples": 5464,
+      "stability": 0.8655,
+      "updated": "2026-06-06T22:39:33.413417+00:00"
+    },
+    "service_aggregate_score": 100.0,
+    "stability": 0.951,
+    "telegram_hard_blocked": false,
+    "telegram_status": "OK",
+    "total_services": 14
+  },
+  {
+    "availability": "WARN",
+    "avg_mbps": 47.08,
+    "best_pool_summary": {
+      "avg_suitability": 81.901,
+      "rank1_count": 18,
+      "rank_count": 18
+    },
+    "blocked": [],
+    "channel_service_score": {
+      "aggregate_score": 93.235,
+      "channel": "awg0",
+      "confidence": 0.4583,
+      "required_low": [],
+      "required_missing": [],
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "HIGH_SCORE_COMPRESSION",
+        "count": 6,
+        "distinct_rounded": 5,
+        "max": 98.64,
+        "mean": 93.233,
+        "min": 88.222,
+        "spread": 10.418,
+        "stdev": 4.438
+      },
+      "verdict": "OK"
+    },
+    "health": "healthy",
+    "id": "awg0",
+    "load_status": "OK",
+    "min_mbps": 27.82,
+    "ok_count": 13,
+    "quality_1h": {
+      "avg_mbps": 51.867,
+      "fail_rate": 0.0716,
+      "min_mbps": 26.887,
+      "p95_latency_ms": 2206.3,
+      "samples": 5120,
+      "stability": 0.5081,
+      "updated": "2026-06-06T22:39:33.413417+00:00"
+    },
+    "service_aggregate_score": 100.0,
+    "stability": 0.591,
+    "telegram_hard_blocked": false,
+    "telegram_status": "OK",
+    "total_services": 14
+  },
+  {
+    "availability": "WARN",
+    "avg_mbps": 48.59,
+    "best_pool_summary": {
+      "avg_suitability": 81.366,
+      "rank1_count": 0,
+      "rank_count": 18
+    },
+    "blocked": [
+      "stability_below_floor"
+    ],
+    "channel_service_score": {
+      "aggregate_score": 91.917,
+      "channel": "awg3",
+      "confidence": 0.4583,
+      "required_low": [],
+      "required_missing": [],
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 6,
+        "distinct_rounded": 5,
+        "max": 98.64,
+        "mean": 91.915,
+        "min": 86.245,
+        "spread": 12.395,
+        "stdev": 5.164
+      },
+      "verdict": "OK"
+    },
+    "health": "degraded_stability",
+    "id": "awg3",
+    "load_status": "OK",
+    "min_mbps": 10.21,
+    "ok_count": 13,
+    "quality_1h": {
+      "avg_mbps": 47.517,
+      "fail_rate": 0.0716,
+      "min_mbps": 14.813,
+      "p95_latency_ms": 2024.9,
+      "samples": 5116,
+      "stability": 0.3104,
+      "updated": "2026-06-06T22:39:33.413417+00:00"
+    },
+    "service_aggregate_score": 100.0,
+    "stability": 0.21,
+    "telegram_hard_blocked": false,
+    "telegram_status": "OK",
+    "total_services": 14
+  },
+  {
+    "availability": "FAIL",
+    "avg_mbps": 0.0,
+    "best_pool_summary": null,
+    "blocked": [
+      "health_code_000",
+      "severity_FAIL",
+      "avg_mbps_below_floor",
+      "min_mbps_below_floor",
+      "telegram_required_telegram_down_14s"
+    ],
+    "channel_service_score": {
+      "aggregate_score": 18.503,
+      "channel": "1",
+      "confidence": 0.3181,
+      "required_low": [
+        "telegram",
+        "youtube",
+        "instagram",
+        "chatgpt",
+        "google",
+        "google_auth"
+      ],
+      "required_missing": [],
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 6,
+        "distinct_rounded": 5,
+        "max": 28.503,
+        "mean": 18.502,
+        "min": 10.508,
+        "spread": 17.995,
+        "stdev": 6.941
+      },
+      "verdict": "REVIEW_REQUIRED_LOW_SERVICE_SCORE"
+    },
+    "health": "unhealthy",
+    "id": "1",
+    "load_status": "OK",
+    "min_mbps": 0.0,
+    "ok_count": 0,
+    "quality_1h": {
+      "avg_mbps": 0.002,
+      "fail_rate": 0.9998,
+      "min_mbps": 0.002,
+      "p95_latency_ms": 0.2,
+      "samples": 4917,
+      "stability": 0.0002,
+      "updated": "2026-06-06T22:39:33.413417+00:00"
+    },
+    "service_aggregate_score": 2.854,
+    "stability": 0.0,
+    "telegram_hard_blocked": true,
+    "telegram_status": "TELEGRAM_DOWN_14S",
+    "total_services": 14
+  },
+  {
+    "availability": "FAIL",
+    "avg_mbps": 0.0,
+    "best_pool_summary": null,
+    "blocked": [
+      "health_code_000",
+      "severity_FAIL",
+      "avg_mbps_below_floor",
+      "min_mbps_below_floor",
+      "telegram_required_telegram_down_14s"
+    ],
+    "channel_service_score": {
+      "aggregate_score": 18.505,
+      "channel": "openvpn-1779388847-d2ad7c",
+      "confidence": 0.3181,
+      "required_low": [
+        "telegram",
+        "youtube",
+        "instagram",
+        "chatgpt",
+        "google",
+        "google_auth"
+      ],
+      "required_missing": [],
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "OK",
+        "count": 6,
+        "distinct_rounded": 5,
+        "max": 28.503,
+        "mean": 18.505,
+        "min": 10.508,
+        "spread": 17.995,
+        "stdev": 6.944
+      },
+      "verdict": "REVIEW_REQUIRED_LOW_SERVICE_SCORE"
+    },
+    "health": "unhealthy",
+    "id": "openvpn-1779388847-d2ad7c",
+    "load_status": "OK",
+    "min_mbps": 0.0,
+    "ok_count": 0,
+    "quality_1h": {
+      "avg_mbps": 0.002,
+      "fail_rate": 0.9998,
+      "min_mbps": 0.002,
+      "p95_latency_ms": 0.2,
+      "samples": 4600,
+      "stability": 0.0002,
+      "updated": "2026-06-06T22:39:33.413417+00:00"
+    },
+    "service_aggregate_score": 2.856,
+    "stability": 0.0,
+    "telegram_hard_blocked": true,
+    "telegram_status": "TELEGRAM_DOWN_14S",
+    "total_services": 14
+  },
+  {
+    "availability": "WARN",
+    "avg_mbps": 55.67,
+    "best_pool_summary": null,
+    "blocked": [
+      "canary_reserved_production_assignment_blocked"
+    ],
+    "channel_service_score": {
+      "aggregate_score": 95.419,
+      "channel": "wireguard-1779454504-c43409",
+      "confidence": 0.4583,
+      "required_low": [],
+      "required_missing": [],
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "HIGH_SCORE_COMPRESSION",
+        "count": 6,
+        "distinct_rounded": 4,
+        "max": 99.163,
+        "mean": 95.417,
+        "min": 91.498,
+        "spread": 7.665,
+        "stdev": 3.281
+      },
+      "verdict": "OK"
+    },
+    "health": "healthy_reserved",
+    "id": "wireguard-1779454504-c43409",
+    "load_status": "OK",
+    "min_mbps": 48.66,
+    "ok_count": 13,
+    "quality_1h": {
+      "avg_mbps": 50.715,
+      "fail_rate": 0.0716,
+      "min_mbps": 43.027,
+      "p95_latency_ms": 1131.3,
+      "samples": 4378,
+      "stability": 0.8357,
+      "updated": "2026-06-06T22:39:33.413417+00:00"
+    },
+    "service_aggregate_score": 100.0,
+    "stability": 0.874,
+    "telegram_hard_blocked": false,
+    "telegram_status": "OK",
+    "total_services": 14
+  },
+  {
+    "availability": "WARN",
+    "avg_mbps": 37.52,
+    "best_pool_summary": null,
+    "blocked": [
+      "manual_only",
+      "reserve_only",
+      "canary_reserved_production_assignment_blocked"
+    ],
+    "channel_service_score": {
+      "aggregate_score": 93.088,
+      "channel": "amneziawg-exec-20260528-10-8-1-14",
+      "confidence": 0.4583,
+      "required_low": [],
+      "required_missing": [],
+      "runtime_decision_authority": "none_snapshot_only",
+      "score_distribution": {
+        "calibration_state": "HIGH_SCORE_COMPRESSION",
+        "count": 6,
+        "distinct_rounded": 5,
+        "max": 98.64,
+        "mean": 93.087,
+        "min": 88.002,
+        "spread": 10.638,
+        "stdev": 4.518
+      },
+      "verdict": "OK"
+    },
+    "health": "healthy_reserved",
+    "id": "amneziawg-exec-20260528-10-8-1-14",
+    "load_status": "OK",
+    "min_mbps": 9.52,
+    "ok_count": 13,
+    "quality_1h": {
+      "avg_mbps": 49.196,
+      "fail_rate": 0.0716,
+      "min_mbps": 25.968,
+      "p95_latency_ms": 2383.5,
+      "samples": 2646,
+      "stability": 0.4861,
+      "updated": "2026-06-06T22:39:33.413417+00:00"
+    },
+    "service_aggregate_score": 100.0,
+    "stability": 0.254,
+    "telegram_hard_blocked": false,
+    "telegram_status": "OK",
+    "total_services": 14
+  }
+]

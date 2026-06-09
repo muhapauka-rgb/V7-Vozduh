@@ -1,0 +1,260 @@
+[
+  {
+    "egress": "1",
+    "eligible": false,
+    "blocked": [
+      "health_code_000",
+      "severity_FAIL",
+      "avg_mbps_below_floor",
+      "min_mbps_below_floor",
+      "telegram_required_telegram_down_14s"
+    ],
+    "score": 0.0,
+    "avg_mbps": 0.0,
+    "min_mbps": 0.0,
+    "stability": 0.0,
+    "users": 0,
+    "load": {
+      "users": 0,
+      "soft_limit": 21,
+      "hard_limit": 27,
+      "failover_hard_limit": 36,
+      "capacity_users": 0,
+      "status": "OK"
+    },
+    "severity": "FAIL",
+    "service_aggregate_score": 2.854,
+    "telegram": {
+      "required": true,
+      "status": "TELEGRAM_DOWN_14S",
+      "ok": false,
+      "hard_blocked": true,
+      "degraded": false,
+      "bad_now": true,
+      "bad_for_seconds": 373927.9,
+      "score": 0.0,
+      "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 91.108.56.177:443=timeout; 149.154.175.50:443=timeout; 194.221.250.50:443=timeout",
+      "source": "sentinel"
+    },
+    "role": "GLOBAL_FAST",
+    "canary_reserved": false
+  },
+  {
+    "egress": "amneziawg-exec-20260528-10-8-1-14",
+    "eligible": false,
+    "blocked": [
+      "manual_only",
+      "reserve_only",
+      "canary_reserved_production_assignment_blocked"
+    ],
+    "score": 0.0,
+    "avg_mbps": 37.52,
+    "min_mbps": 9.52,
+    "stability": 0.254,
+    "users": 4,
+    "load": {
+      "users": 4,
+      "soft_limit": 21,
+      "hard_limit": 27,
+      "failover_hard_limit": 36,
+      "capacity_users": 0,
+      "status": "OK"
+    },
+    "severity": "OK",
+    "service_aggregate_score": 100.0,
+    "telegram": {
+      "required": true,
+      "status": "OK",
+      "ok": true,
+      "hard_blocked": false,
+      "degraded": false,
+      "bad_now": false,
+      "bad_for_seconds": 0.0,
+      "score": 100.0,
+      "reason": "telegram tcp endpoints reachable",
+      "source": "sentinel"
+    },
+    "role": "EXECUTION_ONLY",
+    "canary_reserved": true
+  },
+  {
+    "egress": "awg0",
+    "eligible": true,
+    "blocked": [],
+    "score": 2103.93,
+    "avg_mbps": 47.08,
+    "min_mbps": 27.82,
+    "stability": 0.591,
+    "users": 1,
+    "load": {
+      "users": 1,
+      "soft_limit": 21,
+      "hard_limit": 27,
+      "failover_hard_limit": 36,
+      "capacity_users": 0,
+      "status": "OK"
+    },
+    "severity": "OK",
+    "service_aggregate_score": 100.0,
+    "telegram": {
+      "required": true,
+      "status": "OK",
+      "ok": true,
+      "hard_blocked": false,
+      "degraded": false,
+      "bad_now": false,
+      "bad_for_seconds": 0.0,
+      "score": 100.0,
+      "reason": "telegram tcp endpoints reachable",
+      "source": "sentinel"
+    },
+    "role": "GLOBAL_STABLE",
+    "canary_reserved": false
+  },
+  {
+    "egress": "awg3",
+    "eligible": false,
+    "blocked": [
+      "stability_below_floor"
+    ],
+    "score": 0.0,
+    "avg_mbps": 48.59,
+    "min_mbps": 10.21,
+    "stability": 0.21,
+    "users": 0,
+    "load": {
+      "users": 0,
+      "soft_limit": 21,
+      "hard_limit": 27,
+      "failover_hard_limit": 36,
+      "capacity_users": 0,
+      "status": "OK"
+    },
+    "severity": "OK",
+    "service_aggregate_score": 100.0,
+    "telegram": {
+      "required": true,
+      "status": "OK",
+      "ok": true,
+      "hard_blocked": false,
+      "degraded": false,
+      "bad_now": false,
+      "bad_for_seconds": 0.0,
+      "score": 100.0,
+      "reason": "telegram tcp endpoints reachable",
+      "source": "sentinel"
+    },
+    "role": "GLOBAL_STABLE",
+    "canary_reserved": false
+  },
+  {
+    "egress": "openvpn-1779388847-d2ad7c",
+    "eligible": false,
+    "blocked": [
+      "health_code_000",
+      "severity_FAIL",
+      "avg_mbps_below_floor",
+      "min_mbps_below_floor",
+      "telegram_required_telegram_down_14s"
+    ],
+    "score": 0.0,
+    "avg_mbps": 0.0,
+    "min_mbps": 0.0,
+    "stability": 0.0,
+    "users": 0,
+    "load": {
+      "users": 0,
+      "soft_limit": 21,
+      "hard_limit": 27,
+      "failover_hard_limit": 36,
+      "capacity_users": 0,
+      "status": "OK"
+    },
+    "severity": "FAIL",
+    "service_aggregate_score": 2.856,
+    "telegram": {
+      "required": true,
+      "status": "TELEGRAM_DOWN_14S",
+      "ok": false,
+      "hard_blocked": true,
+      "degraded": false,
+      "bad_now": true,
+      "bad_for_seconds": 379887.0,
+      "score": 0.0,
+      "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 91.108.56.177:443=timeout; 149.154.175.50:443=timeout; 194.221.250.50:443=timeout",
+      "source": "sentinel"
+    },
+    "role": "GLOBAL_FAST",
+    "canary_reserved": false
+  },
+  {
+    "egress": "vless",
+    "eligible": true,
+    "blocked": [],
+    "score": 2153.65,
+    "avg_mbps": 54.22,
+    "min_mbps": 51.56,
+    "stability": 0.951,
+    "users": 13,
+    "load": {
+      "users": 13,
+      "soft_limit": 21,
+      "hard_limit": 27,
+      "failover_hard_limit": 36,
+      "capacity_users": 0,
+      "status": "OK"
+    },
+    "severity": "SUSPECT",
+    "service_aggregate_score": 100.0,
+    "telegram": {
+      "required": true,
+      "status": "OK",
+      "ok": true,
+      "hard_blocked": false,
+      "degraded": false,
+      "bad_now": false,
+      "bad_for_seconds": 0.0,
+      "score": 100.0,
+      "reason": "telegram tcp endpoints reachable",
+      "source": "sentinel"
+    },
+    "role": "GLOBAL_FAST",
+    "canary_reserved": false
+  },
+  {
+    "egress": "wireguard-1779454504-c43409",
+    "eligible": false,
+    "blocked": [
+      "canary_reserved_production_assignment_blocked"
+    ],
+    "score": 0.0,
+    "avg_mbps": 55.67,
+    "min_mbps": 48.66,
+    "stability": 0.874,
+    "users": 0,
+    "load": {
+      "users": 0,
+      "soft_limit": 21,
+      "hard_limit": 27,
+      "failover_hard_limit": 36,
+      "capacity_users": 0,
+      "status": "OK"
+    },
+    "severity": "OK",
+    "service_aggregate_score": 100.0,
+    "telegram": {
+      "required": true,
+      "status": "OK",
+      "ok": true,
+      "hard_blocked": false,
+      "degraded": false,
+      "bad_now": false,
+      "bad_for_seconds": 0.0,
+      "score": 100.0,
+      "reason": "telegram tcp endpoints reachable",
+      "source": "sentinel"
+    },
+    "role": "GLOBAL_FAST",
+    "canary_reserved": true
+  }
+]

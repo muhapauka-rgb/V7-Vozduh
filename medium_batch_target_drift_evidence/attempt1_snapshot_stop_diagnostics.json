@@ -1,0 +1,364 @@
+{
+  "active": true,
+  "authority": {
+    "execution_authority": "none",
+    "planner_decision_owner": "tools/v7-users-autoswitch",
+    "selected_moves_write_authority": "none",
+    "snapshot_write_authority": "none_runtime_read_only"
+  },
+  "execution_behavior_changed": false,
+  "families_checked": [
+    "service-scores",
+    "channel-service-scores",
+    "user-service-scores",
+    "risk-summaries",
+    "trust-summaries",
+    "blast-radius-summaries",
+    "candidate-suitability-summary",
+    "best-available-pool",
+    "prediction-summaries",
+    "trust-evolution-summaries"
+  ],
+  "governance_behavior_changed": false,
+  "hard_gate_override": "forbidden",
+  "ignored_families": [],
+  "mode": "snapshot_backed_runtime_fast_path",
+  "pre_planner_refresh": {
+    "action": "refresh_snapshots",
+    "blocked_actions": [],
+    "command": [
+      "v7-intelligence-snapshot-refresh",
+      "--state-dir",
+      "/opt/v7/egress/state",
+      "--event-dir",
+      "/opt/v7/events",
+      "--out-dir",
+      "/opt/v7/egress/state/intelligence",
+      "--quality-summary-file",
+      "/opt/v7/egress/state/egress-quality-summary.json"
+    ],
+    "decision": "freshness_refreshed",
+    "enabled": true,
+    "execution_behavior_changed": false,
+    "executor": "tools/v7-users-autoswitch",
+    "governance_behavior_changed": false,
+    "mode": "write",
+    "next_state": "load_refreshed_snapshots",
+    "output": "{\"audit_inputs\": [\"/opt/v7/events/switch-history.jsonl\", \"/opt/v7/audit/audit.jsonl\", \"/opt/v7/audit/operator-execution-audit.jsonl\", \"/opt/v7/audit/operator-runtime-governance-actions.jsonl\"], \"dry_run\": false, \"governance_behavior_changed\": false, \"metrics\": {\"elapsed_ms\": 1009.033, \"max_snapshot_bytes\": 258457, \"snapshot_count\": 11, \"snapshot_sizes\": {\"best-available-pool\": 27911, \"blast-radius-summaries\": 1000, \"candidate-suitability-summary\": 91299, \"channel-service-scores\": 3491, \"overview-summary\": 2812, \"prediction-summaries\": 60146, \"risk-summaries\": 966, \"service-scores\": 17650, \"trust-evolution-summaries\": 258457, \"trust-summaries\": 1218, \"user-service-scores\": 81607}, \"total_snapshot_bytes\": 546557}, \"runtime_behavior_changed\": false, \"schema\": \"v7.intelligence-snapshot-refresh-result.v1\", \"snapshot_count\": 11, \"source_consistency_attempts\": 1, \"source_consistency_errors\": [], \"source_stable\": true, \"users_moved\": false, \"warnings\": [], \"written\": {\"best-available-pool\": \"/opt/v7/egress/state/intelligence/best-available-pool.json\", \"blast-radius-summaries\": \"/opt/v7/egress/state/intelligence/blast-radius-summaries.json\", \"candidate-suitability-summary\": \"/opt/v7/egress/state/intelligence/candidate-suitability-summary.json\", \"channel-service-scores\": \"/opt/v7/egress/state/intelligence/channel-service-scores.json\", \"overview-summary\": \"/opt/v7/egress/state/intelligence/overview-summary.json\", \"prediction-summaries\": \"/opt/v7/egress/state/intelligence/prediction-summaries.json\", \"risk-summaries\": \"/opt/v7/egress/state/intelligence/risk-summaries.json\", \"service-scores\": \"/opt/v7/egress/state/intelligence/service-scores.json\", \"trust-evolution-summaries\": \"/opt/v7/egress/state/intelligence/trust-evolution-summaries.json\", \"trust-summaries\": \"/opt/v7/egress/state/intelligence/trust-summaries.json\", \"user-service-scores\": \"/opt/v7/egress/state/intelligence/user-service-scores.json\"}}\n",
+    "rc": 0,
+    "refresh_result": {
+      "audit_inputs": [
+        "/opt/v7/events/switch-history.jsonl",
+        "/opt/v7/audit/audit.jsonl",
+        "/opt/v7/audit/operator-execution-audit.jsonl",
+        "/opt/v7/audit/operator-runtime-governance-actions.jsonl"
+      ],
+      "dry_run": false,
+      "governance_behavior_changed": false,
+      "metrics": {
+        "elapsed_ms": 1009.033,
+        "max_snapshot_bytes": 258457,
+        "snapshot_count": 11,
+        "snapshot_sizes": {
+          "best-available-pool": 27911,
+          "blast-radius-summaries": 1000,
+          "candidate-suitability-summary": 91299,
+          "channel-service-scores": 3491,
+          "overview-summary": 2812,
+          "prediction-summaries": 60146,
+          "risk-summaries": 966,
+          "service-scores": 17650,
+          "trust-evolution-summaries": 258457,
+          "trust-summaries": 1218,
+          "user-service-scores": 81607
+        },
+        "total_snapshot_bytes": 546557
+      },
+      "runtime_behavior_changed": false,
+      "schema": "v7.intelligence-snapshot-refresh-result.v1",
+      "snapshot_count": 11,
+      "source_consistency_attempts": 1,
+      "source_consistency_errors": [],
+      "source_stable": true,
+      "users_moved": false,
+      "warnings": [],
+      "written": {
+        "best-available-pool": "/opt/v7/egress/state/intelligence/best-available-pool.json",
+        "blast-radius-summaries": "/opt/v7/egress/state/intelligence/blast-radius-summaries.json",
+        "candidate-suitability-summary": "/opt/v7/egress/state/intelligence/candidate-suitability-summary.json",
+        "channel-service-scores": "/opt/v7/egress/state/intelligence/channel-service-scores.json",
+        "overview-summary": "/opt/v7/egress/state/intelligence/overview-summary.json",
+        "prediction-summaries": "/opt/v7/egress/state/intelligence/prediction-summaries.json",
+        "risk-summaries": "/opt/v7/egress/state/intelligence/risk-summaries.json",
+        "service-scores": "/opt/v7/egress/state/intelligence/service-scores.json",
+        "trust-evolution-summaries": "/opt/v7/egress/state/intelligence/trust-evolution-summaries.json",
+        "trust-summaries": "/opt/v7/egress/state/intelligence/trust-summaries.json",
+        "user-service-scores": "/opt/v7/egress/state/intelligence/user-service-scores.json"
+      }
+    },
+    "runtime_behavior_changed": false,
+    "schema": "v7.pre-planner-intelligence-refresh.v1",
+    "snapshot_count": 11,
+    "source_reload": {
+      "action": "reload_service_matrix_quality_summary_service_preferences",
+      "after_hashes": {
+        "quality_summary": "98c202ccb79fb105bec331df5f87f97b4ab81e4f28f1c94679aea9848879540e",
+        "service_matrix": "aa430e8eb0b00682e6ec912de54b847937a53e057cd31322ad20609c0dd57132",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+      },
+      "before_hashes": {
+        "quality_summary": "98c202ccb79fb105bec331df5f87f97b4ab81e4f28f1c94679aea9848879540e",
+        "service_matrix": "e3a6c5d6f10346d45a4f1401a5916acff048a422b4b94bb957b0f19062e50a69",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+      },
+      "blocked_actions": [],
+      "changed_keys": [
+        "service_matrix"
+      ],
+      "condition": "pre_planner_refresh_write_success",
+      "decision": "reload_planner_source_inputs_before_snapshot_gate",
+      "execution_behavior_changed": false,
+      "executor": "tools/v7-users-autoswitch",
+      "governance_behavior_changed": false,
+      "next_state": "load_refreshed_snapshots_with_current_source_inputs",
+      "runtime_behavior_changed": false,
+      "schema": "v7.pre-planner-source-reload.v1",
+      "trigger": "REFRESH_SUCCESS",
+      "users_moved": false,
+      "written_evidence": "plan.safety.intelligence_snapshots.pre_planner_refresh.source_reload"
+    },
+    "state": "REFRESH_SUCCESS",
+    "stop_required": false,
+    "timeout_sec": 20,
+    "trigger": "pre_planner_refresh_gate",
+    "users_moved": false,
+    "warnings": [],
+    "written_evidence": "plan.safety.intelligence_snapshots.pre_planner_refresh"
+  },
+  "required_families": [
+    "service-scores",
+    "channel-service-scores",
+    "risk-summaries",
+    "trust-summaries",
+    "blast-radius-summaries"
+  ],
+  "reservation_override": "forbidden",
+  "results": {
+    "best-available-pool": {
+      "confidence": 0.9617,
+      "exists": true,
+      "freshness_state": "FRESH",
+      "item_count": 18,
+      "path": "/opt/v7/egress/state/intelligence/best-available-pool.json",
+      "runtime_behavior": "ALLOW",
+      "schema": "v7.intelligence.best-available-pool.v1",
+      "source_hashes": {
+        "candidate_suitability": "60eb940d3d7170f14c72a989beed2e45706d69a1fae2dd1f176d90f3f49e7477",
+        "egress_registry": "51f59e0130201835c2d495c44bce5402653e17d8db9cf3a9c1e67fbfc1cf0e43",
+        "runtime_state": "dfb9e8aa41ceea8e26982ee8ea98d1ce4b2e65738442068d275122da0d1f3305"
+      },
+      "stop_required": false,
+      "validation_errors": [],
+      "validation_ok": true,
+      "validation_warnings": []
+    },
+    "blast-radius-summaries": {
+      "confidence": 0.9905,
+      "exists": true,
+      "freshness_state": "FRESH",
+      "item_count": 1,
+      "path": "/opt/v7/egress/state/intelligence/blast-radius-summaries.json",
+      "runtime_behavior": "ALLOW",
+      "schema": "v7.intelligence.blast-radius-summaries.v1",
+      "source_hashes": {
+        "risk_summary": "5810c181b441e173da10b56b12a59780570a8154ce6714147e9a37298ebc65f3",
+        "trust_summary": "b16ac60449f66dec6350439ec03727a2090b46e43132495e6054202e17bf5013"
+      },
+      "stop_required": false,
+      "validation_errors": [],
+      "validation_ok": true,
+      "validation_warnings": []
+    },
+    "candidate-suitability-summary": {
+      "confidence": 0.8466,
+      "exists": true,
+      "freshness_state": "FRESH",
+      "item_count": 18,
+      "path": "/opt/v7/egress/state/intelligence/candidate-suitability-summary.json",
+      "runtime_behavior": "ALLOW",
+      "schema": "v7.intelligence.candidate-suitability-summary.v1",
+      "source_hashes": {
+        "blast_radius": "ce7fe2ce739c98e0b295cf8f5cd3fe222966b9aeae54aecc071105275a84d393",
+        "egress_registry": "51f59e0130201835c2d495c44bce5402653e17d8db9cf3a9c1e67fbfc1cf0e43",
+        "quality_summary": "98c202ccb79fb105bec331df5f87f97b4ab81e4f28f1c94679aea9848879540e",
+        "risk_summary": "5810c181b441e173da10b56b12a59780570a8154ce6714147e9a37298ebc65f3",
+        "service_matrix": "e3a6c5d6f10346d45a4f1401a5916acff048a422b4b94bb957b0f19062e50a69",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+        "trust_summary": "b16ac60449f66dec6350439ec03727a2090b46e43132495e6054202e17bf5013",
+        "users_registry": "b16cefc4d9211fc0a9f2cc56196bc47efa65f2c071ae92a6190a714f694a5bf1"
+      },
+      "stop_required": false,
+      "validation_errors": [],
+      "validation_ok": true,
+      "validation_warnings": []
+    },
+    "channel-service-scores": {
+      "confidence": 0.8478,
+      "exists": true,
+      "freshness_state": "FRESH",
+      "item_count": 7,
+      "path": "/opt/v7/egress/state/intelligence/channel-service-scores.json",
+      "runtime_behavior": "STOP",
+      "schema": "v7.intelligence.channel-service-scores.v1",
+      "source_hashes": {
+        "quality_summary": "98c202ccb79fb105bec331df5f87f97b4ab81e4f28f1c94679aea9848879540e",
+        "service_matrix": "e3a6c5d6f10346d45a4f1401a5916acff048a422b4b94bb957b0f19062e50a69",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+      },
+      "stop_required": true,
+      "validation_errors": [
+        "source_hash_mismatch:channel-service-scores:service_matrix"
+      ],
+      "validation_ok": false,
+      "validation_warnings": []
+    },
+    "prediction-summaries": {
+      "confidence": 0.9572,
+      "exists": true,
+      "freshness_state": "FRESH",
+      "item_count": 1,
+      "path": "/opt/v7/egress/state/intelligence/prediction-summaries.json",
+      "runtime_behavior": "ALLOW",
+      "schema": "v7.intelligence.prediction-summaries.v1",
+      "source_hashes": {
+        "blast_radius": "ce7fe2ce739c98e0b295cf8f5cd3fe222966b9aeae54aecc071105275a84d393",
+        "quality_summary": "98c202ccb79fb105bec331df5f87f97b4ab81e4f28f1c94679aea9848879540e",
+        "risk_summary": "5810c181b441e173da10b56b12a59780570a8154ce6714147e9a37298ebc65f3",
+        "service_matrix": "e3a6c5d6f10346d45a4f1401a5916acff048a422b4b94bb957b0f19062e50a69",
+        "trust_summary": "b16ac60449f66dec6350439ec03727a2090b46e43132495e6054202e17bf5013"
+      },
+      "stop_required": false,
+      "validation_errors": [],
+      "validation_ok": true,
+      "validation_warnings": []
+    },
+    "risk-summaries": {
+      "confidence": 0.9619,
+      "exists": true,
+      "freshness_state": "FRESH",
+      "item_count": 1,
+      "path": "/opt/v7/egress/state/intelligence/risk-summaries.json",
+      "runtime_behavior": "ALLOW",
+      "schema": "v7.intelligence.risk-summaries.v1",
+      "source_hashes": {
+        "channel_service_scores": "5718287ca89afa369ff9584ebe07333f85a31cfee7d661248868f50ce98ce78a",
+        "quality_summary": "98c202ccb79fb105bec331df5f87f97b4ab81e4f28f1c94679aea9848879540e",
+        "service_scores": "1f61dba823a5f5d153fd4b42916e18a02b91289d01dc9a6568b14015a99ad7ad"
+      },
+      "stop_required": false,
+      "validation_errors": [],
+      "validation_ok": true,
+      "validation_warnings": []
+    },
+    "service-scores": {
+      "confidence": 0.8478,
+      "exists": true,
+      "freshness_state": "FRESH",
+      "item_count": 14,
+      "path": "/opt/v7/egress/state/intelligence/service-scores.json",
+      "runtime_behavior": "STOP",
+      "schema": "v7.intelligence.service-scores.v1",
+      "source_hashes": {
+        "quality_summary": "98c202ccb79fb105bec331df5f87f97b4ab81e4f28f1c94679aea9848879540e",
+        "service_matrix": "e3a6c5d6f10346d45a4f1401a5916acff048a422b4b94bb957b0f19062e50a69",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+      },
+      "stop_required": true,
+      "validation_errors": [
+        "source_hash_mismatch:service-scores:service_matrix"
+      ],
+      "validation_ok": false,
+      "validation_warnings": []
+    },
+    "trust-evolution-summaries": {
+      "confidence": 0.9804,
+      "exists": true,
+      "freshness_state": "FRESH",
+      "item_count": 1,
+      "path": "/opt/v7/egress/state/intelligence/trust-evolution-summaries.json",
+      "runtime_behavior": "ALLOW",
+      "schema": "v7.intelligence.trust-evolution-summaries.v1",
+      "source_hashes": {
+        "best_available_pool": "e92b5b50d9d07061353fcbf1adfcb1178cc49b8f0f9674a0dc7aa352bacb1f38",
+        "blast_radius": "ce7fe2ce739c98e0b295cf8f5cd3fe222966b9aeae54aecc071105275a84d393",
+        "candidate_outcomes": "e0224b4cc918491cb91d181fbed344736445925f5ef73b47ba42e8dc902846c8",
+        "candidate_suitability": "60eb940d3d7170f14c72a989beed2e45706d69a1fae2dd1f176d90f3f49e7477",
+        "channel_service_scores": "5718287ca89afa369ff9584ebe07333f85a31cfee7d661248868f50ce98ce78a",
+        "decisions": "c2cd0393dcbf815ec3902f084841028b81caf8fd66cd41fe7e848489c3d08de8",
+        "prediction_actuals": "e34eaaf3092bb309cf577798074f3991e96c7f2bb6fa38ff5a968339caea859e",
+        "prediction_summary": "1e0e8eb3a16da4035812875d1c2fb5b6f1e85ce922b7d2602da90691a1cde642",
+        "rollback_records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "service_actuals": "83077e0e75eac5e15fe8275e056ac75149321292378fe998574ef1331b569e34",
+        "service_scores": "1f61dba823a5f5d153fd4b42916e18a02b91289d01dc9a6568b14015a99ad7ad",
+        "trust_summary": "b16ac60449f66dec6350439ec03727a2090b46e43132495e6054202e17bf5013"
+      },
+      "stop_required": false,
+      "validation_errors": [],
+      "validation_ok": true,
+      "validation_warnings": []
+    },
+    "trust-summaries": {
+      "confidence": 1.0,
+      "exists": true,
+      "freshness_state": "FRESH",
+      "item_count": 1,
+      "path": "/opt/v7/egress/state/intelligence/trust-summaries.json",
+      "runtime_behavior": "ALLOW",
+      "schema": "v7.intelligence.trust-summaries.v1",
+      "source_hashes": {
+        "records": "c2cd0393dcbf815ec3902f084841028b81caf8fd66cd41fe7e848489c3d08de8"
+      },
+      "stop_required": false,
+      "validation_errors": [],
+      "validation_ok": true,
+      "validation_warnings": []
+    },
+    "user-service-scores": {
+      "confidence": 0.8546,
+      "exists": true,
+      "freshness_state": "FRESH",
+      "item_count": 18,
+      "path": "/opt/v7/egress/state/intelligence/user-service-scores.json",
+      "runtime_behavior": "ALLOW",
+      "schema": "v7.intelligence.user-service-scores.v1",
+      "source_hashes": {
+        "quality_summary": "98c202ccb79fb105bec331df5f87f97b4ab81e4f28f1c94679aea9848879540e",
+        "risk_summary": "5810c181b441e173da10b56b12a59780570a8154ce6714147e9a37298ebc65f3",
+        "service_matrix": "e3a6c5d6f10346d45a4f1401a5916acff048a422b4b94bb957b0f19062e50a69",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+        "trust_summary": "b16ac60449f66dec6350439ec03727a2090b46e43132495e6054202e17bf5013",
+        "users_registry": "b16cefc4d9211fc0a9f2cc56196bc47efa65f2c071ae92a6190a714f694a5bf1"
+      },
+      "stop_required": false,
+      "validation_errors": [],
+      "validation_ok": true,
+      "validation_warnings": []
+    }
+  },
+  "root": "/opt/v7/egress/state/intelligence",
+  "runtime_behavior_changed": false,
+  "schema_version": "v7.runtime-intelligence-snapshot-gate.v1",
+  "selected_moves_after_gate": 0,
+  "selected_moves_before_gate": 5,
+  "selected_moves_suppressed": true,
+  "source_mismatch_families": [
+    "channel-service-scores",
+    "service-scores"
+  ],
+  "stop_families": [
+    "channel-service-scores",
+    "service-scores"
+  ],
+  "stop_required": true,
+  "warn_families": []
+}

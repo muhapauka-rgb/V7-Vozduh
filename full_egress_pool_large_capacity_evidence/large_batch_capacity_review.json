@@ -1,0 +1,14 @@
+{
+  "capacity_sufficient_by_pool_health": false,
+  "capacity_sufficient_by_slots": true,
+  "current_safe_capacity": "MEDIUM_BATCH only; budget 10 needs at least one more eligible channel or explicit risk acceptance packet.",
+  "eligible_channel_count": 2,
+  "eligible_channels": [
+    "vless",
+    "awg0"
+  ],
+  "eligible_hard_spare_users": 40,
+  "eligible_soft_spare_users": 28,
+  "large_batch_budget": 10,
+  "planner_candidate_moves_total": 17
+}

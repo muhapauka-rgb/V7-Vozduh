@@ -1,0 +1,9 @@
+/usr/local/bin/v7-audit-log
+                           [--promote-authority-to {CANARY,SMALL_BATCH,MEDIUM_BATCH,LARGE_BATCH,POOL}]
+                           [--authority-promotion-operation-id AUTHORITY_PROMOTION_OPERATION_ID]
+                           [--confirm-authority-promotion CONFIRM_AUTHORITY_PROMOTION]
+                           [--authority-promotion-truth-check-command AUTHORITY_PROMOTION_TRUTH_CHECK_COMMAND]
+  --promote-authority-to {CANARY,SMALL_BATCH,MEDIUM_BATCH,LARGE_BATCH,POOL}
+  --authority-promotion-operation-id AUTHORITY_PROMOTION_OPERATION_ID
+  --confirm-authority-promotion CONFIRM_AUTHORITY_PROMOTION
+  --authority-promotion-truth-check-command AUTHORITY_PROMOTION_TRUTH_CHECK_COMMAND

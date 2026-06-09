@@ -1,0 +1,31 @@
+{
+  "convergence_status": "FULLY_ALIGNED",
+  "final_verdict": "PASS",
+  "current_commit": "8dda6fa35a7657f28c7a4164bdfd2a3ab6729989",
+  "github": {
+    "status": "GITHUB_ALIGNED",
+    "local_commit": "8dda6fa35a7657f28c7a4164bdfd2a3ab6729989",
+    "remote_commit": "8dda6fa35a7657f28c7a4164bdfd2a3ab6729989"
+  },
+  "local": {
+    "status": "LOCAL_ALIGNED",
+    "clean": false,
+    "blocking_dirty": false,
+    "dirty_counts": {
+      "documentation_only": 15,
+      "runtime_critical": 0,
+      "runtime_relevant": 0,
+      "unknown": 0
+    }
+  },
+  "runtime": {
+    "status": "RUNTIME_ALIGNED",
+    "final_verdict": "PASS",
+    "commit": "8dda6fa35a7657f28c7a4164bdfd2a3ab6729989",
+    "root": "/opt/v7",
+    "access": "READY",
+    "truth": "KNOWN",
+    "scheduler_manual": true,
+    "snapshot_refresh_cli": true
+  }
+}

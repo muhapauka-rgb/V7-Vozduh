@@ -1,0 +1,716 @@
+{
+  "blockers": [],
+  "canonical_branch": "Updatesystem",
+  "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+  "canonical_workspace": "/Users/ponch/Documents/New project",
+  "convergence_status": "FULLY_ALIGNED",
+  "current_branch": "Updatesystem",
+  "current_commit": "8063054d0cd4e7fdeb5c82d6105b9d6ce09fa171",
+  "current_workspace": "/Users/ponch/Documents/New project",
+  "final_verdict": "PASS",
+  "git_status_short": "?? PROGRAM_APPROVAL_AUTONOMY_BOUNDARY_REVIEW_AUTONOMY_SPECIFIC_EVIDENCE_AND_1_USER_CANARY_CERTIFICATION_REPORT.md\n?? PROGRAM_AUTHORITY_LADDER_FULL_AUDIT_AND_FUTURE_CERTIFICATION_MAP_REPORT.md\n?? PROGRAM_AUTONOMOUS_APPLY_DRY_RUN_SIMULATION_AND_BOUNDED_CANARY_READINESS_REPORT.md\n?? PROGRAM_AUTONOMY_CONFIDENCE_TRUST_FLOOR_AND_1_USER_CANARY_READINESS_REPORT.md\n?? PROGRAM_AUTONOMY_EVIDENCE_PHILOSOPHY_REVIEW_AND_GOVERNED_TO_AUTONOMY_TRUST_MODEL_REPORT.md\n?? PROGRAM_AWG3_REALITY_AUDIT_WITH_FORCED_CLOSURE_OR_LARGE_BATCH_ESCALATION_REPORT.md\n?? PROGRAM_BOUNDED_AUTONOMY_READINESS_REVIEW_AND_AUTONOMY_BOUNDARY_MODEL_REPORT.md\n?? PROGRAM_FULL_EGRESS_POOL_REALITY_AUDIT_AND_LARGE_BATCH_CAPACITY_FOUNDATION_REPORT.md\n?? PROGRAM_GOVERNED_TO_AUTONOMY_TRUST_BRIDGE_READ_ONLY_IMPLEMENTATION_AND_CERTIFICATION_REPORT.md\n?? PROGRAM_LARGE_BATCH_COMPLETION_STABILITY_AND_EXECUTION_LOOP_FOUNDATION_REPORT.md\n?? PROGRAM_LARGE_BATCH_EXECUTION_WITH_EMBEDDED_BLOCKER_CLOSURE_REPORT.md\n?? PROGRAM_LARGE_BATCH_STABILITY_WINDOW_AND_POOL_READINESS_REVIEW_REPORT.md\n?? PROGRAM_MEDIUM_BATCH_CONTROLLED_LIVE_COMPLETION_AND_EXECUTION_CERTIFICATION_REPORT.md\n?? PROGRAM_MEDIUM_BATCH_PROMOTION_IMPLEMENTATION_AND_REAL_5_USER_EXECUTION_REPORT.md\n?? PROGRAM_MEDIUM_BATCH_STABILITY_WINDOW_AND_LARGE_BATCH_READINESS_CERTIFICATION_REPORT.md\n?? PROGRAM_MEDIUM_BATCH_TARGET_DRIFT_CLOSURE_AND_REAL_5_USER_EXECUTION_REPORT.md\n?? PROGRAM_OUTCOME_BASED_AUTONOMY_READINESS_REVIEW_AND_EVIDENCE_CERTIFICATION_REPORT.md\n?? PROGRAM_POOL_AUTHORITY_PROMOTION_AND_BATCHED_EXECUTION_WITH_EMBEDDED_BLOCKER_CLOSURE_REPORT.md\n?? PROGRAM_POOL_PREPARATION_GOVERNANCE_CAPACITY_SYNTHETIC_USERS_AND_EXECUTION_STRATEGY_REPORT.md\n?? PROGRAM_POOL_PROMOTION_RULE_INTENT_REVIEW_AND_SECOND_LARGE_EVIDENCE_DECISION_REPORT.md\n?? PROGRAM_POOL_RULE_DEADLOCK_REVIEW_EXECUTION_LATENCY_AND_PROMOTION_DECISION_REPORT.md\n?? PROGRAM_QUALITY_SUMMARY_LINEAGE_OWNER_CLOSURE_AND_SECOND_MEDIUM_BATCH_CONTINUATION_REPORT.md\n?? PROGRAM_SECOND_LARGE_EVIDENCE_ACQUISITION_STRATEGY_AND_GOVERNED_PATH_TO_POOL_REPORT.md\n?? PROGRAM_SECOND_MEDIUM_BATCH_EXECUTION_STABILITY_WINDOW_AND_LARGE_BATCH_PROMOTION_GATE_REPORT.md\n?? PROGRAM_SNAPSHOT_TRUTH_PERMANENT_ROOT_CAUSE_CLOSURE_AND_AUTONOMY_GATE_CERTIFICATION_REPORT.md\n?? PROGRAM_SOURCE_BUNDLE_LEASE_CHAIN_CLOSURE_AND_SECOND_MEDIUM_COMPLETION_REPORT.md\n?? PROGRAM_UNIFIED_AUTHORITY_PROMOTION_OWNER_AND_FUTURE_LADDER_GOVERNANCE_REPORT.md\n?? approval_autonomy_boundary_evidence/\n?? authority_ladder_full_audit_evidence/\n?? autonomy_canary_candidate_quality_evidence/final_report_commit_safe_deploy.json\n?? autonomy_canary_candidate_quality_evidence/final_truth_check.json\n?? awg3_forced_closure_large_escalation_evidence/\n?? bounded_autonomy_readiness_evidence/\n?? channel_trust_recovery_explainability_evidence/final_report_push_convergence_status.json\n?? full_egress_pool_large_capacity_evidence/\n?? governed_execution_loop_foundation_evidence/final_report_safe_deploy.json\n?? governed_to_autonomy_trust_bridge_evidence/\n?? large_batch_completion_execution_loop_evidence/\n?? large_batch_execution_evidence/\n?? large_batch_stability_pool_readiness_evidence/\n?? medium_batch_controlled_live_evidence/\n?? medium_batch_promotion_execution_evidence/\n?? medium_batch_stability_large_readiness_evidence/\n?? medium_batch_target_drift_evidence/\n?? pool_authority_promotion_batched_execution_evidence/\n?? pool_preparation_governance_capacity_evidence/\n?? pool_promotion_rule_intent_review_evidence/\n?? pool_rule_deadlock_latency_evidence/\n?? quality_summary_lineage_evidence/\n?? second_large_evidence_path_evidence/\n?? second_medium_large_promotion_evidence/\n?? service_matrix_volatility_evidence/final_report_alignment_convergence_status.json\n?? service_matrix_volatility_evidence/final_report_alignment_safe_deploy.json\n?? service_matrix_volatility_evidence/final_report_alignment_truth_check.json\n?? service_matrix_volatility_evidence/post_report_push_convergence_status.json\n?? service_matrix_volatility_evidence/post_report_push_truth_check.json\n?? service_matrix_volatility_evidence/post_report_safe_deploy.json\n?? service_matrix_volatility_evidence/post_report_safe_deploy_convergence_status.json\n?? service_matrix_volatility_evidence/post_report_safe_deploy_truth_check.json\n?? source_bundle_lease_chain_evidence/\n?? trust_feedback_calibration_admin_surface_evidence/production_admin_html.html\n?? trust_feedback_calibration_admin_surface_evidence/production_admin_ui_probe.txt\n?? trust_feedback_calibration_admin_surface_evidence/production_operator_decision_surface.json\n?? unified_authority_promotion_evidence/deploy_report.json\n?? unified_authority_promotion_evidence/large_batch_evidence_review.json\n?? unified_authority_promotion_evidence/post_deploy_convergence_status.json\n?? unified_authority_promotion_evidence/post_deploy_convergence_status_escalated.json\n?? unified_authority_promotion_evidence/post_deploy_truth_check.json\n?? unified_authority_promotion_evidence/post_deploy_truth_check_escalated.json\n?? unified_authority_promotion_evidence/safe_deploy_apply.json\n?? unified_authority_promotion_evidence/safe_deploy_apply_escalated.json",
+  "github": {
+    "blockers": [],
+    "canonical_branch": "Updatesystem",
+    "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+    "convergence_status": "GITHUB_ALIGNED",
+    "final_verdict": "PASS",
+    "local_commit": "8063054d0cd4e7fdeb5c82d6105b9d6ce09fa171",
+    "remote_branch_commit": "8063054d0cd4e7fdeb5c82d6105b9d6ce09fa171",
+    "remote_read_status": "OK"
+  },
+  "local": {
+    "blockers": [],
+    "canonical_branch": "Updatesystem",
+    "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+    "canonical_workspace": "/Users/ponch/Documents/New project",
+    "checks": {
+      "branch_matches": true,
+      "remote_matches": true,
+      "workspace_clean": false,
+      "workspace_has_no_blocking_dirtiness": true,
+      "workspace_matches": true
+    },
+    "convergence_status": "LOCAL_ALIGNED",
+    "current_branch": "Updatesystem",
+    "current_commit": "8063054d0cd4e7fdeb5c82d6105b9d6ce09fa171",
+    "current_workspace": "/Users/ponch/Documents/New project",
+    "dirty_classification": {
+      "blocking": false,
+      "blocking_paths": [],
+      "clean": false,
+      "counts": {
+        "documentation_only": 71,
+        "runtime_critical": 0,
+        "runtime_relevant": 0,
+        "unknown": 0
+      },
+      "documentation_only": true,
+      "entries": [
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_APPROVAL_AUTONOMY_BOUNDARY_REVIEW_AUTONOMY_SPECIFIC_EVIDENCE_AND_1_USER_CANARY_CERTIFICATION_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_AUTHORITY_LADDER_FULL_AUDIT_AND_FUTURE_CERTIFICATION_MAP_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_AUTONOMOUS_APPLY_DRY_RUN_SIMULATION_AND_BOUNDED_CANARY_READINESS_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_AUTONOMY_CONFIDENCE_TRUST_FLOOR_AND_1_USER_CANARY_READINESS_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_AUTONOMY_EVIDENCE_PHILOSOPHY_REVIEW_AND_GOVERNED_TO_AUTONOMY_TRUST_MODEL_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_AWG3_REALITY_AUDIT_WITH_FORCED_CLOSURE_OR_LARGE_BATCH_ESCALATION_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_BOUNDED_AUTONOMY_READINESS_REVIEW_AND_AUTONOMY_BOUNDARY_MODEL_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_FULL_EGRESS_POOL_REALITY_AUDIT_AND_LARGE_BATCH_CAPACITY_FOUNDATION_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_GOVERNED_TO_AUTONOMY_TRUST_BRIDGE_READ_ONLY_IMPLEMENTATION_AND_CERTIFICATION_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_LARGE_BATCH_COMPLETION_STABILITY_AND_EXECUTION_LOOP_FOUNDATION_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_LARGE_BATCH_EXECUTION_WITH_EMBEDDED_BLOCKER_CLOSURE_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_LARGE_BATCH_STABILITY_WINDOW_AND_POOL_READINESS_REVIEW_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_MEDIUM_BATCH_CONTROLLED_LIVE_COMPLETION_AND_EXECUTION_CERTIFICATION_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_MEDIUM_BATCH_PROMOTION_IMPLEMENTATION_AND_REAL_5_USER_EXECUTION_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_MEDIUM_BATCH_STABILITY_WINDOW_AND_LARGE_BATCH_READINESS_CERTIFICATION_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_MEDIUM_BATCH_TARGET_DRIFT_CLOSURE_AND_REAL_5_USER_EXECUTION_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_OUTCOME_BASED_AUTONOMY_READINESS_REVIEW_AND_EVIDENCE_CERTIFICATION_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_POOL_AUTHORITY_PROMOTION_AND_BATCHED_EXECUTION_WITH_EMBEDDED_BLOCKER_CLOSURE_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_POOL_PREPARATION_GOVERNANCE_CAPACITY_SYNTHETIC_USERS_AND_EXECUTION_STRATEGY_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_POOL_PROMOTION_RULE_INTENT_REVIEW_AND_SECOND_LARGE_EVIDENCE_DECISION_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_POOL_RULE_DEADLOCK_REVIEW_EXECUTION_LATENCY_AND_PROMOTION_DECISION_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_QUALITY_SUMMARY_LINEAGE_OWNER_CLOSURE_AND_SECOND_MEDIUM_BATCH_CONTINUATION_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_SECOND_LARGE_EVIDENCE_ACQUISITION_STRATEGY_AND_GOVERNED_PATH_TO_POOL_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_SECOND_MEDIUM_BATCH_EXECUTION_STABILITY_WINDOW_AND_LARGE_BATCH_PROMOTION_GATE_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_SNAPSHOT_TRUTH_PERMANENT_ROOT_CAUSE_CLOSURE_AND_AUTONOMY_GATE_CERTIFICATION_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_SOURCE_BUNDLE_LEASE_CHAIN_CLOSURE_AND_SECOND_MEDIUM_COMPLETION_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "PROGRAM_UNIFIED_AUTHORITY_PROMOTION_OWNER_AND_FUTURE_LADDER_GOVERNANCE_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "approval_autonomy_boundary_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "authority_ladder_full_audit_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "autonomy_canary_candidate_quality_evidence/final_report_commit_safe_deploy.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "autonomy_canary_candidate_quality_evidence/final_truth_check.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "awg3_forced_closure_large_escalation_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "bounded_autonomy_readiness_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "channel_trust_recovery_explainability_evidence/final_report_push_convergence_status.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "full_egress_pool_large_capacity_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "governed_execution_loop_foundation_evidence/final_report_safe_deploy.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "governed_to_autonomy_trust_bridge_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "large_batch_completion_execution_loop_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "large_batch_execution_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "large_batch_stability_pool_readiness_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "medium_batch_controlled_live_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "medium_batch_promotion_execution_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "medium_batch_stability_large_readiness_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "medium_batch_target_drift_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "pool_authority_promotion_batched_execution_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "pool_preparation_governance_capacity_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "pool_promotion_rule_intent_review_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "pool_rule_deadlock_latency_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "quality_summary_lineage_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "second_large_evidence_path_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "second_medium_large_promotion_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "service_matrix_volatility_evidence/final_report_alignment_convergence_status.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "service_matrix_volatility_evidence/final_report_alignment_safe_deploy.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "service_matrix_volatility_evidence/final_report_alignment_truth_check.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "service_matrix_volatility_evidence/post_report_push_convergence_status.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "service_matrix_volatility_evidence/post_report_push_truth_check.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "service_matrix_volatility_evidence/post_report_safe_deploy.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "service_matrix_volatility_evidence/post_report_safe_deploy_convergence_status.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "service_matrix_volatility_evidence/post_report_safe_deploy_truth_check.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "source_bundle_lease_chain_evidence/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "trust_feedback_calibration_admin_surface_evidence/production_admin_html.html",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "trust_feedback_calibration_admin_surface_evidence/production_admin_ui_probe.txt",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "trust_feedback_calibration_admin_surface_evidence/production_operator_decision_surface.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "unified_authority_promotion_evidence/deploy_report.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "unified_authority_promotion_evidence/large_batch_evidence_review.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "unified_authority_promotion_evidence/post_deploy_convergence_status.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "unified_authority_promotion_evidence/post_deploy_convergence_status_escalated.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "unified_authority_promotion_evidence/post_deploy_truth_check.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "unified_authority_promotion_evidence/post_deploy_truth_check_escalated.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "unified_authority_promotion_evidence/safe_deploy_apply.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "unified_authority_promotion_evidence/safe_deploy_apply_escalated.json",
+          "status": "??"
+        }
+      ],
+      "info_paths": [
+        "PROGRAM_APPROVAL_AUTONOMY_BOUNDARY_REVIEW_AUTONOMY_SPECIFIC_EVIDENCE_AND_1_USER_CANARY_CERTIFICATION_REPORT.md",
+        "PROGRAM_AUTHORITY_LADDER_FULL_AUDIT_AND_FUTURE_CERTIFICATION_MAP_REPORT.md",
+        "PROGRAM_AUTONOMOUS_APPLY_DRY_RUN_SIMULATION_AND_BOUNDED_CANARY_READINESS_REPORT.md",
+        "PROGRAM_AUTONOMY_CONFIDENCE_TRUST_FLOOR_AND_1_USER_CANARY_READINESS_REPORT.md",
+        "PROGRAM_AUTONOMY_EVIDENCE_PHILOSOPHY_REVIEW_AND_GOVERNED_TO_AUTONOMY_TRUST_MODEL_REPORT.md",
+        "PROGRAM_AWG3_REALITY_AUDIT_WITH_FORCED_CLOSURE_OR_LARGE_BATCH_ESCALATION_REPORT.md",
+        "PROGRAM_BOUNDED_AUTONOMY_READINESS_REVIEW_AND_AUTONOMY_BOUNDARY_MODEL_REPORT.md",
+        "PROGRAM_FULL_EGRESS_POOL_REALITY_AUDIT_AND_LARGE_BATCH_CAPACITY_FOUNDATION_REPORT.md",
+        "PROGRAM_GOVERNED_TO_AUTONOMY_TRUST_BRIDGE_READ_ONLY_IMPLEMENTATION_AND_CERTIFICATION_REPORT.md",
+        "PROGRAM_LARGE_BATCH_COMPLETION_STABILITY_AND_EXECUTION_LOOP_FOUNDATION_REPORT.md",
+        "PROGRAM_LARGE_BATCH_EXECUTION_WITH_EMBEDDED_BLOCKER_CLOSURE_REPORT.md",
+        "PROGRAM_LARGE_BATCH_STABILITY_WINDOW_AND_POOL_READINESS_REVIEW_REPORT.md",
+        "PROGRAM_MEDIUM_BATCH_CONTROLLED_LIVE_COMPLETION_AND_EXECUTION_CERTIFICATION_REPORT.md",
+        "PROGRAM_MEDIUM_BATCH_PROMOTION_IMPLEMENTATION_AND_REAL_5_USER_EXECUTION_REPORT.md",
+        "PROGRAM_MEDIUM_BATCH_STABILITY_WINDOW_AND_LARGE_BATCH_READINESS_CERTIFICATION_REPORT.md",
+        "PROGRAM_MEDIUM_BATCH_TARGET_DRIFT_CLOSURE_AND_REAL_5_USER_EXECUTION_REPORT.md",
+        "PROGRAM_OUTCOME_BASED_AUTONOMY_READINESS_REVIEW_AND_EVIDENCE_CERTIFICATION_REPORT.md",
+        "PROGRAM_POOL_AUTHORITY_PROMOTION_AND_BATCHED_EXECUTION_WITH_EMBEDDED_BLOCKER_CLOSURE_REPORT.md",
+        "PROGRAM_POOL_PREPARATION_GOVERNANCE_CAPACITY_SYNTHETIC_USERS_AND_EXECUTION_STRATEGY_REPORT.md",
+        "PROGRAM_POOL_PROMOTION_RULE_INTENT_REVIEW_AND_SECOND_LARGE_EVIDENCE_DECISION_REPORT.md",
+        "PROGRAM_POOL_RULE_DEADLOCK_REVIEW_EXECUTION_LATENCY_AND_PROMOTION_DECISION_REPORT.md",
+        "PROGRAM_QUALITY_SUMMARY_LINEAGE_OWNER_CLOSURE_AND_SECOND_MEDIUM_BATCH_CONTINUATION_REPORT.md",
+        "PROGRAM_SECOND_LARGE_EVIDENCE_ACQUISITION_STRATEGY_AND_GOVERNED_PATH_TO_POOL_REPORT.md",
+        "PROGRAM_SECOND_MEDIUM_BATCH_EXECUTION_STABILITY_WINDOW_AND_LARGE_BATCH_PROMOTION_GATE_REPORT.md",
+        "PROGRAM_SNAPSHOT_TRUTH_PERMANENT_ROOT_CAUSE_CLOSURE_AND_AUTONOMY_GATE_CERTIFICATION_REPORT.md",
+        "PROGRAM_SOURCE_BUNDLE_LEASE_CHAIN_CLOSURE_AND_SECOND_MEDIUM_COMPLETION_REPORT.md",
+        "PROGRAM_UNIFIED_AUTHORITY_PROMOTION_OWNER_AND_FUTURE_LADDER_GOVERNANCE_REPORT.md",
+        "approval_autonomy_boundary_evidence/",
+        "authority_ladder_full_audit_evidence/",
+        "autonomy_canary_candidate_quality_evidence/final_report_commit_safe_deploy.json",
+        "autonomy_canary_candidate_quality_evidence/final_truth_check.json",
+        "awg3_forced_closure_large_escalation_evidence/",
+        "bounded_autonomy_readiness_evidence/",
+        "channel_trust_recovery_explainability_evidence/final_report_push_convergence_status.json",
+        "full_egress_pool_large_capacity_evidence/",
+        "governed_execution_loop_foundation_evidence/final_report_safe_deploy.json",
+        "governed_to_autonomy_trust_bridge_evidence/",
+        "large_batch_completion_execution_loop_evidence/",
+        "large_batch_execution_evidence/",
+        "large_batch_stability_pool_readiness_evidence/",
+        "medium_batch_controlled_live_evidence/",
+        "medium_batch_promotion_execution_evidence/",
+        "medium_batch_stability_large_readiness_evidence/",
+        "medium_batch_target_drift_evidence/",
+        "pool_authority_promotion_batched_execution_evidence/",
+        "pool_preparation_governance_capacity_evidence/",
+        "pool_promotion_rule_intent_review_evidence/",
+        "pool_rule_deadlock_latency_evidence/",
+        "quality_summary_lineage_evidence/",
+        "second_large_evidence_path_evidence/",
+        "second_medium_large_promotion_evidence/",
+        "service_matrix_volatility_evidence/final_report_alignment_convergence_status.json",
+        "service_matrix_volatility_evidence/final_report_alignment_safe_deploy.json",
+        "service_matrix_volatility_evidence/final_report_alignment_truth_check.json",
+        "service_matrix_volatility_evidence/post_report_push_convergence_status.json",
+        "service_matrix_volatility_evidence/post_report_push_truth_check.json",
+        "service_matrix_volatility_evidence/post_report_safe_deploy.json",
+        "service_matrix_volatility_evidence/post_report_safe_deploy_convergence_status.json",
+        "service_matrix_volatility_evidence/post_report_safe_deploy_truth_check.json",
+        "source_bundle_lease_chain_evidence/",
+        "trust_feedback_calibration_admin_surface_evidence/production_admin_html.html",
+        "trust_feedback_calibration_admin_surface_evidence/production_admin_ui_probe.txt",
+        "trust_feedback_calibration_admin_surface_evidence/production_operator_decision_surface.json",
+        "unified_authority_promotion_evidence/deploy_report.json",
+        "unified_authority_promotion_evidence/large_batch_evidence_review.json",
+        "unified_authority_promotion_evidence/post_deploy_convergence_status.json",
+        "unified_authority_promotion_evidence/post_deploy_convergence_status_escalated.json",
+        "unified_authority_promotion_evidence/post_deploy_truth_check.json",
+        "unified_authority_promotion_evidence/post_deploy_truth_check_escalated.json",
+        "unified_authority_promotion_evidence/safe_deploy_apply.json",
+        "unified_authority_promotion_evidence/safe_deploy_apply_escalated.json"
+      ],
+      "warning": false,
+      "warning_paths": []
+    },
+    "final_verdict": "PASS",
+    "git_status_short": "?? PROGRAM_APPROVAL_AUTONOMY_BOUNDARY_REVIEW_AUTONOMY_SPECIFIC_EVIDENCE_AND_1_USER_CANARY_CERTIFICATION_REPORT.md\n?? PROGRAM_AUTHORITY_LADDER_FULL_AUDIT_AND_FUTURE_CERTIFICATION_MAP_REPORT.md\n?? PROGRAM_AUTONOMOUS_APPLY_DRY_RUN_SIMULATION_AND_BOUNDED_CANARY_READINESS_REPORT.md\n?? PROGRAM_AUTONOMY_CONFIDENCE_TRUST_FLOOR_AND_1_USER_CANARY_READINESS_REPORT.md\n?? PROGRAM_AUTONOMY_EVIDENCE_PHILOSOPHY_REVIEW_AND_GOVERNED_TO_AUTONOMY_TRUST_MODEL_REPORT.md\n?? PROGRAM_AWG3_REALITY_AUDIT_WITH_FORCED_CLOSURE_OR_LARGE_BATCH_ESCALATION_REPORT.md\n?? PROGRAM_BOUNDED_AUTONOMY_READINESS_REVIEW_AND_AUTONOMY_BOUNDARY_MODEL_REPORT.md\n?? PROGRAM_FULL_EGRESS_POOL_REALITY_AUDIT_AND_LARGE_BATCH_CAPACITY_FOUNDATION_REPORT.md\n?? PROGRAM_GOVERNED_TO_AUTONOMY_TRUST_BRIDGE_READ_ONLY_IMPLEMENTATION_AND_CERTIFICATION_REPORT.md\n?? PROGRAM_LARGE_BATCH_COMPLETION_STABILITY_AND_EXECUTION_LOOP_FOUNDATION_REPORT.md\n?? PROGRAM_LARGE_BATCH_EXECUTION_WITH_EMBEDDED_BLOCKER_CLOSURE_REPORT.md\n?? PROGRAM_LARGE_BATCH_STABILITY_WINDOW_AND_POOL_READINESS_REVIEW_REPORT.md\n?? PROGRAM_MEDIUM_BATCH_CONTROLLED_LIVE_COMPLETION_AND_EXECUTION_CERTIFICATION_REPORT.md\n?? PROGRAM_MEDIUM_BATCH_PROMOTION_IMPLEMENTATION_AND_REAL_5_USER_EXECUTION_REPORT.md\n?? PROGRAM_MEDIUM_BATCH_STABILITY_WINDOW_AND_LARGE_BATCH_READINESS_CERTIFICATION_REPORT.md\n?? PROGRAM_MEDIUM_BATCH_TARGET_DRIFT_CLOSURE_AND_REAL_5_USER_EXECUTION_REPORT.md\n?? PROGRAM_OUTCOME_BASED_AUTONOMY_READINESS_REVIEW_AND_EVIDENCE_CERTIFICATION_REPORT.md\n?? PROGRAM_POOL_AUTHORITY_PROMOTION_AND_BATCHED_EXECUTION_WITH_EMBEDDED_BLOCKER_CLOSURE_REPORT.md\n?? PROGRAM_POOL_PREPARATION_GOVERNANCE_CAPACITY_SYNTHETIC_USERS_AND_EXECUTION_STRATEGY_REPORT.md\n?? PROGRAM_POOL_PROMOTION_RULE_INTENT_REVIEW_AND_SECOND_LARGE_EVIDENCE_DECISION_REPORT.md\n?? PROGRAM_POOL_RULE_DEADLOCK_REVIEW_EXECUTION_LATENCY_AND_PROMOTION_DECISION_REPORT.md\n?? PROGRAM_QUALITY_SUMMARY_LINEAGE_OWNER_CLOSURE_AND_SECOND_MEDIUM_BATCH_CONTINUATION_REPORT.md\n?? PROGRAM_SECOND_LARGE_EVIDENCE_ACQUISITION_STRATEGY_AND_GOVERNED_PATH_TO_POOL_REPORT.md\n?? PROGRAM_SECOND_MEDIUM_BATCH_EXECUTION_STABILITY_WINDOW_AND_LARGE_BATCH_PROMOTION_GATE_REPORT.md\n?? PROGRAM_SNAPSHOT_TRUTH_PERMANENT_ROOT_CAUSE_CLOSURE_AND_AUTONOMY_GATE_CERTIFICATION_REPORT.md\n?? PROGRAM_SOURCE_BUNDLE_LEASE_CHAIN_CLOSURE_AND_SECOND_MEDIUM_COMPLETION_REPORT.md\n?? PROGRAM_UNIFIED_AUTHORITY_PROMOTION_OWNER_AND_FUTURE_LADDER_GOVERNANCE_REPORT.md\n?? approval_autonomy_boundary_evidence/\n?? authority_ladder_full_audit_evidence/\n?? autonomy_canary_candidate_quality_evidence/final_report_commit_safe_deploy.json\n?? autonomy_canary_candidate_quality_evidence/final_truth_check.json\n?? awg3_forced_closure_large_escalation_evidence/\n?? bounded_autonomy_readiness_evidence/\n?? channel_trust_recovery_explainability_evidence/final_report_push_convergence_status.json\n?? full_egress_pool_large_capacity_evidence/\n?? governed_execution_loop_foundation_evidence/final_report_safe_deploy.json\n?? governed_to_autonomy_trust_bridge_evidence/\n?? large_batch_completion_execution_loop_evidence/\n?? large_batch_execution_evidence/\n?? large_batch_stability_pool_readiness_evidence/\n?? medium_batch_controlled_live_evidence/\n?? medium_batch_promotion_execution_evidence/\n?? medium_batch_stability_large_readiness_evidence/\n?? medium_batch_target_drift_evidence/\n?? pool_authority_promotion_batched_execution_evidence/\n?? pool_preparation_governance_capacity_evidence/\n?? pool_promotion_rule_intent_review_evidence/\n?? pool_rule_deadlock_latency_evidence/\n?? quality_summary_lineage_evidence/\n?? second_large_evidence_path_evidence/\n?? second_medium_large_promotion_evidence/\n?? service_matrix_volatility_evidence/final_report_alignment_convergence_status.json\n?? service_matrix_volatility_evidence/final_report_alignment_safe_deploy.json\n?? service_matrix_volatility_evidence/final_report_alignment_truth_check.json\n?? service_matrix_volatility_evidence/post_report_push_convergence_status.json\n?? service_matrix_volatility_evidence/post_report_push_truth_check.json\n?? service_matrix_volatility_evidence/post_report_safe_deploy.json\n?? service_matrix_volatility_evidence/post_report_safe_deploy_convergence_status.json\n?? service_matrix_volatility_evidence/post_report_safe_deploy_truth_check.json\n?? source_bundle_lease_chain_evidence/\n?? trust_feedback_calibration_admin_surface_evidence/production_admin_html.html\n?? trust_feedback_calibration_admin_surface_evidence/production_admin_ui_probe.txt\n?? trust_feedback_calibration_admin_surface_evidence/production_operator_decision_surface.json\n?? unified_authority_promotion_evidence/deploy_report.json\n?? unified_authority_promotion_evidence/large_batch_evidence_review.json\n?? unified_authority_promotion_evidence/post_deploy_convergence_status.json\n?? unified_authority_promotion_evidence/post_deploy_convergence_status_escalated.json\n?? unified_authority_promotion_evidence/post_deploy_truth_check.json\n?? unified_authority_promotion_evidence/post_deploy_truth_check_escalated.json\n?? unified_authority_promotion_evidence/safe_deploy_apply.json\n?? unified_authority_promotion_evidence/safe_deploy_apply_escalated.json",
+    "origin_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+    "warnings": [
+      "documentation_dirty_ignored"
+    ],
+    "worktree_list": "worktree /Users/ponch/Documents/New project\nHEAD 8063054d0cd4e7fdeb5c82d6105b9d6ce09fa171\nbranch refs/heads/Updatesystem\n\nworktree /private/tmp/v7-convergence-c\nHEAD c40cae13298594b7ad7040df4b19306c4e2c29d4\nbranch refs/heads/v7-next\nprunable gitdir file points to non-existent location\n\nworktree /private/tmp/v7-vozduh-main\nHEAD 593619d494e215d11fd826086593527a4a555690\ndetached\nprunable gitdir file points to non-existent location"
+  },
+  "mode": "all",
+  "remote_branch_commit": "8063054d0cd4e7fdeb5c82d6105b9d6ce09fa171",
+  "runtime": {
+    "allowed_readonly_commands": [
+      [
+        "hostname"
+      ],
+      [
+        "date",
+        "-Is"
+      ],
+      [
+        "pwd"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7"
+      ],
+      [
+        "git",
+        "-C",
+        "/opt/v7",
+        "branch",
+        "--show-current"
+      ],
+      [
+        "git",
+        "-C",
+        "/opt/v7",
+        "rev-parse",
+        "HEAD"
+      ],
+      [
+        "git",
+        "-C",
+        "/opt/v7",
+        "status",
+        "--short"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-users-autoswitch"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-audit-log"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-admin-api"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-intelligence-snapshot-refresh"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-service-matrix-refresh-all"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-service-matrix-test"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-egress-quality-compact"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-users-autoswitch.service",
+        "--no-pager"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-users-autoswitch.timer",
+        "--no-pager"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-admin-api.service",
+        "--no-pager"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-intelligence-snapshot-refresh.service",
+        "--no-pager"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-intelligence-snapshot-refresh.timer",
+        "--no-pager"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-users-autoswitch"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-audit-log"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-admin-api"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-intelligence-snapshot-refresh"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-service-matrix-refresh-all"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-service-matrix-test"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-egress-quality-compact"
+      ],
+      [
+        "/usr/local/bin/v7-users-autoswitch",
+        "--pretty"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/egress/state"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/egress/state/intelligence"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/audit"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/events"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/admin"
+      ]
+    ],
+    "blockers": [],
+    "convergence_status": "RUNTIME_ALIGNED",
+    "deployment_model": "copied_binaries_from_safe_sync_manifest",
+    "derived": {
+      "admin_service_active": true,
+      "audit_path_available": true,
+      "autoswitch_scheduler_active": false,
+      "autoswitch_service_active": false,
+      "binary_hashes_known": true,
+      "binary_hashes_match_authoritative": true,
+      "closure_path_available": true,
+      "deploy_branch": "Updatesystem",
+      "deploy_commit": "8063054d0cd4e7fdeb5c82d6105b9d6ce09fa171",
+      "deploy_id": "deploy-z8-14-Updatesystem-8063054-20260609T090454",
+      "deployment_model": "copied_binaries_from_safe_sync_manifest",
+      "execution_store_available": true,
+      "operation_wiring_present": true,
+      "restore_barrier_known": true,
+      "runtime_branch": "",
+      "runtime_commit": "",
+      "runtime_fingerprint_known": true,
+      "runtime_identity_model": "copied_binaries_from_safe_sync_manifest",
+      "runtime_provenance_known": true,
+      "runtime_root_is_git_checkout": false,
+      "scheduler_inactive_approved_manual_mode": true,
+      "scheduler_truth_known": true,
+      "service_inactive_explained": true,
+      "service_status_known": true,
+      "snapshot_refresh_cli_available": true,
+      "snapshot_refresh_mechanism_known": true,
+      "snapshot_required_files_known": true,
+      "snapshot_root_known": true,
+      "state_truth_known": true
+    },
+    "expected_binaries": [
+      "/usr/local/bin/v7-users-autoswitch",
+      "/usr/local/bin/v7-audit-log"
+    ],
+    "expected_services": [
+      "v7-users-autoswitch.service",
+      "v7-users-autoswitch.timer"
+    ],
+    "final_verdict": "PASS",
+    "local_commit": "8063054d0cd4e7fdeb5c82d6105b9d6ce09fa171",
+    "missing_commands": [],
+    "runtime_access_status": "READY",
+    "runtime_branch": "Updatesystem",
+    "runtime_commit": "8063054d0cd4e7fdeb5c82d6105b9d6ce09fa171",
+    "runtime_root": "/opt/v7",
+    "runtime_snapshot_path": ".v7/runtime_convergence_snapshot.json",
+    "runtime_snapshot_schema": "v7-runtime-truth-snapshot/v1",
+    "runtime_truth_status": "KNOWN",
+    "state_root": "/opt/v7/egress/state",
+    "state_truth_status": "KNOWN",
+    "unknown_commands": []
+  },
+  "runtime_access_status": "READY",
+  "runtime_truth_status": "KNOWN",
+  "schema": "v7-truth-check/v1",
+  "state_truth_status": "KNOWN",
+  "warnings": [
+    "documentation_dirty_ignored"
+  ]
+}

@@ -9,6 +9,7 @@ class TruthPathClassificationTest(unittest.TestCase):
         for path in (
             "EXEC1_EVIDENCE/autoswitch_plan_summary.json",
             "SNAP1_CLOSE_EVIDENCE/truth_final_summary.json",
+            "tests/unit/test_truth_path_classification.py",
         ):
             self.assertTrue(v7_sync_lib.is_docs_only_change(path))
 

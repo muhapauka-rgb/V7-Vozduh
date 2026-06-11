@@ -915,9 +915,12 @@ def is_docs_only_change(path: str) -> bool:
     if not normalized:
         return False
     first = normalized.split("/", 1)[0]
+    first_lower = first.lower()
     return (
         normalized.startswith(DOCS_ONLY_CHANGE_PREFIXES)
-        or first.endswith("_evidence")
+        or first_lower.endswith("_evidence")
+        or first_lower.endswith("-evidence")
+        or first_lower.endswith("evidence")
         or (normalized.startswith("PROGRAM_") and normalized.endswith(".md"))
         or normalized.endswith("_REPORT.md")
     )

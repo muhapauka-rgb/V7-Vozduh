@@ -181,7 +181,7 @@ def is_generated_report_path(path: str) -> bool:
 
 
 def is_evidence_path(path: str) -> bool:
-    parts = Path(path).parts
+    parts = tuple(part.lower() for part in Path(path).parts)
     return any(part.endswith("-evidence") or part.endswith("_evidence") or part.endswith("evidence") for part in parts)
 
 

@@ -1,0 +1,188 @@
+{
+  "statistics": {
+    "total_cycles": 234,
+    "ranking_changes": 234,
+    "winner_changes": 0,
+    "top3_changes": 234,
+    "pool_changes": 0,
+    "positive_changes": 0,
+    "negative_changes": 0,
+    "neutral_changes": 234,
+    "ctr_usefulness_score": 50.0,
+    "ctr_confidence_score": 100.0
+  },
+  "ctr_state_analysis": {
+    "TRUSTED": {
+      "candidates": 936,
+      "promoted": 936,
+      "demoted": 0,
+      "unchanged": 0,
+      "winner_count": 0,
+      "top3_count": 468
+    },
+    "WATCH": {
+      "candidates": 0,
+      "promoted": 0,
+      "demoted": 0,
+      "unchanged": 0,
+      "winner_count": 0,
+      "top3_count": 0
+    },
+    "NEW": {
+      "candidates": 0,
+      "promoted": 0,
+      "demoted": 0,
+      "unchanged": 0,
+      "winner_count": 0,
+      "top3_count": 0
+    },
+    "RECOVERING": {
+      "candidates": 0,
+      "promoted": 0,
+      "demoted": 0,
+      "unchanged": 0,
+      "winner_count": 0,
+      "top3_count": 0
+    },
+    "DEGRADED": {
+      "candidates": 234,
+      "promoted": 0,
+      "demoted": 0,
+      "unchanged": 234,
+      "winner_count": 234,
+      "top3_count": 234
+    },
+    "QUARANTINED": {
+      "candidates": 468,
+      "promoted": 0,
+      "demoted": 468,
+      "unchanged": 0,
+      "winner_count": 0,
+      "top3_count": 0
+    },
+    "UNKNOWN": {
+      "candidates": 0,
+      "promoted": 0,
+      "demoted": 0,
+      "unchanged": 0,
+      "winner_count": 0,
+      "top3_count": 0
+    }
+  },
+  "service_aware_certification": {
+    "telegram": {
+      "improved": 0,
+      "regressed": 0,
+      "neutral": 234
+    },
+    "youtube": {
+      "improved": 0,
+      "regressed": 0,
+      "neutral": 234
+    },
+    "instagram": {
+      "improved": 0,
+      "regressed": 0,
+      "neutral": 234
+    },
+    "chatgpt": {
+      "improved": 0,
+      "regressed": 0,
+      "neutral": 234
+    },
+    "google": {
+      "improved": 0,
+      "regressed": 0,
+      "neutral": 234
+    }
+  },
+  "coefficient_calibration": {
+    "MODEL_A_CURRENT": {
+      "coefficients": {
+        "TRUSTED": 20.0,
+        "WATCH": 0.0,
+        "NEW": -8.0,
+        "RECOVERING": -12.0,
+        "DEGRADED": -18.0,
+        "QUARANTINED": -24.0,
+        "UNKNOWN": 0.0
+      },
+      "statistics": {
+        "ranking_changes": 234,
+        "winner_changes": 0,
+        "top3_changes": 234,
+        "pool_changes": 0,
+        "quality_improvements": 0,
+        "quality_regressions": 0,
+        "quality_neutral": 0,
+        "service_improvements": 0,
+        "service_regressions": 0,
+        "service_neutral": 0
+      },
+      "verdict": "NEUTRAL"
+    },
+    "MODEL_B_CONSERVATIVE": {
+      "coefficients": {
+        "TRUSTED": 10.0,
+        "WATCH": 0.0,
+        "NEW": -4.0,
+        "RECOVERING": -6.0,
+        "DEGRADED": -9.0,
+        "QUARANTINED": -12.0,
+        "UNKNOWN": 0.0
+      },
+      "statistics": {
+        "ranking_changes": 234,
+        "winner_changes": 0,
+        "top3_changes": 234,
+        "pool_changes": 0,
+        "quality_improvements": 0,
+        "quality_regressions": 0,
+        "quality_neutral": 0,
+        "service_improvements": 0,
+        "service_regressions": 0,
+        "service_neutral": 0
+      },
+      "verdict": "NEUTRAL"
+    },
+    "MODEL_C_AGGRESSIVE": {
+      "coefficients": {
+        "TRUSTED": 40.0,
+        "WATCH": 0.0,
+        "NEW": -16.0,
+        "RECOVERING": -24.0,
+        "DEGRADED": -36.0,
+        "QUARANTINED": -48.0,
+        "UNKNOWN": 0.0
+      },
+      "statistics": {
+        "ranking_changes": 234,
+        "winner_changes": 0,
+        "top3_changes": 234,
+        "pool_changes": 0,
+        "quality_improvements": 0,
+        "quality_regressions": 0,
+        "quality_neutral": 0,
+        "service_improvements": 0,
+        "service_regressions": 0,
+        "service_neutral": 0
+      },
+      "verdict": "NEUTRAL"
+    }
+  },
+  "readiness_review": {
+    "soft_score_influence": "NOT_READY",
+    "planner_influence": "NOT_READY",
+    "pool_influence": "NOT_READY",
+    "more_observation_required": true
+  },
+  "final_verdict": "CTR_NEUTRAL",
+  "no_bypass": {
+    "selected_moves_changed": false,
+    "planner_ranking_changed": false,
+    "routing_changed": false,
+    "runtime_changed": false,
+    "governance_authority_changed": false,
+    "packet_authority_changed": false
+  }
+}

@@ -1,0 +1,9 @@
+tests/unit/test_channel_trust_recovery.py
+tests/unit/test_ctr_i1_no_bypass.py
+tests/unit/test_ctr_i2_review_required.py
+tests/unit/test_ctr_i5_observation_window.py
+tests/unit/test_intelligence_workers.py
+tests/unit/test_operator_decision_surface.py
+tests/unit/test_operator_execution_feedback.py
+tests/unit/test_operator_execution_pipeline.py
+tests/unit/test_v7_users_autoswitch_policy.py

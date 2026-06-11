@@ -1,0 +1,462 @@
+[
+  {
+    "egress": "vless",
+    "ctr_states": [
+      "DEGRADED"
+    ],
+    "total": 26,
+    "eligible": 26,
+    "ineligible": 0,
+    "avg_score": 45398.63000000002,
+    "max_score": 1857.38,
+    "blockers": [],
+    "top_reasons": [
+      {
+        "reason": "best_available_pool_rank_1",
+        "count": 26
+      },
+      {
+        "reason": "quality_floor_overridden_by_service_evidence",
+        "count": 26
+      },
+      {
+        "reason": "quality_history_fail_rate_high_advisory",
+        "count": 26
+      },
+      {
+        "reason": "route_class_VIDEO_OPTIMIZED_warn",
+        "count": 26
+      },
+      {
+        "reason": "service_google_ok",
+        "count": 26
+      },
+      {
+        "reason": "service_telegram_ok",
+        "count": 26
+      },
+      {
+        "reason": "service_youtube_ok",
+        "count": 26
+      },
+      {
+        "reason": "severity_protocol_diagnostic_limited_suspect",
+        "count": 26
+      },
+      {
+        "reason": "service_google_auth_degraded",
+        "count": 25
+      },
+      {
+        "reason": "service_google_auth_failed_samples_1",
+        "count": 25
+      },
+      {
+        "reason": "service_google_auth_transient_fail",
+        "count": 25
+      },
+      {
+        "reason": "service_instagram_ok",
+        "count": 25
+      },
+      {
+        "reason": "service_signal_DEGRADED_SERVICE",
+        "count": 25
+      }
+    ]
+  },
+  {
+    "egress": "1",
+    "ctr_states": [
+      "QUARANTINED"
+    ],
+    "total": 26,
+    "eligible": 0,
+    "ineligible": 26,
+    "avg_score": 0,
+    "max_score": 0.0,
+    "blockers": [
+      {
+        "blocker": "avg_mbps_below_floor",
+        "count": 26
+      },
+      {
+        "blocker": "health_code_000",
+        "count": 26
+      },
+      {
+        "blocker": "min_mbps_below_floor",
+        "count": 26
+      },
+      {
+        "blocker": "severity_FAIL",
+        "count": 26
+      },
+      {
+        "blocker": "telegram_required_telegram_down_14s",
+        "count": 26
+      }
+    ],
+    "top_reasons": [
+      {
+        "reason": "quality_history_fail_rate_high_advisory",
+        "count": 26
+      },
+      {
+        "reason": "route_class_VIDEO_OPTIMIZED_failed_nonpersistent_service_truth",
+        "count": 26
+      },
+      {
+        "reason": "service_google_degraded",
+        "count": 26
+      },
+      {
+        "reason": "service_google_failed_samples_1",
+        "count": 26
+      },
+      {
+        "reason": "service_google_transient_fail",
+        "count": 26
+      },
+      {
+        "reason": "service_multiple_transient_failed_degraded",
+        "count": 26
+      },
+      {
+        "reason": "service_signal_DEGRADED_SERVICE",
+        "count": 26
+      },
+      {
+        "reason": "service_signal_ROUTE_FAIL_REVALIDATION_REQUIRED",
+        "count": 26
+      },
+      {
+        "reason": "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+        "count": 26
+      },
+      {
+        "reason": "service_youtube_degraded",
+        "count": 26
+      },
+      {
+        "reason": "service_youtube_failed_samples_1",
+        "count": 26
+      },
+      {
+        "reason": "service_youtube_transient_fail",
+        "count": 26
+      },
+      {
+        "reason": "service_google_auth_degraded",
+        "count": 25
+      },
+      {
+        "reason": "service_google_auth_failed_samples_1",
+        "count": 25
+      },
+      {
+        "reason": "service_google_auth_transient_fail",
+        "count": 25
+      }
+    ]
+  },
+  {
+    "egress": "amneziawg-exec-20260528-10-8-1-14",
+    "ctr_states": [
+      "TRUSTED"
+    ],
+    "total": 26,
+    "eligible": 0,
+    "ineligible": 26,
+    "avg_score": 0,
+    "max_score": 0.0,
+    "blockers": [
+      {
+        "blocker": "canary_reserved_production_assignment_blocked",
+        "count": 26
+      },
+      {
+        "blocker": "manual_only",
+        "count": 26
+      },
+      {
+        "blocker": "min_mbps_below_floor",
+        "count": 26
+      },
+      {
+        "blocker": "reserve_only",
+        "count": 26
+      },
+      {
+        "blocker": "stability_below_floor",
+        "count": 26
+      }
+    ],
+    "top_reasons": [
+      {
+        "reason": "avg_mbps_below_floor_but_1h_avg_ok",
+        "count": 26
+      },
+      {
+        "reason": "route_class_VIDEO_OPTIMIZED_ok",
+        "count": 26
+      },
+      {
+        "reason": "service_google_ok",
+        "count": 26
+      },
+      {
+        "reason": "service_telegram_ok",
+        "count": 26
+      },
+      {
+        "reason": "service_youtube_ok",
+        "count": 26
+      },
+      {
+        "reason": "service_google_auth_ok",
+        "count": 25
+      },
+      {
+        "reason": "service_instagram_ok",
+        "count": 25
+      }
+    ]
+  },
+  {
+    "egress": "awg0",
+    "ctr_states": [
+      "TRUSTED"
+    ],
+    "total": 26,
+    "eligible": 0,
+    "ineligible": 26,
+    "avg_score": 0,
+    "max_score": 0.0,
+    "blockers": [
+      {
+        "blocker": "stability_below_floor",
+        "count": 26
+      }
+    ],
+    "top_reasons": [
+      {
+        "reason": "avg_mbps_below_floor_but_1h_avg_ok",
+        "count": 26
+      },
+      {
+        "reason": "min_mbps_below_floor_contextual_warning",
+        "count": 26
+      },
+      {
+        "reason": "route_class_VIDEO_OPTIMIZED_ok",
+        "count": 26
+      },
+      {
+        "reason": "service_google_ok",
+        "count": 26
+      },
+      {
+        "reason": "service_telegram_ok",
+        "count": 26
+      },
+      {
+        "reason": "service_youtube_ok",
+        "count": 26
+      },
+      {
+        "reason": "service_google_auth_ok",
+        "count": 25
+      },
+      {
+        "reason": "service_instagram_ok",
+        "count": 25
+      }
+    ]
+  },
+  {
+    "egress": "awg3",
+    "ctr_states": [
+      "TRUSTED"
+    ],
+    "total": 26,
+    "eligible": 0,
+    "ineligible": 26,
+    "avg_score": 0,
+    "max_score": 0.0,
+    "blockers": [
+      {
+        "blocker": "min_mbps_below_floor",
+        "count": 26
+      },
+      {
+        "blocker": "stability_below_floor",
+        "count": 26
+      }
+    ],
+    "top_reasons": [
+      {
+        "reason": "route_class_VIDEO_OPTIMIZED_ok",
+        "count": 26
+      },
+      {
+        "reason": "service_google_ok",
+        "count": 26
+      },
+      {
+        "reason": "service_telegram_ok",
+        "count": 26
+      },
+      {
+        "reason": "service_youtube_ok",
+        "count": 26
+      },
+      {
+        "reason": "service_google_auth_ok",
+        "count": 25
+      },
+      {
+        "reason": "service_instagram_ok",
+        "count": 25
+      }
+    ]
+  },
+  {
+    "egress": "openvpn-1779388847-d2ad7c",
+    "ctr_states": [
+      "QUARANTINED"
+    ],
+    "total": 26,
+    "eligible": 0,
+    "ineligible": 26,
+    "avg_score": 0,
+    "max_score": 0.0,
+    "blockers": [
+      {
+        "blocker": "avg_mbps_below_floor",
+        "count": 26
+      },
+      {
+        "blocker": "health_code_000",
+        "count": 26
+      },
+      {
+        "blocker": "min_mbps_below_floor",
+        "count": 26
+      },
+      {
+        "blocker": "severity_FAIL",
+        "count": 26
+      },
+      {
+        "blocker": "telegram_required_telegram_down_14s",
+        "count": 26
+      }
+    ],
+    "top_reasons": [
+      {
+        "reason": "quality_history_fail_rate_high_advisory",
+        "count": 26
+      },
+      {
+        "reason": "route_class_VIDEO_OPTIMIZED_failed_nonpersistent_service_truth",
+        "count": 26
+      },
+      {
+        "reason": "service_google_degraded",
+        "count": 26
+      },
+      {
+        "reason": "service_google_failed_samples_1",
+        "count": 26
+      },
+      {
+        "reason": "service_google_transient_fail",
+        "count": 26
+      },
+      {
+        "reason": "service_multiple_transient_failed_degraded",
+        "count": 26
+      },
+      {
+        "reason": "service_signal_DEGRADED_SERVICE",
+        "count": 26
+      },
+      {
+        "reason": "service_signal_ROUTE_FAIL_REVALIDATION_REQUIRED",
+        "count": 26
+      },
+      {
+        "reason": "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+        "count": 26
+      },
+      {
+        "reason": "service_youtube_degraded",
+        "count": 26
+      },
+      {
+        "reason": "service_youtube_failed_samples_1",
+        "count": 26
+      },
+      {
+        "reason": "service_youtube_transient_fail",
+        "count": 26
+      },
+      {
+        "reason": "service_google_auth_degraded",
+        "count": 25
+      },
+      {
+        "reason": "service_google_auth_failed_samples_1",
+        "count": 25
+      },
+      {
+        "reason": "service_google_auth_transient_fail",
+        "count": 25
+      }
+    ]
+  },
+  {
+    "egress": "wireguard-1779454504-c43409",
+    "ctr_states": [
+      "TRUSTED"
+    ],
+    "total": 26,
+    "eligible": 0,
+    "ineligible": 26,
+    "avg_score": 0,
+    "max_score": 0.0,
+    "blockers": [
+      {
+        "blocker": "canary_reserved_production_assignment_blocked",
+        "count": 26
+      }
+    ],
+    "top_reasons": [
+      {
+        "reason": "route_class_VIDEO_OPTIMIZED_ok",
+        "count": 26
+      },
+      {
+        "reason": "service_google_ok",
+        "count": 26
+      },
+      {
+        "reason": "service_telegram_ok",
+        "count": 26
+      },
+      {
+        "reason": "service_youtube_ok",
+        "count": 26
+      },
+      {
+        "reason": "service_google_auth_ok",
+        "count": 25
+      },
+      {
+        "reason": "service_instagram_ok",
+        "count": 25
+      }
+    ]
+  }
+]

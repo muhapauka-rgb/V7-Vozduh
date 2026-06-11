@@ -1,0 +1,57 @@
+{
+  "fixture_ok": {
+    "candidate_ctr_fields": true,
+    "simulation_fields": true,
+    "no_bypass": true,
+    "selected_moves_count": 0,
+    "apply_requested": false,
+    "review_matrix_pass": {
+      "DEGRADED": true,
+      "NEW": true,
+      "QUARANTINED": true,
+      "RECOVERING": true,
+      "TRUSTED": true,
+      "WATCH": true
+    }
+  },
+  "packet_ok": {
+    "execution_allowed_now": false,
+    "ctr_review": {
+      "approval_authority": "none",
+      "denial_authority": "none",
+      "emergency_only": false,
+      "execution_authority_changed": false,
+      "packet_authority_changed": false,
+      "review_category": "degraded_channel_review",
+      "review_next_action": "Обновить проверки.",
+      "review_recommendation": "Не использовать как обычную цель без review.",
+      "review_required": true,
+      "review_required_reasons": [
+        "ctr_state_requires_operator_review"
+      ],
+      "review_severity": "high",
+      "review_warning": "Сначала проверить причину деградации."
+    }
+  },
+  "shadow_ok": {
+    "keys": {
+      "ctr_simulated_ranking": true,
+      "current_ranking": true,
+      "different_pool_order": true,
+      "different_top3": true,
+      "quality_delta": true,
+      "same_winner": true,
+      "service_aware_validation": true,
+      "winner_with_ctr": true,
+      "winner_without_ctr": true
+    },
+    "no_bypass": {
+      "governance_authority_changed": false,
+      "packet_authority_changed": false,
+      "planner_ranking_changed": false,
+      "routing_changed": false,
+      "runtime_behavior_changed": false,
+      "selected_moves_changed": false
+    }
+  }
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "blocker": "min_mbps_below_floor",
+    "count": 104
+  },
+  {
+    "blocker": "stability_below_floor",
+    "count": 78
+  },
+  {
+    "blocker": "avg_mbps_below_floor",
+    "count": 52
+  },
+  {
+    "blocker": "canary_reserved_production_assignment_blocked",
+    "count": 52
+  },
+  {
+    "blocker": "health_code_000",
+    "count": 52
+  },
+  {
+    "blocker": "severity_FAIL",
+    "count": 52
+  },
+  {
+    "blocker": "telegram_required_telegram_down_14s",
+    "count": 52
+  },
+  {
+    "blocker": "manual_only",
+    "count": 26
+  },
+  {
+    "blocker": "reserve_only",
+    "count": 26
+  }
+]

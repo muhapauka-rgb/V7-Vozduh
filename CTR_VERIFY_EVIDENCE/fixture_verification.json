@@ -1,0 +1,194 @@
+{
+  "all_candidate_ctr_fields_present": true,
+  "all_candidate_simulation_fields_present": true,
+  "all_no_bypass_candidate_flags": true,
+  "ctr_candidate_checks": [
+    {
+      "ctr_fields_present": {
+        "advisory_score": true,
+        "blocked_actions": true,
+        "confidence": true,
+        "reason": true,
+        "recommended_action": true,
+        "recovery_path": true,
+        "recovery_state": true,
+        "soft_adjustment": true,
+        "state": true
+      },
+      "egress": "1",
+      "eligible": true,
+      "hard_gate_applied": false,
+      "planner_score_applied": false,
+      "runtime_behavior_changed": false,
+      "score_unchanged_by_ctr": true,
+      "selected_moves_changed": false,
+      "simulation_fields_present": {
+        "ctr_soft_adjustment": true,
+        "existing_score": true,
+        "ranking_delta": true,
+        "simulated_score": true
+      },
+      "target_suppression_applied": false
+    },
+    {
+      "ctr_fields_present": {
+        "advisory_score": true,
+        "blocked_actions": true,
+        "confidence": true,
+        "reason": true,
+        "recommended_action": true,
+        "recovery_path": true,
+        "recovery_state": true,
+        "soft_adjustment": true,
+        "state": true
+      },
+      "egress": "vless",
+      "eligible": true,
+      "hard_gate_applied": false,
+      "planner_score_applied": false,
+      "runtime_behavior_changed": false,
+      "score_unchanged_by_ctr": true,
+      "selected_moves_changed": false,
+      "simulation_fields_present": {
+        "ctr_soft_adjustment": true,
+        "existing_score": true,
+        "ranking_delta": true,
+        "simulated_score": true
+      },
+      "target_suppression_applied": false
+    }
+  ],
+  "fixture_states_required": [
+    "TRUSTED",
+    "WATCH",
+    "NEW",
+    "RECOVERING",
+    "DEGRADED",
+    "QUARANTINED"
+  ],
+  "packet_blocked_actions": [
+    "direct_user_switch",
+    "autoswitch_apply_without_restore_barrier",
+    "execution_without_rollback_packet"
+  ],
+  "packet_ctr_required_fields_present": {
+    "blocked_actions": false,
+    "emergency_only": true,
+    "recommended_action": false,
+    "recovery_path": false,
+    "review_category": true,
+    "review_reason": false,
+    "review_required": true,
+    "review_severity": true
+  },
+  "packet_ctr_review": {
+    "approval_authority": "none",
+    "denial_authority": "none",
+    "emergency_only": false,
+    "execution_authority_changed": false,
+    "packet_authority_changed": false,
+    "review_category": "degraded_channel_review",
+    "review_next_action": "Обновить проверки.",
+    "review_recommendation": "Не использовать как обычную цель без review.",
+    "review_required": true,
+    "review_required_reasons": [
+      "ctr_state_requires_operator_review"
+    ],
+    "review_severity": "high",
+    "review_warning": "Сначала проверить причину деградации."
+  },
+  "packet_execution_allowed_now": false,
+  "packet_schema": "v7.operator-recommendation-approval-intent.v1",
+  "plan_apply_requested": false,
+  "review_matrix": {
+    "DEGRADED": {
+      "emergency_only": false,
+      "next_action": "Обновить проверки и подтвердить, что риск понятен.",
+      "review_category": "degraded_channel_review",
+      "review_reason": "Есть просадка качества или сервисов.",
+      "review_recommendation": "Не использовать как обычную цель без review.",
+      "review_required": true,
+      "review_severity": "high",
+      "review_warning": "Сначала проверить причину деградации."
+    },
+    "NEW": {
+      "emergency_only": false,
+      "next_action": "Проверить сервисы, доверие и recovery path.",
+      "review_category": "new_channel_review",
+      "review_reason": "Недостаточно успешной истории.",
+      "review_recommendation": "Использовать только после явного review.",
+      "review_required": true,
+      "review_severity": "medium",
+      "review_warning": "Новый канал нельзя расширять автоматически."
+    },
+    "QUARANTINED": {
+      "emergency_only": true,
+      "next_action": "Починить причину и пройти recovery path.",
+      "review_category": "emergency_only_review",
+      "review_reason": "Канал в карантине.",
+      "review_recommendation": "Только emergency или rollback review.",
+      "review_required": true,
+      "review_severity": "critical",
+      "review_warning": "Нельзя использовать как обычную цель."
+    },
+    "RECOVERING": {
+      "emergency_only": false,
+      "next_action": "Проверить recovery state и последние успешные наблюдения.",
+      "review_category": "recovery_review",
+      "review_reason": "Канал ещё восстанавливается.",
+      "review_recommendation": "Дождаться стабильности или подтвердить review.",
+      "review_required": true,
+      "review_severity": "medium",
+      "review_warning": "Не расширять нагрузку автоматически."
+    },
+    "TRUSTED": {
+      "emergency_only": false,
+      "next_action": "Продолжить штатный путь approval packet.",
+      "review_category": "normal",
+      "review_reason": "Review не требуется.",
+      "review_recommendation": "Можно продолжать штатный review без дополнительных CTR условий.",
+      "review_required": false,
+      "review_severity": "info",
+      "review_warning": "Прямой обход planner/governance всё равно запрещён."
+    },
+    "WATCH": {
+      "emergency_only": false,
+      "next_action": "Открыть packet preview и проверить свежие доказательства.",
+      "review_category": "expansion_review",
+      "review_reason": "Канал работает, но истории пока мало.",
+      "review_recommendation": "Проверь свежие сигналы перед расширением.",
+      "review_required": true,
+      "review_severity": "low",
+      "review_warning": "Не расширять нагрузку вслепую."
+    }
+  },
+  "review_matrix_pass": {
+    "DEGRADED": true,
+    "NEW": true,
+    "QUARANTINED": true,
+    "RECOVERING": true,
+    "TRUSTED": true,
+    "WATCH": true
+  },
+  "russian_operator_text_present": true,
+  "selected_moves_count": 0,
+  "shadow_comparison_keys_present": {
+    "ctr_simulated_ranking": true,
+    "current_ranking": true,
+    "different_pool_order": true,
+    "different_top3": true,
+    "quality_delta": true,
+    "same_winner": true,
+    "service_aware_validation": true,
+    "winner_with_ctr": true,
+    "winner_without_ctr": true
+  },
+  "shadow_no_bypass": {
+    "governance_authority_changed": false,
+    "packet_authority_changed": false,
+    "planner_ranking_changed": false,
+    "routing_changed": false,
+    "runtime_behavior_changed": false,
+    "selected_moves_changed": false
+  }
+}

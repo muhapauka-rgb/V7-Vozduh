@@ -1,0 +1,256 @@
+  5710	                "frozen": self._user_frozen(user)[0],
+  5711	            },
+  5712	        }
+  5713	
+  5714	    def _candidate_json(self, candidate: Candidate) -> dict[str, Any]:
+  5715	        egress = candidate.egress
+  5716	        return {
+  5717	            "egress": egress.id,
+  5718	            "eligible": candidate.eligible,
+  5719	            "score": round(candidate.score, 2),
+  5720	            "blocked": candidate.blocked,
+  5721	            "reasons": candidate.reasons,
+  5722	            "score_parts": {k: round(v, 2) for k, v in candidate.score_parts.items()},
+  5723	            "severity_classification": candidate.severity_classification,
+  5724	            "service_suitability": candidate.service_suitability,
+  5725	            "quality_decision": candidate.quality_decision,
+  5726	            "capacity_decision": candidate.capacity_decision,
+  5727	            "routing_intelligence": candidate.routing_intelligence,
+  5728	            "ctr_advisory": candidate.ctr_advisory,
+  5729	            "ctr_score_simulation": candidate.ctr_score_simulation,
+  5730	            "best_available_pool": candidate.best_available_pool,
+  5731	            "pool_rank": candidate.pool_rank,
+  5732	            "pool_reason": candidate.pool_reason,
+  5733	            "pool_cutoff_reason": candidate.pool_cutoff_reason,
+  5734	            "avg_mbps": round(egress.avg_mbps, 2),
+  5735	            "min_mbps": round(egress.min_mbps, 2),
+  5736	            "stability": round(egress.stability, 3),
+  5737	            "users": egress.users,
+  5738	            "capacity_users": egress.capacity_users,
+  5739	            "load": self._load_limits_for_egress(egress),
+  5740	            "quality_history": {
+  5741	                "windows": self._quality_history(egress.id).get("windows", {}),
+  5742	                "score": self._quality_history(egress.id).get("score", {}),
+  5743	            },
+  5744	            "safety": self._egress_safety(egress.id),
+  5745	            "telegram": self._telegram_candidate_state(egress.id),
+  5746	            "role": egress.role,
+  5747	            "canary_reserved": egress.canary_reserved,
+  5748	            "groups": egress.groups,
+  5749	            "exclusive_group": egress.exclusive_group,
+  5750	        }
+  5751	
+  5752	    def _select_moves(self, decisions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+  5753	        failover_limit = to_int(self.switch_policy.get("autoswitch_max_failover_per_run"), 25)
+  5754	        if bool_value(self.service_signal_policy.get("restore_stage")):
+  5755	            failover_limit = min(
+  5756	                failover_limit,
+  5757	                max(0, to_int(self.service_signal_policy.get("max_failover_per_restore_stage"), 1)),
+  5758	            )
+  5759	        reconnect_limit = to_int(self.switch_policy.get("autoswitch_max_reconnect_per_run"), 10)
+  5760	        planned_limit = to_int(self.switch_policy.get("autoswitch_max_planned_per_run"), 1)
+  5761	        rebalance_limit = to_int(self.load_policy.get("rebalance_max_moves_per_run"), 3)
+  5762	        selected: list[dict[str, Any]] = []
+  5763	        failovers = [d for d in decisions if d.get("action") == "switch" and d.get("move_type") == "failover"]
+  5764	        reconnect = [d for d in decisions if d.get("action") == "switch" and d.get("move_type") == "reconnect_rotation"]
+  5765	        rebalance = [d for d in decisions if d.get("action") == "switch" and d.get("move_type") == "rebalance"]
+  5766	        planned = [d for d in decisions if d.get("action") == "switch" and d.get("move_type") == "planned"]
+  5767	        projected = {egress_id: egress.users for egress_id, egress in self.egress.items()}
+  5768	        selected.extend(self._pick_projected_moves(failovers, failover_limit, projected, allow_over_soft=True))
+  5769	        selected.extend(self._pick_projected_moves(reconnect, reconnect_limit, projected, allow_over_soft=False))
+  5770	        selected.extend(self._pick_projected_moves(rebalance, rebalance_limit, projected, allow_over_soft=False))
+  5771	        selected.extend(self._pick_projected_moves(planned, planned_limit, projected, allow_over_soft=False))
+  5772	        return selected
+  5773	
+  5774	    def _pick_projected_moves(self, moves: list[dict[str, Any]], limit: int, projected: dict[str, int], allow_over_soft: bool) -> list[dict[str, Any]]:
+  5775	        picked: list[dict[str, Any]] = []
+  5776	        ranked = sorted(
+  5777	            moves,
+  5778	            key=lambda d: (
+  5779	                projected.get(str(d.get("recommended_egress") or ""), 0),
+  5780	                -(to_float(d.get("recommended_score"), 0.0) - to_float(d.get("current_score"), 0.0)),
+  5781	            ),
+  5782	        )
+  5783	        for move in ranked:
+  5784	            if len(picked) >= max(0, limit):
+  5785	                break
+  5786	            source = str(move.get("current_egress") or "")
+  5787	            target = self._projected_target_for_move(move, projected, allow_over_soft)
+  5788	            if not target or target == source or target not in self.egress:
+  5789	                continue
+  5790	            limits = self._load_limits_for_egress(self.egress[target])
+  5791	            soft_limit = to_int(limits.get("soft_limit"), 1)
+  5792	            hard_limit = to_int(limits.get("hard_limit"), 1)
+  5793	            projected_target = projected.get(target, self.egress[target].users)
+  5794	            if not allow_over_soft and projected_target >= soft_limit:
+  5795	                continue
+  5796	            if projected_target >= hard_limit:
+  5797	                continue
+  5798	            original_target = str(move.get("recommended_egress") or "")
+  5799	            move = dict(move)
+  5800	            move["recommended_egress"] = target
+  5801	            explanation = move.get("explanation")
+  5802	            if isinstance(explanation, dict):
+  5803	                explanation = dict(explanation)
+  5804	                explanation["chosen"] = target
+  5805	                move["explanation"] = explanation
+  5806	            if target != original_target:
+  5807	                move.setdefault("reason", []).append("projected_load_target_adjusted")
+  5808	            projected_decision = self._capacity_decision(self.egress[target], projected_target + 1)
+  5809	            move["capacity_decision"] = projected_decision
+  5810	            move["projected_load"] = projected_decision.get("projected_load", {})
+  5811	            picked.append(move)
+  5812	            projected[target] = projected_target + 1
+  5813	            if source:
+  5814	                projected[source] = max(0, projected.get(source, 0) - 1)
+  5815	        return picked
+  5816	
+  5817	    def _projected_target_for_move(self, move: dict[str, Any], projected: dict[str, int], allow_over_soft: bool) -> str:
+  5818	        source = str(move.get("current_egress") or "")
+  5819	        requested_target = str(self.args.target_egress or "").strip()
+  5820	        if requested_target:
+  5821	            return requested_target if requested_target != source else ""
+  5822	        raw_candidates = move.get("candidates") if isinstance(move.get("candidates"), list) else []
+  5823	        candidates = [
+  5824	            row for row in raw_candidates
+  5825	            if isinstance(row, dict) and row.get("eligible") and str(row.get("egress") or "") and str(row.get("egress") or "") != source
+  5826	        ]
+  5827	        pool_candidates = [row for row in candidates if row.get("best_available_pool")]
+  5828	        if pool_candidates:
+  5829	            candidates = pool_candidates
+  5830	        if not candidates:
+  5831	            target = str(move.get("recommended_egress") or "")
+  5832	            return target if target != source else ""
+  5833	        ranked = sorted(
+  5834	            candidates,
+  5835	            key=lambda row: (
+  5836	                projected.get(str(row.get("egress") or ""), 0),
+  5837	                -to_float(row.get("score"), 0.0),
+  5838	                str(row.get("egress") or ""),
+  5839	            ),
+  5840	        )
+  5841	        for row in ranked:
+  5842	            target = str(row.get("egress") or "")
+  5843	            if target not in self.egress:
+  5844	                continue
+  5845	            limits = self._load_limits_for_egress(self.egress[target])
+  5846	            soft_limit = to_int(limits.get("soft_limit"), 1)
+  5847	            hard_limit = to_int(limits.get("hard_limit"), 1)
+  5848	            projected_target = projected.get(target, self.egress[target].users)
+  5849	            if not allow_over_soft and projected_target >= soft_limit:
+  5850	                continue
+  5851	            if projected_target >= hard_limit:
+  5852	                continue
+  5853	            return target
+  5854	        return ""
+  5855	
+  5856	    def apply(self, plan: dict[str, Any]) -> dict[str, Any]:
+  5857	        mode = str(plan.get("mode") or "observe")
+  5858	        operation = plan.get("operation") or {}
+  5859	        operation_id = str(operation.get("operation_id") or "")
+  5860	        selected_hash = str(operation.get("selected_move_hash") or "")
+  5861	        if not self.args.apply:
+  5862	            return {"applied": False, "reason": "dry_run"}
+  5863	        if not plan.get("enabled", True):
+  5864	            return {"applied": False, "reason": "autoswitch_disabled_by_policy"}
+  5865	        if mode == "observe":
+  5866	            return {"applied": False, "reason": "mode_observe_blocks_apply"}
+  5867	        if not plan.get("selected_moves"):
+  5868	            return {"applied": False, "reason": "no_selected_moves"}
+  5869	        atomic_validation = self._validate_atomic_execution_envelope(plan)
+  5870	        plan.setdefault("safety", {})["atomic_execution_envelope_validation"] = atomic_validation
+  5871	        if not atomic_validation.get("ok"):
+  5872	            return {
+  5873	                "applied": False,
+  5874	                "reason": str(atomic_validation.get("reason") or "atomic_execution_envelope_invalid"),
+  5875	                "atomic_execution_envelope_validation": atomic_validation,
+  5876	            }
+  5877	
+  5878	        results: list[dict[str, Any]] = []
+  5879	        for move in plan["selected_moves"]:
+  5880	            ip = move["user_ip"]
+  5881	            target = move["recommended_egress"]
+  5882	            current = move["current_egress"]
+  5883	            proc = self._run_switch(ip, target, move.get("move_type", "planned"))
+  5884	            row = {
+  5885	                "user_ip": ip,
+  5886	                "from": current,
+  5887	                "to": target,
+  5888	                "move_type": move.get("move_type"),
+  5889	                "operation_id": operation_id,
+  5890	                "selected_move_hash": selected_hash,
+  5891	                "selected_move_index": move.get("selected_move_index"),
+  5892	                "rc": proc.returncode,
+  5893	                "output": proc.stdout[-4000:],
+  5894	                "rollback_attempted": False,
+  5895	            }
+  5896	            if proc.returncode == 0 and self.args.verify:
+  5897	                verify = self._verify_routes()
+  5898	                row["verify_rc"] = verify.returncode
+  5899	                row["verify_output"] = verify.stdout[-4000:]
+  5900	                if verify.returncode != 0 and self.args.rollback_on_verify_fail:
+  5901	                    row["verification_failure_reason"] = "route_verify_failed"
+  5902	                    row["rollback_attempted"] = True
+  5903	                    rollback = self._run_switch(ip, current, "rollback")
+  5904	                    row["rollback_rc"] = rollback.returncode
+  5905	                    row["rollback_output"] = rollback.stdout[-4000:]
+  5906	                    row["rollback_result"] = "OK" if rollback.returncode == 0 else "FAIL"
+  5907	                    row["rollback_verdict"] = "ROLLBACK_COMPLETED" if rollback.returncode == 0 else "ROLLBACK_FAILED"
+  5908	            results.append(row)
+  5909	        self._update_safety_after_apply(results)
+  5910	        return {"applied": True, "results": results, "safety_file": str(self.safety_file)}
+  5911	
+  5912	    def finalize_operation(self, plan: dict[str, Any]) -> dict[str, Any]:
+  5913	        operation = plan.setdefault("operation", {})
+  5914	        terminal = self._terminal_verdict(plan)
+  5915	        operation.update(terminal)
+  5916	        rollback = self._rollback_verdict(plan)
+  5917	        if rollback:
+  5918	            operation["rollback_verdict"] = rollback.get("rollback_verdict", "")
+  5919	        audit = self._terminal_audit_reference(plan, rollback)
+  5920	        if self.args.apply:
+  5921	            audit = self._emit_terminal_audit(audit)
+  5922	        plan["audit"] = audit
+  5923	        plan["closure_target"] = self._closure_target(operation, audit)
+  5924	        return plan
+  5925	
+  5926	    def _terminal_verdict(self, plan: dict[str, Any]) -> dict[str, str]:
+  5927	        apply_result = plan.get("apply_result") or {}
+  5928	        if not apply_result.get("applied"):
+  5929	            reason = str(apply_result.get("reason") or "not_applied")
+  5930	            if reason == "dry_run":
+  5931	                state = "DRY_RUN"
+  5932	                reason = self._dry_run_terminal_reason(plan)
+  5933	            elif reason == "no_selected_moves":
+  5934	                state = "NOOP"
+  5935	            else:
+  5936	                state = "DENIED"
+  5937	            return {"terminal_state": state, "terminal_reason": reason}
+  5938	        results = apply_result.get("results") or []
+  5939	        if any(row.get("rollback_rc") is not None for row in results):
+  5940	            if all(row.get("rollback_rc") in (None, 0) for row in results):
+  5941	                return {"terminal_state": "ROLLED_BACK", "terminal_reason": "verification_failed_rollback_completed"}
+  5942	            return {"terminal_state": "ROLLBACK_FAILED", "terminal_reason": "verification_failed_rollback_failed"}
+  5943	        if any(row.get("verify_rc") not in (None, 0) for row in results):
+  5944	            return {"terminal_state": "VERIFY_FAILED", "terminal_reason": "route_verify_failed"}
+  5945	        if any(row.get("rc") != 0 for row in results):
+  5946	            return {"terminal_state": "FAILED", "terminal_reason": "switch_command_failed"}
+  5947	        return {"terminal_state": "APPLIED", "terminal_reason": "selected_moves_applied"}
+  5948	
+  5949	    def _dry_run_terminal_reason(self, plan: dict[str, Any]) -> str:
+  5950	        if plan.get("selected_moves"):
+  5951	            return "dry_run_selected_moves_available"
+  5952	        snapshot_gate = (plan.get("safety") or {}).get("intelligence_snapshots") or {}
+  5953	        if bool_value(snapshot_gate.get("active")) and bool_value(snapshot_gate.get("stop_required")):
+  5954	            return "dry_run_intelligence_snapshot_stop_required"
+  5955	        barrier = (plan.get("safety") or {}).get("restore_barrier") or {}
+  5956	        if bool_value(barrier.get("active")):
+  5957	            return "dry_run_restore_barrier_active"
+  5958	        if bool_value(barrier.get("post_ttl_blocking")):
+  5959	            return "dry_run_restore_barrier_post_ttl_blocking"
+  5960	        for key in ("clearance_guard_reason", "clearance_generation_reason"):
+  5961	            value = str(barrier.get(key) or "")
+  5962	            if value:
+  5963	                return f"dry_run_{value}"
+  5964	        barrier_reason = str(barrier.get("reason") or "")
+  5965	        if barrier_reason:

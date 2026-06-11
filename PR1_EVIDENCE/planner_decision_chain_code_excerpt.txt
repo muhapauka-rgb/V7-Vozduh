@@ -1,0 +1,149 @@
+  4930	            row["current_egress"][user.current] = row["current_egress"].get(user.current, 0) + 1
+  4931	        return {"groups": groups, "egress_group_usage": {k: sorted(v) for k, v in self.group_usage.items()}}
+  4932	
+  4933	    def _decision_for_user(self, user: User) -> dict[str, Any]:
+  4934	        important = self._important_services(user)
+  4935	        route_class = self.args.route_class or self._route_class_for_services(important)
+  4936	        candidates = [self._candidate(user, egress, important, route_class, purpose="planned") for egress in self.egress.values()]
+  4937	        candidates.sort(key=lambda c: (c.eligible, c.score), reverse=True)
+  4938	        self._mark_best_available_pool(candidates)
+  4939	        self._attach_ctr_score_simulation(candidates)
+  4940	        current = self._candidate(user, self.egress[user.current], important, route_class, purpose="current") if user.current in self.egress else None
+  4941	        best = next((c for c in candidates if c.eligible), None)
+  4942	        action = "keep"
+  4943	        reason: list[str] = []
+  4944	        recommended = user.current
+  4945	        recommended_score = current.score if current else None
+  4946	        move_type = "none"
+  4947	
+  4948	        cooldown_ok, cooldown_reason = self._cooldown_ok(user)
+  4949	        if cooldown_reason:
+  4950	            reason.append(cooldown_reason)
+  4951	        frozen, freeze_reason = self._user_frozen(user)
+  4952	        if freeze_reason:
+  4953	            reason.append(freeze_reason)
+  4954	
+  4955	        if current and current.egress.canary_reserved and current.eligible:
+  4956	            reason.append("canary_reserved_current_hold_requires_separate_drain_approval")
+  4957	        elif not current or not current.eligible:
+  4958	            service_signal_restore_gate = (
+  4959	                current
+  4960	                and self._service_signal_only_block(current)
+  4961	                and bool_value(self.service_signal_policy.get("restore_stage"))
+  4962	                and not bool_value(self.service_signal_policy.get("apply_restore_approved"))
+  4963	            )
+  4964	            if current and bool_value(self.restore_barrier.get("failover_quarantine")):
+  4965	                if bool_value(self.restore_barrier.get("post_ttl_blocking")):
+  4966	                    reason.append("restore_barrier_post_ttl_generation_clearance_required")
+  4967	                else:
+  4968	                    reason.append("restore_barrier_failover_suppressed")
+  4969	            elif service_signal_restore_gate:
+  4970	                reason.append("restore_stage_service_signal_failover_requires_approval")
+  4971	            else:
+  4972	                failover_candidates = [self._candidate(user, egress, important, route_class, purpose="failover") for egress in self.egress.values()]
+  4973	                failover_candidates.sort(key=lambda c: (c.eligible, c.score), reverse=True)
+  4974	                self._mark_best_available_pool(failover_candidates)
+  4975	                best_failover = next((c for c in failover_candidates if c.eligible), None)
+  4976	                if best_failover and best_failover.egress.id != user.current and cooldown_ok:
+  4977	                    action = "switch"
+  4978	                    move_type = "failover"
+  4979	                    recommended = best_failover.egress.id
+  4980	                    recommended_score = best_failover.score
+  4981	                    reason.append("current_egress_not_eligible")
+  4982	                else:
+  4983	                    reason.append("no_eligible_failover_target")
+  4984	        elif user.ip in self.reconnect_events:
+  4985	            alternative = self._best_alternative(user, candidates, current, purpose="reconnect_rotation")
+  4986	            if alternative and cooldown_ok and not frozen:
+  4987	                action = "switch"
+  4988	                move_type = "reconnect_rotation"
+  4989	                recommended = alternative.egress.id
+  4990	                recommended_score = alternative.score
+  4991	                reason.append("client_reconnect_requested_egress_rotation")
+  4992	            elif alternative and not cooldown_ok:
+  4993	                reason.append("reconnect_rotation_blocked_by_cooldown")
+  4994	            elif alternative and frozen:
+  4995	                reason.append("reconnect_rotation_blocked_by_user_freeze")
+  4996	            else:
+  4997	                reason.append("reconnect_rotation_no_alternative")
+  4998	        elif best and best.egress.id != user.current:
+  4999	            if self._beats_current(best, current) and cooldown_ok and not frozen:
+  5000	                action = "switch"
+  5001	                move_type = "planned"
+  5002	                recommended = best.egress.id
+  5003	                recommended_score = best.score
+  5004	                reason.append("candidate_score_beats_current")
+  5005	            elif bool_value(self.load_policy.get("rebalance_enabled", True)) and self._rebalance_needed(current, best) and cooldown_ok and not frozen:
+  5006	                action = "switch"
+  5007	                move_type = "rebalance"
+  5008	                recommended = best.egress.id
+  5009	                recommended_score = best.score
+  5010	                reason.append("load_rebalance_even_distribution")
+  5011	            elif bool_value(self.load_policy.get("rebalance_enabled", True)) and self._rebalance_needed(current, best) and not cooldown_ok:
+  5012	                reason.append("rebalance_blocked_by_cooldown")
+  5013	            elif bool_value(self.load_policy.get("rebalance_enabled", True)) and self._rebalance_needed(current, best) and frozen:
+  5014	                reason.append("rebalance_blocked_by_user_freeze")
+  5015	            else:
+  5016	                reason.append("sticky_keep_current")
+  5017	        elif bool_value(self.load_policy.get("rebalance_enabled", True)):
+  5018	            alternative = self._best_alternative(user, candidates, current, purpose="rebalance")
+  5019	            if alternative and self._rebalance_needed(current, alternative) and cooldown_ok and not frozen:
+  5020	                action = "switch"
+  5021	                move_type = "rebalance"
+  5022	                recommended = alternative.egress.id
+  5023	                recommended_score = alternative.score
+  5024	                reason.append("load_rebalance_even_distribution")
+  5025	            elif alternative and self._rebalance_needed(current, alternative) and not cooldown_ok:
+  5026	                reason.append("rebalance_blocked_by_cooldown")
+  5027	            elif alternative and self._rebalance_needed(current, alternative) and frozen:
+  5028	                reason.append("rebalance_blocked_by_user_freeze")
+  5029	            else:
+  5030	                reason.append("current_is_best")
+  5031	        else:
+  5032	            reason.append("current_is_best")
+  5033	
+  5034	        return {
+  5035	            "user_ip": user.ip,
+  5036	            "group": user.group,
+  5037	            "route_class": route_class,
+  5038	            "important_services": important,
+  5039	            "current_egress": user.current,
+  5040	            "recommended_egress": recommended,
+  5041	            "action": action,
+  5042	            "move_type": move_type,
+  5043	            "reason": reason,
+  5044	            "current_score": round(current.score, 2) if current else None,
+  5045	            "recommended_score": round(recommended_score, 2) if recommended_score is not None else None,
+  5046	            "candidates": [self._candidate_json(c) for c in candidates],
+  5047	            "explanation": self._explanation(user, recommended, action, move_type, current, candidates, reason),
+  5048	        }
+  5049	
+  5050	    def _ctr_simulated_score(self, candidate: Candidate) -> float:
+  5051	        ctr = candidate.ctr_advisory or {}
+  5052	        return candidate.score + to_float(ctr.get("soft_adjustment"), 0.0)
+  5053	
+  5054	    def _attach_ctr_score_simulation(self, candidates: list[Candidate]) -> None:
+  5055	        if not candidates:
+  5056	            return
+  5057	        current_positions = {id(candidate): index for index, candidate in enumerate(candidates, start=1)}
+  5058	        simulated_ranking = sorted(
+  5059	            candidates,
+  5060	            key=lambda c: (0 if c.eligible else 1, -self._ctr_simulated_score(c), c.egress.id),
+  5061	        )
+  5062	        simulated_positions = {id(candidate): index for index, candidate in enumerate(simulated_ranking, start=1)}
+  5063	        for candidate in candidates:
+  5064	            ctr = candidate.ctr_advisory or {}
+  5065	            state = str(ctr.get("state") or "UNKNOWN").upper()
+  5066	            adjustment = to_float(ctr.get("soft_adjustment"), 0.0)
+  5067	            old_position = current_positions.get(id(candidate), 0)
+  5068	            new_position = simulated_positions.get(id(candidate), old_position)
+  5069	            ranking_delta = old_position - new_position
+  5070	            service = candidate.service_suitability or {}
+  5071	            recovery = ctr.get("recovery") if isinstance(ctr.get("recovery"), dict) else {}
+  5072	            candidate.ctr_score_simulation = {
+  5073	                "schema_version": "v7.ctr.dry-run-score-simulation.v1",
+  5074	                "mode": "dry_run_simulation_only",
+  5075	                "existing_score": round(candidate.score, 3),
+  5076	                "ctr_soft_adjustment": round(adjustment, 3),
+  5077	                "simulated_score": round(candidate.score + adjustment, 3),
+  5078	                "score_delta": round(adjustment, 3),

@@ -1,0 +1,73 @@
+{
+  "updated": "2026-06-11T16:57:07.169775+00:00",
+  "cmd": "CTR_VERIFY_EVIDENCE/production_autoswitch_plan.json",
+  "operation": {
+    "terminal_state": "DRY_RUN",
+    "terminal_reason": "dry_run_intelligence_snapshot_stop_required",
+    "selected_move_count": 0
+  },
+  "apply_requested": false,
+  "selected_moves_count": 0,
+  "apply_result": {
+    "applied": false,
+    "reason": "dry_run"
+  },
+  "summary": {
+    "users_total": 26,
+    "candidate_moves_total": 8,
+    "selected_moves": 0
+  },
+  "ctr_shadow_exists": true,
+  "ctr_shadow_keys": [
+    "ctr_simulated_ranking",
+    "current_ranking",
+    "different_pool_order",
+    "different_top3",
+    "quality_delta",
+    "same_winner",
+    "service_aware_validation",
+    "user_ip",
+    "winner_with_ctr",
+    "winner_without_ctr"
+  ],
+  "ctr_no_bypass": {
+    "selected_moves_changed": false,
+    "planner_ranking_changed": false,
+    "runtime_behavior_changed": false,
+    "routing_changed": false,
+    "governance_authority_changed": false,
+    "packet_authority_changed": false
+  },
+  "sample_candidate": {
+    "egress": "vless",
+    "eligible": true,
+    "score": 1941.71,
+    "ctr_advisory": {
+      "state": "TRUSTED",
+      "reason": "high_score_with_successful_channel_feedback",
+      "recovery_state": "NOT_NEEDED",
+      "recovery_path": "normal_monitoring",
+      "confidence": 0.4583,
+      "blocked_actions": [
+        "direct_user_switch",
+        "planner_bypass",
+        "governance_bypass"
+      ],
+      "recommended_action": "normal_monitoring",
+      "soft_adjustment": 20.0,
+      "advisory_score": 99.415,
+      "planner_score_applied": false,
+      "hard_gate_applied": false,
+      "target_suppression_applied": false
+    },
+    "ctr_score_simulation": {
+      "existing_score": 1941.709,
+      "ctr_soft_adjustment": 20.0,
+      "simulated_score": 1961.709,
+      "ranking_delta": 0,
+      "planner_score_applied": false,
+      "selected_moves_changed": false,
+      "runtime_behavior_changed": false
+    }
+  }
+}

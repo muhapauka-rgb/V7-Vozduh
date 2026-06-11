@@ -1,0 +1,376 @@
+  5220	            return "TRUSTED_RU_SENSITIVE"
+  5221	        return "GLOBAL_FAST"
+  5222	
+  5223	    def _candidate(self, user: User, egress: Egress, services: list[str], route_class: str, purpose: str = "planned") -> Candidate:
+  5224	        c = Candidate(egress=egress, eligible=True)
+  5225	        c.severity_classification = self._severity_classification(egress)
+  5226	        c.service_suitability = self._service_suitability(egress, services, route_class)
+  5227	        c.routing_intelligence = self._routing_intelligence_candidate_advice(user, egress, services, route_class)
+  5228	        c.ctr_advisory = self._ctr_advisory_for_egress(egress.id)
+  5229	        self._gate_basic(c, purpose)
+  5230	        self._gate_reservation(user, c, purpose)
+  5231	        self._gate_org(user, c)
+  5232	        self._gate_quality(c)
+  5233	        self._gate_service(c, services, route_class, purpose)
+  5234	        self._gate_load(c, purpose)
+  5235	        self._gate_safety(user, c, purpose)
+  5236	        c.capacity_decision = self._capacity_decision(egress)
+  5237	        if not c.eligible:
+  5238	            return c
+  5239	        c.score_parts = self._score_parts(user, egress, services, route_class, c.routing_intelligence)
+  5240	        c.score = sum(c.score_parts.values())
+  5241	        return c
+  5242	
+  5243	    def _block(self, candidate: Candidate, reason: str) -> None:
+  5244	        candidate.eligible = False
+  5245	        candidate.blocked.append(reason)
+  5246	
+  5247	    def _gate_basic(self, candidate: Candidate, purpose: str) -> None:
+  5248	        egress = candidate.egress
+  5249	        if not egress.enabled:
+  5250	            self._block(candidate, "egress_disabled")
+  5251	        if egress.state in ("maintenance", "disabled", "quarantine"):
+  5252	            self._block(candidate, f"egress_state_{egress.state}")
+  5253	        if egress.manual_only:
+  5254	            self._block(candidate, "manual_only")
+  5255	        if egress.health_code and egress.health_code != "200":
+  5256	            self._block(candidate, f"health_code_{egress.health_code}")
+  5257	        severity = candidate.severity_classification or self._severity_classification(egress)
+  5258	        if severity.get("hard_block"):
+  5259	            self._block(candidate, str(severity.get("block_reason") or f"severity_{egress.severity}"))
+  5260	        elif severity.get("category") == "protocol_diagnostic_limited_suspect":
+  5261	            candidate.reasons.append("severity_protocol_diagnostic_limited_suspect")
+  5262	        if str(self.load_policy.get("mode") or "static").lower() != "dynamic":
+  5263	            if egress.load_status == "HARD_FULL" and purpose == "planned" and not self.args.allow_hard_full:
+  5264	                self._block(candidate, "hard_full")
+  5265	        if egress.reserve_only and purpose == "planned":
+  5266	            self._block(candidate, "reserve_only")
+  5267	
+  5268	    def _gate_reservation(self, user: User, candidate: Candidate, purpose: str) -> None:
+  5269	        egress = candidate.egress
+  5270	        if not egress.canary_reserved:
+  5271	            return
+  5272	        if purpose == "current" and user.current == egress.id:
+  5273	            candidate.reasons.append("canary_reserved_current_requires_separate_drain_approval")
+  5274	            return
+  5275	        self._block(candidate, "canary_reserved_production_assignment_blocked")
+  5276	
+  5277	    def _gate_load(self, candidate: Candidate, purpose: str) -> None:
+  5278	        if purpose == "current" or self.args.allow_hard_full:
+  5279	            return
+  5280	        limits = self._load_limits_for_egress(candidate.egress)
+  5281	        if purpose == "failover":
+  5282	            if candidate.egress.users >= to_int(limits.get("failover_hard_limit"), 1):
+  5283	                self._block(candidate, "failover_full")
+  5284	        elif candidate.egress.users >= to_int(limits.get("hard_limit"), 1):
+  5285	            self._block(candidate, "planned_hard_full")
+  5286	
+  5287	    def _gate_safety(self, user: User, candidate: Candidate, purpose: str) -> None:
+  5288	        if purpose == "current":
+  5289	            return
+  5290	        egress_id = candidate.egress.id
+  5291	        egress_safety = self._egress_safety(egress_id)
+  5292	        if egress_safety.get("quarantine_until") and parse_ts(egress_safety.get("quarantine_until")) > time.time():
+  5293	            self._block(candidate, "egress_safety_quarantine")
+  5294	        if to_int(egress_safety.get("failed_verifications_1h")) >= to_int(self.safety_policy.get("egress_quarantine_failed_verifications_1h"), 2):
+  5295	            self._block(candidate, "egress_failed_verifications_limit")
+  5296	        if self._blocked_target_for_user(user, egress_id):
+  5297	            self._block(candidate, "target_blocked_for_user")
+  5298	        if self._pair_reversal_blocked_for_user(user, egress_id):
+  5299	            self._block(candidate, "pair_reversal_stability_window")
+  5300	
+  5301	    def _gate_org(self, user: User, candidate: Candidate) -> None:
+  5302	        egress = candidate.egress
+  5303	        group_policy = self._group_policy(user.group)
+  5304	        allowed = split_csv(group_policy.get("allowed_egress"))
+  5305	        preferred = split_csv(group_policy.get("preferred_egress"))
+  5306	        excluded = split_csv(group_policy.get("excluded_egress"))
+  5307	        isolation = str(group_policy.get("isolation") or self.org_policy.get("default_isolation") or "shared")
+  5308	
+  5309	        if allowed and not glob_contains(allowed, egress.id):
+  5310	            self._block(candidate, "not_in_group_allowed_pool")
+  5311	        if excluded and glob_contains(excluded, egress.id):
+  5312	            self._block(candidate, "excluded_by_group_policy")
+  5313	        if egress.exclusive_group and egress.exclusive_group != user.group:
+  5314	            self._block(candidate, f"exclusive_to_{egress.exclusive_group}")
+  5315	        if egress.groups and user.group not in egress.groups:
+  5316	            self._block(candidate, "not_in_egress_group_acl")
+  5317	        other_groups = self.group_usage.get(egress.id, set()) - {user.group}
+  5318	        if isolation == "exclusive" and other_groups:
+  5319	            self._block(candidate, "egress_in_use_by_other_group")
+  5320	        if preferred and glob_contains(preferred, egress.id):
+  5321	            candidate.reasons.append("group_preferred")
+  5322	
+  5323	    def _gate_quality(self, candidate: Candidate) -> None:
+  5324	        egress = candidate.egress
+  5325	        min_avg = to_float(self.quality_policy.get("min_avg_mbps"), 15.0)
+  5326	        min_floor = to_float(self.quality_policy.get("min_floor_mbps"), 10.0)
+  5327	        min_stability = to_float(self.quality_policy.get("min_stability"), 0.45)
+  5328	        hist = self._quality_window(egress.id, "1h")
+  5329	        hist_avg = to_float(hist.get("avg_mbps"), 0.0)
+  5330	        hist_min = to_float(hist.get("min_mbps"), 0.0)
+  5331	        hist_stability = to_float(hist.get("stability"), 0.0)
+  5332	        service = candidate.service_suitability or {}
+  5333	        severity = candidate.severity_classification or {}
+  5334	        protocol_limited = severity.get("category") == "protocol_diagnostic_limited_suspect"
+  5335	        service_ok = (
+  5336	            to_float(service.get("aggregate_score")) >= to_float(self.service_quality_policy.get("min_required_service_score"), 50.0)
+  5337	            and not service.get("required_missing")
+  5338	            and not service.get("required_low")
+  5339	        )
+  5340	        evidence_exception = (
+  5341	            protocol_limited
+  5342	            and service_ok
+  5343	            and egress.health_code == "200"
+  5344	            and hist_avg >= to_float(self.service_quality_policy.get("quality_exception_min_1h_avg_mbps"), min_avg)
+  5345	            and hist_min >= to_float(self.service_quality_policy.get("quality_exception_min_1h_floor_mbps"), min_floor)
+  5346	            and max(egress.stability, hist_stability) >= to_float(self.service_quality_policy.get("quality_exception_min_stability"), 0.15)
+  5347	        )
+  5348	        decision = {
+  5349	            "min_avg_mbps": min_avg,
+  5350	            "min_floor_mbps": min_floor,
+  5351	            "min_stability": min_stability,
+  5352	            "hist_1h_avg_mbps": hist_avg,
+  5353	            "hist_1h_min_mbps": hist_min,
+  5354	            "hist_1h_stability": hist_stability,
+  5355	            "evidence_backed_exception": evidence_exception,
+  5356	            "service_aggregate_score": service.get("aggregate_score"),
+  5357	        }
+  5358	        if egress.avg_mbps < min_avg:
+  5359	            if hist and hist_avg >= min_avg:
+  5360	                candidate.reasons.append("avg_mbps_below_floor_but_1h_avg_ok")
+  5361	            else:
+  5362	                self._block(candidate, "avg_mbps_below_floor")
+  5363	        if egress.min_mbps < min_floor:
+  5364	            if evidence_exception or (hist and hist_min >= min_floor and service_ok):
+  5365	                candidate.reasons.append("min_mbps_below_floor_contextual_warning")
+  5366	            else:
+  5367	                self._block(candidate, "min_mbps_below_floor")
+  5368	        if egress.stability and egress.stability < min_stability:
+  5369	            if evidence_exception:
+  5370	                candidate.reasons.append("stability_below_floor_contextual_warning")
+  5371	            elif hist and hist_stability >= min_stability:
+  5372	                candidate.reasons.append("stability_below_floor_but_1h_stability_ok")
+  5373	            else:
+  5374	                self._block(candidate, "stability_below_floor")
+  5375	        if evidence_exception:
+  5376	            candidate.reasons.append("quality_floor_overridden_by_service_evidence")
+  5377	        candidate.quality_decision = decision
+  5378	        if hist and to_float(hist.get("fail_rate")) >= 0.75:
+  5379	            candidate.reasons.append("quality_history_fail_rate_high_advisory")
+  5380	
+  5381	    def _telegram_sentinel_row(self, egress_id: str) -> dict[str, Any]:
+  5382	        return ((self.telegram_sentinel.get("items") or {}).get(egress_id) or {})
+  5383	
+  5384	    def _telegram_candidate_state(self, egress_id: str) -> dict[str, Any]:
+  5385	        sentinel = self._telegram_sentinel_row(egress_id)
+  5386	        matrix_row = self._matrix_services(egress_id).get("telegram") or {}
+  5387	        status = str(
+  5388	            sentinel.get("matrix_status")
+  5389	            or sentinel.get("status")
+  5390	            or matrix_row.get("status")
+  5391	            or ""
+  5392	        ).upper()
+  5393	        blocked = sentinel.get("blocked") is True or telegram_status_is_hard(status)
+  5394	        if matrix_row.get("ok") is False and status in ("", "FAIL", "ERROR"):
+  5395	            status = "DOWN"
+  5396	            blocked = True
+  5397	        degraded = status in TELEGRAM_SOFT_STATUSES or (sentinel.get("bad_now") is True and not blocked)
+  5398	        ok = not blocked and (status == "OK" or matrix_row.get("ok") is True or degraded)
+  5399	        reason = str(sentinel.get("reason") or matrix_row.get("reason") or "")
+  5400	        return {
+  5401	            "required": True,
+  5402	            "status": status or "UNKNOWN",
+  5403	            "ok": ok,
+  5404	            "hard_blocked": blocked,
+  5405	            "degraded": degraded,
+  5406	            "bad_now": bool(sentinel.get("bad_now")),
+  5407	            "bad_for_seconds": to_float(sentinel.get("bad_for_seconds") or matrix_row.get("bad_for_seconds")),
+  5408	            "score": to_float(sentinel.get("score") or matrix_row.get("score")),
+  5409	            "reason": reason,
+  5410	            "source": "sentinel" if sentinel else ("matrix" if matrix_row else "none"),
+  5411	        }
+  5412	
+  5413	    def _gate_service(self, candidate: Candidate, services: list[str], route_class: str, purpose: str) -> None:
+  5414	        if route_class == "TRUSTED_RU_SENSITIVE" and not bool_value(candidate.egress.raw["meta"].get("trusted_ru")):
+  5415	            self._block(candidate, "trusted_ru_required")
+  5416	        suitability = candidate.service_suitability or {}
+  5417	        for service in suitability.get("required_missing") or []:
+  5418	            self._block(candidate, f"service_{service}_evidence_unknown")
+  5419	        for service in suitability.get("required_low") or []:
+  5420	            candidate.reasons.append(f"service_{service}_suitability_low")
+  5421	        matrix_services = self._matrix_services(candidate.egress.id)
+  5422	        per_service = suitability.get("per_service") or {}
+  5423	        failed_services: list[dict[str, Any]] = []
+  5424	        for service in services:
+  5425	            if service == "telegram":
+  5426	                telegram = self._telegram_candidate_state(candidate.egress.id)
+  5427	                if telegram.get("hard_blocked"):
+  5428	                    self._block(candidate, f"telegram_required_{str(telegram.get('status')).lower()}")
+  5429	                elif telegram.get("degraded"):
+  5430	                    candidate.reasons.append(f"telegram_{str(telegram.get('status')).lower()}")
+  5431	                elif telegram.get("ok"):
+  5432	                    candidate.reasons.append("service_telegram_ok")
+  5433	                else:
+  5434	                    candidate.reasons.append("telegram_not_measured")
+  5435	                    if service in self._explicit_required_services():
+  5436	                        self._block(candidate, "service_telegram_evidence_unknown")
+  5437	                continue
+  5438	            row = matrix_services.get(service)
+  5439	            item = per_service.get(service) or self._service_suitability_for_row(
+  5440	                service,
+  5441	                row or {},
+  5442	                service in self._explicit_required_services(),
+  5443	                True,
+  5444	            )
+  5445	            truth_class = str(item.get("truth_class") or "")
+  5446	            if truth_class == "HEALTHY":
+  5447	                candidate.reasons.append(f"service_{service}_ok")
+  5448	            elif truth_class == "PROBE_METHODOLOGY_ISSUE":
+  5449	                candidate.reasons.append(f"service_{service}_probe_methodology_issue")
+  5450	                candidate.reasons.append("service_signal_PROBE_METHODOLOGY_VISIBLE")
+  5451	            elif truth_class == "STALE_SERVICE_TRUTH":
+  5452	                candidate.reasons.append(f"service_{service}_truth_stale")
+  5453	                if item.get("blocked_action"):
+  5454	                    self._block(candidate, str(item.get("blocked_action")))
+  5455	            elif truth_class in {"TRANSIENT_FAIL", "PERSISTENT_FAIL"}:
+  5456	                failed_services.append(dict(item))
+  5457	            elif service in self._explicit_required_services():
+  5458	                self._block(candidate, f"service_{service}_evidence_unknown")
+  5459	        self._gate_service_failures(candidate, failed_services)
+  5460	        fitness = self._route_class_fitness(candidate.egress.id, route_class)
+  5461	        if fitness == "FAIL":
+  5462	            route_truth_classes = {
+  5463	                str((per_service.get(service) or {}).get("truth_class") or "")
+  5464	                for service in normalize_service_ids(services)
+  5465	                if service != "telegram"
+  5466	            }
+  5467	            hard_route_fail = bool(route_truth_classes & {"PERSISTENT_FAIL", "STALE_SERVICE_TRUTH"})
+  5468	            if hard_route_fail:
+  5469	                self._block(candidate, f"route_class_{route_class}_failed")
+  5470	            else:
+  5471	                candidate.reasons.append(f"route_class_{route_class}_failed_nonpersistent_service_truth")
+  5472	                candidate.reasons.append("service_signal_ROUTE_FAIL_REVALIDATION_REQUIRED")
+  5473	        elif fitness:
+  5474	            candidate.reasons.append(f"route_class_{route_class}_{fitness.lower()}")
+  5475	
+  5476	    def _service_failure_count(self, row: dict[str, Any]) -> int:
+  5477	        return max(
+  5478	            1,
+  5479	            to_int(row.get("failure_samples")),
+  5480	            to_int(row.get("failed_samples")),
+  5481	            to_int(row.get("consecutive_failures")),
+  5482	            to_int(row.get("failures")),
+  5483	        )
+  5484	
+  5485	    def _service_failure_persistent(self, row: dict[str, Any], count: int) -> bool:
+  5486	        threshold = max(1, to_int(self.service_signal_policy.get("service_failure_persistence_samples"), 3))
+  5487	        window = max(1, to_int(self.service_signal_policy.get("service_failure_persistence_window_seconds"), 180))
+  5488	        bad_for = to_float(row.get("bad_for_seconds") or row.get("failed_for_seconds"))
+  5489	        return count >= threshold or bad_for >= window
+  5490	
+  5491	    def _gate_service_failures(self, candidate: Candidate, failures: list[dict[str, Any]]) -> None:
+  5492	        if not failures:
+  5493	            return
+  5494	        min_critical = max(1, to_int(self.service_signal_policy.get("service_failure_min_critical_count"), 2))
+  5495	        persistent = [item for item in failures if item.get("truth_class") == "PERSISTENT_FAIL"]
+  5496	        transient = [item for item in failures if item.get("truth_class") == "TRANSIENT_FAIL"]
+  5497	        legacy_unknown_critical = [item for item in transient if item.get("critical_unknown_truth")]
+  5498	        if len(legacy_unknown_critical) >= min_critical:
+  5499	            candidate.reasons.append("service_signal_CONDITIONAL_INELIGIBLE")
+  5500	            candidate.reasons.append("service_signal_UNKNOWN_TRUTH_FAIL_CLOSED")
+  5501	            self._block(candidate, "service_multiple_critical_failed")
+  5502	            return
+  5503	        if persistent:
+  5504	            candidate.reasons.append("service_signal_CONDITIONAL_INELIGIBLE")
+  5505	            for item in persistent:
+  5506	                service = str(item.get("service") or "")
+  5507	                self._block(candidate, f"service_{service}_persistent_failed")
+  5508	            return
+  5509	        if len(transient) >= min_critical:
+  5510	            candidate.reasons.append("service_signal_TRANSIENT_REVALIDATION_REQUIRED")
+  5511	            candidate.reasons.append("service_multiple_transient_failed_degraded")
+  5512	        for item in transient:
+  5513	            service = str(item.get("service") or "")
+  5514	            count = to_int(item.get("failure_count"), 1)
+  5515	            candidate.reasons.append(f"service_{service}_transient_fail")
+  5516	            candidate.reasons.append(f"service_{service}_degraded")
+  5517	            candidate.reasons.append(f"service_{service}_failed_samples_{count}")
+  5518	        candidate.reasons.append("service_signal_DEGRADED_SERVICE")
+  5519	
+  5520	    def _service_signal_only_block(self, candidate: Candidate) -> bool:
+  5521	        if not candidate.blocked:
+  5522	            return False
+  5523	        service_reasons = {"service_multiple_critical_failed"}
+  5524	        return all(
+  5525	            reason.startswith("service_")
+  5526	            or reason.startswith("telegram_required_")
+  5527	            or reason in service_reasons
+  5528	            for reason in candidate.blocked
+  5529	        )
+  5530	
+  5531	    def _score_parts(
+  5532	        self,
+  5533	        user: User,
+  5534	        egress: Egress,
+  5535	        services: list[str],
+  5536	        route_class: str,
+  5537	        routing_intelligence: Optional[dict[str, Any]] = None,
+  5538	    ) -> dict[str, float]:
+  5539	        max_avg = max((e.avg_mbps for e in self.egress.values()), default=1.0) or 1.0
+  5540	        max_min = max((e.min_mbps for e in self.egress.values()), default=1.0) or 1.0
+  5541	        max_client = max((e.client_mbps for e in self.egress.values()), default=1.0) or 1.0
+  5542	        suitability = self._service_suitability(egress, services, route_class)
+  5543	        service_score, latency_score = self._service_scores(egress, services, route_class, suitability)
+  5544	        telegram_score = 0.0
+  5545	        if "telegram" in services:
+  5546	            telegram = self._telegram_candidate_state(egress.id)
+  5547	            if telegram.get("degraded"):
+  5548	                telegram_score -= 120.0
+  5549	                telegram_score += max(0.0, min(to_float(telegram.get("score")), 79.0)) * 0.5
+  5550	            elif telegram.get("ok"):
+  5551	                telegram_score += 40.0
+  5552	            elif telegram.get("source") == "none":
+  5553	                telegram_score -= 20.0
+  5554	        limits = self._load_limits_for_egress(egress)
+  5555	        hard_limit = max(1, to_int(limits.get("hard_limit"), 1))
+  5556	        capacity_decision = self._capacity_decision(egress)
+  5557	        load_score = max(0.0, 80.0 * (1.0 - min(egress.users / hard_limit, 1.0)))
+  5558	        quality_window = self._quality_window(egress.id, "1h")
+  5559	        quality_score = max(0.0, 80.0 * (1.0 - min(to_float(quality_window.get("fail_rate")), 1.0)))
+  5560	        quality_score += min(max(to_float(quality_window.get("stability"), egress.stability), 0.0), 1.0) * 60.0
+  5561	        trend = str((self._quality_history(egress.id).get("score") or {}).get("trend") or "")
+  5562	        if trend == "degrading":
+  5563	            quality_score -= 40.0
+  5564	        elif trend == "improving":
+  5565	            quality_score += 20.0
+  5566	        group_policy = self._group_policy(user.group)
+  5567	        preferred = split_csv(group_policy.get("preferred_egress"))
+  5568	        parts = {
+  5569	            "health": 1000.0,
+  5570	            "service": service_score,
+  5571	            "telegram_required": telegram_score,
+  5572	            "speed": ((egress.avg_mbps / max_avg) * 120.0) + ((egress.min_mbps / max_min) * 60.0) + ((egress.client_mbps / max_client) * 20.0 if max_client else 0.0),
+  5573	            "stability": min(max(egress.stability, 0.0), 1.0) * 150.0,
+  5574	            "latency": latency_score,
+  5575	            "load": load_score,
+  5576	            "capacity": to_float(capacity_decision.get("capacity_score"), 0.0),
+  5577	            "quality_history": quality_score,
+  5578	            "priority": max(0.0, 100.0 - float(egress.priority)),
+  5579	            "weight": egress.weight,
+  5580	            "sticky": 50.0 if egress.id == user.current else 0.0,
+  5581	            "org_preference": 60.0 if preferred and glob_contains(preferred, egress.id) else 0.0,
+  5582	            "reserve_penalty": -100.0 if egress.reserve_only else 0.0,
+  5583	        }
+  5584	        ri = routing_intelligence or {}
+  5585	        if bool_value(ri.get("planner_influence_active")):
+  5586	            parts["routing_intelligence"] = to_float(ri.get("score_part"), 0.0)
+  5587	        return parts
+  5588	
+  5589	    def _service_scores(self, egress: Egress, services: list[str], route_class: str, suitability: Optional[dict[str, Any]] = None) -> tuple[float, float]:
+  5590	        suitability = suitability or self._service_suitability(egress, services, route_class)
+  5591	        matrix_services = self._matrix_services(egress.id)
+  5592	        wanted = services or list(matrix_services.keys())
+  5593	        if not wanted:
+  5594	            fitness = self._route_class_fitness(egress.id, route_class)
+  5595	            return (220.0 if fitness == "OK" else 120.0 if fitness == "WARN" else 0.0, 50.0)

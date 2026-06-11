@@ -1,0 +1,2574 @@
+[
+  {
+    "user_ip": "10.0.0.2",
+    "current_egress": "awg0",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1721.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1721.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 0.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.0.0.3",
+    "current_egress": "awg3",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1721.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1721.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 0.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.0.0.6",
+    "current_egress": "awg0",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1721.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1721.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 0.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.3",
+    "current_egress": "awg3",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1721.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1721.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 0.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.2",
+    "current_egress": "awg3",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1721.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1721.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 0.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.4",
+    "current_egress": "awg0",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1721.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1721.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 0.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.5",
+    "current_egress": "awg3",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1857.38,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1857.38,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_telegram_ok",
+          "service_youtube_ok",
+          "service_google_ok",
+          "route_class_VIDEO_OPTIMIZED_warn",
+          "best_available_pool_rank_1"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 257.99,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 0.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_google_transient_fail",
+          "service_google_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_telegram_ok",
+          "service_youtube_ok",
+          "service_google_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.6",
+    "current_egress": "awg3",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1721.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1721.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 0.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.8",
+    "current_egress": "awg0",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1721.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1721.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 0.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.9",
+    "current_egress": "awg3",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1721.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1721.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 0.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.10",
+    "current_egress": "awg0",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1721.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1721.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 0.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.11",
+    "current_egress": "awg3",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1721.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1721.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 0.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.12",
+    "current_egress": "awg0",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1721.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1721.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 0.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.13",
+    "current_egress": "awg0",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1721.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1721.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 0.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.14",
+    "current_egress": "awg3",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1721.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1721.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 0.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.15",
+    "current_egress": "awg0",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1721.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1721.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 0.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.16",
+    "current_egress": "vless",
+    "action": "keep",
+    "move_type": "none",
+    "reason": [
+      "current_is_best"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1771.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1771.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 50.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.17",
+    "current_egress": "vless",
+    "action": "keep",
+    "move_type": "none",
+    "reason": [
+      "current_is_best"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1771.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1771.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 50.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.18",
+    "current_egress": "vless",
+    "action": "keep",
+    "move_type": "none",
+    "reason": [
+      "current_is_best"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1771.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1771.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 50.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.19",
+    "current_egress": "vless",
+    "action": "keep",
+    "move_type": "none",
+    "reason": [
+      "current_is_best"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1771.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1771.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 50.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.20",
+    "current_egress": "vless",
+    "action": "keep",
+    "move_type": "none",
+    "reason": [
+      "current_is_best"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1771.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1771.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 50.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.21",
+    "current_egress": "vless",
+    "action": "keep",
+    "move_type": "none",
+    "reason": [
+      "current_is_best"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1771.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1771.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 50.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.22",
+    "current_egress": "vless",
+    "action": "keep",
+    "move_type": "none",
+    "reason": [
+      "current_is_best"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1771.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1771.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 50.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.23",
+    "current_egress": "vless",
+    "action": "keep",
+    "move_type": "none",
+    "reason": [
+      "current_is_best"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1771.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1771.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 50.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.24",
+    "current_egress": "vless",
+    "action": "keep",
+    "move_type": "none",
+    "reason": [
+      "current_is_best"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1771.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1771.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 50.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  },
+  {
+    "user_ip": "10.7.0.25",
+    "current_egress": "vless",
+    "action": "keep",
+    "move_type": "none",
+    "reason": [
+      "current_is_best"
+    ],
+    "recommended_egress": "vless",
+    "recommended_score": 1771.65,
+    "top3": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1771.65,
+        "ctr_state": "DEGRADED",
+        "ctr_adjustment": -18.0,
+        "ctr_score_applied": false,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_transient_fail"
+        ],
+        "score_parts": {
+          "health": 1000.0,
+          "service": 122.26,
+          "telegram_required": 40.0,
+          "speed": 139.39,
+          "stability": 108.17,
+          "latency": 0.0,
+          "load": 58.95,
+          "capacity": 73.68,
+          "quality_history": 29.19,
+          "priority": 50.0,
+          "weight": 100.0,
+          "sticky": 50.0,
+          "org_preference": 0.0,
+          "reserve_penalty": 0.0
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "QUARANTINED",
+        "ctr_adjustment": -24.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "health_code_000",
+          "severity_FAIL",
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "telegram_required_telegram_down_14s"
+        ],
+        "reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded"
+        ],
+        "score_parts": {}
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "ctr_state": "TRUSTED",
+        "ctr_adjustment": 20.0,
+        "ctr_score_applied": false,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "reasons": [
+          "avg_mbps_below_floor_but_1h_avg_ok",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "score_parts": {}
+      }
+    ]
+  }
+]

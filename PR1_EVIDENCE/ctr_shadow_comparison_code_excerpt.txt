@@ -1,0 +1,141 @@
+  3750	            }
+  3751	            for service in services
+  3752	        }
+  3753	
+  3754	    def _ctr_shadow_comparison(self, decisions: list[dict[str, Any]]) -> dict[str, Any]:
+  3755	        cycles: list[dict[str, Any]] = []
+  3756	        stats = {
+  3757	            "total_planner_cycles": len(decisions),
+  3758	            "cycles_with_ranking_change": 0,
+  3759	            "cycles_without_ranking_change": 0,
+  3760	            "top_candidate_changes": 0,
+  3761	            "top3_changes": 0,
+  3762	            "pool_order_changes": 0,
+  3763	            "pool_membership_changes": 0,
+  3764	            "service_improvements": 0,
+  3765	            "service_regressions": 0,
+  3766	            "decision_quality_improvements": 0,
+  3767	            "decision_quality_regressions": 0,
+  3768	            "neutral_outcomes": 0,
+  3769	        }
+  3770	        state_analysis: dict[str, dict[str, int]] = {
+  3771	            state: {"candidates": 0, "promoted": 0, "demoted": 0, "unchanged": 0}
+  3772	            for state in ("TRUSTED", "WATCH", "NEW", "RECOVERING", "DEGRADED", "QUARANTINED", "UNKNOWN")
+  3773	        }
+  3774	        for decision in decisions:
+  3775	            rows = [
+  3776	                self._ctr_candidate_shadow_row(candidate)
+  3777	                for candidate in (decision.get("candidates") or [])
+  3778	                if isinstance(candidate, dict)
+  3779	            ]
+  3780	            current_ranking = sorted(rows, key=lambda row: (not row["eligible"], row["rank_before"] or 999999, -row["score"], row["channel"]))
+  3781	            simulated_ranking = sorted(rows, key=lambda row: (not row["eligible"], row["rank_after"] or 999999, -row["simulated_score"], row["channel"]))
+  3782	            current_channels = [row["channel"] for row in current_ranking]
+  3783	            simulated_channels = [row["channel"] for row in simulated_ranking]
+  3784	            current_top = current_ranking[0] if current_ranking else {}
+  3785	            simulated_top = simulated_ranking[0] if simulated_ranking else {}
+  3786	            current_top3 = current_channels[:3]
+  3787	            simulated_top3 = simulated_channels[:3]
+  3788	            current_pool = [row["channel"] for row in current_ranking if row.get("best_available_pool")]
+  3789	            simulated_pool = [row["channel"] for row in simulated_ranking if row.get("best_available_pool")]
+  3790	            ranking_changed = current_channels != simulated_channels
+  3791	            top_changed = (current_top.get("channel") or "") != (simulated_top.get("channel") or "")
+  3792	            top3_changed = current_top3 != simulated_top3
+  3793	            pool_order_changed = current_pool != simulated_pool
+  3794	            if ranking_changed:
+  3795	                stats["cycles_with_ranking_change"] += 1
+  3796	            else:
+  3797	                stats["cycles_without_ranking_change"] += 1
+  3798	            if top_changed:
+  3799	                stats["top_candidate_changes"] += 1
+  3800	            if top3_changed:
+  3801	                stats["top3_changes"] += 1
+  3802	            if pool_order_changed:
+  3803	                stats["pool_order_changes"] += 1
+  3804	            quality = {"verdict": "neutral"}
+  3805	            service_aware = {}
+  3806	            if top_changed and current_top and simulated_top:
+  3807	                quality = self._ctr_quality_delta(current_top, simulated_top)
+  3808	                service_aware = self._ctr_service_aware_delta(current_top, simulated_top)
+  3809	            verdict = str(quality.get("verdict") or "neutral")
+  3810	            if verdict == "improved":
+  3811	                stats["decision_quality_improvements"] += 1
+  3812	            elif verdict == "worsened":
+  3813	                stats["decision_quality_regressions"] += 1
+  3814	            else:
+  3815	                stats["neutral_outcomes"] += 1
+  3816	            service_verdicts = {
+  3817	                str(item.get("verdict") or "no_effect")
+  3818	                for item in service_aware.values()
+  3819	                if isinstance(item, dict)
+  3820	            }
+  3821	            if "improved_service_suitability" in service_verdicts:
+  3822	                stats["service_improvements"] += 1
+  3823	            if "reduced_service_suitability" in service_verdicts:
+  3824	                stats["service_regressions"] += 1
+  3825	            for row in rows:
+  3826	                state = row["ctr_state"] if row["ctr_state"] in state_analysis else "UNKNOWN"
+  3827	                state_analysis[state]["candidates"] += 1
+  3828	                if row["delta"] > 0:
+  3829	                    state_analysis[state]["promoted"] += 1
+  3830	                elif row["delta"] < 0:
+  3831	                    state_analysis[state]["demoted"] += 1
+  3832	                else:
+  3833	                    state_analysis[state]["unchanged"] += 1
+  3834	            cycles.append({
+  3835	                "user_ip": str(decision.get("user_ip") or ""),
+  3836	                "winner_without_ctr": current_top.get("channel", ""),
+  3837	                "winner_with_ctr": simulated_top.get("channel", ""),
+  3838	                "same_winner": not top_changed,
+  3839	                "different_top3": top3_changed,
+  3840	                "different_pool_order": pool_order_changed,
+  3841	                "current_ranking": current_ranking,
+  3842	                "ctr_simulated_ranking": simulated_ranking,
+  3843	                "quality_delta": quality,
+  3844	                "service_aware_validation": service_aware,
+  3845	            })
+  3846	        if stats["decision_quality_regressions"] > stats["decision_quality_improvements"]:
+  3847	            influence = "HARMFUL"
+  3848	            final_verdict = "CTR_NEGATIVE_VALUE"
+  3849	        elif stats["decision_quality_improvements"] > 0 and stats["decision_quality_regressions"] == 0:
+  3850	            influence = "USEFUL"
+  3851	            final_verdict = "CTR_POSITIVE_VALUE"
+  3852	        elif stats["cycles_with_ranking_change"] > 0:
+  3853	            influence = "NEUTRAL"
+  3854	            final_verdict = "CTR_MIXED_VALUE"
+  3855	        else:
+  3856	            influence = "NEUTRAL"
+  3857	            final_verdict = "CTR_NO_MEANINGFUL_VALUE"
+  3858	        readiness = {
+  3859	            "soft_score_application": "NEEDS_MORE_DATA",
+  3860	            "shadow_scoring": "READY",
+  3861	            "planner_influence": "NOT_READY",
+  3862	            "pool_influence": "NEEDS_MORE_DATA",
+  3863	            "governance_influence": "READY",
+  3864	        }
+  3865	        if final_verdict == "CTR_POSITIVE_VALUE":
+  3866	            readiness["soft_score_application"] = "NEEDS_MORE_DATA"
+  3867	            readiness["pool_influence"] = "NEEDS_MORE_DATA"
+  3868	        elif final_verdict == "CTR_NEGATIVE_VALUE":
+  3869	            readiness["soft_score_application"] = "NOT_READY"
+  3870	            readiness["pool_influence"] = "NOT_READY"
+  3871	        return {
+  3872	            "schema_version": "v7.ctr.shadow-comparison.v1",
+  3873	            "mode": "dry_run_shadow_comparison_only",
+  3874	            "cycles": cycles,
+  3875	            "statistics": stats,
+  3876	            "state_analysis": state_analysis,
+  3877	            "ctr_influence_quality": influence,
+  3878	            "readiness_review": readiness,
+  3879	            "no_bypass": {
+  3880	                "selected_moves_changed": False,
+  3881	                "planner_ranking_changed": False,
+  3882	                "runtime_behavior_changed": False,
+  3883	                "routing_changed": False,
+  3884	                "governance_authority_changed": False,
+  3885	                "packet_authority_changed": False,
+  3886	            },
+  3887	            "final_verdict": final_verdict,
+  3888	        }
+  3889	
+  3890	    def plan(self) -> dict[str, Any]:

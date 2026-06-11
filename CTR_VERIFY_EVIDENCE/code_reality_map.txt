@@ -1,0 +1,89 @@
+admin_core/operator_execution_feedback.py:207:def recommendation_approval_packet(row: dict[str, Any], *, actor: str = "", now: str = "") -> dict[str, Any]:
+admin_core/operator_execution_feedback.py:225:        "ctr_packet_evidence_preview": (
+admin_core/operator_execution_feedback.py:226:            row.get("ctr_governance_evidence", {}).get("packet_preview")
+admin_core/operator_execution_feedback.py:227:            if isinstance(row.get("ctr_governance_evidence"), dict)
+admin_core/operator_execution_feedback.py:228:            and isinstance(row.get("ctr_governance_evidence", {}).get("packet_preview"), dict)
+admin_core/operator_execution_feedback.py:231:        "ctr_governance_evidence": row.get("ctr_governance_evidence") if isinstance(row.get("ctr_governance_evidence"), dict) else {},
+admin_core/operator_decision_surface.py:27:    "trust-evolution-summaries",
+admin_core/operator_decision_surface.py:233:    trust_evolution = _items(snapshots.get("trust-evolution-summaries", {}))
+admin_core/operator_decision_surface.py:306:CHANNEL_STATE_COPY = {
+admin_core/operator_decision_surface.py:431:def ctr_review_semantics(state: str) -> dict[str, Any]:
+admin_core/operator_decision_surface.py:438:    for item in _items(snapshots.get("trust-evolution-summaries", {})):
+admin_core/operator_decision_surface.py:439:        model = item.get("channel_trust_recovery") if isinstance(item.get("channel_trust_recovery"), dict) else {}
+admin_core/operator_decision_surface.py:452:    if lifecycle not in CHANNEL_STATE_COPY:
+admin_core/operator_decision_surface.py:454:    copy = CHANNEL_STATE_COPY[lifecycle]
+admin_core/operator_decision_surface.py:466:        "channel_state_source": "trust-evolution-summaries.channel_trust_recovery",
+admin_core/operator_decision_surface.py:487:def _ctr_governance_evidence(channel: str, snapshots: dict[str, dict[str, Any]]) -> dict[str, Any]:
+admin_core/operator_decision_surface.py:490:    review = ctr_review_semantics(state)
+admin_core/operator_decision_surface.py:537:    copy = CHANNEL_STATE_COPY[normalized]
+admin_core/operator_decision_surface.py:573:        ctr_evidence = _ctr_governance_evidence(recommended or current, snapshots)
+admin_core/operator_decision_surface.py:605:            "ctr_governance_evidence": ctr_evidence,
+admin_core/operator_decision_surface.py:664:            "stability": _global_metric(snapshots, "trust-evolution-summaries", "stability_score", 0.0),
+admin_core/operator_decision_surface.py:694:                "ctr_governance_evidence": row.get("ctr_governance_evidence", {}),
+admin_core/operator_decision_surface.py:777:            "trust": ["trust-summaries", "trust-evolution-summaries"],
+admin_core/intelligence_workers.py:238:                "outputs": ["trust-evolution-summaries.json"],
+admin_core/intelligence_workers.py:900:def build_channel_trust_recovery_model(
+admin_core/intelligence_workers.py:1003:                "runtime_behavior_changed": False,
+admin_core/intelligence_workers.py:1011:        "owner": "admin_core.intelligence_workers.trust-evolution-summaries",
+admin_core/intelligence_workers.py:1702:    summary["channel_trust_recovery"] = build_channel_trust_recovery_model(
+admin_core/intelligence_workers.py:1710:        "owner": "admin_core.intelligence_workers.trust-evolution-summaries",
+admin_core/intelligence_workers.py:1711:        "scope": "channel_trust_recovery_advisory_only",
+admin_core/intelligence_workers.py:1754:        "trust-evolution-summaries",
+admin_core/intelligence_workers.py:1906:    snapshots["trust-evolution-summaries"] = build_trust_evolution_snapshot(
+admin_core/operator_execution_pipeline.py:299:        "ctr_governance_evidence": row.get("ctr_governance_evidence") if isinstance(row.get("ctr_governance_evidence"), dict) else {},
+admin_core/operator_execution_pipeline.py:309:            row.get("ctr_governance_evidence", {}).get("packet_preview")
+admin_core/operator_execution_pipeline.py:310:            if isinstance(row.get("ctr_governance_evidence"), dict)
+admin_core/operator_execution_pipeline.py:311:            and isinstance(row.get("ctr_governance_evidence", {}).get("packet_preview"), dict)
+admin_core/operator_execution_pipeline.py:594:            "ctr_governance_evidence": (
+admin_core/operator_execution_pipeline.py:595:                move.get("ctr_governance_evidence")
+admin_core/operator_execution_pipeline.py:596:                if isinstance(move.get("ctr_governance_evidence"), dict)
+admin_core/operator_execution_pipeline.py:597:                else source.get("ctr_governance_evidence")
+admin_core/operator_execution_pipeline.py:598:                if isinstance(source.get("ctr_governance_evidence"), dict)
+admin_core/operator_execution_pipeline.py:669:        "source_owner": "trust-evolution-summaries",
+admin_core/operator_execution_pipeline.py:888:        "source": "trust-evolution-summaries.confidence_summary.decision_confidence",
+admin_core/operator_execution_pipeline.py:894:        "source": "trust-evolution-summaries.confidence_summary.service_confidence",
+admin_core/operator_execution_pipeline.py:900:        "source": "trust-evolution-summaries.confidence_summary.suitability_confidence",
+admin_core/operator_execution_pipeline.py:906:        "source": "trust-evolution-summaries.confidence_summary.prediction_confidence",
+admin_core/operator_execution_pipeline.py:912:        "source": "trust-evolution-summaries.confidence_summary.blast_radius_confidence",
+admin_core/operator_execution_pipeline.py:918:        "source": "trust-evolution-summaries.confidence_summary.rollback_confidence",
+admin_core/operator_execution_pipeline.py:1084:            "runtime_behavior_changed": False,
+tools/v7-users-autoswitch:56:    "trust-evolution-summaries",
+tools/v7-users-autoswitch:470:        "runtime_behavior_changed": False,
+tools/v7-users-autoswitch:570:    ctr_score_simulation: dict[str, Any] = field(default_factory=dict)
+tools/v7-users-autoswitch:1502:            "runtime_behavior_changed": False,
+tools/v7-users-autoswitch:1714:            "runtime_behavior_changed": False,
+tools/v7-users-autoswitch:1771:            "runtime_behavior_changed": False,
+tools/v7-users-autoswitch:1830:        gate["runtime_behavior_changed"] = False
+tools/v7-users-autoswitch:1891:        leased["runtime_behavior_changed"] = False
+tools/v7-users-autoswitch:3151:    def _snapshot_channel_trust_recovery_map(self) -> dict[str, dict[str, Any]]:
+tools/v7-users-autoswitch:3153:        for item in self._snapshot_items("trust-evolution-summaries"):
+tools/v7-users-autoswitch:3154:            model = item.get("channel_trust_recovery") if isinstance(item.get("channel_trust_recovery"), dict) else {}
+tools/v7-users-autoswitch:3197:    def _ctr_advisory_for_egress(self, egress_id: str) -> dict[str, Any]:
+tools/v7-users-autoswitch:3198:        row = self._snapshot_channel_trust_recovery_map().get(str(egress_id), {})
+tools/v7-users-autoswitch:3204:                "reason": "channel_trust_recovery_missing",
+tools/v7-users-autoswitch:3206:                "recovery_path": "collect_channel_trust_recovery_snapshot",
+tools/v7-users-autoswitch:3214:                "planner_score_applied": False,
+tools/v7-users-autoswitch:3258:            "planner_score_applied": False,
+tools/v7-users-autoswitch:3490:        trust_evolution = self._first_snapshot_item("trust-evolution-summaries")
+tools/v7-users-autoswitch:3544:                simulation = candidate.get("ctr_score_simulation")
+tools/v7-users-autoswitch:3590:                "source": "trust-evolution-summaries.channel_trust_recovery",
+tools/v7-users-autoswitch:3598:                "planner_score_applied": False,
+tools/v7-users-autoswitch:3679:        simulation = candidate.get("ctr_score_simulation") if isinstance(candidate.get("ctr_score_simulation"), dict) else {}
+tools/v7-users-autoswitch:3754:    def _ctr_shadow_comparison(self, decisions: list[dict[str, Any]]) -> dict[str, Any]:
+tools/v7-users-autoswitch:3880:                "selected_moves_changed": False,
+tools/v7-users-autoswitch:3882:                "runtime_behavior_changed": False,
+tools/v7-users-autoswitch:4017:        ctr_shadow_comparison = self._ctr_shadow_comparison(decisions)
+tools/v7-users-autoswitch:4939:        self._attach_ctr_score_simulation(candidates)
+tools/v7-users-autoswitch:5054:    def _attach_ctr_score_simulation(self, candidates: list[Candidate]) -> None:
+tools/v7-users-autoswitch:5072:            candidate.ctr_score_simulation = {
+tools/v7-users-autoswitch:5084:                "why_changed": ctr.get("reason") or "channel_trust_recovery_advisory",
+tools/v7-users-autoswitch:5103:                "planner_score_applied": False,
+tools/v7-users-autoswitch:5105:                "selected_moves_changed": False,
+tools/v7-users-autoswitch:5106:                "runtime_behavior_changed": False,
+tools/v7-users-autoswitch:5228:        c.ctr_advisory = self._ctr_advisory_for_egress(egress.id)
+tools/v7-users-autoswitch:5729:            "ctr_score_simulation": candidate.ctr_score_simulation,
+admin/v7-admin-api:11993:        "ctr_governance_evidence": data.get("ctr_governance_evidence") if isinstance(data.get("ctr_governance_evidence"), dict) else {},
+admin/v7-admin-api:12003:    packet = operator_execution_feedback.recommendation_approval_packet(
+admin/v7-admin-api:16005:        "runtime_behavior_changed": False,
+admin/v7-admin-api:27924:      const ctr = row.ctr_governance_evidence || {};
+admin/v7-admin-api:27965:        ctr_governance_evidence: row.ctr_governance_evidence || {},

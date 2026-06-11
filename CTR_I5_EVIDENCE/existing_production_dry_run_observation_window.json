@@ -1,0 +1,192 @@
+{
+  "schema_version": "v7.ctr.production-dry-run-observation-window.v1",
+  "mode": "passive_existing_dry_run_output_aggregation",
+  "minimum_cycles_required": 10,
+  "cycles": [],
+  "statistics": {
+    "total_cycles": 0,
+    "ranking_changes": 0,
+    "winner_changes": 0,
+    "top3_changes": 0,
+    "pool_changes": 0,
+    "positive_changes": 0,
+    "negative_changes": 0,
+    "neutral_changes": 0,
+    "ctr_usefulness_score": 50.0,
+    "ctr_confidence_score": 0.0
+  },
+  "ctr_state_analysis": {
+    "TRUSTED": {
+      "candidates": 0,
+      "promoted": 0,
+      "demoted": 0,
+      "unchanged": 0,
+      "winner_count": 0,
+      "top3_count": 0
+    },
+    "WATCH": {
+      "candidates": 0,
+      "promoted": 0,
+      "demoted": 0,
+      "unchanged": 0,
+      "winner_count": 0,
+      "top3_count": 0
+    },
+    "NEW": {
+      "candidates": 0,
+      "promoted": 0,
+      "demoted": 0,
+      "unchanged": 0,
+      "winner_count": 0,
+      "top3_count": 0
+    },
+    "RECOVERING": {
+      "candidates": 0,
+      "promoted": 0,
+      "demoted": 0,
+      "unchanged": 0,
+      "winner_count": 0,
+      "top3_count": 0
+    },
+    "DEGRADED": {
+      "candidates": 0,
+      "promoted": 0,
+      "demoted": 0,
+      "unchanged": 0,
+      "winner_count": 0,
+      "top3_count": 0
+    },
+    "QUARANTINED": {
+      "candidates": 0,
+      "promoted": 0,
+      "demoted": 0,
+      "unchanged": 0,
+      "winner_count": 0,
+      "top3_count": 0
+    },
+    "UNKNOWN": {
+      "candidates": 0,
+      "promoted": 0,
+      "demoted": 0,
+      "unchanged": 0,
+      "winner_count": 0,
+      "top3_count": 0
+    }
+  },
+  "service_aware_certification": {
+    "telegram": {
+      "improved": 0,
+      "regressed": 0,
+      "neutral": 0
+    },
+    "youtube": {
+      "improved": 0,
+      "regressed": 0,
+      "neutral": 0
+    },
+    "instagram": {
+      "improved": 0,
+      "regressed": 0,
+      "neutral": 0
+    },
+    "chatgpt": {
+      "improved": 0,
+      "regressed": 0,
+      "neutral": 0
+    },
+    "google": {
+      "improved": 0,
+      "regressed": 0,
+      "neutral": 0
+    }
+  },
+  "coefficient_calibration": {
+    "MODEL_A_CURRENT": {
+      "coefficients": {
+        "TRUSTED": 20.0,
+        "WATCH": 0.0,
+        "NEW": -8.0,
+        "RECOVERING": -12.0,
+        "DEGRADED": -18.0,
+        "QUARANTINED": -24.0,
+        "UNKNOWN": 0.0
+      },
+      "statistics": {
+        "ranking_changes": 0,
+        "winner_changes": 0,
+        "top3_changes": 0,
+        "pool_changes": 0,
+        "quality_improvements": 0,
+        "quality_regressions": 0,
+        "quality_neutral": 0,
+        "service_improvements": 0,
+        "service_regressions": 0,
+        "service_neutral": 0
+      },
+      "verdict": "NEUTRAL"
+    },
+    "MODEL_B_CONSERVATIVE": {
+      "coefficients": {
+        "TRUSTED": 10.0,
+        "WATCH": 0.0,
+        "NEW": -4.0,
+        "RECOVERING": -6.0,
+        "DEGRADED": -9.0,
+        "QUARANTINED": -12.0,
+        "UNKNOWN": 0.0
+      },
+      "statistics": {
+        "ranking_changes": 0,
+        "winner_changes": 0,
+        "top3_changes": 0,
+        "pool_changes": 0,
+        "quality_improvements": 0,
+        "quality_regressions": 0,
+        "quality_neutral": 0,
+        "service_improvements": 0,
+        "service_regressions": 0,
+        "service_neutral": 0
+      },
+      "verdict": "NEUTRAL"
+    },
+    "MODEL_C_AGGRESSIVE": {
+      "coefficients": {
+        "TRUSTED": 40.0,
+        "WATCH": 0.0,
+        "NEW": -16.0,
+        "RECOVERING": -24.0,
+        "DEGRADED": -36.0,
+        "QUARANTINED": -48.0,
+        "UNKNOWN": 0.0
+      },
+      "statistics": {
+        "ranking_changes": 0,
+        "winner_changes": 0,
+        "top3_changes": 0,
+        "pool_changes": 0,
+        "quality_improvements": 0,
+        "quality_regressions": 0,
+        "quality_neutral": 0,
+        "service_improvements": 0,
+        "service_regressions": 0,
+        "service_neutral": 0
+      },
+      "verdict": "NEUTRAL"
+    }
+  },
+  "readiness_review": {
+    "soft_score_influence": "NEEDS_MORE_DATA",
+    "planner_influence": "NOT_READY",
+    "pool_influence": "NOT_READY",
+    "more_observation_required": true
+  },
+  "no_bypass": {
+    "selected_moves_changed": false,
+    "planner_ranking_changed": false,
+    "routing_changed": false,
+    "runtime_changed": false,
+    "governance_authority_changed": false,
+    "packet_authority_changed": false
+  },
+  "final_verdict": "INSUFFICIENT_DATA"
+}

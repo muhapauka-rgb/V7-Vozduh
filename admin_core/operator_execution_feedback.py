@@ -222,6 +222,27 @@ def recommendation_approval_packet(row: dict[str, Any], *, actor: str = "", now:
         "trust": row.get("trust", 0.0),
         "risk": row.get("risk", 0.0),
         "prediction": row.get("prediction") if isinstance(row.get("prediction"), dict) else {},
+        "ctr_packet_evidence_preview": (
+            row.get("ctr_governance_evidence", {}).get("packet_preview")
+            if isinstance(row.get("ctr_governance_evidence"), dict)
+            and isinstance(row.get("ctr_governance_evidence", {}).get("packet_preview"), dict)
+            else {}
+        ),
+        "ctr_governance_evidence": row.get("ctr_governance_evidence") if isinstance(row.get("ctr_governance_evidence"), dict) else {},
+        "ctr_review": {
+            "review_required": bool(row.get("review_required")),
+            "review_required_reasons": list(row.get("review_required_reasons") or []),
+            "review_category": str(row.get("review_category") or ""),
+            "review_severity": str(row.get("review_severity") or ""),
+            "review_recommendation": str(row.get("review_recommendation") or ""),
+            "review_warning": str(row.get("review_warning") or ""),
+            "review_next_action": str(row.get("review_next_action") or ""),
+            "emergency_only": bool(row.get("emergency_only")),
+            "approval_authority": "none",
+            "denial_authority": "none",
+            "packet_authority_changed": False,
+            "execution_authority_changed": False,
+        },
         "source_hashes": {
             "source_hash": str(row.get("source_hash") or ""),
             "recommendation_hash": recommendation_hash,

@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 from typing import Optional
 
+from admin_core.intelligence_snapshots import build_snapshot_envelope, snapshot_path
 from admin_core import operator_execution
 
 
@@ -179,6 +180,44 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         plan["apply_result"] = planner.apply(plan)
         planner.finalize_operation(plan)
         return plan
+
+    def write_intelligence_snapshots(self, root: Path, *, ctr_channels: Optional[list[dict]] = None) -> Path:
+        snapshot_root = root / "state" / "intelligence"
+        snapshot_root.mkdir(parents=True, exist_ok=True)
+        generated_at = "2999-01-01T00:00:00+00:00"
+        contents = {
+            "service-scores": [],
+            "channel-service-scores": [
+                {"channel": "1", "aggregate_score": 82, "confidence": 0.9, "verdict": "OK"},
+                {"channel": "vless", "aggregate_score": 78, "confidence": 0.9, "verdict": "OK"},
+            ],
+            "user-service-scores": [],
+            "risk-summaries": [{"risk_score": 0, "average_service_score": 80, "average_channel_score": 80}],
+            "trust-summaries": [{"trust": {"score": 80}, "trust_score": 80}],
+            "blast-radius-summaries": [{"recommendation": {"recommended_budget": 1}}],
+            "candidate-suitability-summary": [],
+            "best-available-pool": [],
+            "prediction-summaries": [],
+            "trust-evolution-summaries": [
+                {
+                    "channel_trust_recovery": {
+                        "channels": ctr_channels or [],
+                    }
+                }
+            ],
+        }
+        for family, content in contents.items():
+            payload = build_snapshot_envelope(
+                family,
+                generated_at=generated_at,
+                confidence=0.95,
+                source_hashes={},
+                generator="unit-test",
+                item_count=len(content) if isinstance(content, list) else 1,
+                content=content,
+            )
+            snapshot_path(snapshot_root, family).write_text(json.dumps(payload), encoding="utf-8")
+        return snapshot_root
 
     def write_feedback_records(
         self,
@@ -522,6 +561,159 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         if not audit["emitted"]:
             self.assertEqual(closure["closure_state"], "OPEN")
             self.assertEqual(closure["closure_blocker"], "audit_missing")
+
+    def test_ctr_advisory_is_visible_without_changing_candidate_score_or_selected_moves(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, users=1)
+            snapshot_root = self.write_intelligence_snapshots(root, ctr_channels=[])
+            baseline_planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--intelligence-snapshot-root", str(snapshot_root)])
+            )
+            baseline = baseline_planner.plan()
+
+            self.write_intelligence_snapshots(
+                root,
+                ctr_channels=[
+                    {
+                        "channel": "vless",
+                        "lifecycle": "QUARANTINED",
+                        "lifecycle_reason": "hard_negative_feedback_or_service_gap",
+                        "trust_score": 22,
+                        "current_service_score": 78,
+                        "confidence": 0.9,
+                        "feedback": {
+                            "successes": 0,
+                            "failures": 2,
+                            "rollback_successes": 0,
+                            "rollback_failures": 0,
+                        },
+                        "recovery": {
+                            "state": "BLOCKED",
+                            "safe_to_restore_eligibility": False,
+                            "operator_review_required": True,
+                        },
+                    }
+                ],
+            )
+            ctr_planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--intelligence-snapshot-root", str(snapshot_root)])
+            )
+            with_ctr = ctr_planner.plan()
+
+        baseline_vless = next(row for row in baseline["decisions"][0]["candidates"] if row["egress"] == "vless")
+        ctr_vless = next(row for row in with_ctr["decisions"][0]["candidates"] if row["egress"] == "vless")
+
+        self.assertEqual(baseline_vless["score"], ctr_vless["score"])
+        self.assertEqual(baseline_vless["score_parts"], ctr_vless["score_parts"])
+        self.assertNotIn("ctr", ctr_vless["score_parts"])
+        self.assertEqual(baseline["operation"]["selected_move_hash"], with_ctr["operation"]["selected_move_hash"])
+        self.assertEqual(baseline["selected_moves"], with_ctr["selected_moves"])
+
+        ctr = ctr_vless["ctr_advisory"]
+        self.assertEqual(ctr["state"], "QUARANTINED")
+        self.assertEqual(ctr["recommended_action"], "emergency_or_rollback_review_only")
+        self.assertFalse(ctr["planner_score_applied"])
+        self.assertFalse(ctr["hard_gate_applied"])
+        self.assertFalse(ctr["target_suppression_applied"])
+        self.assertIn("normal_target_use", ctr["blocked_actions"])
+        self.assertEqual(
+            with_ctr["routing_brain"]["ctr_advisory"]["pool_soft_influence"],
+            "dry_run_score_simulation_only",
+        )
+        self.assertFalse(with_ctr["routing_brain"]["ctr_advisory"]["planner_score_applied"])
+        simulation = ctr_vless["ctr_score_simulation"]
+        self.assertEqual(simulation["mode"], "dry_run_simulation_only")
+        self.assertEqual(simulation["ctr_soft_adjustment"], -24.0)
+        self.assertAlmostEqual(simulation["simulated_score"], simulation["existing_score"] - 24.0, places=3)
+        self.assertFalse(simulation["planner_score_applied"])
+        self.assertFalse(simulation["planner_ranking_changed"])
+        self.assertFalse(simulation["selected_moves_changed"])
+        self.assertFalse(simulation["runtime_behavior_changed"])
+
+    def test_ctr_soft_score_simulation_can_detect_ranking_delta_without_runtime_change(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, users=1, vless_registry_extra=" weight=170")
+            snapshot_root = self.write_intelligence_snapshots(
+                root,
+                ctr_channels=[
+                    {
+                        "channel": "1",
+                        "lifecycle": "QUARANTINED",
+                        "lifecycle_reason": "hard_negative_feedback_or_service_gap",
+                        "trust_score": 25,
+                        "current_service_score": 82,
+                        "confidence": 0.91,
+                        "recovery": {
+                            "state": "BLOCKED",
+                            "safe_to_restore_eligibility": False,
+                            "operator_review_required": True,
+                        },
+                    },
+                    {
+                        "channel": "vless",
+                        "lifecycle": "TRUSTED",
+                        "lifecycle_reason": "stable_success_history",
+                        "trust_score": 92,
+                        "current_service_score": 91,
+                        "confidence": 0.94,
+                        "recovery": {
+                            "state": "HEALTHY",
+                            "safe_to_restore_eligibility": True,
+                            "operator_review_required": False,
+                        },
+                    },
+                ],
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--intelligence-snapshot-root", str(snapshot_root)])
+            )
+            plan = planner.plan()
+
+        candidates = plan["decisions"][0]["candidates"]
+        current = next(row for row in candidates if row["egress"] == "1")
+        vless = next(row for row in candidates if row["egress"] == "vless")
+
+        self.assertGreater(current["score"], vless["score"])
+        self.assertEqual(current["ctr_score_simulation"]["ctr_soft_adjustment"], -24.0)
+        self.assertEqual(vless["ctr_score_simulation"]["ctr_soft_adjustment"], 20.0)
+        self.assertGreater(current["ctr_score_simulation"]["new_position"], current["ctr_score_simulation"]["old_position"])
+        self.assertLess(vless["ctr_score_simulation"]["new_position"], vless["ctr_score_simulation"]["old_position"])
+        self.assertLess(current["ctr_score_simulation"]["ranking_delta"], 0)
+        self.assertGreater(vless["ctr_score_simulation"]["ranking_delta"], 0)
+        self.assertFalse(vless["ctr_score_simulation"]["planner_ranking_changed"])
+        self.assertFalse(vless["ctr_score_simulation"]["selected_moves_changed"])
+        self.assertEqual(plan["routing_brain"]["ctr_advisory"]["simulated_ranking_changes"], 2)
+        self.assertTrue(plan["routing_brain"]["ctr_advisory"]["simulated_value_detected"])
+        self.assertFalse(plan["apply_requested"])
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+        shadow = plan["ctr_shadow_comparison"]
+        self.assertEqual(shadow["mode"], "dry_run_shadow_comparison_only")
+        self.assertEqual(shadow["final_verdict"], "CTR_POSITIVE_VALUE")
+        self.assertEqual(shadow["statistics"]["total_planner_cycles"], 1)
+        self.assertEqual(shadow["statistics"]["cycles_with_ranking_change"], 1)
+        self.assertEqual(shadow["statistics"]["top_candidate_changes"], 1)
+        self.assertEqual(shadow["statistics"]["top3_changes"], 1)
+        self.assertEqual(shadow["statistics"]["decision_quality_improvements"], 1)
+        self.assertEqual(shadow["statistics"]["service_improvements"], 0)
+        self.assertEqual(shadow["statistics"]["service_regressions"], 0)
+        self.assertEqual(shadow["ctr_influence_quality"], "USEFUL")
+        self.assertEqual(shadow["readiness_review"]["shadow_scoring"], "READY")
+        self.assertEqual(shadow["readiness_review"]["planner_influence"], "NOT_READY")
+        self.assertFalse(shadow["no_bypass"]["selected_moves_changed"])
+        self.assertFalse(shadow["no_bypass"]["planner_ranking_changed"])
+        cycle = shadow["cycles"][0]
+        self.assertEqual(cycle["winner_without_ctr"], "1")
+        self.assertEqual(cycle["winner_with_ctr"], "vless")
+        self.assertFalse(cycle["same_winner"])
+        self.assertEqual(cycle["quality_delta"]["verdict"], "improved")
+        self.assertEqual(
+            cycle["service_aware_validation"]["telegram"]["verdict"],
+            "no_effect",
+        )
+        self.assertEqual(shadow["state_analysis"]["TRUSTED"]["promoted"], 1)
+        self.assertEqual(shadow["state_analysis"]["QUARANTINED"]["demoted"], 1)
 
     def test_instagram_one_sample_fail_is_degraded_not_failover(self):
         with tempfile.TemporaryDirectory() as tmp:

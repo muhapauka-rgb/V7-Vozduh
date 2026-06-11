@@ -296,6 +296,30 @@ def recommendation_execution_contract(row: dict[str, Any]) -> dict[str, Any]:
         },
         "source_hashes": source_hashes,
         "reason_summary": list(row.get("reasons") or [])[:8],
+        "ctr_governance_evidence": row.get("ctr_governance_evidence") if isinstance(row.get("ctr_governance_evidence"), dict) else {},
+        "review_required": bool(row.get("review_required")),
+        "review_required_reasons": list(row.get("review_required_reasons") or []),
+        "review_category": str(row.get("review_category") or ""),
+        "review_severity": str(row.get("review_severity") or ""),
+        "review_recommendation": str(row.get("review_recommendation") or ""),
+        "review_warning": str(row.get("review_warning") or ""),
+        "review_next_action": str(row.get("review_next_action") or ""),
+        "emergency_only": bool(row.get("emergency_only")),
+        "packet_evidence_preview": (
+            row.get("ctr_governance_evidence", {}).get("packet_preview")
+            if isinstance(row.get("ctr_governance_evidence"), dict)
+            and isinstance(row.get("ctr_governance_evidence", {}).get("packet_preview"), dict)
+            else {}
+        ),
+        "ctr_authority": {
+            "approval_authority": "none",
+            "denial_authority": "none",
+            "packet_bypass_authority": "none",
+            "restore_barrier_write_authority": "none",
+            "runtime_execution_authority": "none",
+            "packet_authority_changed": False,
+            "governance_authority_changed": False,
+        },
         "approval_packet_required": True,
         "execution_candidate": bool(user and current and target and current != target),
         "execution_allowed_now": False,
@@ -567,6 +591,21 @@ def _dry_run_candidates(decision_surface: dict[str, Any], max_users: int = 1) ->
             "recommendation_hash": move.get("recommendation_hash") or source.get("recommendation_hash") or "",
             "source_hash": source.get("source_hash") or "",
             "reasons": source.get("reasons") or ["planner selected candidate for autonomous dry-run simulation"],
+            "ctr_governance_evidence": (
+                move.get("ctr_governance_evidence")
+                if isinstance(move.get("ctr_governance_evidence"), dict)
+                else source.get("ctr_governance_evidence")
+                if isinstance(source.get("ctr_governance_evidence"), dict)
+                else {}
+            ),
+            "review_required": bool(move.get("review_required") or source.get("review_required")),
+            "review_required_reasons": list(source.get("review_required_reasons") or []),
+            "review_category": move.get("review_category") or source.get("review_category") or "",
+            "review_severity": move.get("review_severity") or source.get("review_severity") or "",
+            "review_recommendation": move.get("review_recommendation") or source.get("review_recommendation") or "",
+            "review_warning": move.get("review_warning") or source.get("review_warning") or "",
+            "review_next_action": move.get("review_next_action") or source.get("review_next_action") or "",
+            "emergency_only": bool(move.get("emergency_only") or source.get("emergency_only")),
         }
         rows.append(recommendation_execution_contract(row))
     return rows[: max(0, max_users)]

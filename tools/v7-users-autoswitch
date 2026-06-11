@@ -566,6 +566,8 @@ class Candidate:
     quality_decision: dict[str, Any] = field(default_factory=dict)
     capacity_decision: dict[str, Any] = field(default_factory=dict)
     routing_intelligence: dict[str, Any] = field(default_factory=dict)
+    ctr_advisory: dict[str, Any] = field(default_factory=dict)
+    ctr_score_simulation: dict[str, Any] = field(default_factory=dict)
     best_available_pool: bool = False
     pool_rank: int = 0
     pool_reason: str = ""
@@ -3146,6 +3148,124 @@ class AutoswitchPlanner:
                 rows[channel] = item
         return rows
 
+    def _snapshot_channel_trust_recovery_map(self) -> dict[str, dict[str, Any]]:
+        rows: dict[str, dict[str, Any]] = {}
+        for item in self._snapshot_items("trust-evolution-summaries"):
+            model = item.get("channel_trust_recovery") if isinstance(item.get("channel_trust_recovery"), dict) else {}
+            for row in model.get("channels") or []:
+                if not isinstance(row, dict):
+                    continue
+                channel = str(row.get("channel") or "").strip()
+                if channel:
+                    rows[channel] = row
+        return rows
+
+    def _ctr_soft_adjustment_for_state(self, state: str) -> float:
+        return {
+            "TRUSTED": 20.0,
+            "WATCH": 0.0,
+            "NEW": -8.0,
+            "RECOVERING": -12.0,
+            "DEGRADED": -18.0,
+            "QUARANTINED": -24.0,
+        }.get(str(state or "").upper(), 0.0)
+
+    def _ctr_recommended_action_for_state(self, state: str) -> str:
+        return {
+            "TRUSTED": "normal_monitoring",
+            "WATCH": "review_for_expansion",
+            "NEW": "observe_before_expansion",
+            "RECOVERING": "operator_review_required",
+            "DEGRADED": "review_before_normal_target_use",
+            "QUARANTINED": "emergency_or_rollback_review_only",
+        }.get(str(state or "").upper(), "observe")
+
+    def _ctr_blocked_actions_for_state(self, state: str) -> list[str]:
+        normalized = str(state or "").upper()
+        if normalized == "TRUSTED":
+            return ["direct_user_switch", "planner_bypass", "governance_bypass"]
+        if normalized in {"WATCH", "NEW"}:
+            return ["automatic_expansion_without_review", "direct_user_switch", "governance_bypass"]
+        if normalized == "RECOVERING":
+            return ["automatic_expansion", "direct_user_switch", "governance_bypass"]
+        if normalized == "DEGRADED":
+            return ["normal_target_use_without_review", "direct_user_switch", "governance_bypass"]
+        if normalized == "QUARANTINED":
+            return ["normal_target_use", "automatic_expansion", "direct_user_switch", "governance_bypass"]
+        return ["direct_user_switch", "governance_bypass"]
+
+    def _ctr_advisory_for_egress(self, egress_id: str) -> dict[str, Any]:
+        row = self._snapshot_channel_trust_recovery_map().get(str(egress_id), {})
+        if not row:
+            return {
+                "schema_version": "v7.ctr.candidate-advisory.v1",
+                "available": False,
+                "state": "UNKNOWN",
+                "reason": "channel_trust_recovery_missing",
+                "recovery_state": "UNKNOWN",
+                "recovery_path": "collect_channel_trust_recovery_snapshot",
+                "confidence": 0.0,
+                "trust_score": 0.0,
+                "current_service_score": 0.0,
+                "soft_adjustment": 0.0,
+                "advisory_score": 0.0,
+                "recommended_action": "observe",
+                "blocked_actions": ["direct_user_switch", "governance_bypass"],
+                "planner_score_applied": False,
+                "hard_gate_applied": False,
+                "target_suppression_applied": False,
+                "authority": {
+                    "planner_decision_owner": "tools/v7-users-autoswitch",
+                    "governance_authority": "none",
+                    "runtime_execution_authority": "none",
+                    "selected_moves_write_authority": "none",
+                },
+            }
+        state = str(row.get("lifecycle") or "UNKNOWN").upper()
+        recovery = row.get("recovery") if isinstance(row.get("recovery"), dict) else {}
+        feedback = row.get("feedback") if isinstance(row.get("feedback"), dict) else {}
+        trust_score = to_float(row.get("trust_score"), 0.0)
+        service_score = to_float(row.get("current_service_score"), 0.0)
+        soft_adjustment = self._ctr_soft_adjustment_for_state(state)
+        return {
+            "schema_version": "v7.ctr.candidate-advisory.v1",
+            "available": True,
+            "state": state,
+            "reason": str(row.get("lifecycle_reason") or ""),
+            "recovery_state": str(recovery.get("state") or ""),
+            "recovery_path": (
+                "normal_monitoring"
+                if state == "TRUSTED"
+                else "observe_successful_outcomes_then_restore_watch_or_trusted"
+                if state in {"NEW", "WATCH", "RECOVERING"}
+                else "fix_service_or_quality_issue_then_collect_recovery_evidence"
+            ),
+            "confidence": to_float(row.get("confidence"), 0.0),
+            "trust_score": trust_score,
+            "current_service_score": service_score,
+            "evidence_summary": {
+                "successes": to_int(feedback.get("successes"), 0),
+                "failures": to_int(feedback.get("failures"), 0),
+                "rollback_successes": to_int(feedback.get("rollback_successes"), 0),
+                "rollback_failures": to_int(feedback.get("rollback_failures"), 0),
+                "safe_to_restore_eligibility": bool_value(recovery.get("safe_to_restore_eligibility")),
+                "operator_review_required": bool_value(recovery.get("operator_review_required")),
+            },
+            "soft_adjustment": soft_adjustment,
+            "advisory_score": round(max(0.0, min(100.0, trust_score + soft_adjustment)), 3),
+            "recommended_action": self._ctr_recommended_action_for_state(state),
+            "blocked_actions": self._ctr_blocked_actions_for_state(state),
+            "planner_score_applied": False,
+            "hard_gate_applied": False,
+            "target_suppression_applied": False,
+            "authority": {
+                "planner_decision_owner": "tools/v7-users-autoswitch",
+                "governance_authority": "none",
+                "runtime_execution_authority": "none",
+                "selected_moves_write_authority": "none",
+            },
+        }
+
     def _snapshot_user_candidate_suitability_map(self, user_id: str) -> dict[str, dict[str, Any]]:
         rows: dict[str, dict[str, Any]] = {}
         for item in self._snapshot_items("candidate-suitability-summary"):
@@ -3402,6 +3522,31 @@ class AutoswitchPlanner:
             and candidate.get("eligible")
             and "routing_intelligence" in (candidate.get("score_parts") or {})
         ]
+        ctr_candidates = [
+            candidate.get("ctr_advisory") or {}
+            for decision in decisions
+            for candidate in (decision.get("candidates") or [])
+            if isinstance(candidate, dict) and isinstance(candidate.get("ctr_advisory"), dict)
+        ]
+        ctr_state_counts: dict[str, int] = {}
+        ctr_review_required = 0
+        ctr_simulated_scores = 0
+        ctr_simulated_ranking_changes = 0
+        for row in ctr_candidates:
+            state = str(row.get("state") or "UNKNOWN").upper()
+            ctr_state_counts[state] = ctr_state_counts.get(state, 0) + 1
+            if state in {"NEW", "WATCH", "RECOVERING", "DEGRADED", "QUARANTINED"}:
+                ctr_review_required += 1
+        for decision in decisions:
+            for candidate in (decision.get("candidates") or []):
+                if not isinstance(candidate, dict):
+                    continue
+                simulation = candidate.get("ctr_score_simulation")
+                if not isinstance(simulation, dict):
+                    continue
+                ctr_simulated_scores += 1
+                if to_int(simulation.get("ranking_delta"), 0) != 0:
+                    ctr_simulated_ranking_changes += 1
         try:
             from admin_core.routing_brain import routing_brain_map
             brain_map = routing_brain_map()
@@ -3435,6 +3580,24 @@ class AutoswitchPlanner:
                 "users_with_pool": len(best_pool_by_user),
                 "pools": best_pool_by_user,
                 "single_best_channel_authority": "none",
+                "planner_decision_owner": "tools/v7-users-autoswitch",
+                "execution_authority": "none",
+                "selected_moves_write_authority": "none",
+            },
+            "ctr_advisory": {
+                "schema_version": "v7.ctr.runtime-advisory-summary.v1",
+                "mode": "trust_evolution_channel_recovery_advisory_only",
+                "source": "trust-evolution-summaries.channel_trust_recovery",
+                "candidate_count": len(ctr_candidates),
+                "state_counts": ctr_state_counts,
+                "review_required_candidates": ctr_review_required,
+                "pool_soft_influence": "dry_run_score_simulation_only",
+                "simulated_score_candidates": ctr_simulated_scores,
+                "simulated_ranking_changes": ctr_simulated_ranking_changes,
+                "simulated_value_detected": ctr_simulated_ranking_changes > 0,
+                "planner_score_applied": False,
+                "hard_gate_applied": False,
+                "target_suppression_applied": False,
                 "planner_decision_owner": "tools/v7-users-autoswitch",
                 "execution_authority": "none",
                 "selected_moves_write_authority": "none",
@@ -3511,6 +3674,218 @@ class AutoswitchPlanner:
         advisory["execution_authority"] = "none"
         advisory["selected_moves_write_authority"] = "none"
         return advisory
+
+    def _ctr_candidate_shadow_row(self, candidate: dict[str, Any]) -> dict[str, Any]:
+        simulation = candidate.get("ctr_score_simulation") if isinstance(candidate.get("ctr_score_simulation"), dict) else {}
+        ctr = candidate.get("ctr_advisory") if isinstance(candidate.get("ctr_advisory"), dict) else {}
+        return {
+            "channel": str(candidate.get("egress") or ""),
+            "eligible": bool_value(candidate.get("eligible")),
+            "score": to_float(candidate.get("score"), 0.0),
+            "ctr_state": str(simulation.get("ctr_state") or ctr.get("state") or "UNKNOWN").upper(),
+            "soft_adjustment": to_float(simulation.get("ctr_soft_adjustment"), ctr.get("soft_adjustment", 0.0)),
+            "simulated_score": to_float(simulation.get("simulated_score"), candidate.get("score", 0.0)),
+            "rank_before": to_int(simulation.get("old_position"), 0),
+            "rank_after": to_int(simulation.get("new_position"), 0),
+            "delta": to_int(simulation.get("ranking_delta"), 0),
+            "service_impact": simulation.get("service_impact") if isinstance(simulation.get("service_impact"), dict) else {},
+            "capacity_impact": simulation.get("capacity_impact") if isinstance(simulation.get("capacity_impact"), dict) else {},
+            "trust_impact": simulation.get("trust_impact") if isinstance(simulation.get("trust_impact"), dict) else {},
+            "recovery_impact": simulation.get("recovery_impact") if isinstance(simulation.get("recovery_impact"), dict) else {},
+            "best_available_pool": bool_value(candidate.get("best_available_pool")),
+        }
+
+    def _ctr_quality_delta(self, current: dict[str, Any], simulated: dict[str, Any]) -> dict[str, Any]:
+        current_service = to_float((current.get("service_impact") or {}).get("aggregate_score"), 0.0)
+        simulated_service = to_float((simulated.get("service_impact") or {}).get("aggregate_score"), 0.0)
+        current_capacity = to_float((current.get("capacity_impact") or {}).get("capacity_score"), 0.0)
+        simulated_capacity = to_float((simulated.get("capacity_impact") or {}).get("capacity_score"), 0.0)
+        current_trust = to_float((current.get("trust_impact") or {}).get("trust_score"), 0.0)
+        simulated_trust = to_float((simulated.get("trust_impact") or {}).get("trust_score"), 0.0)
+        state_weight = {
+            "TRUSTED": 3,
+            "WATCH": 2,
+            "NEW": 1,
+            "RECOVERING": 0,
+            "DEGRADED": -1,
+            "QUARANTINED": -2,
+            "UNKNOWN": 0,
+        }
+        current_state = state_weight.get(str(current.get("ctr_state") or "UNKNOWN").upper(), 0)
+        simulated_state = state_weight.get(str(simulated.get("ctr_state") or "UNKNOWN").upper(), 0)
+        service_delta = simulated_service - current_service
+        capacity_delta = simulated_capacity - current_capacity
+        trust_delta = simulated_trust - current_trust
+        recovery_delta = simulated_state - current_state
+        improvements = sum(1 for value in (service_delta, capacity_delta, trust_delta, recovery_delta) if value > 0)
+        regressions = sum(1 for value in (service_delta, capacity_delta, trust_delta, recovery_delta) if value < 0)
+        if improvements > regressions:
+            verdict = "improved"
+        elif regressions > improvements:
+            verdict = "worsened"
+        else:
+            verdict = "neutral"
+        return {
+            "service_delta": round(service_delta, 3),
+            "capacity_delta": round(capacity_delta, 3),
+            "trust_delta": round(trust_delta, 3),
+            "recovery_delta": recovery_delta,
+            "verdict": verdict,
+        }
+
+    def _ctr_service_aware_delta(self, current: dict[str, Any], simulated: dict[str, Any]) -> dict[str, Any]:
+        services = ["telegram", "youtube", "instagram", "chatgpt", "google"]
+        current_service = to_float((current.get("service_impact") or {}).get("aggregate_score"), 0.0)
+        simulated_service = to_float((simulated.get("service_impact") or {}).get("aggregate_score"), 0.0)
+        verdict = "no_effect"
+        if simulated_service > current_service:
+            verdict = "improved_service_suitability"
+        elif simulated_service < current_service:
+            verdict = "reduced_service_suitability"
+        return {
+            service: {
+                "verdict": verdict,
+                "current_aggregate_score": round(current_service, 3),
+                "simulated_aggregate_score": round(simulated_service, 3),
+            }
+            for service in services
+        }
+
+    def _ctr_shadow_comparison(self, decisions: list[dict[str, Any]]) -> dict[str, Any]:
+        cycles: list[dict[str, Any]] = []
+        stats = {
+            "total_planner_cycles": len(decisions),
+            "cycles_with_ranking_change": 0,
+            "cycles_without_ranking_change": 0,
+            "top_candidate_changes": 0,
+            "top3_changes": 0,
+            "pool_order_changes": 0,
+            "pool_membership_changes": 0,
+            "service_improvements": 0,
+            "service_regressions": 0,
+            "decision_quality_improvements": 0,
+            "decision_quality_regressions": 0,
+            "neutral_outcomes": 0,
+        }
+        state_analysis: dict[str, dict[str, int]] = {
+            state: {"candidates": 0, "promoted": 0, "demoted": 0, "unchanged": 0}
+            for state in ("TRUSTED", "WATCH", "NEW", "RECOVERING", "DEGRADED", "QUARANTINED", "UNKNOWN")
+        }
+        for decision in decisions:
+            rows = [
+                self._ctr_candidate_shadow_row(candidate)
+                for candidate in (decision.get("candidates") or [])
+                if isinstance(candidate, dict)
+            ]
+            current_ranking = sorted(rows, key=lambda row: (not row["eligible"], row["rank_before"] or 999999, -row["score"], row["channel"]))
+            simulated_ranking = sorted(rows, key=lambda row: (not row["eligible"], row["rank_after"] or 999999, -row["simulated_score"], row["channel"]))
+            current_channels = [row["channel"] for row in current_ranking]
+            simulated_channels = [row["channel"] for row in simulated_ranking]
+            current_top = current_ranking[0] if current_ranking else {}
+            simulated_top = simulated_ranking[0] if simulated_ranking else {}
+            current_top3 = current_channels[:3]
+            simulated_top3 = simulated_channels[:3]
+            current_pool = [row["channel"] for row in current_ranking if row.get("best_available_pool")]
+            simulated_pool = [row["channel"] for row in simulated_ranking if row.get("best_available_pool")]
+            ranking_changed = current_channels != simulated_channels
+            top_changed = (current_top.get("channel") or "") != (simulated_top.get("channel") or "")
+            top3_changed = current_top3 != simulated_top3
+            pool_order_changed = current_pool != simulated_pool
+            if ranking_changed:
+                stats["cycles_with_ranking_change"] += 1
+            else:
+                stats["cycles_without_ranking_change"] += 1
+            if top_changed:
+                stats["top_candidate_changes"] += 1
+            if top3_changed:
+                stats["top3_changes"] += 1
+            if pool_order_changed:
+                stats["pool_order_changes"] += 1
+            quality = {"verdict": "neutral"}
+            service_aware = {}
+            if top_changed and current_top and simulated_top:
+                quality = self._ctr_quality_delta(current_top, simulated_top)
+                service_aware = self._ctr_service_aware_delta(current_top, simulated_top)
+            verdict = str(quality.get("verdict") or "neutral")
+            if verdict == "improved":
+                stats["decision_quality_improvements"] += 1
+            elif verdict == "worsened":
+                stats["decision_quality_regressions"] += 1
+            else:
+                stats["neutral_outcomes"] += 1
+            service_verdicts = {
+                str(item.get("verdict") or "no_effect")
+                for item in service_aware.values()
+                if isinstance(item, dict)
+            }
+            if "improved_service_suitability" in service_verdicts:
+                stats["service_improvements"] += 1
+            if "reduced_service_suitability" in service_verdicts:
+                stats["service_regressions"] += 1
+            for row in rows:
+                state = row["ctr_state"] if row["ctr_state"] in state_analysis else "UNKNOWN"
+                state_analysis[state]["candidates"] += 1
+                if row["delta"] > 0:
+                    state_analysis[state]["promoted"] += 1
+                elif row["delta"] < 0:
+                    state_analysis[state]["demoted"] += 1
+                else:
+                    state_analysis[state]["unchanged"] += 1
+            cycles.append({
+                "user_ip": str(decision.get("user_ip") or ""),
+                "winner_without_ctr": current_top.get("channel", ""),
+                "winner_with_ctr": simulated_top.get("channel", ""),
+                "same_winner": not top_changed,
+                "different_top3": top3_changed,
+                "different_pool_order": pool_order_changed,
+                "current_ranking": current_ranking,
+                "ctr_simulated_ranking": simulated_ranking,
+                "quality_delta": quality,
+                "service_aware_validation": service_aware,
+            })
+        if stats["decision_quality_regressions"] > stats["decision_quality_improvements"]:
+            influence = "HARMFUL"
+            final_verdict = "CTR_NEGATIVE_VALUE"
+        elif stats["decision_quality_improvements"] > 0 and stats["decision_quality_regressions"] == 0:
+            influence = "USEFUL"
+            final_verdict = "CTR_POSITIVE_VALUE"
+        elif stats["cycles_with_ranking_change"] > 0:
+            influence = "NEUTRAL"
+            final_verdict = "CTR_MIXED_VALUE"
+        else:
+            influence = "NEUTRAL"
+            final_verdict = "CTR_NO_MEANINGFUL_VALUE"
+        readiness = {
+            "soft_score_application": "NEEDS_MORE_DATA",
+            "shadow_scoring": "READY",
+            "planner_influence": "NOT_READY",
+            "pool_influence": "NEEDS_MORE_DATA",
+            "governance_influence": "READY",
+        }
+        if final_verdict == "CTR_POSITIVE_VALUE":
+            readiness["soft_score_application"] = "NEEDS_MORE_DATA"
+            readiness["pool_influence"] = "NEEDS_MORE_DATA"
+        elif final_verdict == "CTR_NEGATIVE_VALUE":
+            readiness["soft_score_application"] = "NOT_READY"
+            readiness["pool_influence"] = "NOT_READY"
+        return {
+            "schema_version": "v7.ctr.shadow-comparison.v1",
+            "mode": "dry_run_shadow_comparison_only",
+            "cycles": cycles,
+            "statistics": stats,
+            "state_analysis": state_analysis,
+            "ctr_influence_quality": influence,
+            "readiness_review": readiness,
+            "no_bypass": {
+                "selected_moves_changed": False,
+                "planner_ranking_changed": False,
+                "runtime_behavior_changed": False,
+                "routing_changed": False,
+                "governance_authority_changed": False,
+                "packet_authority_changed": False,
+            },
+            "final_verdict": final_verdict,
+        }
 
     def plan(self) -> dict[str, Any]:
         active = self._active_users()
@@ -3639,12 +4014,14 @@ class AutoswitchPlanner:
             move["atomic_execution_envelope_id"] = operation["atomic_execution_envelope_id"]
             move["selected_move_index"] = index
         routing_brain = self._routing_brain_advisory(decisions, len(active), affected_candidate_moves)
+        ctr_shadow_comparison = self._ctr_shadow_comparison(decisions)
         self._persist_dynamic_load_summary()
         return {
             "schema_version": 1,
             "updated": now_iso(),
             "operation": operation,
             "routing_brain": routing_brain,
+            "ctr_shadow_comparison": ctr_shadow_comparison,
             "enabled": enabled,
             "mode": self.switch_policy.get("autoswitch_mode", "guarded") if enabled else "disabled",
             "apply_requested": bool(self.args.apply),
@@ -4559,6 +4936,7 @@ class AutoswitchPlanner:
         candidates = [self._candidate(user, egress, important, route_class, purpose="planned") for egress in self.egress.values()]
         candidates.sort(key=lambda c: (c.eligible, c.score), reverse=True)
         self._mark_best_available_pool(candidates)
+        self._attach_ctr_score_simulation(candidates)
         current = self._candidate(user, self.egress[user.current], important, route_class, purpose="current") if user.current in self.egress else None
         best = next((c for c in candidates if c.eligible), None)
         action = "keep"
@@ -4668,6 +5046,66 @@ class AutoswitchPlanner:
             "candidates": [self._candidate_json(c) for c in candidates],
             "explanation": self._explanation(user, recommended, action, move_type, current, candidates, reason),
         }
+
+    def _ctr_simulated_score(self, candidate: Candidate) -> float:
+        ctr = candidate.ctr_advisory or {}
+        return candidate.score + to_float(ctr.get("soft_adjustment"), 0.0)
+
+    def _attach_ctr_score_simulation(self, candidates: list[Candidate]) -> None:
+        if not candidates:
+            return
+        current_positions = {id(candidate): index for index, candidate in enumerate(candidates, start=1)}
+        simulated_ranking = sorted(
+            candidates,
+            key=lambda c: (0 if c.eligible else 1, -self._ctr_simulated_score(c), c.egress.id),
+        )
+        simulated_positions = {id(candidate): index for index, candidate in enumerate(simulated_ranking, start=1)}
+        for candidate in candidates:
+            ctr = candidate.ctr_advisory or {}
+            state = str(ctr.get("state") or "UNKNOWN").upper()
+            adjustment = to_float(ctr.get("soft_adjustment"), 0.0)
+            old_position = current_positions.get(id(candidate), 0)
+            new_position = simulated_positions.get(id(candidate), old_position)
+            ranking_delta = old_position - new_position
+            service = candidate.service_suitability or {}
+            recovery = ctr.get("recovery") if isinstance(ctr.get("recovery"), dict) else {}
+            candidate.ctr_score_simulation = {
+                "schema_version": "v7.ctr.dry-run-score-simulation.v1",
+                "mode": "dry_run_simulation_only",
+                "existing_score": round(candidate.score, 3),
+                "ctr_soft_adjustment": round(adjustment, 3),
+                "simulated_score": round(candidate.score + adjustment, 3),
+                "score_delta": round(adjustment, 3),
+                "old_position": old_position,
+                "new_position": new_position,
+                "ranking_delta": ranking_delta,
+                "ctr_state": state,
+                "reason": f"ctr_state_{state.lower()}_soft_adjustment_simulated",
+                "why_changed": ctr.get("reason") or "channel_trust_recovery_advisory",
+                "service_impact": {
+                    "aggregate_score": service.get("aggregate_score"),
+                    "required_missing": service.get("required_missing", []),
+                    "required_low": service.get("required_low", []),
+                    "ctr_current_service_score": ctr.get("current_service_score"),
+                },
+                "capacity_impact": candidate.capacity_decision,
+                "trust_impact": {
+                    "trust_score": ctr.get("trust_score"),
+                    "advisory_score": ctr.get("advisory_score"),
+                    "confidence": ctr.get("confidence"),
+                },
+                "recovery_impact": {
+                    "recovery_state": recovery.get("state") or ctr.get("recovery_state"),
+                    "recovery_path": ctr.get("recovery_path"),
+                    "recommended_action": ctr.get("recommended_action"),
+                    "blocked_actions": ctr.get("blocked_actions", []),
+                },
+                "planner_score_applied": False,
+                "planner_ranking_changed": False,
+                "selected_moves_changed": False,
+                "runtime_behavior_changed": False,
+                "simulation_authority": "none",
+            }
 
     def _best_alternative(self, user: User, candidates: list[Candidate], current: Candidate, purpose: str) -> Optional[Candidate]:
         alternatives = [c for c in candidates if c.eligible and c.egress.id != user.current]
@@ -4787,6 +5225,7 @@ class AutoswitchPlanner:
         c.severity_classification = self._severity_classification(egress)
         c.service_suitability = self._service_suitability(egress, services, route_class)
         c.routing_intelligence = self._routing_intelligence_candidate_advice(user, egress, services, route_class)
+        c.ctr_advisory = self._ctr_advisory_for_egress(egress.id)
         self._gate_basic(c, purpose)
         self._gate_reservation(user, c, purpose)
         self._gate_org(user, c)
@@ -5219,6 +5658,15 @@ class AutoswitchPlanner:
                     f"score_part {round(to_float(ri.get('score_part')), 2)} "
                     f"risk {round(to_float(ri.get('degradation_risk_score')), 2)}"
                 )
+            ctr = chosen.ctr_advisory or {}
+            if ctr:
+                why.append(
+                    "ctr advisory "
+                    f"{ctr.get('state', 'UNKNOWN')} "
+                    f"action {ctr.get('recommended_action', 'observe')} "
+                    f"soft_adjustment {round(to_float(ctr.get('soft_adjustment')), 2)} "
+                    "score_not_applied"
+                )
             if user.group:
                 why.append(f"group {user.group} allowed")
         if action == "keep":
@@ -5277,6 +5725,8 @@ class AutoswitchPlanner:
             "quality_decision": candidate.quality_decision,
             "capacity_decision": candidate.capacity_decision,
             "routing_intelligence": candidate.routing_intelligence,
+            "ctr_advisory": candidate.ctr_advisory,
+            "ctr_score_simulation": candidate.ctr_score_simulation,
             "best_available_pool": candidate.best_available_pool,
             "pool_rank": candidate.pool_rank,
             "pool_reason": candidate.pool_reason,

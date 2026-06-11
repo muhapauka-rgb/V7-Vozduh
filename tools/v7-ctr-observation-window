@@ -1,0 +1,350 @@
+#!/usr/bin/env python3
+"""Aggregate CTR shadow comparisons from read-only autoswitch dry-run plans."""
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+
+CTR_STATES = ("TRUSTED", "WATCH", "NEW", "RECOVERING", "DEGRADED", "QUARANTINED", "UNKNOWN")
+SERVICES = ("telegram", "youtube", "instagram", "chatgpt", "google")
+COEFFICIENT_MODELS = {
+    "MODEL_A_CURRENT": {
+        "TRUSTED": 20.0,
+        "WATCH": 0.0,
+        "NEW": -8.0,
+        "RECOVERING": -12.0,
+        "DEGRADED": -18.0,
+        "QUARANTINED": -24.0,
+        "UNKNOWN": 0.0,
+    },
+    "MODEL_B_CONSERVATIVE": {
+        "TRUSTED": 10.0,
+        "WATCH": 0.0,
+        "NEW": -4.0,
+        "RECOVERING": -6.0,
+        "DEGRADED": -9.0,
+        "QUARANTINED": -12.0,
+        "UNKNOWN": 0.0,
+    },
+    "MODEL_C_AGGRESSIVE": {
+        "TRUSTED": 40.0,
+        "WATCH": 0.0,
+        "NEW": -16.0,
+        "RECOVERING": -24.0,
+        "DEGRADED": -36.0,
+        "QUARANTINED": -48.0,
+        "UNKNOWN": 0.0,
+    },
+}
+
+
+def to_float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def read_json(path: Path) -> dict[str, Any]:
+    if str(path) == "-":
+        data = sys.stdin.read()
+    else:
+        data = path.read_text(encoding="utf-8")
+    payload = json.loads(data or "{}")
+    return payload if isinstance(payload, dict) else {}
+
+
+def iter_input_paths(inputs: list[str], input_dirs: list[str]) -> list[Path]:
+    paths = [Path(item) for item in inputs]
+    for raw_dir in input_dirs:
+        directory = Path(raw_dir)
+        if directory.exists():
+            paths.extend(sorted(directory.glob("*.json")))
+    return paths
+
+
+def blank_state_stats() -> dict[str, dict[str, int]]:
+    return {
+        state: {
+            "candidates": 0,
+            "promoted": 0,
+            "demoted": 0,
+            "unchanged": 0,
+            "winner_count": 0,
+            "top3_count": 0,
+        }
+        for state in CTR_STATES
+    }
+
+
+def blank_service_stats() -> dict[str, dict[str, int]]:
+    return {
+        service: {
+            "improved": 0,
+            "regressed": 0,
+            "neutral": 0,
+        }
+        for service in SERVICES
+    }
+
+
+def merge_state_analysis(target: dict[str, dict[str, int]], cycle: dict[str, Any]) -> None:
+    simulated_top3 = [
+        str(row.get("channel") or "")
+        for row in (cycle.get("ctr_simulated_ranking") or [])[:3]
+        if isinstance(row, dict)
+    ]
+    winner = str(cycle.get("winner_with_ctr") or "")
+    for row in cycle.get("ctr_simulated_ranking") or []:
+        if not isinstance(row, dict):
+            continue
+        state = str(row.get("ctr_state") or "UNKNOWN").upper()
+        if state not in target:
+            state = "UNKNOWN"
+        channel = str(row.get("channel") or "")
+        delta = int(row.get("delta") or 0)
+        target[state]["candidates"] += 1
+        if delta > 0:
+            target[state]["promoted"] += 1
+        elif delta < 0:
+            target[state]["demoted"] += 1
+        else:
+            target[state]["unchanged"] += 1
+        if channel == winner:
+            target[state]["winner_count"] += 1
+        if channel in simulated_top3:
+            target[state]["top3_count"] += 1
+
+
+def merge_service_analysis(target: dict[str, dict[str, int]], cycle: dict[str, Any]) -> None:
+    service_rows = cycle.get("service_aware_validation") or {}
+    for service in SERVICES:
+        row = service_rows.get(service) if isinstance(service_rows, dict) else {}
+        verdict = str((row or {}).get("verdict") or "no_effect")
+        if verdict == "improved_service_suitability":
+            target[service]["improved"] += 1
+        elif verdict == "reduced_service_suitability":
+            target[service]["regressed"] += 1
+        else:
+            target[service]["neutral"] += 1
+
+
+def state_weight(state: str) -> int:
+    return {
+        "TRUSTED": 3,
+        "WATCH": 2,
+        "NEW": 1,
+        "RECOVERING": 0,
+        "DEGRADED": -1,
+        "QUARANTINED": -2,
+        "UNKNOWN": 0,
+    }.get(str(state or "UNKNOWN").upper(), 0)
+
+
+def quality_delta(current: dict[str, Any], simulated: dict[str, Any]) -> str:
+    service_delta = to_float((simulated.get("service_impact") or {}).get("aggregate_score"), 0.0) - to_float((current.get("service_impact") or {}).get("aggregate_score"), 0.0)
+    capacity_delta = to_float((simulated.get("capacity_impact") or {}).get("capacity_score"), 0.0) - to_float((current.get("capacity_impact") or {}).get("capacity_score"), 0.0)
+    trust_delta = to_float((simulated.get("trust_impact") or {}).get("trust_score"), 0.0) - to_float((current.get("trust_impact") or {}).get("trust_score"), 0.0)
+    recovery_delta = state_weight(str(simulated.get("ctr_state") or "UNKNOWN")) - state_weight(str(current.get("ctr_state") or "UNKNOWN"))
+    improvements = sum(1 for value in (service_delta, capacity_delta, trust_delta, recovery_delta) if value > 0)
+    regressions = sum(1 for value in (service_delta, capacity_delta, trust_delta, recovery_delta) if value < 0)
+    if improvements > regressions:
+        return "improved"
+    if regressions > improvements:
+        return "worsened"
+    return "neutral"
+
+
+def coefficient_calibration(cycles: list[dict[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for model_name, coefficients in COEFFICIENT_MODELS.items():
+        stats = {
+            "ranking_changes": 0,
+            "winner_changes": 0,
+            "top3_changes": 0,
+            "pool_changes": 0,
+            "quality_improvements": 0,
+            "quality_regressions": 0,
+            "quality_neutral": 0,
+            "service_improvements": 0,
+            "service_regressions": 0,
+            "service_neutral": 0,
+        }
+        for cycle in cycles:
+            current = [
+                row for row in (cycle.get("current_ranking") or [])
+                if isinstance(row, dict)
+            ]
+            if not current:
+                current = [
+                    row for row in (cycle.get("ctr_simulated_ranking") or [])
+                    if isinstance(row, dict)
+                ]
+            if not current:
+                continue
+            modeled = []
+            for row in current:
+                item = dict(row)
+                state = str(item.get("ctr_state") or "UNKNOWN").upper()
+                item["modeled_adjustment"] = to_float(coefficients.get(state), 0.0)
+                item["modeled_score"] = to_float(item.get("score"), 0.0) + item["modeled_adjustment"]
+                modeled.append(item)
+            modeled = sorted(
+                modeled,
+                key=lambda row: (not bool(row.get("eligible", True)), -to_float(row.get("modeled_score"), 0.0), str(row.get("channel") or "")),
+            )
+            current_channels = [str(row.get("channel") or "") for row in current]
+            modeled_channels = [str(row.get("channel") or "") for row in modeled]
+            if current_channels != modeled_channels:
+                stats["ranking_changes"] += 1
+            if current_channels[:1] != modeled_channels[:1]:
+                stats["winner_changes"] += 1
+                verdict = quality_delta(current[0], modeled[0])
+                if verdict == "improved":
+                    stats["quality_improvements"] += 1
+                elif verdict == "worsened":
+                    stats["quality_regressions"] += 1
+                else:
+                    stats["quality_neutral"] += 1
+                current_service = to_float((current[0].get("service_impact") or {}).get("aggregate_score"), 0.0)
+                modeled_service = to_float((modeled[0].get("service_impact") or {}).get("aggregate_score"), 0.0)
+                if modeled_service > current_service:
+                    stats["service_improvements"] += 1
+                elif modeled_service < current_service:
+                    stats["service_regressions"] += 1
+                else:
+                    stats["service_neutral"] += 1
+            if current_channels[:3] != modeled_channels[:3]:
+                stats["top3_changes"] += 1
+            current_pool = [str(row.get("channel") or "") for row in current if row.get("best_available_pool")]
+            modeled_pool = [str(row.get("channel") or "") for row in modeled if row.get("best_available_pool")]
+            if current_pool != modeled_pool:
+                stats["pool_changes"] += 1
+        result[model_name] = {
+            "coefficients": coefficients,
+            "statistics": stats,
+            "verdict": (
+                "POSITIVE"
+                if stats["quality_improvements"] > stats["quality_regressions"]
+                else "NEGATIVE"
+                if stats["quality_regressions"] > stats["quality_improvements"]
+                else "NEUTRAL"
+            ),
+        }
+    return result
+
+
+def build_observation_window(plans: list[dict[str, Any]], *, min_cycles: int = 10) -> dict[str, Any]:
+    cycles: list[dict[str, Any]] = []
+    state_analysis = blank_state_stats()
+    service_analysis = blank_service_stats()
+    no_bypass = {
+        "selected_moves_changed": False,
+        "planner_ranking_changed": False,
+        "routing_changed": False,
+        "runtime_changed": False,
+        "governance_authority_changed": False,
+        "packet_authority_changed": False,
+    }
+    for index, plan in enumerate(plans, start=1):
+        shadow = plan.get("ctr_shadow_comparison") or {}
+        if not isinstance(shadow, dict):
+            continue
+        for key, value in (shadow.get("no_bypass") or {}).items():
+            if key in no_bypass:
+                no_bypass[key] = bool(no_bypass[key] or value)
+            elif key == "runtime_behavior_changed":
+                no_bypass["runtime_changed"] = bool(no_bypass["runtime_changed"] or value)
+        for cycle in shadow.get("cycles") or []:
+            if not isinstance(cycle, dict):
+                continue
+            observed = dict(cycle)
+            observed["plan_index"] = index
+            observed["timestamp"] = str(plan.get("updated") or "")
+            cycles.append(observed)
+            merge_state_analysis(state_analysis, observed)
+            merge_service_analysis(service_analysis, observed)
+    total_cycles = len(cycles)
+    ranking_changes = sum(1 for cycle in cycles if not cycle.get("same_winner") or cycle.get("different_top3") or cycle.get("different_pool_order"))
+    winner_changes = sum(1 for cycle in cycles if not cycle.get("same_winner"))
+    top3_changes = sum(1 for cycle in cycles if cycle.get("different_top3"))
+    pool_changes = sum(1 for cycle in cycles if cycle.get("different_pool_order"))
+    positive_changes = sum(1 for cycle in cycles if (cycle.get("quality_delta") or {}).get("verdict") == "improved")
+    negative_changes = sum(1 for cycle in cycles if (cycle.get("quality_delta") or {}).get("verdict") == "worsened")
+    neutral_changes = total_cycles - positive_changes - negative_changes
+    denominator = max(1, ranking_changes)
+    usefulness_score = max(0.0, min(100.0, 50.0 + (positive_changes - negative_changes) * 50.0 / denominator))
+    confidence_score = max(0.0, min(100.0, (total_cycles / max(1, min_cycles)) * 100.0))
+    enough_data = total_cycles >= max(1, min_cycles)
+    if not enough_data:
+        verdict = "INSUFFICIENT_DATA"
+    elif negative_changes > positive_changes:
+        verdict = "CTR_NEGATIVE"
+    elif positive_changes > negative_changes and usefulness_score >= 70.0:
+        verdict = "CTR_READY_FOR_SOFT_INFLUENCE"
+    elif positive_changes > negative_changes:
+        verdict = "CTR_POSITIVE"
+    elif positive_changes == negative_changes and ranking_changes:
+        verdict = "CTR_NEUTRAL"
+    else:
+        verdict = "INSUFFICIENT_DATA"
+    readiness = {
+        "soft_score_influence": "READY" if verdict == "CTR_READY_FOR_SOFT_INFLUENCE" else ("NEEDS_MORE_DATA" if verdict in {"INSUFFICIENT_DATA", "CTR_POSITIVE"} else "NOT_READY"),
+        "planner_influence": "NOT_READY",
+        "pool_influence": "NEEDS_MORE_DATA" if verdict in {"CTR_POSITIVE", "CTR_READY_FOR_SOFT_INFLUENCE"} else "NOT_READY",
+        "more_observation_required": verdict != "CTR_READY_FOR_SOFT_INFLUENCE",
+    }
+    return {
+        "schema_version": "v7.ctr.production-dry-run-observation-window.v1",
+        "mode": "passive_existing_dry_run_output_aggregation",
+        "minimum_cycles_required": max(1, min_cycles),
+        "cycles": cycles,
+        "statistics": {
+            "total_cycles": total_cycles,
+            "ranking_changes": ranking_changes,
+            "winner_changes": winner_changes,
+            "top3_changes": top3_changes,
+            "pool_changes": pool_changes,
+            "positive_changes": positive_changes,
+            "negative_changes": negative_changes,
+            "neutral_changes": neutral_changes,
+            "ctr_usefulness_score": round(usefulness_score, 3),
+            "ctr_confidence_score": round(confidence_score, 3),
+        },
+        "ctr_state_analysis": state_analysis,
+        "service_aware_certification": service_analysis,
+        "coefficient_calibration": coefficient_calibration(cycles),
+        "readiness_review": readiness,
+        "no_bypass": no_bypass,
+        "final_verdict": verdict,
+    }
+
+
+def build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Aggregate CTR shadow comparisons from autoswitch dry-run JSON plans.")
+    parser.add_argument("inputs", nargs="*", help="Autoswitch dry-run JSON plan files. Use - for stdin.")
+    parser.add_argument("--input-dir", action="append", default=[], help="Directory containing autoswitch dry-run JSON plan files.")
+    parser.add_argument("--min-cycles", type=int, default=10, help="Minimum planner cycles required for readiness.")
+    parser.add_argument("--out", default="", help="Optional output JSON file.")
+    parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON.")
+    return parser
+
+
+def main() -> int:
+    args = build_arg_parser().parse_args()
+    paths = iter_input_paths(list(args.inputs), list(args.input_dir))
+    plans = [read_json(path) for path in paths]
+    report = build_observation_window(plans, min_cycles=args.min_cycles)
+    payload = json.dumps(report, ensure_ascii=False, indent=2 if args.pretty else None)
+    if args.out:
+        Path(args.out).write_text(payload + "\n", encoding="utf-8")
+    else:
+        print(payload)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

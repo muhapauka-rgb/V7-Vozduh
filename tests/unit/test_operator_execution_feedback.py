@@ -81,6 +81,26 @@ class OperatorExecutionFeedbackTest(unittest.TestCase):
                 "trust": 88,
                 "risk": 2,
                 "prediction": {"available": True},
+                "ctr_governance_evidence": {
+                    "state": "DEGRADED",
+                    "review_required": True,
+                    "review_reason": "Есть просадка качества или сервисов.",
+                    "review_category": "degraded_channel_review",
+                    "review_severity": "high",
+                    "packet_preview": {
+                        "ctr_state": "DEGRADED",
+                        "ctr_review_status": "REVIEW_REQUIRED",
+                        "ctr_review_reason": "Есть просадка качества или сервисов.",
+                    },
+                },
+                "review_required": True,
+                "review_required_reasons": ["ctr_state_requires_operator_review"],
+                "review_category": "degraded_channel_review",
+                "review_severity": "high",
+                "review_recommendation": "Не использовать как обычную цель без review.",
+                "review_warning": "Сначала проверить причину деградации.",
+                "review_next_action": "Обновить проверки.",
+                "emergency_only": False,
             },
             actor="operator-a",
         )
@@ -90,6 +110,14 @@ class OperatorExecutionFeedbackTest(unittest.TestCase):
         self.assertFalse(packet["execution_allowed_now"])
         self.assertEqual(packet["next_state"], "EXECUTION_RECHECK_REQUIRED")
         self.assertIn("direct_user_switch", packet["blocked_actions"])
+        self.assertTrue(packet["ctr_review"]["review_required"])
+        self.assertEqual(packet["ctr_review"]["review_category"], "degraded_channel_review")
+        self.assertEqual(packet["ctr_review"]["review_severity"], "high")
+        self.assertEqual(packet["ctr_review"]["approval_authority"], "none")
+        self.assertEqual(packet["ctr_review"]["denial_authority"], "none")
+        self.assertFalse(packet["ctr_review"]["packet_authority_changed"])
+        self.assertFalse(packet["ctr_review"]["execution_authority_changed"])
+        self.assertEqual(packet["ctr_packet_evidence_preview"]["ctr_state"], "DEGRADED")
 
     def test_module_is_pure_no_runtime_invocation(self):
         source = Path(feedback.__file__).read_text(encoding="utf-8")

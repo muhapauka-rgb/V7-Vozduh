@@ -11990,6 +11990,15 @@ def operator_recommendation_approve_response(data, actor):
         "trust": data.get("trust", 0.0),
         "risk": data.get("risk", 0.0),
         "prediction": data.get("prediction") if isinstance(data.get("prediction"), dict) else {},
+        "ctr_governance_evidence": data.get("ctr_governance_evidence") if isinstance(data.get("ctr_governance_evidence"), dict) else {},
+        "review_required": data.get("review_required") is True,
+        "review_required_reasons": data.get("review_required_reasons") if isinstance(data.get("review_required_reasons"), list) else [],
+        "review_category": str(data.get("review_category") or ""),
+        "review_severity": str(data.get("review_severity") or ""),
+        "review_recommendation": str(data.get("review_recommendation") or ""),
+        "review_warning": str(data.get("review_warning") or ""),
+        "review_next_action": str(data.get("review_next_action") or ""),
+        "emergency_only": data.get("emergency_only") is True,
     }
     packet = operator_execution_feedback.recommendation_approval_packet(
         row,
@@ -27912,6 +27921,7 @@ def html_page_v2():
       const ignored = operatorRecommendationIgnored(row);
       const reasons = (row.reasons || []).map(reason => `<li>${esc(reason)}</li>`).join('') || '<li>Нет подробной причины в свежих snapshots.</li>';
       const prediction = row.prediction || {};
+      const ctr = row.ctr_governance_evidence || {};
       const chain = operatorDecisionChainHtml(row.action_chain || ['recommendation','approval_packet','snapshot_gate','restore_barrier','rollback_packet','governance','execution','audit','closure']);
       const sections = [
         drawerSection('Решение', kvRows({
@@ -27924,6 +27934,9 @@ def html_page_v2():
           'Ожидаемая польза': operatorShort(row.expected_improvement || ''),
           'Риск': row.risk ?? '',
           'Доверие': row.trust ?? '',
+          'CTR review': row.review_required ? 'нужен' : 'не нужен',
+          'Причина review': operatorShort(row.review_reason || ctr.review_reason || ''),
+          'Что сделать': operatorShort(row.review_next_action || ctr.review_next_action || ''),
         })),
         drawerSection('Прогноз', kvRows({
           'Доступно': String(prediction.available === true),
@@ -27949,6 +27962,15 @@ def html_page_v2():
         trust: row.trust || 0,
         risk: row.risk || 0,
         prediction: row.prediction || {},
+        ctr_governance_evidence: row.ctr_governance_evidence || {},
+        review_required: row.review_required === true,
+        review_required_reasons: row.review_required_reasons || [],
+        review_category: row.review_category || '',
+        review_severity: row.review_severity || '',
+        review_recommendation: row.review_recommendation || '',
+        review_warning: row.review_warning || '',
+        review_next_action: row.review_next_action || '',
+        emergency_only: row.emergency_only === true,
       };
       try {
         const d = await postJson('/api/actions/recommendation-approve', payload);
@@ -28028,6 +28050,8 @@ def html_page_v2():
           'Доверие': evidence.trust_score ?? row.trust ?? 'неизвестно',
           'Тренд': operatorShort(evidence.trust_trend || row.trust_trend || 'unknown'),
           'Восстановление': statusLabel(evidence.recovery_status || row.channel_state || 'unknown'),
+          'Путь восстановления': operatorShort(row.channel_state_recovery_path || 'Нужны свежие проверки и успешные исходы.'),
+          'Заблокировано': operatorShort(row.channel_state_blocked_action_summary || 'Прямой обход planner/governance запрещён.'),
           'Источник': operatorShort(row.channel_state_source || 'operator_decision_surface'),
         })),
         drawerSection('Почему так', `<p>${esc(operatorShort(row.channel_state_explanation || row.state_reason || 'Состояние рассчитано по свежим данным.'))}</p>`),
@@ -28038,8 +28062,9 @@ def html_page_v2():
     }
     function openBatchRecommendationPreview() {
       const preview = operatorDecisionSurface?.batch_preview || {users_to_move:[], source_target_groups:[]};
-      const userRows = (preview.users_to_move || []).map(row => `<tr><td>${esc(row.user || '')}</td><td>${esc(row.from || '')}</td><td>${esc(row.to || '')}</td><td>${esc(row.confidence ?? '')}</td><td>${esc(row.risk ?? '')}</td></tr>`);
+      const userRows = (preview.users_to_move || []).map(row => `<tr><td>${esc(row.user || '')}</td><td>${esc(row.from || '')}</td><td>${esc(row.to || '')}</td><td>${esc(row.confidence ?? '')}</td><td>${esc(row.risk ?? '')}</td><td>${esc(row.review_required ? 'review' : 'OK')}</td><td>${esc(operatorShort(row.review_reason || ''))}</td></tr>`);
       const groups = (preview.source_target_groups || []).map(row => `<tr><td>${esc(row.path || '')}</td><td>${esc(row.count ?? 0)}</td></tr>`);
+      const ctrReview = preview.ctr_review_summary || {};
       openDrawer('Лучшие рекомендации', 'operator', [
         drawerSection('Сводка', kvRows({
           'К переносу': (preview.users_to_move || []).length,
@@ -28047,9 +28072,11 @@ def html_page_v2():
           'Откат готов': statusLabel(preview.rollback_readiness || ''),
           'Уверенность': preview.confidence ?? '',
           'Риск': preview.risk || '',
+          'CTR review': ctrReview.review_required_count ?? 0,
+          'Emergency only': ctrReview.emergency_only_count ?? 0,
           'Можно выполнить сейчас': 'нет',
         })),
-        drawerSection('Пользователи', listTable(['Пользователь','Сейчас','Куда','Уверенность','Риск'], userRows, 'Нет активных рекомендаций для переноса.')),
+        drawerSection('Пользователи', listTable(['Пользователь','Сейчас','Куда','Уверенность','Риск','Review','Причина'], userRows, 'Нет активных рекомендаций для переноса.')),
         drawerSection('Направления', listTable(['Переход','Кол-во'], groups, 'Нет групп переноса.')),
         drawerSection('Что нужно пройти', operatorDecisionChainHtml(preview.workflow || [])),
       ].join(''), {size:'table'});

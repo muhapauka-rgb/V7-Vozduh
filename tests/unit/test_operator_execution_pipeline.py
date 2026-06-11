@@ -21,6 +21,38 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
             "recommendation_hash": "rec-hash",
             "source_hash": "source-hash",
             "reasons": ["best available channel has higher advisory suitability"],
+            "ctr_governance_evidence": {
+                "schema_version": "v7.ctr.governance-evidence.v1",
+                "channel": "awg3",
+                "state": "RECOVERING",
+                "reason": "Канал восстанавливается.",
+                "recovery_state": "IN_PROGRESS",
+                "recovery_path": "После подтверждения вернётся в WATCH или TRUSTED.",
+                "blocked_actions": "Нельзя расширять нагрузку автоматически.",
+                "recommended_action": "Дождаться стабильности.",
+                "review_required": True,
+                "approval_authority": "none",
+                "denial_authority": "none",
+                "packet_preview": {
+                    "ctr_state": "RECOVERING",
+                    "ctr_confidence": 0.8,
+                    "ctr_review_status": "REVIEW_REQUIRED",
+                    "ctr_review_reason": "Канал ещё восстанавливается.",
+                    "ctr_recovery_state": "IN_PROGRESS",
+                    "ctr_recovery_path": "После подтверждения вернётся в WATCH или TRUSTED.",
+                    "ctr_blocked_actions": "Нельзя расширять нагрузку автоматически.",
+                    "ctr_recommended_action": "Дождаться стабильности.",
+                    "emergency_only": False,
+                },
+            },
+            "review_required": True,
+            "review_required_reasons": ["ctr_state_requires_operator_review"],
+            "review_category": "recovery_review",
+            "review_severity": "medium",
+            "review_recommendation": "Дождаться стабильности.",
+            "review_warning": "Не расширять нагрузку автоматически.",
+            "review_next_action": "Проверить recovery state.",
+            "emergency_only": False,
         }
 
     def test_recommendation_execution_contract_has_required_fields(self):
@@ -33,6 +65,15 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertFalse(contract["runtime_mutation_performed"])
         self.assertEqual(contract["rollback_plan"]["rollback_target"], "awg0")
         self.assertEqual(contract["next_required_state"], "APPROVAL_PACKET_REQUIRED")
+        self.assertTrue(contract["review_required"])
+        self.assertIn("ctr_state_requires_operator_review", contract["review_required_reasons"])
+        self.assertEqual(contract["review_category"], "recovery_review")
+        self.assertEqual(contract["review_severity"], "medium")
+        self.assertEqual(contract["packet_evidence_preview"]["ctr_state"], "RECOVERING")
+        self.assertEqual(contract["ctr_governance_evidence"]["state"], "RECOVERING")
+        self.assertEqual(contract["ctr_authority"]["approval_authority"], "none")
+        self.assertEqual(contract["ctr_authority"]["runtime_execution_authority"], "none")
+        self.assertFalse(contract["ctr_authority"]["packet_authority_changed"])
 
     def test_autonomy_candidate_selection_review_finds_better_candidate_without_mutation(self):
         decision_surface = {

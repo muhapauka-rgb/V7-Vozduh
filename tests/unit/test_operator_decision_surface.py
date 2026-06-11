@@ -45,6 +45,24 @@ class OperatorDecisionSurfaceTest(unittest.TestCase):
                 }
             ])
             self.write_snapshot(root, "prediction-summaries", [{"channel_forecasts": [{"channel": "fast", "confidence": 0.88, "summary": "stable"}]}])
+            self.write_snapshot(root, "trust-evolution-summaries", [{
+                "channel_trust_recovery": {
+                    "channels": [{
+                        "channel": "fast",
+                        "lifecycle": "NEW",
+                        "lifecycle_reason": "insufficient_live_feedback",
+                        "trust_score": 62,
+                        "current_service_score": 86,
+                        "feedback": {
+                            "successes": 0,
+                            "failures": 0,
+                            "rollback_successes": 0,
+                            "rollback_failures": 0,
+                        },
+                        "recovery": {"state": "NOT_NEEDED", "operator_review_required": False},
+                    }]
+                }
+            }])
 
             model = surface.build_operator_decision_surface(
                 snapshot_root=root,
@@ -61,6 +79,17 @@ class OperatorDecisionSurfaceTest(unittest.TestCase):
         self.assertFalse(model["authority"]["execution_path_changed"])
         self.assertIn("approval_packet", row["action_chain"])
         self.assertEqual(model["batch_preview"]["users_to_move"][0]["to"], "fast")
+        ctr = row["ctr_governance_evidence"]
+        self.assertEqual(ctr["state"], "NEW")
+        self.assertTrue(ctr["review_required"])
+        self.assertEqual(ctr["review_category"], "new_channel_review")
+        self.assertEqual(ctr["review_severity"], "medium")
+        self.assertFalse(ctr["emergency_only"])
+        self.assertEqual(ctr["approval_authority"], "none")
+        self.assertEqual(ctr["denial_authority"], "none")
+        self.assertIn("ctr_state_requires_operator_review", row["review_required_reasons"])
+        self.assertEqual(model["batch_preview"]["users_to_move"][0]["ctr_governance_evidence"]["state"], "NEW")
+        self.assertEqual(model["batch_preview"]["ctr_review_summary"]["review_required_count"], 1)
 
     def test_recommendation_fingerprint_changes_when_advice_changes(self):
         first = surface.recommendation_fingerprint("10.7.0.2", "slow", "fast", "aaa")
@@ -191,11 +220,53 @@ class OperatorDecisionSurfaceTest(unittest.TestCase):
         row = model["channels_by_id"]["awg3"]
         self.assertEqual(row["channel_state"], "WATCH")
         self.assertEqual(row["channel_state_label"], "WATCH")
-        self.assertIn("works now", row["channel_state_explanation"])
-        self.assertIn("24-72 hours", row["channel_state_next_step"])
+        self.assertIn("рабочим", row["channel_state_explanation"])
+        self.assertIn("24-72 часа", row["channel_state_next_step"])
+        self.assertIn("TRUSTED", row["channel_state_recovery_path"])
+        self.assertIn("review", row["channel_state_blocked_action_summary"])
         self.assertEqual(row["channel_state_policy"]["maximum_practical_trust_window_days"], 7)
         self.assertEqual(row["channel_state_source"], "trust-evolution-summaries.channel_trust_recovery")
         self.assertEqual(row["state"], "WATCH")
+
+    def test_ctr_visibility_copy_is_short_russian_and_complete_for_all_states(self):
+        required = {
+            "reason",
+            "explanation",
+            "next_step",
+            "safe_now",
+            "recovery_path",
+            "blocked_action_summary",
+        }
+        for state, copy in surface.CHANNEL_STATE_COPY.items():
+            with self.subTest(state=state):
+                self.assertEqual(set(copy), required)
+                for value in copy.values():
+                    self.assertIsInstance(value, str)
+                    self.assertLessEqual(len(value), 180)
+                self.assertRegex(copy["reason"], r"[А-Яа-яЁё]")
+                self.assertRegex(copy["next_step"], r"[А-Яа-яЁё]")
+                self.assertRegex(copy["recovery_path"], r"[А-Яа-яЁё]")
+                self.assertRegex(copy["blocked_action_summary"], r"[А-Яа-яЁё]")
+
+    def test_ctr_review_matrix_matches_governance_contract(self):
+        expected = {
+            "TRUSTED": (False, "normal", "info", False),
+            "WATCH": (True, "expansion_review", "low", False),
+            "NEW": (True, "new_channel_review", "medium", False),
+            "RECOVERING": (True, "recovery_review", "medium", False),
+            "DEGRADED": (True, "degraded_channel_review", "high", False),
+            "QUARANTINED": (True, "emergency_only_review", "critical", True),
+        }
+        for state, (required, category, severity, emergency_only) in expected.items():
+            with self.subTest(state=state):
+                row = surface.ctr_review_semantics(state)
+                self.assertEqual(row["review_required"], required)
+                self.assertEqual(row["review_category"], category)
+                self.assertEqual(row["review_severity"], severity)
+                self.assertEqual(row["emergency_only"], emergency_only)
+                self.assertRegex(row["review_reason"], r"[А-Яа-яЁё]")
+                self.assertRegex(row["review_recommendation"], r"[А-Яа-яЁё]")
+                self.assertRegex(row["review_warning"], r"[А-Яа-яЁё]")
 
     def test_admin_channel_state_surface_is_existing_column_and_click_drawer(self):
         source = Path(__file__).resolve().parents[2] / "admin" / "v7-admin-api"
@@ -205,12 +276,52 @@ class OperatorDecisionSurfaceTest(unittest.TestCase):
         self.assertIn("openChannelStateDrawer", text)
         self.assertIn("channel_state_explanation", text)
         self.assertIn("channel_state_next_step", text)
+        self.assertIn("channel_state_recovery_path", text)
+        self.assertIn("channel_state_blocked_action_summary", text)
+        self.assertIn("'Путь восстановления'", text)
+        self.assertIn("'Заблокировано'", text)
+        self.assertIn("'CTR review'", text)
+        self.assertIn("'Причина review'", text)
+        self.assertIn("'Emergency only'", text)
+        self.assertIn("review_required_reasons", text)
 
     def test_module_exposes_no_execution_or_write_api(self):
         source = inspect.getsource(surface)
         forbidden = ("subprocess", "run_action", "write_json_atomic", "write_text_atomic", "append_jsonl", "audit_admin")
         for name in forbidden:
             self.assertNotIn(name, source)
+
+    def test_ctr_surface_cannot_bypass_runtime_governance_or_ownership(self):
+        source = inspect.getsource(surface)
+        forbidden = (
+            "approve_packet",
+            "write_restore_barrier",
+            "restore_barrier_written_now",
+            "selected_moves.append",
+            "selected_moves =",
+            "--apply",
+            "autoswitch_apply_run",
+            "promote_authority",
+            "capacity_decision",
+            "batch_owner",
+        )
+        for name in forbidden:
+            self.assertNotIn(name, source)
+
+        model = surface.build_operator_decision_surface(
+            snapshot_root=Path("/tmp/does-not-exist"),
+            users=[],
+            egress=[],
+            runtime_state={},
+        )
+
+        self.assertFalse(model["execution_allowed_now"])
+        self.assertFalse(model["authority"]["planner_authority_changed"])
+        self.assertFalse(model["authority"]["governance_changed"])
+        self.assertFalse(model["authority"]["execution_path_changed"])
+        self.assertFalse(model["authority"]["rollback_path_changed"])
+        self.assertFalse(model["authority"]["new_truth_sources_created"])
+        self.assertFalse(model["authority"]["duplicate_systems_created"])
 
 
 if __name__ == "__main__":

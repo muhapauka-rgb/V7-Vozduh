@@ -305,42 +305,132 @@ CHANNEL_STATE_LABELS = {
 
 CHANNEL_STATE_COPY = {
     "NEW": {
-        "reason": "Not enough successful channel history yet.",
-        "explanation": "Channel is new to the trust model. Current checks may be usable, but V7 has not seen enough successful governed outcomes for this channel yet.",
-        "next_step": "Keep observing fresh checks and successful governed outcomes. It can move to WATCH or TRUSTED without waiting longer than the 7 day trust window.",
-        "safe_now": "Use only with normal operator attention.",
+        "reason": "Мало успешной истории.",
+        "explanation": "Канал выглядит новым для модели доверия. Текущие проверки могут быть нормальными, но успешных governed-исходов ещё мало.",
+        "next_step": "Наблюдать и дождаться свежих успешных исходов.",
+        "safe_now": "Только с вниманием оператора.",
+        "recovery_path": "После успешных наблюдений канал перейдёт в WATCH или TRUSTED.",
+        "blocked_action_summary": "Нельзя расширять нагрузку без review.",
     },
     "TRUSTED": {
-        "reason": "Recent checks and governed feedback are good.",
-        "explanation": "Channel has been stable and successful recently. Services look healthy and the trust model has positive channel feedback.",
-        "next_step": "Keep normal monitoring. If services degrade or execution feedback turns negative, the state will drop automatically.",
-        "safe_now": "Yes, within existing planner and governance limits.",
+        "reason": "Проверки и исходы хорошие.",
+        "explanation": "Канал недавно работал стабильно, сервисы здоровы, governed-история положительная.",
+        "next_step": "Оставить обычный мониторинг.",
+        "safe_now": "Да, в пределах planner/governance.",
+        "recovery_path": "Восстановление не требуется.",
+        "blocked_action_summary": "Прямой обход planner/governance всё равно запрещён.",
     },
     "WATCH": {
-        "reason": "Channel works now, but trust history is still thin.",
-        "explanation": "Channel works now and current service checks look healthy enough, but V7 still needs more successful channel outcomes before calling this channel trusted.",
-        "next_step": "Keep it under observation for 24-72 hours or until successful channel feedback confirms it. The practical trust window is capped at 7 days.",
-        "safe_now": "Usually yes, but keep operator attention on it.",
+        "reason": "Работает, но истории мало.",
+        "explanation": "Канал сейчас выглядит рабочим, но успешных исходов пока недостаточно для статуса TRUSTED.",
+        "next_step": "Держать под наблюдением 24-72 часа или до успешного feedback.",
+        "safe_now": "Обычно да, но с вниманием оператора.",
+        "recovery_path": "После подтверждённых успехов перейдёт в TRUSTED.",
+        "blocked_action_summary": "Массовое расширение требует review.",
     },
     "DEGRADED": {
-        "reason": "Current quality or required service checks are weak.",
-        "explanation": "Channel has current service or quality problems. It may still exist in the pool, but it should not be treated as healthy until checks improve.",
-        "next_step": "Refresh service checks and quality summary. It can move to RECOVERING or WATCH after stable current evidence returns.",
-        "safe_now": "No, not for normal routing without review.",
+        "reason": "Качество или сервисы просели.",
+        "explanation": "У канала есть текущие проблемы качества или обязательных сервисов. Нельзя считать его здоровым, пока проверки не восстановятся.",
+        "next_step": "Обновить проверки сервисов и качества.",
+        "safe_now": "Нет, не для обычной маршрутизации без review.",
+        "recovery_path": "После стабильных проверок перейдёт в RECOVERING или WATCH.",
+        "blocked_action_summary": "Нельзя выбирать как обычную цель без operator review.",
     },
     "RECOVERING": {
-        "reason": "Channel was bad before, but recent checks are improving.",
-        "explanation": "The channel has negative history, but current evidence is better. V7 is waiting for clean observations before restoring trust.",
-        "next_step": "Keep it stable for 24-72 hours or collect two successful observations. Then it can move to WATCH or TRUSTED.",
-        "safe_now": "Only with operator review.",
+        "reason": "Канал восстанавливается.",
+        "explanation": "Раньше были плохие сигналы, но свежие проверки лучше. Модель ждёт чистые наблюдения перед возвратом доверия.",
+        "next_step": "Дождаться 24-72 часов стабильности или двух успешных наблюдений.",
+        "safe_now": "Только через operator review.",
+        "recovery_path": "После подтверждения вернётся в WATCH или TRUSTED.",
+        "blocked_action_summary": "Нельзя расширять нагрузку автоматически.",
     },
     "QUARANTINED": {
-        "reason": "Repeated failure or hard service gap requires review.",
-        "explanation": "Channel is blocked from normal trust because it has hard negative evidence, repeated failures, rollback failure, missing required services, or very low current quality.",
-        "next_step": "Fix the underlying service/runtime issue, refresh checks, then wait for recovery evidence before using it normally.",
-        "safe_now": "No.",
+        "reason": "Жёсткий негатив или провал сервисов.",
+        "explanation": "Канал исключён из нормального доверия: есть повторные сбои, rollback-проблема, отсутствующие обязательные сервисы или очень низкое качество.",
+        "next_step": "Починить причину, обновить проверки и дождаться recovery evidence.",
+        "safe_now": "Нет.",
+        "recovery_path": "Сначала устранить причину, затем RECOVERING, потом WATCH/TRUSTED.",
+        "blocked_action_summary": "Нельзя выбирать как обычную цель; только emergency/rollback review.",
     },
 }
+
+CTR_REVIEW_MATRIX = {
+    "TRUSTED": {
+        "review_required": False,
+        "review_reason": "Review не требуется.",
+        "review_category": "normal",
+        "review_severity": "info",
+        "review_recommendation": "Можно продолжать штатный review без дополнительных CTR условий.",
+        "review_warning": "Прямой обход planner/governance всё равно запрещён.",
+        "next_action": "Продолжить штатный путь approval packet.",
+        "emergency_only": False,
+    },
+    "WATCH": {
+        "review_required": True,
+        "review_reason": "Канал работает, но истории пока мало.",
+        "review_category": "expansion_review",
+        "review_severity": "low",
+        "review_recommendation": "Проверь свежие сигналы перед расширением.",
+        "review_warning": "Не расширять нагрузку вслепую.",
+        "next_action": "Открыть packet preview и проверить свежие доказательства.",
+        "emergency_only": False,
+    },
+    "NEW": {
+        "review_required": True,
+        "review_reason": "Недостаточно успешной истории.",
+        "review_category": "new_channel_review",
+        "review_severity": "medium",
+        "review_recommendation": "Использовать только после явного review.",
+        "review_warning": "Новый канал нельзя расширять автоматически.",
+        "next_action": "Проверить сервисы, доверие и recovery path.",
+        "emergency_only": False,
+    },
+    "RECOVERING": {
+        "review_required": True,
+        "review_reason": "Канал ещё восстанавливается.",
+        "review_category": "recovery_review",
+        "review_severity": "medium",
+        "review_recommendation": "Дождаться стабильности или подтвердить review.",
+        "review_warning": "Не расширять нагрузку автоматически.",
+        "next_action": "Проверить recovery state и последние успешные наблюдения.",
+        "emergency_only": False,
+    },
+    "DEGRADED": {
+        "review_required": True,
+        "review_reason": "Есть просадка качества или сервисов.",
+        "review_category": "degraded_channel_review",
+        "review_severity": "high",
+        "review_recommendation": "Не использовать как обычную цель без review.",
+        "review_warning": "Сначала проверить причину деградации.",
+        "next_action": "Обновить проверки и подтвердить, что риск понятен.",
+        "emergency_only": False,
+    },
+    "QUARANTINED": {
+        "review_required": True,
+        "review_reason": "Канал в карантине.",
+        "review_category": "emergency_only_review",
+        "review_severity": "critical",
+        "review_recommendation": "Только emergency или rollback review.",
+        "review_warning": "Нельзя использовать как обычную цель.",
+        "next_action": "Починить причину и пройти recovery path.",
+        "emergency_only": True,
+    },
+    "UNKNOWN": {
+        "review_required": True,
+        "review_reason": "CTR состояние неизвестно.",
+        "review_category": "unknown_ctr_review",
+        "review_severity": "medium",
+        "review_recommendation": "Проверить свежесть snapshot.",
+        "review_warning": "Не принимать решение без понятных доказательств.",
+        "next_action": "Обновить intelligence snapshots.",
+        "emergency_only": False,
+    },
+}
+
+
+def ctr_review_semantics(state: str) -> dict[str, Any]:
+    normalized = str(state or "UNKNOWN").upper()
+    return dict(CTR_REVIEW_MATRIX.get(normalized) or CTR_REVIEW_MATRIX["UNKNOWN"])
 
 
 def _channel_trust_rows(snapshots: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -371,6 +461,8 @@ def _channel_state_from_trust_model(channel: str, snapshots: dict[str, dict[str,
         "channel_state_explanation": copy["explanation"],
         "channel_state_next_step": copy["next_step"],
         "channel_state_safe_now": copy["safe_now"],
+        "channel_state_recovery_path": copy["recovery_path"],
+        "channel_state_blocked_action_summary": copy["blocked_action_summary"],
         "channel_state_source": "trust-evolution-summaries.channel_trust_recovery",
         "channel_state_policy": {
             "maximum_practical_trust_window_days": 7,
@@ -381,6 +473,7 @@ def _channel_state_from_trust_model(channel: str, snapshots: dict[str, dict[str,
         "channel_state_evidence_summary": {
             "current_service_score": row.get("current_service_score"),
             "trust_score": row.get("trust_score"),
+            "confidence": row.get("confidence"),
             "successes": feedback.get("successes", 0),
             "failures": feedback.get("failures", 0),
             "rollback_successes": feedback.get("rollback_successes", 0),
@@ -388,6 +481,48 @@ def _channel_state_from_trust_model(channel: str, snapshots: dict[str, dict[str,
             "recovery_state": recovery.get("state", ""),
         },
         "channel_state_raw_reason": row.get("lifecycle_reason", ""),
+    }
+
+
+def _ctr_governance_evidence(channel: str, snapshots: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    state_payload = _channel_state_from_trust_model(channel, snapshots)
+    state = str(state_payload.get("channel_state") or "UNKNOWN").upper()
+    review = ctr_review_semantics(state)
+    evidence = state_payload.get("channel_state_evidence_summary", {})
+    return {
+        "schema_version": "v7.ctr.governance-evidence.v1",
+        "channel": channel,
+        "state": state,
+        "reason": state_payload.get("channel_state_reason_short", "Состояние CTR неизвестно."),
+        "confidence": evidence.get("confidence", 0),
+        "recovery_state": evidence.get("recovery_state", ""),
+        "recovery_path": state_payload.get("channel_state_recovery_path", "Нужны свежие проверки и успешные исходы."),
+        "evidence_summary": evidence,
+        "blocked_actions": state_payload.get("channel_state_blocked_action_summary", "Прямой обход planner/governance запрещён."),
+        "recommended_action": state_payload.get("channel_state_next_step", "Проверить свежие доказательства."),
+        "review_required": bool(review["review_required"]),
+        "review_required_reason": "ctr_state_requires_operator_review" if review["review_required"] else "NONE",
+        "review_reason": review["review_reason"],
+        "review_category": review["review_category"],
+        "review_severity": review["review_severity"],
+        "review_recommendation": review["review_recommendation"],
+        "review_warning": review["review_warning"],
+        "review_next_action": review["next_action"],
+        "emergency_only": bool(review["emergency_only"]),
+        "packet_preview": {
+            "ctr_state": state,
+            "ctr_confidence": evidence.get("confidence", 0),
+            "ctr_review_status": "REVIEW_REQUIRED" if review["review_required"] else "NO_EXTRA_REVIEW",
+            "ctr_review_reason": review["review_reason"],
+            "ctr_recovery_state": evidence.get("recovery_state", ""),
+            "ctr_recovery_path": state_payload.get("channel_state_recovery_path", ""),
+            "ctr_blocked_actions": state_payload.get("channel_state_blocked_action_summary", ""),
+            "ctr_recommended_action": review["review_recommendation"],
+            "emergency_only": bool(review["emergency_only"]),
+        },
+        "approval_authority": "none",
+        "denial_authority": "none",
+        "runtime_mutation_performed": False,
     }
 
 
@@ -407,6 +542,8 @@ def _legacy_channel_state(channel: str, row: dict[str, Any], snapshots: dict[str
         "channel_state_explanation": copy["explanation"],
         "channel_state_next_step": copy["next_step"],
         "channel_state_safe_now": copy["safe_now"],
+        "channel_state_recovery_path": copy["recovery_path"],
+        "channel_state_blocked_action_summary": copy["blocked_action_summary"],
         "channel_state_source": "legacy_operator_decision_surface_fallback",
         "channel_state_evidence_summary": {},
         "channel_state_raw_reason": why,
@@ -433,6 +570,7 @@ def build_user_decision_rows(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
         current_row = _current_candidate(current, best_row, candidate_row)
         best_score = _candidate_score(best)
         current_score = _candidate_score(current_row)
+        ctr_evidence = _ctr_governance_evidence(recommended or current, snapshots)
         improvement = round(max(0.0, best_score - current_score), 3)
         confidence = _clip(_as_float(best.get("confidence"), best_score))
         breakdown = _reason_breakdown(best)
@@ -464,6 +602,16 @@ def build_user_decision_rows(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
             "recommendation_hash": fingerprint,
             "source_hash": source,
             "blockers": sorted(set(blockers)),
+            "ctr_governance_evidence": ctr_evidence,
+            "review_required": bool(ctr_evidence.get("review_required")),
+            "review_required_reasons": [ctr_evidence["review_required_reason"]] if ctr_evidence.get("review_required") else [],
+            "review_reason": ctr_evidence.get("review_reason", ""),
+            "review_category": ctr_evidence.get("review_category", ""),
+            "review_severity": ctr_evidence.get("review_severity", ""),
+            "review_recommendation": ctr_evidence.get("review_recommendation", ""),
+            "review_warning": ctr_evidence.get("review_warning", ""),
+            "review_next_action": ctr_evidence.get("review_next_action", ""),
+            "emergency_only": bool(ctr_evidence.get("emergency_only")),
             "action_chain": ["recommendation", "approval_packet", "snapshot_gate", "restore_barrier", "rollback_packet", "governance", "execution", "audit", "closure"],
             "runtime_mutation_performed": False,
         })
@@ -530,6 +678,7 @@ def build_batch_preview(user_rows: list[dict[str, Any]]) -> dict[str, Any]:
     for row in moves:
         key = f"{row.get('current_channel') or 'unknown'}->{row.get('recommended_channel') or 'unknown'}"
         groups[key] = groups.get(key, 0) + 1
+    review_required = [row for row in moves if row.get("review_required")]
     avg_confidence = round(sum(_as_float(row.get("confidence")) for row in moves) / len(moves), 3) if moves else 0.0
     return {
         "preview_only": True,
@@ -542,10 +691,30 @@ def build_batch_preview(user_rows: list[dict[str, Any]]) -> dict[str, Any]:
                 "confidence": row.get("confidence"),
                 "risk": row.get("risk"),
                 "recommendation_hash": row.get("recommendation_hash"),
+                "ctr_governance_evidence": row.get("ctr_governance_evidence", {}),
+                "review_required": row.get("review_required", False),
+                "review_reason": row.get("review_reason", ""),
+                "review_category": row.get("review_category", ""),
+                "review_severity": row.get("review_severity", ""),
+                "review_recommendation": row.get("review_recommendation", ""),
+                "review_warning": row.get("review_warning", ""),
+                "review_next_action": row.get("review_next_action", ""),
+                "emergency_only": row.get("emergency_only", False),
             }
             for row in moves
         ],
         "source_target_groups": [{"path": key, "count": count} for key, count in sorted(groups.items())],
+        "ctr_review_summary": {
+            "schema_version": "v7.ctr.batch-review-summary.v1",
+            "review_required_count": len(review_required),
+            "emergency_only_count": sum(1 for row in review_required if row.get("emergency_only")),
+            "review_categories": sorted({str(row.get("review_category") or "") for row in review_required if row.get("review_category")}),
+            "review_severities": sorted({str(row.get("review_severity") or "") for row in review_required if row.get("review_severity")}),
+            "packet_authority_changed": False,
+            "approval_authority": "none",
+            "denial_authority": "none",
+            "runtime_execution_authority": "none",
+        },
         "blast_radius": {"users": len(moves), "bounded": len(moves) <= 10, "mode": "preview_only"},
         "rollback_readiness": "packet_required_before_execution" if moves else "not_required",
         "confidence": avg_confidence,

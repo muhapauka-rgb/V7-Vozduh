@@ -1,0 +1,2 @@
+40eb14958ca53a76bcba4dedb2574e39855593db6a6a250c52b8038a02b0d542  admin/v7-admin-api
+df701dd7dcd6adb25dd67d01d1d612dc5b16fe67e2c991ecfe0f4f4db7d51905  tests/unit/test_api3_read_only_views.py

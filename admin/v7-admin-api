@@ -15938,11 +15938,21 @@ def run_json_command(cmd, timeout=40, max_output=5_000_000):
     return {"cmd": cmd, "rc": proc.returncode, "output": redact(output[-12000:]), "json": redact(parsed)}
 
 
-def autoswitch_plan_state(target_egress=""):
-    cmd = ["v7-users-autoswitch", "--pretty"]
+def autoswitch_read_only_plan_command(target_egress=""):
+    cmd = [
+        "v7-users-autoswitch",
+        "--pre-planner-refresh", "write",
+        "--pre-planner-refresh-command", "v7-intelligence-snapshot-refresh",
+        "--pretty",
+    ]
     target_egress = safe_egress_id(target_egress)
     if target_egress:
         cmd.extend(["--target-egress", target_egress])
+    return cmd, target_egress
+
+
+def autoswitch_plan_state(target_egress=""):
+    cmd, target_egress = autoswitch_read_only_plan_command(target_egress)
     result = run_json_command(cmd, timeout=45)
     return {
         "action": "autoswitch_plan",
@@ -15955,10 +15965,7 @@ def autoswitch_plan_state(target_egress=""):
 
 
 def autoswitch_dry_run_state(actor, target_egress=""):
-    cmd = ["v7-users-autoswitch", "--pretty"]
-    target_egress = safe_egress_id(target_egress)
-    if target_egress:
-        cmd.extend(["--target-egress", target_egress])
+    cmd, target_egress = autoswitch_read_only_plan_command(target_egress)
     result = run_json_command(cmd, timeout=45)
     audit_admin(actor, "admin_action_autoswitch_dry_run", f"autoswitch dry-run target={target_egress or 'all'}", object_type="autoswitch", object_id=target_egress or "plan", result="OK" if result.get("rc") == 0 else "FAIL")
     return {"action": "autoswitch_dry_run", "target_egress": target_egress, "rc": result.get("rc"), "plan": result.get("json"), "output": result.get("output", ""), "cmd": result.get("cmd", [])}

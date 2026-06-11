@@ -122,6 +122,39 @@ class Api3ReadOnlyViewsTest(unittest.TestCase):
             for token in forbidden:
                 self.assertNotIn(token, source)
 
+    def test_autoswitch_read_only_plan_uses_pre_planner_refresh(self):
+        cmd, target = self.admin.autoswitch_read_only_plan_command("awg0")
+        self.assertEqual(target, "awg0")
+        self.assertEqual(cmd[:5], [
+            "v7-users-autoswitch",
+            "--pre-planner-refresh",
+            "write",
+            "--pre-planner-refresh-command",
+            "v7-intelligence-snapshot-refresh",
+        ])
+        self.assertIn("--pretty", cmd)
+        self.assertEqual(cmd[-2:], ["--target-egress", "awg0"])
+
+    def test_autoswitch_plan_state_reuses_refresh_command(self):
+        calls = []
+        original = self.admin.run_json_command
+        try:
+            def fake_run_json_command(cmd, timeout=45, max_output=12000):
+                calls.append((cmd, timeout, max_output))
+                return {"cmd": cmd, "rc": 0, "json": {"ok": True}, "output": "{}"}
+
+            self.admin.run_json_command = fake_run_json_command
+            result = self.admin.autoswitch_plan_state("vless")
+        finally:
+            self.admin.run_json_command = original
+
+        self.assertEqual(result["rc"], 0)
+        self.assertEqual(result["plan"], {"ok": True})
+        self.assertEqual(result["cmd"], calls[0][0])
+        self.assertIn("--pre-planner-refresh", calls[0][0])
+        self.assertIn("write", calls[0][0])
+        self.assertEqual(calls[0][1], 45)
+
 
 if __name__ == "__main__":
     unittest.main()

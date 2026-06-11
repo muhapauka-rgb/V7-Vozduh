@@ -1,0 +1,4414 @@
+{
+  "status": "NOT_READY",
+  "draft_contracts": 8,
+  "validation_pass": 0,
+  "validation_review_required": 7,
+  "validation_fail": 1,
+  "verification_previews": 8,
+  "rollback_previews": 8,
+  "unknown_gates": [],
+  "review_required_gates": [
+    "runtime_trust",
+    "release_trust",
+    "required_services",
+    "policy",
+    "routing_mode",
+    "group_constraints"
+  ],
+  "failed_gates": [
+    "conflict_resolver",
+    "capacity",
+    "target_readiness"
+  ],
+  "remaining_unknown_gates_count": 0,
+  "readiness_reason": "One or more validation gates failed closed.",
+  "consistency": {
+    "status": "FAIL",
+    "drafts_count": 8,
+    "issues": [],
+    "proposal_to_contract": true,
+    "authority_to_contract": true,
+    "evaluator_to_validation": true,
+    "conflict_resolver_to_validation": true,
+    "contract_to_verification": true,
+    "contract_to_rollback": true,
+    "fail_closed": true,
+    "read_only": true,
+    "preview_only": true
+  },
+  "gate_summary": [
+    {
+      "gate_id": "authority",
+      "label": "Authority",
+      "status": "PASS",
+      "draft_count": 8,
+      "adapter_connected": true,
+      "sources": [
+        "proposal"
+      ],
+      "checks": [
+        {
+          "id": "authority",
+          "label": "Authority",
+          "status": "PASS",
+          "reason": "Proposal reference present.",
+          "blocking": true,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {
+            "proposal_id": "proposal-state-observation-1a55b2091108c88c"
+          },
+          "draft_id": "draft-contract-271600577ed4a53d",
+          "contract_id": "draft-contract-271600577ed4a53d"
+        },
+        {
+          "id": "authority",
+          "label": "Authority",
+          "status": "PASS",
+          "reason": "Proposal reference present.",
+          "blocking": true,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {
+            "proposal_id": "proposal-channel-observe-a85a1f449198894c"
+          },
+          "draft_id": "draft-contract-dff3bb5e8ff2dbb5",
+          "contract_id": "draft-contract-dff3bb5e8ff2dbb5"
+        },
+        {
+          "id": "authority",
+          "label": "Authority",
+          "status": "PASS",
+          "reason": "Proposal reference present.",
+          "blocking": true,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {
+            "proposal_id": "proposal-channel-observe-7055e0bd29558822"
+          },
+          "draft_id": "draft-contract-c6ab780b4b234f95",
+          "contract_id": "draft-contract-c6ab780b4b234f95"
+        },
+        {
+          "id": "authority",
+          "label": "Authority",
+          "status": "PASS",
+          "reason": "Proposal reference present.",
+          "blocking": true,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {
+            "proposal_id": "proposal-channel-observe-4361707bc6b4fdb9"
+          },
+          "draft_id": "draft-contract-d1deed3e896c1359",
+          "contract_id": "draft-contract-d1deed3e896c1359"
+        },
+        {
+          "id": "authority",
+          "label": "Authority",
+          "status": "PASS",
+          "reason": "Proposal reference present.",
+          "blocking": true,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {
+            "proposal_id": "proposal-channel-observe-884c07303cd59407"
+          },
+          "draft_id": "draft-contract-3596567c8f98df9b",
+          "contract_id": "draft-contract-3596567c8f98df9b"
+        },
+        {
+          "id": "authority",
+          "label": "Authority",
+          "status": "PASS",
+          "reason": "Proposal reference present.",
+          "blocking": true,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {
+            "proposal_id": "proposal-channel-observe-39a7b2f98f4903bd"
+          },
+          "draft_id": "draft-contract-4804c13a86572aed",
+          "contract_id": "draft-contract-4804c13a86572aed"
+        },
+        {
+          "id": "authority",
+          "label": "Authority",
+          "status": "PASS",
+          "reason": "Proposal reference present.",
+          "blocking": true,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {
+            "proposal_id": "proposal-channel-observe-8e5e31a9b1de8f1f"
+          },
+          "draft_id": "draft-contract-9d3f749577d9f4ce",
+          "contract_id": "draft-contract-9d3f749577d9f4ce"
+        },
+        {
+          "id": "authority",
+          "label": "Authority",
+          "status": "PASS",
+          "reason": "Proposal reference present.",
+          "blocking": true,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {
+            "proposal_id": "proposal-channel-observe-b29ff28d19372889"
+          },
+          "draft_id": "draft-contract-ef0b84ceafdf5999",
+          "contract_id": "draft-contract-ef0b84ceafdf5999"
+        }
+      ],
+      "read_only": true,
+      "preview_only": true
+    },
+    {
+      "gate_id": "evaluator",
+      "label": "Evaluator",
+      "status": "PASS",
+      "draft_count": 8,
+      "adapter_connected": true,
+      "sources": [
+        "evidence"
+      ],
+      "checks": [
+        {
+          "id": "evaluator",
+          "label": "Evaluator",
+          "status": "PASS",
+          "reason": "Evidence reference present.",
+          "blocking": true,
+          "source": "evidence",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "evidence",
+          "detail": {
+            "evidence_bundle_id": "evidence-check-state-freshness"
+          },
+          "draft_id": "draft-contract-271600577ed4a53d",
+          "contract_id": "draft-contract-271600577ed4a53d"
+        },
+        {
+          "id": "evaluator",
+          "label": "Evaluator",
+          "status": "PASS",
+          "reason": "Evidence reference present.",
+          "blocking": true,
+          "source": "evidence",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "evidence",
+          "detail": {
+            "evidence_bundle_id": "evidence-channel-30bccb6896bfaa91"
+          },
+          "draft_id": "draft-contract-dff3bb5e8ff2dbb5",
+          "contract_id": "draft-contract-dff3bb5e8ff2dbb5"
+        },
+        {
+          "id": "evaluator",
+          "label": "Evaluator",
+          "status": "PASS",
+          "reason": "Evidence reference present.",
+          "blocking": true,
+          "source": "evidence",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "evidence",
+          "detail": {
+            "evidence_bundle_id": "evidence-channel-7a0042dfdaaf98e7"
+          },
+          "draft_id": "draft-contract-c6ab780b4b234f95",
+          "contract_id": "draft-contract-c6ab780b4b234f95"
+        },
+        {
+          "id": "evaluator",
+          "label": "Evaluator",
+          "status": "PASS",
+          "reason": "Evidence reference present.",
+          "blocking": true,
+          "source": "evidence",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "evidence",
+          "detail": {
+            "evidence_bundle_id": "evidence-channel-c23d07775e4d83c8"
+          },
+          "draft_id": "draft-contract-d1deed3e896c1359",
+          "contract_id": "draft-contract-d1deed3e896c1359"
+        },
+        {
+          "id": "evaluator",
+          "label": "Evaluator",
+          "status": "PASS",
+          "reason": "Evidence reference present.",
+          "blocking": true,
+          "source": "evidence",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "evidence",
+          "detail": {
+            "evidence_bundle_id": "evidence-channel-4d393b43b93333f0"
+          },
+          "draft_id": "draft-contract-3596567c8f98df9b",
+          "contract_id": "draft-contract-3596567c8f98df9b"
+        },
+        {
+          "id": "evaluator",
+          "label": "Evaluator",
+          "status": "PASS",
+          "reason": "Evidence reference present.",
+          "blocking": true,
+          "source": "evidence",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "evidence",
+          "detail": {
+            "evidence_bundle_id": "evidence-channel-4d091d470a55ac43"
+          },
+          "draft_id": "draft-contract-4804c13a86572aed",
+          "contract_id": "draft-contract-4804c13a86572aed"
+        },
+        {
+          "id": "evaluator",
+          "label": "Evaluator",
+          "status": "PASS",
+          "reason": "Evidence reference present.",
+          "blocking": true,
+          "source": "evidence",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "evidence",
+          "detail": {
+            "evidence_bundle_id": "evidence-channel-8eeb7f24364a5e59"
+          },
+          "draft_id": "draft-contract-9d3f749577d9f4ce",
+          "contract_id": "draft-contract-9d3f749577d9f4ce"
+        },
+        {
+          "id": "evaluator",
+          "label": "Evaluator",
+          "status": "PASS",
+          "reason": "Evidence reference present.",
+          "blocking": true,
+          "source": "evidence",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "evidence",
+          "detail": {
+            "evidence_bundle_id": "evidence-channel-654b20b5bd81bd1e"
+          },
+          "draft_id": "draft-contract-ef0b84ceafdf5999",
+          "contract_id": "draft-contract-ef0b84ceafdf5999"
+        }
+      ],
+      "read_only": true,
+      "preview_only": true
+    },
+    {
+      "gate_id": "conflict_resolver",
+      "label": "Conflict Resolver",
+      "status": "FAIL",
+      "draft_count": 8,
+      "adapter_connected": true,
+      "sources": [
+        "capacity_adapter"
+      ],
+      "checks": [
+        {
+          "id": "conflict_resolver",
+          "label": "Conflict Resolver",
+          "status": "FAIL",
+          "reason": "Capacity and target conflict sources are readable.",
+          "blocking": true,
+          "source": "capacity_adapter",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "capacity_adapter",
+          "detail": {
+            "capacity_status": "FAIL"
+          },
+          "draft_id": "draft-contract-271600577ed4a53d",
+          "contract_id": "draft-contract-271600577ed4a53d"
+        },
+        {
+          "id": "conflict_resolver",
+          "label": "Conflict Resolver",
+          "status": "PASS",
+          "reason": "Capacity and target conflict sources are readable.",
+          "blocking": true,
+          "source": "capacity_adapter",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "capacity_adapter",
+          "detail": {
+            "capacity_status": "PASS"
+          },
+          "draft_id": "draft-contract-dff3bb5e8ff2dbb5",
+          "contract_id": "draft-contract-dff3bb5e8ff2dbb5"
+        },
+        {
+          "id": "conflict_resolver",
+          "label": "Conflict Resolver",
+          "status": "PASS",
+          "reason": "Capacity and target conflict sources are readable.",
+          "blocking": true,
+          "source": "capacity_adapter",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "capacity_adapter",
+          "detail": {
+            "capacity_status": "PASS"
+          },
+          "draft_id": "draft-contract-c6ab780b4b234f95",
+          "contract_id": "draft-contract-c6ab780b4b234f95"
+        },
+        {
+          "id": "conflict_resolver",
+          "label": "Conflict Resolver",
+          "status": "PASS",
+          "reason": "Capacity and target conflict sources are readable.",
+          "blocking": true,
+          "source": "capacity_adapter",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "capacity_adapter",
+          "detail": {
+            "capacity_status": "PASS"
+          },
+          "draft_id": "draft-contract-d1deed3e896c1359",
+          "contract_id": "draft-contract-d1deed3e896c1359"
+        },
+        {
+          "id": "conflict_resolver",
+          "label": "Conflict Resolver",
+          "status": "PASS",
+          "reason": "Capacity and target conflict sources are readable.",
+          "blocking": true,
+          "source": "capacity_adapter",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "capacity_adapter",
+          "detail": {
+            "capacity_status": "PASS"
+          },
+          "draft_id": "draft-contract-3596567c8f98df9b",
+          "contract_id": "draft-contract-3596567c8f98df9b"
+        },
+        {
+          "id": "conflict_resolver",
+          "label": "Conflict Resolver",
+          "status": "PASS",
+          "reason": "Capacity and target conflict sources are readable.",
+          "blocking": true,
+          "source": "capacity_adapter",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "capacity_adapter",
+          "detail": {
+            "capacity_status": "REVIEW_REQUIRED"
+          },
+          "draft_id": "draft-contract-4804c13a86572aed",
+          "contract_id": "draft-contract-4804c13a86572aed"
+        },
+        {
+          "id": "conflict_resolver",
+          "label": "Conflict Resolver",
+          "status": "PASS",
+          "reason": "Capacity and target conflict sources are readable.",
+          "blocking": true,
+          "source": "capacity_adapter",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "capacity_adapter",
+          "detail": {
+            "capacity_status": "REVIEW_REQUIRED"
+          },
+          "draft_id": "draft-contract-9d3f749577d9f4ce",
+          "contract_id": "draft-contract-9d3f749577d9f4ce"
+        },
+        {
+          "id": "conflict_resolver",
+          "label": "Conflict Resolver",
+          "status": "PASS",
+          "reason": "Capacity and target conflict sources are readable.",
+          "blocking": true,
+          "source": "capacity_adapter",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "capacity_adapter",
+          "detail": {
+            "capacity_status": "REVIEW_REQUIRED"
+          },
+          "draft_id": "draft-contract-ef0b84ceafdf5999",
+          "contract_id": "draft-contract-ef0b84ceafdf5999"
+        }
+      ],
+      "read_only": true,
+      "preview_only": true
+    },
+    {
+      "gate_id": "runtime_trust",
+      "label": "Runtime Trust",
+      "status": "REVIEW_REQUIRED",
+      "draft_count": 8,
+      "adapter_connected": true,
+      "sources": [
+        "runtime_trust"
+      ],
+      "checks": [
+        {
+          "id": "runtime_trust",
+          "label": "Runtime Trust",
+          "status": "REVIEW_REQUIRED",
+          "reason": "Требуется внимание",
+          "blocking": true,
+          "source": "runtime_trust",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "runtime_trust",
+          "detail": {
+            "runtime_status": "RUNTIME_WARNING"
+          },
+          "draft_id": "draft-contract-271600577ed4a53d",
+          "contract_id": "draft-contract-271600577ed4a53d"
+        },
+        {
+          "id": "runtime_trust",
+          "label": "Runtime Trust",
+          "status": "REVIEW_REQUIRED",
+          "reason": "Требуется внимание",
+          "blocking": true,
+          "source": "runtime_trust",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "runtime_trust",
+          "detail": {
+            "runtime_status": "RUNTIME_WARNING"
+          },
+          "draft_id": "draft-contract-dff3bb5e8ff2dbb5",
+          "contract_id": "draft-contract-dff3bb5e8ff2dbb5"
+        },
+        {
+          "id": "runtime_trust",
+          "label": "Runtime Trust",
+          "status": "REVIEW_REQUIRED",
+          "reason": "Требуется внимание",
+          "blocking": true,
+          "source": "runtime_trust",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "runtime_trust",
+          "detail": {
+            "runtime_status": "RUNTIME_WARNING"
+          },
+          "draft_id": "draft-contract-c6ab780b4b234f95",
+          "contract_id": "draft-contract-c6ab780b4b234f95"
+        },
+        {
+          "id": "runtime_trust",
+          "label": "Runtime Trust",
+          "status": "REVIEW_REQUIRED",
+          "reason": "Требуется внимание",
+          "blocking": true,
+          "source": "runtime_trust",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "runtime_trust",
+          "detail": {
+            "runtime_status": "RUNTIME_WARNING"
+          },
+          "draft_id": "draft-contract-d1deed3e896c1359",
+          "contract_id": "draft-contract-d1deed3e896c1359"
+        },
+        {
+          "id": "runtime_trust",
+          "label": "Runtime Trust",
+          "status": "REVIEW_REQUIRED",
+          "reason": "Требуется внимание",
+          "blocking": true,
+          "source": "runtime_trust",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "runtime_trust",
+          "detail": {
+            "runtime_status": "RUNTIME_WARNING"
+          },
+          "draft_id": "draft-contract-3596567c8f98df9b",
+          "contract_id": "draft-contract-3596567c8f98df9b"
+        },
+        {
+          "id": "runtime_trust",
+          "label": "Runtime Trust",
+          "status": "REVIEW_REQUIRED",
+          "reason": "Требуется внимание",
+          "blocking": true,
+          "source": "runtime_trust",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "runtime_trust",
+          "detail": {
+            "runtime_status": "RUNTIME_WARNING"
+          },
+          "draft_id": "draft-contract-4804c13a86572aed",
+          "contract_id": "draft-contract-4804c13a86572aed"
+        },
+        {
+          "id": "runtime_trust",
+          "label": "Runtime Trust",
+          "status": "REVIEW_REQUIRED",
+          "reason": "Требуется внимание",
+          "blocking": true,
+          "source": "runtime_trust",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "runtime_trust",
+          "detail": {
+            "runtime_status": "RUNTIME_WARNING"
+          },
+          "draft_id": "draft-contract-9d3f749577d9f4ce",
+          "contract_id": "draft-contract-9d3f749577d9f4ce"
+        },
+        {
+          "id": "runtime_trust",
+          "label": "Runtime Trust",
+          "status": "REVIEW_REQUIRED",
+          "reason": "Требуется внимание",
+          "blocking": true,
+          "source": "runtime_trust",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "runtime_trust",
+          "detail": {
+            "runtime_status": "RUNTIME_WARNING"
+          },
+          "draft_id": "draft-contract-ef0b84ceafdf5999",
+          "contract_id": "draft-contract-ef0b84ceafdf5999"
+        }
+      ],
+      "read_only": true,
+      "preview_only": true
+    },
+    {
+      "gate_id": "release_trust",
+      "label": "Release Trust",
+      "status": "REVIEW_REQUIRED",
+      "draft_count": 8,
+      "adapter_connected": true,
+      "sources": [
+        "release_trust"
+      ],
+      "checks": [
+        {
+          "id": "release_trust",
+          "label": "Release Trust",
+          "status": "REVIEW_REQUIRED",
+          "reason": "Недостаточно данных",
+          "blocking": true,
+          "source": "release_trust",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "release_trust",
+          "detail": {
+            "release_status": "RELEASE_UNKNOWN"
+          },
+          "draft_id": "draft-contract-271600577ed4a53d",
+          "contract_id": "draft-contract-271600577ed4a53d"
+        },
+        {
+          "id": "release_trust",
+          "label": "Release Trust",
+          "status": "REVIEW_REQUIRED",
+          "reason": "Недостаточно данных",
+          "blocking": true,
+          "source": "release_trust",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "release_trust",
+          "detail": {
+            "release_status": "RELEASE_UNKNOWN"
+          },
+          "draft_id": "draft-contract-dff3bb5e8ff2dbb5",
+          "contract_id": "draft-contract-dff3bb5e8ff2dbb5"
+        },
+        {
+          "id": "release_trust",
+          "label": "Release Trust",
+          "status": "REVIEW_REQUIRED",
+          "reason": "Недостаточно данных",
+          "blocking": true,
+          "source": "release_trust",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "release_trust",
+          "detail": {
+            "release_status": "RELEASE_UNKNOWN"
+          },
+          "draft_id": "draft-contract-c6ab780b4b234f95",
+          "contract_id": "draft-contract-c6ab780b4b234f95"
+        },
+        {
+          "id": "release_trust",
+          "label": "Release Trust",
+          "status": "REVIEW_REQUIRED",
+          "reason": "Недостаточно данных",
+          "blocking": true,
+          "source": "release_trust",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "release_trust",
+          "detail": {
+            "release_status": "RELEASE_UNKNOWN"
+          },
+          "draft_id": "draft-contract-d1deed3e896c1359",
+          "contract_id": "draft-contract-d1deed3e896c1359"
+        },
+        {
+          "id": "release_trust",
+          "label": "Release Trust",
+          "status": "REVIEW_REQUIRED",
+          "reason": "Недостаточно данных",
+          "blocking": true,
+          "source": "release_trust",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "release_trust",
+          "detail": {
+            "release_status": "RELEASE_UNKNOWN"
+          },
+          "draft_id": "draft-contract-3596567c8f98df9b",
+          "contract_id": "draft-contract-3596567c8f98df9b"
+        },
+        {
+          "id": "release_trust",
+          "label": "Release Trust",
+          "status": "REVIEW_REQUIRED",
+          "reason": "Недостаточно данных",
+          "blocking": true,
+          "source": "release_trust",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "release_trust",
+          "detail": {
+            "release_status": "RELEASE_UNKNOWN"
+          },
+          "draft_id": "draft-contract-4804c13a86572aed",
+          "contract_id": "draft-contract-4804c13a86572aed"
+        },
+        {
+          "id": "release_trust",
+          "label": "Release Trust",
+          "status": "REVIEW_REQUIRED",
+          "reason": "Недостаточно данных",
+          "blocking": true,
+          "source": "release_trust",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "release_trust",
+          "detail": {
+            "release_status": "RELEASE_UNKNOWN"
+          },
+          "draft_id": "draft-contract-9d3f749577d9f4ce",
+          "contract_id": "draft-contract-9d3f749577d9f4ce"
+        },
+        {
+          "id": "release_trust",
+          "label": "Release Trust",
+          "status": "REVIEW_REQUIRED",
+          "reason": "Недостаточно данных",
+          "blocking": true,
+          "source": "release_trust",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "release_trust",
+          "detail": {
+            "release_status": "RELEASE_UNKNOWN"
+          },
+          "draft_id": "draft-contract-ef0b84ceafdf5999",
+          "contract_id": "draft-contract-ef0b84ceafdf5999"
+        }
+      ],
+      "read_only": true,
+      "preview_only": true
+    },
+    {
+      "gate_id": "required_services",
+      "label": "Required Services",
+      "status": "REVIEW_REQUIRED",
+      "draft_count": 8,
+      "adapter_connected": true,
+      "sources": [
+        "proposal"
+      ],
+      "checks": [
+        {
+          "id": "required_services",
+          "label": "Required Services",
+          "status": "REVIEW_REQUIRED",
+          "reason": "proposal has no required services",
+          "blocking": false,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {
+            "required_services": []
+          },
+          "draft_id": "draft-contract-271600577ed4a53d",
+          "contract_id": "draft-contract-271600577ed4a53d"
+        },
+        {
+          "id": "required_services",
+          "label": "Required Services",
+          "status": "REVIEW_REQUIRED",
+          "reason": "proposal has no required services",
+          "blocking": false,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {
+            "required_services": []
+          },
+          "draft_id": "draft-contract-dff3bb5e8ff2dbb5",
+          "contract_id": "draft-contract-dff3bb5e8ff2dbb5"
+        },
+        {
+          "id": "required_services",
+          "label": "Required Services",
+          "status": "REVIEW_REQUIRED",
+          "reason": "proposal has no required services",
+          "blocking": false,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {
+            "required_services": []
+          },
+          "draft_id": "draft-contract-c6ab780b4b234f95",
+          "contract_id": "draft-contract-c6ab780b4b234f95"
+        },
+        {
+          "id": "required_services",
+          "label": "Required Services",
+          "status": "REVIEW_REQUIRED",
+          "reason": "proposal has no required services",
+          "blocking": false,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {
+            "required_services": []
+          },
+          "draft_id": "draft-contract-d1deed3e896c1359",
+          "contract_id": "draft-contract-d1deed3e896c1359"
+        },
+        {
+          "id": "required_services",
+          "label": "Required Services",
+          "status": "REVIEW_REQUIRED",
+          "reason": "proposal has no required services",
+          "blocking": false,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {
+            "required_services": []
+          },
+          "draft_id": "draft-contract-3596567c8f98df9b",
+          "contract_id": "draft-contract-3596567c8f98df9b"
+        },
+        {
+          "id": "required_services",
+          "label": "Required Services",
+          "status": "REVIEW_REQUIRED",
+          "reason": "proposal has no required services",
+          "blocking": false,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {
+            "required_services": []
+          },
+          "draft_id": "draft-contract-4804c13a86572aed",
+          "contract_id": "draft-contract-4804c13a86572aed"
+        },
+        {
+          "id": "required_services",
+          "label": "Required Services",
+          "status": "REVIEW_REQUIRED",
+          "reason": "proposal has no required services",
+          "blocking": false,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {
+            "required_services": []
+          },
+          "draft_id": "draft-contract-9d3f749577d9f4ce",
+          "contract_id": "draft-contract-9d3f749577d9f4ce"
+        },
+        {
+          "id": "required_services",
+          "label": "Required Services",
+          "status": "REVIEW_REQUIRED",
+          "reason": "proposal has no required services",
+          "blocking": false,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {
+            "required_services": []
+          },
+          "draft_id": "draft-contract-ef0b84ceafdf5999",
+          "contract_id": "draft-contract-ef0b84ceafdf5999"
+        }
+      ],
+      "read_only": true,
+      "preview_only": true
+    },
+    {
+      "gate_id": "capacity",
+      "label": "Capacity",
+      "status": "FAIL",
+      "draft_count": 8,
+      "adapter_connected": true,
+      "sources": [
+        "egress.registry"
+      ],
+      "checks": [
+        {
+          "id": "capacity",
+          "label": "Capacity",
+          "status": "FAIL",
+          "reason": "target missing",
+          "blocking": true,
+          "source": "egress.registry",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "egress.registry",
+          "detail": {
+            "target": "system",
+            "exists": false,
+            "enabled": false,
+            "soft_limit": 0,
+            "hard_limit": 0,
+            "current_users": 0,
+            "registry": {}
+          },
+          "draft_id": "draft-contract-271600577ed4a53d",
+          "contract_id": "draft-contract-271600577ed4a53d"
+        },
+        {
+          "id": "capacity",
+          "label": "Capacity",
+          "status": "PASS",
+          "reason": "capacity ok: current=0 budget=0 hard=10",
+          "blocking": true,
+          "source": "egress.registry",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "egress.registry",
+          "detail": {
+            "target": "amneziawg-exec-20260528-10-8-1-14",
+            "exists": true,
+            "enabled": true,
+            "soft_limit": 10,
+            "hard_limit": 10,
+            "current_users": 0,
+            "registry": {
+              "id": "amneziawg-exec-20260528-10-8-1-14",
+              "protocol": "amneziawg",
+              "type": "interface",
+              "interface": "v7execwg0",
+              "test": "interface",
+              "enabled": "1",
+              "config": "/etc/amnezia/v7execwg0.conf",
+              "role": "EXECUTION_ONLY",
+              "route_table": "1250",
+              "priority": "10",
+              "weight": "1",
+              "soft_limit": "10",
+              "hard_limit": "10",
+              "manual_only": "1",
+              "reserve_only": "1",
+              "canary_reserved": "true",
+              "execution_reserved": "true",
+              "reservation_owner": "operator_execution_governance",
+              "autoswitch_allowed": "false",
+              "rebalance_allowed": "false",
+              "production_assignment_allowed": "false",
+              "service_tags": "governance,execution",
+              "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU"
+            }
+          },
+          "draft_id": "draft-contract-dff3bb5e8ff2dbb5",
+          "contract_id": "draft-contract-dff3bb5e8ff2dbb5"
+        },
+        {
+          "id": "capacity",
+          "label": "Capacity",
+          "status": "PASS",
+          "reason": "capacity ok: current=0 budget=0 hard=2",
+          "blocking": true,
+          "source": "egress.registry",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "egress.registry",
+          "detail": {
+            "target": "wireguard-1779454504-c43409",
+            "exists": true,
+            "enabled": true,
+            "soft_limit": 1,
+            "hard_limit": 2,
+            "current_users": 0,
+            "registry": {
+              "id": "wireguard-1779454504-c43409",
+              "protocol": "wireguard",
+              "type": "interface",
+              "interface": "v7e06a394c478",
+              "test": "interface",
+              "enabled": "1",
+              "config": "/etc/wireguard/v7e06a394c478.conf",
+              "role": "GLOBAL_FAST",
+              "priority": "20",
+              "weight": "100",
+              "soft_limit": "1",
+              "hard_limit": "2",
+              "manual_only": "0",
+              "reserve_only": "0",
+              "service_tags": "google,telegram,instagram,global",
+              "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU",
+              "canary_reserved": "true",
+              "reservation_reason": "second_canary_target",
+              "reservation_owner": "control_plane_governance"
+            }
+          },
+          "draft_id": "draft-contract-c6ab780b4b234f95",
+          "contract_id": "draft-contract-c6ab780b4b234f95"
+        },
+        {
+          "id": "capacity",
+          "label": "Capacity",
+          "status": "PASS",
+          "reason": "capacity ok: current=0 budget=0 hard=2",
+          "blocking": true,
+          "source": "egress.registry",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "egress.registry",
+          "detail": {
+            "target": "openvpn-1779388847-d2ad7c",
+            "exists": true,
+            "enabled": true,
+            "soft_limit": 1,
+            "hard_limit": 2,
+            "current_users": 0,
+            "registry": {
+              "id": "openvpn-1779388847-d2ad7c",
+              "protocol": "openvpn",
+              "type": "interface",
+              "interface": "v7edb0c189291",
+              "test": "interface",
+              "enabled": "1",
+              "config": "/etc/v7/egress-openvpn/v7edb0c189291.ovpn",
+              "role": "GLOBAL_FAST",
+              "priority": "20",
+              "weight": "100",
+              "soft_limit": "1",
+              "hard_limit": "2",
+              "manual_only": "0",
+              "reserve_only": "0",
+              "service_tags": "google,telegram,instagram,global",
+              "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU"
+            }
+          },
+          "draft_id": "draft-contract-d1deed3e896c1359",
+          "contract_id": "draft-contract-d1deed3e896c1359"
+        },
+        {
+          "id": "capacity",
+          "label": "Capacity",
+          "status": "PASS",
+          "reason": "capacity ok: current=0 budget=0 hard=2",
+          "blocking": true,
+          "source": "egress.registry",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "egress.registry",
+          "detail": {
+            "target": "1",
+            "exists": true,
+            "enabled": true,
+            "soft_limit": 1,
+            "hard_limit": 2,
+            "current_users": 0,
+            "registry": {
+              "id": "1",
+              "protocol": "amneziawg",
+              "type": "interface",
+              "interface": "v7e356a192b79",
+              "test": "interface",
+              "enabled": "1",
+              "config": "/etc/amnezia/amneziawg/v7e356a192b79.conf",
+              "role": "GLOBAL_FAST",
+              "priority": "20",
+              "weight": "100",
+              "soft_limit": "1",
+              "hard_limit": "2",
+              "manual_only": "0",
+              "reserve_only": "0",
+              "service_tags": "google,telegram,instagram,global",
+              "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU"
+            }
+          },
+          "draft_id": "draft-contract-3596567c8f98df9b",
+          "contract_id": "draft-contract-3596567c8f98df9b"
+        },
+        {
+          "id": "capacity",
+          "label": "Capacity",
+          "status": "REVIEW_REQUIRED",
+          "reason": "hard_limit missing or zero",
+          "blocking": true,
+          "source": "egress.registry",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "egress.registry",
+          "detail": {
+            "target": "awg3",
+            "exists": true,
+            "enabled": true,
+            "soft_limit": 0,
+            "hard_limit": 0,
+            "current_users": 8,
+            "registry": {
+              "id": "awg3",
+              "protocol": "amneziawg",
+              "type": "interface",
+              "interface": "awg3",
+              "test": "interface",
+              "enabled": "1",
+              "expected_ip": "194.124.210.244",
+              "config_path": "/etc/amnezia/amneziawg/awg3.conf",
+              "role": "GLOBAL_STABLE",
+              "service_tags": "telegram,google,youtube,global",
+              "priority": "70",
+              "weight": "75",
+              "connect_timeout": "12s"
+            }
+          },
+          "draft_id": "draft-contract-4804c13a86572aed",
+          "contract_id": "draft-contract-4804c13a86572aed"
+        },
+        {
+          "id": "capacity",
+          "label": "Capacity",
+          "status": "REVIEW_REQUIRED",
+          "reason": "hard_limit missing or zero",
+          "blocking": true,
+          "source": "egress.registry",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "egress.registry",
+          "detail": {
+            "target": "awg0",
+            "exists": true,
+            "enabled": true,
+            "soft_limit": 0,
+            "hard_limit": 0,
+            "current_users": 8,
+            "registry": {
+              "id": "awg0",
+              "protocol": "amneziawg",
+              "type": "interface",
+              "interface": "awg0",
+              "test": "interface",
+              "enabled": "1",
+              "expected_ip": "194.124.210.244",
+              "config_path": "/etc/amnezia/amneziawg/awg0.conf",
+              "role": "GLOBAL_STABLE",
+              "service_tags": "telegram,google,youtube,global",
+              "priority": "60",
+              "weight": "70",
+              "connect_timeout": "12s"
+            }
+          },
+          "draft_id": "draft-contract-9d3f749577d9f4ce",
+          "contract_id": "draft-contract-9d3f749577d9f4ce"
+        },
+        {
+          "id": "capacity",
+          "label": "Capacity",
+          "status": "REVIEW_REQUIRED",
+          "reason": "hard_limit missing or zero",
+          "blocking": true,
+          "source": "egress.registry",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "egress.registry",
+          "detail": {
+            "target": "vless",
+            "exists": true,
+            "enabled": true,
+            "soft_limit": 0,
+            "hard_limit": 0,
+            "current_users": 11,
+            "registry": {
+              "id": "vless",
+              "protocol": "vless",
+              "type": "proxy",
+              "interface": "tun0",
+              "test": "socks5://127.0.0.1:1080",
+              "enabled": "1",
+              "expected_ip": "77.110.103.131",
+              "config_path": "/etc/sing-box/config.json"
+            }
+          },
+          "draft_id": "draft-contract-ef0b84ceafdf5999",
+          "contract_id": "draft-contract-ef0b84ceafdf5999"
+        }
+      ],
+      "read_only": true,
+      "preview_only": true
+    },
+    {
+      "gate_id": "policy",
+      "label": "Policy",
+      "status": "REVIEW_REQUIRED",
+      "draft_count": 8,
+      "adapter_connected": true,
+      "sources": [
+        "proposal"
+      ],
+      "checks": [
+        {
+          "id": "policy",
+          "label": "Policy",
+          "status": "REVIEW_REQUIRED",
+          "reason": "observation draft does not require movement policy",
+          "blocking": true,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {},
+          "draft_id": "draft-contract-271600577ed4a53d",
+          "contract_id": "draft-contract-271600577ed4a53d"
+        },
+        {
+          "id": "policy",
+          "label": "Policy",
+          "status": "REVIEW_REQUIRED",
+          "reason": "observation draft does not require movement policy",
+          "blocking": true,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {},
+          "draft_id": "draft-contract-dff3bb5e8ff2dbb5",
+          "contract_id": "draft-contract-dff3bb5e8ff2dbb5"
+        },
+        {
+          "id": "policy",
+          "label": "Policy",
+          "status": "REVIEW_REQUIRED",
+          "reason": "observation draft does not require movement policy",
+          "blocking": true,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {},
+          "draft_id": "draft-contract-c6ab780b4b234f95",
+          "contract_id": "draft-contract-c6ab780b4b234f95"
+        },
+        {
+          "id": "policy",
+          "label": "Policy",
+          "status": "REVIEW_REQUIRED",
+          "reason": "observation draft does not require movement policy",
+          "blocking": true,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {},
+          "draft_id": "draft-contract-d1deed3e896c1359",
+          "contract_id": "draft-contract-d1deed3e896c1359"
+        },
+        {
+          "id": "policy",
+          "label": "Policy",
+          "status": "REVIEW_REQUIRED",
+          "reason": "observation draft does not require movement policy",
+          "blocking": true,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {},
+          "draft_id": "draft-contract-3596567c8f98df9b",
+          "contract_id": "draft-contract-3596567c8f98df9b"
+        },
+        {
+          "id": "policy",
+          "label": "Policy",
+          "status": "REVIEW_REQUIRED",
+          "reason": "observation draft does not require movement policy",
+          "blocking": true,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {},
+          "draft_id": "draft-contract-4804c13a86572aed",
+          "contract_id": "draft-contract-4804c13a86572aed"
+        },
+        {
+          "id": "policy",
+          "label": "Policy",
+          "status": "REVIEW_REQUIRED",
+          "reason": "observation draft does not require movement policy",
+          "blocking": true,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {},
+          "draft_id": "draft-contract-9d3f749577d9f4ce",
+          "contract_id": "draft-contract-9d3f749577d9f4ce"
+        },
+        {
+          "id": "policy",
+          "label": "Policy",
+          "status": "REVIEW_REQUIRED",
+          "reason": "observation draft does not require movement policy",
+          "blocking": true,
+          "source": "proposal",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "proposal",
+          "detail": {},
+          "draft_id": "draft-contract-ef0b84ceafdf5999",
+          "contract_id": "draft-contract-ef0b84ceafdf5999"
+        }
+      ],
+      "read_only": true,
+      "preview_only": true
+    },
+    {
+      "gate_id": "concurrency",
+      "label": "Concurrency",
+      "status": "PASS",
+      "draft_count": 8,
+      "adapter_connected": true,
+      "sources": [
+        "execution_contract_store"
+      ],
+      "checks": [
+        {
+          "id": "concurrency",
+          "label": "Concurrency",
+          "status": "PASS",
+          "reason": "no active stored execution contract conflict",
+          "blocking": false,
+          "source": "execution_contract_store",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "execution_contract_store",
+          "detail": {
+            "active_contracts": 0
+          },
+          "draft_id": "draft-contract-271600577ed4a53d",
+          "contract_id": "draft-contract-271600577ed4a53d"
+        },
+        {
+          "id": "concurrency",
+          "label": "Concurrency",
+          "status": "PASS",
+          "reason": "no active stored execution contract conflict",
+          "blocking": false,
+          "source": "execution_contract_store",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "execution_contract_store",
+          "detail": {
+            "active_contracts": 0
+          },
+          "draft_id": "draft-contract-dff3bb5e8ff2dbb5",
+          "contract_id": "draft-contract-dff3bb5e8ff2dbb5"
+        },
+        {
+          "id": "concurrency",
+          "label": "Concurrency",
+          "status": "PASS",
+          "reason": "no active stored execution contract conflict",
+          "blocking": false,
+          "source": "execution_contract_store",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "execution_contract_store",
+          "detail": {
+            "active_contracts": 0
+          },
+          "draft_id": "draft-contract-c6ab780b4b234f95",
+          "contract_id": "draft-contract-c6ab780b4b234f95"
+        },
+        {
+          "id": "concurrency",
+          "label": "Concurrency",
+          "status": "PASS",
+          "reason": "no active stored execution contract conflict",
+          "blocking": false,
+          "source": "execution_contract_store",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "execution_contract_store",
+          "detail": {
+            "active_contracts": 0
+          },
+          "draft_id": "draft-contract-d1deed3e896c1359",
+          "contract_id": "draft-contract-d1deed3e896c1359"
+        },
+        {
+          "id": "concurrency",
+          "label": "Concurrency",
+          "status": "PASS",
+          "reason": "no active stored execution contract conflict",
+          "blocking": false,
+          "source": "execution_contract_store",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "execution_contract_store",
+          "detail": {
+            "active_contracts": 0
+          },
+          "draft_id": "draft-contract-3596567c8f98df9b",
+          "contract_id": "draft-contract-3596567c8f98df9b"
+        },
+        {
+          "id": "concurrency",
+          "label": "Concurrency",
+          "status": "PASS",
+          "reason": "no active stored execution contract conflict",
+          "blocking": false,
+          "source": "execution_contract_store",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "execution_contract_store",
+          "detail": {
+            "active_contracts": 0
+          },
+          "draft_id": "draft-contract-4804c13a86572aed",
+          "contract_id": "draft-contract-4804c13a86572aed"
+        },
+        {
+          "id": "concurrency",
+          "label": "Concurrency",
+          "status": "PASS",
+          "reason": "no active stored execution contract conflict",
+          "blocking": false,
+          "source": "execution_contract_store",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "execution_contract_store",
+          "detail": {
+            "active_contracts": 0
+          },
+          "draft_id": "draft-contract-9d3f749577d9f4ce",
+          "contract_id": "draft-contract-9d3f749577d9f4ce"
+        },
+        {
+          "id": "concurrency",
+          "label": "Concurrency",
+          "status": "PASS",
+          "reason": "no active stored execution contract conflict",
+          "blocking": false,
+          "source": "execution_contract_store",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "execution_contract_store",
+          "detail": {
+            "active_contracts": 0
+          },
+          "draft_id": "draft-contract-ef0b84ceafdf5999",
+          "contract_id": "draft-contract-ef0b84ceafdf5999"
+        }
+      ],
+      "read_only": true,
+      "preview_only": true
+    },
+    {
+      "gate_id": "restore_settle",
+      "label": "Restore-Settle",
+      "status": "PASS",
+      "draft_count": 8,
+      "adapter_connected": true,
+      "sources": [
+        "/opt/v7/egress/state/autoswitch-restore-barrier.json"
+      ],
+      "checks": [
+        {
+          "id": "restore_settle",
+          "label": "Restore-Settle",
+          "status": "PASS",
+          "reason": "restore barrier is settled",
+          "blocking": true,
+          "source": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+          "detail": {
+            "allow_post_ttl_apply": true,
+            "allowed_target": "awg0",
+            "allowed_targets": [
+              "awg0",
+              "awg3"
+            ],
+            "allowed_user": "10.7.0.11",
+            "allowed_users": [
+              "10.7.0.11",
+              "10.7.0.12",
+              "10.7.0.14",
+              "10.7.0.15",
+              "10.7.0.2",
+              "10.7.0.4",
+              "10.7.0.6",
+              "10.7.0.8",
+              "10.7.0.9",
+              "10.7.0.10"
+            ],
+            "approval_id": "appr_5ee326dfe44d859b86619b1d",
+            "approved_atomic_execution_envelope_hash": "2c17df6e36a3877887162695e9671572c79d64bb147e2ad2a3f7ea5c51a022e8",
+            "approved_atomic_execution_envelope_id": "aee_2c17df6e36a3877887162695",
+            "approved_plan_lock": {
+              "allowed_targets": [
+                "awg0",
+                "awg3"
+              ],
+              "allowed_users": [
+                "10.7.0.11",
+                "10.7.0.12",
+                "10.7.0.14",
+                "10.7.0.15",
+                "10.7.0.2",
+                "10.7.0.4",
+                "10.7.0.6",
+                "10.7.0.8",
+                "10.7.0.9",
+                "10.7.0.10"
+              ],
+              "atomic_execution_envelope_hash": "2c17df6e36a3877887162695e9671572c79d64bb147e2ad2a3f7ea5c51a022e8",
+              "atomic_execution_envelope_id": "aee_2c17df6e36a3877887162695",
+              "egress_registry_hash": "",
+              "executor_may_replace_targets": false,
+              "executor_may_replace_users": false,
+              "executor_may_reselect": false,
+              "expires_at": "2026-06-07T12:10:45.714602+00:00",
+              "lock_hash": "b5fb6b569e426950c4e938781eaf41111cadc6651014541e28e1e389640236c2",
+              "lock_id": "apl_06c8b13d45a8c539d245b8cb",
+              "owner": "admin_core/operator_execution.py",
+              "packet_hash": "4cdf9476e7b49b2a44577e6ab907eb7e9a6ab04a263c4474163ae33f7f142fe9",
+              "packet_id": "pkt_05da3d0a8d4a51924f089722",
+              "planner_generation_id": "6b3a40ab214cfdafc914c174c57dc6cbf53ecc7ed09791457e56080d1385ea07",
+              "restore_barrier_hash": "bbdad93bb8904a95634c6bcc770bb5fe03de853bf7e30debf8f4be10b70359ca",
+              "restore_barrier_id": "rbclear_bbdad93bb8904a95634c6bcc",
+              "schema_version": "v7.approved-plan-lock.v1",
+              "selected_move_count": 10,
+              "selected_move_hash": "2ce019855a3db2a74795fc5d41a928400d44b8f20177e542d1bf3740e2608e30",
+              "selected_moves": [
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.11"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.12"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.14"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.15"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.2"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.4"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.6"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.8"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.9"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.10"
+                }
+              ],
+              "snapshot_bundle_hash": "9c1911ce2bf19dce350f6c1909f4e6737ae91b8a7e004bf24791f96b2e9e5c33",
+              "source_bundle_hash": "0ba38b4d197994afd0d8309d5fccf8cdbb532b77ca15b9d2614c23ad349f16df",
+              "source_hashes": {
+                "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+                "quality_summary": "01a987b702f4946830ceeb68a32820ca8a5750d823b8681b2b4314e730b76b17",
+                "service_matrix": "b21869c3d40f9ac163d7534d93947a36bb29d05dadacf68e790f0ef2b5b245b5",
+                "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+                "users_registry": "34ee3ae4de830763fbc1c1f0725e80be2d630bdc7ecabeca571240cf02b5c702"
+              },
+              "users_registry_hash": ""
+            },
+            "approved_plan_lock_hash": "b5fb6b569e426950c4e938781eaf41111cadc6651014541e28e1e389640236c2",
+            "approved_plan_lock_id": "apl_06c8b13d45a8c539d245b8cb",
+            "approved_selected_moves_hash": "2ce019855a3db2a74795fc5d41a928400d44b8f20177e542d1bf3740e2608e30",
+            "approved_snapshot_bundle_hash": "9c1911ce2bf19dce350f6c1909f4e6737ae91b8a7e004bf24791f96b2e9e5c33",
+            "approved_source_bundle_hash": "0ba38b4d197994afd0d8309d5fccf8cdbb532b77ca15b9d2614c23ad349f16df",
+            "approved_source_hashes": {
+              "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+              "quality_summary": "01a987b702f4946830ceeb68a32820ca8a5750d823b8681b2b4314e730b76b17",
+              "service_matrix": "b21869c3d40f9ac163d7534d93947a36bb29d05dadacf68e790f0ef2b5b245b5",
+              "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+              "users_registry": "34ee3ae4de830763fbc1c1f0725e80be2d630bdc7ecabeca571240cf02b5c702"
+            },
+            "backup_path": "/opt/v7/egress/state/autoswitch-restore-barrier.json.backup-c1-20260607T115545Z",
+            "clearance_expected_selected_moves": 10,
+            "clearance_expires_at": "2026-06-07T12:10:45.714602+00:00",
+            "clearance_generation_id": "6b3a40ab214cfdafc914c174c57dc6cbf53ecc7ed09791457e56080d1385ea07",
+            "clearance_max_selected_moves": 10,
+            "created_at": "2026-06-07T11:55:45.922407+00:00",
+            "enabled": true,
+            "expires_at": "2000-01-01T00:00:00+00:00",
+            "generation_clearance": true,
+            "generation_token": "[REDACTED]",
+            "operation_id": "govexec_562e8ce7b18d7a73f8de3cfb",
+            "owner": "admin_core/operator_execution.py",
+            "packet_id": "pkt_05da3d0a8d4a51924f089722",
+            "reason": "C.1 canonical nonzero governance lifecycle clearance",
+            "rollback_manifest_id": "rb_562e8ce7b18d7a73f8de3cfb",
+            "schema_version": 1,
+            "ttl_reason": "generation-bound execution readiness clearance"
+          },
+          "draft_id": "draft-contract-271600577ed4a53d",
+          "contract_id": "draft-contract-271600577ed4a53d"
+        },
+        {
+          "id": "restore_settle",
+          "label": "Restore-Settle",
+          "status": "PASS",
+          "reason": "restore barrier is settled",
+          "blocking": true,
+          "source": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+          "detail": {
+            "allow_post_ttl_apply": true,
+            "allowed_target": "awg0",
+            "allowed_targets": [
+              "awg0",
+              "awg3"
+            ],
+            "allowed_user": "10.7.0.11",
+            "allowed_users": [
+              "10.7.0.11",
+              "10.7.0.12",
+              "10.7.0.14",
+              "10.7.0.15",
+              "10.7.0.2",
+              "10.7.0.4",
+              "10.7.0.6",
+              "10.7.0.8",
+              "10.7.0.9",
+              "10.7.0.10"
+            ],
+            "approval_id": "appr_5ee326dfe44d859b86619b1d",
+            "approved_atomic_execution_envelope_hash": "2c17df6e36a3877887162695e9671572c79d64bb147e2ad2a3f7ea5c51a022e8",
+            "approved_atomic_execution_envelope_id": "aee_2c17df6e36a3877887162695",
+            "approved_plan_lock": {
+              "allowed_targets": [
+                "awg0",
+                "awg3"
+              ],
+              "allowed_users": [
+                "10.7.0.11",
+                "10.7.0.12",
+                "10.7.0.14",
+                "10.7.0.15",
+                "10.7.0.2",
+                "10.7.0.4",
+                "10.7.0.6",
+                "10.7.0.8",
+                "10.7.0.9",
+                "10.7.0.10"
+              ],
+              "atomic_execution_envelope_hash": "2c17df6e36a3877887162695e9671572c79d64bb147e2ad2a3f7ea5c51a022e8",
+              "atomic_execution_envelope_id": "aee_2c17df6e36a3877887162695",
+              "egress_registry_hash": "",
+              "executor_may_replace_targets": false,
+              "executor_may_replace_users": false,
+              "executor_may_reselect": false,
+              "expires_at": "2026-06-07T12:10:45.714602+00:00",
+              "lock_hash": "b5fb6b569e426950c4e938781eaf41111cadc6651014541e28e1e389640236c2",
+              "lock_id": "apl_06c8b13d45a8c539d245b8cb",
+              "owner": "admin_core/operator_execution.py",
+              "packet_hash": "4cdf9476e7b49b2a44577e6ab907eb7e9a6ab04a263c4474163ae33f7f142fe9",
+              "packet_id": "pkt_05da3d0a8d4a51924f089722",
+              "planner_generation_id": "6b3a40ab214cfdafc914c174c57dc6cbf53ecc7ed09791457e56080d1385ea07",
+              "restore_barrier_hash": "bbdad93bb8904a95634c6bcc770bb5fe03de853bf7e30debf8f4be10b70359ca",
+              "restore_barrier_id": "rbclear_bbdad93bb8904a95634c6bcc",
+              "schema_version": "v7.approved-plan-lock.v1",
+              "selected_move_count": 10,
+              "selected_move_hash": "2ce019855a3db2a74795fc5d41a928400d44b8f20177e542d1bf3740e2608e30",
+              "selected_moves": [
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.11"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.12"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.14"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.15"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.2"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.4"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.6"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.8"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.9"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.10"
+                }
+              ],
+              "snapshot_bundle_hash": "9c1911ce2bf19dce350f6c1909f4e6737ae91b8a7e004bf24791f96b2e9e5c33",
+              "source_bundle_hash": "0ba38b4d197994afd0d8309d5fccf8cdbb532b77ca15b9d2614c23ad349f16df",
+              "source_hashes": {
+                "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+                "quality_summary": "01a987b702f4946830ceeb68a32820ca8a5750d823b8681b2b4314e730b76b17",
+                "service_matrix": "b21869c3d40f9ac163d7534d93947a36bb29d05dadacf68e790f0ef2b5b245b5",
+                "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+                "users_registry": "34ee3ae4de830763fbc1c1f0725e80be2d630bdc7ecabeca571240cf02b5c702"
+              },
+              "users_registry_hash": ""
+            },
+            "approved_plan_lock_hash": "b5fb6b569e426950c4e938781eaf41111cadc6651014541e28e1e389640236c2",
+            "approved_plan_lock_id": "apl_06c8b13d45a8c539d245b8cb",
+            "approved_selected_moves_hash": "2ce019855a3db2a74795fc5d41a928400d44b8f20177e542d1bf3740e2608e30",
+            "approved_snapshot_bundle_hash": "9c1911ce2bf19dce350f6c1909f4e6737ae91b8a7e004bf24791f96b2e9e5c33",
+            "approved_source_bundle_hash": "0ba38b4d197994afd0d8309d5fccf8cdbb532b77ca15b9d2614c23ad349f16df",
+            "approved_source_hashes": {
+              "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+              "quality_summary": "01a987b702f4946830ceeb68a32820ca8a5750d823b8681b2b4314e730b76b17",
+              "service_matrix": "b21869c3d40f9ac163d7534d93947a36bb29d05dadacf68e790f0ef2b5b245b5",
+              "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+              "users_registry": "34ee3ae4de830763fbc1c1f0725e80be2d630bdc7ecabeca571240cf02b5c702"
+            },
+            "backup_path": "/opt/v7/egress/state/autoswitch-restore-barrier.json.backup-c1-20260607T115545Z",
+            "clearance_expected_selected_moves": 10,
+            "clearance_expires_at": "2026-06-07T12:10:45.714602+00:00",
+            "clearance_generation_id": "6b3a40ab214cfdafc914c174c57dc6cbf53ecc7ed09791457e56080d1385ea07",
+            "clearance_max_selected_moves": 10,
+            "created_at": "2026-06-07T11:55:45.922407+00:00",
+            "enabled": true,
+            "expires_at": "2000-01-01T00:00:00+00:00",
+            "generation_clearance": true,
+            "generation_token": "[REDACTED]",
+            "operation_id": "govexec_562e8ce7b18d7a73f8de3cfb",
+            "owner": "admin_core/operator_execution.py",
+            "packet_id": "pkt_05da3d0a8d4a51924f089722",
+            "reason": "C.1 canonical nonzero governance lifecycle clearance",
+            "rollback_manifest_id": "rb_562e8ce7b18d7a73f8de3cfb",
+            "schema_version": 1,
+            "ttl_reason": "generation-bound execution readiness clearance"
+          },
+          "draft_id": "draft-contract-dff3bb5e8ff2dbb5",
+          "contract_id": "draft-contract-dff3bb5e8ff2dbb5"
+        },
+        {
+          "id": "restore_settle",
+          "label": "Restore-Settle",
+          "status": "PASS",
+          "reason": "restore barrier is settled",
+          "blocking": true,
+          "source": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+          "detail": {
+            "allow_post_ttl_apply": true,
+            "allowed_target": "awg0",
+            "allowed_targets": [
+              "awg0",
+              "awg3"
+            ],
+            "allowed_user": "10.7.0.11",
+            "allowed_users": [
+              "10.7.0.11",
+              "10.7.0.12",
+              "10.7.0.14",
+              "10.7.0.15",
+              "10.7.0.2",
+              "10.7.0.4",
+              "10.7.0.6",
+              "10.7.0.8",
+              "10.7.0.9",
+              "10.7.0.10"
+            ],
+            "approval_id": "appr_5ee326dfe44d859b86619b1d",
+            "approved_atomic_execution_envelope_hash": "2c17df6e36a3877887162695e9671572c79d64bb147e2ad2a3f7ea5c51a022e8",
+            "approved_atomic_execution_envelope_id": "aee_2c17df6e36a3877887162695",
+            "approved_plan_lock": {
+              "allowed_targets": [
+                "awg0",
+                "awg3"
+              ],
+              "allowed_users": [
+                "10.7.0.11",
+                "10.7.0.12",
+                "10.7.0.14",
+                "10.7.0.15",
+                "10.7.0.2",
+                "10.7.0.4",
+                "10.7.0.6",
+                "10.7.0.8",
+                "10.7.0.9",
+                "10.7.0.10"
+              ],
+              "atomic_execution_envelope_hash": "2c17df6e36a3877887162695e9671572c79d64bb147e2ad2a3f7ea5c51a022e8",
+              "atomic_execution_envelope_id": "aee_2c17df6e36a3877887162695",
+              "egress_registry_hash": "",
+              "executor_may_replace_targets": false,
+              "executor_may_replace_users": false,
+              "executor_may_reselect": false,
+              "expires_at": "2026-06-07T12:10:45.714602+00:00",
+              "lock_hash": "b5fb6b569e426950c4e938781eaf41111cadc6651014541e28e1e389640236c2",
+              "lock_id": "apl_06c8b13d45a8c539d245b8cb",
+              "owner": "admin_core/operator_execution.py",
+              "packet_hash": "4cdf9476e7b49b2a44577e6ab907eb7e9a6ab04a263c4474163ae33f7f142fe9",
+              "packet_id": "pkt_05da3d0a8d4a51924f089722",
+              "planner_generation_id": "6b3a40ab214cfdafc914c174c57dc6cbf53ecc7ed09791457e56080d1385ea07",
+              "restore_barrier_hash": "bbdad93bb8904a95634c6bcc770bb5fe03de853bf7e30debf8f4be10b70359ca",
+              "restore_barrier_id": "rbclear_bbdad93bb8904a95634c6bcc",
+              "schema_version": "v7.approved-plan-lock.v1",
+              "selected_move_count": 10,
+              "selected_move_hash": "2ce019855a3db2a74795fc5d41a928400d44b8f20177e542d1bf3740e2608e30",
+              "selected_moves": [
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.11"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.12"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.14"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.15"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.2"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.4"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.6"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.8"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.9"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.10"
+                }
+              ],
+              "snapshot_bundle_hash": "9c1911ce2bf19dce350f6c1909f4e6737ae91b8a7e004bf24791f96b2e9e5c33",
+              "source_bundle_hash": "0ba38b4d197994afd0d8309d5fccf8cdbb532b77ca15b9d2614c23ad349f16df",
+              "source_hashes": {
+                "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+                "quality_summary": "01a987b702f4946830ceeb68a32820ca8a5750d823b8681b2b4314e730b76b17",
+                "service_matrix": "b21869c3d40f9ac163d7534d93947a36bb29d05dadacf68e790f0ef2b5b245b5",
+                "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+                "users_registry": "34ee3ae4de830763fbc1c1f0725e80be2d630bdc7ecabeca571240cf02b5c702"
+              },
+              "users_registry_hash": ""
+            },
+            "approved_plan_lock_hash": "b5fb6b569e426950c4e938781eaf41111cadc6651014541e28e1e389640236c2",
+            "approved_plan_lock_id": "apl_06c8b13d45a8c539d245b8cb",
+            "approved_selected_moves_hash": "2ce019855a3db2a74795fc5d41a928400d44b8f20177e542d1bf3740e2608e30",
+            "approved_snapshot_bundle_hash": "9c1911ce2bf19dce350f6c1909f4e6737ae91b8a7e004bf24791f96b2e9e5c33",
+            "approved_source_bundle_hash": "0ba38b4d197994afd0d8309d5fccf8cdbb532b77ca15b9d2614c23ad349f16df",
+            "approved_source_hashes": {
+              "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+              "quality_summary": "01a987b702f4946830ceeb68a32820ca8a5750d823b8681b2b4314e730b76b17",
+              "service_matrix": "b21869c3d40f9ac163d7534d93947a36bb29d05dadacf68e790f0ef2b5b245b5",
+              "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+              "users_registry": "34ee3ae4de830763fbc1c1f0725e80be2d630bdc7ecabeca571240cf02b5c702"
+            },
+            "backup_path": "/opt/v7/egress/state/autoswitch-restore-barrier.json.backup-c1-20260607T115545Z",
+            "clearance_expected_selected_moves": 10,
+            "clearance_expires_at": "2026-06-07T12:10:45.714602+00:00",
+            "clearance_generation_id": "6b3a40ab214cfdafc914c174c57dc6cbf53ecc7ed09791457e56080d1385ea07",
+            "clearance_max_selected_moves": 10,
+            "created_at": "2026-06-07T11:55:45.922407+00:00",
+            "enabled": true,
+            "expires_at": "2000-01-01T00:00:00+00:00",
+            "generation_clearance": true,
+            "generation_token": "[REDACTED]",
+            "operation_id": "govexec_562e8ce7b18d7a73f8de3cfb",
+            "owner": "admin_core/operator_execution.py",
+            "packet_id": "pkt_05da3d0a8d4a51924f089722",
+            "reason": "C.1 canonical nonzero governance lifecycle clearance",
+            "rollback_manifest_id": "rb_562e8ce7b18d7a73f8de3cfb",
+            "schema_version": 1,
+            "ttl_reason": "generation-bound execution readiness clearance"
+          },
+          "draft_id": "draft-contract-c6ab780b4b234f95",
+          "contract_id": "draft-contract-c6ab780b4b234f95"
+        },
+        {
+          "id": "restore_settle",
+          "label": "Restore-Settle",
+          "status": "PASS",
+          "reason": "restore barrier is settled",
+          "blocking": true,
+          "source": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+          "detail": {
+            "allow_post_ttl_apply": true,
+            "allowed_target": "awg0",
+            "allowed_targets": [
+              "awg0",
+              "awg3"
+            ],
+            "allowed_user": "10.7.0.11",
+            "allowed_users": [
+              "10.7.0.11",
+              "10.7.0.12",
+              "10.7.0.14",
+              "10.7.0.15",
+              "10.7.0.2",
+              "10.7.0.4",
+              "10.7.0.6",
+              "10.7.0.8",
+              "10.7.0.9",
+              "10.7.0.10"
+            ],
+            "approval_id": "appr_5ee326dfe44d859b86619b1d",
+            "approved_atomic_execution_envelope_hash": "2c17df6e36a3877887162695e9671572c79d64bb147e2ad2a3f7ea5c51a022e8",
+            "approved_atomic_execution_envelope_id": "aee_2c17df6e36a3877887162695",
+            "approved_plan_lock": {
+              "allowed_targets": [
+                "awg0",
+                "awg3"
+              ],
+              "allowed_users": [
+                "10.7.0.11",
+                "10.7.0.12",
+                "10.7.0.14",
+                "10.7.0.15",
+                "10.7.0.2",
+                "10.7.0.4",
+                "10.7.0.6",
+                "10.7.0.8",
+                "10.7.0.9",
+                "10.7.0.10"
+              ],
+              "atomic_execution_envelope_hash": "2c17df6e36a3877887162695e9671572c79d64bb147e2ad2a3f7ea5c51a022e8",
+              "atomic_execution_envelope_id": "aee_2c17df6e36a3877887162695",
+              "egress_registry_hash": "",
+              "executor_may_replace_targets": false,
+              "executor_may_replace_users": false,
+              "executor_may_reselect": false,
+              "expires_at": "2026-06-07T12:10:45.714602+00:00",
+              "lock_hash": "b5fb6b569e426950c4e938781eaf41111cadc6651014541e28e1e389640236c2",
+              "lock_id": "apl_06c8b13d45a8c539d245b8cb",
+              "owner": "admin_core/operator_execution.py",
+              "packet_hash": "4cdf9476e7b49b2a44577e6ab907eb7e9a6ab04a263c4474163ae33f7f142fe9",
+              "packet_id": "pkt_05da3d0a8d4a51924f089722",
+              "planner_generation_id": "6b3a40ab214cfdafc914c174c57dc6cbf53ecc7ed09791457e56080d1385ea07",
+              "restore_barrier_hash": "bbdad93bb8904a95634c6bcc770bb5fe03de853bf7e30debf8f4be10b70359ca",
+              "restore_barrier_id": "rbclear_bbdad93bb8904a95634c6bcc",
+              "schema_version": "v7.approved-plan-lock.v1",
+              "selected_move_count": 10,
+              "selected_move_hash": "2ce019855a3db2a74795fc5d41a928400d44b8f20177e542d1bf3740e2608e30",
+              "selected_moves": [
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.11"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.12"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.14"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.15"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.2"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.4"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.6"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.8"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.9"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.10"
+                }
+              ],
+              "snapshot_bundle_hash": "9c1911ce2bf19dce350f6c1909f4e6737ae91b8a7e004bf24791f96b2e9e5c33",
+              "source_bundle_hash": "0ba38b4d197994afd0d8309d5fccf8cdbb532b77ca15b9d2614c23ad349f16df",
+              "source_hashes": {
+                "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+                "quality_summary": "01a987b702f4946830ceeb68a32820ca8a5750d823b8681b2b4314e730b76b17",
+                "service_matrix": "b21869c3d40f9ac163d7534d93947a36bb29d05dadacf68e790f0ef2b5b245b5",
+                "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+                "users_registry": "34ee3ae4de830763fbc1c1f0725e80be2d630bdc7ecabeca571240cf02b5c702"
+              },
+              "users_registry_hash": ""
+            },
+            "approved_plan_lock_hash": "b5fb6b569e426950c4e938781eaf41111cadc6651014541e28e1e389640236c2",
+            "approved_plan_lock_id": "apl_06c8b13d45a8c539d245b8cb",
+            "approved_selected_moves_hash": "2ce019855a3db2a74795fc5d41a928400d44b8f20177e542d1bf3740e2608e30",
+            "approved_snapshot_bundle_hash": "9c1911ce2bf19dce350f6c1909f4e6737ae91b8a7e004bf24791f96b2e9e5c33",
+            "approved_source_bundle_hash": "0ba38b4d197994afd0d8309d5fccf8cdbb532b77ca15b9d2614c23ad349f16df",
+            "approved_source_hashes": {
+              "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+              "quality_summary": "01a987b702f4946830ceeb68a32820ca8a5750d823b8681b2b4314e730b76b17",
+              "service_matrix": "b21869c3d40f9ac163d7534d93947a36bb29d05dadacf68e790f0ef2b5b245b5",
+              "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+              "users_registry": "34ee3ae4de830763fbc1c1f0725e80be2d630bdc7ecabeca571240cf02b5c702"
+            },
+            "backup_path": "/opt/v7/egress/state/autoswitch-restore-barrier.json.backup-c1-20260607T115545Z",
+            "clearance_expected_selected_moves": 10,
+            "clearance_expires_at": "2026-06-07T12:10:45.714602+00:00",
+            "clearance_generation_id": "6b3a40ab214cfdafc914c174c57dc6cbf53ecc7ed09791457e56080d1385ea07",
+            "clearance_max_selected_moves": 10,
+            "created_at": "2026-06-07T11:55:45.922407+00:00",
+            "enabled": true,
+            "expires_at": "2000-01-01T00:00:00+00:00",
+            "generation_clearance": true,
+            "generation_token": "[REDACTED]",
+            "operation_id": "govexec_562e8ce7b18d7a73f8de3cfb",
+            "owner": "admin_core/operator_execution.py",
+            "packet_id": "pkt_05da3d0a8d4a51924f089722",
+            "reason": "C.1 canonical nonzero governance lifecycle clearance",
+            "rollback_manifest_id": "rb_562e8ce7b18d7a73f8de3cfb",
+            "schema_version": 1,
+            "ttl_reason": "generation-bound execution readiness clearance"
+          },
+          "draft_id": "draft-contract-d1deed3e896c1359",
+          "contract_id": "draft-contract-d1deed3e896c1359"
+        },
+        {
+          "id": "restore_settle",
+          "label": "Restore-Settle",
+          "status": "PASS",
+          "reason": "restore barrier is settled",
+          "blocking": true,
+          "source": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+          "detail": {
+            "allow_post_ttl_apply": true,
+            "allowed_target": "awg0",
+            "allowed_targets": [
+              "awg0",
+              "awg3"
+            ],
+            "allowed_user": "10.7.0.11",
+            "allowed_users": [
+              "10.7.0.11",
+              "10.7.0.12",
+              "10.7.0.14",
+              "10.7.0.15",
+              "10.7.0.2",
+              "10.7.0.4",
+              "10.7.0.6",
+              "10.7.0.8",
+              "10.7.0.9",
+              "10.7.0.10"
+            ],
+            "approval_id": "appr_5ee326dfe44d859b86619b1d",
+            "approved_atomic_execution_envelope_hash": "2c17df6e36a3877887162695e9671572c79d64bb147e2ad2a3f7ea5c51a022e8",
+            "approved_atomic_execution_envelope_id": "aee_2c17df6e36a3877887162695",
+            "approved_plan_lock": {
+              "allowed_targets": [
+                "awg0",
+                "awg3"
+              ],
+              "allowed_users": [
+                "10.7.0.11",
+                "10.7.0.12",
+                "10.7.0.14",
+                "10.7.0.15",
+                "10.7.0.2",
+                "10.7.0.4",
+                "10.7.0.6",
+                "10.7.0.8",
+                "10.7.0.9",
+                "10.7.0.10"
+              ],
+              "atomic_execution_envelope_hash": "2c17df6e36a3877887162695e9671572c79d64bb147e2ad2a3f7ea5c51a022e8",
+              "atomic_execution_envelope_id": "aee_2c17df6e36a3877887162695",
+              "egress_registry_hash": "",
+              "executor_may_replace_targets": false,
+              "executor_may_replace_users": false,
+              "executor_may_reselect": false,
+              "expires_at": "2026-06-07T12:10:45.714602+00:00",
+              "lock_hash": "b5fb6b569e426950c4e938781eaf41111cadc6651014541e28e1e389640236c2",
+              "lock_id": "apl_06c8b13d45a8c539d245b8cb",
+              "owner": "admin_core/operator_execution.py",
+              "packet_hash": "4cdf9476e7b49b2a44577e6ab907eb7e9a6ab04a263c4474163ae33f7f142fe9",
+              "packet_id": "pkt_05da3d0a8d4a51924f089722",
+              "planner_generation_id": "6b3a40ab214cfdafc914c174c57dc6cbf53ecc7ed09791457e56080d1385ea07",
+              "restore_barrier_hash": "bbdad93bb8904a95634c6bcc770bb5fe03de853bf7e30debf8f4be10b70359ca",
+              "restore_barrier_id": "rbclear_bbdad93bb8904a95634c6bcc",
+              "schema_version": "v7.approved-plan-lock.v1",
+              "selected_move_count": 10,
+              "selected_move_hash": "2ce019855a3db2a74795fc5d41a928400d44b8f20177e542d1bf3740e2608e30",
+              "selected_moves": [
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.11"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.12"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.14"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.15"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.2"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.4"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.6"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.8"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.9"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.10"
+                }
+              ],
+              "snapshot_bundle_hash": "9c1911ce2bf19dce350f6c1909f4e6737ae91b8a7e004bf24791f96b2e9e5c33",
+              "source_bundle_hash": "0ba38b4d197994afd0d8309d5fccf8cdbb532b77ca15b9d2614c23ad349f16df",
+              "source_hashes": {
+                "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+                "quality_summary": "01a987b702f4946830ceeb68a32820ca8a5750d823b8681b2b4314e730b76b17",
+                "service_matrix": "b21869c3d40f9ac163d7534d93947a36bb29d05dadacf68e790f0ef2b5b245b5",
+                "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+                "users_registry": "34ee3ae4de830763fbc1c1f0725e80be2d630bdc7ecabeca571240cf02b5c702"
+              },
+              "users_registry_hash": ""
+            },
+            "approved_plan_lock_hash": "b5fb6b569e426950c4e938781eaf41111cadc6651014541e28e1e389640236c2",
+            "approved_plan_lock_id": "apl_06c8b13d45a8c539d245b8cb",
+            "approved_selected_moves_hash": "2ce019855a3db2a74795fc5d41a928400d44b8f20177e542d1bf3740e2608e30",
+            "approved_snapshot_bundle_hash": "9c1911ce2bf19dce350f6c1909f4e6737ae91b8a7e004bf24791f96b2e9e5c33",
+            "approved_source_bundle_hash": "0ba38b4d197994afd0d8309d5fccf8cdbb532b77ca15b9d2614c23ad349f16df",
+            "approved_source_hashes": {
+              "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+              "quality_summary": "01a987b702f4946830ceeb68a32820ca8a5750d823b8681b2b4314e730b76b17",
+              "service_matrix": "b21869c3d40f9ac163d7534d93947a36bb29d05dadacf68e790f0ef2b5b245b5",
+              "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+              "users_registry": "34ee3ae4de830763fbc1c1f0725e80be2d630bdc7ecabeca571240cf02b5c702"
+            },
+            "backup_path": "/opt/v7/egress/state/autoswitch-restore-barrier.json.backup-c1-20260607T115545Z",
+            "clearance_expected_selected_moves": 10,
+            "clearance_expires_at": "2026-06-07T12:10:45.714602+00:00",
+            "clearance_generation_id": "6b3a40ab214cfdafc914c174c57dc6cbf53ecc7ed09791457e56080d1385ea07",
+            "clearance_max_selected_moves": 10,
+            "created_at": "2026-06-07T11:55:45.922407+00:00",
+            "enabled": true,
+            "expires_at": "2000-01-01T00:00:00+00:00",
+            "generation_clearance": true,
+            "generation_token": "[REDACTED]",
+            "operation_id": "govexec_562e8ce7b18d7a73f8de3cfb",
+            "owner": "admin_core/operator_execution.py",
+            "packet_id": "pkt_05da3d0a8d4a51924f089722",
+            "reason": "C.1 canonical nonzero governance lifecycle clearance",
+            "rollback_manifest_id": "rb_562e8ce7b18d7a73f8de3cfb",
+            "schema_version": 1,
+            "ttl_reason": "generation-bound execution readiness clearance"
+          },
+          "draft_id": "draft-contract-3596567c8f98df9b",
+          "contract_id": "draft-contract-3596567c8f98df9b"
+        },
+        {
+          "id": "restore_settle",
+          "label": "Restore-Settle",
+          "status": "PASS",
+          "reason": "restore barrier is settled",
+          "blocking": true,
+          "source": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+          "detail": {
+            "allow_post_ttl_apply": true,
+            "allowed_target": "awg0",
+            "allowed_targets": [
+              "awg0",
+              "awg3"
+            ],
+            "allowed_user": "10.7.0.11",
+            "allowed_users": [
+              "10.7.0.11",
+              "10.7.0.12",
+              "10.7.0.14",
+              "10.7.0.15",
+              "10.7.0.2",
+              "10.7.0.4",
+              "10.7.0.6",
+              "10.7.0.8",
+              "10.7.0.9",
+              "10.7.0.10"
+            ],
+            "approval_id": "appr_5ee326dfe44d859b86619b1d",
+            "approved_atomic_execution_envelope_hash": "2c17df6e36a3877887162695e9671572c79d64bb147e2ad2a3f7ea5c51a022e8",
+            "approved_atomic_execution_envelope_id": "aee_2c17df6e36a3877887162695",
+            "approved_plan_lock": {
+              "allowed_targets": [
+                "awg0",
+                "awg3"
+              ],
+              "allowed_users": [
+                "10.7.0.11",
+                "10.7.0.12",
+                "10.7.0.14",
+                "10.7.0.15",
+                "10.7.0.2",
+                "10.7.0.4",
+                "10.7.0.6",
+                "10.7.0.8",
+                "10.7.0.9",
+                "10.7.0.10"
+              ],
+              "atomic_execution_envelope_hash": "2c17df6e36a3877887162695e9671572c79d64bb147e2ad2a3f7ea5c51a022e8",
+              "atomic_execution_envelope_id": "aee_2c17df6e36a3877887162695",
+              "egress_registry_hash": "",
+              "executor_may_replace_targets": false,
+              "executor_may_replace_users": false,
+              "executor_may_reselect": false,
+              "expires_at": "2026-06-07T12:10:45.714602+00:00",
+              "lock_hash": "b5fb6b569e426950c4e938781eaf41111cadc6651014541e28e1e389640236c2",
+              "lock_id": "apl_06c8b13d45a8c539d245b8cb",
+              "owner": "admin_core/operator_execution.py",
+              "packet_hash": "4cdf9476e7b49b2a44577e6ab907eb7e9a6ab04a263c4474163ae33f7f142fe9",
+              "packet_id": "pkt_05da3d0a8d4a51924f089722",
+              "planner_generation_id": "6b3a40ab214cfdafc914c174c57dc6cbf53ecc7ed09791457e56080d1385ea07",
+              "restore_barrier_hash": "bbdad93bb8904a95634c6bcc770bb5fe03de853bf7e30debf8f4be10b70359ca",
+              "restore_barrier_id": "rbclear_bbdad93bb8904a95634c6bcc",
+              "schema_version": "v7.approved-plan-lock.v1",
+              "selected_move_count": 10,
+              "selected_move_hash": "2ce019855a3db2a74795fc5d41a928400d44b8f20177e542d1bf3740e2608e30",
+              "selected_moves": [
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.11"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.12"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.14"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.15"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.2"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.4"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.6"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.8"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.9"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.10"
+                }
+              ],
+              "snapshot_bundle_hash": "9c1911ce2bf19dce350f6c1909f4e6737ae91b8a7e004bf24791f96b2e9e5c33",
+              "source_bundle_hash": "0ba38b4d197994afd0d8309d5fccf8cdbb532b77ca15b9d2614c23ad349f16df",
+              "source_hashes": {
+                "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+                "quality_summary": "01a987b702f4946830ceeb68a32820ca8a5750d823b8681b2b4314e730b76b17",
+                "service_matrix": "b21869c3d40f9ac163d7534d93947a36bb29d05dadacf68e790f0ef2b5b245b5",
+                "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+                "users_registry": "34ee3ae4de830763fbc1c1f0725e80be2d630bdc7ecabeca571240cf02b5c702"
+              },
+              "users_registry_hash": ""
+            },
+            "approved_plan_lock_hash": "b5fb6b569e426950c4e938781eaf41111cadc6651014541e28e1e389640236c2",
+            "approved_plan_lock_id": "apl_06c8b13d45a8c539d245b8cb",
+            "approved_selected_moves_hash": "2ce019855a3db2a74795fc5d41a928400d44b8f20177e542d1bf3740e2608e30",
+            "approved_snapshot_bundle_hash": "9c1911ce2bf19dce350f6c1909f4e6737ae91b8a7e004bf24791f96b2e9e5c33",
+            "approved_source_bundle_hash": "0ba38b4d197994afd0d8309d5fccf8cdbb532b77ca15b9d2614c23ad349f16df",
+            "approved_source_hashes": {
+              "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+              "quality_summary": "01a987b702f4946830ceeb68a32820ca8a5750d823b8681b2b4314e730b76b17",
+              "service_matrix": "b21869c3d40f9ac163d7534d93947a36bb29d05dadacf68e790f0ef2b5b245b5",
+              "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+              "users_registry": "34ee3ae4de830763fbc1c1f0725e80be2d630bdc7ecabeca571240cf02b5c702"
+            },
+            "backup_path": "/opt/v7/egress/state/autoswitch-restore-barrier.json.backup-c1-20260607T115545Z",
+            "clearance_expected_selected_moves": 10,
+            "clearance_expires_at": "2026-06-07T12:10:45.714602+00:00",
+            "clearance_generation_id": "6b3a40ab214cfdafc914c174c57dc6cbf53ecc7ed09791457e56080d1385ea07",
+            "clearance_max_selected_moves": 10,
+            "created_at": "2026-06-07T11:55:45.922407+00:00",
+            "enabled": true,
+            "expires_at": "2000-01-01T00:00:00+00:00",
+            "generation_clearance": true,
+            "generation_token": "[REDACTED]",
+            "operation_id": "govexec_562e8ce7b18d7a73f8de3cfb",
+            "owner": "admin_core/operator_execution.py",
+            "packet_id": "pkt_05da3d0a8d4a51924f089722",
+            "reason": "C.1 canonical nonzero governance lifecycle clearance",
+            "rollback_manifest_id": "rb_562e8ce7b18d7a73f8de3cfb",
+            "schema_version": 1,
+            "ttl_reason": "generation-bound execution readiness clearance"
+          },
+          "draft_id": "draft-contract-4804c13a86572aed",
+          "contract_id": "draft-contract-4804c13a86572aed"
+        },
+        {
+          "id": "restore_settle",
+          "label": "Restore-Settle",
+          "status": "PASS",
+          "reason": "restore barrier is settled",
+          "blocking": true,
+          "source": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+          "detail": {
+            "allow_post_ttl_apply": true,
+            "allowed_target": "awg0",
+            "allowed_targets": [
+              "awg0",
+              "awg3"
+            ],
+            "allowed_user": "10.7.0.11",
+            "allowed_users": [
+              "10.7.0.11",
+              "10.7.0.12",
+              "10.7.0.14",
+              "10.7.0.15",
+              "10.7.0.2",
+              "10.7.0.4",
+              "10.7.0.6",
+              "10.7.0.8",
+              "10.7.0.9",
+              "10.7.0.10"
+            ],
+            "approval_id": "appr_5ee326dfe44d859b86619b1d",
+            "approved_atomic_execution_envelope_hash": "2c17df6e36a3877887162695e9671572c79d64bb147e2ad2a3f7ea5c51a022e8",
+            "approved_atomic_execution_envelope_id": "aee_2c17df6e36a3877887162695",
+            "approved_plan_lock": {
+              "allowed_targets": [
+                "awg0",
+                "awg3"
+              ],
+              "allowed_users": [
+                "10.7.0.11",
+                "10.7.0.12",
+                "10.7.0.14",
+                "10.7.0.15",
+                "10.7.0.2",
+                "10.7.0.4",
+                "10.7.0.6",
+                "10.7.0.8",
+                "10.7.0.9",
+                "10.7.0.10"
+              ],
+              "atomic_execution_envelope_hash": "2c17df6e36a3877887162695e9671572c79d64bb147e2ad2a3f7ea5c51a022e8",
+              "atomic_execution_envelope_id": "aee_2c17df6e36a3877887162695",
+              "egress_registry_hash": "",
+              "executor_may_replace_targets": false,
+              "executor_may_replace_users": false,
+              "executor_may_reselect": false,
+              "expires_at": "2026-06-07T12:10:45.714602+00:00",
+              "lock_hash": "b5fb6b569e426950c4e938781eaf41111cadc6651014541e28e1e389640236c2",
+              "lock_id": "apl_06c8b13d45a8c539d245b8cb",
+              "owner": "admin_core/operator_execution.py",
+              "packet_hash": "4cdf9476e7b49b2a44577e6ab907eb7e9a6ab04a263c4474163ae33f7f142fe9",
+              "packet_id": "pkt_05da3d0a8d4a51924f089722",
+              "planner_generation_id": "6b3a40ab214cfdafc914c174c57dc6cbf53ecc7ed09791457e56080d1385ea07",
+              "restore_barrier_hash": "bbdad93bb8904a95634c6bcc770bb5fe03de853bf7e30debf8f4be10b70359ca",
+              "restore_barrier_id": "rbclear_bbdad93bb8904a95634c6bcc",
+              "schema_version": "v7.approved-plan-lock.v1",
+              "selected_move_count": 10,
+              "selected_move_hash": "2ce019855a3db2a74795fc5d41a928400d44b8f20177e542d1bf3740e2608e30",
+              "selected_moves": [
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.11"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.12"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.14"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.15"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.2"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.4"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.6"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.8"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.9"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.10"
+                }
+              ],
+              "snapshot_bundle_hash": "9c1911ce2bf19dce350f6c1909f4e6737ae91b8a7e004bf24791f96b2e9e5c33",
+              "source_bundle_hash": "0ba38b4d197994afd0d8309d5fccf8cdbb532b77ca15b9d2614c23ad349f16df",
+              "source_hashes": {
+                "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+                "quality_summary": "01a987b702f4946830ceeb68a32820ca8a5750d823b8681b2b4314e730b76b17",
+                "service_matrix": "b21869c3d40f9ac163d7534d93947a36bb29d05dadacf68e790f0ef2b5b245b5",
+                "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+                "users_registry": "34ee3ae4de830763fbc1c1f0725e80be2d630bdc7ecabeca571240cf02b5c702"
+              },
+              "users_registry_hash": ""
+            },
+            "approved_plan_lock_hash": "b5fb6b569e426950c4e938781eaf41111cadc6651014541e28e1e389640236c2",
+            "approved_plan_lock_id": "apl_06c8b13d45a8c539d245b8cb",
+            "approved_selected_moves_hash": "2ce019855a3db2a74795fc5d41a928400d44b8f20177e542d1bf3740e2608e30",
+            "approved_snapshot_bundle_hash": "9c1911ce2bf19dce350f6c1909f4e6737ae91b8a7e004bf24791f96b2e9e5c33",
+            "approved_source_bundle_hash": "0ba38b4d197994afd0d8309d5fccf8cdbb532b77ca15b9d2614c23ad349f16df",
+            "approved_source_hashes": {
+              "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+              "quality_summary": "01a987b702f4946830ceeb68a32820ca8a5750d823b8681b2b4314e730b76b17",
+              "service_matrix": "b21869c3d40f9ac163d7534d93947a36bb29d05dadacf68e790f0ef2b5b245b5",
+              "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+              "users_registry": "34ee3ae4de830763fbc1c1f0725e80be2d630bdc7ecabeca571240cf02b5c702"
+            },
+            "backup_path": "/opt/v7/egress/state/autoswitch-restore-barrier.json.backup-c1-20260607T115545Z",
+            "clearance_expected_selected_moves": 10,
+            "clearance_expires_at": "2026-06-07T12:10:45.714602+00:00",
+            "clearance_generation_id": "6b3a40ab214cfdafc914c174c57dc6cbf53ecc7ed09791457e56080d1385ea07",
+            "clearance_max_selected_moves": 10,
+            "created_at": "2026-06-07T11:55:45.922407+00:00",
+            "enabled": true,
+            "expires_at": "2000-01-01T00:00:00+00:00",
+            "generation_clearance": true,
+            "generation_token": "[REDACTED]",
+            "operation_id": "govexec_562e8ce7b18d7a73f8de3cfb",
+            "owner": "admin_core/operator_execution.py",
+            "packet_id": "pkt_05da3d0a8d4a51924f089722",
+            "reason": "C.1 canonical nonzero governance lifecycle clearance",
+            "rollback_manifest_id": "rb_562e8ce7b18d7a73f8de3cfb",
+            "schema_version": 1,
+            "ttl_reason": "generation-bound execution readiness clearance"
+          },
+          "draft_id": "draft-contract-9d3f749577d9f4ce",
+          "contract_id": "draft-contract-9d3f749577d9f4ce"
+        },
+        {
+          "id": "restore_settle",
+          "label": "Restore-Settle",
+          "status": "PASS",
+          "reason": "restore barrier is settled",
+          "blocking": true,
+          "source": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+          "detail": {
+            "allow_post_ttl_apply": true,
+            "allowed_target": "awg0",
+            "allowed_targets": [
+              "awg0",
+              "awg3"
+            ],
+            "allowed_user": "10.7.0.11",
+            "allowed_users": [
+              "10.7.0.11",
+              "10.7.0.12",
+              "10.7.0.14",
+              "10.7.0.15",
+              "10.7.0.2",
+              "10.7.0.4",
+              "10.7.0.6",
+              "10.7.0.8",
+              "10.7.0.9",
+              "10.7.0.10"
+            ],
+            "approval_id": "appr_5ee326dfe44d859b86619b1d",
+            "approved_atomic_execution_envelope_hash": "2c17df6e36a3877887162695e9671572c79d64bb147e2ad2a3f7ea5c51a022e8",
+            "approved_atomic_execution_envelope_id": "aee_2c17df6e36a3877887162695",
+            "approved_plan_lock": {
+              "allowed_targets": [
+                "awg0",
+                "awg3"
+              ],
+              "allowed_users": [
+                "10.7.0.11",
+                "10.7.0.12",
+                "10.7.0.14",
+                "10.7.0.15",
+                "10.7.0.2",
+                "10.7.0.4",
+                "10.7.0.6",
+                "10.7.0.8",
+                "10.7.0.9",
+                "10.7.0.10"
+              ],
+              "atomic_execution_envelope_hash": "2c17df6e36a3877887162695e9671572c79d64bb147e2ad2a3f7ea5c51a022e8",
+              "atomic_execution_envelope_id": "aee_2c17df6e36a3877887162695",
+              "egress_registry_hash": "",
+              "executor_may_replace_targets": false,
+              "executor_may_replace_users": false,
+              "executor_may_reselect": false,
+              "expires_at": "2026-06-07T12:10:45.714602+00:00",
+              "lock_hash": "b5fb6b569e426950c4e938781eaf41111cadc6651014541e28e1e389640236c2",
+              "lock_id": "apl_06c8b13d45a8c539d245b8cb",
+              "owner": "admin_core/operator_execution.py",
+              "packet_hash": "4cdf9476e7b49b2a44577e6ab907eb7e9a6ab04a263c4474163ae33f7f142fe9",
+              "packet_id": "pkt_05da3d0a8d4a51924f089722",
+              "planner_generation_id": "6b3a40ab214cfdafc914c174c57dc6cbf53ecc7ed09791457e56080d1385ea07",
+              "restore_barrier_hash": "bbdad93bb8904a95634c6bcc770bb5fe03de853bf7e30debf8f4be10b70359ca",
+              "restore_barrier_id": "rbclear_bbdad93bb8904a95634c6bcc",
+              "schema_version": "v7.approved-plan-lock.v1",
+              "selected_move_count": 10,
+              "selected_move_hash": "2ce019855a3db2a74795fc5d41a928400d44b8f20177e542d1bf3740e2608e30",
+              "selected_moves": [
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.11"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.12"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.14"
+                },
+                {
+                  "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                  "move_type": "failover",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.15"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.2"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.4"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.6"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.8"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg3",
+                  "user_ip": "10.7.0.9"
+                },
+                {
+                  "current_egress": "vless",
+                  "move_type": "rebalance",
+                  "recommended_egress": "awg0",
+                  "user_ip": "10.7.0.10"
+                }
+              ],
+              "snapshot_bundle_hash": "9c1911ce2bf19dce350f6c1909f4e6737ae91b8a7e004bf24791f96b2e9e5c33",
+              "source_bundle_hash": "0ba38b4d197994afd0d8309d5fccf8cdbb532b77ca15b9d2614c23ad349f16df",
+              "source_hashes": {
+                "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+                "quality_summary": "01a987b702f4946830ceeb68a32820ca8a5750d823b8681b2b4314e730b76b17",
+                "service_matrix": "b21869c3d40f9ac163d7534d93947a36bb29d05dadacf68e790f0ef2b5b245b5",
+                "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+                "users_registry": "34ee3ae4de830763fbc1c1f0725e80be2d630bdc7ecabeca571240cf02b5c702"
+              },
+              "users_registry_hash": ""
+            },
+            "approved_plan_lock_hash": "b5fb6b569e426950c4e938781eaf41111cadc6651014541e28e1e389640236c2",
+            "approved_plan_lock_id": "apl_06c8b13d45a8c539d245b8cb",
+            "approved_selected_moves_hash": "2ce019855a3db2a74795fc5d41a928400d44b8f20177e542d1bf3740e2608e30",
+            "approved_snapshot_bundle_hash": "9c1911ce2bf19dce350f6c1909f4e6737ae91b8a7e004bf24791f96b2e9e5c33",
+            "approved_source_bundle_hash": "0ba38b4d197994afd0d8309d5fccf8cdbb532b77ca15b9d2614c23ad349f16df",
+            "approved_source_hashes": {
+              "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+              "quality_summary": "01a987b702f4946830ceeb68a32820ca8a5750d823b8681b2b4314e730b76b17",
+              "service_matrix": "b21869c3d40f9ac163d7534d93947a36bb29d05dadacf68e790f0ef2b5b245b5",
+              "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+              "users_registry": "34ee3ae4de830763fbc1c1f0725e80be2d630bdc7ecabeca571240cf02b5c702"
+            },
+            "backup_path": "/opt/v7/egress/state/autoswitch-restore-barrier.json.backup-c1-20260607T115545Z",
+            "clearance_expected_selected_moves": 10,
+            "clearance_expires_at": "2026-06-07T12:10:45.714602+00:00",
+            "clearance_generation_id": "6b3a40ab214cfdafc914c174c57dc6cbf53ecc7ed09791457e56080d1385ea07",
+            "clearance_max_selected_moves": 10,
+            "created_at": "2026-06-07T11:55:45.922407+00:00",
+            "enabled": true,
+            "expires_at": "2000-01-01T00:00:00+00:00",
+            "generation_clearance": true,
+            "generation_token": "[REDACTED]",
+            "operation_id": "govexec_562e8ce7b18d7a73f8de3cfb",
+            "owner": "admin_core/operator_execution.py",
+            "packet_id": "pkt_05da3d0a8d4a51924f089722",
+            "reason": "C.1 canonical nonzero governance lifecycle clearance",
+            "rollback_manifest_id": "rb_562e8ce7b18d7a73f8de3cfb",
+            "schema_version": 1,
+            "ttl_reason": "generation-bound execution readiness clearance"
+          },
+          "draft_id": "draft-contract-ef0b84ceafdf5999",
+          "contract_id": "draft-contract-ef0b84ceafdf5999"
+        }
+      ],
+      "read_only": true,
+      "preview_only": true
+    },
+    {
+      "gate_id": "selected_moves",
+      "label": "Selected Moves",
+      "status": "PASS",
+      "draft_count": 8,
+      "adapter_connected": true,
+      "sources": [
+        "/opt/v7/egress/state/selected-moves.json"
+      ],
+      "checks": [
+        {
+          "id": "selected_moves",
+          "label": "Selected Moves",
+          "status": "PASS",
+          "reason": "selected_moves=0",
+          "blocking": true,
+          "source": "/opt/v7/egress/state/selected-moves.json",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/egress/state/selected-moves.json",
+          "detail": {
+            "status": "PASS",
+            "reason": "selected_moves=0",
+            "source": "/opt/v7/egress/state/selected-moves.json",
+            "count": 0,
+            "selected_moves": [],
+            "freshness": {
+              "freshness_state": "UNKNOWN",
+              "freshness_age_sec": null,
+              "freshness_ttl_sec": 3600,
+              "expires_at": ""
+            }
+          },
+          "draft_id": "draft-contract-271600577ed4a53d",
+          "contract_id": "draft-contract-271600577ed4a53d"
+        },
+        {
+          "id": "selected_moves",
+          "label": "Selected Moves",
+          "status": "PASS",
+          "reason": "selected_moves=0",
+          "blocking": true,
+          "source": "/opt/v7/egress/state/selected-moves.json",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/egress/state/selected-moves.json",
+          "detail": {
+            "status": "PASS",
+            "reason": "selected_moves=0",
+            "source": "/opt/v7/egress/state/selected-moves.json",
+            "count": 0,
+            "selected_moves": [],
+            "freshness": {
+              "freshness_state": "UNKNOWN",
+              "freshness_age_sec": null,
+              "freshness_ttl_sec": 3600,
+              "expires_at": ""
+            }
+          },
+          "draft_id": "draft-contract-dff3bb5e8ff2dbb5",
+          "contract_id": "draft-contract-dff3bb5e8ff2dbb5"
+        },
+        {
+          "id": "selected_moves",
+          "label": "Selected Moves",
+          "status": "PASS",
+          "reason": "selected_moves=0",
+          "blocking": true,
+          "source": "/opt/v7/egress/state/selected-moves.json",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/egress/state/selected-moves.json",
+          "detail": {
+            "status": "PASS",
+            "reason": "selected_moves=0",
+            "source": "/opt/v7/egress/state/selected-moves.json",
+            "count": 0,
+            "selected_moves": [],
+            "freshness": {
+              "freshness_state": "UNKNOWN",
+              "freshness_age_sec": null,
+              "freshness_ttl_sec": 3600,
+              "expires_at": ""
+            }
+          },
+          "draft_id": "draft-contract-c6ab780b4b234f95",
+          "contract_id": "draft-contract-c6ab780b4b234f95"
+        },
+        {
+          "id": "selected_moves",
+          "label": "Selected Moves",
+          "status": "PASS",
+          "reason": "selected_moves=0",
+          "blocking": true,
+          "source": "/opt/v7/egress/state/selected-moves.json",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/egress/state/selected-moves.json",
+          "detail": {
+            "status": "PASS",
+            "reason": "selected_moves=0",
+            "source": "/opt/v7/egress/state/selected-moves.json",
+            "count": 0,
+            "selected_moves": [],
+            "freshness": {
+              "freshness_state": "UNKNOWN",
+              "freshness_age_sec": null,
+              "freshness_ttl_sec": 3600,
+              "expires_at": ""
+            }
+          },
+          "draft_id": "draft-contract-d1deed3e896c1359",
+          "contract_id": "draft-contract-d1deed3e896c1359"
+        },
+        {
+          "id": "selected_moves",
+          "label": "Selected Moves",
+          "status": "PASS",
+          "reason": "selected_moves=0",
+          "blocking": true,
+          "source": "/opt/v7/egress/state/selected-moves.json",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/egress/state/selected-moves.json",
+          "detail": {
+            "status": "PASS",
+            "reason": "selected_moves=0",
+            "source": "/opt/v7/egress/state/selected-moves.json",
+            "count": 0,
+            "selected_moves": [],
+            "freshness": {
+              "freshness_state": "UNKNOWN",
+              "freshness_age_sec": null,
+              "freshness_ttl_sec": 3600,
+              "expires_at": ""
+            }
+          },
+          "draft_id": "draft-contract-3596567c8f98df9b",
+          "contract_id": "draft-contract-3596567c8f98df9b"
+        },
+        {
+          "id": "selected_moves",
+          "label": "Selected Moves",
+          "status": "PASS",
+          "reason": "selected_moves=0",
+          "blocking": true,
+          "source": "/opt/v7/egress/state/selected-moves.json",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/egress/state/selected-moves.json",
+          "detail": {
+            "status": "PASS",
+            "reason": "selected_moves=0",
+            "source": "/opt/v7/egress/state/selected-moves.json",
+            "count": 0,
+            "selected_moves": [],
+            "freshness": {
+              "freshness_state": "UNKNOWN",
+              "freshness_age_sec": null,
+              "freshness_ttl_sec": 3600,
+              "expires_at": ""
+            }
+          },
+          "draft_id": "draft-contract-4804c13a86572aed",
+          "contract_id": "draft-contract-4804c13a86572aed"
+        },
+        {
+          "id": "selected_moves",
+          "label": "Selected Moves",
+          "status": "PASS",
+          "reason": "selected_moves=0",
+          "blocking": true,
+          "source": "/opt/v7/egress/state/selected-moves.json",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/egress/state/selected-moves.json",
+          "detail": {
+            "status": "PASS",
+            "reason": "selected_moves=0",
+            "source": "/opt/v7/egress/state/selected-moves.json",
+            "count": 0,
+            "selected_moves": [],
+            "freshness": {
+              "freshness_state": "UNKNOWN",
+              "freshness_age_sec": null,
+              "freshness_ttl_sec": 3600,
+              "expires_at": ""
+            }
+          },
+          "draft_id": "draft-contract-9d3f749577d9f4ce",
+          "contract_id": "draft-contract-9d3f749577d9f4ce"
+        },
+        {
+          "id": "selected_moves",
+          "label": "Selected Moves",
+          "status": "PASS",
+          "reason": "selected_moves=0",
+          "blocking": true,
+          "source": "/opt/v7/egress/state/selected-moves.json",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/egress/state/selected-moves.json",
+          "detail": {
+            "status": "PASS",
+            "reason": "selected_moves=0",
+            "source": "/opt/v7/egress/state/selected-moves.json",
+            "count": 0,
+            "selected_moves": [],
+            "freshness": {
+              "freshness_state": "UNKNOWN",
+              "freshness_age_sec": null,
+              "freshness_ttl_sec": 3600,
+              "expires_at": ""
+            }
+          },
+          "draft_id": "draft-contract-ef0b84ceafdf5999",
+          "contract_id": "draft-contract-ef0b84ceafdf5999"
+        }
+      ],
+      "read_only": true,
+      "preview_only": true
+    },
+    {
+      "gate_id": "hidden_movers",
+      "label": "Hidden Movers",
+      "status": "PASS",
+      "draft_count": 8,
+      "adapter_connected": true,
+      "sources": [
+        "/opt/v7/events/switch-history.jsonl"
+      ],
+      "checks": [
+        {
+          "id": "hidden_movers",
+          "label": "Hidden Movers",
+          "status": "PASS",
+          "reason": "no selected moves and no recent switch-history events",
+          "blocking": true,
+          "source": "/opt/v7/events/switch-history.jsonl",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/events/switch-history.jsonl",
+          "detail": {
+            "status": "PASS",
+            "reason": "no selected moves and no recent switch-history events",
+            "source": "/opt/v7/events/switch-history.jsonl",
+            "recent_switch_events": 0
+          },
+          "draft_id": "draft-contract-271600577ed4a53d",
+          "contract_id": "draft-contract-271600577ed4a53d"
+        },
+        {
+          "id": "hidden_movers",
+          "label": "Hidden Movers",
+          "status": "PASS",
+          "reason": "no selected moves and no recent switch-history events",
+          "blocking": true,
+          "source": "/opt/v7/events/switch-history.jsonl",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/events/switch-history.jsonl",
+          "detail": {
+            "status": "PASS",
+            "reason": "no selected moves and no recent switch-history events",
+            "source": "/opt/v7/events/switch-history.jsonl",
+            "recent_switch_events": 0
+          },
+          "draft_id": "draft-contract-dff3bb5e8ff2dbb5",
+          "contract_id": "draft-contract-dff3bb5e8ff2dbb5"
+        },
+        {
+          "id": "hidden_movers",
+          "label": "Hidden Movers",
+          "status": "PASS",
+          "reason": "no selected moves and no recent switch-history events",
+          "blocking": true,
+          "source": "/opt/v7/events/switch-history.jsonl",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/events/switch-history.jsonl",
+          "detail": {
+            "status": "PASS",
+            "reason": "no selected moves and no recent switch-history events",
+            "source": "/opt/v7/events/switch-history.jsonl",
+            "recent_switch_events": 0
+          },
+          "draft_id": "draft-contract-c6ab780b4b234f95",
+          "contract_id": "draft-contract-c6ab780b4b234f95"
+        },
+        {
+          "id": "hidden_movers",
+          "label": "Hidden Movers",
+          "status": "PASS",
+          "reason": "no selected moves and no recent switch-history events",
+          "blocking": true,
+          "source": "/opt/v7/events/switch-history.jsonl",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/events/switch-history.jsonl",
+          "detail": {
+            "status": "PASS",
+            "reason": "no selected moves and no recent switch-history events",
+            "source": "/opt/v7/events/switch-history.jsonl",
+            "recent_switch_events": 0
+          },
+          "draft_id": "draft-contract-d1deed3e896c1359",
+          "contract_id": "draft-contract-d1deed3e896c1359"
+        },
+        {
+          "id": "hidden_movers",
+          "label": "Hidden Movers",
+          "status": "PASS",
+          "reason": "no selected moves and no recent switch-history events",
+          "blocking": true,
+          "source": "/opt/v7/events/switch-history.jsonl",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/events/switch-history.jsonl",
+          "detail": {
+            "status": "PASS",
+            "reason": "no selected moves and no recent switch-history events",
+            "source": "/opt/v7/events/switch-history.jsonl",
+            "recent_switch_events": 0
+          },
+          "draft_id": "draft-contract-3596567c8f98df9b",
+          "contract_id": "draft-contract-3596567c8f98df9b"
+        },
+        {
+          "id": "hidden_movers",
+          "label": "Hidden Movers",
+          "status": "PASS",
+          "reason": "no selected moves and no recent switch-history events",
+          "blocking": true,
+          "source": "/opt/v7/events/switch-history.jsonl",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/events/switch-history.jsonl",
+          "detail": {
+            "status": "PASS",
+            "reason": "no selected moves and no recent switch-history events",
+            "source": "/opt/v7/events/switch-history.jsonl",
+            "recent_switch_events": 0
+          },
+          "draft_id": "draft-contract-4804c13a86572aed",
+          "contract_id": "draft-contract-4804c13a86572aed"
+        },
+        {
+          "id": "hidden_movers",
+          "label": "Hidden Movers",
+          "status": "PASS",
+          "reason": "no selected moves and no recent switch-history events",
+          "blocking": true,
+          "source": "/opt/v7/events/switch-history.jsonl",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/events/switch-history.jsonl",
+          "detail": {
+            "status": "PASS",
+            "reason": "no selected moves and no recent switch-history events",
+            "source": "/opt/v7/events/switch-history.jsonl",
+            "recent_switch_events": 0
+          },
+          "draft_id": "draft-contract-9d3f749577d9f4ce",
+          "contract_id": "draft-contract-9d3f749577d9f4ce"
+        },
+        {
+          "id": "hidden_movers",
+          "label": "Hidden Movers",
+          "status": "PASS",
+          "reason": "no selected moves and no recent switch-history events",
+          "blocking": true,
+          "source": "/opt/v7/events/switch-history.jsonl",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "/opt/v7/events/switch-history.jsonl",
+          "detail": {
+            "status": "PASS",
+            "reason": "no selected moves and no recent switch-history events",
+            "source": "/opt/v7/events/switch-history.jsonl",
+            "recent_switch_events": 0
+          },
+          "draft_id": "draft-contract-ef0b84ceafdf5999",
+          "contract_id": "draft-contract-ef0b84ceafdf5999"
+        }
+      ],
+      "read_only": true,
+      "preview_only": true
+    },
+    {
+      "gate_id": "target_readiness",
+      "label": "Target Readiness",
+      "status": "FAIL",
+      "draft_count": 8,
+      "adapter_connected": true,
+      "sources": [
+        "egress.registry",
+        "egress_runtime_readiness"
+      ],
+      "checks": [
+        {
+          "id": "target_readiness",
+          "label": "Target Readiness",
+          "status": "FAIL",
+          "reason": "target missing from egress.registry",
+          "blocking": true,
+          "source": "egress.registry",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "egress.registry",
+          "detail": {},
+          "draft_id": "draft-contract-271600577ed4a53d",
+          "contract_id": "draft-contract-271600577ed4a53d"
+        },
+        {
+          "id": "target_readiness",
+          "label": "Target Readiness",
+          "status": "PASS",
+          "reason": "ready for explicit enable",
+          "blocking": true,
+          "source": "egress_runtime_readiness",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "egress_runtime_readiness",
+          "detail": {
+            "status": "READY",
+            "enable_ready": true,
+            "reason": "ready for explicit enable",
+            "profile_paths_checked": [
+              "/etc/amnezia/v7execwg0.conf",
+              "/etc/wireguard/v7execwg0.conf",
+              "/etc/amnezia/amneziawg/v7execwg0.conf",
+              "/etc/v7/egress-openvpn/v7execwg0.ovpn",
+              "/etc/amneziawg/v7execwg0.conf"
+            ],
+            "profile_path": "/etc/amnezia/v7execwg0.conf",
+            "interface": "v7execwg0",
+            "checks": [
+              {
+                "id": "registry_present",
+                "status": "OK",
+                "detail": "egress is listed in egress.registry"
+              },
+              {
+                "id": "pool_enabled_flag",
+                "status": "OK",
+                "detail": "enabled=1"
+              },
+              {
+                "id": "protocol",
+                "status": "OK",
+                "detail": "amneziawg"
+              },
+              {
+                "id": "type",
+                "status": "OK",
+                "detail": "interface"
+              },
+              {
+                "id": "interface_name",
+                "status": "OK",
+                "detail": "v7execwg0"
+              },
+              {
+                "id": "runtime_profile",
+                "status": "OK",
+                "detail": "/etc/amnezia/v7execwg0.conf"
+              },
+              {
+                "id": "interface_live_now",
+                "status": "OK",
+                "detail": "interface exists"
+              }
+            ]
+          },
+          "draft_id": "draft-contract-dff3bb5e8ff2dbb5",
+          "contract_id": "draft-contract-dff3bb5e8ff2dbb5"
+        },
+        {
+          "id": "target_readiness",
+          "label": "Target Readiness",
+          "status": "PASS",
+          "reason": "ready for explicit enable",
+          "blocking": true,
+          "source": "egress_runtime_readiness",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "egress_runtime_readiness",
+          "detail": {
+            "status": "READY",
+            "enable_ready": true,
+            "reason": "ready for explicit enable",
+            "profile_paths_checked": [
+              "/etc/wireguard/v7e06a394c478.conf",
+              "/etc/amnezia/amneziawg/v7e06a394c478.conf",
+              "/etc/v7/egress-openvpn/v7e06a394c478.ovpn",
+              "/etc/amneziawg/v7e06a394c478.conf"
+            ],
+            "profile_path": "/etc/wireguard/v7e06a394c478.conf",
+            "interface": "v7e06a394c478",
+            "checks": [
+              {
+                "id": "registry_present",
+                "status": "OK",
+                "detail": "egress is listed in egress.registry"
+              },
+              {
+                "id": "pool_enabled_flag",
+                "status": "OK",
+                "detail": "enabled=1"
+              },
+              {
+                "id": "protocol",
+                "status": "OK",
+                "detail": "wireguard"
+              },
+              {
+                "id": "type",
+                "status": "OK",
+                "detail": "interface"
+              },
+              {
+                "id": "interface_name",
+                "status": "OK",
+                "detail": "v7e06a394c478"
+              },
+              {
+                "id": "runtime_profile",
+                "status": "OK",
+                "detail": "/etc/wireguard/v7e06a394c478.conf"
+              },
+              {
+                "id": "interface_live_now",
+                "status": "OK",
+                "detail": "interface exists"
+              }
+            ]
+          },
+          "draft_id": "draft-contract-c6ab780b4b234f95",
+          "contract_id": "draft-contract-c6ab780b4b234f95"
+        },
+        {
+          "id": "target_readiness",
+          "label": "Target Readiness",
+          "status": "PASS",
+          "reason": "ready for explicit enable",
+          "blocking": true,
+          "source": "egress_runtime_readiness",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "egress_runtime_readiness",
+          "detail": {
+            "status": "READY",
+            "enable_ready": true,
+            "reason": "ready for explicit enable",
+            "profile_paths_checked": [
+              "/etc/v7/egress-openvpn/v7edb0c189291.ovpn",
+              "/etc/wireguard/v7edb0c189291.conf",
+              "/etc/amnezia/amneziawg/v7edb0c189291.conf",
+              "/etc/amneziawg/v7edb0c189291.conf"
+            ],
+            "profile_path": "/etc/v7/egress-openvpn/v7edb0c189291.ovpn",
+            "interface": "v7edb0c189291",
+            "checks": [
+              {
+                "id": "registry_present",
+                "status": "OK",
+                "detail": "egress is listed in egress.registry"
+              },
+              {
+                "id": "pool_enabled_flag",
+                "status": "OK",
+                "detail": "enabled=1"
+              },
+              {
+                "id": "protocol",
+                "status": "OK",
+                "detail": "openvpn"
+              },
+              {
+                "id": "type",
+                "status": "OK",
+                "detail": "interface"
+              },
+              {
+                "id": "interface_name",
+                "status": "OK",
+                "detail": "v7edb0c189291"
+              },
+              {
+                "id": "runtime_profile",
+                "status": "OK",
+                "detail": "/etc/v7/egress-openvpn/v7edb0c189291.ovpn"
+              },
+              {
+                "id": "interface_live_now",
+                "status": "OK",
+                "detail": "interface exists"
+              }
+            ]
+          },
+          "draft_id": "draft-contract-d1deed3e896c1359",
+          "contract_id": "draft-contract-d1deed3e896c1359"
+        },
+        {
+          "id": "target_readiness",
+          "label": "Target Readiness",
+          "status": "PASS",
+          "reason": "ready for explicit enable",
+          "blocking": true,
+          "source": "egress_runtime_readiness",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "egress_runtime_readiness",
+          "detail": {
+            "status": "READY",
+            "enable_ready": true,
+            "reason": "ready for explicit enable",
+            "profile_paths_checked": [
+              "/etc/amnezia/amneziawg/v7e356a192b79.conf",
+              "/etc/wireguard/v7e356a192b79.conf",
+              "/etc/v7/egress-openvpn/v7e356a192b79.ovpn",
+              "/etc/amneziawg/v7e356a192b79.conf"
+            ],
+            "profile_path": "/etc/amnezia/amneziawg/v7e356a192b79.conf",
+            "interface": "v7e356a192b79",
+            "checks": [
+              {
+                "id": "registry_present",
+                "status": "OK",
+                "detail": "egress is listed in egress.registry"
+              },
+              {
+                "id": "pool_enabled_flag",
+                "status": "OK",
+                "detail": "enabled=1"
+              },
+              {
+                "id": "protocol",
+                "status": "OK",
+                "detail": "amneziawg"
+              },
+              {
+                "id": "type",
+                "status": "OK",
+                "detail": "interface"
+              },
+              {
+                "id": "interface_name",
+                "status": "OK",
+                "detail": "v7e356a192b79"
+              },
+              {
+                "id": "runtime_profile",
+                "status": "OK",
+                "detail": "/etc/amnezia/amneziawg/v7e356a192b79.conf"
+              },
+              {
+                "id": "interface_live_now",
+                "status": "OK",
+                "detail": "interface exists"
+              }
+            ]
+          },
+          "draft_id": "draft-contract-3596567c8f98df9b",
+          "contract_id": "draft-contract-3596567c8f98df9b"
+        },
+        {
+          "id": "target_readiness",
+          "label": "Target Readiness",
+          "status": "PASS",
+          "reason": "ready for explicit enable",
+          "blocking": true,
+          "source": "egress_runtime_readiness",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "egress_runtime_readiness",
+          "detail": {
+            "status": "READY",
+            "enable_ready": true,
+            "reason": "ready for explicit enable",
+            "profile_paths_checked": [
+              "/etc/amnezia/amneziawg/awg3.conf",
+              "/etc/wireguard/awg3.conf",
+              "/etc/v7/egress-openvpn/awg3.ovpn",
+              "/etc/amneziawg/awg3.conf"
+            ],
+            "profile_path": "/etc/amnezia/amneziawg/awg3.conf",
+            "interface": "awg3",
+            "checks": [
+              {
+                "id": "registry_present",
+                "status": "OK",
+                "detail": "egress is listed in egress.registry"
+              },
+              {
+                "id": "pool_enabled_flag",
+                "status": "OK",
+                "detail": "enabled=1"
+              },
+              {
+                "id": "protocol",
+                "status": "OK",
+                "detail": "amneziawg"
+              },
+              {
+                "id": "type",
+                "status": "OK",
+                "detail": "interface"
+              },
+              {
+                "id": "interface_name",
+                "status": "OK",
+                "detail": "awg3"
+              },
+              {
+                "id": "runtime_profile",
+                "status": "OK",
+                "detail": "/etc/amnezia/amneziawg/awg3.conf"
+              },
+              {
+                "id": "interface_live_now",
+                "status": "OK",
+                "detail": "interface exists"
+              }
+            ]
+          },
+          "draft_id": "draft-contract-4804c13a86572aed",
+          "contract_id": "draft-contract-4804c13a86572aed"
+        },
+        {
+          "id": "target_readiness",
+          "label": "Target Readiness",
+          "status": "PASS",
+          "reason": "ready for explicit enable",
+          "blocking": true,
+          "source": "egress_runtime_readiness",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "egress_runtime_readiness",
+          "detail": {
+            "status": "READY",
+            "enable_ready": true,
+            "reason": "ready for explicit enable",
+            "profile_paths_checked": [
+              "/etc/amnezia/amneziawg/awg0.conf",
+              "/etc/wireguard/awg0.conf",
+              "/etc/v7/egress-openvpn/awg0.ovpn",
+              "/etc/amneziawg/awg0.conf"
+            ],
+            "profile_path": "/etc/amnezia/amneziawg/awg0.conf",
+            "interface": "awg0",
+            "checks": [
+              {
+                "id": "registry_present",
+                "status": "OK",
+                "detail": "egress is listed in egress.registry"
+              },
+              {
+                "id": "pool_enabled_flag",
+                "status": "OK",
+                "detail": "enabled=1"
+              },
+              {
+                "id": "protocol",
+                "status": "OK",
+                "detail": "amneziawg"
+              },
+              {
+                "id": "type",
+                "status": "OK",
+                "detail": "interface"
+              },
+              {
+                "id": "interface_name",
+                "status": "OK",
+                "detail": "awg0"
+              },
+              {
+                "id": "runtime_profile",
+                "status": "OK",
+                "detail": "/etc/amnezia/amneziawg/awg0.conf"
+              },
+              {
+                "id": "interface_live_now",
+                "status": "OK",
+                "detail": "interface exists"
+              }
+            ]
+          },
+          "draft_id": "draft-contract-9d3f749577d9f4ce",
+          "contract_id": "draft-contract-9d3f749577d9f4ce"
+        },
+        {
+          "id": "target_readiness",
+          "label": "Target Readiness",
+          "status": "PASS",
+          "reason": "ready for explicit enable",
+          "blocking": true,
+          "source": "egress_runtime_readiness",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "egress_runtime_readiness",
+          "detail": {
+            "status": "READY",
+            "enable_ready": true,
+            "reason": "ready for explicit enable",
+            "profile_paths_checked": [
+              "/etc/sing-box/config.json"
+            ],
+            "profile_path": "/etc/sing-box/config.json",
+            "interface": "tun0",
+            "checks": [
+              {
+                "id": "registry_present",
+                "status": "OK",
+                "detail": "egress is listed in egress.registry"
+              },
+              {
+                "id": "pool_enabled_flag",
+                "status": "OK",
+                "detail": "enabled=1"
+              },
+              {
+                "id": "protocol",
+                "status": "OK",
+                "detail": "vless"
+              },
+              {
+                "id": "type",
+                "status": "OK",
+                "detail": "proxy"
+              },
+              {
+                "id": "runtime_profile",
+                "status": "OK",
+                "detail": "/etc/sing-box/config.json"
+              }
+            ]
+          },
+          "draft_id": "draft-contract-ef0b84ceafdf5999",
+          "contract_id": "draft-contract-ef0b84ceafdf5999"
+        }
+      ],
+      "read_only": true,
+      "preview_only": true
+    },
+    {
+      "gate_id": "routing_mode",
+      "label": "Routing Mode",
+      "status": "REVIEW_REQUIRED",
+      "draft_count": 8,
+      "adapter_connected": true,
+      "sources": [
+        "draft",
+        "users.registry"
+      ],
+      "checks": [
+        {
+          "id": "routing_mode",
+          "label": "Routing Mode",
+          "status": "REVIEW_REQUIRED",
+          "reason": "no affected users; routing mode not applicable",
+          "blocking": true,
+          "source": "draft",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "draft",
+          "detail": {},
+          "draft_id": "draft-contract-271600577ed4a53d",
+          "contract_id": "draft-contract-271600577ed4a53d"
+        },
+        {
+          "id": "routing_mode",
+          "label": "Routing Mode",
+          "status": "REVIEW_REQUIRED",
+          "reason": "no affected users; routing mode not applicable",
+          "blocking": true,
+          "source": "draft",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "draft",
+          "detail": {},
+          "draft_id": "draft-contract-dff3bb5e8ff2dbb5",
+          "contract_id": "draft-contract-dff3bb5e8ff2dbb5"
+        },
+        {
+          "id": "routing_mode",
+          "label": "Routing Mode",
+          "status": "REVIEW_REQUIRED",
+          "reason": "no affected users; routing mode not applicable",
+          "blocking": true,
+          "source": "draft",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "draft",
+          "detail": {},
+          "draft_id": "draft-contract-c6ab780b4b234f95",
+          "contract_id": "draft-contract-c6ab780b4b234f95"
+        },
+        {
+          "id": "routing_mode",
+          "label": "Routing Mode",
+          "status": "REVIEW_REQUIRED",
+          "reason": "no affected users; routing mode not applicable",
+          "blocking": true,
+          "source": "draft",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "draft",
+          "detail": {},
+          "draft_id": "draft-contract-d1deed3e896c1359",
+          "contract_id": "draft-contract-d1deed3e896c1359"
+        },
+        {
+          "id": "routing_mode",
+          "label": "Routing Mode",
+          "status": "REVIEW_REQUIRED",
+          "reason": "no affected users; routing mode not applicable",
+          "blocking": true,
+          "source": "draft",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "draft",
+          "detail": {},
+          "draft_id": "draft-contract-3596567c8f98df9b",
+          "contract_id": "draft-contract-3596567c8f98df9b"
+        },
+        {
+          "id": "routing_mode",
+          "label": "Routing Mode",
+          "status": "PASS",
+          "reason": "all affected users have known registry routing state",
+          "blocking": true,
+          "source": "users.registry",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "users.registry",
+          "detail": {
+            "users": [
+              "10.0.0.3",
+              "10.7.0.3",
+              "10.7.0.2",
+              "10.7.0.5",
+              "10.7.0.6",
+              "10.7.0.9",
+              "10.7.0.11",
+              "10.7.0.14"
+            ]
+          },
+          "draft_id": "draft-contract-4804c13a86572aed",
+          "contract_id": "draft-contract-4804c13a86572aed"
+        },
+        {
+          "id": "routing_mode",
+          "label": "Routing Mode",
+          "status": "PASS",
+          "reason": "all affected users have known registry routing state",
+          "blocking": true,
+          "source": "users.registry",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "users.registry",
+          "detail": {
+            "users": [
+              "10.0.0.2",
+              "10.0.0.6",
+              "10.7.0.4",
+              "10.7.0.8",
+              "10.7.0.10",
+              "10.7.0.12",
+              "10.7.0.13",
+              "10.7.0.15"
+            ]
+          },
+          "draft_id": "draft-contract-9d3f749577d9f4ce",
+          "contract_id": "draft-contract-9d3f749577d9f4ce"
+        },
+        {
+          "id": "routing_mode",
+          "label": "Routing Mode",
+          "status": "PASS",
+          "reason": "all affected users have known registry routing state",
+          "blocking": true,
+          "source": "users.registry",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "users.registry",
+          "detail": {
+            "users": [
+              "10.7.0.16",
+              "10.7.0.17",
+              "10.7.0.18",
+              "10.7.0.19",
+              "10.7.0.20",
+              "10.7.0.21",
+              "10.7.0.22",
+              "10.7.0.23",
+              "10.7.0.24",
+              "10.7.0.25"
+            ]
+          },
+          "draft_id": "draft-contract-ef0b84ceafdf5999",
+          "contract_id": "draft-contract-ef0b84ceafdf5999"
+        }
+      ],
+      "read_only": true,
+      "preview_only": true
+    },
+    {
+      "gate_id": "containment_state",
+      "label": "Containment State",
+      "status": "PASS",
+      "draft_count": 8,
+      "adapter_connected": true,
+      "sources": [
+        "rollback_manifest"
+      ],
+      "checks": [
+        {
+          "id": "containment_state",
+          "label": "Containment State",
+          "status": "PASS",
+          "reason": "rollback/containment manifest is available for preview scope",
+          "blocking": true,
+          "source": "rollback_manifest",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "rollback_manifest",
+          "detail": {
+            "rollback_users": 0
+          },
+          "draft_id": "draft-contract-271600577ed4a53d",
+          "contract_id": "draft-contract-271600577ed4a53d"
+        },
+        {
+          "id": "containment_state",
+          "label": "Containment State",
+          "status": "PASS",
+          "reason": "rollback/containment manifest is available for preview scope",
+          "blocking": true,
+          "source": "rollback_manifest",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "rollback_manifest",
+          "detail": {
+            "rollback_users": 0
+          },
+          "draft_id": "draft-contract-dff3bb5e8ff2dbb5",
+          "contract_id": "draft-contract-dff3bb5e8ff2dbb5"
+        },
+        {
+          "id": "containment_state",
+          "label": "Containment State",
+          "status": "PASS",
+          "reason": "rollback/containment manifest is available for preview scope",
+          "blocking": true,
+          "source": "rollback_manifest",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "rollback_manifest",
+          "detail": {
+            "rollback_users": 0
+          },
+          "draft_id": "draft-contract-c6ab780b4b234f95",
+          "contract_id": "draft-contract-c6ab780b4b234f95"
+        },
+        {
+          "id": "containment_state",
+          "label": "Containment State",
+          "status": "PASS",
+          "reason": "rollback/containment manifest is available for preview scope",
+          "blocking": true,
+          "source": "rollback_manifest",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "rollback_manifest",
+          "detail": {
+            "rollback_users": 0
+          },
+          "draft_id": "draft-contract-d1deed3e896c1359",
+          "contract_id": "draft-contract-d1deed3e896c1359"
+        },
+        {
+          "id": "containment_state",
+          "label": "Containment State",
+          "status": "PASS",
+          "reason": "rollback/containment manifest is available for preview scope",
+          "blocking": true,
+          "source": "rollback_manifest",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "rollback_manifest",
+          "detail": {
+            "rollback_users": 0
+          },
+          "draft_id": "draft-contract-3596567c8f98df9b",
+          "contract_id": "draft-contract-3596567c8f98df9b"
+        },
+        {
+          "id": "containment_state",
+          "label": "Containment State",
+          "status": "PASS",
+          "reason": "rollback/containment manifest is available for preview scope",
+          "blocking": true,
+          "source": "rollback_manifest",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "rollback_manifest",
+          "detail": {
+            "rollback_users": 8
+          },
+          "draft_id": "draft-contract-4804c13a86572aed",
+          "contract_id": "draft-contract-4804c13a86572aed"
+        },
+        {
+          "id": "containment_state",
+          "label": "Containment State",
+          "status": "PASS",
+          "reason": "rollback/containment manifest is available for preview scope",
+          "blocking": true,
+          "source": "rollback_manifest",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "rollback_manifest",
+          "detail": {
+            "rollback_users": 8
+          },
+          "draft_id": "draft-contract-9d3f749577d9f4ce",
+          "contract_id": "draft-contract-9d3f749577d9f4ce"
+        },
+        {
+          "id": "containment_state",
+          "label": "Containment State",
+          "status": "PASS",
+          "reason": "rollback/containment manifest is available for preview scope",
+          "blocking": true,
+          "source": "rollback_manifest",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "rollback_manifest",
+          "detail": {
+            "rollback_users": 10
+          },
+          "draft_id": "draft-contract-ef0b84ceafdf5999",
+          "contract_id": "draft-contract-ef0b84ceafdf5999"
+        }
+      ],
+      "read_only": true,
+      "preview_only": true
+    },
+    {
+      "gate_id": "group_constraints",
+      "label": "Group Constraints",
+      "status": "REVIEW_REQUIRED",
+      "draft_count": 8,
+      "adapter_connected": true,
+      "sources": [
+        "draft",
+        "users.registry"
+      ],
+      "checks": [
+        {
+          "id": "group_constraints",
+          "label": "Group Constraints",
+          "status": "REVIEW_REQUIRED",
+          "reason": "no affected users; group constraints not applicable",
+          "blocking": false,
+          "source": "draft",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "draft",
+          "detail": {},
+          "draft_id": "draft-contract-271600577ed4a53d",
+          "contract_id": "draft-contract-271600577ed4a53d"
+        },
+        {
+          "id": "group_constraints",
+          "label": "Group Constraints",
+          "status": "REVIEW_REQUIRED",
+          "reason": "no affected users; group constraints not applicable",
+          "blocking": false,
+          "source": "draft",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "draft",
+          "detail": {},
+          "draft_id": "draft-contract-dff3bb5e8ff2dbb5",
+          "contract_id": "draft-contract-dff3bb5e8ff2dbb5"
+        },
+        {
+          "id": "group_constraints",
+          "label": "Group Constraints",
+          "status": "REVIEW_REQUIRED",
+          "reason": "no affected users; group constraints not applicable",
+          "blocking": false,
+          "source": "draft",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "draft",
+          "detail": {},
+          "draft_id": "draft-contract-c6ab780b4b234f95",
+          "contract_id": "draft-contract-c6ab780b4b234f95"
+        },
+        {
+          "id": "group_constraints",
+          "label": "Group Constraints",
+          "status": "REVIEW_REQUIRED",
+          "reason": "no affected users; group constraints not applicable",
+          "blocking": false,
+          "source": "draft",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "draft",
+          "detail": {},
+          "draft_id": "draft-contract-d1deed3e896c1359",
+          "contract_id": "draft-contract-d1deed3e896c1359"
+        },
+        {
+          "id": "group_constraints",
+          "label": "Group Constraints",
+          "status": "REVIEW_REQUIRED",
+          "reason": "no affected users; group constraints not applicable",
+          "blocking": false,
+          "source": "draft",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "draft",
+          "detail": {},
+          "draft_id": "draft-contract-3596567c8f98df9b",
+          "contract_id": "draft-contract-3596567c8f98df9b"
+        },
+        {
+          "id": "group_constraints",
+          "label": "Group Constraints",
+          "status": "REVIEW_REQUIRED",
+          "reason": "group policy is not yet a dedicated read adapter; registry users are known",
+          "blocking": false,
+          "source": "users.registry",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "users.registry",
+          "detail": {
+            "users": [
+              "10.0.0.3",
+              "10.7.0.3",
+              "10.7.0.2",
+              "10.7.0.5",
+              "10.7.0.6",
+              "10.7.0.9",
+              "10.7.0.11",
+              "10.7.0.14"
+            ]
+          },
+          "draft_id": "draft-contract-4804c13a86572aed",
+          "contract_id": "draft-contract-4804c13a86572aed"
+        },
+        {
+          "id": "group_constraints",
+          "label": "Group Constraints",
+          "status": "REVIEW_REQUIRED",
+          "reason": "group policy is not yet a dedicated read adapter; registry users are known",
+          "blocking": false,
+          "source": "users.registry",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "users.registry",
+          "detail": {
+            "users": [
+              "10.0.0.2",
+              "10.0.0.6",
+              "10.7.0.4",
+              "10.7.0.8",
+              "10.7.0.10",
+              "10.7.0.12",
+              "10.7.0.13",
+              "10.7.0.15"
+            ]
+          },
+          "draft_id": "draft-contract-9d3f749577d9f4ce",
+          "contract_id": "draft-contract-9d3f749577d9f4ce"
+        },
+        {
+          "id": "group_constraints",
+          "label": "Group Constraints",
+          "status": "REVIEW_REQUIRED",
+          "reason": "group policy is not yet a dedicated read adapter; registry users are known",
+          "blocking": false,
+          "source": "users.registry",
+          "preview_only": true,
+          "adapter_connected": true,
+          "adapter_source": "users.registry",
+          "detail": {
+            "users": [
+              "10.7.0.16",
+              "10.7.0.17",
+              "10.7.0.18",
+              "10.7.0.19",
+              "10.7.0.20",
+              "10.7.0.21",
+              "10.7.0.22",
+              "10.7.0.23",
+              "10.7.0.24",
+              "10.7.0.25"
+            ]
+          },
+          "draft_id": "draft-contract-ef0b84ceafdf5999",
+          "contract_id": "draft-contract-ef0b84ceafdf5999"
+        }
+      ],
+      "read_only": true,
+      "preview_only": true
+    }
+  ],
+  "recent_drafts": [
+    {
+      "contract_id": "draft-contract-271600577ed4a53d",
+      "draft_id": "draft-contract-271600577ed4a53d",
+      "status": "DRAFT",
+      "action_type": "OBSERVE",
+      "affected_users": [],
+      "target": "system",
+      "current_target": "system",
+      "movement_budget": 0,
+      "blast_radius": 0,
+      "proposal_references": [
+        "proposal-state-observation-1a55b2091108c88c"
+      ],
+      "evidence_references": [
+        "evidence-check-state-freshness"
+      ],
+      "validation_state": "PREVIEW_NOT_RUN",
+      "verification_state": "PREVIEW_NOT_RUN",
+      "rollback_state": "PREVIEW_MISSING",
+      "summary": "Preview draft from OBSERVATION: Снимок состояния V7 используется как базовое наблюдение proposal layer.",
+      "preview_only": true,
+      "read_only": true,
+      "execution_allowed_now": false
+    },
+    {
+      "contract_id": "draft-contract-dff3bb5e8ff2dbb5",
+      "draft_id": "draft-contract-dff3bb5e8ff2dbb5",
+      "status": "DRAFT",
+      "action_type": "OBSERVE",
+      "affected_users": [],
+      "target": "amneziawg-exec-20260528-10-8-1-14",
+      "current_target": "amneziawg-exec-20260528-10-8-1-14",
+      "movement_budget": 0,
+      "blast_radius": 0,
+      "proposal_references": [
+        "proposal-channel-observe-a85a1f449198894c"
+      ],
+      "evidence_references": [
+        "evidence-channel-30bccb6896bfaa91"
+      ],
+      "validation_state": "PREVIEW_NOT_RUN",
+      "verification_state": "PREVIEW_NOT_RUN",
+      "rollback_state": "PREVIEW_MISSING",
+      "summary": "Preview draft from OBSERVATION: Канал amneziawg-exec-20260528-10-8-1-14 добавлен в наблюдение proposal layer.",
+      "preview_only": true,
+      "read_only": true,
+      "execution_allowed_now": false
+    },
+    {
+      "contract_id": "draft-contract-c6ab780b4b234f95",
+      "draft_id": "draft-contract-c6ab780b4b234f95",
+      "status": "DRAFT",
+      "action_type": "OBSERVE",
+      "affected_users": [],
+      "target": "wireguard-1779454504-c43409",
+      "current_target": "wireguard-1779454504-c43409",
+      "movement_budget": 0,
+      "blast_radius": 0,
+      "proposal_references": [
+        "proposal-channel-observe-7055e0bd29558822"
+      ],
+      "evidence_references": [
+        "evidence-channel-7a0042dfdaaf98e7"
+      ],
+      "validation_state": "PREVIEW_NOT_RUN",
+      "verification_state": "PREVIEW_NOT_RUN",
+      "rollback_state": "PREVIEW_MISSING",
+      "summary": "Preview draft from OBSERVATION: Канал wireguard-1779454504-c43409 добавлен в наблюдение proposal layer.",
+      "preview_only": true,
+      "read_only": true,
+      "execution_allowed_now": false
+    },
+    {
+      "contract_id": "draft-contract-d1deed3e896c1359",
+      "draft_id": "draft-contract-d1deed3e896c1359",
+      "status": "DRAFT",
+      "action_type": "OBSERVE",
+      "affected_users": [],
+      "target": "openvpn-1779388847-d2ad7c",
+      "current_target": "openvpn-1779388847-d2ad7c",
+      "movement_budget": 0,
+      "blast_radius": 0,
+      "proposal_references": [
+        "proposal-channel-observe-4361707bc6b4fdb9"
+      ],
+      "evidence_references": [
+        "evidence-channel-c23d07775e4d83c8"
+      ],
+      "validation_state": "PREVIEW_NOT_RUN",
+      "verification_state": "PREVIEW_NOT_RUN",
+      "rollback_state": "PREVIEW_MISSING",
+      "summary": "Preview draft from OBSERVATION: Канал openvpn-1779388847-d2ad7c добавлен в наблюдение proposal layer.",
+      "preview_only": true,
+      "read_only": true,
+      "execution_allowed_now": false
+    },
+    {
+      "contract_id": "draft-contract-3596567c8f98df9b",
+      "draft_id": "draft-contract-3596567c8f98df9b",
+      "status": "DRAFT",
+      "action_type": "OBSERVE",
+      "affected_users": [],
+      "target": "1",
+      "current_target": "1",
+      "movement_budget": 0,
+      "blast_radius": 0,
+      "proposal_references": [
+        "proposal-channel-observe-884c07303cd59407"
+      ],
+      "evidence_references": [
+        "evidence-channel-4d393b43b93333f0"
+      ],
+      "validation_state": "PREVIEW_NOT_RUN",
+      "verification_state": "PREVIEW_NOT_RUN",
+      "rollback_state": "PREVIEW_MISSING",
+      "summary": "Preview draft from OBSERVATION: Канал 1 добавлен в наблюдение proposal layer.",
+      "preview_only": true,
+      "read_only": true,
+      "execution_allowed_now": false
+    },
+    {
+      "contract_id": "draft-contract-4804c13a86572aed",
+      "draft_id": "draft-contract-4804c13a86572aed",
+      "status": "DRAFT",
+      "action_type": "OBSERVE",
+      "affected_users": [
+        "10.0.0.3",
+        "10.7.0.3",
+        "10.7.0.2",
+        "10.7.0.5",
+        "10.7.0.6",
+        "10.7.0.9",
+        "10.7.0.11",
+        "10.7.0.14"
+      ],
+      "target": "awg3",
+      "current_target": "awg3",
+      "movement_budget": 8,
+      "blast_radius": 8,
+      "proposal_references": [
+        "proposal-channel-observe-39a7b2f98f4903bd"
+      ],
+      "evidence_references": [
+        "evidence-channel-4d091d470a55ac43"
+      ],
+      "validation_state": "PREVIEW_NOT_RUN",
+      "verification_state": "PREVIEW_NOT_RUN",
+      "rollback_state": "PREVIEW_READY",
+      "summary": "Preview draft from OBSERVATION: Канал awg3 добавлен в наблюдение proposal layer.",
+      "preview_only": true,
+      "read_only": true,
+      "execution_allowed_now": false
+    },
+    {
+      "contract_id": "draft-contract-9d3f749577d9f4ce",
+      "draft_id": "draft-contract-9d3f749577d9f4ce",
+      "status": "DRAFT",
+      "action_type": "OBSERVE",
+      "affected_users": [
+        "10.0.0.2",
+        "10.0.0.6",
+        "10.7.0.4",
+        "10.7.0.8",
+        "10.7.0.10",
+        "10.7.0.12",
+        "10.7.0.13",
+        "10.7.0.15"
+      ],
+      "target": "awg0",
+      "current_target": "awg0",
+      "movement_budget": 8,
+      "blast_radius": 8,
+      "proposal_references": [
+        "proposal-channel-observe-8e5e31a9b1de8f1f"
+      ],
+      "evidence_references": [
+        "evidence-channel-8eeb7f24364a5e59"
+      ],
+      "validation_state": "PREVIEW_NOT_RUN",
+      "verification_state": "PREVIEW_NOT_RUN",
+      "rollback_state": "PREVIEW_READY",
+      "summary": "Preview draft from OBSERVATION: Канал awg0 добавлен в наблюдение proposal layer.",
+      "preview_only": true,
+      "read_only": true,
+      "execution_allowed_now": false
+    },
+    {
+      "contract_id": "draft-contract-ef0b84ceafdf5999",
+      "draft_id": "draft-contract-ef0b84ceafdf5999",
+      "status": "DRAFT",
+      "action_type": "OBSERVE",
+      "affected_users": [
+        "10.7.0.16",
+        "10.7.0.17",
+        "10.7.0.18",
+        "10.7.0.19",
+        "10.7.0.20",
+        "10.7.0.21",
+        "10.7.0.22",
+        "10.7.0.23",
+        "10.7.0.24",
+        "10.7.0.25"
+      ],
+      "target": "vless",
+      "current_target": "vless",
+      "movement_budget": 10,
+      "blast_radius": 10,
+      "proposal_references": [
+        "proposal-channel-observe-b29ff28d19372889"
+      ],
+      "evidence_references": [
+        "evidence-channel-654b20b5bd81bd1e"
+      ],
+      "validation_state": "PREVIEW_NOT_RUN",
+      "verification_state": "PREVIEW_NOT_RUN",
+      "rollback_state": "PREVIEW_READY",
+      "summary": "Preview draft from OBSERVATION: Канал vless добавлен в наблюдение proposal layer.",
+      "preview_only": true,
+      "read_only": true,
+      "execution_allowed_now": false
+    }
+  ],
+  "read_only": true,
+  "non_authoritative": true,
+  "preview_only": true,
+  "execution_allowed_now": false,
+  "execution_engine_present": false,
+  "runtime_hooks_present": false,
+  "operator_status_text": "One or more validation gates failed closed."
+}

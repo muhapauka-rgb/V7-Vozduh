@@ -1,0 +1,12 @@
+1285:    def _restore_barrier_status(self) -> dict[str, Any]:
+3890:    def plan(self) -> dict[str, Any]:
+3978:            restore_barrier["clearance_selected_moves_before_guard"] = len(selected)
+3983:                restore_barrier["clearance_guard_reason"] = "restore_barrier_clearance_selected_moves_exceed_budget"
+4110:    def _approved_plan_lock_validation(self, restore_barrier: dict[str, Any]) -> dict[str, Any]:
+5949:    def _dry_run_terminal_reason(self, plan: dict[str, Any]) -> str:
+5988:    def _restore_barrier_status_label(self, plan: dict[str, Any]) -> str:
+4746:    def _restore_clearance_generation_check(
+4788:                "clearance_generation_reason": "restore_barrier_clearance_generation_expired",
+4796:                "clearance_generation_reason": "restore_barrier_clearance_generation_mismatch",
+4803:                "clearance_generation_reason": "restore_barrier_clearance_selected_moves_hash_mismatch",
+4812:                "clearance_generation_reason": "restore_barrier_clearance_selected_moves_count_mismatch",

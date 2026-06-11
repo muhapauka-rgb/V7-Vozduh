@@ -1,0 +1,98 @@
+[
+  {
+    "user_ip": "10.7.0.5",
+    "current_egress": "awg3",
+    "recommended_egress": "vless",
+    "move_type": "failover"
+  },
+  {
+    "user_ip": "10.0.0.2",
+    "current_egress": "awg0",
+    "recommended_egress": "vless",
+    "move_type": "failover"
+  },
+  {
+    "user_ip": "10.0.0.3",
+    "current_egress": "awg3",
+    "recommended_egress": "vless",
+    "move_type": "failover"
+  },
+  {
+    "user_ip": "10.0.0.6",
+    "current_egress": "awg0",
+    "recommended_egress": "vless",
+    "move_type": "failover"
+  },
+  {
+    "user_ip": "10.7.0.3",
+    "current_egress": "awg3",
+    "recommended_egress": "vless",
+    "move_type": "failover"
+  },
+  {
+    "user_ip": "10.7.0.2",
+    "current_egress": "awg3",
+    "recommended_egress": "vless",
+    "move_type": "failover"
+  },
+  {
+    "user_ip": "10.7.0.4",
+    "current_egress": "awg0",
+    "recommended_egress": "vless",
+    "move_type": "failover"
+  },
+  {
+    "user_ip": "10.7.0.6",
+    "current_egress": "awg3",
+    "recommended_egress": "vless",
+    "move_type": "failover"
+  },
+  {
+    "user_ip": "10.7.0.8",
+    "current_egress": "awg0",
+    "recommended_egress": "vless",
+    "move_type": "failover"
+  },
+  {
+    "user_ip": "10.7.0.9",
+    "current_egress": "awg3",
+    "recommended_egress": "vless",
+    "move_type": "failover"
+  },
+  {
+    "user_ip": "10.7.0.10",
+    "current_egress": "awg0",
+    "recommended_egress": "vless",
+    "move_type": "failover"
+  },
+  {
+    "user_ip": "10.7.0.11",
+    "current_egress": "awg3",
+    "recommended_egress": "vless",
+    "move_type": "failover"
+  },
+  {
+    "user_ip": "10.7.0.12",
+    "current_egress": "awg0",
+    "recommended_egress": "vless",
+    "move_type": "failover"
+  },
+  {
+    "user_ip": "10.7.0.13",
+    "current_egress": "awg0",
+    "recommended_egress": "vless",
+    "move_type": "failover"
+  },
+  {
+    "user_ip": "10.7.0.14",
+    "current_egress": "awg3",
+    "recommended_egress": "vless",
+    "move_type": "failover"
+  },
+  {
+    "user_ip": "10.7.0.15",
+    "current_egress": "awg0",
+    "recommended_egress": "vless",
+    "move_type": "failover"
+  }
+]

@@ -1,0 +1,104 @@
+{
+  "collected_from": "/api/autoswitch-plan",
+  "action": "autoswitch_plan",
+  "rc": 0,
+  "cmd": [
+    "v7-users-autoswitch",
+    "--pre-planner-refresh",
+    "write",
+    "--pre-planner-refresh-command",
+    "v7-intelligence-snapshot-refresh",
+    "--pretty"
+  ],
+  "plan": {
+    "summary": {
+      "users_total": 26,
+      "egress_total": 7,
+      "healthy_egress_total": 1,
+      "candidate_moves": 16,
+      "candidate_moves_total": 16,
+      "selected_moves": 0,
+      "reconnect_rotation_candidates": 0,
+      "rebalance_candidates": 0,
+      "org_groups": [
+        "default"
+      ]
+    },
+    "operation": {
+      "operation_owner": "tools/v7-users-autoswitch",
+      "operation_type": "runtime_autoswitch",
+      "operation_started_at": "2026-06-11T19:24:44.981368+00:00",
+      "planner_generation_id": "8cb2eb0a755229f12aa558a7aac860595e5985875e5577bc9df6ad3c5c701f75",
+      "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "selected_move_count": 0,
+      "runtime_snapshot_hash": "2ff9f79ddd97beb671d4f03303cb7636bc9ee94acce976caa4f11d042cda5d47",
+      "operation_id": "runtime_autoswitch_ba75ddb52f87a5c552cd1044",
+      "atomic_execution_envelope_id": "aee_3c021e6eaffab06a06b4c2a2",
+      "atomic_execution_envelope_hash": "3c021e6eaffab06a06b4c2a2786783d67d4a23eb2317bb661d018083a17e227a",
+      "terminal_state": "DRY_RUN",
+      "terminal_reason": "dry_run_restore_barrier_clearance_selected_moves_exceed_budget"
+    },
+    "selected_moves_count": 0,
+    "selected_moves": [],
+    "decisions_switch_count": 16,
+    "decisions_keep_count": 10,
+    "switch_targets": [
+      {
+        "target": "vless",
+        "count": 16
+      }
+    ],
+    "restore_barrier": {
+      "enabled": true,
+      "active": false,
+      "expired": true,
+      "cleared": true,
+      "reason": "C.1 canonical nonzero governance lifecycle clearance",
+      "clearance_max_selected_moves": 10,
+      "clearance_expected_selected_moves": 10,
+      "clearance_expires_at": "2026-06-07T12:10:45.714602+00:00",
+      "approved_plan_lock_ok": false,
+      "approved_plan_lock_reasons": [
+        "approved_plan_lock_expired",
+        "approved_plan_lock_user_source_mismatch"
+      ],
+      "approved_plan_lock_ignored_for_fresh_planning": true,
+      "clearance_selected_moves_before_guard": 16,
+      "clearance_budget_exceeded": true,
+      "clearance_guard_reason": "restore_barrier_clearance_selected_moves_exceed_budget",
+      "approved_candidate_moves_before_guard_count": 16
+    },
+    "intelligence_snapshots": {
+      "stop_required": false,
+      "stop_families": [],
+      "source_mismatch_families": []
+    },
+    "authority_budget_gate": {
+      "current_authority_class": null,
+      "current_allowed_user_budget": 25,
+      "selected_moves_before_gate": 16,
+      "selected_moves_after_gate": 16,
+      "authority_cap_applied": false
+    },
+    "apply_result": {
+      "applied": false,
+      "reason": "dry_run"
+    },
+    "audit": {
+      "operation_id": "runtime_autoswitch_ba75ddb52f87a5c552cd1044",
+      "operation_owner": "tools/v7-users-autoswitch",
+      "operation_type": "runtime_autoswitch",
+      "planner_generation_id": "8cb2eb0a755229f12aa558a7aac860595e5985875e5577bc9df6ad3c5c701f75",
+      "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "selected_move_count": 0,
+      "runtime_snapshot_hash": "2ff9f79ddd97beb671d4f03303cb7636bc9ee94acce976caa4f11d042cda5d47",
+      "terminal_state": "DRY_RUN",
+      "terminal_reason": "dry_run_restore_barrier_clearance_selected_moves_exceed_budget",
+      "restore_barrier_status": "restore_barrier_clearance_selected_moves_exceed_budget",
+      "rollback_verdict": "",
+      "apply_requested": false,
+      "mode": "guarded",
+      "target_egress": ""
+    }
+  }
+}

@@ -1,0 +1,18 @@
+29:RUNTIME_ACTION_CREATE_CLEARANCE = "CREATE_RESTORE_BARRIER_CLEARANCE"
+34:    RUNTIME_ACTION_CREATE_CLEARANCE,
+39:CANONICAL_CLEARANCE_OWNER = "admin_core/operator_execution.py"
+191:def validate_nonzero_packet(packet, now):
+197:    if packet.get("runtime_action") != RUNTIME_ACTION_CREATE_CLEARANCE:
+396:        "owner": CANONICAL_CLEARANCE_OWNER,
+406:def recheck_nonzero_packet(packet, state_dir, planner_snapshot):
+608:    if owner and owner != CANONICAL_CLEARANCE_OWNER:
+613:def append_restore_barrier_clearance(restore_barrier_file, packet, recheck, now=None):
+654:        "owner": CANONICAL_CLEARANCE_OWNER,
+699:        "owner": CANONICAL_CLEARANCE_OWNER,
+712:        "rollback_owner": CANONICAL_CLEARANCE_OWNER,
+721:        "closure_owner": CANONICAL_CLEARANCE_OWNER,
+777:        elif packet.get("runtime_action") == RUNTIME_ACTION_CREATE_CLEARANCE:
+850:def packet_from_plan(plan, *, approval_author, approval_reviewer, ttl_seconds=DEFAULT_CLEARANCE_TTL_SECONDS):
+873:        "runtime_action": RUNTIME_ACTION_CREATE_CLEARANCE,
+914:            "rollback_execution_owner": CANONICAL_CLEARANCE_OWNER,
+916:        "governance_owner": CANONICAL_CLEARANCE_OWNER,

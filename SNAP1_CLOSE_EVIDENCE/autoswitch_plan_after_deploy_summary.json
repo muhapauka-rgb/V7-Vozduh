@@ -1,0 +1,21 @@
+{
+  "action": "autoswitch_plan",
+  "rc": 0,
+  "cmd": [
+    "v7-users-autoswitch",
+    "--pre-planner-refresh",
+    "write",
+    "--pre-planner-refresh-command",
+    "v7-intelligence-snapshot-refresh",
+    "--pretty"
+  ],
+  "plan_type": "null",
+  "output_len": 12000,
+  "checks": {
+    "has_source_hash_mismatch": false,
+    "has_snapshot_stop_required": false,
+    "terminal_reason": "dry_run_restore_barrier_clearance_selected_moves_exceed_budget",
+    "restore_barrier_status": "restore_barrier_clearance_selected_moves_exceed_budget",
+    "selected_move_count": 0
+  }
+}

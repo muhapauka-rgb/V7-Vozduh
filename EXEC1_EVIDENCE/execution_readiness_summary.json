@@ -1,0 +1,174 @@
+{
+  "status": "NOT_READY",
+  "preview_only": true,
+  "read_only": true,
+  "execution_allowed_now": false,
+  "execution_engine_present": false,
+  "readiness_reason": "One or more validation gates failed closed.",
+  "operator_status_text": "One or more validation gates failed closed.",
+  "failed_gates": [
+    "conflict_resolver",
+    "capacity",
+    "target_readiness"
+  ],
+  "review_required_gates": [
+    "runtime_trust",
+    "release_trust",
+    "required_services",
+    "policy",
+    "routing_mode",
+    "group_constraints"
+  ],
+  "unknown_gates": [],
+  "remaining_unknown_gates_count": 0,
+  "runtime_hooks_present": false,
+  "gate_summary": [
+    {
+      "gate_id": "authority",
+      "label": "Authority",
+      "status": "PASS",
+      "draft_count": 8,
+      "sources": [
+        "proposal"
+      ]
+    },
+    {
+      "gate_id": "evaluator",
+      "label": "Evaluator",
+      "status": "PASS",
+      "draft_count": 8,
+      "sources": [
+        "evidence"
+      ]
+    },
+    {
+      "gate_id": "conflict_resolver",
+      "label": "Conflict Resolver",
+      "status": "FAIL",
+      "draft_count": 8,
+      "sources": [
+        "capacity_adapter"
+      ]
+    },
+    {
+      "gate_id": "runtime_trust",
+      "label": "Runtime Trust",
+      "status": "REVIEW_REQUIRED",
+      "draft_count": 8,
+      "sources": [
+        "runtime_trust"
+      ]
+    },
+    {
+      "gate_id": "release_trust",
+      "label": "Release Trust",
+      "status": "REVIEW_REQUIRED",
+      "draft_count": 8,
+      "sources": [
+        "release_trust"
+      ]
+    },
+    {
+      "gate_id": "required_services",
+      "label": "Required Services",
+      "status": "REVIEW_REQUIRED",
+      "draft_count": 8,
+      "sources": [
+        "proposal"
+      ]
+    },
+    {
+      "gate_id": "capacity",
+      "label": "Capacity",
+      "status": "FAIL",
+      "draft_count": 8,
+      "sources": [
+        "egress.registry"
+      ]
+    },
+    {
+      "gate_id": "policy",
+      "label": "Policy",
+      "status": "REVIEW_REQUIRED",
+      "draft_count": 8,
+      "sources": [
+        "proposal"
+      ]
+    },
+    {
+      "gate_id": "concurrency",
+      "label": "Concurrency",
+      "status": "PASS",
+      "draft_count": 8,
+      "sources": [
+        "execution_contract_store"
+      ]
+    },
+    {
+      "gate_id": "restore_settle",
+      "label": "Restore-Settle",
+      "status": "PASS",
+      "draft_count": 8,
+      "sources": [
+        "/opt/v7/egress/state/autoswitch-restore-barrier.json"
+      ]
+    },
+    {
+      "gate_id": "selected_moves",
+      "label": "Selected Moves",
+      "status": "PASS",
+      "draft_count": 8,
+      "sources": [
+        "/opt/v7/egress/state/selected-moves.json"
+      ]
+    },
+    {
+      "gate_id": "hidden_movers",
+      "label": "Hidden Movers",
+      "status": "PASS",
+      "draft_count": 8,
+      "sources": [
+        "/opt/v7/events/switch-history.jsonl"
+      ]
+    },
+    {
+      "gate_id": "target_readiness",
+      "label": "Target Readiness",
+      "status": "FAIL",
+      "draft_count": 8,
+      "sources": [
+        "egress.registry",
+        "egress_runtime_readiness"
+      ]
+    },
+    {
+      "gate_id": "routing_mode",
+      "label": "Routing Mode",
+      "status": "REVIEW_REQUIRED",
+      "draft_count": 8,
+      "sources": [
+        "draft",
+        "users.registry"
+      ]
+    },
+    {
+      "gate_id": "containment_state",
+      "label": "Containment State",
+      "status": "PASS",
+      "draft_count": 8,
+      "sources": [
+        "rollback_manifest"
+      ]
+    },
+    {
+      "gate_id": "group_constraints",
+      "label": "Group Constraints",
+      "status": "REVIEW_REQUIRED",
+      "draft_count": 8,
+      "sources": [
+        "draft",
+        "users.registry"
+      ]
+    }
+  ]
+}

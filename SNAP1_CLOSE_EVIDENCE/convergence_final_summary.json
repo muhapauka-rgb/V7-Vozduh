@@ -1,0 +1,46 @@
+{
+  "final_verdict": "PASS",
+  "status": "ALIGNED",
+  "runtime_action_status": "READY_FOR_RUNTIME_ACTION",
+  "local": {
+    "commit": "90ea180a0ddd51e4f91fda593cdea4c219e0cb79",
+    "status": "PASS"
+  },
+  "github": {
+    "commit": "90ea180a0ddd51e4f91fda593cdea4c219e0cb79",
+    "status": "PASS"
+  },
+  "production": {
+    "commit": "90ea180a0ddd51e4f91fda593cdea4c219e0cb79",
+    "runtime_access_status": "READY",
+    "runtime_truth_status": "KNOWN",
+    "status": "PASS"
+  },
+  "deploy_delta_mismatches": [],
+  "runtime_action_guard": {
+    "changed_files_since_production": [],
+    "deploy_delta_mismatches": [],
+    "deployable_change_classification": {
+      "classification": "NO_CHANGES",
+      "deploy_required_paths": [],
+      "deployment_required": false,
+      "docs_only_mismatch": false,
+      "docs_only_paths": [],
+      "final_verdict": "PASS",
+      "schema": "v7-deployable-change-classification/v1",
+      "unknown_paths": []
+    },
+    "deployment_required": false,
+    "diagnosis": [],
+    "docs_only_mismatch": false,
+    "final_verdict": "PASS",
+    "github_commit": "90ea180a0ddd51e4f91fda593cdea4c219e0cb79",
+    "local_commit": "90ea180a0ddd51e4f91fda593cdea4c219e0cb79",
+    "production_commit": "90ea180a0ddd51e4f91fda593cdea4c219e0cb79",
+    "reason": "local_github_production_aligned",
+    "runtime_action_safe": true,
+    "safe_next_command": "tools/v7-truth-check --all --json",
+    "schema": "v7-runtime-action-deploy-guard/v1",
+    "status": "READY_FOR_RUNTIME_ACTION"
+  }
+}

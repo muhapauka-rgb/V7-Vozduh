@@ -1,0 +1,35 @@
+{
+  "final_verdict": "PASS",
+  "blockers": [],
+  "deployment_required": true,
+  "deploy_id": "deploy-z8-14-Updatesystem-90ea180-20260611T213024",
+  "commit": "90ea180a0ddd51e4f91fda593cdea4c219e0cb79",
+  "changed": [
+    "v7-admin-api"
+  ],
+  "release_manifest": {
+    "branch": "Updatesystem",
+    "commit": "90ea180a0ddd51e4f91fda593cdea4c219e0cb79",
+    "created_at": "2026-06-11T18:30:26+00:00",
+    "deploy_manifest": "/opt/v7/deploy-manifest.json",
+    "release_id": "deploy-z8-14-Updatesystem-90ea180-20260611T213024",
+    "rollback_manifest_required": true,
+    "runtime_fingerprint": "/opt/v7/runtime-fingerprint.json",
+    "runtime_linkage": "/opt/v7/runtime-linkage.json",
+    "schema": "v7-release-manifest/v1",
+    "service_restart_required": false
+  },
+  "safety": {
+    "autoswitch_apply_executed": false,
+    "planner_modified": false,
+    "policy_modified": false,
+    "restore_barrier_modified": false,
+    "routing_mutation_executed": false,
+    "user_movement_executed": false
+  },
+  "runtime_fingerprint_validation": {
+    "errors": [],
+    "final_verdict": "PASS",
+    "schema": "v7-runtime-fingerprint-validation/v1"
+  }
+}

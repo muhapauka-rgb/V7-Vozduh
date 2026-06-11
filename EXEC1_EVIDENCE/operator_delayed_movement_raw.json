@@ -1,0 +1,25 @@
+{
+  "object_type": "DelayedMovementState",
+  "unexpected_movement_observed": false,
+  "delayed_movement_prevented": false,
+  "switch_history_count": 2817,
+  "selected_moves": 0,
+  "containment_status": "none",
+  "apply_timer_state": "unknown",
+  "freshness": {
+    "path": "/opt/v7/events/switch-history.jsonl",
+    "state": "STALE",
+    "collected_at": "2026-06-07T12:05:29.400690+00:00",
+    "valid_until": "2026-06-07T13:05:29.400690+00:00",
+    "age_seconds": 371959,
+    "stale": true,
+    "stale_reasons": [
+      "age_exceeds_validity"
+    ],
+    "sha256": "5b0a44b2a89a2c78e117bbfb218613a5b949ee42f08c4523b55d24b21954b397"
+  },
+  "source_refs": [
+    "/opt/v7/events/switch-history.jsonl",
+    "BLOCK_E12_GENERATION_TOKEN_HARDENING_NONZERO_BUDGET_REHEARSAL_AND_ORCHESTRATION_MATURITY_REPORT.md"
+  ]
+}

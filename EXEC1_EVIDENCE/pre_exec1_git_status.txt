@@ -1,0 +1,13 @@
+## Updatesystem...origin/Updatesystem
+?? EXEC1_EVIDENCE/
+?? SNAP1_CLOSE_EVIDENCE/autoswitch_plan_after_deploy_summary.json
+?? SNAP1_CLOSE_EVIDENCE/convergence_after_deploy_before_endpoint_refresh.json
+?? SNAP1_CLOSE_EVIDENCE/convergence_final_after_endpoint_refresh.json
+?? SNAP1_CLOSE_EVIDENCE/convergence_final_summary.json
+?? SNAP1_CLOSE_EVIDENCE/planner_refresh_dry_run_after_deploy_summary.json
+?? SNAP1_CLOSE_EVIDENCE/safe_deploy_apply_success.json
+?? SNAP1_CLOSE_EVIDENCE/safe_deploy_apply_success_summary.json
+?? SNAP1_CLOSE_EVIDENCE/truth_after_deploy_before_endpoint_refresh.json
+?? SNAP1_CLOSE_EVIDENCE/truth_final_after_endpoint_refresh.json
+?? SNAP1_CLOSE_EVIDENCE/truth_final_summary.json
+?? SNAP1_CLOSE_PRODUCTION_VERIFICATION_REPORT.md

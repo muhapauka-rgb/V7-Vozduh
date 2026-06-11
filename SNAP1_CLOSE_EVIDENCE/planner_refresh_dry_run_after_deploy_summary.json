@@ -1,0 +1,42 @@
+{
+  "action": "planner_refresh_dry_run",
+  "mode": "refresh_only_planner_dry_run",
+  "rc": 0,
+  "cmd": [
+    "v7-users-autoswitch",
+    "--pre-planner-refresh",
+    "write",
+    "--pre-planner-refresh-command",
+    "v7-intelligence-snapshot-refresh",
+    "--pretty"
+  ],
+  "plan_type": "object",
+  "summary": {
+    "snapshot_stop_required": false,
+    "source_mismatch_families": [],
+    "candidate_moves_total": 0,
+    "selected_moves_before_gate": 0,
+    "selected_moves_after_gate": 0,
+    "healthy_egress_total": 0,
+    "best_available_pool": {
+      "count": 0,
+      "policy": {}
+    },
+    "pre_planner_refresh_state": "",
+    "pre_planner_refresh_rc": null,
+    "refresh_snapshot_count": 0,
+    "refresh_warnings": [],
+    "apply_present": false,
+    "runtime_behavior_changed": false,
+    "governance_behavior_changed": false,
+    "users_moved": false,
+    "routing_mutation_performed": false
+  },
+  "security": {
+    "apply_allowed": false,
+    "apply_executed": false,
+    "user_movement_performed": false,
+    "routing_mutation_performed": false,
+    "runtime_mutation_scope": "intelligence_snapshot_refresh_only"
+  }
+}

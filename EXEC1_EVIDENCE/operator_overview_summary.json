@@ -1,0 +1,348 @@
+{
+  "restore_barrier": {
+    "object_type": "RestoreBarrier",
+    "path": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+    "enabled": true,
+    "active": false,
+    "expired": false,
+    "cleared": false,
+    "allow_post_ttl_apply": true,
+    "generation_clearance": true,
+    "clearance_max_selected_moves": 10,
+    "reason": "C.1 canonical nonzero governance lifecycle clearance",
+    "freshness": {
+      "path": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+      "state": "STALE",
+      "collected_at": "2026-06-07T11:55:45.927234+00:00",
+      "valid_until": "2026-06-07T12:55:45.927234+00:00",
+      "age_seconds": 372540,
+      "stale": true,
+      "stale_reasons": [
+        "age_exceeds_validity"
+      ],
+      "sha256": "54800df5dfab42cd28aca890ec8c0098afecebb4847b184943bf023f82cc6f9b"
+    }
+  },
+  "selected_moves": {
+    "object_type": "SelectedMoveSet",
+    "count": 0,
+    "candidate_moves_total": 0,
+    "source": "/opt/v7/egress/state/selected-moves.json",
+    "state_source": "live",
+    "freshness": {
+      "path": "/opt/v7/egress/state/selected-moves.json",
+      "state": "MISSING",
+      "collected_at": null,
+      "valid_until": null,
+      "age_seconds": null,
+      "stale": true,
+      "stale_reasons": [
+        "missing"
+      ],
+      "sha256": ""
+    },
+    "selected_moves": []
+  },
+  "delayed_movement": {
+    "object_type": "DelayedMovementState",
+    "unexpected_movement_observed": false,
+    "delayed_movement_prevented": false,
+    "switch_history_count": 2817,
+    "selected_moves": 0,
+    "containment_status": "none",
+    "apply_timer_state": "unknown",
+    "freshness": {
+      "path": "/opt/v7/events/switch-history.jsonl",
+      "state": "STALE",
+      "collected_at": "2026-06-07T12:05:29.400690+00:00",
+      "valid_until": "2026-06-07T13:05:29.400690+00:00",
+      "age_seconds": 371957,
+      "stale": true,
+      "stale_reasons": [
+        "age_exceeds_validity"
+      ],
+      "sha256": "5b0a44b2a89a2c78e117bbfb218613a5b949ee42f08c4523b55d24b21954b397"
+    },
+    "source_refs": [
+      "/opt/v7/events/switch-history.jsonl",
+      "BLOCK_E12_GENERATION_TOKEN_HARDENING_NONZERO_BUDGET_REHEARSAL_AND_ORCHESTRATION_MATURITY_REPORT.md"
+    ]
+  },
+  "operator_decision_summary": {
+    "users_total": 27,
+    "channels_total": 7,
+    "candidate_moves_total": 10,
+    "snapshot_statuses": {
+      "service-scores": {
+        "status": "OK",
+        "exists": true,
+        "validation_ok": true,
+        "freshness_state": "FRESH",
+        "confidence": 0.8468,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "path": "/opt/v7/egress/state/intelligence/service-scores.json",
+        "errors": [],
+        "validation_errors": [],
+        "warnings": [],
+        "validation_warnings": [],
+        "source_hashes": {
+          "quality_summary": "87ec4efc04002cac51a5e9b348a69d4a5dc3d4d8e53e8d992c77df505715760d",
+          "service_matrix": "790a088f32ccd6baa84df3f485ef9487ecb374c1d4129dd9391317a68f7d27e9",
+          "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+        }
+      },
+      "channel-service-scores": {
+        "status": "OK",
+        "exists": true,
+        "validation_ok": true,
+        "freshness_state": "FRESH",
+        "confidence": 0.8468,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "path": "/opt/v7/egress/state/intelligence/channel-service-scores.json",
+        "errors": [],
+        "validation_errors": [],
+        "warnings": [],
+        "validation_warnings": [],
+        "source_hashes": {
+          "quality_summary": "87ec4efc04002cac51a5e9b348a69d4a5dc3d4d8e53e8d992c77df505715760d",
+          "service_matrix": "790a088f32ccd6baa84df3f485ef9487ecb374c1d4129dd9391317a68f7d27e9",
+          "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+        }
+      },
+      "risk-summaries": {
+        "status": "OK",
+        "exists": true,
+        "validation_ok": true,
+        "freshness_state": "FRESH",
+        "confidence": 0.9617,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "path": "/opt/v7/egress/state/intelligence/risk-summaries.json",
+        "errors": [],
+        "validation_errors": [],
+        "warnings": [],
+        "validation_warnings": [],
+        "source_hashes": {
+          "channel_service_scores": "7cc0db5aff0f07a84c2f5c9322b53edd2a9c8ee02e108dae36c7c469e2520f09",
+          "quality_summary": "87ec4efc04002cac51a5e9b348a69d4a5dc3d4d8e53e8d992c77df505715760d",
+          "service_scores": "1107d5b8d54bd581b77aa44dac169d4c13194b17a455f464e50decfda6db007a"
+        }
+      },
+      "trust-summaries": {
+        "status": "OK",
+        "exists": true,
+        "validation_ok": true,
+        "freshness_state": "FRESH",
+        "confidence": 1.0,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "path": "/opt/v7/egress/state/intelligence/trust-summaries.json",
+        "errors": [],
+        "validation_errors": [],
+        "warnings": [],
+        "validation_warnings": [],
+        "source_hashes": {
+          "records": "91a7fa6a67af762492e0d3d4d9f1ab8bac71025b95c5193e955f341e5dd04ba4"
+        }
+      },
+      "blast-radius-summaries": {
+        "status": "OK",
+        "exists": true,
+        "validation_ok": true,
+        "freshness_state": "FRESH",
+        "confidence": 0.9904,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "path": "/opt/v7/egress/state/intelligence/blast-radius-summaries.json",
+        "errors": [],
+        "validation_errors": [],
+        "warnings": [],
+        "validation_warnings": [],
+        "source_hashes": {
+          "risk_summary": "2d76059f727872b91edab15c5eb54b9568b90f9630f0ae22938b41b5aacdd510",
+          "trust_summary": "a670d287d9159c5383dfd79303eae6c3625dc33cdd46cf760a9ad883f8788509"
+        }
+      },
+      "candidate-suitability-summary": {
+        "status": "OK",
+        "exists": true,
+        "validation_ok": true,
+        "freshness_state": "FRESH",
+        "confidence": 0.8451,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "path": "/opt/v7/egress/state/intelligence/candidate-suitability-summary.json",
+        "errors": [],
+        "validation_errors": [],
+        "warnings": [],
+        "validation_warnings": [],
+        "source_hashes": {
+          "blast_radius": "f769b98d20f268c86dc1cc74cc63d608eeba247ec8e98adbbe1700a4e2028272",
+          "egress_registry": "51f59e0130201835c2d495c44bce5402653e17d8db9cf3a9c1e67fbfc1cf0e43",
+          "quality_summary": "87ec4efc04002cac51a5e9b348a69d4a5dc3d4d8e53e8d992c77df505715760d",
+          "risk_summary": "2d76059f727872b91edab15c5eb54b9568b90f9630f0ae22938b41b5aacdd510",
+          "service_matrix": "790a088f32ccd6baa84df3f485ef9487ecb374c1d4129dd9391317a68f7d27e9",
+          "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+          "trust_summary": "a670d287d9159c5383dfd79303eae6c3625dc33cdd46cf760a9ad883f8788509",
+          "users_registry": "60b1b871e7e4494bc8409000608adf5094933fd3f87c3a8f58993e4bd93260d4"
+        }
+      },
+      "best-available-pool": {
+        "status": "OK",
+        "exists": true,
+        "validation_ok": true,
+        "freshness_state": "FRESH",
+        "confidence": 0.9613,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "path": "/opt/v7/egress/state/intelligence/best-available-pool.json",
+        "errors": [],
+        "validation_errors": [],
+        "warnings": [],
+        "validation_warnings": [],
+        "source_hashes": {
+          "candidate_suitability": "a4a41e5dbb19f9ce1755f167f9df1795331a93a483f3747324b0a30e77aeaa03",
+          "egress_registry": "51f59e0130201835c2d495c44bce5402653e17d8db9cf3a9c1e67fbfc1cf0e43",
+          "runtime_state": "5e15121ffc8b41b3b4c138beca771e645db7479c27847b85a7dbe5d0f6d8f97c"
+        }
+      },
+      "prediction-summaries": {
+        "status": "OK",
+        "exists": true,
+        "validation_ok": true,
+        "freshness_state": "FRESH",
+        "confidence": 0.957,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "path": "/opt/v7/egress/state/intelligence/prediction-summaries.json",
+        "errors": [],
+        "validation_errors": [],
+        "warnings": [],
+        "validation_warnings": [],
+        "source_hashes": {
+          "blast_radius": "f769b98d20f268c86dc1cc74cc63d608eeba247ec8e98adbbe1700a4e2028272",
+          "quality_summary": "87ec4efc04002cac51a5e9b348a69d4a5dc3d4d8e53e8d992c77df505715760d",
+          "risk_summary": "2d76059f727872b91edab15c5eb54b9568b90f9630f0ae22938b41b5aacdd510",
+          "service_matrix": "790a088f32ccd6baa84df3f485ef9487ecb374c1d4129dd9391317a68f7d27e9",
+          "trust_summary": "a670d287d9159c5383dfd79303eae6c3625dc33cdd46cf760a9ad883f8788509"
+        }
+      },
+      "trust-evolution-summaries": {
+        "status": "OK",
+        "exists": true,
+        "validation_ok": true,
+        "freshness_state": "FRESH",
+        "confidence": 0.9803,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "path": "/opt/v7/egress/state/intelligence/trust-evolution-summaries.json",
+        "errors": [],
+        "validation_errors": [],
+        "warnings": [],
+        "validation_warnings": [],
+        "source_hashes": {
+          "best_available_pool": "55a1bb9139ae636b6377a40b8bc8f2ff0ba05e1fa913e7496517db41b06318a8",
+          "blast_radius": "f769b98d20f268c86dc1cc74cc63d608eeba247ec8e98adbbe1700a4e2028272",
+          "blast_radius_records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "candidate_outcomes": "25d62ca69581c9d365d081135cf221c696326fe97d4fc9718cd34e26bb1f1508",
+          "candidate_suitability": "a4a41e5dbb19f9ce1755f167f9df1795331a93a483f3747324b0a30e77aeaa03",
+          "channel_service_scores": "7cc0db5aff0f07a84c2f5c9322b53edd2a9c8ee02e108dae36c7c469e2520f09",
+          "decisions": "91a7fa6a67af762492e0d3d4d9f1ab8bac71025b95c5193e955f341e5dd04ba4",
+          "prediction_actuals": "62cc785020d7d69ae276f62835d3cc6bd8af1bc46036183dad27e4f55b94446d",
+          "prediction_summary": "7f6ae26d44e0aa56a4676707fcdea01aa2f7690ae30c73f9ed2d4cb806c14819",
+          "rollback_records": "e317b3b767f44629d59b7c3e6905ce5ccf537e4921a41deb35201334b2300736",
+          "service_actuals": "e303d89afda3436cb269f5055e92ce80fa9ee9805dddb297dce0631a140df0db",
+          "service_scores": "1107d5b8d54bd581b77aa44dac169d4c13194b17a455f464e50decfda6db007a",
+          "trust_summary": "a670d287d9159c5383dfd79303eae6c3625dc33cdd46cf760a9ad883f8788509"
+        }
+      },
+      "overview-summary": {
+        "status": "OK",
+        "exists": true,
+        "validation_ok": true,
+        "freshness_state": "FRESH",
+        "confidence": 1.0,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "path": "/opt/v7/egress/state/intelligence/overview-summary.json",
+        "errors": [],
+        "validation_errors": [],
+        "warnings": [],
+        "validation_warnings": [],
+        "source_hashes": {
+          "egress_registry": "51f59e0130201835c2d495c44bce5402653e17d8db9cf3a9c1e67fbfc1cf0e43",
+          "runtime_state": "5e15121ffc8b41b3b4c138beca771e645db7479c27847b85a7dbe5d0f6d8f97c",
+          "snapshot_statuses": "0da36f50fade17d2013115612924908cf8fcc7559c6b3696f5d92c4bb641e0c2",
+          "users_registry": "60b1b871e7e4494bc8409000608adf5094933fd3f87c3a8f58993e4bd93260d4"
+        }
+      }
+    },
+    "read_only": true,
+    "execution_allowed_now": false
+  },
+  "overview": {
+    "object_type": "RuntimeOverview",
+    "collected_at": "2026-06-11T19:24:46.709356+00:00",
+    "global_state": "STALE",
+    "execution_allowed_now": false,
+    "selected_moves": 0,
+    "restore_barrier_status": "inactive",
+    "generation_clearance_status": "cleared",
+    "runtime_checkers": {
+      "status": "UNKNOWN",
+      "summary": "read-only adapter does not execute checkers"
+    },
+    "freshness": {
+      "state": "STALE",
+      "stale": true,
+      "sources": [
+        {
+          "path": "/opt/v7/egress/state/users.registry",
+          "state": "STALE",
+          "collected_at": "2026-06-08T10:00:47.158673+00:00",
+          "valid_until": "2026-06-08T10:03:47.158673+00:00",
+          "age_seconds": 293039,
+          "stale": true,
+          "stale_reasons": [
+            "age_exceeds_validity"
+          ],
+          "sha256": "73b72a829164b9fef35864ab5d377cf6cf71ce22de46f3287e98a416f14afc79"
+        },
+        {
+          "path": "/opt/v7/egress/state/egress.registry",
+          "state": "STALE",
+          "collected_at": "2026-05-29T14:34:41.495999+00:00",
+          "valid_until": "2026-05-29T14:37:41.495999+00:00",
+          "age_seconds": 1140605,
+          "stale": true,
+          "stale_reasons": [
+            "age_exceeds_validity"
+          ],
+          "sha256": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5"
+        }
+      ],
+      "stale_reasons": [
+        "age_exceeds_validity"
+      ]
+    },
+    "last_operation_verdict": "none",
+    "blockers": [
+      "target_pool_stale_or_missing",
+      "e14_readonly_ui_not_approved"
+    ]
+  },
+  "governance_verdict": {
+    "object_type": "GovernanceVerdict",
+    "state": "STALE",
+    "execution_allowed_now": false,
+    "maturity": "UNKNOWN",
+    "blockers": [
+      "target_pool_stale_or_missing",
+      "e14_readonly_ui_not_approved"
+    ],
+    "safe_next_action": "read_only_observation",
+    "latest_authoritative_report": "BLOCK_E14_APPROVAL_CONTRACT_SCHEMA_AND_READ_ONLY_OPERATOR_OBSERVABILITY_FOUNDATION_REPORT.md"
+  }
+}

@@ -2310,6 +2310,190 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(plan["operation"]["terminal_state"], "DRY_RUN")
         self.assertEqual(plan["operation"]["terminal_reason"], "dry_run_intelligence_snapshot_stop_required")
 
+    def test_readiness_dry_run_allows_semantic_quality_and_service_matrix_drift(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=2,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={
+                    "authority_class": "SMALL_BATCH",
+                    "certified_authority_class": "CANARY",
+                    "authority_lifecycle_state": "CANARY_EXPANSION",
+                    "current_allowed_user_budget": 2,
+                },
+            )
+            bootstrap_args = self.args_for(root, ["--apply", "--mode", "guarded", "--target-egress", "vless", "--max-selected-moves", "2"])
+            bootstrap = self.tool.AutoswitchPlanner(bootstrap_args).plan()
+            envelope = bootstrap["safety"]["atomic_execution_envelope"]
+            approved = {
+                "enabled": True,
+                "expires_at": "2000-01-01T00:00:00+00:00",
+                "allow_post_ttl_apply": True,
+                "generation_clearance": True,
+                "clearance_max_selected_moves": 2,
+                "generation_token": "unit-test-readiness-semantic-drift",
+                "clearance_generation_id": bootstrap["safety"]["generation"]["planner_generation_id"],
+                "approved_selected_moves_hash": bootstrap["operation"]["selected_move_hash"],
+                "clearance_expected_selected_moves": 2,
+                "clearance_expires_at": "2999-01-01T00:00:00+00:00",
+                "allowed_users": ["10.0.0.2", "10.0.0.3"],
+                "allowed_targets": ["vless"],
+                "approved_atomic_execution_envelope_id": envelope["envelope_id"],
+                "approved_atomic_execution_envelope_hash": envelope["envelope_hash"],
+                "approved_source_bundle_hash": envelope["source_bundle_hash"],
+                "approved_source_hashes": envelope["source_bundle"]["source_hashes"],
+                "approved_snapshot_bundle_hash": envelope["snapshot_bundle"]["hash"],
+                "approved_plan_lock": self.approved_plan_lock_from_plan(bootstrap),
+                "owner": "admin_core/operator_execution.py",
+            }
+            (root / "state" / "autoswitch-restore-barrier.json").write_text(json.dumps(approved), encoding="utf-8")
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix["items"]["1"]["services"]["youtube"]["score"] = 98
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+            (root / "state" / "egress-quality-summary.json").write_text(
+                json.dumps({"items": {"vless": {"avg_mbps": 51, "stability": 0.91}}}),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--mode", "guarded", "--target-egress", "vless", "--max-selected-moves", "2"])
+            )
+            planner.intelligence_snapshots = {
+                "active": True,
+                "stop_required": True,
+                "stop_families": ["service-scores", "channel-service-scores"],
+                "source_mismatch_families": ["service-scores", "channel-service-scores"],
+                "results": {
+                    "service-scores": {
+                        "stop_required": True,
+                        "runtime_behavior": "STOP",
+                        "validation_ok": False,
+                        "validation_errors": [
+                            "source_hash_mismatch:service-scores:quality_summary",
+                            "source_hash_mismatch:service-scores:service_matrix",
+                        ],
+                    },
+                    "channel-service-scores": {
+                        "stop_required": True,
+                        "runtime_behavior": "STOP",
+                        "validation_ok": False,
+                        "validation_errors": [
+                            "source_hash_mismatch:channel-service-scores:quality_summary",
+                            "source_hash_mismatch:channel-service-scores:service_matrix",
+                        ],
+                    },
+                },
+            }
+            plan = planner.plan()
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        gate = plan["safety"]["intelligence_snapshots"]
+        barrier = plan["safety"]["restore_barrier"]
+        self.assertTrue(barrier["clearance_generation_ok"])
+        self.assertEqual(
+            barrier["source_bundle_lease"]["reason"],
+            "restore_barrier_source_bundle_lease_semantic_decision_stable",
+        )
+        self.assertEqual(barrier["source_bundle_lease"]["changed_source_keys"], ["quality_summary", "service_matrix"])
+        self.assertTrue(gate["source_bundle_lease_used"])
+        self.assertFalse(gate["stop_required"])
+        self.assertEqual(gate["source_bundle_lease_changed_keys"], ["quality_summary", "service_matrix"])
+        self.assertEqual(plan["summary"]["selected_moves"], 2)
+        self.assertFalse(plan["apply_requested"])
+        self.assertEqual(plan["operation"]["terminal_state"], "DRY_RUN")
+        self.assertEqual(plan["operation"]["terminal_reason"], "dry_run_selected_moves_available")
+
+    def test_readiness_dry_run_blocks_semantic_drift_without_stable_signature(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=2,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={
+                    "authority_class": "SMALL_BATCH",
+                    "certified_authority_class": "CANARY",
+                    "authority_lifecycle_state": "CANARY_EXPANSION",
+                    "current_allowed_user_budget": 2,
+                },
+            )
+            bootstrap_args = self.args_for(root, ["--apply", "--mode", "guarded", "--target-egress", "vless", "--max-selected-moves", "2"])
+            bootstrap = self.tool.AutoswitchPlanner(bootstrap_args).plan()
+            envelope = bootstrap["safety"]["atomic_execution_envelope"]
+            lock = self.approved_plan_lock_from_plan(bootstrap)
+            lock["executor_may_replace_targets"] = True
+            approved = {
+                "enabled": True,
+                "expires_at": "2000-01-01T00:00:00+00:00",
+                "allow_post_ttl_apply": True,
+                "generation_clearance": True,
+                "clearance_max_selected_moves": 2,
+                "generation_token": "unit-test-readiness-semantic-drift-block",
+                "clearance_generation_id": bootstrap["safety"]["generation"]["planner_generation_id"],
+                "approved_selected_moves_hash": bootstrap["operation"]["selected_move_hash"],
+                "clearance_expected_selected_moves": 2,
+                "clearance_expires_at": "2999-01-01T00:00:00+00:00",
+                "allowed_users": ["10.0.0.2", "10.0.0.3"],
+                "allowed_targets": ["vless"],
+                "approved_atomic_execution_envelope_id": envelope["envelope_id"],
+                "approved_atomic_execution_envelope_hash": envelope["envelope_hash"],
+                "approved_source_bundle_hash": envelope["source_bundle_hash"],
+                "approved_source_hashes": envelope["source_bundle"]["source_hashes"],
+                "approved_snapshot_bundle_hash": envelope["snapshot_bundle"]["hash"],
+                "approved_plan_lock": lock,
+                "owner": "admin_core/operator_execution.py",
+            }
+            (root / "state" / "autoswitch-restore-barrier.json").write_text(json.dumps(approved), encoding="utf-8")
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix["items"]["1"]["services"]["youtube"]["score"] = 98
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+            (root / "state" / "egress-quality-summary.json").write_text(
+                json.dumps({"items": {"vless": {"avg_mbps": 51, "stability": 0.91}}}),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--mode", "guarded", "--target-egress", "vless", "--max-selected-moves", "2"])
+            )
+            planner.intelligence_snapshots = {
+                "active": True,
+                "stop_required": True,
+                "stop_families": ["service-scores"],
+                "source_mismatch_families": ["service-scores"],
+                "results": {
+                    "service-scores": {
+                        "stop_required": True,
+                        "runtime_behavior": "STOP",
+                        "validation_ok": False,
+                        "validation_errors": [
+                            "source_hash_mismatch:service-scores:quality_summary",
+                            "source_hash_mismatch:service-scores:service_matrix",
+                        ],
+                    },
+                },
+            }
+            plan = planner.plan()
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        gate = plan["safety"]["intelligence_snapshots"]
+        barrier = plan["safety"]["restore_barrier"]
+        self.assertFalse(barrier["clearance_generation_ok"])
+        self.assertEqual(
+            barrier["source_bundle_lease"]["reason"],
+            "restore_barrier_source_bundle_lease_decision_signature_unstable",
+        )
+        self.assertIn(
+            "source_bundle_lease_requires_valid_approved_plan_lock",
+            barrier["source_bundle_lease"]["reasons"],
+        )
+        self.assertNotIn("source_bundle_lease_used", gate)
+        self.assertTrue(gate["stop_required"])
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+
     def test_approved_plan_lock_rejects_changed_selected_hash(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

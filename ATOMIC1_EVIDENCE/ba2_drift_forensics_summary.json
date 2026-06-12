@@ -1,0 +1,13 @@
+{
+  "terminal_reason": "dry_run_restore_barrier_clearance_atomic_envelope_id_mismatch",
+  "selected_moves_after_stop": 0,
+  "clearance_generation_ok": false,
+  "clearance_generation_reason": "restore_barrier_clearance_atomic_envelope_id_mismatch",
+  "approved_selected_moves_hash": "ab112e551b4d020a40bc17584afd613a6568d5c54b5cad76da5809320326fc46",
+  "changed_source_keys": [
+    "quality_summary",
+    "service_matrix"
+  ],
+  "source_bundle_lease_reason": "restore_barrier_source_bundle_lease_hard_source_changed",
+  "snapshot_stop_required": false
+}

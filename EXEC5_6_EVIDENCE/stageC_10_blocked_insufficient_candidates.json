@@ -1,0 +1,20 @@
+{
+  "stage": "stageC_10",
+  "requested_budget": 10,
+  "available_candidates": 8,
+  "users": [
+    "10.7.0.8",
+    "10.7.0.9",
+    "10.7.0.10",
+    "10.7.0.11",
+    "10.7.0.12",
+    "10.7.0.13",
+    "10.7.0.14",
+    "10.7.0.15"
+  ],
+  "decision": "DO_NOT_EXECUTE_STAGE_C",
+  "reason": "insufficient_current_planner_candidates_without_synthetic_user_movement",
+  "users_moved": 0,
+  "apply_executed": false,
+  "safe_next_stage": "stageD_current_full_planner_batch_8"
+}

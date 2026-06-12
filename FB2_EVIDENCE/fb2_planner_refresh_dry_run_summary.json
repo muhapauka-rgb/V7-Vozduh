@@ -1,0 +1,40 @@
+{
+  "http_code": "200",
+  "action": "planner_refresh_dry_run",
+  "runtime_mutation_performed": null,
+  "users_moved": null,
+  "autoswitch_apply_run": null,
+  "refresh_ok": null,
+  "planner_ok": null,
+  "security": {
+    "apply_allowed": false,
+    "apply_executed": false,
+    "user_movement_performed": false,
+    "routing_mutation_performed": false,
+    "runtime_mutation_scope": "intelligence_snapshot_refresh_only"
+  },
+  "summary_keys": [
+    "apply_present",
+    "best_available_pool",
+    "candidate_moves_total",
+    "governance_behavior_changed",
+    "healthy_egress_total",
+    "pre_planner_refresh_rc",
+    "pre_planner_refresh_state",
+    "refresh_snapshot_count",
+    "refresh_warnings",
+    "routing_mutation_performed",
+    "runtime_behavior_changed",
+    "selected_moves_after_gate",
+    "selected_moves_before_gate",
+    "snapshot_stop_required",
+    "source_mismatch_families",
+    "users_moved"
+  ],
+  "contains_trust-evolution-summaries": false,
+  "contains_candidate_outcomes_count": false,
+  "contains_prediction_actuals_count": false,
+  "contains_service_actuals_count": false,
+  "contains_source_mismatch_families": true,
+  "contains_snapshot_stop_required": true
+}

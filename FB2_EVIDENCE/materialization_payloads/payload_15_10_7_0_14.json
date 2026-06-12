@@ -1,0 +1,55 @@
+{
+  "user": "10.7.0.14",
+  "source_channel": "awg3",
+  "target_channel": "vless",
+  "execution_result": {
+    "stage": "exec5_6_stageD_full_8",
+    "operation_id": "runtime_autoswitch_f80c1b87762cea7a4f4176ca",
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_type": "runtime_autoswitch",
+    "terminal_state": "APPLIED",
+    "terminal_reason": "selected_moves_applied",
+    "selected_move_hash": "6294f3765c878529fb94ac1b4dccb271065faaf6077982eea18638af77714b9f",
+    "selected_move_index": 6,
+    "selected_move_count": 8,
+    "applied": true,
+    "rc": 0,
+    "source_channel": "awg3",
+    "target_channel": "vless",
+    "move_type": "failover"
+  },
+  "verification_result": {
+    "verified": true,
+    "verify_rc": 0,
+    "route_check_ok": true,
+    "closure_state": "VERIFIED_READY",
+    "closure_blocker": ""
+  },
+  "rollback_result": {
+    "rollback_required": false,
+    "rollback_attempted": false,
+    "rollback_readiness_state": "ROLLBACK_DRY_RUN",
+    "rollback_readiness_reason": "rollback_packet_valid",
+    "rollback_packet_id": "rbpkt_1a8d3cc6145e07252db6823f",
+    "rollback_items": [
+      {
+        "user_ip": "10.7.0.14",
+        "rollback_target": "awg3",
+        "forward_target": "vless",
+        "source_operation_id": "runtime_autoswitch_f80c1b87762cea7a4f4176ca",
+        "selected_move_hash": "6294f3765c878529fb94ac1b4dccb271065faaf6077982eea18638af77714b9f",
+        "selected_move_index": 6,
+        "move_type": "rollback"
+      }
+    ],
+    "rollback_validation_passed": true
+  },
+  "recommendation_hash": "6294f3765c878529fb94ac1b4dccb271065faaf6077982eea18638af77714b9f",
+  "prediction_expected": 1.0,
+  "prediction_actual": 1.0,
+  "audit_reference": "runtime_autoswitch_f80c1b87762cea7a4f4176ca",
+  "closure_reference": "runtime:runtime_autoswitch_f80c1b87762cea7a4f4176ca:VERIFIED_READY",
+  "execution_time": "2026-06-11T20:45:51.797717+00:00",
+  "verification_time": "2026-06-11T20:45:51.999075+00:00",
+  "stability_window_seconds": 0
+}

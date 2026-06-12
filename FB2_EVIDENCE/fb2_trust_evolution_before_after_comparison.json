@@ -1,0 +1,93 @@
+{
+  "before": {
+    "counts": {
+      "candidate_outcomes_count": 67,
+      "prediction_actuals_count": 21,
+      "service_actuals_count": 21
+    },
+    "confidence": {
+      "overall_confidence": 42.471,
+      "decision_confidence": 50.0,
+      "prediction_confidence": 37.276,
+      "service_confidence": 39.225,
+      "suitability_confidence": 28.328,
+      "rollback_confidence": 100.0,
+      "blast_radius_confidence": 0.0
+    },
+    "snapshot_status": {
+      "status": "OK",
+      "exists": true,
+      "validation_ok": true,
+      "freshness_state": "FRESH",
+      "confidence": 0.9804,
+      "runtime_behavior": "ALLOW",
+      "stop_required": false,
+      "path": "/opt/v7/egress/state/intelligence/trust-evolution-summaries.json",
+      "errors": [],
+      "validation_errors": [],
+      "warnings": [],
+      "validation_warnings": [],
+      "source_hashes": {
+        "best_available_pool": "1c52f5345c57eb109f4d25f814adbecec730319678b2067e9628e17172d41129",
+        "blast_radius": "12e98f14a576ec5463d89883e4180d5b803e27f360e871d48b91934c3de65391",
+        "blast_radius_records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "candidate_outcomes": "ab64d564fef79cca55983227e03f3f889c77f93cb768fdf81a10eb4796c224b1",
+        "candidate_suitability": "d14a0933246d2dc19aa2b53ea8a101122e9b8f4bf2beaf2c8c1ceb6983c806c6",
+        "channel_service_scores": "e87b0216c6b12dc0c973c8889995c7b4f13d0697196ab6dd91dab919e826fc5d",
+        "decisions": "de7ad741c5a26202853378312b8769a97cb92ab7e9412638a2ae335c2ec61e0e",
+        "prediction_actuals": "acba446b15dcd2d864fd4d0352fb6843e4dce88ae02069759686d5317682e3e0",
+        "prediction_summary": "384f9f988b1215fb2ab6da9148cb6fec1925108147a9110062962235f9d30fd2",
+        "rollback_records": "e317b3b767f44629d59b7c3e6905ce5ccf537e4921a41deb35201334b2300736",
+        "service_actuals": "2715e0844312766c6c3df56ea577bd5ea2f14445eabf6f07fcabcd417ebb1c5f",
+        "service_scores": "bbcd01407b68b1776d492d8deea40ad1893e97c86c72627ca498296100ea83c9",
+        "trust_summary": "f5d2e5a9675029ce3e7df57a8bac20896f91af26c9eba4a02a7347a54f98a3e3"
+      }
+    }
+  },
+  "after": {
+    "counts": {
+      "candidate_outcomes_count": 67,
+      "prediction_actuals_count": 21,
+      "service_actuals_count": 21
+    },
+    "confidence": {
+      "overall_confidence": 42.476,
+      "decision_confidence": 50.0,
+      "prediction_confidence": 37.295,
+      "service_confidence": 39.225,
+      "suitability_confidence": 28.335,
+      "rollback_confidence": 100.0,
+      "blast_radius_confidence": 0.0
+    },
+    "snapshot_status": {
+      "status": "OK",
+      "exists": true,
+      "validation_ok": true,
+      "freshness_state": "FRESH",
+      "confidence": 0.9804,
+      "runtime_behavior": "ALLOW",
+      "stop_required": false,
+      "path": "/opt/v7/egress/state/intelligence/trust-evolution-summaries.json",
+      "errors": [],
+      "validation_errors": [],
+      "warnings": [],
+      "validation_warnings": [],
+      "source_hashes": {
+        "best_available_pool": "ab757d5dc1028759fa7b921e5a66850f27f1a4684f0baee9cc5720cc7473c1c2",
+        "blast_radius": "6bcffe7ffae8dbfaf9018d18cc09c3dbe10601c9a1b58f64c0c7189dd380230e",
+        "blast_radius_records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "candidate_outcomes": "ab64d564fef79cca55983227e03f3f889c77f93cb768fdf81a10eb4796c224b1",
+        "candidate_suitability": "5e7b7785b308b114c84bbf1cda3c7af526cbbb416d263808936715efa69dbcb5",
+        "channel_service_scores": "1227e8a4b34721b42a74cdd87d8a687f2913025ce95c982bdba2125589e2735d",
+        "decisions": "de7ad741c5a26202853378312b8769a97cb92ab7e9412638a2ae335c2ec61e0e",
+        "prediction_actuals": "8cd4e6dca32ac67ce49efd84358c492ff8ad89ccc30d35bb2e2ee45d5c1161a5",
+        "prediction_summary": "d87dde6e2835f11cfd75273a49995540779c8d187f24c167cd95b3738e556f87",
+        "rollback_records": "e317b3b767f44629d59b7c3e6905ce5ccf537e4921a41deb35201334b2300736",
+        "service_actuals": "72ab2cbfeea6d1f0b729389fe11b133568e2860d1a9da414d49abc48ed5992a9",
+        "service_scores": "32d1420947f4961fc92507c9a20a4b777052215a84ccf58e8b768e0e7baa1aba",
+        "trust_summary": "7dc23d9972705a974ba99a3a2d5d529ce1b9530519174c05891f0514c4a6fc78"
+      }
+    }
+  },
+  "changed": true
+}

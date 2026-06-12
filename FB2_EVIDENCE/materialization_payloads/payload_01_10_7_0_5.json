@@ -1,0 +1,55 @@
+{
+  "user": "10.7.0.5",
+  "source_channel": "awg3",
+  "target_channel": "vless",
+  "execution_result": {
+    "stage": "exec2_4",
+    "operation_id": "runtime_autoswitch_ab8394dcdb178052aafb65cc",
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_type": "runtime_autoswitch",
+    "terminal_state": "APPLIED",
+    "terminal_reason": "selected_moves_applied",
+    "selected_move_hash": "e2a70d427a008b324d9edf332d828b765c55a6531f43f7588c3960ae10f2532b",
+    "selected_move_index": 0,
+    "selected_move_count": 1,
+    "applied": true,
+    "rc": 0,
+    "source_channel": "awg3",
+    "target_channel": "vless",
+    "move_type": "failover"
+  },
+  "verification_result": {
+    "verified": true,
+    "verify_rc": 0,
+    "route_check_ok": true,
+    "closure_state": "VERIFIED_READY",
+    "closure_blocker": ""
+  },
+  "rollback_result": {
+    "rollback_required": false,
+    "rollback_attempted": false,
+    "rollback_readiness_state": "ROLLBACK_DRY_RUN",
+    "rollback_readiness_reason": "rollback_packet_valid",
+    "rollback_packet_id": "rbpkt_985cd89fb2363bccf2ad8a41",
+    "rollback_items": [
+      {
+        "user_ip": "10.7.0.5",
+        "rollback_target": "awg3",
+        "forward_target": "vless",
+        "source_operation_id": "runtime_autoswitch_ab8394dcdb178052aafb65cc",
+        "selected_move_hash": "e2a70d427a008b324d9edf332d828b765c55a6531f43f7588c3960ae10f2532b",
+        "selected_move_index": 0,
+        "move_type": "rollback"
+      }
+    ],
+    "rollback_validation_passed": true
+  },
+  "recommendation_hash": "e2a70d427a008b324d9edf332d828b765c55a6531f43f7588c3960ae10f2532b",
+  "prediction_expected": 1.0,
+  "prediction_actual": 1.0,
+  "audit_reference": "runtime_autoswitch_ab8394dcdb178052aafb65cc",
+  "closure_reference": "runtime:runtime_autoswitch_ab8394dcdb178052aafb65cc:VERIFIED_READY",
+  "execution_time": "2026-06-11T20:20:48.611540+00:00",
+  "verification_time": "2026-06-11T20:20:48.686840+00:00",
+  "stability_window_seconds": 0
+}

@@ -1,0 +1,34 @@
+{
+  "action": "autoswitch_plan",
+  "rc": 0,
+  "cmd": [
+    "v7-users-autoswitch",
+    "--pre-planner-refresh",
+    "write",
+    "--pre-planner-refresh-command",
+    "v7-intelligence-snapshot-refresh",
+    "--pretty"
+  ],
+  "plan": {
+    "summary": null,
+    "operation": null,
+    "selected_moves_count": 0,
+    "terminal_reason": null,
+    "decisions": [],
+    "restore_barrier": {
+      "clearance_max_selected_moves": null,
+      "clearance_selected_moves_before_guard": null,
+      "clearance_guard_reason": null,
+      "approved_plan_lock_reasons": null
+    },
+    "intelligence_snapshots": {
+      "stop_required": null,
+      "source_mismatch_families": null
+    },
+    "authority_budget_gate": {
+      "current_allowed_user_budget": null,
+      "selected_moves_before_gate": null,
+      "selected_moves_after_gate": null
+    }
+  }
+}

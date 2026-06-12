@@ -1,0 +1,6 @@
+admin/v7-admin-api
+admin_core/operator_execution_pipeline.py
+admin_core/operator_observability.py
+admin_core/operator_views.py
+tests/unit/test_operator_execution_pipeline.py
+tests/unit/test_operator_observability.py

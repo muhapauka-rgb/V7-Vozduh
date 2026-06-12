@@ -1,0 +1,301 @@
+tools/v7-users-autoswitch:56:    "trust-evolution-summaries",
+tools/v7-users-autoswitch:469:        "owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:603:        self.restore_barrier_file = Path(args.restore_barrier_file)
+tools/v7-users-autoswitch:604:        self.restore_barrier = self._restore_barrier_status()
+tools/v7-users-autoswitch:796:            "outcome": [self.state_dir / "execution-events.jsonl"],
+tools/v7-users-autoswitch:797:            "trust": [self.state_dir / "runtime-trust.jsonl"],
+tools/v7-users-autoswitch:798:            "prediction": [self.state_dir / "execution-events.jsonl"],
+tools/v7-users-autoswitch:800:                self.state_dir / "proposal-records.jsonl",
+tools/v7-users-autoswitch:803:            "closure": [self.state_dir / "closure-records.jsonl"],
+tools/v7-users-autoswitch:1104:            "component": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:1177:                "promoted_by": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:1285:    def _restore_barrier_status(self) -> dict[str, Any]:
+tools/v7-users-autoswitch:1286:        data = read_json(self.restore_barrier_file, {})
+tools/v7-users-autoswitch:1322:            "file": str(self.restore_barrier_file),
+tools/v7-users-autoswitch:1480:                "planner_decision_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:1483:                "selected_moves_write_authority": "none",
+tools/v7-users-autoswitch:1493:            "executor": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:1525:            clearance_max_selected_moves = to_int(self.restore_barrier.get("clearance_max_selected_moves"), 0)
+tools/v7-users-autoswitch:1526:            apply_refresh_clearance = self.restore_barrier.get("apply_refresh_clearance") or {}
+tools/v7-users-autoswitch:1706:            "executor": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:1763:            "executor": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:1840:        restore_barrier: dict[str, Any],
+tools/v7-users-autoswitch:1847:        if not bool_value(restore_barrier.get("clearance_generation_ok")):
+tools/v7-users-autoswitch:1849:        lease = restore_barrier.get("source_bundle_lease") or {}
+tools/v7-users-autoswitch:2783:                    "exit_criteria": ["explicit_operator_bridge_request", "fresh_restore_barrier", "snapshot_gate_clean"],
+tools/v7-users-autoswitch:2848:            "restore_barrier_missing_or_stale",
+tools/v7-users-autoswitch:2862:                "executor": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:2874:                "executor": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:2887:                "executor": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:2899:                "executor": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:2909:                "executor": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:2918:                "action": "permit_only_next_blast_radius_step_through_existing_restore_barrier_snapshot_and_apply_path",
+tools/v7-users-autoswitch:2919:                "executor": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:2929:                "executor": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:2939:                "executor": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:2949:                "executor": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:2958:                "action": "drop_selected_moves_before_restore_barrier_snapshot_apply",
+tools/v7-users-autoswitch:2959:                "executor": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:2969:                "executor": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:2982:            "action": "continue_existing_restore_barrier_snapshot_and_apply_path",
+tools/v7-users-autoswitch:2983:            "executor": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:3008:            action = "drop_selected_moves_before_restore_barrier_snapshot_apply"
+tools/v7-users-autoswitch:3043:            "executor": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:3044:            "trigger": "after_policy_selection_before_restore_barrier_snapshot_apply",
+tools/v7-users-autoswitch:3153:        for item in self._snapshot_items("trust-evolution-summaries"):
+tools/v7-users-autoswitch:3218:                    "planner_decision_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:3220:                    "runtime_execution_authority": "none",
+tools/v7-users-autoswitch:3221:                    "selected_moves_write_authority": "none",
+tools/v7-users-autoswitch:3262:                "planner_decision_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:3264:                "runtime_execution_authority": "none",
+tools/v7-users-autoswitch:3265:                "selected_moves_write_authority": "none",
+tools/v7-users-autoswitch:3296:                "planner_decision_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:3298:                "selected_moves_write_authority": "none",
+tools/v7-users-autoswitch:3331:                        "runtime_execution_authority": "none",
+tools/v7-users-autoswitch:3338:                "planner_decision_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:3340:                "selected_moves_write_authority": "none",
+tools/v7-users-autoswitch:3377:                    "runtime_execution_authority": "none",
+tools/v7-users-autoswitch:3384:            "planner_decision_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:3386:            "selected_moves_write_authority": "none",
+tools/v7-users-autoswitch:3408:                "planner_decision_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:3410:                "selected_moves_write_authority": "none",
+tools/v7-users-autoswitch:3450:                    "runtime_execution_authority": "none",
+tools/v7-users-autoswitch:3455:        row["planner_decision_owner"] = "tools/v7-users-autoswitch"
+tools/v7-users-autoswitch:3457:        row["selected_moves_write_authority"] = "none"
+tools/v7-users-autoswitch:3485:            "planner_decision_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:3487:            "selected_moves_write_authority": "none",
+tools/v7-users-autoswitch:3490:        trust_evolution = self._first_snapshot_item("trust-evolution-summaries")
+tools/v7-users-autoswitch:3494:            "schema_version": "ri6.trust-evolution-advice.v1",
+tools/v7-users-autoswitch:3507:            "planner_decision_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:3509:            "selected_moves_write_authority": "none",
+tools/v7-users-autoswitch:3583:                "planner_decision_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:3585:                "selected_moves_write_authority": "none",
+tools/v7-users-autoswitch:3590:                "source": "trust-evolution-summaries.channel_trust_recovery",
+tools/v7-users-autoswitch:3601:                "planner_decision_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:3603:                "selected_moves_write_authority": "none",
+tools/v7-users-autoswitch:3607:            "planner_decision_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:3609:            "selected_moves_write_authority": "none",
+tools/v7-users-autoswitch:3637:                "planner_decision_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:3639:                "selected_moves_write_authority": "none",
+tools/v7-users-autoswitch:3673:        advisory["planner_decision_owner"] = "tools/v7-users-autoswitch"
+tools/v7-users-autoswitch:3675:        advisory["selected_moves_write_authority"] = "none"
+tools/v7-users-autoswitch:3934:        restore_barrier = dict(self.restore_barrier)
+tools/v7-users-autoswitch:3935:        selected_before_restore_barrier = [
+tools/v7-users-autoswitch:3944:        approved_plan_lock = self._approved_plan_lock_validation(restore_barrier)
+tools/v7-users-autoswitch:3946:            restore_barrier["approved_plan_lock_validation"] = approved_plan_lock
+tools/v7-users-autoswitch:3949:                selected_before_restore_barrier = list(selected)
+tools/v7-users-autoswitch:3963:                    restore_barrier["clearance_guard_reason"] = str(
+tools/v7-users-autoswitch:3967:                    restore_barrier["approved_plan_lock_ignored_for_fresh_planning"] = True
+tools/v7-users-autoswitch:3968:                    restore_barrier["approved_plan_lock_ignore_reason"] = str(
+tools/v7-users-autoswitch:3973:            bool_value(restore_barrier.get("expired"))
+tools/v7-users-autoswitch:3974:            and bool_value(restore_barrier.get("cleared"))
+tools/v7-users-autoswitch:3975:            and restore_barrier.get("clearance_max_selected_moves") is not None
+tools/v7-users-autoswitch:3977:            clearance_max_selected_moves = to_int(restore_barrier.get("clearance_max_selected_moves"), 0)
+tools/v7-users-autoswitch:3978:            restore_barrier["clearance_selected_moves_before_guard"] = len(selected)
+tools/v7-users-autoswitch:3979:            restore_barrier["clearance_selected_moves_hash"] = selected_hash
+tools/v7-users-autoswitch:3980:            restore_barrier["approved_candidate_moves_before_guard"] = selected_before_restore_barrier
+tools/v7-users-autoswitch:3981:            restore_barrier["clearance_budget_exceeded"] = len(selected) > clearance_max_selected_moves
+tools/v7-users-autoswitch:3982:            if restore_barrier["clearance_budget_exceeded"]:
+tools/v7-users-autoswitch:3983:                restore_barrier["clearance_guard_reason"] = "restore_barrier_clearance_selected_moves_exceed_budget"
+tools/v7-users-autoswitch:3986:                generation_check = self._restore_clearance_generation_check(restore_barrier, selected, selected_hash)
+tools/v7-users-autoswitch:3987:                restore_barrier.update(generation_check)
+tools/v7-users-autoswitch:3989:                    restore_barrier["clearance_guard_reason"] = generation_check["clearance_generation_reason"]
+tools/v7-users-autoswitch:3992:                    restore_barrier["clearance_guard_reason"] = "restore_barrier_clearance_budget_and_generation_ok"
+tools/v7-users-autoswitch:3994:                restore_barrier["clearance_guard_reason"] = "restore_barrier_clearance_budget_ok"
+tools/v7-users-autoswitch:3998:            restore_barrier,
+tools/v7-users-autoswitch:4062:                "restore_barrier": restore_barrier,
+tools/v7-users-autoswitch:4092:            "operation_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:4110:    def _approved_plan_lock_validation(self, restore_barrier: dict[str, Any]) -> dict[str, Any]:
+tools/v7-users-autoswitch:4111:        lock = restore_barrier.get("approved_plan_lock") or {}
+tools/v7-users-autoswitch:4126:        allowed_users = [str(item) for item in (lock.get("allowed_users") or restore_barrier.get("allowed_users") or [])]
+tools/v7-users-autoswitch:4127:        allowed_targets = [str(item) for item in (lock.get("allowed_targets") or restore_barrier.get("allowed_targets") or [])]
+tools/v7-users-autoswitch:4132:            to_int(restore_barrier.get("clearance_expected_selected_moves"), 0),
+tools/v7-users-autoswitch:4150:        if to_int(restore_barrier.get("clearance_max_selected_moves"), 0) < len(selected):
+tools/v7-users-autoswitch:4152:        expires_at = str(lock.get("expires_at") or restore_barrier.get("clearance_expires_at") or "")
+tools/v7-users-autoswitch:4256:                "action": "require_fresh_approval_packet_and_restore_barrier",
+tools/v7-users-autoswitch:4274:                "action": "require_restore_barrier_clearance_refresh",
+tools/v7-users-autoswitch:4290:            "executor": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:4348:                "planner_decision_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:4350:                "restore_barrier_owner": "admin_core/operator_execution.py",
+tools/v7-users-autoswitch:4351:                "apply_validation_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:4428:        barrier = safety.get("restore_barrier") or {}
+tools/v7-users-autoswitch:4451:            reasons.append("source_bundle_lease_requires_cleared_restore_barrier")
+tools/v7-users-autoswitch:4453:            reasons.append("source_bundle_lease_restore_barrier_post_ttl_blocking")
+tools/v7-users-autoswitch:4507:            "restore_barrier_clearance": {
+tools/v7-users-autoswitch:4571:            "rollback_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:4618:        if packet.get("rollback_owner") != "tools/v7-users-autoswitch":
+tools/v7-users-autoswitch:4664:            "operation_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:4748:        restore_barrier: dict[str, Any],
+tools/v7-users-autoswitch:4754:            restore_barrier.get("clearance_generation_id")
+tools/v7-users-autoswitch:4755:            or restore_barrier.get("approved_generation_id")
+tools/v7-users-autoswitch:4756:            or restore_barrier.get("planner_generation_id")
+tools/v7-users-autoswitch:4757:            or restore_barrier.get("selected_moves_generation")
+tools/v7-users-autoswitch:4761:            restore_barrier.get("approved_selected_moves_hash")
+tools/v7-users-autoswitch:4764:        approved_envelope_id = str(restore_barrier.get("approved_atomic_execution_envelope_id") or "")
+tools/v7-users-autoswitch:4765:        approved_envelope_hash = str(restore_barrier.get("approved_atomic_execution_envelope_hash") or "")
+tools/v7-users-autoswitch:4766:        approved_source_bundle_hash = str(restore_barrier.get("approved_source_bundle_hash") or "")
+tools/v7-users-autoswitch:4768:        if "clearance_expected_selected_moves" in restore_barrier:
+tools/v7-users-autoswitch:4769:            expected_count = to_int(restore_barrier.get("clearance_expected_selected_moves"), 0)
+tools/v7-users-autoswitch:4770:        elif "approved_selected_moves_count" in restore_barrier:
+tools/v7-users-autoswitch:4771:            expected_count = to_int(restore_barrier.get("approved_selected_moves_count"), 0)
+tools/v7-users-autoswitch:4773:            restore_barrier.get("generation_clearance_expires_at")
+tools/v7-users-autoswitch:4774:            or restore_barrier.get("clearance_expires_at")
+tools/v7-users-autoswitch:4777:        token = str(restore_barrier.get("generation_token") or "")
+tools/v7-users-autoswitch:4781:                "clearance_generation_reason": "restore_barrier_clearance_generation_token_missing",
+tools/v7-users-autoswitch:4788:                "clearance_generation_reason": "restore_barrier_clearance_generation_expired",
+tools/v7-users-autoswitch:4796:                "clearance_generation_reason": "restore_barrier_clearance_generation_mismatch",
+tools/v7-users-autoswitch:4803:                "clearance_generation_reason": "restore_barrier_clearance_selected_moves_hash_mismatch",
+tools/v7-users-autoswitch:4812:                "clearance_generation_reason": "restore_barrier_clearance_selected_moves_count_mismatch",
+tools/v7-users-autoswitch:4821:            trigger="restore_barrier_generation_clearance_check",
+tools/v7-users-autoswitch:4823:        envelope_source_lease = self._restore_barrier_source_bundle_lease(
+tools/v7-users-autoswitch:4824:            restore_barrier,
+tools/v7-users-autoswitch:4834:                "clearance_generation_reason": "restore_barrier_clearance_atomic_envelope_id_mismatch",
+tools/v7-users-autoswitch:4848:                "clearance_generation_reason": "restore_barrier_clearance_atomic_envelope_hash_mismatch",
+tools/v7-users-autoswitch:4862:                "clearance_generation_reason": "restore_barrier_clearance_source_bundle_hash_mismatch",
+tools/v7-users-autoswitch:4869:        reason = "restore_barrier_clearance_generation_match"
+tools/v7-users-autoswitch:4871:            reason = "restore_barrier_clearance_generation_match_source_bundle_lease"
+tools/v7-users-autoswitch:4890:    def _restore_barrier_source_bundle_lease(
+tools/v7-users-autoswitch:4892:        restore_barrier: dict[str, Any],
+tools/v7-users-autoswitch:4895:        approved_hashes = restore_barrier.get("approved_source_hashes") or {}
+tools/v7-users-autoswitch:4904:            reason = "restore_barrier_source_bundle_lease_hard_sources_stable"
+tools/v7-users-autoswitch:4906:                reason = "restore_barrier_source_bundle_lease_service_matrix_only"
+tools/v7-users-autoswitch:4917:            "reason": "restore_barrier_source_bundle_lease_hard_source_changed",
+tools/v7-users-autoswitch:4964:            if current and bool_value(self.restore_barrier.get("failover_quarantine")):
+tools/v7-users-autoswitch:4965:                if bool_value(self.restore_barrier.get("post_ttl_blocking")):
+tools/v7-users-autoswitch:4966:                    reason.append("restore_barrier_post_ttl_generation_clearance_required")
+tools/v7-users-autoswitch:4968:                    reason.append("restore_barrier_failover_suppressed")
+tools/v7-users-autoswitch:5955:        barrier = (plan.get("safety") or {}).get("restore_barrier") or {}
+tools/v7-users-autoswitch:5957:            return "dry_run_restore_barrier_active"
+tools/v7-users-autoswitch:5959:            return "dry_run_restore_barrier_post_ttl_blocking"
+tools/v7-users-autoswitch:5966:            return f"dry_run_restore_barrier_{barrier_reason}"
+tools/v7-users-autoswitch:5988:    def _restore_barrier_status_label(self, plan: dict[str, Any]) -> str:
+tools/v7-users-autoswitch:5989:        barrier = (plan.get("safety") or {}).get("restore_barrier") or {}
+tools/v7-users-autoswitch:6012:            "restore_barrier_status": self._restore_barrier_status_label(plan),
+admin_core/operator_execution.py:275:    barrier = ((plan.get("safety") or {}).get("restore_barrier") or {})
+admin_core/operator_execution.py:393:        "restore_barrier_id": "",
+admin_core/operator_execution.py:394:        "restore_barrier_hash": "",
+admin_core/operator_execution.py:460:            "runtime_action_scope": "restore_barrier_clearance_only",
+admin_core/operator_execution.py:613:def append_restore_barrier_clearance(restore_barrier_file, packet, recheck, now=None):
+admin_core/operator_execution.py:615:    path = Path(restore_barrier_file)
+admin_core/operator_execution.py:660:        approved_plan_lock["restore_barrier_id"] = stable_id("rbclear", clearance)
+admin_core/operator_execution.py:661:        approved_plan_lock["restore_barrier_hash"] = sha256_bytes(canonical_json(clearance).encode("utf-8"))
+admin_core/operator_execution.py:675:        "restore_barrier_file": str(path),
+admin_core/operator_execution.py:697:        "record_type": "restore_barrier_clearance_created",
+admin_core/operator_execution.py:701:        "restore_barrier_file": clearance_result.get("restore_barrier_file", ""),
+admin_core/operator_execution.py:703:        "runtime_mutation_scope": "restore_barrier_clearance_only",
+admin_core/operator_execution.py:745:    restore_barrier_file=None,
+admin_core/operator_execution.py:779:                if not restore_barrier_file:
+admin_core/operator_execution.py:780:                    raise PacketError("restore_barrier_file_required")
+admin_core/operator_execution.py:781:                clearance_result = append_restore_barrier_clearance(restore_barrier_file, packet, recheck, now=now)
+admin_core/operator_execution.py:814:            "restore_barrier_clearance_only"
+admin_core/operator_execution.py:999:                restore_barrier_file=args.restore_barrier_file,
+admin_core/routing_brain.py:78:        "may_change_runtime_execution": False,
+admin_core/routing_brain.py:92:    {"stage": "runtime_planner", "owner": "tools/v7-users-autoswitch", "classification": "EXTEND_RANKING_ONLY"},
+admin_core/routing_brain.py:110:            "runtime_execution": "runtime execution tools",
+admin_core/routing_brain.py:244:                    "runtime_execution_authority": "none",
+admin_core/routing_brain.py:263:            "planner_decision_owner": "tools/v7-users-autoswitch",
+admin_core/routing_brain.py:265:            "selected_moves_write_authority": "none",
+admin_core/routing_brain.py:321:                    "planner_authority_unchanged",
+admin_core/routing_brain.py:328:                    "runtime_execution_authority": "none",
+admin_core/routing_brain.py:329:                    "selected_moves_write_authority": "none",
+admin_core/routing_brain.py:336:            "planner_decision_owner": "tools/v7-users-autoswitch",
+admin_core/routing_brain.py:338:            "selected_moves_write_authority": "none",
+admin_core/routing_brain.py:369:                    "planner_decision_owner": "tools/v7-users-autoswitch",
+admin_core/routing_brain.py:371:                    "selected_moves_write_authority": "none",
+admin_core/routing_brain.py:433:            "planner_decision_owner": "tools/v7-users-autoswitch",
+admin_core/routing_brain.py:435:            "selected_moves_write_authority": "none",
+admin_core/routing_brain.py:438:                "planner_decision_owner": "tools/v7-users-autoswitch",
+admin_core/routing_brain.py:441:                "selected_moves_write_authority": "none",
+admin_core/intelligence_workers.py:238:                "outputs": ["trust-evolution-summaries.json"],
+admin_core/intelligence_workers.py:1011:        "owner": "admin_core.intelligence_workers.trust-evolution-summaries",
+admin_core/intelligence_workers.py:1710:        "owner": "admin_core.intelligence_workers.trust-evolution-summaries",
+admin_core/intelligence_workers.py:1754:        "trust-evolution-summaries",
+admin_core/intelligence_workers.py:1906:    snapshots["trust-evolution-summaries"] = build_trust_evolution_snapshot(
+admin_core/operator_execution_feedback.py:253:        "required_executor": "tools/v7-operator-execution-packet + tools/v7-users-autoswitch --apply --verify",
+admin_core/operator_execution_feedback.py:254:        "blocked_actions": ["direct_user_switch", "autoswitch_apply_without_restore_barrier", "execution_without_rollback_packet"],
+admin_core/routing_intelligence.py:233:            "planner_authority": "tools/v7-users-autoswitch",
+admin_core/routing_intelligence.py:891:                "planner_decision_owner": "tools/v7-users-autoswitch",
+admin_core/routing_intelligence.py:894:                "selected_moves_write_authority": "none",
+admin_core/routing_intelligence.py:1075:            "planner_decision_owner": "tools/v7-users-autoswitch",
+admin_core/routing_intelligence.py:1077:            "selected_moves_write_authority": "none",
+admin_core/intelligence_snapshots.py:181:    "trust-evolution-summaries": SnapshotFamily(
+admin_core/intelligence_snapshots.py:182:        name="trust-evolution-summaries",
+admin_core/intelligence_snapshots.py:183:        filename="trust-evolution-summaries.json",
+admin_core/intelligence_snapshots.py:184:        schema="v7.intelligence.trust-evolution-summaries.v1",
+admin_core/intelligence_snapshots.py:370:            "trust-evolution-summaries",
+admin_core/intelligence_snapshots.py:434:        "trust-evolution-summaries": ["trust-summaries.json", "prediction-summaries.json", "service-scores.json", "channel-service-scores.json", "candidate-suitability-summary.json", "best-available-pool.json", "blast-radius-summaries.json", "audit/switch/rollback outcomes"],
+admin_core/performance_summaries.py:139:        "runtime_execution",
+admin_core/operator_execution_pipeline.py:17:CANONICAL_PLANNER = "tools/v7-users-autoswitch"
+admin_core/operator_execution_pipeline.py:20:CANONICAL_RUNTIME_EXECUTOR = "tools/v7-users-autoswitch --apply --verify"
+admin_core/operator_execution_pipeline.py:21:CANONICAL_ROLLBACK_EXECUTOR = "tools/v7-users-autoswitch --rollback-packet --apply --verify"
+admin_core/operator_execution_pipeline.py:45:        "stage": "restore_barrier",
+admin_core/operator_execution_pipeline.py:51:        "timing_metric": "restore_barrier_duration_ms",
+admin_core/operator_execution_pipeline.py:94:    "restore_barrier_duration_ms",
+admin_core/operator_execution_pipeline.py:106:    "restore_barrier_duration_ms": 10000.0,
+admin_core/operator_execution_pipeline.py:206:        return "restore_barrier"
+admin_core/operator_execution_pipeline.py:223:    if stage == "restore_barrier":
+admin_core/operator_execution_pipeline.py:224:        return "restore_barrier_duration_ms"
+admin_core/operator_execution_pipeline.py:295:            "restore_barrier_required": True,
+admin_core/operator_execution_pipeline.py:318:            "restore_barrier_write_authority": "none",
+admin_core/operator_execution_pipeline.py:319:            "runtime_execution_authority": "none",
+admin_core/operator_execution_pipeline.py:410:            "restore_barrier",
+admin_core/operator_execution_pipeline.py:486:    "restore_barrier_invalid",
+admin_core/operator_execution_pipeline.py:529:            {"stage": "restore_barrier_readiness", "owner": CANONICAL_PACKET_OWNER, "runtime_mutation": False},
+admin_core/operator_execution_pipeline.py:559:        "restore_barrier_owner": CANONICAL_PACKET_OWNER,
+admin_core/operator_execution_pipeline.py:669:        "source_owner": "trust-evolution-summaries",
+admin_core/operator_execution_pipeline.py:888:        "source": "trust-evolution-summaries.confidence_summary.decision_confidence",
+admin_core/operator_execution_pipeline.py:894:        "source": "trust-evolution-summaries.confidence_summary.service_confidence",
+admin_core/operator_execution_pipeline.py:900:        "source": "trust-evolution-summaries.confidence_summary.suitability_confidence",
+admin_core/operator_execution_pipeline.py:906:        "source": "trust-evolution-summaries.confidence_summary.prediction_confidence",
+admin_core/operator_execution_pipeline.py:912:        "source": "trust-evolution-summaries.confidence_summary.blast_radius_confidence",
+admin_core/operator_execution_pipeline.py:918:        "source": "trust-evolution-summaries.confidence_summary.rollback_confidence",
+admin_core/operator_execution_pipeline.py:1232:                "candidate direct score reaches floor, or existing trust-evolution evidence reaches floor",
+admin_core/operator_execution_pipeline.py:1589:        "restore_barrier_readiness": {
+admin_core/operator_execution_pipeline.py:1591:            "restore_barrier_required": True,
+admin_core/operator_execution_pipeline.py:1592:            "restore_barrier_written_now": False,
+admin_core/operator_execution_pipeline.py:1698:            "restore_barrier",
+admin_core/operator_execution_pipeline.py:1741:            "restore_barrier": CANONICAL_PACKET_OWNER,
+admin_core/operator_execution_pipeline.py:1995:        "chain": ["planner", "packet", "restore_barrier", "apply", "verification", "feedback", "closure"],
+admin_core/operator_execution_pipeline.py:2016:        "runtime_execution_added": False,
+admin_core/operator_execution_pipeline.py:2293:        "runtime_execution_changes": False,
+admin_core/intelligence_platform.py:18:RI6_SCHEMA_VERSION = "v7.ri6.trust-evolution.v1"
+admin_core/intelligence_platform.py:59:                "runtime_consumer": "tools/v7-users-autoswitch advisory path",
+admin_core/intelligence_platform.py:157:            "planner_authority": "planner remains tools/v7-users-autoswitch",
+admin_core/intelligence_platform.py:308:        "schema_version": "v7.intelligence.trust-evolution-foundation.v1",
+admin_core/intelligence_platform.py:335:        "schema_version": "v7.ri6.trust-evolution-model.v1",
+admin_core/intelligence_platform.py:722:        "planner_authority_changed": False,
+admin_core/intelligence_platform.py:833:            "planner": "tools/v7-users-autoswitch",
+admin_core/intelligence_platform.py:835:            "restore_barrier": "admin_core/operator_execution.py",
+admin_core/intelligence_platform.py:836:            "runtime_execution": "tools/v7-users-autoswitch --apply --verify",
+admin_core/intelligence_platform.py:837:            "rollback": "tools/v7-users-autoswitch --rollback-packet --apply --verify",
+admin_core/intelligence_platform.py:879:        {"step": "virtual_restore_barrier_check", "mode": "shadow", "required": True, "passed": True},
+admin_core/intelligence_platform.py:1168:        "planner_decision_owner": "tools/v7-users-autoswitch",
+admin_core/intelligence_platform.py:1170:        "selected_moves_write_authority": "none",
+admin_core/intelligence_platform.py:1402:        "extendable_families": ["trust-evolution-summaries", "trust-summaries", "risk-summaries"],
+admin_core/intelligence_platform.py:1757:        "hypothetical_execution": {"would_execute": False, "owner": "tools/v7-users-autoswitch"},
+admin_core/intelligence_platform.py:1863:        "restore_barrier": True,
+admin_core/intelligence_platform.py:2139:            "trust_evolution": {"source": "trust-evolution-summaries advisory snapshot", "owner": "RI6 trust evolution worker"},
+admin_core/intelligence_platform.py:2180:        "planner_authority": "tools/v7-users-autoswitch",
+admin_core/intelligence_platform.py:2184:        "selected_moves_write_authority": "none",
+admin_core/operator_decision_surface.py:27:    "trust-evolution-summaries",
+admin_core/operator_decision_surface.py:233:    trust_evolution = _items(snapshots.get("trust-evolution-summaries", {}))
+admin_core/operator_decision_surface.py:241:        "schema_version": "v7.operator-decision-surface.trust-evolution-advice.v1",
+admin_core/operator_decision_surface.py:266:        "planner_decision_owner": "tools/v7-users-autoswitch",
+admin_core/operator_decision_surface.py:268:        "selected_moves_write_authority": "none",
+admin_core/operator_decision_surface.py:438:    for item in _items(snapshots.get("trust-evolution-summaries", {})):
+admin_core/operator_decision_surface.py:466:        "channel_state_source": "trust-evolution-summaries.channel_trust_recovery",
+admin_core/operator_decision_surface.py:615:            "action_chain": ["recommendation", "approval_packet", "snapshot_gate", "restore_barrier", "rollback_packet", "governance", "execution", "audit", "closure"],
+admin_core/operator_decision_surface.py:664:            "stability": _global_metric(snapshots, "trust-evolution-summaries", "stability_score", 0.0),
+admin_core/operator_decision_surface.py:716:            "runtime_execution_authority": "none",
+admin_core/operator_decision_surface.py:767:            "planner_authority_changed": False,
+admin_core/operator_decision_surface.py:777:            "trust": ["trust-summaries", "trust-evolution-summaries"],
+admin_core/operator_observability.py:815:            "restore_barrier_required": True,
+admin_core/operator_observability.py:894:            "requires": ["restore_settle_go", "restore_barrier", "generation_clearance"],
+admin_core/operator_observability.py:1029:        "real_runtime_execution_still_disabled": True,
+admin_core/operator_observability.py:1087:            "real_runtime_execution_still_disabled": True,
+admin_core/operator_observability.py:1288:        blockers.append("restore_barrier_missing")
+admin_core/operator_observability.py:1342:    barrier = model.get("restore_barrier", {})
+admin_core/operator_observability.py:1353:        stale_reasons.append("restore_barrier_missing")
+admin_core/operator_observability.py:1385:            "restore_barrier_present",
+admin_core/operator_observability.py:1510:        "restore_barrier_status": "active" if barrier.get("active") else ("expired" if barrier.get("expired") else ("missing" if barrier.get("freshness", {}).get("state") == "MISSING" else "inactive")),
+admin_core/operator_observability.py:1528:            "restore_barrier": barrier,

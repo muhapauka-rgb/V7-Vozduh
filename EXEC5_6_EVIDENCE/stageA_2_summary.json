@@ -1,0 +1,33 @@
+{
+  "apply_terminal_reason": "selected_moves_applied",
+  "apply_terminal_state": "APPLIED",
+  "budget": 2,
+  "moved_users": [
+    {
+      "from": "awg0",
+      "rc": 0,
+      "rollback_attempted": false,
+      "to": "vless",
+      "user_ip": "10.0.0.2",
+      "verify_rc": 0
+    },
+    {
+      "from": "awg3",
+      "rc": 0,
+      "rollback_attempted": false,
+      "to": "vless",
+      "user_ip": "10.0.0.3",
+      "verify_rc": 0
+    }
+  ],
+  "post_refresh_selected_moves": 0,
+  "post_refresh_terminal_reason": "dry_run_restore_barrier_clearance_selected_moves_exceed_budget",
+  "rollback_dry_run_reason": "rollback_packet_valid",
+  "rollback_dry_run_state": "ROLLBACK_DRY_RUN",
+  "rollback_items": 2,
+  "rollback_state_dir_explicit": true,
+  "rollback_validation_errors": [],
+  "route_check_ok": true,
+  "stage": "stageA_2",
+  "users_moved": 2
+}

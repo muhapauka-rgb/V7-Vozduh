@@ -1,0 +1,82 @@
+{
+  "trust_evolution_advice": {
+    "schema_version": "v7.operator-decision-surface.trust-evolution-advice.v1",
+    "mode": "snapshot_backed_outcome_evidence_only",
+    "available": true,
+    "overall_confidence": 42.476,
+    "decision_confidence": 50.0,
+    "prediction_confidence": 37.295,
+    "service_confidence": 39.225,
+    "suitability_confidence": 28.335,
+    "rollback_confidence": 100.0,
+    "blast_radius_confidence": 0.0,
+    "live_calibrated": true,
+    "autonomy_readiness": "NOT_READY",
+    "candidate_outcomes_count": 67,
+    "prediction_actuals_count": 21,
+    "service_actuals_count": 21,
+    "rollback_validation_status": "VALIDATED",
+    "governed_to_autonomy_trust_bridge": {
+      "approval_autonomy_review_ready": true,
+      "authority_changed": false,
+      "autonomy_boundary_cap": "OPERATOR_APPROVAL_READY",
+      "autonomy_enabled": false,
+      "autonomy_specific_gap_score": 100.0,
+      "autonomy_specific_trust": 0.0,
+      "bounded_autonomy_blockers": [
+        "autonomous_trigger_not_certified",
+        "autonomous_rollback_decision_not_certified",
+        "operator_free_apply_not_certified",
+        "autonomy_specific_evidence_below_floor"
+      ],
+      "bounded_autonomy_ready": false,
+      "corrected_autonomy_trust": 52.191,
+      "evidence_counts": {
+        "candidate_outcomes_count": 67,
+        "prediction_actuals_count": 21,
+        "service_actuals_count": 21
+      },
+      "execution_authority": "none",
+      "governance_changed": false,
+      "governed_execution_evidence_score": 100.0,
+      "governed_feedback_evidence_score": 96.97,
+      "inherited_execution_trust": 86.985,
+      "mode": "read_only_advisory",
+      "model": "PARTIALLY_INHERITED_GOVERNED_TRUST_WITH_AUTONOMY_CAPS",
+      "new_truth_source_created": false,
+      "operator_summary_ru": "Governed-история уже повышает доверие к выполнению, но автономный запуск и откат остаются отдельно заблокированы.",
+      "planner_decision_changed": false,
+      "production_autonomy_ready": false,
+      "runtime_mutation_performed": false,
+      "schema_version": "v7.governed-to-autonomy-trust-bridge.v1"
+    },
+    "governed_evidence_score": 100.0,
+    "inherited_execution_trust": 86.985,
+    "autonomy_specific_gap_score": 100.0,
+    "autonomy_boundary_cap": "OPERATOR_APPROVAL_READY",
+    "approval_autonomy_review_ready": true,
+    "bounded_autonomy_blockers": [
+      "autonomous_trigger_not_certified",
+      "autonomous_rollback_decision_not_certified",
+      "operator_free_apply_not_certified",
+      "autonomy_specific_evidence_below_floor"
+    ],
+    "operator_summary_ru": "Governed-история уже повышает доверие к выполнению, но автономный запуск и откат остаются отдельно заблокированы.",
+    "runtime_decision_authority": "none_evidence_only",
+    "planner_decision_owner": "tools/v7-users-autoswitch",
+    "execution_authority": "none",
+    "selected_moves_write_authority": "none",
+    "autonomy_enabled": false
+  },
+  "authority": {
+    "planner_authority_changed": false,
+    "governance_changed": false,
+    "execution_path_changed": false,
+    "rollback_path_changed": false,
+    "new_truth_sources_created": false,
+    "duplicate_systems_created": false
+  },
+  "preview_only": true,
+  "execution_allowed_now": false,
+  "mode": "read_only_operator_surface"
+}

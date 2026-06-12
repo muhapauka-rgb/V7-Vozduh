@@ -1,0 +1,88 @@
+
+{
+  "allow_post_ttl_apply": true,
+  "allowed_target": "vless",
+  "allowed_targets": [
+    "vless"
+  ],
+  "allowed_user": "10.7.0.5",
+  "allowed_users": [
+    "10.7.0.5"
+  ],
+  "approval_id": "appr_3662da1a2e644fb98f85cba3",
+  "approved_atomic_execution_envelope_hash": "dec28bb8aa5638c889cc6747432d3f1ea4908a334806a036a72c69aa61a90abc",
+  "approved_atomic_execution_envelope_id": "aee_dec28bb8aa5638c889cc6747",
+  "approved_plan_lock": {
+    "allowed_targets": [
+      "vless"
+    ],
+    "allowed_users": [
+      "10.7.0.5"
+    ],
+    "atomic_execution_envelope_hash": "dec28bb8aa5638c889cc6747432d3f1ea4908a334806a036a72c69aa61a90abc",
+    "atomic_execution_envelope_id": "aee_dec28bb8aa5638c889cc6747",
+    "egress_registry_hash": "",
+    "executor_may_replace_targets": false,
+    "executor_may_replace_users": false,
+    "executor_may_reselect": false,
+    "expires_at": "2026-06-11T20:34:26.814854+00:00",
+    "lock_hash": "caf75c21907a37a7005abfc954a26f26467b68d9772181818c16199cc46a96a7",
+    "lock_id": "apl_7f01715f6abe1a13ca689328",
+    "owner": "admin_core/operator_execution.py",
+    "packet_hash": "1b3470c8f70b8d31fe4dafded6966170a2389d5fc7a4af44c37a1dbd97c5072f",
+    "packet_id": "pkt_37bb02ac7458606174df29bf",
+    "planner_generation_id": "8cb2eb0a755229f12aa558a7aac860595e5985875e5577bc9df6ad3c5c701f75",
+    "restore_barrier_hash": "41b6bde7b07a10a82382f39bacc552262d73b2fe4b2384690bc6a3a3b019f11b",
+    "restore_barrier_id": "rbclear_41b6bde7b07a10a82382f39b",
+    "schema_version": "v7.approved-plan-lock.v1",
+    "selected_move_count": 1,
+    "selected_move_hash": "e2a70d427a008b324d9edf332d828b765c55a6531f43f7588c3960ae10f2532b",
+    "selected_moves": [
+      {
+        "current_egress": "awg3",
+        "move_type": "failover",
+        "recommended_egress": "vless",
+        "user_ip": "10.7.0.5"
+      }
+    ],
+    "snapshot_bundle_hash": "c5e736ec802e802817ca7d5bfbbf657688bd1909895544531dfd8f2f7d79ce58",
+    "source_bundle_hash": "0604b5cb1756133b1f4bc22f9c4e62efe8afb2f25e9e687aaca4dd374f8c17c2",
+    "source_hashes": {
+      "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+      "quality_summary": "673d45d296dfde03dd4db55733929b4ac7ce1c24d8b27873c4482b70da031275",
+      "service_matrix": "86bfa9e466991a15e7016bc42038b9110d894e0d1e467401405c0a21886ee2e6",
+      "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+      "users_registry": "73b72a829164b9fef35864ab5d377cf6cf71ce22de46f3287e98a416f14afc79"
+    },
+    "users_registry_hash": ""
+  },
+  "approved_plan_lock_hash": "caf75c21907a37a7005abfc954a26f26467b68d9772181818c16199cc46a96a7",
+  "approved_plan_lock_id": "apl_7f01715f6abe1a13ca689328",
+  "approved_selected_moves_hash": "e2a70d427a008b324d9edf332d828b765c55a6531f43f7588c3960ae10f2532b",
+  "approved_snapshot_bundle_hash": "c5e736ec802e802817ca7d5bfbbf657688bd1909895544531dfd8f2f7d79ce58",
+  "approved_source_bundle_hash": "0604b5cb1756133b1f4bc22f9c4e62efe8afb2f25e9e687aaca4dd374f8c17c2",
+  "approved_source_hashes": {
+    "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+    "quality_summary": "673d45d296dfde03dd4db55733929b4ac7ce1c24d8b27873c4482b70da031275",
+    "service_matrix": "86bfa9e466991a15e7016bc42038b9110d894e0d1e467401405c0a21886ee2e6",
+    "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+    "users_registry": "73b72a829164b9fef35864ab5d377cf6cf71ce22de46f3287e98a416f14afc79"
+  },
+  "backup_path": "/opt/v7/egress/state/autoswitch-restore-barrier.json.backup-c1-20260611T201958Z",
+  "clearance_expected_selected_moves": 1,
+  "clearance_expires_at": "2026-06-11T20:34:26.814854+00:00",
+  "clearance_generation_id": "8cb2eb0a755229f12aa558a7aac860595e5985875e5577bc9df6ad3c5c701f75",
+  "clearance_max_selected_moves": 1,
+  "created_at": "2026-06-11T20:19:58.525065+00:00",
+  "enabled": true,
+  "expires_at": "2000-01-01T00:00:00+00:00",
+  "generation_clearance": true,
+  "generation_token": "099a9897878182ad77e767f356e2522d",
+  "operation_id": "govexec_aecbc32ec89a893dfa13f9af",
+  "owner": "admin_core/operator_execution.py",
+  "packet_id": "pkt_37bb02ac7458606174df29bf",
+  "reason": "C.1 canonical nonzero governance lifecycle clearance",
+  "rollback_manifest_id": "rb_aecbc32ec89a893dfa13f9af",
+  "schema_version": 1,
+  "ttl_reason": "generation-bound execution readiness clearance"
+}

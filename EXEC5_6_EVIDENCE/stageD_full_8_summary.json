@@ -1,0 +1,81 @@
+{
+  "apply_terminal_reason": "selected_moves_applied",
+  "apply_terminal_state": "APPLIED",
+  "budget": 8,
+  "moved_users": [
+    {
+      "from": "awg0",
+      "rc": 0,
+      "rollback_attempted": false,
+      "to": "vless",
+      "user_ip": "10.7.0.8",
+      "verify_rc": 0
+    },
+    {
+      "from": "awg3",
+      "rc": 0,
+      "rollback_attempted": false,
+      "to": "vless",
+      "user_ip": "10.7.0.9",
+      "verify_rc": 0
+    },
+    {
+      "from": "awg0",
+      "rc": 0,
+      "rollback_attempted": false,
+      "to": "vless",
+      "user_ip": "10.7.0.10",
+      "verify_rc": 0
+    },
+    {
+      "from": "awg3",
+      "rc": 0,
+      "rollback_attempted": false,
+      "to": "vless",
+      "user_ip": "10.7.0.11",
+      "verify_rc": 0
+    },
+    {
+      "from": "awg0",
+      "rc": 0,
+      "rollback_attempted": false,
+      "to": "vless",
+      "user_ip": "10.7.0.12",
+      "verify_rc": 0
+    },
+    {
+      "from": "awg0",
+      "rc": 0,
+      "rollback_attempted": false,
+      "to": "vless",
+      "user_ip": "10.7.0.13",
+      "verify_rc": 0
+    },
+    {
+      "from": "awg3",
+      "rc": 0,
+      "rollback_attempted": false,
+      "to": "vless",
+      "user_ip": "10.7.0.14",
+      "verify_rc": 0
+    },
+    {
+      "from": "awg0",
+      "rc": 0,
+      "rollback_attempted": false,
+      "to": "vless",
+      "user_ip": "10.7.0.15",
+      "verify_rc": 0
+    }
+  ],
+  "post_refresh_selected_moves": 0,
+  "post_refresh_terminal_reason": "dry_run_restore_barrier_clearance_generation_mismatch",
+  "rollback_dry_run_reason": "rollback_packet_valid",
+  "rollback_dry_run_state": "ROLLBACK_DRY_RUN",
+  "rollback_items": 8,
+  "rollback_state_dir_explicit": true,
+  "rollback_validation_errors": [],
+  "route_check_ok": true,
+  "stage": "stageD_full_8",
+  "users_moved": 8
+}

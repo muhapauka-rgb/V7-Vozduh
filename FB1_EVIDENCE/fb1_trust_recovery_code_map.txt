@@ -1,0 +1,68 @@
+tests/unit/test_routing_intelligence.py:150:        good = ExecutionTrustModel.from_records(
+tests/unit/test_routing_intelligence.py:156:        bad = ExecutionTrustModel.from_records(
+tests/unit/test_routing_intelligence.py:160:                {"result": "rollback_failed"},
+tests/unit/test_routing_intelligence.py:164:        self.assertGreaterEqual(good["counters"]["successful_executions"], 1)
+tests/unit/test_routing_intelligence.py:198:            trust_summary={"trust": {"score": 80, "counters": {"successful_executions": 10}}},
+tools/v7-intelligence-snapshot-refresh:54:    parser.add_argument("--switch-history-file", default="")
+tools/v7-intelligence-snapshot-refresh:55:    parser.add_argument("--rollback-history-file", default="")
+tools/v7-intelligence-snapshot-refresh:58:    parser.add_argument("--runtime-trust-file", default="")
+tools/v7-intelligence-snapshot-refresh:78:    switch_history_file: Path,
+tools/v7-intelligence-snapshot-refresh:93:        "switch_records": read_jsonl_tail(switch_history_file),
+tools/v7-intelligence-snapshot-refresh:133:    switch_history_file: Path,
+tools/v7-intelligence-snapshot-refresh:151:            switch_history_file=switch_history_file,
+tools/v7-intelligence-snapshot-refresh:174:            switch_history_file=switch_history_file,
+tools/v7-intelligence-snapshot-refresh:201:    switch_history_file = Path(args.switch_history_file) if args.switch_history_file else event_dir / "switch-history.jsonl"
+tools/v7-intelligence-snapshot-refresh:202:    rollback_history_file = Path(args.rollback_history_file) if args.rollback_history_file else event_dir / "rollback-history.jsonl"
+tools/v7-intelligence-snapshot-refresh:203:    execution_events_file = Path(args.execution_events_file) if args.execution_events_file else state_dir / "execution-events.jsonl"
+tools/v7-intelligence-snapshot-refresh:204:    runtime_trust_file = Path(args.runtime_trust_file) if args.runtime_trust_file else state_dir / "runtime-trust.jsonl"
+tools/v7-intelligence-snapshot-refresh:211:            switch_history_file,
+tools/v7-intelligence-snapshot-refresh:219:            execution_events_file,
+tools/v7-intelligence-snapshot-refresh:233:        switch_history_file=switch_history_file,
+tests/unit/test_channel_trust_recovery.py:167:    def test_switch_history_arrival_counts_as_channel_success_feedback(self):
+tests/unit/test_channel_trust_recovery.py:188:    def test_rollback_switch_history_does_not_count_as_success_feedback(self):
+tests/unit/test_intelligence_workers.py:87:        records.append({"result": "failed", "rollback_failed": True})
+tests/unit/test_intelligence_workers.py:357:        self.assertTrue(validate_snapshot(payload, "trust-evolution-summaries").ok)
+tests/unit/test_intelligence_workers.py:384:    def test_candidate_outcomes_from_switch_history_to_field(self):
+tests/unit/test_intelligence_workers.py:400:        self.assertEqual(outcomes[0]["evidence_source"], "switch_history_channel_arrival")
+tests/unit/test_intelligence_workers.py:465:    def test_candidate_outcomes_ignore_rollback_only_switch_history(self):
+tests/unit/test_intelligence_workers.py:540:        trust = result.snapshots["trust-evolution-summaries"]["items"][0]
+tests/unit/test_intelligence_workers.py:572:        trust = result.snapshots["trust-evolution-summaries"]["items"][0]
+tests/unit/test_intelligence_workers.py:600:        summary = result.snapshots["trust-evolution-summaries"]["items"][0]
+tests/unit/test_intelligence_workers.py:602:        self.assertEqual(channel_model["owner"], "admin_core.intelligence_workers.trust-evolution-summaries")
+tests/unit/test_intelligence_workers.py:618:        rollback = workers.normalize_outcome_evidence({"result": "rollback_failed", "rollback_failed": True})
+tests/unit/test_intelligence_workers.py:674:            (events / "switch-history.jsonl").write_text(json.dumps({"result": "OK", "blast_radius": 1}) + "\n", encoding="utf-8")
+tests/unit/test_intelligence_workers.py:725:            (events / "switch-history.jsonl").write_text("", encoding="utf-8")
+tests/unit/test_intelligence_workers.py:726:            (events / "rollback-history.jsonl").write_text("", encoding="utf-8")
+tests/unit/test_intelligence_workers.py:745:                    switch_history_file=events / "switch-history.jsonl",
+tests/unit/test_intelligence_workers.py:746:                    rollback_history_file=events / "rollback-history.jsonl",
+tests/unit/test_intelligence_workers.py:779:        self.assertIn("trust-evolution-summaries", result.snapshots)
+admin_core/routing_intelligence.py:743:class ExecutionTrustModel:
+admin_core/routing_intelligence.py:747:    def from_records(records: list[dict[str, Any]]) -> dict[str, Any]:
+admin_core/routing_intelligence.py:749:            "successful_executions": 0,
+admin_core/routing_intelligence.py:765:                elif any(token in text for token in ("rollback_failed", "failed_rollback")):
+admin_core/routing_intelligence.py:768:                counters["successful_executions"] += 1
+admin_core/routing_intelligence.py:784:        score += min(counters["successful_executions"], 20) * 1.0
+admin_core/routing_intelligence.py:795:            f"successful_executions={counters['successful_executions']}",
+admin_core/routing_intelligence.py:816:        return ExecutionTrustModel.from_records(records)
+admin_core/routing_intelligence.py:1024:        successes = as_float(counters.get("successful_executions"), 0.0) + as_float(counters.get("successful_rollbacks"), 0.0)
+admin_core/routing_intelligence.py:1144:        trust = ExecutionTrustModel.from_records(audit_records or [])
+admin_core/intelligence_workers.py:238:                "outputs": ["trust-evolution-summaries.json"],
+admin_core/intelligence_workers.py:443:def _switch_history_arrival_evidence(row: dict[str, Any], base: dict[str, Any]) -> dict[str, Any]:
+admin_core/intelligence_workers.py:458:            "evidence_source": "switch_history_channel_arrival",
+admin_core/intelligence_workers.py:520:        base = _switch_history_arrival_evidence(record, base)
+admin_core/intelligence_workers.py:633:            or record.get("rollback_failed")
+admin_core/intelligence_workers.py:768:                "evidence_source": "switch_history_channel_arrival",
+admin_core/intelligence_workers.py:1011:        "owner": "admin_core.intelligence_workers.trust-evolution-summaries",
+admin_core/intelligence_workers.py:1286:    trust = ExecutionTrustModel.from_records(bounded)
+admin_core/intelligence_workers.py:1710:        "owner": "admin_core.intelligence_workers.trust-evolution-summaries",
+admin_core/intelligence_workers.py:1754:        "trust-evolution-summaries",
+admin_core/intelligence_workers.py:1906:    snapshots["trust-evolution-summaries"] = build_trust_evolution_snapshot(
+tools/v7-users-autoswitch:56:    "trust-evolution-summaries",
+tools/v7-users-autoswitch:797:            "trust": [self.state_dir / "runtime-trust.jsonl"],
+tools/v7-users-autoswitch:2283:        path = self.event_dir / "switch-history.jsonl"
+tools/v7-users-autoswitch:3109:        path = self.event_dir / "switch-history.jsonl"
+tools/v7-users-autoswitch:3153:        for item in self._snapshot_items("trust-evolution-summaries"):
+tools/v7-users-autoswitch:3490:        trust_evolution = self._first_snapshot_item("trust-evolution-summaries")
+tools/v7-users-autoswitch:3494:            "schema_version": "ri6.trust-evolution-advice.v1",
+tools/v7-users-autoswitch:3590:                "source": "trust-evolution-summaries.channel_trust_recovery",
+tools/v7-users-autoswitch:5942:            return {"terminal_state": "ROLLBACK_FAILED", "terminal_reason": "verification_failed_rollback_failed"}

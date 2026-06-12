@@ -1,0 +1,19 @@
+{
+  "program": "OA.3_4",
+  "final_verdict": "OPERATOR_APPROVED_AUTONOMY_BLOCKED",
+  "single_blocker": "oa2_controller_not_deployed_to_production",
+  "production_preview_observation_complete": false,
+  "approve_path_certified": false,
+  "reject_path_certified": false,
+  "blast_radius_certified": false,
+  "rollback_certified": false,
+  "live_enablement_allowed": false,
+  "post_enablement_validation_complete": false,
+  "no_bypass_certified": false,
+  "operator_approved_autonomy_certified": false,
+  "users_moved": 0,
+  "apply_executed": false,
+  "autonomy_enabled": false,
+  "routing_changed": false,
+  "safe_next_step": "COMMIT_PUSH_SAFE_DEPLOY_OA2_THEN_RERUN_OA3_4_PRODUCTION_PREVIEW"
+}

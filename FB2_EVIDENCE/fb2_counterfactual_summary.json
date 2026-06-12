@@ -1,0 +1,80 @@
+{
+  "counterfactual_method": "production removal forbidden; use before/after refresh comparison after adding feedback records",
+  "materialized_feedback_records": 16,
+  "runtime_trust_feedback_ids_visible": 16,
+  "trust_evolution_source_hash_deltas": {
+    "candidate_outcomes": {
+      "before": "ab64d564fef79cca55983227e03f3f889c77f93cb768fdf81a10eb4796c224b1",
+      "after": "ab64d564fef79cca55983227e03f3f889c77f93cb768fdf81a10eb4796c224b1",
+      "changed": false
+    },
+    "prediction_actuals": {
+      "before": "acba446b15dcd2d864fd4d0352fb6843e4dce88ae02069759686d5317682e3e0",
+      "after": "8cd4e6dca32ac67ce49efd84358c492ff8ad89ccc30d35bb2e2ee45d5c1161a5",
+      "changed": true
+    },
+    "service_actuals": {
+      "before": "2715e0844312766c6c3df56ea577bd5ea2f14445eabf6f07fcabcd417ebb1c5f",
+      "after": "72ab2cbfeea6d1f0b729389fe11b133568e2860d1a9da414d49abc48ed5992a9",
+      "changed": true
+    },
+    "trust_summary": {
+      "before": "f5d2e5a9675029ce3e7df57a8bac20896f91af26c9eba4a02a7347a54f98a3e3",
+      "after": "7dc23d9972705a974ba99a3a2d5d529ce1b9530519174c05891f0514c4a6fc78",
+      "changed": true
+    },
+    "prediction_summary": {
+      "before": "384f9f988b1215fb2ab6da9148cb6fec1925108147a9110062962235f9d30fd2",
+      "after": "d87dde6e2835f11cfd75273a49995540779c8d187f24c167cd95b3738e556f87",
+      "changed": true
+    },
+    "service_scores": {
+      "before": "bbcd01407b68b1776d492d8deea40ad1893e97c86c72627ca498296100ea83c9",
+      "after": "32d1420947f4961fc92507c9a20a4b777052215a84ccf58e8b768e0e7baa1aba",
+      "changed": true
+    },
+    "candidate_suitability": {
+      "before": "d14a0933246d2dc19aa2b53ea8a101122e9b8f4bf2beaf2c8c1ceb6983c806c6",
+      "after": "5e7b7785b308b114c84bbf1cda3c7af526cbbb416d263808936715efa69dbcb5",
+      "changed": true
+    },
+    "best_available_pool": {
+      "before": "1c52f5345c57eb109f4d25f814adbecec730319678b2067e9628e17172d41129",
+      "after": "ab757d5dc1028759fa7b921e5a66850f27f1a4684f0baee9cc5720cc7473c1c2",
+      "changed": true
+    }
+  },
+  "trust_evolution_confidence_before_after": {
+    "overall_confidence": {
+      "before": 42.471,
+      "after": 42.476
+    },
+    "decision_confidence": {
+      "before": 50.0,
+      "after": 50.0
+    },
+    "prediction_confidence": {
+      "before": 37.276,
+      "after": 37.295
+    },
+    "service_confidence": {
+      "before": 39.225,
+      "after": 39.225
+    },
+    "suitability_confidence": {
+      "before": 28.328,
+      "after": 28.335
+    },
+    "rollback_confidence": {
+      "before": 100.0,
+      "after": 100.0
+    },
+    "blast_radius_confidence": {
+      "before": 0.0,
+      "after": 0.0
+    }
+  },
+  "trust_evolution_changed": true,
+  "planner_evidence_changed_if_outcomes_removed": "yes, source hashes/confidence return to before-refresh state by observed delta",
+  "governance_evidence_changed_if_outcomes_removed": "yes, runtime-trust verification history would lose 16 visible feedback ids"
+}

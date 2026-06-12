@@ -1,0 +1,17 @@
+39:CANONICAL_CLEARANCE_OWNER = "admin_core/operator_execution.py"
+274:def selected_moves_from_plan(plan):
+365:def approved_plan_lock_from_selected(selected, packet, packet_hash):
+396:        "owner": CANONICAL_CLEARANCE_OWNER,
+406:def recheck_nonzero_packet(packet, state_dir, planner_snapshot):
+421:    plan_selected = selected_moves_from_plan(planner_snapshot)
+465:def runtime_recheck(packet, state_dir, now=None, planner_snapshot=None):
+608:    if owner and owner != CANONICAL_CLEARANCE_OWNER:
+613:def append_restore_barrier_clearance(restore_barrier_file, packet, recheck, now=None):
+654:        "owner": CANONICAL_CLEARANCE_OWNER,
+682:def append_lifecycle_records(lifecycle_store, packet, recheck, clearance_result, audit_record, now=None):
+699:        "owner": CANONICAL_CLEARANCE_OWNER,
+712:        "rollback_owner": CANONICAL_CLEARANCE_OWNER,
+721:        "closure_owner": CANONICAL_CLEARANCE_OWNER,
+853:    selected = selected_moves_from_plan(plan)
+914:            "rollback_execution_owner": CANONICAL_CLEARANCE_OWNER,
+916:        "governance_owner": CANONICAL_CLEARANCE_OWNER,

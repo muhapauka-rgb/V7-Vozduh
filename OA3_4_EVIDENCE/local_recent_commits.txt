@@ -1,0 +1,12 @@
+6933631 Classify tests as non-runtime change paths
+568c7df Treat uppercase evidence folders as documentation
+6fcc1dc Add SNAP1 close and EXEC1 certification evidence
+90ea180 Add SNAP.1 close predeploy evidence
+fb1e8fc Close SNAP.1 admin planner refresh path
+891cd8e Add CTR verification and planner reality closure evidence
+f6afcd1 Add CTR final production certification evidence
+ca7bbda Add CTR advisory shadow certification track
+9aa17de Add accumulated V7 reports and evidence
+66d33a6 Add deploy feedback binding audit, production snapshot refresh, and autonomy re-eval report
+aba9b30 Bind governed feedback into trust evolution snapshots
+3cabe99 Report autonomy confidence component root cause

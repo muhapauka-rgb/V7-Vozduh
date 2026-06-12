@@ -1,0 +1,22 @@
+{
+  "program": "OA.1",
+  "final_verdict": "NEEDS_ONE_MORE_COMPONENT",
+  "operator_approved_autonomy_ready": false,
+  "review_ready": true,
+  "system_can_prepare_planner_candidate": true,
+  "system_can_prepare_packet_evidence": true,
+  "system_can_prepare_rollback_preview": true,
+  "system_can_prepare_restore_barrier_readiness": true,
+  "system_can_prepare_verification_plan": true,
+  "system_can_prepare_feedback_preview": true,
+  "single_approve_reject_boundary_exists": false,
+  "single_blocker": "canonical_operator_approved_execution_controller_missing",
+  "users_moved_by_oa1": 0,
+  "apply_executed_by_oa1": false,
+  "routing_changed_by_oa1": false,
+  "autonomy_enabled": false,
+  "new_planner_created": false,
+  "new_governance_created": false,
+  "new_execution_path_created": false,
+  "safe_next_step": "OA2_CANONICAL_OPERATOR_APPROVED_EXECUTION_CONTROLLER_DESIGN_AND_PREVIEW_ONLY_IMPLEMENTATION"
+}

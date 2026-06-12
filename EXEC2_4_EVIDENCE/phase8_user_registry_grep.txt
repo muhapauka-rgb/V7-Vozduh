@@ -1,0 +1,2 @@
+
+ip=10.7.0.5 current=vless table=1003 enabled=1

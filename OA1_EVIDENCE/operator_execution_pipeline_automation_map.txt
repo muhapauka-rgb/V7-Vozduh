@@ -1,0 +1,32 @@
+325:        "execution_allowed_now": False,
+510:        "execution_allowed_now": False,
+875:        "execution_allowed_now": False,
+1103:        "execution_allowed_now": False,
+1341:        "execution_allowed_now": False,
+1371:        "execution_allowed_now": False,
+1399:        "execution_allowed_now": False,
+1481:            "execution_allowed_now": False,
+1483:            "reason": "operator-free apply requires a later explicitly approved canary execution program",
+1524:def autonomous_dry_run_model(
+1554:        "feedback_written_now": False,
+1567:        "feedback_written_now": False,
+1584:            "would_prepare_packet": bool(candidates),
+1592:            "restore_barrier_written_now": False,
+1619:        "execution_allowed_now": False,
+1623:def execution_action_matrix() -> list[dict[str, Any]]:
+1660:        "execution_allowed_now": False,
+1690:        "execution_allowed_now": False,
+1757:            "approve packet",
+1759:            "explicitly invoke governed apply when separately approved",
+1840:        "execution_allowed_now": False,
+1887:        "execution_allowed_now": False,
+1943:        "execution_allowed_now": False,
+1992:def execution_loop_design(performance: dict[str, Any]) -> dict[str, Any]:
+2002:        "what_remains_manual": [
+2140:        "execution_allowed_now": False,
+2247:            "execution_allowed_now": False,
+2292:        "execution_allowed_now": False,
+2311:        "execution_loop_design": execution_loop_design(performance),
+2325:    matrix = execution_action_matrix()
+2343:        "execution_action_matrix": matrix,
+2364:            "execution_action_matrix_complete": all(

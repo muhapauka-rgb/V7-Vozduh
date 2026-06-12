@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+"""
+V7 guarded autoswitch planner.
+
+The command is intentionally read-only by default. It produces a JSON plan for
+28:DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
+32:DEFAULT_QUALITY_SUMMARY_FILE = DEFAULT_STATE_DIR / "egress-quality-summary.json"
+33:DEFAULT_INTELLIGENCE_SNAPSHOT_ROOT = DEFAULT_STATE_DIR / "intelligence"
+34:DEFAULT_SAFETY_FILE = DEFAULT_STATE_DIR / "autoswitch-safety.json"
+35:DEFAULT_TELEGRAM_SENTINEL_FILE = DEFAULT_STATE_DIR / "telegram-sentinel.json"
+36:DEFAULT_RECONNECT_STATE_FILE = DEFAULT_STATE_DIR / "client-reconnect-state.json"
+37:DEFAULT_VLESS_ACTIVITY_FILE = DEFAULT_STATE_DIR / "vless-activity.json"
+38:DEFAULT_LOAD_SUMMARY_FILE = DEFAULT_STATE_DIR / "egress-load-summary.json"
+39:DEFAULT_RESTORE_BARRIER_FILE = DEFAULT_STATE_DIR / "autoswitch-restore-barrier.json"
+6187:    parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))

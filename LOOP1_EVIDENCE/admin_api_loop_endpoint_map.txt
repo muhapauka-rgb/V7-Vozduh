@@ -1,0 +1,23 @@
+540:    "/api/actions/autoswitch-apply-guarded",
+618:    "/api/actions/execution-feedback-materialize": "operator",
+665:    "/api/actions/planner-refresh-dry-run": "admin",
+666:    "/api/actions/autoswitch-apply-guarded": "admin",
+12104:def execution_feedback_materialize_response(data, actor):
+16019:def autoswitch_planner_refresh_dry_run_state(actor):
+16061:def autoswitch_apply_guarded(actor, confirm="", target_egress=""):
+16071:    audit_admin(actor, "admin_action_autoswitch_apply_guarded", f"rc={result.get('rc')} applied={applied} target={target_egress or 'all'}", object_type="autoswitch", object_id=target_egress or "guarded", result="OK" if result.get("rc") == 0 else "FAIL", severity="warning")
+16072:    return {"action": "autoswitch_apply_guarded", "target_egress": target_egress, "rc": result.get("rc"), "plan": plan, "output": result.get("output", ""), "cmd": result.get("cmd", []), "overview": overview()}, 200 if result.get("rc") == 0 else 409
+21570:          const d = await postJson('/api/actions/planner-refresh-dry-run', {});
+27313:      const d = await api(`/api/autoswitch-plan?egress=${encodeURIComponent(id || '')}`);
+27320:      const d = await postJson('/api/actions/autoswitch-apply-guarded', {confirm:'AUTOSWITCH', egress:id});
+27335:      const applied = await postJson('/api/actions/autoswitch-apply-guarded', {confirm:'AUTOSWITCH', egress:id});
+32587:          const d = await postJson('/api/actions/planner-refresh-dry-run', {});
+32988:      const d = await api('/api/autoswitch-plan');
+33000:      const d = await postJson('/api/actions/autoswitch-apply-guarded', {confirm:'AUTOSWITCH'});
+34611:        elif path == "/api/autoswitch-plan":
+34971:        elif path == "/api/actions/execution-feedback-materialize":
+34978:            payload, error, status = execution_feedback_materialize_response(data, session.get("sub", "admin"))
+36660:        elif path == "/api/actions/planner-refresh-dry-run":
+36667:            self.send_json(autoswitch_planner_refresh_dry_run_state(actor))
+36668:        elif path == "/api/actions/autoswitch-apply-guarded":
+36676:            payload, status = autoswitch_apply_guarded(actor, confirm=data.get("confirm", ""), target_egress=data.get("egress", ""))

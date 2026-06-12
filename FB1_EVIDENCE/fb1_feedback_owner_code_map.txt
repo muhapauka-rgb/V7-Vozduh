@@ -1,0 +1,48 @@
+tests/unit/test_operator_execution_feedback.py:12:    def test_execution_feedback_contract_materializes_all_feedback_links(self):
+tests/unit/test_operator_execution_feedback.py:13:        contract = feedback.execution_feedback_contract(
+tests/unit/test_operator_execution_feedback.py:25:        records = feedback.materialized_feedback_records(contract)
+tests/unit/test_operator_execution_feedback.py:35:        contract = feedback.execution_feedback_contract(
+tests/unit/test_operator_execution_feedback.py:44:        records = feedback.materialized_feedback_records(contract)
+tests/unit/test_operator_execution_feedback.py:51:        failure = feedback.execution_feedback_contract(
+tests/unit/test_operator_execution_feedback.py:59:        rollback = feedback.execution_feedback_contract(
+tests/unit/test_operator_execution_feedback.py:133:        self.assertIn('elif path == "/api/actions/execution-feedback-materialize":', source)
+tests/unit/test_operator_execution_feedback.py:135:        self.assertIn("execution_feedback_materialize_response", source)
+admin_core/operator_execution_feedback.py:89:def execution_feedback_contract(
+admin_core/operator_execution_feedback.py:159:def materialized_feedback_records(contract: dict[str, Any]) -> dict[str, dict[str, Any]]:
+admin/v7-admin-api:88:PROPOSAL_STORE_FILE = Path(os.environ.get("V7_PROPOSAL_STORE_FILE", str(STATE_DIR / "proposal-records.jsonl")))
+admin/v7-admin-api:89:RUNTIME_TRUST_STORE_FILE = Path(os.environ.get("V7_RUNTIME_TRUST_STORE_FILE", str(STATE_DIR / "runtime-trust.jsonl")))
+admin/v7-admin-api:91:CLOSURE_STORE_FILE = Path(os.environ.get("V7_CLOSURE_STORE_FILE", str(STATE_DIR / "closure-records.jsonl")))
+admin/v7-admin-api:93:EXECUTION_EVENTS_FILE = Path(os.environ.get("V7_EXECUTION_EVENTS_FILE", str(STATE_DIR / "execution-events.jsonl")))
+admin/v7-admin-api:618:    "/api/actions/execution-feedback-materialize": "operator",
+admin/v7-admin-api:10839:        "closure_model": {"enabled": True, "states": sorted(CLOSURE_STATES), "store": str(CLOSURE_STORE_FILE)},
+admin/v7-admin-api:10991:    if not PROPOSAL_STORE_FILE.exists():
+admin/v7-admin-api:10995:        for line in PROPOSAL_STORE_FILE.read_text(encoding="utf-8", errors="replace").splitlines():
+admin/v7-admin-api:11427:        "storage_path": str(PROPOSAL_STORE_FILE),
+admin/v7-admin-api:11431:        "closure_model": {"enabled": True, "states": sorted(CLOSURE_STATES), "store": str(CLOSURE_STORE_FILE)},
+admin/v7-admin-api:11612:    return read_jsonl_records(CLOSURE_STORE_FILE, limit=limit)
+admin/v7-admin-api:11775:    append_jsonl(CLOSURE_STORE_FILE, row)
+admin/v7-admin-api:11947:    append_jsonl(CLOSURE_STORE_FILE, closure)
+admin/v7-admin-api:12061:    append_jsonl(CLOSURE_STORE_FILE, closure)
+admin/v7-admin-api:12085:def materialize_execution_feedback(contract, actor):
+admin/v7-admin-api:12086:    records = operator_execution_feedback.materialized_feedback_records(contract)
+admin/v7-admin-api:12087:    append_jsonl(EXECUTION_EVENTS_FILE, records["outcome"])
+admin/v7-admin-api:12088:    append_jsonl(RUNTIME_TRUST_STORE_FILE, records["trust"])
+admin/v7-admin-api:12089:    append_jsonl(EXECUTION_EVENTS_FILE, records["prediction"])
+admin/v7-admin-api:12090:    append_jsonl(PROPOSAL_STORE_FILE, records["recommendation"])
+admin/v7-admin-api:12091:    append_jsonl(CLOSURE_STORE_FILE, records["closure"])
+admin/v7-admin-api:12104:def execution_feedback_materialize_response(data, actor):
+admin/v7-admin-api:12112:    contract = operator_execution_feedback.execution_feedback_contract(
+admin/v7-admin-api:12128:    records = materialize_execution_feedback(contract, actor)
+admin/v7-admin-api:12184:        storage_path=str(RUNTIME_TRUST_STORE_FILE),
+admin/v7-admin-api:12311:    history = read_jsonl_records(RUNTIME_TRUST_STORE_FILE, limit=80)
+admin/v7-admin-api:12338:        "storage_path": str(RUNTIME_TRUST_STORE_FILE),
+admin/v7-admin-api:12342:        "closure_model": {"enabled": True, "states": sorted(CLOSURE_STATES), "store": str(CLOSURE_STORE_FILE)},
+admin/v7-admin-api:12374:        "closure_model": {"enabled": True, "states": sorted(CLOSURE_STATES), "store": str(CLOSURE_STORE_FILE)},
+admin/v7-admin-api:12504:        "closure_model": {"enabled": True, "states": sorted(CLOSURE_STATES), "store": str(CLOSURE_STORE_FILE)},
+admin/v7-admin-api:12532:        "closure_model": {"enabled": True, "states": sorted(CLOSURE_STATES), "store": str(CLOSURE_STORE_FILE)},
+admin/v7-admin-api:12714:        rows = [normalize_execution_event(row) for row in read_jsonl_records(EXECUTION_EVENTS_FILE, limit=limit)]
+admin/v7-admin-api:12796:        "event_store_exists": EXECUTION_EVENTS_FILE.exists(),
+admin/v7-admin-api:12888:        "event_store_path": str(EXECUTION_EVENTS_FILE),
+admin/v7-admin-api:13010:        "storage_path": str(EXECUTION_EVENTS_FILE),
+admin/v7-admin-api:34971:        elif path == "/api/actions/execution-feedback-materialize":
+admin/v7-admin-api:34978:            payload, error, status = execution_feedback_materialize_response(data, session.get("sub", "admin"))

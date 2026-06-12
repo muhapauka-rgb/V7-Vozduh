@@ -1,0 +1,204 @@
+{
+  "action": "execution_feedback_materialize",
+  "feedback": {
+    "schema_version": "v7.operator-execution-feedback.v1",
+    "user": "10.7.0.14",
+    "source_channel": "awg3",
+    "target_channel": "vless",
+    "execution_time": "2026-06-11T20:45:51.797717+00:00",
+    "verification_time": "2026-06-11T20:45:51.999075+00:00",
+    "outcome_status": "unknown",
+    "execution_outcome": {
+      "stage": "exec5_6_stageD_full_8",
+      "operation_id": "runtime_autoswitch_f80c1b87762cea7a4f4176ca",
+      "operation_owner": "tools/v7-users-autoswitch",
+      "operation_type": "runtime_autoswitch",
+      "terminal_state": "APPLIED",
+      "terminal_reason": "selected_moves_applied",
+      "selected_move_hash": "6294f3765c878529fb94ac1b4dccb271065faaf6077982eea18638af77714b9f",
+      "selected_move_index": 6,
+      "selected_move_count": 8,
+      "applied": true,
+      "rc": 0,
+      "source_channel": "awg3",
+      "target_channel": "vless",
+      "move_type": "failover"
+    },
+    "verification_result": {
+      "verified": true,
+      "verify_rc": 0,
+      "route_check_ok": true,
+      "closure_state": "VERIFIED_READY",
+      "closure_blocker": ""
+    },
+    "rollback_result": {
+      "rollback_required": false,
+      "rollback_attempted": false,
+      "rollback_readiness_state": "ROLLBACK_DRY_RUN",
+      "rollback_readiness_reason": "rollback_packet_valid",
+      "rollback_packet_id": "rbpkt_1a8d3cc6145e07252db6823f",
+      "rollback_items": [
+        {
+          "user_ip": "10.7.0.14",
+          "rollback_target": "awg3",
+          "forward_target": "vless",
+          "source_operation_id": "runtime_autoswitch_f80c1b87762cea7a4f4176ca",
+          "selected_move_hash": "6294f3765c878529fb94ac1b4dccb271065faaf6077982eea18638af77714b9f",
+          "selected_move_index": 6,
+          "move_type": "rollback"
+        }
+      ],
+      "rollback_validation_passed": true
+    },
+    "trust_delta": 0.0,
+    "prediction_delta": 0.0,
+    "recommendation_delta": 0.0,
+    "trust_feedback": {
+      "subject": "vless",
+      "delta": 0.0,
+      "reason": "unknown"
+    },
+    "prediction_feedback": {
+      "prediction_expected": 1.0,
+      "prediction_actual": 1.0,
+      "delta": 0.0,
+      "outcome": "unknown"
+    },
+    "recommendation_feedback": {
+      "recommendation_hash": "6294f3765c878529fb94ac1b4dccb271065faaf6077982eea18638af77714b9f",
+      "delta": 0.0,
+      "outcome": "unknown"
+    },
+    "audit_reference": "runtime_autoswitch_f80c1b87762cea7a4f4176ca",
+    "closure_reference": "runtime:runtime_autoswitch_f80c1b87762cea7a4f4176ca:VERIFIED_READY",
+    "stability_window_seconds": 0,
+    "runtime_mutation_performed": false,
+    "new_truth_sources_created": false,
+    "feedback_id": "execfb_31dfd2f70ba90c9374b76ca2"
+  },
+  "records": {
+    "outcome": {
+      "schema_version": "v7.execution-outcome-record.v1",
+      "feedback_id": "execfb_31dfd2f70ba90c9374b76ca2",
+      "user": "10.7.0.14",
+      "source_channel": "awg3",
+      "target_channel": "vless",
+      "outcome_status": "unknown",
+      "audit_reference": "runtime_autoswitch_f80c1b87762cea7a4f4176ca",
+      "closure_reference": "runtime:runtime_autoswitch_f80c1b87762cea7a4f4176ca:VERIFIED_READY",
+      "stability_window_seconds": 0,
+      "created_at": "2026-06-11T21:23:20.517731+00:00",
+      "execution_outcome": {
+        "stage": "exec5_6_stageD_full_8",
+        "operation_id": "runtime_autoswitch_f80c1b87762cea7a4f4176ca",
+        "operation_owner": "tools/v7-users-autoswitch",
+        "operation_type": "runtime_autoswitch",
+        "terminal_state": "APPLIED",
+        "terminal_reason": "selected_moves_applied",
+        "selected_move_hash": "6294f3765c878529fb94ac1b4dccb271065faaf6077982eea18638af77714b9f",
+        "selected_move_index": 6,
+        "selected_move_count": 8,
+        "applied": true,
+        "rc": 0,
+        "source_channel": "awg3",
+        "target_channel": "vless",
+        "move_type": "failover"
+      },
+      "verification_result": {
+        "verified": true,
+        "verify_rc": 0,
+        "route_check_ok": true,
+        "closure_state": "VERIFIED_READY",
+        "closure_blocker": ""
+      },
+      "rollback_result": {
+        "rollback_required": false,
+        "rollback_attempted": false,
+        "rollback_readiness_state": "ROLLBACK_DRY_RUN",
+        "rollback_readiness_reason": "rollback_packet_valid",
+        "rollback_packet_id": "rbpkt_1a8d3cc6145e07252db6823f",
+        "rollback_items": [
+          {
+            "user_ip": "10.7.0.14",
+            "rollback_target": "awg3",
+            "forward_target": "vless",
+            "source_operation_id": "runtime_autoswitch_f80c1b87762cea7a4f4176ca",
+            "selected_move_hash": "6294f3765c878529fb94ac1b4dccb271065faaf6077982eea18638af77714b9f",
+            "selected_move_index": 6,
+            "move_type": "rollback"
+          }
+        ],
+        "rollback_validation_passed": true
+      }
+    },
+    "trust": {
+      "schema_version": "v7.execution-trust-feedback.v1",
+      "feedback_id": "execfb_31dfd2f70ba90c9374b76ca2",
+      "user": "10.7.0.14",
+      "source_channel": "awg3",
+      "target_channel": "vless",
+      "outcome_status": "unknown",
+      "audit_reference": "runtime_autoswitch_f80c1b87762cea7a4f4176ca",
+      "closure_reference": "runtime:runtime_autoswitch_f80c1b87762cea7a4f4176ca:VERIFIED_READY",
+      "stability_window_seconds": 0,
+      "created_at": "2026-06-11T21:23:20.517731+00:00",
+      "subject": "vless",
+      "delta": 0.0,
+      "reason": "unknown"
+    },
+    "prediction": {
+      "schema_version": "v7.execution-prediction-feedback.v1",
+      "feedback_id": "execfb_31dfd2f70ba90c9374b76ca2",
+      "user": "10.7.0.14",
+      "source_channel": "awg3",
+      "target_channel": "vless",
+      "outcome_status": "unknown",
+      "audit_reference": "runtime_autoswitch_f80c1b87762cea7a4f4176ca",
+      "closure_reference": "runtime:runtime_autoswitch_f80c1b87762cea7a4f4176ca:VERIFIED_READY",
+      "stability_window_seconds": 0,
+      "created_at": "2026-06-11T21:23:20.517731+00:00",
+      "prediction_expected": 1.0,
+      "prediction_actual": 1.0,
+      "delta": 0.0,
+      "outcome": "unknown"
+    },
+    "recommendation": {
+      "schema_version": "v7.execution-recommendation-feedback.v1",
+      "feedback_id": "execfb_31dfd2f70ba90c9374b76ca2",
+      "user": "10.7.0.14",
+      "source_channel": "awg3",
+      "target_channel": "vless",
+      "outcome_status": "unknown",
+      "audit_reference": "runtime_autoswitch_f80c1b87762cea7a4f4176ca",
+      "closure_reference": "runtime:runtime_autoswitch_f80c1b87762cea7a4f4176ca:VERIFIED_READY",
+      "stability_window_seconds": 0,
+      "created_at": "2026-06-11T21:23:20.517731+00:00",
+      "recommendation_hash": "6294f3765c878529fb94ac1b4dccb271065faaf6077982eea18638af77714b9f",
+      "delta": 0.0,
+      "outcome": "unknown"
+    },
+    "closure": {
+      "schema_version": "v7.execution-feedback-closure.v1",
+      "object_type": "execution_feedback",
+      "object_id": "execfb_31dfd2f70ba90c9374b76ca2",
+      "closure_state": "OPEN",
+      "closure_reason": "execution feedback materialized: unknown",
+      "closure_actor": "operator_execution_feedback",
+      "closure_timestamp": "2026-06-11T21:23:20.517755+00:00",
+      "feedback_id": "execfb_31dfd2f70ba90c9374b76ca2",
+      "user": "10.7.0.14",
+      "source_channel": "awg3",
+      "target_channel": "vless",
+      "outcome_status": "unknown",
+      "audit_reference": "runtime_autoswitch_f80c1b87762cea7a4f4176ca",
+      "closure_reference": "runtime:runtime_autoswitch_f80c1b87762cea7a4f4176ca:VERIFIED_READY",
+      "stability_window_seconds": 0,
+      "created_at": "2026-06-11T21:23:20.517731+00:00"
+    }
+  },
+  "outcome_materialized": true,
+  "trust_feedback_active": true,
+  "prediction_feedback_active": true,
+  "recommendation_feedback_active": true,
+  "runtime_mutation_performed": false
+}

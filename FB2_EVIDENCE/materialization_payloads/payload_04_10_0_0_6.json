@@ -1,0 +1,55 @@
+{
+  "user": "10.0.0.6",
+  "source_channel": "awg0",
+  "target_channel": "vless",
+  "execution_result": {
+    "stage": "exec5_6_stageB_5",
+    "operation_id": "runtime_autoswitch_0aa8dc9201a8c52590139f76",
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_type": "runtime_autoswitch",
+    "terminal_state": "APPLIED",
+    "terminal_reason": "selected_moves_applied",
+    "selected_move_hash": "5c0b80aabfccdf2f6b06885e945ae71d3e3f012e25e7de0dc55c6a7e05f8a386",
+    "selected_move_index": 0,
+    "selected_move_count": 5,
+    "applied": true,
+    "rc": 0,
+    "source_channel": "awg0",
+    "target_channel": "vless",
+    "move_type": "failover"
+  },
+  "verification_result": {
+    "verified": true,
+    "verify_rc": 0,
+    "route_check_ok": true,
+    "closure_state": "VERIFIED_READY",
+    "closure_blocker": ""
+  },
+  "rollback_result": {
+    "rollback_required": false,
+    "rollback_attempted": false,
+    "rollback_readiness_state": "ROLLBACK_DRY_RUN",
+    "rollback_readiness_reason": "rollback_packet_valid",
+    "rollback_packet_id": "rbpkt_28ec28349efbe8426d65be39",
+    "rollback_items": [
+      {
+        "user_ip": "10.0.0.6",
+        "rollback_target": "awg0",
+        "forward_target": "vless",
+        "source_operation_id": "runtime_autoswitch_0aa8dc9201a8c52590139f76",
+        "selected_move_hash": "5c0b80aabfccdf2f6b06885e945ae71d3e3f012e25e7de0dc55c6a7e05f8a386",
+        "selected_move_index": 0,
+        "move_type": "rollback"
+      }
+    ],
+    "rollback_validation_passed": true
+  },
+  "recommendation_hash": "5c0b80aabfccdf2f6b06885e945ae71d3e3f012e25e7de0dc55c6a7e05f8a386",
+  "prediction_expected": 1.0,
+  "prediction_actual": 1.0,
+  "audit_reference": "runtime_autoswitch_0aa8dc9201a8c52590139f76",
+  "closure_reference": "runtime:runtime_autoswitch_0aa8dc9201a8c52590139f76:VERIFIED_READY",
+  "execution_time": "2026-06-11T20:42:47.425827+00:00",
+  "verification_time": "2026-06-11T20:42:47.810067+00:00",
+  "stability_window_seconds": 0
+}

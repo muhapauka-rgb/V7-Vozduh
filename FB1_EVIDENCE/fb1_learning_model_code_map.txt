@@ -1,0 +1,29 @@
+tests/unit/test_intelligence_workers.py:577:        self.assertEqual(trust["blast_radius_confidence_model"]["successful_small_operations"], 1)
+tests/unit/test_intelligence_workers.py:578:        self.assertEqual(trust["blast_radius_confidence_model"]["blast_radius_confidence"], 100)
+admin_core/intelligence_workers.py:28:    trust_evolution_summary,
+admin_core/intelligence_workers.py:1690:    summary = trust_evolution_summary(
+admin_core/intelligence_platform.py:396:def decision_outcome_framework(records: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+admin_core/intelligence_platform.py:427:def prediction_accuracy_model(forecasts: list[dict[str, Any]] | None = None, actuals: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+admin_core/intelligence_platform.py:482:def service_intelligence_trust_model(service_rows: list[dict[str, Any]] | None = None, actuals: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+admin_core/intelligence_platform.py:518:def suitability_trust_model(candidate_rows: list[dict[str, Any]] | None = None, outcomes: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+admin_core/intelligence_platform.py:568:def rollback_intelligence_model(records: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+admin_core/intelligence_platform.py:654:def blast_radius_confidence_model(records: list[dict[str, Any]] | None = None, metrics: dict[str, Any] | None = None) -> dict[str, Any]:
+admin_core/intelligence_platform.py:1053:    trust_summary = trust_summary or trust_evolution_summary()
+admin_core/intelligence_platform.py:1112:def trust_evolution_summary(
+admin_core/intelligence_platform.py:1125:    decision = decision_outcome_framework(decision_records)
+admin_core/intelligence_platform.py:1126:    prediction = prediction_accuracy_model(prediction_forecasts, prediction_actuals)
+admin_core/intelligence_platform.py:1127:    service = service_intelligence_trust_model(service_rows, service_actuals)
+admin_core/intelligence_platform.py:1128:    suitability = suitability_trust_model(candidate_rows, candidate_outcomes)
+admin_core/intelligence_platform.py:1129:    rollback = rollback_intelligence_model(rollback_records)
+admin_core/intelligence_platform.py:1130:    blast = blast_radius_confidence_model(blast_radius_records, blast_radius_metrics)
+admin_core/intelligence_platform.py:1161:        "blast_radius_confidence_model": blast,
+admin_core/intelligence_platform.py:1346:def live_outcome_collection_model() -> dict[str, Any]:
+admin_core/intelligence_platform.py:1382:    decision = decision_outcome_framework(outcomes)
+admin_core/intelligence_platform.py:1396:def outcome_snapshot_strategy() -> dict[str, Any]:
+admin_core/intelligence_platform.py:1413:    trust_summary = trust_summary or trust_evolution_summary()
+admin_core/intelligence_platform.py:1537:    trust_summary = trust_summary or trust_evolution_summary()
+admin_core/intelligence_platform.py:1950:        "LIVE_OUTCOME_COLLECTION_SYSTEM": live_outcome_collection_model(),
+admin_core/intelligence_platform.py:1982:        "live_outcome_collection_active": live_outcome_collection_model()["ready"],
+admin_core/intelligence_platform.py:2030:    outcome = live_outcome_collection_model()
+admin_core/intelligence_platform.py:2068:        "outcome_snapshot_strategy": outcome_snapshot_strategy(),
+admin_core/intelligence_platform.py:2190:    ri6 = trust_evolution_summary()

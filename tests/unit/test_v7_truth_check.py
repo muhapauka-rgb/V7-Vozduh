@@ -45,7 +45,7 @@ class V7TruthCheckTest(unittest.TestCase):
         data["runtime_snapshot_seed_path"] = ""
         return data
 
-    def runner(self, branch="Updatesystem", status="", remote_commit="abc123", local_commit="abc123"):
+    def runner(self, branch="Updatesystem", status="", remote_commit="abc123", local_commit="abc123", changed_files=""):
         return FakeRunner(
             {
                 ("git", "branch", "--show-current"): branch,
@@ -59,8 +59,46 @@ class V7TruthCheckTest(unittest.TestCase):
                     "https://github.com/muhapauka-rgb/V7-Vozduh.git",
                     "refs/heads/Updatesystem",
                 ): f"{remote_commit}\trefs/heads/Updatesystem",
+                ("git", "diff", "--name-only", "old123..new123"): changed_files,
             }
         )
+
+    def runtime_snapshot(self, branch="Updatesystem", commit="abc123", **derived_overrides):
+        command_results = {
+            self.tool.command_key(command): {"rc": 0, "stdout": "ok", "stderr": ""}
+            for command in self.tool.RUNTIME_READONLY_COMMANDS
+        }
+        derived = {
+            "deployment_model": "copied_binaries_from_deploy_metadata",
+            "runtime_root_is_git_checkout": False,
+            "deploy_branch": branch,
+            "deploy_commit": commit,
+            "binary_hashes_known": True,
+            "binary_hashes_match_authoritative": True,
+            "runtime_provenance_known": True,
+            "scheduler_truth_known": True,
+            "autoswitch_scheduler_active": False,
+            "scheduler_inactive_approved_manual_mode": True,
+            "service_status_known": True,
+            "autoswitch_service_active": False,
+            "service_inactive_explained": True,
+            "state_truth_known": True,
+            "restore_barrier_known": True,
+            "audit_path_available": True,
+            "closure_path_available": True,
+            "operation_wiring_present": True,
+            "runtime_fingerprint_known": True,
+            "snapshot_root_known": True,
+            "snapshot_required_files_known": True,
+            "snapshot_refresh_cli_available": True,
+            "snapshot_refresh_mechanism_known": True,
+        }
+        derived.update(derived_overrides)
+        return {
+            "schema": self.tool.RUNTIME_SNAPSHOT_SCHEMA,
+            "command_results": command_results,
+            "derived": derived,
+        }
 
     def test_manifest_loads_and_required_keys_exist(self):
         data = self.tool.load_manifest(MANIFEST)
@@ -309,6 +347,50 @@ class V7TruthCheckTest(unittest.TestCase):
             self.assertIn("binary_hash_mismatch", result["blockers"])
             self.assertIn("autoswitch_scheduler_inactive", result["blockers"])
             self.assertIn("snapshot_refresh_cli_available_false_or_unknown", result["blockers"])
+
+    def test_docs_only_runtime_commit_mismatch_does_not_block_runtime_truth(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest = self.manifest(workspace=tmp)
+            manifest["runtime_snapshot_path"] = str(Path(tmp) / "runtime-snapshot.json")
+            snapshot = self.runtime_snapshot(commit="old123")
+            Path(manifest["runtime_snapshot_path"]).write_text(json.dumps(snapshot), encoding="utf-8")
+            result = self.tool.combine_results(
+                manifest,
+                mode="all",
+                runner=self.runner(
+                    local_commit="new123",
+                    remote_commit="new123",
+                    changed_files="\n".join([
+                        "BA1_ONE_USER_AUTONOMY_CERTIFICATION_REPORT.md",
+                        "BA1_EVIDENCE/final_verdict.json",
+                    ]),
+                ),
+                cwd=Path(tmp),
+            )
+            self.assertEqual(result["final_verdict"], "PASS")
+            self.assertNotIn("runtime_local_commit_mismatch", result["blockers"])
+            self.assertIn("runtime_local_commit_docs_only_mismatch_ignored", result["warnings"])
+            self.assertTrue(result["runtime"]["commit_mismatch_classification"]["docs_only_mismatch"])
+
+    def test_deployable_runtime_commit_mismatch_still_blocks_runtime_truth(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest = self.manifest(workspace=tmp)
+            manifest["runtime_snapshot_path"] = str(Path(tmp) / "runtime-snapshot.json")
+            snapshot = self.runtime_snapshot(commit="old123")
+            Path(manifest["runtime_snapshot_path"]).write_text(json.dumps(snapshot), encoding="utf-8")
+            result = self.tool.combine_results(
+                manifest,
+                mode="all",
+                runner=self.runner(
+                    local_commit="new123",
+                    remote_commit="new123",
+                    changed_files="admin/v7-admin-api",
+                ),
+                cwd=Path(tmp),
+            )
+            self.assertEqual(result["final_verdict"], "NO-GO")
+            self.assertIn("runtime_local_commit_mismatch", result["blockers"])
+            self.assertFalse(result["runtime"]["commit_mismatch_classification"]["docs_only_mismatch"])
 
     def test_all_mode_blocks_without_runtime_truth(self):
         manifest = self.manifest()

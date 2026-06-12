@@ -17,6 +17,12 @@ import sys
 from pathlib import Path
 from typing import Any, Callable, Optional
 
+TOOLS_DIR = Path(__file__).resolve().parent
+if str(TOOLS_DIR) not in sys.path:
+    sys.path.insert(0, str(TOOLS_DIR))
+
+import v7_sync_lib as sync_lib
+
 
 DEFAULT_MANIFEST = Path("docs/track7/runtime-convergence/V7_TRUTH_MANIFEST.json")
 RUNTIME_SNAPSHOT_SCHEMA = "v7-runtime-truth-snapshot/v1"
@@ -399,7 +405,32 @@ def runtime_identity_from_snapshot(derived: dict[str, Any]) -> dict[str, str]:
     }
 
 
-def runtime_readonly_check(manifest: dict[str, Any], local: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+def docs_only_runtime_commit_mismatch(
+    runtime_commit: str,
+    local_commit: str,
+    *,
+    runner: CommandRunner = run_command,
+) -> dict[str, Any]:
+    changed_files = sync_lib.changed_files_between_commits(runtime_commit, local_commit, runner=runner)
+    classification = sync_lib.classify_deployable_changes(changed_files)
+    docs_only = classification.get("classification") == "DOCS_ONLY_MISMATCH"
+    return {
+        "schema": "v7-runtime-commit-mismatch-classification/v1",
+        "runtime_commit": runtime_commit,
+        "local_commit": local_commit,
+        "changed_files": changed_files,
+        "classification": classification,
+        "docs_only_mismatch": bool(docs_only),
+        "runtime_blocking": not bool(docs_only),
+    }
+
+
+def runtime_readonly_check(
+    manifest: dict[str, Any],
+    local: Optional[dict[str, Any]] = None,
+    *,
+    runner: CommandRunner = run_command,
+) -> dict[str, Any]:
     snapshot_path = runtime_snapshot_path(manifest)
     snapshot = load_runtime_snapshot(snapshot_path)
     if not snapshot:
@@ -418,8 +449,10 @@ def runtime_readonly_check(manifest: dict[str, Any], local: Optional[dict[str, A
     identity = runtime_identity_from_snapshot(derived)
     runtime_branch = identity["runtime_branch"]
     runtime_commit = identity["runtime_commit"]
+    commit_mismatch_classification: dict[str, Any] = {}
 
     blockers: list[str] = []
+    warnings: list[str] = []
     if snapshot.get("schema") != RUNTIME_SNAPSHOT_SCHEMA:
         blockers.append("runtime_snapshot_schema_mismatch")
     unknown_commands = sorted(observed_keys - allowed_keys)
@@ -435,7 +468,15 @@ def runtime_readonly_check(manifest: dict[str, Any], local: Optional[dict[str, A
     if not runtime_commit:
         blockers.append("runtime_commit_unknown")
     if local_commit and local_commit != "UNKNOWN" and runtime_commit and runtime_commit != local_commit:
-        blockers.append("runtime_local_commit_mismatch")
+        commit_mismatch_classification = docs_only_runtime_commit_mismatch(
+            runtime_commit,
+            local_commit,
+            runner=runner,
+        )
+        if commit_mismatch_classification.get("docs_only_mismatch"):
+            warnings.append("runtime_local_commit_docs_only_mismatch_ignored")
+        else:
+            blockers.append("runtime_local_commit_mismatch")
     if derived.get("runtime_root_is_git_checkout") is False and derived.get("runtime_provenance_known") is not True:
         blockers.append("runtime_git_absent_without_deploy_provenance")
     if derived.get("binary_hashes_known") is True and derived.get("binary_hashes_match_authoritative") is False:
@@ -485,7 +526,9 @@ def runtime_readonly_check(manifest: dict[str, Any], local: Optional[dict[str, A
         "missing_commands": missing_commands,
         "unknown_commands": unknown_commands,
         "derived": derived,
+        "commit_mismatch_classification": commit_mismatch_classification,
         "blockers": blockers,
+        "warnings": warnings,
         "convergence_status": "RUNTIME_ALIGNED" if verdict == "PASS" else "RUNTIME_NO_GO",
         "final_verdict": verdict,
     }
@@ -510,7 +553,7 @@ def combine_results(
     repo_root = cwd or Path.cwd()
     local = local_check(manifest, runner=runner, cwd=repo_root)
     github = github_check(manifest, local, runner=runner, cwd=repo_root) if mode in {"github", "all"} else {}
-    runtime = runtime_readonly_check(manifest, local=local) if mode in {"runtime-readonly", "all"} else {}
+    runtime = runtime_readonly_check(manifest, local=local, runner=runner) if mode in {"runtime-readonly", "all"} else {}
 
     blockers: list[str] = []
     warnings: list[str] = []

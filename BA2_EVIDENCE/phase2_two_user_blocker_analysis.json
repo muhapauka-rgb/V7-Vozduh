@@ -1,0 +1,63 @@
+{
+  "summary": {
+    "users_total": 26,
+    "egress_total": 7,
+    "healthy_egress_total": 2,
+    "candidate_moves": 25,
+    "candidate_moves_total": 25,
+    "selected_moves": 0,
+    "reconnect_rotation_candidates": 0,
+    "rebalance_candidates": 0,
+    "org_groups": [
+      "default"
+    ]
+  },
+  "planned_limit": 1,
+  "requested_max_selected_moves": 2,
+  "authority_budget_gate": {
+    "authority_class": "POOL",
+    "current_allowed_user_budget": 25,
+    "selected_moves_before_gate": 1,
+    "selected_moves_after_gate": 1,
+    "decision": "selected_moves_within_authority_budget"
+  },
+  "dynamic_blast_radius": {
+    "total_active_users": 26,
+    "affected_candidate_moves": 25,
+    "selected_after_policy_count": 1,
+    "selected_after_request_cap_count": 1,
+    "selected_after_authority_budget_count": 1,
+    "requested_max_selected_moves": 2,
+    "authority_allowed_user_budget": 25,
+    "effective_blast_radius": 1,
+    "scope": "bounded_by_policy_or_capacity",
+    "policy_failover_limit": 25,
+    "policy_planned_limit": 1,
+    "service_risk_inputs_present": true,
+    "platform_health_inputs_present": true
+  },
+  "restore_barrier": {
+    "expired": true,
+    "clearance_max_selected_moves": 1,
+    "clearance_expected_selected_moves": 1,
+    "allowed_users": [
+      "10.0.0.2"
+    ],
+    "allowed_targets": [
+      "awg3"
+    ],
+    "clearance_expires_at": "2026-06-12T20:22:50.977690+00:00"
+  },
+  "snapshot_gate": {
+    "stop_required": false,
+    "source_mismatch_families": [],
+    "selected_moves_before_gate": 0,
+    "selected_moves_after_gate": null,
+    "selected_moves_suppressed": false
+  },
+  "operation": {
+    "terminal_state": "DRY_RUN",
+    "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired",
+    "selected_move_count": 0
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "operation": {
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_type": "runtime_autoswitch",
+    "operation_started_at": "2026-06-12T21:02:28.164270+00:00",
+    "planner_generation_id": "c947c4022e8b90718ff02707d560934dce7df129ea81e33a47f8c7c347ea37f0",
+    "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "selected_move_count": 0,
+    "runtime_snapshot_hash": "59facdf1b924360d5d69ac9bf297b9408b17de0175f45a1e75700e93c5baef9e",
+    "operation_id": "runtime_autoswitch_b1414c1105fa88068792cf4a",
+    "atomic_execution_envelope_id": "aee_e706aa3ac87d887fef782f23",
+    "atomic_execution_envelope_hash": "e706aa3ac87d887fef782f2306304b5eb7de498922a349b1e1a187e35b716600",
+    "terminal_state": "DRY_RUN",
+    "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired"
+  },
+  "terminal_state": "DRY_RUN",
+  "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired",
+  "selected_count": 0,
+  "selected_moves": [],
+  "apply_requested": false,
+  "snapshot_gate": {
+    "stop_required": false,
+    "source_mismatch_families": []
+  },
+  "refresh": "REFRESH_SUCCESS",
+  "authority": null
+}

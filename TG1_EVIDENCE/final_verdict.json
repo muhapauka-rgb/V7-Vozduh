@@ -1,0 +1,33 @@
+{
+  "program": "TG.1",
+  "final_verdict": "TRUTH_GATE_CLOSED_NEW_BLOCKER",
+  "docs_only_truth_blocker_closed": true,
+  "truth_after_fix": {
+    "final_verdict": "PASS",
+    "convergence_status": "FULLY_ALIGNED",
+    "blockers": []
+  },
+  "convergence_after_fix": {
+    "final_verdict": "PASS",
+    "status": "ALIGNED",
+    "runtime_action_status": "READY_FOR_RUNTIME_ACTION",
+    "runtime_action_safe": true
+  },
+  "ba1_recertification": {
+    "truth_pass": true,
+    "convergence_pass": true,
+    "candidate_moves_total": 26,
+    "selected_moves": 0,
+    "snapshot_stop_required": true,
+    "source_mismatch_families": [
+      "channel-service-scores",
+      "service-scores"
+    ]
+  },
+  "new_single_blocker": "snapshot_source_mismatch_service_scores_channel_service_scores",
+  "users_moved": 0,
+  "apply_executed": false,
+  "autonomy_enabled": false,
+  "routing_changed": false,
+  "safe_next_step": "REFRESH_PRODUCTION_INTELLIGENCE_SNAPSHOTS_THEN_RERUN_BA1"
+}

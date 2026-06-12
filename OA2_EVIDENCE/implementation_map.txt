@@ -1,0 +1,28 @@
+admin_core/operator_views.py:66:    return operator_observability.build_operator_approved_execution_controller_preview(decision, repo_root=repo_root)
+tests/unit/test_operator_observability.py:7:    build_operator_approved_execution_controller_preview,
+tests/unit/test_operator_observability.py:83:        self.assertIn('elif path == "/api/operator/approved-execution-controller-preview"', source)
+tests/unit/test_operator_observability.py:97:        self.assertIn('openOperatorApprovedControllerPreview', source)
+tests/unit/test_operator_observability.py:101:        approve = build_operator_approved_execution_controller_preview("APPROVE")
+tests/unit/test_operator_observability.py:102:        reject = build_operator_approved_execution_controller_preview("REJECT")
+tests/unit/test_operator_execution_pipeline.py:325:        self.assertTrue(verdicts["operator_approved_controller_preview_ready"])
+tests/unit/test_operator_execution_pipeline.py:329:        model = pipeline.operator_approved_execution_controller_preview("APPROVE")
+tests/unit/test_operator_execution_pipeline.py:362:        model = pipeline.operator_approved_execution_controller_preview("REJECT")
+tests/unit/test_operator_execution_pipeline.py:405:        self.assertTrue(foundation["readiness_certification"]["operator_approval_ready"])
+tests/unit/test_operator_execution_pipeline.py:470:        self.assertTrue(dashboard["operator_approval_review"]["operator_approval_ready"])
+admin_core/operator_observability.py:1586:def build_operator_approved_execution_controller_preview(decision="DRAFT", repo_root=None):
+admin_core/operator_observability.py:1587:    return operator_execution_pipeline.operator_approved_execution_controller_preview(decision=decision)
+admin_core/operator_execution_pipeline.py:2222:            "operator_approval_ready": bool(certification.get("operator_approval_ready")),
+admin_core/operator_execution_pipeline.py:2316:            "operator_approval_ready": not hard_blockers,
+admin_core/operator_execution_pipeline.py:2347:def operator_approved_execution_controller_preview(decision: str = "DRAFT") -> dict[str, Any]:
+admin_core/operator_execution_pipeline.py:2358:        "schema_version": "v7.operator-approved-execution-controller-preview.v1",
+admin_core/operator_execution_pipeline.py:2546:    oa_controller = operator_approved_execution_controller_preview()
+admin_core/operator_execution_pipeline.py:2599:            "operator_approval_ready": True,
+admin_core/operator_execution_pipeline.py:2600:            "operator_approved_controller_preview_ready": True,
+admin/v7-admin-api:19716:def operator_approved_execution_controller_preview(decision="DRAFT"):
+admin/v7-admin-api:28241:        `<div class="operator-row-card"><div class="operator-row-head"><strong>Живой цикл</strong>${pill(operatorStageLabel(perf.current_stage || 'waiting'), 'info')}</div><em>Последний успех: ${esc(perf.latest_success_ref || 'нет')} · ошибка: ${esc(perf.latest_failure_ref || 'нет')} · откат: ${esc(perf.latest_rollback_ref || 'нет')}</em><div class="operator-timeline-meta">${pill(`success ${perf.success_rate ?? 'нет данных'}`, 'muted')}${pill(`rollback ${perf.rollback_rate ?? 'нет данных'}`, 'muted')}${pill(approval.operator_approval_ready ? 'approval готов' : 'approval проверить', approval.operator_approval_ready ? 'ok' : 'warn')}</div></div>`,
+admin/v7-admin-api:28276:        `<div class="operator-row-card"><div class="operator-row-head"><strong>Autonomous Dry Run</strong>${pill('без apply', 'ok')}${pill(ready ? 'canary готов' : 'canary не готов', ready ? 'ok' : 'warn')}</div><em>V7 сама проходит цикл решения до границы выполнения: пакет, откат, restore barrier, проверка и audit preview.</em><div class="operator-timeline-meta">${pill(`кандидатов ${model.candidate_count || 0}`, 'info')}${pill(`apply ${model.apply_executed ? 'да' : 'нет'}`, model.apply_executed ? 'bad' : 'ok')}${pill(`сдвинуто ${model.users_moved || 0}`, model.users_moved ? 'bad' : 'ok')}${pill(`rollback ${model.rollback_executed ? 'да' : 'нет'}`, model.rollback_executed ? 'bad' : 'ok')}</div><div class="detail-actions"><button class="primary" onclick="openOperatorApprovedControllerPreview('APPROVE')">Approve preview</button><button class="ghost" onclick="openOperatorApprovedControllerPreview('REJECT')">Reject preview</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Live apply · disabled</button></div></div>`,
+admin/v7-admin-api:28283:    async function openOperatorApprovedControllerPreview(decision='DRAFT') {
+admin/v7-admin-api:28286:        data = await api('/api/operator/approved-execution-controller-preview?decision=' + encodeURIComponent(decision || 'DRAFT'));
+admin/v7-admin-api:28302:        drawerSection('Operator sees', `<p class="operator-muted-line">${esc((ui.shows || []).map(operatorShort).join(', ') || 'why, risk, rollback, expected outcome')}</p><div class="detail-actions"><button class="primary" onclick="openOperatorApprovedControllerPreview('APPROVE')">Approve preview</button><button class="ghost" onclick="openOperatorApprovedControllerPreview('REJECT')">Reject preview</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Execute live · disabled</button></div>`),
+admin/v7-admin-api:34391:        elif path == "/api/operator/approved-execution-controller-preview":
+admin/v7-admin-api:34395:            self.send_json(operator_approved_execution_controller_preview(decision))

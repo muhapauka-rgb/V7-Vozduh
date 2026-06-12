@@ -62,6 +62,10 @@ def execution_rehearsal_preview(operation_id: str = "", *, repo_root: Path) -> d
     return operator_observability.build_operator_execution_rehearsal_preview(operation_id, repo_root=repo_root)
 
 
+def approved_execution_controller_preview(decision: str = "DRAFT", *, repo_root: Path) -> dict:
+    return operator_observability.build_operator_approved_execution_controller_preview(decision, repo_root=repo_root)
+
+
 def evidence_archive(*, repo_root: Path) -> dict:
     return operator_observability.build_operator_evidence_archive(repo_root=repo_root)
 

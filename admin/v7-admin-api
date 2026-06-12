@@ -19713,6 +19713,10 @@ def operator_execution_rehearsal_preview(operation_id=""):
     return operator_views.execution_rehearsal_preview(operation_id, repo_root=REPO_ROOT)
 
 
+def operator_approved_execution_controller_preview(decision="DRAFT"):
+    return operator_views.approved_execution_controller_preview(decision, repo_root=REPO_ROOT)
+
+
 def operator_evidence_archive():
     return operator_views.evidence_archive(repo_root=REPO_ROOT)
 
@@ -28269,12 +28273,36 @@ def html_page_v2():
       const ready = model.canary_autonomy_ready === true;
       const rows = wouldMove.slice(0, 5).map(row => `<div class="operator-row-card"><div class="operator-row-head"><strong>${esc(row.user || 'пользователь')}</strong>${pill('симуляция', 'info')}</div><em>${esc(row.from || '—')} → ${esc(row.to || '—')} · риск ${esc(row.risk ?? 'нет')}</em><p class="operator-muted-line">Откат: ${esc(row.rollback_target || 'неизвестно')} · проверка: ${(row.verification_plan || []).map(operatorShort).join(', ')}</p></div>`).join('');
       host.innerHTML = [
-        `<div class="operator-row-card"><div class="operator-row-head"><strong>Autonomous Dry Run</strong>${pill('без apply', 'ok')}${pill(ready ? 'canary готов' : 'canary не готов', ready ? 'ok' : 'warn')}</div><em>V7 сама проходит цикл решения до границы выполнения: пакет, откат, restore barrier, проверка и audit preview.</em><div class="operator-timeline-meta">${pill(`кандидатов ${model.candidate_count || 0}`, 'info')}${pill(`apply ${model.apply_executed ? 'да' : 'нет'}`, model.apply_executed ? 'bad' : 'ok')}${pill(`сдвинуто ${model.users_moved || 0}`, model.users_moved ? 'bad' : 'ok')}${pill(`rollback ${model.rollback_executed ? 'да' : 'нет'}`, model.rollback_executed ? 'bad' : 'ok')}</div></div>`,
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Autonomous Dry Run</strong>${pill('без apply', 'ok')}${pill(ready ? 'canary готов' : 'canary не готов', ready ? 'ok' : 'warn')}</div><em>V7 сама проходит цикл решения до границы выполнения: пакет, откат, restore barrier, проверка и audit preview.</em><div class="operator-timeline-meta">${pill(`кандидатов ${model.candidate_count || 0}`, 'info')}${pill(`apply ${model.apply_executed ? 'да' : 'нет'}`, model.apply_executed ? 'bad' : 'ok')}${pill(`сдвинуто ${model.users_moved || 0}`, model.users_moved ? 'bad' : 'ok')}${pill(`rollback ${model.rollback_executed ? 'да' : 'нет'}`, model.rollback_executed ? 'bad' : 'ok')}</div><div class="detail-actions"><button class="primary" onclick="openOperatorApprovedControllerPreview('APPROVE')">Approve preview</button><button class="ghost" onclick="openOperatorApprovedControllerPreview('REJECT')">Reject preview</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Live apply · disabled</button></div></div>`,
         `<div class="operator-row-card"><div class="operator-row-head"><strong>Что V7 сделала бы</strong>${pill(summary.risk || (ready ? 'LOW' : 'BLOCKED'), ready ? 'ok' : 'warn')}</div><em>${esc(operatorShort(summary.blocked_reason || model.single_blocker || 'NONE'))}</em><p class="operator-muted-line">Исполнитель остаётся прежним: ${esc(model.owner_reuse_audit?.planner || 'tools/v7-users-autoswitch')} → ${esc(model.owner_reuse_audit?.packet_tool || 'tools/v7-operator-execution-packet')} → ${esc(model.owner_reuse_audit?.rollback_model || 'admin_core/operator_execution.py')}</p></div>`,
         rows || '<div class="operator-muted-line">Нет безопасного canary-кандидата для симуляции.</div>',
         `<div class="operator-row-card"><div class="operator-row-head"><strong>План отката</strong>${pill((rollback.rollback_items || []).length ? 'подготовлен' : 'нет кандидата', (rollback.rollback_items || []).length ? 'ok' : 'warn')}</div><em>Решение: ${esc(operatorShort(rollback.rollback_decision || 'UNKNOWN'))}</em><p class="operator-muted-line">Стоп-гейты: ${esc(blockers.length ? blockers.map(operatorShort).join(', ') : 'нет')}</p></div>`,
         `<div class="operator-row-card"><div class="operator-row-head"><strong>Доказательства автономии</strong>${pill(autonomyEvidence.canary_autonomy_ready ? 'canary готов' : 'не готов', autonomyEvidence.canary_autonomy_ready ? 'ok' : 'warn')}${pill(`score ${Number(autonomyEvidence.autonomy_specific_evidence_score || 0).toFixed(0)}`, 'info')}</div><em>Trigger: ${esc(operatorShort(trigger.status || 'UNKNOWN'))} · Stop: ${esc(operatorShort(selfStop.status || 'UNKNOWN'))} · Rollback: ${esc(operatorShort(rollbackEvidence.status || 'UNKNOWN'))}</em><div class="operator-timeline-meta">${pill(`comparison ${operatorShort(comparison.status || 'нет')}`, comparison.proved ? 'ok' : 'warn')}${pill(`apply ${model.apply_executed ? 'да' : 'нет'}`, model.apply_executed ? 'bad' : 'ok')}${pill(`autonomy ${model.autonomy_enabled ? 'да' : 'нет'}`, model.autonomy_enabled ? 'bad' : 'ok')}</div><p class="operator-muted-line">Не хватает: ${esc((autonomyEvidence.current_missing_evidence || []).length ? autonomyEvidence.current_missing_evidence.map(operatorShort).join(', ') : 'NONE')}</p></div>`,
       ].join('');
+    }
+    async function openOperatorApprovedControllerPreview(decision='DRAFT') {
+      let data = null;
+      try {
+        data = await api('/api/operator/approved-execution-controller-preview?decision=' + encodeURIComponent(decision || 'DRAFT'));
+      } catch (error) {
+        data = {error:String(error?.message || error), preview_only:true, execution_allowed_now:false, steps:[]};
+      }
+      const steps = data.steps || [];
+      const rows = steps.map(row => `<tr><td>${esc(row.step ?? '')}</td><td>${esc(operatorShort(row.name || ''))}</td><td>${esc(operatorShort(row.owner || ''))}</td><td>${esc((row.inputs || []).map(operatorShort).join(', '))}</td><td>${esc((row.outputs || []).map(operatorShort).join(', '))}</td><td>${pill(row.runtime_mutation_performed_now ? 'yes' : 'no', row.runtime_mutation_performed_now ? 'bad' : 'ok')}</td></tr>`);
+      const ui = data.operator_ui_contract || {};
+      openCompactDrawer('Operator Approved Controller', 'operator', [
+        drawerSection('Decision boundary', kvRows({
+          'Decision': data.decision || decision || 'DRAFT',
+          'Preview only': String(data.preview_only !== false),
+          'Execution allowed now': String(data.execution_allowed_now === true),
+          'Apply executed': String(data.apply_executed === true),
+          'Users moved': data.users_moved ?? 0,
+          'Autonomy enabled': String(data.autonomy_enabled === true),
+        })),
+        drawerSection('Operator sees', `<p class="operator-muted-line">${esc((ui.shows || []).map(operatorShort).join(', ') || 'why, risk, rollback, expected outcome')}</p><div class="detail-actions"><button class="primary" onclick="openOperatorApprovedControllerPreview('APPROVE')">Approve preview</button><button class="ghost" onclick="openOperatorApprovedControllerPreview('REJECT')">Reject preview</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Execute live · disabled</button></div>`),
+        drawerSection('Steps', listTable(['#','Step','Owner','Inputs','Outputs','Mutation now'], rows, 'No controller steps available.')),
+        drawerSection('Blocked actions', `<p class="operator-muted-line">${esc((data.blocked_actions || []).map(operatorShort).join(', ') || 'runtime actions disabled in preview')}</p>`),
+      ].join(''), {size:'table'});
     }
     function renderOperatorShadowAutonomy(shadow={}) {
       const host = document.getElementById('operatorShadowAutonomy');
@@ -34360,6 +34388,11 @@ class Handler(BaseHTTPRequestHandler):
                 return
             operation_id = (parse_qs(urlparse(self.path).query).get("id") or [""])[0]
             self.send_json(operator_execution_rehearsal_preview(operation_id))
+        elif path == "/api/operator/approved-execution-controller-preview":
+            if not self.require_auth(api=True):
+                return
+            decision = (parse_qs(urlparse(self.path).query).get("decision") or ["DRAFT"])[0]
+            self.send_json(operator_approved_execution_controller_preview(decision))
         elif path == "/api/operator/evidence-file-detail":
             if not self.require_auth(api=True):
                 return

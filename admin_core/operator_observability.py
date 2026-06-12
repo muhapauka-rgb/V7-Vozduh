@@ -1581,3 +1581,7 @@ def build_operator_execution_governance_preview(operation_id="", repo_root=None)
 
 def build_operator_execution_rehearsal_preview(operation_id="", repo_root=None):
     return execution_rehearsal_preview(Path(repo_root or Path.cwd()), operation_id=operation_id)
+
+
+def build_operator_approved_execution_controller_preview(decision="DRAFT", repo_root=None):
+    return operator_execution_pipeline.operator_approved_execution_controller_preview(decision=decision)

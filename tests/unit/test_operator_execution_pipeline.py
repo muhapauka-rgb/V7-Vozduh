@@ -322,6 +322,54 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(cert["single_execution_path"]["runtime_apply"], pipeline.CANONICAL_RUNTIME_EXECUTOR)
         self.assertTrue(verdicts["execution_loop_readiness_foundation_complete"])
         self.assertIn("execution_loop_readiness_foundation", cert)
+        self.assertTrue(verdicts["operator_approved_controller_preview_ready"])
+        self.assertTrue(cert["operator_approved_execution_controller"]["preview_only"])
+
+    def test_operator_approved_controller_approve_preview_reuses_existing_owners(self):
+        model = pipeline.operator_approved_execution_controller_preview("APPROVE")
+        owners = model["owner_reuse"]
+        step_names = [row["name"] for row in model["steps"]]
+
+        self.assertEqual(model["decision"], "APPROVE")
+        self.assertTrue(model["preview_only"])
+        self.assertFalse(model["execution_allowed_now"])
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["autonomy_enabled"])
+        self.assertEqual(owners["planner"], pipeline.CANONICAL_PLANNER)
+        self.assertEqual(owners["packet"], pipeline.CANONICAL_PACKET_TOOL)
+        self.assertEqual(owners["restore_barrier"], pipeline.CANONICAL_PACKET_OWNER)
+        self.assertEqual(owners["apply"], pipeline.CANONICAL_RUNTIME_EXECUTOR)
+        self.assertEqual(owners["feedback"], pipeline.CANONICAL_FEEDBACK_OWNER)
+        self.assertEqual(step_names, [
+            "fresh_planner",
+            "packet",
+            "runtime_recheck",
+            "restore_barrier",
+            "apply",
+            "verify",
+            "rollback_readiness",
+            "feedback",
+            "closure",
+            "trust_refresh",
+        ])
+        self.assertTrue(model["final_certification"]["operator_reduced_to_approve_reject"])
+        for value in model["no_bypass_certification"].values():
+            self.assertFalse(value)
+
+    def test_operator_approved_controller_reject_preview_closure_only(self):
+        model = pipeline.operator_approved_execution_controller_preview("REJECT")
+
+        self.assertEqual(model["decision"], "REJECT")
+        self.assertEqual(model["terminal_preview_state"], "REJECTED_CLOSURE_ONLY")
+        self.assertTrue(model["closure_only"])
+        self.assertEqual([row["name"] for row in model["steps"]], ["reject_closure"])
+        self.assertEqual(model["steps"][0]["owner"], pipeline.CANONICAL_FEEDBACK_OWNER)
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["routing_changed"])
+        self.assertIn("governed apply", model["blocked_actions"])
 
     def test_execution_loop_readiness_foundation_extracts_stage_timing(self):
         foundation = pipeline.execution_loop_readiness_foundation(

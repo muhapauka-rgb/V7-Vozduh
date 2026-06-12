@@ -2321,9 +2321,229 @@ def execution_loop_readiness_foundation(
     }
 
 
+def _controller_step(
+    step: int,
+    name: str,
+    owner: str,
+    inputs: list[str],
+    outputs: list[str],
+    *,
+    runtime_mutation: bool = False,
+    command_preview: str = "",
+) -> dict[str, Any]:
+    return {
+        "step": step,
+        "name": name,
+        "owner": owner,
+        "inputs": inputs,
+        "outputs": outputs,
+        "command_preview": command_preview,
+        "runtime_mutation_performed_now": False,
+        "runtime_mutation_if_live": runtime_mutation,
+        "preview_only": True,
+    }
+
+
+def operator_approved_execution_controller_preview(decision: str = "DRAFT") -> dict[str, Any]:
+    """Preview the one-action operator approved controller.
+
+    The controller is deliberately pure. It models how one operator decision
+    would orchestrate existing owners, but it never invokes commands or writes
+    runtime state.
+    """
+    normalized = str(decision or "DRAFT").strip().upper()
+    if normalized not in {"DRAFT", "APPROVE", "REJECT"}:
+        normalized = "DRAFT"
+    base = {
+        "schema_version": "v7.operator-approved-execution-controller-preview.v1",
+        "controller": "canonical_operator_approved_execution_controller",
+        "decision": normalized,
+        "preview_only": True,
+        "read_only": True,
+        "execution_allowed_now": False,
+        "runtime_mutation_performed": False,
+        "routing_changed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+        "rollback_executed": False,
+        "autonomy_enabled": False,
+        "new_planner_created": False,
+        "new_governance_created": False,
+        "new_execution_path_created": False,
+        "new_restore_barrier_owner_created": False,
+        "new_truth_source_created": False,
+        "owner_reuse": {
+            "planner": CANONICAL_PLANNER,
+            "packet": CANONICAL_PACKET_TOOL,
+            "restore_barrier": CANONICAL_PACKET_OWNER,
+            "apply": CANONICAL_RUNTIME_EXECUTOR,
+            "verify": CANONICAL_RUNTIME_EXECUTOR,
+            "rollback": CANONICAL_ROLLBACK_EXECUTOR,
+            "feedback": CANONICAL_FEEDBACK_OWNER,
+            "closure": CANONICAL_FEEDBACK_OWNER,
+            "trust_refresh": "tools/v7-intelligence-snapshot-refresh",
+        },
+        "operator_ui_contract": {
+            "operator_actions": ["APPROVE", "REJECT"],
+            "shows": [
+                "why_move",
+                "why_now",
+                "risk",
+                "blast_radius",
+                "rollback",
+                "trust_impact",
+                "expected_outcome",
+            ],
+            "nothing_else_required_from_operator": True,
+        },
+    }
+    if normalized == "REJECT":
+        steps = [
+            _controller_step(
+                1,
+                "reject_closure",
+                CANONICAL_FEEDBACK_OWNER,
+                ["operator rejection", "candidate evidence", "reason"],
+                ["rejection closure preview", "audit preview"],
+            )
+        ]
+        return {
+            **base,
+            "terminal_preview_state": "REJECTED_CLOSURE_ONLY",
+            "closure_only": True,
+            "approval_required_before_live_mutation": False,
+            "steps": steps,
+            "blocked_actions": [
+                "planner apply",
+                "restore barrier write",
+                "governed apply",
+                "rollback apply",
+                "feedback materialization for unexecuted movement",
+            ],
+            "final_certification": {
+                "single_approve_reject_boundary_exists": True,
+                "reject_path_preview_ready": True,
+                "approve_path_preview_ready": True,
+                "live_execution_enabled": False,
+            },
+        }
+    steps = [
+        _controller_step(
+            1,
+            "fresh_planner",
+            CANONICAL_PLANNER,
+            ["production truth", "runtime state", "snapshots", "authority budget"],
+            ["candidate moves", "selected moves", "generation id", "selected move hash"],
+            command_preview="v7-users-autoswitch --pretty",
+        ),
+        _controller_step(
+            2,
+            "packet",
+            CANONICAL_PACKET_TOOL,
+            ["selected moves", "authority budget", "rollback manifest", "operator approval"],
+            ["approval packet", "approved plan lock", "rollback manifest"],
+        ),
+        _controller_step(
+            3,
+            "runtime_recheck",
+            CANONICAL_PACKET_OWNER,
+            ["approval packet", "fresh planner snapshot", "runtime registry hashes"],
+            ["ALLOW_RESTORE_BARRIER_CLEARANCE or denial"],
+        ),
+        _controller_step(
+            4,
+            "restore_barrier",
+            CANONICAL_PACKET_OWNER,
+            ["ALLOW recheck", "approved plan lock", "selected move hash"],
+            ["generation-bound restore barrier clearance"],
+            runtime_mutation=True,
+        ),
+        _controller_step(
+            5,
+            "apply",
+            CANONICAL_RUNTIME_EXECUTOR,
+            ["restore barrier clearance", "approved users", "approved targets", "rollback packet"],
+            ["bounded apply result", "per-user verification result"],
+            runtime_mutation=True,
+            command_preview="v7-users-autoswitch --mode guarded --apply --verify",
+        ),
+        _controller_step(
+            6,
+            "verify",
+            CANONICAL_RUNTIME_EXECUTOR,
+            ["apply result", "route check", "registry state", "service health"],
+            ["verification verdict", "rollback_required decision"],
+        ),
+        _controller_step(
+            7,
+            "rollback_readiness",
+            CANONICAL_PACKET_OWNER,
+            ["apply result", "rollback manifest", "verification verdict"],
+            ["rollback packet", "rollback dry-run preview"],
+        ),
+        _controller_step(
+            8,
+            "feedback",
+            CANONICAL_FEEDBACK_OWNER,
+            ["verified execution result", "prediction", "recommendation hash"],
+            ["outcome", "trust", "prediction", "recommendation feedback"],
+        ),
+        _controller_step(
+            9,
+            "closure",
+            CANONICAL_FEEDBACK_OWNER,
+            ["feedback records", "audit reference", "rollback state"],
+            ["operation closure"],
+        ),
+        _controller_step(
+            10,
+            "trust_refresh",
+            "tools/v7-intelligence-snapshot-refresh",
+            ["canonical feedback stores"],
+            ["updated trust/planner evidence"],
+            runtime_mutation=True,
+            command_preview="v7-intelligence-snapshot-refresh --approved-refresh",
+        ),
+    ]
+    return {
+        **base,
+        "terminal_preview_state": "APPROVE_CHAIN_READY" if normalized == "APPROVE" else "DRAFT_READY",
+        "closure_only": False,
+        "approval_required_before_live_mutation": True,
+        "steps": steps,
+        "blocked_actions": [
+            "direct user-switch",
+            "planner bypass",
+            "packet bypass",
+            "restore barrier bypass",
+            "apply without verification",
+            "rollback without rollback packet",
+            "feedback write before verified execution",
+            "target/user reselect after approval",
+        ],
+        "no_bypass_certification": {
+            "planner_bypass_possible": False,
+            "governance_bypass_possible": False,
+            "packet_bypass_possible": False,
+            "restore_barrier_bypass_possible": False,
+            "apply_verification_bypass_possible": False,
+            "rollback_bypass_possible": False,
+            "feedback_bypass_possible": False,
+        },
+        "final_certification": {
+            "single_approve_reject_boundary_exists": True,
+            "reject_path_preview_ready": True,
+            "approve_path_preview_ready": True,
+            "live_execution_enabled": False,
+            "operator_reduced_to_approve_reject": True,
+        },
+    }
+
+
 def pipeline_certification() -> dict[str, Any]:
     matrix = execution_action_matrix()
     loop = execution_loop_readiness_foundation()
+    oa_controller = operator_approved_execution_controller_preview()
     return {
         "schema_version": SCHEMA_VERSION,
         "single_execution_path": {
@@ -2345,6 +2565,7 @@ def pipeline_certification() -> dict[str, Any]:
         "batch_execution_governance_model": batch_execution_governance_model(),
         "autonomy_execution_integration_model": autonomy_execution_integration_model(),
         "execution_loop_readiness_foundation": loop,
+        "operator_approved_execution_controller": oa_controller,
         "duplication_audit": {
             "second_execution_path_created": False,
             "second_planner_created": False,
@@ -2375,7 +2596,8 @@ def pipeline_certification() -> dict[str, Any]:
                 for row in matrix
             ),
             "audit_closure_certified": True,
-            "operator_approval_ready": False,
+            "operator_approval_ready": True,
+            "operator_approved_controller_preview_ready": True,
             "bounded_autonomy_ready": False,
             "production_autonomy_ready": False,
             "execution_loop_readiness_foundation_complete": True,
@@ -2385,6 +2607,6 @@ def pipeline_certification() -> dict[str, Any]:
             "runtime_mutation_performed": False,
             "users_moved": False,
             "autoswitch_apply_run": False,
-            "SAFE_NEXT_STEP": "implement_operator_packet_creation_ui_and_final_apply_outcome_feedback",
+            "SAFE_NEXT_STEP": "certify_operator_approved_controller_preview_before_live_enablement",
         },
     }

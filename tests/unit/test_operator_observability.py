@@ -4,6 +4,7 @@ from pathlib import Path
 
 from admin_core.operator_observability import (
     build_operator_approval_preview,
+    build_operator_approved_execution_controller_preview,
     build_operator_audit_export_preview,
     build_operator_audit_search,
     build_operator_evidence_archive,
@@ -79,6 +80,7 @@ class OperatorObservabilityTest(unittest.TestCase):
         self.assertIn('elif path == "/api/operator/audit-export-preview"', source)
         self.assertIn('elif path == "/api/operator/execution-governance-preview"', source)
         self.assertIn('elif path == "/api/operator/execution-rehearsal-preview"', source)
+        self.assertIn('elif path == "/api/operator/approved-execution-controller-preview"', source)
         self.assertIn('elif path == "/api/operator/evidence-file-detail"', source)
         self.assertNotIn('elif path == "/api/actions/operator', source)
         self.assertNotIn('path == "/api/operator/', source.split("def do_POST", 1)[-1])
@@ -92,7 +94,22 @@ class OperatorObservabilityTest(unittest.TestCase):
         self.assertIn('openOperatorAuditExportPreview', source)
         self.assertIn('openOperatorExecutionGovernance', source)
         self.assertIn('openOperatorExecutionRehearsal', source)
+        self.assertIn('openOperatorApprovedControllerPreview', source)
         self.assertIn('aria-disabled="true"', source)
+
+    def test_operator_approved_controller_preview_is_one_action_and_read_only(self):
+        approve = build_operator_approved_execution_controller_preview("APPROVE")
+        reject = build_operator_approved_execution_controller_preview("REJECT")
+
+        self.assertEqual(approve["operator_ui_contract"]["operator_actions"], ["APPROVE", "REJECT"])
+        self.assertTrue(approve["preview_only"])
+        self.assertFalse(approve["execution_allowed_now"])
+        self.assertFalse(approve["apply_executed"])
+        self.assertEqual(approve["users_moved"], 0)
+        self.assertIn("apply", [row["name"] for row in approve["steps"]])
+        self.assertTrue(reject["closure_only"])
+        self.assertEqual([row["name"] for row in reject["steps"]], ["reject_closure"])
+        self.assertFalse(reject["runtime_mutation_performed"])
 
     def test_approval_preview_is_disabled_and_contract_shaped(self):
         with tempfile.TemporaryDirectory() as tmp:

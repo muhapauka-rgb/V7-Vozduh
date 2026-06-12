@@ -1,0 +1,21 @@
+{
+  "program": "OA.2",
+  "final_verdict": "OA_READY",
+  "canonical_controller_created": true,
+  "preview_only": true,
+  "approve_path_preview_ready": true,
+  "reject_path_preview_ready": true,
+  "operator_reduced_to_approve_reject": true,
+  "single_approve_reject_boundary_exists": true,
+  "new_planner_created": false,
+  "new_governance_owner_created": false,
+  "new_execution_path_created": false,
+  "new_restore_barrier_owner_created": false,
+  "new_truth_source_created": false,
+  "users_moved_by_oa2": 0,
+  "apply_executed_by_oa2": false,
+  "routing_changed_by_oa2": false,
+  "autonomy_enabled": false,
+  "tests_pass": true,
+  "safe_next_step": "OA3_OPERATOR_APPROVED_CONTROLLER_PRODUCTION_PREVIEW_OBSERVATION_AND_LIVE_ENABLEMENT_GATE"
+}

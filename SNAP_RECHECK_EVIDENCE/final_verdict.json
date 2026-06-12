@@ -1,0 +1,23 @@
+{
+  "program": "SNAP.RECHECK",
+  "final_verdict": "DIFFERENT_PATH_FIXED",
+  "root_cause_classification": "DIFFERENT_EXECUTION_PATH",
+  "old_root_cause_returned": false,
+  "different_execution_path": true,
+  "new_mismatch": false,
+  "false_positive": false,
+  "snapshot_blocker_closed_on_canonical_path": true,
+  "bare_legacy_path_certified_for_autonomy": false,
+  "canonical_ba1_path": "v7-users-autoswitch --pre-planner-refresh write --pre-planner-refresh-command v7-intelligence-snapshot-refresh --max-selected-moves 1 --pretty",
+  "truth_pass_after_fix": true,
+  "convergence_pass_after_fix": true,
+  "ba1_snapshot_stop_required": false,
+  "ba1_source_mismatch_families": [],
+  "new_single_blocker": "restore_barrier_clearance_generation_expired",
+  "users_moved": 0,
+  "apply_executed": false,
+  "autonomy_enabled": false,
+  "routing_changed": false,
+  "deploy_executed": false,
+  "safe_next_step": "BA1_FRESH_ONE_USER_PACKET_AND_RESTORE_BARRIER_RECHECK"
+}

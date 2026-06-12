@@ -1,0 +1,4 @@
+/opt/v7/egress/state/service-matrix.json 123430 2026-06-12 22:54:00.479889811 +0300
+/opt/v7/egress/state/service-preferences.json 466 2026-05-19 20:55:59.000581372 +0300
+/opt/v7/egress/state/intelligence/service-scores.json 25935 2026-06-12 22:53:41.091311374 +0300
+/opt/v7/egress/state/intelligence/channel-service-scores.json 4652 2026-06-12 22:53:41.091866675 +0300

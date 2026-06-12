@@ -1,0 +1,4 @@
+23967da9b18c966e2013a35e2dd0c2d01914a24092d109f96272259acafb8fd4  /opt/v7/egress/state/service-matrix.json
+4eaa0c3aea66c8b414d4b8fb44d01a19ff9e10ade17fcb568c0ee9d169b8c611  /opt/v7/egress/state/service-preferences.json
+52a75dff3a0ac9578dd4e88d823405a4881783bcd0b2278c9d14492906742358  /opt/v7/egress/state/intelligence/service-scores.json
+a7fb80723680210032a92f21e2d8446909e69d7408a65ddb1aaaec0bdb0d459d  /opt/v7/egress/state/intelligence/channel-service-scores.json

@@ -1,0 +1,3 @@
+c287df45cc1f30f4e4af78800faa2a8ee0af73a371cdca92ff0850005166a1f1  /opt/v7/egress/state/service-matrix.json
+c3a91ad2a1d332c9f78e6c27480520e0b7c2af703a154c9d53ef3ef3f8bb21e0  /opt/v7/egress/state/intelligence/service-scores.json
+5faabbed875284dc01274e9d72aadb0cb150d497a24832d373cc83fe75824437  /opt/v7/egress/state/intelligence/channel-service-scores.json

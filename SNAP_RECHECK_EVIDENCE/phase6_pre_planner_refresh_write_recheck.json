@@ -1,0 +1,210 @@
+{
+  "operation": {
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_type": "runtime_autoswitch",
+    "operation_started_at": "2026-06-12T19:54:54.478665+00:00",
+    "planner_generation_id": "1f4191689446a0aa0572fa8817752aed7c8ff506d2712d9c1b1c1ef550d6593e",
+    "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "selected_move_count": 0,
+    "runtime_snapshot_hash": "fbc053b7d9ca629dddd212d599ba39eaeb2743d4d27a6639877bf17ec86ae372",
+    "operation_id": "runtime_autoswitch_3173f344d352d27eafd2a731",
+    "atomic_execution_envelope_id": "aee_a1fba83ee80bf1be46657835",
+    "atomic_execution_envelope_hash": "a1fba83ee80bf1be466578358c32e5af44db2c51ba90422e4c7580172b1c4dbf",
+    "terminal_state": "DRY_RUN",
+    "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired"
+  },
+  "summary": {
+    "users_total": 26,
+    "egress_total": 7,
+    "healthy_egress_total": 3,
+    "candidate_moves": 26,
+    "candidate_moves_total": 26,
+    "selected_moves": 0,
+    "reconnect_rotation_candidates": 0,
+    "rebalance_candidates": 1,
+    "org_groups": [
+      "default"
+    ]
+  },
+  "selected_move_count": null,
+  "apply_result": {
+    "applied": false,
+    "reason": "dry_run"
+  },
+  "pre_planner_refresh": {
+    "schema": "v7.pre-planner-intelligence-refresh.v1",
+    "enabled": true,
+    "mode": "write",
+    "executor": "tools/v7-users-autoswitch",
+    "trigger": "pre_planner_refresh_gate",
+    "action": "refresh_snapshots",
+    "state": "REFRESH_SUCCESS",
+    "decision": "freshness_refreshed",
+    "stop_required": false,
+    "written_evidence": "plan.safety.intelligence_snapshots.pre_planner_refresh",
+    "blocked_actions": [],
+    "next_state": "load_refreshed_snapshots",
+    "runtime_behavior_changed": false,
+    "governance_behavior_changed": false,
+    "execution_behavior_changed": false,
+    "users_moved": false,
+    "service_matrix_lock": {
+      "schema": "v7.service-matrix-lifecycle-lock.v1",
+      "enabled": true,
+      "acquired": true,
+      "path": "/opt/v7/egress/state/service-matrix.lock",
+      "scope": "planner_snapshot_packet_lifecycle",
+      "owner": "tools/v7-users-autoswitch",
+      "runtime_behavior_changed": false,
+      "governance_behavior_changed": false,
+      "execution_behavior_changed": false,
+      "users_moved": false,
+      "decision": "service_matrix_writer_serialized_for_planner_lifecycle",
+      "waited_sec": 0.0,
+      "timeout_sec": 90
+    },
+    "command": [
+      "v7-intelligence-snapshot-refresh",
+      "--state-dir",
+      "/opt/v7/egress/state",
+      "--event-dir",
+      "/opt/v7/events",
+      "--out-dir",
+      "/opt/v7/egress/state/intelligence",
+      "--quality-summary-file",
+      "/opt/v7/egress/state/egress-quality-summary.json"
+    ],
+    "timeout_sec": 20,
+    "rc": 0,
+    "output": "{\"audit_inputs\": [\"/opt/v7/events/switch-history.jsonl\", \"/opt/v7/audit/audit.jsonl\", \"/opt/v7/audit/operator-execution-audit.jsonl\", \"/opt/v7/audit/operator-runtime-governance-actions.jsonl\"], \"dry_run\": false, \"feedback_inputs\": [\"/opt/v7/egress/state/execution-events.jsonl\", \"/opt/v7/egress/state/runtime-trust.jsonl\", \"/opt/v7/egress/state/proposal-records.jsonl\", \"/opt/v7/egress/state/proposals.jsonl\", \"/opt/v7/egress/state/closure-records.jsonl\"], \"governance_behavior_changed\": false, \"metrics\": {\"elapsed_ms\": 1111.102, \"max_snapshot_bytes\": 271942, \"snapshot_count\": 11, \"snapshot_sizes\": {\"best-available-pool\": 39965, \"blast-radius-summaries\": 1000, \"candidate-suitability-summary\": 132133, \"channel-service-scores\": 3547, \"overview-summary\": 2811, \"prediction-summaries\": 60277, \"risk-summaries\": 975, \"service-scores\": 17688, \"trust-evolution-summaries\": 271942, \"trust-summaries\": 1218, \"user-service-scores\": 117179}, \"total_snapshot_bytes\": 648735}, \"runtime_behavior_changed\": false, \"schema\": \"v7.intelligence-snapshot-refresh-result.v1\", \"snapshot_count\": 11, \"source_consistency_attempts\": 1, \"source_consistency_errors\": [], \"source_stable\": true, \"users_moved\": false, \"warnings\": [], \"written\": {\"best-available-pool\": \"/opt/v7/egress/state/intelligence/best-available-pool.json\", \"blast-radius-summaries\": \"/opt/v7/egress/state/intelligence/blast-radius-summaries.json\", \"candidate-suitability-summary\": \"/opt/v7/egress/state/intelligence/candidate-suitability-summary.json\", \"channel-service-scores\": \"/opt/v7/egress/state/intelligence/channel-service-scores.json\", \"overview-summary\": \"/opt/v7/egress/state/intelligence/overview-summary.json\", \"prediction-summaries\": \"/opt/v7/egress/state/intelligence/prediction-summaries.json\", \"risk-summaries\": \"/opt/v7/egress/state/intelligence/risk-summaries.json\", \"service-scores\": \"/opt/v7/egress/state/intelligence/service-scores.json\", \"trust-evolution-summaries\": \"/opt/v7/egress/state/intelligence/trust-evolution-summaries.json\", \"trust-summaries\": \"/opt/v7/egress/state/intelligence/trust-summaries.json\", \"user-service-scores\": \"/opt/v7/egress/state/intelligence/user-service-scores.json\"}}\n",
+    "refresh_result": {
+      "audit_inputs": [
+        "/opt/v7/events/switch-history.jsonl",
+        "/opt/v7/audit/audit.jsonl",
+        "/opt/v7/audit/operator-execution-audit.jsonl",
+        "/opt/v7/audit/operator-runtime-governance-actions.jsonl"
+      ],
+      "dry_run": false,
+      "feedback_inputs": [
+        "/opt/v7/egress/state/execution-events.jsonl",
+        "/opt/v7/egress/state/runtime-trust.jsonl",
+        "/opt/v7/egress/state/proposal-records.jsonl",
+        "/opt/v7/egress/state/proposals.jsonl",
+        "/opt/v7/egress/state/closure-records.jsonl"
+      ],
+      "governance_behavior_changed": false,
+      "metrics": {
+        "elapsed_ms": 1111.102,
+        "max_snapshot_bytes": 271942,
+        "snapshot_count": 11,
+        "snapshot_sizes": {
+          "best-available-pool": 39965,
+          "blast-radius-summaries": 1000,
+          "candidate-suitability-summary": 132133,
+          "channel-service-scores": 3547,
+          "overview-summary": 2811,
+          "prediction-summaries": 60277,
+          "risk-summaries": 975,
+          "service-scores": 17688,
+          "trust-evolution-summaries": 271942,
+          "trust-summaries": 1218,
+          "user-service-scores": 117179
+        },
+        "total_snapshot_bytes": 648735
+      },
+      "runtime_behavior_changed": false,
+      "schema": "v7.intelligence-snapshot-refresh-result.v1",
+      "snapshot_count": 11,
+      "source_consistency_attempts": 1,
+      "source_consistency_errors": [],
+      "source_stable": true,
+      "users_moved": false,
+      "warnings": [],
+      "written": {
+        "best-available-pool": "/opt/v7/egress/state/intelligence/best-available-pool.json",
+        "blast-radius-summaries": "/opt/v7/egress/state/intelligence/blast-radius-summaries.json",
+        "candidate-suitability-summary": "/opt/v7/egress/state/intelligence/candidate-suitability-summary.json",
+        "channel-service-scores": "/opt/v7/egress/state/intelligence/channel-service-scores.json",
+        "overview-summary": "/opt/v7/egress/state/intelligence/overview-summary.json",
+        "prediction-summaries": "/opt/v7/egress/state/intelligence/prediction-summaries.json",
+        "risk-summaries": "/opt/v7/egress/state/intelligence/risk-summaries.json",
+        "service-scores": "/opt/v7/egress/state/intelligence/service-scores.json",
+        "trust-evolution-summaries": "/opt/v7/egress/state/intelligence/trust-evolution-summaries.json",
+        "trust-summaries": "/opt/v7/egress/state/intelligence/trust-summaries.json",
+        "user-service-scores": "/opt/v7/egress/state/intelligence/user-service-scores.json"
+      }
+    },
+    "snapshot_count": 11,
+    "warnings": [],
+    "source_reload": {
+      "schema": "v7.pre-planner-source-reload.v1",
+      "condition": "pre_planner_refresh_write_success",
+      "decision": "reload_planner_source_inputs_before_snapshot_gate",
+      "action": "reload_service_matrix_quality_summary_service_preferences",
+      "executor": "tools/v7-users-autoswitch",
+      "trigger": "REFRESH_SUCCESS",
+      "written_evidence": "plan.safety.intelligence_snapshots.pre_planner_refresh.source_reload",
+      "blocked_actions": [],
+      "next_state": "load_refreshed_snapshots_with_current_source_inputs",
+      "before_hashes": {
+        "service_matrix": "c55650acb39de5d930bf28b0bed982dba553ee1d82c2d8151c055860470cb188",
+        "quality_summary": "be5f30ae8f2cf07adbf73bc25ce683180b93169c93d357d0436e66ecf253270f",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+      },
+      "after_hashes": {
+        "service_matrix": "c55650acb39de5d930bf28b0bed982dba553ee1d82c2d8151c055860470cb188",
+        "quality_summary": "be5f30ae8f2cf07adbf73bc25ce683180b93169c93d357d0436e66ecf253270f",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+      },
+      "changed_keys": [],
+      "runtime_behavior_changed": false,
+      "governance_behavior_changed": false,
+      "execution_behavior_changed": false,
+      "users_moved": false
+    }
+  },
+  "snapshot_gate": {
+    "stop_required": false,
+    "stop_families": [],
+    "source_mismatch_families": [],
+    "results": {
+      "service-scores": {
+        "path": "/opt/v7/egress/state/intelligence/service-scores.json",
+        "exists": true,
+        "validation_ok": true,
+        "validation_errors": [],
+        "validation_warnings": [],
+        "freshness_state": "FRESH",
+        "confidence": 0.8473,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "schema": "v7.intelligence.service-scores.v1",
+        "source_hashes": {
+          "quality_summary": "be5f30ae8f2cf07adbf73bc25ce683180b93169c93d357d0436e66ecf253270f",
+          "service_matrix": "c55650acb39de5d930bf28b0bed982dba553ee1d82c2d8151c055860470cb188",
+          "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+        },
+        "item_count": 14
+      },
+      "channel-service-scores": {
+        "path": "/opt/v7/egress/state/intelligence/channel-service-scores.json",
+        "exists": true,
+        "validation_ok": true,
+        "validation_errors": [],
+        "validation_warnings": [],
+        "freshness_state": "FRESH",
+        "confidence": 0.8473,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "schema": "v7.intelligence.channel-service-scores.v1",
+        "source_hashes": {
+          "quality_summary": "be5f30ae8f2cf07adbf73bc25ce683180b93169c93d357d0436e66ecf253270f",
+          "service_matrix": "c55650acb39de5d930bf28b0bed982dba553ee1d82c2d8151c055860470cb188",
+          "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+        },
+        "item_count": 7
+      }
+    }
+  },
+  "atomic_execution_envelope": null
+}

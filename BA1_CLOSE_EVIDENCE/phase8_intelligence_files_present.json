@@ -1,0 +1,11 @@
+{
+  "moved_user": {
+    "ip": "10.0.0.2"
+  },
+  "trust_summary": "/opt/v7/egress/state/intelligence/trust-summaries.json",
+  "files": {
+    "trust": "/opt/v7/egress/state/intelligence/trust-summaries.json",
+    "trust_evolution": "/opt/v7/egress/state/intelligence/trust-evolution-summaries.json",
+    "prediction": "/opt/v7/egress/state/intelligence/prediction-summaries.json"
+  }
+}

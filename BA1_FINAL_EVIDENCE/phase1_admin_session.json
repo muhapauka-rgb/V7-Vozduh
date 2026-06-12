@@ -1,0 +1,14 @@
+{
+  "user": "admin",
+  "role": "owner",
+  "expires_at": 1781340552,
+  "access_keys": [
+    "action_min_role",
+    "get_min_role",
+    "level",
+    "role",
+    "roles",
+    "user"
+  ],
+  "csrf": "REDACTED"
+}

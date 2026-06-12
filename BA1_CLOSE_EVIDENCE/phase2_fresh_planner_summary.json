@@ -1,0 +1,748 @@
+{
+  "operation": {
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_type": "runtime_autoswitch",
+    "operation_started_at": "2026-06-12T20:06:55.569318+00:00",
+    "planner_generation_id": "1f4191689446a0aa0572fa8817752aed7c8ff506d2712d9c1b1c1ef550d6593e",
+    "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "selected_move_count": 0,
+    "runtime_snapshot_hash": "fbc053b7d9ca629dddd212d599ba39eaeb2743d4d27a6639877bf17ec86ae372",
+    "operation_id": "runtime_autoswitch_04e4675aa748ac016450525b",
+    "atomic_execution_envelope_id": "aee_83ed42e3c7f83c46c260b199",
+    "atomic_execution_envelope_hash": "83ed42e3c7f83c46c260b199352ea76afcd7322fb1fba309c8247fc76ce98ae2",
+    "terminal_state": "DRY_RUN",
+    "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired"
+  },
+  "selected_moves": [],
+  "selected_count": 0,
+  "before_guard": [
+    {
+      "user_ip": "10.0.0.2",
+      "current_egress": "vless",
+      "recommended_egress": "awg3",
+      "move_type": "rebalance"
+    }
+  ],
+  "before_guard_count": 1,
+  "first_candidate": {
+    "user_ip": "10.0.0.2",
+    "current_egress": "vless",
+    "recommended_egress": "awg3",
+    "move_type": "rebalance"
+  },
+  "snapshot_gate": {
+    "schema_version": "v7.runtime-intelligence-snapshot-gate.v1",
+    "root": "/opt/v7/egress/state/intelligence",
+    "active": true,
+    "mode": "snapshot_backed_runtime_fast_path",
+    "required_families": [
+      "service-scores",
+      "channel-service-scores",
+      "risk-summaries",
+      "trust-summaries",
+      "blast-radius-summaries"
+    ],
+    "families_checked": [
+      "service-scores",
+      "channel-service-scores",
+      "user-service-scores",
+      "risk-summaries",
+      "trust-summaries",
+      "blast-radius-summaries",
+      "candidate-suitability-summary",
+      "best-available-pool",
+      "prediction-summaries",
+      "trust-evolution-summaries"
+    ],
+    "stop_required": false,
+    "stop_families": [],
+    "warn_families": [],
+    "ignored_families": [],
+    "source_mismatch_families": [],
+    "results": {
+      "service-scores": {
+        "path": "/opt/v7/egress/state/intelligence/service-scores.json",
+        "exists": true,
+        "validation_ok": true,
+        "validation_errors": [],
+        "validation_warnings": [],
+        "freshness_state": "FRESH",
+        "confidence": 0.8478,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "schema": "v7.intelligence.service-scores.v1",
+        "source_hashes": {
+          "quality_summary": "0829c0cfe03dec887c663460c0a25bdfed553111e338d16e76849909763bf43a",
+          "service_matrix": "08bb1cbfab72fb440f4fee9dcd23fb80961074c979897fb46ae01cdad25eddd1",
+          "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+        },
+        "item_count": 14
+      },
+      "channel-service-scores": {
+        "path": "/opt/v7/egress/state/intelligence/channel-service-scores.json",
+        "exists": true,
+        "validation_ok": true,
+        "validation_errors": [],
+        "validation_warnings": [],
+        "freshness_state": "FRESH",
+        "confidence": 0.8478,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "schema": "v7.intelligence.channel-service-scores.v1",
+        "source_hashes": {
+          "quality_summary": "0829c0cfe03dec887c663460c0a25bdfed553111e338d16e76849909763bf43a",
+          "service_matrix": "08bb1cbfab72fb440f4fee9dcd23fb80961074c979897fb46ae01cdad25eddd1",
+          "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+        },
+        "item_count": 7
+      },
+      "user-service-scores": {
+        "path": "/opt/v7/egress/state/intelligence/user-service-scores.json",
+        "exists": true,
+        "validation_ok": true,
+        "validation_errors": [],
+        "validation_warnings": [],
+        "freshness_state": "FRESH",
+        "confidence": 0.8546,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "schema": "v7.intelligence.user-service-scores.v1",
+        "source_hashes": {
+          "quality_summary": "0829c0cfe03dec887c663460c0a25bdfed553111e338d16e76849909763bf43a",
+          "risk_summary": "d77c5146285fc99c408a5c032da12589378fb403105753ffc7fdddbe4d2f092a",
+          "service_matrix": "08bb1cbfab72fb440f4fee9dcd23fb80961074c979897fb46ae01cdad25eddd1",
+          "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+          "trust_summary": "c4a71ee6b31b85e665f605bdf58d34d0f572a3fbf68bbe6b4b432c15fa5a8155",
+          "users_registry": "48b81bf7661bc3bd1732df166c6025ba830574ce83ee0c244c6865c1d8d5318c"
+        },
+        "item_count": 26
+      },
+      "risk-summaries": {
+        "path": "/opt/v7/egress/state/intelligence/risk-summaries.json",
+        "exists": true,
+        "validation_ok": true,
+        "validation_errors": [],
+        "validation_warnings": [],
+        "freshness_state": "FRESH",
+        "confidence": 0.9619,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "schema": "v7.intelligence.risk-summaries.v1",
+        "source_hashes": {
+          "channel_service_scores": "7bac063ccfc814448465aaf0588d396ee11b4be8f4fe1f4ac447af93df5ade40",
+          "quality_summary": "0829c0cfe03dec887c663460c0a25bdfed553111e338d16e76849909763bf43a",
+          "service_scores": "157f5b888c27c5d9a6dfc08ae45181d283d010fefbd643e3faac8fe9aef82a92"
+        },
+        "item_count": 1
+      },
+      "trust-summaries": {
+        "path": "/opt/v7/egress/state/intelligence/trust-summaries.json",
+        "exists": true,
+        "validation_ok": true,
+        "validation_errors": [],
+        "validation_warnings": [],
+        "freshness_state": "FRESH",
+        "confidence": 1.0,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "schema": "v7.intelligence.trust-summaries.v1",
+        "source_hashes": {
+          "records": "de7ad741c5a26202853378312b8769a97cb92ab7e9412638a2ae335c2ec61e0e"
+        },
+        "item_count": 1
+      },
+      "blast-radius-summaries": {
+        "path": "/opt/v7/egress/state/intelligence/blast-radius-summaries.json",
+        "exists": true,
+        "validation_ok": true,
+        "validation_errors": [],
+        "validation_warnings": [],
+        "freshness_state": "FRESH",
+        "confidence": 0.9905,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "schema": "v7.intelligence.blast-radius-summaries.v1",
+        "source_hashes": {
+          "risk_summary": "d77c5146285fc99c408a5c032da12589378fb403105753ffc7fdddbe4d2f092a",
+          "trust_summary": "c4a71ee6b31b85e665f605bdf58d34d0f572a3fbf68bbe6b4b432c15fa5a8155"
+        },
+        "item_count": 1
+      },
+      "candidate-suitability-summary": {
+        "path": "/opt/v7/egress/state/intelligence/candidate-suitability-summary.json",
+        "exists": true,
+        "validation_ok": true,
+        "validation_errors": [],
+        "validation_warnings": [],
+        "freshness_state": "FRESH",
+        "confidence": 0.8466,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "schema": "v7.intelligence.candidate-suitability-summary.v1",
+        "source_hashes": {
+          "blast_radius": "1b8e18e9d6fe330e4ee0cdb60644ec504f7d672cb2142df4dfb83c75a6a578f4",
+          "egress_registry": "51f59e0130201835c2d495c44bce5402653e17d8db9cf3a9c1e67fbfc1cf0e43",
+          "quality_summary": "0829c0cfe03dec887c663460c0a25bdfed553111e338d16e76849909763bf43a",
+          "risk_summary": "d77c5146285fc99c408a5c032da12589378fb403105753ffc7fdddbe4d2f092a",
+          "service_matrix": "08bb1cbfab72fb440f4fee9dcd23fb80961074c979897fb46ae01cdad25eddd1",
+          "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+          "trust_summary": "c4a71ee6b31b85e665f605bdf58d34d0f572a3fbf68bbe6b4b432c15fa5a8155",
+          "users_registry": "48b81bf7661bc3bd1732df166c6025ba830574ce83ee0c244c6865c1d8d5318c"
+        },
+        "item_count": 26
+      },
+      "best-available-pool": {
+        "path": "/opt/v7/egress/state/intelligence/best-available-pool.json",
+        "exists": true,
+        "validation_ok": true,
+        "validation_errors": [],
+        "validation_warnings": [],
+        "freshness_state": "FRESH",
+        "confidence": 0.9617,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "schema": "v7.intelligence.best-available-pool.v1",
+        "source_hashes": {
+          "candidate_suitability": "44a440238cd8aca4236725577b1279def6ee1f1d92dbbaae19455f2aa031ed26",
+          "egress_registry": "51f59e0130201835c2d495c44bce5402653e17d8db9cf3a9c1e67fbfc1cf0e43",
+          "runtime_state": "cd201aa025e8113a4be7599ad76fd6ebcee4bbd06fcccd83a843bb26bf553711"
+        },
+        "item_count": 26
+      },
+      "prediction-summaries": {
+        "path": "/opt/v7/egress/state/intelligence/prediction-summaries.json",
+        "exists": true,
+        "validation_ok": true,
+        "validation_errors": [],
+        "validation_warnings": [],
+        "freshness_state": "FRESH",
+        "confidence": 0.9572,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "schema": "v7.intelligence.prediction-summaries.v1",
+        "source_hashes": {
+          "blast_radius": "1b8e18e9d6fe330e4ee0cdb60644ec504f7d672cb2142df4dfb83c75a6a578f4",
+          "quality_summary": "0829c0cfe03dec887c663460c0a25bdfed553111e338d16e76849909763bf43a",
+          "risk_summary": "d77c5146285fc99c408a5c032da12589378fb403105753ffc7fdddbe4d2f092a",
+          "service_matrix": "08bb1cbfab72fb440f4fee9dcd23fb80961074c979897fb46ae01cdad25eddd1",
+          "trust_summary": "c4a71ee6b31b85e665f605bdf58d34d0f572a3fbf68bbe6b4b432c15fa5a8155"
+        },
+        "item_count": 1
+      },
+      "trust-evolution-summaries": {
+        "path": "/opt/v7/egress/state/intelligence/trust-evolution-summaries.json",
+        "exists": true,
+        "validation_ok": true,
+        "validation_errors": [],
+        "validation_warnings": [],
+        "freshness_state": "FRESH",
+        "confidence": 0.9804,
+        "runtime_behavior": "ALLOW",
+        "stop_required": false,
+        "schema": "v7.intelligence.trust-evolution-summaries.v1",
+        "source_hashes": {
+          "best_available_pool": "87310c2f395e7d6e529f7fb9699362c350f9bc99a498ea4295cbcfde372c2a4a",
+          "blast_radius": "1b8e18e9d6fe330e4ee0cdb60644ec504f7d672cb2142df4dfb83c75a6a578f4",
+          "blast_radius_records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "candidate_outcomes": "ab64d564fef79cca55983227e03f3f889c77f93cb768fdf81a10eb4796c224b1",
+          "candidate_suitability": "44a440238cd8aca4236725577b1279def6ee1f1d92dbbaae19455f2aa031ed26",
+          "channel_service_scores": "7bac063ccfc814448465aaf0588d396ee11b4be8f4fe1f4ac447af93df5ade40",
+          "decisions": "de7ad741c5a26202853378312b8769a97cb92ab7e9412638a2ae335c2ec61e0e",
+          "prediction_actuals": "3f937e12b4910c2207e15c977a0dff38ba051f60aaa893660805ac60b61e0751",
+          "prediction_summary": "8e82e74c7b0f4ba036abe5f17c7dcade1e4cf5ef261bd0558fc5144cda0a55d1",
+          "rollback_records": "e317b3b767f44629d59b7c3e6905ce5ccf537e4921a41deb35201334b2300736",
+          "service_actuals": "6079f18051d5f8971108023047127478eea731ed90c4664430b4fd751b2041c1",
+          "service_scores": "157f5b888c27c5d9a6dfc08ae45181d283d010fefbd643e3faac8fe9aef82a92",
+          "trust_summary": "c4a71ee6b31b85e665f605bdf58d34d0f572a3fbf68bbe6b4b432c15fa5a8155"
+        },
+        "item_count": 1
+      }
+    },
+    "authority": {
+      "planner_decision_owner": "tools/v7-users-autoswitch",
+      "snapshot_write_authority": "none_runtime_read_only",
+      "execution_authority": "none",
+      "selected_moves_write_authority": "none"
+    },
+    "pre_planner_refresh": {
+      "schema": "v7.pre-planner-intelligence-refresh.v1",
+      "enabled": true,
+      "mode": "write",
+      "executor": "tools/v7-users-autoswitch",
+      "trigger": "pre_planner_refresh_gate",
+      "action": "refresh_snapshots",
+      "state": "REFRESH_SUCCESS",
+      "decision": "freshness_refreshed",
+      "stop_required": false,
+      "written_evidence": "plan.safety.intelligence_snapshots.pre_planner_refresh",
+      "blocked_actions": [],
+      "next_state": "load_refreshed_snapshots",
+      "runtime_behavior_changed": false,
+      "governance_behavior_changed": false,
+      "execution_behavior_changed": false,
+      "users_moved": false,
+      "service_matrix_lock": {
+        "schema": "v7.service-matrix-lifecycle-lock.v1",
+        "enabled": true,
+        "acquired": true,
+        "path": "/opt/v7/egress/state/service-matrix.lock",
+        "scope": "planner_snapshot_packet_lifecycle",
+        "owner": "tools/v7-users-autoswitch",
+        "runtime_behavior_changed": false,
+        "governance_behavior_changed": false,
+        "execution_behavior_changed": false,
+        "users_moved": false,
+        "decision": "service_matrix_writer_serialized_for_planner_lifecycle",
+        "waited_sec": 0.0,
+        "timeout_sec": 90
+      },
+      "command": [
+        "v7-intelligence-snapshot-refresh",
+        "--state-dir",
+        "/opt/v7/egress/state",
+        "--event-dir",
+        "/opt/v7/events",
+        "--out-dir",
+        "/opt/v7/egress/state/intelligence",
+        "--quality-summary-file",
+        "/opt/v7/egress/state/egress-quality-summary.json"
+      ],
+      "timeout_sec": 20,
+      "rc": 0,
+      "output": "{\"audit_inputs\": [\"/opt/v7/events/switch-history.jsonl\", \"/opt/v7/audit/audit.jsonl\", \"/opt/v7/audit/operator-execution-audit.jsonl\", \"/opt/v7/audit/operator-runtime-governance-actions.jsonl\"], \"dry_run\": false, \"feedback_inputs\": [\"/opt/v7/egress/state/execution-events.jsonl\", \"/opt/v7/egress/state/runtime-trust.jsonl\", \"/opt/v7/egress/state/proposal-records.jsonl\", \"/opt/v7/egress/state/proposals.jsonl\", \"/opt/v7/egress/state/closure-records.jsonl\"], \"governance_behavior_changed\": false, \"metrics\": {\"elapsed_ms\": 1379.488, \"max_snapshot_bytes\": 271950, \"snapshot_count\": 11, \"snapshot_sizes\": {\"best-available-pool\": 39991, \"blast-radius-summaries\": 999, \"candidate-suitability-summary\": 131327, \"channel-service-scores\": 3511, \"overview-summary\": 2812, \"prediction-summaries\": 60249, \"risk-summaries\": 965, \"service-scores\": 17637, \"trust-evolution-summaries\": 271950, \"trust-summaries\": 1218, \"user-service-scores\": 116945}, \"total_snapshot_bytes\": 647604}, \"runtime_behavior_changed\": false, \"schema\": \"v7.intelligence-snapshot-refresh-result.v1\", \"snapshot_count\": 11, \"source_consistency_attempts\": 1, \"source_consistency_errors\": [], \"source_stable\": true, \"users_moved\": false, \"warnings\": [], \"written\": {\"best-available-pool\": \"/opt/v7/egress/state/intelligence/best-available-pool.json\", \"blast-radius-summaries\": \"/opt/v7/egress/state/intelligence/blast-radius-summaries.json\", \"candidate-suitability-summary\": \"/opt/v7/egress/state/intelligence/candidate-suitability-summary.json\", \"channel-service-scores\": \"/opt/v7/egress/state/intelligence/channel-service-scores.json\", \"overview-summary\": \"/opt/v7/egress/state/intelligence/overview-summary.json\", \"prediction-summaries\": \"/opt/v7/egress/state/intelligence/prediction-summaries.json\", \"risk-summaries\": \"/opt/v7/egress/state/intelligence/risk-summaries.json\", \"service-scores\": \"/opt/v7/egress/state/intelligence/service-scores.json\", \"trust-evolution-summaries\": \"/opt/v7/egress/state/intelligence/trust-evolution-summaries.json\", \"trust-summaries\": \"/opt/v7/egress/state/intelligence/trust-summaries.json\", \"user-service-scores\": \"/opt/v7/egress/state/intelligence/user-service-scores.json\"}}\n",
+      "refresh_result": {
+        "audit_inputs": [
+          "/opt/v7/events/switch-history.jsonl",
+          "/opt/v7/audit/audit.jsonl",
+          "/opt/v7/audit/operator-execution-audit.jsonl",
+          "/opt/v7/audit/operator-runtime-governance-actions.jsonl"
+        ],
+        "dry_run": false,
+        "feedback_inputs": [
+          "/opt/v7/egress/state/execution-events.jsonl",
+          "/opt/v7/egress/state/runtime-trust.jsonl",
+          "/opt/v7/egress/state/proposal-records.jsonl",
+          "/opt/v7/egress/state/proposals.jsonl",
+          "/opt/v7/egress/state/closure-records.jsonl"
+        ],
+        "governance_behavior_changed": false,
+        "metrics": {
+          "elapsed_ms": 1379.488,
+          "max_snapshot_bytes": 271950,
+          "snapshot_count": 11,
+          "snapshot_sizes": {
+            "best-available-pool": 39991,
+            "blast-radius-summaries": 999,
+            "candidate-suitability-summary": 131327,
+            "channel-service-scores": 3511,
+            "overview-summary": 2812,
+            "prediction-summaries": 60249,
+            "risk-summaries": 965,
+            "service-scores": 17637,
+            "trust-evolution-summaries": 271950,
+            "trust-summaries": 1218,
+            "user-service-scores": 116945
+          },
+          "total_snapshot_bytes": 647604
+        },
+        "runtime_behavior_changed": false,
+        "schema": "v7.intelligence-snapshot-refresh-result.v1",
+        "snapshot_count": 11,
+        "source_consistency_attempts": 1,
+        "source_consistency_errors": [],
+        "source_stable": true,
+        "users_moved": false,
+        "warnings": [],
+        "written": {
+          "best-available-pool": "/opt/v7/egress/state/intelligence/best-available-pool.json",
+          "blast-radius-summaries": "/opt/v7/egress/state/intelligence/blast-radius-summaries.json",
+          "candidate-suitability-summary": "/opt/v7/egress/state/intelligence/candidate-suitability-summary.json",
+          "channel-service-scores": "/opt/v7/egress/state/intelligence/channel-service-scores.json",
+          "overview-summary": "/opt/v7/egress/state/intelligence/overview-summary.json",
+          "prediction-summaries": "/opt/v7/egress/state/intelligence/prediction-summaries.json",
+          "risk-summaries": "/opt/v7/egress/state/intelligence/risk-summaries.json",
+          "service-scores": "/opt/v7/egress/state/intelligence/service-scores.json",
+          "trust-evolution-summaries": "/opt/v7/egress/state/intelligence/trust-evolution-summaries.json",
+          "trust-summaries": "/opt/v7/egress/state/intelligence/trust-summaries.json",
+          "user-service-scores": "/opt/v7/egress/state/intelligence/user-service-scores.json"
+        }
+      },
+      "snapshot_count": 11,
+      "warnings": [],
+      "source_reload": {
+        "schema": "v7.pre-planner-source-reload.v1",
+        "condition": "pre_planner_refresh_write_success",
+        "decision": "reload_planner_source_inputs_before_snapshot_gate",
+        "action": "reload_service_matrix_quality_summary_service_preferences",
+        "executor": "tools/v7-users-autoswitch",
+        "trigger": "REFRESH_SUCCESS",
+        "written_evidence": "plan.safety.intelligence_snapshots.pre_planner_refresh.source_reload",
+        "blocked_actions": [],
+        "next_state": "load_refreshed_snapshots_with_current_source_inputs",
+        "before_hashes": {
+          "service_matrix": "08bb1cbfab72fb440f4fee9dcd23fb80961074c979897fb46ae01cdad25eddd1",
+          "quality_summary": "0829c0cfe03dec887c663460c0a25bdfed553111e338d16e76849909763bf43a",
+          "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+        },
+        "after_hashes": {
+          "service_matrix": "08bb1cbfab72fb440f4fee9dcd23fb80961074c979897fb46ae01cdad25eddd1",
+          "quality_summary": "0829c0cfe03dec887c663460c0a25bdfed553111e338d16e76849909763bf43a",
+          "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+        },
+        "changed_keys": [],
+        "runtime_behavior_changed": false,
+        "governance_behavior_changed": false,
+        "execution_behavior_changed": false,
+        "users_moved": false
+      }
+    },
+    "service_matrix_lock": {
+      "schema": "v7.service-matrix-lifecycle-lock.v1",
+      "enabled": true,
+      "acquired": true,
+      "path": "/opt/v7/egress/state/service-matrix.lock",
+      "scope": "planner_snapshot_packet_lifecycle",
+      "owner": "tools/v7-users-autoswitch",
+      "runtime_behavior_changed": false,
+      "governance_behavior_changed": false,
+      "execution_behavior_changed": false,
+      "users_moved": false,
+      "decision": "service_matrix_writer_serialized_for_planner_lifecycle",
+      "waited_sec": 0.0,
+      "timeout_sec": 90
+    },
+    "selected_moves_before_gate": 0,
+    "selected_moves_suppressed": false,
+    "runtime_behavior_changed": false,
+    "governance_behavior_changed": false,
+    "execution_behavior_changed": false,
+    "hard_gate_override": "forbidden",
+    "reservation_override": "forbidden"
+  },
+  "restore_barrier": {
+    "file": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+    "enabled": true,
+    "active": false,
+    "expired": true,
+    "cleared": true,
+    "post_ttl_blocking": false,
+    "failover_quarantine": false,
+    "expires_at": "2000-01-01T00:00:00+00:00",
+    "reason": "C.1 canonical nonzero governance lifecycle clearance",
+    "clearance_max_selected_moves": 8,
+    "clearance_generation_id": "5f388fbfc7321664a60ed3ae74678871ce47428cc1a42b34bb5f0eb6b583344c",
+    "approved_selected_moves_hash": "6294f3765c878529fb94ac1b4dccb271065faaf6077982eea18638af77714b9f",
+    "clearance_expires_at": "2026-06-11T21:00:49.823288+00:00",
+    "generation_token": "15f592c19cf7839bff5056d788f4fa89",
+    "approval_id": "appr_f8c76e0a70f4cb018421d4fa",
+    "packet_id": "pkt_3d5d298d0c7473c7c22be7a9",
+    "operation_id": "govexec_56c3d5f075e0b6dd316c6acc",
+    "rollback_manifest_id": "rb_56c3d5f075e0b6dd316c6acc",
+    "approved_atomic_execution_envelope_id": "aee_14cd9399ca9640396a238909",
+    "approved_atomic_execution_envelope_hash": "14cd9399ca9640396a238909d6d0159ad71cce16f27b5f63c54e5ed94fb6b68f",
+    "approved_source_bundle_hash": "57b66267ff37678be27ff053fbc2ec8c38699cdee9d022f5a4289222925f420a",
+    "approved_snapshot_bundle_hash": "f328fb998f907dc1f40eb89a56555fd2ee40e3575d2684ee53a57e9562a4500a",
+    "clearance_expected_selected_moves": 8,
+    "allowed_users": [
+      "10.7.0.8",
+      "10.7.0.9",
+      "10.7.0.10",
+      "10.7.0.11",
+      "10.7.0.12",
+      "10.7.0.13",
+      "10.7.0.14",
+      "10.7.0.15"
+    ],
+    "allowed_targets": [
+      "vless"
+    ],
+    "approved_plan_lock": {
+      "allowed_targets": [
+        "vless"
+      ],
+      "allowed_users": [
+        "10.7.0.8",
+        "10.7.0.9",
+        "10.7.0.10",
+        "10.7.0.11",
+        "10.7.0.12",
+        "10.7.0.13",
+        "10.7.0.14",
+        "10.7.0.15"
+      ],
+      "atomic_execution_envelope_hash": "14cd9399ca9640396a238909d6d0159ad71cce16f27b5f63c54e5ed94fb6b68f",
+      "atomic_execution_envelope_id": "aee_14cd9399ca9640396a238909",
+      "egress_registry_hash": "",
+      "executor_may_replace_targets": false,
+      "executor_may_replace_users": false,
+      "executor_may_reselect": false,
+      "expires_at": "2026-06-11T21:00:49.823288+00:00",
+      "lock_hash": "ccec9b1104fa0410dca9d2fbfd2ced3b79398ec06c6df4c2fddfee954114a496",
+      "lock_id": "apl_b6da37f7ebdfec9820a80518",
+      "owner": "admin_core/operator_execution.py",
+      "packet_hash": "7fd84f3b71ee88a16ad971ba14977164d728af3cf7ba80c2d8019f14009edc00",
+      "packet_id": "pkt_3d5d298d0c7473c7c22be7a9",
+      "planner_generation_id": "5f388fbfc7321664a60ed3ae74678871ce47428cc1a42b34bb5f0eb6b583344c",
+      "restore_barrier_hash": "33710c1ed27bdae31f80ddf57760e4a6490033b92702a25ab0a9456451d1aaef",
+      "restore_barrier_id": "rbclear_33710c1ed27bdae31f80ddf5",
+      "schema_version": "v7.approved-plan-lock.v1",
+      "selected_move_count": 8,
+      "selected_move_hash": "6294f3765c878529fb94ac1b4dccb271065faaf6077982eea18638af77714b9f",
+      "selected_moves": [
+        {
+          "current_egress": "awg0",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.8"
+        },
+        {
+          "current_egress": "awg3",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.9"
+        },
+        {
+          "current_egress": "awg0",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.10"
+        },
+        {
+          "current_egress": "awg3",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.11"
+        },
+        {
+          "current_egress": "awg0",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.12"
+        },
+        {
+          "current_egress": "awg0",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.13"
+        },
+        {
+          "current_egress": "awg3",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.14"
+        },
+        {
+          "current_egress": "awg0",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.15"
+        }
+      ],
+      "snapshot_bundle_hash": "f328fb998f907dc1f40eb89a56555fd2ee40e3575d2684ee53a57e9562a4500a",
+      "source_bundle_hash": "57b66267ff37678be27ff053fbc2ec8c38699cdee9d022f5a4289222925f420a",
+      "source_hashes": {
+        "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+        "quality_summary": "3107ae0d5da06e031087cd2463e3aaa76f7bad17e2bd86dcd87b421591d3a8be",
+        "service_matrix": "36c53cb671ce47cd21e6b96adebe477036016ccb95b8090472dccde54121b75d",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+        "users_registry": "c4f8730504c15f01b93de3147273600a99124d33ea7a2532bfb4619189c5463a"
+      },
+      "users_registry_hash": ""
+    },
+    "approved_plan_lock_hash": "ccec9b1104fa0410dca9d2fbfd2ced3b79398ec06c6df4c2fddfee954114a496",
+    "approved_plan_lock_id": "apl_b6da37f7ebdfec9820a80518",
+    "approved_source_hashes": {
+      "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+      "quality_summary": "3107ae0d5da06e031087cd2463e3aaa76f7bad17e2bd86dcd87b421591d3a8be",
+      "service_matrix": "36c53cb671ce47cd21e6b96adebe477036016ccb95b8090472dccde54121b75d",
+      "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+      "users_registry": "c4f8730504c15f01b93de3147273600a99124d33ea7a2532bfb4619189c5463a"
+    },
+    "apply_refresh_clearance": {
+      "generation_clearance": true,
+      "allowed_targets": [
+        "vless"
+      ],
+      "approved_atomic_execution_envelope_id": "aee_14cd9399ca9640396a238909",
+      "approved_atomic_execution_envelope_hash": "14cd9399ca9640396a238909d6d0159ad71cce16f27b5f63c54e5ed94fb6b68f",
+      "approved_source_bundle_hash": "57b66267ff37678be27ff053fbc2ec8c38699cdee9d022f5a4289222925f420a",
+      "approved_snapshot_bundle_hash": "f328fb998f907dc1f40eb89a56555fd2ee40e3575d2684ee53a57e9562a4500a",
+      "owner": "admin_core/operator_execution.py"
+    },
+    "approved_plan_lock_validation": {
+      "present": true,
+      "ok": false,
+      "reason": "approved_plan_lock_invalid",
+      "reasons": [
+        "approved_plan_lock_expired",
+        "approved_plan_lock_user_source_mismatch"
+      ],
+      "selected_move_hash": "6294f3765c878529fb94ac1b4dccb271065faaf6077982eea18638af77714b9f",
+      "approved_selected_move_hash": "6294f3765c878529fb94ac1b4dccb271065faaf6077982eea18638af77714b9f",
+      "selected_users": [
+        "10.7.0.8",
+        "10.7.0.9",
+        "10.7.0.10",
+        "10.7.0.11",
+        "10.7.0.12",
+        "10.7.0.13",
+        "10.7.0.14",
+        "10.7.0.15"
+      ],
+      "selected_targets": [
+        "vless"
+      ]
+    },
+    "approved_plan_lock_ignored_for_fresh_planning": true,
+    "approved_plan_lock_ignore_reason": "approved_plan_lock_invalid",
+    "clearance_selected_moves_before_guard": 1,
+    "clearance_selected_moves_hash": "1889e1bd55abd03d2fe5883b01cd68a2209d74bdf3bbd92d27cdf32bd6e42057",
+    "approved_candidate_moves_before_guard": [
+      {
+        "user_ip": "10.0.0.2",
+        "current_egress": "vless",
+        "recommended_egress": "awg3",
+        "move_type": "rebalance"
+      }
+    ],
+    "clearance_budget_exceeded": false,
+    "clearance_generation_ok": false,
+    "clearance_generation_reason": "restore_barrier_clearance_generation_expired",
+    "current_generation_id": "1f4191689446a0aa0572fa8817752aed7c8ff506d2712d9c1b1c1ef550d6593e",
+    "approved_generation_id": "5f388fbfc7321664a60ed3ae74678871ce47428cc1a42b34bb5f0eb6b583344c",
+    "clearance_guard_reason": "restore_barrier_clearance_generation_expired"
+  },
+  "pre_planner_refresh": {
+    "schema": "v7.pre-planner-intelligence-refresh.v1",
+    "enabled": true,
+    "mode": "write",
+    "executor": "tools/v7-users-autoswitch",
+    "trigger": "pre_planner_refresh_gate",
+    "action": "refresh_snapshots",
+    "state": "REFRESH_SUCCESS",
+    "decision": "freshness_refreshed",
+    "stop_required": false,
+    "written_evidence": "plan.safety.intelligence_snapshots.pre_planner_refresh",
+    "blocked_actions": [],
+    "next_state": "load_refreshed_snapshots",
+    "runtime_behavior_changed": false,
+    "governance_behavior_changed": false,
+    "execution_behavior_changed": false,
+    "users_moved": false,
+    "service_matrix_lock": {
+      "schema": "v7.service-matrix-lifecycle-lock.v1",
+      "enabled": true,
+      "acquired": true,
+      "path": "/opt/v7/egress/state/service-matrix.lock",
+      "scope": "planner_snapshot_packet_lifecycle",
+      "owner": "tools/v7-users-autoswitch",
+      "runtime_behavior_changed": false,
+      "governance_behavior_changed": false,
+      "execution_behavior_changed": false,
+      "users_moved": false,
+      "decision": "service_matrix_writer_serialized_for_planner_lifecycle",
+      "waited_sec": 0.0,
+      "timeout_sec": 90
+    },
+    "command": [
+      "v7-intelligence-snapshot-refresh",
+      "--state-dir",
+      "/opt/v7/egress/state",
+      "--event-dir",
+      "/opt/v7/events",
+      "--out-dir",
+      "/opt/v7/egress/state/intelligence",
+      "--quality-summary-file",
+      "/opt/v7/egress/state/egress-quality-summary.json"
+    ],
+    "timeout_sec": 20,
+    "rc": 0,
+    "output": "{\"audit_inputs\": [\"/opt/v7/events/switch-history.jsonl\", \"/opt/v7/audit/audit.jsonl\", \"/opt/v7/audit/operator-execution-audit.jsonl\", \"/opt/v7/audit/operator-runtime-governance-actions.jsonl\"], \"dry_run\": false, \"feedback_inputs\": [\"/opt/v7/egress/state/execution-events.jsonl\", \"/opt/v7/egress/state/runtime-trust.jsonl\", \"/opt/v7/egress/state/proposal-records.jsonl\", \"/opt/v7/egress/state/proposals.jsonl\", \"/opt/v7/egress/state/closure-records.jsonl\"], \"governance_behavior_changed\": false, \"metrics\": {\"elapsed_ms\": 1379.488, \"max_snapshot_bytes\": 271950, \"snapshot_count\": 11, \"snapshot_sizes\": {\"best-available-pool\": 39991, \"blast-radius-summaries\": 999, \"candidate-suitability-summary\": 131327, \"channel-service-scores\": 3511, \"overview-summary\": 2812, \"prediction-summaries\": 60249, \"risk-summaries\": 965, \"service-scores\": 17637, \"trust-evolution-summaries\": 271950, \"trust-summaries\": 1218, \"user-service-scores\": 116945}, \"total_snapshot_bytes\": 647604}, \"runtime_behavior_changed\": false, \"schema\": \"v7.intelligence-snapshot-refresh-result.v1\", \"snapshot_count\": 11, \"source_consistency_attempts\": 1, \"source_consistency_errors\": [], \"source_stable\": true, \"users_moved\": false, \"warnings\": [], \"written\": {\"best-available-pool\": \"/opt/v7/egress/state/intelligence/best-available-pool.json\", \"blast-radius-summaries\": \"/opt/v7/egress/state/intelligence/blast-radius-summaries.json\", \"candidate-suitability-summary\": \"/opt/v7/egress/state/intelligence/candidate-suitability-summary.json\", \"channel-service-scores\": \"/opt/v7/egress/state/intelligence/channel-service-scores.json\", \"overview-summary\": \"/opt/v7/egress/state/intelligence/overview-summary.json\", \"prediction-summaries\": \"/opt/v7/egress/state/intelligence/prediction-summaries.json\", \"risk-summaries\": \"/opt/v7/egress/state/intelligence/risk-summaries.json\", \"service-scores\": \"/opt/v7/egress/state/intelligence/service-scores.json\", \"trust-evolution-summaries\": \"/opt/v7/egress/state/intelligence/trust-evolution-summaries.json\", \"trust-summaries\": \"/opt/v7/egress/state/intelligence/trust-summaries.json\", \"user-service-scores\": \"/opt/v7/egress/state/intelligence/user-service-scores.json\"}}\n",
+    "refresh_result": {
+      "audit_inputs": [
+        "/opt/v7/events/switch-history.jsonl",
+        "/opt/v7/audit/audit.jsonl",
+        "/opt/v7/audit/operator-execution-audit.jsonl",
+        "/opt/v7/audit/operator-runtime-governance-actions.jsonl"
+      ],
+      "dry_run": false,
+      "feedback_inputs": [
+        "/opt/v7/egress/state/execution-events.jsonl",
+        "/opt/v7/egress/state/runtime-trust.jsonl",
+        "/opt/v7/egress/state/proposal-records.jsonl",
+        "/opt/v7/egress/state/proposals.jsonl",
+        "/opt/v7/egress/state/closure-records.jsonl"
+      ],
+      "governance_behavior_changed": false,
+      "metrics": {
+        "elapsed_ms": 1379.488,
+        "max_snapshot_bytes": 271950,
+        "snapshot_count": 11,
+        "snapshot_sizes": {
+          "best-available-pool": 39991,
+          "blast-radius-summaries": 999,
+          "candidate-suitability-summary": 131327,
+          "channel-service-scores": 3511,
+          "overview-summary": 2812,
+          "prediction-summaries": 60249,
+          "risk-summaries": 965,
+          "service-scores": 17637,
+          "trust-evolution-summaries": 271950,
+          "trust-summaries": 1218,
+          "user-service-scores": 116945
+        },
+        "total_snapshot_bytes": 647604
+      },
+      "runtime_behavior_changed": false,
+      "schema": "v7.intelligence-snapshot-refresh-result.v1",
+      "snapshot_count": 11,
+      "source_consistency_attempts": 1,
+      "source_consistency_errors": [],
+      "source_stable": true,
+      "users_moved": false,
+      "warnings": [],
+      "written": {
+        "best-available-pool": "/opt/v7/egress/state/intelligence/best-available-pool.json",
+        "blast-radius-summaries": "/opt/v7/egress/state/intelligence/blast-radius-summaries.json",
+        "candidate-suitability-summary": "/opt/v7/egress/state/intelligence/candidate-suitability-summary.json",
+        "channel-service-scores": "/opt/v7/egress/state/intelligence/channel-service-scores.json",
+        "overview-summary": "/opt/v7/egress/state/intelligence/overview-summary.json",
+        "prediction-summaries": "/opt/v7/egress/state/intelligence/prediction-summaries.json",
+        "risk-summaries": "/opt/v7/egress/state/intelligence/risk-summaries.json",
+        "service-scores": "/opt/v7/egress/state/intelligence/service-scores.json",
+        "trust-evolution-summaries": "/opt/v7/egress/state/intelligence/trust-evolution-summaries.json",
+        "trust-summaries": "/opt/v7/egress/state/intelligence/trust-summaries.json",
+        "user-service-scores": "/opt/v7/egress/state/intelligence/user-service-scores.json"
+      }
+    },
+    "snapshot_count": 11,
+    "warnings": [],
+    "source_reload": {
+      "schema": "v7.pre-planner-source-reload.v1",
+      "condition": "pre_planner_refresh_write_success",
+      "decision": "reload_planner_source_inputs_before_snapshot_gate",
+      "action": "reload_service_matrix_quality_summary_service_preferences",
+      "executor": "tools/v7-users-autoswitch",
+      "trigger": "REFRESH_SUCCESS",
+      "written_evidence": "plan.safety.intelligence_snapshots.pre_planner_refresh.source_reload",
+      "blocked_actions": [],
+      "next_state": "load_refreshed_snapshots_with_current_source_inputs",
+      "before_hashes": {
+        "service_matrix": "08bb1cbfab72fb440f4fee9dcd23fb80961074c979897fb46ae01cdad25eddd1",
+        "quality_summary": "0829c0cfe03dec887c663460c0a25bdfed553111e338d16e76849909763bf43a",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+      },
+      "after_hashes": {
+        "service_matrix": "08bb1cbfab72fb440f4fee9dcd23fb80961074c979897fb46ae01cdad25eddd1",
+        "quality_summary": "0829c0cfe03dec887c663460c0a25bdfed553111e338d16e76849909763bf43a",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+      },
+      "changed_keys": [],
+      "runtime_behavior_changed": false,
+      "governance_behavior_changed": false,
+      "execution_behavior_changed": false,
+      "users_moved": false
+    }
+  },
+  "atomic_execution_envelope": null
+}

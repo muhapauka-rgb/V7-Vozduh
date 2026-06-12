@@ -1,0 +1,4 @@
+/opt/v7/egress/state/execution-events.jsonl 2
+/opt/v7/egress/state/runtime-trust.jsonl 1
+/opt/v7/egress/state/proposal-records.jsonl 1
+/opt/v7/egress/state/closure-records.jsonl 1

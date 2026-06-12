@@ -1,0 +1,41 @@
+usage: v7-operator-execution-packet [-h] [--packet PACKET]
+                                    [--generate-from-plan GENERATE_FROM_PLAN]
+                                    [--packet-output PACKET_OUTPUT]
+                                    [--approval-author APPROVAL_AUTHOR]
+                                    [--approval-reviewer APPROVAL_REVIEWER]
+                                    [--ttl-seconds TTL_SECONDS]
+                                    [--audit-store AUDIT_STORE]
+                                    [--state-dir STATE_DIR]
+                                    [--planner-snapshot PLANNER_SNAPSHOT]
+                                    [--restore-barrier-file RESTORE_BARRIER_FILE]
+                                    [--lifecycle-store LIFECYCLE_STORE]
+                                    [--validate-only] [--recheck-only]
+                                    [--execute-approval-record]
+                                    [--execute-runtime-action]
+                                    [--runtime-governance-store RUNTIME_GOVERNANCE_STORE]
+                                    [--json] [--pretty]
+                                    [--repo-root REPO_ROOT]
+
+Validate and consume V7 operator execution packets without user movement.
+
+options:
+  -h, --help            show this help message and exit
+  --packet PACKET
+  --generate-from-plan GENERATE_FROM_PLAN
+  --packet-output PACKET_OUTPUT
+  --approval-author APPROVAL_AUTHOR
+  --approval-reviewer APPROVAL_REVIEWER
+  --ttl-seconds TTL_SECONDS
+  --audit-store AUDIT_STORE
+  --state-dir STATE_DIR
+  --planner-snapshot PLANNER_SNAPSHOT
+  --restore-barrier-file RESTORE_BARRIER_FILE
+  --lifecycle-store LIFECYCLE_STORE
+  --validate-only
+  --recheck-only
+  --execute-approval-record
+  --execute-runtime-action
+  --runtime-governance-store RUNTIME_GOVERNANCE_STORE
+  --json
+  --pretty
+  --repo-root REPO_ROOT

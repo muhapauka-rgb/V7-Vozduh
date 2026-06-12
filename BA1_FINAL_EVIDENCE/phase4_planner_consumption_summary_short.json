@@ -1,0 +1,37 @@
+{
+  "terminal_state": "DRY_RUN",
+  "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired",
+  "apply_requested": false,
+  "selected_count": 0,
+  "applied": false,
+  "apply_reason": "dry_run",
+  "snapshot_gate": {
+    "stop_required": false,
+    "source_mismatch_families": [],
+    "checked": [
+      "service-scores",
+      "channel-service-scores",
+      "user-service-scores",
+      "risk-summaries",
+      "trust-summaries",
+      "blast-radius-summaries",
+      "candidate-suitability-summary",
+      "best-available-pool",
+      "prediction-summaries",
+      "trust-evolution-summaries"
+    ]
+  },
+  "pre_planner_refresh": {
+    "state": "REFRESH_SUCCESS",
+    "rc": 0,
+    "snapshot_count": 11,
+    "users_moved": false,
+    "runtime_behavior_changed": false,
+    "governance_behavior_changed": false
+  },
+  "evidence_available": {
+    "trust_evolution": true,
+    "prediction": true,
+    "best_available_pool_mode": "snapshot_backed_ranked_acceptable_pool"
+  }
+}

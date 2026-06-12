@@ -1,0 +1,66 @@
+{
+  "program": "OA.2.CLOSE / OA.3_4",
+  "final_verdict": "OPERATOR_APPROVED_AUTONOMY_CERTIFIED",
+  "deploy_commit": "d501c9e69ecd8c574b5c3fc4e0366ab9d9482bae",
+  "truth_pass": true,
+  "convergence_pass": true,
+  "runtime_action_status": "READY_FOR_RUNTIME_ACTION",
+  "approve_preview": {
+    "http_verified": true,
+    "decision": "APPROVE",
+    "terminal_preview_state": "APPROVE_CHAIN_READY",
+    "preview_only": true,
+    "execution_allowed_now": false,
+    "apply_executed": false,
+    "users_moved": 0,
+    "routing_changed": false,
+    "autonomy_enabled": false,
+    "step_count": 10,
+    "steps": [
+      "fresh_planner",
+      "packet",
+      "runtime_recheck",
+      "restore_barrier",
+      "apply",
+      "verify",
+      "rollback_readiness",
+      "feedback",
+      "closure",
+      "trust_refresh"
+    ],
+    "no_bypass": {
+      "planner_bypass_possible": false,
+      "governance_bypass_possible": false,
+      "packet_bypass_possible": false,
+      "restore_barrier_bypass_possible": false,
+      "apply_verification_bypass_possible": false,
+      "rollback_bypass_possible": false,
+      "feedback_bypass_possible": false
+    },
+    "operator_reduced_to_approve_reject": true
+  },
+  "reject_preview": {
+    "http_verified": true,
+    "decision": "REJECT",
+    "terminal_preview_state": "REJECTED_CLOSURE_ONLY",
+    "preview_only": true,
+    "execution_allowed_now": false,
+    "apply_executed": false,
+    "users_moved": 0,
+    "routing_changed": false,
+    "autonomy_enabled": false,
+    "step_count": 1,
+    "steps": [
+      "reject_closure"
+    ]
+  },
+  "safety": {
+    "users_moved": 0,
+    "apply_executed": false,
+    "routing_changed": false,
+    "autonomy_enabled": false,
+    "operator_free_autonomy_enabled": false
+  },
+  "single_blocker": "NONE",
+  "safe_next_step": "OPERATOR_APPROVED_LIVE_APPLY_CONTROLLER_ENABLEMENT_DESIGN_OR_NEXT_AUTONOMY_STAGE"
+}

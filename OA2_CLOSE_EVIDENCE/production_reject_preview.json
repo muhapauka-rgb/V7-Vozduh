@@ -1,0 +1,82 @@
+{
+  "schema_version": "v7.operator-approved-execution-controller-preview.v1",
+  "controller": "canonical_operator_approved_execution_controller",
+  "decision": "REJECT",
+  "preview_only": true,
+  "read_only": true,
+  "execution_allowed_now": false,
+  "runtime_mutation_performed": false,
+  "routing_changed": false,
+  "users_moved": 0,
+  "apply_executed": false,
+  "rollback_executed": false,
+  "autonomy_enabled": false,
+  "new_planner_created": false,
+  "new_governance_created": false,
+  "new_execution_path_created": false,
+  "new_restore_barrier_owner_created": false,
+  "new_truth_source_created": false,
+  "owner_reuse": {
+    "planner": "tools/v7-users-autoswitch",
+    "packet": "tools/v7-operator-execution-packet",
+    "restore_barrier": "admin_core/operator_execution.py",
+    "apply": "tools/v7-users-autoswitch --apply --verify",
+    "verify": "tools/v7-users-autoswitch --apply --verify",
+    "rollback": "tools/v7-users-autoswitch --rollback-packet --apply --verify",
+    "feedback": "admin_core/operator_execution_feedback.py",
+    "closure": "admin_core/operator_execution_feedback.py",
+    "trust_refresh": "tools/v7-intelligence-snapshot-refresh"
+  },
+  "operator_ui_contract": {
+    "operator_actions": [
+      "APPROVE",
+      "REJECT"
+    ],
+    "shows": [
+      "why_move",
+      "why_now",
+      "risk",
+      "blast_radius",
+      "rollback",
+      "trust_impact",
+      "expected_outcome"
+    ],
+    "nothing_else_required_from_operator": true
+  },
+  "terminal_preview_state": "REJECTED_CLOSURE_ONLY",
+  "closure_only": true,
+  "approval_required_before_live_mutation": false,
+  "steps": [
+    {
+      "step": 1,
+      "name": "reject_closure",
+      "owner": "admin_core/operator_execution_feedback.py",
+      "inputs": [
+        "operator rejection",
+        "candidate evidence",
+        "reason"
+      ],
+      "outputs": [
+        "rejection closure preview",
+        "audit preview"
+      ],
+      "command_preview": "",
+      "runtime_mutation_performed_now": false,
+      "runtime_mutation_if_live": false,
+      "preview_only": true
+    }
+  ],
+  "blocked_actions": [
+    "planner apply",
+    "restore barrier write",
+    "governed apply",
+    "rollback apply",
+    "feedback materialization for unexecuted movement"
+  ],
+  "final_certification": {
+    "single_approve_reject_boundary_exists": true,
+    "reject_path_preview_ready": true,
+    "approve_path_preview_ready": true,
+    "live_execution_enabled": false
+  }
+}

@@ -1,0 +1,5 @@
+d501c9e Add operator approved execution controller preview
+1094b42 Add execution loop and operator autonomy certification evidence
+6933631 Classify tests as non-runtime change paths
+568c7df Treat uppercase evidence folders as documentation
+6fcc1dc Add SNAP1 close and EXEC1 certification evidence

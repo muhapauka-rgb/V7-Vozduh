@@ -1,0 +1,10 @@
+/usr/local/bin/v7-admin-api:19716:def operator_approved_execution_controller_preview(decision="DRAFT"):
+/usr/local/bin/v7-admin-api:28286:        data = await api('/api/operator/approved-execution-controller-preview?decision=' + encodeURIComponent(decision || 'DRAFT'));
+/usr/local/bin/v7-admin-api:34391:        elif path == "/api/operator/approved-execution-controller-preview":
+/usr/local/bin/v7-admin-api:34395:            self.send_json(operator_approved_execution_controller_preview(decision))
+/usr/local/bin/admin_core/operator_execution_pipeline.py:2347:def operator_approved_execution_controller_preview(decision: str = "DRAFT") -> dict[str, Any]:
+/usr/local/bin/admin_core/operator_execution_pipeline.py:2358:        "schema_version": "v7.operator-approved-execution-controller-preview.v1",
+/usr/local/bin/admin_core/operator_execution_pipeline.py:2546:    oa_controller = operator_approved_execution_controller_preview()
+/usr/local/bin/admin_core/operator_observability.py:1586:def build_operator_approved_execution_controller_preview(decision="DRAFT", repo_root=None):
+/usr/local/bin/admin_core/operator_observability.py:1587:    return operator_execution_pipeline.operator_approved_execution_controller_preview(decision=decision)
+/usr/local/bin/admin_core/operator_views.py:66:    return operator_observability.build_operator_approved_execution_controller_preview(decision, repo_root=repo_root)

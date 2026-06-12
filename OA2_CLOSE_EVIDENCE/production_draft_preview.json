@@ -1,0 +1,260 @@
+{
+  "schema_version": "v7.operator-approved-execution-controller-preview.v1",
+  "controller": "canonical_operator_approved_execution_controller",
+  "decision": "DRAFT",
+  "preview_only": true,
+  "read_only": true,
+  "execution_allowed_now": false,
+  "runtime_mutation_performed": false,
+  "routing_changed": false,
+  "users_moved": 0,
+  "apply_executed": false,
+  "rollback_executed": false,
+  "autonomy_enabled": false,
+  "new_planner_created": false,
+  "new_governance_created": false,
+  "new_execution_path_created": false,
+  "new_restore_barrier_owner_created": false,
+  "new_truth_source_created": false,
+  "owner_reuse": {
+    "planner": "tools/v7-users-autoswitch",
+    "packet": "tools/v7-operator-execution-packet",
+    "restore_barrier": "admin_core/operator_execution.py",
+    "apply": "tools/v7-users-autoswitch --apply --verify",
+    "verify": "tools/v7-users-autoswitch --apply --verify",
+    "rollback": "tools/v7-users-autoswitch --rollback-packet --apply --verify",
+    "feedback": "admin_core/operator_execution_feedback.py",
+    "closure": "admin_core/operator_execution_feedback.py",
+    "trust_refresh": "tools/v7-intelligence-snapshot-refresh"
+  },
+  "operator_ui_contract": {
+    "operator_actions": [
+      "APPROVE",
+      "REJECT"
+    ],
+    "shows": [
+      "why_move",
+      "why_now",
+      "risk",
+      "blast_radius",
+      "rollback",
+      "trust_impact",
+      "expected_outcome"
+    ],
+    "nothing_else_required_from_operator": true
+  },
+  "terminal_preview_state": "DRAFT_READY",
+  "closure_only": false,
+  "approval_required_before_live_mutation": true,
+  "steps": [
+    {
+      "step": 1,
+      "name": "fresh_planner",
+      "owner": "tools/v7-users-autoswitch",
+      "inputs": [
+        "production truth",
+        "runtime state",
+        "snapshots",
+        "authority budget"
+      ],
+      "outputs": [
+        "candidate moves",
+        "selected moves",
+        "generation id",
+        "selected move hash"
+      ],
+      "command_preview": "v7-users-autoswitch --pretty",
+      "runtime_mutation_performed_now": false,
+      "runtime_mutation_if_live": false,
+      "preview_only": true
+    },
+    {
+      "step": 2,
+      "name": "packet",
+      "owner": "tools/v7-operator-execution-packet",
+      "inputs": [
+        "selected moves",
+        "authority budget",
+        "rollback manifest",
+        "operator approval"
+      ],
+      "outputs": [
+        "approval packet",
+        "approved plan lock",
+        "rollback manifest"
+      ],
+      "command_preview": "",
+      "runtime_mutation_performed_now": false,
+      "runtime_mutation_if_live": false,
+      "preview_only": true
+    },
+    {
+      "step": 3,
+      "name": "runtime_recheck",
+      "owner": "admin_core/operator_execution.py",
+      "inputs": [
+        "approval packet",
+        "fresh planner snapshot",
+        "runtime registry hashes"
+      ],
+      "outputs": [
+        "ALLOW_RESTORE_BARRIER_CLEARANCE or denial"
+      ],
+      "command_preview": "",
+      "runtime_mutation_performed_now": false,
+      "runtime_mutation_if_live": false,
+      "preview_only": true
+    },
+    {
+      "step": 4,
+      "name": "restore_barrier",
+      "owner": "admin_core/operator_execution.py",
+      "inputs": [
+        "ALLOW recheck",
+        "approved plan lock",
+        "selected move hash"
+      ],
+      "outputs": [
+        "generation-bound restore barrier clearance"
+      ],
+      "command_preview": "",
+      "runtime_mutation_performed_now": false,
+      "runtime_mutation_if_live": true,
+      "preview_only": true
+    },
+    {
+      "step": 5,
+      "name": "apply",
+      "owner": "tools/v7-users-autoswitch --apply --verify",
+      "inputs": [
+        "restore barrier clearance",
+        "approved users",
+        "approved targets",
+        "rollback packet"
+      ],
+      "outputs": [
+        "bounded apply result",
+        "per-user verification result"
+      ],
+      "command_preview": "v7-users-autoswitch --mode guarded --apply --verify",
+      "runtime_mutation_performed_now": false,
+      "runtime_mutation_if_live": true,
+      "preview_only": true
+    },
+    {
+      "step": 6,
+      "name": "verify",
+      "owner": "tools/v7-users-autoswitch --apply --verify",
+      "inputs": [
+        "apply result",
+        "route check",
+        "registry state",
+        "service health"
+      ],
+      "outputs": [
+        "verification verdict",
+        "rollback_required decision"
+      ],
+      "command_preview": "",
+      "runtime_mutation_performed_now": false,
+      "runtime_mutation_if_live": false,
+      "preview_only": true
+    },
+    {
+      "step": 7,
+      "name": "rollback_readiness",
+      "owner": "admin_core/operator_execution.py",
+      "inputs": [
+        "apply result",
+        "rollback manifest",
+        "verification verdict"
+      ],
+      "outputs": [
+        "rollback packet",
+        "rollback dry-run preview"
+      ],
+      "command_preview": "",
+      "runtime_mutation_performed_now": false,
+      "runtime_mutation_if_live": false,
+      "preview_only": true
+    },
+    {
+      "step": 8,
+      "name": "feedback",
+      "owner": "admin_core/operator_execution_feedback.py",
+      "inputs": [
+        "verified execution result",
+        "prediction",
+        "recommendation hash"
+      ],
+      "outputs": [
+        "outcome",
+        "trust",
+        "prediction",
+        "recommendation feedback"
+      ],
+      "command_preview": "",
+      "runtime_mutation_performed_now": false,
+      "runtime_mutation_if_live": false,
+      "preview_only": true
+    },
+    {
+      "step": 9,
+      "name": "closure",
+      "owner": "admin_core/operator_execution_feedback.py",
+      "inputs": [
+        "feedback records",
+        "audit reference",
+        "rollback state"
+      ],
+      "outputs": [
+        "operation closure"
+      ],
+      "command_preview": "",
+      "runtime_mutation_performed_now": false,
+      "runtime_mutation_if_live": false,
+      "preview_only": true
+    },
+    {
+      "step": 10,
+      "name": "trust_refresh",
+      "owner": "tools/v7-intelligence-snapshot-refresh",
+      "inputs": [
+        "canonical feedback stores"
+      ],
+      "outputs": [
+        "updated trust/planner evidence"
+      ],
+      "command_preview": "v7-intelligence-snapshot-refresh --approved-refresh",
+      "runtime_mutation_performed_now": false,
+      "runtime_mutation_if_live": true,
+      "preview_only": true
+    }
+  ],
+  "blocked_actions": [
+    "direct user-switch",
+    "planner bypass",
+    "packet bypass",
+    "restore barrier bypass",
+    "apply without verification",
+    "rollback without rollback packet",
+    "feedback write before verified execution",
+    "target/user reselect after approval"
+  ],
+  "no_bypass_certification": {
+    "planner_bypass_possible": false,
+    "governance_bypass_possible": false,
+    "packet_bypass_possible": false,
+    "restore_barrier_bypass_possible": false,
+    "apply_verification_bypass_possible": false,
+    "rollback_bypass_possible": false,
+    "feedback_bypass_possible": false
+  },
+  "final_certification": {
+    "single_approve_reject_boundary_exists": true,
+    "reject_path_preview_ready": true,
+    "approve_path_preview_ready": true,
+    "live_execution_enabled": false,
+    "operator_reduced_to_approve_reject": true
+  }
+}

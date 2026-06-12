@@ -1,0 +1,19 @@
+{
+  "selected_count": 5,
+  "users": [
+    "10.7.0.3",
+    "10.7.0.2",
+    "10.7.0.4",
+    "10.7.0.6",
+    "10.7.0.8"
+  ],
+  "targets": [
+    "awg0",
+    "awg3"
+  ],
+  "atomic_condition": "ENVELOPE_VALID",
+  "atomic_mismatches": [],
+  "snapshot_stop": false,
+  "source_mismatch": [],
+  "clearance_generation_ok": true
+}

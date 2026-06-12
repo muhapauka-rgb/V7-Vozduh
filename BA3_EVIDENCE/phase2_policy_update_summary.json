@@ -1,0 +1,6 @@
+{
+  "before_planned": 2,
+  "after_planned": 5,
+  "after_failover": 25,
+  "after_mode": "guarded"
+}

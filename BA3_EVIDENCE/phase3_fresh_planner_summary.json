@@ -1,0 +1,42 @@
+{
+  "candidate_moves_total": 23,
+  "selected_moves": 0,
+  "authority_before": 5,
+  "authority_after": 5,
+  "budget": 25,
+  "planned_limit": 5,
+  "rb_approved_before": [
+    {
+      "user_ip": "10.7.0.3",
+      "current_egress": "vless",
+      "recommended_egress": "awg3",
+      "move_type": "rebalance"
+    },
+    {
+      "user_ip": "10.7.0.2",
+      "current_egress": "vless",
+      "recommended_egress": "awg3",
+      "move_type": "rebalance"
+    },
+    {
+      "user_ip": "10.7.0.4",
+      "current_egress": "vless",
+      "recommended_egress": "awg0",
+      "move_type": "rebalance"
+    },
+    {
+      "user_ip": "10.7.0.6",
+      "current_egress": "vless",
+      "recommended_egress": "awg3",
+      "move_type": "rebalance"
+    },
+    {
+      "user_ip": "10.7.0.8",
+      "current_egress": "vless",
+      "recommended_egress": "awg0",
+      "move_type": "rebalance"
+    }
+  ],
+  "source_mismatch": [],
+  "snapshot_stop": false
+}

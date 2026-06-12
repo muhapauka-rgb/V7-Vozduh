@@ -1,0 +1,51 @@
+{
+  "packet_id": "pkt_6fb8e0331a3fb520299f15f2",
+  "operation_id": "govexec_d6a6cd1d627aeb2685dcd94d",
+  "approval_id": "appr_3e5bba2cfa80f3be480a1a9d",
+  "expires_at": "2026-06-12T22:38:21.996254+00:00",
+  "selected_move_count": 5,
+  "allowed_users": [
+    "10.7.0.3",
+    "10.7.0.2",
+    "10.7.0.4",
+    "10.7.0.6",
+    "10.7.0.8"
+  ],
+  "allowed_targets": [
+    "awg0",
+    "awg3"
+  ],
+  "rollback_manifest_id": "rb_d6a6cd1d627aeb2685dcd94d",
+  "selected_moves": [
+    {
+      "user_ip": "10.7.0.3",
+      "current_egress": "vless",
+      "recommended_egress": "awg3",
+      "move_type": "rebalance"
+    },
+    {
+      "user_ip": "10.7.0.2",
+      "current_egress": "vless",
+      "recommended_egress": "awg3",
+      "move_type": "rebalance"
+    },
+    {
+      "user_ip": "10.7.0.4",
+      "current_egress": "vless",
+      "recommended_egress": "awg0",
+      "move_type": "rebalance"
+    },
+    {
+      "user_ip": "10.7.0.6",
+      "current_egress": "vless",
+      "recommended_egress": "awg3",
+      "move_type": "rebalance"
+    },
+    {
+      "user_ip": "10.7.0.8",
+      "current_egress": "vless",
+      "recommended_egress": "awg0",
+      "move_type": "rebalance"
+    }
+  ]
+}

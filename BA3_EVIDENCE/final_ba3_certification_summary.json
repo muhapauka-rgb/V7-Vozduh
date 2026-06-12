@@ -1,0 +1,44 @@
+{
+  "program": "BA.3 FIVE USER AUTONOMY CERTIFICATION",
+  "final_verdict": "FIVE_USER_AUTONOMY_BLOCKED",
+  "truth_gate_passed": true,
+  "convergence_passed": true,
+  "runtime_action_safe": true,
+  "policy_escalated_to_5": true,
+  "authority_budget_valid": true,
+  "current_allowed_user_budget": 25,
+  "five_real_planner_candidates_available": true,
+  "packet_created": true,
+  "restore_barrier_created": true,
+  "pre_execution_recheck_pass": true,
+  "pre_execution_selected_moves": 5,
+  "planned_users": [
+    "10.7.0.3",
+    "10.7.0.2",
+    "10.7.0.4",
+    "10.7.0.6",
+    "10.7.0.8"
+  ],
+  "planned_targets": [
+    "awg3",
+    "awg3",
+    "awg0",
+    "awg3",
+    "awg0"
+  ],
+  "users_moved": 0,
+  "apply_executed": false,
+  "rollback_required": false,
+  "feedback_materialized": false,
+  "trust_updated": false,
+  "prediction_updated": false,
+  "recommendation_updated": false,
+  "planner_reuse_verified": false,
+  "policy_reverted_to_2": true,
+  "single_blocker": "approval_to_apply_source_bundle_mismatch_service_scores_channel_service_scores",
+  "blocked_families": [
+    "service-scores",
+    "channel-service-scores"
+  ],
+  "safe_next_step": "PROGRAM BA3.BLOCKER_SOURCE_BUNDLE_STABILITY_CLOSURE"
+}

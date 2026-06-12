@@ -1,0 +1,5 @@
+ip=10.7.0.3 current=vless table=1001 enabled=1
+ip=10.7.0.2 current=vless table=1000 enabled=1
+ip=10.7.0.4 current=vless table=1002 enabled=1
+ip=10.7.0.6 current=vless table=1004 enabled=1
+ip=10.7.0.8 current=vless table=1006 enabled=1

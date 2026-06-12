@@ -1,0 +1,11 @@
+users_registry
+ip=10.0.0.3 current=awg0 table=101 enabled=1
+ip=10.0.0.6 current=awg0 table=104 enabled=1
+route_get_10_0_0_3
+8.8.8.8 from 10.0.0.3 dev awg0 table 101 
+    cache iif wg0 
+route_get_10_0_0_6
+8.8.8.8 from 10.0.0.6 dev awg0 table 104 
+    cache iif wg0 
+user_state_10_0_0_3
+user_state_10_0_0_6

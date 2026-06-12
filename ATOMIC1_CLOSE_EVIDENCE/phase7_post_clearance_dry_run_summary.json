@@ -1,0 +1,32 @@
+{
+  "terminal_state": "DRY_RUN",
+  "terminal_reason": "dry_run_selected_moves_available",
+  "selected_move_count": 2,
+  "selected_count": 2,
+  "selected_moves": [
+    {
+      "user_ip": "10.0.0.3",
+      "current_egress": "vless",
+      "recommended_egress": "awg0",
+      "move_type": "rebalance"
+    },
+    {
+      "user_ip": "10.0.0.6",
+      "current_egress": "vless",
+      "recommended_egress": "awg0",
+      "move_type": "rebalance"
+    }
+  ],
+  "snapshot_stop_required": false,
+  "source_mismatch_families": [],
+  "source_bundle_lease_used": null,
+  "source_bundle_lease_changed_keys": null,
+  "clearance_generation_ok": true,
+  "clearance_generation_reason": "restore_barrier_clearance_generation_match_source_bundle_lease",
+  "clearance_guard_reason": "restore_barrier_clearance_budget_and_generation_ok",
+  "barrier_lease_reason": "restore_barrier_source_bundle_lease_service_matrix_only",
+  "barrier_changed_keys": [
+    "service_matrix"
+  ],
+  "approved_plan_lock_reason": "approved_plan_lock_valid"
+}

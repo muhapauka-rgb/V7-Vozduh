@@ -1,0 +1,13 @@
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+cache-control: no-store
+content-type: application/json; charset=utf-8
+date: Fri, 12 Jun 2026 22:08:58 GMT
+referrer-policy: no-referrer
+server: Caddy
+server: V7Admin/0.1 Python/3.14.4
+strict-transport-security: max-age=31536000; includeSubDomains
+x-content-type-options: nosniff
+x-frame-options: DENY
+content-length: 11056
+

@@ -1,0 +1,40 @@
+{
+  "operation_id": "runtime_autoswitch_c3a76cf1644493fde1a052da",
+  "terminal_state": "APPLIED",
+  "terminal_reason": "selected_moves_applied",
+  "users_moved": [
+    "10.0.0.3",
+    "10.0.0.6"
+  ],
+  "targets": [
+    "awg0"
+  ],
+  "selected_move_count": 2,
+  "apply_applied": true,
+  "verify_rcs": [
+    0,
+    0
+  ],
+  "rollback_attempted": [
+    false,
+    false
+  ],
+  "route_registry_verified": true,
+  "packet_allowed_users": [
+    "10.0.0.3",
+    "10.0.0.6"
+  ],
+  "packet_allowed_targets": [
+    "awg0"
+  ],
+  "rollback_manifest_present": true,
+  "restore_barrier_verdict": "ALLOW_RESTORE_BARRIER_CLEARANCE",
+  "feedback_users": [
+    "10.0.0.3",
+    "10.0.0.6"
+  ],
+  "feedback_success": true,
+  "trust_feedback_active": true,
+  "prediction_feedback_active": true,
+  "recommendation_feedback_active": true
+}

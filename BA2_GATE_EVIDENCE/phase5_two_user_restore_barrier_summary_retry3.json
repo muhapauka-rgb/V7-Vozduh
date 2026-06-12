@@ -1,0 +1,28 @@
+{
+  "execution_allowed_now": true,
+  "real_runtime_action_performed": true,
+  "mode": "runtime_action",
+  "recheck": {
+    "verdict": "ALLOW_RESTORE_BARRIER_CLEARANCE",
+    "allow": true,
+    "errors": [],
+    "selected_move_count": 2,
+    "selected_move_hash": "ab112e551b4d020a40bc17584afd613a6568d5c54b5cad76da5809320326fc46"
+  },
+  "clearance_result": {
+    "ok": true,
+    "verdict": "RESTORE_BARRIER_CLEARANCE_WRITTEN",
+    "runtime_mutation_scope": null,
+    "users_moved": null,
+    "autoswitch_apply_run": null,
+    "routing_mutation": null
+  },
+  "lifecycle_records": 3,
+  "record": {
+    "verdict": "ALLOW_RESTORE_BARRIER_CLEARANCE",
+    "runtime_action_performed": true,
+    "runtime_mutation": true,
+    "user_movement": false,
+    "runtime_mutation_scope": "restore_barrier_clearance_only"
+  }
+}

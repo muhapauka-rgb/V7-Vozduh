@@ -1,0 +1,27 @@
+{
+  "execution_allowed_now": false,
+  "real_runtime_action_performed": false,
+  "mode": "execute",
+  "recheck": {
+    "verdict": "DENY_REPLAY",
+    "allow": false,
+    "errors": [
+      "approval_id_already_recorded"
+    ],
+    "selected_move_count": null,
+    "selected_move_hash": null
+  },
+  "clearance_result": {
+    "verdict": null,
+    "runtime_mutation_scope": null,
+    "users_moved": null,
+    "autoswitch_apply_run": null,
+    "routing_mutation": null
+  },
+  "lifecycle_records": 0,
+  "record": {
+    "verdict": "DENY_REPLAY",
+    "runtime_mutation": false,
+    "user_movement": false
+  }
+}

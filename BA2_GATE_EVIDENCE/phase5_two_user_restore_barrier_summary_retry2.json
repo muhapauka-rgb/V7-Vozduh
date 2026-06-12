@@ -1,0 +1,26 @@
+{
+  "execution_allowed_now": false,
+  "real_runtime_action_performed": false,
+  "mode": "execute",
+  "recheck": {
+    "verdict": "ALLOW_RESTORE_BARRIER_CLEARANCE",
+    "allow": true,
+    "errors": [],
+    "selected_move_count": null,
+    "selected_move_hash": null
+  },
+  "clearance_result": {
+    "verdict": null,
+    "runtime_mutation_scope": null,
+    "users_moved": null,
+    "autoswitch_apply_run": null,
+    "routing_mutation": null
+  },
+  "lifecycle_records": 0,
+  "record": {
+    "verdict": "ALLOW_RESTORE_BARRIER_CLEARANCE",
+    "runtime_action_performed": false,
+    "runtime_mutation": false,
+    "user_movement": false
+  }
+}

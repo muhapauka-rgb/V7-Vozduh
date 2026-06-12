@@ -1,0 +1,35 @@
+{
+  "execution_allowed_now": false,
+  "real_runtime_action_performed": false,
+  "mode": "generate",
+  "packet_path": "/opt/v7/admin/ba2_gate_two_user_packet.json",
+  "packet": {
+    "packet_id": "pkt_d6cd402b40439ed5f84e90de",
+    "operation_id": "govexec_963f8eb8bb7ebac69b1924ea",
+    "runtime_action": "CREATE_RESTORE_BARRIER_CLEARANCE",
+    "selected_first_action": "NONZERO_MOVEMENT_GENERATION_CLEARANCE_RECHECK",
+    "allowed_users": [
+      "10.0.0.2",
+      "10.0.0.3"
+    ],
+    "allowed_targets": [
+      "awg0"
+    ],
+    "selected_move_budget": 2,
+    "rollback_items": 2,
+    "selected_moves": [
+      {
+        "current_egress": "awg3",
+        "move_type": "failover",
+        "recommended_egress": "awg0",
+        "user_ip": "10.0.0.2"
+      },
+      {
+        "current_egress": "vless",
+        "move_type": "rebalance",
+        "recommended_egress": "awg0",
+        "user_ip": "10.0.0.3"
+      }
+    ]
+  }
+}

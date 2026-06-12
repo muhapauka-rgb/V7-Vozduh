@@ -1,0 +1,12 @@
+{
+  "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired",
+  "terminal_state": "DRY_RUN",
+  "selected_move_count": 0,
+  "selected_count": 0,
+  "snapshot_stop_required": false,
+  "source_mismatch_families": [],
+  "planned_limit": 1,
+  "requested_max_selected_moves": 2,
+  "authority_class": "POOL",
+  "current_allowed_user_budget": 25
+}

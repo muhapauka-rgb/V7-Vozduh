@@ -1,0 +1,13 @@
+{
+  "action": "policy_update",
+  "policy": {
+    "switch": {
+      "autoswitch_max_planned_per_run": 2,
+      "autoswitch_max_failover_per_run": 25,
+      "autoswitch_mode": "guarded",
+      "autoswitch_enabled": true,
+      "cooldown_seconds": 900
+    }
+  },
+  "backup": "/etc/v7/policy.json.backup.v7-policy.20260612-211933"
+}

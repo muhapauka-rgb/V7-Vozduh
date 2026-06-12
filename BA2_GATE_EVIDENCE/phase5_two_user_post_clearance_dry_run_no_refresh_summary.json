@@ -1,0 +1,84 @@
+{
+  "operation": {
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_type": "runtime_autoswitch",
+    "operation_started_at": "2026-06-12T21:27:16.681462+00:00",
+    "planner_generation_id": "41caaa73012645a290b57bc531ec266f4898a32f5f8c7150c898ebb485b622b0",
+    "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "selected_move_count": 0,
+    "runtime_snapshot_hash": "59facdf1b924360d5d69ac9bf297b9408b17de0175f45a1e75700e93c5baef9e",
+    "operation_id": "runtime_autoswitch_37d9a90293078ec504856420",
+    "atomic_execution_envelope_id": "aee_3f8b538856dbbaa1ec90a145",
+    "atomic_execution_envelope_hash": "3f8b538856dbbaa1ec90a1457da348076b69b102c1c408d361142d71765a1e37",
+    "terminal_state": "DRY_RUN",
+    "terminal_reason": "dry_run_restore_barrier_clearance_atomic_envelope_id_mismatch"
+  },
+  "selected_count": 0,
+  "selected_moves": [],
+  "apply_result": {
+    "applied": false,
+    "reason": "dry_run"
+  },
+  "restore_barrier": {
+    "reason": "restore_barrier_clearance_atomic_envelope_id_mismatch",
+    "generation_ok": false,
+    "generation_reason": "restore_barrier_clearance_atomic_envelope_id_mismatch",
+    "source_bundle_lease": {
+      "ok": false,
+      "reason": "restore_barrier_source_bundle_lease_hard_source_changed",
+      "changed_source_keys": [
+        "quality_summary",
+        "service_matrix"
+      ],
+      "approved_source_hashes": {
+        "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+        "quality_summary": "71d9a2462a36bd420e85e6b86a3734130e0c02494d28dd5ad77291b117d47697",
+        "service_matrix": "d24f41ff7f1deaf77c3c11ea8bce04a83a766fb1a94d2015e52328c66adbfa3a",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+        "users_registry": "0dd63cb87a43b26fc243ef82c90abc1fbf7211286a00e8f85bd874c24ff6b308"
+      },
+      "current_source_hashes": {
+        "service_matrix": "8649e29a61f09ee16b735a6c80135b206cf5097886bb4c423252cfeaa338ccdc",
+        "quality_summary": "c7b419b2f7b5471771a24c13d3c587fc9114902fc9aef63990b9533ee1f003e0",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+        "users_registry": "0dd63cb87a43b26fc243ef82c90abc1fbf7211286a00e8f85bd874c24ff6b308",
+        "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5"
+      }
+    },
+    "approved_plan_lock_validation": {
+      "present": true,
+      "ok": true,
+      "reason": "approved_plan_lock_valid",
+      "lock_id": "apl_cbe4c88ece313ec905c906b2",
+      "lock_hash": "75bb36b1ae0fc4fcd87fe4d0ecbac0d2d52e98a82631a6a71f6aead465dc17d4",
+      "selected_move_hash": "ab112e551b4d020a40bc17584afd613a6568d5c54b5cad76da5809320326fc46",
+      "selected_move_count": 2,
+      "selected_users": [
+        "10.0.0.2",
+        "10.0.0.3"
+      ],
+      "selected_targets": [
+        "awg0"
+      ],
+      "selected_moves": [
+        {
+          "user_ip": "10.0.0.2",
+          "current_egress": "awg3",
+          "recommended_egress": "awg0",
+          "move_type": "failover"
+        },
+        {
+          "user_ip": "10.0.0.3",
+          "current_egress": "vless",
+          "recommended_egress": "awg0",
+          "move_type": "rebalance"
+        }
+      ]
+    }
+  },
+  "snapshot_gate": {
+    "stop_required": false,
+    "source_mismatch_families": []
+  },
+  "refresh": null
+}

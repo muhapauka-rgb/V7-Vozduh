@@ -1,0 +1,46 @@
+{
+  "operation": {
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_type": "runtime_autoswitch",
+    "operation_started_at": "2026-06-12T21:31:29.915673+00:00",
+    "planner_generation_id": "468db1ffdfa2c58b1b30ec44d279e0b4dc212aafac8aa57eccdc1c8a519c1533",
+    "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "selected_move_count": 0,
+    "runtime_snapshot_hash": "59facdf1b924360d5d69ac9bf297b9408b17de0175f45a1e75700e93c5baef9e",
+    "operation_id": "runtime_autoswitch_e02090e31dbefcd3a147a854",
+    "atomic_execution_envelope_id": "aee_a14efdd20453c213f799f5fe",
+    "atomic_execution_envelope_hash": "a14efdd20453c213f799f5fed42b5936b4f2de301729038411a01c65270bb42c",
+    "terminal_state": "DRY_RUN",
+    "terminal_reason": "dry_run_intelligence_snapshot_stop_required"
+  },
+  "selected_count": 0,
+  "restore_barrier": {
+    "clearance_expires_at": "2026-06-12T21:31:10.891689+00:00",
+    "clearance_generation_ok": false,
+    "clearance_generation_reason": "restore_barrier_clearance_generation_expired",
+    "approved_plan_lock_validation": {
+      "present": true,
+      "ok": false,
+      "reason": "approved_plan_lock_invalid",
+      "reasons": [
+        "approved_plan_lock_expired"
+      ],
+      "selected_move_hash": "ab112e551b4d020a40bc17584afd613a6568d5c54b5cad76da5809320326fc46",
+      "approved_selected_move_hash": "ab112e551b4d020a40bc17584afd613a6568d5c54b5cad76da5809320326fc46",
+      "selected_users": [
+        "10.0.0.2",
+        "10.0.0.3"
+      ],
+      "selected_targets": [
+        "awg0"
+      ]
+    }
+  },
+  "snapshot_gate": {
+    "stop_required": true,
+    "source_mismatch_families": [
+      "channel-service-scores",
+      "service-scores"
+    ]
+  }
+}

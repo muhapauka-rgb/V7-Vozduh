@@ -1,0 +1,20 @@
+{
+  "execution_allowed_now": false,
+  "real_runtime_action_performed": false,
+  "mode": "execute",
+  "packet_path": "/opt/v7/admin/ba2_gate_two_user_packet.json",
+  "recheck": {
+    "verdict": "DENY_RUNTIME_PLAN_MISSING",
+    "blockers": null,
+    "selected_move_count": null,
+    "selected_move_hash": null
+  },
+  "clearance_result": {
+    "verdict": null,
+    "runtime_mutation_scope": null,
+    "users_moved": null,
+    "autoswitch_apply_run": null,
+    "routing_mutation": null
+  },
+  "lifecycle_records": 0
+}

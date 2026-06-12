@@ -1,0 +1,60 @@
+{
+  "operation": {
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_type": "runtime_autoswitch",
+    "operation_started_at": "2026-06-12T21:25:27.580315+00:00",
+    "planner_generation_id": "41caaa73012645a290b57bc531ec266f4898a32f5f8c7150c898ebb485b622b0",
+    "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "selected_move_count": 0,
+    "runtime_snapshot_hash": "59facdf1b924360d5d69ac9bf297b9408b17de0175f45a1e75700e93c5baef9e",
+    "operation_id": "runtime_autoswitch_a592aa1cbd88c05ba10d2fbf",
+    "atomic_execution_envelope_id": "aee_1f0c0ded820b276bf5902c06",
+    "atomic_execution_envelope_hash": "1f0c0ded820b276bf5902c060fb57509576c9765e8547753c260add4d0832f81",
+    "terminal_state": "DRY_RUN",
+    "terminal_reason": "dry_run_restore_barrier_clearance_atomic_envelope_id_mismatch"
+  },
+  "selected_count": 0,
+  "selected_moves": [],
+  "apply_result": {
+    "applied": false,
+    "reason": "dry_run"
+  },
+  "restore_barrier": {
+    "reason": "C.1 canonical nonzero governance lifecycle clearance",
+    "approved_plan_lock_validation": {
+      "present": true,
+      "ok": true,
+      "reason": "approved_plan_lock_valid",
+      "lock_id": "apl_cbe4c88ece313ec905c906b2",
+      "lock_hash": "75bb36b1ae0fc4fcd87fe4d0ecbac0d2d52e98a82631a6a71f6aead465dc17d4",
+      "selected_move_hash": "ab112e551b4d020a40bc17584afd613a6568d5c54b5cad76da5809320326fc46",
+      "selected_move_count": 2,
+      "selected_users": [
+        "10.0.0.2",
+        "10.0.0.3"
+      ],
+      "selected_targets": [
+        "awg0"
+      ],
+      "selected_moves": [
+        {
+          "user_ip": "10.0.0.2",
+          "current_egress": "awg3",
+          "recommended_egress": "awg0",
+          "move_type": "failover"
+        },
+        {
+          "user_ip": "10.0.0.3",
+          "current_egress": "vless",
+          "recommended_egress": "awg0",
+          "move_type": "rebalance"
+        }
+      ]
+    },
+    "clearance_selected_moves_hash": "ab112e551b4d020a40bc17584afd613a6568d5c54b5cad76da5809320326fc46"
+  },
+  "snapshot_gate": {
+    "stop_required": false,
+    "source_mismatch_families": []
+  }
+}

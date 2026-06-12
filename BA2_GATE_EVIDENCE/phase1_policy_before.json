@@ -1,0 +1,229 @@
+{
+  "policy": {
+    "schema_version": 1,
+    "switch": {
+      "cooldown_seconds": 900,
+      "autoswitch_enabled": true,
+      "autoswitch_mode": "guarded",
+      "autoswitch_max_planned_per_run": 1,
+      "autoswitch_max_failover_per_run": 25,
+      "autoswitch_max_reconnect_per_run": 10,
+      "min_score_improvement_pct": 0.2,
+      "min_score_delta": 50.0
+    },
+    "quality": {
+      "min_avg_mbps": 15.0,
+      "min_floor_mbps": 10.0,
+      "min_stability": 0.45
+    },
+    "load": {
+      "mode": "dynamic",
+      "reserve_ratio": 0.15,
+      "soft_multiplier": 1.15,
+      "hard_multiplier": 1.45,
+      "failover_hard_multiplier": 2.0,
+      "failover_capacity_multiplier": 1.25,
+      "min_soft_limit": 5,
+      "min_hard_limit": 10,
+      "max_hard_limit": 80,
+      "soft_limit": 1,
+      "hard_limit": 2,
+      "failover_hard_limit": 60,
+      "rebalance_max_moves_per_run": 6,
+      "rebalance_enabled": true,
+      "rebalance_min_gap_users": 2,
+      "rebalance_min_target_score_ratio": 0.75
+    },
+    "reconnect": {
+      "enabled": true,
+      "active_age_seconds": 45,
+      "reconnect_window_seconds": 120,
+      "rotation_cooldown_seconds": 180
+    },
+    "safety": {
+      "user_freeze_switches_1h": 2,
+      "user_freeze_switches_24h": 5,
+      "user_freeze_1h_seconds": 3600,
+      "user_freeze_24h_seconds": 21600,
+      "target_block_seconds": 1800,
+      "egress_quarantine_failed_verifications_1h": 2,
+      "egress_quarantine_seconds": 3600
+    },
+    "intervals": {
+      "health_seconds": 30,
+      "benchmark_seconds": 300
+    },
+    "authority_budget": {
+      "activation_reason": "successful_2_user_governed_execution_verified_feedback_materialized_snapshot_gate_clean",
+      "authority_class": "POOL",
+      "authority_lifecycle_state": "PROMOTED",
+      "certified_authority_class": "POOL",
+      "cooldown_seconds": 180,
+      "current_allowed_user_budget": 25,
+      "demotion_delay_seconds": 0,
+      "enabled": true,
+      "evidence_floor": "two_successful_large_batch_runs_with_feedback_closure_and_pool_no_regression_window",
+      "minimum_residence_seconds": 300,
+      "next_allowed_user_budget": 25,
+      "promotion_delay_seconds": 900,
+      "rollback_penalty_seconds": 3600,
+      "updated_at": "2026-06-06T08:54:58+00:00",
+      "updated_by": "PROGRAM_VLESS_SERVICE_FAILURE_ROOT_CAUSE_CLOSURE_AND_CANARY_EXPANSION_EXECUTION",
+      "certification_evidence": {
+        "operation_id": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+        "selected_move_hash": "fcbbb6b0bb355003c3cf794875a78d68ce4a52d05c0c1ecfa94c761b7ef35438",
+        "users": [
+          "10.0.0.3",
+          "10.0.0.6"
+        ],
+        "target": "vless",
+        "verification_passed": true,
+        "rollback_required": false,
+        "feedback_ids": [
+          "execfb_dfac3391a383f3f76793fea0",
+          "execfb_e42729ab1d2fe5ffad827c56"
+        ],
+        "snapshot_gate_clean_evidence": "phase12_post_feedback_planner_with_pre_refresh"
+      },
+      "prepared_authority_class": "POOL",
+      "next_authority_class": "POOL",
+      "promoted_at": "2026-06-07T16:17:33.328322+00:00",
+      "promoted_by": "tools/v7-users-autoswitch",
+      "promotion_action": "LARGE_BATCH_TO_POOL",
+      "promotion_evidence": {
+        "operation_ids": [
+          "runtime_autoswitch_0425741b308df19ccc0c1e03"
+        ],
+        "successful_runs": 1,
+        "successful_large_batch_runs": 1,
+        "required_successful_runs": 2,
+        "required_stability_window_seconds": 3600,
+        "equivalence_accepted": true,
+        "equivalence_review": {
+          "schema_version": "v7.pool-promotion-equivalence-review.v1",
+          "target_authority_class": "POOL",
+          "rule": "one_successful_large_3600s_no_regression_25_users_balanced_zero_move_pool",
+          "accepted": true,
+          "blockers": [],
+          "operator_approval_required": true,
+          "new_governance_owner_created": false,
+          "new_truth_source_created": false,
+          "requirements": {
+            "one_successful_large_batch": true,
+            "required_stability_window_seconds": 3600,
+            "observed_stability_window_seconds": 3600,
+            "active_users_at_least_pool_budget": true,
+            "balanced_pool": true,
+            "load_status_ok": true,
+            "active_working_channels_at_least_two": true,
+            "zero_planner_candidate_moves": true,
+            "snapshot_gate_clean": true
+          },
+          "distribution_review": {
+            "schema_version": "v7.pool-equivalence-distribution-review.v1",
+            "active_users": 25,
+            "pool_budget": 25,
+            "working_channels": 3,
+            "counts": {
+              "awg0": 8,
+              "awg3": 8,
+              "vless": 9
+            },
+            "active_working_channels": 3,
+            "max_users_per_active_channel": 9,
+            "min_users_per_active_channel": 8,
+            "spread": 1,
+            "balanced": true
+          },
+          "planner_review": {
+            "schema_version": "v7.pool-equivalence-planner-review.v1",
+            "active_users": 25,
+            "candidate_moves_total": 0,
+            "rebalance_candidates": 0,
+            "selected_moves": 0,
+            "zero_rebalance_demand": true,
+            "snapshot_stop_required": false,
+            "snapshot_source_mismatch_families": [],
+            "snapshot_gate": {
+              "active": true,
+              "stop_required": false,
+              "source_mismatch_families": []
+            }
+          },
+          "load_review": {
+            "status": "ok",
+            "active_users": 25,
+            "healthy_channels": 3,
+            "working_channels": 2,
+            "avg_load": 12.5,
+            "soft_limit": 15,
+            "hard_limit": 19,
+            "failover_hard_limit": 25
+          }
+        },
+        "feedback_ids": [
+          "execfb_1625b5ea00a8c0996b7bf1d3",
+          "execfb_181fcd8d4cbf13163f05c96b",
+          "execfb_3154e8f1a33afa551147d15b",
+          "execfb_4189bf56cdddee7d506a2725",
+          "execfb_4bd9663f1878224924c17d52",
+          "execfb_5c2d5c19ef9d808acc5d1283",
+          "execfb_65418d3e52e031316f7235e2",
+          "execfb_6c7e8531d4dda93be65f4652",
+          "execfb_7d856a8ed12dbac9e4244044",
+          "execfb_826b89a8ec6d940ca9f9c7e4",
+          "execfb_874b90ae33029d0759956da7",
+          "execfb_93f2ca95969185cf00229c51",
+          "execfb_976fa9c303bb06d4bb3530a2",
+          "execfb_ba8de57a858bca5ae37aded9",
+          "execfb_bb30465a83dd2d52959db107",
+          "execfb_c72f2a4a2e0d049af97cfd56",
+          "execfb_e1f81190fd5d6473641fa2cb",
+          "execfb_e30f7aa15fe7c598233b9ca6",
+          "execfb_e83085becf58de9be04b4607",
+          "execfb_edcc7ed8d8efa56f9e63dea4"
+        ]
+      }
+    },
+    "certification": {
+      "program_d1": {
+        "backup": "/etc/v7/policy.json.backup.program-d1-20260603T071027Z",
+        "dynamic_blast_radius_ladder": [
+          1,
+          2,
+          5,
+          10,
+          25
+        ],
+        "new_autoswitch_max_failover_per_run": 25,
+        "policy_change_reason": "certify production runtime platform under governed dynamic blast radius",
+        "previous_autoswitch_max_failover_per_run": 3
+      }
+    },
+    "updated": "2026-06-07T11:50:15.065372+00:00",
+    "updated_by": "admin"
+  },
+  "service_preferences": {
+    "enabled": true,
+    "users": {
+      "10.0.0.2": {
+        "services": [
+          "telegram"
+        ],
+        "updated": "2026-05-06T19:55:15.454404+00:00",
+        "updated_by": "admin"
+      },
+      "10.7.0.5": {
+        "services": [
+          "telegram",
+          "youtube",
+          "google"
+        ],
+        "updated": "2026-05-19T17:56:00+00:00",
+        "updated_by": "codex-diagnostic"
+      }
+    },
+    "updated": "2026-05-19T17:56:00+00:00",
+    "updated_by": "codex-diagnostic"
+  }
+}

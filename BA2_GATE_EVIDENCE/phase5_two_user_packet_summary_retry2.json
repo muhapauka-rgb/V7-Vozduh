@@ -1,0 +1,29 @@
+{
+  "packet": {
+    "packet_id": "pkt_3189a957ea693f5c7605a5d2",
+    "approval_id": "appr_0edb461b9913c541e7c1ce50",
+    "operation_id": "govexec_963f8eb8bb7ebac69b1924ea",
+    "allowed_users": [
+      "10.0.0.2",
+      "10.0.0.3"
+    ],
+    "allowed_targets": [
+      "awg0"
+    ],
+    "selected_move_budget": 2,
+    "selected_moves": [
+      {
+        "current_egress": "awg3",
+        "move_type": "failover",
+        "recommended_egress": "awg0",
+        "user_ip": "10.0.0.2"
+      },
+      {
+        "current_egress": "vless",
+        "move_type": "rebalance",
+        "recommended_egress": "awg0",
+        "user_ip": "10.0.0.3"
+      }
+    ]
+  }
+}

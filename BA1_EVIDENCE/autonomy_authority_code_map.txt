@@ -1,0 +1,47 @@
+admin_core/operator_views.py:65:def approved_execution_controller_preview(decision: str = "DRAFT", *, repo_root: Path) -> dict:
+admin_core/operator_views.py:66:    return operator_observability.build_operator_approved_execution_controller_preview(decision, repo_root=repo_root)
+admin_core/shadow_autonomy.py:102:        "autonomy_enabled": False,
+admin_core/shadow_autonomy.py:155:        "autonomy_enabled": False,
+admin_core/shadow_autonomy.py:415:        "bounded_autonomy_ready": False,
+admin_core/shadow_autonomy.py:416:        "production_autonomy_ready": False,
+admin_core/shadow_autonomy.py:425:    if not readiness.get("bounded_autonomy_ready"):
+admin_core/shadow_autonomy.py:488:            "autonomy_enabled": False,
+admin_core/intelligence_platform.py:686:def autonomy_readiness_model(confidence_summary: dict[str, Any] | None = None) -> dict[str, Any]:
+admin_core/intelligence_platform.py:699:    explicit_autonomy_approval = bool(summary.get("explicit_autonomy_approval"))
+admin_core/intelligence_platform.py:708:    elif average < 95.0 or not explicit_autonomy_approval:
+admin_core/intelligence_platform.py:719:        "explicit_autonomy_approval": explicit_autonomy_approval,
+admin_core/intelligence_platform.py:720:        "autonomy_enabled": False,
+admin_core/intelligence_platform.py:806:        "bounded_autonomy_ready": False,
+admin_core/intelligence_platform.py:807:        "production_autonomy_ready": False,
+admin_core/intelligence_platform.py:824:        "autonomy_enabled": False,
+admin_core/intelligence_platform.py:868:        "explicit_autonomy_approval": False,
+admin_core/intelligence_platform.py:902:        "autonomy_enabled": False,
+admin_core/intelligence_platform.py:1027:            {"level": "OPERATOR_APPROVAL_READY", "authority": "operator_approved_existing_runtime_owner_only"},
+admin_core/intelligence_platform.py:1040:        "autonomy_enabled": False,
+admin_core/intelligence_platform.py:1089:    production_ready = bool(bounded_ready and readiness["average_confidence"] >= 95.0 and confidence.get("explicit_autonomy_approval"))
+admin_core/intelligence_platform.py:1107:        "autonomy_enabled": False,
+admin_core/intelligence_platform.py:1139:        "explicit_autonomy_approval": False,
+admin_core/intelligence_platform.py:1443:        "autonomy_enabled": False,
+admin_core/intelligence_platform.py:1989:        "bounded_autonomy_ready": False,
+admin_core/intelligence_platform.py:1990:        "production_autonomy_ready": False,
+admin_core/intelligence_platform.py:2084:        "bounded_autonomy_ready": False,
+admin_core/intelligence_platform.py:2085:        "production_autonomy_ready": False,
+admin_core/operator_execution_pipeline.py:672:        "autonomy_enabled": False,
+admin_core/operator_execution_pipeline.py:721:            "autonomy_enabled": False,
+admin_core/operator_execution_pipeline.py:881:        "autonomy_enabled": False,
+admin_core/operator_execution_pipeline.py:1111:        "autonomy_enabled": False,
+admin_core/operator_execution_pipeline.py:1520:        "autonomy_enabled": False,
+admin_core/operator_execution_pipeline.py:1618:        "autonomy_enabled": False,
+admin_core/operator_execution_pipeline.py:2017:        "autonomy_enabled": False,
+admin_core/operator_execution_pipeline.py:2144:        "autonomy_enabled": False,
+admin_core/operator_execution_pipeline.py:2250:            "autonomy_enabled": False,
+admin_core/operator_execution_pipeline.py:2297:        "autonomy_enabled": False,
+admin_core/operator_execution_pipeline.py:2347:def operator_approved_execution_controller_preview(decision: str = "DRAFT") -> dict[str, Any]:
+admin_core/operator_execution_pipeline.py:2359:        "controller": "canonical_operator_approved_execution_controller",
+admin_core/operator_execution_pipeline.py:2369:        "autonomy_enabled": False,
+admin_core/operator_execution_pipeline.py:2546:    oa_controller = operator_approved_execution_controller_preview()
+admin_core/operator_execution_pipeline.py:2568:        "operator_approved_execution_controller": oa_controller,
+admin_core/operator_execution_pipeline.py:2600:            "operator_approved_controller_preview_ready": True,
+admin_core/operator_execution_pipeline.py:2601:            "bounded_autonomy_ready": False,
+admin_core/operator_execution_pipeline.py:2602:            "production_autonomy_ready": False,
+admin_core/operator_execution_pipeline.py:2610:            "SAFE_NEXT_STEP": "certify_operator_approved_controller_preview_before_live_enablement",

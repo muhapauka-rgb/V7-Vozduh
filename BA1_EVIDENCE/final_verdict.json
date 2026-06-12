@@ -1,0 +1,25 @@
+{
+  "program": "BA.1",
+  "final_verdict": "ONE_USER_AUTONOMY_BLOCKED",
+  "single_blocker": "runtime_truth_gate_no_go_docs_only_mismatch",
+  "truth_pass": false,
+  "truth_blockers": [
+    "runtime_local_commit_mismatch"
+  ],
+  "convergence_status": "NOT_ALIGNED",
+  "runtime_action_status": "DOCS_ONLY_MISMATCH",
+  "runtime_action_safe": true,
+  "deployment_required": false,
+  "docs_only_mismatch": true,
+  "deploy_delta_mismatches": [],
+  "planner_candidate_moves_total": 0,
+  "planner_selected_moves": 0,
+  "autonomy_execution_gate": "NO",
+  "autonomous_execution_performed": false,
+  "users_moved": 0,
+  "apply_executed": false,
+  "autonomy_enabled": false,
+  "routing_changed": false,
+  "rollback_executed": false,
+  "safe_next_step": "CLOSE_DOCS_ONLY_RUNTIME_TRUTH_GATE_THEN_RERUN_BA1"
+}

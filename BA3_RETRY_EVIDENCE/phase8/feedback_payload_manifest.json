@@ -1,0 +1,32 @@
+[
+  {
+    "user": "10.0.0.3",
+    "path": "BA3_RETRY_EVIDENCE/phase8/feedback_payloads/payload_01_10_0_0_3.json",
+    "from": "awg0",
+    "to": "wireguard-1779454504-c43409"
+  },
+  {
+    "user": "10.0.0.6",
+    "path": "BA3_RETRY_EVIDENCE/phase8/feedback_payloads/payload_02_10_0_0_6.json",
+    "from": "awg0",
+    "to": "wireguard-1779454504-c43409"
+  },
+  {
+    "user": "10.7.0.3",
+    "path": "BA3_RETRY_EVIDENCE/phase8/feedback_payloads/payload_03_10_7_0_3.json",
+    "from": "vless",
+    "to": "awg3"
+  },
+  {
+    "user": "10.7.0.2",
+    "path": "BA3_RETRY_EVIDENCE/phase8/feedback_payloads/payload_04_10_7_0_2.json",
+    "from": "vless",
+    "to": "wireguard-1779454504-c43409"
+  },
+  {
+    "user": "10.7.0.4",
+    "path": "BA3_RETRY_EVIDENCE/phase8/feedback_payloads/payload_05_10_7_0_4.json",
+    "from": "vless",
+    "to": "awg3"
+  }
+]

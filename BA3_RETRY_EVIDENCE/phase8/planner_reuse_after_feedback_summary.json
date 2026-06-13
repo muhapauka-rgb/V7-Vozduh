@@ -1,0 +1,27 @@
+{
+  "summary": {
+    "users_total": 26,
+    "egress_total": 7,
+    "healthy_egress_total": 2,
+    "candidate_moves": 23,
+    "candidate_moves_total": 23,
+    "selected_moves": 0,
+    "reconnect_rotation_candidates": 0,
+    "rebalance_candidates": 20,
+    "org_groups": [
+      "default"
+    ]
+  },
+  "terminal_state": "DRY_RUN",
+  "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired",
+  "snapshot_stop_required": false,
+  "source_mismatch_families": [],
+  "selected_moves_count": 0,
+  "feedback_ids": [
+    "execfb_41fd476ef936078c92ebab89",
+    "execfb_9c9ba50f968c81b1a3096565",
+    "execfb_a2e2f43b672ef2016b3efd3a",
+    "execfb_2888264b1cdb153002f9e2bc",
+    "execfb_27bb7f7f973d88542ff52b2d"
+  ]
+}

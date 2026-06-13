@@ -1,0 +1,53 @@
+{
+  "operation_id": "runtime_autoswitch_f5cb2ee61b60b838aee41283",
+  "terminal_state": "APPLIED",
+  "terminal_reason": "selected_moves_applied",
+  "selected_move_count": 5,
+  "applied": true,
+  "result_count": 5,
+  "moved": [
+    {
+      "user_ip": "10.0.0.3",
+      "from": "awg0",
+      "to": "wireguard-1779454504-c43409",
+      "rc": 0,
+      "verify_rc": 0,
+      "rollback_attempted": false
+    },
+    {
+      "user_ip": "10.0.0.6",
+      "from": "awg0",
+      "to": "wireguard-1779454504-c43409",
+      "rc": 0,
+      "verify_rc": 0,
+      "rollback_attempted": false
+    },
+    {
+      "user_ip": "10.7.0.3",
+      "from": "vless",
+      "to": "awg3",
+      "rc": 0,
+      "verify_rc": 0,
+      "rollback_attempted": false
+    },
+    {
+      "user_ip": "10.7.0.2",
+      "from": "vless",
+      "to": "wireguard-1779454504-c43409",
+      "rc": 0,
+      "verify_rc": 0,
+      "rollback_attempted": false
+    },
+    {
+      "user_ip": "10.7.0.4",
+      "from": "vless",
+      "to": "awg3",
+      "rc": 0,
+      "verify_rc": 0,
+      "rollback_attempted": false
+    }
+  ],
+  "all_switch_rc_zero": true,
+  "all_verify_rc_zero": true,
+  "rollback_attempted_any": false
+}

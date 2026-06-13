@@ -1,0 +1,5 @@
+{
+  "switch": {
+    "autoswitch_max_planned_per_run": 5
+  }
+}

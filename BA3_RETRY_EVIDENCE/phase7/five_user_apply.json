@@ -1,0 +1,40 @@
+
+{
+  "schema_version": "c2.autoswitch-rollback-packet.v1",
+  "mode": "generate_rollback_packet",
+  "execution_allowed_now": false,
+  "validation_errors": [
+    "rollback_items_missing",
+    "selected_move_hash_missing",
+    "source_apply_result_missing",
+    "source_operation_id_missing",
+    "source_operation_not_applied"
+  ],
+  "packet": {
+    "schema_version": "c2.autoswitch-rollback-packet.v1",
+    "created_at": "2026-06-13T18:08:22.552851+00:00",
+    "rollback_owner": "tools/v7-users-autoswitch",
+    "source_operation": {
+      "operation_id": "",
+      "operation_owner": "",
+      "operation_type": "",
+      "planner_generation_id": "",
+      "selected_move_hash": "",
+      "selected_move_count": 0,
+      "runtime_snapshot_hash": "",
+      "terminal_state": "",
+      "terminal_reason": ""
+    },
+    "constraints": {
+      "max_rollback_users": 0,
+      "allowed_users": [],
+      "allowed_targets": [],
+      "autoswitch_apply_required": true,
+      "planner_override_allowed": false,
+      "policy_override_allowed": false,
+      "routing_mutation_allowed": false
+    },
+    "items": [],
+    "rollback_packet_id": "rbpkt_44f72de5501bb6a1b5091b99"
+  }
+}

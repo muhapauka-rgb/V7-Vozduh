@@ -1,0 +1,78 @@
+{
+  "summary": {
+    "users_total": 26,
+    "egress_total": 7,
+    "healthy_egress_total": 2,
+    "candidate_moves": 26,
+    "candidate_moves_total": 26,
+    "selected_moves": 5,
+    "reconnect_rotation_candidates": 0,
+    "rebalance_candidates": 23,
+    "org_groups": [
+      "default"
+    ]
+  },
+  "terminal_state": "DRY_RUN",
+  "terminal_reason": "dry_run_selected_moves_available",
+  "snapshot_stop_required": false,
+  "source_mismatch_families": [],
+  "selected_move_count": 5,
+  "selected_moves": [
+    {
+      "user_ip": "10.0.0.3",
+      "current_egress": "awg0",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "move_type": "failover",
+      "operation_id": "runtime_autoswitch_09df627e501c3d1435462fd9",
+      "selected_move_hash": "062570c1fd17143ac94890d25bbaf7ecd2da79a2f27945991fe2abc61fa2f0cd",
+      "atomic_execution_envelope_id": "aee_0e9df03d4d78c7f8a565fa7b",
+      "selected_move_index": 0
+    },
+    {
+      "user_ip": "10.0.0.6",
+      "current_egress": "awg0",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "move_type": "failover",
+      "operation_id": "runtime_autoswitch_09df627e501c3d1435462fd9",
+      "selected_move_hash": "062570c1fd17143ac94890d25bbaf7ecd2da79a2f27945991fe2abc61fa2f0cd",
+      "atomic_execution_envelope_id": "aee_0e9df03d4d78c7f8a565fa7b",
+      "selected_move_index": 1
+    },
+    {
+      "user_ip": "10.7.0.3",
+      "current_egress": "vless",
+      "recommended_egress": "awg3",
+      "move_type": "rebalance",
+      "operation_id": "runtime_autoswitch_09df627e501c3d1435462fd9",
+      "selected_move_hash": "062570c1fd17143ac94890d25bbaf7ecd2da79a2f27945991fe2abc61fa2f0cd",
+      "atomic_execution_envelope_id": "aee_0e9df03d4d78c7f8a565fa7b",
+      "selected_move_index": 2
+    },
+    {
+      "user_ip": "10.7.0.2",
+      "current_egress": "vless",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "move_type": "rebalance",
+      "operation_id": "runtime_autoswitch_09df627e501c3d1435462fd9",
+      "selected_move_hash": "062570c1fd17143ac94890d25bbaf7ecd2da79a2f27945991fe2abc61fa2f0cd",
+      "atomic_execution_envelope_id": "aee_0e9df03d4d78c7f8a565fa7b",
+      "selected_move_index": 3
+    },
+    {
+      "user_ip": "10.7.0.4",
+      "current_egress": "vless",
+      "recommended_egress": "awg3",
+      "move_type": "rebalance",
+      "operation_id": "runtime_autoswitch_09df627e501c3d1435462fd9",
+      "selected_move_hash": "062570c1fd17143ac94890d25bbaf7ecd2da79a2f27945991fe2abc61fa2f0cd",
+      "atomic_execution_envelope_id": "aee_0e9df03d4d78c7f8a565fa7b",
+      "selected_move_index": 4
+    }
+  ],
+  "clearance_guard_reason": "restore_barrier_clearance_budget_and_generation_ok",
+  "clearance_generation_reason": "restore_barrier_clearance_generation_match_source_bundle_lease",
+  "approved_plan_lock_reason": null,
+  "atomic_condition": "ENVELOPE_VALID",
+  "atomic_decision": "continue_governed_execution_path",
+  "atomic_mismatches": null
+}

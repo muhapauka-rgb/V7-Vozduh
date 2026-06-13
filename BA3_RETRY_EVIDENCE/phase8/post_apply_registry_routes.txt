@@ -1,0 +1,44 @@
+
+host=v3119922.hosted-by-vdsina.ru
+timestamp=2026-06-13T21:11:02+03:00
+users_registry_hash=a33c30b35eb0c33ede2bf364c5e67543b6446461d8475fd28ec44a3222c34238
+--- user=10.0.0.3 registry ---
+ip=10.0.0.3 current=wireguard-1779454504-c43409 table=101 enabled=1
+current=wireguard-1779454504-c43409
+table=101
+--- user=10.0.0.3 route ---
+default dev v7e06a394c478 scope link
+8.8.8.8 from 10.0.0.3 dev v7e06a394c478 table 101
+    cache iif wg0
+--- user=10.0.0.6 registry ---
+ip=10.0.0.6 current=wireguard-1779454504-c43409 table=104 enabled=1
+current=wireguard-1779454504-c43409
+table=104
+--- user=10.0.0.6 route ---
+default dev v7e06a394c478 scope link
+8.8.8.8 from 10.0.0.6 dev v7e06a394c478 table 104
+    cache iif wg0
+--- user=10.7.0.3 registry ---
+ip=10.7.0.3 current=awg3 table=1001 enabled=1
+current=awg3
+table=1001
+--- user=10.7.0.3 route ---
+default dev awg3 scope link
+8.8.8.8 from 10.7.0.3 dev awg3 table 1001
+    cache iif wg0
+--- user=10.7.0.2 registry ---
+ip=10.7.0.2 current=wireguard-1779454504-c43409 table=1000 enabled=1
+current=wireguard-1779454504-c43409
+table=1000
+--- user=10.7.0.2 route ---
+default dev v7e06a394c478 scope link
+8.8.8.8 from 10.7.0.2 dev v7e06a394c478 table 1000
+    cache iif wg0
+--- user=10.7.0.4 registry ---
+ip=10.7.0.4 current=awg3 table=1002 enabled=1
+current=awg3
+table=1002
+--- user=10.7.0.4 route ---
+default dev awg3 scope link
+8.8.8.8 from 10.7.0.4 dev awg3 table 1002
+    cache iif wg0

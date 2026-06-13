@@ -1,0 +1,7 @@
+
+
+ba3_retry_packet.json                           0%    0     0.0KB/s   --:-- ETA
+ba3_retry_packet.json                         100% 7155   471.8KB/s   00:00
+
+fresh_planner.json                              0%    0     0.0KB/s   --:-- ETA
+fresh_planner.json                            100% 5011KB   8.4MB/s   00:00

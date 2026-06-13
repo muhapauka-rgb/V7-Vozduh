@@ -1,0 +1,13 @@
+{
+  "summary": null,
+  "terminal_state": null,
+  "terminal_reason": null,
+  "selected_move_count": 0,
+  "selected_moves": [],
+  "apply_result": {},
+  "applied": null,
+  "users_moved": null,
+  "verify_rcs": null,
+  "rollback_attempted": null,
+  "rollback_required": null
+}

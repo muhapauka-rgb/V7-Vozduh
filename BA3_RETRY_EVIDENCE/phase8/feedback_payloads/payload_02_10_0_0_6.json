@@ -1,0 +1,59 @@
+{
+  "user": "10.0.0.6",
+  "source_channel": "awg0",
+  "target_channel": "wireguard-1779454504-c43409",
+  "outcome_status": "success",
+  "execution_result": {
+    "stage": "ba3_retry_five_user_autonomy",
+    "operation_id": "runtime_autoswitch_f5cb2ee61b60b838aee41283",
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_type": "runtime_autoswitch",
+    "terminal_state": "APPLIED",
+    "terminal_reason": "selected_moves_applied",
+    "selected_move_hash": "062570c1fd17143ac94890d25bbaf7ecd2da79a2f27945991fe2abc61fa2f0cd",
+    "selected_move_index": 1,
+    "selected_move_count": 5,
+    "applied": true,
+    "rc": 0,
+    "source_channel": "awg0",
+    "target_channel": "wireguard-1779454504-c43409",
+    "move_type": "failover"
+  },
+  "verification_result": {
+    "verified": true,
+    "verify_rc": 0,
+    "rc": 0,
+    "status": "PASS",
+    "route_check_ok": true,
+    "closure_state": "VERIFIED_READY",
+    "closure_blocker": ""
+  },
+  "rollback_result": {
+    "rollback_required": false,
+    "rollback_attempted": false,
+    "rollback_ready": true,
+    "rollback_readiness_state": "ROLLBACK_DRY_RUN",
+    "rollback_readiness_reason": "rollback_packet_valid",
+    "rollback_packet_id": "rbpkt_27fe174c7a43974d2c6cb934",
+    "rollback_items": [
+      {
+        "user_ip": "10.0.0.6",
+        "rollback_target": "awg0",
+        "forward_target": "wireguard-1779454504-c43409",
+        "source_operation_id": "runtime_autoswitch_f5cb2ee61b60b838aee41283",
+        "selected_move_hash": "062570c1fd17143ac94890d25bbaf7ecd2da79a2f27945991fe2abc61fa2f0cd",
+        "selected_move_index": 1,
+        "move_type": "rollback"
+      }
+    ],
+    "rollback_validation_passed": true
+  },
+  "recommendation_hash": "062570c1fd17143ac94890d25bbaf7ecd2da79a2f27945991fe2abc61fa2f0cd",
+  "prediction_expected": 1.0,
+  "prediction_actual": 1.0,
+  "audit_reference": "runtime_autoswitch_f5cb2ee61b60b838aee41283",
+  "closure_reference": "runtime:runtime_autoswitch_f5cb2ee61b60b838aee41283:VERIFIED_READY",
+  "execution_time": "2026-06-13T18:09:02.450130+00:00",
+  "verification_time": "2026-06-13T18:09:02.450130+00:00",
+  "stability_window_seconds": 0
+}

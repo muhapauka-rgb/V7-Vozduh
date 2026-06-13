@@ -1,0 +1,11 @@
+{
+  "source": "phase2/overview_before_policy.json",
+  "policy": {
+    "autoswitch_max_planned_per_run": 2,
+    "autoswitch_max_failover_per_run": 25,
+    "autoswitch_mode": "guarded",
+    "autoswitch_enabled": true
+  },
+  "admin_response_status": null,
+  "note": "Compacted to avoid storing user/profile/session data in evidence."
+}

@@ -1,0 +1,135 @@
+{
+  "current_26": {
+    "users": 26,
+    "candidate_moves_total_assumed": 13,
+    "healthy_channels_assumed": 4,
+    "fixed_10_now": 10,
+    "ladder_current_certified_10": 10,
+    "ladder_next_requires_25_certification": 13,
+    "percentage_5pct_capped_by_authority_policy": 1,
+    "percentage_10pct_capped_by_authority_policy": 3,
+    "percentage_20pct_capped_by_authority_policy": 5,
+    "dynamic_pool_aware_current_policy_10": 10,
+    "hybrid_recommended_current": 10,
+    "hybrid_recommended_after_25_certification": 13,
+    "assumptions": {
+      "authority_budget": 25,
+      "current_policy_cap": 10,
+      "per_target_certified_observed_cap": 5
+    }
+  },
+  "hypothetical_100_low_observed_ratio": {
+    "users": 100,
+    "candidate_moves_total_assumed": 50,
+    "healthy_channels_assumed": 10,
+    "fixed_10_now": 10,
+    "ladder_current_certified_10": 10,
+    "ladder_next_requires_25_certification": 25,
+    "percentage_5pct_capped_by_authority_policy": 5,
+    "percentage_10pct_capped_by_authority_policy": 10,
+    "percentage_20pct_capped_by_authority_policy": 10,
+    "dynamic_pool_aware_current_policy_10": 10,
+    "hybrid_recommended_current": 10,
+    "hybrid_recommended_after_25_certification": 25,
+    "assumptions": {
+      "authority_budget": 25,
+      "current_policy_cap": 10,
+      "per_target_certified_observed_cap": 5
+    }
+  },
+  "hypothetical_100_high_observed_ratio": {
+    "users": 100,
+    "candidate_moves_total_assumed": 77,
+    "healthy_channels_assumed": 10,
+    "fixed_10_now": 10,
+    "ladder_current_certified_10": 10,
+    "ladder_next_requires_25_certification": 25,
+    "percentage_5pct_capped_by_authority_policy": 5,
+    "percentage_10pct_capped_by_authority_policy": 10,
+    "percentage_20pct_capped_by_authority_policy": 10,
+    "dynamic_pool_aware_current_policy_10": 10,
+    "hybrid_recommended_current": 10,
+    "hybrid_recommended_after_25_certification": 25,
+    "assumptions": {
+      "authority_budget": 25,
+      "current_policy_cap": 10,
+      "per_target_certified_observed_cap": 5
+    }
+  },
+  "hypothetical_500_low_observed_ratio": {
+    "users": 500,
+    "candidate_moves_total_assumed": 250,
+    "healthy_channels_assumed": 50,
+    "fixed_10_now": 10,
+    "ladder_current_certified_10": 10,
+    "ladder_next_requires_25_certification": 25,
+    "percentage_5pct_capped_by_authority_policy": 10,
+    "percentage_10pct_capped_by_authority_policy": 10,
+    "percentage_20pct_capped_by_authority_policy": 10,
+    "dynamic_pool_aware_current_policy_10": 10,
+    "hybrid_recommended_current": 10,
+    "hybrid_recommended_after_25_certification": 25,
+    "assumptions": {
+      "authority_budget": 25,
+      "current_policy_cap": 10,
+      "per_target_certified_observed_cap": 5
+    }
+  },
+  "hypothetical_500_high_observed_ratio": {
+    "users": 500,
+    "candidate_moves_total_assumed": 385,
+    "healthy_channels_assumed": 50,
+    "fixed_10_now": 10,
+    "ladder_current_certified_10": 10,
+    "ladder_next_requires_25_certification": 25,
+    "percentage_5pct_capped_by_authority_policy": 10,
+    "percentage_10pct_capped_by_authority_policy": 10,
+    "percentage_20pct_capped_by_authority_policy": 10,
+    "dynamic_pool_aware_current_policy_10": 10,
+    "hybrid_recommended_current": 10,
+    "hybrid_recommended_after_25_certification": 25,
+    "assumptions": {
+      "authority_budget": 25,
+      "current_policy_cap": 10,
+      "per_target_certified_observed_cap": 5
+    }
+  },
+  "hypothetical_2000_low_observed_ratio": {
+    "users": 2000,
+    "candidate_moves_total_assumed": 1000,
+    "healthy_channels_assumed": 50,
+    "fixed_10_now": 10,
+    "ladder_current_certified_10": 10,
+    "ladder_next_requires_25_certification": 25,
+    "percentage_5pct_capped_by_authority_policy": 10,
+    "percentage_10pct_capped_by_authority_policy": 10,
+    "percentage_20pct_capped_by_authority_policy": 10,
+    "dynamic_pool_aware_current_policy_10": 10,
+    "hybrid_recommended_current": 10,
+    "hybrid_recommended_after_25_certification": 25,
+    "assumptions": {
+      "authority_budget": 25,
+      "current_policy_cap": 10,
+      "per_target_certified_observed_cap": 5
+    }
+  },
+  "hypothetical_2000_high_observed_ratio": {
+    "users": 2000,
+    "candidate_moves_total_assumed": 1538,
+    "healthy_channels_assumed": 50,
+    "fixed_10_now": 10,
+    "ladder_current_certified_10": 10,
+    "ladder_next_requires_25_certification": 25,
+    "percentage_5pct_capped_by_authority_policy": 10,
+    "percentage_10pct_capped_by_authority_policy": 10,
+    "percentage_20pct_capped_by_authority_policy": 10,
+    "dynamic_pool_aware_current_policy_10": 10,
+    "hybrid_recommended_current": 10,
+    "hybrid_recommended_after_25_certification": 25,
+    "assumptions": {
+      "authority_budget": 25,
+      "current_policy_cap": 10,
+      "per_target_certified_observed_cap": 5
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "v7.ba5.failure-analysis.v1",
+  "fixed_batch": "risk: ignores candidate/channel reality; safe only when cap is lower than all gates, inefficient at scale",
+  "ladder": "safe governance progression; needs manual/policy certification per step",
+  "percentage": "scales with pool but unsafe alone because candidate quality/channel health can collapse",
+  "dynamic_pool_aware": "best long-term, but must remain capped by certified authority and restore barrier",
+  "hybrid": "recommended: dynamic desired size inside certified ladder/authority/policy/rollback/snapshot gates",
+  "fail_closed_conditions": [
+    "truth unknown",
+    "convergence unknown",
+    "snapshot mismatch",
+    "atomic envelope mismatch",
+    "restore barrier invalid",
+    "approved plan lock mismatch",
+    "rollback packet missing",
+    "feedback path unavailable",
+    "healthy channel pool below floor"
+  ]
+}

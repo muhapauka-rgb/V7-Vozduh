@@ -1,0 +1,83 @@
+{
+  "schema": "v7.ba5.phase0.discovery.v1",
+  "runtime_owner": "tools/v7-users-autoswitch",
+  "admin_policy_owner": "admin/v7-admin-api /api/actions/policy-update",
+  "authoritative_runtime_chain": [
+    {
+      "stage": "candidate_generation",
+      "owner": "tools/v7-users-autoswitch",
+      "used_by_runtime": true
+    },
+    {
+      "stage": "move_type_limits",
+      "owner": "policy.switch + policy.load",
+      "used_by_runtime": true,
+      "limits": [
+        "autoswitch_max_failover_per_run",
+        "autoswitch_max_reconnect_per_run",
+        "rebalance_max_moves_per_run",
+        "autoswitch_max_planned_per_run"
+      ]
+    },
+    {
+      "stage": "request_cap",
+      "owner": "CLI --max-selected-moves",
+      "used_by_runtime": true
+    },
+    {
+      "stage": "authority_budget_gate",
+      "owner": "policy.authority_budget resolved by tools/v7-users-autoswitch",
+      "used_by_runtime": true
+    },
+    {
+      "stage": "restore_barrier_clearance",
+      "owner": "restore barrier canonical lifecycle",
+      "used_by_runtime": true
+    },
+    {
+      "stage": "approved_plan_lock",
+      "owner": "restore barrier approved_plan_lock_validation",
+      "used_by_runtime": true
+    },
+    {
+      "stage": "snapshot_gate",
+      "owner": "runtime intelligence snapshot gate",
+      "used_by_runtime": true
+    },
+    {
+      "stage": "atomic_execution_envelope",
+      "owner": "tools/v7-users-autoswitch",
+      "used_by_runtime": true
+    }
+  ],
+  "advisory_only_chain": [
+    {
+      "stage": "RI dynamic blast radius recommendation",
+      "owner": "admin_core/routing_intelligence.py",
+      "used_by_runtime": false,
+      "authority": "none_shadow_only"
+    },
+    {
+      "stage": "operator batch preview",
+      "owner": "admin_core/operator_decision_surface.py",
+      "used_by_runtime": false,
+      "authority": "preview_only"
+    }
+  ],
+  "classification": {
+    "execution_batches": "EXISTS_RUNTIME_USED",
+    "blast_radius": "EXISTS_RUNTIME_EFFECTIVE_SCOPE_PLUS_ADVISORY_DYNAMIC_MODEL",
+    "planned_limits": "EXISTS_RUNTIME_USED",
+    "authority_budgets": "EXISTS_RUNTIME_USED_AUTHORITATIVE",
+    "dynamic_batch_sizing": "PARTIAL_ADVISORY_ONLY",
+    "candidate_scaling": "EXISTS_RUNTIME_USED_VIA_CANDIDATES_AND_SELECT_MOVES",
+    "pool_aware_execution": "EXISTS_RUNTIME_USED_VIA_PROJECTED_TARGET_LOAD_AND_HEALTHY_EGRESS_POOL"
+  },
+  "do_not_replace": [
+    "planner",
+    "authority_budget_gate",
+    "restore_barrier",
+    "atomic_execution_envelope",
+    "feedback_loop"
+  ]
+}

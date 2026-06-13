@@ -1,0 +1,11 @@
+{
+  "truth_final_verdict": "PASS",
+  "convergence_status": "FULLY_ALIGNED",
+  "convergence_final_verdict": "PASS",
+  "runtime_action_safe": true,
+  "runtime_action_status": "READY_FOR_RUNTIME_ACTION",
+  "warnings": [
+    "documentation_dirty_ignored",
+    "runtime_local_commit_docs_only_mismatch_ignored"
+  ]
+}

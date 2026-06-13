@@ -1,0 +1,8 @@
+{
+  "reverted_to": 10,
+  "authority_budget": 25,
+  "authority_class": "POOL",
+  "reason": "BA6 blocked before packet/apply because candidate_moves_total<25; preserve last certified execution ceiling 10",
+  "users_moved": 0,
+  "routing_changed": false
+}

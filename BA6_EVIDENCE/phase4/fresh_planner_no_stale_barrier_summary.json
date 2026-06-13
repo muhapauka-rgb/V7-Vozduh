@@ -1,0 +1,22 @@
+{
+  "terminal_state": "DRY_RUN",
+  "terminal_reason": "dry_run_no_selected_moves",
+  "users_total": 26,
+  "egress_total": 7,
+  "healthy_egress_total": 3,
+  "candidate_moves_total": 0,
+  "selected_moves": 0,
+  "selected_users": [],
+  "selected_targets": [],
+  "snapshot_stop_required": null,
+  "source_mismatch_families": null,
+  "authority_class": "POOL",
+  "current_allowed_user_budget": 25,
+  "selected_moves_before_gate": 0,
+  "selected_moves_after_gate": 0,
+  "planned_limit": 25,
+  "requested_max_selected_moves": 25,
+  "apply_requested": false,
+  "restore_barrier_file": "/tmp/ba6-empty-restore-barrier.json",
+  "users_moved": 0
+}

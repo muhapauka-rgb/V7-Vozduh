@@ -1,0 +1,394 @@
+{
+  "terminal_state": "DRY_RUN",
+  "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired",
+  "summary": {
+    "users_total": 26,
+    "egress_total": 7,
+    "healthy_egress_total": 3,
+    "candidate_moves": 0,
+    "candidate_moves_total": 0,
+    "selected_moves": 0,
+    "reconnect_rotation_candidates": 0,
+    "rebalance_candidates": 0,
+    "org_groups": [
+      "default"
+    ]
+  },
+  "selected_moves_len": 0,
+  "restore_barrier_reason": "restore_barrier_clearance_generation_expired",
+  "approved_plan_lock": {
+    "present": true,
+    "ok": false,
+    "reason": "approved_plan_lock_invalid",
+    "reasons": [
+      "approved_plan_lock_expired",
+      "approved_plan_lock_user_source_mismatch"
+    ],
+    "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+    "approved_selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+    "selected_users": [
+      "10.7.0.6",
+      "10.7.0.8",
+      "10.7.0.9",
+      "10.7.0.10",
+      "10.7.0.11",
+      "10.7.0.12",
+      "10.7.0.13",
+      "10.7.0.14",
+      "10.7.0.15",
+      "10.7.0.16"
+    ],
+    "selected_targets": [
+      "awg3",
+      "wireguard-1779454504-c43409"
+    ]
+  },
+  "snapshot_gate": {},
+  "authority_budget_gate": {
+    "schema_version": "v7.authority-budget-gate.v1",
+    "enabled": true,
+    "truth_source": "existing_policy_files",
+    "runtime_calculation_mode": "prepared_and_certified_min_authority",
+    "authority_class": "POOL",
+    "prepared_authority_class": "POOL",
+    "certified_authority_class": "POOL",
+    "authority_lifecycle_state": "PROMOTED",
+    "current_allowed_user_budget": 25,
+    "next_authority_class": "POOL",
+    "next_allowed_user_budget": 25,
+    "selected_moves_before_gate": 0,
+    "selected_moves_after_gate": 0,
+    "authority_cap_applied": false,
+    "decision": "selected_moves_within_authority_budget",
+    "action": "continue_existing_runtime_lifecycle",
+    "executor": "tools/v7-users-autoswitch",
+    "trigger": "after_policy_selection_before_restore_barrier_snapshot_apply",
+    "written_evidence": "plan.safety.authority_budget_gate",
+    "blocked_actions": [],
+    "next_state": "POOL",
+    "authority_lifecycle": {
+      "schema_version": "v7.authority-governance-lifecycle.v1",
+      "state": "PROMOTED",
+      "prepared_authority_class": "POOL",
+      "certified_authority_class": "POOL",
+      "runtime_authority_class": "POOL",
+      "prepared_budget_ceiling": 25,
+      "certified_budget_ceiling": 25,
+      "runtime_allowed_user_budget": 25,
+      "prepared_exceeds_certified": false,
+      "model": {
+        "PREPARED": "Policy is staged for a higher class, but certified evidence has not caught up; runtime caps to certified authority.",
+        "CERTIFIED": "Evidence supports the prepared class and runtime may use that class ceiling.",
+        "CANARY_CERTIFIED": "Alias of CERTIFIED for the one-user governed authority floor.",
+        "CANARY_EXPANSION": "A transitional bridge from certified CANARY to prepared SMALL_BATCH that permits only the next blast-radius step with explicit bridge evidence.",
+        "PROVISIONAL_SMALL_BATCH": "A transitional bridge that allows the first bounded 2-user cohort without certifying SMALL_BATCH.",
+        "SMALL_BATCH_CERTIFIED": "Alias of CERTIFIED for completed SMALL_BATCH evidence.",
+        "PROMOTED": "A certified class has been explicitly promoted after required outcomes, rollback, verification, and closure evidence.",
+        "DEMOTED": "Runtime authority is intentionally below available certification because risk or operator policy reduced scope.",
+        "FROZEN": "Runtime authority is temporarily zero because truth, evidence, snapshot, trust, prediction, or governance state is unknown.",
+        "REVOKED": "Runtime authority is zero until a fresh operator governance program reinstates it."
+      },
+      "bridge_model": {
+        "schema_version": "v7.authority-transition-bridge-model.v1",
+        "purpose": "break_canary_to_small_batch_deadlock_without_certifying_small_batch",
+        "states": {
+          "CANARY_CERTIFIED": {
+            "budget": 1,
+            "entry_criteria": [
+              "one_successful_governed_user",
+              "verification",
+              "rollback_readiness",
+              "outcome_closure"
+            ],
+            "exit_criteria": [
+              "explicit_operator_bridge_request",
+              "fresh_restore_barrier",
+              "snapshot_gate_clean"
+            ]
+          },
+          "CANARY_EXPANSION": {
+            "budget": 2,
+            "entry_criteria": [
+              "CANARY_CERTIFIED",
+              "prepared_authority_class_SMALL_BATCH",
+              "certified_authority_class_CANARY"
+            ],
+            "exit_criteria": [
+              "2_user_execution_verified",
+              "outcome_feedback_materialized"
+            ],
+            "promotion_certification": false
+          },
+          "PROVISIONAL_SMALL_BATCH": {
+            "budget": 2,
+            "entry_criteria": [
+              "CANARY_EXPANSION_ready",
+              "operator_approval_packet",
+              "rollback_manifest_ready"
+            ],
+            "exit_criteria": [
+              "successful_2_user_governed_execution",
+              "trust_prediction_recommendation_feedback"
+            ],
+            "promotion_certification": false
+          },
+          "SMALL_BATCH_CERTIFIED": {
+            "budget": 2,
+            "entry_criteria": [
+              "successful_2_user_governed_execution",
+              "verification",
+              "outcome_feedback",
+              "no_snapshot_mismatch"
+            ],
+            "exit_criteria": [
+              "operator_promoted_next_authority_class"
+            ],
+            "promotion_certification": true
+          }
+        },
+        "new_truth_sources_created": false,
+        "duplicate_systems_created": false
+      },
+      "certification_rules": {
+        "CANARY": {
+          "required_successful_governed_users": 1,
+          "requires_rollback_capability": true,
+          "requires_verification": true,
+          "requires_outcome_closure": true
+        },
+        "SMALL_BATCH": {
+          "required_successful_governed_users": 2,
+          "requires_prior_canary_certification": true,
+          "requires_atomic_execution_envelope": true,
+          "requires_no_snapshot_source_mismatch": true,
+          "requires_outcome_feedback": true
+        },
+        "MEDIUM_BATCH": {
+          "required_successful_small_batch_runs": 2,
+          "requires_no_recent_rollback_or_verification_failure": true,
+          "requires_trust_prediction_recommendation_feedback": true
+        },
+        "LARGE_BATCH": {
+          "required_successful_medium_batch_runs": 2,
+          "requires_stable_runtime_truth_window": true,
+          "requires_operator_review": true
+        },
+        "POOL": {
+          "requires_large_batch_certification": true,
+          "requires_sustained_no_regression_window": true,
+          "requires_explicit_pool_governance": true
+        }
+      },
+      "governance": {
+        "promotion": {
+          "owner": "operator_governance_existing_policy",
+          "executor": "tools/v7-users-autoswitch",
+          "requires_explicit_operator_approval": true,
+          "requires_runtime_truth_known": true,
+          "requires_successful_outcomes": true,
+          "requires_verification_evidence": true,
+          "requires_rollback_capability_evidence": true,
+          "requires_trust_prediction_recommendation_feedback": true,
+          "eligible": true,
+          "blockers": []
+        },
+        "demotion": {
+          "owner": "operator_governance_existing_policy",
+          "executor": "tools/v7-users-autoswitch",
+          "triggers": [
+            "rollback_required_or_failed",
+            "verification_failure",
+            "prediction_degradation",
+            "trust_degradation",
+            "service_instability",
+            "operator_policy_reduction"
+          ],
+          "risks": []
+        },
+        "freeze": {
+          "owner": "operator_governance_existing_policy",
+          "executor": "tools/v7-users-autoswitch",
+          "triggers": [
+            "missing_evidence",
+            "unknown_runtime_truth",
+            "snapshot_source_mismatch",
+            "approval_packet_missing_or_stale",
+            "restore_barrier_missing_or_stale",
+            "trust_or_prediction_unknown"
+          ],
+          "action": "set_effective_runtime_budget_to_zero_until_truth_or_evidence_is_known"
+        }
+      },
+      "action_matrix": {
+        "PREPARED": {
+          "condition": "prepared_authority_class_above_certified_authority_class",
+          "decision": "cap_to_certified_authority",
+          "action": "allow_only_certified_budget",
+          "executor": "tools/v7-users-autoswitch",
+          "trigger": "authority_budget_gate",
+          "written_evidence": "plan.safety.authority_budget_gate.authority_lifecycle",
+          "blocked_actions": [
+            "promotion_without_certification",
+            "apply_above_certified_budget"
+          ],
+          "next_state": "CERTIFIED after required evidence"
+        },
+        "CERTIFIED": {
+          "condition": "prepared_authority_class_equals_certified_authority_class",
+          "decision": "allow_certified_budget",
+          "action": "continue_existing_runtime_lifecycle",
+          "executor": "tools/v7-users-autoswitch",
+          "trigger": "authority_budget_gate",
+          "written_evidence": "plan.safety.authority_budget_gate.authority_lifecycle",
+          "blocked_actions": [
+            "apply_above_certified_budget"
+          ],
+          "next_state": "PROMOTED only after explicit operator governance"
+        },
+        "CANARY_EXPANSION": {
+          "condition": "certified_CANARY_prepared_SMALL_BATCH_with_explicit_bridge_state",
+          "decision": "allow_transitional_2_user_bridge_budget_without_certifying_small_batch",
+          "action": "permit_only_next_blast_radius_step_through_existing_restore_barrier_snapshot_and_apply_path",
+          "executor": "tools/v7-users-autoswitch",
+          "trigger": "authority_budget_gate",
+          "written_evidence": "plan.safety.authority_budget_gate.authority_bridge",
+          "blocked_actions": [
+            "small_batch_certification",
+            "budget_above_2",
+            "promotion_without_2_user_outcome_feedback"
+          ],
+          "next_state": "PROVISIONAL_SMALL_BATCH or FROZEN on risk"
+        },
+        "PROVISIONAL_SMALL_BATCH": {
+          "condition": "first_2_user_governed_cohort_ready_but_not_yet_certified",
+          "decision": "allow_single_provisional_2_user_cohort",
+          "action": "require_verification_outcome_feedback_before_certification",
+          "executor": "tools/v7-users-autoswitch",
+          "trigger": "authority_budget_gate",
+          "written_evidence": "plan.safety.authority_budget_gate.authority_bridge",
+          "blocked_actions": [
+            "repeat_without_closure",
+            "medium_batch_promotion",
+            "production_autonomy"
+          ],
+          "next_state": "SMALL_BATCH_CERTIFIED after successful evidence or DEMOTED/FROZEN on failure"
+        },
+        "PROMOTED": {
+          "condition": "operator_promoted_certified_authority_after_required_evidence",
+          "decision": "allow_promoted_certified_budget",
+          "action": "continue_existing_runtime_lifecycle",
+          "executor": "tools/v7-users-autoswitch",
+          "trigger": "operator_policy_update",
+          "written_evidence": "policy.authority_budget plus plan.safety.authority_budget_gate",
+          "blocked_actions": [
+            "promotion_without_evidence"
+          ],
+          "next_state": "DEMOTED or FROZEN on risk"
+        },
+        "DEMOTED": {
+          "condition": "risk_or_operator_policy_reduces_authority",
+          "decision": "allow_lower_budget",
+          "action": "cap_to_demoted_budget",
+          "executor": "tools/v7-users-autoswitch",
+          "trigger": "authority_budget_gate",
+          "written_evidence": "plan.safety.authority_budget_gate.authority_lifecycle",
+          "blocked_actions": [
+            "apply_above_demoted_budget"
+          ],
+          "next_state": "CERTIFIED after risk closure"
+        },
+        "FROZEN": {
+          "condition": "truth_or_evidence_unknown",
+          "decision": "block_all_runtime_authority",
+          "action": "drop_selected_moves_before_restore_barrier_snapshot_apply",
+          "executor": "tools/v7-users-autoswitch",
+          "trigger": "authority_budget_gate",
+          "written_evidence": "plan.safety.authority_budget_gate.authority_lifecycle",
+          "blocked_actions": [
+            "user_movement",
+            "autoswitch_apply",
+            "authority_promotion"
+          ],
+          "next_state": "PREPARED after truth restored"
+        },
+        "REVOKED": {
+          "condition": "authority_revoked_by_operator_or_critical_failure",
+          "decision": "block_all_runtime_authority",
+          "action": "drop_selected_moves_until_reinstated",
+          "executor": "tools/v7-users-autoswitch",
+          "trigger": "authority_budget_gate",
+          "written_evidence": "plan.safety.authority_budget_gate.authority_lifecycle",
+          "blocked_actions": [
+            "user_movement",
+            "autoswitch_apply",
+            "authority_promotion"
+          ],
+          "next_state": "FROZEN after explicit reinstatement review"
+        }
+      },
+      "new_truth_sources_created": false,
+      "duplicate_systems_created": false
+    },
+    "authority_bridge": {
+      "schema_version": "v7.authority-transition-bridge.v1",
+      "enabled": false,
+      "state": "",
+      "from_certified_authority": "POOL",
+      "to_prepared_authority": "POOL",
+      "bridge_budget_ceiling": 0,
+      "promotion_certification": false,
+      "truth_source": "existing_policy_files",
+      "new_truth_sources_created": false,
+      "duplicate_systems_created": false,
+      "active": false,
+      "decision": "not_in_bridge_state",
+      "action": "use_certified_authority_gate",
+      "blocked_actions": [],
+      "next_state": ""
+    },
+    "anti_flapping_policy": {
+      "minimum_residence_seconds": 300,
+      "cooldown_seconds": 180,
+      "sticky_protection": "existing_autoswitch_safety_state",
+      "rollback_penalty_seconds": 3600,
+      "promotion_delay_seconds": 900,
+      "demotion_delay_seconds": 0
+    },
+    "policy": {
+      "evidence_floor": "two_successful_large_batch_runs_with_feedback_closure_and_pool_no_regression_window",
+      "class_budget_ceiling": 25,
+      "new_truth_sources_created": false,
+      "new_execution_path_created": false,
+      "network_calls_in_apply_path": false,
+      "history_scan_in_apply_path": false
+    },
+    "action_matrix": {
+      "condition": "POOL authority with selected_moves <= 25",
+      "decision": "allow_within_authority_budget",
+      "action": "continue_existing_restore_barrier_snapshot_and_apply_path",
+      "executor": "tools/v7-users-autoswitch",
+      "trigger": "planner_selected_moves_ready",
+      "written_evidence": "plan.safety.authority_budget_gate",
+      "blocked_actions": [
+        "selected_moves_above_authority_budget",
+        "apply_above_authority_budget"
+      ],
+      "next_state": "POOL_MONITOR"
+    }
+  },
+  "dynamic_blast_radius": {
+    "total_active_users": 26,
+    "affected_candidate_moves": 0,
+    "selected_after_policy_count": 0,
+    "selected_after_request_cap_count": 0,
+    "selected_after_authority_budget_count": 0,
+    "requested_max_selected_moves": 25,
+    "authority_allowed_user_budget": 25,
+    "effective_blast_radius": 0,
+    "scope": "bounded_by_affected_candidates",
+    "policy_failover_limit": 25,
+    "policy_planned_limit": 25,
+    "service_risk_inputs_present": true,
+    "platform_health_inputs_present": true
+  }
+}

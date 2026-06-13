@@ -1,0 +1,32 @@
+{
+  "decisions_total": 26,
+  "actions": {
+    "keep": 26
+  },
+  "move_types": {
+    "none": 26
+  },
+  "current_egress_counts": {
+    "awg3": 8,
+    "wireguard-1779454504-c43409": 8,
+    "vless": 10
+  },
+  "recommended_egress_counts": {
+    "awg3": 8,
+    "wireguard-1779454504-c43409": 8,
+    "vless": 10
+  },
+  "top_reasons": [
+    [
+      "sticky_keep_current",
+      18
+    ],
+    [
+      "current_is_best",
+      8
+    ]
+  ],
+  "direct_answer": "candidate_moves_total=0 because every planner-visible user has action=keep; no real planner-selected users exist for BA6 25-user packet",
+  "users_moved": 0,
+  "apply_executed": false
+}

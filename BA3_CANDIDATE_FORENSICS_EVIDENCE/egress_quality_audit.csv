@@ -1,0 +1,8 @@
+target_egress,score,service_score,hist_1h_avg_mbps,hist_1h_min_mbps,hist_1h_stability,capacity_decision,projected_users,ctr_state,ctr_recovery_state,ctr_confidence,eligible_user_count,best_available_pool_user_count,candidate_attraction_count,common_blockers
+vless,2027.12,100.0,41.596,27.47,0.4814,capacity_available,23,TRUSTED,NOT_NEEDED,0.4583,26,26,3,{}
+1,0.0,2.834,8.398,8.398,0.0002,empty_capacity_available,0,QUARANTINED,NOT_NEEDED,0.3181,0,0,0,"{""health_code_000"": 26, ""severity_FAIL"": 26, ""avg_mbps_below_floor"": 26, ""min_mbps_below_floor"": 26, ""telegram_required_telegram_down_14s"": 26}"
+amneziawg-exec-20260528-10-8-1-14,0.0,100.0,40.49,13.732,0.1567,empty_capacity_available,0,TRUSTED,NOT_NEEDED,0.4583,0,0,0,"{""manual_only"": 26, ""reserve_only"": 26, ""canary_reserved_production_assignment_blocked"": 26, ""stability_below_floor"": 26}"
+awg0,0.0,100.0,35.875,14.199,0.2162,capacity_available,2,TRUSTED,NOT_NEEDED,0.4583,0,0,0,"{""stability_below_floor"": 26}"
+awg3,0.0,99.767,37.137,13.068,0.1836,capacity_available,1,TRUSTED,NOT_NEEDED,0.4583,0,0,0,"{""stability_below_floor"": 26}"
+openvpn-1779388847-d2ad7c,0.0,2.838,0.002,0.002,0.0002,empty_capacity_available,0,QUARANTINED,NOT_NEEDED,0.3181,0,0,0,"{""health_code_000"": 26, ""severity_FAIL"": 26, ""avg_mbps_below_floor"": 26, ""min_mbps_below_floor"": 26, ""telegram_required_telegram_down_14s"": 26}"
+wireguard-1779454504-c43409,0.0,100.0,59.982,56.562,0.8216,empty_capacity_available,0,TRUSTED,NOT_NEEDED,0.4583,0,0,0,"{""canary_reserved_production_assignment_blocked"": 26}"

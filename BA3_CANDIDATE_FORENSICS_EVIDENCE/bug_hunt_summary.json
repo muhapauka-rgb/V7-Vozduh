@@ -1,0 +1,13 @@
+{
+  "candidate_creation_owner": "tools/v7-users-autoswitch::_decision_for_user",
+  "candidate_count_owner": "tools/v7-users-autoswitch plan summary candidate_moves_total = decisions where recommended_egress != current_egress",
+  "selection_owner": "tools/v7-users-autoswitch::_select_moves",
+  "planned_limit_owner": "policy.switch.autoswitch_max_planned_per_run consumed only by _select_moves planned bucket",
+  "finding": "No candidate-count bug proven. STABILITY1_CLOSE candidate_count=3 matches recomputation from decisions and user-by-user table.",
+  "code_lines_evidence": [
+    "tools/v7-users-autoswitch:5031",
+    "tools/v7-users-autoswitch:5850",
+    "tools/v7-users-autoswitch:3904",
+    "tools/v7-users-autoswitch:4073"
+  ]
+}

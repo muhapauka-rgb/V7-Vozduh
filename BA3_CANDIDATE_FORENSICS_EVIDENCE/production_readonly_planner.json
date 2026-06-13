@@ -1,0 +1,7 @@
+{
+  "attempted": true,
+  "command": "ssh root@195.2.79.116 /usr/local/bin/v7-users-autoswitch --pretty",
+  "result": "not_collected",
+  "reason": "ssh_auth_unavailable_in_noninteractive_session",
+  "safety": "read_only_command_only; no_apply; no_user_movement"
+}

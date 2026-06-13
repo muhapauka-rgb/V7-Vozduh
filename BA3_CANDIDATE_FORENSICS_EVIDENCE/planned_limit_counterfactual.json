@@ -1,0 +1,17 @@
+[
+  {
+    "planned_limit": 5,
+    "candidate_moves_total_from_decisions": 3,
+    "note": "planned_limit is consumed in _select_moves for planned move selection; candidate_moves_total is computed from decisions before selected move caps. In this plan all 3 candidates are failover, so planned_limit does not apply."
+  },
+  {
+    "planned_limit": 10,
+    "candidate_moves_total_from_decisions": 3,
+    "note": "planned_limit is consumed in _select_moves for planned move selection; candidate_moves_total is computed from decisions before selected move caps. In this plan all 3 candidates are failover, so planned_limit does not apply."
+  },
+  {
+    "planned_limit": 25,
+    "candidate_moves_total_from_decisions": 3,
+    "note": "planned_limit is consumed in _select_moves for planned move selection; candidate_moves_total is computed from decisions before selected move caps. In this plan all 3 candidates are failover, so planned_limit does not apply."
+  }
+]

@@ -1,0 +1,82 @@
+{
+  "ba1": {
+    "user": "10.0.0.2",
+    "before": "vless",
+    "after": "awg3",
+    "source": "BA1_FINAL_AUTONOMY_CERTIFICATION_REPORT.md"
+  },
+  "ba2": [
+    {
+      "user": "10.0.0.3",
+      "before": "vless",
+      "after": "awg0",
+      "source": "ATOMIC1_CLOSE_AND_BA2_RECERTIFICATION_REPORT.md"
+    },
+    {
+      "user": "10.0.0.6",
+      "before": "vless",
+      "after": "awg0",
+      "source": "ATOMIC1_CLOSE_AND_BA2_RECERTIFICATION_REPORT.md"
+    }
+  ],
+  "current_status_in_stability1_close": [
+    {
+      "user_ip": "10.0.0.2",
+      "enabled": true,
+      "current_egress": "awg3",
+      "route_class": "VIDEO_OPTIMIZED",
+      "required_services": "youtube,instagram,telegram,google,google_auth",
+      "best_recommended_target": "vless",
+      "action": "switch",
+      "move_type": "failover",
+      "candidate_move": true,
+      "candidate_reason": "current_egress_not_eligible",
+      "non_candidate_exact_reason": "",
+      "eligible_targets": "vless",
+      "best_available_pool": "vless",
+      "current_eligible": false,
+      "current_blocked": "stability_below_floor",
+      "recommended_score": 2027.12,
+      "current_score": 0.0
+    },
+    {
+      "user_ip": "10.0.0.3",
+      "enabled": true,
+      "current_egress": "awg0",
+      "route_class": "VIDEO_OPTIMIZED",
+      "required_services": "youtube,instagram,telegram,google,google_auth",
+      "best_recommended_target": "vless",
+      "action": "switch",
+      "move_type": "failover",
+      "candidate_move": true,
+      "candidate_reason": "current_egress_not_eligible",
+      "non_candidate_exact_reason": "",
+      "eligible_targets": "vless",
+      "best_available_pool": "vless",
+      "current_eligible": false,
+      "current_blocked": "stability_below_floor",
+      "recommended_score": 2027.12,
+      "current_score": 0.0
+    },
+    {
+      "user_ip": "10.0.0.6",
+      "enabled": true,
+      "current_egress": "awg0",
+      "route_class": "VIDEO_OPTIMIZED",
+      "required_services": "youtube,instagram,telegram,google,google_auth",
+      "best_recommended_target": "vless",
+      "action": "switch",
+      "move_type": "failover",
+      "candidate_move": true,
+      "candidate_reason": "current_egress_not_eligible",
+      "non_candidate_exact_reason": "",
+      "eligible_targets": "vless",
+      "best_available_pool": "vless",
+      "current_eligible": false,
+      "current_blocked": "stability_below_floor",
+      "recommended_score": 2027.12,
+      "current_score": 0.0
+    }
+  ],
+  "conclusion": "BA1/BA2 moved exactly the three users that later appear as failover candidates when awg0/awg3 are no longer best available pool; the remaining 23 users stayed on vless and are current_is_best."
+}

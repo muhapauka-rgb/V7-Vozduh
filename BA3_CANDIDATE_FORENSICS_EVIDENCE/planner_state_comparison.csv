@@ -1,0 +1,4 @@
+stage,users_total,egress_total,healthy_egress_total,candidate_moves_total,candidate_moves_recomputed,rebalance_candidates,selected_moves,planned_limit,failover_limit,authority_class,authority_budget,terminal_reason,candidate_targets,candidate_move_types
+atomic1_close_ba2_pre_execution,26,7,3,25,25,25,0,2,25,POOL,25,dry_run_restore_barrier_clearance_generation_expired,"[""awg0""]","{""rebalance"": 25}"
+ba3_initial,26,7,3,23,23,23,0,5,25,POOL,25,dry_run_restore_barrier_clearance_selected_moves_exceed_budget,"[""awg3""]","{""rebalance"": 23}"
+stability1_close_ba3_failed,26,7,1,3,3,0,0,5,25,POOL,25,dry_run_restore_barrier_clearance_generation_expired,"[""vless""]","{""failover"": 3}"

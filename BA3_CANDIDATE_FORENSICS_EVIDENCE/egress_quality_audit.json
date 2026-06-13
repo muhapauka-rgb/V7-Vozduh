@@ -1,0 +1,144 @@
+[
+  {
+    "target_egress": "vless",
+    "score": 2027.12,
+    "service_score": 100.0,
+    "hist_1h_avg_mbps": 41.596,
+    "hist_1h_min_mbps": 27.47,
+    "hist_1h_stability": 0.4814,
+    "capacity_decision": "capacity_available",
+    "projected_users": 23,
+    "ctr_state": "TRUSTED",
+    "ctr_recovery_state": "NOT_NEEDED",
+    "ctr_confidence": 0.4583,
+    "eligible_user_count": 26,
+    "best_available_pool_user_count": 26,
+    "candidate_attraction_count": 3,
+    "common_blockers": {}
+  },
+  {
+    "target_egress": "1",
+    "score": 0.0,
+    "service_score": 2.834,
+    "hist_1h_avg_mbps": 8.398,
+    "hist_1h_min_mbps": 8.398,
+    "hist_1h_stability": 0.0002,
+    "capacity_decision": "empty_capacity_available",
+    "projected_users": 0,
+    "ctr_state": "QUARANTINED",
+    "ctr_recovery_state": "NOT_NEEDED",
+    "ctr_confidence": 0.3181,
+    "eligible_user_count": 0,
+    "best_available_pool_user_count": 0,
+    "candidate_attraction_count": 0,
+    "common_blockers": {
+      "health_code_000": 26,
+      "severity_FAIL": 26,
+      "avg_mbps_below_floor": 26,
+      "min_mbps_below_floor": 26,
+      "telegram_required_telegram_down_14s": 26
+    }
+  },
+  {
+    "target_egress": "amneziawg-exec-20260528-10-8-1-14",
+    "score": 0.0,
+    "service_score": 100.0,
+    "hist_1h_avg_mbps": 40.49,
+    "hist_1h_min_mbps": 13.732,
+    "hist_1h_stability": 0.1567,
+    "capacity_decision": "empty_capacity_available",
+    "projected_users": 0,
+    "ctr_state": "TRUSTED",
+    "ctr_recovery_state": "NOT_NEEDED",
+    "ctr_confidence": 0.4583,
+    "eligible_user_count": 0,
+    "best_available_pool_user_count": 0,
+    "candidate_attraction_count": 0,
+    "common_blockers": {
+      "manual_only": 26,
+      "reserve_only": 26,
+      "canary_reserved_production_assignment_blocked": 26,
+      "stability_below_floor": 26
+    }
+  },
+  {
+    "target_egress": "awg0",
+    "score": 0.0,
+    "service_score": 100.0,
+    "hist_1h_avg_mbps": 35.875,
+    "hist_1h_min_mbps": 14.199,
+    "hist_1h_stability": 0.2162,
+    "capacity_decision": "capacity_available",
+    "projected_users": 2,
+    "ctr_state": "TRUSTED",
+    "ctr_recovery_state": "NOT_NEEDED",
+    "ctr_confidence": 0.4583,
+    "eligible_user_count": 0,
+    "best_available_pool_user_count": 0,
+    "candidate_attraction_count": 0,
+    "common_blockers": {
+      "stability_below_floor": 26
+    }
+  },
+  {
+    "target_egress": "awg3",
+    "score": 0.0,
+    "service_score": 99.767,
+    "hist_1h_avg_mbps": 37.137,
+    "hist_1h_min_mbps": 13.068,
+    "hist_1h_stability": 0.1836,
+    "capacity_decision": "capacity_available",
+    "projected_users": 1,
+    "ctr_state": "TRUSTED",
+    "ctr_recovery_state": "NOT_NEEDED",
+    "ctr_confidence": 0.4583,
+    "eligible_user_count": 0,
+    "best_available_pool_user_count": 0,
+    "candidate_attraction_count": 0,
+    "common_blockers": {
+      "stability_below_floor": 26
+    }
+  },
+  {
+    "target_egress": "openvpn-1779388847-d2ad7c",
+    "score": 0.0,
+    "service_score": 2.838,
+    "hist_1h_avg_mbps": 0.002,
+    "hist_1h_min_mbps": 0.002,
+    "hist_1h_stability": 0.0002,
+    "capacity_decision": "empty_capacity_available",
+    "projected_users": 0,
+    "ctr_state": "QUARANTINED",
+    "ctr_recovery_state": "NOT_NEEDED",
+    "ctr_confidence": 0.3181,
+    "eligible_user_count": 0,
+    "best_available_pool_user_count": 0,
+    "candidate_attraction_count": 0,
+    "common_blockers": {
+      "health_code_000": 26,
+      "severity_FAIL": 26,
+      "avg_mbps_below_floor": 26,
+      "min_mbps_below_floor": 26,
+      "telegram_required_telegram_down_14s": 26
+    }
+  },
+  {
+    "target_egress": "wireguard-1779454504-c43409",
+    "score": 0.0,
+    "service_score": 100.0,
+    "hist_1h_avg_mbps": 59.982,
+    "hist_1h_min_mbps": 56.562,
+    "hist_1h_stability": 0.8216,
+    "capacity_decision": "empty_capacity_available",
+    "projected_users": 0,
+    "ctr_state": "TRUSTED",
+    "ctr_recovery_state": "NOT_NEEDED",
+    "ctr_confidence": 0.4583,
+    "eligible_user_count": 0,
+    "best_available_pool_user_count": 0,
+    "candidate_attraction_count": 0,
+    "common_blockers": {
+      "canary_reserved_production_assignment_blocked": 26
+    }
+  }
+]

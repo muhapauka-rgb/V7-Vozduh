@@ -1,0 +1,12 @@
+{
+  "runtime_speed_stability_formula": "v7-egress-stability: stability = floor_p10_mbps / avg_mbps over last 30 nonzero speed history samples",
+  "quality_summary_formula": "v7-egress-quality-compact: window.stability = EMA(previous_window_stability, current_sample_stability, alpha)",
+  "window_alpha": {
+    "5m": 0.35,
+    "1h": 0.18,
+    "24h": 0.06,
+    "7d": 0.02
+  },
+  "eligibility_formula": "v7-users-autoswitch: if live egress.stability < min_stability and 1h history stability < min_stability, block stability_below_floor unless evidence exception applies",
+  "service_score_formula_scope": "service suitability uses service-matrix reachability/latency/content status for required/profile services; it does not measure speed variance floor/avg directly"
+}

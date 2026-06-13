@@ -1,0 +1,65 @@
+224:     fail_rate = 0.0
+225:     if not health_ok or not severity_ok:
+226:         fail_rate = 1.0
+227:     elif service_total:
+228:         fail_rate = service_failures / service_total
+229:     latencies = []
+230:     for row in services.values():
+231:         if isinstance(row, dict):
+232:             first_byte = to_float(row.get("first_byte_sec"))
+233:             if first_byte > 0:
+234:                 latencies.append(first_byte * 1000.0)
+235:     return ok, fail_rate, percentile(latencies, 95)
+236: 
+237: 
+238: def build_samples(state_dir: Path) -> list[dict[str, Any]]:
+239:     state = read_json(state_dir / "v7-state.json", {})
+240:     speed = read_json(state_dir / "egress-speed.json", {"items": {}})
+241:     matrix = read_json(state_dir / "service-matrix.json", {"items": {}})
+242:     egress_state = state.get("egress") if isinstance(state.get("egress"), dict) else {}
+243:     ids = sorted(set(egress_state.keys()) | set((speed.get("items") or {}).keys()) | set((matrix.get("items") or {}).keys()))
+244:     ts = now_iso()
+245:     samples = []
+246:     for egress_id in ids:
+247:         live = egress_state.get(egress_id) or {}
+248:         speed_item = (speed.get("items") or {}).get(egress_id) or {}
+249:         matrix_item = (matrix.get("items") or {}).get(egress_id) or {}
+250:         ok, fail_rate, p95_latency_ms = status_for(live, matrix_item)
+251:         avg_mbps = to_float(live.get("avg_mbps"), to_float(speed_item.get("server_v7_mbps")))
+252:         min_mbps = to_float(live.get("min_mbps"), to_float(speed_item.get("server_v7_min_mbps"), avg_mbps))
+253:         stability = to_float(live.get("stability"), to_float(speed_item.get("stability"), 1.0 if ok else 0.0))
+254:         samples.append({
+255:             "ts": ts,
+256:             "egress": egress_id,
+257:             "kind": "quality",
+258:             "ok": ok,
+259:             "avg_mbps": round(avg_mbps, 3),
+260:             "min_mbps": round(min_mbps, 3),
+261:             "p95_latency_ms": round(p95_latency_ms, 1),
+262:             "fail_rate": round(fail_rate, 4),
+263:             "stability": round(stability, 4),
+264:             "users": live.get("users", 0),
+265:             "health_code": live.get("code", ""),
+266:             "severity": live.get("diagnose_severity", ""),
+267:         })
+268:     return samples
+269: 
+270: 
+271: def update_summary(summary: dict[str, Any], samples: list[dict[str, Any]]) -> dict[str, Any]:
+272:     updated = now_iso()
+273:     items = summary.get("items") if isinstance(summary.get("items"), dict) else {}
+274:     for sample in samples:
+275:         egress_id = sample["egress"]
+276:         row = items.setdefault(egress_id, {"windows": {}, "score": {}})
+277:         windows = row.setdefault("windows", {})
+278:         previous_current = to_float(row.get("score", {}).get("current"))
+279:         for name, alpha in WINDOW_ALPHA.items():
+280:             window = windows.setdefault(name, {})
+281:             window["samples"] = min(1_000_000, int(window.get("samples") or 0) + 1)
+282:             window["avg_mbps"] = round(ema(window.get("avg_mbps"), to_float(sample.get("avg_mbps")), alpha), 3)
+283:             window["min_mbps"] = round(ema(window.get("min_mbps"), to_float(sample.get("min_mbps")), alpha), 3)
+284:             window["p95_latency_ms"] = round(ema(window.get("p95_latency_ms"), to_float(sample.get("p95_latency_ms")), alpha), 1)
+285:             window["fail_rate"] = round(ema(window.get("fail_rate"), to_float(sample.get("fail_rate")), alpha), 4)
+286:             window["stability"] = round(ema(window.get("stability"), to_float(sample.get("stability")), alpha), 4)
+287:             window["updated"] = updated
+288:         current = score_for(windows.get("5m", {}))

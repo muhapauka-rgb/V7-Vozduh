@@ -1,0 +1,28 @@
+[
+  {
+    "channel": "awg0",
+    "could_stability_be_underestimated": "not proven",
+    "evidence_against_underestimate": [
+      "live min/avg recomputes to 0.3155, matching live stability 0.315",
+      "1h EMA stability 0.2162 is also low, not a single live-only anomaly",
+      "5m stability 0.2268 confirms fresh instability"
+    ],
+    "could_service_score_be_overstated": "not proven; service score is measuring a different dimension",
+    "could_data_be_stale": "not proven; snapshot gate was clean in STABILITY1_CLOSE evidence and quality windows have matching updated timestamp",
+    "could_ema_be_distorted": "possible only as normal EMA inertia, not a bug; 5m and 1h both low, 7d higher shows recent degradation rather than stale long-term carryover",
+    "missing_raw_evidence": "current production egress-quality-ring/raw egress-history was not available in local evidence; root cause is therefore proven to throughput variance level, not to individual raw packet/sample IDs"
+  },
+  {
+    "channel": "awg3",
+    "could_stability_be_underestimated": "not proven",
+    "evidence_against_underestimate": [
+      "live min/avg recomputes to 0.1832, matching live stability 0.183",
+      "1h EMA stability 0.1836 is also low, not a single live-only anomaly",
+      "5m stability 0.1098 confirms fresh instability"
+    ],
+    "could_service_score_be_overstated": "not proven; service score is measuring a different dimension",
+    "could_data_be_stale": "not proven; snapshot gate was clean in STABILITY1_CLOSE evidence and quality windows have matching updated timestamp",
+    "could_ema_be_distorted": "possible only as normal EMA inertia, not a bug; 5m and 1h both low, 7d higher shows recent degradation rather than stale long-term carryover",
+    "missing_raw_evidence": "current production egress-quality-ring/raw egress-history was not available in local evidence; root cause is therefore proven to throughput variance level, not to individual raw packet/sample IDs"
+  }
+]

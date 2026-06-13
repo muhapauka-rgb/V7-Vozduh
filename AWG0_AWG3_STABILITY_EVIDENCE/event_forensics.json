@@ -1,0 +1,81 @@
+[
+  {
+    "channel": "awg0",
+    "reconnects_or_failed_verifications": {
+      "incoming": [],
+      "failed_verifications": [],
+      "incoming_1h": 0,
+      "failed_verifications_1h": 0,
+      "quarantine_until": null
+    },
+    "health_flap_signal": {
+      "severity": "OK",
+      "category": "normal",
+      "hard_block": false,
+      "reason": "OK"
+    },
+    "telegram": {
+      "required": true,
+      "status": "OK",
+      "ok": true,
+      "hard_blocked": false,
+      "degraded": false,
+      "bad_now": false,
+      "bad_for_seconds": 0.0,
+      "score": 100.0,
+      "reason": "telegram tcp endpoints reachable",
+      "source": "sentinel"
+    },
+    "speed_oscillation_signal": {
+      "live_avg_mbps": 21.9,
+      "live_p10_min_mbps": 6.91,
+      "live_p10_over_avg": 0.3155,
+      "5m_stability": 0.2268,
+      "1h_stability": 0.2162,
+      "24h_stability": 0.3186,
+      "7d_stability": 0.4436,
+      "1h_p95_latency_ms": 4045.8,
+      "1h_fail_rate": 0.0716
+    },
+    "event_root_signal": "available evidence points to throughput variance/speed floor collapse; no reconnect/verification/quarantine or service hard failure evidence was present in planner snapshot"
+  },
+  {
+    "channel": "awg3",
+    "reconnects_or_failed_verifications": {
+      "incoming": [],
+      "failed_verifications": [],
+      "incoming_1h": 0,
+      "failed_verifications_1h": 0
+    },
+    "health_flap_signal": {
+      "severity": "OK",
+      "category": "normal",
+      "hard_block": false,
+      "reason": "OK"
+    },
+    "telegram": {
+      "required": true,
+      "status": "OK",
+      "ok": true,
+      "hard_blocked": false,
+      "degraded": false,
+      "bad_now": false,
+      "bad_for_seconds": 0.0,
+      "score": 100.0,
+      "reason": "telegram tcp endpoints reachable",
+      "source": "sentinel"
+    },
+    "speed_oscillation_signal": {
+      "live_avg_mbps": 31.98,
+      "live_p10_min_mbps": 5.86,
+      "live_p10_over_avg": 0.1832,
+      "5m_stability": 0.1098,
+      "1h_stability": 0.1836,
+      "24h_stability": 0.387,
+      "7d_stability": 0.4964,
+      "1h_p95_latency_ms": 2709.6,
+      "1h_fail_rate": 0.1335
+    },
+    "event_root_signal": "available evidence points to throughput variance/speed floor collapse; no reconnect/verification/quarantine or service hard failure evidence was present in planner snapshot"
+  }
+]

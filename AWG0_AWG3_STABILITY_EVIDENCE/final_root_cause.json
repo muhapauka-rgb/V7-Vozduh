@@ -1,0 +1,42 @@
+[
+  {
+    "channel": "awg0",
+    "classification": "REAL_CHANNEL_INSTABILITY",
+    "root_cause": "throughput_consistency_collapse_speed_p10_too_low_relative_to_average",
+    "full_chain": [
+      "service probes pass, so service suitability remains ~100",
+      "runtime speed history reports avg=21.9 Mbps and p10/min=6.91 Mbps",
+      "live stability=min/avg=0.3155",
+      "quality compact EMA keeps 1h stability at 0.2162",
+      "autoswitch quality gate sees live and 1h stability below 0.45",
+      "candidate is blocked by stability_below_floor"
+    ],
+    "not_caused_by": [
+      "Telegram failure",
+      "service-matrix failure",
+      "capacity",
+      "governance reservation",
+      "policy floor bug"
+    ]
+  },
+  {
+    "channel": "awg3",
+    "classification": "REAL_CHANNEL_INSTABILITY",
+    "root_cause": "throughput_consistency_collapse_speed_p10_too_low_relative_to_average",
+    "full_chain": [
+      "service probes pass, so service suitability remains ~100",
+      "runtime speed history reports avg=31.98 Mbps and p10/min=5.86 Mbps",
+      "live stability=min/avg=0.1832",
+      "quality compact EMA keeps 1h stability at 0.1836",
+      "autoswitch quality gate sees live and 1h stability below 0.45",
+      "candidate is blocked by stability_below_floor"
+    ],
+    "not_caused_by": [
+      "Telegram failure",
+      "service-matrix failure",
+      "capacity",
+      "governance reservation",
+      "policy floor bug"
+    ]
+  }
+]

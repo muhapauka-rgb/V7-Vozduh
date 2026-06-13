@@ -1,0 +1,30 @@
+[
+  {
+    "channel": "awg0",
+    "service_score": 100.0,
+    "services_ok": [
+      "youtube",
+      "instagram",
+      "telegram",
+      "google",
+      "google_auth"
+    ],
+    "stability": 0.315,
+    "one_hour_stability": 0.2162,
+    "explanation": "service score is endpoint reachability/suitability; stability is throughput consistency p10/avg. The channel can load Telegram/Google/YouTube probes while still having deep speed dips that lower p10/avg."
+  },
+  {
+    "channel": "awg3",
+    "service_score": 99.767,
+    "services_ok": [
+      "youtube",
+      "instagram",
+      "telegram",
+      "google",
+      "google_auth"
+    ],
+    "stability": 0.183,
+    "one_hour_stability": 0.1836,
+    "explanation": "service score is endpoint reachability/suitability; stability is throughput consistency p10/avg. The channel can load Telegram/Google/YouTube probes while still having deep speed dips that lower p10/avg."
+  }
+]

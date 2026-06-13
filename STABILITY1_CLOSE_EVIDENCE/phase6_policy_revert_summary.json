@@ -1,0 +1,7 @@
+{
+  "action": "policy_update",
+  "max_planned": 2,
+  "max_failover": 25,
+  "updated": "2026-06-13T07:49:30.768871+00:00",
+  "backup": "/etc/v7/policy.json.backup.v7-policy.20260613-074930"
+}

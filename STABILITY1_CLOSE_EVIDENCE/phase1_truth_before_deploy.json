@@ -1,0 +1,526 @@
+{
+  "blockers": [
+    "runtime_local_commit_mismatch"
+  ],
+  "canonical_branch": "Updatesystem",
+  "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+  "canonical_workspace": "/Users/ponch/Documents/New project",
+  "convergence_status": "NO_GO",
+  "current_branch": "Updatesystem",
+  "current_commit": "989b5c700591aaf332cc17a981d11c07cb1de5c5",
+  "current_workspace": "/Users/ponch/Documents/New project",
+  "final_verdict": "NO-GO",
+  "git_status_short": "?? STABILITY1_CLOSE_EVIDENCE/",
+  "github": {
+    "blockers": [],
+    "canonical_branch": "Updatesystem",
+    "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+    "convergence_status": "GITHUB_ALIGNED",
+    "final_verdict": "PASS",
+    "local_commit": "989b5c700591aaf332cc17a981d11c07cb1de5c5",
+    "remote_branch_commit": "989b5c700591aaf332cc17a981d11c07cb1de5c5",
+    "remote_read_status": "OK"
+  },
+  "local": {
+    "blockers": [],
+    "canonical_branch": "Updatesystem",
+    "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+    "canonical_workspace": "/Users/ponch/Documents/New project",
+    "checks": {
+      "branch_matches": true,
+      "remote_matches": true,
+      "workspace_clean": false,
+      "workspace_has_no_blocking_dirtiness": true,
+      "workspace_matches": true
+    },
+    "convergence_status": "LOCAL_ALIGNED",
+    "current_branch": "Updatesystem",
+    "current_commit": "989b5c700591aaf332cc17a981d11c07cb1de5c5",
+    "current_workspace": "/Users/ponch/Documents/New project",
+    "dirty_classification": {
+      "blocking": false,
+      "blocking_paths": [],
+      "clean": false,
+      "counts": {
+        "documentation_only": 1,
+        "runtime_critical": 0,
+        "runtime_relevant": 0,
+        "unknown": 0
+      },
+      "documentation_only": true,
+      "entries": [
+        {
+          "category": "documentation_only",
+          "path": "STABILITY1_CLOSE_EVIDENCE/",
+          "status": "??"
+        }
+      ],
+      "info_paths": [
+        "STABILITY1_CLOSE_EVIDENCE/"
+      ],
+      "warning": false,
+      "warning_paths": []
+    },
+    "final_verdict": "PASS",
+    "git_status_short": "?? STABILITY1_CLOSE_EVIDENCE/",
+    "origin_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+    "warnings": [
+      "documentation_dirty_ignored"
+    ],
+    "worktree_list": "worktree /Users/ponch/Documents/New project\nHEAD 989b5c700591aaf332cc17a981d11c07cb1de5c5\nbranch refs/heads/Updatesystem\n\nworktree /private/tmp/v7-convergence-c\nHEAD c40cae13298594b7ad7040df4b19306c4e2c29d4\nbranch refs/heads/v7-next\nprunable gitdir file points to non-existent location\n\nworktree /private/tmp/v7-vozduh-main\nHEAD 593619d494e215d11fd826086593527a4a555690\ndetached\nprunable gitdir file points to non-existent location"
+  },
+  "mode": "all",
+  "remote_branch_commit": "989b5c700591aaf332cc17a981d11c07cb1de5c5",
+  "runtime": {
+    "allowed_readonly_commands": [
+      [
+        "hostname"
+      ],
+      [
+        "date",
+        "-Is"
+      ],
+      [
+        "pwd"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7"
+      ],
+      [
+        "git",
+        "-C",
+        "/opt/v7",
+        "branch",
+        "--show-current"
+      ],
+      [
+        "git",
+        "-C",
+        "/opt/v7",
+        "rev-parse",
+        "HEAD"
+      ],
+      [
+        "git",
+        "-C",
+        "/opt/v7",
+        "status",
+        "--short"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-users-autoswitch"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-audit-log"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-admin-api"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-intelligence-snapshot-refresh"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-service-matrix-refresh-all"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-service-matrix-test"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-egress-quality-compact"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-users-autoswitch.service",
+        "--no-pager"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-users-autoswitch.timer",
+        "--no-pager"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-admin-api.service",
+        "--no-pager"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-intelligence-snapshot-refresh.service",
+        "--no-pager"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-intelligence-snapshot-refresh.timer",
+        "--no-pager"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-users-autoswitch"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-audit-log"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-admin-api"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-intelligence-snapshot-refresh"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-service-matrix-refresh-all"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-service-matrix-test"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-egress-quality-compact"
+      ],
+      [
+        "/usr/local/bin/v7-users-autoswitch",
+        "--pretty"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/egress/state"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/egress/state/intelligence"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/audit"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/events"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/admin"
+      ]
+    ],
+    "blockers": [
+      "runtime_local_commit_mismatch"
+    ],
+    "commit_mismatch_classification": {
+      "changed_files": [
+        "ATOMIC1_CLOSE_AND_BA2_RECERTIFICATION_REPORT.md",
+        "ATOMIC1_CLOSE_EVIDENCE/final_ba2_certification_summary.json",
+        "ATOMIC1_CLOSE_EVIDENCE/final_convergence_after_report_push.json",
+        "ATOMIC1_CLOSE_EVIDENCE/final_policy_after_ba2.json",
+        "ATOMIC1_CLOSE_EVIDENCE/final_truth_after_report_push.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase4_safe_deploy.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase5_convergence_status.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase5_local_v7_users_autoswitch_sha256.txt",
+        "ATOMIC1_CLOSE_EVIDENCE/phase5_production_v7_users_autoswitch_verification.txt",
+        "ATOMIC1_CLOSE_EVIDENCE/phase5_truth_check.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase6_admin_login_headers_redacted.txt",
+        "ATOMIC1_CLOSE_EVIDENCE/phase6_admin_session_headers_redacted.txt",
+        "ATOMIC1_CLOSE_EVIDENCE/phase6_admin_session_redacted.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase6_ba2_packet_generate.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase6_ba2_plan_remote.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase6_ba2_restore_barrier.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase6_convergence_after_policy.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase6_fresh_planner.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase6_packet_and_restore_barrier_raw.txt",
+        "ATOMIC1_CLOSE_EVIDENCE/phase6_policy_after.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase6_policy_before.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase6_policy_update_headers.txt",
+        "ATOMIC1_CLOSE_EVIDENCE/phase6_policy_update_patch.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase6_policy_update_response.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase6_policy_update_summary.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase6_truth_after_policy.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase7_post_clearance_dry_run.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase7_post_clearance_dry_run_summary.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase8_convergence_after_apply_feedback.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase8_feedback_materialization_summary.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase8_feedback_payload_10_0_0_3.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase8_feedback_payload_10_0_0_3_headers.txt",
+        "ATOMIC1_CLOSE_EVIDENCE/phase8_feedback_payload_10_0_0_3_response.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase8_feedback_payload_10_0_0_6.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase8_feedback_payload_10_0_0_6_headers.txt",
+        "ATOMIC1_CLOSE_EVIDENCE/phase8_feedback_payload_10_0_0_6_response.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase8_feedback_store_tails.txt",
+        "ATOMIC1_CLOSE_EVIDENCE/phase8_planner_reuse_after_feedback.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase8_runtime_route_verification.txt",
+        "ATOMIC1_CLOSE_EVIDENCE/phase8_snapshot_refresh_after_feedback.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase8_truth_after_apply_feedback.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase8_two_user_apply.json",
+        "ATOMIC1_CLOSE_EVIDENCE/phase8_two_user_apply_summary.json",
+        "BA3_EVIDENCE/final_ba3_certification_summary.json",
+        "BA3_EVIDENCE/phase1_convergence_status.json",
+        "BA3_EVIDENCE/phase1_truth_check.json",
+        "BA3_EVIDENCE/phase2_admin_login_headers_redacted.txt",
+        "BA3_EVIDENCE/phase2_admin_session_headers_redacted.txt",
+        "BA3_EVIDENCE/phase2_admin_session_redacted.json",
+        "BA3_EVIDENCE/phase2_convergence_after_policy.json",
+        "BA3_EVIDENCE/phase2_convergence_after_policy_network.json",
+        "BA3_EVIDENCE/phase2_policy_after.json",
+        "BA3_EVIDENCE/phase2_policy_before.json",
+        "BA3_EVIDENCE/phase2_policy_update_headers.txt",
+        "BA3_EVIDENCE/phase2_policy_update_patch.json",
+        "BA3_EVIDENCE/phase2_policy_update_response.json",
+        "BA3_EVIDENCE/phase2_policy_update_summary.json",
+        "BA3_EVIDENCE/phase2_truth_after_policy.json",
+        "BA3_EVIDENCE/phase2_truth_after_policy_network.json",
+        "BA3_EVIDENCE/phase3_fresh_planner.json",
+        "BA3_EVIDENCE/phase3_fresh_planner_summary.json",
+        "BA3_EVIDENCE/phase4_ba3_packet.json",
+        "BA3_EVIDENCE/phase4_ba3_packet_generate.json",
+        "BA3_EVIDENCE/phase4_ba3_packet_summary.json",
+        "BA3_EVIDENCE/phase5_ba3_restore_barrier.json",
+        "BA3_EVIDENCE/phase6_post_clearance_dry_run.json",
+        "BA3_EVIDENCE/phase6_post_clearance_dry_run_summary.json",
+        "BA3_EVIDENCE/phase7_drift_blocker_analysis.json",
+        "BA3_EVIDENCE/phase7_five_user_apply.json",
+        "BA3_EVIDENCE/phase7_retry1_five_user_apply.json",
+        "BA3_EVIDENCE/phase7_retry1_fresh_planner.json",
+        "BA3_EVIDENCE/phase7_retry1_no_refresh_dry_run.json",
+        "BA3_EVIDENCE/phase7_retry1_packet.json",
+        "BA3_EVIDENCE/phase7_retry1_packet_generate.json",
+        "BA3_EVIDENCE/phase7_retry1_post_clearance_dry_run.json",
+        "BA3_EVIDENCE/phase7_retry1_restore_barrier.json",
+        "BA3_EVIDENCE/phase7_retry2_fresh_planner.json",
+        "BA3_EVIDENCE/phase7_retry2_no_refresh_dry_run.json",
+        "BA3_EVIDENCE/phase7_retry2_packet.json",
+        "BA3_EVIDENCE/phase7_retry2_packet_generate.json",
+        "BA3_EVIDENCE/phase7_retry2_restore_barrier.json",
+        "BA3_EVIDENCE/phase9_admin_session_before_policy_revert.json",
+        "BA3_EVIDENCE/phase9_candidate_users_registry_after_block.txt",
+        "BA3_EVIDENCE/phase9_convergence_after_block_and_policy_revert.json",
+        "BA3_EVIDENCE/phase9_exact_candidate_users_registry_after_block.txt",
+        "BA3_EVIDENCE/phase9_policy_after_revert_overview.json",
+        "BA3_EVIDENCE/phase9_policy_revert_patch.json",
+        "BA3_EVIDENCE/phase9_policy_revert_response.json",
+        "BA3_EVIDENCE/phase9_policy_revert_summary.json",
+        "BA3_EVIDENCE/phase9_truth_after_block_and_policy_revert.json",
+        "BA3_FIVE_USER_AUTONOMY_CERTIFICATION_REPORT.md",
+        "STABILITY1_APPROVAL_TO_APPLY_SOURCE_BUNDLE_STABILITY_REPORT.md",
+        "STABILITY1_EVIDENCE/ba2_replay_forensics.json",
+        "STABILITY1_EVIDENCE/ba3_drift_forensics.json",
+        "STABILITY1_EVIDENCE/code_diff.patch",
+        "STABILITY1_EVIDENCE/full_unittest_discover.txt",
+        "STABILITY1_EVIDENCE/py_compile.txt",
+        "STABILITY1_EVIDENCE/source_inventory_and_policy.json",
+        "STABILITY1_EVIDENCE/source_owner_code_refs.txt",
+        "STABILITY1_EVIDENCE/unit_test_v7_users_autoswitch_policy.txt",
+        "tests/unit/test_v7_users_autoswitch_policy.py",
+        "tools/v7-users-autoswitch"
+      ],
+      "classification": {
+        "classification": "DEPLOY_REQUIRED",
+        "deploy_required_paths": [
+          "tools/v7-users-autoswitch"
+        ],
+        "deployment_required": true,
+        "docs_only_mismatch": false,
+        "docs_only_paths": [
+          "ATOMIC1_CLOSE_AND_BA2_RECERTIFICATION_REPORT.md",
+          "ATOMIC1_CLOSE_EVIDENCE/final_ba2_certification_summary.json",
+          "ATOMIC1_CLOSE_EVIDENCE/final_convergence_after_report_push.json",
+          "ATOMIC1_CLOSE_EVIDENCE/final_policy_after_ba2.json",
+          "ATOMIC1_CLOSE_EVIDENCE/final_truth_after_report_push.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase4_safe_deploy.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase5_convergence_status.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase5_local_v7_users_autoswitch_sha256.txt",
+          "ATOMIC1_CLOSE_EVIDENCE/phase5_production_v7_users_autoswitch_verification.txt",
+          "ATOMIC1_CLOSE_EVIDENCE/phase5_truth_check.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase6_admin_login_headers_redacted.txt",
+          "ATOMIC1_CLOSE_EVIDENCE/phase6_admin_session_headers_redacted.txt",
+          "ATOMIC1_CLOSE_EVIDENCE/phase6_admin_session_redacted.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase6_ba2_packet_generate.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase6_ba2_plan_remote.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase6_ba2_restore_barrier.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase6_convergence_after_policy.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase6_fresh_planner.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase6_packet_and_restore_barrier_raw.txt",
+          "ATOMIC1_CLOSE_EVIDENCE/phase6_policy_after.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase6_policy_before.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase6_policy_update_headers.txt",
+          "ATOMIC1_CLOSE_EVIDENCE/phase6_policy_update_patch.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase6_policy_update_response.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase6_policy_update_summary.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase6_truth_after_policy.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase7_post_clearance_dry_run.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase7_post_clearance_dry_run_summary.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase8_convergence_after_apply_feedback.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase8_feedback_materialization_summary.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase8_feedback_payload_10_0_0_3.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase8_feedback_payload_10_0_0_3_headers.txt",
+          "ATOMIC1_CLOSE_EVIDENCE/phase8_feedback_payload_10_0_0_3_response.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase8_feedback_payload_10_0_0_6.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase8_feedback_payload_10_0_0_6_headers.txt",
+          "ATOMIC1_CLOSE_EVIDENCE/phase8_feedback_payload_10_0_0_6_response.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase8_feedback_store_tails.txt",
+          "ATOMIC1_CLOSE_EVIDENCE/phase8_planner_reuse_after_feedback.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase8_runtime_route_verification.txt",
+          "ATOMIC1_CLOSE_EVIDENCE/phase8_snapshot_refresh_after_feedback.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase8_truth_after_apply_feedback.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase8_two_user_apply.json",
+          "ATOMIC1_CLOSE_EVIDENCE/phase8_two_user_apply_summary.json",
+          "BA3_EVIDENCE/final_ba3_certification_summary.json",
+          "BA3_EVIDENCE/phase1_convergence_status.json",
+          "BA3_EVIDENCE/phase1_truth_check.json",
+          "BA3_EVIDENCE/phase2_admin_login_headers_redacted.txt",
+          "BA3_EVIDENCE/phase2_admin_session_headers_redacted.txt",
+          "BA3_EVIDENCE/phase2_admin_session_redacted.json",
+          "BA3_EVIDENCE/phase2_convergence_after_policy.json",
+          "BA3_EVIDENCE/phase2_convergence_after_policy_network.json",
+          "BA3_EVIDENCE/phase2_policy_after.json",
+          "BA3_EVIDENCE/phase2_policy_before.json",
+          "BA3_EVIDENCE/phase2_policy_update_headers.txt",
+          "BA3_EVIDENCE/phase2_policy_update_patch.json",
+          "BA3_EVIDENCE/phase2_policy_update_response.json",
+          "BA3_EVIDENCE/phase2_policy_update_summary.json",
+          "BA3_EVIDENCE/phase2_truth_after_policy.json",
+          "BA3_EVIDENCE/phase2_truth_after_policy_network.json",
+          "BA3_EVIDENCE/phase3_fresh_planner.json",
+          "BA3_EVIDENCE/phase3_fresh_planner_summary.json",
+          "BA3_EVIDENCE/phase4_ba3_packet.json",
+          "BA3_EVIDENCE/phase4_ba3_packet_generate.json",
+          "BA3_EVIDENCE/phase4_ba3_packet_summary.json",
+          "BA3_EVIDENCE/phase5_ba3_restore_barrier.json",
+          "BA3_EVIDENCE/phase6_post_clearance_dry_run.json",
+          "BA3_EVIDENCE/phase6_post_clearance_dry_run_summary.json",
+          "BA3_EVIDENCE/phase7_drift_blocker_analysis.json",
+          "BA3_EVIDENCE/phase7_five_user_apply.json",
+          "BA3_EVIDENCE/phase7_retry1_five_user_apply.json",
+          "BA3_EVIDENCE/phase7_retry1_fresh_planner.json",
+          "BA3_EVIDENCE/phase7_retry1_no_refresh_dry_run.json",
+          "BA3_EVIDENCE/phase7_retry1_packet.json",
+          "BA3_EVIDENCE/phase7_retry1_packet_generate.json",
+          "BA3_EVIDENCE/phase7_retry1_post_clearance_dry_run.json",
+          "BA3_EVIDENCE/phase7_retry1_restore_barrier.json",
+          "BA3_EVIDENCE/phase7_retry2_fresh_planner.json",
+          "BA3_EVIDENCE/phase7_retry2_no_refresh_dry_run.json",
+          "BA3_EVIDENCE/phase7_retry2_packet.json",
+          "BA3_EVIDENCE/phase7_retry2_packet_generate.json",
+          "BA3_EVIDENCE/phase7_retry2_restore_barrier.json",
+          "BA3_EVIDENCE/phase9_admin_session_before_policy_revert.json",
+          "BA3_EVIDENCE/phase9_candidate_users_registry_after_block.txt",
+          "BA3_EVIDENCE/phase9_convergence_after_block_and_policy_revert.json",
+          "BA3_EVIDENCE/phase9_exact_candidate_users_registry_after_block.txt",
+          "BA3_EVIDENCE/phase9_policy_after_revert_overview.json",
+          "BA3_EVIDENCE/phase9_policy_revert_patch.json",
+          "BA3_EVIDENCE/phase9_policy_revert_response.json",
+          "BA3_EVIDENCE/phase9_policy_revert_summary.json",
+          "BA3_EVIDENCE/phase9_truth_after_block_and_policy_revert.json",
+          "BA3_FIVE_USER_AUTONOMY_CERTIFICATION_REPORT.md",
+          "STABILITY1_APPROVAL_TO_APPLY_SOURCE_BUNDLE_STABILITY_REPORT.md",
+          "STABILITY1_EVIDENCE/ba2_replay_forensics.json",
+          "STABILITY1_EVIDENCE/ba3_drift_forensics.json",
+          "STABILITY1_EVIDENCE/code_diff.patch",
+          "STABILITY1_EVIDENCE/full_unittest_discover.txt",
+          "STABILITY1_EVIDENCE/py_compile.txt",
+          "STABILITY1_EVIDENCE/source_inventory_and_policy.json",
+          "STABILITY1_EVIDENCE/source_owner_code_refs.txt",
+          "STABILITY1_EVIDENCE/unit_test_v7_users_autoswitch_policy.txt",
+          "tests/unit/test_v7_users_autoswitch_policy.py"
+        ],
+        "final_verdict": "PASS",
+        "schema": "v7-deployable-change-classification/v1",
+        "unknown_paths": []
+      },
+      "docs_only_mismatch": false,
+      "local_commit": "989b5c700591aaf332cc17a981d11c07cb1de5c5",
+      "runtime_blocking": true,
+      "runtime_commit": "176fcdc79cb6bd04347fc9bddfe155563d9f38d1",
+      "schema": "v7-runtime-commit-mismatch-classification/v1"
+    },
+    "convergence_status": "RUNTIME_NO_GO",
+    "deployment_model": "copied_binaries_from_safe_sync_manifest",
+    "derived": {
+      "admin_service_active": true,
+      "audit_path_available": true,
+      "autoswitch_scheduler_active": false,
+      "autoswitch_service_active": false,
+      "binary_hashes_known": true,
+      "binary_hashes_match_authoritative": true,
+      "closure_path_available": true,
+      "deploy_branch": "Updatesystem",
+      "deploy_commit": "176fcdc79cb6bd04347fc9bddfe155563d9f38d1",
+      "deploy_id": "deploy-z8-14-Updatesystem-176fcdc-20260613T010741",
+      "deployment_model": "copied_binaries_from_safe_sync_manifest",
+      "execution_store_available": true,
+      "operation_wiring_present": true,
+      "restore_barrier_known": true,
+      "runtime_branch": "",
+      "runtime_commit": "",
+      "runtime_fingerprint_known": true,
+      "runtime_identity_model": "copied_binaries_from_safe_sync_manifest",
+      "runtime_provenance_known": true,
+      "runtime_root_is_git_checkout": false,
+      "scheduler_inactive_approved_manual_mode": true,
+      "scheduler_truth_known": true,
+      "service_inactive_explained": true,
+      "service_status_known": true,
+      "snapshot_refresh_cli_available": true,
+      "snapshot_refresh_mechanism_known": true,
+      "snapshot_required_files_known": true,
+      "snapshot_root_known": true,
+      "state_truth_known": true
+    },
+    "expected_binaries": [
+      "/usr/local/bin/v7-users-autoswitch",
+      "/usr/local/bin/v7-audit-log"
+    ],
+    "expected_services": [
+      "v7-users-autoswitch.service",
+      "v7-users-autoswitch.timer"
+    ],
+    "final_verdict": "NO-GO",
+    "local_commit": "989b5c700591aaf332cc17a981d11c07cb1de5c5",
+    "missing_commands": [],
+    "runtime_access_status": "CONFIGURED_WITH_BLOCKERS",
+    "runtime_branch": "Updatesystem",
+    "runtime_commit": "176fcdc79cb6bd04347fc9bddfe155563d9f38d1",
+    "runtime_root": "/opt/v7",
+    "runtime_snapshot_path": ".v7/runtime_convergence_snapshot.json",
+    "runtime_snapshot_schema": "v7-runtime-truth-snapshot/v1",
+    "runtime_truth_status": "PARTIAL",
+    "state_root": "/opt/v7/egress/state",
+    "state_truth_status": "KNOWN",
+    "unknown_commands": [],
+    "warnings": []
+  },
+  "runtime_access_status": "CONFIGURED_WITH_BLOCKERS",
+  "runtime_truth_status": "PARTIAL",
+  "schema": "v7-truth-check/v1",
+  "state_truth_status": "KNOWN",
+  "warnings": [
+    "documentation_dirty_ignored"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "rollback_packet_id": "rbpkt_b5c40611f0fe46737137fc88",
+  "source_operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+  "rollback_items": 10,
+  "max_rollback_users": 10,
+  "allowed_users": [
+    "10.7.0.6",
+    "10.7.0.8",
+    "10.7.0.9",
+    "10.7.0.10",
+    "10.7.0.11",
+    "10.7.0.12",
+    "10.7.0.13",
+    "10.7.0.14",
+    "10.7.0.15",
+    "10.7.0.16"
+  ],
+  "allowed_targets": [
+    "vless"
+  ],
+  "apply_requested": false,
+  "rollback_applied": false,
+  "rollback_dry_run_reason": "dry_run",
+  "rollback_packet_valid": true
+}

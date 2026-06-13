@@ -1,0 +1,66 @@
+{
+  "rows": [
+    {
+      "ip": "10.7.0.6",
+      "current": "wireguard-1779454504-c43409",
+      "status": null,
+      "recommended": null
+    },
+    {
+      "ip": "10.7.0.8",
+      "current": "awg3",
+      "status": null,
+      "recommended": null
+    },
+    {
+      "ip": "10.7.0.9",
+      "current": "wireguard-1779454504-c43409",
+      "status": null,
+      "recommended": null
+    },
+    {
+      "ip": "10.7.0.10",
+      "current": "awg3",
+      "status": null,
+      "recommended": null
+    },
+    {
+      "ip": "10.7.0.11",
+      "current": "wireguard-1779454504-c43409",
+      "status": null,
+      "recommended": null
+    },
+    {
+      "ip": "10.7.0.12",
+      "current": "awg3",
+      "status": null,
+      "recommended": null
+    },
+    {
+      "ip": "10.7.0.13",
+      "current": "wireguard-1779454504-c43409",
+      "status": null,
+      "recommended": null
+    },
+    {
+      "ip": "10.7.0.14",
+      "current": "awg3",
+      "status": null,
+      "recommended": null
+    },
+    {
+      "ip": "10.7.0.15",
+      "current": "wireguard-1779454504-c43409",
+      "status": null,
+      "recommended": null
+    },
+    {
+      "ip": "10.7.0.16",
+      "current": "awg3",
+      "status": null,
+      "recommended": null
+    }
+  ],
+  "all_expected_non_vless": true,
+  "stale": null
+}

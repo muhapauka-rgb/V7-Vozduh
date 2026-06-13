@@ -1,0 +1,28 @@
+{
+  "snapshot_refresh": {
+    "schema": "v7.intelligence-snapshot-refresh-result.v1",
+    "snapshot_count": 11,
+    "source_stable": true,
+    "warnings": [],
+    "users_moved": false,
+    "runtime_behavior_changed": false
+  },
+  "planner_reuse": {
+    "candidate_moves_total": 13,
+    "selected_moves": 0,
+    "healthy_egress_total": 4,
+    "snapshot_stop_required": false,
+    "source_mismatch_families": [],
+    "pre_planner_refresh_state": "REFRESH_SUCCESS",
+    "feedback_inputs": [
+      "/opt/v7/egress/state/execution-events.jsonl",
+      "/opt/v7/egress/state/runtime-trust.jsonl",
+      "/opt/v7/egress/state/proposal-records.jsonl",
+      "/opt/v7/egress/state/proposals.jsonl",
+      "/opt/v7/egress/state/closure-records.jsonl"
+    ],
+    "trust_evolution_snapshot_present": true,
+    "prediction_snapshot_present": true,
+    "recommendation_inputs_present": true
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "planner_candidate_moves_total": 20,
+  "planner_selected_before_gate": 10,
+  "planner_selected_after_gate": 10,
+  "planner_selected_top_candidates": [
+    {
+      "user_ip": "10.7.0.5",
+      "from": "vless",
+      "to": "wireguard-1779454504-c43409",
+      "type": "planned"
+    },
+    {
+      "user_ip": "10.7.0.6",
+      "from": "vless",
+      "to": "wireguard-1779454504-c43409",
+      "type": "planned"
+    },
+    {
+      "user_ip": "10.7.0.8",
+      "from": "vless",
+      "to": "wireguard-1779454504-c43409",
+      "type": "planned"
+    },
+    {
+      "user_ip": "10.7.0.9",
+      "from": "vless",
+      "to": "wireguard-1779454504-c43409",
+      "type": "planned"
+    },
+    {
+      "user_ip": "10.7.0.10",
+      "from": "vless",
+      "to": "wireguard-1779454504-c43409",
+      "type": "planned"
+    },
+    {
+      "user_ip": "10.7.0.11",
+      "from": "vless",
+      "to": "wireguard-1779454504-c43409",
+      "type": "planned"
+    },
+    {
+      "user_ip": "10.7.0.12",
+      "from": "vless",
+      "to": "wireguard-1779454504-c43409",
+      "type": "planned"
+    },
+    {
+      "user_ip": "10.7.0.13",
+      "from": "vless",
+      "to": "wireguard-1779454504-c43409",
+      "type": "planned"
+    },
+    {
+      "user_ip": "10.7.0.14",
+      "from": "vless",
+      "to": "wireguard-1779454504-c43409",
+      "type": "planned"
+    },
+    {
+      "user_ip": "10.7.0.15",
+      "from": "vless",
+      "to": "wireguard-1779454504-c43409",
+      "type": "planned"
+    },
+    {
+      "user_ip": "10.7.0.16",
+      "from": "vless",
+      "to": "wireguard-1779454504-c43409",
+      "type": "planned"
+    },
+    {
+      "user_ip": "10.7.0.17",
+      "from": "vless",
+      "to": "wireguard-1779454504-c43409",
+      "type": "planned"
+    }
+  ],
+  "packet_id": "pkt_5be07d9190057b995cade379",
+  "approval_id": "appr_f3117878a58cfdc6e0111e1e",
+  "lock_allowed_user_count": 10,
+  "lock_allowed_users": [
+    "10.7.0.6",
+    "10.7.0.8",
+    "10.7.0.9",
+    "10.7.0.10",
+    "10.7.0.11",
+    "10.7.0.12",
+    "10.7.0.13",
+    "10.7.0.14",
+    "10.7.0.15",
+    "10.7.0.16"
+  ],
+  "lock_allowed_targets": [
+    "awg3",
+    "wireguard-1779454504-c43409"
+  ],
+  "lock_expected_selected_moves": null,
+  "lock_selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+  "atomic_hash": "cd46c3b125ae961b5687b98c4cd8e48dda716f942d3ddeb87be6480d022d8108",
+  "rollback_manifest_present": true,
+  "runtime_action": "CREATE_RESTORE_BARRIER_CLEARANCE"
+}

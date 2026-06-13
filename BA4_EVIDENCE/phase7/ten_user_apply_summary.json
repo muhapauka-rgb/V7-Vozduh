@@ -1,0 +1,106 @@
+{
+  "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+  "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+  "selected_moves": 10,
+  "apply_applied": true,
+  "users_moved": 10,
+  "results": [
+    {
+      "user_ip": "10.7.0.6",
+      "from": "vless",
+      "to": "wireguard-1779454504-c43409",
+      "type": "planned",
+      "rc": 0,
+      "verify_rc": 0,
+      "rollback_attempted": false
+    },
+    {
+      "user_ip": "10.7.0.8",
+      "from": "vless",
+      "to": "awg3",
+      "type": "planned",
+      "rc": 0,
+      "verify_rc": 0,
+      "rollback_attempted": false
+    },
+    {
+      "user_ip": "10.7.0.9",
+      "from": "vless",
+      "to": "wireguard-1779454504-c43409",
+      "type": "planned",
+      "rc": 0,
+      "verify_rc": 0,
+      "rollback_attempted": false
+    },
+    {
+      "user_ip": "10.7.0.10",
+      "from": "vless",
+      "to": "awg3",
+      "type": "planned",
+      "rc": 0,
+      "verify_rc": 0,
+      "rollback_attempted": false
+    },
+    {
+      "user_ip": "10.7.0.11",
+      "from": "vless",
+      "to": "wireguard-1779454504-c43409",
+      "type": "planned",
+      "rc": 0,
+      "verify_rc": 0,
+      "rollback_attempted": false
+    },
+    {
+      "user_ip": "10.7.0.12",
+      "from": "vless",
+      "to": "awg3",
+      "type": "planned",
+      "rc": 0,
+      "verify_rc": 0,
+      "rollback_attempted": false
+    },
+    {
+      "user_ip": "10.7.0.13",
+      "from": "vless",
+      "to": "wireguard-1779454504-c43409",
+      "type": "planned",
+      "rc": 0,
+      "verify_rc": 0,
+      "rollback_attempted": false
+    },
+    {
+      "user_ip": "10.7.0.14",
+      "from": "vless",
+      "to": "awg3",
+      "type": "planned",
+      "rc": 0,
+      "verify_rc": 0,
+      "rollback_attempted": false
+    },
+    {
+      "user_ip": "10.7.0.15",
+      "from": "vless",
+      "to": "wireguard-1779454504-c43409",
+      "type": "planned",
+      "rc": 0,
+      "verify_rc": 0,
+      "rollback_attempted": false
+    },
+    {
+      "user_ip": "10.7.0.16",
+      "from": "vless",
+      "to": "awg3",
+      "type": "planned",
+      "rc": 0,
+      "verify_rc": 0,
+      "rollback_attempted": false
+    }
+  ],
+  "all_switch_rc_zero": true,
+  "all_verify_rc_zero": true,
+  "rollback_attempted_any": false,
+  "snapshot_stop_required": false,
+  "source_mismatch_families": [],
+  "atomic_condition": "ENVELOPE_VALID",
+  "atomic_mismatches": []
+}

@@ -1,0 +1,8 @@
+{
+  "requested": 10,
+  "materialized": 10,
+  "trust_feedback_updated": true,
+  "prediction_feedback_updated": true,
+  "recommendation_feedback_updated": true,
+  "errors": []
+}

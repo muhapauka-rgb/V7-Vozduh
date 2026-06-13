@@ -1,0 +1,1542 @@
+[
+  {
+    "action": "execution_feedback_materialize",
+    "feedback": {
+      "schema_version": "v7.operator-execution-feedback.v1",
+      "user": "10.7.0.6",
+      "source_channel": "vless",
+      "target_channel": "wireguard-1779454504-c43409",
+      "execution_time": "2026-06-13T19:16:27.729323+00:00",
+      "verification_time": "2026-06-13T19:16:27.729323+00:00",
+      "outcome_status": "unknown",
+      "execution_outcome": {
+        "applied": true,
+        "rc": 0,
+        "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "selected_move_index": 0
+      },
+      "verification_result": {
+        "passed": true,
+        "rc": 0,
+        "output": "SIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.14 table=1012 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.14 dev tun0 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses tun0\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.15 table=1013 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses tun0\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.16 table=1014 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.16 dev tun0 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses tun0\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\nUSER=10.7.0.18 TABLE=1016 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.18 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.18 table=1016 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0 \nOK: user=10.7.0.18 route_get uses tun0\n\nUSER=10.7.0.19 TABLE=1017 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.19 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.19 table=1017 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0 \nOK: user=10.7.0.19 route_get uses tun0\n\nUSER=10.7.0.20 TABLE=1018 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.20 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.20 table=1018 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0 \nOK: user=10.7.0.20 route_get uses tun0\n\nUSER=10.7.0.21 TABLE=1019 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.21 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.21 table=1019 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0 \nOK: user=10.7.0.21 route_get uses tun0\n\nUSER=10.7.0.22 TABLE=1020 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.22 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.22 table=1020 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0 \nOK: user=10.7.0.22 route_get uses tun0\n\nUSER=10.7.0.23 TABLE=1021 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.23 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.23 table=1021 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0 \nOK: user=10.7.0.23 route_get uses tun0\n\nUSER=10.7.0.24 TABLE=1022 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.24 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.24 table=1022 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0 \nOK: user=10.7.0.24 route_get uses tun0\n\nUSER=10.7.0.25 TABLE=1023 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.25 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.25 table=1023 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0 \nOK: user=10.7.0.25 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"
+      },
+      "rollback_result": {
+        "rollback_required": false,
+        "rollback_attempted": false,
+        "rollback_ready": true
+      },
+      "trust_delta": 0.0,
+      "prediction_delta": 0.0,
+      "recommendation_delta": 0.0,
+      "trust_feedback": {
+        "subject": "wireguard-1779454504-c43409",
+        "delta": 0.0,
+        "reason": "unknown"
+      },
+      "prediction_feedback": {
+        "prediction_expected": 1.0,
+        "prediction_actual": 1.0,
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "recommendation_feedback": {
+        "recommendation_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+      "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:0",
+      "stability_window_seconds": 0,
+      "runtime_mutation_performed": false,
+      "new_truth_sources_created": false,
+      "feedback_id": "execfb_8f01d9a9a2e019ca6f10409f"
+    },
+    "records": {
+      "outcome": {
+        "schema_version": "v7.execution-outcome-record.v1",
+        "feedback_id": "execfb_8f01d9a9a2e019ca6f10409f",
+        "user": "10.7.0.6",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:0",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:19.793267+00:00",
+        "execution_outcome": {
+          "applied": true,
+          "rc": 0,
+          "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+          "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+          "selected_move_index": 0
+        },
+        "verification_result": {
+          "passed": true,
+          "rc": 0,
+          "output": "SIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.14 table=1012 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.14 dev tun0 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses tun0\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.15 table=1013 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses tun0\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.16 table=1014 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.16 dev tun0 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses tun0\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\nUSER=10.7.0.18 TABLE=1016 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.18 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.18 table=1016 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0 \nOK: user=10.7.0.18 route_get uses tun0\n\nUSER=10.7.0.19 TABLE=1017 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.19 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.19 table=1017 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0 \nOK: user=10.7.0.19 route_get uses tun0\n\nUSER=10.7.0.20 TABLE=1018 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.20 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.20 table=1018 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0 \nOK: user=10.7.0.20 route_get uses tun0\n\nUSER=10.7.0.21 TABLE=1019 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.21 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.21 table=1019 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0 \nOK: user=10.7.0.21 route_get uses tun0\n\nUSER=10.7.0.22 TABLE=1020 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.22 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.22 table=1020 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0 \nOK: user=10.7.0.22 route_get uses tun0\n\nUSER=10.7.0.23 TABLE=1021 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.23 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.23 table=1021 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0 \nOK: user=10.7.0.23 route_get uses tun0\n\nUSER=10.7.0.24 TABLE=1022 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.24 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.24 table=1022 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0 \nOK: user=10.7.0.24 route_get uses tun0\n\nUSER=10.7.0.25 TABLE=1023 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.25 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.25 table=1023 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0 \nOK: user=10.7.0.25 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"
+        },
+        "rollback_result": {
+          "rollback_required": false,
+          "rollback_attempted": false,
+          "rollback_ready": true
+        }
+      },
+      "trust": {
+        "schema_version": "v7.execution-trust-feedback.v1",
+        "feedback_id": "execfb_8f01d9a9a2e019ca6f10409f",
+        "user": "10.7.0.6",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:0",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:19.793267+00:00",
+        "subject": "wireguard-1779454504-c43409",
+        "delta": 0.0,
+        "reason": "unknown"
+      },
+      "prediction": {
+        "schema_version": "v7.execution-prediction-feedback.v1",
+        "feedback_id": "execfb_8f01d9a9a2e019ca6f10409f",
+        "user": "10.7.0.6",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:0",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:19.793267+00:00",
+        "prediction_expected": 1.0,
+        "prediction_actual": 1.0,
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "recommendation": {
+        "schema_version": "v7.execution-recommendation-feedback.v1",
+        "feedback_id": "execfb_8f01d9a9a2e019ca6f10409f",
+        "user": "10.7.0.6",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:0",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:19.793267+00:00",
+        "recommendation_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "closure": {
+        "schema_version": "v7.execution-feedback-closure.v1",
+        "object_type": "execution_feedback",
+        "object_id": "execfb_8f01d9a9a2e019ca6f10409f",
+        "closure_state": "OPEN",
+        "closure_reason": "execution feedback materialized: unknown",
+        "closure_actor": "operator_execution_feedback",
+        "closure_timestamp": "2026-06-13T19:20:19.793288+00:00",
+        "feedback_id": "execfb_8f01d9a9a2e019ca6f10409f",
+        "user": "10.7.0.6",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:0",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:19.793267+00:00"
+      }
+    },
+    "outcome_materialized": true,
+    "trust_feedback_active": true,
+    "prediction_feedback_active": true,
+    "recommendation_feedback_active": true,
+    "runtime_mutation_performed": false
+  },
+  {
+    "action": "execution_feedback_materialize",
+    "feedback": {
+      "schema_version": "v7.operator-execution-feedback.v1",
+      "user": "10.7.0.8",
+      "source_channel": "vless",
+      "target_channel": "awg3",
+      "execution_time": "2026-06-13T19:16:27.729323+00:00",
+      "verification_time": "2026-06-13T19:16:27.729323+00:00",
+      "outcome_status": "unknown",
+      "execution_outcome": {
+        "applied": true,
+        "rc": 0,
+        "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "selected_move_index": 1
+      },
+      "verification_result": {
+        "passed": true,
+        "rc": 0,
+        "output": "SIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.14 table=1012 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.14 dev tun0 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses tun0\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.15 table=1013 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses tun0\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.16 table=1014 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.16 dev tun0 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses tun0\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\nUSER=10.7.0.18 TABLE=1016 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.18 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.18 table=1016 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0 \nOK: user=10.7.0.18 route_get uses tun0\n\nUSER=10.7.0.19 TABLE=1017 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.19 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.19 table=1017 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0 \nOK: user=10.7.0.19 route_get uses tun0\n\nUSER=10.7.0.20 TABLE=1018 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.20 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.20 table=1018 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0 \nOK: user=10.7.0.20 route_get uses tun0\n\nUSER=10.7.0.21 TABLE=1019 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.21 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.21 table=1019 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0 \nOK: user=10.7.0.21 route_get uses tun0\n\nUSER=10.7.0.22 TABLE=1020 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.22 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.22 table=1020 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0 \nOK: user=10.7.0.22 route_get uses tun0\n\nUSER=10.7.0.23 TABLE=1021 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.23 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.23 table=1021 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0 \nOK: user=10.7.0.23 route_get uses tun0\n\nUSER=10.7.0.24 TABLE=1022 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.24 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.24 table=1022 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0 \nOK: user=10.7.0.24 route_get uses tun0\n\nUSER=10.7.0.25 TABLE=1023 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.25 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.25 table=1023 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0 \nOK: user=10.7.0.25 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"
+      },
+      "rollback_result": {
+        "rollback_required": false,
+        "rollback_attempted": false,
+        "rollback_ready": true
+      },
+      "trust_delta": 0.0,
+      "prediction_delta": 0.0,
+      "recommendation_delta": 0.0,
+      "trust_feedback": {
+        "subject": "awg3",
+        "delta": 0.0,
+        "reason": "unknown"
+      },
+      "prediction_feedback": {
+        "prediction_expected": 1.0,
+        "prediction_actual": 1.0,
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "recommendation_feedback": {
+        "recommendation_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+      "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:1",
+      "stability_window_seconds": 0,
+      "runtime_mutation_performed": false,
+      "new_truth_sources_created": false,
+      "feedback_id": "execfb_192b4b40889cb58fbb2701e4"
+    },
+    "records": {
+      "outcome": {
+        "schema_version": "v7.execution-outcome-record.v1",
+        "feedback_id": "execfb_192b4b40889cb58fbb2701e4",
+        "user": "10.7.0.8",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:1",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:19.962459+00:00",
+        "execution_outcome": {
+          "applied": true,
+          "rc": 0,
+          "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+          "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+          "selected_move_index": 1
+        },
+        "verification_result": {
+          "passed": true,
+          "rc": 0,
+          "output": "SIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.14 table=1012 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.14 dev tun0 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses tun0\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.15 table=1013 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses tun0\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.16 table=1014 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.16 dev tun0 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses tun0\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\nUSER=10.7.0.18 TABLE=1016 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.18 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.18 table=1016 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0 \nOK: user=10.7.0.18 route_get uses tun0\n\nUSER=10.7.0.19 TABLE=1017 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.19 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.19 table=1017 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0 \nOK: user=10.7.0.19 route_get uses tun0\n\nUSER=10.7.0.20 TABLE=1018 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.20 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.20 table=1018 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0 \nOK: user=10.7.0.20 route_get uses tun0\n\nUSER=10.7.0.21 TABLE=1019 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.21 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.21 table=1019 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0 \nOK: user=10.7.0.21 route_get uses tun0\n\nUSER=10.7.0.22 TABLE=1020 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.22 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.22 table=1020 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0 \nOK: user=10.7.0.22 route_get uses tun0\n\nUSER=10.7.0.23 TABLE=1021 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.23 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.23 table=1021 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0 \nOK: user=10.7.0.23 route_get uses tun0\n\nUSER=10.7.0.24 TABLE=1022 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.24 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.24 table=1022 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0 \nOK: user=10.7.0.24 route_get uses tun0\n\nUSER=10.7.0.25 TABLE=1023 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.25 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.25 table=1023 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0 \nOK: user=10.7.0.25 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"
+        },
+        "rollback_result": {
+          "rollback_required": false,
+          "rollback_attempted": false,
+          "rollback_ready": true
+        }
+      },
+      "trust": {
+        "schema_version": "v7.execution-trust-feedback.v1",
+        "feedback_id": "execfb_192b4b40889cb58fbb2701e4",
+        "user": "10.7.0.8",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:1",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:19.962459+00:00",
+        "subject": "awg3",
+        "delta": 0.0,
+        "reason": "unknown"
+      },
+      "prediction": {
+        "schema_version": "v7.execution-prediction-feedback.v1",
+        "feedback_id": "execfb_192b4b40889cb58fbb2701e4",
+        "user": "10.7.0.8",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:1",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:19.962459+00:00",
+        "prediction_expected": 1.0,
+        "prediction_actual": 1.0,
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "recommendation": {
+        "schema_version": "v7.execution-recommendation-feedback.v1",
+        "feedback_id": "execfb_192b4b40889cb58fbb2701e4",
+        "user": "10.7.0.8",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:1",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:19.962459+00:00",
+        "recommendation_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "closure": {
+        "schema_version": "v7.execution-feedback-closure.v1",
+        "object_type": "execution_feedback",
+        "object_id": "execfb_192b4b40889cb58fbb2701e4",
+        "closure_state": "OPEN",
+        "closure_reason": "execution feedback materialized: unknown",
+        "closure_actor": "operator_execution_feedback",
+        "closure_timestamp": "2026-06-13T19:20:19.962473+00:00",
+        "feedback_id": "execfb_192b4b40889cb58fbb2701e4",
+        "user": "10.7.0.8",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:1",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:19.962459+00:00"
+      }
+    },
+    "outcome_materialized": true,
+    "trust_feedback_active": true,
+    "prediction_feedback_active": true,
+    "recommendation_feedback_active": true,
+    "runtime_mutation_performed": false
+  },
+  {
+    "action": "execution_feedback_materialize",
+    "feedback": {
+      "schema_version": "v7.operator-execution-feedback.v1",
+      "user": "10.7.0.9",
+      "source_channel": "vless",
+      "target_channel": "wireguard-1779454504-c43409",
+      "execution_time": "2026-06-13T19:16:27.729323+00:00",
+      "verification_time": "2026-06-13T19:16:27.729323+00:00",
+      "outcome_status": "unknown",
+      "execution_outcome": {
+        "applied": true,
+        "rc": 0,
+        "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "selected_move_index": 2
+      },
+      "verification_result": {
+        "passed": true,
+        "rc": 0,
+        "output": "SIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.14 table=1012 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.14 dev tun0 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses tun0\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.15 table=1013 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses tun0\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.16 table=1014 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.16 dev tun0 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses tun0\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\nUSER=10.7.0.18 TABLE=1016 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.18 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.18 table=1016 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0 \nOK: user=10.7.0.18 route_get uses tun0\n\nUSER=10.7.0.19 TABLE=1017 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.19 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.19 table=1017 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0 \nOK: user=10.7.0.19 route_get uses tun0\n\nUSER=10.7.0.20 TABLE=1018 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.20 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.20 table=1018 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0 \nOK: user=10.7.0.20 route_get uses tun0\n\nUSER=10.7.0.21 TABLE=1019 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.21 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.21 table=1019 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0 \nOK: user=10.7.0.21 route_get uses tun0\n\nUSER=10.7.0.22 TABLE=1020 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.22 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.22 table=1020 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0 \nOK: user=10.7.0.22 route_get uses tun0\n\nUSER=10.7.0.23 TABLE=1021 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.23 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.23 table=1021 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0 \nOK: user=10.7.0.23 route_get uses tun0\n\nUSER=10.7.0.24 TABLE=1022 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.24 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.24 table=1022 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0 \nOK: user=10.7.0.24 route_get uses tun0\n\nUSER=10.7.0.25 TABLE=1023 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.25 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.25 table=1023 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0 \nOK: user=10.7.0.25 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"
+      },
+      "rollback_result": {
+        "rollback_required": false,
+        "rollback_attempted": false,
+        "rollback_ready": true
+      },
+      "trust_delta": 0.0,
+      "prediction_delta": 0.0,
+      "recommendation_delta": 0.0,
+      "trust_feedback": {
+        "subject": "wireguard-1779454504-c43409",
+        "delta": 0.0,
+        "reason": "unknown"
+      },
+      "prediction_feedback": {
+        "prediction_expected": 1.0,
+        "prediction_actual": 1.0,
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "recommendation_feedback": {
+        "recommendation_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+      "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:2",
+      "stability_window_seconds": 0,
+      "runtime_mutation_performed": false,
+      "new_truth_sources_created": false,
+      "feedback_id": "execfb_ddbbb92081985e96f00b7c19"
+    },
+    "records": {
+      "outcome": {
+        "schema_version": "v7.execution-outcome-record.v1",
+        "feedback_id": "execfb_ddbbb92081985e96f00b7c19",
+        "user": "10.7.0.9",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:2",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.132715+00:00",
+        "execution_outcome": {
+          "applied": true,
+          "rc": 0,
+          "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+          "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+          "selected_move_index": 2
+        },
+        "verification_result": {
+          "passed": true,
+          "rc": 0,
+          "output": "SIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.14 table=1012 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.14 dev tun0 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses tun0\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.15 table=1013 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses tun0\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.16 table=1014 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.16 dev tun0 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses tun0\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\nUSER=10.7.0.18 TABLE=1016 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.18 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.18 table=1016 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0 \nOK: user=10.7.0.18 route_get uses tun0\n\nUSER=10.7.0.19 TABLE=1017 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.19 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.19 table=1017 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0 \nOK: user=10.7.0.19 route_get uses tun0\n\nUSER=10.7.0.20 TABLE=1018 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.20 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.20 table=1018 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0 \nOK: user=10.7.0.20 route_get uses tun0\n\nUSER=10.7.0.21 TABLE=1019 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.21 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.21 table=1019 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0 \nOK: user=10.7.0.21 route_get uses tun0\n\nUSER=10.7.0.22 TABLE=1020 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.22 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.22 table=1020 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0 \nOK: user=10.7.0.22 route_get uses tun0\n\nUSER=10.7.0.23 TABLE=1021 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.23 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.23 table=1021 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0 \nOK: user=10.7.0.23 route_get uses tun0\n\nUSER=10.7.0.24 TABLE=1022 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.24 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.24 table=1022 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0 \nOK: user=10.7.0.24 route_get uses tun0\n\nUSER=10.7.0.25 TABLE=1023 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.25 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.25 table=1023 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0 \nOK: user=10.7.0.25 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"
+        },
+        "rollback_result": {
+          "rollback_required": false,
+          "rollback_attempted": false,
+          "rollback_ready": true
+        }
+      },
+      "trust": {
+        "schema_version": "v7.execution-trust-feedback.v1",
+        "feedback_id": "execfb_ddbbb92081985e96f00b7c19",
+        "user": "10.7.0.9",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:2",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.132715+00:00",
+        "subject": "wireguard-1779454504-c43409",
+        "delta": 0.0,
+        "reason": "unknown"
+      },
+      "prediction": {
+        "schema_version": "v7.execution-prediction-feedback.v1",
+        "feedback_id": "execfb_ddbbb92081985e96f00b7c19",
+        "user": "10.7.0.9",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:2",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.132715+00:00",
+        "prediction_expected": 1.0,
+        "prediction_actual": 1.0,
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "recommendation": {
+        "schema_version": "v7.execution-recommendation-feedback.v1",
+        "feedback_id": "execfb_ddbbb92081985e96f00b7c19",
+        "user": "10.7.0.9",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:2",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.132715+00:00",
+        "recommendation_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "closure": {
+        "schema_version": "v7.execution-feedback-closure.v1",
+        "object_type": "execution_feedback",
+        "object_id": "execfb_ddbbb92081985e96f00b7c19",
+        "closure_state": "OPEN",
+        "closure_reason": "execution feedback materialized: unknown",
+        "closure_actor": "operator_execution_feedback",
+        "closure_timestamp": "2026-06-13T19:20:20.132728+00:00",
+        "feedback_id": "execfb_ddbbb92081985e96f00b7c19",
+        "user": "10.7.0.9",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:2",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.132715+00:00"
+      }
+    },
+    "outcome_materialized": true,
+    "trust_feedback_active": true,
+    "prediction_feedback_active": true,
+    "recommendation_feedback_active": true,
+    "runtime_mutation_performed": false
+  },
+  {
+    "action": "execution_feedback_materialize",
+    "feedback": {
+      "schema_version": "v7.operator-execution-feedback.v1",
+      "user": "10.7.0.10",
+      "source_channel": "vless",
+      "target_channel": "awg3",
+      "execution_time": "2026-06-13T19:16:27.729323+00:00",
+      "verification_time": "2026-06-13T19:16:27.729323+00:00",
+      "outcome_status": "unknown",
+      "execution_outcome": {
+        "applied": true,
+        "rc": 0,
+        "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "selected_move_index": 3
+      },
+      "verification_result": {
+        "passed": true,
+        "rc": 0,
+        "output": "SIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.14 table=1012 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.14 dev tun0 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses tun0\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.15 table=1013 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses tun0\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.16 table=1014 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.16 dev tun0 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses tun0\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\nUSER=10.7.0.18 TABLE=1016 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.18 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.18 table=1016 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0 \nOK: user=10.7.0.18 route_get uses tun0\n\nUSER=10.7.0.19 TABLE=1017 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.19 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.19 table=1017 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0 \nOK: user=10.7.0.19 route_get uses tun0\n\nUSER=10.7.0.20 TABLE=1018 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.20 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.20 table=1018 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0 \nOK: user=10.7.0.20 route_get uses tun0\n\nUSER=10.7.0.21 TABLE=1019 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.21 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.21 table=1019 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0 \nOK: user=10.7.0.21 route_get uses tun0\n\nUSER=10.7.0.22 TABLE=1020 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.22 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.22 table=1020 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0 \nOK: user=10.7.0.22 route_get uses tun0\n\nUSER=10.7.0.23 TABLE=1021 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.23 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.23 table=1021 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0 \nOK: user=10.7.0.23 route_get uses tun0\n\nUSER=10.7.0.24 TABLE=1022 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.24 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.24 table=1022 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0 \nOK: user=10.7.0.24 route_get uses tun0\n\nUSER=10.7.0.25 TABLE=1023 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.25 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.25 table=1023 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0 \nOK: user=10.7.0.25 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"
+      },
+      "rollback_result": {
+        "rollback_required": false,
+        "rollback_attempted": false,
+        "rollback_ready": true
+      },
+      "trust_delta": 0.0,
+      "prediction_delta": 0.0,
+      "recommendation_delta": 0.0,
+      "trust_feedback": {
+        "subject": "awg3",
+        "delta": 0.0,
+        "reason": "unknown"
+      },
+      "prediction_feedback": {
+        "prediction_expected": 1.0,
+        "prediction_actual": 1.0,
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "recommendation_feedback": {
+        "recommendation_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+      "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:3",
+      "stability_window_seconds": 0,
+      "runtime_mutation_performed": false,
+      "new_truth_sources_created": false,
+      "feedback_id": "execfb_5b689e50f1aaa770f01d4c0e"
+    },
+    "records": {
+      "outcome": {
+        "schema_version": "v7.execution-outcome-record.v1",
+        "feedback_id": "execfb_5b689e50f1aaa770f01d4c0e",
+        "user": "10.7.0.10",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:3",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.324333+00:00",
+        "execution_outcome": {
+          "applied": true,
+          "rc": 0,
+          "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+          "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+          "selected_move_index": 3
+        },
+        "verification_result": {
+          "passed": true,
+          "rc": 0,
+          "output": "SIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.14 table=1012 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.14 dev tun0 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses tun0\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.15 table=1013 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses tun0\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.16 table=1014 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.16 dev tun0 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses tun0\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\nUSER=10.7.0.18 TABLE=1016 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.18 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.18 table=1016 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0 \nOK: user=10.7.0.18 route_get uses tun0\n\nUSER=10.7.0.19 TABLE=1017 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.19 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.19 table=1017 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0 \nOK: user=10.7.0.19 route_get uses tun0\n\nUSER=10.7.0.20 TABLE=1018 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.20 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.20 table=1018 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0 \nOK: user=10.7.0.20 route_get uses tun0\n\nUSER=10.7.0.21 TABLE=1019 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.21 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.21 table=1019 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0 \nOK: user=10.7.0.21 route_get uses tun0\n\nUSER=10.7.0.22 TABLE=1020 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.22 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.22 table=1020 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0 \nOK: user=10.7.0.22 route_get uses tun0\n\nUSER=10.7.0.23 TABLE=1021 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.23 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.23 table=1021 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0 \nOK: user=10.7.0.23 route_get uses tun0\n\nUSER=10.7.0.24 TABLE=1022 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.24 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.24 table=1022 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0 \nOK: user=10.7.0.24 route_get uses tun0\n\nUSER=10.7.0.25 TABLE=1023 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.25 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.25 table=1023 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0 \nOK: user=10.7.0.25 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"
+        },
+        "rollback_result": {
+          "rollback_required": false,
+          "rollback_attempted": false,
+          "rollback_ready": true
+        }
+      },
+      "trust": {
+        "schema_version": "v7.execution-trust-feedback.v1",
+        "feedback_id": "execfb_5b689e50f1aaa770f01d4c0e",
+        "user": "10.7.0.10",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:3",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.324333+00:00",
+        "subject": "awg3",
+        "delta": 0.0,
+        "reason": "unknown"
+      },
+      "prediction": {
+        "schema_version": "v7.execution-prediction-feedback.v1",
+        "feedback_id": "execfb_5b689e50f1aaa770f01d4c0e",
+        "user": "10.7.0.10",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:3",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.324333+00:00",
+        "prediction_expected": 1.0,
+        "prediction_actual": 1.0,
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "recommendation": {
+        "schema_version": "v7.execution-recommendation-feedback.v1",
+        "feedback_id": "execfb_5b689e50f1aaa770f01d4c0e",
+        "user": "10.7.0.10",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:3",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.324333+00:00",
+        "recommendation_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "closure": {
+        "schema_version": "v7.execution-feedback-closure.v1",
+        "object_type": "execution_feedback",
+        "object_id": "execfb_5b689e50f1aaa770f01d4c0e",
+        "closure_state": "OPEN",
+        "closure_reason": "execution feedback materialized: unknown",
+        "closure_actor": "operator_execution_feedback",
+        "closure_timestamp": "2026-06-13T19:20:20.324354+00:00",
+        "feedback_id": "execfb_5b689e50f1aaa770f01d4c0e",
+        "user": "10.7.0.10",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:3",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.324333+00:00"
+      }
+    },
+    "outcome_materialized": true,
+    "trust_feedback_active": true,
+    "prediction_feedback_active": true,
+    "recommendation_feedback_active": true,
+    "runtime_mutation_performed": false
+  },
+  {
+    "action": "execution_feedback_materialize",
+    "feedback": {
+      "schema_version": "v7.operator-execution-feedback.v1",
+      "user": "10.7.0.11",
+      "source_channel": "vless",
+      "target_channel": "wireguard-1779454504-c43409",
+      "execution_time": "2026-06-13T19:16:27.729323+00:00",
+      "verification_time": "2026-06-13T19:16:27.729323+00:00",
+      "outcome_status": "unknown",
+      "execution_outcome": {
+        "applied": true,
+        "rc": 0,
+        "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "selected_move_index": 4
+      },
+      "verification_result": {
+        "passed": true,
+        "rc": 0,
+        "output": "SIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.14 table=1012 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.14 dev tun0 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses tun0\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.15 table=1013 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses tun0\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.16 table=1014 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.16 dev tun0 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses tun0\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\nUSER=10.7.0.18 TABLE=1016 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.18 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.18 table=1016 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0 \nOK: user=10.7.0.18 route_get uses tun0\n\nUSER=10.7.0.19 TABLE=1017 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.19 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.19 table=1017 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0 \nOK: user=10.7.0.19 route_get uses tun0\n\nUSER=10.7.0.20 TABLE=1018 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.20 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.20 table=1018 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0 \nOK: user=10.7.0.20 route_get uses tun0\n\nUSER=10.7.0.21 TABLE=1019 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.21 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.21 table=1019 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0 \nOK: user=10.7.0.21 route_get uses tun0\n\nUSER=10.7.0.22 TABLE=1020 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.22 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.22 table=1020 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0 \nOK: user=10.7.0.22 route_get uses tun0\n\nUSER=10.7.0.23 TABLE=1021 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.23 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.23 table=1021 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0 \nOK: user=10.7.0.23 route_get uses tun0\n\nUSER=10.7.0.24 TABLE=1022 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.24 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.24 table=1022 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0 \nOK: user=10.7.0.24 route_get uses tun0\n\nUSER=10.7.0.25 TABLE=1023 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.25 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.25 table=1023 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0 \nOK: user=10.7.0.25 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"
+      },
+      "rollback_result": {
+        "rollback_required": false,
+        "rollback_attempted": false,
+        "rollback_ready": true
+      },
+      "trust_delta": 0.0,
+      "prediction_delta": 0.0,
+      "recommendation_delta": 0.0,
+      "trust_feedback": {
+        "subject": "wireguard-1779454504-c43409",
+        "delta": 0.0,
+        "reason": "unknown"
+      },
+      "prediction_feedback": {
+        "prediction_expected": 1.0,
+        "prediction_actual": 1.0,
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "recommendation_feedback": {
+        "recommendation_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+      "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:4",
+      "stability_window_seconds": 0,
+      "runtime_mutation_performed": false,
+      "new_truth_sources_created": false,
+      "feedback_id": "execfb_12602694efb17c7409eab7cb"
+    },
+    "records": {
+      "outcome": {
+        "schema_version": "v7.execution-outcome-record.v1",
+        "feedback_id": "execfb_12602694efb17c7409eab7cb",
+        "user": "10.7.0.11",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:4",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.478850+00:00",
+        "execution_outcome": {
+          "applied": true,
+          "rc": 0,
+          "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+          "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+          "selected_move_index": 4
+        },
+        "verification_result": {
+          "passed": true,
+          "rc": 0,
+          "output": "SIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.14 table=1012 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.14 dev tun0 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses tun0\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.15 table=1013 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses tun0\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.16 table=1014 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.16 dev tun0 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses tun0\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\nUSER=10.7.0.18 TABLE=1016 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.18 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.18 table=1016 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0 \nOK: user=10.7.0.18 route_get uses tun0\n\nUSER=10.7.0.19 TABLE=1017 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.19 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.19 table=1017 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0 \nOK: user=10.7.0.19 route_get uses tun0\n\nUSER=10.7.0.20 TABLE=1018 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.20 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.20 table=1018 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0 \nOK: user=10.7.0.20 route_get uses tun0\n\nUSER=10.7.0.21 TABLE=1019 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.21 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.21 table=1019 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0 \nOK: user=10.7.0.21 route_get uses tun0\n\nUSER=10.7.0.22 TABLE=1020 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.22 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.22 table=1020 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0 \nOK: user=10.7.0.22 route_get uses tun0\n\nUSER=10.7.0.23 TABLE=1021 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.23 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.23 table=1021 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0 \nOK: user=10.7.0.23 route_get uses tun0\n\nUSER=10.7.0.24 TABLE=1022 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.24 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.24 table=1022 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0 \nOK: user=10.7.0.24 route_get uses tun0\n\nUSER=10.7.0.25 TABLE=1023 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.25 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.25 table=1023 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0 \nOK: user=10.7.0.25 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"
+        },
+        "rollback_result": {
+          "rollback_required": false,
+          "rollback_attempted": false,
+          "rollback_ready": true
+        }
+      },
+      "trust": {
+        "schema_version": "v7.execution-trust-feedback.v1",
+        "feedback_id": "execfb_12602694efb17c7409eab7cb",
+        "user": "10.7.0.11",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:4",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.478850+00:00",
+        "subject": "wireguard-1779454504-c43409",
+        "delta": 0.0,
+        "reason": "unknown"
+      },
+      "prediction": {
+        "schema_version": "v7.execution-prediction-feedback.v1",
+        "feedback_id": "execfb_12602694efb17c7409eab7cb",
+        "user": "10.7.0.11",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:4",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.478850+00:00",
+        "prediction_expected": 1.0,
+        "prediction_actual": 1.0,
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "recommendation": {
+        "schema_version": "v7.execution-recommendation-feedback.v1",
+        "feedback_id": "execfb_12602694efb17c7409eab7cb",
+        "user": "10.7.0.11",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:4",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.478850+00:00",
+        "recommendation_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "closure": {
+        "schema_version": "v7.execution-feedback-closure.v1",
+        "object_type": "execution_feedback",
+        "object_id": "execfb_12602694efb17c7409eab7cb",
+        "closure_state": "OPEN",
+        "closure_reason": "execution feedback materialized: unknown",
+        "closure_actor": "operator_execution_feedback",
+        "closure_timestamp": "2026-06-13T19:20:20.478864+00:00",
+        "feedback_id": "execfb_12602694efb17c7409eab7cb",
+        "user": "10.7.0.11",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:4",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.478850+00:00"
+      }
+    },
+    "outcome_materialized": true,
+    "trust_feedback_active": true,
+    "prediction_feedback_active": true,
+    "recommendation_feedback_active": true,
+    "runtime_mutation_performed": false
+  },
+  {
+    "action": "execution_feedback_materialize",
+    "feedback": {
+      "schema_version": "v7.operator-execution-feedback.v1",
+      "user": "10.7.0.12",
+      "source_channel": "vless",
+      "target_channel": "awg3",
+      "execution_time": "2026-06-13T19:16:27.729323+00:00",
+      "verification_time": "2026-06-13T19:16:27.729323+00:00",
+      "outcome_status": "unknown",
+      "execution_outcome": {
+        "applied": true,
+        "rc": 0,
+        "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "selected_move_index": 5
+      },
+      "verification_result": {
+        "passed": true,
+        "rc": 0,
+        "output": "SIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.14 table=1012 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.14 dev tun0 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses tun0\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.15 table=1013 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses tun0\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.16 table=1014 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.16 dev tun0 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses tun0\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\nUSER=10.7.0.18 TABLE=1016 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.18 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.18 table=1016 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0 \nOK: user=10.7.0.18 route_get uses tun0\n\nUSER=10.7.0.19 TABLE=1017 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.19 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.19 table=1017 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0 \nOK: user=10.7.0.19 route_get uses tun0\n\nUSER=10.7.0.20 TABLE=1018 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.20 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.20 table=1018 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0 \nOK: user=10.7.0.20 route_get uses tun0\n\nUSER=10.7.0.21 TABLE=1019 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.21 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.21 table=1019 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0 \nOK: user=10.7.0.21 route_get uses tun0\n\nUSER=10.7.0.22 TABLE=1020 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.22 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.22 table=1020 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0 \nOK: user=10.7.0.22 route_get uses tun0\n\nUSER=10.7.0.23 TABLE=1021 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.23 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.23 table=1021 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0 \nOK: user=10.7.0.23 route_get uses tun0\n\nUSER=10.7.0.24 TABLE=1022 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.24 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.24 table=1022 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0 \nOK: user=10.7.0.24 route_get uses tun0\n\nUSER=10.7.0.25 TABLE=1023 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.25 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.25 table=1023 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0 \nOK: user=10.7.0.25 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"
+      },
+      "rollback_result": {
+        "rollback_required": false,
+        "rollback_attempted": false,
+        "rollback_ready": true
+      },
+      "trust_delta": 0.0,
+      "prediction_delta": 0.0,
+      "recommendation_delta": 0.0,
+      "trust_feedback": {
+        "subject": "awg3",
+        "delta": 0.0,
+        "reason": "unknown"
+      },
+      "prediction_feedback": {
+        "prediction_expected": 1.0,
+        "prediction_actual": 1.0,
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "recommendation_feedback": {
+        "recommendation_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+      "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:5",
+      "stability_window_seconds": 0,
+      "runtime_mutation_performed": false,
+      "new_truth_sources_created": false,
+      "feedback_id": "execfb_bc77a0c74b7e190b24a83e61"
+    },
+    "records": {
+      "outcome": {
+        "schema_version": "v7.execution-outcome-record.v1",
+        "feedback_id": "execfb_bc77a0c74b7e190b24a83e61",
+        "user": "10.7.0.12",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:5",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.643886+00:00",
+        "execution_outcome": {
+          "applied": true,
+          "rc": 0,
+          "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+          "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+          "selected_move_index": 5
+        },
+        "verification_result": {
+          "passed": true,
+          "rc": 0,
+          "output": "SIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.14 table=1012 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.14 dev tun0 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses tun0\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.15 table=1013 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses tun0\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.16 table=1014 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.16 dev tun0 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses tun0\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\nUSER=10.7.0.18 TABLE=1016 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.18 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.18 table=1016 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0 \nOK: user=10.7.0.18 route_get uses tun0\n\nUSER=10.7.0.19 TABLE=1017 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.19 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.19 table=1017 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0 \nOK: user=10.7.0.19 route_get uses tun0\n\nUSER=10.7.0.20 TABLE=1018 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.20 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.20 table=1018 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0 \nOK: user=10.7.0.20 route_get uses tun0\n\nUSER=10.7.0.21 TABLE=1019 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.21 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.21 table=1019 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0 \nOK: user=10.7.0.21 route_get uses tun0\n\nUSER=10.7.0.22 TABLE=1020 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.22 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.22 table=1020 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0 \nOK: user=10.7.0.22 route_get uses tun0\n\nUSER=10.7.0.23 TABLE=1021 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.23 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.23 table=1021 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0 \nOK: user=10.7.0.23 route_get uses tun0\n\nUSER=10.7.0.24 TABLE=1022 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.24 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.24 table=1022 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0 \nOK: user=10.7.0.24 route_get uses tun0\n\nUSER=10.7.0.25 TABLE=1023 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.25 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.25 table=1023 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0 \nOK: user=10.7.0.25 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"
+        },
+        "rollback_result": {
+          "rollback_required": false,
+          "rollback_attempted": false,
+          "rollback_ready": true
+        }
+      },
+      "trust": {
+        "schema_version": "v7.execution-trust-feedback.v1",
+        "feedback_id": "execfb_bc77a0c74b7e190b24a83e61",
+        "user": "10.7.0.12",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:5",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.643886+00:00",
+        "subject": "awg3",
+        "delta": 0.0,
+        "reason": "unknown"
+      },
+      "prediction": {
+        "schema_version": "v7.execution-prediction-feedback.v1",
+        "feedback_id": "execfb_bc77a0c74b7e190b24a83e61",
+        "user": "10.7.0.12",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:5",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.643886+00:00",
+        "prediction_expected": 1.0,
+        "prediction_actual": 1.0,
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "recommendation": {
+        "schema_version": "v7.execution-recommendation-feedback.v1",
+        "feedback_id": "execfb_bc77a0c74b7e190b24a83e61",
+        "user": "10.7.0.12",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:5",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.643886+00:00",
+        "recommendation_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "closure": {
+        "schema_version": "v7.execution-feedback-closure.v1",
+        "object_type": "execution_feedback",
+        "object_id": "execfb_bc77a0c74b7e190b24a83e61",
+        "closure_state": "OPEN",
+        "closure_reason": "execution feedback materialized: unknown",
+        "closure_actor": "operator_execution_feedback",
+        "closure_timestamp": "2026-06-13T19:20:20.643900+00:00",
+        "feedback_id": "execfb_bc77a0c74b7e190b24a83e61",
+        "user": "10.7.0.12",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:5",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.643886+00:00"
+      }
+    },
+    "outcome_materialized": true,
+    "trust_feedback_active": true,
+    "prediction_feedback_active": true,
+    "recommendation_feedback_active": true,
+    "runtime_mutation_performed": false
+  },
+  {
+    "action": "execution_feedback_materialize",
+    "feedback": {
+      "schema_version": "v7.operator-execution-feedback.v1",
+      "user": "10.7.0.13",
+      "source_channel": "vless",
+      "target_channel": "wireguard-1779454504-c43409",
+      "execution_time": "2026-06-13T19:16:27.729323+00:00",
+      "verification_time": "2026-06-13T19:16:27.729323+00:00",
+      "outcome_status": "unknown",
+      "execution_outcome": {
+        "applied": true,
+        "rc": 0,
+        "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "selected_move_index": 6
+      },
+      "verification_result": {
+        "passed": true,
+        "rc": 0,
+        "output": "SIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.14 table=1012 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.14 dev tun0 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses tun0\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.15 table=1013 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses tun0\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.16 table=1014 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.16 dev tun0 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses tun0\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\nUSER=10.7.0.18 TABLE=1016 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.18 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.18 table=1016 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0 \nOK: user=10.7.0.18 route_get uses tun0\n\nUSER=10.7.0.19 TABLE=1017 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.19 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.19 table=1017 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0 \nOK: user=10.7.0.19 route_get uses tun0\n\nUSER=10.7.0.20 TABLE=1018 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.20 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.20 table=1018 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0 \nOK: user=10.7.0.20 route_get uses tun0\n\nUSER=10.7.0.21 TABLE=1019 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.21 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.21 table=1019 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0 \nOK: user=10.7.0.21 route_get uses tun0\n\nUSER=10.7.0.22 TABLE=1020 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.22 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.22 table=1020 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0 \nOK: user=10.7.0.22 route_get uses tun0\n\nUSER=10.7.0.23 TABLE=1021 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.23 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.23 table=1021 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0 \nOK: user=10.7.0.23 route_get uses tun0\n\nUSER=10.7.0.24 TABLE=1022 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.24 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.24 table=1022 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0 \nOK: user=10.7.0.24 route_get uses tun0\n\nUSER=10.7.0.25 TABLE=1023 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.25 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.25 table=1023 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0 \nOK: user=10.7.0.25 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"
+      },
+      "rollback_result": {
+        "rollback_required": false,
+        "rollback_attempted": false,
+        "rollback_ready": true
+      },
+      "trust_delta": 0.0,
+      "prediction_delta": 0.0,
+      "recommendation_delta": 0.0,
+      "trust_feedback": {
+        "subject": "wireguard-1779454504-c43409",
+        "delta": 0.0,
+        "reason": "unknown"
+      },
+      "prediction_feedback": {
+        "prediction_expected": 1.0,
+        "prediction_actual": 1.0,
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "recommendation_feedback": {
+        "recommendation_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+      "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:6",
+      "stability_window_seconds": 0,
+      "runtime_mutation_performed": false,
+      "new_truth_sources_created": false,
+      "feedback_id": "execfb_c6acfab011c8033028874277"
+    },
+    "records": {
+      "outcome": {
+        "schema_version": "v7.execution-outcome-record.v1",
+        "feedback_id": "execfb_c6acfab011c8033028874277",
+        "user": "10.7.0.13",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:6",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.845466+00:00",
+        "execution_outcome": {
+          "applied": true,
+          "rc": 0,
+          "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+          "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+          "selected_move_index": 6
+        },
+        "verification_result": {
+          "passed": true,
+          "rc": 0,
+          "output": "SIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.14 table=1012 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.14 dev tun0 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses tun0\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.15 table=1013 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses tun0\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.16 table=1014 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.16 dev tun0 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses tun0\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\nUSER=10.7.0.18 TABLE=1016 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.18 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.18 table=1016 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0 \nOK: user=10.7.0.18 route_get uses tun0\n\nUSER=10.7.0.19 TABLE=1017 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.19 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.19 table=1017 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0 \nOK: user=10.7.0.19 route_get uses tun0\n\nUSER=10.7.0.20 TABLE=1018 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.20 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.20 table=1018 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0 \nOK: user=10.7.0.20 route_get uses tun0\n\nUSER=10.7.0.21 TABLE=1019 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.21 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.21 table=1019 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0 \nOK: user=10.7.0.21 route_get uses tun0\n\nUSER=10.7.0.22 TABLE=1020 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.22 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.22 table=1020 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0 \nOK: user=10.7.0.22 route_get uses tun0\n\nUSER=10.7.0.23 TABLE=1021 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.23 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.23 table=1021 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0 \nOK: user=10.7.0.23 route_get uses tun0\n\nUSER=10.7.0.24 TABLE=1022 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.24 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.24 table=1022 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0 \nOK: user=10.7.0.24 route_get uses tun0\n\nUSER=10.7.0.25 TABLE=1023 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.25 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.25 table=1023 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0 \nOK: user=10.7.0.25 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"
+        },
+        "rollback_result": {
+          "rollback_required": false,
+          "rollback_attempted": false,
+          "rollback_ready": true
+        }
+      },
+      "trust": {
+        "schema_version": "v7.execution-trust-feedback.v1",
+        "feedback_id": "execfb_c6acfab011c8033028874277",
+        "user": "10.7.0.13",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:6",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.845466+00:00",
+        "subject": "wireguard-1779454504-c43409",
+        "delta": 0.0,
+        "reason": "unknown"
+      },
+      "prediction": {
+        "schema_version": "v7.execution-prediction-feedback.v1",
+        "feedback_id": "execfb_c6acfab011c8033028874277",
+        "user": "10.7.0.13",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:6",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.845466+00:00",
+        "prediction_expected": 1.0,
+        "prediction_actual": 1.0,
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "recommendation": {
+        "schema_version": "v7.execution-recommendation-feedback.v1",
+        "feedback_id": "execfb_c6acfab011c8033028874277",
+        "user": "10.7.0.13",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:6",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.845466+00:00",
+        "recommendation_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "closure": {
+        "schema_version": "v7.execution-feedback-closure.v1",
+        "object_type": "execution_feedback",
+        "object_id": "execfb_c6acfab011c8033028874277",
+        "closure_state": "OPEN",
+        "closure_reason": "execution feedback materialized: unknown",
+        "closure_actor": "operator_execution_feedback",
+        "closure_timestamp": "2026-06-13T19:20:20.845489+00:00",
+        "feedback_id": "execfb_c6acfab011c8033028874277",
+        "user": "10.7.0.13",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:6",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:20.845466+00:00"
+      }
+    },
+    "outcome_materialized": true,
+    "trust_feedback_active": true,
+    "prediction_feedback_active": true,
+    "recommendation_feedback_active": true,
+    "runtime_mutation_performed": false
+  },
+  {
+    "action": "execution_feedback_materialize",
+    "feedback": {
+      "schema_version": "v7.operator-execution-feedback.v1",
+      "user": "10.7.0.14",
+      "source_channel": "vless",
+      "target_channel": "awg3",
+      "execution_time": "2026-06-13T19:16:27.729323+00:00",
+      "verification_time": "2026-06-13T19:16:27.729323+00:00",
+      "outcome_status": "unknown",
+      "execution_outcome": {
+        "applied": true,
+        "rc": 0,
+        "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "selected_move_index": 7
+      },
+      "verification_result": {
+        "passed": true,
+        "rc": 0,
+        "output": "SSIGN_EGRESS=awg3 EXPECTED_DEV=awg3\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev awg3 scope link \nOK: user=10.7.0.14 table=1012 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.14 dev awg3 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses awg3\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.15 table=1013 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses tun0\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.16 table=1014 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.16 dev tun0 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses tun0\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\nUSER=10.7.0.18 TABLE=1016 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.18 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.18 table=1016 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0 \nOK: user=10.7.0.18 route_get uses tun0\n\nUSER=10.7.0.19 TABLE=1017 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.19 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.19 table=1017 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0 \nOK: user=10.7.0.19 route_get uses tun0\n\nUSER=10.7.0.20 TABLE=1018 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.20 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.20 table=1018 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0 \nOK: user=10.7.0.20 route_get uses tun0\n\nUSER=10.7.0.21 TABLE=1019 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.21 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.21 table=1019 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0 \nOK: user=10.7.0.21 route_get uses tun0\n\nUSER=10.7.0.22 TABLE=1020 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.22 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.22 table=1020 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0 \nOK: user=10.7.0.22 route_get uses tun0\n\nUSER=10.7.0.23 TABLE=1021 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.23 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.23 table=1021 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0 \nOK: user=10.7.0.23 route_get uses tun0\n\nUSER=10.7.0.24 TABLE=1022 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.24 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.24 table=1022 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0 \nOK: user=10.7.0.24 route_get uses tun0\n\nUSER=10.7.0.25 TABLE=1023 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.25 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.25 table=1023 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0 \nOK: user=10.7.0.25 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"
+      },
+      "rollback_result": {
+        "rollback_required": false,
+        "rollback_attempted": false,
+        "rollback_ready": true
+      },
+      "trust_delta": 0.0,
+      "prediction_delta": 0.0,
+      "recommendation_delta": 0.0,
+      "trust_feedback": {
+        "subject": "awg3",
+        "delta": 0.0,
+        "reason": "unknown"
+      },
+      "prediction_feedback": {
+        "prediction_expected": 1.0,
+        "prediction_actual": 1.0,
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "recommendation_feedback": {
+        "recommendation_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+      "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:7",
+      "stability_window_seconds": 0,
+      "runtime_mutation_performed": false,
+      "new_truth_sources_created": false,
+      "feedback_id": "execfb_c84164edcea2fc2e31b90557"
+    },
+    "records": {
+      "outcome": {
+        "schema_version": "v7.execution-outcome-record.v1",
+        "feedback_id": "execfb_c84164edcea2fc2e31b90557",
+        "user": "10.7.0.14",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:7",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:21.031307+00:00",
+        "execution_outcome": {
+          "applied": true,
+          "rc": 0,
+          "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+          "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+          "selected_move_index": 7
+        },
+        "verification_result": {
+          "passed": true,
+          "rc": 0,
+          "output": "SSIGN_EGRESS=awg3 EXPECTED_DEV=awg3\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev awg3 scope link \nOK: user=10.7.0.14 table=1012 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.14 dev awg3 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses awg3\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.15 table=1013 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses tun0\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.16 table=1014 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.16 dev tun0 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses tun0\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\nUSER=10.7.0.18 TABLE=1016 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.18 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.18 table=1016 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0 \nOK: user=10.7.0.18 route_get uses tun0\n\nUSER=10.7.0.19 TABLE=1017 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.19 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.19 table=1017 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0 \nOK: user=10.7.0.19 route_get uses tun0\n\nUSER=10.7.0.20 TABLE=1018 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.20 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.20 table=1018 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0 \nOK: user=10.7.0.20 route_get uses tun0\n\nUSER=10.7.0.21 TABLE=1019 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.21 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.21 table=1019 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0 \nOK: user=10.7.0.21 route_get uses tun0\n\nUSER=10.7.0.22 TABLE=1020 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.22 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.22 table=1020 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0 \nOK: user=10.7.0.22 route_get uses tun0\n\nUSER=10.7.0.23 TABLE=1021 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.23 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.23 table=1021 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0 \nOK: user=10.7.0.23 route_get uses tun0\n\nUSER=10.7.0.24 TABLE=1022 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.24 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.24 table=1022 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0 \nOK: user=10.7.0.24 route_get uses tun0\n\nUSER=10.7.0.25 TABLE=1023 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.25 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.25 table=1023 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0 \nOK: user=10.7.0.25 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"
+        },
+        "rollback_result": {
+          "rollback_required": false,
+          "rollback_attempted": false,
+          "rollback_ready": true
+        }
+      },
+      "trust": {
+        "schema_version": "v7.execution-trust-feedback.v1",
+        "feedback_id": "execfb_c84164edcea2fc2e31b90557",
+        "user": "10.7.0.14",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:7",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:21.031307+00:00",
+        "subject": "awg3",
+        "delta": 0.0,
+        "reason": "unknown"
+      },
+      "prediction": {
+        "schema_version": "v7.execution-prediction-feedback.v1",
+        "feedback_id": "execfb_c84164edcea2fc2e31b90557",
+        "user": "10.7.0.14",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:7",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:21.031307+00:00",
+        "prediction_expected": 1.0,
+        "prediction_actual": 1.0,
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "recommendation": {
+        "schema_version": "v7.execution-recommendation-feedback.v1",
+        "feedback_id": "execfb_c84164edcea2fc2e31b90557",
+        "user": "10.7.0.14",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:7",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:21.031307+00:00",
+        "recommendation_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "closure": {
+        "schema_version": "v7.execution-feedback-closure.v1",
+        "object_type": "execution_feedback",
+        "object_id": "execfb_c84164edcea2fc2e31b90557",
+        "closure_state": "OPEN",
+        "closure_reason": "execution feedback materialized: unknown",
+        "closure_actor": "operator_execution_feedback",
+        "closure_timestamp": "2026-06-13T19:20:21.031320+00:00",
+        "feedback_id": "execfb_c84164edcea2fc2e31b90557",
+        "user": "10.7.0.14",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:7",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:21.031307+00:00"
+      }
+    },
+    "outcome_materialized": true,
+    "trust_feedback_active": true,
+    "prediction_feedback_active": true,
+    "recommendation_feedback_active": true,
+    "runtime_mutation_performed": false
+  },
+  {
+    "action": "execution_feedback_materialize",
+    "feedback": {
+      "schema_version": "v7.operator-execution-feedback.v1",
+      "user": "10.7.0.15",
+      "source_channel": "vless",
+      "target_channel": "wireguard-1779454504-c43409",
+      "execution_time": "2026-06-13T19:16:27.729323+00:00",
+      "verification_time": "2026-06-13T19:16:27.729323+00:00",
+      "outcome_status": "unknown",
+      "execution_outcome": {
+        "applied": true,
+        "rc": 0,
+        "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "selected_move_index": 8
+      },
+      "verification_result": {
+        "passed": true,
+        "rc": 0,
+        "output": "route=default dev awg3 scope link \nOK: user=10.7.0.14 table=1012 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.14 dev awg3 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses awg3\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=wireguard-1779454504-c43409 ASSIGN_EGRESS=wireguard-1779454504-c43409 EXPECTED_DEV=v7e06a394c478\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev v7e06a394c478 scope link \nOK: user=10.7.0.15 table=1013 default dev v7e06a394c478\nroute_get=8.8.8.8 from 10.7.0.15 dev v7e06a394c478 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses v7e06a394c478\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.16 table=1014 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.16 dev tun0 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses tun0\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\nUSER=10.7.0.18 TABLE=1016 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.18 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.18 table=1016 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0 \nOK: user=10.7.0.18 route_get uses tun0\n\nUSER=10.7.0.19 TABLE=1017 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.19 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.19 table=1017 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0 \nOK: user=10.7.0.19 route_get uses tun0\n\nUSER=10.7.0.20 TABLE=1018 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.20 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.20 table=1018 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0 \nOK: user=10.7.0.20 route_get uses tun0\n\nUSER=10.7.0.21 TABLE=1019 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.21 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.21 table=1019 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0 \nOK: user=10.7.0.21 route_get uses tun0\n\nUSER=10.7.0.22 TABLE=1020 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.22 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.22 table=1020 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0 \nOK: user=10.7.0.22 route_get uses tun0\n\nUSER=10.7.0.23 TABLE=1021 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.23 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.23 table=1021 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0 \nOK: user=10.7.0.23 route_get uses tun0\n\nUSER=10.7.0.24 TABLE=1022 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.24 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.24 table=1022 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0 \nOK: user=10.7.0.24 route_get uses tun0\n\nUSER=10.7.0.25 TABLE=1023 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.25 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.25 table=1023 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0 \nOK: user=10.7.0.25 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"
+      },
+      "rollback_result": {
+        "rollback_required": false,
+        "rollback_attempted": false,
+        "rollback_ready": true
+      },
+      "trust_delta": 0.0,
+      "prediction_delta": 0.0,
+      "recommendation_delta": 0.0,
+      "trust_feedback": {
+        "subject": "wireguard-1779454504-c43409",
+        "delta": 0.0,
+        "reason": "unknown"
+      },
+      "prediction_feedback": {
+        "prediction_expected": 1.0,
+        "prediction_actual": 1.0,
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "recommendation_feedback": {
+        "recommendation_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+      "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:8",
+      "stability_window_seconds": 0,
+      "runtime_mutation_performed": false,
+      "new_truth_sources_created": false,
+      "feedback_id": "execfb_7dde2dd58f91be3511d2b9ed"
+    },
+    "records": {
+      "outcome": {
+        "schema_version": "v7.execution-outcome-record.v1",
+        "feedback_id": "execfb_7dde2dd58f91be3511d2b9ed",
+        "user": "10.7.0.15",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:8",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:21.315574+00:00",
+        "execution_outcome": {
+          "applied": true,
+          "rc": 0,
+          "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+          "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+          "selected_move_index": 8
+        },
+        "verification_result": {
+          "passed": true,
+          "rc": 0,
+          "output": "route=default dev awg3 scope link \nOK: user=10.7.0.14 table=1012 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.14 dev awg3 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses awg3\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=wireguard-1779454504-c43409 ASSIGN_EGRESS=wireguard-1779454504-c43409 EXPECTED_DEV=v7e06a394c478\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev v7e06a394c478 scope link \nOK: user=10.7.0.15 table=1013 default dev v7e06a394c478\nroute_get=8.8.8.8 from 10.7.0.15 dev v7e06a394c478 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses v7e06a394c478\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.16 table=1014 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.16 dev tun0 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses tun0\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\nUSER=10.7.0.18 TABLE=1016 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.18 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.18 table=1016 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0 \nOK: user=10.7.0.18 route_get uses tun0\n\nUSER=10.7.0.19 TABLE=1017 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.19 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.19 table=1017 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0 \nOK: user=10.7.0.19 route_get uses tun0\n\nUSER=10.7.0.20 TABLE=1018 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.20 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.20 table=1018 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0 \nOK: user=10.7.0.20 route_get uses tun0\n\nUSER=10.7.0.21 TABLE=1019 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.21 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.21 table=1019 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0 \nOK: user=10.7.0.21 route_get uses tun0\n\nUSER=10.7.0.22 TABLE=1020 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.22 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.22 table=1020 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0 \nOK: user=10.7.0.22 route_get uses tun0\n\nUSER=10.7.0.23 TABLE=1021 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.23 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.23 table=1021 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0 \nOK: user=10.7.0.23 route_get uses tun0\n\nUSER=10.7.0.24 TABLE=1022 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.24 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.24 table=1022 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0 \nOK: user=10.7.0.24 route_get uses tun0\n\nUSER=10.7.0.25 TABLE=1023 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.25 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.25 table=1023 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0 \nOK: user=10.7.0.25 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"
+        },
+        "rollback_result": {
+          "rollback_required": false,
+          "rollback_attempted": false,
+          "rollback_ready": true
+        }
+      },
+      "trust": {
+        "schema_version": "v7.execution-trust-feedback.v1",
+        "feedback_id": "execfb_7dde2dd58f91be3511d2b9ed",
+        "user": "10.7.0.15",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:8",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:21.315574+00:00",
+        "subject": "wireguard-1779454504-c43409",
+        "delta": 0.0,
+        "reason": "unknown"
+      },
+      "prediction": {
+        "schema_version": "v7.execution-prediction-feedback.v1",
+        "feedback_id": "execfb_7dde2dd58f91be3511d2b9ed",
+        "user": "10.7.0.15",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:8",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:21.315574+00:00",
+        "prediction_expected": 1.0,
+        "prediction_actual": 1.0,
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "recommendation": {
+        "schema_version": "v7.execution-recommendation-feedback.v1",
+        "feedback_id": "execfb_7dde2dd58f91be3511d2b9ed",
+        "user": "10.7.0.15",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:8",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:21.315574+00:00",
+        "recommendation_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "closure": {
+        "schema_version": "v7.execution-feedback-closure.v1",
+        "object_type": "execution_feedback",
+        "object_id": "execfb_7dde2dd58f91be3511d2b9ed",
+        "closure_state": "OPEN",
+        "closure_reason": "execution feedback materialized: unknown",
+        "closure_actor": "operator_execution_feedback",
+        "closure_timestamp": "2026-06-13T19:20:21.315590+00:00",
+        "feedback_id": "execfb_7dde2dd58f91be3511d2b9ed",
+        "user": "10.7.0.15",
+        "source_channel": "vless",
+        "target_channel": "wireguard-1779454504-c43409",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:8",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:21.315574+00:00"
+      }
+    },
+    "outcome_materialized": true,
+    "trust_feedback_active": true,
+    "prediction_feedback_active": true,
+    "recommendation_feedback_active": true,
+    "runtime_mutation_performed": false
+  },
+  {
+    "action": "execution_feedback_materialize",
+    "feedback": {
+      "schema_version": "v7.operator-execution-feedback.v1",
+      "user": "10.7.0.16",
+      "source_channel": "vless",
+      "target_channel": "awg3",
+      "execution_time": "2026-06-13T19:16:27.729323+00:00",
+      "verification_time": "2026-06-13T19:16:27.729323+00:00",
+      "outcome_status": "unknown",
+      "execution_outcome": {
+        "applied": true,
+        "rc": 0,
+        "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "selected_move_index": 9
+      },
+      "verification_result": {
+        "passed": true,
+        "rc": 0,
+        "output": "e_route=default dev awg3 scope link \nOK: user=10.7.0.14 table=1012 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.14 dev awg3 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses awg3\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=wireguard-1779454504-c43409 ASSIGN_EGRESS=wireguard-1779454504-c43409 EXPECTED_DEV=v7e06a394c478\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev v7e06a394c478 scope link \nOK: user=10.7.0.15 table=1013 default dev v7e06a394c478\nroute_get=8.8.8.8 from 10.7.0.15 dev v7e06a394c478 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses v7e06a394c478\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev awg3 scope link \nOK: user=10.7.0.16 table=1014 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.16 dev awg3 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses awg3\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\nUSER=10.7.0.18 TABLE=1016 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.18 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.18 table=1016 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0 \nOK: user=10.7.0.18 route_get uses tun0\n\nUSER=10.7.0.19 TABLE=1017 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.19 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.19 table=1017 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0 \nOK: user=10.7.0.19 route_get uses tun0\n\nUSER=10.7.0.20 TABLE=1018 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.20 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.20 table=1018 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0 \nOK: user=10.7.0.20 route_get uses tun0\n\nUSER=10.7.0.21 TABLE=1019 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.21 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.21 table=1019 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0 \nOK: user=10.7.0.21 route_get uses tun0\n\nUSER=10.7.0.22 TABLE=1020 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.22 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.22 table=1020 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0 \nOK: user=10.7.0.22 route_get uses tun0\n\nUSER=10.7.0.23 TABLE=1021 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.23 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.23 table=1021 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0 \nOK: user=10.7.0.23 route_get uses tun0\n\nUSER=10.7.0.24 TABLE=1022 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.24 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.24 table=1022 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0 \nOK: user=10.7.0.24 route_get uses tun0\n\nUSER=10.7.0.25 TABLE=1023 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.25 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.25 table=1023 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0 \nOK: user=10.7.0.25 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"
+      },
+      "rollback_result": {
+        "rollback_required": false,
+        "rollback_attempted": false,
+        "rollback_ready": true
+      },
+      "trust_delta": 0.0,
+      "prediction_delta": 0.0,
+      "recommendation_delta": 0.0,
+      "trust_feedback": {
+        "subject": "awg3",
+        "delta": 0.0,
+        "reason": "unknown"
+      },
+      "prediction_feedback": {
+        "prediction_expected": 1.0,
+        "prediction_actual": 1.0,
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "recommendation_feedback": {
+        "recommendation_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+      "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:9",
+      "stability_window_seconds": 0,
+      "runtime_mutation_performed": false,
+      "new_truth_sources_created": false,
+      "feedback_id": "execfb_ead541436188747412aec800"
+    },
+    "records": {
+      "outcome": {
+        "schema_version": "v7.execution-outcome-record.v1",
+        "feedback_id": "execfb_ead541436188747412aec800",
+        "user": "10.7.0.16",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:9",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:21.496120+00:00",
+        "execution_outcome": {
+          "applied": true,
+          "rc": 0,
+          "operation_id": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+          "selected_move_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+          "selected_move_index": 9
+        },
+        "verification_result": {
+          "passed": true,
+          "rc": 0,
+          "output": "e_route=default dev awg3 scope link \nOK: user=10.7.0.14 table=1012 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.14 dev awg3 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses awg3\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=wireguard-1779454504-c43409 ASSIGN_EGRESS=wireguard-1779454504-c43409 EXPECTED_DEV=v7e06a394c478\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev v7e06a394c478 scope link \nOK: user=10.7.0.15 table=1013 default dev v7e06a394c478\nroute_get=8.8.8.8 from 10.7.0.15 dev v7e06a394c478 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses v7e06a394c478\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev awg3 scope link \nOK: user=10.7.0.16 table=1014 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.16 dev awg3 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses awg3\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\nUSER=10.7.0.18 TABLE=1016 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.18 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.18 table=1016 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0 \nOK: user=10.7.0.18 route_get uses tun0\n\nUSER=10.7.0.19 TABLE=1017 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.19 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.19 table=1017 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0 \nOK: user=10.7.0.19 route_get uses tun0\n\nUSER=10.7.0.20 TABLE=1018 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.20 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.20 table=1018 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0 \nOK: user=10.7.0.20 route_get uses tun0\n\nUSER=10.7.0.21 TABLE=1019 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.21 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.21 table=1019 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0 \nOK: user=10.7.0.21 route_get uses tun0\n\nUSER=10.7.0.22 TABLE=1020 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.22 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.22 table=1020 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0 \nOK: user=10.7.0.22 route_get uses tun0\n\nUSER=10.7.0.23 TABLE=1021 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.23 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.23 table=1021 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0 \nOK: user=10.7.0.23 route_get uses tun0\n\nUSER=10.7.0.24 TABLE=1022 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.24 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.24 table=1022 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0 \nOK: user=10.7.0.24 route_get uses tun0\n\nUSER=10.7.0.25 TABLE=1023 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.25 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.25 table=1023 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0 \nOK: user=10.7.0.25 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"
+        },
+        "rollback_result": {
+          "rollback_required": false,
+          "rollback_attempted": false,
+          "rollback_ready": true
+        }
+      },
+      "trust": {
+        "schema_version": "v7.execution-trust-feedback.v1",
+        "feedback_id": "execfb_ead541436188747412aec800",
+        "user": "10.7.0.16",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:9",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:21.496120+00:00",
+        "subject": "awg3",
+        "delta": 0.0,
+        "reason": "unknown"
+      },
+      "prediction": {
+        "schema_version": "v7.execution-prediction-feedback.v1",
+        "feedback_id": "execfb_ead541436188747412aec800",
+        "user": "10.7.0.16",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:9",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:21.496120+00:00",
+        "prediction_expected": 1.0,
+        "prediction_actual": 1.0,
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "recommendation": {
+        "schema_version": "v7.execution-recommendation-feedback.v1",
+        "feedback_id": "execfb_ead541436188747412aec800",
+        "user": "10.7.0.16",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:9",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:21.496120+00:00",
+        "recommendation_hash": "d1b28e651e46bd59fcf3cec8ce210a6edde7ce814ee3930e6069ca924ee7c5d1",
+        "delta": 0.0,
+        "outcome": "unknown"
+      },
+      "closure": {
+        "schema_version": "v7.execution-feedback-closure.v1",
+        "object_type": "execution_feedback",
+        "object_id": "execfb_ead541436188747412aec800",
+        "closure_state": "OPEN",
+        "closure_reason": "execution feedback materialized: unknown",
+        "closure_actor": "operator_execution_feedback",
+        "closure_timestamp": "2026-06-13T19:20:21.496142+00:00",
+        "feedback_id": "execfb_ead541436188747412aec800",
+        "user": "10.7.0.16",
+        "source_channel": "vless",
+        "target_channel": "awg3",
+        "outcome_status": "unknown",
+        "audit_reference": "runtime_autoswitch_031937d65d1a2048d3c7f276",
+        "closure_reference": "BA4:runtime_autoswitch_031937d65d1a2048d3c7f276:9",
+        "stability_window_seconds": 0,
+        "created_at": "2026-06-13T19:20:21.496120+00:00"
+      }
+    },
+    "outcome_materialized": true,
+    "trust_feedback_active": true,
+    "prediction_feedback_active": true,
+    "recommendation_feedback_active": true,
+    "runtime_mutation_performed": false
+  }
+]

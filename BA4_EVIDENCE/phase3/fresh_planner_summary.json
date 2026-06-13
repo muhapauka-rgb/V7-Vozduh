@@ -1,0 +1,16 @@
+{
+  "users_total": 26,
+  "egress_total": 7,
+  "healthy_egress_total": 3,
+  "candidate_moves_total": 20,
+  "selected_moves": 0,
+  "selected_moves_before_gate": 10,
+  "selected_moves_after_gate": 10,
+  "planned_limit": 10,
+  "authority_class": "POOL",
+  "authority_budget": 25,
+  "snapshot_stop_required": false,
+  "source_mismatch_families": [],
+  "pre_planner_refresh_state": "REFRESH_SUCCESS",
+  "selected": []
+}

@@ -1,0 +1,15 @@
+{
+  "recheck_verdict": "ALLOW_RESTORE_BARRIER_CLEARANCE",
+  "recheck_allow": true,
+  "record_verdict": "ALLOW_RESTORE_BARRIER_CLEARANCE",
+  "clearance_verdict": "RESTORE_BARRIER_CLEARANCE_WRITTEN",
+  "real_runtime_action_performed": true,
+  "runtime_action_performed": true,
+  "packet_id": "pkt_bfb877957fd610d73bf451e3",
+  "operation_id": "govexec_9d48d6ace19ba2115d03f705",
+  "errors": [],
+  "allowed_users": null,
+  "allowed_targets": null,
+  "clearance_expected_selected_moves": null,
+  "restore_barrier_file": "/opt/v7/egress/state/autoswitch-restore-barrier.json"
+}

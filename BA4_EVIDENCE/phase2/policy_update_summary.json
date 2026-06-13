@@ -1,0 +1,7 @@
+{
+  "before": 5,
+  "after": 10,
+  "action": "policy_update",
+  "users_moved": 0,
+  "routing_changed": false
+}

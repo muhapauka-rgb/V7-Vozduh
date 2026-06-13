@@ -1,0 +1,24 @@
+{
+  "packet_path": "/opt/v7/BA4_EVIDENCE/phase4/ba4_packet.json",
+  "packet_id": "pkt_5be07d9190057b995cade379",
+  "approval_id": "appr_f3117878a58cfdc6e0111e1e",
+  "selected_move_count": 0,
+  "allowed_users": [
+    "10.7.0.6",
+    "10.7.0.8",
+    "10.7.0.9",
+    "10.7.0.10",
+    "10.7.0.11",
+    "10.7.0.12",
+    "10.7.0.13",
+    "10.7.0.14",
+    "10.7.0.15",
+    "10.7.0.16"
+  ],
+  "allowed_targets": [
+    "awg3",
+    "wireguard-1779454504-c43409"
+  ],
+  "runtime_action": "CREATE_RESTORE_BARRIER_CLEARANCE",
+  "rollback_manifest_present": true
+}

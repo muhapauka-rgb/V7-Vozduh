@@ -1,0 +1,11 @@
+{
+  "verdict": null,
+  "action": null,
+  "packet_id": null,
+  "recheck_verdict": "DENY_RUNTIME_PLAN_MISSING",
+  "real_runtime_action_performed": false,
+  "users_moved": 0,
+  "restore_barrier_file": null,
+  "allowed_users": null,
+  "allowed_targets": null
+}

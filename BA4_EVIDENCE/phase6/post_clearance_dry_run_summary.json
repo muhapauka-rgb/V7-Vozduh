@@ -1,0 +1,35 @@
+{
+  "terminal_state": "DRY_RUN",
+  "terminal_reason": "dry_run_selected_moves_available",
+  "selected_moves": 10,
+  "selected_users": [
+    "10.7.0.6",
+    "10.7.0.8",
+    "10.7.0.9",
+    "10.7.0.10",
+    "10.7.0.11",
+    "10.7.0.12",
+    "10.7.0.13",
+    "10.7.0.14",
+    "10.7.0.15",
+    "10.7.0.16"
+  ],
+  "selected_targets": [
+    "awg3",
+    "wireguard-1779454504-c43409"
+  ],
+  "candidate_moves_total": 20,
+  "healthy_egress_total": 3,
+  "planned_limit": 10,
+  "authority_budget": 25,
+  "snapshot_stop_required": false,
+  "source_mismatch_families": [],
+  "restore_barrier_active": false,
+  "restore_barrier_selected_moves_after_gate": null,
+  "restore_barrier_selected_moves_before_gate": null,
+  "approved_plan_lock_valid": true,
+  "atomic_condition": "ENVELOPE_VALID",
+  "atomic_decision": "continue_governed_execution_path",
+  "atomic_mismatches": [],
+  "apply_present": false
+}

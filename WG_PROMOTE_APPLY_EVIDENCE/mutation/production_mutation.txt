@@ -1,0 +1,87 @@
+
+BASH=/usr/bin/bash
+BASHOPTS=checkwinsize:cmdhist:complete_fullquote:extquote:force_fignore:globasciiranges:globskipdots:hostcomplete:interactive_comments:login_shell:patsub_replacement:progcomp:promptvars:sourcepath
+BASH_ALIASES=()
+BASH_ARGC=([0]="1")
+BASH_ARGV=([0]="pipefail")
+BASH_CMDS=()
+BASH_EXECUTION_STRING=set
+BASH_LINENO=()
+BASH_LOADABLES_PATH=/usr/local/lib/bash:/usr/lib/bash:/opt/local/lib/bash:/usr/pkg/lib/bash:/opt/pkg/lib/bash:.
+BASH_SOURCE=()
+BASH_VERSINFO=([0]="5" [1]="3" [2]="9" [3]="1" [4]="release" [5]="x86_64-pc-linux-gnu")
+BASH_VERSION='5.3.9(1)-release'
+DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/0/bus
+DEBUGINFOD_URLS='https://debuginfod.ubuntu.com '
+DIRSTACK=()
+EUID=0
+GROUPS=()
+HOME=/root
+HOSTNAME=v3119922.hosted-by-vdsina.ru
+HOSTTYPE=x86_64
+IFS=$' \t\n'
+LANG=en_US.UTF-8
+LC_ALL=C.UTF-8
+LC_CTYPE=C.UTF-8
+LOGNAME=root
+MACHTYPE=x86_64-pc-linux-gnu
+OPTERR=1
+OPTIND=1
+OSTYPE=linux-gnu
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+PIPESTATUS=([0]="0")
+PPID=1414710
+PS4='+ '
+PWD=/root
+SHELL=/bin/bash
+SHELLOPTS=braceexpand:hashall:interactive-comments
+SHLVL=2
+SSH_CLIENT='109.252.176.232 1666 22'
+SSH_CONNECTION='109.252.176.232 1666 195.2.79.116 22'
+TERM=dumb
+UID=0
+USER=root
+XDG_DATA_DIRS=/usr/local/share:/usr/share:/var/lib/snapd/desktop
+XDG_RUNTIME_DIR=/run/user/0
+XDG_SESSION_CLASS=user
+XDG_SESSION_ID=7284
+XDG_SESSION_TYPE=tty
+_=/root/.bashrc
+snap_bin_path=/snap/bin
+snap_xdg_path=/var/lib/snapd/desktop
+gawklibpath_append () 
+{ 
+    [ -z "$AWKLIBPATH" ] && AWKLIBPATH=`gawk 'BEGIN {print ENVIRON["AWKLIBPATH"]}'`;
+    export AWKLIBPATH="$AWKLIBPATH:$*"
+}
+gawklibpath_default () 
+{ 
+    unset AWKLIBPATH;
+    export AWKLIBPATH=`gawk 'BEGIN {print ENVIRON["AWKLIBPATH"]}'`
+}
+gawklibpath_prepend () 
+{ 
+    [ -z "$AWKLIBPATH" ] && AWKLIBPATH=`gawk 'BEGIN {print ENVIRON["AWKLIBPATH"]}'`;
+    export AWKLIBPATH="$*:$AWKLIBPATH"
+}
+gawkpath_append () 
+{ 
+    [ -z "$AWKPATH" ] && AWKPATH=`gawk 'BEGIN {print ENVIRON["AWKPATH"]}'`;
+    export AWKPATH="$AWKPATH:$*"
+}
+gawkpath_default () 
+{ 
+    unset AWKPATH;
+    export AWKPATH=`gawk 'BEGIN {print ENVIRON["AWKPATH"]}'`
+}
+gawkpath_prepend () 
+{ 
+    [ -z "$AWKPATH" ] && AWKPATH=`gawk 'BEGIN {print ENVIRON["AWKPATH"]}'`;
+    export AWKPATH="$*:$AWKPATH"
+}
+backup_path=/opt/v7/egress/state/egress.registry.wg_promote_apply_backup.20260613T153106Z
+before_hash=f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5
+before_row=id=wireguard-1779454504-c43409 protocol=wireguard type=interface interface=v7e06a394c478 test=interface enabled=1 config=/etc/wireguard/v7e06a394c478.conf role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU canary_reserved=true reservation_reason=second_canary_target reservation_owner=control_plane_governance
+after_hash=6daaa6823ca860315f98358938f10e7d3b23569d83bfeaed743f46782d4ee1c1
+after_row=id=wireguard-1779454504-c43409 protocol=wireguard type=interface interface=v7e06a394c478 test=interface enabled=1 config=/etc/wireguard/v7e06a394c478.conf role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RUid=amneziawg-exec-20260528-10-8-1-14 protocol=amneziawg type=interface interface=v7execwg0 test=interface enabled=1 config=/etc/amnezia/v7execwg0.conf role=EXECUTION_ONLY route_table=1250 priority=10 weight=1 soft_limit=10 hard_limit=10 manual_only=1 reserve_only=1 canary_reserved=true execution_reserved=true reservation_owner=operator_execution_governance autoswitch_allowed=false rebalance_allowed=false production_assignment_allowed=false service_tags=governance,execution exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+mutation_check=FAIL

@@ -1,0 +1,596 @@
+{
+  "approved_candidate_moves_before_guard_count": 9,
+  "approved_candidate_moves_before_guard_sample": [
+    {
+      "current_egress": "awg3",
+      "move_type": "failover",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "user_ip": "10.0.0.2"
+    },
+    {
+      "current_egress": "awg0",
+      "move_type": "failover",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "user_ip": "10.0.0.3"
+    },
+    {
+      "current_egress": "awg0",
+      "move_type": "failover",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "user_ip": "10.0.0.6"
+    },
+    {
+      "current_egress": "vless",
+      "move_type": "rebalance",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "user_ip": "10.7.0.3"
+    },
+    {
+      "current_egress": "vless",
+      "move_type": "rebalance",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "user_ip": "10.7.0.2"
+    },
+    {
+      "current_egress": "vless",
+      "move_type": "rebalance",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "user_ip": "10.7.0.4"
+    },
+    {
+      "current_egress": "vless",
+      "move_type": "rebalance",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "user_ip": "10.7.0.6"
+    },
+    {
+      "current_egress": "vless",
+      "move_type": "rebalance",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "user_ip": "10.7.0.8"
+    },
+    {
+      "current_egress": "vless",
+      "move_type": "rebalance",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "user_ip": "10.7.0.9"
+    }
+  ],
+  "channel_summary": {
+    "1": {
+      "blocked": [
+        "health_code_000",
+        "severity_FAIL",
+        "avg_mbps_below_floor",
+        "min_mbps_below_floor",
+        "telegram_required_telegram_down_14s"
+      ],
+      "canary_reserved": false,
+      "eligible": false,
+      "hist_1h_stability": 0.0002,
+      "min_stability": 0.45,
+      "score": 0.0,
+      "score_parts": {},
+      "stability": 0.0
+    },
+    "amneziawg-exec-20260528-10-8-1-14": {
+      "blocked": [
+        "manual_only",
+        "reserve_only",
+        "canary_reserved_production_assignment_blocked",
+        "stability_below_floor"
+      ],
+      "canary_reserved": true,
+      "eligible": false,
+      "hist_1h_stability": 0.3958,
+      "min_stability": 0.45,
+      "score": 0.0,
+      "score_parts": {},
+      "stability": 0.16
+    },
+    "awg0": {
+      "blocked": [
+        "stability_below_floor"
+      ],
+      "canary_reserved": false,
+      "eligible": false,
+      "hist_1h_stability": 0.4207,
+      "min_stability": 0.45,
+      "score": 0.0,
+      "score_parts": {},
+      "stability": 0.268
+    },
+    "awg3": {
+      "blocked": [
+        "stability_below_floor"
+      ],
+      "canary_reserved": false,
+      "eligible": false,
+      "hist_1h_stability": 0.3207,
+      "min_stability": 0.45,
+      "score": 0.0,
+      "score_parts": {},
+      "stability": 0.146
+    },
+    "openvpn-1779388847-d2ad7c": {
+      "blocked": [
+        "health_code_000",
+        "severity_FAIL",
+        "avg_mbps_below_floor",
+        "min_mbps_below_floor",
+        "telegram_required_telegram_down_14s"
+      ],
+      "canary_reserved": false,
+      "eligible": false,
+      "hist_1h_stability": 0.0002,
+      "min_stability": 0.45,
+      "score": 0.0,
+      "score_parts": {},
+      "stability": 0.0
+    },
+    "vless": {
+      "blocked": [],
+      "canary_reserved": false,
+      "eligible": true,
+      "hist_1h_stability": 0.8473,
+      "min_stability": 0.45,
+      "score": 1871.93,
+      "score_parts": {
+        "capacity": 39.47,
+        "health": 1000.0,
+        "latency": 0.0,
+        "load": 31.58,
+        "org_preference": 0.0,
+        "priority": 50.0,
+        "quality_history": 50.85,
+        "reserve_penalty": 0.0,
+        "service": 257.84,
+        "speed": 164.93,
+        "stability": 137.25,
+        "sticky": 0.0,
+        "telegram_required": 40.0,
+        "weight": 100.0
+      },
+      "stability": 0.915
+    },
+    "wireguard-1779454504-c43409": {
+      "blocked": [],
+      "canary_reserved": false,
+      "eligible": true,
+      "hist_1h_stability": 0.9383,
+      "min_stability": 0.45,
+      "score": 2230.92,
+      "score_parts": {
+        "capacity": 100.0,
+        "health": 1000.0,
+        "latency": 85.13,
+        "load": 80.0,
+        "org_preference": 0.0,
+        "priority": 80.0,
+        "quality_history": 130.57,
+        "reserve_penalty": 0.0,
+        "service": 300.0,
+        "speed": 180.0,
+        "stability": 135.22,
+        "sticky": 0.0,
+        "telegram_required": 40.0,
+        "weight": 100.0
+      },
+      "stability": 0.901
+    }
+  },
+  "ctr_winners_with": [
+    [
+      "wireguard-1779454504-c43409",
+      26
+    ]
+  ],
+  "ctr_winners_without": [
+    [
+      "wireguard-1779454504-c43409",
+      26
+    ]
+  ],
+  "planner_summary": {
+    "candidate_moves": 26,
+    "candidate_moves_total": 26,
+    "egress_total": 7,
+    "healthy_egress_total": 2,
+    "org_groups": [
+      "default"
+    ],
+    "rebalance_candidates": 23,
+    "reconnect_rotation_candidates": 0,
+    "selected_moves": 0,
+    "users_total": 26
+  },
+  "pool_sample": {
+    "10.0.0.2": [
+      {
+        "authority": {
+          "execution_authority": "none",
+          "planner_decision_owner": "tools/v7-users-autoswitch",
+          "routing_intelligence": "advice_only",
+          "selected_moves_write_authority": "none"
+        },
+        "channel": "wireguard-1779454504-c43409",
+        "confidence": 0.4583,
+        "rank": 1,
+        "reason_breakdown": {
+          "capacity": -0.0,
+          "execution_trust": 3.15,
+          "risk": 3.741,
+          "service_confidence": -0.625,
+          "service_history": 11.524,
+          "service_weight": 16.134
+        },
+        "recommendation": "prefer",
+        "suitability_score": 83.924
+      },
+      {
+        "authority": {
+          "execution_authority": "none",
+          "planner_decision_owner": "tools/v7-users-autoswitch",
+          "routing_intelligence": "advice_only",
+          "selected_moves_write_authority": "none"
+        },
+        "channel": "awg0",
+        "confidence": 0.4583,
+        "rank": 2,
+        "reason_breakdown": {
+          "capacity": -0.0,
+          "execution_trust": 3.15,
+          "risk": 3.562,
+          "service_confidence": -0.625,
+          "service_history": 10.532,
+          "service_weight": 14.745
+        },
+        "recommendation": "prefer",
+        "suitability_score": 81.366
+      },
+      {
+        "authority": {
+          "execution_authority": "none",
+          "planner_decision_owner": "tools/v7-users-autoswitch",
+          "routing_intelligence": "advice_only",
+          "selected_moves_write_authority": "none"
+        },
+        "channel": "awg3",
+        "confidence": 0.4583,
+        "rank": 3,
+        "reason_breakdown": {
+          "capacity": -0.0,
+          "execution_trust": 3.15,
+          "risk": 3.404,
+          "service_confidence": -0.625,
+          "service_history": 9.653,
+          "service_weight": 13.514
+        },
+        "recommendation": "prefer",
+        "suitability_score": 79.096
+      }
+    ],
+    "10.0.0.3": [
+      {
+        "authority": {
+          "execution_authority": "none",
+          "planner_decision_owner": "tools/v7-users-autoswitch",
+          "routing_intelligence": "advice_only",
+          "selected_moves_write_authority": "none"
+        },
+        "channel": "wireguard-1779454504-c43409",
+        "confidence": 0.4583,
+        "rank": 1,
+        "reason_breakdown": {
+          "capacity": -0.0,
+          "execution_trust": 3.15,
+          "risk": 3.741,
+          "service_confidence": -0.625,
+          "service_history": 11.524,
+          "service_weight": 16.134
+        },
+        "recommendation": "prefer",
+        "suitability_score": 83.924
+      },
+      {
+        "authority": {
+          "execution_authority": "none",
+          "planner_decision_owner": "tools/v7-users-autoswitch",
+          "routing_intelligence": "advice_only",
+          "selected_moves_write_authority": "none"
+        },
+        "channel": "awg0",
+        "confidence": 0.4583,
+        "rank": 2,
+        "reason_breakdown": {
+          "capacity": -0.0,
+          "execution_trust": 3.15,
+          "risk": 3.562,
+          "service_confidence": -0.625,
+          "service_history": 10.532,
+          "service_weight": 14.745
+        },
+        "recommendation": "prefer",
+        "suitability_score": 81.366
+      },
+      {
+        "authority": {
+          "execution_authority": "none",
+          "planner_decision_owner": "tools/v7-users-autoswitch",
+          "routing_intelligence": "advice_only",
+          "selected_moves_write_authority": "none"
+        },
+        "channel": "awg3",
+        "confidence": 0.4583,
+        "rank": 3,
+        "reason_breakdown": {
+          "capacity": -0.0,
+          "execution_trust": 3.15,
+          "risk": 3.404,
+          "service_confidence": -0.625,
+          "service_history": 9.653,
+          "service_weight": 13.514
+        },
+        "recommendation": "prefer",
+        "suitability_score": 79.096
+      }
+    ],
+    "10.0.0.6": [
+      {
+        "authority": {
+          "execution_authority": "none",
+          "planner_decision_owner": "tools/v7-users-autoswitch",
+          "routing_intelligence": "advice_only",
+          "selected_moves_write_authority": "none"
+        },
+        "channel": "wireguard-1779454504-c43409",
+        "confidence": 0.4583,
+        "rank": 1,
+        "reason_breakdown": {
+          "capacity": -0.0,
+          "execution_trust": 3.15,
+          "risk": 3.741,
+          "service_confidence": -0.625,
+          "service_history": 11.524,
+          "service_weight": 16.134
+        },
+        "recommendation": "prefer",
+        "suitability_score": 83.924
+      },
+      {
+        "authority": {
+          "execution_authority": "none",
+          "planner_decision_owner": "tools/v7-users-autoswitch",
+          "routing_intelligence": "advice_only",
+          "selected_moves_write_authority": "none"
+        },
+        "channel": "awg0",
+        "confidence": 0.4583,
+        "rank": 2,
+        "reason_breakdown": {
+          "capacity": -0.0,
+          "execution_trust": 3.15,
+          "risk": 3.562,
+          "service_confidence": -0.625,
+          "service_history": 10.532,
+          "service_weight": 14.745
+        },
+        "recommendation": "prefer",
+        "suitability_score": 81.366
+      },
+      {
+        "authority": {
+          "execution_authority": "none",
+          "planner_decision_owner": "tools/v7-users-autoswitch",
+          "routing_intelligence": "advice_only",
+          "selected_moves_write_authority": "none"
+        },
+        "channel": "awg3",
+        "confidence": 0.4583,
+        "rank": 3,
+        "reason_breakdown": {
+          "capacity": -0.0,
+          "execution_trust": 3.15,
+          "risk": 3.404,
+          "service_confidence": -0.625,
+          "service_history": 9.653,
+          "service_weight": 13.514
+        },
+        "recommendation": "prefer",
+        "suitability_score": 79.096
+      }
+    ],
+    "10.7.0.2": [
+      {
+        "authority": {
+          "execution_authority": "none",
+          "planner_decision_owner": "tools/v7-users-autoswitch",
+          "routing_intelligence": "advice_only",
+          "selected_moves_write_authority": "none"
+        },
+        "channel": "wireguard-1779454504-c43409",
+        "confidence": 0.4583,
+        "rank": 1,
+        "reason_breakdown": {
+          "capacity": -0.0,
+          "execution_trust": 3.15,
+          "risk": 3.741,
+          "service_confidence": -0.625,
+          "service_history": 11.524,
+          "service_weight": 16.134
+        },
+        "recommendation": "prefer",
+        "suitability_score": 83.924
+      },
+      {
+        "authority": {
+          "execution_authority": "none",
+          "planner_decision_owner": "tools/v7-users-autoswitch",
+          "routing_intelligence": "advice_only",
+          "selected_moves_write_authority": "none"
+        },
+        "channel": "awg0",
+        "confidence": 0.4583,
+        "rank": 2,
+        "reason_breakdown": {
+          "capacity": -0.0,
+          "execution_trust": 3.15,
+          "risk": 3.562,
+          "service_confidence": -0.625,
+          "service_history": 10.532,
+          "service_weight": 14.745
+        },
+        "recommendation": "prefer",
+        "suitability_score": 81.366
+      },
+      {
+        "authority": {
+          "execution_authority": "none",
+          "planner_decision_owner": "tools/v7-users-autoswitch",
+          "routing_intelligence": "advice_only",
+          "selected_moves_write_authority": "none"
+        },
+        "channel": "awg3",
+        "confidence": 0.4583,
+        "rank": 3,
+        "reason_breakdown": {
+          "capacity": -0.0,
+          "execution_trust": 3.15,
+          "risk": 3.404,
+          "service_confidence": -0.625,
+          "service_history": 9.653,
+          "service_weight": 13.514
+        },
+        "recommendation": "prefer",
+        "suitability_score": 79.096
+      }
+    ],
+    "10.7.0.3": [
+      {
+        "authority": {
+          "execution_authority": "none",
+          "planner_decision_owner": "tools/v7-users-autoswitch",
+          "routing_intelligence": "advice_only",
+          "selected_moves_write_authority": "none"
+        },
+        "channel": "wireguard-1779454504-c43409",
+        "confidence": 0.4583,
+        "rank": 1,
+        "reason_breakdown": {
+          "capacity": -0.0,
+          "execution_trust": 3.15,
+          "risk": 3.741,
+          "service_confidence": -0.625,
+          "service_history": 11.524,
+          "service_weight": 16.134
+        },
+        "recommendation": "prefer",
+        "suitability_score": 83.924
+      },
+      {
+        "authority": {
+          "execution_authority": "none",
+          "planner_decision_owner": "tools/v7-users-autoswitch",
+          "routing_intelligence": "advice_only",
+          "selected_moves_write_authority": "none"
+        },
+        "channel": "awg0",
+        "confidence": 0.4583,
+        "rank": 2,
+        "reason_breakdown": {
+          "capacity": -0.0,
+          "execution_trust": 3.15,
+          "risk": 3.562,
+          "service_confidence": -0.625,
+          "service_history": 10.532,
+          "service_weight": 14.745
+        },
+        "recommendation": "prefer",
+        "suitability_score": 81.366
+      },
+      {
+        "authority": {
+          "execution_authority": "none",
+          "planner_decision_owner": "tools/v7-users-autoswitch",
+          "routing_intelligence": "advice_only",
+          "selected_moves_write_authority": "none"
+        },
+        "channel": "awg3",
+        "confidence": 0.4583,
+        "rank": 3,
+        "reason_breakdown": {
+          "capacity": -0.0,
+          "execution_trust": 3.15,
+          "risk": 3.404,
+          "service_confidence": -0.625,
+          "service_history": 9.653,
+          "service_weight": 13.514
+        },
+        "recommendation": "prefer",
+        "suitability_score": 79.096
+      }
+    ]
+  },
+  "snapshot_gate": {
+    "source_mismatch_families": [
+      "channel-service-scores",
+      "service-scores"
+    ],
+    "stop_families": [
+      "channel-service-scores",
+      "service-scores"
+    ],
+    "stop_required": true
+  },
+  "terminal_reason": "dry_run_intelligence_snapshot_stop_required",
+  "vless": {
+    "blocked": [],
+    "canary_reserved": false,
+    "eligible": true,
+    "hist_1h_stability": 0.8473,
+    "min_stability": 0.45,
+    "score": 1871.93,
+    "score_parts": {
+      "capacity": 39.47,
+      "health": 1000.0,
+      "latency": 0.0,
+      "load": 31.58,
+      "org_preference": 0.0,
+      "priority": 50.0,
+      "quality_history": 50.85,
+      "reserve_penalty": 0.0,
+      "service": 257.84,
+      "speed": 164.93,
+      "stability": 137.25,
+      "sticky": 0.0,
+      "telegram_required": 40.0,
+      "weight": 100.0
+    },
+    "stability": 0.915
+  },
+  "wireguard": {
+    "blocked": [],
+    "canary_reserved": false,
+    "eligible": true,
+    "hist_1h_stability": 0.9383,
+    "min_stability": 0.45,
+    "score": 2230.92,
+    "score_parts": {
+      "capacity": 100.0,
+      "health": 1000.0,
+      "latency": 85.13,
+      "load": 80.0,
+      "org_preference": 0.0,
+      "priority": 80.0,
+      "quality_history": 130.57,
+      "reserve_penalty": 0.0,
+      "service": 300.0,
+      "speed": 180.0,
+      "stability": 135.22,
+      "sticky": 0.0,
+      "telegram_required": 40.0,
+      "weight": 100.0
+    },
+    "stability": 0.901
+  }
+}

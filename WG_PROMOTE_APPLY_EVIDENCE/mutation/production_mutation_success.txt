@@ -1,0 +1,18 @@
+
+host=v3119922.hosted-by-vdsina.ru
+timestamp=2026-06-13T18:33:50+03:00
+registry=/opt/v7/egress/state/egress.registry
+target=wireguard-1779454504-c43409
+backup_path=/opt/v7/egress/state/egress.registry.wg_promote_apply_backup.20260613T153350Z
+rollback_command=cp -p /opt/v7/egress/state/egress.registry.wg_promote_apply_backup.20260613T153350Z /opt/v7/egress/state/egress.registry
+before_hash=f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5
+after_hash=05d8118c43888d046e8fe3aa3cca906db1603b15e478fd0e7eaf282797d13a78
+before_lines=7
+after_lines=7
+before_row=id=wireguard-1779454504-c43409 protocol=wireguard type=interface interface=v7e06a394c478 test=interface enabled=1 config=/etc/wireguard/v7e06a394c478.conf role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU canary_reserved=true reservation_reason=second_canary_target reservation_owner=control_plane_governance
+after_row=id=wireguard-1779454504-c43409 protocol=wireguard type=interface interface=v7e06a394c478 test=interface enabled=1 config=/etc/wireguard/v7e06a394c478.conf role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+line_count_check=PASS
+reservation_removal_check=PASS
+neighbor_row_check=PASS
+audit_log_attempted=true
+WG_PROMOTE_APPLY_MUTATION=OK

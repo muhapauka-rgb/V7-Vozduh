@@ -1,0 +1,10 @@
+
+v3119922.hosted-by-vdsina.ru
+2026-06-13T18:24:02+03:00
+id=wireguard-1779454504-c43409 protocol=wireguard type=interface interface=v7e06a394c478 test=interface enabled=1 config=/etc/wireguard/v7e06a394c478.conf role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU canary_reserved=true reservation_reason=second_canary_target reservation_owner=control_plane_governance
+f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5  /opt/v7/egress/state/egress.registry
+ad8f3a24d9bf3b709b8ca3a66de9c0c7100da37d2eb23b1a9277d59b71598e0e  /opt/v7/egress/state/users.registry
+180e92e8bb46644c9c5ffd7aee433e443e6ae0b5c6f685da59945019193d293d  /opt/v7/egress/state/service-matrix.json
+352d1588fc669079b5bc7114cee04efc836c27415d44d789381fe2e5ed113e7c  /opt/v7/egress/state/egress-quality-summary.json
+eb881055ee0908a84d10eeba09a8c26a1c6306cd77336134544a9b00462154be  /opt/v7/egress/state/telegram-sentinel.json
+sha256sum: /opt/v7/egress/state/load-summary.state: No such file or directory

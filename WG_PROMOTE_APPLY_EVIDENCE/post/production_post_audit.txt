@@ -1,0 +1,14 @@
+
+host=v3119922.hosted-by-vdsina.ru
+timestamp=2026-06-13T18:35:49+03:00
+registry=/opt/v7/egress/state/egress.registry
+target=wireguard-1779454504-c43409
+target_row=id=wireguard-1779454504-c43409 protocol=wireguard type=interface interface=v7e06a394c478 test=interface enabled=1 config=/etc/wireguard/v7e06a394c478.conf role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+registry_hash=05d8118c43888d046e8fe3aa3cca906db1603b15e478fd0e7eaf282797d13a78
+registry_lines=7
+hash:/opt/v7/egress/state/users.registry=ad8f3a24d9bf3b709b8ca3a66de9c0c7100da37d2eb23b1a9277d59b71598e0e
+hash:/opt/v7/egress/state/service-matrix.json=4bfb4523e841ab0a749e78163ebafbb77e8e1c505fbb1a1a60ea9b202057e520
+hash:/opt/v7/egress/state/egress-quality-summary.json=228196bcc2681b07263d07c2024a5947da5fbb076fb484fa3eacd94b2d118395
+hash:/opt/v7/egress/state/telegram-sentinel.json=53acf3d4e88c8748802603dcc9eca5f84443d55b74cfa42bb1e30b80a71e66ca
+missing:/opt/v7/egress/state/load-summary.state=true
+reservation_removed=true

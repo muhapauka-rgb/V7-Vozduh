@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from admin_core.explainability_adapter import build_why_cards
 from admin_core.intelligence_snapshots import read_snapshot_bundle
 
 
@@ -651,6 +652,8 @@ def build_channel_decision_rows(snapshot: dict[str, Any]) -> list[dict[str, Any]
             continue
         assigned = [user for user in users if str(user.get("current") or "") == channel_id]
         combined = {"registry": channel, "state": egress_state.get(channel_id, {}) if isinstance(egress_state.get(channel_id), dict) else {}}
+        score_row = _by_channel(_items(snapshots.get("channel-service-scores", {}))).get(channel_id, {})
+        service_score = _as_float(score_row.get("score", score_row.get("service_score", score_row.get("confidence", 0.0))), 0.0)
         state_payload = _channel_state_from_trust_model(channel_id, snapshots) or _legacy_channel_state(channel_id, combined, snapshots, len(assigned))
         state = state_payload["channel_state"]
         why = state_payload["channel_state_reason_short"]
@@ -661,6 +664,9 @@ def build_channel_decision_rows(snapshot: dict[str, Any]) -> list[dict[str, Any]
             **state_payload,
             "users": len(assigned),
             "capacity": channel.get("capacity") or channel.get("hard_limit") or "",
+            "soft_limit": channel.get("soft_limit") or "",
+            "hard_limit": channel.get("hard_limit") or channel.get("capacity") or "",
+            "service_score": service_score,
             "stability": _global_metric(snapshots, "trust-evolution-summaries", "stability_score", 0.0),
             "risk": _global_metric(snapshots, "risk-summaries", "risk_score", 0.0),
             "trust": _global_metric(snapshots, "trust-summaries", "trust_score", 50.0),
@@ -750,6 +756,13 @@ def build_operator_decision_surface(
     )
     user_rows = build_user_decision_rows(request_snapshot)
     channel_rows = build_channel_decision_rows(request_snapshot)
+    batch_preview = build_batch_preview(user_rows)
+    why_cards = build_why_cards(
+        users=user_rows,
+        channels=channel_rows,
+        batch_preview=batch_preview,
+        snapshot_statuses=request_snapshot["snapshot_statuses"],
+    )
     return {
         "schema_version": "v7.operator-decision-surface.v1",
         "mode": "read_only_operator_surface",
@@ -759,7 +772,8 @@ def build_operator_decision_surface(
         "users_by_ip": {row["user"]: row for row in user_rows},
         "channels": channel_rows,
         "channels_by_id": {row["channel"]: row for row in channel_rows},
-        "batch_preview": build_batch_preview(user_rows),
+        "batch_preview": batch_preview,
+        "why_cards": why_cards,
         "trust_evolution_advice": _trust_evolution_advice(request_snapshot["snapshots"]),
         "decision_action_matrix": build_decision_action_matrix(),
         "snapshot_statuses": request_snapshot["snapshot_statuses"],

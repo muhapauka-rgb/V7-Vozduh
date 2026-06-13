@@ -25685,6 +25685,7 @@ def html_page_v2():
       const next = disabled ? 'Приостановлен админом' : operatorText(r.next_action?.label || r.plain || onboarding.next || r.status || 'Проверить пользователя');
       return [
         userPhoneConfirmationSection(ip, identityUser, organization, device),
+        whyCardSection('Почему этот пользователь здесь', userWhyCard(ip)),
         drawerSection('Основное', userMetadataFormHtml(ip, {
           name,
           company,
@@ -25788,6 +25789,7 @@ def html_page_v2():
       }) + `<p class="muted">${esc(operatorText(profileConnection.message || 'VLESS-подключение пока не проверено.'))}</p>`;
       return [
         userOperatorSnapshot(d),
+        whyCardSection('Почему этот пользователь здесь', userWhyCard(d.ip || u.ip || '')),
         kvRows({
           'Пользователь': userHumanFields(d.ip || u.ip || '', u).name || d.ip || u.ip || '',
           'Устройство': userHumanFields(d.ip || u.ip || '', u).device || 'не определено',
@@ -26871,6 +26873,7 @@ def html_page_v2():
       const total = Number(mx.total || mx.count || 0);
       const codeOk = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
       return kvRows({'Состояние': codeOk ? 'OK' : 'Проверить', 'Роль': reg.role || '', 'Пользователи': egressUserCount(id), 'Скорость сервера': sp.server_v7_mbps || sp.download_mbps ? `${sp.server_v7_mbps || sp.download_mbps} Mbps` : 'нет замера', 'Сервисная матрица': total ? `${okCount}/${total}` : 'нет замера', 'Готовность': rd.status || 'неизвестно'}) +
+        whyCardSection('Почему этот канал', channelWhyCard(id)) +
         drawerSection('Трафик', trafficSummaryHtml('channel', id)) +
         channelActionControls(id) +
         channelObjectPanelsSection(id);
@@ -27147,6 +27150,7 @@ def html_page_v2():
       const config = d.config || {};
       return [
         channelOperatorSnapshot(d),
+        whyCardSection('Почему этот канал', channelWhyCard(d.egress || '')),
         kvRows({
           'Канал': d.egress || '',
           'Состояние в пуле': humanCode(d.pool_state || ''),
@@ -27861,6 +27865,7 @@ def html_page_v2():
         operatorDecisionSurface = await api('/api/operator/decision-surface');
         renderUsers();
         renderChannels();
+        if (operatorView) renderOperator();
         bindDrawerRows();
       } catch (error) {
         operatorDecisionSurface = {error:String(error?.message || error), users_by_ip:{}, channels_by_id:{}, batch_preview:{users_to_move:[]}, preview_only:true, execution_allowed_now:false};
@@ -27873,6 +27878,61 @@ def html_page_v2():
     }
     function channelDecisionRow(id='') {
       return (operatorDecisionSurface?.channels_by_id || {})[id] || {};
+    }
+    function userWhyCard(ip='') {
+      return (operatorDecisionSurface?.why_cards?.users_by_ip || {})[ip] || {};
+    }
+    function channelWhyCard(id='') {
+      return (operatorDecisionSurface?.why_cards?.channels_by_id || {})[id] || {};
+    }
+    function plannerWhyCard() {
+      return operatorDecisionSurface?.why_cards?.planner || {};
+    }
+    function whyValue(value) {
+      return value === null || value === undefined || value === '' ? 'нет данных' : value;
+    }
+    function whyMetricRows(card={}) {
+      return (card.metrics || []).map(metric => `<tr><td><strong>${esc(operatorShort(metric.reason || 'metric'))}</strong></td><td>${esc(whyValue(metric.value))}</td><td>${esc(whyValue(metric.threshold))}</td><td>${pill(statusLabel(metric.status || 'UNKNOWN'), statusTone(metric.status))}</td></tr>`);
+    }
+    function whyRequiredRows(card={}) {
+      return (card.required_to_move || []).map(metric => `<tr><td><strong>${esc(operatorShort(metric.reason || 'required'))}</strong></td><td>${esc(whyValue(metric.value))}</td><td>${esc(whyValue(metric.threshold))}</td><td>${pill(statusLabel(metric.status || 'REQUIRED'), 'info')}</td></tr>`);
+    }
+    function whyCardSection(title='', card={}) {
+      if (!card || !card.schema_version) return '';
+      const metricRows = whyMetricRows(card);
+      const requiredRows = whyRequiredRows(card);
+      const reason = card.reason || card.summary || '';
+      const source = card.source || 'operator_decision_surface';
+      const updated = card.updated_at || 'нет данных';
+      const next = card.next_action || 'none';
+      return drawerSection(title || 'Почему', [
+        kvRows({
+          'Статус': statusLabel(card.recommended_state || card.status || 'UNKNOWN'),
+          'Причина': operatorShort(reason),
+          'Источник': operatorShort(source),
+          'Обновлено': updated,
+          'Следующее действие': operatorShort(next),
+        }),
+        listTable(['Метрика','Значение','Требуется','Вердикт'], metricRows, 'Метрик пока нет.'),
+        requiredRows.length ? `<h3>Что нужно для переноса</h3>${listTable(['Условие','Значение','Требуется','Вердикт'], requiredRows)}` : '',
+      ].join(''));
+    }
+    function plannerWhyCardHtml() {
+      const card = plannerWhyCard();
+      if (!card || !card.schema_version) return '';
+      const counts = card.reason_counts || {};
+      const rows = Object.entries(counts).map(([reason,count]) => `<tr><td><strong>${esc(operatorShort(reason))}</strong></td><td>${esc(count)}</td></tr>`);
+      return drawerSection('Почему planner не двигает', [
+        kvRows({
+          'Статус': statusLabel(card.status || 'UNKNOWN'),
+          'Кандидатов': card.candidate_moves_total ?? 0,
+          'Смысл': operatorShort(card.summary || ''),
+          'Источник': operatorShort(card.source || 'operator_decision_surface'),
+          'Обновлено': card.updated_at || 'нет данных',
+          'Следующее действие': operatorShort(card.next_action || 'none'),
+        }),
+        listTable(['Причина','Кол-во'], rows, 'Причины no-move пока не рассчитаны.'),
+      ].join(''));
     }
     function operatorDecisionChainHtml(chain=[]) {
       const labels = {
@@ -27949,12 +28009,13 @@ def html_page_v2():
           'Причина review': operatorShort(row.review_reason || ctr.review_reason || ''),
           'Что сделать': operatorShort(row.review_next_action || ctr.review_next_action || ''),
         })),
+        whyCardSection('Почему', userWhyCard(ip)),
         drawerSection('Прогноз', kvRows({
           'Доступно': String(prediction.available === true),
           'Уверенность': prediction.confidence ?? '',
           'Смысл': prediction.summary || '',
         })),
-        drawerSection('Почему', `<ul class="operator-reason-list">${reasons}</ul>`),
+        drawerSection('Сырые причины snapshot', `<ul class="operator-reason-list">${reasons}</ul>`),
         drawerSection('Как система дойдёт до действия', chain),
         drawerSection('Действия', `<div class="detail-actions"><button class="primary" onclick="approveUserRecommendation('${esc(ip)}')">Подготовить одобрение</button><button class="ghost" onclick="ignoreUserRecommendation('${esc(ip)}')">Скрыть рекомендацию</button><button class="ghost" onclick="openOperatorApprovalForRecommendation('${esc(ip)}')">Проверить пакет</button></div><p class="muted">Кнопка создаёт только намерение одобрения. Пользователь не переключается, autoswitch apply не запускается.</p>`),
       ].join('');
@@ -28051,6 +28112,7 @@ def html_page_v2():
       const safeNow = row.channel_state_safe_now || 'Использовать только после проверки оператора.';
       const evidence = row.channel_state_evidence_summary || {};
       openDrawer(`Состояние ${channelDisplayName(id)}`, 'channel', [
+        whyCardSection('Почему этот канал', channelWhyCard(id)),
         drawerSection('Состояние канала', kvRows({
           'Канал': channelDisplayName(id),
           'Состояние доверия': statusLabel(label) || operatorShort(label),
@@ -28244,6 +28306,7 @@ def html_page_v2():
       plannerHost.innerHTML = [
         operatorStatusCard('Planner', `${planner.candidate_moves_total || 0} кандидатов`, planner.candidate_moves_total ? 'warn' : 'ok', planner.operator_explanation || 'planner read-only'),
         operatorStatusCard('Перенос сейчас', planner.movement_allowed_now === true ? 'да' : 'нет', planner.movement_allowed_now ? 'bad' : 'ok', 'governed packet and restore barrier remain required'),
+        plannerWhyCardHtml(),
       ].join('');
       const states = Object.entries(trust.states || {}).map(([key, value]) => pill(`${statusLabel(key)}: ${value}`, channelStateTone(key))).join(' ');
       const inherited = Number(trust.inherited_execution_trust || 0);

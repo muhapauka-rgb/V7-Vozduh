@@ -1,0 +1,152 @@
+{
+  "ba3_first_apply": {
+    "terminal": "NOOP",
+    "reason": "no_selected_moves",
+    "atomic_condition": "SOURCE_CHANGED",
+    "mismatches": [
+      "channel-service-scores",
+      "service-scores"
+    ],
+    "gate_stop": true,
+    "gate_stop_families": [
+      "channel-service-scores",
+      "pre-planner-refresh",
+      "service-scores"
+    ],
+    "source_mismatch": [
+      "channel-service-scores",
+      "service-scores"
+    ],
+    "refresh_state": "SKIPPED_APPLY_FORBIDDEN",
+    "refresh_decision": "pre_planner_refresh_apply_requires_bounded_one_user_scope",
+    "lease": {
+      "ok": true,
+      "reason": "restore_barrier_source_bundle_lease_service_matrix_only",
+      "allowed_source_drift": [
+        "service_matrix"
+      ],
+      "changed_source_keys": [
+        "service_matrix"
+      ],
+      "approved_source_hashes": {
+        "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+        "quality_summary": "45de0ed0ea21e8948e3f5fa02e3c2eb2c796648bb656e79a35ded73a0f53caf1",
+        "service_matrix": "fb05d534f6cf52c20d11c1e9852776a06db0aa8912da3747876e82964f67bd44",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+        "users_registry": "ad8f3a24d9bf3b709b8ca3a66de9c0c7100da37d2eb23b1a9277d59b71598e0e"
+      },
+      "current_source_hashes": {
+        "service_matrix": "1fde189254850798a84bf618a14abe4df3ad9cb93cc897b714a89aa0f92a647f",
+        "quality_summary": "45de0ed0ea21e8948e3f5fa02e3c2eb2c796648bb656e79a35ded73a0f53caf1",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+        "users_registry": "ad8f3a24d9bf3b709b8ca3a66de9c0c7100da37d2eb23b1a9277d59b71598e0e",
+        "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5"
+      },
+      "decision_signature": {
+        "schema_version": "v7.source-bundle-decision-signature.v1",
+        "selected_move_hash": "dc2e14366660dde787be0aef91f07c583844bc8ab31426a3ea3be3880afe4a91",
+        "approved_selected_move_hash": "dc2e14366660dde787be0aef91f07c583844bc8ab31426a3ea3be3880afe4a91",
+        "selected_move_count": 5,
+        "approved_selected_move_count": 5,
+        "selected_users": [
+          "10.7.0.3",
+          "10.7.0.2",
+          "10.7.0.4",
+          "10.7.0.6",
+          "10.7.0.8"
+        ],
+        "selected_targets": [
+          "awg0",
+          "awg3"
+        ],
+        "strict_source_hashes": {
+          "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+          "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+          "users_registry": "ad8f3a24d9bf3b709b8ca3a66de9c0c7100da37d2eb23b1a9277d59b71598e0e"
+        },
+        "approved_strict_source_hashes": {
+          "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+          "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+          "users_registry": "ad8f3a24d9bf3b709b8ca3a66de9c0c7100da37d2eb23b1a9277d59b71598e0e"
+        }
+      }
+    },
+    "selected": 0,
+    "applied": false
+  },
+  "ba3_retry1": {
+    "terminal": "NOOP",
+    "reason": "no_selected_moves",
+    "atomic_condition": "SOURCE_CHANGED",
+    "mismatches": [
+      "channel-service-scores",
+      "service-scores"
+    ],
+    "gate_stop": true,
+    "gate_stop_families": [
+      "channel-service-scores",
+      "pre-planner-refresh",
+      "service-scores"
+    ],
+    "source_mismatch": [
+      "channel-service-scores",
+      "service-scores"
+    ],
+    "refresh_state": "SKIPPED_APPLY_FORBIDDEN",
+    "refresh_decision": "pre_planner_refresh_apply_requires_bounded_one_user_scope",
+    "lease": {
+      "ok": true,
+      "reason": "restore_barrier_source_bundle_lease_service_matrix_only",
+      "allowed_source_drift": [
+        "service_matrix"
+      ],
+      "changed_source_keys": [
+        "service_matrix"
+      ],
+      "approved_source_hashes": {
+        "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+        "quality_summary": "45de0ed0ea21e8948e3f5fa02e3c2eb2c796648bb656e79a35ded73a0f53caf1",
+        "service_matrix": "96996d6f9dc8c418b6337b5c39084ce0e3ed1e2c258cf832b3705ea2dd5fb665",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+        "users_registry": "ad8f3a24d9bf3b709b8ca3a66de9c0c7100da37d2eb23b1a9277d59b71598e0e"
+      },
+      "current_source_hashes": {
+        "service_matrix": "47b86262425b5e56ce72d41cf07c67893ce0783eccc9f78026cd8b1a4c631829",
+        "quality_summary": "45de0ed0ea21e8948e3f5fa02e3c2eb2c796648bb656e79a35ded73a0f53caf1",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+        "users_registry": "ad8f3a24d9bf3b709b8ca3a66de9c0c7100da37d2eb23b1a9277d59b71598e0e",
+        "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5"
+      },
+      "decision_signature": {
+        "schema_version": "v7.source-bundle-decision-signature.v1",
+        "selected_move_hash": "dc2e14366660dde787be0aef91f07c583844bc8ab31426a3ea3be3880afe4a91",
+        "approved_selected_move_hash": "dc2e14366660dde787be0aef91f07c583844bc8ab31426a3ea3be3880afe4a91",
+        "selected_move_count": 5,
+        "approved_selected_move_count": 5,
+        "selected_users": [
+          "10.7.0.3",
+          "10.7.0.2",
+          "10.7.0.4",
+          "10.7.0.6",
+          "10.7.0.8"
+        ],
+        "selected_targets": [
+          "awg0",
+          "awg3"
+        ],
+        "strict_source_hashes": {
+          "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+          "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+          "users_registry": "ad8f3a24d9bf3b709b8ca3a66de9c0c7100da37d2eb23b1a9277d59b71598e0e"
+        },
+        "approved_strict_source_hashes": {
+          "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+          "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+          "users_registry": "ad8f3a24d9bf3b709b8ca3a66de9c0c7100da37d2eb23b1a9277d59b71598e0e"
+        }
+      }
+    },
+    "selected": 0,
+    "applied": false
+  }
+}

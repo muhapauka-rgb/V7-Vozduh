@@ -1,0 +1,98 @@
+diff --git a/tests/unit/test_v7_users_autoswitch_policy.py b/tests/unit/test_v7_users_autoswitch_policy.py
+index 5c6a83d..faf0a11 100644
+--- a/tests/unit/test_v7_users_autoswitch_policy.py
++++ b/tests/unit/test_v7_users_autoswitch_policy.py
+@@ -1678,6 +1678,62 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
+         self.assertEqual(refresh["apply_refresh_scope"]["governance_owner"], "admin_core/operator_execution.py")
+         self.assertNotEqual(refresh["state"], "SKIPPED_APPLY_FORBIDDEN")
+ 
++    def test_governed_apply_pre_refresh_accepts_approved_multi_target_lock(self):
++        with tempfile.TemporaryDirectory() as tmp:
++            root = Path(tmp)
++            self.write_fixture(
++                root,
++                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
++                restore_barrier={
++                    "enabled": True,
++                    "expires_at": "2000-01-01T00:00:00+00:00",
++                    "generation_clearance": True,
++                    "clearance_max_selected_moves": 5,
++                    "allowed_users": [
++                        "10.0.0.2",
++                        "10.0.0.3",
++                        "10.0.0.4",
++                        "10.0.0.5",
++                        "10.0.0.6",
++                    ],
++                    "allowed_targets": ["awg0", "awg3"],
++                    "approved_atomic_execution_envelope_id": "aee-ba3-test",
++                    "approved_atomic_execution_envelope_hash": "aee-ba3-hash-test",
++                    "approved_source_bundle_hash": "source-ba3-hash-test",
++                    "approved_snapshot_bundle_hash": "snapshot-ba3-hash-test",
++                    "owner": "admin_core/operator_execution.py",
++                },
++            )
++            refresh_script = root / "refresh-ok"
++            refresh_script.write_text("#!/bin/sh\nprintf '{\"source_stable\": true, \"snapshot_count\": 11}\\n'\n", encoding="utf-8")
++            refresh_script.chmod(0o755)
++            args = self.args_for(
++                root,
++                [
++                    "--apply",
++                    "--mode",
++                    "guarded",
++                    "--pre-planner-refresh",
++                    "write",
++                    "--pre-planner-refresh-command",
++                    str(refresh_script),
++                    "--allow-pre-planner-refresh-with-apply",
++                    "--max-selected-moves",
++                    "5",
++                ],
++            )
++            planner = self.tool.AutoswitchPlanner(args)
++
++        refresh = planner.pre_planner_refresh
++        self.assertEqual(refresh["state"], "REFRESH_SUCCESS")
++        self.assertEqual(refresh["decision"], "freshness_refreshed")
++        self.assertEqual(refresh["apply_refresh_scope"]["target_scope"], "approved_plan_lock_targets")
++        self.assertEqual(refresh["apply_refresh_scope"]["allowed_targets"], ["awg0", "awg3"])
++        self.assertEqual(refresh["apply_refresh_scope"]["max_selected_moves"], 5)
++        self.assertEqual(refresh["apply_refresh_scope"]["clearance_max_selected_moves"], 5)
++        self.assertEqual(refresh["apply_refresh_scope"]["approved_atomic_execution_envelope_id"], "aee-ba3-test")
++        self.assertNotEqual(refresh["state"], "SKIPPED_APPLY_FORBIDDEN")
++
+     def test_target_egress_scope_prevents_projected_target_rewrite(self):
+         with tempfile.TemporaryDirectory() as tmp:
+             root = Path(tmp)
+diff --git a/tools/v7-users-autoswitch b/tools/v7-users-autoswitch
+index 7046d6e..95607f3 100755
+--- a/tools/v7-users-autoswitch
++++ b/tools/v7-users-autoswitch
+@@ -1525,14 +1525,15 @@ class AutoswitchPlanner:
+             clearance_max_selected_moves = to_int(self.restore_barrier.get("clearance_max_selected_moves"), 0)
+             apply_refresh_clearance = self.restore_barrier.get("apply_refresh_clearance") or {}
+             allowed_targets = [str(item) for item in (apply_refresh_clearance.get("allowed_targets") or [])]
++            target_scope_ok = bool(target_egress and target_egress in allowed_targets)
++            governed_multi_target_scope = bool(not target_egress and allowed_targets)
+             governed_envelope_scope = (
+                 mode == "write"
+                 and allow_apply_refresh
+-                and bool(target_egress)
++                and (target_scope_ok or governed_multi_target_scope)
+                 and requested_max_selected_moves > 0
+                 and clearance_max_selected_moves > 0
+                 and requested_max_selected_moves <= clearance_max_selected_moves
+-                and target_egress in allowed_targets
+                 and bool_value(apply_refresh_clearance.get("generation_clearance"))
+                 and bool(apply_refresh_clearance.get("approved_atomic_execution_envelope_id"))
+                 and bool(apply_refresh_clearance.get("approved_atomic_execution_envelope_hash"))
+@@ -1564,6 +1565,8 @@ class AutoswitchPlanner:
+                     "next_state": "load_refreshed_snapshots_for_governed_envelope_apply",
+                     "apply_refresh_scope": {
+                         "target_egress": target_egress,
++                        "allowed_targets": allowed_targets,
++                        "target_scope": "single_target_arg" if target_scope_ok else "approved_plan_lock_targets",
+                         "max_selected_moves": requested_max_selected_moves,
+                         "clearance_max_selected_moves": clearance_max_selected_moves,
+                         "approved_atomic_execution_envelope_id": str(apply_refresh_clearance.get("approved_atomic_execution_envelope_id") or ""),

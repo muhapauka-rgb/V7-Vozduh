@@ -1678,6 +1678,62 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(refresh["apply_refresh_scope"]["governance_owner"], "admin_core/operator_execution.py")
         self.assertNotEqual(refresh["state"], "SKIPPED_APPLY_FORBIDDEN")
 
+    def test_governed_apply_pre_refresh_accepts_approved_multi_target_lock(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2000-01-01T00:00:00+00:00",
+                    "generation_clearance": True,
+                    "clearance_max_selected_moves": 5,
+                    "allowed_users": [
+                        "10.0.0.2",
+                        "10.0.0.3",
+                        "10.0.0.4",
+                        "10.0.0.5",
+                        "10.0.0.6",
+                    ],
+                    "allowed_targets": ["awg0", "awg3"],
+                    "approved_atomic_execution_envelope_id": "aee-ba3-test",
+                    "approved_atomic_execution_envelope_hash": "aee-ba3-hash-test",
+                    "approved_source_bundle_hash": "source-ba3-hash-test",
+                    "approved_snapshot_bundle_hash": "snapshot-ba3-hash-test",
+                    "owner": "admin_core/operator_execution.py",
+                },
+            )
+            refresh_script = root / "refresh-ok"
+            refresh_script.write_text("#!/bin/sh\nprintf '{\"source_stable\": true, \"snapshot_count\": 11}\\n'\n", encoding="utf-8")
+            refresh_script.chmod(0o755)
+            args = self.args_for(
+                root,
+                [
+                    "--apply",
+                    "--mode",
+                    "guarded",
+                    "--pre-planner-refresh",
+                    "write",
+                    "--pre-planner-refresh-command",
+                    str(refresh_script),
+                    "--allow-pre-planner-refresh-with-apply",
+                    "--max-selected-moves",
+                    "5",
+                ],
+            )
+            planner = self.tool.AutoswitchPlanner(args)
+
+        refresh = planner.pre_planner_refresh
+        self.assertEqual(refresh["state"], "REFRESH_SUCCESS")
+        self.assertEqual(refresh["decision"], "freshness_refreshed")
+        self.assertEqual(refresh["apply_refresh_scope"]["target_scope"], "approved_plan_lock_targets")
+        self.assertEqual(refresh["apply_refresh_scope"]["allowed_targets"], ["awg0", "awg3"])
+        self.assertEqual(refresh["apply_refresh_scope"]["max_selected_moves"], 5)
+        self.assertEqual(refresh["apply_refresh_scope"]["clearance_max_selected_moves"], 5)
+        self.assertEqual(refresh["apply_refresh_scope"]["approved_atomic_execution_envelope_id"], "aee-ba3-test")
+        self.assertNotEqual(refresh["state"], "SKIPPED_APPLY_FORBIDDEN")
+
     def test_target_egress_scope_prevents_projected_target_rewrite(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

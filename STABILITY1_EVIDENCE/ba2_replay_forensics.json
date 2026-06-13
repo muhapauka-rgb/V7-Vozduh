@@ -1,0 +1,25 @@
+{
+  "ba2_apply": {
+    "terminal": "APPLIED",
+    "reason": "selected_moves_applied",
+    "selected": 2,
+    "applied": true,
+    "atomic_validation": {
+      "ok": true,
+      "state": {
+        "condition": "ENVELOPE_VALID",
+        "decision": "continue_governed_execution_path",
+        "action": "allow_existing_planner_packet_barrier_apply_validation",
+        "executor": "tools/v7-users-autoswitch",
+        "trigger": "apply_validation",
+        "written_evidence": "plan.safety.atomic_execution_envelope",
+        "blocked_actions": [],
+        "next_state": "APPLY_VALIDATION",
+        "mismatches": []
+      },
+      "current_source_bundle_hash": "d48641d7c763882659c437f8d63f3a6d8baa11b1273bf9902623b4d7042dac2a",
+      "current_runtime_snapshot_hash": "3067ae95bf034ac1cff8f0ba6d5dfaf26922ef92100bf76c43a7ec62190f9e34"
+    },
+    "source_mismatch": []
+  }
+}

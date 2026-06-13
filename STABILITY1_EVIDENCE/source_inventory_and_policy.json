@@ -1,0 +1,109 @@
+{
+  "program": "STABILITY.1",
+  "source_inventory": {
+    "users_registry": {
+      "owner": "runtime state",
+      "path": "state/users.registry",
+      "classification": "STRICT",
+      "decision_impact": "DECISION_CHANGING",
+      "reason": "Can change selected users, current egress, rollback source, and blast radius."
+    },
+    "egress_registry": {
+      "owner": "runtime state",
+      "path": "state/egress.registry",
+      "classification": "STRICT",
+      "decision_impact": "DECISION_CHANGING",
+      "reason": "Can change available targets, target identity, and capacity meaning."
+    },
+    "service_preferences": {
+      "owner": "runtime policy/state",
+      "path": "state/service-preferences.json",
+      "classification": "STRICT",
+      "decision_impact": "DECISION_CHANGING",
+      "reason": "Can change service requirements and candidate suitability."
+    },
+    "service_matrix": {
+      "owner": "service matrix refresh / runtime quality writers",
+      "path": "state/service-matrix.json",
+      "classification": "VOLATILE",
+      "decision_impact": "NON_DECISION_CHANGING_ONLY_WHEN_DECISION_SIGNATURE_STABLE",
+      "reason": "Can affect quality evidence; allowed only when selected hash/count/users/targets and strict sources remain stable."
+    },
+    "quality_summary": {
+      "owner": "quality summary refresh / runtime quality writers",
+      "path": "state/egress-quality-summary.json",
+      "classification": "VOLATILE",
+      "decision_impact": "NON_DECISION_CHANGING_ONLY_WHEN_DECISION_SIGNATURE_STABLE",
+      "reason": "Can affect service scores and suitability; allowed only under semantic decision signature stability."
+    },
+    "service-scores": {
+      "owner": "admin_core.intelligence_workers snapshot refresh",
+      "path": "state/intelligence/service-scores.json",
+      "classification": "DERIVED",
+      "decision_impact": "NON_DECISION_CHANGING_ONLY_WHEN_SOURCE_DRIFT_IS_LEASED",
+      "reason": "Derived from service_matrix, quality_summary, service_preferences."
+    },
+    "channel-service-scores": {
+      "owner": "admin_core.intelligence_workers snapshot refresh",
+      "path": "state/intelligence/channel-service-scores.json",
+      "classification": "DERIVED",
+      "decision_impact": "NON_DECISION_CHANGING_ONLY_WHEN_SOURCE_DRIFT_IS_LEASED",
+      "reason": "Derived from service_matrix, quality_summary, egress registry/service preferences lineage."
+    },
+    "user-service-scores": {
+      "owner": "admin_core.intelligence_workers snapshot refresh",
+      "path": "state/intelligence/user-service-scores.json",
+      "classification": "DERIVED",
+      "decision_impact": "DECISION_CHANGING_IF_USERS_OR_STRICT_SOURCES_CHANGE",
+      "reason": "Derived per user; strict user and preference changes must fail closed."
+    },
+    "risk-summaries": {
+      "owner": "admin_core.intelligence_workers snapshot refresh",
+      "path": "state/intelligence/risk-summaries.json",
+      "classification": "DERIVED",
+      "decision_impact": "UNKNOWN_FAIL_CLOSED_IF_REQUIRED_GATE_STOPS",
+      "reason": "Risk can change governance meaning unless existing gate proves non-blocking."
+    },
+    "trust-summaries": {
+      "owner": "feedback/trust snapshot refresh",
+      "path": "state/intelligence/trust-summaries.json",
+      "classification": "DERIVED",
+      "decision_impact": "DECISION_CHANGING",
+      "reason": "Can alter trust evidence and autonomy confidence."
+    },
+    "prediction-summaries": {
+      "owner": "feedback/prediction snapshot refresh",
+      "path": "state/intelligence/prediction-summaries.json",
+      "classification": "DERIVED",
+      "decision_impact": "DECISION_CHANGING",
+      "reason": "Can alter predicted outcome quality."
+    },
+    "candidate-suitability-summary": {
+      "owner": "admin_core.intelligence_workers snapshot refresh",
+      "path": "state/intelligence/candidate-suitability-summary.json",
+      "classification": "DERIVED",
+      "decision_impact": "DECISION_CHANGING",
+      "reason": "Can directly alter candidate suitability."
+    },
+    "best-available-pool": {
+      "owner": "admin_core.intelligence_workers snapshot refresh",
+      "path": "state/intelligence/best-available-pool.json",
+      "classification": "DERIVED",
+      "decision_impact": "DECISION_CHANGING",
+      "reason": "Can alter pool ordering and winner context."
+    }
+  },
+  "atomic_envelope_policy": {
+    "STRICT": "Always fail closed on change.",
+    "VOLATILE": "Allowed only through source bundle lease when selected move hash, count, users, targets, strict source hashes, clearance budget, and approved plan lock remain stable.",
+    "DERIVED": "Allowed only if the blocking derived family is explained by leased volatile source drift and the runtime decision signature remains stable.",
+    "UNKNOWN": "Fail closed."
+  },
+  "fix_scope": {
+    "new_planner_created": false,
+    "new_governance_owner_created": false,
+    "new_execution_engine_created": false,
+    "new_truth_source_created": false,
+    "fail_closed_preserved": true
+  }
+}

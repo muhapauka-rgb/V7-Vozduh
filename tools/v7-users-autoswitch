@@ -1525,14 +1525,15 @@ class AutoswitchPlanner:
             clearance_max_selected_moves = to_int(self.restore_barrier.get("clearance_max_selected_moves"), 0)
             apply_refresh_clearance = self.restore_barrier.get("apply_refresh_clearance") or {}
             allowed_targets = [str(item) for item in (apply_refresh_clearance.get("allowed_targets") or [])]
+            target_scope_ok = bool(target_egress and target_egress in allowed_targets)
+            governed_multi_target_scope = bool(not target_egress and allowed_targets)
             governed_envelope_scope = (
                 mode == "write"
                 and allow_apply_refresh
-                and bool(target_egress)
+                and (target_scope_ok or governed_multi_target_scope)
                 and requested_max_selected_moves > 0
                 and clearance_max_selected_moves > 0
                 and requested_max_selected_moves <= clearance_max_selected_moves
-                and target_egress in allowed_targets
                 and bool_value(apply_refresh_clearance.get("generation_clearance"))
                 and bool(apply_refresh_clearance.get("approved_atomic_execution_envelope_id"))
                 and bool(apply_refresh_clearance.get("approved_atomic_execution_envelope_hash"))
@@ -1564,6 +1565,8 @@ class AutoswitchPlanner:
                     "next_state": "load_refreshed_snapshots_for_governed_envelope_apply",
                     "apply_refresh_scope": {
                         "target_egress": target_egress,
+                        "allowed_targets": allowed_targets,
+                        "target_scope": "single_target_arg" if target_scope_ok else "approved_plan_lock_targets",
                         "max_selected_moves": requested_max_selected_moves,
                         "clearance_max_selected_moves": clearance_max_selected_moves,
                         "approved_atomic_execution_envelope_id": str(apply_refresh_clearance.get("approved_atomic_execution_envelope_id") or ""),

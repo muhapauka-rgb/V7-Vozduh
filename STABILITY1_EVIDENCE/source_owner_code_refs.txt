@@ -1,0 +1,15 @@
+tools/v7-users-autoswitch:46:RUNTIME_INTELLIGENCE_SNAPSHOT_FAMILIES = (
+tools/v7-users-autoswitch:58:RUNTIME_REQUIRED_INTELLIGENCE_SNAPSHOT_FAMILIES = (
+tools/v7-users-autoswitch:1426:        expected_paths = [root / f"{name}.json" for name in RUNTIME_INTELLIGENCE_SNAPSHOT_FAMILIES]
+tools/v7-users-autoswitch:1428:        results = read_snapshot_bundle(root, list(RUNTIME_INTELLIGENCE_SNAPSHOT_FAMILIES)) if active else {}
+tools/v7-users-autoswitch:1437:            source_mismatch_stop = bool(source_mismatches and family in RUNTIME_REQUIRED_INTELLIGENCE_SNAPSHOT_FAMILIES)
+tools/v7-users-autoswitch:1439:            if family not in RUNTIME_REQUIRED_INTELLIGENCE_SNAPSHOT_FAMILIES and runtime_behavior == "STOP":
+tools/v7-users-autoswitch:1471:            "required_families": list(RUNTIME_REQUIRED_INTELLIGENCE_SNAPSHOT_FAMILIES),
+tools/v7-users-autoswitch:1472:            "families_checked": list(RUNTIME_INTELLIGENCE_SNAPSHOT_FAMILIES) if active else [],
+tools/v7-users-autoswitch:1487:    def _run_pre_planner_refresh(self) -> dict[str, Any]:
+tools/v7-users-autoswitch:1840:    def _apply_source_bundle_lease_to_intelligence_gate(
+tools/v7-users-autoswitch:4204:    def _runtime_source_hashes(self, *, from_disk: bool = False) -> dict[str, str]:
+tools/v7-users-autoswitch:4216:    def _snapshot_source_bundle(self) -> dict[str, Any]:
+tools/v7-users-autoswitch:4219:        for family in sorted(RUNTIME_INTELLIGENCE_SNAPSHOT_FAMILIES):
+tools/v7-users-autoswitch:4360:    def _validate_atomic_execution_envelope(self, plan: dict[str, Any]) -> dict[str, Any]:
+tools/v7-users-autoswitch:4949:    def _source_bundle_lease_scope(

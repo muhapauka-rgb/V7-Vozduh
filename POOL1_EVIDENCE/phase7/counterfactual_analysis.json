@@ -1,0 +1,25 @@
+{
+  "planner_rerun_now": {
+    "moves": 0,
+    "reason": "all planner-visible users are keep/current best under current evidence"
+  },
+  "healthy_pool_improves_with_awg0_recovered": {
+    "expected_moves": "possible but not proven from current planner because awg0 still blocked by min_mbps_below_floor and stability_below_floor",
+    "current_awg0_blockers": [
+      "min_mbps_below_floor",
+      "stability_below_floor"
+    ]
+  },
+  "healthy_pool_improves_with_awg3": {
+    "expected_moves": 0,
+    "reason": "awg3 is already eligible and carries 8 users below soft limit"
+  },
+  "wireguard_disappears": {
+    "expected_effect": "pool diversity drops from 3 healthy eligible channels to 2; 8 users on WireGuard would likely become failover candidates if channel became ineligible"
+  },
+  "current_distribution": {
+    "awg3": 8,
+    "wireguard-1779454504-c43409": 8,
+    "vless": 10
+  }
+}

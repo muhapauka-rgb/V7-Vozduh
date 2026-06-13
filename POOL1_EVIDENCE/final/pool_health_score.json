@@ -1,0 +1,8 @@
+{
+  "pool_diversity": "GOOD: 3 eligible healthy channels for 26 users",
+  "distribution": "GOOD: 8/8/10 over awg3/WireGuard/vless, all below soft_limit=15",
+  "candidate_pressure": "LOW: candidate_moves_total=0",
+  "service_quality": "GOOD on eligible channels: avg service score near 100",
+  "risk": "LOW_TO_MEDIUM: equilibrium depends on WireGuard/vless/awg3 remaining healthy; awg0/openvpn/legacy channels remain blocked",
+  "classification": "POOL_STABLE"
+}

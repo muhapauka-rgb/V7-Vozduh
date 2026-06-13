@@ -1,0 +1,15 @@
+{
+  "classification": "POOL_STABLE",
+  "stable": true,
+  "temporary": false,
+  "fragile": "not immediate; fragility exists if WireGuard/awg3/vless health regresses",
+  "self_correcting": true,
+  "direct_reason": "planner has 3 eligible channels and every user current route matches recommended route",
+  "candidate_moves_total": 0,
+  "healthy_egress_total": 3,
+  "distribution": {
+    "awg3": 8,
+    "wireguard-1779454504-c43409": 8,
+    "vless": 10
+  }
+}

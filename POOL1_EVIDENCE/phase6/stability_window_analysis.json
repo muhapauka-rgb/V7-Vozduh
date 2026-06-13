@@ -1,0 +1,6 @@
+{
+  "available_windows": "from planner quality_history/channel evidence where present; no new production observation window was run",
+  "current_evidence": "BA6 planner snapshot after BA1-BA4 plus fresh truth gate",
+  "assessment": "planner would continue to keep users if channel health and sticky/current-best conditions remain",
+  "likely_moves_soon": "low unless a healthy channel fails or a blocked channel recovers strongly enough to become a better target"
+}

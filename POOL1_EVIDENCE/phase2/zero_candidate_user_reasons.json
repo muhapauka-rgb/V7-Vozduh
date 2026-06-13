@@ -1,0 +1,718 @@
+{
+  "candidate_moves_total": 0,
+  "selected_moves": 0,
+  "actions": {
+    "keep": 26
+  },
+  "move_types": {
+    "none": 26
+  },
+  "reason_counts": {
+    "sticky_keep_current": 18,
+    "current_is_best": 8
+  },
+  "users": [
+    {
+      "user_ip": "10.0.0.2",
+      "current_egress": "awg3",
+      "recommended_egress": "awg3",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "sticky_keep_current"
+      ],
+      "current_score": 2081.46,
+      "recommended_score": 2081.46,
+      "why": [
+        "load 8/19 status OK",
+        "speed avg 47.1 Mbps min 28.49 Mbps",
+        "stability 0.605",
+        "quality trend improving score 100.26",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 63.17 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.0.0.3",
+      "current_egress": "wireguard-1779454504-c43409",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "current_is_best"
+      ],
+      "current_score": 2286.37,
+      "recommended_score": 2286.37,
+      "why": [
+        "load 8/19 status OK",
+        "speed avg 59.89 Mbps min 58.81 Mbps",
+        "stability 0.982",
+        "quality trend stable score 296.04",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 67.8 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.0.0.6",
+      "current_egress": "wireguard-1779454504-c43409",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "current_is_best"
+      ],
+      "current_score": 2286.37,
+      "recommended_score": 2286.37,
+      "why": [
+        "load 8/19 status OK",
+        "speed avg 59.89 Mbps min 58.81 Mbps",
+        "stability 0.982",
+        "quality trend stable score 296.04",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 67.8 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.2",
+      "current_egress": "wireguard-1779454504-c43409",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "current_is_best"
+      ],
+      "current_score": 2286.37,
+      "recommended_score": 2286.37,
+      "why": [
+        "load 8/19 status OK",
+        "speed avg 59.89 Mbps min 58.81 Mbps",
+        "stability 0.982",
+        "quality trend stable score 296.04",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 67.8 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.3",
+      "current_egress": "awg3",
+      "recommended_egress": "awg3",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "sticky_keep_current"
+      ],
+      "current_score": 2081.46,
+      "recommended_score": 2081.46,
+      "why": [
+        "load 8/19 status OK",
+        "speed avg 47.1 Mbps min 28.49 Mbps",
+        "stability 0.605",
+        "quality trend improving score 100.26",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 63.17 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.4",
+      "current_egress": "awg3",
+      "recommended_egress": "awg3",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "sticky_keep_current"
+      ],
+      "current_score": 2081.46,
+      "recommended_score": 2081.46,
+      "why": [
+        "load 8/19 status OK",
+        "speed avg 47.1 Mbps min 28.49 Mbps",
+        "stability 0.605",
+        "quality trend improving score 100.26",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 63.17 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.5",
+      "current_egress": "vless",
+      "recommended_egress": "vless",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "sticky_keep_current"
+      ],
+      "current_score": 2061.88,
+      "recommended_score": 2061.88,
+      "why": [
+        "load 10/19 status OK",
+        "speed avg 38.8 Mbps min 36.67 Mbps",
+        "stability 0.945",
+        "quality trend new score 0.0",
+        "severity_protocol_diagnostic_limited_suspect",
+        "quality_floor_overridden_by_service_evidence",
+        "quality_history_fail_rate_high_advisory",
+        "service_telegram_ok",
+        "routing intelligence prefer score_part 50.68 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.6",
+      "current_egress": "wireguard-1779454504-c43409",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "current_is_best"
+      ],
+      "current_score": 2286.37,
+      "recommended_score": 2286.37,
+      "why": [
+        "load 8/19 status OK",
+        "speed avg 59.89 Mbps min 58.81 Mbps",
+        "stability 0.982",
+        "quality trend stable score 296.04",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 67.8 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.8",
+      "current_egress": "awg3",
+      "recommended_egress": "awg3",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "sticky_keep_current"
+      ],
+      "current_score": 2081.46,
+      "recommended_score": 2081.46,
+      "why": [
+        "load 8/19 status OK",
+        "speed avg 47.1 Mbps min 28.49 Mbps",
+        "stability 0.605",
+        "quality trend improving score 100.26",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 63.17 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.9",
+      "current_egress": "wireguard-1779454504-c43409",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "current_is_best"
+      ],
+      "current_score": 2286.37,
+      "recommended_score": 2286.37,
+      "why": [
+        "load 8/19 status OK",
+        "speed avg 59.89 Mbps min 58.81 Mbps",
+        "stability 0.982",
+        "quality trend stable score 296.04",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 67.8 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.10",
+      "current_egress": "awg3",
+      "recommended_egress": "awg3",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "sticky_keep_current"
+      ],
+      "current_score": 2081.46,
+      "recommended_score": 2081.46,
+      "why": [
+        "load 8/19 status OK",
+        "speed avg 47.1 Mbps min 28.49 Mbps",
+        "stability 0.605",
+        "quality trend improving score 100.26",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 63.17 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.11",
+      "current_egress": "wireguard-1779454504-c43409",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "current_is_best"
+      ],
+      "current_score": 2286.37,
+      "recommended_score": 2286.37,
+      "why": [
+        "load 8/19 status OK",
+        "speed avg 59.89 Mbps min 58.81 Mbps",
+        "stability 0.982",
+        "quality trend stable score 296.04",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 67.8 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.12",
+      "current_egress": "awg3",
+      "recommended_egress": "awg3",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "sticky_keep_current"
+      ],
+      "current_score": 2081.46,
+      "recommended_score": 2081.46,
+      "why": [
+        "load 8/19 status OK",
+        "speed avg 47.1 Mbps min 28.49 Mbps",
+        "stability 0.605",
+        "quality trend improving score 100.26",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 63.17 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.13",
+      "current_egress": "wireguard-1779454504-c43409",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "current_is_best"
+      ],
+      "current_score": 2286.37,
+      "recommended_score": 2286.37,
+      "why": [
+        "load 8/19 status OK",
+        "speed avg 59.89 Mbps min 58.81 Mbps",
+        "stability 0.982",
+        "quality trend stable score 296.04",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 67.8 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.14",
+      "current_egress": "awg3",
+      "recommended_egress": "awg3",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "sticky_keep_current"
+      ],
+      "current_score": 2081.46,
+      "recommended_score": 2081.46,
+      "why": [
+        "load 8/19 status OK",
+        "speed avg 47.1 Mbps min 28.49 Mbps",
+        "stability 0.605",
+        "quality trend improving score 100.26",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 63.17 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.15",
+      "current_egress": "wireguard-1779454504-c43409",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "current_is_best"
+      ],
+      "current_score": 2286.37,
+      "recommended_score": 2286.37,
+      "why": [
+        "load 8/19 status OK",
+        "speed avg 59.89 Mbps min 58.81 Mbps",
+        "stability 0.982",
+        "quality trend stable score 296.04",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 67.8 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.16",
+      "current_egress": "awg3",
+      "recommended_egress": "awg3",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "sticky_keep_current"
+      ],
+      "current_score": 2081.46,
+      "recommended_score": 2081.46,
+      "why": [
+        "load 8/19 status OK",
+        "speed avg 47.1 Mbps min 28.49 Mbps",
+        "stability 0.605",
+        "quality trend improving score 100.26",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "routing intelligence prefer score_part 63.17 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.17",
+      "current_egress": "vless",
+      "recommended_egress": "vless",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "sticky_keep_current"
+      ],
+      "current_score": 2051.8,
+      "recommended_score": 2051.8,
+      "why": [
+        "load 10/19 status OK",
+        "speed avg 38.8 Mbps min 36.67 Mbps",
+        "stability 0.945",
+        "quality trend new score 0.0",
+        "severity_protocol_diagnostic_limited_suspect",
+        "quality_floor_overridden_by_service_evidence",
+        "quality_history_fail_rate_high_advisory",
+        "service_youtube_ok",
+        "routing intelligence prefer score_part 50.68 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.18",
+      "current_egress": "vless",
+      "recommended_egress": "vless",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "sticky_keep_current"
+      ],
+      "current_score": 2051.8,
+      "recommended_score": 2051.8,
+      "why": [
+        "load 10/19 status OK",
+        "speed avg 38.8 Mbps min 36.67 Mbps",
+        "stability 0.945",
+        "quality trend new score 0.0",
+        "severity_protocol_diagnostic_limited_suspect",
+        "quality_floor_overridden_by_service_evidence",
+        "quality_history_fail_rate_high_advisory",
+        "service_youtube_ok",
+        "routing intelligence prefer score_part 50.68 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.19",
+      "current_egress": "vless",
+      "recommended_egress": "vless",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "sticky_keep_current"
+      ],
+      "current_score": 2051.8,
+      "recommended_score": 2051.8,
+      "why": [
+        "load 10/19 status OK",
+        "speed avg 38.8 Mbps min 36.67 Mbps",
+        "stability 0.945",
+        "quality trend new score 0.0",
+        "severity_protocol_diagnostic_limited_suspect",
+        "quality_floor_overridden_by_service_evidence",
+        "quality_history_fail_rate_high_advisory",
+        "service_youtube_ok",
+        "routing intelligence prefer score_part 50.68 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.20",
+      "current_egress": "vless",
+      "recommended_egress": "vless",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "sticky_keep_current"
+      ],
+      "current_score": 2051.8,
+      "recommended_score": 2051.8,
+      "why": [
+        "load 10/19 status OK",
+        "speed avg 38.8 Mbps min 36.67 Mbps",
+        "stability 0.945",
+        "quality trend new score 0.0",
+        "severity_protocol_diagnostic_limited_suspect",
+        "quality_floor_overridden_by_service_evidence",
+        "quality_history_fail_rate_high_advisory",
+        "service_youtube_ok",
+        "routing intelligence prefer score_part 50.68 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.21",
+      "current_egress": "vless",
+      "recommended_egress": "vless",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "sticky_keep_current"
+      ],
+      "current_score": 2051.8,
+      "recommended_score": 2051.8,
+      "why": [
+        "load 10/19 status OK",
+        "speed avg 38.8 Mbps min 36.67 Mbps",
+        "stability 0.945",
+        "quality trend new score 0.0",
+        "severity_protocol_diagnostic_limited_suspect",
+        "quality_floor_overridden_by_service_evidence",
+        "quality_history_fail_rate_high_advisory",
+        "service_youtube_ok",
+        "routing intelligence prefer score_part 50.68 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.22",
+      "current_egress": "vless",
+      "recommended_egress": "vless",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "sticky_keep_current"
+      ],
+      "current_score": 2051.8,
+      "recommended_score": 2051.8,
+      "why": [
+        "load 10/19 status OK",
+        "speed avg 38.8 Mbps min 36.67 Mbps",
+        "stability 0.945",
+        "quality trend new score 0.0",
+        "severity_protocol_diagnostic_limited_suspect",
+        "quality_floor_overridden_by_service_evidence",
+        "quality_history_fail_rate_high_advisory",
+        "service_youtube_ok",
+        "routing intelligence prefer score_part 50.68 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.23",
+      "current_egress": "vless",
+      "recommended_egress": "vless",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "sticky_keep_current"
+      ],
+      "current_score": 2051.8,
+      "recommended_score": 2051.8,
+      "why": [
+        "load 10/19 status OK",
+        "speed avg 38.8 Mbps min 36.67 Mbps",
+        "stability 0.945",
+        "quality trend new score 0.0",
+        "severity_protocol_diagnostic_limited_suspect",
+        "quality_floor_overridden_by_service_evidence",
+        "quality_history_fail_rate_high_advisory",
+        "service_youtube_ok",
+        "routing intelligence prefer score_part 50.68 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.24",
+      "current_egress": "vless",
+      "recommended_egress": "vless",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "sticky_keep_current"
+      ],
+      "current_score": 2051.8,
+      "recommended_score": 2051.8,
+      "why": [
+        "load 10/19 status OK",
+        "speed avg 38.8 Mbps min 36.67 Mbps",
+        "stability 0.945",
+        "quality trend new score 0.0",
+        "severity_protocol_diagnostic_limited_suspect",
+        "quality_floor_overridden_by_service_evidence",
+        "quality_history_fail_rate_high_advisory",
+        "service_youtube_ok",
+        "routing intelligence prefer score_part 50.68 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    },
+    {
+      "user_ip": "10.7.0.25",
+      "current_egress": "vless",
+      "recommended_egress": "vless",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "sticky_keep_current"
+      ],
+      "current_score": 2051.8,
+      "recommended_score": 2051.8,
+      "why": [
+        "load 10/19 status OK",
+        "speed avg 38.8 Mbps min 36.67 Mbps",
+        "stability 0.945",
+        "quality trend new score 0.0",
+        "severity_protocol_diagnostic_limited_suspect",
+        "quality_floor_overridden_by_service_evidence",
+        "quality_history_fail_rate_high_advisory",
+        "service_youtube_ok",
+        "routing intelligence prefer score_part 50.68 risk 0.0",
+        "ctr advisory TRUSTED action normal_monitoring soft_adjustment 20.0 score_not_applied",
+        "group default allowed",
+        "sticky/current route kept"
+      ],
+      "rejected_count": 6
+    }
+  ]
+}

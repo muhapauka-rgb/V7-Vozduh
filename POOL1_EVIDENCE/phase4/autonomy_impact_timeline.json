@@ -1,0 +1,55 @@
+[
+  {
+    "stage": "before_BA3_retry_after_WG_promotion",
+    "source": "WG_PROMOTE_APPLY_AND_POOL_VALIDATION_REPORT.md",
+    "healthy_egress_total": 2,
+    "candidate_moves_total": 26,
+    "distribution": "not final; WireGuard newly eligible",
+    "users_moved": 0,
+    "meaning": "pool expanded; planner saw rebalance demand"
+  },
+  {
+    "stage": "BA1",
+    "source": "BA1_FINAL_AUTONOMY_CERTIFICATION_REPORT.md / BA1_CLOSE_ONE_USER_AUTONOMY_REPORT.md",
+    "users_moved": 1,
+    "movement": "10.0.0.2 vless -> awg3",
+    "certified": true
+  },
+  {
+    "stage": "BA2",
+    "source": "ATOMIC1_CLOSE_AND_BA2_RECERTIFICATION_REPORT.md",
+    "users_moved": 2,
+    "movement": "10.0.0.3 and 10.0.0.6 vless -> awg0",
+    "certified": true
+  },
+  {
+    "stage": "BA3_RETRY",
+    "source": "BA3_RETRY_FIVE_USER_AUTONOMY_CERTIFICATION_REPORT.md",
+    "healthy_egress_total": 3,
+    "candidate_moves_total": 25,
+    "users_moved": 5,
+    "distribution_after": "10.0.0.3/10.0.0.6/10.7.0.2 to WireGuard; 10.7.0.3/10.7.0.4 to awg3",
+    "certified": true
+  },
+  {
+    "stage": "BA4",
+    "source": "BA4_TEN_USER_AUTONOMY_CERTIFICATION_REPORT.md",
+    "users_moved": 10,
+    "targets": "awg3 and wireguard-1779454504-c43409",
+    "certified": true
+  },
+  {
+    "stage": "BA6",
+    "source": "BA6_25_USER_AUTONOMY_CERTIFICATION_REPORT.md",
+    "healthy_egress_total": 3,
+    "candidate_moves_total": 0,
+    "users_moved": 0,
+    "distribution": {
+      "awg3": 8,
+      "wireguard-1779454504-c43409": 8,
+      "vless": 10
+    },
+    "certified": false,
+    "blocked_by": "no real planner-selected candidates"
+  }
+]

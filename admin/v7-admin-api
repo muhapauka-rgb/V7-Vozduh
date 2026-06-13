@@ -23995,8 +23995,7 @@ def html_page_v2():
     function userEffectiveChannel(u={}) {
       const pending = userSwitchPending[u.ip || ''];
       if (pending?.egress) return pending.egress;
-      const route = proxyRouteForUser(u.ip || '');
-      return route.primary_egress || u.current || '';
+      return u.current || '';
     }
     function userRowByIp(ip='') {
       return users().find(u => String(u.ip || '') === String(ip || '')) || {};
@@ -25312,13 +25311,14 @@ def html_page_v2():
     function userEgressSelectCell(ip='', current='') {
       const route = proxyRouteForUser(ip || '');
       const pending = userSwitchPending[ip || ''];
-      const effective = pending?.egress || route.primary_egress || current || '';
+      const effective = pending?.egress || current || '';
       if (!enabledEgressOptionHtml(effective || current || '')) return pill(effective || current || 'нет', (effective || current) ? 'info' : 'warn');
       const label = effective || 'нет канала';
+      const proxyEgress = route.primary_egress || '';
       const sub = pending
         ? 'переключаю...'
-        : route.primary_egress
-        ? `VLESS runtime · registry ${current || '—'}`
+        : proxyEgress && proxyEgress !== current
+        ? `профиль ${proxyEgress} · runtime ${current || '—'}`
         : (current ? egressInlineSubLabel(current) : 'выбрать канал');
       return `<button type="button" class="inline-egress-trigger ${pending ? 'is-pending' : ''}" onclick="openInlineEgressMenu(event,'${esc(ip || '')}','${esc(effective || current || '')}')"><span class="cell-main">${esc(label)}</span><span class="cell-sub">${esc(sub)}</span></button>`;
     }

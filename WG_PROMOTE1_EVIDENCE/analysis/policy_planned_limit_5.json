@@ -1,0 +1,9 @@
+{
+  "switch": {
+    "autoswitch_enabled": true,
+    "autoswitch_mode": "guarded",
+    "autoswitch_max_planned_per_run": 5,
+    "autoswitch_max_failover_per_run": 25,
+    "cooldown_seconds": 0
+  }
+}

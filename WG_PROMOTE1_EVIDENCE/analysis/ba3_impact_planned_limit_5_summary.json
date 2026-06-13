@@ -1,0 +1,47 @@
+{
+  "summary": {
+    "users_total": 26,
+    "egress_total": 7,
+    "healthy_egress_total": 2,
+    "candidate_moves": 26,
+    "candidate_moves_total": 26,
+    "selected_moves": 1,
+    "reconnect_rotation_candidates": 0,
+    "rebalance_candidates": 0,
+    "org_groups": [
+      "default"
+    ]
+  },
+  "selected_count": 1,
+  "targets": {
+    "wireguard-1779454504-c43409": 1
+  },
+  "selected_moves": [
+    {
+      "user_ip": "10.0.0.2",
+      "current_egress": "awg3",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "projected_load": {
+        "users": 1,
+        "soft_limit": 2,
+        "hard_limit": 2,
+        "status": "OK"
+      },
+      "capacity_decision": {
+        "capacity_score": 50.0,
+        "load_penalty": 0.0,
+        "projected_load": {
+          "users": 1,
+          "soft_limit": 2,
+          "hard_limit": 2,
+          "status": "OK"
+        },
+        "capacity_decision": "capacity_available",
+        "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+      },
+      "reason": [
+        "current_egress_not_eligible"
+      ]
+    }
+  ]
+}

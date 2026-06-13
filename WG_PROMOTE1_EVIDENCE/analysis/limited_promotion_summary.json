@@ -1,0 +1,167 @@
+{
+  "baseline_summary": {
+    "users_total": 26,
+    "egress_total": 7,
+    "healthy_egress_total": 1,
+    "candidate_moves": 3,
+    "candidate_moves_total": 3,
+    "selected_moves": 1,
+    "reconnect_rotation_candidates": 0,
+    "rebalance_candidates": 0,
+    "org_groups": [
+      "default"
+    ]
+  },
+  "limited_counterfactual_summary": {
+    "users_total": 26,
+    "egress_total": 7,
+    "healthy_egress_total": 2,
+    "candidate_moves": 26,
+    "candidate_moves_total": 26,
+    "selected_moves": 1,
+    "reconnect_rotation_candidates": 0,
+    "rebalance_candidates": 0,
+    "org_groups": [
+      "default"
+    ]
+  },
+  "baseline_wireguard": {
+    "eligible": false,
+    "score": 0.0,
+    "blocked": [
+      "canary_reserved_production_assignment_blocked"
+    ],
+    "reasons": [
+      "service_youtube_ok",
+      "service_instagram_ok",
+      "service_telegram_ok",
+      "service_google_ok",
+      "service_google_auth_ok",
+      "route_class_VIDEO_OPTIMIZED_ok"
+    ],
+    "canary_reserved": true,
+    "capacity_users": 0,
+    "best_available_pool": false,
+    "pool_rank": 0,
+    "capacity_decision": {
+      "capacity_score": 100.0,
+      "load_penalty": 0.0,
+      "projected_load": {
+        "users": 0,
+        "soft_limit": 30,
+        "hard_limit": 38,
+        "status": "OK"
+      },
+      "capacity_decision": "empty_capacity_available",
+      "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+    },
+    "avg_mbps": 55.03,
+    "min_mbps": 51.35,
+    "stability": 0.933,
+    "service_suitability": {
+      "aggregate_score": 100.0,
+      "required_missing": [],
+      "required_low": []
+    },
+    "telegram": {
+      "required": true,
+      "status": "OK",
+      "ok": true,
+      "hard_blocked": false,
+      "degraded": false,
+      "bad_now": false,
+      "bad_for_seconds": 0.0,
+      "score": 100.0,
+      "reason": "telegram tcp endpoints reachable",
+      "source": "sentinel"
+    }
+  },
+  "limited_wireguard": {
+    "eligible": true,
+    "score": 2234.66,
+    "blocked": [],
+    "reasons": [
+      "service_youtube_ok",
+      "service_instagram_ok",
+      "service_telegram_ok",
+      "service_google_ok",
+      "service_google_auth_ok",
+      "route_class_VIDEO_OPTIMIZED_ok",
+      "best_available_pool_rank_1"
+    ],
+    "canary_reserved": false,
+    "capacity_users": 2,
+    "best_available_pool": true,
+    "pool_rank": 1,
+    "capacity_decision": {
+      "capacity_score": 100.0,
+      "load_penalty": 0.0,
+      "projected_load": {
+        "users": 0,
+        "soft_limit": 2,
+        "hard_limit": 2,
+        "status": "OK"
+      },
+      "capacity_decision": "empty_capacity_available",
+      "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+    },
+    "avg_mbps": 55.03,
+    "min_mbps": 51.35,
+    "stability": 0.933,
+    "service_suitability": {
+      "aggregate_score": 100.0,
+      "required_missing": [],
+      "required_low": []
+    },
+    "telegram": {
+      "required": true,
+      "status": "OK",
+      "ok": true,
+      "hard_blocked": false,
+      "degraded": false,
+      "bad_now": false,
+      "bad_for_seconds": 0.0,
+      "score": 100.0,
+      "reason": "telegram tcp endpoints reachable",
+      "source": "sentinel"
+    }
+  },
+  "planner_impact": {
+    "healthy_egress_total": "1 -> 2",
+    "candidate_moves_total": "3 -> 26",
+    "selected_moves": "1 -> 1",
+    "selected_to_wireguard": 1,
+    "recommended_to_wireguard_objects_seen": 27
+  },
+  "selected_to_wireguard": [
+    {
+      "user_ip": "10.0.0.2",
+      "current_egress": "awg3",
+      "recommended_egress": "wireguard-1779454504-c43409",
+      "recommended_score": 2234.66,
+      "projected_load": {
+        "users": 1,
+        "soft_limit": 2,
+        "hard_limit": 2,
+        "status": "OK"
+      },
+      "capacity_decision": {
+        "capacity_score": 50.0,
+        "load_penalty": 0.0,
+        "projected_load": {
+          "users": 1,
+          "soft_limit": 2,
+          "hard_limit": 2,
+          "status": "OK"
+        },
+        "capacity_decision": "capacity_available",
+        "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+      },
+      "reason": [
+        "current_egress_not_eligible"
+      ],
+      "selected_move_hash": "3f737390478d23d15be117b45809f8fcd3b33ee6376b8ac78c1a5bdbd9e6f855"
+    }
+  ],
+  "limited_state_row": "id=wireguard-1779454504-c43409 protocol=wireguard type=interface interface=v7e06a394c478 test=interface enabled=1 config=/etc/wireguard/v7e06a394c478.conf role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU capacity_users=2"
+}

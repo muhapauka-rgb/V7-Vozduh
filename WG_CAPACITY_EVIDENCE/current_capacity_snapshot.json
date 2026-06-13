@@ -1,0 +1,128 @@
+{
+  "channel": "wireguard-1779454504-c43409",
+  "production_registry_row": {
+    "id": "wireguard-1779454504-c43409",
+    "protocol": "wireguard",
+    "type": "interface",
+    "interface": "v7e06a394c478",
+    "test": "interface",
+    "enabled": "1",
+    "config": "/etc/wireguard/v7e06a394c478.conf",
+    "role": "GLOBAL_FAST",
+    "priority": "20",
+    "weight": "100",
+    "soft_limit": "1",
+    "hard_limit": "2",
+    "manual_only": "0",
+    "reserve_only": "0",
+    "service_tags": "google,telegram,instagram,global",
+    "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU",
+    "canary_reserved": "true",
+    "reservation_reason": "second_canary_target",
+    "reservation_owner": "control_plane_governance"
+  },
+  "dynamic_load_summary": {
+    "authority": "capacity_signal",
+    "operator_status": "warm",
+    "active_users": 26,
+    "healthy_channels": 1,
+    "working_channels": 1,
+    "avg_load": 26.0,
+    "soft_limit": 30,
+    "hard_limit": 38,
+    "failover_hard_limit": 52,
+    "status": "warm",
+    "wireguard_per_egress": {
+      "users": 0,
+      "soft_limit": 30,
+      "hard_limit": 38,
+      "failover_hard_limit": 52,
+      "capacity_users": 0,
+      "status": "OK"
+    }
+  },
+  "planner_current_candidate": {
+    "egress": "wireguard-1779454504-c43409",
+    "eligible": false,
+    "score": 0.0,
+    "blocked": [
+      "canary_reserved_production_assignment_blocked"
+    ],
+    "reasons": [
+      "service_youtube_ok",
+      "service_instagram_ok",
+      "service_telegram_ok",
+      "service_google_ok",
+      "service_google_auth_ok",
+      "route_class_VIDEO_OPTIMIZED_ok"
+    ],
+    "canary_reserved": true,
+    "best_available_pool": false,
+    "pool_rank": 0,
+    "avg_mbps": 55.03,
+    "min_mbps": 51.35,
+    "stability": 0.933,
+    "service_aggregate_score": 100.0,
+    "service_required_missing": [],
+    "service_required_low": [],
+    "telegram_ok": true,
+    "telegram_status": "OK",
+    "capacity_projected_load": {
+      "users": 0,
+      "soft_limit": 30,
+      "hard_limit": 38,
+      "status": "OK"
+    },
+    "quality_history_1h": {
+      "avg_mbps": 55.419,
+      "min_mbps": 51.926,
+      "stability": 0.9366,
+      "samples": 6196,
+      "fail_rate": 0.0716
+    }
+  },
+  "planner_counterfactual_candidate": {
+    "egress": "wireguard-1779454504-c43409",
+    "eligible": true,
+    "score": 2234.66,
+    "blocked": [],
+    "reasons": [
+      "service_youtube_ok",
+      "service_instagram_ok",
+      "service_telegram_ok",
+      "service_google_ok",
+      "service_google_auth_ok",
+      "route_class_VIDEO_OPTIMIZED_ok",
+      "best_available_pool_rank_1"
+    ],
+    "canary_reserved": false,
+    "best_available_pool": true,
+    "pool_rank": 1,
+    "avg_mbps": 55.03,
+    "min_mbps": 51.35,
+    "stability": 0.933,
+    "service_aggregate_score": 100.0,
+    "service_required_missing": [],
+    "service_required_low": [],
+    "telegram_ok": true,
+    "telegram_status": "OK",
+    "capacity_projected_load": {
+      "users": 0,
+      "soft_limit": 30,
+      "hard_limit": 38,
+      "status": "OK"
+    },
+    "quality_history_1h": {
+      "avg_mbps": 55.419,
+      "min_mbps": 51.926,
+      "stability": 0.9366,
+      "samples": 6196,
+      "fail_rate": 0.0716
+    }
+  },
+  "planner_impact": {
+    "healthy_egress_total": "1 -> 2",
+    "candidate_moves_total": "3 -> 26",
+    "selected_moves": "1 -> 1"
+  }
+}

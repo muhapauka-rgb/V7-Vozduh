@@ -1,0 +1,88 @@
+{
+  "updated": "2026-06-13T12:15:15Z",
+  "egress": {
+    "vless": {"code":"200","avg_mbps":"44.8923","min_mbps":"26.70","stability":"0.594757","users":"24","load_status":"HARD_FULL","diagnose_reason":"handshake_unsupported_for_protocol_vless","diagnose_severity":"SUSPECT","diagnose_detail":"protocol=vless"},
+    "awg0": {"code":"200","avg_mbps":"17.9087","min_mbps":"3.35","stability":"0.18706","users":"2","load_status":"HARD_FULL","diagnose_reason":"OK","diagnose_severity":"OK","diagnose_detail":"handshake_age_seconds=1"},
+    "awg3": {"code":"200","avg_mbps":"26.732","min_mbps":"15.09","stability":"0.564492","users":"1","load_status":"SOFT_FULL","diagnose_reason":"OK","diagnose_severity":"OK","diagnose_detail":"handshake_age_seconds=87"},
+    "1": {"code":"000","avg_mbps":"0","min_mbps":"0","stability":"0","users":"0","load_status":"OK","diagnose_reason":"curl_failed_and_handshake_stale","diagnose_severity":"FAIL","diagnose_detail":"handshake_age_seconds=940851"},
+    "openvpn-1779388847-d2ad7c": {"code":"000","avg_mbps":"0","min_mbps":"0","stability":"0","users":"0","load_status":"OK","diagnose_reason":"interface_down_or_missing","diagnose_severity":"FAIL","diagnose_detail":"protocol=openvpn"},
+    "wireguard-1779454504-c43409": {"code":"200","avg_mbps":"54.789","min_mbps":"47.32","stability":"0.863677","users":"0","load_status":"OK","diagnose_reason":"OK","diagnose_severity":"OK","diagnose_detail":"handshake_age_seconds=102"},
+    "amneziawg-exec-20260528-10-8-1-14": {"code":"200","avg_mbps":"10.5603","min_mbps":"1.71","stability":"0.161927","users":"0","load_status":"OK","diagnose_reason":"OK","diagnose_severity":"OK","diagnose_detail":"handshake_age_seconds=69"}
+  },
+  "route_classes": {
+    "TRUSTED_RU_SENSITIVE": {"priority":"10","mark":"0x78","table":"71","mode":"egress","active_egress":"vless","temporary":"1","local_direct":"TCP_TIMEOUT_BEFORE_TLS","enabled":"1","domains":"11","ips":"109.207.1.118,109.207.1.97,109.207.2.147,109.207.2.205,109.207.8.118,109.207.8.97,109.207.9.147,109.207.9.205,212.193.152.255,212.193.153.106,212.193.153.19,212.193.153.43,212.193.155.140,212.193.155.68,212.193.156.178,212.193.157.55,213.59.253.7,213.59.254.7,217.12.104.100,217.12.98.151,217.12.98.28,217.12.98.74,52.60.87.163,91.213.158.131,91.213.158.132"},
+    "DIRECT_RU": {"priority":"20","mark":"0x77","table":"70","mode":"direct","active_egress":"ens3","temporary":"0","local_direct":"","enabled":"1","domains":"17","ips":"213.180.193.90,213.180.204.242,213.180.204.90,217.20.147.1,217.20.152.226,217.20.155.13,217.20.155.82,217.20.156.72,37.9.64.225,5.255.255.77,5.61.23.11,77.88.21.90,77.88.44.55,77.88.55.88,87.240.129.133,87.240.129.187,87.240.132.67,87.240.132.72,87.240.132.78,87.240.137.164,87.240.190.64,87.250.250.90,93.158.134.90,93.186.225.194,95.163.61.73,95.163.61.74,95.213.37.126"},
+    "VIDEO_OPTIMIZED": {"priority":"30","mark":"0x66","table":"66","mode":"egress","active_egress":"user_default","temporary":"0","local_direct":"","enabled":"1","domains":"5","ips":"142.251.1.198,209.85.233.136,209.85.233.190,209.85.233.91,209.85.233.93,64.233.164.103,64.233.164.104,64.233.164.105,64.233.164.106,64.233.164.147,64.233.164.99"},
+    "GLOBAL_FAST": {"priority":"40","mark":"0x65","table":"65","mode":"egress","active_egress":"user_default","temporary":"0","local_direct":"","enabled":"1","domains":"3","ips":"104.16.132.229,104.16.133.229,216.58.201.227,74.125.131.100,74.125.131.101,74.125.131.102,74.125.131.113,74.125.131.138,74.125.131.139"},
+    "GLOBAL_STABLE": {"priority":"50","mark":"0x67","table":"67","mode":"egress","active_egress":"user_default","temporary":"0","local_direct":"","enabled":"1","domains":"3","ips":"149.154.167.99,157.240.253.60"},
+    "LOW_LATENCY": {"priority":"60","mark":"0x68","table":"68","mode":"egress","active_egress":"user_default","temporary":"0","local_direct":"","enabled":"1","domains":"0","ips":"EMPTY"},
+    "DEFAULT_USER_EGRESS": {"priority":"100","mark":"none","table":"user_table","mode":"default","active_egress":"user_current","temporary":"0","local_direct":"","enabled":"1","domains":"","ips":""}
+  },
+  "policy_apply_preview": {
+    "updated":"2026-05-07T15:12:18+03:00","mode":"apply","validation":"OK","live_marks":"disabled","user_routes_changed":"0","classes":"TRUSTED_RU_SENSITIVE,DIRECT_RU,VIDEO_OPTIMIZED,GLOBAL_FAST,GLOBAL_STABLE,LOW_LATENCY,DEFAULT_USER_EGRESS","messages":"none"
+  },
+  "policy_rebuild": {
+    "active":"0","operation":"manual_test","updated":"2026-05-07T12:34:42Z","actor":"system","expires_epoch":""
+  },
+  "trusted_ru_diagnostic": {
+    "updated":"2026-05-22T23:36:03+03:00","direct_if":"ens3","socks":"127.0.0.1:1080","awg_if":"awg2","decision_updated":"2026-05-07T20:18:37+03:00","decision":"NEEDS_ATTENTION","route_class_status":"NEEDS_TRUSTED_PATH","current_candidate":"vless","candidate_result":"VLESS_PARTIAL","required_action":"add_or_build_server_side_route_candidate_that_passes_real_service_tests","direct_ok":"0","temporary_vless":"2","awg":"0","blocked":"2","missing":"0","candidate_vless_failed":"2"
+  },
+  "users": [
+    {"ip":"10.0.0.2","current":"awg3","table":"100","enabled":"1"},
+    {"ip":"10.0.0.3","current":"awg0","table":"101","enabled":"1"},
+    {"ip":"10.0.0.6","current":"awg0","table":"104","enabled":"1"},
+    {"ip":"10.7.0.3","current":"vless","table":"1001","enabled":"1"},
+    {"ip":"10.7.0.2","current":"vless","table":"1000","enabled":"1"},
+    {"ip":"10.7.0.4","current":"vless","table":"1002","enabled":"1"},
+    {"ip":"10.7.0.5","current":"vless","table":"1003","enabled":"1"},
+    {"ip":"10.7.0.6","current":"vless","table":"1004","enabled":"1"},
+    {"ip":"10.7.0.7","current":"vless","table":"1005","enabled":"0"},
+    {"ip":"10.7.0.8","current":"vless","table":"1006","enabled":"1"},
+    {"ip":"10.7.0.9","current":"vless","table":"1007","enabled":"1"},
+    {"ip":"10.7.0.10","current":"vless","table":"1008","enabled":"1"},
+    {"ip":"10.7.0.11","current":"vless","table":"1009","enabled":"1"},
+    {"ip":"10.7.0.12","current":"vless","table":"1010","enabled":"1"},
+    {"ip":"10.7.0.13","current":"vless","table":"1011","enabled":"1"},
+    {"ip":"10.7.0.14","current":"vless","table":"1012","enabled":"1"},
+    {"ip":"10.7.0.15","current":"vless","table":"1013","enabled":"1"},
+    {"ip":"10.7.0.16","current":"vless","table":"1014","enabled":"1"},
+    {"ip":"10.7.0.17","current":"vless","table":"1015","enabled":"1"},
+    {"ip":"10.7.0.18","current":"vless","table":"1016","enabled":"1"},
+    {"ip":"10.7.0.19","current":"vless","table":"1017","enabled":"1"},
+    {"ip":"10.7.0.20","current":"vless","table":"1018","enabled":"1"},
+    {"ip":"10.7.0.21","current":"vless","table":"1019","enabled":"1"},
+    {"ip":"10.7.0.22","current":"vless","table":"1020","enabled":"1"},
+    {"ip":"10.7.0.23","current":"vless","table":"1021","enabled":"1"},
+    {"ip":"10.7.0.24","current":"vless","table":"1022","enabled":"1"},
+    {"ip":"10.7.0.25","current":"vless","table":"1023","enabled":"1"}
+  ],
+  "user_desired_state": [
+    {"ip":"10.0.0.2","enabled":"1","current":"awg3","table":"100","expected_dev":"awg3","assign":"awg3","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"awg3","route_get_dev":"awg3","status":"OK","reasons":"none"},
+    {"ip":"10.0.0.3","enabled":"1","current":"awg0","table":"101","expected_dev":"awg0","assign":"awg0","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"awg0","route_get_dev":"awg0","status":"OK","reasons":"none"},
+    {"ip":"10.0.0.6","enabled":"1","current":"awg0","table":"104","expected_dev":"awg0","assign":"awg0","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"awg0","route_get_dev":"awg0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.3","enabled":"1","current":"vless","table":"1001","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.2","enabled":"1","current":"vless","table":"1000","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.4","enabled":"1","current":"vless","table":"1002","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.5","enabled":"1","current":"vless","table":"1003","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.6","enabled":"1","current":"vless","table":"1004","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.7","enabled":"0","current":"vless","table":"1005","expected_dev":"tun0","assign":"vless","wg_conf_peer":"no","wg_live_peer":"no","ip_rule":"no","table_dev":"missing","route_get_dev":"ens3","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.8","enabled":"1","current":"vless","table":"1006","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.9","enabled":"1","current":"vless","table":"1007","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.10","enabled":"1","current":"vless","table":"1008","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.11","enabled":"1","current":"vless","table":"1009","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.12","enabled":"1","current":"vless","table":"1010","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.13","enabled":"1","current":"vless","table":"1011","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.14","enabled":"1","current":"vless","table":"1012","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.15","enabled":"1","current":"vless","table":"1013","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.16","enabled":"1","current":"vless","table":"1014","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.17","enabled":"1","current":"vless","table":"1015","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.18","enabled":"1","current":"vless","table":"1016","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.19","enabled":"1","current":"vless","table":"1017","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.20","enabled":"1","current":"vless","table":"1018","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.21","enabled":"1","current":"vless","table":"1019","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.22","enabled":"1","current":"vless","table":"1020","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.23","enabled":"1","current":"vless","table":"1021","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.24","enabled":"1","current":"vless","table":"1022","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"},
+    {"ip":"10.7.0.25","enabled":"1","current":"vless","table":"1023","expected_dev":"tun0","assign":"vless","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"tun0","route_get_dev":"tun0","status":"OK","reasons":"none"}
+  ]
+}

@@ -1,0 +1,8 @@
+
+/opt/v7/egress/state/egress-history.jsonl 54372 2026-06-13 15:15:13.087735086 +0300
+/opt/v7/egress/state/stability.state 817 2026-06-13 15:15:14.851713121 +0300
+/opt/v7/egress/state/egress-speed.json 3891 2026-06-06 17:02:49.201896052 +0300
+/opt/v7/egress/state/egress-quality-summary.json 11625 2026-06-13 15:11:02.446763831 +0300
+/opt/v7/egress/state/service-matrix.json 124138 2026-06-13 15:15:44.514043459 +0300
+/opt/v7/egress/state/v7-state.json 13483 2026-06-13 15:15:26.246571233 +0300
+/opt/v7/egress/state/egress.registry 2342 2026-05-29 17:34:41.495998606 +0300

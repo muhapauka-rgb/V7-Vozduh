@@ -1,0 +1,13 @@
+
+=== awg0 public config fields ===
+Table = off
+Address = 10.8.1.10/32
+Endpoint = 194.124.210.244:34403
+PersistentKeepalive = 25
+
+=== awg3 public config fields ===
+Address = 10.8.1.13/32
+Table = off
+DNS = 1.1.1.1, 1.0.0.1
+Endpoint = 194.124.210.244:34403
+PersistentKeepalive = 25

@@ -1,0 +1,17 @@
+
+=== uptime ===
+ 15:20:11 up 37 days, 23:24,  3 users,  load average: 2.05, 2.37, 2.32
+
+=== free ===
+               total        used        free      shared  buff/cache   available
+Mem:            3398        1043         239          65        2470        2355
+Swap:              0           0           0
+
+=== vmstat ===
+procs -----------memory---------- ---swap-- -----io---- -system-- -------cpu-------
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st gu
+ 3  0      0 245072  78180 2451404    0    0     4   190 1425    7 20 15 65  0  0  0
+ 3  0      0 258276  78180 2451556    0    0     0  1036 7510 10912 52 48  1  0  0  0
+ 5  0      0 255440  78180 2451548    0    0     0     4 5040 8283 51 47  2  0  0  0
+
+=== ss udp awg endpoint hint ===

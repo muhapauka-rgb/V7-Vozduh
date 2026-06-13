@@ -1,0 +1,36 @@
+{
+  "classification": "REMOTE_ENDPOINT_INSTABILITY",
+  "confidence": "medium_high",
+  "proven_to_level": "shared_amneziawg_endpoint_or_path",
+  "exact_subcause_not_proven": "remote host internals vs upstream path vs amneziawg implementation cannot be separated from read-only server-side evidence alone",
+  "primary_evidence": [
+    "awg0 and awg3 both use Endpoint = 194.124.210.244:34403",
+    "both return HTTP code 200 while throughput collapses, so not service reachability failure",
+    "vless remains stable in same history window: last30 floor/avg 0.5991",
+    "wireguard reserved channel remains stable in same history window: last30 floor/avg 0.8545",
+    "awg0 last30 has 22/30 samples below 10 Mbps and floor/avg 0.1857",
+    "awg3 last30 has floor/avg 0.1757 and a fresh drop to 4.6354 Mbps",
+    "drops are bursty and repeated over multi-minute runs, not isolated single-sample noise"
+  ],
+  "secondary_evidence": [
+    "awg0 cumulative TX drops=28867; awg3 cumulative TX drops=109919; no RX errors/drops",
+    "server CPU snapshot showed high instantaneous CPU, but vless and wireguard stability remained high, so server-wide load alone does not explain AWG-only collapse",
+    "service matrix and Telegram sentinel classify awg0/awg3 reachable/OK"
+  ],
+  "not_supported": [
+    "planner bug",
+    "policy floor bug",
+    "service-matrix outage",
+    "Telegram outage",
+    "zero-code speedtest failure",
+    "full local server outage"
+  ],
+  "recommended_next_steps_read_only_first": [
+    "observe awg0/awg3 endpoint latency and speed for a 30-60 minute window",
+    "compare with a second AWG endpoint that does not share 194.124.210.244:34403",
+    "check endpoint-side load/provider throttling if endpoint access exists",
+    "keep stability floor unchanged until endpoint/path cause is corrected"
+  ],
+  "safe_for_ba3_now": false,
+  "reason": "awg0 and awg3 are reachable but do not provide stable throughput floor; BA3 should not rely on them yet."
+}

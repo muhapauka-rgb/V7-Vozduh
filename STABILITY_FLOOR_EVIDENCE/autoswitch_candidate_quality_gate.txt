@@ -1,0 +1,63 @@
+5418:         if preferred and glob_contains(preferred, egress.id):
+5419:             candidate.reasons.append("group_preferred")
+5420: 
+5421:     def _gate_quality(self, candidate: Candidate) -> None:
+5422:         egress = candidate.egress
+5423:         min_avg = to_float(self.quality_policy.get("min_avg_mbps"), 15.0)
+5424:         min_floor = to_float(self.quality_policy.get("min_floor_mbps"), 10.0)
+5425:         min_stability = to_float(self.quality_policy.get("min_stability"), 0.45)
+5426:         hist = self._quality_window(egress.id, "1h")
+5427:         hist_avg = to_float(hist.get("avg_mbps"), 0.0)
+5428:         hist_min = to_float(hist.get("min_mbps"), 0.0)
+5429:         hist_stability = to_float(hist.get("stability"), 0.0)
+5430:         service = candidate.service_suitability or {}
+5431:         severity = candidate.severity_classification or {}
+5432:         protocol_limited = severity.get("category") == "protocol_diagnostic_limited_suspect"
+5433:         service_ok = (
+5434:             to_float(service.get("aggregate_score")) >= to_float(self.service_quality_policy.get("min_required_service_score"), 50.0)
+5435:             and not service.get("required_missing")
+5436:             and not service.get("required_low")
+5437:         )
+5438:         evidence_exception = (
+5439:             protocol_limited
+5440:             and service_ok
+5441:             and egress.health_code == "200"
+5442:             and hist_avg >= to_float(self.service_quality_policy.get("quality_exception_min_1h_avg_mbps"), min_avg)
+5443:             and hist_min >= to_float(self.service_quality_policy.get("quality_exception_min_1h_floor_mbps"), min_floor)
+5444:             and max(egress.stability, hist_stability) >= to_float(self.service_quality_policy.get("quality_exception_min_stability"), 0.15)
+5445:         )
+5446:         decision = {
+5447:             "min_avg_mbps": min_avg,
+5448:             "min_floor_mbps": min_floor,
+5449:             "min_stability": min_stability,
+5450:             "hist_1h_avg_mbps": hist_avg,
+5451:             "hist_1h_min_mbps": hist_min,
+5452:             "hist_1h_stability": hist_stability,
+5453:             "evidence_backed_exception": evidence_exception,
+5454:             "service_aggregate_score": service.get("aggregate_score"),
+5455:         }
+5456:         if egress.avg_mbps < min_avg:
+5457:             if hist and hist_avg >= min_avg:
+5458:                 candidate.reasons.append("avg_mbps_below_floor_but_1h_avg_ok")
+5459:             else:
+5460:                 self._block(candidate, "avg_mbps_below_floor")
+5461:         if egress.min_mbps < min_floor:
+5462:             if evidence_exception or (hist and hist_min >= min_floor and service_ok):
+5463:                 candidate.reasons.append("min_mbps_below_floor_contextual_warning")
+5464:             else:
+5465:                 self._block(candidate, "min_mbps_below_floor")
+5466:         if egress.stability and egress.stability < min_stability:
+5467:             if evidence_exception:
+5468:                 candidate.reasons.append("stability_below_floor_contextual_warning")
+5469:             elif hist and hist_stability >= min_stability:
+5470:                 candidate.reasons.append("stability_below_floor_but_1h_stability_ok")
+5471:             else:
+5472:                 self._block(candidate, "stability_below_floor")
+5473:         if evidence_exception:
+5474:             candidate.reasons.append("quality_floor_overridden_by_service_evidence")
+5475:         candidate.quality_decision = decision
+5476:         if hist and to_float(hist.get("fail_rate")) >= 0.75:
+5477:             candidate.reasons.append("quality_history_fail_rate_high_advisory")
+5478: 
+5479:     def _telegram_sentinel_row(self, egress_id: str) -> dict[str, Any]:
+5480:         return ((self.telegram_sentinel.get("items") or {}).get(egress_id) or {})

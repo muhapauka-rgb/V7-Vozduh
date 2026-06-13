@@ -1,0 +1,59 @@
+[
+  {
+    "floor": 0.45,
+    "healthy_channels": [
+      "vless"
+    ],
+    "planner_pool_size": 1,
+    "candidate_moves_estimate": 3,
+    "ba3_readiness": false
+  },
+  {
+    "floor": 0.4,
+    "healthy_channels": [
+      "vless"
+    ],
+    "planner_pool_size": 1,
+    "candidate_moves_estimate": 3,
+    "ba3_readiness": false
+  },
+  {
+    "floor": 0.35,
+    "healthy_channels": [
+      "vless"
+    ],
+    "planner_pool_size": 1,
+    "candidate_moves_estimate": 3,
+    "ba3_readiness": false
+  },
+  {
+    "floor": 0.3,
+    "healthy_channels": [
+      "vless"
+    ],
+    "planner_pool_size": 1,
+    "candidate_moves_estimate": 3,
+    "ba3_readiness": false
+  },
+  {
+    "floor": 0.2,
+    "healthy_channels": [
+      "vless",
+      "awg0"
+    ],
+    "planner_pool_size": 2,
+    "candidate_moves_estimate": "unknown; would require read-only planner simulation with changed floor, not performed",
+    "ba3_readiness": "unknown"
+  },
+  {
+    "floor": 0.15,
+    "healthy_channels": [
+      "vless",
+      "awg0",
+      "awg3"
+    ],
+    "planner_pool_size": 3,
+    "candidate_moves_estimate": "likely >=23 (reference BA3_EVIDENCE/phase3_fresh_planner.json when vless+awg0+awg3 were healthy)",
+    "ba3_readiness": true
+  }
+]

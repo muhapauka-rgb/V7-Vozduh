@@ -1,0 +1,13 @@
+{
+  "stability_owner": "tools/v7-egress-quality-compact writes egress-quality-summary.json EMA windows; tools/v7-users-autoswitch consumes live egress.stability and 1h quality history for eligibility",
+  "calculation": "sample stability = live v7-state egress.stability or speed_item.stability or 1.0 if ok else 0.0; window stability = EMA(old,current,alpha)",
+  "windows_alpha": {
+    "5m": 0.35,
+    "1h": 0.18,
+    "24h": 0.06,
+    "7d": 0.02
+  },
+  "floor_origin": "tools/v7-users-autoswitch DEFAULT_QUALITY_POLICY min_stability=0.45; policy quality.min_stability can override; current planner evidence reports min_stability=0.45",
+  "eligibility_rule": "if live egress.stability is nonzero and below floor, block unless evidence exception or 1h historical stability >= floor",
+  "service_exception": "only protocol_diagnostic_limited_suspect with service_ok, health_code 200, avg/min floors met, and max(live,hist)>=quality_exception_min_stability 0.15 gets exception; awg0/awg3 are normal severity, so no exception"
+}

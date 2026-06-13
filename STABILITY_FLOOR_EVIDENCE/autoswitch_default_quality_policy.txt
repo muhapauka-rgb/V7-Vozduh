@@ -1,0 +1,31 @@
+60:     "channel-service-scores",
+61:     "risk-summaries",
+62:     "trust-summaries",
+63:     "blast-radius-summaries",
+64: )
+65: TELEGRAM_HARD_STATUSES = {"NOT_STARTED", "DOWN"}
+66: TELEGRAM_SOFT_STATUSES = {"DEGRADED", "DOWN_GRACE", "GRACE"}
+67: DEFAULT_SWITCH_POLICY = {
+68:     "autoswitch_enabled": True,
+69:     "autoswitch_mode": "guarded",
+70:     "cooldown_seconds": 180,
+71:     "autoswitch_max_planned_per_run": 1,
+72:     "autoswitch_max_failover_per_run": 25,
+73:     "autoswitch_max_reconnect_per_run": 10,
+74:     "min_score_improvement_pct": 0.20,
+75:     "min_score_delta": 50.0,
+76: }
+77: DEFAULT_QUALITY_POLICY = {
+78:     "min_avg_mbps": 15.0,
+79:     "min_floor_mbps": 10.0,
+80:     "min_stability": 0.45,
+81:     "metrics_fresh_seconds": 900,
+82: }
+83: DEFAULT_LOAD_POLICY = {
+84:     "mode": "dynamic",
+85:     "reserve_ratio": 0.15,
+86:     "soft_multiplier": 1.15,
+87:     "hard_multiplier": 1.45,
+88:     "failover_hard_multiplier": 2.0,
+89:     "failover_capacity_multiplier": 1.25,
+90:     "min_soft_limit": 5,

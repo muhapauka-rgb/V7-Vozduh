@@ -1,0 +1,8 @@
+channel,eligible,blocked,service_score,health_severity,live_stability,hist_5m_stability,hist_1h_stability,hist_24h_stability,hist_7d_stability,hist_1h_avg_mbps,hist_1h_min_mbps,hist_1h_fail_rate,min_stability,min_avg_mbps,min_floor_mbps,evidence_backed_exception,telegram_ok
+vless,True,,100.0,SUSPECT,0.959,0.4677,0.4814,0.6688,0.753,41.596,27.47,0.8875,0.45,15.0,10.0,True,True
+1,False,health_code_000;severity_FAIL;avg_mbps_below_floor;min_mbps_below_floor;telegram_required_telegram_down_14s,2.834,FAIL,0.0,0.0001,0.0002,0.0008,0.0024,8.398,8.398,0.9998,0.45,15.0,10.0,False,False
+amneziawg-exec-20260528-10-8-1-14,False,manual_only;reserve_only;canary_reserved_production_assignment_blocked;stability_below_floor,100.0,OK,0.136,0.1075,0.1567,0.3242,0.4359,40.49,13.732,0.0716,0.45,15.0,10.0,False,True
+awg0,False,stability_below_floor,100.0,OK,0.315,0.2268,0.2162,0.3186,0.4436,35.875,14.199,0.0716,0.45,15.0,10.0,False,True
+awg3,False,stability_below_floor,99.767,OK,0.183,0.1098,0.1836,0.387,0.4964,37.137,13.068,0.1335,0.45,15.0,10.0,False,True
+openvpn-1779388847-d2ad7c,False,health_code_000;severity_FAIL;avg_mbps_below_floor;min_mbps_below_floor;telegram_required_telegram_down_14s,2.838,FAIL,0.0,0.0001,0.0002,0.0008,0.0024,0.002,0.002,0.9998,0.45,15.0,10.0,False,False
+wireguard-1779454504-c43409,False,canary_reserved_production_assignment_blocked,100.0,OK,0.977,0.7971,0.8216,0.8952,0.9267,59.982,56.562,0.0716,0.45,15.0,10.0,False,True

@@ -27124,7 +27124,7 @@ def html_page_v2():
     }
     function channelAnalysisCard(source={}) {
       const s = channelSuitability(source);
-      const problems = s.score >= 90 ? [] : s.problems;
+      const problems = s.score >= 90 ? [] : s.problems.slice(0, 5);
       const nextActionLabel = s.score >= 90 ? 'No action required' : s.actionLabel;
       const actions = s.score >= 90
         ? `<button class="ghost" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">Details</button>`

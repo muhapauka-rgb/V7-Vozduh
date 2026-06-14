@@ -11781,12 +11781,25 @@ def operator_decision_surface_response():
     users = parse_registry(STATE_DIR / "users.registry")
     egress = parse_registry(STATE_DIR / "egress.registry")
     runtime_state = read_json(STATE_DIR / "v7-state.json", {})
-    return operator_decision_surface.build_operator_decision_surface(
+    surface = operator_decision_surface.build_operator_decision_surface(
         snapshot_root=INTELLIGENCE_SNAPSHOT_ROOT,
         users=users,
         egress=egress,
         runtime_state=runtime_state,
     )
+    selected = selected_moves_read_adapter()
+    surface["assignment_truth"] = {
+        "schema_version": "v7.channel-assignment-truth.adapter.v1",
+        "mode": "read_only_existing_truth",
+        "source": "selected_moves_read_adapter_plus_operator_decision_surface",
+        "selected_moves": selected,
+        "batch_preview": surface.get("batch_preview", {}),
+        "runtime_mutation_performed": False,
+        "new_truth_source_created": False,
+        "planner_executed": False,
+        "snapshot_written": False,
+    }
+    return surface
 
 
 def shadow_autonomy_history(limit=500):
@@ -21467,7 +21480,7 @@ def html_page_v2():
       return `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
     };
     const USER_TABLE_COLUMNS_KEY = 'v7.userTableColumns.v2';
-    const CHANNEL_TABLE_COLUMNS_KEY = 'v7.channelTableColumns.v1';
+    const CHANNEL_TABLE_COLUMNS_KEY = 'v7.channelTableColumns.v2';
     const ORGANIZATION_TABLE_COLUMNS_KEY = 'v7.organizationTableColumns.v1';
     const USER_TABLE_SORT_KEY = 'v7.userTableSort.v1';
     const CHANNEL_TABLE_SORT_KEY = 'v7.channelTableSort.v1';
@@ -21503,8 +21516,10 @@ def html_page_v2():
     const CHANNEL_TABLE_COLUMN_DEFS = [
       {id:'channel', label:'Канал', meaning:'Название канала.', required:true, defaultVisible:true},
       {id:'score', label:'Оценка', meaning:'Операторская пригодность канала от 0 до 100 по существующим проверкам.', required:true, defaultVisible:true},
-      {id:'commercial_status', label:'Вердикт', meaning:'Человеческий статус канала: отличный, рабочий, требует проверки или непригоден.', required:true, defaultVisible:true},
-      {id:'main_issue', label:'Главная причина', meaning:'Главная причина, с которой оператор должен начать.', required:true, defaultVisible:true},
+      {id:'assignment', label:'Назначение', meaning:'Можно ли назначать, держать или нужно эвакуировать пользователей по существующему planner truth.', required:true, defaultVisible:true},
+      {id:'assignment_blocker', label:'Блокер', meaning:'Главный blocker из существующего planner/governance truth.', required:true, defaultVisible:true},
+      {id:'commercial_status', label:'Вердикт качества', meaning:'Человеческий статус канала: отличный, рабочий, требует проверки или непригоден.', required:false, defaultVisible:false},
+      {id:'main_issue', label:'Причина качества', meaning:'Главная причина по quality score, не assignment truth.', required:false, defaultVisible:false},
       {id:'channel_state', label:'Состояние доверия', meaning:'Короткое состояние канала по модели доверия и восстановления.', required:false, defaultVisible:false},
       {id:'status', label:'Статус', meaning:'Короткое состояние канала.', required:false, defaultVisible:false},
       {id:'users', label:'Пользователи', meaning:'Сколько пользователей сейчас назначено на канал.', required:false, defaultVisible:true},
@@ -27110,6 +27125,178 @@ def html_page_v2():
       const s = channelSuitability(source);
       return `<button type="button" class="channel-cell-button" onclick="event.stopPropagation();openChannelSuitabilityBreakdown('${esc(s.id)}')"><span class="cell-main">${esc(s.mainIssue)}</span><span class="cell-sub">${esc(s.why)}</span></button>`;
     }
+    function channelAssignmentPlan() {
+      const surface = operatorDecisionSurface?.assignment_truth || {};
+      const selectedDetail = surface.selected_moves || {};
+      const storedMoves = (Array.isArray(selectedDetail.selected_moves) ? selectedDetail.selected_moves : []).map(row => ({
+        ...row,
+        user_ip: row.user_ip || row.user || '',
+        current_egress: row.current_egress || row.from || row.source || '',
+        recommended_egress: row.recommended_egress || row.to || row.target || '',
+        reason: row.reason || row.reasons || [],
+      }));
+      const previewMoves = (surface.batch_preview?.users_to_move || operatorDecisionSurface?.batch_preview?.users_to_move || []).map(row => ({
+        user_ip: row.user || '',
+        current_egress: row.from || row.current_egress || '',
+        recommended_egress: row.to || row.recommended_egress || '',
+        reason: ['operator_decision_surface_move_recommended'],
+      }));
+      const moves = [...storedMoves, ...previewMoves];
+      return {
+        selected_moves: moves,
+        decisions: [],
+        source: surface.source || 'operator_decision_surface',
+        selected_moves_status: selectedDetail.status || '',
+        selected_moves_reason: selectedDetail.reason || '',
+      };
+    }
+    function channelAssignmentPlanReady() {
+      const plan = channelAssignmentPlan();
+      return !!operatorDecisionSurface && (Array.isArray(plan.decisions) || Array.isArray(plan.selected_moves));
+    }
+    function channelAssignmentArray(value) {
+      if (Array.isArray(value)) return value;
+      if (value === null || value === undefined || value === '') return [];
+      return [String(value)];
+    }
+    function channelAssignmentReasons(value) {
+      return channelAssignmentArray(value).flatMap(item => String(item || '').split(',').map(x => x.trim()).filter(Boolean));
+    }
+    function channelAssignmentBlockerLabel(reason='') {
+      const text = String(reason || '').trim();
+      if (!text) return 'Нет блокера';
+      if (/current_egress_not_eligible/i.test(text)) return 'Current channel not eligible';
+      if (/manual_only/i.test(text)) return 'Manual only';
+      if (/reserve_only/i.test(text)) return 'Reserve only';
+      if (/canary_reserved/i.test(text)) return 'Canary reserved';
+      if (/production_assignment_allowed=false/i.test(text)) return 'Production assignment disabled';
+      if (/restore_barrier/i.test(text)) return 'Restore barrier';
+      if (/authority_budget|budget|blast_radius/i.test(text)) return 'Governance budget';
+      if (/hard_full|planned_hard_full|failover_full|capacity/i.test(text)) return 'Capacity limit';
+      if (/stability_below_floor/i.test(text)) return 'Stability floor';
+      if (/min_mbps_below_floor|avg_mbps_below_floor|speed/i.test(text)) return 'Speed floor';
+      if (/telegram_required|telegram_down|service_telegram/i.test(text)) return 'Telegram required';
+      if (/service|youtube|google|instagram|whatsapp|chatgpt|claude/i.test(text)) return 'Service failure';
+      if (/route_class|trusted_ru|route/i.test(text)) return 'Route verification';
+      if (/health_code|severity_fail|severity/i.test(text)) return 'Health failure';
+      if (/egress_disabled|disabled|maintenance|quarantine/i.test(text)) return 'Channel disabled';
+      return operatorText(text);
+    }
+    function channelAssignmentStatusLabel(status='') {
+      return {
+        use:'Use',
+        keep:'Keep Only',
+        evacuate:'Evacuate',
+        blocked:'Blocked',
+        emergency:'Emergency Only',
+      }[status] || 'Blocked';
+    }
+    function channelAssignmentTone(status='') {
+      return {use:'ok', keep:'info', evacuate:'bad', blocked:'bad', emergency:'warn'}[status] || 'bad';
+    }
+    function channelAssignmentEvidence(source={}) {
+      const row = channelRowFromSource(source);
+      const id = row.id || row.egress || '';
+      const plan = channelAssignmentPlan();
+      const decisions = Array.isArray(plan.decisions) ? plan.decisions : [];
+      const selectedMoves = Array.isArray(plan.selected_moves) ? plan.selected_moves : [];
+      const candidates = [];
+      decisions.forEach(decision => {
+        (Array.isArray(decision.candidates) ? decision.candidates : []).forEach(candidate => {
+          if (String(candidate.egress || '') === String(id)) candidates.push({...candidate, _decision:decision});
+        });
+      });
+      const selectedFrom = selectedMoves.filter(move => String(move.current_egress || '') === String(id));
+      const selectedTo = selectedMoves.filter(move => String(move.recommended_egress || '') === String(id));
+      const blockers = [];
+      candidates.forEach(candidate => blockers.push(...channelAssignmentReasons(candidate.blocked)));
+      selectedFrom.forEach(move => blockers.push(...channelAssignmentReasons(move.reason)));
+      decisions
+        .filter(decision => String(decision.current_egress || '') === String(id))
+        .forEach(decision => blockers.push(...channelAssignmentReasons(decision.reason)));
+      const channelSurface = (operatorDecisionSurface?.channels_by_id || {})[id] || {};
+      if (channelSurface.emergency_only) blockers.push('manual_only');
+      if (channelSurface.channel_state_blocked_action_summary) blockers.push(channelSurface.channel_state_blocked_action_summary);
+      if (channelSurface.channel_state_reason_short && /block|forbid|запрещ/i.test(String(channelSurface.channel_state_reason_short))) blockers.push(channelSurface.channel_state_reason_short);
+      const reg = row.registry || {};
+      const regText = JSON.stringify(reg || {}).toLowerCase();
+      const roleText = String(reg.role || reg.type || reg.protocol || '').toLowerCase();
+      if (reg.manual_only === true || /manual_only/.test(regText)) blockers.push('manual_only');
+      if (reg.reserve_only === true || /reserve_only/.test(regText)) blockers.push('reserve_only');
+      if (reg.canary_reserved === true || /canary_reserved/.test(regText)) blockers.push('canary_reserved_production_assignment_blocked');
+      if (reg.production_assignment_allowed === false || String(reg.production_assignment_allowed || '').toLowerCase() === 'false') blockers.push('production_assignment_allowed=false');
+      if (/execution|reserve|canary/.test(roleText)) blockers.push(roleText.includes('reserve') ? 'reserve_only' : (roleText.includes('canary') ? 'canary_reserved_production_assignment_blocked' : 'manual_only'));
+      const safety = plan.safety || {};
+      const authority = safety.authority_budget_gate || {};
+      const restore = safety.restore_barrier || {};
+      if (authority.enabled && Array.isArray(authority.blocked_actions) && authority.blocked_actions.length) blockers.push('authority_budget_gate');
+      if (restore.active || restore.blocked || restore.stop_required) blockers.push('restore_barrier');
+      return {
+        id,
+        planReady: channelAssignmentPlanReady(),
+        candidates,
+        eligibleCandidates: candidates.filter(candidate => candidate.eligible === true),
+        selectedFrom,
+        selectedTo,
+        blockers: Array.from(new Set(blockers.filter(Boolean))),
+        users: egressUserCount(id),
+      };
+    }
+    function channelAssignmentStatus(source={}) {
+      const evidence = channelAssignmentEvidence(source);
+      const emergency = evidence.blockers.some(reason => /manual_only|reserve_only|canary_reserved|production_assignment_allowed=false/i.test(reason));
+      let key = 'blocked';
+      let reason = 'Planner truth unavailable';
+      if (!evidence.planReady) {
+        key = 'blocked';
+        reason = operatorDecisionSurfaceLoading ? 'Assignment truth loading' : 'Assignment truth unavailable';
+      } else if (emergency) {
+        key = 'emergency';
+        reason = channelAssignmentBlockerLabel(evidence.blockers.find(item => /manual_only|reserve_only|canary_reserved|production_assignment_allowed=false/i.test(item)));
+      } else if (evidence.selectedFrom.length) {
+        key = 'evacuate';
+        reason = `${evidence.selectedFrom.length} users selected to leave`;
+      } else if (evidence.eligibleCandidates.length || evidence.selectedTo.length) {
+        key = 'use';
+        reason = evidence.selectedTo.length ? `${evidence.selectedTo.length} selected moves target this channel` : 'Planner candidate eligible';
+      } else if (evidence.users > 0 && !evidence.blockers.length) {
+        key = 'keep';
+        reason = 'Current users can stay';
+      } else if (evidence.users > 0 && evidence.blockers.length) {
+        key = 'keep';
+        reason = 'Keep current users, block new assignment';
+      } else if (evidence.blockers.length) {
+        key = 'blocked';
+        reason = channelAssignmentBlockerLabel(evidence.blockers[0]);
+      }
+      const mainBlocker = evidence.blockers.length ? channelAssignmentBlockerLabel(evidence.blockers[0]) : (key === 'use' ? 'None' : reason);
+      return {
+        ...evidence,
+        key,
+        label: channelAssignmentStatusLabel(key),
+        tone: channelAssignmentTone(key),
+        reason,
+        mainBlocker,
+      };
+    }
+    function channelAssignmentMismatch(source={}) {
+      const quality = channelSuitability(source);
+      const assignment = channelAssignmentStatus(source);
+      const blocked = ['blocked','evacuate','emergency'].includes(assignment.key);
+      return quality.score >= 75 && blocked;
+    }
+    function channelAssignmentCell(source={}) {
+      const a = channelAssignmentStatus(source);
+      const mismatch = channelAssignmentMismatch(source);
+      const sub = [a.reason, mismatch ? 'Качество не равно назначению' : ''].filter(Boolean).join(' · ');
+      return `<button type="button" class="channel-cell-button" onclick="event.stopPropagation();openChannelDrawer('${esc(a.id)}')"><span class="cell-main">${pill(a.label, a.tone)}</span><span class="cell-sub">${esc(sub)}</span></button>`;
+    }
+    function channelAssignmentBlockerCell(source={}) {
+      const a = channelAssignmentStatus(source);
+      const mismatch = channelAssignmentMismatch(source);
+      const sub = mismatch ? 'quality score conflicts with planner truth' : (a.blockers.length ? 'planner blocker' : 'planner truth');
+      return `<button type="button" class="channel-cell-button" onclick="event.stopPropagation();openChannelDrawer('${esc(a.id)}')"><span class="cell-main">${esc(a.mainBlocker)}</span><span class="cell-sub">${esc(sub)}</span></button>`;
+    }
     function channelSuitabilityBreakdownTable(source={}) {
       const s = channelSuitability(source);
       const rows = s.breakdown.map(item => `<tr><td><strong>${esc(channelOperatorCheckLabel(item.check))}</strong></td><td>${esc(item.score)}</td><td>${esc(item.max)}</td><td>${esc(item.operatorProblem || item.operatorReason || item.reason)}</td></tr>`);
@@ -27159,6 +27346,8 @@ def html_page_v2():
     }
     function channelAnalysisCard(source={}) {
       const s = channelSuitability(source);
+      const a = channelAssignmentStatus(source);
+      const mismatch = channelAssignmentMismatch(source);
       const problems = s.score >= 90 ? [] : s.problems.slice(0, 5);
       const nextActionLabel = s.score >= 90 ? 'Действий не требуется' : s.actionLabel;
       const actions = s.score >= 90
@@ -27169,6 +27358,9 @@ def html_page_v2():
         <div class="channel-analysis-flow">
           <div class="channel-analysis-row"><span>Вердикт</span><strong>${esc(s.status.label)}</strong></div>
           <div class="channel-analysis-row"><span>Оценка</span><button type="button" class="channel-analysis-score-button" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">${esc(s.score)} / 100</button></div>
+          <div class="channel-analysis-row"><span>Назначение</span><strong>${pill(a.label, a.tone)}</strong><em>${esc(a.reason)}</em></div>
+          <div class="channel-analysis-row"><span>Блокер</span><strong>${esc(a.mainBlocker)}</strong></div>
+          ${mismatch ? `<div class="channel-analysis-row"><span>Расхождение</span><strong>Качество не равно назначению</strong><em>Quality score good, planner assignment blocked.</em></div>` : ''}
           <div class="channel-analysis-row"><span>Главная причина</span><strong>${esc(s.primaryCause)}</strong></div>
           <div class="channel-analysis-row"><span>Проблемы</span>${channelAnalysisListHtml(problems, 'bad')}</div>
           <div class="channel-analysis-row"><span>Работает</span>${channelAnalysisListHtml(s.working, 'ok')}</div>
@@ -27222,6 +27414,8 @@ def html_page_v2():
       const health = channelHealth(row);
       if (colId === 'channel') return id;
       if (colId === 'score') return channelSuitability(row).score;
+      if (colId === 'assignment') return channelAssignmentStatus(row).label;
+      if (colId === 'assignment_blocker') return channelAssignmentStatus(row).mainBlocker;
       if (colId === 'commercial_status') return channelSuitability(row).status.label;
       if (colId === 'main_issue') return channelSuitability(row).mainIssue;
       if (colId === 'channel_state') return channelDecisionRow(id).state || '';
@@ -27344,6 +27538,8 @@ def html_page_v2():
         return `<button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><span class="cell-main">${esc(label)}</span>${meta ? `<span class="channel-name-meta">${esc(meta)}</span>` : ''}</button>`;
       }
       if (colId === 'score') return channelSuitabilityCell(id, view.row || {id});
+      if (colId === 'assignment') return channelAssignmentCell(view.row || {id});
+      if (colId === 'assignment_blocker') return channelAssignmentBlockerCell(view.row || {id});
       if (colId === 'commercial_status') return channelCommercialStatusCell(view.row || {id});
       if (colId === 'main_issue') return channelMainIssueCell(view.row || {id});
       if (colId === 'channel_state') return channelStateCell(id, channelDecisionRow(id));

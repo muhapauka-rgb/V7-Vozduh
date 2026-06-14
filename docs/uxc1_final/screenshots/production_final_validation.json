@@ -1,0 +1,100 @@
+{
+  "rows": [
+    {
+      "i": 1,
+      "name": "vless",
+      "text": "vless 72/100 Requires Check Overloaded 11 Check Users",
+      "visible": true
+    },
+    {
+      "i": 2,
+      "name": "awg0",
+      "text": "awg0 92/100 Excellent — 0 Open Channel",
+      "visible": true
+    },
+    {
+      "i": 3,
+      "name": "awg3",
+      "text": "awg3 72/100 Requires Check Overloaded 8 Check Users",
+      "visible": true
+    },
+    {
+      "i": 4,
+      "name": "1",
+      "text": "1 79/100 Working Recent behavior unclear 0 Open Channel",
+      "visible": true
+    },
+    {
+      "i": 5,
+      "name": "OpenVPN-Kolosov openvpn-1779388847-d2ad7c",
+      "text": "OpenVPN-Kolosov openvpn-1779388847-d2ad7c 37/100 Unusable Service failure 0 Check Services",
+      "visible": true
+    },
+    {
+      "i": 6,
+      "name": "wg гермашка, работает wireguard-1779454504-c43409",
+      "text": "wg гермашка, работает wireguard-1779454504-c43409 72/100 Requires Check Overloaded 8 Check Users",
+      "visible": true
+    },
+    {
+      "i": 7,
+      "name": "amneziawg-exec-20260528-10-8-1-14",
+      "text": "amneziawg-exec-20260528-10-8-1-14 92/100 Excellent — 0 Open Channel",
+      "visible": true
+    }
+  ],
+  "excellent": {
+    "name": "awg0",
+    "expectedStatus": "Excellent",
+    "desktop": "Канал awg0 Канал Details Закрыть CHANNEL ANALYSIS VERDICT Excellent SUITABILITY 92 / 100 PROBLEMS — — WORKING ✔ Services available ✔ Connection stable ✔ User load OK ✔ Channel ready ✔ Recent history clean NEXT ACTION No action required Channel is ready for operators Details Details Готово",
+    "mobile": {
+      "cw": 390,
+      "overflow": false,
+      "sw": 390,
+      "text": "Канал awg0 Канал Details Закрыть CHANNEL ANALYSIS VERDICT Excellent SUITABILITY 92 / 100 PROBLEMS — — WORKING ✔ Services available ✔ Connection stable ✔ User load OK ✔ Channel ready ✔ Recent history clean NEXT ACTION No action required Channel is ready for operators Details Details Готово",
+      "vh": 844,
+      "vw": 390
+    }
+  },
+  "working": {
+    "name": "1",
+    "expectedStatus": "Working",
+    "desktop": "Канал 1 Канал Details Закрыть CHANNEL ANALYSIS VERDICT Working SUITABILITY 79 / 100 PROBLEMS ✖ Telegram unavailable ✖ Service verification required ✖ Route requires verification ✖ Recent behavior needs confirmation WORKING ✔ Services available ✔ Connection stable ✔ User load OK ✔ Channel ready NEXT ACTION Open Channel Recent behavior needs confirmation Open Channel Details Details Готово",
+    "mobile": {
+      "cw": 390,
+      "overflow": false,
+      "sw": 390,
+      "text": "Канал 1 Канал Details Закрыть CHANNEL ANALYSIS VERDICT Working SUITABILITY 79 / 100 PROBLEMS ✖ Telegram unavailable ✖ Service verification required ✖ Route requires verification ✖ Recent behavior needs confirmation WORKING ✔ Services available ✔ Connection stable ✔ User load OK ✔ Channel ready NEXT ACTION Open Channel Recent behavior needs confirmation Open Channel Details Details Готово",
+      "vh": 844,
+      "vw": 390
+    }
+  },
+  "requires": {
+    "name": "vless",
+    "expectedStatus": "Requires Check",
+    "desktop": "Канал vless Канал Details Закрыть CHANNEL ANALYSIS VERDICT Requires Check SUITABILITY 72 / 100 PROBLEMS ✖ Service verification required ✖ Channel overloaded ✖ Route requires verification WORKING ✔ Services available ✔ Connection stable ✔ Channel ready ✔ Recent history clean NEXT ACTION Check Users Too many users are assigned to this channel Check Users Details Details Готово",
+    "mobile": {
+      "cw": 390,
+      "overflow": false,
+      "sw": 390,
+      "text": "Канал vless Канал Details Закрыть CHANNEL ANALYSIS VERDICT Requires Check SUITABILITY 72 / 100 PROBLEMS ✖ Service verification required ✖ Channel overloaded ✖ Route requires verification WORKING ✔ Services available ✔ Connection stable ✔ Channel ready ✔ Recent history clean NEXT ACTION Check Users Too many users are assigned to this channel Check Users Details Details Готово",
+      "vh": 844,
+      "vw": 390
+    }
+  },
+  "unusable": {
+    "name": "OpenVPN-Kolosov openvpn-1779388847-d2ad7c",
+    "expectedStatus": "Unusable",
+    "desktop": "Канал OpenVPN-Kolosov Канал Details Закрыть CHANNEL ANALYSIS VERDICT Unusable SUITABILITY 37 / 100 PROBLEMS ✖ Telegram unavailable ✖ Google unavailable ✖ Google Auth unavailable ✖ YouTube unavailable ✖ Connection stability needs check WORKING ✔ User load OK ✔ Channel ready NEXT ACTION Check Services One or more user-facing services need verification Check Services Details Details Готово",
+    "mobile": {
+      "cw": 390,
+      "overflow": false,
+      "sw": 390,
+      "text": "Канал OpenVPN-Kolosov Канал Details Закрыть CHANNEL ANALYSIS VERDICT Unusable SUITABILITY 37 / 100 PROBLEMS ✖ Telegram unavailable ✖ Google unavailable ✖ Google Auth unavailable ✖ YouTube unavailable ✖ Connection stability needs check WORKING ✔ User load OK ✔ Channel ready NEXT ACTION Check Services One or more user-facing services need verification Check Services Details Details Готово",
+      "vh": 844,
+      "vw": 390
+    }
+  },
+  "breakdown": "V7 Главная Пользователи Каналы Маршруты Оператор Проверки Безопасность Настройки Логи V7 работает 53 внимания Тёмная RU Карта Обновить Здоровые каналы 5/7 Сервисы OK 32/47 Активные пользователи 26 Нагрузка на лимите Обзор Добавить канал Сервисная матрица Готовность и скорость Доказательства Предложения Столбцы Упорядочить КАНАЛ SCORE STATUS MAIN ISSUE ПОЛЬЗОВАТЕЛИ ДЕЙСТВИЕ vless 72/100 Requires Check Overloaded 11 Check Users awg0 92/100 Excellent — 0 Open Channel awg3 72/100 Requires Check Overloaded 8 Check Users 1 79/100 Working Recent behavior unclear 0 Open Channel OpenVPN-Kolosov openvpn-1779388847-d2ad7c 37/100 Unusable Service failure 0 Check Services wg гермашка, работает wireguard-1779454504-c43409 72/100 Requires Check Overloaded 8 Check Users amneziawg-exec-20260528-10-8-1-14 92/100 Excellent — 0 Open Channel Подсказка Информация Закрыть Канал Why 37? Канал Закрыть Why 37? Channel OpenVPN-Kolosov Verdict Unusable Cause Service failure Action Check Services Breakdown Services 0 / 30 Problem: Service verification required One or more user-facing services need verification ✖ Service verification required ✖ Service verification required ✖ Service verification required ✖ Ser",
+  "consoleErrors": []
+}

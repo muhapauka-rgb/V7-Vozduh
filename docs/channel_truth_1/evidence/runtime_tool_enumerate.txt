@@ -1,0 +1,5 @@
+V7 runtime tool enumeration (read-only)
+total_v7_tools=0 production_only=0 repo_present=0
+known_deeper_inspection_entries_found=0
+must_be_release_owned=0 operator_only_optional=0 safe_archive_candidate_future=0
+warning=No runtime tools found in supplied runtime dirs. Run on VPS or provide mounted/copied runtime directory.

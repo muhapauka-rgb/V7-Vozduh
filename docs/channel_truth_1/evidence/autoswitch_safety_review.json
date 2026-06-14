@@ -1,0 +1,98 @@
+{
+  "findings": [
+    {
+      "detail": "client-reconnect-state.json is missing.",
+      "group": "client_experience",
+      "severity": "info",
+      "suggested_action": "Client experience awareness will be limited.",
+      "title": "Reconnect state unavailable"
+    },
+    {
+      "detail": "27 user registry rows are present but no enabled egress rows were detected.",
+      "group": "bounded_migration",
+      "severity": "critical",
+      "suggested_action": "Do not apply autoswitch until registry/runtime state is reconciled.",
+      "title": "No enabled egress found for active users"
+    },
+    {
+      "detail": "This command does not execute v7-users-autoswitch and does not write reconnect observation state.",
+      "group": "dry_run_safety",
+      "severity": "info",
+      "suggested_action": "Use this helper for read-only preflight; use v7-users-autoswitch dry-run only when low-risk state observation writes are acceptable.",
+      "title": "Pure read-only review"
+    }
+  ],
+  "generated_at": 1781471392,
+  "groups": {
+    "anti_flap": {
+      "blocked_targets": 0,
+      "frozen_users": 0,
+      "quarantined_egress": 0,
+      "status": "ok"
+    },
+    "bounded_migration": {
+      "egress": 7,
+      "enabled_egress": 0,
+      "max_failover_per_run": 25,
+      "max_planned_per_run": 1,
+      "max_reconnect_per_run": 10,
+      "users": 27
+    },
+    "client_experience": {
+      "recent_records": 0,
+      "recent_window_seconds": 900,
+      "records": 0,
+      "status": "missing"
+    },
+    "dry_run_safety": {
+      "does_not_call_v7_users_autoswitch": true,
+      "known_autoswitch_dry_run_state_write": "client-reconnect-state.json may be updated by v7-users-autoswitch planning",
+      "pure_read_only": true
+    },
+    "historical_reliability": {
+      "degraded_entries": 0,
+      "entries": 1,
+      "status": "ok"
+    },
+    "policy_bounds": {
+      "cooldown_seconds": 180,
+      "max_failover_per_run": 25,
+      "max_planned_per_run": 1,
+      "max_reconnect_per_run": 10,
+      "min_score_delta": 50.0,
+      "min_score_improvement_pct": 0.2,
+      "mode": "observe"
+    },
+    "route_class_awareness": {
+      "route_class_fitness_issues": 0
+    },
+    "service_awareness": {
+      "degraded_service_rows": 0,
+      "matrix_status": "ok",
+      "route_class_fitness_issues": 0,
+      "service_rows": 0,
+      "telegram_blocked_items": 0,
+      "telegram_status": "missing"
+    }
+  },
+  "schema_version": 1,
+  "sources": {
+    "autoswitch_safety": "ok",
+    "client_reconnect_state": "missing",
+    "egress_quality_summary": "ok",
+    "egress_registry": "ok",
+    "org_policy": "ok",
+    "policy": "ok",
+    "service_matrix": "ok",
+    "telegram_sentinel": "missing",
+    "users_registry": "ok"
+  },
+  "state_dir": "/private/tmp/channel_truth_1_state",
+  "status": "critical",
+  "summary": {
+    "critical": 1,
+    "info": 2,
+    "warning": 0
+  },
+  "tool": "v7-autoswitch-safety-review"
+}

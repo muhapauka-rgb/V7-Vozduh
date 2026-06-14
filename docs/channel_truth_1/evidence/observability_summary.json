@@ -1,0 +1,487 @@
+{
+  "authority_hierarchy": [
+    {
+      "level": "hard_policy",
+      "meaning": "hard limits and eligibility; never advisory",
+      "source": "policy.json/org-egress-policy.json"
+    },
+    {
+      "level": "safety",
+      "meaning": "anti-flap, freezes, target blocks and quarantine memory",
+      "source": "autoswitch-safety.json"
+    },
+    {
+      "level": "live_service",
+      "meaning": "broad live service usability",
+      "source": "service-matrix.json"
+    },
+    {
+      "level": "fast_service_signal",
+      "meaning": "fast Telegram-specific advisory/degradation signal",
+      "source": "telegram-sentinel.json"
+    },
+    {
+      "level": "capacity",
+      "meaning": "capacity and overload signal; should not override safety",
+      "source": "autoswitch dynamic load / egress-load-summary.json"
+    },
+    {
+      "level": "client_experience",
+      "meaning": "supporting user-impact signal",
+      "source": "client-reconnect-state.json"
+    },
+    {
+      "level": "historical_quality",
+      "meaning": "confidence modifier, not sole live route truth",
+      "source": "egress-quality-summary.json"
+    },
+    {
+      "level": "runtime_verification",
+      "meaning": "datapath safety verification, outside summary probe execution",
+      "source": "v7-killswitch-check/v7-user-route-check/v7-provisioning-reconcile-check"
+    }
+  ],
+  "contradictions": [
+    {
+      "contradiction": "quality history exists for non-enabled or missing egress",
+      "impact": "historical state can confuse operator if shown without lifecycle context",
+      "object": "awg2",
+      "severity": "info",
+      "sources": [
+        "egress-quality-summary.json",
+        "egress.registry"
+      ],
+      "suggested_action": "show as archived/legacy history, not live health"
+    },
+    {
+      "contradiction": "historical quality is unstable while live service matrix is not blocked (degraded)",
+      "evidence": "historical fail_rate=0.949 penalty=94.9",
+      "impact": "autoswitch may reject a currently usable egress or operator may misread live state",
+      "object": "vless",
+      "severity": "critical",
+      "sources": [
+        "egress-quality-summary.json",
+        "service-matrix.json"
+      ],
+      "suggested_action": "treat historical quality as confidence modifier, not live blocker"
+    },
+    {
+      "contradiction": "historical quality is degraded while live service matrix is not blocked (degraded)",
+      "evidence": "quality trend=degrading stability=0.303",
+      "impact": "autoswitch may reject a currently usable egress or operator may misread live state",
+      "object": "awg0",
+      "severity": "warning",
+      "sources": [
+        "egress-quality-summary.json",
+        "service-matrix.json"
+      ],
+      "suggested_action": "treat historical quality as confidence modifier, not live blocker"
+    },
+    {
+      "contradiction": "historical quality is degraded while live service matrix is not blocked (degraded)",
+      "evidence": "quality trend=degrading stability=0.408",
+      "impact": "autoswitch may reject a currently usable egress or operator may misread live state",
+      "object": "awg3",
+      "severity": "warning",
+      "sources": [
+        "egress-quality-summary.json",
+        "service-matrix.json"
+      ],
+      "suggested_action": "treat historical quality as confidence modifier, not live blocker"
+    },
+    {
+      "contradiction": "quality history exists for non-enabled or missing egress",
+      "impact": "historical state can confuse operator if shown without lifecycle context",
+      "object": "amneziawg-1779227510-8c08e7",
+      "severity": "info",
+      "sources": [
+        "egress-quality-summary.json",
+        "egress.registry"
+      ],
+      "suggested_action": "show as archived/legacy history, not live health"
+    },
+    {
+      "contradiction": "historical quality is degraded while live service matrix is not blocked (degraded)",
+      "evidence": "quality trend=stable stability=0.297",
+      "impact": "autoswitch may reject a currently usable egress or operator may misread live state",
+      "object": "amneziawg-exec-20260528-10-8-1-14",
+      "severity": "warning",
+      "sources": [
+        "egress-quality-summary.json",
+        "service-matrix.json"
+      ],
+      "suggested_action": "treat historical quality as confidence modifier, not live blocker"
+    },
+    {
+      "contradiction": "trusted/direct RU diagnostics unavailable",
+      "impact": "operator truth for trusted RU must remain unknown, not healthy",
+      "object": "trusted_ru",
+      "severity": "warning",
+      "sources": [
+        "direct-ru-diagnostics.json"
+      ],
+      "suggested_action": "keep unknown status until explicit direct/RU diagnostic pass"
+    }
+  ],
+  "generated_at": "2026-06-14T21:09:52.848038+00:00",
+  "groups": {
+    "autoswitch": {
+      "affected": 0,
+      "reason": "autoswitch safety has no active freezes",
+      "severity": "ok",
+      "status": "healthy",
+      "suggested_action": "no action required"
+    },
+    "capacity": {
+      "affected": 0,
+      "reason": "capacity within soft limits",
+      "severity": "ok",
+      "status": "healthy",
+      "suggested_action": "no action required"
+    },
+    "channels": {
+      "affected": 3,
+      "reason": "historical quality unstable on 3 egress",
+      "severity": "critical",
+      "status": "unstable",
+      "suggested_action": "inspect quality summary as historical signal"
+    },
+    "direct_routing": {
+      "affected": 0,
+      "reason": "trusted/direct RU diagnostics unavailable",
+      "severity": "warning",
+      "status": "unknown",
+      "suggested_action": "run direct/RU diagnostics"
+    },
+    "provisioning": {
+      "affected": 0,
+      "reason": "registry assignments are explainable at summary level",
+      "severity": "ok",
+      "status": "healthy",
+      "suggested_action": "no action required"
+    },
+    "routing": {
+      "affected": 0,
+      "reason": "path benchmark unavailable",
+      "severity": "warning",
+      "status": "unknown",
+      "suggested_action": "run path benchmark when safe"
+    },
+    "security": {
+      "affected": 3,
+      "reason": "state source errors: telegram-sentinel.json, client-reconnect-state.json, path-benchmark.json",
+      "severity": "warning",
+      "status": "unknown",
+      "suggested_action": "inspect missing/corrupt state files"
+    },
+    "services": {
+      "affected": 2,
+      "reason": "service blockers on 2 egress",
+      "severity": "blocker",
+      "status": "blocked",
+      "suggested_action": "inspect service matrix and sentinel details"
+    },
+    "trusted_ru": {
+      "affected": 0,
+      "reason": "trusted/direct RU diagnostics unavailable",
+      "severity": "warning",
+      "status": "unknown",
+      "suggested_action": "run direct/RU diagnostics"
+    },
+    "users": {
+      "affected": 0,
+      "reason": "26 active users tracked",
+      "severity": "ok",
+      "status": "healthy",
+      "suggested_action": "no action required"
+    }
+  },
+  "health_sources": {
+    "autoswitch-safety.json": {
+      "authority": "anti_flap_authority",
+      "cadence": "on autoswitch run",
+      "count": "",
+      "error": "",
+      "path": "/private/tmp/channel_truth_1_state/autoswitch-safety.json",
+      "reader": "autoswitch/admin/observability",
+      "role": "anti_flap_safety",
+      "runtime_critical": "yes",
+      "status": "ok",
+      "updated": "2026-06-13T19:16:50.710654+00:00",
+      "writer": "v7-users-autoswitch"
+    },
+    "client-reconnect-state.json": {
+      "authority": "supporting",
+      "cadence": "on observation",
+      "count": "",
+      "error": "missing",
+      "path": "/private/tmp/channel_truth_1_state/client-reconnect-state.json",
+      "reader": "autoswitch/admin/observability",
+      "role": "client_experience_signal",
+      "runtime_critical": "no",
+      "status": "missing",
+      "updated": null,
+      "writer": "v7-users-autoswitch/client observers"
+    },
+    "direct-ru-diagnostics.json": {
+      "authority": "advisory",
+      "cadence": "operator diagnostic",
+      "count": "",
+      "error": "missing",
+      "path": "/private/tmp/channel_truth_1_state/direct-ru-diagnostics.json",
+      "reader": "admin/observability",
+      "role": "trusted_direct_ru_signal",
+      "runtime_critical": "no",
+      "status": "missing",
+      "updated": null,
+      "writer": "direct/RU diagnostics"
+    },
+    "egress-load-summary.json": {
+      "authority": "supporting",
+      "cadence": "optional",
+      "count": "",
+      "error": "",
+      "path": "/private/tmp/channel_truth_1_state/egress-load-summary.json",
+      "reader": "admin/observability",
+      "role": "capacity_signal",
+      "runtime_critical": "no",
+      "status": "ok",
+      "updated": "2026-06-14T21:08:48.483559+00:00",
+      "writer": "future/optional"
+    },
+    "egress-quality-summary.json": {
+      "authority": "supporting_historical",
+      "cadence": "periodic compaction",
+      "count": "",
+      "error": "",
+      "path": "/private/tmp/channel_truth_1_state/egress-quality-summary.json",
+      "reader": "autoswitch/admin/observability",
+      "role": "historical_quality",
+      "runtime_critical": "no",
+      "status": "ok",
+      "updated": "2026-06-14T21:06:24.516331+00:00",
+      "writer": "v7-egress-quality-compact"
+    },
+    "egress.registry": {
+      "count": 7,
+      "error": "",
+      "path": "/private/tmp/channel_truth_1_state/egress.registry",
+      "status": "ok",
+      "updated": ""
+    },
+    "org-egress-policy.json": {
+      "authority": "hard_limits",
+      "cadence": "on change",
+      "count": "",
+      "error": "",
+      "path": "/private/tmp/channel_truth_1_state/org-egress-policy.json",
+      "reader": "autoswitch/admin",
+      "role": "tenant_policy_authority",
+      "runtime_critical": "yes",
+      "status": "ok",
+      "updated": null,
+      "writer": "operator/admin"
+    },
+    "path-benchmark.json": {
+      "count": "",
+      "error": "missing",
+      "path": "/private/tmp/channel_truth_1_state/path-benchmark.json",
+      "status": "missing",
+      "updated": null
+    },
+    "path-optimizer-advice.json": {
+      "count": "",
+      "error": "missing",
+      "path": "/private/tmp/channel_truth_1_state/path-optimizer-advice.json",
+      "status": "missing",
+      "updated": null
+    },
+    "policy.json": {
+      "authority": "hard_limits",
+      "cadence": "on change",
+      "count": "",
+      "error": "",
+      "path": "/private/tmp/channel_truth_1_state/policy.json",
+      "reader": "autoswitch/admin",
+      "role": "hard_policy_authority",
+      "runtime_critical": "yes",
+      "status": "ok",
+      "updated": "2026-06-13T19:53:54.993329+00:00",
+      "writer": "operator/admin"
+    },
+    "service-matrix.json": {
+      "authority": "supporting",
+      "cadence": "timer plus ad-hoc probes",
+      "count": "",
+      "error": "",
+      "path": "/private/tmp/channel_truth_1_state/service-matrix.json",
+      "reader": "autoswitch/admin/observability",
+      "role": "service_health",
+      "runtime_critical": "yes",
+      "status": "ok",
+      "updated": "2026-06-14T21:08:43.089919+00:00",
+      "writer": "v7-service-matrix-test/v7-service-matrix-refresh-all/v7-telegram-sentinel"
+    },
+    "telegram-sentinel.json": {
+      "authority": "advisory",
+      "cadence": "fast timer",
+      "count": "",
+      "error": "missing",
+      "path": "/private/tmp/channel_truth_1_state/telegram-sentinel.json",
+      "reader": "autoswitch/admin/observability",
+      "role": "fast_telegram_signal",
+      "runtime_critical": "yes",
+      "status": "missing",
+      "updated": null,
+      "writer": "v7-telegram-sentinel"
+    },
+    "users.registry": {
+      "count": 27,
+      "error": "",
+      "path": "/private/tmp/channel_truth_1_state/users.registry",
+      "status": "ok",
+      "updated": ""
+    }
+  },
+  "incidents": [
+    {
+      "affected_object": "routing",
+      "category": "routing",
+      "correlation_id": "summary:routing",
+      "reason": "path benchmark unavailable",
+      "severity": "warning",
+      "suggested_action": "run path benchmark when safe",
+      "timestamp": "2026-06-14T21:09:52.847928+00:00",
+      "verification_state": "observed_state_summary"
+    },
+    {
+      "affected_object": "channels",
+      "category": "channels",
+      "correlation_id": "summary:channels",
+      "reason": "historical quality unstable on 3 egress",
+      "severity": "critical",
+      "suggested_action": "inspect quality summary as historical signal",
+      "timestamp": "2026-06-14T21:09:52.848031+00:00",
+      "verification_state": "observed_state_summary"
+    },
+    {
+      "affected_object": "services",
+      "category": "services",
+      "correlation_id": "summary:services",
+      "reason": "service blockers on 2 egress",
+      "severity": "blocker",
+      "suggested_action": "inspect service matrix and sentinel details",
+      "timestamp": "2026-06-14T21:09:52.848033+00:00",
+      "verification_state": "observed_state_summary"
+    },
+    {
+      "affected_object": "trusted_ru",
+      "category": "trusted_ru",
+      "correlation_id": "summary:trusted_ru",
+      "reason": "trusted/direct RU diagnostics unavailable",
+      "severity": "warning",
+      "suggested_action": "run direct/RU diagnostics",
+      "timestamp": "2026-06-14T21:09:52.848034+00:00",
+      "verification_state": "observed_state_summary"
+    },
+    {
+      "affected_object": "security",
+      "category": "security",
+      "correlation_id": "summary:security",
+      "reason": "state source errors: telegram-sentinel.json, client-reconnect-state.json, path-benchmark.json",
+      "severity": "warning",
+      "suggested_action": "inspect missing/corrupt state files",
+      "timestamp": "2026-06-14T21:09:52.848036+00:00",
+      "verification_state": "observed_state_summary"
+    },
+    {
+      "affected_object": "direct_routing",
+      "category": "direct_routing",
+      "correlation_id": "summary:direct_routing",
+      "reason": "trusted/direct RU diagnostics unavailable",
+      "severity": "warning",
+      "suggested_action": "run direct/RU diagnostics",
+      "timestamp": "2026-06-14T21:09:52.848037+00:00",
+      "verification_state": "observed_state_summary"
+    }
+  ],
+  "schema_version": 1,
+  "sources": {
+    "autoswitch-safety.json": {
+      "error": "",
+      "path": "/private/tmp/channel_truth_1_state/autoswitch-safety.json",
+      "updated": "2026-06-13T19:16:50.710654+00:00"
+    },
+    "client-reconnect-state.json": {
+      "error": "missing",
+      "path": "/private/tmp/channel_truth_1_state/client-reconnect-state.json",
+      "updated": null
+    },
+    "direct-ru-diagnostics.json": {
+      "error": "missing",
+      "path": "/private/tmp/channel_truth_1_state/direct-ru-diagnostics.json",
+      "updated": null
+    },
+    "egress-load-summary.json": {
+      "error": "",
+      "path": "/private/tmp/channel_truth_1_state/egress-load-summary.json",
+      "updated": "2026-06-14T21:08:48.483559+00:00"
+    },
+    "egress-quality-summary.json": {
+      "error": "",
+      "path": "/private/tmp/channel_truth_1_state/egress-quality-summary.json",
+      "updated": "2026-06-14T21:06:24.516331+00:00"
+    },
+    "egress.registry": {
+      "count": 7,
+      "error": "",
+      "path": "/private/tmp/channel_truth_1_state/egress.registry"
+    },
+    "org-egress-policy.json": {
+      "error": "",
+      "path": "/private/tmp/channel_truth_1_state/org-egress-policy.json",
+      "updated": null
+    },
+    "path-benchmark.json": {
+      "error": "missing",
+      "path": "/private/tmp/channel_truth_1_state/path-benchmark.json",
+      "updated": null
+    },
+    "path-optimizer-advice.json": {
+      "error": "missing",
+      "path": "/private/tmp/channel_truth_1_state/path-optimizer-advice.json",
+      "updated": null
+    },
+    "policy.json": {
+      "error": "",
+      "path": "/private/tmp/channel_truth_1_state/policy.json",
+      "updated": "2026-06-13T19:53:54.993329+00:00"
+    },
+    "service-matrix.json": {
+      "error": "",
+      "path": "/private/tmp/channel_truth_1_state/service-matrix.json",
+      "updated": "2026-06-14T21:08:43.089919+00:00"
+    },
+    "telegram-sentinel.json": {
+      "error": "missing",
+      "path": "/private/tmp/channel_truth_1_state/telegram-sentinel.json",
+      "updated": null
+    },
+    "users.registry": {
+      "count": 27,
+      "error": "",
+      "path": "/private/tmp/channel_truth_1_state/users.registry"
+    }
+  },
+  "state_dir": "/private/tmp/channel_truth_1_state",
+  "system": {
+    "affected_users": 0,
+    "attention_incidents": 6,
+    "autoswitch_state": "healthy",
+    "degraded_channels": 3,
+    "severity": "blocker",
+    "status": "blocked",
+    "trusted_ru_state": "unknown"
+  },
+  "tool": "v7-observability-summary"
+}

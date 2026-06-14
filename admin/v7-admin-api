@@ -21516,10 +21516,10 @@ def html_page_v2():
     const CHANNEL_TABLE_COLUMN_DEFS = [
       {id:'channel', label:'Канал', meaning:'Название канала.', required:true, defaultVisible:true},
       {id:'score', label:'Оценка', meaning:'Операторская пригодность канала от 0 до 100 по существующим проверкам.', required:true, defaultVisible:true},
-      {id:'assignment', label:'Назначение', meaning:'Можно ли назначать, держать или нужно эвакуировать пользователей по существующему planner truth.', required:true, defaultVisible:true},
-      {id:'assignment_blocker', label:'Блокер', meaning:'Главный blocker из существующего planner/governance truth.', required:true, defaultVisible:true},
+      {id:'assignment', label:'Назначение', meaning:'Можно ли назначать, держать или нужно эвакуировать пользователей по текущему решению маршрутизации.', required:true, defaultVisible:true},
+      {id:'assignment_blocker', label:'Блокер', meaning:'Главное ограничение из текущего решения маршрутизации.', required:true, defaultVisible:true},
       {id:'commercial_status', label:'Вердикт качества', meaning:'Человеческий статус канала: отличный, рабочий, требует проверки или непригоден.', required:false, defaultVisible:false},
-      {id:'main_issue', label:'Причина качества', meaning:'Главная причина по quality score, не assignment truth.', required:false, defaultVisible:false},
+      {id:'main_issue', label:'Причина качества', meaning:'Главная причина по оценке качества, отдельно от решения назначения.', required:false, defaultVisible:false},
       {id:'channel_state', label:'Состояние доверия', meaning:'Короткое состояние канала по модели доверия и восстановления.', required:false, defaultVisible:false},
       {id:'status', label:'Статус', meaning:'Короткое состояние канала.', required:false, defaultVisible:false},
       {id:'users', label:'Пользователи', meaning:'Сколько пользователей сейчас назначено на канал.', required:false, defaultVisible:true},
@@ -22847,7 +22847,7 @@ def html_page_v2():
       ['Теги сервисов','Service tags'],
       ['Не использовать для','Do not use for'],
       ['Только резерв','Reserve only'],
-      ['Только вручную','Manual only'],
+      ['Только вручную','Manual use only'],
       ['Безопасный путь','Safe path'],
       ['Сохранённые черновики','Saved drafts'],
       ['Состояние','Status'],
@@ -27173,23 +27173,56 @@ def html_page_v2():
     function channelAssignmentBlockerLabel(reason='') {
       const text = String(reason || '').trim();
       if (!text) return 'Нет блокера';
-      if (/current_egress_not_eligible/i.test(text)) return 'Current channel not eligible';
-      if (/operator_decision_surface_move_recommended/i.test(text)) return 'Recommended movement';
-      if (/manual_only/i.test(text)) return 'Manual only';
-      if (/reserve_only/i.test(text)) return 'Reserve only';
-      if (/canary_reserved/i.test(text)) return 'Canary reserved';
-      if (/production_assignment_allowed=false/i.test(text)) return 'Production assignment disabled';
-      if (/restore_barrier/i.test(text)) return 'Restore barrier';
-      if (/authority_budget|budget|blast_radius/i.test(text)) return 'Governance budget';
-      if (/hard_full|planned_hard_full|failover_full|capacity/i.test(text)) return 'Capacity limit';
-      if (/stability_below_floor/i.test(text)) return 'Stability floor';
-      if (/min_mbps_below_floor|avg_mbps_below_floor|speed/i.test(text)) return 'Speed floor';
-      if (/telegram_required|telegram_down|service_telegram/i.test(text)) return 'Telegram required';
-      if (/service|youtube|google|instagram|whatsapp|chatgpt|claude/i.test(text)) return 'Service failure';
-      if (/route_class|trusted_ru|route/i.test(text)) return 'Route verification';
-      if (/health_code|severity_fail|severity/i.test(text)) return 'Health failure';
+      if (/current_egress_not_eligible/i.test(text)) return 'Current channel cannot receive users';
+      if (/operator_decision_surface_move_recommended/i.test(text)) return 'Users should be moved';
+      if (/manual_only/i.test(text)) return 'Manual use only';
+      if (/reserve_only/i.test(text)) return 'Reserved channel';
+      if (/canary_reserved/i.test(text)) return 'Canary channel';
+      if (/production_assignment_allowed=false/i.test(text)) return 'Automatic assignment disabled';
+      if (/restore_barrier/i.test(text)) return 'Recovery lock active';
+      if (/authority_budget|budget|blast_radius/i.test(text)) return 'Assignment safety limit';
+      if (/hard_full|planned_hard_full|failover_full|capacity/i.test(text)) return 'User limit reached';
+      if (/stability_below_floor/i.test(text)) return 'Stability below required level';
+      if (/min_mbps_below_floor|avg_mbps_below_floor|speed/i.test(text)) return 'Speed below required level';
+      if (/telegram_required|telegram_down|service_telegram/i.test(text)) return 'Telegram unavailable';
+      if (/service|youtube|google|instagram|whatsapp|chatgpt|claude/i.test(text)) return 'Service unavailable';
+      if (/route_class|trusted_ru|route/i.test(text)) return 'Route requires verification';
+      if (/health_code|severity_fail|severity/i.test(text)) return 'Health check failed';
       if (/egress_disabled|disabled|maintenance|quarantine/i.test(text)) return 'Channel disabled';
       return operatorText(text);
+    }
+    function channelAssignmentRoleMeta(key='blocked') {
+      return {
+        use: {
+          reason: 'Channel is approved for receiving users. Reason: Best available target.',
+          action: 'Use this channel for new assignments.',
+          blocker: 'No assignment blocker',
+        },
+        keep: {
+          reason: 'Current users may stay. New users should not be assigned.',
+          action: 'Keep current users here and avoid new assignments.',
+          blocker: 'New assignments restricted',
+        },
+        evacuate: {
+          reason: 'Current users should leave. Reason: Routing decision recommends moving users away.',
+          action: 'Move users away from this channel.',
+          blocker: 'Users should be moved',
+        },
+        emergency: {
+          reason: 'Reserved for manual or emergency use. Automatic assignment is disabled.',
+          action: 'Use only for manual or emergency operations.',
+          blocker: 'Emergency use only',
+        },
+        blocked: {
+          reason: 'Cannot be used. Reason: Assignment blocked by a hard gate.',
+          action: 'Do not assign users to this channel.',
+          blocker: 'Assignment blocked',
+        },
+      }[key] || {
+        reason: 'Cannot be used. Reason: Assignment blocked by a hard gate.',
+        action: 'Do not assign users to this channel.',
+        blocker: 'Assignment blocked',
+      };
     }
     function channelAssignmentStatusLabel(status='') {
       return {
@@ -27251,33 +27284,34 @@ def html_page_v2():
       const evidence = channelAssignmentEvidence(source);
       const emergency = evidence.blockers.some(reason => /manual_only|reserve_only|canary_reserved|production_assignment_allowed=false/i.test(reason));
       let key = 'blocked';
-      let reason = 'Planner truth unavailable';
+      let reason = 'Routing decision unavailable';
       if (!evidence.planReady) {
         key = 'blocked';
-        reason = operatorDecisionSurfaceLoading ? 'Assignment truth loading' : 'Assignment truth unavailable';
+        reason = operatorDecisionSurfaceLoading ? 'Checking routing decision' : 'Routing decision unavailable';
       } else if (emergency) {
         key = 'emergency';
         reason = channelAssignmentBlockerLabel(evidence.blockers.find(item => /manual_only|reserve_only|canary_reserved|production_assignment_allowed=false/i.test(item)));
       } else if (evidence.selectedFrom.length) {
         key = 'evacuate';
-        reason = `${evidence.selectedFrom.length} users selected to leave`;
+        reason = evidence.selectedFrom.length === 1 ? '1 user should be moved away' : `${evidence.selectedFrom.length} users should be moved away`;
       } else if (evidence.eligibleCandidates.length || evidence.selectedTo.length) {
         key = 'use';
-        reason = evidence.selectedTo.length ? `${evidence.selectedTo.length} selected moves target this channel` : 'Planner candidate eligible';
+        reason = evidence.selectedTo.length ? 'Best available target' : 'Approved for receiving users';
       } else if (evidence.users > 0 && !evidence.blockers.length) {
         key = 'keep';
-        reason = 'Current users can stay';
+        reason = 'Current users may stay';
       } else if (evidence.users > 0 && evidence.blockers.length) {
         key = 'keep';
-        reason = 'Keep current users, block new assignment';
+        reason = 'Current users may stay. New users should not be assigned.';
       } else if (evidence.blockers.length) {
         key = 'blocked';
         reason = channelAssignmentBlockerLabel(evidence.blockers[0]);
       } else {
         key = 'use';
-        reason = 'No assignment blocker';
+        reason = 'Approved for receiving users';
       }
-      const mainBlocker = evidence.blockers.length ? channelAssignmentBlockerLabel(evidence.blockers[0]) : (['use','keep'].includes(key) ? 'None' : reason);
+      const roleMeta = channelAssignmentRoleMeta(key);
+      const mainBlocker = evidence.blockers.length ? channelAssignmentBlockerLabel(evidence.blockers[0]) : roleMeta.blocker;
       return {
         ...evidence,
         key,
@@ -27285,6 +27319,8 @@ def html_page_v2():
         tone: channelAssignmentTone(key),
         reason,
         mainBlocker,
+        roleReason: roleMeta.reason,
+        roleAction: roleMeta.action,
       };
     }
     function channelAssignmentMismatch(source={}) {
@@ -27296,13 +27332,13 @@ def html_page_v2():
     function channelAssignmentCell(source={}) {
       const a = channelAssignmentStatus(source);
       const mismatch = channelAssignmentMismatch(source);
-      const sub = [a.reason, mismatch ? 'Качество не равно назначению' : ''].filter(Boolean).join(' · ');
+      const sub = [a.roleReason, mismatch ? 'Channel quality is high, but assignment is restricted.' : ''].filter(Boolean).join(' · ');
       return `<button type="button" class="channel-cell-button" onclick="event.stopPropagation();openChannelDrawer('${esc(a.id)}')"><span class="cell-main">${pill(a.label, a.tone)}</span><span class="cell-sub">${esc(sub)}</span></button>`;
     }
     function channelAssignmentBlockerCell(source={}) {
       const a = channelAssignmentStatus(source);
       const mismatch = channelAssignmentMismatch(source);
-      const sub = mismatch ? 'quality score conflicts with planner truth' : (a.blockers.length ? 'planner blocker' : 'planner truth');
+      const sub = mismatch ? 'Channel quality is high, but assignment is restricted.' : 'Routing decision';
       return `<button type="button" class="channel-cell-button" onclick="event.stopPropagation();openChannelDrawer('${esc(a.id)}')"><span class="cell-main">${esc(a.mainBlocker)}</span><span class="cell-sub">${esc(sub)}</span></button>`;
     }
     function channelSuitabilityBreakdownTable(source={}) {
@@ -27367,8 +27403,10 @@ def html_page_v2():
           <div class="channel-analysis-row"><span>Вердикт</span><strong>${esc(s.status.label)}</strong></div>
           <div class="channel-analysis-row"><span>Оценка</span><button type="button" class="channel-analysis-score-button" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">${esc(s.score)} / 100</button></div>
           <div class="channel-analysis-row"><span>Назначение</span><strong>${pill(a.label, a.tone)}</strong><em>${esc(a.reason)}</em></div>
+          <div class="channel-analysis-row"><span>Почему назначение</span><strong>${esc(a.roleReason)}</strong></div>
+          <div class="channel-analysis-row"><span>Действие назначения</span><strong>${esc(a.roleAction)}</strong></div>
           <div class="channel-analysis-row"><span>Блокер</span><strong>${esc(a.mainBlocker)}</strong></div>
-          ${mismatch ? `<div class="channel-analysis-row"><span>Расхождение</span><strong>Качество не равно назначению</strong><em>Quality score good, planner assignment blocked.</em></div>` : ''}
+          ${mismatch ? `<div class="channel-analysis-row"><span>Расхождение</span><strong>Качество не равно назначению</strong><em>Channel quality is high, but assignment is restricted.</em></div>` : ''}
           <div class="channel-analysis-row"><span>Главная причина</span><strong>${esc(s.primaryCause)}</strong></div>
           <div class="channel-analysis-row"><span>Проблемы</span>${channelAnalysisListHtml(problems, 'bad')}</div>
           <div class="channel-analysis-row"><span>Работает</span>${channelAnalysisListHtml(s.working, 'ok')}</div>

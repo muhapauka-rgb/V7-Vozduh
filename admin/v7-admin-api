@@ -20717,16 +20717,16 @@ def html_page_v2():
     .user-action-buttons { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:10px; }
     .user-action-buttons button { min-height:36px; }
     .user-answer-card { grid-column:1 / -1; display:grid; gap:8px; }
-    .channel-analysis-card { grid-column:1 / -1; display:grid; gap:14px; }
-    .channel-analysis-flow { display:grid; gap:10px; }
-    .channel-analysis-row { border:1px solid var(--line); border-radius:12px; background:var(--panel2); padding:12px 14px; min-width:0; }
+    .channel-analysis-card { grid-column:1 / -1; display:grid; gap:10px; }
+    .channel-analysis-flow { display:grid; gap:7px; }
+    .channel-analysis-row { border:1px solid var(--line); border-radius:10px; background:var(--panel2); padding:9px 12px; min-width:0; }
     .channel-analysis-row > span { display:block; color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; letter-spacing:.04em; }
-    .channel-analysis-row strong { display:block; margin-top:5px; font-size:20px; line-height:1.15; overflow-wrap:anywhere; }
-    .channel-analysis-row em { display:block; margin-top:4px; color:var(--muted); font-size:12px; font-style:normal; overflow-wrap:anywhere; }
-    .channel-analysis-score-button { margin-top:5px; border:0; background:transparent; color:var(--text); padding:0; font:inherit; font-size:20px; font-weight:900; cursor:pointer; text-align:left; }
+    .channel-analysis-row strong { display:block; margin-top:3px; font-size:19px; line-height:1.1; overflow-wrap:anywhere; }
+    .channel-analysis-row em { display:block; margin-top:3px; color:var(--muted); font-size:12px; font-style:normal; overflow-wrap:anywhere; }
+    .channel-analysis-score-button { margin-top:3px; border:0; background:transparent; color:var(--text); padding:0; font:inherit; font-size:19px; font-weight:900; cursor:pointer; text-align:left; }
     .channel-analysis-score-button:hover { color:var(--green); background:transparent; }
-    .channel-analysis-list { list-style:none; margin:8px 0 0; padding:0; display:grid; gap:7px; }
-    .channel-analysis-list li { display:flex; align-items:flex-start; gap:8px; min-width:0; color:var(--text); font-weight:760; line-height:1.25; overflow-wrap:anywhere; }
+    .channel-analysis-list { list-style:none; margin:5px 0 0; padding:0; display:grid; gap:4px; }
+    .channel-analysis-list li { display:flex; align-items:flex-start; gap:7px; min-width:0; color:var(--text); font-weight:760; line-height:1.2; overflow-wrap:anywhere; }
     .channel-analysis-list .mark { flex:0 0 auto; width:18px; text-align:center; font-weight:900; }
     .channel-analysis-list .mark.bad { color:var(--red); }
     .channel-analysis-list .mark.ok { color:var(--green); }

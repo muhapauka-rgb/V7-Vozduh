@@ -27166,6 +27166,7 @@ def html_page_v2():
       const text = String(reason || '').trim();
       if (!text) return 'Нет блокера';
       if (/current_egress_not_eligible/i.test(text)) return 'Current channel not eligible';
+      if (/operator_decision_surface_move_recommended/i.test(text)) return 'Recommended movement';
       if (/manual_only/i.test(text)) return 'Manual only';
       if (/reserve_only/i.test(text)) return 'Reserve only';
       if (/canary_reserved/i.test(text)) return 'Canary reserved';
@@ -27214,10 +27215,6 @@ def html_page_v2():
       decisions
         .filter(decision => String(decision.current_egress || '') === String(id))
         .forEach(decision => blockers.push(...channelAssignmentReasons(decision.reason)));
-      const channelSurface = (operatorDecisionSurface?.channels_by_id || {})[id] || {};
-      if (channelSurface.emergency_only) blockers.push('manual_only');
-      if (channelSurface.channel_state_blocked_action_summary) blockers.push(channelSurface.channel_state_blocked_action_summary);
-      if (channelSurface.channel_state_reason_short && /block|forbid|запрещ/i.test(String(channelSurface.channel_state_reason_short))) blockers.push(channelSurface.channel_state_reason_short);
       const reg = row.registry || {};
       const regText = JSON.stringify(reg || {}).toLowerCase();
       const roleText = String(reg.role || reg.type || reg.protocol || '').toLowerCase();

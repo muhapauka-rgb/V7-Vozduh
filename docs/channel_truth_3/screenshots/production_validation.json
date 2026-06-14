@@ -1,0 +1,63 @@
+{
+  "captured_at": "2026-06-14T21:58:19.083Z",
+  "production_url": "https://v7-admin.195-2-79-116.sslip.io/admin-v2?cb=01c415a6#overview",
+  "desktop": {
+    "table_headers": [
+      "Канал",
+      "Оценка",
+      "Назначение",
+      "Блокер",
+      "Пользователи",
+      "Действие"
+    ],
+    "verified_rows": [
+      {
+        "channel": "vless",
+        "quality": "72/100",
+        "assignment": "Evacuate",
+        "blocker": "Recommended movement",
+        "users": 11
+      },
+      {
+        "channel": "awg0",
+        "quality": "92/100",
+        "assignment": "Use",
+        "blocker": "None",
+        "users": 0
+      },
+      {
+        "channel": "awg3",
+        "quality": "72/100",
+        "assignment": "Evacuate",
+        "blocker": "Recommended movement",
+        "users": 8
+      },
+      {
+        "channel": "1",
+        "quality": "79/100",
+        "assignment": "Emergency Only",
+        "blocker": "Manual only",
+        "users": 0
+      }
+    ],
+    "drawer_channel": "awg0",
+    "drawer_assignment": "Use",
+    "drawer_blocker": "None"
+  },
+  "mobile": {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "horizontal_overflow": false,
+    "drawer_horizontal_overflow": false,
+    "table_visible": true,
+    "drawer_assignment_visible": true
+  },
+  "screenshots": [
+    "production_channels_table_desktop.png",
+    "production_channel_drawer_desktop.png",
+    "production_channels_table_mobile.png",
+    "production_channel_drawer_mobile.png"
+  ]
+}

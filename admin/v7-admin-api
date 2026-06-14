@@ -27681,6 +27681,7 @@ def html_page_v2():
       return drawerSection('Чеклист оператора', listTable(['Зона','Состояние','Смысл','Действие'], rows, 'Нет данных для проверки.'));
     }
     function renderChannelDrawerLive(d) {
+      const analysisRow = egressRows().find(item => item.id === (d.egress || '')) || d;
       const reg = d.registry || {};
       const st = d.state || {};
       const rd = d.runtime_readiness || {};
@@ -27699,7 +27700,7 @@ def html_page_v2():
       const lifecycleRows = draftLifecycle.map(row => `<tr><td><strong>${esc(row.label || row.id || 'Черновик')}</strong></td><td>${pill(statusLabel(row.validation || row.status || 'draft'), statusTone(row.validation || row.status))}</td><td>${pill(statusLabel(row.pool_action || 'not_added'), statusTone(row.pool_action))}</td><td>${pill(statusLabel(row.runtime_profile_status || row.enable_readiness || 'UNKNOWN'), statusTone(row.runtime_profile_status || row.enable_readiness))}</td><td>${esc(operatorText(row.next_action_label || row.next_step || ''))}</td></tr>`);
       const config = d.config || {};
       return [
-        channelAnalysisCard(d),
+        channelAnalysisCard(analysisRow),
         channelDetailsSection([
           channelOperatorSnapshot(d),
           whyCardSection('Почему этот канал', channelWhyCard(d.egress || '')),

@@ -184,12 +184,16 @@ Reason:
 - No runtime deploy or production mutation was performed.
 - Required visual screenshot evidence could not be produced because browser access was blocked by policy.
 
-Final required checks must be run after commit and push:
+Final required checks after commit and push:
 
 | Check | Status |
 | --- | --- |
-| Local | Pending post-commit verification |
-| GitHub | Pending post-push verification |
-| Runtime | Pending post-push verification |
-| Truth | Pending post-push verification |
-| Convergence | Pending post-push verification |
+| Local | PASS / LOCAL_ALIGNED at `bad92dd2a8fc8319af65b8e0543468d3d49ac95f` |
+| GitHub | PASS / GITHUB_ALIGNED at `bad92dd2a8fc8319af65b8e0543468d3d49ac95f` |
+| Runtime | NO-GO / DEPLOY_REQUIRED because `admin/v7-admin-api` changed and production is still at `2a4f7fbc43243efbcd9eac3e218ccd034bac5595` |
+| Truth | NO-GO with blocker `runtime_local_commit_mismatch` |
+| Convergence | NOT_ALIGNED / DEPLOY_REQUIRED |
+
+Deployment note:
+
+No deploy was performed because UX.5 explicitly says: "No deploy unless explicitly approved." The safe next command reported by convergence is `tools/v7-safe-deploy --apply --confirm DEPLOY_V7_APPROVED --update-local-snapshot --restart-admin-if-changed --json`, but it was not executed.

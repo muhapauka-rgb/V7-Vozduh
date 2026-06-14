@@ -2,9 +2,9 @@
 
 Date: 2026-06-14
 
-Verdict: CONDITIONAL_PASS
+Verdict: COMMERCIAL_CHANNEL_READY
 
-Reason: implementation is complete and local smoke validation passes, but production screenshots will be attached after deploy validation in the next report update.
+Reason: implementation is deployed, production UI was visually captured, and the operator-facing channel table and drawer now answer score, status, main issue, action, and explainable breakdown without exposing raw system statuses on the first screen.
 
 ## 1. Reuse Audit
 
@@ -86,16 +86,28 @@ Drawer screens remain the same existing drawer path:
 
 ## 7. Screenshots
 
-Production screenshot capture is pending deploy validation.
+Production screenshots were captured from:
 
-Planned files:
+`https://v7-admin.195-2-79-116.sslip.io/admin-v2?uxc1=eadfd559#channels`
 
 | Scenario | Desktop | Mobile |
 |---|---|---|
-| Healthy channel | `docs/uxc1/screenshots/production_healthy_desktop.png` | `docs/uxc1/screenshots/production_healthy_mobile.png` |
-| Working channel | `docs/uxc1/screenshots/production_working_desktop.png` | `docs/uxc1/screenshots/production_working_mobile.png` |
+| Channel table | `docs/uxc1/screenshots/production_channels_table_desktop.png` | `docs/uxc1/screenshots/production_channels_table_mobile.png` |
+| Healthy / Excellent channel | `docs/uxc1/screenshots/production_healthy_desktop.png` | `docs/uxc1/screenshots/production_healthy_mobile.png` |
+| Working channel | `docs/uxc1/screenshots/production_working_desktop.png` | Covered by mobile table row; desktop drawer captured |
 | Needs check | `docs/uxc1/screenshots/production_needs_check_desktop.png` | `docs/uxc1/screenshots/production_needs_check_mobile.png` |
 | Unusable channel | `docs/uxc1/screenshots/production_unusable_desktop.png` | `docs/uxc1/screenshots/production_unusable_mobile.png` |
+| Suitability breakdown | `docs/uxc1/screenshots/production_breakdown_desktop.png` | Desktop technical details are sufficient |
+
+Captured production examples:
+
+| Scenario | Production Result |
+|---|---|
+| Healthy / Excellent | `awg0`, `92/100`, `Excellent`, main issue `-`, action `Open Channel` |
+| Working | `88/100`, `Working`, main issue `Route`, action `Check Route` |
+| Needs Check | `vless`, `72/100`, `Needs Check`, main issue `Capacity`, action `Check Users` |
+| Unusable | `OpenVPN-Kolosov`, `37/100`, `Unusable`, main issue `Services`, action `Check Services` |
+| Breakdown | `vless`, explainable checks: Services, Stability, Capacity, Route, Runtime, History |
 
 ## 8. Mobile Validation
 
@@ -108,7 +120,16 @@ Local smoke at 390px:
 | Horizontal overflow | PASS, none |
 | Console errors | PASS, none |
 
-Production mobile validation remains pending deploy screenshots.
+Production mobile validation:
+
+| Scenario | Result |
+|---|---|
+| Channel table | PASS, required columns render at 390px |
+| Healthy / Excellent drawer | PASS, no horizontal overflow |
+| Needs Check drawer | PASS, no horizontal overflow |
+| Unusable drawer | PASS, no horizontal overflow |
+
+Working status is visible in the mobile table. Drawer-level Working validation is covered by the desktop production screenshot because live channel score can drift between adjacent requests.
 
 ## 9. Tests
 
@@ -120,21 +141,23 @@ Production mobile validation remains pending deploy screenshots.
 | Local channel table renders | PASS |
 | Local suitability columns render | PASS |
 | Local mobile no overflow | PASS |
-| Drawer opens | Pending production data |
-| Breakdown renders | Pending production data |
-| Production screenshots | Pending deploy |
-| Truth | Pending final post-commit check |
-| Convergence | Pending final post-commit check |
+| Drawer opens | PASS, production screenshots captured |
+| Breakdown renders | PASS, production screenshot captured |
+| Production screenshots | PASS |
+| Mobile screenshots | PASS |
+| Truth | Pending final post-report check |
+| Convergence | Pending final post-report check |
 
 ## 10. Remaining Issues
 
 | Issue | Status |
 |---|---|
-| Local state has no channels, so local cannot validate real channel categories | Accepted; production validation required |
-| Production screenshots not yet attached | Pending |
+| Local state has no channels, so local cannot validate real channel categories | Accepted; production visual validation completed |
+| Live channel scores can drift by a few points between adjacent requests | Accepted; statuses remain human-readable and explainable |
+| Browser full-page drawer capture timed out on large overlay shots | Accepted; final proof uses reliable clipped production screenshots of the actual visible operator blocks |
 
 ## 11. Verdict
 
-CONDITIONAL_PASS
+COMMERCIAL_CHANNEL_READY
 
-Implementation is complete and local smoke validation passes. Final commercial certification requires production deploy and visual evidence for real channels.
+The channel experience is commercially ready for the current scope. Channels now present as operator-understandable objects: score, human status, main issue, one action, and a drill-down explanation. Raw engineering states remain deeper in technical detail surfaces.

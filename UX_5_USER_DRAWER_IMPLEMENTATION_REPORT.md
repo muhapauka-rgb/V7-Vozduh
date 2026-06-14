@@ -188,8 +188,8 @@ Final required checks after commit and push:
 
 | Check | Status |
 | --- | --- |
-| Local | PASS / LOCAL_ALIGNED at `bad92dd2a8fc8319af65b8e0543468d3d49ac95f` |
-| GitHub | PASS / GITHUB_ALIGNED at `bad92dd2a8fc8319af65b8e0543468d3d49ac95f` |
+| Local | PASS / LOCAL_ALIGNED on the pushed `Updatesystem` branch |
+| GitHub | PASS / GITHUB_ALIGNED on the pushed `Updatesystem` branch |
 | Runtime | NO-GO / DEPLOY_REQUIRED because `admin/v7-admin-api` changed and production is still at `2a4f7fbc43243efbcd9eac3e218ccd034bac5595` |
 | Truth | NO-GO with blocker `runtime_local_commit_mismatch` |
 | Convergence | NOT_ALIGNED / DEPLOY_REQUIRED |

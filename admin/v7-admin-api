@@ -26983,7 +26983,7 @@ def html_page_v2():
     }
     function channelAnalysisCard(source={}) {
       const s = channelSuitability(source);
-      const problemList = s.problems.length ? s.problems.slice(0, 5).join(', ') : '—';
+      const problemList = s.score >= 90 ? '—' : (s.problems.length ? s.problems.slice(0, 5).join(', ') : '—');
       const workingList = s.working.length ? s.working.slice(0, 5).join(', ') : 'No confirmed checks yet';
       return drawerSection('CHANNEL ANALYSIS', `
         <div class="cards-grid">

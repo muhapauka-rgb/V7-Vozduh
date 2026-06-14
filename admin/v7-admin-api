@@ -20154,6 +20154,10 @@ def html_page_v2():
     body.light .table-shell .pill.muted { background:transparent; border-color:transparent; }
     body.light .cards-grid .check-card,
     body.light .cards-grid .route-card { background:transparent; border-color:transparent; box-shadow:none; }
+    body.light .channel-analysis-card,
+    body.light .channel-analysis-row,
+    body.light .channel-breakdown-card,
+    body.light .channel-breakdown-total { background:#ffffff; border-color:#e2e8f0; }
     * { box-sizing:border-box; }
     body { margin:0; background:var(--bg); color:var(--text); font-size:14px; letter-spacing:0; }
     body.compact-ui { font-size:13px; }
@@ -20713,6 +20717,36 @@ def html_page_v2():
     .user-action-buttons { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:10px; }
     .user-action-buttons button { min-height:36px; }
     .user-answer-card { grid-column:1 / -1; display:grid; gap:8px; }
+    .channel-analysis-card { grid-column:1 / -1; display:grid; gap:14px; }
+    .channel-analysis-flow { display:grid; gap:10px; }
+    .channel-analysis-row { border:1px solid var(--line); border-radius:12px; background:var(--panel2); padding:12px 14px; min-width:0; }
+    .channel-analysis-row > span { display:block; color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; letter-spacing:.04em; }
+    .channel-analysis-row strong { display:block; margin-top:5px; font-size:20px; line-height:1.15; overflow-wrap:anywhere; }
+    .channel-analysis-row em { display:block; margin-top:4px; color:var(--muted); font-size:12px; font-style:normal; overflow-wrap:anywhere; }
+    .channel-analysis-score-button { margin-top:5px; border:0; background:transparent; color:var(--text); padding:0; font:inherit; font-size:20px; font-weight:900; cursor:pointer; text-align:left; }
+    .channel-analysis-score-button:hover { color:var(--green); background:transparent; }
+    .channel-analysis-list { list-style:none; margin:8px 0 0; padding:0; display:grid; gap:7px; }
+    .channel-analysis-list li { display:flex; align-items:flex-start; gap:8px; min-width:0; color:var(--text); font-weight:760; line-height:1.25; overflow-wrap:anywhere; }
+    .channel-analysis-list .mark { flex:0 0 auto; width:18px; text-align:center; font-weight:900; }
+    .channel-analysis-list .mark.bad { color:var(--red); }
+    .channel-analysis-list .mark.ok { color:var(--green); }
+    .channel-analysis-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:2px; }
+    .channel-details-section { grid-column:1 / -1; }
+    .channel-details-section summary { cursor:pointer; font-weight:850; }
+    .channel-details-stack { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:12px; }
+    .channel-details-stack .drawer-section { margin:0; }
+    .channel-breakdown-list { display:grid; gap:10px; }
+    .channel-breakdown-card,
+    .channel-breakdown-total { border:1px solid var(--line); border-radius:12px; background:var(--panel2); padding:12px; display:grid; gap:8px; min-width:0; }
+    .channel-breakdown-card-head { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:start; gap:10px; }
+    .channel-breakdown-total { grid-template-columns:minmax(0,1fr) auto; align-items:start; }
+    .channel-breakdown-card-head strong,
+    .channel-breakdown-total strong { font-size:14px; overflow-wrap:anywhere; }
+    .channel-breakdown-card-head span,
+    .channel-breakdown-total span { font-weight:900; color:var(--text); white-space:nowrap; }
+    .channel-breakdown-card p { margin:0; color:var(--muted); font-size:12px; line-height:1.35; overflow-wrap:anywhere; }
+    .channel-breakdown-services { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
+    .channel-breakdown-services li { min-width:0; display:flex; align-items:center; gap:6px; color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
     .user-answer-row { display:grid; grid-template-columns:92px minmax(0,1fr); gap:12px; align-items:start; border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:9px 10px; background:rgba(255,255,255,.025); }
     .user-answer-row > span { color:var(--muted); font-size:11px; font-weight:800; letter-spacing:0; text-transform:uppercase; }
     .user-answer-row > div { min-width:0; line-height:1.45; overflow-wrap:anywhere; }
@@ -20883,6 +20917,10 @@ def html_page_v2():
       .top-status .ghost{min-height:32px;padding:4px 9px}
       .shell{padding:12px}
       .grid-metrics,.cards-grid,.stat-grid,.flow-steps,.issue-result-layout,.issue-delivery-grid{grid-template-columns:1fr}
+      .channel-analysis-row strong,.channel-analysis-score-button{font-size:18px}
+      .channel-details-stack{grid-template-columns:1fr}
+      .channel-breakdown-card-head,.channel-breakdown-total{grid-template-columns:1fr}
+      .channel-breakdown-services{grid-template-columns:1fr}
       .module-hero{display:none}
       .module-hero h1{font-size:22px}
       .module-hero p{font-size:13px}
@@ -26981,36 +27019,66 @@ def html_page_v2():
       const rows = s.breakdown.map(item => `<tr><td><strong>${esc(item.check)}</strong></td><td>${esc(item.score)}</td><td>${esc(item.max)}</td><td>${esc(item.reason)}</td></tr>`);
       return listTable(['Check','Score','Max','Why'], rows, 'No checks available.');
     }
+    function channelAnalysisListHtml(items=[], tone='bad') {
+      const clean = Array.from(new Set((items || []).filter(Boolean))).slice(0, 7);
+      const symbol = tone === 'ok' ? '✔' : '✖';
+      if (!clean.length) return `<ul class="channel-analysis-list"><li><span class="mark ${tone}">${esc(tone === 'ok' ? '—' : '—')}</span><span>${esc(tone === 'ok' ? 'No confirmed checks yet' : '—')}</span></li></ul>`;
+      return `<ul class="channel-analysis-list">${clean.map(item => `<li><span class="mark ${tone}">${symbol}</span><span>${esc(item)}</span></li>`).join('')}</ul>`;
+    }
+    function channelBreakdownServiceRows(source={}) {
+      const row = channelRowFromSource(source);
+      const id = row.id || row.egress || '';
+      const detail = row._detail || {};
+      const raw = detail.service_matrix || channelMatrix(id).mx || {};
+      const services = serviceMatrixServices(raw);
+      const entries = Object.entries(services).sort(([a], [b]) => serviceDisplayName(a).localeCompare(serviceDisplayName(b), 'ru')).slice(0, 8);
+      if (!entries.length) return '';
+      return `<ul class="channel-breakdown-services">${entries.map(([name, item]) => {
+        const ok = serviceOk(item);
+        return `<li><span class="mark ${ok ? 'ok' : 'bad'}">${ok ? '✔' : '✖'}</span><span>${esc(serviceDisplayName(name))}</span></li>`;
+      }).join('')}</ul>`;
+    }
+    function channelSuitabilityBreakdownHtml(source={}) {
+      const s = channelSuitability(source);
+      const cards = s.breakdown.map(item => {
+        const services = item.check === 'Services' ? channelBreakdownServiceRows(source) : '';
+        return `<div class="channel-breakdown-card">
+          <div class="channel-breakdown-card-head"><strong>${esc(item.check)}</strong><span>${esc(item.score)} / ${esc(item.max)}</span></div>
+          <p>${esc(item.reason)}</p>
+          ${services}
+        </div>`;
+      }).join('');
+      return `<div class="channel-breakdown-list">${cards}<div class="channel-breakdown-total"><strong>Total</strong><span>${esc(s.score)} / 100</span></div></div>`;
+    }
     function channelAnalysisCard(source={}) {
       const s = channelSuitability(source);
-      const problemList = s.score >= 90 ? '—' : (s.problems.length ? s.problems.slice(0, 5).join(', ') : '—');
-      const workingList = s.working.length ? s.working.slice(0, 5).join(', ') : 'No confirmed checks yet';
-      return drawerSection('CHANNEL ANALYSIS', `
-        <div class="cards-grid">
-          <button class="check-card" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')"><strong>${esc(s.status.label)}</strong><em>Status</em>${pill(`${s.score}/100`, s.status.tone)}</button>
-          <button class="check-card" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')"><strong>${esc(problemList)}</strong><em>Problems</em>${pill(s.mainIssue, s.mainIssue === '—' ? 'ok' : 'warn')}</button>
-          <button class="check-card" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')"><strong>${esc(workingList)}</strong><em>Working Checks</em>${pill('Details', 'info')}</button>
+      const problems = s.score >= 90 ? [] : s.problems;
+      return `<div class="drawer-section channel-analysis-card">
+        <h3>CHANNEL ANALYSIS</h3>
+        <div class="channel-analysis-flow">
+          <div class="channel-analysis-row"><span>Verdict</span><strong>${esc(s.status.label)}</strong></div>
+          <div class="channel-analysis-row"><span>Suitability</span><button type="button" class="channel-analysis-score-button" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">${esc(s.score)} / 100</button></div>
+          <div class="channel-analysis-row"><span>Problems</span>${channelAnalysisListHtml(problems, 'bad')}</div>
+          <div class="channel-analysis-row"><span>Working</span>${channelAnalysisListHtml(s.working, 'ok')}</div>
+          <div class="channel-analysis-row"><span>Next Action</span><strong>${esc(s.actionLabel)}</strong><em>${esc(s.why)}</em></div>
+          <div class="channel-analysis-actions"><button class="primary" onclick="${s.action}">${esc(s.actionLabel)}</button><button class="ghost" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">Details</button></div>
         </div>
-        <div class="speed-result-main">
-          <span>Next Action</span>
-          <strong>${esc(s.actionLabel)}</strong>
-          <em>${esc(s.why)}</em>
-        </div>
-        <div class="detail-actions"><button class="primary" onclick="${s.action}">${esc(s.actionLabel)}</button><button class="ghost" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">Details</button></div>`);
+      </div>`;
+    }
+    function channelDetailsSection(body='') {
+      return `<details class="drawer-section channel-details-section"><summary>Details</summary><div class="channel-details-stack">${body}</div></details>`;
     }
     function openChannelSuitabilityBreakdown(id='') {
       const row = egressRows().find(item => item.id === id) || {id};
       const s = channelSuitability(row);
-      openCompactDrawer(`Suitability ${channelDisplayName(id)}`, 'channel', [
-        drawerSection('Verdict', compactKvRows({
+      openCompactDrawer(`Why ${s.score}?`, 'channel', [
+        drawerSection(`Why ${s.score}?`, compactKvRows({
           'Channel': channelDisplayName(id),
-          'Score': `${s.score}/100`,
-          'Status': s.status.label,
-          'Main Issue': s.mainIssue,
-          'Why': s.why,
+          'Verdict': s.status.label,
+          'Cause': s.mainIssue,
           'Action': s.actionLabel,
         })),
-        drawerSection('Breakdown', channelSuitabilityBreakdownTable(row)),
+        drawerSection('Breakdown', channelSuitabilityBreakdownHtml(row)),
         drawerSection('Action', `<div class="detail-actions"><button class="primary" onclick="${s.action}">${esc(s.actionLabel)}</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Open Channel</button></div>`),
       ].join(''), {size:'table'});
     }
@@ -27274,11 +27342,13 @@ def html_page_v2():
       const total = Number(mx.total || mx.count || 0);
       const codeOk = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
       return channelAnalysisCard(row) +
-        kvRows({'Состояние': codeOk ? 'OK' : 'Проверить', 'Роль': reg.role || '', 'Пользователи': egressUserCount(id), 'Скорость сервера': sp.server_v7_mbps || sp.download_mbps ? `${sp.server_v7_mbps || sp.download_mbps} Mbps` : 'нет замера', 'Сервисная матрица': total ? `${okCount}/${total}` : 'нет замера', 'Готовность': rd.status || 'неизвестно'}) +
-        whyCardSection('Почему этот канал', channelWhyCard(id)) +
-        drawerSection('Трафик', trafficSummaryHtml('channel', id)) +
-        channelActionControls(id) +
-        channelObjectPanelsSection(id);
+        channelDetailsSection([
+          kvRows({'Состояние': codeOk ? 'OK' : 'Проверить', 'Роль': reg.role || '', 'Пользователи': egressUserCount(id), 'Скорость сервера': sp.server_v7_mbps || sp.download_mbps ? `${sp.server_v7_mbps || sp.download_mbps} Mbps` : 'нет замера', 'Сервисная матрица': total ? `${okCount}/${total}` : 'нет замера', 'Готовность': rd.status || 'неизвестно'}),
+          whyCardSection('Почему этот канал', channelWhyCard(id)),
+          drawerSection('Трафик', trafficSummaryHtml('channel', id)),
+          channelActionControls(id),
+          channelObjectPanelsSection(id),
+        ].join(''));
     }
     async function openChannelDrawer(id) {
       openDrawer(id || 'Канал', 'channel', drawerSection('Загрузка', '<p class="muted">Открываю живую карточку канала...</p>'), {size:'message'});
@@ -27552,25 +27622,27 @@ def html_page_v2():
       const config = d.config || {};
       return [
         channelAnalysisCard(d),
-        channelOperatorSnapshot(d),
-        whyCardSection('Почему этот канал', channelWhyCard(d.egress || '')),
-        kvRows({
-          'Канал': d.egress || '',
-          'Состояние в пуле': humanCode(d.pool_state || ''),
-          'Тип': humanCode(reg.protocol || reg.type || ''),
-          'Готовность профиля': statusLabel(rd.status || 'неизвестно'),
-          'Пользователи': assigned.length,
-        }),
-        channelInspectionChecklist(d),
-        channelActionControls(d.egress || '', d),
-        channelObjectPanelsSection(d.egress || ''),
-        drawerSection('Жизненный цикл', listTable(['Черновик','Проверка','Пул','Профиль','Следующий шаг'], lifecycleRows, 'Этот канал не создавался из отслеживаемого черновика или история недоступна.')),
-        drawerSection('Сравнение скорости', kvRows({'Серверная скорость': serverSpeed.download_mbps ? `${serverSpeed.download_mbps} Mbps` : 'нет замера', 'Клиент через V7 среднее': clientSpeed.client_v7_avg_mbps ? `${clientSpeed.client_v7_avg_mbps} Mbps` : 'нет замера', 'Клиент напрямую среднее': clientSpeed.client_direct_avg_mbps ? `${clientSpeed.client_direct_avg_mbps} Mbps` : 'нет замера', 'Падение': clientSpeed.degradation_pct != null ? `${clientSpeed.degradation_pct}%` : 'нет замера'})),
-        drawerSection('Назначенные пользователи', listTable(['IP','Таблица','Состояние'], userRowsLocal, 'На этот канал пользователи не назначены.')),
-        drawerSection('Замеры скорости клиентов', listTable(['IP','Через V7','Напрямую','Падение'], clientRows, clientSpeed.note || 'Клиентских замеров скорости нет.')),
-        drawerSection('Сервисная матрица', listTable(['Сервис','Статус','HTTP','Задержка','Причина'], serviceRows, 'Сервисная матрица для этого канала ещё не измерялась.')),
-        drawerSection('Конфигурация', kvRows({'Файл': config.path || d.config_error?.path ? 'есть' : 'не найден', 'Размер': config.size_bytes ? humanBytes(config.size_bytes) : '', 'Секреты скрыты': config.redacted ? 'да' : 'неизвестно'}) + '<p class="muted">Содержимое конфига не показывается в рабочей карточке. Приватные ключи и служебные поля скрыты.</p>'),
-        drawerSection('Последние события канала', listTable(['Время','Действие','Важность','Сообщение'], eventRows, 'Недавних событий канала нет.')),
+        channelDetailsSection([
+          channelOperatorSnapshot(d),
+          whyCardSection('Почему этот канал', channelWhyCard(d.egress || '')),
+          kvRows({
+            'Канал': d.egress || '',
+            'Состояние в пуле': humanCode(d.pool_state || ''),
+            'Тип': humanCode(reg.protocol || reg.type || ''),
+            'Готовность профиля': statusLabel(rd.status || 'неизвестно'),
+            'Пользователи': assigned.length,
+          }),
+          channelInspectionChecklist(d),
+          channelActionControls(d.egress || '', d),
+          channelObjectPanelsSection(d.egress || ''),
+          drawerSection('Жизненный цикл', listTable(['Черновик','Проверка','Пул','Профиль','Следующий шаг'], lifecycleRows, 'Этот канал не создавался из отслеживаемого черновика или история недоступна.')),
+          drawerSection('Сравнение скорости', kvRows({'Серверная скорость': serverSpeed.download_mbps ? `${serverSpeed.download_mbps} Mbps` : 'нет замера', 'Клиент через V7 среднее': clientSpeed.client_v7_avg_mbps ? `${clientSpeed.client_v7_avg_mbps} Mbps` : 'нет замера', 'Клиент напрямую среднее': clientSpeed.client_direct_avg_mbps ? `${clientSpeed.client_direct_avg_mbps} Mbps` : 'нет замера', 'Падение': clientSpeed.degradation_pct != null ? `${clientSpeed.degradation_pct}%` : 'нет замера'})),
+          drawerSection('Назначенные пользователи', listTable(['IP','Таблица','Состояние'], userRowsLocal, 'На этот канал пользователи не назначены.')),
+          drawerSection('Замеры скорости клиентов', listTable(['IP','Через V7','Напрямую','Падение'], clientRows, clientSpeed.note || 'Клиентских замеров скорости нет.')),
+          drawerSection('Сервисная матрица', listTable(['Сервис','Статус','HTTP','Задержка','Причина'], serviceRows, 'Сервисная матрица для этого канала ещё не измерялась.')),
+          drawerSection('Конфигурация', kvRows({'Файл': config.path || d.config_error?.path ? 'есть' : 'не найден', 'Размер': config.size_bytes ? humanBytes(config.size_bytes) : '', 'Секреты скрыты': config.redacted ? 'да' : 'неизвестно'}) + '<p class="muted">Содержимое конфига не показывается в рабочей карточке. Приватные ключи и служебные поля скрыты.</p>'),
+          drawerSection('Последние события канала', listTable(['Время','Действие','Важность','Сообщение'], eventRows, 'Недавних событий канала нет.')),
+        ].join('')),
       ].join('');
     }
     function domSafeId(value='') {

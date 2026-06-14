@@ -26886,8 +26886,69 @@ def html_page_v2():
     function channelSuitabilityStatus(score=0) {
       if (score >= 90) return {label:'Excellent', tone:'ok'};
       if (score >= 75) return {label:'Working', tone:'ok'};
-      if (score >= 50) return {label:'Needs Check', tone:'warn'};
+      if (score >= 50) return {label:'Requires Check', tone:'warn'};
       return {label:'Unusable', tone:'bad'};
+    }
+    function channelOperatorServiceProblem(label='') {
+      const text = String(label || '').trim();
+      if (!text) return 'Service verification required';
+      if (/not measured|measurement/i.test(text)) return 'Service measurements needed';
+      if (/telegram|youtube|google auth|google/i.test(text)) return `${text} unavailable`;
+      return 'Service verification required';
+    }
+    function channelOperatorProblemText(value='', item={}) {
+      const text = String(value || item.problem || item.check || '').trim();
+      const check = String(item.check || '').trim();
+      const reason = String(item.reason || '').trim();
+      if (!text && !check) return '';
+      if (/disabled/i.test(text) || /channel disabled/i.test(reason)) return 'Channel disabled';
+      if (/not started/i.test(text) || /not started/i.test(reason)) return 'Channel is not started';
+      if (check === 'Capacity' || /^Capacity$/i.test(text)) return 'Channel overloaded';
+      if (check === 'Route' || /^Route$/i.test(text)) return 'Route requires verification';
+      if (check === 'Runtime' || /^Runtime$/i.test(text)) return /not measured/i.test(reason) ? 'Readiness needs measurement' : 'Channel readiness needs check';
+      if (check === 'History' || /^History$/i.test(text)) return 'Recent behavior needs confirmation';
+      if (check === 'Stability' || /^Stability$/i.test(text)) return 'Connection stability needs check';
+      if (check === 'Services' || /^Services/i.test(text)) return channelOperatorServiceProblem(text);
+      return channelOperatorServiceProblem(text);
+    }
+    function channelOperatorWorkingText(value='') {
+      const text = String(value || '').trim();
+      if (!text) return '';
+      if (/^Services$/i.test(text)) return 'Services available';
+      if (/^Stability$/i.test(text)) return 'Connection stable';
+      if (/^Runtime$/i.test(text)) return 'Channel ready';
+      if (/^Capacity$/i.test(text)) return 'User load OK';
+      if (/^Route$/i.test(text)) return 'Route verified';
+      if (/^History$/i.test(text)) return 'Recent history clean';
+      if (/^Connectivity$/i.test(text)) return 'Connectivity works';
+      return text;
+    }
+    function channelOperatorMainIssue(item={}, score=0) {
+      if (score >= 90) return '—';
+      const check = String(item.check || '').trim();
+      const problem = String(item.problem || '').trim();
+      const reason = String(item.reason || '').trim();
+      if (check === 'Capacity') return 'Overloaded';
+      if (check === 'Route') return 'Route requires verification';
+      if (check === 'Services') return 'Service failure';
+      if (check === 'Runtime') return /not measured/i.test(reason) ? 'Needs measurements' : 'Readiness check needed';
+      if (check === 'History') return 'Recent behavior unclear';
+      if (problem === 'Disabled' || /disabled/i.test(reason)) return 'Disabled';
+      if (problem === 'Not Started' || /not started/i.test(reason)) return 'Not started';
+      if (check === 'Stability') return 'Stability needs check';
+      return problem ? channelOperatorProblemText(problem, item) : 'Needs check';
+    }
+    function channelOperatorWhy(item={}, score=0) {
+      if (score >= 90) return 'Channel is ready for operators';
+      const check = String(item.check || '').trim();
+      const reason = String(item.reason || '').trim();
+      if (check === 'Capacity') return 'Too many users are assigned to this channel';
+      if (check === 'Route') return 'Route requires verification before users stay here';
+      if (check === 'Services') return 'One or more user-facing services need verification';
+      if (check === 'Runtime') return /not measured/i.test(reason) ? 'Readiness has not been measured yet' : 'Channel readiness needs confirmation';
+      if (check === 'History') return 'Recent behavior needs confirmation';
+      if (check === 'Stability') return 'Connection stability needs attention';
+      return 'Channel needs operator check';
     }
     function channelSuitabilityServices(row={}) {
       const id = row.id || row.egress || '';
@@ -26993,14 +27054,23 @@ def html_page_v2():
       let primary = false;
       if (score < 90) {
         if (main.check === 'Services') { actionLabel = 'Check Services'; action = `runV2ServiceMatrix('${esc(id)}')`; primary = true; }
-        else if (main.check === 'Runtime' || main.reason === 'Channel not started') { actionLabel = 'Check Runtime'; action = `openV2ChannelLogs('${esc(id)}')`; primary = true; }
+        else if (main.check === 'Runtime' || main.reason === 'Channel not started') { actionLabel = 'Check Channel Readiness'; action = `openV2ChannelLogs('${esc(id)}')`; primary = true; }
         else if (main.check === 'Capacity') { actionLabel = 'Check Users'; action = `showChannelWorkspace('overview');toggleChannelUsers('${esc(id)}');closeDrawer()`; primary = true; }
-        else if (main.check === 'Route') { actionLabel = 'Check Route'; action = `openChannelDrawer('${esc(id)}')`; primary = true; }
+        else if (main.check === 'Route') { actionLabel = 'Verify Route'; action = `openChannelDrawer('${esc(id)}')`; primary = true; }
         else if (main.check === 'Stability') { actionLabel = 'Open Channel'; action = `openChannelDrawer('${esc(id)}')`; primary = true; }
       }
-      const mainIssue = score >= 90 ? '—' : (main.problem || (score >= 75 ? '—' : 'Needs check'));
-      const why = score >= 90 ? 'Channel is ready for operators' : (main.reason || 'Channel has no critical blocker');
-      return {id, score, status, breakdown:parts, problems, working, mainIssue, why, actionLabel, action, primary};
+      const operatorProblems = Array.from(new Set(problems.map(item => channelOperatorProblemText(item, parts.find(part => (part.problems || []).includes(item)) || main)).filter(Boolean)));
+      const operatorWorking = Array.from(new Set(working.map(channelOperatorWorkingText).filter(Boolean)));
+      const breakdown = parts.map(item => ({
+        ...item,
+        operatorProblem: item.problem ? channelOperatorProblemText(item.problem, item) : '',
+        operatorProblems: (item.problems || []).map(problem => channelOperatorProblemText(problem, item)).filter(Boolean),
+        operatorWorking: (item.working || []).map(channelOperatorWorkingText).filter(Boolean),
+        operatorReason: item.problem ? channelOperatorWhy(item, score) : (item.check === 'Services' ? 'Measured services are available' : channelOperatorWorkingText(item.working?.[0] || item.check)),
+      }));
+      const mainIssue = channelOperatorMainIssue(main, score);
+      const why = channelOperatorWhy(main, score);
+      return {id, score, status, breakdown, problems:operatorProblems, working:operatorWorking, mainIssue, why, actionLabel, action, primary};
     }
     function channelSuitabilityCell(id='', source={}) {
       const s = channelSuitability(source);
@@ -27016,7 +27086,7 @@ def html_page_v2():
     }
     function channelSuitabilityBreakdownTable(source={}) {
       const s = channelSuitability(source);
-      const rows = s.breakdown.map(item => `<tr><td><strong>${esc(item.check)}</strong></td><td>${esc(item.score)}</td><td>${esc(item.max)}</td><td>${esc(item.reason)}</td></tr>`);
+      const rows = s.breakdown.map(item => `<tr><td><strong>${esc(item.check)}</strong></td><td>${esc(item.score)}</td><td>${esc(item.max)}</td><td>${esc(item.operatorProblem || item.operatorReason || item.reason)}</td></tr>`);
       return listTable(['Check','Score','Max','Why'], rows, 'No checks available.');
     }
     function channelAnalysisListHtml(items=[], tone='bad') {
@@ -27035,7 +27105,8 @@ def html_page_v2():
       if (!entries.length) return '';
       return `<ul class="channel-breakdown-services">${entries.map(([name, item]) => {
         const ok = serviceOk(item);
-        return `<li><span class="mark ${ok ? 'ok' : 'bad'}">${ok ? '✔' : '✖'}</span><span>${esc(serviceDisplayName(name))}</span></li>`;
+        const label = ok ? `${serviceDisplayName(name)} available` : channelOperatorServiceProblem(serviceDisplayName(name));
+        return `<li><span class="mark ${ok ? 'ok' : 'bad'}">${ok ? '✔' : '✖'}</span><span>${esc(label)}</span></li>`;
       }).join('')}</ul>`;
     }
     function channelSuitabilityBreakdownHtml(source={}) {
@@ -27044,7 +27115,8 @@ def html_page_v2():
         const services = item.check === 'Services' ? channelBreakdownServiceRows(source) : '';
         return `<div class="channel-breakdown-card">
           <div class="channel-breakdown-card-head"><strong>${esc(item.check)}</strong><span>${esc(item.score)} / ${esc(item.max)}</span></div>
-          <p>${esc(item.reason)}</p>
+          ${item.operatorProblem ? `<p><span class="muted">Problem:</span> <strong>${esc(item.operatorProblem)}</strong></p>` : ''}
+          <p>${esc(item.operatorReason || item.reason)}</p>
           ${services}
         </div>`;
       }).join('');
@@ -27053,6 +27125,10 @@ def html_page_v2():
     function channelAnalysisCard(source={}) {
       const s = channelSuitability(source);
       const problems = s.score >= 90 ? [] : s.problems;
+      const nextActionLabel = s.score >= 90 ? 'No action required' : s.actionLabel;
+      const actions = s.score >= 90
+        ? `<button class="ghost" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">Details</button>`
+        : `<button class="primary" onclick="${s.action}">${esc(s.actionLabel)}</button><button class="ghost" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">Details</button>`;
       return `<div class="drawer-section channel-analysis-card">
         <h3>CHANNEL ANALYSIS</h3>
         <div class="channel-analysis-flow">
@@ -27060,8 +27136,8 @@ def html_page_v2():
           <div class="channel-analysis-row"><span>Suitability</span><button type="button" class="channel-analysis-score-button" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">${esc(s.score)} / 100</button></div>
           <div class="channel-analysis-row"><span>Problems</span>${channelAnalysisListHtml(problems, 'bad')}</div>
           <div class="channel-analysis-row"><span>Working</span>${channelAnalysisListHtml(s.working, 'ok')}</div>
-          <div class="channel-analysis-row"><span>Next Action</span><strong>${esc(s.actionLabel)}</strong><em>${esc(s.why)}</em></div>
-          <div class="channel-analysis-actions"><button class="primary" onclick="${s.action}">${esc(s.actionLabel)}</button><button class="ghost" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">Details</button></div>
+          <div class="channel-analysis-row"><span>Next Action</span><strong>${esc(nextActionLabel)}</strong><em>${esc(s.why)}</em></div>
+          <div class="channel-analysis-actions">${actions}</div>
         </div>
       </div>`;
     }
@@ -27076,10 +27152,12 @@ def html_page_v2():
           'Channel': channelDisplayName(id),
           'Verdict': s.status.label,
           'Cause': s.mainIssue,
-          'Action': s.actionLabel,
+          'Action': s.score >= 90 ? 'No action required' : s.actionLabel,
         })),
         drawerSection('Breakdown', channelSuitabilityBreakdownHtml(row)),
-        drawerSection('Action', `<div class="detail-actions"><button class="primary" onclick="${s.action}">${esc(s.actionLabel)}</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Open Channel</button></div>`),
+        drawerSection('Action', s.score >= 90
+          ? `<div class="detail-actions"><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Open Channel</button></div>`
+          : `<div class="detail-actions"><button class="primary" onclick="${s.action}">${esc(s.actionLabel)}</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Open Channel</button></div>`),
       ].join(''), {size:'table'});
     }
     function openChannelProblem(id='', source='status') {

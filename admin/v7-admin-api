@@ -21464,16 +21464,19 @@ def html_page_v2():
     ];
     const CHANNEL_TABLE_COLUMN_DEFS = [
       {id:'channel', label:'Канал', meaning:'Название канала.', required:true, defaultVisible:true},
-      {id:'channel_state', label:'Состояние доверия', meaning:'Короткое состояние канала по модели доверия и восстановления.', required:false, defaultVisible:true},
-      {id:'status', label:'Статус', meaning:'Короткое состояние канала.', required:false, defaultVisible:true},
+      {id:'score', label:'Score', meaning:'Операторская пригодность канала от 0 до 100 по существующим проверкам.', required:true, defaultVisible:true},
+      {id:'commercial_status', label:'Status', meaning:'Человеческий статус канала: Excellent, Working, Needs Check, Unusable.', required:true, defaultVisible:true},
+      {id:'main_issue', label:'Main Issue', meaning:'Главная причина, с которой оператор должен начать.', required:true, defaultVisible:true},
+      {id:'channel_state', label:'Состояние доверия', meaning:'Короткое состояние канала по модели доверия и восстановления.', required:false, defaultVisible:false},
+      {id:'status', label:'Статус', meaning:'Короткое состояние канала.', required:false, defaultVisible:false},
       {id:'users', label:'Пользователи', meaning:'Сколько пользователей сейчас назначено на канал.', required:false, defaultVisible:true},
-      {id:'traffic', label:'Трафик', meaning:'Сколько прошло через канал сегодня и всего.', required:false, defaultVisible:true},
+      {id:'traffic', label:'Трафик', meaning:'Сколько прошло через канал сегодня и всего.', required:false, defaultVisible:false},
       {id:'traffic_day', label:'День', meaning:'Трафик канала за сегодняшний день.', required:false, defaultVisible:false},
       {id:'traffic_week', label:'Неделя', meaning:'Трафик канала за 7 дней.', required:false, defaultVisible:false},
       {id:'traffic_month', label:'Месяц', meaning:'Трафик канала за текущий месяц.', required:false, defaultVisible:false},
       {id:'traffic_total', label:'Всё время', meaning:'Весь учтённый трафик канала.', required:false, defaultVisible:false},
-      {id:'services', label:'Сервисы', meaning:'Сколько сервисов прошло проверку.', required:false, defaultVisible:true},
-      {id:'speed', label:'Скорость', meaning:'Последний ручной замер скорости.', required:false, defaultVisible:true},
+      {id:'services', label:'Сервисы', meaning:'Сколько сервисов прошло проверку.', required:false, defaultVisible:false},
+      {id:'speed', label:'Скорость', meaning:'Последний ручной замер скорости.', required:false, defaultVisible:false},
       {id:'role', label:'Роль', meaning:'Назначение канала внутри V7.', required:false, defaultVisible:false},
       {id:'load', label:'Нагрузка', meaning:'Контроль лимита пользователей.', required:false, defaultVisible:false},
       {id:'action', label:'Действие', meaning:'Открыть карточку канала.', required:true, defaultVisible:true},
@@ -24933,6 +24936,12 @@ def html_page_v2():
       localStorage.setItem(key, JSON.stringify(next));
     }
     function channelTableColumns() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(CHANNEL_TABLE_COLUMNS_KEY) || '[]');
+        if (Array.isArray(saved) && saved.length && !saved.some(c => c.id === 'score')) {
+          return CHANNEL_TABLE_COLUMN_DEFS.map(def => ({...def, visible:def.required ? true : def.defaultVisible !== false}));
+        }
+      } catch (_) {}
       return tableColumnsFromStorage(CHANNEL_TABLE_COLUMNS_KEY, CHANNEL_TABLE_COLUMN_DEFS);
     }
     function saveChannelTableColumns(cols) {
@@ -26668,18 +26677,10 @@ def html_page_v2():
       return {text:'Нужна проверка', tone:'warn'};
     }
     function channelActionButtons(id='', view={}) {
-      const disabled = String(view.reg?.enabled ?? '1') === '0';
-      const notStarted = !disabled && String(view.readiness?.reason || '').includes('interface is not currently up');
       const running = egressStateRunning.has(id);
-      const playTitle = disabled || notStarted ? 'Запустить канал' : 'Канал работает';
-      const pauseTitle = disabled ? 'Канал уже выключен' : (notStarted ? 'Канал не поднят' : 'Приостановить канал и перенести клиентов');
-      const playClass = running ? 'is-working' : (disabled || notStarted ? 'is-paused' : 'is-active');
-      const playBody = running ? '…' : '▶';
+      const verdict = channelSuitability(view.row || {id, registry:view.reg || {}, state:view.st || {}});
       return `<div class="channel-row-actions">
-        <button class="mini-action icon-action ${playClass}" ${running ? 'disabled' : `onclick="event.stopPropagation();${disabled || notStarted ? `startV2ChannelFromList('${esc(id)}')` : `openChannelDrawer('${esc(id)}')`}"`} title="${esc(running ? 'Канал запускается' : playTitle)}" aria-label="${esc(running ? 'Канал запускается' : playTitle)}">${playBody}<span class="sr-only">${esc(running ? 'Канал запускается' : playTitle)}</span></button>
-        <button class="mini-action icon-action ${disabled || notStarted || running ? 'is-paused' : ''}" ${disabled || notStarted || running ? 'disabled' : `onclick="event.stopPropagation();pauseV2ChannelFromList('${esc(id)}')"`} title="${esc(pauseTitle)}" aria-label="${esc(pauseTitle)}">Ⅱ<span class="sr-only">${esc(pauseTitle)}</span></button>
-        <button class="mini-action icon-action" onclick="event.stopPropagation();exportChannelConfig('${esc(id)}')" title="Выгрузить конфиг" aria-label="Выгрузить конфиг">↧</button>
-        <button class="mini-action icon-action is-danger" onclick="event.stopPropagation();deleteChannelEverywhere('${esc(id)}')" title="Удалить канал" aria-label="Удалить канал">×</button>
+        <button class="mini-action ${verdict.primary ? 'primary' : ''} ${running ? 'is-working' : ''}" ${running ? 'disabled' : `onclick="event.stopPropagation();${verdict.action}"`} title="${esc(verdict.actionLabel)}">${esc(running ? '...' : verdict.actionLabel)}</button>
       </div>`;
     }
     function channelMatrix(id) {
@@ -26826,6 +26827,191 @@ def html_page_v2():
       }
       return {row, health, lifecycle, matrix, readiness, speed, load, loadLabel, issues};
     }
+    function clampChannelScore(value=0, max=100) {
+      const n = Number(value || 0);
+      if (!Number.isFinite(n)) return 0;
+      return Math.max(0, Math.min(max, Math.round(n)));
+    }
+    function channelRowFromSource(source={}) {
+      if (source.egress) {
+        const existing = egressRows().find(item => item.id === source.egress) || {};
+        return {
+          ...existing,
+          id: source.egress,
+          registry: source.registry || existing.registry || {},
+          state: source.state || existing.state || {},
+          _detail: source,
+        };
+      }
+      return source || {};
+    }
+    function channelSuitabilityStatus(score=0) {
+      if (score >= 90) return {label:'Excellent', tone:'ok'};
+      if (score >= 75) return {label:'Working', tone:'ok'};
+      if (score >= 50) return {label:'Needs Check', tone:'warn'};
+      return {label:'Unusable', tone:'bad'};
+    }
+    function channelSuitabilityServices(row={}) {
+      const id = row.id || row.egress || '';
+      const detail = row._detail || {};
+      const raw = detail.service_matrix || channelMatrix(id).mx || {};
+      const services = serviceMatrixServices(raw);
+      const total = Number(raw.total || raw.count || Object.keys(services).length || 0);
+      const calculatedOk = Object.values(services).filter(serviceOk).length;
+      const ok = Number(raw.ok_count ?? calculatedOk ?? 0);
+      const failed = Object.entries(services)
+        .filter(([, item]) => !serviceOk(item))
+        .map(([name]) => serviceDisplayName(name));
+      if (!total) {
+        return {check:'Services', score:18, max:30, reason:'Services not measured', problem:'Services', working:[], problems:['Services not measured']};
+      }
+      const score = clampChannelScore((ok / Math.max(1, total)) * 30, 30);
+      return {
+        check:'Services',
+        score,
+        max:30,
+        reason: ok >= total ? 'All measured services work' : `${ok}/${total} services work`,
+        problem: ok >= total ? '' : 'Services',
+        working: ok ? ['Services'] : [],
+        problems: failed.length ? failed.slice(0, 4) : [],
+      };
+    }
+    function channelSuitabilityStability(row={}) {
+      const id = row.id || '';
+      const reg = row.registry || {};
+      const health = channelHealth(row);
+      const lifecycle = channelLifecycleStatus(row, health);
+      const readiness = row._detail?.runtime_readiness || (overview.egress_runtime_readiness || {})[id] || {};
+      const disabled = String(reg.enabled ?? (row._detail?.pool_state === 'enabled' ? '1' : '1')) === '0';
+      const notStarted = String(readiness.reason || '').includes('interface is not currently up');
+      if (disabled) return {check:'Stability', score:4, max:20, reason:'Channel disabled', problem:'Disabled', working:[], problems:['Disabled']};
+      if (notStarted) return {check:'Stability', score:6, max:20, reason:'Channel not started', problem:'Not Started', working:[], problems:['Not Started']};
+      if (health.tone === 'ok' && lifecycle.tone === 'ok') return {check:'Stability', score:20, max:20, reason:'Channel responds normally', problem:'', working:['Stability'], problems:[]};
+      if (health.tone === 'ok') return {check:'Stability', score:14, max:20, reason:lifecycle.text || 'Needs confirmation', problem:'Stability', working:['Connectivity'], problems:['Stability']};
+      return {check:'Stability', score:8, max:20, reason:health.detail || 'Health check needs attention', problem:'Stability', working:[], problems:['Stability']};
+    }
+    function channelSuitabilityCapacity(row={}) {
+      const id = row.id || '';
+      const count = egressUserCount(id);
+      const limit = channelLoadLimit(row);
+      const load = channelLoad(id, row.state || {});
+      if (/HARD|OVER/i.test(String(load || '')) || count > limit.hard) {
+        return {check:'Capacity', score:2, max:15, reason:`${count}/${limit.hard} hard limit`, problem:'Capacity', working:[], problems:['Capacity']};
+      }
+      if (/SOFT|LIMIT|WARN/i.test(String(load || '')) || count > limit.soft) {
+        return {check:'Capacity', score:9, max:15, reason:`${count}/${limit.soft} soft limit`, problem:'Capacity', working:[], problems:['Capacity']};
+      }
+      return {check:'Capacity', score:15, max:15, reason:`${count}/${limit.soft} users`, problem:'', working:['Capacity'], problems:[]};
+    }
+    function channelSuitabilityRoute(row={}) {
+      const state = channelTopologyState(row);
+      if (state.group === 'problem') return {check:'Route', score:2, max:15, reason:state.issue || 'Route problem', problem:'Route', working:[], problems:['Route']};
+      if (state.group === 'check') return {check:'Route', score:9, max:15, reason:state.issue || 'Route needs check', problem:'Route', working:[], problems:['Route']};
+      if (state.group === 'disabled') return {check:'Route', score:6, max:15, reason:state.issue || 'Channel disabled', problem:'Route', working:[], problems:['Route']};
+      return {check:'Route', score:15, max:15, reason:'Route looks safe', problem:'', working:['Route'], problems:[]};
+    }
+    function channelSuitabilityRuntime(row={}) {
+      const id = row.id || '';
+      const rd = row._detail?.runtime_readiness || (overview.egress_runtime_readiness || {})[id] || {};
+      const status = String(rd.status || '').toUpperCase();
+      if (rd.enable_ready || ['READY','OK'].includes(status)) return {check:'Runtime', score:10, max:10, reason:'Runtime ready', problem:'', working:['Runtime'], problems:[]};
+      if (!status && !rd.reason) return {check:'Runtime', score:6, max:10, reason:'Runtime not measured', problem:'Runtime', working:[], problems:['Runtime']};
+      return {check:'Runtime', score:2, max:10, reason:operatorShort(rd.reason || rd.status || 'Runtime needs check'), problem:'Runtime', working:[], problems:['Runtime']};
+    }
+    function channelSuitabilityHistory(row={}) {
+      const id = row.id || '';
+      const decision = channelDecisionRow(id);
+      const label = String(decision.channel_state_label || decision.channel_state || decision.state || '').toUpperCase();
+      const card = channelWhyCard(id);
+      const recommended = String(card.recommended_state || card.status || '').toUpperCase();
+      const value = `${label} ${recommended}`;
+      if (/QUARANTIN|BLOCK|BAD|FAIL|UNUSABLE/.test(value)) return {check:'History', score:2, max:10, reason:'Bad recent trust history', problem:'History', working:[], problems:['History']};
+      if (/WATCH|CHECK|WARN|REVIEW/.test(value)) return {check:'History', score:6, max:10, reason:'Needs recent confirmation', problem:'History', working:[], problems:['History']};
+      if (/TRUSTED|OK|READY|WORKING|EXCELLENT/.test(value)) return {check:'History', score:10, max:10, reason:'Recent trust is clean', problem:'', working:['History'], problems:[]};
+      return {check:'History', score:7, max:10, reason:'No recent negative history', problem:'', working:['History'], problems:[]};
+    }
+    function channelSuitability(source={}) {
+      const row = channelRowFromSource(source);
+      const id = row.id || row.egress || '';
+      const parts = [
+        channelSuitabilityServices(row),
+        channelSuitabilityStability(row),
+        channelSuitabilityCapacity(row),
+        channelSuitabilityRoute(row),
+        channelSuitabilityRuntime(row),
+        channelSuitabilityHistory(row),
+      ];
+      const score = clampChannelScore(parts.reduce((sum, item) => sum + Number(item.score || 0), 0));
+      const status = channelSuitabilityStatus(score);
+      const deficits = parts
+        .map(item => ({...item, deficit:Number(item.max || 0) - Number(item.score || 0)}))
+        .filter(item => item.deficit > 0)
+        .sort((a,b) => b.deficit - a.deficit);
+      const main = deficits[0] || {};
+      const problems = Array.from(new Set(parts.flatMap(item => item.problems || []).filter(Boolean)));
+      const working = Array.from(new Set(parts.flatMap(item => item.working || []).filter(Boolean)));
+      let actionLabel = 'Open Channel';
+      let action = `openChannelDrawer('${esc(id)}')`;
+      let primary = false;
+      if (main.check === 'Services') { actionLabel = 'Check Services'; action = `runV2ServiceMatrix('${esc(id)}')`; primary = true; }
+      else if (main.check === 'Runtime' || main.reason === 'Channel not started') { actionLabel = 'Check Runtime'; action = `openV2ChannelLogs('${esc(id)}')`; primary = true; }
+      else if (main.check === 'Capacity') { actionLabel = 'Check Users'; action = `showChannelWorkspace('overview');toggleChannelUsers('${esc(id)}');closeDrawer()`; primary = true; }
+      else if (main.check === 'Route') { actionLabel = 'Check Route'; action = `openChannelDrawer('${esc(id)}')`; primary = true; }
+      else if (main.check === 'Stability') { actionLabel = 'Open Channel'; action = `openChannelDrawer('${esc(id)}')`; primary = true; }
+      const mainIssue = main.problem || (score >= 75 ? '—' : 'Needs check');
+      const why = main.reason || (score >= 90 ? 'All checks look clean' : 'Channel has no critical blocker');
+      return {id, score, status, breakdown:parts, problems, working, mainIssue, why, actionLabel, action, primary};
+    }
+    function channelSuitabilityCell(id='', source={}) {
+      const s = channelSuitability(source);
+      return `<button type="button" class="operator-decision-button" onclick="event.stopPropagation();openChannelSuitabilityBreakdown('${esc(id)}')"><span class="cell-main">${pill(`${s.score}/100`, s.status.tone)}</span><span class="cell-sub">${esc(s.why)}</span></button>`;
+    }
+    function channelCommercialStatusCell(source={}) {
+      const s = channelSuitability(source);
+      return `<button type="button" class="status-pill-button" onclick="event.stopPropagation();openChannelSuitabilityBreakdown('${esc(s.id)}')">${pill(s.status.label, s.status.tone)}</button>`;
+    }
+    function channelMainIssueCell(source={}) {
+      const s = channelSuitability(source);
+      return `<button type="button" class="channel-cell-button" onclick="event.stopPropagation();openChannelSuitabilityBreakdown('${esc(s.id)}')"><span class="cell-main">${esc(s.mainIssue)}</span><span class="cell-sub">${esc(s.why)}</span></button>`;
+    }
+    function channelSuitabilityBreakdownTable(source={}) {
+      const s = channelSuitability(source);
+      const rows = s.breakdown.map(item => `<tr><td><strong>${esc(item.check)}</strong></td><td>${esc(item.score)}</td><td>${esc(item.max)}</td><td>${esc(item.reason)}</td></tr>`);
+      return listTable(['Check','Score','Max','Why'], rows, 'No checks available.');
+    }
+    function channelAnalysisCard(source={}) {
+      const s = channelSuitability(source);
+      const problemList = s.problems.length ? s.problems.slice(0, 5).join(', ') : '—';
+      const workingList = s.working.length ? s.working.slice(0, 5).join(', ') : 'No confirmed checks yet';
+      return drawerSection('CHANNEL ANALYSIS', `
+        <div class="cards-grid">
+          <button class="check-card" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')"><strong>${esc(s.status.label)}</strong><em>Status</em>${pill(`${s.score}/100`, s.status.tone)}</button>
+          <button class="check-card" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')"><strong>${esc(problemList)}</strong><em>Problems</em>${pill(s.mainIssue, s.mainIssue === '—' ? 'ok' : 'warn')}</button>
+          <button class="check-card" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')"><strong>${esc(workingList)}</strong><em>Working Checks</em>${pill('Details', 'info')}</button>
+        </div>
+        <div class="speed-result-main">
+          <span>Next Action</span>
+          <strong>${esc(s.actionLabel)}</strong>
+          <em>${esc(s.why)}</em>
+        </div>
+        <div class="detail-actions"><button class="primary" onclick="${s.action}">${esc(s.actionLabel)}</button><button class="ghost" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">Details</button></div>`);
+    }
+    function openChannelSuitabilityBreakdown(id='') {
+      const row = egressRows().find(item => item.id === id) || {id};
+      const s = channelSuitability(row);
+      openCompactDrawer(`Suitability ${channelDisplayName(id)}`, 'channel', [
+        drawerSection('Verdict', compactKvRows({
+          'Channel': channelDisplayName(id),
+          'Score': `${s.score}/100`,
+          'Status': s.status.label,
+          'Main Issue': s.mainIssue,
+          'Why': s.why,
+          'Action': s.actionLabel,
+        })),
+        drawerSection('Breakdown', channelSuitabilityBreakdownTable(row)),
+        drawerSection('Action', `<div class="detail-actions"><button class="primary" onclick="${s.action}">${esc(s.actionLabel)}</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Open Channel</button></div>`),
+      ].join(''), {size:'table'});
+    }
     function openChannelProblem(id='', source='status') {
       const ctx = channelProblemContext(id, source);
       const rd = ctx.readiness || {};
@@ -26851,6 +27037,9 @@ def html_page_v2():
       const matrix = channelMatrix(id);
       const health = channelHealth(row);
       if (colId === 'channel') return id;
+      if (colId === 'score') return channelSuitability(row).score;
+      if (colId === 'commercial_status') return channelSuitability(row).status.label;
+      if (colId === 'main_issue') return channelSuitability(row).mainIssue;
       if (colId === 'channel_state') return channelDecisionRow(id).state || '';
       if (colId === 'status') return channelLifecycleStatus(row, health).text;
       if (colId === 'users') return egressUserCount(id);
@@ -26956,7 +27145,7 @@ def html_page_v2():
         const lifecycle = channelLifecycleStatus(row, health);
         const statusText = lifecycle.text;
         const statusToneLocal = lifecycle.tone;
-        const view = {id, st, reg, health, matrix, statusText, statusToneLocal, load: channelLoad(id, st), readiness: readiness[id] || {}};
+        const view = {id, row, st, reg, health, matrix, statusText, statusToneLocal, load: channelLoad(id, st), readiness: readiness[id] || {}};
         const main = `<tr>${cols.map(c => `<td data-col="${esc(c.id)}" class="${c.id === 'action' ? 'right' : ''}">${channelCellHtml(view, c.id)}</td>`).join('')}</tr>`;
         return main
           + (expandedChannelUsers === id ? channelUsersExpansionRow(id, cols.length) : '')
@@ -26970,6 +27159,9 @@ def html_page_v2():
         const meta = channelDisplayMeta(id);
         return `<button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><span class="cell-main">${esc(label)}</span>${meta ? `<span class="channel-name-meta">${esc(meta)}</span>` : ''}</button>`;
       }
+      if (colId === 'score') return channelSuitabilityCell(id, view.row || {id});
+      if (colId === 'commercial_status') return channelCommercialStatusCell(view.row || {id});
+      if (colId === 'main_issue') return channelMainIssueCell(view.row || {id});
       if (colId === 'channel_state') return channelStateCell(id, channelDecisionRow(id));
       if (colId === 'status') return channelProblemButton(id, view.statusText || 'Проверить', view.statusToneLocal || 'warn', 'status');
       if (colId === 'users') {
@@ -27079,7 +27271,8 @@ def html_page_v2():
       const okCount = Number(mx.ok_count || 0);
       const total = Number(mx.total || mx.count || 0);
       const codeOk = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
-      return kvRows({'Состояние': codeOk ? 'OK' : 'Проверить', 'Роль': reg.role || '', 'Пользователи': egressUserCount(id), 'Скорость сервера': sp.server_v7_mbps || sp.download_mbps ? `${sp.server_v7_mbps || sp.download_mbps} Mbps` : 'нет замера', 'Сервисная матрица': total ? `${okCount}/${total}` : 'нет замера', 'Готовность': rd.status || 'неизвестно'}) +
+      return channelAnalysisCard(row) +
+        kvRows({'Состояние': codeOk ? 'OK' : 'Проверить', 'Роль': reg.role || '', 'Пользователи': egressUserCount(id), 'Скорость сервера': sp.server_v7_mbps || sp.download_mbps ? `${sp.server_v7_mbps || sp.download_mbps} Mbps` : 'нет замера', 'Сервисная матрица': total ? `${okCount}/${total}` : 'нет замера', 'Готовность': rd.status || 'неизвестно'}) +
         whyCardSection('Почему этот канал', channelWhyCard(id)) +
         drawerSection('Трафик', trafficSummaryHtml('channel', id)) +
         channelActionControls(id) +
@@ -27099,7 +27292,7 @@ def html_page_v2():
     }
     function channelDrawerHeadActions(id='') {
       if (!id) return '';
-      return `<button class="ghost" onclick="exportChannelConfig('${esc(id)}')">Выгрузить конфиг</button><button class="ghost danger-action" onclick="deleteChannelEverywhere('${esc(id)}')">Удалить</button>`;
+      return `<button class="ghost" onclick="openChannelSuitabilityBreakdown('${esc(id)}')">Details</button>`;
     }
     async function copyChannelConfigText(textareaId='') {
       const el = document.getElementById(textareaId);
@@ -27356,6 +27549,7 @@ def html_page_v2():
       const lifecycleRows = draftLifecycle.map(row => `<tr><td><strong>${esc(row.label || row.id || 'Черновик')}</strong></td><td>${pill(statusLabel(row.validation || row.status || 'draft'), statusTone(row.validation || row.status))}</td><td>${pill(statusLabel(row.pool_action || 'not_added'), statusTone(row.pool_action))}</td><td>${pill(statusLabel(row.runtime_profile_status || row.enable_readiness || 'UNKNOWN'), statusTone(row.runtime_profile_status || row.enable_readiness))}</td><td>${esc(operatorText(row.next_action_label || row.next_step || ''))}</td></tr>`);
       const config = d.config || {};
       return [
+        channelAnalysisCard(d),
         channelOperatorSnapshot(d),
         whyCardSection('Почему этот канал', channelWhyCard(d.egress || '')),
         kvRows({

@@ -21502,9 +21502,9 @@ def html_page_v2():
     ];
     const CHANNEL_TABLE_COLUMN_DEFS = [
       {id:'channel', label:'Канал', meaning:'Название канала.', required:true, defaultVisible:true},
-      {id:'score', label:'Score', meaning:'Операторская пригодность канала от 0 до 100 по существующим проверкам.', required:true, defaultVisible:true},
-      {id:'commercial_status', label:'Status', meaning:'Человеческий статус канала: Excellent, Working, Needs Check, Unusable.', required:true, defaultVisible:true},
-      {id:'main_issue', label:'Main Issue', meaning:'Главная причина, с которой оператор должен начать.', required:true, defaultVisible:true},
+      {id:'score', label:'Оценка', meaning:'Операторская пригодность канала от 0 до 100 по существующим проверкам.', required:true, defaultVisible:true},
+      {id:'commercial_status', label:'Вердикт', meaning:'Человеческий статус канала: отличный, рабочий, требует проверки или непригоден.', required:true, defaultVisible:true},
+      {id:'main_issue', label:'Главная причина', meaning:'Главная причина, с которой оператор должен начать.', required:true, defaultVisible:true},
       {id:'channel_state', label:'Состояние доверия', meaning:'Короткое состояние канала по модели доверия и восстановления.', required:false, defaultVisible:false},
       {id:'status', label:'Статус', meaning:'Короткое состояние канала.', required:false, defaultVisible:false},
       {id:'users', label:'Пользователи', meaning:'Сколько пользователей сейчас назначено на канал.', required:false, defaultVisible:true},
@@ -26884,71 +26884,96 @@ def html_page_v2():
       return source || {};
     }
     function channelSuitabilityStatus(score=0) {
-      if (score >= 90) return {label:'Excellent', tone:'ok'};
-      if (score >= 75) return {label:'Working', tone:'ok'};
-      if (score >= 50) return {label:'Requires Check', tone:'warn'};
-      return {label:'Unusable', tone:'bad'};
+      if (score >= 90) return {label:'Отличный', tone:'ok'};
+      if (score >= 75) return {label:'Рабочий', tone:'ok'};
+      if (score >= 50) return {label:'Требует проверки', tone:'warn'};
+      return {label:'Непригоден', tone:'bad'};
     }
     function channelOperatorServiceProblem(label='') {
       const text = String(label || '').trim();
-      if (!text) return 'Service verification required';
-      if (/not measured|measurement/i.test(text)) return 'Service measurements needed';
-      if (/telegram|youtube|google auth|google/i.test(text)) return `${text} unavailable`;
-      return 'Service verification required';
+      if (!text) return 'Требуется проверка сервисов';
+      if (/not measured|measurement/i.test(text)) return 'Нужны замеры сервисов';
+      if (/telegram|youtube|google auth|google|instagram|whatsapp|chatgpt|claude/i.test(text)) return `${text} недоступен`;
+      return 'Требуется проверка сервисов';
     }
     function channelOperatorProblemText(value='', item={}) {
       const text = String(value || item.problem || item.check || '').trim();
       const check = String(item.check || '').trim();
       const reason = String(item.reason || '').trim();
       if (!text && !check) return '';
-      if (/disabled/i.test(text) || /channel disabled/i.test(reason)) return 'Channel disabled';
-      if (/not started/i.test(text) || /not started/i.test(reason)) return 'Channel is not started';
-      if (check === 'Capacity' || /^Capacity$/i.test(text)) return 'Channel overloaded';
-      if (check === 'Route' || /^Route$/i.test(text)) return 'Route requires verification';
-      if (check === 'Runtime' || /^Runtime$/i.test(text)) return /not measured/i.test(reason) ? 'Readiness needs measurement' : 'Channel readiness needs check';
-      if (check === 'History' || /^History$/i.test(text)) return 'Recent behavior needs confirmation';
-      if (check === 'Stability' || /^Stability$/i.test(text)) return 'Connection stability needs check';
+      if (/disabled/i.test(text) || /channel disabled/i.test(reason)) return 'Канал отключен';
+      if (/not started/i.test(text) || /not started/i.test(reason)) return 'Канал не запущен';
+      if (check === 'Capacity' || /^Capacity$/i.test(text)) return 'Канал перегружен';
+      if (check === 'Route' || /^Route$/i.test(text)) return 'Требуется проверка маршрута';
+      if (check === 'Runtime' || /^Runtime$/i.test(text)) return /not measured/i.test(reason) ? 'Нужна проверка готовности' : 'Требуется проверка готовности';
+      if (check === 'History' || /^History$/i.test(text)) return 'Недостаточно данных по истории';
+      if (check === 'Stability' || /^Stability$/i.test(text)) return 'Требуется проверка стабильности';
       if (check === 'Services' || /^Services/i.test(text)) return channelOperatorServiceProblem(text);
       return channelOperatorServiceProblem(text);
     }
     function channelOperatorWorkingText(value='') {
       const text = String(value || '').trim();
       if (!text) return '';
-      if (/^Services$/i.test(text)) return 'Services available';
-      if (/^Stability$/i.test(text)) return 'Connection stable';
-      if (/^Runtime$/i.test(text)) return 'Channel ready';
-      if (/^Capacity$/i.test(text)) return 'User load OK';
-      if (/^Route$/i.test(text)) return 'Route verified';
-      if (/^History$/i.test(text)) return 'Recent history clean';
-      if (/^Connectivity$/i.test(text)) return 'Connectivity works';
+      if (/^Services$/i.test(text)) return 'Сервисы';
+      if (/^Stability$/i.test(text)) return 'Стабильность';
+      if (/^Runtime$/i.test(text)) return 'Готовность';
+      if (/^Capacity$/i.test(text)) return 'Нагрузка';
+      if (/^Route$/i.test(text)) return 'Маршрут';
+      if (/^History$/i.test(text)) return 'История';
+      if (/^Connectivity$/i.test(text)) return 'Связь';
       return text;
     }
+    function channelOperatorCheckLabel(value='') {
+      const text = String(value || '').trim();
+      if (/^Services$/i.test(text)) return 'Сервисы';
+      if (/^Stability$/i.test(text)) return 'Стабильность';
+      if (/^Capacity$/i.test(text)) return 'Нагрузка';
+      if (/^Route$/i.test(text)) return 'Маршрут';
+      if (/^Runtime$/i.test(text)) return 'Готовность';
+      if (/^History$/i.test(text)) return 'История';
+      return text || 'Проверка';
+    }
     function channelOperatorMainIssue(item={}, score=0) {
-      if (score >= 90) return '—';
+      if (score >= 90) return 'Проблем нет';
       const check = String(item.check || '').trim();
       const problem = String(item.problem || '').trim();
       const reason = String(item.reason || '').trim();
-      if (check === 'Capacity') return 'Overloaded';
-      if (check === 'Route') return 'Route requires verification';
-      if (check === 'Services') return 'Service failure';
-      if (check === 'Runtime') return /not measured/i.test(reason) ? 'Needs measurements' : 'Readiness check needed';
-      if (check === 'History') return 'Recent behavior unclear';
-      if (problem === 'Disabled' || /disabled/i.test(reason)) return 'Disabled';
-      if (problem === 'Not Started' || /not started/i.test(reason)) return 'Not started';
-      if (check === 'Stability') return 'Stability needs check';
-      return problem ? channelOperatorProblemText(problem, item) : 'Needs check';
+      if (check === 'Capacity') return 'Перегружен';
+      if (check === 'Route') return 'Проверить маршрут';
+      if (check === 'Services') return 'Сбой сервисов';
+      if (check === 'Runtime') return /not measured/i.test(reason) ? 'Нет замера готовности' : 'Проверить готовность';
+      if (check === 'History') return 'Недостаточно данных';
+      if (problem === 'Disabled' || /disabled/i.test(reason)) return 'Отключен';
+      if (problem === 'Not Started' || /not started/i.test(reason)) return 'Не запущен';
+      if (check === 'Stability') return 'Проверить стабильность';
+      return problem ? channelOperatorProblemText(problem, item) : 'Нужна проверка';
+    }
+    function channelOperatorPrimaryCause(item={}, score=0) {
+      if (score >= 90) return 'Проблем не обнаружено';
+      const check = String(item.check || '').trim();
+      const problem = String(item.problem || '').trim();
+      const reason = String(item.reason || '').trim();
+      if (check === 'Capacity') return 'Перегружен';
+      if (check === 'Services') return 'Сервисы недоступны';
+      if (check === 'Route') return 'Требуется проверка маршрута';
+      if (check === 'Runtime') return /not measured/i.test(reason) ? 'Нет замера готовности' : 'Требуется проверка готовности';
+      if (check === 'History') return 'Недостаточно данных по истории';
+      if (check === 'Stability') return 'Требуется проверка стабильности';
+      if (problem === 'Disabled' || /disabled/i.test(reason)) return 'Канал отключен';
+      if (problem === 'Not Started' || /not started/i.test(reason)) return 'Канал не запущен';
+      return channelOperatorMainIssue(item, score);
     }
     function channelOperatorWhy(item={}, score=0) {
-      if (score >= 90) return 'Channel is ready for operators';
+      if (score >= 90) return 'Канал готов для пользователей';
       const check = String(item.check || '').trim();
       const reason = String(item.reason || '').trim();
-      if (check === 'Capacity') return 'Too many users are assigned to this channel';
-      if (check === 'Route') return 'Route requires verification before users stay here';
-      if (check === 'Services') return 'One or more user-facing services need verification';
-      if (check === 'Runtime') return /not measured/i.test(reason) ? 'Readiness has not been measured yet' : 'Channel readiness needs confirmation';
-      if (check === 'History') return 'Recent behavior needs confirmation';
-      if (check === 'Stability') return 'Connection stability needs attention';
-      return 'Channel needs operator check';
+      if (check === 'Capacity') return 'На канал назначено слишком много пользователей';
+      if (check === 'Route') return 'Маршрут нужно подтвердить перед использованием';
+      if (check === 'Services') return 'Один или несколько сервисов требуют проверки';
+      if (check === 'Runtime') return /not measured/i.test(reason) ? 'Готовность канала еще не измерялась' : 'Готовность канала нужно подтвердить';
+      if (check === 'History') return 'История канала требует подтверждения';
+      if (check === 'Stability') return 'Стабильность соединения требует внимания';
+      return 'Канал требует проверки оператора';
     }
     function channelSuitabilityServices(row={}) {
       const id = row.id || row.egress || '';
@@ -27049,15 +27074,15 @@ def html_page_v2():
       const main = deficits[0] || {};
       const problems = Array.from(new Set(parts.flatMap(item => item.problems || []).filter(Boolean)));
       const working = Array.from(new Set(parts.flatMap(item => item.working || []).filter(Boolean)));
-      let actionLabel = 'Open Channel';
+      let actionLabel = 'Открыть канал';
       let action = `openChannelDrawer('${esc(id)}')`;
       let primary = false;
       if (score < 90) {
-        if (main.check === 'Services') { actionLabel = 'Check Services'; action = `runV2ServiceMatrix('${esc(id)}')`; primary = true; }
-        else if (main.check === 'Runtime' || main.reason === 'Channel not started') { actionLabel = 'Check Channel Readiness'; action = `openV2ChannelLogs('${esc(id)}')`; primary = true; }
-        else if (main.check === 'Capacity') { actionLabel = 'Check Users'; action = `showChannelWorkspace('overview');toggleChannelUsers('${esc(id)}');closeDrawer()`; primary = true; }
-        else if (main.check === 'Route') { actionLabel = 'Verify Route'; action = `openChannelDrawer('${esc(id)}')`; primary = true; }
-        else if (main.check === 'Stability') { actionLabel = 'Open Channel'; action = `openChannelDrawer('${esc(id)}')`; primary = true; }
+        if (main.check === 'Services') { actionLabel = 'Проверить сервисы'; action = `runV2ServiceMatrix('${esc(id)}')`; primary = true; }
+        else if (main.check === 'Runtime' || main.reason === 'Channel not started') { actionLabel = 'Проверить готовность'; action = `openV2ChannelLogs('${esc(id)}')`; primary = true; }
+        else if (main.check === 'Capacity') { actionLabel = 'Проверить пользователей'; action = `showChannelWorkspace('overview');toggleChannelUsers('${esc(id)}');closeDrawer()`; primary = true; }
+        else if (main.check === 'Route') { actionLabel = 'Проверить маршрут'; action = `openChannelDrawer('${esc(id)}')`; primary = true; }
+        else if (main.check === 'Stability') { actionLabel = 'Открыть канал'; action = `openChannelDrawer('${esc(id)}')`; primary = true; }
       }
       const operatorProblems = Array.from(new Set(problems.map(item => channelOperatorProblemText(item, parts.find(part => (part.problems || []).includes(item)) || main)).filter(Boolean)));
       const operatorWorking = Array.from(new Set(working.map(channelOperatorWorkingText).filter(Boolean)));
@@ -27066,11 +27091,12 @@ def html_page_v2():
         operatorProblem: item.problem ? channelOperatorProblemText(item.problem, item) : '',
         operatorProblems: (item.problems || []).map(problem => channelOperatorProblemText(problem, item)).filter(Boolean),
         operatorWorking: (item.working || []).map(channelOperatorWorkingText).filter(Boolean),
-        operatorReason: item.problem ? channelOperatorWhy(item, score) : (item.check === 'Services' ? 'Measured services are available' : channelOperatorWorkingText(item.working?.[0] || item.check)),
+        operatorReason: item.problem ? channelOperatorWhy(item, score) : (item.check === 'Services' ? 'Измеренные сервисы работают' : channelOperatorWorkingText(item.working?.[0] || item.check)),
       }));
       const mainIssue = channelOperatorMainIssue(main, score);
+      const primaryCause = channelOperatorPrimaryCause(main, score);
       const why = channelOperatorWhy(main, score);
-      return {id, score, status, breakdown, problems:operatorProblems, working:operatorWorking, mainIssue, why, actionLabel, action, primary};
+      return {id, score, status, breakdown, problems:operatorProblems, working:operatorWorking, mainIssue, primaryCause, why, actionLabel, action, primary};
     }
     function channelSuitabilityCell(id='', source={}) {
       const s = channelSuitability(source);
@@ -27086,14 +27112,19 @@ def html_page_v2():
     }
     function channelSuitabilityBreakdownTable(source={}) {
       const s = channelSuitability(source);
-      const rows = s.breakdown.map(item => `<tr><td><strong>${esc(item.check)}</strong></td><td>${esc(item.score)}</td><td>${esc(item.max)}</td><td>${esc(item.operatorProblem || item.operatorReason || item.reason)}</td></tr>`);
-      return listTable(['Check','Score','Max','Why'], rows, 'No checks available.');
+      const rows = s.breakdown.map(item => `<tr><td><strong>${esc(channelOperatorCheckLabel(item.check))}</strong></td><td>${esc(item.score)}</td><td>${esc(item.max)}</td><td>${esc(item.operatorProblem || item.operatorReason || item.reason)}</td></tr>`);
+      return listTable(['Проверка','Оценка','Макс.','Почему'], rows, 'Проверок пока нет.');
     }
     function channelAnalysisListHtml(items=[], tone='bad') {
       const clean = Array.from(new Set((items || []).filter(Boolean))).slice(0, 7);
       const symbol = tone === 'ok' ? '✔' : '✖';
-      if (!clean.length) return `<ul class="channel-analysis-list"><li><span class="mark ${tone}">${esc(tone === 'ok' ? '—' : '—')}</span><span>${esc(tone === 'ok' ? 'No confirmed checks yet' : '—')}</span></li></ul>`;
+      if (!clean.length) return `<ul class="channel-analysis-list"><li><span class="mark ${tone}">—</span><span>${esc(tone === 'ok' ? 'Подтвержденных проверок пока нет' : '—')}</span></li></ul>`;
       return `<ul class="channel-analysis-list">${clean.map(item => `<li><span class="mark ${tone}">${symbol}</span><span>${esc(item)}</span></li>`).join('')}</ul>`;
+    }
+    function channelBreakdownGroupHtml(title='', items=[], tone='ok') {
+      const clean = Array.from(new Set((items || []).filter(Boolean))).slice(0, 8);
+      if (!clean.length) return '';
+      return `<div class="channel-breakdown-group"><strong>${esc(title)}</strong>${channelAnalysisListHtml(clean, tone)}</div>`;
     }
     function channelBreakdownServiceRows(source={}) {
       const row = channelRowFromSource(source);
@@ -27105,7 +27136,7 @@ def html_page_v2():
       if (!entries.length) return '';
       return `<ul class="channel-breakdown-services">${entries.map(([name, item]) => {
         const ok = serviceOk(item);
-        const label = ok ? `${serviceDisplayName(name)} available` : channelOperatorServiceProblem(serviceDisplayName(name));
+        const label = ok ? `${serviceDisplayName(name)} работает` : channelOperatorServiceProblem(serviceDisplayName(name));
         return `<li><span class="mark ${ok ? 'ok' : 'bad'}">${ok ? '✔' : '✖'}</span><span>${esc(label)}</span></li>`;
       }).join('')}</ul>`;
     }
@@ -27113,51 +27144,56 @@ def html_page_v2():
       const s = channelSuitability(source);
       const cards = s.breakdown.map(item => {
         const services = item.check === 'Services' ? channelBreakdownServiceRows(source) : '';
+        const works = channelBreakdownGroupHtml('Работает:', item.operatorWorking, 'ok');
+        const problems = channelBreakdownGroupHtml('Проблемы:', item.operatorProblems, 'bad');
         return `<div class="channel-breakdown-card">
-          <div class="channel-breakdown-card-head"><strong>${esc(item.check)}</strong><span>${esc(item.score)} / ${esc(item.max)}</span></div>
-          ${item.operatorProblem ? `<p><span class="muted">Problem:</span> <strong>${esc(item.operatorProblem)}</strong></p>` : ''}
+          <div class="channel-breakdown-card-head"><strong>${esc(channelOperatorCheckLabel(item.check))}</strong><span>${esc(item.score)} / ${esc(item.max)}</span></div>
+          ${item.operatorProblem ? `<p><span class="muted">Проблема:</span> <strong>${esc(item.operatorProblem)}</strong></p>` : ''}
           <p>${esc(item.operatorReason || item.reason)}</p>
+          ${works}
+          ${problems}
           ${services}
         </div>`;
       }).join('');
-      return `<div class="channel-breakdown-list">${cards}<div class="channel-breakdown-total"><strong>Total</strong><span>${esc(s.score)} / 100</span></div></div>`;
+      return `<div class="channel-breakdown-list">${cards}<div class="channel-breakdown-total"><strong>Итого</strong><span>${esc(s.score)} / 100</span></div></div>`;
     }
     function channelAnalysisCard(source={}) {
       const s = channelSuitability(source);
       const problems = s.score >= 90 ? [] : s.problems.slice(0, 5);
-      const nextActionLabel = s.score >= 90 ? 'No action required' : s.actionLabel;
+      const nextActionLabel = s.score >= 90 ? 'Действий не требуется' : s.actionLabel;
       const actions = s.score >= 90
-        ? `<button class="ghost" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">Details</button>`
-        : `<button class="primary" onclick="${s.action}">${esc(s.actionLabel)}</button><button class="ghost" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">Details</button>`;
+        ? `<button class="ghost" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">Детали</button>`
+        : `<button class="primary" onclick="${s.action}">${esc(s.actionLabel)}</button><button class="ghost" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">Детали</button>`;
       return `<div class="drawer-section channel-analysis-card">
-        <h3>CHANNEL ANALYSIS</h3>
+        <h3>АНАЛИЗ КАНАЛА</h3>
         <div class="channel-analysis-flow">
-          <div class="channel-analysis-row"><span>Verdict</span><strong>${esc(s.status.label)}</strong></div>
-          <div class="channel-analysis-row"><span>Suitability</span><button type="button" class="channel-analysis-score-button" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">${esc(s.score)} / 100</button></div>
-          <div class="channel-analysis-row"><span>Problems</span>${channelAnalysisListHtml(problems, 'bad')}</div>
-          <div class="channel-analysis-row"><span>Working</span>${channelAnalysisListHtml(s.working, 'ok')}</div>
-          <div class="channel-analysis-row"><span>Next Action</span><strong>${esc(nextActionLabel)}</strong><em>${esc(s.why)}</em></div>
+          <div class="channel-analysis-row"><span>Вердикт</span><strong>${esc(s.status.label)}</strong></div>
+          <div class="channel-analysis-row"><span>Оценка</span><button type="button" class="channel-analysis-score-button" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">${esc(s.score)} / 100</button></div>
+          <div class="channel-analysis-row"><span>Главная причина</span><strong>${esc(s.primaryCause)}</strong></div>
+          <div class="channel-analysis-row"><span>Проблемы</span>${channelAnalysisListHtml(problems, 'bad')}</div>
+          <div class="channel-analysis-row"><span>Работает</span>${channelAnalysisListHtml(s.working, 'ok')}</div>
+          <div class="channel-analysis-row"><span>Действие</span><strong>${esc(nextActionLabel)}</strong><em>${esc(s.why)}</em></div>
           <div class="channel-analysis-actions">${actions}</div>
         </div>
       </div>`;
     }
     function channelDetailsSection(body='') {
-      return `<details class="drawer-section channel-details-section"><summary>Details</summary><div class="channel-details-stack">${body}</div></details>`;
+      return `<details class="drawer-section channel-details-section"><summary>Детали</summary><div class="channel-details-stack">${body}</div></details>`;
     }
     function openChannelSuitabilityBreakdown(id='') {
       const row = egressRows().find(item => item.id === id) || {id};
       const s = channelSuitability(row);
-      openCompactDrawer(`Why ${s.score}?`, 'channel', [
-        drawerSection(`Why ${s.score}?`, compactKvRows({
-          'Channel': channelDisplayName(id),
-          'Verdict': s.status.label,
-          'Cause': s.mainIssue,
-          'Action': s.score >= 90 ? 'No action required' : s.actionLabel,
+      openCompactDrawer(`Почему ${s.score}?`, 'channel', [
+        drawerSection(`Почему ${s.score}?`, compactKvRows({
+          'Канал': channelDisplayName(id),
+          'Вердикт': s.status.label,
+          'Главная причина': s.primaryCause,
+          'Действие': s.score >= 90 ? 'Действий не требуется' : s.actionLabel,
         })),
-        drawerSection('Breakdown', channelSuitabilityBreakdownHtml(row)),
-        drawerSection('Action', s.score >= 90
-          ? `<div class="detail-actions"><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Open Channel</button></div>`
-          : `<div class="detail-actions"><button class="primary" onclick="${s.action}">${esc(s.actionLabel)}</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Open Channel</button></div>`),
+        drawerSection('Разбор', channelSuitabilityBreakdownHtml(row)),
+        drawerSection('Действие', s.score >= 90
+          ? `<div class="detail-actions"><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button></div>`
+          : `<div class="detail-actions"><button class="primary" onclick="${s.action}">${esc(s.actionLabel)}</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button></div>`),
       ].join(''), {size:'table'});
     }
     function openChannelProblem(id='', source='status') {
@@ -27442,7 +27478,7 @@ def html_page_v2():
     }
     function channelDrawerHeadActions(id='') {
       if (!id) return '';
-      return `<button class="ghost" onclick="openChannelSuitabilityBreakdown('${esc(id)}')">Details</button>`;
+      return `<button class="ghost" onclick="openChannelSuitabilityBreakdown('${esc(id)}')">Детали</button>`;
     }
     async function copyChannelConfigText(textareaId='') {
       const el = document.getElementById(textareaId);

@@ -20670,6 +20670,15 @@ def html_page_v2():
     .user-actions-grid .check-card { min-height:68px; }
     .user-action-buttons { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:10px; }
     .user-action-buttons button { min-height:36px; }
+    .user-answer-card { grid-column:1 / -1; display:grid; gap:8px; }
+    .user-answer-row { display:grid; grid-template-columns:92px minmax(0,1fr); gap:12px; align-items:start; border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:9px 10px; background:rgba(255,255,255,.025); }
+    .user-answer-row > span { color:var(--muted); font-size:11px; font-weight:800; letter-spacing:0; text-transform:uppercase; }
+    .user-answer-row > div { min-width:0; line-height:1.45; }
+    .user-answer-row strong { display:inline-block; margin-right:8px; }
+    .user-answer-row .mini-action { min-height:26px; padding:0 8px; }
+    .user-answer-row.tone-warn { border-color:rgba(245,158,11,.38); background:rgba(245,158,11,.08); }
+    .user-answer-actions { margin-top:0; }
+    .user-answer-actions button { min-width:128px; }
     .object-panels-section, .user-object-panels-section { grid-column:1 / -1; padding:10px 12px; }
     .object-panels-head, .user-object-panels-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px; }
     .object-panels-head h3, .user-object-panels-head h3 { margin:0; }
@@ -20916,6 +20925,9 @@ def html_page_v2():
       .issue-phone-row{grid-template-columns:1fr}
       .user-actions-section { grid-column:span 1; }
       .user-actions-grid { grid-template-columns:1fr; }
+      .user-answer-row { grid-template-columns:1fr; gap:4px; }
+      .user-answer-actions { flex-direction:column; }
+      .user-answer-actions button { width:100%; }
       .drawer-actionbar{padding:10px 16px}
     }
   </style>
@@ -25631,6 +25643,133 @@ def html_page_v2():
         drawerSection('Stored contracts', executionContractListHtml(storedItems)),
       ].join('');
     }
+    function screenOneText(value='') {
+      return operatorShort(value || '')
+        .replace(/\bVLESS\b/gi, 'профиль')
+        .replace(/\bExecution\b/gi, 'проверка')
+        .replace(/\bContract\b/gi, 'план')
+        .replace(/\bSnapshot\b/gi, 'снимок')
+        .replace(/\bSchema\b/gi, 'формат')
+        .replace(/\bAuthority\b/gi, 'правило')
+        .replace(/\bSource Hash\b/gi, 'версия')
+        .replace(/\bGovernance\b/gi, 'правило')
+        .replace(/\bAdapter\b/gi, 'клиент');
+    }
+    function userDrawerContext(ip='', live={}) {
+      const u = live.registry || userRowByIp(ip) || {};
+      const safeIp = live.ip || u.ip || ip || '';
+      const r = live.readiness || userReadiness(safeIp);
+      const route = live.route || userRoute(safeIp) || {};
+      const onboarding = live.onboarding || userOnboarding(safeIp);
+      const identity = userIdentitySummary(safeIp);
+      const h = userHumanFields(safeIp, u);
+      const phone = userPhoneVerification(safeIp);
+      const pending = pendingProfileForIp(safeIp);
+      const speed = live.client_speed || userSpeed(safeIp);
+      const agent = live.agent || (overview.client_agents?.agents || {})[safeIp] || {};
+      const state = String(u.enabled ?? '1') === '1' ? 'enabled' : 'disabled';
+      const smartItems = live.smart_profiles?.items || [];
+      const profileReady = !!(
+        r.artifacts_ready ||
+        r.ru_local_profile_ready ||
+        (smartItems || []).some(p => p.ready && (p.validation?.status === 'OK' || p.adapter !== 'karing')) ||
+        String(onboarding.stage || '').includes('ready')
+      );
+      const connected = r.connected === true || !!agent.online || String(agent.status || '').toLowerCase() === 'online';
+      const routeOk = !!route.ok || (!!r.route_ok && !r.leak_risk);
+      const leakRisk = !!(route.leak_risk || r.leak_risk);
+      const blockers = Array.isArray(r.blockers) ? r.blockers : [];
+      const speedV7 = Number(speed.latest_v7?.mbps || speed.v7_mbps || 0);
+      const speedDirect = Number(speed.latest_direct?.mbps || speed.direct_mbps || 0);
+      const speedIssue = !!(speedV7 && speedDirect && speedV7 < speedDirect * 0.55);
+      const missingProfile = !!(pending.id || blockers.includes('client_config_missing') || blockers.includes('ru_local_smart_profile_missing_or_invalid') || (!profileReady && String(r.status || '').toUpperCase() !== 'READY'));
+      return {u, ip:safeIp, r, route, onboarding, identity, h, phone, pending, speed, agent, state, profileReady, connected, routeOk, leakRisk, speedIssue, missingProfile};
+    }
+    function userDrawerAnswerState(ctx={}) {
+      const status = String(ctx.r?.status || '').toUpperCase();
+      if (ctx.phone?.rejected) return {tone:'bad', state:'Needs Action', problem:'Телефон отклонён', warning:'Пользователь не должен подключаться, пока телефон не подтверждён.'};
+      if (ctx.phone?.required) return {tone:'warn', state:'Needs Action', problem:'Нужно подтвердить телефон', warning:'Phone confirmation required.'};
+      if (ctx.state === 'disabled') return {tone:'muted', state:'Paused', problem:'Пользователь выключен', warning:'Пользователь не должен получать новый профиль, пока выключен.'};
+      if (ctx.missingProfile) return {tone:'warn', state:'Needs Action', problem:'Профиль не выдан', warning:'Пользователь не подключится, пока профиль не выдан.'};
+      if (ctx.leakRisk) return {tone:'bad', state:'Needs Action', problem:'Проблема маршрута', warning:'Есть риск выхода не через нужный маршрут.'};
+      if (ctx.speedIssue) return {tone:'warn', state:'Needs Check', problem:'Жалоба на скорость', warning:'Скорость через V7 заметно ниже прямой.'};
+      if (!ctx.connected && (ctx.profileReady || status === 'WAITING')) return {tone:'warn', state:'Waiting', problem:'Нет подключения', warning:'Профиль есть, но клиент не выходил на связь.'};
+      if (status === 'READY' || (ctx.profileReady && ctx.connected && ctx.routeOk)) return {tone:'ok', state:'Works', problem:'No action required', warning:''};
+      return {tone:'warn', state:'Needs Check', problem:'Нужно проверить пользователя', warning:''};
+    }
+    function userDrawerReason(ip='', ctx={}) {
+      const card = userWhyCard(ip);
+      const reason = card.reason || card.summary || ctx.r?.plain || ctx.onboarding?.detail || ctx.onboarding?.next || nextUserAction(ctx.r || {}, ctx.state || '');
+      return screenOneText(reason || 'Причина будет видна после обновления данных.');
+    }
+    function userPrimaryActionButton(ctx={}) {
+      const ip = esc(ctx.ip || '');
+      const state = userDrawerAnswerState(ctx);
+      const userId = ctx.identity?.identityUser?.id || ctx.phone?.user?.id || '';
+      if (ctx.phone?.required && userId) return `<button class="primary" onclick="confirmUserPhone('${esc(userId)}','${ip}')">Подтвердить телефон</button>`;
+      if (ctx.state === 'disabled') return `<button class="primary" onclick="applyV2UserEnabled('${ip}', true)">Включить</button>`;
+      if (ctx.pending?.id) return `<button class="primary" onclick="checkPendingProfile('${esc(ctx.pending.id)}','${ip}')">Проверить подключение</button>`;
+      if (ctx.missingProfile) return `<button class="primary" onclick="showIssueProfilePanel('existing','${ip}')">Выдать профиль</button>`;
+      if (ctx.leakRisk || state.problem === 'Проблема маршрута') return `<button class="primary" onclick="showUserCheck('${ip}')">Проверить маршрут</button>`;
+      if (ctx.speedIssue) return `<button class="primary" onclick="requestClientSpeed('${ip}')">Проверить скорость</button>`;
+      if (!ctx.connected && ctx.profileReady) return `<button class="primary" onclick="showUserCheck('${ip}')">Проверить подключение</button>`;
+      return `<button class="primary" onclick="openUserDrawer('${ip}')">Наблюдать</button>`;
+    }
+    function userAnswerRow(title='', body='', tone='') {
+      return `<div class="user-answer-row ${tone ? `tone-${esc(tone)}` : ''}"><span>${esc(title)}</span><div>${body}</div></div>`;
+    }
+    function renderUserDrawerAnswer(ip='', live={}) {
+      const ctx = userDrawerContext(ip, live);
+      const answer = userDrawerAnswerState(ctx);
+      const reason = userDrawerReason(ctx.ip, ctx);
+      const current = [
+        `Channel: ${ctx.u.current || ctx.route?.expected || 'не выбран'}`,
+        `Connection: ${ctx.connected ? 'Online' : 'Not connected'}`,
+        `Profile: ${ctx.profileReady ? 'Ready' : 'Missing'}`,
+        `Route: ${ctx.leakRisk ? 'Risk' : (ctx.routeOk ? 'OK' : 'Check')}`,
+      ].join('<br>');
+      const identityLines = [
+        `<strong>${esc(ctx.h.name || ctx.ip || 'Пользователь')}</strong>`,
+        ctx.h.company && ctx.h.company !== '—' ? esc(ctx.h.company) : '',
+        ctx.h.phone && ctx.h.phone !== '—' ? esc(ctx.h.phone) : '',
+        `${esc(ctx.h.device || 'Устройство не определено')} / ${esc(ctx.ip || '')}`,
+      ].filter(Boolean).join('<br>');
+      return `<div class="drawer-section user-answer-card">
+        <h3>Операторский ответ</h3>
+        ${userAnswerRow('OBJECT', identityLines)}
+        ${userAnswerRow('STATE', `${pill(answer.state, answer.tone)}<strong>${esc(screenOneText(answer.state))}</strong>`)}
+        ${userAnswerRow('PROBLEM', `<strong>${esc(screenOneText(answer.problem))}</strong>`)}
+        ${userAnswerRow('CURRENT', current)}
+        ${userAnswerRow('REASON', `<strong>${esc(reason)}</strong><button class="mini-action" onclick="openUserDrawerDetails('${esc(ctx.ip || '')}')">Details</button>`)}
+        ${userAnswerRow('ACTION', `<div class="detail-actions user-answer-actions">${userPrimaryActionButton(ctx)}<button class="ghost" onclick="openUserDrawerDetails('${esc(ctx.ip || '')}')">Details</button></div>`)}
+        ${answer.warning ? userAnswerRow('WARNING', `<strong>${esc(screenOneText(answer.warning))}</strong>`, 'warn') : ''}
+      </div>`;
+    }
+    function userDecisionAuditSection(ip='') {
+      const row = userDecisionRow(ip);
+      if (!row || (!row.recommendation_hash && !(row.reasons || []).length && !(row.action_chain || []).length)) return '';
+      const reasons = (row.reasons || []).map(reason => `<li>${esc(screenOneText(reason))}</li>`).join('');
+      const decision = compactKvRows({
+        'Состояние': operatorShort(row.operator_state || 'OK'),
+        'Текущий канал': row.current_channel || '',
+        'Рекомендованный канал': row.recommended_channel || '',
+        'Уверенность': row.confidence ?? '',
+        'Риск': row.risk ?? '',
+        'Версия': row.recommendation_hash || '',
+      });
+      return drawerSection('Решение и причины', decision + (reasons ? `<ul class="operator-reason-list">${reasons}</ul>` : '') + operatorDecisionChainHtml(row.action_chain || []));
+    }
+    function userTechnicalMetadataSection(d={}) {
+      const ip = d.ip || d.registry?.ip || '';
+      return drawerSection('Технические метаданные', compactKvRows({
+        'IP': ip,
+        'Registry channel': d.registry?.current || '',
+        'State channel': d.state?.current || '',
+        'Readiness': d.readiness?.status || '',
+        'Events loaded': (d.events || []).length,
+        'Commands loaded': (d.commands || []).length,
+      }));
+    }
     async function loadUserObjectPanel(ip='', kind='proposal') {
       const safeIp = String(ip || '').trim();
       if (!safeIp) return;
@@ -25684,22 +25823,7 @@ def html_page_v2():
       const deviceText = cleanDeviceAlias(metadata.device_name || device.device_name || device.label || '') || userIdentityDeviceLabel(device, ip);
       const next = disabled ? 'Приостановлен админом' : operatorText(r.next_action?.label || r.plain || onboarding.next || r.status || 'Проверить пользователя');
       return [
-        userPhoneConfirmationSection(ip, identityUser, organization, device),
-        whyCardSection('Почему этот пользователь здесь', userWhyCard(ip)),
-        drawerSection('Основное', userMetadataFormHtml(ip, {
-          name,
-          company,
-          phone,
-          device: deviceText,
-          notes: metadata.notes || identityUser.notes || '',
-          ip: u.ip || ip || '',
-          channel: u.current || 'не выбран',
-          status: statusText,
-          mode: userConnectionMode(ip),
-        })),
-        drawerSection('Трафик', trafficSummaryHtml('user', ip)),
-        userQuickActionsSection(ip, r, disabled, kind, onboarding, pending, next),
-        userObjectPanelsSection(ip),
+        renderUserDrawerAnswer(ip),
       ].join('');
     }
     function userQuickActionsSection(ip='', r={}, disabled=false, kind='', onboarding={}, pending={}, next='') {
@@ -25786,9 +25910,13 @@ def html_page_v2():
         'Последняя активность': profileLastSeen,
         'Последняя цель': profileConnection.target || r.vless_activity?.target || 'нет данных',
         'Проблемы': profileIssues,
-      }) + `<p class="muted">${esc(operatorText(profileConnection.message || 'VLESS-подключение пока не проверено.'))}</p>`;
+      }) + `<p class="muted">${esc(operatorText(profileConnection.message || 'Подключение профиля пока не проверено.'))}</p>`;
+      const phoneSection = userPhoneConfirmationSection(d.ip || u.ip || '', (userIdentitySummary(d.ip || u.ip || '').identityUser || {}), (userIdentitySummary(d.ip || u.ip || '').organization || {}), (userIdentitySummary(d.ip || u.ip || '').device || {}));
+      const hasSpeed = !!(speed.latest_v7?.mbps || speed.latest_direct?.mbps || speed.v7_mbps || speed.direct_mbps);
+      const showSpeed = hasSpeed || userDrawerContext(d.ip || u.ip || '', d).speedIssue;
       return [
         userOperatorSnapshot(d),
+        userInspectionChecklist(d),
         whyCardSection('Почему этот пользователь здесь', userWhyCard(d.ip || u.ip || '')),
         kvRows({
           'Пользователь': userHumanFields(d.ip || u.ip || '', u).name || d.ip || u.ip || '',
@@ -25802,22 +25930,24 @@ def html_page_v2():
           'Следующее действие': r.next_action?.label || nextUserAction(r, state),
           'Подключение': r.connected === true ? 'да' : (r.connected === false ? 'нет' : 'неизвестно'),
         }),
-        userInspectionChecklist(d),
-        drawerSection('Трафик', trafficSummaryHtml('user', d.ip || u.ip || '')),
+        phoneSection,
+        drawerSection('Профиль подключения', profileBody),
+        drawerSection('Профили и выдача', listTable(['Приложение','Режим','Файл','Состояние'], artifactRows, 'Пока нет сгенерированных файлов.') + '<h3>Smart-профили</h3>' + listTable(['Выбран','Приложение','Режим','Состояние','Проверка','RU маршруты','Действие'], smartRows, 'Smart-профилей пока нет.') + kvRows({'Последняя ссылка': humanCode(delivery.latest?.status || delivery.status || 'нет'), 'Скачивание': delivery.latest?.downloaded_at || delivery.downloaded_at || 'нет данных', 'Клиент умеет': Array.isArray(caps.supported_clients || caps.clients) ? (caps.supported_clients || caps.clients).join(', ') : 'неизвестно'})),
+        drawerSection('Устройство', listTable(['Устройство','Клиент','VPN IP','Статус','Действие'], identityDevices, 'Связанное устройство в разделе доступа пока не найдено.')),
         drawerSection('Идентификация устройства', userDeviceIdentityPanel(d.ip || u.ip || '')),
         drawerSection('Путь подключения', onboardingFlowHtml(onboarding)),
-        drawerSection('VLESS-профиль', profileBody),
+        drawerSection('Фактический маршрут', listTable(['Ожидается','Состояние','Утечка','Пояснение'], [`<tr><td>${esc(route.expected || route.assigned || u.current || '')}</td><td>${pill(route.ok ? 'OK' : 'Проверить', route.ok ? 'ok' : 'warn')}</td><td>${pill(route.leak_risk ? 'Риск утечки' : 'Утечки нет', route.leak_risk ? 'bad' : 'ok')}</td><td>${esc(routeShortText(route, route.expected_dev || u.current || ''))}</td></tr>`])),
+        drawerSection('Трафик', trafficSummaryHtml('user', d.ip || u.ip || '')),
+        showSpeed ? drawerSection('Скорость клиента', kvRows({'V7': speed.latest_v7?.mbps ? `${speed.latest_v7.mbps} Mbps` : (speed.v7_mbps ? `${speed.v7_mbps} Mbps` : 'нет замера'), 'Напрямую': speed.latest_direct?.mbps ? `${speed.latest_direct.mbps} Mbps` : (speed.direct_mbps ? `${speed.direct_mbps} Mbps` : 'нет замера'), 'Падение': speed.degradation_pct != null ? `${speed.degradation_pct}%` : 'нет замера', 'Клиент': agent.status || agent.client || 'неизвестно'})) : '',
+        warningRows.length ? drawerSection('Предупреждения', listTable(['Сервис','Важность','Причина'], warningRows)) : '',
         drawerSection('Следующее действие', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(d.ip || u.ip || '', r, state)}`),
         drawerSection('Действия оператора', userActionControls(d.ip || u.ip || '', u.current || '')),
         userObjectPanelsSection(d.ip || u.ip || ''),
-        drawerSection('Устройство', listTable(['Устройство','Клиент','VPN IP','Статус','Действие'], identityDevices, 'Связанное устройство в разделе доступа пока не найдено.')),
-        drawerSection('Фактический маршрут', listTable(['Ожидается','Состояние','Утечка','Пояснение'], [`<tr><td>${esc(route.expected || route.assigned || u.current || '')}</td><td>${pill(route.ok ? 'OK' : 'Проверить', route.ok ? 'ok' : 'warn')}</td><td>${pill(route.leak_risk ? 'Риск утечки' : 'Утечки нет', route.leak_risk ? 'bad' : 'ok')}</td><td>${esc(routeShortText(route, route.expected_dev || u.current || ''))}</td></tr>`])),
-        drawerSection('Скорость клиента', kvRows({'V7': speed.latest_v7?.mbps ? `${speed.latest_v7.mbps} Mbps` : 'нет замера', 'Напрямую': speed.latest_direct?.mbps ? `${speed.latest_direct.mbps} Mbps` : 'нет замера', 'Падение': speed.degradation_pct != null ? `${speed.degradation_pct}%` : 'нет замера', 'Клиент': agent.status || agent.client || 'неизвестно'})),
-        drawerSection('Профили и выдача', listTable(['Приложение','Режим','Файл','Состояние'], artifactRows, 'Пока нет сгенерированных файлов.') + '<h3>Smart-профили</h3>' + listTable(['Выбран','Приложение','Режим','Состояние','Проверка','RU маршруты','Действие'], smartRows, 'Smart-профилей пока нет.') + kvRows({'Последняя ссылка': humanCode(delivery.latest?.status || delivery.status || 'нет'), 'Скачивание': delivery.latest?.downloaded_at || delivery.downloaded_at || 'нет данных', 'Клиент умеет': Array.isArray(caps.supported_clients || caps.clients) ? (caps.supported_clients || caps.clients).join(', ') : 'неизвестно'})),
-        drawerSection('Предупреждения', listTable(['Сервис','Важность','Причина'], warningRows, 'Предупреждений по этому пользователю нет.')),
-        userSwitchHistorySection(d.switch_history || {}),
-        drawerSection('Последние команды пользователя', listTable(['Время','Действие','Статус','Причина'], commandRows, 'Недавних команд нет.')),
-        drawerSection('Последние события пользователя', listTable(['Время','Важность','Действие','Результат','Сообщение'], eventRows, 'Недавних событий пользователя нет.')),
+        userDecisionAuditSection(d.ip || u.ip || ''),
+        parseUserSwitchHistory(d.switch_history || {}).length ? userSwitchHistorySection(d.switch_history || {}) : '',
+        commandRows.length ? drawerSection('Последние команды пользователя', listTable(['Время','Действие','Статус','Причина'], commandRows)) : '',
+        eventRows.length ? drawerSection('Последние события пользователя', listTable(['Время','Важность','Действие','Результат','Сообщение'], eventRows)) : '',
+        userTechnicalMetadataSection(d),
       ].join('');
     }
     function userIdentityDeviceRows(ip='') {

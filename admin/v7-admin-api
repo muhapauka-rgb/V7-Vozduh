@@ -27152,7 +27152,15 @@ def html_page_v2():
     }
     function channelAssignmentPlanReady() {
       const plan = channelAssignmentPlan();
-      return !!operatorDecisionSurface && (Array.isArray(plan.decisions) || Array.isArray(plan.selected_moves));
+      const surface = operatorDecisionSurface?.assignment_truth || {};
+      return !!operatorDecisionSurface && (
+        !!surface.schema_version ||
+        !!surface.source ||
+        !!surface.selected_moves ||
+        !!surface.batch_preview ||
+        Array.isArray(plan.decisions) ||
+        Array.isArray(plan.selected_moves)
+      );
     }
     function channelAssignmentArray(value) {
       if (Array.isArray(value)) return value;
@@ -27265,8 +27273,11 @@ def html_page_v2():
       } else if (evidence.blockers.length) {
         key = 'blocked';
         reason = channelAssignmentBlockerLabel(evidence.blockers[0]);
+      } else {
+        key = 'use';
+        reason = 'No assignment blocker';
       }
-      const mainBlocker = evidence.blockers.length ? channelAssignmentBlockerLabel(evidence.blockers[0]) : (key === 'use' ? 'None' : reason);
+      const mainBlocker = evidence.blockers.length ? channelAssignmentBlockerLabel(evidence.blockers[0]) : (['use','keep'].includes(key) ? 'None' : reason);
       return {
         ...evidence,
         key,

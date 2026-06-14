@@ -20197,7 +20197,7 @@ def html_page_v2():
     .split { display:grid; grid-template-columns:1.25fr .95fr; gap:16px; margin-bottom:16px; }
     .overview-stack { display:grid; grid-template-columns:1fr; gap:16px; margin-bottom:16px; }
     .topology-panel h2 { display:none; }
-    .topology { position:relative; height:190px; padding:10px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px; overflow-x:auto; overflow-y:hidden; background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 94%,var(--blue)),var(--panel)); }
+    .topology { position:relative; min-height:190px; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px; overflow-x:auto; overflow-y:hidden; background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 94%,var(--blue)),var(--panel)); }
     .topology-node { flex:0 0 auto; width:112px; height:72px; border:1px solid var(--line); background:var(--panel2); border-radius:12px; padding:9px 8px; text-align:center; color:var(--text); display:flex; flex-direction:column; justify-content:center; min-width:0; }
     .topology-node.aggregator { width:140px; height:82px; border-color:rgba(96,165,250,.45); background:linear-gradient(180deg,rgba(96,165,250,.14),rgba(96,165,250,.05)); }
     .topology-node strong { display:block; font-size:12px; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -20219,6 +20219,14 @@ def html_page_v2():
     .topology-egress-many .egress-chip { height:28px; min-height:28px; font-size:11px; padding:0 7px; }
     .topology-egress-dense .egress-chip { height:24px; min-height:24px; font-size:10px; padding:0 6px; justify-content:flex-start; }
     .topology-egress-dense .egress-chip-meta { display:none; }
+    .topology-groups { flex:1 1 520px; min-width:420px; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+    .topology-group-card { min-width:0; min-height:112px; border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.03); color:var(--text); padding:10px; display:grid; gap:7px; text-align:left; cursor:pointer; }
+    .topology-group-card:hover { border-color:rgba(96,165,250,.34); background:color-mix(in srgb,var(--panel) 88%,var(--blue)); }
+    .topology-group-head { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; }
+    .topology-group-head strong { font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .topology-group-card .group-count { font-size:22px; font-weight:900; line-height:1; }
+    .topology-group-meta { display:grid; grid-template-columns:1fr 1fr; gap:6px; color:var(--muted); font-size:11px; }
+    .topology-group-issue { color:var(--muted); font-size:11px; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .dot { display:inline-block; width:8px; height:8px; border-radius:999px; background:var(--muted); }
     .dot.ok { background:var(--green); }
     .dot.warn { background:var(--yellow); }
@@ -20235,6 +20243,15 @@ def html_page_v2():
     .overview-alert-panel .alert-row em { display:none; }
     .overview-alert-panel .pill { padding:3px 7px; font-size:11px; }
     .attention-layer { display:grid; gap:8px; padding:0 10px 10px; }
+    .attention-counters { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; padding:0 10px 10px; }
+    .attention-counter { min-width:0; border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.025); color:var(--text); padding:10px; text-align:left; cursor:pointer; }
+    .attention-counter:hover { border-color:rgba(96,165,250,.34); background:color-mix(in srgb,var(--panel) 88%,var(--blue)); }
+    .attention-counter span { display:block; color:var(--muted); font-size:11px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .attention-counter strong { display:block; margin-top:5px; font-size:24px; line-height:1; }
+    .attention-counter.is-critical { border-color:rgba(248,113,113,.34); }
+    .attention-counter.is-action { border-color:rgba(250,204,21,.28); }
+    .attention-counter.is-check { border-color:rgba(96,165,250,.26); }
+    .attention-counter.is-waiting { border-color:rgba(148,163,184,.22); }
     .attention-item { border:1px solid var(--line); background:rgba(255,255,255,.025); border-radius:10px; padding:9px; display:grid; gap:7px; text-align:left; min-width:0; }
     .attention-item.is-critical { border-color:rgba(248,113,113,.38); background:rgba(248,113,113,.07); }
     .attention-item.is-action { border-color:rgba(250,204,21,.34); background:rgba(250,204,21,.06); }
@@ -20247,9 +20264,18 @@ def html_page_v2():
     .attention-reason { margin:0; color:var(--muted); font-size:12px; line-height:1.25; overflow-wrap:anywhere; }
     .attention-actions { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
     .attention-actions button { min-width:0; }
+    .attention-drilldown-list { display:grid; gap:10px; }
+    .attention-drilldown-item { border:1px solid var(--line); border-radius:10px; background:var(--panel); padding:10px; display:grid; gap:10px; }
+    .attention-drilldown-item-head { display:grid; grid-template-columns:minmax(0,1fr) minmax(120px,.42fr); gap:10px; align-items:start; }
+    .attention-drilldown-item-head strong,
+    .attention-drilldown-item-head span { min-width:0; overflow-wrap:anywhere; }
+    .attention-drilldown-item-head span { color:var(--muted); font-size:12px; font-weight:800; }
     .attention-empty { margin:0 10px 10px; border:1px solid var(--line); border-radius:10px; padding:12px; background:rgba(34,197,94,.055); }
     .attention-empty strong { display:block; font-size:14px; }
     .attention-empty span { display:block; margin-top:4px; color:var(--muted); font-size:12px; }
+    .channel-filter-strip { margin:0 16px 10px; border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.035); padding:8px 10px; display:flex; align-items:center; justify-content:space-between; gap:10px; color:var(--muted); font-size:12px; }
+    .channel-filter-strip strong { color:var(--text); }
+    .channel-filter-strip.is-empty { display:none; }
     .toolbar { padding:12px 16px 10px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
     .toolbar h2 { margin:0; font-size:15px; }
     .toolbar p { margin:4px 0 0; color:var(--muted); font-size:12px; }
@@ -20861,11 +20887,18 @@ def html_page_v2():
       .module-hero h1{font-size:22px}
       .module-hero p{font-size:13px}
       .module-hero > button,.module-hero .primary{width:100%}
-      .topology{height:248px; padding:12px; gap:8px; scroll-snap-type:x proximity}
+      .topology{min-height:0; height:auto; padding:12px; gap:8px; flex-direction:column; align-items:stretch; overflow:visible; scroll-snap-type:none}
       .topology-node,.egress-pool{scroll-snap-align:start}
-      .egress-pool{flex-basis:340px}
+      .topology-node,.topology-node.aggregator{width:100%;height:auto;min-height:64px}
+      .egress-pool{flex-basis:auto;width:100%;max-width:none}
+      .topology-groups{min-width:0;width:100%;grid-template-columns:1fr}
+      .topology-group-card{min-height:0}
+      .topology-group-meta{grid-template-columns:1fr 1fr}
       .arrow{display:block; flex-basis:14px}
+      .arrow{width:100%;height:14px;flex-basis:auto;transform:rotate(90deg)}
+      .attention-counters{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
       .attention-head{align-items:flex-start}
+      .attention-drilldown-item-head{grid-template-columns:1fr}
       .attention-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}
       .attention-actions button{width:100%;overflow:hidden;text-overflow:ellipsis}
       .toolbar{padding:14px 14px 10px}
@@ -21113,7 +21146,7 @@ def html_page_v2():
           </div>
         </div>
       </article>
-      <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab active" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="openHardeningSearchDrawer('evidence')">Доказательства</button><button class="ghost" onclick="openHardeningSearchDrawer('proposal')">Предложения</button><button class="ghost" onclick="showV2ChannelColumns()">Столбцы</button><button class="ghost" onclick="showV2ChannelSort()">Упорядочить</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
+      <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab active" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="openHardeningSearchDrawer('evidence')">Доказательства</button><button class="ghost" onclick="openHardeningSearchDrawer('proposal')">Предложения</button><button class="ghost" onclick="showV2ChannelColumns()">Столбцы</button><button class="ghost" onclick="showV2ChannelSort()">Упорядочить</button></div></div><div class="channel-filter-strip is-empty" id="channelTopologyFilter"></div><div class="table-shell" id="channelsTableV2"></div></article>
       <article class="panel span-12 workspace-panel" data-channel-workspace="matrix"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab active" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="openServiceCatalogDrawer()">Сервисы</button><button class="ghost" onclick="openCompactDrawer('Сервисная матрица','channel', serviceMatrixText())">Сводка</button></div></div><div class="table-shell service-matrix-shell" id="channelsMatrixTable"></div></article>
       <article class="panel span-12 workspace-panel" data-channel-workspace="readiness"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab active" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="renderChannelReadinessWorkspace()">Обновить</button></div></div><div class="table-shell" id="channelsReadinessTable"></div></article>
     </div></section>
@@ -21379,6 +21412,7 @@ def html_page_v2():
     let overviewLiveTimer = null;
     let overviewLastSignature = '';
     let v2UserFilter = 'all';
+    let v2ChannelTopologyFilter = 'all';
     let expandedChannelUsers = '';
     let expandedChannelServices = '';
     let drawerBackStack = [];
@@ -23946,6 +23980,10 @@ def html_page_v2():
     }
     function openMetricDetail(kind='overview') {
       const s = overview.summary || {};
+      if (kind === 'attention') {
+        openOverviewAlertsCenter();
+        return;
+      }
       const map = {
         system: 'Состояние V7',
         users: 'Пользователи',
@@ -24018,8 +24056,8 @@ def html_page_v2():
       ]);
       if (kind === 'attention') {
         const items = buildAttentionItems();
-        const rows = items.map(item => `<tr><td><strong>${esc(item.problem)}</strong><div class="cell-sub">${esc(item.object)}</div></td><td>${pill(attentionSeverityMeta(item.severity).label, attentionSeverityMeta(item.severity).tone)}</td><td>${esc(item.reason)}</td><td class="right">${attentionActionButtons(item)}</td></tr>`);
-        return listTable(['Проблема','Важность','Почему','Действие'], rows, 'No active issues. Users and channels are working normally.');
+        const rows = items.map(item => `<tr><td><strong>${esc(item.problem)}</strong></td><td>${esc(item.object)}</td><td class="right">${attentionActionButtons(item)}</td></tr>`);
+        return listTable(['Проблема','Объект','Действие'], rows, 'Проблем нет.');
       }
       return listTable(['Показатель','Значение'], [
         `<tr><td>Данные свежие</td><td>${s.stale_ok ? 'OK' : 'проверить'}</td></tr>`,
@@ -26963,7 +27001,9 @@ def html_page_v2():
     }
     function channelTableHtml(list) {
       const cols = visibleChannelTableColumns();
-      return `<table class="channels-table-v2"><thead><tr>${cols.map(c=>sortableHeader('channel', c)).join('')}</tr></thead><tbody>${channelRows(list)}</tbody></table>`;
+      const rows = channelRows(list);
+      const empty = `<tr><td colspan="${esc(cols.length)}"><div class="muted">Каналов в этом фильтре нет.</div></td></tr>`;
+      return `<table class="channels-table-v2"><thead><tr>${cols.map(c=>sortableHeader('channel', c)).join('')}</tr></thead><tbody>${rows || empty}</tbody></table>`;
     }
     function channelObjectPanelId(id='') {
       return `channelObjectPanel-${userEditKey(id)}`;
@@ -28975,10 +29015,10 @@ def html_page_v2():
     function attentionSeverityMeta(severity='') {
       const value = String(severity || '');
       const map = {
-        'Critical': {label:'Critical', tone:'bad', cls:'is-critical', order:0},
-        'Needs Action': {label:'Needs Action', tone:'warn', cls:'is-action', order:1},
-        'Needs Check': {label:'Needs Check', tone:'info', cls:'is-check', order:2},
-        'Waiting': {label:'Waiting', tone:'muted', cls:'is-waiting', order:3},
+        'Critical': {label:'Критично', tone:'bad', cls:'is-critical', order:0},
+        'Needs Action': {label:'Действие', tone:'warn', cls:'is-action', order:1},
+        'Needs Check': {label:'Проверить', tone:'info', cls:'is-check', order:2},
+        'Waiting': {label:'Ждёт', tone:'muted', cls:'is-waiting', order:3},
       };
       return map[value] || map['Needs Check'];
     }
@@ -29231,24 +29271,35 @@ def html_page_v2():
     function attentionActionButtons(item={}) {
       return `<div class="attention-actions"><button type="button" class="primary" onclick="${esc(item.primary_click)}">${esc(item.primary_label)}</button><button type="button" class="ghost" onclick="${esc(item.details_click)}">${esc(item.details_label || 'Details')}</button></div>`;
     }
-    function renderAttentionLayer(items=[]) {
+    function attentionSeverityDefinitions() {
+      return [
+        ['Critical', 'Критично'],
+        ['Needs Action', 'Действие'],
+        ['Needs Check', 'Проверить'],
+        ['Waiting', 'Ждёт'],
+      ];
+    }
+    function attentionSeverityCounts(items=[]) {
+      const counts = Object.fromEntries(attentionSeverityDefinitions().map(([key]) => [key, 0]));
+      (items || []).forEach(item => {
+        const key = attentionSeverityDefinitions().some(([value]) => value === item.severity) ? item.severity : 'Needs Check';
+        counts[key] += 1;
+      });
+      return counts;
+    }
+    function attentionHealthySummary() {
       const s = overview.summary || {};
+      return `<div class="attention-empty"><strong>Проблем нет</strong><span>Пользователи работают: ${esc(s.users_ready || 0)}/${esc(s.users_total || 0)} · Каналы работают: ${esc(s.egress_healthy || 0)}/${esc(s.egress_total || 0)} · Маршруты OK: ${esc(s.route_ok || 0)}/${esc(s.users_total || 0)}</span></div>`;
+    }
+    function renderAttentionLayer(items=[]) {
       if (!items.length) {
-        return `<div class="attention-empty"><strong>No active issues</strong><span>Users: ${esc(s.users_total || 0)} · Channels: ${esc(s.egress_total || 0)} · Internet working normally</span></div>`;
+        return attentionHealthySummary();
       }
-      const visible = items.slice(0, 6);
-      const more = items.length > visible.length ? `<div class="muted">Ещё ${esc(items.length - visible.length)} скрыто за Details.</div>` : '';
-      return `<div class="attention-layer">${visible.map(item => {
-        const meta = attentionSeverityMeta(item.severity);
-        return `<div class="attention-item ${esc(meta.cls)}">
-          <div class="attention-head">
-            <div class="attention-title"><strong>${esc(item.problem)}</strong><em>${esc(item.object)}</em></div>
-            ${pill(meta.label, meta.tone)}
-          </div>
-          <p class="attention-reason">${esc(item.reason)}</p>
-          ${attentionActionButtons(item)}
-        </div>`;
-      }).join('')}${more}</div>`;
+      const counts = attentionSeverityCounts(items);
+      return `<div class="attention-counters">${attentionSeverityDefinitions().map(([severity,label]) => {
+        const meta = attentionSeverityMeta(severity);
+        return `<button type="button" class="attention-counter ${esc(meta.cls)}" onclick='openOverviewAlertsCenter(${jsArg(severity)})'><span>${esc(label)}</span><strong>${esc(counts[severity] || 0)}</strong></button>`;
+      }).join('')}</div>`;
     }
     function renderOverview() {
       const s = overview.summary || {};
@@ -29285,18 +29336,23 @@ def html_page_v2():
       if (action === 'logs') { showLogsPreset(alert.preset || 'security'); return; }
       openDrawer(alert.title || 'Предупреждение', 'alert', drawerSection('Как решить', `<p>${esc(alert.next || 'Открой связанный раздел и запусти точечную проверку.')}</p>${overviewAlertActionControls(alert)}`) + drawerSection('Что обнаружено', `<p>${esc(alert.detail || '')}</p>`));
     }
-    function openOverviewAlertsCenter() {
-      const items = window.v2AttentionItems || buildAttentionItems();
+    function openOverviewAlertsCenter(severity='') {
+      const allItems = window.v2AttentionItems || buildAttentionItems();
+      const selectedSeverity = String(severity || '');
+      const validSeverity = attentionSeverityDefinitions().some(([value]) => value === selectedSeverity);
+      const items = validSeverity ? allItems.filter(item => item.severity === selectedSeverity) : allItems;
       if (!items.length) {
         const s = overview.summary || {};
-        openAlertDrawer('Уведомления', drawerSection('No active issues', `<p>Users: ${esc(s.users_total || 0)} · Channels: ${esc(s.egress_total || 0)} · Internet working normally.</p>`));
+        const title = validSeverity ? attentionSeverityMeta(selectedSeverity).label : 'Проблем нет';
+        openAlertDrawer(title, drawerSection('Проблем нет', `<p>Пользователи работают: ${esc(s.users_ready || 0)}/${esc(s.users_total || 0)} · Каналы работают: ${esc(s.egress_healthy || 0)}/${esc(s.egress_total || 0)} · Маршруты OK: ${esc(s.route_ok || 0)}/${esc(s.users_total || 0)}.</p>`));
         return;
       }
-      const rows = items.map(item => {
-        const meta = attentionSeverityMeta(item.severity);
-        return `<div class="alert-action-card"><span><strong>${esc(item.problem || 'Needs attention')}</strong><em>${esc(item.object || '')}</em></span>${pill(meta.label, meta.tone)}${attentionActionButtons(item)}</div>`;
-      }).join('');
-      openAlertDrawer('Уведомления', drawerSection(`Needs Attention (${items.length})`, `<div class="alert-action-list">${rows}</div>`));
+      const title = validSeverity ? `${attentionSeverityMeta(selectedSeverity).label} (${items.length})` : `Требует внимания (${items.length})`;
+      const cards = items.map(item => `<div class="attention-drilldown-item">
+        <div class="attention-drilldown-item-head"><strong>${esc(item.problem || 'Проверить')}</strong><span>${esc(item.object || '')}</span></div>
+        ${attentionActionButtons(item)}
+      </div>`).join('');
+      openAlertDrawer(title, drawerSection('Что сделать', `<div class="attention-drilldown-list">${cards}</div>`));
     }
     function alertActionPlan(alert={}) {
       const action = alert.action || '';
@@ -29398,44 +29454,91 @@ def html_page_v2():
     function topologyHtml() {
       const s = overview.summary || {};
       const channels = topologyEgressRows();
-      const matrix = overview.service_matrix?.items || {};
-      const density = channels.length > 12 ? 'topology-egress-dense' : (channels.length > 4 ? 'topology-egress-many' : 'topology-egress-normal');
-      const channelHtml = channels.map(e => {
-        const id = e.id || '';
-        const mx = matrix[id] || {};
-        const total = Number(mx.total || mx.count || 0);
-        const okCount = Number(mx.ok_count || 0);
-        const tone = e.status || 'warn';
-        const serviceText = total ? `${okCount}/${total}` : 'проверить';
-        const meta = `${e.users} польз. · ${serviceText}`;
-        return `<button type="button" class="egress-chip topology-clickable" title="${esc(id)} · ${esc(meta)}" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><span class="egress-chip-main"><i class="dot ${tone}"></i><span class="egress-chip-name">${esc(e.label || id)}</span></span><span class="egress-chip-meta">${esc(meta)}</span></button>`;
-      }).join('') || '<div class="muted">Каналы ещё не зарегистрированы.</div>';
+      const groupHtml = topologyGroupCards(channels);
       return [
         `<button type="button" class="topology-node topology-clickable" onclick="showTab('users')"><strong>Пользователи</strong><div>${esc(s.users_total || 0)}</div></button>`,
         '<div class="arrow">-></div>',
         `<button type="button" class="topology-node aggregator topology-clickable" onclick="openTopologyAggregator()"><strong>V7 сервер</strong></button>`,
         '<div class="arrow">-></div>',
-        `<div class="egress-pool ${density}"><button type="button" class="egress-pool-head topology-clickable" onclick="showTab('channels')"><strong>Пул каналов</strong></button><div class="egress-grid">${channelHtml}</div></div>`,
+        `<div class="topology-groups">${groupHtml}</div>`,
         '<div class="arrow">-></div>',
         `<button type="button" class="topology-node topology-clickable" onclick="openTopologyServices()"><strong>Сервисы</strong><div>${esc(serviceCoverageText())}</div></button>`,
       ].join('');
     }
     function topologyEgressRows() {
-      const matrix = overview.service_matrix?.items || {};
       return egressRows().map(row => {
         const id = row.id || row.egress || '';
-        const st = row.state || {};
-        const mx = matrix[id] || {};
-        const ok = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
-        const enabled = String(row.registry?.enabled ?? '1') === '1';
+        const state = channelTopologyState(row);
         return {
           id,
           label: topologyShortName(id),
-          status: enabled ? (ok ? 'ok' : 'warn') : 'info',
+          group: state.group,
+          issue: state.issue,
+          tone: state.tone,
           users: egressUserCount(id),
-          services: mx.total ? `${mx.ok_count || 0}/${mx.total || mx.count || 0}` : '',
         };
       });
+    }
+    function topologyGroupDefinitions() {
+      return [
+        {key:'working', label:'Работают', tone:'ok'},
+        {key:'check', label:'Проверить', tone:'info'},
+        {key:'problem', label:'Проблема', tone:'bad'},
+        {key:'disabled', label:'Отключены', tone:'muted'},
+      ];
+    }
+    function channelTopologyState(row={}) {
+      const id = row.id || '';
+      const reg = row.registry || {};
+      const health = channelHealth(row);
+      const lifecycle = channelLifecycleStatus(row, health);
+      const matrix = channelMatrix(id);
+      const load = channelLoad(id, row.state || {});
+      const loadLabel = statusLabel(load);
+      const role = String(reg.role || reg.protocol || reg.type || '').toLowerCase();
+      const disabled = String(reg.enabled ?? '1') === '0' || role.includes('reserve');
+      const readiness = (overview.egress_runtime_readiness || {})[id] || {};
+      const notStarted = String(readiness.reason || '').includes('interface is not currently up');
+      if (disabled) return {group:'disabled', tone:'muted', issue: role.includes('reserve') ? 'резерв' : 'выключен'};
+      if ((notStarted && egressUserCount(id) > 0) || (matrix.total && matrix.okCount === 0) || /FULL|HARD|OVER/i.test(String(load || ''))) {
+        return {group:'problem', tone:'bad', issue: notStarted ? 'не запущен' : (matrix.total && matrix.okCount === 0 ? 'сервисы не проходят' : 'лимит ёмкости')};
+      }
+      if (lifecycle.tone !== 'ok' || (matrix.total && matrix.okCount < matrix.total) || /WARN|SOFT|LIMIT/i.test(String(load || ''))) {
+        return {group:'check', tone:'info', issue: lifecycle.tone !== 'ok' ? lifecycle.text : (matrix.total && matrix.okCount < matrix.total ? 'часть сервисов' : loadLabel)};
+      }
+      return {group:'working', tone:'ok', issue:'—'};
+    }
+    function topologyGroupSummary(rows=[]) {
+      const groups = Object.fromEntries(topologyGroupDefinitions().map(def => [def.key, {...def, count:0, users:0, issues:{}}]));
+      (rows || []).forEach(row => {
+        const key = groups[row.group] ? row.group : 'check';
+        groups[key].count += 1;
+        groups[key].users += Number(row.users || 0);
+        const issue = row.issue || '—';
+        groups[key].issues[issue] = (groups[key].issues[issue] || 0) + 1;
+      });
+      return groups;
+    }
+    function topologyMainIssue(group={}) {
+      const sorted = Object.entries(group.issues || {}).sort((a,b) => b[1] - a[1]);
+      return sorted[0]?.[0] || '—';
+    }
+    function topologyGroupCards(rows=[]) {
+      const groups = topologyGroupSummary(rows);
+      if (!rows.length) return '<div class="muted">Каналы ещё не зарегистрированы.</div>';
+      return topologyGroupDefinitions().map(def => {
+        const group = groups[def.key] || def;
+        const issue = topologyMainIssue(group);
+        return `<button type="button" class="topology-group-card topology-clickable" onclick='openTopologyGroup(${jsArg(def.key)})'>
+          <div class="topology-group-head"><strong>${esc(def.label)}</strong>${pill(def.label, def.tone)}</div>
+          <div class="group-count">${esc(group.count || 0)}</div>
+          <div class="topology-group-meta"><span>${esc(group.users || 0)} польз.</span><span>${esc(rows.length)} всего</span></div>
+          <div class="topology-group-issue">${esc(issue === '—' ? 'без проблем' : issue)}</div>
+        </button>`;
+      }).join('');
+    }
+    function openTopologyGroup(group='all') {
+      setChannelTopologyFilter(group || 'all');
     }
     function topologyShortName(id='') {
       const raw = String(id || '');
@@ -29502,15 +29605,49 @@ def html_page_v2():
       users().forEach(u => { counts[u.current || 'none'] = (counts[u.current || 'none'] || 0) + 1; });
       return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'none';
     }
+    function channelTopologyFilterLabel(group='all') {
+      return topologyGroupDefinitions().find(def => def.key === group)?.label || 'Все каналы';
+    }
+    function channelMatchesTopologyFilter(row={}, group='all') {
+      if (!group || group === 'all') return true;
+      return channelTopologyState(row).group === group;
+    }
+    function filteredChannelsForTable(rows=egressRows()) {
+      return (rows || []).filter(row => channelMatchesTopologyFilter(row, v2ChannelTopologyFilter));
+    }
+    function setChannelTopologyFilter(group='all') {
+      v2ChannelTopologyFilter = group || 'all';
+      showChannelWorkspace('overview', {history:'push'});
+      renderChannels();
+      document.getElementById('channelsTableV2')?.scrollIntoView({block:'start', behavior:'smooth'});
+    }
+    function clearChannelTopologyFilter() {
+      v2ChannelTopologyFilter = 'all';
+      renderChannels();
+    }
+    function renderChannelTopologyFilterBar(totalRows=[], visibleRows=[]) {
+      const host = document.getElementById('channelTopologyFilter');
+      if (!host) return;
+      if (!v2ChannelTopologyFilter || v2ChannelTopologyFilter === 'all') {
+        host.classList.add('is-empty');
+        host.innerHTML = '';
+        return;
+      }
+      host.classList.remove('is-empty');
+      host.innerHTML = `<span>Фильтр топологии: <strong>${esc(channelTopologyFilterLabel(v2ChannelTopologyFilter))}</strong> · ${esc(visibleRows.length)}/${esc(totalRows.length)} каналов</span><button class="ghost" onclick="clearChannelTopologyFilter()">Показать все</button>`;
+    }
     function renderChannels() {
       const s = overview.summary || {};
+      const allRows = egressRows();
+      const visibleRows = filteredChannelsForTable(allRows);
       document.getElementById('channelStats').innerHTML = [
         statCard('Здоровые каналы', `${s.egress_healthy || 0}/${s.egress_total || 0}`, 'доступные каналы', (s.egress_healthy || 0) ? 'ok' : 'bad', 'openChannelMetricDetail("healthy")'),
         statCard('Сервисы OK', serviceCoverageText(), 'сводка матрицы', '', 'openChannelMetricDetail("services")'),
         statCard('Активные пользователи', s.users_total || 0, 'назначены на каналы', '', 'openChannelMetricDetail("users")'),
         statCard('Нагрузка', statusLabel(loadPosture()), 'контроль ёмкости', loadPosture().includes('FULL') ? 'warn' : '', 'openChannelMetricDetail("load")'),
       ].join('');
-      document.getElementById('channelsTableV2').innerHTML = channelTableHtml(egressRows());
+      renderChannelTopologyFilterBar(allRows, visibleRows);
+      document.getElementById('channelsTableV2').innerHTML = channelTableHtml(visibleRows);
       renderChannelMatrixWorkspace();
       renderChannelReadinessWorkspace();
     }

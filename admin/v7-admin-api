@@ -20234,6 +20234,22 @@ def html_page_v2():
     .overview-alert-panel .alert-row strong { font-size:12px; line-height:1.2; }
     .overview-alert-panel .alert-row em { display:none; }
     .overview-alert-panel .pill { padding:3px 7px; font-size:11px; }
+    .attention-layer { display:grid; gap:8px; padding:0 10px 10px; }
+    .attention-item { border:1px solid var(--line); background:rgba(255,255,255,.025); border-radius:10px; padding:9px; display:grid; gap:7px; text-align:left; min-width:0; }
+    .attention-item.is-critical { border-color:rgba(248,113,113,.38); background:rgba(248,113,113,.07); }
+    .attention-item.is-action { border-color:rgba(250,204,21,.34); background:rgba(250,204,21,.06); }
+    .attention-item.is-check { border-color:rgba(96,165,250,.30); background:rgba(96,165,250,.055); }
+    .attention-item.is-waiting { border-color:rgba(148,163,184,.24); }
+    .attention-head { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; }
+    .attention-title { min-width:0; }
+    .attention-title strong { display:block; font-size:13px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .attention-title em { display:block; margin-top:3px; color:var(--muted); font-style:normal; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .attention-reason { margin:0; color:var(--muted); font-size:12px; line-height:1.25; overflow-wrap:anywhere; }
+    .attention-actions { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .attention-actions button { min-width:0; }
+    .attention-empty { margin:0 10px 10px; border:1px solid var(--line); border-radius:10px; padding:12px; background:rgba(34,197,94,.055); }
+    .attention-empty strong { display:block; font-size:14px; }
+    .attention-empty span { display:block; margin-top:4px; color:var(--muted); font-size:12px; }
     .toolbar { padding:12px 16px 10px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
     .toolbar h2 { margin:0; font-size:15px; }
     .toolbar p { margin:4px 0 0; color:var(--muted); font-size:12px; }
@@ -20740,6 +20756,7 @@ def html_page_v2():
     .alert-action-card:hover { border-color:rgba(96,165,250,.34); background:color-mix(in srgb,var(--panel) 88%,var(--blue)); }
     .alert-action-card strong, .alert-action-card em { display:block; min-width:0; }
     .alert-action-card em { margin-top:4px; color:var(--muted); font-style:normal; font-size:12px; }
+    .alert-action-card .attention-actions { grid-column:1 / -1; }
     .clean-list { margin:0; padding-left:20px; color:var(--text); }
     .clean-list li { margin:6px 0; }
     .alert-row strong, .check-card strong, .route-card strong { display:block; }
@@ -20848,6 +20865,9 @@ def html_page_v2():
       .topology-node,.egress-pool{scroll-snap-align:start}
       .egress-pool{flex-basis:340px}
       .arrow{display:block; flex-basis:14px}
+      .attention-head{align-items:flex-start}
+      .attention-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}
+      .attention-actions button{width:100%;overflow:hidden;text-overflow:ellipsis}
       .toolbar{padding:14px 14px 10px}
       .toolbar-actions{width:100%}
       .toolbar-actions .ghost,.toolbar-actions .primary{flex:1 1 auto}
@@ -20970,7 +20990,7 @@ def html_page_v2():
           <div class="topology" id="topology"></div>
         </article>
         <article class="panel overview-alert-panel">
-          <h2><span>Важные события</span><button class="ghost" onclick="showTab('logs')">Все логи</button></h2>
+          <h2><span>Требует внимания</span><button class="ghost" onclick="openOverviewAlertsCenter()">Открыть</button></h2>
           <div class="alert-list" id="alerts"></div>
         </article>
       </div>
@@ -23997,8 +24017,9 @@ def html_page_v2():
         `<tr><td>Обычные RU</td><td>${s.direct_ru_route_ok ? 'OK' : 'проверить'}</td></tr>`,
       ]);
       if (kind === 'attention') {
-        const groups = ['phone','profile','waiting','problem'].map(key => ({key, label:actionKindLabel(key), count:usersByActionKind(key).length})).filter(x => x.count);
-        return listTable(['Что требует действия','Количество'], groups.map(x => `<tr class="summary-action-row" onclick="openUserActionGroup('${esc(x.key)}')"><td>${esc(x.label)}</td><td>${esc(x.count)}</td></tr>`), 'Сейчас нет пользовательских действий.');
+        const items = buildAttentionItems();
+        const rows = items.map(item => `<tr><td><strong>${esc(item.problem)}</strong><div class="cell-sub">${esc(item.object)}</div></td><td>${pill(attentionSeverityMeta(item.severity).label, attentionSeverityMeta(item.severity).tone)}</td><td>${esc(item.reason)}</td><td class="right">${attentionActionButtons(item)}</td></tr>`);
+        return listTable(['Проблема','Важность','Почему','Действие'], rows, 'No active issues. Users and channels are working normally.');
       }
       return listTable(['Показатель','Значение'], [
         `<tr><td>Данные свежие</td><td>${s.stale_ok ? 'OK' : 'проверить'}</td></tr>`,
@@ -28009,6 +28030,7 @@ def html_page_v2():
       operatorDecisionSurfaceLoading = true;
       try {
         operatorDecisionSurface = await api('/api/operator/decision-surface');
+        renderOverview();
         renderUsers();
         renderChannels();
         if (operatorView) renderOperator();
@@ -28950,25 +28972,305 @@ def html_page_v2():
       if (!host) return;
       host.innerHTML = items.slice(0, 12).map(item => `<div class="operator-row-card"><div class="operator-row-head"><strong>${esc(item.label || 'evidence')}</strong>${pill(item.kind || 'evidence', item.kind === 'report' ? 'info' : 'muted')}</div><em>${esc(item.path || '')}</em><div>${pill(item.state || 'HISTORICAL', operatorTone(item.state))}</div></div>`).join('') || '<div class="operator-muted-line">Evidence index is empty.</div>';
     }
+    function attentionSeverityMeta(severity='') {
+      const value = String(severity || '');
+      const map = {
+        'Critical': {label:'Critical', tone:'bad', cls:'is-critical', order:0},
+        'Needs Action': {label:'Needs Action', tone:'warn', cls:'is-action', order:1},
+        'Needs Check': {label:'Needs Check', tone:'info', cls:'is-check', order:2},
+        'Waiting': {label:'Waiting', tone:'muted', cls:'is-waiting', order:3},
+      };
+      return map[value] || map['Needs Check'];
+    }
+    function attentionUpdated() {
+      return overview.updated || overview.cache?.updated_at || overview.traffic?.updated_at || 'overview refresh';
+    }
+    function makeAttentionItem(item={}) {
+      const severity = item.severity || 'Needs Check';
+      const meta = attentionSeverityMeta(severity);
+      return {
+        problem: item.problem || 'Needs attention',
+        severity,
+        severity_order: meta.order,
+        object: item.object || 'V7',
+        object_type: item.object_type || 'system',
+        object_id: item.object_id || '',
+        reason: screenOneText(item.reason || 'Need operator review'),
+        primary_label: item.primary_label || 'Open',
+        primary_click: item.primary_click || item.details_click || 'showTab("overview")',
+        details_label: item.details_label || 'Details',
+        details_click: item.details_click || item.primary_click || 'showTab("overview")',
+        source: item.source || 'overview',
+        updated: item.updated || attentionUpdated(),
+        key: item.key || `${item.problem || 'attention'}:${item.object_type || 'system'}:${item.object_id || item.object || ''}:${item.source || 'overview'}`,
+      };
+    }
+    function attentionFromOverviewAlert(alert={}) {
+      if (alert.action === 'users') return null;
+      const plan = alertActionPlan(alert);
+      const severity = alert.level === 'bad' ? 'Critical' : (alert.level === 'info' ? 'Waiting' : 'Needs Check');
+      const object = alert.route_class || alert.check || alert.target_ip || humanCode(alert.action || 'V7');
+      return makeAttentionItem({
+        problem: alert.title || 'System check',
+        severity,
+        object,
+        object_type: alert.action || 'overview',
+        object_id: alert.route_class || alert.check || alert.target_ip || alert.action || '',
+        reason: alert.detail || plan.short || alert.next || '',
+        primary_label: plan.primary || 'Open',
+        primary_click: plan.primaryClick || 'showTab("overview")',
+        details_label: alert.action === 'checks' ? 'Checks' : 'Details',
+        details_click: alert.action === 'routing'
+          ? `showTab("routing");${alert.route_class ? `openRouteDrawer(${jsArg(alert.route_class)});` : ''}closeDrawer()`
+          : (alert.action === 'checks' ? `showTab("checks");closeDrawer()` : `showTab("overview");closeDrawer()`),
+        source: 'Overview Alerts',
+        updated: attentionUpdated(),
+        key: `overview:${alert.action || 'alert'}:${alert.route_class || alert.check || alert.target_ip || alert.title || ''}`,
+      });
+    }
+    function userAttentionPrimary(ctx={}, answer={}) {
+      const ip = ctx.ip || '';
+      const safeIp = jsArg(ip);
+      const userId = ctx.identity?.identityUser?.id || ctx.phone?.user?.id || '';
+      if (ctx.phone?.required && userId) return {label:'Подтвердить телефон', click:`confirmUserPhone(${jsArg(userId)},${safeIp})`};
+      if (ctx.state === 'disabled') return {label:'Проверить статус', click:`openUserDrawerDetails(${safeIp})`};
+      if (ctx.pending?.id) return {label:'Проверить подключение', click:`checkPendingProfile(${jsArg(ctx.pending.id)},${safeIp})`};
+      if (ctx.missingProfile) return {label:'Выдать профиль', click:`showTab("users");showIssueProfilePanel("existing",${safeIp})`};
+      if (ctx.leakRisk || answer.problem === 'Проблема маршрута') return {label:'Проверить маршрут', click:`showUserCheck(${safeIp})`};
+      if (ctx.speedIssue || answer.problem === 'Жалоба на скорость') return {label:'Проверить скорость', click:`requestClientSpeed(${safeIp})`};
+      if (!ctx.connected && ctx.profileReady) return {label:'Проверить подключение', click:`showUserCheck(${safeIp})`};
+      return {label:'Открыть пользователя', click:`openUserDrawer(${safeIp})`};
+    }
+    function attentionFromUser(u={}) {
+      const ip = u.ip || '';
+      if (!ip) return null;
+      const ctx = userDrawerContext(ip);
+      const answer = userDrawerAnswerState(ctx);
+      if (answer.state === 'Works') return null;
+      const action = userAttentionPrimary(ctx, answer);
+      const h = userHumanFields(ip, u);
+      let severity = 'Needs Check';
+      if (ctx.leakRisk) severity = 'Critical';
+      else if (answer.state === 'Needs Action' || ctx.missingProfile || ctx.phone?.required || ctx.phone?.rejected) severity = 'Needs Action';
+      else if (answer.state === 'Waiting') severity = 'Waiting';
+      const problem = screenOneText(answer.problem || 'Проверить пользователя');
+      return makeAttentionItem({
+        problem,
+        severity,
+        object: h.name && h.name !== '—' ? `${h.name} / ${ip}` : ip,
+        object_type: 'user',
+        object_id: ip,
+        reason: userDrawerScreenOneReason(ctx, answer),
+        primary_label: action.label,
+        primary_click: action.click,
+        details_label: 'Details',
+        details_click: `openUserDrawer(${jsArg(ip)})`,
+        source: 'User Status',
+        updated: attentionUpdated(),
+        key: `user:${ip}:${problem}`,
+      });
+    }
+    function attentionFromChannel(row={}) {
+      const id = row.id || '';
+      if (!id) return [];
+      const items = [];
+      const health = channelHealth(row);
+      const lifecycle = channelLifecycleStatus(row, health);
+      const matrix = channelMatrix(id);
+      const load = channelLoad(id, row.state || {});
+      const loadLabel = statusLabel(load);
+      const reg = row.registry || {};
+      const disabled = String(reg.enabled ?? '1') === '0';
+      const usersCount = egressUserCount(id);
+      const readiness = (overview.egress_runtime_readiness || {})[id] || {};
+      const notStarted = String(readiness.reason || '').includes('interface is not currently up');
+      if ((disabled || notStarted) && usersCount > 0) {
+        items.push(makeAttentionItem({
+          problem: disabled ? 'Channel disabled' : 'Channel not started',
+          severity: 'Needs Action',
+          object: channelDisplayName(id),
+          object_type: 'channel',
+          object_id: id,
+          reason: disabled ? 'Users should not stay on a disabled channel' : 'Channel interface is not running',
+          primary_label: 'Запустить канал',
+          primary_click: `startV2ChannelFromList(${jsArg(id)})`,
+          details_label: 'Details',
+          details_click: `openChannelDrawer(${jsArg(id)})`,
+          source: 'Channel Status',
+          updated: attentionUpdated(),
+          key: `channel:${id}:disabled`,
+        }));
+      }
+      if (!disabled && !notStarted && lifecycle.tone !== 'ok') {
+        items.push(makeAttentionItem({
+          problem: 'Channel needs check',
+          severity: health.tone === 'bad' ? 'Critical' : 'Needs Check',
+          object: channelDisplayName(id),
+          object_type: 'channel',
+          object_id: id,
+          reason: health.detail || lifecycle.text || 'Channel health requires verification',
+          primary_label: 'Открыть канал',
+          primary_click: `openChannelDrawer(${jsArg(id)})`,
+          details_label: 'Details',
+          details_click: `openChannelDrawer(${jsArg(id)})`,
+          source: 'Channel Status',
+          updated: attentionUpdated(),
+          key: `channel:${id}:health`,
+        }));
+      }
+      if (matrix.total && matrix.okCount < matrix.total) {
+        items.push(makeAttentionItem({
+          problem: 'Service check failed',
+          severity: matrix.okCount === 0 ? 'Needs Action' : 'Needs Check',
+          object: channelDisplayName(id),
+          object_type: 'channel',
+          object_id: id,
+          reason: `Service matrix needs attention: ${matrix.okCount}/${matrix.total}`,
+          primary_label: 'Проверить сервисы',
+          primary_click: `runV2ServiceMatrix(${jsArg(id)})`,
+          details_label: 'Details',
+          details_click: `openChannelDrawer(${jsArg(id)})`,
+          source: 'Checks',
+          updated: attentionUpdated(),
+          key: `channel:${id}:services`,
+        }));
+      }
+      if (/FULL|LIMIT|HARD|SOFT|OVER|HIGH/i.test(String(load || '')) || /лимит|ёмкост/i.test(String(loadLabel || ''))) {
+        items.push(makeAttentionItem({
+          problem: 'Channel overload',
+          severity: 'Needs Action',
+          object: channelDisplayName(id),
+          object_type: 'channel',
+          object_id: id,
+          reason: 'Channel capacity needs operator review',
+          primary_label: 'Открыть пользователей',
+          primary_click: `openChannelMetricDetail("users")`,
+          details_label: 'Details',
+          details_click: `openChannelDrawer(${jsArg(id)})`,
+          source: 'Capacity Problems',
+          updated: attentionUpdated(),
+          key: `channel:${id}:capacity`,
+        }));
+      }
+      return items;
+    }
+    function attentionFromRecommendation(ip='', row={}) {
+      if (!row || operatorRecommendationIgnored(row)) return null;
+      const recommended = row.recommended_channel || '';
+      const current = row.current_channel || '';
+      if (!recommended || recommended === current || !row.recommendation_hash) return null;
+      const user = userRowByIp(ip);
+      const h = userHumanFields(ip, user);
+      return makeAttentionItem({
+        problem: 'Recommendation review',
+        severity: row.review_required ? 'Needs Action' : 'Waiting',
+        object: h.name && h.name !== '—' ? `${h.name} / ${current} → ${recommended}` : `${ip} / ${current} → ${recommended}`,
+        object_type: 'recommendation',
+        object_id: ip,
+        reason: screenOneText(row.review_next_action || row.expected_improvement || 'Review recommended route change'),
+        primary_label: 'Review',
+        primary_click: `openUserRecommendationDrawer(${jsArg(ip)})`,
+        details_label: 'Details',
+        details_click: `openUserDrawer(${jsArg(ip)})`,
+        source: 'Recommendations',
+        updated: attentionUpdated(),
+        key: `recommendation:${ip}:${row.recommendation_hash}`,
+      });
+    }
+    function attentionFromExecutionReadiness() {
+      const ov = operatorView?.overview || {};
+      const selected = operatorView?.selected_moves || {};
+      const count = Number(selected.count ?? ov.selected_moves ?? 0);
+      const blockers = ov.blockers || [];
+      if (!count || ov.execution_allowed_now === true) return null;
+      return makeAttentionItem({
+        problem: 'Execution blocked',
+        severity: 'Needs Action',
+        object: `${count} recommendations`,
+        object_type: 'execution',
+        object_id: 'operator-center',
+        reason: screenOneText((blockers || []).join(', ') || 'Execution requires safety recheck'),
+        primary_label: 'Open Readiness',
+        primary_click: `showTab("operator");closeDrawer()`,
+        details_label: 'Details',
+        details_click: `showTab("operator");closeDrawer()`,
+        source: 'Execution Readiness',
+        updated: attentionUpdated(),
+        key: `execution:${count}:${(blockers || []).join('|')}`,
+      });
+    }
+    function buildAttentionItems() {
+      const items = [];
+      (buildAlerts() || []).forEach(alert => {
+        const item = attentionFromOverviewAlert(alert);
+        if (item) items.push(item);
+      });
+      activeUsers().forEach(user => {
+        const item = attentionFromUser(user);
+        if (item) items.push(item);
+      });
+      egressRows().forEach(row => items.push(...attentionFromChannel(row)));
+      Object.entries(operatorDecisionSurface?.users_by_ip || {}).forEach(([ip,row]) => {
+        const item = attentionFromRecommendation(ip, row);
+        if (item) items.push(item);
+      });
+      const execution = attentionFromExecutionReadiness();
+      if (execution) items.push(execution);
+      const byKey = new Map();
+      items.forEach(item => {
+        const existing = byKey.get(item.key);
+        if (!existing || attentionSeverityMeta(item.severity).order < attentionSeverityMeta(existing.severity).order) {
+          byKey.set(item.key, item);
+        }
+      });
+      return Array.from(byKey.values()).sort((a,b) =>
+        attentionSeverityMeta(a.severity).order - attentionSeverityMeta(b.severity).order ||
+        String(a.object || '').localeCompare(String(b.object || ''))
+      );
+    }
+    function attentionActionButtons(item={}) {
+      return `<div class="attention-actions"><button type="button" class="primary" onclick="${esc(item.primary_click)}">${esc(item.primary_label)}</button><button type="button" class="ghost" onclick="${esc(item.details_click)}">${esc(item.details_label || 'Details')}</button></div>`;
+    }
+    function renderAttentionLayer(items=[]) {
+      const s = overview.summary || {};
+      if (!items.length) {
+        return `<div class="attention-empty"><strong>No active issues</strong><span>Users: ${esc(s.users_total || 0)} · Channels: ${esc(s.egress_total || 0)} · Internet working normally</span></div>`;
+      }
+      const visible = items.slice(0, 6);
+      const more = items.length > visible.length ? `<div class="muted">Ещё ${esc(items.length - visible.length)} скрыто за Details.</div>` : '';
+      return `<div class="attention-layer">${visible.map(item => {
+        const meta = attentionSeverityMeta(item.severity);
+        return `<div class="attention-item ${esc(meta.cls)}">
+          <div class="attention-head">
+            <div class="attention-title"><strong>${esc(item.problem)}</strong><em>${esc(item.object)}</em></div>
+            ${pill(meta.label, meta.tone)}
+          </div>
+          <p class="attention-reason">${esc(item.reason)}</p>
+          ${attentionActionButtons(item)}
+        </div>`;
+      }).join('')}${more}</div>`;
+    }
     function renderOverview() {
       const s = overview.summary || {};
       const alerts = buildAlerts();
-      const actionAlerts = alerts.filter(a => a.level !== 'info');
+      const attentionItems = buildAttentionItems();
+      const actionAlerts = attentionItems.filter(a => a.severity !== 'Waiting');
       window.v2OverviewAlerts = alerts;
+      window.v2AttentionItems = attentionItems;
       document.getElementById('topSystem').innerHTML = pill(s.stale_ok && s.killswitch_ok ? 'V7 работает' : 'Нужно действие', s.stale_ok && s.killswitch_ok ? 'ok' : 'warn');
       document.getElementById('topUsers').textContent = `${s.users_total || 0} пользователей`;
-      document.getElementById('topAlerts').innerHTML = `<button type="button" class="top-alert-button" onclick="openOverviewAlertsCenter()" aria-label="Открыть события">${pill(`${actionAlerts.length} событий`, actionAlerts.length ? 'warn' : 'ok')}</button>`;
+      document.getElementById('topAlerts').innerHTML = `<button type="button" class="top-alert-button" onclick="openOverviewAlertsCenter()" aria-label="Открыть внимание">${pill(`${attentionItems.length} внимания`, actionAlerts.length ? 'warn' : 'ok')}</button>`;
       document.getElementById('metrics').innerHTML = [
         metric('Состояние V7', s.stale_ok ? 'Свежее' : 'Устарело', `Защита: ${statusLabel(s.killswitch_status || '')}`, s.stale_ok && s.killswitch_ok, 'openMetricDetail("system")'),
         metric('Пользователи', `${s.users_ready || 0}/${s.users_total || 0}`, `${s.users_waiting || 0} ждут · ${s.users_blocked || 0} проблем`, (s.users_blocked || 0) === 0, 'openMetricDetail("users")'),
         metric('Каналы', `${s.egress_healthy || 0}/${s.egress_total || 0}`, 'здоровые каналы', (s.egress_healthy || 0) > 0, 'openMetricDetail("channels")'),
         metric('Маршруты', `${s.route_ok || 0}/${s.users_total || 0}`, 'ожидаемые маршруты', (s.route_ok || 0) === (s.users_total || 0), 'openMetricDetail("routing")'),
         metric('Защита трафика', statusLabel(s.killswitch_status || 'Неизвестно'), s.route_leak_risk ? 'риск утечки' : 'утечки нет', !s.route_leak_risk && s.killswitch_ok, 'openMetricDetail("security")'),
-        metric('Требует внимания', actionAlerts.length, 'только блокеры', actionAlerts.length === 0, 'openMetricDetail("attention")'),
+        metric('Требует внимания', attentionItems.length, actionAlerts.length ? 'активные проблемы' : 'спокойно', attentionItems.length === 0, 'openMetricDetail("attention")'),
       ].join('');
       document.getElementById('topology').innerHTML = topologyHtml();
       renderOperatorScenarios();
-      document.getElementById('alerts').innerHTML = alerts.map((a,index) => `<button class="alert-row" onclick="openOverviewAlertDetail(${index})"><span><strong>${esc(a.title)}</strong></span>${pill(levelLabel(a.level), a.level === 'bad' ? 'bad' : (a.level === 'info' ? 'info' : 'warn'))}</button>`).join('') || '<div class="muted">Активных предупреждений нет.</div>';
+      document.getElementById('alerts').innerHTML = renderAttentionLayer(attentionItems);
       renderTrustSurfaces();
       document.getElementById('overviewUsers').innerHTML = userTableHtml(activeUsers(), 6);
       document.getElementById('overviewChannels').innerHTML = overviewChannelTableHtml(egressRows().slice(0,6));
@@ -28984,16 +29286,17 @@ def html_page_v2():
       openDrawer(alert.title || 'Предупреждение', 'alert', drawerSection('Как решить', `<p>${esc(alert.next || 'Открой связанный раздел и запусти точечную проверку.')}</p>${overviewAlertActionControls(alert)}`) + drawerSection('Что обнаружено', `<p>${esc(alert.detail || '')}</p>`));
     }
     function openOverviewAlertsCenter() {
-      const alerts = (window.v2OverviewAlerts || []).map((alert,index) => ({...alert, index})).filter(alert => alert.level !== 'info');
-      if (!alerts.length) {
-        openAlertDrawer('Уведомления', drawerSection('Сейчас всё спокойно', '<p>Критичных задач нет.</p>'));
+      const items = window.v2AttentionItems || buildAttentionItems();
+      if (!items.length) {
+        const s = overview.summary || {};
+        openAlertDrawer('Уведомления', drawerSection('No active issues', `<p>Users: ${esc(s.users_total || 0)} · Channels: ${esc(s.egress_total || 0)} · Internet working normally.</p>`));
         return;
       }
-      const rows = alerts.map(alert => {
-        const toneCls = alert.level === 'bad' ? 'bad' : 'warn';
-        return `<button type="button" class="alert-action-card" onclick="openOverviewAlertDetail(${Number(alert.index)})"><span><strong>${esc(alert.title || 'Событие')}</strong></span>${pill(levelLabel(alert.level || 'warn'), toneCls)}</button>`;
+      const rows = items.map(item => {
+        const meta = attentionSeverityMeta(item.severity);
+        return `<div class="alert-action-card"><span><strong>${esc(item.problem || 'Needs attention')}</strong><em>${esc(item.object || '')}</em></span>${pill(meta.label, meta.tone)}${attentionActionButtons(item)}</div>`;
       }).join('');
-      openAlertDrawer('Уведомления', drawerSection('Что сделать', `<div class="alert-action-list">${rows}</div>`));
+      openAlertDrawer('Уведомления', drawerSection(`Needs Attention (${items.length})`, `<div class="alert-action-list">${rows}</div>`));
     }
     function alertActionPlan(alert={}) {
       const action = alert.action || '';

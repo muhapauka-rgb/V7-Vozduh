@@ -145,8 +145,8 @@ Working status is visible in the mobile table. Drawer-level Working validation i
 | Breakdown renders | PASS, production screenshot captured |
 | Production screenshots | PASS |
 | Mobile screenshots | PASS |
-| Truth | Pending final post-report check |
-| Convergence | Pending final post-report check |
+| Truth | PASS, `tools/v7-truth-check --all --json` |
+| Convergence | PASS, `tools/v7-convergence-status --json` |
 
 ## 10. Remaining Issues
 

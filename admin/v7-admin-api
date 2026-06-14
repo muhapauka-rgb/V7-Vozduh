@@ -26953,13 +26953,15 @@ def html_page_v2():
       let actionLabel = 'Open Channel';
       let action = `openChannelDrawer('${esc(id)}')`;
       let primary = false;
-      if (main.check === 'Services') { actionLabel = 'Check Services'; action = `runV2ServiceMatrix('${esc(id)}')`; primary = true; }
-      else if (main.check === 'Runtime' || main.reason === 'Channel not started') { actionLabel = 'Check Runtime'; action = `openV2ChannelLogs('${esc(id)}')`; primary = true; }
-      else if (main.check === 'Capacity') { actionLabel = 'Check Users'; action = `showChannelWorkspace('overview');toggleChannelUsers('${esc(id)}');closeDrawer()`; primary = true; }
-      else if (main.check === 'Route') { actionLabel = 'Check Route'; action = `openChannelDrawer('${esc(id)}')`; primary = true; }
-      else if (main.check === 'Stability') { actionLabel = 'Open Channel'; action = `openChannelDrawer('${esc(id)}')`; primary = true; }
-      const mainIssue = main.problem || (score >= 75 ? '—' : 'Needs check');
-      const why = main.reason || (score >= 90 ? 'All checks look clean' : 'Channel has no critical blocker');
+      if (score < 90) {
+        if (main.check === 'Services') { actionLabel = 'Check Services'; action = `runV2ServiceMatrix('${esc(id)}')`; primary = true; }
+        else if (main.check === 'Runtime' || main.reason === 'Channel not started') { actionLabel = 'Check Runtime'; action = `openV2ChannelLogs('${esc(id)}')`; primary = true; }
+        else if (main.check === 'Capacity') { actionLabel = 'Check Users'; action = `showChannelWorkspace('overview');toggleChannelUsers('${esc(id)}');closeDrawer()`; primary = true; }
+        else if (main.check === 'Route') { actionLabel = 'Check Route'; action = `openChannelDrawer('${esc(id)}')`; primary = true; }
+        else if (main.check === 'Stability') { actionLabel = 'Open Channel'; action = `openChannelDrawer('${esc(id)}')`; primary = true; }
+      }
+      const mainIssue = score >= 90 ? '—' : (main.problem || (score >= 75 ? '—' : 'Needs check'));
+      const why = score >= 90 ? 'Channel is ready for operators' : (main.reason || 'Channel has no critical blocker');
       return {id, score, status, breakdown:parts, problems, working, mainIssue, why, actionLabel, action, primary};
     }
     function channelSuitabilityCell(id='', source={}) {

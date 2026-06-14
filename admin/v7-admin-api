@@ -20673,8 +20673,8 @@ def html_page_v2():
     .user-answer-card { grid-column:1 / -1; display:grid; gap:8px; }
     .user-answer-row { display:grid; grid-template-columns:92px minmax(0,1fr); gap:12px; align-items:start; border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:9px 10px; background:rgba(255,255,255,.025); }
     .user-answer-row > span { color:var(--muted); font-size:11px; font-weight:800; letter-spacing:0; text-transform:uppercase; }
-    .user-answer-row > div { min-width:0; line-height:1.45; }
-    .user-answer-row strong { display:inline-block; margin-right:8px; }
+    .user-answer-row > div { min-width:0; line-height:1.45; overflow-wrap:anywhere; }
+    .user-answer-row strong { display:inline-block; margin-right:8px; max-width:100%; overflow-wrap:anywhere; }
     .user-answer-row .mini-action { min-height:26px; padding:0 8px; }
     .user-answer-row.tone-warn { border-color:rgba(245,158,11,.38); background:rgba(245,158,11,.08); }
     .user-answer-actions { margin-top:0; }
@@ -23667,9 +23667,18 @@ def html_page_v2():
         status: document.getElementById('drawerStatus')?.innerHTML || '',
         body: document.getElementById('drawerBody')?.innerHTML || '',
         actions: document.getElementById('drawerHeadActions')?.dataset.actions || '',
+        closeHidden: document.getElementById('drawerHeadActions')?.dataset.closeHidden === '1',
+        actionbarHidden: drawer?.dataset.actionbarHidden === '1',
         size: drawer?.dataset.size || (drawer?.classList.contains('compact-drawer') ? 'message' : 'wide'),
         compact: drawer?.classList.contains('compact-drawer') || false,
       };
+    }
+    function setDrawerActionbarVisible(visible=true) {
+      const el = document.querySelector('#drawer .drawer-actionbar');
+      const drawer = document.getElementById('drawer');
+      if (!el || !drawer) return;
+      drawer.dataset.actionbarHidden = visible ? '' : '1';
+      el.style.display = visible ? '' : 'none';
     }
     function restoreDrawerSnapshot(snapshot={}) {
       const drawer = document.getElementById('drawer');
@@ -23679,7 +23688,8 @@ def html_page_v2():
       document.getElementById('drawerBody').innerHTML = snapshot.body || '';
       setDrawerSize(drawer, snapshot.size || (snapshot.compact ? 'message' : 'wide'));
       drawer.classList.add('open');
-      setDrawerHeaderActions(snapshot.actions || '');
+      setDrawerHeaderActions(snapshot.actions || '', {close: !snapshot.closeHidden});
+      setDrawerActionbarVisible(!snapshot.actionbarHidden);
       bindDrawerRows();
       translateDynamicText(drawer);
     }
@@ -23696,7 +23706,8 @@ def html_page_v2():
       document.getElementById('drawerStatus').innerHTML = pill(typeLabel, type === 'alert' ? 'warn' : 'info');
       const content = String(body ?? '');
       document.getElementById('drawerBody').innerHTML = content.includes('<') ? content : `<div class="drawer-section"><p>${esc(content)}</p></div>`;
-      setDrawerHeaderActions('');
+      setDrawerHeaderActions('', {close: options.close !== false});
+      setDrawerActionbarVisible(options.actionbar !== false);
       setDrawerSize(drawer, options.size || 'wide');
       drawer.classList.add('open');
       translateDynamicText(drawer);
@@ -23722,12 +23733,14 @@ def html_page_v2():
       if (type) type.textContent = '';
       if (status) status.innerHTML = '';
     }
-    function setDrawerHeaderActions(actions='') {
+    function setDrawerHeaderActions(actions='', options={}) {
       const el = document.getElementById('drawerHeadActions');
       if (!el) return;
       el.dataset.actions = actions || '';
+      el.dataset.closeHidden = options.close === false ? '1' : '';
       const back = drawerBackStack.length ? '<button class="ghost" onclick="drawerBack()">Назад</button>' : '';
-      el.innerHTML = `${back}${actions || ''}<button class="ghost" onclick="closeDrawer()">Закрыть</button>`;
+      const close = options.close === false ? '' : '<button class="ghost" onclick="closeDrawer()">Закрыть</button>';
+      el.innerHTML = `${back}${actions || ''}${close}`;
       translateDynamicText(el);
     }
     function drawerBack() {
@@ -25702,18 +25715,29 @@ def html_page_v2():
       const reason = card.reason || card.summary || ctx.r?.plain || ctx.onboarding?.detail || ctx.onboarding?.next || nextUserAction(ctx.r || {}, ctx.state || '');
       return screenOneText(reason || 'Причина будет видна после обновления данных.');
     }
+    function userDrawerScreenOneReason(ctx={}, answer={}) {
+      if (ctx.phone?.rejected) return 'Телефон отклонён';
+      if (ctx.phone?.required) return 'Телефон нужно подтвердить';
+      if (ctx.state === 'disabled') return 'Пользователь выключен';
+      if (ctx.missingProfile) return 'Профиль не выдан';
+      if (ctx.leakRisk || answer.problem === 'Проблема маршрута') return 'Маршрут нужно проверить';
+      if (ctx.speedIssue || answer.problem === 'Жалоба на скорость') return 'Нужен свежий замер скорости';
+      if (!ctx.connected && ctx.profileReady) return 'Пользователь ещё не подключался';
+      if (ctx.profileReady && ctx.connected && ctx.routeOk) return 'Текущий маршрут подходит';
+      return 'Нужны свежие данные';
+    }
     function userPrimaryActionButton(ctx={}) {
       const ip = esc(ctx.ip || '');
       const state = userDrawerAnswerState(ctx);
       const userId = ctx.identity?.identityUser?.id || ctx.phone?.user?.id || '';
       if (ctx.phone?.required && userId) return `<button class="primary" onclick="confirmUserPhone('${esc(userId)}','${ip}')">Подтвердить телефон</button>`;
-      if (ctx.state === 'disabled') return `<button class="primary" onclick="applyV2UserEnabled('${ip}', true)">Включить</button>`;
+      if (ctx.state === 'disabled') return `<button class="primary" onclick="openUserDrawerDetails('${ip}')">Проверить статус</button>`;
       if (ctx.pending?.id) return `<button class="primary" onclick="checkPendingProfile('${esc(ctx.pending.id)}','${ip}')">Проверить подключение</button>`;
       if (ctx.missingProfile) return `<button class="primary" onclick="showIssueProfilePanel('existing','${ip}')">Выдать профиль</button>`;
       if (ctx.leakRisk || state.problem === 'Проблема маршрута') return `<button class="primary" onclick="showUserCheck('${ip}')">Проверить маршрут</button>`;
       if (ctx.speedIssue) return `<button class="primary" onclick="requestClientSpeed('${ip}')">Проверить скорость</button>`;
       if (!ctx.connected && ctx.profileReady) return `<button class="primary" onclick="showUserCheck('${ip}')">Проверить подключение</button>`;
-      return `<button class="primary" onclick="openUserDrawer('${ip}')">Наблюдать</button>`;
+      return `<button class="primary" onclick="closeDrawer()">Наблюдать</button>`;
     }
     function userAnswerRow(title='', body='', tone='') {
       return `<div class="user-answer-row ${tone ? `tone-${esc(tone)}` : ''}"><span>${esc(title)}</span><div>${body}</div></div>`;
@@ -25721,13 +25745,7 @@ def html_page_v2():
     function renderUserDrawerAnswer(ip='', live={}) {
       const ctx = userDrawerContext(ip, live);
       const answer = userDrawerAnswerState(ctx);
-      const reason = userDrawerReason(ctx.ip, ctx);
-      const current = [
-        `Channel: ${ctx.u.current || ctx.route?.expected || 'не выбран'}`,
-        `Connection: ${ctx.connected ? 'Online' : 'Not connected'}`,
-        `Profile: ${ctx.profileReady ? 'Ready' : 'Missing'}`,
-        `Route: ${ctx.leakRisk ? 'Risk' : (ctx.routeOk ? 'OK' : 'Check')}`,
-      ].join('<br>');
+      const reason = userDrawerScreenOneReason(ctx, answer);
       const identityLines = [
         `<strong>${esc(ctx.h.name || ctx.ip || 'Пользователь')}</strong>`,
         ctx.h.company && ctx.h.company !== '—' ? esc(ctx.h.company) : '',
@@ -25737,10 +25755,9 @@ def html_page_v2():
       return `<div class="drawer-section user-answer-card">
         <h3>Операторский ответ</h3>
         ${userAnswerRow('OBJECT', identityLines)}
-        ${userAnswerRow('STATE', `${pill(answer.state, answer.tone)}<strong>${esc(screenOneText(answer.state))}</strong>`)}
+        ${userAnswerRow('STATE', `${pill(answer.state, answer.tone)}`)}
         ${userAnswerRow('PROBLEM', `<strong>${esc(screenOneText(answer.problem))}</strong>`)}
-        ${userAnswerRow('CURRENT', current)}
-        ${userAnswerRow('REASON', `<strong>${esc(reason)}</strong><button class="mini-action" onclick="openUserDrawerDetails('${esc(ctx.ip || '')}')">Details</button>`)}
+        ${userAnswerRow('REASON', `<strong>${esc(reason)}</strong>`)}
         ${userAnswerRow('ACTION', `<div class="detail-actions user-answer-actions">${userPrimaryActionButton(ctx)}<button class="ghost" onclick="openUserDrawerDetails('${esc(ctx.ip || '')}')">Details</button></div>`)}
         ${answer.warning ? userAnswerRow('WARNING', `<strong>${esc(screenOneText(answer.warning))}</strong>`, 'warn') : ''}
       </div>`;
@@ -25849,8 +25866,7 @@ def html_page_v2():
       ].join('');
     }
     function openUserDrawer(ip) {
-      openDrawer(ip || 'Пользователь', 'user', renderUserDrawerQuick(ip), {size:'card'});
-      setDrawerHeaderActions(userDeleteHeaderButton(ip || ''));
+      openDrawer(ip || 'Пользователь', 'user', renderUserDrawerQuick(ip), {size:'message', close:false, actionbar:false});
     }
     async function openUserDrawerDetails(ip) {
       openDrawer(ip || 'Пользователь', 'user', drawerSection('Подробно', '<p class="muted">Загружаю живую диагностику пользователя...</p>'), {size:'card'});

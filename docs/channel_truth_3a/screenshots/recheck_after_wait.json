@@ -1,0 +1,30 @@
+{
+  "bodyHasUnavailable": false,
+  "rows": [
+    {
+      "rowIndex": 0,
+      "text": "vless68/100На канал назначено слишком много пользователейEvacuate10 users selected to leaveRecommended movementplanner blocker11показать Проверить пользователей"
+    },
+    {
+      "rowIndex": 1,
+      "text": "awg092/100Канал готов для пользователейUse10 selected moves target this channelNoneplanner truth0показать Открыть канал"
+    },
+    {
+      "rowIndex": 2,
+      "text": "awg372/100На канал назначено слишком много пользователейKeep OnlyCurrent users can stayNoneplanner truth8показать Проверить пользователей"
+    },
+    {
+      "rowIndex": 3,
+      "text": "179/100История канала требует подтвержденияEmergency OnlyManual only · Качество не равно назначениюManual onlyquality score conflicts with planner truth0показать Открыть канал"
+    },
+    {
+      "rowIndex": 4,
+      "text": "OpenVPN-Kolosovopenvpn-1779388847-d2ad7c37/100Один или несколько сервисов требуют проверкиEmergency OnlyManual onlyManual onlyplanner blocker0показать Проверить сервисы"
+    },
+    {
+      "rowIndex": 5,
+      "text": "wg гермашка, работаетwireguard-1779454504-c4340972/100На канал назначено слишком много пользователейEmergency OnlyManual onlyManual onlyplanner blocker8показать Проверить пользователей"
+    }
+  ],
+  "time": "2026-06-14T22:18:12.331Z"
+}

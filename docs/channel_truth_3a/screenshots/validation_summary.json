@@ -1,0 +1,111 @@
+{
+  "generated_at": "2026-06-14T22:26:09.467Z",
+  "production_url": "https://v7-admin.195-2-79-116.sslip.io/admin-v2",
+  "truth_gate": "PASS",
+  "convergence_gate": "PASS",
+  "desktop_rows": [
+    {
+      "rowIndex": 0,
+      "text": "vless68/100На канал назначено слишком много пользователейEvacuate10 users selected to leaveRecommended movementplanner blocker11показать Проверить пользователей"
+    },
+    {
+      "rowIndex": 1,
+      "text": "awg092/100Канал готов для пользователейUse10 selected moves target this channelNoneplanner truth0показать Открыть канал"
+    },
+    {
+      "rowIndex": 2,
+      "text": "awg372/100На канал назначено слишком много пользователейKeep OnlyCurrent users can stayNoneplanner truth8показать Проверить пользователей"
+    },
+    {
+      "rowIndex": 3,
+      "text": "179/100История канала требует подтвержденияEmergency OnlyManual only · Качество не равно назначениюManual onlyquality score conflicts with planner truth0показать Открыть канал"
+    },
+    {
+      "rowIndex": 4,
+      "text": "OpenVPN-Kolosovopenvpn-1779388847-d2ad7c37/100Один или несколько сервисов требуют проверкиEmergency OnlyManual onlyManual onlyplanner blocker0показать Проверить сервисы"
+    },
+    {
+      "rowIndex": 5,
+      "text": "wg гермашка, работаетwireguard-1779454504-c4340972/100На канал назначено слишком много пользователейEmergency OnlyManual onlyManual onlyplanner blocker8показать Проверить пользователей"
+    }
+  ],
+  "transient_recheck": {
+    "bodyHasUnavailable": false,
+    "rows": [
+      {
+        "rowIndex": 0,
+        "text": "vless68/100На канал назначено слишком много пользователейEvacuate10 users selected to leaveRecommended movementplanner blocker11показать Проверить пользователей"
+      },
+      {
+        "rowIndex": 1,
+        "text": "awg092/100Канал готов для пользователейUse10 selected moves target this channelNoneplanner truth0показать Открыть канал"
+      },
+      {
+        "rowIndex": 2,
+        "text": "awg372/100На канал назначено слишком много пользователейKeep OnlyCurrent users can stayNoneplanner truth8показать Проверить пользователей"
+      },
+      {
+        "rowIndex": 3,
+        "text": "179/100История канала требует подтвержденияEmergency OnlyManual only · Качество не равно назначениюManual onlyquality score conflicts with planner truth0показать Открыть канал"
+      },
+      {
+        "rowIndex": 4,
+        "text": "OpenVPN-Kolosovopenvpn-1779388847-d2ad7c37/100Один или несколько сервисов требуют проверкиEmergency OnlyManual onlyManual onlyplanner blocker0показать Проверить сервисы"
+      },
+      {
+        "rowIndex": 5,
+        "text": "wg гермашка, работаетwireguard-1779454504-c4340972/100На канал назначено слишком много пользователейEmergency OnlyManual onlyManual onlyplanner blocker8показать Проверить пользователей"
+      }
+    ],
+    "time": "2026-06-14T22:18:12.331Z"
+  },
+  "mobile": {
+    "clientWidth": 390,
+    "overflow": false,
+    "rows": [
+      {
+        "rowIndex": 0,
+        "text": "vless68/100На канал назначено слишком много пользователейEvacuate10 users selected to leaveRecommended movementplanner blocker11показать Проверить пользователей"
+      },
+      {
+        "rowIndex": 1,
+        "text": "awg092/100Канал готов для пользователейUse10 selected moves target this channelNoneplanner truth0показать Открыть канал"
+      },
+      {
+        "rowIndex": 2,
+        "text": "awg372/100На канал назначено слишком много пользователейKeep OnlyCurrent users can stayNoneplanner truth8показать Проверить пользователей"
+      },
+      {
+        "rowIndex": 3,
+        "text": "179/100История канала требует подтвержденияEmergency OnlyManual only · Качество не равно назначениюManual onlyquality score conflicts with planner truth0показать Открыть канал"
+      },
+      {
+        "rowIndex": 4,
+        "text": "OpenVPN-Kolosovopenvpn-1779388847-d2ad7c37/100Один или несколько сервисов требуют проверкиEmergency OnlyManual onlyManual onlyplanner blocker0показать Проверить сервисы"
+      },
+      {
+        "rowIndex": 5,
+        "text": "wg гермашка, работаетwireguard-1779454504-c4340972/100На канал назначено слишком много пользователейEmergency OnlyManual onlyManual onlyplanner blocker8показать Проверить пользователей"
+      }
+    ],
+    "scrollWidth": 390,
+    "viewport": {
+      "height": 844,
+      "width": 390
+    }
+  },
+  "findings": {
+    "assignable_visible": true,
+    "evacuate_visible": true,
+    "blocked_available_current_sample": false,
+    "emergency_visible": true,
+    "quality_assignment_mismatch_visible": true,
+    "mobile_overflow": false,
+    "issues": [
+      "Initial load briefly showed Assignment truth unavailable before assignment data stabilized.",
+      "awg3 shows Keep Only, not Evacuate, despite being listed as an evacuation-like audit target in the prompt.",
+      "Some blocker/action helper text remains English or technical: Recommended movement, planner truth, quality score conflicts with planner truth, curl_failed_and_handshake_stale."
+    ],
+    "verdict": "PARTIALLY_VISIBLE"
+  }
+}

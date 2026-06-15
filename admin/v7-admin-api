@@ -20736,9 +20736,10 @@ def html_page_v2():
     .channel-analysis-row > span { display:block; color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; letter-spacing:.04em; }
     .channel-analysis-row strong { display:block; margin-top:3px; font-size:19px; line-height:1.1; overflow-wrap:anywhere; }
     .channel-analysis-row em { display:block; margin-top:3px; color:var(--muted); font-size:12px; font-style:normal; overflow-wrap:anywhere; }
-    .channel-summary-button { display:block; width:100%; border:0; background:transparent; color:var(--text); padding:0; text-align:left; cursor:pointer; }
+    .channel-summary-button { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:start; width:100%; border:0; background:transparent; color:var(--text); padding:0; text-align:left; cursor:pointer; }
     .channel-summary-button:hover strong,
     .channel-summary-button:hover .channel-summary-value { color:var(--green); }
+    .channel-summary-main { min-width:0; }
     .channel-summary-value { display:block; margin-top:3px; color:var(--text); font-size:19px; font-weight:900; line-height:1.1; overflow-wrap:anywhere; }
     .channel-summary-hint { display:block; margin-top:3px; color:var(--muted); font-size:12px; font-weight:700; overflow-wrap:anywhere; }
     .channel-analysis-score-button { margin-top:3px; border:0; background:transparent; color:var(--text); padding:0; font:inherit; font-size:19px; font-weight:900; cursor:pointer; text-align:left; }
@@ -20755,15 +20756,19 @@ def html_page_v2():
     .channel-compressed-item .mark.bad { color:var(--red); }
     .channel-compressed-item .mark.ok { color:var(--green); }
     .channel-compressed-item span:nth-child(2) { min-width:0; overflow-wrap:anywhere; font-weight:780; line-height:1.2; }
-    .channel-compressed-item .chevron { color:var(--muted); font-weight:900; }
-    .channel-compression-overlay[hidden] { display:none; }
-    .channel-compression-overlay { border:1px solid rgba(52,211,153,.22); border-radius:10px; background:rgba(52,211,153,.07); padding:10px 12px; display:grid; gap:8px; min-width:0; }
-    .channel-compression-overlay-head { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:start; }
-    .channel-compression-overlay-head strong { font-size:15px; line-height:1.15; overflow-wrap:anywhere; }
-    .channel-compression-overlay-row { display:grid; gap:2px; min-width:0; }
-    .channel-compression-overlay-row span { color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; letter-spacing:.04em; }
-    .channel-compression-overlay-row p { margin:0; color:var(--text); font-size:13px; font-weight:760; line-height:1.35; overflow-wrap:anywhere; }
-    .channel-compression-overlay-actions { display:flex; flex-wrap:wrap; gap:8px; }
+    .channel-accordion-group { display:grid; gap:5px; min-width:0; }
+    .channel-accordion-item { display:grid; gap:0; min-width:0; }
+    .channel-accordion-chevron { color:var(--muted); font-weight:900; transition:transform .16s ease, color .16s ease; }
+    .channel-accordion-trigger[aria-expanded="true"] .channel-accordion-chevron { transform:rotate(90deg); color:var(--green); }
+    .channel-accordion-content[hidden] { display:none; }
+    .channel-accordion-content { max-height:0; overflow:hidden; transition:max-height .18s ease; min-width:0; }
+    .channel-accordion-content.open { margin-top:6px; }
+    .channel-accordion-content-inner { border:1px solid rgba(52,211,153,.22); border-radius:8px; background:rgba(52,211,153,.07); padding:9px 10px; display:grid; gap:7px; min-width:0; }
+    .channel-accordion-content-inner > strong { font-size:14px; line-height:1.15; overflow-wrap:anywhere; }
+    .channel-accordion-row { display:grid; gap:2px; min-width:0; }
+    .channel-accordion-row span { color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; letter-spacing:.04em; }
+    .channel-accordion-row p { margin:0; color:var(--text); font-size:13px; font-weight:760; line-height:1.35; overflow-wrap:anywhere; }
+    .channel-accordion-actions { display:flex; flex-wrap:wrap; gap:8px; min-width:0; }
     .channel-analysis-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:2px; }
     .channel-details-section { grid-column:1 / -1; }
     .channel-details-section summary { cursor:pointer; font-weight:850; }
@@ -27376,25 +27381,24 @@ def html_page_v2():
     function channelCompressionKey(value='') {
       return String(value || 'item').toLowerCase().replace(/[^a-z0-9а-яё]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 44) || 'item';
     }
-    function channelCompressionTemplateId(id='', kind='', index=0, label='') {
-      return `channel-compression-${channelCompressionKey(id)}-${channelCompressionKey(kind)}-${index}-${channelCompressionKey(label)}`;
-    }
-    function channelCompressionOverlayTemplate(templateId='', title='', rows=[], actionHtml='') {
+    function channelAccordionContent(title='', rows=[], actionHtml='') {
       const safeRows = (rows || []).filter(row => row && row[1]);
-      return `<template id="${esc(templateId)}">
-        <div class="channel-compression-overlay-head">
+      return `<div class="channel-accordion-content" hidden>
+        <div class="channel-accordion-content-inner">
           <strong>${esc(title)}</strong>
-          <button class="mini-action" type="button" data-channel-compression-back onclick="hideChannelCompressionOverlay(this.closest('.channel-compression-overlay').id)">Назад</button>
+          ${safeRows.map(([label, value]) => `<div class="channel-accordion-row"><span>${esc(label)}</span><p>${esc(value)}</p></div>`).join('')}
+          ${actionHtml ? `<div class="channel-accordion-actions">${actionHtml}</div>` : ''}
         </div>
-        ${safeRows.map(([label, value]) => `<div class="channel-compression-overlay-row"><span>${esc(label)}</span><p>${esc(value)}</p></div>`).join('')}
-        ${actionHtml ? `<div class="channel-compression-overlay-actions">${actionHtml}</div>` : ''}
-      </template>`;
+      </div>`;
     }
-    function channelCompressionOverlayButton(panelId='', templateId='', label='', value='', hint='') {
-      return `<button type="button" class="channel-summary-button" onclick="showChannelCompressionOverlay('${esc(panelId)}','${esc(templateId)}')">
-        <span>${esc(label)}</span>
-        <span class="channel-summary-value">${value}</span>
-        ${hint ? `<span class="channel-summary-hint">${esc(hint)}</span>` : ''}
+    function channelAccordionSummaryButton(label='', value='', hint='') {
+      return `<button type="button" class="channel-summary-button channel-accordion-trigger" aria-expanded="false" onclick="toggleChannelAccordion(this)">
+        <span class="channel-summary-main">
+          <span>${esc(label)}</span>
+          <span class="channel-summary-value">${value}</span>
+          ${hint ? `<span class="channel-summary-hint">${esc(hint)}</span>` : ''}
+        </span>
+        <span class="channel-accordion-chevron">›</span>
       </button>`;
     }
     function channelProblemOverlayMeta(label='', suitability={}, assignment={}) {
@@ -27456,33 +27460,35 @@ def html_page_v2():
         action: '',
       };
     }
-    function channelCompressedListHtml(items=[], tone='bad', panelId='', source={}, kind='problem') {
+    function channelCompressedListHtml(items=[], tone='bad', source={}, kind='problem') {
       const clean = Array.from(new Set((items || []).filter(Boolean))).slice(0, 5);
       const symbol = tone === 'ok' ? '✔' : '✖';
       const empty = tone === 'ok' ? 'Подтвержденных проверок пока нет' : 'Проблем не обнаружено';
-      if (!clean.length) return {html:`<div class="channel-compressed-list"><button type="button" class="channel-compressed-item" disabled><span class="mark ${tone}">—</span><span>${esc(empty)}</span><span></span></button></div>`, templates:''};
+      if (!clean.length) return `<div class="channel-compressed-list"><button type="button" class="channel-compressed-item" disabled><span class="mark ${tone}">—</span><span>${esc(empty)}</span><span></span></button></div>`;
       const s = channelSuitability(source);
       const a = channelAssignmentStatus(source);
-      const templates = [];
       const html = `<div class="channel-compressed-list">${clean.map((item, index) => {
-        const templateId = channelCompressionTemplateId(s.id, kind, index, item);
+        let content = '';
         if (tone === 'ok') {
-          templates.push(channelCompressionOverlayTemplate(templateId, item, [
+          content = channelAccordionContent(item, [
             ['Статус', 'Проверка проходит'],
             ['Причина', `${item} подтвержден существующими сигналами канала.`],
             ['Что делать', 'Ничего. Эта часть канала работает.'],
-          ]));
+          ]);
         } else {
           const meta = channelProblemOverlayMeta(item, s, a);
-          templates.push(channelCompressionOverlayTemplate(templateId, item, [
+          content = channelAccordionContent(item, [
             ['Проблема', item],
             ['Причина', meta.reason],
             ['Решение', meta.resolution],
-          ], meta.action));
+          ], meta.action);
         }
-        return `<button type="button" class="channel-compressed-item" onclick="showChannelCompressionOverlay('${esc(panelId)}','${esc(templateId)}')"><span class="mark ${tone}">${symbol}</span><span>${esc(item)}</span><span class="chevron">›</span></button>`;
+        return `<div class="channel-accordion-item">
+          <button type="button" class="channel-compressed-item channel-accordion-trigger" aria-expanded="false" onclick="toggleChannelAccordion(this)"><span class="mark ${tone}">${symbol}</span><span>${esc(item)}</span><span class="channel-accordion-chevron">›</span></button>
+          ${content}
+        </div>`;
       }).join('')}</div>`;
-      return {html, templates:templates.join('')};
+      return html;
     }
     function channelBreakdownGroupHtml(title='', items=[], tone='ok') {
       const clean = Array.from(new Set((items || []).filter(Boolean))).slice(0, 8);
@@ -27525,11 +27531,8 @@ def html_page_v2():
       const a = channelAssignmentStatus(source);
       const mismatch = channelAssignmentMismatch(source);
       const problems = s.score >= 90 ? [] : s.problems.slice(0, 5);
-      const panelId = `channel-compression-panel-${channelCompressionKey(s.id)}`;
-      const qualityTemplate = channelCompressionTemplateId(s.id, 'quality', 0, s.status.label);
-      const assignmentTemplate = channelCompressionTemplateId(s.id, 'assignment', 0, a.label);
-      const problemList = channelCompressedListHtml(problems, 'bad', panelId, source, 'problem');
-      const workingList = channelCompressedListHtml(s.working, 'ok', panelId, source, 'working');
+      const problemList = channelCompressedListHtml(problems, 'bad', source, 'problem');
+      const workingList = channelCompressedListHtml(s.working, 'ok', source, 'working');
       const assignmentRows = [
         ['Назначение', a.label],
         ['Причина', a.reason],
@@ -27537,43 +27540,60 @@ def html_page_v2():
         ['Ограничение', a.mainBlocker],
         mismatch ? ['Важно', 'Качество канала не равно праву назначать пользователей. Assignment truth имеет приоритет.'] : null,
       ].filter(Boolean);
-      const templates = [
-        channelCompressionOverlayTemplate(qualityTemplate, 'Почему такая оценка?', [
+      const qualityContent = channelAccordionContent('Почему такая оценка?', [
           ['Качество', `${s.score} / 100`],
           ['Вердикт', s.status.label],
           ['Причина', s.primaryCause],
           ['Что делать', s.score >= 90 ? 'Действий не требуется.' : s.why],
-        ], `<button class="ghost" type="button" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">Разбор оценки</button>`),
-        channelCompressionOverlayTemplate(assignmentTemplate, 'Почему такое назначение?', assignmentRows),
-        problemList.templates,
-        workingList.templates,
-      ].join('');
+        ], `<button class="ghost" type="button" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">Разбор оценки</button>`);
+      const assignmentContent = channelAccordionContent('Почему такое назначение?', assignmentRows);
       return `<div class="drawer-section channel-analysis-card">
         <h3>АНАЛИЗ КАНАЛА</h3>
         <div class="channel-analysis-flow">
-          <div class="channel-analysis-row">${channelCompressionOverlayButton(panelId, qualityTemplate, 'Качество', `${esc(s.status.label)} · ${esc(s.score)} / 100`, s.primaryCause)}</div>
-          <div class="channel-analysis-row">${channelCompressionOverlayButton(panelId, assignmentTemplate, 'Назначение', pill(a.label, a.tone), a.reason)}</div>
-          <div class="channel-analysis-row"><span>Проблемы</span>${problemList.html}</div>
-          <div class="channel-analysis-row"><span>Работает</span>${workingList.html}</div>
-          ${templates}
-          <div id="${esc(panelId)}" class="channel-compression-overlay" hidden></div>
+          <div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-quality">
+            <div class="channel-accordion-item">${channelAccordionSummaryButton('Качество', `${esc(s.status.label)} · ${esc(s.score)} / 100`, s.primaryCause)}${qualityContent}</div>
+          </div>
+          <div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-assignment">
+            <div class="channel-accordion-item">${channelAccordionSummaryButton('Назначение', pill(a.label, a.tone), a.reason)}${assignmentContent}</div>
+          </div>
+          <div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-problems"><span>Проблемы</span>${problemList}</div>
+          <div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-working"><span>Работает</span>${workingList}</div>
         </div>
       </div>`;
     }
-    function showChannelCompressionOverlay(panelId='', templateId='') {
-      const panel = document.getElementById(panelId);
-      const template = document.getElementById(templateId);
-      if (!panel || !template) return;
-      panel.innerHTML = template.innerHTML;
-      panel.hidden = false;
-      const back = panel.querySelector('[data-channel-compression-back]');
-      if (back) back.focus({preventScroll:true});
+    function closeChannelAccordionItem(item) {
+      const trigger = item?.querySelector(':scope > .channel-accordion-trigger, :scope > .channel-summary-button.channel-accordion-trigger, :scope > .channel-compressed-item.channel-accordion-trigger');
+      const content = item?.querySelector(':scope > .channel-accordion-content');
+      if (!trigger || !content) return;
+      trigger.setAttribute('aria-expanded', 'false');
+      content.classList.remove('open');
+      content.style.maxHeight = '0px';
+      window.setTimeout(() => {
+        if (!content.classList.contains('open')) content.hidden = true;
+      }, 180);
     }
-    function hideChannelCompressionOverlay(panelId='') {
-      const panel = document.getElementById(panelId);
-      if (!panel) return;
-      panel.hidden = true;
-      panel.innerHTML = '';
+    function openChannelAccordionItem(item) {
+      const trigger = item?.querySelector(':scope > .channel-accordion-trigger, :scope > .channel-summary-button.channel-accordion-trigger, :scope > .channel-compressed-item.channel-accordion-trigger');
+      const content = item?.querySelector(':scope > .channel-accordion-content');
+      if (!trigger || !content) return;
+      trigger.setAttribute('aria-expanded', 'true');
+      content.hidden = false;
+      content.style.maxHeight = '0px';
+      window.requestAnimationFrame(() => {
+        content.classList.add('open');
+        content.style.maxHeight = `${content.scrollHeight}px`;
+      });
+    }
+    function toggleChannelAccordion(trigger) {
+      const item = trigger?.closest('.channel-accordion-item');
+      if (!item) return;
+      const group = trigger.closest('[data-channel-accordion-group]') || trigger.closest('.channel-analysis-flow') || item.parentElement;
+      const isOpen = trigger.getAttribute('aria-expanded') === 'true';
+      group?.querySelectorAll('.channel-accordion-item').forEach(other => {
+        if (other !== item) closeChannelAccordionItem(other);
+      });
+      if (isOpen) closeChannelAccordionItem(item);
+      else openChannelAccordionItem(item);
     }
     function channelDetailsSection(body='') {
       return `<details class="drawer-section channel-details-section"><summary>Детали</summary><div class="channel-details-stack">${body}</div></details>`;

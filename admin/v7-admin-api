@@ -23879,7 +23879,20 @@ def html_page_v2():
       if (snapshot) restoreDrawerSnapshot(snapshot);
       else closeDrawer();
     }
+    function activeColumnConfigKind() {
+      if (document.getElementById('channelColumnList')) return 'channel';
+      if (document.getElementById('organizationColumnList')) return 'organization';
+      if (document.getElementById('userColumnList')) return 'user';
+      return '';
+    }
+    function saveActiveColumnConfigFromDrawer(render=false) {
+      const kind = activeColumnConfigKind();
+      if (!kind) return false;
+      persistColumnConfigFromDrawer(kind, render);
+      return true;
+    }
     function closeDrawer(){
+      saveActiveColumnConfigFromDrawer(true);
       if (drawerBackStack.length) {
         drawerBack();
         return;
@@ -25010,12 +25023,6 @@ def html_page_v2():
       localStorage.setItem(key, JSON.stringify(next));
     }
     function channelTableColumns() {
-      try {
-        const saved = JSON.parse(localStorage.getItem(CHANNEL_TABLE_COLUMNS_KEY) || '[]');
-        if (Array.isArray(saved) && saved.length && !saved.some(c => c.id === 'score')) {
-          return CHANNEL_TABLE_COLUMN_DEFS.map(def => ({...def, visible:def.required ? true : def.defaultVisible !== false}));
-        }
-      } catch (_) {}
       return tableColumnsFromStorage(CHANNEL_TABLE_COLUMNS_KEY, CHANNEL_TABLE_COLUMN_DEFS);
     }
     function saveChannelTableColumns(cols) {
@@ -28555,15 +28562,15 @@ def html_page_v2():
     }
     function showV2UserColumns() {
       const rows = userTableColumns().map(col => columnConfigRowHtml('user', col)).join('');
-      openDrawer('Колонки пользователей', 'users', drawerSection('Порядок и видимость', `<div class="column-config-list" id="userColumnList">${rows}</div><p class="muted">Порядок и видимость сохраняются сразу.</p><div class="detail-actions"><button class="primary" onclick="closeDrawer()">Готово</button><button class="ghost" onclick="resetUserColumnSettings()">Сбросить</button></div>`), {size:'columns'});
+      openDrawer('Колонки пользователей', 'users', drawerSection('Порядок и видимость', `<div class="column-config-list" id="userColumnList">${rows}</div><p class="muted">Нажмите Готово, чтобы сохранить порядок и видимость.</p><div class="detail-actions"><button class="primary" onclick="applyUserColumnSettings()">Готово</button><button class="ghost" onclick="resetUserColumnSettings()">Сбросить</button></div>`), {size:'columns'});
     }
     function showV2ChannelColumns() {
       const rows = channelTableColumns().map(col => columnConfigRowHtml('channel', col)).join('');
-      openDrawer('Колонки каналов', 'channels', drawerSection('Порядок и видимость', `<div class="column-config-list" id="channelColumnList">${rows}</div><p class="muted">Порядок и видимость сохраняются сразу.</p><div class="detail-actions"><button class="primary" onclick="closeDrawer()">Готово</button><button class="ghost" onclick="resetChannelColumnSettings()">Сбросить</button></div>`), {size:'columns'});
+      openDrawer('Колонки каналов', 'channels', drawerSection('Порядок и видимость', `<div class="column-config-list" id="channelColumnList">${rows}</div><p class="muted">Нажмите Готово, чтобы сохранить порядок и видимость.</p><div class="detail-actions"><button class="primary" onclick="applyChannelColumnSettings()">Готово</button><button class="ghost" onclick="resetChannelColumnSettings()">Сбросить</button></div>`), {size:'columns'});
     }
     function showV2OrganizationColumns() {
       const rows = organizationTableColumns().map(col => columnConfigRowHtml('organization', col)).join('');
-      openDrawer('Колонки организаций', 'users', drawerSection('Порядок и видимость', `<div class="column-config-list" id="organizationColumnList">${rows}</div><p class="muted">Порядок и видимость сохраняются сразу.</p><div class="detail-actions"><button class="primary" onclick="closeDrawer()">Готово</button><button class="ghost" onclick="resetOrganizationColumnSettings()">Сбросить</button></div>`), {size:'columns'});
+      openDrawer('Колонки организаций', 'users', drawerSection('Порядок и видимость', `<div class="column-config-list" id="organizationColumnList">${rows}</div><p class="muted">Нажмите Готово, чтобы сохранить порядок и видимость.</p><div class="detail-actions"><button class="primary" onclick="applyOrganizationColumnSettings()">Готово</button><button class="ghost" onclick="resetOrganizationColumnSettings()">Сбросить</button></div>`), {size:'columns'});
     }
     function sortColumnOptions(defs, selected='') {
       return [`<option value="">не выбрано</option>`].concat(defs.filter(c => c.id !== 'action').map(c => `<option value="${esc(c.id)}" ${c.id === selected ? 'selected' : ''}>${esc(c.label)}</option>`)).join('');

@@ -21021,14 +21021,12 @@ def html_page_v2():
       #channelsTableV2 th[data-col="action"], #channelsTableV2 td[data-col="action"]{display:none}
       #overviewChannels th[data-col="channel"], #overviewChannels td[data-col="channel"],
       #channelsTableV2 th[data-col="channel"], #channelsTableV2 td[data-col="channel"]{width:28%}
-      #overviewChannels th[data-col="channel_state"], #overviewChannels td[data-col="channel_state"],
-      #channelsTableV2 th[data-col="channel_state"], #channelsTableV2 td[data-col="channel_state"]{width:28%}
-      #overviewChannels th[data-col="status"], #overviewChannels td[data-col="status"],
-      #channelsTableV2 th[data-col="status"], #channelsTableV2 td[data-col="status"]{width:14%}
+      #overviewChannels th[data-col="decision"], #overviewChannels td[data-col="decision"],
+      #channelsTableV2 th[data-col="decision"], #channelsTableV2 td[data-col="decision"]{width:34%}
+      #overviewChannels th[data-col="health"], #overviewChannels td[data-col="health"],
+      #channelsTableV2 th[data-col="health"], #channelsTableV2 td[data-col="health"]{width:22%}
       #overviewChannels th[data-col="users"], #overviewChannels td[data-col="users"],
-      #channelsTableV2 th[data-col="users"], #channelsTableV2 td[data-col="users"]{width:14%}
-      #overviewChannels th[data-col="speed"], #overviewChannels td[data-col="speed"],
-      #channelsTableV2 th[data-col="speed"], #channelsTableV2 td[data-col="speed"]{width:16%}
+      #channelsTableV2 th[data-col="users"], #channelsTableV2 td[data-col="users"]{width:16%}
       #overviewUsers th, #overviewUsers td,
       #usersTableV2 th, #usersTableV2 td,
       #overviewChannels th, #overviewChannels td,
@@ -21506,7 +21504,7 @@ def html_page_v2():
       return `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
     };
     const USER_TABLE_COLUMNS_KEY = 'v7.userTableColumns.v2';
-    const CHANNEL_TABLE_COLUMNS_KEY = 'v7.channelTableColumns.v2';
+    const CHANNEL_TABLE_COLUMNS_KEY = 'v7.channelTableColumns.v3';
     const ORGANIZATION_TABLE_COLUMNS_KEY = 'v7.organizationTableColumns.v1';
     const USER_TABLE_SORT_KEY = 'v7.userTableSort.v1';
     const CHANNEL_TABLE_SORT_KEY = 'v7.channelTableSort.v1';
@@ -21541,11 +21539,8 @@ def html_page_v2():
     ];
     const CHANNEL_TABLE_COLUMN_DEFS = [
       {id:'channel', label:'Канал', meaning:'Название канала.', required:true, defaultVisible:true},
-      {id:'score', label:'Оценка', meaning:'Операторская пригодность канала от 0 до 100 по существующим проверкам.', required:true, defaultVisible:true},
-      {id:'assignment', label:'Назначение', meaning:'Можно ли назначать, держать или нужно эвакуировать пользователей по текущему решению маршрутизации.', required:true, defaultVisible:true},
-      {id:'assignment_blocker', label:'Блокер', meaning:'Главное ограничение из текущего решения маршрутизации.', required:true, defaultVisible:true},
-      {id:'commercial_status', label:'Вердикт качества', meaning:'Человеческий статус канала: отличный, рабочий, требует проверки или непригоден.', required:false, defaultVisible:false},
-      {id:'main_issue', label:'Причина качества', meaning:'Главная причина по оценке качества, отдельно от решения назначения.', required:false, defaultVisible:false},
+      {id:'decision', label:'Решение', meaning:'Что V7 решил сделать с каналом: использовать, держать текущих пользователей, эвакуировать, заблокировать или оставить только для аварийного режима.', required:true, defaultVisible:true},
+      {id:'health', label:'Здоровье', meaning:'Technical Health канала от 0 до 100 по существующим проверкам. Это вторично после решения V7.', required:true, defaultVisible:true},
       {id:'channel_state', label:'Состояние доверия', meaning:'Короткое состояние канала по модели доверия и восстановления.', required:false, defaultVisible:false},
       {id:'status', label:'Статус', meaning:'Короткое состояние канала.', required:false, defaultVisible:false},
       {id:'users', label:'Пользователи', meaning:'Сколько пользователей сейчас назначено на канал.', required:false, defaultVisible:true},
@@ -21558,7 +21553,7 @@ def html_page_v2():
       {id:'speed', label:'Скорость', meaning:'Последний ручной замер скорости.', required:false, defaultVisible:false},
       {id:'role', label:'Роль', meaning:'Назначение канала внутри V7.', required:false, defaultVisible:false},
       {id:'load', label:'Нагрузка', meaning:'Контроль лимита пользователей.', required:false, defaultVisible:false},
-      {id:'action', label:'Действие', meaning:'Открыть карточку канала.', required:true, defaultVisible:true},
+      {id:'action', label:'Действие', meaning:'Открыть карточку канала.', required:false, defaultVisible:false},
     ];
     const ORGANIZATION_TABLE_COLUMN_DEFS = [
       {id:'organization', label:'Организация', meaning:'Название организации.', required:true, defaultVisible:true},
@@ -27253,7 +27248,7 @@ def html_page_v2():
     function channelAssignmentStatusLabel(status='') {
       return {
         use:'Use',
-        keep:'Keep Only',
+        keep:'Keep Current Users',
         evacuate:'Evacuate',
         blocked:'Blocked',
         emergency:'Emergency Only',
@@ -27348,6 +27343,28 @@ def html_page_v2():
         roleReason: roleMeta.reason,
         roleAction: roleMeta.action,
       };
+    }
+    function channelDecisionReason(source={}) {
+      const a = channelAssignmentStatus(source);
+      const s = channelSuitability(source);
+      if (a.key === 'use') return a.reason || 'Best available channel for new users';
+      if (a.key === 'evacuate') return a.mainBlocker && a.mainBlocker !== 'Users should be moved' ? a.mainBlocker : (s.primaryCause || 'Users should be moved');
+      if (a.key === 'keep') return 'New users should not be assigned';
+      if (a.key === 'emergency') return a.mainBlocker || a.reason || 'Reserved channel';
+      if (a.key === 'blocked') return a.mainBlocker || a.reason || 'Channel cannot be used';
+      return a.reason || 'Routing decision unavailable';
+    }
+    function channelDecisionActionText(source={}) {
+      const a = channelAssignmentStatus(source);
+      if (a.key === 'use') return 'Use for new assignments.';
+      if (a.key === 'evacuate') return 'Move users away from this channel.';
+      if (a.key === 'keep') return 'Keep current users here and avoid new assignments.';
+      if (a.key === 'emergency') return 'Use only for manual or emergency operations.';
+      return 'Do not assign users to this channel.';
+    }
+    function channelDecisionCell(source={}) {
+      const a = channelAssignmentStatus(source);
+      return `<button type="button" class="channel-cell-button" onclick="event.stopPropagation();openChannelDrawer('${esc(a.id)}')"><span class="cell-main">${pill(a.label, a.tone)}</span><span class="cell-sub">${esc(channelDecisionReason(source))}</span></button>`;
     }
     function channelAssignmentMismatch(source={}) {
       const quality = channelSuitability(source);
@@ -27529,32 +27546,30 @@ def html_page_v2():
     function channelAnalysisCard(source={}) {
       const s = channelSuitability(source);
       const a = channelAssignmentStatus(source);
-      const mismatch = channelAssignmentMismatch(source);
       const problems = s.score >= 90 ? [] : s.problems.slice(0, 5);
       const problemList = channelCompressedListHtml(problems, 'bad', source, 'problem');
       const workingList = channelCompressedListHtml(s.working, 'ok', source, 'working');
-      const assignmentRows = [
-        ['Назначение', a.label],
-        ['Причина', a.reason],
-        ['Что делать', a.roleAction],
-        ['Ограничение', a.mainBlocker],
-        mismatch ? ['Важно', 'Качество канала не равно праву назначать пользователей. Assignment truth имеет приоритет.'] : null,
+      const decisionReason = channelDecisionReason(source);
+      const decisionRows = [
+        ['Решение', a.label],
+        ['Почему', decisionReason],
+        ['Что делать', channelDecisionActionText(source)],
       ].filter(Boolean);
-      const qualityContent = channelAccordionContent('Почему такая оценка?', [
-          ['Качество', `${s.score} / 100`],
-          ['Вердикт', s.status.label],
+      const healthContent = channelAccordionContent('Почему такое здоровье?', [
+          ['Technical Health', `${s.score} / 100`],
+          ['Статус', s.status.label],
           ['Причина', s.primaryCause],
           ['Что делать', s.score >= 90 ? 'Действий не требуется.' : s.why],
-        ], `<button class="ghost" type="button" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">Разбор оценки</button>`);
-      const assignmentContent = channelAccordionContent('Почему такое назначение?', assignmentRows);
+        ], `<button class="ghost" type="button" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">Разбор здоровья</button>`);
+      const decisionContent = channelAccordionContent('Что решил V7?', decisionRows);
       return `<div class="drawer-section channel-analysis-card">
-        <h3>АНАЛИЗ КАНАЛА</h3>
+        <h3>МОДЕЛЬ КАНАЛА</h3>
         <div class="channel-analysis-flow">
-          <div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-quality">
-            <div class="channel-accordion-item">${channelAccordionSummaryButton('Качество', `${esc(s.status.label)} · ${esc(s.score)} / 100`, s.primaryCause)}${qualityContent}</div>
+          <div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-decision">
+            <div class="channel-accordion-item">${channelAccordionSummaryButton('Решение V7', pill(a.label, a.tone), decisionReason)}${decisionContent}</div>
           </div>
-          <div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-assignment">
-            <div class="channel-accordion-item">${channelAccordionSummaryButton('Назначение', pill(a.label, a.tone), a.reason)}${assignmentContent}</div>
+          <div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-health">
+            <div class="channel-accordion-item">${channelAccordionSummaryButton('Technical Health', `${esc(s.score)} / 100`, `${s.status.label} · ${s.primaryCause}`)}${healthContent}</div>
           </div>
           <div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-problems"><span>Проблемы</span>${problemList}</div>
           <div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-working"><span>Работает</span>${workingList}</div>
@@ -27601,10 +27616,10 @@ def html_page_v2():
     function openChannelSuitabilityBreakdown(id='') {
       const row = egressRows().find(item => item.id === id) || {id};
       const s = channelSuitability(row);
-      openCompactDrawer(`Почему ${s.score}?`, 'channel', [
-        drawerSection(`Почему ${s.score}?`, compactKvRows({
+      openCompactDrawer(`Здоровье ${s.score} / 100`, 'channel', [
+        drawerSection(`Почему здоровье ${s.score} / 100?`, compactKvRows({
           'Канал': channelDisplayName(id),
-          'Вердикт': s.status.label,
+          'Technical Health': s.status.label,
           'Главная причина': s.primaryCause,
           'Действие': s.score >= 90 ? 'Действий не требуется' : s.actionLabel,
         })),
@@ -27639,6 +27654,8 @@ def html_page_v2():
       const matrix = channelMatrix(id);
       const health = channelHealth(row);
       if (colId === 'channel') return id;
+      if (colId === 'decision') return channelAssignmentStatus(row).label;
+      if (colId === 'health') return channelSuitability(row).score;
       if (colId === 'score') return channelSuitability(row).score;
       if (colId === 'assignment') return channelAssignmentStatus(row).label;
       if (colId === 'assignment_blocker') return channelAssignmentStatus(row).mainBlocker;
@@ -27763,6 +27780,8 @@ def html_page_v2():
         const meta = channelDisplayMeta(id);
         return `<button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><span class="cell-main">${esc(label)}</span>${meta ? `<span class="channel-name-meta">${esc(meta)}</span>` : ''}</button>`;
       }
+      if (colId === 'decision') return channelDecisionCell(view.row || {id});
+      if (colId === 'health') return channelSuitabilityCell(id, view.row || {id});
       if (colId === 'score') return channelSuitabilityCell(id, view.row || {id});
       if (colId === 'assignment') return channelAssignmentCell(view.row || {id});
       if (colId === 'assignment_blocker') return channelAssignmentBlockerCell(view.row || {id});

@@ -28586,17 +28586,17 @@ def html_page_v2():
       if (direction > 0 && row.nextElementSibling) list.insertBefore(row.nextElementSibling, row);
       persistColumnConfigFromDrawer(columnConfigKindFromRow(row), true);
     }
-    function showV2UserColumns() {
+    function showV2UserColumns(options={}) {
       const rows = userTableColumns().map(col => columnConfigRowHtml('user', col)).join('');
-      openDrawer('Колонки пользователей', 'users', drawerSection('Порядок и видимость', `<div class="column-config-list" id="userColumnList">${rows}</div><p class="muted">Нажмите Готово, чтобы сохранить порядок и видимость.</p><div class="detail-actions"><button class="primary" onclick="applyUserColumnSettings()">Готово</button><button class="ghost" onclick="resetUserColumnSettings()">Сбросить</button></div>`), {size:'columns'});
+      openDrawer('Колонки пользователей', 'users', drawerSection('Порядок и видимость', `<div class="column-config-list" id="userColumnList">${rows}</div><p class="muted">Нажмите Готово, чтобы сохранить порядок и видимость.</p><div class="detail-actions"><button class="primary" onclick="applyUserColumnSettings()">Готово</button><button class="ghost" onclick="resetUserColumnSettings()">Сбросить</button></div>`), {size:'columns', ...options});
     }
-    function showV2ChannelColumns() {
+    function showV2ChannelColumns(options={}) {
       const rows = channelTableColumns().map(col => columnConfigRowHtml('channel', col)).join('');
-      openDrawer('Колонки каналов', 'channels', drawerSection('Порядок и видимость', `<div class="column-config-list" id="channelColumnList">${rows}</div><p class="muted">Нажмите Готово, чтобы сохранить порядок и видимость.</p><div class="detail-actions"><button class="primary" onclick="applyChannelColumnSettings()">Готово</button><button class="ghost" onclick="resetChannelColumnSettings()">Сбросить</button></div>`), {size:'columns'});
+      openDrawer('Колонки каналов', 'channels', drawerSection('Порядок и видимость', `<div class="column-config-list" id="channelColumnList">${rows}</div><p class="muted">Нажмите Готово, чтобы сохранить порядок и видимость.</p><div class="detail-actions"><button class="primary" onclick="applyChannelColumnSettings()">Готово</button><button class="ghost" onclick="resetChannelColumnSettings()">Сбросить</button></div>`), {size:'columns', ...options});
     }
-    function showV2OrganizationColumns() {
+    function showV2OrganizationColumns(options={}) {
       const rows = organizationTableColumns().map(col => columnConfigRowHtml('organization', col)).join('');
-      openDrawer('Колонки организаций', 'users', drawerSection('Порядок и видимость', `<div class="column-config-list" id="organizationColumnList">${rows}</div><p class="muted">Нажмите Готово, чтобы сохранить порядок и видимость.</p><div class="detail-actions"><button class="primary" onclick="applyOrganizationColumnSettings()">Готово</button><button class="ghost" onclick="resetOrganizationColumnSettings()">Сбросить</button></div>`), {size:'columns'});
+      openDrawer('Колонки организаций', 'users', drawerSection('Порядок и видимость', `<div class="column-config-list" id="organizationColumnList">${rows}</div><p class="muted">Нажмите Готово, чтобы сохранить порядок и видимость.</p><div class="detail-actions"><button class="primary" onclick="applyOrganizationColumnSettings()">Готово</button><button class="ghost" onclick="resetOrganizationColumnSettings()">Сбросить</button></div>`), {size:'columns', ...options});
     }
     function sortColumnOptions(defs, selected='') {
       return [`<option value="">не выбрано</option>`].concat(defs.filter(c => c.id !== 'action').map(c => `<option value="${esc(c.id)}" ${c.id === selected ? 'selected' : ''}>${esc(c.label)}</option>`)).join('');
@@ -28759,7 +28759,7 @@ def html_page_v2():
       renderUsers();
       renderOverview();
       bindDrawerRows();
-      showV2UserColumns();
+      showV2UserColumns({replace:true, stack:false});
     }
     let draggedChannelColumnId = '';
     function currentChannelColumnListFromDrawer() {
@@ -28816,7 +28816,7 @@ def html_page_v2():
       renderChannels();
       renderOverview();
       bindDrawerRows();
-      showV2ChannelColumns();
+      showV2ChannelColumns({replace:true, stack:false});
     }
     let draggedOrganizationColumnId = '';
     function currentOrganizationColumnListFromDrawer() {
@@ -28871,7 +28871,7 @@ def html_page_v2():
       localStorage.removeItem(ORGANIZATION_TABLE_COLUMNS_KEY);
       renderUsersOrganizations();
       bindDrawerRows();
-      showV2OrganizationColumns();
+      showV2OrganizationColumns({replace:true, stack:false});
     }
     function operatorTone(value='') {
       const v = String(value || '').toUpperCase();

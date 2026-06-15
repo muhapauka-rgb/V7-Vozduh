@@ -21540,7 +21540,7 @@ def html_page_v2():
     const CHANNEL_TABLE_COLUMN_DEFS = [
       {id:'channel', label:'Канал', meaning:'Название канала.', required:true, defaultVisible:true},
       {id:'decision', label:'Решение', meaning:'Что V7 решил сделать с каналом: использовать, держать текущих пользователей, эвакуировать, заблокировать или оставить только для аварийного режима.', required:true, defaultVisible:true},
-      {id:'health', label:'Здоровье', meaning:'Technical Health канала от 0 до 100 по существующим проверкам. Это вторично после решения V7.', required:true, defaultVisible:true},
+      {id:'health', label:'Здоровье', meaning:'Техническое состояние канала от 0 до 100 по существующим проверкам. Это вторично после решения V7.', required:true, defaultVisible:true},
       {id:'channel_state', label:'Состояние доверия', meaning:'Короткое состояние канала по модели доверия и восстановления.', required:false, defaultVisible:false},
       {id:'status', label:'Статус', meaning:'Короткое состояние канала.', required:false, defaultVisible:false},
       {id:'users', label:'Пользователи', meaning:'Сколько пользователей сейчас назначено на канал.', required:false, defaultVisible:true},
@@ -27143,7 +27143,7 @@ def html_page_v2():
     }
     function channelSuitabilityCell(id='', source={}) {
       const s = channelSuitability(source);
-      return `<button type="button" class="operator-decision-button" onclick="event.stopPropagation();openChannelSuitabilityBreakdown('${esc(id)}')"><span class="cell-main">${pill(`${s.score}/100`, s.status.tone)}</span><span class="cell-sub">${esc(s.why)}</span></button>`;
+      return `<button type="button" class="operator-decision-button" onclick="event.stopPropagation();openChannelSuitabilityBreakdown('${esc(id)}')"><span class="cell-main">${pill(`${s.score}/100`, s.status.tone)}</span></button>`;
     }
     function channelCommercialStatusCell(source={}) {
       const s = channelSuitability(source);
@@ -27201,65 +27201,74 @@ def html_page_v2():
     function channelAssignmentBlockerLabel(reason='') {
       const text = String(reason || '').trim();
       if (!text) return 'Нет блокера';
-      if (/current_egress_not_eligible/i.test(text)) return 'Current channel cannot receive users';
-      if (/operator_decision_surface_move_recommended/i.test(text)) return 'Users should be moved';
-      if (/manual_only/i.test(text)) return 'Manual use only';
-      if (/reserve_only/i.test(text)) return 'Reserved channel';
-      if (/canary_reserved/i.test(text)) return 'Canary channel';
-      if (/production_assignment_allowed=false/i.test(text)) return 'Automatic assignment disabled';
-      if (/restore_barrier/i.test(text)) return 'Recovery lock active';
-      if (/authority_budget|budget|blast_radius/i.test(text)) return 'Assignment safety limit';
-      if (/hard_full|planned_hard_full|failover_full|capacity/i.test(text)) return 'User limit reached';
-      if (/stability_below_floor/i.test(text)) return 'Stability below required level';
-      if (/min_mbps_below_floor|avg_mbps_below_floor|speed/i.test(text)) return 'Speed below required level';
-      if (/telegram_required|telegram_down|service_telegram/i.test(text)) return 'Telegram unavailable';
-      if (/service|youtube|google|instagram|whatsapp|chatgpt|claude/i.test(text)) return 'Service unavailable';
-      if (/route_class|trusted_ru|route/i.test(text)) return 'Route requires verification';
-      if (/health_code|severity_fail|severity/i.test(text)) return 'Health check failed';
-      if (/egress_disabled|disabled|maintenance|quarantine/i.test(text)) return 'Channel disabled';
+      if (/current_egress_not_eligible/i.test(text)) return 'Текущий канал не может принимать пользователей';
+      if (/operator_decision_surface_move_recommended/i.test(text)) return 'Пользователей нужно перевести';
+      if (/manual_only/i.test(text)) return 'Ручной резерв';
+      if (/reserve_only/i.test(text)) return 'Резервный канал';
+      if (/canary_reserved/i.test(text)) return 'Canary-канал';
+      if (/production_assignment_allowed=false/i.test(text)) return 'Автоматическое назначение выключено';
+      if (/restore_barrier/i.test(text)) return 'Активна защита восстановления';
+      if (/authority_budget|budget|blast_radius/i.test(text)) return 'Лимит безопасного назначения';
+      if (/hard_full|planned_hard_full|failover_full|capacity/i.test(text)) return 'Достигнут лимит пользователей';
+      if (/stability_below_floor/i.test(text)) return 'Стабильность ниже требуемого уровня';
+      if (/min_mbps_below_floor|avg_mbps_below_floor|speed/i.test(text)) return 'Скорость ниже требуемого уровня';
+      if (/telegram_required|telegram_down|service_telegram/i.test(text)) return 'Telegram недоступен';
+      if (/service|youtube|google|instagram|whatsapp|chatgpt|claude/i.test(text)) return 'Сервис недоступен';
+      if (/route_class|trusted_ru|route/i.test(text)) return 'Маршрут требует проверки';
+      if (/health_code|severity_fail|severity/i.test(text)) return 'Проверка состояния не пройдена';
+      if (/egress_disabled|disabled|maintenance|quarantine/i.test(text)) return 'Канал отключен';
       return operatorText(text);
     }
     function channelAssignmentRoleMeta(key='blocked') {
       return {
         use: {
-          reason: 'Channel is approved for receiving users. Reason: Best available target.',
-          action: 'Use this channel for new assignments.',
-          blocker: 'No assignment blocker',
+          reason: 'Канал можно использовать.',
+          action: 'Назначать новых пользователей на этот канал.',
+          blocker: 'Блокера назначения нет',
         },
         keep: {
-          reason: 'Current users may stay. New users should not be assigned.',
-          action: 'Keep current users here and avoid new assignments.',
-          blocker: 'New assignments restricted',
+          reason: 'Текущие пользователи могут оставаться. Новых назначать не нужно.',
+          action: 'Оставить текущих пользователей и не добавлять новых.',
+          blocker: 'Новые назначения ограничены',
         },
         evacuate: {
-          reason: 'Current users should leave. Reason: Routing decision recommends moving users away.',
-          action: 'Move users away from this channel.',
-          blocker: 'Users should be moved',
+          reason: 'Пользователей нужно перевести с этого канала.',
+          action: 'Подготовить перевод пользователей с канала.',
+          blocker: 'Пользователей нужно перевести',
         },
         emergency: {
-          reason: 'Reserved for manual or emergency use. Automatic assignment is disabled.',
-          action: 'Use only for manual or emergency operations.',
-          blocker: 'Emergency use only',
+          reason: 'Только для ручного или аварийного использования.',
+          action: 'Использовать только вручную или аварийно.',
+          blocker: 'Только аварийно',
         },
         blocked: {
-          reason: 'Cannot be used. Reason: Assignment blocked by a hard gate.',
-          action: 'Do not assign users to this channel.',
-          blocker: 'Assignment blocked',
+          reason: 'Канал нельзя использовать для назначений.',
+          action: 'Не назначать пользователей на этот канал.',
+          blocker: 'Назначение заблокировано',
         },
       }[key] || {
-        reason: 'Cannot be used. Reason: Assignment blocked by a hard gate.',
-        action: 'Do not assign users to this channel.',
-        blocker: 'Assignment blocked',
+        reason: 'Канал нельзя использовать для назначений.',
+        action: 'Не назначать пользователей на этот канал.',
+        blocker: 'Назначение заблокировано',
       };
     }
     function channelAssignmentStatusLabel(status='') {
       return {
-        use:'Use',
-        keep:'Keep Current Users',
-        evacuate:'Evacuate',
-        blocked:'Blocked',
-        emergency:'Emergency Only',
-      }[status] || 'Blocked';
+        use:'Использовать',
+        keep:'Оставить текущих',
+        evacuate:'Перевести пользователей',
+        blocked:'Запрещён',
+        emergency:'Только аварийно',
+      }[status] || 'Запрещён';
+    }
+    function channelAssignmentTableLabel(status='') {
+      return {
+        use:'Использовать',
+        keep:'Оставить',
+        evacuate:'Перевести',
+        blocked:'Запрещён',
+        emergency:'Аварийно',
+      }[status] || 'Запрещён';
     }
     function channelAssignmentTone(status='') {
       return {use:'ok', keep:'info', evacuate:'bad', blocked:'bad', emergency:'warn'}[status] || 'bad';
@@ -27312,31 +27321,31 @@ def html_page_v2():
       const evidence = channelAssignmentEvidence(source);
       const emergency = evidence.blockers.some(reason => /manual_only|reserve_only|canary_reserved|production_assignment_allowed=false/i.test(reason));
       let key = 'blocked';
-      let reason = 'Routing decision unavailable';
+      let reason = 'Решение маршрутизации недоступно';
       if (!evidence.planReady) {
         key = 'blocked';
-        reason = operatorDecisionSurfaceLoading ? 'Checking routing decision' : 'Routing decision unavailable';
+        reason = operatorDecisionSurfaceLoading ? 'Проверяем решение маршрутизации' : 'Решение маршрутизации недоступно';
       } else if (emergency) {
         key = 'emergency';
         reason = channelAssignmentBlockerLabel(evidence.blockers.find(item => /manual_only|reserve_only|canary_reserved|production_assignment_allowed=false/i.test(item)));
       } else if (evidence.selectedFrom.length) {
         key = 'evacuate';
-        reason = evidence.selectedFrom.length === 1 ? '1 user should be moved away' : `${evidence.selectedFrom.length} users should be moved away`;
+        reason = evidence.selectedFrom.length === 1 ? '1 пользователя нужно перевести' : `${evidence.selectedFrom.length} пользователей нужно перевести`;
       } else if (evidence.eligibleCandidates.length || evidence.selectedTo.length) {
         key = 'use';
-        reason = evidence.selectedTo.length ? 'Best available target' : 'Approved for receiving users';
+        reason = evidence.selectedTo.length ? 'Лучший доступный канал' : 'Канал можно использовать';
       } else if (evidence.users > 0 && !evidence.blockers.length) {
         key = 'keep';
-        reason = 'Current users may stay';
+        reason = 'Текущие пользователи могут оставаться';
       } else if (evidence.users > 0 && evidence.blockers.length) {
         key = 'keep';
-        reason = 'Current users may stay. New users should not be assigned.';
+        reason = 'Текущие пользователи могут оставаться. Новых назначать не нужно.';
       } else if (evidence.blockers.length) {
         key = 'blocked';
         reason = channelAssignmentBlockerLabel(evidence.blockers[0]);
       } else {
         key = 'use';
-        reason = 'Approved for receiving users';
+        reason = 'Канал можно использовать';
       }
       const roleMeta = channelAssignmentRoleMeta(key);
       const mainBlocker = evidence.blockers.length ? channelAssignmentBlockerLabel(evidence.blockers[0]) : roleMeta.blocker;
@@ -27354,24 +27363,24 @@ def html_page_v2():
     function channelDecisionReason(source={}) {
       const a = channelAssignmentStatus(source);
       const s = channelSuitability(source);
-      if (a.key === 'use') return a.reason || 'Best available channel for new users';
-      if (a.key === 'evacuate') return a.mainBlocker && a.mainBlocker !== 'Users should be moved' ? a.mainBlocker : (s.primaryCause || 'Users should be moved');
-      if (a.key === 'keep') return 'New users should not be assigned';
-      if (a.key === 'emergency') return a.mainBlocker || a.reason || 'Reserved channel';
-      if (a.key === 'blocked') return a.mainBlocker || a.reason || 'Channel cannot be used';
-      return a.reason || 'Routing decision unavailable';
+      if (a.key === 'use') return a.reason || 'Лучший доступный канал';
+      if (a.key === 'evacuate') return a.mainBlocker && a.mainBlocker !== 'Пользователей нужно перевести' ? a.mainBlocker : (s.primaryCause || 'Пользователей нужно перевести');
+      if (a.key === 'keep') return 'Новых пользователей назначать не нужно';
+      if (a.key === 'emergency') return a.mainBlocker || a.reason || 'Ручной резерв';
+      if (a.key === 'blocked') return a.mainBlocker || a.reason || 'Канал нельзя использовать';
+      return a.reason || 'Решение маршрутизации недоступно';
     }
     function channelDecisionActionText(source={}) {
       const a = channelAssignmentStatus(source);
-      if (a.key === 'use') return 'Use for new assignments.';
-      if (a.key === 'evacuate') return 'Move users away from this channel.';
-      if (a.key === 'keep') return 'Keep current users here and avoid new assignments.';
-      if (a.key === 'emergency') return 'Use only for manual or emergency operations.';
-      return 'Do not assign users to this channel.';
+      if (a.key === 'use') return 'Назначать новых пользователей на этот канал.';
+      if (a.key === 'evacuate') return 'Подготовить перевод пользователей с канала.';
+      if (a.key === 'keep') return 'Оставить текущих пользователей и не добавлять новых.';
+      if (a.key === 'emergency') return 'Использовать только вручную или аварийно.';
+      return 'Не назначать пользователей на этот канал.';
     }
     function channelDecisionCell(source={}) {
       const a = channelAssignmentStatus(source);
-      return `<button type="button" class="channel-cell-button" onclick="event.stopPropagation();openChannelDrawer('${esc(a.id)}')"><span class="cell-main">${pill(a.label, a.tone)}</span><span class="cell-sub">${esc(channelDecisionReason(source))}</span></button>`;
+      return `<button type="button" class="channel-cell-button" onclick="event.stopPropagation();openChannelDrawer('${esc(a.id)}')"><span class="cell-main">${pill(channelAssignmentTableLabel(a.key), a.tone)}</span><span class="cell-sub">${esc(channelDecisionReason(source))}</span></button>`;
     }
     function channelAssignmentMismatch(source={}) {
       const quality = channelSuitability(source);
@@ -27382,13 +27391,13 @@ def html_page_v2():
     function channelAssignmentCell(source={}) {
       const a = channelAssignmentStatus(source);
       const mismatch = channelAssignmentMismatch(source);
-      const sub = [a.roleReason, mismatch ? 'Channel quality is high, but assignment is restricted.' : ''].filter(Boolean).join(' · ');
+      const sub = [a.roleReason, mismatch ? 'Техническое состояние хорошее, но назначение ограничено.' : ''].filter(Boolean).join(' · ');
       return `<button type="button" class="channel-cell-button" onclick="event.stopPropagation();openChannelDrawer('${esc(a.id)}')"><span class="cell-main">${pill(a.label, a.tone)}</span><span class="cell-sub">${esc(sub)}</span></button>`;
     }
     function channelAssignmentBlockerCell(source={}) {
       const a = channelAssignmentStatus(source);
       const mismatch = channelAssignmentMismatch(source);
-      const sub = mismatch ? 'Channel quality is high, but assignment is restricted.' : 'Routing decision';
+      const sub = mismatch ? 'Техническое состояние хорошее, но назначение ограничено.' : 'Решение маршрутизатора';
       return `<button type="button" class="channel-cell-button" onclick="event.stopPropagation();openChannelDrawer('${esc(a.id)}')"><span class="cell-main">${esc(a.mainBlocker)}</span><span class="cell-sub">${esc(sub)}</span></button>`;
     }
     function channelSuitabilityBreakdownTable(source={}) {
@@ -27421,6 +27430,14 @@ def html_page_v2():
           <span>${esc(label)}</span>
           <span class="channel-summary-value">${value}</span>
           ${hint ? `<span class="channel-summary-hint">${esc(hint)}</span>` : ''}
+        </span>
+        <span class="channel-accordion-chevron">›</span>
+      </button>`;
+    }
+    function channelCountSummaryButton(label='', count=0) {
+      return `<button type="button" class="channel-summary-button channel-accordion-trigger" aria-expanded="false" onclick="toggleChannelAccordion(this)">
+        <span class="channel-summary-main">
+          <span class="channel-summary-value">${esc(label)} (${esc(count)})</span>
         </span>
         <span class="channel-accordion-chevron">›</span>
       </button>`;
@@ -27487,8 +27504,7 @@ def html_page_v2():
     function channelCompressedListHtml(items=[], tone='bad', source={}, kind='problem') {
       const clean = Array.from(new Set((items || []).filter(Boolean))).slice(0, 5);
       const symbol = tone === 'ok' ? '✔' : '✖';
-      const empty = tone === 'ok' ? 'Подтвержденных проверок пока нет' : 'Проблем не обнаружено';
-      if (!clean.length) return `<div class="channel-compressed-list"><button type="button" class="channel-compressed-item" disabled><span class="mark ${tone}">—</span><span>${esc(empty)}</span><span></span></button></div>`;
+      if (!clean.length) return '';
       const s = channelSuitability(source);
       const a = channelAssignmentStatus(source);
       const html = `<div class="channel-compressed-list">${clean.map((item, index) => {
@@ -27513,6 +27529,16 @@ def html_page_v2():
         </div>`;
       }).join('')}</div>`;
       return html;
+    }
+    function channelCountAccordionHtml(label='', items=[], tone='ok', source={}, kind='working') {
+      const clean = Array.from(new Set((items || []).filter(Boolean))).slice(0, 5);
+      const content = channelCompressedListHtml(clean, tone, source, kind) || '<p class="muted">Подтвержденных проверок пока нет.</p>';
+      return `<div class="channel-accordion-item">
+        ${channelCountSummaryButton(label, clean.length)}
+        <div class="channel-accordion-content" hidden>
+          <div class="channel-accordion-content-inner">${content}</div>
+        </div>
+      </div>`;
     }
     function channelBreakdownGroupHtml(title='', items=[], tone='ok') {
       const clean = Array.from(new Set((items || []).filter(Boolean))).slice(0, 8);
@@ -27555,7 +27581,7 @@ def html_page_v2():
       const a = channelAssignmentStatus(source);
       const problems = s.score >= 90 ? [] : s.problems.slice(0, 5);
       const problemList = channelCompressedListHtml(problems, 'bad', source, 'problem');
-      const workingList = channelCompressedListHtml(s.working, 'ok', source, 'working');
+      const workingList = channelCountAccordionHtml('Работает', s.working, 'ok', source, 'working');
       const decisionReason = channelDecisionReason(source);
       const decisionRows = [
         ['Решение', a.label],
@@ -27563,12 +27589,12 @@ def html_page_v2():
         ['Что делать', channelDecisionActionText(source)],
       ].filter(Boolean);
       const healthContent = channelAccordionContent('Почему такое здоровье?', [
-          ['Technical Health', `${s.score} / 100`],
+          ['Техническое состояние', `${s.score} / 100`],
           ['Статус', s.status.label],
-          ['Причина', s.primaryCause],
-          ['Что делать', s.score >= 90 ? 'Действий не требуется.' : s.why],
+          ['Что делать', s.score >= 90 ? 'Действий не требуется.' : s.actionLabel],
         ], `<button class="ghost" type="button" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">Разбор здоровья</button>`);
       const decisionContent = channelAccordionContent('Что решил V7?', decisionRows);
+      const problemsRow = problemList ? `<div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-problems"><span>Проблемы (${esc(problems.length)})</span>${problemList}</div>` : '';
       return `<div class="drawer-section channel-analysis-card">
         <h3>МОДЕЛЬ КАНАЛА</h3>
         <div class="channel-analysis-flow">
@@ -27576,10 +27602,10 @@ def html_page_v2():
             <div class="channel-accordion-item">${channelAccordionSummaryButton('Решение V7', pill(a.label, a.tone), decisionReason)}${decisionContent}</div>
           </div>
           <div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-health">
-            <div class="channel-accordion-item">${channelAccordionSummaryButton('Technical Health', `${esc(s.score)} / 100`, `${s.status.label} · ${s.primaryCause}`)}${healthContent}</div>
+            <div class="channel-accordion-item">${channelAccordionSummaryButton('Техническое состояние', `${esc(s.score)} / 100`, '')}${healthContent}</div>
           </div>
-          <div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-problems"><span>Проблемы</span>${problemList}</div>
-          <div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-working"><span>Работает</span>${workingList}</div>
+          ${problemsRow}
+          <div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-working">${workingList}</div>
         </div>
       </div>`;
     }
@@ -27626,7 +27652,7 @@ def html_page_v2():
       openCompactDrawer(`Здоровье ${s.score} / 100`, 'channel', [
         drawerSection(`Почему здоровье ${s.score} / 100?`, compactKvRows({
           'Канал': channelDisplayName(id),
-          'Technical Health': s.status.label,
+          'Техническое состояние': s.status.label,
           'Главная причина': s.primaryCause,
           'Действие': s.score >= 90 ? 'Действий не требуется' : s.actionLabel,
         })),

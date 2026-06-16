@@ -27442,6 +27442,9 @@ def html_page_v2():
         <span class="channel-accordion-chevron">›</span>
       </button>`;
     }
+    function channelUnavailableActionHtml(reason='нет безопасного обработчика') {
+      return `<button class="ghost" type="button" disabled>Действие недоступно</button><span class="inline-action-status">Причина: ${esc(reason)}</span>`;
+    }
     function channelProblemOverlayMeta(label='', suitability={}, assignment={}) {
       const text = String(label || '').trim();
       const lower = text.toLowerCase();
@@ -27455,16 +27458,16 @@ def html_page_v2():
       }
       if (/route|маршрут/i.test(text)) {
         return {
-          reason: 'Маршрут требует подтверждения перед безопасным использованием канала.',
-          resolution: 'Проверьте route/evidence ниже в drawer и подтвердите, что риска утечки нет.',
-          action: '',
+          reason: 'Маршрут нужно подтвердить перед использованием.',
+          resolution: 'Откройте проверку маршрута через существующий безопасный обработчик. Для этого канала отдельный handler пока не подключен.',
+          action: channelUnavailableActionHtml(),
         };
       }
       if (/capacity|нагруз|перегруж/i.test(text)) {
         return {
-          reason: 'На канале слишком высокая нагрузка или достигнут пользовательский лимит.',
-          resolution: 'Проверьте список пользователей и подготовьте governed movement при необходимости.',
-          action: '',
+          reason: 'На канал назначено слишком много пользователей.',
+          resolution: 'Откройте пользователей этого канала и подготовьте перевод через существующий governed flow.',
+          action: `<button class="ghost" type="button" onclick="showChannelWorkspace('overview');toggleChannelUsers('${esc(id)}');closeDrawer()">Открыть пользователей</button>`,
         };
       }
       if (/runtime|ready|готов/i.test(text)) {
@@ -27478,27 +27481,27 @@ def html_page_v2():
         return {
           reason: 'Недавняя история канала требует подтверждения.',
           resolution: 'Проверьте evidence/history ниже в drawer и подтвердите, что ограничение снято.',
-          action: '',
+          action: channelUnavailableActionHtml(),
         };
       }
       if (/stability|стабил|connectivity|связ/i.test(text)) {
         return {
           reason: 'Стабильность соединения требует внимания оператора.',
           resolution: 'Проверьте последние health/runtime сигналы и повторите проверку сервиса при необходимости.',
-          action: '',
+          action: channelUnavailableActionHtml(),
         };
       }
       if (/disabled|отключ/i.test(lower)) {
         return {
           reason: 'Канал отключен и не должен принимать пользователей.',
           resolution: 'Верните канал в рабочее состояние только через существующую процедуру обслуживания.',
-          action: '',
+          action: channelUnavailableActionHtml(),
         };
       }
       return {
         reason: suitability.why || 'Канал требует проверки оператора.',
         resolution: suitability.score >= 90 ? 'Действий не требуется.' : 'Откройте детали ниже и подтвердите причину перед действием.',
-        action: '',
+        action: suitability.score >= 90 ? '' : channelUnavailableActionHtml(),
       };
     }
     function channelCompressedListHtml(items=[], tone='bad', source={}, kind='problem') {
@@ -27545,6 +27548,11 @@ def html_page_v2():
       if (!clean.length) return '';
       return `<div class="channel-breakdown-group"><strong>${esc(title)}</strong>${channelAnalysisListHtml(clean, tone)}</div>`;
     }
+    function channelBreakdownProblemGroupHtml(title='', items=[], source={}) {
+      const clean = Array.from(new Set((items || []).filter(Boolean))).slice(0, 8);
+      if (!clean.length) return '';
+      return `<div class="channel-breakdown-group channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey((source.id || source.egress || 'channel') + '-' + title))}"><strong>${esc(title)}</strong>${channelCompressedListHtml(clean, 'bad', source, 'health-detail')}</div>`;
+    }
     function channelBreakdownServiceRows(source={}) {
       const row = channelRowFromSource(source);
       const id = row.id || row.egress || '';
@@ -27553,18 +27561,23 @@ def html_page_v2():
       const services = serviceMatrixServices(raw);
       const entries = Object.entries(services).sort(([a], [b]) => serviceDisplayName(a).localeCompare(serviceDisplayName(b), 'ru')).slice(0, 8);
       if (!entries.length) return '';
-      return `<ul class="channel-breakdown-services">${entries.map(([name, item]) => {
-        const ok = serviceOk(item);
-        const label = ok ? `${serviceDisplayName(name)} работает` : channelOperatorServiceProblem(serviceDisplayName(name));
-        return `<li><span class="mark ${ok ? 'ok' : 'bad'}">${ok ? '✔' : '✖'}</span><span>${esc(label)}</span></li>`;
-      }).join('')}</ul>`;
+      const failed = entries
+        .filter(([, item]) => !serviceOk(item))
+        .map(([name]) => channelOperatorServiceProblem(serviceDisplayName(name)));
+      const working = entries.filter(([, item]) => serviceOk(item));
+      const failedHtml = channelBreakdownProblemGroupHtml('Проблемы сервисов:', failed, source);
+      const workingHtml = working.length ? `<ul class="channel-breakdown-services">${working.map(([name]) => {
+        const label = `${serviceDisplayName(name)} работает`;
+        return `<li><span class="mark ok">✔</span><span>${esc(label)}</span></li>`;
+      }).join('')}</ul>` : '';
+      return `${failedHtml}${workingHtml}`;
     }
     function channelSuitabilityBreakdownHtml(source={}) {
       const s = channelSuitability(source);
       const cards = s.breakdown.map(item => {
         const services = item.check === 'Services' ? channelBreakdownServiceRows(source) : '';
         const works = channelBreakdownGroupHtml('Работает:', item.operatorWorking, 'ok');
-        const problems = channelBreakdownGroupHtml('Проблемы:', item.operatorProblems, 'bad');
+        const problems = channelBreakdownProblemGroupHtml('Проблемы:', item.operatorProblems, source);
         return `<div class="channel-breakdown-card">
           <div class="channel-breakdown-card-head"><strong>${esc(channelOperatorCheckLabel(item.check))}</strong><span>${esc(item.score)} / ${esc(item.max)}</span></div>
           ${item.operatorProblem ? `<p><span class="muted">Проблема:</span> <strong>${esc(item.operatorProblem)}</strong></p>` : ''}

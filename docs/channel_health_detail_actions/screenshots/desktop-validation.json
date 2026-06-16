@@ -1,0 +1,20 @@
+{
+  "hasBreakdown": true,
+  "badMarks": 4,
+  "badWithoutButton": [],
+  "openAccordions": 3,
+  "detachedPanels": 0,
+  "actionLabels": [
+    "Проверить сервисы",
+    "Проверить сервисы",
+    "Открыть пользователей",
+    "Действие недоступно"
+  ],
+  "disabledActions": [
+    "Действие недоступно"
+  ],
+  "width": 1440,
+  "scrollWidth": 1440,
+  "overflow": false,
+  "errors": []
+}

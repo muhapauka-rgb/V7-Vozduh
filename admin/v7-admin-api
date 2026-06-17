@@ -27201,15 +27201,15 @@ def html_page_v2():
     }
     function channelSuitabilityCell(id='', source={}) {
       const s = channelSuitability(source);
-      return `<button type="button" class="operator-decision-button" onclick="event.stopPropagation();openChannelSuitabilityBreakdown('${esc(id)}')"><span class="cell-main">${pill(`${s.score}/100`, s.status.tone)}</span></button>`;
+      return `<button type="button" class="operator-decision-button" onclick="event.stopPropagation();openChannelTechnicalDiagnostics('${esc(id)}')"><span class="cell-main">${pill(`${s.score}/100`, s.status.tone)}</span></button>`;
     }
     function channelCommercialStatusCell(source={}) {
       const s = channelSuitability(source);
-      return `<button type="button" class="status-pill-button" onclick="event.stopPropagation();openChannelSuitabilityBreakdown('${esc(s.id)}')">${pill(s.status.label, s.status.tone)}</button>`;
+      return `<button type="button" class="status-pill-button" onclick="event.stopPropagation();openChannelDrawer('${esc(s.id)}')">${pill(s.status.label, s.status.tone)}</button>`;
     }
     function channelMainIssueCell(source={}) {
       const s = channelSuitability(source);
-      return `<button type="button" class="channel-cell-button" onclick="event.stopPropagation();openChannelSuitabilityBreakdown('${esc(s.id)}')"><span class="cell-main">${esc(s.mainIssue)}</span><span class="cell-sub">${esc(s.why)}</span></button>`;
+      return `<button type="button" class="channel-cell-button" onclick="event.stopPropagation();openChannelDrawer('${esc(s.id)}')"><span class="cell-main">${esc(s.mainIssue)}</span><span class="cell-sub">${esc(s.why)}</span></button>`;
     }
     function channelAssignmentPlan() {
       const surface = operatorDecisionSurface?.assignment_truth || {};
@@ -27659,7 +27659,7 @@ def html_page_v2():
           ['Техническое состояние', `${s.score} / 100`],
           ['Статус', s.status.label],
           ['Что делать', s.score >= 90 ? 'Действий не требуется.' : s.actionLabel],
-        ], `<button class="ghost" type="button" onclick="openChannelSuitabilityBreakdown('${esc(s.id)}')">Разбор здоровья</button>`);
+        ], `<button class="ghost" type="button" onclick="openChannelTechnicalDiagnostics('${esc(s.id)}')">Техническая диагностика</button>`);
       const decisionContent = channelAccordionContent('Что решил V7?', decisionRows);
       const problemsRow = problemList ? `<div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-problems"><span>Проблемы (${esc(problems.length)})</span>${problemList}</div>` : '';
       return `<div class="drawer-section channel-analysis-card">
@@ -27713,21 +27713,45 @@ def html_page_v2():
     function channelDetailsSection(body='') {
       return `<details class="drawer-section channel-details-section"><summary>Детали</summary><div class="channel-details-stack">${body}</div></details>`;
     }
-    function openChannelSuitabilityBreakdown(id='') {
-      const row = egressRows().find(item => item.id === id) || {id};
+    function channelTechnicalDiagnosticsSection(source={}) {
+      const row = channelRowFromSource(source);
+      const id = row.id || row.egress || '';
       const s = channelSuitability(row);
-      openCompactDrawer(`Здоровье ${s.score} / 100`, 'channel', [
-        drawerSection(`Почему здоровье ${s.score} / 100?`, compactKvRows({
-          'Канал': channelDisplayName(id),
-          'Техническое состояние': s.status.label,
-          'Главная причина': s.primaryCause,
-          'Действие': s.score >= 90 ? 'Действий не требуется' : s.actionLabel,
-        })),
-        drawerSection('Разбор', channelSuitabilityBreakdownHtml(row)),
-        drawerSection('Действие', s.score >= 90
-          ? `<div class="detail-actions"><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button></div>`
-          : `<div class="detail-actions"><button class="primary" onclick="${s.action}">${esc(s.actionLabel)}</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button></div>`),
-      ].join(''), {size:'table'});
+      return `<details class="drawer-section channel-technical-diagnostics" id="channelTechnicalDiagnostics-${esc(domSafeId(id || 'channel'))}">
+        <summary>Техническая диагностика</summary>
+        <div class="channel-details-stack">
+          <div class="channel-diagnostics-summary">
+            <h3>Разбор здоровья</h3>
+            ${compactKvRows({
+              'Канал': channelDisplayName(id),
+              'Техническое состояние': `${s.score} / 100`,
+              'Статус': s.status.label,
+              'Главная причина': s.primaryCause,
+            })}
+          </div>
+          ${channelSuitabilityBreakdownHtml(row)}
+        </div>
+      </details>`;
+    }
+    function revealChannelTechnicalDiagnostics(id='') {
+      const safe = domSafeId(id || 'channel');
+      const details = document.getElementById(`channelTechnicalDiagnostics-${safe}`);
+      const parent = details?.closest('.channel-details-section');
+      if (!details) return false;
+      if (parent) parent.open = true;
+      details.open = true;
+      window.requestAnimationFrame(() => details.scrollIntoView({block:'start', behavior:'smooth'}));
+      return true;
+    }
+    function openChannelTechnicalDiagnostics(id='', attempt=0) {
+      if (revealChannelTechnicalDiagnostics(id)) return;
+      if (attempt === 0) openChannelDrawer(id);
+      if (attempt < 16) {
+        window.setTimeout(() => openChannelTechnicalDiagnostics(id, attempt + 1), 150);
+      }
+    }
+    function openChannelSuitabilityBreakdown(id='') {
+      openChannelTechnicalDiagnostics(id);
     }
     function openChannelProblem(id='', source='status') {
       const ctx = channelProblemContext(id, source);
@@ -28000,6 +28024,7 @@ def html_page_v2():
         channelDetailsSection([
           kvRows({'Состояние': codeOk ? 'OK' : 'Нужна диагностика', 'Роль': reg.role || '', 'Пользователи': egressUserCount(id), 'Скорость сервера': sp.server_v7_mbps || sp.download_mbps ? `${sp.server_v7_mbps || sp.download_mbps} Mbps` : 'нет замера', 'Сервисы': total ? `${okCount}/${total}` : 'нет замера', 'Готовность': rd.status || 'неизвестно'}),
           whyCardSection('Почему этот канал', channelWhyCard(id)),
+          channelTechnicalDiagnosticsSection(row),
           drawerSection('Трафик', trafficSummaryHtml('channel', id)),
           channelActionControls(id),
           channelObjectPanelsSection(id),
@@ -28019,7 +28044,7 @@ def html_page_v2():
     }
     function channelDrawerHeadActions(id='') {
       if (!id) return '';
-      return `<button class="ghost" onclick="openChannelSuitabilityBreakdown('${esc(id)}')">Детали</button>`;
+      return `<button class="ghost" onclick="openChannelTechnicalDiagnostics('${esc(id)}')">Диагностика</button>`;
     }
     async function copyChannelConfigText(textareaId='') {
       const el = document.getElementById(textareaId);
@@ -28248,8 +28273,8 @@ def html_page_v2():
         ? `есть серверный или клиентский замер; падение ${clientSpeed.degradation_pct != null ? `${clientSpeed.degradation_pct}%` : 'не рассчитано'}`
         : 'Запустите ручной замер скорости, когда нужны реальные цифры.';
       const rows = [
-        ['Здоровье', s.healthOk, st.diagnose_reason || st.diagnose_detail || (s.healthOk ? 'Канал отвечает.' : 'Состояние канала не подтверждено.'), `openChannelDrawer("${id}")`],
-        ['Сервисы', s.matrixReady || !s.matrixTotal, matrixDetail, `openChannelDrawer("${id}")`],
+        ['Здоровье', s.healthOk, st.diagnose_reason || st.diagnose_detail || (s.healthOk ? 'Канал отвечает.' : 'Состояние канала не подтверждено.'), `openChannelTechnicalDiagnostics("${id}")`],
+        ['Сервисы', s.matrixReady || !s.matrixTotal, matrixDetail, `openChannelTechnicalDiagnostics("${id}")`],
         ['Скорость', s.speedOk, speedDetail, `runV2EgressSpeed("${id}");closeDrawer()`],
         ['Пользователи', true, `${s.usersCount} пользователей назначено. Ручное переключение двигает только одного выбранного пользователя.`, `openV2ManualSwitchPanel("${id}")`],
         ['Рабочий профиль', s.runtimeReady, rd.reason || rd.message || (s.runtimeReady ? 'Профиль готов.' : 'Проверьте карточку и логи канала.'), `openV2ChannelLogs("${id}")`],
@@ -28276,6 +28301,7 @@ def html_page_v2():
       const eventRows = (d.events || []).slice(0, 12).map(e => `<tr><td>${esc(e.time || e.ts || '')}</td><td>${esc(publicOperatorText(e.action || e.component || ''))}</td><td>${pill(statusLabel(e.severity || 'info'), statusTone(e.severity))}</td><td>${esc(publicOperatorText(e.message || ''))}</td></tr>`);
       const lifecycleRows = draftLifecycle.map(row => `<tr><td><strong>${esc(row.label || row.id || 'Черновик')}</strong></td><td>${pill(statusLabel(row.validation || row.status || 'draft'), statusTone(row.validation || row.status))}</td><td>${pill(statusLabel(row.pool_action || 'not_added'), statusTone(row.pool_action))}</td><td>${pill(statusLabel(row.runtime_profile_status || row.enable_readiness || 'UNKNOWN'), statusTone(row.runtime_profile_status || row.enable_readiness))}</td><td>${esc(operatorText(row.next_action_label || row.next_step || ''))}</td></tr>`);
       const config = d.config || {};
+      const diagnosticRow = {...analysisRow, egress:d.egress || analysisRow.egress || analysisRow.id || '', registry:reg, state:st, runtime_readiness:rd, service_matrix:matrix};
       return [
         channelAnalysisCard(analysisRow),
         channelDetailsSection([
@@ -28289,6 +28315,7 @@ def html_page_v2():
             'Пользователи': assigned.length,
           }),
           channelInspectionChecklist(d),
+          channelTechnicalDiagnosticsSection(diagnosticRow),
           channelActionControls(d.egress || '', d),
           channelObjectPanelsSection(d.egress || ''),
           drawerSection('Жизненный цикл', listTable(['Черновик','Проверка','Пул','Профиль','Следующий шаг'], lifecycleRows, 'Этот канал не создавался из отслеживаемого черновика или история недоступна.')),

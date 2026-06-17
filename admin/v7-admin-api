@@ -27768,12 +27768,21 @@ def html_page_v2():
         </div>
       </div>`;
     }
+    function channelLostPointsText(lost=0) {
+      const value = Math.abs(Number(lost || 0));
+      const mod10 = value % 10;
+      const mod100 = value % 100;
+      const word = mod10 === 1 && mod100 !== 11
+        ? 'балл'
+        : ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100) ? 'балла' : 'баллов');
+      return `-${esc(value)} ${word}`;
+    }
     function channelSuitabilityBreakdownHtml(source={}) {
       const s = channelSuitability(source);
       const cards = s.breakdown.map(item => {
         const lost = Number(item.max || 0) - Number(item.score || 0);
         return `<div class="channel-breakdown-card channel-accordion-item">
-          ${channelAccordionSummaryButton(channelOperatorCheckLabel(item.check), `${esc(item.score)} / ${esc(item.max)}`, lost > 0 ? `-${esc(lost)} баллов` : 'полный балл')}
+          ${channelAccordionSummaryButton(channelOperatorCheckLabel(item.check), `${esc(item.score)} / ${esc(item.max)}`, lost > 0 ? channelLostPointsText(lost) : 'полный балл')}
           <p>${esc(channelScoreExplanationText(source, item))}</p>
           ${channelScoreComponentContent(source, item)}
         </div>`;

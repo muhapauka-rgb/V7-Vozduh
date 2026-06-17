@@ -26938,6 +26938,28 @@ def html_page_v2():
       if (/telegram|youtube|google auth|google|instagram|whatsapp|chatgpt|claude/i.test(text)) return `${text} недоступен`;
       return 'Сервисы требуют свежей проверки';
     }
+    function channelOperatorProblemKind(value='', item={}) {
+      const text = String(value || item.problem || item.check || '').trim();
+      const check = String(item.check || '').trim();
+      const reason = String(item.reason || '').trim();
+      if (!text && !check) return 'cause';
+      if (/disabled/i.test(text) || /channel disabled/i.test(reason)) return 'outcome';
+      if (/not started/i.test(text) || /not started/i.test(reason)) return 'outcome';
+      if (check === 'Capacity' || /^Capacity$/i.test(text)) return 'outcome';
+      if (check === 'Services' || /^Services/i.test(text)) {
+        return /telegram|youtube|google auth|google|instagram|whatsapp|chatgpt|claude/i.test(text) ? 'outcome' : 'cause';
+      }
+      if (check === 'Route' || /^Route$/i.test(text)) return 'cause';
+      if (check === 'Runtime' || /^Runtime$/i.test(text)) return 'cause';
+      if (check === 'History' || /^History$/i.test(text)) return 'cause';
+      if (check === 'Stability' || /^Stability$/i.test(text)) return 'cause';
+      if (/refresh|required|validation|validate|measured|measurement|провер|подтвержд|готовность|маршрут|истор|стабил/i.test(text)) return 'cause';
+      return /telegram|youtube|google auth|google|instagram|whatsapp|chatgpt|claude/i.test(text) ? 'outcome' : 'cause';
+    }
+    function channelOperatorOutcomeProblemText(value='', item={}) {
+      if (channelOperatorProblemKind(value, item) !== 'outcome') return '';
+      return channelOperatorProblemText(value, item);
+    }
     function channelOperatorProblemText(value='', item={}) {
       const text = String(value || item.problem || item.check || '').trim();
       const check = String(item.check || '').trim();
@@ -27016,6 +27038,40 @@ def html_page_v2():
       if (check === 'History') return 'Недостаточно данных по каналу';
       if (check === 'Stability') return 'Стабильность ниже требуемого уровня';
       return 'Канал требует проверки оператора';
+    }
+    function channelCauseLabel(item={}) {
+      const check = String(item.check || '').trim();
+      const problem = String(item.problem || '').trim();
+      if (check === 'Services') {
+        return channelOperatorProblemKind(problem, item) === 'outcome'
+          ? 'Сервисы не подтвердили доступность'
+          : channelOperatorProblemText(problem || check, item);
+      }
+      if (check === 'Route') return 'Маршрут не подтвержден';
+      if (check === 'Runtime') return 'Готовность канала не подтверждена';
+      if (check === 'History') return 'Недостаточно данных';
+      if (check === 'Stability') return 'Стабильность ниже требуемого уровня';
+      if (check === 'Capacity') return 'На канал назначено слишком много пользователей';
+      return channelOperatorProblemText(problem || check, item);
+    }
+    function channelPrimaryCauseForOutcome(label='', suitability={}) {
+      const text = String(label || '').trim();
+      const breakdown = Array.isArray(suitability.breakdown) ? suitability.breakdown : [];
+      const route = breakdown.find(item => item.check === 'Route' && item.problem);
+      const runtime = breakdown.find(item => item.check === 'Runtime' && item.problem);
+      const stability = breakdown.find(item => item.check === 'Stability' && item.problem);
+      const history = breakdown.find(item => item.check === 'History' && item.problem);
+      const services = breakdown.find(item => item.check === 'Services' && item.problem);
+      const capacity = breakdown.find(item => item.check === 'Capacity' && item.problem);
+      if (/capacity|нагруз|перегруж/i.test(text)) return channelCauseLabel(capacity || {check:'Capacity'});
+      if (/telegram|google|youtube|service|сервис|instagram|whatsapp|chatgpt|claude/i.test(text)) {
+        if (route) return channelCauseLabel(route);
+        if (services) return channelCauseLabel(services);
+        if (runtime) return channelCauseLabel(runtime);
+      }
+      if (/disabled|отключ/i.test(text)) return 'Канал отключен';
+      if (/not started|не запущ/i.test(text)) return 'Канал не поднят';
+      return channelCauseLabel(route || services || runtime || stability || history || capacity || {});
     }
     function channelSuitabilityServices(row={}) {
       const id = row.id || row.egress || '';
@@ -27126,7 +27182,10 @@ def html_page_v2():
         else if (main.check === 'Route') { actionLabel = 'Открыть канал'; action = `openChannelDrawer('${esc(id)}')`; primary = true; }
         else if (main.check === 'Stability') { actionLabel = 'Открыть канал'; action = `openChannelDrawer('${esc(id)}')`; primary = true; }
       }
-      const operatorProblems = Array.from(new Set(problems.map(item => channelOperatorProblemText(item, parts.find(part => (part.problems || []).includes(item)) || main)).filter(Boolean)));
+      const operatorProblems = Array.from(new Set(problems.map(item => {
+        const owner = parts.find(part => (part.problems || []).includes(item)) || main;
+        return channelOperatorOutcomeProblemText(item, owner);
+      }).filter(Boolean)));
       const operatorWorking = Array.from(new Set(working.map(channelOperatorWorkingText).filter(Boolean)));
       const breakdown = parts.map(item => ({
         ...item,
@@ -27135,9 +27194,9 @@ def html_page_v2():
         operatorWorking: (item.working || []).map(channelOperatorWorkingText).filter(Boolean),
         operatorReason: item.problem ? channelOperatorWhy(item, score) : (item.check === 'Services' ? 'Измеренные сервисы работают' : channelOperatorWorkingText(item.working?.[0] || item.check)),
       }));
-      const mainIssue = channelOperatorMainIssue(main, score);
+      const mainIssue = operatorProblems[0] || (score >= 90 ? 'Проблем нет' : 'Проблема не видна пользователю');
       const primaryCause = channelOperatorPrimaryCause(main, score);
-      const why = channelOperatorWhy(main, score);
+      const why = operatorProblems.length ? channelPrimaryCauseForOutcome(operatorProblems[0], {breakdown}) : (score >= 90 ? channelOperatorWhy(main, score) : 'Причина показана в деталях');
       return {id, score, status, breakdown, problems:operatorProblems, working:operatorWorking, mainIssue, primaryCause, why, actionLabel, action, primary};
     }
     function channelSuitabilityCell(id='', source={}) {
@@ -27448,9 +27507,9 @@ def html_page_v2():
       const text = String(label || '').trim();
       const lower = text.toLowerCase();
       const id = suitability.id || assignment.id || '';
-      if (/telegram|google|youtube|service|сервис/i.test(text)) {
+      if (/telegram|google|youtube|service|сервис|instagram|whatsapp|chatgpt|claude/i.test(text)) {
         return {
-          reason: 'Один или несколько сервисов сейчас не подтверждены.',
+          reason: channelPrimaryCauseForOutcome(text, suitability) || 'Сервисы не подтвердили доступность.',
           resolution: 'Откройте детали сервисов. Ручное обновление доступно внутри технических деталей, если нужен свежий замер.',
           action: `<button class="ghost" type="button" onclick="openChannelServicesPanel('${esc(id)}')">Открыть сервисы</button>`,
         };
@@ -27464,7 +27523,7 @@ def html_page_v2():
       }
       if (/capacity|нагруз|перегруж/i.test(text)) {
         return {
-          reason: 'На канал назначено слишком много пользователей.',
+          reason: channelPrimaryCauseForOutcome(text, suitability) || 'На канал назначено слишком много пользователей.',
           resolution: 'Откройте пользователей этого канала и подготовьте перевод через существующий governed flow.',
           action: `<button class="ghost" type="button" onclick="showChannelWorkspace('overview');toggleChannelUsers('${esc(id)}');closeDrawer()">Открыть пользователей</button>`,
         };

@@ -27460,8 +27460,8 @@ def html_page_v2():
     }
     function channelSuitabilityBreakdownTable(source={}) {
       const s = channelSuitability(source);
-      const rows = s.breakdown.map(item => `<tr><td><strong>${esc(channelOperatorCheckLabel(item.check))}</strong></td><td>${esc(item.score)}</td><td>${esc(item.max)}</td><td>${esc(item.operatorProblem || item.operatorReason || item.reason)}</td></tr>`);
-      return listTable(['Проверка','Оценка','Макс.','Почему'], rows, 'Проверок пока нет.');
+      const rows = s.breakdown.map(item => `<tr><td><strong>${esc(channelOperatorCheckLabel(item.check))}</strong></td><td>${esc(item.score)}</td><td>${esc(item.max)}</td><td>${esc(channelScoreExplanationText(source, item))}</td></tr>`);
+      return listTable(['Компонент','Оценка','Макс.','Почему'], rows, 'Компонентов пока нет.');
     }
     function channelAnalysisListHtml(items=[], tone='bad') {
       const clean = Array.from(new Set((items || []).filter(Boolean))).slice(0, 7);
@@ -27626,19 +27626,154 @@ def html_page_v2():
       }).join('')}</ul>` : '';
       return workingHtml;
     }
+    function channelScoreEvidenceListHtml(title='', items=[], tone='ok') {
+      const clean = Array.from(new Set((items || []).filter(Boolean))).slice(0, 8);
+      if (!clean.length) return '';
+      return `<div class="channel-breakdown-group"><strong>${esc(title)}</strong>${channelAnalysisListHtml(clean, tone)}</div>`;
+    }
+    function channelScoreServiceEvidence(source={}) {
+      const row = channelRowFromSource(source);
+      const id = row.id || row.egress || '';
+      const detail = row._detail || {};
+      const raw = detail.service_matrix || channelMatrix(id).mx || {};
+      const services = serviceMatrixServices(raw);
+      const entries = Object.entries(services).sort(([a], [b]) => serviceDisplayName(a).localeCompare(serviceDisplayName(b), 'ru')).slice(0, 12);
+      const available = entries.filter(([, item]) => serviceOk(item)).map(([name]) => serviceDisplayName(name));
+      const unavailable = entries.filter(([, item]) => !serviceOk(item)).map(([name]) => serviceDisplayName(name));
+      return {available, unavailable, total:Number(raw.total || raw.count || entries.length || 0), ok:Number(raw.ok_count ?? available.length ?? 0)};
+    }
+    function channelScoreRouteEvidence(row={}) {
+      const state = channelTopologyState(row);
+      const routeRows = (overview.route_reality || []).filter(item => String(item.expected || item.assigned || item.egress || item.current || '') === String(row.id || ''));
+      const confirmed = routeRows.filter(item => item.ok === true && !item.leak_risk).length;
+      const notConfirmed = routeRows.filter(item => item.ok === false || item.leak_risk).length;
+      return {state, confirmed, notConfirmed, total:routeRows.length};
+    }
+    function channelScoreExplanationText(source={}, item={}) {
+      const row = channelRowFromSource(source);
+      const id = row.id || row.egress || '';
+      const check = String(item.check || '');
+      if (check === 'Services') {
+        const service = channelScoreServiceEvidence(row);
+        if (!service.total) return 'Нет измерений сервисов, поэтому компонент получил частичный балл.';
+        if (service.ok >= service.total) return 'Все измеренные сервисы доступны.';
+        return `${service.ok}/${service.total} сервисов доступны, остальные снизили балл.`;
+      }
+      if (check === 'Stability') {
+        const health = channelHealth(row);
+        if (Number(item.score || 0) >= Number(item.max || 0)) return 'Канал отвечает нормально, состояние выше минимального уровня.';
+        return health.detail || 'Состояние канала снизило компонент стабильности.';
+      }
+      if (check === 'Capacity') {
+        const count = egressUserCount(id);
+        const limit = channelLoadLimit(row);
+        if (Number(item.score || 0) >= Number(item.max || 0)) return `${count}/${limit.soft} пользователей, нагрузка внутри предпочтительного уровня.`;
+        return `${count}/${limit.soft} пользователей относительно предпочтительного уровня; нагрузка снизила балл.`;
+      }
+      if (check === 'Route') {
+        const evidence = channelScoreRouteEvidence(row);
+        if (Number(item.score || 0) >= Number(item.max || 0)) return 'Маршрут выглядит безопасным по текущим сигналам.';
+        if (evidence.total) return `${evidence.confirmed}/${evidence.total} маршрутов уверенно подтверждены.`;
+        return 'Текущих маршрутных доказательств недостаточно для полного балла.';
+      }
+      if (check === 'Runtime') {
+        const rd = row._detail?.runtime_readiness || (overview.egress_runtime_readiness || {})[id] || {};
+        if (Number(item.score || 0) >= Number(item.max || 0)) return 'Runtime готов по текущему снимку.';
+        return operatorShort(rd.reason || rd.status || 'Runtime не дал полного подтверждения.');
+      }
+      if (check === 'History') {
+        const decision = channelDecisionRow(id);
+        const label = decision.channel_state_label || decision.channel_state || decision.state || '';
+        if (Number(item.score || 0) >= Number(item.max || 0)) return 'Недавняя история не содержит негативных сигналов.';
+        return label ? `Последняя история канала: ${operatorText(label)}.` : 'Истории недостаточно для полного доверия.';
+      }
+      return item.reason || 'Компонент снизил итоговый балл.';
+    }
+    function channelScoreExplanationRows(source={}, item={}) {
+      const row = channelRowFromSource(source);
+      const id = row.id || row.egress || '';
+      const check = String(item.check || '');
+      if (check === 'Services') {
+        const service = channelScoreServiceEvidence(row);
+        return [
+          ['Доступно', service.total ? `${service.ok}/${service.total}` : 'нет измерений'],
+          ['Статус', channelScoreExplanationText(row, item)],
+        ];
+      }
+      if (check === 'Stability') {
+        const health = channelHealth(row);
+        const lifecycle = channelLifecycleStatus(row, health);
+        return [
+          ['Состояние канала', health.label || 'неизвестно'],
+          ['Состояние интерфейса', lifecycle.text || 'неизвестно'],
+          ['Статус', channelScoreExplanationText(row, item)],
+        ];
+      }
+      if (check === 'Capacity') {
+        const count = egressUserCount(id);
+        const limit = channelLoadLimit(row);
+        return [
+          ['Пользователи', String(count)],
+          ['Предпочтительно', String(limit.soft)],
+          ['Жёсткий предел', String(limit.hard)],
+          ['Статус', channelScoreExplanationText(row, item)],
+        ];
+      }
+      if (check === 'Route') {
+        const evidence = channelScoreRouteEvidence(row);
+        return [
+          ['Подтверждено', evidence.total ? String(evidence.confirmed) : 'нет строк'],
+          ['Не подтверждено', evidence.total ? String(evidence.notConfirmed) : 'нет строк'],
+          ['Статус', channelScoreExplanationText(row, item)],
+        ];
+      }
+      if (check === 'Runtime') {
+        const rd = row._detail?.runtime_readiness || (overview.egress_runtime_readiness || {})[id] || {};
+        return [
+          ['Состояние', rd.status || (Number(item.score || 0) >= Number(item.max || 0) ? 'READY' : 'неизвестно')],
+          ['Снимок', rd.enable_ready ? 'готов' : 'частичный'],
+          ['Статус', channelScoreExplanationText(row, item)],
+        ];
+      }
+      if (check === 'History') {
+        const decision = channelDecisionRow(id);
+        const card = channelWhyCard(id);
+        return [
+          ['Состояние истории', operatorText(decision.channel_state_label || decision.channel_state || decision.state || card.recommended_state || 'спокойно')],
+          ['Уверенность', Number(item.score || 0) >= 8 ? 'высокая' : 'частичная'],
+          ['Статус', channelScoreExplanationText(row, item)],
+        ];
+      }
+      return [['Статус', channelScoreExplanationText(row, item)]];
+    }
+    function channelScoreComponentContent(source={}, item={}) {
+      const row = channelRowFromSource(source);
+      const check = String(item.check || '');
+      const rows = channelScoreExplanationRows(row, item).filter(row => row && row[1]);
+      let extra = '';
+      if (check === 'Services') {
+        const service = channelScoreServiceEvidence(row);
+        extra = [
+          channelScoreEvidenceListHtml('Доступны:', service.available, 'ok'),
+          channelScoreEvidenceListHtml('Недоступны:', service.unavailable, 'bad'),
+        ].join('');
+      }
+      return `<div class="channel-accordion-content" hidden>
+        <div class="channel-accordion-content-inner">
+          <strong>${esc(channelOperatorCheckLabel(check))}: ${esc(item.score)} / ${esc(item.max)}</strong>
+          ${rows.map(([label, value]) => `<div class="channel-accordion-row"><span>${esc(label)}</span><p>${esc(value)}</p></div>`).join('')}
+          ${extra}
+        </div>
+      </div>`;
+    }
     function channelSuitabilityBreakdownHtml(source={}) {
       const s = channelSuitability(source);
       const cards = s.breakdown.map(item => {
-        const services = item.check === 'Services' ? channelBreakdownServiceRows(source) : '';
-        const works = channelBreakdownGroupHtml('Работает:', item.operatorWorking, 'ok');
-        const problems = channelBreakdownProblemGroupHtml('Проблемы:', item.operatorProblems, source);
-        return `<div class="channel-breakdown-card">
-          <div class="channel-breakdown-card-head"><strong>${esc(channelOperatorCheckLabel(item.check))}</strong><span>${esc(item.score)} / ${esc(item.max)}</span></div>
-          ${item.operatorProblem ? `<p><span class="muted">Проблема:</span> <strong>${esc(item.operatorProblem)}</strong></p>` : ''}
-          <p>${esc(item.operatorReason || item.reason)}</p>
-          ${works}
-          ${problems}
-          ${services}
+        const lost = Number(item.max || 0) - Number(item.score || 0);
+        return `<div class="channel-breakdown-card channel-accordion-item">
+          ${channelAccordionSummaryButton(channelOperatorCheckLabel(item.check), `${esc(item.score)} / ${esc(item.max)}`, lost > 0 ? `-${esc(lost)} балл.` : 'полный балл')}
+          <p>${esc(channelScoreExplanationText(source, item))}</p>
+          ${channelScoreComponentContent(source, item)}
         </div>`;
       }).join('');
       return `<div class="channel-breakdown-list">${cards}<div class="channel-breakdown-total"><strong>Итого</strong><span>${esc(s.score)} / 100</span></div></div>`;
@@ -27658,7 +27793,7 @@ def html_page_v2():
       const healthContent = channelAccordionContent('Почему такое здоровье?', [
           ['Техническое состояние', `${s.score} / 100`],
           ['Статус', s.status.label],
-          ['Что делать', s.score >= 90 ? 'Действий не требуется.' : s.actionLabel],
+          ['Компоненты', 'Сервисы, стабильность, нагрузка, маршрут, готовность и история.'],
         ], `<button class="ghost" type="button" onclick="openChannelTechnicalDiagnostics('${esc(s.id)}')">Техническая диагностика</button>`);
       const decisionContent = channelAccordionContent('Что решил V7?', decisionRows);
       const problemsRow = problemList ? `<div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-problems"><span>Проблемы (${esc(problems.length)})</span>${problemList}</div>` : '';
@@ -27726,7 +27861,7 @@ def html_page_v2():
               'Канал': channelDisplayName(id),
               'Техническое состояние': `${s.score} / 100`,
               'Статус': s.status.label,
-              'Главная причина': s.primaryCause,
+              'Назначение': 'объяснить, почему получился этот балл',
             })}
           </div>
           ${channelSuitabilityBreakdownHtml(row)}

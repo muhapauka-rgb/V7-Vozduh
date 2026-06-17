@@ -30672,7 +30672,7 @@ def html_page_v2():
       const tone = notStarted ? 'muted' : (total && okCount === total ? 'ok' : (total ? 'warn' : 'muted'));
       const status = notStarted ? 'не запущен' : (total ? `${okCount}/${total}` : 'нет замера');
         const cells = services.map(name => serviceMatrixCellHtml(id, name, serviceMatrixGroupedItem(mxServices, name)));
-        return `<tr><td><button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><strong>${esc(channelDisplayName(id))}</strong></button></td>${cells.join('')}<td>${pill(status, tone)}</td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2ServiceMatrix('${esc(id)}')">Запустить</button> <button class="mini-action" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')">Открыть</button></td></tr>`;
+        return `<tr><td><button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><strong>${esc(channelDisplayName(id))}</strong></button></td>${cells.join('')}<td>${pill(status, tone)}</td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2ServiceMatrix('${esc(id)}')">Обновить</button> <button class="mini-action" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')">Открыть</button></td></tr>`;
       });
       el.innerHTML = rows.length ? `<table class="service-matrix-grid"><thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>` : '<div class="empty">Каналов пока нет.</div>';
     }

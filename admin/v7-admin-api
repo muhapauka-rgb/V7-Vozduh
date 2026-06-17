@@ -27649,6 +27649,19 @@ def html_page_v2():
       const notConfirmed = routeRows.filter(item => item.ok === false || item.leak_risk).length;
       return {state, confirmed, notConfirmed, total:routeRows.length};
     }
+    function channelHealthDetailText(value='') {
+      const raw = String(value || '').trim();
+      const key = raw.toLowerCase();
+      const map = {
+        'interface_down_or_missing': 'Интерфейс канала не поднят или не найден.',
+        'interface down or missing': 'Интерфейс канала не поднят или не найден.',
+        'interface is not currently up': 'Интерфейс канала сейчас не запущен.',
+        'device not found': 'Интерфейс канала не найден.',
+        'link down': 'Канал не отвечает на уровне интерфейса.',
+      };
+      if (map[key]) return map[key];
+      return operatorText(raw || 'Состояние канала снизило компонент стабильности.');
+    }
     function channelScoreExplanationText(source={}, item={}) {
       const row = channelRowFromSource(source);
       const id = row.id || row.egress || '';
@@ -27662,7 +27675,7 @@ def html_page_v2():
       if (check === 'Stability') {
         const health = channelHealth(row);
         if (Number(item.score || 0) >= Number(item.max || 0)) return 'Канал отвечает нормально, состояние выше минимального уровня.';
-        return health.detail || 'Состояние канала снизило компонент стабильности.';
+        return channelHealthDetailText(health.detail || 'Состояние канала снизило компонент стабильности.');
       }
       if (check === 'Capacity') {
         const count = egressUserCount(id);

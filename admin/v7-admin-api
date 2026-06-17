@@ -27667,19 +27667,20 @@ def html_page_v2():
       if (check === 'Capacity') {
         const count = egressUserCount(id);
         const limit = channelLoadLimit(row);
-        if (Number(item.score || 0) >= Number(item.max || 0)) return `${count}/${limit.soft} пользователей, нагрузка внутри предпочтительного уровня.`;
-        return `${count}/${limit.soft} пользователей относительно предпочтительного уровня; нагрузка снизила балл.`;
+        if (Number(item.score || 0) >= Number(item.max || 0)) return `${count} пользователей; предпочтительный уровень ${limit.soft}. Нагрузка внутри нормы.`;
+        return `${count} пользователей; предпочтительный уровень ${limit.soft}. Нагрузка снизила балл.`;
       }
       if (check === 'Route') {
         const evidence = channelScoreRouteEvidence(row);
         if (Number(item.score || 0) >= Number(item.max || 0)) return 'Маршрут выглядит безопасным по текущим сигналам.';
-        if (evidence.total) return `${evidence.confirmed}/${evidence.total} маршрутов уверенно подтверждены.`;
-        return 'Текущих маршрутных доказательств недостаточно для полного балла.';
+        if (evidence.state?.issue && evidence.state.issue !== '—') return `Топология канала: ${evidence.state.issue}. Этот сигнал снизил маршрутный компонент.`;
+        if (evidence.total) return `${evidence.confirmed}/${evidence.total} маршрутов уверенно подтверждены; полного балла нет из-за общего topology-состояния канала.`;
+        return 'Topology-состояние канала не дало полного маршрутного балла.';
       }
       if (check === 'Runtime') {
         const rd = row._detail?.runtime_readiness || (overview.egress_runtime_readiness || {})[id] || {};
-        if (Number(item.score || 0) >= Number(item.max || 0)) return 'Runtime готов по текущему снимку.';
-        return operatorShort(rd.reason || rd.status || 'Runtime не дал полного подтверждения.');
+        if (Number(item.score || 0) >= Number(item.max || 0)) return 'Готовность подтверждена текущим снимком.';
+        return operatorShort(rd.reason || rd.status || 'Готовность получила частичный балл.');
       }
       if (check === 'History') {
         const decision = channelDecisionRow(id);
@@ -27724,6 +27725,7 @@ def html_page_v2():
         return [
           ['Подтверждено', evidence.total ? String(evidence.confirmed) : 'нет строк'],
           ['Не подтверждено', evidence.total ? String(evidence.notConfirmed) : 'нет строк'],
+          ['Топология', evidence.state?.issue && evidence.state.issue !== '—' ? evidence.state.issue : 'без отдельного предупреждения'],
           ['Статус', channelScoreExplanationText(row, item)],
         ];
       }
@@ -27771,7 +27773,7 @@ def html_page_v2():
       const cards = s.breakdown.map(item => {
         const lost = Number(item.max || 0) - Number(item.score || 0);
         return `<div class="channel-breakdown-card channel-accordion-item">
-          ${channelAccordionSummaryButton(channelOperatorCheckLabel(item.check), `${esc(item.score)} / ${esc(item.max)}`, lost > 0 ? `-${esc(lost)} балл.` : 'полный балл')}
+          ${channelAccordionSummaryButton(channelOperatorCheckLabel(item.check), `${esc(item.score)} / ${esc(item.max)}`, lost > 0 ? `-${esc(lost)} баллов` : 'полный балл')}
           <p>${esc(channelScoreExplanationText(source, item))}</p>
           ${channelScoreComponentContent(source, item)}
         </div>`;

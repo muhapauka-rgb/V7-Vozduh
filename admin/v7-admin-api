@@ -27872,7 +27872,12 @@ def html_page_v2():
     }
     function revealChannelTechnicalDiagnostics(id='') {
       const safe = domSafeId(id || 'channel');
-      const details = document.getElementById(`channelTechnicalDiagnostics-${safe}`);
+      const targetId = `channelTechnicalDiagnostics-${safe}`;
+      const details = Array.from(document.querySelectorAll('.channel-technical-diagnostics'))
+        .find(item => item.id === targetId && (() => {
+          const rect = item.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        })());
       const parent = details?.closest('.channel-details-section');
       if (!details) return false;
       if (parent) parent.open = true;

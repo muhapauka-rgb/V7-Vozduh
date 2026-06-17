@@ -5,225 +5,239 @@
 | Check | Result |
 |---|---|
 | Branch | `Updatesystem` |
-| Head | `2ffbde2c Add channel health action evidence` |
+| Head before this report refresh | `07f16850 Move operator action audit into docs` |
 | Git status before audit | `?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md` |
 | Scope | Audit/report only |
 | UI changes | None |
 | Runtime / planner / governance changes | None |
+| Storage / snapshots / automation changes | None |
+| Report path | `docs/operator_actions/OPERATOR_ACTIONS_AUTOMATION_REALITY_AUDIT.md` |
 
-Production access note: direct read-only SSH checks for timer state were attempted, but SSH authentication was not available non-interactively (`Permission denied (publickey,password)`). Production reality below uses the successful `tools/v7-truth-check --all --json` runtime snapshot plus local source evidence.
+Production access note: direct ad-hoc SSH timer checks were not available non-interactively in the previous pass (`Permission denied (publickey,password)`). This report therefore uses evidence from the successful `tools/v7-truth-check --all --json` runtime snapshot, repository systemd definitions, runtime tool hashes reported by truth-check, and source-level UI/action handlers. No production mutation was performed.
 
 ## 2. Truth Gate
 
 | Gate | Result |
 |---|---|
-| `tools/v7-truth-check --all --json` | PASS / FULLY_ALIGNED |
-| `tools/v7-convergence-status --json` | PASS / ALIGNED |
-| GitHub | PASS, remote `Updatesystem` at `2ffbde2c` |
-| Runtime | PASS, deployed code commit `ed64d94d`; local head differs only by docs/evidence |
+| `tools/v7-truth-check --all --json` | PASS / `FULLY_ALIGNED` |
+| `tools/v7-convergence-status --json` | PASS / `ALIGNED` |
+| Local | PASS, branch `Updatesystem`, commit `07f16850ff2c785f715a3a039ed702b8ab3b825c` |
+| GitHub | PASS, remote `Updatesystem` at `07f16850ff2c785f715a3a039ed702b8ab3b825c` |
+| Runtime | PASS, deployed code commit `ed64d94d8e00f2ba9f937cfe869daf781eeecf3c` |
+| Runtime mismatch classification | Docs-only mismatch ignored; no deployment required |
 
-Runtime snapshot facts:
+Runtime snapshot facts used as evidence:
 
 | Runtime Fact | Evidence |
 |---|---|
-| Admin service active | `v7-admin-api.service active (running)` |
+| Admin service active | `v7-admin-api.service active (running)` from truth-check runtime snapshot |
 | Autoswitch service/timer | Intentionally inactive, approved manual mode |
 | Runtime tools present | `v7-users-autoswitch`, `v7-service-matrix-refresh-all`, `v7-service-matrix-test`, `v7-egress-quality-compact` executable hashes known |
-| Intelligence refresh service/timer | Not installed as systemd units |
+| Snapshot root known | `/opt/v7/egress/state` |
 | Intelligence snapshot files | Present under `/opt/v7/egress/state/intelligence` |
+| Runtime action status | `READY_FOR_RUNTIME_ACTION`, but this audit performed no runtime action |
 
 ## 3. Action Inventory
 
-| Action | Location | Existing Handler |
+| Action | Location | Handler |
 |---|---|---|
 | Открыть канал / Карточка канала | Channel table, problem drawer, health drawer | `openChannelDrawer(id)` -> `/api/egress-detail` |
-| Детали / здоровье score breakdown | Drawer header, score cell | `openChannelSuitabilityBreakdown(id)` |
-| Проверить сервисы / Сервисная матрица | Table services cell, health breakdown, drawer snapshot, matrix workspace | `runV2ServiceMatrix(id)` -> `/api/actions/service-matrix-test` |
+| Детали оценки / breakdown | Drawer header, score cell | `openChannelSuitabilityBreakdown(id)` |
+| Проверить сервисы / Сервисная матрица | Table services cell, health breakdown, drawer snapshot, matrix workspace, Attention Layer | `runV2ServiceMatrix(id)` -> `/api/actions/service-matrix-test` |
 | Проверить one service | Service matrix cells | `runV2ServiceMatrixForService(id, service)` -> `/api/actions/service-matrix-test` |
 | Проверить скорость / Замерить скорость | Channel speed cell, readiness workspace, drawer checklist | `runV2EgressSpeed(id)` -> `/api/actions/egress-speedtest` |
-| Открыть пользователей / Показать пользователей | Users column, capacity/load problem | `toggleChannelUsers(id)` |
+| Открыть пользователей / Показать пользователей | Users column, capacity/load problem, Attention Layer | `toggleChannelUsers(id)` or `openChannelMetricDetail("users")` |
 | Открыть нагрузку | Channel stats, load problem | `openLoadMetricDetail()` |
-| Проверить маршрут | Health model action for route deficit | Current safe action opens channel drawer; no route-specific channel handler |
-| Проверить готовность / Runtime | Health model, drawer checklist | Mostly `openV2ChannelLogs(id)` and runtime readiness read model |
+| Проверить маршрут | Health model action for route deficit | Current safe action opens channel drawer or shows disabled/info action; no channel-local route validation handler found |
+| Проверить готовность / Runtime | Health model, drawer checklist | Runtime readiness read model plus logs/details; no standalone safe remediation handler |
 | Логи канала | Problem drawer, health breakdown, drawer controls | `openV2ChannelLogs(id)` -> `/api/events` filter |
 | Показать план | Channel drawer controls | `previewV2ChannelAutoswitch(id)` -> `/api/autoswitch-plan` |
-| AUTOSWITCH | Channel drawer controls | `runV2ChannelAutoswitch(id)` -> dry-run then guarded apply if selected moves exist |
+| AUTOSWITCH | Channel drawer controls | `runV2ChannelAutoswitch(id)` -> dry-run then guarded apply only if selected moves exist |
 | Запустить канал | Drawer controls / problem drawer | `startV2ChannelFromList(id)` -> `/api/actions/egress-set-state-apply` with `ENABLE` |
 | Приостановить канал | Drawer controls | `pauseV2ChannelFromList(id)` -> `/api/actions/egress-pause-apply` with `PAUSE_EGRESS` |
 | Сохранить policy/autopick settings | Drawer controls | `saveV2ChannelAutoswitchPolicy(id)` -> `/api/actions/org-egress-policy-update` |
 | Переключить одного | Drawer controls/checklist | `openV2ManualSwitchPanel(id)` |
-| Открыть service catalog/matrix | Channel stats, topology services | `openServiceCatalogDrawer()`, `showChannelWorkspace('matrix')` |
+| Открыть service catalog/matrix | Channel stats, topology services | `openServiceCatalogDrawer()`, `showChannelWorkspace("matrix")` |
 | Доказательства / Предложения / Execution | Channel object panels | `loadChannelObjectPanel(id, kind)` |
 | Export config / Copy config | Channel drawer/export path | `/api/egress-config-export`, clipboard copy |
 | Delete / migrate and delete channel | Channel drawer delete path | `/api/actions/egress-delete-apply` |
 
-## 4. Automation Audit
+## 4. Automation Inventory
 
-| Function | Automatic? | Frequency / Trigger | Truth Source |
-|---|---:|---|---|
-| Service Matrix full refresh | Configured yes; production active state not directly verified by SSH | Repo systemd timer: every 15 min. Runtime has tool and state source. | `systemd/v7-service-matrix-refresh.timer`, `tools/v7-service-matrix-refresh-all`, runtime truth hashes |
-| Manual Service Matrix test | No, operator-triggered refresh | Button POST; up to 120s | `/api/actions/service-matrix-test`, `v7-service-matrix-test` |
-| Speed / benchmark state | Partly background via `v7-health`/`v7-benchmark`; manual button exists | Repo health loop every 30s includes history/stability/load/diagnose; direct speedtest is manual | `systemd/drafts/v7-health.service`, `/api/actions/egress-speedtest` |
-| Stability validation | Background intelligence | Derived from `egress-history.jsonl` into `stability.state` | `tools/runtime-support/v7-egress-stability` |
-| Capacity / load validation | Background intelligence | Derived from users registry into `egress-load.state`; repo health loop every 30s | `tools/runtime-support/v7-egress-load`, `systemd/drafts/v7-health.service` |
-| Runtime readiness | Background/read-only model | Read from runtime files and readiness checks; not a user movement action | `egress_runtime_readiness`, `admin_core/runtime_read_views.py` |
-| Route reality | Background/read-only checks in overview; route-specific channel action not present | `ip route get` read-only for users, direct routing freshness checks | `route_status`, `admin_core/route_reality_views.py` |
-| Trust / history / recovery | Background intelligence | Derived from events, quality summaries, switch history, snapshots | `v7-intelligence-snapshot-refresh`, `v7-users-autoswitch` planner inputs |
-| Telegram fast sentinel | Configured background advisory | Repo timer every 4s, `--no-autoswitch` | `systemd/v7-telegram-sentinel.timer`, `tools/v7-telegram-sentinel` |
-| Planner evaluation | Automatic when dry-run is invoked; production scheduler inactive | `v7-users-autoswitch --pre-planner-refresh write ... --pretty` | `autoswitch_read_only_plan_command`, runtime truth |
-| Autoswitch apply | Operator/governed only in current production | Runtime truth: intentionally inactive approved manual mode | Runtime truth snapshot, `/api/actions/autoswitch-apply-guarded` |
+| Function | Automatic? | Worker | Frequency | Evidence |
+|---|---:|---|---|---|
+| Service Matrix full refresh | Configured automatic | `v7-service-matrix-refresh-all` | Repo timer `OnCalendar=*:0/15` | `systemd/v7-service-matrix-refresh.timer`, `tools/v7-service-matrix-refresh-all`, runtime truth hashes |
+| Manual Service Matrix test | No | `v7-service-matrix-test` | Operator button only | `/api/actions/service-matrix-test` |
+| Route Validation | Partly automatic/read-only | `route_status`, direct freshness, service-aware dry-run | On read/API refresh, not channel button | `admin_core/route_reality_views.py`, route summary models |
+| Stability Validation | Yes | `v7-egress-stability` | Health loop draft every 30s; quality compaction every 5m | `systemd/drafts/v7-health.service`, `systemd/v7-egress-quality-compact.timer`, `tools/runtime-support/v7-egress-stability` |
+| History Validation | Yes | `v7-egress-quality-compact`, planner history readers | Quality compact timer every 5m; planner reads history | `tools/v7-egress-quality-compact`, `tools/v7-users-autoswitch` |
+| Recovery Validation | Yes | Intelligence snapshot / planner read models | Snapshot/plan refresh, event-derived | `tools/v7-intelligence-snapshot-refresh`, `admin_core/intelligence_snapshots.py` |
+| Runtime Validation | Yes/read-only | Runtime readiness views | On admin API read and snapshot truth | `admin_core/runtime_read_views.py`, truth-check runtime snapshot |
+| Trust Evaluation | Yes | Planner / intelligence platform | Planner run and snapshots | `tools/v7-users-autoswitch`, `admin_core/intelligence_platform.py` |
+| Channel Health Evaluation | Yes | Admin read model | On overview/detail render | `channelHealth`, `channelSuitability*` in `admin/v7-admin-api` |
+| Planner Evaluation | Hybrid | `v7-users-autoswitch` | Automatic dry-run/plan generation; apply is manual in production | Runtime truth: scheduler intentionally inactive approved manual mode |
+| Capacity Evaluation | Yes | `v7-egress-load` | Health loop draft every 30s; admin read model | `tools/runtime-support/v7-egress-load`, `channelLoad` |
+| Eligibility Evaluation | Yes | `v7-users-autoswitch` candidate rules | Planner evaluation | `tools/v7-users-autoswitch` assignment/blocker model |
 
-## 5. Operator Value Audit
+## 5. Service Matrix Reality
 
-| Action | Automatic Equivalent Exists? | Operator Value |
-|---|---:|---|
-| Проверить сервисы | Yes, if service matrix refresh timer is active/configured | Optional acceleration / immediate proof |
-| Проверить one service | Partial | Optional targeted refresh; useful during support calls |
-| Замерить скорость | Partial | Optional immediate live measurement; useful for complaints |
-| Проверить маршрут | Partial read-only route checks exist, but no channel-specific handler | Should be outcome/status, not a button unless a real handler is attached |
-| Проверить готовность | Yes as runtime readiness read model | Mostly informational; logs are investigation |
-| Открыть пользователей | No equivalent | Operator investigation/action needed for load and evacuation |
-| Логи канала | No equivalent | Operator investigation |
-| Открыть канал | No equivalent | Navigation/investigation |
-| Показать план | No automatic UI equivalent | Operator review of governed plan |
-| AUTOSWITCH | No, production scheduler inactive | Operator/governed action |
-| Запустить канал | No | Operator-required lifecycle action |
-| Приостановить канал | No | Operator-required lifecycle action, may migrate users |
-| Сохранить policy/autopick settings | No | Operator/admin configuration |
-| Переключить одного | No | Operator/manual intervention |
-| Delete / migrate and delete | No | Operator/destructive lifecycle action |
-| Evidence/proposals/execution panels | No | Investigation/governance review |
+`Service Matrix` is a measurement/diagnostic system, not a business action by itself.
 
-## 6. Service Matrix Reality
-
-The service matrix exists in two forms:
-
-| Layer | Reality |
+| Question | Evidence-Based Answer |
 |---|---|
-| Background refresh | `v7-service-matrix-refresh-all` refreshes all enabled egress channels and writes `service-matrix-refresh-summary.json`; repo timer is configured for every 15 minutes. |
-| Manual refresh | `/api/actions/service-matrix-test` runs `v7-service-matrix-test egress service` and returns updated `service_matrix_state()`. |
-| UI usage | Channel table, service matrix workspace, channel drawer, suitability score, required-services gates. |
-| Mutability | Service matrix refresh writes diagnostic state; it does not move users. |
-| Operator need | Operator should not need to understand "service matrix" as a daily task. They need the outcome: service unavailable / needs fresh check / service healthy. |
+| Does it already run automatically? | Yes in repo configuration: `v7-service-matrix-refresh.timer` runs every 15 minutes and calls `v7-service-matrix-refresh-all`. Runtime truth confirms the tool exists and hash is known. Direct timer active state was not rechecked via SSH in this audit. |
+| Which worker? | `tools/v7-service-matrix-refresh-all` for all-channel refresh; `tools/v7-service-matrix-test` for operator/manual targeted check. |
+| Which outputs? | Service matrix state used by overview, channel table, service matrix workspace, channel drawer, suitability score, and required-service gates. |
+| What if operator never presses `Проверить сервисы`? | The configured background refresh should eventually refresh all enabled channels. Operator loses immediate proof/acceleration, not the underlying diagnostic path. |
+| Is it safe to keep the manual button? | Yes, but only deeper/details. On first screen it duplicates automation and increases action noise. |
 
-Audit result:
+SERVICE_MATRIX_REALITY_REPORT:
 
-| Current Button | Reality | Recommendation |
+| Current Surface | Reality | Recommendation |
 |---|---|---|
-| Проверить сервисы | Duplicates background refresh when timer is active; useful as manual immediate refresh | BACKGROUND ONLY on first screen; keep manual refresh in details |
-| Проверить one service | Targeted refresh, not fully duplicated by all-channel batch | KEEP in service details |
-| Сервисная матрица | Internal mechanism name | Rename later to outcome language; keep technical label only deeper |
+| `Проверить сервисы` on first action layer | Duplicates background refresh when timer is active/configured | BACKGROUND ONLY on first screen; keep manual refresh in details |
+| `Запустить` in matrix workspace | Explicit manual refresh of diagnostic state | KEEP in service details |
+| One-service cell click | Targeted manual refresh, not fully equivalent to all-channel batch | KEEP in service details |
+| Label `Сервисная матрица` | Internal system name | Keep only in technical/details, translate first-screen outcome to human problem language |
 
-## 7. Route Validation Reality
+## 6. Route Validation Reality
 
-Route validation is not a single channel-local action today.
+Route validation is not a single channel-local safe action today.
+
+ROUTE_VALIDATION_REALITY_REPORT:
 
 | Route Signal | Reality |
 |---|---|
-| User route reality | `route_status(users)` runs read-only `ip route get ... from user_ip iif wg0` and checks expected device. |
-| Direct RU freshness | `direct_routing_freshness()` runs safe read-only direct domain tests and reports stale/mismatch. |
-| Service-aware routing | `service_aware_route_dry_run()` is read-only and explicitly reports `routing_changed: False`, `users_moved: False`, `registry_changed: False`. |
-| Channel health route score | `channelSuitabilityRoute()` maps topology groups to Route score; it does not run a route repair. |
-| Current route action | `Проверить маршрут` currently opens the channel drawer or disabled no-handler action in health detail. |
+| User route reality | `route_status(users)` performs read-only route checks such as `ip route get ...` and compares expected route/device. |
+| Direct RU freshness | Direct routing freshness checks report stale/mismatch status. |
+| Service-aware routing | Dry-run models are read-only and explicitly avoid routing/user/registry mutation. |
+| Channel route score | Channel suitability route score is derived from topology/group/readiness, not from pressing a channel route button. |
+| Current `Проверить маршрут` action | No concrete channel-local route validation handler was found; it opens details or shows no safe handler. |
 
-Audit result: route validation should not appear as a raw operator command in channel health unless a concrete safe handler is connected. The operator should see the outcome:
+Conclusion: `Проверить маршрут` should not appear as a raw primary operator command unless a real safe handler exists. Operator should see route outcome:
 
-| Current Raw Problem | Better Operator Outcome |
+| Raw Engine State | Human Outcome |
 |---|---|
 | Route validation required | Маршрут не подтвержден |
 | Route needs check | Маршрут требует проверки |
 | Route OK | Маршрут подтвержден |
 
-## 8. Stability / History Reality
+## 7. Stability / History Reality
 
-| Validation | Operator Needed? | Evidence |
-|---|---:|---|
-| Stability | No for calculation; yes only for incident review | `v7-egress-stability` computes avg/floor/stability from `egress-history.jsonl` |
-| History | No for calculation; yes only for investigation | `channelSuitabilityHistory()` reads channel decision / why card / recent trust labels |
-| Recovery | No direct channel button should be required | Recovery/trust are derived from events and snapshots |
-| Runtime readiness | No for calculation; yes for remediation if readiness blocks enable/use | `egress_runtime_readiness`, runtime read models |
-| Capacity | No for calculation; yes for resolving overloaded users | `v7-egress-load` derives load from `users.registry`; operator may need to open users |
-| Trust evaluation | No | Planner and intelligence snapshots derive trust; operator reviews decisions |
+| Validation | Automatic? | Operator Required? | Evidence |
+|---|---:|---:|---|
+| Stability | Yes | No for calculation; yes only for incident review | `v7-egress-stability` derives avg/floor/stability from `egress-history.jsonl` |
+| History | Yes | No for calculation; yes only for investigation | `v7-egress-quality-compact`, planner quality history readers |
+| Recovery | Yes | No direct operator button should be required | Recovery/trust are derived from events and snapshots |
+| Runtime readiness | Yes/read-only | No for calculation; yes only if remediation is available | `egress_runtime_readiness`, runtime read models |
+| Capacity | Yes | No for calculation; yes to resolve overload | `v7-egress-load` derives load; operator may need `Открыть пользователей` |
+| Trust evaluation | Yes | No for calculation; yes to review decisions | Planner and intelligence snapshots derive trust/eligibility |
+
+## 8. Button Value Audit
+
+| Action | If operator never presses it, will V7 eventually do same check automatically? | Automatic Equivalent Exists? | Value |
+|---|---:|---:|---|
+| Проверить сервисы | Yes, if configured refresh timer is active | Yes | Optional acceleration / immediate proof |
+| Проверить one service | Not exactly; all-refresh covers service state but not targeted operator timing | Partial | Optional targeted refresh |
+| Замерить скорость | Partly; history/quality exists, immediate speedtest is manual | Partial | Useful for live complaint |
+| Проверить маршрут | No channel-local handler; read-only route models already exist elsewhere | Partial/read-only | Should be status/outcome, not button |
+| Проверить готовность | Yes as runtime readiness read model | Yes | Mostly informational |
+| Открыть пользователей | No | No | Real investigation/action |
+| Логи канала | No | No | Real investigation |
+| Открыть канал | No | No | Navigation/investigation |
+| Показать план | No UI equivalent | No | Real governed review |
+| AUTOSWITCH | No, production scheduler is intentionally inactive | No | Real governed action |
+| Запустить канал | No | No | Real lifecycle action |
+| Приостановить канал | No | No | Real lifecycle action |
+| Сохранить policy/autopick settings | No | No | Real admin configuration |
+| Переключить одного | No | No | Real manual intervention |
+| Delete / migrate and delete | No | No | Real protected lifecycle action |
+| Evidence/proposals/execution panels | No | No | Real governance/investigation |
 
 ## 9. Problem Relevance Audit
 
-| Problem Currently Shown | Show Raw? | Show Outcome? | Recommendation |
+| Problem | Show Raw Engine State? | Show Human Outcome? | Reason |
 |---|---:|---:|---|
-| Telegram unavailable | No | Yes | Show "Telegram недоступен"; hide internal matrix mechanics |
-| Service verification required | No | Yes | Show "Сервисы требуют свежей проверки" |
-| Route validation required | No | Yes | Show "Маршрут не подтвержден" |
-| Channel overloaded | Yes | Yes | Keep; action is users/evacuation, not metric tuning |
-| Runtime not measured | No | Yes | Show "Готовность канала не подтверждена" |
-| History insufficient | No | Yes | Show "Недостаточно истории для уверенного выбора" |
-| Stability below floor | No | Yes | Show "Стабильность ниже требуемого уровня" |
-| Assignment blocked | No | Yes | Show human blocker and decision |
-| Manual only / reserve / canary | No raw codes | Yes | Show "Только вручную / аварийно" |
+| Требуется проверка сервисов | No | Yes: `Сервисы требуют свежей проверки` | Service matrix is a background diagnostic mechanism. |
+| Telegram unavailable | No | Yes: `Telegram недоступен` | Operator needs the failing service, not matrix internals. |
+| Требуется проверка маршрута | No | Yes: `Маршрут не подтвержден` | No channel-local route action exists. |
+| Channel overloaded / Канал перегружен | Yes, humanized | Yes: `Канал перегружен` | Real operator action is moving/opening users. |
+| Runtime not measured | No | Yes: `Готовность канала не подтверждена` | Runtime validation is read-model work. |
+| History validation required | No | Yes: `Недостаточно данных` | History is background intelligence. |
+| Stability below floor | No raw code | Yes: `Стабильность ниже требуемого уровня` | Planner/internal threshold should not leak as code. |
+| Assignment blocked | No raw blocker | Yes: human blocker and decision | Operator needs `can use / cannot use / why`. |
+| Manual only / reserve / canary | No raw role code | Yes: `Только вручную / аварийно` | Role is valid, but must be human language. |
 
-## 10. Ideal Operator Model
+## 10. Keep / Remove Matrix
 
-Operator should see:
+| Action | Category | Reason | Final Recommendation |
+|---|---|---|---|
+| Открыть канал | A - Operator Required | Navigation/investigation cannot happen automatically | KEEP |
+| Открыть пользователей | A - Operator Required | Needed for overload/evacuation/user review | KEEP |
+| Логи канала | A - Operator Required | Evidence review is operator investigation | KEEP deeper |
+| Показать план | A - Operator Required | Governed decision review | KEEP |
+| AUTOSWITCH | A - Operator Required | Production autoswitch scheduler is intentionally inactive | KEEP governed/deeper |
+| Запустить канал | A - Operator Required | Lifecycle mutation requires operator/governance | KEEP |
+| Приостановить канал | A - Operator Required | Lifecycle mutation requires operator/governance | KEEP |
+| Сохранить policy/autopick settings | A - Operator Required | Admin configuration | KEEP settings/deeper |
+| Переключить одного | A - Operator Required | Manual intervention | KEEP deeper |
+| Delete / migrate and delete | A - Operator Required | Protected destructive lifecycle operation | KEEP protected/deeper |
+| Проверить сервисы | B - Operator Optional | Background refresh exists/configured; manual accelerates proof | BACKGROUND ONLY on first screen; keep in details |
+| Проверить one service | B - Operator Optional | Useful targeted refresh | KEEP in service details |
+| Замерить скорость | B - Operator Optional | Manual live check accelerates complaint handling | KEEP in details |
+| Проверить маршрут | C - Operator Irrelevant as button | No concrete safe channel-local handler; route is a status/read model | REMOVE as button / STATUS ONLY |
+| Проверить готовность | C - Operator Irrelevant as raw button | Runtime readiness is calculated/read; remediation is separate | BACKGROUND ONLY |
+| Stability validation | C - Operator Irrelevant | Continuous/background intelligence | BACKGROUND ONLY |
+| History validation | C - Operator Irrelevant | Continuous/background intelligence | BACKGROUND ONLY |
+| Recovery validation | C - Operator Irrelevant | Derived from events/snapshots | BACKGROUND ONLY |
+| Trust evaluation | C - Operator Irrelevant | Planner/intelligence calculation | BACKGROUND ONLY |
 
-1. Problem
-2. Meaning
-3. Resolution
-4. Existing safe action only if operator participation is real
+## 11. Ideal Operator Model
 
-Operator should not see background engine mechanics on the first action surface:
+Based on evidence, V7 should not expose validation mechanics as daily actions. The operator model should be:
 
-| Hide From First Screen | Reason |
+Problem
+↓
+Meaning
+↓
+Resolution
+↓
+Existing safe action only when operator participation is real
+
+| Visible To Operator | Hidden / Background |
 |---|---|
-| Service Matrix as command language | It is a measurement system, not an operator goal |
-| Route Validation as raw term | Operator needs "route confirmed / not confirmed" |
-| Stability/history/recovery validation | Derived intelligence; not something an operator manually performs |
-| Planner internals | Should become decision and blocker language |
-| Raw score mechanics | Useful deeper, not primary action |
-
-## 11. Keep / Remove Matrix
-
-| Action | Classification | Recommendation |
-|---|---|---|
-| Открыть канал | Operator Required | KEEP |
-| Открыть пользователей | Operator Required | KEEP |
-| Логи канала | Operator Required for investigation | KEEP, deeper |
-| Показать план | Operator Required for governed decision | KEEP |
-| AUTOSWITCH | Operator Required in current production manual mode | KEEP, governed/deeper |
-| Запустить канал | Operator Required | KEEP, lifecycle/deeper |
-| Приостановить канал | Operator Required | KEEP, lifecycle/deeper |
-| Сохранить policy/autopick settings | Operator Required/admin config | KEEP, settings/deeper |
-| Переключить одного | Operator Required/manual intervention | KEEP, deeper |
-| Delete / migrate and delete | Operator Required/destructive lifecycle | KEEP, protected/deeper |
-| Проверить сервисы | Operator Optional | BACKGROUND ONLY on first screen; keep manual refresh in details |
-| Проверить one service | Operator Optional | KEEP in service matrix details |
-| Замерить скорость | Operator Optional | KEEP in details; first screen should show speed outcome |
-| Проверить маршрут | Operator Irrelevant until safe handler exists | REMOVE as button / show status only |
-| Проверить готовность | Operator Irrelevant as raw action | BACKGROUND ONLY; expose logs if remediation needed |
-| Stability validation | Operator Irrelevant | BACKGROUND ONLY |
-| History validation | Operator Irrelevant | BACKGROUND ONLY |
-| Recovery validation | Operator Irrelevant | BACKGROUND ONLY |
-| Trust evaluation | Operator Irrelevant | BACKGROUND ONLY |
+| Human problem outcome | Service Matrix mechanics |
+| Meaning in business language | Route validation internals |
+| One real next action | Stability/history/recovery validators |
+| Details/evidence on demand | Planner internals and raw blocker codes |
+| Manual lifecycle/governed actions | Raw score calculation mechanics |
 
 ## 12. Final Recommendation
 
-V7 should treat channel actions as a mixed model:
-
-| Category | What Belongs Here |
+| Action / Class | Decision |
 |---|---|
-| KEEP | Navigation, investigation, governed lifecycle changes, user evacuation/manual switch, policy save, protected delete |
-| BACKGROUND ONLY | Service matrix result, stability, history, runtime readiness, trust/recovery, capacity calculation |
-| MANUAL ONLY | Start/pause channel, one-user switch, guarded autoswitch apply, delete/migrate-delete, policy changes |
-| REMOVE / STATUS ONLY | Raw "route validation", "history validation", "stability validation", "runtime validation" as operator buttons |
+| Navigation and investigation | KEEP |
+| Governed lifecycle changes | KEEP |
+| User evacuation/manual switch | KEEP |
+| Policy save / protected delete | KEEP protected/deeper |
+| Service Matrix result | BACKGROUND ONLY on primary surfaces; manual refresh in details |
+| Speed result | BACKGROUND/STATUS on primary surfaces; manual live measurement in details |
+| Stability / history / recovery / trust | BACKGROUND ONLY |
+| Runtime readiness | BACKGROUND ONLY unless a real remediation action exists |
+| Route validation | REMOVE AS BUTTON / STATUS ONLY until safe channel-local handler exists |
 
-The next UX step should compress first-screen channel actions to real operator work:
+Specific next UX guidance, not implementation:
 
-| Problem | Operator Should See |
+| Current UI Language | Recommended Operator Language |
 |---|---|
-| Services stale/failing | "Сервисы требуют проверки" + details/manual refresh |
-| Overload | "Канал перегружен" + open users/prepare movement |
-| Route not confirmed | "Маршрут не подтвержден" + status/details until real handler exists |
-| Runtime not ready | "Канал не готов к запуску" + logs/details |
-| History/stability weak | "Недостаточно уверенности" + details |
+| Проверить сервисы | Сервисы требуют свежей проверки |
+| Проверить маршрут | Маршрут не подтвержден |
+| Stability validation required | Стабильность ниже требуемого уровня |
+| History validation required | Недостаточно данных |
+| Runtime validation required | Готовность канала не подтверждена |
 
 ## 13. Final Verdict
 
 MIXED_MODEL
 
+Reason: V7 already automates many validations and continuously derives channel truth, but it still needs operator/governed actions for lifecycle, user movement, policy changes, plan review, and protected execution. The first operator surface should keep real actions and demote duplicated/background validators to status or details.

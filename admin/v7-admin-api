@@ -10567,7 +10567,7 @@ def public_operator_summary(value):
     text = str(value or "").replace("_", " ").replace("-", " ").strip()
     translations = {
         "diagnostics": "Диагностика",
-        "service matrix": "Сервисная матрица",
+        "service matrix": "Сервисы",
         "checks": "Проверки",
         "egress": "Канал",
         "routing": "Маршруты",
@@ -10675,13 +10675,13 @@ def generated_evidence_bundles(limit=120):
             egress_id,
             "VERIFIED" if ok else "OPEN",
             "ok" if ok else "warn",
-            f"Канал {egress_id}: состояние {'OK' if code_ok else 'не подтверждено'}; сервисная матрица {ok_count}/{total or 0}.",
+            f"Канал {egress_id}: состояние {'OK' if code_ok else 'не подтверждено'}; сервисы {ok_count}/{total or 0}.",
             timeline=evidence_event_timeline([e for e in audit_tail if e.get("object_id") == egress_id or e.get("component") == "egress"], 4),
             evidence_items=[
                 {"kind": "diagnose", "label": "egress health", "status": "OK" if code_ok else "WARN", "summary": st.get("diagnose_reason") or st.get("diagnose_detail") or st.get("status") or "состояние диагностики зафиксировано"},
                 {"kind": "service_matrix", "label": "services", "status": "OK" if matrix_ok else "WARN", "summary": f"сервисов OK: {ok_count}/{total or 0}"},
             ],
-            recommendation="Запустите сервисную матрицу или диагностику, если канал выбран для работы." if not ok else "Канал выглядит здоровым.",
+            recommendation="Откройте карточку канала и посмотрите сервисы или диагностику, если канал выбран для работы." if not ok else "Канал выглядит здоровым.",
             verification_state="VERIFIED" if ok else "NEEDS_REVIEW",
             closure_state="CLOSED" if ok else "OPEN",
             links=[evidence_link("log", "latest-audit")],
@@ -21191,7 +21191,7 @@ def html_page_v2():
     <section id="tab-channels" class="tab-page"><div class="module-page">
       <div class="stat-grid span-12" id="channelStats"></div>
       <article class="panel span-12 workspace-panel" data-channel-workspace="onboarding" id="channelWizard">
-        <div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab active" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="showChannelWorkspace('overview');load()">Список каналов</button></div></div>
+        <div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab active" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисы</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="showChannelWorkspace('overview');load()">Список каналов</button></div></div>
         <div class="add-channel-layout">
           <div class="wizard-card add-channel-card">
             <h3>Добавить канал</h3>
@@ -21221,9 +21221,9 @@ def html_page_v2():
           </div>
         </div>
       </article>
-      <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab active" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="openHardeningSearchDrawer('evidence')">Доказательства</button><button class="ghost" onclick="openHardeningSearchDrawer('proposal')">Предложения</button><button class="ghost" onclick="showV2ChannelColumns()">Столбцы</button><button class="ghost" onclick="showV2ChannelSort()">Упорядочить</button></div></div><div class="channel-filter-strip is-empty" id="channelTopologyFilter"></div><div class="table-shell" id="channelsTableV2"></div></article>
-      <article class="panel span-12 workspace-panel" data-channel-workspace="matrix"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab active" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="openServiceCatalogDrawer()">Сервисы</button><button class="ghost" onclick="openCompactDrawer('Сервисная матрица','channel', serviceMatrixText())">Сводка</button></div></div><div class="table-shell service-matrix-shell" id="channelsMatrixTable"></div></article>
-      <article class="panel span-12 workspace-panel" data-channel-workspace="readiness"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab active" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="renderChannelReadinessWorkspace()">Обновить</button></div></div><div class="table-shell" id="channelsReadinessTable"></div></article>
+      <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab active" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисы</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="openHardeningSearchDrawer('evidence')">Доказательства</button><button class="ghost" onclick="openHardeningSearchDrawer('proposal')">Предложения</button><button class="ghost" onclick="showV2ChannelColumns()">Столбцы</button><button class="ghost" onclick="showV2ChannelSort()">Упорядочить</button></div></div><div class="channel-filter-strip is-empty" id="channelTopologyFilter"></div><div class="table-shell" id="channelsTableV2"></div></article>
+      <article class="panel span-12 workspace-panel" data-channel-workspace="matrix"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab active" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисы</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="openServiceCatalogDrawer()">Сервисы</button><button class="ghost" onclick="openCompactDrawer('Сервисы','channel', serviceMatrixText())">Сводка</button></div></div><div class="table-shell service-matrix-shell" id="channelsMatrixTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-channel-workspace="readiness"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисы</button><button class="table-section-tab active" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="renderChannelReadinessWorkspace()">Обновить</button></div></div><div class="table-shell" id="channelsReadinessTable"></div></article>
     </div></section>
 
     <section id="tab-routing" class="tab-page"><div class="module-page">
@@ -23494,8 +23494,8 @@ def html_page_v2():
         {
           title:'Канал стал медленным или подозрительным',
           first:'Каналы',
-          then:'Открыть канал, смотреть здоровье, сервисную матрицу, скорость по кнопке, пользователей и готовность к включению.',
-          guard:'Скорость и матрица запускаются вручную. Обслуживание, отключение и включение идут через предпросмотр и журнал действий.',
+          then:'Открыть канал, смотреть здоровье, сервисы, скорость, пользователей и готовность к включению.',
+          guard:'Скорость и сервисы обновляются в деталях. Обслуживание, отключение и включение идут через предпросмотр и журнал действий.',
           action:'showTab("channels");closeDrawer()',
         },
         {
@@ -23568,8 +23568,8 @@ def html_page_v2():
         {
           id:'check_channel',
           title:'Проверить канал',
-          detail:'Посмотреть здоровье, скорость, сервисную матрицу, жизненный цикл и готовность канала.',
-          safety:'Скорость и матрица сервисов запускаются только кнопкой; новый канал не включается без защищённого включения.',
+          detail:'Посмотреть здоровье, скорость, сервисы, жизненный цикл и готовность канала.',
+          safety:'Ручное обновление доступно в деталях; новый канал не включается без защищённого включения.',
           action:'openV2Task("channel_problem")',
           action_label:'Туннели',
           tone:'info',
@@ -23653,10 +23653,10 @@ def html_page_v2():
         channel_problem: {
           title:'Туннель медленный или нестабильный',
           tone:'warn',
-          solution:'Откройте туннель, проверьте здоровье, скорость по кнопке, сервисную матрицу и пользователей на этом туннеле.',
+          solution:'Откройте туннель и посмотрите здоровье, скорость, сервисы и пользователей на этом туннеле.',
           actions:[
             ['Открыть туннели', 'showChannelWorkspace("overview");closeDrawer()', 'список и карточки'],
-            ['Сервисная матрица', 'showChannelWorkspace("matrix");closeDrawer()', 'какие сервисы работают'],
+            ['Сервисы', 'showChannelWorkspace("matrix");closeDrawer()', 'какие сервисы работают'],
             ['Готовность и скорость', 'showChannelWorkspace("readiness");closeDrawer()', 'включение, рабочий профиль, деградация'],
           ],
           facts:['Скорость не меряется постоянно, только по кнопке.', 'Новый туннель добавляется выключенным.', 'Включение идёт отдельным защищённым действием.'],
@@ -23713,7 +23713,7 @@ def html_page_v2():
           rows: [
             ['Обзор', 'Здоровье, роль, пользователи, сервисы, скорость и нагрузка по каждому каналу.', 'showChannelWorkspace("overview");closeDrawer()'],
             ['Добавить канал', 'Безопасная цепочка: источник -> черновик -> проверка -> изолированный тест -> карантин -> добавить выключенным -> подготовить профиль -> включить.', 'showAddChannelWizard();closeDrawer()'],
-            ['Сервисная матрица', 'Какие сервисы реально работают на канале. Тест запускается только кнопкой, не постоянно.', 'showChannelWorkspace("matrix");closeDrawer()'],
+            ['Сервисы', 'Какие сервисы реально работают на канале. Ручное обновление доступно в деталях.', 'showChannelWorkspace("matrix");closeDrawer()'],
             ['Готовность и скорость', 'Рабочий профиль, готовность к включению, скорость сервера, скорость клиента и процент деградации.', 'showChannelWorkspace("readiness");closeDrawer()'],
           ],
           guard: 'Новый канал не попадает в маршрутизацию, автоматическое переключение, балансировку или защитные правила до отдельного защищённого включения.',
@@ -26417,7 +26417,7 @@ def html_page_v2():
           : 'Канал включён в пул V7. Теперь система может использовать его в маршрутах и автоподборе.')
         : actionErrorReason(d);
       const next = ok
-        ? (action === 'pause' ? 'Проверьте список каналов и убедитесь, что пользователи ушли на рабочие каналы.' : 'Дальше можно открыть карточку канала или запустить сервисную матрицу.')
+        ? (action === 'pause' ? 'Откройте список каналов и убедитесь, что пользователи ушли на рабочие каналы.' : 'Дальше можно открыть карточку канала или обновить данные по сервисам в деталях.')
         : 'Откройте логи канала. Если ошибка повторяется, V7 покажет конкретный вывод команды запуска.';
       openCompactDrawer(channelDisplayName(id), 'channel', drawerSection(title, `
         <p>${esc(detail)}</p>
@@ -26425,7 +26425,7 @@ def html_page_v2():
         <p class="muted">${esc(next)}</p>
         <div class="detail-actions">
           <button class="primary" onclick="openChannelDrawer('${esc(id)}')">Открыть карточку</button>
-          ${ok && action !== 'pause' ? `<button class="ghost" onclick="runV2ServiceMatrix('${esc(id)}')">Проверить сервисы</button>` : ''}
+          ${ok && action !== 'pause' ? `<button class="ghost" onclick="runV2ServiceMatrix('${esc(id)}')">Обновить сервисы</button>` : ''}
           ${!ok ? `<button class="ghost" onclick="${action === 'pause' ? `pauseV2ChannelFromList('${esc(id)}')` : `startV2ChannelFromList('${esc(id)}')`}">Повторить</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи</button>` : ''}
         </div>`), {replace:true});
     }
@@ -26530,38 +26530,38 @@ def html_page_v2():
       if (ok && total) {
         const allOk = okCount >= total;
         const failedText = failed.length
-          ? `<p><strong>Проверить:</strong> ${failed.map(([name, item]) => `${esc(serviceDisplayName(name))}: ${esc(serviceSampleSummary(item) || item.reason || item.error || 'не ответил')}`).join('<br>')}</p>`
+          ? `<p><strong>Не подтверждены:</strong> ${failed.map(([name, item]) => `${esc(serviceDisplayName(name))}: ${esc(serviceSampleSummary(item) || item.reason || item.error || 'не ответил')}`).join('<br>')}</p>`
           : '<p>Все проверенные сервисы отвечают.</p>';
-        return drawerSection('Сервисная матрица', `
+        return drawerSection('Сервисы', `
           <div class="speed-result">
             <div class="speed-result-main">
               <span>${esc(allOk ? 'Что произошло' : 'Что сделать сейчас')}</span>
               <strong>${esc(okCount)}/${esc(total)} OK</strong>
-              <em>${esc(allOk ? 'Все проверенные сервисы отвечают. Можно продолжать работу с каналом.' : 'Часть сервисов не ответила. Повторите проверку или откройте логи этого канала.')}</em>
+              <em>${esc(allOk ? 'Все проверенные сервисы отвечают. Можно продолжать работу с каналом.' : 'Часть сервисов не ответила. Обновите данные или откройте логи этого канала.')}</em>
             </div>
             ${failedText}
-            <div class="result-actions">${allOk ? `<button class="primary" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button>` : `<button class="primary" onclick="runV2ServiceMatrix('${esc(id)}')">Повторить проверку</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button>`}</div>
+            <div class="result-actions">${allOk ? `<button class="primary" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button>` : `<button class="primary" onclick="runV2ServiceMatrix('${esc(id)}')">Обновить сервисы</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button>`}</div>
           </div>`);
       }
       if (ok) {
-        return drawerSection('Сервисная матрица', `
+        return drawerSection('Сервисы', `
           <div class="speed-result">
             <div class="speed-result-main">
               <span>Что сделать сейчас</span>
-              <strong>Проверка прошла, но сводка не записалась</strong>
-              <em>Повторите сервисную матрицу. Если снова нет сводки, откройте логи канала.</em>
+              <strong>Данные обновились, но сводка не записалась</strong>
+              <em>Обновите сервисы ещё раз. Если снова нет сводки, откройте логи канала.</em>
             </div>
-            <div class="result-actions"><button class="primary" onclick="runV2ServiceMatrix('${esc(id)}')">Повторить проверку</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button></div>
+            <div class="result-actions"><button class="primary" onclick="runV2ServiceMatrix('${esc(id)}')">Обновить сервисы</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button></div>
           </div>`);
       }
-      return drawerSection('Сервисная матрица не выполнена', `
+      return drawerSection('Сервисы не обновлены', `
         <div class="speed-result">
           <div class="speed-result-main">
             <span>Почему остановилось</span>
-            <strong>Сервисная матрица не выполнена</strong>
+            <strong>Сервисы не обновлены</strong>
             <em>${esc(actionErrorReason(d))}</em>
           </div>
-          <div class="result-actions"><button class="primary" onclick="runV2ServiceMatrix('${esc(id)}')">Повторить проверку</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button></div>
+          <div class="result-actions"><button class="primary" onclick="runV2ServiceMatrix('${esc(id)}')">Обновить сервисы</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button></div>
         </div>`);
     }
     function openGovernedMovementRequired(ip='', egress='') {
@@ -26628,7 +26628,7 @@ def html_page_v2():
     function v2PostEnableNextActions(postEnable={}) {
       const egress = esc(postEnable.egress || '');
       if (!egress) return '';
-      return `<div class="detail-actions"><button class="primary" onclick="runV2ServiceMatrix('${egress}')">Проверить сервисы</button><button class="ghost" onclick="openV2ManualSwitchPanel('${egress}')">Подготовить governed movement</button><button class="ghost" onclick="runV2RebalanceDryRun()">Предпросмотр балансировки</button></div><p class="muted">Движение пользователя больше не выполняется прямым user-switch. Следующий шаг — approval packet, restore barrier, rollback packet и governed apply.</p>`;
+      return `<div class="detail-actions"><button class="primary" onclick="runV2ServiceMatrix('${egress}')">Обновить сервисы</button><button class="ghost" onclick="openV2ManualSwitchPanel('${egress}')">Подготовить governed movement</button><button class="ghost" onclick="runV2RebalanceDryRun()">Предпросмотр балансировки</button></div><p class="muted">Движение пользователя больше не выполняется прямым user-switch. Следующий шаг — approval packet, restore barrier, rollback packet и governed apply.</p>`;
     }
     function openV2ManualSwitchPanel(targetEgress='') {
       const safeTarget = esc(targetEgress || '');
@@ -26854,14 +26854,13 @@ def html_page_v2():
       }
       if (serviceNeedsCheck) {
         const body = matrix.total
-          ? `Сервисная матрица показывает ${matrix.okCount}/${matrix.total}. Если сервисов 0/${matrix.total}, канал не проходит обязательные сервисы и требует диагностики маршрута.`
-          : 'Сервисная матрица ещё не измерялась, поэтому V7 не может подтвердить доступность сервисов через канал.';
+          ? `Доступность сервисов: ${matrix.okCount}/${matrix.total}. Если сервисов 0/${matrix.total}, канал не проходит обязательные сервисы.`
+          : 'Свежего результата по сервисам нет, поэтому V7 не может подтвердить доступность сервисов через канал.';
         issues.push(channelProblemIssue(
-          'Проверить сервисы',
+          'Сервисы требуют свежей проверки',
           body,
           [
-            channelProblemAction('Запустить сервисную матрицу', `runV2ServiceMatrix('${esc(id)}')`, true),
-            channelProblemAction('Показать сервисы', `openChannelServicesPanel('${esc(id)}')`),
+            channelProblemAction('Показать сервисы', `openChannelServicesPanel('${esc(id)}')`, true),
           ],
         ));
       }
@@ -26887,7 +26886,7 @@ def html_page_v2():
       }
       if (readinessBad) {
         issues.push(channelProblemIssue(
-          'Проверить готовность runtime',
+          'Готовность канала не подтверждена',
           readiness.reason || readiness.status || 'Готовность канала не подтверждена свежим runtime-снимком.',
           [
             channelProblemAction('Открыть канал', `openChannelDrawer('${esc(id)}')`, true),
@@ -26934,10 +26933,10 @@ def html_page_v2():
     }
     function channelOperatorServiceProblem(label='') {
       const text = String(label || '').trim();
-      if (!text) return 'Требуется проверка сервисов';
-      if (/not measured|measurement/i.test(text)) return 'Нужны замеры сервисов';
+      if (!text) return 'Сервисы требуют свежей проверки';
+      if (/not measured|measurement/i.test(text)) return 'Сервисы требуют свежей проверки';
       if (/telegram|youtube|google auth|google|instagram|whatsapp|chatgpt|claude/i.test(text)) return `${text} недоступен`;
-      return 'Требуется проверка сервисов';
+      return 'Сервисы требуют свежей проверки';
     }
     function channelOperatorProblemText(value='', item={}) {
       const text = String(value || item.problem || item.check || '').trim();
@@ -26947,10 +26946,10 @@ def html_page_v2():
       if (/disabled/i.test(text) || /channel disabled/i.test(reason)) return 'Канал отключен';
       if (/not started/i.test(text) || /not started/i.test(reason)) return 'Канал не запущен';
       if (check === 'Capacity' || /^Capacity$/i.test(text)) return 'Канал перегружен';
-      if (check === 'Route' || /^Route$/i.test(text)) return 'Требуется проверка маршрута';
-      if (check === 'Runtime' || /^Runtime$/i.test(text)) return /not measured/i.test(reason) ? 'Нужна проверка готовности' : 'Требуется проверка готовности';
-      if (check === 'History' || /^History$/i.test(text)) return 'Недостаточно данных по истории';
-      if (check === 'Stability' || /^Stability$/i.test(text)) return 'Требуется проверка стабильности';
+      if (check === 'Route' || /^Route$/i.test(text)) return 'Маршрут не подтвержден';
+      if (check === 'Runtime' || /^Runtime$/i.test(text)) return 'Готовность канала не подтверждена';
+      if (check === 'History' || /^History$/i.test(text)) return 'Недостаточно данных';
+      if (check === 'Stability' || /^Stability$/i.test(text)) return 'Стабильность ниже требуемого уровня';
       if (check === 'Services' || /^Services/i.test(text)) return channelOperatorServiceProblem(text);
       return channelOperatorServiceProblem(text);
     }
@@ -26982,13 +26981,13 @@ def html_page_v2():
       const problem = String(item.problem || '').trim();
       const reason = String(item.reason || '').trim();
       if (check === 'Capacity') return 'Перегружен';
-      if (check === 'Route') return 'Проверить маршрут';
+      if (check === 'Route') return 'Маршрут не подтвержден';
       if (check === 'Services') return 'Сбой сервисов';
-      if (check === 'Runtime') return /not measured/i.test(reason) ? 'Нет замера готовности' : 'Проверить готовность';
+      if (check === 'Runtime') return 'Готовность канала не подтверждена';
       if (check === 'History') return 'Недостаточно данных';
       if (problem === 'Disabled' || /disabled/i.test(reason)) return 'Отключен';
       if (problem === 'Not Started' || /not started/i.test(reason)) return 'Не запущен';
-      if (check === 'Stability') return 'Проверить стабильность';
+      if (check === 'Stability') return 'Стабильность ниже требуемого уровня';
       return problem ? channelOperatorProblemText(problem, item) : 'Нужна проверка';
     }
     function channelOperatorPrimaryCause(item={}, score=0) {
@@ -26998,10 +26997,10 @@ def html_page_v2():
       const reason = String(item.reason || '').trim();
       if (check === 'Capacity') return 'Перегружен';
       if (check === 'Services') return 'Сервисы недоступны';
-      if (check === 'Route') return 'Требуется проверка маршрута';
-      if (check === 'Runtime') return /not measured/i.test(reason) ? 'Нет замера готовности' : 'Требуется проверка готовности';
-      if (check === 'History') return 'Недостаточно данных по истории';
-      if (check === 'Stability') return 'Требуется проверка стабильности';
+      if (check === 'Route') return 'Маршрут не подтвержден';
+      if (check === 'Runtime') return 'Готовность канала не подтверждена';
+      if (check === 'History') return 'Недостаточно данных';
+      if (check === 'Stability') return 'Стабильность ниже требуемого уровня';
       if (problem === 'Disabled' || /disabled/i.test(reason)) return 'Канал отключен';
       if (problem === 'Not Started' || /not started/i.test(reason)) return 'Канал не запущен';
       return channelOperatorMainIssue(item, score);
@@ -27011,11 +27010,11 @@ def html_page_v2():
       const check = String(item.check || '').trim();
       const reason = String(item.reason || '').trim();
       if (check === 'Capacity') return 'На канал назначено слишком много пользователей';
-      if (check === 'Route') return 'Маршрут нужно подтвердить перед использованием';
+      if (check === 'Route') return 'Маршрут не подтвержден для использования';
       if (check === 'Services') return 'Один или несколько сервисов требуют проверки';
-      if (check === 'Runtime') return /not measured/i.test(reason) ? 'Готовность канала еще не измерялась' : 'Готовность канала нужно подтвердить';
-      if (check === 'History') return 'История канала требует подтверждения';
-      if (check === 'Stability') return 'Стабильность соединения требует внимания';
+      if (check === 'Runtime') return 'Готовность канала не подтверждена';
+      if (check === 'History') return 'Недостаточно данных по каналу';
+      if (check === 'Stability') return 'Стабильность ниже требуемого уровня';
       return 'Канал требует проверки оператора';
     }
     function channelSuitabilityServices(row={}) {
@@ -27121,10 +27120,10 @@ def html_page_v2():
       let action = `openChannelDrawer('${esc(id)}')`;
       let primary = false;
       if (score < 90) {
-        if (main.check === 'Services') { actionLabel = 'Проверить сервисы'; action = `runV2ServiceMatrix('${esc(id)}')`; primary = true; }
-        else if (main.check === 'Runtime' || main.reason === 'Channel not started') { actionLabel = 'Проверить готовность'; action = `openV2ChannelLogs('${esc(id)}')`; primary = true; }
-        else if (main.check === 'Capacity') { actionLabel = 'Проверить пользователей'; action = `showChannelWorkspace('overview');toggleChannelUsers('${esc(id)}');closeDrawer()`; primary = true; }
-        else if (main.check === 'Route') { actionLabel = 'Проверить маршрут'; action = `openChannelDrawer('${esc(id)}')`; primary = true; }
+        if (main.check === 'Services') { actionLabel = 'Открыть канал'; action = `openChannelDrawer('${esc(id)}')`; primary = true; }
+        else if (main.check === 'Runtime' || main.reason === 'Channel not started') { actionLabel = 'Открыть канал'; action = `openChannelDrawer('${esc(id)}')`; primary = true; }
+        else if (main.check === 'Capacity') { actionLabel = 'Открыть пользователей'; action = `showChannelWorkspace('overview');toggleChannelUsers('${esc(id)}');closeDrawer()`; primary = true; }
+        else if (main.check === 'Route') { actionLabel = 'Открыть канал'; action = `openChannelDrawer('${esc(id)}')`; primary = true; }
         else if (main.check === 'Stability') { actionLabel = 'Открыть канал'; action = `openChannelDrawer('${esc(id)}')`; primary = true; }
       }
       const operatorProblems = Array.from(new Set(problems.map(item => channelOperatorProblemText(item, parts.find(part => (part.problems || []).includes(item)) || main)).filter(Boolean)));
@@ -27214,8 +27213,8 @@ def html_page_v2():
       if (/min_mbps_below_floor|avg_mbps_below_floor|speed/i.test(text)) return 'Скорость ниже требуемого уровня';
       if (/telegram_required|telegram_down|service_telegram/i.test(text)) return 'Telegram недоступен';
       if (/service|youtube|google|instagram|whatsapp|chatgpt|claude/i.test(text)) return 'Сервис недоступен';
-      if (/route_class|trusted_ru|route/i.test(text)) return 'Маршрут требует проверки';
-      if (/health_code|severity_fail|severity/i.test(text)) return 'Проверка состояния не пройдена';
+      if (/route_class|trusted_ru|route/i.test(text)) return 'Маршрут не подтвержден';
+      if (/health_code|severity_fail|severity/i.test(text)) return 'Состояние канала не подтверждено';
       if (/egress_disabled|disabled|maintenance|quarantine/i.test(text)) return 'Канал отключен';
       return operatorText(text);
     }
@@ -27451,16 +27450,16 @@ def html_page_v2():
       const id = suitability.id || assignment.id || '';
       if (/telegram|google|youtube|service|сервис/i.test(text)) {
         return {
-          reason: 'Один или несколько сервисов требуют повторной проверки.',
-          resolution: 'Запустите сервисную матрицу и подтвердите, что пользовательские сервисы снова доступны.',
-          action: `<button class="primary" type="button" onclick="runV2ServiceMatrix('${esc(id)}')">Проверить сервисы</button>`,
+          reason: 'Один или несколько сервисов сейчас не подтверждены.',
+          resolution: 'Откройте детали сервисов. Ручное обновление доступно внутри технических деталей, если нужен свежий замер.',
+          action: `<button class="ghost" type="button" onclick="openChannelServicesPanel('${esc(id)}')">Открыть сервисы</button>`,
         };
       }
       if (/route|маршрут/i.test(text)) {
         return {
-          reason: 'Маршрут нужно подтвердить перед использованием.',
-          resolution: 'Откройте проверку маршрута через существующий безопасный обработчик. Для этого канала отдельный handler пока не подключен.',
-          action: channelUnavailableActionHtml(),
+          reason: 'Маршрут не подтвержден для использования.',
+          resolution: 'Откройте карточку канала и посмотрите детали маршрута. Отдельной безопасной кнопки маршрута для этого канала нет.',
+          action: '',
         };
       }
       if (/capacity|нагруз|перегруж/i.test(text)) {
@@ -27473,22 +27472,22 @@ def html_page_v2():
       if (/runtime|ready|готов/i.test(text)) {
         return {
           reason: 'Готовность канала не подтверждена последним runtime-сигналом.',
-          resolution: 'Проверьте runtime readiness и логи канала перед назначением пользователей.',
+          resolution: 'Откройте логи канала перед назначением пользователей.',
           action: `<button class="ghost" type="button" onclick="openV2ChannelLogs('${esc(id)}')">Открыть логи</button>`,
         };
       }
       if (/history|истор/i.test(text)) {
         return {
-          reason: 'Недавняя история канала требует подтверждения.',
-          resolution: 'Проверьте evidence/history ниже в drawer и подтвердите, что ограничение снято.',
-          action: channelUnavailableActionHtml(),
+          reason: 'Недостаточно данных для уверенного решения.',
+          resolution: 'Откройте evidence/history ниже в карточке канала.',
+          action: '',
         };
       }
       if (/stability|стабил|connectivity|связ/i.test(text)) {
         return {
-          reason: 'Стабильность соединения требует внимания оператора.',
-          resolution: 'Проверьте последние health/runtime сигналы и повторите проверку сервиса при необходимости.',
-          action: channelUnavailableActionHtml(),
+          reason: 'Стабильность ниже требуемого уровня.',
+          resolution: 'Откройте детали канала и последние события, чтобы понять причину.',
+          action: '',
         };
       }
       if (/disabled|отключ/i.test(lower)) {
@@ -27561,16 +27560,12 @@ def html_page_v2():
       const services = serviceMatrixServices(raw);
       const entries = Object.entries(services).sort(([a], [b]) => serviceDisplayName(a).localeCompare(serviceDisplayName(b), 'ru')).slice(0, 8);
       if (!entries.length) return '';
-      const failed = entries
-        .filter(([, item]) => !serviceOk(item))
-        .map(([name]) => channelOperatorServiceProblem(serviceDisplayName(name)));
       const working = entries.filter(([, item]) => serviceOk(item));
-      const failedHtml = channelBreakdownProblemGroupHtml('Проблемы сервисов:', failed, source);
       const workingHtml = working.length ? `<ul class="channel-breakdown-services">${working.map(([name]) => {
         const label = `${serviceDisplayName(name)} работает`;
         return `<li><span class="mark ok">✔</span><span>${esc(label)}</span></li>`;
       }).join('')}</ul>` : '';
-      return `${failedHtml}${workingHtml}`;
+      return workingHtml;
     }
     function channelSuitabilityBreakdownHtml(source={}) {
       const s = channelSuitability(source);
@@ -27790,13 +27785,13 @@ def html_page_v2():
       const services = serviceMatrixServices(matrix.mx || {});
       const rows = Object.entries(services).sort(([a], [b]) => serviceDisplayName(a).localeCompare(serviceDisplayName(b), 'ru')).map(([name, item]) => {
         const st = serviceMatrixCellStatus(item);
-        return `<tr><td><strong>${esc(serviceDisplayName(name))}</strong></td><td>${pill(st.label, st.tone)}</td><td>${esc(serviceLatencyText(item) || '—')}</td><td>${esc(st.title || serviceSampleSummary(item) || item.reason || item.error || '')}</td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2ServiceMatrixForService('${esc(id)}','${esc(name)}')">Проверить</button></td></tr>`;
+        return `<tr><td><strong>${esc(serviceDisplayName(name))}</strong></td><td>${pill(st.label, st.tone)}</td><td>${esc(serviceLatencyText(item) || '—')}</td><td>${esc(st.title || serviceSampleSummary(item) || item.reason || item.error || '')}</td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2ServiceMatrixForService('${esc(id)}','${esc(name)}')">Обновить</button></td></tr>`;
       });
-      const summary = `<div class="speed-result-main"><span>Сервисная матрица</span><strong>${esc(matrix.text)}</strong></div>`;
-      const actions = `<div class="result-actions"><button class="ghost" onclick="event.stopPropagation();runV2ServiceMatrix('${esc(id)}')">Проверить все сервисы</button><button class="ghost" onclick="event.stopPropagation();toggleChannelServices('${esc(id)}')">Скрыть</button></div>`;
+      const summary = `<div class="speed-result-main"><span>Сервисы</span><strong>${esc(matrix.text)}</strong></div>`;
+      const actions = `<div class="result-actions"><button class="ghost" onclick="event.stopPropagation();runV2ServiceMatrix('${esc(id)}')">Обновить сервисы</button><button class="ghost" onclick="event.stopPropagation();toggleChannelServices('${esc(id)}')">Скрыть</button></div>`;
       const body = rows.length
         ? `${summary}${listTable(['Сервис','Статус','Задержка','Что происходит','Действие'], rows, '')}${actions}`
-        : `${summary}<p class="muted">Нет сохраненной сервисной матрицы. Запустите проверку всех сервисов для этого канала.</p>${actions}`;
+        : `${summary}<p class="muted">Нет сохраненных данных по сервисам. Обновите сервисы для этого канала.</p>${actions}`;
       return `<tr class="channel-services-row"><td colspan="${esc(colspan)}"><div class="channel-users-panel channel-services-panel">${body}</div></td></tr>`;
     }
     function channelRows(list) {
@@ -27944,7 +27939,7 @@ def html_page_v2():
       const codeOk = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
       return channelAnalysisCard(row) +
         channelDetailsSection([
-          kvRows({'Состояние': codeOk ? 'OK' : 'Проверить', 'Роль': reg.role || '', 'Пользователи': egressUserCount(id), 'Скорость сервера': sp.server_v7_mbps || sp.download_mbps ? `${sp.server_v7_mbps || sp.download_mbps} Mbps` : 'нет замера', 'Сервисная матрица': total ? `${okCount}/${total}` : 'нет замера', 'Готовность': rd.status || 'неизвестно'}),
+          kvRows({'Состояние': codeOk ? 'OK' : 'Нужна диагностика', 'Роль': reg.role || '', 'Пользователи': egressUserCount(id), 'Скорость сервера': sp.server_v7_mbps || sp.download_mbps ? `${sp.server_v7_mbps || sp.download_mbps} Mbps` : 'нет замера', 'Сервисы': total ? `${okCount}/${total}` : 'нет замера', 'Готовность': rd.status || 'неизвестно'}),
           whyCardSection('Почему этот канал', channelWhyCard(id)),
           drawerSection('Трафик', trafficSummaryHtml('channel', id)),
           channelActionControls(id),
@@ -28079,8 +28074,8 @@ def html_page_v2():
       const ok = Number(mx.ok_count || 0);
       openCompactDrawer(channelDisplayName(id), 'channel', drawerSection('Сервисы', `
         <div class="speed-result-main"><span>Сводка</span><strong>${esc(total ? `${ok}/${total}` : 'нет замера')}</strong></div>
-        ${listTable(['Сервис','Статус','Задержка','Что происходит'], rows, 'Сервисная матрица для этого канала ещё не измерялась.')}
-        <div class="result-actions"><button class="ghost" onclick="runV2ServiceMatrix('${esc(id)}')">Запустить проверку</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button></div>`));
+        ${listTable(['Сервис','Статус','Задержка','Что происходит'], rows, 'Данные по сервисам для этого канала ещё не измерялись.')}
+        <div class="result-actions"><button class="ghost" onclick="runV2ServiceMatrix('${esc(id)}')">Обновить сервисы</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button></div>`));
     }
     function openChannelSpeedPanel(id) {
       const row = egressRows().find(x => x.id === id) || {};
@@ -28164,12 +28159,12 @@ def html_page_v2():
       const healthDetail = detailText(st.diagnose_reason || st.diagnose_detail || st.status || st.code || 'здоровье ещё не проверялось');
       return drawerSection('Состояние канала', [
         `<div class="cards-grid">`,
-        `<button class="check-card" onclick="openChannelDrawer('${esc(id)}')"><strong>${esc(s.verdict)}</strong><em>${esc(healthDetail)}</em>${pill(s.healthOk ? 'здоровье OK' : 'проверить здоровье', s.healthOk ? 'ok' : 'warn')}</button>`,
-        `<button class="check-card" onclick="runV2ServiceMatrix('${esc(id)}')"><strong>Сервисы</strong><em>${esc(s.matrixTotal ? `${s.matrixOk}/${s.matrixTotal} прошло` : 'матрица запускается вручную')}</em>${pill(s.matrixTotal ? `${s.matrixOk}/${s.matrixTotal}` : 'нет замера', s.matrixReady ? 'ok' : (s.matrixTotal ? 'warn' : 'info'))}</button>`,
+        `<button class="check-card" onclick="openChannelDrawer('${esc(id)}')"><strong>${esc(s.verdict)}</strong><em>${esc(healthDetail)}</em>${pill(s.healthOk ? 'здоровье OK' : 'нужно внимание', s.healthOk ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" onclick="openChannelDrawer('${esc(id)}')"><strong>Сервисы</strong><em>${esc(s.matrixTotal ? `${s.matrixOk}/${s.matrixTotal} подтверждено` : 'свежих данных нет')}</em>${pill(s.matrixTotal ? `${s.matrixOk}/${s.matrixTotal}` : 'нет данных', s.matrixReady ? 'ok' : (s.matrixTotal ? 'warn' : 'info'))}</button>`,
         channelSpeedTrafficCard(d),
-        `<button class="check-card" onclick="openV2ChannelLogs('${esc(id)}')"><strong>События</strong><em>${esc(detailText(rd.reason || 'рабочий профиль проверяется автоматически'))}</em>${pill(s.runtimeReady ? 'профиль готов' : 'проверить', s.runtimeReady ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" onclick="openV2ChannelLogs('${esc(id)}')"><strong>События</strong><em>${esc(detailText(rd.reason || 'рабочий профиль подтверждается автоматически'))}</em>${pill(s.runtimeReady ? 'профиль готов' : 'нужно внимание', s.runtimeReady ? 'ok' : 'warn')}</button>`,
         `</div>`,
-        `<p class="muted">Пользователей на канале: ${esc(s.usersCount)}. Скорость и сервисная матрица запускаются только кнопкой, без постоянной нагрузки.</p>`,
+        `<p class="muted">Пользователей на канале: ${esc(s.usersCount)}. Скорость и сервисы можно обновить в деталях без отдельного операторского сценария.</p>`,
       ].join(''));
     }
     function channelSpeedTrafficCard(d={}) {
@@ -28189,13 +28184,13 @@ def html_page_v2():
       const matrix = d.service_matrix || {};
       const clientSpeed = d.client_speed || {};
       const s = channelOperatorStatus(d);
-      const matrixDetail = s.matrixTotal ? `${s.matrixOk}/${s.matrixTotal} сервисов OK` : 'Сервисная матрица ещё не измерялась.';
+      const matrixDetail = s.matrixTotal ? `${s.matrixOk}/${s.matrixTotal} сервисов OK` : 'Свежих данных по сервисам нет.';
       const speedDetail = s.speedOk
         ? `есть серверный или клиентский замер; падение ${clientSpeed.degradation_pct != null ? `${clientSpeed.degradation_pct}%` : 'не рассчитано'}`
         : 'Запустите ручной замер скорости, когда нужны реальные цифры.';
       const rows = [
-        ['Здоровье', s.healthOk, st.diagnose_reason || st.diagnose_detail || (s.healthOk ? 'Канал отвечает.' : 'Нужна проверка health/diagnose.'), `openChannelDrawer("${id}")`],
-        ['Сервисная матрица', s.matrixReady || !s.matrixTotal, matrixDetail, `runV2ServiceMatrix("${id}");closeDrawer()`],
+        ['Здоровье', s.healthOk, st.diagnose_reason || st.diagnose_detail || (s.healthOk ? 'Канал отвечает.' : 'Состояние канала не подтверждено.'), `openChannelDrawer("${id}")`],
+        ['Сервисы', s.matrixReady || !s.matrixTotal, matrixDetail, `openChannelDrawer("${id}")`],
         ['Скорость', s.speedOk, speedDetail, `runV2EgressSpeed("${id}");closeDrawer()`],
         ['Пользователи', true, `${s.usersCount} пользователей назначено. Ручное переключение двигает только одного выбранного пользователя.`, `openV2ManualSwitchPanel("${id}")`],
         ['Рабочий профиль', s.runtimeReady, rd.reason || rd.message || (s.runtimeReady ? 'Профиль готов.' : 'Проверьте карточку и логи канала.'), `openV2ChannelLogs("${id}")`],
@@ -28241,7 +28236,7 @@ def html_page_v2():
           drawerSection('Сравнение скорости', kvRows({'Серверная скорость': serverSpeed.download_mbps ? `${serverSpeed.download_mbps} Mbps` : 'нет замера', 'Клиент через V7 среднее': clientSpeed.client_v7_avg_mbps ? `${clientSpeed.client_v7_avg_mbps} Mbps` : 'нет замера', 'Клиент напрямую среднее': clientSpeed.client_direct_avg_mbps ? `${clientSpeed.client_direct_avg_mbps} Mbps` : 'нет замера', 'Падение': clientSpeed.degradation_pct != null ? `${clientSpeed.degradation_pct}%` : 'нет замера'})),
           drawerSection('Назначенные пользователи', listTable(['IP','Таблица','Состояние'], userRowsLocal, 'На этот канал пользователи не назначены.')),
           drawerSection('Замеры скорости клиентов', listTable(['IP','Через V7','Напрямую','Падение'], clientRows, clientSpeed.note || 'Клиентских замеров скорости нет.')),
-          drawerSection('Сервисная матрица', listTable(['Сервис','Статус','HTTP','Задержка','Причина'], serviceRows, 'Сервисная матрица для этого канала ещё не измерялась.')),
+          drawerSection('Сервисы', listTable(['Сервис','Статус','HTTP','Задержка','Причина'], serviceRows, 'Данные по сервисам для этого канала ещё не измерялись.')),
           drawerSection('Конфигурация', kvRows({'Файл': config.path || d.config_error?.path ? 'есть' : 'не найден', 'Размер': config.size_bytes ? humanBytes(config.size_bytes) : '', 'Секреты скрыты': config.redacted ? 'да' : 'неизвестно'}) + '<p class="muted">Содержимое конфига не показывается в рабочей карточке. Приватные ключи и служебные поля скрыты.</p>'),
           drawerSection('Последние события канала', listTable(['Время','Действие','Важность','Сообщение'], eventRows, 'Недавних событий канала нет.')),
         ].join('')),
@@ -28362,7 +28357,7 @@ def html_page_v2():
           </div>
           <div class="channel-control-actions">
             <button class="ghost" onclick="runV2EgressSpeed('${safeId}')">Замерить скорость</button>
-            <button class="ghost" onclick="runV2ServiceMatrix('${safeId}')">Сервисная матрица</button>
+            <button class="ghost" onclick="runV2ServiceMatrix('${safeId}')">Обновить сервисы</button>
             <button class="ghost" onclick="openV2ManualSwitchPanel('${safeId}')">Переключить одного</button>
           </div>
           <div id="v2ChAutoswitchPlan_${key}" class="channel-autoswitch-result table-shell"></div>
@@ -28527,8 +28522,8 @@ def html_page_v2():
     }
     async function runV2ServiceMatrix(id) {
       if (!id) return;
-      if (!confirm(`Запустить сервисную матрицу для ${id}? Проверка доступности сервисов может занять до двух минут.`)) return;
-      openTransientWaitDrawer(id, 'channel', drawerSection('Сервисная матрица', '<p class="muted">Запускаю ручную проверку сервисов...</p>'));
+      if (!confirm(`Обновить сервисы для ${id}? Проверка доступности сервисов может занять до двух минут.`)) return;
+      openTransientWaitDrawer(id, 'channel', drawerSection('Сервисы', '<p class="muted">Обновляю данные по сервисам...</p>'));
       const d = await postJson('/api/actions/service-matrix-test', {egress:id});
       if (d.overview) overview = d.overview;
       openCompactDrawer(id, 'channel', renderServiceMatrixResult(id, d), {size:'card', replace:true, stack:false});
@@ -30030,14 +30025,14 @@ def html_page_v2():
       }
       if (matrix.total && matrix.okCount < matrix.total) {
         items.push(makeAttentionItem({
-          problem: 'Service check failed',
+          problem: 'Services need attention',
           severity: matrix.okCount === 0 ? 'Needs Action' : 'Needs Check',
           object: channelDisplayName(id),
           object_type: 'channel',
           object_id: id,
-          reason: `Service matrix needs attention: ${matrix.okCount}/${matrix.total}`,
-          primary_label: 'Проверить сервисы',
-          primary_click: `runV2ServiceMatrix(${jsArg(id)})`,
+          reason: `Services confirmed: ${matrix.okCount}/${matrix.total}`,
+          primary_label: 'Открыть канал',
+          primary_click: `openChannelDrawer(${jsArg(id)})`,
           details_label: 'Details',
           details_click: `openChannelDrawer(${jsArg(id)})`,
           source: 'Checks',
@@ -30722,7 +30717,7 @@ def html_page_v2():
           <div class="speed-result-main">
             <span>Итог по всем каналам</span>
             <strong>${esc(summary)}</strong>
-            <em>Ниже список сервисов, которые показываются в матрице. Цвет показывает, отвечает сервис через проверенные каналы или нет.</em>
+            <em>Ниже список сервисов, которые показываются в сводке. Цвет показывает, отвечает сервис через проверенные каналы или нет.</em>
           </div>
           <div class="service-editor">
             <input id="v2NewServiceName" placeholder="например: github или bank_app">
@@ -30731,7 +30726,7 @@ def html_page_v2():
           <div class="service-list">
             ${rows.map(row => `<div class="service-list-row"><strong>${esc(serviceDisplayName(row.name))}</strong>${pill(row.measured ? `${row.ok}/${row.measured}` : 'нет замера', row.tone)}<button class="mini-action" onclick="removeV2ServiceName('${esc(row.name)}')">Удалить</button></div>`).join('') || '<p class="muted">Сервисы пока не заданы.</p>'}
           </div>
-          <div class="result-actions"><button class="ghost" onclick="showChannelWorkspace('matrix');closeDrawer()">Открыть матрицу</button></div>`)
+          <div class="result-actions"><button class="ghost" onclick="showChannelWorkspace('matrix');closeDrawer()">Открыть сервисы</button></div>`)
       ].join('');
       openCompactDrawer('Сервисы', 'channel', body);
     }
@@ -32003,10 +31998,10 @@ PersistentKeepalive = 25
         <div class="speed-result-main">
           <span>Проверено сервисов</span>
           <strong>${esc(serviceCoverageText())}</strong>
-          <em>Матрица показывает, какие сервисы открываются через каждый канал. Проверка запускается только вручную.</em>
+          <em>Сводка показывает, какие сервисы открываются через каждый канал. Ручное обновление доступно в деталях.</em>
         </div>
         <div class="load-list">${rows.join('') || '<p class="muted">Сохранённых измерений пока нет.</p>'}</div>
-        <div class="result-actions"><button class="ghost" onclick="showChannelWorkspace('matrix');closeDrawer()">Открыть матрицу</button><button class="ghost" onclick="openServiceCatalogDrawer()">Сервисы</button></div>`);
+        <div class="result-actions"><button class="ghost" onclick="showChannelWorkspace('matrix');closeDrawer()">Открыть сервисы</button><button class="ghost" onclick="openServiceCatalogDrawer()">Сервисы</button></div>`);
     }
     function renderRouting() {
       const classRows = routingClassRows();
@@ -32120,8 +32115,8 @@ PersistentKeepalive = 25
       const id = String(classId || '').toUpperCase();
       if (id === 'DIRECT_RU') return 'проверить профиль “RU напрямую”';
       if (id === 'TRUSTED_RU_SENSITIVE') return 'для РФ использовать “RU напрямую”; путь для поездки позже';
-      if (id === 'VIDEO_OPTIMIZED') return 'запустить сервисную матрицу на каналах';
-      if (id === 'GLOBAL_FAST' || id === 'GLOBAL_STABLE') return 'проверить матрицу каналов и предпросмотр маршрута';
+      if (id === 'VIDEO_OPTIMIZED') return 'посмотреть сервисы на каналах';
+      if (id === 'GLOBAL_FAST' || id === 'GLOBAL_STABLE') return 'посмотреть состояние каналов и предпросмотр маршрута';
       return 'открыть детали';
     }
     function smartRuLocalReady() {

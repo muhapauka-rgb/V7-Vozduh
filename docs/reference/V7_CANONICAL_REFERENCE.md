@@ -274,3 +274,17 @@ A new audit is allowed only when the reference has no answer, the reference expl
 - Known caveats: The Attention Layer must stay deduplicated and calm; otherwise it becomes a noisy ticket system.
 - Related reports / ADRs: `UX_6_COMMERCIAL_OPERATOR_MODEL_DISCOVERY_REPORT.md`, `UX_7_ATTENTION_LAYER_SPECIFICATION_REPORT.md`, `UX_5B_USER_DRAWER_POLISH_AND_COMMERCIAL_CERTIFICATION_REPORT.md`, `UX_4_CHANNEL_DRAWER_REBUILD_SPECIFICATION_REPORT.md`, ADR-004.
 - Last verified commit: `8ba2178f`.
+
+## 18. Channel Operator Signal Model
+
+- What it means: Channels must be presented through multiple operator signals, not through one mixed score that appears to explain everything.
+- Source of truth: Existing Channel Decision V7 / assignment truth, channel suitability breakdown, service matrix, capacity/load state, route/topology readiness, runtime readiness, history, and current user counts.
+- Where it is calculated: `admin/v7-admin-api` channel suitability, assignment, topology, and drawer helpers; planner assignment truth in `tools/v7-users-autoswitch`; operator projection in `admin_core/operator_decision_surface.py`.
+- Where it is displayed: Channel table, Channel Drawer, technical diagnostics, and future signal/tooltip presentation.
+- What affects it: Planner decision/assignment role, selected moves, blockers, service availability, load/capacity posture, route readiness confidence, runtime readiness, stability, history, users on channel, and evidence freshness.
+- What does NOT affect it: A single mixed score alone, raw trust/recovery labels alone, cosmetic table ordering, or UI-only labels without underlying existing truth.
+- Operator meaning: "What did V7 decide, what signal explains it, how many users are affected, and what should I inspect next?"
+- Engineer meaning: A read-only classification layer over existing signals: operator signals, supporting signals, and diagnostics-only signals.
+- Known caveats: Route is a readiness confidence/supporting signal, not direct user traffic quality. Technical Health remains diagnostics-only. Raw score components must not become an alternative planner or action owner.
+- Related reports / ADRs: `CHANNEL_SIGNALS_1_MODEL_AUDIT_REPORT.md`, `CHANNEL_SCORE_REALITY_AUDIT.md`, `CHANNEL_ROUTE_COMPONENT_REALITY_AUDIT_REPORT.md`, ADR-002, ADR-003, ADR-004, ADR-006.
+- Last verified commit: `72ede82b`.

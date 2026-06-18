@@ -27303,6 +27303,29 @@ def html_page_v2():
       if (toneLocal === 'ok') return 8;
       return 7;
     }
+    function channelSignalPriorityForTone(tone='') {
+      if (tone === 'bad') return 1;
+      if (tone === 'warn') return 4;
+      if (tone === 'info') return 6;
+      if (tone === 'ok') return 8;
+      return 7;
+    }
+    function channelDecisionAlignedSignalTone(source={}, item={}, rawTone='') {
+      const assignment = channelAssignmentStatus(source);
+      const key = assignment.key || 'blocked';
+      if (rawTone !== 'bad') return rawTone;
+      if (key === 'use' || key === 'keep') return 'warn';
+      if (key === 'emergency') return 'warn';
+      return 'bad';
+    }
+    function channelSignalDecisionNote(source={}, item={}, rawTone='', displayTone='') {
+      if (rawTone === displayTone) return '';
+      const assignment = channelAssignmentStatus(source);
+      if (assignment.key === 'use') return ' Решение V7: использовать; этот сигнал остаётся диагностикой и не блокирует назначение.';
+      if (assignment.key === 'keep') return ' Решение V7: оставить текущих пользователей; сигнал не требует эвакуации.';
+      if (assignment.key === 'emergency') return ' Решение V7: только аварийно; ограничение роли важнее диагностического цвета.';
+      return '';
+    }
     function channelSignalLabel(check='') {
       return {
         Services:'Сервисы',
@@ -27353,13 +27376,18 @@ def html_page_v2():
       ];
       const stability = channelSignalComponent(row, 'Stability');
       if (channelSignalTone(stability) !== 'ok') items.push(stability);
-      return items.map(item => ({
-        ...item,
-        label: channelSignalLabel(item.check),
-        tone: channelSignalTone(item),
-        priority: channelSignalPriority(item),
-        tooltip: channelSignalTooltip(row, item),
-      }));
+      return items.map(item => {
+        const rawTone = channelSignalTone(item);
+        const tone = channelDecisionAlignedSignalTone(row, item, rawTone);
+        return {
+          ...item,
+          label: channelSignalLabel(item.check),
+          tone,
+          rawTone,
+          priority: channelSignalPriorityForTone(tone),
+          tooltip: `${channelSignalTooltip(row, item)}${channelSignalDecisionNote(row, item, rawTone, tone)}`,
+        };
+      });
     }
     function channelWorstSignal(source={}) {
       return [...channelSignalSummary(source)].sort((a,b) => a.priority - b.priority || String(a.label).localeCompare(String(b.label), 'ru'))[0] || {priority:9, tone:'muted', label:'Нет данных'};

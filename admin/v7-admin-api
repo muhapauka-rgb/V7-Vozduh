@@ -20290,7 +20290,8 @@ def html_page_v2():
     .attention-empty { margin:0 10px 10px; border:1px solid var(--line); border-radius:10px; padding:12px; background:rgba(34,197,94,.055); }
     .attention-empty strong { display:block; font-size:14px; }
     .attention-empty span { display:block; margin-top:4px; color:var(--muted); font-size:12px; }
-    .channel-filter-strip { margin:0 16px 10px; border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.035); padding:8px 10px; display:flex; align-items:center; justify-content:space-between; gap:10px; color:var(--muted); font-size:12px; }
+    .channel-filter-strip { margin:0 16px 10px; border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.035); padding:8px 10px; display:flex; align-items:center; justify-content:flex-start; flex-wrap:wrap; gap:10px; color:var(--muted); font-size:12px; }
+    .channel-filter-strip .filterbar { margin:0; border:0; background:transparent; min-height:0; padding:0; }
     .channel-filter-strip strong { color:var(--text); }
     .channel-filter-strip.is-empty { display:none; }
     .toolbar { padding:12px 16px 10px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
@@ -20474,6 +20475,14 @@ def html_page_v2():
     .operator-decision-button.is-highlight { border-color:rgba(250,204,21,.34); background:rgba(250,204,21,.08); }
     .operator-decision-button .cell-main { font-size:12px; }
     .operator-decision-button .cell-sub { max-width:170px; }
+    .channel-signal-strip { display:flex; align-items:center; flex-wrap:wrap; gap:5px; max-width:310px; }
+    .channel-signal-badge { display:inline-flex; align-items:center; gap:5px; min-height:22px; max-width:100%; border:1px solid var(--line); border-radius:999px; background:rgba(148,163,184,.08); color:var(--muted); padding:2px 7px; font-size:11px; font-weight:850; cursor:help; white-space:nowrap; }
+    .channel-signal-badge::before { content:''; width:7px; height:7px; border-radius:999px; background:currentColor; flex:0 0 auto; }
+    .channel-signal-badge.ok { color:var(--green); background:rgba(52,211,153,.09); border-color:rgba(52,211,153,.22); }
+    .channel-signal-badge.warn { color:var(--yellow); background:rgba(250,204,21,.09); border-color:rgba(250,204,21,.24); }
+    .channel-signal-badge.bad { color:var(--red); background:rgba(251,113,133,.09); border-color:rgba(251,113,133,.25); }
+    .channel-signal-badge.info { color:var(--blue); background:rgba(96,165,250,.09); border-color:rgba(96,165,250,.22); }
+    .channel-signal-badge.muted { color:var(--muted); background:rgba(148,163,184,.08); border-color:var(--line); }
     .operator-decision-path { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
     .operator-decision-step { border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.025); padding:9px; min-width:0; }
     .operator-decision-step strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -21504,7 +21513,7 @@ def html_page_v2():
       return `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
     };
     const USER_TABLE_COLUMNS_KEY = 'v7.userTableColumns.v2';
-    const CHANNEL_TABLE_COLUMNS_KEY = 'v7.channelTableColumns.v3';
+    const CHANNEL_TABLE_COLUMNS_KEY = 'v7.channelTableColumns.v4';
     const ORGANIZATION_TABLE_COLUMNS_KEY = 'v7.organizationTableColumns.v1';
     const USER_TABLE_SORT_KEY = 'v7.userTableSort.v1';
     const CHANNEL_TABLE_SORT_KEY = 'v7.channelTableSort.v1';
@@ -21540,7 +21549,8 @@ def html_page_v2():
     const CHANNEL_TABLE_COLUMN_DEFS = [
       {id:'channel', label:'Канал', meaning:'Название канала.', required:true, defaultVisible:true},
       {id:'decision', label:'Решение', meaning:'Что V7 решил сделать с каналом: использовать, держать текущих пользователей, эвакуировать, заблокировать или оставить только для аварийного режима.', required:true, defaultVisible:true},
-      {id:'health', label:'Здоровье', meaning:'Техническое состояние канала от 0 до 100 по существующим проверкам. Это вторично после решения V7.', required:true, defaultVisible:true},
+      {id:'signals', label:'Сигналы', meaning:'Сервисы, нагрузка, маршрут и runtime readiness. Объясняет решение V7 без смешанного health score.', required:true, defaultVisible:true},
+      {id:'health', label:'Диагностика', meaning:'Техническое состояние канала от 0 до 100 по существующим проверкам. Диагностика открывается глубже и не является первым операторским ответом.', required:false, defaultVisible:false},
       {id:'channel_state', label:'Состояние доверия', meaning:'Короткое состояние канала по модели доверия и восстановления.', required:false, defaultVisible:false},
       {id:'status', label:'Статус', meaning:'Короткое состояние канала.', required:false, defaultVisible:false},
       {id:'users', label:'Пользователи', meaning:'Сколько пользователей сейчас назначено на канал.', required:false, defaultVisible:true},
@@ -27203,6 +27213,84 @@ def html_page_v2():
       const s = channelSuitability(source);
       return `<button type="button" class="operator-decision-button" onclick="event.stopPropagation();openChannelTechnicalDiagnostics('${esc(id)}')"><span class="cell-main">${pill(`${s.score}/100`, s.status.tone)}</span></button>`;
     }
+    function channelSignalComponent(source={}, check='') {
+      const s = channelSuitability(source);
+      return (s.breakdown || []).find(item => item.check === check) || {check, score:0, max:1, reason:'Нет данных', problem:check};
+    }
+    function channelSignalTone(item={}) {
+      const score = Number(item.score || 0);
+      const max = Number(item.max || 0);
+      if (!max) return 'muted';
+      if (score >= max) return 'ok';
+      if (score <= Math.max(2, max * 0.25)) return 'bad';
+      return 'warn';
+    }
+    function channelSignalPriority(item={}) {
+      const toneLocal = channelSignalTone(item);
+      if (toneLocal === 'bad') return 1;
+      if (toneLocal === 'warn') return 4;
+      if (toneLocal === 'info') return 6;
+      if (toneLocal === 'ok') return 8;
+      return 7;
+    }
+    function channelSignalLabel(check='') {
+      return {
+        Services:'Сервисы',
+        Capacity:'Нагрузка',
+        Route:'Маршрут',
+        Runtime:'Runtime',
+        Stability:'Стабильность',
+      }[check] || check || 'Сигнал';
+    }
+    function channelSignalTooltip(source={}, item={}) {
+      const row = channelRowFromSource(source);
+      const id = row.id || row.egress || '';
+      const check = String(item.check || '');
+      if (check === 'Services') {
+        const service = channelScoreServiceEvidence(row);
+        if (!service.total) return 'Сервисы: измерения ещё нет. Откройте диагностику, если нужно подтвердить доступность.';
+        if (service.ok >= service.total) return `Сервисы: ${service.ok}/${service.total} доступны.`;
+        const unavailable = service.unavailable.slice(0, 4).join(', ');
+        return `Сервисы: ${service.ok}/${service.total} доступны. Не проходят: ${unavailable || 'часть сервисов'}.`;
+      }
+      if (check === 'Capacity') {
+        const count = egressUserCount(id);
+        const limit = channelLoadLimit(row);
+        const state = statusLabel(channelLoad(id, row.state || {}));
+        return `Нагрузка: ${count} пользователей. Мягкий лимит ${limit.soft}, жёсткий ${limit.hard}. Сейчас: ${state}.`;
+      }
+      if (check === 'Route') return channelScoreExplanationText(row, item).replace(/ Этот сигнал снизил маршрутный компонент\.?/g, '');
+      if (check === 'Runtime') {
+        const rd = row._detail?.runtime_readiness || (overview.egress_runtime_readiness || {})[id] || {};
+        return Number(item.score || 0) >= Number(item.max || 0)
+          ? 'Runtime: канал готов по текущему снимку.'
+          : `Runtime: ${operatorText(rd.reason || rd.status || item.reason || 'готовность нужно подтвердить')}`;
+      }
+      if (check === 'Stability') return channelScoreExplanationText(row, item);
+      return channelScoreExplanationText(row, item) || String(item.reason || 'Сигнал требует внимания.');
+    }
+    function channelSignalSummary(source={}) {
+      const row = channelRowFromSource(source);
+      const checks = ['Services', 'Capacity', 'Route', 'Runtime'];
+      const items = checks.map(check => channelSignalComponent(row, check));
+      const stability = channelSignalComponent(row, 'Stability');
+      if (channelSignalTone(stability) !== 'ok') items.push(stability);
+      return items.map(item => ({
+        ...item,
+        label: channelSignalLabel(item.check),
+        tone: channelSignalTone(item),
+        priority: channelSignalPriority(item),
+        tooltip: channelSignalTooltip(row, item),
+      }));
+    }
+    function channelWorstSignal(source={}) {
+      return [...channelSignalSummary(source)].sort((a,b) => a.priority - b.priority || String(a.label).localeCompare(String(b.label), 'ru'))[0] || {priority:9, tone:'muted', label:'Нет данных'};
+    }
+    function channelSignalsCell(source={}) {
+      const items = channelSignalSummary(source);
+      if (!items.length) return '<span class="muted">нет сигналов</span>';
+      return `<div class="channel-signal-strip">${items.map(item => `<span class="channel-signal-badge ${esc(item.tone)}" title="${esc(item.tooltip)}">${esc(item.label)}</span>`).join('')}</div>`;
+    }
     function channelCommercialStatusCell(source={}) {
       const s = channelSuitability(source);
       return `<button type="button" class="status-pill-button" onclick="event.stopPropagation();openChannelDrawer('${esc(s.id)}')">${pill(s.status.label, s.status.tone)}</button>`;
@@ -27943,6 +28031,7 @@ def html_page_v2():
       const health = channelHealth(row);
       if (colId === 'channel') return id;
       if (colId === 'decision') return channelAssignmentStatus(row).label;
+      if (colId === 'signals') return channelWorstSignal(row).priority;
       if (colId === 'health') return channelSuitability(row).score;
       if (colId === 'score') return channelSuitability(row).score;
       if (colId === 'assignment') return channelAssignmentStatus(row).label;
@@ -27965,9 +28054,29 @@ def html_page_v2():
       if (colId === 'load') return statusLabel(channelLoad(id, st));
       return '';
     }
+    function channelDefaultDecisionRank(row={}) {
+      const assignment = channelAssignmentStatus(row);
+      const usersCount = egressUserCount(row.id || row.egress || '');
+      const worst = channelWorstSignal(row);
+      const overloadedWithUsers = usersCount > 0 && worst.check === 'Capacity' && ['bad', 'warn'].includes(worst.tone);
+      if (assignment.key === 'evacuate') return 1;
+      if (assignment.key === 'blocked' && usersCount > 0) return 2;
+      if (overloadedWithUsers) return 3;
+      if (assignment.key === 'emergency') return 4;
+      if (assignment.key === 'keep') return 5;
+      if (assignment.key === 'blocked') return 6;
+      if (assignment.key === 'use') return 7;
+      return 8;
+    }
+    function compareChannelsByDefaultOperatorOrder(a={}, b={}) {
+      return compareTableValues(channelDefaultDecisionRank(a), channelDefaultDecisionRank(b), 'asc')
+        || compareTableValues(egressUserCount(b.id || b.egress || ''), egressUserCount(a.id || a.egress || ''), 'asc')
+        || compareTableValues(channelWorstSignal(a).priority, channelWorstSignal(b).priority, 'asc')
+        || String(a.id || a.egress || '').localeCompare(String(b.id || b.egress || ''), 'ru', {numeric:true, sensitivity:'base'});
+    }
     function sortChannelsForTable(list=[]) {
       const cfg = tableSortConfig(CHANNEL_TABLE_SORT_KEY, '');
-      if (!cfg.primary && !cfg.secondary) return list;
+      if (!cfg.primary && !cfg.secondary) return [...list].sort(compareChannelsByDefaultOperatorOrder);
       return [...list].sort((a,b) => compareBySortConfig(a, b, cfg, channelSortValue));
     }
     function toggleChannelUsers(id='') {
@@ -28069,6 +28178,7 @@ def html_page_v2():
         return `<button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><span class="cell-main">${esc(label)}</span>${meta ? `<span class="channel-name-meta">${esc(meta)}</span>` : ''}</button>`;
       }
       if (colId === 'decision') return channelDecisionCell(view.row || {id});
+      if (colId === 'signals') return channelSignalsCell(view.row || {id});
       if (colId === 'health') return channelSuitabilityCell(id, view.row || {id});
       if (colId === 'score') return channelSuitabilityCell(id, view.row || {id});
       if (colId === 'assignment') return channelAssignmentCell(view.row || {id});
@@ -30721,10 +30831,37 @@ def html_page_v2():
       return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'none';
     }
     function channelTopologyFilterLabel(group='all') {
-      return topologyGroupDefinitions().find(def => def.key === group)?.label || 'Все каналы';
+      return [...channelTableFilterDefinitions(), ...topologyGroupDefinitions()].find(def => def.key === group)?.label || 'Все каналы';
+    }
+    function channelTableFilterDefinitions() {
+      return [
+        {key:'all', label:'Все'},
+        {key:'problematic', label:'Проблемные'},
+        {key:'healthy', label:'Здоровые'},
+        {key:'evacuate', label:'Перевести'},
+        {key:'use', label:'Использовать'},
+      ];
+    }
+    function channelIsHealthyForTable(row={}) {
+      const assignment = channelAssignmentStatus(row);
+      const worst = channelWorstSignal(row);
+      return ['use', 'keep'].includes(assignment.key) && worst.priority >= 8;
+    }
+    function channelIsProblematicForTable(row={}) {
+      const assignment = channelAssignmentStatus(row);
+      const worst = channelWorstSignal(row);
+      const usersCount = egressUserCount(row.id || row.egress || '');
+      return assignment.key === 'evacuate'
+        || (assignment.key === 'blocked' && usersCount > 0)
+        || worst.priority <= 4;
     }
     function channelMatchesTopologyFilter(row={}, group='all') {
       if (!group || group === 'all') return true;
+      const assignment = channelAssignmentStatus(row);
+      if (group === 'problematic') return channelIsProblematicForTable(row);
+      if (group === 'healthy') return channelIsHealthyForTable(row);
+      if (group === 'evacuate') return assignment.key === 'evacuate';
+      if (group === 'use') return assignment.key === 'use';
       return channelTopologyState(row).group === group;
     }
     function filteredChannelsForTable(rows=egressRows()) {
@@ -30743,13 +30880,16 @@ def html_page_v2():
     function renderChannelTopologyFilterBar(totalRows=[], visibleRows=[]) {
       const host = document.getElementById('channelTopologyFilter');
       if (!host) return;
-      if (!v2ChannelTopologyFilter || v2ChannelTopologyFilter === 'all') {
-        host.classList.add('is-empty');
-        host.innerHTML = '';
-        return;
-      }
       host.classList.remove('is-empty');
-      host.innerHTML = `<span>Фильтр топологии: <strong>${esc(channelTopologyFilterLabel(v2ChannelTopologyFilter))}</strong> · ${esc(visibleRows.length)}/${esc(totalRows.length)} каналов</span><button class="ghost" onclick="clearChannelTopologyFilter()">Показать все</button>`;
+      const chips = channelTableFilterDefinitions().map(def => {
+        const count = totalRows.filter(row => channelMatchesTopologyFilter(row, def.key)).length;
+        return `<button class="filter-chip ${v2ChannelTopologyFilter === def.key ? 'active' : ''}" onclick="setChannelTopologyFilter('${esc(def.key)}')">${esc(def.label)} ${esc(count)}</button>`;
+      }).join('');
+      const custom = !channelTableFilterDefinitions().some(def => def.key === v2ChannelTopologyFilter);
+      const summary = custom
+        ? `<span>Фильтр топологии: <strong>${esc(channelTopologyFilterLabel(v2ChannelTopologyFilter))}</strong> · ${esc(visibleRows.length)}/${esc(totalRows.length)} каналов</span><button class="ghost" onclick="clearChannelTopologyFilter()">Показать все</button>`
+        : '';
+      host.innerHTML = `<div class="filterbar">${chips}</div>${summary}`;
     }
     function renderChannels() {
       const s = overview.summary || {};

@@ -1,0 +1,339 @@
+{
+  "info": {
+    "badges": [
+      {
+        "cls": "channel-signal-badge warn",
+        "dataTooltip": "Сервисы: 13/14 доступны. Не проходят: Anthropic API.",
+        "text": "Сервисы",
+        "title": "Сервисы: 13/14 доступны. Не проходят: Anthropic API."
+      },
+      {
+        "cls": "channel-signal-badge bad",
+        "dataTooltip": "Нагрузка: 11 пользователей. Мягкий лимит 1, жёсткий 2. Сейчас: на лимите.",
+        "text": "Нагрузка",
+        "title": "Нагрузка: 11 пользователей. Мягкий лимит 1, жёсткий 2. Сейчас: на лимите."
+      },
+      {
+        "cls": "channel-signal-badge bad",
+        "dataTooltip": "Топология канала: лимит ёмкости.",
+        "text": "Маршрут",
+        "title": "Топология канала: лимит ёмкости."
+      },
+      {
+        "cls": "channel-signal-badge ok",
+        "dataTooltip": "Runtime: канал готов по текущему снимку.",
+        "text": "Runtime",
+        "title": "Runtime: канал готов по текущему снимку."
+      },
+      {
+        "cls": "channel-signal-badge warn",
+        "dataTooltip": "Сервисы: 13/14 доступны. Не проходят: Anthropic API.",
+        "text": "Сервисы",
+        "title": "Сервисы: 13/14 доступны. Не проходят: Anthropic API."
+      },
+      {
+        "cls": "channel-signal-badge bad",
+        "dataTooltip": "Нагрузка: 8 пользователей. Мягкий лимит 1, жёсткий 2. Сейчас: на лимите.",
+        "text": "Нагрузка",
+        "title": "Нагрузка: 8 пользователей. Мягкий лимит 1, жёсткий 2. Сейчас: на лимите."
+      },
+      {
+        "cls": "channel-signal-badge bad",
+        "dataTooltip": "Топология канала: лимит ёмкости.",
+        "text": "Маршрут",
+        "title": "Топология канала: лимит ёмкости."
+      },
+      {
+        "cls": "channel-signal-badge ok",
+        "dataTooltip": "Runtime: канал готов по текущему снимку.",
+        "text": "Runtime",
+        "title": "Runtime: канал готов по текущему снимку."
+      },
+      {
+        "cls": "channel-signal-badge bad",
+        "dataTooltip": "Сервисы: 0/14 доступны. Не проходят: Anthropic API, Apple, ChatGPT, Claude.",
+        "text": "Сервисы",
+        "title": "Сервисы: 0/14 доступны. Не проходят: Anthropic API, Apple, ChatGPT, Claude."
+      },
+      {
+        "cls": "channel-signal-badge ok",
+        "dataTooltip": "Нагрузка: 0 пользователей. Мягкий лимит 1, жёсткий 2. Сейчас: ОК.",
+        "text": "Нагрузка",
+        "title": "Нагрузка: 0 пользователей. Мягкий лимит 1, жёсткий 2. Сейчас: ОК."
+      },
+      {
+        "cls": "channel-signal-badge bad",
+        "dataTooltip": "Топология канала: сервисы не проходят.",
+        "text": "Маршрут",
+        "title": "Топология канала: сервисы не проходят."
+      },
+      {
+        "cls": "channel-signal-badge ok",
+        "dataTooltip": "Runtime: канал готов по текущему снимку.",
+        "text": "Runtime",
+        "title": "Runtime: канал готов по текущему снимку."
+      },
+      {
+        "cls": "channel-signal-badge warn",
+        "dataTooltip": "Интерфейс канала не поднят или не найден.",
+        "text": "Стабильность",
+        "title": "Интерфейс канала не поднят или не найден."
+      },
+      {
+        "cls": "channel-signal-badge warn",
+        "dataTooltip": "Сервисы: 7/9 доступны. Не проходят: Telegram, WhatsApp.",
+        "text": "Сервисы",
+        "title": "Сервисы: 7/9 доступны. Не проходят: Telegram, WhatsApp."
+      },
+      {
+        "cls": "channel-signal-badge ok",
+        "dataTooltip": "Нагрузка: 0 пользователей. Мягкий лимит 1, жёсткий 2. Сейчас: ОК.",
+        "text": "Нагрузка",
+        "title": "Нагрузка: 0 пользователей. Мягкий лимит 1, жёсткий 2. Сейчас: ОК."
+      },
+      {
+        "cls": "channel-signal-badge warn",
+        "dataTooltip": "Топология канала: часть сервисов.",
+        "text": "Маршрут",
+        "title": "Топология канала: часть сервисов."
+      },
+      {
+        "cls": "channel-signal-badge ok",
+        "dataTooltip": "Runtime: канал готов по текущему снимку.",
+        "text": "Runtime",
+        "title": "Runtime: канал готов по текущему снимку."
+      },
+      {
+        "cls": "channel-signal-badge warn",
+        "dataTooltip": "Сервисы: 13/14 доступны. Не проходят: Anthropic API.",
+        "text": "Сервисы",
+        "title": "Сервисы: 13/14 доступны. Не проходят: Anthropic API."
+      },
+      {
+        "cls": "channel-signal-badge bad",
+        "dataTooltip": "Нагрузка: 8 пользователей. Мягкий лимит 1, жёсткий 2. Сейчас: на лимите.",
+        "text": "Нагрузка",
+        "title": "Нагрузка: 8 пользователей. Мягкий лимит 1, жёсткий 2. Сейчас: на лимите."
+      },
+      {
+        "cls": "channel-signal-badge bad",
+        "dataTooltip": "Топология канала: лимит ёмкости.",
+        "text": "Маршрут",
+        "title": "Топология канала: лимит ёмкости."
+      },
+      {
+        "cls": "channel-signal-badge ok",
+        "dataTooltip": "Runtime: канал готов по текущему снимку.",
+        "text": "Runtime",
+        "title": "Runtime: канал готов по текущему снимку."
+      },
+      {
+        "cls": "channel-signal-badge warn",
+        "dataTooltip": "Сервисы: 13/14 доступны. Не проходят: Anthropic API.",
+        "text": "Сервисы",
+        "title": "Сервисы: 13/14 доступны. Не проходят: Anthropic API."
+      },
+      {
+        "cls": "channel-signal-badge ok",
+        "dataTooltip": "Нагрузка: 0 пользователей. Мягкий лимит 1, жёсткий 2. Сейчас: ОК.",
+        "text": "Нагрузка",
+        "title": "Нагрузка: 0 пользователей. Мягкий лимит 1, жёсткий 2. Сейчас: ОК."
+      },
+      {
+        "cls": "channel-signal-badge warn",
+        "dataTooltip": "Топология канала: часть сервисов.",
+        "text": "Маршрут",
+        "title": "Топология канала: часть сервисов."
+      }
+    ],
+    "chips": [
+      "Все 7",
+      "Проблемные 7",
+      "Здоровые 0",
+      "Перевести 1",
+      "Использовать 2"
+    ],
+    "headers": [
+      "Канал",
+      "Решение",
+      "Сигналы",
+      "Пользователи"
+    ],
+    "rows": [
+      [
+        "vless",
+        "Перевести",
+        "Сервисы\nНагрузка\nМаршрут\nRuntime",
+        "11"
+      ],
+      [
+        "wg гермашка, работает\nwireguard-1779454504-c43409",
+        "Аварийно",
+        "Сервисы\nНагрузка\nМаршрут\nRuntime",
+        "8"
+      ],
+      [
+        "OpenVPN-Kolosov\nopenvpn-1779388847-d2ad7c",
+        "Аварийно",
+        "Сервисы\nНагрузка\nМаршрут\nRuntime\nСтабильность",
+        "0"
+      ],
+      [
+        "1",
+        "Аварийно",
+        "Сервисы\nНагрузка\nМаршрут\nRuntime",
+        "0"
+      ],
+      [
+        "amneziawg-exec-20260528-10-8-1-14",
+        "Аварийно",
+        "Сервисы\nНагрузка\nМаршрут\nRuntime",
+        "0"
+      ],
+      [
+        "awg3",
+        "Использовать",
+        "Сервисы\nНагрузка\nМаршрут\nRuntime",
+        "8"
+      ],
+      [
+        "awg0",
+        "Использовать",
+        "Сервисы\nНагрузка\nМаршрут\nRuntime",
+        "0"
+      ]
+    ],
+    "scrollWidth": 1440,
+    "width": 1440
+  },
+  "desktopTooltipTarget": {
+    "rect": {
+      "height": 22,
+      "left": 773.8046875,
+      "top": 317,
+      "width": 81.9453125
+    },
+    "tooltip": "Сервисы: 13/14 доступны. Не проходят: Anthropic API.",
+    "x": 814.77734375,
+    "y": 328
+  },
+  "mobileInfo": {
+    "badgeCount": 33,
+    "headers": [
+      "Канал",
+      "Решение",
+      "Сигналы",
+      "Пользователи"
+    ],
+    "scrollWidth": 390,
+    "tableShells": [
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 364,
+        "scrollWidth": 364
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      },
+      {
+        "clientWidth": 0,
+        "scrollWidth": 0
+      }
+    ],
+    "tooltipCount": 33,
+    "width": 390
+  },
+  "mobileTooltipTarget": {
+    "rect": {
+      "height": 22,
+      "left": 245.671875,
+      "top": 722,
+      "width": 66.09375
+    },
+    "tooltip": "Сервисы: 13/14 доступны. Не проходят: Anthropic API.",
+    "x": 278.71875,
+    "y": 733
+  },
+  "logs": [],
+  "commit": "e5ea631f"
+}

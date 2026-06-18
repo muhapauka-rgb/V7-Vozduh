@@ -1,0 +1,189 @@
+{
+  "desktopAudit": {
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "hasHorizontalOverflow": false,
+    "rows": [
+      "КАНАЛ\tРЕШЕНИЕ\tСИГНАЛЫ\tПОЛЬЗОВАТЕЛИ",
+      "vless\n\t\nИспользовать\n\t\nСервисы\nНагрузка\nRuntime\n\t\n11",
+      "awg0\n\t\nИспользовать\n\t\nСервисы\nНагрузка\nRuntime\n\t\n0"
+    ],
+    "badges": [
+      {
+        "text": "Сервисы",
+        "className": "channel-signal-badge ok",
+        "title": "Сервисы: основные пользовательские сервисы доступны 7/7. Дополнительные endpoint-проверки не влияют на первый слой: Anthropic API."
+      },
+      {
+        "text": "Нагрузка",
+        "className": "channel-signal-badge bad",
+        "title": "Нагрузка: 11 пользователей. По текущей policy канал выше жёсткого лимита 2; это ограничивает новые назначения, но не означает плохую скорость."
+      },
+      {
+        "text": "Runtime",
+        "className": "channel-signal-badge ok",
+        "title": "Runtime: канал готов по текущему снимку."
+      },
+      {
+        "text": "Сервисы",
+        "className": "channel-signal-badge ok",
+        "title": "Сервисы: основные пользовательские сервисы доступны 7/7. Дополнительные endpoint-проверки не влияют на первый слой: Anthropic API."
+      },
+      {
+        "text": "Нагрузка",
+        "className": "channel-signal-badge ok",
+        "title": "Нагрузка: 0 пользователей. Текущая policy: предпочтительно до 1, жёстко до 2. Сейчас: ОК."
+      },
+      {
+        "text": "Runtime",
+        "className": "channel-signal-badge ok",
+        "title": "Runtime: канал готов по текущему снимку."
+      }
+    ]
+  },
+  "mobileAudit": {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "hasHorizontalOverflow": false,
+    "rows": [
+      "КАНАЛ\tРЕШЕНИЕ\tСИГНАЛЫ\tПОЛЬЗОВАТЕЛИ",
+      "awg3\n\t\nПеревести\n\t\nСервисы\nНагрузка\nRuntime\n\t\n8",
+      "vless\n\t\nИспользовать\n\t\nСервисы\nНагрузка\nRuntime\n\t\n11",
+      "wg гермашка, работает\nwireguard-1779454504-c43409\n\t\nАварийно\n\t\nСервисы\nНагрузка\nRuntime\n\t\n8",
+      "OpenVPN-Kolosov\nopenvpn-1779388847-d2ad7c\n\t\nАварийно\n\t\nСервисы\nНагрузка\nRuntime\nСтабильность\n\t\n0",
+      "1\n\t\nАварийно\n\t\nСервисы\nНагрузка\nRuntime\n\t\n0",
+      "amneziawg-exec-20260528-10-8-1-14\n\t\nАварийно\n\t\nСервисы\nНагрузка\nRuntime\n\t\n0",
+      "awg0\n\t\nИспользовать\n\t\nСервисы\nНагрузка\nRuntime\n\t\n0"
+    ],
+    "badges": [
+      {
+        "text": "Сервисы",
+        "className": "channel-signal-badge ok",
+        "title": "Сервисы: основные пользовательские сервисы доступны 7/7. Дополнительные endpoint-проверки не влияют на первый слой: Anthropic API."
+      },
+      {
+        "text": "Нагрузка",
+        "className": "channel-signal-badge bad",
+        "title": "Нагрузка: 8 пользователей. По текущей policy канал выше жёсткого лимита 2; это ограничивает новые назначения, но не означает плохую скорость."
+      },
+      {
+        "text": "Runtime",
+        "className": "channel-signal-badge ok",
+        "title": "Runtime: канал готов по текущему снимку."
+      },
+      {
+        "text": "Сервисы",
+        "className": "channel-signal-badge ok",
+        "title": "Сервисы: основные пользовательские сервисы доступны 7/7. Дополнительные endpoint-проверки не влияют на первый слой: Anthropic API."
+      },
+      {
+        "text": "Нагрузка",
+        "className": "channel-signal-badge bad",
+        "title": "Нагрузка: 11 пользователей. По текущей policy канал выше жёсткого лимита 2; это ограничивает новые назначения, но не означает плохую скорость."
+      },
+      {
+        "text": "Runtime",
+        "className": "channel-signal-badge ok",
+        "title": "Runtime: канал готов по текущему снимку."
+      },
+      {
+        "text": "Сервисы",
+        "className": "channel-signal-badge ok",
+        "title": "Сервисы: основные пользовательские сервисы доступны 7/7. Дополнительные endpoint-проверки не влияют на первый слой: Anthropic API."
+      },
+      {
+        "text": "Нагрузка",
+        "className": "channel-signal-badge bad",
+        "title": "Нагрузка: 8 пользователей. По текущей policy канал выше жёсткого лимита 2; это ограничивает новые назначения, но не означает плохую скорость."
+      },
+      {
+        "text": "Runtime",
+        "className": "channel-signal-badge ok",
+        "title": "Runtime: канал готов по текущему снимку."
+      },
+      {
+        "text": "Сервисы",
+        "className": "channel-signal-badge bad",
+        "title": "Сервисы: основные пользовательские сервисы доступны 0/7. Не проходят: Telegram, YouTube, Instagram, Google."
+      },
+      {
+        "text": "Нагрузка",
+        "className": "channel-signal-badge ok",
+        "title": "Нагрузка: 0 пользователей. Текущая policy: предпочтительно до 1, жёстко до 2. Сейчас: ОК."
+      },
+      {
+        "text": "Runtime",
+        "className": "channel-signal-badge ok",
+        "title": "Runtime: канал готов по текущему снимку."
+      },
+      {
+        "text": "Стабильность",
+        "className": "channel-signal-badge warn",
+        "title": "Интерфейс канала не поднят или не найден."
+      },
+      {
+        "text": "Сервисы",
+        "className": "channel-signal-badge warn",
+        "title": "Сервисы: основные пользовательские сервисы доступны 3/5. Не проходят: Telegram, WhatsApp."
+      },
+      {
+        "text": "Нагрузка",
+        "className": "channel-signal-badge ok",
+        "title": "Нагрузка: 0 пользователей. Текущая policy: предпочтительно до 1, жёстко до 2. Сейчас: ОК."
+      },
+      {
+        "text": "Runtime",
+        "className": "channel-signal-badge ok",
+        "title": "Runtime: канал готов по текущему снимку."
+      },
+      {
+        "text": "Сервисы",
+        "className": "channel-signal-badge ok",
+        "title": "Сервисы: основные пользовательские сервисы доступны 7/7. Дополнительные endpoint-проверки не влияют на первый слой: Anthropic API."
+      },
+      {
+        "text": "Нагрузка",
+        "className": "channel-signal-badge ok",
+        "title": "Нагрузка: 0 пользователей. Текущая policy: предпочтительно до 10, жёстко до 10. Сейчас: ОК."
+      },
+      {
+        "text": "Runtime",
+        "className": "channel-signal-badge ok",
+        "title": "Runtime: канал готов по текущему снимку."
+      },
+      {
+        "text": "Сервисы",
+        "className": "channel-signal-badge ok",
+        "title": "Сервисы: основные пользовательские сервисы доступны 7/7. Дополнительные endpoint-проверки не влияют на первый слой: Anthropic API."
+      },
+      {
+        "text": "Нагрузка",
+        "className": "channel-signal-badge ok",
+        "title": "Нагрузка: 0 пользователей. Текущая policy: предпочтительно до 1, жёстко до 2. Сейчас: ОК."
+      },
+      {
+        "text": "Runtime",
+        "className": "channel-signal-badge ok",
+        "title": "Runtime: канал готов по текущему снимку."
+      }
+    ]
+  },
+  "desktopHover": {
+    "x": 564.671875,
+    "y": 328,
+    "title": "Нагрузка: 11 пользователей. По текущей policy канал выше жёсткого лимита 2; это ограничивает новые назначения, но не означает плохую скорость."
+  },
+  "mobileHover": {
+    "x": 278.7109375,
+    "y": 199,
+    "title": "Нагрузка: 11 пользователей. По текущей policy канал выше жёсткого лимита 2; это ограничивает новые назначения, но не означает плохую скорость."
+  }
+}

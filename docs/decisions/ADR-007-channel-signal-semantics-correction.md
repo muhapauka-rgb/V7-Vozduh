@@ -2,7 +2,7 @@
 
 Status: Accepted
 Date: 2026-06-18
-Commit: `169e868a`
+Commit: `021e7312`
 
 ## Context
 
@@ -68,4 +68,3 @@ Load is an assignment/capacity signal. It means "can this channel accept or keep
 - `CHANNEL_SIGNALS_2A_SEMANTICS_REPORT.md`
 - `CHANNEL_ROUTE_COMPONENT_REALITY_AUDIT_REPORT.md`
 - `CHANNEL_SCORE_REALITY_AUDIT.md`
-

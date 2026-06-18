@@ -20,6 +20,23 @@ Before commit and push after major logic work:
 4. Run `tools/v7-convergence-status --json`.
 5. Commit code and docs together.
 
+## Knowledge Preservation Rules
+
+1. No important knowledge may live only in chat.
+2. No important knowledge may live only in reports.
+3. Stable conclusions must move into `docs/reference/V7_CANONICAL_REFERENCE.md`.
+4. Architectural decisions must move into ADRs under `docs/decisions/`.
+5. Future audits must read this reference, relevant ADRs, and `docs/reference/SYSTEM_MAP.md` before auditing.
+
+Before launching any new audit, use Reference First:
+
+1. Read `docs/reference/V7_CANONICAL_REFERENCE.md`.
+2. Read relevant ADRs.
+3. Read `docs/reference/SYSTEM_MAP.md`.
+4. Determine whether the answer already exists.
+
+A new audit is allowed only when the reference has no answer, the reference explicitly marks the area `UNKNOWN`, system behavior changed after the last verified commit, or evidence contradicts this canonical reference. Otherwise, update the reference if needed and do not create a new audit.
+
 ## 1. Channels
 
 - What it means: A channel is an egress path that can carry users, be inspected by operators, and be considered by the planner.

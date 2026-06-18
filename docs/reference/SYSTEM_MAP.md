@@ -30,3 +30,25 @@ Major logic, planner, UI meaning, governance, runtime, or truth-source work must
 2. `tools/v7-convergence-status --json`
 
 Commit code and reference updates together so V7 knowledge does not split between code, reports, and chat.
+
+## Reference First Workflow
+
+Future questions and audits must follow this path:
+
+```text
+Question
+  |
+  v
+V7_CANONICAL_REFERENCE.md
+  |
+  v
+Relevant ADRs
+  |
+  v
+SYSTEM_MAP.md
+  |
+  v
+Audit only if still needed
+```
+
+Use this workflow for recurring concepts such as Route, Capacity, Channel Score, Technical Health, Planner, Assignment, Service Matrix, Trust, Recovery, and Autonomy. If the answer already exists, use the reference answer. If the answer is stable but incomplete, update the reference. Start a new audit only when the reference has no answer, marks the area `UNKNOWN`, system behavior changed after the last verified commit, or current evidence contradicts the reference.

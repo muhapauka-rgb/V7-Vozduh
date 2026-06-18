@@ -20459,7 +20459,6 @@ def html_page_v2():
     .drawer.compact-drawer .quick-issue-result .qr-card { gap:10px; }
     .sort-config-grid select { min-width:0; }
     @media(max-width:560px){
-      .channel-signal-badge:hover::after, .channel-signal-badge:focus::after { left:auto; right:0; max-width:220px; }
       .drawer.compact-drawer .quick-issue-form { grid-template-columns:1fr; }
       .quick-issue-wide { grid-column:span 1; }
     }
@@ -20486,6 +20485,9 @@ def html_page_v2():
     .channel-signal-badge.bad { color:var(--red); background:rgba(251,113,133,.09); border-color:rgba(251,113,133,.25); }
     .channel-signal-badge.info { color:var(--blue); background:rgba(96,165,250,.09); border-color:rgba(96,165,250,.22); }
     .channel-signal-badge.muted { color:var(--muted); background:rgba(148,163,184,.08); border-color:var(--line); }
+    @media(max-width:560px){
+      .channel-signal-badge:hover::after, .channel-signal-badge:focus::after { left:auto; right:0; max-width:220px; }
+    }
     .operator-decision-path { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
     .operator-decision-step { border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.025); padding:9px; min-width:0; }
     .operator-decision-step strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

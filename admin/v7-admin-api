@@ -21043,6 +21043,8 @@ def html_page_v2():
       #channelsTableV2 th[data-col="health"], #channelsTableV2 td[data-col="health"]{width:22%}
       #overviewChannels th[data-col="users"], #overviewChannels td[data-col="users"],
       #channelsTableV2 th[data-col="users"], #channelsTableV2 td[data-col="users"]{width:16%}
+      #channelsTableV2 th[data-col="users"]{font-size:0}
+      #channelsTableV2 th[data-col="users"]::before{content:'ЮЗЕРЫ';font-size:12px}
       #overviewUsers th, #overviewUsers td,
       #usersTableV2 th, #usersTableV2 td,
       #overviewChannels th, #overviewChannels td,

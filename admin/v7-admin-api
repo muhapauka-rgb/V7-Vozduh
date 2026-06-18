@@ -20459,6 +20459,7 @@ def html_page_v2():
     .drawer.compact-drawer .quick-issue-result .qr-card { gap:10px; }
     .sort-config-grid select { min-width:0; }
     @media(max-width:560px){
+      .channel-signal-badge:hover::after, .channel-signal-badge:focus::after { left:auto; right:0; max-width:220px; }
       .drawer.compact-drawer .quick-issue-form { grid-template-columns:1fr; }
       .quick-issue-wide { grid-column:span 1; }
     }

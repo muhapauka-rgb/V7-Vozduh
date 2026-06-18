@@ -117,7 +117,7 @@ A new audit is allowed only when the reference has no answer, the reference expl
 - What does NOT affect it: Raw service success alone, operator UI sorting alone, or screenshots.
 - Operator meaning: "Can this channel accept or keep users without overload?"
 - Engineer meaning: Planner/gate input that bounds movement and prevents broad unsafe switching.
-- Known caveats: Capacity can break ties or block moves even when service quality is good. Exact policy thresholds must be read from live policy/config.
+- Known caveats: Capacity can break ties or block moves even when service quality is good. Exact policy thresholds must be read from live policy/config. Operator-facing Load is an assignment/capacity posture, not a speed or traffic-quality verdict.
 - Related reports / ADRs: `CHANNEL_TRUTH_1_FULL_DECISION_PIPELINE_AND_SCORE_ALIGNMENT_AUDIT_REPORT.md`, `CHANNEL_TRUTH_2_ASSIGNMENT_ELIGIBILITY_TRUTH_DISCOVERY_REPORT.md`, `docs/operator_actions/CHANNEL_AUTOMATION_OPERATOR_REALITY_AUDIT_REPORT.md`.
 - Last verified commit: `8ba2178f`.
 
@@ -131,7 +131,7 @@ A new audit is allowed only when the reference has no answer, the reference expl
 - What does NOT affect it: It does not by itself execute user movement, bypass governance, or replace planner eligibility.
 - Operator meaning: "Which services work on this channel and what needs re-checking?"
 - Engineer meaning: Measurement/diagnostic input consumed by UI and planner gates.
-- Known caveats: Service Matrix is diagnostic/background automation, not a standalone business action. Manual refresh is allowed only through existing safe handlers.
+- Known caveats: Service Matrix is diagnostic/background automation, not a standalone business action. Manual refresh is allowed only through existing safe handlers. First-level channel Services should track primary user-facing services; hidden endpoint checks such as auth/API companion endpoints remain supporting diagnostics unless they become explicit planner blockers.
 - Related reports / ADRs: `docs/operator_actions/OPERATOR_ACTIONS_AUTOMATION_REALITY_AUDIT.md`, `docs/operator_actions/CHANNEL_AUTOMATION_2_OPERATOR_SURFACE_SIMPLIFICATION_REPORT.md`, `UX_4_CHANNEL_DRAWER_REBUILD_SPECIFICATION_REPORT.md`.
 - Last verified commit: `8ba2178f`.
 
@@ -280,11 +280,11 @@ A new audit is allowed only when the reference has no answer, the reference expl
 - What it means: Channels must be presented through multiple operator signals, not through one mixed score that appears to explain everything.
 - Source of truth: Existing Channel Decision V7 / assignment truth, channel suitability breakdown, service matrix, capacity/load state, route/topology readiness, runtime readiness, history, and current user counts.
 - Where it is calculated: `admin/v7-admin-api` channel suitability, assignment, topology, and drawer helpers; planner assignment truth in `tools/v7-users-autoswitch`; operator projection in `admin_core/operator_decision_surface.py`.
-- Where it is displayed: Channel table, Channel Drawer, technical diagnostics, and future signal/tooltip presentation.
+- Where it is displayed: Channel table, Channel Drawer, technical diagnostics, and signal/tooltip presentation.
 - What affects it: Planner decision/assignment role, selected moves, blockers, service availability, load/capacity posture, route readiness confidence, runtime readiness, stability, history, users on channel, and evidence freshness.
 - What does NOT affect it: A single mixed score alone, raw trust/recovery labels alone, cosmetic table ordering, or UI-only labels without underlying existing truth.
 - Operator meaning: "What did V7 decide, what signal explains it, how many users are affected, and what should I inspect next?"
 - Engineer meaning: A read-only classification layer over existing signals: operator signals, supporting signals, and diagnostics-only signals.
-- Known caveats: Route is a readiness confidence/supporting signal, not direct user traffic quality. Technical Health remains diagnostics-only. Raw score components must not become an alternative planner or action owner.
-- Related reports / ADRs: `CHANNEL_SIGNALS_1_MODEL_AUDIT_REPORT.md`, `CHANNEL_SCORE_REALITY_AUDIT.md`, `CHANNEL_ROUTE_COMPONENT_REALITY_AUDIT_REPORT.md`, ADR-002, ADR-003, ADR-004, ADR-006.
-- Last verified commit: `72ede82b`.
+- Known caveats: First-level channel table signals are `Services`, `Load`, `Runtime`, and `Stability` only when stability is not OK. Route is supporting/diagnostics-only because the current route component is topology/readiness confidence and may be reduced by capacity or service state; it must not appear as a red first-level route failure unless planner/route evidence exposes a real route blocker. Services at first level track primary user-facing services; optional/hidden endpoint checks such as Anthropic API must not downgrade first-level Services by themselves. Technical Health remains diagnostics-only. Raw score components must not become an alternative planner or action owner.
+- Related reports / ADRs: `CHANNEL_SIGNALS_1_MODEL_AUDIT_REPORT.md`, `CHANNEL_SIGNALS_2_TABLE_IMPLEMENTATION_REPORT.md`, `CHANNEL_SIGNALS_2A_SEMANTICS_REPORT.md`, `CHANNEL_SCORE_REALITY_AUDIT.md`, `CHANNEL_ROUTE_COMPONENT_REALITY_AUDIT_REPORT.md`, ADR-002, ADR-003, ADR-004, ADR-006, ADR-007.
+- Last verified commit: `169e868a`.

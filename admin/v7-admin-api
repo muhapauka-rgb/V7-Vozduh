@@ -27222,6 +27222,71 @@ def html_page_v2():
       const s = channelSuitability(source);
       return (s.breakdown || []).find(item => item.check === check) || {check, score:0, max:1, reason:'Нет данных', problem:check};
     }
+    function channelPrimaryServiceSignalEvidence(source={}) {
+      const row = channelRowFromSource(source);
+      const id = row.id || row.egress || '';
+      const detail = row._detail || {};
+      const raw = detail.service_matrix || channelMatrix(id).mx || {};
+      const services = serviceMatrixServices(raw);
+      const primaryIds = ['telegram', 'youtube', 'instagram', 'google', 'whatsapp', 'chatgpt', 'claude'];
+      const primary = primaryIds
+        .map(name => ({name, item: services[name]}))
+        .filter(row => row.item);
+      const fallback = Object.entries(services)
+        .filter(([name]) => !['google_auth', 'openai_auth', 'anthropic'].includes(normalizeServiceId(name)))
+        .map(([name, item]) => ({name, item}));
+      const measured = primary.length ? primary : fallback;
+      const ok = measured.filter(row => serviceOk(row.item));
+      const failed = measured.filter(row => !serviceOk(row.item));
+      const optionalFailed = Object.entries(services)
+        .filter(([name, item]) => !measured.some(row => row.name === name) && !serviceOk(item))
+        .map(([name]) => serviceDisplayName(name));
+      return {
+        total: measured.length,
+        ok: ok.length,
+        failed: failed.map(row => serviceDisplayName(row.name)),
+        optionalFailed,
+        rawTotal: Number(raw.total || raw.count || Object.keys(services).length || 0),
+      };
+    }
+    function channelOperatorServiceSignalComponent(source={}) {
+      const base = channelSignalComponent(source, 'Services');
+      const evidence = channelPrimaryServiceSignalEvidence(source);
+      if (!evidence.total) {
+        return {
+          ...base,
+          score: 18,
+          max: 30,
+          reason: 'Основные сервисы не измерены',
+          problem: 'Services',
+          problems: ['Services not measured'],
+          _serviceSignalEvidence: evidence,
+        };
+      }
+      if (!evidence.failed.length) {
+        return {
+          ...base,
+          score: 30,
+          max: 30,
+          reason: 'Основные сервисы доступны',
+          problem: '',
+          working: ['Services'],
+          problems: [],
+          _serviceSignalEvidence: evidence,
+        };
+      }
+      const score = clampChannelScore((evidence.ok / Math.max(1, evidence.total)) * 30, 30);
+      return {
+        ...base,
+        score,
+        max: 30,
+        reason: `${evidence.ok}/${evidence.total} основных сервисов доступны`,
+        problem: 'Services',
+        working: evidence.ok ? ['Services'] : [],
+        problems: evidence.failed.slice(0, 4),
+        _serviceSignalEvidence: evidence,
+      };
+    }
     function channelSignalTone(item={}) {
       const score = Number(item.score || 0);
       const max = Number(item.max || 0);
@@ -27252,17 +27317,22 @@ def html_page_v2():
       const id = row.id || row.egress || '';
       const check = String(item.check || '');
       if (check === 'Services') {
-        const service = channelScoreServiceEvidence(row);
-        if (!service.total) return 'Сервисы: измерения ещё нет. Откройте диагностику, если нужно подтвердить доступность.';
-        if (service.ok >= service.total) return `Сервисы: ${service.ok}/${service.total} доступны.`;
-        const unavailable = service.unavailable.slice(0, 4).join(', ');
-        return `Сервисы: ${service.ok}/${service.total} доступны. Не проходят: ${unavailable || 'часть сервисов'}.`;
+        const service = item._serviceSignalEvidence || channelPrimaryServiceSignalEvidence(row);
+        const optional = service.optionalFailed?.length
+          ? ` Дополнительные endpoint-проверки не влияют на первый слой: ${service.optionalFailed.slice(0, 4).join(', ')}.`
+          : '';
+        if (!service.total) return `Сервисы: основные пользовательские сервисы ещё не измерены.${optional}`;
+        if (!service.failed.length) return `Сервисы: основные пользовательские сервисы доступны ${service.ok}/${service.total}.${optional}`;
+        return `Сервисы: основные пользовательские сервисы доступны ${service.ok}/${service.total}. Не проходят: ${service.failed.slice(0, 4).join(', ')}.`;
       }
       if (check === 'Capacity') {
         const count = egressUserCount(id);
         const limit = channelLoadLimit(row);
-        const state = statusLabel(channelLoad(id, row.state || {}));
-        return `Нагрузка: ${count} пользователей. Мягкий лимит ${limit.soft}, жёсткий ${limit.hard}. Сейчас: ${state}.`;
+        const rawState = channelLoad(id, row.state || {});
+        const state = statusLabel(rawState);
+        if (/HARD|OVER/i.test(String(rawState || '')) || count > limit.hard) return `Нагрузка: ${count} пользователей. По текущей policy канал выше жёсткого лимита ${limit.hard}; это ограничивает новые назначения, но не означает плохую скорость.`;
+        if (/SOFT|LIMIT|WARN/i.test(String(rawState || '')) || count > limit.soft) return `Нагрузка: ${count} пользователей. По текущей policy канал выше предпочтительного уровня ${limit.soft}; лучше не добавлять новых без проверки.`;
+        return `Нагрузка: ${count} пользователей. Текущая policy: предпочтительно до ${limit.soft}, жёстко до ${limit.hard}. Сейчас: ${state}.`;
       }
       if (check === 'Route') return channelScoreExplanationText(row, item).replace(/ Этот сигнал снизил маршрутный компонент\.?/g, '');
       if (check === 'Runtime') {
@@ -27276,8 +27346,11 @@ def html_page_v2():
     }
     function channelSignalSummary(source={}) {
       const row = channelRowFromSource(source);
-      const checks = ['Services', 'Capacity', 'Route', 'Runtime'];
-      const items = checks.map(check => channelSignalComponent(row, check));
+      const items = [
+        channelOperatorServiceSignalComponent(row),
+        channelSignalComponent(row, 'Capacity'),
+        channelSignalComponent(row, 'Runtime'),
+      ];
       const stability = channelSignalComponent(row, 'Stability');
       if (channelSignalTone(stability) !== 'ok') items.push(stability);
       return items.map(item => ({

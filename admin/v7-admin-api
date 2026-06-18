@@ -20476,8 +20476,10 @@ def html_page_v2():
     .operator-decision-button .cell-main { font-size:12px; }
     .operator-decision-button .cell-sub { max-width:170px; }
     .channel-signal-strip { display:flex; align-items:center; flex-wrap:wrap; gap:5px; max-width:310px; }
-    .channel-signal-badge { display:inline-flex; align-items:center; gap:5px; min-height:22px; max-width:100%; border:1px solid var(--line); border-radius:999px; background:rgba(148,163,184,.08); color:var(--muted); padding:2px 7px; font-size:11px; font-weight:850; cursor:help; white-space:nowrap; }
+    .channels-table-v2 td[data-col="signals"] { overflow:visible; }
+    .channel-signal-badge { position:relative; display:inline-flex; align-items:center; gap:5px; min-height:22px; max-width:100%; border:1px solid var(--line); border-radius:999px; background:rgba(148,163,184,.08); color:var(--muted); padding:2px 7px; font-size:11px; font-weight:850; cursor:help; white-space:nowrap; outline:0; }
     .channel-signal-badge::before { content:''; width:7px; height:7px; border-radius:999px; background:currentColor; flex:0 0 auto; }
+    .channel-signal-badge:hover::after, .channel-signal-badge:focus::after { content:attr(data-tooltip); position:absolute; z-index:80; left:0; top:calc(100% + 7px); width:max-content; max-width:270px; white-space:normal; line-height:1.35; color:var(--text); background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); padding:8px 9px; font-size:12px; font-weight:760; }
     .channel-signal-badge.ok { color:var(--green); background:rgba(52,211,153,.09); border-color:rgba(52,211,153,.22); }
     .channel-signal-badge.warn { color:var(--yellow); background:rgba(250,204,21,.09); border-color:rgba(250,204,21,.24); }
     .channel-signal-badge.bad { color:var(--red); background:rgba(251,113,133,.09); border-color:rgba(251,113,133,.25); }
@@ -27289,7 +27291,7 @@ def html_page_v2():
     function channelSignalsCell(source={}) {
       const items = channelSignalSummary(source);
       if (!items.length) return '<span class="muted">нет сигналов</span>';
-      return `<div class="channel-signal-strip">${items.map(item => `<span class="channel-signal-badge ${esc(item.tone)}" title="${esc(item.tooltip)}">${esc(item.label)}</span>`).join('')}</div>`;
+      return `<div class="channel-signal-strip">${items.map(item => `<span class="channel-signal-badge ${esc(item.tone)}" tabindex="0" title="${esc(item.tooltip)}" data-tooltip="${esc(item.tooltip)}">${esc(item.label)}</span>`).join('')}</div>`;
     }
     function channelCommercialStatusCell(source={}) {
       const s = channelSuitability(source);

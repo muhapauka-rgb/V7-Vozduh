@@ -2,7 +2,7 @@
 
 Status: Accepted
 Date: 2026-06-18
-Commit: `PENDING_THIS_COMMIT`
+Commit: `2859c0e2`
 
 ## Context
 

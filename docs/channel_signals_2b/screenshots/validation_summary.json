@@ -1,0 +1,437 @@
+{
+  "url": "https://v7-admin.195-2-79-116.sslip.io/admin-v2#channels",
+  "captured_at": "2026-06-18T16:42:32.857Z",
+  "screenshots": {
+    "desktop_channels_table": "desktop_channels_table.png",
+    "desktop_use_tooltip": "desktop_use_tooltip.png",
+    "desktop_emergency_tooltip": "desktop_emergency_tooltip.png",
+    "desktop_evacuate_tooltip": "desktop_evacuate_tooltip.png",
+    "desktop_keep_tooltip": null,
+    "mobile_channels_table_390": "mobile_channels_table_390.png",
+    "mobile_use_tooltip_390": "mobile_use_tooltip_390.png",
+    "mobile_emergency_tooltip_390": "mobile_emergency_tooltip_390.png"
+  },
+  "decisions": {
+    "evacuate": 1,
+    "use": 2,
+    "emergency": 4
+  },
+  "desktopRows": [
+    {
+      "channel": "vless",
+      "text": "vless Перевести Сервисы Нагрузка Runtime 11",
+      "decision": "Перевести",
+      "signals": [
+        {
+          "label": "Сервисы",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Сервисы: основные пользовательские сервисы доступны 7/7. Дополнительные endpoint-проверки не влияют на первый слой: Anthropic API."
+        },
+        {
+          "label": "Нагрузка",
+          "className": "channel-signal-badge bad",
+          "tone": "bad",
+          "tooltip": "Нагрузка: 11 пользователей. По текущей policy канал выше жёсткого лимита 2; это ограничивает новые назначения, но не означает плохую скорость."
+        },
+        {
+          "label": "Runtime",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Runtime: канал готов по текущему снимку."
+        }
+      ],
+      "users": "11",
+      "action": "11",
+      "redSignals": [
+        "Нагрузка"
+      ]
+    },
+    {
+      "channel": "awg3",
+      "text": "awg3 Использовать Сервисы Нагрузка Runtime 8",
+      "decision": "Использовать",
+      "signals": [
+        {
+          "label": "Сервисы",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Сервисы: основные пользовательские сервисы доступны 7/7. Дополнительные endpoint-проверки не влияют на первый слой: Anthropic API."
+        },
+        {
+          "label": "Нагрузка",
+          "className": "channel-signal-badge warn",
+          "tone": "warn",
+          "tooltip": "Нагрузка: 8 пользователей. По текущей policy канал выше жёсткого лимита 2; это ограничивает новые назначения, но не означает плохую скорость. Решение V7: использовать; этот сигнал остаётся диагностикой и не блокирует назначение."
+        },
+        {
+          "label": "Runtime",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Runtime: канал готов по текущему снимку."
+        }
+      ],
+      "users": "8",
+      "action": "8",
+      "redSignals": []
+    },
+    {
+      "channel": "wg гермашка, работает wireguard-1779454504-c43409",
+      "text": "wg гермашка, работает wireguard-1779454504-c43409 Аварийно Сервисы Нагрузка Runtime 8",
+      "decision": "Аварийно",
+      "signals": [
+        {
+          "label": "Сервисы",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Сервисы: основные пользовательские сервисы доступны 7/7. Дополнительные endpoint-проверки не влияют на первый слой: Anthropic API."
+        },
+        {
+          "label": "Нагрузка",
+          "className": "channel-signal-badge warn",
+          "tone": "warn",
+          "tooltip": "Нагрузка: 8 пользователей. По текущей policy канал выше жёсткого лимита 2; это ограничивает новые назначения, но не означает плохую скорость. Решение V7: только аварийно; ограничение роли важнее диагностического цвета."
+        },
+        {
+          "label": "Runtime",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Runtime: канал готов по текущему снимку."
+        }
+      ],
+      "users": "8",
+      "action": "8",
+      "redSignals": []
+    },
+    {
+      "channel": "1",
+      "text": "1 Аварийно Сервисы Нагрузка Runtime 0",
+      "decision": "Аварийно",
+      "signals": [
+        {
+          "label": "Сервисы",
+          "className": "channel-signal-badge warn",
+          "tone": "warn",
+          "tooltip": "Сервисы: основные пользовательские сервисы доступны 3/5. Не проходят: Telegram, WhatsApp."
+        },
+        {
+          "label": "Нагрузка",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Нагрузка: 0 пользователей. Текущая policy: предпочтительно до 1, жёстко до 2. Сейчас: ОК."
+        },
+        {
+          "label": "Runtime",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Runtime: канал готов по текущему снимку."
+        }
+      ],
+      "users": "0",
+      "action": "0",
+      "redSignals": []
+    },
+    {
+      "channel": "OpenVPN-Kolosov openvpn-1779388847-d2ad7c",
+      "text": "OpenVPN-Kolosov openvpn-1779388847-d2ad7c Аварийно Сервисы Нагрузка Runtime Стабильность 0",
+      "decision": "Аварийно",
+      "signals": [
+        {
+          "label": "Сервисы",
+          "className": "channel-signal-badge warn",
+          "tone": "warn",
+          "tooltip": "Сервисы: основные пользовательские сервисы доступны 0/7. Не проходят: Telegram, YouTube, Instagram, Google. Решение V7: только аварийно; ограничение роли важнее диагностического цвета."
+        },
+        {
+          "label": "Нагрузка",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Нагрузка: 0 пользователей. Текущая policy: предпочтительно до 1, жёстко до 2. Сейчас: ОК."
+        },
+        {
+          "label": "Runtime",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Runtime: канал готов по текущему снимку."
+        },
+        {
+          "label": "Стабильность",
+          "className": "channel-signal-badge warn",
+          "tone": "warn",
+          "tooltip": "Интерфейс канала не поднят или не найден."
+        }
+      ],
+      "users": "0",
+      "action": "0",
+      "redSignals": []
+    },
+    {
+      "channel": "amneziawg-exec-20260528-10-8-1-14",
+      "text": "amneziawg-exec-20260528-10-8-1-14 Аварийно Сервисы Нагрузка Runtime 0",
+      "decision": "Аварийно",
+      "signals": [
+        {
+          "label": "Сервисы",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Сервисы: основные пользовательские сервисы доступны 7/7. Дополнительные endpoint-проверки не влияют на первый слой: Anthropic API."
+        },
+        {
+          "label": "Нагрузка",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Нагрузка: 0 пользователей. Текущая policy: предпочтительно до 10, жёстко до 10. Сейчас: ОК."
+        },
+        {
+          "label": "Runtime",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Runtime: канал готов по текущему снимку."
+        }
+      ],
+      "users": "0",
+      "action": "0",
+      "redSignals": []
+    },
+    {
+      "channel": "awg0",
+      "text": "awg0 Использовать Сервисы Нагрузка Runtime 0",
+      "decision": "Использовать",
+      "signals": [
+        {
+          "label": "Сервисы",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Сервисы: основные пользовательские сервисы доступны 7/7. Дополнительные endpoint-проверки не влияют на первый слой: Anthropic API."
+        },
+        {
+          "label": "Нагрузка",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Нагрузка: 0 пользователей. Текущая policy: предпочтительно до 1, жёстко до 2. Сейчас: ОК."
+        },
+        {
+          "label": "Runtime",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Runtime: канал готов по текущему снимку."
+        }
+      ],
+      "users": "0",
+      "action": "0",
+      "redSignals": []
+    }
+  ],
+  "mobileRows": [
+    {
+      "channel": "vless",
+      "text": "vless Перевести Сервисы Нагрузка Runtime 11",
+      "decision": "Перевести",
+      "signals": [
+        {
+          "label": "Сервисы",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Сервисы: основные пользовательские сервисы доступны 7/7. Дополнительные endpoint-проверки не влияют на первый слой: Anthropic API."
+        },
+        {
+          "label": "Нагрузка",
+          "className": "channel-signal-badge bad",
+          "tone": "bad",
+          "tooltip": "Нагрузка: 11 пользователей. По текущей policy канал выше жёсткого лимита 2; это ограничивает новые назначения, но не означает плохую скорость."
+        },
+        {
+          "label": "Runtime",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Runtime: канал готов по текущему снимку."
+        }
+      ],
+      "users": "11",
+      "action": "11",
+      "redSignals": [
+        "Нагрузка"
+      ]
+    },
+    {
+      "channel": "awg3",
+      "text": "awg3 Использовать Сервисы Нагрузка Runtime 8",
+      "decision": "Использовать",
+      "signals": [
+        {
+          "label": "Сервисы",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Сервисы: основные пользовательские сервисы доступны 7/7. Дополнительные endpoint-проверки не влияют на первый слой: Anthropic API."
+        },
+        {
+          "label": "Нагрузка",
+          "className": "channel-signal-badge warn",
+          "tone": "warn",
+          "tooltip": "Нагрузка: 8 пользователей. По текущей policy канал выше жёсткого лимита 2; это ограничивает новые назначения, но не означает плохую скорость. Решение V7: использовать; этот сигнал остаётся диагностикой и не блокирует назначение."
+        },
+        {
+          "label": "Runtime",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Runtime: канал готов по текущему снимку."
+        }
+      ],
+      "users": "8",
+      "action": "8",
+      "redSignals": []
+    },
+    {
+      "channel": "wg гермашка, работает wireguard-1779454504-c43409",
+      "text": "wg гермашка, работает wireguard-1779454504-c43409 Аварийно Сервисы Нагрузка Runtime 8",
+      "decision": "Аварийно",
+      "signals": [
+        {
+          "label": "Сервисы",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Сервисы: основные пользовательские сервисы доступны 7/7. Дополнительные endpoint-проверки не влияют на первый слой: Anthropic API."
+        },
+        {
+          "label": "Нагрузка",
+          "className": "channel-signal-badge warn",
+          "tone": "warn",
+          "tooltip": "Нагрузка: 8 пользователей. По текущей policy канал выше жёсткого лимита 2; это ограничивает новые назначения, но не означает плохую скорость. Решение V7: только аварийно; ограничение роли важнее диагностического цвета."
+        },
+        {
+          "label": "Runtime",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Runtime: канал готов по текущему снимку."
+        }
+      ],
+      "users": "8",
+      "action": "8",
+      "redSignals": []
+    },
+    {
+      "channel": "1",
+      "text": "1 Аварийно Сервисы Нагрузка Runtime 0",
+      "decision": "Аварийно",
+      "signals": [
+        {
+          "label": "Сервисы",
+          "className": "channel-signal-badge warn",
+          "tone": "warn",
+          "tooltip": "Сервисы: основные пользовательские сервисы доступны 3/5. Не проходят: Telegram, WhatsApp."
+        },
+        {
+          "label": "Нагрузка",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Нагрузка: 0 пользователей. Текущая policy: предпочтительно до 1, жёстко до 2. Сейчас: ОК."
+        },
+        {
+          "label": "Runtime",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Runtime: канал готов по текущему снимку."
+        }
+      ],
+      "users": "0",
+      "action": "0",
+      "redSignals": []
+    },
+    {
+      "channel": "OpenVPN-Kolosov openvpn-1779388847-d2ad7c",
+      "text": "OpenVPN-Kolosov openvpn-1779388847-d2ad7c Аварийно Сервисы Нагрузка Runtime Стабильность 0",
+      "decision": "Аварийно",
+      "signals": [
+        {
+          "label": "Сервисы",
+          "className": "channel-signal-badge warn",
+          "tone": "warn",
+          "tooltip": "Сервисы: основные пользовательские сервисы доступны 0/7. Не проходят: Telegram, YouTube, Instagram, Google. Решение V7: только аварийно; ограничение роли важнее диагностического цвета."
+        },
+        {
+          "label": "Нагрузка",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Нагрузка: 0 пользователей. Текущая policy: предпочтительно до 1, жёстко до 2. Сейчас: ОК."
+        },
+        {
+          "label": "Runtime",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Runtime: канал готов по текущему снимку."
+        },
+        {
+          "label": "Стабильность",
+          "className": "channel-signal-badge warn",
+          "tone": "warn",
+          "tooltip": "Интерфейс канала не поднят или не найден."
+        }
+      ],
+      "users": "0",
+      "action": "0",
+      "redSignals": []
+    },
+    {
+      "channel": "amneziawg-exec-20260528-10-8-1-14",
+      "text": "amneziawg-exec-20260528-10-8-1-14 Аварийно Сервисы Нагрузка Runtime 0",
+      "decision": "Аварийно",
+      "signals": [
+        {
+          "label": "Сервисы",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Сервисы: основные пользовательские сервисы доступны 7/7. Дополнительные endpoint-проверки не влияют на первый слой: Anthropic API."
+        },
+        {
+          "label": "Нагрузка",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Нагрузка: 0 пользователей. Текущая policy: предпочтительно до 10, жёстко до 10. Сейчас: ОК."
+        },
+        {
+          "label": "Runtime",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Runtime: канал готов по текущему снимку."
+        }
+      ],
+      "users": "0",
+      "action": "0",
+      "redSignals": []
+    },
+    {
+      "channel": "awg0",
+      "text": "awg0 Использовать Сервисы Нагрузка Runtime 0",
+      "decision": "Использовать",
+      "signals": [
+        {
+          "label": "Сервисы",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Сервисы: основные пользовательские сервисы доступны 7/7. Дополнительные endpoint-проверки не влияют на первый слой: Anthropic API."
+        },
+        {
+          "label": "Нагрузка",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Нагрузка: 0 пользователей. Текущая policy: предпочтительно до 1, жёстко до 2. Сейчас: ОК."
+        },
+        {
+          "label": "Runtime",
+          "className": "channel-signal-badge ok",
+          "tone": "ok",
+          "tooltip": "Runtime: канал готов по текущему снимку."
+        }
+      ],
+      "users": "0",
+      "action": "0",
+      "redSignals": []
+    }
+  ],
+  "useContradictions": [],
+  "mobileOverflow": {
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "hasHorizontalOverflow": false
+  }
+}

@@ -20475,10 +20475,10 @@ def html_page_v2():
     .operator-decision-button.is-highlight { border-color:rgba(250,204,21,.34); background:rgba(250,204,21,.08); }
     .operator-decision-button .cell-main { font-size:12px; }
     .operator-decision-button .cell-sub { max-width:170px; }
-    .channel-signal-strip { display:flex; align-items:center; flex-wrap:wrap; gap:5px; max-width:310px; }
+    .channel-signal-strip { display:flex; align-items:center; flex-wrap:nowrap; gap:6px; max-width:104px; }
     .channels-table-v2 td[data-col="signals"] { overflow:visible; }
-    .channel-signal-badge { position:relative; display:inline-flex; align-items:center; gap:5px; min-height:22px; max-width:100%; border:1px solid var(--line); border-radius:999px; background:rgba(148,163,184,.08); color:var(--muted); padding:2px 7px; font-size:11px; font-weight:850; cursor:help; white-space:nowrap; outline:0; }
-    .channel-signal-badge::before { content:''; width:7px; height:7px; border-radius:999px; background:currentColor; flex:0 0 auto; }
+    .channel-signal-badge { position:relative; display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; min-width:18px; min-height:18px; border:1px solid var(--line); border-radius:999px; background:rgba(148,163,184,.08); color:var(--muted); padding:0; font-size:0; font-weight:850; cursor:help; white-space:nowrap; outline:0; }
+    .channel-signal-badge::before { content:''; width:8px; height:8px; border-radius:999px; background:currentColor; flex:0 0 auto; }
     .channel-signal-badge:hover::after, .channel-signal-badge:focus::after { content:attr(data-tooltip); position:absolute; z-index:80; left:0; top:calc(100% + 7px); width:max-content; max-width:270px; white-space:normal; line-height:1.35; color:var(--text); background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); padding:8px 9px; font-size:12px; font-weight:760; }
     .channel-signal-badge.ok { color:var(--green); background:rgba(52,211,153,.09); border-color:rgba(52,211,153,.22); }
     .channel-signal-badge.warn { color:var(--yellow); background:rgba(250,204,21,.09); border-color:rgba(250,204,21,.24); }
@@ -20486,6 +20486,8 @@ def html_page_v2():
     .channel-signal-badge.info { color:var(--blue); background:rgba(96,165,250,.09); border-color:rgba(96,165,250,.22); }
     .channel-signal-badge.muted { color:var(--muted); background:rgba(148,163,184,.08); border-color:var(--line); }
     @media(max-width:560px){
+      .channel-signal-strip { max-width:88px; gap:5px; }
+      .channel-signal-badge { width:17px; height:17px; min-width:17px; min-height:17px; }
       .channel-signal-badge:hover::after, .channel-signal-badge:focus::after { left:auto; right:0; max-width:220px; }
     }
     .operator-decision-path { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
@@ -27321,9 +27323,9 @@ def html_page_v2():
     function channelSignalDecisionNote(source={}, item={}, rawTone='', displayTone='') {
       if (rawTone === displayTone) return '';
       const assignment = channelAssignmentStatus(source);
-      if (assignment.key === 'use') return ' Решение V7: использовать; этот сигнал остаётся диагностикой и не блокирует назначение.';
-      if (assignment.key === 'keep') return ' Решение V7: оставить текущих пользователей; сигнал не требует эвакуации.';
-      if (assignment.key === 'emergency') return ' Решение V7: только аварийно; ограничение роли важнее диагностического цвета.';
+      if (assignment.key === 'use') return ' V7 может использовать канал; это предупреждение не блокирует назначение.';
+      if (assignment.key === 'keep') return ' Текущие пользователи могут оставаться; перевод не требуется.';
+      if (assignment.key === 'emergency') return ' Канал только для аварийного использования; это не требует перевода текущих пользователей.';
       return '';
     }
     function channelSignalLabel(check='') {
@@ -27342,30 +27344,40 @@ def html_page_v2():
       if (check === 'Services') {
         const service = item._serviceSignalEvidence || channelPrimaryServiceSignalEvidence(row);
         const optional = service.optionalFailed?.length
-          ? ` Дополнительные endpoint-проверки не влияют на первый слой: ${service.optionalFailed.slice(0, 4).join(', ')}.`
+          ? ` Дополнительная техническая проверка: ${service.optionalFailed.slice(0, 4).join(', ')}. На этот сигнал не влияет.`
           : '';
-        if (!service.total) return `Сервисы: основные пользовательские сервисы ещё не измерены.${optional}`;
-        if (!service.failed.length) return `Сервисы: основные пользовательские сервисы доступны ${service.ok}/${service.total}.${optional}`;
-        return `Сервисы: основные пользовательские сервисы доступны ${service.ok}/${service.total}. Не проходят: ${service.failed.slice(0, 4).join(', ')}.`;
+        if (!service.total) return `Сервисы: нужна повторная проверка основных сервисов.${optional}`;
+        if (!service.failed.length) return `Сервисы: основные сервисы работают ${service.ok}/${service.total}.${optional}`;
+        return `Сервисы: работают ${service.ok}/${service.total}. Требуют проверки: ${service.failed.slice(0, 4).join(', ')}.`;
       }
       if (check === 'Capacity') {
         const count = egressUserCount(id);
         const limit = channelLoadLimit(row);
         const rawState = channelLoad(id, row.state || {});
-        const state = statusLabel(rawState);
-        if (/HARD|OVER/i.test(String(rawState || '')) || count > limit.hard) return `Нагрузка: ${count} пользователей. По текущей policy канал выше жёсткого лимита ${limit.hard}; это ограничивает новые назначения, но не означает плохую скорость.`;
-        if (/SOFT|LIMIT|WARN/i.test(String(rawState || '')) || count > limit.soft) return `Нагрузка: ${count} пользователей. По текущей policy канал выше предпочтительного уровня ${limit.soft}; лучше не добавлять новых без проверки.`;
-        return `Нагрузка: ${count} пользователей. Текущая policy: предпочтительно до ${limit.soft}, жёстко до ${limit.hard}. Сейчас: ${state}.`;
+        if (/HARD|OVER/i.test(String(rawState || '')) || count > limit.hard) return `Нагрузка: ${count} пользователей назначено. Новые назначения ограничены. Текущие пользователи не затронуты.`;
+        if (/SOFT|LIMIT|WARN/i.test(String(rawState || '')) || count > limit.soft) return `Нагрузка: ${count} пользователей назначено. Перед добавлением новых пользователей рекомендуется проверка.`;
+        return `Нагрузка: ${count} пользователей назначено. Можно принимать новых пользователей.`;
       }
       if (check === 'Route') return channelScoreExplanationText(row, item).replace(/ Этот сигнал снизил маршрутный компонент\.?/g, '');
       if (check === 'Runtime') {
         const rd = row._detail?.runtime_readiness || (overview.egress_runtime_readiness || {})[id] || {};
         return Number(item.score || 0) >= Number(item.max || 0)
-          ? 'Runtime: канал готов по текущему снимку.'
-          : `Runtime: ${operatorText(rd.reason || rd.status || item.reason || 'готовность нужно подтвердить')}`;
+          ? 'Готовность: канал подтвержден текущим снимком.'
+          : `Готовность: ${operatorText(rd.reason || rd.status || item.reason || 'дополнительная проверка рекомендуется')}`;
       }
-      if (check === 'Stability') return channelScoreExplanationText(row, item);
+      if (check === 'Stability') {
+        return Number(item.score || 0) >= Number(item.max || 0)
+          ? 'Стабильность: канал работает устойчиво.'
+          : 'Стабильность: дополнительная проверка рекомендуется перед новыми назначениями.';
+      }
       return channelScoreExplanationText(row, item) || String(item.reason || 'Сигнал требует внимания.');
+    }
+    function channelSignalAccessibleLabel(item={}) {
+      const state = item.tone === 'bad' ? 'требует действия'
+        : item.tone === 'warn' ? 'требует внимания'
+        : item.tone === 'ok' ? 'норма'
+        : 'информация';
+      return `${item.label || 'Сигнал'}: ${state}`;
     }
     function channelSignalSummary(source={}) {
       const row = channelRowFromSource(source);
@@ -27395,7 +27407,7 @@ def html_page_v2():
     function channelSignalsCell(source={}) {
       const items = channelSignalSummary(source);
       if (!items.length) return '<span class="muted">нет сигналов</span>';
-      return `<div class="channel-signal-strip">${items.map(item => `<span class="channel-signal-badge ${esc(item.tone)}" tabindex="0" title="${esc(item.tooltip)}" data-tooltip="${esc(item.tooltip)}">${esc(item.label)}</span>`).join('')}</div>`;
+      return `<div class="channel-signal-strip">${items.slice(0, 4).map(item => `<span class="channel-signal-badge ${esc(item.tone)}" tabindex="0" title="${esc(item.tooltip)}" data-tooltip="${esc(item.tooltip)}" aria-label="${esc(channelSignalAccessibleLabel(item))}"></span>`).join('')}</div>`;
     }
     function channelCommercialStatusCell(source={}) {
       const s = channelSuitability(source);

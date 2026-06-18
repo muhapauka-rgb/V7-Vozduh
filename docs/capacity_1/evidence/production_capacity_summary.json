@@ -1,0 +1,326 @@
+{
+  "captured_at": "2026-06-18T18:52:44Z",
+  "summary": {
+    "users_total": 26,
+    "users_registry_total": 27,
+    "egress_total": 7,
+    "egress_healthy": 5,
+    "route_ok": 26,
+    "route_leak_risk": false,
+    "killswitch_ok": true,
+    "killswitch_status": "OK",
+    "killswitch_reason": "",
+    "killswitch_check_rc": 0,
+    "capacity_ok": false,
+    "capacity_status": "FAIL",
+    "stale_ok": true,
+    "client_agents_online": 0,
+    "users_ready": 3,
+    "users_waiting": 7,
+    "users_blocked": 16,
+    "users_ready_to_deliver": 0,
+    "users_link_sent": 0,
+    "users_downloaded_waiting": 0,
+    "direct_ru_route_ok": true,
+    "identity_users": 15,
+    "identity_allowed_users": 10,
+    "proxy_runtime_status": "REFRESH_REQUIRED",
+    "proxy_runtime_ok": false,
+    "proxy_runtime_needs_refresh": true
+  },
+  "load_policy": {
+    "mode": "dynamic",
+    "reserve_ratio": 0.15,
+    "soft_multiplier": 1.15,
+    "hard_multiplier": 1.45,
+    "failover_hard_multiplier": 2.0,
+    "failover_capacity_multiplier": 1.25,
+    "min_soft_limit": 5,
+    "min_hard_limit": 10,
+    "max_hard_limit": 80,
+    "soft_limit": 1,
+    "hard_limit": 2,
+    "failover_hard_limit": 60,
+    "rebalance_max_moves_per_run": 6,
+    "rebalance_enabled": true,
+    "rebalance_min_gap_users": 2,
+    "rebalance_min_target_score_ratio": 0.75
+  },
+  "capacity_plan": {
+    "status": "FAIL",
+    "target_users": 500,
+    "active_users": 26,
+    "registered_users": 27,
+    "total_capacity": 1275,
+    "free_capacity": 1248,
+    "pools": [
+      {
+        "label": "Current users",
+        "cidr": "10.0.0.0/24",
+        "mode": "existing clients stay here",
+        "capacity": 253,
+        "registered": 3,
+        "active": 3,
+        "free": 250,
+        "used_pct": 1.2,
+        "sample_ips": [
+          "10.0.0.2",
+          "10.0.0.3",
+          "10.0.0.6"
+        ]
+      },
+      {
+        "label": "New users IPAM",
+        "cidr": "10.7.0.0/22",
+        "mode": "new clients are allocated here",
+        "capacity": 1022,
+        "registered": 24,
+        "active": 23,
+        "free": 998,
+        "used_pct": 2.3,
+        "sample_ips": [
+          "10.7.0.3",
+          "10.7.0.2",
+          "10.7.0.4",
+          "10.7.0.5",
+          "10.7.0.6"
+        ]
+      }
+    ],
+    "next_allocation": {
+      "ip": "10.7.0.26",
+      "table": "1024"
+    },
+    "capacity_result": "FAIL",
+    "readiness_result": "FAIL",
+    "plain": "Existing users remain in 10.0.0.0/24. New users should be issued from the IPAM pool 10.7.0.0/22 after preview.",
+    "warnings": [
+      "capacity readiness check needs attention"
+    ]
+  },
+  "egress_registry": [
+    {
+      "id": "vless",
+      "protocol": "vless",
+      "type": "proxy",
+      "interface": "tun0",
+      "test": "socks5://127.0.0.1:1080",
+      "enabled": "1",
+      "expected_ip": "77.110.103.131",
+      "config_path": "/etc/sing-box/config.json"
+    },
+    {
+      "id": "awg0",
+      "protocol": "amneziawg",
+      "type": "interface",
+      "interface": "awg0",
+      "test": "interface",
+      "enabled": "1",
+      "expected_ip": "194.124.210.244",
+      "config_path": "/etc/amnezia/amneziawg/awg0.conf",
+      "role": "GLOBAL_STABLE",
+      "service_tags": "telegram,google,youtube,global",
+      "priority": "60",
+      "weight": "70",
+      "connect_timeout": "12s"
+    },
+    {
+      "id": "awg3",
+      "protocol": "amneziawg",
+      "type": "interface",
+      "interface": "awg3",
+      "test": "interface",
+      "enabled": "1",
+      "expected_ip": "194.124.210.244",
+      "config_path": "/etc/amnezia/amneziawg/awg3.conf",
+      "role": "GLOBAL_STABLE",
+      "service_tags": "telegram,google,youtube,global",
+      "priority": "70",
+      "weight": "75",
+      "connect_timeout": "12s"
+    },
+    {
+      "id": "1",
+      "protocol": "amneziawg",
+      "type": "interface",
+      "interface": "v7e356a192b79",
+      "test": "interface",
+      "enabled": "1",
+      "config": "/etc/amnezia/amneziawg/v7e356a192b79.conf",
+      "role": "GLOBAL_FAST",
+      "priority": "20",
+      "weight": "100",
+      "soft_limit": "1",
+      "hard_limit": "2",
+      "manual_only": "0",
+      "reserve_only": "0",
+      "service_tags": "google,telegram,instagram,global",
+      "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU"
+    },
+    {
+      "id": "openvpn-1779388847-d2ad7c",
+      "protocol": "openvpn",
+      "type": "interface",
+      "interface": "v7edb0c189291",
+      "test": "interface",
+      "enabled": "1",
+      "config": "/etc/v7/egress-openvpn/v7edb0c189291.ovpn",
+      "role": "GLOBAL_FAST",
+      "priority": "20",
+      "weight": "100",
+      "soft_limit": "1",
+      "hard_limit": "2",
+      "manual_only": "0",
+      "reserve_only": "0",
+      "service_tags": "google,telegram,instagram,global",
+      "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU"
+    },
+    {
+      "id": "wireguard-1779454504-c43409",
+      "protocol": "wireguard",
+      "type": "interface",
+      "interface": "v7e06a394c478",
+      "test": "interface",
+      "enabled": "1",
+      "config": "/etc/wireguard/v7e06a394c478.conf",
+      "role": "GLOBAL_FAST",
+      "priority": "20",
+      "weight": "100",
+      "soft_limit": "1",
+      "hard_limit": "2",
+      "manual_only": "0",
+      "reserve_only": "0",
+      "service_tags": "google,telegram,instagram,global",
+      "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU"
+    },
+    {
+      "id": "amneziawg-exec-20260528-10-8-1-14",
+      "protocol": "amneziawg",
+      "type": "interface",
+      "interface": "v7execwg0",
+      "test": "interface",
+      "enabled": "1",
+      "config": "/etc/amnezia/v7execwg0.conf",
+      "role": "EXECUTION_ONLY",
+      "route_table": "1250",
+      "priority": "10",
+      "weight": "1",
+      "soft_limit": "10",
+      "hard_limit": "10",
+      "manual_only": "1",
+      "reserve_only": "1",
+      "canary_reserved": "true",
+      "execution_reserved": "true",
+      "reservation_owner": "operator_execution_governance",
+      "autoswitch_allowed": "false",
+      "rebalance_allowed": "false",
+      "production_assignment_allowed": "false",
+      "service_tags": "governance,execution",
+      "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU"
+    }
+  ],
+  "egress_state": [
+    {
+      "id": "vless",
+      "users": 11,
+      "avg_mbps": 37.453,
+      "min_mbps": 35.46,
+      "stability": 0.946787,
+      "load_status": "HARD_FULL"
+    },
+    {
+      "id": "awg0",
+      "users": 0,
+      "avg_mbps": 43.4387,
+      "min_mbps": 32.02,
+      "stability": 0.737131,
+      "load_status": "OK"
+    },
+    {
+      "id": "awg3",
+      "users": 8,
+      "avg_mbps": 46.6283,
+      "min_mbps": 37.58,
+      "stability": 0.805948,
+      "load_status": "HARD_FULL"
+    },
+    {
+      "id": "1",
+      "users": 0,
+      "avg_mbps": 0,
+      "min_mbps": 0,
+      "stability": 0,
+      "load_status": "OK"
+    },
+    {
+      "id": "openvpn-1779388847-d2ad7c",
+      "users": 0,
+      "avg_mbps": 0,
+      "min_mbps": 0,
+      "stability": 0,
+      "load_status": "OK"
+    },
+    {
+      "id": "wireguard-1779454504-c43409",
+      "users": 8,
+      "avg_mbps": 45.5093,
+      "min_mbps": 38.46,
+      "stability": 0.845102,
+      "load_status": "HARD_FULL"
+    },
+    {
+      "id": "amneziawg-exec-20260528-10-8-1-14",
+      "users": 0,
+      "avg_mbps": 43.2033,
+      "min_mbps": 25.16,
+      "stability": 0.582363,
+      "load_status": "OK"
+    }
+  ],
+  "assignments": [
+    {
+      "channel": "awg3",
+      "count": 8,
+      "users": [
+        "10.0.0.2",
+        "10.7.0.3",
+        "10.7.0.4",
+        "10.7.0.8",
+        "10.7.0.10",
+        "10.7.0.12",
+        "10.7.0.14",
+        "10.7.0.16"
+      ]
+    },
+    {
+      "channel": "vless",
+      "count": 10,
+      "users": [
+        "10.7.0.5",
+        "10.7.0.17",
+        "10.7.0.18",
+        "10.7.0.19",
+        "10.7.0.20",
+        "10.7.0.21",
+        "10.7.0.22",
+        "10.7.0.23",
+        "10.7.0.24",
+        "10.7.0.25"
+      ]
+    },
+    {
+      "channel": "wireguard-1779454504-c43409",
+      "count": 8,
+      "users": [
+        "10.0.0.3",
+        "10.0.0.6",
+        "10.7.0.2",
+        "10.7.0.6",
+        "10.7.0.9",
+        "10.7.0.11",
+        "10.7.0.13",
+        "10.7.0.15"
+      ]
+    }
+  ]
+}

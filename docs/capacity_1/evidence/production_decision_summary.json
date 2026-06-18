@@ -1,0 +1,503 @@
+{
+  "channels": [
+    {
+      "channel": "vless",
+      "users": 11,
+      "channel_state": "TRUSTED",
+      "safe_now": "Да, в пределах planner/governance.",
+      "next_step": "Оставить обычный мониторинг.",
+      "capacity": "",
+      "soft_limit": "",
+      "hard_limit": ""
+    },
+    {
+      "channel": "awg0",
+      "users": 0,
+      "channel_state": "TRUSTED",
+      "safe_now": "Да, в пределах planner/governance.",
+      "next_step": "Оставить обычный мониторинг.",
+      "capacity": "",
+      "soft_limit": "",
+      "hard_limit": ""
+    },
+    {
+      "channel": "awg3",
+      "users": 8,
+      "channel_state": "TRUSTED",
+      "safe_now": "Да, в пределах planner/governance.",
+      "next_step": "Оставить обычный мониторинг.",
+      "capacity": "",
+      "soft_limit": "",
+      "hard_limit": ""
+    },
+    {
+      "channel": "1",
+      "users": 0,
+      "channel_state": "QUARANTINED",
+      "safe_now": "Нет.",
+      "next_step": "Починить причину, обновить проверки и дождаться recovery evidence.",
+      "capacity": "2",
+      "soft_limit": "1",
+      "hard_limit": "2"
+    },
+    {
+      "channel": "openvpn-1779388847-d2ad7c",
+      "users": 0,
+      "channel_state": "QUARANTINED",
+      "safe_now": "Нет.",
+      "next_step": "Починить причину, обновить проверки и дождаться recovery evidence.",
+      "capacity": "2",
+      "soft_limit": "1",
+      "hard_limit": "2"
+    },
+    {
+      "channel": "wireguard-1779454504-c43409",
+      "users": 8,
+      "channel_state": "WATCH",
+      "safe_now": "Обычно да, но с вниманием оператора.",
+      "next_step": "Держать под наблюдением 24-72 часа или до успешного feedback.",
+      "capacity": "2",
+      "soft_limit": "1",
+      "hard_limit": "2"
+    },
+    {
+      "channel": "amneziawg-exec-20260528-10-8-1-14",
+      "users": 0,
+      "channel_state": "TRUSTED",
+      "safe_now": "Да, в пределах planner/governance.",
+      "next_step": "Оставить обычный мониторинг.",
+      "capacity": "10",
+      "soft_limit": "10",
+      "hard_limit": "10"
+    }
+  ],
+  "users": [
+    {
+      "user": "10.0.0.2",
+      "current_channel": "awg3",
+      "recommended_channel": "awg3",
+      "recommendation": "keep",
+      "operator_state": "OK",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.0.0.3",
+      "current_channel": "wireguard-1779454504-c43409",
+      "recommended_channel": "awg3",
+      "recommendation": "move_recommended",
+      "operator_state": "Recommendation",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.0.0.6",
+      "current_channel": "wireguard-1779454504-c43409",
+      "recommended_channel": "awg3",
+      "recommendation": "move_recommended",
+      "operator_state": "Recommendation",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.3",
+      "current_channel": "awg3",
+      "recommended_channel": "awg3",
+      "recommendation": "keep",
+      "operator_state": "OK",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.2",
+      "current_channel": "wireguard-1779454504-c43409",
+      "recommended_channel": "awg3",
+      "recommendation": "move_recommended",
+      "operator_state": "Recommendation",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.4",
+      "current_channel": "awg3",
+      "recommended_channel": "awg3",
+      "recommendation": "keep",
+      "operator_state": "OK",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.5",
+      "current_channel": "vless",
+      "recommended_channel": "awg3",
+      "recommendation": "move_recommended",
+      "operator_state": "Recommendation",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.6",
+      "current_channel": "wireguard-1779454504-c43409",
+      "recommended_channel": "awg3",
+      "recommendation": "move_recommended",
+      "operator_state": "Recommendation",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.7",
+      "current_channel": "vless",
+      "recommended_channel": "vless",
+      "recommendation": "keep",
+      "operator_state": "Warning",
+      "blockers": [
+        "best_candidate_missing"
+      ],
+      "reason_breakdown": {}
+    },
+    {
+      "user": "10.7.0.8",
+      "current_channel": "awg3",
+      "recommended_channel": "awg3",
+      "recommendation": "keep",
+      "operator_state": "OK",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.9",
+      "current_channel": "wireguard-1779454504-c43409",
+      "recommended_channel": "awg3",
+      "recommendation": "move_recommended",
+      "operator_state": "Recommendation",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.10",
+      "current_channel": "awg3",
+      "recommended_channel": "awg3",
+      "recommendation": "keep",
+      "operator_state": "OK",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.11",
+      "current_channel": "wireguard-1779454504-c43409",
+      "recommended_channel": "awg3",
+      "recommendation": "move_recommended",
+      "operator_state": "Recommendation",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.12",
+      "current_channel": "awg3",
+      "recommended_channel": "awg3",
+      "recommendation": "keep",
+      "operator_state": "OK",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.13",
+      "current_channel": "wireguard-1779454504-c43409",
+      "recommended_channel": "awg3",
+      "recommendation": "move_recommended",
+      "operator_state": "Recommendation",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.14",
+      "current_channel": "awg3",
+      "recommended_channel": "awg3",
+      "recommendation": "keep",
+      "operator_state": "OK",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.15",
+      "current_channel": "wireguard-1779454504-c43409",
+      "recommended_channel": "awg3",
+      "recommendation": "move_recommended",
+      "operator_state": "Recommendation",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.16",
+      "current_channel": "awg3",
+      "recommended_channel": "awg3",
+      "recommendation": "keep",
+      "operator_state": "OK",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.17",
+      "current_channel": "vless",
+      "recommended_channel": "awg3",
+      "recommendation": "move_recommended",
+      "operator_state": "Recommendation",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.18",
+      "current_channel": "vless",
+      "recommended_channel": "awg3",
+      "recommendation": "move_recommended",
+      "operator_state": "Recommendation",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.19",
+      "current_channel": "vless",
+      "recommended_channel": "awg3",
+      "recommendation": "move_recommended",
+      "operator_state": "Recommendation",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.20",
+      "current_channel": "vless",
+      "recommended_channel": "awg3",
+      "recommendation": "move_recommended",
+      "operator_state": "Recommendation",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.21",
+      "current_channel": "vless",
+      "recommended_channel": "awg3",
+      "recommendation": "move_recommended",
+      "operator_state": "Recommendation",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.22",
+      "current_channel": "vless",
+      "recommended_channel": "awg3",
+      "recommendation": "move_recommended",
+      "operator_state": "Recommendation",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.23",
+      "current_channel": "vless",
+      "recommended_channel": "awg3",
+      "recommendation": "move_recommended",
+      "operator_state": "Recommendation",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.24",
+      "current_channel": "vless",
+      "recommended_channel": "awg3",
+      "recommendation": "move_recommended",
+      "operator_state": "Recommendation",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    },
+    {
+      "user": "10.7.0.25",
+      "current_channel": "vless",
+      "recommended_channel": "awg3",
+      "recommendation": "move_recommended",
+      "operator_state": "Recommendation",
+      "blockers": [],
+      "reason_breakdown": {
+        "capacity": -0.0,
+        "execution_trust": 3.15,
+        "risk": 3.617,
+        "service_confidence": -0.625,
+        "service_history": 10.834,
+        "service_weight": 15.167
+      }
+    }
+  ]
+}

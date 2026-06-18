@@ -1,8 +1,8 @@
 # V7 Canonical Reference
 
 Status: canonical project reference
-Last verified commit: `8ba2178f`
-Last verified date: 2026-06-18
+Last verified commit: `2fb9d205`
+Last verified date: 2026-06-19
 
 This document describes the current meaning of V7 system concepts. It is not a history log and not an audit report. Reports remain evidence. ADRs explain why a decision was made. This reference is the current truth that future V7 work must read before re-auditing old concepts.
 
@@ -59,11 +59,11 @@ A new audit is allowed only when the reference has no answer, the reference expl
 - Where it is displayed: Primary Channel table column and Channel Drawer first screen.
 - What affects it: Selected moves, eligible candidates, blockers, current users, `manual_only`, `reserve_only`, canary reservation, disabled/quarantine/maintenance, service/route/speed/stability/load/policy gates.
 - What does NOT affect it: Channel Score by itself, old TRUSTED/WATCH/QUARANTINED labels, or raw engineering health labels.
-- Operator meaning: "What does V7 want me to do with this channel?"
+- Operator meaning: "What does V7 want me to do with this channel?" `Use` means V7 can use the channel under current planner/assignment evidence; it does not mean fastest, best, warning-free, or unlimited capacity. `Emergency Only` means the channel is role/policy restricted for manual, reserve, canary, or execution-only use; it does not mean technically broken.
 - Engineer meaning: A read-only projection of planner assignment/retention/evacuation truth into operator language.
-- Known caveats: If the planner cannot produce a role because data is absent, UI must show the safest truthful state rather than inventing eligibility.
-- Related reports / ADRs: `CHANNEL_TRUTH_1_FULL_DECISION_PIPELINE_AND_SCORE_ALIGNMENT_AUDIT_REPORT.md`, `CHANNEL_TRUTH_2_ASSIGNMENT_ELIGIBILITY_TRUTH_DISCOVERY_REPORT.md`, `CHANNEL_TRUTH_3_CHANNEL_ASSIGNMENT_ADAPTER_REPORT.md`, `CHANNEL_SUITABILITY_2_PLANNER_FIRST_CHANNEL_MODEL_REPORT.md`.
-- Last verified commit: `8ba2178f`.
+- Known caveats: If the planner cannot produce a role because data is absent, UI must show the safest truthful state rather than inventing eligibility. A channel can be `Use` while capacity/load is at warning or hard-full for new assignments; the decision must be read together with blocker/load details.
+- Related reports / ADRs: `CHANNEL_TRUTH_1_FULL_DECISION_PIPELINE_AND_SCORE_ALIGNMENT_AUDIT_REPORT.md`, `CHANNEL_TRUTH_2_ASSIGNMENT_ELIGIBILITY_TRUTH_DISCOVERY_REPORT.md`, `CHANNEL_TRUTH_3_CHANNEL_ASSIGNMENT_ADAPTER_REPORT.md`, `CHANNEL_SUITABILITY_2_PLANNER_FIRST_CHANNEL_MODEL_REPORT.md`, `CAPACITY_1_REALITY_AUDIT_REPORT.md`, ADR-009.
+- Last verified commit: `2fb9d205`.
 
 ## 3. Channel Score
 
@@ -75,9 +75,9 @@ A new audit is allowed only when the reference has no answer, the reference expl
 - What does NOT affect it: Planner assignment eligibility directly, emergency/manual role policy directly, or whether V7 should move current users.
 - Operator meaning: "How healthy does the channel look technically?"
 - Engineer meaning: A mixed diagnostic score useful for explanation and troubleshooting, separate from planner hard gates.
-- Known caveats: A high score can coexist with Do Not Assign/Emergency Only/Evacuate if planner gates or role flags block assignment. This is intentional after CHANNEL.TRUTH alignment.
-- Related reports / ADRs: `CHANNEL_TRUTH_1_FULL_DECISION_PIPELINE_AND_SCORE_ALIGNMENT_AUDIT_REPORT.md`, `CHANNEL_SUITABILITY_1_PLANNER_DERIVED_SUITABILITY_MODEL_REPORT.md`, `CHANNEL_SUITABILITY_2_PLANNER_FIRST_CHANNEL_MODEL_REPORT.md`, `docs/operator_actions/CHANNEL_HEALTH_3_SCORE_EXPLANATION_MODEL_REPORT.md`, ADR-002.
-- Last verified commit: `8ba2178f`.
+- Known caveats: A high score can coexist with Do Not Assign/Emergency Only/Evacuate if planner gates or role flags block assignment. A capacity penalty inside the score means user-assignment pressure against limits, not bandwidth saturation or speed failure. This is intentional after CHANNEL.TRUTH alignment.
+- Related reports / ADRs: `CHANNEL_TRUTH_1_FULL_DECISION_PIPELINE_AND_SCORE_ALIGNMENT_AUDIT_REPORT.md`, `CHANNEL_SUITABILITY_1_PLANNER_DERIVED_SUITABILITY_MODEL_REPORT.md`, `CHANNEL_SUITABILITY_2_PLANNER_FIRST_CHANNEL_MODEL_REPORT.md`, `docs/operator_actions/CHANNEL_HEALTH_3_SCORE_EXPLANATION_MODEL_REPORT.md`, `CAPACITY_1_REALITY_AUDIT_REPORT.md`, ADR-002, ADR-009.
+- Last verified commit: `2fb9d205`.
 
 ## 4. Technical Health
 
@@ -87,11 +87,11 @@ A new audit is allowed only when the reference has no answer, the reference expl
 - Where it is displayed: Nested technical diagnostics inside the Channel Drawer, not as a primary workflow.
 - What affects it: Score components, fresh service/route/runtime evidence, stability/capacity/history inputs.
 - What does NOT affect it: Operator action flow directly, assignment decision directly, or governance approval.
-- Operator meaning: "Why did V7 give this channel this health score?"
+- Operator meaning: "Why did V7 give this channel this health score?" Technical health can be good while assignment is Emergency Only, Keep Only, or load-limited.
 - Engineer meaning: Component-level diagnostic view for the score model.
-- Known caveats: Health must not reintroduce action/resolution language as first-line operator truth. Diagnostics may point to missing evidence but should not become a separate execution path.
-- Related reports / ADRs: `docs/operator_actions/CHANNEL_HEALTH_SCREEN_EXISTENCE_AUDIT.md`, `docs/operator_actions/CHANNEL_HEALTH_2_DIAGNOSTICS_ONLY_IMPLEMENTATION_REPORT.md`, `docs/operator_actions/CHANNEL_HEALTH_3_SCORE_EXPLANATION_MODEL_REPORT.md`, ADR-003.
-- Last verified commit: `8ba2178f`.
+- Known caveats: Health must not reintroduce action/resolution language as first-line operator truth. Diagnostics may point to missing evidence but should not become a separate execution path. Table-level "Healthy" is narrower than technical health: it requires a usable/keep assignment posture and no red first-level operator signal.
+- Related reports / ADRs: `docs/operator_actions/CHANNEL_HEALTH_SCREEN_EXISTENCE_AUDIT.md`, `docs/operator_actions/CHANNEL_HEALTH_2_DIAGNOSTICS_ONLY_IMPLEMENTATION_REPORT.md`, `docs/operator_actions/CHANNEL_HEALTH_3_SCORE_EXPLANATION_MODEL_REPORT.md`, `CAPACITY_1_REALITY_AUDIT_REPORT.md`, ADR-003, ADR-009.
+- Last verified commit: `2fb9d205`.
 
 ## 5. Route
 
@@ -109,17 +109,17 @@ A new audit is allowed only when the reference has no answer, the reference expl
 
 ## 6. Capacity
 
-- What it means: Whether a channel or pool can safely carry current or projected users without exceeding configured soft/hard limits.
-- Source of truth: Egress registry capacity fields, dynamic load summary, planner capacity decision, capacity readiness tools.
-- Where it is calculated: `tools/v7-users-autoswitch` `_capacity_decision`, `admin/v7-admin-api` `capacity_read_adapter` and `execution_preview_target_capacity`, `admin_core/diagnostic_views.py`, runtime support tools `v7-capacity-check` and `v7-capacity-readiness`.
-- Where it is displayed: Channel table/drawer, capacity/load details, execution preview/gates, overview summaries.
-- What affects it: Current user count, projected moves, hard limit, soft limit, reserve ratio, failover multiplier, registry capacity, policy load settings.
-- What does NOT affect it: Raw service success alone, operator UI sorting alone, or screenshots.
-- Operator meaning: "Can this channel accept or keep users without overload?"
-- Engineer meaning: Planner/gate input that bounds movement and prevents broad unsafe switching.
-- Known caveats: Capacity can break ties or block moves even when service quality is good. Exact policy thresholds must be read from live policy/config. Operator-facing Load is an assignment/capacity posture, not a speed or traffic-quality verdict.
-- Related reports / ADRs: `CHANNEL_TRUTH_1_FULL_DECISION_PIPELINE_AND_SCORE_ALIGNMENT_AUDIT_REPORT.md`, `CHANNEL_TRUTH_2_ASSIGNMENT_ELIGIBILITY_TRUTH_DISCOVERY_REPORT.md`, `docs/operator_actions/CHANNEL_AUTOMATION_OPERATOR_REALITY_AUDIT_REPORT.md`.
-- Last verified commit: `8ba2178f`.
+- What it means: Assignment/load posture for a channel or pool: current and projected users compared with configured soft, hard, and failover-hard limits. Capacity answers whether V7 may add users, should pause additions, or must treat a channel as full for planned/failover movement.
+- Source of truth: Egress registry capacity fields (`capacity_users`, `soft_limit`, `hard_limit`), live assigned user counts, policy load settings, dynamic load summary, planner capacity/load gates, and capacity readiness tools.
+- Where it is calculated: `tools/v7-users-autoswitch` `_load_policy`, `_healthy_for_load`, `_dynamic_load_summary`, `_load_limits_for_egress`, `_capacity_status`, `_capacity_decision`, `_gate_load`; `admin/v7-admin-api` `channelSuitabilityCapacity`, `channelLoad`, `loadPosture`, capacity read/preview helpers; runtime support tools `v7-capacity-check` and `v7-capacity-readiness`.
+- Where it is displayed: Channel table Load/Capacity signal, Channel Drawer diagnostics, score explanation, execution preview/gates, overview Load card, global capacity/readiness summaries.
+- What affects it: Current users assigned to an egress, projected users after movement, explicit per-egress limits, dynamic load policy, healthy working pool size, reserve ratio, soft/hard/failover multipliers, failover capacity multiplier, min/max limits, role flags that remove channels from normal working pool, and planner purpose (`current`, `planned`, `failover`).
+- What does NOT affect it: CPU usage, bandwidth saturation, traffic volume, raw speed complaint alone, raw service success alone, cosmetic UI ordering, screenshots, or the mixed Channel Score by itself.
+- Operator meaning: `Load OK` means the channel is within assignment limits. `Soft Full` / warning means the channel is near or at the soft limit and new additions require caution/checking. `Hard Full` / "on limit" means new planned assignments are restricted; current users are not automatically failing. `Overloaded` means failover-hard capacity was reached and is a stronger emergency load state.
+- Engineer meaning: Planner/gate input that bounds movement, affects ranking, can block planned/failover candidates, and prevents broad unsafe switching.
+- Known caveats: Capacity/load is not speed quality and not traffic saturation. A channel can have good speed/stability and still be hard-full because too many users are assigned relative to policy. Production evidence on 2026-06-18 showed `vless` and `awg3` as technically usable/currently retained while load was hard-full for assignment. Global IP capacity readiness (`capacity_plan`) is a separate pool/readiness check and can fail independently from per-channel assignment load.
+- Related reports / ADRs: `CAPACITY_1_REALITY_AUDIT_REPORT.md`, `docs/track7/productization/e35_0_1-audit/capacity-policy-audit.md`, `CHANNEL_SCORE_REALITY_AUDIT.md`, `CHANNEL_ROUTE_COMPONENT_REALITY_AUDIT_REPORT.md`, `CHANNEL_SIGNALS_1_MODEL_AUDIT_REPORT.md`, `CHANNEL_SIGNALS_2A_SEMANTICS_REPORT.md`, `CHANNEL_TRUTH_1_FULL_DECISION_PIPELINE_AND_SCORE_ALIGNMENT_AUDIT_REPORT.md`, `CHANNEL_TRUTH_2_ASSIGNMENT_ELIGIBILITY_TRUTH_DISCOVERY_REPORT.md`, `docs/operator_actions/CHANNEL_AUTOMATION_OPERATOR_REALITY_AUDIT_REPORT.md`, ADR-009.
+- Last verified commit: `2fb9d205`.
 
 ## 7. Service Matrix
 
@@ -285,6 +285,6 @@ A new audit is allowed only when the reference has no answer, the reference expl
 - What does NOT affect it: A single mixed score alone, raw trust/recovery labels alone, cosmetic table ordering, or UI-only labels without underlying existing truth.
 - Operator meaning: "What did V7 decide, what compact signal explains it, how many users are affected, and what should I inspect next?"
 - Engineer meaning: A read-only classification layer over existing signals: operator signals, supporting signals, and diagnostics-only signals.
-- Known caveats: First-level channel table signals are `Services`, `Load`, `Runtime`, and `Stability` only when stability is not OK. The operator-facing table renders them as compact dot indicators with meaning exposed through hover/focus/tap tooltips; no more than four first-level signals should be visible in one row. Route is supporting/diagnostics-only because the current route component is topology/readiness confidence and may be reduced by capacity or service state; it must not appear as a red first-level route failure unless planner/route evidence exposes a real route blocker. Services at first level track primary user-facing services; optional/hidden endpoint checks such as Anthropic API must not downgrade first-level Services by themselves. Technical Health remains diagnostics-only. Raw score components must not become an alternative planner or action owner. First-level signal color is decision-aligned: red means the current planner/assignment decision requires removal, block, or immediate action. If the decision is `Use`, `Keep Current Users`, or `Emergency Only`, a raw diagnostic failure may remain visible as warning/diagnostic text, but it must not appear as a red first-level contradiction to the planner decision.
-- Related reports / ADRs: `CHANNEL_SIGNALS_1_MODEL_AUDIT_REPORT.md`, `CHANNEL_SIGNALS_2_TABLE_IMPLEMENTATION_REPORT.md`, `CHANNEL_SIGNALS_2A_SEMANTICS_REPORT.md`, `CHANNEL_SIGNALS_2B_ALIGNMENT_REPORT.md`, `CHANNEL_SIGNALS_2C_OPERATOR_SURFACE_REPORT.md`, `CHANNEL_SCORE_REALITY_AUDIT.md`, `CHANNEL_ROUTE_COMPONENT_REALITY_AUDIT_REPORT.md`, ADR-002, ADR-003, ADR-004, ADR-006, ADR-007, ADR-008.
-- Last verified commit: `b68eacc2`.
+- Known caveats: First-level channel table signals are `Services`, `Load`, `Runtime`, and `Stability` only when stability is not OK. The operator-facing table renders them as compact dot indicators with meaning exposed through hover/focus/tap tooltips; no more than four first-level signals should be visible in one row. Route is supporting/diagnostics-only because the current route component is topology/readiness confidence and may be reduced by capacity or service state; it must not appear as a red first-level route failure unless planner/route evidence exposes a real route blocker. Services at first level track primary user-facing services; optional/hidden endpoint checks such as Anthropic API must not downgrade first-level Services by themselves. Technical Health remains diagnostics-only. Raw score components must not become an alternative planner or action owner. First-level signal color is decision-aligned: red means the current planner/assignment decision requires removal, block, or immediate action. If the decision is `Use`, `Keep Current Users`, or `Emergency Only`, a raw diagnostic failure may remain visible as warning/diagnostic text, but it must not appear as a red first-level contradiction to the planner decision. Load/capacity warning means assignment pressure, not internet quality or channel speed failure.
+- Related reports / ADRs: `CHANNEL_SIGNALS_1_MODEL_AUDIT_REPORT.md`, `CHANNEL_SIGNALS_2_TABLE_IMPLEMENTATION_REPORT.md`, `CHANNEL_SIGNALS_2A_SEMANTICS_REPORT.md`, `CHANNEL_SIGNALS_2B_ALIGNMENT_REPORT.md`, `CHANNEL_SIGNALS_2C_OPERATOR_SURFACE_REPORT.md`, `CHANNEL_SCORE_REALITY_AUDIT.md`, `CHANNEL_ROUTE_COMPONENT_REALITY_AUDIT_REPORT.md`, `CAPACITY_1_REALITY_AUDIT_REPORT.md`, ADR-002, ADR-003, ADR-004, ADR-006, ADR-007, ADR-008, ADR-009.
+- Last verified commit: `2fb9d205`.

@@ -45,6 +45,9 @@ A new audit is allowed only when the reference has no answer, the reference expl
 4. Channel diagnostics use a balanced layout: summary first, then responsive reality-first diagnostic cards.
 5. Diagnostics primary text is reality-first, not score-first; score math and point loss must not dominate the operator view.
 6. Trust/recovery metadata must not compete with Channel Decision V7 in the first-level Channels table.
+7. Every channel warning must be actionable. A visible warning must explain one of three outcomes: existing safe action and where it opens, automatic handling and what updates it, or why no safe handler is available.
+8. Channel drawer first screen must remain a compact inspection surface, not a form-like stack of nested cards. The first screen answers: channel, V7 decision, reason, next safe action, active problems, confirmed signals, and where diagnostics live.
+9. Ambiguous labels such as "check", "verify", "clarify", or "attention" are not enough on channel surfaces. If evidence is incomplete, the wording must say the reality and next step, for example "latest snapshot incomplete", "open service matrix", "open users", "open logs", "automatic refresh pending", or "safe handler unavailable".
 
 ## 1. Channels
 
@@ -54,7 +57,7 @@ A new audit is allowed only when the reference has no answer, the reference expl
 - Where it is displayed: Admin Channels table, Channel Drawer, Attention/Overview derived surfaces, technical diagnostics.
 - What affects it: Registry flags, manual/reserve/canary role, service checks, stability, capacity/load, route readiness, runtime readiness, history, assigned users, planner gates.
 - What does NOT affect it: Cosmetic UI labels, screenshots, operator-facing health score alone, or raw trust labels alone.
-- Operator meaning: "Can this channel be used, should users stay, what is wrong, and what action is safe?" Operator wording must avoid vague "needs check" language. When evidence is incomplete, use reality-first wording such as "confidence incomplete", "fresh data unavailable", or "additional verification available".
+- Operator meaning: "Can this channel be used, should users stay, what is wrong, and what action is safe?" Operator wording must avoid vague "needs check" language. When evidence is incomplete, use reality-first wording that states the current reality and next step, such as "fresh data unavailable", "open service matrix", "open users", "open logs", "automatic refresh pending", or "safe handler unavailable".
 - Engineer meaning: Aggregated runtime/planner/read-model state for one egress object.
 - Known caveats: Some roles such as Keep Only or Blocked may not appear in production screenshots if live data currently has no channel in that state.
 - Related reports / ADRs: `UX_4_CHANNEL_DRAWER_REBUILD_SPECIFICATION_REPORT.md`, `CHANNEL_TRUTH_3_CHANNEL_ASSIGNMENT_ADAPTER_REPORT.md`, `CHANNEL_TRUTH_4_CHANNEL_ROLE_MODEL_REPORT.md`, `CHANNEL_SUITABILITY_2_PLANNER_FIRST_CHANNEL_MODEL_REPORT.md`, ADR-004.

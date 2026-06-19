@@ -20754,17 +20754,25 @@ def html_page_v2():
     .user-action-buttons button { min-height:36px; }
     .user-answer-card { grid-column:1 / -1; display:grid; gap:8px; }
     .channel-analysis-card { grid-column:1 / -1; display:grid; gap:10px; }
-    .channel-decision-section { grid-column:1 / -1; display:grid; gap:8px; }
-    .channel-decision-section h3 { margin-bottom:4px; }
+    .channel-decision-surface { grid-column:1 / -1; display:grid; gap:8px; padding:12px; }
+    .channel-decision-head { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:start; border-bottom:1px solid var(--line); padding-bottom:8px; }
+    .channel-decision-head span { display:block; color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; letter-spacing:.04em; }
+    .channel-decision-head strong { display:block; margin-top:3px; font-size:20px; line-height:1.1; overflow-wrap:anywhere; }
+    .channel-decision-head em { display:block; margin-top:3px; color:var(--muted); font-style:normal; font-size:12px; line-height:1.25; overflow-wrap:anywhere; }
+    .channel-decision-score { display:grid; justify-items:end; gap:3px; }
+    .channel-decision-score strong { font-size:18px; }
+    .channel-decision-section { display:grid; grid-template-columns:112px minmax(0,1fr); gap:10px; align-items:start; border-bottom:1px solid rgba(148,163,184,.16); padding:0 0 8px; }
+    .channel-decision-section:last-child { border-bottom:0; padding-bottom:0; }
+    .channel-decision-section h3 { margin:1px 0 0; color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; letter-spacing:.04em; }
     .channel-decision-answer { display:grid; gap:8px; }
-    .channel-decision-row { border:1px solid var(--line); border-radius:10px; background:var(--panel2); padding:10px 12px; min-width:0; display:grid; gap:4px; }
+    .channel-decision-row { min-width:0; display:grid; gap:4px; }
     .channel-decision-row > span { color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; letter-spacing:.04em; }
-    .channel-decision-row strong { color:var(--text); font-size:20px; line-height:1.12; overflow-wrap:anywhere; }
+    .channel-decision-row strong { color:var(--text); font-size:16px; line-height:1.12; overflow-wrap:anywhere; }
     .channel-decision-row p { margin:0; color:var(--text); font-size:14px; font-weight:760; line-height:1.35; overflow-wrap:anywhere; }
-    .channel-decision-signals { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
-    .channel-decision-signal { border:1px solid var(--line); border-radius:10px; background:var(--panel2); padding:9px 10px; min-width:0; display:grid; gap:5px; align-content:start; }
+    .channel-decision-signals { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; }
+    .channel-decision-signal { border:1px solid rgba(148,163,184,.20); border-radius:8px; background:rgba(255,255,255,.025); padding:7px 8px; min-width:0; display:grid; gap:4px; align-content:start; }
     .channel-decision-signal span:first-child { color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; letter-spacing:.04em; }
-    .channel-decision-signal em { color:var(--muted); font-size:12px; line-height:1.3; font-style:normal; overflow-wrap:anywhere; }
+    .channel-decision-signal em { color:var(--muted); font-size:11px; line-height:1.25; font-style:normal; overflow-wrap:anywhere; }
     .channel-analysis-flow { display:grid; gap:7px; }
     .channel-analysis-row { border:1px solid var(--line); border-radius:10px; background:var(--panel2); padding:9px 12px; min-width:0; }
     .channel-analysis-row > span { display:block; color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; letter-spacing:.04em; }
@@ -20783,8 +20791,8 @@ def html_page_v2():
     .channel-analysis-list .mark { flex:0 0 auto; width:18px; text-align:center; font-weight:900; }
     .channel-analysis-list .mark.bad { color:var(--red); }
     .channel-analysis-list .mark.ok { color:var(--green); }
-    .channel-compressed-list { margin-top:6px; display:grid; gap:5px; }
-    .channel-compressed-item { width:100%; min-height:30px; border:1px solid rgba(255,255,255,.08); border-radius:8px; background:rgba(255,255,255,.03); color:var(--text); padding:6px 8px; display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:7px; align-items:center; text-align:left; cursor:pointer; }
+    .channel-compressed-list { margin-top:0; display:grid; gap:5px; }
+    .channel-compressed-item { width:100%; min-height:28px; border:1px solid rgba(255,255,255,.08); border-radius:8px; background:rgba(255,255,255,.03); color:var(--text); padding:5px 8px; display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:7px; align-items:center; text-align:left; cursor:pointer; }
     .channel-compressed-item:hover { border-color:rgba(52,211,153,.36); background:rgba(52,211,153,.08); }
     .channel-compressed-item .mark { width:16px; text-align:center; font-weight:900; }
     .channel-compressed-item .mark.bad { color:var(--red); }
@@ -20796,8 +20804,8 @@ def html_page_v2():
     .channel-accordion-trigger[aria-expanded="true"] .channel-accordion-chevron { transform:rotate(90deg); color:var(--green); }
     .channel-accordion-content[hidden] { display:none; }
     .channel-accordion-content { max-height:0; overflow:hidden; transition:max-height .18s ease; min-width:0; }
-    .channel-accordion-content.open { margin-top:6px; }
-    .channel-accordion-content-inner { border:1px solid rgba(52,211,153,.22); border-radius:8px; background:rgba(52,211,153,.07); padding:9px 10px; display:grid; gap:7px; min-width:0; }
+    .channel-accordion-content.open { margin-top:5px; }
+    .channel-accordion-content-inner { border:1px solid rgba(52,211,153,.22); border-radius:8px; background:rgba(52,211,153,.06); padding:8px 9px; display:grid; gap:6px; min-width:0; }
     .channel-accordion-content-inner > strong { font-size:14px; line-height:1.15; overflow-wrap:anywhere; }
     .channel-accordion-row { display:grid; gap:2px; min-width:0; }
     .channel-accordion-row span { color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; letter-spacing:.04em; }
@@ -20808,14 +20816,14 @@ def html_page_v2():
     .channel-details-section summary { cursor:pointer; font-weight:850; }
     .channel-details-stack { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:12px; }
     .channel-details-stack .drawer-section { margin:0; }
-    .channel-diagnostics-layout { display:grid; gap:12px; margin-top:12px; }
-    .channel-diagnostics-summary { border:1px solid var(--line); border-radius:12px; background:var(--panel2); padding:12px; min-width:0; }
-    .channel-diagnostics-summary h3 { margin:0 0 10px; font-size:13px; }
+    .channel-diagnostics-layout { display:grid; gap:8px; margin-top:8px; }
+    .channel-diagnostics-summary { border:1px solid rgba(148,163,184,.18); border-radius:8px; background:rgba(255,255,255,.025); padding:8px 9px; min-width:0; }
+    .channel-diagnostics-summary h3 { margin:0 0 7px; font-size:12px; }
     .channel-technical-diagnostics .channel-breakdown-list { grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); align-items:stretch; }
-    .channel-technical-diagnostics .channel-breakdown-card { align-content:start; min-height:132px; }
-    .channel-breakdown-list { display:grid; gap:10px; }
+    .channel-technical-diagnostics .channel-breakdown-card { align-content:start; min-height:0; }
+    .channel-breakdown-list { display:grid; gap:8px; }
     .channel-breakdown-card,
-    .channel-breakdown-total { border:1px solid var(--line); border-radius:12px; background:var(--panel2); padding:12px; display:grid; gap:8px; min-width:0; }
+    .channel-breakdown-total { border:1px solid rgba(148,163,184,.20); border-radius:9px; background:rgba(255,255,255,.025); padding:9px; display:grid; gap:6px; min-width:0; }
     .channel-breakdown-card-head { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:start; gap:10px; }
     .channel-breakdown-total { grid-template-columns:minmax(0,1fr) auto; align-items:start; }
     .channel-breakdown-card-head strong,
@@ -21019,6 +21027,10 @@ def html_page_v2():
       .attention-drilldown-item-head{grid-template-columns:1fr}
       .attention-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}
       .attention-actions button{width:100%;overflow:hidden;text-overflow:ellipsis}
+      .channel-decision-surface{padding:10px;gap:7px}
+      .channel-decision-head{grid-template-columns:1fr;gap:6px}
+      .channel-decision-score{justify-items:start}
+      .channel-decision-section{grid-template-columns:1fr;gap:5px;padding-bottom:7px}
       .toolbar{padding:14px 14px 10px}
       .toolbar-actions{width:100%}
       .toolbar-actions .ghost,.toolbar-actions .primary{flex:1 1 auto}
@@ -26791,7 +26803,7 @@ def html_page_v2():
       const st = row.state || {};
       const ok = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
       if (ok) return {label:'OK', tone:'ok', detail:st.diagnose_detail || st.diagnose_reason || 'канал отвечает'};
-      return {label:'Уточнить', tone:'warn', detail:st.diagnose_reason || st.diagnose_detail || 'нет свежего подтверждения состояния'};
+      return {label:'Нет свежих данных', tone:'warn', detail:st.diagnose_reason || st.diagnose_detail || 'нет свежего подтверждения состояния'};
     }
     function channelLifecycleStatus(row={}, health={}) {
       const id = row.id || '';
@@ -26848,7 +26860,7 @@ def html_page_v2():
       return st.load_status || flags[`${id}_load_status`] || flags[`${id}_state`] || 'UNKNOWN';
     }
     function channelProblemButton(id='', label='', tone='warn', source='status') {
-      return `<button type="button" class="status-pill-button" onclick="event.stopPropagation();openChannelProblem('${esc(id)}','${esc(source)}')" title="Показать конкретное решение">${pill(label || 'Уточнить', tone || 'warn')}</button>`;
+      return `<button type="button" class="status-pill-button" onclick="event.stopPropagation();openChannelProblem('${esc(id)}','${esc(source)}')" title="Показать конкретное решение">${pill(label || 'Нет свежих данных', tone || 'warn')}</button>`;
     }
     function channelProblemAction(label='', onclick='', primary=false) {
       return `<button class="${primary ? 'primary' : 'ghost'}" onclick="${onclick}">${esc(label)}</button>`;
@@ -27767,15 +27779,15 @@ def html_page_v2():
       if (/telegram|google|youtube|service|сервис|instagram|whatsapp|chatgpt|claude/i.test(text)) {
         return {
           reason: channelPrimaryCauseForOutcome(text, suitability) || 'Сервисы не подтвердили доступность.',
-          resolution: 'Откройте детали сервисов. Ручное обновление доступно внутри технических деталей, если нужен свежий замер.',
-          action: `<button class="ghost" type="button" onclick="openChannelServicesPanel('${esc(id)}')">Открыть сервисы</button>`,
+          resolution: 'Откройте матрицу сервисов и запустите свежий замер через существующий обработчик.',
+          action: `<button class="ghost" type="button" onclick="openChannelServicesPanel('${esc(id)}')">Открыть матрицу сервисов</button>`,
         };
       }
       if (/route|маршрут/i.test(text)) {
         return {
           reason: 'Маршрутная готовность не подтверждена. Это не означает, что скорость или качество трафика сломаны.',
-          resolution: 'Откройте карточку канала и посмотрите доказательства готовности маршрута. Отдельной безопасной кнопки маршрута для этого канала нет.',
-          action: '',
+          resolution: 'Смотрите доказательства и историю ниже. Отдельного безопасного route-handler для этого пункта нет.',
+          action: channelUnavailableActionHtml('нет безопасного route-handler в этом drawer'),
         };
       }
       if (/capacity|нагруз|перегруж/i.test(text)) {
@@ -27795,15 +27807,15 @@ def html_page_v2():
       if (/history|истор/i.test(text)) {
         return {
           reason: 'Истории недостаточно для уверенного решения.',
-          resolution: 'Откройте evidence/history ниже в карточке канала.',
-          action: '',
+          resolution: 'Откройте evidence/history ниже в карточке канала. Ручного исправления истории нет.',
+          action: channelUnavailableActionHtml('история обновляется системой, ручного обработчика нет'),
         };
       }
       if (/stability|стабил|connectivity|связ/i.test(text)) {
         return {
           reason: 'Стабильность ниже требуемого уровня.',
-          resolution: 'Откройте детали канала и последние события, чтобы понять причину.',
-          action: '',
+          resolution: 'Откройте логи канала и последние события, чтобы понять причину.',
+          action: `<button class="ghost" type="button" onclick="openV2ChannelLogs('${esc(id)}')">Открыть логи</button>`,
         };
       }
       if (/disabled|отключ/i.test(lower)) {
@@ -27814,8 +27826,8 @@ def html_page_v2():
         };
       }
       return {
-        reason: suitability.why || 'Каналу нужны свежие данные оператора.',
-        resolution: suitability.score >= 90 ? 'Действий не требуется.' : 'Откройте детали ниже и подтвердите причину перед действием.',
+        reason: suitability.why || 'Последний snapshot канала неполный.',
+        resolution: suitability.score >= 90 ? 'Действий не требуется.' : 'Дождитесь автоматического обновления или откройте техническую диагностику, если нужен источник сигнала.',
         action: suitability.score >= 90 ? '' : channelUnavailableActionHtml(),
       };
     }
@@ -27924,7 +27936,7 @@ def html_page_v2():
       const max = Number(item.max || 0);
       if (max && score >= max) return {label:'OK', tone:'ok', hint:'Подтверждено'};
       if (score <= Math.max(2, max * 0.25)) return {label:'Проблема', tone:'bad', hint:'Влияет на решение'};
-      return {label:'Уточнить', tone:'warn', hint:'Уверенность неполная'};
+      return {label:'Нет свежих данных', tone:'warn', hint:'Откройте строку для следующего шага'};
     }
     function channelScoreExplanationText(source={}, item={}) {
       const row = channelRowFromSource(source);
@@ -27932,41 +27944,52 @@ def html_page_v2():
       const check = String(item.check || '');
       if (check === 'Services') {
         const service = channelScoreServiceEvidence(row);
-        if (!service.total) return 'Свежего измерения сервисов нет.';
+        if (!service.total) return 'Последний snapshot сервисов отсутствует; откройте матрицу сервисов, если нужен свежий замер.';
         if (service.ok >= service.total) return 'Все измеренные сервисы доступны.';
-        return `${service.ok}/${service.total} сервисов доступны; недоступные сервисы показаны ниже.`;
+        return `${service.ok}/${service.total} сервисов доступны; откройте матрицу сервисов для свежего замера.`;
       }
       if (check === 'Stability') {
         const health = channelHealth(row);
         if (Number(item.score || 0) >= Number(item.max || 0)) return 'Канал отвечает нормально, состояние выше минимального уровня.';
-        return channelHealthDetailText(health.detail || 'Состояние канала требует подтверждения.');
+        return channelHealthDetailText(health.detail || 'Откройте логи канала: состояние не подтверждено свежими данными.');
       }
       if (check === 'Capacity') {
         const count = egressUserCount(id);
         const limit = channelLoadLimit(row);
         if (Number(item.score || 0) >= Number(item.max || 0)) return `${count} пользователей назначено; предпочтительный уровень ${limit.soft}. Новые назначения внутри лимита.`;
         if (count >= Number(limit.hard || 0)) return `${count} пользователей назначено; жёсткий предел ${limit.hard}. Новые назначения ограничены, текущие пользователи не отключаются.`;
-        return `${count} пользователей назначено; предпочтительный уровень ${limit.soft}. Перед добавлением пользователей нужно оценить запас назначения.`;
+        return `${count} пользователей назначено; предпочтительный уровень ${limit.soft}. Перед добавлением откройте пользователей канала.`;
       }
       if (check === 'Route') {
         const evidence = channelScoreRouteEvidence(row);
         if (Number(item.score || 0) >= Number(item.max || 0)) return 'Готовность маршрута подтверждена текущими сигналами.';
-        if (evidence.state?.issue && evidence.state.issue !== '—') return `Готовность маршрута частичная: ${evidence.state.issue}. Это не оценка скорости или пропускной способности.`;
-        if (evidence.total) return `${evidence.confirmed}/${evidence.total} маршрутов уверенно подтверждены; нужна дополнительная маршрутная уверенность.`;
-        return 'Топология канала не даёт полной уверенности маршрута. Это не оценка скорости или bandwidth.';
+        if (evidence.state?.issue && evidence.state.issue !== '—') return `Маршрут не полностью подтвержден: ${evidence.state.issue}. Безопасного ручного route-handler здесь нет.`;
+        if (evidence.total) return `${evidence.confirmed}/${evidence.total} маршрутов подтверждены; безопасного ручного route-handler здесь нет.`;
+        return 'Топология канала не подтверждает маршрут полностью; безопасного ручного route-handler здесь нет.';
       }
       if (check === 'Runtime') {
         const rd = row._detail?.runtime_readiness || (overview.egress_runtime_readiness || {})[id] || {};
         if (Number(item.score || 0) >= Number(item.max || 0)) return 'Готовность подтверждена текущим снимком.';
-        return operatorShort(rd.reason || rd.status || 'Runtime готовность подтверждена частично.');
+        return operatorShort(rd.reason || rd.status || 'Откройте логи канала: runtime snapshot неполный.');
       }
       if (check === 'History') {
         const decision = channelDecisionRow(id);
         const label = decision.channel_state_label || decision.channel_state || decision.state || '';
         if (Number(item.score || 0) >= Number(item.max || 0)) return 'Недавняя история не содержит негативных сигналов.';
-        return label ? `Последняя история канала: ${operatorText(label)}.` : 'Истории недостаточно для полного доверия.';
+        return label ? `Последняя история канала: ${operatorText(label)}.` : 'История обновляется системой; ручного обработчика нет.';
       }
-      return item.reason || 'Сигналу нужны свежие данные.';
+      return item.reason || 'Последний snapshot сигнала неполный; откройте строку для следующего шага.';
+    }
+    function channelScoreComponentActionHtml(source={}, item={}) {
+      const row = channelRowFromSource(source);
+      const id = row.id || row.egress || '';
+      const check = String(item.check || '');
+      if (check === 'Services') return `<button class="ghost" type="button" onclick="openChannelServicesPanel('${esc(id)}')">Открыть матрицу сервисов</button>`;
+      if (check === 'Capacity') return `<button class="ghost" type="button" onclick="showChannelWorkspace('overview');toggleChannelUsers('${esc(id)}');closeDrawer()">Открыть пользователей</button>`;
+      if (check === 'Runtime' || check === 'Stability') return `<button class="ghost" type="button" onclick="openV2ChannelLogs('${esc(id)}')">Открыть логи</button>`;
+      if (check === 'Route') return channelUnavailableActionHtml('нет безопасного route-handler в этом drawer');
+      if (check === 'History') return channelUnavailableActionHtml('история обновляется системой, ручного обработчика нет');
+      return channelUnavailableActionHtml();
     }
     function channelScoreExplanationRows(source={}, item={}) {
       const row = channelRowFromSource(source);
@@ -28045,6 +28068,7 @@ def html_page_v2():
           <strong>${esc(channelOperatorCheckLabel(check))}: ${esc(status.label)}</strong>
           ${rows.map(([label, value]) => `<div class="channel-accordion-row"><span>${esc(label)}</span><p>${esc(value)}</p></div>`).join('')}
           ${extra}
+          <div class="channel-accordion-actions">${channelScoreComponentActionHtml(row, item)}</div>
         </div>
       </div>`;
     }
@@ -28094,7 +28118,24 @@ def html_page_v2():
       </div>`;
     }
     function channelDecisionFirstSection(title='', body='') {
-      return `<div class="drawer-section channel-decision-section"><h3>${esc(title)}</h3>${body || '<div class="muted">Нет данных.</div>'}</div>`;
+      return `<div class="channel-decision-section"><h3>${esc(title)}</h3><div>${body || '<div class="muted">Нет данных.</div>'}</div></div>`;
+    }
+    function channelDecisionFirstHeaderBlock(source={}) {
+      const row = channelRowFromSource(source);
+      const id = row.id || row.egress || '';
+      const s = channelSuitability(row);
+      const a = channelAssignmentStatus(row);
+      return `<div class="channel-decision-head">
+        <div>
+          <span>Канал</span>
+          <strong>${esc(channelDisplayName(id || 'Канал'))}</strong>
+          <em>${esc(a.mainBlocker || channelDecisionReason(row))}</em>
+        </div>
+        <div class="channel-decision-score">
+          ${pill(s.status.label, s.status.tone)}
+          <strong>${esc(s.score)}/100</strong>
+        </div>
+      </div>`;
     }
     function channelDecisionFirstDecisionBlock(source={}) {
       const a = channelAssignmentStatus(source);
@@ -28119,17 +28160,17 @@ def html_page_v2():
     function channelDecisionFirstSignalStatus(item={}) {
       if (item.tone === 'ok') return {label:'OK', tone:'ok'};
       if (item.tone === 'bad') return {label:'Проблема', tone:'bad'};
-      if (item.tone === 'warn') return {label:'Уточнить', tone:'warn'};
+      if (item.tone === 'warn') return {label:'Нет свежих данных', tone:'warn'};
       return {label:'Нет данных', tone:'info'};
     }
     function channelDecisionFirstSignalMeaning(item={}) {
       const check = String(item.check || '');
       if (item.tone === 'ok') return 'Работает';
-      if (check === 'Services') return 'Сервисная уверенность неполная';
+      if (check === 'Services') return 'Откройте матрицу сервисов';
       if (check === 'Capacity') return 'Новые назначения ограничены';
       if (check === 'Runtime') return 'Нет свежего runtime-снимка';
-      if (check === 'Stability') return 'Устойчивость нужно уточнить';
-      return 'Нужны свежие данные';
+      if (check === 'Stability') return 'Откройте логи канала';
+      return 'Автообновление ждёт снимок';
     }
     function channelDecisionFirstSignalsBlock(source={}) {
       const allowed = new Set(['Services', 'Capacity', 'Runtime', 'Stability']);
@@ -28161,14 +28202,21 @@ def html_page_v2():
         : '<p class="muted">Подтвержденные проверки показаны в диагностике.</p>';
       return channelDecisionFirstSection('Работает', body);
     }
+    function channelDecisionFirstDiagnosticsBlock(source={}) {
+      const row = channelRowFromSource(source);
+      const id = row.id || row.egress || '';
+      return channelDecisionFirstSection('Диагностика', `<div class="detail-actions"><button class="ghost" type="button" onclick="openChannelTechnicalDiagnostics('${esc(id)}')">Открыть техническую диагностику</button></div>`);
+    }
     function channelDecisionFirstSurface(source={}) {
-      return [
-        channelDecisionFirstDecisionBlock(source),
-        channelDecisionFirstReasonBlock(source),
-        channelDecisionFirstSignalsBlock(source),
-        channelDecisionFirstProblemsBlock(source),
-        channelDecisionFirstWorksBlock(source),
-      ].join('');
+      return `<section class="drawer-section channel-decision-surface">
+        ${channelDecisionFirstHeaderBlock(source)}
+        ${channelDecisionFirstDecisionBlock(source)}
+        ${channelDecisionFirstReasonBlock(source)}
+        ${channelDecisionFirstSignalsBlock(source)}
+        ${channelDecisionFirstProblemsBlock(source)}
+        ${channelDecisionFirstWorksBlock(source)}
+        ${channelDecisionFirstDiagnosticsBlock(source)}
+      </section>`;
     }
     function closeChannelAccordionItem(item) {
       const trigger = item?.querySelector(':scope > .channel-accordion-trigger, :scope > .channel-summary-button.channel-accordion-trigger, :scope > .channel-compressed-item.channel-accordion-trigger');
@@ -28258,7 +28306,7 @@ def html_page_v2():
       const rd = ctx.readiness || {};
       const summary = kvRows({
         'Канал': channelDisplayName(id),
-        'Статус': ctx.lifecycle.text || 'Уточнить',
+        'Статус': ctx.lifecycle.text || 'Нет свежих данных',
         'Сервисы': ctx.matrix.total ? `${ctx.matrix.okCount}/${ctx.matrix.total}` : 'нет замера',
         'Скорость': ctx.speed,
         'Нагрузка': ctx.loadLabel,
@@ -28438,7 +28486,7 @@ def html_page_v2():
       if (colId === 'commercial_status') return channelCommercialStatusCell(view.row || {id});
       if (colId === 'main_issue') return channelMainIssueCell(view.row || {id});
       if (colId === 'channel_state') return channelStateCell(id, channelDecisionRow(id));
-      if (colId === 'status') return channelProblemButton(id, view.statusText || 'Проверить', view.statusToneLocal || 'warn', 'status');
+      if (colId === 'status') return channelProblemButton(id, view.statusText || 'Нет свежих данных', view.statusToneLocal || 'warn', 'status');
       if (colId === 'users') {
         const expanded = expandedChannelUsers === id;
         const count = egressUserCount(id);
@@ -28755,7 +28803,7 @@ def html_page_v2():
       const speedOk = !!(serverSpeed.server_v7_mbps || serverSpeed.download_mbps || clientSpeed.client_v7_avg_mbps);
       const runtimeReady = !!rd.enable_ready || String(rd.status || '').toUpperCase() === 'READY';
       const usersCount = assigned.length;
-      let verdict = 'Проверить канал';
+      let verdict = 'Нет свежих данных';
       let tone = 'warn';
       if (!enabled) { verdict = 'Выключен'; tone = 'warn'; }
       else if (!healthOk) { verdict = 'Есть проблема'; tone = 'bad'; }

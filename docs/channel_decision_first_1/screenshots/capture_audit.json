@@ -1,0 +1,41 @@
+{
+  "desktopAudit": {
+    "cards": [
+      "Use 2",
+      "Evacuate 1",
+      "Emergency Only 4",
+      "Users 27"
+    ],
+    "filters": [
+      "All 7",
+      "Use 2",
+      "Evacuate 1",
+      "Emergency 4",
+      "Attention 6"
+    ],
+    "headers": [
+      "КАНАЛ",
+      "РЕШЕНИЕ",
+      "СИГНАЛЫ",
+      "ПОЛЬЗОВАТЕЛИ"
+    ],
+    "rowCount": 7,
+    "hasScoreHeader": false,
+    "hasHealthyCard": false,
+    "overflow": false,
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "scrollWidth": 1440
+    }
+  },
+  "mobileAudit": {
+    "overflow": false,
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "scrollWidth": 390
+    }
+  },
+  "consoleErrors": []
+}

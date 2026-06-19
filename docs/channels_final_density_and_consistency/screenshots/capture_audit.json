@@ -1,0 +1,43 @@
+{
+  "program": "CHANNELS.TABLE_AND_LAYOUT_FINAL_POLISH",
+  "production_url": "https://v7-admin.195-2-79-116.sslip.io/admin-v2#channels",
+  "commit": "eca6b9a5a22deb3e687eeba6abe6dfd0b00d49d3",
+  "deploy_id": "deploy-z8-14-Updatesystem-eca6b9a-20260619T231836",
+  "before": {
+    "standalone_signal_legend": true,
+    "mobile_filter_strip_height_px": 82,
+    "stat_card_height_px": 76,
+    "visible_rows_390px": 4,
+    "horizontal_overflow_390px": false
+  },
+  "after": {
+    "standalone_signal_legend": false,
+    "signal_header_codes_visible": true,
+    "desktop_filter_strip_height_px": 26,
+    "mobile_filter_strip_height_px": 34,
+    "desktop_stat_card_height_px": 59,
+    "mobile_stat_card_height_px": 63,
+    "visible_rows_desktop": 7,
+    "visible_rows_390px": 7,
+    "horizontal_overflow_desktop": false,
+    "horizontal_overflow_390px": false,
+    "sort_options_verified": [
+      "По решению V7",
+      "По пользователям",
+      "По сервисам",
+      "По нагрузке",
+      "По runtime",
+      "По стабильности"
+    ]
+  },
+  "screenshots": [
+    "before_desktop_channels.png",
+    "before_mobile_channels.png",
+    "after_desktop_channels.png",
+    "after_desktop_dark_channels.png",
+    "after_desktop_sorting.png",
+    "after_desktop_drawer.png",
+    "after_mobile_channels.png",
+    "after_mobile_drawer.png"
+  ]
+}

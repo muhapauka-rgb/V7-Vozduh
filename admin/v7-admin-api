@@ -20755,12 +20755,10 @@ def html_page_v2():
     .user-answer-card { grid-column:1 / -1; display:grid; gap:8px; }
     .channel-analysis-card { grid-column:1 / -1; display:grid; gap:10px; }
     .channel-decision-surface { grid-column:1 / -1; display:grid; gap:8px; padding:12px; }
-    .channel-decision-head { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:start; border-bottom:1px solid var(--line); padding-bottom:8px; }
+    .channel-decision-head { display:grid; grid-template-columns:1fr; gap:6px; align-items:start; border-bottom:1px solid var(--line); padding-bottom:8px; }
     .channel-decision-head span { display:block; color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; letter-spacing:.04em; }
     .channel-decision-head strong { display:block; margin-top:3px; font-size:20px; line-height:1.1; overflow-wrap:anywhere; }
     .channel-decision-head em { display:block; margin-top:3px; color:var(--muted); font-style:normal; font-size:12px; line-height:1.25; overflow-wrap:anywhere; }
-    .channel-decision-score { display:grid; justify-items:end; gap:3px; }
-    .channel-decision-score strong { font-size:18px; }
     .channel-decision-section { display:grid; grid-template-columns:112px minmax(0,1fr); gap:10px; align-items:start; border-bottom:1px solid rgba(148,163,184,.16); padding:0 0 8px; }
     .channel-decision-section:last-child { border-bottom:0; padding-bottom:0; }
     .channel-decision-section h3 { margin:1px 0 0; color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; letter-spacing:.04em; }
@@ -21029,7 +21027,6 @@ def html_page_v2():
       .attention-actions button{width:100%;overflow:hidden;text-overflow:ellipsis}
       .channel-decision-surface{padding:10px;gap:7px}
       .channel-decision-head{grid-template-columns:1fr;gap:6px}
-      .channel-decision-score{justify-items:start}
       .channel-decision-section{grid-template-columns:1fr;gap:5px;padding-bottom:7px}
       .toolbar{padding:14px 14px 10px}
       .toolbar-actions{width:100%}
@@ -26953,7 +26950,7 @@ def html_page_v2():
       if (readinessBad) {
         issues.push(channelProblemIssue(
           'Нет свежего runtime-подтверждения',
-          readiness.reason || readiness.status || 'Последний runtime-снимок не подтверждает готовность канала.',
+          readiness.reason || readiness.status || 'Последнее подтверждение готовности канала неполное.',
           [
             channelProblemAction('Открыть канал', `openChannelDrawer('${esc(id)}')`, true),
             channelProblemAction('Логи канала', `openV2ChannelLogs('${esc(id)}')`),
@@ -27100,7 +27097,7 @@ def html_page_v2():
       if (check === 'Capacity') return 'Пользователей больше предпочтительного или жёсткого уровня назначения';
       if (check === 'Route') return 'Уверенность маршрута неполная; это не оценка скорости или качества трафика';
       if (check === 'Services') return 'Не все сервисы подтверждены свежими данными';
-      if (check === 'Runtime') return 'Последний runtime-снимок не подтверждает готовность';
+      if (check === 'Runtime') return 'Последнее подтверждение готовности неполное';
       if (check === 'History') return 'Истории недостаточно для уверенного вывода';
       if (check === 'Stability') return 'Стабильность ниже требуемого уровня';
       return 'Каналу нужны свежие данные оператора';
@@ -27769,7 +27766,7 @@ def html_page_v2():
         <span class="channel-accordion-chevron">›</span>
       </button>`;
     }
-    function channelUnavailableActionHtml(reason='нет безопасного обработчика') {
+    function channelUnavailableActionHtml(reason='нет безопасного действия в этом окне') {
       return `<button class="ghost" type="button" disabled>Действие недоступно</button><span class="inline-action-status">Причина: ${esc(reason)}</span>`;
     }
     function channelProblemOverlayMeta(label='', suitability={}, assignment={}) {
@@ -27779,27 +27776,27 @@ def html_page_v2():
       if (/capacity|нагруз|перегруж|лимит назнач|назначени.*достиг|пользовател/i.test(text)) {
         return {
           reason: 'Пользователей больше предпочтительного или жёсткого уровня назначения.',
-          resolution: 'Откройте пользователей этого канала и подготовьте перевод через существующий governed flow.',
+          resolution: 'Откройте пользователей этого канала и подготовьте перевод штатным действием V7.',
           action: `<button class="ghost" type="button" onclick="showChannelWorkspace('overview');toggleChannelUsers('${esc(id)}');closeDrawer()">Открыть пользователей</button>`,
         };
       }
       if (/telegram|google|youtube|service|сервис|instagram|whatsapp|chatgpt|claude/i.test(text)) {
         return {
           reason: channelPrimaryCauseForOutcome(text, suitability) || 'Сервисы не подтвердили доступность.',
-          resolution: 'Откройте матрицу сервисов и запустите свежий замер через существующий обработчик.',
+          resolution: 'Откройте матрицу сервисов и запустите свежий замер.',
           action: `<button class="ghost" type="button" onclick="openChannelServicesPanel('${esc(id)}')">Открыть матрицу сервисов</button>`,
         };
       }
       if (/route|маршрут/i.test(text)) {
         return {
           reason: 'Маршрутная готовность не подтверждена. Это не означает, что скорость или качество трафика сломаны.',
-          resolution: 'Смотрите доказательства и историю ниже. Отдельного безопасного route-handler для этого пункта нет.',
-          action: channelUnavailableActionHtml('нет безопасного route-handler в этом drawer'),
+          resolution: 'Откройте инженерную диагностику. Безопасного ручного действия для маршрута в этом окне нет.',
+          action: channelUnavailableActionHtml('нет безопасного действия для маршрута в этом окне'),
         };
       }
       if (/runtime|ready|готов/i.test(text)) {
         return {
-          reason: 'Последний runtime-снимок не подтверждает готовность канала.',
+          reason: 'Последнее подтверждение готовности канала неполное.',
           resolution: 'Откройте логи канала перед назначением пользователей.',
           action: `<button class="ghost" type="button" onclick="openV2ChannelLogs('${esc(id)}')">Открыть логи</button>`,
         };
@@ -27808,7 +27805,7 @@ def html_page_v2():
         return {
           reason: 'Истории недостаточно для уверенного решения.',
           resolution: 'Откройте evidence/history ниже в карточке канала. Ручного исправления истории нет.',
-          action: channelUnavailableActionHtml('история обновляется системой, ручного обработчика нет'),
+          action: channelUnavailableActionHtml('история обновляется системой автоматически'),
         };
       }
       if (/stability|стабил|connectivity|связ/i.test(text)) {
@@ -27826,7 +27823,7 @@ def html_page_v2():
         };
       }
       return {
-        reason: suitability.why || 'Последний snapshot канала неполный.',
+        reason: suitability.why || 'Последние данные канала неполные.',
         resolution: suitability.score >= 90 ? 'Действий не требуется.' : 'Дождитесь автоматического обновления или откройте техническую диагностику, если нужен источник сигнала.',
         action: suitability.score >= 90 ? '' : channelUnavailableActionHtml(),
       };
@@ -27944,7 +27941,7 @@ def html_page_v2():
       const check = String(item.check || '');
       if (check === 'Services') {
         const service = channelScoreServiceEvidence(row);
-        if (!service.total) return 'Последний snapshot сервисов отсутствует; откройте матрицу сервисов, если нужен свежий замер.';
+        if (!service.total) return 'Последних данных по сервисам нет; откройте матрицу сервисов, если нужен свежий замер.';
         if (service.ok >= service.total) return 'Все измеренные сервисы доступны.';
         return `${service.ok}/${service.total} сервисов доступны; откройте матрицу сервисов для свежего замера.`;
       }
@@ -27963,22 +27960,22 @@ def html_page_v2():
       if (check === 'Route') {
         const evidence = channelScoreRouteEvidence(row);
         if (Number(item.score || 0) >= Number(item.max || 0)) return 'Готовность маршрута подтверждена текущими сигналами.';
-        if (evidence.state?.issue && evidence.state.issue !== '—') return `Маршрут не полностью подтвержден: ${evidence.state.issue}. Безопасного ручного route-handler здесь нет.`;
-        if (evidence.total) return `${evidence.confirmed}/${evidence.total} маршрутов подтверждены; безопасного ручного route-handler здесь нет.`;
-        return 'Топология канала не подтверждает маршрут полностью; безопасного ручного route-handler здесь нет.';
+        if (evidence.state?.issue && evidence.state.issue !== '—') return `Маршрут не полностью подтвержден: ${evidence.state.issue}. Безопасного ручного действия здесь нет.`;
+        if (evidence.total) return `${evidence.confirmed}/${evidence.total} маршрутов подтверждены; безопасного ручного действия здесь нет.`;
+        return 'Топология канала не подтверждает маршрут полностью; безопасного ручного действия здесь нет.';
       }
       if (check === 'Runtime') {
         const rd = row._detail?.runtime_readiness || (overview.egress_runtime_readiness || {})[id] || {};
         if (Number(item.score || 0) >= Number(item.max || 0)) return 'Готовность подтверждена текущим снимком.';
-        return operatorShort(rd.reason || rd.status || 'Откройте логи канала: runtime snapshot неполный.');
+        return operatorShort(rd.reason || rd.status || 'Откройте логи канала: подтверждение готовности неполное.');
       }
       if (check === 'History') {
         const decision = channelDecisionRow(id);
         const label = decision.channel_state_label || decision.channel_state || decision.state || '';
         if (Number(item.score || 0) >= Number(item.max || 0)) return 'Недавняя история не содержит негативных сигналов.';
-        return label ? `Последняя история канала: ${operatorText(label)}.` : 'История обновляется системой; ручного обработчика нет.';
+        return label ? `Последняя история канала: ${operatorText(label)}.` : 'История обновляется системой автоматически.';
       }
-      return item.reason || 'Последний snapshot сигнала неполный; откройте строку для следующего шага.';
+      return item.reason || 'Последние данные сигнала неполные; откройте строку для следующего шага.';
     }
     function channelScoreComponentActionHtml(source={}, item={}) {
       const row = channelRowFromSource(source);
@@ -27987,8 +27984,8 @@ def html_page_v2():
       if (check === 'Services') return `<button class="ghost" type="button" onclick="openChannelServicesPanel('${esc(id)}')">Открыть матрицу сервисов</button>`;
       if (check === 'Capacity') return `<button class="ghost" type="button" onclick="showChannelWorkspace('overview');toggleChannelUsers('${esc(id)}');closeDrawer()">Открыть пользователей</button>`;
       if (check === 'Runtime' || check === 'Stability') return `<button class="ghost" type="button" onclick="openV2ChannelLogs('${esc(id)}')">Открыть логи</button>`;
-      if (check === 'Route') return channelUnavailableActionHtml('нет безопасного route-handler в этом drawer');
-      if (check === 'History') return channelUnavailableActionHtml('история обновляется системой, ручного обработчика нет');
+      if (check === 'Route') return channelUnavailableActionHtml('нет безопасного действия для маршрута в этом окне');
+      if (check === 'History') return channelUnavailableActionHtml('история обновляется системой автоматически');
       return channelUnavailableActionHtml();
     }
     function channelScoreExplanationRows(source={}, item={}) {
@@ -28123,17 +28120,11 @@ def html_page_v2():
     function channelDecisionFirstHeaderBlock(source={}) {
       const row = channelRowFromSource(source);
       const id = row.id || row.egress || '';
-      const s = channelSuitability(row);
-      const a = channelAssignmentStatus(row);
       return `<div class="channel-decision-head">
         <div>
           <span>Канал</span>
           <strong>${esc(channelDisplayName(id || 'Канал'))}</strong>
-          <em>${esc(a.mainBlocker || channelDecisionReason(row))}</em>
-        </div>
-        <div class="channel-decision-score">
-          ${pill(s.status.label, s.status.tone)}
-          <strong>${esc(s.score)}/100</strong>
+          <em>Операторский вид</em>
         </div>
       </div>`;
     }
@@ -28168,9 +28159,9 @@ def html_page_v2():
       if (item.tone === 'ok') return 'Работает';
       if (check === 'Services') return 'Откройте матрицу сервисов';
       if (check === 'Capacity') return 'Новые назначения ограничены';
-      if (check === 'Runtime') return 'Нет свежего runtime-снимка';
+      if (check === 'Runtime') return 'Нет свежего подтверждения';
       if (check === 'Stability') return 'Откройте логи канала';
-      return 'Автообновление ждёт снимок';
+      return 'Ожидается обновление данных';
     }
     function channelDecisionFirstSignalsBlock(source={}) {
       const allowed = new Set(['Services', 'Capacity', 'Runtime', 'Stability']);
@@ -28205,7 +28196,7 @@ def html_page_v2():
     function channelDecisionFirstDiagnosticsBlock(source={}) {
       const row = channelRowFromSource(source);
       const id = row.id || row.egress || '';
-      return channelDecisionFirstSection('Диагностика', `<div class="detail-actions"><button class="ghost" type="button" onclick="openChannelTechnicalDiagnostics('${esc(id)}')">Открыть техническую диагностику</button></div>`);
+      return channelDecisionFirstSection('Инженеру', `<p class="muted">Оценки, evidence, история и технические причины доступны отдельно.</p><div class="detail-actions"><button class="ghost" type="button" onclick="openChannelTechnicalDiagnostics('${esc(id)}')">Открыть инженерную диагностику</button></div>`);
     }
     function channelDecisionFirstSurface(source={}) {
       return `<section class="drawer-section channel-decision-surface">
@@ -28214,7 +28205,6 @@ def html_page_v2():
         ${channelDecisionFirstReasonBlock(source)}
         ${channelDecisionFirstSignalsBlock(source)}
         ${channelDecisionFirstProblemsBlock(source)}
-        ${channelDecisionFirstWorksBlock(source)}
         ${channelDecisionFirstDiagnosticsBlock(source)}
       </section>`;
     }
@@ -28253,7 +28243,7 @@ def html_page_v2():
       else openChannelAccordionItem(item);
     }
     function channelDetailsSection(body='') {
-      return `<details class="drawer-section channel-details-section"><summary>Диагностика</summary><div class="channel-details-stack">${body}</div></details>`;
+      return `<details class="drawer-section channel-details-section"><summary>Инженерная диагностика</summary><div class="channel-details-stack">${body}</div></details>`;
     }
     function channelTechnicalDiagnosticsSection(source={}) {
       const row = channelRowFromSource(source);

@@ -31441,6 +31441,20 @@ def html_page_v2():
       if (text === 'Needs Check') return 'Review';
       return 'Information';
     }
+    function channelAttentionHumanText(value='', item={}) {
+      const text = String(value || '').trim();
+      if (!text) return '';
+      if (/channel overload|capacity needs|capacity/i.test(text)) return 'Лимит назначений достигнут';
+      if (/services need attention|services confirmed|service/i.test(text)) return 'Сервисы требуют проверки';
+      if (/channel needs check|health requires/i.test(text)) return 'Проверить канал';
+      if (/channel disabled|disabled/i.test(text)) return 'Канал отключен';
+      if (/channel not started|interface is not running|not started/i.test(text)) return 'Канал не запущен';
+      if (/users should/i.test(text)) return 'Пользователей нужно перевести';
+      if (/runtime/i.test(text)) return 'Нет свежего runtime-подтверждения';
+      if (/stability/i.test(text)) return 'Стабильность требует проверки';
+      if (/route/i.test(text)) return 'Маршрут требует проверки';
+      return screenOneText(text || item.problem || item.reason || '');
+    }
     function channelDecisionAttentionItems(row={}) {
       const id = row.id || row.egress || '';
       if (!id) return [];
@@ -31502,7 +31516,7 @@ def html_page_v2():
           category:item.tone === 'bad' ? 'Action Required' : 'Review',
           problem:item.tone === 'bad' ? `${item.label}: влияет` : `${item.label}: проверить`,
           object:channelDisplayName(id),
-          reason:item.tooltip || channelDecisionFirstSignalMeaning(row, item),
+          reason:channelAttentionHumanText(item.tooltip || channelDecisionFirstSignalMeaning(row, item), item),
           action:'Открыть канал',
           click:`openChannelDrawer(${jsArg(id)})`,
           key:`signal:${id}:${item.check}:${item.tone}`,
@@ -31512,9 +31526,9 @@ def html_page_v2():
       if (channelIsHealthyForTable(row)) return [];
       return (attentionFromChannel(row) || []).map(item => ({
         category:channelAttentionCategoryFromSeverity(item.severity),
-        problem:screenOneText(item.problem || 'Проверить канал'),
+        problem:channelAttentionHumanText(item.problem || 'Проверить канал', item),
         object:item.object || channelDisplayName(row.id || row.egress || ''),
-        reason:screenOneText(item.reason || ''),
+        reason:channelAttentionHumanText(item.reason || '', item),
         action:item.primary_label || 'Открыть канал',
         click:item.primary_click || item.details_click || `openChannelDrawer(${jsArg(row.id || row.egress || '')})`,
         key:item.key || `overview:${row.id || row.egress || ''}:${item.problem || ''}`,

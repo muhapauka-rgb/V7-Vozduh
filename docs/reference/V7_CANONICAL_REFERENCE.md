@@ -64,6 +64,19 @@ A new audit is allowed only when the reference has no answer, the reference expl
 9. Settings and debug content must not appear in the operator view.
 10. First-screen operator wording must avoid vague labels such as `Уточнить`, `Требует проверки`, and `Уверенность неполная`; use concrete reality-first wording such as `Нет свежих данных`, `Нет свежего подтверждения`, `Открыть матрицу сервисов`, `Открыть пользователей`, `Открыть логи`, or `Действие недоступно`.
 
+## CHANNEL_OPERATOR_LANGUAGE_RULES
+
+1. Decision first: Channel Decision V7 is the final operator answer.
+2. Reason second: the first reason explains why V7 wants that decision.
+3. Signals third: signals explain confidence and evidence behind the decision; they are not a second decision model.
+4. Engineering hidden: scores, formulas, raw readiness, trust math, capacity math, planner internals, evidence, and logs stay behind Engineering Diagnostics.
+5. Yellow never overrides decision: yellow signals mean attention or freshness limits, not "do not use" by themselves.
+6. Red may influence decision: red signals can participate in `Evacuate`, `Blocked`, or other assignment restrictions and must explain the impact in operator language.
+7. Signal details must answer `What happened`, `Why`, and `What to do`, without using a competing `Decision` field.
+8. Problem details must answer `What happened`, `Why it matters`, and `What can be done now`.
+9. Operator copy must avoid developer-only terms on the first screen, including raw `runtime`, `confidence`, `evidence`, `snapshot`, `eligibility`, `trust score`, and planner/gate internals.
+10. If a warning does not change the decision, the UI must say that plainly, for example: "does not prohibit use" or "follow V7 decision".
+
 ## 1. Channels
 
 - What it means: A channel is an egress path that can carry users, be inspected by operators, and be considered by the planner.

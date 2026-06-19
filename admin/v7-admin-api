@@ -20759,11 +20759,14 @@ def html_page_v2():
     .channel-decision-head strong { display:block; margin-top:2px; font-size:19px; line-height:1.1; overflow-wrap:anywhere; }
     .channel-decision-head em { display:block; margin-top:3px; color:var(--muted); font-style:normal; font-size:12px; line-height:1.25; overflow-wrap:anywhere; }
     .channel-decision-section { display:grid; grid-template-columns:82px minmax(0,1fr); gap:6px; align-items:start; border-bottom:1px solid rgba(148,163,184,.08); padding:0 0 4px; }
+    .channel-decision-section:first-child { border:1px solid rgba(52,211,153,.22); border-radius:9px; background:rgba(52,211,153,.07); padding:7px 8px; }
     .channel-decision-section:last-child { border-bottom:0; padding-bottom:0; }
     .channel-decision-section h3 { margin:1px 0 0; color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; letter-spacing:.04em; }
+    .channel-decision-section:first-child h3 { color:var(--green); }
     .channel-decision-answer { display:grid; gap:8px; }
     .channel-decision-answer.is-single { gap:3px; }
     .channel-decision-line { min-width:0; display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+    .channel-decision-line .pill { font-size:13px; padding:5px 9px; }
     .channel-decision-line p,
     .channel-decision-reason { margin:0; color:var(--text); font-size:13px; font-weight:760; line-height:1.28; overflow-wrap:anywhere; }
     .channel-decision-row { min-width:0; display:grid; gap:4px; }
@@ -20771,10 +20774,11 @@ def html_page_v2():
     .channel-decision-row strong { color:var(--text); font-size:16px; line-height:1.12; overflow-wrap:anywhere; }
     .channel-decision-row p { margin:0; color:var(--text); font-size:14px; font-weight:760; line-height:1.35; overflow-wrap:anywhere; }
     .channel-decision-signals { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; }
-    .channel-decision-signal { position:relative; width:100%; border:1px solid rgba(148,163,184,.20); border-radius:7px; background:rgba(255,255,255,.025); color:var(--text); padding:5px 20px 5px 6px; min-width:0; display:grid; gap:2px; align-content:start; text-align:left; cursor:pointer; font:inherit; }
+    .channel-decision-signal { position:relative; width:100%; border:1px solid rgba(148,163,184,.18); border-radius:7px; background:rgba(255,255,255,.018); color:var(--text); padding:5px 20px 5px 6px; min-width:0; display:grid; gap:2px; align-content:start; text-align:left; cursor:pointer; font:inherit; }
     .channel-decision-signal:hover { border-color:rgba(52,211,153,.36); background:rgba(52,211,153,.08); }
     .channel-decision-signal span:first-child { color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; letter-spacing:.04em; }
     .channel-decision-signal em { color:var(--muted); font-size:11px; line-height:1.18; font-style:normal; overflow-wrap:anywhere; }
+    .channel-decision-signal .pill.warn { background:rgba(250,204,21,.09); }
     .channel-decision-signal .channel-accordion-chevron { position:absolute; top:6px; right:7px; }
     .channel-analysis-flow { display:grid; gap:7px; }
     .channel-analysis-row { border:1px solid var(--line); border-radius:10px; background:var(--panel2); padding:9px 12px; min-width:0; }
@@ -21614,7 +21618,7 @@ def html_page_v2():
     const CHANNEL_TABLE_COLUMN_DEFS = [
       {id:'channel', label:'Канал', meaning:'Название канала.', required:true, defaultVisible:true},
       {id:'decision', label:'Решение', sortLabel:'По решению V7', meaning:'Что V7 решил сделать с каналом: использовать, держать текущих пользователей, эвакуировать, заблокировать или оставить только для аварийного режима.', required:true, defaultVisible:true},
-      {id:'signals', label:'Сигналы', meaning:'Сервисы, нагрузка, runtime readiness и стабильность. Объясняет решение V7 без смешанного health score.', required:true, defaultVisible:true, sortable:false},
+      {id:'signals', label:'Сигналы', meaning:'Сервисы, нагрузка, готовность и стабильность. Объясняет решение V7 без смешанного health score.', required:true, defaultVisible:true, sortable:false},
       {id:'status', label:'Статус', meaning:'Короткое состояние канала.', required:false, defaultVisible:false},
       {id:'users', label:'Пользователи', sortLabel:'По пользователям', meaning:'Сколько пользователей сейчас назначено на канал.', required:false, defaultVisible:true},
       {id:'traffic', label:'Трафик', meaning:'Сколько прошло через канал сегодня и всего.', required:false, defaultVisible:false},
@@ -21631,7 +21635,7 @@ def html_page_v2():
     const CHANNEL_SIGNAL_SORT_DEFS = [
       {id:'signal_services', label:'Сигнал: сервисы', meaning:'Проблемные сервисы выше, затем предупреждения, OK и нет данных.'},
       {id:'signal_load', label:'Сигнал: нагрузка', meaning:'Каналы с ограничением назначений выше.'},
-      {id:'signal_runtime', label:'Сигнал: runtime', meaning:'Runtime-проблемы и неполная уверенность выше.'},
+      {id:'signal_runtime', label:'Сигнал: готовность', meaning:'Проблемы готовности и устаревшие проверки выше.'},
       {id:'signal_stability', label:'Сигнал: стабильность', meaning:'Проблемы устойчивости выше.'},
     ];
     const ORGANIZATION_TABLE_COLUMN_DEFS = [
@@ -27447,11 +27451,13 @@ def html_page_v2():
       return 'bad';
     }
     function channelSignalDecisionNote(source={}, item={}, rawTone='', displayTone='') {
-      if (rawTone === displayTone) return '';
       const assignment = channelAssignmentStatus(source);
-      if (assignment.key === 'use') return ' V7 может использовать канал; это предупреждение не блокирует назначение.';
-      if (assignment.key === 'keep') return ' Текущие пользователи могут оставаться; перевод не требуется.';
-      if (assignment.key === 'emergency') return ' Канал только для аварийного использования; это не требует перевода текущих пользователей.';
+      if (displayTone === 'warn') {
+        if (assignment.key === 'use') return ' Решение V7 сильнее: канал можно использовать, предупреждение только снижает уверенность.';
+        if (assignment.key === 'keep') return ' Решение V7 сильнее: текущих пользователей можно оставить, предупреждение только снижает уверенность.';
+        if (assignment.key === 'emergency') return ' Решение V7 сильнее: канал только аварийный, предупреждение не меняет это правило.';
+      }
+      if (rawTone === displayTone) return '';
       return '';
     }
     function channelSignalLabel(check='') {
@@ -27459,7 +27465,7 @@ def html_page_v2():
         Services:'Сервисы',
         Capacity:'Нагрузка',
         Route:'Маршрут',
-        Runtime:'Runtime',
+        Runtime:'Готовность',
         Stability:'Стабильность',
       }[check] || check || 'Сигнал';
     }
@@ -27489,7 +27495,7 @@ def html_page_v2():
         const rd = row._detail?.runtime_readiness || (overview.egress_runtime_readiness || {})[id] || {};
         return Number(item.score || 0) >= Number(item.max || 0)
           ? 'Готовность: канал подтвержден текущим снимком.'
-          : `Готовность: ${operatorText(rd.reason || rd.status || item.reason || 'нет свежего runtime-подтверждения')}`;
+          : `Готовность: ${operatorText(rd.reason || rd.status || item.reason || 'последняя проверка готовности устарела')}`;
       }
       if (check === 'Stability') {
         return Number(item.score || 0) >= Number(item.max || 0)
@@ -27499,8 +27505,8 @@ def html_page_v2():
       return channelScoreExplanationText(row, item) || String(item.reason || 'Сигналу нужны свежие данные.');
     }
     function channelSignalAccessibleLabel(item={}) {
-      const state = item.tone === 'bad' ? 'нужно действие'
-        : item.tone === 'warn' ? 'нужны свежие данные'
+      const state = item.tone === 'bad' ? 'влияет на решение'
+        : item.tone === 'warn' ? 'требует внимания, решение не переопределяет'
         : item.tone === 'ok' ? 'норма'
         : 'информация';
       return `${item.label || 'Сигнал'}: ${state}`;
@@ -27927,16 +27933,16 @@ def html_page_v2():
         let content = '';
         if (tone === 'ok') {
           content = channelAccordionContent(displayItem, [
-            ['Статус', 'Проверка проходит'],
-            ['Причина', `${displayItem} подтвержден существующими сигналами канала.`],
+            ['Что произошло', 'Проверка проходит'],
+            ['Почему', `${displayItem} подтвержден существующими сигналами канала.`],
             ['Что делать', 'Ничего. Эта часть канала работает.'],
           ]);
         } else {
           const meta = channelProblemOverlayMeta(displayItem, s, a);
           content = channelAccordionContent(displayItem, [
-            ['Проблема', displayItem],
-            ['Причина', meta.reason],
-            ['Решение', meta.resolution],
+            ['Что произошло', displayItem],
+            ['Почему это важно', meta.reason],
+            ['Что можно сделать сейчас', meta.resolution],
           ], meta.action);
         }
         return `<div class="channel-accordion-item">
@@ -28183,43 +28189,79 @@ def html_page_v2():
     function channelDecisionFirstReasonBlock(source={}) {
       return channelDecisionFirstSection('Причина', `<p class="channel-decision-reason">${esc(channelOperatorDrawerText(channelDecisionReason(source)))}</p>`);
     }
-    function channelDecisionFirstSignalStatus(item={}) {
+    function channelDecisionFirstSignalStatus(source={}, item={}) {
+      const check = String(item.check || '');
       if (item.tone === 'ok') return {label:'OK', tone:'ok'};
-      if (item.tone === 'bad') return {label:'Проблема', tone:'bad'};
-      if (item.tone === 'warn') return {label:'Нет свежих данных', tone:'warn'};
+      if (item.tone === 'bad') return {label:'Влияет на решение', tone:'bad'};
+      if (item.tone === 'warn') {
+        if (check === 'Capacity') return {label:'Запас ограничен', tone:'warn'};
+        return {label:'Проверка устарела', tone:'warn'};
+      }
       return {label:'Нет данных', tone:'info'};
     }
-    function channelDecisionFirstSignalMeaning(item={}) {
+    function channelDecisionFirstSignalMeaning(source={}, item={}) {
       const check = String(item.check || '');
-      if (item.tone === 'ok') return 'Работает';
-      if (check === 'Services') return 'Откройте матрицу сервисов';
-      if (check === 'Capacity') return 'Новые назначения ограничены';
-      if (check === 'Runtime') return 'Нет свежего подтверждения';
-      if (check === 'Stability') return 'Откройте логи канала';
-      return 'Ожидается обновление данных';
+      const assignment = channelAssignmentStatus(source);
+      if (item.tone === 'ok') return 'Подтверждает решение V7';
+      if (item.tone === 'warn') {
+        if (assignment.key === 'use') return 'Не запрещает использовать';
+        if (assignment.key === 'keep') return 'Не требует перевода';
+        if (assignment.key === 'emergency') return 'Не меняет аварийный режим';
+        if (check === 'Capacity') return 'Проверьте запас назначений';
+        return 'Нужна свежая проверка';
+      }
+      if (item.tone === 'bad') {
+        if (check === 'Services') return 'Участвует в решении';
+        if (check === 'Capacity') return 'Ограничивает назначения';
+        if (check === 'Runtime') return 'Блокирует уверенность';
+        if (check === 'Stability') return 'Снижает безопасность';
+        return 'Участвует в решении';
+      }
+      return 'Данных недостаточно';
+    }
+    function channelDecisionFirstSignalCause(source={}, item={}) {
+      const check = String(item.check || '');
+      const explanation = channelOperatorDrawerText(channelScoreExplanationText(source, item));
+      const note = channelSignalDecisionNote(source, item, item.rawTone || item.tone, item.tone);
+      if (item.tone === 'ok') return explanation || 'Сигнал подтверждён текущими данными.';
+      if (item.tone === 'warn') return `${explanation || 'Последняя проверка не свежая.'}${note ? ` ${note.trim()}` : ''}`.trim();
+      if (item.tone === 'bad') return explanation || 'Этот сигнал влияет на решение V7.';
+      return explanation || 'Данных по сигналу недостаточно.';
+    }
+    function channelDecisionFirstSignalNextStep(source={}, item={}) {
+      const check = String(item.check || '');
+      const assignment = channelAssignmentStatus(source);
+      if (item.tone === 'ok') return 'Действий не требуется.';
+      if (item.tone === 'warn' && ['use', 'keep', 'emergency'].includes(assignment.key)) {
+        if (check === 'Capacity') return assignment.key === 'use' ? 'Канал можно использовать; перед добавлением новых пользователей проверьте запас.' : 'Следуйте решению V7; при необходимости откройте пользователей канала.';
+        return 'Следуйте решению V7; откройте деталь только если нужен свежий источник.';
+      }
+      if (check === 'Services') return 'Откройте матрицу сервисов.';
+      if (check === 'Capacity') return 'Откройте пользователей этого канала.';
+      if (check === 'Runtime' || check === 'Stability') return 'Откройте логи канала.';
+      return channelDecisionFirstSignalMeaning(source, item);
     }
     function channelDecisionFirstSignalDetail(source={}, item={}) {
       const check = String(item.check || '');
       const label = channelOperatorDrawerText(item.label || channelOperatorCheckLabel(check) || 'Сигнал');
-      const status = channelDecisionFirstSignalStatus(item);
-      const explanation = channelOperatorDrawerText(channelScoreExplanationText(source, item));
+      const status = channelDecisionFirstSignalStatus(source, item);
       const action = channelScoreComponentActionHtml(source, item);
       return channelAccordionContent(label, [
-        ['Состояние', status.label],
-        ['Причина', explanation || channelDecisionFirstSignalMeaning(item)],
-        ['Решение', item.tone === 'ok' ? 'Действий не требуется.' : channelDecisionFirstSignalMeaning(item)],
+        ['Что произошло', status.label],
+        ['Почему', channelDecisionFirstSignalCause(source, item)],
+        ['Что делать', channelDecisionFirstSignalNextStep(source, item)],
       ], action);
     }
     function channelDecisionFirstSignalsBlock(source={}) {
       const allowed = new Set(['Services', 'Capacity', 'Runtime', 'Stability']);
       const items = channelSignalSummary(source).filter(item => allowed.has(String(item.check || '')));
       const rows = items.map(item => {
-        const st = channelDecisionFirstSignalStatus(item);
+        const st = channelDecisionFirstSignalStatus(source, item);
         return `<div class="channel-accordion-item">
           <button type="button" class="channel-decision-signal channel-accordion-trigger" aria-expanded="false" onclick="toggleChannelAccordion(this)">
           <span>${esc(channelOperatorDrawerText(item.label))}</span>
           ${pill(st.label, st.tone)}
-          <em aria-label="${esc(item.tooltip || '')}">${esc(channelDecisionFirstSignalMeaning(item))}</em>
+          <em aria-label="${esc(item.tooltip || '')}">${esc(channelDecisionFirstSignalMeaning(source, item))}</em>
           <span class="channel-accordion-chevron">›</span>
           </button>
           ${channelDecisionFirstSignalDetail(source, item)}

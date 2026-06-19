@@ -20290,6 +20290,29 @@ def html_page_v2():
     .attention-empty { margin:0 10px 10px; border:1px solid var(--line); border-radius:10px; padding:12px; background:rgba(34,197,94,.055); }
     .attention-empty strong { display:block; font-size:14px; }
     .attention-empty span { display:block; margin-top:4px; color:var(--muted); font-size:12px; }
+    .channel-attention-panel { margin:0 14px 8px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.022); padding:10px; display:grid; grid-template-columns:minmax(210px,.35fr) minmax(0,1fr); gap:10px; align-items:stretch; }
+    .channel-attention-panel.is-calm { background:rgba(34,197,94,.045); }
+    .channel-attention-summary { min-width:0; border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.025); padding:10px; display:grid; gap:7px; }
+    .channel-attention-summary span { color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; }
+    .channel-attention-summary strong { font-size:18px; line-height:1.12; overflow-wrap:anywhere; }
+    .channel-attention-summary em { color:var(--muted); font-style:normal; font-size:12px; line-height:1.35; overflow-wrap:anywhere; }
+    .channel-attention-list { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; min-width:0; }
+    .channel-attention-card { border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.025); color:var(--text); min-width:0; padding:9px; text-align:left; display:grid; gap:6px; cursor:pointer; }
+    .channel-attention-card:hover { border-color:rgba(96,165,250,.34); background:color-mix(in srgb,var(--panel) 88%,var(--blue)); }
+    .channel-attention-card strong { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .channel-attention-card em { color:var(--muted); font-style:normal; font-size:12px; line-height:1.25; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; white-space:normal; }
+    .channel-attention-card.is-critical { border-color:rgba(248,113,113,.38); background:rgba(248,113,113,.065); }
+    .channel-attention-card.is-action { border-color:rgba(250,204,21,.32); background:rgba(250,204,21,.055); }
+    .channel-attention-card.is-review { border-color:rgba(96,165,250,.28); background:rgba(96,165,250,.052); }
+    .channel-attention-card.is-info { border-color:rgba(148,163,184,.22); }
+    .channel-attention-card.is-healthy { border-color:rgba(52,211,153,.24); background:rgba(52,211,153,.045); }
+    .channel-order-toggle { display:inline-flex; align-items:center; gap:3px; border:1px solid var(--line); border-radius:9px; padding:2px; background:rgba(255,255,255,.025); }
+    .channel-order-toggle button { height:28px; min-height:28px; border-radius:7px; padding:0 8px; }
+    .channel-order-toggle button.active { background:rgba(96,165,250,.14); color:var(--text); }
+    .channels-table-v2 tr.channel-row-attention-critical td:first-child { box-shadow:inset 3px 0 0 rgba(248,113,113,.78); }
+    .channels-table-v2 tr.channel-row-attention-action td:first-child { box-shadow:inset 3px 0 0 rgba(250,204,21,.70); }
+    .channels-table-v2 tr.channel-row-attention-review td:first-child { box-shadow:inset 3px 0 0 rgba(96,165,250,.60); }
+    .channels-table-v2 tr.channel-row-attention-info td:first-child { box-shadow:inset 3px 0 0 rgba(148,163,184,.38); }
     .channel-filter-strip { margin:0 14px 6px; border:0; border-radius:0; background:transparent; padding:0; display:flex; align-items:center; justify-content:flex-start; flex-wrap:wrap; gap:6px; color:var(--muted); font-size:12px; }
     .channel-filter-strip .filterbar { margin:0; border:0; background:transparent; min-height:0; padding:0; gap:4px; }
     .channel-filter-strip strong { color:var(--text); }
@@ -21043,6 +21066,10 @@ def html_page_v2():
       .attention-drilldown-item-head{grid-template-columns:1fr}
       .attention-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}
       .attention-actions button{width:100%;overflow:hidden;text-overflow:ellipsis}
+      .channel-attention-panel{margin:0 12px 8px;grid-template-columns:1fr}
+      .channel-attention-list{grid-template-columns:1fr}
+      .channel-order-toggle{width:100%;justify-content:stretch}
+      .channel-order-toggle button{flex:1 1 0;overflow:hidden;text-overflow:ellipsis}
       .channel-decision-surface{padding:7px;gap:4px}
       .channel-decision-head{grid-template-columns:1fr;gap:4px}
       .channel-decision-section{grid-template-columns:1fr;gap:4px;padding-bottom:5px}
@@ -21298,7 +21325,7 @@ def html_page_v2():
           </div>
         </div>
       </article>
-      <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab active" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисы</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="openHardeningSearchDrawer('evidence')">Доказательства</button><button class="ghost" onclick="openHardeningSearchDrawer('proposal')">Предложения</button><button class="ghost" onclick="showV2ChannelColumns()">Столбцы</button><button class="ghost" onclick="showV2ChannelSort()">Упорядочить</button></div></div><div class="channel-filter-strip is-empty" id="channelTopologyFilter"></div><div class="table-shell" id="channelsTableV2"></div></article>
+      <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab active" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисы</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><div class="channel-order-toggle" role="group" aria-label="Порядок каналов"><button class="ghost" id="channelOrderDefaultBtn" onclick="setChannelAttentionMode('default')">Обычный</button><button class="ghost" id="channelOrderAttentionBtn" onclick="setChannelAttentionMode('attention')">Внимание сначала</button></div><button class="ghost" onclick="openHardeningSearchDrawer('evidence')">Доказательства</button><button class="ghost" onclick="openHardeningSearchDrawer('proposal')">Предложения</button><button class="ghost" onclick="showV2ChannelColumns()">Столбцы</button><button class="ghost" onclick="showV2ChannelSort()">Упорядочить</button></div></div><div class="channel-attention-panel is-calm" id="channelAttentionPanel"></div><div class="channel-filter-strip is-empty" id="channelTopologyFilter"></div><div class="table-shell" id="channelsTableV2"></div></article>
       <article class="panel span-12 workspace-panel" data-channel-workspace="matrix"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab active" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисы</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="openServiceCatalogDrawer()">Сервисы</button><button class="ghost" onclick="openCompactDrawer('Сервисы','channel', serviceMatrixText())">Сводка</button></div></div><div class="table-shell service-matrix-shell" id="channelsMatrixTable"></div></article>
       <article class="panel span-12 workspace-panel" data-channel-workspace="readiness"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисы</button><button class="table-section-tab active" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="renderChannelReadinessWorkspace()">Обновить</button></div></div><div class="table-shell" id="channelsReadinessTable"></div></article>
     </div></section>
@@ -21587,6 +21614,11 @@ def html_page_v2():
     const USER_TABLE_SORT_KEY = 'v7.userTableSort.v1';
     const CHANNEL_TABLE_SORT_KEY = 'v7.channelTableSort.v1';
     const ORGANIZATION_TABLE_SORT_KEY = 'v7.organizationTableSort.v1';
+    const CHANNEL_ATTENTION_MODE_KEY = 'v7.channelAttentionMode.v1';
+    let v2ChannelAttentionMode = (() => {
+      try { return localStorage.getItem(CHANNEL_ATTENTION_MODE_KEY) === 'attention' ? 'attention' : 'default'; }
+      catch (_) { return 'default'; }
+    })();
     const USER_TABLE_COLUMN_DEFS = [
       {id:'user', label:'Пользователь', meaning:'Имя, устройство или внутренний IP.', required:false, defaultVisible:true},
       {id:'company', label:'Фирма', meaning:'Организация или группа пользователя.', required:true, defaultVisible:true},
@@ -28624,6 +28656,7 @@ def html_page_v2():
     }
     function sortChannelsForTable(list=[]) {
       const cfg = tableSortConfigForKind('channel');
+      if (v2ChannelAttentionMode === 'attention') return [...list].sort(compareChannelsByAttentionFirst);
       if (!cfg.primary && !cfg.secondary) return [...list].sort(compareChannelsByDefaultOperatorOrder);
       return [...list].sort((a,b) => compareBySortConfig(a, b, cfg, channelSortValue));
     }
@@ -28712,7 +28745,8 @@ def html_page_v2():
         const statusText = lifecycle.text;
         const statusToneLocal = lifecycle.tone;
         const view = {id, row, st, reg, health, matrix, statusText, statusToneLocal, load: channelLoad(id, st), readiness: readiness[id] || {}};
-        const main = `<tr>${cols.map(c => `<td data-col="${esc(c.id)}" class="${c.id === 'action' ? 'right' : ''}">${channelCellHtml(view, c.id)}</td>`).join('')}</tr>`;
+        const attentionMeta = channelAttentionCategoryMeta(channelAttentionState(row).category);
+        const main = `<tr class="channel-row-attention-${esc(attentionMeta.rowCls)}">${cols.map(c => `<td data-col="${esc(c.id)}" class="${c.id === 'action' ? 'right' : ''}">${channelCellHtml(view, c.id)}</td>`).join('')}</tr>`;
         return main
           + (expandedChannelUsers === id ? channelUsersExpansionRow(id, cols.length) : '')
           + (expandedChannelServices === id ? channelServicesExpansionRow(id, cols.length) : '');
@@ -31390,6 +31424,202 @@ def html_page_v2():
         {key:'attention', label:'Attention'},
       ];
     }
+    function channelAttentionCategoryMeta(category='Information') {
+      const map = {
+        Critical: {label:'Критично', tone:'bad', cls:'is-critical', rowCls:'critical', order:0},
+        'Action Required': {label:'Нужно действие', tone:'warn', cls:'is-action', rowCls:'action', order:1},
+        Review: {label:'Проверить', tone:'info', cls:'is-review', rowCls:'review', order:2},
+        Information: {label:'Можно позже', tone:'muted', cls:'is-info', rowCls:'info', order:3},
+        Healthy: {label:'Здоров', tone:'ok', cls:'is-healthy', rowCls:'healthy', order:4},
+      };
+      return map[category] || map.Information;
+    }
+    function channelAttentionCategoryFromSeverity(severity='') {
+      const text = String(severity || '');
+      if (text === 'Critical') return 'Critical';
+      if (text === 'Needs Action') return 'Action Required';
+      if (text === 'Needs Check') return 'Review';
+      return 'Information';
+    }
+    function channelDecisionAttentionItems(row={}) {
+      const id = row.id || row.egress || '';
+      if (!id) return [];
+      const assignment = channelAssignmentStatus(row);
+      const usersCount = egressUserCount(id);
+      const reason = channelDecisionReason(row);
+      if (assignment.key === 'evacuate') {
+        return [{
+          category:'Critical',
+          problem:'Перевести пользователей',
+          object:channelDisplayName(id),
+          reason:reason || 'V7 выбрал перевод пользователей с канала.',
+          action:'Открыть канал',
+          click:`openChannelDrawer(${jsArg(id)})`,
+          key:`decision:${id}:evacuate`,
+        }];
+      }
+      if (assignment.key === 'blocked') {
+        return [{
+          category:usersCount > 0 ? 'Critical' : 'Information',
+          problem:usersCount > 0 ? 'Пользователи на запрещённом канале' : 'Канал запрещён',
+          object:channelDisplayName(id),
+          reason:reason || 'Назначение на канал заблокировано.',
+          action:'Открыть канал',
+          click:`openChannelDrawer(${jsArg(id)})`,
+          key:`decision:${id}:blocked`,
+        }];
+      }
+      if (assignment.key === 'emergency') {
+        return [{
+          category:'Information',
+          problem:'Только аварийно',
+          object:channelDisplayName(id),
+          reason:reason || 'Канал доступен только вручную или аварийно.',
+          action:'Открыть канал',
+          click:`openChannelDrawer(${jsArg(id)})`,
+          key:`decision:${id}:emergency`,
+        }];
+      }
+      if (assignment.key === 'loading') {
+        return [{
+          category:'Review',
+          problem:'Решение загружается',
+          object:channelDisplayName(id),
+          reason:reason || 'V7 ещё загружает решение по каналу.',
+          action:'Открыть канал',
+          click:`openChannelDrawer(${jsArg(id)})`,
+          key:`decision:${id}:loading`,
+        }];
+      }
+      return [];
+    }
+    function channelSignalAttentionItems(row={}) {
+      const id = row.id || row.egress || '';
+      if (!id) return [];
+      return channelSignalSummary(row)
+        .filter(item => ['bad', 'warn'].includes(item.tone))
+        .map(item => ({
+          category:item.tone === 'bad' ? 'Action Required' : 'Review',
+          problem:item.tone === 'bad' ? `${item.label}: влияет` : `${item.label}: проверить`,
+          object:channelDisplayName(id),
+          reason:item.tooltip || channelDecisionFirstSignalMeaning(row, item),
+          action:'Открыть канал',
+          click:`openChannelDrawer(${jsArg(id)})`,
+          key:`signal:${id}:${item.check}:${item.tone}`,
+        }));
+    }
+    function channelOverviewAttentionItems(row={}) {
+      return (attentionFromChannel(row) || []).map(item => ({
+        category:channelAttentionCategoryFromSeverity(item.severity),
+        problem:screenOneText(item.problem || 'Проверить канал'),
+        object:item.object || channelDisplayName(row.id || row.egress || ''),
+        reason:screenOneText(item.reason || ''),
+        action:item.primary_label || 'Открыть канал',
+        click:item.primary_click || item.details_click || `openChannelDrawer(${jsArg(row.id || row.egress || '')})`,
+        key:item.key || `overview:${row.id || row.egress || ''}:${item.problem || ''}`,
+      }));
+    }
+    function channelAttentionItems(row={}) {
+      const id = row.id || row.egress || '';
+      const byKey = new Map();
+      [...channelDecisionAttentionItems(row), ...channelOverviewAttentionItems(row), ...channelSignalAttentionItems(row)].forEach(item => {
+        const key = item.key || `${id}:${item.problem || ''}:${item.category || ''}`;
+        const existing = byKey.get(key);
+        const currentOrder = channelAttentionCategoryMeta(item.category).order;
+        const existingOrder = existing ? channelAttentionCategoryMeta(existing.category).order : 999;
+        if (!existing || currentOrder < existingOrder) byKey.set(key, item);
+      });
+      return Array.from(byKey.values()).sort((a,b) =>
+        channelAttentionCategoryMeta(a.category).order - channelAttentionCategoryMeta(b.category).order ||
+        String(a.problem || '').localeCompare(String(b.problem || ''), 'ru')
+      );
+    }
+    function channelAttentionState(row={}) {
+      const items = channelAttentionItems(row);
+      const healthy = channelIsHealthyForTable(row);
+      if (!items.length && healthy) {
+        return {
+          category:'Healthy',
+          problem:'Проблем нет',
+          object:channelDisplayName(row.id || row.egress || ''),
+          reason:'Канал можно игнорировать.',
+          action:'Открыть канал',
+          click:`openChannelDrawer(${jsArg(row.id || row.egress || '')})`,
+          items:[],
+        };
+      }
+      const first = items[0] || {
+        category:'Information',
+        problem:'Нет активных проблем',
+        object:channelDisplayName(row.id || row.egress || ''),
+        reason:'Канал не требует первого внимания.',
+        action:'Открыть канал',
+        click:`openChannelDrawer(${jsArg(row.id || row.egress || '')})`,
+      };
+      return {...first, items};
+    }
+    function channelAttentionRank(row={}) {
+      const state = channelAttentionState(row);
+      return channelAttentionCategoryMeta(state.category).order;
+    }
+    function compareChannelsByAttentionFirst(a={}, b={}) {
+      return compareTableValues(channelAttentionRank(a), channelAttentionRank(b), 'asc')
+        || compareTableValues(egressUserCount(b.id || b.egress || ''), egressUserCount(a.id || a.egress || ''), 'asc')
+        || compareTableValues(channelWorstSignal(a).priority, channelWorstSignal(b).priority, 'asc')
+        || compareChannelsByDefaultOperatorOrder(a, b);
+    }
+    function channelAttentionModeLabel() {
+      return v2ChannelAttentionMode === 'attention' ? 'Внимание сначала' : 'Обычный порядок';
+    }
+    function setChannelAttentionMode(mode='default') {
+      v2ChannelAttentionMode = mode === 'attention' ? 'attention' : 'default';
+      try { localStorage.setItem(CHANNEL_ATTENTION_MODE_KEY, v2ChannelAttentionMode); } catch (_) {}
+      renderChannels();
+    }
+    function updateChannelAttentionModeButtons() {
+      const isAttention = v2ChannelAttentionMode === 'attention';
+      document.getElementById('channelOrderDefaultBtn')?.classList.toggle('active', !isAttention);
+      document.getElementById('channelOrderAttentionBtn')?.classList.toggle('active', isAttention);
+    }
+    function channelAttentionCounts(rows=[]) {
+      const counts = {Critical:0, 'Action Required':0, Review:0, Information:0, Healthy:0};
+      (rows || []).forEach(row => {
+        const state = channelAttentionState(row);
+        counts[state.category] = (counts[state.category] || 0) + 1;
+      });
+      return counts;
+    }
+    function renderChannelAttentionPanel(totalRows=[], visibleRows=[]) {
+      const host = document.getElementById('channelAttentionPanel');
+      if (!host) return;
+      const states = (totalRows || []).map(row => ({row, state:channelAttentionState(row)}));
+      const active = states
+        .filter(item => channelAttentionCategoryMeta(item.state.category).order < channelAttentionCategoryMeta('Healthy').order)
+        .sort((a,b) =>
+          channelAttentionCategoryMeta(a.state.category).order - channelAttentionCategoryMeta(b.state.category).order ||
+          compareTableValues(egressUserCount(b.row.id || b.row.egress || ''), egressUserCount(a.row.id || a.row.egress || ''), 'asc') ||
+          String(a.row.id || '').localeCompare(String(b.row.id || ''), 'ru')
+        );
+      const counts = channelAttentionCounts(totalRows);
+      const top = active[0]?.state || null;
+      host.classList.toggle('is-calm', active.length === 0);
+      const summary = top
+        ? `<div class="channel-attention-summary"><span>${esc(channelAttentionModeLabel())}</span><strong>${esc(top.problem)}</strong><em>${esc(top.object)} · ${esc(top.reason)}</em></div>`
+        : `<div class="channel-attention-summary"><span>${esc(channelAttentionModeLabel())}</span><strong>Активных проблем нет</strong><em>Здоровые каналы можно не открывать.</em></div>`;
+      const cards = active.slice(0, 3).map(({state}) => {
+        const meta = channelAttentionCategoryMeta(state.category);
+        return `<button type="button" class="channel-attention-card ${esc(meta.cls)}" onclick="${esc(state.click || '')}">
+          ${pill(meta.label, meta.tone)}
+          <strong>${esc(state.object || '')}</strong>
+          <em>${esc(state.problem)} · ${esc(state.reason || '')}</em>
+        </button>`;
+      }).join('') || `<button type="button" class="channel-attention-card is-healthy" onclick="setChannelTopologyFilter('use')">
+          ${pill('Здорово', 'ok')}
+          <strong>${esc(counts.Healthy || 0)} спокойных каналов</strong>
+          <em>Use / Keep без красных first-level сигналов.</em>
+        </button>`;
+      host.innerHTML = `${summary}<div class="channel-attention-list">${cards}</div>`;
+    }
     function channelIsHealthyForTable(row={}) {
       const assignment = channelAssignmentStatus(row);
       const worst = channelWorstSignal(row);
@@ -31475,6 +31705,8 @@ def html_page_v2():
         statCard('Emergency Only', decisions.emergency, 'только вручную или аварийно', decisions.emergency ? 'warn' : '', 'setChannelTopologyFilter("emergency")'),
         statCard('Users', decisions.users || s.users_total || 0, 'назначены на каналы', '', 'openChannelMetricDetail("users")'),
       ].join('');
+      updateChannelAttentionModeButtons();
+      renderChannelAttentionPanel(allRows, visibleRows);
       renderChannelTopologyFilterBar(allRows, visibleRows);
       document.getElementById('channelsTableV2').innerHTML = channelTableHtml(visibleRows);
       renderChannelMatrixWorkspace();

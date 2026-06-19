@@ -90,6 +90,23 @@ A new audit is allowed only when the reference has no answer, the reference expl
 9. Existing destinations are reused: Service Matrix, channel users, channel logs, engineering diagnostics, and governed user/action flows.
 10. This rule does not create new planner logic, routing logic, signal calculations, governance, storage, or execution paths.
 
+## CHANNEL_ATTENTION_RULES
+
+1. Channels attention is a derived operator view, not a new truth source.
+2. Channels attention must reuse existing Channel Decision V7, Overview Attention, first-level channel signals, service matrix, capacity/load, runtime readiness, stability, and channel status.
+3. Attention priority is strict: Critical, Action Required, Review, Information, Healthy.
+4. Critical means the operator should look first because users may need to leave or users are on a channel V7 should not use.
+5. Action Required means an existing safe destination/action exists now.
+6. Review means the channel needs fresh evidence or inspection but does not override Channel Decision V7 by itself.
+7. Information means the role/state matters but can wait when no users or active problems are affected.
+8. Healthy means Use or Keep with no red first-level operator signal; these channels can be ignored during triage.
+9. Attention First sorting may reorder the Channels table by derived attention priority, assigned users, first-level signal severity, existing default operator order, and channel name.
+10. Default table mode must preserve existing channel table behavior and manual sort settings.
+11. The aggregate `Сигналы` column must not become a sortable truth. Attention ordering may use individual first-level signal severities only.
+12. Attention visual styling must stay calm: urgent rows may have a narrow marker, while healthy rows remain visually quiet.
+13. Attention entries must open existing destinations only: Channel Drawer, Service Matrix, channel users, logs/diagnostics, or existing governed user/action flows.
+14. This rule does not change planner logic, assignment logic, execution, governance, signal calculations, decision logic, capacity formulas, routing formulas, storage, or database state.
+
 ## 1. Channels
 
 - What it means: A channel is an egress path that can carry users, be inspected by operators, and be considered by the planner.

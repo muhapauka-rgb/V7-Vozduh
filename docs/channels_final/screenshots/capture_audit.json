@@ -1,0 +1,256 @@
+{
+  "capturedAt": "2026-06-19T13:15:00.938Z",
+  "baseUrl": "https://v7-admin.195-2-79-116.sslip.io",
+  "desktop": {
+    "viewport": "desktop",
+    "rows": [
+      {
+        "index": 0,
+        "id": "vless",
+        "name": "vless",
+        "text": "vless\n\t\nПеревести\n\t\n\t\n11",
+        "cells": [
+          "vless",
+          "Перевести",
+          "",
+          "11"
+        ]
+      },
+      {
+        "index": 1,
+        "id": "awg3",
+        "name": "awg3",
+        "text": "awg3\n\t\nИспользовать\n\t\n\t\n8",
+        "cells": [
+          "awg3",
+          "Использовать",
+          "",
+          "8"
+        ]
+      },
+      {
+        "index": 2,
+        "id": "wireguard-1779454504-c43409",
+        "name": "wg гермашка, работает\nwireguard-1779454504-c43409",
+        "text": "wg гермашка, работает\nwireguard-1779454504-c43409\n\t\nТолько аварийно\n\t\n\t\n8",
+        "cells": [
+          "wg гермашка, работает\nwireguard-1779454504-c43409",
+          "Только аварийно",
+          "",
+          "8"
+        ]
+      },
+      {
+        "index": 3,
+        "id": "1",
+        "name": "1",
+        "text": "1\n\t\nТолько аварийно\n\t\n\t\n0",
+        "cells": [
+          "1",
+          "Только аварийно",
+          "",
+          "0"
+        ]
+      },
+      {
+        "index": 4,
+        "id": "openvpn-1779388847-d2ad7c",
+        "name": "OpenVPN-Kolosov\nopenvpn-1779388847-d2ad7c",
+        "text": "OpenVPN-Kolosov\nopenvpn-1779388847-d2ad7c\n\t\nТолько аварийно\n\t\n\t\n0",
+        "cells": [
+          "OpenVPN-Kolosov\nopenvpn-1779388847-d2ad7c",
+          "Только аварийно",
+          "",
+          "0"
+        ]
+      },
+      {
+        "index": 5,
+        "id": "amneziawg-exec-20260528-10-8-1-14",
+        "name": "amneziawg-exec-20260528-10-8-1-14",
+        "text": "amneziawg-exec-20260528-10-8-1-14\n\t\nТолько аварийно\n\t\n\t\n0",
+        "cells": [
+          "amneziawg-exec-20260528-10-8-1-14",
+          "Только аварийно",
+          "",
+          "0"
+        ]
+      },
+      {
+        "index": 6,
+        "id": "awg0",
+        "name": "awg0",
+        "text": "awg0\n\t\nИспользовать\n\t\n\t\n0",
+        "cells": [
+          "awg0",
+          "Использовать",
+          "",
+          "0"
+        ]
+      }
+    ],
+    "picked": {
+      "use": {
+        "id": "awg3",
+        "name": "awg3",
+        "text": "awg3\n\t\nИспользовать\n\t\n\t\n8"
+      },
+      "evacuate": {
+        "id": "vless",
+        "name": "vless",
+        "text": "vless\n\t\nПеревести\n\t\n\t\n11"
+      },
+      "emergency": {
+        "id": "wireguard-1779454504-c43409",
+        "name": "wg гермашка, работает\nwireguard-1779454504-c43409",
+        "text": "wg гермашка, работает\nwireguard-1779454504-c43409\n\t\nТолько аварийно\n\t\n\t\n8"
+      },
+      "blocked": null,
+      "keep": null
+    },
+    "screenshots": [
+      "docs/channels_final/screenshots/desktop_channels_table.png",
+      "docs/channels_final/screenshots/desktop_use_awg3_drawer.png",
+      "docs/channels_final/screenshots/desktop_evacuate_vless_drawer.png",
+      "docs/channels_final/screenshots/desktop_emergency_wg_гермашка_работает_wireguard-1779454504-c43409_drawer.png",
+      "docs/channels_final/screenshots/desktop_diagnostics_expanded_vless.png"
+    ],
+    "badText": [],
+    "loadingDecisionVisible": false,
+    "legendVisible": true,
+    "capacityExplanationVisible": true,
+    "routeReadinessWordingVisible": true,
+    "mobileOverflow": {
+      "width": 1440,
+      "scrollWidth": 1440,
+      "overflow": false
+    },
+    "consoleErrors": []
+  },
+  "mobile": {
+    "viewport": "mobile",
+    "rows": [
+      {
+        "index": 0,
+        "id": "awg3",
+        "name": "awg3",
+        "text": "awg3\n\t\nПеревести\n\t\n\t\n8",
+        "cells": [
+          "awg3",
+          "Перевести",
+          "",
+          "8"
+        ]
+      },
+      {
+        "index": 1,
+        "id": "vless",
+        "name": "vless",
+        "text": "vless\n\t\nИспользовать\n\t\n\t\n11",
+        "cells": [
+          "vless",
+          "Использовать",
+          "",
+          "11"
+        ]
+      },
+      {
+        "index": 2,
+        "id": "wireguard-1779454504-c43409",
+        "name": "wg гермашка, работает\nwireguard-1779454504-c43409",
+        "text": "wg гермашка, работает\nwireguard-1779454504-c43409\n\t\nТолько аварийно\n\t\n\t\n8",
+        "cells": [
+          "wg гермашка, работает\nwireguard-1779454504-c43409",
+          "Только аварийно",
+          "",
+          "8"
+        ]
+      },
+      {
+        "index": 3,
+        "id": "1",
+        "name": "1",
+        "text": "1\n\t\nТолько аварийно\n\t\n\t\n0",
+        "cells": [
+          "1",
+          "Только аварийно",
+          "",
+          "0"
+        ]
+      },
+      {
+        "index": 4,
+        "id": "openvpn-1779388847-d2ad7c",
+        "name": "OpenVPN-Kolosov\nopenvpn-1779388847-d2ad7c",
+        "text": "OpenVPN-Kolosov\nopenvpn-1779388847-d2ad7c\n\t\nТолько аварийно\n\t\n\t\n0",
+        "cells": [
+          "OpenVPN-Kolosov\nopenvpn-1779388847-d2ad7c",
+          "Только аварийно",
+          "",
+          "0"
+        ]
+      },
+      {
+        "index": 5,
+        "id": "amneziawg-exec-20260528-10-8-1-14",
+        "name": "amneziawg-exec-20260528-10-8-1-14",
+        "text": "amneziawg-exec-20260528-10-8-1-14\n\t\nТолько аварийно\n\t\n\t\n0",
+        "cells": [
+          "amneziawg-exec-20260528-10-8-1-14",
+          "Только аварийно",
+          "",
+          "0"
+        ]
+      },
+      {
+        "index": 6,
+        "id": "awg0",
+        "name": "awg0",
+        "text": "awg0\n\t\nИспользовать\n\t\n\t\n0",
+        "cells": [
+          "awg0",
+          "Использовать",
+          "",
+          "0"
+        ]
+      }
+    ],
+    "picked": {
+      "use": {
+        "id": "vless",
+        "name": "vless",
+        "text": "vless\n\t\nИспользовать\n\t\n\t\n11"
+      },
+      "evacuate": {
+        "id": "awg3",
+        "name": "awg3",
+        "text": "awg3\n\t\nПеревести\n\t\n\t\n8"
+      },
+      "emergency": {
+        "id": "wireguard-1779454504-c43409",
+        "name": "wg гермашка, работает\nwireguard-1779454504-c43409",
+        "text": "wg гермашка, работает\nwireguard-1779454504-c43409\n\t\nТолько аварийно\n\t\n\t\n8"
+      },
+      "blocked": null,
+      "keep": null
+    },
+    "screenshots": [
+      "docs/channels_final/screenshots/mobile_channels_table.png",
+      "docs/channels_final/screenshots/mobile_use_vless_drawer.png",
+      "docs/channels_final/screenshots/mobile_evacuate_awg3_drawer.png",
+      "docs/channels_final/screenshots/mobile_emergency_wg_гермашка_работает_wireguard-1779454504-c43409_drawer.png",
+      "docs/channels_final/screenshots/mobile_diagnostics_expanded_awg3.png"
+    ],
+    "badText": [],
+    "loadingDecisionVisible": false,
+    "legendVisible": true,
+    "capacityExplanationVisible": true,
+    "routeReadinessWordingVisible": true,
+    "mobileOverflow": {
+      "width": 390,
+      "scrollWidth": 390,
+      "overflow": false
+    },
+    "consoleErrors": []
+  }
+}

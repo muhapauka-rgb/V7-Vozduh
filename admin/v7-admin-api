@@ -21601,7 +21601,7 @@ def html_page_v2():
     const CHANNEL_TABLE_COLUMN_DEFS = [
       {id:'channel', label:'Канал', meaning:'Название канала.', required:true, defaultVisible:true},
       {id:'decision', label:'Решение', sortLabel:'По решению V7', meaning:'Что V7 решил сделать с каналом: использовать, держать текущих пользователей, эвакуировать, заблокировать или оставить только для аварийного режима.', required:true, defaultVisible:true},
-      {id:'signals', label:'Сигналы', meaning:'Сервисы, нагрузка, runtime readiness и стабильность. Объясняет решение V7 без смешанного health score.', required:true, defaultVisible:true},
+      {id:'signals', label:'Сигналы', meaning:'Сервисы, нагрузка, runtime readiness и стабильность. Объясняет решение V7 без смешанного health score.', required:true, defaultVisible:true, sortable:false},
       {id:'status', label:'Статус', meaning:'Короткое состояние канала.', required:false, defaultVisible:false},
       {id:'users', label:'Пользователи', sortLabel:'По пользователям', meaning:'Сколько пользователей сейчас назначено на канал.', required:false, defaultVisible:true},
       {id:'traffic', label:'Трафик', meaning:'Сколько прошло через канал сегодня и всего.', required:false, defaultVisible:false},
@@ -21616,10 +21616,10 @@ def html_page_v2():
       {id:'action', label:'Действие', meaning:'Открыть карточку канала.', required:false, defaultVisible:false},
     ];
     const CHANNEL_SIGNAL_SORT_DEFS = [
-      {id:'signal_services', label:'По сервисам', meaning:'Проблемные сервисы выше, затем предупреждения, OK и нет данных.'},
-      {id:'signal_load', label:'По нагрузке', meaning:'Каналы с ограничением назначений выше.'},
-      {id:'signal_runtime', label:'По runtime', meaning:'Runtime-проблемы и неполная уверенность выше.'},
-      {id:'signal_stability', label:'По стабильности', meaning:'Проблемы устойчивости выше.'},
+      {id:'signal_services', label:'Сигнал: сервисы', meaning:'Проблемные сервисы выше, затем предупреждения, OK и нет данных.'},
+      {id:'signal_load', label:'Сигнал: нагрузка', meaning:'Каналы с ограничением назначений выше.'},
+      {id:'signal_runtime', label:'Сигнал: runtime', meaning:'Runtime-проблемы и неполная уверенность выше.'},
+      {id:'signal_stability', label:'Сигнал: стабильность', meaning:'Проблемы устойчивости выше.'},
     ];
     const ORGANIZATION_TABLE_COLUMN_DEFS = [
       {id:'organization', label:'Организация', meaning:'Название организации.', required:true, defaultVisible:true},
@@ -25165,7 +25165,7 @@ def html_page_v2():
       return '';
     }
     function sortUsersForTable(list=[]) {
-      const cfg = tableSortConfig(USER_TABLE_SORT_KEY, '');
+      const cfg = tableSortConfigForKind('user');
       if (!cfg.primary && !cfg.secondary) return list;
       return [...list].sort((a,b) => compareBySortConfig(a, b, cfg, userSortValue));
     }
@@ -25179,6 +25179,23 @@ def html_page_v2():
       if (kind === 'organization') return ORGANIZATION_TABLE_COLUMN_DEFS;
       return USER_TABLE_COLUMN_DEFS;
     }
+    function tableSortableDefs(kind='user') {
+      return tableSortDefs(kind).filter(c => c.id && c.id !== 'action' && c.sortable !== false);
+    }
+    function normalizedTableSortConfig(kind='user', cfg={}) {
+      const allowed = new Set(tableSortableDefs(kind).map(c => c.id));
+      const primary = allowed.has(cfg.primary || '') ? cfg.primary : '';
+      const secondary = allowed.has(cfg.secondary || '') && cfg.secondary !== primary ? cfg.secondary : '';
+      return {
+        primary,
+        primaryDir: cfg.primaryDir === 'desc' ? 'desc' : 'asc',
+        secondary,
+        secondaryDir: cfg.secondaryDir === 'desc' ? 'desc' : 'asc',
+      };
+    }
+    function tableSortConfigForKind(kind='user') {
+      return normalizedTableSortConfig(kind, tableSortConfig(tableSortKey(kind), kind === 'organization' ? 'organization' : ''));
+    }
     function renderSortedTableKind(kind='user') {
       if (kind === 'channel') renderChannels();
       else if (kind === 'organization') renderUsersOrganizations();
@@ -25186,7 +25203,7 @@ def html_page_v2():
       bindDrawerRows();
     }
     function sortIndicator(kind='user', id='') {
-      const cfg = tableSortConfig(tableSortKey(kind), kind === 'organization' ? 'organization' : '');
+      const cfg = tableSortConfigForKind(kind);
       if (cfg.primary === id) return cfg.primaryDir === 'desc' ? '↓' : '↑';
       if (cfg.secondary === id) return cfg.secondaryDir === 'desc' ? '↓' : '↑';
       return '';
@@ -25195,17 +25212,17 @@ def html_page_v2():
       return '<span class="channel-signals-head"><span>Сигналы</span><span class="channel-signal-head-codes" aria-label="S — сервисы, L — нагрузка, R — runtime, T — стабильность"><b>S</b><b>L</b><b>R</b><b>T</b></span></span>';
     }
     function sortableHeader(kind='user', col={}) {
-      const disabled = !col.id || col.id === 'action';
+      const disabled = !col.id || col.id === 'action' || col.sortable === false;
       const indicator = disabled ? '' : sortIndicator(kind, col.id);
       const onClick = disabled ? '' : `onclick="toggleTableSort('${esc(kind)}','${esc(col.id)}')"`;
       const label = kind === 'channel' && col.id === 'signals' ? channelSignalsHeaderLabel() : esc(col.label);
       return `<th data-col="${esc(col.id)}" class="${disabled ? '' : 'sortable-th'}" ${onClick}>${label}${indicator ? `<span class="sort-indicator">${esc(indicator)}</span>` : ''}</th>`;
     }
     function toggleTableSort(kind='user', id='') {
-      const defs = tableSortDefs(kind);
-      if (!defs.some(c => c.id === id) || id === 'action') return;
+      const defs = tableSortableDefs(kind);
+      if (!defs.some(c => c.id === id)) return;
       const key = tableSortKey(kind);
-      const cfg = tableSortConfig(key, kind === 'organization' ? 'organization' : '');
+      const cfg = tableSortConfigForKind(kind);
       const nextDir = cfg.primary === id && cfg.primaryDir !== 'desc' ? 'desc' : 'asc';
       saveTableSortConfig(key, {primary:id, primaryDir:nextDir, secondary:cfg.primary === id ? cfg.secondary : cfg.primary, secondaryDir:cfg.primary === id ? cfg.secondaryDir : cfg.primaryDir});
       renderSortedTableKind(kind);
@@ -25457,7 +25474,7 @@ def html_page_v2():
       return '';
     }
     function sortOrganizationsForTable(list=[]) {
-      const cfg = tableSortConfig(ORGANIZATION_TABLE_SORT_KEY, 'organization');
+      const cfg = tableSortConfigForKind('organization');
       if (!cfg.primary && !cfg.secondary) return list;
       return [...list].sort((a,b) => compareBySortConfig(a, b, cfg, organizationSortValue));
     }
@@ -28281,7 +28298,6 @@ def html_page_v2():
       const health = channelHealth(row);
       if (colId === 'channel') return id;
       if (colId === 'decision') return channelAssignmentStatus(row).label;
-      if (colId === 'signals') return channelWorstSignal(row).priority;
       if (colId === 'signal_services') return channelSignalSortRank(row, 'Services');
       if (colId === 'signal_load') return channelSignalSortRank(row, 'Capacity');
       if (colId === 'signal_runtime') return channelSignalSortRank(row, 'Runtime');
@@ -28329,7 +28345,7 @@ def html_page_v2():
         || String(a.id || a.egress || '').localeCompare(String(b.id || b.egress || ''), 'ru', {numeric:true, sensitivity:'base'});
     }
     function sortChannelsForTable(list=[]) {
-      const cfg = tableSortConfig(CHANNEL_TABLE_SORT_KEY, '');
+      const cfg = tableSortConfigForKind('channel');
       if (!cfg.primary && !cfg.secondary) return [...list].sort(compareChannelsByDefaultOperatorOrder);
       return [...list].sort((a,b) => compareBySortConfig(a, b, cfg, channelSortValue));
     }
@@ -29221,7 +29237,7 @@ def html_page_v2():
       openDrawer('Колонки организаций', 'users', drawerSection('Порядок и видимость', `<div class="column-config-list" id="organizationColumnList">${rows}</div><p class="muted">Нажмите Готово, чтобы сохранить порядок и видимость.</p><div class="detail-actions"><button class="primary" onclick="applyOrganizationColumnSettings()">Готово</button><button class="ghost" onclick="resetOrganizationColumnSettings()">Сбросить</button></div>`), {size:'columns', ...options});
     }
     function sortColumnOptions(defs, selected='') {
-      return [`<option value="">не выбрано</option>`].concat(defs.filter(c => c.id !== 'action').map(c => `<option value="${esc(c.id)}" ${c.id === selected ? 'selected' : ''}>${esc(c.sortLabel || c.label)}</option>`)).join('');
+      return [`<option value="">не выбрано</option>`].concat(defs.filter(c => c.id && c.id !== 'action' && c.sortable !== false).map(c => `<option value="${esc(c.id)}" ${c.id === selected ? 'selected' : ''}>${esc(c.sortLabel || c.label)}</option>`)).join('');
     }
     function sortDirectionOptions(selected='asc') {
       return `<option value="asc" ${selected !== 'desc' ? 'selected' : ''}>по возрастанию</option><option value="desc" ${selected === 'desc' ? 'selected' : ''}>по убыванию</option>`;
@@ -29238,15 +29254,15 @@ def html_page_v2():
         </div>`;
     }
     function showV2UserSort() {
-      const cfg = tableSortConfig(USER_TABLE_SORT_KEY, '');
+      const cfg = tableSortConfigForKind('user');
       openDrawer('Упорядочить пользователей', 'users', drawerSection('Сортировка таблицы', `${sortConfigHtml('user', cfg)}<div class="detail-actions"><button class="primary" onclick="applyUserSortSettings()">Применить</button><button class="ghost" onclick="resetUserSortSettings()">Сбросить</button></div>`));
     }
     function showV2ChannelSort() {
-      const cfg = tableSortConfig(CHANNEL_TABLE_SORT_KEY, '');
+      const cfg = tableSortConfigForKind('channel');
       openDrawer('Упорядочить каналы', 'channels', drawerSection('Сортировка таблицы', `${sortConfigHtml('channel', cfg)}<div class="detail-actions"><button class="primary" onclick="applyChannelSortSettings()">Применить</button><button class="ghost" onclick="resetChannelSortSettings()">Сбросить</button></div>`));
     }
     function showV2OrganizationSort() {
-      const cfg = tableSortConfig(ORGANIZATION_TABLE_SORT_KEY, 'organization');
+      const cfg = tableSortConfigForKind('organization');
       openDrawer('Упорядочить организации', 'users', drawerSection('Сортировка таблицы', `${sortConfigHtml('organization', cfg)}<div class="detail-actions"><button class="primary" onclick="applyOrganizationSortSettings()">Применить</button><button class="ghost" onclick="resetOrganizationSortSettings()">Сбросить</button></div>`));
     }
     function applyUserSortSettings() {

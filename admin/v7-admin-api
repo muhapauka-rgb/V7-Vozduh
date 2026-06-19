@@ -27792,7 +27792,7 @@ def html_page_v2():
       }
       if (/capacity|нагруз|перегруж|лимит назнач|назначени.*достиг|пользовател/i.test(text)) {
         return {
-          reason: channelPrimaryCauseForOutcome(text, suitability) || 'Пользователей больше предпочтительного или жёсткого уровня назначения.',
+          reason: 'Пользователей больше предпочтительного или жёсткого уровня назначения.',
           resolution: 'Откройте пользователей этого канала и подготовьте перевод через существующий governed flow.',
           action: `<button class="ghost" type="button" onclick="showChannelWorkspace('overview');toggleChannelUsers('${esc(id)}');closeDrawer()">Открыть пользователей</button>`,
         };

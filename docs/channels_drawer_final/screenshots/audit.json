@@ -1,0 +1,75 @@
+{
+  "duplicatedChannelName": false,
+  "duplicatedDecisionHeading": false,
+  "duplicatedReasonHeading": false,
+  "forbiddenOperatorTermsFound": [],
+  "operatorScoreLeakFound": false,
+  "deadSignalClicks": 0,
+  "deadProblemClicks": 0,
+  "engineeringEntriesCount": 1,
+  "consoleErrorsCount": 0,
+  "horizontalOverflowDesktop": false,
+  "horizontalOverflowMobile": false,
+  "channels": [
+    {
+      "name": "vless",
+      "title": "vless",
+      "signalButtons": [
+        "СЕРВИСЫ OK Работает ›",
+        "НАГРУЗКА Проблема Новые назначения ограничены ›",
+        "РАБОЧИЙ ПРОФИЛЬ OK Работает ›",
+        "СТАБИЛЬНОСТЬ OK Работает ›"
+      ],
+      "problemButtons": [
+        "✖ Лимит назначений достигнут ›"
+      ],
+      "engineeringEntries": 1
+    },
+    {
+      "name": "awg3",
+      "title": "awg3",
+      "signalButtons": [
+        "СЕРВИСЫ OK Работает ›",
+        "НАГРУЗКА Нет свежих данных Новые назначения ограничены ›",
+        "РАБОЧИЙ ПРОФИЛЬ OK Работает ›",
+        "СТАБИЛЬНОСТЬ OK Работает ›"
+      ],
+      "problemButtons": [
+        "✖ Лимит назначений достигнут ›"
+      ],
+      "engineeringEntries": 1
+    },
+    {
+      "name": "wg гермашка",
+      "title": "wg гермашка, работает",
+      "signalButtons": [
+        "СЕРВИСЫ OK Работает ›",
+        "НАГРУЗКА Нет свежих данных Новые назначения ограничены ›",
+        "РАБОЧИЙ ПРОФИЛЬ OK Работает ›",
+        "СТАБИЛЬНОСТЬ OK Работает ›"
+      ],
+      "problemButtons": [
+        "✖ Лимит назначений достигнут ›"
+      ],
+      "engineeringEntries": 1
+    },
+    {
+      "name": "OpenVPN-Kolosov",
+      "title": "OpenVPN-Kolosov",
+      "signalButtons": [
+        "СЕРВИСЫ Нет свежих данных Откройте матрицу сервисов ›",
+        "НАГРУЗКА OK Работает ›",
+        "РАБОЧИЙ ПРОФИЛЬ OK Работает ›",
+        "СТАБИЛЬНОСТЬ Нет свежих данных Откройте логи канала ›"
+      ],
+      "problemButtons": [
+        "✖ Telegram недоступен ›",
+        "✖ Google недоступен ›",
+        "✖ Google Auth недоступен ›",
+        "✖ YouTube недоступен ›"
+      ],
+      "engineeringEntries": 1
+    }
+  ],
+  "consoleErrors": []
+}

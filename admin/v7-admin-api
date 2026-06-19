@@ -10650,9 +10650,9 @@ def generated_evidence_bundles(limit=120):
             timeline=evidence_event_timeline([e for e in audit_tail if e.get("user_ip") == ip or e.get("object_id") == ip], 4),
             evidence_items=[
                 {"kind": "registry", "label": "users.registry", "status": "OBSERVED", "summary": f"current={user.get('current','')} table={user.get('table','')} enabled={user.get('enabled','1')}"},
-                {"kind": "route", "label": "route reality", "status": "OK" if ok else "WARN", "summary": route.get("reason") or route.get("detail") or ("маршрут в порядке" if ok else "маршрут требует проверки")},
+                {"kind": "route", "label": "route reality", "status": "OK" if ok else "WARN", "summary": route.get("reason") or route.get("detail") or ("маршрутная готовность подтверждена" if ok else "маршрутная готовность неполная")},
             ],
-            recommendation="Откройте карточку пользователя и проверьте маршрутные доказательства." if not ok else "Срочное действие не требуется.",
+            recommendation="Откройте карточку пользователя и сверьте доказательства маршрута." if not ok else "Срочное действие не требуется.",
             verification_state="VERIFIED" if ok else "NEEDS_REVIEW",
             closure_state="CLOSED" if ok else "OPEN",
             links=[evidence_link("route", "reality"), evidence_link("log", "latest-audit")],
@@ -11105,7 +11105,7 @@ def generated_proposals(limit=160):
                 proposed_target="",
                 required_services=required,
                 evidence_bundle_id=evidence_id,
-                expected_benefit="Показать оператору, что перед movement нужна проверка service matrix или отдельный канал.",
+                expected_benefit="Показать оператору, что перед movement нужны свежие данные service matrix или отдельный канал.",
                 rollback_hint="Movement не предлагается; rollback не требуется.",
                 object_links=[evidence_link("user", ip), evidence_link("route", "reality")],
                 timeline=proposal_timeline_from_evidence(evidence_id, "ACTIVE", "Service matrix не даёт безопасного кандидата."),
@@ -11120,7 +11120,7 @@ def generated_proposals(limit=160):
             "REVIEW_REQUIRED",
             "MEDIUM",
             "bad" if any(row.get("leak_risk") for row in route_mismatches) else "warn",
-            "Факт маршрутов расходится с ожидаемым состоянием; требуется операторский review перед любым movement.",
+            "Факт маршрутов расходится с ожидаемым состоянием; нужен операторский review перед любым movement.",
             affected_users=affected,
             current_target="mixed",
             proposed_target="governance-selected-target",
@@ -11129,7 +11129,7 @@ def generated_proposals(limit=160):
             expected_benefit="Свести route reality к ожидаемому состоянию через bounded governance, не запуская автоматическое действие.",
             rollback_hint="Откат каждого пользователя только на его исходный channel из users.registry.",
             object_links=[evidence_link("route", "reality"), *[evidence_link("user", ip) for ip in affected[:8]]],
-            timeline=proposal_timeline_from_evidence(route_evidence_id, "REVIEW_REQUIRED", "Route reality требует review."),
+            timeline=proposal_timeline_from_evidence(route_evidence_id, "REVIEW_REQUIRED", "Route reality ждёт review."),
         ))
 
     for egress_id, registry in egress_by_id.items():
@@ -11156,7 +11156,7 @@ def generated_proposals(limit=160):
                 proposed_target="capacity-safe-target",
                 required_services=[],
                 evidence_bundle_id=evidence_id,
-                expected_benefit="Снизить риск перегруза канала через будущий bounded batch.",
+                expected_benefit="Снизить риск превышения лимита назначений через будущий bounded batch.",
                 rollback_hint="Каждый movement должен иметь индивидуальный rollback на исходный канал.",
                 object_links=[evidence_link("channel", egress_id), *[evidence_link("user", ip) for ip in users_on_channel[:8]]],
                 timeline=proposal_timeline_from_evidence(evidence_id, "REVIEW_REQUIRED", "Capacity limit превышен."),
@@ -11168,7 +11168,7 @@ def generated_proposals(limit=160):
                 "REVIEW_REQUIRED",
                 "MEDIUM",
                 "bad",
-                f"Канал {egress_id} требует проверки здоровья; на нём есть пользователи.",
+                f"У канала {egress_id} нет свежего подтверждения состояния; на нём есть пользователи.",
                 affected_users=users_on_channel[:30],
                 current_target=egress_id,
                 proposed_target="healthy-channel-after-policy",
@@ -11177,7 +11177,7 @@ def generated_proposals(limit=160):
                 expected_benefit="Подготовить безопасный план эвакуации, если health останется плохим.",
                 rollback_hint="Rollback возвращает каждого пользователя на исходный канал только после execution-time recheck.",
                 object_links=[evidence_link("channel", egress_id), *[evidence_link("user", ip) for ip in users_on_channel[:8]]],
-                timeline=proposal_timeline_from_evidence(evidence_id, "REVIEW_REQUIRED", "Health канала требует review."),
+                timeline=proposal_timeline_from_evidence(evidence_id, "REVIEW_REQUIRED", "Состояние канала ждёт review."),
             ))
         else:
             proposals.append(proposal_record(
@@ -11272,7 +11272,7 @@ def generated_user_proposals(ip):
                 proposed_target="",
                 required_services=required,
                 evidence_bundle_id=evidence_id,
-                expected_benefit="Показать оператору, что перед movement нужна проверка service matrix или отдельный канал.",
+                expected_benefit="Показать оператору, что перед movement нужны свежие данные service matrix или отдельный канал.",
                 rollback_hint="Movement не предлагается; rollback не требуется.",
                 object_links=[evidence_link("user", ip), evidence_link("route", "reality")],
                 timeline=proposal_timeline_from_evidence(evidence_id, "ACTIVE", "Service matrix не даёт безопасного кандидата."),
@@ -20485,6 +20485,8 @@ def html_page_v2():
     .channel-signal-badge.bad { color:var(--red); background:rgba(251,113,133,.09); border-color:rgba(251,113,133,.25); }
     .channel-signal-badge.info { color:var(--blue); background:rgba(96,165,250,.09); border-color:rgba(96,165,250,.22); }
     .channel-signal-badge.muted { color:var(--muted); background:rgba(148,163,184,.08); border-color:var(--line); }
+    .channel-signal-legend { margin:0 16px 10px; color:var(--muted); font-size:12px; font-weight:760; line-height:1.35; }
+    .channel-signal-legend strong { color:var(--text); }
     @media(max-width:560px){
       .channel-signal-strip { max-width:88px; gap:5px; }
       .channel-signal-badge { width:17px; height:17px; min-width:17px; min-height:17px; }
@@ -24498,7 +24500,7 @@ def html_page_v2():
     function routeLabel(route={}) {
       if (route.leak_risk) return 'риск утечки';
       if (route.ok) return 'маршрут совпадает';
-      return 'проверить маршрут';
+      return 'маршрутная готовность неполная';
     }
     function routeShortText(route={}, fallback='') {
       if (route.leak_risk) return 'есть риск утечки';
@@ -24506,7 +24508,7 @@ def html_page_v2():
       if (route.ok && dev) return `через ${dev}`;
       if (route.ok) return 'маршрут совпадает';
       if (dev) return `ожидается ${dev}`;
-      return 'нужна проверка';
+      return 'нет свежих маршрутных данных';
     }
     function readinessLabel(value) {
       return statusLabel(value || 'UNKNOWN');
@@ -26770,7 +26772,7 @@ def html_page_v2():
       const st = row.state || {};
       const ok = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
       if (ok) return {label:'OK', tone:'ok', detail:st.diagnose_detail || st.diagnose_reason || 'канал отвечает'};
-      return {label:'Проверить', tone:'warn', detail:st.diagnose_reason || st.diagnose_detail || 'нужна проверка'};
+      return {label:'Уточнить', tone:'warn', detail:st.diagnose_reason || st.diagnose_detail || 'нет свежего подтверждения состояния'};
     }
     function channelLifecycleStatus(row={}, health={}) {
       const id = row.id || '';
@@ -26786,7 +26788,7 @@ def html_page_v2():
         return {text:'Не запущен', tone:'warn'};
       }
       if (health.tone === 'ok') return {text:'Работает', tone:'ok'};
-      return {text:'Нужна проверка', tone:'warn'};
+      return {text:'Нет свежего подтверждения', tone:'warn'};
     }
     function channelActionButtons(id='', view={}) {
       const running = egressStateRunning.has(id);
@@ -26827,7 +26829,7 @@ def html_page_v2():
       return st.load_status || flags[`${id}_load_status`] || flags[`${id}_state`] || 'UNKNOWN';
     }
     function channelProblemButton(id='', label='', tone='warn', source='status') {
-      return `<button type="button" class="status-pill-button" onclick="event.stopPropagation();openChannelProblem('${esc(id)}','${esc(source)}')" title="Показать конкретное решение">${pill(label || 'Проверить', tone || 'warn')}</button>`;
+      return `<button type="button" class="status-pill-button" onclick="event.stopPropagation();openChannelProblem('${esc(id)}','${esc(source)}')" title="Показать конкретное решение">${pill(label || 'Уточнить', tone || 'warn')}</button>`;
     }
     function channelProblemAction(label='', onclick='', primary=false) {
       return `<button class="${primary ? 'primary' : 'ghost'}" onclick="${onclick}">${esc(label)}</button>`;
@@ -26875,7 +26877,7 @@ def html_page_v2():
       }
       if (lifecycle.tone !== 'ok' && !disabled && !notStarted) {
         issues.push(channelProblemIssue(
-          lifecycle.text || 'Нужна проверка',
+          lifecycle.text || 'Нет свежего подтверждения',
           health.detail || st.diagnose_reason || st.diagnose_detail || 'V7 не может доказать, что канал полностью готов.',
           [
             channelProblemAction('Открыть карточку канала', `openChannelDrawer('${esc(id)}')`, true),
@@ -26888,7 +26890,7 @@ def html_page_v2():
           ? `Доступность сервисов: ${matrix.okCount}/${matrix.total}. Если сервисов 0/${matrix.total}, канал не проходит обязательные сервисы.`
           : 'Свежего результата по сервисам нет, поэтому V7 не может подтвердить доступность сервисов через канал.';
         issues.push(channelProblemIssue(
-          'Сервисы требуют свежей проверки',
+          'Уверенность по сервисам неполная',
           body,
           [
             channelProblemAction('Показать сервисы', `openChannelServicesPanel('${esc(id)}')`, true),
@@ -26897,7 +26899,7 @@ def html_page_v2():
       }
       if (speedNeedsCheck) {
         issues.push(channelProblemIssue(
-          'Проверить скорость',
+          'Нет свежего замера скорости',
           `Сейчас: ${speed}. Запустите замер; если снова 0 Mbps или ошибка, смотрите логи и карточку канала.`,
           [
             channelProblemAction('Замерить скорость', `runV2EgressSpeed('${esc(id)}')`, true),
@@ -26906,9 +26908,11 @@ def html_page_v2():
         ));
       }
       if (loadNeedsCheck) {
+        const limit = channelLoadLimit(row);
+        const usersCount = egressUserCount(id);
         issues.push(channelProblemIssue(
           'Разобрать нагрузку',
-          `Состояние нагрузки: ${loadLabel}. Проверьте пользователей на канале и лимиты ёмкости.`,
+          `${usersCount} пользователей назначено. Предпочтительный уровень ${limit.soft}, жёсткий предел ${limit.hard}. Новые назначения ограничены; текущие пользователи не отключаются автоматически, поэтому канал может продолжать работать для уже назначенных пользователей.`,
           [
             channelProblemAction('Показать пользователей', `toggleChannelUsers('${esc(id)}');closeDrawer()`, true),
             channelProblemAction('Сводка нагрузки', `openLoadMetricDetail()`),
@@ -26917,8 +26921,8 @@ def html_page_v2():
       }
       if (readinessBad) {
         issues.push(channelProblemIssue(
-          'Готовность канала не подтверждена',
-          readiness.reason || readiness.status || 'Готовность канала не подтверждена свежим runtime-снимком.',
+          'Нет свежего runtime-подтверждения',
+          readiness.reason || readiness.status || 'Последний runtime-снимок не подтверждает готовность канала.',
           [
             channelProblemAction('Открыть канал', `openChannelDrawer('${esc(id)}')`, true),
             channelProblemAction('Логи канала', `openV2ChannelLogs('${esc(id)}')`),
@@ -26928,7 +26932,7 @@ def html_page_v2():
       if (!issues.length) {
         issues.push(channelProblemIssue(
           'Критической проблемы не видно',
-          'По текущему снимку канал выглядит рабочим. Можно открыть карточку или вручную повторить проверки.',
+          'По текущему снимку канал выглядит рабочим. Можно открыть карточку или вручную обновить диагностику.',
           [
             channelProblemAction('Открыть канал', `openChannelDrawer('${esc(id)}')`, true),
             channelProblemAction('Сервисы', `openChannelServicesPanel('${esc(id)}')`),
@@ -26959,15 +26963,15 @@ def html_page_v2():
     function channelSuitabilityStatus(score=0) {
       if (score >= 90) return {label:'Отличный', tone:'ok'};
       if (score >= 75) return {label:'Рабочий', tone:'ok'};
-      if (score >= 50) return {label:'Требует проверки', tone:'warn'};
+      if (score >= 50) return {label:'Уверенность неполная', tone:'warn'};
       return {label:'Непригоден', tone:'bad'};
     }
     function channelOperatorServiceProblem(label='') {
       const text = String(label || '').trim();
-      if (!text) return 'Сервисы требуют свежей проверки';
-      if (/not measured|measurement/i.test(text)) return 'Сервисы требуют свежей проверки';
+      if (!text) return 'Нет свежего подтверждения сервисов';
+      if (/not measured|measurement/i.test(text)) return 'Нет свежего подтверждения сервисов';
       if (/telegram|youtube|google auth|google|instagram|whatsapp|chatgpt|claude/i.test(text)) return `${text} недоступен`;
-      return 'Сервисы требуют свежей проверки';
+      return 'Уверенность по сервисам неполная';
     }
     function channelOperatorProblemKind(value='', item={}) {
       const text = String(value || item.problem || item.check || '').trim();
@@ -26998,10 +27002,10 @@ def html_page_v2():
       if (!text && !check) return '';
       if (/disabled/i.test(text) || /channel disabled/i.test(reason)) return 'Канал отключен';
       if (/not started/i.test(text) || /not started/i.test(reason)) return 'Канал не запущен';
-      if (check === 'Capacity' || /^Capacity$/i.test(text)) return 'Канал перегружен';
-      if (check === 'Route' || /^Route$/i.test(text)) return 'Маршрут не подтвержден';
-      if (check === 'Runtime' || /^Runtime$/i.test(text)) return 'Готовность канала не подтверждена';
-      if (check === 'History' || /^History$/i.test(text)) return 'Недостаточно данных';
+      if (check === 'Capacity' || /^Capacity$/i.test(text)) return 'Лимит назначений достигнут';
+      if (check === 'Route' || /^Route$/i.test(text)) return 'Маршрутная готовность не подтверждена';
+      if (check === 'Runtime' || /^Runtime$/i.test(text)) return 'Нет свежего runtime-подтверждения';
+      if (check === 'History' || /^History$/i.test(text)) return 'История неполная';
       if (check === 'Stability' || /^Stability$/i.test(text)) return 'Стабильность ниже требуемого уровня';
       if (check === 'Services' || /^Services/i.test(text)) return channelOperatorServiceProblem(text);
       return channelOperatorServiceProblem(text);
@@ -27026,33 +27030,33 @@ def html_page_v2():
       if (/^Route$/i.test(text)) return 'Маршрут';
       if (/^Runtime$/i.test(text)) return 'Готовность';
       if (/^History$/i.test(text)) return 'История';
-      return text || 'Проверка';
+      return text || 'Сигнал';
     }
     function channelOperatorMainIssue(item={}, score=0) {
       if (score >= 90) return 'Проблем нет';
       const check = String(item.check || '').trim();
       const problem = String(item.problem || '').trim();
       const reason = String(item.reason || '').trim();
-      if (check === 'Capacity') return 'Перегружен';
-      if (check === 'Route') return 'Маршрут не подтвержден';
+      if (check === 'Capacity') return 'Лимит назначений достигнут';
+      if (check === 'Route') return 'Маршрутная уверенность неполная';
       if (check === 'Services') return 'Сбой сервисов';
-      if (check === 'Runtime') return 'Готовность канала не подтверждена';
-      if (check === 'History') return 'Недостаточно данных';
+      if (check === 'Runtime') return 'Нет свежего runtime-подтверждения';
+      if (check === 'History') return 'История неполная';
       if (problem === 'Disabled' || /disabled/i.test(reason)) return 'Отключен';
       if (problem === 'Not Started' || /not started/i.test(reason)) return 'Не запущен';
       if (check === 'Stability') return 'Стабильность ниже требуемого уровня';
-      return problem ? channelOperatorProblemText(problem, item) : 'Нужна проверка';
+      return problem ? channelOperatorProblemText(problem, item) : 'Нужны свежие данные';
     }
     function channelOperatorPrimaryCause(item={}, score=0) {
       if (score >= 90) return 'Проблем не обнаружено';
       const check = String(item.check || '').trim();
       const problem = String(item.problem || '').trim();
       const reason = String(item.reason || '').trim();
-      if (check === 'Capacity') return 'Перегружен';
+      if (check === 'Capacity') return 'Лимит назначений достигнут';
       if (check === 'Services') return 'Сервисы недоступны';
-      if (check === 'Route') return 'Маршрут не подтвержден';
-      if (check === 'Runtime') return 'Готовность канала не подтверждена';
-      if (check === 'History') return 'Недостаточно данных';
+      if (check === 'Route') return 'Маршрутная готовность не подтверждена';
+      if (check === 'Runtime') return 'Нет свежего runtime-подтверждения';
+      if (check === 'History') return 'История неполная';
       if (check === 'Stability') return 'Стабильность ниже требуемого уровня';
       if (problem === 'Disabled' || /disabled/i.test(reason)) return 'Канал отключен';
       if (problem === 'Not Started' || /not started/i.test(reason)) return 'Канал не запущен';
@@ -27062,13 +27066,13 @@ def html_page_v2():
       if (score >= 90) return 'Канал готов для пользователей';
       const check = String(item.check || '').trim();
       const reason = String(item.reason || '').trim();
-      if (check === 'Capacity') return 'На канал назначено слишком много пользователей';
-      if (check === 'Route') return 'Маршрут не подтвержден для использования';
-      if (check === 'Services') return 'Один или несколько сервисов требуют проверки';
-      if (check === 'Runtime') return 'Готовность канала не подтверждена';
-      if (check === 'History') return 'Недостаточно данных по каналу';
+      if (check === 'Capacity') return 'Пользователей больше предпочтительного или жёсткого уровня назначения';
+      if (check === 'Route') return 'Уверенность маршрута неполная; это не оценка скорости или качества трафика';
+      if (check === 'Services') return 'Не все сервисы подтверждены свежими данными';
+      if (check === 'Runtime') return 'Последний runtime-снимок не подтверждает готовность';
+      if (check === 'History') return 'Истории недостаточно для уверенного вывода';
       if (check === 'Stability') return 'Стабильность ниже требуемого уровня';
-      return 'Канал требует проверки оператора';
+      return 'Каналу нужны свежие данные оператора';
     }
     function channelCauseLabel(item={}) {
       const check = String(item.check || '').trim();
@@ -27078,11 +27082,11 @@ def html_page_v2():
           ? 'Сервисы не подтвердили доступность'
           : channelOperatorProblemText(problem || check, item);
       }
-      if (check === 'Route') return 'Маршрут не подтвержден';
-      if (check === 'Runtime') return 'Готовность канала не подтверждена';
-      if (check === 'History') return 'Недостаточно данных';
+      if (check === 'Route') return 'Маршрутная готовность не подтверждена';
+      if (check === 'Runtime') return 'Нет свежего runtime-подтверждения';
+      if (check === 'History') return 'История неполная';
       if (check === 'Stability') return 'Стабильность ниже требуемого уровня';
-      if (check === 'Capacity') return 'На канал назначено слишком много пользователей';
+      if (check === 'Capacity') return 'Лимит назначений достигнут';
       return channelOperatorProblemText(problem || check, item);
     }
     function channelPrimaryCauseForOutcome(label='', suitability={}) {
@@ -27158,10 +27162,10 @@ def html_page_v2():
     }
     function channelSuitabilityRoute(row={}) {
       const state = channelTopologyState(row);
-      if (state.group === 'problem') return {check:'Route', score:2, max:15, reason:state.issue || 'Route problem', problem:'Route', working:[], problems:['Route']};
-      if (state.group === 'check') return {check:'Route', score:9, max:15, reason:state.issue || 'Route needs check', problem:'Route', working:[], problems:['Route']};
+      if (state.group === 'problem') return {check:'Route', score:2, max:15, reason:state.issue || 'Route readiness not confirmed', problem:'Route', working:[], problems:['Route']};
+      if (state.group === 'check') return {check:'Route', score:9, max:15, reason:state.issue || 'Route confidence incomplete', problem:'Route', working:[], problems:['Route']};
       if (state.group === 'disabled') return {check:'Route', score:6, max:15, reason:state.issue || 'Channel disabled', problem:'Route', working:[], problems:['Route']};
-      return {check:'Route', score:15, max:15, reason:'Route looks safe', problem:'', working:['Route'], problems:[]};
+      return {check:'Route', score:15, max:15, reason:'Route readiness confirmed', problem:'', working:['Route'], problems:[]};
     }
     function channelSuitabilityRuntime(row={}) {
       const id = row.id || '';
@@ -27360,35 +27364,35 @@ def html_page_v2():
         const optional = service.optionalFailed?.length
           ? ` Дополнительная техническая проверка: ${service.optionalFailed.slice(0, 4).join(', ')}. На этот сигнал не влияет.`
           : '';
-        if (!service.total) return `Сервисы: нужна повторная проверка основных сервисов.${optional}`;
+        if (!service.total) return `Сервисы: нет свежего подтверждения основных сервисов.${optional}`;
         if (!service.failed.length) return `Сервисы: основные сервисы работают ${service.ok}/${service.total}.${optional}`;
-        return `Сервисы: работают ${service.ok}/${service.total}. Требуют проверки: ${service.failed.slice(0, 4).join(', ')}.`;
+        return `Сервисы: работают ${service.ok}/${service.total}. Недоступны: ${service.failed.slice(0, 4).join(', ')}.`;
       }
       if (check === 'Capacity') {
         const count = egressUserCount(id);
         const limit = channelLoadLimit(row);
         const rawState = channelLoad(id, row.state || {});
         if (/HARD|OVER/i.test(String(rawState || '')) || count > limit.hard) return `Нагрузка: ${count} пользователей назначено. Новые назначения ограничены. Текущие пользователи не затронуты.`;
-        if (/SOFT|LIMIT|WARN/i.test(String(rawState || '')) || count > limit.soft) return `Нагрузка: ${count} пользователей назначено. Перед добавлением новых пользователей рекомендуется проверка.`;
+        if (/SOFT|LIMIT|WARN/i.test(String(rawState || '')) || count > limit.soft) return `Нагрузка: ${count} пользователей назначено. Перед добавлением новых пользователей нужно оценить запас назначения.`;
         return `Нагрузка: ${count} пользователей назначено. Можно принимать новых пользователей.`;
       }
-      if (check === 'Route') return channelScoreExplanationText(row, item).replace(/ Этот сигнал снизил маршрутный компонент\.?/g, '');
+      if (check === 'Route') return channelScoreExplanationText(row, item);
       if (check === 'Runtime') {
         const rd = row._detail?.runtime_readiness || (overview.egress_runtime_readiness || {})[id] || {};
         return Number(item.score || 0) >= Number(item.max || 0)
           ? 'Готовность: канал подтвержден текущим снимком.'
-          : `Готовность: ${operatorText(rd.reason || rd.status || item.reason || 'дополнительная проверка рекомендуется')}`;
+          : `Готовность: ${operatorText(rd.reason || rd.status || item.reason || 'нет свежего runtime-подтверждения')}`;
       }
       if (check === 'Stability') {
         return Number(item.score || 0) >= Number(item.max || 0)
           ? 'Стабильность: канал работает устойчиво.'
-          : 'Стабильность: дополнительная проверка рекомендуется перед новыми назначениями.';
+          : 'Стабильность: желательно обновить данные устойчивости перед новыми назначениями.';
       }
-      return channelScoreExplanationText(row, item) || String(item.reason || 'Сигнал требует внимания.');
+      return channelScoreExplanationText(row, item) || String(item.reason || 'Сигналу нужны свежие данные.');
     }
     function channelSignalAccessibleLabel(item={}) {
-      const state = item.tone === 'bad' ? 'требует действия'
-        : item.tone === 'warn' ? 'требует внимания'
+      const state = item.tone === 'bad' ? 'нужно действие'
+        : item.tone === 'warn' ? 'нужны свежие данные'
         : item.tone === 'ok' ? 'норма'
         : 'информация';
       return `${item.label || 'Сигнал'}: ${state}`;
@@ -27492,7 +27496,7 @@ def html_page_v2():
       if (/min_mbps_below_floor|avg_mbps_below_floor|speed/i.test(text)) return 'Скорость ниже требуемого уровня';
       if (/telegram_required|telegram_down|service_telegram/i.test(text)) return 'Telegram недоступен';
       if (/service|youtube|google|instagram|whatsapp|chatgpt|claude/i.test(text)) return 'Сервис недоступен';
-      if (/route_class|trusted_ru|route/i.test(text)) return 'Маршрут не подтвержден';
+      if (/route_class|trusted_ru|route/i.test(text)) return 'Маршрутная готовность не подтверждена';
       if (/health_code|severity_fail|severity/i.test(text)) return 'Состояние канала не подтверждено';
       if (/egress_disabled|disabled|maintenance|quarantine/i.test(text)) return 'Канал отключен';
       return operatorText(text);
@@ -27542,10 +27546,10 @@ def html_page_v2():
     function channelAssignmentTableLabel(status='') {
       return {
         use:'Использовать',
-        keep:'Оставить',
+        keep:'Оставить текущих',
         evacuate:'Перевести',
         blocked:'Запрещён',
-        emergency:'Аварийно',
+        emergency:'Только аварийно',
       }[status] || 'Запрещён';
     }
     function channelAssignmentTone(status='') {
@@ -27680,8 +27684,11 @@ def html_page_v2():
     }
     function channelSuitabilityBreakdownTable(source={}) {
       const s = channelSuitability(source);
-      const rows = s.breakdown.map(item => `<tr><td><strong>${esc(channelOperatorCheckLabel(item.check))}</strong></td><td>${esc(item.score)}</td><td>${esc(item.max)}</td><td>${esc(channelScoreExplanationText(source, item))}</td></tr>`);
-      return listTable(['Компонент','Оценка','Макс.','Почему'], rows, 'Компонентов пока нет.');
+      const rows = s.breakdown.map(item => {
+        const status = channelRealityComponentStatus(item);
+        return `<tr><td><strong>${esc(channelOperatorCheckLabel(item.check))}</strong></td><td>${pill(status.label, status.tone)}</td><td>${esc(channelScoreExplanationText(source, item))}</td></tr>`;
+      });
+      return listTable(['Компонент','Состояние','Что происходит'], rows, 'Компонентов пока нет.');
     }
     function channelAnalysisListHtml(items=[], tone='bad') {
       const clean = Array.from(new Set((items || []).filter(Boolean))).slice(0, 7);
@@ -27736,28 +27743,28 @@ def html_page_v2():
       }
       if (/route|маршрут/i.test(text)) {
         return {
-          reason: 'Маршрут не подтвержден для использования.',
-          resolution: 'Откройте карточку канала и посмотрите детали маршрута. Отдельной безопасной кнопки маршрута для этого канала нет.',
+          reason: 'Маршрутная готовность не подтверждена. Это не означает, что скорость или качество трафика сломаны.',
+          resolution: 'Откройте карточку канала и посмотрите доказательства готовности маршрута. Отдельной безопасной кнопки маршрута для этого канала нет.',
           action: '',
         };
       }
       if (/capacity|нагруз|перегруж/i.test(text)) {
         return {
-          reason: channelPrimaryCauseForOutcome(text, suitability) || 'На канал назначено слишком много пользователей.',
+          reason: channelPrimaryCauseForOutcome(text, suitability) || 'Пользователей больше предпочтительного или жёсткого уровня назначения.',
           resolution: 'Откройте пользователей этого канала и подготовьте перевод через существующий governed flow.',
           action: `<button class="ghost" type="button" onclick="showChannelWorkspace('overview');toggleChannelUsers('${esc(id)}');closeDrawer()">Открыть пользователей</button>`,
         };
       }
       if (/runtime|ready|готов/i.test(text)) {
         return {
-          reason: 'Готовность канала не подтверждена последним runtime-сигналом.',
+          reason: 'Последний runtime-снимок не подтверждает готовность канала.',
           resolution: 'Откройте логи канала перед назначением пользователей.',
           action: `<button class="ghost" type="button" onclick="openV2ChannelLogs('${esc(id)}')">Открыть логи</button>`,
         };
       }
       if (/history|истор/i.test(text)) {
         return {
-          reason: 'Недостаточно данных для уверенного решения.',
+          reason: 'Истории недостаточно для уверенного решения.',
           resolution: 'Откройте evidence/history ниже в карточке канала.',
           action: '',
         };
@@ -27777,7 +27784,7 @@ def html_page_v2():
         };
       }
       return {
-        reason: suitability.why || 'Канал требует проверки оператора.',
+        reason: suitability.why || 'Каналу нужны свежие данные оператора.',
         resolution: suitability.score >= 90 ? 'Действий не требуется.' : 'Откройте детали ниже и подтвердите причину перед действием.',
         action: suitability.score >= 90 ? '' : channelUnavailableActionHtml(),
       };
@@ -27880,14 +27887,14 @@ def html_page_v2():
         'link down': 'Канал не отвечает на уровне интерфейса.',
       };
       if (map[key]) return map[key];
-      return operatorText(raw || 'Состояние канала снизило компонент стабильности.');
+      return operatorText(raw || 'Состояние канала не подтверждено свежими данными.');
     }
     function channelRealityComponentStatus(item={}) {
       const score = Number(item.score || 0);
       const max = Number(item.max || 0);
       if (max && score >= max) return {label:'OK', tone:'ok', hint:'Подтверждено'};
-      if (score <= Math.max(2, max * 0.25)) return {label:'Проблема', tone:'bad', hint:'Нужна проверка'};
-      return {label:'Проверить', tone:'warn', hint:'Частичная уверенность'};
+      if (score <= Math.max(2, max * 0.25)) return {label:'Проблема', tone:'bad', hint:'Влияет на решение'};
+      return {label:'Уточнить', tone:'warn', hint:'Уверенность неполная'};
     }
     function channelScoreExplanationText(source={}, item={}) {
       const row = channelRowFromSource(source);
@@ -27909,13 +27916,13 @@ def html_page_v2():
         const limit = channelLoadLimit(row);
         if (Number(item.score || 0) >= Number(item.max || 0)) return `${count} пользователей назначено; предпочтительный уровень ${limit.soft}. Новые назначения внутри лимита.`;
         if (count >= Number(limit.hard || 0)) return `${count} пользователей назначено; жёсткий предел ${limit.hard}. Новые назначения ограничены, текущие пользователи не отключаются.`;
-        return `${count} пользователей назначено; предпочтительный уровень ${limit.soft}. Перед добавлением пользователей нужна проверка нагрузки.`;
+        return `${count} пользователей назначено; предпочтительный уровень ${limit.soft}. Перед добавлением пользователей нужно оценить запас назначения.`;
       }
       if (check === 'Route') {
         const evidence = channelScoreRouteEvidence(row);
         if (Number(item.score || 0) >= Number(item.max || 0)) return 'Готовность маршрута подтверждена текущими сигналами.';
         if (evidence.state?.issue && evidence.state.issue !== '—') return `Готовность маршрута частичная: ${evidence.state.issue}. Это не оценка скорости или пропускной способности.`;
-        if (evidence.total) return `${evidence.confirmed}/${evidence.total} маршрутов уверенно подтверждены; нужна дополнительная уверенность.`;
+        if (evidence.total) return `${evidence.confirmed}/${evidence.total} маршрутов уверенно подтверждены; нужна дополнительная маршрутная уверенность.`;
         return 'Топология канала не даёт полной уверенности маршрута. Это не оценка скорости или bandwidth.';
       }
       if (check === 'Runtime') {
@@ -27929,7 +27936,7 @@ def html_page_v2():
         if (Number(item.score || 0) >= Number(item.max || 0)) return 'Недавняя история не содержит негативных сигналов.';
         return label ? `Последняя история канала: ${operatorText(label)}.` : 'Истории недостаточно для полного доверия.';
       }
-      return item.reason || 'Сигнал требует проверки.';
+      return item.reason || 'Сигналу нужны свежие данные.';
     }
     function channelScoreExplanationRows(source={}, item={}) {
       const row = channelRowFromSource(source);
@@ -28082,17 +28089,17 @@ def html_page_v2():
     function channelDecisionFirstSignalStatus(item={}) {
       if (item.tone === 'ok') return {label:'OK', tone:'ok'};
       if (item.tone === 'bad') return {label:'Проблема', tone:'bad'};
-      if (item.tone === 'warn') return {label:'Проверить', tone:'warn'};
+      if (item.tone === 'warn') return {label:'Уточнить', tone:'warn'};
       return {label:'Нет данных', tone:'info'};
     }
     function channelDecisionFirstSignalMeaning(item={}) {
       const check = String(item.check || '');
       if (item.tone === 'ok') return 'Работает';
-      if (check === 'Services') return 'Проверить доступность';
-      if (check === 'Capacity') return 'Проверить нагрузку';
-      if (check === 'Runtime') return 'Подтвердить готовность';
-      if (check === 'Stability') return 'Проверить устойчивость';
-      return 'Нужна проверка';
+      if (check === 'Services') return 'Сервисная уверенность неполная';
+      if (check === 'Capacity') return 'Новые назначения ограничены';
+      if (check === 'Runtime') return 'Нет свежего runtime-снимка';
+      if (check === 'Stability') return 'Устойчивость нужно уточнить';
+      return 'Нужны свежие данные';
     }
     function channelDecisionFirstSignalsBlock(source={}) {
       const allowed = new Set(['Services', 'Capacity', 'Runtime', 'Stability']);
@@ -28220,7 +28227,7 @@ def html_page_v2():
       const rd = ctx.readiness || {};
       const summary = kvRows({
         'Канал': channelDisplayName(id),
-        'Статус': ctx.lifecycle.text || 'Проверить',
+        'Статус': ctx.lifecycle.text || 'Уточнить',
         'Сервисы': ctx.matrix.total ? `${ctx.matrix.okCount}/${ctx.matrix.total}` : 'нет замера',
         'Скорость': ctx.speed,
         'Нагрузка': ctx.loadLabel,
@@ -28428,7 +28435,10 @@ def html_page_v2():
       const cols = visibleChannelTableColumns();
       const rows = channelRows(list);
       const empty = `<tr><td colspan="${esc(cols.length)}"><div class="muted">Каналов в этом фильтре нет.</div></td></tr>`;
-      return `<table class="channels-table-v2"><thead><tr>${cols.map(c=>sortableHeader('channel', c)).join('')}</tr></thead><tbody>${rows || empty}</tbody></table>`;
+      const legend = cols.some(c => c.id === 'signals')
+        ? '<div class="channel-signal-legend"><strong>Сигналы:</strong> сервисы · нагрузка · runtime · стабильность. Зелёный: подтверждено. Жёлтый: уверенность неполная. Красный: влияет на решение.</div>'
+        : '';
+      return `${legend}<table class="channels-table-v2"><thead><tr>${cols.map(c=>sortableHeader('channel', c)).join('')}</tr></thead><tbody>${rows || empty}</tbody></table>`;
     }
     function channelObjectPanelId(id='') {
       return `channelObjectPanel-${userEditKey(id)}`;

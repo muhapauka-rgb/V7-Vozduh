@@ -37,6 +37,7 @@ Diagnostics must not explain operator state through:
 - penalties;
 - score contribution;
 - "full score" or "partial score" language.
+- generic "requires verification" / "needs check" language when a concrete reality-first state is available.
 
 The underlying Channel Score calculation remains unchanged and may remain available as secondary metadata outside the reality-first diagnostic explanation.
 
@@ -58,6 +59,9 @@ The underlying Channel Score calculation remains unchanged and may remain availa
 - Channel Score remains a mixed diagnostic calculation but no longer drives diagnostic copy.
 - Capacity/Load text must follow ADR-009 and never imply speed, CPU, bandwidth, or physical saturation.
 - Route text must explain readiness/topology confidence and not traffic quality.
+- Route copy should say readiness/confidence is incomplete, not that the route is broken, unless runtime route evidence explicitly shows mismatch or leak risk.
+- Capacity copy should explain preferred assignment level, hard assignment limit, new-assignment restriction, and that current users are not automatically disconnected.
+- Channel signal dots may use a minimal legend to reduce operator memory burden, but must not become a noisy badge system.
 - Diagnostics must not become a new planner, workflow, action owner, governance path, execution path, storage, or truth source.
 
 ## Affected modules
@@ -75,6 +79,7 @@ The underlying Channel Score calculation remains unchanged and may remain availa
 ## Related reports
 
 - `DIAGNOSTICS_1_REALITY_FIRST_REBUILD_REPORT.md`
+- `CHANNELS_FINAL_POLISH_AND_LOCK_REPORT.md`
 - `CHANNEL_DECISION_FIRST_2_DRAWER_REPORT.md`
 - `CAPACITY_1_REALITY_AUDIT_REPORT.md`
 - `docs/operator_actions/CHANNEL_HEALTH_3_SCORE_EXPLANATION_MODEL_REPORT.md`

@@ -77,6 +77,19 @@ A new audit is allowed only when the reference has no answer, the reference expl
 9. Operator copy must avoid developer-only terms on the first screen, including raw `runtime`, `confidence`, `evidence`, `snapshot`, `eligibility`, `trust score`, and planner/gate internals.
 10. If a warning does not change the decision, the UI must say that plainly, for example: "does not prohibit use" or "follow V7 decision".
 
+## OPERATOR_ACTION_FLOW_RULES
+
+1. Every operator-visible channel issue must explain itself.
+2. Every issue detail must show a consistent structure: status, reason, decision impact, and action.
+3. Every issue must explicitly explain whether it affects Channel Decision V7.
+4. Every issue must explain whether operator action is required, optional, automatic, or unavailable.
+5. Action categories are `Observe`, `Review`, and `Execute`; `Execute` may only prepare or open an existing governed flow.
+6. Action rows must state where the action leads and what result the operator should expect.
+7. A visible issue must not end at explanation only. If no safe action exists, the UI must say why in the same expanded item.
+8. Problem details and signal details use the same action-flow structure.
+9. Existing destinations are reused: Service Matrix, channel users, channel logs, engineering diagnostics, and governed user/action flows.
+10. This rule does not create new planner logic, routing logic, signal calculations, governance, storage, or execution paths.
+
 ## 1. Channels
 
 - What it means: A channel is an egress path that can carry users, be inspected by operators, and be considered by the planner.

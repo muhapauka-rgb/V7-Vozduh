@@ -27863,63 +27863,225 @@ def html_page_v2():
     function channelUnavailableActionHtml(reason='нет безопасного действия в этом окне') {
       return `<button class="ghost" type="button" disabled>Действие недоступно</button><span class="inline-action-status">Причина: ${esc(reason)}</span>`;
     }
+    function channelActionFlowDecisionImpact(source={}, check='', severity='warn', label='') {
+      const assignment = channelAssignmentStatus(source);
+      const key = assignment.key || '';
+      const toneLocal = String(severity || '').toLowerCase();
+      const text = String(label || '').toLowerCase();
+      if (check === 'Services') {
+        if (toneLocal === 'ok') return 'Сервисы подтверждают решение V7.';
+        if (toneLocal === 'warn') return 'Решение V7 остается действительным, но свежесть сервисной проверки снижает уверенность.';
+        return 'Канал нельзя считать безопасным для пользователей, которым нужен недоступный сервис.';
+      }
+      if (check === 'Capacity') {
+        if (toneLocal === 'ok') return 'Новые назначения внутри лимита.';
+        if (key === 'evacuate') return 'Новые назначения ограничены; текущих пользователей нужно подготовить к переводу.';
+        if (key === 'use') return 'Канал можно использовать, но перед добавлением пользователей нужно проверить запас.';
+        return 'Новые назначения ограничены; текущие пользователи не отключаются автоматически.';
+      }
+      if (check === 'Route') {
+        if (toneLocal === 'ok') return 'Маршрутная готовность подтверждает решение V7.';
+        return 'Решение V7 требует осторожности: маршрутная готовность не подтверждена полностью.';
+      }
+      if (check === 'Runtime') {
+        if (toneLocal === 'ok') return 'Текущая готовность подтверждает решение V7.';
+        return 'Решение V7 остается видимым, но уверенность снижена до свежего подтверждения готовности.';
+      }
+      if (check === 'Stability') {
+        if (toneLocal === 'ok') return 'Стабильность подтверждает решение V7.';
+        return 'Стабильность снижает безопасность решения и требует просмотра источника.';
+      }
+      if (check === 'History') {
+        if (toneLocal === 'ok') return 'История не меняет решение V7.';
+        return 'История снижает уверенность, но обновляется системой автоматически.';
+      }
+      if (/telegram|google|youtube|service|сервис|instagram|whatsapp|chatgpt|claude/i.test(text)) {
+        return 'Канал нельзя считать безопасным для пользователей, которым нужен этот сервис.';
+      }
+      return toneLocal === 'ok' ? 'На решение V7 не влияет.' : 'Влияние показано через ближайший сигнал V7.';
+    }
+    function channelActionFlowForCheck(source={}, check='', severity='warn') {
+      const row = channelRowFromSource(source);
+      const id = row.id || row.egress || '';
+      const assignment = channelAssignmentStatus(row);
+      const toneLocal = String(severity || '').toLowerCase();
+      if (toneLocal === 'ok') {
+        return {
+          category:'Observe',
+          label:'Действий не требуется',
+          destination:'остаться в карточке канала',
+          expected:'оператор видит, что сигнал подтверждает решение V7',
+          actionHtml:'',
+        };
+      }
+      if (check === 'Services') {
+        return {
+          category:'Review',
+          label:'Открыть матрицу сервисов',
+          destination:'строка сервисов этого канала',
+          expected:'оператор запускает свежий замер и видит, какие сервисы доступны',
+          actionHtml:`<button class="ghost" type="button" onclick="openChannelServicesPanel('${esc(id)}')">Открыть матрицу сервисов</button>`,
+        };
+      }
+      if (check === 'Capacity') {
+        const executeLike = assignment.key === 'evacuate';
+        return {
+          category: executeLike ? 'Execute' : 'Review',
+          label:'Открыть пользователей',
+          destination:'пользователи, назначенные на этот канал',
+          expected: executeLike ? 'оператор готовит перевод пользователей через существующий управляемый flow' : 'оператор проверяет, кого затрагивает лимит назначений',
+          actionHtml:`<button class="ghost" type="button" onclick="showChannelWorkspace('overview');toggleChannelUsers('${esc(id)}');closeDrawer()">Открыть пользователей</button>`,
+        };
+      }
+      if (check === 'Runtime' || check === 'Stability') {
+        return {
+          category:'Observe',
+          label:'Открыть логи',
+          destination:'логи этого канала',
+          expected:'оператор видит источник неполного подтверждения или нестабильности',
+          actionHtml:`<button class="ghost" type="button" onclick="openV2ChannelLogs('${esc(id)}')">Открыть логи</button>`,
+        };
+      }
+      if (check === 'Route') {
+        return {
+          category:'Observe',
+          label:'Действие недоступно',
+          destination:'инженерная диагностика канала',
+          expected:'оператор понимает, что ручного безопасного route-действия здесь нет',
+          actionHtml:channelUnavailableActionHtml('нет безопасного действия для маршрута в этом окне'),
+        };
+      }
+      if (check === 'History') {
+        return {
+          category:'Observe',
+          label:'Действие не требуется',
+          destination:'автоматическая история канала',
+          expected:'оператор понимает, что история обновляется системой автоматически',
+          actionHtml:channelUnavailableActionHtml('история обновляется системой автоматически'),
+        };
+      }
+      return {
+        category:'Observe',
+        label:'Действие недоступно',
+        destination:'инженерная диагностика канала',
+        expected:'оператор понимает, что безопасного обработчика для этого пункта нет',
+        actionHtml:channelUnavailableActionHtml(),
+      };
+    }
+    function channelActionFlowSummary(flow={}) {
+      const category = flow.category || 'Observe';
+      const label = flow.label || 'Действие недоступно';
+      const destination = flow.destination || 'текущая карточка';
+      const expected = flow.expected || 'оператор понимает следующий шаг';
+      return `${category}: ${label}. Куда: ${destination}. Ожидаемый результат: ${expected}.`;
+    }
+    function channelActionFlowRows(status='', reason='', impact='', flow={}) {
+      return [
+        ['Статус', status || 'Нет свежего подтверждения'],
+        ['Причина', reason || 'Последние данные канала неполные.'],
+        ['Влияние на решение', impact || 'Влияние показано через решение V7.'],
+        ['Действие', channelActionFlowSummary(flow)],
+      ];
+    }
+    function channelProblemCheckFromLabel(label='') {
+      const text = String(label || '');
+      if (/capacity|нагруз|перегруж|лимит назнач|назначени.*достиг|пользовател/i.test(text)) return 'Capacity';
+      if (/telegram|google|youtube|service|сервис|instagram|whatsapp|chatgpt|claude/i.test(text)) return 'Services';
+      if (/route|маршрут/i.test(text)) return 'Route';
+      if (/runtime|ready|готов/i.test(text)) return 'Runtime';
+      if (/history|истор/i.test(text)) return 'History';
+      if (/stability|стабил|connectivity|связ/i.test(text)) return 'Stability';
+      return '';
+    }
     function channelProblemOverlayMeta(label='', suitability={}, assignment={}) {
       const text = String(label || '').trim();
       const lower = text.toLowerCase();
       const id = suitability.id || assignment.id || '';
       if (/capacity|нагруз|перегруж|лимит назнач|назначени.*достиг|пользовател/i.test(text)) {
+        const flow = channelActionFlowForCheck({id}, 'Capacity', 'bad');
         return {
+          status: 'Действие требуется',
           reason: 'Пользователей больше предпочтительного или жёсткого уровня назначения.',
-          resolution: 'Откройте пользователей этого канала и подготовьте перевод штатным действием V7.',
-          action: `<button class="ghost" type="button" onclick="showChannelWorkspace('overview');toggleChannelUsers('${esc(id)}');closeDrawer()">Открыть пользователей</button>`,
+          impact: channelActionFlowDecisionImpact({id}, 'Capacity', 'bad', text),
+          flow,
+          resolution: channelActionFlowSummary(flow),
+          action: flow.actionHtml,
         };
       }
       if (/telegram|google|youtube|service|сервис|instagram|whatsapp|chatgpt|claude/i.test(text)) {
+        const flow = channelActionFlowForCheck({id}, 'Services', 'bad');
         return {
+          status: 'Действие требуется',
           reason: channelPrimaryCauseForOutcome(text, suitability) || 'Сервисы не подтвердили доступность.',
-          resolution: 'Откройте матрицу сервисов и запустите свежий замер.',
-          action: `<button class="ghost" type="button" onclick="openChannelServicesPanel('${esc(id)}')">Открыть матрицу сервисов</button>`,
+          impact: channelActionFlowDecisionImpact({id}, 'Services', 'bad', text),
+          flow,
+          resolution: channelActionFlowSummary(flow),
+          action: flow.actionHtml,
         };
       }
       if (/route|маршрут/i.test(text)) {
+        const flow = channelActionFlowForCheck({id}, 'Route', 'warn');
         return {
+          status: 'Безопасного ручного действия нет',
           reason: 'Маршрутная готовность не подтверждена. Это не означает, что скорость или качество трафика сломаны.',
-          resolution: 'Откройте инженерную диагностику. Безопасного ручного действия для маршрута в этом окне нет.',
-          action: channelUnavailableActionHtml('нет безопасного действия для маршрута в этом окне'),
+          impact: channelActionFlowDecisionImpact({id}, 'Route', 'warn', text),
+          flow,
+          resolution: channelActionFlowSummary(flow),
+          action: flow.actionHtml,
         };
       }
       if (/runtime|ready|готов/i.test(text)) {
+        const flow = channelActionFlowForCheck({id}, 'Runtime', 'warn');
         return {
+          status: 'Нужно открыть источник',
           reason: 'Последнее подтверждение готовности канала неполное.',
-          resolution: 'Откройте логи канала перед назначением пользователей.',
-          action: `<button class="ghost" type="button" onclick="openV2ChannelLogs('${esc(id)}')">Открыть логи</button>`,
+          impact: channelActionFlowDecisionImpact({id}, 'Runtime', 'warn', text),
+          flow,
+          resolution: channelActionFlowSummary(flow),
+          action: flow.actionHtml,
         };
       }
       if (/history|истор/i.test(text)) {
+        const flow = channelActionFlowForCheck({id}, 'History', 'warn');
         return {
+          status: 'Автоматически',
           reason: 'Истории недостаточно для уверенного решения.',
-          resolution: 'Откройте evidence/history ниже в карточке канала. Ручного исправления истории нет.',
-          action: channelUnavailableActionHtml('история обновляется системой автоматически'),
+          impact: channelActionFlowDecisionImpact({id}, 'History', 'warn', text),
+          flow,
+          resolution: channelActionFlowSummary(flow),
+          action: flow.actionHtml,
         };
       }
       if (/stability|стабил|connectivity|связ/i.test(text)) {
+        const flow = channelActionFlowForCheck({id}, 'Stability', 'bad');
         return {
+          status: 'Нужно открыть источник',
           reason: 'Стабильность ниже требуемого уровня.',
-          resolution: 'Откройте логи канала и последние события, чтобы понять причину.',
-          action: `<button class="ghost" type="button" onclick="openV2ChannelLogs('${esc(id)}')">Открыть логи</button>`,
+          impact: channelActionFlowDecisionImpact({id}, 'Stability', 'bad', text),
+          flow,
+          resolution: channelActionFlowSummary(flow),
+          action: flow.actionHtml,
         };
       }
       if (/disabled|отключ/i.test(lower)) {
+        const flow = channelActionFlowForCheck({id}, '', 'bad');
         return {
+          status: 'Безопасного ручного действия нет',
           reason: 'Канал отключен и не должен принимать пользователей.',
-          resolution: 'Верните канал в рабочее состояние только через существующую процедуру обслуживания.',
-          action: channelUnavailableActionHtml(),
+          impact: 'V7 не должен назначать пользователей на отключенный канал.',
+          flow,
+          resolution: channelActionFlowSummary(flow),
+          action: flow.actionHtml,
         };
       }
+      const flow = suitability.score >= 90 ? channelActionFlowForCheck({id}, '', 'ok') : channelActionFlowForCheck({id}, '', 'warn');
       return {
+        status: suitability.score >= 90 ? 'Действий не требуется' : 'Безопасного ручного действия нет',
         reason: suitability.why || 'Последние данные канала неполные.',
-        resolution: suitability.score >= 90 ? 'Действий не требуется.' : 'Дождитесь автоматического обновления или откройте техническую диагностику, если нужен источник сигнала.',
-        action: suitability.score >= 90 ? '' : channelUnavailableActionHtml(),
+        impact: channelActionFlowDecisionImpact({id}, '', suitability.score >= 90 ? 'ok' : 'warn', text),
+        flow,
+        resolution: channelActionFlowSummary(flow),
+        action: flow.actionHtml,
       };
     }
     function channelCompressedListHtml(items=[], tone='bad', source={}, kind='problem') {
@@ -27932,17 +28094,25 @@ def html_page_v2():
         const displayItem = channelOperatorDrawerText(item);
         let content = '';
         if (tone === 'ok') {
+          const check = channelProblemCheckFromLabel(displayItem);
+          const flow = channelActionFlowForCheck(source, check, 'ok');
           content = channelAccordionContent(displayItem, [
-            ['Что произошло', 'Проверка проходит'],
-            ['Почему', `${displayItem} подтвержден существующими сигналами канала.`],
-            ['Что делать', 'Ничего. Эта часть канала работает.'],
-          ]);
+            ...channelActionFlowRows(
+              'OK',
+              `${displayItem} подтвержден существующими сигналами канала.`,
+              channelActionFlowDecisionImpact(source, check, 'ok', displayItem),
+              flow,
+            ),
+          ], flow.actionHtml);
         } else {
           const meta = channelProblemOverlayMeta(displayItem, s, a);
           content = channelAccordionContent(displayItem, [
-            ['Что произошло', displayItem],
-            ['Почему это важно', meta.reason],
-            ['Что можно сделать сейчас', meta.resolution],
+            ...channelActionFlowRows(
+              meta.status || displayItem,
+              meta.reason,
+              meta.impact,
+              meta.flow || {},
+            ),
           ], meta.action);
         }
         return `<div class="channel-accordion-item">
@@ -28145,8 +28315,14 @@ def html_page_v2():
     function channelScoreComponentContent(source={}, item={}) {
       const row = channelRowFromSource(source);
       const check = String(item.check || '');
-      const rows = channelScoreExplanationRows(row, item).filter(row => row && row[1]);
       const status = channelRealityComponentStatus(item);
+      const flow = channelActionFlowForCheck(row, check, status.tone);
+      const rows = channelActionFlowRows(
+        status.label,
+        channelScoreExplanationText(row, item),
+        channelActionFlowDecisionImpact(row, check, status.tone, item.problem || item.reason || check),
+        flow,
+      );
       let extra = '';
       if (check === 'Services') {
         const service = channelScoreServiceEvidence(row);
@@ -28160,7 +28336,7 @@ def html_page_v2():
           <strong>${esc(channelOperatorCheckLabel(check))}: ${esc(status.label)}</strong>
           ${rows.map(([label, value]) => `<div class="channel-accordion-row"><span>${esc(label)}</span><p>${esc(value)}</p></div>`).join('')}
           ${extra}
-          <div class="channel-accordion-actions">${channelScoreComponentActionHtml(row, item)}</div>
+          <div class="channel-accordion-actions">${flow.actionHtml}</div>
         </div>
       </div>`;
     }
@@ -28245,12 +28421,18 @@ def html_page_v2():
       const check = String(item.check || '');
       const label = channelOperatorDrawerText(item.label || channelOperatorCheckLabel(check) || 'Сигнал');
       const status = channelDecisionFirstSignalStatus(source, item);
-      const action = channelScoreComponentActionHtml(source, item);
+      const flow = channelActionFlowForCheck(source, check, status.tone);
       return channelAccordionContent(label, [
-        ['Что произошло', status.label],
-        ['Почему', channelDecisionFirstSignalCause(source, item)],
-        ['Что делать', channelDecisionFirstSignalNextStep(source, item)],
-      ], action);
+        ...channelActionFlowRows(
+          status.label,
+          channelDecisionFirstSignalCause(source, item),
+          channelActionFlowDecisionImpact(source, check, status.tone, label),
+          {
+            ...flow,
+            expected: channelDecisionFirstSignalNextStep(source, item),
+          },
+        ),
+      ], flow.actionHtml);
     }
     function channelDecisionFirstSignalsBlock(source={}) {
       const allowed = new Set(['Services', 'Capacity', 'Runtime', 'Stability']);

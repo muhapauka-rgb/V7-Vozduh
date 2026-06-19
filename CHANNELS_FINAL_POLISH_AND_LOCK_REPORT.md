@@ -68,12 +68,12 @@ No new page, drawer, planner, execution path, storage, score formula, or signal 
 | Desktop table | `docs/channels_final/screenshots/desktop_channels_table.png` |
 | Desktop Use drawer | `docs/channels_final/screenshots/desktop_use_awg3_drawer.png` |
 | Desktop Evacuate drawer | `docs/channels_final/screenshots/desktop_evacuate_vless_drawer.png` |
-| Desktop Emergency drawer | `docs/channels_final/screenshots/desktop_emergency_wg_гермашка_работает_wireguard-1779454504-c43409_drawer.png` |
+| Desktop Emergency drawer | `docs/channels_final/screenshots/desktop_emergency_wg_germashka_wireguard-1779454504-c43409_drawer.png` |
 | Desktop Diagnostics expanded | `docs/channels_final/screenshots/desktop_diagnostics_expanded_vless.png` |
 | Mobile table | `docs/channels_final/screenshots/mobile_channels_table.png` |
 | Mobile Use drawer | `docs/channels_final/screenshots/mobile_use_vless_drawer.png` |
 | Mobile Evacuate drawer | `docs/channels_final/screenshots/mobile_evacuate_awg3_drawer.png` |
-| Mobile Emergency drawer | `docs/channels_final/screenshots/mobile_emergency_wg_гермашка_работает_wireguard-1779454504-c43409_drawer.png` |
+| Mobile Emergency drawer | `docs/channels_final/screenshots/mobile_emergency_wg_germashka_wireguard-1779454504-c43409_drawer.png` |
 | Mobile Diagnostics expanded | `docs/channels_final/screenshots/mobile_diagnostics_expanded_awg3.png` |
 | Machine audit | `docs/channels_final/screenshots/capture_audit.json` |
 

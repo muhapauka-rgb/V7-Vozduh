@@ -1,0 +1,40 @@
+{
+  "desktop": {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "horizontalOverflow": false,
+    "screenshots": [
+      "desktop_signal_detail.png",
+      "desktop_capacity_issue.png",
+      "desktop_service_issue.png",
+      "desktop_no_action.png"
+    ]
+  },
+  "mobile": {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "horizontalOverflow": false,
+    "actionVisibleAfterScroll": true,
+    "visibleClippedActions": [],
+    "screenshots": [
+      "mobile_action_flow_full.png",
+      "mobile_action_button_visible.png"
+    ]
+  },
+  "consoleErrors": [],
+  "requiredRowsPresent": [
+    "Статус",
+    "Причина",
+    "Влияние на решение",
+    "Действие"
+  ],
+  "actionCategoriesObserved": [
+    "Observe",
+    "Review",
+    "Execute"
+  ]
+}

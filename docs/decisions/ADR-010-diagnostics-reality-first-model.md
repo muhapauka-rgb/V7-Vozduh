@@ -71,6 +71,10 @@ The underlying Channel Score calculation remains unchanged and may remain availa
 3. Diagnostics use a balanced summary-plus-cards layout.
 4. Diagnostics primary text remains reality-first, not score-first.
 5. Trust/recovery metadata must not compete with the decision in the first-level channel table.
+6. Channel Drawer operator view must show channel identity once, decision once, and reason once.
+7. Channel Drawer first-screen signals and problems must be clickable inline entries.
+8. Channel Drawer must expose one collapsed engineering diagnostics entry; settings/debug content stays behind that boundary.
+9. First-screen operator copy must avoid vague labels such as `Уточнить`, `Требует проверки`, and `Уверенность неполная`; use concrete reality-first language and an inline explanation when no safe action exists.
 
 ## Affected modules
 
@@ -83,6 +87,7 @@ The underlying Channel Score calculation remains unchanged and may remain availa
 
 - `docs/reference/V7_CANONICAL_REFERENCE.md` sections: Channel Score, Technical Health, Channel Operator Signal Model.
 - `docs/reference/SYSTEM_MAP.md` row: Channel Score / Technical Health.
+- `docs/reference/V7_CANONICAL_REFERENCE.md` section: Channel Drawer Operator Rules.
 
 ## Related reports
 
@@ -92,3 +97,4 @@ The underlying Channel Score calculation remains unchanged and may remain availa
 - `CAPACITY_1_REALITY_AUDIT_REPORT.md`
 - `docs/operator_actions/CHANNEL_HEALTH_3_SCORE_EXPLANATION_MODEL_REPORT.md`
 - `CHANNEL_SIGNALS_2A_SEMANTICS_REPORT.md`
+- `CHANNELS_DRAWER_NO_DUPLICATES_ACTIONABLE_PROBLEMS_REPORT.md`

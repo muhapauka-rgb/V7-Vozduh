@@ -20753,23 +20753,29 @@ def html_page_v2():
     .user-action-buttons button { min-height:36px; }
     .user-answer-card { grid-column:1 / -1; display:grid; gap:8px; }
     .channel-analysis-card { grid-column:1 / -1; display:grid; gap:10px; }
-    .channel-decision-surface { grid-column:1 / -1; display:grid; gap:7px; padding:10px; }
+    .channel-decision-surface { grid-column:1 / -1; display:grid; gap:6px; padding:10px; }
     .channel-decision-head { display:grid; grid-template-columns:1fr; gap:5px; align-items:start; border-bottom:1px solid var(--line); padding-bottom:7px; }
     .channel-decision-head span { display:block; color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; letter-spacing:.04em; }
     .channel-decision-head strong { display:block; margin-top:2px; font-size:19px; line-height:1.1; overflow-wrap:anywhere; }
     .channel-decision-head em { display:block; margin-top:3px; color:var(--muted); font-style:normal; font-size:12px; line-height:1.25; overflow-wrap:anywhere; }
-    .channel-decision-section { display:grid; grid-template-columns:104px minmax(0,1fr); gap:8px; align-items:start; border-bottom:1px solid rgba(148,163,184,.16); padding:0 0 7px; }
+    .channel-decision-section { display:grid; grid-template-columns:94px minmax(0,1fr); gap:8px; align-items:start; border-bottom:1px solid rgba(148,163,184,.12); padding:0 0 6px; }
     .channel-decision-section:last-child { border-bottom:0; padding-bottom:0; }
     .channel-decision-section h3 { margin:1px 0 0; color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; letter-spacing:.04em; }
     .channel-decision-answer { display:grid; gap:8px; }
+    .channel-decision-answer.is-single { gap:3px; }
+    .channel-decision-line { min-width:0; display:flex; flex-wrap:wrap; gap:7px; align-items:center; }
+    .channel-decision-line p,
+    .channel-decision-reason { margin:0; color:var(--text); font-size:14px; font-weight:760; line-height:1.35; overflow-wrap:anywhere; }
     .channel-decision-row { min-width:0; display:grid; gap:4px; }
     .channel-decision-row > span { color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; letter-spacing:.04em; }
     .channel-decision-row strong { color:var(--text); font-size:16px; line-height:1.12; overflow-wrap:anywhere; }
     .channel-decision-row p { margin:0; color:var(--text); font-size:14px; font-weight:760; line-height:1.35; overflow-wrap:anywhere; }
     .channel-decision-signals { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:5px; }
-    .channel-decision-signal { border:1px solid rgba(148,163,184,.20); border-radius:8px; background:rgba(255,255,255,.025); padding:6px 7px; min-width:0; display:grid; gap:3px; align-content:start; }
+    .channel-decision-signal { position:relative; width:100%; border:1px solid rgba(148,163,184,.20); border-radius:8px; background:rgba(255,255,255,.025); color:var(--text); padding:6px 22px 6px 7px; min-width:0; display:grid; gap:3px; align-content:start; text-align:left; cursor:pointer; font:inherit; }
+    .channel-decision-signal:hover { border-color:rgba(52,211,153,.36); background:rgba(52,211,153,.08); }
     .channel-decision-signal span:first-child { color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; letter-spacing:.04em; }
     .channel-decision-signal em { color:var(--muted); font-size:11px; line-height:1.25; font-style:normal; overflow-wrap:anywhere; }
+    .channel-decision-signal .channel-accordion-chevron { position:absolute; top:7px; right:8px; }
     .channel-analysis-flow { display:grid; gap:7px; }
     .channel-analysis-row { border:1px solid var(--line); border-radius:10px; background:var(--panel2); padding:9px 12px; min-width:0; }
     .channel-analysis-row > span { display:block; color:var(--muted); font-size:11px; font-weight:850; text-transform:uppercase; letter-spacing:.04em; }
@@ -26994,7 +27000,7 @@ def html_page_v2():
     function channelSuitabilityStatus(score=0) {
       if (score >= 90) return {label:'Отличный', tone:'ok'};
       if (score >= 75) return {label:'Рабочий', tone:'ok'};
-      if (score >= 50) return {label:'Уверенность неполная', tone:'warn'};
+      if (score >= 50) return {label:'Нет свежего подтверждения', tone:'warn'};
       return {label:'Непригоден', tone:'bad'};
     }
     function channelOperatorServiceProblem(label='') {
@@ -27002,7 +27008,7 @@ def html_page_v2():
       if (!text) return 'Нет свежего подтверждения сервисов';
       if (/not measured|measurement/i.test(text)) return 'Нет свежего подтверждения сервисов';
       if (/telegram|youtube|google auth|google|instagram|whatsapp|chatgpt|claude/i.test(text)) return `${text} недоступен`;
-      return 'Уверенность по сервисам неполная';
+      return 'Нет свежего подтверждения по сервисам';
     }
     function channelOperatorProblemKind(value='', item={}) {
       const text = String(value || item.problem || item.check || '').trim();
@@ -27646,7 +27652,7 @@ def html_page_v2():
       let reason = 'Решение маршрутизации недоступно';
       if (!evidence.planReady) {
         key = 'loading';
-        reason = operatorDecisionSurfaceLoading ? 'V7 загружает решение по каналу' : 'Решение V7 ещё недоступно';
+        reason = operatorDecisionSurfaceLoading ? 'V7 загружает решение по каналу' : 'Решение ещё недоступно';
       } else if (emergency) {
         key = 'emergency';
         reason = channelAssignmentBlockerLabel(evidence.blockers.find(item => /manual_only|reserve_only|canary_reserved|production_assignment_allowed=false/i.test(item)));
@@ -27740,6 +27746,14 @@ def html_page_v2():
     }
     function channelCompressionKey(value='') {
       return String(value || 'item').toLowerCase().replace(/[^a-z0-9а-яё]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 44) || 'item';
+    }
+    function channelOperatorDrawerText(value='') {
+      return operatorText(String(value || ''))
+        .replace(/Уточнить/g, 'Нет свежих данных')
+        .replace(/Требует проверки/g, 'Нужно действие')
+        .replace(/Уверенность неполная/g, 'Нет свежего подтверждения')
+        .replace(/\bscore\b/gi, 'оценка')
+        .trim();
     }
     function channelAccordionContent(title='', rows=[], actionHtml='') {
       const safeRows = (rows || []).filter(row => row && row[1]);
@@ -27838,23 +27852,24 @@ def html_page_v2():
       const s = channelSuitability(source);
       const a = channelAssignmentStatus(source);
       const html = `<div class="channel-compressed-list">${clean.map((item, index) => {
+        const displayItem = channelOperatorDrawerText(item);
         let content = '';
         if (tone === 'ok') {
-          content = channelAccordionContent(item, [
+          content = channelAccordionContent(displayItem, [
             ['Статус', 'Проверка проходит'],
-            ['Причина', `${item} подтвержден существующими сигналами канала.`],
+            ['Причина', `${displayItem} подтвержден существующими сигналами канала.`],
             ['Что делать', 'Ничего. Эта часть канала работает.'],
           ]);
         } else {
-          const meta = channelProblemOverlayMeta(item, s, a);
-          content = channelAccordionContent(item, [
-            ['Проблема', item],
+          const meta = channelProblemOverlayMeta(displayItem, s, a);
+          content = channelAccordionContent(displayItem, [
+            ['Проблема', displayItem],
             ['Причина', meta.reason],
             ['Решение', meta.resolution],
           ], meta.action);
         }
         return `<div class="channel-accordion-item">
-          <button type="button" class="channel-compressed-item channel-accordion-trigger" aria-expanded="false" onclick="toggleChannelAccordion(this)"><span class="mark ${tone}">${symbol}</span><span>${esc(item)}</span><span class="channel-accordion-chevron">›</span></button>
+          <button type="button" class="channel-compressed-item channel-accordion-trigger" aria-expanded="false" onclick="toggleChannelAccordion(this)"><span class="mark ${tone}">${symbol}</span><span>${esc(displayItem)}</span><span class="channel-accordion-chevron">›</span></button>
           ${content}
         </div>`;
       }).join('')}</div>`;
@@ -28084,72 +28099,18 @@ def html_page_v2():
       }).join('');
       return `<div class="channel-breakdown-list">${cards}</div>`;
     }
-    function channelAnalysisCard(source={}) {
-      const s = channelSuitability(source);
-      const a = channelAssignmentStatus(source);
-      const problems = s.score >= 90 ? [] : s.problems.slice(0, 5);
-      const problemList = channelCompressedListHtml(problems, 'bad', source, 'problem');
-      const workingList = channelCountAccordionHtml('Работает', s.working, 'ok', source, 'working');
-      const decisionReason = channelDecisionReason(source);
-      const decisionRows = [
-        ['Решение', a.label],
-        ['Почему', decisionReason],
-        ['Что делать', channelDecisionActionText(source)],
-      ].filter(Boolean);
-      const healthContent = channelAccordionContent('Что показывает диагностика?', [
-          ['Техническое состояние', s.status.label],
-          ['Статус', s.status.label],
-          ['Сигналы', 'Сервисы, стабильность, нагрузка, маршрут, готовность и история.'],
-        ], `<button class="ghost" type="button" onclick="openChannelTechnicalDiagnostics('${esc(s.id)}')">Техническая диагностика</button>`);
-      const decisionContent = channelAccordionContent('Что решил V7?', decisionRows);
-      const problemsRow = problemList ? `<div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-problems"><span>Проблемы (${esc(problems.length)})</span>${problemList}</div>` : '';
-      return `<div class="drawer-section channel-analysis-card">
-        <h3>МОДЕЛЬ КАНАЛА</h3>
-        <div class="channel-analysis-flow">
-          <div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-decision">
-            <div class="channel-accordion-item">${channelAccordionSummaryButton('Решение V7', pill(a.label, a.tone), decisionReason)}${decisionContent}</div>
-          </div>
-          <div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-health">
-            <div class="channel-accordion-item">${channelAccordionSummaryButton('Диагностика', esc(s.status.label), 'Реальные сигналы канала')}${healthContent}</div>
-          </div>
-          ${problemsRow}
-          <div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-working">${workingList}</div>
-        </div>
-      </div>`;
-    }
     function channelDecisionFirstSection(title='', body='') {
       return `<div class="channel-decision-section"><h3>${esc(title)}</h3><div>${body || '<div class="muted">Нет данных.</div>'}</div></div>`;
     }
-    function channelDecisionFirstHeaderBlock(source={}) {
-      const row = channelRowFromSource(source);
-      const id = row.id || row.egress || '';
-      return `<div class="channel-decision-head">
-        <div>
-          <span>Канал</span>
-          <strong>${esc(channelDisplayName(id || 'Канал'))}</strong>
-          <em>Операторский вид</em>
-        </div>
-      </div>`;
-    }
     function channelDecisionFirstDecisionBlock(source={}) {
       const a = channelAssignmentStatus(source);
-      return channelDecisionFirstSection('Решение V7', `
-        <div class="channel-decision-answer">
-          <div class="channel-decision-row">
-            <span>Что хочет V7</span>
-            <strong>${pill(a.label, a.tone)}</strong>
-            <p>${esc(channelDecisionActionText(source))}</p>
-          </div>
+      return channelDecisionFirstSection('Решение', `
+        <div class="channel-decision-answer is-single">
+          <div class="channel-decision-line">${pill(a.label, a.tone)}<p>${esc(channelDecisionActionText(source))}</p></div>
         </div>`);
     }
     function channelDecisionFirstReasonBlock(source={}) {
-      return channelDecisionFirstSection('Почему', `
-        <div class="channel-decision-answer">
-          <div class="channel-decision-row">
-            <span>Причина</span>
-            <p>${esc(channelDecisionReason(source))}</p>
-          </div>
-        </div>`);
+      return channelDecisionFirstSection('Причина', `<p class="channel-decision-reason">${esc(channelOperatorDrawerText(channelDecisionReason(source)))}</p>`);
     }
     function channelDecisionFirstSignalStatus(item={}) {
       if (item.tone === 'ok') return {label:'OK', tone:'ok'};
@@ -28166,18 +28127,34 @@ def html_page_v2():
       if (check === 'Stability') return 'Откройте логи канала';
       return 'Ожидается обновление данных';
     }
+    function channelDecisionFirstSignalDetail(source={}, item={}) {
+      const check = String(item.check || '');
+      const label = channelOperatorDrawerText(item.label || channelOperatorCheckLabel(check) || 'Сигнал');
+      const status = channelDecisionFirstSignalStatus(item);
+      const explanation = channelOperatorDrawerText(channelScoreExplanationText(source, item));
+      const action = channelScoreComponentActionHtml(source, item);
+      return channelAccordionContent(label, [
+        ['Состояние', status.label],
+        ['Причина', explanation || channelDecisionFirstSignalMeaning(item)],
+        ['Решение', item.tone === 'ok' ? 'Действий не требуется.' : channelDecisionFirstSignalMeaning(item)],
+      ], action);
+    }
     function channelDecisionFirstSignalsBlock(source={}) {
       const allowed = new Set(['Services', 'Capacity', 'Runtime', 'Stability']);
       const items = channelSignalSummary(source).filter(item => allowed.has(String(item.check || '')));
       const rows = items.map(item => {
         const st = channelDecisionFirstSignalStatus(item);
-        return `<div class="channel-decision-signal">
-          <span>${esc(item.label)}</span>
+        return `<div class="channel-accordion-item">
+          <button type="button" class="channel-decision-signal channel-accordion-trigger" aria-expanded="false" onclick="toggleChannelAccordion(this)">
+          <span>${esc(channelOperatorDrawerText(item.label))}</span>
           ${pill(st.label, st.tone)}
           <em aria-label="${esc(item.tooltip || '')}">${esc(channelDecisionFirstSignalMeaning(item))}</em>
+          <span class="channel-accordion-chevron">›</span>
+          </button>
+          ${channelDecisionFirstSignalDetail(source, item)}
         </div>`;
       }).join('');
-      return channelDecisionFirstSection('Сигналы', `<div class="channel-decision-signals">${rows || '<p class="muted">Сигналы первого экрана недоступны.</p>'}</div>`);
+      return channelDecisionFirstSection('Сигналы', `<div class="channel-decision-signals channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey((source.id || source.egress || 'channel') + '-signals'))}">${rows || '<p class="muted">Сигналы первого экрана недоступны.</p>'}</div>`);
     }
     function channelDecisionFirstProblemsBlock(source={}) {
       const s = channelSuitability(source);
@@ -28187,28 +28164,12 @@ def html_page_v2():
       }
       return channelDecisionFirstSection('Проблемы', `<div class="channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-decision-problems">${channelCompressedListHtml(problems, 'bad', source, 'problem')}</div>`);
     }
-    function channelDecisionFirstWorksBlock(source={}) {
-      const s = channelSuitability(source);
-      const visible = new Set(['Сервисы', 'Нагрузка', 'Готовность', 'Стабильность']);
-      const working = Array.from(new Set((s.working || []).filter(item => visible.has(item))));
-      const body = working.length
-        ? `<div class="channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-decision-works">${channelCountAccordionHtml('Подтверждено', working, 'ok', source, 'working')}</div>`
-        : '<p class="muted">Подтвержденные проверки показаны в диагностике.</p>';
-      return channelDecisionFirstSection('Работает', body);
-    }
-    function channelDecisionFirstDiagnosticsBlock(source={}) {
-      const row = channelRowFromSource(source);
-      const id = row.id || row.egress || '';
-      return channelDecisionFirstSection('Инженеру', `<p class="muted">Оценки, evidence, история и технические причины доступны отдельно.</p><div class="detail-actions"><button class="ghost" type="button" onclick="openChannelTechnicalDiagnostics('${esc(id)}')">Открыть инженерную диагностику</button></div>`);
-    }
     function channelDecisionFirstSurface(source={}) {
       return `<section class="drawer-section channel-decision-surface">
-        ${channelDecisionFirstHeaderBlock(source)}
         ${channelDecisionFirstDecisionBlock(source)}
         ${channelDecisionFirstReasonBlock(source)}
         ${channelDecisionFirstSignalsBlock(source)}
         ${channelDecisionFirstProblemsBlock(source)}
-        ${channelDecisionFirstDiagnosticsBlock(source)}
       </section>`;
     }
     function closeChannelAccordionItem(item) {
@@ -28254,7 +28215,7 @@ def html_page_v2():
       const s = channelSuitability(row);
       const assignment = channelAssignmentStatus(row);
       return `<details class="drawer-section channel-technical-diagnostics" id="channelTechnicalDiagnostics-${esc(domSafeId(id || 'channel'))}">
-        <summary>Техническая диагностика</summary>
+        <summary>Сигналы канала</summary>
         <div class="channel-diagnostics-layout">
           <div class="channel-diagnostics-summary">
             <h3>Реальность канала</h3>
@@ -28611,7 +28572,7 @@ def html_page_v2():
     }
     function channelDrawerHeadActions(id='') {
       if (!id) return '';
-      return `<button class="ghost" onclick="openChannelTechnicalDiagnostics('${esc(id)}')">Диагностика</button>`;
+      return '';
     }
     async function copyChannelConfigText(textareaId='') {
       const el = document.getElementById(textareaId);

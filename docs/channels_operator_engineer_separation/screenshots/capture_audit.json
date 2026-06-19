@@ -1,0 +1,159 @@
+{
+  "initial": {
+    "href": "https://v7-admin.195-2-79-116.sslip.io/login#channels",
+    "title": "Вход V7 Admin",
+    "text": "V7 Admin\n\nВход в локальную панель управления\n\nЛогин\nПароль\n Войти",
+    "inputs": [
+      {
+        "type": "text",
+        "name": "username",
+        "placeholder": "",
+        "value": "admin"
+      },
+      {
+        "type": "password",
+        "name": "password",
+        "placeholder": "",
+        "value": ""
+      }
+    ],
+    "buttons": [
+      "Войти"
+    ]
+  },
+  "picked": {
+    "use": {
+      "id": "awg0",
+      "label": "awg0",
+      "key": "use",
+      "decision": "Использовать",
+      "reason": "Лучший доступный канал",
+      "users": 0
+    },
+    "evac": {
+      "id": "vless",
+      "label": "vless",
+      "key": "evacuate",
+      "decision": "Перевести пользователей",
+      "reason": "Лимит назначений достигнут",
+      "users": 11
+    },
+    "emergency": {
+      "id": "1",
+      "label": "1",
+      "key": "emergency",
+      "decision": "Только аварийно",
+      "reason": "Канал сохранён как ручной резерв",
+      "users": 0
+    },
+    "all": [
+      {
+        "id": "vless",
+        "label": "vless",
+        "key": "evacuate",
+        "decision": "Перевести пользователей",
+        "reason": "Лимит назначений достигнут",
+        "users": 11
+      },
+      {
+        "id": "awg0",
+        "label": "awg0",
+        "key": "use",
+        "decision": "Использовать",
+        "reason": "Лучший доступный канал",
+        "users": 0
+      },
+      {
+        "id": "awg3",
+        "label": "awg3",
+        "key": "keep",
+        "decision": "Оставить текущих",
+        "reason": "Новых пользователей назначать не нужно",
+        "users": 8
+      },
+      {
+        "id": "1",
+        "label": "1",
+        "key": "emergency",
+        "decision": "Только аварийно",
+        "reason": "Канал сохранён как ручной резерв",
+        "users": 0
+      },
+      {
+        "id": "openvpn-1779388847-d2ad7c",
+        "label": "OpenVPN-Kolosov",
+        "key": "emergency",
+        "decision": "Только аварийно",
+        "reason": "Канал сохранён как ручной резерв",
+        "users": 0
+      },
+      {
+        "id": "wireguard-1779454504-c43409",
+        "label": "wg гермашка, работает",
+        "key": "emergency",
+        "decision": "Только аварийно",
+        "reason": "Канал сохранён как ручной резерв",
+        "users": 8
+      },
+      {
+        "id": "amneziawg-exec-20260528-10-8-1-14",
+        "label": "amneziawg-exec-20260528-10-8-1-14",
+        "key": "emergency",
+        "decision": "Только аварийно",
+        "reason": "Канал сохранён как ручной резерв",
+        "users": 0
+      }
+    ]
+  },
+  "audit": [
+    {
+      "kind": "desktop_use_operator",
+      "id": "awg0",
+      "path": "/Users/ponch/Documents/New project/docs/channels_operator_engineer_separation/screenshots/desktop_use_operator.jpg",
+      "hasScoreOnOperatorSurface": false,
+      "hasTechnicalStateOnOperatorSurface": false,
+      "text": "КАНАЛ\nawg0\nОператорский вид\nРЕШЕНИЕ V7\nЧТО ХОЧЕТ V7\nИспользовать\n\nНазначать новых пользователей на этот канал.\n\nПОЧЕМУ\nПРИЧИНА\n\nЛучший доступный канал\n\nСИГНАЛЫ\nСЕРВИСЫ\nOK\nРаботает\nНАГРУЗКА\nOK\nРаботает\nRUNTIME\nOK\nРаботает\nСТАБИЛЬНОСТЬ\nOK\nРаботает\nПРОБЛЕМЫ\n\nАктивных проблем для оператора нет.\n\nИНЖЕНЕРУ\n\nОценки, evidence, история и технические причины доступны отдельно.\n\nОткрыть инженерную диагностику"
+    },
+    {
+      "kind": "desktop_evacuate_operator",
+      "id": "vless",
+      "path": "/Users/ponch/Documents/New project/docs/channels_operator_engineer_separation/screenshots/desktop_evacuate_operator.jpg",
+      "hasScoreOnOperatorSurface": false,
+      "hasTechnicalStateOnOperatorSurface": false,
+      "text": "КАНАЛ\nvless\nОператорский вид\nРЕШЕНИЕ V7\nЧТО ХОЧЕТ V7\nПеревести пользователей\n\nПодготовить перевод пользователей с канала.\n\nПОЧЕМУ\nПРИЧИНА\n\nЛимит назначений достигнут\n\nСИГНАЛЫ\nСЕРВИСЫ\nOK\nРаботает\nНАГРУЗКА\nПроблема\nНовые назначения ограничены\nRUNTIME\nOK\nРаботает\nСТАБИЛЬНОСТЬ\nOK\nРаботает\nПРОБЛЕМЫ\n✖\nЛимит назначений достигнут\n›\nИНЖЕНЕРУ\n\nОценки, evidence, история и технические причины доступны отдельно.\n\nОткрыть инженерную диагностику"
+    },
+    {
+      "kind": "desktop_engineer_diagnostics",
+      "id": "vless",
+      "path": "/Users/ponch/Documents/New project/docs/channels_operator_engineer_separation/screenshots/desktop_engineer_diagnostics.jpg",
+      "hasScoreOnOperatorSurface": false,
+      "hasTechnicalStateOnOperatorSurface": false,
+      "text": "Канал\nvless\nКанал\nДиагностика\nЗакрыть\nКАНАЛ\nvless\nОператорский вид\nРЕШЕНИЕ V7\nЧТО ХОЧЕТ V7\nПеревести пользователей\n\nПодготовить перевод пользователей с канала.\n\nПОЧЕМУ\nПРИЧИНА\n\nЛимит назначений достигнут\n\nСИГНАЛЫ\nСЕРВИСЫ\nOK\nРаботает\nНАГРУЗКА\nПроблема\nНовые назначения ограничены\nRUNTIME\nOK\nРаботает\nСТАБИЛЬНОСТЬ\nOK\nРаботает\nПРОБЛЕМЫ\n✖\nЛимит назначений достигнут\n›\nИНЖЕНЕРУ\n\nОценки, evidence, история и технические причины доступны отдельно.\n\nОткрыть инженерную диагностику\nИнженерная диагностика\nСостояние канала\nРаботает, но не всё проверено\nздоровье OK\nСервисы\n13/14\nСкорость / трафик\nLive\nСобытия\nпрофиль готов\n\nПользователей на канале: 11. Скорость и сервисы можно обновить в деталях без отдельного операторского сценария.\n\nПочему этот канал\nСводка\n\nСтатус: ELIGIBLE\n\nПричина: Проверки и исходы хорошие.\n\nИсточник: channel-service-scores\n\nОбновлено: нет данных\n\nСледующее действие: Оставить обычный мониторинг.\n\nМЕТРИКА\tЗНАЧЕНИЕ\tТРЕБУЕТСЯ\tВЕРДИКТ\nService score\t0.458\t80\tНужен review\nStability\t0\t0.45\tНужен review\nCapacity\t11\tнет данных\tОК\nСводка\n\nКанал: vless\n\nСостояние в пуле: Включён\n\nТип: VLESS\n\nГотовность профиля: Готов\n\nПользователи: 11\n\nЧеклист оператора\nЗОНА\tСОСТОЯНИЕ\tСМЫСЛ\tДЕЙСТВИЕ\nЗдо"
+    },
+    {
+      "kind": "desktop_emergency_operator",
+      "id": "1",
+      "path": "/Users/ponch/Documents/New project/docs/channels_operator_engineer_separation/screenshots/desktop_emergency_operator.jpg",
+      "hasScoreOnOperatorSurface": false,
+      "hasTechnicalStateOnOperatorSurface": false,
+      "text": "КАНАЛ\n1\nОператорский вид\nРЕШЕНИЕ V7\nЧТО ХОЧЕТ V7\nТолько аварийно\n\nИспользовать только вручную или аварийно.\n\nПОЧЕМУ\nПРИЧИНА\n\nКанал сохранён как ручной резерв\n\nСИГНАЛЫ\nСЕРВИСЫ\nНет свежих данных\nОткройте матрицу сервисов\nНАГРУЗКА\nOK\nРаботает\nRUNTIME\nOK\nРаботает\nСТАБИЛЬНОСТЬ\nOK\nРаботает\nПРОБЛЕМЫ\n✖\nGoogle недоступен\n›\n✖\nGoogle Auth недоступен\n›\n✖\nYouTube недоступен\n›\n✖\nTelegram недоступен\n›\nИНЖЕНЕРУ\n\nОценки, evidence, история и технические причины доступны отдельно.\n\nОткрыть инженерную диагностику"
+    },
+    {
+      "kind": "mobile_operator_390",
+      "id": "vless",
+      "path": "/Users/ponch/Documents/New project/docs/channels_operator_engineer_separation/screenshots/mobile_operator_390.jpg",
+      "hasScoreOnOperatorSurface": false,
+      "hasTechnicalStateOnOperatorSurface": false,
+      "text": "КАНАЛ\nvless\nОператорский вид\nРЕШЕНИЕ V7\nЧТО ХОЧЕТ V7\nПеревести пользователей\n\nПодготовить перевод пользователей с канала.\n\nПОЧЕМУ\nПРИЧИНА\n\nЛимит назначений достигнут\n\nСИГНАЛЫ\nСЕРВИСЫ\nOK\nРаботает\nНАГРУЗКА\nПроблема\nНовые назначения ограничены\nRUNTIME\nOK\nРаботает\nСТАБИЛЬНОСТЬ\nOK\nРаботает\nПРОБЛЕМЫ\n✖\nЛимит назначений достигнут\n›\nИНЖЕНЕРУ\n\nОценки, evidence, история и технические причины доступны отдельно.\n\nОткрыть инженерную диагностику"
+    },
+    {
+      "kind": "mobile_engineer_diagnostics_390",
+      "id": "vless",
+      "path": "/Users/ponch/Documents/New project/docs/channels_operator_engineer_separation/screenshots/mobile_engineer_diagnostics_390.jpg",
+      "hasScoreOnOperatorSurface": false,
+      "hasTechnicalStateOnOperatorSurface": false,
+      "text": "Канал\nvless\nКанал\nДиагностика\nЗакрыть\nКАНАЛ\nvless\nОператорский вид\nРЕШЕНИЕ V7\nЧТО ХОЧЕТ V7\nПеревести пользователей\n\nПодготовить перевод пользователей с канала.\n\nПОЧЕМУ\nПРИЧИНА\n\nЛимит назначений достигнут\n\nСИГНАЛЫ\nСЕРВИСЫ\nOK\nРаботает\nНАГРУЗКА\nПроблема\nНовые назначения ограничены\nRUNTIME\nOK\nРаботает\nСТАБИЛЬНОСТЬ\nOK\nРаботает\nПРОБЛЕМЫ\n✖\nЛимит назначений достигнут\n›\nИНЖЕНЕРУ\n\nОценки, evidence, история и технические причины доступны отдельно.\n\nОткрыть инженерную диагностику\nИнженерная диагностика\nСостояние канала\nРаботает, но не всё проверено\nздоровье OK\nСервисы\n13/14\nСкорость / трафик\nLive\nСобытия\nпрофиль готов\n\nПользователей на канале: 11. Скорость и сервисы можно обновить в деталях без отдельного операторского сценария.\n\nПочему этот канал\nСводка\n\nСтатус: ELIGIBLE\n\nПричина: Проверки и исходы хорошие.\n\nИсточник: channel-service-scores\n\nОбновлено: нет данных\n\nСледующее действие: Оставить обычный мониторинг.\n\nМЕТРИКА\tЗНАЧЕНИЕ\tТРЕБУЕТСЯ\tВЕРДИКТ\nService score\t0.458\t80\tНужен review\nStability\t0\t0.45\tНужен review\nCapacity\t11\tнет данных\tОК\nСводка\n\nКанал: vless\n\nСостояние в пуле: Включён\n\nТип: VLESS\n\nГотовность профиля: Готов\n\nПользователи: 11\n\nЧеклист оператора\nЗОНА\tСОСТОЯНИЕ\tСМЫСЛ\tДЕЙСТВИЕ\nЗдо"
+    }
+  ],
+  "createdAt": "2026-06-19T15:46:03.637Z"
+}

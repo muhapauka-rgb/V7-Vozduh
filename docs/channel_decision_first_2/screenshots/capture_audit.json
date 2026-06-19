@@ -1,0 +1,64 @@
+{
+  "files": {
+    "desktop_table": "/Users/ponch/Documents/New project/docs/channel_decision_first_2/screenshots/desktop_table.png",
+    "desktop_use": "/Users/ponch/Documents/New project/docs/channel_decision_first_2/screenshots/desktop_use_awg0.png",
+    "desktop_evacuate": "/Users/ponch/Documents/New project/docs/channel_decision_first_2/screenshots/desktop_evacuate_vless.png",
+    "desktop_problem_expanded": "/Users/ponch/Documents/New project/docs/channel_decision_first_2/screenshots/desktop_problem_expanded_vless.png",
+    "desktop_emergency": "/Users/ponch/Documents/New project/docs/channel_decision_first_2/screenshots/desktop_emergency_wg.png",
+    "desktop_diagnostics_expanded": "/Users/ponch/Documents/New project/docs/channel_decision_first_2/screenshots/desktop_diagnostics_expanded_wg.png",
+    "mobile_table": "/Users/ponch/Documents/New project/docs/channel_decision_first_2/screenshots/mobile_table_390.png",
+    "mobile_use": null,
+    "mobile_evacuate": "/Users/ponch/Documents/New project/docs/channel_decision_first_2/screenshots/mobile_evacuate_vless_390.png",
+    "mobile_diagnostics": "/Users/ponch/Documents/New project/docs/channel_decision_first_2/screenshots/mobile_diagnostics_vless_390.png",
+    "desktop_blocked": "/Users/ponch/Documents/New project/docs/channel_decision_first_2/screenshots/desktop_blocked_vless.png"
+  },
+  "checks": {
+    "live_decision_counts": [],
+    "blocked_live_available": true,
+    "desktop_use_decision_first": true,
+    "mobile_table_overflow": {
+      "innerWidth": 390,
+      "scrollWidth": 390,
+      "bodyScrollWidth": 390,
+      "overflow": false,
+      "drawerOpen": false
+    },
+    "mobile_use_overflow": null,
+    "mobile_evacuate_overflow": {
+      "innerWidth": 390,
+      "scrollWidth": 390,
+      "bodyScrollWidth": 390,
+      "overflow": false,
+      "drawerOpen": true
+    },
+    "mobile_diagnostics_overflow": {
+      "innerWidth": 390,
+      "scrollWidth": 390,
+      "bodyScrollWidth": 390,
+      "overflow": false,
+      "drawerOpen": true
+    },
+    "desktop_blocked_channel": {
+      "id": "vless",
+      "name": "vless",
+      "decision": "ЗапрещёнНазначение заблокировано",
+      "rowText": "vlessЗапрещёнНазначение заблокировано11показать"
+    },
+    "desktop_blocked_overflow": {
+      "innerWidth": 1440,
+      "scrollWidth": 1440,
+      "bodyScrollWidth": 1440,
+      "overflow": false,
+      "drawerOpen": true
+    },
+    "desktop_use_channel": {
+      "id": "awg0",
+      "name": "awg0",
+      "decision": "Использовать",
+      "rowText": "Captured earlier when production had awg0 available for assignment."
+    },
+    "mobile_use_available_at_final_capture": false,
+    "current_live_capture_note": "At final capture production rows were all blocked/forbidden, so a fresh mobile Use example was not available without synthetic data."
+  },
+  "console_errors": []
+}

@@ -27523,6 +27523,11 @@ def html_page_v2():
           action: 'Использовать только вручную или аварийно.',
           blocker: 'Только аварийно',
         },
+        loading: {
+          reason: 'V7 загружает решение по каналу.',
+          action: 'Дождаться загрузки решения V7.',
+          blocker: 'Решение загружается',
+        },
         blocked: {
           reason: 'Канал нельзя использовать для назначений.',
           action: 'Не назначать пользователей на этот канал.',
@@ -27541,6 +27546,7 @@ def html_page_v2():
         evacuate:'Перевести пользователей',
         blocked:'Запрещён',
         emergency:'Только аварийно',
+        loading:'Загрузка решения',
       }[status] || 'Запрещён';
     }
     function channelAssignmentTableLabel(status='') {
@@ -27550,10 +27556,11 @@ def html_page_v2():
         evacuate:'Перевести',
         blocked:'Запрещён',
         emergency:'Только аварийно',
+        loading:'Загрузка решения',
       }[status] || 'Запрещён';
     }
     function channelAssignmentTone(status='') {
-      return {use:'ok', keep:'info', evacuate:'bad', blocked:'bad', emergency:'warn'}[status] || 'bad';
+      return {use:'ok', keep:'info', evacuate:'bad', blocked:'bad', emergency:'warn', loading:'info'}[status] || 'bad';
     }
     function channelAssignmentEvidence(source={}) {
       const row = channelRowFromSource(source);
@@ -27605,8 +27612,8 @@ def html_page_v2():
       let key = 'blocked';
       let reason = 'Решение маршрутизации недоступно';
       if (!evidence.planReady) {
-        key = 'blocked';
-        reason = operatorDecisionSurfaceLoading ? 'Проверяем решение маршрутизации' : 'Решение маршрутизации недоступно';
+        key = 'loading';
+        reason = operatorDecisionSurfaceLoading ? 'V7 загружает решение по каналу' : 'Решение V7 ещё недоступно';
       } else if (emergency) {
         key = 'emergency';
         reason = channelAssignmentBlockerLabel(evidence.blockers.find(item => /manual_only|reserve_only|canary_reserved|production_assignment_allowed=false/i.test(item)));
@@ -27650,6 +27657,7 @@ def html_page_v2():
       if (a.key === 'keep') return 'Новых пользователей назначать не нужно';
       if (a.key === 'emergency') return a.mainBlocker || a.reason || 'Ручной резерв';
       if (a.key === 'blocked') return a.mainBlocker || a.reason || 'Канал нельзя использовать';
+      if (a.key === 'loading') return a.reason || 'V7 загружает решение';
       return a.reason || 'Решение маршрутизации недоступно';
     }
     function channelDecisionActionText(source={}) {
@@ -27658,6 +27666,7 @@ def html_page_v2():
       if (a.key === 'evacuate') return 'Подготовить перевод пользователей с канала.';
       if (a.key === 'keep') return 'Оставить текущих пользователей и не добавлять новых.';
       if (a.key === 'emergency') return 'Использовать только вручную или аварийно.';
+      if (a.key === 'loading') return 'Дождаться загрузки решения V7.';
       return 'Не назначать пользователей на этот канал.';
     }
     function channelDecisionCell(source={}) {

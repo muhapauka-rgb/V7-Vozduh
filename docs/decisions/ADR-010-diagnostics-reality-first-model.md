@@ -64,6 +64,14 @@ The underlying Channel Score calculation remains unchanged and may remain availa
 - Channel signal dots may use a minimal legend to reduce operator memory burden, but must not become a noisy badge system.
 - Diagnostics must not become a new planner, workflow, action owner, governance path, execution path, storage, or truth source.
 
+## Channels final UX rules
+
+1. Channel Decision V7 remains primary.
+2. Compact signals are explained by S/L/R/T legend and a single V7-styled tooltip source.
+3. Diagnostics use a balanced summary-plus-cards layout.
+4. Diagnostics primary text remains reality-first, not score-first.
+5. Trust/recovery metadata must not compete with the decision in the first-level channel table.
+
 ## Affected modules
 
 - `admin/v7-admin-api`

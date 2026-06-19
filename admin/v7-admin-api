@@ -20477,6 +20477,9 @@ def html_page_v2():
     .operator-decision-button .cell-sub { max-width:170px; }
     .channel-signal-strip { display:flex; align-items:center; flex-wrap:nowrap; gap:6px; max-width:104px; }
     .channels-table-v2 td[data-col="signals"] { overflow:visible; }
+    .channel-signals-head { display:inline-grid; gap:2px; align-items:center; min-width:88px; }
+    .channel-signal-head-codes { display:grid; grid-template-columns:repeat(4,18px); gap:6px; align-items:center; color:var(--muted); font-size:10px; line-height:1; letter-spacing:0; }
+    .channel-signal-head-codes b { font-weight:900; text-align:center; }
     .channel-signal-badge { position:relative; display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; min-width:18px; min-height:18px; border:1px solid var(--line); border-radius:999px; background:rgba(148,163,184,.08); color:var(--muted); padding:0; font-size:0; font-weight:850; cursor:help; white-space:nowrap; outline:0; }
     .channel-signal-badge::before { content:''; width:8px; height:8px; border-radius:999px; background:currentColor; flex:0 0 auto; }
     .channel-signal-badge:hover::after, .channel-signal-badge:focus::after { content:attr(data-tooltip); position:absolute; z-index:80; left:0; top:calc(100% + 7px); width:max-content; max-width:270px; white-space:normal; line-height:1.35; color:var(--text); background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); padding:8px 9px; font-size:12px; font-weight:760; }
@@ -20489,6 +20492,8 @@ def html_page_v2():
     .channel-signal-legend strong { color:var(--text); }
     @media(max-width:560px){
       .channel-signal-strip { max-width:88px; gap:5px; }
+      .channel-signals-head { min-width:83px; }
+      .channel-signal-head-codes { grid-template-columns:repeat(4,17px); gap:5px; }
       .channel-signal-badge { width:17px; height:17px; min-width:17px; min-height:17px; }
       .channel-signal-badge:hover::after, .channel-signal-badge:focus::after { left:auto; right:0; max-width:220px; }
     }
@@ -20803,6 +20808,11 @@ def html_page_v2():
     .channel-details-section summary { cursor:pointer; font-weight:850; }
     .channel-details-stack { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:12px; }
     .channel-details-stack .drawer-section { margin:0; }
+    .channel-diagnostics-layout { display:grid; gap:12px; margin-top:12px; }
+    .channel-diagnostics-summary { border:1px solid var(--line); border-radius:12px; background:var(--panel2); padding:12px; min-width:0; }
+    .channel-diagnostics-summary h3 { margin:0 0 10px; font-size:13px; }
+    .channel-technical-diagnostics .channel-breakdown-list { grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); align-items:stretch; }
+    .channel-technical-diagnostics .channel-breakdown-card { align-content:start; min-height:132px; }
     .channel-breakdown-list { display:grid; gap:10px; }
     .channel-breakdown-card,
     .channel-breakdown-total { border:1px solid var(--line); border-radius:12px; background:var(--panel2); padding:12px; display:grid; gap:8px; min-width:0; }
@@ -21572,11 +21582,10 @@ def html_page_v2():
     ];
     const CHANNEL_TABLE_COLUMN_DEFS = [
       {id:'channel', label:'Канал', meaning:'Название канала.', required:true, defaultVisible:true},
-      {id:'decision', label:'Решение', meaning:'Что V7 решил сделать с каналом: использовать, держать текущих пользователей, эвакуировать, заблокировать или оставить только для аварийного режима.', required:true, defaultVisible:true},
+      {id:'decision', label:'Решение', sortLabel:'По решению V7', meaning:'Что V7 решил сделать с каналом: использовать, держать текущих пользователей, эвакуировать, заблокировать или оставить только для аварийного режима.', required:true, defaultVisible:true},
       {id:'signals', label:'Сигналы', meaning:'Сервисы, нагрузка, runtime readiness и стабильность. Объясняет решение V7 без смешанного health score.', required:true, defaultVisible:true},
-      {id:'channel_state', label:'Состояние доверия', meaning:'Короткое состояние канала по модели доверия и восстановления.', required:false, defaultVisible:false},
       {id:'status', label:'Статус', meaning:'Короткое состояние канала.', required:false, defaultVisible:false},
-      {id:'users', label:'Пользователи', meaning:'Сколько пользователей сейчас назначено на канал.', required:false, defaultVisible:true},
+      {id:'users', label:'Пользователи', sortLabel:'По пользователям', meaning:'Сколько пользователей сейчас назначено на канал.', required:false, defaultVisible:true},
       {id:'traffic', label:'Трафик', meaning:'Сколько прошло через канал сегодня и всего.', required:false, defaultVisible:false},
       {id:'traffic_day', label:'День', meaning:'Трафик канала за сегодняшний день.', required:false, defaultVisible:false},
       {id:'traffic_week', label:'Неделя', meaning:'Трафик канала за 7 дней.', required:false, defaultVisible:false},
@@ -21587,6 +21596,12 @@ def html_page_v2():
       {id:'role', label:'Роль', meaning:'Назначение канала внутри V7.', required:false, defaultVisible:false},
       {id:'load', label:'Нагрузка', meaning:'Контроль лимита пользователей.', required:false, defaultVisible:false},
       {id:'action', label:'Действие', meaning:'Открыть карточку канала.', required:false, defaultVisible:false},
+    ];
+    const CHANNEL_SIGNAL_SORT_DEFS = [
+      {id:'signal_services', label:'По сервисам', meaning:'Проблемные сервисы выше, затем предупреждения, OK и нет данных.'},
+      {id:'signal_load', label:'По нагрузке', meaning:'Каналы с ограничением назначений выше.'},
+      {id:'signal_runtime', label:'По runtime', meaning:'Runtime-проблемы и неполная уверенность выше.'},
+      {id:'signal_stability', label:'По стабильности', meaning:'Проблемы устойчивости выше.'},
     ];
     const ORGANIZATION_TABLE_COLUMN_DEFS = [
       {id:'organization', label:'Организация', meaning:'Название организации.', required:true, defaultVisible:true},
@@ -25142,7 +25157,7 @@ def html_page_v2():
       return USER_TABLE_SORT_KEY;
     }
     function tableSortDefs(kind='user') {
-      if (kind === 'channel') return CHANNEL_TABLE_COLUMN_DEFS;
+      if (kind === 'channel') return [...CHANNEL_TABLE_COLUMN_DEFS, ...CHANNEL_SIGNAL_SORT_DEFS];
       if (kind === 'organization') return ORGANIZATION_TABLE_COLUMN_DEFS;
       return USER_TABLE_COLUMN_DEFS;
     }
@@ -25158,11 +25173,15 @@ def html_page_v2():
       if (cfg.secondary === id) return cfg.secondaryDir === 'desc' ? '↓' : '↑';
       return '';
     }
+    function channelSignalsHeaderLabel() {
+      return '<span class="channel-signals-head"><span>Сигналы</span><span class="channel-signal-head-codes" aria-label="S — сервисы, L — нагрузка, R — runtime, T — стабильность"><b>S</b><b>L</b><b>R</b><b>T</b></span></span>';
+    }
     function sortableHeader(kind='user', col={}) {
       const disabled = !col.id || col.id === 'action';
       const indicator = disabled ? '' : sortIndicator(kind, col.id);
       const onClick = disabled ? '' : `onclick="toggleTableSort('${esc(kind)}','${esc(col.id)}')"`;
-      return `<th data-col="${esc(col.id)}" class="${disabled ? '' : 'sortable-th'}" ${onClick}>${esc(col.label)}${indicator ? `<span class="sort-indicator">${esc(indicator)}</span>` : ''}</th>`;
+      const label = kind === 'channel' && col.id === 'signals' ? channelSignalsHeaderLabel() : esc(col.label);
+      return `<th data-col="${esc(col.id)}" class="${disabled ? '' : 'sortable-th'}" ${onClick}>${label}${indicator ? `<span class="sort-indicator">${esc(indicator)}</span>` : ''}</th>`;
     }
     function toggleTableSort(kind='user', id='') {
       const defs = tableSortDefs(kind);
@@ -27397,35 +27416,37 @@ def html_page_v2():
         : 'информация';
       return `${item.label || 'Сигнал'}: ${state}`;
     }
-    function channelSignalSummary(source={}) {
+    function channelSignalForCheck(source={}, check='') {
       const row = channelRowFromSource(source);
-      const items = [
-        channelOperatorServiceSignalComponent(row),
-        channelSignalComponent(row, 'Capacity'),
-        channelSignalComponent(row, 'Runtime'),
-      ];
-      const stability = channelSignalComponent(row, 'Stability');
-      if (channelSignalTone(stability) !== 'ok') items.push(stability);
-      return items.map(item => {
-        const rawTone = channelSignalTone(item);
-        const tone = channelDecisionAlignedSignalTone(row, item, rawTone);
-        return {
-          ...item,
-          label: channelSignalLabel(item.check),
-          tone,
-          rawTone,
-          priority: channelSignalPriorityForTone(tone),
-          tooltip: `${channelSignalTooltip(row, item)}${channelSignalDecisionNote(row, item, rawTone, tone)}`,
-        };
-      });
+      const item = check === 'Services' ? channelOperatorServiceSignalComponent(row) : channelSignalComponent(row, check);
+      const rawTone = channelSignalTone(item);
+      const tone = channelDecisionAlignedSignalTone(row, item, rawTone);
+      return {
+        ...item,
+        label: channelSignalLabel(item.check),
+        tone,
+        rawTone,
+        priority: channelSignalPriorityForTone(tone),
+        tooltip: `${channelSignalTooltip(row, item)}${channelSignalDecisionNote(row, item, rawTone, tone)}`,
+      };
+    }
+    function channelSignalSummary(source={}) {
+      return ['Services', 'Capacity', 'Runtime', 'Stability'].map(check => channelSignalForCheck(source, check));
     }
     function channelWorstSignal(source={}) {
       return [...channelSignalSummary(source)].sort((a,b) => a.priority - b.priority || String(a.label).localeCompare(String(b.label), 'ru'))[0] || {priority:9, tone:'muted', label:'Нет данных'};
     }
+    function channelSignalSortRank(source={}, check='') {
+      const item = channelSignalForCheck(source, check);
+      if (item.tone === 'bad') return 1;
+      if (item.tone === 'warn') return 2;
+      if (item.tone === 'ok') return 3;
+      return 4;
+    }
     function channelSignalsCell(source={}) {
       const items = channelSignalSummary(source);
       if (!items.length) return '<span class="muted">нет сигналов</span>';
-      return `<div class="channel-signal-strip">${items.slice(0, 4).map(item => `<span class="channel-signal-badge ${esc(item.tone)}" tabindex="0" title="${esc(item.tooltip)}" data-tooltip="${esc(item.tooltip)}" aria-label="${esc(channelSignalAccessibleLabel(item))}"></span>`).join('')}</div>`;
+      return `<div class="channel-signal-strip" aria-label="S сервисы, L нагрузка, R runtime, T стабильность">${items.slice(0, 4).map(item => `<span class="channel-signal-badge ${esc(item.tone)}" tabindex="0" data-tooltip="${esc(item.tooltip)}" aria-label="${esc(channelSignalAccessibleLabel(item))}"></span>`).join('')}</div>`;
     }
     function channelCommercialStatusCell(source={}) {
       const s = channelSuitability(source);
@@ -27485,13 +27506,13 @@ def html_page_v2():
       if (!text) return 'Нет блокера';
       if (/current_egress_not_eligible/i.test(text)) return 'Текущий канал не может принимать пользователей';
       if (/operator_decision_surface_move_recommended/i.test(text)) return 'Пользователей нужно перевести';
-      if (/manual_only/i.test(text)) return 'Ручной резерв';
+      if (/manual_only/i.test(text)) return 'Канал сохранён как ручной резерв';
       if (/reserve_only/i.test(text)) return 'Резервный канал';
       if (/canary_reserved/i.test(text)) return 'Canary-канал';
       if (/production_assignment_allowed=false/i.test(text)) return 'Автоматическое назначение выключено';
       if (/restore_barrier/i.test(text)) return 'Активна защита восстановления';
       if (/authority_budget|budget|blast_radius/i.test(text)) return 'Лимит безопасного назначения';
-      if (/hard_full|planned_hard_full|failover_full|capacity/i.test(text)) return 'Достигнут лимит пользователей';
+      if (/hard_full|planned_hard_full|failover_full|capacity/i.test(text)) return 'Лимит назначений достигнут';
       if (/stability_below_floor/i.test(text)) return 'Стабильность ниже требуемого уровня';
       if (/min_mbps_below_floor|avg_mbps_below_floor|speed/i.test(text)) return 'Скорость ниже требуемого уровня';
       if (/telegram_required|telegram_down|service_telegram/i.test(text)) return 'Telegram недоступен';
@@ -27504,7 +27525,7 @@ def html_page_v2():
     function channelAssignmentRoleMeta(key='blocked') {
       return {
         use: {
-          reason: 'Канал можно использовать.',
+          reason: 'Канал доступен для новых назначений.',
           action: 'Назначать новых пользователей на этот канал.',
           blocker: 'Блокера назначения нет',
         },
@@ -27519,7 +27540,7 @@ def html_page_v2():
           blocker: 'Пользователей нужно перевести',
         },
         emergency: {
-          reason: 'Только для ручного или аварийного использования.',
+          reason: 'Канал сохранён как ручной резерв.',
           action: 'Использовать только вручную или аварийно.',
           blocker: 'Только аварийно',
         },
@@ -27622,7 +27643,7 @@ def html_page_v2():
         reason = evidence.selectedFrom.length === 1 ? '1 пользователя нужно перевести' : `${evidence.selectedFrom.length} пользователей нужно перевести`;
       } else if (evidence.eligibleCandidates.length || evidence.selectedTo.length) {
         key = 'use';
-        reason = evidence.selectedTo.length ? 'Лучший доступный канал' : 'Канал можно использовать';
+        reason = evidence.selectedTo.length ? 'Лучший доступный канал' : 'Канал доступен для новых назначений';
       } else if (evidence.users > 0 && !evidence.blockers.length) {
         key = 'keep';
         reason = 'Текущие пользователи могут оставаться';
@@ -27634,7 +27655,7 @@ def html_page_v2():
         reason = channelAssignmentBlockerLabel(evidence.blockers[0]);
       } else {
         key = 'use';
-        reason = 'Канал можно использовать';
+        reason = 'Канал доступен для новых назначений';
       }
       const roleMeta = channelAssignmentRoleMeta(key);
       const mainBlocker = evidence.blockers.length ? channelAssignmentBlockerLabel(evidence.blockers[0]) : roleMeta.blocker;
@@ -27655,7 +27676,7 @@ def html_page_v2():
       if (a.key === 'use') return a.reason || 'Лучший доступный канал';
       if (a.key === 'evacuate') return a.mainBlocker && a.mainBlocker !== 'Пользователей нужно перевести' ? a.mainBlocker : (s.primaryCause || 'Пользователей нужно перевести');
       if (a.key === 'keep') return 'Новых пользователей назначать не нужно';
-      if (a.key === 'emergency') return a.mainBlocker || a.reason || 'Ручной резерв';
+      if (a.key === 'emergency') return a.mainBlocker || a.reason || 'Канал сохранён как ручной резерв';
       if (a.key === 'blocked') return a.mainBlocker || a.reason || 'Канал нельзя использовать';
       if (a.key === 'loading') return a.reason || 'V7 загружает решение';
       return a.reason || 'Решение маршрутизации недоступно';
@@ -28118,7 +28139,7 @@ def html_page_v2():
         return `<div class="channel-decision-signal">
           <span>${esc(item.label)}</span>
           ${pill(st.label, st.tone)}
-          <em title="${esc(item.tooltip || '')}">${esc(channelDecisionFirstSignalMeaning(item))}</em>
+          <em aria-label="${esc(item.tooltip || '')}">${esc(channelDecisionFirstSignalMeaning(item))}</em>
         </div>`;
       }).join('');
       return channelDecisionFirstSection('Сигналы', `<div class="channel-decision-signals">${rows || '<p class="muted">Сигналы первого экрана недоступны.</p>'}</div>`);
@@ -28190,16 +28211,17 @@ def html_page_v2():
       const row = channelRowFromSource(source);
       const id = row.id || row.egress || '';
       const s = channelSuitability(row);
+      const assignment = channelAssignmentStatus(row);
       return `<details class="drawer-section channel-technical-diagnostics" id="channelTechnicalDiagnostics-${esc(domSafeId(id || 'channel'))}">
         <summary>Техническая диагностика</summary>
-        <div class="channel-details-stack">
+        <div class="channel-diagnostics-layout">
           <div class="channel-diagnostics-summary">
             <h3>Реальность канала</h3>
             ${compactKvRows({
               'Канал': channelDisplayName(id),
               'Техническое состояние': s.status.label,
-              'Статус': s.status.label,
-              'Назначение': 'показать реальные сигналы, которые помогают понять состояние канала',
+              'Статус': assignment.label,
+              'Смысл': channelDecisionActionText(row),
             })}
           </div>
           ${channelSuitabilityBreakdownHtml(row)}
@@ -28258,6 +28280,10 @@ def html_page_v2():
       if (colId === 'channel') return id;
       if (colId === 'decision') return channelAssignmentStatus(row).label;
       if (colId === 'signals') return channelWorstSignal(row).priority;
+      if (colId === 'signal_services') return channelSignalSortRank(row, 'Services');
+      if (colId === 'signal_load') return channelSignalSortRank(row, 'Capacity');
+      if (colId === 'signal_runtime') return channelSignalSortRank(row, 'Runtime');
+      if (colId === 'signal_stability') return channelSignalSortRank(row, 'Stability');
       if (colId === 'health') return channelSuitability(row).score;
       if (colId === 'score') return channelSuitability(row).score;
       if (colId === 'assignment') return channelAssignmentStatus(row).label;
@@ -28445,7 +28471,7 @@ def html_page_v2():
       const rows = channelRows(list);
       const empty = `<tr><td colspan="${esc(cols.length)}"><div class="muted">Каналов в этом фильтре нет.</div></td></tr>`;
       const legend = cols.some(c => c.id === 'signals')
-        ? '<div class="channel-signal-legend"><strong>Сигналы:</strong> сервисы · нагрузка · runtime · стабильность. Зелёный: подтверждено. Жёлтый: уверенность неполная. Красный: влияет на решение.</div>'
+        ? '<div class="channel-signal-legend"><strong>Сигналы:</strong> S сервисы · L нагрузка · R runtime · T стабильность</div>'
         : '';
       return `${legend}<table class="channels-table-v2"><thead><tr>${cols.map(c=>sortableHeader('channel', c)).join('')}</tr></thead><tbody>${rows || empty}</tbody></table>`;
     }
@@ -29196,13 +29222,13 @@ def html_page_v2():
       openDrawer('Колонки организаций', 'users', drawerSection('Порядок и видимость', `<div class="column-config-list" id="organizationColumnList">${rows}</div><p class="muted">Нажмите Готово, чтобы сохранить порядок и видимость.</p><div class="detail-actions"><button class="primary" onclick="applyOrganizationColumnSettings()">Готово</button><button class="ghost" onclick="resetOrganizationColumnSettings()">Сбросить</button></div>`), {size:'columns', ...options});
     }
     function sortColumnOptions(defs, selected='') {
-      return [`<option value="">не выбрано</option>`].concat(defs.filter(c => c.id !== 'action').map(c => `<option value="${esc(c.id)}" ${c.id === selected ? 'selected' : ''}>${esc(c.label)}</option>`)).join('');
+      return [`<option value="">не выбрано</option>`].concat(defs.filter(c => c.id !== 'action').map(c => `<option value="${esc(c.id)}" ${c.id === selected ? 'selected' : ''}>${esc(c.sortLabel || c.label)}</option>`)).join('');
     }
     function sortDirectionOptions(selected='asc') {
       return `<option value="asc" ${selected !== 'desc' ? 'selected' : ''}>по возрастанию</option><option value="desc" ${selected === 'desc' ? 'selected' : ''}>по убыванию</option>`;
     }
     function sortConfigHtml(kind='user', cfg={}) {
-      const defs = kind === 'channel' ? CHANNEL_TABLE_COLUMN_DEFS : (kind === 'organization' ? ORGANIZATION_TABLE_COLUMN_DEFS : USER_TABLE_COLUMN_DEFS);
+      const defs = kind === 'channel' ? tableSortDefs('channel') : (kind === 'organization' ? ORGANIZATION_TABLE_COLUMN_DEFS : USER_TABLE_COLUMN_DEFS);
       const prefix = kind === 'channel' ? 'channelSort' : (kind === 'organization' ? 'organizationSort' : 'userSort');
       return `
         <div class="sort-config-grid">

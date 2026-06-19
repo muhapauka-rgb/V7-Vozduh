@@ -1,0 +1,312 @@
+{
+  "baseUrl": "https://v7-admin.195-2-79-116.sslip.io",
+  "capturedAt": "2026-06-19T14:21:25.780Z",
+  "productionCommitExpected": "0caea169ee942faa677be57695c2455474af9eef",
+  "desktop": {
+    "diagnostics": {
+      "cardCount": 6,
+      "cards": [
+        {
+          "height": 143,
+          "text": "Сервисы\nУточнить\nУверенность неполная\n›\n\n13/14 сервисов доступны; недоступные се",
+          "width": 287
+        },
+        {
+          "height": 143,
+          "text": "Стабильность\nOK\nПодтверждено\n›\n\nКанал отвечает нормально, состояние выше минимал",
+          "width": 287
+        },
+        {
+          "height": 143,
+          "text": "Нагрузка\nПроблема\nВлияет на решение\n›\n\n11 пользователей назначено; жёсткий преде",
+          "width": 287
+        },
+        {
+          "height": 143,
+          "text": "Маршрут\nПроблема\nВлияет на решение\n›\n\nГотовность маршрута частичная: лимит ёмкос",
+          "width": 287
+        },
+        {
+          "height": 132,
+          "text": "Готовность\nOK\nПодтверждено\n›\n\nГотовность подтверждена текущим снимком.",
+          "width": 287
+        },
+        {
+          "height": 132,
+          "text": "История\nOK\nПодтверждено\n›\n\nНедавняя история не содержит негативных сигналов.",
+          "width": 287
+        }
+      ],
+      "open": true,
+      "present": true,
+      "summaryHeight": 157,
+      "summaryWidth": 1178
+    },
+    "duplicateTooltipDetected": false,
+    "oldScoreTextDetected": false,
+    "signalHeaderCodes": "SLRT",
+    "signalLegendText": "Сигналы: S сервисы · L нагрузка · R runtime · T стабильность",
+    "signalLegendVisible": true,
+    "signalSortOptionsPresent": true,
+    "signalTitleAttributes": [],
+    "sortOptions": [
+      {
+        "text": "не выбрано",
+        "value": ""
+      },
+      {
+        "text": "Канал",
+        "value": "channel"
+      },
+      {
+        "text": "По решению V7",
+        "value": "decision"
+      },
+      {
+        "text": "Сигналы",
+        "value": "signals"
+      },
+      {
+        "text": "Статус",
+        "value": "status"
+      },
+      {
+        "text": "По пользователям",
+        "value": "users"
+      },
+      {
+        "text": "Трафик",
+        "value": "traffic"
+      },
+      {
+        "text": "День",
+        "value": "traffic_day"
+      },
+      {
+        "text": "Неделя",
+        "value": "traffic_week"
+      },
+      {
+        "text": "Месяц",
+        "value": "traffic_month"
+      },
+      {
+        "text": "Всё время",
+        "value": "traffic_total"
+      },
+      {
+        "text": "Сервисы",
+        "value": "services"
+      },
+      {
+        "text": "Скорость",
+        "value": "speed"
+      },
+      {
+        "text": "Роль",
+        "value": "role"
+      },
+      {
+        "text": "Нагрузка",
+        "value": "load"
+      },
+      {
+        "text": "По сервисам",
+        "value": "signal_services"
+      },
+      {
+        "text": "По нагрузке",
+        "value": "signal_load"
+      },
+      {
+        "text": "По runtime",
+        "value": "signal_runtime"
+      },
+      {
+        "text": "По стабильности",
+        "value": "signal_stability"
+      }
+    ],
+    "trustColumnVisible": false,
+    "viewport": {
+      "bodyScrollWidth": 1440,
+      "documentScrollWidth": 1440,
+      "height": 980,
+      "horizontalOverflow": false,
+      "width": 1440
+    },
+    "signalHeaderCodesVisibleOnly": "SLRT"
+  },
+  "mobile": {
+    "diagnostics": {
+      "cardCount": 6,
+      "cards": [
+        {
+          "height": 132,
+          "text": "Сервисы\nУточнить\nУверенность неполная\n›\n\n13/14 сервисов доступны; недоступные се",
+          "width": 276
+        },
+        {
+          "height": 132,
+          "text": "Стабильность\nOK\nПодтверждено\n›\n\nКанал отвечает нормально, состояние выше минимал",
+          "width": 276
+        },
+        {
+          "height": 143,
+          "text": "Нагрузка\nПроблема\nВлияет на решение\n›\n\n11 пользователей назначено; жёсткий преде",
+          "width": 276
+        },
+        {
+          "height": 143,
+          "text": "Маршрут\nПроблема\nВлияет на решение\n›\n\nГотовность маршрута частичная: лимит ёмкос",
+          "width": 276
+        },
+        {
+          "height": 132,
+          "text": "Готовность\nOK\nПодтверждено\n›\n\nГотовность подтверждена текущим снимком.",
+          "width": 276
+        },
+        {
+          "height": 132,
+          "text": "История\nOK\nПодтверждено\n›\n\nНедавняя история не содержит негативных сигналов.",
+          "width": 276
+        }
+      ],
+      "open": true,
+      "present": true,
+      "summaryHeight": 271,
+      "summaryWidth": 276
+    },
+    "duplicateTooltipDetected": false,
+    "oldScoreTextDetected": false,
+    "signalHeaderCodes": "SLRTSLRT",
+    "signalLegendText": "Сигналы: S сервисы · L нагрузка · R runtime · T стабильность",
+    "signalLegendVisible": true,
+    "signalSortOptionsPresent": true,
+    "signalTitleAttributes": [],
+    "sortOptions": [
+      {
+        "text": "не выбрано",
+        "value": ""
+      },
+      {
+        "text": "Канал",
+        "value": "channel"
+      },
+      {
+        "text": "По решению V7",
+        "value": "decision"
+      },
+      {
+        "text": "Сигналы",
+        "value": "signals"
+      },
+      {
+        "text": "Статус",
+        "value": "status"
+      },
+      {
+        "text": "По пользователям",
+        "value": "users"
+      },
+      {
+        "text": "Трафик",
+        "value": "traffic"
+      },
+      {
+        "text": "День",
+        "value": "traffic_day"
+      },
+      {
+        "text": "Неделя",
+        "value": "traffic_week"
+      },
+      {
+        "text": "Месяц",
+        "value": "traffic_month"
+      },
+      {
+        "text": "Всё время",
+        "value": "traffic_total"
+      },
+      {
+        "text": "Сервисы",
+        "value": "services"
+      },
+      {
+        "text": "Скорость",
+        "value": "speed"
+      },
+      {
+        "text": "Роль",
+        "value": "role"
+      },
+      {
+        "text": "Нагрузка",
+        "value": "load"
+      },
+      {
+        "text": "По сервисам",
+        "value": "signal_services"
+      },
+      {
+        "text": "По нагрузке",
+        "value": "signal_load"
+      },
+      {
+        "text": "По runtime",
+        "value": "signal_runtime"
+      },
+      {
+        "text": "По стабильности",
+        "value": "signal_stability"
+      }
+    ],
+    "trustColumnVisible": false,
+    "viewport": {
+      "bodyScrollWidth": 390,
+      "documentScrollWidth": 390,
+      "height": 900,
+      "horizontalOverflow": false,
+      "width": 390
+    },
+    "signalHeaderCodesVisibleOnly": "SLRT"
+  },
+  "matchedRows": {
+    "mobileDrawer": {
+      "emergency": false,
+      "evacuate": true,
+      "first": "awg3",
+      "index": 0,
+      "text": "awg3\n\t\nПеревести\n\t\n\t\n8",
+      "use": false,
+      "vindex": 0
+    }
+  },
+  "screenshots": [
+    "desktop_channels_table_all.png",
+    "desktop_signal_legend.png",
+    "desktop_signal_tooltip_single.png",
+    "desktop_sort_by_load.png",
+    "desktop_drawer_use.png",
+    "desktop_drawer_evacuate.png",
+    "desktop_drawer_emergency.png",
+    "desktop_diagnostics_expanded_balanced.png",
+    "mobile_channels_table_390.png",
+    "mobile_signal_legend_390.png",
+    "mobile_drawer_390.png",
+    "mobile_diagnostics_expanded_390.png"
+  ],
+  "mobileTable": {
+    "signalHeaderCodes": "SLRT",
+    "signalLegendText": "Сигналы: S сервисы · L нагрузка · R runtime · T стабильность",
+    "viewport": {
+      "bodyScrollWidth": 390,
+      "documentScrollWidth": 390,
+      "height": 900,
+      "horizontalOverflow": false,
+      "width": 390
+    },
+    "visibleRows": 7
+  }
+}

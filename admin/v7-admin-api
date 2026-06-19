@@ -21547,6 +21547,7 @@ def html_page_v2():
     let overviewRefreshQueued = false;
     let overviewLiveTimer = null;
     let overviewLastSignature = '';
+    let trafficSummaryCache = null;
     let v2UserFilter = 'all';
     let v2ChannelTopologyFilter = 'all';
     let expandedChannelUsers = '';
@@ -24084,8 +24085,36 @@ def html_page_v2():
         readinessRows,
       });
     }
+    function trafficSummaryHasRows(traffic={}) {
+      return !!traffic && typeof traffic === 'object' && (
+        Object.keys(traffic.users || {}).length > 0 ||
+        Object.keys(traffic.channels || {}).length > 0 ||
+        String(traffic.status || '').toUpperCase() === 'OK'
+      );
+    }
+    function setOverviewTrafficSummary(traffic={}, options={}) {
+      const usable = trafficSummaryHasRows(traffic);
+      if (usable) {
+        overview.traffic = traffic;
+        trafficSummaryCache = traffic;
+        return true;
+      }
+      if (trafficSummaryCache && options.preserve !== false) {
+        overview.traffic = trafficSummaryCache;
+        return false;
+      }
+      overview.traffic = traffic || {users:{}, channels:{}};
+      return false;
+    }
     function applyOverviewData(next={}, options={}) {
+      const previousTraffic = overview.traffic || trafficSummaryCache;
       overview = next || {};
+      if (!trafficSummaryHasRows(overview.traffic) && previousTraffic) {
+        overview.traffic = previousTraffic;
+      }
+      if (trafficSummaryHasRows(overview.traffic)) {
+        trafficSummaryCache = overview.traffic;
+      }
       overviewLastSignature = overviewSignature(overview);
       applyUiPrefs();
       if (options.render !== false) renderAll();
@@ -24291,11 +24320,22 @@ def html_page_v2():
       if (!Number.isFinite(n) || n <= 0) return '0 MB';
       return humanBytes(n);
     }
+    function trafficSummarySource() {
+      return overview.traffic || trafficSummaryCache || {};
+    }
+    function trafficHasEntity(kind='', id='') {
+      const traffic = trafficSummarySource();
+      const rows = kind === 'channel' ? (traffic.channels || {}) : (traffic.users || {});
+      return Object.prototype.hasOwnProperty.call(rows, id);
+    }
     function trafficEntity(kind='', id='') {
-      const traffic = overview.traffic || {};
+      const traffic = trafficSummarySource();
       return kind === 'channel' ? (traffic.channels || {})[id] || {} : (traffic.users || {})[id] || {};
     }
     function trafficCell(kind='', id='') {
+      if (!trafficHasEntity(kind, id)) {
+        return `<span class="cell-main">—</span><span class="cell-sub">ожидаю данные</span>`;
+      }
       const row = trafficEntity(kind, id);
       const today = row.today?.total_bytes || 0;
       const total = row.all_time?.total_bytes || 0;
@@ -24311,11 +24351,13 @@ def html_page_v2():
       return `<span class="cell-main">${esc(trafficBytes(today))}</span><span class="cell-sub">всего ${esc(trafficBytes(total))}</span>`;
     }
     function trafficPeriodBytes(kind='', id='', period='today') {
+      if (!trafficHasEntity(kind, id)) return 0;
       const row = trafficEntity(kind, id);
       const key = period === 'week' ? 'week' : (period === 'month' ? 'month' : (period === 'total' ? 'all_time' : 'today'));
       return Number(row[key]?.total_bytes || 0);
     }
     function trafficPeriodCell(kind='', id='', period='today') {
+      if (!trafficHasEntity(kind, id)) return '<span class="cell-main">—</span>';
       return `<span class="cell-main">${esc(trafficBytes(trafficPeriodBytes(kind, id, period)))}</span>`;
     }
     function trafficSummaryHtml(kind='', id='') {
@@ -35757,7 +35799,7 @@ PersistentKeepalive = 25
     async function loadTrafficSummary() {
       try {
         const traffic = await api('/api/traffic/summary');
-        overview.traffic = traffic || {users:{}, channels:{}};
+        setOverviewTrafficSummary(traffic || {users:{}, channels:{}}, {preserve:true});
         mergeTrafficConnectionState(overview.traffic);
         renderOverview();
         renderUsers();
@@ -35765,6 +35807,7 @@ PersistentKeepalive = 25
         bindDrawerRows();
         translateDynamicText();
       } catch (_) {
+        if (!overview.traffic && trafficSummaryCache) overview.traffic = trafficSummaryCache;
         if (!overview.traffic) overview.traffic = {status:'UNAVAILABLE', users:{}, channels:{}};
       }
     }

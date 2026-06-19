@@ -1,0 +1,81 @@
+{
+  "captured_at": "2026-06-19T08:51:23.049Z",
+  "files": {
+    "desktop_diagnostics": "/Users/ponch/Documents/New project/docs/diagnostics_1/screenshots/desktop_diagnostics_vless.png",
+    "desktop_diagnostics_expanded": "/Users/ponch/Documents/New project/docs/diagnostics_1/screenshots/desktop_diagnostics_expanded_vless.png",
+    "mobile_diagnostics": "/Users/ponch/Documents/New project/docs/diagnostics_1/screenshots/mobile_diagnostics_vless_390.png"
+  },
+  "rows": [
+    {
+      "id": "vless",
+      "name": "vless",
+      "decision": "blocked",
+      "text": "vlessЗапрещёнНазначение заблокировано11показать"
+    },
+    {
+      "id": "awg3",
+      "name": "awg3",
+      "decision": "blocked",
+      "text": "awg3ЗапрещёнНазначение заблокировано8показать"
+    },
+    {
+      "id": "wireguard-1779454504-c43409",
+      "name": "wg гермашка, работаетwireguard-1779454504-c43409",
+      "decision": "blocked",
+      "text": "wg гермашка, работаетwireguard-1779454504-c43409ЗапрещёнРучной резерв8показать"
+    },
+    {
+      "id": "openvpn-1779388847-d2ad7c",
+      "name": "OpenVPN-Kolosovopenvpn-1779388847-d2ad7c",
+      "decision": "blocked",
+      "text": "OpenVPN-Kolosovopenvpn-1779388847-d2ad7cЗапрещёнРучной резерв0показать"
+    },
+    {
+      "id": "1",
+      "name": "1",
+      "decision": "blocked",
+      "text": "1ЗапрещёнРучной резерв0показать"
+    },
+    {
+      "id": "amneziawg-exec-20260528-10-8-1-14",
+      "name": "amneziawg-exec-20260528-10-8-1-14",
+      "decision": "blocked",
+      "text": "amneziawg-exec-20260528-10-8-1-14ЗапрещёнРучной резерв0показать"
+    },
+    {
+      "id": "awg0",
+      "name": "awg0",
+      "decision": "blocked",
+      "text": "awg0ЗапрещёнНазначение заблокировано0показать"
+    }
+  ],
+  "picks": {
+    "use": null,
+    "evacuate": null,
+    "emergency": null,
+    "blocked": {
+      "id": "vless",
+      "name": "vless",
+      "decision": "blocked",
+      "text": "vlessЗапрещёнНазначение заблокировано11показать"
+    }
+  },
+  "diagnostics_target": {
+    "id": "vless",
+    "name": "vless",
+    "decision": "blocked",
+    "text": "vlessЗапрещёнНазначение заблокировано11показать"
+  },
+  "diagnostics_checks": {
+    "contains_score_fraction": false,
+    "contains_score_language_ru": false,
+    "contains_reality_header": true
+  },
+  "mobile_overflow": {
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "bodyScrollWidth": 390,
+    "overflow": false
+  },
+  "console_errors": []
+}

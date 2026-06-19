@@ -99,7 +99,7 @@ A new audit is allowed only when the reference has no answer, the reference expl
 5. Action Required means an existing safe destination/action exists now.
 6. Review means the channel needs fresh evidence or inspection but does not override Channel Decision V7 by itself.
 7. Information means the role/state matters but can wait when no users or active problems are affected.
-8. Healthy means Use or Keep with no red first-level operator signal; these channels can be ignored during triage.
+8. Healthy means Use or Keep with first-level operator signals OK; these channels can be ignored during triage.
 9. Attention First sorting may reorder the Channels table by derived attention priority, assigned users, first-level signal severity, existing default operator order, and channel name.
 10. Default table mode must preserve existing channel table behavior and manual sort settings.
 11. The aggregate `Сигналы` column must not become a sortable truth. Attention ordering may use individual first-level signal severities only.

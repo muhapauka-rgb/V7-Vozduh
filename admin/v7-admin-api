@@ -31509,6 +31509,7 @@ def html_page_v2():
         }));
     }
     function channelOverviewAttentionItems(row={}) {
+      if (channelIsHealthyForTable(row)) return [];
       return (attentionFromChannel(row) || []).map(item => ({
         category:channelAttentionCategoryFromSeverity(item.severity),
         problem:screenOneText(item.problem || 'Проверить канал'),

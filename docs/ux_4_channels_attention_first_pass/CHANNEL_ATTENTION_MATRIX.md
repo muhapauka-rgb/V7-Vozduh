@@ -67,7 +67,7 @@ Urgent rows receive a narrow left marker only. The table must remain calm:
 - no score-based attention;
 - no aggregate `Signals` column sorting;
 - no noisy badge multiplication;
-- healthy channels stay visually quiet.
+- healthy channels require Use or Keep with first-level operator signals OK and stay visually quiet.
 
 ## Reuse Rule
 

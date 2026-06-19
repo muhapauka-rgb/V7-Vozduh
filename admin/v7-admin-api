@@ -27776,6 +27776,13 @@ def html_page_v2():
       const text = String(label || '').trim();
       const lower = text.toLowerCase();
       const id = suitability.id || assignment.id || '';
+      if (/capacity|нагруз|перегруж|лимит назнач|назначени.*достиг|пользовател/i.test(text)) {
+        return {
+          reason: 'Пользователей больше предпочтительного или жёсткого уровня назначения.',
+          resolution: 'Откройте пользователей этого канала и подготовьте перевод через существующий governed flow.',
+          action: `<button class="ghost" type="button" onclick="showChannelWorkspace('overview');toggleChannelUsers('${esc(id)}');closeDrawer()">Открыть пользователей</button>`,
+        };
+      }
       if (/telegram|google|youtube|service|сервис|instagram|whatsapp|chatgpt|claude/i.test(text)) {
         return {
           reason: channelPrimaryCauseForOutcome(text, suitability) || 'Сервисы не подтвердили доступность.',
@@ -27788,13 +27795,6 @@ def html_page_v2():
           reason: 'Маршрутная готовность не подтверждена. Это не означает, что скорость или качество трафика сломаны.',
           resolution: 'Смотрите доказательства и историю ниже. Отдельного безопасного route-handler для этого пункта нет.',
           action: channelUnavailableActionHtml('нет безопасного route-handler в этом drawer'),
-        };
-      }
-      if (/capacity|нагруз|перегруж|лимит назнач|назначени.*достиг|пользовател/i.test(text)) {
-        return {
-          reason: 'Пользователей больше предпочтительного или жёсткого уровня назначения.',
-          resolution: 'Откройте пользователей этого канала и подготовьте перевод через существующий governed flow.',
-          action: `<button class="ghost" type="button" onclick="showChannelWorkspace('overview');toggleChannelUsers('${esc(id)}');closeDrawer()">Открыть пользователей</button>`,
         };
       }
       if (/runtime|ready|готов/i.test(text)) {

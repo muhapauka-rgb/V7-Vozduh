@@ -27882,38 +27882,46 @@ def html_page_v2():
       if (map[key]) return map[key];
       return operatorText(raw || 'Состояние канала снизило компонент стабильности.');
     }
+    function channelRealityComponentStatus(item={}) {
+      const score = Number(item.score || 0);
+      const max = Number(item.max || 0);
+      if (max && score >= max) return {label:'OK', tone:'ok', hint:'Подтверждено'};
+      if (score <= Math.max(2, max * 0.25)) return {label:'Проблема', tone:'bad', hint:'Нужна проверка'};
+      return {label:'Проверить', tone:'warn', hint:'Частичная уверенность'};
+    }
     function channelScoreExplanationText(source={}, item={}) {
       const row = channelRowFromSource(source);
       const id = row.id || row.egress || '';
       const check = String(item.check || '');
       if (check === 'Services') {
         const service = channelScoreServiceEvidence(row);
-        if (!service.total) return 'Нет измерений сервисов, поэтому компонент получил частичный балл.';
+        if (!service.total) return 'Свежего измерения сервисов нет.';
         if (service.ok >= service.total) return 'Все измеренные сервисы доступны.';
-        return `${service.ok}/${service.total} сервисов доступны, остальные снизили балл.`;
+        return `${service.ok}/${service.total} сервисов доступны; недоступные сервисы показаны ниже.`;
       }
       if (check === 'Stability') {
         const health = channelHealth(row);
         if (Number(item.score || 0) >= Number(item.max || 0)) return 'Канал отвечает нормально, состояние выше минимального уровня.';
-        return channelHealthDetailText(health.detail || 'Состояние канала снизило компонент стабильности.');
+        return channelHealthDetailText(health.detail || 'Состояние канала требует подтверждения.');
       }
       if (check === 'Capacity') {
         const count = egressUserCount(id);
         const limit = channelLoadLimit(row);
-        if (Number(item.score || 0) >= Number(item.max || 0)) return `${count} пользователей; предпочтительный уровень ${limit.soft}. Нагрузка внутри нормы.`;
-        return `${count} пользователей; предпочтительный уровень ${limit.soft}. Нагрузка снизила балл.`;
+        if (Number(item.score || 0) >= Number(item.max || 0)) return `${count} пользователей назначено; предпочтительный уровень ${limit.soft}. Новые назначения внутри лимита.`;
+        if (count >= Number(limit.hard || 0)) return `${count} пользователей назначено; жёсткий предел ${limit.hard}. Новые назначения ограничены, текущие пользователи не отключаются.`;
+        return `${count} пользователей назначено; предпочтительный уровень ${limit.soft}. Перед добавлением пользователей нужна проверка нагрузки.`;
       }
       if (check === 'Route') {
         const evidence = channelScoreRouteEvidence(row);
-        if (Number(item.score || 0) >= Number(item.max || 0)) return 'Маршрут выглядит безопасным по текущим сигналам.';
-        if (evidence.state?.issue && evidence.state.issue !== '—') return `Топология канала: ${evidence.state.issue}. Этот сигнал снизил маршрутный компонент.`;
-        if (evidence.total) return `${evidence.confirmed}/${evidence.total} маршрутов уверенно подтверждены; полного балла нет из-за общего topology-состояния канала.`;
-        return 'Topology-состояние канала не дало полного маршрутного балла.';
+        if (Number(item.score || 0) >= Number(item.max || 0)) return 'Готовность маршрута подтверждена текущими сигналами.';
+        if (evidence.state?.issue && evidence.state.issue !== '—') return `Готовность маршрута частичная: ${evidence.state.issue}. Это не оценка скорости или пропускной способности.`;
+        if (evidence.total) return `${evidence.confirmed}/${evidence.total} маршрутов уверенно подтверждены; нужна дополнительная уверенность.`;
+        return 'Топология канала не даёт полной уверенности маршрута. Это не оценка скорости или bandwidth.';
       }
       if (check === 'Runtime') {
         const rd = row._detail?.runtime_readiness || (overview.egress_runtime_readiness || {})[id] || {};
         if (Number(item.score || 0) >= Number(item.max || 0)) return 'Готовность подтверждена текущим снимком.';
-        return operatorShort(rd.reason || rd.status || 'Готовность получила частичный балл.');
+        return operatorShort(rd.reason || rd.status || 'Runtime готовность подтверждена частично.');
       }
       if (check === 'History') {
         const decision = channelDecisionRow(id);
@@ -27921,7 +27929,7 @@ def html_page_v2():
         if (Number(item.score || 0) >= Number(item.max || 0)) return 'Недавняя история не содержит негативных сигналов.';
         return label ? `Последняя история канала: ${operatorText(label)}.` : 'Истории недостаточно для полного доверия.';
       }
-      return item.reason || 'Компонент снизил итоговый балл.';
+      return item.reason || 'Сигнал требует проверки.';
     }
     function channelScoreExplanationRows(source={}, item={}) {
       const row = channelRowFromSource(source);
@@ -27930,8 +27938,9 @@ def html_page_v2():
       if (check === 'Services') {
         const service = channelScoreServiceEvidence(row);
         return [
-          ['Доступно', service.total ? `${service.ok}/${service.total}` : 'нет измерений'],
-          ['Статус', channelScoreExplanationText(row, item)],
+          ['Рабочие сервисы', service.total ? `${service.ok}/${service.total}` : 'нет измерений'],
+          ['Недоступные сервисы', service.unavailable.length ? service.unavailable.join(', ') : 'не обнаружены'],
+          ['Что это значит', channelScoreExplanationText(row, item)],
         ];
       }
       if (check === 'Stability') {
@@ -27940,26 +27949,26 @@ def html_page_v2():
         return [
           ['Состояние канала', health.label || 'неизвестно'],
           ['Состояние интерфейса', lifecycle.text || 'неизвестно'],
-          ['Статус', channelScoreExplanationText(row, item)],
+          ['Что это значит', channelScoreExplanationText(row, item)],
         ];
       }
       if (check === 'Capacity') {
         const count = egressUserCount(id);
         const limit = channelLoadLimit(row);
         return [
-          ['Пользователи', String(count)],
-          ['Предпочтительно', String(limit.soft)],
-          ['Жёсткий предел', String(limit.hard)],
-          ['Статус', channelScoreExplanationText(row, item)],
+          ['Назначено пользователей', String(count)],
+          ['Предпочтительный уровень', String(limit.soft)],
+          ['Жёсткий предел назначений', String(limit.hard)],
+          ['Что это значит', channelScoreExplanationText(row, item)],
         ];
       }
       if (check === 'Route') {
         const evidence = channelScoreRouteEvidence(row);
         return [
-          ['Подтверждено', evidence.total ? String(evidence.confirmed) : 'нет строк'],
-          ['Не подтверждено', evidence.total ? String(evidence.notConfirmed) : 'нет строк'],
+          ['Подтвержденные строки', evidence.total ? String(evidence.confirmed) : 'нет строк'],
+          ['Неподтвержденные строки', evidence.total ? String(evidence.notConfirmed) : 'нет строк'],
           ['Топология', evidence.state?.issue && evidence.state.issue !== '—' ? evidence.state.issue : 'без отдельного предупреждения'],
-          ['Статус', channelScoreExplanationText(row, item)],
+          ['Что это значит', channelScoreExplanationText(row, item)],
         ];
       }
       if (check === 'Runtime') {
@@ -27967,7 +27976,7 @@ def html_page_v2():
         return [
           ['Состояние', rd.status || (Number(item.score || 0) >= Number(item.max || 0) ? 'READY' : 'неизвестно')],
           ['Снимок', rd.enable_ready ? 'готов' : 'частичный'],
-          ['Статус', channelScoreExplanationText(row, item)],
+          ['Что это значит', channelScoreExplanationText(row, item)],
         ];
       }
       if (check === 'History') {
@@ -27976,15 +27985,16 @@ def html_page_v2():
         return [
           ['Состояние истории', operatorText(decision.channel_state_label || decision.channel_state || decision.state || card.recommended_state || 'спокойно')],
           ['Уверенность', Number(item.score || 0) >= 8 ? 'высокая' : 'частичная'],
-          ['Статус', channelScoreExplanationText(row, item)],
+          ['Что это значит', channelScoreExplanationText(row, item)],
         ];
       }
-      return [['Статус', channelScoreExplanationText(row, item)]];
+      return [['Что это значит', channelScoreExplanationText(row, item)]];
     }
     function channelScoreComponentContent(source={}, item={}) {
       const row = channelRowFromSource(source);
       const check = String(item.check || '');
       const rows = channelScoreExplanationRows(row, item).filter(row => row && row[1]);
+      const status = channelRealityComponentStatus(item);
       let extra = '';
       if (check === 'Services') {
         const service = channelScoreServiceEvidence(row);
@@ -27995,32 +28005,23 @@ def html_page_v2():
       }
       return `<div class="channel-accordion-content" hidden>
         <div class="channel-accordion-content-inner">
-          <strong>${esc(channelOperatorCheckLabel(check))}: ${esc(item.score)} / ${esc(item.max)}</strong>
+          <strong>${esc(channelOperatorCheckLabel(check))}: ${esc(status.label)}</strong>
           ${rows.map(([label, value]) => `<div class="channel-accordion-row"><span>${esc(label)}</span><p>${esc(value)}</p></div>`).join('')}
           ${extra}
         </div>
       </div>`;
     }
-    function channelLostPointsText(lost=0) {
-      const value = Math.abs(Number(lost || 0));
-      const mod10 = value % 10;
-      const mod100 = value % 100;
-      const word = mod10 === 1 && mod100 !== 11
-        ? 'балл'
-        : ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100) ? 'балла' : 'баллов');
-      return `-${esc(value)} ${word}`;
-    }
     function channelSuitabilityBreakdownHtml(source={}) {
       const s = channelSuitability(source);
       const cards = s.breakdown.map(item => {
-        const lost = Number(item.max || 0) - Number(item.score || 0);
+        const status = channelRealityComponentStatus(item);
         return `<div class="channel-breakdown-card channel-accordion-item">
-          ${channelAccordionSummaryButton(channelOperatorCheckLabel(item.check), `${esc(item.score)} / ${esc(item.max)}`, lost > 0 ? channelLostPointsText(lost) : 'полный балл')}
+          ${channelAccordionSummaryButton(channelOperatorCheckLabel(item.check), pill(status.label, status.tone), status.hint)}
           <p>${esc(channelScoreExplanationText(source, item))}</p>
           ${channelScoreComponentContent(source, item)}
         </div>`;
       }).join('');
-      return `<div class="channel-breakdown-list">${cards}<div class="channel-breakdown-total"><strong>Итого</strong><span>${esc(s.score)} / 100</span></div></div>`;
+      return `<div class="channel-breakdown-list">${cards}</div>`;
     }
     function channelAnalysisCard(source={}) {
       const s = channelSuitability(source);
@@ -28034,10 +28035,10 @@ def html_page_v2():
         ['Почему', decisionReason],
         ['Что делать', channelDecisionActionText(source)],
       ].filter(Boolean);
-      const healthContent = channelAccordionContent('Почему такое здоровье?', [
-          ['Техническое состояние', `${s.score} / 100`],
+      const healthContent = channelAccordionContent('Что показывает диагностика?', [
+          ['Техническое состояние', s.status.label],
           ['Статус', s.status.label],
-          ['Компоненты', 'Сервисы, стабильность, нагрузка, маршрут, готовность и история.'],
+          ['Сигналы', 'Сервисы, стабильность, нагрузка, маршрут, готовность и история.'],
         ], `<button class="ghost" type="button" onclick="openChannelTechnicalDiagnostics('${esc(s.id)}')">Техническая диагностика</button>`);
       const decisionContent = channelAccordionContent('Что решил V7?', decisionRows);
       const problemsRow = problemList ? `<div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-problems"><span>Проблемы (${esc(problems.length)})</span>${problemList}</div>` : '';
@@ -28048,7 +28049,7 @@ def html_page_v2():
             <div class="channel-accordion-item">${channelAccordionSummaryButton('Решение V7', pill(a.label, a.tone), decisionReason)}${decisionContent}</div>
           </div>
           <div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-health">
-            <div class="channel-accordion-item">${channelAccordionSummaryButton('Техническое состояние', `${esc(s.score)} / 100`, '')}${healthContent}</div>
+            <div class="channel-accordion-item">${channelAccordionSummaryButton('Диагностика', esc(s.status.label), 'Реальные сигналы канала')}${healthContent}</div>
           </div>
           ${problemsRow}
           <div class="channel-analysis-row channel-accordion-group" data-channel-accordion-group="${esc(channelCompressionKey(s.id))}-working">${workingList}</div>
@@ -28177,12 +28178,12 @@ def html_page_v2():
         <summary>Техническая диагностика</summary>
         <div class="channel-details-stack">
           <div class="channel-diagnostics-summary">
-            <h3>Разбор здоровья</h3>
+            <h3>Реальность канала</h3>
             ${compactKvRows({
               'Канал': channelDisplayName(id),
-              'Техническое состояние': `${s.score} / 100`,
+              'Техническое состояние': s.status.label,
               'Статус': s.status.label,
-              'Назначение': 'объяснить, почему получился этот балл',
+              'Назначение': 'показать реальные сигналы, которые помогают понять состояние канала',
             })}
           </div>
           ${channelSuitabilityBreakdownHtml(row)}

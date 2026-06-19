@@ -21039,8 +21039,8 @@ def html_page_v2():
       #channelsTableV2 th[data-col="channel"], #channelsTableV2 td[data-col="channel"]{width:28%}
       #overviewChannels th[data-col="decision"], #overviewChannels td[data-col="decision"],
       #channelsTableV2 th[data-col="decision"], #channelsTableV2 td[data-col="decision"]{width:34%}
-      #overviewChannels th[data-col="health"], #overviewChannels td[data-col="health"],
-      #channelsTableV2 th[data-col="health"], #channelsTableV2 td[data-col="health"]{width:22%}
+      #overviewChannels th[data-col="signals"], #overviewChannels td[data-col="signals"],
+      #channelsTableV2 th[data-col="signals"], #channelsTableV2 td[data-col="signals"]{width:22%}
       #overviewChannels th[data-col="users"], #overviewChannels td[data-col="users"],
       #channelsTableV2 th[data-col="users"], #channelsTableV2 td[data-col="users"]{width:16%}
       #channelsTableV2 th[data-col="users"]{font-size:0}
@@ -21558,8 +21558,7 @@ def html_page_v2():
     const CHANNEL_TABLE_COLUMN_DEFS = [
       {id:'channel', label:'Канал', meaning:'Название канала.', required:true, defaultVisible:true},
       {id:'decision', label:'Решение', meaning:'Что V7 решил сделать с каналом: использовать, держать текущих пользователей, эвакуировать, заблокировать или оставить только для аварийного режима.', required:true, defaultVisible:true},
-      {id:'signals', label:'Сигналы', meaning:'Сервисы, нагрузка, маршрут и runtime readiness. Объясняет решение V7 без смешанного health score.', required:true, defaultVisible:true},
-      {id:'health', label:'Диагностика', meaning:'Техническое состояние канала от 0 до 100 по существующим проверкам. Диагностика открывается глубже и не является первым операторским ответом.', required:false, defaultVisible:false},
+      {id:'signals', label:'Сигналы', meaning:'Сервисы, нагрузка, runtime readiness и стабильность. Объясняет решение V7 без смешанного health score.', required:true, defaultVisible:true},
       {id:'channel_state', label:'Состояние доверия', meaning:'Короткое состояние канала по модели доверия и восстановления.', required:false, defaultVisible:false},
       {id:'status', label:'Статус', meaning:'Короткое состояние канала.', required:false, defaultVisible:false},
       {id:'users', label:'Пользователи', meaning:'Сколько пользователей сейчас назначено на канал.', required:false, defaultVisible:true},
@@ -30659,7 +30658,7 @@ def html_page_v2():
       document.getElementById('metrics').innerHTML = [
         metric('Состояние V7', s.stale_ok ? 'Свежее' : 'Устарело', `Защита: ${statusLabel(s.killswitch_status || '')}`, s.stale_ok && s.killswitch_ok, 'openMetricDetail("system")'),
         metric('Пользователи', `${s.users_ready || 0}/${s.users_total || 0}`, `${s.users_waiting || 0} ждут · ${s.users_blocked || 0} проблем`, (s.users_blocked || 0) === 0, 'openMetricDetail("users")'),
-        metric('Каналы', `${s.egress_healthy || 0}/${s.egress_total || 0}`, 'здоровые каналы', (s.egress_healthy || 0) > 0, 'openMetricDetail("channels")'),
+        metric('Каналы', `${channelDecisionCounts(egressRows()).use || 0}/${egressRows().length || s.egress_total || 0}`, 'Use по решению V7', (channelDecisionCounts(egressRows()).attention || 0) === 0, 'openMetricDetail("channels")'),
         metric('Маршруты', `${s.route_ok || 0}/${s.users_total || 0}`, 'ожидаемые маршруты', (s.route_ok || 0) === (s.users_total || 0), 'openMetricDetail("routing")'),
         metric('Защита трафика', statusLabel(s.killswitch_status || 'Неизвестно'), s.route_leak_risk ? 'риск утечки' : 'утечки нет', !s.route_leak_risk && s.killswitch_ok, 'openMetricDetail("security")'),
         metric('Требует внимания', attentionItems.length, actionAlerts.length ? 'активные проблемы' : 'спокойно', attentionItems.length === 0, 'openMetricDetail("attention")'),
@@ -30955,11 +30954,11 @@ def html_page_v2():
     }
     function channelTableFilterDefinitions() {
       return [
-        {key:'all', label:'Все'},
-        {key:'problematic', label:'Проблемные'},
-        {key:'healthy', label:'Здоровые'},
-        {key:'evacuate', label:'Перевести'},
-        {key:'use', label:'Использовать'},
+        {key:'all', label:'All'},
+        {key:'use', label:'Use'},
+        {key:'evacuate', label:'Evacuate'},
+        {key:'emergency', label:'Emergency'},
+        {key:'attention', label:'Attention'},
       ];
     }
     function channelIsHealthyForTable(row={}) {
@@ -30975,13 +30974,26 @@ def html_page_v2():
         || (assignment.key === 'blocked' && usersCount > 0)
         || worst.priority <= 4;
     }
+    function channelNeedsAttentionForTable(row={}) {
+      const assignment = channelAssignmentStatus(row);
+      const worst = channelWorstSignal(row);
+      const usersCount = egressUserCount(row.id || row.egress || '');
+      return assignment.key === 'evacuate'
+        || assignment.key === 'emergency'
+        || assignment.key === 'blocked'
+        || (assignment.key === 'keep' && worst.priority <= 4)
+        || (assignment.key === 'use' && worst.priority <= 4)
+        || (usersCount > 0 && worst.priority <= 4);
+    }
     function channelMatchesTopologyFilter(row={}, group='all') {
       if (!group || group === 'all') return true;
       const assignment = channelAssignmentStatus(row);
-      if (group === 'problematic') return channelIsProblematicForTable(row);
-      if (group === 'healthy') return channelIsHealthyForTable(row);
+      if (group === 'problematic') return channelNeedsAttentionForTable(row);
+      if (group === 'healthy') return assignment.key === 'use';
       if (group === 'evacuate') return assignment.key === 'evacuate';
       if (group === 'use') return assignment.key === 'use';
+      if (group === 'emergency') return assignment.key === 'emergency';
+      if (group === 'attention') return channelNeedsAttentionForTable(row);
       return channelTopologyState(row).group === group;
     }
     function filteredChannelsForTable(rows=egressRows()) {
@@ -31007,19 +31019,32 @@ def html_page_v2():
       }).join('');
       const custom = !channelTableFilterDefinitions().some(def => def.key === v2ChannelTopologyFilter);
       const summary = custom
-        ? `<span>Фильтр топологии: <strong>${esc(channelTopologyFilterLabel(v2ChannelTopologyFilter))}</strong> · ${esc(visibleRows.length)}/${esc(totalRows.length)} каналов</span><button class="ghost" onclick="clearChannelTopologyFilter()">Показать все</button>`
+        ? `<span>Фильтр: <strong>${esc(channelTopologyFilterLabel(v2ChannelTopologyFilter))}</strong> · ${esc(visibleRows.length)}/${esc(totalRows.length)} каналов</span><button class="ghost" onclick="clearChannelTopologyFilter()">Показать все</button>`
         : '';
       host.innerHTML = `<div class="filterbar">${chips}</div>${summary}`;
+    }
+    function channelDecisionCounts(rows=egressRows()) {
+      const counts = {all:0, use:0, evacuate:0, emergency:0, keep:0, blocked:0, attention:0, users:0};
+      (rows || []).forEach(row => {
+        const assignment = channelAssignmentStatus(row);
+        const usersCount = egressUserCount(row.id || row.egress || '');
+        counts.all += 1;
+        counts.users += usersCount;
+        if (counts[assignment.key] !== undefined) counts[assignment.key] += 1;
+        if (channelNeedsAttentionForTable(row)) counts.attention += 1;
+      });
+      return counts;
     }
     function renderChannels() {
       const s = overview.summary || {};
       const allRows = egressRows();
       const visibleRows = filteredChannelsForTable(allRows);
+      const decisions = channelDecisionCounts(allRows);
       document.getElementById('channelStats').innerHTML = [
-        statCard('Здоровые каналы', `${s.egress_healthy || 0}/${s.egress_total || 0}`, 'доступные каналы', (s.egress_healthy || 0) ? 'ok' : 'bad', 'openChannelMetricDetail("healthy")'),
-        statCard('Сервисы OK', serviceCoverageText(), 'сводка матрицы', '', 'openChannelMetricDetail("services")'),
-        statCard('Активные пользователи', s.users_total || 0, 'назначены на каналы', '', 'openChannelMetricDetail("users")'),
-        statCard('Нагрузка', statusLabel(loadPosture()), 'контроль ёмкости', loadPosture().includes('FULL') ? 'warn' : '', 'openChannelMetricDetail("load")'),
+        statCard('Use', decisions.use, 'V7 может использовать', decisions.use ? 'ok' : '', 'setChannelTopologyFilter("use")'),
+        statCard('Evacuate', decisions.evacuate, 'перевести пользователей', decisions.evacuate ? 'bad' : 'ok', 'setChannelTopologyFilter("evacuate")'),
+        statCard('Emergency Only', decisions.emergency, 'только вручную или аварийно', decisions.emergency ? 'warn' : '', 'setChannelTopologyFilter("emergency")'),
+        statCard('Users', decisions.users || s.users_total || 0, 'назначены на каналы', '', 'openChannelMetricDetail("users")'),
       ].join('');
       renderChannelTopologyFilterBar(allRows, visibleRows);
       document.getElementById('channelsTableV2').innerHTML = channelTableHtml(visibleRows);
@@ -31030,13 +31055,10 @@ def html_page_v2():
       const rows = egressRows();
       if (kind === 'healthy') {
         const html = rows.map(row => {
-          const health = channelHealth(row);
-          const state = channelLifecycleStatus(row, health);
-          const tone = state.tone;
-          const label = state.text;
-          return `<tr><td><button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(row.id)}')">${esc(channelDisplayName(row.id))}</button></td><td>${pill(label, tone)}</td><td class="right"><button class="mini-action" onclick="openChannelDrawer('${esc(row.id)}')">Открыть</button></td></tr>`;
+          const assignment = channelAssignmentStatus(row);
+          return `<tr><td><button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(row.id)}')">${esc(channelDisplayName(row.id))}</button></td><td>${pill(channelAssignmentTableLabel(assignment.key), assignment.tone)}</td><td>${esc(channelDecisionReason(row))}</td><td class="right"><button class="mini-action" onclick="openChannelDrawer('${esc(row.id)}')">Открыть</button></td></tr>`;
         });
-        openCompactDrawer('Здоровые каналы', 'channel', listTable(['Канал','Статус','Действие'], html, 'Каналов пока нет.'));
+        openCompactDrawer('Решения V7 по каналам', 'channel', listTable(['Канал','Решение','Почему','Действие'], html, 'Каналов пока нет.'));
         return;
       }
       if (kind === 'services') {

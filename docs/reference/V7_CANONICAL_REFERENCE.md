@@ -188,8 +188,22 @@ A new audit is allowed only when the reference has no answer, the reference expl
 - Operator meaning: `Load OK` means the channel is within assignment limits. `Soft Full` / warning means the channel is near or at the soft limit and new additions require capacity/headroom evaluation. `Hard Full` / "on limit" means new planned assignments are restricted; current users are not automatically failing. `Overloaded` means failover-hard capacity was reached and is a stronger emergency load state. Operator copy should explain preferred assignment level, hard assignment limit, assignment restriction, and why current users may still work.
 - Engineer meaning: Planner/gate input that bounds movement, affects ranking, can block planned/failover candidates, and prevents broad unsafe switching.
 - Known caveats: Capacity/load is not speed quality and not traffic saturation. A channel can have good speed/stability and still be hard-full because too many users are assigned relative to policy. Production evidence on 2026-06-18 showed `vless` and `awg3` as technically usable/currently retained while load was hard-full for assignment. Global IP capacity readiness (`capacity_plan`) is a separate pool/readiness check and can fail independently from per-channel assignment load. Prefer "assignment limit reached" over "channel overloaded" when the operator might confuse load with internet quality.
-- Related reports / ADRs: `CAPACITY_1_REALITY_AUDIT_REPORT.md`, `docs/track7/productization/e35_0_1-audit/capacity-policy-audit.md`, `CHANNEL_SCORE_REALITY_AUDIT.md`, `CHANNEL_ROUTE_COMPONENT_REALITY_AUDIT_REPORT.md`, `CHANNEL_SIGNALS_1_MODEL_AUDIT_REPORT.md`, `CHANNEL_SIGNALS_2A_SEMANTICS_REPORT.md`, `CHANNEL_TRUTH_1_FULL_DECISION_PIPELINE_AND_SCORE_ALIGNMENT_AUDIT_REPORT.md`, `CHANNEL_TRUTH_2_ASSIGNMENT_ELIGIBILITY_TRUTH_DISCOVERY_REPORT.md`, `docs/operator_actions/CHANNEL_AUTOMATION_OPERATOR_REALITY_AUDIT_REPORT.md`, ADR-009.
+- Related reports / ADRs: `CAPACITY_1_REALITY_AUDIT_REPORT.md`, `docs/capacity_2/CAPACITY_2_OBSERVED_CAPACITY_MODEL_REPORT.md`, `docs/track7/productization/e35_0_1-audit/capacity-policy-audit.md`, `CHANNEL_SCORE_REALITY_AUDIT.md`, `CHANNEL_ROUTE_COMPONENT_REALITY_AUDIT_REPORT.md`, `CHANNEL_SIGNALS_1_MODEL_AUDIT_REPORT.md`, `CHANNEL_SIGNALS_2A_SEMANTICS_REPORT.md`, `CHANNEL_TRUTH_1_FULL_DECISION_PIPELINE_AND_SCORE_ALIGNMENT_AUDIT_REPORT.md`, `CHANNEL_TRUTH_2_ASSIGNMENT_ELIGIBILITY_TRUTH_DISCOVERY_REPORT.md`, `docs/operator_actions/CHANNEL_AUTOMATION_OPERATOR_REALITY_AUDIT_REPORT.md`, ADR-009, ADR-011.
 - Last verified commit: `2fb9d205`.
+
+## 6A. Observed Capacity Shadow
+
+- What it means: A future shadow/advisory model that learns practical channel capacity from observed quality at different assigned-user levels. It asks: "At what user count does this channel begin to degrade in measured reality?"
+- Source of truth: Derived evidence only from existing assigned-user counts, service matrix, quality summary windows, runtime readiness, route readiness, and history. It is not an active runtime truth source.
+- Where it is calculated: Not implemented as runtime behavior in CAPACITY.2. Future implementation should reuse read-only patterns from `tools/v7-egress-quality-compact`, `admin_core/intelligence_workers.py`, and `admin_core/shadow_autonomy.py`.
+- Where it is displayed: Not currently displayed as an active operator/planner decision. Future display should be advisory only until separately approved.
+- What affects it: Assigned-user count, service failures, fail rate, p95 latency, avg/min Mbps, stability, runtime readiness, route readiness, historical trend, sample freshness, and confidence.
+- What does NOT affect it: It must not directly affect planner eligibility, selected moves, autoswitch, governance, runtime execution, or existing `soft_limit`, `hard_limit`, and `capacity_users` values.
+- Operator meaning: "V7 is learning whether this channel remains stable as users increase." It is not permission to move users and not proof of physical bandwidth.
+- Engineer meaning: A snapshot-only learning/advisory layer for practical capacity under third-party or partially owned tunnel constraints.
+- Known caveats: Current production evidence proves V7 can observe users and quality together, but does not yet prove causal capacity curves. Observed Capacity Shadow must remain observe/learn/recommend until a future governed program certifies planner integration.
+- Related reports / ADRs: `docs/capacity_2/CAPACITY_2_OBSERVED_CAPACITY_MODEL_REPORT.md`, `docs/capacity_2/OBSERVED_CAPACITY_SHADOW_MODEL.md`, `docs/capacity_2/DATA_GAP_ANALYSIS.md`, ADR-011.
+- Last verified commit: `67fbd850`.
 
 ## 7. Service Matrix
 

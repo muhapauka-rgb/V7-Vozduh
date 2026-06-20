@@ -25286,7 +25286,13 @@ def html_page_v2():
       };
     }
     function tableSortConfigForKind(kind='user') {
-      return normalizedTableSortConfig(kind, tableSortConfig(tableSortKey(kind), kind === 'organization' ? 'organization' : ''));
+      const key = tableSortKey(kind);
+      const raw = tableSortConfig(key, kind === 'organization' ? 'organization' : '');
+      const normalized = normalizedTableSortConfig(kind, raw);
+      if (raw.primary !== normalized.primary || raw.secondary !== normalized.secondary) {
+        try { saveTableSortConfig(key, normalized); } catch (_) {}
+      }
+      return normalized;
     }
     function renderSortedTableKind(kind='user') {
       if (kind === 'channel') renderChannels();

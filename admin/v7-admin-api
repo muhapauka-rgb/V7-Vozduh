@@ -25314,6 +25314,10 @@ def html_page_v2():
       const key = tableSortKey(kind);
       const cfg = tableSortConfigForKind(kind);
       const nextDir = cfg.primary === id && cfg.primaryDir !== 'desc' ? 'desc' : 'asc';
+      if (kind === 'channel') {
+        v2ChannelAttentionMode = 'default';
+        try { localStorage.setItem(CHANNEL_ATTENTION_MODE_KEY, v2ChannelAttentionMode); } catch (_) {}
+      }
       saveTableSortConfig(key, {primary:id, primaryDir:nextDir, secondary:cfg.primary === id ? cfg.secondary : cfg.primary, secondaryDir:cfg.primary === id ? cfg.secondaryDir : cfg.primaryDir});
       renderSortedTableKind(kind);
     }
@@ -29595,6 +29599,8 @@ def html_page_v2():
       showV2UserSort();
     }
     function applyChannelSortSettings() {
+      v2ChannelAttentionMode = 'default';
+      try { localStorage.setItem(CHANNEL_ATTENTION_MODE_KEY, v2ChannelAttentionMode); } catch (_) {}
       saveTableSortConfig(CHANNEL_TABLE_SORT_KEY, {
         primary: document.getElementById('channelSortPrimary')?.value || '',
         primaryDir: document.getElementById('channelSortPrimaryDir')?.value || 'asc',

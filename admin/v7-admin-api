@@ -20502,7 +20502,9 @@ def html_page_v2():
     .channels-table-v2 td[data-col="signals"] { overflow:visible; }
     .channel-signals-head { display:inline-grid; gap:2px; align-items:center; min-width:88px; }
     .channel-signal-head-codes { display:grid; grid-template-columns:repeat(4,18px); gap:6px; align-items:center; color:var(--muted); font-size:10px; line-height:1; letter-spacing:0; }
-    .channel-signal-head-codes b { font-weight:900; text-align:center; }
+    .channel-signal-sort-button { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border:0; border-radius:999px; background:transparent; color:inherit; font:inherit; font-weight:900; line-height:1; padding:0; cursor:pointer; }
+    .channel-signal-sort-button:hover, .channel-signal-sort-button.active { color:var(--text); background:rgba(96,165,250,.10); }
+    .channel-signal-sort-button .sort-indicator { margin-left:1px; font-size:9px; line-height:1; }
     .channel-signal-badge { position:relative; display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; min-width:18px; min-height:18px; border:1px solid var(--line); border-radius:999px; background:rgba(148,163,184,.08); color:var(--muted); padding:0; font-size:0; font-weight:850; cursor:help; white-space:nowrap; outline:0; }
     .channel-signal-badge::before { content:''; width:8px; height:8px; border-radius:999px; background:currentColor; flex:0 0 auto; }
     .channel-signal-badge:hover::after, .channel-signal-badge:focus::after { content:attr(data-tooltip); position:absolute; z-index:80; left:0; top:calc(100% + 7px); width:max-content; max-width:270px; white-space:normal; line-height:1.35; color:var(--text); background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); padding:8px 9px; font-size:12px; font-weight:760; }
@@ -25298,8 +25300,13 @@ def html_page_v2():
       if (cfg.secondary === id) return cfg.secondaryDir === 'desc' ? '↓' : '↑';
       return '';
     }
+    function channelSignalHeaderButton(label='', sortId='', title='') {
+      const indicator = sortIndicator('channel', sortId);
+      const active = indicator ? ' active' : '';
+      return `<button type="button" class="channel-signal-sort-button${active}" title="${esc(title)}" onclick="event.stopPropagation();toggleTableSort('channel','${esc(sortId)}')"><span>${esc(label)}</span>${indicator ? `<span class="sort-indicator">${esc(indicator)}</span>` : ''}</button>`;
+    }
     function channelSignalsHeaderLabel() {
-      return '<span class="channel-signals-head"><span>Сигналы</span><span class="channel-signal-head-codes" aria-label="S — сервисы, L — нагрузка, R — runtime, T — стабильность"><b>S</b><b>L</b><b>R</b><b>T</b></span></span>';
+      return `<span class="channel-signals-head"><span>Сигналы</span><span class="channel-signal-head-codes" aria-label="S — сервисы, L — нагрузка, R — runtime, T — стабильность">${channelSignalHeaderButton('S','signal_services','Сортировать по сервисам')}${channelSignalHeaderButton('L','signal_load','Сортировать по нагрузке')}${channelSignalHeaderButton('R','signal_runtime','Сортировать по готовности')}${channelSignalHeaderButton('T','signal_stability','Сортировать по стабильности')}</span></span>`;
     }
     function sortableHeader(kind='user', col={}) {
       const disabled = !col.id || col.id === 'action' || col.sortable === false;

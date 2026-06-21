@@ -4,7 +4,8 @@ Status: runtime/discover audit
 Timestamp: 2026-06-21T15:41:45+0700
 Runtime snapshot: 2026-06-21T08:15:44.315146+00:00
 Branch: `Updatesystem`
-Local commit: `6c5f8eeabdf36c5360825d8cbb7388b7fdde8659`
+Audit base commit: `6c5f8eeabdf36c5360825d8cbb7388b7fdde8659`
+Report commit: `f875eeee50091382c1332aaa85449010875357b1`
 Runtime deployed code commit: `67fbd8506321802222c6f8ed3d34cfe406a45d8a`
 
 ## Scope
@@ -86,7 +87,7 @@ Convergence:
 - `final_verdict = PASS`
 - `status = ALIGNED`
 - Runtime deployed code is still `67fbd8506321802222c6f8ed3d34cfe406a45d8a`.
-- Local/GitHub are at `6c5f8eeabdf36c5360825d8cbb7388b7fdde8659`.
+- Local/GitHub are at report commit `f875eeee50091382c1332aaa85449010875357b1` after documentation commit.
 - The mismatch is classified as docs-only; deployment is not required for this audit.
 
 ## Current Pool Verdict
@@ -268,4 +269,3 @@ Safest next phase:
 ## Verdict
 
 `POOL3_DISCOVER_COMPLETE_NO_APPLY`
-

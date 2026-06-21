@@ -98,11 +98,11 @@
   "diagnosis": [],
   "final_verdict": "PASS",
   "github": {
-    "commit": "6c5f8eeabdf36c5360825d8cbb7388b7fdde8659",
+    "commit": "f875eeee50091382c1332aaa85449010875357b1",
     "status": "PASS"
   },
   "local": {
-    "commit": "6c5f8eeabdf36c5360825d8cbb7388b7fdde8659",
+    "commit": "f875eeee50091382c1332aaa85449010875357b1",
     "status": "PASS"
   },
   "production": {
@@ -124,8 +124,22 @@
       "docs/capacity_2/OBSERVED_CAPACITY_THEORY.md",
       "docs/capacity_2/SAFETY_MODEL.md",
       "docs/decisions/ADR-011-observed-capacity-model.md",
+      "docs/decisions/ADR-EVENT-DRIVEN-AUTONOMY.md",
       "docs/reference/SYSTEM_MAP.md",
-      "docs/reference/V7_CANONICAL_REFERENCE.md"
+      "docs/reference/V7_CANONICAL_REFERENCE.md",
+      "docs/reports/POOL.3_RUNTIME_DISCOVER.md",
+      "docs/reports/POOL3_EVIDENCE/api_autoswitch_dry_run.json",
+      "docs/reports/POOL3_EVIDENCE/api_autoswitch_dry_run_wireguard.json",
+      "docs/reports/POOL3_EVIDENCE/api_egress.json",
+      "docs/reports/POOL3_EVIDENCE/api_operator_autonomous_dry_run.json",
+      "docs/reports/POOL3_EVIDENCE/api_overview.json",
+      "docs/reports/POOL3_EVIDENCE/api_planner_refresh_dry_run.json",
+      "docs/reports/POOL3_EVIDENCE/api_session.json",
+      "docs/reports/POOL3_EVIDENCE/api_users.json",
+      "docs/reports/POOL3_EVIDENCE/api_users_rebalance_dry_run.json",
+      "docs/reports/POOL3_EVIDENCE/convergence_status.json",
+      "docs/reports/POOL3_EVIDENCE/pool3_summary.json",
+      "docs/reports/POOL3_EVIDENCE/truth_check.json"
     ],
     "deploy_delta_mismatches": [],
     "deployable_change_classification": {
@@ -145,8 +159,22 @@
         "docs/capacity_2/OBSERVED_CAPACITY_THEORY.md",
         "docs/capacity_2/SAFETY_MODEL.md",
         "docs/decisions/ADR-011-observed-capacity-model.md",
+        "docs/decisions/ADR-EVENT-DRIVEN-AUTONOMY.md",
         "docs/reference/SYSTEM_MAP.md",
-        "docs/reference/V7_CANONICAL_REFERENCE.md"
+        "docs/reference/V7_CANONICAL_REFERENCE.md",
+        "docs/reports/POOL.3_RUNTIME_DISCOVER.md",
+        "docs/reports/POOL3_EVIDENCE/api_autoswitch_dry_run.json",
+        "docs/reports/POOL3_EVIDENCE/api_autoswitch_dry_run_wireguard.json",
+        "docs/reports/POOL3_EVIDENCE/api_egress.json",
+        "docs/reports/POOL3_EVIDENCE/api_operator_autonomous_dry_run.json",
+        "docs/reports/POOL3_EVIDENCE/api_overview.json",
+        "docs/reports/POOL3_EVIDENCE/api_planner_refresh_dry_run.json",
+        "docs/reports/POOL3_EVIDENCE/api_session.json",
+        "docs/reports/POOL3_EVIDENCE/api_users.json",
+        "docs/reports/POOL3_EVIDENCE/api_users_rebalance_dry_run.json",
+        "docs/reports/POOL3_EVIDENCE/convergence_status.json",
+        "docs/reports/POOL3_EVIDENCE/pool3_summary.json",
+        "docs/reports/POOL3_EVIDENCE/truth_check.json"
       ],
       "final_verdict": "PASS",
       "schema": "v7-deployable-change-classification/v1",
@@ -156,8 +184,8 @@
     "diagnosis": [],
     "docs_only_mismatch": true,
     "final_verdict": "PASS",
-    "github_commit": "6c5f8eeabdf36c5360825d8cbb7388b7fdde8659",
-    "local_commit": "6c5f8eeabdf36c5360825d8cbb7388b7fdde8659",
+    "github_commit": "f875eeee50091382c1332aaa85449010875357b1",
+    "local_commit": "f875eeee50091382c1332aaa85449010875357b1",
     "production_commit": "67fbd8506321802222c6f8ed3d34cfe406a45d8a",
     "reason": "local_github_production_aligned",
     "runtime_action_safe": true,
@@ -172,7 +200,7 @@
   "source_status": {
     "blockers": [],
     "branch": "Updatesystem",
-    "commit": "6c5f8eeabdf36c5360825d8cbb7388b7fdde8659",
+    "commit": "f875eeee50091382c1332aaa85449010875357b1",
     "deploy_delta": [
       {
         "exists": true,
@@ -525,10 +553,10 @@
       "canonical_workspace": "/Users/ponch/Documents/New project",
       "convergence_status": "LOCAL_ALIGNED",
       "current_branch": "Updatesystem",
-      "current_commit": "6c5f8eeabdf36c5360825d8cbb7388b7fdde8659",
+      "current_commit": "f875eeee50091382c1332aaa85449010875357b1",
       "current_workspace": "/Users/ponch/Documents/New project",
       "final_verdict": "PASS",
-      "git_status_short": "?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reports/",
+      "git_status_short": "M docs/decisions/ADR-EVENT-DRIVEN-AUTONOMY.md\n M docs/reference/SYSTEM_MAP.md\n M docs/reference/V7_CANONICAL_REFERENCE.md\n M docs/reports/POOL.3_RUNTIME_DISCOVER.md\n M docs/reports/POOL3_EVIDENCE/convergence_status.json\n M docs/reports/POOL3_EVIDENCE/truth_check.json\n?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md",
       "github": {},
       "local": {
         "blockers": [],
@@ -544,20 +572,50 @@
         },
         "convergence_status": "LOCAL_ALIGNED",
         "current_branch": "Updatesystem",
-        "current_commit": "6c5f8eeabdf36c5360825d8cbb7388b7fdde8659",
+        "current_commit": "f875eeee50091382c1332aaa85449010875357b1",
         "current_workspace": "/Users/ponch/Documents/New project",
         "dirty_classification": {
           "blocking": false,
           "blocking_paths": [],
           "clean": false,
           "counts": {
-            "documentation_only": 4,
+            "documentation_only": 9,
             "runtime_critical": 0,
             "runtime_relevant": 0,
             "unknown": 0
           },
           "documentation_only": true,
           "entries": [
+            {
+              "category": "documentation_only",
+              "path": "docs/decisions/ADR-EVENT-DRIVEN-AUTONOMY.md",
+              "status": "M"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reference/SYSTEM_MAP.md",
+              "status": "M"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reference/V7_CANONICAL_REFERENCE.md",
+              "status": "M"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reports/POOL.3_RUNTIME_DISCOVER.md",
+              "status": "M"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reports/POOL3_EVIDENCE/convergence_status.json",
+              "status": "M"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reports/POOL3_EVIDENCE/truth_check.json",
+              "status": "M"
+            },
             {
               "category": "documentation_only",
               "path": "POOL2_EVIDENCE/",
@@ -572,29 +630,29 @@
               "category": "documentation_only",
               "path": "V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md",
               "status": "??"
-            },
-            {
-              "category": "documentation_only",
-              "path": "docs/reports/",
-              "status": "??"
             }
           ],
           "info_paths": [
+            "docs/decisions/ADR-EVENT-DRIVEN-AUTONOMY.md",
+            "docs/reference/SYSTEM_MAP.md",
+            "docs/reference/V7_CANONICAL_REFERENCE.md",
+            "docs/reports/POOL.3_RUNTIME_DISCOVER.md",
+            "docs/reports/POOL3_EVIDENCE/convergence_status.json",
+            "docs/reports/POOL3_EVIDENCE/truth_check.json",
             "POOL2_EVIDENCE/",
             "POOL2_STABILITY_WINDOW_RECHECK_REPORT.md",
-            "V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md",
-            "docs/reports/"
+            "V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md"
           ],
           "warning": false,
           "warning_paths": []
         },
         "final_verdict": "PASS",
-        "git_status_short": "?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reports/",
+        "git_status_short": "M docs/decisions/ADR-EVENT-DRIVEN-AUTONOMY.md\n M docs/reference/SYSTEM_MAP.md\n M docs/reference/V7_CANONICAL_REFERENCE.md\n M docs/reports/POOL.3_RUNTIME_DISCOVER.md\n M docs/reports/POOL3_EVIDENCE/convergence_status.json\n M docs/reports/POOL3_EVIDENCE/truth_check.json\n?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md",
         "origin_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
         "warnings": [
           "documentation_dirty_ignored"
         ],
-        "worktree_list": "worktree /Users/ponch/Documents/New project\nHEAD 6c5f8eeabdf36c5360825d8cbb7388b7fdde8659\nbranch refs/heads/Updatesystem\n\nworktree /private/tmp/v7-convergence-c\nHEAD c40cae13298594b7ad7040df4b19306c4e2c29d4\nbranch refs/heads/v7-next\nprunable gitdir file points to non-existent location\n\nworktree /private/tmp/v7-vozduh-main\nHEAD 593619d494e215d11fd826086593527a4a555690\ndetached\nprunable gitdir file points to non-existent location"
+        "worktree_list": "worktree /Users/ponch/Documents/New project\nHEAD f875eeee50091382c1332aaa85449010875357b1\nbranch refs/heads/Updatesystem\n\nworktree /private/tmp/v7-convergence-c\nHEAD c40cae13298594b7ad7040df4b19306c4e2c29d4\nbranch refs/heads/v7-next\nprunable gitdir file points to non-existent location\n\nworktree /private/tmp/v7-vozduh-main\nHEAD 593619d494e215d11fd826086593527a4a555690\ndetached\nprunable gitdir file points to non-existent location"
       },
       "mode": "local",
       "remote_branch_commit": "NOT_CHECKED",
@@ -608,7 +666,7 @@
       ]
     },
     "remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
-    "remote_commit": "6c5f8eeabdf36c5360825d8cbb7388b7fdde8659",
+    "remote_commit": "f875eeee50091382c1332aaa85449010875357b1",
     "runtime_commit": "67fbd8506321802222c6f8ed3d34cfe406a45d8a",
     "schema": "v7-sync-status/v1",
     "status": "SYNCED",
@@ -620,18 +678,18 @@
       "canonical_workspace": "/Users/ponch/Documents/New project",
       "convergence_status": "FULLY_ALIGNED",
       "current_branch": "Updatesystem",
-      "current_commit": "6c5f8eeabdf36c5360825d8cbb7388b7fdde8659",
+      "current_commit": "f875eeee50091382c1332aaa85449010875357b1",
       "current_workspace": "/Users/ponch/Documents/New project",
       "final_verdict": "PASS",
-      "git_status_short": "?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reports/",
+      "git_status_short": "M docs/decisions/ADR-EVENT-DRIVEN-AUTONOMY.md\n M docs/reference/SYSTEM_MAP.md\n M docs/reference/V7_CANONICAL_REFERENCE.md\n M docs/reports/POOL.3_RUNTIME_DISCOVER.md\n M docs/reports/POOL3_EVIDENCE/convergence_status.json\n M docs/reports/POOL3_EVIDENCE/truth_check.json\n?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md",
       "github": {
         "blockers": [],
         "canonical_branch": "Updatesystem",
         "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
         "convergence_status": "GITHUB_ALIGNED",
         "final_verdict": "PASS",
-        "local_commit": "6c5f8eeabdf36c5360825d8cbb7388b7fdde8659",
-        "remote_branch_commit": "6c5f8eeabdf36c5360825d8cbb7388b7fdde8659",
+        "local_commit": "f875eeee50091382c1332aaa85449010875357b1",
+        "remote_branch_commit": "f875eeee50091382c1332aaa85449010875357b1",
         "remote_read_status": "OK"
       },
       "local": {
@@ -648,20 +706,50 @@
         },
         "convergence_status": "LOCAL_ALIGNED",
         "current_branch": "Updatesystem",
-        "current_commit": "6c5f8eeabdf36c5360825d8cbb7388b7fdde8659",
+        "current_commit": "f875eeee50091382c1332aaa85449010875357b1",
         "current_workspace": "/Users/ponch/Documents/New project",
         "dirty_classification": {
           "blocking": false,
           "blocking_paths": [],
           "clean": false,
           "counts": {
-            "documentation_only": 4,
+            "documentation_only": 9,
             "runtime_critical": 0,
             "runtime_relevant": 0,
             "unknown": 0
           },
           "documentation_only": true,
           "entries": [
+            {
+              "category": "documentation_only",
+              "path": "docs/decisions/ADR-EVENT-DRIVEN-AUTONOMY.md",
+              "status": "M"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reference/SYSTEM_MAP.md",
+              "status": "M"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reference/V7_CANONICAL_REFERENCE.md",
+              "status": "M"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reports/POOL.3_RUNTIME_DISCOVER.md",
+              "status": "M"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reports/POOL3_EVIDENCE/convergence_status.json",
+              "status": "M"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reports/POOL3_EVIDENCE/truth_check.json",
+              "status": "M"
+            },
             {
               "category": "documentation_only",
               "path": "POOL2_EVIDENCE/",
@@ -676,32 +764,32 @@
               "category": "documentation_only",
               "path": "V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md",
               "status": "??"
-            },
-            {
-              "category": "documentation_only",
-              "path": "docs/reports/",
-              "status": "??"
             }
           ],
           "info_paths": [
+            "docs/decisions/ADR-EVENT-DRIVEN-AUTONOMY.md",
+            "docs/reference/SYSTEM_MAP.md",
+            "docs/reference/V7_CANONICAL_REFERENCE.md",
+            "docs/reports/POOL.3_RUNTIME_DISCOVER.md",
+            "docs/reports/POOL3_EVIDENCE/convergence_status.json",
+            "docs/reports/POOL3_EVIDENCE/truth_check.json",
             "POOL2_EVIDENCE/",
             "POOL2_STABILITY_WINDOW_RECHECK_REPORT.md",
-            "V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md",
-            "docs/reports/"
+            "V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md"
           ],
           "warning": false,
           "warning_paths": []
         },
         "final_verdict": "PASS",
-        "git_status_short": "?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reports/",
+        "git_status_short": "M docs/decisions/ADR-EVENT-DRIVEN-AUTONOMY.md\n M docs/reference/SYSTEM_MAP.md\n M docs/reference/V7_CANONICAL_REFERENCE.md\n M docs/reports/POOL.3_RUNTIME_DISCOVER.md\n M docs/reports/POOL3_EVIDENCE/convergence_status.json\n M docs/reports/POOL3_EVIDENCE/truth_check.json\n?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md",
         "origin_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
         "warnings": [
           "documentation_dirty_ignored"
         ],
-        "worktree_list": "worktree /Users/ponch/Documents/New project\nHEAD 6c5f8eeabdf36c5360825d8cbb7388b7fdde8659\nbranch refs/heads/Updatesystem\n\nworktree /private/tmp/v7-convergence-c\nHEAD c40cae13298594b7ad7040df4b19306c4e2c29d4\nbranch refs/heads/v7-next\nprunable gitdir file points to non-existent location\n\nworktree /private/tmp/v7-vozduh-main\nHEAD 593619d494e215d11fd826086593527a4a555690\ndetached\nprunable gitdir file points to non-existent location"
+        "worktree_list": "worktree /Users/ponch/Documents/New project\nHEAD f875eeee50091382c1332aaa85449010875357b1\nbranch refs/heads/Updatesystem\n\nworktree /private/tmp/v7-convergence-c\nHEAD c40cae13298594b7ad7040df4b19306c4e2c29d4\nbranch refs/heads/v7-next\nprunable gitdir file points to non-existent location\n\nworktree /private/tmp/v7-vozduh-main\nHEAD 593619d494e215d11fd826086593527a4a555690\ndetached\nprunable gitdir file points to non-existent location"
       },
       "mode": "all",
-      "remote_branch_commit": "6c5f8eeabdf36c5360825d8cbb7388b7fdde8659",
+      "remote_branch_commit": "f875eeee50091382c1332aaa85449010875357b1",
       "runtime": {
         "allowed_readonly_commands": [
           [
@@ -877,8 +965,22 @@
             "docs/capacity_2/OBSERVED_CAPACITY_THEORY.md",
             "docs/capacity_2/SAFETY_MODEL.md",
             "docs/decisions/ADR-011-observed-capacity-model.md",
+            "docs/decisions/ADR-EVENT-DRIVEN-AUTONOMY.md",
             "docs/reference/SYSTEM_MAP.md",
-            "docs/reference/V7_CANONICAL_REFERENCE.md"
+            "docs/reference/V7_CANONICAL_REFERENCE.md",
+            "docs/reports/POOL.3_RUNTIME_DISCOVER.md",
+            "docs/reports/POOL3_EVIDENCE/api_autoswitch_dry_run.json",
+            "docs/reports/POOL3_EVIDENCE/api_autoswitch_dry_run_wireguard.json",
+            "docs/reports/POOL3_EVIDENCE/api_egress.json",
+            "docs/reports/POOL3_EVIDENCE/api_operator_autonomous_dry_run.json",
+            "docs/reports/POOL3_EVIDENCE/api_overview.json",
+            "docs/reports/POOL3_EVIDENCE/api_planner_refresh_dry_run.json",
+            "docs/reports/POOL3_EVIDENCE/api_session.json",
+            "docs/reports/POOL3_EVIDENCE/api_users.json",
+            "docs/reports/POOL3_EVIDENCE/api_users_rebalance_dry_run.json",
+            "docs/reports/POOL3_EVIDENCE/convergence_status.json",
+            "docs/reports/POOL3_EVIDENCE/pool3_summary.json",
+            "docs/reports/POOL3_EVIDENCE/truth_check.json"
           ],
           "classification": {
             "classification": "DOCS_ONLY_MISMATCH",
@@ -897,15 +999,29 @@
               "docs/capacity_2/OBSERVED_CAPACITY_THEORY.md",
               "docs/capacity_2/SAFETY_MODEL.md",
               "docs/decisions/ADR-011-observed-capacity-model.md",
+              "docs/decisions/ADR-EVENT-DRIVEN-AUTONOMY.md",
               "docs/reference/SYSTEM_MAP.md",
-              "docs/reference/V7_CANONICAL_REFERENCE.md"
+              "docs/reference/V7_CANONICAL_REFERENCE.md",
+              "docs/reports/POOL.3_RUNTIME_DISCOVER.md",
+              "docs/reports/POOL3_EVIDENCE/api_autoswitch_dry_run.json",
+              "docs/reports/POOL3_EVIDENCE/api_autoswitch_dry_run_wireguard.json",
+              "docs/reports/POOL3_EVIDENCE/api_egress.json",
+              "docs/reports/POOL3_EVIDENCE/api_operator_autonomous_dry_run.json",
+              "docs/reports/POOL3_EVIDENCE/api_overview.json",
+              "docs/reports/POOL3_EVIDENCE/api_planner_refresh_dry_run.json",
+              "docs/reports/POOL3_EVIDENCE/api_session.json",
+              "docs/reports/POOL3_EVIDENCE/api_users.json",
+              "docs/reports/POOL3_EVIDENCE/api_users_rebalance_dry_run.json",
+              "docs/reports/POOL3_EVIDENCE/convergence_status.json",
+              "docs/reports/POOL3_EVIDENCE/pool3_summary.json",
+              "docs/reports/POOL3_EVIDENCE/truth_check.json"
             ],
             "final_verdict": "PASS",
             "schema": "v7-deployable-change-classification/v1",
             "unknown_paths": []
           },
           "docs_only_mismatch": true,
-          "local_commit": "6c5f8eeabdf36c5360825d8cbb7388b7fdde8659",
+          "local_commit": "f875eeee50091382c1332aaa85449010875357b1",
           "runtime_blocking": false,
           "runtime_commit": "67fbd8506321802222c6f8ed3d34cfe406a45d8a",
           "schema": "v7-runtime-commit-mismatch-classification/v1"
@@ -952,7 +1068,7 @@
           "v7-users-autoswitch.timer"
         ],
         "final_verdict": "PASS",
-        "local_commit": "6c5f8eeabdf36c5360825d8cbb7388b7fdde8659",
+        "local_commit": "f875eeee50091382c1332aaa85449010875357b1",
         "missing_commands": [],
         "runtime_access_status": "READY",
         "runtime_branch": "Updatesystem",

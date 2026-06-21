@@ -1,7 +1,7 @@
 # V7 Canonical Reference
 
 Status: canonical project reference
-Last verified commit: `6c5f8ee`
+Last verified commit: `f875eeee`
 Last verified date: 2026-06-21
 
 This document describes the current meaning of V7 system concepts. It is not a history log and not an audit report. Reports remain evidence. ADRs explain why a decision was made. This reference is the current truth that future V7 work must read before re-auditing old concepts.
@@ -284,7 +284,7 @@ A new audit is allowed only when the reference has no answer, the reference expl
 - Engineer meaning: Existing decision pipeline and safety gate authority.
 - Known caveats: Planner read-only outputs are not the same as applying execution. Apply remains governed. Admin action wrappers may expose a successful dry-run `rc=0` while returning only a truncated stdout tail; when exact `candidate_moves_total` matters, prefer a full CLI JSON capture or a normalized endpoint that preserves the parsed plan.
 - Related reports / ADRs: `CHANNEL_TRUTH_2_ASSIGNMENT_ELIGIBILITY_TRUTH_DISCOVERY_REPORT.md`, `CHANNEL_TRUTH_3_CHANNEL_ASSIGNMENT_ADAPTER_REPORT.md`, `docs/operator_actions/CHANNEL_AUTOMATION_OPERATOR_REALITY_AUDIT_REPORT.md`, `docs/reports/POOL.3_RUNTIME_DISCOVER.md`, ADR-EVENT-DRIVEN-AUTONOMY.
-- Last verified commit: `6c5f8ee`.
+- Last verified commit: `f875eeee`.
 
 ## 12. Assignment
 
@@ -298,7 +298,7 @@ A new audit is allowed only when the reference has no answer, the reference expl
 - Engineer meaning: Planner-derived role projection over existing channel/user truth.
 - Known caveats: Quality and assignment can intentionally disagree. The UI must make the decision primary and health secondary. A channel can be technically READY and still hard-full for assignment; hard-full alone does not mean current users are broken or must move immediately.
 - Related reports / ADRs: `CHANNEL_TRUTH_1_FULL_DECISION_PIPELINE_AND_SCORE_ALIGNMENT_AUDIT_REPORT.md`, `CHANNEL_TRUTH_2_ASSIGNMENT_ELIGIBILITY_TRUTH_DISCOVERY_REPORT.md`, `CHANNEL_TRUTH_3_CHANNEL_ASSIGNMENT_ADAPTER_REPORT.md`, `docs/reports/POOL.3_RUNTIME_DISCOVER.md`, ADR-002, ADR-EVENT-DRIVEN-AUTONOMY.
-- Last verified commit: `6c5f8ee`.
+- Last verified commit: `f875eeee`.
 
 ## 13. Users
 
@@ -340,7 +340,7 @@ A new audit is allowed only when the reference has no answer, the reference expl
 - Engineer meaning: Derived intelligence and governed automation layer over existing truth and execution owners.
 - Known caveats: Continuous production autonomy daemon is not active as of POOL.3. Truth says `autoswitch_scheduler_active=false` and `autoswitch_service_active=false`. Autonomous dry-run is simulation-only and blocked by confidence/trust/prediction floors plus restore barrier readiness until a future event-driven phase is certified.
 - Related reports / ADRs: `PROGRAM_INTELLIGENCE_PLATFORM_CERTIFICATION_AND_HARDENING_REPORT.md`, `UX_7_ATTENTION_LAYER_SPECIFICATION_REPORT.md`, `docs/operator_actions/CHANNEL_AUTOMATION_OPERATOR_REALITY_AUDIT_REPORT.md`, `docs/reports/POOL.3_RUNTIME_DISCOVER.md`, ADR-EVENT-DRIVEN-AUTONOMY.
-- Last verified commit: `6c5f8ee`.
+- Last verified commit: `f875eeee`.
 
 ## 16. Truth / Convergence
 

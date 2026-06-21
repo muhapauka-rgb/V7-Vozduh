@@ -2,7 +2,7 @@
 
 Status: Accepted
 Date: 2026-06-21
-Commit: `6c5f8eeabdf36c5360825d8cbb7388b7fdde8659`
+Commit: `f875eeee50091382c1332aaa85449010875357b1`
 
 ## Context
 
@@ -119,4 +119,3 @@ No new planner, governance, execution path, database, storage, snapshots, or tru
 - `docs/reports/POOL.3_RUNTIME_DISCOVER.md`
 - `POOL2_STABILITY_WINDOW_RECHECK_REPORT.md`
 - `BA4_TEN_USER_AUTONOMY_CERTIFICATION_REPORT.md`
-

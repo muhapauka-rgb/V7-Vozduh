@@ -118,6 +118,17 @@ A new audit is allowed only when the reference has no answer, the reference expl
 7. Timer-only movement is rejected as a product model. Periodic probes and previews may run; periodic blind user movement must not run.
 8. Any future production autonomy daemon must reuse existing planner, packet, restore barrier, execution, rollback, feedback, learning, truth, and convergence owners.
 
+## EVENT_TRIGGER_READ_ONLY_CERTIFICATION
+
+1. EVENT.1 evidence on 2026-06-21 certified the current event-driven autonomy trigger chain as read-only and blocked for live production apply.
+2. Existing regression/evidence sources include `tools/v7-telegram-sentinel`, service matrix refresh, egress quality compaction, route/runtime/capacity read models, and planner blocker transitions.
+3. The existing chain can preview planner output, execution packet draft, restore barrier ownership, rollback model, feedback model, and learning/confidence evidence without moving users.
+4. EVENT.1 current truth: `preview_only=true`, `read_only=true`, `execution_allowed_now=false`, `apply_executed=false`, `users_moved=0`, `rollback_executed=false`, and `autonomy_enabled=false`.
+5. EVENT.1 blockers are `confidence_too_low`, `trust_too_low`, `prediction_confidence_too_low`, operator comparison evidence below floor, restore barrier readiness blocked, and no certified live event consumer binding from regression evidence to governed planner trigger.
+6. `v7-telegram-sentinel` is an event/regression source, but current service mode uses `--no-autoswitch`; it is not a certified production apply trigger.
+7. EVENT.1 final verdict is `EVENT_TRIGGER_BLOCKED`.
+8. Next safe phase is read-only event consumer certification plus evidence collection until confidence, trust, prediction, comparison, restore barrier, rollback, feedback, and learning gates pass together.
+
 ## 1. Channels
 
 - What it means: A channel is an egress path that can carry users, be inspected by operators, and be considered by the planner.
@@ -338,9 +349,9 @@ A new audit is allowed only when the reference has no answer, the reference expl
 - What does NOT affect it: It does not bypass approval, restore barriers, governance, rollback, feedback, truth/convergence, or existing execution handlers. It must not move users merely because a timer fired.
 - Operator meaning: "V7 can surface what needs attention, and can prepare governed action, but dangerous changes remain guarded until an event-driven chain is ready."
 - Engineer meaning: Derived intelligence and governed automation layer over existing truth and execution owners.
-- Known caveats: Continuous production autonomy daemon is not active as of POOL.3. Truth says `autoswitch_scheduler_active=false` and `autoswitch_service_active=false`. Autonomous dry-run is simulation-only and blocked by confidence/trust/prediction floors plus restore barrier readiness until a future event-driven phase is certified.
-- Related reports / ADRs: `PROGRAM_INTELLIGENCE_PLATFORM_CERTIFICATION_AND_HARDENING_REPORT.md`, `UX_7_ATTENTION_LAYER_SPECIFICATION_REPORT.md`, `docs/operator_actions/CHANNEL_AUTOMATION_OPERATOR_REALITY_AUDIT_REPORT.md`, `docs/reports/POOL.3_RUNTIME_DISCOVER.md`, ADR-EVENT-DRIVEN-AUTONOMY.
-- Last verified commit: `f875eeee`.
+- Known caveats: Continuous production autonomy daemon is not active as of POOL.3/EVENT.1. Truth says `autoswitch_scheduler_active=false` and `autoswitch_service_active=false`. EVENT.1 proved the current read-only chain can preview planner/packet/restore/rollback/feedback/learning surfaces but must stop because confidence/trust/prediction floors fail, operator comparison evidence is below floor, restore barrier readiness is blocked, and no live event consumer is certified.
+- Related reports / ADRs: `PROGRAM_INTELLIGENCE_PLATFORM_CERTIFICATION_AND_HARDENING_REPORT.md`, `UX_7_ATTENTION_LAYER_SPECIFICATION_REPORT.md`, `docs/operator_actions/CHANNEL_AUTOMATION_OPERATOR_REALITY_AUDIT_REPORT.md`, `docs/reports/POOL.3_RUNTIME_DISCOVER.md`, `docs/reports/EVENT.1_REGRESSION_TRIGGER_CERTIFICATION.md`, ADR-EVENT-DRIVEN-AUTONOMY.
+- Last verified commit: `0b38e9bc`.
 
 ## 16. Truth / Convergence
 

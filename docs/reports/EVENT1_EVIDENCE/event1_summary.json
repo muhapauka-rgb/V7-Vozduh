@@ -1,0 +1,604 @@
+{
+  "truth": {
+    "final_verdict": "PASS",
+    "convergence_status": "FULLY_ALIGNED",
+    "runtime_access_status": "READY",
+    "runtime_truth_status": "KNOWN",
+    "state_truth_status": "KNOWN",
+    "autoswitch_scheduler_active": false,
+    "autoswitch_service_active": false,
+    "restore_barrier_known": true
+  },
+  "convergence": {
+    "status": "ALIGNED",
+    "top_keys": [
+      "canonical_truth_model",
+      "deploy_allowlist",
+      "deploy_delta_mismatches",
+      "diagnosis",
+      "final_verdict",
+      "github",
+      "local",
+      "production",
+      "runtime_action_guard",
+      "runtime_action_safe",
+      "runtime_action_status",
+      "safe_next_command"
+    ]
+  },
+  "autonomous_dry_run": {
+    "candidate_count": 1,
+    "single_blocker": "confidence_too_low",
+    "canary_autonomy_ready": false,
+    "preview_only": true,
+    "read_only": true,
+    "execution_allowed_now": false,
+    "apply_executed": false,
+    "users_moved": 0,
+    "rollback_executed": false,
+    "autonomy_enabled": false,
+    "restore_barrier_readiness": {
+      "owner": "admin_core/operator_execution.py",
+      "restore_barrier_required": true,
+      "restore_barrier_written_now": false,
+      "readiness": "BLOCKED"
+    },
+    "packet_draft": {
+      "owner": "tools/v7-operator-execution-packet",
+      "packet_required": true,
+      "would_prepare_packet": true,
+      "approved_plan_lock_required": true,
+      "approved_plan_lock_created_now": false,
+      "selected_move_hash_preview": "8c004b47004e5e6992bf42104f415fd30a0e74c2de6eb72e6a4e8cb7c5ae9ee8"
+    },
+    "safety_gates": {
+      "schema_version": "v7.autonomous-dry-run-safety-gates.v1",
+      "defined_gates": [
+        "unknown_trust",
+        "trust_too_low",
+        "unknown_rollback_target",
+        "snapshot_mismatch",
+        "source_drift",
+        "packet_mismatch",
+        "restore_barrier_invalid",
+        "verification_unavailable",
+        "confidence_too_low",
+        "prediction_confidence_too_low",
+        "service_blocker",
+        "capacity_blocker"
+      ],
+      "autonomy_floor": {
+        "schema_version": "v7.autonomy-canary-floor-model.v1",
+        "scope": "dry_run_canary_readiness_only",
+        "confidence_floor": 70.0,
+        "trust_floor": 70.0,
+        "prediction_confidence_floor": 70.0,
+        "score_scale": "0-100",
+        "normalizes_fractional_inputs": true,
+        "floor_sources": {
+          "confidence": "shadow autonomy minimum earned confidence floor",
+          "trust": "trust snapshot family required confidence floor for intelligence apply",
+          "prediction_confidence": "same autonomous canary evidence floor as confidence"
+        },
+        "safety_effect": "clarifies and strengthens canary gates without enabling autonomy",
+        "execution_allowed_now": false,
+        "apply_executed": false
+      },
+      "candidate_floor_evaluation": [
+        {
+          "user": "10.7.0.5",
+          "confidence": 45.8,
+          "trust": 39.584,
+          "prediction_confidence": 39.6,
+          "rollback_confidence": 100.0,
+          "confidence_floor_pass": false,
+          "trust_floor_pass": false,
+          "prediction_confidence_floor_pass": false,
+          "rollback_confidence_observed": true
+        }
+      ],
+      "hard_stop_blockers": [
+        "confidence_too_low",
+        "trust_too_low",
+        "prediction_confidence_too_low"
+      ],
+      "hard_stop": true,
+      "canary_readiness_blocker": "confidence_too_low",
+      "execution_allowed_now": false,
+      "apply_executed": false,
+      "users_moved": 0
+    },
+    "autonomy_specific_evidence": {
+      "schema_version": "v7.autonomy-specific-evidence-model.v1",
+      "mode": "read_only_evidence_collection",
+      "autonomous_trigger_evidence": {
+        "status": "BLOCKED",
+        "proved": false,
+        "blocker": "confidence_too_low",
+        "candidate_count": 1,
+        "meaning": "I should not act now"
+      },
+      "self_stop_evidence": {
+        "status": "PROVEN_STOPPED",
+        "proved": true,
+        "hard_stop_blockers": [
+          "confidence_too_low",
+          "trust_too_low",
+          "prediction_confidence_too_low"
+        ],
+        "meaning": "I should not act"
+      },
+      "autonomous_rollback_decision_evidence": {
+        "status": "SIMULATED_ROLLBACK_READY",
+        "proved": true,
+        "rollback_confidence_observed": true,
+        "rollback_decision": "STOP_BEFORE_APPLY",
+        "rollback_items_count": 1
+      },
+      "operator_free_apply_evidence": {
+        "status": "NOT_CERTIFIED_BY_DESIGN",
+        "proved": false,
+        "execution_allowed_now": false,
+        "apply_executed": false,
+        "reason": "operator-free apply requires a later explicitly approved canary execution program"
+      },
+      "autonomy_confidence_evidence": {
+        "status": "FLOORS_NOT_MET",
+        "proved": false,
+        "candidate_floor_evaluation": [
+          {
+            "user": "10.7.0.5",
+            "confidence": 45.8,
+            "trust": 39.584,
+            "prediction_confidence": 39.6,
+            "rollback_confidence": 100.0,
+            "confidence_floor_pass": false,
+            "trust_floor_pass": false,
+            "prediction_confidence_floor_pass": false,
+            "rollback_confidence_observed": true
+          }
+        ],
+        "inherited_execution_trust": 87.048,
+        "autonomy_specific_gap_score": 100.0
+      },
+      "autonomy_comparison_evidence": {
+        "status": "BELOW_FLOOR",
+        "proved": false,
+        "comparisons_total": 0,
+        "earned_confidence": 45.825,
+        "missing_targets": [
+          "minimum_comparisons",
+          "agreement_rate_floor",
+          "earned_confidence_floor"
+        ]
+      },
+      "required_evidence": [
+        "autonomous_trigger",
+        "self_stop",
+        "autonomous_rollback_decision",
+        "autonomy_confidence",
+        "operator_comparison",
+        "operator_free_apply_boundary"
+      ],
+      "current_missing_evidence": [
+        "confidence_too_low",
+        "autonomy_confidence_floor_evidence_missing",
+        "operator_comparison_evidence_below_floor",
+        "operator_free_apply_not_certified"
+      ],
+      "autonomy_specific_evidence_score": 40.0,
+      "canary_autonomy_ready": false,
+      "single_blocker": "confidence_too_low",
+      "new_truth_source_created": false,
+      "planner_decision_changed": false,
+      "governance_changed": false,
+      "authority_changed": false,
+      "runtime_mutation_performed": false,
+      "execution_authority": "none",
+      "apply_executed": false,
+      "users_moved": 0,
+      "rollback_executed": false,
+      "autonomy_enabled": false
+    },
+    "feedback_preview": {
+      "schema_version": "v7.autonomous-feedback-preview.v1",
+      "would_materialize_after_verified_apply": [
+        "outcome",
+        "trust",
+        "prediction",
+        "recommendation",
+        "closure"
+      ],
+      "feedback_owner": "admin_core/operator_execution_feedback.py",
+      "feedback_written_now": false
+    },
+    "simulated_rollback": {
+      "schema_version": "v7.simulated-autonomous-rollback.v1",
+      "simulation_only": true,
+      "rollback_executed": false,
+      "rollback_required_now": false,
+      "rollback_decision": "STOP_BEFORE_APPLY",
+      "rollback_authority": "admin_core/operator_execution.py",
+      "rollback_items": [
+        {
+          "user": "10.7.0.5",
+          "rollback_target": "vless",
+          "rollback_required_when": [
+            "verification failure",
+            "service regression",
+            "partial apply",
+            "operator stop"
+          ],
+          "rollback_executor": "tools/v7-users-autoswitch --rollback-packet --apply --verify",
+          "verification_after_rollback": [
+            "channel restored",
+            "route healthy",
+            "services recovered"
+          ],
+          "blocks_rollback": [
+            "rollback packet missing",
+            "rollback target unknown",
+            "audit path unavailable",
+            "restore barrier mismatch"
+          ]
+        }
+      ],
+      "execution_allowed_now": false
+    }
+  },
+  "pipeline_certification": {
+    "final_verdicts": {
+      "single_execution_path_certified": true,
+      "recommendation_execution_contract_defined": true,
+      "approval_packet_lifecycle_defined": true,
+      "execution_recheck_defined": true,
+      "governed_apply_policy_defined": true,
+      "verification_policy_defined": true,
+      "rollback_policy_defined": true,
+      "execution_action_matrix_complete": true,
+      "audit_closure_certified": true,
+      "operator_approval_ready": true,
+      "operator_approved_controller_preview_ready": true,
+      "bounded_autonomy_ready": false,
+      "production_autonomy_ready": false,
+      "execution_loop_readiness_foundation_complete": true,
+      "execution_loop_ready": true,
+      "new_truth_sources_created": false,
+      "duplicate_systems_created": false,
+      "runtime_mutation_performed": false,
+      "users_moved": false,
+      "autoswitch_apply_run": false,
+      "SAFE_NEXT_STEP": "certify_operator_approved_controller_preview_before_live_enablement"
+    },
+    "single_execution_path": {
+      "planner": "tools/v7-users-autoswitch",
+      "approval_packet": "tools/v7-operator-execution-packet",
+      "packet_owner": "admin_core/operator_execution.py",
+      "runtime_apply": "tools/v7-users-autoswitch --apply --verify",
+      "rollback": "tools/v7-users-autoswitch --rollback-packet --apply --verify",
+      "direct_user_switch_allowed": false
+    },
+    "operator_approved_execution_controller": {
+      "schema_version": "v7.operator-approved-execution-controller-preview.v1",
+      "controller": "canonical_operator_approved_execution_controller",
+      "decision": "DRAFT",
+      "preview_only": true,
+      "read_only": true,
+      "execution_allowed_now": false,
+      "runtime_mutation_performed": false,
+      "routing_changed": false,
+      "users_moved": 0,
+      "apply_executed": false,
+      "rollback_executed": false,
+      "autonomy_enabled": false,
+      "new_planner_created": false,
+      "new_governance_created": false,
+      "new_execution_path_created": false,
+      "new_restore_barrier_owner_created": false,
+      "new_truth_source_created": false,
+      "owner_reuse": {
+        "planner": "tools/v7-users-autoswitch",
+        "packet": "tools/v7-operator-execution-packet",
+        "restore_barrier": "admin_core/operator_execution.py",
+        "apply": "tools/v7-users-autoswitch --apply --verify",
+        "verify": "tools/v7-users-autoswitch --apply --verify",
+        "rollback": "tools/v7-users-autoswitch --rollback-packet --apply --verify",
+        "feedback": "admin_core/operator_execution_feedback.py",
+        "closure": "admin_core/operator_execution_feedback.py",
+        "trust_refresh": "tools/v7-intelligence-snapshot-refresh"
+      },
+      "operator_ui_contract": {
+        "operator_actions": [
+          "APPROVE",
+          "REJECT"
+        ],
+        "shows": [
+          "why_move",
+          "why_now",
+          "risk",
+          "blast_radius",
+          "rollback",
+          "trust_impact",
+          "expected_outcome"
+        ],
+        "nothing_else_required_from_operator": true
+      },
+      "terminal_preview_state": "DRAFT_READY",
+      "closure_only": false,
+      "approval_required_before_live_mutation": true,
+      "steps": [
+        {
+          "step": 1,
+          "name": "fresh_planner",
+          "owner": "tools/v7-users-autoswitch",
+          "inputs": [
+            "production truth",
+            "runtime state",
+            "snapshots",
+            "authority budget"
+          ],
+          "outputs": [
+            "candidate moves",
+            "selected moves",
+            "generation id",
+            "selected move hash"
+          ],
+          "command_preview": "v7-users-autoswitch --pretty",
+          "runtime_mutation_performed_now": false,
+          "runtime_mutation_if_live": false,
+          "preview_only": true
+        },
+        {
+          "step": 2,
+          "name": "packet",
+          "owner": "tools/v7-operator-execution-packet",
+          "inputs": [
+            "selected moves",
+            "authority budget",
+            "rollback manifest",
+            "operator approval"
+          ],
+          "outputs": [
+            "approval packet",
+            "approved plan lock",
+            "rollback manifest"
+          ],
+          "command_preview": "",
+          "runtime_mutation_performed_now": false,
+          "runtime_mutation_if_live": false,
+          "preview_only": true
+        },
+        {
+          "step": 3,
+          "name": "runtime_recheck",
+          "owner": "admin_core/operator_execution.py",
+          "inputs": [
+            "approval packet",
+            "fresh planner snapshot",
+            "runtime registry hashes"
+          ],
+          "outputs": [
+            "ALLOW_RESTORE_BARRIER_CLEARANCE or denial"
+          ],
+          "command_preview": "",
+          "runtime_mutation_performed_now": false,
+          "runtime_mutation_if_live": false,
+          "preview_only": true
+        },
+        {
+          "step": 4,
+          "name": "restore_barrier",
+          "owner": "admin_core/operator_execution.py",
+          "inputs": [
+            "ALLOW recheck",
+            "approved plan lock",
+            "selected move hash"
+          ],
+          "outputs": [
+            "generation-bound restore barrier clearance"
+          ],
+          "command_preview": "",
+          "runtime_mutation_performed_now": false,
+          "runtime_mutation_if_live": true,
+          "preview_only": true
+        },
+        {
+          "step": 5,
+          "name": "apply",
+          "owner": "tools/v7-users-autoswitch --apply --verify",
+          "inputs": [
+            "restore barrier clearance",
+            "approved users",
+            "approved targets",
+            "rollback packet"
+          ],
+          "outputs": [
+            "bounded apply result",
+            "per-user verification result"
+          ],
+          "command_preview": "v7-users-autoswitch --mode guarded --apply --verify",
+          "runtime_mutation_performed_now": false,
+          "runtime_mutation_if_live": true,
+          "preview_only": true
+        },
+        {
+          "step": 6,
+          "name": "verify",
+          "owner": "tools/v7-users-autoswitch --apply --verify",
+          "inputs": [
+            "apply result",
+            "route check",
+            "registry state",
+            "service health"
+          ],
+          "outputs": [
+            "verification verdict",
+            "rollback_required decision"
+          ],
+          "command_preview": "",
+          "runtime_mutation_performed_now": false,
+          "runtime_mutation_if_live": false,
+          "preview_only": true
+        },
+        {
+          "step": 7,
+          "name": "rollback_readiness",
+          "owner": "admin_core/operator_execution.py",
+          "inputs": [
+            "apply result",
+            "rollback manifest",
+            "verification verdict"
+          ],
+          "outputs": [
+            "rollback packet",
+            "rollback dry-run preview"
+          ],
+          "command_preview": "",
+          "runtime_mutation_performed_now": false,
+          "runtime_mutation_if_live": false,
+          "preview_only": true
+        },
+        {
+          "step": 8,
+          "name": "feedback",
+          "owner": "admin_core/operator_execution_feedback.py",
+          "inputs": [
+            "verified execution result",
+            "prediction",
+            "recommendation hash"
+          ],
+          "outputs": [
+            "outcome",
+            "trust",
+            "prediction",
+            "recommendation feedback"
+          ],
+          "command_preview": "",
+          "runtime_mutation_performed_now": false,
+          "runtime_mutation_if_live": false,
+          "preview_only": true
+        },
+        {
+          "step": 9,
+          "name": "closure",
+          "owner": "admin_core/operator_execution_feedback.py",
+          "inputs": [
+            "feedback records",
+            "audit reference",
+            "rollback state"
+          ],
+          "outputs": [
+            "operation closure"
+          ],
+          "command_preview": "",
+          "runtime_mutation_performed_now": false,
+          "runtime_mutation_if_live": false,
+          "preview_only": true
+        },
+        {
+          "step": 10,
+          "name": "trust_refresh",
+          "owner": "tools/v7-intelligence-snapshot-refresh",
+          "inputs": [
+            "canonical feedback stores"
+          ],
+          "outputs": [
+            "updated trust/planner evidence"
+          ],
+          "command_preview": "v7-intelligence-snapshot-refresh --approved-refresh",
+          "runtime_mutation_performed_now": false,
+          "runtime_mutation_if_live": true,
+          "preview_only": true
+        }
+      ],
+      "blocked_actions": [
+        "direct user-switch",
+        "planner bypass",
+        "packet bypass",
+        "restore barrier bypass",
+        "apply without verification",
+        "rollback without rollback packet",
+        "feedback write before verified execution",
+        "target/user reselect after approval"
+      ],
+      "no_bypass_certification": {
+        "planner_bypass_possible": false,
+        "governance_bypass_possible": false,
+        "packet_bypass_possible": false,
+        "restore_barrier_bypass_possible": false,
+        "apply_verification_bypass_possible": false,
+        "rollback_bypass_possible": false,
+        "feedback_bypass_possible": false
+      },
+      "final_certification": {
+        "single_approve_reject_boundary_exists": true,
+        "reject_path_preview_ready": true,
+        "approve_path_preview_ready": true,
+        "live_execution_enabled": false,
+        "operator_reduced_to_approve_reject": true
+      }
+    },
+    "duplication_audit": {
+      "second_execution_path_created": false,
+      "second_planner_created": false,
+      "second_governance_created": false,
+      "second_rollback_created": false,
+      "second_approval_system_created": false,
+      "second_truth_source_created": false
+    }
+  },
+  "approval_preview": {
+    "preview_only": true,
+    "execution_allowed_now": false,
+    "keys": [
+      "approval_status",
+      "blast_radius",
+      "contracts",
+      "disabled_actions",
+      "disabled_reason",
+      "evidence_freshness",
+      "execution_allowed_now",
+      "generation_guard",
+      "movement_preview",
+      "preview_only",
+      "rollback_manifest",
+      "schema_version"
+    ],
+    "evidence_freshness": {
+      "object_type": "EvidenceFreshnessPreview",
+      "preview_only": true,
+      "state": "STALE",
+      "stale_warnings": [
+        "age_exceeds_validity",
+        "missing"
+      ],
+      "latest_report": "BLOCK_E15_READONLY_OPERATOR_OVERVIEW_AND_OBSERVABILITY_UI_IMPLEMENTATION_REPORT.md",
+      "e12_maturity": "unknown",
+      "e15_readonly_ui": "unknown"
+    }
+  },
+  "rollback_preview": {
+    "preview_only": true,
+    "execution_allowed_now": false,
+    "rollback_manifest": {
+      "object_type": "RollbackManifestPreview",
+      "preview_only": true,
+      "rollback_feasible": false,
+      "disabled_reason": "rollback_execution_forbidden_in_e16",
+      "items": [
+        {
+          "user": "10.7.0.11",
+          "rollback_target": "1",
+          "route_restore_expectation": "restore_user_to_previous_egress_and_verify_route_get",
+          "status": "preview_only"
+        },
+        {
+          "user": "10.7.0.12",
+          "rollback_target": "1",
+          "route_restore_expectation": "restore_user_to_previous_egress_and_verify_route_get",
+          "status": "preview_only"
+        }
+      ]
+    }
+  }
+}

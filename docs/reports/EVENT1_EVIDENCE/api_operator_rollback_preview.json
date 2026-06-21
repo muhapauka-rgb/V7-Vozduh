@@ -1,0 +1,24 @@
+{
+  "preview_only": true,
+  "execution_allowed_now": false,
+  "rollback_manifest": {
+    "object_type": "RollbackManifestPreview",
+    "preview_only": true,
+    "rollback_feasible": false,
+    "disabled_reason": "rollback_execution_forbidden_in_e16",
+    "items": [
+      {
+        "user": "10.7.0.11",
+        "rollback_target": "1",
+        "route_restore_expectation": "restore_user_to_previous_egress_and_verify_route_get",
+        "status": "preview_only"
+      },
+      {
+        "user": "10.7.0.12",
+        "rollback_target": "1",
+        "route_restore_expectation": "restore_user_to_previous_egress_and_verify_route_get",
+        "status": "preview_only"
+      }
+    ]
+  }
+}

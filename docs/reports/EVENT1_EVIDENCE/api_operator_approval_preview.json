@@ -1,0 +1,314 @@
+{
+  "schema_version": "e16.approval-preview.v1",
+  "preview_only": true,
+  "execution_allowed_now": false,
+  "disabled_reason": "E16 implements approval UX contracts only; runtime execution remains forbidden.",
+  "approval_status": {
+    "state": "PREVIEW_ONLY",
+    "current_stage": "APPROVAL_CENTER_FOUNDATION",
+    "actions_disabled": true,
+    "dual_confirmation_model": "required_for_future_execution_not_available_in_e16"
+  },
+  "contracts": {
+    "MovementApprovalPreview": {
+      "object_type": "MovementApprovalPreview",
+      "preview_only": true,
+      "execution_allowed_now": false,
+      "stage": "APPROVAL_CENTER_PREVIEW_ONLY",
+      "disabled_reason": "mutating_approval_execution_out_of_scope_for_e16",
+      "selected_target": "amneziawg-exec-20260528-10-8-1-14",
+      "candidate_users": [
+        {
+          "user": "10.7.0.11",
+          "from": "current_registered_egress",
+          "to": "amneziawg-exec-20260528-10-8-1-14",
+          "status": "historical_candidate_preview"
+        },
+        {
+          "user": "10.7.0.12",
+          "from": "current_registered_egress",
+          "to": "amneziawg-exec-20260528-10-8-1-14",
+          "status": "historical_candidate_preview"
+        }
+      ],
+      "movement_budget": {
+        "current_allowed_budget": 0,
+        "future_contract_budget": 2,
+        "hard_stop_reason": "E16_PREVIEW_ONLY_NO_MUTATING_APPROVAL_EXECUTION",
+        "count_match_required": true
+      },
+      "required_gates": [
+        "fresh_runtime_snapshot",
+        "selected_moves_fingerprint_match",
+        "generation_token_match",
+        "rollback_manifest_present",
+        "restore_barrier_present",
+        "dual_confirmation"
+      ],
+      "freshness": {
+        "state": "STALE",
+        "stale": true,
+        "sources": [
+          {
+            "path": "/opt/v7/egress/state/users.registry",
+            "state": "STALE",
+            "collected_at": "2026-06-13T19:16:49.082275+00:00",
+            "valid_until": "2026-06-13T19:19:49.082275+00:00",
+            "age_seconds": 671009,
+            "stale": true,
+            "stale_reasons": [
+              "age_exceeds_validity"
+            ],
+            "sha256": "b4af611443edb1114e5946ce577160775b7bf6a08372a4cd0303b758563b4a09"
+          },
+          {
+            "path": "/opt/v7/egress/state/egress.registry",
+            "state": "STALE",
+            "collected_at": "2026-06-13T15:33:50.665717+00:00",
+            "valid_until": "2026-06-13T15:36:50.665717+00:00",
+            "age_seconds": 684387,
+            "stale": true,
+            "stale_reasons": [
+              "age_exceeds_validity"
+            ],
+            "sha256": "05d8118c43888d046e8fe3aa3cca906db1603b15e478fd0e7eaf282797d13a78"
+          }
+        ],
+        "stale_reasons": [
+          "age_exceeds_validity"
+        ]
+      },
+      "stale_warnings": [
+        "age_exceeds_validity",
+        "missing"
+      ]
+    },
+    "GenerationClearancePreview": {
+      "object_type": "GenerationClearancePreview",
+      "preview_only": true,
+      "generation_id_required": true,
+      "selected_move_fingerprint_required": true,
+      "selected_move_fingerprint": "b203a5adda647b59a32cdbaf4bae0d1ccb2f5dd651a00710d22ff82b17bafc9f",
+      "selected_move_count": 0,
+      "clearance_max_selected_moves": 10,
+      "count_match_required": true,
+      "replay_protection_state": "required_not_executable_from_ui",
+      "barrier_state": {
+        "active": false,
+        "expired": false,
+        "cleared": false,
+        "allow_post_ttl_apply": true,
+        "generation_clearance": true
+      }
+    },
+    "RollbackManifestPreview": {
+      "object_type": "RollbackManifestPreview",
+      "preview_only": true,
+      "rollback_feasible": false,
+      "disabled_reason": "rollback_execution_forbidden_in_e16",
+      "items": [
+        {
+          "user": "10.7.0.11",
+          "rollback_target": "1",
+          "route_restore_expectation": "restore_user_to_previous_egress_and_verify_route_get",
+          "status": "preview_only"
+        },
+        {
+          "user": "10.7.0.12",
+          "rollback_target": "1",
+          "route_restore_expectation": "restore_user_to_previous_egress_and_verify_route_get",
+          "status": "preview_only"
+        }
+      ]
+    },
+    "BlastRadiusPreview": {
+      "object_type": "BlastRadiusPreview",
+      "preview_only": true,
+      "max_users": 0,
+      "future_contract_max_users": 2,
+      "target_hard_limit": 10,
+      "target_current_users": 0,
+      "affected_runtime_surfaces": [
+        "users.registry",
+        "per-user route table",
+        "switch-history",
+        "restore barrier",
+        "selected_moves"
+      ],
+      "risk_level": "blocked_preview_only"
+    },
+    "EvidenceFreshnessPreview": {
+      "object_type": "EvidenceFreshnessPreview",
+      "preview_only": true,
+      "state": "STALE",
+      "stale_warnings": [
+        "age_exceeds_validity",
+        "missing"
+      ],
+      "latest_report": "BLOCK_E15_READONLY_OPERATOR_OVERVIEW_AND_OBSERVABILITY_UI_IMPLEMENTATION_REPORT.md",
+      "e12_maturity": "unknown",
+      "e15_readonly_ui": "unknown"
+    }
+  },
+  "movement_preview": {
+    "object_type": "MovementApprovalPreview",
+    "preview_only": true,
+    "execution_allowed_now": false,
+    "stage": "APPROVAL_CENTER_PREVIEW_ONLY",
+    "disabled_reason": "mutating_approval_execution_out_of_scope_for_e16",
+    "selected_target": "amneziawg-exec-20260528-10-8-1-14",
+    "candidate_users": [
+      {
+        "user": "10.7.0.11",
+        "from": "current_registered_egress",
+        "to": "amneziawg-exec-20260528-10-8-1-14",
+        "status": "historical_candidate_preview"
+      },
+      {
+        "user": "10.7.0.12",
+        "from": "current_registered_egress",
+        "to": "amneziawg-exec-20260528-10-8-1-14",
+        "status": "historical_candidate_preview"
+      }
+    ],
+    "movement_budget": {
+      "current_allowed_budget": 0,
+      "future_contract_budget": 2,
+      "hard_stop_reason": "E16_PREVIEW_ONLY_NO_MUTATING_APPROVAL_EXECUTION",
+      "count_match_required": true
+    },
+    "required_gates": [
+      "fresh_runtime_snapshot",
+      "selected_moves_fingerprint_match",
+      "generation_token_match",
+      "rollback_manifest_present",
+      "restore_barrier_present",
+      "dual_confirmation"
+    ],
+    "freshness": {
+      "state": "STALE",
+      "stale": true,
+      "sources": [
+        {
+          "path": "/opt/v7/egress/state/users.registry",
+          "state": "STALE",
+          "collected_at": "2026-06-13T19:16:49.082275+00:00",
+          "valid_until": "2026-06-13T19:19:49.082275+00:00",
+          "age_seconds": 671009,
+          "stale": true,
+          "stale_reasons": [
+            "age_exceeds_validity"
+          ],
+          "sha256": "b4af611443edb1114e5946ce577160775b7bf6a08372a4cd0303b758563b4a09"
+        },
+        {
+          "path": "/opt/v7/egress/state/egress.registry",
+          "state": "STALE",
+          "collected_at": "2026-06-13T15:33:50.665717+00:00",
+          "valid_until": "2026-06-13T15:36:50.665717+00:00",
+          "age_seconds": 684387,
+          "stale": true,
+          "stale_reasons": [
+            "age_exceeds_validity"
+          ],
+          "sha256": "05d8118c43888d046e8fe3aa3cca906db1603b15e478fd0e7eaf282797d13a78"
+        }
+      ],
+      "stale_reasons": [
+        "age_exceeds_validity"
+      ]
+    },
+    "stale_warnings": [
+      "age_exceeds_validity",
+      "missing"
+    ]
+  },
+  "generation_guard": {
+    "object_type": "GenerationClearancePreview",
+    "preview_only": true,
+    "generation_id_required": true,
+    "selected_move_fingerprint_required": true,
+    "selected_move_fingerprint": "b203a5adda647b59a32cdbaf4bae0d1ccb2f5dd651a00710d22ff82b17bafc9f",
+    "selected_move_count": 0,
+    "clearance_max_selected_moves": 10,
+    "count_match_required": true,
+    "replay_protection_state": "required_not_executable_from_ui",
+    "barrier_state": {
+      "active": false,
+      "expired": false,
+      "cleared": false,
+      "allow_post_ttl_apply": true,
+      "generation_clearance": true
+    }
+  },
+  "rollback_manifest": {
+    "object_type": "RollbackManifestPreview",
+    "preview_only": true,
+    "rollback_feasible": false,
+    "disabled_reason": "rollback_execution_forbidden_in_e16",
+    "items": [
+      {
+        "user": "10.7.0.11",
+        "rollback_target": "1",
+        "route_restore_expectation": "restore_user_to_previous_egress_and_verify_route_get",
+        "status": "preview_only"
+      },
+      {
+        "user": "10.7.0.12",
+        "rollback_target": "1",
+        "route_restore_expectation": "restore_user_to_previous_egress_and_verify_route_get",
+        "status": "preview_only"
+      }
+    ]
+  },
+  "blast_radius": {
+    "object_type": "BlastRadiusPreview",
+    "preview_only": true,
+    "max_users": 0,
+    "future_contract_max_users": 2,
+    "target_hard_limit": 10,
+    "target_current_users": 0,
+    "affected_runtime_surfaces": [
+      "users.registry",
+      "per-user route table",
+      "switch-history",
+      "restore barrier",
+      "selected_moves"
+    ],
+    "risk_level": "blocked_preview_only"
+  },
+  "evidence_freshness": {
+    "object_type": "EvidenceFreshnessPreview",
+    "preview_only": true,
+    "state": "STALE",
+    "stale_warnings": [
+      "age_exceeds_validity",
+      "missing"
+    ],
+    "latest_report": "BLOCK_E15_READONLY_OPERATOR_OVERVIEW_AND_OBSERVABILITY_UI_IMPLEMENTATION_REPORT.md",
+    "e12_maturity": "unknown",
+    "e15_readonly_ui": "unknown"
+  },
+  "disabled_actions": [
+    {
+      "label": "Approve bounded movement",
+      "disabled": true,
+      "reason": "preview_only"
+    },
+    {
+      "label": "Execute",
+      "disabled": true,
+      "reason": "runtime_control_forbidden"
+    },
+    {
+      "label": "Restore apply",
+      "disabled": true,
+      "reason": "manual_autoswitch_apply_forbidden"
+    },
+    {
+      "label": "Emergency containment",
+      "disabled": true,
+      "reason": "read_only_ui_only"
+    }
+  ]
+}

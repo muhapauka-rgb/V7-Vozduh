@@ -1,0 +1,37 @@
+{
+  "base": "https://v7-admin.195-2-79-116.sslip.io",
+  "called_endpoints": [
+    {
+      "file": "api_overview.json",
+      "path": "/api/overview",
+      "retained": false,
+      "retention_reason": "raw overview contains unrelated delivery/session fragments; EVENT.1 uses operator-specific retained evidence"
+    },
+    {
+      "file": "api_operator_decision_surface.json",
+      "path": "/api/operator/decision-surface"
+    },
+    {
+      "file": "api_operator_autonomous_dry_run.json",
+      "path": "/api/operator/autonomous-dry-run"
+    },
+    {
+      "file": "api_operator_execution_pipeline_certification.json",
+      "path": "/api/operator/execution-pipeline-certification"
+    },
+    {
+      "file": "api_operator_approval_preview.json",
+      "path": "/api/operator/approval-preview"
+    },
+    {
+      "file": "api_operator_rollback_preview.json",
+      "path": "/api/operator/rollback-preview"
+    },
+    {
+      "file": "api_operator_overview.json",
+      "path": "/api/operator/overview"
+    }
+  ],
+  "runtime_mutation_endpoints_called": false,
+  "post_action_endpoints_called": false
+}

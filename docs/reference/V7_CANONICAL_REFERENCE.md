@@ -1,8 +1,8 @@
 # V7 Canonical Reference
 
 Status: canonical project reference
-Last verified commit: `2fb9d205`
-Last verified date: 2026-06-19
+Last verified commit: `6c5f8ee`
+Last verified date: 2026-06-21
 
 This document describes the current meaning of V7 system concepts. It is not a history log and not an audit report. Reports remain evidence. ADRs explain why a decision was made. This reference is the current truth that future V7 work must read before re-auditing old concepts.
 
@@ -106,6 +106,17 @@ A new audit is allowed only when the reference has no answer, the reference expl
 12. Attention visual styling must stay calm: urgent rows may have a narrow marker, while healthy rows remain visually quiet.
 13. Attention entries must open existing destinations only: Channel Drawer, Service Matrix, channel users, logs/diagnostics, or existing governed user/action flows.
 14. This rule does not change planner logic, assignment logic, execution, governance, signal calculations, decision logic, capacity formulas, routing formulas, storage, or database state.
+
+## POOL_AUTONOMY_RUNTIME_RULES
+
+1. V7 autonomy has been certified through governed execution up to 10 users, but that certification is not the same as a continuously enabled production daemon.
+2. WireGuard `wireguard-1779454504-c43409` is promoted into the production pool and is a valid production channel, subject to the same planner/capacity/load gates as every other channel.
+3. POOL.2 evidence on 2026-06-19 showed `POOL_NEEDS_RECOVERY`: active distribution `awg3=8`, `wireguard=8`, `vless=10`, with 8 failover candidates from `awg3` to `wireguard-1779454504-c43409`.
+4. POOL.3 evidence on 2026-06-21 showed active distribution still `awg3=8`, `wireguard=8`, `vless=10`; `awg0` remained below stability floor; `awg3` was barely above stability floor but below min-speed floor and hard-full; WireGuard remained technically strong but hard-full. Fresh available API evidence did not reproduce the old 8-user awg3-to-WireGuard failover as an actionable current apply.
+5. Current truth says `autoswitch_scheduler_active=false` and `autoswitch_service_active=false`, with inactive scheduler approved as manual mode.
+6. Production autonomy direction is event-driven autonomy: channel/service regression -> planner -> packet -> restore barrier -> bounded apply -> verification -> rollback decision -> feedback -> learning.
+7. Timer-only movement is rejected as a product model. Periodic probes and previews may run; periodic blind user movement must not run.
+8. Any future production autonomy daemon must reuse existing planner, packet, restore barrier, execution, rollback, feedback, learning, truth, and convergence owners.
 
 ## 1. Channels
 
@@ -271,9 +282,9 @@ A new audit is allowed only when the reference has no answer, the reference expl
 - What does NOT affect it: Channel Score alone, UI rearrangement, screenshots, or standalone labels.
 - Operator meaning: "What does V7 recommend or block, and why?"
 - Engineer meaning: Existing decision pipeline and safety gate authority.
-- Known caveats: Planner read-only outputs are not the same as applying execution. Apply remains governed.
-- Related reports / ADRs: `CHANNEL_TRUTH_2_ASSIGNMENT_ELIGIBILITY_TRUTH_DISCOVERY_REPORT.md`, `CHANNEL_TRUTH_3_CHANNEL_ASSIGNMENT_ADAPTER_REPORT.md`, `docs/operator_actions/CHANNEL_AUTOMATION_OPERATOR_REALITY_AUDIT_REPORT.md`.
-- Last verified commit: `8ba2178f`.
+- Known caveats: Planner read-only outputs are not the same as applying execution. Apply remains governed. Admin action wrappers may expose a successful dry-run `rc=0` while returning only a truncated stdout tail; when exact `candidate_moves_total` matters, prefer a full CLI JSON capture or a normalized endpoint that preserves the parsed plan.
+- Related reports / ADRs: `CHANNEL_TRUTH_2_ASSIGNMENT_ELIGIBILITY_TRUTH_DISCOVERY_REPORT.md`, `CHANNEL_TRUTH_3_CHANNEL_ASSIGNMENT_ADAPTER_REPORT.md`, `docs/operator_actions/CHANNEL_AUTOMATION_OPERATOR_REALITY_AUDIT_REPORT.md`, `docs/reports/POOL.3_RUNTIME_DISCOVER.md`, ADR-EVENT-DRIVEN-AUTONOMY.
+- Last verified commit: `6c5f8ee`.
 
 ## 12. Assignment
 
@@ -285,9 +296,9 @@ A new audit is allowed only when the reference has no answer, the reference expl
 - What does NOT affect it: Technical Health/Score alone or old trust labels.
 - Operator meaning: "Can V7 use this channel, must users leave, or is it restricted?"
 - Engineer meaning: Planner-derived role projection over existing channel/user truth.
-- Known caveats: Quality and assignment can intentionally disagree. The UI must make the decision primary and health secondary.
-- Related reports / ADRs: `CHANNEL_TRUTH_1_FULL_DECISION_PIPELINE_AND_SCORE_ALIGNMENT_AUDIT_REPORT.md`, `CHANNEL_TRUTH_2_ASSIGNMENT_ELIGIBILITY_TRUTH_DISCOVERY_REPORT.md`, `CHANNEL_TRUTH_3_CHANNEL_ASSIGNMENT_ADAPTER_REPORT.md`, ADR-002.
-- Last verified commit: `8ba2178f`.
+- Known caveats: Quality and assignment can intentionally disagree. The UI must make the decision primary and health secondary. A channel can be technically READY and still hard-full for assignment; hard-full alone does not mean current users are broken or must move immediately.
+- Related reports / ADRs: `CHANNEL_TRUTH_1_FULL_DECISION_PIPELINE_AND_SCORE_ALIGNMENT_AUDIT_REPORT.md`, `CHANNEL_TRUTH_2_ASSIGNMENT_ELIGIBILITY_TRUTH_DISCOVERY_REPORT.md`, `CHANNEL_TRUTH_3_CHANNEL_ASSIGNMENT_ADAPTER_REPORT.md`, `docs/reports/POOL.3_RUNTIME_DISCOVER.md`, ADR-002, ADR-EVENT-DRIVEN-AUTONOMY.
+- Last verified commit: `6c5f8ee`.
 
 ## 13. Users
 
@@ -319,17 +330,17 @@ A new audit is allowed only when the reference has no answer, the reference expl
 
 ## 15. Autonomy
 
-- What it means: Read-only intelligence/shadow/automation support that may recommend, simulate, or monitor but must not create an independent execution path.
+- What it means: Read-only intelligence/shadow/automation support plus governed execution certification that may recommend, simulate, monitor, or prepare bounded action, but must not create an independent execution path.
 - Source of truth: Existing shadow autonomy, intelligence platform, operator execution pipeline, governed execution path.
-- Where it is calculated: `admin_core/shadow_autonomy.py`, `admin_core/intelligence_platform.py`, `admin_core/operator_execution_pipeline.py`, planner tools.
+- Where it is calculated: `admin_core/shadow_autonomy.py`, `admin_core/intelligence_platform.py`, `admin_core/operator_execution_pipeline.py`, `admin_core/operator_execution.py`, `admin_core/operator_execution_feedback.py`, planner tools.
 - Where it is displayed: Operator Center, execution readiness, attention/overview summaries, evidence/details.
-- What affects it: Planner signals, safety gates, governance state, intelligence snapshots, execution readiness.
-- What does NOT affect it: It does not bypass approval, restore barriers, governance, or existing execution handlers.
-- Operator meaning: "V7 can surface what needs attention, but dangerous changes remain guarded."
-- Engineer meaning: Derived intelligence layer over existing truth and governed execution.
-- Known caveats: UNKNOWN - requires future audit to produce a complete autonomy contract across all shadow/intelligence modules.
-- Related reports / ADRs: `PROGRAM_INTELLIGENCE_PLATFORM_CERTIFICATION_AND_HARDENING_REPORT.md`, `UX_7_ATTENTION_LAYER_SPECIFICATION_REPORT.md`, `docs/operator_actions/CHANNEL_AUTOMATION_OPERATOR_REALITY_AUDIT_REPORT.md`.
-- Last verified commit: `8ba2178f`.
+- What affects it: Planner signals, channel/service regression, safety gates, governance state, intelligence snapshots, execution readiness, restore barrier state, rollback readiness, feedback/learning evidence.
+- What does NOT affect it: It does not bypass approval, restore barriers, governance, rollback, feedback, truth/convergence, or existing execution handlers. It must not move users merely because a timer fired.
+- Operator meaning: "V7 can surface what needs attention, and can prepare governed action, but dangerous changes remain guarded until an event-driven chain is ready."
+- Engineer meaning: Derived intelligence and governed automation layer over existing truth and execution owners.
+- Known caveats: Continuous production autonomy daemon is not active as of POOL.3. Truth says `autoswitch_scheduler_active=false` and `autoswitch_service_active=false`. Autonomous dry-run is simulation-only and blocked by confidence/trust/prediction floors plus restore barrier readiness until a future event-driven phase is certified.
+- Related reports / ADRs: `PROGRAM_INTELLIGENCE_PLATFORM_CERTIFICATION_AND_HARDENING_REPORT.md`, `UX_7_ATTENTION_LAYER_SPECIFICATION_REPORT.md`, `docs/operator_actions/CHANNEL_AUTOMATION_OPERATOR_REALITY_AUDIT_REPORT.md`, `docs/reports/POOL.3_RUNTIME_DISCOVER.md`, ADR-EVENT-DRIVEN-AUTONOMY.
+- Last verified commit: `6c5f8ee`.
 
 ## 16. Truth / Convergence
 

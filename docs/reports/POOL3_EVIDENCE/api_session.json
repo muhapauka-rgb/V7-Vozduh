@@ -1,0 +1,7 @@
+{
+  "user": "admin",
+  "role": "owner",
+  "csrf": "[REDACTED]",
+  "expires_at": "[REDACTED]",
+  "access_observed": true
+}

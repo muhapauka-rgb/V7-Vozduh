@@ -1,0 +1,263 @@
+{
+  "timestamp_utc": "2026-06-21T08:15:44.315146+00:00",
+  "truth": {
+    "final_verdict": "PASS",
+    "convergence_status": "FULLY_ALIGNED",
+    "runtime_derived": {
+      "admin_service_active": true,
+      "audit_path_available": true,
+      "autoswitch_scheduler_active": false,
+      "autoswitch_service_active": false,
+      "binary_hashes_known": true,
+      "binary_hashes_match_authoritative": true,
+      "closure_path_available": true,
+      "deploy_branch": "Updatesystem",
+      "deploy_commit": "67fbd8506321802222c6f8ed3d34cfe406a45d8a",
+      "deploy_id": "deploy-z8-14-Updatesystem-67fbd85-20260620T103244",
+      "deployment_model": "copied_binaries_from_safe_sync_manifest",
+      "execution_store_available": true,
+      "operation_wiring_present": true,
+      "restore_barrier_known": true,
+      "runtime_branch": "",
+      "runtime_commit": "",
+      "runtime_fingerprint_known": true,
+      "runtime_identity_model": "copied_binaries_from_safe_sync_manifest",
+      "runtime_provenance_known": true,
+      "runtime_root_is_git_checkout": false,
+      "scheduler_inactive_approved_manual_mode": true,
+      "scheduler_truth_known": true,
+      "service_inactive_explained": true,
+      "service_status_known": true,
+      "snapshot_refresh_cli_available": true,
+      "snapshot_refresh_mechanism_known": true,
+      "snapshot_required_files_known": true,
+      "snapshot_root_known": true,
+      "state_truth_known": true
+    }
+  },
+  "convergence": {
+    "final_verdict": "PASS",
+    "status": "ALIGNED"
+  },
+  "users": {
+    "active_total": 26,
+    "registry_total": 27,
+    "active_distribution": {
+      "awg3": 8,
+      "wireguard-1779454504-c43409": 8,
+      "vless": 10
+    },
+    "registry_distribution": {
+      "awg3": 8,
+      "wireguard-1779454504-c43409": 8,
+      "vless": 11
+    },
+    "disabled_users": [
+      {
+        "ip": "10.7.0.7",
+        "current": "vless",
+        "table": "1005",
+        "enabled": "0"
+      }
+    ]
+  },
+  "channels": {
+    "awg0": {
+      "code": "200",
+      "avg_mbps": "28.3783",
+      "min_mbps": "6.38",
+      "stability": "0.22482",
+      "users": "0",
+      "load_status": "OK",
+      "diagnose_reason": "OK",
+      "diagnose_severity": "OK",
+      "diagnose_detail": "handshake_age_seconds=82"
+    },
+    "awg3": {
+      "code": "200",
+      "avg_mbps": "14.41",
+      "min_mbps": "6.50",
+      "stability": "0.451076",
+      "users": "8",
+      "load_status": "HARD_FULL",
+      "diagnose_reason": "OK",
+      "diagnose_severity": "OK",
+      "diagnose_detail": "handshake_age_seconds=51"
+    },
+    "wireguard-1779454504-c43409": {
+      "code": "200",
+      "avg_mbps": "61.851",
+      "min_mbps": "60.77",
+      "stability": "0.982523",
+      "users": "8",
+      "load_status": "HARD_FULL",
+      "diagnose_reason": "OK",
+      "diagnose_severity": "OK",
+      "diagnose_detail": "handshake_age_seconds=46"
+    },
+    "vless": {
+      "code": "200",
+      "avg_mbps": "48.837",
+      "min_mbps": "44.94",
+      "stability": "0.920204",
+      "users": "11",
+      "load_status": "HARD_FULL",
+      "diagnose_reason": "handshake_unsupported_for_protocol_vless",
+      "diagnose_severity": "SUSPECT",
+      "diagnose_detail": "protocol=vless"
+    }
+  },
+  "policy": {
+    "min_stability": 0.45,
+    "autoswitch": {
+      "cooldown_seconds": 900,
+      "autoswitch_enabled": true,
+      "autoswitch_mode": "guarded",
+      "autoswitch_max_planned_per_run": 10,
+      "autoswitch_max_failover_per_run": 25,
+      "autoswitch_max_reconnect_per_run": 10,
+      "min_score_improvement_pct": 0.2,
+      "min_score_delta": 50.0
+    },
+    "org_autoswitch": {
+      "autoswitch_enabled": true,
+      "autoswitch_mode": "guarded"
+    }
+  },
+  "rebalance_preview": {
+    "cmd": [
+      "v7-users-rebalance-dry-run"
+    ],
+    "rc": 124,
+    "output": "===== V7 USERS REBALANCE DRY RUN =====\nQUALITY_MIN_AVG_MBPS=15.0\nQUALITY_MIN_FLOOR_MBPS=10.0\nQUALITY_MIN_STABILITY=0.45\nMAX_MOVES=6\nvless users=11 load=HARD_FULL quality_ok=YES\nawg0 users=0 load=OK quality_ok=NO\nawg3 users=8 load=HARD_FULL quality_ok=NO\n1 users=0 load=OK quality_ok=NO\nopenvpn-1779388847-d2ad7c users=0 load=OK quality_ok=NO\nwireguard-1779454504-c43409 users=8 load=HARD_FULL quality_ok=YES\namneziawg-exec-20260528-10-8-1-14 users=0 load=OK quality_ok=NO\n\n===== USER PLAN =====\n\nUSER=10.0.0.2 TABLE=100 CURRENT=awg3 OTHER=none\nACTION=keep\nREASON=moved=0 current_load=HARD_FULL other_load=none other_quality_ok=NO\n\nUSER=10.0.0.3 TABLE=101 CURRENT=wireguard-1779454504-c43409 OTHER=none\nACTION=keep\nREASON=moved=0 current_load=HARD_FULL other_load=none other_quality_ok=NO\n\nUSER=10.0.0.6 TABLE=104 CURRENT=wireguard-1779454504-c43409 OTHER=none\nACTION=keep\nREASON=moved=0 current_load=HARD_FULL other_load=none other_quality_ok=NO\n\nUSER=10.7.0.3 TABLE=1001 CURRENT=awg3 OTHER=none\nACTION=keep\nREASON=moved=0 current_load=HARD_FULL other_load=none other_quality_ok=NO\n\nUSER=10.7.0.2 TABLE=1000 CURRENT=wireguard-1779454504-c43409 OTHER=none\nACTION=keep\nREASON=moved=0 current_load=HARD_FULL other_load=none other_quality_ok=NO\n\nUSER=10.7.0.4 TABLE=1002 CURRENT=awg3 OTHER=none\nACTION=keep\nREASON=moved=0 current_load=HARD_FULL other_load=none other_quality_ok=NO\n\nUSER=10.7.0.5 TABLE=1003 CURRENT=vless OTHER=none\nACTION=keep\nREASON=moved=0 current_load=HARD_FULL other_load=none other_quality_ok=NO\n\nUSER=10.7.0.6 TABLE=1004 CURRENT=wireguard-1779454504-c43409 OTHER=none\nACTION=keep\nREASON=moved=0 current_load=HARD_FULL other_load=none other_quality_ok=NO\n\nUSER=10.7.0.8 TABLE=1006 CURRENT=awg3 OTHER=none\nACTION=keep\nREASON=moved=0 current_load=HARD_FULL other_load=none other_quality_ok=NO\n\nUSER=10.7.0.9 TABLE=1007 CURRENT=wireguard-1779454504-c43409 OTHER=none\nACTION=keep\nREASON=moved=0 current_load=HARD_FULL other_load=none other_quality_ok=NO\n\nTIMEOUT"
+  },
+  "autonomous_dry_run": {
+    "candidate_count": 1,
+    "restore_barrier_readiness": {
+      "owner": "admin_core/operator_execution.py",
+      "restore_barrier_required": true,
+      "restore_barrier_written_now": false,
+      "readiness": "BLOCKED"
+    },
+    "safety_gates": {
+      "schema_version": "v7.autonomous-dry-run-safety-gates.v1",
+      "defined_gates": [
+        "unknown_trust",
+        "trust_too_low",
+        "unknown_rollback_target",
+        "snapshot_mismatch",
+        "source_drift",
+        "packet_mismatch",
+        "restore_barrier_invalid",
+        "verification_unavailable",
+        "confidence_too_low",
+        "prediction_confidence_too_low",
+        "service_blocker",
+        "capacity_blocker"
+      ],
+      "autonomy_floor": {
+        "schema_version": "v7.autonomy-canary-floor-model.v1",
+        "scope": "dry_run_canary_readiness_only",
+        "confidence_floor": 70.0,
+        "trust_floor": 70.0,
+        "prediction_confidence_floor": 70.0,
+        "score_scale": "0-100",
+        "normalizes_fractional_inputs": true,
+        "floor_sources": {
+          "confidence": "shadow autonomy minimum earned confidence floor",
+          "trust": "trust snapshot family required confidence floor for intelligence apply",
+          "prediction_confidence": "same autonomous canary evidence floor as confidence"
+        },
+        "safety_effect": "clarifies and strengthens canary gates without enabling autonomy",
+        "execution_allowed_now": false,
+        "apply_executed": false
+      },
+      "candidate_floor_evaluation": [
+        {
+          "user": "10.7.0.5",
+          "confidence": 45.8,
+          "trust": 39.57,
+          "prediction_confidence": 39.6,
+          "rollback_confidence": 100.0,
+          "confidence_floor_pass": false,
+          "trust_floor_pass": false,
+          "prediction_confidence_floor_pass": false,
+          "rollback_confidence_observed": true
+        }
+      ],
+      "hard_stop_blockers": [
+        "confidence_too_low",
+        "trust_too_low",
+        "prediction_confidence_too_low"
+      ],
+      "hard_stop": true,
+      "canary_readiness_blocker": "confidence_too_low",
+      "execution_allowed_now": false,
+      "apply_executed": false,
+      "users_moved": 0
+    },
+    "simulated_apply": {
+      "schema_version": "v7.simulated-autonomous-apply.v1",
+      "simulation_only": true,
+      "apply_executed": false,
+      "users_moved": 0,
+      "routing_changed": false,
+      "selected_users_count": 1,
+      "would_move": [
+        {
+          "index": 0,
+          "user": "10.7.0.5",
+          "from": "vless",
+          "to": "awg3",
+          "why": [
+            "best available channel has higher advisory suitability"
+          ],
+          "expected_result": "better_route_quality",
+          "risk": 3.569,
+          "confidence": 0.458,
+          "rollback_target": "vless",
+          "verification_plan": [
+            "route changed check",
+            "service health check",
+            "rollback_required decision"
+          ]
+        }
+      ],
+      "executor_reused": "tools/v7-users-autoswitch --apply --verify",
+      "execution_allowed_now": false
+    },
+    "simulated_rollback": {
+      "schema_version": "v7.simulated-autonomous-rollback.v1",
+      "simulation_only": true,
+      "rollback_executed": false,
+      "rollback_required_now": false,
+      "rollback_decision": "STOP_BEFORE_APPLY",
+      "rollback_authority": "admin_core/operator_execution.py",
+      "rollback_items": [
+        {
+          "user": "10.7.0.5",
+          "rollback_target": "vless",
+          "rollback_required_when": [
+            "verification failure",
+            "service regression",
+            "partial apply",
+            "operator stop"
+          ],
+          "rollback_executor": "tools/v7-users-autoswitch --rollback-packet --apply --verify",
+          "verification_after_rollback": [
+            "channel restored",
+            "route healthy",
+            "services recovered"
+          ],
+          "blocks_rollback": [
+            "rollback packet missing",
+            "rollback target unknown",
+            "audit path unavailable",
+            "restore barrier mismatch"
+          ]
+        }
+      ],
+      "execution_allowed_now": false
+    }
+  }
+}

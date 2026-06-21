@@ -1,0 +1,65 @@
+{
+  "schema_version": "v7.autonomy-rematerialization-1.analysis-summary.v1",
+  "current_api_capture": {
+    "source": "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/api_operator_autonomous_dry_run.json",
+    "confidence": 39.597,
+    "trust": 39.597,
+    "prediction_confidence": 39.6,
+    "blast_radius_confidence": 0.0,
+    "hard_stop_blockers": [
+      "confidence_too_low",
+      "trust_too_low",
+      "prediction_confidence_too_low"
+    ],
+    "execution_allowed_now": false,
+    "apply_executed": false,
+    "users_moved": 0,
+    "components": {
+      "decision_confidence": 50.0,
+      "service_confidence": 39.225,
+      "suitability_confidence": 29.567,
+      "prediction_confidence": 37.313,
+      "blast_radius_confidence": 0.0,
+      "rollback_confidence": 100.0
+    }
+  },
+  "local_rematerialization": {
+    "source": "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/local_blast_rematerialization.json",
+    "blast_rows_count": 2,
+    "blast_radius_confidence": 100.0,
+    "successful_small_operations": 2,
+    "unsafe_large_operations": 0,
+    "runtime_behavior_changed": false,
+    "users_moved": false
+  },
+  "estimated_after_materialization": {
+    "blast_radius_confidence": 100.0,
+    "confidence": 39.597,
+    "trust_formula_estimate": 54.698,
+    "outcome_confidence_score": 39.597,
+    "prediction_confidence": 39.6,
+    "autonomy_readiness": "NOT_READY",
+    "trust_floor_passes": false,
+    "remaining_floor_blockers": [
+      "confidence_too_low",
+      "trust_too_low",
+      "prediction_confidence_too_low"
+    ],
+    "minimum_confidence_component_after": 29.567
+  },
+  "truth": {
+    "final_verdict": "PASS",
+    "convergence_status": "FULLY_ALIGNED",
+    "runtime_access_status": "READY"
+  },
+  "convergence": {
+    "final_verdict": "PASS",
+    "status": "ALIGNED",
+    "runtime_action_status": "READY_FOR_RUNTIME_ACTION"
+  },
+  "direct_ssh_probe": {
+    "status": "blocked",
+    "reason": "BatchMode publickey/password denied; no production files were modified or read directly over SSH in this phase"
+  },
+  "final_verdict": "AUTONOMY_REMATERIALIZATION_POSSIBLE_REQUIRES_REFRESH"
+}

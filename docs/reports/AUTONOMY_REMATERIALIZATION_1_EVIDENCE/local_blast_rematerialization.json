@@ -1,0 +1,43 @@
+{
+  "schema_version": "v7.autonomy-rematerialization-1.local-blast-rematerialization.v1",
+  "source_counts": {
+    "small_batch_stability_evidence/production_operator_execution_audit_tail.jsonl": 28,
+    "small_batch_stability_evidence/production_execution_events_tail.jsonl": 6,
+    "small_batch_stability_evidence/production_runtime_trust_tail.jsonl": 3,
+    "small_batch_stability_evidence/production_closure_records_tail.jsonl": 3
+  },
+  "records_total": 40,
+  "blast_rows": [
+    {
+      "result": "success",
+      "success": true,
+      "rollback_required": false,
+      "blast_radius": 1,
+      "evidence_source": "decision_record",
+      "event_time": "2026-06-05T06:25:31.890807+00:00",
+      "operation_id": "runtime_autoswitch_e33f678dabd7ad432b38f2a7"
+    },
+    {
+      "result": "success",
+      "success": true,
+      "rollback_required": false,
+      "blast_radius": 2,
+      "evidence_source": "decision_record",
+      "event_time": "2026-06-06T08:47:20.062944+00:00",
+      "operation_id": "runtime_autoswitch_b5063a475a06312ff23c90a7"
+    }
+  ],
+  "model": {
+    "schema_version": "v7.ri6.blast-radius-confidence-model.v1",
+    "records_seen": 2,
+    "successful_small_operations": 2,
+    "unsafe_large_operations": 0,
+    "recommended_budget": 0.0,
+    "blast_radius_confidence": 100.0,
+    "confidence_band": "HIGH",
+    "runtime_decision_authority": "none_evidence_only"
+  },
+  "runtime_behavior_changed": false,
+  "governance_behavior_changed": false,
+  "users_moved": false
+}

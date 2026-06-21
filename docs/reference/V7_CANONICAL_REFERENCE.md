@@ -168,7 +168,11 @@ A new audit is allowed only when the reference has no answer, the reference expl
 7. The safe next action is to run the existing production snapshot refresh/materialization path against the correct production feedback stores, then re-read `trust-evolution-summaries` and `/api/operator/autonomous-dry-run`.
 8. If production feedback stores lack the historical governed records, new governed evidence may be required; that must still be collected through existing execution, feedback, closure, and snapshot owners only.
 9. `GET /api/operator/shadow-autonomy` currently records missing shadow decision rows through `record=true`; strict read-only audits should use `/api/operator/decision-surface` plus the pure `admin_core.shadow_autonomy` decision builder, or explicitly allow that product write.
-10. Last verified commit: `1cfad5a1c5c2a98b4793fb4cb3bdc360262d5c7a`.
+10. AUTONOMY.REMATERIALIZATION.1 on 2026-06-21 re-ran the current existing builder against saved production governed feedback and again produced 2 usable blast-radius rows: radius `1` and radius `2`, both successful and rollback-free. The resulting existing model output was `blast_radius_confidence=100.0`, `successful_small_operations=2`, and `unsafe_large_operations=0`.
+11. Fresh production API capture in AUTONOMY.REMATERIALIZATION.1 still reported `blast_radius_confidence=0.0`, `confidence=39.597`, `trust=39.597`, `prediction_confidence=39.6`, `apply_executed=false`, and `users_moved=0`.
+12. If only blast-radius confidence becomes visible as `100.0`, estimated trust rises to about `54.698`, but the `70` trust floor still does not pass and autonomy remains `NOT_READY`.
+13. Existing `tools/v7-intelligence-snapshot-refresh` supports the required feedback inputs and has a `--dry-run` mode; the next safe phase is production snapshot refresh and recheck, not code changes or runtime apply.
+14. Last verified commit: `d519bcbf736653538ea9975386213babd5438007`.
 
 ## 1. Channels
 

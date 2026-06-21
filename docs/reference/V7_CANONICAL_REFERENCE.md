@@ -171,8 +171,14 @@ A new audit is allowed only when the reference has no answer, the reference expl
 10. AUTONOMY.REMATERIALIZATION.1 on 2026-06-21 re-ran the current existing builder against saved production governed feedback and again produced 2 usable blast-radius rows: radius `1` and radius `2`, both successful and rollback-free. The resulting existing model output was `blast_radius_confidence=100.0`, `successful_small_operations=2`, and `unsafe_large_operations=0`.
 11. Fresh production API capture in AUTONOMY.REMATERIALIZATION.1 still reported `blast_radius_confidence=0.0`, `confidence=39.597`, `trust=39.597`, `prediction_confidence=39.6`, `apply_executed=false`, and `users_moved=0`.
 12. If only blast-radius confidence becomes visible as `100.0`, estimated trust rises to about `54.698`, but the `70` trust floor still does not pass and autonomy remains `NOT_READY`.
-13. Existing `tools/v7-intelligence-snapshot-refresh` supports the required feedback inputs and has a `--dry-run` mode; the next safe phase is production snapshot refresh and recheck, not code changes or runtime apply.
-14. Last verified commit: `d519bcbf736653538ea9975386213babd5438007`.
+13. Existing `tools/v7-intelligence-snapshot-refresh` supports the required feedback inputs and has a `--dry-run` mode; refresh writes intelligence snapshots only and must not move users or enable autonomy.
+14. AUTONOMY.REMATERIALIZATION.2 on 2026-06-21 executed the existing production-supported path `/api/actions/planner-refresh-dry-run`, which runs `v7-users-autoswitch --pre-planner-refresh write --pre-planner-refresh-command v7-intelligence-snapshot-refresh`.
+15. The refresh was safe: `apply_executed=false`, `user_movement_performed=false`, `routing_mutation_performed=false`, `users_moved=0`, and `runtime_mutation_scope=intelligence_snapshot_refresh_only`.
+16. The refresh regenerated `trust-evolution-summaries` (`generated_at` changed from `2026-06-21T17:48:03.651484+00:00` to `2026-06-21T17:48:12.525206+00:00`) but had no metric effect: `blast_radius_confidence` stayed `0.0`, trust stayed `39.602`, confidence stayed `39.602`, and prediction stayed `39.6`.
+17. The `blast_radius_records` source hash after refresh equals `sha256_json([])`, so the production consumed snapshot still contains no blast-radius rows. The standard production refresh path alone did not recover historical BA evidence.
+18. Current narrowed root cause: the live production stores read by `v7-intelligence-snapshot-refresh` either do not contain the historical governed blast-radius rows, store them outside the included paths/window, or present them in a form that does not classify in the live refresh input set.
+19. Next safe phase is read-only production feedback store forensics, not manual snapshot editing, synthetic evidence, model changes, or runtime apply.
+20. Last verified commit: `d25926607b28d37aa3ed15f5a21140ab4b66a5e4`.
 
 ## 1. Channels
 

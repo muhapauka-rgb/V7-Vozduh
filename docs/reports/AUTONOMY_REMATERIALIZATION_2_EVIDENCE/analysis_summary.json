@@ -1,0 +1,186 @@
+{
+  "schema_version": "v7.autonomy-rematerialization-2.analysis-summary.v1",
+  "refresh_executed": true,
+  "refresh_path": "/api/actions/planner-refresh-dry-run -> v7-users-autoswitch --pre-planner-refresh write --pre-planner-refresh-command v7-intelligence-snapshot-refresh",
+  "refresh_action": {
+    "rc": 0,
+    "mode": "refresh_only_planner_dry_run",
+    "cmd": [
+      "v7-users-autoswitch",
+      "--pre-planner-refresh",
+      "write",
+      "--pre-planner-refresh-command",
+      "v7-intelligence-snapshot-refresh",
+      "--pretty"
+    ],
+    "security": {
+      "apply_allowed": false,
+      "apply_executed": false,
+      "user_movement_performed": false,
+      "routing_mutation_performed": false,
+      "runtime_mutation_scope": "intelligence_snapshot_refresh_only"
+    },
+    "summary": {
+      "snapshot_stop_required": false,
+      "source_mismatch_families": [],
+      "candidate_moves_total": 0,
+      "selected_moves_before_gate": 0,
+      "selected_moves_after_gate": 0,
+      "healthy_egress_total": 0,
+      "best_available_pool": {
+        "count": 0,
+        "policy": {}
+      },
+      "pre_planner_refresh_state": "",
+      "pre_planner_refresh_rc": null,
+      "refresh_snapshot_count": 0,
+      "refresh_warnings": [],
+      "apply_present": false,
+      "runtime_behavior_changed": false,
+      "governance_behavior_changed": false,
+      "users_moved": false,
+      "routing_mutation_performed": false
+    }
+  },
+  "before": {
+    "confidence": 39.602,
+    "trust": 39.602,
+    "prediction_confidence": 39.6,
+    "blast_radius_confidence": 0.0,
+    "rollback_confidence": 100.0,
+    "candidate_count": 1,
+    "execution_allowed_now": false,
+    "autonomy_enabled": false,
+    "apply_executed": false,
+    "users_moved": 0,
+    "blockers": [
+      "confidence_too_low",
+      "trust_too_low",
+      "prediction_confidence_too_low"
+    ],
+    "components": {
+      "decision_confidence": 50.0,
+      "service_confidence": 39.225,
+      "suitability_confidence": 29.58,
+      "blast_radius_confidence": 0.0,
+      "prediction_confidence": 37.373,
+      "rollback_confidence": 100.0
+    }
+  },
+  "after": {
+    "confidence": 39.602,
+    "trust": 39.602,
+    "prediction_confidence": 39.6,
+    "blast_radius_confidence": 0.0,
+    "rollback_confidence": 100.0,
+    "candidate_count": 1,
+    "execution_allowed_now": false,
+    "autonomy_enabled": false,
+    "apply_executed": false,
+    "users_moved": 0,
+    "blockers": [
+      "confidence_too_low",
+      "trust_too_low",
+      "prediction_confidence_too_low"
+    ],
+    "components": {
+      "decision_confidence": 50.0,
+      "service_confidence": 39.225,
+      "suitability_confidence": 29.58,
+      "blast_radius_confidence": 0.0,
+      "prediction_confidence": 37.373,
+      "rollback_confidence": 100.0
+    }
+  },
+  "delta": {
+    "confidence": 0.0,
+    "trust": 0.0,
+    "prediction_confidence": 0.0,
+    "blast_radius_confidence": 0.0,
+    "rollback_confidence": 0.0,
+    "candidate_count": 0,
+    "users_moved": 0
+  },
+  "snapshot_status": {
+    "before_generated_at": [
+      "2026-06-21T17:48:03.651484+00:00"
+    ],
+    "after_generated_at": [
+      "2026-06-21T17:48:12.525206+00:00"
+    ],
+    "before_trust_evolution": {
+      "status": "OK",
+      "exists": true,
+      "validation_ok": true,
+      "freshness_state": "FRESH",
+      "confidence": 0.9805,
+      "runtime_behavior": "ALLOW",
+      "stop_required": false,
+      "path": "/opt/v7/egress/state/intelligence/trust-evolution-summaries.json",
+      "errors": [],
+      "validation_errors": [],
+      "warnings": [],
+      "validation_warnings": [],
+      "source_hashes": {
+        "best_available_pool": "915a504bc1a04ca73af9da057df67cbc95dc6cb6f732cf50027f2abfd9ff9fad",
+        "blast_radius": "d2c14d0debeabd5cdd34dbc52dafdcd8cbcbeee2cc210dd74669b95015552124",
+        "blast_radius_records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "candidate_outcomes": "f5c3295a624fc45b7b83511ae0c4bdfa86a83253d58c11521ef88419a973567a",
+        "candidate_suitability": "88d37820823cbc41182e42403e192d440b6a87b2721253f801d104951aef313b",
+        "channel_service_scores": "e313089ef518a10e953501ac47f19d12abb66401198ff2cec46ca988486698e9",
+        "decisions": "ee4d39cc5606d2067f582c0d051be83e91f72ef0d6bff09ddde1c6c4b2c23e70",
+        "prediction_actuals": "98589f0dc5ff6c454a381ce02c628d391b0848d7f7fb2ff0f9663b2dab373b93",
+        "prediction_summary": "550b11f212d4fbaec058ddfa722d38aed544a6d26ebe9d436466349f96429949",
+        "rollback_records": "e317b3b767f44629d59b7c3e6905ce5ccf537e4921a41deb35201334b2300736",
+        "service_actuals": "e94696f3690a30eb1be6d356945b253cc4bbe3d8a5f692452afbc5376703c76d",
+        "service_scores": "d2326e967fb5a9b2006ae1ca3a3d82c6157fcde32aa74cd2faf79592493245b8",
+        "trust_summary": "502dd8a5431ed2571836abf262ad80ac2598a7f4267574b7dded3eb889d889ef"
+      }
+    },
+    "after_trust_evolution": {
+      "status": "OK",
+      "exists": true,
+      "validation_ok": true,
+      "freshness_state": "FRESH",
+      "confidence": 0.9805,
+      "runtime_behavior": "ALLOW",
+      "stop_required": false,
+      "path": "/opt/v7/egress/state/intelligence/trust-evolution-summaries.json",
+      "errors": [],
+      "validation_errors": [],
+      "warnings": [],
+      "validation_warnings": [],
+      "source_hashes": {
+        "best_available_pool": "26ee2c843fa6465f8ccf7422e9073c2f9139f2db31e32568ae279338209dea93",
+        "blast_radius": "633cf2ae7bf5125906de71b4601730c7977e68482d95b3fd83489151704101ec",
+        "blast_radius_records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "candidate_outcomes": "f5c3295a624fc45b7b83511ae0c4bdfa86a83253d58c11521ef88419a973567a",
+        "candidate_suitability": "4eeda604e88978c31f432d372e15972a99f961fa062953a968091ea4ce7796c1",
+        "channel_service_scores": "8f031f836e7a24845c92cae9ce2f96feb9033e90225e3ab2f9de8a33123f1dc1",
+        "decisions": "ee4d39cc5606d2067f582c0d051be83e91f72ef0d6bff09ddde1c6c4b2c23e70",
+        "prediction_actuals": "c5f2de05af83f12eb6245e046577e5504d387a72823376367ad97cbded875a03",
+        "prediction_summary": "bc3d5546761abd46074e727b8c402eed80e07a71ef9c993ce23205dcfe7391b4",
+        "rollback_records": "e317b3b767f44629d59b7c3e6905ce5ccf537e4921a41deb35201334b2300736",
+        "service_actuals": "b82d1c66bf01a16a9db2cc18146ed6a9a7b451b32f0f7c4719351be3fa1f63c8",
+        "service_scores": "53b623de778e0a09a34dc63ff2b1783e65b8672a09939d3b2aa5ce75b50e8a97",
+        "trust_summary": "548c74507ec6b92fe0f6efc5e8c0cad49b90e910c5fc1c8b4dfc44e4a15ec66c"
+      }
+    },
+    "empty_blast_radius_records_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "before_blast_radius_records_hash_is_empty": true,
+    "after_blast_radius_records_hash_is_empty": true
+  },
+  "blast_radius_validation": {
+    "moved": false,
+    "old_value": 0.0,
+    "new_value": 0.0,
+    "hypothesis_confirmed": false,
+    "reason": "production refresh wrote fresh trust-evolution snapshot, but blast_radius_records source hash equals sha256_json([]), so the consumed snapshot still has no blast-radius evidence rows"
+  },
+  "dominant_blockers_after": [
+    "confidence_too_low",
+    "trust_too_low",
+    "prediction_confidence_too_low"
+  ],
+  "final_verdict": "AUTONOMY_REMATERIALIZATION_NO_EFFECT"
+}

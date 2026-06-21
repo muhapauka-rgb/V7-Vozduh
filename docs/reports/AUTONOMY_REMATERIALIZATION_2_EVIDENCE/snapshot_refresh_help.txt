@@ -1,0 +1,46 @@
+usage: v7-intelligence-snapshot-refresh [-h] [--state-dir STATE_DIR]
+                                        [--event-dir EVENT_DIR]
+                                        [--out-dir OUT_DIR]
+                                        [--service-matrix-file SERVICE_MATRIX_FILE]
+                                        [--quality-summary-file QUALITY_SUMMARY_FILE]
+                                        [--service-preferences-file SERVICE_PREFERENCES_FILE]
+                                        [--audit-dir AUDIT_DIR]
+                                        [--audit-log AUDIT_LOG]
+                                        [--switch-history-file SWITCH_HISTORY_FILE]
+                                        [--rollback-history-file ROLLBACK_HISTORY_FILE]
+                                        [--feedback-log FEEDBACK_LOG]
+                                        [--execution-events-file EXECUTION_EVENTS_FILE]
+                                        [--runtime-trust-file RUNTIME_TRUST_FILE]
+                                        [--proposal-records-file PROPOSAL_RECORDS_FILE]
+                                        [--closure-records-file CLOSURE_RECORDS_FILE]
+                                        [--total-users TOTAL_USERS]
+                                        [--affected-candidates AFFECTED_CANDIDATES]
+                                        [--dry-run] [--pretty]
+                                        [--max-source-retries MAX_SOURCE_RETRIES]
+                                        [--source-retry-sleep-sec SOURCE_RETRY_SLEEP_SEC]
+
+Generate V7 intelligence snapshots.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --state-dir STATE_DIR
+  --event-dir EVENT_DIR
+  --out-dir OUT_DIR
+  --service-matrix-file SERVICE_MATRIX_FILE
+  --quality-summary-file QUALITY_SUMMARY_FILE
+  --service-preferences-file SERVICE_PREFERENCES_FILE
+  --audit-dir AUDIT_DIR
+  --audit-log AUDIT_LOG
+  --switch-history-file SWITCH_HISTORY_FILE
+  --rollback-history-file ROLLBACK_HISTORY_FILE
+  --feedback-log FEEDBACK_LOG
+  --execution-events-file EXECUTION_EVENTS_FILE
+  --runtime-trust-file RUNTIME_TRUST_FILE
+  --proposal-records-file PROPOSAL_RECORDS_FILE
+  --closure-records-file CLOSURE_RECORDS_FILE
+  --total-users TOTAL_USERS
+  --affected-candidates AFFECTED_CANDIDATES
+  --dry-run             Build snapshots but do not write files.
+  --pretty
+  --max-source-retries MAX_SOURCE_RETRIES
+  --source-retry-sleep-sec SOURCE_RETRY_SLEEP_SEC

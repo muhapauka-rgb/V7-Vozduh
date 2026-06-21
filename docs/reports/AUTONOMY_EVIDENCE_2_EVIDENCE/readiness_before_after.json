@@ -1,0 +1,64 @@
+{
+  "schema_version": "v7.autonomy-evidence-2.before-after-readiness.v1",
+  "generated_at": "2026-06-21T14:55:30.688256+00:00",
+  "before_source": "AUTONOMY_EVIDENCE_1/EVENT1 evidence",
+  "after_source": "AUTONOMY_EVIDENCE_2 current production read-only endpoints",
+  "comparisons_total": {
+    "before": 0,
+    "after": 0
+  },
+  "earned_confidence": {
+    "before": 45.825,
+    "after": 45.813
+  },
+  "confidence": {
+    "before": 45.8,
+    "after": 45.8
+  },
+  "trust": {
+    "before": 39.584,
+    "after": 39.308
+  },
+  "prediction_confidence": {
+    "before": 39.6,
+    "after": 39.6
+  },
+  "blast_radius_confidence": {
+    "before": 0.0,
+    "after": 0.0
+  },
+  "rollback_confidence": {
+    "before": 100.0,
+    "after": 100.0
+  },
+  "hard_stop_blockers": {
+    "before": [
+      "confidence_too_low",
+      "trust_too_low",
+      "prediction_confidence_too_low"
+    ],
+    "after": [
+      "confidence_too_low",
+      "trust_too_low",
+      "prediction_confidence_too_low"
+    ]
+  },
+  "candidate_count": {
+    "before": 1,
+    "after": 1
+  },
+  "execution_allowed_now": {
+    "before": false,
+    "after": false
+  },
+  "apply_executed": {
+    "before": false,
+    "after": false
+  },
+  "users_moved": {
+    "before": 0,
+    "after": 0
+  },
+  "comparisons_submitted_this_phase": 0,
+  "reason_no_comparison_submission": "No explicit real operator judgement was provided; synthetic comparisons are forbidden."
+}

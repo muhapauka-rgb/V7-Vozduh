@@ -1,0 +1,74 @@
+{
+  "schema_version": "v7.autonomy-evidence-2.blast-radius-forensics.v1",
+  "generated_at": "2026-06-21T14:55:30.688011+00:00",
+  "part_a_verdict": "BLAST_RADIUS_HISTORICAL_EVIDENCE_EXISTS_NOT_MATERIALIZED",
+  "calculation_owner": "admin_core/intelligence_platform.py::blast_radius_confidence_model",
+  "row_builder_owner": "admin_core/intelligence_workers.py::build_blast_radius_evidence_rows",
+  "snapshot_family": "trust-evolution-summaries",
+  "required_fields_any": [
+    "blast_radius",
+    "affected_users",
+    "movement_count",
+    "users_moved",
+    "selected_move_count",
+    "target_users",
+    "users",
+    "moved_users",
+    "selected_moves",
+    "moves"
+  ],
+  "required_outcome": "known outcome_status/result/status plus success/no rollback_required",
+  "historical_feedback_sources": {
+    "execution_events_count": 6,
+    "runtime_trust_count": 3,
+    "closure_records_count": 3,
+    "audit_records_count": 28
+  },
+  "historical_blast_rows_from_existing_builder": [
+    {
+      "result": "success",
+      "success": true,
+      "rollback_required": false,
+      "blast_radius": 1,
+      "evidence_source": "decision_record",
+      "event_time": "2026-06-05T06:25:31.890807+00:00",
+      "operation_id": "runtime_autoswitch_e33f678dabd7ad432b38f2a7"
+    },
+    {
+      "result": "success",
+      "success": true,
+      "rollback_required": false,
+      "blast_radius": 2,
+      "evidence_source": "decision_record",
+      "event_time": "2026-06-06T08:47:20.062944+00:00",
+      "operation_id": "runtime_autoswitch_b5063a475a06312ff23c90a7"
+    }
+  ],
+  "historical_blast_model_from_existing_builder": {
+    "schema_version": "v7.ri6.blast-radius-confidence-model.v1",
+    "records_seen": 2,
+    "successful_small_operations": 2,
+    "unsafe_large_operations": 0,
+    "recommended_budget": 0.0,
+    "blast_radius_confidence": 100.0,
+    "confidence_band": "HIGH",
+    "runtime_decision_authority": "none_evidence_only"
+  },
+  "local_rebuilt_snapshot": {
+    "blast_radius_confidence": 100.0,
+    "blast_radius_evidence_count": 2,
+    "records_seen": 2,
+    "successful_small_operations": 2
+  },
+  "current_production_consumed": {
+    "blast_radius_confidence": 0.0,
+    "candidate_outcomes_count": 83,
+    "prediction_actuals_count": 21,
+    "service_actuals_count": 21
+  },
+  "root_cause": "Historical governed feedback contains usable movement-radius/success/no-rollback evidence, and a prior local rebuild classified it into blast-radius rows. Current production autonomy evidence still consumes a trust-evolution snapshot with blast_radius_confidence=0.0, so the historical evidence is not currently materialized into the consumed production snapshot.",
+  "code_change_required": false,
+  "snapshot_refresh_enough": "Probably yes if run through existing tools against correct production feedback stores and then verified by autonomous dry-run; no new truth source required.",
+  "historical_ba_reusable": true,
+  "next_safe_action": "Run existing production snapshot refresh/materialization path against real feedback stores, then re-read autonomous dry-run. No apply."
+}

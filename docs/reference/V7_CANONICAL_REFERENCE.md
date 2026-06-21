@@ -157,6 +157,19 @@ A new audit is allowed only when the reference has no answer, the reference expl
 9. Evidence collection may update evidence stores and snapshots only through existing owners. It must not create a new evidence store, planner, governance path, execution path, confidence model, trust model, prediction model, or truth source.
 10. Last verified commit: `51fd8c6263b1f45f4ac85b195dbd53537c19074d`.
 
+## AUTONOMY_BLAST_RADIUS_MATERIALIZATION_RULES
+
+1. Blast-radius confidence is calculated by `admin_core/intelligence_platform.py::blast_radius_confidence_model`.
+2. Blast-radius evidence rows are built by `admin_core/intelligence_workers.py::build_blast_radius_evidence_rows` and consumed by the `trust-evolution-summaries` snapshot family.
+3. A usable blast-radius evidence row requires a known governed outcome and a movement radius derived from existing fields such as `blast_radius`, `affected_users`, `movement_count`, `users_moved`, `selected_move_count`, `target_users`, `users`, `moved_users`, `selected_moves`, or `moves`.
+4. Historical governed feedback from BA/small-batch runs contains reusable movement-radius, success, verification, closure, and no-rollback evidence. A prior local rebuild using existing owners classified that evidence into `blast_radius_confidence=100.0` with `blast_radius_evidence_count=2`.
+5. Current production autonomy evidence on 2026-06-21 still consumes `blast_radius_confidence=0.0`, so historical blast-radius evidence exists but is not currently materialized into the production consumed autonomy snapshot.
+6. This is a materialization/refresh gap, not a reason to create a new blast-radius model, new confidence model, new trust model, new snapshot family, or new truth source.
+7. The safe next action is to run the existing production snapshot refresh/materialization path against the correct production feedback stores, then re-read `trust-evolution-summaries` and `/api/operator/autonomous-dry-run`.
+8. If production feedback stores lack the historical governed records, new governed evidence may be required; that must still be collected through existing execution, feedback, closure, and snapshot owners only.
+9. `GET /api/operator/shadow-autonomy` currently records missing shadow decision rows through `record=true`; strict read-only audits should use `/api/operator/decision-surface` plus the pure `admin_core.shadow_autonomy` decision builder, or explicitly allow that product write.
+10. Last verified commit: `1cfad5a1c5c2a98b4793fb4cb3bdc360262d5c7a`.
+
 ## 1. Channels
 
 - What it means: A channel is an egress path that can carry users, be inspected by operators, and be considered by the planner.

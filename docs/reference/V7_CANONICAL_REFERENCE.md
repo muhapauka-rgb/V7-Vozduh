@@ -129,6 +129,21 @@ A new audit is allowed only when the reference has no answer, the reference expl
 7. EVENT.1 final verdict is `EVENT_TRIGGER_BLOCKED`.
 8. Next safe phase is read-only event consumer certification plus evidence collection until confidence, trust, prediction, comparison, restore barrier, rollback, feedback, and learning gates pass together.
 
+## AUTONOMY_ROOT_CONFIDENCE_TRUST_MODEL
+
+1. V7 has two related but separate confidence layers: governed execution evidence and operator-free autonomy evidence.
+2. Governed execution evidence comes from certified BA runs, execution outcomes, feedback, rollback readiness, and intelligence snapshots. It can raise inherited execution trust.
+3. Operator-free autonomy evidence is stricter: it must prove safe autonomous trigger, self-stop, rollback decision, confidence floors, operator comparison quality, and operator-free apply boundary.
+4. BA1/BA3/BA4 evidence is consumed by `trust-evolution-summaries`; EVENT.1 reports `evidence_produced=true`, `evidence_stored=true`, `evidence_visible=true`, `evidence_consumed=true`, and `evidence_weighted=true`.
+5. BA evidence does not automatically certify production autonomy. It currently raises inherited execution trust to `87.048`, while autonomy-specific trust remains `0.0` and autonomy-specific gap remains `100.0`.
+6. Current candidate floor gates are owned by `admin_core/operator_execution_pipeline.py`. Floors are `confidence >= 70`, `trust >= 70`, and `prediction_confidence >= 70`.
+7. Current EVENT.1 values are `confidence=45.8`, `trust=39.584`, and `prediction_confidence=39.6`; all are below floor, so apply must stop.
+8. Outcome evidence is active and consumed from `trust-evolution-summaries`, but current component quality is insufficient: decision `50.0`, service `39.225`, suitability `29.528`, blast-radius `0.0`, prediction `37.355`, rollback `100.0`.
+9. Shadow comparison evidence is owned by `admin_core/shadow_autonomy.py` and the existing `/api/actions/shadow-autonomy-compare` endpoint. Current comparison count is `0`, so earned confidence remains `45.825`.
+10. Missing evidence must be collected through existing owners only: operator comparisons, matched prediction actuals, matched service/candidate outcomes, explicit blast-radius evidence, and future read-only event consumer certification.
+11. Lowering floors, adding a new planner, adding a new execution path, or enabling a timer/daemon to move users would violate the current autonomy model.
+12. Last verified commit: `68b4153e95712b1ac432ccfac785561025ea4aed`.
+
 ## 1. Channels
 
 - What it means: A channel is an egress path that can carry users, be inspected by operators, and be considered by the planner.
@@ -349,9 +364,9 @@ A new audit is allowed only when the reference has no answer, the reference expl
 - What does NOT affect it: It does not bypass approval, restore barriers, governance, rollback, feedback, truth/convergence, or existing execution handlers. It must not move users merely because a timer fired.
 - Operator meaning: "V7 can surface what needs attention, and can prepare governed action, but dangerous changes remain guarded until an event-driven chain is ready."
 - Engineer meaning: Derived intelligence and governed automation layer over existing truth and execution owners.
-- Known caveats: Continuous production autonomy daemon is not active as of POOL.3/EVENT.1. Truth says `autoswitch_scheduler_active=false` and `autoswitch_service_active=false`. EVENT.1 proved the current read-only chain can preview planner/packet/restore/rollback/feedback/learning surfaces but must stop because confidence/trust/prediction floors fail, operator comparison evidence is below floor, restore barrier readiness is blocked, and no live event consumer is certified.
-- Related reports / ADRs: `PROGRAM_INTELLIGENCE_PLATFORM_CERTIFICATION_AND_HARDENING_REPORT.md`, `UX_7_ATTENTION_LAYER_SPECIFICATION_REPORT.md`, `docs/operator_actions/CHANNEL_AUTOMATION_OPERATOR_REALITY_AUDIT_REPORT.md`, `docs/reports/POOL.3_RUNTIME_DISCOVER.md`, `docs/reports/EVENT.1_REGRESSION_TRIGGER_CERTIFICATION.md`, ADR-EVENT-DRIVEN-AUTONOMY.
-- Last verified commit: `0b38e9bc`.
+- Known caveats: Continuous production autonomy daemon is not active as of POOL.3/EVENT.1/AUTONOMY.ROOT. Truth says `autoswitch_scheduler_active=false` and `autoswitch_service_active=false`. EVENT.1 proved the current read-only chain can preview planner/packet/restore/rollback/feedback/learning surfaces but must stop because confidence/trust/prediction floors fail, operator comparison evidence is below floor, restore barrier readiness is blocked, and no live event consumer is certified. AUTONOMY.ROOT clarified that BA evidence is consumed and raises governed inherited execution trust, but does not close operator-free autonomy trust.
+- Related reports / ADRs: `PROGRAM_INTELLIGENCE_PLATFORM_CERTIFICATION_AND_HARDENING_REPORT.md`, `UX_7_ATTENTION_LAYER_SPECIFICATION_REPORT.md`, `docs/operator_actions/CHANNEL_AUTOMATION_OPERATOR_REALITY_AUDIT_REPORT.md`, `docs/reports/POOL.3_RUNTIME_DISCOVER.md`, `docs/reports/EVENT.1_REGRESSION_TRIGGER_CERTIFICATION.md`, `docs/reports/AUTONOMY_ROOT_CONFIDENCE_DISCOVERY.md`, ADR-EVENT-DRIVEN-AUTONOMY.
+- Last verified commit: `68b4153e`.
 
 ## 16. Truth / Convergence
 

@@ -1,0 +1,200 @@
+{
+  "shadow": {
+    "current_decisions_count": 27,
+    "decision_history_count": 27,
+    "comparison_history_count": 0,
+    "quality": {
+      "schema_version": "v7.shadow-autonomy-quality.v1",
+      "decisions_total": 27,
+      "comparisons_total": 0,
+      "agreement_count": 0,
+      "disagreement_count": 0,
+      "override_count": 0,
+      "agreement_rate": 0.0,
+      "disagreement_rate": 0.0,
+      "override_rate": 0.0,
+      "prediction_accuracy": "INSUFFICIENT_OUTCOME_HISTORY",
+      "trust_accuracy": 0.0,
+      "recommendation_accuracy": 0.0,
+      "average_decision_confidence": 45.825
+    },
+    "confidence": {
+      "schema_version": "v7.shadow-autonomy-confidence.v1",
+      "earned_confidence": 45.825,
+      "base_decision_confidence": 45.825,
+      "operator_agreement_influence": 0.0,
+      "comparison_history_count": 0,
+      "confidence_earned_by": [
+        "operator agreement",
+        "correct trust interpretation",
+        "successful prediction feedback",
+        "recommendation not overridden"
+      ],
+      "certified": false,
+      "blockers": [
+        "shadow_comparison_history_below_minimum",
+        "shadow_confidence_below_operator_floor"
+      ]
+    },
+    "autonomy_evidence": {
+      "schema_version": "v7.shadow-autonomy-evidence.v1",
+      "decision_count": 27,
+      "comparison_count": 0,
+      "agreement_count": 0,
+      "override_count": 0,
+      "earned_confidence": 45.825,
+      "trust_quality": 0.0,
+      "prediction_quality": "INSUFFICIENT_OUTCOME_HISTORY",
+      "recommendation_quality": 0.0,
+      "evidence_targets_met": false,
+      "missing_targets": [
+        "minimum_comparisons",
+        "agreement_rate_floor",
+        "earned_confidence_floor"
+      ]
+    },
+    "storage_path": "/opt/v7/egress/state/shadow-autonomy-decisions.jsonl",
+    "current_decision_examples": [
+      {
+        "schema_version": "v7.shadow-autonomy.v1",
+        "record_type": "shadow_decision",
+        "timestamp": "2026-06-21T13:40:20.626150+00:00",
+        "user": "10.7.0.17",
+        "current_channel": "vless",
+        "recommended_action": "MOVE_USER",
+        "recommended_target": "awg3",
+        "reason": "best available channel has higher advisory suitability",
+        "trust": 3.15,
+        "prediction": {
+          "available": true,
+          "confidence": 0.396,
+          "summary": "prediction evidence available"
+        },
+        "risk": 3.57,
+        "confidence": 46.245,
+        "expected_outcome": "better_route_quality",
+        "recommendation_hash": "c402d264ae89c10ac315",
+        "source_hash": "4158fe85449fc329",
+        "blockers": [],
+        "runtime_mutation_performed": false,
+        "execution_allowed_now": false,
+        "users_moved": 0,
+        "apply_executed": false,
+        "autonomy_enabled": false,
+        "decision_id": "shadow_e2c5534b4f5e137f17516164"
+      },
+      {
+        "schema_version": "v7.shadow-autonomy.v1",
+        "record_type": "shadow_decision",
+        "timestamp": "2026-06-21T13:40:20.626150+00:00",
+        "user": "10.7.0.18",
+        "current_channel": "vless",
+        "recommended_action": "MOVE_USER",
+        "recommended_target": "awg3",
+        "reason": "best available channel has higher advisory suitability",
+        "trust": 3.15,
+        "prediction": {
+          "available": true,
+          "confidence": 0.396,
+          "summary": "prediction evidence available"
+        },
+        "risk": 3.57,
+        "confidence": 46.245,
+        "expected_outcome": "better_route_quality",
+        "recommendation_hash": "0c4843c1ee00cf2e1d3f",
+        "source_hash": "4158fe85449fc329",
+        "blockers": [],
+        "runtime_mutation_performed": false,
+        "execution_allowed_now": false,
+        "users_moved": 0,
+        "apply_executed": false,
+        "autonomy_enabled": false,
+        "decision_id": "shadow_36b01736a3fcd9a0287ff7ae"
+      },
+      {
+        "schema_version": "v7.shadow-autonomy.v1",
+        "record_type": "shadow_decision",
+        "timestamp": "2026-06-21T13:40:20.626150+00:00",
+        "user": "10.7.0.19",
+        "current_channel": "vless",
+        "recommended_action": "MOVE_USER",
+        "recommended_target": "awg3",
+        "reason": "best available channel has higher advisory suitability",
+        "trust": 3.15,
+        "prediction": {
+          "available": true,
+          "confidence": 0.396,
+          "summary": "prediction evidence available"
+        },
+        "risk": 3.57,
+        "confidence": 46.245,
+        "expected_outcome": "better_route_quality",
+        "recommendation_hash": "66901bd2c3dc195b3d14",
+        "source_hash": "4158fe85449fc329",
+        "blockers": [],
+        "runtime_mutation_performed": false,
+        "execution_allowed_now": false,
+        "users_moved": 0,
+        "apply_executed": false,
+        "autonomy_enabled": false,
+        "decision_id": "shadow_a07a8066c4c8493ef39373c7"
+      },
+      {
+        "schema_version": "v7.shadow-autonomy.v1",
+        "record_type": "shadow_decision",
+        "timestamp": "2026-06-21T13:40:20.626150+00:00",
+        "user": "10.7.0.20",
+        "current_channel": "vless",
+        "recommended_action": "MOVE_USER",
+        "recommended_target": "awg3",
+        "reason": "best available channel has higher advisory suitability",
+        "trust": 3.15,
+        "prediction": {
+          "available": true,
+          "confidence": 0.396,
+          "summary": "prediction evidence available"
+        },
+        "risk": 3.57,
+        "confidence": 46.245,
+        "expected_outcome": "better_route_quality",
+        "recommendation_hash": "2386b40353c645faf5e7",
+        "source_hash": "4158fe85449fc329",
+        "blockers": [],
+        "runtime_mutation_performed": false,
+        "execution_allowed_now": false,
+        "users_moved": 0,
+        "apply_executed": false,
+        "autonomy_enabled": false,
+        "decision_id": "shadow_a60b56ad28fcb91594ec94da"
+      },
+      {
+        "schema_version": "v7.shadow-autonomy.v1",
+        "record_type": "shadow_decision",
+        "timestamp": "2026-06-21T13:40:20.626150+00:00",
+        "user": "10.7.0.21",
+        "current_channel": "vless",
+        "recommended_action": "MOVE_USER",
+        "recommended_target": "awg3",
+        "reason": "best available channel has higher advisory suitability",
+        "trust": 3.15,
+        "prediction": {
+          "available": true,
+          "confidence": 0.396,
+          "summary": "prediction evidence available"
+        },
+        "risk": 3.57,
+        "confidence": 46.245,
+        "expected_outcome": "better_route_quality",
+        "recommendation_hash": "55c802dc61ccd28e17d2",
+        "source_hash": "4158fe85449fc329",
+        "blockers": [],
+        "runtime_mutation_performed": false,
+        "execution_allowed_now": false,
+        "users_moved": 0,
+        "apply_executed": false,
+        "autonomy_enabled": false,
+        "decision_id": "shadow_20b8c020cf60a241a89e22b3"
+      }
+    ]
+  }
+}

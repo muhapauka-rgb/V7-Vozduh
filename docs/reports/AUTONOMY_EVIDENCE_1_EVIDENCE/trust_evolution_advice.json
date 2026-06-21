@@ -1,0 +1,57 @@
+{
+  "available": true,
+  "live_calibrated": true,
+  "overall_confidence": 42.685,
+  "decision_confidence": 50.0,
+  "service_confidence": 39.225,
+  "suitability_confidence": 29.528,
+  "blast_radius_confidence": 0.0,
+  "prediction_confidence": 37.355,
+  "rollback_confidence": 100.0,
+  "candidate_outcomes_count": 83,
+  "prediction_actuals_count": 21,
+  "service_actuals_count": 21,
+  "inherited_execution_trust": 87.048,
+  "autonomy_specific_gap_score": 100.0,
+  "autonomy_boundary_cap": "OPERATOR_APPROVAL_READY",
+  "bounded_autonomy_blockers": [
+    "autonomous_trigger_not_certified",
+    "autonomous_rollback_decision_not_certified",
+    "operator_free_apply_not_certified",
+    "autonomy_specific_evidence_below_floor"
+  ],
+  "governed_to_autonomy_trust_bridge": {
+    "approval_autonomy_review_ready": true,
+    "authority_changed": false,
+    "autonomy_boundary_cap": "OPERATOR_APPROVAL_READY",
+    "autonomy_enabled": false,
+    "autonomy_specific_gap_score": 100.0,
+    "autonomy_specific_trust": 0.0,
+    "bounded_autonomy_blockers": [
+      "autonomous_trigger_not_certified",
+      "autonomous_rollback_decision_not_certified",
+      "operator_free_apply_not_certified",
+      "autonomy_specific_evidence_below_floor"
+    ],
+    "bounded_autonomy_ready": false,
+    "corrected_autonomy_trust": 52.229,
+    "evidence_counts": {
+      "candidate_outcomes_count": 83,
+      "prediction_actuals_count": 21,
+      "service_actuals_count": 21
+    },
+    "execution_authority": "none",
+    "governance_changed": false,
+    "governed_execution_evidence_score": 100.0,
+    "governed_feedback_evidence_score": 96.97,
+    "inherited_execution_trust": 87.048,
+    "mode": "read_only_advisory",
+    "model": "PARTIALLY_INHERITED_GOVERNED_TRUST_WITH_AUTONOMY_CAPS",
+    "new_truth_source_created": false,
+    "operator_summary_ru": "Governed-история уже повышает доверие к выполнению, но автономный запуск и откат остаются отдельно заблокированы.",
+    "planner_decision_changed": false,
+    "production_autonomy_ready": false,
+    "runtime_mutation_performed": false,
+    "schema_version": "v7.governed-to-autonomy-trust-bridge.v1"
+  }
+}

@@ -1,0 +1,277 @@
+{
+  "source": "docs/reports/EVENT1_EVIDENCE/api_operator_overview.json",
+  "mode": "local_pure_model_exercise_no_production_write",
+  "sample_comparison_record": {
+    "schema_version": "v7.shadow-autonomy.v1",
+    "record_type": "operator_comparison",
+    "timestamp": "2026-06-21T00:00:00+00:00",
+    "decision_id": "shadow_e2c5534b4f5e137f17516164",
+    "user": "10.7.0.17",
+    "recommended_action": "MOVE_USER",
+    "recommended_target": "awg3",
+    "operator_decision": "agree",
+    "operator_agreed": true,
+    "override": false,
+    "category": "manual_preference",
+    "reason": "sample only",
+    "actor": "codex-local-exercise",
+    "runtime_mutation_performed": false,
+    "execution_allowed_now": false,
+    "users_moved": 0,
+    "apply_executed": false,
+    "autonomy_enabled": false,
+    "comparison_id": "shadowcmp_ad4de3e34cfcd99dff4bc921"
+  },
+  "scenarios": [
+    {
+      "comparison_count": 1,
+      "operator_decision": "agree",
+      "quality": {
+        "schema_version": "v7.shadow-autonomy-quality.v1",
+        "decisions_total": 27,
+        "comparisons_total": 1,
+        "agreement_count": 1,
+        "disagreement_count": 0,
+        "override_count": 0,
+        "agreement_rate": 1.0,
+        "disagreement_rate": 0.0,
+        "override_rate": 0.0,
+        "prediction_accuracy": "INSUFFICIENT_OUTCOME_HISTORY",
+        "trust_accuracy": 1.0,
+        "recommendation_accuracy": 1.0,
+        "average_decision_confidence": 45.825
+      },
+      "confidence": {
+        "schema_version": "v7.shadow-autonomy-confidence.v1",
+        "earned_confidence": 48.534,
+        "base_decision_confidence": 45.825,
+        "operator_agreement_influence": 100.0,
+        "comparison_history_count": 1,
+        "confidence_earned_by": [
+          "operator agreement",
+          "correct trust interpretation",
+          "successful prediction feedback",
+          "recommendation not overridden"
+        ],
+        "certified": false,
+        "blockers": [
+          "shadow_comparison_history_below_minimum",
+          "shadow_confidence_below_operator_floor"
+        ]
+      },
+      "evidence": {
+        "schema_version": "v7.shadow-autonomy-evidence.v1",
+        "decision_count": 27,
+        "comparison_count": 1,
+        "agreement_count": 1,
+        "override_count": 0,
+        "earned_confidence": 48.534,
+        "trust_quality": 1.0,
+        "prediction_quality": "INSUFFICIENT_OUTCOME_HISTORY",
+        "recommendation_quality": 1.0,
+        "evidence_targets_met": false,
+        "missing_targets": [
+          "minimum_comparisons",
+          "earned_confidence_floor"
+        ]
+      }
+    },
+    {
+      "comparison_count": 5,
+      "operator_decision": "agree",
+      "quality": {
+        "schema_version": "v7.shadow-autonomy-quality.v1",
+        "decisions_total": 27,
+        "comparisons_total": 5,
+        "agreement_count": 5,
+        "disagreement_count": 0,
+        "override_count": 0,
+        "agreement_rate": 1.0,
+        "disagreement_rate": 0.0,
+        "override_rate": 0.0,
+        "prediction_accuracy": "INSUFFICIENT_OUTCOME_HISTORY",
+        "trust_accuracy": 1.0,
+        "recommendation_accuracy": 1.0,
+        "average_decision_confidence": 45.825
+      },
+      "confidence": {
+        "schema_version": "v7.shadow-autonomy-confidence.v1",
+        "earned_confidence": 59.369,
+        "base_decision_confidence": 45.825,
+        "operator_agreement_influence": 100.0,
+        "comparison_history_count": 5,
+        "confidence_earned_by": [
+          "operator agreement",
+          "correct trust interpretation",
+          "successful prediction feedback",
+          "recommendation not overridden"
+        ],
+        "certified": false,
+        "blockers": [
+          "shadow_confidence_below_operator_floor"
+        ]
+      },
+      "evidence": {
+        "schema_version": "v7.shadow-autonomy-evidence.v1",
+        "decision_count": 27,
+        "comparison_count": 5,
+        "agreement_count": 5,
+        "override_count": 0,
+        "earned_confidence": 59.369,
+        "trust_quality": 1.0,
+        "prediction_quality": "INSUFFICIENT_OUTCOME_HISTORY",
+        "recommendation_quality": 1.0,
+        "evidence_targets_met": false,
+        "missing_targets": [
+          "earned_confidence_floor"
+        ]
+      }
+    },
+    {
+      "comparison_count": 9,
+      "operator_decision": "agree",
+      "quality": {
+        "schema_version": "v7.shadow-autonomy-quality.v1",
+        "decisions_total": 27,
+        "comparisons_total": 9,
+        "agreement_count": 9,
+        "disagreement_count": 0,
+        "override_count": 0,
+        "agreement_rate": 1.0,
+        "disagreement_rate": 0.0,
+        "override_rate": 0.0,
+        "prediction_accuracy": "INSUFFICIENT_OUTCOME_HISTORY",
+        "trust_accuracy": 1.0,
+        "recommendation_accuracy": 1.0,
+        "average_decision_confidence": 45.825
+      },
+      "confidence": {
+        "schema_version": "v7.shadow-autonomy-confidence.v1",
+        "earned_confidence": 70.204,
+        "base_decision_confidence": 45.825,
+        "operator_agreement_influence": 100.0,
+        "comparison_history_count": 9,
+        "confidence_earned_by": [
+          "operator agreement",
+          "correct trust interpretation",
+          "successful prediction feedback",
+          "recommendation not overridden"
+        ],
+        "certified": true,
+        "blockers": []
+      },
+      "evidence": {
+        "schema_version": "v7.shadow-autonomy-evidence.v1",
+        "decision_count": 27,
+        "comparison_count": 9,
+        "agreement_count": 9,
+        "override_count": 0,
+        "earned_confidence": 70.204,
+        "trust_quality": 1.0,
+        "prediction_quality": "INSUFFICIENT_OUTCOME_HISTORY",
+        "recommendation_quality": 1.0,
+        "evidence_targets_met": true,
+        "missing_targets": []
+      }
+    },
+    {
+      "comparison_count": 17,
+      "operator_decision": "agree",
+      "quality": {
+        "schema_version": "v7.shadow-autonomy-quality.v1",
+        "decisions_total": 27,
+        "comparisons_total": 17,
+        "agreement_count": 17,
+        "disagreement_count": 0,
+        "override_count": 0,
+        "agreement_rate": 1.0,
+        "disagreement_rate": 0.0,
+        "override_rate": 0.0,
+        "prediction_accuracy": "INSUFFICIENT_OUTCOME_HISTORY",
+        "trust_accuracy": 1.0,
+        "recommendation_accuracy": 1.0,
+        "average_decision_confidence": 45.825
+      },
+      "confidence": {
+        "schema_version": "v7.shadow-autonomy-confidence.v1",
+        "earned_confidence": 91.874,
+        "base_decision_confidence": 45.825,
+        "operator_agreement_influence": 100.0,
+        "comparison_history_count": 17,
+        "confidence_earned_by": [
+          "operator agreement",
+          "correct trust interpretation",
+          "successful prediction feedback",
+          "recommendation not overridden"
+        ],
+        "certified": true,
+        "blockers": []
+      },
+      "evidence": {
+        "schema_version": "v7.shadow-autonomy-evidence.v1",
+        "decision_count": 27,
+        "comparison_count": 17,
+        "agreement_count": 17,
+        "override_count": 0,
+        "earned_confidence": 91.874,
+        "trust_quality": 1.0,
+        "prediction_quality": "INSUFFICIENT_OUTCOME_HISTORY",
+        "recommendation_quality": 1.0,
+        "evidence_targets_met": true,
+        "missing_targets": []
+      }
+    },
+    {
+      "comparison_count": 17,
+      "operator_decision": "disagree",
+      "quality": {
+        "schema_version": "v7.shadow-autonomy-quality.v1",
+        "decisions_total": 27,
+        "comparisons_total": 17,
+        "agreement_count": 0,
+        "disagreement_count": 17,
+        "override_count": 0,
+        "agreement_rate": 0.0,
+        "disagreement_rate": 1.0,
+        "override_rate": 0.0,
+        "prediction_accuracy": "INSUFFICIENT_OUTCOME_HISTORY",
+        "trust_accuracy": 0.0,
+        "recommendation_accuracy": 0.0,
+        "average_decision_confidence": 45.825
+      },
+      "confidence": {
+        "schema_version": "v7.shadow-autonomy-confidence.v1",
+        "earned_confidence": 6.874,
+        "base_decision_confidence": 45.825,
+        "operator_agreement_influence": 0.0,
+        "comparison_history_count": 17,
+        "confidence_earned_by": [
+          "operator agreement",
+          "correct trust interpretation",
+          "successful prediction feedback",
+          "recommendation not overridden"
+        ],
+        "certified": false,
+        "blockers": [
+          "shadow_confidence_below_operator_floor"
+        ]
+      },
+      "evidence": {
+        "schema_version": "v7.shadow-autonomy-evidence.v1",
+        "decision_count": 27,
+        "comparison_count": 17,
+        "agreement_count": 0,
+        "override_count": 0,
+        "earned_confidence": 6.874,
+        "trust_quality": 0.0,
+        "prediction_quality": "INSUFFICIENT_OUTCOME_HISTORY",
+        "recommendation_quality": 0.0,
+        "evidence_targets_met": false,
+        "missing_targets": [
+          "agreement_rate_floor",
+          "earned_confidence_floor"
+        ]
+      }
+    }
+  ]
+}

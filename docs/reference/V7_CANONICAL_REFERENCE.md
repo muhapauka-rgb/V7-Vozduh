@@ -144,6 +144,19 @@ A new audit is allowed only when the reference has no answer, the reference expl
 11. Lowering floors, adding a new planner, adding a new execution path, or enabling a timer/daemon to move users would violate the current autonomy model.
 12. Last verified commit: `68b4153e95712b1ac432ccfac785561025ea4aed`.
 
+## AUTONOMY_EVIDENCE_COLLECTION_RULES
+
+1. Operator comparison evidence is collected only through the existing shadow autonomy comparison path: `/api/actions/shadow-autonomy-compare`.
+2. A comparison record is valid only when a real operator judges a current shadow `decision_id` as `agree`, `disagree`, or `override`. Synthetic agreement records must not be generated to raise confidence.
+3. The comparison endpoint writes `operator_comparison` records to the existing shadow autonomy JSONL store and admin audit, while reporting `runtime_mutation_performed=false`, `users_moved=0`, `apply_executed=false`, and `autonomy_enabled=false`.
+4. Operator comparisons raise shadow `comparisons_total`, agreement rate, and earned confidence. They do not directly raise candidate trust or prediction confidence.
+5. Prediction confidence improves only through existing matched prediction actuals from service/channel evidence and intelligence snapshot refresh. Current EVENT.1 evidence has `prediction_actuals_count=21`, `prediction_confidence=37.355` from outcome evidence, and final candidate prediction confidence `39.6`.
+6. Service confidence improves through existing service matrix / channel-service score / quality evidence consumed by `service_intelligence_trust_model`. Current EVENT.1 service confidence is `39.225`.
+7. Candidate confidence improves through existing candidate suitability and governed outcome evidence. Current EVENT.1 has `candidate_outcomes_count=83`, `suitability_confidence=29.528`, and final candidate confidence `45.8`.
+8. Blast-radius confidence is owned by the existing `blast_radius_confidence_model` and `build_blast_radius_evidence_rows`; current EVENT.1 value is `0.0`, meaning consumed records did not classify into explicit usable blast-radius evidence.
+9. Evidence collection may update evidence stores and snapshots only through existing owners. It must not create a new evidence store, planner, governance path, execution path, confidence model, trust model, prediction model, or truth source.
+10. Last verified commit: `51fd8c6263b1f45f4ac85b195dbd53537c19074d`.
+
 ## 1. Channels
 
 - What it means: A channel is an egress path that can carry users, be inspected by operators, and be considered by the planner.

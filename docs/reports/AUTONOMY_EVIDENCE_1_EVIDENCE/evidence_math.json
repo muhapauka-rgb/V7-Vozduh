@@ -1,0 +1,30 @@
+{
+  "shadow_comparison_scenarios": [
+    {
+      "agreement_rate": 1,
+      "min_comparisons": 9,
+      "earned": 70.204
+    },
+    {
+      "agreement_rate": 0.9,
+      "min_comparisons": 11,
+      "earned": 70.121
+    },
+    {
+      "agreement_rate": 0.8,
+      "min_comparisons": 15,
+      "earned": 71.456
+    },
+    {
+      "agreement_rate": 0.75,
+      "min_comparisons": 17,
+      "earned": 70.624
+    }
+  ],
+  "prediction_perfect_actuals_to_floor": {
+    "current": 37.355,
+    "count": 21,
+    "additional_perfect_actuals": 23,
+    "next": 70.101
+  }
+}

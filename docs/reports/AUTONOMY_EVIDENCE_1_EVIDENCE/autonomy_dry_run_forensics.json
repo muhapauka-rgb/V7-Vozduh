@@ -1,0 +1,363 @@
+{
+  "outcome_driven_evidence": {
+    "schema_version": "v7.outcome-driven-autonomy-evidence-advice.v1",
+    "available": true,
+    "raw_available": true,
+    "live_calibrated": true,
+    "candidate_outcomes_count": 83,
+    "prediction_actuals_count": 21,
+    "service_actuals_count": 21,
+    "components": {
+      "decision_confidence": 50.0,
+      "service_confidence": 39.225,
+      "suitability_confidence": 29.528,
+      "blast_radius_confidence": 0.0,
+      "prediction_confidence": 37.355,
+      "rollback_confidence": 100.0
+    },
+    "confidence_score": 39.584,
+    "trust_score": 39.584,
+    "prediction_confidence": 37.355,
+    "rollback_confidence": 100.0,
+    "governed_to_autonomy_trust_bridge": {
+      "approval_autonomy_review_ready": true,
+      "authority_changed": false,
+      "autonomy_boundary_cap": "OPERATOR_APPROVAL_READY",
+      "autonomy_enabled": false,
+      "autonomy_specific_gap_score": 100.0,
+      "autonomy_specific_trust": 0.0,
+      "bounded_autonomy_blockers": [
+        "autonomous_trigger_not_certified",
+        "autonomous_rollback_decision_not_certified",
+        "operator_free_apply_not_certified",
+        "autonomy_specific_evidence_below_floor"
+      ],
+      "bounded_autonomy_ready": false,
+      "corrected_autonomy_trust": 52.229,
+      "evidence_counts": {
+        "candidate_outcomes_count": 83,
+        "prediction_actuals_count": 21,
+        "service_actuals_count": 21
+      },
+      "execution_authority": "none",
+      "governance_changed": false,
+      "governed_execution_evidence_score": 100.0,
+      "governed_feedback_evidence_score": 96.97,
+      "inherited_execution_trust": 87.048,
+      "mode": "read_only_advisory",
+      "model": "PARTIALLY_INHERITED_GOVERNED_TRUST_WITH_AUTONOMY_CAPS",
+      "new_truth_source_created": false,
+      "operator_summary_ru": "Governed-история уже повышает доверие к выполнению, но автономный запуск и откат остаются отдельно заблокированы.",
+      "planner_decision_changed": false,
+      "production_autonomy_ready": false,
+      "runtime_mutation_performed": false,
+      "schema_version": "v7.governed-to-autonomy-trust-bridge.v1"
+    },
+    "governed_evidence_score": 100.0,
+    "inherited_execution_trust": 87.048,
+    "autonomy_specific_gap_score": 100.0,
+    "autonomy_boundary_cap": "OPERATOR_APPROVAL_READY",
+    "approval_autonomy_review_ready": true,
+    "bounded_autonomy_blockers": [
+      "autonomous_trigger_not_certified",
+      "autonomous_rollback_decision_not_certified",
+      "operator_free_apply_not_certified",
+      "autonomy_specific_evidence_below_floor"
+    ],
+    "operator_summary_ru": "Governed-история уже повышает доверие к выполнению, но автономный запуск и откат остаются отдельно заблокированы.",
+    "rollback_validation_status": "VALIDATED",
+    "source_owner": "trust-evolution-summaries",
+    "new_truth_source_created": false,
+    "execution_authority": "none",
+    "autonomy_enabled": false,
+    "applied": true
+  },
+  "engine_trace": {
+    "schema_version": "v7.autonomy-confidence-prediction-rollback-trace.v1",
+    "confidence_engine_trace": {
+      "candidate_confidence": 45.8,
+      "outcome_confidence_score": 39.584,
+      "outcome_formula": "mean_present(decision_confidence, service_confidence, suitability_confidence)",
+      "components": {
+        "decision_confidence": 50.0,
+        "service_confidence": 39.225,
+        "suitability_confidence": 29.528
+      },
+      "merge_rule": "max(candidate_confidence, outcome_confidence_score)",
+      "final_confidence": 45.8,
+      "floor": 70.0,
+      "gap": 24.2
+    },
+    "trust_engine_trace": {
+      "candidate_trust": 3.15,
+      "outcome_trust_score": 39.584,
+      "outcome_formula": "mean_present(decision_confidence, service_confidence, suitability_confidence, blast_radius_confidence)",
+      "components": {
+        "decision_confidence": 50.0,
+        "service_confidence": 39.225,
+        "suitability_confidence": 29.528,
+        "blast_radius_confidence": 0.0
+      },
+      "merge_rule": "max(candidate_trust, outcome_trust_score)",
+      "final_trust": 39.584,
+      "floor": 70.0,
+      "gap": 30.416
+    },
+    "prediction_engine_trace": {
+      "candidate_prediction_confidence": 39.6,
+      "outcome_prediction_confidence": 37.355,
+      "production_formula": "mean(matched_forecast_accuracy) * mean(forecast_confidence)",
+      "merge_rule": "max(candidate_prediction_confidence, outcome_prediction_confidence)",
+      "final_prediction_confidence": 39.6,
+      "floor": 70.0,
+      "gap": 30.4,
+      "prediction_actuals_count": 21
+    },
+    "rollback_confidence_trace": {
+      "candidate_rollback_confidence": 0.0,
+      "outcome_rollback_confidence": 100.0,
+      "production_formula": "actual rollback success rate, or rollback readiness validation score when rollback was not required",
+      "merge_rule": "max(candidate_rollback_confidence, outcome_rollback_confidence)",
+      "final_rollback_confidence": 100.0,
+      "validation_status": "VALIDATED",
+      "meaningful_evidence_present": true
+    },
+    "evidence_flow_audit": {
+      "evidence_produced": true,
+      "evidence_stored": true,
+      "evidence_visible": true,
+      "evidence_consumed": true,
+      "evidence_weighted": true,
+      "missing_links": []
+    },
+    "reachability_model": {
+      "current_scores": {
+        "confidence": 45.8,
+        "trust": 39.584,
+        "prediction_confidence": 39.6,
+        "rollback_confidence": 100.0
+      },
+      "floors": {
+        "confidence": 70.0,
+        "trust": 70.0,
+        "prediction_confidence": 70.0,
+        "rollback_confidence": "observed_only_no_hard_floor"
+      },
+      "gaps": {
+        "confidence": 24.2,
+        "trust": 30.416,
+        "prediction_confidence": 30.4,
+        "rollback_confidence_to_meaningful": 0.0
+      },
+      "required_to_reach_floor": [
+        "candidate direct score reaches floor, or existing trust-evolution evidence reaches floor",
+        "prediction requires matched actuals with high forecast accuracy and adequate forecast confidence",
+        "rollback requires actual rollback success or validated rollback readiness evidence"
+      ]
+    },
+    "time_to_floor_analysis": {
+      "counts": {
+        "candidate_outcomes_count": 83,
+        "prediction_actuals_count": 21,
+        "service_actuals_count": 21
+      },
+      "additional_perfect_candidate_outcomes_needed_for_confidence": 85,
+      "additional_perfect_prediction_actuals_needed": 23,
+      "additional_rollback_validations_needed": 0,
+      "operator_interactions_needed": "not_part_of_current_dry_run_floor_formula",
+      "note": "counts alone are insufficient; added evidence must be high quality and matched to forecast/candidate keys"
+    },
+    "model_health_review": {
+      "confidence_engine_healthy": true,
+      "prediction_engine_healthy": true,
+      "rollback_engine_healthy": true,
+      "unrealistically_strict": false,
+      "floors_lowered": false,
+      "runtime_authority_changed": false
+    }
+  },
+  "autonomy_specific_evidence": {
+    "schema_version": "v7.autonomy-specific-evidence-model.v1",
+    "mode": "read_only_evidence_collection",
+    "autonomous_trigger_evidence": {
+      "status": "BLOCKED",
+      "proved": false,
+      "blocker": "confidence_too_low",
+      "candidate_count": 1,
+      "meaning": "I should not act now"
+    },
+    "self_stop_evidence": {
+      "status": "PROVEN_STOPPED",
+      "proved": true,
+      "hard_stop_blockers": [
+        "confidence_too_low",
+        "trust_too_low",
+        "prediction_confidence_too_low"
+      ],
+      "meaning": "I should not act"
+    },
+    "autonomous_rollback_decision_evidence": {
+      "status": "SIMULATED_ROLLBACK_READY",
+      "proved": true,
+      "rollback_confidence_observed": true,
+      "rollback_decision": "STOP_BEFORE_APPLY",
+      "rollback_items_count": 1
+    },
+    "operator_free_apply_evidence": {
+      "status": "NOT_CERTIFIED_BY_DESIGN",
+      "proved": false,
+      "execution_allowed_now": false,
+      "apply_executed": false,
+      "reason": "operator-free apply requires a later explicitly approved canary execution program"
+    },
+    "autonomy_confidence_evidence": {
+      "status": "FLOORS_NOT_MET",
+      "proved": false,
+      "candidate_floor_evaluation": [
+        {
+          "user": "10.7.0.5",
+          "confidence": 45.8,
+          "trust": 39.584,
+          "prediction_confidence": 39.6,
+          "rollback_confidence": 100.0,
+          "confidence_floor_pass": false,
+          "trust_floor_pass": false,
+          "prediction_confidence_floor_pass": false,
+          "rollback_confidence_observed": true
+        }
+      ],
+      "inherited_execution_trust": 87.048,
+      "autonomy_specific_gap_score": 100.0
+    },
+    "autonomy_comparison_evidence": {
+      "status": "BELOW_FLOOR",
+      "proved": false,
+      "comparisons_total": 0,
+      "earned_confidence": 45.825,
+      "missing_targets": [
+        "minimum_comparisons",
+        "agreement_rate_floor",
+        "earned_confidence_floor"
+      ]
+    },
+    "required_evidence": [
+      "autonomous_trigger",
+      "self_stop",
+      "autonomous_rollback_decision",
+      "autonomy_confidence",
+      "operator_comparison",
+      "operator_free_apply_boundary"
+    ],
+    "current_missing_evidence": [
+      "confidence_too_low",
+      "autonomy_confidence_floor_evidence_missing",
+      "operator_comparison_evidence_below_floor",
+      "operator_free_apply_not_certified"
+    ],
+    "autonomy_specific_evidence_score": 40.0,
+    "canary_autonomy_ready": false,
+    "single_blocker": "confidence_too_low",
+    "new_truth_source_created": false,
+    "planner_decision_changed": false,
+    "governance_changed": false,
+    "authority_changed": false,
+    "runtime_mutation_performed": false,
+    "execution_authority": "none",
+    "apply_executed": false,
+    "users_moved": 0,
+    "rollback_executed": false,
+    "autonomy_enabled": false
+  },
+  "safety_gates": {
+    "schema_version": "v7.autonomous-dry-run-safety-gates.v1",
+    "defined_gates": [
+      "unknown_trust",
+      "trust_too_low",
+      "unknown_rollback_target",
+      "snapshot_mismatch",
+      "source_drift",
+      "packet_mismatch",
+      "restore_barrier_invalid",
+      "verification_unavailable",
+      "confidence_too_low",
+      "prediction_confidence_too_low",
+      "service_blocker",
+      "capacity_blocker"
+    ],
+    "autonomy_floor": {
+      "schema_version": "v7.autonomy-canary-floor-model.v1",
+      "scope": "dry_run_canary_readiness_only",
+      "confidence_floor": 70.0,
+      "trust_floor": 70.0,
+      "prediction_confidence_floor": 70.0,
+      "score_scale": "0-100",
+      "normalizes_fractional_inputs": true,
+      "floor_sources": {
+        "confidence": "shadow autonomy minimum earned confidence floor",
+        "trust": "trust snapshot family required confidence floor for intelligence apply",
+        "prediction_confidence": "same autonomous canary evidence floor as confidence"
+      },
+      "safety_effect": "clarifies and strengthens canary gates without enabling autonomy",
+      "execution_allowed_now": false,
+      "apply_executed": false
+    },
+    "candidate_floor_evaluation": [
+      {
+        "user": "10.7.0.5",
+        "confidence": 45.8,
+        "trust": 39.584,
+        "prediction_confidence": 39.6,
+        "rollback_confidence": 100.0,
+        "confidence_floor_pass": false,
+        "trust_floor_pass": false,
+        "prediction_confidence_floor_pass": false,
+        "rollback_confidence_observed": true
+      }
+    ],
+    "hard_stop_blockers": [
+      "confidence_too_low",
+      "trust_too_low",
+      "prediction_confidence_too_low"
+    ],
+    "hard_stop": true,
+    "canary_readiness_blocker": "confidence_too_low",
+    "execution_allowed_now": false,
+    "apply_executed": false,
+    "users_moved": 0
+  },
+  "simulated_apply": {
+    "schema_version": "v7.simulated-autonomous-apply.v1",
+    "simulation_only": true,
+    "apply_executed": false,
+    "users_moved": 0,
+    "routing_changed": false,
+    "selected_users_count": 1,
+    "would_move": [
+      {
+        "index": 0,
+        "user": "10.7.0.5",
+        "from": "vless",
+        "to": "awg3",
+        "why": [
+          "best available channel has higher advisory suitability"
+        ],
+        "expected_result": "better_route_quality",
+        "risk": 3.57,
+        "confidence": 0.458,
+        "rollback_target": "vless",
+        "verification_plan": [
+          "route changed check",
+          "service health check",
+          "rollback_required decision"
+        ]
+      }
+    ],
+    "executor_reused": "tools/v7-users-autoswitch --apply --verify",
+    "execution_allowed_now": false
+  },
+  "canary_autonomy_ready": false,
+  "execution_allowed_now": false,
+  "apply_executed": false,
+  "users_moved": 0,
+  "autonomy_enabled": false
+}

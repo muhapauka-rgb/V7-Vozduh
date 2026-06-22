@@ -27,6 +27,7 @@ Before commit and push after major logic work:
 3. Stable conclusions must move into `docs/reference/V7_CANONICAL_REFERENCE.md`.
 4. Architectural decisions must move into ADRs under `docs/decisions/`.
 5. Future audits must read this reference, relevant ADRs, and `docs/reference/SYSTEM_MAP.md` before auditing.
+6. Full autonomy architecture, dependency, maturity, and roadmap questions must read `docs/reference/V7_AUTONOMY_BLUEPRINT.md` before launching a new autonomy-wide audit.
 
 Before launching any new audit, use Reference First:
 
@@ -36,6 +37,20 @@ Before launching any new audit, use Reference First:
 4. Determine whether the answer already exists.
 
 A new audit is allowed only when the reference has no answer, the reference explicitly marks the area `UNKNOWN`, system behavior changed after the last verified commit, or evidence contradicts this canonical reference. Otherwise, update the reference if needed and do not create a new audit.
+
+## Autonomy Blueprint Rule
+
+`docs/reference/V7_AUTONOMY_BLUEPRINT.md` is the permanent autonomy engineering blueprint. It maps current subsystems, dependency graphs, hidden/dormant systems, maturity percentages, industry comparison, and the 12-month roadmap from governed operator actions to event-driven autonomy.
+
+Current blueprint verdict: `AUTONOMY_BLUEPRINT_CREATED_EVENT_DRIVEN_AUTONOMY_PARTIAL`.
+
+Stable conclusions:
+
+1. V7 already has the main owners for planner, governed execution, restore barrier, rollback, feedback, learning, trust, prediction, shadow comparison, and truth/convergence.
+2. The safe path is to reuse and connect existing owners, not create a new planner, governance model, execution path, truth source, or confidence model.
+3. Production event-driven autonomy remains blocked by runtime deploy alignment, snapshot-only blast recovery, low prediction confidence, insufficient operator comparison evidence, and uncertified live event consumption.
+4. Timer-only movement remains rejected. Event-driven autonomy means regression event -> planner -> packet -> restore barrier -> bounded apply -> verification -> rollback decision -> feedback -> learning.
+5. The next roadmap position is `AUTONOMY_EVIDENCE_AND_EVENT_CONSUMER_CLOSURE`.
 
 ## Channels Final UX Rules
 

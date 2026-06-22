@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-22
-Last changed by: `AUTONOMY.FINAL.BRANCH_1A`
+Last changed by: `V7.AUTONOMY.BLUEPRINT.1`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -21,7 +21,18 @@ POOL.1 classified the pool as stable with zero planner candidates. POOL.2 rechec
 
 Current roadmap position:
 
-`CHANNEL_RECOVERY_AWG3_AWG0_STABILITY_REVIEW`
+`AUTONOMY_EVIDENCE_AND_EVENT_CONSUMER_CLOSURE`
+
+The blueprint view keeps channel recovery visible, but the project-level autonomy bottleneck is now broader and more precise:
+
+```text
+Deploy Branch 1A blast visibility fix
+  -> approved snapshot-only blast recovery
+  -> prediction evidence collection
+  -> operator comparison collection
+  -> read-only event consumer certification
+  -> bounded event-driven autonomy canary
+```
 
 ## Changed Areas
 
@@ -47,6 +58,11 @@ Current roadmap position:
 | Blast Recovery | 90% | 95% | +5% | `AUTONOMY.FINAL.BRANCH_1A` | The evidence path is fixed and proven in dry-run; deploy plus approved snapshot-only recovery write remain. |
 | Autonomous Trust | 55% | 59% | +4% | `AUTONOMY.FINAL.BRANCH_1A` | Trust-evolution dry-run overall confidence is `59.358`; trust still remains below the autonomy floor. |
 | Production Autonomy | 40% | 42% | +2% | `AUTONOMY.FINAL.BRANCH_1A` | Blast branch no longer blocks conceptually, but confidence, trust, prediction confidence, and operator comparison evidence still block production autonomy. |
+| System Blueprint Clarity | 0% | 100% | +100% | `V7.AUTONOMY.BLUEPRINT.1` | Created permanent autonomy blueprint with inventory, dependency graph, hidden systems, maturity model, and 12-month roadmap. |
+| Event Consumer Certification | 25% | 25% | 0% | `V7.AUTONOMY.BLUEPRINT.1` | Event sources exist, but live event consumer remains uncertified and no production apply is authorized. |
+| Operator Comparison Evidence | 20% | 20% | 0% | `V7.AUTONOMY.BLUEPRINT.1` | Existing comparison path is confirmed, but evidence volume remains insufficient. |
+| Prediction Evidence Quality | 45% | 45% | 0% | `V7.AUTONOMY.BLUEPRINT.1` | Blueprint confirms the blocker is low source confidence, not missing matches. |
+| Truth / Deploy Alignment | 100% | 75% | -25% | `V7.AUTONOMY.BLUEPRINT.1` | Local/GitHub are aligned at Branch 1A, but runtime is still at `67fbd850` and needs deploy of `admin_core/intelligence_workers.py`. |
 
 ## Stable Areas
 
@@ -64,8 +80,21 @@ Current roadmap position:
 | P1 | `CHANNEL_RECOVERY_AWG3_AWG0_STABILITY_REVIEW` | `awg3` has 8 assigned users but is currently not eligible; `awg0` is close to recovery but still below stability floor. |
 | P2 | Decide whether `awg3` recovers naturally or needs a governed failover review | POOL.2 found 8 failover candidates but did not execute movement by design. |
 | P3 | Continue pool observation only after recovery/failover pressure is resolved | Current state is not clean equilibrium because planner disagrees with keeping `awg3` users there. |
+| P1 | `AUTONOMY.FINAL.BRANCH_1B_DEPLOY_VISIBILITY_FIX_AND_SNAPSHOT_RECOVERY_APPROVAL` | Branch 1A closed the blast visibility gap in dry-run; production runtime still needs the approved deploy and snapshot-only recovery step. |
+| P1 | `AUTONOMY.PREDICTION.EVIDENCE.2_REAL_OUTCOME_CONFIDENCE_COLLECTION` | Prediction matching works, but source confidence is too low for the `70.0` floor. |
+| P1 | `OPERATOR_COMPARISON_EVIDENCE_COLLECTION` | Shadow comparison path exists, but current comparison evidence remains below floor. |
+| P1 | `EVENT_CONSUMER_READ_ONLY_CERTIFICATION` | Event sources exist, but production event-driven consumer is not certified. |
 
 ## Changelog
+
+### 2026-06-22 — V7.AUTONOMY.BLUEPRINT.1 Full System Map And Gap Plan
+
+- Created `docs/reference/V7_AUTONOMY_BLUEPRINT.md` as the permanent autonomy engineering blueprint.
+- Created `docs/reports/V7_AUTONOMY_BLUEPRINT_DISCOVERY_REPORT.md` as the evidence/history report for this discovery pass.
+- Consolidated the full subsystem inventory, dependency graph, hidden/dormant systems, gap analysis, maturity model, industry comparison, and 12-month roadmap.
+- Updated project-level roadmap position to `AUTONOMY_EVIDENCE_AND_EVENT_CONSUMER_CLOSURE`.
+- Confirmed no runtime apply, user movement, daemon/autoswitch enablement, production write, threshold/floor change, planner change, governance change, or execution change occurred.
+- Recorded current alignment caveat: local/GitHub are at `0d0de83c`, while runtime remains at `67fbd850`; deploy is required for `admin_core/intelligence_workers.py`.
 
 ### 2026-06-22 — AUTONOMY.FINAL.BRANCH_1A Blast Visibility Owner Fix
 

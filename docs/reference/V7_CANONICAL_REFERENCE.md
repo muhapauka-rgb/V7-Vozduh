@@ -215,7 +215,7 @@ Stable conclusions:
 15. Local lifecycle proof in `docs/reports/AUTONOMY_PREDICTION_EVIDENCE_2_EVIDENCE/local_prediction_feedback_lifecycle.json` shows an old existing feedback record outside the 1000-row bounded tail still produces `prediction_actuals_count=1`, `matched_count=1`, `prediction_confidence=88.2`, and survives snapshot write/reread.
 16. Production baseline before the fix was still `forecast_rows=21`, `matched_count=21`, `prediction_actuals_count=21`, and `prediction_confidence=36.992`; the improvement is evidence durability/consumption, not a formula or floor change.
 17. Next safe phase after deploy/refresh verification: continue real outcome and operator comparison evidence collection; do not enable operator-free autonomy until confidence/trust/prediction/comparison/event-consumer gates pass.
-18. Last verified commit: `5c697828486163fc6ae847cadc1433c65ca66263`.
+18. Implementation commit: `87ce1986a5b71751ed20fb82dd4b799f505f3928`.
 
 ## AUTONOMY_BLAST_RADIUS_MATERIALIZATION_RULES
 

@@ -80,9 +80,9 @@ def load_inputs(
 ) -> dict[str, Any]:
     audit_records = []
     for path in audit_paths:
-        audit_records.extend(read_jsonl_tail(path))
+        audit_records.extend(read_jsonl_family(path))
     for path in feedback_paths or []:
-        audit_records.extend(read_jsonl_tail(path))
+        audit_records.extend(read_jsonl_family(path))
     users = read_registry(state_dir / "users.registry")
     egress = read_registry(state_dir / "egress.registry")
     return {
@@ -90,12 +90,50 @@ def load_inputs(
         "quality_summary": read_json(quality_summary_file, {"items": {}}),
         "service_preferences": read_json(service_preferences_file, {}),
         "audit_records": audit_records,
-        "switch_records": read_jsonl_tail(switch_history_file),
-        "rollback_records": read_jsonl_tail(rollback_history_file),
+        "switch_records": read_jsonl_family(switch_history_file),
+        "rollback_records": read_jsonl_family(rollback_history_file),
         "runtime_state": read_json(state_dir / "v7-state.json", {}),
         "users_registry": users,
         "egress_registry": egress,
     }
+
+
+def jsonl_family_paths(path: Path) -> list[Path]:
+    """Return rotated JSONL family paths in oldest-to-newest order.
+
+    Runtime log rotation keeps real governed evidence in files such as
+    `execution-events.jsonl.1`. These are the same evidence store family, not
+    a new truth source, so normal snapshot refresh must consume them.
+    """
+    base = Path(path)
+    candidates: list[tuple[int, Path]] = []
+    parent = base.parent
+    try:
+        matches = list(parent.glob(f"{base.name}.*"))
+    except OSError:
+        matches = []
+    for item in matches:
+        suffix = item.name.removeprefix(f"{base.name}.")
+        if suffix.isdigit():
+            candidates.append((int(suffix), item))
+    ordered = [item for _, item in sorted(candidates, key=lambda pair: pair[0], reverse=True)]
+    ordered.append(base)
+    seen: set[str] = set()
+    unique: list[Path] = []
+    for item in ordered:
+        key = str(item)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(item)
+    return unique
+
+
+def read_jsonl_family(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for item in jsonl_family_paths(path):
+        rows.extend(read_jsonl_tail(item))
+    return rows
 
 
 def source_hashes_for_inputs(inputs: dict[str, Any]) -> dict[str, str]:

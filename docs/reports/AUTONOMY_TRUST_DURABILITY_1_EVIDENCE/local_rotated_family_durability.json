@@ -1,0 +1,71 @@
+{
+  "schema": "v7.autonomy.trust-durability.local-evidence.v1",
+  "runtime_apply": false,
+  "users_moved": 0,
+  "root_cause_owner": "tools/v7-intelligence-snapshot-refresh",
+  "fix": "read active JSONL plus numeric rotated family stores in normal snapshot refresh",
+  "jsonl_family_order": [
+    "execution-events.jsonl.2",
+    "execution-events.jsonl.1",
+    "execution-events.jsonl"
+  ],
+  "stages": [
+    {
+      "stage": "after_refresh",
+      "source_stable": true,
+      "source_consistency_attempts": 1,
+      "blast_radius_confidence": 100.0,
+      "successful_small_operations": 1,
+      "unsafe_large_operations": 0,
+      "overall_confidence": 53.055,
+      "prediction_confidence": 47.487,
+      "suitability_confidence": 62.597,
+      "snapshot_confidence": 0.989,
+      "outcome_mapper_counts": {
+        "prediction_actuals_count": 8,
+        "service_actuals_count": 8,
+        "candidate_outcomes_count": 0,
+        "blast_radius_evidence_count": 1,
+        "blast_radius_source_record_count": 1001,
+        "bounded_decision_count": 1000
+      }
+    },
+    {
+      "stage": "after_rebuild",
+      "source_stable": true,
+      "source_consistency_attempts": 1,
+      "blast_radius_confidence": 100.0,
+      "successful_small_operations": 1,
+      "unsafe_large_operations": 0,
+      "overall_confidence": 53.055,
+      "prediction_confidence": 47.487,
+      "suitability_confidence": 62.597,
+      "snapshot_confidence": 0.989,
+      "outcome_mapper_counts": {
+        "prediction_actuals_count": 8,
+        "service_actuals_count": 8,
+        "candidate_outcomes_count": 0,
+        "blast_radius_evidence_count": 1,
+        "blast_radius_source_record_count": 1001,
+        "bounded_decision_count": 1000
+      }
+    },
+    {
+      "stage": "after_reread",
+      "validation_ok": true,
+      "blast_radius_confidence": 100.0,
+      "overall_confidence": 53.055,
+      "prediction_confidence": 47.487,
+      "suitability_confidence": 62.597,
+      "snapshot_confidence": 0.989,
+      "outcome_mapper_counts": {
+        "blast_radius_evidence_count": 1,
+        "blast_radius_source_record_count": 1001,
+        "bounded_decision_count": 1000,
+        "candidate_outcomes_count": 0,
+        "prediction_actuals_count": 8,
+        "service_actuals_count": 8
+      }
+    }
+  ]
+}

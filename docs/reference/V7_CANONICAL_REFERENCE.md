@@ -72,7 +72,7 @@ Stable conclusions:
 
 1. V7 already has the main owners for planner, governed execution, restore barrier, rollback, feedback, learning, trust, prediction, shadow comparison, and truth/convergence.
 2. The safe path is to reuse and connect existing owners, not create a new planner, governance model, execution path, truth source, or confidence model.
-3. Production event-driven autonomy remains blocked by trust evidence durability, low prediction confidence, insufficient operator comparison evidence, and uncertified live event consumption.
+3. Production event-driven autonomy remains blocked by low prediction confidence, insufficient operator comparison evidence, uncertified live event consumption, and live deployment/reread of the durability fix if production API proof is required.
 4. Timer-only movement remains rejected. Event-driven autonomy means regression event -> planner -> packet -> restore barrier -> bounded apply -> verification -> rollback decision -> feedback -> learning.
 5. The next roadmap position is `AUTONOMY_EVIDENCE_AND_EVENT_CONSUMER_CLOSURE`.
 
@@ -275,6 +275,22 @@ Stable conclusions:
 10. Trust buildout order is: `AUTONOMY.TRUST.DURABILITY.1` -> `OPERATOR.COMPARISON.COLLECTION.1` -> `AUTONOMY.PREDICTION.EVIDENCE.2` -> `EVENT.CONSUMER.READONLY.2` -> `AUTONOMY.CANARY.1_READINESS_RECHECK`.
 11. AUTONOMY.TRUST.BUILDOUT.1 final verdict is `AUTONOMY_TRUST_PATH_PARTIAL`.
 12. Last verified commit: `6b0c72f4157d5e4cb57db864d0bcd73b593f4fe0`.
+
+## AUTONOMY_TRUST_DURABILITY_RULES
+
+1. AUTONOMY.TRUST.DURABILITY.1 on 2026-06-22 implemented the certified root-cause fix for recovered blast evidence durability.
+2. Root cause: normal `tools/v7-intelligence-snapshot-refresh` consumed active JSONL paths only, while real governed recovery evidence could live in rotated numeric store-family files such as `execution-events.jsonl.1`.
+3. Current rule: normal snapshot refresh must consume the existing JSONL family, not only the active file. The family order is oldest numeric rotation to newest active file, for example `execution-events.jsonl.2` -> `execution-events.jsonl.1` -> `execution-events.jsonl`.
+4. This is not a new truth source. Numeric rotations are part of the same existing evidence store family.
+5. The implemented owner is `tools/v7-intelligence-snapshot-refresh`; it now expands JSONL family reads for audit inputs, feedback inputs, switch history, and rollback history.
+6. Automated durability tests prove that recovered blast evidence survives refresh, rebuild, snapshot write, and reread while bounded decision processing remains at `MAX_HISTORY_RECORDS`.
+7. Local verification evidence: `docs/reports/AUTONOMY_TRUST_DURABILITY_1_EVIDENCE/local_rotated_family_durability.json`.
+8. Verified local lifecycle metrics: after refresh/rebuild/reread, `blast_radius_confidence=100.0`, `blast_radius_evidence_count=1`, `blast_radius_source_record_count=1001`, and `bounded_decision_count=1000`.
+9. No runtime apply, user movement, daemon enablement, planner change, governance change, execution change, threshold change, floor change, formula change, synthetic evidence, or new truth source occurred.
+10. Branch 1B remains the production proof point for 11 real recovered rows and trust `54.684`; AUTONOMY.TRUST.DURABILITY.1 makes that class of recovered evidence durable under normal refresh code behavior.
+11. Remaining autonomy blockers still stand: trust floor, prediction confidence, operator comparison evidence, live event consumer certification, and disabled daemon/autoswitch runtime.
+12. AUTONOMY.TRUST.DURABILITY.1 final verdict is `TRUST_DURABILITY_FIXED`.
+13. Last verified commit: `AUTONOMY.TRUST.DURABILITY.1 implementation commit`.
 
 ## 1. Channels
 

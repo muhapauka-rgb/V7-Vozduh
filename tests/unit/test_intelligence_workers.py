@@ -735,6 +735,130 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertTrue(any(path.endswith("/audit/audit.jsonl") for path in payload["audit_inputs"]))
         self.assertTrue(any(path.endswith("/audit/operator-execution-audit.jsonl") for path in payload["audit_inputs"]))
 
+    def test_snapshot_refresh_jsonl_family_reads_rotated_stores_oldest_first(self):
+        tool_path = Path(__file__).resolve().parents[2] / "tools" / "v7-intelligence-snapshot-refresh"
+        spec = importlib.util.spec_from_loader(
+            "v7_intelligence_snapshot_refresh",
+            SourceFileLoader("v7_intelligence_snapshot_refresh", str(tool_path)),
+        )
+        self.assertIsNotNone(spec)
+        refresh = importlib.util.module_from_spec(spec)
+        self.assertIsNotNone(spec.loader)
+        spec.loader.exec_module(refresh)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            log = root / "execution-events.jsonl"
+            (root / "execution-events.jsonl.2").write_text(json.dumps({"order": "oldest"}) + "\n", encoding="utf-8")
+            (root / "execution-events.jsonl.1").write_text(json.dumps({"order": "newer"}) + "\n", encoding="utf-8")
+            log.write_text(json.dumps({"order": "active"}) + "\n", encoding="utf-8")
+
+            self.assertEqual(
+                [path.name for path in refresh.jsonl_family_paths(log)],
+                ["execution-events.jsonl.2", "execution-events.jsonl.1", "execution-events.jsonl"],
+            )
+            self.assertEqual(
+                [row["order"] for row in refresh.read_jsonl_family(log)],
+                ["oldest", "newer", "active"],
+            )
+
+    def test_snapshot_refresh_preserves_rotated_blast_evidence_through_regeneration(self):
+        tool_path = Path(__file__).resolve().parents[2] / "tools" / "v7-intelligence-snapshot-refresh"
+        spec = importlib.util.spec_from_loader(
+            "v7_intelligence_snapshot_refresh",
+            SourceFileLoader("v7_intelligence_snapshot_refresh", str(tool_path)),
+        )
+        self.assertIsNotNone(spec)
+        refresh = importlib.util.module_from_spec(spec)
+        self.assertIsNotNone(spec.loader)
+        spec.loader.exec_module(refresh)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "egress" / "state"
+            events = root / "events"
+            out = root / "intelligence"
+            state.mkdir(parents=True)
+            events.mkdir()
+            out.mkdir()
+            (state / "service-matrix.json").write_text(json.dumps(service_matrix()), encoding="utf-8")
+            (state / "egress-quality-summary.json").write_text(json.dumps(quality_summary()), encoding="utf-8")
+            (state / "service-preferences.json").write_text(json.dumps({"required_services": ["telegram", "chatgpt"]}), encoding="utf-8")
+            (state / "users.registry").write_text("ip=10.0.0.3 enabled=1\n", encoding="utf-8")
+            (state / "egress.registry").write_text("id=awg0 enabled=1\nid=vless enabled=1\n", encoding="utf-8")
+            (state / "v7-state.json").write_text(json.dumps({"egress": {"awg0": {}, "vless": {}}}), encoding="utf-8")
+            (state / "execution-events.jsonl").write_text("", encoding="utf-8")
+            (state / "execution-events.jsonl.1").write_text(json.dumps({
+                "schema_version": "v7.execution-outcome-record.v1",
+                "audit_reference": "runtime_autoswitch_rotated",
+                "user": "10.0.0.3",
+                "source_channel": "awg3",
+                "target_channel": "awg0",
+                "outcome_status": "success",
+                "execution_outcome": {"success": True, "result": "applied"},
+                "verification_result": {"verification_passed": True},
+                "rollback_result": {"rollback_required": False},
+                "blast_radius": 5,
+            }) + "\n", encoding="utf-8")
+            (events / "switch-history.jsonl").write_text(
+                "".join(
+                    json.dumps({
+                        "schema_version": "v7.switch-history.v1",
+                        "result": "noop",
+                        "operation_id": f"switch_{i}",
+                    }) + "\n"
+                    for i in range(workers.MAX_HISTORY_RECORDS + 25)
+                ),
+                encoding="utf-8",
+            )
+            (events / "rollback-history.jsonl").write_text("", encoding="utf-8")
+
+            first_result, first_status = refresh.build_stable_snapshot_run(
+                state_dir=state,
+                service_matrix_file=state / "service-matrix.json",
+                quality_summary_file=state / "egress-quality-summary.json",
+                service_preferences_file=state / "service-preferences.json",
+                audit_paths=[],
+                feedback_paths=[state / "execution-events.jsonl"],
+                switch_history_file=events / "switch-history.jsonl",
+                rollback_history_file=events / "rollback-history.jsonl",
+                total_users=1,
+                affected_candidates=1,
+                max_source_retries=2,
+                source_retry_sleep_sec=0,
+            )
+            second_result, second_status = refresh.build_stable_snapshot_run(
+                state_dir=state,
+                service_matrix_file=state / "service-matrix.json",
+                quality_summary_file=state / "egress-quality-summary.json",
+                service_preferences_file=state / "service-preferences.json",
+                audit_paths=[],
+                feedback_paths=[state / "execution-events.jsonl"],
+                switch_history_file=events / "switch-history.jsonl",
+                rollback_history_file=events / "rollback-history.jsonl",
+                total_users=1,
+                affected_candidates=1,
+                max_source_retries=2,
+                source_retry_sleep_sec=0,
+            )
+            written = workers.write_snapshots(out, second_result.snapshots)
+            reread = read_snapshot_family(out, "trust-evolution-summaries")
+
+        self.assertTrue(first_status["source_stable"])
+        self.assertTrue(second_status["source_stable"])
+        for result in (first_result, second_result):
+            trust = result.snapshots["trust-evolution-summaries"]["items"][0]
+            counts = trust["outcome_mapper_counts"]
+            self.assertEqual(counts["bounded_decision_count"], workers.MAX_HISTORY_RECORDS)
+            self.assertGreater(counts["blast_radius_source_record_count"], workers.MAX_HISTORY_RECORDS)
+            self.assertEqual(counts["blast_radius_evidence_count"], 1)
+            self.assertEqual(trust["blast_radius_confidence_model"]["blast_radius_confidence"], 100)
+        self.assertIn("trust-evolution-summaries", written)
+        self.assertTrue(reread.validation.ok, reread.validation.errors)
+        reread_trust = reread.payload["items"][0]
+        self.assertEqual(reread_trust["outcome_mapper_counts"]["blast_radius_evidence_count"], 1)
+        self.assertEqual(reread_trust["blast_radius_confidence_model"]["blast_radius_confidence"], 100)
+
     def test_snapshot_refresh_retries_when_source_changes_during_build(self):
         tool_path = Path(__file__).resolve().parents[2] / "tools" / "v7-intelligence-snapshot-refresh"
         spec = importlib.util.spec_from_loader(

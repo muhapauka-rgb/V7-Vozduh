@@ -202,7 +202,13 @@ A new audit is allowed only when the reference has no answer, the reference expl
 24. The same phase previewed the existing trust model with the 11 builder-classified rotated blast rows supplied as visible `blast_radius_records`. That moved `blast_radius_confidence` from `0.0` to `100.0`, `overall_confidence` from `42.678` to `59.345`, and operator trust from `39.602` to `54.684`.
 25. Blast recovery has moderate readiness impact but does not certify autonomy: confidence remains `45.8`, trust remains below the `70.0` floor at `54.684`, and prediction confidence remains `39.6`.
 26. After visible blast recovery, the dominant remaining blocker is `prediction_confidence_too_low`; confidence remains a second blocker. The next evidence phase is `AUTONOMY.PREDICTION.EVIDENCE.1`.
-27. Last verified commit: `ede2c1290add8b563b0d7a28538f9a9e5232c4ea`.
+27. AUTONOMY.FINAL.BRANCH_1 on 2026-06-22 closed the blast planning branch with immediate production recovery `NO-GO`.
+28. Immediate recovery is blocked because the current as-is refresh/materialization paths can still leave `blast_radius_confidence=0.0`: `build_trust_evolution_snapshot` constructs `decision_records = audit_records + switch_records + rollback_records`, then uses `decision_records[-1000:]`. Current large `switch-history` can push restored feedback rows out of the consumed tail.
+29. Existing refresh only is rejected as ineffective because active stores are empty. Existing execution-feedback materialization is rejected as an immediate path because active feedback rows can still be ordered before switch history and filtered out. Existing archive restore is useful as a real evidence source but is not sufficient alone.
+30. Recommended recovery owner remains the existing snapshot rebuild/refresh owner, but it needs one visibility step: feed existing builder-classified blast rows into `trust_evolution_summary` as visible `blast_radius_records`, or equivalently fix existing-owner ordering/bounding so real feedback rows survive into the consumed trust-evolution snapshot.
+31. This visibility step must not create a new planner, governance path, execution path, trust source, confidence model, or synthetic evidence. It is an existing-owner correction before any snapshot-only recovery write.
+32. Exact next phase: `AUTONOMY.FINAL.BRANCH_1A_BLAST_VISIBILITY_OWNER_FIX_AND_DRY_RUN`.
+33. Last verified commit: `5011d253e2bb0a11753d25a7487902ee528f84c1`.
 
 ## 1. Channels
 

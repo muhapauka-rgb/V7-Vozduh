@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-22
-Last changed by: `AUTONOMY.PREDICTION.EVIDENCE.1`
+Last changed by: `AUTONOMY.FINAL.BRANCH_1`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -40,6 +40,9 @@ Current roadmap position:
 | Prediction Evidence Understanding | 35% | 90% | +55% | `AUTONOMY.PREDICTION.EVIDENCE.1` | Production forensics mapped the existing forecast -> actual -> confidence path and proved the blocker is low forecast/source confidence, not missing row matches. |
 | Prediction Evidence Quality | 35% | 45% | +10% | `AUTONOMY.PREDICTION.EVIDENCE.1` | All 21 forecasts matched actuals with mean accuracy `98.488`, but mean forecast confidence is only `0.3792`, so outcome prediction confidence remains `37.351`. |
 | Production Autonomy | 38% | 40% | +2% | `AUTONOMY.PREDICTION.EVIDENCE.1` | Autonomy is not safer yet, but the dominant prediction blocker is now quantified and the next evidence-collection phase is exact. |
+| Blast Recovery | 80% | 90% | +10% | `AUTONOMY.FINAL.BRANCH_1` | Blast branch execution planning is closed with a concrete NO-GO reason for immediate recovery and an exact existing-owner visibility step. |
+| Autonomous Trust | 55% | 55% | 0% | `AUTONOMY.FINAL.BRANCH_1` | No production snapshot was written; expected visible recovery still raises trust to `54.684`, below floor. |
+| Production Autonomy | 40% | 40% | 0% | `AUTONOMY.FINAL.BRANCH_1` | No autonomy gate passes after blast recovery; confidence, trust, and prediction confidence remain below `70.0`. |
 
 ## Stable Areas
 
@@ -59,6 +62,17 @@ Current roadmap position:
 | P3 | Continue pool observation only after recovery/failover pressure is resolved | Current state is not clean equilibrium because planner disagrees with keeping `awg3` users there. |
 
 ## Changelog
+
+### 2026-06-22 — AUTONOMY.FINAL.BRANCH_1 Blast Branch Execution Planning
+
+- Closed blast recovery planning with immediate execution `NO-GO`.
+- Confirmed as-is recovery paths can still produce no metric change because `build_trust_evolution_snapshot` bounds `decision_records[-1000:]` after appending large `switch-history`, which can push restored feedback rows out of the consumed set.
+- Confirmed expected visible-row impact remains useful but insufficient: blast confidence `0.0 -> 100.0`, trust `39.602 -> 54.684`, prediction `39.6 -> 39.6`, confidence `45.8 -> 45.8`.
+- Updated changed-area percentages:
+  - Blast Recovery: `80% -> 90%`
+  - Autonomous Trust: `55% -> 55%`
+  - Production Autonomy: `40% -> 40%`
+- Recorded next phase: `AUTONOMY.FINAL.BRANCH_1A_BLAST_VISIBILITY_OWNER_FIX_AND_DRY_RUN`.
 
 ### 2026-06-22 — AUTONOMY.PREDICTION.EVIDENCE.1 Prediction Evidence Forensics
 

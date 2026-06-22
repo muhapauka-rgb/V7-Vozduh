@@ -1,0 +1,58 @@
+{
+  "schema": "v7.autonomy.final-blast-branch.analysis-summary.v1",
+  "phase": "AUTONOMY.FINAL.BRANCH_1_BLAST_RECOVERY_EXECUTION_AND_READINESS_IMPACT",
+  "timestamp": "2026-06-22T10:42:38Z",
+  "commit": "5011d253e2bb0a11753d25a7487902ee528f84c1",
+  "runtime_apply_performed": false,
+  "users_moved": 0,
+  "daemon_enabled": false,
+  "autoswitch_enabled": false,
+  "snapshot_written": false,
+  "already_proven": {
+    "builder_works": true,
+    "blast_radius_model_works": true,
+    "historical_governed_evidence_exists": true,
+    "rotated_production_stores_contain_usable_records": true,
+    "existing_builder_classifies_rotated_evidence": true,
+    "visible_blast_rows_increase_trust": true,
+    "blast_recovery_alone_does_not_pass_autonomy_floors": true
+  },
+  "current_state": {
+    "blast_radius_confidence": 0.0,
+    "blast_evidence_count": 0,
+    "operator_confidence": 45.8,
+    "operator_trust": 39.602,
+    "operator_prediction_confidence": 39.6
+  },
+  "expected_visible_recovery_state": {
+    "blast_radius_confidence": 100.0,
+    "blast_evidence_count": 11,
+    "overall_confidence": 59.345,
+    "operator_confidence": 45.8,
+    "operator_trust": 54.684,
+    "operator_prediction_confidence": 39.6
+  },
+  "gate_impact": {
+    "confidence_gate_pass": false,
+    "trust_gate_pass": false,
+    "prediction_gate_pass": false,
+    "hard_stop_blockers_after_recovery": [
+      "confidence_too_low",
+      "trust_too_low",
+      "prediction_confidence_too_low"
+    ],
+    "dominant_blocker_after_recovery": "prediction_confidence_too_low"
+  },
+  "recovery_options": {
+    "existing_refresh_only": "NO_GO_default_inputs_empty_and_strict_rotated_refresh_equivalent_still_zero",
+    "existing_snapshot_rebuild_owner": "RECOMMENDED_AFTER_ONE_VISIBILITY_STEP",
+    "existing_execution_feedback_materialize_owner": "NO_GO_AS_IS_records_written_before_switch_history_and_can_be_filtered_from_bounded_decision_tail",
+    "existing_archive_restore_materialization_path": "USEFUL_AS_INPUT_SOURCE_NOT_SUFFICIENT_ALONE"
+  },
+  "recommendation": {
+    "go_no_go": "NO_GO_FOR_IMMEDIATE_PRODUCTION_RECOVERY",
+    "recommended_path": "extend_existing_snapshot_rebuild_owner_to_feed_existing_builder_classified_blast_rows_into_trust_evolution_summary_as_visible_blast_radius_records_or_equivalent_existing-owner_ordering_fix",
+    "exact_next_phase": "AUTONOMY.FINAL.BRANCH_1A_BLAST_VISIBILITY_OWNER_FIX_AND_DRY_RUN",
+    "final_verdict": "BLAST_BRANCH_REQUIRES_ONE_MORE_STEP"
+  }
+}

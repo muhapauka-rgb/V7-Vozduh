@@ -52,6 +52,7 @@ Current production alignment:
 - Local/GitHub/runtime are aligned at `c4adc537b39e0335ad9cc0cf7ff9589d85860d60`.
 - `tools/v7-truth-check --all --json` reports `PASS`; `tools/v7-convergence-status --json` reports `ALIGNED`.
 - The approved snapshot-only blast recovery write completed with `blast_radius_evidence_count=11`, `blast_radius_confidence=100.0`, `trust_score=54.684`, `execution_allowed_now=false`, `apply_executed=false`, and `users_moved=0`.
+- AUTONOMY.TRUST.BUILDOUT.1 later re-read the current consumed autonomous dry-run and found `blast_radius_confidence=0.0`, `trust=39.582`, `confidence=45.8`, and `prediction_confidence=39.6`. Branch 1B remains proven and closed, but recovered blast evidence is not durable in the current default consumed path. The next roadmap step is trust durability before canary readiness.
 
 ## 2. Full System Inventory
 
@@ -78,8 +79,8 @@ Current production alignment:
 | Feedback | Feedback owner | `admin_core/operator_execution_feedback.py`, execution/closure JSONL stores | Post-action outcome evidence | ACTIVE | 85% | Governed evidence consumed; active stores can be empty/rotated |
 | Learning | Intelligence/trust owners | `admin_core/intelligence_platform.py`, `admin_core/intelligence_workers.py`, `admin_core/intelligence_snapshots.py` | Convert outcomes into trust, prediction, suitability, blast confidence | ACTIVE_PARTIAL | 70% | Evidence consumed; quality insufficient |
 | Prediction | Prediction owner | `admin_core/intelligence_workers.py`, `admin_core/intelligence_platform.py` | Forecast -> actual confidence | ACTIVE_PARTIAL | 45% evidence quality | 21/21 matched; low source confidence keeps result near 37 |
-| Trust Evolution | Trust owner | `admin_core/intelligence_platform.py`, `admin_core/intelligence_workers.py` | Outcome confidence/trust aggregation | ACTIVE_PARTIAL | 55% current production trust | Branch 1B recovered blast evidence; trust is `54.684`, still below floor |
-| Blast Radius | Blast evidence owner | `admin_core/intelligence_workers.py::build_blast_radius_evidence_rows`, `blast_radius_confidence_model` | Prove small governed operations are safe | OPERATIONALLY_CLOSED | 100% recovery | Branch 1B deployed and recovered 11 real blast rows; confidence `100.0` |
+| Trust Evolution | Trust owner | `admin_core/intelligence_platform.py`, `admin_core/intelligence_workers.py` | Outcome confidence/trust aggregation | ACTIVE_PARTIAL | 40% current consumed trust / 55% proven recovered trust | Branch 1B proved trust `54.684`; TRUST.BUILDOUT.1 current consumed dry-run reads trust `39.582`, so durability is the immediate gap |
+| Blast Radius | Blast evidence owner | `admin_core/intelligence_workers.py::build_blast_radius_evidence_rows`, `blast_radius_confidence_model` | Prove small governed operations are safe | OPERATIONALLY_CLOSED_WITH_DURABILITY_GAP | 100% recovery proven / 70% durable consumption | Branch 1B deployed and recovered 11 real blast rows; TRUST.BUILDOUT.1 current consumed dry-run reads blast confidence `0.0` |
 | Shadow Autonomy | Shadow owner | `admin_core/shadow_autonomy.py`, `/api/actions/shadow-autonomy-compare` | Compare recommendations with operator decisions | ACTIVE_BUT_UNDERFED | 20% | Comparison count insufficient for autonomy |
 | Operator Comparison | Shadow comparison store | `admin_core/shadow_autonomy.py`, shadow JSONL | Earn trust from real operator agreement/override | ACTIVE_BUT_EMPTY | 20% | Current comparison evidence below floor |
 | Event Detection | Event sources plus future binding | `tools/v7-telegram-sentinel`, service matrix, quality compact, route/runtime/capacity readers | Detect regression source facts | SOURCE_ONLY | 65% | Sources exist; certified event consumer missing |
@@ -240,6 +241,16 @@ full decision_records
   -> blast_radius_records
   -> 11 rows
   -> blast_radius_confidence = 100.0
+```
+
+AUTONOMY.TRUST.BUILDOUT.1 durability caveat:
+
+```text
+Branch 1B recovered blast evidence
+  -> later current consumed autonomous dry-run
+  -> blast_radius_confidence = 0.0
+  -> trust = 39.582
+  -> trust durability phase required
 ```
 
 ### Confidence Flow
@@ -408,10 +419,11 @@ Sources used:
 ### Immediate: 0-2 Weeks
 
 1. Keep autoswitch daemon/timer inactive.
-2. Start prediction evidence collection with real forecast -> later actual pairs.
+2. Run `AUTONOMY.TRUST.DURABILITY.1` so Branch 1B recovered blast evidence remains visible in the normal consumed dry-run path.
 3. Start real operator comparison collection through `/api/actions/shadow-autonomy-compare`.
-4. Build a read-only event consumer certification that binds regression source to planner preview without apply.
-5. Re-run truth/convergence after each evidence or logic change.
+4. Start prediction evidence collection with real forecast -> later actual pairs.
+5. Build a read-only event consumer certification that binds regression source to planner preview without apply.
+6. Re-run truth/convergence after each evidence or logic change.
 
 ### Near Term: 2-8 Weeks
 
@@ -453,19 +465,19 @@ Do not delete immediately. Classify first.
 
 ## 12. Top 10 Next Actions
 
-1. Collect time-separated prediction forecast -> later actual evidence.
-2. Collect at least 20 real operator comparisons for current shadow decisions.
-3. Certify read-only event consumer binding from sentinel/service/quality regression to planner preview.
-4. Certify restore barrier creation for a single event-triggered packet in preview mode.
-5. Certify rollback packet readiness for the same single event-triggered packet.
-6. Build an autonomy readiness dashboard row from existing gate values only.
-7. Keep `v7-users-autoswitch.service/timer` inactive until confidence/trust/prediction floors pass.
-8. Recalculate project map after prediction evidence and operator comparison evidence move.
-9. Preserve Branch 1B evidence and never replace it with synthetic records.
-10. Keep blast evidence recovery in canonical reference as closed unless future evidence contradicts it.
+1. Make Branch 1B recovered blast evidence durable in the current consumed dry-run path through existing snapshot/trust owners.
+2. Collect 9-17 real operator comparisons for current shadow decisions, then continue toward at least 20 for a stronger window.
+3. Collect time-separated prediction forecast -> later actual evidence.
+4. Certify read-only event consumer binding from sentinel/service/quality regression to planner preview.
+5. Certify restore barrier creation for a single event-triggered packet in preview mode.
+6. Certify rollback packet readiness for the same single event-triggered packet.
+7. Build an autonomy readiness dashboard row from existing gate values only.
+8. Keep `v7-users-autoswitch.service/timer` inactive until confidence/trust/prediction floors pass.
+9. Recalculate project map after trust durability, prediction evidence, and operator comparison evidence move.
+10. Preserve Branch 1B evidence and never replace it with synthetic records.
 
 ## 13. Final Blueprint Verdict
 
 `AUTONOMY_BLUEPRINT_CREATED_EVENT_DRIVEN_AUTONOMY_PARTIAL`
 
-V7 has the right architecture shape and most owners already exist. Branch 1B closed the blast recovery loop in production. The safe path is not to build another autonomy system. The safe path is to collect real operator/prediction evidence, certify event consumption read-only, and only then authorize a bounded canary apply.
+V7 has the right architecture shape and most owners already exist. Branch 1B closed the blast recovery loop as a proven production recovery, but AUTONOMY.TRUST.BUILDOUT.1 found a current consumed-path durability gap. The safe path is not to build another autonomy system. The safe path is to make recovered evidence durable through existing owners, collect real operator/prediction evidence, certify event consumption read-only, and only then authorize a bounded canary apply.

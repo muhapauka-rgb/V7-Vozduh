@@ -1,7 +1,7 @@
 # V7 Canonical Reference
 
 Status: canonical project reference
-Last verified commit: `acd0b7bf`
+Last verified commit: `6b0c72f`
 Last verified date: 2026-06-22
 
 This document describes the current meaning of V7 system concepts. It is not a history log and not an audit report. Reports remain evidence. ADRs explain why a decision was made. This reference is the current truth that future V7 work must read before re-auditing old concepts.
@@ -48,7 +48,7 @@ Stable conclusions:
 
 1. V7 already has the main owners for planner, governed execution, restore barrier, rollback, feedback, learning, trust, prediction, shadow comparison, and truth/convergence.
 2. The safe path is to reuse and connect existing owners, not create a new planner, governance model, execution path, truth source, or confidence model.
-3. Production event-driven autonomy remains blocked by runtime deploy alignment, snapshot-only blast recovery, low prediction confidence, insufficient operator comparison evidence, and uncertified live event consumption.
+3. Production event-driven autonomy remains blocked by trust evidence durability, low prediction confidence, insufficient operator comparison evidence, and uncertified live event consumption.
 4. Timer-only movement remains rejected. Event-driven autonomy means regression event -> planner -> packet -> restore barrier -> bounded apply -> verification -> rollback decision -> feedback -> learning.
 5. The next roadmap position is `AUTONOMY_EVIDENCE_AND_EVENT_CONSUMER_CLOSURE`.
 
@@ -236,6 +236,21 @@ Stable conclusions:
 43. Blast Branch status is now `OPERATIONALLY_CLOSED`. Blast recovery is no longer the dominant blocker.
 44. Production autonomy remains blocked by `confidence_too_low`, `trust_too_low`, and `prediction_confidence_too_low`. The next safe phase is `AUTONOMY.PREDICTION.EVIDENCE.2_REAL_OUTCOME_CONFIDENCE_COLLECTION`; operator comparison evidence remains a parallel P1 track.
 45. Last verified commit: `c4adc537b39e0335ad9cc0cf7ff9589d85860d60`.
+
+## AUTONOMY_TRUST_BUILDOUT_RULES
+
+1. AUTONOMY.TRUST.BUILDOUT.1 on 2026-06-22 re-read production using `/api/operator/autonomous-dry-run`, `/api/operator/decision-surface`, and a read-only local shadow model built from the decision surface.
+2. No runtime apply, user movement, daemon enablement, autoswitch enablement, threshold change, floor change, synthetic evidence, manual snapshot edit, new planner, new governance path, new execution path, or new truth source occurred.
+3. Fresh current consumed dry-run values were `candidate_count=1`, `execution_allowed_now=false`, `users_moved=0`, final confidence `45.8`, trust `39.582`, final prediction confidence `39.6`, outcome prediction confidence `37.343`, rollback confidence `100.0`, and blast-radius confidence `0.0`.
+4. The fresh consumed values differ from the Branch 1B post-recovery evidence where production consumed blast-radius confidence was `100.0` and trust was `54.684`.
+5. Canonical interpretation: Branch 1B blast recovery was proven and remains closed, but the currently consumed default autonomy dry-run does not durably preserve recovered blast evidence. This is a trust durability gap, not a reason to reopen blast model discovery.
+6. The next trust phase must make existing recovered blast evidence durable under the normal existing snapshot/refresh owner before canary readiness can be considered.
+7. Current operator comparison reality from read-only shadow build: 27 decisions, 0 comparisons, agreement rate `0.0`, average decision confidence `45.828`, and earned confidence `45.828`.
+8. With the current shadow formula, the practical operator-comparison target is about 9 all-agree comparisons, 11 comparisons at 90% agreement, 15 at 80%, or 17 at 75% to reach earned confidence near or above `70.0`. The formal minimum comparison count remains 5, but that alone is unlikely to reach the earned-confidence floor.
+9. Current prediction path remains healthy but under-confident: matching works, forecast accuracy was previously about `98.5`, and the blocker is low forecast/source confidence. Estimated future evidence need is about 23 perfect matched actuals or about 35 high-quality 90% matched actuals to approach the `70.0` floor.
+10. Trust buildout order is: `AUTONOMY.TRUST.DURABILITY.1` -> `OPERATOR.COMPARISON.COLLECTION.1` -> `AUTONOMY.PREDICTION.EVIDENCE.2` -> `EVENT.CONSUMER.READONLY.2` -> `AUTONOMY.CANARY.1_READINESS_RECHECK`.
+11. AUTONOMY.TRUST.BUILDOUT.1 final verdict is `AUTONOMY_TRUST_PATH_PARTIAL`.
+12. Last verified commit: `6b0c72f4157d5e4cb57db864d0bcd73b593f4fe0`.
 
 ## 1. Channels
 

@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-22
-Last changed by: `AUTONOMY.FINAL.BRANCH_1B`
+Last changed by: `AUTONOMY.TRUST.BUILDOUT.1`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -23,12 +23,13 @@ Current roadmap position:
 
 `AUTONOMY_EVIDENCE_AND_EVENT_CONSUMER_CLOSURE`
 
-The blueprint view keeps channel recovery visible, but the project-level autonomy bottleneck is now broader and more precise. Branch 1B closed the blast recovery branch in production:
+The blueprint view keeps channel recovery visible, but the project-level autonomy bottleneck is now broader and more precise. Branch 1B closed the blast recovery branch in production, and AUTONOMY.TRUST.BUILDOUT.1 found that recovered blast evidence is not durable in the current consumed dry-run:
 
 ```text
 Blast recovery operationally closed
-  -> prediction evidence collection
+  -> trust durability check
   -> operator comparison collection
+  -> prediction evidence collection
   -> read-only event consumer certification
   -> bounded event-driven autonomy canary
 ```
@@ -66,6 +67,11 @@ Blast recovery operationally closed
 | Autonomous Trust | 59% | 55% | -4% | `AUTONOMY.FINAL.BRANCH_1B` | Production trust gate now reads real recovered blast evidence and reports trust `54.684`; it improved from `39.578` but remains below the `70.0` floor. |
 | Production Autonomy | 42% | 45% | +3% | `AUTONOMY.FINAL.BRANCH_1B` | Blast is no longer a blocker, but confidence, trust, and prediction confidence still block apply. |
 | Truth / Deploy Alignment | 75% | 100% | +25% | `AUTONOMY.FINAL.BRANCH_1B` | Runtime, GitHub, and local are aligned at `c4adc537`; truth and convergence pass. |
+| Trust Path Clarity | 0% | 80% | +80% | `AUTONOMY.TRUST.BUILDOUT.1` | Unified prediction evidence, operator comparison, blast evidence, feedback, learning, and canary-readiness path into one trust roadmap. |
+| Blast Durability | 100% | 70% | -30% | `AUTONOMY.TRUST.BUILDOUT.1` | Branch 1B recovery remains proven, but fresh consumed dry-run shows `blast_radius_confidence=0.0`; recovered evidence is not durable in the current default consumed path. |
+| Autonomous Trust | 55% | 40% | -15% | `AUTONOMY.TRUST.BUILDOUT.1` | Fresh current consumed trust reads `39.582`, not Branch 1B post-recovery `54.684`; trust buildout must start with durability. |
+| Operator Comparison Evidence | 20% | 25% | +5% | `AUTONOMY.TRUST.BUILDOUT.1` | Current read-only shadow surface has 27 decisions and 0 comparisons; evidence path and comparison count targets are now explicit. |
+| Production Autonomy | 45% | 40% | -5% | `AUTONOMY.TRUST.BUILDOUT.1` | No runtime behavior changed, but fresh consumed gates still block confidence, trust, and prediction confidence. |
 
 ## Stable Areas
 
@@ -85,9 +91,20 @@ Blast recovery operationally closed
 | P3 | Continue pool observation only after recovery/failover pressure is resolved | Current state is not clean equilibrium because planner disagrees with keeping `awg3` users there. |
 | P1 | `AUTONOMY.PREDICTION.EVIDENCE.2_REAL_OUTCOME_CONFIDENCE_COLLECTION` | Prediction matching works, but source confidence is too low for the `70.0` floor. |
 | P1 | `OPERATOR_COMPARISON_EVIDENCE_COLLECTION` | Shadow comparison path exists, but current comparison evidence remains below floor. |
+| P1 | `AUTONOMY.TRUST.DURABILITY.1` | Branch 1B blast recovery was proven, but current consumed dry-run no longer durably shows recovered blast evidence. |
 | P1 | `EVENT_CONSUMER_READ_ONLY_CERTIFICATION` | Event sources exist, but production event-driven consumer is not certified. |
 
 ## Changelog
+
+### 2026-06-22 — AUTONOMY.TRUST.BUILDOUT.1 Unified Trust Buildout
+
+- Created `docs/reports/AUTONOMY_TRUST_BUILDOUT_1_REPORT.md` and evidence files under `docs/reports/AUTONOMY_TRUST_BUILDOUT_1_EVIDENCE/`.
+- Re-read production autonomous dry-run and decision surface without runtime apply or user movement.
+- Current consumed metrics: `confidence=45.8`, `trust=39.582`, `prediction_confidence=39.6`, `blast_radius_confidence=0.0`, `rollback_confidence=100.0`, `execution_allowed_now=false`, and `users_moved=0`.
+- Preserved Branch 1B conclusion as operationally closed, but identified a durability gap: the current default consumed dry-run no longer preserves recovered blast evidence.
+- Current shadow comparison state: 27 decisions, 0 comparisons, earned confidence `45.828`.
+- Recorded shortest path: `AUTONOMY.TRUST.DURABILITY.1` -> `OPERATOR.COMPARISON.COLLECTION.1` -> `AUTONOMY.PREDICTION.EVIDENCE.2` -> `EVENT.CONSUMER.READONLY.2` -> `AUTONOMY.CANARY.1_READINESS_RECHECK`.
+- Updated changed-area percentages for trust path clarity, blast durability, autonomous trust, operator comparison evidence, and production autonomy.
 
 ### 2026-06-22 — AUTONOMY.FINAL.BRANCH_1B Deploy And Snapshot Recovery
 

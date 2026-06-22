@@ -1678,13 +1678,13 @@ def build_trust_evolution_snapshot(
     generated = generated_at or now_iso()
     decision_records = list(audit_records or []) + list(switch_records or []) + list(rollback_records or [])
     bounded_decisions = decision_records[-MAX_HISTORY_RECORDS:]
+    blast_radius_records = build_blast_radius_evidence_rows(decision_records)
     service_rows = list(service_scores_snapshot.get("items") or []) + list(channel_service_scores_snapshot.get("items") or [])
     prediction_forecasts = _prediction_forecast_rows(prediction_summary_snapshot)
     service_actuals = build_service_actual_rows(service_rows, bounded_decisions)
     prediction_actuals = build_prediction_actual_rows(prediction_forecasts, service_rows, bounded_decisions)
     candidate_rows = candidate_suitability_snapshot.get("items") or []
     candidate_outcomes = build_candidate_outcome_rows(candidate_rows, bounded_decisions)
-    blast_radius_records = build_blast_radius_evidence_rows(bounded_decisions)
     blast_items = blast_radius_snapshot.get("items") or []
     blast_row = blast_items[0] if blast_items and isinstance(blast_items[0], dict) else {}
     summary = trust_evolution_summary(
@@ -1726,6 +1726,8 @@ def build_trust_evolution_snapshot(
         "service_actuals_count": len(service_actuals),
         "candidate_outcomes_count": len(candidate_outcomes),
         "blast_radius_evidence_count": len(blast_radius_records),
+        "blast_radius_source_record_count": len(decision_records),
+        "bounded_decision_count": len(bounded_decisions),
     }
     source_confidence = mean([
         as_float(service_scores_snapshot.get("confidence"), 0.0),

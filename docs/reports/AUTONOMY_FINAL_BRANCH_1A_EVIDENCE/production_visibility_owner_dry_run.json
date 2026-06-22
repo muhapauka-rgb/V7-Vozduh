@@ -1,0 +1,97 @@
+{
+  "acceptance": {
+    "blast_branch_closed": true,
+    "blast_radius_confidence_gt_zero": true,
+    "blast_radius_evidence_count_gt_zero": true,
+    "existing_owner_only": true,
+    "production_write_performed": false,
+    "synthetic_evidence_created": false
+  },
+  "audit_inputs": [
+    "/opt/v7/events/switch-history.jsonl",
+    "/opt/v7/audit/audit.jsonl",
+    "/opt/v7/audit/operator-execution-audit.jsonl",
+    "/opt/v7/audit/operator-runtime-governance-actions.jsonl"
+  ],
+  "feedback_inputs": [
+    "/opt/v7/egress/state/execution-events.jsonl.1",
+    "/opt/v7/egress/state/runtime-trust.jsonl.1",
+    "/opt/v7/egress/state/proposal-records.jsonl.1",
+    "/opt/v7/egress/state/proposals.jsonl.1",
+    "/opt/v7/egress/state/closure-records.jsonl.1"
+  ],
+  "mode": "patched_existing_owner_dry_run_from_tmp_no_snapshot_write",
+  "runtime_mutation_performed": false,
+  "schema": "v7.autonomy.final-branch-1a.production-dry-run.v1",
+  "snapshot_count": 11,
+  "snapshot_written": false,
+  "source_status": {
+    "source_consistency_attempts": 1,
+    "source_consistency_errors": [
+      "source_changed_during_snapshot_build:service_matrix"
+    ],
+    "source_stable": false
+  },
+  "trust_evolution": {
+    "autonomy_readiness": {
+      "authority": {
+        "execution_authority": "none",
+        "governance_authority": "unchanged_existing_governance",
+        "planner_authority": "tools/v7-users-autoswitch",
+        "rollback_authority": "unchanged_existing_rollback",
+        "runtime_mutation_authority": "none",
+        "selected_moves_write_authority": "none"
+      },
+      "automatic_user_movement_enabled": false,
+      "autonomy_enabled": false,
+      "average_confidence": 59.358,
+      "current_level": "NOT_READY",
+      "execution_changed": false,
+      "explicit_autonomy_approval": false,
+      "governance_changed": false,
+      "levels": [
+        "NOT_READY",
+        "SHADOW_READY",
+        "OPERATOR_VISIBLE_READY",
+        "OPERATOR_APPROVAL_READY",
+        "BOUNDED_AUTONOMY_READY",
+        "PRODUCTION_AUTONOMY_READY"
+      ],
+      "live_calibrated": true,
+      "minimum_confidence": 29.552,
+      "planner_authority_changed": false,
+      "schema_version": "v7.ri6.autonomy-readiness-model.v1"
+    },
+    "blast_radius_confidence_model": {
+      "blast_radius_confidence": 100.0,
+      "confidence_band": "HIGH",
+      "recommended_budget": 0.0,
+      "records_seen": 11,
+      "runtime_decision_authority": "none_evidence_only",
+      "schema_version": "v7.ri6.blast-radius-confidence-model.v1",
+      "successful_small_operations": 9,
+      "unsafe_large_operations": 0
+    },
+    "confidence_summary": {
+      "blast_radius_confidence": 100.0,
+      "decision_confidence": 50.0,
+      "explicit_autonomy_approval": 0,
+      "live_calibrated": 1,
+      "prediction_confidence": 37.37,
+      "rollback_confidence": 100.0,
+      "service_confidence": 39.225,
+      "suitability_confidence": 29.552
+    },
+    "outcome_mapper_counts": {
+      "blast_radius_evidence_count": 11,
+      "blast_radius_source_record_count": 3372,
+      "bounded_decision_count": 1000,
+      "candidate_outcomes_count": 83,
+      "prediction_actuals_count": 21,
+      "service_actuals_count": 21
+    },
+    "overall_confidence": 59.358,
+    "snapshot_confidence": 0.9805
+  },
+  "users_moved": 0
+}

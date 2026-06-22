@@ -1,0 +1,40 @@
+{
+  "schema": "v7.autonomy.final-branch-1a.analysis-summary.v1",
+  "phase": "AUTONOMY.FINAL.BRANCH_1A_BLAST_VISIBILITY_OWNER_FIX_AND_DRY_RUN",
+  "timestamp": "2026-06-22T10:42:38Z",
+  "commit": "fb1c4d229ca87b1180ca49a5c9cb113110279786",
+  "runtime_apply_performed": false,
+  "users_moved": 0,
+  "daemon_enabled": false,
+  "autoswitch_enabled": false,
+  "snapshot_written": false,
+  "visibility_break": "blast rows were built only from bounded_decisions after decision_records[-1000], so older real governed feedback could be pushed out by long switch history",
+  "selected_owner_path": "existing trust-evolution snapshot owner in admin_core.intelligence_workers.build_trust_evolution_snapshot",
+  "fix": "build blast_radius_records from full existing decision_records before bounded_decisions are used by other outcome mappers",
+  "dry_run_evidence": "docs/reports/AUTONOMY_FINAL_BRANCH_1A_EVIDENCE/production_visibility_owner_dry_run.json",
+  "dry_run_result": {
+    "blast_radius_evidence_count": 11,
+    "blast_radius_source_record_count": 3372,
+    "bounded_decision_count": 1000,
+    "blast_radius_confidence": 100.0,
+    "trust_evolution_overall_confidence": 59.358,
+    "decision_confidence": 50.0,
+    "service_confidence": 39.225,
+    "suitability_confidence": 29.552,
+    "prediction_confidence": 37.37,
+    "rollback_confidence": 100.0,
+    "successful_small_operations": 9,
+    "unsafe_large_operations": 0
+  },
+  "acceptance": {
+    "blast_radius_evidence_count_gt_zero": true,
+    "blast_radius_confidence_gt_zero": true,
+    "evidence_originates_from_real_production_governed_records": true,
+    "no_synthetic_evidence": true,
+    "existing_owners_only": true,
+    "production_write_performed": false,
+    "blast_branch_closed": true
+  },
+  "final_verdict": "BLAST_BRANCH_CLOSED",
+  "next_phase": "AUTONOMY.PREDICTION.EVIDENCE.2_REAL_OUTCOME_CONFIDENCE_COLLECTION"
+}

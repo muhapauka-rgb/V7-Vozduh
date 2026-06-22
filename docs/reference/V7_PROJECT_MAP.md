@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-22
-Last changed by: `AUTONOMY.FINAL.BRANCH_1`
+Last changed by: `AUTONOMY.FINAL.BRANCH_1A`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -43,6 +43,10 @@ Current roadmap position:
 | Blast Recovery | 80% | 90% | +10% | `AUTONOMY.FINAL.BRANCH_1` | Blast branch execution planning is closed with a concrete NO-GO reason for immediate recovery and an exact existing-owner visibility step. |
 | Autonomous Trust | 55% | 55% | 0% | `AUTONOMY.FINAL.BRANCH_1` | No production snapshot was written; expected visible recovery still raises trust to `54.684`, below floor. |
 | Production Autonomy | 40% | 40% | 0% | `AUTONOMY.FINAL.BRANCH_1` | No autonomy gate passes after blast recovery; confidence, trust, and prediction confidence remain below `70.0`. |
+| Blast Branch | 90% | 100% | +10% | `AUTONOMY.FINAL.BRANCH_1A` | Existing-owner visibility fix dry-run passed with 11 real production blast rows and blast confidence `100.0`; branch is closed. |
+| Blast Recovery | 90% | 95% | +5% | `AUTONOMY.FINAL.BRANCH_1A` | The evidence path is fixed and proven in dry-run; deploy plus approved snapshot-only recovery write remain. |
+| Autonomous Trust | 55% | 59% | +4% | `AUTONOMY.FINAL.BRANCH_1A` | Trust-evolution dry-run overall confidence is `59.358`; trust still remains below the autonomy floor. |
+| Production Autonomy | 40% | 42% | +2% | `AUTONOMY.FINAL.BRANCH_1A` | Blast branch no longer blocks conceptually, but confidence, trust, prediction confidence, and operator comparison evidence still block production autonomy. |
 
 ## Stable Areas
 
@@ -62,6 +66,18 @@ Current roadmap position:
 | P3 | Continue pool observation only after recovery/failover pressure is resolved | Current state is not clean equilibrium because planner disagrees with keeping `awg3` users there. |
 
 ## Changelog
+
+### 2026-06-22 — AUTONOMY.FINAL.BRANCH_1A Blast Visibility Owner Fix
+
+- Implemented the existing-owner visibility fix in `admin_core.intelligence_workers.build_trust_evolution_snapshot`.
+- Changed blast row construction to use full existing `decision_records` before shared `[-1000]` bounding can hide older governed feedback; other outcome mappers remain bounded.
+- Production-data dry-run with real rotated `.jsonl.1` inputs produced `blast_radius_evidence_count=11`, `blast_radius_confidence=100.0`, `trust_evolution_overall_confidence=59.358`, `users_moved=0`, and `snapshot_written=false`.
+- Updated changed-area percentages:
+  - Blast Branch: `90% -> 100%`
+  - Blast Recovery: `90% -> 95%`
+  - Autonomous Trust: `55% -> 59%`
+  - Production Autonomy: `40% -> 42%`
+- Recorded next phase: `AUTONOMY.FINAL.BRANCH_1B_DEPLOY_VISIBILITY_FIX_AND_SNAPSHOT_RECOVERY_APPROVAL`.
 
 ### 2026-06-22 — AUTONOMY.FINAL.BRANCH_1 Blast Branch Execution Planning
 

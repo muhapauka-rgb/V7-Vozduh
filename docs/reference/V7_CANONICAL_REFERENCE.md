@@ -209,6 +209,13 @@ A new audit is allowed only when the reference has no answer, the reference expl
 31. This visibility step must not create a new planner, governance path, execution path, trust source, confidence model, or synthetic evidence. It is an existing-owner correction before any snapshot-only recovery write.
 32. Exact next phase: `AUTONOMY.FINAL.BRANCH_1A_BLAST_VISIBILITY_OWNER_FIX_AND_DRY_RUN`.
 33. Last verified commit: `5011d253e2bb0a11753d25a7487902ee528f84c1`.
+34. AUTONOMY.FINAL.BRANCH_1A implemented the existing-owner visibility fix in `admin_core.intelligence_workers.build_trust_evolution_snapshot`.
+35. The fix keeps general outcome mappers bounded by `bounded_decisions = decision_records[-MAX_HISTORY_RECORDS:]`, but builds `blast_radius_records` from the full existing `decision_records` stream before shared tail bounding can hide older governed feedback.
+36. Production-data dry-run with the patched existing owner and real rotated `.jsonl.1` inputs produced `blast_radius_evidence_count=11`, `blast_radius_confidence=100.0`, `trust_evolution_overall_confidence=59.358`, `prediction_confidence=37.37`, `users_moved=0`, and `snapshot_written=false`.
+37. Blast Branch acceptance passed: blast evidence count is nonzero, blast confidence is nonzero, evidence originates from real production governed records, no synthetic evidence was created, and existing owners only were used.
+38. Blast Branch status is now `CLOSED`. Production autonomy is not enabled and still remains blocked by confidence, trust, prediction confidence, and operator comparison evidence.
+39. Exact next phase: `AUTONOMY.FINAL.BRANCH_1B_DEPLOY_VISIBILITY_FIX_AND_SNAPSHOT_RECOVERY_APPROVAL`.
+40. Last verified commit: `fb1c4d229ca87b1180ca49a5c9cb113110279786`.
 
 ## 1. Channels
 

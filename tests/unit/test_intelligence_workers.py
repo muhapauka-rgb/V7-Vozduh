@@ -577,6 +577,46 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertEqual(trust["blast_radius_confidence_model"]["successful_small_operations"], 1)
         self.assertEqual(trust["blast_radius_confidence_model"]["blast_radius_confidence"], 100)
 
+    def test_trust_evolution_blast_radius_survives_bounded_decision_tail(self):
+        old_feedback = [{
+            "schema_version": "v7.execution-outcome-record.v1",
+            "audit_reference": "runtime_autoswitch_old",
+            "user": "10.0.0.3",
+            "source_channel": "awg3",
+            "target_channel": "awg0",
+            "outcome_status": "success",
+            "execution_outcome": {"success": True, "result": "applied"},
+            "verification_result": {"verification_passed": True},
+            "rollback_result": {"rollback_required": False},
+            "blast_radius": 5,
+        }]
+        switch_tail = [
+            {"schema_version": "v7.switch-history.v1", "result": "noop", "operation_id": f"switch_{i}"}
+            for i in range(workers.MAX_HISTORY_RECORDS + 25)
+        ]
+
+        result = workers.build_all_snapshots(
+            service_matrix=service_matrix(),
+            quality_summary=quality_summary(),
+            service_preferences={"required_services": ["telegram", "chatgpt"]},
+            audit_records=old_feedback,
+            switch_records=switch_tail,
+            rollback_records=[],
+            runtime_state={"egress": {"awg0": {}}},
+            users_registry=[{"ip": "10.0.0.3", "enabled": "1"}],
+            egress_registry=[{"id": "awg0"}, {"id": "vless"}],
+            total_users=1,
+            affected_candidates=1,
+            generated_at=GENERATED,
+        )
+        trust = result.snapshots["trust-evolution-summaries"]["items"][0]
+        counts = trust["outcome_mapper_counts"]
+
+        self.assertEqual(counts["bounded_decision_count"], workers.MAX_HISTORY_RECORDS)
+        self.assertGreater(counts["blast_radius_source_record_count"], workers.MAX_HISTORY_RECORDS)
+        self.assertEqual(counts["blast_radius_evidence_count"], 1)
+        self.assertEqual(trust["blast_radius_confidence_model"]["blast_radius_confidence"], 100)
+
     def test_trust_evolution_includes_channel_recovery_and_explainability(self):
         result = workers.build_all_snapshots(
             service_matrix=service_matrix(),

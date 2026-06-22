@@ -1,0 +1,136 @@
+{
+  "schema": "v7.autonomy-rematerialization-4-analysis-summary.v1",
+  "final_verdict": "BLAST_RECOVERY_HAS_MODERATE_READINESS_IMPACT",
+  "next_phase": "AUTONOMY.PREDICTION.EVIDENCE.1",
+  "runtime_mutation_performed": false,
+  "users_moved": 0,
+  "snapshot_written": false,
+  "strict_rotated_refresh_equivalent": {
+    "blast_rows": 0,
+    "delta": {
+      "blast_evidence_count": [
+        0,
+        0
+      ],
+      "blast_radius_confidence": [
+        0.0,
+        0.0
+      ],
+      "operator_confidence": [
+        45.8,
+        45.8
+      ],
+      "operator_prediction_confidence": [
+        39.6,
+        39.6
+      ],
+      "operator_trust": [
+        39.602,
+        39.579
+      ],
+      "overall_confidence": [
+        42.678,
+        42.678
+      ]
+    },
+    "gate": {
+      "autonomy_still_blocked": true,
+      "dominant_blocker": "trust",
+      "floor_gaps": {
+        "confidence": 24.2,
+        "prediction_confidence": 30.4,
+        "trust": 30.421
+      },
+      "hard_stop_blockers": [
+        "confidence_too_low",
+        "trust_too_low",
+        "prediction_confidence_too_low"
+      ],
+      "outcome_scores": {
+        "confidence_score": 39.579,
+        "prediction_confidence": 37.332,
+        "rollback_confidence": 100.0,
+        "trust_score": 39.579
+      },
+      "preview_scores": {
+        "confidence": 45.8,
+        "prediction_confidence": 39.6,
+        "rollback_confidence": 100.0,
+        "trust": 39.579
+      }
+    }
+  },
+  "visible_blast_rows_counterfactual": {
+    "blast_rows": 11,
+    "delta": {
+      "blast_evidence_count": [
+        0,
+        11
+      ],
+      "blast_radius_confidence": [
+        0.0,
+        100.0
+      ],
+      "operator_confidence": [
+        45.8,
+        45.8
+      ],
+      "operator_prediction_confidence": [
+        39.6,
+        39.6
+      ],
+      "operator_trust": [
+        39.602,
+        54.684
+      ],
+      "overall_confidence": [
+        42.678,
+        59.345
+      ]
+    },
+    "gate": {
+      "autonomy_still_blocked": true,
+      "dominant_blocker": "prediction_confidence",
+      "floor_gaps": {
+        "confidence": 24.2,
+        "prediction_confidence": 30.4,
+        "trust": 15.316
+      },
+      "hard_stop_blockers": [
+        "confidence_too_low",
+        "trust_too_low",
+        "prediction_confidence_too_low"
+      ],
+      "outcome_scores": {
+        "confidence_score": 39.579,
+        "prediction_confidence": 37.332,
+        "rollback_confidence": 100.0,
+        "trust_score": 54.684
+      },
+      "preview_scores": {
+        "confidence": 45.8,
+        "prediction_confidence": 39.6,
+        "rollback_confidence": 100.0,
+        "trust": 54.684
+      }
+    },
+    "trust": {
+      "blast_radius_confidence": 100.0,
+      "decision_confidence": 50.0,
+      "explicit_autonomy_approval": 0,
+      "live_calibrated": 1,
+      "prediction_confidence": 37.332,
+      "rollback_confidence": 100.0,
+      "service_confidence": 39.225,
+      "suitability_confidence": 29.511
+    }
+  },
+  "readiness_impact": {
+    "materially_improves_readiness": true,
+    "removes_trust_blocker": false,
+    "removes_confidence_blocker": false,
+    "removes_prediction_blocker": false,
+    "dominant_blocker_after_visible_recovery": "prediction_confidence",
+    "recovery_worth_executing": true
+  }
+}

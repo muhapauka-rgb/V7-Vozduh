@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-22
-Last changed by: `AUTONOMY.REMATERIALIZATION.3`
+Last changed by: `AUTONOMY.REMATERIALIZATION.4`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -34,6 +34,9 @@ Current roadmap position:
 | Blast Materialization | 20% | 75% | +55% | `AUTONOMY.REMATERIALIZATION.3` | Root cause found: active refresh stores are empty, while real governed blast evidence exists in rotated `.jsonl.1` stores and current builder produces 11 rows from them. Recovery is not executed yet. |
 | Autonomous Trust | 40% | 45% | +5% | `AUTONOMY.REMATERIALIZATION.3` | Trust did not numerically recover, but the evidence gap is now localized to rotated-store inclusion rather than model uncertainty. |
 | Production Autonomy | 30% | 35% | +5% | `AUTONOMY.REMATERIALIZATION.3` | Production autonomy remains disabled and below floors, but the blast-radius blocker now has an exact safe recovery path. |
+| Blast Materialization | 75% | 80% | +5% | `AUTONOMY.REMATERIALIZATION.4` | Preview proved that strict rotated refresh-equivalent inputs still do not surface blast rows, but supplying the 11 builder-classified rows as visible `blast_radius_records` moves blast confidence to `100.0`. Recovery is still not executed. |
+| Autonomous Trust | 45% | 55% | +10% | `AUTONOMY.REMATERIALIZATION.4` | Visible blast-row preview raises operator trust from `39.602` to `54.684`, but trust remains below the `70.0` floor. |
+| Production Autonomy | 35% | 38% | +3% | `AUTONOMY.REMATERIALIZATION.4` | Blast recovery has moderate readiness impact but does not remove confidence, trust, or prediction blockers; prediction confidence becomes the dominant remaining blocker. |
 
 ## Stable Areas
 
@@ -53,6 +56,17 @@ Current roadmap position:
 | P3 | Continue pool observation only after recovery/failover pressure is resolved | Current state is not clean equilibrium because planner disagrees with keeping `awg3` users there. |
 
 ## Changelog
+
+### 2026-06-22 — AUTONOMY.REMATERIALIZATION.4 Recovery Preview
+
+- Previewed strict rotated refresh-equivalent inputs: `blast_radius_confidence` remained `0.0` because rotated rows still did not become visible in the final bounded trust-evolution set.
+- Previewed visible-row materialization with the 11 existing builder-classified blast rows: `blast_radius_confidence 0.0 -> 100.0`, `overall_confidence 42.678 -> 59.345`, operator trust `39.602 -> 54.684`.
+- Confirmed autonomy remains blocked after blast recovery: confidence `45.8`, trust `54.684`, prediction confidence `39.6`, all below the `70.0` autonomy floor.
+- Updated changed-area percentages:
+  - Blast Materialization: `75% -> 80%`
+  - Autonomous Trust: `45% -> 55%`
+  - Production Autonomy: `35% -> 38%`
+- Recorded next evidence phase: `AUTONOMY.PREDICTION.EVIDENCE.1`.
 
 ### 2026-06-22 — AUTONOMY.REMATERIALIZATION.3 Store Forensics
 

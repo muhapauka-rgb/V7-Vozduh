@@ -1,0 +1,843 @@
+{
+  "active_store_counts": [
+    {
+      "exists": true,
+      "path": "/opt/v7/egress/state/execution-events.jsonl",
+      "records": 0
+    },
+    {
+      "exists": true,
+      "path": "/opt/v7/egress/state/runtime-trust.jsonl",
+      "records": 0
+    },
+    {
+      "exists": true,
+      "path": "/opt/v7/egress/state/proposal-records.jsonl",
+      "records": 0
+    },
+    {
+      "exists": true,
+      "path": "/opt/v7/egress/state/proposals.jsonl",
+      "records": 0
+    },
+    {
+      "exists": true,
+      "path": "/opt/v7/egress/state/closure-records.jsonl",
+      "records": 0
+    }
+  ],
+  "active_store_refresh_equivalent_preview": {
+    "builder_direct": {
+      "blast_rows_from_bounded_decisions": 0,
+      "sample_rows": []
+    },
+    "input_counts": {
+      "audit_records_after_tail_and_feedback": 2000,
+      "bounded_decisions": 1000,
+      "feedback_paths": [
+        "/opt/v7/egress/state/execution-events.jsonl",
+        "/opt/v7/egress/state/runtime-trust.jsonl",
+        "/opt/v7/egress/state/proposal-records.jsonl",
+        "/opt/v7/egress/state/proposals.jsonl",
+        "/opt/v7/egress/state/closure-records.jsonl"
+      ],
+      "rollback_records_after_tail": 0,
+      "switch_records_after_tail": 1000
+    },
+    "snapshot_refresh_equivalent": {
+      "dry_run": true,
+      "metrics": {
+        "elapsed_ms": 1275.866,
+        "max_snapshot_bytes": 272240,
+        "snapshot_count": 11,
+        "snapshot_sizes": {
+          "best-available-pool": 39965,
+          "blast-radius-summaries": 999,
+          "candidate-suitability-summary": 156953,
+          "channel-service-scores": 3494,
+          "overview-summary": 2812,
+          "prediction-summaries": 60317,
+          "risk-summaries": 965,
+          "service-scores": 17679,
+          "trust-evolution-summaries": 272240,
+          "trust-summaries": 1218,
+          "user-service-scores": 116373
+        },
+        "total_snapshot_bytes": 673015
+      },
+      "runtime_mutation_performed": false,
+      "snapshot_count": 11,
+      "users_moved": false,
+      "warnings": [],
+      "written": {}
+    },
+    "trust": {
+      "autonomy_readiness": {
+        "authority": {
+          "execution_authority": "none",
+          "governance_authority": "unchanged_existing_governance",
+          "planner_authority": "tools/v7-users-autoswitch",
+          "rollback_authority": "unchanged_existing_rollback",
+          "runtime_mutation_authority": "none",
+          "selected_moves_write_authority": "none"
+        },
+        "automatic_user_movement_enabled": false,
+        "autonomy_enabled": false,
+        "average_confidence": 42.678,
+        "current_level": "NOT_READY",
+        "execution_changed": false,
+        "explicit_autonomy_approval": false,
+        "governance_changed": false,
+        "levels": [
+          "NOT_READY",
+          "SHADOW_READY",
+          "OPERATOR_VISIBLE_READY",
+          "OPERATOR_APPROVAL_READY",
+          "BOUNDED_AUTONOMY_READY",
+          "PRODUCTION_AUTONOMY_READY"
+        ],
+        "live_calibrated": true,
+        "minimum_confidence": 0.0,
+        "planner_authority_changed": false,
+        "schema_version": "v7.ri6.autonomy-readiness-model.v1"
+      },
+      "blast_radius_confidence_model": {
+        "blast_radius_confidence": 0.0,
+        "confidence_band": "UNKNOWN",
+        "recommended_budget": 0.0,
+        "records_seen": 0,
+        "runtime_decision_authority": "none_evidence_only",
+        "schema_version": "v7.ri6.blast-radius-confidence-model.v1",
+        "successful_small_operations": 0,
+        "unsafe_large_operations": 0
+      },
+      "confidence_summary": {
+        "blast_radius_confidence": 0.0,
+        "decision_confidence": 50.0,
+        "explicit_autonomy_approval": 0,
+        "live_calibrated": 1,
+        "prediction_confidence": 37.332,
+        "rollback_confidence": 100.0,
+        "service_confidence": 39.225,
+        "suitability_confidence": 29.511
+      },
+      "generated_at": "2026-06-22T10:09:24.911897+00:00",
+      "governed_to_autonomy_trust_bridge": {
+        "approval_autonomy_review_ready": true,
+        "authority_changed": false,
+        "autonomy_boundary_cap": "OPERATOR_APPROVAL_READY",
+        "autonomy_enabled": false,
+        "autonomy_specific_gap_score": 100.0,
+        "autonomy_specific_trust": 0.0,
+        "bounded_autonomy_blockers": [
+          "autonomous_trigger_not_certified",
+          "autonomous_rollback_decision_not_certified",
+          "operator_free_apply_not_certified",
+          "autonomy_specific_evidence_below_floor"
+        ],
+        "bounded_autonomy_ready": false,
+        "corrected_autonomy_trust": 52.227,
+        "evidence_counts": {
+          "candidate_outcomes_count": 83,
+          "prediction_actuals_count": 21,
+          "service_actuals_count": 21
+        },
+        "execution_authority": "none",
+        "governance_changed": false,
+        "governed_execution_evidence_score": 100.0,
+        "governed_feedback_evidence_score": 96.97,
+        "inherited_execution_trust": 87.046,
+        "mode": "read_only_advisory",
+        "model": "PARTIALLY_INHERITED_GOVERNED_TRUST_WITH_AUTONOMY_CAPS",
+        "new_truth_source_created": false,
+        "operator_summary_ru": "Governed-история уже повышает доверие к выполнению, но автономный запуск и откат остаются отдельно заблокированы.",
+        "planner_decision_changed": false,
+        "production_autonomy_ready": false,
+        "runtime_mutation_performed": false,
+        "schema_version": "v7.governed-to-autonomy-trust-bridge.v1"
+      },
+      "outcome_mapper_counts": {
+        "blast_radius_evidence_count": 0,
+        "candidate_outcomes_count": 83,
+        "prediction_actuals_count": 21,
+        "service_actuals_count": 21
+      },
+      "overall_confidence": 42.678,
+      "prediction_accuracy": {
+        "actuals_seen": 21,
+        "matched_actuals": null,
+        "prediction_confidence": 37.332,
+        "validation_status": "VALIDATED"
+      },
+      "rollback_intelligence": {
+        "records_seen": 20,
+        "rollback_confidence": 100.0,
+        "validation_status": "VALIDATED"
+      },
+      "snapshot_confidence": 0.9805,
+      "source_hashes": {
+        "best_available_pool": "731d54d61818588f5748c9aba202989e35013b5c60239277c5b30924fb01dc7b",
+        "blast_radius": "6cf63eeb308d39d84d6d5265545182b81dcc90332bb1d2dc8ba33fd01db23b78",
+        "blast_radius_records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "candidate_outcomes": "f5c3295a624fc45b7b83511ae0c4bdfa86a83253d58c11521ef88419a973567a",
+        "candidate_suitability": "fb48fc76acd2366946ab85198f8b6c4e9b38e319dd4c07ed9164de3cadd78b9b",
+        "channel_service_scores": "23778066523c3b3d60adb30d02ec09e068b8ef610cf5c5300f6ff3cf644a7492",
+        "decisions": "ee4d39cc5606d2067f582c0d051be83e91f72ef0d6bff09ddde1c6c4b2c23e70",
+        "prediction_actuals": "9c216acddcc8f505bf8743fa2c6c6fdfd3fe90c1ba4bcd4f1ef59f96e53c1c17",
+        "prediction_summary": "f9e3e1f74ae4320750919d5127d1ba7e21ea586418e814724530f09ed52338db",
+        "rollback_records": "e317b3b767f44629d59b7c3e6905ce5ccf537e4921a41deb35201334b2300736",
+        "service_actuals": "56603b220431ada7f0562ceeeb03b4299619408c376f81f65e976e6e4cb7b0ad",
+        "service_scores": "d3cbc0d390a93684c6014d6f426c3a22773d7dbf79f2433700e5d8f30daa91d2",
+        "trust_summary": "8e91df6ab3f1aef57a844a6043598cd588cd28db7da7697762702a51ce480728"
+      },
+      "warnings": []
+    }
+  },
+  "autonomy_gate_preview": {
+    "current_scores": {
+      "confidence": 45.8,
+      "prediction_confidence": 39.6,
+      "rollback_confidence": 100.0,
+      "source": "canonical_reference_and_recent_autonomous_dry_run_evidence",
+      "trust": 39.602
+    },
+    "rotated_refresh_equivalent": {
+      "autonomy_still_blocked": true,
+      "dominant_blocker": "trust",
+      "floor_gaps": {
+        "confidence": 24.2,
+        "prediction_confidence": 30.4,
+        "trust": 30.421
+      },
+      "hard_stop_blockers": [
+        "confidence_too_low",
+        "trust_too_low",
+        "prediction_confidence_too_low"
+      ],
+      "outcome_scores": {
+        "confidence_score": 39.579,
+        "prediction_confidence": 37.332,
+        "rollback_confidence": 100.0,
+        "trust_score": 39.579
+      },
+      "preview_scores": {
+        "confidence": 45.8,
+        "prediction_confidence": 39.6,
+        "rollback_confidence": 100.0,
+        "trust": 39.579
+      }
+    },
+    "visible_blast_rows_counterfactual": {
+      "autonomy_still_blocked": true,
+      "dominant_blocker": "prediction_confidence",
+      "floor_gaps": {
+        "confidence": 24.2,
+        "prediction_confidence": 30.4,
+        "trust": 15.316
+      },
+      "hard_stop_blockers": [
+        "confidence_too_low",
+        "trust_too_low",
+        "prediction_confidence_too_low"
+      ],
+      "outcome_scores": {
+        "confidence_score": 39.579,
+        "prediction_confidence": 37.332,
+        "rollback_confidence": 100.0,
+        "trust_score": 54.684
+      },
+      "preview_scores": {
+        "confidence": 45.8,
+        "prediction_confidence": 39.6,
+        "rollback_confidence": 100.0,
+        "trust": 54.684
+      }
+    }
+  },
+  "current_consumed_trust_snapshot": {
+    "autonomy_readiness": {
+      "authority": {
+        "execution_authority": "none",
+        "governance_authority": "unchanged_existing_governance",
+        "planner_authority": "tools/v7-users-autoswitch",
+        "rollback_authority": "unchanged_existing_rollback",
+        "runtime_mutation_authority": "none",
+        "selected_moves_write_authority": "none"
+      },
+      "automatic_user_movement_enabled": false,
+      "autonomy_enabled": false,
+      "average_confidence": 42.678,
+      "current_level": "NOT_READY",
+      "execution_changed": false,
+      "explicit_autonomy_approval": false,
+      "governance_changed": false,
+      "levels": [
+        "NOT_READY",
+        "SHADOW_READY",
+        "OPERATOR_VISIBLE_READY",
+        "OPERATOR_APPROVAL_READY",
+        "BOUNDED_AUTONOMY_READY",
+        "PRODUCTION_AUTONOMY_READY"
+      ],
+      "live_calibrated": true,
+      "minimum_confidence": 0.0,
+      "planner_authority_changed": false,
+      "schema_version": "v7.ri6.autonomy-readiness-model.v1"
+    },
+    "blast_radius_confidence_model": {
+      "blast_radius_confidence": 0.0,
+      "confidence_band": "UNKNOWN",
+      "recommended_budget": 0.0,
+      "records_seen": 0,
+      "runtime_decision_authority": "none_evidence_only",
+      "schema_version": "v7.ri6.blast-radius-confidence-model.v1",
+      "successful_small_operations": 0,
+      "unsafe_large_operations": 0
+    },
+    "confidence_summary": {
+      "blast_radius_confidence": 0.0,
+      "decision_confidence": 50.0,
+      "explicit_autonomy_approval": 0,
+      "live_calibrated": 1,
+      "prediction_confidence": 37.329,
+      "rollback_confidence": 100.0,
+      "service_confidence": 39.225,
+      "suitability_confidence": 29.516
+    },
+    "generated_at": "2026-06-22T10:08:53.914543+00:00",
+    "governed_to_autonomy_trust_bridge": {
+      "approval_autonomy_review_ready": true,
+      "authority_changed": false,
+      "autonomy_boundary_cap": "OPERATOR_APPROVAL_READY",
+      "autonomy_enabled": false,
+      "autonomy_specific_gap_score": 100.0,
+      "autonomy_specific_trust": 0.0,
+      "bounded_autonomy_blockers": [
+        "autonomous_trigger_not_certified",
+        "autonomous_rollback_decision_not_certified",
+        "operator_free_apply_not_certified",
+        "autonomy_specific_evidence_below_floor"
+      ],
+      "bounded_autonomy_ready": false,
+      "corrected_autonomy_trust": 52.228,
+      "evidence_counts": {
+        "candidate_outcomes_count": 83,
+        "prediction_actuals_count": 21,
+        "service_actuals_count": 21
+      },
+      "execution_authority": "none",
+      "governance_changed": false,
+      "governed_execution_evidence_score": 100.0,
+      "governed_feedback_evidence_score": 96.97,
+      "inherited_execution_trust": 87.046,
+      "mode": "read_only_advisory",
+      "model": "PARTIALLY_INHERITED_GOVERNED_TRUST_WITH_AUTONOMY_CAPS",
+      "new_truth_source_created": false,
+      "operator_summary_ru": "Governed-история уже повышает доверие к выполнению, но автономный запуск и откат остаются отдельно заблокированы.",
+      "planner_decision_changed": false,
+      "production_autonomy_ready": false,
+      "runtime_mutation_performed": false,
+      "schema_version": "v7.governed-to-autonomy-trust-bridge.v1"
+    },
+    "outcome_mapper_counts": {
+      "blast_radius_evidence_count": 0,
+      "candidate_outcomes_count": 83,
+      "prediction_actuals_count": 21,
+      "service_actuals_count": 21
+    },
+    "overall_confidence": 42.678,
+    "prediction_accuracy": {
+      "actuals_seen": 21,
+      "matched_actuals": null,
+      "prediction_confidence": 37.329,
+      "validation_status": "VALIDATED"
+    },
+    "rollback_intelligence": {
+      "records_seen": 20,
+      "rollback_confidence": 100.0,
+      "validation_status": "VALIDATED"
+    },
+    "snapshot_confidence": 0.9805,
+    "source_hashes": {
+      "best_available_pool": "e1d90bcafff8728d0475bdefe747b2cfce7fea6660003b2840541d59b962895c",
+      "blast_radius": "405302609321fd002403b3df5d6ae03ee4c231825448e840d5f91e0f52dd143d",
+      "blast_radius_records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "candidate_outcomes": "f5c3295a624fc45b7b83511ae0c4bdfa86a83253d58c11521ef88419a973567a",
+      "candidate_suitability": "5461a93e04b0989f8d23f9fc06f71de9aa42c73c73830954c40cba369f6a93c6",
+      "channel_service_scores": "0547ec0db1789c1ea1112b68e1d27fb73773707b6fd375aa83786266b2364dbf",
+      "decisions": "ee4d39cc5606d2067f582c0d051be83e91f72ef0d6bff09ddde1c6c4b2c23e70",
+      "prediction_actuals": "0581c53a00b2bbf53cd7c0c32828949f276445b68a483d4dc02849ac11df0f5f",
+      "prediction_summary": "89901282022ade6682db7695616bbcbb1e82a724bf301824f00617cdce3717e7",
+      "rollback_records": "e317b3b767f44629d59b7c3e6905ce5ccf537e4921a41deb35201334b2300736",
+      "service_actuals": "397d042db81d48e512d318adb7cfaf52705cb290406f6aff2afb7c71ab83b9b4",
+      "service_scores": "49b408e37cd347eda11efc64fb1a0f5722c31bc8b33dfd26fbbc800a50b62bf1",
+      "trust_summary": "a47fab7a63064c85260f7081b689f8ab50c1d3ebff3f4c71b5535b84e27e3270"
+    },
+    "warnings": []
+  },
+  "delta": {
+    "rotated_refresh_equivalent": {
+      "blast_evidence_count": [
+        0,
+        0
+      ],
+      "blast_radius_confidence": [
+        0.0,
+        0.0
+      ],
+      "operator_confidence": [
+        45.8,
+        45.8
+      ],
+      "operator_prediction_confidence": [
+        39.6,
+        39.6
+      ],
+      "operator_trust": [
+        39.602,
+        39.579
+      ],
+      "overall_confidence": [
+        42.678,
+        42.678
+      ]
+    },
+    "visible_blast_rows_counterfactual": {
+      "blast_evidence_count": [
+        0,
+        11
+      ],
+      "blast_radius_confidence": [
+        0.0,
+        100.0
+      ],
+      "operator_confidence": [
+        45.8,
+        45.8
+      ],
+      "operator_prediction_confidence": [
+        39.6,
+        39.6
+      ],
+      "operator_trust": [
+        39.602,
+        54.684
+      ],
+      "overall_confidence": [
+        42.678,
+        59.345
+      ]
+    }
+  },
+  "mode": "preview_only_no_writes",
+  "rotated_store_counts": [
+    {
+      "exists": true,
+      "path": "/opt/v7/egress/state/execution-events.jsonl.1",
+      "records": 148
+    },
+    {
+      "exists": true,
+      "path": "/opt/v7/egress/state/runtime-trust.jsonl.1",
+      "records": 74
+    },
+    {
+      "exists": true,
+      "path": "/opt/v7/egress/state/proposal-records.jsonl.1",
+      "records": 74
+    },
+    {
+      "exists": true,
+      "path": "/opt/v7/egress/state/proposals.jsonl.1",
+      "records": 2
+    },
+    {
+      "exists": true,
+      "path": "/opt/v7/egress/state/closure-records.jsonl.1",
+      "records": 74
+    }
+  ],
+  "rotated_store_refresh_equivalent_preview": {
+    "builder_direct": {
+      "blast_rows_from_bounded_decisions": 0,
+      "sample_rows": []
+    },
+    "input_counts": {
+      "audit_records_after_tail_and_feedback": 2372,
+      "bounded_decisions": 1000,
+      "feedback_paths": [
+        "/opt/v7/egress/state/execution-events.jsonl.1",
+        "/opt/v7/egress/state/runtime-trust.jsonl.1",
+        "/opt/v7/egress/state/proposal-records.jsonl.1",
+        "/opt/v7/egress/state/proposals.jsonl.1",
+        "/opt/v7/egress/state/closure-records.jsonl.1"
+      ],
+      "rollback_records_after_tail": 0,
+      "switch_records_after_tail": 1000
+    },
+    "snapshot_refresh_equivalent": {
+      "dry_run": true,
+      "metrics": {
+        "elapsed_ms": 1512.657,
+        "max_snapshot_bytes": 272240,
+        "snapshot_count": 11,
+        "snapshot_sizes": {
+          "best-available-pool": 39965,
+          "blast-radius-summaries": 999,
+          "candidate-suitability-summary": 156953,
+          "channel-service-scores": 3494,
+          "overview-summary": 2812,
+          "prediction-summaries": 60317,
+          "risk-summaries": 965,
+          "service-scores": 17679,
+          "trust-evolution-summaries": 272240,
+          "trust-summaries": 1218,
+          "user-service-scores": 116373
+        },
+        "total_snapshot_bytes": 673015
+      },
+      "runtime_mutation_performed": false,
+      "snapshot_count": 11,
+      "users_moved": false,
+      "warnings": [],
+      "written": {}
+    },
+    "trust": {
+      "autonomy_readiness": {
+        "authority": {
+          "execution_authority": "none",
+          "governance_authority": "unchanged_existing_governance",
+          "planner_authority": "tools/v7-users-autoswitch",
+          "rollback_authority": "unchanged_existing_rollback",
+          "runtime_mutation_authority": "none",
+          "selected_moves_write_authority": "none"
+        },
+        "automatic_user_movement_enabled": false,
+        "autonomy_enabled": false,
+        "average_confidence": 42.678,
+        "current_level": "NOT_READY",
+        "execution_changed": false,
+        "explicit_autonomy_approval": false,
+        "governance_changed": false,
+        "levels": [
+          "NOT_READY",
+          "SHADOW_READY",
+          "OPERATOR_VISIBLE_READY",
+          "OPERATOR_APPROVAL_READY",
+          "BOUNDED_AUTONOMY_READY",
+          "PRODUCTION_AUTONOMY_READY"
+        ],
+        "live_calibrated": true,
+        "minimum_confidence": 0.0,
+        "planner_authority_changed": false,
+        "schema_version": "v7.ri6.autonomy-readiness-model.v1"
+      },
+      "blast_radius_confidence_model": {
+        "blast_radius_confidence": 0.0,
+        "confidence_band": "UNKNOWN",
+        "recommended_budget": 0.0,
+        "records_seen": 0,
+        "runtime_decision_authority": "none_evidence_only",
+        "schema_version": "v7.ri6.blast-radius-confidence-model.v1",
+        "successful_small_operations": 0,
+        "unsafe_large_operations": 0
+      },
+      "confidence_summary": {
+        "blast_radius_confidence": 0.0,
+        "decision_confidence": 50.0,
+        "explicit_autonomy_approval": 0,
+        "live_calibrated": 1,
+        "prediction_confidence": 37.332,
+        "rollback_confidence": 100.0,
+        "service_confidence": 39.225,
+        "suitability_confidence": 29.511
+      },
+      "generated_at": "2026-06-22T10:09:26.263033+00:00",
+      "governed_to_autonomy_trust_bridge": {
+        "approval_autonomy_review_ready": true,
+        "authority_changed": false,
+        "autonomy_boundary_cap": "OPERATOR_APPROVAL_READY",
+        "autonomy_enabled": false,
+        "autonomy_specific_gap_score": 100.0,
+        "autonomy_specific_trust": 0.0,
+        "bounded_autonomy_blockers": [
+          "autonomous_trigger_not_certified",
+          "autonomous_rollback_decision_not_certified",
+          "operator_free_apply_not_certified",
+          "autonomy_specific_evidence_below_floor"
+        ],
+        "bounded_autonomy_ready": false,
+        "corrected_autonomy_trust": 52.227,
+        "evidence_counts": {
+          "candidate_outcomes_count": 83,
+          "prediction_actuals_count": 21,
+          "service_actuals_count": 21
+        },
+        "execution_authority": "none",
+        "governance_changed": false,
+        "governed_execution_evidence_score": 100.0,
+        "governed_feedback_evidence_score": 96.97,
+        "inherited_execution_trust": 87.046,
+        "mode": "read_only_advisory",
+        "model": "PARTIALLY_INHERITED_GOVERNED_TRUST_WITH_AUTONOMY_CAPS",
+        "new_truth_source_created": false,
+        "operator_summary_ru": "Governed-история уже повышает доверие к выполнению, но автономный запуск и откат остаются отдельно заблокированы.",
+        "planner_decision_changed": false,
+        "production_autonomy_ready": false,
+        "runtime_mutation_performed": false,
+        "schema_version": "v7.governed-to-autonomy-trust-bridge.v1"
+      },
+      "outcome_mapper_counts": {
+        "blast_radius_evidence_count": 0,
+        "candidate_outcomes_count": 83,
+        "prediction_actuals_count": 21,
+        "service_actuals_count": 21
+      },
+      "overall_confidence": 42.678,
+      "prediction_accuracy": {
+        "actuals_seen": 21,
+        "matched_actuals": null,
+        "prediction_confidence": 37.332,
+        "validation_status": "VALIDATED"
+      },
+      "rollback_intelligence": {
+        "records_seen": 20,
+        "rollback_confidence": 100.0,
+        "validation_status": "VALIDATED"
+      },
+      "snapshot_confidence": 0.9805,
+      "source_hashes": {
+        "best_available_pool": "0ea9650bdd055b7f61789532b73a00df0e840bff3c34a2446721775ee5be5b9f",
+        "blast_radius": "136c9ec532ba65d6401962fcb365427fd605dd071b7bc8cbdfaa71bacbb5817c",
+        "blast_radius_records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "candidate_outcomes": "f5c3295a624fc45b7b83511ae0c4bdfa86a83253d58c11521ef88419a973567a",
+        "candidate_suitability": "db5174e8ff84a5b67d2c447e26cd9034b66de676f7589f0d63f769c8c8bea9b0",
+        "channel_service_scores": "d4ab675b44a9635afe3a73e9a85280991a5c778bcb0fc919539aacfd8c4cb1fc",
+        "decisions": "ee4d39cc5606d2067f582c0d051be83e91f72ef0d6bff09ddde1c6c4b2c23e70",
+        "prediction_actuals": "9c216acddcc8f505bf8743fa2c6c6fdfd3fe90c1ba4bcd4f1ef59f96e53c1c17",
+        "prediction_summary": "cdc501ad9392261a36ea333f62e20a6ebc9acd3c0dcc992d7af0cdcd0b64d30c",
+        "rollback_records": "e317b3b767f44629d59b7c3e6905ce5ccf537e4921a41deb35201334b2300736",
+        "service_actuals": "56603b220431ada7f0562ceeeb03b4299619408c376f81f65e976e6e4cb7b0ad",
+        "service_scores": "212534461f89fdcb46ddf40ed4ab9ec895add7a2069007b72c3b3003eefb3609",
+        "trust_summary": "33d3562e6b30969c290f401456ab93b4b50cc28f8863ac36909bcf8dcce13839"
+      },
+      "warnings": []
+    }
+  },
+  "runtime_mutation_performed": false,
+  "schema": "v7.autonomy-rematerialization-4-preview.v2",
+  "snapshot_written": false,
+  "users_moved": 0,
+  "visible_blast_rows_counterfactual": {
+    "blast_rows_count": 11,
+    "description": "Existing trust model preview with the 11 builder-classified rotated blast rows supplied as visible blast_radius_records. No production snapshot write.",
+    "sample_rows": [
+      {
+        "blast_radius": 5,
+        "event_time": "2026-06-06T22:10:50.870400+00:00",
+        "evidence_source": "decision_record",
+        "operation_id": "runtime_autoswitch_473252c9659f6434a808e6ea",
+        "result": "success",
+        "rollback_required": false,
+        "success": true
+      },
+      {
+        "blast_radius": 1,
+        "event_time": "2026-06-07T10:54:33.376874+00:00",
+        "evidence_source": "decision_record",
+        "operation_id": "runtime_autoswitch_1ceca614139382db49eed3a4",
+        "result": "success",
+        "rollback_required": false,
+        "success": true
+      },
+      {
+        "blast_radius": 10,
+        "event_time": "2026-06-07T12:11:15.593588+00:00",
+        "evidence_source": "decision_record",
+        "operation_id": "runtime_autoswitch_0425741b308df19ccc0c1e03",
+        "result": "success",
+        "rollback_required": false,
+        "success": true
+      },
+      {
+        "blast_radius": 1,
+        "event_time": "2026-06-11T21:23:17.552199+00:00",
+        "evidence_source": "decision_record",
+        "operation_id": "runtime_autoswitch_ab8394dcdb178052aafb65cc",
+        "result": "success",
+        "rollback_required": false,
+        "success": true
+      },
+      {
+        "blast_radius": 2,
+        "event_time": "2026-06-11T21:23:17.774140+00:00",
+        "evidence_source": "decision_record",
+        "operation_id": "runtime_autoswitch_524981d916fcfd924e845973",
+        "result": "success",
+        "rollback_required": false,
+        "success": true
+      },
+      {
+        "blast_radius": 5,
+        "event_time": "2026-06-11T21:23:18.233669+00:00",
+        "evidence_source": "decision_record",
+        "operation_id": "runtime_autoswitch_0aa8dc9201a8c52590139f76",
+        "result": "success",
+        "rollback_required": false,
+        "success": true
+      },
+      {
+        "blast_radius": 8,
+        "event_time": "2026-06-11T21:23:19.256945+00:00",
+        "evidence_source": "decision_record",
+        "operation_id": "runtime_autoswitch_f80c1b87762cea7a4f4176ca",
+        "result": "success",
+        "rollback_required": false,
+        "success": true
+      },
+      {
+        "blast_radius": 1,
+        "event_time": "2026-06-12T20:49:49.086066+00:00",
+        "evidence_source": "decision_record",
+        "operation_id": "runtime_autoswitch_3004d8fb65d7efb42a7eab86",
+        "result": "success",
+        "rollback_required": false,
+        "success": true
+      },
+      {
+        "blast_radius": 2,
+        "event_time": "2026-06-12T22:13:10.262849+00:00",
+        "evidence_source": "decision_record",
+        "operation_id": "runtime_autoswitch_c3a76cf1644493fde1a052da",
+        "result": "success",
+        "rollback_required": false,
+        "success": true
+      },
+      {
+        "blast_radius": 5,
+        "event_time": "2026-06-13T18:12:15.420461+00:00",
+        "evidence_source": "decision_record",
+        "operation_id": "runtime_autoswitch_f5cb2ee61b60b838aee41283",
+        "result": "success",
+        "rollback_required": false,
+        "success": true
+      },
+      {
+        "blast_radius": 2,
+        "event_time": "2026-06-06T17:52:35.905972+00:00",
+        "evidence_source": "decision_record",
+        "operation_id": "runtime_autoswitch_f59ba96b71192a236ae8371b",
+        "result": "success",
+        "rollback_required": false,
+        "success": true
+      }
+    ],
+    "trust": {
+      "autonomy_readiness": {
+        "authority": {
+          "execution_authority": "none",
+          "governance_authority": "unchanged_existing_governance",
+          "planner_authority": "tools/v7-users-autoswitch",
+          "rollback_authority": "unchanged_existing_rollback",
+          "runtime_mutation_authority": "none",
+          "selected_moves_write_authority": "none"
+        },
+        "automatic_user_movement_enabled": false,
+        "autonomy_enabled": false,
+        "average_confidence": 59.345,
+        "current_level": "NOT_READY",
+        "execution_changed": false,
+        "explicit_autonomy_approval": false,
+        "governance_changed": false,
+        "levels": [
+          "NOT_READY",
+          "SHADOW_READY",
+          "OPERATOR_VISIBLE_READY",
+          "OPERATOR_APPROVAL_READY",
+          "BOUNDED_AUTONOMY_READY",
+          "PRODUCTION_AUTONOMY_READY"
+        ],
+        "live_calibrated": true,
+        "minimum_confidence": 29.511,
+        "planner_authority_changed": false,
+        "schema_version": "v7.ri6.autonomy-readiness-model.v1"
+      },
+      "blast_radius_confidence_model": {
+        "blast_radius_confidence": 100.0,
+        "confidence_band": "HIGH",
+        "recommended_budget": 0.0,
+        "records_seen": 11,
+        "runtime_decision_authority": "none_evidence_only",
+        "schema_version": "v7.ri6.blast-radius-confidence-model.v1",
+        "successful_small_operations": 9,
+        "unsafe_large_operations": 0
+      },
+      "confidence_summary": {
+        "blast_radius_confidence": 100.0,
+        "decision_confidence": 50.0,
+        "explicit_autonomy_approval": 0,
+        "live_calibrated": 1,
+        "prediction_confidence": 37.332,
+        "rollback_confidence": 100.0,
+        "service_confidence": 39.225,
+        "suitability_confidence": 29.511
+      },
+      "generated_at": null,
+      "governed_to_autonomy_trust_bridge": {
+        "approval_autonomy_review_ready": true,
+        "authority_changed": false,
+        "autonomy_boundary_cap": "OPERATOR_APPROVAL_READY",
+        "autonomy_enabled": false,
+        "autonomy_specific_gap_score": 100.0,
+        "autonomy_specific_trust": 0.0,
+        "bounded_autonomy_blockers": [
+          "autonomous_trigger_not_certified",
+          "autonomous_rollback_decision_not_certified",
+          "operator_free_apply_not_certified",
+          "autonomy_specific_evidence_below_floor"
+        ],
+        "bounded_autonomy_ready": false,
+        "corrected_autonomy_trust": 52.227,
+        "evidence_counts": {
+          "candidate_outcomes_count": 83,
+          "prediction_actuals_count": 21,
+          "service_actuals_count": 21
+        },
+        "execution_authority": "none",
+        "governance_changed": false,
+        "governed_execution_evidence_score": 100.0,
+        "governed_feedback_evidence_score": 96.97,
+        "inherited_execution_trust": 87.046,
+        "mode": "read_only_advisory",
+        "model": "PARTIALLY_INHERITED_GOVERNED_TRUST_WITH_AUTONOMY_CAPS",
+        "new_truth_source_created": false,
+        "operator_summary_ru": "Governed-история уже повышает доверие к выполнению, но автономный запуск и откат остаются отдельно заблокированы.",
+        "planner_decision_changed": false,
+        "production_autonomy_ready": false,
+        "runtime_mutation_performed": false,
+        "schema_version": "v7.governed-to-autonomy-trust-bridge.v1"
+      },
+      "outcome_mapper_counts": {
+        "blast_radius_evidence_count": 11,
+        "candidate_outcomes_count": 83,
+        "prediction_actuals_count": 21,
+        "service_actuals_count": 21
+      },
+      "overall_confidence": 59.345,
+      "prediction_accuracy": {
+        "actuals_seen": 21,
+        "matched_actuals": null,
+        "prediction_confidence": 37.332,
+        "validation_status": "VALIDATED"
+      },
+      "rollback_intelligence": {
+        "records_seen": 20,
+        "rollback_confidence": 100.0,
+        "validation_status": "VALIDATED"
+      },
+      "snapshot_confidence": null,
+      "source_hashes": {},
+      "warnings": []
+    }
+  }
+}

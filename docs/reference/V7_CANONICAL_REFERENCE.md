@@ -181,8 +181,11 @@ A new audit is allowed only when the reference has no answer, the reference expl
 20. Historical governed blast-radius evidence still exists in production rotated stores such as `/opt/v7/egress/state/execution-events.jsonl.1`, `/opt/v7/egress/state/runtime-trust.jsonl.1`, `/opt/v7/egress/state/closure-records.jsonl.1`, and `/opt/v7/egress/state/proposal-records.jsonl.1`.
 21. The current existing builder classifies those rotated production records without code changes: combined rotated `.jsonl.1` inputs produce 11 valid blast-radius rows. Therefore this is not a schema mismatch, not a builder/model failure, and not a reason to create a new model.
 22. The safe recovery path is an approved use of existing archive restore/materialization or snapshot rebuild/refresh capability against real rotated feedback inputs. Manual trust snapshot editing, synthetic evidence, and runtime apply remain forbidden.
-23. Next safe phase is `AUTONOMY.REMATERIALIZATION.4_ROTATED_STORE_RECOVERY_DRY_RUN_AND_APPROVAL`.
-24. Last verified commit: `acd0b7bfa52d75d1768a0eb45f1ea29a14cd9fc1`.
+23. AUTONOMY.REMATERIALIZATION.4 on 2026-06-22 previewed recovery without writes. A strict refresh-equivalent run with rotated feedback inputs still produced `blast_radius_confidence=0.0` because the useful rotated rows did not become visible in the final bounded trust-evolution decision set.
+24. The same phase previewed the existing trust model with the 11 builder-classified rotated blast rows supplied as visible `blast_radius_records`. That moved `blast_radius_confidence` from `0.0` to `100.0`, `overall_confidence` from `42.678` to `59.345`, and operator trust from `39.602` to `54.684`.
+25. Blast recovery has moderate readiness impact but does not certify autonomy: confidence remains `45.8`, trust remains below the `70.0` floor at `54.684`, and prediction confidence remains `39.6`.
+26. After visible blast recovery, the dominant remaining blocker is `prediction_confidence_too_low`; confidence remains a second blocker. The next evidence phase is `AUTONOMY.PREDICTION.EVIDENCE.1`.
+27. Last verified commit: `ede2c1290add8b563b0d7a28538f9a9e5232c4ea`.
 
 ## 1. Channels
 

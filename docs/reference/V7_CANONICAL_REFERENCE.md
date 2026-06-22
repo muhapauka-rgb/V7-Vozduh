@@ -1,8 +1,8 @@
 # V7 Canonical Reference
 
 Status: canonical project reference
-Last verified commit: `f875eeee`
-Last verified date: 2026-06-21
+Last verified commit: `acd0b7bf`
+Last verified date: 2026-06-22
 
 This document describes the current meaning of V7 system concepts. It is not a history log and not an audit report. Reports remain evidence. ADRs explain why a decision was made. This reference is the current truth that future V7 work must read before re-auditing old concepts.
 
@@ -176,9 +176,13 @@ A new audit is allowed only when the reference has no answer, the reference expl
 15. The refresh was safe: `apply_executed=false`, `user_movement_performed=false`, `routing_mutation_performed=false`, `users_moved=0`, and `runtime_mutation_scope=intelligence_snapshot_refresh_only`.
 16. The refresh regenerated `trust-evolution-summaries` (`generated_at` changed from `2026-06-21T17:48:03.651484+00:00` to `2026-06-21T17:48:12.525206+00:00`) but had no metric effect: `blast_radius_confidence` stayed `0.0`, trust stayed `39.602`, confidence stayed `39.602`, and prediction stayed `39.6`.
 17. The `blast_radius_records` source hash after refresh equals `sha256_json([])`, so the production consumed snapshot still contains no blast-radius rows. The standard production refresh path alone did not recover historical BA evidence.
-18. Current narrowed root cause: the live production stores read by `v7-intelligence-snapshot-refresh` either do not contain the historical governed blast-radius rows, store them outside the included paths/window, or present them in a form that does not classify in the live refresh input set.
-19. Next safe phase is read-only production feedback store forensics, not manual snapshot editing, synthetic evidence, model changes, or runtime apply.
-20. Last verified commit: `d25926607b28d37aa3ed15f5a21140ab4b66a5e4`.
+18. AUTONOMY.REMATERIALIZATION.3 on 2026-06-22 certified the root cause as `BLAST_RECORDS_IN_DIFFERENT_STORE`.
+19. The active production default refresh paths `/opt/v7/egress/state/execution-events.jsonl`, `/opt/v7/egress/state/runtime-trust.jsonl`, `/opt/v7/egress/state/proposal-records.jsonl`, `/opt/v7/egress/state/proposals.jsonl`, and `/opt/v7/egress/state/closure-records.jsonl` exist but currently contain 0 records, so standard refresh gives the builder no governed movement/outcome rows.
+20. Historical governed blast-radius evidence still exists in production rotated stores such as `/opt/v7/egress/state/execution-events.jsonl.1`, `/opt/v7/egress/state/runtime-trust.jsonl.1`, `/opt/v7/egress/state/closure-records.jsonl.1`, and `/opt/v7/egress/state/proposal-records.jsonl.1`.
+21. The current existing builder classifies those rotated production records without code changes: combined rotated `.jsonl.1` inputs produce 11 valid blast-radius rows. Therefore this is not a schema mismatch, not a builder/model failure, and not a reason to create a new model.
+22. The safe recovery path is an approved use of existing archive restore/materialization or snapshot rebuild/refresh capability against real rotated feedback inputs. Manual trust snapshot editing, synthetic evidence, and runtime apply remain forbidden.
+23. Next safe phase is `AUTONOMY.REMATERIALIZATION.4_ROTATED_STORE_RECOVERY_DRY_RUN_AND_APPROVAL`.
+24. Last verified commit: `acd0b7bfa52d75d1768a0eb45f1ea29a14cd9fc1`.
 
 ## 1. Channels
 

@@ -1,0 +1,2614 @@
+{
+  "file_count_scanned": 801,
+  "interesting_files": [
+    {
+      "mtime": 1781377897.7600582,
+      "path": "/opt/v7/BA4_EVIDENCE/phase3/fresh_planner.json",
+      "size": 5053773
+    },
+    {
+      "mtime": 1781377897.978966,
+      "path": "/opt/v7/BA4_EVIDENCE/phase4/ba4_packet.json",
+      "size": 9764
+    },
+    {
+      "mtime": 1781378059.8559594,
+      "path": "/opt/v7/BA4_EVIDENCE/phase5_retry/ba4_packet.json",
+      "size": 9776
+    },
+    {
+      "mtime": 1781378059.6700897,
+      "path": "/opt/v7/BA4_EVIDENCE/phase5_retry/fresh_planner.json",
+      "size": 5053662
+    },
+    {
+      "mtime": 1781378059.8620875,
+      "path": "/opt/v7/BA4_EVIDENCE/phase5_retry/packet_generate.json",
+      "size": 10474
+    },
+    {
+      "mtime": 1781378265.9145846,
+      "path": "/opt/v7/BA4_EVIDENCE/phase7/ten_user_apply.json",
+      "size": 5167238
+    },
+    {
+      "mtime": 1781378298.818569,
+      "path": "/opt/v7/BA4_EVIDENCE/phase8/rollback_packet.json",
+      "size": 4839
+    },
+    {
+      "mtime": 1781302218.0356562,
+      "path": "/opt/v7/admin/atomic1_close_ba2_packet.json",
+      "size": 5449
+    },
+    {
+      "mtime": 1781302218.041981,
+      "path": "/opt/v7/admin/atomic1_close_ba2_packet_generate.json",
+      "size": 4969
+    },
+    {
+      "mtime": 1781302217.7739842,
+      "path": "/opt/v7/admin/atomic1_close_ba2_plan.json",
+      "size": 4974004
+    },
+    {
+      "mtime": 1781302218.3259773,
+      "path": "/opt/v7/admin/atomic1_close_ba2_restore_barrier.json",
+      "size": 13737
+    },
+    {
+      "mtime": 1781295119.9295647,
+      "path": "/opt/v7/admin/ba1_close_autonomous_apply.json",
+      "size": 352859
+    },
+    {
+      "mtime": 1781294908.2165864,
+      "path": "/opt/v7/admin/ba1_close_governance_lifecycle.jsonl",
+      "size": 3561
+    },
+    {
+      "mtime": 1781294870.9812777,
+      "path": "/opt/v7/admin/ba1_close_one_user_packet.json",
+      "size": 4933
+    },
+    {
+      "mtime": 1781294817.5673385,
+      "path": "/opt/v7/admin/ba1_close_one_user_plan.json",
+      "size": 4982924
+    },
+    {
+      "mtime": 1781294908.2132072,
+      "path": "/opt/v7/admin/ba1_close_operator_execution_audit.jsonl",
+      "size": 2455
+    },
+    {
+      "mtime": 1781294870.986672,
+      "path": "/opt/v7/admin/ba1_close_packet_generate.json",
+      "size": 5334
+    },
+    {
+      "mtime": 1781294908.2242072,
+      "path": "/opt/v7/admin/ba1_close_restore_barrier_clearance.json",
+      "size": 14828
+    },
+    {
+      "mtime": 1781295132.655406,
+      "path": "/opt/v7/admin/ba1_close_rollback_dry_run.json",
+      "size": 3681
+    },
+    {
+      "mtime": 1781295132.2039714,
+      "path": "/opt/v7/admin/ba1_close_rollback_packet.json",
+      "size": 1468
+    },
+    {
+      "mtime": 1781295132.2064116,
+      "path": "/opt/v7/admin/ba1_close_rollback_packet_generate.json",
+      "size": 1784
+    },
+    {
+      "mtime": 1781299819.183914,
+      "path": "/opt/v7/admin/ba2_gate_safety_expire_one_user_packet_generate.json",
+      "size": 122
+    },
+    {
+      "mtime": 1781299818.9769166,
+      "path": "/opt/v7/admin/ba2_gate_safety_expire_one_user_plan.json",
+      "size": 4977023
+    },
+    {
+      "mtime": 1781299869.8965867,
+      "path": "/opt/v7/admin/ba2_gate_safety_expire_packet_retry.json",
+      "size": 5433
+    },
+    {
+      "mtime": 1781299869.9042807,
+      "path": "/opt/v7/admin/ba2_gate_safety_expire_packet_retry_generate.json",
+      "size": 5876
+    },
+    {
+      "mtime": 1781299870.191277,
+      "path": "/opt/v7/admin/ba2_gate_safety_expire_restore_barrier_retry.json",
+      "size": 15968
+    },
+    {
+      "mtime": 1781299328.4990394,
+      "path": "/opt/v7/admin/ba2_gate_two_user_packet.json",
+      "size": 5435
+    },
+    {
+      "mtime": 1781299407.8900695,
+      "path": "/opt/v7/admin/ba2_gate_two_user_packet_retry2.json",
+      "size": 5435
+    },
+    {
+      "mtime": 1781299454.060573,
+      "path": "/opt/v7/admin/ba2_gate_two_user_packet_retry3.json",
+      "size": 5435
+    },
+    {
+      "mtime": 1781299289.3455286,
+      "path": "/opt/v7/admin/ba2_gate_two_user_plan.json",
+      "size": 5008835
+    },
+    {
+      "mtime": 1781303002.0000236,
+      "path": "/opt/v7/admin/ba3_five_user_packet.json",
+      "size": 6985
+    },
+    {
+      "mtime": 1781303156.1304932,
+      "path": "/opt/v7/admin/ba3_five_user_packet_retry1.json",
+      "size": 6985
+    },
+    {
+      "mtime": 1781303270.8268132,
+      "path": "/opt/v7/admin/ba3_five_user_packet_retry2.json",
+      "size": 6985
+    },
+    {
+      "mtime": 1781302980.7284715,
+      "path": "/opt/v7/admin/ba3_five_user_plan.json",
+      "size": 4982630
+    },
+    {
+      "mtime": 1781303144.0304356,
+      "path": "/opt/v7/admin/ba3_five_user_plan_retry1.json",
+      "size": 4992057
+    },
+    {
+      "mtime": 1781303256.7950296,
+      "path": "/opt/v7/admin/ba3_five_user_plan_retry2.json",
+      "size": 4992926
+    },
+    {
+      "mtime": 1781373995.950361,
+      "path": "/opt/v7/admin/ba3_retry_packet.json",
+      "size": 7155
+    },
+    {
+      "mtime": 1781374206.9388318,
+      "path": "/opt/v7/admin/ba3_retry_rollback_packet.json",
+      "size": 2989
+    },
+    {
+      "mtime": 1780767543.2397897,
+      "path": "/opt/v7/admin/docs/track7/productization/c1-evidence/governance-lifecycle.jsonl",
+      "size": 11689
+    },
+    {
+      "mtime": 1780767543.23679,
+      "path": "/opt/v7/admin/docs/track7/productization/e22-evidence/operator-execution-audit.jsonl",
+      "size": 7980
+    },
+    {
+      "mtime": 1779291888.3324323,
+      "path": "/opt/v7/admin/egress-draft-tests/1-1779291887-55965c-1779291888-b0b382/result.json",
+      "size": 1747
+    },
+    {
+      "mtime": 1779292334.0117154,
+      "path": "/opt/v7/admin/egress-draft-tests/1-1779291887-55965c-1779292334-17bc7f/result.json",
+      "size": 1747
+    },
+    {
+      "mtime": 1779291889.3093696,
+      "path": "/opt/v7/admin/egress-draft-tests/1-1779291887-55965c-runtime-1779291888-968d6d/result.json",
+      "size": 2501
+    },
+    {
+      "mtime": 1779291910.4022918,
+      "path": "/opt/v7/admin/egress-draft-tests/1-1779291887-55965c-runtime-1779291889-8e4594/result.json",
+      "size": 15004
+    },
+    {
+      "mtime": 1779212567.859918,
+      "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779212551-5f2af4-1779212567-d21edc/result.json",
+      "size": 1725
+    },
+    {
+      "mtime": 1779227526.6726499,
+      "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779212551-5f2af4-1779227526-6b3483/result.json",
+      "size": 1725
+    },
+    {
+      "mtime": 1779227953.814959,
+      "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779227510-8c08e7-1779227953-9968ee/result.json",
+      "size": 1740
+    },
+    {
+      "mtime": 1779229749.728654,
+      "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779227510-8c08e7-runtime-1779229741-d72ffe/result.json",
+      "size": 2306
+    },
+    {
+      "mtime": 1779230366.839335,
+      "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779227510-8c08e7-runtime-1779230366-3b4957/result.json",
+      "size": 2495
+    },
+    {
+      "mtime": 1779230597.5381575,
+      "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779227510-8c08e7-runtime-1779230578-730443/result.json",
+      "size": 14998
+    },
+    {
+      "mtime": 1779230735.3253098,
+      "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779227510-8c08e7-runtime-1779230717-01826d/result.json",
+      "size": 14942
+    },
+    {
+      "mtime": 1779230793.9718204,
+      "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779227510-8c08e7-runtime-1779230774-51cf55/result.json",
+      "size": 14982
+    },
+    {
+      "mtime": 1779303737.6365917,
+      "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779303737-a57ce8-1779303737-cf3f93/result.json",
+      "size": 1740
+    },
+    {
+      "mtime": 1779303738.5548618,
+      "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779303737-a57ce8-runtime-1779303737-dd22ec/result.json",
+
+      "size": 2494
+    },
+    {
+      "mtime": 1779303758.0197477,
+      "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779303737-a57ce8-runtime-1779303739-2a8b85/result.json",
+      "size": 14970
+    },
+    {
+      "mtime": 1779305909.4718044,
+      "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779305908-ed3889-1779305909-440a3b/result.json",
+      "size": 1740
+    },
+    {
+      "mtime": 1779305910.3726232,
+      "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779305908-ed3889-runtime-1779305909-f16c54/result.json",
+      "size": 2494
+    },
+    {
+      "mtime": 1779305929.0844266,
+      "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779305908-ed3889-runtime-1779305911-2fff97/result.json",
+      "size": 14953
+    },
+    {
+      "mtime": 1779352720.0764604,
+      "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779352711-bc94ec-1779352720-8888d9/result.json",
+      "size": 1437
+    },
+    {
+      "mtime": 1779352724.8453448,
+      "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779352711-bc94ec-1779352724-980fad/result.json",
+      "size": 1437
+    },
+    {
+      "mtime": 1779352770.0645854,
+      "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779352726-16e1ec-1779352770-db864f/result.json",
+      "size": 1437
+    },
+    {
+      "mtime": 1779387408.984502,
+      "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779387408-c42bdf-1779387408-07b64d/result.json",
+      "size": 1597
+    },
+    {
+      "mtime": 1779387412.9084299,
+      "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779387408-c42bdf-quarantine-1779387409-966d63/result.json",
+      "size": 15157
+    },
+    {
+      "mtime": 1779387409.7833226,
+      "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779387408-c42bdf-runtime-1779387408-adb23c/result.json",
+      "size": 5642
+    },
+    {
+      "mtime": 1779388847.5310771,
+      "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779388847-d2ad7c-1779388847-4cb017/result.json",
+      "size": 1597
+    },
+    {
+      "mtime": 1779388852.56535,
+      "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779388847-d2ad7c-quarantine-1779388848-158247/result.json",
+      "size": 16639
+    },
+    {
+      "mtime": 1779388848.3277936,
+      "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779388847-d2ad7c-runtime-1779388847-af3427/result.json",
+      "size": 5642
+    },
+    {
+      "mtime": 1779453676.6086237,
+      "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779453676-42885e-1779453676-d82055/result.json",
+      "size": 1597
+    },
+    {
+      "mtime": 1779453694.675469,
+      "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779453676-42885e-runtime-1779453676-afdc62/result.json",
+      "size": 2259
+    },
+    {
+      "mtime": 1779454045.3385572,
+      "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779453676-42885e-runtime-1779454017-3049b4/result.json",
+      "size": 2259
+    },
+    {
+      "mtime": 1779454391.207467,
+      "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779453676-42885e-runtime-1779454375-4f05cc/result.json",
+      "size": 4711
+    },
+    {
+      "mtime": 1779462892.6787999,
+      "path": "/opt/v7/admin/egress-draft-tests/subscription_url-1779462892-4d2cea-1779462892-48c0db/result.json",
+      "size": 1010
+    },
+    {
+      "mtime": 1779352997.6136558,
+      "path": "/opt/v7/admin/egress-draft-tests/test1-1779352953-489ac4-1779352997-9f7005/result.json",
+      "size": 1413
+    },
+    {
+      "mtime": 1779455931.1548193,
+      "path": "/opt/v7/admin/egress-draft-tests/wg-1779455931-ba621c-1779455931-4d4466/result.json",
+      "size": 1771
+    },
+    {
+      "mtime": 1779455931.9590335,
+      "path": "/opt/v7/admin/egress-draft-tests/wg-1779455931-ba621c-runtime-1779455931-abf4ef/result.json",
+      "size": 2155
+    },
+    {
+      "mtime": 1779455954.485611,
+      "path": "/opt/v7/admin/egress-draft-tests/wg-1779455931-ba621c-runtime-1779455932-39b6db/result.json",
+      "size": 14573
+    },
+    {
+      "mtime": 1779454504.5327575,
+      "path": "/opt/v7/admin/egress-draft-tests/wireguard-1779454504-c43409-1779454504-488966/result.json",
+      "size": 1711
+    },
+    {
+      "mtime": 1779454505.6756566,
+      "path": "/opt/v7/admin/egress-draft-tests/wireguard-1779454504-c43409-runtime-1779454504-db9ec5/result.json",
+      "size": 2095
+    },
+    {
+      "mtime": 1779454527.0974348,
+      "path": "/opt/v7/admin/egress-draft-tests/wireguard-1779454504-c43409-runtime-1779454505-0be4c3/result.json",
+      "size": 14518
+    },
+    {
+      "mtime": 1779455670.350734,
+      "path": "/opt/v7/admin/egress-draft-tests/wireguard-1779454504-c43409-runtime-1779455648-10ab7e/result.json",
+      "size": 14521
+    },
+    {
+      "mtime": 1781209198.533034,
+      "path": "/opt/v7/admin/exec24_governance_lifecycle.jsonl",
+      "size": 3560
+    },
+    {
+      "mtime": 1781209166.820265,
+      "path": "/opt/v7/admin/exec24_one_user_packet.json",
+      "size": 4913
+    },
+    {
+      "mtime": 1781209198.5306785,
+      "path": "/opt/v7/admin/exec24_operator_execution_audit.jsonl",
+      "size": 2455
+    },
+    {
+      "mtime": 1781210750.1319072,
+      "path": "/opt/v7/admin/exec56_governance_lifecycle.jsonl",
+      "size": 13692
+    },
+    {
+      "mtime": 1781210750.1279073,
+      "path": "/opt/v7/admin/exec56_operator_execution_audit.jsonl",
+      "size": 8811
+    },
+    {
+      "mtime": 1781210376.7810504,
+      "path": "/opt/v7/admin/exec56_stageA_2_packet.json",
+      "size": 5417
+    },
+    {
+      "mtime": 1781210564.76171,
+      "path": "/opt/v7/admin/exec56_stageB_5_packet.json",
+      "size": 6929
+    },
+    {
+      "mtime": 1781210749.8344135,
+      "path": "/opt/v7/admin/exec56_stageD_full_8_packet.json",
+      "size": 8465
+    },
+    {
+      "mtime": 1781373996.5853534,
+      "path": "/opt/v7/admin/fresh_planner.json",
+      "size": 5131719
+    },
+    {
+      "mtime": 1780640224.4858735,
+      "path": "/opt/v7/admin/operator-approval-execution-packet-20260605T0917Z.json",
+      "size": 1975
+    },
+    {
+      "mtime": 1780640603.7115657,
+      "path": "/opt/v7/admin/operator-approval-execution-packet-20260605T0923Z.json",
+      "size": 1975
+    },
+    {
+      "mtime": 1780640186.9796274,
+      "path": "/opt/v7/admin/operator-approval-execution-plan-20260605T0917Z.json",
+      "size": 170547
+    },
+    {
+      "mtime": 1780640588.1400635,
+      "path": "/opt/v7/admin/operator-approval-execution-plan-20260605T0923Z.json",
+      "size": 170505
+    },
+    {
+      "mtime": 1780766153.6352766,
+      "path": "/opt/v7/admin/operator-approved-plan-lock-second-small-batch-20260606T171552Z.json",
+      "size": 5533
+    },
+    {
+      "mtime": 1780766442.4494216,
+      "path": "/opt/v7/admin/operator-approved-plan-lock-second-small-batch-20260606T172041Z.json",
+      "size": 5533
+    },
+    {
+      "mtime": 1780767224.1013875,
+      "path": "/opt/v7/admin/operator-approved-plan-lock-second-small-batch-20260606T173343Z.json",
+      "size": 5527
+    },
+    {
+      "mtime": 1780767542.7852292,
+      "path": "/opt/v7/admin/operator-approved-plan-lock-second-small-batch-20260606T173901Z.json",
+      "size": 5533
+    },
+    {
+      "mtime": 1781374016.0601199,
+      "path": "/opt/v7/admin/operator-execution-audit.jsonl",
+      "size": 2994
+    },
+    {
+      "mtime": 1781374016.0628648,
+      "path": "/opt/v7/admin/operator-execution-lifecycle.jsonl",
+      "size": 4594
+    },
+    {
+      "mtime": 1781336905.38594,
+      "path": "/opt/v7/admin/stability1_close_ba3_plan.json",
+      "size": 4967754
+    },
+    {
+      "mtime": 1782103723.2309482,
+      "path": "/opt/v7/audit/audit.jsonl",
+      "size": 396768
+    },
+    {
+      "mtime": 1781991595.7476304,
+      "path": "/opt/v7/audit/audit.jsonl.1",
+      "size": 6800407
+    },
+    {
+      "mtime": 1781385190.7390497,
+      "path": "/opt/v7/audit/audit.jsonl.2.gz",
+      "size": 232619
+    },
+    {
+      "mtime": 1780780521.6601875,
+      "path": "/opt/v7/audit/audit.jsonl.3.gz",
+      "size": 391132
+    },
+    {
+      "mtime": 1780177148.2318685,
+      "path": "/opt/v7/audit/audit.jsonl.4.gz",
+      "size": 245605
+    },
+    {
+      "mtime": 1779572954.764756,
+      "path": "/opt/v7/audit/audit.jsonl.5.gz",
+      "size": 570240
+    },
+    {
+      "mtime": 1778966252.2544696,
+      "path": "/opt/v7/audit/audit.jsonl.6.gz",
+      "size": 215493
+    },
+    {
+      "mtime": 1778360747.3186383,
+      "path": "/opt/v7/audit/audit.jsonl.7.gz",
+      "size": 72633
+    },
+    {
+      "mtime": 1780780521.704187,
+      "path": "/opt/v7/audit/governance-lifecycle.jsonl",
+      "size": 0
+    },
+    {
+      "mtime": 1780780521.7191868,
+      "path": "/opt/v7/audit/operator-execution-audit.jsonl",
+      "size": 0
+    },
+    {
+      "mtime": 1780780521.716458,
+      "path": "/opt/v7/audit/operator-execution-audit.jsonl.1",
+      "size": 53151
+    },
+    {
+      "mtime": 1780177148.2448683,
+      "path": "/opt/v7/audit/operator-execution-audit.jsonl.2.gz",
+      "size": 3631
+
+    },
+    {
+      "mtime": 1780780521.7271867,
+      "path": "/opt/v7/audit/operator-governance-lifecycle.jsonl",
+      "size": 0
+    },
+    {
+      "mtime": 1780780521.7481863,
+      "path": "/opt/v7/audit/operator-runtime-governance-actions.jsonl",
+      "size": 0
+    },
+    {
+      "mtime": 1780437262.5960228,
+      "path": "/opt/v7/c1-governance/governance-lifecycle.jsonl",
+      "size": 6159
+    },
+    {
+      "mtime": 1780437262.5912511,
+      "path": "/opt/v7/c1-governance/operator-audit.jsonl",
+      "size": 3397
+    },
+    {
+      "mtime": 1780437249.2964144,
+      "path": "/opt/v7/c1-governance/program_c1_approval_packet.json",
+      "size": 1966
+    },
+    {
+      "mtime": 1780438338.7811143,
+      "path": "/opt/v7/c2-governance/governance-lifecycle.jsonl",
+      "size": 6159
+    },
+    {
+      "mtime": 1780438338.7781146,
+      "path": "/opt/v7/c2-governance/operator-audit.jsonl",
+      "size": 3397
+    },
+    {
+      "mtime": 1780438099.1632042,
+      "path": "/opt/v7/c2-governance/program_c2_approval_packet.json",
+      "size": 1966
+    },
+    {
+      "mtime": 1780438338.6553266,
+      "path": "/opt/v7/c2-governance/program_c2_approval_packet_b.json",
+      "size": 1966
+    },
+    {
+      "mtime": 1780438416.238854,
+      "path": "/opt/v7/c2-governance/program_c2_rollback_packet.json",
+      "size": 1467
+    },
+    {
+      "mtime": 1781926376.769048,
+      "path": "/opt/v7/deploy-manifest.json",
+      "size": 33206
+    },
+    {
+      "mtime": 1780731841.479931,
+      "path": "/opt/v7/deploy_convergence_closure_evidence/phase6_fresh_planner_pre_refresh.json",
+      "size": 1386534
+    },
+    {
+      "mtime": 1780731843.7939026,
+      "path": "/opt/v7/deploy_convergence_closure_evidence/phase9_fresh_approval_packet.json",
+      "size": 2624
+    },
+    {
+      "mtime": 1781378060.063085,
+      "path": "/opt/v7/docs/track7/productization/c1-evidence/governance-lifecycle.jsonl",
+      "size": 72727
+    },
+    {
+      "mtime": 1781378060.0550852,
+      "path": "/opt/v7/docs/track7/productization/e22-evidence/operator-execution-audit.jsonl",
+      "size": 53285
+    },
+    {
+      "mtime": 1781378060.0510647,
+      "path": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+      "size": 6302
+    },
+    {
+      "mtime": 1781378210.7102551,
+      "path": "/opt/v7/egress/state/autoswitch-safety.json",
+      "size": 10709
+    },
+    {
+      "mtime": 1777737271.0,
+      "path": "/opt/v7/egress/state/awg-test-194.124.210.244.conf.state",
+      "size": 197
+    },
+    {
+      "mtime": 1777755560.0,
+      "path": "/opt/v7/egress/state/awg2-94.241.139.241.conf.state",
+      "size": 218
+    },
+    {
+      "mtime": 1782103617.924272,
+      "path": "/opt/v7/egress/state/benchmark.state",
+      "size": 608
+    },
+    {
+      "mtime": 1778157358.3178918,
+      "path": "/opt/v7/egress/state/client-agents.json",
+      "size": 421
+    },
+    {
+      "mtime": 1779389627.2022917,
+      "path": "/opt/v7/egress/state/client-commands.json",
+      "size": 4079
+    },
+    {
+      "mtime": 1781898658.6982288,
+      "path": "/opt/v7/egress/state/client-reconnect-state.json",
+      "size": 29704
+    },
+    {
+      "mtime": 1779403363.5987048,
+      "path": "/opt/v7/egress/state/client-speed-links.json",
+      "size": 68
+    },
+    {
+      "mtime": 1779388916.2354918,
+      "path": "/opt/v7/egress/state/client-speed.json",
+      "size": 18770
+    },
+    {
+      "mtime": 1781385190.631051,
+      "path": "/opt/v7/egress/state/closure-records.jsonl",
+      "size": 0
+    },
+    {
+      "mtime": 1781385190.6286166,
+      "path": "/opt/v7/egress/state/closure-records.jsonl.1",
+      "size": 50167
+    },
+    {
+      "mtime": 1780780521.4951894,
+      "path": "/opt/v7/egress/state/closure-records.jsonl.2.gz",
+      "size": 770
+    },
+    {
+      "mtime": 1782103305.9971933,
+      "path": "/opt/v7/egress/state/direct-ru-autosync.state",
+      "size": 334
+    },
+    {
+      "mtime": 1779979791.5790918,
+      "path": "/opt/v7/egress/state/e25_11-backups/nft-v7-killswitch.20260528T144951Z.txt",
+      "size": 4908
+    },
+    {
+      "mtime": 1782103806.9668956,
+      "path": "/opt/v7/egress/state/egress-diagnose.state",
+      "size": 1000
+    },
+    {
+      "mtime": 1779457056.4556928,
+      "path": "/opt/v7/egress/state/egress-flags.state",
+      "size": 156
+    },
+    {
+      "mtime": 1782103804.22693,
+      "path": "/opt/v7/egress/state/egress-history.jsonl",
+      "size": 54693
+    },
+    {
+      "mtime": 1779456133.7023292,
+      "path": "/opt/v7/egress/state/egress-labels.json",
+      "size": 191
+    },
+    {
+      "mtime": 1782103827.4173203,
+      "path": "/opt/v7/egress/state/egress-load-summary.json",
+      "size": 2256
+    },
+    {
+      "mtime": 1782103806.3159037,
+      "path": "/opt/v7/egress/state/egress-load.state",
+      "size": 823
+    },
+    {
+      "mtime": 1782103562.487969,
+      "path": "/opt/v7/egress/state/egress-quality-ring.json",
+      "size": 687187
+    },
+    {
+      "mtime": 1782103562.4679692,
+      "path": "/opt/v7/egress/state/egress-quality-summary.json",
+      "size": 11621
+    },
+    {
+      "mtime": 1781363835.0714111,
+      "path": "/opt/v7/egress/state/egress-speed.json",
+      "size": 3891
+    },
+    {
+      "mtime": 1779991249.0006287,
+      "path": "/opt/v7/egress/state/egress-stability.state",
+      "size": 148
+    },
+    {
+      "mtime": 1782103617.9682715,
+      "path": "/opt/v7/egress/state/egress-status.state",
+      "size": 1456
+    },
+    {
+      "mtime": 1781364830.665717,
+      "path": "/opt/v7/egress/state/egress.registry",
+      "size": 2238
+    },
+    {
+      "mtime": 1780400797.4433017,
+      "path": "/opt/v7/egress/state/execution-contracts.json",
+      "size": 3
+    },
+    {
+      "mtime": 1781385190.6520507,
+      "path": "/opt/v7/egress/state/execution-events.jsonl",
+      "size": 0
+    },
+    {
+      "mtime": 1781385190.6483788,
+      "path": "/opt/v7/egress/state/execution-events.jsonl.1",
+      "size": 154900
+    },
+    {
+      "mtime": 1780780521.5270107,
+      "path": "/opt/v7/egress/state/execution-events.jsonl.2.gz",
+      "size": 1198
+    },
+    {
+      "mtime": 1778167851.0722432,
+      "path": "/opt/v7/egress/state/flow-traces/20260507-183045-10.0.0.3-www.gosuslugi.ru.tcpdump.log",
+      "size": 359
+    },
+    {
+      "mtime": 1778168508.8681138,
+      "path": "/opt/v7/egress/state/flow-traces/20260507-184113-10.0.0.3-www.gosuslugi.ru.tcpdump.log",
+      "size": 106542
+    },
+    {
+      "mtime": 1778169118.8415742,
+      "path": "/opt/v7/egress/state/flow-traces/20260507-185123-10.0.0.3-www.gosuslugi.ru.tcpdump.log",
+      "size": 95817
+    },
+    {
+      "mtime": 1778169221.3513072,
+      "path": "/opt/v7/egress/state/flow-traces/20260507-185305-10.0.0.3-www.gosuslugi.ru.tcpdump.log",
+      "size": 120995
+    },
+    {
+      "mtime": 1778169412.9249394,
+      "path": "/opt/v7/egress/state/flow-traces/20260507-185617-10.0.0.3-www.gosuslugi.ru.tcpdump.log",
+      "size": 12398
+    },
+    {
+      "mtime": 1778169499.1828737,
+      "path": "/opt/v7/egress/state/flow-traces/20260507-185708-10.0.0.3-www.gosuslugi.ru.tcpdump.log",
+      "size": 359
+    },
+    {
+      "mtime": 1778170425.0394366,
+      "path": "/opt/v7/egress/state/flow-traces/20260507-191214-10.0.0.3-www.gosuslugi.ru.tcpdump.log",
+      "size": 421074
+    },
+    {
+      "mtime": 1782103827.23205,
+      "path": "/opt/v7/egress/state/intelligence/best-available-pool.json",
+      "size": 59350
+    },
+    {
+      "mtime": 1782103827.2246456,
+      "path": "/opt/v7/egress/state/intelligence/blast-radius-summaries.json",
+      "size": 1197
+    },
+    {
+      "mtime": 1782103827.2307262,
+      "path": "/opt/v7/egress/state/intelligence/candidate-suitability-summary.json",
+      "size": 222092
+    },
+    {
+      "mtime": 1782103827.2235928,
+      "path": "/opt/v7/egress/state/intelligence/channel-service-scores.json",
+      "size": 4617
+    },
+    {
+      "mtime": 1782103827.2405143,
+      "path": "/opt/v7/egress/state/intelligence/overview-summary.json",
+      "size": 3481
+    },
+    {
+      "mtime": 1782103827.2337425,
+      "path": "/opt/v7/egress/state/intelligence/prediction-summaries.json",
+      "size": 90423
+    },
+    {
+      "mtime": 1782103827.2243013,
+      "path": "/opt/v7/egress/state/intelligence/risk-summaries.json",
+      "size": 1103
+    },
+    {
+      "mtime": 1782103827.222971,
+      "path": "/opt/v7/egress/state/intelligence/service-scores.json",
+      "size": 25912
+    },
+    {
+      "mtime": 1782103827.2386408,
+      "path": "/opt/v7/egress/state/intelligence/trust-evolution-summaries.json",
+      "size": 396073
+    },
+    {
+      "mtime": 1782103827.2239516,
+      "path": "/opt/v7/egress/state/intelligence/trust-summaries.json",
+      "size": 1543
+    },
+    {
+      "mtime": 1782103827.2276368,
+      "path": "/opt/v7/egress/state/intelligence/user-service-scores.json",
+      "size": 164656
+    },
+    {
+      "mtime": 1779979828.7282186,
+      "path": "/opt/v7/egress/state/interface-state.state",
+      "size": 22
+    },
+    {
+      "mtime": 1779456740.2346008,
+      "path": "/opt/v7/egress/state/path-benchmark.json",
+      "size": 19399
+    },
+    {
+      "mtime": 1779389020.31918,
+      "path": "/opt/v7/egress/state/path-optimizer-advice.json",
+      "size": 1801
+    },
+    {
+      "mtime": 1779388916.4460602,
+      "path": "/opt/v7/egress/state/path-samples.json",
+      "size": 2796
+    },
+    {
+      "mtime": 1778155938.5646524,
+      "path": "/opt/v7/egress/state/policy-apply-preview.state",
+      "size": 228
+    },
+    {
+      "mtime": 1778714212.2256274,
+      "path": "/opt/v7/egress/state/policy-domain-matrix.state",
+      "size": 1739
+    },
+    {
+      "mtime": 1778157282.0880692,
+      "path": "/opt/v7/egress/state/policy-rebuild.state",
+      "size": 108
+    },
+    {
+      "mtime": 1782049227.3839486,
+      "path": "/opt/v7/egress/state/profile-delivery-tokens.json",
+      "size": 40378
+    },
+    {
+      "mtime": 1781385190.6610506,
+      "path": "/opt/v7/egress/state/proposal-records.jsonl",
+      "size": 0
+    },
+    {
+      "mtime": 1781385190.6640506,
+      "path": "/opt/v7/egress/state/proposals.jsonl",
+      "size": 0
+    },
+    {
+      "mtime": 1778155937.9356604,
+      "path": "/opt/v7/egress/state/route-classes.state",
+      "size": 1372
+    },
+    {
+      "mtime": 1781385190.6730506,
+      "path": "/opt/v7/egress/state/runtime-trust.jsonl",
+      "size": 0
+    },
+    {
+      "mtime": 1781385190.670513,
+      "path": "/opt/v7/egress/state/runtime-trust.jsonl.1",
+      "size": 34077
+    },
+    {
+      "mtime": 1780780521.5361888,
+      "path": "/opt/v7/egress/state/runtime-trust.jsonl.2.gz",
+      "size": 620
+    },
+    {
+      "mtime": 1782103260.1040182,
+      "path": "/opt/v7/egress/state/service-matrix-refresh-summary.json",
+      "size": 18904
+    },
+    {
+      "mtime": 1779310155.470491,
+      "path": "/opt/v7/egress/state/service-matrix-refresh.state",
+      "size": 193
+    },
+    {
+      "mtime": 1782103835.6378531,
+      "path": "/opt/v7/egress/state/service-matrix.json",
+      "size": 123615
+    },
+    {
+      "mtime": 1779213359.0005813,
+      "path": "/opt/v7/egress/state/service-preferences.json",
+      "size": 466
+    },
+    {
+      "mtime": 1782064092.6068254,
+      "path": "/opt/v7/egress/state/shadow-autonomy-decisions.jsonl",
+      "size": 100475
+    },
+    {
+      "mtime": 1782103805.8389096,
+      "path": "/opt/v7/egress/state/stability.state",
+      "size": 819
+    },
+    {
+      "mtime": 1782103807.5258884,
+      "path": "/opt/v7/egress/state/summary.state",
+      "size": 4638
+    },
+    {
+      "mtime": 1782103835.6405156,
+      "path": "/opt/v7/egress/state/telegram-sentinel.json",
+      "size": 13027
+    },
+    {
+      "mtime": 1778174318.0323305,
+      "path": "/opt/v7/egress/state/trusted-ru-decision.state",
+      "size": 1194
+    },
+    {
+      "mtime": 1779482190.2946029,
+      "path": "/opt/v7/egress/state/trusted-ru-diagnostic.state",
+      "size": 12042
+    },
+    {
+      "mtime": 1778024820.0,
+      "path": "/opt/v7/egress/state/user-10.0.0.2.state",
+      "size": 170
+    },
+    {
+      "mtime": 1782103809.9858575,
+      "path": "/opt/v7/egress/state/user-desired-state.state",
+      "size": 5721
+    },
+    {
+      "mtime": 1778170425.1234355,
+      "path": "/opt/v7/egress/state/user-flow-trace.state",
+      "size": 640
+    },
+    {
+      "mtime": 1781378209.082275,
+      "path": "/opt/v7/egress/state/users.registry",
+      "size": 1450
+    },
+    {
+      "mtime": 1782103723.1249495,
+      "path": "/opt/v7/egress/state/v7-path-guard-repair.state",
+      "size": 194
+    },
+    {
+      "mtime": 1782103723.0729501,
+      "path": "/opt/v7/egress/state/v7-path-sanity.state",
+      "size": 476
+    },
+    {
+      "mtime": 1782103817.202767,
+      "path": "/opt/v7/egress/state/v7-state.json",
+      "size": 14215
+    },
+    {
+      "mtime": 1782049222.7716708,
+      "path": "/opt/v7/egress/state/vless-activity.json",
+      "size": 1899
+    },
+    {
+      "mtime": 1780335920.8214865,
+      "path": "/opt/v7/egress/state/z3_1-backups/autoswitch-restore-barrier.20260601T174520Z.json",
+      "size": 598
+    },
+    {
+      "mtime": 1780336035.412639,
+      "path": "/opt/v7/egress/state/z3_1-backups/autoswitch-restore-barrier.refresh.20260601T174715Z.json",
+      "size": 1002
+    },
+    {
+      "mtime": 1780336679.0927193,
+      "path": "/opt/v7/egress/state/z3_2-backups/autoswitch-restore-barrier.before-exec.20260601T175759Z.json",
+      "size": 1041
+    },
+    {
+      "mtime": 1780657699.267686,
+      "path": "/opt/v7/events/governance-lifecycle.jsonl",
+      "size": 6595
+    },
+    {
+      "mtime": 1779321261.219616,
+      "path": "/opt/v7/events/service-matrix-refresh-20260520.jsonl",
+      "size": 152345
+    },
+    {
+      "mtime": 1779407983.1389272,
+      "path": "/opt/v7/events/service-matrix-refresh-20260521.jsonl",
+      "size": 970464
+    },
+    {
+      "mtime": 1779493539.5582304,
+      "path": "/opt/v7/events/service-matrix-refresh-20260522.jsonl",
+      "size": 1207365
+    },
+    {
+      "mtime": 1779580125.1055267,
+      "path": "/opt/v7/events/service-matrix-refresh-20260523.jsonl",
+      "size": 1423141
+    },
+    {
+      "mtime": 1779666832.9191196,
+      "path": "/opt/v7/events/service-matrix-refresh-20260524.jsonl",
+      "size": 1423011
+    },
+    {
+      "mtime": 1779752823.787693,
+      "path": "/opt/v7/events/service-matrix-refresh-20260525.jsonl",
+      "size": 1408388
+    },
+    {
+      "mtime": 1779839379.3409872,
+      "path": "/opt/v7/events/service-matrix-refresh-20260526.jsonl",
+      "size": 1423150
+    },
+    {
+      "mtime": 1779925903.5443058,
+      "path": "/opt/v7/events/service-matrix-refresh-20260527.jsonl",
+      "size": 1422040
+    },
+    {
+      "mtime": 1780012481.4967613,
+      "path": "/opt/v7/events/service-matrix-refresh-20260528.jsonl",
+      "size": 1518880
+    },
+    {
+      "mtime": 1780099126.245743,
+      "path": "/opt/v7/events/service-matrix-refresh-20260529.jsonl",
+      "size": 1661712
+    },
+    {
+      "mtime": 1780184933.5735416,
+      "path": "/opt/v7/events/service-matrix-refresh-20260530.jsonl",
+      "size": 1644100
+    },
+    {
+      "mtime": 1780271474.3074718,
+      "path": "/opt/v7/events/service-matrix-refresh-20260531.jsonl",
+      "size": 1662008
+    },
+    {
+      "mtime": 1780358045.281284,
+      "path": "/opt/v7/events/service-matrix-refresh-20260601.jsonl",
+      "size": 1662180
+    },
+    {
+      "mtime": 1780444610.2340684,
+      "path": "/opt/v7/events/service-matrix-refresh-20260602.jsonl",
+      "size": 1694297
+    },
+    {
+      "mtime": 1780530958.3623161,
+      "path": "/opt/v7/events/service-matrix-refresh-20260603.jsonl",
+      "size": 1658223
+    },
+    {
+      "mtime": 1780617523.502915,
+      "path": "/opt/v7/events/service-matrix-refresh-20260604.jsonl",
+      "size": 1653337
+    },
+    {
+      "mtime": 1780703267.5627043,
+      "path": "/opt/v7/events/service-matrix-refresh-20260605.jsonl",
+      "size": 1640291
+    },
+    {
+      "mtime": 1780789910.892077,
+      "path": "/opt/v7/events/service-matrix-refresh-20260606.jsonl",
+      "size": 1656906
+    },
+    {
+      "mtime": 1780876645.872748,
+      "path": "/opt/v7/events/service-matrix-refresh-20260607.jsonl",
+      "size": 1670406
+    },
+    {
+      "mtime": 1780962297.5529776,
+      "path": "/opt/v7/events/service-matrix-refresh-20260608.jsonl",
+      "size": 1653958
+    },
+    {
+      "mtime": 1781048705.5290058,
+      "path": "/opt/v7/events/service-matrix-refresh-20260609.jsonl",
+      "size": 1675254
+    },
+    {
+      "mtime": 1781135504.3676379,
+      "path": "/opt/v7/events/service-matrix-refresh-20260610.jsonl",
+      "size": 1674295
+    },
+    {
+      "mtime": 1781222028.915047,
+      "path": "/opt/v7/events/service-matrix-refresh-20260611.jsonl",
+      "size": 1672384
+    },
+    {
+      "mtime": 1781308705.9940872,
+      "path": "/opt/v7/events/service-matrix-refresh-20260612.jsonl",
+      "size": 1671429
+    },
+    {
+      "mtime": 1781395178.7463582,
+      "path": "/opt/v7/events/service-matrix-refresh-20260613.jsonl",
+      "size": 1671017
+    },
+    {
+      "mtime": 1781480806.776746,
+      "path": "/opt/v7/events/service-matrix-refresh-20260614.jsonl",
+      "size": 1653943
+    },
+    {
+      "mtime": 1781567971.073251,
+      "path": "/opt/v7/events/service-matrix-refresh-20260615.jsonl",
+      "size": 1689697
+    },
+    {
+      "mtime": 1781653689.1748624,
+      "path": "/opt/v7/events/service-matrix-refresh-20260616.jsonl",
+      "size": 1653581
+    },
+    {
+      "mtime": 1781740686.6584144,
+      "path": "/opt/v7/events/service-matrix-refresh-20260617.jsonl",
+      "size": 1671912
+    },
+    {
+      "mtime": 1781826284.6013055,
+      "path": "/opt/v7/events/service-matrix-refresh-20260618.jsonl",
+      "size": 1654035
+    },
+    {
+      "mtime": 1781912976.4169898,
+      "path": "/opt/v7/events/service-matrix-refresh-20260619.jsonl",
+      "size": 1671235
+    },
+    {
+      "mtime": 1781999920.7149994,
+      "path": "/opt/v7/events/service-matrix-refresh-20260620.jsonl",
+      "size": 1672318
+    },
+    {
+      "mtime": 1782085530.4429877,
+      "path": "/opt/v7/events/service-matrix-refresh-20260621.jsonl",
+      "size": 1653489
+    },
+    {
+      "mtime": 1782103260.1040182,
+      "path": "/opt/v7/events/service-matrix-refresh-20260622.jsonl",
+      "size": 341331
+    },
+    {
+      "mtime": 1781378209.230273,
+      "path": "/opt/v7/events/switch-history.jsonl",
+      "size": 528608
+    },
+    {
+      "mtime": 1779321599.4707348,
+      "path": "/opt/v7/events/telegram-sentinel-20260520.jsonl",
+      "size": 1888182
+    },
+    {
+      "mtime": 1779407996.4504275,
+      "path": "/opt/v7/events/telegram-sentinel-20260521.jsonl",
+      "size": 7911008
+    },
+    {
+      "mtime": 1779494232.4555192,
+      "path": "/opt/v7/events/telegram-sentinel-20260522.jsonl",
+      "size": 3168975
+    },
+    {
+      "mtime": 1779580797.459286,
+      "path": "/opt/v7/events/telegram-sentinel-20260523.jsonl",
+      "size": 788587
+    },
+    {
+      "mtime": 1779667070.4568918,
+      "path": "/opt/v7/events/telegram-sentinel-20260524.jsonl",
+      "size": 145803
+    },
+    {
+      "mtime": 1779753457.4872365,
+      "path": "/opt/v7/events/telegram-sentinel-20260525.jsonl",
+      "size": 371383
+    },
+    {
+      "mtime": 1779839857.460194,
+      "path": "/opt/v7/events/telegram-sentinel-20260526.jsonl",
+      "size": 88458
+    },
+    {
+      "mtime": 1779926399.5214381,
+      "path": "/opt/v7/events/telegram-sentinel-20260527.jsonl",
+      "size": 757595
+    },
+    {
+      "mtime": 1780012779.8435423,
+      "path": "/opt/v7/events/telegram-sentinel-20260528.jsonl",
+      "size": 316824
+    },
+    {
+      "mtime": 1780099198.476007,
+      "path": "/opt/v7/events/telegram-sentinel-20260529.jsonl",
+      "size": 2276973
+    },
+    {
+      "mtime": 1780185597.4920802,
+      "path": "/opt/v7/events/telegram-sentinel-20260530.jsonl",
+      "size": 5443377
+    },
+    {
+      "mtime": 1780271998.4650419,
+      "path": "/opt/v7/events/telegram-sentinel-20260531.jsonl",
+      "size": 5492929
+    },
+    {
+      "mtime": 1780358398.4758825,
+      "path": "/opt/v7/events/telegram-sentinel-20260601.jsonl",
+      "size": 5482165
+    },
+    {
+      "mtime": 1780444799.4637377,
+      "path": "/opt/v7/events/telegram-sentinel-20260602.jsonl",
+      "size": 5447222
+    },
+    {
+      "mtime": 1780531197.505789,
+      "path": "/opt/v7/events/telegram-sentinel-20260603.jsonl",
+      "size": 5564140
+    },
+    {
+      "mtime": 1780617599.4949794,
+      "path": "/opt/v7/events/telegram-sentinel-20260604.jsonl",
+      "size": 5639891
+    },
+    {
+      "mtime": 1780703999.5342922,
+      "path": "/opt/v7/events/telegram-sentinel-20260605.jsonl",
+      "size": 5706797
+    },
+    {
+      "mtime": 1780790399.510337,
+      "path": "/opt/v7/events/telegram-sentinel-20260606.jsonl",
+      "size": 5697589
+    },
+    {
+      "mtime": 1780876798.5150092,
+      "path": "/opt/v7/events/telegram-sentinel-20260607.jsonl",
+      "size": 5312774
+    },
+    {
+      "mtime": 1780963152.4795887,
+      "path": "/opt/v7/events/telegram-sentinel-20260608.jsonl",
+      "size": 5218472
+    },
+    {
+      "mtime": 1781049573.4794307,
+      "path": "/opt/v7/events/telegram-sentinel-20260609.jsonl",
+      "size": 5081772
+    },
+    {
+      "mtime": 1781135995.46843,
+      "path": "/opt/v7/events/telegram-sentinel-20260610.jsonl",
+      "size": 5127187
+    },
+    {
+      "mtime": 1781222397.4537554,
+      "path": "/opt/v7/events/telegram-sentinel-20260611.jsonl",
+      "size": 5265481
+    },
+    {
+      "mtime": 1781308799.4644945,
+      "path": "/opt/v7/events/telegram-sentinel-20260612.jsonl",
+      "size": 5246062
+    },
+    {
+      "mtime": 1781395198.4881804,
+      "path": "/opt/v7/events/telegram-sentinel-20260613.jsonl",
+      "size": 5263314
+    },
+    {
+      "mtime": 1781481597.4708657,
+      "path": "/opt/v7/events/telegram-sentinel-20260614.jsonl",
+      "size": 5340323
+    },
+    {
+      "mtime": 1781567998.466273,
+      "path": "/opt/v7/events/telegram-sentinel-20260615.jsonl",
+      "size": 5268824
+    },
+    {
+      "mtime": 1781654398.2928438,
+      "path": "/opt/v7/events/telegram-sentinel-20260616.jsonl",
+      "size": 5238364
+    },
+    {
+      "mtime": 1781740798.502031,
+      "path": "/opt/v7/events/telegram-sentinel-20260617.jsonl",
+      "size": 5275850
+    },
+    {
+      "mtime": 1781827184.371423,
+      "path": "/opt/v7/events/telegram-sentinel-20260618.jsonl",
+      "size": 5248369
+    },
+    {
+      "mtime": 1781913594.469858,
+      "path": "/opt/v7/events/telegram-sentinel-20260619.jsonl",
+      "size": 5224850
+    },
+    {
+      "mtime": 1781999999.48037,
+      "path": "/opt/v7/events/telegram-sentinel-20260620.jsonl",
+      "size": 5166799
+    },
+    {
+      "mtime": 1782086395.4958615,
+      "path": "/opt/v7/events/telegram-sentinel-20260621.jsonl",
+      "size": 5263123
+    },
+    {
+      "mtime": 1782103830.461285,
+      "path": "/opt/v7/events/telegram-sentinel-20260622.jsonl",
+      "size": 1079805
+    },
+    {
+      "mtime": 1780912849.309592,
+      "path": "/opt/v7/ipam/leases.registry",
+      "size": 2872
+    },
+    {
+      "mtime": 1780831681.9211068,
+      "path": "/opt/v7/large_batch_execution_authority_review_dry_run.json",
+      "size": 2637783
+    },
+    {
+      "mtime": 1780831755.0691893,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_large_authority_promotion.json",
+      "size": 11308
+    },
+    {
+      "mtime": 1780832357.79361,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_large_authority_promotion_after_stability_feedback.json",
+      "size": 19445
+    },
+    {
+      "mtime": 1780832337.3440478,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_1ceca614139382db49eed3a4_10_0_0_2.json",
+      "size": 5558
+    },
+    {
+      "mtime": 1780832337.4629076,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_1ceca614139382db49eed3a4_10_0_0_3.json",
+      "size": 5558
+    },
+    {
+      "mtime": 1780832337.6307554,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_1ceca614139382db49eed3a4_10_0_0_6.json",
+      "size": 5558
+    },
+    {
+      "mtime": 1780832337.8147812,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_1ceca614139382db49eed3a4_10_7_0_3.json",
+      "size": 5558
+    },
+    {
+      "mtime": 1780832337.2295818,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_1ceca614139382db49eed3a4_10_7_0_5.json",
+      "size": 5558
+    },
+    {
+      "mtime": 1780832337.0996432,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_10.json",
+      "size": 5506
+    },
+    {
+      "mtime": 1780832336.559879,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_4.json",
+      "size": 5674
+    },
+    {
+      "mtime": 1780832336.6937623,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_6.json",
+      "size": 5674
+    },
+    {
+      "mtime": 1780832336.813839,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_8.json",
+      "size": 5674
+    },
+    {
+      "mtime": 1780832336.9357018,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_9.json",
+      "size": 5500
+    },
+    {
+      "mtime": 1780832337.8148632,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_summary.json",
+      "size": 2153
+    },
+    {
+      "mtime": 1780832104.6336496,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_1ceca614139382db49eed3a4_10_0_0_2.json",
+      "size": 20
+    },
+    {
+      "mtime": 1780832104.6536589,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_1ceca614139382db49eed3a4_10_0_0_3.json",
+      "size": 20
+    },
+    {
+      "mtime": 1780832104.6735704,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_1ceca614139382db49eed3a4_10_0_0_6.json",
+      "size": 20
+    },
+    {
+      "mtime": 1780832104.690057,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_1ceca614139382db49eed3a4_10_7_0_3.json",
+      "size": 20
+    },
+    {
+      "mtime": 1780832104.617954,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_1ceca614139382db49eed3a4_10_7_0_5.json",
+      "size": 20
+    },
+    {
+      "mtime": 1780832104.5997198,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_10.json",
+      "size": 20
+    },
+    {
+      "mtime": 1780832104.4766622,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_4.json",
+      "size": 20
+    },
+    {
+      "mtime": 1780832104.5317717,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_6.json",
+      "size": 20
+    },
+    {
+      "mtime": 1780832104.551374,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_8.json",
+      "size": 20
+    },
+    {
+      "mtime": 1780832104.5726602,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_9.json",
+      "size": 20
+    },
+    {
+      "mtime": 1780832104.6903036,
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_summary.json",
+      "size": 1663
+    },
+    {
+      "mtime": 1780833091.8373117,
+      "path": "/opt/v7/large_batch_execution_evidence/phase4_after_rebalance_policy_convergence_status.json",
+      "size": 0
+    },
+    {
+      "mtime": 1780833091.494316,
+      "path": "/opt/v7/large_batch_execution_evidence/phase4_after_rebalance_policy_truth_check.json",
+      "size": 0
+    },
+    {
+      "mtime": 1780832445.7904954,
+      "path": "/opt/v7/large_batch_execution_evidence/phase4_fresh_large_planner.json",
+      "size": 2652828
+    },
+    {
+      "mtime": 1780833199.4739485,
+      "path": "/opt/v7/large_batch_execution_evidence/phase4_fresh_large_planner_after_rebalance_policy.json",
+      "size": 2663068
+    },
+    {
+      "mtime": 1780833033.408561,
+      "path": "/opt/v7/large_batch_execution_evidence/phase4_rebalance_policy_update_result.json",
+      "size": 689
+    },
+    {
+      "mtime": 1780833345.7290936,
+      "path": "/opt/v7/large_batch_execution_evidence/phase5_packet_generation.json",
+      "size": 10451
+    },
+    {
+      "mtime": 1780833345.941091,
+      "path": "/opt/v7/large_batch_execution_evidence/phase5_restore_barrier_clearance.json",
+      "size": 24100
+    },
+    {
+      "mtime": 1780833345.722583,
+      "path": "/opt/v7/large_batch_execution_evidence/phase5_ten_user_approval_packet.json",
+      "size": 9727
+    },
+    {
+      "mtime": 1780833405.463336,
+      "path": "/opt/v7/large_batch_execution_evidence/phase6_post_clearance_dry_run_recheck.json",
+      "size": 2676248
+    },
+    {
+      "mtime": 1780833471.1055033,
+      "path": "/opt/v7/large_batch_execution_evidence/phase7_real_large_apply.json",
+      "size": 2512552
+    },
+    {
+      "mtime": 1780833931.1306677,
+      "path": "/opt/v7/large_batch_execution_evidence/phase7_real_large_apply_retry.json",
+      "size": 2578195
+    },
+    {
+      "mtime": 1780833856.3836157,
+      "path": "/opt/v7/large_batch_execution_evidence/phase7_retry_dry_run_recheck_after_snapshot_refresh.json",
+      "size": 2496596
+    },
+    {
+      "mtime": 1780833837.054861,
+      "path": "/opt/v7/large_batch_execution_evidence/phase7_snapshot_refresh_before_retry.json",
+      "size": 2115
+    },
+    {
+      "mtime": 1780833471.1460555,
+      "path": "/opt/v7/large_batch_execution_evidence/phase7_users_registry_after_apply.txt",
+      "size": 1004
+    },
+    {
+      "mtime": 1780833931.1772814,
+      "path": "/opt/v7/large_batch_execution_evidence/phase7_users_registry_after_apply_retry.txt",
+      "size": 882
+    },
+    {
+      "mtime": 1780833470.44975,
+      "path": "/opt/v7/large_batch_execution_evidence/phase7_users_registry_before_apply.txt",
+      "size": 1004
+    },
+    {
+      "mtime": 1780833907.9340224,
+      "path": "/opt/v7/large_batch_execution_evidence/phase7_users_registry_before_apply_retry.txt",
+      "size": 1004
+    },
+    {
+      "mtime": 1780834026.0444636,
+      "path": "/opt/v7/large_batch_execution_evidence/phase8_convergence_status_absence.txt",
+      "size": 167
+    },
+    {
+      "mtime": 1780834026.0374637,
+      "path": "/opt/v7/large_batch_execution_evidence/phase8_convergence_status_command_path.txt",
+      "size": 0
+    },
+    {
+      "mtime": 1780833996.2628415,
+      "path": "/opt/v7/large_batch_execution_evidence/phase8_post_apply_convergence_status.json",
+      "size": 0
+    },
+    {
+      "mtime": 1780834025.7384675,
+      "path": "/opt/v7/large_batch_execution_evidence/phase8_post_apply_truth_check.json",
+      "size": 0
+    },
+    {
+      "mtime": 1780835001.2561405,
+      "path": "/opt/v7/large_batch_stability_pool_readiness_planner_dry_run.json",
+      "size": 2518224
+    },
+    {
+      "mtime": 1780835039.7556546,
+      "path": "/opt/v7/large_batch_stability_pool_readiness_planner_dry_run_after_refresh.json",
+      "size": 2659744
+    },
+    {
+      "mtime": 1780835039.1796618,
+      "path": "/opt/v7/large_batch_stability_snapshot_refresh.json",
+      "size": 2115
+    },
+    {
+      "mtime": 1780776460.5369306,
+      "path": "/opt/v7/medium_batch_controlled_live_evidence/phase2_fresh_planner_remote.json",
+      "size": 2619564
+    },
+    {
+      "mtime": 1780776853.2740462,
+      "path": "/opt/v7/medium_batch_controlled_live_evidence/phase3_five_user_approval_packet.json",
+      "size": 7100
+    },
+    {
+      "mtime": 1780776853.2790258,
+      "path": "/opt/v7/medium_batch_controlled_live_evidence/phase3_packet_generation.json",
+      "size": 6300
+    },
+    {
+      "mtime": 1780776946.122867,
+      "path": "/opt/v7/medium_batch_controlled_live_evidence/phase4_restore_barrier_clearance.json",
+      "size": 15996
+    },
+    {
+      "mtime": 1780777906.7264922,
+      "path": "/opt/v7/medium_batch_target_drift_evidence/attempt1_approval_packet.json",
+      "size": 7100
+    },
+    {
+      "mtime": 1780777835.4387634,
+      "path": "/opt/v7/medium_batch_target_drift_evidence/attempt1_fresh_planner.json",
+      "size": 2618435
+    },
+    {
+      "mtime": 1780777906.733871,
+      "path": "/opt/v7/medium_batch_target_drift_evidence/attempt1_packet_generation.json",
+      "size": 6289
+    },
+    {
+      "mtime": 1780777949.6593337,
+      "path": "/opt/v7/medium_batch_target_drift_evidence/attempt1_restore_barrier_clearance.json",
+      "size": 15985
+    },
+    {
+      "mtime": 1780778488.957583,
+      "path": "/opt/v7/medium_batch_target_drift_evidence/attempt2_fresh_planner.json",
+      "size": 2491300
+    },
+    {
+      "mtime": 1780778556.8017335,
+      "path": "/opt/v7/medium_batch_target_drift_evidence/attempt3_fresh_planner.json",
+      "size": 2490217
+    },
+    {
+      "mtime": 1780765590.62375,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T170628Z/fresh-planner.json",
+      "size": 2658331
+    },
+    {
+      "mtime": 1780765826.795615,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171024Z/fresh-planner-summary.json",
+      "size": 496
+    },
+    {
+      "mtime": 1780765826.6306171,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171024Z/fresh-planner.json",
+      "size": 2615196
+    },
+    {
+      "mtime": 1780765827.1386106,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171024Z/packet-generation.json",
+      "size": 111
+    },
+    {
+      "mtime": 1780766269.697736,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171552Z/candidate-registry-before.json",
+      "size": 3
+    },
+    {
+      "mtime": 1780766190.4117885,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171552Z/execution-time-recheck-summary.json",
+      "size": 2138
+    },
+    {
+      "mtime": 1780766190.28779,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171552Z/execution-time-recheck.json",
+      "size": 2612
+    },
+    {
+      "mtime": 1780766232.1962337,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171552Z/final-readiness-summary.json",
+      "size": 365
+    },
+    {
+      "mtime": 1780766232.0392358,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171552Z/final-readiness.json",
+      "size": 2463892
+    },
+    {
+      "mtime": 1780766153.66694,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171552Z/fresh-approval-packet.json",
+      "size": 5533
+    },
+    {
+      "mtime": 1780766153.4032795,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171552Z/fresh-planner-summary.json",
+      "size": 542
+    },
+    {
+      "mtime": 1780766153.2482817,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171552Z/fresh-planner.json",
+      "size": 2459327
+    },
+    {
+      "mtime": 1780766357.983555,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171552Z/intelligence-refresh-dry-run.json",
+      "size": 1120
+    },
+    {
+      "mtime": 1780766406.4419048,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171552Z/intelligence-refresh-summary.json",
+      "size": 249
+    },
+    {
+      "mtime": 1780766406.3309064,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171552Z/intelligence-refresh-write.json",
+      "size": 2115
+    },
+    {
+      "mtime": 1780766153.6412766,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171552Z/packet-generation.json",
+      "size": 6004
+    },
+    {
+      "mtime": 1780766153.6628642,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171552Z/packet-path.txt",
+      "size": 83
+    },
+    {
+      "mtime": 1780766153.7232754,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171552Z/packet-summary.json",
+      "size": 430
+    },
+    {
+      "mtime": 1780766270.5537245,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171552Z/real-apply-summary.json",
+      "size": 1194
+    },
+    {
+      "mtime": 1780766270.4097266,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171552Z/real-apply.json",
+      "size": 2464978
+    },
+    {
+      "mtime": 1780766211.0777388,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171552Z/restore-barrier-after-clearance.json",
+      "size": 4666
+    },
+    {
+      "mtime": 1780766211.1275134,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171552Z/restore-barrier-clearance-summary.json",
+      "size": 502
+    },
+    {
+      "mtime": 1780766211.0445144,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T171552Z/restore-barrier-clearance-write.json",
+      "size": 16137
+    },
+    {
+      "mtime": 1780766442.4844213,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T172041Z/fresh-approval-packet.json",
+      "size": 5533
+    },
+    {
+      "mtime": 1780766442.2624242,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T172041Z/fresh-planner-summary.json",
+      "size": 683
+    },
+    {
+      "mtime": 1780766442.1484258,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T172041Z/fresh-planner.json",
+      "size": 2463396
+    },
+    {
+      "mtime": 1780766442.4564216,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T172041Z/packet-generation.json",
+      "size": 6004
+    },
+    {
+      "mtime": 1780766442.481502,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T172041Z/packet-path.txt",
+      "size": 83
+    },
+    {
+      "mtime": 1780766442.5304205,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T172041Z/packet-summary.json",
+      "size": 463
+    },
+    {
+      "mtime": 1780766508.526535,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T172041Z/stability-recheck-planner.json",
+      "size": 2463463
+    },
+    {
+      "mtime": 1780767108.2394881,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173148Z/date-utc.txt",
+      "size": 29
+    },
+    {
+      "mtime": 1780767108.2314882,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173148Z/hostname.txt",
+      "size": 29
+    },
+    {
+      "mtime": 1780767108.240488,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173148Z/truth-before.json",
+      "size": 0
+    },
+    {
+      "mtime": 1780767153.5138805,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173233Z/date-utc.txt",
+      "size": 29
+    },
+    {
+      "mtime": 1780767153.5058806,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173233Z/hostname.txt",
+      "size": 29
+    },
+    {
+      "mtime": 1780767153.5178804,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173233Z/truth-before.json",
+      "size": 0
+    },
+    {
+      "mtime": 1780767223.3449435,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173343Z/date-utc.txt",
+      "size": 29
+    },
+    {
+      "mtime": 1780767224.281931,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173343Z/execution-time-recheck.json",
+      "size": 2609
+    },
+    {
+      "mtime": 1780767224.1288373,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173343Z/fresh-approval-packet.json",
+      "size": 5527
+    },
+    {
+      "mtime": 1780767223.9299357,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173343Z/fresh-planner-summary.json",
+      "size": 298
+    },
+    {
+      "mtime": 1780767223.8179371,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173343Z/fresh-planner.json",
+      "size": 2486081
+    },
+    {
+      "mtime": 1780767223.3349435,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173343Z/hostname.txt",
+      "size": 29
+    },
+    {
+      "mtime": 1780767227.187892,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173343Z/observation-planner-after.json",
+      "size": 2487872
+    },
+    {
+      "mtime": 1780767224.1069334,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173343Z/packet-generation.json",
+      "size": 5998
+    },
+    {
+      "mtime": 1780767224.124933,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173343Z/packet-path.txt",
+      "size": 83
+    },
+    {
+      "mtime": 1780767225.3009171,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173343Z/post-apply-verification.json",
+      "size": 307
+    },
+    {
+      "mtime": 1780767225.1179197,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173343Z/real-apply.json",
+      "size": 2488452
+    },
+    {
+      "mtime": 1780767224.518939,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173343Z/restore-barrier-after-clearance.json",
+      "size": 4661
+    },
+    {
+      "mtime": 1780767224.4869282,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173343Z/restore-barrier-clearance-write.json",
+      "size": 16238
+    },
+    {
+      "mtime": 1780767227.33389,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173343Z/summary.json",
+      "size": 379
+    },
+    {
+      "mtime": 1780767226.6648989,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173343Z/user-route-check-after.json",
+      "size": 6785
+    },
+    {
+      "mtime": 1780767541.9308064,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173901Z/date-utc.txt",
+      "size": 29
+    },
+    {
+      "mtime": 1780767543.0337925,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173901Z/execution-time-recheck.json",
+      "size": 2612
+    },
+    {
+      "mtime": 1780767542.818587,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173901Z/fresh-approval-packet.json",
+      "size": 5533
+    },
+    {
+      "mtime": 1780767542.5797982,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173901Z/fresh-planner-summary.json",
+      "size": 298
+    },
+    {
+      "mtime": 1780767542.4677997,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173901Z/fresh-planner.json",
+      "size": 2482775
+    },
+    {
+      "mtime": 1780767541.9198067,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173901Z/hostname.txt",
+      "size": 29
+    },
+    {
+      "mtime": 1780767550.4736977,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173901Z/observation-planner-after.json",
+      "size": 2489370
+    },
+    {
+      "mtime": 1780767542.7897956,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173901Z/packet-generation.json",
+      "size": 6004
+    },
+    {
+      "mtime": 1780767542.8127952,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173901Z/packet-path.txt",
+      "size": 83
+    },
+    {
+      "mtime": 1780767548.0457287,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173901Z/post-apply-verification.json",
+      "size": 1158
+    },
+    {
+      "mtime": 1780767547.8407311,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173901Z/real-apply.json",
+      "size": 2505360
+    },
+    {
+      "mtime": 1780767543.2709997,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173901Z/restore-barrier-after-clearance.json",
+      "size": 4666
+    },
+    {
+      "mtime": 1780767543.2457898,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173901Z/restore-barrier-clearance-write.json",
+      "size": 16251
+    },
+    {
+      "mtime": 1780767550.6336956,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173901Z/summary.json",
+      "size": 717
+    },
+    {
+      "mtime": 1780767549.9627042,
+      "path": "/opt/v7/ops/approved-plan-lock-second-small-batch-20260606T173901Z/user-route-check-after.json",
+      "size": 6623
+    },
+    {
+      "mtime": 1780699869.8014717,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260605T225105Z/approval-packet.json",
+      "size": 2661
+    },
+    {
+      "mtime": 1780699869.804079,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260605T225105Z/packet-generation-result.json",
+      "size": 3003
+    },
+    {
+      "mtime": 1780699869.560082,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260605T225105Z/planner-snapshot.json",
+      "size": 1394497
+    },
+    {
+      "mtime": 1780700400.6242893,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260605T225957Z-retry/approval-packet.json",
+      "size": 2631
+    },
+    {
+      "mtime": 1780700400.8445673,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260605T225957Z-retry/clearance-result.json",
+      "size": 11596
+    },
+    {
+      "mtime": 1780700406.742495,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260605T225957Z-retry/final-dry-run-with-pre-refresh.json",
+      "size": 1525654
+    },
+    {
+      "mtime": 1780700400.62657,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260605T225957Z-retry/packet-generation-result.json",
+      "size": 2979
+    },
+    {
+      "mtime": 1780700400.4195726,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260605T225957Z-retry/planner-snapshot.json",
+      "size": 1526012
+    },
+    {
+      "mtime": 1780701747.861691,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260605T232223Z-after-guard-fix/approval-packet.json",
+      "size": 2631
+    },
+    {
+      "mtime": 1780701748.062852,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260605T232223Z-after-guard-fix/clearance-result.json",
+      "size": 11606
+    },
+    {
+      "mtime": 1780701751.721806,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260605T232223Z-after-guard-fix/final-dry-run-with-pre-refresh-target-vless.json",
+      "size": 1392344
+    },
+    {
+      "mtime": 1780701747.8648543,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260605T232223Z-after-guard-fix/packet-generation-result.json",
+      "size": 2989
+    },
+    {
+      "mtime": 1780701747.6678567,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260605T232223Z-after-guard-fix/planner-snapshot.json",
+      "size": 1392319
+    },
+    {
+      "mtime": 1780702101.7378678,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260605T232819Z-guard-fix2/approval-packet.json",
+      "size": 2631
+    },
+    {
+      "mtime": 1780702101.9423828,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260605T232819Z-guard-fix2/clearance-result.json",
+      "size": 11601
+    },
+    {
+      "mtime": 1780702105.8923328,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260605T232819Z-guard-fix2/final-dry-run-with-pre-refresh-target-vless.json",
+      "size": 1536161
+    },
+    {
+      "mtime": 1780702101.7393856,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260605T232819Z-guard-fix2/packet-generation-result.json",
+      "size": 2984
+    },
+    {
+      "mtime": 1780702101.5543878,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260605T232819Z-guard-fix2/planner-snapshot.json",
+      "size": 1535965
+    },
+    {
+      "mtime": 1780725324.4373927,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260606T055518Z-guard-fix3/approval-packet.json",
+      "size": 2631
+    },
+    {
+      "mtime": 1780725324.948122,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260606T055518Z-guard-fix3/clearance-result.json",
+      "size": 11601
+    },
+    {
+      "mtime": 1780725327.6260893,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260606T055518Z-guard-fix3/final-dry-run-with-pre-refresh-target-vless.json",
+      "size": 1530534
+    },
+    {
+      "mtime": 1780725324.4401283,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260606T055518Z-guard-fix3/packet-generation-result.json",
+      "size": 2984
+    },
+    {
+      "mtime": 1780725324.1791315,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260606T055518Z-guard-fix3/planner-snapshot.json",
+      "size": 1387236
+    },
+    {
+      "mtime": 1780725465.2170126,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260606T055741Z-tight-no-apply-refresh/approval-packet.json",
+      "size": 2631
+    },
+    {
+      "mtime": 1780725465.458403,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260606T055741Z-tight-no-apply-refresh/clearance-result.json",
+      "size": 11613
+    },
+    {
+      "mtime": 1780725466.047396,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260606T055741Z-tight-no-apply-refresh/final-dry-run-no-pre-refresh-target-vless.json",
+      "size": 1232261
+    },
+    {
+      "mtime": 1780725466.8883855,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260606T055741Z-tight-no-apply-refresh/live-apply-no-pre-refresh-target-vless.json",
+      "size": 1232697
+    },
+    {
+      "mtime": 1780725465.220406,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260606T055741Z-tight-no-apply-refresh/packet-generation-result.json",
+      "size": 2996
+    },
+    {
+      "mtime": 1780725464.9594092,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260606T055741Z-tight-no-apply-refresh/planner-snapshot.json",
+      "size": 1529417
+    },
+    {
+      "mtime": 1780725466.2043939,
+      "path": "/opt/v7/ops/canary-expansion-bridge-20260606T055741Z-tight-no-apply-refresh/readiness-summary.json",
+      "size": 1486
+    },
+    {
+      "mtime": 1780699984.6745358,
+      "path": "/opt/v7/ops/canary-expansion-bridge-tight-20260605T225302Z/approval-packet.json",
+      "size": 2664
+    },
+    {
+      "mtime": 1780699984.8896677,
+      "path": "/opt/v7/ops/canary-expansion-bridge-tight-20260605T225302Z/clearance-result.json",
+      "size": 11596
+    },
+    {
+      "mtime": 1780700017.4612684,
+      "path": "/opt/v7/ops/canary-expansion-bridge-tight-20260605T225302Z/final-dry-run-with-pre-refresh.json",
+      "size": 1528280
+    },
+    {
+      "mtime": 1780699985.4266613,
+      "path": "/opt/v7/ops/canary-expansion-bridge-tight-20260605T225302Z/final-dry-run.json",
+      "size": 1229944
+    },
+    {
+      "mtime": 1780699984.6766703,
+      "path": "/opt/v7/ops/canary-expansion-bridge-tight-20260605T225302Z/packet-generation-result.json",
+      "size": 3012
+    },
+    {
+      "mtime": 1780699984.4466732,
+      "path": "/opt/v7/ops/canary-expansion-bridge-tight-20260605T225302Z/planner-snapshot.json",
+      "size": 1384689
+    },
+    {
+      "mtime": 1780306652.8936584,
+      "path": "/opt/v7/ops/deploy-a-v7-next-12e51a5-20260601T093725Z/admin-health.after.json",
+      "size": 118
+    },
+    {
+      "mtime": 1780306652.8786585,
+      "path": "/opt/v7/ops/deploy-a-v7-next-12e51a5-20260601T093725Z/admin-service-active.txt",
+      "size": 7
+    },
+    {
+      "mtime": 1780306653.0316567,
+      "path": "/opt/v7/ops/deploy-a-v7-next-12e51a5-20260601T093725Z/ip-route-all.after.txt",
+      "size": 3843
+    },
+    {
+      "mtime": 1780306653.0276568,
+      "path": "/opt/v7/ops/deploy-a-v7-next-12e51a5-20260601T093725Z/ip-rule.after.txt",
+      "size": 772
+    },
+    {
+      "mtime": 1779538975.8089454,
+      "path": "/opt/v7/ops/deploy-baseline/20260523T122251Z/contract-summary.json",
+      "size": 9671
+    },
+    {
+      "mtime": 1779538975.8068962,
+      "path": "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+      "size": 313943
+    },
+    {
+      "mtime": 1779538975.8091667,
+      "path": "/opt/v7/ops/deploy-baseline/20260523T122251Z/runtime-summary.md",
+      "size": 1073
+    },
+    {
+      "mtime": 1779538975.8086233,
+      "path": "/opt/v7/ops/deploy-baseline/20260523T122251Z/unit-summary.json",
+      "size": 46686
+    },
+    {
+      "mtime": 1780400745.686466,
+      "path": "/opt/v7/ops/deploy-z8-11-Updatesystem-ff91005-20260602T144500MSK/deployed-at.txt",
+      "size": 26
+    },
+    {
+      "mtime": 1780400745.6774662,
+      "path": "/opt/v7/ops/deploy-z8-11-Updatesystem-ff91005-20260602T144500MSK/post-sha256.txt",
+      "size": 289
+    },
+    {
+      "mtime": 1780400904.3193126,
+      "path": "/opt/v7/ops/deploy-z8-11-Updatesystem-ff91005-20260602T144500MSK/release-manifest.json",
+      "size": 870
+    },
+    {
+      "mtime": 1780402926.2300165,
+      "path": "/opt/v7/ops/deploy-z8-13-Updatesystem-12dbd30-20260602T152200MSK/release-manifest.json",
+      "size": 957
+    },
+    {
+      "mtime": 1781474067.685347,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-01c415a-20260615T005414/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1781780954.0339217,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-021e731-20260618T180858/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780940923.808597,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-068f0c2-20260608T204840/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780782699.119742,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-06a6376-20260607T005135/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1781880898.709716,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-0b72273-20260619T215446/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1781878090.6239583,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-0caea16-20260619T210755/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1781505039.452696,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-0d0f9a2-20260615T093030/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780848718.5090516,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-0d6f3f4-20260607T191154/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1781526524.1623435,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-1183339-20260615T152834/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780572455.894292,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-12a9ea0-20260604T142730/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780698995.9988568,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-1323aa8-20260606T013620/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780958156.4688065,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-13477db-20260609T013547/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780832035.7162828,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-137abee-20260607T143340/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1781889177.7108624,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-14e76f7-20260620T001244/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780699138.462075,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-16fb9bb-20260606T013854/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1781302065.1937122,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-176fcdc-20260613T010741/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780986483.4266334,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-185d8cc-20260609T092759/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1781721228.1788158,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-18f8ba1-20260618T013330/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780438321.424919,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-19a5c97-20260603T011159/release-manifest.json",
+      "size": 420
+    },
+    {
+      "mtime": 1780732346.9604201,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-1bd7579-20260606T105221/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780436420.4160175,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-1cda94b-20260603T004018/release-manifest.json",
+      "size": 420
+    },
+    {
+      "mtime": 1781890656.4068995,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-1dfbf2a-20260620T003720/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1781888866.9252014,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-1e09955-20260620T000734/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780699423.8999338,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-1eb21b8-20260606T014340/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780783311.803348,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-203e209-20260607T010147/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780918719.5672743,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-20f7fec-20260608T143826/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1781704930.356479,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-23a291b-20260617T210156/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1781473904.474167,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-2473d2f-20260615T005135/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780434138.0040169,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-25fc8d2-20260603T000215/release-manifest.json",
+      "size": 420
+    },
+    {
+      "mtime": 1780727939.7837696,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-2626b46-20260606T093843/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1781800348.7277722,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-2859c0e-20260618T233217/release-manifest.json",
+      "size": 481
+    },
+    {
+
+      "mtime": 1781421756.8186185,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-287227f-20260614T102227/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780768017.7517366,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-2997cf8-20260606T204653/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1781880798.7058618,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-29e6edb-20260619T215304/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1781387969.7819345,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-2a4f7fb-20260614T005916/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780865342.8502793,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-303b014-20260607T234851/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780950133.8127742,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-312c860-20260608T232204/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1781720827.9456484,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-33a431e-20260618T012654/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780573179.6813238,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-3437026-20260604T143933/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780941918.068424,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-358cf86-20260608T210514/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780949309.9203253,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-3643f8c-20260608T230826/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1781719584.3386638,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-387c498-20260618T010609/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1781292132.570671,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-396c3d1-20260612T222208/release-manifest.json",
+      "size": 481
+
+    },
+    {
+      "mtime": 1781454173.5453653,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-39c88fd-20260614T192243/release-manifest.json",
+      "size": 481
+    },
+    {
+      "mtime": 1780404334.987553,
+      "path": "/opt/v7/ops/deploy-z8-14-Updatesystem-3c63033-20260602T154529/release-manifest.json",
+      "size": 420
+    }
+  ],
+  "matches": [
+    {
+      "found": [
+        "runtime_autoswitch_b5063a475a06312ff23c90a7",
+        "execfb_dfac3391a383f3f76793fea0",
+        "execfb_e42729ab1d2fe5ffad827c56"
+      ],
+      "path": "/opt/v7/pool_equivalence_final_promotion_review.json",
+      "sha256": "cae7e1a0dcba1eb108269cd81ad1a4a692ce1b4bf825da0cad37400b912f8226",
+      "size": 14216
+    },
+    {
+      "found": [
+        "runtime_autoswitch_b5063a475a06312ff23c90a7",
+        "execfb_dfac3391a383f3f76793fea0",
+        "execfb_e42729ab1d2fe5ffad827c56"
+      ],
+      "path": "/opt/v7/second_large_path_pool_promotion_review.json",
+      "sha256": "a169855bf35d63579d61a8f4467b9be1c81b46223ab0415f84f6b06c402c45f7",
+      "size": 10459
+    },
+    {
+      "found": [
+        "runtime_autoswitch_b5063a475a06312ff23c90a7",
+        "execfb_dfac3391a383f3f76793fea0",
+        "execfb_e42729ab1d2fe5ffad827c56"
+      ],
+      "path": "/opt/v7/pool_equivalence_promotion_review_after_refresh.json",
+      "sha256": "bd23c9b45f3ba02b173ab24bb826000d0daaf5cb1ebcf52276e2552bd084c483",
+      "size": 14243
+    },
+    {
+      "found": [
+        "runtime_autoswitch_b5063a475a06312ff23c90a7",
+        "execfb_dfac3391a383f3f76793fea0",
+        "execfb_e42729ab1d2fe5ffad827c56"
+      ],
+      "path": "/opt/v7/pool_authority_review_no_confirm.json",
+      "sha256": "f6a1a984c2f13a772569a8d6c79885ae70df2b045287199f78046888909f45d0",
+      "size": 12059
+    },
+    {
+      "found": [
+        "runtime_autoswitch_b5063a475a06312ff23c90a7",
+        "execfb_dfac3391a383f3f76793fea0",
+        "execfb_e42729ab1d2fe5ffad827c56"
+      ],
+      "path": "/opt/v7/pool_equivalence_promotion_review.json",
+      "sha256": "a630c8a889d183414bd99a9c106d47df0807455c20dc6edff73a6eeae1d1c38a",
+      "size": 14449
+    },
+    {
+      "found": [
+        "runtime_autoswitch_b5063a475a06312ff23c90a7",
+        "execfb_dfac3391a383f3f76793fea0",
+        "execfb_e42729ab1d2fe5ffad827c56"
+      ],
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_large_authority_promotion.json",
+      "sha256": "62b3f17d3bb7135f458a861ce296008f3db55432b1f43020354f251fa595867e",
+      "size": 11308
+    },
+    {
+      "found": [
+        "runtime_autoswitch_b5063a475a06312ff23c90a7",
+        "execfb_dfac3391a383f3f76793fea0",
+        "execfb_e42729ab1d2fe5ffad827c56"
+      ],
+      "path": "/opt/v7/large_batch_execution_evidence/phase3_large_authority_promotion_after_stability_feedback.json",
+      "sha256": "d7236f9455ce8359ac4e1938d41cd29444e658e059bb505d86d7b7d1383f93bd",
+      "size": 19445
+    },
+    {
+      "found": [
+        "BA4"
+      ],
+      "path": "/opt/v7/BA4_EVIDENCE/phase5_retry/packet_generate.json",
+      "sha256": "bc658eaebc3420b05fdaa9a03525b8bed6dec754452bb3d8e0b6d1b3718dca11",
+      "size": 10474
+    },
+    {
+      "found": [
+        "BA4"
+      ],
+      "path": "/opt/v7/egress/state/runtime-trust.jsonl.1",
+      "sha256": "6b5bf788bde5ee36b676874816bfc8e77e53afbf50882176bedeb6fdb2034b61",
+      "size": 34077
+    },
+    {
+      "found": [
+        "BA4"
+      ],
+      "path": "/opt/v7/egress/state/execution-events.jsonl.1",
+      "sha256": "6d255c17c70405a6ee1aeab35191e3e13cd9dcaacae266e038a42bd1b6d139ca",
+      "size": 154900
+    },
+    {
+      "found": [
+        "BA4"
+      ],
+      "path": "/opt/v7/egress/state/closure-records.jsonl.1",
+      "sha256": "964f97a7a6872dfe0a52155b133b4b5c0177b0bf6694bd813483b79a049aa25d",
+      "size": 50167
+    }
+  ],
+  "schema": "v7.autonomy-rematerialization-3.production-archive-search.v1"
+}

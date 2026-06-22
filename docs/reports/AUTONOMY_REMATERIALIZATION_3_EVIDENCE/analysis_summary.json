@@ -1,0 +1,240 @@
+{
+  "active_refresh_blast_rows": 0,
+  "active_store_counts": {
+    "audit": {
+      "ba_operation_mentions": 0,
+      "json_record_count": 894,
+      "line_count": 894,
+      "movement_field_counts": {},
+      "path": "/opt/v7/audit/audit.jsonl"
+    },
+    "closure-records": {
+      "ba_operation_mentions": 0,
+      "json_record_count": 0,
+      "line_count": 0,
+      "movement_field_counts": {},
+      "path": "/opt/v7/egress/state/closure-records.jsonl"
+    },
+    "execution-events": {
+      "ba_operation_mentions": 0,
+      "json_record_count": 0,
+      "line_count": 0,
+      "movement_field_counts": {},
+      "path": "/opt/v7/egress/state/execution-events.jsonl"
+    },
+    "operator-execution-audit": {
+      "ba_operation_mentions": 0,
+      "json_record_count": 0,
+      "line_count": 0,
+      "movement_field_counts": {},
+      "path": "/opt/v7/audit/operator-execution-audit.jsonl"
+    },
+    "proposal-records": {
+      "ba_operation_mentions": 0,
+      "json_record_count": 0,
+      "line_count": 0,
+      "movement_field_counts": {},
+      "path": "/opt/v7/egress/state/proposal-records.jsonl"
+    },
+    "proposals": {
+      "ba_operation_mentions": 0,
+      "json_record_count": 0,
+      "line_count": 0,
+      "movement_field_counts": {},
+      "path": "/opt/v7/egress/state/proposals.jsonl"
+    },
+    "rollback-history": {
+      "ba_operation_mentions": 0,
+      "json_record_count": 0,
+      "line_count": 0,
+      "movement_field_counts": {},
+      "path": "/opt/v7/events/rollback-history.jsonl"
+    },
+    "runtime-trust": {
+      "ba_operation_mentions": 0,
+      "json_record_count": 0,
+      "line_count": 0,
+      "movement_field_counts": {},
+      "path": "/opt/v7/egress/state/runtime-trust.jsonl"
+    },
+    "switch-history": {
+      "ba_operation_mentions": 0,
+      "json_record_count": 2851,
+      "line_count": 2851,
+      "movement_field_counts": {},
+      "path": "/opt/v7/events/switch-history.jsonl"
+    }
+  },
+  "certified_root_cause": "BLAST_RECORDS_IN_DIFFERENT_STORE",
+  "code_change_required": "not required for proof; may be required only to make production-supported refresh include rotated/archive inputs automatically in a later approved implementation",
+  "default_refresh_inputs": {
+    "audit_paths": [
+      "/opt/v7/events/switch-history.jsonl",
+      "/opt/v7/audit/audit.jsonl",
+      "/opt/v7/audit/operator-execution-audit.jsonl",
+      "/opt/v7/audit/operator-runtime-governance-actions.jsonl"
+    ],
+    "audit_records_after_tail": 1894,
+    "bounded_decisions": 1000,
+    "feedback_paths": [
+      "/opt/v7/egress/state/execution-events.jsonl",
+      "/opt/v7/egress/state/runtime-trust.jsonl",
+      "/opt/v7/egress/state/proposal-records.jsonl",
+      "/opt/v7/egress/state/proposals.jsonl",
+      "/opt/v7/egress/state/closure-records.jsonl"
+    ],
+    "rollback_records_after_tail": 0,
+    "switch_records_after_tail": 1000
+  },
+  "lineage": {
+    "BA1_saved_evidence": "present in local saved small_batch_stability_evidence; not found in active production stores; first operation not found in /opt/v7 scanned current/rotated paths by operation id",
+    "BA3_BA4_saved_or_rotated_evidence": "present in production rotated .jsonl.1 and review JSON; builder qualifies rows when pointed at rotated files",
+    "active_closure_records": "exists but 0 lines",
+    "active_execution_events": "exists but 0 lines",
+    "active_runtime_trust": "exists but 0 lines",
+    "blast_radius_builder": "returns 0 rows from default active bounded inputs; returns 11 rows from rotated .jsonl.1 combined inputs",
+    "trust_evolution_snapshot": "current snapshot has blast_radius_evidence_count=0"
+  },
+  "model_status": "existing_builder_and_model_work",
+  "no_apply": true,
+  "production_trust_snapshot_counts": {
+    "blast_radius_evidence_count": 0,
+    "candidate_outcomes_count": 83,
+    "prediction_actuals_count": 21,
+    "service_actuals_count": 21
+  },
+  "rejected_root_causes": {
+    "BLAST_RECORDS_FILTERED_BY_BUILDER": "rejected because the same current builder returns qualifying rows from rotated .jsonl.1 records",
+    "BLAST_RECORDS_MISSING_FROM_PRODUCTION_STORE": "rejected as absolute statement because records exist in production, but not in active default stores",
+    "BLAST_RECORDS_OUTSIDE_RETENTION_WINDOW": "secondary mechanism only; the certified break is store/path selection after rotation",
+    "BLAST_RECORDS_SCHEMA_MISMATCH": "rejected because rotated production schemas qualify without code changes"
+  },
+  "root_cause_detail": "Default production refresh reads current JSONL stores under /opt/v7/egress/state and /opt/v7/audit; those feedback stores are empty or contain no qualifying movement/outcome rows. Historical governed evidence exists in rotated .jsonl.1 files and review JSON outside the default refresh input set.",
+  "rotated_blast_rows": [
+    {
+      "blast_radius": 5,
+      "event_time": "2026-06-06T22:10:50.870400+00:00",
+      "evidence_source": "decision_record",
+      "operation_id": "runtime_autoswitch_473252c9659f6434a808e6ea",
+      "result": "success",
+      "rollback_required": false,
+      "success": true
+    },
+    {
+      "blast_radius": 1,
+      "event_time": "2026-06-07T10:54:33.376874+00:00",
+      "evidence_source": "decision_record",
+      "operation_id": "runtime_autoswitch_1ceca614139382db49eed3a4",
+      "result": "success",
+      "rollback_required": false,
+      "success": true
+    },
+    {
+      "blast_radius": 10,
+      "event_time": "2026-06-07T12:11:15.593588+00:00",
+      "evidence_source": "decision_record",
+      "operation_id": "runtime_autoswitch_0425741b308df19ccc0c1e03",
+      "result": "success",
+      "rollback_required": false,
+      "success": true
+    },
+    {
+      "blast_radius": 1,
+      "event_time": "2026-06-11T21:23:17.552199+00:00",
+      "evidence_source": "decision_record",
+      "operation_id": "runtime_autoswitch_ab8394dcdb178052aafb65cc",
+      "result": "success",
+      "rollback_required": false,
+      "success": true
+    },
+    {
+      "blast_radius": 2,
+      "event_time": "2026-06-11T21:23:17.774140+00:00",
+      "evidence_source": "decision_record",
+      "operation_id": "runtime_autoswitch_524981d916fcfd924e845973",
+      "result": "success",
+      "rollback_required": false,
+      "success": true
+    },
+    {
+      "blast_radius": 5,
+      "event_time": "2026-06-11T21:23:18.233669+00:00",
+      "evidence_source": "decision_record",
+      "operation_id": "runtime_autoswitch_0aa8dc9201a8c52590139f76",
+      "result": "success",
+      "rollback_required": false,
+      "success": true
+    },
+    {
+      "blast_radius": 8,
+      "event_time": "2026-06-11T21:23:19.256945+00:00",
+      "evidence_source": "decision_record",
+      "operation_id": "runtime_autoswitch_f80c1b87762cea7a4f4176ca",
+      "result": "success",
+      "rollback_required": false,
+      "success": true
+    },
+    {
+      "blast_radius": 1,
+      "event_time": "2026-06-12T20:49:49.086066+00:00",
+      "evidence_source": "decision_record",
+      "operation_id": "runtime_autoswitch_3004d8fb65d7efb42a7eab86",
+      "result": "success",
+      "rollback_required": false,
+      "success": true
+    },
+    {
+      "blast_radius": 2,
+      "event_time": "2026-06-12T22:13:10.262849+00:00",
+      "evidence_source": "decision_record",
+      "operation_id": "runtime_autoswitch_c3a76cf1644493fde1a052da",
+      "result": "success",
+      "rollback_required": false,
+      "success": true
+    },
+    {
+      "blast_radius": 5,
+      "event_time": "2026-06-13T18:12:15.420461+00:00",
+      "evidence_source": "decision_record",
+      "operation_id": "runtime_autoswitch_f5cb2ee61b60b838aee41283",
+      "result": "success",
+      "rollback_required": false,
+      "success": true
+    },
+    {
+      "blast_radius": 2,
+      "event_time": "2026-06-06T17:52:35.905972+00:00",
+      "evidence_source": "decision_record",
+      "operation_id": "runtime_autoswitch_f59ba96b71192a236ae8371b",
+      "result": "success",
+      "rollback_required": false,
+      "success": true
+    }
+  ],
+  "rotated_combined_blast_rows": 11,
+  "rotated_combined_record_count": 372,
+  "safe_recovery_path": "Use existing snapshot rebuild/refresh capability with explicit existing feedback input files including rotated .jsonl.1, or use an existing archive restore/materialization owner to repopulate active feedback stores. Do not manually edit trust snapshots and do not synthesize evidence.",
+  "saved_local_blast_row_count": 2,
+  "saved_local_blast_rows": [
+    {
+      "blast_radius": 1,
+      "event_time": "2026-06-05T06:25:31.890807+00:00",
+      "evidence_source": "decision_record",
+      "operation_id": "runtime_autoswitch_e33f678dabd7ad432b38f2a7",
+      "result": "success",
+      "rollback_required": false,
+      "success": true
+    },
+    {
+      "blast_radius": 2,
+      "event_time": "2026-06-06T08:47:20.062944+00:00",
+      "evidence_source": "decision_record",
+      "operation_id": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+      "result": "success",
+      "rollback_required": false,
+      "success": true
+    }
+  ],
+  "schema": "v7.autonomy-rematerialization-3.analysis-summary.v1",
+  "users_moved": 0
+}

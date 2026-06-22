@@ -1,0 +1,566 @@
+{
+  "blockers": [],
+  "canonical_branch": "Updatesystem",
+  "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+  "canonical_workspace": "/Users/ponch/Documents/New project",
+  "convergence_status": "FULLY_ALIGNED",
+  "current_branch": "Updatesystem",
+  "current_commit": "acd0b7bfa52d75d1768a0eb45f1ea29a14cd9fc1",
+  "current_workspace": "/Users/ponch/Documents/New project",
+  "final_verdict": "PASS",
+  "git_status_short": "M docs/reference/SYSTEM_MAP.md\n M docs/reference/V7_CANONICAL_REFERENCE.md\n?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_REMATERIALIZATION_3_EVIDENCE/\n?? docs/reports/AUTONOMY_REMATERIALIZATION_3_REPORT.md",
+  "github": {
+    "blockers": [],
+    "canonical_branch": "Updatesystem",
+    "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+    "convergence_status": "GITHUB_ALIGNED",
+    "final_verdict": "PASS",
+    "local_commit": "acd0b7bfa52d75d1768a0eb45f1ea29a14cd9fc1",
+    "remote_branch_commit": "acd0b7bfa52d75d1768a0eb45f1ea29a14cd9fc1",
+    "remote_read_status": "OK"
+  },
+  "local": {
+    "blockers": [],
+    "canonical_branch": "Updatesystem",
+    "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+    "canonical_workspace": "/Users/ponch/Documents/New project",
+    "checks": {
+      "branch_matches": true,
+      "remote_matches": true,
+      "workspace_clean": false,
+      "workspace_has_no_blocking_dirtiness": true,
+      "workspace_matches": true
+    },
+    "convergence_status": "LOCAL_ALIGNED",
+    "current_branch": "Updatesystem",
+    "current_commit": "acd0b7bfa52d75d1768a0eb45f1ea29a14cd9fc1",
+    "current_workspace": "/Users/ponch/Documents/New project",
+    "dirty_classification": {
+      "blocking": false,
+      "blocking_paths": [],
+      "clean": false,
+      "counts": {
+        "documentation_only": 10,
+        "runtime_critical": 0,
+        "runtime_relevant": 0,
+        "unknown": 0
+      },
+      "documentation_only": true,
+      "entries": [
+        {
+          "category": "documentation_only",
+          "path": "docs/reference/SYSTEM_MAP.md",
+          "status": "M"
+        },
+        {
+          "category": "documentation_only",
+          "path": "docs/reference/V7_CANONICAL_REFERENCE.md",
+          "status": "M"
+        },
+        {
+          "category": "documentation_only",
+          "path": "POOL2_EVIDENCE/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "POOL2_STABILITY_WINDOW_RECHECK_REPORT.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "docs/reference/V7_PROJECT_MAP.md",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "docs/reference/V7_PROJECT_MAP.rtfd/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "docs/reference/V7_PROJECT_MAP_VISUAL.txt",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "docs/reports/AUTONOMY_REMATERIALIZATION_3_EVIDENCE/",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "docs/reports/AUTONOMY_REMATERIALIZATION_3_REPORT.md",
+          "status": "??"
+        }
+      ],
+      "info_paths": [
+        "docs/reference/SYSTEM_MAP.md",
+        "docs/reference/V7_CANONICAL_REFERENCE.md",
+        "POOL2_EVIDENCE/",
+        "POOL2_STABILITY_WINDOW_RECHECK_REPORT.md",
+        "V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md",
+        "docs/reference/V7_PROJECT_MAP.md",
+        "docs/reference/V7_PROJECT_MAP.rtfd/",
+        "docs/reference/V7_PROJECT_MAP_VISUAL.txt",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_3_EVIDENCE/",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_3_REPORT.md"
+      ],
+      "warning": false,
+      "warning_paths": []
+    },
+    "final_verdict": "PASS",
+    "git_status_short": "M docs/reference/SYSTEM_MAP.md\n M docs/reference/V7_CANONICAL_REFERENCE.md\n?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_REMATERIALIZATION_3_EVIDENCE/\n?? docs/reports/AUTONOMY_REMATERIALIZATION_3_REPORT.md",
+    "origin_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+    "warnings": [
+      "documentation_dirty_ignored"
+    ],
+    "worktree_list": "worktree /Users/ponch/Documents/New project\nHEAD acd0b7bfa52d75d1768a0eb45f1ea29a14cd9fc1\nbranch refs/heads/Updatesystem\n\nworktree /private/tmp/v7-convergence-c\nHEAD c40cae13298594b7ad7040df4b19306c4e2c29d4\nbranch refs/heads/v7-next\nprunable gitdir file points to non-existent location\n\nworktree /private/tmp/v7-vozduh-main\nHEAD 593619d494e215d11fd826086593527a4a555690\ndetached\nprunable gitdir file points to non-existent location"
+  },
+  "mode": "all",
+  "remote_branch_commit": "acd0b7bfa52d75d1768a0eb45f1ea29a14cd9fc1",
+  "runtime": {
+    "allowed_readonly_commands": [
+      [
+        "hostname"
+      ],
+      [
+        "date",
+        "-Is"
+      ],
+      [
+        "pwd"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7"
+      ],
+      [
+        "git",
+        "-C",
+        "/opt/v7",
+        "branch",
+        "--show-current"
+      ],
+      [
+        "git",
+        "-C",
+        "/opt/v7",
+        "rev-parse",
+        "HEAD"
+      ],
+      [
+        "git",
+        "-C",
+        "/opt/v7",
+        "status",
+        "--short"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-users-autoswitch"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-audit-log"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-admin-api"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-intelligence-snapshot-refresh"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-service-matrix-refresh-all"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-service-matrix-test"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-egress-quality-compact"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-users-autoswitch.service",
+        "--no-pager"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-users-autoswitch.timer",
+        "--no-pager"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-admin-api.service",
+        "--no-pager"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-intelligence-snapshot-refresh.service",
+        "--no-pager"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-intelligence-snapshot-refresh.timer",
+        "--no-pager"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-users-autoswitch"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-audit-log"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-admin-api"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-intelligence-snapshot-refresh"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-service-matrix-refresh-all"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-service-matrix-test"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-egress-quality-compact"
+      ],
+      [
+        "/usr/local/bin/v7-users-autoswitch",
+        "--pretty"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/egress/state"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/egress/state/intelligence"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/audit"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/events"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/admin"
+      ]
+    ],
+    "blockers": [],
+    "commit_mismatch_classification": {
+      "changed_files": [
+        "docs/capacity_2/CAPACITY_2_OBSERVED_CAPACITY_MODEL_REPORT.md",
+        "docs/capacity_2/CURRENT_CAPACITY_MODEL.md",
+        "docs/capacity_2/DATA_GAP_ANALYSIS.md",
+        "docs/capacity_2/DEGRADATION_MODEL.md",
+        "docs/capacity_2/INDUSTRY_CAPACITY_REVIEW.md",
+        "docs/capacity_2/LIMIT_ORIGIN_REPORT.md",
+        "docs/capacity_2/OBSERVABLE_SIGNAL_INVENTORY.md",
+        "docs/capacity_2/OBSERVED_CAPACITY_SHADOW_MODEL.md",
+        "docs/capacity_2/OBSERVED_CAPACITY_THEORY.md",
+        "docs/capacity_2/SAFETY_MODEL.md",
+        "docs/decisions/ADR-011-observed-capacity-model.md",
+        "docs/decisions/ADR-EVENT-DRIVEN-AUTONOMY.md",
+        "docs/reference/SYSTEM_MAP.md",
+        "docs/reference/V7_CANONICAL_REFERENCE.md",
+        "docs/reports/AUTONOMY_EVIDENCE_1_EVIDENCE/autonomy_dry_run_forensics.json",
+        "docs/reports/AUTONOMY_EVIDENCE_1_EVIDENCE/convergence_status.json",
+        "docs/reports/AUTONOMY_EVIDENCE_1_EVIDENCE/evidence_math.json",
+        "docs/reports/AUTONOMY_EVIDENCE_1_EVIDENCE/shadow_comparison_model_exercise.json",
+        "docs/reports/AUTONOMY_EVIDENCE_1_EVIDENCE/shadow_forensics.json",
+        "docs/reports/AUTONOMY_EVIDENCE_1_EVIDENCE/trust_evolution_advice.json",
+        "docs/reports/AUTONOMY_EVIDENCE_1_EVIDENCE/truth_check.json",
+        "docs/reports/AUTONOMY_EVIDENCE_1_REPORT.md",
+        "docs/reports/AUTONOMY_EVIDENCE_2_BLAST_AND_COMPARISON_REPORT.md",
+        "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/OPERATOR_REVIEW_PACKET.md",
+        "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/api_operator_autonomous_dry_run.json",
+        "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/api_operator_decision_surface.json",
+        "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/api_operator_overview.json",
+        "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/api_session.json",
+        "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/blast_radius_forensics.json",
+        "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/convergence_status.json",
+        "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/final_convergence_status.json",
+        "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/final_truth_check.json",
+        "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/operator_review_packet.json",
+        "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/readiness_before_after.json",
+        "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/truth_check.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/analysis_summary.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/api_operator_autonomous_dry_run.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/api_operator_decision_surface.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/api_operator_overview.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/api_session.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/convergence_status.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/final_convergence_status.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/final_truth_check.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/local_blast_rematerialization.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/snapshot_refresh_help.txt",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/truth_check.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_1_REPORT.md",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/after_autonomous_dry_run.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/after_decision_surface.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/after_overview.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/analysis_summary.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/api_session_sanitized.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/before_autonomous_dry_run.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/before_decision_surface.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/before_overview.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/convergence_after_refresh.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/convergence_before.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/final_convergence_status.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/final_truth_check.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/planner_refresh_action.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/snapshot_refresh_help.txt",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/truth_check_after_refresh.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/truth_check_before.json",
+        "docs/reports/AUTONOMY_REMATERIALIZATION_2_REPORT.md",
+        "docs/reports/AUTONOMY_ROOT_CONFIDENCE_DISCOVERY.md",
+        "docs/reports/AUTONOMY_ROOT_EVIDENCE/convergence_status.json",
+        "docs/reports/AUTONOMY_ROOT_EVIDENCE/event1_autonomy_root_summary.json",
+        "docs/reports/AUTONOMY_ROOT_EVIDENCE/truth_check.json",
+        "docs/reports/EVENT.1_REGRESSION_TRIGGER_CERTIFICATION.md",
+        "docs/reports/EVENT1_EVIDENCE/api_capture_summary.json",
+        "docs/reports/EVENT1_EVIDENCE/api_operator_approval_preview.json",
+        "docs/reports/EVENT1_EVIDENCE/api_operator_autonomous_dry_run.json",
+        "docs/reports/EVENT1_EVIDENCE/api_operator_decision_surface.json",
+        "docs/reports/EVENT1_EVIDENCE/api_operator_execution_pipeline_certification.json",
+        "docs/reports/EVENT1_EVIDENCE/api_operator_overview.json",
+        "docs/reports/EVENT1_EVIDENCE/api_operator_rollback_preview.json",
+        "docs/reports/EVENT1_EVIDENCE/api_session_sanitized.json",
+        "docs/reports/EVENT1_EVIDENCE/convergence_status.json",
+        "docs/reports/EVENT1_EVIDENCE/event1_summary.json",
+        "docs/reports/EVENT1_EVIDENCE/final_convergence_status.json",
+        "docs/reports/EVENT1_EVIDENCE/final_truth_check.json",
+        "docs/reports/EVENT1_EVIDENCE/restore_settle_gate_pre_restore.json",
+        "docs/reports/EVENT1_EVIDENCE/truth_check.json",
+        "docs/reports/POOL.3_RUNTIME_DISCOVER.md",
+        "docs/reports/POOL3_EVIDENCE/api_autoswitch_dry_run.json",
+        "docs/reports/POOL3_EVIDENCE/api_autoswitch_dry_run_wireguard.json",
+        "docs/reports/POOL3_EVIDENCE/api_egress.json",
+        "docs/reports/POOL3_EVIDENCE/api_operator_autonomous_dry_run.json",
+        "docs/reports/POOL3_EVIDENCE/api_overview.json",
+        "docs/reports/POOL3_EVIDENCE/api_planner_refresh_dry_run.json",
+        "docs/reports/POOL3_EVIDENCE/api_session.json",
+        "docs/reports/POOL3_EVIDENCE/api_users.json",
+        "docs/reports/POOL3_EVIDENCE/api_users_rebalance_dry_run.json",
+        "docs/reports/POOL3_EVIDENCE/convergence_status.json",
+        "docs/reports/POOL3_EVIDENCE/pool3_summary.json",
+        "docs/reports/POOL3_EVIDENCE/truth_check.json"
+      ],
+      "classification": {
+        "classification": "DOCS_ONLY_MISMATCH",
+        "deploy_required_paths": [],
+        "deployment_required": false,
+        "docs_only_mismatch": true,
+        "docs_only_paths": [
+          "docs/capacity_2/CAPACITY_2_OBSERVED_CAPACITY_MODEL_REPORT.md",
+          "docs/capacity_2/CURRENT_CAPACITY_MODEL.md",
+          "docs/capacity_2/DATA_GAP_ANALYSIS.md",
+          "docs/capacity_2/DEGRADATION_MODEL.md",
+          "docs/capacity_2/INDUSTRY_CAPACITY_REVIEW.md",
+          "docs/capacity_2/LIMIT_ORIGIN_REPORT.md",
+          "docs/capacity_2/OBSERVABLE_SIGNAL_INVENTORY.md",
+          "docs/capacity_2/OBSERVED_CAPACITY_SHADOW_MODEL.md",
+          "docs/capacity_2/OBSERVED_CAPACITY_THEORY.md",
+          "docs/capacity_2/SAFETY_MODEL.md",
+          "docs/decisions/ADR-011-observed-capacity-model.md",
+          "docs/decisions/ADR-EVENT-DRIVEN-AUTONOMY.md",
+          "docs/reference/SYSTEM_MAP.md",
+          "docs/reference/V7_CANONICAL_REFERENCE.md",
+          "docs/reports/AUTONOMY_EVIDENCE_1_EVIDENCE/autonomy_dry_run_forensics.json",
+          "docs/reports/AUTONOMY_EVIDENCE_1_EVIDENCE/convergence_status.json",
+          "docs/reports/AUTONOMY_EVIDENCE_1_EVIDENCE/evidence_math.json",
+          "docs/reports/AUTONOMY_EVIDENCE_1_EVIDENCE/shadow_comparison_model_exercise.json",
+          "docs/reports/AUTONOMY_EVIDENCE_1_EVIDENCE/shadow_forensics.json",
+          "docs/reports/AUTONOMY_EVIDENCE_1_EVIDENCE/trust_evolution_advice.json",
+          "docs/reports/AUTONOMY_EVIDENCE_1_EVIDENCE/truth_check.json",
+          "docs/reports/AUTONOMY_EVIDENCE_1_REPORT.md",
+          "docs/reports/AUTONOMY_EVIDENCE_2_BLAST_AND_COMPARISON_REPORT.md",
+          "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/OPERATOR_REVIEW_PACKET.md",
+          "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/api_operator_autonomous_dry_run.json",
+          "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/api_operator_decision_surface.json",
+          "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/api_operator_overview.json",
+          "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/api_session.json",
+          "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/blast_radius_forensics.json",
+          "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/convergence_status.json",
+          "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/final_convergence_status.json",
+          "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/final_truth_check.json",
+          "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/operator_review_packet.json",
+          "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/readiness_before_after.json",
+          "docs/reports/AUTONOMY_EVIDENCE_2_EVIDENCE/truth_check.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/analysis_summary.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/api_operator_autonomous_dry_run.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/api_operator_decision_surface.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/api_operator_overview.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/api_session.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/convergence_status.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/final_convergence_status.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/final_truth_check.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/local_blast_rematerialization.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/snapshot_refresh_help.txt",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_1_EVIDENCE/truth_check.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_1_REPORT.md",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/after_autonomous_dry_run.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/after_decision_surface.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/after_overview.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/analysis_summary.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/api_session_sanitized.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/before_autonomous_dry_run.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/before_decision_surface.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/before_overview.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/convergence_after_refresh.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/convergence_before.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/final_convergence_status.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/final_truth_check.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/planner_refresh_action.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/snapshot_refresh_help.txt",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/truth_check_after_refresh.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_2_EVIDENCE/truth_check_before.json",
+          "docs/reports/AUTONOMY_REMATERIALIZATION_2_REPORT.md",
+          "docs/reports/AUTONOMY_ROOT_CONFIDENCE_DISCOVERY.md",
+          "docs/reports/AUTONOMY_ROOT_EVIDENCE/convergence_status.json",
+          "docs/reports/AUTONOMY_ROOT_EVIDENCE/event1_autonomy_root_summary.json",
+          "docs/reports/AUTONOMY_ROOT_EVIDENCE/truth_check.json",
+          "docs/reports/EVENT.1_REGRESSION_TRIGGER_CERTIFICATION.md",
+          "docs/reports/EVENT1_EVIDENCE/api_capture_summary.json",
+          "docs/reports/EVENT1_EVIDENCE/api_operator_approval_preview.json",
+          "docs/reports/EVENT1_EVIDENCE/api_operator_autonomous_dry_run.json",
+          "docs/reports/EVENT1_EVIDENCE/api_operator_decision_surface.json",
+          "docs/reports/EVENT1_EVIDENCE/api_operator_execution_pipeline_certification.json",
+          "docs/reports/EVENT1_EVIDENCE/api_operator_overview.json",
+          "docs/reports/EVENT1_EVIDENCE/api_operator_rollback_preview.json",
+          "docs/reports/EVENT1_EVIDENCE/api_session_sanitized.json",
+          "docs/reports/EVENT1_EVIDENCE/convergence_status.json",
+          "docs/reports/EVENT1_EVIDENCE/event1_summary.json",
+          "docs/reports/EVENT1_EVIDENCE/final_convergence_status.json",
+          "docs/reports/EVENT1_EVIDENCE/final_truth_check.json",
+          "docs/reports/EVENT1_EVIDENCE/restore_settle_gate_pre_restore.json",
+          "docs/reports/EVENT1_EVIDENCE/truth_check.json",
+          "docs/reports/POOL.3_RUNTIME_DISCOVER.md",
+          "docs/reports/POOL3_EVIDENCE/api_autoswitch_dry_run.json",
+          "docs/reports/POOL3_EVIDENCE/api_autoswitch_dry_run_wireguard.json",
+          "docs/reports/POOL3_EVIDENCE/api_egress.json",
+          "docs/reports/POOL3_EVIDENCE/api_operator_autonomous_dry_run.json",
+          "docs/reports/POOL3_EVIDENCE/api_overview.json",
+          "docs/reports/POOL3_EVIDENCE/api_planner_refresh_dry_run.json",
+          "docs/reports/POOL3_EVIDENCE/api_session.json",
+          "docs/reports/POOL3_EVIDENCE/api_users.json",
+          "docs/reports/POOL3_EVIDENCE/api_users_rebalance_dry_run.json",
+          "docs/reports/POOL3_EVIDENCE/convergence_status.json",
+          "docs/reports/POOL3_EVIDENCE/pool3_summary.json",
+          "docs/reports/POOL3_EVIDENCE/truth_check.json"
+        ],
+        "final_verdict": "PASS",
+        "schema": "v7-deployable-change-classification/v1",
+        "unknown_paths": []
+      },
+      "docs_only_mismatch": true,
+      "local_commit": "acd0b7bfa52d75d1768a0eb45f1ea29a14cd9fc1",
+      "runtime_blocking": false,
+      "runtime_commit": "67fbd8506321802222c6f8ed3d34cfe406a45d8a",
+      "schema": "v7-runtime-commit-mismatch-classification/v1"
+    },
+    "convergence_status": "RUNTIME_ALIGNED",
+    "deployment_model": "copied_binaries_from_safe_sync_manifest",
+    "derived": {
+      "admin_service_active": true,
+      "audit_path_available": true,
+      "autoswitch_scheduler_active": false,
+      "autoswitch_service_active": false,
+      "binary_hashes_known": true,
+      "binary_hashes_match_authoritative": true,
+      "closure_path_available": true,
+      "deploy_branch": "Updatesystem",
+      "deploy_commit": "67fbd8506321802222c6f8ed3d34cfe406a45d8a",
+      "deploy_id": "deploy-z8-14-Updatesystem-67fbd85-20260620T103244",
+      "deployment_model": "copied_binaries_from_safe_sync_manifest",
+      "execution_store_available": true,
+      "operation_wiring_present": true,
+      "restore_barrier_known": true,
+      "runtime_branch": "",
+      "runtime_commit": "",
+      "runtime_fingerprint_known": true,
+      "runtime_identity_model": "copied_binaries_from_safe_sync_manifest",
+      "runtime_provenance_known": true,
+      "runtime_root_is_git_checkout": false,
+      "scheduler_inactive_approved_manual_mode": true,
+      "scheduler_truth_known": true,
+      "service_inactive_explained": true,
+      "service_status_known": true,
+      "snapshot_refresh_cli_available": true,
+      "snapshot_refresh_mechanism_known": true,
+      "snapshot_required_files_known": true,
+      "snapshot_root_known": true,
+      "state_truth_known": true
+    },
+    "expected_binaries": [
+      "/usr/local/bin/v7-users-autoswitch",
+      "/usr/local/bin/v7-audit-log"
+    ],
+    "expected_services": [
+      "v7-users-autoswitch.service",
+      "v7-users-autoswitch.timer"
+    ],
+    "final_verdict": "PASS",
+    "local_commit": "acd0b7bfa52d75d1768a0eb45f1ea29a14cd9fc1",
+    "missing_commands": [],
+    "runtime_access_status": "READY",
+    "runtime_branch": "Updatesystem",
+    "runtime_commit": "67fbd8506321802222c6f8ed3d34cfe406a45d8a",
+    "runtime_root": "/opt/v7",
+    "runtime_snapshot_path": ".v7/runtime_convergence_snapshot.json",
+    "runtime_snapshot_schema": "v7-runtime-truth-snapshot/v1",
+    "runtime_truth_status": "KNOWN",
+    "state_root": "/opt/v7/egress/state",
+    "state_truth_status": "KNOWN",
+    "unknown_commands": [],
+    "warnings": [
+      "runtime_local_commit_docs_only_mismatch_ignored"
+    ]
+  },
+  "runtime_access_status": "READY",
+  "runtime_truth_status": "KNOWN",
+  "schema": "v7-truth-check/v1",
+  "state_truth_status": "KNOWN",
+  "warnings": [
+    "documentation_dirty_ignored",
+    "runtime_local_commit_docs_only_mismatch_ignored"
+  ]
+}

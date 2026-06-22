@@ -1,0 +1,2488 @@
+{
+  "builder_trace": {
+    "blast_radius_row_count": 0,
+    "blast_radius_rows": [],
+    "per_store_blast_rows": {
+      "audit": {
+        "blast_row_count": 0,
+        "blast_rows": [],
+        "tail_records": 894
+      },
+      "closure-records": {
+        "blast_row_count": 0,
+        "blast_rows": [],
+        "tail_records": 0
+      },
+      "execution-events": {
+        "blast_row_count": 0,
+        "blast_rows": [],
+        "tail_records": 0
+      },
+      "operator-execution-audit": {
+        "blast_row_count": 0,
+        "blast_rows": [],
+        "tail_records": 0
+      },
+      "operator-runtime-governance-actions": {
+        "blast_row_count": 0,
+        "blast_rows": [],
+        "tail_records": 0
+      },
+      "proposal-records": {
+        "blast_row_count": 0,
+        "blast_rows": [],
+        "tail_records": 0
+      },
+      "proposals": {
+        "blast_row_count": 0,
+        "blast_rows": [],
+        "tail_records": 0
+      },
+      "rollback-history": {
+        "blast_row_count": 0,
+        "blast_rows": [],
+        "tail_records": 0
+      },
+      "runtime-trust": {
+        "blast_row_count": 0,
+        "blast_rows": [],
+        "tail_records": 0
+      },
+      "switch-history": {
+        "blast_row_count": 0,
+        "blast_rows": [],
+        "tail_records": 1000
+      }
+    },
+    "qualification_tail": [
+      {
+        "event_time": "2026-06-03T07:12:44.462161+00:00",
+        "index": 920,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-03T07:12:45.881283+00:00",
+
+        "index": 921,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-03T07:12:47.354383+00:00",
+        "index": 922,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-03T07:12:48.926163+00:00",
+        "index": 923,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-03T07:12:50.365869+00:00",
+        "index": 924,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-03T07:12:51.784367+00:00",
+        "index": 925,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-03T07:13:45.017214+00:00",
+        "index": 926,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "rollback",
+        "status": "rollback",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-03T07:13:46.465361+00:00",
+        "index": 927,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "rollback",
+        "status": "rollback",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-03T07:13:47.998641+00:00",
+        "index": 928,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "rollback",
+        "status": "rollback",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-03T07:13:49.597996+00:00",
+        "index": 929,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "rollback",
+        "status": "rollback",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-03T07:13:51.099876+00:00",
+        "index": 930,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "rollback",
+        "status": "rollback",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-03T07:13:52.572496+00:00",
+        "index": 931,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "rollback",
+        "status": "rollback",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-03T07:13:54.319823+00:00",
+        "index": 932,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "rollback",
+        "status": "rollback",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-03T07:13:56.064995+00:00",
+        "index": 933,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "rollback",
+        "status": "rollback",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-03T07:13:57.703996+00:00",
+        "index": 934,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "rollback",
+        "status": "rollback",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-03T07:13:59.516049+00:00",
+        "index": 935,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "rollback",
+        "status": "rollback",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-03T07:14:01.278186+00:00",
+        "index": 936,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "rollback",
+        "status": "rollback",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-03T07:14:02.871987+00:00",
+        "index": 937,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "rollback",
+        "status": "rollback",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-03T07:14:04.338376+00:00",
+        "index": 938,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "rollback",
+        "status": "rollback",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-03T07:14:05.755123+00:00",
+        "index": 939,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "rollback",
+        "status": "rollback",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-03T07:14:07.104909+00:00",
+        "index": 940,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "rollback",
+        "status": "rollback",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-05T06:24:06.156488+00:00",
+        "index": 941,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-06T08:44:42.191182+00:00",
+        "index": 942,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-06T08:44:45.236013+00:00",
+        "index": 943,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-06T17:39:04.084209+00:00",
+        "index": 944,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-06T17:39:06.018334+00:00",
+        "index": 945,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-06T22:05:41.438681+00:00",
+        "index": 946,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-06T22:05:43.331662+00:00",
+        "index": 947,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-06T22:05:45.398655+00:00",
+        "index": 948,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-06T22:05:47.276157+00:00",
+        "index": 949,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-06T22:05:49.028562+00:00",
+        "index": 950,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-07T10:49:29.644781+00:00",
+        "index": 951,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-07T10:49:31.353221+00:00",
+        "index": 952,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-07T10:49:33.379668+00:00",
+        "index": 953,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-07T10:49:34.988274+00:00",
+        "index": 954,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-07T10:49:36.635369+00:00",
+        "index": 955,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-07T12:05:09.478181+00:00",
+        "index": 956,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-07T12:05:11.409620+00:00",
+        "index": 957,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-07T12:05:13.514439+00:00",
+        "index": 958,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-07T12:05:15.748123+00:00",
+        "index": 959,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-07T12:05:17.719523+00:00",
+        "index": 960,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-07T12:05:19.719288+00:00",
+        "index": 961,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-07T12:05:21.939964+00:00",
+        "index": 962,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-07T12:05:24.137404+00:00",
+        "index": 963,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-07T12:05:27.062702+00:00",
+        "index": 964,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-07T12:05:29.401561+00:00",
+        "index": 965,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-11T20:20:49.387282+00:00",
+        "index": 966,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-11T20:39:39.241761+00:00",
+        "index": 967,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-11T20:39:41.272025+00:00",
+        "index": 968,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-11T20:42:48.329352+00:00",
+        "index": 969,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-11T20:42:50.960490+00:00",
+        "index": 970,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-11T20:42:53.574361+00:00",
+        "index": 971,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-11T20:42:55.721015+00:00",
+        "index": 972,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-11T20:42:57.891801+00:00",
+        "index": 973,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-11T20:45:52.344682+00:00",
+        "index": 974,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-11T20:45:54.766333+00:00",
+        "index": 975,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-11T20:45:56.830117+00:00",
+        "index": 976,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-11T20:45:58.918617+00:00",
+        "index": 977,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-11T20:46:01.504532+00:00",
+        "index": 978,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-11T20:46:03.752274+00:00",
+        "index": 979,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-11T20:46:05.606546+00:00",
+        "index": 980,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-11T20:46:07.553308+00:00",
+        "index": 981,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-12T20:09:35.821246+00:00",
+        "index": 982,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-12T22:11:37.470291+00:00",
+        "index": 983,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-12T22:11:39.607330+00:00",
+        "index": 984,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-13T18:09:05.156069+00:00",
+        "index": 985,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-13T18:09:08.221677+00:00",
+        "index": 986,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-13T18:09:10.089830+00:00",
+        "index": 987,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-13T18:09:11.866499+00:00",
+        "index": 988,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-13T18:09:13.603008+00:00",
+        "index": 989,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-13T19:16:28.343967+00:00",
+        "index": 990,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-13T19:16:31.602925+00:00",
+        "index": 991,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-13T19:16:34.209689+00:00",
+        "index": 992,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-13T19:16:36.704025+00:00",
+        "index": 993,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-13T19:16:39.328029+00:00",
+        "index": 994,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-13T19:16:41.831990+00:00",
+        "index": 995,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-13T19:16:43.921398+00:00",
+        "index": 996,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-13T19:16:45.669569+00:00",
+        "index": 997,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-13T19:16:47.510283+00:00",
+        "index": 998,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      },
+      {
+        "event_time": "2026-06-13T19:16:49.231796+00:00",
+        "index": 999,
+        "operation_id": "",
+        "radius": 0,
+        "record_keys": [
+          "from",
+          "host",
+          "reason",
+          "table",
+          "to",
+          "ts",
+          "user_ip"
+        ],
+        "reject_reasons": [
+          "status_unknown",
+          "radius_missing",
+          "operation_id_missing_for_grouping"
+        ],
+        "result": "unknown",
+        "status": "unknown",
+        "success": false,
+        "user": ""
+      }
+    ]
+  },
+  "host": "v3119922.hosted-by-vdsina.ru",
+  "import_error": "",
+  "import_ok": true,
+  "max_history_records": 1000,
+  "refresh_inputs": {
+    "audit_paths": [
+      "/opt/v7/events/switch-history.jsonl",
+      "/opt/v7/audit/audit.jsonl",
+      "/opt/v7/audit/operator-execution-audit.jsonl",
+      "/opt/v7/audit/operator-runtime-governance-actions.jsonl"
+    ],
+    "audit_records_after_tail": 1894,
+    "bounded_decisions": 1000,
+    "feedback_paths": [
+      "/opt/v7/egress/state/execution-events.jsonl",
+      "/opt/v7/egress/state/runtime-trust.jsonl",
+      "/opt/v7/egress/state/proposal-records.jsonl",
+      "/opt/v7/egress/state/proposals.jsonl",
+      "/opt/v7/egress/state/closure-records.jsonl"
+    ],
+    "rollback_records_after_tail": 0,
+    "switch_records_after_tail": 1000
+  },
+  "schema": "v7.autonomy-rematerialization-3.production-store-forensics.v1",
+  "store_inventory": {
+    "audit": {
+      "actions": [
+        [
+          "path_guard_repair",
+          854
+        ],
+        [
+          "safe_run",
+          28
+        ],
+        [
+          "admin_login",
+          6
+        ],
+        [
+          "admin_action_planner_refresh_dry_run",
+          2
+        ],
+        [
+          "admin_action_autoswitch_dry_run",
+          2
+        ],
+        [
+          "profile_import_failed",
+          1
+        ],
+        [
+          "admin_action_users_rebalance_dry_run",
+          1
+        ]
+      ],
+      "ba_operation_mentions": 0,
+      "exists": true,
+      "id_field_counts": {
+        "object_id": 12
+      },
+      "json_parse_errors": 0,
+      "json_record_count": 894,
+      "line_count": 894,
+      "movement_field_counts": {},
+      "newest_timestamp": "2026-06-22T04:46:24.258257+00:00",
+      "oldest_timestamp": "2026-06-20T21:41:51.472273+00:00",
+      "operation_ids_top": [],
+      "outcome_statuses": [
+        [
+          "",
+          894
+        ]
+      ],
+      "path": "/opt/v7/audit/audit.jsonl",
+      "record_types": [
+        [
+          "v7_path",
+          854
+        ],
+        [
+          "safe_mode",
+          28
+        ],
+        [
+          "admin_auth",
+          6
+        ],
+        [
+          "autoswitch",
+          4
+        ],
+        [
+          "profile_delivery",
+          1
+        ],
+        [
+          "users",
+          1
+        ]
+      ],
+      "sample_keys": [
+        "action",
+        "actor",
+        "after_hash",
+        "before_hash",
+        "component",
+        "host",
+        "message",
+        "metadata",
+        "object_id",
+        "object_type",
+        "pid",
+        "request_id",
+        "result",
+        "schema_version",
+        "severity",
+        "ts",
+        "user_ip"
+      ],
+      "schemas": [
+        [
+          "1",
+          894
+        ]
+      ],
+      "sha256": "08e8687b21d0de4e4811da9e39ac29c01317255c707019f14bff6fbcb1cff3c3",
+      "size_bytes": 396324,
+      "statuses": [
+        [
+          "OK",
+          892
+        ],
+        [
+          "FAIL",
+          1
+        ],
+        [
+          "PREVIEW",
+          1
+        ]
+      ],
+      "top_keys": [
+        [
+          "action",
+          894
+        ],
+        [
+          "actor",
+          894
+        ],
+        [
+          "after_hash",
+          894
+        ],
+        [
+          "before_hash",
+          894
+        ],
+        [
+          "component",
+          894
+        ],
+        [
+          "host",
+          894
+        ],
+        [
+          "message",
+          894
+        ],
+        [
+          "metadata",
+          894
+        ],
+        [
+          "object_id",
+          894
+        ],
+        [
+          "object_type",
+          894
+        ],
+        [
+          "pid",
+          894
+        ],
+        [
+          "request_id",
+          894
+        ],
+        [
+          "result",
+          894
+        ],
+        [
+          "schema_version",
+          894
+        ],
+        [
+          "severity",
+          894
+        ],
+        [
+          "ts",
+          894
+        ],
+        [
+          "user_ip",
+          894
+        ]
+      ]
+    },
+    "closure-records": {
+      "actions": [],
+      "ba_operation_mentions": 0,
+      "exists": true,
+      "id_field_counts": {},
+      "json_parse_errors": 0,
+      "json_record_count": 0,
+      "line_count": 0,
+      "movement_field_counts": {},
+      "newest_timestamp": "",
+      "oldest_timestamp": "",
+      "operation_ids_top": [],
+      "outcome_statuses": [],
+      "path": "/opt/v7/egress/state/closure-records.jsonl",
+      "record_types": [],
+      "sample_keys": [],
+      "schemas": [],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0,
+      "statuses": [],
+      "top_keys": []
+    },
+    "execution-events": {
+      "actions": [],
+      "ba_operation_mentions": 0,
+      "exists": true,
+      "id_field_counts": {},
+      "json_parse_errors": 0,
+      "json_record_count": 0,
+      "line_count": 0,
+      "movement_field_counts": {},
+      "newest_timestamp": "",
+      "oldest_timestamp": "",
+      "operation_ids_top": [],
+      "outcome_statuses": [],
+      "path": "/opt/v7/egress/state/execution-events.jsonl",
+      "record_types": [],
+      "sample_keys": [],
+      "schemas": [],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0,
+      "statuses": [],
+      "top_keys": []
+    },
+    "operator-execution-audit": {
+      "actions": [],
+      "ba_operation_mentions": 0,
+      "exists": true,
+      "id_field_counts": {},
+      "json_parse_errors": 0,
+      "json_record_count": 0,
+      "line_count": 0,
+      "movement_field_counts": {},
+      "newest_timestamp": "",
+      "oldest_timestamp": "",
+      "operation_ids_top": [],
+      "outcome_statuses": [],
+      "path": "/opt/v7/audit/operator-execution-audit.jsonl",
+      "record_types": [],
+      "sample_keys": [],
+      "schemas": [],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0,
+      "statuses": [],
+      "top_keys": []
+    },
+    "operator-runtime-governance-actions": {
+      "actions": [],
+      "ba_operation_mentions": 0,
+      "exists": true,
+      "id_field_counts": {},
+      "json_parse_errors": 0,
+      "json_record_count": 0,
+      "line_count": 0,
+      "movement_field_counts": {},
+      "newest_timestamp": "",
+      "oldest_timestamp": "",
+      "operation_ids_top": [],
+      "outcome_statuses": [],
+      "path": "/opt/v7/audit/operator-runtime-governance-actions.jsonl",
+      "record_types": [],
+      "sample_keys": [],
+      "schemas": [],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0,
+      "statuses": [],
+      "top_keys": []
+    },
+    "proposal-records": {
+      "actions": [],
+      "ba_operation_mentions": 0,
+      "exists": true,
+      "id_field_counts": {},
+      "json_parse_errors": 0,
+      "json_record_count": 0,
+      "line_count": 0,
+      "movement_field_counts": {},
+      "newest_timestamp": "",
+      "oldest_timestamp": "",
+      "operation_ids_top": [],
+      "outcome_statuses": [],
+      "path": "/opt/v7/egress/state/proposal-records.jsonl",
+      "record_types": [],
+      "sample_keys": [],
+      "schemas": [],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0,
+      "statuses": [],
+      "top_keys": []
+    },
+    "proposals": {
+      "actions": [],
+      "ba_operation_mentions": 0,
+      "exists": true,
+      "id_field_counts": {},
+      "json_parse_errors": 0,
+      "json_record_count": 0,
+      "line_count": 0,
+      "movement_field_counts": {},
+      "newest_timestamp": "",
+      "oldest_timestamp": "",
+      "operation_ids_top": [],
+      "outcome_statuses": [],
+      "path": "/opt/v7/egress/state/proposals.jsonl",
+      "record_types": [],
+      "sample_keys": [],
+      "schemas": [],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0,
+      "statuses": [],
+      "top_keys": []
+    },
+    "rollback-history": {
+      "actions": [],
+      "ba_operation_mentions": 0,
+      "exists": false,
+      "id_field_counts": {},
+      "json_parse_errors": 0,
+      "json_record_count": 0,
+      "line_count": 0,
+      "movement_field_counts": {},
+      "newest_timestamp": "",
+      "oldest_timestamp": "",
+      "operation_ids_top": [],
+      "outcome_statuses": [],
+      "path": "/opt/v7/events/rollback-history.jsonl",
+      "record_types": [],
+      "sample_keys": [],
+      "schemas": [],
+      "sha256": "",
+      "size_bytes": 0,
+      "statuses": [],
+      "top_keys": []
+    },
+    "runtime-trust": {
+      "actions": [],
+      "ba_operation_mentions": 0,
+      "exists": true,
+      "id_field_counts": {},
+      "json_parse_errors": 0,
+      "json_record_count": 0,
+      "line_count": 0,
+      "movement_field_counts": {},
+      "newest_timestamp": "",
+      "oldest_timestamp": "",
+      "operation_ids_top": [],
+      "outcome_statuses": [],
+      "path": "/opt/v7/egress/state/runtime-trust.jsonl",
+      "record_types": [],
+      "sample_keys": [],
+      "schemas": [],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0,
+      "statuses": [],
+      "top_keys": []
+    },
+    "switch-history": {
+      "actions": [
+        [
+          "",
+          2851
+        ]
+      ],
+      "ba_operation_mentions": 0,
+      "exists": true,
+      "id_field_counts": {},
+      "json_parse_errors": 0,
+      "json_record_count": 2851,
+      "line_count": 2851,
+      "movement_field_counts": {},
+      "newest_timestamp": "2026-06-13T19:16:49.231796+00:00",
+      "oldest_timestamp": "2026-05-06T16:34:24.658196+00:00",
+      "operation_ids_top": [],
+      "outcome_statuses": [
+        [
+          "",
+          2851
+        ]
+      ],
+      "path": "/opt/v7/events/switch-history.jsonl",
+      "record_types": [
+        [
+          "",
+          2851
+        ]
+      ],
+      "sample_keys": [
+        "from",
+        "host",
+        "reason",
+        "table",
+        "to",
+        "ts",
+        "user_ip"
+      ],
+      "schemas": [
+        [
+          "",
+          2851
+        ]
+      ],
+      "sha256": "9b00232795896d61db11a4a9dd5aeb6c21b7788b68f9affe96710229246c714b",
+      "size_bytes": 528608,
+      "statuses": [
+        [
+          "",
+          2851
+        ]
+      ],
+      "top_keys": [
+        [
+          "from",
+          2851
+        ],
+        [
+          "host",
+          2851
+        ],
+        [
+          "reason",
+          2851
+        ],
+        [
+          "table",
+          2851
+        ],
+        [
+          "to",
+          2851
+        ],
+        [
+          "ts",
+          2851
+        ],
+        [
+          "user_ip",
+          2851
+        ]
+      ]
+    },
+    "trust-evolution-summaries": {
+      "actions": [],
+      "ba_operation_mentions": 0,
+      "exists": true,
+      "id_field_counts": {},
+      "json_parse_errors": 10528,
+      "json_record_count": 0,
+      "line_count": 10556,
+      "movement_field_counts": {},
+      "newest_timestamp": "",
+      "oldest_timestamp": "",
+      "operation_ids_top": [],
+      "outcome_statuses": [],
+      "path": "/opt/v7/egress/state/intelligence/trust-evolution-summaries.json",
+      "record_types": [],
+      "sample_keys": [],
+      "schemas": [],
+      "sha256": "ae96e6d7d0cfbff529072239724652ed5e0d065e9a178bd492073a0527ecc833",
+      "size_bytes": 396074,
+      "statuses": [],
+      "top_keys": []
+    }
+  },
+  "trust_snapshot_status": {
+    "exists": true,
+    "generated_at": "2026-06-22T04:47:52.154982+00:00",
+    "outcome_mapper_counts": {
+      "blast_radius_evidence_count": 0,
+      "candidate_outcomes_count": 83,
+      "prediction_actuals_count": 21,
+      "service_actuals_count": 21
+    },
+    "path": "/opt/v7/egress/state/intelligence/trust-evolution-summaries.json",
+    "source_hashes": {
+      "best_available_pool": "7f35052b1bf726f6139a5afa61c4d5ce4f41cce509fdd67ceaba362eaa61c9e0",
+      "blast_radius": "07fe733a9dc7a87e16f4e1f3385165fe24200a1b02bbe4ef2a2fcb733210b55b",
+      "blast_radius_records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "candidate_outcomes": "f5c3295a624fc45b7b83511ae0c4bdfa86a83253d58c11521ef88419a973567a",
+      "candidate_suitability": "26eae161cdcd7a235e26628660c264e77f0b23bb52edbb1e7c9052ad5c5bc2da",
+      "channel_service_scores": "e6d7a21cde03439decfe1dc9aba2dc42ad22139829fd8cae7bc5aee5309c8692",
+      "decisions": "ee4d39cc5606d2067f582c0d051be83e91f72ef0d6bff09ddde1c6c4b2c23e70",
+      "prediction_actuals": "6edfc9d93bc9174d6188b5c049a7093c1d5399515f0fd5e25b08e466fb614f48",
+      "prediction_summary": "5296116cc7d3216c7260f43dc0dcc44f7ce5f28a3240cd99e489f71099e244da",
+      "rollback_records": "e317b3b767f44629d59b7c3e6905ce5ccf537e4921a41deb35201334b2300736",
+      "service_actuals": "905754585be56e8478fe917b3e8fedc167d512c233245d8dc8bb74e27822fbb3",
+      "service_scores": "e78f3166fc0340b0df576c54de7d997624cb3dfc4628c302f74636e98eca2eea",
+      "trust_summary": "27d0c096dffab4e95c409ae1c9df3b9e588bdf7c400a6b9e97a013eee9e40154"
+    }
+  }
+}

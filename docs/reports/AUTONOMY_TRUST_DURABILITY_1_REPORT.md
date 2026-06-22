@@ -1,6 +1,6 @@
 # AUTONOMY.TRUST.DURABILITY.1 Report
 
-Status: implementation complete  
+Status: implementation, deploy, and runtime refresh complete  
 Date: 2026-06-22  
 Workspace: `/Users/ponch/Documents/New project`  
 Branch: `Updatesystem`  
@@ -8,6 +8,7 @@ Base commit: `602280a5a2d2e695dd64982abf5f43eec112261c`
 Runtime apply: none  
 Users moved: `0`  
 Daemon/autoswitch enabled: no  
+Deploy id: `deploy-z8-14-Updatesystem-29b980c-20260623T000551`  
 
 ## 1. Root Cause
 
@@ -66,6 +67,8 @@ This is not a new truth source. It is the same existing evidence store family.
 | `tools/v7-intelligence-snapshot-refresh` | Normal refresh now consumes JSONL family rotations, not only active files. |
 | `tests/unit/test_intelligence_workers.py` | Added durability tests for rotated store ordering and refresh/rebuild/reread preservation. |
 | `docs/reports/AUTONOMY_TRUST_DURABILITY_1_EVIDENCE/local_rotated_family_durability.json` | Local verification evidence. |
+| `docs/reports/AUTONOMY_TRUST_DURABILITY_1_EVIDENCE/production_snapshot_refresh.json` | Production snapshot refresh evidence after deploy. |
+| `docs/reports/AUTONOMY_TRUST_DURABILITY_1_EVIDENCE/production_trust_after_refresh.json` | Production trust-evolution metrics after refresh. |
 | `docs/reference/V7_CANONICAL_REFERENCE.md` | Added canonical trust durability rules. |
 | `docs/reference/SYSTEM_MAP.md` | Updated blast-radius materialization owner and evidence lifecycle. |
 | `docs/reference/V7_PROJECT_MAP.md` | Updated readiness deltas and changelog. |
@@ -96,13 +99,44 @@ Local lifecycle verification:
 
 The test fixture intentionally leaves the active feedback file empty and places the real blast evidence in `execution-events.jsonl.1`. The refresh rebuilds snapshots, writes them, and rereads them. The recovered blast evidence remains visible.
 
+Production deploy and refresh evidence:
+
+| Evidence | Result |
+| --- | --- |
+| Safe deploy | PASS |
+| Deploy commit | `29b980c00a11097332eaad53a2c1fe2f77d2389d` |
+| Deploy id | `deploy-z8-14-Updatesystem-29b980c-20260623T000551` |
+| `autoswitch_apply_executed` | false |
+| `routing_mutation_executed` | false |
+| `user_movement_executed` | false |
+| Production snapshot refresh | PASS |
+| Snapshot count written | 11 |
+| `runtime_behavior_changed` | false |
+| `governance_behavior_changed` | false |
+| `users_moved` | false |
+| `source_stable` | true |
+
+Production trust-evolution after refresh:
+
+| Metric | Production After Refresh |
+| --- | ---: |
+| `blast_radius_confidence` | 100.0 |
+| `blast_radius_evidence_count` | 11 |
+| `blast_radius_source_record_count` | 4407 |
+| `bounded_decision_count` | 1000 |
+| `successful_small_operations` | 9 |
+| `unsafe_large_operations` | 0 |
+| `overall_confidence` | 59.309 |
+| `prediction_confidence` | 37.374 |
+| `suitability_confidence` | 29.257 |
+
 ## 6. Metrics
 
 | Metric | Before | After Code Fix |
 | --- | ---: | ---: |
-| Current consumed blast confidence | 0.0 | local refresh lifecycle preserves 100.0 |
+| Current consumed blast confidence | 0.0 | production refresh reads 100.0 |
 | Branch 1B proven blast confidence | 100.0 | preserved by normal JSONL family refresh |
-| Current consumed trust | 39.582 | expected to recover after deployed refresh consumes rotations |
+| Current consumed trust / trust-evolution confidence | 39.582 current dry-run / 59.315 snapshot before final reread | 59.309 production trust-evolution after refresh |
 | Branch 1B proven trust | 54.684 | no formula change |
 | Users moved | 0 | 0 |
 | Runtime apply | false | false |
@@ -113,7 +147,6 @@ The code fix does not change thresholds, floors, formulas, planner output, gover
 
 | Blocker | State |
 | --- | --- |
-| Production runtime has not been changed by this report | Runtime deploy/snapshot regeneration is the next operational phase if live API reread is required. |
 | Trust floor | Even Branch 1B recovered trust `54.684` remains below `70.0`. |
 | Prediction confidence | Still below floor; previous evidence showed the blocker is low forecast/source confidence, not missing matches. |
 | Operator comparison evidence | Existing path is present but underfed; comparison count remains below autonomy floor. |

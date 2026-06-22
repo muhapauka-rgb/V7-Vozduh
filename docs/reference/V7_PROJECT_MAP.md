@@ -27,8 +27,7 @@ The blueprint view keeps channel recovery visible, but the project-level autonom
 
 ```text
 Blast recovery operationally closed
-  -> trust durability fixed in refresh code
-  -> deploy/runtime snapshot regeneration if live API reread is required
+  -> trust durability fixed, deployed, and refreshed
   -> operator comparison collection
   -> prediction evidence collection
   -> read-only event consumer certification
@@ -73,9 +72,9 @@ Blast recovery operationally closed
 | Autonomous Trust | 55% | 40% | -15% | `AUTONOMY.TRUST.BUILDOUT.1` | Fresh current consumed trust reads `39.582`, not Branch 1B post-recovery `54.684`; trust buildout must start with durability. |
 | Operator Comparison Evidence | 20% | 25% | +5% | `AUTONOMY.TRUST.BUILDOUT.1` | Current read-only shadow surface has 27 decisions and 0 comparisons; evidence path and comparison count targets are now explicit. |
 | Production Autonomy | 45% | 40% | -5% | `AUTONOMY.TRUST.BUILDOUT.1` | No runtime behavior changed, but fresh consumed gates still block confidence, trust, and prediction confidence. |
-| Blast Durability | 70% | 100% | +30% | `AUTONOMY.TRUST.DURABILITY.1` | Normal snapshot refresh now consumes active JSONL plus numeric rotated stores; local lifecycle verification preserves `blast_radius_confidence=100.0` after refresh, rebuild, write, and reread. |
-| Autonomous Trust | 40% | 55% | +15% | `AUTONOMY.TRUST.DURABILITY.1` | Durable refresh code can preserve the Branch 1B recovered evidence class; Branch 1B trust `54.684` remains below the `70.0` floor, so canary readiness is still blocked. |
-| Production Autonomy | 40% | 43% | +3% | `AUTONOMY.TRUST.DURABILITY.1` | No apply, no user movement, no daemon enablement, and no formula/floor changes occurred; durability removes one code-path blocker but confidence, trust, prediction, comparison, and event consumer blockers remain. |
+| Blast Durability | 70% | 100% | +30% | `AUTONOMY.TRUST.DURABILITY.1` | Normal snapshot refresh now consumes active JSONL plus numeric rotated stores; local and production refresh verification preserve `blast_radius_confidence=100.0`. |
+| Autonomous Trust | 40% | 55% | +15% | `AUTONOMY.TRUST.DURABILITY.1` | Production trust-evolution after refresh reads `blast_radius_evidence_count=11`, `blast_radius_source_record_count=4407`, `bounded_decision_count=1000`, and `overall_confidence=59.309`; autonomy floor remains `70.0`. |
+| Production Autonomy | 40% | 43% | +3% | `AUTONOMY.TRUST.DURABILITY.1` | Safe deploy and production snapshot refresh completed with no apply, no user movement, no daemon enablement, and no formula/floor changes; confidence, trust, prediction, comparison, and event consumer blockers remain. |
 
 ## Stable Areas
 
@@ -95,7 +94,6 @@ Blast recovery operationally closed
 | P3 | Continue pool observation only after recovery/failover pressure is resolved | Current state is not clean equilibrium because planner disagrees with keeping `awg3` users there. |
 | P1 | `AUTONOMY.PREDICTION.EVIDENCE.2_REAL_OUTCOME_CONFIDENCE_COLLECTION` | Prediction matching works, but source confidence is too low for the `70.0` floor. |
 | P1 | `OPERATOR_COMPARISON_EVIDENCE_COLLECTION` | Shadow comparison path exists, but current comparison evidence remains below floor. |
-| P1 | `AUTONOMY.TRUST.DURABILITY.2_DEPLOY_AND_RUNTIME_REREAD` | Code behavior is fixed locally; if live API proof is required, deploy the refresh owner, regenerate snapshots, and reread `/api/operator/autonomous-dry-run` without apply. |
 | P1 | `EVENT_CONSUMER_READ_ONLY_CERTIFICATION` | Event sources exist, but production event-driven consumer is not certified. |
 
 ## Changelog
@@ -106,12 +104,15 @@ Blast recovery operationally closed
 - Fixed `tools/v7-intelligence-snapshot-refresh` so normal refresh reads active JSONL files plus numeric rotations such as `.jsonl.1` and `.jsonl.2`.
 - Added automated tests proving rotated evidence is read oldest-to-newest and recovered blast evidence survives refresh, rebuild, snapshot write, and reread.
 - Local lifecycle verification: `blast_radius_confidence=100.0`, `blast_radius_evidence_count=1`, `blast_radius_source_record_count=1001`, `bounded_decision_count=1000`.
+- Deployed the refresh owner with safe deploy id `deploy-z8-14-Updatesystem-29b980c-20260623T000551`.
+- Production snapshot refresh wrote 11 snapshots with `runtime_behavior_changed=false`, `governance_behavior_changed=false`, `users_moved=false`, and `source_stable=true`.
+- Production trust after refresh: `blast_radius_confidence=100.0`, `blast_radius_evidence_count=11`, `blast_radius_source_record_count=4407`, `bounded_decision_count=1000`, `successful_small_operations=9`, `unsafe_large_operations=0`, and `overall_confidence=59.309`.
 - No runtime apply, user movement, daemon enablement, planner/governance/execution change, threshold/floor/formula change, synthetic evidence, or new truth source occurred.
 - Updated changed-area percentages:
   - Blast Durability: `70% -> 100%`
   - Autonomous Trust: `40% -> 55%`
   - Production Autonomy: `40% -> 43%`
-- Recorded next phase: `AUTONOMY.TRUST.DURABILITY.2_DEPLOY_AND_RUNTIME_REREAD` only if live production API reread is required.
+- Recorded next phase: `OPERATOR_COMPARISON_EVIDENCE_COLLECTION` plus `AUTONOMY.PREDICTION.EVIDENCE.2_REAL_OUTCOME_CONFIDENCE_COLLECTION`.
 
 ### 2026-06-22 — AUTONOMY.TRUST.BUILDOUT.1 Unified Trust Buildout
 

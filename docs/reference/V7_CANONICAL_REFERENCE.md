@@ -72,7 +72,7 @@ Stable conclusions:
 
 1. V7 already has the main owners for planner, governed execution, restore barrier, rollback, feedback, learning, trust, prediction, shadow comparison, and truth/convergence.
 2. The safe path is to reuse and connect existing owners, not create a new planner, governance model, execution path, truth source, or confidence model.
-3. Production event-driven autonomy remains blocked by low prediction confidence, insufficient operator comparison evidence, uncertified live event consumption, and live deployment/reread of the durability fix if production API proof is required.
+3. Production event-driven autonomy remains blocked by low prediction confidence, insufficient operator comparison evidence, uncertified live event consumption, and autonomy floors still below `70.0`.
 4. Timer-only movement remains rejected. Event-driven autonomy means regression event -> planner -> packet -> restore barrier -> bounded apply -> verification -> rollback decision -> feedback -> learning.
 5. The next roadmap position is `AUTONOMY_EVIDENCE_AND_EVENT_CONSUMER_CLOSURE`.
 
@@ -286,11 +286,12 @@ Stable conclusions:
 6. Automated durability tests prove that recovered blast evidence survives refresh, rebuild, snapshot write, and reread while bounded decision processing remains at `MAX_HISTORY_RECORDS`.
 7. Local verification evidence: `docs/reports/AUTONOMY_TRUST_DURABILITY_1_EVIDENCE/local_rotated_family_durability.json`.
 8. Verified local lifecycle metrics: after refresh/rebuild/reread, `blast_radius_confidence=100.0`, `blast_radius_evidence_count=1`, `blast_radius_source_record_count=1001`, and `bounded_decision_count=1000`.
-9. No runtime apply, user movement, daemon enablement, planner change, governance change, execution change, threshold change, floor change, formula change, synthetic evidence, or new truth source occurred.
-10. Branch 1B remains the production proof point for 11 real recovered rows and trust `54.684`; AUTONOMY.TRUST.DURABILITY.1 makes that class of recovered evidence durable under normal refresh code behavior.
-11. Remaining autonomy blockers still stand: trust floor, prediction confidence, operator comparison evidence, live event consumer certification, and disabled daemon/autoswitch runtime.
-12. AUTONOMY.TRUST.DURABILITY.1 final verdict is `TRUST_DURABILITY_FIXED`.
-13. Last verified commit: `AUTONOMY.TRUST.DURABILITY.1 implementation commit`.
+9. Production deploy and snapshot refresh also verified the fix: deploy id `deploy-z8-14-Updatesystem-29b980c-20260623T000551`, `blast_radius_confidence=100.0`, `blast_radius_evidence_count=11`, `blast_radius_source_record_count=4407`, `bounded_decision_count=1000`, `successful_small_operations=9`, and `unsafe_large_operations=0`.
+10. No runtime apply, user movement, daemon enablement, planner change, governance change, execution change, threshold change, floor change, formula change, synthetic evidence, or new truth source occurred.
+11. Branch 1B remains the production proof point for 11 real recovered rows and trust `54.684`; AUTONOMY.TRUST.DURABILITY.1 makes that class of recovered evidence durable under normal refresh code behavior.
+12. Remaining autonomy blockers still stand: trust floor, prediction confidence, operator comparison evidence, live event consumer certification, and disabled daemon/autoswitch runtime.
+13. AUTONOMY.TRUST.DURABILITY.1 final verdict is `TRUST_DURABILITY_FIXED`.
+14. Last verified commit: `29b980c00a11097332eaad53a2c1fe2f77d2389d`.
 
 ## 1. Channels
 

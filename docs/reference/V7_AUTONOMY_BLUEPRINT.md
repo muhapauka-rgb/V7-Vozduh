@@ -53,7 +53,7 @@ Current production alignment:
 - `tools/v7-truth-check --all --json` reports `PASS`; `tools/v7-convergence-status --json` reports `ALIGNED`.
 - The approved snapshot-only blast recovery write completed with `blast_radius_evidence_count=11`, `blast_radius_confidence=100.0`, `trust_score=54.684`, `execution_allowed_now=false`, `apply_executed=false`, and `users_moved=0`.
 - AUTONOMY.TRUST.BUILDOUT.1 later re-read the current consumed autonomous dry-run and found `blast_radius_confidence=0.0`, `trust=39.582`, `confidence=45.8`, and `prediction_confidence=39.6`. Branch 1B remains proven and closed.
-- AUTONOMY.TRUST.DURABILITY.1 fixed the normal refresh code path so active JSONL files and numeric rotations are consumed as one evidence family. Local lifecycle proof shows recovered blast evidence survives refresh, rebuild, snapshot write, and reread with `blast_radius_confidence=100.0`.
+- AUTONOMY.TRUST.DURABILITY.1 fixed the normal refresh code path so active JSONL files and numeric rotations are consumed as one evidence family. Local lifecycle proof and production refresh both show recovered blast evidence survives refresh/rebuild/reread with `blast_radius_confidence=100.0`.
 
 ## 2. Full System Inventory
 
@@ -80,8 +80,8 @@ Current production alignment:
 | Feedback | Feedback owner | `admin_core/operator_execution_feedback.py`, execution/closure JSONL stores | Post-action outcome evidence | ACTIVE | 85% | Governed evidence consumed; active stores can be empty/rotated |
 | Learning | Intelligence/trust owners | `admin_core/intelligence_platform.py`, `admin_core/intelligence_workers.py`, `admin_core/intelligence_snapshots.py` | Convert outcomes into trust, prediction, suitability, blast confidence | ACTIVE_PARTIAL | 70% | Evidence consumed; quality insufficient |
 | Prediction | Prediction owner | `admin_core/intelligence_workers.py`, `admin_core/intelligence_platform.py` | Forecast -> actual confidence | ACTIVE_PARTIAL | 45% evidence quality | 21/21 matched; low source confidence keeps result near 37 |
-| Trust Evolution | Trust owner | `admin_core/intelligence_platform.py`, `admin_core/intelligence_workers.py`, `tools/v7-intelligence-snapshot-refresh` | Outcome confidence/trust aggregation | ACTIVE_PARTIAL | 55% proven recovered trust / durable refresh fixed | Branch 1B proved trust `54.684`; TRUST.DURABILITY.1 fixed the refresh lifecycle that had dropped rotated evidence from current consumed reads |
-| Blast Radius | Blast evidence owner | `admin_core/intelligence_workers.py::build_blast_radius_evidence_rows`, `blast_radius_confidence_model`, `tools/v7-intelligence-snapshot-refresh` | Prove small governed operations are safe | OPERATIONALLY_CLOSED_DURABILITY_FIXED | 100% recovery proven / 100% durable refresh code | Branch 1B deployed and recovered 11 real blast rows; TRUST.DURABILITY.1 proves rotated evidence survives normal refresh/rebuild/reread |
+| Trust Evolution | Trust owner | `admin_core/intelligence_platform.py`, `admin_core/intelligence_workers.py`, `tools/v7-intelligence-snapshot-refresh` | Outcome confidence/trust aggregation | ACTIVE_PARTIAL | 55% proven recovered trust / durable refresh deployed | Branch 1B proved trust `54.684`; TRUST.DURABILITY.1 fixed, deployed, and refreshed the lifecycle that had dropped rotated evidence from current consumed reads |
+| Blast Radius | Blast evidence owner | `admin_core/intelligence_workers.py::build_blast_radius_evidence_rows`, `blast_radius_confidence_model`, `tools/v7-intelligence-snapshot-refresh` | Prove small governed operations are safe | OPERATIONALLY_CLOSED_DURABILITY_FIXED | 100% recovery proven / 100% durable production refresh | Branch 1B deployed and recovered 11 real blast rows; TRUST.DURABILITY.1 production refresh reads 11 rows and blast confidence `100.0` |
 | Shadow Autonomy | Shadow owner | `admin_core/shadow_autonomy.py`, `/api/actions/shadow-autonomy-compare` | Compare recommendations with operator decisions | ACTIVE_BUT_UNDERFED | 20% | Comparison count insufficient for autonomy |
 | Operator Comparison | Shadow comparison store | `admin_core/shadow_autonomy.py`, shadow JSONL | Earn trust from real operator agreement/override | ACTIVE_BUT_EMPTY | 20% | Current comparison evidence below floor |
 | Event Detection | Event sources plus future binding | `tools/v7-telegram-sentinel`, service matrix, quality compact, route/runtime/capacity readers | Detect regression source facts | SOURCE_ONLY | 65% | Sources exist; certified event consumer missing |
@@ -263,6 +263,7 @@ active JSONL + numeric rotations
   -> write snapshots
   -> reread snapshots
   -> blast_radius_confidence = 100.0 in local durability proof
+  -> blast_radius_confidence = 100.0 in production refresh proof
 ```
 
 ### Confidence Flow
@@ -286,7 +287,7 @@ rollback confidence
 | `systemd/v7-users-autoswitch.service` and timer | DORMANT_BY_DESIGN | Truth says autoswitch service/timer inactive and approved manual mode | Apply-capable timer exists but must not be enabled until event-driven certification passes |
 | `systemd/drafts/v7-autoswitch-planner.*` | DORMANT_DRAFT | Draft systemd files | Planner-only periodic concept exists, not production apply |
 | `systemd/drafts/v7-health.service` | PARTIAL_DRAFT | Draft loop every 30s | Health loop exists as draft/read model, not autonomy controller |
-| Rotated `.jsonl.1` feedback stores | ACTIVE_EVIDENCE_DURABLE_IN_REFRESH_CODE | REMATERIALIZATION.3/4, Branch 1A, Branch 1B, and TRUST.DURABILITY.1 | Real governed blast evidence is consumed as part of the existing JSONL family; normal refresh no longer reads only the active file |
+| Rotated `.jsonl.1` feedback stores | ACTIVE_EVIDENCE_DURABLE_IN_PRODUCTION_REFRESH | REMATERIALIZATION.3/4, Branch 1A, Branch 1B, and TRUST.DURABILITY.1 | Real governed blast evidence is consumed as part of the existing JSONL family; production refresh now reads 11 blast rows and blast confidence `100.0` |
 | Shadow operator comparison store | ACTIVE_BUT_UNDERFED | `comparisons_total=0` in root confidence evidence | Mechanism exists, evidence volume missing |
 | Prediction actual matching | ACTIVE_BUT_LOW_CONFIDENCE | 21/21 matched, confidence around 37 | Mechanism works; source confidence/data depth is weak |
 | Observed Capacity Shadow | APPROVED_BUT_NOT_IMPLEMENTED | ADR-011 | Concept accepted as shadow-only future model |
@@ -321,7 +322,7 @@ User
 | Execution | Governed execution certified up to 10 users | Operator-free apply not certified and service/timer inactive |
 | Verification | Restore/rollback/feedback models exist | Live rollback packet for autonomous apply is not certified |
 | Learning | Feedback/trust/prediction/blast owners exist | Operator comparison and prediction confidence are weak |
-| Trust Growth | Trust-evolution pipeline exists | Blast durability fixed in refresh code; live deploy/reread remains an operational proof step if required |
+| Trust Growth | Trust-evolution pipeline exists | Blast durability fixed, deployed, and refreshed; remaining growth must come from prediction/operator comparison evidence |
 | Autonomous Execution | Desired event-driven model is documented | Event consumer, floors, comparison evidence, prediction confidence, and deployment remain blockers |
 
 ## 6. Industry Comparison
@@ -431,11 +432,10 @@ Sources used:
 ### Immediate: 0-2 Weeks
 
 1. Keep autoswitch daemon/timer inactive.
-2. If live API proof is required, run `AUTONOMY.TRUST.DURABILITY.2_DEPLOY_AND_RUNTIME_REREAD`: deploy the refresh owner, regenerate snapshots, and reread autonomous dry-run without apply or user movement.
-3. Start real operator comparison collection through `/api/actions/shadow-autonomy-compare`.
-4. Start prediction evidence collection with real forecast -> later actual pairs.
-5. Build a read-only event consumer certification that binds regression source to planner preview without apply.
-6. Re-run truth/convergence after each evidence or logic change.
+2. Start real operator comparison collection through `/api/actions/shadow-autonomy-compare`.
+3. Start prediction evidence collection with real forecast -> later actual pairs.
+4. Build a read-only event consumer certification that binds regression source to planner preview without apply.
+5. Re-run truth/convergence after each evidence or logic change.
 
 ### Near Term: 2-8 Weeks
 
@@ -477,19 +477,19 @@ Do not delete immediately. Classify first.
 
 ## 12. Top 10 Next Actions
 
-1. Deploy and reread the TRUST.DURABILITY.1 refresh fix only if live production API proof is required; do not apply movement.
-2. Collect 9-17 real operator comparisons for current shadow decisions, then continue toward at least 20 for a stronger window.
-3. Collect time-separated prediction forecast -> later actual evidence.
-4. Certify read-only event consumer binding from sentinel/service/quality regression to planner preview.
-5. Certify restore barrier creation for a single event-triggered packet in preview mode.
-6. Certify rollback packet readiness for the same single event-triggered packet.
-7. Build an autonomy readiness dashboard row from existing gate values only.
-8. Keep `v7-users-autoswitch.service/timer` inactive until confidence/trust/prediction floors pass.
-9. Recalculate project map after trust durability, prediction evidence, and operator comparison evidence move.
-10. Preserve Branch 1B evidence and never replace it with synthetic records.
+1. Collect 9-17 real operator comparisons for current shadow decisions, then continue toward at least 20 for a stronger window.
+2. Collect time-separated prediction forecast -> later actual evidence.
+3. Certify read-only event consumer binding from sentinel/service/quality regression to planner preview.
+4. Certify restore barrier creation for a single event-triggered packet in preview mode.
+5. Certify rollback packet readiness for the same single event-triggered packet.
+6. Build an autonomy readiness dashboard row from existing gate values only.
+7. Keep `v7-users-autoswitch.service/timer` inactive until confidence/trust/prediction floors pass.
+8. Recalculate project map after prediction evidence and operator comparison evidence move.
+9. Preserve Branch 1B evidence and never replace it with synthetic records.
+10. Keep refresh durability protected by tests whenever evidence-store lifecycle changes.
 
 ## 13. Final Blueprint Verdict
 
 `AUTONOMY_BLUEPRINT_CREATED_EVENT_DRIVEN_AUTONOMY_PARTIAL`
 
-V7 has the right architecture shape and most owners already exist. Branch 1B closed the blast recovery loop as a proven production recovery, and AUTONOMY.TRUST.DURABILITY.1 fixed the normal refresh durability gap through the existing snapshot owner. The safe path is not to build another autonomy system. The safe path is to deploy/reread this owner if live API proof is needed, collect real operator/prediction evidence, certify event consumption read-only, and only then authorize a bounded canary apply.
+V7 has the right architecture shape and most owners already exist. Branch 1B closed the blast recovery loop as a proven production recovery, and AUTONOMY.TRUST.DURABILITY.1 fixed, deployed, and refreshed the normal durability gap through the existing snapshot owner. The safe path is not to build another autonomy system. The safe path is to collect real operator/prediction evidence, certify event consumption read-only, and only then authorize a bounded canary apply.

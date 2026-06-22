@@ -1,0 +1,21 @@
+{
+  "path": "/opt/v7/egress/state/intelligence/trust-evolution-summaries.json",
+  "schema": "v7.intelligence.trust-evolution-summaries.v1",
+  "generated_at": "2026-06-22T17:09:42.498393+00:00",
+  "confidence": 0.9805,
+  "warnings": [],
+  "overall_confidence": 59.309,
+  "blast_radius_confidence": 100.0,
+  "successful_small_operations": 9,
+  "unsafe_large_operations": 0,
+  "prediction_confidence": 37.374,
+  "suitability_confidence": 29.257,
+  "outcome_mapper_counts": {
+    "blast_radius_evidence_count": 11,
+    "blast_radius_source_record_count": 4407,
+    "bounded_decision_count": 1000,
+    "candidate_outcomes_count": 83,
+    "prediction_actuals_count": 21,
+    "service_actuals_count": 21
+  }
+}

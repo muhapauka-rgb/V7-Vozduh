@@ -144,7 +144,49 @@ The failing operator decision surface test is outside this prediction evidence o
 
 ## 8. Runtime Verification
 
-Pending final safe deploy and production snapshot refresh.
+Safe deploy:
+
+| Field | Value |
+| --- | --- |
+| Deploy id | `deploy-z8-14-Updatesystem-962668b-20260623T003533` |
+| Deploy commit | `962668b5a7a57ac52b0c62efdedea64513866546` |
+| Final verdict | PASS |
+| Allowlist validation | PASS |
+| Runtime fingerprint validation | PASS |
+| `autoswitch_apply_executed` | false |
+| `routing_mutation_executed` | false |
+| `user_movement_executed` | false |
+
+Production snapshot refresh:
+
+| Field | Value |
+| --- | --- |
+| Snapshot count | 11 |
+| Source stable | true |
+| Runtime behavior changed | false |
+| Governance behavior changed | false |
+| Users moved | false |
+
+Evidence files:
+
+- `docs/reports/AUTONOMY_PREDICTION_EVIDENCE_2_EVIDENCE/production_refresh_result.json`
+- `docs/reports/AUTONOMY_PREDICTION_EVIDENCE_2_EVIDENCE/production_after_metrics.json`
+
+After-refresh production metrics:
+
+| Metric | Before | After |
+| --- | ---: | ---: |
+| Forecast rows | 21 | 21 |
+| Matched rows | 21 | 21 |
+| Prediction actual rows | 21 | 21 |
+| Prediction confidence | 36.992 | 36.651 |
+| Mean forecast confidence | 0.125562 | 0.12641 |
+| Blast evidence rows | 11 | 11 |
+| Blast source records | 4407 | 4407 |
+
+Interpretation:
+
+The runtime owner is deployed and snapshot refresh uses the improved evidence path. The current production evidence set did not contain additional direct governed prediction feedback that matches current forecast keys, so production `prediction_actuals_count` remains 21 and prediction confidence remains around 37. The phase still improves lifecycle durability; it does not claim the autonomy prediction gate is unlocked.
 
 This phase must remain no-apply:
 
@@ -174,4 +216,4 @@ Remaining expected blockers:
 
 `PREDICTION_EVIDENCE_IMPROVED`
 
-The existing owner now consumes real governed prediction feedback and preserves that evidence through snapshot build/write/reread. The improvement is real lifecycle hardening, not synthetic confidence.
+The existing owner now consumes real governed prediction feedback and preserves that evidence through snapshot build/write/reread. The improvement is real lifecycle hardening, not synthetic confidence. Production confidence remains below the autonomy floor and requires more real current outcome/source confidence evidence.

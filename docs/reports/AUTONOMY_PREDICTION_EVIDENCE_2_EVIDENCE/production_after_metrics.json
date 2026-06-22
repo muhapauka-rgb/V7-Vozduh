@@ -1,0 +1,14 @@
+{
+  "blast_radius_evidence_count": 11,
+  "blast_radius_source_record_count": 4407,
+  "bounded_decision_count": 1000,
+  "forecast_rows": 21,
+  "matched_count": 21,
+  "mean_forecast_confidence": 0.12641,
+  "prediction_actuals_count": 21,
+  "prediction_confidence": 36.651,
+  "prediction_envelope_confidence": 0.9572,
+  "prediction_generated_at": "2026-06-22T17:36:06.166531+00:00",
+  "source": "read-only production snapshot after safe deploy and intelligence refresh",
+  "trust_generated_at": "2026-06-22T17:36:06.166531+00:00"
+}

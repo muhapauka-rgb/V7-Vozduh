@@ -76,7 +76,7 @@ Blast recovery operationally closed
 | Autonomous Trust | 40% | 55% | +15% | `AUTONOMY.TRUST.DURABILITY.1` | Production trust-evolution after refresh reads `blast_radius_evidence_count=11`, `blast_radius_source_record_count=4407`, `bounded_decision_count=1000`, and `overall_confidence=59.309`; autonomy floor remains `70.0`. |
 | Production Autonomy | 40% | 43% | +3% | `AUTONOMY.TRUST.DURABILITY.1` | Safe deploy and production snapshot refresh completed with no apply, no user movement, no daemon enablement, and no formula/floor changes; confidence, trust, prediction, comparison, and event consumer blockers remain. |
 | Prediction Evidence Durability | 35% | 80% | +45% | `AUTONOMY.PREDICTION.EVIDENCE.2` | Existing governed `prediction_expected` / `prediction_actual` feedback now feeds the prediction actual path and survives bounded-tail loss, snapshot write, and reread. |
-| Prediction Evidence Quality | 45% | 50% | +5% | `AUTONOMY.PREDICTION.EVIDENCE.2` | Evidence consumption improved, but production baseline still reports prediction confidence around `36.992`; no synthetic confidence, formula, or floor change was made. |
+| Prediction Evidence Quality | 45% | 50% | +5% | `AUTONOMY.PREDICTION.EVIDENCE.2` | Evidence consumption improved, but production after-refresh still reports prediction confidence around `36.651`; no synthetic confidence, formula, or floor change was made. |
 | Production Autonomy | 43% | 43% | 0% | `AUTONOMY.PREDICTION.EVIDENCE.2` | This is a prediction evidence lifecycle improvement only; operator-free autonomy remains blocked by confidence/trust/prediction/comparison/event-consumer gates. |
 
 ## Stable Areas
@@ -109,7 +109,7 @@ Blast recovery operationally closed
 - Direct prediction feedback is read from the full existing decision stream so old feedback can survive a newer 1000-row bounded decision tail; service/channel actual construction remains bounded.
 - Added lifecycle tests proving forecast, actual, match, confidence, snapshot write, and reread survive the flow.
 - Local lifecycle evidence produced `prediction_actuals_count=1`, `matched_count=1`, `prediction_confidence=88.2`, and valid reread from an old feedback record outside the bounded tail.
-- Production baseline before final refresh remained `forecast_rows=21`, `matched_count=21`, `prediction_actuals_count=21`, and `prediction_confidence=36.992`.
+- Production baseline before final refresh remained `forecast_rows=21`, `matched_count=21`, `prediction_actuals_count=21`, and `prediction_confidence=36.992`; after deploy/refresh it remained `21/21` with prediction confidence `36.651`, so the production gate remains blocked.
 - No runtime apply, user movement, daemon enablement, planner/governance/execution change, threshold/floor/formula change, synthetic evidence, or new truth source occurred.
 - Updated changed-area percentages:
   - Prediction Evidence Durability: `35% -> 80%`

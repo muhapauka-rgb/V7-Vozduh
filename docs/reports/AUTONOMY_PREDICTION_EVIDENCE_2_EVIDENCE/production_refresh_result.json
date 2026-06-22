@@ -1,0 +1,24 @@
+{
+  "dry_run": false,
+  "governance_behavior_changed": false,
+  "runtime_behavior_changed": false,
+  "snapshot_count": 11,
+  "source_consistency_attempts": 1,
+  "source_consistency_errors": [],
+  "source_stable": true,
+  "users_moved": false,
+  "warnings": [],
+  "written_families": [
+    "best-available-pool",
+    "blast-radius-summaries",
+    "candidate-suitability-summary",
+    "channel-service-scores",
+    "overview-summary",
+    "prediction-summaries",
+    "risk-summaries",
+    "service-scores",
+    "trust-evolution-summaries",
+    "trust-summaries",
+    "user-service-scores"
+  ]
+}

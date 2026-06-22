@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-22
-Last changed by: `AUTONOMY.REMATERIALIZATION.4`
+Last changed by: `AUTONOMY.PREDICTION.EVIDENCE.1`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -37,6 +37,9 @@ Current roadmap position:
 | Blast Materialization | 75% | 80% | +5% | `AUTONOMY.REMATERIALIZATION.4` | Preview proved that strict rotated refresh-equivalent inputs still do not surface blast rows, but supplying the 11 builder-classified rows as visible `blast_radius_records` moves blast confidence to `100.0`. Recovery is still not executed. |
 | Autonomous Trust | 45% | 55% | +10% | `AUTONOMY.REMATERIALIZATION.4` | Visible blast-row preview raises operator trust from `39.602` to `54.684`, but trust remains below the `70.0` floor. |
 | Production Autonomy | 35% | 38% | +3% | `AUTONOMY.REMATERIALIZATION.4` | Blast recovery has moderate readiness impact but does not remove confidence, trust, or prediction blockers; prediction confidence becomes the dominant remaining blocker. |
+| Prediction Evidence Understanding | 35% | 90% | +55% | `AUTONOMY.PREDICTION.EVIDENCE.1` | Production forensics mapped the existing forecast -> actual -> confidence path and proved the blocker is low forecast/source confidence, not missing row matches. |
+| Prediction Evidence Quality | 35% | 45% | +10% | `AUTONOMY.PREDICTION.EVIDENCE.1` | All 21 forecasts matched actuals with mean accuracy `98.488`, but mean forecast confidence is only `0.3792`, so outcome prediction confidence remains `37.351`. |
+| Production Autonomy | 38% | 40% | +2% | `AUTONOMY.PREDICTION.EVIDENCE.1` | Autonomy is not safer yet, but the dominant prediction blocker is now quantified and the next evidence-collection phase is exact. |
 
 ## Stable Areas
 
@@ -56,6 +59,18 @@ Current roadmap position:
 | P3 | Continue pool observation only after recovery/failover pressure is resolved | Current state is not clean equilibrium because planner disagrees with keeping `awg3` users there. |
 
 ## Changelog
+
+### 2026-06-22 — AUTONOMY.PREDICTION.EVIDENCE.1 Prediction Evidence Forensics
+
+- Ran read-only production prediction forensics with no apply, no snapshot write, and `users_moved=0`.
+- Confirmed prediction matching is not the current gap: `forecasts_seen=21`, `matched_count=21`, `unmatched_forecasts=0`, `ignored_service_actuals=0`.
+- Confirmed forecast accuracy is high: mean accuracy `98.488`.
+- Confirmed forecast/source confidence is low: mean forecast confidence `0.3792`, outcome prediction confidence `37.351`, current candidate prediction confidence still `39.6`, floor `70.0`.
+- Updated changed-area percentages:
+  - Prediction Evidence Understanding: `35% -> 90%`
+  - Prediction Evidence Quality: `35% -> 45%`
+  - Production Autonomy: `38% -> 40%`
+- Recorded next evidence phase: `AUTONOMY.PREDICTION.EVIDENCE.2_REAL_OUTCOME_CONFIDENCE_COLLECTION`.
 
 ### 2026-06-22 — AUTONOMY.REMATERIALIZATION.4 Recovery Preview
 

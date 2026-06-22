@@ -1,0 +1,34 @@
+{
+  "schema": "v7.autonomy.prediction-evidence-1.analysis-summary.v1",
+  "phase": "AUTONOMY.PREDICTION.EVIDENCE.1",
+  "timestamp": "2026-06-22T10:27:13Z",
+  "commit": "7695fc38e1dfd7fc577671bd8a27b16b06cf4321",
+  "runtime_mutation_performed": false,
+  "users_moved": 0,
+  "snapshot_written": false,
+  "production_probe": {
+    "path": "docs/reports/AUTONOMY_PREDICTION_EVIDENCE_1_EVIDENCE/production_prediction_forensics.json",
+    "forecasts_seen": 21,
+    "prediction_actuals_built": 21,
+    "service_actuals_built": 21,
+    "matched_count": 21,
+    "pending_count": 0,
+    "unmatched_forecasts": 0,
+    "ignored_service_actuals": 0,
+    "forecast_accuracy": 98.488,
+    "mean_forecast_confidence": 0.3792,
+    "prediction_confidence": 37.351,
+    "additional_perfect_prediction_actuals_needed_for_70": 23,
+    "validation_status": "VALIDATED"
+  },
+  "current_gate_context": {
+    "candidate_prediction_confidence": 39.6,
+    "outcome_prediction_confidence": 37.351,
+    "merge_rule": "max(candidate_prediction_confidence, outcome_prediction_confidence)",
+    "floor": 70.0,
+    "floor_pass": false,
+    "dominant_blocker": "prediction_confidence_too_low"
+  },
+  "finding": "Prediction actuals are present and matched, but forecast confidence is too low. The confidence gap is not caused by missing row matches; it is caused by low source/forecast confidence feeding accurate predictions.",
+  "next_phase": "AUTONOMY.PREDICTION.EVIDENCE.2_REAL_OUTCOME_CONFIDENCE_COLLECTION"
+}

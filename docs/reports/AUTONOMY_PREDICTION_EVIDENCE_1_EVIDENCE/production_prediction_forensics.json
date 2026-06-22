@@ -1,0 +1,495 @@
+{
+  "counts": {
+    "forecasts_seen": 21,
+    "ignored_service_actuals": 0,
+    "matched_count": 21,
+    "pending_count": 0,
+    "prediction_actuals_built": 21,
+    "service_actuals_built": 21,
+    "service_rows_seen": 21,
+    "unmatched_forecasts": 0
+  },
+  "formula": {
+    "accuracy": "100 - abs(predicted - observed)",
+    "autonomy_gate_merge": "max(candidate_prediction_confidence, outcome_prediction_confidence)",
+    "confidence": "clamp(confidence or future_confidence, 0..1)",
+    "floor": 70.0,
+    "predicted": "forecast_quality or future_quality",
+    "prediction_confidence_when_matched": "mean(matched_accuracy) * mean(all_forecast_confidence_values)",
+    "prediction_confidence_without_matches": "mean(all_forecast_confidence_values) * 60",
+    "row_key": "id or channel or service or target or user or index"
+  },
+  "ignored_service_actuals_sample": [],
+  "matched_sample": [
+    {
+      "accuracy": 96.732,
+      "actual": 18.571,
+      "confidence": 0.3363,
+      "delta": -3.268,
+      "domain": "channel",
+      "id": "1",
+      "predicted": 15.303,
+      "status": "MATCHED"
+    },
+    {
+      "accuracy": 95.163,
+      "actual": 93.053,
+      "confidence": 0.3964,
+      "delta": -4.837,
+      "domain": "channel",
+      "id": "amneziawg-exec-20260528-10-8-1-14",
+      "predicted": 88.216,
+      "status": "MATCHED"
+    },
+    {
+      "accuracy": 94.6,
+      "actual": 92.4,
+      "confidence": 0.3964,
+      "delta": -5.4,
+      "domain": "channel",
+      "id": "awg0",
+      "predicted": 87.0,
+      "status": "MATCHED"
+    },
+    {
+      "accuracy": 94.588,
+      "actual": 91.669,
+      "confidence": 0.3964,
+      "delta": -5.412,
+      "domain": "channel",
+      "id": "awg3",
+      "predicted": 86.257,
+      "status": "MATCHED"
+    },
+    {
+      "accuracy": 96.85,
+      "actual": 18.503,
+      "confidence": 0.3363,
+      "delta": -3.15,
+      "domain": "channel",
+      "id": "openvpn-1779388847-d2ad7c",
+      "predicted": 15.353,
+      "status": "MATCHED"
+    },
+    {
+      "accuracy": 94.392,
+      "actual": 84.146,
+      "confidence": 0.3964,
+      "delta": -5.608,
+      "domain": "channel",
+      "id": "vless",
+      "predicted": 78.538,
+      "status": "MATCHED"
+    },
+    {
+      "accuracy": 96.016,
+      "actual": 95.927,
+      "confidence": 0.3964,
+      "delta": -3.984,
+      "domain": "channel",
+      "id": "wireguard-1779454504-c43409",
+      "predicted": 91.943,
+      "status": "MATCHED"
+    },
+    {
+      "accuracy": 99.999,
+      "actual": 39.814,
+      "confidence": 0.35,
+      "delta": -0.001,
+      "domain": "service",
+      "id": "anthropic",
+      "predicted": 39.813,
+      "status": "MATCHED"
+    },
+    {
+      "accuracy": 99.999,
+      "actual": 66.242,
+      "confidence": 0.35,
+      "delta": -0.001,
+      "domain": "service",
+      "id": "apple",
+      "predicted": 66.241,
+      "status": "MATCHED"
+    },
+    {
+      "accuracy": 99.983,
+      "actual": 67.374,
+      "confidence": 0.3375,
+      "delta": 0.017,
+      "domain": "service",
+      "id": "chatgpt",
+      "predicted": 67.391,
+      "status": "MATCHED"
+    },
+    {
+      "accuracy": 99.999,
+      "actual": 66.242,
+      "confidence": 0.35,
+      "delta": -0.001,
+      "domain": "service",
+      "id": "claude",
+      "predicted": 66.241,
+      "status": "MATCHED"
+    },
+    {
+      "accuracy": 99.999,
+      "actual": 64.504,
+      "confidence": 0.35,
+      "delta": -0.001,
+      "domain": "service",
+      "id": "facebook",
+      "predicted": 64.503,
+      "status": "MATCHED"
+    },
+    {
+      "accuracy": 99.999,
+      "actual": 66.242,
+      "confidence": 0.35,
+      "delta": -0.001,
+      "domain": "service",
+      "id": "google",
+      "predicted": 66.241,
+      "status": "MATCHED"
+    },
+    {
+      "accuracy": 99.999,
+      "actual": 66.242,
+      "confidence": 0.35,
+      "delta": -0.001,
+      "domain": "service",
+      "id": "google_auth",
+      "predicted": 66.241,
+      "status": "MATCHED"
+    },
+    {
+      "accuracy": 99.987,
+      "actual": 75.72,
+      "confidence": 0.3389,
+      "delta": 0.013,
+      "domain": "service",
+      "id": "instagram",
+      "predicted": 75.733,
+      "status": "MATCHED"
+    },
+    {
+      "accuracy": 99.999,
+      "actual": 66.242,
+      "confidence": 0.35,
+      "delta": -0.001,
+      "domain": "service",
+      "id": "openai_auth",
+      "predicted": 66.241,
+      "status": "MATCHED"
+    },
+    {
+      "accuracy": 99.999,
+      "actual": 66.059,
+      "confidence": 0.35,
+      "delta": -0.001,
+      "domain": "service",
+      "id": "soundcloud",
+      "predicted": 66.058,
+      "status": "MATCHED"
+    },
+    {
+      "accuracy": 99.999,
+      "actual": 66.242,
+      "confidence": 0.35,
+      "delta": -0.001,
+      "domain": "service",
+      "id": "spotify",
+      "predicted": 66.241,
+      "status": "MATCHED"
+    },
+    {
+      "accuracy": 99.993,
+      "actual": 77.166,
+      "confidence": 0.7943,
+      "delta": 0.007,
+      "domain": "service",
+      "id": "telegram",
+      "predicted": 77.173,
+      "status": "MATCHED"
+    },
+    {
+      "accuracy": 99.999,
+      "actual": 66.242,
+      "confidence": 0.35,
+      "delta": -0.001,
+      "domain": "service",
+      "id": "whatsapp",
+      "predicted": 66.241,
+      "status": "MATCHED"
+    },
+    {
+      "accuracy": 99.956,
+      "actual": 70.906,
+      "confidence": 0.3389,
+      "delta": -0.044,
+      "domain": "service",
+      "id": "youtube",
+      "predicted": 70.862,
+      "status": "MATCHED"
+    }
+  ],
+  "mode": "read_only_no_writes",
+  "model": {
+    "actuals_seen": 21,
+    "confidence_band": "LOW",
+    "forecast_accuracy": 98.488,
+    "forecast_domains": [
+      "channel_quality",
+      "service_quality",
+      "risk",
+      "trust",
+      "recovery",
+      "degradation"
+    ],
+    "forecasts_seen": 21,
+    "matched_count": 21,
+    "prediction_confidence": 37.351,
+    "rows": [
+      {
+        "accuracy": 96.732,
+        "actual": 18.571,
+        "confidence": 0.3363,
+        "delta": -3.268,
+        "domain": "channel",
+        "id": "1",
+        "predicted": 15.303,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 95.163,
+        "actual": 93.053,
+        "confidence": 0.3964,
+        "delta": -4.837,
+        "domain": "channel",
+        "id": "amneziawg-exec-20260528-10-8-1-14",
+        "predicted": 88.216,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 94.6,
+        "actual": 92.4,
+        "confidence": 0.3964,
+        "delta": -5.4,
+        "domain": "channel",
+        "id": "awg0",
+        "predicted": 87.0,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 94.588,
+        "actual": 91.669,
+        "confidence": 0.3964,
+        "delta": -5.412,
+        "domain": "channel",
+        "id": "awg3",
+        "predicted": 86.257,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 96.85,
+        "actual": 18.503,
+        "confidence": 0.3363,
+        "delta": -3.15,
+        "domain": "channel",
+        "id": "openvpn-1779388847-d2ad7c",
+        "predicted": 15.353,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 94.392,
+        "actual": 84.146,
+        "confidence": 0.3964,
+        "delta": -5.608,
+        "domain": "channel",
+        "id": "vless",
+        "predicted": 78.538,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 96.016,
+        "actual": 95.927,
+        "confidence": 0.3964,
+        "delta": -3.984,
+        "domain": "channel",
+        "id": "wireguard-1779454504-c43409",
+        "predicted": 91.943,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.999,
+        "actual": 39.814,
+        "confidence": 0.35,
+        "delta": -0.001,
+        "domain": "service",
+        "id": "anthropic",
+        "predicted": 39.813,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.999,
+        "actual": 66.242,
+        "confidence": 0.35,
+        "delta": -0.001,
+        "domain": "service",
+        "id": "apple",
+        "predicted": 66.241,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.983,
+        "actual": 67.374,
+        "confidence": 0.3375,
+        "delta": 0.017,
+        "domain": "service",
+        "id": "chatgpt",
+        "predicted": 67.391,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.999,
+        "actual": 66.242,
+        "confidence": 0.35,
+        "delta": -0.001,
+        "domain": "service",
+        "id": "claude",
+        "predicted": 66.241,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.999,
+        "actual": 64.504,
+        "confidence": 0.35,
+        "delta": -0.001,
+        "domain": "service",
+        "id": "facebook",
+        "predicted": 64.503,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.999,
+        "actual": 66.242,
+        "confidence": 0.35,
+        "delta": -0.001,
+        "domain": "service",
+        "id": "google",
+        "predicted": 66.241,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.999,
+        "actual": 66.242,
+        "confidence": 0.35,
+        "delta": -0.001,
+        "domain": "service",
+        "id": "google_auth",
+        "predicted": 66.241,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.987,
+        "actual": 75.72,
+        "confidence": 0.3389,
+        "delta": 0.013,
+        "domain": "service",
+        "id": "instagram",
+        "predicted": 75.733,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.999,
+        "actual": 66.242,
+        "confidence": 0.35,
+        "delta": -0.001,
+        "domain": "service",
+        "id": "openai_auth",
+        "predicted": 66.241,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.999,
+        "actual": 66.059,
+        "confidence": 0.35,
+        "delta": -0.001,
+        "domain": "service",
+        "id": "soundcloud",
+        "predicted": 66.058,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.999,
+        "actual": 66.242,
+        "confidence": 0.35,
+        "delta": -0.001,
+        "domain": "service",
+        "id": "spotify",
+        "predicted": 66.241,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.993,
+        "actual": 77.166,
+        "confidence": 0.7943,
+        "delta": 0.007,
+        "domain": "service",
+        "id": "telegram",
+        "predicted": 77.173,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.999,
+        "actual": 66.242,
+        "confidence": 0.35,
+        "delta": -0.001,
+        "domain": "service",
+        "id": "whatsapp",
+        "predicted": 66.241,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.956,
+        "actual": 70.906,
+        "confidence": 0.3389,
+        "delta": -0.044,
+        "domain": "service",
+        "id": "youtube",
+        "predicted": 70.862,
+        "status": "MATCHED"
+      }
+    ],
+    "runtime_decision_authority": "none_accuracy_only",
+    "schema_version": "v7.ri6.prediction-accuracy-model.v1",
+    "validation_status": "VALIDATED"
+  },
+  "owners": {
+    "actual_builder": "admin_core.intelligence_workers.build_prediction_actual_rows",
+    "autonomy_gate": "admin_core.operator_execution_pipeline.autonomy_engine_trace_model / autonomous_safety_gates",
+    "confidence_model": "admin_core.intelligence_platform.prediction_accuracy_model",
+    "forecast_builder": "admin_core.intelligence_workers.build_prediction_snapshot",
+    "forecast_rows": "admin_core.intelligence_workers._prediction_forecast_rows",
+    "service_actual_builder": "admin_core.intelligence_workers.build_service_actual_rows"
+  },
+  "pending_sample": [],
+  "quality_summary": {
+    "additional_perfect_prediction_actuals_needed_for_70": 23,
+    "max_accuracy": 99.999,
+    "mean_accuracy": 98.488,
+    "mean_forecast_confidence": 0.3792,
+    "min_accuracy": 94.392,
+    "stdev_accuracy": 2.201
+  },
+  "runtime_mutation_performed": false,
+  "schema": "v7.autonomy-prediction-evidence-1.forensics.v1",
+  "snapshot_written": false,
+  "source_snapshots": {
+    "current_prediction_generated_at": "2026-06-22T10:26:49.803466+00:00",
+    "current_trust_generated_at": "2026-06-22T10:26:49.803466+00:00",
+    "rebuilt_prediction_generated_at": "2026-06-22T10:27:13.643648+00:00",
+    "trust_prediction_confidence": 37.351
+  },
+  "unmatched_forecasts_sample": [],
+  "users_moved": 0
+}

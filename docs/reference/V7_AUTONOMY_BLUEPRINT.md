@@ -46,19 +46,19 @@ Current autonomy verdict:
 
 `EVENT_DRIVEN_AUTONOMY_ARCHITECTURE_PARTIAL_NOT_READY_FOR_OPERATOR_FREE_PRODUCTION`
 
-Current production alignment caveat:
+Current production alignment:
 
-- Local/GitHub are at `0d0de83c85ed51908933afe518b4012c319de11a`.
-- Runtime is at `67fbd8506321802222c6f8ed3d34cfe406a45d8a`.
-- `tools/v7-truth-check --all --json` reports `NO-GO` because `admin_core/intelligence_workers.py` from Branch 1A has not been deployed.
-- This blueprint performed discovery and documentation only; no deploy was executed.
+- AUTONOMY.FINAL.BRANCH_1B deployed the Branch 1A blast visibility fix through the existing safe deploy owner.
+- Local/GitHub/runtime are aligned at `c4adc537b39e0335ad9cc0cf7ff9589d85860d60`.
+- `tools/v7-truth-check --all --json` reports `PASS`; `tools/v7-convergence-status --json` reports `ALIGNED`.
+- The approved snapshot-only blast recovery write completed with `blast_radius_evidence_count=11`, `blast_radius_confidence=100.0`, `trust_score=54.684`, `execution_allowed_now=false`, `apply_executed=false`, and `users_moved=0`.
 
 ## 2. Full System Inventory
 
 | Subsystem | Owner | Main files | Purpose | Status | Maturity | Certification State |
 | --- | --- | --- | --- | --- | ---: | --- |
 | Reference / ADR system | Documentation workflow | `docs/reference/V7_CANONICAL_REFERENCE.md`, `docs/reference/SYSTEM_MAP.md`, `docs/decisions/` | Preserve current truth and decisions | ACTIVE | 95% | Reference-first rule accepted |
-| Truth / Convergence | Truth owner | `tools/v7-truth-check`, `tools/v7-convergence-status`, `tools/v7_sync_lib.py` | Local/GitHub/runtime/deploy alignment | ACTIVE | 95% | Currently NO-GO due deploy-required Branch 1A runtime mismatch |
+| Truth / Convergence | Truth owner | `tools/v7-truth-check`, `tools/v7-convergence-status`, `tools/v7_sync_lib.py` | Local/GitHub/runtime/deploy alignment | ACTIVE | 100% | PASS / ALIGNED after Branch 1B deploy |
 | Observation | Runtime tools and admin read models | `tools/v7-egress-quality-compact`, `tools/v7-service-matrix-refresh-all`, `tools/v7-telegram-sentinel`, `admin_core/*_views.py` | Observe service, quality, route, runtime, capacity, state | ACTIVE | 90% | Certified as read-only sources |
 | Service Matrix | Service health owner | `tools/v7-service-matrix-refresh-all`, `tools/v7-service-matrix-test`, `admin_core/service_views.py` | Per-channel service availability/freshness | ACTIVE | 90% | Periodic refresh exists; manual targeted refresh exists |
 | Telegram Sentinel | Event source | `tools/v7-telegram-sentinel`, `systemd/v7-telegram-sentinel.*` | Fast Telegram regression/source signal | ACTIVE as source | 75% | Service uses `--no-autoswitch`; not certified as apply trigger |
@@ -78,8 +78,8 @@ Current production alignment caveat:
 | Feedback | Feedback owner | `admin_core/operator_execution_feedback.py`, execution/closure JSONL stores | Post-action outcome evidence | ACTIVE | 85% | Governed evidence consumed; active stores can be empty/rotated |
 | Learning | Intelligence/trust owners | `admin_core/intelligence_platform.py`, `admin_core/intelligence_workers.py`, `admin_core/intelligence_snapshots.py` | Convert outcomes into trust, prediction, suitability, blast confidence | ACTIVE_PARTIAL | 70% | Evidence consumed; quality insufficient |
 | Prediction | Prediction owner | `admin_core/intelligence_workers.py`, `admin_core/intelligence_platform.py` | Forecast -> actual confidence | ACTIVE_PARTIAL | 45% evidence quality | 21/21 matched; low source confidence keeps result near 37 |
-| Trust Evolution | Trust owner | `admin_core/intelligence_platform.py`, `admin_core/intelligence_workers.py` | Outcome confidence/trust aggregation | ACTIVE_PARTIAL | 59% current dry-run | Blast Branch 1A dry-run reaches 59.358 overall |
-| Blast Radius | Blast evidence owner | `admin_core/intelligence_workers.py::build_blast_radius_evidence_rows`, `blast_radius_confidence_model` | Prove small governed operations are safe | ACTIVE_FIX_READY | 95% recovery | Branch 1A closed in dry-run; deploy and snapshot-only recovery remain |
+| Trust Evolution | Trust owner | `admin_core/intelligence_platform.py`, `admin_core/intelligence_workers.py` | Outcome confidence/trust aggregation | ACTIVE_PARTIAL | 55% current production trust | Branch 1B recovered blast evidence; trust is `54.684`, still below floor |
+| Blast Radius | Blast evidence owner | `admin_core/intelligence_workers.py::build_blast_radius_evidence_rows`, `blast_radius_confidence_model` | Prove small governed operations are safe | OPERATIONALLY_CLOSED | 100% recovery | Branch 1B deployed and recovered 11 real blast rows; confidence `100.0` |
 | Shadow Autonomy | Shadow owner | `admin_core/shadow_autonomy.py`, `/api/actions/shadow-autonomy-compare` | Compare recommendations with operator decisions | ACTIVE_BUT_UNDERFED | 20% | Comparison count insufficient for autonomy |
 | Operator Comparison | Shadow comparison store | `admin_core/shadow_autonomy.py`, shadow JSONL | Earn trust from real operator agreement/override | ACTIVE_BUT_EMPTY | 20% | Current comparison evidence below floor |
 | Event Detection | Event sources plus future binding | `tools/v7-telegram-sentinel`, service matrix, quality compact, route/runtime/capacity readers | Detect regression source facts | SOURCE_ONLY | 65% | Sources exist; certified event consumer missing |
@@ -233,7 +233,7 @@ Governed execution outcomes
   -> autonomy trust input
 ```
 
-Branch 1A fixed the visibility break in dry-run:
+Branch 1A fixed the visibility break and Branch 1B deployed/recovered it in production:
 
 ```text
 full decision_records
@@ -263,7 +263,7 @@ rollback confidence
 | `systemd/v7-users-autoswitch.service` and timer | DORMANT_BY_DESIGN | Truth says autoswitch service/timer inactive and approved manual mode | Apply-capable timer exists but must not be enabled until event-driven certification passes |
 | `systemd/drafts/v7-autoswitch-planner.*` | DORMANT_DRAFT | Draft systemd files | Planner-only periodic concept exists, not production apply |
 | `systemd/drafts/v7-health.service` | PARTIAL_DRAFT | Draft loop every 30s | Health loop exists as draft/read model, not autonomy controller |
-| Rotated `.jsonl.1` feedback stores | ACTIVE_EVIDENCE_DISCONNECTED_FROM_ACTIVE_REFRESH | REMATERIALIZATION.3/4 and Branch 1A | Real governed blast evidence existed but was hidden from consumed snapshot until visibility fix |
+| Rotated `.jsonl.1` feedback stores | ACTIVE_EVIDENCE_RECOVERED | REMATERIALIZATION.3/4, Branch 1A, and Branch 1B | Real governed blast evidence is now consumed by production trust evolution after snapshot-only recovery |
 | Shadow operator comparison store | ACTIVE_BUT_UNDERFED | `comparisons_total=0` in root confidence evidence | Mechanism exists, evidence volume missing |
 | Prediction actual matching | ACTIVE_BUT_LOW_CONFIDENCE | 21/21 matched, confidence around 37 | Mechanism works; source confidence/data depth is weak |
 | Observed Capacity Shadow | APPROVED_BUT_NOT_IMPLEMENTED | ADR-011 | Concept accepted as shadow-only future model |
@@ -342,14 +342,14 @@ Sources used:
 | Rollback | 80% | Rollback model exists; live autonomous rollback not certified |
 | Feedback | 85% | Feedback/closure stores and intelligence consumption exist |
 | Learning | 70% | Trust/prediction/blast/suitability models exist; evidence quality uneven |
-| Blast-radius evidence | 95% | Branch 1A dry-run: 11 rows, 100 confidence; deploy/recovery pending |
+| Blast-radius evidence | 100% | Branch 1B production recovery: 11 rows, 100 confidence |
 | Prediction evidence | 45% | 21/21 matched but low source confidence keeps output around 37 |
 | Operator comparison | 20% | Existing endpoint/store, insufficient current comparison records |
-| Trust | 59% | Branch 1A dry-run overall trust evolution confidence 59.358 |
+| Trust | 55% | Production dry-run after recovery reports trust `54.684`, below the `70.0` floor |
 | Event detection | 65% | Event sources exist; live consumer not certified |
-| Autonomous runtime | 42% | Architecture exists; daemon inactive; floors fail |
-| Truth/deploy alignment | 75% | Local/GitHub aligned; runtime deploy required for Branch 1A |
-| Overall production autonomy | 42% | Correctly blocked; no operator-free apply should run now |
+| Autonomous runtime | 45% | Architecture exists; daemon inactive; blast blocker closed; confidence/trust/prediction floors fail |
+| Truth/deploy alignment | 100% | Local/GitHub/runtime aligned at `c4adc537`; truth/convergence pass |
+| Overall production autonomy | 45% | Correctly blocked; no operator-free apply should run now |
 
 ## 8. What Exists, What Is Partial, What Is Missing
 
@@ -377,7 +377,6 @@ Sources used:
 - Event-driven autonomy chain.
 - Operator comparison evidence.
 - Prediction confidence evidence.
-- Blast recovery in production consumed snapshot.
 - Observed Capacity Shadow.
 - Progressive rollout/canary autonomy.
 - Autonomous rollback certification.
@@ -386,8 +385,6 @@ Sources used:
 ### Missing
 
 - Certified live event consumer from regression source to governed planner trigger.
-- Production deploy of Branch 1A blast visibility fix.
-- Approved snapshot-only blast recovery write after deploy.
 - Repeated forecast -> later actual collection loop with higher confidence.
 - Sufficient real operator comparison records for current decisions.
 - Formal autonomous canary ladder after all floors pass.
@@ -399,7 +396,7 @@ Sources used:
 | --- | --- | --- |
 | Enabling `v7-users-autoswitch.timer` before gates pass | Critical | It would turn an apply-capable timer into mutation authority without event-driven certification |
 | Treating planner readiness as autonomy readiness | High | Planner can propose; autonomy also needs confidence/trust/prediction/restore/rollback/comparison |
-| Deploy drift after Branch 1A | High | Local/GitHub have the blast visibility fix; runtime does not |
+| Reintroduced deploy drift after Branch 1B | Medium | Truth/convergence are currently aligned; future logic changes must keep runtime aligned |
 | Synthetic evidence temptation | High | Would inflate confidence without real operator/outcome proof |
 | Prediction confidence misunderstanding | Medium | Matches exist; low source confidence is the blocker |
 | Operator comparison starvation | Medium | The mechanism exists but does not earn trust without real comparisons |
@@ -410,13 +407,11 @@ Sources used:
 
 ### Immediate: 0-2 Weeks
 
-1. Deploy Branch 1A blast visibility fix with approved safe deploy.
-2. Run approved snapshot-only blast recovery write using existing owner.
-3. Verify `trust_evolution_summary` shows `blast_radius_evidence_count=11` and `blast_radius_confidence=100.0`.
-4. Keep autoswitch daemon/timer inactive.
-5. Start real operator comparison collection through `/api/actions/shadow-autonomy-compare`.
-6. Start prediction evidence collection with real forecast -> later actual pairs.
-7. Build a read-only event consumer certification that binds regression source to planner preview without apply.
+1. Keep autoswitch daemon/timer inactive.
+2. Start prediction evidence collection with real forecast -> later actual pairs.
+3. Start real operator comparison collection through `/api/actions/shadow-autonomy-compare`.
+4. Build a read-only event consumer certification that binds regression source to planner preview without apply.
+5. Re-run truth/convergence after each evidence or logic change.
 
 ### Near Term: 2-8 Weeks
 
@@ -458,19 +453,19 @@ Do not delete immediately. Classify first.
 
 ## 12. Top 10 Next Actions
 
-1. Deploy `admin_core/intelligence_workers.py` Branch 1A fix through existing safe deploy.
-2. Perform approved snapshot-only blast recovery write and verify consumed trust summary.
-3. Collect at least 20 real operator comparisons for current shadow decisions.
-4. Collect time-separated prediction forecast -> later actual evidence.
-5. Certify read-only event consumer binding from sentinel/service/quality regression to planner preview.
-6. Certify restore barrier creation for a single event-triggered packet in preview mode.
-7. Certify rollback packet readiness for the same single event-triggered packet.
-8. Build an autonomy readiness dashboard row from existing gate values only.
-9. Keep `v7-users-autoswitch.service/timer` inactive until confidence/trust/prediction floors pass.
-10. Recalculate project map after blast recovery, prediction evidence, and operator comparison evidence move.
+1. Collect time-separated prediction forecast -> later actual evidence.
+2. Collect at least 20 real operator comparisons for current shadow decisions.
+3. Certify read-only event consumer binding from sentinel/service/quality regression to planner preview.
+4. Certify restore barrier creation for a single event-triggered packet in preview mode.
+5. Certify rollback packet readiness for the same single event-triggered packet.
+6. Build an autonomy readiness dashboard row from existing gate values only.
+7. Keep `v7-users-autoswitch.service/timer` inactive until confidence/trust/prediction floors pass.
+8. Recalculate project map after prediction evidence and operator comparison evidence move.
+9. Preserve Branch 1B evidence and never replace it with synthetic records.
+10. Keep blast evidence recovery in canonical reference as closed unless future evidence contradicts it.
 
 ## 13. Final Blueprint Verdict
 
 `AUTONOMY_BLUEPRINT_CREATED_EVENT_DRIVEN_AUTONOMY_PARTIAL`
 
-V7 has the right architecture shape and most owners already exist. The safe path is not to build another autonomy system. The safe path is to close the disconnected evidence loops, deploy the existing-owner blast fix, collect real operator/prediction evidence, certify event consumption read-only, and only then authorize a bounded canary apply.
+V7 has the right architecture shape and most owners already exist. Branch 1B closed the blast recovery loop in production. The safe path is not to build another autonomy system. The safe path is to collect real operator/prediction evidence, certify event consumption read-only, and only then authorize a bounded canary apply.

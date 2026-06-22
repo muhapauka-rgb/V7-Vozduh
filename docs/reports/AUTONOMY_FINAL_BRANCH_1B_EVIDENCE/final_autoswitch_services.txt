@@ -1,0 +1,61 @@
+UNIT                                           LOAD   ACTIVE     SUB     JOB   DESCRIPTION
+  sys-devices-virtual-net-v7e06a394c478.device   loaded active     plugged       /sys/devices/virtual/net/v7e06a394c478
+  sys-devices-virtual-net-v7e356a192b79.device   loaded active     plugged       /sys/devices/virtual/net/v7e356a192b79
+  sys-devices-virtual-net-v7edb0c189291.device   loaded active     plugged       /sys/devices/virtual/net/v7edb0c189291
+  sys-devices-virtual-net-v7execwg0.device       loaded active     plugged       /sys/devices/virtual/net/v7execwg0
+  sys-subsystem-net-devices-v7e06a394c478.device loaded active     plugged       /sys/subsystem/net/devices/v7e06a394c478
+  sys-subsystem-net-devices-v7e356a192b79.device loaded active     plugged       /sys/subsystem/net/devices/v7e356a192b79
+  sys-subsystem-net-devices-v7edb0c189291.device loaded active     plugged       /sys/subsystem/net/devices/v7edb0c189291
+  sys-subsystem-net-devices-v7execwg0.device     loaded active     plugged       /sys/subsystem/net/devices/v7execwg0
+  v7-admin-api.service                           loaded active     running       V7 Admin API (read-only local wrapper)
+  v7-api.service                                 loaded active     running       V7 Local API
+  v7-autoswitch-planner.service                  loaded inactive   dead          V7 autoswitch planner state refresh
+  v7-benchmark.service                           loaded active     running       V7 Benchmark Loop
+  v7-client-speed-api.service                    loaded active     running       V7 Client Speed API (VPN-only)
+  v7-direct-autosync.service                     loaded inactive   dead          V7 Direct RU automatic runtime sync
+  v7-egress-openvpn@v7edb0c189291.service        loaded active     running       V7 managed OpenVPN egress interface v7edb0c189291
+  v7-egress-quality-compact.service              loaded inactive   dead          Compact V7 egress quality history
+  v7-health.service                              loaded active     running       V7 health and state summary loop
+  v7-killswitch.service                          loaded active     exited        V7 Kill Switch Rules
+  v7-mss-clamp.service                           loaded active     exited        V7 TCP MSS clamp for client traffic
+  v7-path-guard-repair.service                   loaded inactive   dead          V7 client path safe repair guard
+  v7-path-sanity.service                         loaded inactive   dead          V7 client path sanity check
+  v7-proxy-inbound-happ-test.service             loaded active     running       V7 proxy inbound happ-test
+  v7-public-gateway.service                      loaded active     running       V7 Public Gateway (/connect and profile delivery only)
+  v7-routing-sync.service                        loaded active     exited        V7 Per-User Routing Sync
+  v7-service-matrix-refresh.service              loaded inactive   dead          V7 full service matrix refresh
+● v7-telegram-sentinel.service                   loaded activating start   start V7 fast Telegram egress sentinel
+  v7-traffic-collector.service                   loaded inactive   dead          V7 traffic accounting collector
+  v7-users-autoswitch.service                    loaded inactive   dead          V7 guarded user egress autoswitch
+  system-v7\x2degress\x2dopenvpn.slice           loaded active     active        Slice /system/v7-egress-openvpn
+  v7-autoswitch-planner.timer                    loaded active     waiting       Run V7 autoswitch planner periodically
+  v7-direct-autosync.timer                       loaded active     waiting       Run V7 Direct RU automatic runtime sync periodically
+  v7-egress-quality-compact.timer                loaded active     waiting       Run V7 egress quality compaction periodically
+  v7-path-guard-repair.timer                     loaded active     waiting       Run V7 client path safe repair guard periodically
+  v7-path-sanity.timer                           loaded active     waiting       Run V7 client path sanity check periodically
+  v7-service-matrix-refresh.timer                loaded active     waiting       Run V7 full service matrix refresh every 15 minutes
+  v7-telegram-sentinel.timer                     loaded active     running       Run V7 fast Telegram egress sentinel every 4 seconds
+  v7-traffic-collector.timer                     loaded active     waiting       Run V7 traffic accounting collector every 15 minutes
+  v7-users-autoswitch.timer                      loaded inactive   dead          Run V7 guarded user egress autoswitch periodically
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+        JOB    → Pending job for the unit.
+
+38 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+
+--- timers ---
+NEXT                            LEFT LAST                                    PASSED UNIT                            ACTIVATES
+Mon 2026-06-22 18:17:34 MSK      24s Mon 2026-06-22 18:17:04 MSK             5s ago v7-autoswitch-planner.timer     v7-autoswitch-planner.service
+Mon 2026-06-22 18:17:57 MSK      46s Mon 2026-06-22 18:07:50 MSK           9min ago v7-direct-autosync.timer        v7-direct-autosync.service
+Mon 2026-06-22 18:18:24 MSK 1min 14s Mon 2026-06-22 18:16:21 MSK            49s ago v7-path-guard-repair.timer      v7-path-guard-repair.service
+Mon 2026-06-22 18:19:36 MSK 2min 26s Mon 2026-06-22 18:14:19 MSK       2min 50s ago v7-path-sanity.timer            v7-path-sanity.service
+Mon 2026-06-22 18:21:20 MSK 4min 10s Mon 2026-06-22 18:05:47 MSK          11min ago v7-traffic-collector.timer      v7-traffic-collector.service
+Mon 2026-06-22 18:21:34 MSK 4min 24s Mon 2026-06-22 18:16:34 MSK            35s ago v7-egress-quality-compact.timer v7-egress-quality-compact.service
+Mon 2026-06-22 18:31:00 MSK    13min Mon 2026-06-22 18:15:38 MSK       1min 31s ago v7-service-matrix-refresh.timer v7-service-matrix-refresh.service
+-                                  - Mon 2026-06-22 18:17:09 MSK          914ms ago v7-telegram-sentinel.timer      v7-telegram-sentinel.service
+-                                  - Wed 2026-05-27 20:13:14 MSK 3 weeks 4 days ago v7-users-autoswitch.timer       v7-users-autoswitch.service
+
+9 timers listed.

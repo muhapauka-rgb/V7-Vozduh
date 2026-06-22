@@ -1,0 +1,994 @@
+{
+  "canonical_truth_model": {
+    "canonical_branch": "Updatesystem",
+    "canonical_deploy_source": "origin/Updatesystem plus tools/v7-safe-deploy approved package",
+    "canonical_deploy_tool": "tools/v7-safe-deploy",
+    "canonical_runtime_fingerprint": "/opt/v7/runtime-fingerprint.json",
+    "canonical_truth_gate": "tools/v7-truth-check"
+  },
+  "deploy_allowlist": {
+    "approved_local_paths": [
+      "admin/v7-admin-api",
+      "admin_core/__init__.py",
+      "admin_core/admin_registry_views.py",
+      "admin_core/diagnostic_views.py",
+      "admin_core/events.py",
+      "admin_core/explainability_adapter.py",
+      "admin_core/intelligence_platform.py",
+      "admin_core/intelligence_snapshots.py",
+      "admin_core/intelligence_workers.py",
+      "admin_core/operator_decision_surface.py",
+      "admin_core/operator_execution.py",
+      "admin_core/operator_execution_feedback.py",
+      "admin_core/operator_execution_pipeline.py",
+      "admin_core/operator_observability.py",
+      "admin_core/operator_views.py",
+      "admin_core/overview_views.py",
+      "admin_core/performance_summaries.py",
+      "admin_core/registry_readers.py",
+      "admin_core/route_reality_views.py",
+      "admin_core/route_views.py",
+      "admin_core/routing_brain.py",
+      "admin_core/routing_intelligence.py",
+      "admin_core/runtime_read_views.py",
+      "admin_core/sanitize.py",
+      "admin_core/service_views.py",
+      "admin_core/shadow_autonomy.py",
+      "admin_core/summary_builders.py",
+      "admin_core/time.py",
+      "systemd/drafts/v7-autoswitch-planner.service",
+      "tools/runtime-support/v7-audit-log",
+      "tools/v7-egress-quality-compact",
+      "tools/v7-intelligence-snapshot-refresh",
+      "tools/v7-operator-execution-packet",
+      "tools/v7-service-matrix-refresh-all",
+      "tools/v7-service-matrix-test",
+      "tools/v7-telegram-sentinel",
+      "tools/v7-truth-check",
+      "tools/v7-users-autoswitch"
+    ],
+    "documentation_extra_paths": [],
+    "duplicate_remote_paths": [],
+    "final_verdict": "PASS",
+    "missing_local_files": [],
+    "missing_required_paths": [],
+    "owner": "tools/v7_sync_lib.APPROVED_DEPLOY_FILES",
+    "required_admin_core_paths": [
+      "admin_core/__init__.py",
+      "admin_core/admin_registry_views.py",
+      "admin_core/diagnostic_views.py",
+      "admin_core/events.py",
+      "admin_core/explainability_adapter.py",
+      "admin_core/intelligence_platform.py",
+      "admin_core/intelligence_snapshots.py",
+      "admin_core/intelligence_workers.py",
+      "admin_core/operator_decision_surface.py",
+      "admin_core/operator_execution.py",
+      "admin_core/operator_execution_feedback.py",
+      "admin_core/operator_execution_pipeline.py",
+      "admin_core/operator_observability.py",
+      "admin_core/operator_views.py",
+      "admin_core/overview_views.py",
+      "admin_core/performance_summaries.py",
+      "admin_core/registry_readers.py",
+      "admin_core/route_reality_views.py",
+      "admin_core/route_views.py",
+      "admin_core/routing_brain.py",
+      "admin_core/routing_intelligence.py",
+      "admin_core/runtime_read_views.py",
+      "admin_core/sanitize.py",
+      "admin_core/service_views.py",
+      "admin_core/shadow_autonomy.py",
+      "admin_core/summary_builders.py",
+      "admin_core/time.py"
+    ],
+    "runtime_entrypoints": [
+      "tools/v7-users-autoswitch",
+      "tools/v7-intelligence-snapshot-refresh",
+      "tools/v7-service-matrix-refresh-all",
+      "tools/v7-service-matrix-test",
+      "tools/v7-egress-quality-compact",
+      "tools/v7-telegram-sentinel",
+      "admin/v7-admin-api",
+      "tools/v7-operator-execution-packet"
+    ],
+    "schema": "v7-deploy-allowlist-validation/v1"
+  },
+  "deploy_delta_mismatches": [],
+  "diagnosis": [],
+  "final_verdict": "PASS",
+  "github": {
+    "commit": "c4adc537b39e0335ad9cc0cf7ff9589d85860d60",
+    "status": "PASS"
+  },
+  "local": {
+    "commit": "c4adc537b39e0335ad9cc0cf7ff9589d85860d60",
+    "status": "PASS"
+  },
+  "production": {
+    "commit": "c4adc537b39e0335ad9cc0cf7ff9589d85860d60",
+    "runtime_access_status": "READY",
+    "runtime_truth_status": "KNOWN",
+    "status": "PASS"
+  },
+  "runtime_action_guard": {
+    "changed_files_since_production": [],
+    "deploy_delta_mismatches": [],
+    "deployable_change_classification": {
+      "classification": "NO_CHANGES",
+      "deploy_required_paths": [],
+      "deployment_required": false,
+      "docs_only_mismatch": false,
+      "docs_only_paths": [],
+      "final_verdict": "PASS",
+      "schema": "v7-deployable-change-classification/v1",
+      "unknown_paths": []
+    },
+    "deployment_required": false,
+    "diagnosis": [],
+    "docs_only_mismatch": false,
+    "final_verdict": "PASS",
+    "github_commit": "c4adc537b39e0335ad9cc0cf7ff9589d85860d60",
+    "local_commit": "c4adc537b39e0335ad9cc0cf7ff9589d85860d60",
+    "production_commit": "c4adc537b39e0335ad9cc0cf7ff9589d85860d60",
+    "reason": "local_github_production_aligned",
+    "runtime_action_safe": true,
+    "safe_next_command": "tools/v7-truth-check --all --json",
+    "schema": "v7-runtime-action-deploy-guard/v1",
+    "status": "READY_FOR_RUNTIME_ACTION"
+  },
+  "runtime_action_safe": true,
+  "runtime_action_status": "READY_FOR_RUNTIME_ACTION",
+  "safe_next_command": "tools/v7-truth-check --all --json",
+  "schema": "v7-convergence-status/v1",
+  "source_status": {
+    "blockers": [],
+    "branch": "Updatesystem",
+    "commit": "c4adc537b39e0335ad9cc0cf7ff9589d85860d60",
+    "deploy_delta": [
+      {
+        "exists": true,
+        "local_path": "admin_core/__init__.py",
+        "local_sha256": "aa5adf58a3e4e1ffa9dd481aa60ac2e66fca4d873b53c35e5b3f831a87dc67dc",
+        "matches": true,
+        "name": "admin_core/__init__.py",
+        "production_sha256": "aa5adf58a3e4e1ffa9dd481aa60ac2e66fca4d873b53c35e5b3f831a87dc67dc",
+        "remote_path": "/usr/local/bin/admin_core/__init__.py"
+      },
+      {
+        "exists": true,
+        "local_path": "tools/v7-users-autoswitch",
+        "local_sha256": "61368141028d76e4e5bf942daae4afde8bb1f7ff24375b387174178feff31c28",
+        "matches": true,
+        "name": "v7-users-autoswitch",
+        "production_sha256": "61368141028d76e4e5bf942daae4afde8bb1f7ff24375b387174178feff31c28",
+        "remote_path": "/usr/local/bin/v7-users-autoswitch"
+      },
+      {
+        "exists": true,
+        "local_path": "tools/runtime-support/v7-audit-log",
+        "local_sha256": "c2a524d4b5b2023dfd3a2923c1f3148ad647853fd00e50454d3cd7095d3f0a86",
+        "matches": true,
+        "name": "v7-audit-log",
+        "production_sha256": "c2a524d4b5b2023dfd3a2923c1f3148ad647853fd00e50454d3cd7095d3f0a86",
+        "remote_path": "/usr/local/bin/v7-audit-log"
+      },
+      {
+        "exists": true,
+        "local_path": "tools/v7-truth-check",
+        "local_sha256": "f2362d432f6bc268864ef3c175d9f8bb236c3ba8711de03de341f6c96429e2fa",
+        "matches": true,
+        "name": "v7-truth-check",
+        "production_sha256": "f2362d432f6bc268864ef3c175d9f8bb236c3ba8711de03de341f6c96429e2fa",
+        "remote_path": "/usr/local/bin/v7-truth-check"
+      },
+      {
+        "exists": true,
+        "local_path": "admin/v7-admin-api",
+        "local_sha256": "e621eff5ed5d7907400c4f764570f6f72a5105a6a6d47a7ef6315cf031a2c67d",
+        "matches": true,
+        "name": "v7-admin-api",
+        "production_sha256": "e621eff5ed5d7907400c4f764570f6f72a5105a6a6d47a7ef6315cf031a2c67d",
+        "remote_path": "/usr/local/bin/v7-admin-api"
+      },
+      {
+        "exists": true,
+        "local_path": "tools/v7-operator-execution-packet",
+        "local_sha256": "9cf153a1869c4d3d72c418d74b49300995b3f5621c78cb523eef50ad39a301bf",
+        "matches": true,
+        "name": "v7-operator-execution-packet",
+        "production_sha256": "9cf153a1869c4d3d72c418d74b49300995b3f5621c78cb523eef50ad39a301bf",
+        "remote_path": "/usr/local/bin/v7-operator-execution-packet"
+      },
+      {
+        "exists": true,
+        "local_path": "tools/v7-intelligence-snapshot-refresh",
+        "local_sha256": "d9ff95a593450a02a33b27442dc0b0229bf7c7b0bf959b924ce6a249140c5312",
+        "matches": true,
+        "name": "v7-intelligence-snapshot-refresh",
+        "production_sha256": "d9ff95a593450a02a33b27442dc0b0229bf7c7b0bf959b924ce6a249140c5312",
+        "remote_path": "/usr/local/bin/v7-intelligence-snapshot-refresh"
+      },
+      {
+        "exists": true,
+        "local_path": "tools/v7-service-matrix-refresh-all",
+        "local_sha256": "1f77e0a8dc1adee18a7b8ceb511afc12a04c33dd178b528d3824b1ef6f7df72e",
+        "matches": true,
+        "name": "v7-service-matrix-refresh-all",
+        "production_sha256": "1f77e0a8dc1adee18a7b8ceb511afc12a04c33dd178b528d3824b1ef6f7df72e",
+        "remote_path": "/usr/local/bin/v7-service-matrix-refresh-all"
+      },
+      {
+        "exists": true,
+        "local_path": "tools/v7-service-matrix-test",
+        "local_sha256": "14291feafe5eab7c0fe5b757037e95bc637e2bebb7c3fa65e6fa1692b3f3ad15",
+        "matches": true,
+        "name": "v7-service-matrix-test",
+        "production_sha256": "14291feafe5eab7c0fe5b757037e95bc637e2bebb7c3fa65e6fa1692b3f3ad15",
+        "remote_path": "/usr/local/bin/v7-service-matrix-test"
+      },
+      {
+        "exists": true,
+        "local_path": "tools/v7-egress-quality-compact",
+        "local_sha256": "62809e1bfdc3f3fdd9c4d1daefe93e721ccd5a8ef88f3a7b5f7588b4a77ef8ab",
+        "matches": true,
+        "name": "v7-egress-quality-compact",
+        "production_sha256": "62809e1bfdc3f3fdd9c4d1daefe93e721ccd5a8ef88f3a7b5f7588b4a77ef8ab",
+        "remote_path": "/usr/local/bin/v7-egress-quality-compact"
+      },
+      {
+        "exists": true,
+        "local_path": "tools/v7-telegram-sentinel",
+        "local_sha256": "3c418e828bbb2ad335f616a42d6eb578cb5de4a32fc534bdb8d693f95ac574e1",
+        "matches": true,
+        "name": "v7-telegram-sentinel",
+        "production_sha256": "3c418e828bbb2ad335f616a42d6eb578cb5de4a32fc534bdb8d693f95ac574e1",
+        "remote_path": "/usr/local/bin/v7-telegram-sentinel"
+      },
+      {
+        "exists": true,
+        "local_path": "systemd/drafts/v7-autoswitch-planner.service",
+        "local_sha256": "5fd55466dc65500028f48f00e731ea85ece1e2373356165322e548aef67f8e9b",
+        "matches": true,
+        "name": "v7-autoswitch-planner.service",
+        "production_sha256": "5fd55466dc65500028f48f00e731ea85ece1e2373356165322e548aef67f8e9b",
+        "remote_path": "/etc/systemd/system/v7-autoswitch-planner.service"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/admin_registry_views.py",
+        "local_sha256": "81b60e87338fa1de81a29317aa4ee4d3e42fefd1f4913438a8a43ef988883fe2",
+        "matches": true,
+        "name": "admin_core/admin_registry_views.py",
+        "production_sha256": "81b60e87338fa1de81a29317aa4ee4d3e42fefd1f4913438a8a43ef988883fe2",
+        "remote_path": "/usr/local/bin/admin_core/admin_registry_views.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/diagnostic_views.py",
+        "local_sha256": "969dd0ad322ca4f6b9ae6a0485103a2277ec1dbb0d210a06420492f3b8e60f7a",
+        "matches": true,
+        "name": "admin_core/diagnostic_views.py",
+        "production_sha256": "969dd0ad322ca4f6b9ae6a0485103a2277ec1dbb0d210a06420492f3b8e60f7a",
+        "remote_path": "/usr/local/bin/admin_core/diagnostic_views.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/events.py",
+        "local_sha256": "bf7ec81a9497fc2b9a41220fc49225c0213acacbcb6980d8ef223832c11b72cf",
+        "matches": true,
+        "name": "admin_core/events.py",
+        "production_sha256": "bf7ec81a9497fc2b9a41220fc49225c0213acacbcb6980d8ef223832c11b72cf",
+        "remote_path": "/usr/local/bin/admin_core/events.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/intelligence_snapshots.py",
+        "local_sha256": "331015192bc8811c7e1bd8aaaf38be69b8ec3247536aa2a92f7f117ec30c9dab",
+        "matches": true,
+        "name": "admin_core/intelligence_snapshots.py",
+        "production_sha256": "331015192bc8811c7e1bd8aaaf38be69b8ec3247536aa2a92f7f117ec30c9dab",
+        "remote_path": "/usr/local/bin/admin_core/intelligence_snapshots.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/intelligence_workers.py",
+        "local_sha256": "d4f21fdaf092f4211138ac09e45c7ee3c78ec9ca6612d44ebd3df010a9b88e80",
+        "matches": true,
+        "name": "admin_core/intelligence_workers.py",
+        "production_sha256": "d4f21fdaf092f4211138ac09e45c7ee3c78ec9ca6612d44ebd3df010a9b88e80",
+        "remote_path": "/usr/local/bin/admin_core/intelligence_workers.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/intelligence_platform.py",
+        "local_sha256": "7ea579363754c1ca19e18aceb532a824c9f646e4a91b77c5d4d85e90de3f354d",
+        "matches": true,
+        "name": "admin_core/intelligence_platform.py",
+        "production_sha256": "7ea579363754c1ca19e18aceb532a824c9f646e4a91b77c5d4d85e90de3f354d",
+        "remote_path": "/usr/local/bin/admin_core/intelligence_platform.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/explainability_adapter.py",
+        "local_sha256": "09fca715768e5bd7f389b9ecbe42107f3e71eb628a220c1879cab716592f31ce",
+        "matches": true,
+        "name": "admin_core/explainability_adapter.py",
+        "production_sha256": "09fca715768e5bd7f389b9ecbe42107f3e71eb628a220c1879cab716592f31ce",
+        "remote_path": "/usr/local/bin/admin_core/explainability_adapter.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/operator_execution.py",
+        "local_sha256": "96d27743ff51ee8d783a1e3458a8330d0821848b1267af1447373a0ff5f7d462",
+        "matches": true,
+        "name": "admin_core/operator_execution.py",
+        "production_sha256": "96d27743ff51ee8d783a1e3458a8330d0821848b1267af1447373a0ff5f7d462",
+        "remote_path": "/usr/local/bin/admin_core/operator_execution.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/operator_execution_feedback.py",
+        "local_sha256": "69fe3721bf465359db8d47b4f49dc7a7104c5d1b876a64a84ce0b8aef549bbc9",
+        "matches": true,
+        "name": "admin_core/operator_execution_feedback.py",
+        "production_sha256": "69fe3721bf465359db8d47b4f49dc7a7104c5d1b876a64a84ce0b8aef549bbc9",
+        "remote_path": "/usr/local/bin/admin_core/operator_execution_feedback.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/operator_execution_pipeline.py",
+        "local_sha256": "1ec3e3fb843c66a830d422dbba7710e0f9f60067a10f475cab33a686b41e9353",
+        "matches": true,
+        "name": "admin_core/operator_execution_pipeline.py",
+        "production_sha256": "1ec3e3fb843c66a830d422dbba7710e0f9f60067a10f475cab33a686b41e9353",
+        "remote_path": "/usr/local/bin/admin_core/operator_execution_pipeline.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/operator_observability.py",
+        "local_sha256": "2583d4de1cd1c94cfa81136496ffa5a0a003faf74424cbe55240bb89dbe730d9",
+        "matches": true,
+        "name": "admin_core/operator_observability.py",
+        "production_sha256": "2583d4de1cd1c94cfa81136496ffa5a0a003faf74424cbe55240bb89dbe730d9",
+        "remote_path": "/usr/local/bin/admin_core/operator_observability.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/operator_decision_surface.py",
+        "local_sha256": "a1128832fb1d0d71832df406eb77b60a2edc7fde7e74e7af5ba6d167d69f18af",
+        "matches": true,
+        "name": "admin_core/operator_decision_surface.py",
+        "production_sha256": "a1128832fb1d0d71832df406eb77b60a2edc7fde7e74e7af5ba6d167d69f18af",
+        "remote_path": "/usr/local/bin/admin_core/operator_decision_surface.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/shadow_autonomy.py",
+        "local_sha256": "69a10ba587f6ff0a7d80c8c7aab5ef6272f7e48069cc482156c15e7cd8244c69",
+        "matches": true,
+        "name": "admin_core/shadow_autonomy.py",
+        "production_sha256": "69a10ba587f6ff0a7d80c8c7aab5ef6272f7e48069cc482156c15e7cd8244c69",
+        "remote_path": "/usr/local/bin/admin_core/shadow_autonomy.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/operator_views.py",
+        "local_sha256": "11d96dcde4ea133ee0b3b4db73149f77670eee5524b10072089102465fc7dbe6",
+        "matches": true,
+        "name": "admin_core/operator_views.py",
+        "production_sha256": "11d96dcde4ea133ee0b3b4db73149f77670eee5524b10072089102465fc7dbe6",
+        "remote_path": "/usr/local/bin/admin_core/operator_views.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/overview_views.py",
+        "local_sha256": "e028e63614bfe32348c669c8a5eeafb7d6f365e21e1dbf5df86f7e7d4a569c6b",
+        "matches": true,
+        "name": "admin_core/overview_views.py",
+        "production_sha256": "e028e63614bfe32348c669c8a5eeafb7d6f365e21e1dbf5df86f7e7d4a569c6b",
+        "remote_path": "/usr/local/bin/admin_core/overview_views.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/performance_summaries.py",
+        "local_sha256": "c306cf847873f42ebda92fb5bc84e76a6bf3e1840567d1d9d72e1ff1a9c1366f",
+        "matches": true,
+        "name": "admin_core/performance_summaries.py",
+        "production_sha256": "c306cf847873f42ebda92fb5bc84e76a6bf3e1840567d1d9d72e1ff1a9c1366f",
+        "remote_path": "/usr/local/bin/admin_core/performance_summaries.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/registry_readers.py",
+        "local_sha256": "f9e85012f989d19c6f67cdf02c8d17a0b492da912bf4597abaeb3ba1c2037166",
+        "matches": true,
+        "name": "admin_core/registry_readers.py",
+        "production_sha256": "f9e85012f989d19c6f67cdf02c8d17a0b492da912bf4597abaeb3ba1c2037166",
+        "remote_path": "/usr/local/bin/admin_core/registry_readers.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/route_reality_views.py",
+        "local_sha256": "53b5268786087d59773bd91745b974f612ef132f59fe663f526b9dea956057d6",
+        "matches": true,
+        "name": "admin_core/route_reality_views.py",
+        "production_sha256": "53b5268786087d59773bd91745b974f612ef132f59fe663f526b9dea956057d6",
+        "remote_path": "/usr/local/bin/admin_core/route_reality_views.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/route_views.py",
+        "local_sha256": "b0499c43c265e30411d47b32d02c01ff8be76fd62db97961a36a5cf4d08be102",
+        "matches": true,
+        "name": "admin_core/route_views.py",
+        "production_sha256": "b0499c43c265e30411d47b32d02c01ff8be76fd62db97961a36a5cf4d08be102",
+        "remote_path": "/usr/local/bin/admin_core/route_views.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/routing_brain.py",
+        "local_sha256": "dd5ddddf383c84b8528585744c43aa69cd05f0c385ac3a87ba75ad0d8493b779",
+        "matches": true,
+        "name": "admin_core/routing_brain.py",
+        "production_sha256": "dd5ddddf383c84b8528585744c43aa69cd05f0c385ac3a87ba75ad0d8493b779",
+        "remote_path": "/usr/local/bin/admin_core/routing_brain.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/routing_intelligence.py",
+        "local_sha256": "239ab33baaabd1081a750a75437ffcffd958c607311078e693a617a5dd467a87",
+        "matches": true,
+        "name": "admin_core/routing_intelligence.py",
+        "production_sha256": "239ab33baaabd1081a750a75437ffcffd958c607311078e693a617a5dd467a87",
+        "remote_path": "/usr/local/bin/admin_core/routing_intelligence.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/runtime_read_views.py",
+        "local_sha256": "c386796f1755f4ed89d87ab1d6be63d436002ceb4a5cd3179af97e9d329bf452",
+        "matches": true,
+        "name": "admin_core/runtime_read_views.py",
+        "production_sha256": "c386796f1755f4ed89d87ab1d6be63d436002ceb4a5cd3179af97e9d329bf452",
+        "remote_path": "/usr/local/bin/admin_core/runtime_read_views.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/sanitize.py",
+        "local_sha256": "c0fda99cb0933105b1fe47e2a95e3b105ea15190f60ba1c6acc1161aa0d1e5a9",
+        "matches": true,
+        "name": "admin_core/sanitize.py",
+        "production_sha256": "c0fda99cb0933105b1fe47e2a95e3b105ea15190f60ba1c6acc1161aa0d1e5a9",
+        "remote_path": "/usr/local/bin/admin_core/sanitize.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/service_views.py",
+        "local_sha256": "0bf5a79dfcd8f788e9e82d96ea86d6e35d92ec28cb0d9f8b879aa65c30abbb10",
+        "matches": true,
+        "name": "admin_core/service_views.py",
+        "production_sha256": "0bf5a79dfcd8f788e9e82d96ea86d6e35d92ec28cb0d9f8b879aa65c30abbb10",
+        "remote_path": "/usr/local/bin/admin_core/service_views.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/summary_builders.py",
+        "local_sha256": "559624a67574a88efc583ebd99a31c776625ae198c6b22725341f4fcae7fda53",
+        "matches": true,
+        "name": "admin_core/summary_builders.py",
+        "production_sha256": "559624a67574a88efc583ebd99a31c776625ae198c6b22725341f4fcae7fda53",
+        "remote_path": "/usr/local/bin/admin_core/summary_builders.py"
+      },
+      {
+        "exists": true,
+        "local_path": "admin_core/time.py",
+        "local_sha256": "cfb3ac082ea9569298ed8b5565f2bde704672267d6dc6914b68e8d16023f86b6",
+        "matches": true,
+        "name": "admin_core/time.py",
+        "production_sha256": "cfb3ac082ea9569298ed8b5565f2bde704672267d6dc6914b68e8d16023f86b6",
+        "remote_path": "/usr/local/bin/admin_core/time.py"
+      }
+    ],
+    "final_verdict": "PASS",
+    "local_truth": {
+      "blockers": [],
+      "canonical_branch": "Updatesystem",
+      "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+      "canonical_workspace": "/Users/ponch/Documents/New project",
+      "convergence_status": "LOCAL_ALIGNED",
+      "current_branch": "Updatesystem",
+      "current_commit": "c4adc537b39e0335ad9cc0cf7ff9589d85860d60",
+      "current_workspace": "/Users/ponch/Documents/New project",
+      "final_verdict": "PASS",
+      "git_status_short": "M docs/reference/SYSTEM_MAP.md\n M docs/reference/V7_AUTONOMY_BLUEPRINT.md\n M docs/reference/V7_CANONICAL_REFERENCE.md\n M docs/reference/V7_PROJECT_MAP.md\n?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_FINAL_BRANCH_1B_DEPLOY_AND_RECOVERY_REPORT.md\n?? docs/reports/AUTONOMY_FINAL_BRANCH_1B_EVIDENCE/",
+      "github": {},
+      "local": {
+        "blockers": [],
+        "canonical_branch": "Updatesystem",
+        "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+        "canonical_workspace": "/Users/ponch/Documents/New project",
+        "checks": {
+          "branch_matches": true,
+          "remote_matches": true,
+          "workspace_clean": false,
+          "workspace_has_no_blocking_dirtiness": true,
+          "workspace_matches": true
+        },
+        "convergence_status": "LOCAL_ALIGNED",
+        "current_branch": "Updatesystem",
+        "current_commit": "c4adc537b39e0335ad9cc0cf7ff9589d85860d60",
+        "current_workspace": "/Users/ponch/Documents/New project",
+        "dirty_classification": {
+          "blocking": false,
+          "blocking_paths": [],
+          "clean": false,
+          "counts": {
+            "documentation_only": 11,
+            "runtime_critical": 0,
+            "runtime_relevant": 0,
+            "unknown": 0
+          },
+          "documentation_only": true,
+          "entries": [
+            {
+              "category": "documentation_only",
+              "path": "docs/reference/SYSTEM_MAP.md",
+              "status": "M"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reference/V7_AUTONOMY_BLUEPRINT.md",
+              "status": "M"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reference/V7_CANONICAL_REFERENCE.md",
+              "status": "M"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reference/V7_PROJECT_MAP.md",
+              "status": "M"
+            },
+            {
+              "category": "documentation_only",
+              "path": "POOL2_EVIDENCE/",
+              "status": "??"
+            },
+            {
+              "category": "documentation_only",
+              "path": "POOL2_STABILITY_WINDOW_RECHECK_REPORT.md",
+              "status": "??"
+            },
+            {
+              "category": "documentation_only",
+              "path": "V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md",
+              "status": "??"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reference/V7_PROJECT_MAP.rtfd/",
+              "status": "??"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reference/V7_PROJECT_MAP_VISUAL.txt",
+              "status": "??"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reports/AUTONOMY_FINAL_BRANCH_1B_DEPLOY_AND_RECOVERY_REPORT.md",
+              "status": "??"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reports/AUTONOMY_FINAL_BRANCH_1B_EVIDENCE/",
+              "status": "??"
+            }
+          ],
+          "info_paths": [
+            "docs/reference/SYSTEM_MAP.md",
+            "docs/reference/V7_AUTONOMY_BLUEPRINT.md",
+            "docs/reference/V7_CANONICAL_REFERENCE.md",
+            "docs/reference/V7_PROJECT_MAP.md",
+            "POOL2_EVIDENCE/",
+            "POOL2_STABILITY_WINDOW_RECHECK_REPORT.md",
+            "V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md",
+            "docs/reference/V7_PROJECT_MAP.rtfd/",
+            "docs/reference/V7_PROJECT_MAP_VISUAL.txt",
+            "docs/reports/AUTONOMY_FINAL_BRANCH_1B_DEPLOY_AND_RECOVERY_REPORT.md",
+            "docs/reports/AUTONOMY_FINAL_BRANCH_1B_EVIDENCE/"
+          ],
+          "warning": false,
+          "warning_paths": []
+        },
+        "final_verdict": "PASS",
+        "git_status_short": "M docs/reference/SYSTEM_MAP.md\n M docs/reference/V7_AUTONOMY_BLUEPRINT.md\n M docs/reference/V7_CANONICAL_REFERENCE.md\n M docs/reference/V7_PROJECT_MAP.md\n?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_FINAL_BRANCH_1B_DEPLOY_AND_RECOVERY_REPORT.md\n?? docs/reports/AUTONOMY_FINAL_BRANCH_1B_EVIDENCE/",
+        "origin_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+        "warnings": [
+          "documentation_dirty_ignored"
+        ],
+        "worktree_list": "worktree /Users/ponch/Documents/New project\nHEAD c4adc537b39e0335ad9cc0cf7ff9589d85860d60\nbranch refs/heads/Updatesystem\n\nworktree /private/tmp/v7-convergence-c\nHEAD c40cae13298594b7ad7040df4b19306c4e2c29d4\nbranch refs/heads/v7-next\nprunable gitdir file points to non-existent location\n\nworktree /private/tmp/v7-vozduh-main\nHEAD 593619d494e215d11fd826086593527a4a555690\ndetached\nprunable gitdir file points to non-existent location"
+      },
+      "mode": "local",
+      "remote_branch_commit": "NOT_CHECKED",
+      "runtime": {},
+      "runtime_access_status": "NOT_CHECKED",
+      "runtime_truth_status": "NOT_CHECKED",
+      "schema": "v7-truth-check/v1",
+      "state_truth_status": "NOT_CHECKED",
+      "warnings": [
+        "documentation_dirty_ignored"
+      ]
+    },
+    "remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+    "remote_commit": "c4adc537b39e0335ad9cc0cf7ff9589d85860d60",
+    "runtime_commit": "c4adc537b39e0335ad9cc0cf7ff9589d85860d60",
+    "schema": "v7-sync-status/v1",
+    "status": "SYNCED",
+    "tool": "v7-sync-status",
+    "truth_check_all": {
+      "blockers": [],
+      "canonical_branch": "Updatesystem",
+      "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+      "canonical_workspace": "/Users/ponch/Documents/New project",
+      "convergence_status": "FULLY_ALIGNED",
+      "current_branch": "Updatesystem",
+      "current_commit": "c4adc537b39e0335ad9cc0cf7ff9589d85860d60",
+      "current_workspace": "/Users/ponch/Documents/New project",
+      "final_verdict": "PASS",
+      "git_status_short": "M docs/reference/SYSTEM_MAP.md\n M docs/reference/V7_AUTONOMY_BLUEPRINT.md\n M docs/reference/V7_CANONICAL_REFERENCE.md\n M docs/reference/V7_PROJECT_MAP.md\n?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_FINAL_BRANCH_1B_DEPLOY_AND_RECOVERY_REPORT.md\n?? docs/reports/AUTONOMY_FINAL_BRANCH_1B_EVIDENCE/",
+      "github": {
+        "blockers": [],
+        "canonical_branch": "Updatesystem",
+        "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+        "convergence_status": "GITHUB_ALIGNED",
+        "final_verdict": "PASS",
+        "local_commit": "c4adc537b39e0335ad9cc0cf7ff9589d85860d60",
+        "remote_branch_commit": "c4adc537b39e0335ad9cc0cf7ff9589d85860d60",
+        "remote_read_status": "OK"
+      },
+      "local": {
+        "blockers": [],
+        "canonical_branch": "Updatesystem",
+        "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+        "canonical_workspace": "/Users/ponch/Documents/New project",
+        "checks": {
+          "branch_matches": true,
+          "remote_matches": true,
+          "workspace_clean": false,
+          "workspace_has_no_blocking_dirtiness": true,
+          "workspace_matches": true
+        },
+        "convergence_status": "LOCAL_ALIGNED",
+        "current_branch": "Updatesystem",
+        "current_commit": "c4adc537b39e0335ad9cc0cf7ff9589d85860d60",
+        "current_workspace": "/Users/ponch/Documents/New project",
+        "dirty_classification": {
+          "blocking": false,
+          "blocking_paths": [],
+          "clean": false,
+          "counts": {
+            "documentation_only": 11,
+            "runtime_critical": 0,
+            "runtime_relevant": 0,
+            "unknown": 0
+          },
+          "documentation_only": true,
+          "entries": [
+            {
+              "category": "documentation_only",
+              "path": "docs/reference/SYSTEM_MAP.md",
+              "status": "M"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reference/V7_AUTONOMY_BLUEPRINT.md",
+              "status": "M"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reference/V7_CANONICAL_REFERENCE.md",
+              "status": "M"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reference/V7_PROJECT_MAP.md",
+              "status": "M"
+            },
+            {
+              "category": "documentation_only",
+              "path": "POOL2_EVIDENCE/",
+              "status": "??"
+            },
+            {
+              "category": "documentation_only",
+              "path": "POOL2_STABILITY_WINDOW_RECHECK_REPORT.md",
+              "status": "??"
+            },
+            {
+              "category": "documentation_only",
+              "path": "V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md",
+              "status": "??"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reference/V7_PROJECT_MAP.rtfd/",
+              "status": "??"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reference/V7_PROJECT_MAP_VISUAL.txt",
+              "status": "??"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reports/AUTONOMY_FINAL_BRANCH_1B_DEPLOY_AND_RECOVERY_REPORT.md",
+              "status": "??"
+            },
+            {
+              "category": "documentation_only",
+              "path": "docs/reports/AUTONOMY_FINAL_BRANCH_1B_EVIDENCE/",
+              "status": "??"
+            }
+          ],
+          "info_paths": [
+            "docs/reference/SYSTEM_MAP.md",
+            "docs/reference/V7_AUTONOMY_BLUEPRINT.md",
+            "docs/reference/V7_CANONICAL_REFERENCE.md",
+            "docs/reference/V7_PROJECT_MAP.md",
+            "POOL2_EVIDENCE/",
+            "POOL2_STABILITY_WINDOW_RECHECK_REPORT.md",
+            "V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md",
+            "docs/reference/V7_PROJECT_MAP.rtfd/",
+            "docs/reference/V7_PROJECT_MAP_VISUAL.txt",
+            "docs/reports/AUTONOMY_FINAL_BRANCH_1B_DEPLOY_AND_RECOVERY_REPORT.md",
+            "docs/reports/AUTONOMY_FINAL_BRANCH_1B_EVIDENCE/"
+          ],
+          "warning": false,
+          "warning_paths": []
+        },
+        "final_verdict": "PASS",
+        "git_status_short": "M docs/reference/SYSTEM_MAP.md\n M docs/reference/V7_AUTONOMY_BLUEPRINT.md\n M docs/reference/V7_CANONICAL_REFERENCE.md\n M docs/reference/V7_PROJECT_MAP.md\n?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_FINAL_BRANCH_1B_DEPLOY_AND_RECOVERY_REPORT.md\n?? docs/reports/AUTONOMY_FINAL_BRANCH_1B_EVIDENCE/",
+        "origin_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+        "warnings": [
+          "documentation_dirty_ignored"
+        ],
+        "worktree_list": "worktree /Users/ponch/Documents/New project\nHEAD c4adc537b39e0335ad9cc0cf7ff9589d85860d60\nbranch refs/heads/Updatesystem\n\nworktree /private/tmp/v7-convergence-c\nHEAD c40cae13298594b7ad7040df4b19306c4e2c29d4\nbranch refs/heads/v7-next\nprunable gitdir file points to non-existent location\n\nworktree /private/tmp/v7-vozduh-main\nHEAD 593619d494e215d11fd826086593527a4a555690\ndetached\nprunable gitdir file points to non-existent location"
+      },
+      "mode": "all",
+      "remote_branch_commit": "c4adc537b39e0335ad9cc0cf7ff9589d85860d60",
+      "runtime": {
+        "allowed_readonly_commands": [
+          [
+            "hostname"
+          ],
+          [
+            "date",
+            "-Is"
+          ],
+          [
+            "pwd"
+          ],
+          [
+            "ls",
+            "-la",
+            "/opt/v7"
+          ],
+          [
+            "git",
+            "-C",
+            "/opt/v7",
+            "branch",
+            "--show-current"
+          ],
+          [
+            "git",
+            "-C",
+            "/opt/v7",
+            "rev-parse",
+            "HEAD"
+          ],
+          [
+            "git",
+            "-C",
+            "/opt/v7",
+            "status",
+            "--short"
+          ],
+          [
+            "sha256sum",
+            "/usr/local/bin/v7-users-autoswitch"
+          ],
+          [
+            "sha256sum",
+            "/usr/local/bin/v7-audit-log"
+          ],
+          [
+            "sha256sum",
+            "/usr/local/bin/v7-admin-api"
+          ],
+          [
+            "sha256sum",
+            "/usr/local/bin/v7-intelligence-snapshot-refresh"
+          ],
+          [
+            "sha256sum",
+            "/usr/local/bin/v7-service-matrix-refresh-all"
+          ],
+          [
+            "sha256sum",
+            "/usr/local/bin/v7-service-matrix-test"
+          ],
+          [
+            "sha256sum",
+            "/usr/local/bin/v7-egress-quality-compact"
+          ],
+          [
+            "systemctl",
+            "status",
+            "v7-users-autoswitch.service",
+            "--no-pager"
+          ],
+          [
+            "systemctl",
+            "status",
+            "v7-users-autoswitch.timer",
+            "--no-pager"
+          ],
+          [
+            "systemctl",
+            "status",
+            "v7-admin-api.service",
+            "--no-pager"
+          ],
+          [
+            "systemctl",
+            "status",
+            "v7-intelligence-snapshot-refresh.service",
+            "--no-pager"
+          ],
+          [
+            "systemctl",
+            "status",
+            "v7-intelligence-snapshot-refresh.timer",
+            "--no-pager"
+          ],
+          [
+            "test",
+            "-x",
+            "/usr/local/bin/v7-users-autoswitch"
+          ],
+          [
+            "test",
+            "-x",
+            "/usr/local/bin/v7-audit-log"
+          ],
+          [
+            "test",
+            "-x",
+            "/usr/local/bin/v7-admin-api"
+          ],
+          [
+            "test",
+            "-x",
+            "/usr/local/bin/v7-intelligence-snapshot-refresh"
+          ],
+          [
+            "test",
+            "-x",
+            "/usr/local/bin/v7-service-matrix-refresh-all"
+          ],
+          [
+            "test",
+            "-x",
+            "/usr/local/bin/v7-service-matrix-test"
+          ],
+          [
+            "test",
+            "-x",
+            "/usr/local/bin/v7-egress-quality-compact"
+          ],
+          [
+            "/usr/local/bin/v7-users-autoswitch",
+            "--pretty"
+          ],
+          [
+            "ls",
+            "-la",
+            "/opt/v7/egress/state"
+          ],
+          [
+            "ls",
+            "-la",
+            "/opt/v7/egress/state/intelligence"
+          ],
+          [
+            "ls",
+            "-la",
+            "/opt/v7/audit"
+          ],
+          [
+            "ls",
+            "-la",
+            "/opt/v7/events"
+          ],
+          [
+            "ls",
+            "-la",
+            "/opt/v7/admin"
+          ]
+        ],
+        "blockers": [],
+        "commit_mismatch_classification": {},
+        "convergence_status": "RUNTIME_ALIGNED",
+        "deployment_model": "copied_binaries_from_safe_sync_manifest",
+        "derived": {
+          "admin_service_active": true,
+          "audit_path_available": true,
+          "autoswitch_scheduler_active": false,
+          "autoswitch_service_active": false,
+          "binary_hashes_known": true,
+          "binary_hashes_match_authoritative": true,
+          "closure_path_available": true,
+          "deploy_branch": "Updatesystem",
+          "deploy_commit": "c4adc537b39e0335ad9cc0cf7ff9589d85860d60",
+          "deploy_id": "deploy-z8-14-Updatesystem-c4adc53-20260622T221030",
+          "deployment_model": "copied_binaries_from_safe_sync_manifest",
+          "execution_store_available": true,
+          "operation_wiring_present": true,
+          "restore_barrier_known": true,
+          "runtime_branch": "",
+          "runtime_commit": "",
+          "runtime_fingerprint_known": true,
+          "runtime_identity_model": "copied_binaries_from_safe_sync_manifest",
+          "runtime_provenance_known": true,
+          "runtime_root_is_git_checkout": false,
+          "scheduler_inactive_approved_manual_mode": true,
+          "scheduler_truth_known": true,
+          "service_inactive_explained": true,
+          "service_status_known": true,
+          "snapshot_refresh_cli_available": true,
+          "snapshot_refresh_mechanism_known": true,
+          "snapshot_required_files_known": true,
+          "snapshot_root_known": true,
+          "state_truth_known": true
+        },
+        "expected_binaries": [
+          "/usr/local/bin/v7-users-autoswitch",
+          "/usr/local/bin/v7-audit-log"
+        ],
+        "expected_services": [
+          "v7-users-autoswitch.service",
+          "v7-users-autoswitch.timer"
+        ],
+        "final_verdict": "PASS",
+        "local_commit": "c4adc537b39e0335ad9cc0cf7ff9589d85860d60",
+        "missing_commands": [],
+        "runtime_access_status": "READY",
+        "runtime_branch": "Updatesystem",
+        "runtime_commit": "c4adc537b39e0335ad9cc0cf7ff9589d85860d60",
+        "runtime_root": "/opt/v7",
+        "runtime_snapshot_path": ".v7/runtime_convergence_snapshot.json",
+        "runtime_snapshot_schema": "v7-runtime-truth-snapshot/v1",
+        "runtime_truth_status": "KNOWN",
+        "state_root": "/opt/v7/egress/state",
+        "state_truth_status": "KNOWN",
+        "unknown_commands": [],
+        "warnings": []
+      },
+      "runtime_access_status": "READY",
+      "runtime_truth_status": "KNOWN",
+      "schema": "v7-truth-check/v1",
+      "state_truth_status": "KNOWN",
+      "warnings": [
+        "documentation_dirty_ignored"
+      ]
+    },
+    "warnings": [
+      "documentation_dirty_ignored"
+    ]
+  },
+  "status": "ALIGNED",
+  "tool": "v7-convergence-status"
+}

@@ -1,0 +1,66 @@
+{
+  "after_api": {
+    "apply_executed": false,
+    "candidate_count": 1,
+    "components": {
+      "blast_radius_confidence": 100.0,
+      "decision_confidence": 50.0,
+      "prediction_confidence": 37.312,
+      "rollback_confidence": 100.0,
+      "service_confidence": 39.225,
+      "suitability_confidence": 29.51
+    },
+    "confidence_score": 39.578,
+    "execution_allowed_now": false,
+    "hard_stop_blockers": [
+      "confidence_too_low",
+      "trust_too_low",
+      "prediction_confidence_too_low"
+    ],
+    "prediction_confidence": 37.312,
+    "rollback_confidence": 100.0,
+    "single_blocker": "confidence_too_low",
+    "trust_score": 54.684,
+    "users_moved": 0
+  },
+  "after_snapshot": {
+    "blast_radius_confidence": 100.0,
+    "blast_radius_evidence_count": 11,
+    "blast_radius_source_record_count": 3372,
+    "blast_summary_confidence": 0.9905,
+    "bounded_decision_count": 1000,
+    "overall_confidence": 59.341,
+    "successful_small_operations": 9,
+    "unsafe_large_operations": 0
+  },
+  "before_api": {
+    "apply_executed": false,
+    "candidate_count": 1,
+    "components": {
+      "blast_radius_confidence": 0.0,
+      "decision_confidence": 50.0,
+      "prediction_confidence": 37.312,
+      "rollback_confidence": 100.0,
+      "service_confidence": 39.225,
+      "suitability_confidence": 29.51
+    },
+    "confidence_score": 39.578,
+    "execution_allowed_now": false,
+    "hard_stop_blockers": [
+      "confidence_too_low",
+      "trust_too_low",
+      "prediction_confidence_too_low"
+    ],
+    "prediction_confidence": 37.312,
+    "rollback_confidence": 100.0,
+    "single_blocker": "confidence_too_low",
+    "trust_score": 39.578,
+    "users_moved": 0
+  },
+  "before_snapshot": {
+    "blast_radius_confidence_component": 0.0,
+    "blast_radius_evidence_count": 0.0,
+    "blast_summary_confidence": 0.9905,
+    "trust_summary_score": 70.0
+  }
+}

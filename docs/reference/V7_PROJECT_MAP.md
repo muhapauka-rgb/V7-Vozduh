@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-22
-Last changed by: `V7.AUTONOMY.BLUEPRINT.1`
+Last changed by: `AUTONOMY.FINAL.BRANCH_1B`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -23,11 +23,10 @@ Current roadmap position:
 
 `AUTONOMY_EVIDENCE_AND_EVENT_CONSUMER_CLOSURE`
 
-The blueprint view keeps channel recovery visible, but the project-level autonomy bottleneck is now broader and more precise:
+The blueprint view keeps channel recovery visible, but the project-level autonomy bottleneck is now broader and more precise. Branch 1B closed the blast recovery branch in production:
 
 ```text
-Deploy Branch 1A blast visibility fix
-  -> approved snapshot-only blast recovery
+Blast recovery operationally closed
   -> prediction evidence collection
   -> operator comparison collection
   -> read-only event consumer certification
@@ -63,6 +62,10 @@ Deploy Branch 1A blast visibility fix
 | Operator Comparison Evidence | 20% | 20% | 0% | `V7.AUTONOMY.BLUEPRINT.1` | Existing comparison path is confirmed, but evidence volume remains insufficient. |
 | Prediction Evidence Quality | 45% | 45% | 0% | `V7.AUTONOMY.BLUEPRINT.1` | Blueprint confirms the blocker is low source confidence, not missing matches. |
 | Truth / Deploy Alignment | 100% | 75% | -25% | `V7.AUTONOMY.BLUEPRINT.1` | Local/GitHub are aligned at Branch 1A, but runtime is still at `67fbd850` and needs deploy of `admin_core/intelligence_workers.py`. |
+| Blast Recovery | 95% | 100% | +5% | `AUTONOMY.FINAL.BRANCH_1B` | Branch 1A visibility fix was deployed and the approved snapshot-only recovery wrote production snapshots from real rotated stores. |
+| Autonomous Trust | 59% | 55% | -4% | `AUTONOMY.FINAL.BRANCH_1B` | Production trust gate now reads real recovered blast evidence and reports trust `54.684`; it improved from `39.578` but remains below the `70.0` floor. |
+| Production Autonomy | 42% | 45% | +3% | `AUTONOMY.FINAL.BRANCH_1B` | Blast is no longer a blocker, but confidence, trust, and prediction confidence still block apply. |
+| Truth / Deploy Alignment | 75% | 100% | +25% | `AUTONOMY.FINAL.BRANCH_1B` | Runtime, GitHub, and local are aligned at `c4adc537`; truth and convergence pass. |
 
 ## Stable Areas
 
@@ -80,12 +83,24 @@ Deploy Branch 1A blast visibility fix
 | P1 | `CHANNEL_RECOVERY_AWG3_AWG0_STABILITY_REVIEW` | `awg3` has 8 assigned users but is currently not eligible; `awg0` is close to recovery but still below stability floor. |
 | P2 | Decide whether `awg3` recovers naturally or needs a governed failover review | POOL.2 found 8 failover candidates but did not execute movement by design. |
 | P3 | Continue pool observation only after recovery/failover pressure is resolved | Current state is not clean equilibrium because planner disagrees with keeping `awg3` users there. |
-| P1 | `AUTONOMY.FINAL.BRANCH_1B_DEPLOY_VISIBILITY_FIX_AND_SNAPSHOT_RECOVERY_APPROVAL` | Branch 1A closed the blast visibility gap in dry-run; production runtime still needs the approved deploy and snapshot-only recovery step. |
 | P1 | `AUTONOMY.PREDICTION.EVIDENCE.2_REAL_OUTCOME_CONFIDENCE_COLLECTION` | Prediction matching works, but source confidence is too low for the `70.0` floor. |
 | P1 | `OPERATOR_COMPARISON_EVIDENCE_COLLECTION` | Shadow comparison path exists, but current comparison evidence remains below floor. |
 | P1 | `EVENT_CONSUMER_READ_ONLY_CERTIFICATION` | Event sources exist, but production event-driven consumer is not certified. |
 
 ## Changelog
+
+### 2026-06-22 — AUTONOMY.FINAL.BRANCH_1B Deploy And Snapshot Recovery
+
+- Deployed the Branch 1A blast visibility fix through `tools/v7-safe-deploy` with safety manifest values `autoswitch_apply_executed=false`, `routing_mutation_executed=false`, and `user_movement_executed=false`.
+- Restored production blast-radius visibility through the existing `v7-intelligence-snapshot-refresh` owner against real rotated `.jsonl.1` stores.
+- Final production metrics: `blast_radius_evidence_count=11`, `blast_radius_confidence=100.0`, `trust_score=54.684`, `confidence_score=39.578`, `prediction_confidence=37.312`, `rollback_confidence=100.0`, `execution_allowed_now=false`, and `users_moved=0`.
+- Final truth/convergence: `PASS` / `ALIGNED` at `c4adc537b39e0335ad9cc0cf7ff9589d85860d60`.
+- Updated changed-area percentages:
+  - Blast Recovery: `95% -> 100%`
+  - Autonomous Trust: `59% -> 55%`
+  - Production Autonomy: `42% -> 45%`
+  - Truth / Deploy Alignment: `75% -> 100%`
+- Recorded next phase: `AUTONOMY.PREDICTION.EVIDENCE.2_REAL_OUTCOME_CONFIDENCE_COLLECTION`.
 
 ### 2026-06-22 — V7.AUTONOMY.BLUEPRINT.1 Full System Map And Gap Plan
 

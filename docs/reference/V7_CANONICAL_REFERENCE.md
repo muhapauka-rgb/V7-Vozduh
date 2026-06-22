@@ -229,8 +229,13 @@ Stable conclusions:
 36. Production-data dry-run with the patched existing owner and real rotated `.jsonl.1` inputs produced `blast_radius_evidence_count=11`, `blast_radius_confidence=100.0`, `trust_evolution_overall_confidence=59.358`, `prediction_confidence=37.37`, `users_moved=0`, and `snapshot_written=false`.
 37. Blast Branch acceptance passed: blast evidence count is nonzero, blast confidence is nonzero, evidence originates from real production governed records, no synthetic evidence was created, and existing owners only were used.
 38. Blast Branch status is now `CLOSED`. Production autonomy is not enabled and still remains blocked by confidence, trust, prediction confidence, and operator comparison evidence.
-39. Exact next phase: `AUTONOMY.FINAL.BRANCH_1B_DEPLOY_VISIBILITY_FIX_AND_SNAPSHOT_RECOVERY_APPROVAL`.
-40. Last verified commit: `fb1c4d229ca87b1180ca49a5c9cb113110279786`.
+39. AUTONOMY.FINAL.BRANCH_1B on 2026-06-22 deployed Branch 1A through the existing approved `tools/v7-safe-deploy` flow. Local, GitHub, and runtime are aligned at `c4adc537b39e0335ad9cc0cf7ff9589d85860d60`; final truth is `PASS` and final convergence is `ALIGNED`.
+40. The approved production recovery write used the existing `/usr/local/bin/v7-intelligence-snapshot-refresh` owner with real rotated production stores: `execution-events.jsonl.1`, `runtime-trust.jsonl.1`, `proposal-records.jsonl.1`, `proposals.jsonl.1`, and `closure-records.jsonl.1`.
+41. The recovery write was snapshot-only: `runtime_behavior_changed=false`, `governance_behavior_changed=false`, `users_moved=false`, `apply_executed=false`, and no daemon/autoswitch was enabled.
+42. Production consumed autonomy metrics after recovery: `blast_radius_evidence_count=11`, `blast_radius_source_record_count=3372`, `blast_radius_confidence=100.0`, `trust_score=54.684`, `confidence_score=39.578`, `prediction_confidence=37.312`, `rollback_confidence=100.0`, `execution_allowed_now=false`, and `users_moved=0`.
+43. Blast Branch status is now `OPERATIONALLY_CLOSED`. Blast recovery is no longer the dominant blocker.
+44. Production autonomy remains blocked by `confidence_too_low`, `trust_too_low`, and `prediction_confidence_too_low`. The next safe phase is `AUTONOMY.PREDICTION.EVIDENCE.2_REAL_OUTCOME_CONFIDENCE_COLLECTION`; operator comparison evidence remains a parallel P1 track.
+45. Last verified commit: `c4adc537b39e0335ad9cc0cf7ff9589d85860d60`.
 
 ## 1. Channels
 

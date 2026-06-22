@@ -1,7 +1,7 @@
 # V7 Canonical Reference
 
 Status: canonical project reference
-Last verified commit: `6b0c72f`
+Last verified commit: `ece796d`
 Last verified date: 2026-06-22
 
 This document describes the current meaning of V7 system concepts. It is not a history log and not an audit report. Reports remain evidence. ADRs explain why a decision was made. This reference is the current truth that future V7 work must read before re-auditing old concepts.
@@ -37,6 +37,30 @@ Before launching any new audit, use Reference First:
 4. Determine whether the answer already exists.
 
 A new audit is allowed only when the reference has no answer, the reference explicitly marks the area `UNKNOWN`, system behavior changed after the last verified commit, or evidence contradicts this canonical reference. Otherwise, update the reference if needed and do not create a new audit.
+
+## Certified Root Cause Rule
+
+When a phase has already certified all of the following:
+
+1. root cause found;
+2. solution proven;
+3. dry-run successful;
+4. no runtime-apply risk;
+
+the next phase must move to:
+
+```text
+IMPLEMENT
+  -> TEST
+  -> VERIFY
+  -> DOCUMENT
+```
+
+It must not create another discovery/audit report for the same root cause.
+
+Allowed exception: a new audit may run only if new evidence contradicts the certified root cause, the proven dry-run no longer reproduces, the implementation would introduce runtime apply risk, or the reference explicitly marks the area `UNKNOWN`.
+
+This rule applies after Reference First. Reference First determines whether the answer already exists; Certified Root Cause Rule determines that a proven answer must be implemented and verified rather than re-discovered.
 
 ## Autonomy Blueprint Rule
 

@@ -1,7 +1,7 @@
 # V7 System Map
 
 Status: compact current system map
-Last verified commit: `6b0c72f`
+Last verified commit: `ece796d`
 Last verified date: 2026-06-22
 
 | Module | Purpose | Main files | Truth source | Related reference section | Related reports | Last verified commit |
@@ -47,6 +47,28 @@ Major logic, planner, UI meaning, governance, runtime, or truth-source work must
 
 Commit code and reference updates together so V7 knowledge does not split between code, reports, and chat.
 
+## Certified Root Cause Workflow
+
+If Reference/ADR/reports show that root cause is found, solution is proven, dry-run is successful, and there is no runtime-apply risk, the workflow changes from audit mode to implementation mode:
+
+```text
+Certified root cause
+  |
+  v
+Implement using existing owner
+  |
+  v
+Test
+  |
+  v
+Verify truth/convergence/runtime safety
+  |
+  v
+Document reference/report outcome
+```
+
+Do not create another discovery report for the same certified root cause unless new contradictory evidence appears, the dry-run no longer reproduces, runtime apply risk appears, or the canonical reference marks the area `UNKNOWN`.
+
 ## Reference First Workflow
 
 Future questions and audits must follow this path:
@@ -65,6 +87,9 @@ SYSTEM_MAP.md
   |
   v
 Audit only if still needed
+  |
+  v
+If certified: IMPLEMENT -> TEST -> VERIFY -> DOCUMENT
 ```
 
 Use this workflow for recurring concepts such as Route, Capacity, Channel Score, Technical Health, Planner, Assignment, Service Matrix, Trust, Recovery, and Autonomy. If the answer already exists, use the reference answer. If the answer is stable but incomplete, update the reference. Start a new audit only when the reference has no answer, marks the area `UNKNOWN`, system behavior changed after the last verified commit, or current evidence contradicts the reference.

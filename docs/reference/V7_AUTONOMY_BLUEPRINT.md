@@ -79,7 +79,7 @@ Current production alignment:
 | Rollback | Rollback owner | `admin_core/operator_execution.py`, `tools/v7-users-autoswitch --rollback-packet --apply --verify` | Rollback packet/decision after failed or unsafe movement | PARTIAL_ACTIVE | 80% | Model exists; live rollback packet not certified for operator-free autonomy |
 | Feedback | Feedback owner | `admin_core/operator_execution_feedback.py`, execution/closure JSONL stores | Post-action outcome evidence | ACTIVE | 85% | Governed evidence consumed; active stores can be empty/rotated |
 | Learning | Intelligence/trust owners | `admin_core/intelligence_platform.py`, `admin_core/intelligence_workers.py`, `admin_core/intelligence_snapshots.py` | Convert outcomes into trust, prediction, suitability, blast confidence | ACTIVE_PARTIAL | 70% | Evidence consumed; quality insufficient |
-| Prediction | Prediction owner | `admin_core/intelligence_workers.py`, `admin_core/intelligence_platform.py` | Forecast -> actual confidence | ACTIVE_PARTIAL | 45% evidence quality | 21/21 matched; low source confidence keeps result near 37 |
+| Prediction | Prediction owner | `admin_core/intelligence_workers.py`, `admin_core/intelligence_platform.py` | Forecast -> actual confidence | ACTIVE_PARTIAL | 50% evidence quality / 80% evidence durability | 21/21 matched; governed prediction feedback now survives lifecycle; low source confidence keeps production result near 37 |
 | Trust Evolution | Trust owner | `admin_core/intelligence_platform.py`, `admin_core/intelligence_workers.py`, `tools/v7-intelligence-snapshot-refresh` | Outcome confidence/trust aggregation | ACTIVE_PARTIAL | 55% proven recovered trust / durable refresh deployed | Branch 1B proved trust `54.684`; TRUST.DURABILITY.1 fixed, deployed, and refreshed the lifecycle that had dropped rotated evidence from current consumed reads |
 | Blast Radius | Blast evidence owner | `admin_core/intelligence_workers.py::build_blast_radius_evidence_rows`, `blast_radius_confidence_model`, `tools/v7-intelligence-snapshot-refresh` | Prove small governed operations are safe | OPERATIONALLY_CLOSED_DURABILITY_FIXED | 100% recovery proven / 100% durable production refresh | Branch 1B deployed and recovered 11 real blast rows; TRUST.DURABILITY.1 production refresh reads 11 rows and blast confidence `100.0` |
 | Shadow Autonomy | Shadow owner | `admin_core/shadow_autonomy.py`, `/api/actions/shadow-autonomy-compare` | Compare recommendations with operator decisions | ACTIVE_BUT_UNDERFED | 20% | Comparison count insufficient for autonomy |
@@ -289,7 +289,7 @@ rollback confidence
 | `systemd/drafts/v7-health.service` | PARTIAL_DRAFT | Draft loop every 30s | Health loop exists as draft/read model, not autonomy controller |
 | Rotated `.jsonl.1` feedback stores | ACTIVE_EVIDENCE_DURABLE_IN_PRODUCTION_REFRESH | REMATERIALIZATION.3/4, Branch 1A, Branch 1B, and TRUST.DURABILITY.1 | Real governed blast evidence is consumed as part of the existing JSONL family; production refresh now reads 11 blast rows and blast confidence `100.0` |
 | Shadow operator comparison store | ACTIVE_BUT_UNDERFED | `comparisons_total=0` in root confidence evidence | Mechanism exists, evidence volume missing |
-| Prediction actual matching | ACTIVE_BUT_LOW_CONFIDENCE | 21/21 matched, confidence around 37 | Mechanism works; source confidence/data depth is weak |
+| Prediction actual matching | ACTIVE_BUT_LOW_CONFIDENCE_DURABILITY_IMPROVED | 21/21 matched, confidence around 37; governed prediction feedback lifecycle proof passes | Mechanism works and direct feedback survives refresh/write/reread; source confidence/data depth remains weak |
 | Observed Capacity Shadow | APPROVED_BUT_NOT_IMPLEMENTED | ADR-011 | Concept accepted as shadow-only future model |
 | Route first-level signal | DEMOTED_SUPPORTING | ADR-007 | Route exists but should not be treated as first-level table truth unless real blocker appears |
 | Technical Health | ACTIVE_DIAGNOSTICS_ONLY | ADR-003/010 | Useful, but intentionally not a primary workflow |
@@ -367,7 +367,7 @@ Sources used:
 | Feedback | 85% | Feedback/closure stores and intelligence consumption exist |
 | Learning | 70% | Trust/prediction/blast/suitability models exist; evidence quality uneven |
 | Blast-radius evidence | 100% | Branch 1B production recovery: 11 rows, 100 confidence |
-| Prediction evidence | 45% | 21/21 matched but low source confidence keeps output around 37 |
+| Prediction evidence | 50% | 21/21 matched; direct governed prediction feedback is now consumed durably, but low source confidence keeps production output around 37 |
 | Operator comparison | 20% | Existing endpoint/store, insufficient current comparison records |
 | Trust | 55% | Production dry-run after recovery reports trust `54.684`, below the `70.0` floor |
 | Event detection | 65% | Event sources exist; live consumer not certified |
@@ -400,7 +400,7 @@ Sources used:
 
 - Event-driven autonomy chain.
 - Operator comparison evidence.
-- Prediction confidence evidence.
+- Prediction confidence evidence volume and source confidence.
 - Observed Capacity Shadow.
 - Progressive rollout/canary autonomy.
 - Autonomous rollback certification.

@@ -1,8 +1,8 @@
 # V7 Project Map
 
 Status: project readiness map
-Last updated: 2026-06-22
-Last changed by: `AUTONOMY.TRUST.DURABILITY.1`
+Last updated: 2026-06-23
+Last changed by: `AUTONOMY.PREDICTION.EVIDENCE.2`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -75,6 +75,9 @@ Blast recovery operationally closed
 | Blast Durability | 70% | 100% | +30% | `AUTONOMY.TRUST.DURABILITY.1` | Normal snapshot refresh now consumes active JSONL plus numeric rotated stores; local and production refresh verification preserve `blast_radius_confidence=100.0`. |
 | Autonomous Trust | 40% | 55% | +15% | `AUTONOMY.TRUST.DURABILITY.1` | Production trust-evolution after refresh reads `blast_radius_evidence_count=11`, `blast_radius_source_record_count=4407`, `bounded_decision_count=1000`, and `overall_confidence=59.309`; autonomy floor remains `70.0`. |
 | Production Autonomy | 40% | 43% | +3% | `AUTONOMY.TRUST.DURABILITY.1` | Safe deploy and production snapshot refresh completed with no apply, no user movement, no daemon enablement, and no formula/floor changes; confidence, trust, prediction, comparison, and event consumer blockers remain. |
+| Prediction Evidence Durability | 35% | 80% | +45% | `AUTONOMY.PREDICTION.EVIDENCE.2` | Existing governed `prediction_expected` / `prediction_actual` feedback now feeds the prediction actual path and survives bounded-tail loss, snapshot write, and reread. |
+| Prediction Evidence Quality | 45% | 50% | +5% | `AUTONOMY.PREDICTION.EVIDENCE.2` | Evidence consumption improved, but production baseline still reports prediction confidence around `36.992`; no synthetic confidence, formula, or floor change was made. |
+| Production Autonomy | 43% | 43% | 0% | `AUTONOMY.PREDICTION.EVIDENCE.2` | This is a prediction evidence lifecycle improvement only; operator-free autonomy remains blocked by confidence/trust/prediction/comparison/event-consumer gates. |
 
 ## Stable Areas
 
@@ -92,11 +95,27 @@ Blast recovery operationally closed
 | P1 | `CHANNEL_RECOVERY_AWG3_AWG0_STABILITY_REVIEW` | `awg3` has 8 assigned users but is currently not eligible; `awg0` is close to recovery but still below stability floor. |
 | P2 | Decide whether `awg3` recovers naturally or needs a governed failover review | POOL.2 found 8 failover candidates but did not execute movement by design. |
 | P3 | Continue pool observation only after recovery/failover pressure is resolved | Current state is not clean equilibrium because planner disagrees with keeping `awg3` users there. |
-| P1 | `AUTONOMY.PREDICTION.EVIDENCE.2_REAL_OUTCOME_CONFIDENCE_COLLECTION` | Prediction matching works, but source confidence is too low for the `70.0` floor. |
+| P1 | `AUTONOMY.PREDICTION.EVIDENCE.3_REAL_VOLUME_AND_SOURCE_CONFIDENCE_COLLECTION` | Prediction evidence lifecycle is improved; source confidence/evidence volume still need real production evidence to reach the `70.0` floor. |
 | P1 | `OPERATOR_COMPARISON_EVIDENCE_COLLECTION` | Shadow comparison path exists, but current comparison evidence remains below floor. |
 | P1 | `EVENT_CONSUMER_READ_ONLY_CERTIFICATION` | Event sources exist, but production event-driven consumer is not certified. |
 
 ## Changelog
+
+### 2026-06-23 — AUTONOMY.PREDICTION.EVIDENCE.2 Real Outcome Confidence Collection
+
+- Created `docs/reports/AUTONOMY_PREDICTION_EVIDENCE_2_REPORT.md` and evidence under `docs/reports/AUTONOMY_PREDICTION_EVIDENCE_2_EVIDENCE/`.
+- Implemented existing-owner prediction feedback consumption in `admin_core/intelligence_workers.py`.
+- Existing governed feedback fields `prediction_expected` and `prediction_actual` now become prediction actual evidence when the forecast key matches.
+- Direct prediction feedback is read from the full existing decision stream so old feedback can survive a newer 1000-row bounded decision tail; service/channel actual construction remains bounded.
+- Added lifecycle tests proving forecast, actual, match, confidence, snapshot write, and reread survive the flow.
+- Local lifecycle evidence produced `prediction_actuals_count=1`, `matched_count=1`, `prediction_confidence=88.2`, and valid reread from an old feedback record outside the bounded tail.
+- Production baseline before final refresh remained `forecast_rows=21`, `matched_count=21`, `prediction_actuals_count=21`, and `prediction_confidence=36.992`.
+- No runtime apply, user movement, daemon enablement, planner/governance/execution change, threshold/floor/formula change, synthetic evidence, or new truth source occurred.
+- Updated changed-area percentages:
+  - Prediction Evidence Durability: `35% -> 80%`
+  - Prediction Evidence Quality: `45% -> 50%`
+  - Production Autonomy: `43% -> 43%`
+- Recorded next phase: `AUTONOMY.PREDICTION.EVIDENCE.3_REAL_VOLUME_AND_SOURCE_CONFIDENCE_COLLECTION` plus operator comparison evidence collection.
 
 ### 2026-06-22 — AUTONOMY.TRUST.DURABILITY.1 Durable Trust Evidence
 

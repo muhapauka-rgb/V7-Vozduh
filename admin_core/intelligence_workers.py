@@ -578,10 +578,12 @@ def build_prediction_actual_rows(
     prediction_forecasts: list[dict[str, Any]] | None,
     service_rows: list[dict[str, Any]] | None,
     decision_records: list[dict[str, Any]] | None = None,
+    feedback_records: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     service_actuals = build_service_actual_rows(service_rows, decision_records)
+    feedback_actuals = build_prediction_feedback_actual_rows(prediction_forecasts, feedback_records if feedback_records is not None else decision_records)
     actual_by_key: dict[str, dict[str, Any]] = {}
-    for index, row in enumerate(service_actuals):
+    for index, row in enumerate(service_actuals + feedback_actuals):
         key = _text_value(row.get("id") or row.get("channel") or row.get("service") or row.get("target") or index)
         actual_by_key[key] = row
     rows: list[dict[str, Any]] = []
@@ -592,11 +594,93 @@ def build_prediction_actual_rows(
         actual = actual_by_key.get(key)
         if not actual:
             continue
+        evidence_source = actual.get("evidence_source") or "prediction_actual_from_existing_service_channel_evidence"
+        if evidence_source == "service_channel_snapshot":
+            evidence_source = "prediction_actual_from_existing_service_channel_evidence"
         rows.append({
             **actual,
             "id": key,
-            "evidence_source": "prediction_actual_from_existing_service_channel_evidence",
+            "evidence_source": evidence_source,
         })
+    return rows[-MAX_HISTORY_RECORDS:]
+
+
+def _prediction_quality(value: Any) -> float | None:
+    if value in (None, ""):
+        return None
+    score = as_float(value, 0.0)
+    if 0.0 <= score <= 1.0:
+        score *= 100.0
+    return round(clamp(score), 3)
+
+
+def _prediction_feedback_key(record: dict[str, Any]) -> str:
+    return _text_value(
+        record.get("channel")
+        or record.get("service")
+        or record.get("target")
+        or record.get("target_channel")
+        or record.get("source_channel")
+        or record.get("id")
+        or record.get("user")
+    )
+
+
+def build_prediction_feedback_actual_rows(
+    prediction_forecasts: list[dict[str, Any]] | None,
+    decision_records: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]]:
+    """Convert existing governed prediction feedback into actual rows.
+
+    Governed feedback already materializes prediction_expected and
+    prediction_actual in the existing feedback stores. This function reuses
+    that evidence in the existing forecast -> actual path; it does not create
+    a new store, formula, planner, governance path, or synthetic actual.
+    """
+    wanted = {
+        _text_value(row.get("id") or row.get("channel") or row.get("service") or row.get("target") or index)
+        for index, row in enumerate(prediction_forecasts or [])
+        if isinstance(row, dict)
+    }
+    rows: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for record in decision_records or []:
+        if not isinstance(record, dict):
+            continue
+        feedback = record.get("prediction_feedback") if isinstance(record.get("prediction_feedback"), dict) else record
+        actual = _prediction_quality(feedback.get("prediction_actual"))
+        if actual is None:
+            continue
+        key = _prediction_feedback_key({**record, **feedback})
+        if not key or (wanted and key not in wanted):
+            continue
+        base = normalize_outcome_evidence(record)
+        event_time = _event_time(record)
+        dedupe_key = (key, event_time)
+        if dedupe_key in seen:
+            continue
+        seen.add(dedupe_key)
+        row = {
+            "id": key,
+            "score": actual,
+            "quality": actual,
+            "evidence_source": "prediction_actual_from_existing_execution_feedback",
+            "evidence_confidence": round(as_float(base.get("evidence_confidence"), 0.0), 4),
+            "evidence_status": "complete",
+            "event_time": event_time,
+        }
+        expected = _prediction_quality(feedback.get("prediction_expected"))
+        if expected is not None:
+            row["prediction_expected"] = expected
+        if record.get("service") not in (None, ""):
+            row["service"] = _text_value(record.get("service"))
+        elif feedback.get("service") not in (None, ""):
+            row["service"] = _text_value(feedback.get("service"))
+        else:
+            row["channel"] = key
+        if record.get("user") not in (None, ""):
+            row["user"] = _text_value(record.get("user"))
+        rows.append(row)
     return rows[-MAX_HISTORY_RECORDS:]
 
 
@@ -1682,7 +1766,12 @@ def build_trust_evolution_snapshot(
     service_rows = list(service_scores_snapshot.get("items") or []) + list(channel_service_scores_snapshot.get("items") or [])
     prediction_forecasts = _prediction_forecast_rows(prediction_summary_snapshot)
     service_actuals = build_service_actual_rows(service_rows, bounded_decisions)
-    prediction_actuals = build_prediction_actual_rows(prediction_forecasts, service_rows, bounded_decisions)
+    prediction_actuals = build_prediction_actual_rows(
+        prediction_forecasts,
+        service_rows,
+        bounded_decisions,
+        feedback_records=decision_records,
+    )
     candidate_rows = candidate_suitability_snapshot.get("items") or []
     candidate_outcomes = build_candidate_outcome_rows(candidate_rows, bounded_decisions)
     blast_items = blast_radius_snapshot.get("items") or []

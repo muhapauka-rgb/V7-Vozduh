@@ -508,6 +508,27 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertEqual(keys, {"awg0", "telegram"})
         self.assertTrue(all(row["evidence_source"] == "prediction_actual_from_existing_service_channel_evidence" for row in actuals))
 
+    def test_prediction_actuals_from_existing_execution_feedback(self):
+        forecasts = [{"channel": "awg0", "forecast_quality": 80, "confidence": 0.9}]
+        actuals = workers.build_prediction_actual_rows(
+            forecasts,
+            [],
+            [{
+                "schema_version": "v7.execution-prediction-feedback.v1",
+                "user": "10.0.0.3",
+                "target_channel": "awg0",
+                "outcome_status": "success",
+                "prediction_expected": 0.8,
+                "prediction_actual": 0.82,
+                "created_at": GENERATED,
+            }],
+        )
+        self.assertEqual(len(actuals), 1)
+        self.assertEqual(actuals[0]["id"], "awg0")
+        self.assertEqual(actuals[0]["quality"], 82.0)
+        self.assertEqual(actuals[0]["prediction_expected"], 80.0)
+        self.assertEqual(actuals[0]["evidence_source"], "prediction_actual_from_existing_execution_feedback")
+
     def test_service_actuals_from_service_rows(self):
         actuals = workers.build_service_actual_rows(
             [{"channel": "awg0", "aggregate_score": 86, "confidence": 0.9}, {"service": "telegram", "average_score": 84, "confidence": 0.8}],
@@ -543,6 +564,55 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertGreater(counts["service_actuals_count"], 0)
         self.assertGreater(counts["candidate_outcomes_count"], 0)
         self.assertTrue(trust["confidence_summary"]["live_calibrated"])
+
+    def test_prediction_feedback_actual_survives_snapshot_write_and_reread(self):
+        old_feedback = {
+            "schema_version": "v7.execution-prediction-feedback.v1",
+            "user": "10.0.0.3",
+            "target_channel": "awg0",
+            "outcome_status": "success",
+            "prediction_expected": 0.8,
+            "prediction_actual": 0.82,
+            "created_at": GENERATED,
+        }
+        noisy_recent_records = [
+            {"schema_version": "v7.switch-history.v1", "result": "noop", "operation_id": f"recent_{index}"}
+            for index in range(workers.MAX_HISTORY_RECORDS + 25)
+        ]
+        prediction = {
+            "items": [{
+                "channel_forecasts": [{"channel": "awg0", "forecast_quality": 80, "confidence": 0.9}],
+                "service_forecasts": [],
+            }],
+            "confidence": 0.9,
+        }
+        payload = workers.build_trust_evolution_snapshot(
+            audit_records=[old_feedback] + noisy_recent_records,
+            rollback_records=[],
+            service_scores_snapshot={"items": [], "confidence": 1.0},
+            channel_service_scores_snapshot={"items": [], "confidence": 1.0},
+            trust_summary_snapshot={"items": [{"trust": {"score": 90}}], "confidence": 1.0},
+            prediction_summary_snapshot=prediction,
+            candidate_suitability_snapshot={"items": [], "confidence": 1.0},
+            best_available_pool_snapshot={"items": [], "confidence": 1.0},
+            blast_radius_snapshot={"items": [], "confidence": 1.0},
+            generated_at=GENERATED,
+        )
+        trust = payload["items"][0]
+        self.assertEqual(trust["outcome_mapper_counts"]["bounded_decision_count"], workers.MAX_HISTORY_RECORDS)
+        self.assertEqual(trust["outcome_mapper_counts"]["prediction_actuals_count"], 1)
+        self.assertEqual(trust["prediction_accuracy"]["matched_count"], 1)
+        self.assertEqual(trust["prediction_accuracy"]["prediction_confidence"], 88.2)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            written = workers.write_snapshots(out, {"trust-evolution-summaries": payload})
+            reread = read_snapshot_family(out, "trust-evolution-summaries")
+        self.assertIn("trust-evolution-summaries", written)
+        self.assertTrue(reread.validation.ok, reread.validation.errors)
+        reread_trust = reread.payload["items"][0]
+        self.assertEqual(reread_trust["outcome_mapper_counts"]["prediction_actuals_count"], 1)
+        self.assertEqual(reread_trust["prediction_accuracy"]["matched_count"], 1)
+        self.assertEqual(reread_trust["prediction_accuracy"]["prediction_confidence"], 88.2)
 
     def test_trust_evolution_uses_execution_feedback_for_suitability_and_blast_radius(self):
         result = workers.build_all_snapshots(

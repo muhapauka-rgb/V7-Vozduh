@@ -610,18 +610,8 @@ def current_clearance_conflict(barrier):
     return ""
 
 
-def append_restore_barrier_clearance(restore_barrier_file, packet, recheck, now=None):
+def build_restore_barrier_clearance(packet, now=None):
     now = now or utc_now()
-    path = Path(restore_barrier_file)
-    current = {}
-    if path.exists():
-        try:
-            current = read_json(path)
-        except PacketError:
-            current = {}
-    conflict = current_clearance_conflict(current)
-    if conflict:
-        return {"ok": False, "verdict": "DENY_DUPLICATE_CLEARANCE_OWNER", "errors": [conflict]}
     expected = packet.get("expected") or {}
     constraints = packet.get("constraints") or {}
     rollback_manifest = packet.get("rollback_manifest") or {}
@@ -662,6 +652,48 @@ def append_restore_barrier_clearance(restore_barrier_file, packet, recheck, now=
         clearance["approved_plan_lock"] = approved_plan_lock
         clearance["approved_plan_lock_id"] = approved_plan_lock.get("lock_id", "")
         clearance["approved_plan_lock_hash"] = approved_plan_lock.get("lock_hash", "")
+    return clearance
+
+
+def preview_restore_barrier_clearance(restore_barrier_file, packet, recheck, now=None):
+    now = now or utc_now()
+    path = Path(restore_barrier_file)
+    current = {}
+    if path.exists():
+        try:
+            current = read_json(path)
+        except PacketError:
+            current = {}
+    conflict = current_clearance_conflict(current)
+    if conflict:
+        return {"ok": False, "verdict": "DENY_DUPLICATE_CLEARANCE_OWNER", "errors": [conflict]}
+    clearance = build_restore_barrier_clearance(packet, now=now)
+    return {
+        "ok": True,
+        "verdict": "RESTORE_BARRIER_CLEARANCE_PREVIEW_VALID",
+        "restore_barrier_file": str(path),
+        "clearance": redact(clearance),
+        "recheck_verdict": recheck.get("verdict"),
+        "runtime_mutation": False,
+        "user_movement": False,
+        "routing_mutation": False,
+        "autoswitch_apply": False,
+    }
+
+
+def append_restore_barrier_clearance(restore_barrier_file, packet, recheck, now=None):
+    now = now or utc_now()
+    path = Path(restore_barrier_file)
+    current = {}
+    if path.exists():
+        try:
+            current = read_json(path)
+        except PacketError:
+            current = {}
+    conflict = current_clearance_conflict(current)
+    if conflict:
+        return {"ok": False, "verdict": "DENY_DUPLICATE_CLEARANCE_OWNER", "errors": [conflict]}
+    clearance = build_restore_barrier_clearance(packet, now=now)
     backup_path = ""
     if path.exists():
         backup = path.with_name(f"{path.name}.backup-c1-{now.strftime('%Y%m%dT%H%M%SZ')}")
@@ -760,7 +792,40 @@ def execute_packet(
     runtime_action_performed = False
     runtime_mutation = False
     clearance_result = None
+    clearance_preview = None
     lifecycle_records = None
+    if mode == "runtime_action_preview":
+        if packet.get("runtime_action") == RUNTIME_ACTION_CREATE_CLEARANCE:
+            if recheck.get("allow"):
+                if not restore_barrier_file:
+                    raise PacketError("restore_barrier_file_required")
+                clearance_preview = preview_restore_barrier_clearance(restore_barrier_file, packet, recheck, now=now)
+                if not clearance_preview.get("ok"):
+                    recheck = {
+                        "allow": False,
+                        "verdict": clearance_preview.get("verdict", "DENY_CLEARANCE_PREVIEW"),
+                        "errors": clearance_preview.get("errors", []),
+                    }
+        else:
+            recheck = {
+                "allow": False,
+                "verdict": "DENY_RUNTIME_ACTION_UNSUPPORTED",
+                "errors": ["runtime_action_not_supported_by_canonical_owner"],
+            }
+        return {
+            "mode": mode,
+            "approval_id": approval_id,
+            "recheck": recheck,
+            "record_written": False,
+            "runtime_action_record": None,
+            "clearance_preview": clearance_preview,
+            "execution_allowed_now": False,
+            "real_runtime_action_performed": False,
+            "runtime_mutation": False,
+            "user_movement": False,
+            "routing_mutation": False,
+            "autoswitch_apply": False,
+        }
     if mode == "runtime_action":
         if packet.get("runtime_action") == RUNTIME_ACTION_ZERO_MOVE_GOVERNANCE:
             if recheck.get("allow"):
@@ -944,6 +1009,7 @@ def main(argv=None):
     parser.add_argument("--validate-only", action="store_true")
     parser.add_argument("--recheck-only", action="store_true")
     parser.add_argument("--execute-approval-record", action="store_true")
+    parser.add_argument("--preview-runtime-action", action="store_true")
     parser.add_argument("--execute-runtime-action", action="store_true")
     parser.add_argument("--runtime-governance-store", default="docs/track7/productization/e23-evidence/operator-runtime-governance-actions.jsonl")
     parser.add_argument("--json", action="store_true")
@@ -987,6 +1053,15 @@ def main(argv=None):
             result = execute_packet(packet, audit_store, args.state_dir, mode="recheck", planner_snapshot=planner_snapshot)
         elif args.execute_approval_record:
             result = execute_packet(packet, audit_store, args.state_dir, mode="execute", planner_snapshot=planner_snapshot)
+        elif args.preview_runtime_action:
+            result = execute_packet(
+                packet,
+                audit_store,
+                args.state_dir,
+                mode="runtime_action_preview",
+                planner_snapshot=planner_snapshot,
+                restore_barrier_file=args.restore_barrier_file,
+            )
         elif args.execute_runtime_action:
             runtime_governance_store = resolve_under_repo(args.runtime_governance_store, repo_root)
             result = execute_packet(

@@ -273,6 +273,89 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(lifecycle_records[2]["record_type"], "execution_readiness_closure_created")
         self.assertTrue(lifecycle_records[2]["execution_allowed_now"])
 
+    def test_runtime_action_preview_builds_clearance_without_writes_and_survives_reread(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.make_state(root)
+            audit = root / "audit.jsonl"
+            lifecycle = root / "lifecycle.jsonl"
+            barrier = state / "autoswitch-restore-barrier.json"
+            packet = packet_from_plan(
+                self.movement_plan(),
+                approval_author="operator-a",
+                approval_reviewer="operator-b",
+            )
+            first = execute_packet(
+                packet,
+                audit,
+                state,
+                mode="runtime_action_preview",
+                planner_snapshot=self.movement_plan(),
+                restore_barrier_file=barrier,
+                lifecycle_store=lifecycle,
+            )
+            second = execute_packet(
+                packet,
+                audit,
+                state,
+                mode="runtime_action_preview",
+                planner_snapshot=self.movement_plan(),
+                restore_barrier_file=barrier,
+                lifecycle_store=lifecycle,
+            )
+
+        self.assertEqual(first["recheck"]["verdict"], "ALLOW_RESTORE_BARRIER_CLEARANCE")
+        self.assertEqual(first["clearance_preview"]["verdict"], "RESTORE_BARRIER_CLEARANCE_PREVIEW_VALID")
+        self.assertEqual(first["clearance_preview"]["clearance"]["clearance_generation_id"], "gen-move")
+        self.assertEqual(first["clearance_preview"]["clearance"]["approved_plan_lock"]["selected_move_count"], 1)
+        self.assertFalse(first["record_written"])
+        self.assertFalse(first["runtime_mutation"])
+        self.assertFalse(first["real_runtime_action_performed"])
+        self.assertFalse(first["execution_allowed_now"])
+        self.assertFalse(barrier.exists())
+        self.assertFalse(audit.exists())
+        self.assertFalse(lifecycle.exists())
+        self.assertEqual(second["recheck"]["verdict"], "ALLOW_RESTORE_BARRIER_CLEARANCE")
+        self.assertEqual(second["clearance_preview"]["clearance"]["approved_selected_moves_hash"], "move-hash")
+
+    def test_runtime_action_preview_preserves_duplicate_owner_guard(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.make_state(root)
+            audit = root / "audit.jsonl"
+            barrier = state / "autoswitch-restore-barrier.json"
+            write_json(
+                barrier,
+                {
+                    "generation_clearance": True,
+                    "allow_post_ttl_apply": True,
+                    "clearance_expires_at": (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat(),
+                    "owner": "other-owner",
+                },
+            )
+            before = barrier.read_text(encoding="utf-8")
+            packet = packet_from_plan(
+                self.movement_plan(),
+                approval_author="operator-a",
+                approval_reviewer="operator-b",
+            )
+            result = execute_packet(
+                packet,
+                audit,
+                state,
+                mode="runtime_action_preview",
+                planner_snapshot=self.movement_plan(),
+                restore_barrier_file=barrier,
+            )
+            after = barrier.read_text(encoding="utf-8")
+
+        self.assertEqual(result["recheck"]["verdict"], "DENY_DUPLICATE_CLEARANCE_OWNER")
+        self.assertIn("duplicate_clearance_owner", result["recheck"]["errors"])
+        self.assertFalse(result["record_written"])
+        self.assertFalse(result["runtime_mutation"])
+        self.assertEqual(before, after)
+        self.assertFalse(audit.exists())
+
     def test_packet_from_plan_respects_clearance_selected_move_count(self):
         plan = self.movement_plan()
         plan["decisions"].extend([

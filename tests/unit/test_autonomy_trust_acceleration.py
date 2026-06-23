@@ -219,6 +219,15 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(second["floor_forensics"]["suitability_root_cause"]["rows_without_outcome"], 1)
         self.assertTrue(second["materialization_audit"]["prediction_actuals"]["materialized"])
         self.assertFalse(second["materialization_audit"]["prediction_actuals"]["safe_fix_available_now"])
+        self.assertEqual(second["evidence_sufficiency"]["verdict"], "MIXED")
+        self.assertIn("prediction_matches", second["evidence_sufficiency"]["low_attribution_sources"])
+        self.assertIn("candidate_outcomes", second["evidence_sufficiency"]["insufficient_sources"])
+        self.assertIn("service_outcomes", second["evidence_sufficiency"]["insufficient_sources"])
+        self.assertEqual(
+            second["source_confidence_collection_plan"]["fastest_real_growth_path"][0]["source"],
+            "service_outcomes",
+        )
+        self.assertFalse(second["source_confidence_collection_plan"]["fastest_real_growth_path"][0]["runtime_apply_allowed"])
         self.assertFalse(second["runtime_mutation_performed"])
         self.assertFalse(second["apply_executed"])
         self.assertEqual(second["users_moved"], 0)

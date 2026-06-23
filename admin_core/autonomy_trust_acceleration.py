@@ -424,6 +424,262 @@ def build_materialization_audit(
     }
 
 
+def _snapshot_meta(payload: dict[str, Any] | None) -> dict[str, Any]:
+    payload = payload or {}
+    return {
+        "generated_at": payload.get("generated_at"),
+        "confidence": as_float(payload.get("confidence"), 0.0),
+        "source_hash_count": len(payload.get("source_hashes") or {}),
+        "freshness_state": payload.get("freshness_state") or "UNKNOWN",
+    }
+
+
+def _source_row(
+    *,
+    source: str,
+    evidence_count: int,
+    evidence_expected: int | str,
+    evidence_consumed: bool,
+    confidence_weight: float,
+    current_contribution: float,
+    freshness: dict[str, Any],
+    classification: str,
+    reason: str,
+) -> dict[str, Any]:
+    return {
+        "source": source,
+        "evidence_count": evidence_count,
+        "evidence_expected": evidence_expected,
+        "evidence_consumed": evidence_consumed,
+        "confidence_weight": round(confidence_weight, 4),
+        "current_contribution": round(current_contribution, 3),
+        "freshness": freshness,
+        "classification": classification,
+        "reason": reason,
+    }
+
+
+def build_source_confidence_inventory(
+    *,
+    prediction_snapshot: dict[str, Any],
+    service_scores_snapshot: dict[str, Any],
+    channel_service_scores_snapshot: dict[str, Any],
+    trust_evolution_snapshot: dict[str, Any],
+    shadow_model: dict[str, Any],
+    floor_forensics: dict[str, Any],
+    materialization_audit: dict[str, Any],
+) -> dict[str, Any]:
+    components = floor_forensics.get("component_values") if isinstance(floor_forensics.get("component_values"), dict) else {}
+    prediction_root = floor_forensics.get("prediction_root_cause") if isinstance(floor_forensics.get("prediction_root_cause"), dict) else {}
+    service_root = floor_forensics.get("service_root_cause") if isinstance(floor_forensics.get("service_root_cause"), dict) else {}
+    suitability_root = floor_forensics.get("suitability_root_cause") if isinstance(floor_forensics.get("suitability_root_cause"), dict) else {}
+    rollback_blast = floor_forensics.get("rollback_and_blast") if isinstance(floor_forensics.get("rollback_and_blast"), dict) else {}
+    materialized = materialization_audit if isinstance(materialization_audit, dict) else {}
+    prediction_actuals = materialized.get("prediction_actuals") if isinstance(materialized.get("prediction_actuals"), dict) else {}
+    service_actuals = materialized.get("service_actuals") if isinstance(materialized.get("service_actuals"), dict) else {}
+    candidate_outcomes = materialized.get("candidate_outcomes") if isinstance(materialized.get("candidate_outcomes"), dict) else {}
+    quality = shadow_model.get("quality") if isinstance(shadow_model.get("quality"), dict) else {}
+    confidence = shadow_model.get("confidence") if isinstance(shadow_model.get("confidence"), dict) else {}
+    prediction_meta = _snapshot_meta(prediction_snapshot)
+    service_meta = _snapshot_meta(service_scores_snapshot)
+    channel_service_meta = _snapshot_meta(channel_service_scores_snapshot)
+    trust_meta = _snapshot_meta(trust_evolution_snapshot)
+    service_rows = _items(service_scores_snapshot) + _items(channel_service_scores_snapshot)
+    operator_comparisons = int(as_float(quality.get("comparisons_total"), 0.0))
+    rows = [
+        _source_row(
+            source="prediction_matches",
+            evidence_count=int(as_float(prediction_root.get("matched_rows"), 0.0)),
+            evidence_expected=int(as_float(prediction_root.get("forecasts_seen"), 0.0)),
+            evidence_consumed=bool(prediction_actuals.get("materialized")),
+            confidence_weight=as_float(prediction_root.get("mean_forecast_confidence"), 0.0),
+            current_contribution=as_float(components.get("prediction_confidence"), 0.0),
+            freshness=prediction_meta,
+            classification="SUFFICIENT_EVIDENCE_LOW_ATTRIBUTION"
+            if prediction_root.get("root_cause") == "low_forecast_source_confidence"
+            else "INSUFFICIENT_EVIDENCE",
+            reason=str(prediction_root.get("root_cause") or "UNKNOWN"),
+        ),
+        _source_row(
+            source="service_outcomes",
+            evidence_count=int(as_float(service_root.get("rows_seen"), len(service_rows))),
+            evidence_expected="real_probe_cycles_with_high_source_confidence",
+            evidence_consumed=bool(service_actuals.get("materialized")),
+            confidence_weight=as_float(service_root.get("mean_row_confidence"), 0.0),
+            current_contribution=as_float(components.get("service_confidence"), 0.0),
+            freshness={
+                "service_scores": service_meta,
+                "channel_service_scores": channel_service_meta,
+            },
+            classification="INSUFFICIENT_HIGH_CONFIDENCE_EVIDENCE"
+            if as_float(service_root.get("mean_row_confidence"), 0.0) < 0.7
+            else "SUFFICIENT_EVIDENCE",
+            reason=str(service_root.get("root_cause") or "UNKNOWN"),
+        ),
+        _source_row(
+            source="candidate_outcomes",
+            evidence_count=int(as_float(suitability_root.get("outcomes_seen"), 0.0)),
+            evidence_expected=int(as_float(suitability_root.get("candidates_seen"), 0.0)),
+            evidence_consumed=bool(candidate_outcomes.get("materialized")),
+            confidence_weight=as_float(suitability_root.get("mean_candidate_confidence"), 0.0),
+            current_contribution=as_float(components.get("suitability_confidence"), 0.0),
+            freshness=trust_meta,
+            classification="INSUFFICIENT_EVIDENCE"
+            if int(as_float(suitability_root.get("outcomes_seen"), 0.0)) < int(as_float(suitability_root.get("candidates_seen"), 0.0))
+            else "SUFFICIENT_EVIDENCE_LOW_ATTRIBUTION",
+            reason=str(suitability_root.get("root_cause") or "UNKNOWN"),
+        ),
+        _source_row(
+            source="blast_radius_evidence",
+            evidence_count=int(as_float(rollback_blast.get("blast_records_seen"), 0.0)),
+            evidence_expected="existing_blast_branch_records",
+            evidence_consumed=as_float(components.get("blast_radius_confidence"), 0.0) > 0.0,
+            confidence_weight=1.0 if as_float(components.get("blast_radius_confidence"), 0.0) >= 100.0 else 0.0,
+            current_contribution=as_float(components.get("blast_radius_confidence"), 0.0),
+            freshness=trust_meta,
+            classification="SUFFICIENT_EVIDENCE",
+            reason="certified_and_not_current_floor_blocker",
+        ),
+        _source_row(
+            source="rollback_evidence",
+            evidence_count=int(as_float(rollback_blast.get("rollback_records_seen"), 0.0)),
+            evidence_expected="existing_rollback_records",
+            evidence_consumed=as_float(components.get("rollback_confidence"), 0.0) > 0.0,
+            confidence_weight=1.0 if as_float(components.get("rollback_confidence"), 0.0) >= 100.0 else 0.0,
+            current_contribution=as_float(components.get("rollback_confidence"), 0.0),
+            freshness=trust_meta,
+            classification="SUFFICIENT_EVIDENCE",
+            reason="certified_and_not_current_floor_blocker",
+        ),
+        _source_row(
+            source="operator_comparison_evidence",
+            evidence_count=operator_comparisons,
+            evidence_expected="contextual_operator_reviews_only",
+            evidence_consumed=operator_comparisons > 0,
+            confidence_weight=as_float(confidence.get("earned_confidence"), 0.0) / 100.0,
+            current_contribution=as_float(components.get("operator_earned_confidence"), 0.0),
+            freshness={"generated_at": None, "freshness_state": "EVENT_LOG_DEPENDENT"},
+            classification="INSUFFICIENT_EVIDENCE" if operator_comparisons == 0 else "PARTIAL_EVIDENCE",
+            reason="secondary_confirmation_path_underfed",
+        ),
+    ]
+    return {
+        "schema_version": "v7.autonomy-trust.source-confidence-inventory.v1",
+        "purpose": "attribute_current_confidence_to_real_sources_without_changing_formulas_or_evidence",
+        "sources": rows,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
+def build_evidence_sufficiency_analysis(source_inventory: dict[str, Any]) -> dict[str, Any]:
+    rows = [row for row in source_inventory.get("sources") or [] if isinstance(row, dict)]
+    sufficient = [row["source"] for row in rows if str(row.get("classification", "")).startswith("SUFFICIENT")]
+    insufficient = [
+        row["source"] for row in rows
+        if str(row.get("classification", "")).startswith("INSUFFICIENT")
+    ]
+    low_attribution = [
+        row["source"] for row in rows
+        if row.get("classification") == "SUFFICIENT_EVIDENCE_LOW_ATTRIBUTION"
+    ]
+    if insufficient and (sufficient or low_attribution):
+        verdict = "MIXED"
+    elif insufficient:
+        verdict = "INSUFFICIENT_EVIDENCE"
+    elif low_attribution:
+        verdict = "SUFFICIENT_EVIDENCE_LOW_ATTRIBUTION"
+    else:
+        verdict = "SUFFICIENT_EVIDENCE"
+    return {
+        "schema_version": "v7.autonomy-trust.evidence-sufficiency.v1",
+        "verdict": verdict,
+        "sufficient_sources": sufficient,
+        "insufficient_sources": insufficient,
+        "low_attribution_sources": low_attribution,
+        "can_fix_by_formula_change": False,
+        "can_fix_by_synthetic_evidence": False,
+        "requires_real_collection": bool(insufficient),
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
+def build_source_confidence_collection_plan(
+    *,
+    source_inventory: dict[str, Any],
+    sufficiency: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "schema_version": "v7.autonomy-trust.real-source-confidence-collection-plan.v1",
+        "classification": sufficiency.get("verdict", "UNKNOWN"),
+        "fastest_real_growth_path": [
+            {
+                "priority": 1,
+                "source": "service_outcomes",
+                "owner": "existing service matrix / quality snapshot owners",
+                "actions": [
+                    "run real service/channel probe cycles",
+                    "refresh intelligence snapshots",
+                    "rerun trust evidence inventory",
+                ],
+                "why_fastest": "raises service confidence and future forecast source confidence without user movement",
+                "runtime_apply_allowed": False,
+            },
+            {
+                "priority": 2,
+                "source": "candidate_outcomes",
+                "owner": "existing governed/manual outcome closure owners",
+                "actions": [
+                    "record real candidate outcomes only after authorized governed/manual actions",
+                    "refresh trust evolution summaries",
+                ],
+                "why_fastest": "raises suitability confidence, but requires real outcomes and cannot be simulated",
+                "runtime_apply_allowed": False,
+            },
+            {
+                "priority": 3,
+                "source": "operator_comparison_evidence",
+                "owner": "existing shadow autonomy comparison endpoint",
+                "actions": [
+                    "collect contextual operator agree/disagree/override records only when operator has enough context",
+                ],
+                "why_fastest": "raises secondary earned confidence, but does not replace observed outcomes",
+                "runtime_apply_allowed": False,
+            },
+            {
+                "priority": 4,
+                "source": "prediction_matches",
+                "owner": "existing prediction lifecycle owners",
+                "actions": [
+                    "keep producing forecasts",
+                    "wait for later real actuals",
+                    "refresh prediction summaries",
+                ],
+                "why_fastest": "prediction has full matching now; remaining gain depends on higher-confidence sources",
+                "runtime_apply_allowed": False,
+            },
+        ],
+        "underutilized_sources": [
+            row.get("source") for row in source_inventory.get("sources") or []
+            if row.get("classification") == "SUFFICIENT_EVIDENCE_LOW_ATTRIBUTION"
+        ],
+        "forbidden": [
+            "synthetic evidence",
+            "threshold or floor changes",
+            "formula changes",
+            "runtime apply",
+            "user movement",
+            "daemon enablement",
+        ],
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
 def _comparison_projection_value(shadow_model: dict[str, Any], comparisons: int, agreement_rate: float) -> float:
     projection = shadow_model.get("comparison_growth_projection") if isinstance(shadow_model.get("comparison_growth_projection"), dict) else {}
     for row in projection.get("rows") or []:
@@ -583,6 +839,20 @@ def build_acceleration_inventory(
         prediction_plan=prediction_plan,
         floor_forensics=floor_forensics,
     )
+    source_confidence_inventory = build_source_confidence_inventory(
+        prediction_snapshot=snapshots["prediction-summaries"],
+        service_scores_snapshot=snapshots["service-scores"],
+        channel_service_scores_snapshot=snapshots["channel-service-scores"],
+        trust_evolution_snapshot=snapshots["trust-evolution-summaries"],
+        shadow_model=shadow_model,
+        floor_forensics=floor_forensics,
+        materialization_audit=materialization_audit,
+    )
+    evidence_sufficiency = build_evidence_sufficiency_analysis(source_confidence_inventory)
+    source_confidence_collection_plan = build_source_confidence_collection_plan(
+        source_inventory=source_confidence_inventory,
+        sufficiency=evidence_sufficiency,
+    )
     quality = shadow_model.get("quality", {})
     confidence = shadow_model.get("confidence", {})
     return {
@@ -608,6 +878,9 @@ def build_acceleration_inventory(
         "canary_proximity": canary,
         "floor_forensics": floor_forensics,
         "materialization_audit": materialization_audit,
+        "source_confidence_inventory": source_confidence_inventory,
+        "evidence_sufficiency": evidence_sufficiency,
+        "source_confidence_collection_plan": source_confidence_collection_plan,
         "collection_plan": {
             "primary_real_evidence_path": [
                 "observe service and channel quality outcomes through existing service/quality snapshots",

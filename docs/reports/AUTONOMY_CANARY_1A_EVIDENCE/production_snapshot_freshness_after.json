@@ -1,0 +1,119 @@
+{
+  "files": [
+    {
+      "age_seconds": 6.783,
+      "exists": true,
+      "generated_at": "2026-06-23T06:56:47.091768+00:00",
+      "mtime_epoch": 1782197808.801215,
+      "mtime_iso": "2026-06-23T09:56:48+0300",
+      "path": "/opt/v7/egress/state/intelligence/service-scores.json",
+      "size": 25914,
+      "top_keys": [
+        "confidence",
+        "confidence_factors",
+        "expires_at",
+        "freshness_state",
+        "generated_at",
+        "generator",
+        "item_count",
+        "items",
+        "metadata",
+        "schema",
+        "source_hashes",
+        "ttl_seconds",
+        "warnings"
+      ]
+    },
+    {
+      "age_seconds": 6.782,
+      "exists": true,
+      "generated_at": "2026-06-23T06:56:47.091768+00:00",
+      "mtime_epoch": 1782197808.802721,
+      "mtime_iso": "2026-06-23T09:56:48+0300",
+      "path": "/opt/v7/egress/state/intelligence/channel-service-scores.json",
+      "size": 4619,
+      "top_keys": [
+        "confidence",
+        "confidence_factors",
+        "expires_at",
+        "freshness_state",
+        "generated_at",
+        "generator",
+        "item_count",
+        "items",
+        "schema",
+        "source_hashes",
+        "ttl_seconds",
+        "warnings"
+      ]
+    },
+    {
+      "age_seconds": 6.777,
+      "exists": true,
+      "generated_at": "2026-06-23T06:56:47.091768+00:00",
+      "mtime_epoch": 1782197808.8068125,
+      "mtime_iso": "2026-06-23T09:56:48+0300",
+      "path": "/opt/v7/egress/state/intelligence/user-service-scores.json",
+      "size": 164812,
+      "top_keys": [
+        "confidence",
+        "confidence_factors",
+        "expires_at",
+        "freshness_state",
+        "generated_at",
+        "generator",
+        "item_count",
+        "items",
+        "schema",
+        "source_hashes",
+        "ttl_seconds",
+        "warnings"
+      ]
+    },
+    {
+      "age_seconds": 3.101,
+      "exists": true,
+      "mtime_epoch": 1782197812.4828978,
+      "mtime_iso": "2026-06-23T09:56:52+0300",
+      "path": "/opt/v7/egress/state/service-matrix.json",
+      "size": 123445,
+      "top_keys": [
+        "items",
+        "updated"
+      ]
+    },
+    {
+      "age_seconds": 91.179,
+      "exists": true,
+      "mtime_epoch": 1782197724.4052708,
+      "mtime_iso": "2026-06-23T09:55:24+0300",
+      "path": "/opt/v7/egress/state/egress-quality-summary.json",
+      "size": 11627,
+      "top_keys": [
+        "schema_version",
+        "updated",
+        "windows",
+        "items"
+      ]
+    },
+    {
+      "age_seconds": 6.562,
+      "exists": true,
+      "mtime_epoch": 1782197809.0225606,
+      "mtime_iso": "2026-06-23T09:56:49+0300",
+      "path": "/opt/v7/egress/state/egress-load-summary.json",
+      "size": 2256,
+      "top_keys": [
+        "schema_version",
+        "updated",
+        "source",
+        "authority",
+        "operator_status",
+        "semantics",
+        "summary"
+      ]
+    }
+  ],
+  "now_epoch": 1782197815.5842717,
+  "now_iso": "2026-06-23T09:56:55+0300"
+}

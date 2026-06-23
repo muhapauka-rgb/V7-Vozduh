@@ -1,0 +1,22 @@
+Unit v7-intelligence-snapshot-refresh.service could not be found.
+Unit v7-intelligence-snapshot-refresh.timer could not be found.
+○ v7-users-autoswitch.service - V7 guarded user egress autoswitch
+     Loaded: loaded (/etc/systemd/system/v7-users-autoswitch.service; static)
+     Active: inactive (dead) since Wed 2026-05-27 20:13:14 MSK; 3 weeks 5 days ago
+ Invocation: db62ddfa85a84a74b1f1e58b188a3e76
+TriggeredBy: ○ v7-users-autoswitch.timer
+   Main PID: 1928428 (code=exited, status=0/SUCCESS)
+   Mem peak: 17.9M
+        CPU: 280ms
+
+Notice: journal has been rotated since unit was started, output may be incomplete.
+
+○ v7-users-autoswitch.timer - Run V7 guarded user egress autoswitch periodically
+     Loaded: loaded (/etc/systemd/system/v7-users-autoswitch.timer; enabled; preset: enabled)
+     Active: inactive (dead) since Wed 2026-05-27 20:13:19 MSK; 3 weeks 5 days ago
+   Duration: 26.046s
+ Invocation: 80ff2391ef71418885e28ad3d8e1f9d1
+    Trigger: n/a
+   Triggers: ● v7-users-autoswitch.service
+
+Notice: journal has been rotated since unit was started, output may be incomplete.

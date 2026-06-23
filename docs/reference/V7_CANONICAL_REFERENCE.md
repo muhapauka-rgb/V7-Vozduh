@@ -1,7 +1,7 @@
 # V7 Canonical Reference
 
 Status: canonical project reference
-Last verified commit: `AUTONOMY.CANARY.1_READINESS_RECHECK`
+Last verified commit: `AUTONOMY.CANARY.1A_SNAPSHOT_GATE_AND_CANDIDATE_RECHECK`
 Last verified date: 2026-06-23
 
 This document describes the current meaning of V7 system concepts. It is not a history log and not an audit report. Reports remain evidence. ADRs explain why a decision was made. This reference is the current truth that future V7 work must read before re-auditing old concepts.
@@ -195,6 +195,11 @@ Stable conclusions:
 8. Snapshot refresh dry-run is stable and non-mutating: `source_stable=true`, `snapshot_count=11`, `runtime_behavior_changed=false`, `governance_behavior_changed=false`, and `users_moved=false`.
 9. Production autonomy remains disabled. No apply, no user movement, no daemon enablement, no autoswitch enablement, no threshold/floor/formula change, no synthetic evidence, and no new truth source occurred.
 10. Shortest safe path before another canary decision: snapshot gate / candidate recheck through existing owners, real observed service/channel outcome collection, prediction source-confidence collection, contextual supervised operator comparison if useful, then another canary readiness recheck.
+11. AUTONOMY.CANARY.1A on 2026-06-23 returned `CANDIDATE_VISIBILITY_BLOCKED`.
+12. Current production planner evidence shows `candidate_moves_total=18` with distribution `awg3=8`, `wireguard-1779454504-c43409=8`, and `vless=10`, but normal `v7-users-autoswitch --mode observe` still returns `selected_move_count=0` because snapshot gate stops on `service-scores` and `channel-service-scores` source mismatch against `service_matrix`.
+13. Standalone `v7-intelligence-snapshot-refresh --pretty` is snapshot-only and safe (`source_stable=true`, `snapshot_count=11`, `runtime_behavior_changed=false`, `governance_behavior_changed=false`, `users_moved=false`), but by itself does not make the normal planner observe path persistently pass the snapshot gate.
+14. Planner-owned refresh through existing `v7-users-autoswitch --mode observe --max-selected-moves 1 --pre-planner-refresh=write --pre-planner-refresh-command=/usr/local/bin/v7-intelligence-snapshot-refresh` clears snapshot gate inside that observe run (`stop_required=false`, `stop_families=[]`) without apply or user movement, but the run then stops at `dry_run_restore_barrier_clearance_generation_expired`.
+15. Normal observe after the planner-owned refresh again reports `dry_run_intelligence_snapshot_stop_required`, so candidate visibility is not durably fixed yet. The next implementation phase must fix the existing planner/snapshot lifecycle owner so normal observe can either acquire a durable fresh source bundle or fail with the restore-barrier reason without recurring snapshot mismatch.
 
 ## AUTONOMY_ROOT_CONFIDENCE_TRUST_MODEL
 

@@ -1,0 +1,28 @@
+{
+  "apply_allowed_now": null,
+  "approved_plan_lock_selected_move_count": 10,
+  "candidate_moves_total": 18,
+  "current_distribution_from_decisions": {
+    "awg3": 8,
+    "vless": 10,
+    "wireguard-1779454504-c43409": 8
+  },
+  "restore_clearance_generation_ok": false,
+  "restore_clearance_generation_reasons": null,
+  "restore_status": null,
+  "selected_move_count": 0,
+  "snapshot_gate_errors": {
+    "channel-service-scores": [
+      "source_hash_mismatch:channel-service-scores:service_matrix"
+    ],
+    "service-scores": [
+      "source_hash_mismatch:service-scores:service_matrix"
+    ]
+  },
+  "snapshot_gate_stop_families": [
+    "channel-service-scores",
+    "service-scores"
+  ],
+  "snapshot_gate_stop_required": true,
+  "terminal_reason": "dry_run_intelligence_snapshot_stop_required"
+}

@@ -58,6 +58,7 @@ Current production alignment:
 - AUTONOMY.TRUST.SOURCE.REALITY.1 corrected the trust-source hierarchy: observed network outcome is primary; operator comparison is secondary supervised confirmation only when the operator has enough context. Blind operator training history is forbidden.
 - EVENT.CONSUMER.READONLY.2 certified the read-only event consumer link from real production events to planner, packet, restore barrier, rollback, feedback, and learning previews. It did not enable apply, daemon, autoswitch, movement, new truth source, or synthetic evidence.
 - AUTONOMY.CANARY.1_READINESS_RECHECK returned `AUTONOMY_CANARY_NO_GO`. Current production floors are confidence `39.606`, trust `54.705`, prediction confidence `36.859`, and secondary operator earned confidence `45.807`, all below the `70.0` canary floor. Event consumer remains certified read-only, blast and rollback confidence are `100.0`, but planner observe selected `0` moves and the snapshot gate stopped on `service-scores` / `channel-service-scores` source mismatch. No apply, daemon, autoswitch, movement, synthetic evidence, or new truth source occurred.
+- AUTONOMY.CANARY.1A returned `CANDIDATE_VISIBILITY_BLOCKED`. It found real planner pressure (`candidate_moves_total=18`; `awg3=8`, `wireguard-1779454504-c43409=8`, `vless=10`) and proved that existing planner-owned `--pre-planner-refresh=write` clears snapshot gate inside observe without apply/user movement. However, normal observe still reverts to `dry_run_intelligence_snapshot_stop_required`, while the planner-owned refresh observe stops later at `dry_run_restore_barrier_clearance_generation_expired`. The next phase is an existing-owner planner/snapshot lifecycle durability fix, not a new planner or autonomy system.
 
 ## 2. Full System Inventory
 
@@ -411,6 +412,7 @@ Sources used:
 - Prediction confidence evidence volume and source confidence.
 - Observed Capacity Shadow.
 - Progressive rollout/canary autonomy.
+- Durable planner candidate visibility after service-matrix-derived snapshot refresh.
 - Autonomous rollback certification.
 - Policy/group autonomy mapping.
 
@@ -444,7 +446,7 @@ Sources used:
 1. Keep autoswitch daemon/timer inactive.
 2. Start observed service/channel outcome evidence collection through existing service/quality/prediction owners.
 3. Start prediction evidence collection with real forecast -> later actual pairs.
-4. Re-run canary readiness after read-only event consumer certification.
+4. Fix durable candidate visibility through the existing planner/snapshot refresh lifecycle owner, then re-run canary readiness.
 5. Re-run truth/convergence after each evidence or logic change.
 
 ### Near Term: 2-8 Weeks
@@ -489,8 +491,8 @@ Do not delete immediately. Classify first.
 
 1. Collect observed service/channel outcome evidence through existing service, quality, prediction, feedback, and closure owners.
 2. Collect time-separated prediction forecast -> later actual evidence.
-3. Run `AUTONOMY.CANARY.1_READINESS_RECHECK` against the newly certified read-only event consumer.
-4. Recheck restore barrier creation for a single event-triggered packet in preview mode.
+3. Run `AUTONOMY.CANARY.1B_PLANNER_SNAPSHOT_GATE_DURABILITY_FIX` through existing owners only.
+4. Recheck restore barrier creation for a single event-triggered packet in preview mode after normal observe no longer stops at snapshot mismatch.
 5. Recheck rollback packet readiness for the same single event-triggered packet.
 6. Build an autonomy readiness dashboard row from existing gate values only.
 7. Keep `v7-users-autoswitch.service/timer` inactive until confidence/trust/prediction floors pass.

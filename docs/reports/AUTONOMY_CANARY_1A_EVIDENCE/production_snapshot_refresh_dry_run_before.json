@@ -1,0 +1,45 @@
+{
+  "audit_inputs": [
+    "/opt/v7/events/switch-history.jsonl",
+    "/opt/v7/audit/audit.jsonl",
+    "/opt/v7/audit/operator-execution-audit.jsonl",
+    "/opt/v7/audit/operator-runtime-governance-actions.jsonl"
+  ],
+  "dry_run": true,
+  "feedback_inputs": [
+    "/opt/v7/egress/state/execution-events.jsonl",
+    "/opt/v7/egress/state/runtime-trust.jsonl",
+    "/opt/v7/egress/state/proposal-records.jsonl",
+    "/opt/v7/egress/state/proposals.jsonl",
+    "/opt/v7/egress/state/closure-records.jsonl"
+  ],
+  "governance_behavior_changed": false,
+  "metrics": {
+    "elapsed_ms": 1437.708,
+    "max_snapshot_bytes": 272294,
+    "snapshot_count": 11,
+    "snapshot_sizes": {
+      "best-available-pool": 39939,
+      "blast-radius-summaries": 999,
+      "candidate-suitability-summary": 156901,
+      "channel-service-scores": 3528,
+      "overview-summary": 2812,
+      "prediction-summaries": 60261,
+      "risk-summaries": 964,
+      "service-scores": 17676,
+      "trust-evolution-summaries": 272294,
+      "trust-summaries": 1218,
+      "user-service-scores": 117153
+    },
+    "total_snapshot_bytes": 673745
+  },
+  "runtime_behavior_changed": false,
+  "schema": "v7.intelligence-snapshot-refresh-result.v1",
+  "snapshot_count": 11,
+  "source_consistency_attempts": 2,
+  "source_consistency_errors": [],
+  "source_stable": true,
+  "users_moved": false,
+  "warnings": [],
+  "written": {}
+}

@@ -1,0 +1,462 @@
+[
+  {
+    "mtime": 1781294870.9812777,
+    "path": "/opt/v7/admin/ba1_close_one_user_packet.json",
+    "size": 4933
+  },
+  {
+    "mtime": 1781294817.5673385,
+    "path": "/opt/v7/admin/ba1_close_one_user_plan.json",
+    "size": 4982924
+  },
+  {
+    "mtime": 1781299819.183914,
+    "path": "/opt/v7/admin/ba2_gate_safety_expire_one_user_packet_generate.json",
+    "size": 122
+  },
+  {
+    "mtime": 1781299818.9769166,
+    "path": "/opt/v7/admin/ba2_gate_safety_expire_one_user_plan.json",
+    "size": 4977023
+  },
+  {
+    "mtime": 1781299328.4990394,
+    "path": "/opt/v7/admin/ba2_gate_two_user_packet.json",
+    "size": 5435
+  },
+  {
+    "mtime": 1781299407.8900695,
+    "path": "/opt/v7/admin/ba2_gate_two_user_packet_retry2.json",
+    "size": 5435
+  },
+  {
+    "mtime": 1781299454.060573,
+    "path": "/opt/v7/admin/ba2_gate_two_user_packet_retry3.json",
+    "size": 5435
+  },
+  {
+    "mtime": 1781299289.3455286,
+    "path": "/opt/v7/admin/ba2_gate_two_user_plan.json",
+    "size": 5008835
+  },
+  {
+    "mtime": 1781303002.0000236,
+    "path": "/opt/v7/admin/ba3_five_user_packet.json",
+    "size": 6985
+  },
+  {
+    "mtime": 1781303156.1304932,
+    "path": "/opt/v7/admin/ba3_five_user_packet_retry1.json",
+    "size": 6985
+  },
+  {
+    "mtime": 1781303270.8268132,
+    "path": "/opt/v7/admin/ba3_five_user_packet_retry2.json",
+    "size": 6985
+  },
+  {
+    "mtime": 1781302980.7284715,
+    "path": "/opt/v7/admin/ba3_five_user_plan.json",
+    "size": 4982630
+  },
+  {
+    "mtime": 1781303144.0304356,
+    "path": "/opt/v7/admin/ba3_five_user_plan_retry1.json",
+    "size": 4992057
+  },
+  {
+    "mtime": 1781303256.7950296,
+    "path": "/opt/v7/admin/ba3_five_user_plan_retry2.json",
+    "size": 4992926
+  },
+  {
+    "mtime": 1779291888.3324323,
+    "path": "/opt/v7/admin/egress-draft-tests/1-1779291887-55965c-1779291888-b0b382/result.json",
+    "size": 1747
+  },
+  {
+    "mtime": 1779292334.0117154,
+    "path": "/opt/v7/admin/egress-draft-tests/1-1779291887-55965c-1779292334-17bc7f/result.json",
+    "size": 1747
+  },
+  {
+    "mtime": 1779291889.3093696,
+    "path": "/opt/v7/admin/egress-draft-tests/1-1779291887-55965c-runtime-1779291888-968d6d/result.json",
+    "size": 2501
+  },
+  {
+    "mtime": 1779291910.4022918,
+    "path": "/opt/v7/admin/egress-draft-tests/1-1779291887-55965c-runtime-1779291889-8e4594/result.json",
+    "size": 15004
+  },
+  {
+    "mtime": 1779212567.859918,
+    "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779212551-5f2af4-1779212567-d21edc/result.json",
+    "size": 1725
+  },
+  {
+    "mtime": 1779227526.6726499,
+    "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779212551-5f2af4-1779227526-6b3483/result.json",
+    "size": 1725
+  },
+  {
+    "mtime": 1779227953.814959,
+    "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779227510-8c08e7-1779227953-9968ee/result.json",
+    "size": 1740
+  },
+  {
+    "mtime": 1779229749.728654,
+    "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779227510-8c08e7-runtime-1779229741-d72ffe/result.json",
+    "size": 2306
+  },
+  {
+    "mtime": 1779230366.839335,
+    "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779227510-8c08e7-runtime-1779230366-3b4957/result.json",
+    "size": 2495
+  },
+  {
+    "mtime": 1779230597.5381575,
+    "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779227510-8c08e7-runtime-1779230578-730443/result.json",
+    "size": 14998
+  },
+  {
+    "mtime": 1779230735.3253098,
+    "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779227510-8c08e7-runtime-1779230717-01826d/result.json",
+    "size": 14942
+  },
+  {
+    "mtime": 1779230793.9718204,
+    "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779227510-8c08e7-runtime-1779230774-51cf55/result.json",
+    "size": 14982
+  },
+  {
+    "mtime": 1779303737.6365917,
+    "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779303737-a57ce8-1779303737-cf3f93/result.json",
+    "size": 1740
+  },
+  {
+    "mtime": 1779303738.5548618,
+    "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779303737-a57ce8-runtime-1779303737-dd22ec/result.json",
+    "size": 2494
+  },
+  {
+    "mtime": 1779303758.0197477,
+    "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779303737-a57ce8-runtime-1779303739-2a8b85/result.json",
+    "size": 14970
+  },
+  {
+    "mtime": 1779305909.4718044,
+    "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779305908-ed3889-1779305909-440a3b/result.json",
+    "size": 1740
+  },
+  {
+    "mtime": 1779305910.3726232,
+    "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779305908-ed3889-runtime-1779305909-f16c54/result.json",
+    "size": 2494
+  },
+  {
+    "mtime": 1779305929.0844266,
+    "path": "/opt/v7/admin/egress-draft-tests/amneziawg-1779305908-ed3889-runtime-1779305911-2fff97/result.json",
+    "size": 14953
+  },
+  {
+    "mtime": 1779352720.0764604,
+    "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779352711-bc94ec-1779352720-8888d9/result.json",
+    "size": 1437
+  },
+  {
+    "mtime": 1779352724.8453448,
+    "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779352711-bc94ec-1779352724-980fad/result.json",
+    "size": 1437
+  },
+  {
+    "mtime": 1779352770.0645854,
+    "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779352726-16e1ec-1779352770-db864f/result.json",
+    "size": 1437
+  },
+  {
+    "mtime": 1779387408.984502,
+    "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779387408-c42bdf-1779387408-07b64d/result.json",
+    "size": 1597
+  },
+  {
+    "mtime": 1779387412.9084299,
+    "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779387408-c42bdf-quarantine-1779387409-966d63/result.json",
+    "size": 15157
+  },
+  {
+    "mtime": 1779387409.7833226,
+    "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779387408-c42bdf-runtime-1779387408-adb23c/result.json",
+    "size": 5642
+  },
+  {
+    "mtime": 1779388847.5310771,
+    "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779388847-d2ad7c-1779388847-4cb017/result.json",
+    "size": 1597
+  },
+  {
+    "mtime": 1779388852.56535,
+    "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779388847-d2ad7c-quarantine-1779388848-158247/result.json",
+    "size": 16639
+  },
+  {
+    "mtime": 1779388848.3277936,
+    "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779388847-d2ad7c-runtime-1779388847-af3427/result.json",
+    "size": 5642
+  },
+  {
+    "mtime": 1779453676.6086237,
+    "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779453676-42885e-1779453676-d82055/result.json",
+    "size": 1597
+  },
+  {
+    "mtime": 1779453694.675469,
+    "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779453676-42885e-runtime-1779453676-afdc62/result.json",
+    "size": 2259
+  },
+  {
+    "mtime": 1779454045.3385572,
+    "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779453676-42885e-runtime-1779454017-3049b4/result.json",
+    "size": 2259
+  },
+  {
+    "mtime": 1779454391.207467,
+    "path": "/opt/v7/admin/egress-draft-tests/openvpn-1779453676-42885e-runtime-1779454375-4f05cc/result.json",
+    "size": 4711
+  },
+  {
+    "mtime": 1779462892.6787999,
+    "path": "/opt/v7/admin/egress-draft-tests/subscription_url-1779462892-4d2cea-1779462892-48c0db/result.json",
+    "size": 1010
+  },
+  {
+    "mtime": 1779352997.6136558,
+    "path": "/opt/v7/admin/egress-draft-tests/test1-1779352953-489ac4-1779352997-9f7005/result.json",
+    "size": 1413
+  },
+  {
+    "mtime": 1779455931.1548193,
+    "path": "/opt/v7/admin/egress-draft-tests/wg-1779455931-ba621c-1779455931-4d4466/result.json",
+    "size": 1771
+  },
+  {
+    "mtime": 1779455931.9590335,
+    "path": "/opt/v7/admin/egress-draft-tests/wg-1779455931-ba621c-runtime-1779455931-abf4ef/result.json",
+    "size": 2155
+  },
+  {
+    "mtime": 1779455954.485611,
+    "path": "/opt/v7/admin/egress-draft-tests/wg-1779455931-ba621c-runtime-1779455932-39b6db/result.json",
+    "size": 14573
+  },
+  {
+    "mtime": 1779454504.5327575,
+    "path": "/opt/v7/admin/egress-draft-tests/wireguard-1779454504-c43409-1779454504-488966/result.json",
+    "size": 1711
+  },
+  {
+    "mtime": 1779454505.6756566,
+    "path": "/opt/v7/admin/egress-draft-tests/wireguard-1779454504-c43409-runtime-1779454504-db9ec5/result.json",
+    "size": 2095
+  },
+  {
+    "mtime": 1779454527.0974348,
+    "path": "/opt/v7/admin/egress-draft-tests/wireguard-1779454504-c43409-runtime-1779454505-0be4c3/result.json",
+    "size": 14518
+  },
+  {
+    "mtime": 1779455670.350734,
+    "path": "/opt/v7/admin/egress-draft-tests/wireguard-1779454504-c43409-runtime-1779455648-10ab7e/result.json",
+    "size": 14521
+  },
+  {
+    "mtime": 1781209166.820265,
+    "path": "/opt/v7/admin/exec24_one_user_packet.json",
+    "size": 4913
+  },
+  {
+    "mtime": 1781378060.0510647,
+    "path": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+    "size": 6302
+  },
+  {
+    "mtime": 1781378210.7102551,
+    "path": "/opt/v7/egress/state/autoswitch-safety.json",
+    "size": 10709
+  },
+  {
+    "mtime": 1778157358.3178918,
+    "path": "/opt/v7/egress/state/client-agents.json",
+    "size": 421
+  },
+  {
+    "mtime": 1779389627.2022917,
+    "path": "/opt/v7/egress/state/client-commands.json",
+    "size": 4079
+  },
+  {
+    "mtime": 1781898658.6982288,
+    "path": "/opt/v7/egress/state/client-reconnect-state.json",
+    "size": 29704
+  },
+  {
+    "mtime": 1779403363.5987048,
+    "path": "/opt/v7/egress/state/client-speed-links.json",
+    "size": 68
+  },
+  {
+    "mtime": 1779388916.2354918,
+    "path": "/opt/v7/egress/state/client-speed.json",
+    "size": 18770
+  },
+  {
+    "mtime": 1779456133.7023292,
+    "path": "/opt/v7/egress/state/egress-labels.json",
+    "size": 191
+  },
+  {
+    "mtime": 1782197526.9796517,
+    "path": "/opt/v7/egress/state/egress-load-summary.json",
+    "size": 2256
+  },
+  {
+    "mtime": 1782197421.8170562,
+    "path": "/opt/v7/egress/state/egress-quality-ring.json",
+    "size": 686846
+  },
+  {
+    "mtime": 1782197421.805786,
+    "path": "/opt/v7/egress/state/egress-quality-summary.json",
+    "size": 11628
+  },
+  {
+    "mtime": 1781363835.0714111,
+    "path": "/opt/v7/egress/state/egress-speed.json",
+    "size": 3891
+  },
+  {
+    "mtime": 1780400797.4433017,
+    "path": "/opt/v7/egress/state/execution-contracts.json",
+    "size": 3
+  },
+  {
+    "mtime": 1782197526.7467437,
+    "path": "/opt/v7/egress/state/intelligence/best-available-pool.json",
+    "size": 59350
+  },
+  {
+    "mtime": 1782197526.7358212,
+    "path": "/opt/v7/egress/state/intelligence/blast-radius-summaries.json",
+    "size": 1197
+  },
+  {
+    "mtime": 1782197526.7447436,
+    "path": "/opt/v7/egress/state/intelligence/candidate-suitability-summary.json",
+    "size": 222040
+  },
+  {
+    "mtime": 1782197526.7345457,
+    "path": "/opt/v7/egress/state/intelligence/channel-service-scores.json",
+    "size": 4615
+  },
+  {
+    "mtime": 1782197526.7567434,
+    "path": "/opt/v7/egress/state/intelligence/overview-summary.json",
+    "size": 3481
+  },
+  {
+    "mtime": 1782197526.7488282,
+    "path": "/opt/v7/egress/state/intelligence/prediction-summaries.json",
+    "size": 90384
+  },
+  {
+    "mtime": 1782197526.7354667,
+    "path": "/opt/v7/egress/state/intelligence/risk-summaries.json",
+    "size": 1102
+  },
+  {
+    "mtime": 1782197526.7338593,
+    "path": "/opt/v7/egress/state/intelligence/service-scores.json",
+    "size": 25917
+  },
+  {
+    "mtime": 1782197526.7547436,
+    "path": "/opt/v7/egress/state/intelligence/trust-evolution-summaries.json",
+    "size": 396140
+  },
+  {
+    "mtime": 1782197526.7350485,
+    "path": "/opt/v7/egress/state/intelligence/trust-summaries.json",
+    "size": 1543
+  },
+  {
+    "mtime": 1782197526.7390277,
+    "path": "/opt/v7/egress/state/intelligence/user-service-scores.json",
+    "size": 164838
+  },
+  {
+    "mtime": 1779456740.2346008,
+    "path": "/opt/v7/egress/state/path-benchmark.json",
+    "size": 19399
+  },
+  {
+    "mtime": 1779389020.31918,
+    "path": "/opt/v7/egress/state/path-optimizer-advice.json",
+    "size": 1801
+  },
+  {
+    "mtime": 1779388916.4460602,
+    "path": "/opt/v7/egress/state/path-samples.json",
+    "size": 2796
+  },
+  {
+    "mtime": 1782183355.8065517,
+    "path": "/opt/v7/egress/state/profile-delivery-tokens.json",
+    "size": 40378
+  },
+  {
+    "mtime": 1782197118.681569,
+    "path": "/opt/v7/egress/state/service-matrix-refresh-summary.json",
+    "size": 18973
+  },
+  {
+    "mtime": 1782197547.6333003,
+    "path": "/opt/v7/egress/state/service-matrix.json",
+    "size": 123456
+  },
+  {
+    "mtime": 1779213359.0005813,
+    "path": "/opt/v7/egress/state/service-preferences.json",
+    "size": 466
+  },
+  {
+    "mtime": 1782197547.6339889,
+    "path": "/opt/v7/egress/state/telegram-sentinel.json",
+    "size": 13068
+  },
+  {
+    "mtime": 1782197542.9895403,
+    "path": "/opt/v7/egress/state/v7-state.json",
+    "size": 14215
+  },
+  {
+    "mtime": 1782182927.6984363,
+    "path": "/opt/v7/egress/state/vless-activity.json",
+    "size": 1899
+  },
+  {
+    "mtime": 1780335920.8214865,
+    "path": "/opt/v7/egress/state/z3_1-backups/autoswitch-restore-barrier.20260601T174520Z.json",
+    "size": 598
+  },
+  {
+    "mtime": 1780336035.412639,
+    "path": "/opt/v7/egress/state/z3_1-backups/autoswitch-restore-barrier.refresh.20260601T174715Z.json",
+    "size": 1002
+  },
+  {
+    "mtime": 1780336679.0927193,
+    "path": "/opt/v7/egress/state/z3_2-backups/autoswitch-restore-barrier.before-exec.20260601T175759Z.json",
+    "size": 1041
+  }
+]

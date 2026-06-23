@@ -1,0 +1,16 @@
+{
+  "operation.apply": null,
+  "operation.selected_move_count": 0,
+  "operation.terminal_reason": "dry_run_restore_barrier_clearance_generation_expired",
+  "routing_brain.snapshot_gate.pre_planner_refresh.decision": "freshness_refreshed",
+  "routing_brain.snapshot_gate.pre_planner_refresh.post_source_reload_refresh.source_reload_after_retry.changed_keys": null,
+  "routing_brain.snapshot_gate.pre_planner_refresh.post_source_reload_refresh.state": null,
+  "routing_brain.snapshot_gate.pre_planner_refresh.source_reload.changed_keys": [],
+  "routing_brain.snapshot_gate.pre_planner_refresh.state": "REFRESH_SUCCESS",
+  "routing_brain.snapshot_gate.results.channel-service-scores.validation_errors": [],
+  "routing_brain.snapshot_gate.results.service-scores.validation_errors": [],
+  "routing_brain.snapshot_gate.stop_families": [],
+  "routing_brain.snapshot_gate.stop_required": false,
+  "selected_moves": [],
+  "summary.candidate_moves_total": 18
+}

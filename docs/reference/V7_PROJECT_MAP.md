@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-23
-Last changed by: `AUTONOMY.CANARY.1_READINESS_RECHECK`
+Last changed by: `AUTONOMY.CANARY.1A_SNAPSHOT_GATE_AND_CANDIDATE_RECHECK`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -21,7 +21,7 @@ POOL.1 classified the pool as stable with zero planner candidates. POOL.2 rechec
 
 Current roadmap position:
 
-`AUTONOMY_CANARY_NO_GO_EVIDENCE_COLLECTION_REQUIRED`
+`AUTONOMY_CANARY_CANDIDATE_VISIBILITY_BLOCKED`
 
 The blueprint view keeps channel recovery visible, but the project-level autonomy bottleneck is now broader and more precise. Branch 1B closed the blast recovery branch in production, AUTONOMY.TRUST.BUILDOUT.1 found that recovered blast evidence was not durable in the current consumed dry-run, and AUTONOMY.TRUST.DURABILITY.1 fixed the normal refresh code path so rotated evidence survives refresh/rebuild/reread:
 
@@ -109,13 +109,15 @@ contextual operator comparison
 | Operator Comparison Evidence | 25% | 25% | 0% | `AUTONOMY.CANARY.1_READINESS_RECHECK` | Current comparison count is still `0`; operator comparison remains secondary supervised evidence. |
 | Canary Readiness | 45% | 45% | 0% | `AUTONOMY.CANARY.1_READINESS_RECHECK` | Final recheck returns `AUTONOMY_CANARY_NO_GO`: confidence `39.606`, trust `54.705`, prediction confidence `36.859`, planner selected `0` moves, and snapshot gate stopped on service snapshot source mismatch. |
 | Production Autonomy | 45% | 45% | 0% | `AUTONOMY.CANARY.1_READINESS_RECHECK` | No apply, no user movement, no daemon enablement; event consumer remains read-only and production autonomy stays disabled. |
+| Candidate Visibility | 35% | 55% | +20% | `AUTONOMY.CANARY.1A` | Runtime recheck found real candidates (`candidate_moves_total=18`) and proved planner-owned pre-refresh write clears snapshot gate inside observe, but normal observe still reverts to `dry_run_intelligence_snapshot_stop_required`. |
+| Canary Readiness | 45% | 45% | 0% | `AUTONOMY.CANARY.1A` | Canary remains blocked: after snapshot gate clears inside pre-refresh observe, selected moves still stop at `dry_run_restore_barrier_clearance_generation_expired`; normal observe remains snapshot-gated. |
 
 ## Stable Areas
 
 | Area | Current % | State | Evidence |
 | --- | ---: | --- | --- |
 | Runtime truth / convergence | 100% | PASS / FULLY_ALIGNED | `POOL2_EVIDENCE/truth_check.json`, `POOL2_EVIDENCE/convergence_status.json` |
-| Snapshot gate | 100% | PASS | `stop_required=false`, `source_mismatch_families=[]` |
+| Snapshot gate | 55% | CONDITIONAL | `AUTONOMY.CANARY.1A`: pre-refresh write observe gives `stop_required=false`, but normal observe still reports `source_mismatch_families=[service-scores, channel-service-scores]` |
 | Atomic envelope | 100% | valid | `condition=ENVELOPE_VALID`, `mismatches=[]` |
 | Current distribution evidence | 100% | known | `POOL2_EVIDENCE/current_distribution.json` |
 
@@ -129,9 +131,24 @@ contextual operator comparison
 | P1 | `OBSERVED_OUTCOME.EVIDENCE.1_REAL_SERVICE_CHANNEL_OUTCOME_COLLECTION` | Observed service/channel outcome is the primary trust source; current confidence `39.606` and trust `54.705` remain below autonomy floors. |
 | P1 | `AUTONOMY.PREDICTION.EVIDENCE.3_REAL_VOLUME_AND_SOURCE_CONFIDENCE_COLLECTION` | Prediction lifecycle is durable with `21/21` matched rows and `0` pending rows, but prediction confidence remains `36.859` vs the `70.0` floor. |
 | P2 | `OPERATOR_COMPARISON.REVIEW.1_CONTEXTUAL_SUPERVISED_CONFIRMATION` | Operator comparison remains valid only when the operator has enough context; do not create blind training history. |
-| P1 | `AUTONOMY.CANARY.1A_SNAPSHOT_GATE_AND_CANDIDATE_RECHECK` | Canary recheck found planner observe selected `0` moves and stopped on `service-scores` / `channel-service-scores` source mismatch; resolve with existing snapshot/planner owners before another canary decision. |
+| P1 | `AUTONOMY.CANARY.1B_PLANNER_SNAPSHOT_GATE_DURABILITY_FIX` | 1A proved candidates exist and planner-owned refresh can clear snapshot gate inside observe, but normal observe still returns snapshot mismatch; fix existing planner/snapshot lifecycle owner before another canary decision. |
 
 ## Changelog
+
+### 2026-06-23 — AUTONOMY.CANARY.1A Snapshot Gate And Candidate Recheck
+
+- Created `docs/reports/AUTONOMY_CANARY_1A_SNAPSHOT_GATE_AND_CANDIDATE_RECHECK_REPORT.md` and evidence under `docs/reports/AUTONOMY_CANARY_1A_EVIDENCE/`.
+- Final verdict: `CANDIDATE_VISIBILITY_BLOCKED`.
+- Branch decision: `SCENARIO_B_CANDIDATE_VISIBILITY_BLOCKED`.
+- Production planner evidence: `candidate_moves_total=18`, `selected_move_count=0`, current distribution `awg3=8`, `wireguard-1779454504-c43409=8`, `vless=10`.
+- Normal observe stops on snapshot gate: `service-scores` and `channel-service-scores` have `source_hash_mismatch:*:service_matrix`.
+- Standalone snapshot refresh write is safe (`source_stable=true`, `snapshot_count=11`, `users_moved=false`) but does not durably clear normal observe.
+- Planner-owned pre-refresh write observe clears snapshot gate (`stop_required=false`, `stop_families=[]`) without apply or user movement, then stops at `dry_run_restore_barrier_clearance_generation_expired`.
+- No runtime apply, user movement, daemon enablement, autoswitch enablement, new planner, new governance, new execution path, new truth source, formula/floor change, synthetic candidate, synthetic event, synthetic evidence, prediction actual, or operator comparison occurred.
+- Updated changed-area percentages:
+  - Candidate Visibility: `35% -> 55%`
+  - Canary Readiness: `45% -> 45%`
+  - Production Autonomy: `45% -> 45%`
 
 ### 2026-06-23 — AUTONOMY.CANARY.1 Readiness Recheck
 

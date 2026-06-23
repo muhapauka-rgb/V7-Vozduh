@@ -1,0 +1,15 @@
+--- /opt/v7/egress/state/service-matrix.json exists True
+sha256 962207e26312ca297c5092ec9738ca2bb07f3d7e1d23c53d958da299c4dd2f2c size 123421 mtime 2026-06-23T09:57:47+0300
+keys ['items', 'updated']
+--- /opt/v7/egress/state/intelligence/service-scores.json exists True
+sha256 e8a7f59fa805ed832defe86566de4b65d33fab2a5d5535df66d54151970daac5 size 25912 mtime 2026-06-23T09:57:50+0300
+source_hashes {"quality_summary": "b7e0224228458e3d4d371a1e7fea86d22059161a4eb9c1075d64be28c0e0497e", "service_matrix": "f610366fff6af207741a683cefd5ef5685134c40ff165f479d5bf3e6f5300bd3", "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"}
+generated_at "2026-06-23T06:57:48.202342+00:00"
+schema "v7.intelligence.service-scores.v1"
+keys ['confidence', 'confidence_factors', 'expires_at', 'freshness_state', 'generated_at', 'generator', 'item_count', 'items', 'metadata', 'schema', 'source_hashes', 'ttl_seconds', 'warnings']
+--- /opt/v7/egress/state/intelligence/channel-service-scores.json exists True
+sha256 f0d1e2792d7d61ea80d6e005c14365f35bfaf3746ec445ed139f78f2d9cee0ee size 4617 mtime 2026-06-23T09:57:50+0300
+source_hashes {"quality_summary": "b7e0224228458e3d4d371a1e7fea86d22059161a4eb9c1075d64be28c0e0497e", "service_matrix": "f610366fff6af207741a683cefd5ef5685134c40ff165f479d5bf3e6f5300bd3", "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"}
+generated_at "2026-06-23T06:57:48.202342+00:00"
+schema "v7.intelligence.channel-service-scores.v1"
+keys ['confidence', 'confidence_factors', 'expires_at', 'freshness_state', 'generated_at', 'generator', 'item_count', 'items', 'schema', 'source_hashes', 'ttl_seconds', 'warnings']

@@ -1,0 +1,9 @@
+/opt/v7/egress/state/service-matrix.json
+sha256_json 20bf82d502303c45ecdcf5cc59ff4a70d4a30968dee5d8506eeacf89cd2ea9bd
+source_hashes None
+/opt/v7/egress/state/intelligence/service-scores.json
+sha256_json 63cd8c42d836c6c561d595f48606a026ee9172396e848f27337dfaa99d565f08
+source_hashes {'quality_summary': 'b7e0224228458e3d4d371a1e7fea86d22059161a4eb9c1075d64be28c0e0497e', 'service_matrix': '928e323244d216a07f67e86e7f1bcd1e7998428f8c34583d38be503826af3389', 'service_preferences': '88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c'}
+/opt/v7/egress/state/intelligence/channel-service-scores.json
+sha256_json 585173ab6fe2822492f38a7f2b423a1128ef098e7e485584836441c1b1ec3274
+source_hashes {'quality_summary': 'b7e0224228458e3d4d371a1e7fea86d22059161a4eb9c1075d64be28c0e0497e', 'service_matrix': '928e323244d216a07f67e86e7f1bcd1e7998428f8c34583d38be503826af3389', 'service_preferences': '88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c'}

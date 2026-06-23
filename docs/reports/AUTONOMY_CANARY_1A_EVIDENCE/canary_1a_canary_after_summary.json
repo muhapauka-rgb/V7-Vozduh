@@ -1,0 +1,72 @@
+{
+  "candidate_moves_total": 18,
+  "current_distribution_from_decisions": {
+    "awg3": 8,
+    "vless": 10,
+    "wireguard-1779454504-c43409": 8
+  },
+  "decision_count": 26,
+  "move_type_counts": {
+    "none": 8,
+    "rebalance": 18
+  },
+  "selected_move_count": 0,
+  "selected_move_samples": [],
+  "selected_moves": [],
+  "snapshot_gate": {
+    "errors_by_family": {
+      "channel-service-scores": [
+        "source_hash_mismatch:channel-service-scores:service_matrix"
+      ],
+      "service-scores": [
+        "source_hash_mismatch:service-scores:service_matrix"
+      ]
+    },
+    "stop_families": [
+      "channel-service-scores",
+      "service-scores"
+    ],
+    "stop_required": true
+  },
+  "terminal_reason": "dry_run_intelligence_snapshot_stop_required",
+  "top_blockers": [
+    [
+      "health_code_000",
+      52
+    ],
+    [
+      "severity_FAIL",
+      52
+    ],
+    [
+      "avg_mbps_below_floor",
+      52
+    ],
+    [
+      "min_mbps_below_floor",
+      52
+    ],
+    [
+      "telegram_required_telegram_down_14s",
+      52
+    ],
+    [
+      "manual_only",
+      26
+    ],
+    [
+      "reserve_only",
+      26
+    ],
+    [
+      "canary_reserved_production_assignment_blocked",
+      26
+    ]
+  ],
+  "unblocked_target_counts": {
+    "awg0": 26,
+    "awg3": 26,
+    "vless": 26,
+    "wireguard-1779454504-c43409": 26
+  }
+}

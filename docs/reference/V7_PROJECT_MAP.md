@@ -252,6 +252,23 @@ contextual operator comparison
   - Production Autonomy: `43% -> 43%`
 - Recorded next phase: `OPERATOR_COMPARISON.REVIEW.1_REAL_OPERATOR_COMPARISON_BATCH`.
 
+### 2026-06-23 — AUTONOMY.CANARY.1D Confidence/Trust/Prediction Floor Closure
+
+- Created `docs/reports/AUTONOMY_CANARY_1D_CONFIDENCE_TRUST_PREDICTION_FLOOR_CLOSURE_REPORT.md` and evidence under `docs/reports/AUTONOMY_CANARY_1D_EVIDENCE/`.
+- Implemented read-only floor forensics and materialization audit inside the existing `admin_core/autonomy_trust_acceleration.py` owner.
+- Deployed with safe deploy id `deploy-z8-14-Updatesystem-2915a4b-20260623T195620`; runtime file hash verified at `/usr/local/bin/admin_core/autonomy_trust_acceleration.py`.
+- Production after deploy exposes `floor_forensics` and `materialization_audit` in `tools/v7-autonomy-trust-evidence-inventory`.
+- Current floors remain blocked: confidence `37.402`, trust `53.051`, prediction confidence `33.753`, operator earned confidence `45.908`.
+- Root cause is now explicit: service rows are matched but low-confidence, candidate outcomes are present but incomplete/low-confidence, and prediction has `21/21` matches with `0` pending but low mean forecast confidence `0.3561`.
+- No runtime apply, user movement, daemon enablement, planner/governance/execution change, threshold/floor/formula change, synthetic evidence, or new truth source occurred.
+- Updated changed-area percentages:
+  - Trust Evidence Inventory: `85% -> 95%`
+  - Prediction Inventory Visibility: `85% -> 95%`
+  - Prediction Evidence Quality: `50% -> 50%`
+  - Canary Readiness: `35% -> 35%`
+  - Production Autonomy: `43% -> 43%`
+- Recorded next phase: `AUTONOMY.EVIDENCE.REAL_SOURCE_CONFIDENCE_COLLECTION`.
+
 ### 2026-06-23 — OPERATOR.COMPARISON.COLLECTION.1 Durable Operator Comparison Path
 
 - Created `docs/reports/OPERATOR_COMPARISON_COLLECTION_1_REPORT.md` and evidence under `docs/reports/OPERATOR_COMPARISON_COLLECTION_1_EVIDENCE/`.

@@ -1,0 +1,1558 @@
+{
+  "apply_executed": false,
+  "autonomy_enabled": false,
+  "canary_proximity": {
+    "apply_executed": false,
+    "autonomy_canary_1_ready": false,
+    "expected_gain": {
+      "operator_10_comparisons_100pct": 72.954,
+      "operator_15_comparisons_80pct": 71.477,
+      "prediction_5_pending_best_case": 33.687,
+      "prediction_all_pending_best_case": 33.687
+    },
+    "floors": {
+      "confidence": {
+        "current": 37.245,
+        "gap": 32.755,
+        "pass": false,
+        "target": 70.0
+      },
+      "operator_earned_confidence": {
+        "current": 45.908,
+        "gap": 24.092,
+        "pass": false,
+        "target": 70.0
+      },
+      "prediction_confidence": {
+        "current": 33.687,
+        "gap": 36.313,
+        "pass": false,
+        "target": 70.0
+      },
+      "trust": {
+        "current": 52.934,
+        "gap": 17.066,
+        "pass": false,
+        "target": 70.0
+      }
+    },
+    "missing": [
+      "confidence",
+      "trust",
+      "prediction_confidence"
+    ],
+    "primary_floors": {
+      "confidence": {
+        "current": 37.245,
+        "gap": 32.755,
+        "pass": false,
+        "target": 70.0
+      },
+      "prediction_confidence": {
+        "current": 33.687,
+        "gap": 36.313,
+        "pass": false,
+        "target": 70.0
+      },
+      "trust": {
+        "current": 52.934,
+        "gap": 17.066,
+        "pass": false,
+        "target": 70.0
+      }
+    },
+    "projection_only": true,
+    "readiness_model": "observed_outcome_primary_operator_comparison_secondary",
+    "runtime_mutation_performed": false,
+    "schema_version": "v7.autonomy-trust.canary-proximity.v1",
+    "secondary_evidence": {
+      "operator_earned_confidence": {
+        "current": 45.908,
+        "gap": 24.092,
+        "pass": false,
+        "target": 70.0
+      }
+    },
+    "secondary_missing": [
+      "operator_earned_confidence"
+    ],
+    "users_moved": 0
+  },
+  "collection_plan": {
+    "blind_operator_training_required": false,
+    "forbidden": [
+      "blind bulk operator reviews",
+      "synthetic comparisons",
+      "synthetic actuals",
+      "threshold/floor changes",
+      "runtime apply",
+      "user movement",
+      "daemon enablement"
+    ],
+    "primary_real_evidence_path": [
+      "observe service and channel quality outcomes through existing service/quality snapshots",
+      "match future forecasts to later real actuals through existing prediction owners",
+      "record post-action verification and no-rollback outcomes after governed/manual actions",
+      "refresh intelligence snapshots through tools/v7-intelligence-snapshot-refresh"
+    ],
+    "secondary_supervised_confirmation_path": [
+      "operator reviews only recommendations where enough operational context exists",
+      "record agree/disagree/override through /api/actions/shadow-autonomy-compare"
+    ]
+  },
+  "generated_at": "2026-06-23T12:48:43.143822+00:00",
+  "inputs": {
+    "audit_paths": [
+      "/opt/v7/events/switch-history.jsonl",
+      "/opt/v7/audit/audit.jsonl",
+      "/opt/v7/audit/operator-execution-audit.jsonl",
+      "/opt/v7/audit/operator-runtime-governance-actions.jsonl"
+    ],
+    "decision_records_read": 8258,
+    "event_dir": "/opt/v7/events",
+    "feedback_paths": [
+      "/opt/v7/egress/state/execution-events.jsonl",
+      "/opt/v7/egress/state/runtime-trust.jsonl",
+      "/opt/v7/egress/state/proposal-records.jsonl",
+      "/opt/v7/egress/state/proposals.jsonl",
+      "/opt/v7/egress/state/closure-records.jsonl"
+    ],
+    "rollback_paths": [
+      "/opt/v7/events/rollback-history.jsonl"
+    ],
+    "shadow_history_records_read": 351,
+    "snapshot_root": "/opt/v7/egress/state/intelligence",
+    "state_dir": "/opt/v7/egress/state"
+  },
+  "mode": "read_only_inventory_and_collection_plan",
+  "operator_authority_model": {
+    "blind_bulk_review_required": false,
+    "manual_action_authoritative": true,
+    "manual_action_is_fake_agreement": false,
+    "operator_comparison_role": "secondary_supervised_confirmation_only_when_context_is_sufficient",
+    "outcome_observation_after_manual_action": true,
+    "rules": [
+      "manual operator switches are authoritative actions",
+      "manual actions are not synthetic agreement with an autonomous recommendation",
+      "V7 should observe service and quality outcome after the action",
+      "future degradation should trigger proposal or operator confirmation through existing owners",
+      "operator comparison may raise confidence only when the operator has enough context"
+    ],
+    "schema_version": "v7.operator-authority-model.v1",
+    "system_must_respect_manual_action": true
+  },
+  "operator_comparisons": {
+    "blind_review_required": false,
+    "current": {
+      "agreement_rate": 0.0,
+      "comparison_count": 0,
+      "earned_confidence": 45.908,
+      "reviewable_decisions": 27,
+      "reviewed_decisions": 0
+    },
+    "evidence_role": "secondary_supervised_confirmation",
+    "growth_projection": {
+      "base_decision_confidence": 45.908,
+      "formula": "earned = base_decision_confidence*(1-min(comparisons/20,1)) + agreement_percent*min(comparisons/20,1)",
+      "minimum_comparisons": 5,
+      "minimum_earned_confidence": 70.0,
+      "projection_only": true,
+      "rows": [
+        {
+          "agreement_rate": 1.0,
+          "canary_readiness_impact": "operator_comparison_evidence_still_needed",
+          "comparisons": 5,
+          "earned_confidence": 59.431,
+          "earned_confidence_floor_met": false,
+          "minimum_comparisons_met": true
+        },
+        {
+          "agreement_rate": 0.9,
+          "canary_readiness_impact": "operator_comparison_evidence_still_needed",
+          "comparisons": 5,
+          "earned_confidence": 56.931,
+          "earned_confidence_floor_met": false,
+          "minimum_comparisons_met": true
+        },
+        {
+          "agreement_rate": 0.8,
+          "canary_readiness_impact": "operator_comparison_evidence_still_needed",
+          "comparisons": 5,
+          "earned_confidence": 54.431,
+          "earned_confidence_floor_met": false,
+          "minimum_comparisons_met": true
+        },
+        {
+          "agreement_rate": 0.75,
+          "canary_readiness_impact": "operator_comparison_evidence_still_needed",
+          "comparisons": 5,
+          "earned_confidence": 53.181,
+          "earned_confidence_floor_met": false,
+          "minimum_comparisons_met": true
+        },
+        {
+          "agreement_rate": 1.0,
+          "canary_readiness_impact": "operator_comparison_floor_met",
+          "comparisons": 10,
+          "earned_confidence": 72.954,
+          "earned_confidence_floor_met": true,
+          "minimum_comparisons_met": true
+        },
+        {
+          "agreement_rate": 0.9,
+          "canary_readiness_impact": "operator_comparison_evidence_still_needed",
+          "comparisons": 10,
+          "earned_confidence": 67.954,
+          "earned_confidence_floor_met": false,
+          "minimum_comparisons_met": true
+        },
+        {
+          "agreement_rate": 0.8,
+          "canary_readiness_impact": "operator_comparison_evidence_still_needed",
+          "comparisons": 10,
+          "earned_confidence": 62.954,
+          "earned_confidence_floor_met": false,
+          "minimum_comparisons_met": true
+        },
+        {
+          "agreement_rate": 0.75,
+          "canary_readiness_impact": "operator_comparison_evidence_still_needed",
+          "comparisons": 10,
+          "earned_confidence": 60.454,
+          "earned_confidence_floor_met": false,
+          "minimum_comparisons_met": true
+        },
+        {
+          "agreement_rate": 1.0,
+          "canary_readiness_impact": "operator_comparison_floor_met",
+          "comparisons": 15,
+          "earned_confidence": 86.477,
+          "earned_confidence_floor_met": true,
+          "minimum_comparisons_met": true
+        },
+        {
+          "agreement_rate": 0.9,
+          "canary_readiness_impact": "operator_comparison_floor_met",
+          "comparisons": 15,
+          "earned_confidence": 78.977,
+          "earned_confidence_floor_met": true,
+          "minimum_comparisons_met": true
+        },
+        {
+          "agreement_rate": 0.8,
+          "canary_readiness_impact": "operator_comparison_floor_met",
+          "comparisons": 15,
+          "earned_confidence": 71.477,
+          "earned_confidence_floor_met": true,
+          "minimum_comparisons_met": true
+        },
+        {
+          "agreement_rate": 0.75,
+          "canary_readiness_impact": "operator_comparison_evidence_still_needed",
+          "comparisons": 15,
+          "earned_confidence": 67.727,
+          "earned_confidence_floor_met": false,
+          "minimum_comparisons_met": true
+        },
+        {
+          "agreement_rate": 1.0,
+          "canary_readiness_impact": "operator_comparison_floor_met",
+          "comparisons": 20,
+          "earned_confidence": 100.0,
+          "earned_confidence_floor_met": true,
+          "minimum_comparisons_met": true
+        },
+        {
+          "agreement_rate": 0.9,
+          "canary_readiness_impact": "operator_comparison_floor_met",
+          "comparisons": 20,
+          "earned_confidence": 90.0,
+          "earned_confidence_floor_met": true,
+          "minimum_comparisons_met": true
+        },
+        {
+          "agreement_rate": 0.8,
+          "canary_readiness_impact": "operator_comparison_floor_met",
+          "comparisons": 20,
+          "earned_confidence": 80.0,
+          "earned_confidence_floor_met": true,
+          "minimum_comparisons_met": true
+        },
+        {
+          "agreement_rate": 0.75,
+          "canary_readiness_impact": "operator_comparison_floor_met",
+          "comparisons": 20,
+          "earned_confidence": 75.0,
+          "earned_confidence_floor_met": true,
+          "minimum_comparisons_met": true
+        }
+      ],
+      "schema_version": "v7.shadow-comparison-growth-projection.v1",
+      "synthetic_agreement_created": false
+    },
+    "review_batches": {
+      "apply_executed": false,
+      "batches": [
+        {
+          "apply_executed": false,
+          "available": 5,
+          "items": [
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_c8b8c6d75df11faac89a6fad",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_c8b8c6d75df11faac89a6fad",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.0.0.2"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_e95b2aeb746add1e86b41481",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_e95b2aeb746add1e86b41481",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.10"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_f2a375c9ddf4da02e5ac4fa7",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_f2a375c9ddf4da02e5ac4fa7",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.12"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_6ea5255041682b53257f231b",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_6ea5255041682b53257f231b",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.14"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_48953ec4b5bef9de421d997c",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_48953ec4b5bef9de421d997c",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.16"
+            }
+          ],
+          "operator_decisions_allowed": [
+            "agree",
+            "disagree",
+            "override"
+          ],
+          "runtime_mutation_performed": false,
+          "synthetic_agreement_allowed": false,
+          "target_comparisons": 5,
+          "users_moved": 0
+        },
+        {
+          "apply_executed": false,
+          "available": 10,
+          "items": [
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_c8b8c6d75df11faac89a6fad",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_c8b8c6d75df11faac89a6fad",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.0.0.2"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_e95b2aeb746add1e86b41481",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_e95b2aeb746add1e86b41481",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.10"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_f2a375c9ddf4da02e5ac4fa7",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_f2a375c9ddf4da02e5ac4fa7",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.12"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_6ea5255041682b53257f231b",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_6ea5255041682b53257f231b",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.14"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_48953ec4b5bef9de421d997c",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_48953ec4b5bef9de421d997c",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.16"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_198117d417a482281da6f603",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_198117d417a482281da6f603",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.3"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_1891562c653c60d6986052b3",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_1891562c653c60d6986052b3",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.4"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_e49e5d1fdd577c3c2eed4606",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_e49e5d1fdd577c3c2eed4606",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.8"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_5bd9eca161a6e033a9da2889",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_5bd9eca161a6e033a9da2889",
+              "expected_outcome": "stay_stable",
+              "operator_summary": "keep current channel",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "KEEP_USER",
+              "risk": 3.226,
+              "source_channel": "wireguard-1779454504-c43409",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.0.0.3"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_31f1b9399aea1f1431181f68",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_31f1b9399aea1f1431181f68",
+              "expected_outcome": "stay_stable",
+              "operator_summary": "keep current channel",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "KEEP_USER",
+              "risk": 3.226,
+              "source_channel": "wireguard-1779454504-c43409",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.0.0.6"
+            }
+          ],
+          "operator_decisions_allowed": [
+            "agree",
+            "disagree",
+            "override"
+          ],
+          "runtime_mutation_performed": false,
+          "synthetic_agreement_allowed": false,
+          "target_comparisons": 10,
+          "users_moved": 0
+        },
+        {
+          "apply_executed": false,
+          "available": 15,
+          "items": [
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_c8b8c6d75df11faac89a6fad",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_c8b8c6d75df11faac89a6fad",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.0.0.2"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_e95b2aeb746add1e86b41481",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_e95b2aeb746add1e86b41481",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.10"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_f2a375c9ddf4da02e5ac4fa7",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_f2a375c9ddf4da02e5ac4fa7",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.12"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_6ea5255041682b53257f231b",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_6ea5255041682b53257f231b",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.14"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_48953ec4b5bef9de421d997c",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_48953ec4b5bef9de421d997c",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.16"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_198117d417a482281da6f603",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_198117d417a482281da6f603",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.3"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_1891562c653c60d6986052b3",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_1891562c653c60d6986052b3",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.4"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_e49e5d1fdd577c3c2eed4606",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_e49e5d1fdd577c3c2eed4606",
+              "expected_outcome": "better_route_quality",
+              "operator_summary": "awg3 -> vless",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "MOVE_USER",
+              "risk": 3.226,
+              "source_channel": "awg3",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.8"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_5bd9eca161a6e033a9da2889",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_5bd9eca161a6e033a9da2889",
+              "expected_outcome": "stay_stable",
+              "operator_summary": "keep current channel",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "KEEP_USER",
+              "risk": 3.226,
+              "source_channel": "wireguard-1779454504-c43409",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.0.0.3"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_31f1b9399aea1f1431181f68",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_31f1b9399aea1f1431181f68",
+              "expected_outcome": "stay_stable",
+              "operator_summary": "keep current channel",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "KEEP_USER",
+              "risk": 3.226,
+              "source_channel": "wireguard-1779454504-c43409",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.0.0.6"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_8f07f0701ed6be4d11d84828",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_8f07f0701ed6be4d11d84828",
+              "expected_outcome": "stay_stable",
+              "operator_summary": "keep current channel",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "KEEP_USER",
+              "risk": 3.226,
+              "source_channel": "wireguard-1779454504-c43409",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.11"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_96e586b01740f5427c91787f",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_96e586b01740f5427c91787f",
+              "expected_outcome": "stay_stable",
+              "operator_summary": "keep current channel",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "KEEP_USER",
+              "risk": 3.226,
+              "source_channel": "wireguard-1779454504-c43409",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.13"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_05898fbc0985433fa42a1055",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_05898fbc0985433fa42a1055",
+              "expected_outcome": "stay_stable",
+              "operator_summary": "keep current channel",
+              "reason": "best available channel has higher advisory suitability",
+              "recommendation": "KEEP_USER",
+              "risk": 3.226,
+              "source_channel": "wireguard-1779454504-c43409",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.15"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_015f738ca4d31676cac948ed",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_015f738ca4d31676cac948ed",
+              "expected_outcome": "stay_stable",
+              "operator_summary": "keep current channel",
+              "reason": "existing operator decision surface recommendation",
+              "recommendation": "KEEP_USER",
+              "risk": 3.226,
+              "source_channel": "vless",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.17"
+            },
+            {
+              "blockers": [],
+              "comparison_eligibility": {
+                "already_reviewed": false,
+                "apply_executed": false,
+                "autonomy_enabled": false,
+                "blockers": [],
+                "decision_id": "shadow_5b824bcc8ec575ef92fb111e",
+                "eligible": true,
+                "latest_comparison_id": "",
+                "operator_decision": "",
+                "requires_real_operator_judgement": true,
+                "runtime_mutation_performed": false,
+                "schema_version": "v7.shadow-comparison-eligibility.v1",
+                "synthetic_agreement_allowed": false,
+                "users_moved": 0
+              },
+              "confidence": 46.331,
+              "decision_id": "shadow_5b824bcc8ec575ef92fb111e",
+              "expected_outcome": "stay_stable",
+              "operator_summary": "keep current channel",
+              "reason": "existing operator decision surface recommendation",
+              "recommendation": "KEEP_USER",
+              "risk": 3.226,
+              "source_channel": "vless",
+              "target_channel": "vless",
+              "trust": 3.15,
+              "user": "10.7.0.18"
+            }
+          ],
+          "operator_decisions_allowed": [
+            "agree",
+            "disagree",
+            "override"
+          ],
+          "runtime_mutation_performed": false,
+          "synthetic_agreement_allowed": false,
+          "target_comparisons": 15,
+          "users_moved": 0
+        }
+      ],
+      "blind_review_required": false,
+      "bulk_training_data": false,
+      "evidence_role": "secondary_supervised_confirmation",
+      "fastest_path": "use only when the operator has enough context to judge a specific recommendation",
+      "requires_operator_context": true,
+      "requires_real_operator_judgement": true,
+      "reviewable_decisions": 27,
+      "reviewed_decisions": 0,
+      "runtime_mutation_performed": false,
+      "schema_version": "v7.autonomy-trust.operator-review-batches.v1",
+      "synthetic_agreement_allowed": false,
+      "users_moved": 0
+    }
+  },
+  "prediction_evidence": {
+    "apply_executed": false,
+    "best_possible_gain_if_5_pending_match": 0.0,
+    "best_possible_gain_if_all_pending_match": 0.0,
+    "forecast_accuracy": 94.981,
+    "forecast_actuals_seen": 21,
+    "forecasts_seen": 21,
+    "matched_rows": 21,
+    "opportunities": [],
+    "pending_rows": 0,
+    "prediction_confidence": 33.687,
+    "projection_only": true,
+    "rows": [
+      {
+        "accuracy": 96.847,
+        "actual": 18.509,
+        "confidence": 0.3363,
+        "delta": -3.153,
+        "domain": "channel",
+        "id": "1",
+        "predicted": 15.356,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 98.528,
+        "actual": 78.034,
+        "confidence": 0.345,
+        "delta": -1.472,
+        "domain": "channel",
+        "id": "amneziawg-exec-20260528-10-8-1-14",
+        "predicted": 76.562,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 65.547,
+        "actual": 100.0,
+        "confidence": 0.345,
+        "delta": -34.453,
+        "domain": "channel",
+        "id": "awg0",
+        "predicted": 65.547,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 69.09,
+        "actual": 100.0,
+        "confidence": 0.3271,
+        "delta": -30.91,
+        "domain": "channel",
+        "id": "awg3",
+        "predicted": 69.09,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 96.847,
+        "actual": 18.509,
+        "confidence": 0.3363,
+        "delta": -3.153,
+        "domain": "channel",
+        "id": "openvpn-1779388847-d2ad7c",
+        "predicted": 15.356,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 80.923,
+        "actual": 100.0,
+        "confidence": 0.3964,
+        "delta": -19.077,
+        "domain": "channel",
+        "id": "vless",
+        "predicted": 80.923,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 92.264,
+        "actual": 100.0,
+        "confidence": 0.3964,
+        "delta": -7.736,
+        "domain": "channel",
+        "id": "wireguard-1779454504-c43409",
+        "predicted": 92.264,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.528,
+        "actual": 37.149,
+        "confidence": 0.35,
+        "delta": -0.472,
+        "domain": "service",
+        "id": "anthropic",
+        "predicted": 36.677,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.528,
+        "actual": 62.242,
+        "confidence": 0.35,
+        "delta": -0.472,
+        "domain": "service",
+        "id": "apple",
+        "predicted": 61.77,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.973,
+        "actual": 66.762,
+        "confidence": 0.3375,
+        "delta": -0.027,
+        "domain": "service",
+        "id": "chatgpt",
+        "predicted": 66.735,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.528,
+        "actual": 59.711,
+        "confidence": 0.3429,
+        "delta": -0.472,
+        "domain": "service",
+        "id": "claude",
+        "predicted": 59.239,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.527,
+        "actual": 57.751,
+        "confidence": 0.3429,
+        "delta": -0.473,
+        "domain": "service",
+        "id": "facebook",
+        "predicted": 57.278,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.528,
+        "actual": 62.58,
+        "confidence": 0.35,
+        "delta": -0.472,
+        "domain": "service",
+        "id": "google",
+        "predicted": 62.108,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.527,
+        "actual": 61.361,
+        "confidence": 0.35,
+        "delta": -0.473,
+        "domain": "service",
+        "id": "google_auth",
+        "predicted": 60.888,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.981,
+        "actual": 72.918,
+        "confidence": 0.3389,
+        "delta": -0.019,
+        "domain": "service",
+        "id": "instagram",
+        "predicted": 72.899,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.528,
+        "actual": 60.191,
+        "confidence": 0.3429,
+        "delta": -0.472,
+        "domain": "service",
+        "id": "openai_auth",
+        "predicted": 59.719,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.527,
+        "actual": 58.501,
+        "confidence": 0.3429,
+        "delta": -0.473,
+        "domain": "service",
+        "id": "soundcloud",
+        "predicted": 58.028,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.527,
+        "actual": 59.113,
+        "confidence": 0.3429,
+        "delta": -0.473,
+        "domain": "service",
+        "id": "spotify",
+        "predicted": 58.64,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.993,
+        "actual": 48.846,
+        "confidence": 0.4857,
+        "delta": -0.007,
+        "domain": "service",
+        "id": "telegram",
+        "predicted": 48.839,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.527,
+        "actual": 61.478,
+        "confidence": 0.35,
+        "delta": -0.473,
+        "domain": "service",
+        "id": "whatsapp",
+        "predicted": 61.005,
+        "status": "MATCHED"
+      },
+      {
+        "accuracy": 99.328,
+        "actual": 67.041,
+        "confidence": 0.3389,
+        "delta": -0.672,
+        "domain": "service",
+        "id": "youtube",
+        "predicted": 66.369,
+        "status": "MATCHED"
+      }
+    ],
+    "runtime_mutation_performed": false,
+    "schema_version": "v7.autonomy-trust.prediction-collection-plan.v1",
+    "service_actuals_seen": 21,
+    "synthetic_actuals_created": false,
+    "users_moved": 0,
+    "validation_status": "VALIDATED"
+  },
+  "runtime_mutation_performed": false,
+  "schema_version": "v7.autonomy-trust-acceleration.inventory.v1",
+  "trust_source_classification": {
+    "diagnostic": [
+      {
+        "autonomy_trust_use": "diagnostic_only",
+        "source": "raw_technical_health"
+      },
+      {
+        "autonomy_trust_use": "diagnostic_or_supporting_unless_real_blocker",
+        "source": "route_details"
+      },
+      {
+        "autonomy_trust_use": "diagnostic_only",
+        "source": "logs"
+      },
+      {
+        "autonomy_trust_use": "diagnostic_only",
+        "source": "score_components"
+      }
+    ],
+    "primary": [
+      {
+        "autonomy_trust_use": "primary",
+        "current_maturity": "active",
+        "needs_more_tests": false,
+        "owner": "admin_core.intelligence_workers / service matrix owners",
+        "source": "observed_service_outcome",
+        "store": "service-scores and channel-service-scores snapshots"
+      },
+      {
+        "autonomy_trust_use": "primary",
+        "current_maturity": "active_under_confident",
+        "needs_more_tests": false,
+        "owner": "tools/v7-egress-quality-compact and channel score readers",
+        "source": "observed_channel_quality",
+        "store": "quality summary, channel/service snapshots, trust-evolution summaries"
+      },
+      {
+        "autonomy_trust_use": "primary_after_governed_or_canary_apply",
+        "current_maturity": "active_governed_evidence",
+        "needs_more_tests": false,
+        "owner": "admin_core.operator_execution_feedback / tools/v7-users-autoswitch governed apply",
+        "source": "post_switch_verification",
+        "store": "execution-events, runtime-trust, proposals, closure records"
+      },
+      {
+        "autonomy_trust_use": "primary_safety_evidence",
+        "current_maturity": "active_model_rollout_not_operator_free_certified",
+        "needs_more_tests": false,
+        "owner": "operator execution pipeline and rollback owner",
+        "source": "rollback_or_no_rollback_result",
+        "store": "rollback history, closure records, trust-evolution summaries"
+      },
+      {
+        "autonomy_trust_use": "primary",
+        "current_maturity": "active_but_low_source_confidence",
+        "needs_more_tests": false,
+        "owner": "admin_core.intelligence_workers / admin_core.intelligence_platform",
+        "source": "forecast_to_actual_accuracy",
+        "store": "prediction-summaries, service/channel actual rows, governed prediction feedback"
+      },
+      {
+        "autonomy_trust_use": "primary_when_implemented",
+        "current_maturity": "not_implemented",
+        "needs_more_tests": true,
+        "owner": "future existing telemetry owner",
+        "source": "client_telemetry",
+        "store": "UNKNOWN - requires future implementation"
+      }
+    ],
+    "schema_version": "v7.autonomy-trust.source-classification.v1",
+    "secondary": [
+      {
+        "autonomy_trust_use": "secondary_supervised_confirmation",
+        "blind_review_required": false,
+        "current_maturity": "path_ready_evidence_underfed",
+        "needs_more_tests": false,
+        "owner": "admin_core.shadow_autonomy / /api/actions/shadow-autonomy-compare",
+        "source": "operator_comparison",
+        "store": "shadow-autonomy JSONL family"
+      },
+      {
+        "autonomy_trust_use": "secondary_contextual_signal",
+        "current_maturity": "path_ready",
+        "needs_more_tests": false,
+        "owner": "admin_core.shadow_autonomy",
+        "source": "operator_override",
+        "store": "shadow-autonomy JSONL family and audit"
+      },
+      {
+        "autonomy_trust_use": "secondary_authority_not_fake_agreement",
+        "current_maturity": "active",
+        "needs_more_tests": false,
+        "owner": "operator execution and admin action owners",
+        "source": "manual_approval",
+        "store": "audit / governed execution records"
+      }
+    ]
+  },
+  "users_moved": 0
+}

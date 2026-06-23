@@ -358,6 +358,15 @@ Stable conclusions:
 14. Last verified commit: `29b980c00a11097332eaad53a2c1fe2f77d2389d`.
 15. AUTONOMY.TRUST.ACCELERATION.1 final production canary proximity after refresh: confidence `39.606`, trust `54.704`, prediction confidence `36.861`, operator earned confidence `45.802`; all remain below the `70.0` floor.
 16. `AUTONOMY.CANARY.1` is not ready. Missing floor set is `confidence`, `trust`, `prediction_confidence`, and `operator_earned_confidence`.
+17. AUTONOMY.CANARY.1D added read-only floor forensics and materialization audit to the existing `admin_core/autonomy_trust_acceleration.py` / `tools/v7-autonomy-trust-evidence-inventory` owner.
+18. Production after deploy `2915a4b8107d1fbd416661e562511a6ca2a864fe` reports floor values: confidence `37.402`, trust `53.051`, prediction confidence `33.753`, and secondary operator earned confidence `45.908`; all remain below the `70.0` floor.
+19. The confidence floor is low because it is currently derived from decision `50.0`, service `36.079`, and suitability `26.126`. Blast and rollback are both `100.0`, but they do not close the current confidence floor.
+20. The trust floor is low because it is currently derived from decision `50.0`, service `36.079`, suitability `26.126`, and blast `100.0`; the result remains `53.051`, below floor.
+21. The prediction floor is low even though actual matching is complete: production has `21` forecasts, `21` actuals, `21` matched rows, `0` pending rows, forecast accuracy `94.786`, and mean forecast confidence `0.3561`. Root cause is `low_forecast_source_confidence`, not missing current actuals.
+22. The service floor is low because service rows are matched but low-confidence: `21` rows, mean correctness `100.0`, mean row confidence `0.361`, and service confidence `36.079`.
+23. The suitability floor is low because candidate outcome evidence is present but incomplete and low-confidence: `156` candidates, `83` outcomes, sampled rows include `8` without outcome, mean candidate confidence `0.372`, mean correctness `64.395`, and suitability confidence `26.126`.
+24. Current safe materialization audit says prediction actuals, service actuals, and candidate outcomes are consumed by existing owners; there is no safe immediate fix that can raise floors without new real evidence. Synthetic prediction actuals, synthetic candidate outcomes, synthetic operator comparisons, threshold/formula changes, runtime apply, and user movement remain forbidden.
+25. Next safe evidence phase: collect real higher-confidence service/channel probe cycles and real governed/manual outcome closure through existing owners, then refresh snapshots and re-read the canary floors. `AUTONOMY.CANARY.1` remains blocked.
 
 ## 1. Channels
 

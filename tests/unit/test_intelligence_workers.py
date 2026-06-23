@@ -381,6 +381,49 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertTrue(outcomes[0]["success"])
         self.assertEqual(outcomes[0]["outcome_status"], "success")
 
+    def test_trust_evolution_candidate_outcomes_survive_bounded_decision_window(self):
+        service = workers.build_service_score_snapshots(
+            service_matrix=service_matrix(),
+            quality_summary=quality_summary(),
+            service_preferences={"required_services": ["telegram", "chatgpt"]},
+            generated_at=GENERATED,
+        )
+        candidate_snapshot = {
+            "items": [{
+                "user": "10.7.0.2",
+                "candidates": [{"channel": "awg0", "suitability_score": 90, "confidence": 0.9}],
+            }],
+            "confidence": 0.9,
+        }
+        old_real_outcome = {
+            "result": "success",
+            "terminal_state": "APPLIED",
+            "selected_moves": [{"user": "10.7.0.2", "target": "awg0"}],
+            "timestamp": GENERATED,
+        }
+        noise = [{"message": f"bounded noise {index}", "timestamp": GENERATED} for index in range(workers.MAX_HISTORY_RECORDS + 5)]
+
+        payload = workers.build_trust_evolution_snapshot(
+            audit_records=[old_real_outcome] + noise,
+            switch_records=[],
+            rollback_records=[],
+            service_scores_snapshot=service["service-scores"],
+            channel_service_scores_snapshot=service["channel-service-scores"],
+            trust_summary_snapshot={"items": [], "confidence": 0.9},
+            prediction_summary_snapshot={"items": [{"channel_forecasts": [], "service_forecasts": []}], "confidence": 0.9},
+            candidate_suitability_snapshot=candidate_snapshot,
+            best_available_pool_snapshot={"items": [], "confidence": 0.9},
+            blast_radius_snapshot={"items": [], "confidence": 0.9},
+            generated_at=GENERATED,
+        )
+
+        self.assertTrue(validate_snapshot(payload, "trust-evolution-summaries").ok)
+        summary = payload["items"][0]
+        self.assertEqual(summary["outcome_mapper_counts"]["bounded_decision_count"], workers.MAX_HISTORY_RECORDS)
+        self.assertEqual(summary["outcome_mapper_counts"]["candidate_outcomes_count"], 1)
+        self.assertEqual(summary["suitability_trust"]["outcomes_seen"], 1)
+        self.assertTrue(summary["suitability_trust"]["rows"][0]["outcome_seen"])
+
     def test_candidate_outcomes_from_switch_history_to_field(self):
         candidates = [{
             "user": "10.7.0.2",

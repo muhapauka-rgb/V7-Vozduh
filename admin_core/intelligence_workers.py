@@ -1773,7 +1773,7 @@ def build_trust_evolution_snapshot(
         feedback_records=decision_records,
     )
     candidate_rows = candidate_suitability_snapshot.get("items") or []
-    candidate_outcomes = build_candidate_outcome_rows(candidate_rows, bounded_decisions)
+    candidate_outcomes = build_candidate_outcome_rows(candidate_rows, decision_records)
     blast_items = blast_radius_snapshot.get("items") or []
     blast_row = blast_items[0] if blast_items and isinstance(blast_items[0], dict) else {}
     summary = trust_evolution_summary(

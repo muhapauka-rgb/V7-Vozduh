@@ -64,6 +64,7 @@ Current production alignment:
 - AUTONOMY.CANARY.1D added deployed read-only floor forensics/materialization audit to `admin_core/autonomy_trust_acceleration.py`. Production after deploy `2915a4b8107d1fbd416661e562511a6ca2a864fe` proves current floor values remain low: confidence `37.402`, trust `53.051`, prediction confidence `33.753`, operator earned confidence `45.908`. Prediction is fully matched (`21/21`, `0` pending) but under-confident (`mean_forecast_confidence=0.3561`). Service rows are matched but low-confidence (`service_confidence=36.079`); candidate suitability has real but incomplete/low-confidence outcomes (`83/156`, suitability `26.126`). No safe immediate evidence/materialization fix can raise floors without new real evidence.
 - AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT added deployed read-only confidence reality audit through the existing trust inventory owner at runtime commit `9d468247f8fbe8a1b472753e566a88fcaa79c147`. Production verdict is `CONFIDENCE_MIXED`: prediction is undervalued as a raw accuracy signal (`21/21` matched, accuracy `93.936`, mean forecast confidence `0.377`, prediction confidence `35.411`), while Service, Suitability, Blast, Rollback, and Operator confidence are fair for autonomy gating. Current floors remain below canary: confidence `38.849`, trust `54.137`, prediction confidence `35.411`, operator earned confidence `45.818`. No runtime apply, user movement, daemon enablement, synthetic evidence, threshold change, floor change, or formula change occurred.
 - AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH added deployed read-only real outcome source inventory and growth projection at runtime commit `130a6510`. Production verdict is `REAL_OUTCOME_MIXED`: service/channel/feedback/learning outcome paths are acceleratable through existing owners, but one real probe cycle did not materially raise floors, and projected `+50` high-confidence real outcome cycles still fail confidence/trust because suitability remains too weak. Current floors after deploy refresh are confidence `38.946`, trust `54.210`, prediction confidence `35.494`, operator earned confidence `45.806`. No runtime apply, user movement, daemon enablement, synthetic evidence, threshold change, floor change, formula change, or new truth source occurred.
+- AUTONOMY.CANDIDATE_OUTCOME.REALITY.COLLECTION added deployed read-only candidate outcome reality collection and fixed existing-owner aggregation/window loss at runtime commit `3753df1a`. Production verdict is `OUTCOME_EVIDENCE_INCOMPLETE`: candidate outcomes are now consumed at `84/156`; `72` missing outcomes are classified as real experience that has not happened yet, with `0` capture, visibility, or aggregation loss remaining. Current floors after final refresh are confidence `38.872`, trust `54.154`, prediction confidence `35.385`, operator earned confidence `45.815`. No runtime apply, user movement, daemon enablement, synthetic evidence, threshold change, floor change, formula change, planner change, governance change, execution change, or new truth source occurred.
 
 ## 2. Full System Inventory
 
@@ -94,7 +95,7 @@ Current production alignment:
 | Blast Radius | Blast evidence owner | `admin_core/intelligence_workers.py::build_blast_radius_evidence_rows`, `blast_radius_confidence_model`, `tools/v7-intelligence-snapshot-refresh` | Prove small governed operations are safe | OPERATIONALLY_CLOSED_DURABILITY_FIXED | 100% recovery proven / 100% durable production refresh | Branch 1B deployed and recovered 11 real blast rows; TRUST.DURABILITY.1 production refresh reads 11 rows and blast confidence `100.0` |
 | Shadow Autonomy | Shadow owner | `admin_core/shadow_autonomy.py`, `admin_core/autonomy_trust_acceleration.py`, `/api/actions/shadow-autonomy-compare` | Compare recommendations with operator decisions when context is sufficient | ACTIVE_SECONDARY_PATH_READY_UNDERFED | 70% path / 25% evidence | Review packet, eligibility, growth projection, rotated shadow JSONL reads, UI visibility, and read-only review batches exist; comparison count is still 0, and comparison is secondary |
 | Operator Comparison | Shadow comparison store | `admin_core/shadow_autonomy.py`, `admin_core/autonomy_trust_acceleration.py`, shadow JSONL family | Secondary supervised confirmation | ACTIVE_SECONDARY_PATH_READY_EMPTY | 70% path / 25% evidence | Current comparison evidence below floor; use only for contextual supervised confirmation, not blind bulk training |
-| Trust Evidence Inventory | Read-only acceleration owner | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory` | Summarize current evidence, growth opportunities, review batches, canary proximity, floor forensics, materialization audit, confidence proportionality, real outcome source inventory, and growth projection | ACTIVE_READ_ONLY | 100% | AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH deployed real outcome projection; creates no evidence and performs no runtime mutation |
+| Trust Evidence Inventory | Read-only acceleration owner | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory` | Summarize current evidence, growth opportunities, review batches, canary proximity, floor forensics, materialization audit, confidence proportionality, real outcome source inventory, growth projection, and candidate outcome reality collection | ACTIVE_READ_ONLY | 100% | AUTONOMY.CANDIDATE_OUTCOME.REALITY.COLLECTION deployed candidate outcome collection and aggregation/window fixes; creates no evidence and performs no runtime mutation |
 | Future Evidence Index / Freshness Model | Future documentation-only post-production scale phase | No runtime files yet; future implementation must reuse existing evidence/trust/planner owners | Prepare for `100+` channels, `1000+` users, and years of evidence through an evidence catalog, type-aware freshness, aggregated read models, and cardinality control | DEFERRED_DOCUMENTED_ONLY | 0% implementation / 100% roadmap documented | Must not start until Production Autonomy is certified; shadow validation required before planner/trust impact |
 | Trust Source Hierarchy | Read-only trust model semantics | `admin_core/autonomy_trust_acceleration.py`, `docs/decisions/ADR-OBSERVED-OUTCOME-PRIMARY-TRUST.md` | Primary vs secondary vs diagnostic evidence classification | ACTIVE | 90% | Observed outcome is primary; operator comparison is secondary supervised confirmation |
 | Event Detection | Event sources plus certified read-only binding | `tools/v7-telegram-sentinel`, service matrix, quality compact, route/runtime/capacity readers, `admin_core/events.py` | Detect and classify regression source facts | ACTIVE_READ_ONLY | 85% | Sources exist and classify into primary/secondary/diagnostic event classes |
@@ -304,7 +305,7 @@ rollback confidence
 | Rotated `.jsonl.1` feedback stores | ACTIVE_EVIDENCE_DURABLE_IN_PRODUCTION_REFRESH | REMATERIALIZATION.3/4, Branch 1A, Branch 1B, and TRUST.DURABILITY.1 | Real governed blast evidence is consumed as part of the existing JSONL family; production refresh now reads 11 blast rows and blast confidence `100.0` |
 | Shadow operator comparison store | ACTIVE_BUT_UNDERFED | `comparisons_total=0` in root confidence evidence | Mechanism exists, evidence volume missing |
 | Prediction actual matching | ACTIVE_BUT_LOW_CONFIDENCE_UNDERVALUED_AS_ACCURACY_SIGNAL | 21/21 matched, 0 pending rows, accuracy `93.936`, mean forecast confidence `0.377`, prediction confidence `35.411` in AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT | Mechanism works and direct feedback survives refresh/write/reread; current gap is source confidence/future real evidence, not missing actuals |
-| Trust acceleration inventory | ACTIVE_READ_ONLY | `tools/v7-autonomy-trust-evidence-inventory` deployed in AUTONOMY.TRUST.ACCELERATION.1 and extended through AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH | Exposes evidence inventory, review batches, floor forensics, confidence proportionality, real outcome source inventory, and +10/+25/+50 projections; intentionally does not create comparisons, actuals, trust, apply, or movements |
+| Trust acceleration inventory | ACTIVE_READ_ONLY | `tools/v7-autonomy-trust-evidence-inventory` deployed in AUTONOMY.TRUST.ACCELERATION.1 and extended through AUTONOMY.CANDIDATE_OUTCOME.REALITY.COLLECTION | Exposes evidence inventory, review batches, floor forensics, confidence proportionality, real outcome source inventory, candidate outcome reality collection, and +10/+25/+50/+100 projections; intentionally does not create comparisons, actuals, trust, apply, or movements |
 | Future evidence index and freshness model | DEFERRED_DOCUMENTED_ONLY | `DOCUMENT_FUTURE_EVIDENCE_INDEX_AND_FRESHNESS_MODEL` and ADR-FUTURE-EVIDENCE-INDEX-AND-FRESHNESS-MODEL | Future post-production scale phase for evidence cataloging, type-aware freshness, aggregated read models, and cardinality control; not a current blocker and not runtime behavior |
 | Operator comparison as primary trust | DEMOTED_TO_SECONDARY | AUTONOMY.TRUST.SOURCE.REALITY.1 / ADR-OBSERVED-OUTCOME-PRIMARY-TRUST | Operator comparison remains useful only as contextual supervised confirmation; observed outcome is primary |
 | Observed Capacity Shadow | APPROVED_BUT_NOT_IMPLEMENTED | ADR-011 | Concept accepted as shadow-only future model |
@@ -387,11 +388,11 @@ Sources used:
 | Prediction evidence | 55% | 21/21 matched; direct governed prediction feedback is consumed durably; projection shows +50 high-confidence cycles can lift prediction above 70, but confidence/trust still fail |
 | Operator comparison | 25% | Existing endpoint/store; secondary supervised evidence only, not primary trust |
 | Trust source hierarchy | 90% | Observed outcome primary, operator comparison secondary, diagnostics separate |
-| Trust | 55% | Latest production inventory after real probes reports trust `54.210`, below the `70.0` floor |
+| Trust | 55% | Latest production inventory after candidate outcome reality collection reports trust `54.154`, below the `70.0` floor |
 | Event detection | 85% | Event sources exist and the read-only consumer is certified; live apply remains blocked |
 | Autonomous runtime | 45% | Architecture exists; daemon inactive; blast blocker closed; confidence/trust/prediction floors fail |
 | Post-production evidence scale model | 0% implementation / 100% roadmap documented | Deferred future phase `AUTONOMY.EVIDENCE.INDEX_AND_FRESHNESS_MODEL`; activation requires certified Production Autonomy and shadow validation |
-| Truth/deploy alignment | 100% | Runtime code deployed at `130a6510`; truth/convergence pass with later docs-only reference updates |
+| Truth/deploy alignment | 100% | Runtime code deployed at `3753df1a`; truth/convergence pass with later docs-only reference updates |
 | Overall production autonomy | 45% | Correctly blocked; no operator-free apply should run now |
 
 ## 8. What Exists, What Is Partial, What Is Missing
@@ -443,33 +444,36 @@ Sources used:
 
 `AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH` then deployed read-only real outcome source inventory and growth projection in the same owner at runtime commit `130a6510`.
 
-Current production evidence verdict is `REAL_OUTCOME_MIXED`:
+`AUTONOMY.CANDIDATE_OUTCOME.REALITY.COLLECTION` then deployed read-only candidate outcome reality collection and fixed existing-owner candidate aggregation/window loss at runtime commit `3753df1a`.
 
-- Prediction matches are complete and consumed: `21/21`, `0` pending. Prediction is undervalued as a raw accuracy signal because accuracy is `93.936` while mean forecast confidence is only `0.377`, producing prediction confidence `35.411`.
+Current production evidence verdict is `OUTCOME_EVIDENCE_INCOMPLETE`:
+
+- Prediction matches are complete and consumed: `21/21`, `0` pending. Prediction remains under the canary floor because source confidence is low, producing prediction confidence `35.385`.
 - Blast-radius evidence is sufficient and contributes `100.0`.
 - Rollback evidence is sufficient and contributes `100.0`.
-- Service outcomes exist (`21`) but are low-confidence (`0.390` mean row confidence); real service/channel probes are acceleratable, but one production probe cycle did not materially raise floors.
-- Candidate outcomes exist (`83`) but are incomplete against `156` candidates; projection shows this is now the practical blocker after prediction improves.
+- Service outcomes exist (`21`) but are low-confidence; real service/channel probes are acceleratable, but one production probe cycle did not materially raise floors.
+- Candidate outcomes exist (`84`) but are incomplete against `156` candidates; `72` missing outcomes are now classified as real user/channel candidate experience that has not happened yet.
 - Operator comparisons remain `0` and are secondary evidence only; this is fair for autonomy gating.
 
-`AUTONOMY.SUITABILITY.KNOWLEDGE_AND_CONFIDENCE.FORENSICS` refined this to `EXPERIENCE_MIXED`. V7's experience chain exists and is consumed by the current owners: reality -> observation -> evidence -> outcome -> suitability -> confidence -> trust -> planner -> action. The forensic pass found one existing-owner visibility issue in `real_outcome_growth_projection`: bounded raw suitability rows exposed only 50 rows and 8 visible missing outcomes, while the full counters knew about `156` candidates, `83` outcomes, and `73` missing outcomes. The read-only inventory owner now reports full candidate coverage counters separately from bounded visible rows. No confidence formula, floor, planner, governance, execution path, truth source, synthetic evidence, runtime apply, or user movement changed.
+`AUTONOMY.SUITABILITY.KNOWLEDGE_AND_CONFIDENCE.FORENSICS` first refined the model to `EXPERIENCE_MIXED`. `AUTONOMY.CANDIDATE_OUTCOME.REALITY.COLLECTION` then closed the remaining visibility question. V7's experience chain exists and is consumed by the current owners: reality -> observation -> evidence -> outcome -> suitability -> confidence -> trust -> planner -> action. The phase found one real existing-owner underutilization issue: an older candidate outcome was visible to the inventory path but excluded from snapshot refresh by bounded decision/window reading. The fix keeps candidate outcomes on the full decision family and extends the JSONL evidence-family refresh window. Final production reports `captured_but_not_consumed=0`, `visibility_issue=0`, and `aggregation_issue=0`. No confidence formula, floor, planner, governance, execution path, truth source, synthetic evidence, runtime apply, or user movement changed.
 
 Current floors remain below canary target:
 
 | Floor | Current | Target |
 | --- | ---: | ---: |
-| Confidence | 38.946 | 70.000 |
-| Trust | 54.210 | 70.000 |
-| Prediction confidence | 35.494 | 70.000 |
-| Operator earned confidence | 45.806 | 70.000 |
+| Confidence | 38.872 | 70.000 |
+| Trust | 54.154 | 70.000 |
+| Prediction confidence | 35.385 | 70.000 |
+| Operator earned confidence | 45.815 | 70.000 |
 
 Projection using current formulas only:
 
-| Real Outcome Cycles | Confidence | Trust | Prediction | Primary Canary Floors |
-| ---: | ---: | ---: | ---: | --- |
-| `+10` | `49.214` | `61.910` | `55.506` | FAIL |
-| `+25` | `53.702` | `65.276` | `69.605` | FAIL |
-| `+50` | `56.968` | `67.726` | `80.127` | FAIL |
+| Additional real candidate outcomes | Coverage | Confidence | Trust | Suitability | Primary Canary Floors |
+| ---: | ---: | ---: | ---: | ---: | --- |
+| `+10` | `0.6026` | `40.672` | `55.354` | `31.069` | FAIL |
+| `+25` | `0.6987` | `43.372` | `57.154` | `36.319` | FAIL |
+| `+50` | `0.8590` | `47.872` | `60.154` | `45.069` | FAIL |
+| `+100` capped to `72` missing | `1.0000` | `51.832` | `62.794` | `52.769` | FAIL |
 
 Required real evidence estimates from the deployed audit:
 
@@ -477,10 +481,10 @@ Required real evidence estimates from the deployed audit:
 | --- | --- |
 | Prediction | At current accuracy, target mean forecast confidence is `0.7452`; if future rows arrive at confidence `1.0`, about `31` additional matched rows are needed; at `0.9`, about `50`; at `0.85`, about `74` |
 | Service | Target mean row confidence is `0.7`; at confidence `1.0`, about `22` additional comparable rows are needed; at `0.85`, about `44` |
-| Suitability | `73` missing candidate outcomes to full coverage; current correctness cannot reach `70` with perfect confidence without better correctness evidence |
+| Suitability | `72` missing candidate outcomes to full coverage; current correctness cannot reach `70` with perfect confidence without better correctness evidence |
 | Operator comparison | First projection to floor requires about `10` contextual comparisons at `1.0` agreement |
 
-Fastest next evidence path is real candidate/suitability outcome collection through existing governed/manual outcome owners, plus continued service/channel probe cycles. No synthetic evidence, formula change, floor change, runtime apply, user movement, or daemon enablement is allowed unless a later phase explicitly authorizes a bounded governed/canary action.
+Fastest next evidence path is real candidate/suitability outcome generation through existing governed/manual outcome owners, plus continued service/channel probe cycles. No synthetic evidence, formula change, floor change, runtime apply, user movement, or daemon enablement is allowed unless a later phase explicitly authorizes a bounded governed/canary action.
 
 ## 9. Biggest Risks
 
@@ -617,7 +621,7 @@ Do not delete immediately. Classify first.
 
 ## 12. Top 10 Next Actions
 
-1. Run `AUTONOMY.CANDIDATE_OUTCOME_REALITY_COLLECTION.1` through existing candidate/outcome owners.
+1. Run `AUTONOMY.CANDIDATE_OUTCOME.GOVERNED_REALITY_GENERATION` through existing candidate/outcome owners.
 2. Continue service/channel real probe cycles through existing service, quality, prediction, feedback, and closure owners.
 3. Collect time-separated prediction forecast -> later actual evidence until forecast source confidence rises.
 4. Collect contextual operator comparisons only where the operator has enough context.
@@ -632,4 +636,4 @@ Do not delete immediately. Classify first.
 
 `AUTONOMY_BLUEPRINT_CREATED_EVENT_DRIVEN_AUTONOMY_PARTIAL`
 
-V7 has the right architecture shape and most owners already exist. Branch 1B closed the blast recovery loop as a proven production recovery, AUTONOMY.TRUST.DURABILITY.1 fixed the normal durability gap, AUTONOMY.TRUST.SOURCE.REALITY.1 corrected trust semantics, AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT proved the confidence picture is mixed, and AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH proved real probes can be accelerated but are not enough by themselves. Prediction can clear with enough high-confidence future outcomes, while confidence/trust remain constrained by suitability. The safe path is not to build another autonomy system, force blind operator reviews, or change formulas. The safe path is to collect real candidate/suitability outcomes through existing owners, continue real service/channel outcome cycles, and authorize a bounded canary apply only after floors pass.
+V7 has the right architecture shape and most owners already exist. Branch 1B closed the blast recovery loop as a proven production recovery, AUTONOMY.TRUST.DURABILITY.1 fixed the normal durability gap, AUTONOMY.TRUST.SOURCE.REALITY.1 corrected trust semantics, AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT proved the confidence picture is mixed, AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH proved real probes can be accelerated but are not enough by themselves, and AUTONOMY.CANDIDATE_OUTCOME.REALITY.COLLECTION proved candidate outcome visibility is now aggregation-clean. The remaining blocker is not hidden evidence: it is incomplete real candidate outcome reality and weak consumed suitability correctness. The safe path is not to build another autonomy system, force blind operator reviews, or change formulas. The safe path is to generate real candidate/suitability outcomes through existing governed/manual owners, continue real service/channel outcome cycles, and authorize a bounded canary apply only after floors pass.

@@ -1,0 +1,57 @@
+{
+  "audit_inputs": [
+    "/opt/v7/events/switch-history.jsonl",
+    "/opt/v7/audit/audit.jsonl",
+    "/opt/v7/audit/operator-execution-audit.jsonl",
+    "/opt/v7/audit/operator-runtime-governance-actions.jsonl"
+  ],
+  "dry_run": false,
+  "feedback_inputs": [
+    "/opt/v7/egress/state/execution-events.jsonl",
+    "/opt/v7/egress/state/runtime-trust.jsonl",
+    "/opt/v7/egress/state/proposal-records.jsonl",
+    "/opt/v7/egress/state/proposals.jsonl",
+    "/opt/v7/egress/state/closure-records.jsonl"
+  ],
+  "governance_behavior_changed": false,
+  "metrics": {
+    "elapsed_ms": 2592.135,
+    "max_snapshot_bytes": 272223,
+    "snapshot_count": 11,
+    "snapshot_sizes": {
+      "best-available-pool": 28082,
+      "blast-radius-summaries": 1000,
+      "candidate-suitability-summary": 157733,
+      "channel-service-scores": 3603,
+      "overview-summary": 2811,
+      "prediction-summaries": 60164,
+      "risk-summaries": 975,
+      "service-scores": 17785,
+      "trust-evolution-summaries": 272223,
+      "trust-summaries": 1219,
+      "user-service-scores": 117179
+    },
+    "total_snapshot_bytes": 662774
+  },
+  "runtime_behavior_changed": false,
+  "schema": "v7.intelligence-snapshot-refresh-result.v1",
+  "snapshot_count": 11,
+  "source_consistency_attempts": 1,
+  "source_consistency_errors": [],
+  "source_stable": true,
+  "users_moved": false,
+  "warnings": [],
+  "written": {
+    "best-available-pool": "/opt/v7/egress/state/intelligence/best-available-pool.json",
+    "blast-radius-summaries": "/opt/v7/egress/state/intelligence/blast-radius-summaries.json",
+    "candidate-suitability-summary": "/opt/v7/egress/state/intelligence/candidate-suitability-summary.json",
+    "channel-service-scores": "/opt/v7/egress/state/intelligence/channel-service-scores.json",
+    "overview-summary": "/opt/v7/egress/state/intelligence/overview-summary.json",
+    "prediction-summaries": "/opt/v7/egress/state/intelligence/prediction-summaries.json",
+    "risk-summaries": "/opt/v7/egress/state/intelligence/risk-summaries.json",
+    "service-scores": "/opt/v7/egress/state/intelligence/service-scores.json",
+    "trust-evolution-summaries": "/opt/v7/egress/state/intelligence/trust-evolution-summaries.json",
+    "trust-summaries": "/opt/v7/egress/state/intelligence/trust-summaries.json",
+    "user-service-scores": "/opt/v7/egress/state/intelligence/user-service-scores.json"
+  }
+}

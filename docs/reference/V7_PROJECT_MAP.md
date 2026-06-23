@@ -1,8 +1,8 @@
 # V7 Project Map
 
 Status: project readiness map
-Last updated: 2026-06-23
-Last changed by: `AUTONOMY.SUITABILITY.KNOWLEDGE_AND_CONFIDENCE.FORENSICS`
+Last updated: 2026-06-24
+Last changed by: `AUTONOMY.CANDIDATE_OUTCOME.REALITY.COLLECTION`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -21,13 +21,13 @@ POOL.1 classified the pool as stable with zero planner candidates. POOL.2 rechec
 
 Current roadmap position:
 
-`CANARY_BLOCKED_BY_EXPERIENCE_MIXED`
+`CANARY_BLOCKED_BY_OUTCOME_EVIDENCE_INCOMPLETE`
 
 Current experience/trust forensic verdict:
 
-`EXPERIENCE_MIXED`
+`OUTCOME_EVIDENCE_INCOMPLETE`
 
-The experience pipeline exists and consumes real evidence. Prediction has `21/21` matches, blast and rollback are sufficient, service rows are fresh but low-confidence, and suitability is genuinely incomplete/low with `83/156` candidate outcomes and `73` known missing outcomes. A read-only projection visibility issue was fixed so full candidate coverage counters remain visible even when raw suitability rows are bounded.
+The experience pipeline exists and consumes real evidence. Prediction has `21/21` matches, blast and rollback are sufficient, service rows are fresh but low-confidence, and suitability is genuinely incomplete/low with `84/156` candidate outcomes and `72` known missing outcomes. Candidate outcome visibility/aggregation/windowing gaps were fixed in existing owners; the remaining blocker is real missing experience, not hidden data.
 
 Deferred post-production scale phase:
 
@@ -139,6 +139,10 @@ contextual operator comparison
 | Real Outcome Acceleration Visibility | 0% | 100% | +100% | `AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH` | Production inventory now exposes `real_outcome_source_inventory` and `real_outcome_growth_projection` for +10/+25/+50 real outcome cycles. |
 | Canary Readiness | 35% | 35% | 0% | `AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH` | Canary remains NO-GO: after real probes and refresh, confidence `38.946`, trust `54.210`, prediction `35.494`, operator earned `45.806`; +50 projected high-confidence cycles still fails confidence/trust. |
 | Production Autonomy | 46% | 46% | 0% | `AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH` | Read-only projection improved understanding, but no runtime apply, movement, daemon, formula, floor, threshold, or truth-source change occurred. |
+| Candidate Outcome Reality Collection | 0% | 100% | +100% | `AUTONOMY.CANDIDATE_OUTCOME.REALITY.COLLECTION` | Production inventory now exposes candidate outcome definition, owner chain, coverage, missing classification, diversity, acceleration class, growth projection, and readiness impact without creating evidence or moving users. |
+| Suitability Evidence Utilization | 85% | 100% | +15% | `AUTONOMY.CANDIDATE_OUTCOME.REALITY.COLLECTION` | Found and fixed existing-owner underutilization: one older real candidate outcome was visible to inventory but excluded by snapshot refresh windowing. Final production consumes `84/156`; capture, visibility, and aggregation loss are `0`. |
+| Canary Readiness | 35% | 35% | 0% | `AUTONOMY.CANDIDATE_OUTCOME.REALITY.COLLECTION` | Canary remains NO-GO: confidence `38.872`, trust `54.154`, prediction `35.385`, operator earned `45.815`; even all `72` missing candidate outcomes converted at current assumptions projects trust only to `62.794`. |
+| Production Autonomy | 46% | 46% | 0% | `AUTONOMY.CANDIDATE_OUTCOME.REALITY.COLLECTION` | Existing-owner evidence path is cleaner, but no runtime apply, user movement, daemon enablement, formula change, floor change, threshold change, synthetic evidence, or new truth source occurred. |
 | Post-Production Scale Roadmap | 0% | 100% | +100% | `DOCUMENT_FUTURE_EVIDENCE_INDEX_AND_FRESHNESS_MODEL` | Documented the deferred evidence index and freshness model for `100+` channels, `1000+` users, and multi-year evidence history. This is documentation only and not a current blocker. |
 
 ## Stable Areas
@@ -162,8 +166,8 @@ contextual operator comparison
 | P1 | `AUTONOMY.PREDICTION.EVIDENCE.3_REAL_VOLUME_AND_SOURCE_CONFIDENCE_COLLECTION` | Prediction lifecycle is durable with `21/21` matched rows and `0` pending rows, but prediction confidence remains `36.859` vs the `70.0` floor. |
 | P2 | `OPERATOR_COMPARISON.REVIEW.1_CONTEXTUAL_SUPERVISED_CONFIRMATION` | Operator comparison remains valid only when the operator has enough context; do not create blind training history. |
 | P1 | `AUTONOMY.EVIDENCE.SERVICE_CHANNEL_SOURCE_CONFIDENCE_COLLECTION` | Current source confidence verdict is `EVIDENCE_MIXED`; next phase should collect real service/channel probe cycles through existing owners, refresh snapshots, and reread trust inventory. |
-| P1 | `AUTONOMY.SOURCE_CONFIDENCE.REAL_COLLECTION.1` | Current confidence cannot grow materially without new real-world outcomes. Targets: prediction mean forecast confidence `0.7452`, service mean row confidence `0.7`, candidate coverage closure for `73` missing outcomes, and contextual operator comparisons only where the operator has context. |
-| P1 | `AUTONOMY.CANDIDATE_OUTCOME_REALITY_COLLECTION.1` | `REAL_OUTCOME_MIXED` shows service/channel probes are safe but insufficient; suitability/candidate outcomes are the next blocker. Collect real candidate outcomes through existing governed/manual outcome owners only. |
+| P1 | `AUTONOMY.SOURCE_CONFIDENCE.REAL_COLLECTION.1` | Current confidence cannot grow materially without new real-world outcomes. Targets: prediction mean forecast confidence `0.7452`, service mean row confidence `0.7`, candidate coverage closure for `72` missing outcomes, and contextual operator comparisons only where the operator has context. |
+| P1 | `AUTONOMY.CANDIDATE_OUTCOME.GOVERNED_REALITY_GENERATION` | Candidate outcome collection is now visible and aggregation-clean. The remaining blocker is `72` candidate outcomes that have not happened yet. Grow them through existing governed/manual outcome owners only; no synthetic evidence and no movement without a separately approved bounded governed/canary phase. |
 | Future | `AUTONOMY.EVIDENCE.INDEX_AND_FRESHNESS_MODEL` | Deferred post-production scale phase. Start only after Production Autonomy is certified and evidence scale creates real planner/trust read pressure. Must run shadow-first and reuse existing owners/truth/planner/governance/execution. |
 
 ## POST_PRODUCTION_SCALE_PHASE
@@ -228,6 +232,19 @@ Activation criteria:
 5. Truth/convergence gates pass.
 
 ## Changelog
+
+### 2026-06-24 — AUTONOMY.CANDIDATE_OUTCOME.REALITY.COLLECTION
+
+- Implemented deployed read-only `candidate_outcome_reality_collection` in `admin_core/autonomy_trust_acceleration.py`.
+- Found and fixed existing-owner evidence underutilization: one older real candidate outcome was visible to the inventory path but dropped from trust refresh by bounded decision/window reading.
+- Updated `admin_core/intelligence_workers.py` so candidate outcomes are built from the full decision record family, and updated `tools/v7-intelligence-snapshot-refresh` to read an extended JSONL family window.
+- Final production classification: `OUTCOME_EVIDENCE_INCOMPLETE`.
+- Final production coverage: `84/156` consumed candidate outcomes, `72` missing outcomes, `0` capture loss, `0` visibility loss, `0` aggregation loss.
+- Missing outcomes are classified as `never_happened`: the system cannot learn them without real governed/manual outcome reality.
+- Diversity: all candidates cover `26` users and `6` channels; consumed outcomes cover `17` users and `6` channels; missing outcomes cover `24` users and `6` channels.
+- Current floors remain below target: confidence `38.872`, trust `54.154`, prediction confidence `35.385`, operator earned confidence `45.815`.
+- Safe deploy ids: `deploy-z8-14-Updatesystem-1db4480-20260623T235729`, `deploy-z8-14-Updatesystem-42401bb-20260624T000210`, `deploy-z8-14-Updatesystem-3753df1-20260624T000703`.
+- Final verdict: `OUTCOME_EVIDENCE_INCOMPLETE`.
 
 ### 2026-06-23 — DOCUMENT_FUTURE_EVIDENCE_INDEX_AND_FRESHNESS_MODEL
 

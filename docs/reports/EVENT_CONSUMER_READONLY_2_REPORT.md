@@ -140,12 +140,21 @@ Commands:
 ```text
 PYTHONPYCACHEPREFIX=/tmp/v7_pycache python3 -m py_compile admin_core/events.py admin_core/operator_execution_pipeline.py admin_core/autonomy_trust_acceleration.py tools/v7-autonomy-trust-evidence-inventory tools/v7_sync_lib.py
 PYTHONPYCACHEPREFIX=/tmp/v7_pycache python3 -m unittest tests.unit.test_admin_core_events tests.unit.test_operator_execution_pipeline tests.unit.test_operator_execution_feedback tests.unit.test_autonomy_trust_acceleration tests.unit.test_shadow_autonomy tests.unit.test_intelligence_platform tests.unit.test_v7_sync_tools
+tools/v7-safe-deploy --apply --confirm DEPLOY_V7_APPROVED --update-local-snapshot --restart-admin-if-changed --json
+ssh v7-vps "PYTHONPATH=/usr/local/bin python3 -c '<production read-only event consumer import check>'"
 ```
 
 Results:
 
 - compile: PASS
 - unit tests: PASS, 103 tests
+- safe deploy: PASS, `deploy-z8-14-Updatesystem-4f8847f-20260623T111431`
+- production runtime import/model: PASS, `EVENT_CONSUMER_CERTIFIED`
+
+Runtime evidence:
+
+- `docs/reports/EVENT_CONSUMER_READONLY_2_EVIDENCE/safe_deploy.json`
+- `docs/reports/EVENT_CONSUMER_READONLY_2_EVIDENCE/production_runtime_model_after_deploy.json`
 
 ## 9. Canary Readiness Impact
 

@@ -171,5 +171,3 @@ Final checks were run after commit and push, with outputs written to `/tmp` to a
 | Runtime | PASS |
 | Truth | PASS / FULLY_ALIGNED |
 | Convergence | PASS / ALIGNED |
-
-Final aligned commit: `6d27da722265ff4a629925a80ec7287b31441767`

@@ -75,6 +75,7 @@ Stable conclusions:
 3. Production event-driven autonomy remains blocked by insufficient observed outcome confidence, low prediction confidence, uncertified live event consumption, and autonomy floors still below `70.0`. Operator comparison is secondary supervised confirmation, not the primary trust source.
 4. Timer-only movement remains rejected. Event-driven autonomy means regression event -> planner -> packet -> restore barrier -> bounded apply -> verification -> rollback decision -> feedback -> learning.
 5. The next roadmap position is `OBSERVED_OUTCOME_EVIDENCE_AND_EVENT_CONSUMER_CLOSURE`.
+6. The post-production scale phase `AUTONOMY.EVIDENCE.INDEX_AND_FRESHNESS_MODEL` is documented but deferred. It must not start until Production Autonomy is certified.
 
 ## AUTONOMY_TRUST_SOURCE_HIERARCHY
 
@@ -88,6 +89,84 @@ Stable conclusions:
 8. Canary readiness must still block when primary observed-outcome confidence, trust, or prediction evidence is insufficient. Operator comparison may accelerate supervised confidence but does not replace observed outcome evidence.
 9. Implementation owner for read-only classification: `admin_core/autonomy_trust_acceleration.py`; CLI surface: `tools/v7-autonomy-trust-evidence-inventory`.
 10. Related ADR: `docs/decisions/ADR-OBSERVED-OUTCOME-PRIMARY-TRUST.md`.
+
+## POST_PRODUCTION_SCALE_PHASE
+
+Phase name: `AUTONOMY.EVIDENCE.INDEX_AND_FRESHNESS_MODEL`.
+
+Status: `DEFERRED_UNTIL_PRODUCTION_AUTONOMY_CERTIFIED`.
+
+Purpose: prepare V7 for `100+` channels, `1000+` users, and years of evidence without planner slowdown, trust distortion, or irrational use of stale data.
+
+This is not a current blocker. It is documentation of a future scalability phase. It does not authorize runtime changes, code changes, planner changes, trust changes, execution changes, new owners, new schemas, new storage, or new truth sources.
+
+Evidence classification for the future phase:
+
+| Class | Name | Examples | Future meaning |
+| --- | --- | --- | --- |
+| A | Fast Reality | Telegram, YouTube, latency, packet loss, Service Matrix, Route Readiness | Fresh operational probes that age quickly and should influence current state only while fresh. |
+| B | Channel Behavior | Stability, speed, failure rate, recovery rate, quality trend | Medium-horizon behavior evidence that describes how a channel behaves over time. |
+| C | Outcome Evidence | Candidate outcomes, governed outcomes, manual outcomes, post-switch verification | Direct proof that decisions or movements produced good or bad real outcomes. |
+| D | System Safety Evidence | Blast, rollback, restore, packet validity, feedback closure, learning closure | Safety evidence proving V7 can act, verify, recover, and learn inside bounded governance. |
+
+Future evidence index concept:
+
+| Field | Meaning |
+| --- | --- |
+| `evidence_id` | Stable id for the future catalog row. |
+| `timestamp` | Time the evidence was observed or closed. |
+| `evidence_type` | Class/type of evidence, for example service probe, candidate outcome, rollback proof. |
+| `channel_id` | Channel scope when applicable. |
+| `service_id` | Service scope when applicable. |
+| `owner` | Existing owner that produced the evidence. |
+| `quality_score` | Current quality/correctness meaning, calculated by existing owners only. |
+| `freshness_score` | Future freshness/age weighting, shadow-only until certified. |
+| `confidence_score` | Existing confidence meaning from current models, not a new trust engine. |
+| `weight` | Future derived weighting after shadow validation. |
+
+Freshness principles:
+
+1. Old evidence is not deleted.
+2. Old evidence loses weight.
+3. Freshness depends on evidence type.
+4. Telegram/service probe evidence and blast/rollback safety evidence must not age identically.
+5. Freshness must not change planner, trust, or execution behavior until it has passed shadow validation.
+
+Future aggregated read models:
+
+| Read model | Intended future role |
+| --- | --- |
+| `channel_current_summary` | Compact current channel state for planner/operator reads. |
+| `channel_service_summary` | Service availability and freshness summary. |
+| `channel_behavior_summary` | Stability, speed, failures, recovery, and quality trend summary. |
+| `candidate_outcome_summary` | Candidate and assignment outcome summary. |
+| `system_safety_summary` | Blast, rollback, restore, packet, feedback, and learning safety summary. |
+| `trust_evolution_summary` | Existing trust evolution summarized for scalable reads. |
+
+Cardinality control rules:
+
+1. Allowed dimensions should stay bounded: evidence type, channel, service, owner, time bucket, and outcome class.
+2. High-cardinality risk comes from per-user, per-request, per-packet, per-log-line, and unbounded raw event dimensions.
+3. Future mitigation should use existing-owner aggregation, bounded time windows, summaries, and retention-aware indexes before planner consumption.
+4. Raw detail may remain in evidence/history stores, but planner-facing reads should use aggregated summaries.
+
+Shadow validation rule:
+
+Any future freshness/index model must first run in shadow mode with no direct planner impact, no direct trust impact, no direct execution impact, and no direct governance impact. It must compare old behavior versus freshness-weighted behavior before promotion.
+
+Integration rule:
+
+Any future implementation must reuse existing owners, existing truth sources, existing planner, existing governance, and existing execution path. It must not create a new trust engine.
+
+Activation criteria:
+
+1. Production Autonomy is certified.
+2. Event-driven autonomy is operating through the existing chain: regression -> planner -> packet -> restore barrier -> bounded apply -> feedback -> learning.
+3. Evidence volume or query cost demonstrates a real scale need, such as `100+` channels, `1000+` users, or multi-year evidence history.
+4. A shadow freshness/index validation proves no trust distortion and no planner regression.
+5. Truth and convergence pass before and after any future implementation.
+
+Related ADR: `docs/decisions/ADR-FUTURE-EVIDENCE-INDEX-AND-FRESHNESS-MODEL.md`.
 
 ## Channels Final UX Rules
 

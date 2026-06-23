@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-23
-Last changed by: `AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH`
+Last changed by: `DOCUMENT_FUTURE_EVIDENCE_INDEX_AND_FRESHNESS_MODEL`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -22,6 +22,12 @@ POOL.1 classified the pool as stable with zero planner candidates. POOL.2 rechec
 Current roadmap position:
 
 `CANARY_BLOCKED_BY_REAL_OUTCOME_MIXED`
+
+Deferred post-production scale phase:
+
+`POST_PRODUCTION_SCALE_PHASE -> AUTONOMY.EVIDENCE.INDEX_AND_FRESHNESS_MODEL`
+
+This future phase is documented so the design is not lost, but it is not a current blocker and must not start before Production Autonomy is certified.
 
 The blueprint view keeps channel recovery visible, but the project-level autonomy bottleneck is now broader and more precise. Branch 1B closed the blast recovery branch in production, AUTONOMY.TRUST.BUILDOUT.1 found that recovered blast evidence was not durable in the current consumed dry-run, and AUTONOMY.TRUST.DURABILITY.1 fixed the normal refresh code path so rotated evidence survives refresh/rebuild/reread:
 
@@ -125,6 +131,7 @@ contextual operator comparison
 | Real Outcome Acceleration Visibility | 0% | 100% | +100% | `AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH` | Production inventory now exposes `real_outcome_source_inventory` and `real_outcome_growth_projection` for +10/+25/+50 real outcome cycles. |
 | Canary Readiness | 35% | 35% | 0% | `AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH` | Canary remains NO-GO: after real probes and refresh, confidence `38.946`, trust `54.210`, prediction `35.494`, operator earned `45.806`; +50 projected high-confidence cycles still fails confidence/trust. |
 | Production Autonomy | 46% | 46% | 0% | `AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH` | Read-only projection improved understanding, but no runtime apply, movement, daemon, formula, floor, threshold, or truth-source change occurred. |
+| Post-Production Scale Roadmap | 0% | 100% | +100% | `DOCUMENT_FUTURE_EVIDENCE_INDEX_AND_FRESHNESS_MODEL` | Documented the deferred evidence index and freshness model for `100+` channels, `1000+` users, and multi-year evidence history. This is documentation only and not a current blocker. |
 
 ## Stable Areas
 
@@ -149,8 +156,78 @@ contextual operator comparison
 | P1 | `AUTONOMY.EVIDENCE.SERVICE_CHANNEL_SOURCE_CONFIDENCE_COLLECTION` | Current source confidence verdict is `EVIDENCE_MIXED`; next phase should collect real service/channel probe cycles through existing owners, refresh snapshots, and reread trust inventory. |
 | P1 | `AUTONOMY.SOURCE_CONFIDENCE.REAL_COLLECTION.1` | Current confidence cannot grow materially without new real-world outcomes. Targets: prediction mean forecast confidence `0.7452`, service mean row confidence `0.7`, candidate coverage closure for `73` missing outcomes, and contextual operator comparisons only where the operator has context. |
 | P1 | `AUTONOMY.CANDIDATE_OUTCOME_REALITY_COLLECTION.1` | `REAL_OUTCOME_MIXED` shows service/channel probes are safe but insufficient; suitability/candidate outcomes are the next blocker. Collect real candidate outcomes through existing governed/manual outcome owners only. |
+| Future | `AUTONOMY.EVIDENCE.INDEX_AND_FRESHNESS_MODEL` | Deferred post-production scale phase. Start only after Production Autonomy is certified and evidence scale creates real planner/trust read pressure. Must run shadow-first and reuse existing owners/truth/planner/governance/execution. |
+
+## POST_PRODUCTION_SCALE_PHASE
+
+### AUTONOMY.EVIDENCE.INDEX_AND_FRESHNESS_MODEL
+
+Status: `DEFERRED_UNTIL_PRODUCTION_AUTONOMY_CERTIFIED`.
+
+Purpose:
+
+```text
+100+ channels
+1000+ users
+years of evidence
+  -> evidence index
+  -> type-aware freshness
+  -> aggregated read models
+  -> shadow validation
+  -> only then possible planner/trust integration
+```
+
+Evidence classes:
+
+| Class | Scope | Examples |
+| --- | --- | --- |
+| A | Fast Reality | Telegram, YouTube, latency, packet loss, Service Matrix, Route Readiness |
+| B | Channel Behavior | Stability, speed, failure rate, recovery rate, quality trend |
+| C | Outcome Evidence | Candidate outcomes, governed outcomes, manual outcomes, post-switch verification |
+| D | System Safety Evidence | Blast, rollback, restore, packet validity, feedback closure, learning closure |
+
+Future evidence index fields may include `evidence_id`, `timestamp`, `evidence_type`, `channel_id`, `service_id`, `owner`, `quality_score`, `freshness_score`, `confidence_score`, and `weight`.
+
+Future aggregated read models:
+
+- `channel_current_summary`
+- `channel_service_summary`
+- `channel_behavior_summary`
+- `candidate_outcome_summary`
+- `system_safety_summary`
+- `trust_evolution_summary`
+
+Freshness principles:
+
+1. Old evidence is retained.
+2. Old evidence loses weight.
+3. Freshness is type-specific.
+4. Fast service/Telegram evidence and blast/rollback safety evidence age differently.
+5. Freshness has no planner or trust impact until shadow validation passes.
+
+Cardinality control:
+
+- Allowed dimensions: evidence type, channel, service, owner, time bucket, outcome class.
+- High-cardinality risks: raw per-user, per-request, per-packet, per-log-line, and unbounded event dimensions.
+- Mitigation: existing-owner aggregation, bounded windows, summaries, and retention-aware indexes before planner consumption.
+
+Activation criteria:
+
+1. Production Autonomy certified.
+2. Event-driven autonomy operating through existing owners.
+3. Real scale pressure from channels/users/evidence history.
+4. Shadow validation proves no planner slowdown, no trust distortion, and no stale-data bias.
+5. Truth/convergence gates pass.
 
 ## Changelog
+
+### 2026-06-23 — DOCUMENT_FUTURE_EVIDENCE_INDEX_AND_FRESHNESS_MODEL
+
+- Documented deferred post-production scale phase `AUTONOMY.EVIDENCE.INDEX_AND_FRESHNESS_MODEL`.
+- Added `POST_PRODUCTION_SCALE_PHASE` roadmap section.
+- Recorded evidence classes A-D, future evidence index fields, type-aware freshness principles, aggregated read models, cardinality controls, shadow validation rule, and activation criteria.
+- Created ADR `docs/decisions/ADR-FUTURE-EVIDENCE-INDEX-AND-FRESHNESS-MODEL.md`.
+- Confirmed this is documentation only: no runtime change, code change, planner change, trust change, execution change, storage/schema creation, or new owner.
 
 ### 2026-06-23 — AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH
 

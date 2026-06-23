@@ -95,6 +95,7 @@ Current production alignment:
 | Shadow Autonomy | Shadow owner | `admin_core/shadow_autonomy.py`, `admin_core/autonomy_trust_acceleration.py`, `/api/actions/shadow-autonomy-compare` | Compare recommendations with operator decisions when context is sufficient | ACTIVE_SECONDARY_PATH_READY_UNDERFED | 70% path / 25% evidence | Review packet, eligibility, growth projection, rotated shadow JSONL reads, UI visibility, and read-only review batches exist; comparison count is still 0, and comparison is secondary |
 | Operator Comparison | Shadow comparison store | `admin_core/shadow_autonomy.py`, `admin_core/autonomy_trust_acceleration.py`, shadow JSONL family | Secondary supervised confirmation | ACTIVE_SECONDARY_PATH_READY_EMPTY | 70% path / 25% evidence | Current comparison evidence below floor; use only for contextual supervised confirmation, not blind bulk training |
 | Trust Evidence Inventory | Read-only acceleration owner | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory` | Summarize current evidence, growth opportunities, review batches, canary proximity, floor forensics, materialization audit, confidence proportionality, real outcome source inventory, and growth projection | ACTIVE_READ_ONLY | 100% | AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH deployed real outcome projection; creates no evidence and performs no runtime mutation |
+| Future Evidence Index / Freshness Model | Future documentation-only post-production scale phase | No runtime files yet; future implementation must reuse existing evidence/trust/planner owners | Prepare for `100+` channels, `1000+` users, and years of evidence through an evidence catalog, type-aware freshness, aggregated read models, and cardinality control | DEFERRED_DOCUMENTED_ONLY | 0% implementation / 100% roadmap documented | Must not start until Production Autonomy is certified; shadow validation required before planner/trust impact |
 | Trust Source Hierarchy | Read-only trust model semantics | `admin_core/autonomy_trust_acceleration.py`, `docs/decisions/ADR-OBSERVED-OUTCOME-PRIMARY-TRUST.md` | Primary vs secondary vs diagnostic evidence classification | ACTIVE | 90% | Observed outcome is primary; operator comparison is secondary supervised confirmation |
 | Event Detection | Event sources plus certified read-only binding | `tools/v7-telegram-sentinel`, service matrix, quality compact, route/runtime/capacity readers, `admin_core/events.py` | Detect and classify regression source facts | ACTIVE_READ_ONLY | 85% | Sources exist and classify into primary/secondary/diagnostic event classes |
 | Event Consumption | Certified read-only consumer | `admin_core/events.py`, `admin_core/operator_execution_pipeline.py::event_consumer_readonly_certification_model` | Bind regression event to planner/packet/restore/rollback/feedback/learning previews | ACTIVE_READ_ONLY | 80% | EVENT.CONSUMER.READONLY.2 certified; AUTONOMY.CANARY.1_READINESS_RECHECK confirms live apply still blocked |
@@ -304,6 +305,7 @@ rollback confidence
 | Shadow operator comparison store | ACTIVE_BUT_UNDERFED | `comparisons_total=0` in root confidence evidence | Mechanism exists, evidence volume missing |
 | Prediction actual matching | ACTIVE_BUT_LOW_CONFIDENCE_UNDERVALUED_AS_ACCURACY_SIGNAL | 21/21 matched, 0 pending rows, accuracy `93.936`, mean forecast confidence `0.377`, prediction confidence `35.411` in AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT | Mechanism works and direct feedback survives refresh/write/reread; current gap is source confidence/future real evidence, not missing actuals |
 | Trust acceleration inventory | ACTIVE_READ_ONLY | `tools/v7-autonomy-trust-evidence-inventory` deployed in AUTONOMY.TRUST.ACCELERATION.1 and extended through AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH | Exposes evidence inventory, review batches, floor forensics, confidence proportionality, real outcome source inventory, and +10/+25/+50 projections; intentionally does not create comparisons, actuals, trust, apply, or movements |
+| Future evidence index and freshness model | DEFERRED_DOCUMENTED_ONLY | `DOCUMENT_FUTURE_EVIDENCE_INDEX_AND_FRESHNESS_MODEL` and ADR-FUTURE-EVIDENCE-INDEX-AND-FRESHNESS-MODEL | Future post-production scale phase for evidence cataloging, type-aware freshness, aggregated read models, and cardinality control; not a current blocker and not runtime behavior |
 | Operator comparison as primary trust | DEMOTED_TO_SECONDARY | AUTONOMY.TRUST.SOURCE.REALITY.1 / ADR-OBSERVED-OUTCOME-PRIMARY-TRUST | Operator comparison remains useful only as contextual supervised confirmation; observed outcome is primary |
 | Observed Capacity Shadow | APPROVED_BUT_NOT_IMPLEMENTED | ADR-011 | Concept accepted as shadow-only future model |
 | Route first-level signal | DEMOTED_SUPPORTING | ADR-007 | Route exists but should not be treated as first-level table truth unless real blocker appears |
@@ -388,6 +390,7 @@ Sources used:
 | Trust | 55% | Latest production inventory after real probes reports trust `54.210`, below the `70.0` floor |
 | Event detection | 85% | Event sources exist and the read-only consumer is certified; live apply remains blocked |
 | Autonomous runtime | 45% | Architecture exists; daemon inactive; blast blocker closed; confidence/trust/prediction floors fail |
+| Post-production evidence scale model | 0% implementation / 100% roadmap documented | Deferred future phase `AUTONOMY.EVIDENCE.INDEX_AND_FRESHNESS_MODEL`; activation requires certified Production Autonomy and shadow validation |
 | Truth/deploy alignment | 100% | Runtime code deployed at `130a6510`; truth/convergence pass with later docs-only reference updates |
 | Overall production autonomy | 45% | Correctly blocked; no operator-free apply should run now |
 
@@ -517,6 +520,77 @@ Fastest next evidence path is real candidate/suitability outcome collection thro
 3. Extend to small batches only after repeated successful evidence.
 4. Add progressive autonomy stages: shadow -> operator-approved -> one-user auto -> bounded batch auto -> production auto.
 5. Retire or archive obsolete duplicate reports once stable conclusions are in reference/ADR.
+
+### Post-Production Scale Phase: After Production Autonomy Certification
+
+Phase: `AUTONOMY.EVIDENCE.INDEX_AND_FRESHNESS_MODEL`.
+
+This phase is deferred. It must not run before Production Autonomy is certified.
+
+Future purpose:
+
+```text
+100+ channels
+1000+ users
+years of evidence
+  -> future read-only evidence catalog
+  -> type-aware freshness
+  -> aggregated read models
+  -> cardinality control
+  -> shadow validation
+  -> possible later planner/trust integration
+```
+
+Evidence classes:
+
+| Class | Name | Examples |
+| --- | --- | --- |
+| A | Fast Reality | Telegram, YouTube, latency, packet loss, Service Matrix, Route Readiness |
+| B | Channel Behavior | Stability, speed, failure rate, recovery rate, quality trend |
+| C | Outcome Evidence | Candidate outcomes, governed outcomes, manual outcomes, post-switch verification |
+| D | System Safety Evidence | Blast, rollback, restore, packet validity, feedback closure, learning closure |
+
+Possible future evidence index fields:
+
+| Field | Purpose |
+| --- | --- |
+| `evidence_id` | Stable catalog id |
+| `timestamp` | Evidence observation/closure time |
+| `evidence_type` | Evidence class/type |
+| `channel_id` | Channel scope |
+| `service_id` | Service scope |
+| `owner` | Existing evidence owner |
+| `quality_score` | Existing quality/correctness meaning |
+| `freshness_score` | Future shadow freshness weighting |
+| `confidence_score` | Existing confidence meaning |
+| `weight` | Future derived weight after shadow validation |
+
+Future aggregated read models:
+
+- `channel_current_summary`
+- `channel_service_summary`
+- `channel_behavior_summary`
+- `candidate_outcome_summary`
+- `system_safety_summary`
+- `trust_evolution_summary`
+
+Freshness principles:
+
+1. Old evidence is retained.
+2. Old evidence loses weight.
+3. Freshness depends on evidence type.
+4. Telegram/service probe evidence and blast/rollback safety evidence age differently.
+5. Freshness/index behavior must run shadow-first and have no direct planner/trust/execution impact until certified.
+
+Cardinality control:
+
+- Allowed dimensions: evidence type, channel, service, owner, time bucket, outcome class.
+- High-risk dimensions: raw per-user, per-request, per-packet, per-log-line, and unbounded event dimensions.
+- Mitigation: existing-owner aggregation, bounded windows, summaries, and retention-aware indexes before planner reads.
+
+Integration rule:
+
+Future implementation must reuse existing owners, truth sources, planner, governance, and execution path. It must not create a new trust engine.
 
 ### Long Term: 6-12 Months
 

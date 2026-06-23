@@ -182,6 +182,11 @@ def _floor_gap(current: float, target: float) -> dict[str, Any]:
     }
 
 
+def _mean_present(values: list[float]) -> float:
+    present = [float(value) for value in values if value is not None]
+    return round(sum(present) / len(present), 3) if present else 0.0
+
+
 def build_canary_proximity(
     *,
     trust_evolution_snapshot: dict[str, Any],
@@ -190,8 +195,12 @@ def build_canary_proximity(
 ) -> dict[str, Any]:
     summary = _first_item(trust_evolution_snapshot)
     confidence_summary = summary.get("confidence_summary") if isinstance(summary.get("confidence_summary"), dict) else {}
-    confidence = as_float(confidence_summary.get("confidence_score"), as_float(confidence_summary.get("confidence"), 0.0))
-    trust = as_float(confidence_summary.get("trust_score"), as_float(confidence_summary.get("overall_confidence"), 0.0))
+    decision = as_float(confidence_summary.get("decision_confidence"), 0.0)
+    service = as_float(confidence_summary.get("service_confidence"), 0.0)
+    suitability = as_float(confidence_summary.get("suitability_confidence"), 0.0)
+    blast = as_float(confidence_summary.get("blast_radius_confidence"), 0.0)
+    confidence = as_float(confidence_summary.get("confidence_score"), 0.0) or _mean_present([decision, service, suitability])
+    trust = as_float(confidence_summary.get("trust_score"), 0.0) or _mean_present([decision, service, suitability, blast])
     prediction = as_float(confidence_summary.get("prediction_confidence"), as_float(prediction_plan.get("prediction_confidence"), 0.0))
     comparison = shadow_model.get("confidence") if isinstance(shadow_model.get("confidence"), dict) else {}
     earned = as_float(comparison.get("earned_confidence"), 0.0)

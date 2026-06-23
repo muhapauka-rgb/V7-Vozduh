@@ -37,8 +37,10 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.write_snapshot(root, "channel-service-scores", [])
         self.write_snapshot(root, "trust-evolution-summaries", [{
             "confidence_summary": {
-                "confidence_score": 45.0,
-                "trust_score": 55.0,
+                "decision_confidence": 50.0,
+                "service_confidence": 40.0,
+                "suitability_confidence": 30.0,
+                "blast_radius_confidence": 100.0,
                 "prediction_confidence": 40.0,
             }
         }])
@@ -135,6 +137,8 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(first["operator_comparisons"]["current"]["comparison_count"], 1)
         self.assertEqual(second["operator_comparisons"]["current"]["comparison_count"], 1)
         self.assertEqual(first["prediction_evidence"]["matched_rows"], second["prediction_evidence"]["matched_rows"])
+        self.assertEqual(second["canary_proximity"]["floors"]["confidence"]["current"], 40.0)
+        self.assertEqual(second["canary_proximity"]["floors"]["trust"]["current"], 55.0)
         self.assertFalse(second["runtime_mutation_performed"])
         self.assertFalse(second["apply_executed"])
         self.assertEqual(second["users_moved"], 0)

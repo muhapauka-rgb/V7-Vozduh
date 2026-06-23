@@ -41,6 +41,10 @@ Production evidence captured in:
 
 `docs/reports/AUTONOMY_SUITABILITY_KNOWLEDGE_AND_CONFIDENCE_FORENSICS_EVIDENCE/production_trust_inventory.json`
 
+Post-deploy production verification captured in:
+
+`docs/reports/AUTONOMY_SUITABILITY_KNOWLEDGE_AND_CONFIDENCE_FORENSICS_EVIDENCE/production_trust_inventory_after_deploy.json`
+
 | Source | Count | Freshness | Confidence impact | Trust impact | Classification |
 | --- | ---: | --- | ---: | --- | --- |
 | Prediction matches | `21/21` | FRESH | `35.346` | limited by low forecast source confidence | sufficient evidence, low attribution |
@@ -156,6 +160,10 @@ This is visibility/attribution only. It does not create evidence and does not ch
 | `python3 -m unittest tests.unit.test_autonomy_trust_acceleration -v` | PASS, 6 tests |
 | `PYTHONPYCACHEPREFIX=/tmp/v7_pycache python3 -m py_compile admin_core/autonomy_trust_acceleration.py tests/unit/test_autonomy_trust_acceleration.py` | PASS |
 | Production inventory capture | PASS, read-only |
+| `tools/v7-safe-deploy --apply --confirm DEPLOY_V7_APPROVED --update-local-snapshot --restart-admin-if-changed --json` | PASS, runtime commit `5cfe26d9808cdfe5f0ab18f6cdea2cb5ed981e89`, no apply/user movement |
+| Production inventory after deploy | PASS: projection row now reports `known_missing_candidate_outcomes=73`, `converted_missing_candidate_outcomes=10`, `missing_candidate_outcomes_remaining=63`, and `visible_missing_candidate_outcomes_remaining=0` separately |
+| `tools/v7-truth-check --all --json` | PASS, `FULLY_ALIGNED` |
+| `tools/v7-convergence-status --json` | PASS, `ALIGNED` |
 
 Initial `python3 -m pytest ...` did not run because the system Python has no `pytest`; the suite is unittest-compatible and passed through `unittest`.
 

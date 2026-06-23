@@ -680,6 +680,219 @@ def build_source_confidence_collection_plan(
     }
 
 
+def _additional_rows_needed(
+    *,
+    current_count: int,
+    current_mean: float,
+    target_mean: float,
+    future_value: float,
+) -> int | None:
+    if future_value <= target_mean:
+        return None
+    numerator = max(0.0, (target_mean * current_count) - (current_mean * current_count))
+    if numerator <= 0:
+        return 0
+    return int((numerator / (future_value - target_mean)) + 0.999999)
+
+
+def build_confidence_reality_audit(
+    *,
+    floor_forensics: dict[str, Any],
+    source_inventory: dict[str, Any],
+    operator_comparisons: dict[str, Any],
+) -> dict[str, Any]:
+    components = floor_forensics.get("component_values") if isinstance(floor_forensics.get("component_values"), dict) else {}
+    prediction = floor_forensics.get("prediction_root_cause") if isinstance(floor_forensics.get("prediction_root_cause"), dict) else {}
+    service = floor_forensics.get("service_root_cause") if isinstance(floor_forensics.get("service_root_cause"), dict) else {}
+    suitability = floor_forensics.get("suitability_root_cause") if isinstance(floor_forensics.get("suitability_root_cause"), dict) else {}
+    rollback_blast = floor_forensics.get("rollback_and_blast") if isinstance(floor_forensics.get("rollback_and_blast"), dict) else {}
+    sources = {
+        row.get("source"): row
+        for row in source_inventory.get("sources") or []
+        if isinstance(row, dict)
+    }
+    prediction_accuracy = as_float(prediction.get("forecast_accuracy"), 0.0)
+    prediction_confidence = as_float(components.get("prediction_confidence"), 0.0)
+    mean_forecast_confidence = as_float(prediction.get("mean_forecast_confidence"), 0.0)
+    prediction_required_mean_confidence = round(70.0 / prediction_accuracy, 4) if prediction_accuracy > 0 else 0.0
+    service_mean_confidence = as_float(service.get("mean_row_confidence"), 0.0)
+    service_mean_correctness = as_float(service.get("mean_correctness"), 0.0)
+    service_required_mean_confidence = round(70.0 / service_mean_correctness, 4) if service_mean_correctness > 0 else 0.0
+    suitability_mean_confidence = as_float(suitability.get("mean_candidate_confidence"), 0.0)
+    suitability_mean_correctness = as_float(suitability.get("mean_correctness"), 0.0)
+    suitability_required_mean_confidence = round(70.0 / suitability_mean_correctness, 4) if suitability_mean_correctness > 0 else 0.0
+    comparison_current = operator_comparisons.get("current") if isinstance(operator_comparisons.get("current"), dict) else {}
+    projection = operator_comparisons.get("growth_projection") if isinstance(operator_comparisons.get("growth_projection"), dict) else {}
+    projection_rows = [row for row in projection.get("rows") or [] if isinstance(row, dict)]
+    first_operator_floor = next(
+        (
+            {
+                "comparisons": int(as_float(row.get("comparisons"), 0.0)),
+                "agreement_rate": as_float(row.get("agreement_rate"), 0.0),
+                "earned_confidence": as_float(row.get("earned_confidence"), 0.0),
+            }
+            for row in projection_rows
+            if row.get("earned_confidence_floor_met")
+        ),
+        None,
+    )
+    confidence_floor = as_float((floor_forensics.get("floor_values") or {}).get("confidence", {}).get("current"), 0.0)
+    trust_floor = as_float((floor_forensics.get("floor_values") or {}).get("trust", {}).get("current"), 0.0)
+    decision = as_float(components.get("decision_confidence"), 0.0)
+    confidence_service_suitability_sum_required = max(0.0, (70.0 * 3.0) - decision)
+    trust_service_suitability_sum_required = max(0.0, (70.0 * 4.0) - decision - as_float(components.get("blast_radius_confidence"), 0.0))
+    source_rows = [
+        {
+            "source": "Prediction",
+            "real_evidence_volume": f"{int(as_float(prediction.get('matched_rows'), 0.0))}/{int(as_float(prediction.get('forecasts_seen'), 0.0))} matched",
+            "evidence_quality": {
+                "forecast_accuracy": round(prediction_accuracy, 3),
+                "mean_forecast_confidence": round(mean_forecast_confidence, 4),
+            },
+            "freshness": (sources.get("prediction_matches") or {}).get("freshness"),
+            "confidence_value": round(prediction_confidence, 3),
+            "proportional_to_reality": "UNDERVALUED",
+            "why": "21/21 matched rows is strong accuracy evidence, but current canary confidence is intentionally limited by low forecast source confidence.",
+        },
+        {
+            "source": "Service",
+            "real_evidence_volume": int(as_float(service.get("rows_seen"), 0.0)),
+            "evidence_quality": {
+                "mean_correctness": round(service_mean_correctness, 3),
+                "mean_row_confidence": round(service_mean_confidence, 4),
+            },
+            "freshness": (sources.get("service_outcomes") or {}).get("freshness"),
+            "confidence_value": round(as_float(components.get("service_confidence"), 0.0), 3),
+            "proportional_to_reality": "FAIR",
+            "why": "Correctness is high, but source row confidence is only 0.39, so the current model correctly refuses to treat it as high-confidence autonomy evidence.",
+        },
+        {
+            "source": "Suitability",
+            "real_evidence_volume": f"{int(as_float(suitability.get('outcomes_seen'), 0.0))}/{int(as_float(suitability.get('candidates_seen'), 0.0))} outcomes",
+            "evidence_quality": {
+                "mean_correctness": round(suitability_mean_correctness, 3),
+                "mean_candidate_confidence": round(suitability_mean_confidence, 4),
+                "rows_without_outcome": int(as_float(suitability.get("rows_without_outcome"), 0.0)),
+            },
+            "freshness": (sources.get("candidate_outcomes") or {}).get("freshness"),
+            "confidence_value": round(as_float(components.get("suitability_confidence"), 0.0), 3),
+            "proportional_to_reality": "FAIR",
+            "why": "83 outcomes are useful but incomplete versus 156 candidates, and current mean correctness/confidence cannot support a 70 autonomy floor.",
+        },
+        {
+            "source": "Blast",
+            "real_evidence_volume": int(as_float(rollback_blast.get("blast_records_seen"), 0.0)),
+            "evidence_quality": {"confidence": round(as_float(components.get("blast_radius_confidence"), 0.0), 3)},
+            "freshness": (sources.get("blast_radius_evidence") or {}).get("freshness"),
+            "confidence_value": round(as_float(components.get("blast_radius_confidence"), 0.0), 3),
+            "proportional_to_reality": "FAIR",
+            "why": "Recovered governed blast evidence is consumed and already contributes 100.",
+        },
+        {
+            "source": "Rollback",
+            "real_evidence_volume": int(as_float(rollback_blast.get("rollback_records_seen"), 0.0)),
+            "evidence_quality": {"confidence": round(as_float(components.get("rollback_confidence"), 0.0), 3)},
+            "freshness": (sources.get("rollback_evidence") or {}).get("freshness"),
+            "confidence_value": round(as_float(components.get("rollback_confidence"), 0.0), 3),
+            "proportional_to_reality": "FAIR",
+            "why": "Rollback evidence is consumed and already contributes 100.",
+        },
+        {
+            "source": "Operator",
+            "real_evidence_volume": int(as_float(comparison_current.get("comparison_count"), 0.0)),
+            "evidence_quality": {
+                "reviewable_decisions": int(as_float(comparison_current.get("reviewable_decisions"), 0.0)),
+                "agreement_rate": as_float(comparison_current.get("agreement_rate"), 0.0),
+            },
+            "freshness": (sources.get("operator_comparison_evidence") or {}).get("freshness"),
+            "confidence_value": round(as_float(components.get("operator_earned_confidence"), 0.0), 3),
+            "proportional_to_reality": "FAIR",
+            "why": "There are reviewable decisions but zero real comparisons, so operator evidence cannot be treated as validated.",
+        },
+    ]
+    return {
+        "schema_version": "v7.autonomy-trust.confidence-reality-audit.v1",
+        "final_classification": "CONFIDENCE_MIXED",
+        "source_rows": source_rows,
+        "undervalued_sources": ["Prediction"],
+        "overvalued_sources": [],
+        "fair_sources": ["Service", "Suitability", "Blast", "Rollback", "Operator"],
+        "implementation_result": "visibility_fix_only_no_formula_or_floor_change",
+        "required_real_evidence": {
+            "prediction": {
+                "current_matched": int(as_float(prediction.get("matched_rows"), 0.0)),
+                "current_mean_forecast_confidence": round(mean_forecast_confidence, 4),
+                "target_mean_forecast_confidence_at_current_accuracy": prediction_required_mean_confidence,
+                "additional_matched_rows_needed_if_future_confidence_1_0": _additional_rows_needed(
+                    current_count=int(as_float(prediction.get("forecasts_seen"), 0.0)),
+                    current_mean=mean_forecast_confidence,
+                    target_mean=prediction_required_mean_confidence,
+                    future_value=1.0,
+                ),
+                "additional_matched_rows_needed_if_future_confidence_0_9": _additional_rows_needed(
+                    current_count=int(as_float(prediction.get("forecasts_seen"), 0.0)),
+                    current_mean=mean_forecast_confidence,
+                    target_mean=prediction_required_mean_confidence,
+                    future_value=0.9,
+                ),
+                "additional_matched_rows_needed_if_future_confidence_0_85": _additional_rows_needed(
+                    current_count=int(as_float(prediction.get("forecasts_seen"), 0.0)),
+                    current_mean=mean_forecast_confidence,
+                    target_mean=prediction_required_mean_confidence,
+                    future_value=0.85,
+                ),
+            },
+            "service": {
+                "current_rows": int(as_float(service.get("rows_seen"), 0.0)),
+                "current_mean_row_confidence": round(service_mean_confidence, 4),
+                "target_mean_row_confidence_at_current_correctness": service_required_mean_confidence,
+                "additional_comparable_rows_needed_if_future_confidence_1_0": _additional_rows_needed(
+                    current_count=int(as_float(service.get("rows_seen"), 0.0)),
+                    current_mean=service_mean_confidence,
+                    target_mean=service_required_mean_confidence,
+                    future_value=1.0,
+                ),
+                "additional_comparable_rows_needed_if_future_confidence_0_85": _additional_rows_needed(
+                    current_count=int(as_float(service.get("rows_seen"), 0.0)),
+                    current_mean=service_mean_confidence,
+                    target_mean=service_required_mean_confidence,
+                    future_value=0.85,
+                ),
+                "note": "If the snapshot owner recalibrates row confidence instead of accumulating rows, the real target is mean row confidence >= target.",
+            },
+            "suitability": {
+                "current_outcomes": int(as_float(suitability.get("outcomes_seen"), 0.0)),
+                "current_candidates": int(as_float(suitability.get("candidates_seen"), 0.0)),
+                "missing_outcomes_to_full_coverage": max(
+                    0,
+                    int(as_float(suitability.get("candidates_seen"), 0.0)) - int(as_float(suitability.get("outcomes_seen"), 0.0)),
+                ),
+                "current_mean_correctness": round(suitability_mean_correctness, 3),
+                "current_mean_candidate_confidence": round(suitability_mean_confidence, 4),
+                "target_mean_candidate_confidence_at_current_correctness": suitability_required_mean_confidence,
+                "current_correctness_can_reach_70_even_with_perfect_confidence": suitability_mean_correctness >= 70.0,
+                "target_correctness_if_mean_confidence_0_85": round(70.0 / 0.85, 3),
+            },
+            "operator": {
+                "current_comparisons": int(as_float(comparison_current.get("comparison_count"), 0.0)),
+                "reviewable_decisions": int(as_float(comparison_current.get("reviewable_decisions"), 0.0)),
+                "first_projection_to_floor": first_operator_floor,
+            },
+            "confidence_and_trust": {
+                "current_confidence_floor": round(confidence_floor, 3),
+                "current_trust_floor": round(trust_floor, 3),
+                "service_plus_suitability_sum_required_for_confidence_70_if_decision_stays_current": round(confidence_service_suitability_sum_required, 3),
+                "service_plus_suitability_sum_required_for_trust_70_if_decision_and_blast_stay_current": round(trust_service_suitability_sum_required, 3),
+            },
+        },
+        "can_confidence_grow_materially_without_new_runtime_actions": False,
+        "new_real_world_outcomes_required": True,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
 def _comparison_projection_value(shadow_model: dict[str, Any], comparisons: int, agreement_rate: float) -> float:
     projection = shadow_model.get("comparison_growth_projection") if isinstance(shadow_model.get("comparison_growth_projection"), dict) else {}
     for row in projection.get("rows") or []:
@@ -855,6 +1068,24 @@ def build_acceleration_inventory(
     )
     quality = shadow_model.get("quality", {})
     confidence = shadow_model.get("confidence", {})
+    operator_comparisons = {
+        "evidence_role": "secondary_supervised_confirmation",
+        "blind_review_required": False,
+        "current": {
+            "reviewable_decisions": shadow_model.get("operator_review_packet", {}).get("reviewable_decisions", 0),
+            "reviewed_decisions": shadow_model.get("operator_review_packet", {}).get("reviewed_decisions", 0),
+            "comparison_count": quality.get("comparisons_total", 0),
+            "agreement_rate": quality.get("agreement_rate", 0.0),
+            "earned_confidence": confidence.get("earned_confidence", 0.0),
+        },
+        "review_batches": review_batches,
+        "growth_projection": shadow_model.get("comparison_growth_projection", {}),
+    }
+    confidence_reality_audit = build_confidence_reality_audit(
+        floor_forensics=floor_forensics,
+        source_inventory=source_confidence_inventory,
+        operator_comparisons=operator_comparisons,
+    )
     return {
         "schema_version": "v7.autonomy-trust-acceleration.inventory.v1",
         "generated_at": generated,
@@ -862,25 +1093,14 @@ def build_acceleration_inventory(
         "trust_source_classification": build_trust_source_classification(),
         "operator_authority_model": build_operator_authority_model(),
         "prediction_evidence": prediction_plan,
-        "operator_comparisons": {
-            "evidence_role": "secondary_supervised_confirmation",
-            "blind_review_required": False,
-            "current": {
-                "reviewable_decisions": shadow_model.get("operator_review_packet", {}).get("reviewable_decisions", 0),
-                "reviewed_decisions": shadow_model.get("operator_review_packet", {}).get("reviewed_decisions", 0),
-                "comparison_count": quality.get("comparisons_total", 0),
-                "agreement_rate": quality.get("agreement_rate", 0.0),
-                "earned_confidence": confidence.get("earned_confidence", 0.0),
-            },
-            "review_batches": review_batches,
-            "growth_projection": shadow_model.get("comparison_growth_projection", {}),
-        },
+        "operator_comparisons": operator_comparisons,
         "canary_proximity": canary,
         "floor_forensics": floor_forensics,
         "materialization_audit": materialization_audit,
         "source_confidence_inventory": source_confidence_inventory,
         "evidence_sufficiency": evidence_sufficiency,
         "source_confidence_collection_plan": source_confidence_collection_plan,
+        "confidence_reality_audit": confidence_reality_audit,
         "collection_plan": {
             "primary_real_evidence_path": [
                 "observe service and channel quality outcomes through existing service/quality snapshots",

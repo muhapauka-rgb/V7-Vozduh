@@ -228,6 +228,17 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
             "service_outcomes",
         )
         self.assertFalse(second["source_confidence_collection_plan"]["fastest_real_growth_path"][0]["runtime_apply_allowed"])
+        reality = second["confidence_reality_audit"]
+        self.assertEqual(reality["final_classification"], "CONFIDENCE_MIXED")
+        self.assertIn("Prediction", reality["undervalued_sources"])
+        self.assertIn("Service", reality["fair_sources"])
+        self.assertEqual(reality["required_real_evidence"]["prediction"]["current_matched"], 1)
+        self.assertGreaterEqual(
+            reality["required_real_evidence"]["suitability"]["missing_outcomes_to_full_coverage"],
+            1,
+        )
+        self.assertTrue(reality["new_real_world_outcomes_required"])
+        self.assertFalse(reality["can_confidence_grow_materially_without_new_runtime_actions"])
         self.assertFalse(second["runtime_mutation_performed"])
         self.assertFalse(second["apply_executed"])
         self.assertEqual(second["users_moved"], 0)

@@ -136,7 +136,22 @@ Result:
 - compile: PASS
 - unit tests: PASS, 124 tests
 
-## 8. Roadmap Recalculation
+## 8. Runtime Evidence
+
+Production deploy and runtime inventory evidence:
+
+- safe deploy manifest: `docs/reports/AUTONOMY_TRUST_SOURCE_REALITY_1_EVIDENCE/safe_deploy.json`
+- production inventory after deploy: `docs/reports/AUTONOMY_TRUST_SOURCE_REALITY_1_EVIDENCE/production_inventory_after_deploy.json`
+
+Runtime-confirmed fields:
+
+- `trust_source_classification.primary` includes observed service outcome, observed channel quality, post-switch verification, rollback/no-rollback result, and forecast-to-actual accuracy.
+- `operator_comparisons.evidence_role` is `secondary_supervised_confirmation`.
+- `operator_comparisons.blind_review_required` is `false`.
+- `collection_plan.blind_operator_training_required` is `false`.
+- `canary_proximity.readiness_model` is `observed_outcome_primary_operator_comparison_secondary`.
+
+## 9. Roadmap Recalculation
 
 Previous practical route overemphasized operator comparison:
 
@@ -165,7 +180,7 @@ secondary supervised confirmation
   -> not blind bulk training data
 ```
 
-## 9. Remaining Gaps
+## 10. Remaining Gaps
 
 | Gap | Meaning |
 | --- | --- |
@@ -175,7 +190,7 @@ secondary supervised confirmation
 | Canary | Still blocked until observed confidence/trust/prediction floors pass |
 | Operator comparison | Path ready, but secondary and should not be forced blindly |
 
-## 10. Final Verdict
+## 11. Final Verdict
 
 `OBSERVED_OUTCOME_PRIMARY_TRUST_CONFIRMED`
 

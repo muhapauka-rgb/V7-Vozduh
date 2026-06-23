@@ -41,8 +41,41 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
                 "service_confidence": 40.0,
                 "suitability_confidence": 30.0,
                 "blast_radius_confidence": 100.0,
+                "rollback_confidence": 100.0,
                 "prediction_confidence": 40.0,
-            }
+            },
+            "prediction_accuracy": {
+                "forecasts_seen": 2,
+                "actuals_seen": 1,
+                "matched_count": 1,
+                "forecast_accuracy": 100.0,
+                "prediction_confidence": 40.0,
+                "rows": [
+                    {"id": "awg0", "status": "MATCHED", "accuracy": 100.0, "confidence": 0.4},
+                ],
+            },
+            "service_intelligence_trust": {
+                "rows_seen": 1,
+                "service_confidence": 40.0,
+                "rows": [
+                    {"id": "awg0", "correctness": 100.0, "confidence": 0.4},
+                ],
+            },
+            "suitability_trust": {
+                "candidates_seen": 2,
+                "outcomes_seen": 1,
+                "suitability_confidence": 30.0,
+                "rows": [
+                    {"key": "10.7.0.2:awg0", "outcome_seen": True, "correctness": 60.0, "confidence": 0.5},
+                    {"key": "10.7.0.3:vless", "outcome_seen": False, "correctness": 40.0, "confidence": 0.25},
+                ],
+            },
+            "rollback_intelligence": {"records_seen": 3},
+            "blast_radius_confidence_model": {"records_seen": 2},
+            "outcome_mapper_counts": {
+                "service_actuals_count": 1,
+                "candidate_outcomes_count": 1,
+            },
         }])
 
     def decision_surface(self):
@@ -181,6 +214,11 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(first["prediction_evidence"]["matched_rows"], second["prediction_evidence"]["matched_rows"])
         self.assertEqual(second["canary_proximity"]["floors"]["confidence"]["current"], 40.0)
         self.assertEqual(second["canary_proximity"]["floors"]["trust"]["current"], 55.0)
+        self.assertEqual(second["floor_forensics"]["component_values"]["service_confidence"], 40.0)
+        self.assertEqual(second["floor_forensics"]["prediction_root_cause"]["root_cause"], "low_forecast_source_confidence")
+        self.assertEqual(second["floor_forensics"]["suitability_root_cause"]["rows_without_outcome"], 1)
+        self.assertTrue(second["materialization_audit"]["prediction_actuals"]["materialized"])
+        self.assertFalse(second["materialization_audit"]["prediction_actuals"]["safe_fix_available_now"])
         self.assertFalse(second["runtime_mutation_performed"])
         self.assertFalse(second["apply_executed"])
         self.assertEqual(second["users_moved"], 0)

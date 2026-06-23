@@ -244,6 +244,186 @@ def build_canary_proximity(
     }
 
 
+def _mean_key(rows: list[dict[str, Any]], key: str) -> float:
+    values = [as_float(row.get(key), 0.0) for row in rows if isinstance(row, dict) and row.get(key) not in (None, "")]
+    return round(sum(values) / len(values), 3) if values else 0.0
+
+
+def _confidence_band(value: float) -> str:
+    if value >= 70.0:
+        return "CANARY_READY"
+    if value >= 50.0:
+        return "PARTIAL"
+    if value > 0.0:
+        return "LOW"
+    return "MISSING"
+
+
+def build_floor_forensics(
+    *,
+    trust_evolution_snapshot: dict[str, Any],
+    shadow_model: dict[str, Any],
+    prediction_plan: dict[str, Any],
+    canary_proximity: dict[str, Any],
+) -> dict[str, Any]:
+    summary = _first_item(trust_evolution_snapshot)
+    confidence_summary = summary.get("confidence_summary") if isinstance(summary.get("confidence_summary"), dict) else {}
+    prediction_accuracy = summary.get("prediction_accuracy") if isinstance(summary.get("prediction_accuracy"), dict) else {}
+    service_trust = summary.get("service_intelligence_trust") if isinstance(summary.get("service_intelligence_trust"), dict) else {}
+    suitability_trust = summary.get("suitability_trust") if isinstance(summary.get("suitability_trust"), dict) else {}
+    rollback = summary.get("rollback_intelligence") if isinstance(summary.get("rollback_intelligence"), dict) else {}
+    blast = summary.get("blast_radius_confidence_model") if isinstance(summary.get("blast_radius_confidence_model"), dict) else {}
+    prediction_rows = prediction_accuracy.get("rows") or prediction_plan.get("rows") or []
+    service_rows = service_trust.get("rows") or []
+    suitability_rows = suitability_trust.get("rows") or []
+    matched_prediction_rows = [row for row in prediction_rows if isinstance(row, dict) and row.get("status") == "MATCHED"]
+    pending_prediction_rows = [row for row in prediction_rows if isinstance(row, dict) and row.get("status") == "PENDING_OUTCOME"]
+    matched_rows_count = len(matched_prediction_rows)
+    pending_rows_count = len(pending_prediction_rows)
+    if not prediction_rows:
+        matched_rows_count = int(as_float(prediction_accuracy.get("matched_count"), as_float(prediction_plan.get("matched_rows"), 0.0)))
+        pending_rows_count = int(as_float(prediction_plan.get("pending_rows"), 0.0))
+    forecast_accuracy = as_float(
+        prediction_accuracy.get("forecast_accuracy"),
+        as_float(prediction_plan.get("forecast_accuracy"), 0.0),
+    )
+    prediction_confidence = as_float(
+        confidence_summary.get("prediction_confidence"),
+        as_float(prediction_plan.get("prediction_confidence"), 0.0),
+    )
+    mean_forecast_confidence = round(prediction_confidence / forecast_accuracy, 4) if forecast_accuracy > 0 else 0.0
+    decision = as_float(confidence_summary.get("decision_confidence"), 0.0)
+    service = as_float(confidence_summary.get("service_confidence"), 0.0)
+    suitability = as_float(confidence_summary.get("suitability_confidence"), 0.0)
+    blast_confidence = as_float(confidence_summary.get("blast_radius_confidence"), 0.0)
+    rollback_confidence = as_float(confidence_summary.get("rollback_confidence"), 0.0)
+    comparison = shadow_model.get("confidence") if isinstance(shadow_model.get("confidence"), dict) else {}
+    earned = as_float(comparison.get("earned_confidence"), 0.0)
+    floors = canary_proximity.get("floors") if isinstance(canary_proximity.get("floors"), dict) else {}
+    primary = canary_proximity.get("primary_floors") if isinstance(canary_proximity.get("primary_floors"), dict) else {}
+    blockers = []
+    for name, floor in primary.items():
+        if isinstance(floor, dict) and not floor.get("pass"):
+            blockers.append({
+                "floor": name,
+                "current": floor.get("current", 0.0),
+                "target": floor.get("target", 0.0),
+                "gap": floor.get("gap", 0.0),
+            })
+    return {
+        "schema_version": "v7.autonomy-trust.floor-forensics.v1",
+        "purpose": "explain_current_canary_floor_values_without_changing_formulas_or_evidence",
+        "floor_formulas": {
+            "confidence": "confidence_summary.confidence_score if present else mean(decision_confidence, service_confidence, suitability_confidence)",
+            "trust": "confidence_summary.trust_score if present else mean(decision_confidence, service_confidence, suitability_confidence, blast_radius_confidence)",
+            "prediction_confidence": "mean(matched_forecast_accuracy) * mean(forecast_confidence)",
+            "operator_earned_confidence": "shadow_autonomy observed operator comparison confidence",
+        },
+        "floor_values": floors,
+        "dominant_blockers": blockers,
+        "component_values": {
+            "decision_confidence": round(decision, 3),
+            "service_confidence": round(service, 3),
+            "suitability_confidence": round(suitability, 3),
+            "blast_radius_confidence": round(blast_confidence, 3),
+            "rollback_confidence": round(rollback_confidence, 3),
+            "prediction_confidence": round(prediction_confidence, 3),
+            "operator_earned_confidence": round(earned, 3),
+            "overall_confidence": round(as_float(summary.get("overall_confidence"), 0.0), 3),
+        },
+        "prediction_root_cause": {
+            "forecasts_seen": int(as_float(prediction_accuracy.get("forecasts_seen"), as_float(prediction_plan.get("forecasts_seen"), 0.0))),
+            "actuals_seen": int(as_float(prediction_accuracy.get("actuals_seen"), as_float(prediction_plan.get("forecast_actuals_seen"), 0.0))),
+            "matched_rows": matched_rows_count,
+            "pending_rows": pending_rows_count,
+            "forecast_accuracy": round(forecast_accuracy, 3),
+            "mean_forecast_confidence": mean_forecast_confidence,
+            "root_cause": "low_forecast_source_confidence" if matched_rows_count > 0 and pending_rows_count == 0 and mean_forecast_confidence < 0.7 else "pending_or_missing_actuals",
+            "synthetic_actuals_allowed": False,
+        },
+        "service_root_cause": {
+            "rows_seen": int(as_float(service_trust.get("rows_seen"), len(service_rows))),
+            "service_confidence": round(service, 3),
+            "mean_row_confidence": _mean_key(service_rows, "confidence"),
+            "mean_correctness": _mean_key(service_rows, "correctness"),
+            "root_cause": "service_rows_are_matched_but_low_source_confidence",
+        },
+        "suitability_root_cause": {
+            "candidates_seen": int(as_float(suitability_trust.get("candidates_seen"), 0.0)),
+            "outcomes_seen": int(as_float(suitability_trust.get("outcomes_seen"), 0.0)),
+            "rows_seen": len(suitability_rows),
+            "rows_without_outcome": len([row for row in suitability_rows if isinstance(row, dict) and not row.get("outcome_seen")]),
+            "suitability_confidence": round(suitability, 3),
+            "mean_candidate_confidence": _mean_key(suitability_rows, "confidence"),
+            "mean_correctness": _mean_key(suitability_rows, "correctness"),
+            "root_cause": "candidate_outcomes_exist_but_are_incomplete_and_low_confidence",
+        },
+        "rollback_and_blast": {
+            "rollback_records_seen": int(as_float(rollback.get("records_seen"), 0.0)),
+            "rollback_confidence": round(rollback_confidence, 3),
+            "blast_records_seen": int(as_float(blast.get("records_seen"), 0.0)),
+            "blast_radius_confidence": round(blast_confidence, 3),
+            "root_cause": "not_current_floor_blockers",
+        },
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
+def build_materialization_audit(
+    *,
+    trust_evolution_snapshot: dict[str, Any],
+    prediction_plan: dict[str, Any],
+    floor_forensics: dict[str, Any],
+) -> dict[str, Any]:
+    summary = _first_item(trust_evolution_snapshot)
+    counts = summary.get("outcome_mapper_counts") if isinstance(summary.get("outcome_mapper_counts"), dict) else {}
+    prediction_root = floor_forensics.get("prediction_root_cause") if isinstance(floor_forensics.get("prediction_root_cause"), dict) else {}
+    service_root = floor_forensics.get("service_root_cause") if isinstance(floor_forensics.get("service_root_cause"), dict) else {}
+    suitability_root = floor_forensics.get("suitability_root_cause") if isinstance(floor_forensics.get("suitability_root_cause"), dict) else {}
+    return {
+        "schema_version": "v7.autonomy-trust.materialization-audit.v1",
+        "purpose": "show_existing_owner_evidence_consumption_and_safe_next_gap",
+        "prediction_actuals": {
+            "forecasts_seen": prediction_root.get("forecasts_seen", 0),
+            "actuals_seen": prediction_root.get("actuals_seen", 0),
+            "matched_rows": prediction_root.get("matched_rows", 0),
+            "pending_rows": prediction_root.get("pending_rows", 0),
+            "materialized": prediction_root.get("matched_rows", 0) > 0 and prediction_root.get("pending_rows", 0) == 0,
+            "safe_fix_available_now": False,
+            "reason": "prediction actual lifecycle is consumed; remaining blocker is low forecast source confidence",
+        },
+        "service_actuals": {
+            "service_actuals_count": int(as_float(counts.get("service_actuals_count"), 0.0)),
+            "rows_seen": service_root.get("rows_seen", 0),
+            "materialized": service_root.get("rows_seen", 0) > 0,
+            "safe_fix_available_now": False,
+            "reason": "service rows are present; confidence requires higher-confidence real probe data",
+        },
+        "candidate_outcomes": {
+            "candidate_outcomes_count": int(as_float(counts.get("candidate_outcomes_count"), 0.0)),
+            "candidates_seen": suitability_root.get("candidates_seen", 0),
+            "outcomes_seen": suitability_root.get("outcomes_seen", 0),
+            "rows_without_outcome": suitability_root.get("rows_without_outcome", 0),
+            "materialized": suitability_root.get("outcomes_seen", 0) > 0,
+            "safe_fix_available_now": False,
+            "reason": "candidate outcomes are consumed but incomplete; additional real governed/manual outcomes are needed",
+        },
+        "blocked_fixes": [
+            "synthetic_prediction_actuals",
+            "synthetic_candidate_outcomes",
+            "synthetic_operator_comparisons",
+            "threshold_or_formula_changes",
+            "runtime_apply_or_user_movement",
+        ],
+        "next_safe_evidence_phase": "collect_real_high_confidence_service_probe_cycles_and_real_governed_or_manual_outcome_closure",
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
 def _comparison_projection_value(shadow_model: dict[str, Any], comparisons: int, agreement_rate: float) -> float:
     projection = shadow_model.get("comparison_growth_projection") if isinstance(shadow_model.get("comparison_growth_projection"), dict) else {}
     for row in projection.get("rows") or []:
@@ -392,6 +572,17 @@ def build_acceleration_inventory(
         shadow_model=shadow_model,
         prediction_plan=prediction_plan,
     )
+    floor_forensics = build_floor_forensics(
+        trust_evolution_snapshot=snapshots["trust-evolution-summaries"],
+        shadow_model=shadow_model,
+        prediction_plan=prediction_plan,
+        canary_proximity=canary,
+    )
+    materialization_audit = build_materialization_audit(
+        trust_evolution_snapshot=snapshots["trust-evolution-summaries"],
+        prediction_plan=prediction_plan,
+        floor_forensics=floor_forensics,
+    )
     quality = shadow_model.get("quality", {})
     confidence = shadow_model.get("confidence", {})
     return {
@@ -415,6 +606,8 @@ def build_acceleration_inventory(
             "growth_projection": shadow_model.get("comparison_growth_projection", {}),
         },
         "canary_proximity": canary,
+        "floor_forensics": floor_forensics,
+        "materialization_audit": materialization_audit,
         "collection_plan": {
             "primary_real_evidence_path": [
                 "observe service and channel quality outcomes through existing service/quality snapshots",

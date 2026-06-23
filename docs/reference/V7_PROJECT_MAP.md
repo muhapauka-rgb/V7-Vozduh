@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-23
-Last changed by: `AUTONOMY.EVIDENCE.REAL_SOURCE_CONFIDENCE_COLLECTION`
+Last changed by: `AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -21,7 +21,7 @@ POOL.1 classified the pool as stable with zero planner candidates. POOL.2 rechec
 
 Current roadmap position:
 
-`CANARY_BLOCKED_BY_MIXED_REAL_EVIDENCE`
+`CANARY_BLOCKED_BY_CONFIDENCE_MIXED`
 
 The blueprint view keeps channel recovery visible, but the project-level autonomy bottleneck is now broader and more precise. Branch 1B closed the blast recovery branch in production, AUTONOMY.TRUST.BUILDOUT.1 found that recovered blast evidence was not durable in the current consumed dry-run, and AUTONOMY.TRUST.DURABILITY.1 fixed the normal refresh code path so rotated evidence survives refresh/rebuild/reread:
 
@@ -119,6 +119,9 @@ contextual operator comparison
 | Autonomous Trust Understanding | 75% | 85% | +10% | `AUTONOMY.EVIDENCE.REAL_SOURCE_CONFIDENCE_COLLECTION` | Current evidence is classified as `MIXED`: prediction, blast, and rollback are consumed; service/candidate/operator evidence remain insufficient or low-confidence. |
 | Production Autonomy | 47% | 46% | -1% | `AUTONOMY.EVIDENCE.REAL_SOURCE_CONFIDENCE_COLLECTION` | The status is more precise and slightly stricter: canary remains blocked by floors despite better attribution; no apply, movement, daemon, formula, floor, or synthetic evidence change occurred. |
 | Canary Readiness | 55% | 35% | -20% | `AUTONOMY.EVIDENCE.REAL_SOURCE_CONFIDENCE_COLLECTION` | Reclassified from restore-lifecycle optimism to evidence-floor reality: confidence `39.042`, trust `54.282`, prediction `35.486`, operator earned `45.862`, all below `70.0`. |
+| Confidence Reality Audit | 0% | 100% | +100% | `AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT` | Production inventory now directly classifies confidence proportionality: prediction is undervalued as accuracy evidence, while service/suitability/blast/rollback/operator confidence values are fair for autonomy readiness. |
+| Canary Readiness | 35% | 35% | 0% | `AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT` | Canary remains NO-GO: confidence `38.849`, trust `54.137`, prediction `35.411`, operator earned `45.818`, all below `70.0`. |
+| Production Autonomy | 46% | 46% | 0% | `AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT` | Visibility improved but no runtime apply, user movement, daemon enablement, formula change, floor change, or synthetic evidence occurred. |
 
 ## Stable Areas
 
@@ -141,8 +144,22 @@ contextual operator comparison
 | P1 | `AUTONOMY.PREDICTION.EVIDENCE.3_REAL_VOLUME_AND_SOURCE_CONFIDENCE_COLLECTION` | Prediction lifecycle is durable with `21/21` matched rows and `0` pending rows, but prediction confidence remains `36.859` vs the `70.0` floor. |
 | P2 | `OPERATOR_COMPARISON.REVIEW.1_CONTEXTUAL_SUPERVISED_CONFIRMATION` | Operator comparison remains valid only when the operator has enough context; do not create blind training history. |
 | P1 | `AUTONOMY.EVIDENCE.SERVICE_CHANNEL_SOURCE_CONFIDENCE_COLLECTION` | Current source confidence verdict is `EVIDENCE_MIXED`; next phase should collect real service/channel probe cycles through existing owners, refresh snapshots, and reread trust inventory. |
+| P1 | `AUTONOMY.SOURCE_CONFIDENCE.REAL_COLLECTION.1` | Current confidence cannot grow materially without new real-world outcomes. Targets: prediction mean forecast confidence `0.7452`, service mean row confidence `0.7`, candidate coverage closure for `73` missing outcomes, and contextual operator comparisons only where the operator has context. |
 
 ## Changelog
+
+### 2026-06-23 — AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT
+
+- Implemented deployed read-only `confidence_reality_audit` in `admin_core/autonomy_trust_acceleration.py`.
+- Production verdict: `CONFIDENCE_MIXED`.
+- Prediction is undervalued as accuracy evidence: `21/21` matched, forecast accuracy `93.936`, but mean forecast confidence is only `0.377`, keeping prediction confidence at `35.411`.
+- Service confidence is fair for autonomy readiness: correctness `100.0`, but mean row confidence is only `0.389`.
+- Suitability confidence is fair for autonomy readiness: `83/156` outcomes, mean correctness `63.236`, mean candidate confidence `0.405`.
+- Blast and rollback are fair and already contribute `100.0`.
+- Operator comparison is fair as blocked/underfed: `0` real comparisons and `27` reviewable decisions.
+- Current floors: confidence `38.849`, trust `54.137`, prediction confidence `35.411`, operator earned confidence `45.818`.
+- Safe deploy id: `deploy-z8-14-Updatesystem-9d46824-20260623T223543`.
+- Final verdict: `CONFIDENCE_MIXED`.
 
 ### 2026-06-23 — AUTONOMY.EVIDENCE.REAL_SOURCE_CONFIDENCE_COLLECTION
 

@@ -62,6 +62,7 @@ Current production alignment:
 - AUTONOMY.CANARY.1B deployed the existing-owner normal observe snapshot lifecycle fix in `tools/v7-users-autoswitch`. Production normal observe now clears snapshot gate (`stop_required=false`, `stop_families=[]`) and exposes real current candidates (`candidate_moves_total=8`) before stopping at `dry_run_restore_barrier_clearance_generation_expired`. A fresh one-user canary packet preview for `10.0.0.2 awg3 -> wireguard-1779454504-c43409` validates as `PACKET_VALID`, but the current restore-barrier clearance is expired and tied to an obsolete 10-user `vless` plan. Verdict: `CANARY_BLOCKED_BY_RESTORE`.
 - AUTONOMY.CANARY.1C implemented read-only restore-barrier runtime action preview through the existing `admin_core/operator_execution.py` owner. Production now proves that the fresh one-user canary packet can obtain valid clearance preview (`ALLOW_RESTORE_BARRIER_CLEARANCE`, `RESTORE_BARRIER_CLEARANCE_PREVIEW_VALID`) and survive reread/explicit snapshot refresh without writing barrier state, applying autoswitch, or moving users. Canary is now blocked by confidence/trust/prediction floors: confidence `39.558`, trust `54.668`, prediction confidence `36.511`, and secondary operator earned confidence `45.837`. Verdict: `CANARY_BLOCKED_BY_CONFIDENCE`.
 - AUTONOMY.CANARY.1D added deployed read-only floor forensics/materialization audit to `admin_core/autonomy_trust_acceleration.py`. Production after deploy `2915a4b8107d1fbd416661e562511a6ca2a864fe` proves current floor values remain low: confidence `37.402`, trust `53.051`, prediction confidence `33.753`, operator earned confidence `45.908`. Prediction is fully matched (`21/21`, `0` pending) but under-confident (`mean_forecast_confidence=0.3561`). Service rows are matched but low-confidence (`service_confidence=36.079`); candidate suitability has real but incomplete/low-confidence outcomes (`83/156`, suitability `26.126`). No safe immediate evidence/materialization fix can raise floors without new real evidence.
+- AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT added deployed read-only confidence reality audit through the existing trust inventory owner at runtime commit `9d468247f8fbe8a1b472753e566a88fcaa79c147`. Production verdict is `CONFIDENCE_MIXED`: prediction is undervalued as a raw accuracy signal (`21/21` matched, accuracy `93.936`, mean forecast confidence `0.377`, prediction confidence `35.411`), while Service, Suitability, Blast, Rollback, and Operator confidence are fair for autonomy gating. Current floors remain below canary: confidence `38.849`, trust `54.137`, prediction confidence `35.411`, operator earned confidence `45.818`. No runtime apply, user movement, daemon enablement, synthetic evidence, threshold change, floor change, or formula change occurred.
 
 ## 2. Full System Inventory
 
@@ -87,12 +88,12 @@ Current production alignment:
 | Rollback | Rollback owner | `admin_core/operator_execution.py`, `tools/v7-users-autoswitch --rollback-packet --apply --verify` | Rollback packet/decision after failed or unsafe movement | PARTIAL_ACTIVE | 80% | Model exists; live rollback packet not certified for operator-free autonomy |
 | Feedback | Feedback owner | `admin_core/operator_execution_feedback.py`, execution/closure JSONL stores | Post-action outcome evidence | ACTIVE | 85% | Governed evidence consumed; active stores can be empty/rotated |
 | Learning | Intelligence/trust owners | `admin_core/intelligence_platform.py`, `admin_core/intelligence_workers.py`, `admin_core/intelligence_snapshots.py` | Convert outcomes into trust, prediction, suitability, blast confidence | ACTIVE_PARTIAL | 70% | Evidence consumed; quality insufficient |
-| Prediction | Prediction owner | `admin_core/intelligence_workers.py`, `admin_core/intelligence_platform.py`, `admin_core/autonomy_trust_acceleration.py` | Forecast -> actual confidence | ACTIVE_PARTIAL | 50% evidence quality / 80% evidence durability / 95% inventory visibility | 21/21 matched and 0 pending rows; governed prediction feedback survives lifecycle; floor forensics proves low source confidence keeps production result near 34 |
+| Prediction | Prediction owner | `admin_core/intelligence_workers.py`, `admin_core/intelligence_platform.py`, `admin_core/autonomy_trust_acceleration.py` | Forecast -> actual confidence | ACTIVE_PARTIAL | 55% evidence quality / 80% evidence durability / 100% inventory visibility | 21/21 matched and 0 pending rows; governed prediction feedback survives lifecycle; confidence reality audit classifies prediction as undervalued as an accuracy signal but still blocked for canary by low forecast source confidence |
 | Trust Evolution | Trust owner | `admin_core/intelligence_platform.py`, `admin_core/intelligence_workers.py`, `tools/v7-intelligence-snapshot-refresh` | Outcome confidence/trust aggregation | ACTIVE_PARTIAL | 55% proven recovered trust / durable refresh deployed | Branch 1B proved trust `54.684`; TRUST.DURABILITY.1 fixed, deployed, and refreshed the lifecycle that had dropped rotated evidence from current consumed reads |
 | Blast Radius | Blast evidence owner | `admin_core/intelligence_workers.py::build_blast_radius_evidence_rows`, `blast_radius_confidence_model`, `tools/v7-intelligence-snapshot-refresh` | Prove small governed operations are safe | OPERATIONALLY_CLOSED_DURABILITY_FIXED | 100% recovery proven / 100% durable production refresh | Branch 1B deployed and recovered 11 real blast rows; TRUST.DURABILITY.1 production refresh reads 11 rows and blast confidence `100.0` |
 | Shadow Autonomy | Shadow owner | `admin_core/shadow_autonomy.py`, `admin_core/autonomy_trust_acceleration.py`, `/api/actions/shadow-autonomy-compare` | Compare recommendations with operator decisions when context is sufficient | ACTIVE_SECONDARY_PATH_READY_UNDERFED | 70% path / 25% evidence | Review packet, eligibility, growth projection, rotated shadow JSONL reads, UI visibility, and read-only review batches exist; comparison count is still 0, and comparison is secondary |
 | Operator Comparison | Shadow comparison store | `admin_core/shadow_autonomy.py`, `admin_core/autonomy_trust_acceleration.py`, shadow JSONL family | Secondary supervised confirmation | ACTIVE_SECONDARY_PATH_READY_EMPTY | 70% path / 25% evidence | Current comparison evidence below floor; use only for contextual supervised confirmation, not blind bulk training |
-| Trust Evidence Inventory | Read-only acceleration owner | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory` | Summarize current evidence, growth opportunities, review batches, canary proximity, floor forensics, and materialization audit | ACTIVE_READ_ONLY | 95% | AUTONOMY.CANARY.1D deployed and verified floor forensics; creates no evidence and performs no runtime mutation |
+| Trust Evidence Inventory | Read-only acceleration owner | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory` | Summarize current evidence, growth opportunities, review batches, canary proximity, floor forensics, materialization audit, and confidence proportionality | ACTIVE_READ_ONLY | 100% | AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT deployed confidence reality audit; creates no evidence and performs no runtime mutation |
 | Trust Source Hierarchy | Read-only trust model semantics | `admin_core/autonomy_trust_acceleration.py`, `docs/decisions/ADR-OBSERVED-OUTCOME-PRIMARY-TRUST.md` | Primary vs secondary vs diagnostic evidence classification | ACTIVE | 90% | Observed outcome is primary; operator comparison is secondary supervised confirmation |
 | Event Detection | Event sources plus certified read-only binding | `tools/v7-telegram-sentinel`, service matrix, quality compact, route/runtime/capacity readers, `admin_core/events.py` | Detect and classify regression source facts | ACTIVE_READ_ONLY | 85% | Sources exist and classify into primary/secondary/diagnostic event classes |
 | Event Consumption | Certified read-only consumer | `admin_core/events.py`, `admin_core/operator_execution_pipeline.py::event_consumer_readonly_certification_model` | Bind regression event to planner/packet/restore/rollback/feedback/learning previews | ACTIVE_READ_ONLY | 80% | EVENT.CONSUMER.READONLY.2 certified; AUTONOMY.CANARY.1_READINESS_RECHECK confirms live apply still blocked |
@@ -300,8 +301,8 @@ rollback confidence
 | `systemd/drafts/v7-health.service` | PARTIAL_DRAFT | Draft loop every 30s | Health loop exists as draft/read model, not autonomy controller |
 | Rotated `.jsonl.1` feedback stores | ACTIVE_EVIDENCE_DURABLE_IN_PRODUCTION_REFRESH | REMATERIALIZATION.3/4, Branch 1A, Branch 1B, and TRUST.DURABILITY.1 | Real governed blast evidence is consumed as part of the existing JSONL family; production refresh now reads 11 blast rows and blast confidence `100.0` |
 | Shadow operator comparison store | ACTIVE_BUT_UNDERFED | `comparisons_total=0` in root confidence evidence | Mechanism exists, evidence volume missing |
-| Prediction actual matching | ACTIVE_BUT_LOW_CONFIDENCE_DURABILITY_IMPROVED | 21/21 matched, 0 pending rows, confidence around 37; governed prediction feedback lifecycle proof passes | Mechanism works and direct feedback survives refresh/write/reread; current gap is source confidence/future real evidence, not missing actuals |
-| Trust acceleration inventory | ACTIVE_READ_ONLY | `tools/v7-autonomy-trust-evidence-inventory` deployed in AUTONOMY.TRUST.ACCELERATION.1 | Exposes evidence inventory and review batches; intentionally does not create comparisons, actuals, trust, apply, or movements |
+| Prediction actual matching | ACTIVE_BUT_LOW_CONFIDENCE_UNDERVALUED_AS_ACCURACY_SIGNAL | 21/21 matched, 0 pending rows, accuracy `93.936`, mean forecast confidence `0.377`, prediction confidence `35.411` in AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT | Mechanism works and direct feedback survives refresh/write/reread; current gap is source confidence/future real evidence, not missing actuals |
+| Trust acceleration inventory | ACTIVE_READ_ONLY | `tools/v7-autonomy-trust-evidence-inventory` deployed in AUTONOMY.TRUST.ACCELERATION.1 and extended in AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT | Exposes evidence inventory, review batches, floor forensics, and confidence proportionality; intentionally does not create comparisons, actuals, trust, apply, or movements |
 | Operator comparison as primary trust | DEMOTED_TO_SECONDARY | AUTONOMY.TRUST.SOURCE.REALITY.1 / ADR-OBSERVED-OUTCOME-PRIMARY-TRUST | Operator comparison remains useful only as contextual supervised confirmation; observed outcome is primary |
 | Observed Capacity Shadow | APPROVED_BUT_NOT_IMPLEMENTED | ADR-011 | Concept accepted as shadow-only future model |
 | Route first-level signal | DEMOTED_SUPPORTING | ADR-007 | Route exists but should not be treated as first-level table truth unless real blocker appears |
@@ -380,13 +381,13 @@ Sources used:
 | Feedback | 85% | Feedback/closure stores and intelligence consumption exist |
 | Learning | 70% | Trust/prediction/blast/suitability models exist; evidence quality uneven |
 | Blast-radius evidence | 100% | Branch 1B production recovery: 11 rows, 100 confidence |
-| Prediction evidence | 50% | 21/21 matched; direct governed prediction feedback is now consumed durably, but low source confidence keeps production output around 37 |
+| Prediction evidence | 55% | 21/21 matched; direct governed prediction feedback is consumed durably; confidence reality audit marks prediction undervalued as an accuracy signal, but low forecast source confidence keeps production output around 35 |
 | Operator comparison | 25% | Existing endpoint/store; secondary supervised evidence only, not primary trust |
 | Trust source hierarchy | 90% | Observed outcome primary, operator comparison secondary, diagnostics separate |
-| Trust | 55% | Production dry-run after recovery reports trust `54.684`, below the `70.0` floor |
+| Trust | 55% | Latest production inventory reports trust `54.137`, below the `70.0` floor |
 | Event detection | 85% | Event sources exist and the read-only consumer is certified; live apply remains blocked |
 | Autonomous runtime | 45% | Architecture exists; daemon inactive; blast blocker closed; confidence/trust/prediction floors fail |
-| Truth/deploy alignment | 100% | Local/GitHub/runtime aligned at `c4adc537`; truth/convergence pass |
+| Truth/deploy alignment | 100% | Runtime code deployed at `9d468247`; truth/convergence pass with later docs-only reference updates |
 | Overall production autonomy | 45% | Correctly blocked; no operator-free apply should run now |
 
 ## 8. What Exists, What Is Partial, What Is Missing
@@ -434,23 +435,34 @@ Sources used:
 
 `AUTONOMY.EVIDENCE.REAL_SOURCE_CONFIDENCE_COLLECTION` deployed read-only source-confidence attribution in the existing trust inventory owner (`admin_core/autonomy_trust_acceleration.py`) at runtime commit `e932356dfa714a2455f5eb404db3bea8dc78a935`.
 
-Current production evidence verdict is `EVIDENCE_MIXED`:
+`AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT` then deployed read-only confidence proportionality audit in the same owner at runtime commit `9d468247f8fbe8a1b472753e566a88fcaa79c147`.
 
-- Prediction matches are complete and consumed: `21/21`, `0` pending, but prediction remains low because mean forecast confidence is `0.378`.
+Current production evidence verdict is `CONFIDENCE_MIXED`:
+
+- Prediction matches are complete and consumed: `21/21`, `0` pending. Prediction is undervalued as a raw accuracy signal because accuracy is `93.936` while mean forecast confidence is only `0.377`, producing prediction confidence `35.411`.
 - Blast-radius evidence is sufficient and contributes `100.0`.
 - Rollback evidence is sufficient and contributes `100.0`.
-- Service outcomes exist (`21`) but are low-confidence (`0.39` mean row confidence).
-- Candidate outcomes exist (`83`) but are incomplete against `156` candidates.
-- Operator comparisons remain `0` and are secondary evidence only.
+- Service outcomes exist (`21`) but are low-confidence (`0.389` mean row confidence); this is fair for autonomy gating until higher-confidence real service outcomes are collected.
+- Candidate outcomes exist (`83`) but are incomplete against `156` candidates; this is fair for autonomy gating until missing candidate outcomes and stronger correctness evidence are collected.
+- Operator comparisons remain `0` and are secondary evidence only; this is fair for autonomy gating.
 
 Current floors remain below canary target:
 
 | Floor | Current | Target |
 | --- | ---: | ---: |
-| Confidence | 39.042 | 70.000 |
-| Trust | 54.282 | 70.000 |
-| Prediction confidence | 35.486 | 70.000 |
-| Operator earned confidence | 45.862 | 70.000 |
+| Confidence | 38.849 | 70.000 |
+| Trust | 54.137 | 70.000 |
+| Prediction confidence | 35.411 | 70.000 |
+| Operator earned confidence | 45.818 | 70.000 |
+
+Required real evidence estimates from the deployed audit:
+
+| Source | Real evidence needed |
+| --- | --- |
+| Prediction | At current accuracy, target mean forecast confidence is `0.7452`; if future rows arrive at confidence `1.0`, about `31` additional matched rows are needed; at `0.9`, about `50`; at `0.85`, about `74` |
+| Service | Target mean row confidence is `0.7`; at confidence `1.0`, about `22` additional comparable rows are needed; at `0.85`, about `44` |
+| Suitability | `73` missing candidate outcomes to full coverage; current correctness cannot reach `70` with perfect confidence without better correctness evidence |
+| Operator comparison | First projection to floor requires about `10` contextual comparisons at `1.0` agreement |
 
 Fastest next evidence path is real service/channel probe cycles through existing service matrix and quality snapshot owners, followed by intelligence snapshot refresh and trust inventory reread. No synthetic evidence, formula change, floor change, runtime apply, user movement, or daemon enablement is allowed for this step.
 
@@ -462,7 +474,7 @@ Fastest next evidence path is real service/channel probe cycles through existing
 | Treating planner readiness as autonomy readiness | High | Planner can propose; autonomy also needs observed outcome confidence, trust, prediction, restore, and rollback evidence |
 | Reintroduced deploy drift after Branch 1B | Medium | Truth/convergence are currently aligned; future logic changes must keep runtime aligned |
 | Synthetic evidence temptation | High | Would inflate confidence without real operator/outcome proof |
-| Prediction confidence misunderstanding | Medium | AUTONOMY.CANARY.1D proves matches exist (`21/21`, `0` pending); low source confidence is the blocker |
+| Prediction confidence misunderstanding | Medium | AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT proves prediction is undervalued as a raw accuracy signal, but canary remains correctly blocked because source confidence and other floors are low |
 | Forcing blind operator comparisons | High | The operator cannot truthfully judge distributed user outcomes without enough context; this would manufacture weak evidence |
 | Operator comparison starvation | Low | The mechanism exists, but it is now secondary rather than the primary trust path |
 | Overbuilding new owners | Medium | V7 already has owners; new planner/governance/execution would fragment truth |
@@ -475,7 +487,7 @@ Fastest next evidence path is real service/channel probe cycles through existing
 1. Keep autoswitch daemon/timer inactive.
 2. Start observed service/channel outcome evidence collection through existing service/quality/prediction owners.
 3. Start prediction evidence collection with real forecast -> later actual pairs.
-4. Fix durable candidate visibility through the existing planner/snapshot refresh lifecycle owner, then re-run canary readiness.
+4. Collect suitability candidate outcomes through existing candidate/outcome owners.
 5. Re-run truth/convergence after each evidence or logic change.
 
 ### Near Term: 2-8 Weeks
@@ -518,19 +530,19 @@ Do not delete immediately. Classify first.
 
 ## 12. Top 10 Next Actions
 
-1. Collect observed service/channel outcome evidence through existing service, quality, prediction, feedback, and closure owners.
-2. Collect time-separated prediction forecast -> later actual evidence.
-3. Run `AUTONOMY.CANARY.1C_RESTORE_BARRIER_CLEARANCE_RECHECK` through existing packet/restore owners only.
-4. Recheck restore barrier creation for a single event-triggered packet in preview mode after normal observe no longer stops at snapshot mismatch.
-5. Recheck rollback packet readiness for the same single event-triggered packet.
-6. Build an autonomy readiness dashboard row from existing gate values only.
-7. Keep `v7-users-autoswitch.service/timer` inactive until confidence/trust/prediction floors pass.
-8. Use operator comparisons only when the operator has enough context; do not create blind training history.
+1. Run `AUTONOMY.SOURCE_CONFIDENCE.REAL_COLLECTION.1` through existing service, quality, prediction, feedback, and closure owners.
+2. Collect time-separated prediction forecast -> later actual evidence until forecast source confidence rises.
+3. Collect suitability candidate outcomes through existing candidate/outcome owners.
+4. Collect contextual operator comparisons only where the operator has enough context.
+5. Recheck restore barrier creation for a single event-triggered packet in preview mode after evidence floors improve.
+6. Recheck rollback packet readiness for the same single event-triggered packet.
+7. Build an autonomy readiness dashboard row from existing gate values only.
+8. Keep `v7-users-autoswitch.service/timer` inactive until confidence/trust/prediction floors pass.
 9. Preserve Branch 1B evidence and never replace it with synthetic records.
-10. Keep refresh durability protected by tests whenever evidence-store lifecycle changes.
+10. Keep refresh durability and confidence reality audit protected by tests whenever evidence-store lifecycle changes.
 
 ## 13. Final Blueprint Verdict
 
 `AUTONOMY_BLUEPRINT_CREATED_EVENT_DRIVEN_AUTONOMY_PARTIAL`
 
-V7 has the right architecture shape and most owners already exist. Branch 1B closed the blast recovery loop as a proven production recovery, AUTONOMY.TRUST.DURABILITY.1 fixed the normal durability gap, and AUTONOMY.TRUST.SOURCE.REALITY.1 corrected trust semantics: observed network outcomes are primary, while operator comparison is secondary supervised confirmation. The safe path is not to build another autonomy system or force blind operator reviews. The safe path is to collect real observed outcome and prediction evidence, certify event consumption read-only, and only then authorize a bounded canary apply.
+V7 has the right architecture shape and most owners already exist. Branch 1B closed the blast recovery loop as a proven production recovery, AUTONOMY.TRUST.DURABILITY.1 fixed the normal durability gap, AUTONOMY.TRUST.SOURCE.REALITY.1 corrected trust semantics, and AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT proved the current confidence picture is mixed rather than blindly low. Prediction is undervalued as an accuracy signal, but Service, Suitability, Blast, Rollback, and Operator confidence remain fair for autonomy gating. The safe path is not to build another autonomy system, force blind operator reviews, or change formulas. The safe path is to collect real observed service/channel, prediction, suitability, and contextual operator evidence, then authorize a bounded canary apply only after floors pass.

@@ -1,0 +1,157 @@
+#!/usr/bin/env python3
+"""Read-only V7 autonomy trust evidence inventory.
+
+This tool reads existing runtime state, snapshots, and JSONL evidence families.
+It does not write evidence, move users, enable daemons, or execute apply.
+"""
+
+from __future__ import annotations
+
+import argparse
+import gzip
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from admin_core import autonomy_trust_acceleration, operator_decision_surface, registry_readers  # noqa: E402
+
+
+DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
+DEFAULT_EVENT_DIR = Path("/opt/v7/events")
+
+
+def read_json(path: Path, default: Any) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return default
+
+
+def read_registry(path: Path) -> list[dict[str, str]]:
+    try:
+        return registry_readers.parse_registry_lines(path.read_text(encoding="utf-8").splitlines())
+    except OSError:
+        return []
+
+
+def jsonl_family_paths(path: Path) -> list[Path]:
+    candidates: list[tuple[int, Path]] = []
+    try:
+        matches = list(path.parent.glob(f"{path.name}.*"))
+    except OSError:
+        matches = []
+    for item in matches:
+        suffix = item.name.removeprefix(f"{path.name}.")
+        if suffix.isdigit():
+            candidates.append((int(suffix), item))
+    ordered = [item for _, item in sorted(candidates, key=lambda pair: pair[0], reverse=True)]
+    ordered.append(path)
+    seen: set[str] = set()
+    unique: list[Path] = []
+    for item in ordered:
+        key = str(item)
+        if key not in seen:
+            seen.add(key)
+            unique.append(item)
+    return unique
+
+
+def read_jsonl_family(path: Path, limit: int = 5000) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for item in jsonl_family_paths(path):
+        try:
+            if item.suffix == ".gz":
+                text = gzip.open(item, "rt", encoding="utf-8", errors="replace").read()
+            else:
+                text = item.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for line in text.splitlines():
+            if not line.strip():
+                continue
+            try:
+                parsed = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(parsed, dict):
+                rows.append(parsed)
+    return rows[-max(1, int(limit)):]
+
+
+def default_audit_dir(state_dir: Path) -> Path:
+    if len(state_dir.parents) > 1 and state_dir.name == "state" and state_dir.parent.name == "egress":
+        return state_dir.parents[1] / "audit"
+    return state_dir.parent / "audit"
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Read-only V7 autonomy trust evidence inventory.")
+    parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
+    parser.add_argument("--event-dir", default=str(DEFAULT_EVENT_DIR))
+    parser.add_argument("--snapshot-root", default="")
+    parser.add_argument("--audit-dir", default="")
+    parser.add_argument("--pretty", action="store_true")
+    return parser
+
+
+def main(argv=None) -> int:
+    args = build_parser().parse_args(argv)
+    state_dir = Path(args.state_dir)
+    event_dir = Path(args.event_dir)
+    snapshot_root = Path(args.snapshot_root) if args.snapshot_root else state_dir / "intelligence"
+    audit_dir = Path(args.audit_dir) if args.audit_dir else default_audit_dir(state_dir)
+    users = read_registry(state_dir / "users.registry")
+    egress = read_registry(state_dir / "egress.registry")
+    runtime_state = read_json(state_dir / "v7-state.json", {})
+    decision_surface = operator_decision_surface.build_operator_decision_surface(
+        snapshot_root=snapshot_root,
+        users=users,
+        egress=egress,
+        runtime_state=runtime_state,
+    )
+    audit_paths = [
+        event_dir / "switch-history.jsonl",
+        audit_dir / "audit.jsonl",
+        audit_dir / "operator-execution-audit.jsonl",
+        audit_dir / "operator-runtime-governance-actions.jsonl",
+    ]
+    feedback_paths = [
+        state_dir / "execution-events.jsonl",
+        state_dir / "runtime-trust.jsonl",
+        state_dir / "proposal-records.jsonl",
+        state_dir / "proposals.jsonl",
+        state_dir / "closure-records.jsonl",
+    ]
+    rollback_paths = [event_dir / "rollback-history.jsonl"]
+    decision_records = []
+    for path in audit_paths + feedback_paths + rollback_paths:
+        decision_records.extend(read_jsonl_family(path))
+    shadow_history = read_jsonl_family(state_dir / "shadow-autonomy-decisions.jsonl")
+    payload = autonomy_trust_acceleration.build_acceleration_inventory(
+        snapshot_root=snapshot_root,
+        decision_surface=decision_surface,
+        shadow_history=shadow_history,
+        decision_records=decision_records,
+    )
+    payload["inputs"] = {
+        "state_dir": str(state_dir),
+        "event_dir": str(event_dir),
+        "snapshot_root": str(snapshot_root),
+        "audit_paths": [str(path) for path in audit_paths],
+        "feedback_paths": [str(path) for path in feedback_paths],
+        "rollback_paths": [str(path) for path in rollback_paths],
+        "decision_records_read": len(decision_records),
+        "shadow_history_records_read": len(shadow_history),
+    }
+    print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

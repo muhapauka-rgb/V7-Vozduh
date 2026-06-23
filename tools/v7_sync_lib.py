@@ -83,6 +83,13 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "v7-autonomy-trust-evidence-inventory",
+        "local_path": "tools/v7-autonomy-trust-evidence-inventory",
+        "remote_path": "/usr/local/bin/v7-autonomy-trust-evidence-inventory",
+        "mode": "0755",
+        "service": None,
+    },
+    {
         "name": "v7-service-matrix-refresh-all",
         "local_path": "tools/v7-service-matrix-refresh-all",
         "remote_path": "/usr/local/bin/v7-service-matrix-refresh-all",
@@ -156,6 +163,13 @@ APPROVED_DEPLOY_FILES = [
         "name": "admin_core/intelligence_platform.py",
         "local_path": "admin_core/intelligence_platform.py",
         "remote_path": "/usr/local/bin/admin_core/intelligence_platform.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
+        "name": "admin_core/autonomy_trust_acceleration.py",
+        "local_path": "admin_core/autonomy_trust_acceleration.py",
+        "remote_path": "/usr/local/bin/admin_core/autonomy_trust_acceleration.py",
         "mode": "0644",
         "service": None,
     },

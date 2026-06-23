@@ -952,6 +952,8 @@ def build_real_outcome_growth_projection(
     suitability = floor_forensics.get("suitability_root_cause") if isinstance(floor_forensics.get("suitability_root_cause"), dict) else {}
     trust_rows = floor_forensics.get("raw_rows") if isinstance(floor_forensics.get("raw_rows"), dict) else {}
     suitability_rows = [row for row in trust_rows.get("suitability") or [] if isinstance(row, dict)]
+    required = confidence_reality_audit.get("required_real_evidence") if isinstance(confidence_reality_audit.get("required_real_evidence"), dict) else {}
+    required_suitability = required.get("suitability") if isinstance(required.get("suitability"), dict) else {}
     current_prediction_confidence = as_float(components.get("prediction_confidence"), 0.0)
     current_service_confidence = as_float(components.get("service_confidence"), 0.0)
     current_suitability_confidence = as_float(components.get("suitability_confidence"), 0.0)
@@ -966,6 +968,12 @@ def build_real_outcome_growth_projection(
     current_forecast_confidence = as_float(prediction.get("mean_forecast_confidence"), 0.0)
     current_service_rows = int(as_float(service.get("rows_seen"), 0.0))
     current_suitability_rows = len(suitability_rows) or int(as_float(suitability.get("candidates_seen"), 0.0))
+    known_candidate_count = int(as_float(required_suitability.get("current_candidates"), as_float(suitability.get("candidates_seen"), 0.0)))
+    known_candidate_outcomes = int(as_float(required_suitability.get("current_outcomes"), as_float(suitability.get("outcomes_seen"), 0.0)))
+    known_missing_candidate_outcomes = int(as_float(
+        required_suitability.get("missing_outcomes_to_full_coverage"),
+        max(0, known_candidate_count - known_candidate_outcomes),
+    ))
     projections = []
     for additional in increments:
         projected_accuracy = _project_append_mean(
@@ -994,6 +1002,13 @@ def build_real_outcome_growth_projection(
         )
         if not suitability_rows and current_suitability_rows:
             projected_suitability = current_suitability_confidence
+        visible_converted_missing = int(as_float(suitability_projection.get("converted_missing_outcomes"), 0.0))
+        visible_missing_remaining = int(as_float(suitability_projection.get("missing_outcomes_remaining"), 0.0))
+        known_converted_missing = min(max(0, additional), known_missing_candidate_outcomes)
+        known_missing_remaining = max(0, known_missing_candidate_outcomes - known_converted_missing)
+        if known_missing_candidate_outcomes <= 0:
+            known_converted_missing = visible_converted_missing
+            known_missing_remaining = visible_missing_remaining
         projected_confidence = round((decision_confidence + projected_service + projected_suitability) / 3.0, 3)
         projected_trust = round((decision_confidence + projected_service + projected_suitability + blast_confidence) / 4.0, 3)
         operator_floor_projection = next(
@@ -1017,8 +1032,15 @@ def build_real_outcome_growth_projection(
             "projected_operator_earned_confidence_if_contextual_comparisons": round(projected_operator, 3),
             "projected_service_confidence": projected_service,
             "projected_suitability_confidence": projected_suitability,
-            "converted_missing_candidate_outcomes": suitability_projection.get("converted_missing_outcomes", 0),
-            "missing_candidate_outcomes_remaining": suitability_projection.get("missing_outcomes_remaining", 0),
+            "projected_suitability_scope": "visible_rows_with_full_coverage_counter",
+            "visible_suitability_rows": len(suitability_rows),
+            "known_candidate_count": known_candidate_count,
+            "known_candidate_outcomes": known_candidate_outcomes,
+            "known_missing_candidate_outcomes": known_missing_candidate_outcomes,
+            "converted_missing_candidate_outcomes": known_converted_missing,
+            "missing_candidate_outcomes_remaining": known_missing_remaining,
+            "visible_converted_missing_candidate_outcomes": visible_converted_missing,
+            "visible_missing_candidate_outcomes_remaining": visible_missing_remaining,
             "canary_primary_floors_pass": (
                 projected_confidence >= AUTONOMY_CANARY_CONFIDENCE_FLOOR
                 and projected_trust >= AUTONOMY_CANARY_TRUST_FLOOR
@@ -1031,7 +1053,6 @@ def build_real_outcome_growth_projection(
                 and projected_operator >= shadow_autonomy.OBSERVATION_TARGETS["minimum_earned_confidence"]
             ),
         })
-    required = confidence_reality_audit.get("required_real_evidence") if isinstance(confidence_reality_audit.get("required_real_evidence"), dict) else {}
     return {
         "schema_version": "v7.autonomy-trust.real-outcome-growth-projection.v1",
         "projection_only": True,
@@ -1050,6 +1071,10 @@ def build_real_outcome_growth_projection(
             "operator_earned_confidence": round(as_float(operator_current.get("earned_confidence"), 0.0), 3),
             "service_confidence": round(current_service_confidence, 3),
             "suitability_confidence": round(current_suitability_confidence, 3),
+            "candidate_rows_exposed_to_projection": len(suitability_rows),
+            "known_candidate_count": known_candidate_count,
+            "known_candidate_outcomes": known_candidate_outcomes,
+            "known_missing_candidate_outcomes": known_missing_candidate_outcomes,
         },
         "projections": projections,
         "minimum_evidence_from_reality_audit": {

@@ -90,6 +90,38 @@ Stable conclusions:
 9. Implementation owner for read-only classification: `admin_core/autonomy_trust_acceleration.py`; CLI surface: `tools/v7-autonomy-trust-evidence-inventory`.
 10. Related ADR: `docs/decisions/ADR-OBSERVED-OUTCOME-PRIMARY-TRUST.md`.
 
+## AUTONOMY_EXPERIENCE_CONFIDENCE_MODEL
+
+V7 experience is the accumulated observed evidence that connects a real operational state or action to a later real outcome. It is not a single score and not operator opinion alone.
+
+Canonical flow:
+
+```text
+Reality
+  -> Observation
+  -> Evidence
+  -> Outcome
+  -> Suitability
+  -> Confidence
+  -> Trust
+  -> Planner
+  -> Action
+```
+
+Current production forensic truth from `AUTONOMY.SUITABILITY.KNOWLEDGE_AND_CONFIDENCE.FORENSICS`:
+
+1. Prediction experience is complete for the current window: `21/21` matched rows. It is undervalued as raw accuracy evidence, but intentionally limited by low forecast source confidence.
+2. Service/channel experience exists (`21` rows) and is fresh, but source row confidence remains low at about `0.39`, so it cannot certify autonomy by itself.
+3. Candidate/suitability experience is consumed but incomplete: `83` outcomes against `156` candidates, with `73` known missing candidate outcomes.
+4. Suitability is genuinely low, not merely hidden: current mean correctness is about `63`, mean candidate confidence about `0.407`, and suitability confidence about `27.7`.
+5. Blast and rollback experience are sufficient and contribute `100`; they are not current canary blockers.
+6. Operator comparison evidence is secondary supervised confirmation and remains underfed (`0` comparisons in this forensic pass).
+7. A read-only projection visibility issue was fixed: `real_outcome_growth_projection` now reports full candidate coverage counters separately from bounded visible suitability rows, so the projection must not claim zero missing candidate outcomes merely because the exposed sample was exhausted.
+8. The final forensic verdict is `EXPERIENCE_MIXED`: the experience pipeline exists, but value is lost through incomplete candidate outcomes, low source confidence, and previously misleading projection visibility.
+
+Related report: `docs/reports/AUTONOMY_SUITABILITY_KNOWLEDGE_AND_CONFIDENCE_FORENSICS_REPORT.md`.
+Implementation owner: `admin_core/autonomy_trust_acceleration.py`.
+
 ## POST_PRODUCTION_SCALE_PHASE
 
 Phase name: `AUTONOMY.EVIDENCE.INDEX_AND_FRESHNESS_MODEL`.

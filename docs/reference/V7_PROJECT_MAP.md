@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-23
-Last changed by: `DOCUMENT_FUTURE_EVIDENCE_INDEX_AND_FRESHNESS_MODEL`
+Last changed by: `AUTONOMY.SUITABILITY.KNOWLEDGE_AND_CONFIDENCE.FORENSICS`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -21,7 +21,13 @@ POOL.1 classified the pool as stable with zero planner candidates. POOL.2 rechec
 
 Current roadmap position:
 
-`CANARY_BLOCKED_BY_REAL_OUTCOME_MIXED`
+`CANARY_BLOCKED_BY_EXPERIENCE_MIXED`
+
+Current experience/trust forensic verdict:
+
+`EXPERIENCE_MIXED`
+
+The experience pipeline exists and consumes real evidence. Prediction has `21/21` matches, blast and rollback are sufficient, service rows are fresh but low-confidence, and suitability is genuinely incomplete/low with `83/156` candidate outcomes and `73` known missing outcomes. A read-only projection visibility issue was fixed so full candidate coverage counters remain visible even when raw suitability rows are bounded.
 
 Deferred post-production scale phase:
 
@@ -69,6 +75,8 @@ contextual operator comparison
 | Blast Recovery | 80% | 90% | +10% | `AUTONOMY.FINAL.BRANCH_1` | Blast branch execution planning is closed with a concrete NO-GO reason for immediate recovery and an exact existing-owner visibility step. |
 | Autonomous Trust | 55% | 55% | 0% | `AUTONOMY.FINAL.BRANCH_1` | No production snapshot was written; expected visible recovery still raises trust to `54.684`, below floor. |
 | Production Autonomy | 40% | 40% | 0% | `AUTONOMY.FINAL.BRANCH_1` | No autonomy gate passes after blast recovery; confidence, trust, and prediction confidence remain below `70.0`. |
+| Experience/Confidence Forensics | 0% | 100% | +100% | `AUTONOMY.SUITABILITY.KNOWLEDGE_AND_CONFIDENCE.FORENSICS` | Mapped reality -> evidence -> outcome -> suitability -> confidence -> trust -> planner -> action; confirmed verdict `EXPERIENCE_MIXED`; fixed read-only projection visibility so known missing candidate outcomes are not hidden by bounded raw rows. |
+| Production Autonomy | 43% | 43% | 0% | `AUTONOMY.SUITABILITY.KNOWLEDGE_AND_CONFIDENCE.FORENSICS` | Canary remains blocked: confidence/trust/prediction floors fail, suitability is genuinely low (`83/156`, `73` missing), and no apply/user movement was authorized. |
 | Blast Branch | 90% | 100% | +10% | `AUTONOMY.FINAL.BRANCH_1A` | Existing-owner visibility fix dry-run passed with 11 real production blast rows and blast confidence `100.0`; branch is closed. |
 | Blast Recovery | 90% | 95% | +5% | `AUTONOMY.FINAL.BRANCH_1A` | The evidence path is fixed and proven in dry-run; deploy plus approved snapshot-only recovery write remain. |
 | Autonomous Trust | 55% | 59% | +4% | `AUTONOMY.FINAL.BRANCH_1A` | Trust-evolution dry-run overall confidence is `59.358`; trust still remains below the autonomy floor. |

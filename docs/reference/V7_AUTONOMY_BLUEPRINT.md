@@ -452,6 +452,8 @@ Current production evidence verdict is `REAL_OUTCOME_MIXED`:
 - Candidate outcomes exist (`83`) but are incomplete against `156` candidates; projection shows this is now the practical blocker after prediction improves.
 - Operator comparisons remain `0` and are secondary evidence only; this is fair for autonomy gating.
 
+`AUTONOMY.SUITABILITY.KNOWLEDGE_AND_CONFIDENCE.FORENSICS` refined this to `EXPERIENCE_MIXED`. V7's experience chain exists and is consumed by the current owners: reality -> observation -> evidence -> outcome -> suitability -> confidence -> trust -> planner -> action. The forensic pass found one existing-owner visibility issue in `real_outcome_growth_projection`: bounded raw suitability rows exposed only 50 rows and 8 visible missing outcomes, while the full counters knew about `156` candidates, `83` outcomes, and `73` missing outcomes. The read-only inventory owner now reports full candidate coverage counters separately from bounded visible rows. No confidence formula, floor, planner, governance, execution path, truth source, synthetic evidence, runtime apply, or user movement changed.
+
 Current floors remain below canary target:
 
 | Floor | Current | Target |

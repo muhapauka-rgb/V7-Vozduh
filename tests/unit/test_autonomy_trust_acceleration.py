@@ -253,10 +253,70 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertGreater(first_projection["projected_service_confidence"], projection["current"]["service_confidence"])
         self.assertGreater(first_projection["projected_prediction_confidence"], projection["current"]["prediction_confidence"])
         self.assertGreaterEqual(first_projection["converted_missing_candidate_outcomes"], 1)
+        self.assertEqual(first_projection["projected_suitability_scope"], "visible_rows_with_full_coverage_counter")
+        self.assertEqual(first_projection["known_candidate_count"], 2)
+        self.assertEqual(first_projection["known_candidate_outcomes"], 1)
+        self.assertEqual(first_projection["known_missing_candidate_outcomes"], 1)
+        self.assertEqual(first_projection["visible_suitability_rows"], 2)
         self.assertFalse(projection["canary_can_start_now"])
         self.assertFalse(second["runtime_mutation_performed"])
         self.assertFalse(second["apply_executed"])
         self.assertEqual(second["users_moved"], 0)
+
+    def test_growth_projection_keeps_full_missing_candidate_counter_when_rows_are_truncated(self):
+        floor_forensics = {
+            "component_values": {
+                "decision_confidence": 50,
+                "service_confidence": 40,
+                "suitability_confidence": 28,
+                "prediction_confidence": 35,
+                "blast_radius_confidence": 100,
+            },
+            "floor_values": {
+                "confidence": {"current": 39},
+                "trust": {"current": 54},
+            },
+            "prediction_root_cause": {
+                "forecasts_seen": 21,
+                "matched_rows": 21,
+                "forecast_accuracy": 93,
+                "mean_forecast_confidence": 0.38,
+            },
+            "service_root_cause": {"rows_seen": 21},
+            "suitability_root_cause": {
+                "candidates_seen": 156,
+                "outcomes_seen": 83,
+            },
+            "raw_rows": {
+                "suitability": [
+                    {"key": "10.7.0.2:awg0", "outcome_seen": False, "correctness": 40, "confidence": 0.25},
+                ],
+            },
+        }
+        projection = accel.build_real_outcome_growth_projection(
+            floor_forensics=floor_forensics,
+            confidence_reality_audit={
+                "required_real_evidence": {
+                    "suitability": {
+                        "current_candidates": 156,
+                        "current_outcomes": 83,
+                        "missing_outcomes_to_full_coverage": 73,
+                    }
+                }
+            },
+            operator_comparisons={"current": {"earned_confidence": 45}, "growth_projection": {"rows": []}},
+            increments=[10],
+        )
+
+        row = projection["projections"][0]
+        self.assertEqual(row["visible_suitability_rows"], 1)
+        self.assertEqual(row["visible_converted_missing_candidate_outcomes"], 1)
+        self.assertEqual(row["visible_missing_candidate_outcomes_remaining"], 0)
+        self.assertEqual(row["known_candidate_count"], 156)
+        self.assertEqual(row["known_candidate_outcomes"], 83)
+        self.assertEqual(row["known_missing_candidate_outcomes"], 73)
+        self.assertEqual(row["converted_missing_candidate_outcomes"], 10)
+        self.assertEqual(row["missing_candidate_outcomes_remaining"], 63)
 
 
 if __name__ == "__main__":

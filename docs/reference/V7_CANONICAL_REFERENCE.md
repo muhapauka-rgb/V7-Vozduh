@@ -198,6 +198,13 @@ Stable conclusions:
 11. Production inventory on 2026-06-23 found 27 users, 27 reviewable current shadow decisions, 0 comparison records, agreement rate `0.0`, earned confidence `45.802`, and user distribution `awg3=8`, `wireguard-1779454504-c43409=8`, `vless=11`.
 12. Real operator comparison evidence must still be collected through the existing UI/API. The path is ready; the evidence volume is not.
 13. Implementation commit: `f86148dc70a3a4d039dc41b555060ae0d2d4f13e`; deploy id `deploy-z8-14-Updatesystem-f86148d-20260623T094821`.
+14. AUTONOMY.TRUST.ACCELERATION.1 added a read-only evidence inventory owner: `admin_core/autonomy_trust_acceleration.py` and `tools/v7-autonomy-trust-evidence-inventory`.
+15. The trust acceleration inventory is a derived read model only. It may expose prediction collection plans, operator review batches, growth projections, and canary proximity, but it must not create synthetic comparisons, synthetic actuals, runtime apply, user movement, daemon enablement, new storage, new planner, new governance, new execution, new confidence model, or new truth source.
+16. Production trust acceleration inventory after final deploy and snapshot refresh found 27 reviewable decisions, 0 reviewed decisions, 0 comparisons, agreement rate `0.0`, and earned confidence `45.802`.
+17. The inventory exposes review batches for 5, 10, and 15 current decisions. A 5-comparison batch is insufficient for the `70.0` earned-confidence floor even at 100% agreement (`59.352`). A 10-comparison batch reaches the floor only at 100% agreement (`72.901`). A 15-comparison batch reaches the floor at 90% (`78.951`) or 80% (`71.451`) agreement, but not at 75% (`67.701`).
+18. The next real operator comparison phase should collect 10 real operator judgements first, then continue to 15 if agreement is below 100%. All comparison evidence must still pass through `/api/actions/shadow-autonomy-compare`.
+19. AUTONOMY.TRUST.ACCELERATION.1 final verdict is `AUTONOMY_TRUST_ACCELERATION_PARTIAL`.
+20. Implementation commits: `fd868640185461abb42f0e010e3beada9e6d9fc2`, `43effb2a7a58a545fd90d48db53bbe1c0968a75b`; final deploy id `deploy-z8-14-Updatesystem-43effb2-20260623T101511`.
 
 ## AUTONOMY_PREDICTION_EVIDENCE_RULES
 
@@ -219,6 +226,10 @@ Stable conclusions:
 16. Production baseline before the fix was still `forecast_rows=21`, `matched_count=21`, `prediction_actuals_count=21`, and `prediction_confidence=36.992`; after safe deploy and snapshot refresh it remained `forecast_rows=21`, `matched_count=21`, `prediction_actuals_count=21`, and `prediction_confidence=36.651`. Current production confidence did not rise because no additional matching direct prediction feedback was present in the refreshed production evidence set.
 17. The improvement is evidence durability/consumption, not a formula or floor change. Next safe phase: continue real outcome/source confidence and operator comparison evidence collection; do not enable operator-free autonomy until confidence/trust/prediction/comparison/event-consumer gates pass.
 18. Implementation commit: `87ce1986a5b71751ed20fb82dd4b799f505f3928`.
+19. AUTONOMY.TRUST.ACCELERATION.1 production inventory after final deploy and snapshot refresh found `forecasts_seen=21`, `forecast_actuals_seen=21`, `service_actuals_seen=21`, `matched_rows=21`, `pending_rows=0`, forecast accuracy `97.194`, and prediction confidence `36.861`.
+20. Current prediction acceleration truth: there are no pending forecast rows to match, so adding "missing actuals" cannot raise the current snapshot. The blocker is source/forecast confidence and future real forecast cycles, not missing current matches.
+21. The read-only acceleration inventory reports `best_possible_gain_if_5_pending_match=0.0` and `best_possible_gain_if_all_pending_match=0.0` because pending rows are currently zero.
+22. Next prediction evidence phase must use existing owners only: fresh service/quality/trust inputs, future forecast-to-later-actual cycles, governed prediction feedback, and snapshot refresh. Formula/floor changes and synthetic actuals remain forbidden.
 
 ## AUTONOMY_BLAST_RADIUS_MATERIALIZATION_RULES
 
@@ -299,6 +310,8 @@ Stable conclusions:
 12. Remaining autonomy blockers still stand: trust floor, prediction confidence, operator comparison evidence, live event consumer certification, and disabled daemon/autoswitch runtime.
 13. AUTONOMY.TRUST.DURABILITY.1 final verdict is `TRUST_DURABILITY_FIXED`.
 14. Last verified commit: `29b980c00a11097332eaad53a2c1fe2f77d2389d`.
+15. AUTONOMY.TRUST.ACCELERATION.1 final production canary proximity after refresh: confidence `39.606`, trust `54.704`, prediction confidence `36.861`, operator earned confidence `45.802`; all remain below the `70.0` floor.
+16. `AUTONOMY.CANARY.1` is not ready. Missing floor set is `confidence`, `trust`, `prediction_confidence`, and `operator_earned_confidence`.
 
 ## 1. Channels
 

@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-23
-Last changed by: `OPERATOR.COMPARISON.COLLECTION.1`
+Last changed by: `AUTONOMY.TRUST.ACCELERATION.1`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -29,6 +29,7 @@ The blueprint view keeps channel recovery visible, but the project-level autonom
 Blast recovery operationally closed
   -> trust durability fixed, deployed, and refreshed
   -> operator comparison collection
+  -> trust acceleration inventory
   -> prediction evidence collection
   -> read-only event consumer certification
   -> bounded event-driven autonomy canary
@@ -82,6 +83,12 @@ Blast recovery operationally closed
 | Operator Comparison Evidence | 25% | 25% | 0% | `OPERATOR.COMPARISON.COLLECTION.1` | Production still has `comparisons_total=0`; real operator decisions must be collected through `/api/actions/shadow-autonomy-compare`. |
 | Autonomous Trust | 55% | 55% | 0% | `OPERATOR.COMPARISON.COLLECTION.1` | No synthetic agreement or trust lift was created; earned confidence remains about `45.802`. |
 | Production Autonomy | 43% | 43% | 0% | `OPERATOR.COMPARISON.COLLECTION.1` | No apply gate changed; production autonomy remains blocked by confidence/trust/prediction/comparison/event-consumer gates. |
+| Trust Evidence Inventory | 0% | 85% | +85% | `AUTONOMY.TRUST.ACCELERATION.1` | Read-only inventory and production CLI now expose prediction status, operator review batches, growth projection, and canary proximity without creating evidence or moving users. |
+| Operator Comparison Path | 55% | 70% | +15% | `AUTONOMY.TRUST.ACCELERATION.1` | The path now surfaces 5/10/15 real review batches and exact earned-confidence projections; actual comparison evidence remains zero. |
+| Operator Comparison Evidence | 25% | 25% | 0% | `AUTONOMY.TRUST.ACCELERATION.1` | Production still has 27 reviewable decisions, 0 reviewed decisions, 0 comparisons, and earned confidence `45.802`; no synthetic agreement was created. |
+| Prediction Evidence Quality | 50% | 50% | 0% | `AUTONOMY.TRUST.ACCELERATION.1` | Production has `21/21` matched forecasts and `0` pending rows, so confidence remains `36.861`; blocker is source/future evidence quality, not missing current actuals. |
+| Canary Readiness | 0% | 35% | +35% | `AUTONOMY.TRUST.ACCELERATION.1` | Canary proximity is now measured: confidence `39.606`, trust `54.704`, prediction `36.861`, operator earned confidence `45.802`; all remain below the `70.0` floor. |
+| Production Autonomy | 43% | 43% | 0% | `AUTONOMY.TRUST.ACCELERATION.1` | Tooling improved, but no floor passed and no runtime apply/daemon/user movement occurred. |
 
 ## Stable Areas
 
@@ -100,10 +107,29 @@ Blast recovery operationally closed
 | P2 | Decide whether `awg3` recovers naturally or needs a governed failover review | POOL.2 found 8 failover candidates but did not execute movement by design. |
 | P3 | Continue pool observation only after recovery/failover pressure is resolved | Current state is not clean equilibrium because planner disagrees with keeping `awg3` users there. |
 | P1 | `AUTONOMY.PREDICTION.EVIDENCE.3_REAL_VOLUME_AND_SOURCE_CONFIDENCE_COLLECTION` | Prediction evidence lifecycle is improved; source confidence/evidence volume still need real production evidence to reach the `70.0` floor. |
-| P1 | `OPERATOR_COMPARISON_EVIDENCE_COLLECTION` | Shadow comparison path exists, but current comparison evidence remains below floor. |
+| P1 | `OPERATOR_COMPARISON.REVIEW.1_REAL_OPERATOR_COMPARISON_BATCH` | Review batches are now explicit. Collect 10 real operator comparisons first; continue to 15 if agreement is below 100%. |
 | P1 | `EVENT_CONSUMER_READ_ONLY_CERTIFICATION` | Event sources exist, but production event-driven consumer is not certified. |
 
 ## Changelog
+
+### 2026-06-23 — AUTONOMY.TRUST.ACCELERATION.1 Read-Only Trust Evidence Inventory
+
+- Created `docs/reports/AUTONOMY_TRUST_ACCELERATION_1_REPORT.md` and evidence under `docs/reports/AUTONOMY_TRUST_ACCELERATION_1_EVIDENCE/`.
+- Added `admin_core/autonomy_trust_acceleration.py` and `tools/v7-autonomy-trust-evidence-inventory`.
+- Deployed the read-only inventory owner with safe deploy id `deploy-z8-14-Updatesystem-43effb2-20260623T101511`.
+- Production after refresh: 21 forecasts, 21 actuals, 21 matched rows, 0 pending rows, forecast accuracy `97.194`, prediction confidence `36.861`.
+- Operator comparisons: 27 reviewable decisions, 0 reviewed decisions, 0 comparisons, earned confidence `45.802`.
+- Review projections: 10 comparisons at 100% agreement reaches `72.901`; 15 comparisons at 80% reaches `71.451`.
+- Canary proximity: confidence `39.606`, trust `54.704`, prediction `36.861`, operator earned confidence `45.802`; canary remains blocked.
+- No runtime apply, user movement, daemon enablement, planner/governance/execution change, threshold/floor/formula change, synthetic evidence, or new truth source occurred.
+- Updated changed-area percentages:
+  - Trust Evidence Inventory: `0% -> 85%`
+  - Operator Comparison Path: `55% -> 70%`
+  - Operator Comparison Evidence: `25% -> 25%`
+  - Prediction Evidence Quality: `50% -> 50%`
+  - Canary Readiness: `0% -> 35%`
+  - Production Autonomy: `43% -> 43%`
+- Recorded next phase: `OPERATOR_COMPARISON.REVIEW.1_REAL_OPERATOR_COMPARISON_BATCH`.
 
 ### 2026-06-23 — OPERATOR.COMPARISON.COLLECTION.1 Durable Operator Comparison Path
 

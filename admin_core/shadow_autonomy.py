@@ -370,6 +370,104 @@ def operator_behavior(quality: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def comparison_eligibility(decision: dict[str, Any], latest_comparison: dict[str, Any] | None = None) -> dict[str, Any]:
+    decision_id = str(decision.get("decision_id") or "")
+    already_reviewed = bool(latest_comparison)
+    blockers = []
+    if not decision_id:
+        blockers.append("decision_id_missing")
+    return {
+        "schema_version": "v7.shadow-comparison-eligibility.v1",
+        "decision_id": decision_id,
+        "eligible": bool(decision_id) and not already_reviewed,
+        "already_reviewed": already_reviewed,
+        "latest_comparison_id": str((latest_comparison or {}).get("comparison_id") or ""),
+        "operator_decision": str((latest_comparison or {}).get("operator_decision") or ""),
+        "blockers": blockers,
+        "requires_real_operator_judgement": True,
+        "synthetic_agreement_allowed": False,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+        "autonomy_enabled": False,
+    }
+
+
+def build_operator_review_packet(decisions: list[dict[str, Any]], history: list[dict[str, Any]]) -> dict[str, Any]:
+    comparisons = _latest_comparisons(history)
+    items: list[dict[str, Any]] = []
+    for decision in decisions:
+        if not isinstance(decision, dict):
+            continue
+        decision_id = str(decision.get("decision_id") or "")
+        latest = comparisons.get(decision_id)
+        current = str(decision.get("current_channel") or "")
+        target = str(decision.get("recommended_target") or "")
+        action = str(decision.get("recommended_action") or "")
+        items.append({
+            "decision_id": decision_id,
+            "user": str(decision.get("user") or ""),
+            "source_channel": current,
+            "target_channel": target,
+            "recommendation": action,
+            "operator_summary": f"{current} -> {target}" if action == "MOVE_USER" else "keep current channel",
+            "confidence": as_float(decision.get("confidence"), 0.0),
+            "trust": as_float(decision.get("trust"), 0.0),
+            "risk": as_float(decision.get("risk"), 0.0),
+            "blockers": list(decision.get("blockers") or []),
+            "reason": str(decision.get("reason") or ""),
+            "expected_outcome": str(decision.get("expected_outcome") or ""),
+            "comparison_eligibility": comparison_eligibility(decision, latest),
+        })
+    reviewable = [row for row in items if row.get("comparison_eligibility", {}).get("eligible")]
+    reviewed = [row for row in items if row.get("comparison_eligibility", {}).get("already_reviewed")]
+    return {
+        "schema_version": "v7.shadow-operator-review-packet.v1",
+        "mode": "operator_review_only",
+        "items": items,
+        "reviewable_decisions": len(reviewable),
+        "reviewed_decisions": len(reviewed),
+        "comparison_categories": sorted(COMPARISON_CATEGORIES),
+        "allowed_operator_decisions": ["agree", "disagree", "override"],
+        "requires_real_operator_judgement": True,
+        "synthetic_agreement_allowed": False,
+        "runtime_mutation_performed": False,
+        "execution_allowed_now": False,
+        "users_moved": 0,
+        "apply_executed": False,
+        "autonomy_enabled": False,
+    }
+
+
+def comparison_growth_projection(base_decision_confidence: float, *, counts: list[int] | None = None, agreement_rates: list[float] | None = None) -> dict[str, Any]:
+    counts = counts or [5, 10, 15, 20]
+    agreement_rates = agreement_rates or [1.0, 0.9, 0.8, 0.75]
+    rows: list[dict[str, Any]] = []
+    for count in counts:
+        evidence_weight = min(1.0, max(0.0, float(count)) / 20.0)
+        for agreement_rate in agreement_rates:
+            agreement_percent = clip(float(agreement_rate) * 100.0)
+            earned = round((base_decision_confidence * (1.0 - evidence_weight)) + (agreement_percent * evidence_weight), 3)
+            rows.append({
+                "comparisons": int(count),
+                "agreement_rate": round(float(agreement_rate), 4),
+                "earned_confidence": clip(earned),
+                "minimum_comparisons_met": int(count) >= OBSERVATION_TARGETS["minimum_comparisons"],
+                "earned_confidence_floor_met": earned >= OBSERVATION_TARGETS["minimum_earned_confidence"],
+                "canary_readiness_impact": "operator_comparison_floor_met" if earned >= OBSERVATION_TARGETS["minimum_earned_confidence"] and int(count) >= OBSERVATION_TARGETS["minimum_comparisons"] else "operator_comparison_evidence_still_needed",
+            })
+    return {
+        "schema_version": "v7.shadow-comparison-growth-projection.v1",
+        "formula": "earned = base_decision_confidence*(1-min(comparisons/20,1)) + agreement_percent*min(comparisons/20,1)",
+        "base_decision_confidence": round(base_decision_confidence, 3),
+        "minimum_comparisons": OBSERVATION_TARGETS["minimum_comparisons"],
+        "minimum_earned_confidence": OBSERVATION_TARGETS["minimum_earned_confidence"],
+        "rows": rows,
+        "synthetic_agreement_created": False,
+        "projection_only": True,
+    }
+
+
 def autonomy_evidence_model(quality: dict[str, Any], confidence: dict[str, Any], observation: dict[str, Any]) -> dict[str, Any]:
     agreement_ok = as_float(quality.get("agreement_rate"), 0.0) >= OBSERVATION_TARGETS["minimum_agreement_rate"]
     override_ok = as_float(quality.get("override_rate"), 0.0) <= OBSERVATION_TARGETS["maximum_override_rate"]
@@ -448,6 +546,8 @@ def build_shadow_autonomy_model(decision_surface: dict[str, Any], history: list[
     evolution = confidence_evolution(decisions, history, confidence)
     explainability = explainability_review(decisions, history)
     behavior = operator_behavior(quality)
+    review_packet = build_operator_review_packet(decisions, history)
+    growth_projection = comparison_growth_projection(as_float(quality.get("average_decision_confidence"), 0.0))
     evidence = autonomy_evidence_model(quality, confidence, observation)
     readiness = autonomy_readiness_review(evidence)
     gaps = autonomy_gap_analysis(readiness, evidence)
@@ -466,6 +566,8 @@ def build_shadow_autonomy_model(decision_surface: dict[str, Any], history: list[
         "confidence_evolution": evolution,
         "explainability_review": explainability,
         "operator_behavior": behavior,
+        "operator_review_packet": review_packet,
+        "comparison_growth_projection": growth_projection,
         "autonomy_evidence": evidence,
         "autonomy_readiness": readiness,
         "gap_analysis": gaps,
@@ -493,6 +595,7 @@ def build_shadow_autonomy_model(decision_surface: dict[str, Any], history: list[
             "shadow_decision_model_defined": True,
             "shadow_decision_log_implemented": True,
             "operator_comparison_model_defined": True,
+            "operator_review_packet_defined": True,
             "decision_quality_model_defined": True,
             "confidence_model_defined": True,
             "observation_window_defined": True,

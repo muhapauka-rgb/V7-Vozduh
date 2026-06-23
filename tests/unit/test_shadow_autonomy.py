@@ -1,4 +1,7 @@
 import unittest
+import json
+import tempfile
+from pathlib import Path
 
 from admin_core import shadow_autonomy
 
@@ -159,6 +162,63 @@ class ShadowAutonomyTest(unittest.TestCase):
         self.assertEqual(model["disagreement_analysis"]["primary_disagreement_reason"], "capacity")
         self.assertIn(model["confidence_evolution"]["trend"], {"STABLE", "GROWING", "DECLINING"})
         self.assertIn("rollback", model["gap_analysis"]["gap_classes"])
+
+    def test_operator_review_packet_marks_real_review_eligibility(self):
+        model = shadow_autonomy.build_shadow_autonomy_model(self.decision_surface(), now="2026-06-08T10:00:00+00:00")
+        packet = model["operator_review_packet"]
+
+        self.assertEqual(packet["reviewable_decisions"], 2)
+        self.assertFalse(packet["synthetic_agreement_allowed"])
+        self.assertTrue(packet["requires_real_operator_judgement"])
+        self.assertFalse(packet["runtime_mutation_performed"])
+        self.assertFalse(packet["apply_executed"])
+        self.assertEqual(packet["items"][0]["source_channel"], "awg0")
+        self.assertEqual(packet["items"][0]["target_channel"], "vless")
+        self.assertTrue(packet["items"][0]["comparison_eligibility"]["eligible"])
+
+    def test_review_packet_and_comparison_survive_rebuild_and_reread(self):
+        base = shadow_autonomy.build_shadow_autonomy_model(self.decision_surface(), now="2026-06-08T10:00:00+00:00")
+        decision = base["current_decisions"][0]
+        comparison = shadow_autonomy.operator_comparison_record(
+            decision,
+            operator_decision="agree",
+            category="trust",
+            reason="real operator reviewed",
+            now="2026-06-08T10:01:00+00:00",
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / "shadow-autonomy-decisions.jsonl"
+            log.write_text(
+                "\n".join(json.dumps(row, sort_keys=True) for row in [decision, comparison]) + "\n",
+                encoding="utf-8",
+            )
+            reread = [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+        rebuilt = shadow_autonomy.build_shadow_autonomy_model(
+            self.decision_surface(),
+            history=reread,
+            now="2026-06-08T10:02:00+00:00",
+        )
+
+        self.assertEqual(rebuilt["quality"]["comparisons_total"], 1)
+        self.assertEqual(rebuilt["quality"]["agreement_rate"], 1.0)
+        self.assertGreater(rebuilt["confidence"]["earned_confidence"], 0)
+        self.assertEqual(rebuilt["operator_review_packet"]["reviewed_decisions"], 1)
+        self.assertEqual(rebuilt["operator_review_packet"]["reviewable_decisions"], 1)
+        self.assertFalse(rebuilt["operator_review_packet"]["synthetic_agreement_allowed"])
+
+    def test_growth_projection_uses_existing_confidence_formula(self):
+        projection = shadow_autonomy.comparison_growth_projection(45.828)
+        by_key = {
+            (row["comparisons"], row["agreement_rate"]): row["earned_confidence"]
+            for row in projection["rows"]
+        }
+
+        self.assertFalse(projection["synthetic_agreement_created"])
+        self.assertEqual(by_key[(5, 1.0)], 59.371)
+        self.assertEqual(by_key[(10, 0.9)], 67.914)
+        self.assertEqual(by_key[(15, 0.8)], 71.457)
+        self.assertEqual(by_key[(20, 0.75)], 75.0)
 
 
 if __name__ == "__main__":

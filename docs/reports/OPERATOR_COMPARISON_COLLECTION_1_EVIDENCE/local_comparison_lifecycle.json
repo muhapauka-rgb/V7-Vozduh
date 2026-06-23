@@ -1,0 +1,192 @@
+{
+  "after_comparison": {
+    "agreement_rate": 1.0,
+    "apply_executed": false,
+    "comparisons_total": 1,
+    "decisions_total": 2,
+    "earned_confidence": 40.44,
+    "prediction_confidence": "INSUFFICIENT_OUTCOME_HISTORY",
+    "reviewable_decisions": 1,
+    "reviewed_decisions": 1,
+    "runtime_mutation_performed": false,
+    "synthetic_agreement_allowed": false,
+    "users_moved": 0
+  },
+  "after_reread_rebuild": {
+    "agreement_rate": 1.0,
+    "apply_executed": false,
+    "comparisons_total": 1,
+    "decisions_total": 2,
+    "earned_confidence": 40.44,
+    "prediction_confidence": "INSUFFICIENT_OUTCOME_HISTORY",
+    "reviewable_decisions": 1,
+    "reviewed_decisions": 1,
+    "runtime_mutation_performed": false,
+    "synthetic_agreement_allowed": false,
+    "users_moved": 0
+  },
+  "before": {
+    "agreement_rate": 0.0,
+    "apply_executed": false,
+    "comparisons_total": 0,
+    "decisions_total": 2,
+    "earned_confidence": 37.305,
+    "prediction_confidence": "INSUFFICIENT_OUTCOME_HISTORY",
+    "reviewable_decisions": 2,
+    "reviewed_decisions": 0,
+    "runtime_mutation_performed": false,
+    "synthetic_agreement_allowed": false,
+    "users_moved": 0
+  },
+  "comparison_id": "shadowcmp_4020838e8ea8b782da39606f",
+  "comparison_record_type": "operator_comparison",
+  "growth_projection": {
+    "base_decision_confidence": 37.305,
+    "formula": "earned = base_decision_confidence*(1-min(comparisons/20,1)) + agreement_percent*min(comparisons/20,1)",
+    "minimum_comparisons": 5,
+    "minimum_earned_confidence": 70.0,
+    "projection_only": true,
+    "rows": [
+      {
+        "agreement_rate": 1.0,
+        "canary_readiness_impact": "operator_comparison_evidence_still_needed",
+        "comparisons": 5,
+        "earned_confidence": 52.979,
+        "earned_confidence_floor_met": false,
+        "minimum_comparisons_met": true
+      },
+      {
+        "agreement_rate": 0.9,
+        "canary_readiness_impact": "operator_comparison_evidence_still_needed",
+        "comparisons": 5,
+        "earned_confidence": 50.479,
+        "earned_confidence_floor_met": false,
+        "minimum_comparisons_met": true
+      },
+      {
+        "agreement_rate": 0.8,
+        "canary_readiness_impact": "operator_comparison_evidence_still_needed",
+        "comparisons": 5,
+        "earned_confidence": 47.979,
+        "earned_confidence_floor_met": false,
+        "minimum_comparisons_met": true
+      },
+      {
+        "agreement_rate": 0.75,
+        "canary_readiness_impact": "operator_comparison_evidence_still_needed",
+        "comparisons": 5,
+        "earned_confidence": 46.729,
+        "earned_confidence_floor_met": false,
+        "minimum_comparisons_met": true
+      },
+      {
+        "agreement_rate": 1.0,
+        "canary_readiness_impact": "operator_comparison_evidence_still_needed",
+        "comparisons": 10,
+        "earned_confidence": 68.653,
+        "earned_confidence_floor_met": false,
+        "minimum_comparisons_met": true
+      },
+      {
+        "agreement_rate": 0.9,
+        "canary_readiness_impact": "operator_comparison_evidence_still_needed",
+        "comparisons": 10,
+        "earned_confidence": 63.653,
+        "earned_confidence_floor_met": false,
+        "minimum_comparisons_met": true
+      },
+      {
+        "agreement_rate": 0.8,
+        "canary_readiness_impact": "operator_comparison_evidence_still_needed",
+        "comparisons": 10,
+        "earned_confidence": 58.653,
+        "earned_confidence_floor_met": false,
+        "minimum_comparisons_met": true
+      },
+      {
+        "agreement_rate": 0.75,
+        "canary_readiness_impact": "operator_comparison_evidence_still_needed",
+        "comparisons": 10,
+        "earned_confidence": 56.153,
+        "earned_confidence_floor_met": false,
+        "minimum_comparisons_met": true
+      },
+      {
+        "agreement_rate": 1.0,
+        "canary_readiness_impact": "operator_comparison_floor_met",
+        "comparisons": 15,
+        "earned_confidence": 84.326,
+        "earned_confidence_floor_met": true,
+        "minimum_comparisons_met": true
+      },
+      {
+        "agreement_rate": 0.9,
+        "canary_readiness_impact": "operator_comparison_floor_met",
+        "comparisons": 15,
+        "earned_confidence": 76.826,
+        "earned_confidence_floor_met": true,
+        "minimum_comparisons_met": true
+      },
+      {
+        "agreement_rate": 0.8,
+        "canary_readiness_impact": "operator_comparison_evidence_still_needed",
+        "comparisons": 15,
+        "earned_confidence": 69.326,
+        "earned_confidence_floor_met": false,
+        "minimum_comparisons_met": true
+      },
+      {
+        "agreement_rate": 0.75,
+        "canary_readiness_impact": "operator_comparison_evidence_still_needed",
+        "comparisons": 15,
+        "earned_confidence": 65.576,
+        "earned_confidence_floor_met": false,
+        "minimum_comparisons_met": true
+      },
+      {
+        "agreement_rate": 1.0,
+        "canary_readiness_impact": "operator_comparison_floor_met",
+        "comparisons": 20,
+        "earned_confidence": 100.0,
+        "earned_confidence_floor_met": true,
+        "minimum_comparisons_met": true
+      },
+      {
+        "agreement_rate": 0.9,
+        "canary_readiness_impact": "operator_comparison_floor_met",
+        "comparisons": 20,
+        "earned_confidence": 90.0,
+        "earned_confidence_floor_met": true,
+        "minimum_comparisons_met": true
+      },
+      {
+        "agreement_rate": 0.8,
+        "canary_readiness_impact": "operator_comparison_floor_met",
+        "comparisons": 20,
+        "earned_confidence": 80.0,
+        "earned_confidence_floor_met": true,
+        "minimum_comparisons_met": true
+      },
+      {
+        "agreement_rate": 0.75,
+        "canary_readiness_impact": "operator_comparison_floor_met",
+        "comparisons": 20,
+        "earned_confidence": 75.0,
+        "earned_confidence_floor_met": true,
+        "minimum_comparisons_met": true
+      }
+    ],
+    "schema_version": "v7.shadow-comparison-growth-projection.v1",
+    "synthetic_agreement_created": false
+  },
+  "scenario": "local lifecycle durability",
+  "schema_version": "v7.operator-comparison-collection-evidence.v1",
+  "validations": {
+    "agreement_rate_survives_reread": true,
+    "comparison_survives_reread": true,
+    "earned_confidence_survives_rebuild": true,
+    "no_runtime_apply": true,
+    "no_synthetic_agreement": true,
+    "review_packet_survives_rebuild": true
+  }
+}

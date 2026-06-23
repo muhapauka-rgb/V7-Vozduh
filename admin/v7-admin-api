@@ -11517,6 +11517,30 @@ def read_jsonl_records(path, limit=200):
     return summary_builders.bounded_jsonl_records(path, limit=limit, redact_value=redact)
 
 
+def read_jsonl_family_records(path, limit=1000):
+    path = Path(path)
+    candidates = []
+    try:
+        def rotation_key(item):
+            suffix = item.name[len(path.name) + 1:]
+            if suffix.isdigit():
+                return (1, int(suffix))
+            return (0, suffix)
+        candidates = sorted(path.parent.glob(path.name + ".*"), key=rotation_key, reverse=True)
+    except OSError:
+        candidates = []
+    ordered = candidates + [path]
+    rows = []
+    seen = set()
+    for item in ordered:
+        key = str(item)
+        if key in seen:
+            continue
+        seen.add(key)
+        rows.extend(summary_builders.bounded_jsonl_records(item, limit=limit, redact_value=redact))
+    return rows[-int(limit or 1000):]
+
+
 CLOSURE_STATES = {"OPEN", "VERIFIED", "CLOSED", "EXPIRED"}
 FRESHNESS_STATES = {"FRESH", "STALE", "EXPIRED", "UNKNOWN"}
 
@@ -11803,7 +11827,10 @@ def operator_decision_surface_response():
 
 
 def shadow_autonomy_history(limit=500):
-    return read_jsonl_records(SHADOW_AUTONOMY_LOG_FILE, limit=limit)
+    rows = read_jsonl_family_records(SHADOW_AUTONOMY_LOG_FILE, limit=max(int(limit or 500) * 4, 2000))
+    decisions = [row for row in rows if row.get("record_type") == shadow_autonomy.DECISION_RECORD_TYPE][-int(limit or 500):]
+    comparisons = [row for row in rows if row.get("record_type") == shadow_autonomy.COMPARISON_RECORD_TYPE][-int(limit or 500):]
+    return decisions + comparisons
 
 
 def shadow_autonomy_response(decision_surface=None, record=True):
@@ -30413,6 +30440,10 @@ def html_page_v2():
       const readiness = shadow.autonomy_readiness || {};
       const disagreement = shadow.disagreement_analysis || {};
       const evolution = shadow.confidence_evolution || {};
+      const reviewPacket = shadow.operator_review_packet || {};
+      const projection = shadow.comparison_growth_projection || {};
+      const projectionRows = projection.rows || [];
+      const nearestProjection = projectionRows.find(row => row.minimum_comparisons_met && row.earned_confidence_floor_met) || {};
       const missing = evidence.missing_targets || [];
       const readyLabel = readiness.closest_stage === 'APPROVAL_AUTONOMY_REVIEW_READY' ? 'approval review готов' : 'только shadow';
       const blocker = readiness.single_blocker || 'NONE';
@@ -30423,6 +30454,7 @@ def html_page_v2():
       host.innerHTML = [
         `<div class="operator-row-card"><div class="operator-row-head"><strong>Shadow-наблюдение</strong>${pill('не исполняет', 'ok')}${pill(readyLabel, readiness.closest_stage === 'APPROVAL_AUTONOMY_REVIEW_READY' ? 'ok' : 'warn')}</div><em>Система предлагает, оператор сравнивает. Пользователи не двигаются.</em><div class="operator-timeline-meta">${pill(`решений ${quality.decisions_total ?? decisions.length}`, 'info')}${pill(`сравнений ${quality.comparisons_total ?? 0}`, 'info')}${pill(`согласие ${quality.agreement_rate ?? 0}`, 'muted')}${pill(`override ${quality.override_rate ?? 0}`, 'muted')}${pill(`confidence ${confidence.earned_confidence ?? 0}`, 'info')}</div></div>`,
         `<div class="operator-row-card"><div class="operator-row-head"><strong>Качество решений</strong>${pill(evidence.evidence_targets_met ? 'достаточно' : 'копим факты', evidence.evidence_targets_met ? 'ok' : 'warn')}</div><em>Окно: ${esc(windowInfo.observed_window_hours ?? 0)} ч · поведение: ${esc(statusLabel(behavior.behavior_pattern || 'NO_DATA'))}</em><div class="operator-timeline-meta">${pill(`trust ${quality.trust_accuracy ?? 0}`, 'muted')}${pill(`recommendation ${quality.recommendation_accuracy ?? 0}`, 'muted')}${pill(`prediction ${operatorShort(quality.prediction_accuracy || 'нет данных')}`, 'muted')}${pill(`confidence ${operatorShort(evolution.trend || 'нет данных')}`, 'info')}</div><p class="operator-muted-line">Стоп-фактор: ${esc(operatorShort(blocker))}${missing.length ? ` · не хватает: ${esc(missing.map(operatorShort).join(', '))}` : ''}</p></div>`,
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Пакет review</strong>${pill(`к оценке ${reviewPacket.reviewable_decisions ?? decisions.length}`, 'info')}${pill(`оценено ${reviewPacket.reviewed_decisions ?? 0}`, (reviewPacket.reviewed_decisions || 0) ? 'ok' : 'warn')}</div><em>Только реальные решения оператора: agree / disagree / override.</em><p class="operator-muted-line">Ближайшая планка: ${nearestProjection.comparisons ? `${nearestProjection.comparisons} сравнений при ${Math.round((nearestProjection.agreement_rate || 0) * 100)}% согласия → confidence ${nearestProjection.earned_confidence}` : 'нужны реальные сравнения оператора'}.</p></div>`,
         `<div class="operator-row-card"><div class="operator-row-head"><strong>Несогласия</strong>${pill(disagreement.disagreements_total || 0, disagreement.disagreements_total ? 'warn' : 'ok')}</div><em>Главная причина: ${esc(operatorShort(disagreement.primary_disagreement_reason || 'NONE'))}</em></div>`,
         rows || '<div class="operator-muted-line">Пока нет shadow-решений в текущей поверхности.</div>',
       ].join('');

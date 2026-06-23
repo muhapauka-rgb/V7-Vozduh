@@ -178,7 +178,7 @@ Stable conclusions:
 6. Current candidate floor gates are owned by `admin_core/operator_execution_pipeline.py`. Floors are `confidence >= 70`, `trust >= 70`, and `prediction_confidence >= 70`.
 7. Current EVENT.1 values are `confidence=45.8`, `trust=39.584`, and `prediction_confidence=39.6`; all are below floor, so apply must stop.
 8. Outcome evidence is active and consumed from `trust-evolution-summaries`, but current component quality is insufficient: decision `50.0`, service `39.225`, suitability `29.528`, blast-radius `0.0`, prediction `37.355`, rollback `100.0`.
-9. Shadow comparison evidence is owned by `admin_core/shadow_autonomy.py` and the existing `/api/actions/shadow-autonomy-compare` endpoint. Current comparison count is `0`, so earned confidence remains `45.825`.
+9. Shadow comparison evidence is owned by `admin_core/shadow_autonomy.py` and the existing `/api/actions/shadow-autonomy-compare` endpoint. Current production comparison count is `0`, so earned confidence remains about `45.802`.
 10. Missing evidence must be collected through existing owners only: operator comparisons, matched prediction actuals, matched service/candidate outcomes, explicit blast-radius evidence, and future read-only event consumer certification.
 11. Lowering floors, adding a new planner, adding a new execution path, or enabling a timer/daemon to move users would violate the current autonomy model.
 12. Last verified commit: `68b4153e95712b1ac432ccfac785561025ea4aed`.
@@ -194,7 +194,10 @@ Stable conclusions:
 7. Candidate confidence improves through existing candidate suitability and governed outcome evidence. Current EVENT.1 has `candidate_outcomes_count=83`, `suitability_confidence=29.528`, and final candidate confidence `45.8`.
 8. Blast-radius confidence is owned by the existing `blast_radius_confidence_model` and `build_blast_radius_evidence_rows`; current EVENT.1 value is `0.0`, meaning consumed records did not classify into explicit usable blast-radius evidence.
 9. Evidence collection may update evidence stores and snapshots only through existing owners. It must not create a new evidence store, planner, governance path, execution path, confidence model, trust model, prediction model, or truth source.
-10. Last verified commit: `51fd8c6263b1f45f4ac85b195dbd53537c19074d`.
+10. OPERATOR.COMPARISON.COLLECTION.1 implemented the durable existing-owner comparison collection path. `admin_core/shadow_autonomy.py` now exposes an operator review packet, per-decision comparison eligibility, and growth projection using the existing earned-confidence formula. `admin/v7-admin-api` reads active and rotated shadow-autonomy JSONL family records and preserves comparison rows separately from decision rows so old real comparisons are not displaced by newer shadow decisions.
+11. Production inventory on 2026-06-23 found 27 users, 27 reviewable current shadow decisions, 0 comparison records, agreement rate `0.0`, earned confidence `45.802`, and user distribution `awg3=8`, `wireguard-1779454504-c43409=8`, `vless=11`.
+12. Real operator comparison evidence must still be collected through the existing UI/API. The path is ready; the evidence volume is not.
+13. Last verified commit: OPERATOR.COMPARISON.COLLECTION.1 implementation commit.
 
 ## AUTONOMY_PREDICTION_EVIDENCE_RULES
 

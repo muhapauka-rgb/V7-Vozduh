@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-23
-Last changed by: `AUTONOMY.PREDICTION.EVIDENCE.2`
+Last changed by: `OPERATOR.COMPARISON.COLLECTION.1`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -78,6 +78,10 @@ Blast recovery operationally closed
 | Prediction Evidence Durability | 35% | 80% | +45% | `AUTONOMY.PREDICTION.EVIDENCE.2` | Existing governed `prediction_expected` / `prediction_actual` feedback now feeds the prediction actual path and survives bounded-tail loss, snapshot write, and reread. |
 | Prediction Evidence Quality | 45% | 50% | +5% | `AUTONOMY.PREDICTION.EVIDENCE.2` | Evidence consumption improved, but production after-refresh still reports prediction confidence around `36.651`; no synthetic confidence, formula, or floor change was made. |
 | Production Autonomy | 43% | 43% | 0% | `AUTONOMY.PREDICTION.EVIDENCE.2` | This is a prediction evidence lifecycle improvement only; operator-free autonomy remains blocked by confidence/trust/prediction/comparison/event-consumer gates. |
+| Operator Comparison Path | 25% | 55% | +30% | `OPERATOR.COMPARISON.COLLECTION.1` | Existing-owner review packet, comparison eligibility, growth projection, rotated shadow JSONL family read, and lifecycle tests are implemented. |
+| Operator Comparison Evidence | 25% | 25% | 0% | `OPERATOR.COMPARISON.COLLECTION.1` | Production still has `comparisons_total=0`; real operator decisions must be collected through `/api/actions/shadow-autonomy-compare`. |
+| Autonomous Trust | 55% | 55% | 0% | `OPERATOR.COMPARISON.COLLECTION.1` | No synthetic agreement or trust lift was created; earned confidence remains about `45.802`. |
+| Production Autonomy | 43% | 43% | 0% | `OPERATOR.COMPARISON.COLLECTION.1` | No apply gate changed; production autonomy remains blocked by confidence/trust/prediction/comparison/event-consumer gates. |
 
 ## Stable Areas
 
@@ -100,6 +104,21 @@ Blast recovery operationally closed
 | P1 | `EVENT_CONSUMER_READ_ONLY_CERTIFICATION` | Event sources exist, but production event-driven consumer is not certified. |
 
 ## Changelog
+
+### 2026-06-23 — OPERATOR.COMPARISON.COLLECTION.1 Durable Operator Comparison Path
+
+- Created `docs/reports/OPERATOR_COMPARISON_COLLECTION_1_REPORT.md` and evidence under `docs/reports/OPERATOR_COMPARISON_COLLECTION_1_EVIDENCE/`.
+- Implemented the existing-owner operator review packet in `admin_core/shadow_autonomy.py`.
+- Added per-decision comparison eligibility and comparison growth projection using the existing earned-confidence formula.
+- Updated `admin/v7-admin-api` so shadow history reads the active and rotated JSONL family and preserves comparison rows separately from decision rows.
+- Existing Shadow observation UI now shows review packet counts and nearest confidence target without enabling apply.
+- Production read-only inventory: 27 users, 27 reviewable decisions, 0 comparisons, agreement rate `0.0`, earned confidence `45.802`, distribution `awg3=8`, `wireguard-1779454504-c43409=8`, `vless=11`.
+- Updated changed-area percentages:
+  - Operator Comparison Path: `25% -> 55%`
+  - Operator Comparison Evidence: `25% -> 25%`
+  - Autonomous Trust: `55% -> 55%`
+  - Production Autonomy: `43% -> 43%`
+- Recorded next phase: collect real operator comparisons through the existing comparison UI/API; do not synthesize agreement.
 
 ### 2026-06-23 — AUTONOMY.PREDICTION.EVIDENCE.2 Real Outcome Confidence Collection
 

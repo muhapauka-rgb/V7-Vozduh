@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-23
-Last changed by: `AUTONOMY.CANARY.1A_SNAPSHOT_GATE_AND_CANDIDATE_RECHECK`
+Last changed by: `AUTONOMY.CANARY.1B_SNAPSHOT_GATE_RESTORE_BARRIER_AND_READINESS_CLOSURE`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -21,7 +21,7 @@ POOL.1 classified the pool as stable with zero planner candidates. POOL.2 rechec
 
 Current roadmap position:
 
-`AUTONOMY_CANARY_CANDIDATE_VISIBILITY_BLOCKED`
+`CANARY_BLOCKED_BY_RESTORE`
 
 The blueprint view keeps channel recovery visible, but the project-level autonomy bottleneck is now broader and more precise. Branch 1B closed the blast recovery branch in production, AUTONOMY.TRUST.BUILDOUT.1 found that recovered blast evidence was not durable in the current consumed dry-run, and AUTONOMY.TRUST.DURABILITY.1 fixed the normal refresh code path so rotated evidence survives refresh/rebuild/reread:
 
@@ -109,15 +109,16 @@ contextual operator comparison
 | Operator Comparison Evidence | 25% | 25% | 0% | `AUTONOMY.CANARY.1_READINESS_RECHECK` | Current comparison count is still `0`; operator comparison remains secondary supervised evidence. |
 | Canary Readiness | 45% | 45% | 0% | `AUTONOMY.CANARY.1_READINESS_RECHECK` | Final recheck returns `AUTONOMY_CANARY_NO_GO`: confidence `39.606`, trust `54.705`, prediction confidence `36.859`, planner selected `0` moves, and snapshot gate stopped on service snapshot source mismatch. |
 | Production Autonomy | 45% | 45% | 0% | `AUTONOMY.CANARY.1_READINESS_RECHECK` | No apply, no user movement, no daemon enablement; event consumer remains read-only and production autonomy stays disabled. |
-| Candidate Visibility | 35% | 55% | +20% | `AUTONOMY.CANARY.1A` | Runtime recheck found real candidates (`candidate_moves_total=18`) and proved planner-owned pre-refresh write clears snapshot gate inside observe, but normal observe still reverts to `dry_run_intelligence_snapshot_stop_required`. |
-| Canary Readiness | 45% | 45% | 0% | `AUTONOMY.CANARY.1A` | Canary remains blocked: after snapshot gate clears inside pre-refresh observe, selected moves still stop at `dry_run_restore_barrier_clearance_generation_expired`; normal observe remains snapshot-gated. |
+| Candidate Visibility | 55% | 85% | +30% | `AUTONOMY.CANARY.1B` | Normal production observe now auto-runs the existing snapshot refresh owner, clears snapshot gate, and exposes real current candidates (`candidate_moves_total=8`) before restore guard. |
+| Restore Barrier Readiness | 45% | 55% | +10% | `AUTONOMY.CANARY.1B` | Fresh packet preview validates for one canary candidate, and restore settle gate is `GO`, but production clearance is expired and tied to an obsolete 10-user plan. |
+| Canary Readiness | 45% | 50% | +5% | `AUTONOMY.CANARY.1B` | Canary remains blocked at restore barrier: `dry_run_restore_barrier_clearance_generation_expired`; no apply, no user movement. |
 
 ## Stable Areas
 
 | Area | Current % | State | Evidence |
 | --- | ---: | --- | --- |
 | Runtime truth / convergence | 100% | PASS / FULLY_ALIGNED | `POOL2_EVIDENCE/truth_check.json`, `POOL2_EVIDENCE/convergence_status.json` |
-| Snapshot gate | 55% | CONDITIONAL | `AUTONOMY.CANARY.1A`: pre-refresh write observe gives `stop_required=false`, but normal observe still reports `source_mismatch_families=[service-scores, channel-service-scores]` |
+| Snapshot gate | 85% | CLOSED_FOR_NORMAL_OBSERVE | `AUTONOMY.CANARY.1B`: normal production observe reports `stop_required=false`, `stop_families=[]`, and `pre_planner_refresh.state=REFRESH_SUCCESS` |
 | Atomic envelope | 100% | valid | `condition=ENVELOPE_VALID`, `mismatches=[]` |
 | Current distribution evidence | 100% | known | `POOL2_EVIDENCE/current_distribution.json` |
 
@@ -131,9 +132,22 @@ contextual operator comparison
 | P1 | `OBSERVED_OUTCOME.EVIDENCE.1_REAL_SERVICE_CHANNEL_OUTCOME_COLLECTION` | Observed service/channel outcome is the primary trust source; current confidence `39.606` and trust `54.705` remain below autonomy floors. |
 | P1 | `AUTONOMY.PREDICTION.EVIDENCE.3_REAL_VOLUME_AND_SOURCE_CONFIDENCE_COLLECTION` | Prediction lifecycle is durable with `21/21` matched rows and `0` pending rows, but prediction confidence remains `36.859` vs the `70.0` floor. |
 | P2 | `OPERATOR_COMPARISON.REVIEW.1_CONTEXTUAL_SUPERVISED_CONFIRMATION` | Operator comparison remains valid only when the operator has enough context; do not create blind training history. |
-| P1 | `AUTONOMY.CANARY.1B_PLANNER_SNAPSHOT_GATE_DURABILITY_FIX` | 1A proved candidates exist and planner-owned refresh can clear snapshot gate inside observe, but normal observe still returns snapshot mismatch; fix existing planner/snapshot lifecycle owner before another canary decision. |
+| P1 | `AUTONOMY.CANARY.1C_RESTORE_BARRIER_CLEARANCE_RECHECK` | 1B closed snapshot/candidate visibility. Current canary is blocked because restore-barrier clearance is expired and belongs to an obsolete approved plan lock. Use existing packet/restore owner only; no user movement unless a later apply phase explicitly authorizes it. |
 
 ## Changelog
+
+### 2026-06-23 — AUTONOMY.CANARY.1B Snapshot Gate, Restore Barrier, And Readiness Closure
+
+- Implemented existing-owner normal observe snapshot lifecycle fix in `tools/v7-users-autoswitch`.
+- Added unit tests in `tests/unit/test_runtime_snapshot_fast_path.py`.
+- Runtime fix commit: `18afa72c`.
+- Safe deployed the runtime fix with `tools/v7-safe-deploy --apply --confirm DEPLOY_V7_APPROVED --update-local-snapshot --json`.
+- Production normal observe now clears snapshot gate: `stop_required=false`, `stop_families=[]`, `pre_planner_refresh.auto_enabled=true`, `pre_planner_refresh.state=REFRESH_SUCCESS`.
+- Current production candidate pressure is visible: `candidate_moves_total=8`.
+- Fresh canary preview exposes `10.0.0.2 awg3 -> wireguard-1779454504-c43409`.
+- Fresh packet preview validates as `PACKET_VALID`; no packet execution or restore-barrier write was performed.
+- Restore barrier remains the active blocker: old clearance expired on `2026-06-13T19:29:19.851623+00:00` and references an obsolete 10-user `vless` plan.
+- Final verdict: `CANARY_BLOCKED_BY_RESTORE`.
 
 ### 2026-06-23 — AUTONOMY.CANARY.1A Snapshot Gate And Candidate Recheck
 

@@ -59,6 +59,7 @@ Current production alignment:
 - EVENT.CONSUMER.READONLY.2 certified the read-only event consumer link from real production events to planner, packet, restore barrier, rollback, feedback, and learning previews. It did not enable apply, daemon, autoswitch, movement, new truth source, or synthetic evidence.
 - AUTONOMY.CANARY.1_READINESS_RECHECK returned `AUTONOMY_CANARY_NO_GO`. Current production floors are confidence `39.606`, trust `54.705`, prediction confidence `36.859`, and secondary operator earned confidence `45.807`, all below the `70.0` canary floor. Event consumer remains certified read-only, blast and rollback confidence are `100.0`, but planner observe selected `0` moves and the snapshot gate stopped on `service-scores` / `channel-service-scores` source mismatch. No apply, daemon, autoswitch, movement, synthetic evidence, or new truth source occurred.
 - AUTONOMY.CANARY.1A returned `CANDIDATE_VISIBILITY_BLOCKED`. It found real planner pressure (`candidate_moves_total=18`; `awg3=8`, `wireguard-1779454504-c43409=8`, `vless=10`) and proved that existing planner-owned `--pre-planner-refresh=write` clears snapshot gate inside observe without apply/user movement. However, normal observe still reverts to `dry_run_intelligence_snapshot_stop_required`, while the planner-owned refresh observe stops later at `dry_run_restore_barrier_clearance_generation_expired`. The next phase is an existing-owner planner/snapshot lifecycle durability fix, not a new planner or autonomy system.
+- AUTONOMY.CANARY.1B deployed the existing-owner normal observe snapshot lifecycle fix in `tools/v7-users-autoswitch`. Production normal observe now clears snapshot gate (`stop_required=false`, `stop_families=[]`) and exposes real current candidates (`candidate_moves_total=8`) before stopping at `dry_run_restore_barrier_clearance_generation_expired`. A fresh one-user canary packet preview for `10.0.0.2 awg3 -> wireguard-1779454504-c43409` validates as `PACKET_VALID`, but the current restore-barrier clearance is expired and tied to an obsolete 10-user `vless` plan. Verdict: `CANARY_BLOCKED_BY_RESTORE`.
 
 ## 2. Full System Inventory
 
@@ -79,7 +80,7 @@ Current production alignment:
 | Planner / Autoswitch | Planner owner | `tools/v7-users-autoswitch` | Candidate ranking, blockers, selected moves, dry-run/apply path | ACTIVE | 95% | Governed execution certified up to 10 users; apply service inactive |
 | Policy / Groups | Policy owner | `tools/v7-users-autoswitch`, `tools/runtime-support/v7-policy-*`, `admin/v7-admin-api` | Policy, group, route, and access constraints | ACTIVE | 80% | Existing policy tools; not fully mapped in autonomy evidence |
 | Execution Packet | Packet owner | `tools/v7-operator-execution-packet`, `admin_core/operator_execution_pipeline.py` | Prepare bounded execution packet before apply | ACTIVE | 90% | Preview path works; live autonomy blocked |
-| Restore Barrier | Safety owner | `tools/v7-restore-settle-gate`, `admin_core/operator_execution.py` | Pre-apply restore boundary and settle gate | ACTIVE | 90% | Known by truth; current autonomous dry-run blocked |
+| Restore Barrier | Safety owner | `tools/v7-restore-settle-gate`, `tools/v7-operator-execution-packet`, `admin_core/operator_execution.py` | Pre-apply restore boundary, approved plan lock, and settle gate | ACTIVE | 90% | AUTONOMY.CANARY.1B proves settle gate is GO and fresh packet preview validates, but current clearance is expired/obsolete, so canary is blocked by restore |
 | Governed Execution | Runtime execution owner | `admin_core/operator_execution.py`, `tools/v7-users-autoswitch --apply` | Apply selected moves under governance | ACTIVE_BUT_MANUAL | 90% | BA1/BA3/BA4 certified up to 10 users; production daemon disabled |
 | Rollback | Rollback owner | `admin_core/operator_execution.py`, `tools/v7-users-autoswitch --rollback-packet --apply --verify` | Rollback packet/decision after failed or unsafe movement | PARTIAL_ACTIVE | 80% | Model exists; live rollback packet not certified for operator-free autonomy |
 | Feedback | Feedback owner | `admin_core/operator_execution_feedback.py`, execution/closure JSONL stores | Post-action outcome evidence | ACTIVE | 85% | Governed evidence consumed; active stores can be empty/rotated |
@@ -491,7 +492,7 @@ Do not delete immediately. Classify first.
 
 1. Collect observed service/channel outcome evidence through existing service, quality, prediction, feedback, and closure owners.
 2. Collect time-separated prediction forecast -> later actual evidence.
-3. Run `AUTONOMY.CANARY.1B_PLANNER_SNAPSHOT_GATE_DURABILITY_FIX` through existing owners only.
+3. Run `AUTONOMY.CANARY.1C_RESTORE_BARRIER_CLEARANCE_RECHECK` through existing packet/restore owners only.
 4. Recheck restore barrier creation for a single event-triggered packet in preview mode after normal observe no longer stops at snapshot mismatch.
 5. Recheck rollback packet readiness for the same single event-triggered packet.
 6. Build an autonomy readiness dashboard row from existing gate values only.

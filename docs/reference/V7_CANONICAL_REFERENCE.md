@@ -1,7 +1,7 @@
 # V7 Canonical Reference
 
 Status: canonical project reference
-Last verified commit: `AUTONOMY.CANARY.1A_SNAPSHOT_GATE_AND_CANDIDATE_RECHECK`
+Last verified commit: `18afa72c`
 Last verified date: 2026-06-23
 
 This document describes the current meaning of V7 system concepts. It is not a history log and not an audit report. Reports remain evidence. ADRs explain why a decision was made. This reference is the current truth that future V7 work must read before re-auditing old concepts.
@@ -199,7 +199,12 @@ Stable conclusions:
 12. Current production planner evidence shows `candidate_moves_total=18` with distribution `awg3=8`, `wireguard-1779454504-c43409=8`, and `vless=10`, but normal `v7-users-autoswitch --mode observe` still returns `selected_move_count=0` because snapshot gate stops on `service-scores` and `channel-service-scores` source mismatch against `service_matrix`.
 13. Standalone `v7-intelligence-snapshot-refresh --pretty` is snapshot-only and safe (`source_stable=true`, `snapshot_count=11`, `runtime_behavior_changed=false`, `governance_behavior_changed=false`, `users_moved=false`), but by itself does not make the normal planner observe path persistently pass the snapshot gate.
 14. Planner-owned refresh through existing `v7-users-autoswitch --mode observe --max-selected-moves 1 --pre-planner-refresh=write --pre-planner-refresh-command=/usr/local/bin/v7-intelligence-snapshot-refresh` clears snapshot gate inside that observe run (`stop_required=false`, `stop_families=[]`) without apply or user movement, but the run then stops at `dry_run_restore_barrier_clearance_generation_expired`.
-15. Normal observe after the planner-owned refresh again reports `dry_run_intelligence_snapshot_stop_required`, so candidate visibility is not durably fixed yet. The next implementation phase must fix the existing planner/snapshot lifecycle owner so normal observe can either acquire a durable fresh source bundle or fail with the restore-barrier reason without recurring snapshot mismatch.
+15. AUTONOMY.CANARY.1B on 2026-06-23 implemented the smallest existing-owner durability fix in `tools/v7-users-autoswitch`: normal read-only `--mode observe` now auto-enables the existing pre-planner snapshot refresh owner when no explicit pre-refresh mode is supplied; explicit modes still win and `--apply` does not auto-enable refresh.
+16. After deploy, production normal observe reports `snapshot_gate.stop_required=false`, `stop_families=[]`, `pre_planner_refresh.auto_enabled=true`, `pre_planner_refresh.state=REFRESH_SUCCESS`, and then stops at `dry_run_restore_barrier_clearance_generation_expired`.
+17. Candidate visibility is now real on the normal observe path: production reports `candidate_moves_total=8`; canary-limited observe exposes the fresh candidate `10.0.0.2` from `awg3` to `wireguard-1779454504-c43409` before the restore guard.
+18. A fresh execution packet preview for that one canary candidate validates as `PACKET_VALID` with `runtime_action=CREATE_RESTORE_BARRIER_CLEARANCE`, but no packet execution, restore-barrier write, apply, user movement, daemon, synthetic evidence, floor change, or new truth source occurred.
+19. Canary is still blocked by restore: the current production restore barrier clearance expired on `2026-06-13T19:29:19.851623+00:00`, references planner generation `1fd508b2fc82598d134f3defb598dd6593f0decd3da8437d953e788c3d3c098b`, and contains an old approved plan lock for 10 `vless` moves. The fresh generation is `d4098562a46e2cb32db70bab1943d638637198b896423da9b633f79d8e250080`, so reusing the old lock is correctly rejected with `approved_plan_lock_expired` and `approved_plan_lock_user_source_mismatch`.
+20. AUTONOMY.CANARY.1B final verdict is `CANARY_BLOCKED_BY_RESTORE`. The next safe phase is explicit governed restore-barrier clearance generation through the existing `tools/v7-operator-execution-packet` / `admin_core/operator_execution.py` owner, followed by another readiness recheck. This must not move users unless a later phase separately authorizes apply.
 
 ## AUTONOMY_ROOT_CONFIDENCE_TRUST_MODEL
 

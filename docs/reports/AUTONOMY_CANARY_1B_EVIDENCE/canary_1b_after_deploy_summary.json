@@ -1,0 +1,15 @@
+{
+  "approved_plan_lock_selected_move_count": 10,
+  "candidate_moves_total": 8,
+  "comparison_count": null,
+  "confidence": null,
+  "pre_planner_refresh_auto_enabled": true,
+  "pre_planner_refresh_state": "REFRESH_SUCCESS",
+  "prediction_confidence": 36.599,
+  "restore_clearance_generation_ok": false,
+  "selected_move_count": 0,
+  "snapshot_gate_stop_families": [],
+  "snapshot_gate_stop_required": false,
+  "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired",
+  "trust": null
+}

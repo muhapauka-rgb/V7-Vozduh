@@ -161,11 +161,15 @@ def build_operator_review_batches(
         })
     return {
         "schema_version": "v7.autonomy-trust.operator-review-batches.v1",
+        "evidence_role": "secondary_supervised_confirmation",
         "reviewable_decisions": len(reviewable),
         "reviewed_decisions": int(as_float(review_packet.get("reviewed_decisions"), 0.0)),
-        "fastest_path": "review highest-signal existing decisions in batches of 5, 10, and 15 through /api/actions/shadow-autonomy-compare",
+        "fastest_path": "use only when the operator has enough context to judge a specific recommendation",
+        "blind_review_required": False,
+        "bulk_training_data": False,
         "batches": batches,
         "requires_real_operator_judgement": True,
+        "requires_operator_context": True,
         "synthetic_agreement_allowed": False,
         "runtime_mutation_performed": False,
         "users_moved": 0,
@@ -204,23 +208,28 @@ def build_canary_proximity(
     prediction = as_float(confidence_summary.get("prediction_confidence"), as_float(prediction_plan.get("prediction_confidence"), 0.0))
     comparison = shadow_model.get("confidence") if isinstance(shadow_model.get("confidence"), dict) else {}
     earned = as_float(comparison.get("earned_confidence"), 0.0)
+    primary_floors = {
+        "confidence": _floor_gap(confidence, AUTONOMY_CANARY_CONFIDENCE_FLOOR),
+        "trust": _floor_gap(trust, AUTONOMY_CANARY_TRUST_FLOOR),
+        "prediction_confidence": _floor_gap(prediction, AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR),
+    }
+    secondary_evidence = {
+        "operator_earned_confidence": _floor_gap(earned, shadow_autonomy.OBSERVATION_TARGETS["minimum_earned_confidence"]),
+    }
     return {
         "schema_version": "v7.autonomy-trust.canary-proximity.v1",
         "autonomy_canary_1_ready": False,
-        "floors": {
-            "confidence": _floor_gap(confidence, AUTONOMY_CANARY_CONFIDENCE_FLOOR),
-            "trust": _floor_gap(trust, AUTONOMY_CANARY_TRUST_FLOOR),
-            "prediction_confidence": _floor_gap(prediction, AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR),
-            "operator_earned_confidence": _floor_gap(earned, shadow_autonomy.OBSERVATION_TARGETS["minimum_earned_confidence"]),
-        },
+        "readiness_model": "observed_outcome_primary_operator_comparison_secondary",
+        "floors": {**primary_floors, **secondary_evidence},
+        "primary_floors": primary_floors,
+        "secondary_evidence": secondary_evidence,
         "missing": [
-            key for key, value in {
-                "confidence": confidence >= AUTONOMY_CANARY_CONFIDENCE_FLOOR,
-                "trust": trust >= AUTONOMY_CANARY_TRUST_FLOOR,
-                "prediction_confidence": prediction >= AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR,
-                "operator_earned_confidence": earned >= shadow_autonomy.OBSERVATION_TARGETS["minimum_earned_confidence"],
-            }.items()
-            if not value
+            key for key, value in primary_floors.items()
+            if not value.get("pass")
+        ],
+        "secondary_missing": [
+            key for key, value in secondary_evidence.items()
+            if not value.get("pass")
         ],
         "expected_gain": {
             "operator_10_comparisons_100pct": _comparison_projection_value(shadow_model, 10, 1.0),
@@ -241,6 +250,114 @@ def _comparison_projection_value(shadow_model: dict[str, Any], comparisons: int,
         if int(as_float(row.get("comparisons"), -1)) == comparisons and abs(as_float(row.get("agreement_rate"), -1.0) - agreement_rate) < 0.0001:
             return as_float(row.get("earned_confidence"), 0.0)
     return 0.0
+
+
+def build_trust_source_classification() -> dict[str, Any]:
+    return {
+        "schema_version": "v7.autonomy-trust.source-classification.v1",
+        "primary": [
+            {
+                "source": "observed_service_outcome",
+                "owner": "admin_core.intelligence_workers / service matrix owners",
+                "store": "service-scores and channel-service-scores snapshots",
+                "current_maturity": "active",
+                "autonomy_trust_use": "primary",
+                "needs_more_tests": False,
+            },
+            {
+                "source": "observed_channel_quality",
+                "owner": "tools/v7-egress-quality-compact and channel score readers",
+                "store": "quality summary, channel/service snapshots, trust-evolution summaries",
+                "current_maturity": "active_under_confident",
+                "autonomy_trust_use": "primary",
+                "needs_more_tests": False,
+            },
+            {
+                "source": "post_switch_verification",
+                "owner": "admin_core.operator_execution_feedback / tools/v7-users-autoswitch governed apply",
+                "store": "execution-events, runtime-trust, proposals, closure records",
+                "current_maturity": "active_governed_evidence",
+                "autonomy_trust_use": "primary_after_governed_or_canary_apply",
+                "needs_more_tests": False,
+            },
+            {
+                "source": "rollback_or_no_rollback_result",
+                "owner": "operator execution pipeline and rollback owner",
+                "store": "rollback history, closure records, trust-evolution summaries",
+                "current_maturity": "active_model_rollout_not_operator_free_certified",
+                "autonomy_trust_use": "primary_safety_evidence",
+                "needs_more_tests": False,
+            },
+            {
+                "source": "forecast_to_actual_accuracy",
+                "owner": "admin_core.intelligence_workers / admin_core.intelligence_platform",
+                "store": "prediction-summaries, service/channel actual rows, governed prediction feedback",
+                "current_maturity": "active_but_low_source_confidence",
+                "autonomy_trust_use": "primary",
+                "needs_more_tests": False,
+            },
+            {
+                "source": "client_telemetry",
+                "owner": "future existing telemetry owner",
+                "store": "UNKNOWN - requires future implementation",
+                "current_maturity": "not_implemented",
+                "autonomy_trust_use": "primary_when_implemented",
+                "needs_more_tests": True,
+            },
+        ],
+        "secondary": [
+            {
+                "source": "operator_comparison",
+                "owner": "admin_core.shadow_autonomy / /api/actions/shadow-autonomy-compare",
+                "store": "shadow-autonomy JSONL family",
+                "current_maturity": "path_ready_evidence_underfed",
+                "autonomy_trust_use": "secondary_supervised_confirmation",
+                "needs_more_tests": False,
+                "blind_review_required": False,
+            },
+            {
+                "source": "operator_override",
+                "owner": "admin_core.shadow_autonomy",
+                "store": "shadow-autonomy JSONL family and audit",
+                "current_maturity": "path_ready",
+                "autonomy_trust_use": "secondary_contextual_signal",
+                "needs_more_tests": False,
+            },
+            {
+                "source": "manual_approval",
+                "owner": "operator execution and admin action owners",
+                "store": "audit / governed execution records",
+                "current_maturity": "active",
+                "autonomy_trust_use": "secondary_authority_not_fake_agreement",
+                "needs_more_tests": False,
+            },
+        ],
+        "diagnostic": [
+            {"source": "raw_technical_health", "autonomy_trust_use": "diagnostic_only"},
+            {"source": "route_details", "autonomy_trust_use": "diagnostic_or_supporting_unless_real_blocker"},
+            {"source": "logs", "autonomy_trust_use": "diagnostic_only"},
+            {"source": "score_components", "autonomy_trust_use": "diagnostic_only"},
+        ],
+    }
+
+
+def build_operator_authority_model() -> dict[str, Any]:
+    return {
+        "schema_version": "v7.operator-authority-model.v1",
+        "manual_action_authoritative": True,
+        "manual_action_is_fake_agreement": False,
+        "system_must_respect_manual_action": True,
+        "outcome_observation_after_manual_action": True,
+        "operator_comparison_role": "secondary_supervised_confirmation_only_when_context_is_sufficient",
+        "blind_bulk_review_required": False,
+        "rules": [
+            "manual operator switches are authoritative actions",
+            "manual actions are not synthetic agreement with an autonomous recommendation",
+            "V7 should observe service and quality outcome after the action",
+            "future degradation should trigger proposal or operator confirmation through existing owners",
+            "operator comparison may raise confidence only when the operator has enough context",
+        ],
+    }
 
 
 def build_acceleration_inventory(
@@ -281,8 +398,12 @@ def build_acceleration_inventory(
         "schema_version": "v7.autonomy-trust-acceleration.inventory.v1",
         "generated_at": generated,
         "mode": "read_only_inventory_and_collection_plan",
+        "trust_source_classification": build_trust_source_classification(),
+        "operator_authority_model": build_operator_authority_model(),
         "prediction_evidence": prediction_plan,
         "operator_comparisons": {
+            "evidence_role": "secondary_supervised_confirmation",
+            "blind_review_required": False,
             "current": {
                 "reviewable_decisions": shadow_model.get("operator_review_packet", {}).get("reviewable_decisions", 0),
                 "reviewed_decisions": shadow_model.get("operator_review_packet", {}).get("reviewed_decisions", 0),
@@ -295,14 +416,19 @@ def build_acceleration_inventory(
         },
         "canary_proximity": canary,
         "collection_plan": {
-            "fastest_real_evidence_path": [
-                "operator reviews 5 current decisions",
-                "operator reviews 10 current decisions",
-                "operator reviews 15 current decisions",
-                "collect real actuals for pending forecasts through existing service/channel snapshots or governed prediction feedback",
+            "primary_real_evidence_path": [
+                "observe service and channel quality outcomes through existing service/quality snapshots",
+                "match future forecasts to later real actuals through existing prediction owners",
+                "record post-action verification and no-rollback outcomes after governed/manual actions",
                 "refresh intelligence snapshots through tools/v7-intelligence-snapshot-refresh",
             ],
+            "secondary_supervised_confirmation_path": [
+                "operator reviews only recommendations where enough operational context exists",
+                "record agree/disagree/override through /api/actions/shadow-autonomy-compare",
+            ],
+            "blind_operator_training_required": False,
             "forbidden": [
+                "blind bulk operator reviews",
                 "synthetic comparisons",
                 "synthetic actuals",
                 "threshold/floor changes",

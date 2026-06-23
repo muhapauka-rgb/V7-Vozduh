@@ -72,9 +72,22 @@ Stable conclusions:
 
 1. V7 already has the main owners for planner, governed execution, restore barrier, rollback, feedback, learning, trust, prediction, shadow comparison, and truth/convergence.
 2. The safe path is to reuse and connect existing owners, not create a new planner, governance model, execution path, truth source, or confidence model.
-3. Production event-driven autonomy remains blocked by low prediction confidence, insufficient operator comparison evidence, uncertified live event consumption, and autonomy floors still below `70.0`.
+3. Production event-driven autonomy remains blocked by insufficient observed outcome confidence, low prediction confidence, uncertified live event consumption, and autonomy floors still below `70.0`. Operator comparison is secondary supervised confirmation, not the primary trust source.
 4. Timer-only movement remains rejected. Event-driven autonomy means regression event -> planner -> packet -> restore barrier -> bounded apply -> verification -> rollback decision -> feedback -> learning.
-5. The next roadmap position is `AUTONOMY_EVIDENCE_AND_EVENT_CONSUMER_CLOSURE`.
+5. The next roadmap position is `OBSERVED_OUTCOME_EVIDENCE_AND_EVENT_CONSUMER_CLOSURE`.
+
+## AUTONOMY_TRUST_SOURCE_HIERARCHY
+
+1. Observed network outcome is the primary autonomy trust source for V7.
+2. Primary sources are observed service outcome, observed channel quality, post-switch verification, rollback/no-rollback result, forecast-to-actual accuracy, and future client telemetry when implemented.
+3. Operator comparison, operator override, and manual approval are secondary supervised evidence. They are useful only when the operator has enough operational context.
+4. Manual operator actions are authoritative system actions, but they are not synthetic agreement with V7's autonomous recommendation.
+5. After a manual action, V7 should respect the action and then observe service/channel outcome quality through existing evidence owners.
+6. Operator comparison must not be used as blind bulk training data. Do not require an operator to manufacture comparison history for users whose real service quality they cannot directly observe.
+7. Diagnostic sources such as raw technical health, route details, logs, and score components support explanation and troubleshooting; they are not primary autonomy trust sources by themselves.
+8. Canary readiness must still block when primary observed-outcome confidence, trust, or prediction evidence is insufficient. Operator comparison may accelerate supervised confidence but does not replace observed outcome evidence.
+9. Implementation owner for read-only classification: `admin_core/autonomy_trust_acceleration.py`; CLI surface: `tools/v7-autonomy-trust-evidence-inventory`.
+10. Related ADR: `docs/decisions/ADR-OBSERVED-OUTCOME-PRIMARY-TRUST.md`.
 
 ## Channels Final UX Rules
 
@@ -172,14 +185,14 @@ Stable conclusions:
 
 1. V7 has two related but separate confidence layers: governed execution evidence and operator-free autonomy evidence.
 2. Governed execution evidence comes from certified BA runs, execution outcomes, feedback, rollback readiness, and intelligence snapshots. It can raise inherited execution trust.
-3. Operator-free autonomy evidence is stricter: it must prove safe autonomous trigger, self-stop, rollback decision, confidence floors, operator comparison quality, and operator-free apply boundary.
+3. Operator-free autonomy evidence is stricter: it must prove safe autonomous trigger, self-stop, rollback decision, observed outcome quality, confidence floors, and operator-free apply boundary. Operator comparison is secondary supervised confirmation, not the primary proof.
 4. BA1/BA3/BA4 evidence is consumed by `trust-evolution-summaries`; EVENT.1 reports `evidence_produced=true`, `evidence_stored=true`, `evidence_visible=true`, `evidence_consumed=true`, and `evidence_weighted=true`.
 5. BA evidence does not automatically certify production autonomy. It currently raises inherited execution trust to `87.048`, while autonomy-specific trust remains `0.0` and autonomy-specific gap remains `100.0`.
 6. Current candidate floor gates are owned by `admin_core/operator_execution_pipeline.py`. Floors are `confidence >= 70`, `trust >= 70`, and `prediction_confidence >= 70`.
 7. Current EVENT.1 values are `confidence=45.8`, `trust=39.584`, and `prediction_confidence=39.6`; all are below floor, so apply must stop.
 8. Outcome evidence is active and consumed from `trust-evolution-summaries`, but current component quality is insufficient: decision `50.0`, service `39.225`, suitability `29.528`, blast-radius `0.0`, prediction `37.355`, rollback `100.0`.
-9. Shadow comparison evidence is owned by `admin_core/shadow_autonomy.py` and the existing `/api/actions/shadow-autonomy-compare` endpoint. Current production comparison count is `0`, so earned confidence remains about `45.802`.
-10. Missing evidence must be collected through existing owners only: operator comparisons, matched prediction actuals, matched service/candidate outcomes, explicit blast-radius evidence, and future read-only event consumer certification.
+9. Shadow comparison evidence is owned by `admin_core/shadow_autonomy.py` and the existing `/api/actions/shadow-autonomy-compare` endpoint. Current production comparison count is `0`, so earned confidence remains about `45.802`, but this is a secondary supervised signal and must not force blind operator review.
+10. Missing primary evidence must be collected through existing owners only: observed service/channel outcomes, matched prediction actuals, matched service/candidate outcomes, post-action verification, rollback/no-rollback evidence, explicit blast-radius evidence, and future read-only event consumer certification.
 11. Lowering floors, adding a new planner, adding a new execution path, or enabling a timer/daemon to move users would violate the current autonomy model.
 12. Last verified commit: `68b4153e95712b1ac432ccfac785561025ea4aed`.
 
@@ -188,7 +201,7 @@ Stable conclusions:
 1. Operator comparison evidence is collected only through the existing shadow autonomy comparison path: `/api/actions/shadow-autonomy-compare`.
 2. A comparison record is valid only when a real operator judges a current shadow `decision_id` as `agree`, `disagree`, or `override`. Synthetic agreement records must not be generated to raise confidence.
 3. The comparison endpoint writes `operator_comparison` records to the existing shadow autonomy JSONL store and admin audit, while reporting `runtime_mutation_performed=false`, `users_moved=0`, `apply_executed=false`, and `autonomy_enabled=false`.
-4. Operator comparisons raise shadow `comparisons_total`, agreement rate, and earned confidence. They do not directly raise candidate trust or prediction confidence.
+4. Operator comparisons raise shadow `comparisons_total`, agreement rate, and earned confidence. They do not directly raise candidate trust or prediction confidence, and they are secondary supervised evidence rather than the primary autonomy trust path.
 5. Prediction confidence improves only through existing matched prediction actuals from service/channel evidence, existing governed prediction feedback, and intelligence snapshot refresh. Current EVENT.1 evidence has `prediction_actuals_count=21`, `prediction_confidence=37.355` from outcome evidence, and final candidate prediction confidence `39.6`.
 6. Service confidence improves through existing service matrix / channel-service score / quality evidence consumed by `service_intelligence_trust_model`. Current EVENT.1 service confidence is `39.225`.
 7. Candidate confidence improves through existing candidate suitability and governed outcome evidence. Current EVENT.1 has `candidate_outcomes_count=83`, `suitability_confidence=29.528`, and final candidate confidence `45.8`.
@@ -202,9 +215,10 @@ Stable conclusions:
 15. The trust acceleration inventory is a derived read model only. It may expose prediction collection plans, operator review batches, growth projections, and canary proximity, but it must not create synthetic comparisons, synthetic actuals, runtime apply, user movement, daemon enablement, new storage, new planner, new governance, new execution, new confidence model, or new truth source.
 16. Production trust acceleration inventory after final deploy and snapshot refresh found 27 reviewable decisions, 0 reviewed decisions, 0 comparisons, agreement rate `0.0`, and earned confidence `45.802`.
 17. The inventory exposes review batches for 5, 10, and 15 current decisions. A 5-comparison batch is insufficient for the `70.0` earned-confidence floor even at 100% agreement (`59.352`). A 10-comparison batch reaches the floor only at 100% agreement (`72.901`). A 15-comparison batch reaches the floor at 90% (`78.951`) or 80% (`71.451`) agreement, but not at 75% (`67.701`).
-18. The next real operator comparison phase should collect 10 real operator judgements first, then continue to 15 if agreement is below 100%. All comparison evidence must still pass through `/api/actions/shadow-autonomy-compare`.
+18. If operator comparison evidence is collected, it should use only recommendations where the operator has enough context. It must not be blind bulk training data. All comparison evidence must still pass through `/api/actions/shadow-autonomy-compare`.
 19. AUTONOMY.TRUST.ACCELERATION.1 final verdict is `AUTONOMY_TRUST_ACCELERATION_PARTIAL`.
 20. Implementation commits: `fd868640185461abb42f0e010e3beada9e6d9fc2`, `43effb2a7a58a545fd90d48db53bbe1c0968a75b`; final deploy id `deploy-z8-14-Updatesystem-43effb2-20260623T101511`.
+21. AUTONOMY.TRUST.SOURCE.REALITY.1 reclassified operator comparison as secondary supervised confirmation and observed network outcome as the primary trust source. The read-only inventory now exposes `trust_source_classification`, `operator_authority_model`, `primary_real_evidence_path`, `secondary_supervised_confirmation_path`, and `blind_operator_training_required=false`.
 
 ## AUTONOMY_PREDICTION_EVIDENCE_RULES
 

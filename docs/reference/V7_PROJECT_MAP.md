@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-23
-Last changed by: `AUTONOMY.TRUST.ACCELERATION.1`
+Last changed by: `AUTONOMY.TRUST.SOURCE.REALITY.1`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -21,18 +21,25 @@ POOL.1 classified the pool as stable with zero planner candidates. POOL.2 rechec
 
 Current roadmap position:
 
-`AUTONOMY_EVIDENCE_AND_EVENT_CONSUMER_CLOSURE`
+`OBSERVED_OUTCOME_EVIDENCE_AND_EVENT_CONSUMER_CLOSURE`
 
 The blueprint view keeps channel recovery visible, but the project-level autonomy bottleneck is now broader and more precise. Branch 1B closed the blast recovery branch in production, AUTONOMY.TRUST.BUILDOUT.1 found that recovered blast evidence was not durable in the current consumed dry-run, and AUTONOMY.TRUST.DURABILITY.1 fixed the normal refresh code path so rotated evidence survives refresh/rebuild/reread:
 
 ```text
 Blast recovery operationally closed
   -> trust durability fixed, deployed, and refreshed
-  -> operator comparison collection
   -> trust acceleration inventory
-  -> prediction evidence collection
+  -> observed outcome primary trust correction
+  -> observed outcome evidence collection
   -> read-only event consumer certification
   -> bounded event-driven autonomy canary
+
+Secondary branch:
+
+```text
+contextual operator comparison
+  -> supervised confirmation only
+  -> never blind bulk training
 ```
 
 ## Changed Areas
@@ -89,6 +96,10 @@ Blast recovery operationally closed
 | Prediction Evidence Quality | 50% | 50% | 0% | `AUTONOMY.TRUST.ACCELERATION.1` | Production has `21/21` matched forecasts and `0` pending rows, so confidence remains `36.861`; blocker is source/future evidence quality, not missing current actuals. |
 | Canary Readiness | 0% | 35% | +35% | `AUTONOMY.TRUST.ACCELERATION.1` | Canary proximity is now measured: confidence `39.606`, trust `54.704`, prediction `36.861`, operator earned confidence `45.802`; all remain below the `70.0` floor. |
 | Production Autonomy | 43% | 43% | 0% | `AUTONOMY.TRUST.ACCELERATION.1` | Tooling improved, but no floor passed and no runtime apply/daemon/user movement occurred. |
+| Trust Source Model | 55% | 90% | +35% | `AUTONOMY.TRUST.SOURCE.REALITY.1` | Observed network outcome is now canonical primary trust; operator comparison is secondary supervised confirmation, not blind training data. |
+| Operator Comparison Evidence | 25% | 25% | 0% | `AUTONOMY.TRUST.SOURCE.REALITY.1` | Comparison path remains useful but secondary/contextual; no synthetic comparison or trust lift was created. |
+| Observed Outcome Evidence | 50% | 55% | +5% | `AUTONOMY.TRUST.SOURCE.REALITY.1` | Roadmap now prioritizes service/channel outcome, post-action verification, no-rollback, and forecast-to-actual evidence. The underlying evidence quality still needs real production cycles. |
+| Production Autonomy | 43% | 43% | 0% | `AUTONOMY.TRUST.SOURCE.REALITY.1` | No apply gate changed; canary still waits for primary observed outcome floors and event consumer certification. |
 
 ## Stable Areas
 
@@ -106,11 +117,32 @@ Blast recovery operationally closed
 | P1 | `CHANNEL_RECOVERY_AWG3_AWG0_STABILITY_REVIEW` | `awg3` has 8 assigned users but is currently not eligible; `awg0` is close to recovery but still below stability floor. |
 | P2 | Decide whether `awg3` recovers naturally or needs a governed failover review | POOL.2 found 8 failover candidates but did not execute movement by design. |
 | P3 | Continue pool observation only after recovery/failover pressure is resolved | Current state is not clean equilibrium because planner disagrees with keeping `awg3` users there. |
+| P1 | `OBSERVED_OUTCOME.EVIDENCE.1_REAL_SERVICE_CHANNEL_OUTCOME_COLLECTION` | Observed service/channel outcome is the primary trust source and still needs higher-confidence real production cycles. |
 | P1 | `AUTONOMY.PREDICTION.EVIDENCE.3_REAL_VOLUME_AND_SOURCE_CONFIDENCE_COLLECTION` | Prediction evidence lifecycle is improved; source confidence/evidence volume still need real production evidence to reach the `70.0` floor. |
-| P1 | `OPERATOR_COMPARISON.REVIEW.1_REAL_OPERATOR_COMPARISON_BATCH` | Review batches are now explicit. Collect 10 real operator comparisons first; continue to 15 if agreement is below 100%. |
+| P2 | `OPERATOR_COMPARISON.REVIEW.1_CONTEXTUAL_SUPERVISED_CONFIRMATION` | Operator comparison remains valid only when the operator has enough context; do not create blind training history. |
 | P1 | `EVENT_CONSUMER_READ_ONLY_CERTIFICATION` | Event sources exist, but production event-driven consumer is not certified. |
 
 ## Changelog
+
+### 2026-06-23 — AUTONOMY.TRUST.SOURCE.REALITY.1 Observed Outcome Primary Trust
+
+- Created `docs/reports/AUTONOMY_TRUST_SOURCE_REALITY_1_REPORT.md`.
+- Created `docs/decisions/ADR-OBSERVED-OUTCOME-PRIMARY-TRUST.md`.
+- Updated `admin_core/autonomy_trust_acceleration.py` so the read-only inventory classifies observed network outcomes as primary trust and operator comparison as secondary supervised confirmation.
+- Operator review batches now require operator context, forbid blind review, and are not bulk training data.
+- Canary proximity now separates primary observed-outcome floors from secondary operator evidence.
+- Updated roadmap route:
+  - Observed Outcome Evidence
+  - Event Consumer Read-Only Certification
+  - Readiness Recheck
+  - Autonomous Canary
+- No runtime apply, user movement, daemon enablement, planner/governance/execution change, threshold/floor/formula change, synthetic evidence, or new truth source occurred.
+- Updated changed-area percentages:
+  - Trust Source Model: `55% -> 90%`
+  - Operator Comparison Evidence: `25% -> 25%`
+  - Observed Outcome Evidence: `50% -> 55%`
+  - Production Autonomy: `43% -> 43%`
+- Recorded next phase: `OBSERVED_OUTCOME.EVIDENCE.1_REAL_SERVICE_CHANNEL_OUTCOME_COLLECTION`.
 
 ### 2026-06-23 — AUTONOMY.TRUST.ACCELERATION.1 Read-Only Trust Evidence Inventory
 

@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-23
-Last changed by: `AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT`
+Last changed by: `AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -21,7 +21,7 @@ POOL.1 classified the pool as stable with zero planner candidates. POOL.2 rechec
 
 Current roadmap position:
 
-`CANARY_BLOCKED_BY_CONFIDENCE_MIXED`
+`CANARY_BLOCKED_BY_REAL_OUTCOME_MIXED`
 
 The blueprint view keeps channel recovery visible, but the project-level autonomy bottleneck is now broader and more precise. Branch 1B closed the blast recovery branch in production, AUTONOMY.TRUST.BUILDOUT.1 found that recovered blast evidence was not durable in the current consumed dry-run, and AUTONOMY.TRUST.DURABILITY.1 fixed the normal refresh code path so rotated evidence survives refresh/rebuild/reread:
 
@@ -122,6 +122,9 @@ contextual operator comparison
 | Confidence Reality Audit | 0% | 100% | +100% | `AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT` | Production inventory now directly classifies confidence proportionality: prediction is undervalued as accuracy evidence, while service/suitability/blast/rollback/operator confidence values are fair for autonomy readiness. |
 | Canary Readiness | 35% | 35% | 0% | `AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT` | Canary remains NO-GO: confidence `38.849`, trust `54.137`, prediction `35.411`, operator earned `45.818`, all below `70.0`. |
 | Production Autonomy | 46% | 46% | 0% | `AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT` | Visibility improved but no runtime apply, user movement, daemon enablement, formula change, floor change, or synthetic evidence occurred. |
+| Real Outcome Acceleration Visibility | 0% | 100% | +100% | `AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH` | Production inventory now exposes `real_outcome_source_inventory` and `real_outcome_growth_projection` for +10/+25/+50 real outcome cycles. |
+| Canary Readiness | 35% | 35% | 0% | `AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH` | Canary remains NO-GO: after real probes and refresh, confidence `38.946`, trust `54.210`, prediction `35.494`, operator earned `45.806`; +50 projected high-confidence cycles still fails confidence/trust. |
+| Production Autonomy | 46% | 46% | 0% | `AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH` | Read-only projection improved understanding, but no runtime apply, movement, daemon, formula, floor, threshold, or truth-source change occurred. |
 
 ## Stable Areas
 
@@ -145,8 +148,22 @@ contextual operator comparison
 | P2 | `OPERATOR_COMPARISON.REVIEW.1_CONTEXTUAL_SUPERVISED_CONFIRMATION` | Operator comparison remains valid only when the operator has enough context; do not create blind training history. |
 | P1 | `AUTONOMY.EVIDENCE.SERVICE_CHANNEL_SOURCE_CONFIDENCE_COLLECTION` | Current source confidence verdict is `EVIDENCE_MIXED`; next phase should collect real service/channel probe cycles through existing owners, refresh snapshots, and reread trust inventory. |
 | P1 | `AUTONOMY.SOURCE_CONFIDENCE.REAL_COLLECTION.1` | Current confidence cannot grow materially without new real-world outcomes. Targets: prediction mean forecast confidence `0.7452`, service mean row confidence `0.7`, candidate coverage closure for `73` missing outcomes, and contextual operator comparisons only where the operator has context. |
+| P1 | `AUTONOMY.CANDIDATE_OUTCOME_REALITY_COLLECTION.1` | `REAL_OUTCOME_MIXED` shows service/channel probes are safe but insufficient; suitability/candidate outcomes are the next blocker. Collect real candidate outcomes through existing governed/manual outcome owners only. |
 
 ## Changelog
+
+### 2026-06-23 — AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH
+
+- Ran real production service matrix refresh, quality compact, snapshot refresh, and inventory reread through existing owners.
+- Implemented deployed read-only `real_outcome_source_inventory` and `real_outcome_growth_projection` in `admin_core/autonomy_trust_acceleration.py`.
+- Production classification: `REAL_OUTCOME_MIXED`.
+- Acceleratable sources: service outcomes, channel outcomes, feedback outcomes, learning outcomes.
+- Wait-for-reality sources: candidate outcomes, manual outcomes, verification outcomes.
+- Blocked source in this phase: governed outcomes, because runtime apply/user movement is forbidden.
+- After real probes and refresh, floors remain below target: confidence `38.946`, trust `54.210`, prediction confidence `35.494`, operator earned confidence `45.806`.
+- Projection: `+10` real high-confidence cycles -> confidence `49.214`, trust `61.910`, prediction `55.506`; `+25` -> `53.702`, `65.276`, `69.605`; `+50` -> `56.968`, `67.726`, `80.127`.
+- Safe deploy id: `deploy-z8-14-Updatesystem-130a651-20260623T231244`.
+- Final verdict: `REAL_OUTCOME_MIXED`.
 
 ### 2026-06-23 — AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT
 

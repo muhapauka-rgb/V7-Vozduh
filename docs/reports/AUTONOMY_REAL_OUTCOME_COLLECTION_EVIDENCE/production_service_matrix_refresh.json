@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "updated": "2026-06-23T16:09:10.940645+00:00",
+  "elapsed_sec": 59.6,
+  "total": 7,
+  "ok_count": 5,
+  "results": [
+    {
+      "egress": "vless",
+      "status": "WARN",
+      "ok": true,
+      "rc": 0,
+      "ok_count": 1,
+      "total": 14,
+      "elapsed_sec": 10.317,
+      "output_tail": " (35) Recv failure: Connection reset by peer\\n000 0.000000 5.013951\", \"samples\": [{\"target\": \"https://auth.openai.com/\", \"ok\": false, \"http_code\": \"000\", \"first_byte_sec\": \"0.000000\", \"total_sec\": \"5.013951\", \"rc\": 35, \"error\": \"curl: (35) Recv failure: Connection reset by peer\\n000 0.000000 5.013951\"}]}, \"anthropic\": {\"label\": \"Anthropic API\", \"kind\": \"http\", \"url\": \"https://api.anthropic.com/\", \"interface\": \"tun0\", \"ok\": false, \"status\": \"FAIL\", \"severity\": \"FAIL\", \"http_reachable\": false, \"limited\": false, \"http_code\": \"000\", \"first_byte_sec\": \"0.000000\", \"total_sec\": \"5.006940\", \"rc\": 35, \"elapsed_sec\": 5.042, \"tested_at\": \"2026-06-23T16:08:21.620368+00:00\", \"reason\": \"curl: (35) Recv failure: Connection reset by peer\\n000 0.000000 5.006940\", \"error\": \"curl: (35) Recv failure: Connection reset by peer\\n000 0.000000 5.006940\", \"samples\": [{\"target\": \"https://api.anthropic.com/\", \"ok\": false, \"http_code\": \"000\", \"first_byte_sec\": \"0.000000\", \"total_sec\": \"5.006940\", \"rc\": 35, \"error\": \"curl: (35) Recv failure: Connection reset by peer\\n000 0.000000 5.006940\"}]}, \"claude\": {\"label\": \"Claude\", \"kind\": \"http\", \"url\": \"https://claude.ai/\", \"interface\": \"tun0\", \"ok\": false, \"status\": \"FAIL\", \"severity\": \"FAIL\", \"http_reachable\": false, \"limited\": false, \"http_code\": \"000\", \"first_byte_sec\": \"0.000000\", \"total_sec\": \"5.006980\", \"rc\": 35, \"elapsed_sec\": 5.061, \"tested_at\": \"2026-06-23T16:08:21.623392+00:00\", \"reason\": \"curl: (35) Recv failure: Connection reset by peer\\n000 0.000000 5.006980\", \"error\": \"curl: (35) Recv failure: Connection reset by peer\\n000 0.000000 5.006980\", \"samples\": [{\"target\": \"https://claude.ai/\", \"ok\": false, \"http_code\": \"000\", \"first_byte_sec\": \"0.000000\", \"total_sec\": \"5.006980\", \"rc\": 35, \"error\": \"curl: (35) Recv failure: Connection reset by peer\\n000 0.000000 5.006980\"}]}}, \"matrix_file\": \"/opt/v7/egress/state/service-matrix.json\", \"service_matrix_lock\": {\"held\": false, \"inherited\": true, \"path\": \"/opt/v7/egress/state/service-matrix.lock\"}}\n",
+      "cmd": [
+        "/usr/local/bin/v7-service-matrix-test",
+        "vless",
+        "all",
+        "--timeout",
+        "8",
+        "--state-dir",
+        "/opt/v7/egress/state"
+      ]
+    },
+    {
+      "egress": "awg0",
+      "status": "WARN",
+      "ok": true,
+      "rc": 0,
+      "ok_count": 13,
+      "total": 14,
+      "elapsed_sec": 4.192,
+      "output_tail": " \"port\": 443, \"required\": true, \"interface\": \"awg0\", \"ok\": true, \"connect_ms\": 139.9, \"source_ip\": \"10.8.1.10\", \"source_port\": 57006}, {\"target\": \"149.154.167.50:5222\", \"host\": \"149.154.167.50\", \"port\": 5222, \"required\": false, \"interface\": \"awg0\", \"ok\": true, \"connect_ms\": 131.2, \"source_ip\": \"10.8.1.10\", \"source_port\": 58996}, {\"target\": \"149.154.167.50:80\", \"host\": \"149.154.167.50\", \"port\": 80, \"required\": false, \"interface\": \"awg0\", \"ok\": true, \"connect_ms\": 135.8, \"source_ip\": \"10.8.1.10\", \"source_port\": 48820}, {\"target\": \"api.telegram.org:443\", \"host\": \"api.telegram.org\", \"port\": 443, \"required\": true, \"interface\": \"awg0\", \"ok\": true, \"connect_ms\": 143.7, \"source_ip\": \"10.8.1.10\", \"source_port\": 57128}, {\"target\": \"194.221.250.50:443\", \"host\": \"194.221.250.50\", \"port\": 443, \"required\": true, \"interface\": \"awg0\", \"ok\": true, \"connect_ms\": 146.2, \"source_ip\": \"10.8.1.10\", \"source_port\": 47038}, {\"target\": \"149.154.175.50:443\", \"host\": \"149.154.175.50\", \"port\": 443, \"required\": true, \"interface\": \"awg0\", \"ok\": true, \"connect_ms\": 176.4, \"source_ip\": \"10.8.1.10\", \"source_port\": 60524}, {\"target\": \"91.108.56.177:443\", \"host\": \"91.108.56.177\", \"port\": 443, \"required\": true, \"interface\": \"awg0\", \"ok\": true, \"connect_ms\": 291.4, \"source_ip\": \"10.8.1.10\", \"source_port\": 42840}, {\"target\": \"91.108.56.177:5222\", \"host\": \"91.108.56.177\", \"port\": 5222, \"required\": false, \"interface\": \"awg0\", \"ok\": true, \"connect_ms\": 303.9, \"source_ip\": \"10.8.1.10\", \"source_port\": 53926}, {\"target\": \"194.221.250.50:80\", \"host\": \"194.221.250.50\", \"port\": 80, \"required\": false, \"interface\": \"awg0\", \"ok\": false, \"error\": \"timeout\", \"connect_ms\": 4004.3}, {\"target\": \"194.221.250.50:5222\", \"host\": \"194.221.250.50\", \"port\": 5222, \"required\": false, \"interface\": \"awg0\", \"ok\": false, \"error\": \"timeout\", \"connect_ms\": 4002.2}]}}, \"matrix_file\": \"/opt/v7/egress/state/service-matrix.json\", \"service_matrix_lock\": {\"held\": false, \"inherited\": true, \"path\": \"/opt/v7/egress/state/service-matrix.lock\"}}\n",
+      "cmd": [
+        "/usr/local/bin/v7-service-matrix-test",
+        "awg0",
+        "all",
+        "--timeout",
+        "8",
+        "--state-dir",
+        "/opt/v7/egress/state"
+      ]
+    },
+    {
+      "egress": "awg3",
+      "status": "WARN",
+      "ok": true,
+      "rc": 0,
+      "ok_count": 13,
+      "total": 14,
+      "elapsed_sec": 4.204,
+      "output_tail": "7.50\", \"port\": 5222, \"required\": false, \"interface\": \"awg3\", \"ok\": true, \"connect_ms\": 64.0, \"source_ip\": \"10.8.1.13\", \"source_port\": 37152}, {\"target\": \"149.154.167.50:443\", \"host\": \"149.154.167.50\", \"port\": 443, \"required\": true, \"interface\": \"awg3\", \"ok\": true, \"connect_ms\": 65.4, \"source_ip\": \"10.8.1.13\", \"source_port\": 42356}, {\"target\": \"194.221.250.50:443\", \"host\": \"194.221.250.50\", \"port\": 443, \"required\": true, \"interface\": \"awg3\", \"ok\": true, \"connect_ms\": 50.1, \"source_ip\": \"10.8.1.13\", \"source_port\": 44936}, {\"target\": \"149.154.167.50:80\", \"host\": \"149.154.167.50\", \"port\": 80, \"required\": false, \"interface\": \"awg3\", \"ok\": true, \"connect_ms\": 65.0, \"source_ip\": \"10.8.1.13\", \"source_port\": 53710}, {\"target\": \"api.telegram.org:443\", \"host\": \"api.telegram.org\", \"port\": 443, \"required\": true, \"interface\": \"awg3\", \"ok\": true, \"connect_ms\": 68.1, \"source_ip\": \"10.8.1.13\", \"source_port\": 43072}, {\"target\": \"149.154.175.50:443\", \"host\": \"149.154.175.50\", \"port\": 443, \"required\": true, \"interface\": \"awg3\", \"ok\": true, \"connect_ms\": 152.8, \"source_ip\": \"10.8.1.13\", \"source_port\": 50258}, {\"target\": \"91.108.56.177:443\", \"host\": \"91.108.56.177\", \"port\": 443, \"required\": true, \"interface\": \"awg3\", \"ok\": true, \"connect_ms\": 206.5, \"source_ip\": \"10.8.1.13\", \"source_port\": 38712}, {\"target\": \"91.108.56.177:5222\", \"host\": \"91.108.56.177\", \"port\": 5222, \"required\": false, \"interface\": \"awg3\", \"ok\": true, \"connect_ms\": 211.1, \"source_ip\": \"10.8.1.13\", \"source_port\": 40064}, {\"target\": \"194.221.250.50:80\", \"host\": \"194.221.250.50\", \"port\": 80, \"required\": false, \"interface\": \"awg3\", \"ok\": false, \"error\": \"timeout\", \"connect_ms\": 4004.5}, {\"target\": \"194.221.250.50:5222\", \"host\": \"194.221.250.50\", \"port\": 5222, \"required\": false, \"interface\": \"awg3\", \"ok\": false, \"error\": \"timeout\", \"connect_ms\": 4004.2}]}}, \"matrix_file\": \"/opt/v7/egress/state/service-matrix.json\", \"service_matrix_lock\": {\"held\": false, \"inherited\": true, \"path\": \"/opt/v7/egress/state/service-matrix.lock\"}}\n",
+      "cmd": [
+        "/usr/local/bin/v7-service-matrix-test",
+        "awg3",
+        "all",
+        "--timeout",
+        "8",
+        "--state-dir",
+        "/opt/v7/egress/state"
+      ]
+    },
+    {
+      "egress": "1",
+      "status": "FAIL",
+      "ok": false,
+      "rc": 0,
+      "ok_count": 0,
+      "total": 14,
+      "elapsed_sec": 16.26,
+      "output_tail": "\": [{\"target\": \"https://auth.openai.com/\", \"ok\": false, \"http_code\": \"000\", \"first_byte_sec\": \"0.000000\", \"total_sec\": \"8.005684\", \"rc\": 28, \"error\": \"curl: (28) Connection timed out after 8005 milliseconds\\n000 0.000000 8.005684\"}]}, \"soundcloud\": {\"label\": \"SoundCloud\", \"kind\": \"http\", \"url\": \"https://soundcloud.com/\", \"interface\": \"v7e356a192b79\", \"ok\": false, \"status\": \"FAIL\", \"severity\": \"FAIL\", \"http_reachable\": false, \"limited\": false, \"http_code\": \"000\", \"first_byte_sec\": \"0.000000\", \"total_sec\": \"8.002344\", \"rc\": 28, \"elapsed_sec\": 8.042, \"tested_at\": \"2026-06-23T16:08:46.270305+00:00\", \"reason\": \"curl: (28) Connection timed out after 8002 milliseconds\\n000 0.000000 8.002344\", \"error\": \"curl: (28) Connection timed out after 8002 milliseconds\\n000 0.000000 8.002344\", \"samples\": [{\"target\": \"https://soundcloud.com/\", \"ok\": false, \"http_code\": \"000\", \"first_byte_sec\": \"0.000000\", \"total_sec\": \"8.002344\", \"rc\": 28, \"error\": \"curl: (28) Connection timed out after 8002 milliseconds\\n000 0.000000 8.002344\"}]}, \"anthropic\": {\"label\": \"Anthropic API\", \"kind\": \"http\", \"url\": \"https://api.anthropic.com/\", \"interface\": \"v7e356a192b79\", \"ok\": false, \"status\": \"FAIL\", \"severity\": \"FAIL\", \"http_reachable\": false, \"limited\": false, \"http_code\": \"000\", \"first_byte_sec\": \"0.000000\", \"total_sec\": \"8.002261\", \"rc\": 28, \"elapsed_sec\": 8.021, \"tested_at\": \"2026-06-23T16:08:46.285509+00:00\", \"reason\": \"curl: (28) Connection timed out after 8002 milliseconds\\n000 0.000000 8.002261\", \"error\": \"curl: (28) Connection timed out after 8002 milliseconds\\n000 0.000000 8.002261\", \"samples\": [{\"target\": \"https://api.anthropic.com/\", \"ok\": false, \"http_code\": \"000\", \"first_byte_sec\": \"0.000000\", \"total_sec\": \"8.002261\", \"rc\": 28, \"error\": \"curl: (28) Connection timed out after 8002 milliseconds\\n000 0.000000 8.002261\"}]}}, \"matrix_file\": \"/opt/v7/egress/state/service-matrix.json\", \"service_matrix_lock\": {\"held\": false, \"inherited\": true, \"path\": \"/opt/v7/egress/state/service-matrix.lock\"}}\n",
+      "cmd": [
+        "/usr/local/bin/v7-service-matrix-test",
+        "1",
+        "all",
+        "--timeout",
+        "8",
+        "--state-dir",
+        "/opt/v7/egress/state"
+      ]
+    },
+    {
+      "egress": "openvpn-1779388847-d2ad7c",
+      "status": "FAIL",
+      "ok": false,
+      "rc": 0,
+      "ok_count": 0,
+      "total": 14,
+      "elapsed_sec": 16.239,
+      "output_tail": "0.000000 8.002449\", \"samples\": [{\"target\": \"https://chatgpt.com/\", \"ok\": false, \"http_code\": \"000\", \"first_byte_sec\": \"0.000000\", \"total_sec\": \"8.002449\", \"rc\": 28, \"error\": \"curl: (28) Connection timed out after 8002 milliseconds\\n000 0.000000 8.002449\"}]}, \"claude\": {\"label\": \"Claude\", \"kind\": \"http\", \"url\": \"https://claude.ai/\", \"interface\": \"v7edb0c189291\", \"ok\": false, \"status\": \"FAIL\", \"severity\": \"FAIL\", \"http_reachable\": false, \"limited\": false, \"http_code\": \"000\", \"first_byte_sec\": \"0.000000\", \"total_sec\": \"8.001786\", \"rc\": 28, \"elapsed_sec\": 8.03, \"tested_at\": \"2026-06-23T16:09:02.523238+00:00\", \"reason\": \"curl: (28) Connection timed out after 8001 milliseconds\\n000 0.000000 8.001786\", \"error\": \"curl: (28) Connection timed out after 8001 milliseconds\\n000 0.000000 8.001786\", \"samples\": [{\"target\": \"https://claude.ai/\", \"ok\": false, \"http_code\": \"000\", \"first_byte_sec\": \"0.000000\", \"total_sec\": \"8.001786\", \"rc\": 28, \"error\": \"curl: (28) Connection timed out after 8001 milliseconds\\n000 0.000000 8.001786\"}]}, \"openai_auth\": {\"label\": \"OpenAI Auth\", \"kind\": \"http\", \"url\": \"https://auth.openai.com/\", \"interface\": \"v7edb0c189291\", \"ok\": false, \"status\": \"FAIL\", \"severity\": \"FAIL\", \"http_reachable\": false, \"limited\": false, \"http_code\": \"000\", \"first_byte_sec\": \"0.000000\", \"total_sec\": \"8.002049\", \"rc\": 28, \"elapsed_sec\": 8.04, \"tested_at\": \"2026-06-23T16:09:02.524178+00:00\", \"reason\": \"curl: (28) Connection timed out after 8002 milliseconds\\n000 0.000000 8.002049\", \"error\": \"curl: (28) Connection timed out after 8002 milliseconds\\n000 0.000000 8.002049\", \"samples\": [{\"target\": \"https://auth.openai.com/\", \"ok\": false, \"http_code\": \"000\", \"first_byte_sec\": \"0.000000\", \"total_sec\": \"8.002049\", \"rc\": 28, \"error\": \"curl: (28) Connection timed out after 8002 milliseconds\\n000 0.000000 8.002049\"}]}}, \"matrix_file\": \"/opt/v7/egress/state/service-matrix.json\", \"service_matrix_lock\": {\"held\": false, \"inherited\": true, \"path\": \"/opt/v7/egress/state/service-matrix.lock\"}}\n",
+      "cmd": [
+        "/usr/local/bin/v7-service-matrix-test",
+        "openvpn-1779388847-d2ad7c",
+        "all",
+        "--timeout",
+        "8",
+        "--state-dir",
+        "/opt/v7/egress/state"
+      ]
+    },
+    {
+      "egress": "wireguard-1779454504-c43409",
+      "status": "WARN",
+      "ok": true,
+      "rc": 0,
+      "ok_count": 13,
+      "total": 14,
+      "elapsed_sec": 4.184,
+      "output_tail": "78\", \"ok\": true, \"connect_ms\": 88.1, \"source_ip\": \"10.8.0.17\", \"source_port\": 44428}, {\"target\": \"149.154.167.50:5222\", \"host\": \"149.154.167.50\", \"port\": 5222, \"required\": false, \"interface\": \"v7e06a394c478\", \"ok\": true, \"connect_ms\": 89.4, \"source_ip\": \"10.8.0.17\", \"source_port\": 47434}, {\"target\": \"194.221.250.50:443\", \"host\": \"194.221.250.50\", \"port\": 443, \"required\": true, \"interface\": \"v7e06a394c478\", \"ok\": true, \"connect_ms\": 95.3, \"source_ip\": \"10.8.0.17\", \"source_port\": 51658}, {\"target\": \"149.154.167.50:443\", \"host\": \"149.154.167.50\", \"port\": 443, \"required\": true, \"interface\": \"v7e06a394c478\", \"ok\": true, \"connect_ms\": 123.6, \"source_ip\": \"10.8.0.17\", \"source_port\": 59388}, {\"target\": \"149.154.167.50:80\", \"host\": \"149.154.167.50\", \"port\": 80, \"required\": false, \"interface\": \"v7e06a394c478\", \"ok\": true, \"connect_ms\": 127.7, \"source_ip\": \"10.8.0.17\", \"source_port\": 49888}, {\"target\": \"149.154.175.50:443\", \"host\": \"149.154.175.50\", \"port\": 443, \"required\": true, \"interface\": \"v7e06a394c478\", \"ok\": true, \"connect_ms\": 235.2, \"source_ip\": \"10.8.0.17\", \"source_port\": 56086}, {\"target\": \"91.108.56.177:443\", \"host\": \"91.108.56.177\", \"port\": 443, \"required\": true, \"interface\": \"v7e06a394c478\", \"ok\": true, \"connect_ms\": 242.1, \"source_ip\": \"10.8.0.17\", \"source_port\": 41914}, {\"target\": \"194.221.250.50:80\", \"host\": \"194.221.250.50\", \"port\": 80, \"required\": false, \"interface\": \"v7e06a394c478\", \"ok\": false, \"error\": \"timeout\", \"connect_ms\": 4002.4}, {\"target\": \"91.108.56.177:5222\", \"host\": \"91.108.56.177\", \"port\": 5222, \"required\": false, \"interface\": \"v7e06a394c478\", \"ok\": false, \"error\": \"timeout\", \"connect_ms\": 4004.4}, {\"target\": \"194.221.250.50:5222\", \"host\": \"194.221.250.50\", \"port\": 5222, \"required\": false, \"interface\": \"v7e06a394c478\", \"ok\": false, \"error\": \"timeout\", \"connect_ms\": 4004.8}]}}, \"matrix_file\": \"/opt/v7/egress/state/service-matrix.json\", \"service_matrix_lock\": {\"held\": false, \"inherited\": true, \"path\": \"/opt/v7/egress/state/service-matrix.lock\"}}\n",
+      "cmd": [
+        "/usr/local/bin/v7-service-matrix-test",
+        "wireguard-1779454504-c43409",
+        "all",
+        "--timeout",
+        "8",
+        "--state-dir",
+        "/opt/v7/egress/state"
+      ]
+    },
+    {
+      "egress": "amneziawg-exec-20260528-10-8-1-14",
+      "status": "WARN",
+      "ok": true,
+      "rc": 0,
+      "ok_count": 13,
+      "total": 14,
+      "elapsed_sec": 4.202,
+      "output_tail": "\"v7execwg0\", \"ok\": true, \"connect_ms\": 46.9, \"source_ip\": \"10.8.1.14\", \"source_port\": 54906}, {\"target\": \"api.telegram.org:443\", \"host\": \"api.telegram.org\", \"port\": 443, \"required\": true, \"interface\": \"v7execwg0\", \"ok\": true, \"connect_ms\": 50.8, \"source_ip\": \"10.8.1.14\", \"source_port\": 52102}, {\"target\": \"149.154.167.50:80\", \"host\": \"149.154.167.50\", \"port\": 80, \"required\": false, \"interface\": \"v7execwg0\", \"ok\": true, \"connect_ms\": 45.6, \"source_ip\": \"10.8.1.14\", \"source_port\": 57540}, {\"target\": \"149.154.167.50:5222\", \"host\": \"149.154.167.50\", \"port\": 5222, \"required\": false, \"interface\": \"v7execwg0\", \"ok\": true, \"connect_ms\": 45.8, \"source_ip\": \"10.8.1.14\", \"source_port\": 55918}, {\"target\": \"194.221.250.50:443\", \"host\": \"194.221.250.50\", \"port\": 443, \"required\": true, \"interface\": \"v7execwg0\", \"ok\": true, \"connect_ms\": 42.4, \"source_ip\": \"10.8.1.14\", \"source_port\": 53228}, {\"target\": \"149.154.175.50:443\", \"host\": \"149.154.175.50\", \"port\": 443, \"required\": true, \"interface\": \"v7execwg0\", \"ok\": true, \"connect_ms\": 146.2, \"source_ip\": \"10.8.1.14\", \"source_port\": 35500}, {\"target\": \"91.108.56.177:443\", \"host\": \"91.108.56.177\", \"port\": 443, \"required\": true, \"interface\": \"v7execwg0\", \"ok\": true, \"connect_ms\": 191.8, \"source_ip\": \"10.8.1.14\", \"source_port\": 37220}, {\"target\": \"91.108.56.177:5222\", \"host\": \"91.108.56.177\", \"port\": 5222, \"required\": false, \"interface\": \"v7execwg0\", \"ok\": true, \"connect_ms\": 198.3, \"source_ip\": \"10.8.1.14\", \"source_port\": 48040}, {\"target\": \"194.221.250.50:80\", \"host\": \"194.221.250.50\", \"port\": 80, \"required\": false, \"interface\": \"v7execwg0\", \"ok\": false, \"error\": \"timeout\", \"connect_ms\": 4003.6}, {\"target\": \"194.221.250.50:5222\", \"host\": \"194.221.250.50\", \"port\": 5222, \"required\": false, \"interface\": \"v7execwg0\", \"ok\": false, \"error\": \"timeout\", \"connect_ms\": 4006.2}]}}, \"matrix_file\": \"/opt/v7/egress/state/service-matrix.json\", \"service_matrix_lock\": {\"held\": false, \"inherited\": true, \"path\": \"/opt/v7/egress/state/service-matrix.lock\"}}\n",
+      "cmd": [
+        "/usr/local/bin/v7-service-matrix-test",
+        "amneziawg-exec-20260528-10-8-1-14",
+        "all",
+        "--timeout",
+        "8",
+        "--state-dir",
+        "/opt/v7/egress/state"
+      ]
+    }
+  ],
+  "service_matrix_lock": {
+    "held": true,
+    "scope": "full_refresh_batch",
+    "path": "/opt/v7/egress/state/service-matrix.lock",
+    "runtime_behavior_changed": false,
+    "users_moved": false
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "updated": "2026-06-23T16:09:16.399866+00:00",
+  "ok": true,
+  "samples": 7,
+  "summary_file": "/opt/v7/egress/state/egress-quality-summary.json",
+  "ring_file": "/opt/v7/egress/state/egress-quality-ring.json",
+  "ring_items": 2000,
+  "service_matrix_lock": {
+    "schema": "v7.service-matrix-lifecycle-lock.v1",
+    "enabled": true,
+    "acquired": true,
+    "inherited": false,
+    "released": true,
+    "path": "/opt/v7/egress/state/service-matrix.lock",
+    "scope": "quality_summary_writer_lifecycle",
+    "owner": "tools/v7-egress-quality-compact",
+    "runtime_behavior_changed": false,
+    "governance_behavior_changed": false,
+    "execution_behavior_changed": false,
+    "users_moved": false,
+    "timeout_sec": 90,
+    "decision": "quality_summary_writer_serialized_for_planner_lifecycle",
+    "waited_sec": 1.001
+  },
+  "restore_barrier_pause": {
+    "schema": "v7.quality-summary-restore-barrier-bind.v1",
+    "owner": "tools/v7-egress-quality-compact",
+    "restore_barrier_file": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+    "pause_writes": false,
+    "reason": "restore_barrier_not_blocking_quality_summary_writer",
+    "runtime_behavior_changed": false,
+    "governance_behavior_changed": false,
+    "execution_behavior_changed": false,
+    "users_moved": false,
+    "clearance_expires_at": "2026-06-13T19:29:19.851623+00:00",
+    "clearance_expected_selected_moves": 10
+  }
+}

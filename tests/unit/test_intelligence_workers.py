@@ -875,6 +875,31 @@ class IntelligenceWorkersTest(unittest.TestCase):
                 ["oldest", "newer", "active"],
             )
 
+    def test_snapshot_refresh_jsonl_family_keeps_extended_evidence_window(self):
+        tool_path = Path(__file__).resolve().parents[2] / "tools" / "v7-intelligence-snapshot-refresh"
+        spec = importlib.util.spec_from_loader(
+            "v7_intelligence_snapshot_refresh",
+            SourceFileLoader("v7_intelligence_snapshot_refresh", str(tool_path)),
+        )
+        self.assertIsNotNone(spec)
+        refresh = importlib.util.module_from_spec(spec)
+        self.assertIsNotNone(spec.loader)
+        spec.loader.exec_module(refresh)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            log = root / "execution-events.jsonl"
+            log.write_text(
+                "".join(json.dumps({"order": index}) + "\n" for index in range(workers.MAX_HISTORY_RECORDS + 25)),
+                encoding="utf-8",
+            )
+
+            rows = refresh.read_jsonl_family(log)
+
+        self.assertEqual(len(rows), workers.MAX_HISTORY_RECORDS + 25)
+        self.assertEqual(rows[0]["order"], 0)
+        self.assertEqual(rows[-1]["order"], workers.MAX_HISTORY_RECORDS + 24)
+
     def test_snapshot_refresh_preserves_rotated_blast_evidence_through_regeneration(self):
         tool_path = Path(__file__).resolve().parents[2] / "tools" / "v7-intelligence-snapshot-refresh"
         spec = importlib.util.spec_from_loader(

@@ -365,6 +365,11 @@ def build_floor_forensics(
             "blast_radius_confidence": round(blast_confidence, 3),
             "root_cause": "not_current_floor_blockers",
         },
+        "raw_rows": {
+            "prediction": prediction_rows,
+            "service": service_rows,
+            "suitability": suitability_rows,
+        },
         "runtime_mutation_performed": False,
         "users_moved": 0,
         "apply_executed": False,
@@ -893,6 +898,283 @@ def build_confidence_reality_audit(
     }
 
 
+def _project_append_mean(*, current_count: int, current_mean: float, additional: int, future_value: float) -> float:
+    total = max(0, current_count) + max(0, additional)
+    if total <= 0:
+        return 0.0
+    return round(((max(0, current_count) * current_mean) + (max(0, additional) * future_value)) / total, 3)
+
+
+def _row_confidence_value(row: dict[str, Any]) -> float:
+    return as_float(row.get("correctness"), 0.0) * max(as_float(row.get("confidence"), 0.0), 0.25)
+
+
+def _project_missing_candidate_outcomes(rows: list[dict[str, Any]], additional: int) -> dict[str, Any]:
+    rows = [row for row in rows if isinstance(row, dict)]
+    if not rows:
+        return {
+            "projected_suitability_confidence": 0.0,
+            "converted_missing_outcomes": 0,
+            "missing_outcomes_remaining": 0,
+        }
+    current_values = [_row_confidence_value(row) for row in rows]
+    missing = sorted(
+        [value for row, value in zip(rows, current_values) if not row.get("outcome_seen")],
+    )
+    converted = min(max(0, additional), len(missing))
+    projected_sum = sum(current_values) - sum(missing[:converted]) + (converted * 100.0)
+    return {
+        "projected_suitability_confidence": round(projected_sum / len(rows), 3),
+        "converted_missing_outcomes": converted,
+        "missing_outcomes_remaining": max(0, len(missing) - converted),
+    }
+
+
+def build_real_outcome_growth_projection(
+    *,
+    floor_forensics: dict[str, Any],
+    confidence_reality_audit: dict[str, Any],
+    operator_comparisons: dict[str, Any],
+    increments: list[int] | None = None,
+) -> dict[str, Any]:
+    """Project confidence growth from future real outcomes using current formulas only.
+
+    This is intentionally projection-only: it does not create outcomes, change
+    confidence formulas, lower floors, or authorize apply. Each projected cycle
+    assumes a future real outcome can provide one high-confidence prediction
+    match, one high-confidence service row, and one successful missing candidate
+    outcome where a missing candidate exists.
+    """
+    increments = increments or [10, 25, 50]
+    components = floor_forensics.get("component_values") if isinstance(floor_forensics.get("component_values"), dict) else {}
+    prediction = floor_forensics.get("prediction_root_cause") if isinstance(floor_forensics.get("prediction_root_cause"), dict) else {}
+    service = floor_forensics.get("service_root_cause") if isinstance(floor_forensics.get("service_root_cause"), dict) else {}
+    suitability = floor_forensics.get("suitability_root_cause") if isinstance(floor_forensics.get("suitability_root_cause"), dict) else {}
+    trust_rows = floor_forensics.get("raw_rows") if isinstance(floor_forensics.get("raw_rows"), dict) else {}
+    suitability_rows = [row for row in trust_rows.get("suitability") or [] if isinstance(row, dict)]
+    current_prediction_confidence = as_float(components.get("prediction_confidence"), 0.0)
+    current_service_confidence = as_float(components.get("service_confidence"), 0.0)
+    current_suitability_confidence = as_float(components.get("suitability_confidence"), 0.0)
+    decision_confidence = as_float(components.get("decision_confidence"), 0.0)
+    blast_confidence = as_float(components.get("blast_radius_confidence"), 0.0)
+    operator_current = operator_comparisons.get("current") if isinstance(operator_comparisons.get("current"), dict) else {}
+    operator_projection = operator_comparisons.get("growth_projection") if isinstance(operator_comparisons.get("growth_projection"), dict) else {}
+    operator_projection_rows = [row for row in operator_projection.get("rows") or [] if isinstance(row, dict)]
+    current_forecasts = int(as_float(prediction.get("forecasts_seen"), 0.0))
+    current_matched = int(as_float(prediction.get("matched_rows"), 0.0))
+    current_accuracy = as_float(prediction.get("forecast_accuracy"), 0.0)
+    current_forecast_confidence = as_float(prediction.get("mean_forecast_confidence"), 0.0)
+    current_service_rows = int(as_float(service.get("rows_seen"), 0.0))
+    current_suitability_rows = len(suitability_rows) or int(as_float(suitability.get("candidates_seen"), 0.0))
+    projections = []
+    for additional in increments:
+        projected_accuracy = _project_append_mean(
+            current_count=current_matched,
+            current_mean=current_accuracy,
+            additional=additional,
+            future_value=100.0,
+        )
+        projected_forecast_confidence = _project_append_mean(
+            current_count=current_forecasts,
+            current_mean=current_forecast_confidence,
+            additional=additional,
+            future_value=1.0,
+        )
+        projected_prediction = round(min(100.0, projected_accuracy * projected_forecast_confidence), 3)
+        projected_service = _project_append_mean(
+            current_count=current_service_rows,
+            current_mean=current_service_confidence,
+            additional=additional,
+            future_value=100.0,
+        )
+        suitability_projection = _project_missing_candidate_outcomes(suitability_rows, additional)
+        projected_suitability = as_float(
+            suitability_projection.get("projected_suitability_confidence"),
+            current_suitability_confidence,
+        )
+        if not suitability_rows and current_suitability_rows:
+            projected_suitability = current_suitability_confidence
+        projected_confidence = round((decision_confidence + projected_service + projected_suitability) / 3.0, 3)
+        projected_trust = round((decision_confidence + projected_service + projected_suitability + blast_confidence) / 4.0, 3)
+        operator_floor_projection = next(
+            (
+                row for row in operator_projection_rows
+                if int(as_float(row.get("comparisons"), -1)) == additional
+                and abs(as_float(row.get("agreement_rate"), -1.0) - 1.0) < 0.0001
+            ),
+            {},
+        )
+        projected_operator = as_float(
+            operator_floor_projection.get("earned_confidence"),
+            as_float(operator_current.get("earned_confidence"), 0.0),
+        )
+        projections.append({
+            "additional_real_outcome_cycles": additional,
+            "assumption": "each cycle is a real high-confidence outcome, not synthetic evidence",
+            "projected_confidence": projected_confidence,
+            "projected_trust": projected_trust,
+            "projected_prediction_confidence": projected_prediction,
+            "projected_operator_earned_confidence_if_contextual_comparisons": round(projected_operator, 3),
+            "projected_service_confidence": projected_service,
+            "projected_suitability_confidence": projected_suitability,
+            "converted_missing_candidate_outcomes": suitability_projection.get("converted_missing_outcomes", 0),
+            "missing_candidate_outcomes_remaining": suitability_projection.get("missing_outcomes_remaining", 0),
+            "canary_primary_floors_pass": (
+                projected_confidence >= AUTONOMY_CANARY_CONFIDENCE_FLOOR
+                and projected_trust >= AUTONOMY_CANARY_TRUST_FLOOR
+                and projected_prediction >= AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR
+            ),
+            "canary_all_known_floors_pass": (
+                projected_confidence >= AUTONOMY_CANARY_CONFIDENCE_FLOOR
+                and projected_trust >= AUTONOMY_CANARY_TRUST_FLOOR
+                and projected_prediction >= AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR
+                and projected_operator >= shadow_autonomy.OBSERVATION_TARGETS["minimum_earned_confidence"]
+            ),
+        })
+    required = confidence_reality_audit.get("required_real_evidence") if isinstance(confidence_reality_audit.get("required_real_evidence"), dict) else {}
+    return {
+        "schema_version": "v7.autonomy-trust.real-outcome-growth-projection.v1",
+        "projection_only": True,
+        "uses_current_formulas_only": True,
+        "synthetic_evidence_created": False,
+        "formula_changed": False,
+        "floor_changed": False,
+        "source_truth_changed": False,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+        "current": {
+            "confidence": round(as_float((floor_forensics.get("floor_values") or {}).get("confidence", {}).get("current"), 0.0), 3),
+            "trust": round(as_float((floor_forensics.get("floor_values") or {}).get("trust", {}).get("current"), 0.0), 3),
+            "prediction_confidence": round(current_prediction_confidence, 3),
+            "operator_earned_confidence": round(as_float(operator_current.get("earned_confidence"), 0.0), 3),
+            "service_confidence": round(current_service_confidence, 3),
+            "suitability_confidence": round(current_suitability_confidence, 3),
+        },
+        "projections": projections,
+        "minimum_evidence_from_reality_audit": {
+            "prediction": (required.get("prediction") or {}),
+            "service": (required.get("service") or {}),
+            "suitability": (required.get("suitability") or {}),
+            "operator": (required.get("operator") or {}),
+        },
+        "canary_can_start_now": False,
+        "next_blocker": "real_high_confidence_outcome_volume",
+    }
+
+
+def build_real_outcome_source_inventory(
+    *,
+    source_confidence_inventory: dict[str, Any],
+    floor_forensics: dict[str, Any],
+    materialization_audit: dict[str, Any],
+    real_outcome_growth_projection: dict[str, Any],
+) -> dict[str, Any]:
+    sources = {
+        row.get("source"): row
+        for row in source_confidence_inventory.get("sources") or []
+        if isinstance(row, dict)
+    }
+    materialization = materialization_audit if isinstance(materialization_audit, dict) else {}
+    projection_rows = real_outcome_growth_projection.get("projections") or []
+    first_primary_pass = next((row for row in projection_rows if isinstance(row, dict) and row.get("canary_primary_floors_pass")), None)
+    items = [
+        {
+            "source": "service_outcomes",
+            "owner": "tools/v7-service-matrix-refresh-all, tools/v7-service-matrix-test, tools/v7-egress-quality-compact, tools/v7-intelligence-snapshot-refresh",
+            "count": (sources.get("service_outcomes") or {}).get("evidence_count", 0),
+            "freshness": (sources.get("service_outcomes") or {}).get("freshness"),
+            "confidence_contribution": (sources.get("service_outcomes") or {}).get("current_contribution", 0.0),
+            "current_utilization": "consumed_but_low_row_confidence",
+            "classification": "ACCELERATABLE",
+            "safe_acceleration": "run additional real service/quality probe cycles and refresh snapshots",
+        },
+        {
+            "source": "channel_outcomes",
+            "owner": "tools/v7-egress-quality-compact and intelligence snapshot refresh",
+            "count": (sources.get("service_outcomes") or {}).get("evidence_count", 0),
+            "freshness": (sources.get("service_outcomes") or {}).get("freshness"),
+            "confidence_contribution": (sources.get("service_outcomes") or {}).get("current_contribution", 0.0),
+            "current_utilization": "consumed_through_service_channel_snapshots",
+            "classification": "ACCELERATABLE",
+            "safe_acceleration": "repeat real quality compaction after probe windows; no user movement",
+        },
+        {
+            "source": "candidate_outcomes",
+            "owner": "admin_core.intelligence_workers.build_candidate_outcome_rows, governed/manual outcome closure owners",
+            "count": (sources.get("candidate_outcomes") or {}).get("evidence_count", 0),
+            "freshness": (sources.get("candidate_outcomes") or {}).get("freshness"),
+            "confidence_contribution": (sources.get("candidate_outcomes") or {}).get("current_contribution", 0.0),
+            "current_utilization": "consumed_but_incomplete",
+            "classification": "WAIT_FOR_REALITY",
+            "safe_acceleration": "requires real governed/manual outcomes; cannot be generated without action",
+        },
+        {
+            "source": "governed_outcomes",
+            "owner": "admin_core.operator_execution_feedback and closure/runtime trust stores",
+            "count": (materialization.get("candidate_outcomes") or {}).get("candidate_outcomes_count", 0),
+            "freshness": (sources.get("candidate_outcomes") or {}).get("freshness"),
+            "confidence_contribution": (sources.get("candidate_outcomes") or {}).get("current_contribution", 0.0),
+            "current_utilization": "consumed_after_governed_actions",
+            "classification": "BLOCKED",
+            "safe_acceleration": "blocked because this phase forbids runtime apply/user movement",
+        },
+        {
+            "source": "manual_outcomes",
+            "owner": "operator manual action plus existing feedback/closure owners",
+            "count": 0,
+            "freshness": {"freshness_state": "ACTION_DEPENDENT"},
+            "confidence_contribution": 0.0,
+            "current_utilization": "available_only_if_operator_takes_real_manual_action",
+            "classification": "WAIT_FOR_REALITY",
+            "safe_acceleration": "observe and close outcomes after real manual operations; do not manufacture",
+        },
+        {
+            "source": "verification_outcomes",
+            "owner": "restore/rollback/verification owners and intelligence snapshot refresh",
+            "count": (sources.get("rollback_evidence") or {}).get("evidence_count", 0),
+            "freshness": (sources.get("rollback_evidence") or {}).get("freshness"),
+            "confidence_contribution": (sources.get("rollback_evidence") or {}).get("current_contribution", 0.0),
+            "current_utilization": "rollback_sufficient_not_current_blocker",
+            "classification": "WAIT_FOR_REALITY",
+            "safe_acceleration": "new verification outcomes require real governed/manual actions",
+        },
+        {
+            "source": "feedback_outcomes",
+            "owner": "admin_core.operator_execution_feedback, closure records, rotated JSONL evidence family",
+            "count": (materialization.get("prediction_actuals") or {}).get("actuals_seen", 0),
+            "freshness": (sources.get("prediction_matches") or {}).get("freshness"),
+            "confidence_contribution": (sources.get("prediction_matches") or {}).get("current_contribution", 0.0),
+            "current_utilization": "prediction_feedback_consumed",
+            "classification": "ACCELERATABLE",
+            "safe_acceleration": "collect future real forecast->actual pairs from existing snapshots and feedback",
+        },
+        {
+            "source": "learning_outcomes",
+            "owner": "tools/v7-intelligence-snapshot-refresh and admin_core.intelligence_workers",
+            "count": (materialization.get("service_actuals") or {}).get("service_actuals_count", 0),
+            "freshness": (sources.get("service_outcomes") or {}).get("freshness"),
+            "confidence_contribution": (sources.get("service_outcomes") or {}).get("current_contribution", 0.0),
+            "current_utilization": "refresh_owner_consumes_available_outcomes",
+            "classification": "ACCELERATABLE",
+            "safe_acceleration": "refresh after real probes/outcomes; does not create synthetic evidence",
+        },
+    ]
+    return {
+        "schema_version": "v7.autonomy-trust.real-outcome-source-inventory.v1",
+        "items": items,
+        "acceleration_summary": {
+            "acceleratable": [row["source"] for row in items if row["classification"] == "ACCELERATABLE"],
+            "wait_for_reality": [row["source"] for row in items if row["classification"] == "WAIT_FOR_REALITY"],
+            "blocked": [row["source"] for row in items if row["classification"] == "BLOCKED"],
+            "first_projected_primary_canary_pass": first_primary_pass,
+        },
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
 def _comparison_projection_value(shadow_model: dict[str, Any], comparisons: int, agreement_rate: float) -> float:
     projection = shadow_model.get("comparison_growth_projection") if isinstance(shadow_model.get("comparison_growth_projection"), dict) else {}
     for row in projection.get("rows") or []:
@@ -1086,6 +1368,17 @@ def build_acceleration_inventory(
         source_inventory=source_confidence_inventory,
         operator_comparisons=operator_comparisons,
     )
+    real_outcome_growth_projection = build_real_outcome_growth_projection(
+        floor_forensics=floor_forensics,
+        confidence_reality_audit=confidence_reality_audit,
+        operator_comparisons=operator_comparisons,
+    )
+    real_outcome_source_inventory = build_real_outcome_source_inventory(
+        source_confidence_inventory=source_confidence_inventory,
+        floor_forensics=floor_forensics,
+        materialization_audit=materialization_audit,
+        real_outcome_growth_projection=real_outcome_growth_projection,
+    )
     return {
         "schema_version": "v7.autonomy-trust-acceleration.inventory.v1",
         "generated_at": generated,
@@ -1101,6 +1394,8 @@ def build_acceleration_inventory(
         "evidence_sufficiency": evidence_sufficiency,
         "source_confidence_collection_plan": source_confidence_collection_plan,
         "confidence_reality_audit": confidence_reality_audit,
+        "real_outcome_source_inventory": real_outcome_source_inventory,
+        "real_outcome_growth_projection": real_outcome_growth_projection,
         "collection_plan": {
             "primary_real_evidence_path": [
                 "observe service and channel quality outcomes through existing service/quality snapshots",

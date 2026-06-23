@@ -239,6 +239,21 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         )
         self.assertTrue(reality["new_real_world_outcomes_required"])
         self.assertFalse(reality["can_confidence_grow_materially_without_new_runtime_actions"])
+        outcome_inventory = second["real_outcome_source_inventory"]
+        self.assertIn("service_outcomes", outcome_inventory["acceleration_summary"]["acceleratable"])
+        self.assertIn("feedback_outcomes", outcome_inventory["acceleration_summary"]["acceleratable"])
+        self.assertIn("candidate_outcomes", outcome_inventory["acceleration_summary"]["wait_for_reality"])
+        self.assertIn("governed_outcomes", outcome_inventory["acceleration_summary"]["blocked"])
+        projection = second["real_outcome_growth_projection"]
+        self.assertTrue(projection["projection_only"])
+        self.assertTrue(projection["uses_current_formulas_only"])
+        self.assertFalse(projection["synthetic_evidence_created"])
+        self.assertEqual([row["additional_real_outcome_cycles"] for row in projection["projections"]], [10, 25, 50])
+        first_projection = projection["projections"][0]
+        self.assertGreater(first_projection["projected_service_confidence"], projection["current"]["service_confidence"])
+        self.assertGreater(first_projection["projected_prediction_confidence"], projection["current"]["prediction_confidence"])
+        self.assertGreaterEqual(first_projection["converted_missing_candidate_outcomes"], 1)
+        self.assertFalse(projection["canary_can_start_now"])
         self.assertFalse(second["runtime_mutation_performed"])
         self.assertFalse(second["apply_executed"])
         self.assertEqual(second["users_moved"], 0)

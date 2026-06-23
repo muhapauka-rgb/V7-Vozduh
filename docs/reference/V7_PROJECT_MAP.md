@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-23
-Last changed by: `AUTONOMY.CANARY.1B_SNAPSHOT_GATE_RESTORE_BARRIER_AND_READINESS_CLOSURE`
+Last changed by: `AUTONOMY.CANARY.1C_RESTORE_BARRIER_LIFECYCLE_AND_NEXT_BLOCKER`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -21,7 +21,7 @@ POOL.1 classified the pool as stable with zero planner candidates. POOL.2 rechec
 
 Current roadmap position:
 
-`CANARY_BLOCKED_BY_RESTORE`
+`CANARY_BLOCKED_BY_CONFIDENCE`
 
 The blueprint view keeps channel recovery visible, but the project-level autonomy bottleneck is now broader and more precise. Branch 1B closed the blast recovery branch in production, AUTONOMY.TRUST.BUILDOUT.1 found that recovered blast evidence was not durable in the current consumed dry-run, and AUTONOMY.TRUST.DURABILITY.1 fixed the normal refresh code path so rotated evidence survives refresh/rebuild/reread:
 
@@ -112,6 +112,9 @@ contextual operator comparison
 | Candidate Visibility | 55% | 85% | +30% | `AUTONOMY.CANARY.1B` | Normal production observe now auto-runs the existing snapshot refresh owner, clears snapshot gate, and exposes real current candidates (`candidate_moves_total=8`) before restore guard. |
 | Restore Barrier Readiness | 45% | 55% | +10% | `AUTONOMY.CANARY.1B` | Fresh packet preview validates for one canary candidate, and restore settle gate is `GO`, but production clearance is expired and tied to an obsolete 10-user plan. |
 | Canary Readiness | 45% | 50% | +5% | `AUTONOMY.CANARY.1B` | Canary remains blocked at restore barrier: `dry_run_restore_barrier_clearance_generation_expired`; no apply, no user movement. |
+| Restore Barrier Readiness | 55% | 80% | +25% | `AUTONOMY.CANARY.1C` | Existing execution owner can now produce a valid read-only restore-barrier clearance preview for the fresh one-user canary packet; preview survives reread and explicit snapshot refresh. |
+| Canary Readiness | 50% | 55% | +5% | `AUTONOMY.CANARY.1C` | Restore preview is clear, but canary remains blocked by confidence, trust, and prediction confidence floors below `70.0`. |
+| Production Autonomy | 45% | 47% | +2% | `AUTONOMY.CANARY.1C` | Restore lifecycle confidence improved, but no apply authority, daemon, user movement, synthetic evidence, or floor change occurred. |
 
 ## Stable Areas
 
@@ -119,6 +122,7 @@ contextual operator comparison
 | --- | ---: | --- | --- |
 | Runtime truth / convergence | 100% | PASS / FULLY_ALIGNED | `POOL2_EVIDENCE/truth_check.json`, `POOL2_EVIDENCE/convergence_status.json` |
 | Snapshot gate | 85% | CLOSED_FOR_NORMAL_OBSERVE | `AUTONOMY.CANARY.1B`: normal production observe reports `stop_required=false`, `stop_families=[]`, and `pre_planner_refresh.state=REFRESH_SUCCESS` |
+| Restore barrier preview | 80% | VALID_READ_ONLY_PREVIEW | `AUTONOMY.CANARY.1C`: `ALLOW_RESTORE_BARRIER_CLEARANCE` and `RESTORE_BARRIER_CLEARANCE_PREVIEW_VALID` for one fresh canary packet, without writing barrier state |
 | Atomic envelope | 100% | valid | `condition=ENVELOPE_VALID`, `mismatches=[]` |
 | Current distribution evidence | 100% | known | `POOL2_EVIDENCE/current_distribution.json` |
 
@@ -132,9 +136,22 @@ contextual operator comparison
 | P1 | `OBSERVED_OUTCOME.EVIDENCE.1_REAL_SERVICE_CHANNEL_OUTCOME_COLLECTION` | Observed service/channel outcome is the primary trust source; current confidence `39.606` and trust `54.705` remain below autonomy floors. |
 | P1 | `AUTONOMY.PREDICTION.EVIDENCE.3_REAL_VOLUME_AND_SOURCE_CONFIDENCE_COLLECTION` | Prediction lifecycle is durable with `21/21` matched rows and `0` pending rows, but prediction confidence remains `36.859` vs the `70.0` floor. |
 | P2 | `OPERATOR_COMPARISON.REVIEW.1_CONTEXTUAL_SUPERVISED_CONFIRMATION` | Operator comparison remains valid only when the operator has enough context; do not create blind training history. |
-| P1 | `AUTONOMY.CANARY.1C_RESTORE_BARRIER_CLEARANCE_RECHECK` | 1B closed snapshot/candidate visibility. Current canary is blocked because restore-barrier clearance is expired and belongs to an obsolete approved plan lock. Use existing packet/restore owner only; no user movement unless a later apply phase explicitly authorizes it. |
+| P1 | `AUTONOMY.CANARY.1D_CONFIDENCE_TRUST_PREDICTION_FLOOR_CLOSURE` | 1C cleared restore-barrier preview for the fresh canary candidate. Current canary is blocked by confidence `39.558`, trust `54.668`, prediction confidence `36.511`, and secondary operator earned confidence `45.837`, all below `70.0`. |
 
 ## Changelog
+
+### 2026-06-23 — AUTONOMY.CANARY.1C Restore Barrier Lifecycle And Next Blocker
+
+- Implemented read-only `runtime_action_preview` through the existing `admin_core/operator_execution.py` owner.
+- Added `tools/v7-operator-execution-packet --preview-runtime-action`.
+- Runtime fix commit: `7b3f6bca`.
+- Production candidate pressure remains visible: `candidate_moves_total=8`.
+- Fresh canary packet `pkt_09e0c1125bc0a6016abbb5a6` selects `10.0.0.2 awg3 -> wireguard-1779454504-c43409`.
+- Restore preview passes with `ALLOW_RESTORE_BARRIER_CLEARANCE` and `RESTORE_BARRIER_CLEARANCE_PREVIEW_VALID`.
+- Preview survives reread and explicit snapshot refresh.
+- No restore barrier write, runtime apply, autoswitch apply, user movement, daemon enablement, synthetic evidence, or floor change occurred.
+- Canary remains blocked by evidence floors: confidence `39.558`, trust `54.668`, prediction confidence `36.511`, and operator earned confidence `45.837`.
+- Final verdict: `CANARY_BLOCKED_BY_CONFIDENCE`.
 
 ### 2026-06-23 — AUTONOMY.CANARY.1B Snapshot Gate, Restore Barrier, And Readiness Closure
 

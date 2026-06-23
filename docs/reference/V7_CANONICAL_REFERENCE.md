@@ -1,7 +1,7 @@
 # V7 Canonical Reference
 
 Status: canonical project reference
-Last verified commit: `18afa72c`
+Last verified commit: `7b3f6bca`
 Last verified date: 2026-06-23
 
 This document describes the current meaning of V7 system concepts. It is not a history log and not an audit report. Reports remain evidence. ADRs explain why a decision was made. This reference is the current truth that future V7 work must read before re-auditing old concepts.
@@ -205,6 +205,13 @@ Stable conclusions:
 18. A fresh execution packet preview for that one canary candidate validates as `PACKET_VALID` with `runtime_action=CREATE_RESTORE_BARRIER_CLEARANCE`, but no packet execution, restore-barrier write, apply, user movement, daemon, synthetic evidence, floor change, or new truth source occurred.
 19. Canary is still blocked by restore: the current production restore barrier clearance expired on `2026-06-13T19:29:19.851623+00:00`, references planner generation `1fd508b2fc82598d134f3defb598dd6593f0decd3da8437d953e788c3d3c098b`, and contains an old approved plan lock for 10 `vless` moves. The fresh generation is `d4098562a46e2cb32db70bab1943d638637198b896423da9b633f79d8e250080`, so reusing the old lock is correctly rejected with `approved_plan_lock_expired` and `approved_plan_lock_user_source_mismatch`.
 20. AUTONOMY.CANARY.1B final verdict is `CANARY_BLOCKED_BY_RESTORE`. The next safe phase is explicit governed restore-barrier clearance generation through the existing `tools/v7-operator-execution-packet` / `admin_core/operator_execution.py` owner, followed by another readiness recheck. This must not move users unless a later phase separately authorizes apply.
+21. AUTONOMY.CANARY.1C on 2026-06-23 implemented the smallest existing-owner restore-barrier lifecycle fix: `admin_core/operator_execution.py` can now run a read-only `runtime_action_preview` for `CREATE_RESTORE_BARRIER_CLEARANCE` via `tools/v7-operator-execution-packet --preview-runtime-action`.
+22. The new preview does not write the restore barrier, does not append audit/lifecycle state, does not apply autoswitch, and does not move users. It preserves duplicate active owner denial and returns explicit non-mutation flags.
+23. Production 1C evidence shows `candidate_moves_total=8`; a fresh packet `pkt_09e0c1125bc0a6016abbb5a6` selects one canary move: `10.0.0.2 awg3 -> wireguard-1779454504-c43409`.
+24. Restore-barrier preview now passes for that fresh packet with `ALLOW_RESTORE_BARRIER_CLEARANCE` and `RESTORE_BARRIER_CLEARANCE_PREVIEW_VALID`; the clearance preview uses generation `d4098562a46e2cb32db70bab1943d638637198b896423da9b633f79d8e250080` and selected move count `1`.
+25. The valid clearance preview survives reread and an explicit snapshot refresh. Normal production observe still stops at `dry_run_restore_barrier_clearance_generation_expired` because 1C intentionally did not write clearance state.
+26. After restore preview is clear, the next canary blocker is evidence confidence: confidence `39.558`, trust `54.668`, prediction confidence `36.511`, and secondary operator earned confidence `45.837`, all below the `70.0` floor.
+27. AUTONOMY.CANARY.1C final verdict is `CANARY_BLOCKED_BY_CONFIDENCE`; the next safe phase is real existing-owner confidence/trust/prediction evidence closure, not runtime apply.
 
 ## AUTONOMY_ROOT_CONFIDENCE_TRUST_MODEL
 

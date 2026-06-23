@@ -264,6 +264,50 @@ class RuntimeSnapshotFastPathTest(unittest.TestCase):
             self.assertTrue(snapshot_path(root / "state" / "intelligence", "service-scores").exists())
             self.assertEqual(len(plan["selected_moves"]), 1)
 
+    def test_observe_auto_refresh_writes_missing_snapshots_before_planning(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            plan = self.plan_with_args(
+                root,
+                [
+                    "--mode", "observe",
+                    "--pre-planner-refresh-command", str(ROOT / "tools" / "v7-intelligence-snapshot-refresh"),
+                ],
+            )
+            gate = plan["safety"]["intelligence_snapshots"]
+            refresh = gate["pre_planner_refresh"]
+            service_matrix_lock = gate["service_matrix_lock"]
+            self.assertTrue(refresh["auto_enabled"])
+            self.assertEqual(refresh["requested_mode"], "off")
+            self.assertEqual(refresh["mode"], "write")
+            self.assertEqual(refresh["state"], "REFRESH_SUCCESS")
+            self.assertFalse(refresh["stop_required"])
+            self.assertTrue(service_matrix_lock["enabled"])
+            self.assertTrue(service_matrix_lock["acquired"])
+            self.assertFalse(gate["stop_required"])
+            self.assertTrue(snapshot_path(root / "state" / "intelligence", "service-scores").exists())
+            self.assertEqual(len(plan["selected_moves"]), 1)
+            self.assertFalse(plan["apply_requested"])
+            self.assertEqual(plan["operation"]["terminal_state"], "DRY_RUN")
+
+    def test_observe_auto_refresh_is_disabled_when_apply_requested(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            plan = self.plan_with_args(
+                root,
+                [
+                    "--mode", "observe",
+                    "--apply",
+                    "--pre-planner-refresh-command", str(ROOT / "tools" / "v7-intelligence-snapshot-refresh"),
+                ],
+            )
+            gate = plan["safety"]["intelligence_snapshots"]
+            self.assertNotIn("pre_planner_refresh", gate)
+            self.assertFalse(snapshot_path(root / "state" / "intelligence", "service-scores").exists())
+            self.assertFalse(plan["apply_result"]["applied"])
+
     def test_pre_planner_refresh_reloads_sources_before_gate_validation(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

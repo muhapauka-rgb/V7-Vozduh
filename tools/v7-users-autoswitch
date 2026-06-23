@@ -574,12 +574,23 @@ class Candidate:
     pool_cutoff_reason: str = ""
 
 
+def effective_pre_planner_refresh_mode(args: argparse.Namespace) -> str:
+    requested = str(getattr(args, "pre_planner_refresh", "off") or "off")
+    if requested != "off":
+        return requested
+    if bool_value(getattr(args, "apply", False)):
+        return "off"
+    if str(getattr(args, "mode", "") or "").strip() == "observe":
+        return "write"
+    return "off"
+
+
 class AutoswitchPlanner:
     def __init__(self, args: argparse.Namespace):
         self.args = args
         self.operation_started_at = now_iso()
         self.state_dir = Path(args.state_dir)
-        lock_enabled = str(getattr(args, "pre_planner_refresh", "off") or "off") == "write"
+        lock_enabled = effective_pre_planner_refresh_mode(args) == "write"
         self.service_matrix_lock_fd, self.service_matrix_lock = acquire_service_matrix_lock(
             self.state_dir,
             to_int(
@@ -1485,11 +1496,14 @@ class AutoswitchPlanner:
         }
 
     def _run_pre_planner_refresh(self) -> dict[str, Any]:
-        mode = str(getattr(self.args, "pre_planner_refresh", "off") or "off")
+        requested_mode = str(getattr(self.args, "pre_planner_refresh", "off") or "off")
+        mode = effective_pre_planner_refresh_mode(self.args)
         status: dict[str, Any] = {
             "schema": "v7.pre-planner-intelligence-refresh.v1",
             "enabled": mode != "off",
             "mode": mode,
+            "requested_mode": requested_mode,
+            "auto_enabled": requested_mode == "off" and mode != "off",
             "executor": "tools/v7-users-autoswitch",
             "trigger": "pre_planner_refresh_gate",
             "action": "noop",
@@ -1505,6 +1519,8 @@ class AutoswitchPlanner:
             "users_moved": False,
             "service_matrix_lock": dict(getattr(self, "service_matrix_lock", {}) or {}),
         }
+        if status["auto_enabled"]:
+            status["auto_reason"] = "read_only_observe_requires_fresh_snapshot_gate"
         if mode == "off":
             return status
         lock_status = getattr(self, "service_matrix_lock", {}) or {}

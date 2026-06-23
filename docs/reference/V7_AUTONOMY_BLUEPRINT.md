@@ -430,6 +430,30 @@ Sources used:
 - Formal autonomous canary ladder after all floors pass.
 - Automatic but bounded production event loop that is not a blind timer.
 
+## 8A. Current Evidence Status: 2026-06-23
+
+`AUTONOMY.EVIDENCE.REAL_SOURCE_CONFIDENCE_COLLECTION` deployed read-only source-confidence attribution in the existing trust inventory owner (`admin_core/autonomy_trust_acceleration.py`) at runtime commit `e932356dfa714a2455f5eb404db3bea8dc78a935`.
+
+Current production evidence verdict is `EVIDENCE_MIXED`:
+
+- Prediction matches are complete and consumed: `21/21`, `0` pending, but prediction remains low because mean forecast confidence is `0.378`.
+- Blast-radius evidence is sufficient and contributes `100.0`.
+- Rollback evidence is sufficient and contributes `100.0`.
+- Service outcomes exist (`21`) but are low-confidence (`0.39` mean row confidence).
+- Candidate outcomes exist (`83`) but are incomplete against `156` candidates.
+- Operator comparisons remain `0` and are secondary evidence only.
+
+Current floors remain below canary target:
+
+| Floor | Current | Target |
+| --- | ---: | ---: |
+| Confidence | 39.042 | 70.000 |
+| Trust | 54.282 | 70.000 |
+| Prediction confidence | 35.486 | 70.000 |
+| Operator earned confidence | 45.862 | 70.000 |
+
+Fastest next evidence path is real service/channel probe cycles through existing service matrix and quality snapshot owners, followed by intelligence snapshot refresh and trust inventory reread. No synthetic evidence, formula change, floor change, runtime apply, user movement, or daemon enablement is allowed for this step.
+
 ## 9. Biggest Risks
 
 | Risk | Severity | Why |

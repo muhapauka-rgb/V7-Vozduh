@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-23
-Last changed by: `AUTONOMY.CANARY.1C_RESTORE_BARRIER_LIFECYCLE_AND_NEXT_BLOCKER`
+Last changed by: `AUTONOMY.EVIDENCE.REAL_SOURCE_CONFIDENCE_COLLECTION`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -21,7 +21,7 @@ POOL.1 classified the pool as stable with zero planner candidates. POOL.2 rechec
 
 Current roadmap position:
 
-`CANARY_BLOCKED_BY_CONFIDENCE`
+`CANARY_BLOCKED_BY_MIXED_REAL_EVIDENCE`
 
 The blueprint view keeps channel recovery visible, but the project-level autonomy bottleneck is now broader and more precise. Branch 1B closed the blast recovery branch in production, AUTONOMY.TRUST.BUILDOUT.1 found that recovered blast evidence was not durable in the current consumed dry-run, and AUTONOMY.TRUST.DURABILITY.1 fixed the normal refresh code path so rotated evidence survives refresh/rebuild/reread:
 
@@ -115,6 +115,10 @@ contextual operator comparison
 | Restore Barrier Readiness | 55% | 80% | +25% | `AUTONOMY.CANARY.1C` | Existing execution owner can now produce a valid read-only restore-barrier clearance preview for the fresh one-user canary packet; preview survives reread and explicit snapshot refresh. |
 | Canary Readiness | 50% | 55% | +5% | `AUTONOMY.CANARY.1C` | Restore preview is clear, but canary remains blocked by confidence, trust, and prediction confidence floors below `70.0`. |
 | Production Autonomy | 45% | 47% | +2% | `AUTONOMY.CANARY.1C` | Restore lifecycle confidence improved, but no apply authority, daemon, user movement, synthetic evidence, or floor change occurred. |
+| Autonomy Evidence Attribution | 60% | 90% | +30% | `AUTONOMY.EVIDENCE.REAL_SOURCE_CONFIDENCE_COLLECTION` | Production trust inventory now exposes source-confidence inventory, evidence sufficiency, and real-source collection plan. |
+| Autonomous Trust Understanding | 75% | 85% | +10% | `AUTONOMY.EVIDENCE.REAL_SOURCE_CONFIDENCE_COLLECTION` | Current evidence is classified as `MIXED`: prediction, blast, and rollback are consumed; service/candidate/operator evidence remain insufficient or low-confidence. |
+| Production Autonomy | 47% | 46% | -1% | `AUTONOMY.EVIDENCE.REAL_SOURCE_CONFIDENCE_COLLECTION` | The status is more precise and slightly stricter: canary remains blocked by floors despite better attribution; no apply, movement, daemon, formula, floor, or synthetic evidence change occurred. |
+| Canary Readiness | 55% | 35% | -20% | `AUTONOMY.EVIDENCE.REAL_SOURCE_CONFIDENCE_COLLECTION` | Reclassified from restore-lifecycle optimism to evidence-floor reality: confidence `39.042`, trust `54.282`, prediction `35.486`, operator earned `45.862`, all below `70.0`. |
 
 ## Stable Areas
 
@@ -133,12 +137,22 @@ contextual operator comparison
 | P1 | `CHANNEL_RECOVERY_AWG3_AWG0_STABILITY_REVIEW` | `awg3` has 8 assigned users but is currently not eligible; `awg0` is close to recovery but still below stability floor. |
 | P2 | Decide whether `awg3` recovers naturally or needs a governed failover review | POOL.2 found 8 failover candidates but did not execute movement by design. |
 | P3 | Continue pool observation only after recovery/failover pressure is resolved | Current state is not clean equilibrium because planner disagrees with keeping `awg3` users there. |
-| P1 | `OBSERVED_OUTCOME.EVIDENCE.1_REAL_SERVICE_CHANNEL_OUTCOME_COLLECTION` | Observed service/channel outcome is the primary trust source; current confidence `39.606` and trust `54.705` remain below autonomy floors. |
+| P1 | `OBSERVED_OUTCOME.EVIDENCE.1_REAL_SERVICE_CHANNEL_OUTCOME_COLLECTION` | Observed service/channel outcome is the primary trust source; current production source inventory says service rows exist but mean row confidence is only `0.39`. This is the fastest real confidence growth path. |
 | P1 | `AUTONOMY.PREDICTION.EVIDENCE.3_REAL_VOLUME_AND_SOURCE_CONFIDENCE_COLLECTION` | Prediction lifecycle is durable with `21/21` matched rows and `0` pending rows, but prediction confidence remains `36.859` vs the `70.0` floor. |
 | P2 | `OPERATOR_COMPARISON.REVIEW.1_CONTEXTUAL_SUPERVISED_CONFIRMATION` | Operator comparison remains valid only when the operator has enough context; do not create blind training history. |
-| P1 | `AUTONOMY.CANARY.1D_CONFIDENCE_TRUST_PREDICTION_FLOOR_CLOSURE` | 1C cleared restore-barrier preview for the fresh canary candidate. Current canary is blocked by confidence `39.558`, trust `54.668`, prediction confidence `36.511`, and secondary operator earned confidence `45.837`, all below `70.0`. |
+| P1 | `AUTONOMY.EVIDENCE.SERVICE_CHANNEL_SOURCE_CONFIDENCE_COLLECTION` | Current source confidence verdict is `EVIDENCE_MIXED`; next phase should collect real service/channel probe cycles through existing owners, refresh snapshots, and reread trust inventory. |
 
 ## Changelog
+
+### 2026-06-23 — AUTONOMY.EVIDENCE.REAL_SOURCE_CONFIDENCE_COLLECTION
+
+- Implemented deployed read-only source-confidence attribution in `admin_core/autonomy_trust_acceleration.py`.
+- Production inventory now exposes `source_confidence_inventory`, `evidence_sufficiency`, and `source_confidence_collection_plan`.
+- Classified current evidence as `EVIDENCE_MIXED`: prediction matches are sufficient but low-attribution (`21/21`, mean forecast confidence `0.378`), blast/rollback are sufficient (`100.0`), service evidence is low-confidence, candidate outcomes are incomplete (`83/156`), and operator comparisons remain `0`.
+- Safe deployed with deploy id `deploy-z8-14-Updatesystem-e932356-20260623T215754`.
+- Current production floors remain below canary target: confidence `39.042`, trust `54.282`, prediction confidence `35.486`, operator earned confidence `45.862`.
+- No runtime apply, user movement, daemon enablement, synthetic evidence, formula change, or floor change occurred.
+- Final verdict: `EVIDENCE_MIXED`.
 
 ### 2026-06-23 — AUTONOMY.CANARY.1C Restore Barrier Lifecycle And Next Blocker
 

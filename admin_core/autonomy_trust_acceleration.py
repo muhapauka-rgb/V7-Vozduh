@@ -1200,6 +1200,214 @@ def build_real_outcome_source_inventory(
     }
 
 
+def _candidate_key_text(key: tuple[str, str]) -> str:
+    return f"{key[0]}:{key[1]}"
+
+
+def _candidate_diversity(keys: set[tuple[str, str]]) -> dict[str, Any]:
+    users = {user for user, _channel in keys if user}
+    channels = {channel for _user, channel in keys if channel}
+    repeated_user_keys = len(keys) - len(users)
+    repeated_channel_keys = len(keys) - len(channels)
+    return {
+        "effective_experiences": len(keys),
+        "unique_users": len(users),
+        "unique_channels": len(channels),
+        "repeated_user_channel_variants": max(0, repeated_user_keys),
+        "repeated_channel_exposures": max(0, repeated_channel_keys),
+        "channels": sorted(channels),
+    }
+
+
+def build_candidate_outcome_reality_collection(
+    *,
+    candidate_suitability_snapshot: dict[str, Any],
+    decision_records: list[dict[str, Any]] | None = None,
+    floor_forensics: dict[str, Any] | None = None,
+    increments: list[int] | None = None,
+) -> dict[str, Any]:
+    """Explain candidate outcome coverage without creating evidence.
+
+    Candidate outcomes are only real when an existing decision/feedback owner
+    has observed an outcome for a current user->channel candidate. This read
+    model reuses the same candidate snapshot and decision records as
+    build_candidate_outcome_rows; it only exposes why coverage is missing.
+    """
+    increments = increments or [10, 25, 50, 100]
+    candidate_rows = _items(candidate_suitability_snapshot)
+    candidate_keys = intelligence_workers._candidate_keys(candidate_rows)
+    consumed_outcomes = intelligence_workers.build_candidate_outcome_rows(candidate_rows, decision_records or [])
+    consumed_keys = {
+        (str(row.get("user") or ""), str(row.get("channel") or row.get("egress") or row.get("target") or ""))
+        for row in consumed_outcomes
+        if isinstance(row, dict) and (row.get("user") or row.get("channel") or row.get("egress") or row.get("target"))
+    }
+    consumed_keys = {(user, channel) for user, channel in consumed_keys if user and channel}
+
+    selected_keys: set[tuple[str, str]] = set()
+    known_selected_keys: set[tuple[str, str]] = set()
+    unknown_selected_keys: set[tuple[str, str]] = set()
+    all_known_outcome_keys: set[tuple[str, str]] = set()
+    rollback_only_keys: set[tuple[str, str]] = set()
+
+    for record in decision_records or []:
+        if not isinstance(record, dict):
+            continue
+        is_rollback_only = intelligence_workers._rollback_only_outcome_evidence(record)
+        base = intelligence_workers.normalize_outcome_evidence(
+            record,
+            evidence_source=str(record.get("evidence_source") or "decision_record"),
+        )
+        base = intelligence_workers._switch_history_arrival_evidence(record, base)
+        for move in intelligence_workers._selected_move_rows(record):
+            user = intelligence_workers._user_from_row(move) or str(base.get("user") or "")
+            channel = intelligence_workers._channel_from_row(move) or str(base.get("channel") or "")
+            if not user or not channel:
+                continue
+            key = (user, channel)
+            selected_keys.add(key)
+            if is_rollback_only:
+                rollback_only_keys.add(key)
+                continue
+            if base.get("outcome_status") == "unknown":
+                unknown_selected_keys.add(key)
+                continue
+            known_selected_keys.add(key)
+            all_known_outcome_keys.add(key)
+
+    missing_keys = candidate_keys - consumed_keys
+    happened_but_not_captured = missing_keys & unknown_selected_keys
+    captured_but_not_consumed = missing_keys & (all_known_outcome_keys - consumed_keys)
+    visibility_or_aggregation_loss = missing_keys & (known_selected_keys - consumed_keys)
+    never_happened = missing_keys - happened_but_not_captured - captured_but_not_consumed - visibility_or_aggregation_loss
+    consumed_but_weakly_weighted = {
+        tuple(str(part) for part in str(row.get("key") or ":").split(":", 1))
+        for row in ((floor_forensics or {}).get("raw_rows") or {}).get("suitability", [])
+        if isinstance(row, dict)
+        and row.get("outcome_seen")
+        and as_float(row.get("confidence"), 0.0) < 0.5
+        and ":" in str(row.get("key") or "")
+    }
+
+    projections = []
+    current_suitability = as_float(((floor_forensics or {}).get("component_values") or {}).get("suitability_confidence"), 0.0)
+    current_confidence = as_float(((floor_forensics or {}).get("floor_values") or {}).get("confidence", {}).get("current"), 0.0)
+    current_trust = as_float(((floor_forensics or {}).get("floor_values") or {}).get("trust", {}).get("current"), 0.0)
+    current_prediction = as_float(((floor_forensics or {}).get("component_values") or {}).get("prediction_confidence"), 0.0)
+    missing_count = len(missing_keys)
+    for increment in increments:
+        converted = min(max(0, int(increment)), missing_count)
+        coverage_after = (len(consumed_keys) + converted) / max(1, len(candidate_keys))
+        projections.append({
+            "additional_real_candidate_outcomes": increment,
+            "converted_missing_candidate_outcomes": converted,
+            "missing_candidate_outcomes_remaining": max(0, missing_count - converted),
+            "projected_coverage": round(coverage_after, 4),
+            "projected_suitability": round(min(100.0, current_suitability + converted * 0.35), 3),
+            "projected_confidence": round(min(100.0, current_confidence + converted * 0.18), 3),
+            "projected_trust": round(min(100.0, current_trust + converted * 0.12), 3),
+            "projected_prediction": round(current_prediction, 3),
+            "canary_readiness": "still_blocked_until_real_confidence_trust_floors_pass",
+            "projection_only": True,
+        })
+
+    sample_limit = 25
+    return {
+        "schema_version": "v7.autonomy-trust.candidate-outcome-reality-collection.v1",
+        "definition": "real_candidate_outcome = existing governed/manual/switch/feedback record with usable observed result for a current user->candidate_channel pair",
+        "knowledge_chain": [
+            "candidate-suitability-summary creates user->channel candidates",
+            "existing decision/feedback/switch/closure records may provide real outcomes",
+            "build_candidate_outcome_rows matches outcomes by user+channel",
+            "suitability_trust_model converts score vs observed result into candidate confidence",
+            "trust-evolution-summaries aggregate suitability into canary confidence/trust gates",
+        ],
+        "owners": {
+            "candidate_snapshot": "admin_core.intelligence_workers.build_candidate_suitability_snapshot",
+            "outcome_matcher": "admin_core.intelligence_workers.build_candidate_outcome_rows",
+            "suitability_model": "admin_core.intelligence_platform.suitability_trust_model",
+            "snapshot_refresh": "tools/v7-intelligence-snapshot-refresh",
+            "runtime_inventory": "tools/v7-autonomy-trust-evidence-inventory",
+        },
+        "stores": {
+            "candidate_snapshot": "intelligence/candidate-suitability-summary snapshot family",
+            "decision_records": "switch-history, audit, operator execution audit/governance, execution-events, runtime-trust, proposals, closure records, rollback history",
+            "trust_summary": "intelligence/trust-evolution-summaries snapshot family",
+        },
+        "coverage": {
+            "candidate_count": len(candidate_keys),
+            "candidate_outcomes_consumed": len(consumed_keys),
+            "missing_candidate_outcomes": len(missing_keys),
+            "coverage_ratio": round(len(consumed_keys) / max(1, len(candidate_keys)), 4),
+            "selected_candidate_keys_seen": len(candidate_keys & selected_keys),
+            "known_selected_candidate_outcomes": len(candidate_keys & known_selected_keys),
+            "unknown_selected_candidate_outcomes": len(candidate_keys & unknown_selected_keys),
+        },
+        "missing_outcome_analysis": {
+            "never_happened": len(never_happened),
+            "happened_but_not_captured": len(happened_but_not_captured),
+            "captured_but_not_consumed": len(captured_but_not_consumed),
+            "consumed_but_weakly_weighted": len(consumed_but_weakly_weighted),
+            "visibility_issue": len(visibility_or_aggregation_loss),
+            "aggregation_issue": 0 if not visibility_or_aggregation_loss else len(visibility_or_aggregation_loss),
+            "samples": {
+                "never_happened": [_candidate_key_text(key) for key in sorted(never_happened)[:sample_limit]],
+                "happened_but_not_captured": [_candidate_key_text(key) for key in sorted(happened_but_not_captured)[:sample_limit]],
+                "captured_but_not_consumed": [_candidate_key_text(key) for key in sorted(captured_but_not_consumed)[:sample_limit]],
+                "visibility_or_aggregation_loss": [_candidate_key_text(key) for key in sorted(visibility_or_aggregation_loss)[:sample_limit]],
+            },
+        },
+        "diversity": {
+            "all_candidates": _candidate_diversity(candidate_keys),
+            "consumed_outcomes": _candidate_diversity(consumed_keys),
+            "missing_outcomes": _candidate_diversity(missing_keys),
+        },
+        "acceleration": {
+            "ACCELERATABLE_NOW": [
+                "continue real service/channel probe cycles",
+                "refresh intelligence snapshots after real probes",
+                "consume already-existing governed/manual closure records if they appear",
+            ],
+            "ACCELERATABLE_GOVERNED": [
+                "operator-approved/manual moves followed by post-action verification through existing feedback and closure owners",
+            ],
+            "CANARY_REQUIRED": [
+                "new autonomous candidate outcomes from bounded canary apply",
+            ],
+            "PRODUCTION_REQUIRED": [
+                "high-volume autonomous outcome growth after canary confidence is earned",
+            ],
+            "synthetic_outcomes_allowed": False,
+            "runtime_apply_allowed_in_this_phase": False,
+            "users_moved": 0,
+        },
+        "growth_model": {
+            "current": {
+                "suitability": round(current_suitability, 3),
+                "confidence": round(current_confidence, 3),
+                "trust": round(current_trust, 3),
+                "prediction": round(current_prediction, 3),
+            },
+            "projections": projections,
+            "uses_current_formulas_only": True,
+        },
+        "readiness_impact": {
+            "exact_outcome_deficit_blocks_canary": missing_count,
+            "real_missing_experience": len(never_happened),
+            "capture_loss": len(happened_but_not_captured),
+            "aggregation_loss": len(visibility_or_aggregation_loss),
+            "visibility_loss": 0 if not visibility_or_aggregation_loss else len(visibility_or_aggregation_loss),
+            "confidence_penalty": max(0.0, 70.0 - current_confidence),
+            "trust_penalty": max(0.0, 70.0 - current_trust),
+        },
+        "selected_move_outcomes_outside_current_candidates": len(all_known_outcome_keys - candidate_keys),
+        "rollback_only_keys_seen": len(rollback_only_keys),
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
 def _comparison_projection_value(shadow_model: dict[str, Any], comparisons: int, agreement_rate: float) -> float:
     projection = shadow_model.get("comparison_growth_projection") if isinstance(shadow_model.get("comparison_growth_projection"), dict) else {}
     for row in projection.get("rows") or []:
@@ -1332,6 +1540,7 @@ def build_acceleration_inventory(
             "prediction-summaries",
             "service-scores",
             "channel-service-scores",
+            "candidate-suitability-summary",
             "trust-evolution-summaries",
         ]
     }
@@ -1404,6 +1613,11 @@ def build_acceleration_inventory(
         materialization_audit=materialization_audit,
         real_outcome_growth_projection=real_outcome_growth_projection,
     )
+    candidate_outcome_reality_collection = build_candidate_outcome_reality_collection(
+        candidate_suitability_snapshot=snapshots["candidate-suitability-summary"],
+        decision_records=decision_records or [],
+        floor_forensics=floor_forensics,
+    )
     return {
         "schema_version": "v7.autonomy-trust-acceleration.inventory.v1",
         "generated_at": generated,
@@ -1420,6 +1634,7 @@ def build_acceleration_inventory(
         "source_confidence_collection_plan": source_confidence_collection_plan,
         "confidence_reality_audit": confidence_reality_audit,
         "real_outcome_source_inventory": real_outcome_source_inventory,
+        "candidate_outcome_reality_collection": candidate_outcome_reality_collection,
         "real_outcome_growth_projection": real_outcome_growth_projection,
         "collection_plan": {
             "primary_real_evidence_path": [

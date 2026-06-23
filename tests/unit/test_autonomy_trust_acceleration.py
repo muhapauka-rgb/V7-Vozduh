@@ -35,6 +35,20 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
             {"channel": "awg0", "score": 82, "confidence": 0.9},
         ])
         self.write_snapshot(root, "channel-service-scores", [])
+        self.write_snapshot(root, "candidate-suitability-summary", [
+            {
+                "user": "10.7.0.2",
+                "candidates": [
+                    {"channel": "awg0", "suitability_score": 80, "confidence": 0.6},
+                ],
+            },
+            {
+                "user": "10.7.0.3",
+                "candidates": [
+                    {"channel": "vless", "suitability_score": 70, "confidence": 0.4},
+                ],
+            },
+        ])
         self.write_snapshot(root, "trust-evolution-summaries", [{
             "confidence_summary": {
                 "decision_confidence": 50.0,
@@ -262,6 +276,71 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertFalse(second["runtime_mutation_performed"])
         self.assertFalse(second["apply_executed"])
         self.assertEqual(second["users_moved"], 0)
+        candidate_reality = second["candidate_outcome_reality_collection"]
+        self.assertEqual(candidate_reality["coverage"]["candidate_count"], 2)
+        self.assertEqual(candidate_reality["coverage"]["candidate_outcomes_consumed"], 0)
+        self.assertEqual(candidate_reality["coverage"]["missing_candidate_outcomes"], 2)
+        self.assertEqual(candidate_reality["missing_outcome_analysis"]["never_happened"], 2)
+        self.assertFalse(candidate_reality["acceleration"]["synthetic_outcomes_allowed"])
+        self.assertFalse(candidate_reality["acceleration"]["runtime_apply_allowed_in_this_phase"])
+        self.assertEqual(candidate_reality["users_moved"], 0)
+
+    def test_candidate_outcome_reality_classifies_missing_candidate_coverage(self):
+        candidate_snapshot = {
+            "items": [
+                {
+                    "user": "10.7.0.2",
+                    "candidates": [
+                        {"channel": "awg0", "suitability_score": 80, "confidence": 0.6},
+                    ],
+                },
+                {
+                    "user": "10.7.0.3",
+                    "candidates": [
+                        {"channel": "vless", "suitability_score": 70, "confidence": 0.4},
+                    ],
+                },
+                {
+                    "user": "10.7.0.4",
+                    "candidates": [
+                        {"channel": "wireguard", "suitability_score": 90, "confidence": 0.7},
+                    ],
+                },
+            ]
+        }
+        decision_records = [
+            {
+                "selected_moves": [{"user": "10.7.0.2", "target": "awg0"}],
+                "result": "success",
+                "status": "applied",
+            },
+            {
+                "selected_moves": [{"user": "10.7.0.3", "target": "vless"}],
+                "status": "preview_only",
+            },
+        ]
+
+        collection = accel.build_candidate_outcome_reality_collection(
+            candidate_suitability_snapshot=candidate_snapshot,
+            decision_records=decision_records,
+            floor_forensics={
+                "component_values": {"suitability_confidence": 27.7, "prediction_confidence": 39.6},
+                "floor_values": {"confidence": {"current": 45.8}, "trust": {"current": 54.6}},
+            },
+            increments=[1, 2],
+        )
+
+        self.assertEqual(collection["coverage"]["candidate_count"], 3)
+        self.assertEqual(collection["coverage"]["candidate_outcomes_consumed"], 1)
+        self.assertEqual(collection["coverage"]["missing_candidate_outcomes"], 2)
+        self.assertEqual(collection["missing_outcome_analysis"]["happened_but_not_captured"], 1)
+        self.assertEqual(collection["missing_outcome_analysis"]["never_happened"], 1)
+        self.assertEqual(collection["missing_outcome_analysis"]["captured_but_not_consumed"], 0)
+        self.assertEqual(collection["diversity"]["all_candidates"]["unique_channels"], 3)
+        self.assertEqual(collection["growth_model"]["projections"][0]["converted_missing_candidate_outcomes"], 1)
+        self.assertFalse(collection["runtime_mutation_performed"])
+        self.assertFalse(collection["apply_executed"])
+        self.assertEqual(collection["users_moved"], 0)
 
     def test_growth_projection_keeps_full_missing_candidate_counter_when_rows_are_truncated(self):
         floor_forensics = {

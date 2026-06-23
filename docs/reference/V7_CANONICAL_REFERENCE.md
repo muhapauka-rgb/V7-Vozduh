@@ -197,7 +197,7 @@ Stable conclusions:
 10. OPERATOR.COMPARISON.COLLECTION.1 implemented the durable existing-owner comparison collection path. `admin_core/shadow_autonomy.py` now exposes an operator review packet, per-decision comparison eligibility, and growth projection using the existing earned-confidence formula. `admin/v7-admin-api` reads active and rotated shadow-autonomy JSONL family records and preserves comparison rows separately from decision rows so old real comparisons are not displaced by newer shadow decisions.
 11. Production inventory on 2026-06-23 found 27 users, 27 reviewable current shadow decisions, 0 comparison records, agreement rate `0.0`, earned confidence `45.802`, and user distribution `awg3=8`, `wireguard-1779454504-c43409=8`, `vless=11`.
 12. Real operator comparison evidence must still be collected through the existing UI/API. The path is ready; the evidence volume is not.
-13. Last verified commit: OPERATOR.COMPARISON.COLLECTION.1 implementation commit.
+13. Implementation commit: `f86148dc70a3a4d039dc41b555060ae0d2d4f13e`; deploy id `deploy-z8-14-Updatesystem-f86148d-20260623T094821`.
 
 ## AUTONOMY_PREDICTION_EVIDENCE_RULES
 

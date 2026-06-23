@@ -3,6 +3,8 @@
 Date: 2026-06-23
 Branch: `Updatesystem`
 Mode: implementation, test, verify, document
+Implementation commit: `f86148dc70a3a4d039dc41b555060ae0d2d4f13e`
+Deploy id: `deploy-z8-14-Updatesystem-f86148d-20260623T094821`
 
 ## 1. Lifecycle Trace
 
@@ -49,6 +51,8 @@ No new storage was created.
 Evidence file:
 
 - `docs/reports/OPERATOR_COMPARISON_COLLECTION_1_EVIDENCE/production_review_inventory_before.json`
+- `docs/reports/OPERATOR_COMPARISON_COLLECTION_1_EVIDENCE/production_review_inventory_after_deploy.json`
+- `docs/reports/OPERATOR_COMPARISON_COLLECTION_1_EVIDENCE/production_review_inventory_after_refresh.json`
 
 Captured read-only by SSH from registry/state/snapshots/shadow JSONL, without calling `/api/operator/shadow-autonomy`.
 
@@ -66,6 +70,8 @@ Captured read-only by SSH from registry/state/snapshots/shadow JSONL, without ca
 | Earned confidence | 45.802 |
 
 Full per-decision fields in the evidence include `decision_id`, user, source channel, target, recommendation, confidence, trust, blockers, age, and eligibility.
+
+After deploy, runtime exposes `operator_review_packet` with 27 reviewable decisions, 0 reviewed decisions, `synthetic_agreement_allowed=false`, `runtime_mutation_performed=false`, `apply_executed=false`, and `users_moved=0`.
 
 ## 5. Growth Model
 
@@ -103,6 +109,22 @@ Evidence file:
 | Runtime apply executed | NO |
 | Users moved | 0 |
 
+Production before/after/after-refresh lifecycle:
+
+| Stage | Decisions | Comparisons | Agreement | Earned Confidence | Reviewable | Reviewed |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Before deploy | 27 | 0 | 0.0 | 45.802 | n/a | n/a |
+| After deploy | 27 | 0 | 0.0 | 45.801 | 27 | 0 |
+| After snapshot refresh | 27 | 0 | 0.0 | 45.801 | 27 | 0 |
+
+Snapshot refresh evidence:
+
+- `docs/reports/OPERATOR_COMPARISON_COLLECTION_1_EVIDENCE/production_snapshot_refresh_after_deploy.json`
+- `runtime_behavior_changed=false`
+- `governance_behavior_changed=false`
+- `users_moved=false`
+- `source_stable=true`
+
 ## 7. Tests
 
 | Command | Result |
@@ -111,8 +133,9 @@ Evidence file:
 | `PYTHONPYCACHEPREFIX=/tmp/v7_pycache python3 -m py_compile admin_core/shadow_autonomy.py admin/v7-admin-api` | PASS |
 | `tools/v7-truth-check --all --json` | PASS before implementation |
 | `tools/v7-convergence-status --json` | ALIGNED before implementation |
+| `tools/v7-safe-deploy --apply --confirm DEPLOY_V7_APPROVED --restart-admin-if-changed --json` | PASS |
 
-Final post-deploy truth/convergence evidence is recorded in the evidence directory after deployment.
+Final post-deploy truth/convergence evidence is recorded in the evidence directory.
 
 ## 8. Remaining Blockers
 

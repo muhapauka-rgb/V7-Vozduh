@@ -113,6 +113,8 @@ Blast recovery operationally closed
 - Updated `admin/v7-admin-api` so shadow history reads the active and rotated JSONL family and preserves comparison rows separately from decision rows.
 - Existing Shadow observation UI now shows review packet counts and nearest confidence target without enabling apply.
 - Production read-only inventory: 27 users, 27 reviewable decisions, 0 comparisons, agreement rate `0.0`, earned confidence `45.802`, distribution `awg3=8`, `wireguard-1779454504-c43409=8`, `vless=11`.
+- Deployed approved runtime files with safe deploy id `deploy-z8-14-Updatesystem-f86148d-20260623T094821`; safety flags remained `autoswitch_apply_executed=false`, `routing_mutation_executed=false`, and `user_movement_executed=false`.
+- After deploy and snapshot refresh, production still had 27 decisions, 0 comparisons, agreement rate `0.0`, earned confidence `45.801`, and 27 reviewable decisions.
 - Updated changed-area percentages:
   - Operator Comparison Path: `25% -> 55%`
   - Operator Comparison Evidence: `25% -> 25%`

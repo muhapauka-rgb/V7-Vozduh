@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-23
-Last changed by: `AUTONOMY.TRUST.SOURCE.REALITY.1`
+Last changed by: `EVENT.CONSUMER.READONLY.2`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -21,7 +21,7 @@ POOL.1 classified the pool as stable with zero planner candidates. POOL.2 rechec
 
 Current roadmap position:
 
-`OBSERVED_OUTCOME_EVIDENCE_AND_EVENT_CONSUMER_CLOSURE`
+`EVENT_CONSUMER_CERTIFIED_CANARY_READINESS_RECHECK`
 
 The blueprint view keeps channel recovery visible, but the project-level autonomy bottleneck is now broader and more precise. Branch 1B closed the blast recovery branch in production, AUTONOMY.TRUST.BUILDOUT.1 found that recovered blast evidence was not durable in the current consumed dry-run, and AUTONOMY.TRUST.DURABILITY.1 fixed the normal refresh code path so rotated evidence survives refresh/rebuild/reread:
 
@@ -30,8 +30,9 @@ Blast recovery operationally closed
   -> trust durability fixed, deployed, and refreshed
   -> trust acceleration inventory
   -> observed outcome primary trust correction
-  -> observed outcome evidence collection
   -> read-only event consumer certification
+  -> observed outcome evidence collection
+  -> canary readiness recheck
   -> bounded event-driven autonomy canary
 
 Secondary branch:
@@ -100,6 +101,9 @@ contextual operator comparison
 | Operator Comparison Evidence | 25% | 25% | 0% | `AUTONOMY.TRUST.SOURCE.REALITY.1` | Comparison path remains useful but secondary/contextual; no synthetic comparison or trust lift was created. |
 | Observed Outcome Evidence | 50% | 55% | +5% | `AUTONOMY.TRUST.SOURCE.REALITY.1` | Roadmap now prioritizes service/channel outcome, post-action verification, no-rollback, and forecast-to-actual evidence. The underlying evidence quality still needs real production cycles. |
 | Production Autonomy | 43% | 43% | 0% | `AUTONOMY.TRUST.SOURCE.REALITY.1` | No apply gate changed; canary still waits for primary observed outcome floors and event consumer certification. |
+| Event Consumer Certification | 25% | 80% | +55% | `EVENT.CONSUMER.READONLY.2` | Real production events now flow through a certified read-only consumer into planner, packet, restore, rollback, feedback, and learning previews. |
+| Canary Readiness | 35% | 45% | +10% | `EVENT.CONSUMER.READONLY.2` | Event consumer blocker is removed for read-only certification, but confidence/trust/prediction/readiness gates still require recheck before canary. |
+| Production Autonomy | 43% | 45% | +2% | `EVENT.CONSUMER.READONLY.2` | Read-only event binding improved, but no apply/daemon/user movement occurred and production autonomy remains disabled. |
 
 ## Stable Areas
 
@@ -120,9 +124,24 @@ contextual operator comparison
 | P1 | `OBSERVED_OUTCOME.EVIDENCE.1_REAL_SERVICE_CHANNEL_OUTCOME_COLLECTION` | Observed service/channel outcome is the primary trust source and still needs higher-confidence real production cycles. |
 | P1 | `AUTONOMY.PREDICTION.EVIDENCE.3_REAL_VOLUME_AND_SOURCE_CONFIDENCE_COLLECTION` | Prediction evidence lifecycle is improved; source confidence/evidence volume still need real production evidence to reach the `70.0` floor. |
 | P2 | `OPERATOR_COMPARISON.REVIEW.1_CONTEXTUAL_SUPERVISED_CONFIRMATION` | Operator comparison remains valid only when the operator has enough context; do not create blind training history. |
-| P1 | `EVENT_CONSUMER_READ_ONLY_CERTIFICATION` | Event sources exist, but production event-driven consumer is not certified. |
+| P1 | `AUTONOMY.CANARY.1_READINESS_RECHECK` | Event consumer is now read-only certified; canary still needs a fresh check of confidence, trust, prediction, restore barrier, rollback, feedback, learning, and disabled-daemon boundaries. |
 
 ## Changelog
+
+### 2026-06-23 — EVENT.CONSUMER.READONLY.2 Read-Only Consumer Certification
+
+- Created `docs/reports/EVENT_CONSUMER_READONLY_2_REPORT.md` and evidence under `docs/reports/EVENT_CONSUMER_READONLY_2_EVIDENCE/`.
+- Extended `admin_core/events.py` with event source inventory, event quality classification, stable event ids, and read-only consumer trace.
+- Extended `admin_core/operator_execution_pipeline.py` with `event_consumer_readonly_certification_model` and a learning preview in autonomous dry-run.
+- Production evidence used 10 real event rows from Telegram Sentinel and Service Matrix.
+- Certification summary: `event_count=10`, `primary_event_count=10`, `planner_preview_count=0` current candidates, `packet_preview_count=1`, `restore_preview_count=1`, `rollback_preview_count=1`, `feedback_preview_count=1`, `learning_preview_count=1`.
+- Lifecycle evidence proves the first event id survives refresh, rebuild, and reread.
+- No runtime apply, user movement, daemon enablement, planner/governance/execution change, threshold/floor/formula change, synthetic evidence, or new truth source occurred.
+- Updated changed-area percentages:
+  - Event Consumer Certification: `25% -> 80%`
+  - Canary Readiness: `35% -> 45%`
+  - Production Autonomy: `43% -> 45%`
+- Recorded next phase: `AUTONOMY.CANARY.1_READINESS_RECHECK`.
 
 ### 2026-06-23 — AUTONOMY.TRUST.SOURCE.REALITY.1 Observed Outcome Primary Trust
 

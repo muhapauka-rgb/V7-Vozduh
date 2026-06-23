@@ -1,7 +1,16 @@
+import json
 import unittest
 from pathlib import Path
 
-from admin_core.events import extract_user_ip, infer_event_severity, parse_jsonl_lines
+from admin_core.events import (
+    build_event_source_inventory,
+    build_readonly_event_consumer_trace,
+    event_source_profile,
+    extract_user_ip,
+    infer_event_severity,
+    normalize_regression_event,
+    parse_jsonl_lines,
+)
 
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "events"
@@ -52,6 +61,74 @@ class EventsHelperTest(unittest.TestCase):
         self.assertEqual(extract_user_ip("client 10.0.0.255 failed"), "10.0.0.255")
         self.assertEqual(extract_user_ip("client 10.7.0.2 failed"), "")
         self.assertEqual(extract_user_ip(None), "")
+
+    def test_event_source_inventory_covers_autonomy_sources(self):
+        inventory = build_event_source_inventory(
+            {
+                "telegram_sentinel": [{"source": "telegram_sentinel", "status": "DOWN", "updated_at": "2026-06-23T00:00:00Z"}],
+                "service_matrix": [{"source": "service_matrix", "message": "youtube failed"}],
+            },
+            now="2026-06-23T00:01:00Z",
+        )
+        sources = {row["source"]: row for row in inventory}
+
+        for source in (
+            "telegram_sentinel",
+            "service_matrix",
+            "quality_compact",
+            "capacity_signals",
+            "runtime_readiness",
+            "route_readiness",
+            "planner_blocker_transitions",
+            "trust_evolution_changes",
+            "prediction_signals",
+        ):
+            self.assertIn(source, sources)
+            self.assertIn(sources[source]["event_class"], {"PRIMARY EVENT", "SECONDARY EVENT", "DIAGNOSTIC EVENT"})
+
+        self.assertEqual(sources["telegram_sentinel"]["event_count"], 1)
+        self.assertEqual(sources["service_matrix"]["event_count"], 1)
+        self.assertEqual(sources["telegram_sentinel"]["owner"], event_source_profile("telegram")["owner"])
+
+    def test_regression_event_survives_refresh_rebuild_and_reread(self):
+        source_event = {
+            "source": "service_matrix",
+            "channel": "vless",
+            "message": "Telegram failed",
+            "updated_at": "2026-06-23T00:00:00Z",
+            "confidence": 0.91,
+        }
+
+        first = normalize_regression_event(source_event)
+        refreshed = normalize_regression_event(dict(source_event))
+        reread = normalize_regression_event(parse_jsonl_lines([json.dumps(source_event)])[0])
+
+        self.assertEqual(first["event_id"], refreshed["event_id"])
+        self.assertEqual(first["event_id"], reread["event_id"])
+        self.assertEqual(first["event_class"], "PRIMARY EVENT")
+        self.assertTrue(first["read_only"])
+        self.assertTrue(first["preview_only"])
+        self.assertFalse(first["synthetic_event"])
+
+    def test_readonly_event_consumer_routes_real_events_to_planner_preview_candidates(self):
+        trace = build_readonly_event_consumer_trace(
+            [
+                {"source": "service_matrix", "channel": "vless", "message": "service failed", "updated_at": "2026-06-23T00:00:00Z"},
+                {"source": "prediction_signals", "message": "prediction drift", "updated_at": "2026-06-23T00:00:00Z"},
+            ],
+            now="2026-06-23T00:01:00Z",
+        )
+
+        self.assertTrue(trace["read_only"])
+        self.assertTrue(trace["preview_only"])
+        self.assertFalse(trace["execution_allowed_now"])
+        self.assertEqual(trace["event_count"], 2)
+        self.assertEqual(trace["primary_event_count"], 1)
+        self.assertEqual(trace["diagnostic_event_count"], 1)
+        self.assertEqual(trace["planner_preview_event_count"], 1)
+        self.assertEqual(trace["certification_state"], "CERTIFIED_READONLY_CONSUMER")
+        self.assertFalse(trace["synthetic_events_created"])
+        self.assertFalse(trace["new_truth_source_created"])
 
 
 if __name__ == "__main__":

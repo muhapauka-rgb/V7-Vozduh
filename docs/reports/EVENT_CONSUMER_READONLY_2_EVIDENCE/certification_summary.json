@@ -1,0 +1,45 @@
+{
+  "schema_version": "v7.event-consumer-readonly-2-evidence-summary.v1",
+  "production_events_used": 10,
+  "production_selected_moves_observe": 0,
+  "before": {
+    "event_count": 10,
+    "planner_preview_count": 0,
+    "apply_requested": false,
+    "apply_result_applied": false
+  },
+  "after": {
+    "event_count": 10,
+    "event_quality": {
+      "primary": 10,
+      "secondary": 0,
+      "diagnostic": 0
+    },
+    "planner_preview_count": 0,
+    "packet_preview_count": 1,
+    "restore_preview_count": 1,
+    "rollback_preview_count": 1,
+    "feedback_preview_count": 1,
+    "learning_preview_count": 1,
+    "event_consumer_certified": true,
+    "final_verdict": "EVENT_CONSUMER_CERTIFIED",
+    "apply_executed": false,
+    "users_moved": 0,
+    "autonomy_enabled": false
+  },
+  "after_refresh": {
+    "event_id": "7cbacc56ebda545835b0",
+    "event_count": 10,
+    "final_verdict": "EVENT_CONSUMER_CERTIFIED"
+  },
+  "after_rebuild": {
+    "event_id": "7cbacc56ebda545835b0",
+    "event_count": 10,
+    "final_verdict": "EVENT_CONSUMER_CERTIFIED"
+  },
+  "after_reread": {
+    "event_id": "7cbacc56ebda545835b0",
+    "event_count": 10,
+    "final_verdict": "EVENT_CONSUMER_CERTIFIED"
+  }
+}

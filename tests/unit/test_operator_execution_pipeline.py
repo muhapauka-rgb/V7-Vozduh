@@ -837,6 +837,80 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertFalse(owners["new_truth_source_created"])
         self.assertEqual(model["single_blocker"], "no_canary_candidate_available")
 
+    def test_event_consumer_readonly_certifies_preview_lifecycle_without_apply(self):
+        decision_surface = {
+            "users_by_ip": {
+                "10.0.0.3": {
+                    "user": "10.0.0.3",
+                    "current_channel": "awg3",
+                    "recommended_channel": "wireguard-1779454504-c43409",
+                    "confidence": 0.91,
+                    "trust": 88.0,
+                    "prediction": {"confidence": 0.82},
+                    "risk": 2.0,
+                    "recommendation_hash": "rec-event-1",
+                    "source_hash": "source-event-1",
+                },
+            },
+            "batch_preview": {
+                "users_to_move": [
+                    {
+                        "user": "10.0.0.3",
+                        "from": "awg3",
+                        "to": "wireguard-1779454504-c43409",
+                        "confidence": 0.91,
+                        "risk": 2.0,
+                        "recommendation_hash": "rec-event-1",
+                    },
+                ],
+            },
+            "snapshot_statuses": {
+                "service-scores": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+                "trust-summaries": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+                "prediction-summaries": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+            },
+        }
+
+        first = pipeline.event_consumer_readonly_certification_model(
+            events=[
+                {
+                    "source": "service_matrix",
+                    "channel": "awg3",
+                    "message": "Telegram failed",
+                    "updated_at": "2026-06-23T00:00:00Z",
+                    "confidence": 0.91,
+                }
+            ],
+            decision_surface=decision_surface,
+            now="2026-06-23T00:01:00Z",
+        )
+        rebuilt = pipeline.event_consumer_readonly_certification_model(
+            events=list(first["event_consumer"]["events"]),
+            decision_surface=dict(decision_surface),
+            now="2026-06-23T00:02:00Z",
+        )
+
+        self.assertEqual(first["final_verdict"], "EVENT_CONSUMER_CERTIFIED")
+        self.assertTrue(first["event_consumer_certified"])
+        self.assertTrue(all(row["ready"] for row in first["chain_completeness"]))
+        self.assertEqual(first["event_consumer"]["planner_preview_event_count"], 1)
+        self.assertEqual(first["planner_preview"]["candidate_count"], 1)
+        self.assertTrue(first["packet_preview"]["would_prepare_packet"])
+        self.assertEqual(first["restore_barrier_preview"]["readiness"], "READY_FOR_REVIEW")
+        self.assertEqual(first["rollback_preview"]["rollback_decision"], "ROLLBACK_NOT_REQUIRED_IN_SIMULATION")
+        self.assertTrue(first["feedback_preview"]["preview_only"])
+        self.assertTrue(first["learning_preview"]["preview_only"])
+        self.assertTrue(first["learning_preview"]["observed_outcome_primary"])
+        self.assertFalse(first["apply_executed"])
+        self.assertEqual(first["users_moved"], 0)
+        self.assertFalse(first["autonomy_enabled"])
+        self.assertFalse(first["synthetic_events_created"])
+        self.assertFalse(first["synthetic_evidence_created"])
+        self.assertEqual(
+            first["event_consumer"]["events"][0]["event_id"],
+            rebuilt["event_consumer"]["events"][0]["event_id"],
+        )
+
     def test_operator_dashboard_exposes_autonomous_dry_run(self):
         dashboard = pipeline.execution_operator_dashboard_model(
             decision_surface={

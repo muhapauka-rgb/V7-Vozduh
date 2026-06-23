@@ -38,7 +38,7 @@ Regression event exists
   -> execution packet preview exists
   -> restore/rollback/feedback owners exist
   -> observed outcome, trust, and prediction evidence are not mature enough
-  -> event consumer is not certified for live production apply
+  -> read-only event consumer is certified but not an apply authority
   -> production autonomy remains disabled
 ```
 
@@ -56,6 +56,7 @@ Current production alignment:
 - AUTONOMY.TRUST.DURABILITY.1 fixed the normal refresh code path so active JSONL files and numeric rotations are consumed as one evidence family. Local lifecycle proof and production refresh both show recovered blast evidence survives refresh/rebuild/reread with `blast_radius_confidence=100.0`.
 - AUTONOMY.TRUST.ACCELERATION.1 added a deployed read-only evidence inventory owner. Final production inventory after refresh reports `21/21` prediction matches, `0` pending prediction rows, `0` operator comparisons, earned confidence `45.802`, trust `54.704`, and canary readiness blocked. Runtime deploy aligned to `43effb2a7a58a545fd90d48db53bbe1c0968a75b` before documentation-only updates.
 - AUTONOMY.TRUST.SOURCE.REALITY.1 corrected the trust-source hierarchy: observed network outcome is primary; operator comparison is secondary supervised confirmation only when the operator has enough context. Blind operator training history is forbidden.
+- EVENT.CONSUMER.READONLY.2 certified the read-only event consumer link from real production events to planner, packet, restore barrier, rollback, feedback, and learning previews. It did not enable apply, daemon, autoswitch, movement, new truth source, or synthetic evidence.
 
 ## 2. Full System Inventory
 
@@ -88,8 +89,8 @@ Current production alignment:
 | Operator Comparison | Shadow comparison store | `admin_core/shadow_autonomy.py`, `admin_core/autonomy_trust_acceleration.py`, shadow JSONL family | Secondary supervised confirmation | ACTIVE_SECONDARY_PATH_READY_EMPTY | 70% path / 25% evidence | Current comparison evidence below floor; use only for contextual supervised confirmation, not blind bulk training |
 | Trust Evidence Inventory | Read-only acceleration owner | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory` | Summarize current evidence, growth opportunities, review batches, and canary proximity | ACTIVE_READ_ONLY | 85% | Deployed and verified; creates no evidence and performs no runtime mutation |
 | Trust Source Hierarchy | Read-only trust model semantics | `admin_core/autonomy_trust_acceleration.py`, `docs/decisions/ADR-OBSERVED-OUTCOME-PRIMARY-TRUST.md` | Primary vs secondary vs diagnostic evidence classification | ACTIVE | 90% | Observed outcome is primary; operator comparison is secondary supervised confirmation |
-| Event Detection | Event sources plus future binding | `tools/v7-telegram-sentinel`, service matrix, quality compact, route/runtime/capacity readers | Detect regression source facts | SOURCE_ONLY | 65% | Sources exist; certified event consumer missing |
-| Event Consumption | Missing certified live consumer | Should reuse existing event sources and planner | Bind regression event to planner/packet/restore chain | MISSING_CERTIFICATION | 25% | EVENT.1 blocked |
+| Event Detection | Event sources plus certified read-only binding | `tools/v7-telegram-sentinel`, service matrix, quality compact, route/runtime/capacity readers, `admin_core/events.py` | Detect and classify regression source facts | ACTIVE_READ_ONLY | 85% | Sources exist and classify into primary/secondary/diagnostic event classes |
+| Event Consumption | Certified read-only consumer | `admin_core/events.py`, `admin_core/operator_execution_pipeline.py::event_consumer_readonly_certification_model` | Bind regression event to planner/packet/restore/rollback/feedback/learning previews | ACTIVE_READ_ONLY | 80% | EVENT.CONSUMER.READONLY.2 certified; live apply still blocked |
 | Autonomous Runtime | Runtime service/timer | `systemd/v7-users-autoswitch.service`, `systemd/v7-users-autoswitch.timer` | Continuous apply service if enabled | DORMANT_BY_DESIGN | 35% | Inactive and approved manual mode |
 | Admin UI / Operator Layer | Operator surface | `admin/v7-admin-api`, `admin_core/operator_decision_surface.py` | Decision-first operator visibility and actions | ACTIVE | 85% | Channel/User/Attention UX mostly mature |
 | Governance | Execution pipeline | `admin_core/operator_execution_pipeline.py`, packet/restore/truth gates | Enforce floors, safety, action authority | ACTIVE | 85% | Floors block autonomy correctly |
@@ -209,12 +210,11 @@ Regression event
   -> trust growth
 ```
 
-Current break:
+Current live-apply break after EVENT.CONSUMER.READONLY.2:
 
 ```text
 Regression event
-  -> source exists
-  -> certified live consumer missing
+  -> read-only consumer certified
   -> gates fail confidence/trust/prediction/comparison
   -> no operator-free apply
 ```
@@ -329,7 +329,7 @@ User
 | Verification | Restore/rollback/feedback models exist | Live rollback packet for autonomous apply is not certified |
 | Learning | Feedback/trust/prediction/blast owners exist | Observed outcome evidence quality and prediction source confidence are weak |
 | Trust Growth | Trust-evolution pipeline exists | Blast durability fixed, deployed, and refreshed; trust source hierarchy now prioritizes observed outcomes over blind operator comparisons |
-| Autonomous Execution | Desired event-driven model is documented | Event consumer, floors, comparison evidence, prediction confidence, and deployment remain blockers |
+| Autonomous Execution | Desired event-driven model is documented | Floors, comparison evidence, prediction confidence, readiness recheck, and disabled daemon remain blockers |
 
 ## 6. Industry Comparison
 
@@ -337,7 +337,7 @@ This comparison uses industry philosophy only. It does not import new architectu
 
 | Industry Pattern | Relevant Principle | V7 Classification | V7 Meaning |
 | --- | --- | --- | --- |
-| Google SRE automation | Automate repeated operational work, but use reliable signals, guardrails, and risk-aware rollout | PARTIALLY_EXISTS_IN_V7 | V7 has probes, gates, restore/rollback, and BA evidence; event consumer/floors not ready |
+| Google SRE automation | Automate repeated operational work, but use reliable signals, guardrails, and risk-aware rollout | PARTIALLY_EXISTS_IN_V7 | V7 has probes, gates, restore/rollback, BA evidence, and a read-only event consumer; floors are not ready |
 | Google SRE monitoring / golden signals | Use symptom-oriented metrics and actionable alerts | PARTIALLY_EXISTS_IN_V7 | Service/quality/capacity signals exist; operator surfaces now decision-first |
 | Kubernetes controllers | Observe current state, compare to desired state, reconcile continuously | PARTIALLY_EXISTS_IN_V7 | Planner/dry-run resembles reconciliation; live controller is intentionally inactive |
 | Progressive delivery / Argo Rollouts | Incremental rollout with metric analysis before promotion | PARTIALLY_EXISTS_IN_V7 | BA1/BA3/BA4 and restore barriers exist; production event-driven progressive rollout not enabled |
@@ -377,7 +377,7 @@ Sources used:
 | Operator comparison | 25% | Existing endpoint/store; secondary supervised evidence only, not primary trust |
 | Trust source hierarchy | 90% | Observed outcome primary, operator comparison secondary, diagnostics separate |
 | Trust | 55% | Production dry-run after recovery reports trust `54.684`, below the `70.0` floor |
-| Event detection | 65% | Event sources exist; live consumer not certified |
+| Event detection | 85% | Event sources exist and the read-only consumer is certified; live apply remains blocked |
 | Autonomous runtime | 45% | Architecture exists; daemon inactive; blast blocker closed; confidence/trust/prediction floors fail |
 | Truth/deploy alignment | 100% | Local/GitHub/runtime aligned at `c4adc537`; truth/convergence pass |
 | Overall production autonomy | 45% | Correctly blocked; no operator-free apply should run now |
@@ -415,7 +415,7 @@ Sources used:
 
 ### Missing
 
-- Certified live event consumer from regression source to governed planner trigger.
+- Live apply-capable event consumer remains disabled; read-only consumer certification is complete.
 - Repeated forecast -> later actual collection loop with higher confidence.
 - Higher-confidence observed service/channel outcome cycles.
 - Contextual operator comparison records only where the operator has enough context.
@@ -443,16 +443,16 @@ Sources used:
 1. Keep autoswitch daemon/timer inactive.
 2. Start observed service/channel outcome evidence collection through existing service/quality/prediction owners.
 3. Start prediction evidence collection with real forecast -> later actual pairs.
-4. Build a read-only event consumer certification that binds regression source to planner preview without apply.
+4. Re-run canary readiness after read-only event consumer certification.
 5. Re-run truth/convergence after each evidence or logic change.
 
 ### Near Term: 2-8 Weeks
 
-1. Certify event consumer read-only chain end to end.
-2. Improve prediction confidence through repeated real outcomes, not formula changes.
-3. Use operator comparison only as contextual supervised confirmation through real agree/disagree/override records.
-4. Certify restore barrier and rollback preview for event-triggered packets.
-5. Add observability for autonomy readiness in admin without adding a new truth source.
+1. Improve prediction confidence through repeated real outcomes, not formula changes.
+2. Use operator comparison only as contextual supervised confirmation through real agree/disagree/override records.
+3. Recheck restore barrier and rollback preview readiness for event-triggered packets.
+4. Add observability for autonomy readiness in admin without adding a new truth source.
+5. Prepare an autonomous canary review only after floors pass.
 6. Implement Observed Capacity Shadow as snapshot/advisory only if needed and separately approved.
 
 ### Medium Term: 2-6 Months
@@ -488,9 +488,9 @@ Do not delete immediately. Classify first.
 
 1. Collect observed service/channel outcome evidence through existing service, quality, prediction, feedback, and closure owners.
 2. Collect time-separated prediction forecast -> later actual evidence.
-3. Certify read-only event consumer binding from sentinel/service/quality regression to planner preview.
-4. Certify restore barrier creation for a single event-triggered packet in preview mode.
-5. Certify rollback packet readiness for the same single event-triggered packet.
+3. Run `AUTONOMY.CANARY.1_READINESS_RECHECK` against the newly certified read-only event consumer.
+4. Recheck restore barrier creation for a single event-triggered packet in preview mode.
+5. Recheck rollback packet readiness for the same single event-triggered packet.
 6. Build an autonomy readiness dashboard row from existing gate values only.
 7. Keep `v7-users-autoswitch.service/timer` inactive until confidence/trust/prediction floors pass.
 8. Use operator comparisons only when the operator has enough context; do not create blind training history.

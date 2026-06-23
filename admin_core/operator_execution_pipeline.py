@@ -12,6 +12,8 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 
+from admin_core import events as event_helpers
+
 
 SCHEMA_VERSION = "v7.operator-governed-execution-pipeline.v1"
 CANONICAL_PLANNER = "tools/v7-users-autoswitch"
@@ -1565,6 +1567,25 @@ def autonomous_dry_run_model(
         ],
         "feedback_owner": CANONICAL_FEEDBACK_OWNER,
         "feedback_written_now": False,
+        "preview_only": True,
+        "read_only": True,
+    }
+    learning_preview = {
+        "schema_version": "v7.autonomous-learning-preview.v1",
+        "learning_owner": "admin_core/intelligence_platform.py",
+        "would_consume_after_feedback": [
+            "observed service outcome",
+            "observed channel quality",
+            "prediction actual",
+            "rollback/no-rollback result",
+            "recommendation quality",
+        ],
+        "observed_outcome_primary": True,
+        "operator_comparison_role": "secondary_supervised_confirmation",
+        "learning_written_now": False,
+        "synthetic_evidence_created": False,
+        "preview_only": True,
+        "read_only": True,
     }
     canary_ready = bool(candidates) and not bool(gates.get("hard_stop"))
     return {
@@ -1597,6 +1618,7 @@ def autonomous_dry_run_model(
         "simulated_apply": apply_preview,
         "simulated_rollback": rollback_preview,
         "feedback_preview": feedback_preview,
+        "learning_preview": learning_preview,
         "audit_preview": audit_preview,
         "dashboard_summary": {
             "title": "Autonomous Dry Run",
@@ -1617,6 +1639,102 @@ def autonomous_dry_run_model(
         "rollback_executed": False,
         "autonomy_enabled": False,
         "execution_allowed_now": False,
+    }
+
+
+def event_consumer_readonly_certification_model(
+    *,
+    events: list[dict[str, Any]] | None = None,
+    readiness: dict[str, Any] | None = None,
+    decision_surface: dict[str, Any] | None = None,
+    execution_summary: dict[str, Any] | None = None,
+    max_users: int = 1,
+    now: str = "",
+) -> dict[str, Any]:
+    """Certify the event-to-preview chain without enabling runtime apply."""
+    events = events if isinstance(events, list) else []
+    consumer = event_helpers.build_readonly_event_consumer_trace(events, now=now)
+    dry_run = autonomous_dry_run_model(
+        readiness=readiness,
+        decision_surface=decision_surface,
+        execution_summary=execution_summary,
+        max_users=max_users,
+    )
+    planner_preview = {
+        "schema_version": "v7.event-consumer-planner-preview.v1",
+        "owner": CANONICAL_PLANNER,
+        "input_event_count": consumer.get("planner_preview_event_count", 0),
+        "candidate_count": dry_run.get("candidate_count", 0),
+        "single_blocker": dry_run.get("single_blocker", "UNKNOWN"),
+        "canary_autonomy_ready": bool(dry_run.get("canary_autonomy_ready")),
+        "preview_only": True,
+        "read_only": True,
+    }
+    packet_preview = dict(dry_run.get("packet_draft") or {})
+    packet_preview.update({"preview_only": True, "read_only": True})
+    restore_preview = dict(dry_run.get("restore_barrier_readiness") or {})
+    restore_preview.update({"preview_only": True, "read_only": True})
+    rollback_preview = dict(dry_run.get("simulated_rollback") or {})
+    rollback_preview.update({"preview_only": True, "read_only": True})
+    feedback_preview = dict(dry_run.get("feedback_preview") or {})
+    feedback_preview.update({"preview_only": True, "read_only": True})
+    learning_preview = dict(dry_run.get("learning_preview") or {})
+    learning_preview.update({"preview_only": True, "read_only": True})
+    link_rows = [
+        ("observation", "event", consumer.get("event_count", 0) > 0, "admin_core/events.py"),
+        ("event", "planner_preview", consumer.get("planner_preview_event_count", 0) > 0, "admin_core/events.py -> tools/v7-users-autoswitch"),
+        ("planner_preview", "packet_preview", bool(packet_preview), CANONICAL_PACKET_TOOL),
+        ("packet_preview", "restore_barrier_preview", bool(restore_preview), CANONICAL_PACKET_OWNER),
+        ("restore_barrier_preview", "rollback_preview", bool(rollback_preview), CANONICAL_PACKET_OWNER),
+        ("rollback_preview", "feedback_preview", bool(feedback_preview), CANONICAL_FEEDBACK_OWNER),
+        ("feedback_preview", "learning_preview", bool(learning_preview), "admin_core/intelligence_platform.py"),
+    ]
+    chain = [
+        {
+            "from": left,
+            "to": right,
+            "owner": owner,
+            "ready": bool(ready),
+            "certification_state": "READONLY_CERTIFIED" if ready else "WAITING_FOR_REAL_SIGNAL",
+            "runtime_mutation": False,
+        }
+        for left, right, ready, owner in link_rows
+    ]
+    certified = all(row["ready"] for row in chain)
+    return {
+        "schema_version": "v7.event-consumer-readonly-certification.v1",
+        "generated_at": now,
+        "read_only": True,
+        "preview_only": True,
+        "execution_allowed_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "autonomy_enabled": False,
+        "routing_changed": False,
+        "synthetic_events_created": False,
+        "synthetic_evidence_created": False,
+        "new_truth_source_created": False,
+        "planner_changed": False,
+        "governance_changed": False,
+        "execution_path_changed": False,
+        "observed_outcome_primary": True,
+        "operator_comparison_role": "secondary_supervised_confirmation",
+        "event_consumer": consumer,
+        "planner_preview": planner_preview,
+        "packet_preview": packet_preview,
+        "restore_barrier_preview": restore_preview,
+        "rollback_preview": rollback_preview,
+        "feedback_preview": feedback_preview,
+        "learning_preview": learning_preview,
+        "chain_completeness": chain,
+        "event_consumer_certified": certified,
+        "final_verdict": "EVENT_CONSUMER_CERTIFIED" if certified else "EVENT_CONSUMER_PARTIAL",
+        "canary_readiness_impact": {
+            "event_consumer_gate": "PASS" if certified else "PARTIAL",
+            "canary_ready_now": bool(dry_run.get("canary_autonomy_ready")),
+            "remaining_blocker": dry_run.get("single_blocker", "UNKNOWN"),
+            "next_phase": "AUTONOMY.CANARY.1_READINESS_RECHECK" if certified else "EVENT.CONSUMER.READONLY.FOLLOWUP",
+        },
     }
 
 

@@ -1,0 +1,491 @@
+{
+  "schema_version": 1,
+  "updated": "2026-06-23T04:07:10.515826+00:00",
+  "threshold_seconds": 14,
+  "timeout_seconds": 1.0,
+  "elapsed_sec": 1.067,
+  "checked_egress": 7,
+  "blocked_egress": [
+    "1",
+    "openvpn-1779388847-d2ad7c"
+  ],
+  "healthy_egress": [
+    "amneziawg-exec-20260528-10-8-1-14",
+    "awg0",
+    "awg3",
+    "vless"
+  ],
+  "last_autoswitch_at": "2026-05-22T21:43:21.818943+00:00",
+  "autoswitch": {
+    "started": false,
+    "reason": "disabled_or_no_blocked_egress"
+  },
+  "service_matrix_lock": {
+    "held": true,
+    "inherited": false,
+    "path": "/opt/v7/egress/state/service-matrix.lock"
+  },
+  "items": {
+    "awg0": {
+      "egress": "awg0",
+      "interface": "awg0",
+      "checked_at": "2026-06-23T04:07:09.450807+00:00",
+      "threshold_seconds": 14,
+      "sample_ok": true,
+      "status": "OK",
+      "score": 100,
+      "ratio": 1.0,
+      "critical_ok": true,
+      "ok_count": 5,
+      "total": 5,
+      "reason": "telegram tcp endpoints reachable",
+      "samples": [
+        {
+          "target": "149.154.167.50:443",
+          "host": "149.154.167.50",
+          "port": 443,
+          "interface": "awg0",
+          "ok": true,
+          "connect_ms": 58.4
+        },
+        {
+          "target": "149.154.175.50:443",
+          "host": "149.154.175.50",
+          "port": 443,
+          "interface": "awg0",
+          "ok": true,
+          "connect_ms": 155.3
+        },
+        {
+          "target": "194.221.250.50:443",
+          "host": "194.221.250.50",
+          "port": 443,
+          "interface": "awg0",
+          "ok": true,
+          "connect_ms": 57.4
+        },
+        {
+          "target": "91.108.56.177:443",
+          "host": "91.108.56.177",
+          "port": 443,
+          "interface": "awg0",
+          "ok": true,
+          "connect_ms": 197.4
+        },
+        {
+          "target": "api.telegram.org:443",
+          "host": "api.telegram.org",
+          "port": 443,
+          "interface": "awg0",
+          "ok": true,
+          "connect_ms": 54.3
+        }
+      ],
+      "first_byte_sec": 0.054,
+      "total_sec": 0.218,
+      "bad_now": false,
+      "bad_since": "",
+      "bad_for_seconds": 0.0,
+      "blocked": false,
+      "matrix_ok": true,
+      "matrix_status": "OK"
+    },
+    "awg3": {
+      "egress": "awg3",
+      "interface": "awg3",
+      "checked_at": "2026-06-23T04:07:09.451225+00:00",
+      "threshold_seconds": 14,
+      "sample_ok": true,
+      "status": "OK",
+      "score": 100,
+      "ratio": 1.0,
+      "critical_ok": true,
+      "ok_count": 5,
+      "total": 5,
+      "reason": "telegram tcp endpoints reachable",
+      "samples": [
+        {
+          "target": "149.154.167.50:443",
+          "host": "149.154.167.50",
+          "port": 443,
+          "interface": "awg3",
+          "ok": true,
+          "connect_ms": 50.2
+        },
+        {
+          "target": "149.154.175.50:443",
+          "host": "149.154.175.50",
+          "port": 443,
+          "interface": "awg3",
+          "ok": true,
+          "connect_ms": 156.3
+        },
+        {
+          "target": "194.221.250.50:443",
+          "host": "194.221.250.50",
+          "port": 443,
+          "interface": "awg3",
+          "ok": true,
+          "connect_ms": 52.6
+        },
+        {
+          "target": "91.108.56.177:443",
+          "host": "91.108.56.177",
+          "port": 443,
+          "interface": "awg3",
+          "ok": true,
+          "connect_ms": 202.7
+        },
+        {
+          "target": "api.telegram.org:443",
+          "host": "api.telegram.org",
+          "port": 443,
+          "interface": "awg3",
+          "ok": true,
+          "connect_ms": 50.5
+        }
+      ],
+      "first_byte_sec": 0.05,
+      "total_sec": 0.224,
+      "bad_now": false,
+      "bad_since": "",
+      "bad_for_seconds": 0.0,
+      "blocked": false,
+      "matrix_ok": true,
+      "matrix_status": "OK"
+    },
+    "amneziawg-exec-20260528-10-8-1-14": {
+      "egress": "amneziawg-exec-20260528-10-8-1-14",
+      "interface": "v7execwg0",
+      "checked_at": "2026-06-23T04:07:09.452844+00:00",
+      "threshold_seconds": 14,
+      "sample_ok": true,
+      "status": "OK",
+      "score": 100,
+      "ratio": 1.0,
+      "critical_ok": true,
+      "ok_count": 5,
+      "total": 5,
+      "reason": "telegram tcp endpoints reachable",
+      "samples": [
+        {
+          "target": "149.154.167.50:443",
+          "host": "149.154.167.50",
+          "port": 443,
+          "interface": "v7execwg0",
+          "ok": true,
+          "connect_ms": 49.1
+        },
+        {
+          "target": "149.154.175.50:443",
+          "host": "149.154.175.50",
+          "port": 443,
+          "interface": "v7execwg0",
+          "ok": true,
+          "connect_ms": 151.5
+        },
+        {
+          "target": "194.221.250.50:443",
+          "host": "194.221.250.50",
+          "port": 443,
+          "interface": "v7execwg0",
+          "ok": true,
+          "connect_ms": 48.8
+        },
+        {
+          "target": "91.108.56.177:443",
+          "host": "91.108.56.177",
+          "port": 443,
+          "interface": "v7execwg0",
+          "ok": true,
+          "connect_ms": 202.5
+        },
+        {
+          "target": "api.telegram.org:443",
+          "host": "api.telegram.org",
+          "port": 443,
+          "interface": "v7execwg0",
+          "ok": true,
+          "connect_ms": 53.8
+        }
+      ],
+      "first_byte_sec": 0.049,
+      "total_sec": 0.223,
+      "bad_now": false,
+      "bad_since": "",
+      "bad_for_seconds": 0.0,
+      "blocked": false,
+      "matrix_ok": true,
+      "matrix_status": "OK"
+    },
+    "vless": {
+      "egress": "vless",
+      "interface": "tun0",
+      "checked_at": "2026-06-23T04:07:09.450359+00:00",
+      "threshold_seconds": 14,
+      "sample_ok": true,
+      "status": "OK",
+      "score": 100,
+      "ratio": 0.8,
+      "critical_ok": true,
+      "ok_count": 4,
+      "total": 5,
+      "reason": "telegram tcp endpoints reachable",
+      "samples": [
+        {
+          "target": "149.154.167.50:443",
+          "host": "149.154.167.50",
+          "port": 443,
+          "interface": "tun0",
+          "ok": true,
+          "connect_ms": 1.1
+        },
+        {
+          "target": "149.154.175.50:443",
+          "host": "149.154.175.50",
+          "port": 443,
+          "interface": "tun0",
+          "ok": true,
+          "connect_ms": 1.6
+        },
+        {
+          "target": "194.221.250.50:443",
+          "host": "194.221.250.50",
+          "port": 443,
+          "interface": "tun0",
+          "ok": true,
+          "connect_ms": 1.5
+        },
+        {
+          "target": "91.108.56.177:443",
+          "host": "91.108.56.177",
+          "port": 443,
+          "interface": "tun0",
+          "ok": false,
+          "error": "timeout",
+          "connect_ms": 1004.9
+        },
+        {
+          "target": "api.telegram.org:443",
+          "host": "api.telegram.org",
+          "port": 443,
+          "interface": "tun0",
+          "ok": true,
+          "connect_ms": 2.4
+        }
+      ],
+      "first_byte_sec": 0.001,
+      "total_sec": 1.024,
+      "bad_now": false,
+      "bad_since": "",
+      "bad_for_seconds": 0.0,
+      "blocked": false,
+      "matrix_ok": true,
+      "matrix_status": "OK"
+    },
+    "wireguard-1779454504-c43409": {
+      "egress": "wireguard-1779454504-c43409",
+      "interface": "v7e06a394c478",
+      "checked_at": "2026-06-23T04:07:09.452486+00:00",
+      "threshold_seconds": 14,
+      "sample_ok": false,
+      "status": "DEGRADED",
+      "score": 60,
+      "ratio": 0.6,
+      "critical_ok": true,
+      "ok_count": 3,
+      "total": 5,
+      "reason": "telegram partially reachable: 3/5 endpoints",
+      "samples": [
+        {
+          "target": "149.154.167.50:443",
+          "host": "149.154.167.50",
+          "port": 443,
+          "interface": "v7e06a394c478",
+          "ok": true,
+          "connect_ms": 50.3
+        },
+        {
+          "target": "149.154.175.50:443",
+          "host": "149.154.175.50",
+          "port": 443,
+          "interface": "v7e06a394c478",
+          "ok": false,
+          "error": "timeout",
+          "connect_ms": 1005.0
+        },
+        {
+          "target": "194.221.250.50:443",
+          "host": "194.221.250.50",
+          "port": 443,
+          "interface": "v7e06a394c478",
+          "ok": true,
+          "connect_ms": 50.9
+        },
+        {
+          "target": "91.108.56.177:443",
+          "host": "91.108.56.177",
+          "port": 443,
+          "interface": "v7e06a394c478",
+          "ok": false,
+          "error": "timeout",
+          "connect_ms": 1004.6
+        },
+        {
+          "target": "api.telegram.org:443",
+          "host": "api.telegram.org",
+          "port": 443,
+          "interface": "v7e06a394c478",
+          "ok": true,
+          "connect_ms": 54.2
+        }
+      ],
+      "first_byte_sec": 0.05,
+      "total_sec": 1.024,
+      "bad_now": false,
+      "bad_since": "",
+      "bad_for_seconds": 0.0,
+      "blocked": false,
+      "matrix_ok": true,
+      "matrix_status": "DEGRADED"
+    },
+    "1": {
+      "egress": "1",
+      "interface": "v7e356a192b79",
+      "checked_at": "2026-06-23T04:07:09.451610+00:00",
+      "threshold_seconds": 14,
+      "sample_ok": false,
+      "status": "DOWN",
+      "score": 0,
+      "ratio": 0.0,
+      "critical_ok": false,
+      "ok_count": 0,
+      "total": 5,
+      "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+      "samples": [
+        {
+          "target": "149.154.167.50:443",
+          "host": "149.154.167.50",
+          "port": 443,
+          "interface": "v7e356a192b79",
+          "ok": false,
+          "error": "timeout",
+          "connect_ms": 1004.3
+        },
+        {
+          "target": "149.154.175.50:443",
+          "host": "149.154.175.50",
+          "port": 443,
+          "interface": "v7e356a192b79",
+          "ok": false,
+          "error": "timeout",
+          "connect_ms": 1004.8
+        },
+        {
+          "target": "194.221.250.50:443",
+          "host": "194.221.250.50",
+          "port": 443,
+          "interface": "v7e356a192b79",
+          "ok": false,
+          "error": "timeout",
+          "connect_ms": 1004.9
+        },
+        {
+          "target": "91.108.56.177:443",
+          "host": "91.108.56.177",
+          "port": 443,
+          "interface": "v7e356a192b79",
+          "ok": false,
+          "error": "timeout",
+          "connect_ms": 1005.3
+        },
+        {
+          "target": "api.telegram.org:443",
+          "host": "api.telegram.org",
+          "port": 443,
+          "interface": "v7e356a192b79",
+          "ok": false,
+          "error": "timeout",
+          "connect_ms": 1007.8
+        }
+      ],
+      "first_byte_sec": "",
+      "total_sec": 1.03,
+      "bad_now": true,
+      "bad_since": "2026-06-02T14:48:59.608368+00:00",
+      "bad_for_seconds": 1775890.9,
+      "blocked": true,
+      "matrix_ok": false,
+      "matrix_status": "TELEGRAM_DOWN_14S"
+    },
+    "openvpn-1779388847-d2ad7c": {
+      "egress": "openvpn-1779388847-d2ad7c",
+      "interface": "v7edb0c189291",
+      "checked_at": "2026-06-23T04:07:09.451954+00:00",
+      "threshold_seconds": 14,
+      "sample_ok": false,
+      "status": "DOWN",
+      "score": 0,
+      "ratio": 0.0,
+      "critical_ok": false,
+      "ok_count": 0,
+      "total": 5,
+      "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+      "samples": [
+        {
+          "target": "149.154.167.50:443",
+          "host": "149.154.167.50",
+          "port": 443,
+          "interface": "v7edb0c189291",
+          "ok": false,
+          "error": "timeout",
+          "connect_ms": 1007.0
+        },
+        {
+          "target": "149.154.175.50:443",
+          "host": "149.154.175.50",
+          "port": 443,
+          "interface": "v7edb0c189291",
+          "ok": false,
+          "error": "timeout",
+          "connect_ms": 1005.6
+        },
+        {
+          "target": "194.221.250.50:443",
+          "host": "194.221.250.50",
+          "port": 443,
+          "interface": "v7edb0c189291",
+          "ok": false,
+          "error": "timeout",
+          "connect_ms": 1004.7
+        },
+        {
+          "target": "91.108.56.177:443",
+          "host": "91.108.56.177",
+          "port": 443,
+          "interface": "v7edb0c189291",
+          "ok": false,
+          "error": "timeout",
+          "connect_ms": 1006.6
+        },
+        {
+          "target": "api.telegram.org:443",
+          "host": "api.telegram.org",
+          "port": 443,
+          "interface": "v7edb0c189291",
+          "ok": false,
+          "error": "timeout",
+          "connect_ms": 1007.5
+        }
+      ],
+      "first_byte_sec": "",
+      "total_sec": 1.03,
+      "bad_now": true,
+      "bad_since": "2026-06-02T13:09:40.441439+00:00",
+      "bad_for_seconds": 1781850.0,
+      "blocked": true,
+      "matrix_ok": false,
+      "matrix_status": "TELEGRAM_DOWN_14S"
+    }
+  }
+}

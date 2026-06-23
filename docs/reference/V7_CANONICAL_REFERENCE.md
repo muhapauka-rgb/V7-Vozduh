@@ -176,10 +176,12 @@ Stable conclusions:
 2. Existing regression/evidence sources include `tools/v7-telegram-sentinel`, service matrix refresh, egress quality compaction, route/runtime/capacity read models, and planner blocker transitions.
 3. The existing chain can preview planner output, execution packet draft, restore barrier ownership, rollback model, feedback model, and learning/confidence evidence without moving users.
 4. EVENT.1 current truth: `preview_only=true`, `read_only=true`, `execution_allowed_now=false`, `apply_executed=false`, `users_moved=0`, `rollback_executed=false`, and `autonomy_enabled=false`.
-5. EVENT.1 blockers are `confidence_too_low`, `trust_too_low`, `prediction_confidence_too_low`, operator comparison evidence below floor, restore barrier readiness blocked, and no certified live event consumer binding from regression evidence to governed planner trigger.
+5. EVENT.1 blockers were `confidence_too_low`, `trust_too_low`, `prediction_confidence_too_low`, operator comparison evidence below floor, restore barrier readiness blocked, and no certified live event consumer binding from regression evidence to governed planner trigger.
 6. `v7-telegram-sentinel` is an event/regression source, but current service mode uses `--no-autoswitch`; it is not a certified production apply trigger.
 7. EVENT.1 final verdict is `EVENT_TRIGGER_BLOCKED`.
-8. Next safe phase is read-only event consumer certification plus evidence collection until confidence, trust, prediction, comparison, restore barrier, rollback, feedback, and learning gates pass together.
+8. EVENT.CONSUMER.READONLY.2 certified the missing read-only event consumer link without enabling apply. Existing production events now flow through `admin_core/events.py` into `admin_core/operator_execution_pipeline.py::event_consumer_readonly_certification_model`, which previews planner, packet, restore barrier, rollback, feedback, and learning surfaces without mutation.
+9. EVENT.CONSUMER.READONLY.2 evidence used 10 real production event rows from Telegram Sentinel and Service Matrix. The read-only certification produced `event_count=10`, `primary_event_count=10`, `packet_preview_count=1`, `restore_preview_count=1`, `rollback_preview_count=1`, `feedback_preview_count=1`, `learning_preview_count=1`, `apply_executed=false`, `users_moved=0`, and `autonomy_enabled=false`.
+10. The event consumer is now certified only as read-only. It is not a daemon, not an apply authority, not a new truth source, and not permission to move users. The next safe phase is readiness recheck plus evidence collection until confidence, trust, prediction, restore barrier, rollback, feedback, and learning gates pass together.
 
 ## AUTONOMY_ROOT_CONFIDENCE_TRUST_MODEL
 
@@ -192,7 +194,7 @@ Stable conclusions:
 7. Current EVENT.1 values are `confidence=45.8`, `trust=39.584`, and `prediction_confidence=39.6`; all are below floor, so apply must stop.
 8. Outcome evidence is active and consumed from `trust-evolution-summaries`, but current component quality is insufficient: decision `50.0`, service `39.225`, suitability `29.528`, blast-radius `0.0`, prediction `37.355`, rollback `100.0`.
 9. Shadow comparison evidence is owned by `admin_core/shadow_autonomy.py` and the existing `/api/actions/shadow-autonomy-compare` endpoint. Current production comparison count is `0`, so earned confidence remains about `45.802`, but this is a secondary supervised signal and must not force blind operator review.
-10. Missing primary evidence must be collected through existing owners only: observed service/channel outcomes, matched prediction actuals, matched service/candidate outcomes, post-action verification, rollback/no-rollback evidence, explicit blast-radius evidence, and future read-only event consumer certification.
+10. Missing primary evidence must be collected through existing owners only: observed service/channel outcomes, matched prediction actuals, matched service/candidate outcomes, post-action verification, rollback/no-rollback evidence, and explicit blast-radius evidence. Read-only event consumer certification is complete, but evidence floors still block apply.
 11. Lowering floors, adding a new planner, adding a new execution path, or enabling a timer/daemon to move users would violate the current autonomy model.
 12. Last verified commit: `68b4153e95712b1ac432ccfac785561025ea4aed`.
 
@@ -304,7 +306,7 @@ Stable conclusions:
 7. Current operator comparison reality from read-only shadow build: 27 decisions, 0 comparisons, agreement rate `0.0`, average decision confidence `45.828`, and earned confidence `45.828`.
 8. With the current shadow formula, the practical operator-comparison target is about 9 all-agree comparisons, 11 comparisons at 90% agreement, 15 at 80%, or 17 at 75% to reach earned confidence near or above `70.0`. The formal minimum comparison count remains 5, but that alone is unlikely to reach the earned-confidence floor.
 9. Current prediction path remains healthy but under-confident: matching works, forecast accuracy was previously about `98.5`, and the blocker is low forecast/source confidence. Estimated future evidence need is about 23 perfect matched actuals or about 35 high-quality 90% matched actuals to approach the `70.0` floor.
-10. Trust buildout order is: `AUTONOMY.TRUST.DURABILITY.1` -> `OPERATOR.COMPARISON.COLLECTION.1` -> `AUTONOMY.PREDICTION.EVIDENCE.2` -> `EVENT.CONSUMER.READONLY.2` -> `AUTONOMY.CANARY.1_READINESS_RECHECK`.
+10. Trust buildout order is: `AUTONOMY.TRUST.DURABILITY.1` -> `OPERATOR.COMPARISON.COLLECTION.1` -> `AUTONOMY.PREDICTION.EVIDENCE.2` -> `EVENT.CONSUMER.READONLY.2` -> `AUTONOMY.CANARY.1_READINESS_RECHECK`. EVENT.CONSUMER.READONLY.2 is complete as a read-only consumer certification.
 11. AUTONOMY.TRUST.BUILDOUT.1 final verdict is `AUTONOMY_TRUST_PATH_PARTIAL`.
 12. Last verified commit: `6b0c72f4157d5e4cb57db864d0bcd73b593f4fe0`.
 
@@ -321,7 +323,7 @@ Stable conclusions:
 9. Production deploy and snapshot refresh also verified the fix: deploy id `deploy-z8-14-Updatesystem-29b980c-20260623T000551`, `blast_radius_confidence=100.0`, `blast_radius_evidence_count=11`, `blast_radius_source_record_count=4407`, `bounded_decision_count=1000`, `successful_small_operations=9`, and `unsafe_large_operations=0`.
 10. No runtime apply, user movement, daemon enablement, planner change, governance change, execution change, threshold change, floor change, formula change, synthetic evidence, or new truth source occurred.
 11. Branch 1B remains the production proof point for 11 real recovered rows and trust `54.684`; AUTONOMY.TRUST.DURABILITY.1 makes that class of recovered evidence durable under normal refresh code behavior.
-12. Remaining autonomy blockers still stand: trust floor, prediction confidence, operator comparison evidence, live event consumer certification, and disabled daemon/autoswitch runtime.
+12. Remaining autonomy blockers still stand: trust floor, prediction confidence, operator comparison evidence, readiness recheck, and disabled daemon/autoswitch runtime. Live event consumer certification is complete in read-only mode only.
 13. AUTONOMY.TRUST.DURABILITY.1 final verdict is `TRUST_DURABILITY_FIXED`.
 14. Last verified commit: `29b980c00a11097332eaad53a2c1fe2f77d2389d`.
 15. AUTONOMY.TRUST.ACCELERATION.1 final production canary proximity after refresh: confidence `39.606`, trust `54.704`, prediction confidence `36.861`, operator earned confidence `45.802`; all remain below the `70.0` floor.

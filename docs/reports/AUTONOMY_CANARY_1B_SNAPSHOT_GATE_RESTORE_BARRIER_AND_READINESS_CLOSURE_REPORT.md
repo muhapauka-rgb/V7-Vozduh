@@ -159,3 +159,17 @@ The next action, if approved as a separate governed phase, is to use the existin
 `CANARY_BLOCKED_BY_RESTORE`
 
 Snapshot gate and candidate visibility are closed. Canary cannot proceed because the current restore barrier clearance is expired and belongs to an obsolete plan.
+
+## 12. Final Alignment
+
+Final checks were run after commit and push, with outputs written to `/tmp` to avoid creating new repository dirtiness.
+
+| Check | Status |
+| --- | --- |
+| Local | PASS |
+| GitHub | PASS |
+| Runtime | PASS |
+| Truth | PASS / FULLY_ALIGNED |
+| Convergence | PASS / ALIGNED |
+
+Final aligned commit: `6d27da722265ff4a629925a80ec7287b31441767`

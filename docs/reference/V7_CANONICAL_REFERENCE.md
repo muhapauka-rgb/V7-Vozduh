@@ -1,8 +1,8 @@
 # V7 Canonical Reference
 
 Status: canonical project reference
-Last verified commit: `ece796d`
-Last verified date: 2026-06-22
+Last verified commit: `AUTONOMY.CANARY.1_READINESS_RECHECK`
+Last verified date: 2026-06-23
 
 This document describes the current meaning of V7 system concepts. It is not a history log and not an audit report. Reports remain evidence. ADRs explain why a decision was made. This reference is the current truth that future V7 work must read before re-auditing old concepts.
 
@@ -182,6 +182,19 @@ Stable conclusions:
 8. EVENT.CONSUMER.READONLY.2 certified the missing read-only event consumer link without enabling apply. Existing production events now flow through `admin_core/events.py` into `admin_core/operator_execution_pipeline.py::event_consumer_readonly_certification_model`, which previews planner, packet, restore barrier, rollback, feedback, and learning surfaces without mutation.
 9. EVENT.CONSUMER.READONLY.2 evidence used 10 real production event rows from Telegram Sentinel and Service Matrix. The read-only certification produced `event_count=10`, `primary_event_count=10`, `packet_preview_count=1`, `restore_preview_count=1`, `rollback_preview_count=1`, `feedback_preview_count=1`, `learning_preview_count=1`, `apply_executed=false`, `users_moved=0`, and `autonomy_enabled=false`.
 10. The event consumer is now certified only as read-only. It is not a daemon, not an apply authority, not a new truth source, and not permission to move users. The next safe phase is readiness recheck plus evidence collection until confidence, trust, prediction, restore barrier, rollback, feedback, and learning gates pass together.
+
+## AUTONOMY_CANARY_READINESS
+
+1. AUTONOMY.CANARY.1_READINESS_RECHECK on 2026-06-23 returned `AUTONOMY_CANARY_NO_GO`.
+2. The canary blocker is not missing architecture. Existing owners for event consumer, planner preview, packet preview, restore barrier preview, rollback preview, feedback preview, and learning preview are present and read-only certified.
+3. Current production floors remain below the `70.0` canary requirement: confidence `39.606`, trust `54.705`, prediction confidence `36.859`, and secondary operator earned confidence `45.807`.
+4. Current production comparison evidence remains underfed: comparison count `0`, agreement rate `0.0`, reviewable decisions `27`.
+5. Current prediction lifecycle is durable but under-confident: `21/21` forecasts matched actuals, `0` pending rows, forecast accuracy `97.189`, and prediction confidence `36.859`.
+6. Blast and rollback are not current blockers: blast radius confidence is `100.0` and rollback confidence is `100.0`.
+7. The current planner observe run selected `0` moves and stopped with `dry_run_intelligence_snapshot_stop_required`; snapshot stop families were `service-scores` and `channel-service-scores`.
+8. Snapshot refresh dry-run is stable and non-mutating: `source_stable=true`, `snapshot_count=11`, `runtime_behavior_changed=false`, `governance_behavior_changed=false`, and `users_moved=false`.
+9. Production autonomy remains disabled. No apply, no user movement, no daemon enablement, no autoswitch enablement, no threshold/floor/formula change, no synthetic evidence, and no new truth source occurred.
+10. Shortest safe path before another canary decision: snapshot gate / candidate recheck through existing owners, real observed service/channel outcome collection, prediction source-confidence collection, contextual supervised operator comparison if useful, then another canary readiness recheck.
 
 ## AUTONOMY_ROOT_CONFIDENCE_TRUST_MODEL
 

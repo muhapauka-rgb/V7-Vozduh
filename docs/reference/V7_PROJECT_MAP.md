@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-23
-Last changed by: `EVENT.CONSUMER.READONLY.2`
+Last changed by: `AUTONOMY.CANARY.1_READINESS_RECHECK`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -21,7 +21,7 @@ POOL.1 classified the pool as stable with zero planner candidates. POOL.2 rechec
 
 Current roadmap position:
 
-`EVENT_CONSUMER_CERTIFIED_CANARY_READINESS_RECHECK`
+`AUTONOMY_CANARY_NO_GO_EVIDENCE_COLLECTION_REQUIRED`
 
 The blueprint view keeps channel recovery visible, but the project-level autonomy bottleneck is now broader and more precise. Branch 1B closed the blast recovery branch in production, AUTONOMY.TRUST.BUILDOUT.1 found that recovered blast evidence was not durable in the current consumed dry-run, and AUTONOMY.TRUST.DURABILITY.1 fixed the normal refresh code path so rotated evidence survives refresh/rebuild/reread:
 
@@ -104,6 +104,11 @@ contextual operator comparison
 | Event Consumer Certification | 25% | 80% | +55% | `EVENT.CONSUMER.READONLY.2` | Real production events now flow through a certified read-only consumer into planner, packet, restore, rollback, feedback, and learning previews. |
 | Canary Readiness | 35% | 45% | +10% | `EVENT.CONSUMER.READONLY.2` | Event consumer blocker is removed for read-only certification, but confidence/trust/prediction/readiness gates still require recheck before canary. |
 | Production Autonomy | 43% | 45% | +2% | `EVENT.CONSUMER.READONLY.2` | Read-only event binding improved, but no apply/daemon/user movement occurred and production autonomy remains disabled. |
+| Autonomous Trust | 55% | 55% | 0% | `AUTONOMY.CANARY.1_READINESS_RECHECK` | Fresh production evidence reports trust `54.705`, still below the `70.0` floor. |
+| Prediction Evidence Quality | 50% | 50% | 0% | `AUTONOMY.CANARY.1_READINESS_RECHECK` | Prediction lifecycle remains durable with `21/21` matched rows, but prediction confidence is `36.859`, below the `70.0` floor. |
+| Operator Comparison Evidence | 25% | 25% | 0% | `AUTONOMY.CANARY.1_READINESS_RECHECK` | Current comparison count is still `0`; operator comparison remains secondary supervised evidence. |
+| Canary Readiness | 45% | 45% | 0% | `AUTONOMY.CANARY.1_READINESS_RECHECK` | Final recheck returns `AUTONOMY_CANARY_NO_GO`: confidence `39.606`, trust `54.705`, prediction confidence `36.859`, planner selected `0` moves, and snapshot gate stopped on service snapshot source mismatch. |
+| Production Autonomy | 45% | 45% | 0% | `AUTONOMY.CANARY.1_READINESS_RECHECK` | No apply, no user movement, no daemon enablement; event consumer remains read-only and production autonomy stays disabled. |
 
 ## Stable Areas
 
@@ -121,12 +126,29 @@ contextual operator comparison
 | P1 | `CHANNEL_RECOVERY_AWG3_AWG0_STABILITY_REVIEW` | `awg3` has 8 assigned users but is currently not eligible; `awg0` is close to recovery but still below stability floor. |
 | P2 | Decide whether `awg3` recovers naturally or needs a governed failover review | POOL.2 found 8 failover candidates but did not execute movement by design. |
 | P3 | Continue pool observation only after recovery/failover pressure is resolved | Current state is not clean equilibrium because planner disagrees with keeping `awg3` users there. |
-| P1 | `OBSERVED_OUTCOME.EVIDENCE.1_REAL_SERVICE_CHANNEL_OUTCOME_COLLECTION` | Observed service/channel outcome is the primary trust source and still needs higher-confidence real production cycles. |
-| P1 | `AUTONOMY.PREDICTION.EVIDENCE.3_REAL_VOLUME_AND_SOURCE_CONFIDENCE_COLLECTION` | Prediction evidence lifecycle is improved; source confidence/evidence volume still need real production evidence to reach the `70.0` floor. |
+| P1 | `OBSERVED_OUTCOME.EVIDENCE.1_REAL_SERVICE_CHANNEL_OUTCOME_COLLECTION` | Observed service/channel outcome is the primary trust source; current confidence `39.606` and trust `54.705` remain below autonomy floors. |
+| P1 | `AUTONOMY.PREDICTION.EVIDENCE.3_REAL_VOLUME_AND_SOURCE_CONFIDENCE_COLLECTION` | Prediction lifecycle is durable with `21/21` matched rows and `0` pending rows, but prediction confidence remains `36.859` vs the `70.0` floor. |
 | P2 | `OPERATOR_COMPARISON.REVIEW.1_CONTEXTUAL_SUPERVISED_CONFIRMATION` | Operator comparison remains valid only when the operator has enough context; do not create blind training history. |
-| P1 | `AUTONOMY.CANARY.1_READINESS_RECHECK` | Event consumer is now read-only certified; canary still needs a fresh check of confidence, trust, prediction, restore barrier, rollback, feedback, learning, and disabled-daemon boundaries. |
+| P1 | `AUTONOMY.CANARY.1A_SNAPSHOT_GATE_AND_CANDIDATE_RECHECK` | Canary recheck found planner observe selected `0` moves and stopped on `service-scores` / `channel-service-scores` source mismatch; resolve with existing snapshot/planner owners before another canary decision. |
 
 ## Changelog
+
+### 2026-06-23 — AUTONOMY.CANARY.1 Readiness Recheck
+
+- Created `docs/reports/AUTONOMY_CANARY_1_READINESS_RECHECK_REPORT.md` and evidence under `docs/reports/AUTONOMY_CANARY_1_READINESS_RECHECK_EVIDENCE/`.
+- Final verdict: `AUTONOMY_CANARY_NO_GO`.
+- Fresh production values: confidence `39.606`, trust `54.705`, prediction confidence `36.859`, operator earned confidence `45.807`, comparison count `0`, rollback confidence `100.0`, blast confidence `100.0`.
+- Event consumer chain remains `EVENT_CONSUMER_CERTIFIED` and read-only.
+- Planner observe selected `0` current moves and stopped with `dry_run_intelligence_snapshot_stop_required`; snapshot gate stop families were `service-scores` and `channel-service-scores`.
+- Snapshot refresh dry-run reported `source_stable=true`, `snapshot_count=11`, `runtime_behavior_changed=false`, `governance_behavior_changed=false`, and `users_moved=false`.
+- No runtime apply, user movement, daemon enablement, planner/governance/execution change, threshold/floor/formula change, synthetic evidence, or new truth source occurred.
+- Updated changed-area percentages:
+  - Autonomous Trust: `55% -> 55%`
+  - Prediction Evidence Quality: `50% -> 50%`
+  - Operator Comparison Evidence: `25% -> 25%`
+  - Canary Readiness: `45% -> 45%`
+  - Production Autonomy: `45% -> 45%`
+- Recorded shortest path: snapshot gate/candidate recheck, observed outcome collection, prediction source-confidence collection, contextual operator comparison, then canary recheck again.
 
 ### 2026-06-23 — EVENT.CONSUMER.READONLY.2 Read-Only Consumer Certification
 

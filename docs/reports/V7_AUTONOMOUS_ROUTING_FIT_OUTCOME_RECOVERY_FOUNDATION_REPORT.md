@@ -164,6 +164,17 @@ tools/v7-truth-check --all --json
 tools/v7-convergence-status --json
 ```
 
+Final verification after commit/push/deploy:
+
+| Check | Status |
+| --- | --- |
+| Local | PASS at `263ea5d037c4b382551a7ac013a66188bbefb99d` |
+| GitHub | PASS, `origin/Updatesystem` at `263ea5d037c4b382551a7ac013a66188bbefb99d` |
+| Runtime | PASS, deployed via `deploy-z8-14-Updatesystem-263ea5d-20260624T200614` |
+| Production CLI | PASS, `--routing-foundation-only` exposes all 6 required keys; `runtime_apply_allowed=false`; `users_moved=0` |
+| Truth | PASS / `FULLY_ALIGNED` |
+| Convergence | PASS / `ALIGNED` |
+
 ## 12. Remaining Gaps
 
 | Gap | Status |

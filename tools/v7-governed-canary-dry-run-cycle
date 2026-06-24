@@ -109,9 +109,19 @@ def event_rows(event_dir: Path, limit: int) -> list[dict[str, Any]]:
     return rows[-max(0, int(limit)):]
 
 
+def planner_observe_executable() -> Path:
+    repo_tool = ROOT / "tools" / "v7-users-autoswitch"
+    if repo_tool.exists():
+        return repo_tool
+    runtime_peer = Path(__file__).resolve().with_name("v7-users-autoswitch")
+    if runtime_peer.exists():
+        return runtime_peer
+    return repo_tool
+
+
 def run_planner_observe(state_dir: Path, event_dir: Path, snapshot_root: Path, max_users: int) -> dict[str, Any]:
     command = [
-        str(ROOT / "tools" / "v7-users-autoswitch"),
+        str(planner_observe_executable()),
         "--mode",
         "observe",
         "--max-selected-moves",

@@ -946,6 +946,120 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
             rebuilt["event_consumer"]["events"][0]["event_id"],
         )
 
+    def test_governed_canary_cycle_reaches_authority_boundary_with_low_autonomy_floors(self):
+        decision_surface = {
+            "users_by_ip": {
+                "10.7.0.5": {
+                    "user": "10.7.0.5",
+                    "current_channel": "vless",
+                    "recommended_channel": "awg0",
+                    "confidence": 0.458,
+                    "trust": 54.115,
+                    "prediction": {"confidence": 0.35514},
+                    "risk": 3.2,
+                    "recommendation_hash": "rec-canary-1",
+                    "source_hash": "source-canary-1",
+                    "reasons": ["planner selected one-user governed canary"],
+                },
+            },
+            "batch_preview": {
+                "users_to_move": [
+                    {
+                        "user": "10.7.0.5",
+                        "from": "vless",
+                        "to": "awg0",
+                        "confidence": 0.458,
+                        "risk": 3.2,
+                        "recommendation_hash": "rec-canary-1",
+                    },
+                ],
+                "knowledge_decision_readiness": {
+                    "routing_recommendation_readiness": "READY_FOR_REVIEW",
+                    "blockers": [],
+                    "decision_effectiveness": {"recommendation_correct_rate": 1.0},
+                    "knowledge_growth": {"knowledge_gained": 1},
+                },
+            },
+            "knowledge_decision_overlay": {
+                "service_user_sla_fit": {"rows": [], "blockers": []},
+                "freshness_actionability": {"domains": {}, "blockers": []},
+                "recovery_admission": {"rows": [], "blockers": []},
+                "anti_flapping": {"rows": [], "blockers": []},
+                "decision_effectiveness": {"recommendation_correct_rate": 1.0},
+                "routing_recommendation_readiness": {"readiness": "READY_FOR_REVIEW", "blockers": []},
+            },
+            "knowledge_quality_read_model": {"schema_version": "v7.knowledge-quality-read-model.v1"},
+            "snapshot_statuses": {
+                "service-scores": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+                "trust-summaries": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+                "prediction-summaries": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+            },
+        }
+
+        cycle = pipeline.governed_canary_knowledge_gated_dry_run_cycle(
+            events=[],
+            decision_surface=decision_surface,
+            max_users=1,
+            now="2026-06-24T16:00:00Z",
+        )
+
+        self.assertEqual(cycle["stop_reason"], "AUTHORITY_BOUNDARY")
+        self.assertEqual(cycle["event_source"], "CURRENT_STATE_PREVIEW")
+        self.assertEqual(cycle["target"], "awg0")
+        self.assertEqual(cycle["candidate"]["user"], "10.7.0.5")
+        self.assertEqual(cycle["packet_preview"]["status"], "PACKET_PREVIEW_READY")
+        self.assertEqual(cycle["restore_status"]["status"], "RESTORE_AND_ROLLBACK_PREVIEW_READY")
+        self.assertEqual(cycle["verification_plan"]["status"], "VERIFICATION_PLAN_READY")
+        self.assertEqual(cycle["outcome_closure_plan"]["status"], "OUTCOME_CLOSURE_PLAN_READY")
+        self.assertEqual(cycle["learning_path"]["status"], "LEARNING_PATH_CONNECTED")
+        self.assertEqual(cycle["next_action"], "EXPLICIT_OPERATOR_APPROVAL_REQUIRED_FOR_THIS_PACKET")
+        self.assertFalse(cycle["manual_prompting_required_before_boundary"])
+        self.assertFalse(cycle["non_authority_stop_requires_fix"])
+        self.assertEqual(cycle["final_verdict"], "AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY")
+        self.assertFalse(cycle["safety"]["apply_executed"])
+        self.assertEqual(cycle["safety"]["users_moved"], 0)
+        self.assertFalse(cycle["safety"]["autonomy_enabled"])
+        self.assertTrue(all(row["runtime_mutation_performed"] is False for row in cycle["cycle_steps"]))
+
+    def test_governed_canary_cycle_fails_non_authority_snapshot_stop(self):
+        decision_surface = {
+            "users_by_ip": {
+                "10.7.0.5": {
+                    "user": "10.7.0.5",
+                    "current_channel": "vless",
+                    "recommended_channel": "awg0",
+                    "confidence": 0.9,
+                    "trust": 90,
+                    "prediction": {"confidence": 0.9},
+                    "risk": 1.0,
+                },
+            },
+            "batch_preview": {
+                "users_to_move": [{"user": "10.7.0.5", "from": "vless", "to": "awg0", "confidence": 0.9}],
+            },
+            "snapshot_statuses": {
+                "service-scores": {
+                    "status": "STALE",
+                    "validation_ok": False,
+                    "freshness_state": "STALE",
+                    "stop_required": True,
+                    "validation_errors": ["source_hash_mismatch:service-scores:service_matrix"],
+                },
+            },
+        }
+
+        cycle = pipeline.governed_canary_knowledge_gated_dry_run_cycle(
+            decision_surface=decision_surface,
+            max_users=1,
+        )
+
+        self.assertEqual(cycle["stop_reason"], "MISSING_STATE_TRANSITION")
+        self.assertTrue(cycle["non_authority_stop_requires_fix"])
+        self.assertEqual(cycle["next_action"], "FIX_EXISTING_OWNER_GAP_AND_RERUN")
+        self.assertEqual(cycle["final_verdict"], "AUTONOMOUS_DRY_RUN_CYCLE_BLOCKED")
+        self.assertFalse(cycle["safety"]["apply_executed"])
+        self.assertEqual(cycle["safety"]["users_moved"], 0)
+
     def test_operator_dashboard_exposes_autonomous_dry_run(self):
         dashboard = pipeline.execution_operator_dashboard_model(
             decision_surface={

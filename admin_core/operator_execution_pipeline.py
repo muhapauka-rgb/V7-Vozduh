@@ -1972,6 +1972,417 @@ def event_consumer_readonly_certification_model(
     }
 
 
+STOP_REASON_CLASSES = {
+    "MISSING_OWNER",
+    "DISCONNECTED_OWNER",
+    "MISSING_FIELD",
+    "MISSING_TRIGGER",
+    "MISSING_STATE_TRANSITION",
+    "MISSING_CLI_OR_API_SURFACE",
+    "MISSING_VERIFICATION_STEP",
+    "MISSING_DOCUMENTED_POLICY",
+    "MISSING_TEST_COVERAGE",
+    "AUTHORITY_BOUNDARY",
+}
+
+
+def _preview_packet_for_candidate(candidate: dict[str, Any], *, cycle_id: str, now: str = "") -> dict[str, Any]:
+    if not candidate:
+        return {
+            "schema_version": "v7.governed-canary.packet-preview.v1",
+            "owner": CANONICAL_PACKET_TOOL,
+            "status": "BLOCKED",
+            "blocker": "candidate_missing",
+            "preview_only": True,
+            "read_only": True,
+            "packet_created_now": False,
+            "runtime_mutation_performed": False,
+        }
+    rollback = candidate.get("rollback_plan") if isinstance(candidate.get("rollback_plan"), dict) else {}
+    payload = {
+        "cycle_id": cycle_id,
+        "user": candidate.get("user", ""),
+        "from": candidate.get("current_channel", ""),
+        "to": candidate.get("recommended_channel", ""),
+        "recommendation_hash": candidate.get("recommendation_hash", ""),
+        "source_hash": candidate.get("source_hash", ""),
+        "created_at": now,
+    }
+    selected_move_hash = stable_hash(payload)
+    packet_id = "pkt_preview_" + stable_hash({"packet": payload})[:24]
+    operation_id = "govdry_" + stable_hash({"operation": payload})[:24]
+    return {
+        "schema_version": "v7.governed-canary.packet-preview.v1",
+        "owner": CANONICAL_PACKET_TOOL,
+        "status": "PACKET_PREVIEW_READY",
+        "packet_id": packet_id,
+        "operation_id": operation_id,
+        "selected_move_count": 1,
+        "selected_move_hash": selected_move_hash,
+        "allowed_users": [candidate.get("user", "")],
+        "allowed_targets": [candidate.get("recommended_channel", "")],
+        "approved_plan_lock_required": True,
+        "approved_plan_lock_created_now": False,
+        "wrong_user_protection": "allowed_users_bound_to_packet",
+        "wrong_target_protection": "allowed_targets_bound_to_packet",
+        "rollback_manifest_preview": {
+            "rollback_manifest_id": "rb_preview_" + stable_hash({"rollback": payload})[:24],
+            "items": [
+                {
+                    "user_ip": candidate.get("user", ""),
+                    "rollback_target": rollback.get("rollback_target", candidate.get("current_channel", "")),
+                    "forward_target": candidate.get("recommended_channel", ""),
+                    "source_operation_id": operation_id,
+                }
+            ],
+            "partial_failure_policy": "stop_and_contain",
+            "rollback_execution_owner": CANONICAL_PACKET_OWNER,
+        },
+        "preview_only": True,
+        "read_only": True,
+        "packet_created_now": False,
+        "runtime_mutation_performed": False,
+        "execution_allowed_now": False,
+    }
+
+
+def _verification_plan(candidate: dict[str, Any], packet_preview: dict[str, Any]) -> dict[str, Any]:
+    user = candidate.get("user", "") if candidate else ""
+    target = candidate.get("recommended_channel", "") if candidate else ""
+    return {
+        "schema_version": "v7.governed-canary.verification-plan.v1",
+        "owner": CANONICAL_RUNTIME_EXECUTOR,
+        "status": "VERIFICATION_PLAN_READY" if user and target else "BLOCKED",
+        "user": user,
+        "target": target,
+        "packet_id": packet_preview.get("packet_id", ""),
+        "checks": [
+            "connection_check",
+            "required_service_checks",
+            "route_runtime_check",
+            "quality_check",
+            "rollback_trigger_evaluation",
+        ],
+        "observation_window": "single governed canary post-apply window",
+        "rollback_trigger": [
+            "user cannot connect",
+            "required service fails",
+            "route/runtime mismatch",
+            "quality regression after move",
+            "partial apply or verification failure",
+        ],
+        "learning_fields_to_collect": [
+            "apply_result",
+            "post_action_verification",
+            "service_outcome",
+            "user_outcome",
+            "prediction_actual",
+            "rollback_required",
+            "outcome_observed_at",
+        ],
+        "preview_only": True,
+        "read_only": True,
+        "verification_run_now": False,
+    }
+
+
+def _outcome_closure_plan(candidate: dict[str, Any], packet_preview: dict[str, Any]) -> dict[str, Any]:
+    recommendation_id = str(candidate.get("recommendation_hash") or "") if candidate else ""
+    decision_id = "decision_preview_" + stable_hash({
+        "recommendation_id": recommendation_id,
+        "packet_id": packet_preview.get("packet_id", ""),
+    })[:24]
+    fields = {
+        "recommendation_id": "MATERIALIZED_PREVIEW" if recommendation_id else "MISSING_APPLY_TIME_OR_SOURCE_FIELD",
+        "decision_id": "MATERIALIZED_PREVIEW",
+        "packet_id": "MATERIALIZED_PREVIEW" if packet_preview.get("packet_id") else "MISSING_FIELD",
+        "apply_result": "LEGITIMATE_APPLY_TIME_FIELD",
+        "post_action_verification": "LEGITIMATE_APPLY_TIME_FIELD",
+        "service_outcome": "LEGITIMATE_APPLY_TIME_FIELD",
+        "user_outcome": "LEGITIMATE_APPLY_TIME_FIELD",
+        "learning_record": "MATERIALIZED_PREVIEW_AFTER_OUTCOME",
+        "outcome_observed_at": "LEGITIMATE_APPLY_TIME_FIELD",
+    }
+    return {
+        "schema_version": "v7.governed-canary.outcome-closure-plan.v1",
+        "owner": CANONICAL_FEEDBACK_OWNER,
+        "status": "OUTCOME_CLOSURE_PLAN_READY",
+        "recommendation_id": recommendation_id,
+        "decision_id": decision_id,
+        "packet_id": packet_preview.get("packet_id", ""),
+        "required_fields": fields,
+        "missing_now": [key for key, state in fields.items() if state == "MISSING_FIELD"],
+        "apply_time_fields": [key for key, state in fields.items() if state == "LEGITIMATE_APPLY_TIME_FIELD"],
+        "safe_to_materialize_now": ["recommendation_id", "decision_id", "packet_id", "learning_record"],
+        "synthetic_evidence_created": False,
+        "closure_written_now": False,
+        "preview_only": True,
+        "read_only": True,
+    }
+
+
+def _learning_path_plan() -> dict[str, Any]:
+    steps = [
+        ("outcome", CANONICAL_FEEDBACK_OWNER),
+        ("feedback", CANONICAL_FEEDBACK_OWNER),
+        ("trust-evolution summary", "admin_core/intelligence_workers.py"),
+        ("decision_outcome_learning", "admin_core/operator_execution_feedback.py"),
+        ("knowledge_growth", "admin_core/autonomy_trust_acceleration.py"),
+        ("future decision", "admin_core/operator_decision_surface.py"),
+    ]
+    return {
+        "schema_version": "v7.governed-canary.learning-path.v1",
+        "status": "LEARNING_PATH_CONNECTED",
+        "path": [
+            {"step": index + 1, "name": name, "owner": owner, "connected": True}
+            for index, (name, owner) in enumerate(steps)
+        ],
+        "synthetic_evidence_created": False,
+        "learning_written_now": False,
+        "preview_only": True,
+        "read_only": True,
+    }
+
+
+def _knowledge_gate_rows(decision_surface: dict[str, Any], dry_run: dict[str, Any]) -> list[dict[str, Any]]:
+    overlay = decision_surface.get("knowledge_decision_overlay") if isinstance(decision_surface.get("knowledge_decision_overlay"), dict) else {}
+    batch = decision_surface.get("batch_preview") if isinstance(decision_surface.get("batch_preview"), dict) else {}
+    readiness = batch.get("knowledge_decision_readiness") if isinstance(batch.get("knowledge_decision_readiness"), dict) else {}
+    outcome = dry_run.get("outcome_driven_evidence") if isinstance(dry_run.get("outcome_driven_evidence"), dict) else {}
+    gates = [
+        ("service_user_sla_fit", overlay.get("service_user_sla_fit")),
+        ("freshness_actionability", overlay.get("freshness_actionability")),
+        ("recovery_admission", overlay.get("recovery_admission")),
+        ("anti_flapping", overlay.get("anti_flapping")),
+        ("decision_effectiveness", overlay.get("decision_effectiveness") or readiness.get("decision_effectiveness")),
+        ("knowledge_quality", decision_surface.get("knowledge_quality_read_model")),
+        ("routing_recommendation_readiness", overlay.get("routing_recommendation_readiness") or {
+            "readiness": readiness.get("routing_recommendation_readiness", "UNKNOWN"),
+            "blockers": readiness.get("blockers", []),
+        }),
+    ]
+    rows: list[dict[str, Any]] = []
+    for name, payload in gates:
+        payload = payload if isinstance(payload, dict) else {}
+        blockers = list(payload.get("blockers") or readiness.get("blockers") or []) if name == "routing_recommendation_readiness" else list(payload.get("blockers") or [])
+        warnings = list(payload.get("warnings") or [])
+        if blockers:
+            impact = "BLOCKED"
+        elif warnings:
+            impact = "WARNED"
+        elif payload:
+            impact = "PASSED"
+        else:
+            impact = "UNKNOWN"
+        rows.append({
+            "gate": name,
+            "impact": impact,
+            "blockers": blockers,
+            "warnings": warnings,
+            "owner_reused": True,
+            "runtime_mutation_performed": False,
+        })
+    rows.append({
+        "gate": "outcome_evidence",
+        "impact": "PASSED" if outcome.get("applied") else ("WARNED" if outcome.get("raw_available") else "UNKNOWN"),
+        "blockers": [] if outcome.get("applied") else [str(outcome.get("reason") or "outcome_evidence_not_applied")],
+        "warnings": [],
+        "owner_reused": True,
+        "runtime_mutation_performed": False,
+    })
+    return rows
+
+
+def _classify_cycle_stop(
+    *,
+    candidate: dict[str, Any],
+    dry_run: dict[str, Any],
+    packet_preview: dict[str, Any],
+    restore_status: dict[str, Any],
+    verification_plan: dict[str, Any],
+    outcome_closure_plan: dict[str, Any],
+    learning_path: dict[str, Any],
+) -> tuple[str, str]:
+    if not candidate:
+        return "MISSING_TRIGGER", "No current event candidate or current-state recommendation can be packetized."
+    blockers = list(((dry_run.get("safety_gates") or {}).get("hard_stop_blockers") or []))
+    non_authority_blockers = [
+        blocker for blocker in blockers
+        if blocker not in {"confidence_too_low", "trust_too_low", "prediction_confidence_too_low"}
+    ]
+    tier_review = ((dry_run.get("safety_gates") or {}).get("risk_tier_review") or {})
+    if non_authority_blockers:
+        blocker = str(non_authority_blockers[0])
+        if blocker.startswith("snapshot_mismatch") or blocker.startswith("source_drift"):
+            return "MISSING_STATE_TRANSITION", blocker
+        if blocker in {"packet_mismatch", "unknown_rollback_target", "service_blocker"}:
+            return "MISSING_FIELD", blocker
+        return "DISCONNECTED_OWNER", blocker
+    if packet_preview.get("status") != "PACKET_PREVIEW_READY":
+        return "MISSING_CLI_OR_API_SURFACE", str(packet_preview.get("blocker") or "packet_preview_not_ready")
+    if restore_status.get("status") != "RESTORE_AND_ROLLBACK_PREVIEW_READY":
+        return "MISSING_FIELD", str(restore_status.get("blocker") or "restore_or_rollback_not_ready")
+    if verification_plan.get("status") != "VERIFICATION_PLAN_READY":
+        return "MISSING_VERIFICATION_STEP", str(verification_plan.get("status") or "verification_plan_not_ready")
+    if outcome_closure_plan.get("missing_now"):
+        return "MISSING_FIELD", ",".join(outcome_closure_plan.get("missing_now") or [])
+    if learning_path.get("status") != "LEARNING_PATH_CONNECTED":
+        return "DISCONNECTED_OWNER", str(learning_path.get("status") or "learning_path_not_connected")
+    if tier_review.get("operator_canary_marginal_allowed") or not blockers:
+        return "AUTHORITY_BOUNDARY", "Governed TIER_1 operator approval is required before restore-barrier write or apply."
+    return "MISSING_DOCUMENTED_POLICY", str(tier_review.get("nearest_reachable_status") or "tier_policy_unknown")
+
+
+def governed_canary_knowledge_gated_dry_run_cycle(
+    *,
+    events: list[dict[str, Any]] | None = None,
+    readiness: dict[str, Any] | None = None,
+    decision_surface: dict[str, Any] | None = None,
+    execution_summary: dict[str, Any] | None = None,
+    max_users: int = 1,
+    now: str = "",
+) -> dict[str, Any]:
+    """Run the read-only governed canary preparation cycle to its boundary.
+
+    The function is pure: it orchestrates existing read models and preview
+    contracts, but it does not call runtime commands, write files, or apply
+    movement.
+    """
+    decision_surface = decision_surface if isinstance(decision_surface, dict) else {}
+    events = events if isinstance(events, list) else []
+    dry_run = autonomous_dry_run_model(
+        readiness=readiness,
+        decision_surface=decision_surface,
+        execution_summary=execution_summary,
+        max_users=max_users,
+    )
+    consumer = event_helpers.build_readonly_event_consumer_trace(events, now=now)
+    candidates = [row for row in (dry_run.get("candidates") or []) if isinstance(row, dict)]
+    candidate = candidates[0] if candidates else {}
+    cycle_id = "gkcanary_" + stable_hash({
+        "event_ids": [row.get("event_id") for row in consumer.get("events", [])],
+        "candidate": {
+            "user": candidate.get("user", ""),
+            "from": candidate.get("current_channel", ""),
+            "to": candidate.get("recommended_channel", ""),
+            "recommendation_hash": candidate.get("recommendation_hash", ""),
+        },
+        "now": now,
+    })[:24]
+    packet_preview = _preview_packet_for_candidate(candidate, cycle_id=cycle_id, now=now)
+    rollback_items = (packet_preview.get("rollback_manifest_preview") or {}).get("items") or []
+    restore_status = {
+        "schema_version": "v7.governed-canary.restore-rollback-preview.v1",
+        "owner": CANONICAL_PACKET_OWNER,
+        "status": "RESTORE_AND_ROLLBACK_PREVIEW_READY" if rollback_items and all(row.get("rollback_target") for row in rollback_items) else "BLOCKED",
+        "restore_barrier_required": True,
+        "restore_barrier_written_now": False,
+        "restore_action": "CREATE_RESTORE_BARRIER_CLEARANCE_AFTER_OPERATOR_APPROVAL",
+        "rollback_target_known": bool(rollback_items and all(row.get("rollback_target") for row in rollback_items)),
+        "rollback_items": rollback_items,
+        "wrong_user_protection": packet_preview.get("wrong_user_protection", ""),
+        "wrong_target_protection": packet_preview.get("wrong_target_protection", ""),
+        "preview_only": True,
+        "read_only": True,
+    }
+    verification_plan = _verification_plan(candidate, packet_preview)
+    outcome_plan = _outcome_closure_plan(candidate, packet_preview)
+    learning_path = _learning_path_plan()
+    stop_reason, stop_detail = _classify_cycle_stop(
+        candidate=candidate,
+        dry_run=dry_run,
+        packet_preview=packet_preview,
+        restore_status=restore_status,
+        verification_plan=verification_plan,
+        outcome_closure_plan=outcome_plan,
+        learning_path=learning_path,
+    )
+    knowledge_gates = _knowledge_gate_rows(decision_surface, dry_run)
+    old_target = str(candidate.get("current_channel") or "")
+    target = str(candidate.get("recommended_channel") or "")
+    steps = [
+        ("event_or_current_state", "READY", "admin_core/events.py" if events else CANONICAL_PLANNER),
+        ("knowledge_gated_decision", "READY" if candidate else "STOPPED", "admin_core/operator_decision_surface.py"),
+        ("candidate_selection", "READY" if candidate else "STOPPED", CANONICAL_PLANNER),
+        ("packet_preparation", packet_preview.get("status", "UNKNOWN"), CANONICAL_PACKET_TOOL),
+        ("restore_rollback_verification", restore_status.get("status", "UNKNOWN"), CANONICAL_PACKET_OWNER),
+        ("verification_plan", verification_plan.get("status", "UNKNOWN"), CANONICAL_RUNTIME_EXECUTOR),
+        ("outcome_closure_plan", outcome_plan.get("status", "UNKNOWN"), CANONICAL_FEEDBACK_OWNER),
+        ("learning_path", learning_path.get("status", "UNKNOWN"), "admin_core/intelligence_workers.py"),
+        ("next_step_decision", stop_reason, CANONICAL_PACKET_OWNER),
+    ]
+    non_authority_stop = stop_reason != "AUTHORITY_BOUNDARY"
+    return {
+        "schema_version": "v7.governed-canary.knowledge-gated-dry-run-cycle.v1",
+        "cycle_id": cycle_id,
+        "generated_at": now,
+        "read_only": True,
+        "preview_only": True,
+        "autonomous_continuation": True,
+        "manual_prompting_required_before_boundary": False,
+        "event_source": "REAL_EVENT_PREVIEW" if consumer.get("event_count", 0) else "CURRENT_STATE_PREVIEW",
+        "event_consumer": consumer,
+        "candidate": candidate,
+        "target": target,
+        "decision": {
+            "action": "MOVE_GOVERNED_CANARY_REVIEW" if candidate and target and target != old_target else "NO_MOVE_CANDIDATE",
+            "from": old_target,
+            "to": target,
+            "old_planner_target": old_target,
+            "knowledge_gated_target": target,
+            "target_changed_compared_to_old_planner": False,
+            "authority_tier": ((dry_run.get("safety_gates") or {}).get("risk_tier_review") or {}).get("nearest_reachable_tier", "UNKNOWN"),
+            "authority_status": ((dry_run.get("safety_gates") or {}).get("risk_tier_review") or {}).get("nearest_reachable_status", "UNKNOWN"),
+        },
+        "knowledge_gates": knowledge_gates,
+        "packet_preview": packet_preview,
+        "restore_status": restore_status,
+        "rollback_status": restore_status,
+        "verification_plan": verification_plan,
+        "outcome_closure_plan": outcome_plan,
+        "learning_path": learning_path,
+        "dry_run": dry_run,
+        "cycle_steps": [
+            {
+                "step": index + 1,
+                "name": name,
+                "status": status,
+                "owner": owner,
+                "runtime_mutation_performed": False,
+            }
+            for index, (name, status, owner) in enumerate(steps)
+        ],
+        "stop_reason": stop_reason,
+        "stop_detail": stop_detail,
+        "stop_reason_class_valid": stop_reason in STOP_REASON_CLASSES,
+        "non_authority_stop_requires_fix": non_authority_stop,
+        "next_action": (
+            "EXPLICIT_OPERATOR_APPROVAL_REQUIRED_FOR_THIS_PACKET"
+            if stop_reason == "AUTHORITY_BOUNDARY"
+            else "FIX_EXISTING_OWNER_GAP_AND_RERUN"
+        ),
+        "safety": {
+            "execution_allowed_now": False,
+            "apply_executed": False,
+            "users_moved": 0,
+            "rollback_executed": False,
+            "autonomy_enabled": False,
+            "runtime_mutation_performed": False,
+            "new_planner_created": False,
+            "new_governance_created": False,
+            "new_execution_path_created": False,
+            "new_truth_source_created": False,
+            "new_storage_created": False,
+            "new_daemon_created": False,
+        },
+        "final_verdict": (
+            "AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY"
+            if stop_reason == "AUTHORITY_BOUNDARY"
+            else "AUTONOMOUS_DRY_RUN_CYCLE_BLOCKED"
+        ),
+    }
+
+
 def execution_action_matrix() -> list[dict[str, Any]]:
     rows = {
         "EXECUTION_READY": ("approved packet and fresh recheck pass", "execute or wait", "invoke governed apply only", CANONICAL_RUNTIME_EXECUTOR, "operator approved apply", "readiness closure", ["direct user-switch"], "EXECUTION_RUNNING"),

@@ -901,6 +901,73 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(second_program["users_moved"], 0)
         self.assertFalse(second_program["apply_executed"])
 
+    def test_autonomous_routing_evolution_program_integrates_existing_cycles(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        program = inventory["autonomous_routing_evolution_program"]
+        self.assertEqual(
+            program["schema_version"],
+            "v7.autonomy-trust.autonomous-routing-evolution-program.v1",
+        )
+        self.assertEqual(program["exact_stop_reason"], "AUTHORITY_BOUNDARY")
+        self.assertEqual(
+            program["phase_status"]["A_AUTONOMOUS_KNOWLEDGE_GROWTH"],
+            "ADVANCED",
+        )
+        self.assertEqual(
+            program["phase_status"]["E_EVENT_TO_DECISION_TO_OUTCOME"],
+            "AUTONOMOUS_UNTIL_AUTHORITY_BOUNDARY",
+        )
+        self.assertEqual(program["tier_2_distance"]["status"], "BLOCKED")
+        self.assertIn("confidence", program["tier_2_distance"]["missing_primary_floors"])
+        self.assertIn("prediction", program["tier_2_distance"]["missing_primary_floors"])
+        self.assertEqual(
+            program["current_suitability_maturity"]["stage"],
+            "STABLE_SIGNAL",
+        )
+        self.assertIn("prediction_outcome_cycle", program["highest_leverage_next_activities"])
+        self.assertFalse(program["runtime_mutation_performed"])
+        self.assertEqual(program["users_moved"], 0)
+        self.assertFalse(program["apply_executed"])
+        self.assertFalse(program["autonomy_enabled"])
+
+    def test_autonomous_routing_evolution_program_survives_refresh_rebuild(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            first = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+            second = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=json.loads(json.dumps(self.decision_surface(), sort_keys=True)),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:05:00+00:00",
+            )
+
+        first_program = first["autonomous_routing_evolution_program"]
+        second_program = second["autonomous_routing_evolution_program"]
+        self.assertEqual(first_program["phase_status"], second_program["phase_status"])
+        self.assertEqual(first_program["tier_2_distance"], second_program["tier_2_distance"])
+        self.assertEqual(first_program["exact_stop_reason"], second_program["exact_stop_reason"])
+        self.assertFalse(second_program["runtime_mutation_performed"])
+        self.assertEqual(second_program["users_moved"], 0)
+        self.assertFalse(second_program["apply_executed"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -318,6 +318,15 @@ Autonomous knowledge growth overlay:
 5. The overlay can improve autonomous continuation visibility and cycle scoring, but it cannot create evidence or grant movement authority.
 6. Runtime safety remains fixed: no user movement, no apply, no daemon enablement, no restore-barrier write, no planner rewrite, no governance rewrite, no execution rewrite, and no new truth source.
 
+Autonomous routing evolution overlay:
+
+1. `autonomous_routing_evolution_program` is exposed by the existing trust/evidence inventory owner.
+2. It combines the existing autonomous knowledge growth, suitability, outcome leverage, decision/outcome/learning, event preparation, routing readiness, canary proximity, and real outcome source models into one read-only phase view.
+3. It reports phases A-F: autonomous knowledge growth, real suitability outcome program, confirmed knowledge, actionable knowledge, event-to-decision-to-outcome, and TIER_2 readiness.
+4. It reports TIER_2 distance from current floors and suitability maturity, but it does not change floors or formulas.
+5. It may stop at `AUTHORITY_BOUNDARY`, `REAL_GAP`, or `READY_FOR_TIER_2_GOVERNED_REVIEW`; only existing governance can authorize apply.
+6. The overlay does not raise knowledge maturity by itself. Suitability, prediction, trust, confidence, and outcome quality improve only through real evidence consumed by existing owners.
+
 Current maturity distribution from the read model:
 
 | Maturity Stage | Objects |

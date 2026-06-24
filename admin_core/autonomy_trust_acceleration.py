@@ -2186,6 +2186,214 @@ def build_autonomous_knowledge_growth_program(
     }
 
 
+def _stage_rank(stage: Any) -> int:
+    order = {
+        "RAW_OBSERVATION": 0,
+        "STABLE_SIGNAL": 1,
+        "CONFIRMED_KNOWLEDGE": 2,
+        "ACTIONABLE_KNOWLEDGE": 3,
+        "AUTONOMY_GRADE_KNOWLEDGE": 4,
+    }
+    return order.get(str(stage), -1)
+
+
+def _floor_distance_row(name: str, current: Any, target: float) -> dict[str, Any]:
+    value = as_float(current, 0.0)
+    return {
+        "metric": name,
+        "current": round(value, 3),
+        "target": round(target, 3),
+        "gap": round(max(0.0, target - value), 3),
+        "pass": value >= target,
+    }
+
+
+def _cycle_by_name(program: dict[str, Any], name: str) -> dict[str, Any]:
+    for row in program.get("cycles") or []:
+        if isinstance(row, dict) and row.get("cycle") == name:
+            return row
+    return {}
+
+
+def build_autonomous_routing_evolution_program(
+    *,
+    autonomous_knowledge_growth_program: dict[str, Any],
+    autonomy_grade_suitability_program: dict[str, Any],
+    suitability_quality_model: dict[str, Any],
+    suitability_knowledge_growth: dict[str, Any],
+    suitability_effectiveness: dict[str, Any],
+    outcome_leverage_model: dict[str, Any],
+    knowledge_quality_read_model: dict[str, Any],
+    routing_recommendation_readiness: dict[str, Any],
+    decision_outcome_learning: dict[str, Any],
+    canary_proximity: dict[str, Any],
+    real_outcome_growth_projection: dict[str, Any],
+    candidate_outcome_reality_collection: dict[str, Any],
+    prediction_plan: dict[str, Any],
+    real_outcome_source_inventory: dict[str, Any],
+) -> dict[str, Any]:
+    """Expose the current evolution path without creating authority or evidence.
+
+    This is a read-only integration view over already-existing owners. It
+    answers whether V7 can advance automatically, where it must stop, and what
+    evidence is still required for TIER_2.
+    """
+    floors = canary_proximity.get("floors") if isinstance(canary_proximity.get("floors"), dict) else {}
+    components = (real_outcome_growth_projection.get("current") or {}) if isinstance(real_outcome_growth_projection.get("current"), dict) else {}
+    suitability_measurements = suitability_quality_model.get("measurements") if isinstance(suitability_quality_model.get("measurements"), dict) else {}
+    confidence_current = as_float((floors.get("confidence") or {}).get("current"), as_float(components.get("confidence"), 0.0))
+    trust_current = as_float((floors.get("trust") or {}).get("current"), as_float(components.get("trust"), 0.0))
+    prediction_current = as_float(
+        (floors.get("prediction_confidence") or floors.get("prediction") or {}).get("current"),
+        as_float(components.get("prediction_confidence"), 0.0),
+    )
+    suitability_current = as_float(
+        suitability_measurements.get("suitability_confidence"),
+        as_float(components.get("suitability_confidence"), 0.0),
+    )
+    floor_rows = [
+        _floor_distance_row("confidence", confidence_current, AUTONOMY_CANARY_CONFIDENCE_FLOOR),
+        _floor_distance_row("trust", trust_current, AUTONOMY_CANARY_TRUST_FLOOR),
+        _floor_distance_row("prediction", prediction_current, AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR),
+        _floor_distance_row("suitability", suitability_current, AUTONOMY_CANARY_CONFIDENCE_FLOOR),
+    ]
+    tier2_floor_pass = all(row["pass"] for row in floor_rows[:3])
+    suitability_actionable = _stage_rank(suitability_quality_model.get("current_stage")) >= _stage_rank("ACTIONABLE_KNOWLEDGE")
+    tier2_ready = tier2_floor_pass and suitability_actionable
+    dry_run_cycle = _cycle_by_name(autonomous_knowledge_growth_program, "Knowledge-Gated Dry-Run Cycle")
+    event_cycle = _cycle_by_name(autonomous_knowledge_growth_program, "Event Detection Cycle")
+    suitability_cycle = _cycle_by_name(autonomous_knowledge_growth_program, "Suitability Growth Cycle")
+    outcome_cycle = _cycle_by_name(autonomous_knowledge_growth_program, "Outcome Closure Cycle")
+    learning_cycle = _cycle_by_name(autonomous_knowledge_growth_program, "Learning Cycle")
+    missing_candidate = (suitability_knowledge_growth.get("candidate_outcome_gap") or {}) if isinstance(suitability_knowledge_growth.get("candidate_outcome_gap"), dict) else {}
+    source_items = real_outcome_source_inventory.get("items") if isinstance(real_outcome_source_inventory.get("items"), list) else []
+    acceleratable_sources = [
+        row.get("source") for row in source_items
+        if isinstance(row, dict) and row.get("classification") == "ACCELERATABLE"
+    ]
+    top_activities = [
+        row.get("activity") for row in (outcome_leverage_model.get("activities_ranked") or [])[:3]
+        if isinstance(row, dict)
+    ]
+    phases = [
+        {
+            "phase": "A_AUTONOMOUS_KNOWLEDGE_GROWTH",
+            "status": "ADVANCED",
+            "owner": autonomous_knowledge_growth_program.get("owner"),
+            "automation_score": autonomous_knowledge_growth_program.get("overall_autonomy_maturity_score", 0.0),
+            "cycle_count": autonomous_knowledge_growth_program.get("cycle_count", 0),
+            "autonomous_until_boundary": (autonomous_knowledge_growth_program.get("automation_counts") or {}).get("AUTONOMOUS_UNTIL_BOUNDARY", 0),
+            "fully_autonomous": (autonomous_knowledge_growth_program.get("automation_counts") or {}).get("FULLY_AUTONOMOUS", 0),
+            "blocker": "AUTHORITY_BOUNDARY" if "AUTHORITY_BOUNDARY" in (autonomous_knowledge_growth_program.get("legitimate_boundaries") or []) else "NONE",
+        },
+        {
+            "phase": "B_REAL_SUITABILITY_OUTCOME_PROGRAM",
+            "status": "REAL_OUTCOMES_REQUIRED" if missing_candidate.get("missing_candidate_outcomes", 0) else "NO_MISSING_CANDIDATES",
+            "owner": autonomy_grade_suitability_program.get("owner"),
+            "current_stage": suitability_quality_model.get("current_stage", "UNKNOWN"),
+            "missing_candidate_outcomes": missing_candidate.get("missing_candidate_outcomes", 0),
+            "cycle_automation": suitability_cycle.get("automation_level", "UNKNOWN"),
+            "fastest_growth_activities": autonomy_grade_suitability_program.get("fastest_growth_activities", []),
+        },
+        {
+            "phase": "C_CONFIRMED_KNOWLEDGE",
+            "status": "PASS" if _stage_rank(suitability_quality_model.get("current_stage")) >= _stage_rank("CONFIRMED_KNOWLEDGE") else "BLOCKED",
+            "target": "CONFIRMED_KNOWLEDGE",
+            "current_stage": suitability_quality_model.get("current_stage", "UNKNOWN"),
+            "blockers": (suitability_quality_model.get("missing_knowledge") or {}).get("primary_blockers", []),
+            "coverage_ratio": suitability_measurements.get("coverage_ratio", 0.0),
+            "mean_correctness": suitability_measurements.get("mean_correctness", 0.0),
+            "source_confidence": suitability_measurements.get("mean_candidate_confidence", 0.0),
+        },
+        {
+            "phase": "D_ACTIONABLE_KNOWLEDGE",
+            "status": "PASS" if suitability_actionable else "BLOCKED",
+            "target": "ACTIONABLE_KNOWLEDGE",
+            "decision_correctness": suitability_effectiveness.get("decision_correctness", 0.0),
+            "fit_correctness": suitability_effectiveness.get("fit_correctness", 0.0),
+            "outcome_quality_counts": suitability_effectiveness.get("outcome_quality_counts", {}),
+            "learning_knowledge_gained": (decision_outcome_learning.get("knowledge_growth") or {}).get("knowledge_gained", 0),
+        },
+        {
+            "phase": "E_EVENT_TO_DECISION_TO_OUTCOME",
+            "status": "AUTONOMOUS_UNTIL_AUTHORITY_BOUNDARY",
+            "event_cycle": event_cycle.get("automation_level", "UNKNOWN"),
+            "dry_run_cycle": dry_run_cycle.get("automation_level", "UNKNOWN"),
+            "dry_run_boundary": dry_run_cycle.get("authority_boundary", "UNKNOWN"),
+            "outcome_closure_cycle": outcome_cycle.get("automation_level", "UNKNOWN"),
+            "learning_cycle": learning_cycle.get("automation_level", "UNKNOWN"),
+            "routing_readiness": routing_recommendation_readiness.get("readiness", "UNKNOWN"),
+        },
+        {
+            "phase": "F_TIER_2_READINESS",
+            "status": "READY" if tier2_ready else "BLOCKED",
+            "floor_pass": tier2_floor_pass,
+            "suitability_actionable": suitability_actionable,
+            "floor_distances": floor_rows,
+            "knowledge_status": (knowledge_quality_read_model.get("tier_readiness_knowledge") or {}).get("TIER_2", {}),
+        },
+    ]
+    if tier2_ready:
+        stop_reason = "READY_FOR_TIER_2_GOVERNED_REVIEW"
+    elif dry_run_cycle.get("authority_boundary") == "AUTHORITY_BOUNDARY":
+        stop_reason = "AUTHORITY_BOUNDARY"
+    else:
+        stop_reason = "REAL_GAP"
+    return {
+        "schema_version": "v7.autonomy-trust.autonomous-routing-evolution-program.v1",
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "purpose": "integrate_existing_knowledge_decision_outcome_learning_and_event_cycles_into_one_read_only_evolution_view",
+        "phases": phases,
+        "phase_status": {row["phase"]: row["status"] for row in phases},
+        "current_autonomy_maturity": {
+            "cycle_maturity_score": autonomous_knowledge_growth_program.get("overall_autonomy_maturity_score", 0.0),
+            "manual_cycles": (autonomous_knowledge_growth_program.get("automation_counts") or {}).get("MANUAL", 0),
+            "partially_automated_cycles": (autonomous_knowledge_growth_program.get("automation_counts") or {}).get("PARTIALLY_AUTOMATED", 0),
+            "autonomous_until_boundary_cycles": (autonomous_knowledge_growth_program.get("automation_counts") or {}).get("AUTONOMOUS_UNTIL_BOUNDARY", 0),
+            "fully_autonomous_cycles": (autonomous_knowledge_growth_program.get("automation_counts") or {}).get("FULLY_AUTONOMOUS", 0),
+        },
+        "current_suitability_maturity": {
+            "stage": suitability_quality_model.get("current_stage", "UNKNOWN"),
+            "next_stage": suitability_quality_model.get("next_stage", "UNKNOWN"),
+            "autonomy_grade_ready": bool(suitability_quality_model.get("autonomy_grade_ready")),
+            "candidate_outcome_gap": missing_candidate,
+            "effectiveness": {
+                "decision_correctness": suitability_effectiveness.get("decision_correctness", 0.0),
+                "fit_correctness": suitability_effectiveness.get("fit_correctness", 0.0),
+                "candidate_correctness": suitability_effectiveness.get("candidate_correctness", 0.0),
+                "candidate_confidence": suitability_effectiveness.get("candidate_confidence", 0.0),
+            },
+        },
+        "tier_2_distance": {
+            "status": "READY" if tier2_ready else "BLOCKED",
+            "floors": floor_rows,
+            "total_floor_gap": round(sum(row["gap"] for row in floor_rows), 3),
+            "missing_primary_floors": [row["metric"] for row in floor_rows if not row["pass"]],
+            "suitability_actionable": suitability_actionable,
+            "required_suitability_stage": "ACTIONABLE_KNOWLEDGE",
+            "current_suitability_stage": suitability_quality_model.get("current_stage", "UNKNOWN"),
+        },
+        "highest_leverage_next_activities": top_activities,
+        "acceleratable_real_sources": acceleratable_sources,
+        "prediction_pending_rows": prediction_plan.get("pending_rows", 0),
+        "exact_stop_reason": stop_reason,
+        "stop_detail": "Existing dry-run path reaches explicit operator authority boundary before restore-barrier write or apply." if stop_reason == "AUTHORITY_BOUNDARY" else "Evidence floors and suitability maturity still block TIER_2.",
+        "safe_existing_owner_improvement_implemented": "read_only_evolution_program_exposed_through_existing_trust_inventory_owner",
+        "read_only": True,
+        "synthetic_evidence_created": False,
+        "formula_changed": False,
+        "floor_changed": False,
+        "planner_redesigned": False,
+        "governance_redesigned": False,
+        "execution_redesigned": False,
+        "new_truth_source_created": False,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+        "autonomy_enabled": False,
+    }
+
+
 def _candidate_key_text(key: tuple[str, str]) -> str:
     return f"{key[0]}:{key[1]}"
 
@@ -3796,6 +4004,22 @@ def build_acceleration_inventory(
         outcome_leverage_model=outcome_leverage_model,
         canary_proximity=canary,
     )
+    autonomous_routing_evolution_program = build_autonomous_routing_evolution_program(
+        autonomous_knowledge_growth_program=autonomous_knowledge_growth_program,
+        autonomy_grade_suitability_program=autonomy_grade_suitability_program,
+        suitability_quality_model=suitability_quality_model,
+        suitability_knowledge_growth=suitability_knowledge_growth,
+        suitability_effectiveness=suitability_effectiveness_expansion,
+        outcome_leverage_model=outcome_leverage_model,
+        knowledge_quality_read_model=knowledge_quality_read_model,
+        routing_recommendation_readiness=routing_recommendation_readiness,
+        decision_outcome_learning=decision_outcome_learning,
+        canary_proximity=canary,
+        real_outcome_growth_projection=real_outcome_growth_projection,
+        candidate_outcome_reality_collection=candidate_outcome_reality_collection,
+        prediction_plan=prediction_plan,
+        real_outcome_source_inventory=real_outcome_source_inventory,
+    )
     return {
         "schema_version": "v7.autonomy-trust-acceleration.inventory.v1",
         "generated_at": generated,
@@ -3829,6 +4053,7 @@ def build_acceleration_inventory(
         "freshness_actionability": freshness_actionability,
         "routing_recommendation_readiness": routing_recommendation_readiness,
         "autonomous_knowledge_growth_program": autonomous_knowledge_growth_program,
+        "autonomous_routing_evolution_program": autonomous_routing_evolution_program,
         "knowledge_quality_read_model": knowledge_quality_read_model,
         "knowledge_objects": knowledge_quality_read_model["knowledge_objects"],
         "maturity_distribution": knowledge_quality_read_model["maturity_distribution"],

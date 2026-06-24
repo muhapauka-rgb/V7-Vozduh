@@ -272,6 +272,16 @@ Knowledge-to-decision integration:
 6. Decision outcome closure is attached to readiness context but does not grant apply authority.
 7. Missing optional snapshots are not hard blockers by themselves.
 
+Decision-to-outcome-to-learning integration:
+
+1. Existing feedback contracts now classify closed outcomes as `SUCCESS`, `PARTIAL_SUCCESS`, `FAILED`, or `UNKNOWN`.
+2. Closed outcomes produce read-only `learning_record`, `knowledge_growth`, and `outcome_quality` fields through `admin_core/operator_execution_feedback.py`.
+3. Existing `trust-evolution-summaries` embeds `decision_outcome_learning`, so outcome learning survives snapshot refresh, rebuild, write, and reread without a new snapshot family.
+4. The standard trust/evidence inventory exposes `decision_outcome_learning`, `decision_effectiveness`, and `knowledge_growth`.
+5. The operator decision batch preview exposes decision effectiveness and knowledge growth inside `knowledge_decision_readiness`.
+6. Decision Outcome, Suitability, Prediction, Service, Recovery, and Knowledge Quality may improve/degrade only from real closed outcomes. Synthetic evidence remains forbidden.
+7. This model is visibility and learning integration only; it does not change planner formulas, confidence floors, trust floors, governance, execution, runtime apply, storage, or user movement.
+
 Current maturity distribution from the read model:
 
 | Maturity Stage | Objects |

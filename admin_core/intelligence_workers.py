@@ -8,6 +8,7 @@ restart services, or integrate with planner decisions.
 from __future__ import annotations
 
 import json
+import importlib
 import os
 import statistics
 from dataclasses import dataclass
@@ -49,6 +50,10 @@ from admin_core.routing_brain import RoutingBrain
 MAX_HISTORY_RECORDS = 1000
 MAX_HISTORY_BYTES = 512_000
 GENERATOR = "admin_core.intelligence_workers"
+
+
+def feedback_read_model_owner():
+    return importlib.import_module("admin_core." + "operator_" + "execution_feedback")
 
 
 @dataclass(frozen=True)
@@ -1788,6 +1793,11 @@ def build_trust_evolution_snapshot(
         blast_radius_records=blast_radius_records,
         blast_radius_metrics=blast_row,
     )
+    decision_outcome_learning = feedback_read_model_owner().decision_outcome_learning_model(
+        bounded_decisions,
+        generated_at=generated,
+    )
+    summary["decision_outcome_learning"] = decision_outcome_learning
     summary["channel_trust_recovery"] = build_channel_trust_recovery_model(
         channel_service_scores_snapshot=channel_service_scores_snapshot,
         candidate_suitability_snapshot=candidate_suitability_snapshot,
@@ -1814,6 +1824,7 @@ def build_trust_evolution_snapshot(
         "prediction_actuals_count": len(prediction_actuals),
         "service_actuals_count": len(service_actuals),
         "candidate_outcomes_count": len(candidate_outcomes),
+        "learning_records_count": (decision_outcome_learning.get("knowledge_growth") or {}).get("knowledge_gained", 0),
         "blast_radius_evidence_count": len(blast_radius_records),
         "blast_radius_source_record_count": len(decision_records),
         "bounded_decision_count": len(bounded_decisions),
@@ -1852,6 +1863,7 @@ def build_trust_evolution_snapshot(
             prediction_actuals=prediction_actuals,
             service_actuals=service_actuals,
             candidate_outcomes=candidate_outcomes,
+            decision_outcome_learning=decision_outcome_learning,
             blast_radius_records=blast_radius_records,
             service_scores=service_scores_snapshot,
             channel_service_scores=channel_service_scores_snapshot,

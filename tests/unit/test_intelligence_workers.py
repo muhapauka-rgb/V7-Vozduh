@@ -362,6 +362,10 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertEqual(summary["prediction_accuracy"]["validation_status"], "VALIDATED")
         self.assertGreater(summary["outcome_mapper_counts"]["prediction_actuals_count"], 0)
         self.assertGreater(summary["outcome_mapper_counts"]["service_actuals_count"], 0)
+        self.assertIn("decision_outcome_learning", summary)
+        self.assertGreaterEqual(summary["outcome_mapper_counts"]["learning_records_count"], 1)
+        self.assertEqual(summary["decision_outcome_learning"]["schema_version"], "v7.decision-outcome-learning.model.v1")
+        self.assertGreater(summary["decision_outcome_learning"]["effectiveness"]["recommendation_correct_rate"], 0)
         self.assertFalse(summary["autonomy_readiness"]["autonomy_enabled"])
 
     def test_candidate_outcomes_from_selected_move_audit(self):
@@ -656,6 +660,9 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertEqual(reread_trust["outcome_mapper_counts"]["prediction_actuals_count"], 1)
         self.assertEqual(reread_trust["prediction_accuracy"]["matched_count"], 1)
         self.assertEqual(reread_trust["prediction_accuracy"]["prediction_confidence"], 88.2)
+        self.assertIn("decision_outcome_learning", reread_trust)
+        self.assertEqual(reread_trust["decision_outcome_learning"]["schema_version"], "v7.decision-outcome-learning.model.v1")
+        self.assertFalse(reread_trust["decision_outcome_learning"]["runtime_mutation_performed"])
 
     def test_trust_evolution_uses_execution_feedback_for_suitability_and_blast_radius(self):
         result = workers.build_all_snapshots(

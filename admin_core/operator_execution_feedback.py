@@ -14,6 +14,8 @@ from typing import Any
 
 
 SCHEMA_VERSION = "v7.operator-execution-feedback.v1"
+OUTCOME_QUALITY_SCHEMA_VERSION = "v7.decision-outcome-quality.v1"
+LEARNING_RECORD_SCHEMA_VERSION = "v7.decision-outcome-learning-record.v1"
 
 
 def utc_now() -> str:
@@ -86,6 +88,193 @@ def feedback_deltas(outcome_status: str, prediction_expected: float = 0.0, predi
     }
 
 
+def _verification_complete(verification: dict[str, Any]) -> bool:
+    if not verification:
+        return False
+    return bool(
+        verification.get("success") is True
+        or verification.get("verification_passed") is True
+        or str(verification.get("status") or verification.get("result") or "").lower() in {"success", "verified", "pass", "passed"}
+    )
+
+
+def _service_impact(result: dict[str, Any], verification: dict[str, Any], outcome_status: str) -> str:
+    service_payload = verification.get("service_outcome") or verification.get("service_actual") or result.get("service_outcome")
+    if isinstance(service_payload, dict):
+        text = json.dumps(service_payload, sort_keys=True, ensure_ascii=True).lower()
+        if any(token in text for token in ("fail", "degraded", "down", "error")):
+            return "DEGRADED"
+        if any(token in text for token in ("ok", "pass", "success", "improved", "verified")):
+            return "IMPROVED"
+    if outcome_status == "success":
+        return "IMPROVED"
+    if outcome_status in {"failure", "rollback_required"}:
+        return "DEGRADED"
+    if outcome_status == "partial_success":
+        return "UNCHANGED"
+    return "UNKNOWN"
+
+
+def _user_impact(result: dict[str, Any], verification: dict[str, Any], outcome_status: str) -> str:
+    user_payload = verification.get("user_outcome") or result.get("user_outcome")
+    if isinstance(user_payload, dict):
+        text = json.dumps(user_payload, sort_keys=True, ensure_ascii=True).lower()
+        if any(token in text for token in ("connected", "ok", "pass", "success", "improved")):
+            return "IMPROVED"
+        if any(token in text for token in ("failed", "offline", "degraded", "error")):
+            return "DEGRADED"
+    if outcome_status == "success":
+        return "IMPROVED"
+    if outcome_status in {"failure", "rollback_required"}:
+        return "DEGRADED"
+    if outcome_status == "partial_success":
+        return "UNCHANGED"
+    return "UNKNOWN"
+
+
+def outcome_quality_evaluation(
+    *,
+    execution_result: dict[str, Any] | None = None,
+    verification_result: dict[str, Any] | None = None,
+    rollback_result: dict[str, Any] | None = None,
+    prediction_expected: float = 0.0,
+    prediction_actual: float = 0.0,
+) -> dict[str, Any]:
+    """Classify a real observed outcome without creating evidence."""
+    execution_result = execution_result if isinstance(execution_result, dict) else {}
+    verification_result = verification_result if isinstance(verification_result, dict) else {}
+    rollback_result = rollback_result if isinstance(rollback_result, dict) else {}
+    outcome_status = classify_outcome(execution_result, verification_result)
+    if outcome_status == "success":
+        quality = "SUCCESS"
+    elif outcome_status == "partial_success":
+        quality = "PARTIAL_SUCCESS"
+    elif outcome_status in {"failure", "rollback_required"}:
+        quality = "FAILED"
+    else:
+        quality = "UNKNOWN"
+    verification_complete = _verification_complete(verification_result)
+    rollback_used = bool(
+        rollback_result
+        or execution_result.get("rollback_required")
+        or verification_result.get("rollback_required")
+        or outcome_status == "rollback_required"
+    )
+    prediction_error = abs(as_float(prediction_expected) - as_float(prediction_actual))
+    if quality == "SUCCESS" and verification_complete and prediction_error <= 0.2:
+        learning_value = "HIGH"
+    elif quality in {"SUCCESS", "PARTIAL_SUCCESS", "FAILED"}:
+        learning_value = "MEDIUM"
+    else:
+        learning_value = "LOW"
+    return {
+        "schema_version": OUTCOME_QUALITY_SCHEMA_VERSION,
+        "outcome_quality": quality,
+        "outcome_status": outcome_status,
+        "service_impact": _service_impact(execution_result, verification_result, outcome_status),
+        "user_impact": _user_impact(execution_result, verification_result, outcome_status),
+        "verification_complete": verification_complete,
+        "rollback_used": rollback_used,
+        "prediction_error": round(prediction_error, 4),
+        "learning_value": learning_value,
+        "synthetic_evidence_created": False,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
+def knowledge_growth_from_outcome(outcome_quality: dict[str, Any]) -> dict[str, Any]:
+    quality = str(outcome_quality.get("outcome_quality") or "UNKNOWN")
+    learning_value = str(outcome_quality.get("learning_value") or "LOW")
+    rollback_used = bool(outcome_quality.get("rollback_used"))
+    if quality == "SUCCESS":
+        decision = "improved"
+        suitability = "improved"
+        prediction = "improved" if as_float(outcome_quality.get("prediction_error"), 1.0) <= 0.2 else "unchanged"
+        service = "improved" if outcome_quality.get("service_impact") == "IMPROVED" else "unchanged"
+        recovery = "improved" if not rollback_used else "unchanged"
+    elif quality == "PARTIAL_SUCCESS":
+        decision = "gained"
+        suitability = "unchanged"
+        prediction = "unchanged"
+        service = "unchanged"
+        recovery = "unchanged"
+    elif quality == "FAILED":
+        decision = "gained"
+        suitability = "degraded"
+        prediction = "degraded"
+        service = "degraded" if outcome_quality.get("service_impact") == "DEGRADED" else "unchanged"
+        recovery = "improved" if rollback_used else "unchanged"
+    else:
+        decision = suitability = prediction = service = recovery = "unchanged"
+    return {
+        "schema_version": "v7.decision-knowledge-growth.v1",
+        "knowledge_gained": quality in {"SUCCESS", "PARTIAL_SUCCESS", "FAILED"},
+        "knowledge_improved": [name for name, state in {
+            "Decision Outcome": decision,
+            "Suitability": suitability,
+            "Prediction": prediction,
+            "Service": service,
+            "Recovery": recovery,
+        }.items() if state == "improved"],
+        "knowledge_unchanged": [name for name, state in {
+            "Decision Outcome": decision,
+            "Suitability": suitability,
+            "Prediction": prediction,
+            "Service": service,
+            "Recovery": recovery,
+        }.items() if state == "unchanged"],
+        "knowledge_degraded": [name for name, state in {
+            "Decision Outcome": decision,
+            "Suitability": suitability,
+            "Prediction": prediction,
+            "Service": service,
+            "Recovery": recovery,
+        }.items() if state == "degraded"],
+        "by_object": {
+            "Decision Outcome": decision,
+            "Suitability": suitability,
+            "Prediction": prediction,
+            "Service": service,
+            "Recovery": recovery,
+            "Knowledge Quality": "improved" if learning_value in {"HIGH", "MEDIUM"} and quality != "UNKNOWN" else "unchanged",
+        },
+        "source": "existing_execution_feedback_outcome",
+        "synthetic_evidence_created": False,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
+def decision_learning_record(contract: dict[str, Any]) -> dict[str, Any]:
+    outcome_quality = contract.get("outcome_quality") if isinstance(contract.get("outcome_quality"), dict) else {}
+    knowledge_growth = contract.get("knowledge_growth") if isinstance(contract.get("knowledge_growth"), dict) else {}
+    record = {
+        "schema_version": LEARNING_RECORD_SCHEMA_VERSION,
+        "feedback_id": contract.get("feedback_id", ""),
+        "recommendation_id": contract.get("recommendation_id", ""),
+        "decision_id": contract.get("decision_id", ""),
+        "packet_id": contract.get("packet_id", ""),
+        "user": contract.get("user", ""),
+        "source_channel": contract.get("source_channel", ""),
+        "target_channel": contract.get("target_channel", ""),
+        "outcome_quality": outcome_quality.get("outcome_quality", "UNKNOWN"),
+        "learning_value": outcome_quality.get("learning_value", "LOW"),
+        "knowledge_growth": knowledge_growth,
+        "trust_delta": contract.get("trust_delta", 0.0),
+        "prediction_delta": contract.get("prediction_delta", 0.0),
+        "recommendation_delta": contract.get("recommendation_delta", 0.0),
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+        "synthetic_evidence_created": False,
+    }
+    record["learning_record_id"] = "learn_" + stable_hash(record)[:24]
+    return record
+
+
 def execution_feedback_contract(
     *,
     user: str,
@@ -99,6 +288,7 @@ def execution_feedback_contract(
     prediction_actual: float = 0.0,
     audit_reference: str = "",
     closure_reference: str = "",
+    packet_id: str = "",
     execution_time: str = "",
     verification_time: str = "",
     stability_window_seconds: int = 0,
@@ -108,6 +298,14 @@ def execution_feedback_contract(
     rollback_result = rollback_result if isinstance(rollback_result, dict) else {}
     outcome_status = classify_outcome(execution_result, verification_result)
     deltas = feedback_deltas(outcome_status, prediction_expected, prediction_actual)
+    quality = outcome_quality_evaluation(
+        execution_result=execution_result,
+        verification_result=verification_result,
+        rollback_result=rollback_result,
+        prediction_expected=prediction_expected,
+        prediction_actual=prediction_actual,
+    )
+    growth = knowledge_growth_from_outcome(quality)
     now = utc_now()
     contract = {
         "schema_version": SCHEMA_VERSION,
@@ -117,6 +315,8 @@ def execution_feedback_contract(
         "execution_time": execution_time or str(execution_result.get("execution_time") or execution_result.get("created_at") or now),
         "verification_time": verification_time or str(verification_result.get("verification_time") or verification_result.get("created_at") or now),
         "outcome_status": outcome_status,
+        "outcome_quality": quality,
+        "knowledge_growth": growth,
         "execution_outcome": execution_result,
         "verification_result": verification_result,
         "rollback_result": rollback_result,
@@ -141,6 +341,8 @@ def execution_feedback_contract(
         },
         "audit_reference": audit_reference,
         "closure_reference": closure_reference,
+        "packet_id": packet_id or str(execution_result.get("packet_id") or verification_result.get("packet_id") or ""),
+        "recommendation_id": recommendation_hash,
         "stability_window_seconds": int(stability_window_seconds or 0),
         "runtime_mutation_performed": False,
         "new_truth_sources_created": False,
@@ -153,6 +355,8 @@ def execution_feedback_contract(
         "outcome_status": outcome_status,
         "execution_time": contract["execution_time"],
     })[:24]
+    contract["decision_id"] = contract["feedback_id"]
+    contract["learning_record"] = decision_learning_record(contract)
     return contract
 
 
@@ -165,6 +369,20 @@ def materialized_feedback_records(contract: dict[str, Any]) -> dict[str, dict[st
         "outcome_status": contract.get("outcome_status", "unknown"),
         "audit_reference": contract.get("audit_reference", ""),
         "closure_reference": contract.get("closure_reference", ""),
+        "recommendation_id": contract.get("recommendation_id", contract.get("recommendation_hash", "")),
+        "decision_id": contract.get("decision_id", contract.get("feedback_id", "")),
+        "packet_id": contract.get("packet_id", ""),
+        "outcome_quality": contract.get("outcome_quality", {}),
+        "knowledge_growth": contract.get("knowledge_growth", {}),
+        "learning_record": contract.get("learning_record", {}),
+        "outcome_observed_at": contract.get("verification_time") or contract.get("execution_time") or utc_now(),
+        "service_outcome": (contract.get("verification_result") or {}).get("service_outcome", {}),
+        "user_outcome": (contract.get("verification_result") or {}).get("user_outcome", {
+            "user": contract.get("user", ""),
+            "source_channel": contract.get("source_channel", ""),
+            "target_channel": contract.get("target_channel", ""),
+            "outcome_status": contract.get("outcome_status", "unknown"),
+        }),
         "stability_window_seconds": int(contract.get("stability_window_seconds") or 0),
         "created_at": utc_now(),
     }
@@ -201,6 +419,117 @@ def materialized_feedback_records(contract: dict[str, Any]) -> dict[str, dict[st
             "closure_timestamp": utc_now(),
             **base,
         },
+    }
+
+
+def _record_outcome_quality(record: dict[str, Any]) -> dict[str, Any]:
+    execution = record.get("execution_outcome") if isinstance(record.get("execution_outcome"), dict) else record
+    verification = record.get("verification_result") if isinstance(record.get("verification_result"), dict) else {}
+    rollback = record.get("rollback_result") if isinstance(record.get("rollback_result"), dict) else {}
+    prediction_feedback = record.get("prediction_feedback") if isinstance(record.get("prediction_feedback"), dict) else record
+    return outcome_quality_evaluation(
+        execution_result=execution,
+        verification_result=verification,
+        rollback_result=rollback,
+        prediction_expected=as_float(prediction_feedback.get("prediction_expected"), 0.0),
+        prediction_actual=as_float(prediction_feedback.get("prediction_actual"), 0.0),
+    )
+
+
+def decision_outcome_learning_model(
+    decision_records: list[dict[str, Any]] | None = None,
+    *,
+    generated_at: str = "",
+) -> dict[str, Any]:
+    """Aggregate existing closed outcomes into read-only learning/effectiveness."""
+    rows: list[dict[str, Any]] = []
+    for index, record in enumerate(decision_records or []):
+        if not isinstance(record, dict):
+            continue
+        quality = record.get("outcome_quality") if isinstance(record.get("outcome_quality"), dict) else _record_outcome_quality(record)
+        growth = record.get("knowledge_growth") if isinstance(record.get("knowledge_growth"), dict) else knowledge_growth_from_outcome(quality)
+        learning = record.get("learning_record") if isinstance(record.get("learning_record"), dict) else {}
+        outcome_quality = str(quality.get("outcome_quality") or "UNKNOWN")
+        if outcome_quality == "UNKNOWN":
+            continue
+        rows.append({
+            "record_index": index,
+            "recommendation_id": str(record.get("recommendation_id") or record.get("recommendation_hash") or ""),
+            "decision_id": str(record.get("decision_id") or record.get("operation_id") or record.get("object_id") or ""),
+            "packet_id": str(record.get("packet_id") or record.get("approval_packet_id") or ""),
+            "user": str(record.get("user") or record.get("ip") or ""),
+            "channel": str(record.get("target_channel") or record.get("channel") or record.get("egress") or record.get("target") or ""),
+            "outcome_quality": outcome_quality,
+            "service_impact": quality.get("service_impact", "UNKNOWN"),
+            "user_impact": quality.get("user_impact", "UNKNOWN"),
+            "verification_complete": bool(quality.get("verification_complete")),
+            "rollback_used": bool(quality.get("rollback_used")),
+            "learning_value": quality.get("learning_value", "LOW"),
+            "knowledge_growth": growth,
+            "learning_record_id": learning.get("learning_record_id", ""),
+        })
+    total = len(rows)
+    success = sum(1 for row in rows if row["outcome_quality"] == "SUCCESS")
+    partial = sum(1 for row in rows if row["outcome_quality"] == "PARTIAL_SUCCESS")
+    failed = sum(1 for row in rows if row["outcome_quality"] == "FAILED")
+    service_improved = sum(1 for row in rows if row["service_impact"] == "IMPROVED")
+    rollback_used = sum(1 for row in rows if row["rollback_used"])
+    prediction_correct = sum(
+        1 for row in rows
+        if (row.get("knowledge_growth") or {}).get("by_object", {}).get("Prediction") == "improved"
+    )
+    fit_correct = sum(
+        1 for row in rows
+        if (row.get("knowledge_growth") or {}).get("by_object", {}).get("Suitability") == "improved"
+    )
+    recovery_correct = sum(
+        1 for row in rows
+        if (row.get("knowledge_growth") or {}).get("by_object", {}).get("Recovery") == "improved"
+    )
+    knowledge_improved = sorted({
+        item
+        for row in rows
+        for item in ((row.get("knowledge_growth") or {}).get("knowledge_improved") or [])
+    })
+    knowledge_degraded = sorted({
+        item
+        for row in rows
+        for item in ((row.get("knowledge_growth") or {}).get("knowledge_degraded") or [])
+    })
+    return {
+        "schema_version": "v7.decision-outcome-learning.model.v1",
+        "generated_at": generated_at or utc_now(),
+        "owner": "admin_core.operator_execution_feedback",
+        "source": "existing_decision_feedback_closure_records",
+        "outcome_quality_counts": {
+            "SUCCESS": success,
+            "PARTIAL_SUCCESS": partial,
+            "FAILED": failed,
+            "UNKNOWN": 0,
+        },
+        "effectiveness": {
+            "recommendation_correct_rate": round((success + (partial * 0.5)) / total, 4) if total else 0.0,
+            "service_improved_rate": round(service_improved / total, 4) if total else 0.0,
+            "rollback_rate": round(rollback_used / total, 4) if total else 0.0,
+            "fit_prediction_correct_rate": round(fit_correct / total, 4) if total else 0.0,
+            "recovery_prediction_correct_rate": round(recovery_correct / total, 4) if total else 0.0,
+            "prediction_correct_rate": round(prediction_correct / total, 4) if total else 0.0,
+        },
+        "knowledge_growth": {
+            "knowledge_gained": total,
+            "knowledge_improved": knowledge_improved,
+            "knowledge_degraded": knowledge_degraded,
+            "knowledge_unchanged_count": sum(
+                len((row.get("knowledge_growth") or {}).get("knowledge_unchanged") or [])
+                for row in rows
+            ),
+        },
+        "rows": rows[-50:],
+        "read_only": True,
+        "synthetic_evidence_created": False,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
     }
 
 

@@ -1886,6 +1886,39 @@ def build_decision_outcome_closure(
     }
 
 
+def _decision_outcome_learning_from_trust(trust_evolution_snapshot: dict[str, Any] | None) -> dict[str, Any]:
+    summary = _first_item(trust_evolution_snapshot)
+    model = summary.get("decision_outcome_learning") if isinstance(summary.get("decision_outcome_learning"), dict) else {}
+    if model:
+        return model
+    return {
+        "schema_version": "v7.decision-outcome-learning.model.v1",
+        "owner": "admin_core.operator_execution_feedback",
+        "source": "trust-evolution-summaries.decision_outcome_learning",
+        "outcome_quality_counts": {"SUCCESS": 0, "PARTIAL_SUCCESS": 0, "FAILED": 0, "UNKNOWN": 0},
+        "effectiveness": {
+            "recommendation_correct_rate": 0.0,
+            "service_improved_rate": 0.0,
+            "rollback_rate": 0.0,
+            "fit_prediction_correct_rate": 0.0,
+            "recovery_prediction_correct_rate": 0.0,
+            "prediction_correct_rate": 0.0,
+        },
+        "knowledge_growth": {
+            "knowledge_gained": 0,
+            "knowledge_improved": [],
+            "knowledge_degraded": [],
+            "knowledge_unchanged_count": 0,
+        },
+        "rows": [],
+        "read_only": True,
+        "synthetic_evidence_created": False,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
 def _channel_rows_for_recovery(decision_surface: dict[str, Any], channel_recovery_inputs: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
     if channel_recovery_inputs is not None:
         return [row for row in channel_recovery_inputs if isinstance(row, dict)]
@@ -2363,6 +2396,9 @@ def _knowledge_evidence_overlay(
     recovery_summary = (routing_foundation.get("recovery_admission") or {}).get("summary", {})
     freshness_summary = (routing_foundation.get("freshness_actionability") or {}).get("summary", {})
     readiness = routing_foundation.get("routing_recommendation_readiness") or {}
+    outcome_learning = routing_foundation.get("decision_outcome_learning") or {}
+    outcome_effectiveness = outcome_learning.get("effectiveness") if isinstance(outcome_learning.get("effectiveness"), dict) else {}
+    knowledge_growth = outcome_learning.get("knowledge_growth") if isinstance(outcome_learning.get("knowledge_growth"), dict) else {}
     overlay_by_object = {
         "Service": {
             "rows_seen": ((floor_forensics.get("service_root_cause") or {}).get("rows_seen") if isinstance(floor_forensics.get("service_root_cause"), dict) else 0),
@@ -2370,12 +2406,14 @@ def _knowledge_evidence_overlay(
             "service_confidence": components.get("service_confidence", 0.0),
             "service_user_sla_fit_users_seen": fit_summary.get("users_seen", 0),
             "fit_verdict_counts": fit_summary.get("verdict_counts", {}),
+            "service_improved_rate": outcome_effectiveness.get("service_improved_rate", 0.0),
         },
         "Prediction": {
             "forecasts_seen": prediction_plan.get("forecasts_seen", 0),
             "matched_rows": prediction_plan.get("matched_rows", 0),
             "pending_rows": prediction_plan.get("pending_rows", 0),
             "prediction_confidence": components.get("prediction_confidence", 0.0),
+            "prediction_correct_rate": outcome_effectiveness.get("prediction_correct_rate", 0.0),
         },
         "Suitability": {
             "candidate_count": candidate_coverage.get("candidate_count", 0),
@@ -2383,6 +2421,7 @@ def _knowledge_evidence_overlay(
             "coverage_ratio": candidate_coverage.get("coverage_ratio", 0.0),
             "source_classification": (source_rows.get("candidate_outcomes") or {}).get("classification", "UNKNOWN"),
             "service_user_sla_fit_attached": bool(fit_summary),
+            "fit_prediction_correct_rate": outcome_effectiveness.get("fit_prediction_correct_rate", 0.0),
         },
         "Trust": {
             "confidence_floor": (floors.get("confidence") or {}).get("current") if isinstance(floors.get("confidence"), dict) else 0.0,
@@ -2405,6 +2444,9 @@ def _knowledge_evidence_overlay(
             "runtime_apply_allowed_in_this_phase": (candidate_outcome_reality_collection.get("acceleration") or {}).get("runtime_apply_allowed_in_this_phase", False),
             "closure_state": routing_foundation.get("decision_outcome_closure", {}).get("closure_state", "UNKNOWN"),
             "valid_closures": closure_summary.get("valid_closures", 0),
+            "outcome_quality_counts": outcome_learning.get("outcome_quality_counts", {}),
+            "recommendation_correct_rate": outcome_effectiveness.get("recommendation_correct_rate", 0.0),
+            "knowledge_gained": knowledge_growth.get("knowledge_gained", 0),
         },
         "Freshness": {
             "snapshot_backed": True,
@@ -2415,6 +2457,7 @@ def _knowledge_evidence_overlay(
             "admission_contract": "staged_read_only",
             "eligible_channels": recovery_summary.get("eligible", 0),
             "blocked_or_quarantined": recovery_summary.get("blocked_or_quarantined", 0),
+            "recovery_prediction_correct_rate": outcome_effectiveness.get("recovery_prediction_correct_rate", 0.0),
         },
         "Event": {
             "event_model": "read_only_consumer",
@@ -2701,9 +2744,11 @@ def build_acceleration_inventory(
         generated_at=generated,
     )
     anti_flapping = build_anti_flapping(decision_records or [], generated_at=generated)
+    decision_outcome_learning = _decision_outcome_learning_from_trust(snapshots["trust-evolution-summaries"])
     routing_foundation_partial = {
         "service_user_sla_fit": service_user_sla_fit,
         "decision_outcome_closure": decision_outcome_closure,
+        "decision_outcome_learning": decision_outcome_learning,
         "recovery_admission": recovery_admission,
         "anti_flapping": anti_flapping,
         "freshness_actionability": freshness_actionability,
@@ -2747,6 +2792,9 @@ def build_acceleration_inventory(
         "real_outcome_growth_projection": real_outcome_growth_projection,
         "service_user_sla_fit": service_user_sla_fit,
         "decision_outcome_closure": decision_outcome_closure,
+        "decision_outcome_learning": decision_outcome_learning,
+        "decision_effectiveness": decision_outcome_learning.get("effectiveness", {}),
+        "knowledge_growth": decision_outcome_learning.get("knowledge_growth", {}),
         "recovery_admission": recovery_admission,
         "anti_flapping": anti_flapping,
         "freshness_actionability": freshness_actionability,

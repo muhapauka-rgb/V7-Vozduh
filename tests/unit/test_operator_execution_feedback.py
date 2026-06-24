@@ -15,8 +15,14 @@ class OperatorExecutionFeedbackTest(unittest.TestCase):
             source_channel="awg0",
             target_channel="awg3",
             execution_result={"success": True, "result": "applied"},
-            verification_result={"success": True, "result": "verified"},
+            verification_result={
+                "success": True,
+                "result": "verified",
+                "service_outcome": {"telegram": "ok"},
+                "user_outcome": {"connected": True},
+            },
             recommendation_hash="rec-1",
+            packet_id="packet-1",
             prediction_expected=0.8,
             prediction_actual=0.75,
             audit_reference="audit-1",
@@ -28,8 +34,44 @@ class OperatorExecutionFeedbackTest(unittest.TestCase):
         self.assertGreater(contract["trust_delta"], 0)
         self.assertGreater(contract["prediction_delta"], 0)
         self.assertGreater(contract["recommendation_delta"], 0)
+        self.assertEqual(contract["outcome_quality"]["outcome_quality"], "SUCCESS")
+        self.assertEqual(contract["outcome_quality"]["learning_value"], "HIGH")
+        self.assertIn("Decision Outcome", contract["knowledge_growth"]["knowledge_improved"])
+        self.assertEqual(contract["learning_record"]["schema_version"], "v7.decision-outcome-learning-record.v1")
         self.assertEqual(set(records), {"outcome", "trust", "prediction", "recommendation", "closure"})
         self.assertEqual(records["closure"]["closure_state"], "CLOSED")
+        self.assertEqual(records["outcome"]["packet_id"], "packet-1")
+        self.assertEqual(records["outcome"]["learning_record"]["learning_record_id"], contract["learning_record"]["learning_record_id"])
+
+    def test_decision_outcome_learning_model_uses_existing_records_only(self):
+        good = feedback.execution_feedback_contract(
+            user="10.7.0.3",
+            source_channel="awg0",
+            target_channel="awg3",
+            execution_result={"success": True, "result": "applied"},
+            verification_result={"success": True, "result": "verified"},
+            recommendation_hash="rec-good",
+            packet_id="packet-good",
+            prediction_expected=0.9,
+            prediction_actual=0.88,
+        )
+        bad = feedback.execution_feedback_contract(
+            user="10.7.0.4",
+            source_channel="awg0",
+            target_channel="vless",
+            execution_result={"success": False, "result": "failed"},
+            verification_result={"success": False},
+            recommendation_hash="rec-bad",
+            packet_id="packet-bad",
+        )
+        model = feedback.decision_outcome_learning_model([good, bad], generated_at="2026-06-24T00:00:00+00:00")
+
+        self.assertEqual(model["outcome_quality_counts"]["SUCCESS"], 1)
+        self.assertEqual(model["outcome_quality_counts"]["FAILED"], 1)
+        self.assertGreater(model["effectiveness"]["recommendation_correct_rate"], 0)
+        self.assertIn("Suitability", model["knowledge_growth"]["knowledge_degraded"])
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertEqual(model["users_moved"], 0)
 
     def test_feedback_materializes_stability_window_for_authority_promotion(self):
         contract = feedback.execution_feedback_contract(

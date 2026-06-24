@@ -46,6 +46,25 @@ class OperatorDecisionSurfaceTest(unittest.TestCase):
             ])
             self.write_snapshot(root, "prediction-summaries", [{"channel_forecasts": [{"channel": "fast", "confidence": 0.88, "summary": "stable"}]}])
             self.write_snapshot(root, "trust-evolution-summaries", [{
+                "decision_outcome_learning": {
+                    "schema_version": "v7.decision-outcome-learning.model.v1",
+                    "effectiveness": {
+                        "recommendation_correct_rate": 1.0,
+                        "service_improved_rate": 1.0,
+                        "rollback_rate": 0.0,
+                        "fit_prediction_correct_rate": 1.0,
+                        "recovery_prediction_correct_rate": 0.0,
+                        "prediction_correct_rate": 1.0,
+                    },
+                    "knowledge_growth": {
+                        "knowledge_gained": 1,
+                        "knowledge_improved": ["Decision Outcome"],
+                        "knowledge_degraded": [],
+                    },
+                    "runtime_mutation_performed": False,
+                    "users_moved": 0,
+                    "apply_executed": False,
+                },
                 "channel_trust_recovery": {
                     "channels": [{
                         "channel": "fast",
@@ -79,6 +98,10 @@ class OperatorDecisionSurfaceTest(unittest.TestCase):
         self.assertFalse(model["authority"]["execution_path_changed"])
         self.assertIn("approval_packet", row["action_chain"])
         self.assertEqual(model["batch_preview"]["users_to_move"][0]["to"], "fast")
+        readiness = model["batch_preview"]["knowledge_decision_readiness"]
+        self.assertEqual(readiness["decision_effectiveness"]["recommendation_correct_rate"], 1.0)
+        self.assertEqual(readiness["knowledge_growth"]["knowledge_gained"], 1)
+        self.assertFalse(readiness["runtime_apply_allowed"])
         ctr = row["ctr_governance_evidence"]
         self.assertEqual(ctr["state"], "NEW")
         self.assertTrue(ctr["review_required"])

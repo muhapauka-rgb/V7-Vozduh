@@ -266,6 +266,7 @@ def build_knowledge_decision_overlay(
 ) -> dict[str, Any]:
     """Attach existing routing knowledge to the read-only decision surface."""
     statuses = snapshot.get("snapshot_statuses") or {}
+    snapshots = snapshot.get("snapshots") or {}
     surface = {"users": user_rows, "channels": channel_rows}
     freshness = autonomy_trust_acceleration.build_freshness_actionability(statuses)
     service_fit = autonomy_trust_acceleration.build_service_user_sla_fit(
@@ -278,6 +279,10 @@ def build_knowledge_decision_overlay(
     )
     anti_flap = autonomy_trust_acceleration.build_anti_flapping(decision_records or [])
     closure = autonomy_trust_acceleration.build_decision_outcome_closure(decision_records or [])
+    trust_summary = _items(snapshots.get("trust-evolution-summaries", {}))
+    decision_outcome_learning = {}
+    if trust_summary and isinstance(trust_summary[0].get("decision_outcome_learning"), dict):
+        decision_outcome_learning = trust_summary[0]["decision_outcome_learning"]
     readiness = autonomy_trust_acceleration.build_routing_recommendation_readiness(
         service_user_sla_fit=service_fit,
         decision_outcome_closure=closure,
@@ -293,6 +298,9 @@ def build_knowledge_decision_overlay(
         "recovery_admission": recovery,
         "anti_flapping": anti_flap,
         "decision_outcome_closure": closure,
+        "decision_outcome_learning": decision_outcome_learning,
+        "decision_effectiveness": decision_outcome_learning.get("effectiveness", {}) if isinstance(decision_outcome_learning, dict) else {},
+        "knowledge_growth": decision_outcome_learning.get("knowledge_growth", {}) if isinstance(decision_outcome_learning, dict) else {},
         "routing_recommendation_readiness": readiness,
         "runtime_mutation_performed": False,
         "apply_executed": False,
@@ -925,6 +933,8 @@ def build_batch_preview(user_rows: list[dict[str, Any]], knowledge_overlay: dict
             "routing_recommendation_readiness": ((knowledge_overlay or {}).get("routing_recommendation_readiness") or {}).get("readiness", "UNKNOWN"),
             "blockers": ((knowledge_overlay or {}).get("routing_recommendation_readiness") or {}).get("blockers", []),
             "blocked_user_recommendations": sum(1 for row in user_rows if (row.get("knowledge_decision_overlay") or {}).get("status") == "BLOCKED_REVIEW_REQUIRED"),
+            "decision_effectiveness": (knowledge_overlay or {}).get("decision_effectiveness", {}),
+            "knowledge_growth": (knowledge_overlay or {}).get("knowledge_growth", {}),
             "runtime_apply_allowed": False,
         },
         "blast_radius": {"users": len(moves), "bounded": len(moves) <= 10, "mode": "preview_only"},

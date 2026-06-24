@@ -89,6 +89,29 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
             "outcome_mapper_counts": {
                 "service_actuals_count": 1,
                 "candidate_outcomes_count": 1,
+                "learning_records_count": 1,
+            },
+            "decision_outcome_learning": {
+                "schema_version": "v7.decision-outcome-learning.model.v1",
+                "outcome_quality_counts": {"SUCCESS": 1, "PARTIAL_SUCCESS": 0, "FAILED": 0, "UNKNOWN": 0},
+                "effectiveness": {
+                    "recommendation_correct_rate": 1.0,
+                    "service_improved_rate": 1.0,
+                    "rollback_rate": 0.0,
+                    "fit_prediction_correct_rate": 1.0,
+                    "recovery_prediction_correct_rate": 0.0,
+                    "prediction_correct_rate": 1.0,
+                },
+                "knowledge_growth": {
+                    "knowledge_gained": 1,
+                    "knowledge_improved": ["Decision Outcome", "Suitability", "Prediction"],
+                    "knowledge_degraded": [],
+                    "knowledge_unchanged_count": 1,
+                },
+                "rows": [],
+                "runtime_mutation_performed": False,
+                "users_moved": 0,
+                "apply_executed": False,
             },
         }])
 
@@ -585,11 +608,15 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
             "anti_flapping",
             "freshness_actionability",
             "routing_recommendation_readiness",
+            "decision_outcome_learning",
         ):
             self.assertIn(key, inventory)
             self.assertFalse(inventory[key]["runtime_mutation_performed"])
             self.assertFalse(inventory[key]["apply_executed"])
             self.assertEqual(inventory[key]["users_moved"], 0)
+        self.assertIn("decision_effectiveness", inventory)
+        self.assertEqual(inventory["decision_effectiveness"]["recommendation_correct_rate"], 1.0)
+        self.assertEqual(inventory["knowledge_growth"]["knowledge_gained"], 1)
 
     def test_acceleration_inventory_exposes_knowledge_quality_read_model(self):
         with tempfile.TemporaryDirectory() as tmp:

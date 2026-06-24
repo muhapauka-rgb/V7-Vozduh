@@ -305,6 +305,16 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(first_projection["known_missing_candidate_outcomes"], 1)
         self.assertEqual(first_projection["visible_suitability_rows"], 2)
         self.assertFalse(projection["canary_can_start_now"])
+        leverage = second["outcome_leverage_model"]
+        self.assertEqual(leverage["schema_version"], "v7.autonomy-trust.outcome-leverage-model.v1")
+        self.assertEqual(leverage["final_verdict"], "MIXED_PATH")
+        self.assertNotEqual(leverage["highest_leverage"]["activity"], "governed_one_user_canary")
+        self.assertFalse(leverage["governed_canary_analysis"]["is_automatically_best_next_action"])
+        self.assertTrue(leverage["safe_existing_owner_improvement_implemented"])
+        self.assertFalse(leverage["synthetic_evidence_created"])
+        self.assertFalse(leverage["runtime_mutation_performed"])
+        self.assertFalse(leverage["apply_executed"])
+        self.assertEqual(leverage["users_moved"], 0)
         self.assertFalse(second["runtime_mutation_performed"])
         self.assertFalse(second["apply_executed"])
         self.assertEqual(second["users_moved"], 0)
@@ -428,6 +438,88 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(row["known_missing_candidate_outcomes"], 73)
         self.assertEqual(row["converted_missing_candidate_outcomes"], 10)
         self.assertEqual(row["missing_candidate_outcomes_remaining"], 63)
+
+    def test_outcome_leverage_model_ranks_real_outcome_paths_without_authority(self):
+        floor_forensics = {
+            "component_values": {
+                "decision_confidence": 50,
+                "service_confidence": 40,
+                "suitability_confidence": 28,
+                "prediction_confidence": 35,
+                "blast_radius_confidence": 100,
+            },
+            "floor_values": {
+                "confidence": {"current": 39},
+                "trust": {"current": 54},
+            },
+            "prediction_root_cause": {
+                "forecasts_seen": 21,
+                "matched_rows": 21,
+                "forecast_accuracy": 94,
+                "mean_forecast_confidence": 0.38,
+            },
+            "service_root_cause": {"rows_seen": 21},
+            "suitability_root_cause": {
+                "candidates_seen": 156,
+                "outcomes_seen": 84,
+            },
+        }
+        confidence_reality = {
+            "required_real_evidence": {
+                "prediction": {
+                    "additional_matched_rows_needed_if_future_confidence_1_0": 31,
+                },
+                "service": {
+                    "additional_comparable_rows_needed_if_future_confidence_1_0": 22,
+                },
+                "suitability": {
+                    "missing_outcomes_to_full_coverage": 72,
+                    "target_correctness_if_mean_confidence_0_85": 82.353,
+                },
+                "operator": {
+                    "first_projection_to_floor": {"earned_confidence": 72.0},
+                },
+            }
+        }
+        candidate_reality = {
+            "coverage": {"missing_candidate_outcomes": 72},
+            "growth_model": {
+                "projections": [{
+                    "additional_real_candidate_outcomes": 1,
+                    "projected_suitability": 28.35,
+                    "projected_confidence": 39.18,
+                    "projected_trust": 54.12,
+                }]
+            },
+        }
+        projection = {
+            "current": {
+                "confidence": 39,
+                "trust": 54,
+                "prediction_confidence": 35,
+                "suitability_confidence": 28,
+            }
+        }
+        model = accel.build_outcome_leverage_model(
+            floor_forensics=floor_forensics,
+            confidence_reality_audit=confidence_reality,
+            real_outcome_source_inventory={},
+            candidate_outcome_reality_collection=candidate_reality,
+            real_outcome_growth_projection=projection,
+            operator_comparisons={
+                "current": {"earned_confidence": 45},
+                "growth_projection": {"rows": []},
+            },
+        )
+
+        self.assertEqual(model["final_verdict"], "MIXED_PATH")
+        self.assertEqual(model["highest_leverage"]["activity"], "prediction_outcome_cycle")
+        self.assertFalse(model["governed_canary_analysis"]["is_automatically_best_next_action"])
+        self.assertGreater(model["governed_canary_analysis"]["expected_suitability_gain"], 0)
+        self.assertEqual(model["roadmap_to_tier_2"][0]["status"], "TIER_2_NO_GO")
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["new_truth_source_created"])
 
     def test_knowledge_quality_read_model_is_deterministic_and_read_only(self):
         first = accel.build_knowledge_quality_read_model(generated_at="2026-06-24T00:00:00+00:00")

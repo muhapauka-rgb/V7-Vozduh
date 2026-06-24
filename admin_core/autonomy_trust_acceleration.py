@@ -1219,6 +1219,362 @@ def build_real_outcome_source_inventory(
     }
 
 
+def _project_single_prediction_gain(floor_forensics: dict[str, Any]) -> float:
+    prediction = floor_forensics.get("prediction_root_cause") if isinstance(floor_forensics.get("prediction_root_cause"), dict) else {}
+    components = floor_forensics.get("component_values") if isinstance(floor_forensics.get("component_values"), dict) else {}
+    current = as_float(components.get("prediction_confidence"), 0.0)
+    matched = int(as_float(prediction.get("matched_rows"), as_float(prediction.get("forecasts_seen"), 0.0)))
+    forecasts = int(as_float(prediction.get("forecasts_seen"), matched))
+    accuracy = as_float(prediction.get("forecast_accuracy"), 0.0)
+    mean_confidence = as_float(prediction.get("mean_forecast_confidence"), 0.0)
+    if matched <= 0 or forecasts <= 0:
+        return 0.0
+    projected_accuracy = _project_append_mean(
+        current_count=matched,
+        current_mean=accuracy,
+        additional=1,
+        future_value=100.0,
+    )
+    projected_confidence = _project_append_mean(
+        current_count=forecasts,
+        current_mean=mean_confidence,
+        additional=1,
+        future_value=1.0,
+    )
+    projected = min(100.0, projected_accuracy * projected_confidence)
+    return round(max(0.0, projected - current), 3)
+
+
+def _project_single_service_gain(floor_forensics: dict[str, Any]) -> dict[str, float]:
+    service = floor_forensics.get("service_root_cause") if isinstance(floor_forensics.get("service_root_cause"), dict) else {}
+    components = floor_forensics.get("component_values") if isinstance(floor_forensics.get("component_values"), dict) else {}
+    current = as_float(components.get("service_confidence"), 0.0)
+    rows_seen = int(as_float(service.get("rows_seen"), 0.0))
+    if rows_seen <= 0:
+        service_gain = 0.0
+    else:
+        projected = _project_append_mean(
+            current_count=rows_seen,
+            current_mean=current,
+            additional=1,
+            future_value=100.0,
+        )
+        service_gain = round(max(0.0, projected - current), 3)
+    return {
+        "service": service_gain,
+        "confidence": round(service_gain / 3.0, 3),
+        "trust": round(service_gain / 4.0, 3),
+    }
+
+
+def _leverage_denominator(*, effort: str, risk: str, blast_radius: str) -> float:
+    effort_weight = {"LOW": 1.0, "MEDIUM": 2.0, "HIGH": 3.0}.get(effort, 2.0)
+    risk_weight = {"NONE": 1.0, "LOW": 1.25, "MEDIUM": 2.0, "HIGH": 4.0}.get(risk, 2.0)
+    blast_weight = {
+        "NONE": 1.0,
+        "READ_ONLY": 1.0,
+        "ONE_USER": 1.8,
+        "OPERATOR_ACTION": 2.0,
+        "MULTI_USER": 3.0,
+    }.get(blast_radius, 2.0)
+    return max(1.0, effort_weight * risk_weight * blast_weight)
+
+
+def _outcome_activity(
+    *,
+    activity: str,
+    owner: str,
+    confidence_gain: float = 0.0,
+    trust_gain: float = 0.0,
+    prediction_gain: float = 0.0,
+    suitability_gain: float = 0.0,
+    effort: str,
+    risk: str,
+    blast_radius: str,
+    authority_required: str,
+    current_status: str,
+    evidence: str,
+    note: str,
+) -> dict[str, Any]:
+    weighted_gain = (
+        as_float(confidence_gain)
+        + as_float(trust_gain)
+        + as_float(prediction_gain)
+        + (as_float(suitability_gain) * 1.5)
+    )
+    denominator = _leverage_denominator(effort=effort, risk=risk, blast_radius=blast_radius)
+    return {
+        "activity": activity,
+        "owner": owner,
+        "expected_confidence_gain": round(confidence_gain, 3),
+        "expected_trust_gain": round(trust_gain, 3),
+        "expected_prediction_gain": round(prediction_gain, 3),
+        "expected_suitability_gain": round(suitability_gain, 3),
+        "weighted_gain": round(weighted_gain, 3),
+        "effort": effort,
+        "risk": risk,
+        "blast_radius": blast_radius,
+        "authority_required": authority_required,
+        "leverage_score": round(weighted_gain / denominator, 3),
+        "current_status": current_status,
+        "evidence": evidence,
+        "note": note,
+        "projection_only": True,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
+def build_outcome_leverage_model(
+    *,
+    floor_forensics: dict[str, Any],
+    confidence_reality_audit: dict[str, Any],
+    real_outcome_source_inventory: dict[str, Any],
+    candidate_outcome_reality_collection: dict[str, Any],
+    real_outcome_growth_projection: dict[str, Any],
+    operator_comparisons: dict[str, Any],
+) -> dict[str, Any]:
+    """Rank real outcome activities by honest gain per effort and risk.
+
+    This is a read-only decision aid. It uses existing projections and certified
+    formula inputs, but it does not change trust formulas or authorize an action.
+    """
+    current = real_outcome_growth_projection.get("current") if isinstance(real_outcome_growth_projection.get("current"), dict) else {}
+    required = confidence_reality_audit.get("required_real_evidence") if isinstance(confidence_reality_audit.get("required_real_evidence"), dict) else {}
+    prediction_required = required.get("prediction") if isinstance(required.get("prediction"), dict) else {}
+    service_required = required.get("service") if isinstance(required.get("service"), dict) else {}
+    suitability_required = required.get("suitability") if isinstance(required.get("suitability"), dict) else {}
+    candidate_coverage = candidate_outcome_reality_collection.get("coverage") if isinstance(candidate_outcome_reality_collection.get("coverage"), dict) else {}
+    candidate_growth = candidate_outcome_reality_collection.get("growth_model") if isinstance(candidate_outcome_reality_collection.get("growth_model"), dict) else {}
+    candidate_growth_rows = candidate_growth.get("projections") if isinstance(candidate_growth.get("projections"), list) else []
+    one_candidate_row = next(
+        (row for row in candidate_growth_rows if int(as_float(row.get("additional_real_candidate_outcomes"), -1)) == 1),
+        None,
+    )
+    if one_candidate_row:
+        candidate_confidence_gain = max(0.0, as_float(one_candidate_row.get("projected_confidence")) - as_float(current.get("confidence")))
+        candidate_trust_gain = max(0.0, as_float(one_candidate_row.get("projected_trust")) - as_float(current.get("trust")))
+        candidate_suitability_gain = max(0.0, as_float(one_candidate_row.get("projected_suitability")) - as_float(current.get("suitability_confidence")))
+    else:
+        candidate_suitability_gain = 0.35 if as_float(candidate_coverage.get("missing_candidate_outcomes"), 0.0) > 0 else 0.0
+        candidate_confidence_gain = 0.18 if candidate_suitability_gain else 0.0
+        candidate_trust_gain = 0.12 if candidate_suitability_gain else 0.0
+
+    prediction_gain = _project_single_prediction_gain(floor_forensics)
+    service_gain = _project_single_service_gain(floor_forensics)
+    operator_current = operator_comparisons.get("current") if isinstance(operator_comparisons.get("current"), dict) else {}
+    operator_projection = operator_comparisons.get("growth_projection") if isinstance(operator_comparisons.get("growth_projection"), dict) else {}
+    first_operator_floor = (required.get("operator") or {}).get("first_projection_to_floor") if isinstance(required.get("operator"), dict) else None
+    operator_gain = max(
+        0.0,
+        as_float((first_operator_floor or {}).get("earned_confidence"), as_float(operator_current.get("earned_confidence"), 0.0))
+        - as_float(operator_current.get("earned_confidence"), 0.0),
+    ) if isinstance(first_operator_floor, dict) else 0.0
+
+    activities = [
+        _outcome_activity(
+            activity="prediction_outcome_cycle",
+            owner="prediction-summaries + service/channel actual rows + existing feedback owners",
+            prediction_gain=prediction_gain,
+            effort="LOW",
+            risk="LOW",
+            blast_radius="READ_ONLY",
+            authority_required="none",
+            current_status="ACCELERATABLE_NOW",
+            evidence=f"additional matched rows needed at future confidence 1.0: {prediction_required.get('additional_matched_rows_needed_if_future_confidence_1_0')}",
+            note="Fastest direct way to raise prediction confidence; does not solve suitability by itself.",
+        ),
+        _outcome_activity(
+            activity="service_verification_outcome",
+            owner="tools/v7-service-matrix-refresh-all + tools/v7-egress-quality-compact + snapshot refresh",
+            confidence_gain=service_gain["confidence"],
+            trust_gain=service_gain["trust"],
+            prediction_gain=0.0,
+            suitability_gain=0.0,
+            effort="LOW",
+            risk="LOW",
+            blast_radius="READ_ONLY",
+            authority_required="none",
+            current_status="ACCELERATABLE_NOW",
+            evidence=f"additional comparable rows needed at future confidence 1.0: {service_required.get('additional_comparable_rows_needed_if_future_confidence_1_0')}",
+            note="Safest way to improve service/trust source confidence; one prior real probe cycle had little immediate floor movement.",
+        ),
+        _outcome_activity(
+            activity="candidate_suitability_outcome",
+            owner="candidate outcome matcher + governed/manual outcome closure owners",
+            confidence_gain=candidate_confidence_gain,
+            trust_gain=candidate_trust_gain,
+            suitability_gain=candidate_suitability_gain,
+            effort="MEDIUM",
+            risk="MEDIUM",
+            blast_radius="OPERATOR_ACTION",
+            authority_required="real governed/manual action",
+            current_status="ACCELERATABLE_GOVERNED",
+            evidence=f"missing candidate outcomes: {candidate_coverage.get('missing_candidate_outcomes', 0)}",
+            note="Only direct path to suitability growth; current correctness still cannot reach 70 from coverage alone.",
+        ),
+        _outcome_activity(
+            activity="governed_one_user_canary",
+            owner="governed canary dry-run cycle + packet/restore/feedback/learning owners",
+            confidence_gain=candidate_confidence_gain,
+            trust_gain=candidate_trust_gain,
+            suitability_gain=candidate_suitability_gain,
+            effort="HIGH",
+            risk="MEDIUM",
+            blast_radius="ONE_USER",
+            authority_required="explicit operator approval for exact packet",
+            current_status="AUTHORITY_BOUNDARY_READY",
+            evidence="production dry-run reaches AUTHORITY_BOUNDARY with no apply and no movement",
+            note="Best current way to create one real governed candidate outcome, but one canary is too small to close TIER_2.",
+        ),
+        _outcome_activity(
+            activity="feedback_outcome_closure",
+            owner="admin_core.operator_execution_feedback + closure records + intelligence refresh",
+            confidence_gain=round(candidate_confidence_gain + service_gain["confidence"], 3),
+            trust_gain=round(candidate_trust_gain + service_gain["trust"], 3),
+            prediction_gain=prediction_gain,
+            suitability_gain=candidate_suitability_gain,
+            effort="MEDIUM",
+            risk="LOW",
+            blast_radius="READ_ONLY",
+            authority_required="requires prior real action/outcome; closure itself is read-only",
+            current_status="ACCELERATABLE_AFTER_REAL_OUTCOME",
+            evidence="decision->outcome->learning integration is implemented",
+            note="Highest value after a real action exists; cannot manufacture the underlying action outcome.",
+        ),
+        _outcome_activity(
+            activity="operator_comparison_outcome",
+            owner="shadow_autonomy contextual compare action",
+            confidence_gain=0.0,
+            trust_gain=0.0,
+            prediction_gain=0.0,
+            suitability_gain=0.0,
+            effort="LOW",
+            risk="MEDIUM",
+            blast_radius="NONE",
+            authority_required="operator must have real context",
+            current_status="SECONDARY_ONLY",
+            evidence=f"contextual operator earned-confidence gain to first floor projection: {round(operator_gain, 3)}",
+            note="Useful secondary confirmation; blind comparisons are forbidden and do not replace observed outcomes.",
+        ),
+        _outcome_activity(
+            activity="recovery_outcome",
+            owner="recovery admission + trust evolution + service/quality owners",
+            confidence_gain=0.0,
+            trust_gain=0.0,
+            prediction_gain=0.0,
+            suitability_gain=0.0,
+            effort="MEDIUM",
+            risk="MEDIUM",
+            blast_radius="READ_ONLY",
+            authority_required="only when a real recovery situation exists",
+            current_status="WAIT_FOR_REALITY",
+            evidence="recovery is a future TIER_3+ gap, not the immediate TIER_2 floor closer",
+            note="Important for higher autonomy but not current fastest TIER_2 path.",
+        ),
+        _outcome_activity(
+            activity="governed_rollback_outcome",
+            owner="restore/rollback owners + feedback/learning",
+            confidence_gain=0.0,
+            trust_gain=0.0,
+            prediction_gain=0.0,
+            suitability_gain=0.0,
+            effort="HIGH",
+            risk="MEDIUM",
+            blast_radius="ONE_USER",
+            authority_required="only if real rollback is needed",
+            current_status="NOT_CURRENT_BLOCKER",
+            evidence="rollback confidence is already 100",
+            note="Rollback proof is already strong; extra rollback outcomes do not attack current blockers fastest.",
+        ),
+    ]
+    ranked = sorted(activities, key=lambda row: (-as_float(row.get("leverage_score")), str(row.get("activity"))))
+    first = ranked[0]["activity"] if ranked else ""
+    canary = next((row for row in ranked if row.get("activity") == "governed_one_user_canary"), {})
+    top_three = [row["activity"] for row in ranked[:3]]
+    suitability_dependency = as_float(candidate_coverage.get("missing_candidate_outcomes"), 0.0) > 0
+    if first == "governed_one_user_canary":
+        verdict = "GOVERNED_CANARY_IS_HIGHEST_LEVERAGE"
+    elif (
+        suitability_dependency
+        or "governed_one_user_canary" in top_three
+        or "candidate_suitability_outcome" in top_three
+    ):
+        verdict = "MIXED_PATH"
+    else:
+        verdict = "BETTER_PATH_EXISTS"
+    roadmap = [
+        {
+            "step": "Current",
+            "confidence": current.get("confidence", 0.0),
+            "trust": current.get("trust", 0.0),
+            "prediction": current.get("prediction_confidence", 0.0),
+            "suitability": current.get("suitability_confidence", 0.0),
+            "status": "TIER_2_NO_GO",
+        },
+        {
+            "step": "Prediction + service outcome cycles",
+            "target": {
+                "prediction_rows_at_1_0_confidence": prediction_required.get("additional_matched_rows_needed_if_future_confidence_1_0"),
+                "service_rows_at_1_0_confidence": service_required.get("additional_comparable_rows_needed_if_future_confidence_1_0"),
+            },
+            "status": "needed_but_not_sufficient_without_suitability",
+        },
+        {
+            "step": "Governed/manual candidate suitability outcomes",
+            "target": {
+                "missing_candidate_outcomes_to_full_coverage": suitability_required.get("missing_outcomes_to_full_coverage"),
+                "target_correctness_if_mean_confidence_0_85": suitability_required.get("target_correctness_if_mean_confidence_0_85"),
+            },
+            "status": "only_direct_suitability_path",
+        },
+        {
+            "step": "TIER_2",
+            "required": {
+                "confidence": AUTONOMY_CANARY_CONFIDENCE_FLOOR,
+                "trust": AUTONOMY_CANARY_TRUST_FLOOR,
+                "prediction": AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR,
+            },
+            "status": "requires_remeasure_after_each_real_outcome_batch",
+        },
+    ]
+    return {
+        "schema_version": "v7.autonomy-trust.outcome-leverage-model.v1",
+        "purpose": "rank_real_outcome_activities_by_expected_floor_gain_per_effort_and_risk",
+        "final_verdict": verdict,
+        "highest_leverage": ranked[0] if ranked else {},
+        "second_highest_leverage": ranked[1] if len(ranked) > 1 else {},
+        "third_highest_leverage": ranked[2] if len(ranked) > 2 else {},
+        "governed_canary_analysis": {
+            "rank": next((index + 1 for index, row in enumerate(ranked) if row.get("activity") == "governed_one_user_canary"), None),
+            "leverage_score": canary.get("leverage_score", 0.0),
+            "expected_knowledge_gain": "one real selected candidate outcome plus closure/learning if approved, applied, verified, and closed",
+            "expected_trust_gain": canary.get("expected_trust_gain", 0.0),
+            "expected_prediction_gain": canary.get("expected_prediction_gain", 0.0),
+            "expected_suitability_gain": canary.get("expected_suitability_gain", 0.0),
+            "is_automatically_best_next_action": False,
+            "why": "It is the best current governed path to create one suitability outcome, but prediction/service cycles have lower risk and better direct gain for their specific floors.",
+        },
+        "activities_ranked": ranked,
+        "roadmap_to_tier_2": roadmap,
+        "safe_existing_owner_improvement_implemented": True,
+        "improvement_type": "read_only_leverage_ranking_in_existing_trust_inventory_owner",
+        "uses_current_formulas_only": True,
+        "projection_only": True,
+        "synthetic_evidence_created": False,
+        "formula_changed": False,
+        "floor_changed": False,
+        "planner_redesigned": False,
+        "governance_redesigned": False,
+        "execution_redesigned": False,
+        "new_truth_source_created": False,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
 def _candidate_key_text(key: tuple[str, str]) -> str:
     return f"{key[0]}:{key[1]}"
 
@@ -2731,6 +3087,14 @@ def build_acceleration_inventory(
         decision_records=decision_records or [],
         floor_forensics=floor_forensics,
     )
+    outcome_leverage_model = build_outcome_leverage_model(
+        floor_forensics=floor_forensics,
+        confidence_reality_audit=confidence_reality_audit,
+        real_outcome_source_inventory=real_outcome_source_inventory,
+        candidate_outcome_reality_collection=candidate_outcome_reality_collection,
+        real_outcome_growth_projection=real_outcome_growth_projection,
+        operator_comparisons=operator_comparisons,
+    )
     freshness_actionability = build_freshness_actionability(snapshot_statuses, generated_at=generated)
     service_user_sla_fit = build_service_user_sla_fit(
         decision_surface,
@@ -2790,6 +3154,7 @@ def build_acceleration_inventory(
         "real_outcome_source_inventory": real_outcome_source_inventory,
         "candidate_outcome_reality_collection": candidate_outcome_reality_collection,
         "real_outcome_growth_projection": real_outcome_growth_projection,
+        "outcome_leverage_model": outcome_leverage_model,
         "service_user_sla_fit": service_user_sla_fit,
         "decision_outcome_closure": decision_outcome_closure,
         "decision_outcome_learning": decision_outcome_learning,

@@ -152,6 +152,18 @@ Current production forensic truth from `AUTONOMY.CANDIDATE_OUTCOME.REALITY.COLLE
 Related reports: `docs/reports/AUTONOMY_SUITABILITY_KNOWLEDGE_AND_CONFIDENCE_FORENSICS_REPORT.md`, `docs/reports/AUTONOMY_CANDIDATE_OUTCOME_REALITY_COLLECTION_REPORT.md`.
 Implementation owner: `admin_core/autonomy_trust_acceleration.py`.
 
+## HIGHEST_LEVERAGE_OUTCOME_GROWTH
+
+1. V7 must not assume that governed canary is automatically the highest-leverage next action.
+2. The existing trust inventory owner now exposes a read-only `outcome_leverage_model` that ranks real outcome activities by expected floor gain per effort and risk.
+3. Current verdict is `MIXED_PATH`: prediction outcome cycles are highest leverage for prediction, service verification cycles are safest for service/trust source confidence, and governed/manual candidate outcomes are mandatory for suitability.
+4. A governed one-user canary is valuable as real candidate/suitability reality, but one canary is too small to close TIER_2 by itself.
+5. TIER_2 requires a mixed path: prediction forecast -> actual cycles, service verification outcome cycles, governed/manual candidate suitability outcomes, and feedback/outcome/learning closure after every real action.
+6. The model is projection-only. It does not change formulas, floors, planner, governance, execution, truth source, storage, daemon state, runtime apply, synthetic evidence, or user movement.
+7. Implementation owner: `admin_core/autonomy_trust_acceleration.py`.
+8. CLI surface: `tools/v7-autonomy-trust-evidence-inventory`.
+9. Related report: `docs/reports/V7_HIGHEST_LEVERAGE_OUTCOME_GROWTH_REPORT.md`.
+
 ## POST_PRODUCTION_SCALE_PHASE
 
 Phase name: `AUTONOMY.EVIDENCE.INDEX_AND_FRESHNESS_MODEL`.

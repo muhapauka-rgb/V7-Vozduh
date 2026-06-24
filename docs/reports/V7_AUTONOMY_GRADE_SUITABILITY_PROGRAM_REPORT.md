@@ -120,6 +120,52 @@ All new models are read-only:
 | `PYTHONPYCACHEPREFIX=/tmp/v7_pycache python3 -m unittest tests.unit.test_autonomy_trust_acceleration` | PASS, 19 tests |
 | `PYTHONPYCACHEPREFIX=/tmp/v7_pycache python3 -m unittest tests.unit.test_autonomy_trust_acceleration tests.unit.test_operator_execution_pipeline tests.unit.test_operator_decision_surface tests.unit.test_operator_execution_feedback tests.unit.test_intelligence_workers` | PASS, 114 tests |
 | `tools/v7-autonomy-trust-evidence-inventory` | PASS, exposes new suitability models |
+| production `/usr/local/bin/v7-autonomy-trust-evidence-inventory` | PASS, exposes new suitability models |
+
+## 10A. Production Verification
+
+Deployed code commit: `b16cea5f0d77585f9f0c16bf41a9106641f36e07`.
+
+Production inventory exposed all required schemas:
+
+| Model | Schema |
+| --- | --- |
+| `suitability_quality_model` | `v7.autonomy-trust.suitability-quality-model.v1` |
+| `suitability_knowledge_growth` | `v7.autonomy-trust.suitability-knowledge-growth.v1` |
+| `suitability_effectiveness_expansion` | `v7.autonomy-trust.suitability-effectiveness-expansion.v1` |
+| `autonomy_grade_suitability_program` | `v7.autonomy-trust.autonomy-grade-suitability-program.v1` |
+
+Current production suitability:
+
+| Field | Value |
+| --- | ---: |
+| Current stage | `STABLE_SIGNAL` |
+| Next stage | `CONFIRMED_KNOWLEDGE` |
+| Autonomy grade ready | `false` |
+| Candidate count | `156` |
+| Candidate outcomes consumed | `84` |
+| Missing candidate outcomes | `72` |
+| Coverage ratio | `0.5385` |
+| Mean correctness | `68.107` |
+| Mean candidate confidence | `0.411` |
+| Suitability confidence | `29.358` |
+| Freshness | `ACTIONABLE_NOW` |
+| Candidate correctness | `0.6811` |
+
+Fastest suitability-growth activities in production:
+
+1. `feedback_outcome_closure`
+2. `candidate_suitability_outcome`
+3. `governed_one_user_canary`
+
+Runtime safety in production:
+
+| Model | Runtime mutation | Users moved | Apply |
+| --- | --- | ---: | --- |
+| `suitability_quality_model` | `false` | `0` | `false` |
+| `suitability_knowledge_growth` | `false` | `0` | `false` |
+| `suitability_effectiveness_expansion` | `false` | `0` | `false` |
+| `autonomy_grade_suitability_program` | `false` | `0` | `false` |
 
 ## 11. Remaining Blockers
 
@@ -145,4 +191,3 @@ No autonomous movement should be enabled until suitability reaches actionable/au
 ## 13. Final Verdict
 
 `SUITABILITY_PROGRAM_IMPLEMENTED`
-

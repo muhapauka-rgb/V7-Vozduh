@@ -68,6 +68,7 @@ The program does not hide blockers. It exposes them per cycle as `gap_classes`, 
 Changed production code:
 
 - `admin_core/autonomy_trust_acceleration.py`
+- `tools/v7-governed-canary-dry-run-cycle`
 
 Added:
 
@@ -79,6 +80,7 @@ Added:
 Changed tests:
 
 - `tests/unit/test_autonomy_trust_acceleration.py`
+- `tests/unit/test_governed_canary_cli.py`
 
 Added tests for:
 
@@ -87,6 +89,7 @@ Added tests for:
 - no user movement;
 - no apply;
 - inventory stability across refresh/rebuild/reread.
+- runtime planner executable resolution in repo and `/usr/local/bin` deployment layouts.
 
 ## 6. Local Inventory Result
 
@@ -127,7 +130,11 @@ Interpretation:
 
 The local workspace does not have `/opt/v7` production state, so the local dry-run correctly stops at `MISSING_TRIGGER`. This matches the existing canonical caveat. Production runtime verification is required for the real boundary state.
 
-Production `tools/v7-safe-deploy --apply --confirm DEPLOY_V7_APPROVED --update-local-snapshot --restart-admin-if-changed --json` deployed commit `d86a38c13c2b78626e68e622583ce08a72f37763`.
+Production `tools/v7-safe-deploy --apply --confirm DEPLOY_V7_APPROVED --update-local-snapshot --restart-admin-if-changed --json` first deployed implementation commit `d86a38c13c2b78626e68e622583ce08a72f37763`.
+
+During final rerun, a real existing-owner integration gap was found and fixed: runtime `v7-governed-canary-dry-run-cycle` could resolve the planner observe command as `/usr/local/tools/v7-users-autoswitch` when installed under `/usr/local/bin`. The actual runtime owner is `/usr/local/bin/v7-users-autoswitch`. The fix adds a read-only executable resolver that uses the repo tool locally and the runtime peer binary on the server. This did not create a planner, governance path, execution path, truth source, storage, daemon, apply, or movement.
+
+Final deployed commit after owner-path fix: `33619fd7c31c8cc92d4964d00d01400b251a9616`.
 
 Production `/usr/local/bin/v7-autonomy-trust-evidence-inventory` result:
 
@@ -145,7 +152,7 @@ Production `/usr/local/bin/v7-autonomy-trust-evidence-inventory` result:
 | Apply executed | `false` |
 | Autonomy enabled | `false` |
 
-Production `/usr/local/bin/v7-governed-canary-dry-run-cycle` result:
+Production `/usr/local/bin/v7-governed-canary-dry-run-cycle` result after final owner-path fix:
 
 | Field | Value |
 | --- | --- |
@@ -209,14 +216,14 @@ Passed locally:
 ```bash
 PYTHONPYCACHEPREFIX=/tmp/v7_pycache python3 -m py_compile admin_core/autonomy_trust_acceleration.py tools/v7-autonomy-trust-evidence-inventory
 PYTHONPYCACHEPREFIX=/tmp/v7_pycache python3 -m unittest tests.unit.test_autonomy_trust_acceleration
-PYTHONPYCACHEPREFIX=/tmp/v7_pycache python3 -m unittest tests.unit.test_autonomy_trust_acceleration tests.unit.test_operator_execution_pipeline tests.unit.test_operator_decision_surface tests.unit.test_operator_execution_feedback tests.unit.test_intelligence_workers
+PYTHONPYCACHEPREFIX=/tmp/v7_pycache python3 -m unittest tests.unit.test_governed_canary_cli tests.unit.test_autonomy_trust_acceleration tests.unit.test_operator_execution_pipeline tests.unit.test_operator_decision_surface tests.unit.test_operator_execution_feedback tests.unit.test_intelligence_workers
 ```
 
 Results:
 
 - `py_compile`: PASS
 - `tests.unit.test_autonomy_trust_acceleration`: PASS, 21 tests
-- Broad autonomy/operator suite: PASS, 116 tests
+- Broad autonomy/operator suite: PASS, 118 tests
 
 ## 11. Documentation Updated
 

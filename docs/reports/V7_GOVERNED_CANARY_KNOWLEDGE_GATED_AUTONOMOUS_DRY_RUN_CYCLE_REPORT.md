@@ -169,14 +169,52 @@ Local result:
 
 This is a correct local fail-closed result, not production acceptance. Production cycle validation requires deploy/runtime execution because the CLI must read `/opt/v7` state.
 
-## 10. Tests Run
+## 10. Production Reality Run
+
+Runtime verification timestamp: `2026-06-24T23:15:00+0700`
+
+Runtime commit: `71c216cf0c51bbb22430045dd962bc62dbfb1f81`
+
+Command:
+
+```text
+/usr/local/bin/v7-governed-canary-dry-run-cycle
+```
+
+Production result:
+
+| Field | Value |
+| --- | --- |
+| return code | `0` |
+| verdict | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY` |
+| stop reason | `AUTHORITY_BOUNDARY` |
+| stop detail | `Governed TIER_1 operator approval is required before restore-barrier write or apply.` |
+| event source | `CURRENT_STATE_PREVIEW` |
+| candidate | `10.7.0.5` |
+| move preview | `vless -> awg3` |
+| packet preview | `PACKET_PREVIEW_READY` |
+| restore preview | `RESTORE_AND_ROLLBACK_PREVIEW_READY` |
+| rollback preview | `RESTORE_AND_ROLLBACK_PREVIEW_READY` |
+| verification plan | `VERIFICATION_PLAN_READY` |
+| outcome closure plan | `OUTCOME_CLOSURE_PLAN_READY` |
+| learning path | `LEARNING_PATH_CONNECTED` |
+| next action | `EXPLICIT_OPERATOR_APPROVAL_REQUIRED_FOR_THIS_PACKET` |
+| apply | `false` |
+| users moved | `0` |
+
+This is the desired safe boundary for this phase. The cycle prepared the governed canary packet path from real production state and stopped before any restore-barrier write, apply, autoswitch enablement, daemon enablement, or user movement.
+
+## 11. Tests Run
 
 | Command | Result |
 | --- | --- |
 | `PYTHONPYCACHEPREFIX=/tmp/v7_pycache python3 -m py_compile admin_core/operator_execution_pipeline.py tools/v7-governed-canary-dry-run-cycle` | PASS |
 | `PYTHONPYCACHEPREFIX=/tmp/v7_pycache python3 -m unittest tests.unit.test_operator_execution_pipeline` | PASS, 31 tests |
+| `PYTHONPYCACHEPREFIX=/tmp/v7_pycache python3 -m py_compile tools/v7_sync_lib.py tools/v7-safe-deploy tools/v7-governed-canary-dry-run-cycle` | PASS |
+| `PYTHONPYCACHEPREFIX=/tmp/v7_pycache python3 -m unittest tests.unit.test_v7_sync_tools tests.unit.test_operator_execution_pipeline` | PASS, 54 tests |
+| `PYTHONPYCACHEPREFIX=/tmp/v7_pycache python3 -m unittest tests.unit.test_operator_execution_pipeline tests.unit.test_operator_decision_surface tests.unit.test_autonomy_trust_acceleration tests.unit.test_operator_execution_feedback tests.unit.test_intelligence_workers tests.unit.test_operator_execution_packet` | PASS, 127 tests |
 
-## 11. Safety
+## 12. Safety
 
 | Rule | Status |
 | --- | --- |
@@ -190,7 +228,7 @@ This is a correct local fail-closed result, not production acceptance. Productio
 | No new storage/snapshot | PASS |
 | No synthetic evidence | PASS |
 
-## 12. Manual Prompting
+## 13. Manual Prompting
 
 The pure model and CLI require no manual Codex/human prompting between internal steps. They continue automatically through:
 
@@ -208,30 +246,24 @@ event/current state
 
 Human authority is required only after `AUTHORITY_BOUNDARY`, before any restore-barrier write or apply.
 
-## 13. Remaining Issues
+## 14. Remaining Issues
 
 | Issue | Status |
 | --- | --- |
-| Runtime not deployed at report creation | Requires safe deploy after commit. |
-| Production cycle not yet rerun on `/opt/v7` | Requires deployed CLI/runtime read. |
+| Runtime not deployed at initial report creation | Closed by safe deploy to `71c216cf0c51bbb22430045dd962bc62dbfb1f81`. |
+| Production cycle not yet rerun on `/opt/v7` | Closed: production returned `AUTHORITY_BOUNDARY`. |
 | Local workspace lacks production state | Expected; local cycle fails closed as `MISSING_TRIGGER`. |
 
-## 14. Exact Next Phase
+## 15. Exact Next Phase
 
-Deploy this read-only cycle entrypoint, then run:
-
-```text
-tools/v7-governed-canary-dry-run-cycle --pretty
-```
-
-If production returns `AUTHORITY_BOUNDARY`, the next phase is:
+Production returned `AUTHORITY_BOUNDARY`. The next phase is:
 
 ```text
 TIER1_EXPLICIT_OPERATOR_APPROVAL_FOR_EXACT_PACKET
 ```
 
-If production returns any non-authority stop, fix that existing owner gap and rerun.
+No apply is approved by this report. The next phase must explicitly approve or reject the exact packet before any restore-barrier write or user movement.
 
-## 15. Final Verdict
+## 16. Final Verdict
 
 `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY`

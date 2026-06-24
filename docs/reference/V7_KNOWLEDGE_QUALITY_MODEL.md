@@ -287,7 +287,7 @@ Governed canary knowledge-gated dry-run cycle:
 1. `admin_core/operator_execution_pipeline.py::governed_canary_knowledge_gated_dry_run_cycle` consumes the existing knowledge gates instead of creating new decision logic.
 2. The cycle exposes gate impacts for `service_user_sla_fit`, `freshness_actionability`, `recovery_admission`, `anti_flapping`, `decision_effectiveness`, `knowledge_quality`, and `routing_recommendation_readiness`.
 3. The CLI `tools/v7-governed-canary-dry-run-cycle` reads existing runtime state, snapshots, event rows, decision records, and the existing planner observe surface when needed.
-4. The cycle can prepare packet/restore/rollback/verification/outcome/learning previews and stop at `AUTHORITY_BOUNDARY`; it cannot write restore-barrier clearance or run apply.
+4. The cycle can prepare packet/restore/rollback/verification/outcome/learning previews and stop at `AUTHORITY_BOUNDARY`; production at `71c216cf0c51bbb22430045dd962bc62dbfb1f81` proves this for `10.7.0.5 vless -> awg3` with no restore-barrier write, no apply, and no user movement.
 5. If the cycle stops before `AUTHORITY_BOUNDARY`, the stop is classified as one of the existing-owner gap classes and must be fixed/rerun rather than converted into synthetic evidence.
 6. Knowledge quality remains a gate/readiness input, not an action authority. Runtime movement still requires existing governance, explicit approval, restore barrier, verification, feedback, and learning.
 

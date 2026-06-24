@@ -636,7 +636,7 @@ Do not delete immediately. Classify first.
 4. Collect contextual operator comparisons only where the operator has enough context.
 5. Recheck restore barrier creation for a single event-triggered packet in preview mode after evidence floors improve.
 6. Recheck rollback packet readiness for the same single event-triggered packet.
-7. Build an autonomy readiness dashboard row from existing gate values only.
+7. Use the existing knowledge quality read model to show maturity, tier readiness, 10k readiness, and P0 gaps without granting action authority.
 8. Keep `v7-users-autoswitch.service/timer` inactive until confidence/trust/prediction floors pass.
 9. Preserve Branch 1B evidence and never replace it with synthetic records.
 10. Keep refresh durability and confidence reality audit protected by tests whenever evidence-store lifecycle changes.

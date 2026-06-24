@@ -222,9 +222,48 @@ These are missing knowledge, not missing code owners.
 | P2 | Operator context evidence is sparse. | Contextual operator comparison supports supervised confidence. | Evidence. | Use existing compare endpoint only where operator has context. |
 | P2 | 10k read models are deferred. | Aggregated channel/service/cohort summaries exist. | Scale. | Start after production autonomy or when read pressure proves need; shadow-first. |
 
-## 13. Final Verdict
+## 13. Read Model Exposure
+
+Status: implemented in `V7.KNOWLEDGE.QUALITY.READ_MODEL_AND_EXISTING_OWNER_INTEGRATION`.
+
+The canonical knowledge quality model is exposed through the existing autonomy trust/evidence owner:
+
+| Surface | Owner | Purpose |
+| --- | --- | --- |
+| `admin_core/autonomy_trust_acceleration.py::build_knowledge_quality_read_model` | Existing read-only trust/evidence owner | Build deterministic knowledge quality JSON. |
+| `tools/v7-autonomy-trust-evidence-inventory` | Existing CLI inventory surface | Includes the read model in the standard inventory payload. |
+| `tools/v7-autonomy-trust-evidence-inventory --knowledge-quality-only` | Existing CLI inventory surface | Prints only the knowledge quality read model. |
+
+Stable output fields:
+
+| Field | Meaning |
+| --- | --- |
+| `knowledge_objects` | The 17 canonical knowledge objects with owner, sources, consumers, dimension scores, average score, maturity stage, tier support, gaps, next improvement, and evidence overlay. |
+| `maturity_distribution` | Count/share by `RAW_OBSERVATION`, `STABLE_SIGNAL`, `CONFIRMED_KNOWLEDGE`, `ACTIONABLE_KNOWLEDGE`, and `AUTONOMY_GRADE_KNOWLEDGE`. |
+| `tier_readiness_knowledge` | Knowledge blockers by autonomy tier. |
+| `10k_readiness` | Current readiness summary for 10,000+ users and 100+ channels. |
+| `p0_gaps` | The current highest-priority knowledge gaps with weak dimensions and next improvement. |
+
+Read-model rules:
+
+1. The read model is deterministic.
+2. Scores are canonical, not heuristic.
+3. Dynamic evidence overlays may show current inventory facts, but they do not rewrite the canonical score table.
+4. The read model is not an action authority.
+5. It must not move users, execute apply, enable daemons, create evidence, change formulas, change floors, change planner, change governance, change execution, create storage, or create a truth source.
+
+Current maturity distribution from the read model:
+
+| Maturity Stage | Objects |
+| --- | ---: |
+| `RAW_OBSERVATION` | 1 |
+| `STABLE_SIGNAL` | 6 |
+| `CONFIRMED_KNOWLEDGE` | 5 |
+| `ACTIONABLE_KNOWLEDGE` | 4 |
+| `AUTONOMY_GRADE_KNOWLEDGE` | 1 |
+
+## 14. Final Verdict
 
 `KNOWLEDGE_MODEL_COMPLETE`
 
 V7 now has a canonical knowledge quality model. Current V7 knowledge is broad and structurally well-owned, but only Safety Knowledge is autonomy-grade today. Most routing knowledge is stable, confirmed, or actionable for governed review, not sufficient for operator-free autonomy.
-

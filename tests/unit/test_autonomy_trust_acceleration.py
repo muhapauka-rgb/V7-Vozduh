@@ -406,6 +406,87 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(row["converted_missing_candidate_outcomes"], 10)
         self.assertEqual(row["missing_candidate_outcomes_remaining"], 63)
 
+    def test_knowledge_quality_read_model_is_deterministic_and_read_only(self):
+        first = accel.build_knowledge_quality_read_model(generated_at="2026-06-24T00:00:00+00:00")
+        second = accel.build_knowledge_quality_read_model(generated_at="2026-06-24T00:00:00+00:00")
+
+        self.assertEqual(first, second)
+        self.assertEqual(first["schema_version"], "v7.knowledge-quality.read-model.v1")
+        self.assertTrue(first["read_only"])
+        self.assertFalse(first["runtime_mutation_performed"])
+        self.assertFalse(first["apply_executed"])
+        self.assertEqual(first["users_moved"], 0)
+        self.assertFalse(first["synthetic_evidence_created"])
+        self.assertFalse(first["new_truth_source_created"])
+        self.assertFalse(first["planner_redesigned"])
+        self.assertFalse(first["governance_redesigned"])
+        self.assertFalse(first["execution_redesigned"])
+
+        expected = {
+            "Channel",
+            "Service",
+            "User Assignment",
+            "Route",
+            "Capacity",
+            "Quality",
+            "Failure",
+            "Recovery",
+            "Decision Outcome",
+            "Prediction",
+            "Suitability",
+            "Trust",
+            "Policy",
+            "Freshness",
+            "Safety",
+            "Event",
+            "Operator Context",
+        }
+        observed = {row["object"] for row in first["knowledge_objects"]}
+        self.assertEqual(observed, expected)
+        valid = set(accel.VALID_KNOWLEDGE_MATURITY_STAGES)
+        for row in first["knowledge_objects"]:
+            self.assertIn(row["maturity_stage"], valid)
+            self.assertEqual(set(row["quality_dimensions"]), set(accel.KNOWLEDGE_QUALITY_DIMENSIONS))
+            self.assertEqual(row["score_source"], "docs/reference/V7_KNOWLEDGE_QUALITY_MODEL.md")
+            self.assertFalse(row["heuristic_fallback"])
+        self.assertEqual(
+            sum(item["count"] for item in first["maturity_distribution"].values()),
+            len(expected),
+        )
+        self.assertIn("tier_readiness_knowledge", first)
+        self.assertIn("10k_readiness", first)
+        self.assertIn("p0_gaps", first)
+
+    def test_acceleration_inventory_exposes_knowledge_quality_read_model(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-24T00:00:00+00:00",
+            )
+
+        self.assertIn("knowledge_quality_read_model", inventory)
+        self.assertIn("knowledge_objects", inventory)
+        self.assertIn("maturity_distribution", inventory)
+        self.assertIn("tier_readiness_knowledge", inventory)
+        self.assertIn("10k_readiness", inventory)
+        self.assertIn("p0_gaps", inventory)
+        self.assertEqual(
+            inventory["knowledge_objects"],
+            inventory["knowledge_quality_read_model"]["knowledge_objects"],
+        )
+        self.assertEqual(
+            inventory["knowledge_quality_read_model"]["owner"],
+            "admin_core.autonomy_trust_acceleration",
+        )
+        self.assertFalse(inventory["knowledge_quality_read_model"]["runtime_mutation_performed"])
+        self.assertFalse(inventory["knowledge_quality_read_model"]["apply_executed"])
+        self.assertEqual(inventory["knowledge_quality_read_model"]["users_moved"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

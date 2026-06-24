@@ -101,10 +101,11 @@ Stable conclusions:
 4. Current V7 has broad routing knowledge, but only Safety Knowledge is currently classified as autonomy-grade. Channel, User Assignment, Policy, and Trust are actionable for governed review; Capacity, Failure, Decision Outcome, Prediction, and Event are confirmed; Service, Route, Quality, Recovery, Suitability, and Freshness remain stable signals; Operator Context remains raw/underfed.
 5. Current autonomy blockers are knowledge-quality blockers, not missing planner/execution architecture: service/user/SLA fit, passive real-user outcome closure, recovery admission, suitability correctness, source confidence, freshness/decay, cohort/SLA knowledge, autonomous rollback certification, anti-flap knowledge, and contextual operator evidence.
 6. Future reports must name the weak knowledge object and weak dimension instead of saying generic "more evidence needed".
-7. The exact next phase is `V7.KNOWLEDGE.QUALITY.READ_MODEL`, using existing owners only.
-8. No code, formula, floor, planner, governance, execution, truth source, runtime apply, daemon, autoswitch, synthetic evidence, storage, or user movement changed in `V7.KNOWLEDGE.QUALITY.MODEL`.
-9. Related model / report / ADR: `docs/reference/V7_KNOWLEDGE_QUALITY_MODEL.md`, `docs/reports/V7_KNOWLEDGE_QUALITY_MODEL_REPORT.md`, ADR-V7-KNOWLEDGE-QUALITY-MODEL.
-10. Last verified commit before this model: `f46a28639e839cb585e29289a9f5e044eecb963b`.
+7. `V7.KNOWLEDGE.QUALITY.READ_MODEL` is implemented through the existing read-only owner `admin_core/autonomy_trust_acceleration.py` and existing CLI surface `tools/v7-autonomy-trust-evidence-inventory`.
+8. The read model exposes `knowledge_objects`, `maturity_distribution`, `tier_readiness_knowledge`, `10k_readiness`, and `p0_gaps`. It is deterministic, references `docs/reference/V7_KNOWLEDGE_QUALITY_MODEL.md`, and marks all scores as canonical rather than heuristic.
+9. The read model is not an action authority. It does not change formulas, floors, planner, governance, execution, truth source, runtime apply, daemon state, autoswitch, storage, synthetic evidence, or user movement.
+10. Related model / report / ADR: `docs/reference/V7_KNOWLEDGE_QUALITY_MODEL.md`, `docs/reports/V7_KNOWLEDGE_QUALITY_MODEL_REPORT.md`, `docs/reports/V7_KNOWLEDGE_QUALITY_READ_MODEL_REPORT.md`, ADR-V7-KNOWLEDGE-QUALITY-MODEL.
+11. Last verified commit before read-model implementation: `64654b3a9a70f3aea06119104120e214a7d70571`.
 
 ## AUTONOMY_TRUST_SOURCE_HIERARCHY
 

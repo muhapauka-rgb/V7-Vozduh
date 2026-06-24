@@ -1543,6 +1543,485 @@ def build_operator_authority_model() -> dict[str, Any]:
     }
 
 
+KNOWLEDGE_QUALITY_DIMENSIONS = (
+    "freshness",
+    "coverage",
+    "correctness",
+    "consistency",
+    "diversity",
+    "source_confidence",
+    "user_impact_relevance",
+    "service_relevance",
+    "actionability",
+)
+
+
+VALID_KNOWLEDGE_MATURITY_STAGES = (
+    "RAW_OBSERVATION",
+    "STABLE_SIGNAL",
+    "CONFIRMED_KNOWLEDGE",
+    "ACTIONABLE_KNOWLEDGE",
+    "AUTONOMY_GRADE_KNOWLEDGE",
+)
+
+
+CANONICAL_KNOWLEDGE_OBJECTS: tuple[dict[str, Any], ...] = (
+    {
+        "object": "Channel",
+        "owner": "registry, planner, read models",
+        "sources": ["egress registry", "runtime state", "planner output"],
+        "consumers": ["planner", "admin UI", "autonomy"],
+        "scores": [4, 4, 4, 4, 3, 4, 3, 3, 4],
+        "action_authority": True,
+        "tier_support": {"TIER_0": "required", "TIER_1": "required", "TIER_2": "required", "TIER_3_PLUS": "required"},
+        "primary_gaps": ["100+ channel pool-class read models"],
+        "next_improvement": "Add cohort/pool summaries without changing planner truth.",
+    },
+    {
+        "object": "Service",
+        "owner": "service matrix, intelligence workers",
+        "sources": ["service probes", "service actual rows", "channel-service snapshots"],
+        "consumers": ["planner", "diagnostics", "trust"],
+        "scores": [3, 3, 3, 3, 2, 2, 2, 4, 3],
+        "action_authority": False,
+        "tier_support": {"TIER_0": "required", "TIER_1": "supporting", "TIER_2": "required", "TIER_3_PLUS": "required"},
+        "primary_gaps": ["source confidence", "service/user/SLA outcome fit"],
+        "next_improvement": "Raise real service outcome confidence through existing service/intelligence summaries.",
+    },
+    {
+        "object": "User Assignment",
+        "owner": "planner, user registry",
+        "sources": ["user registry", "current channel", "candidate outcomes"],
+        "consumers": ["planner", "execution", "admin UI"],
+        "scores": [4, 4, 4, 4, 3, 4, 4, 2, 4],
+        "action_authority": True,
+        "tier_support": {"TIER_0": "required", "TIER_1": "required", "TIER_2": "required", "TIER_3_PLUS": "required"},
+        "primary_gaps": ["cohort summaries", "service-fit assignment context"],
+        "next_improvement": "Expose assignment cohorts and candidate outcome coverage.",
+    },
+    {
+        "object": "Route",
+        "owner": "route read models",
+        "sources": ["route reality", "route readiness", "leak/mismatch evidence"],
+        "consumers": ["diagnostics", "planner support"],
+        "scores": [3, 3, 3, 3, 2, 3, 2, 2, 3],
+        "action_authority": False,
+        "tier_support": {"TIER_0": "supporting", "TIER_1": "supporting", "TIER_2": "supporting", "TIER_3_PLUS": "required_when_route_risk_exists"},
+        "primary_gaps": ["route aggregation", "cohort route risk"],
+        "next_improvement": "Keep route as supporting truth until route risk becomes a real blocker.",
+    },
+    {
+        "object": "Capacity",
+        "owner": "planner, capacity/read models",
+        "sources": ["configured limits", "assigned users", "dynamic load summaries"],
+        "consumers": ["planner", "recovery", "admin UI"],
+        "scores": [4, 4, 4, 4, 2, 4, 3, 2, 4],
+        "action_authority": False,
+        "tier_support": {"TIER_0": "supporting", "TIER_1": "supporting", "TIER_2": "required", "TIER_3_PLUS": "required"},
+        "primary_gaps": ["observed practical capacity", "load-to-user-impact mapping"],
+        "next_improvement": "Integrate observed capacity without changing capacity formulas.",
+    },
+    {
+        "object": "Quality",
+        "owner": "quality compact, intelligence",
+        "sources": ["speed", "latency", "stability", "failure rate"],
+        "consumers": ["planner", "trust", "diagnostics"],
+        "scores": [3, 3, 3, 3, 3, 3, 3, 2, 3],
+        "action_authority": False,
+        "tier_support": {"TIER_0": "required", "TIER_1": "supporting", "TIER_2": "required", "TIER_3_PLUS": "required"},
+        "primary_gaps": ["freshness/decay", "service outcome attribution"],
+        "next_improvement": "Attach quality evidence to service/user outcome closure.",
+    },
+    {
+        "object": "Failure",
+        "owner": "events, probes, intelligence",
+        "sources": ["sentinel", "service matrix", "quality regressions", "planner blockers"],
+        "consumers": ["attention", "planner", "operator"],
+        "scores": [4, 3, 3, 3, 3, 3, 3, 3, 4],
+        "action_authority": False,
+        "tier_support": {"TIER_0": "supporting", "TIER_1": "supporting", "TIER_2": "required", "TIER_3_PLUS": "required"},
+        "primary_gaps": ["cohort impact", "source maturity priority"],
+        "next_improvement": "Rank failure evidence by affected users and source maturity.",
+    },
+    {
+        "object": "Recovery",
+        "owner": "service/quality/intelligence",
+        "sources": ["successful checks", "retained outcomes", "post-recovery behavior"],
+        "consumers": ["planner", "autonomy"],
+        "scores": [2, 2, 2, 3, 2, 2, 2, 2, 2],
+        "action_authority": False,
+        "tier_support": {"TIER_0": "optional", "TIER_1": "optional", "TIER_2": "supporting", "TIER_3_PLUS": "required"},
+        "primary_gaps": ["recovery admission", "anti-flap/hysteresis"],
+        "next_improvement": "Define staged recovery admission before autonomous recovery.",
+    },
+    {
+        "object": "Decision Outcome",
+        "owner": "execution, feedback, learning",
+        "sources": ["post-action verification", "closure", "rollback/no-rollback"],
+        "consumers": ["trust", "planner", "learning"],
+        "scores": [3, 3, 4, 4, 3, 4, 4, 2, 4],
+        "action_authority": False,
+        "tier_support": {"TIER_0": "optional", "TIER_1": "optional", "TIER_2": "required", "TIER_3_PLUS": "required"},
+        "primary_gaps": ["candidate outcome coverage"],
+        "next_improvement": "Close real governed/manual outcomes through existing feedback owners.",
+    },
+    {
+        "object": "Prediction",
+        "owner": "intelligence workers/platform",
+        "sources": ["forecasts", "later actuals", "governed prediction feedback"],
+        "consumers": ["trust", "autonomy gates"],
+        "scores": [4, 3, 4, 4, 2, 2, 3, 3, 3],
+        "action_authority": False,
+        "tier_support": {"TIER_0": "optional", "TIER_1": "optional", "TIER_2": "required", "TIER_3_PLUS": "required"},
+        "primary_gaps": ["source confidence"],
+        "next_improvement": "Continue forecast-to-actual cycles through existing prediction owners.",
+    },
+    {
+        "object": "Suitability",
+        "owner": "trust inventory, intelligence, planner outcomes",
+        "sources": ["candidate outcomes", "selected/rejected moves", "correctness"],
+        "consumers": ["planner", "trust", "autonomy"],
+        "scores": [3, 2, 2, 3, 2, 2, 4, 3, 3],
+        "action_authority": False,
+        "tier_support": {"TIER_0": "supporting", "TIER_1": "supporting", "TIER_2": "required", "TIER_3_PLUS": "required"},
+        "primary_gaps": ["coverage", "correctness"],
+        "next_improvement": "Grow real candidate outcome closure; do not synthesize outcomes.",
+    },
+    {
+        "object": "Trust",
+        "owner": "trust evolution, trust inventory",
+        "sources": ["confidence components", "source inventory", "floors"],
+        "consumers": ["governance", "autonomy gates"],
+        "scores": [3, 3, 3, 4, 3, 3, 3, 2, 4],
+        "action_authority": True,
+        "tier_support": {"TIER_0": "supporting", "TIER_1": "supporting", "TIER_2": "required", "TIER_3_PLUS": "required"},
+        "primary_gaps": ["weak inherited prediction/service/suitability inputs"],
+        "next_improvement": "Keep gates blocking higher tiers until input knowledge improves.",
+    },
+    {
+        "object": "Policy",
+        "owner": "planner, policy/governance",
+        "sources": ["policy/group settings", "access rules", "channel roles"],
+        "consumers": ["planner", "execution"],
+        "scores": [4, 3, 4, 4, 2, 4, 3, 2, 5],
+        "action_authority": True,
+        "tier_support": {"TIER_0": "required", "TIER_1": "required", "TIER_2": "required", "TIER_3_PLUS": "required"},
+        "primary_gaps": ["SLA/cohort routing context"],
+        "next_improvement": "Add read-only SLA/cohort policy context before planner impact.",
+    },
+    {
+        "object": "Freshness",
+        "owner": "snapshot store, evidence owners",
+        "sources": ["evidence timestamps", "source families", "refresh state"],
+        "consumers": ["planner", "trust", "admin UI"],
+        "scores": [2, 2, 3, 3, 2, 3, 2, 2, 2],
+        "action_authority": False,
+        "tier_support": {"TIER_0": "supporting", "TIER_1": "supporting", "TIER_2": "required", "TIER_3_PLUS": "required"},
+        "primary_gaps": ["explicit decay/actionability"],
+        "next_improvement": "Expose stale/expired knowledge labels through existing snapshot/trust owners.",
+    },
+    {
+        "object": "Safety",
+        "owner": "restore, rollback, packet, blast owners",
+        "sources": ["packet validation", "restore preview", "rollback manifest", "blast evidence"],
+        "consumers": ["governance", "execution", "autonomy"],
+        "scores": [4, 4, 5, 4, 4, 5, 4, 2, 5],
+        "action_authority": True,
+        "tier_support": {"TIER_0": "required", "TIER_1": "required", "TIER_2": "required", "TIER_3_PLUS": "required"},
+        "primary_gaps": ["operator-free rollback certification for higher tiers"],
+        "next_improvement": "Certify one-user autonomous rollback before TIER_3.",
+    },
+    {
+        "object": "Event",
+        "owner": "event sources and read-only consumer",
+        "sources": ["sentinel", "service matrix", "quality/capacity/route/runtime events"],
+        "consumers": ["attention", "planner preview", "autonomy preview"],
+        "scores": [4, 3, 3, 3, 3, 3, 3, 3, 3],
+        "action_authority": False,
+        "tier_support": {"TIER_0": "required", "TIER_1": "optional", "TIER_2": "supporting", "TIER_3_PLUS": "required"},
+        "primary_gaps": ["apply authority intentionally disabled"],
+        "next_improvement": "Keep event consumer read-only until trust/freshness/recovery are stronger.",
+    },
+    {
+        "object": "Operator Context",
+        "owner": "shadow autonomy, operator comparison",
+        "sources": ["contextual approve/reject/override evidence"],
+        "consumers": ["secondary trust", "admin UI"],
+        "scores": [2, 1, 2, 3, 1, 2, 3, 1, 2],
+        "action_authority": False,
+        "tier_support": {"TIER_0": "diagnostic", "TIER_1": "optional", "TIER_2": "optional", "TIER_3_PLUS": "optional"},
+        "primary_gaps": ["contextual comparison evidence underfed"],
+        "next_improvement": "Use existing compare endpoint only when operator has sufficient context.",
+    },
+)
+
+
+def _quality_scores(raw_scores: list[int]) -> dict[str, int]:
+    return dict(zip(KNOWLEDGE_QUALITY_DIMENSIONS, raw_scores))
+
+
+def _knowledge_maturity_stage(
+    *,
+    scores: dict[str, int],
+    action_authority: bool,
+    object_name: str,
+) -> str:
+    average = sum(scores.values()) / max(1, len(scores))
+    if (
+        object_name == "Safety"
+        and scores["correctness"] >= 5
+        and scores["source_confidence"] >= 5
+        and scores["actionability"] >= 5
+        and average >= 4.0
+    ):
+        return "AUTONOMY_GRADE_KNOWLEDGE"
+    if action_authority and scores["actionability"] >= 4 and scores["correctness"] >= 3 and scores["source_confidence"] >= 3:
+        return "ACTIONABLE_KNOWLEDGE"
+    if scores["correctness"] >= 4 and scores["consistency"] >= 4 and average >= 3.0:
+        return "CONFIRMED_KNOWLEDGE"
+    if scores["correctness"] >= 3 and scores["consistency"] >= 3 and scores["source_confidence"] >= 3 and average >= 3.0:
+        return "CONFIRMED_KNOWLEDGE"
+    if average >= 2.0:
+        return "STABLE_SIGNAL"
+    return "RAW_OBSERVATION"
+
+
+def _knowledge_evidence_overlay(
+    object_name: str,
+    *,
+    prediction_plan: dict[str, Any],
+    operator_comparisons: dict[str, Any],
+    canary_proximity: dict[str, Any],
+    floor_forensics: dict[str, Any],
+    materialization_audit: dict[str, Any],
+    source_confidence_inventory: dict[str, Any],
+    candidate_outcome_reality_collection: dict[str, Any],
+) -> dict[str, Any]:
+    source_rows = {
+        row.get("source"): row
+        for row in source_confidence_inventory.get("sources") or []
+        if isinstance(row, dict)
+    }
+    components = floor_forensics.get("component_values") if isinstance(floor_forensics.get("component_values"), dict) else {}
+    floors = canary_proximity.get("floors") if isinstance(canary_proximity.get("floors"), dict) else {}
+    candidate_coverage = candidate_outcome_reality_collection.get("coverage") if isinstance(candidate_outcome_reality_collection.get("coverage"), dict) else {}
+    overlay_by_object = {
+        "Service": {
+            "rows_seen": ((floor_forensics.get("service_root_cause") or {}).get("rows_seen") if isinstance(floor_forensics.get("service_root_cause"), dict) else 0),
+            "source_classification": (source_rows.get("service_outcomes") or {}).get("classification", "UNKNOWN"),
+            "service_confidence": components.get("service_confidence", 0.0),
+        },
+        "Prediction": {
+            "forecasts_seen": prediction_plan.get("forecasts_seen", 0),
+            "matched_rows": prediction_plan.get("matched_rows", 0),
+            "pending_rows": prediction_plan.get("pending_rows", 0),
+            "prediction_confidence": components.get("prediction_confidence", 0.0),
+        },
+        "Suitability": {
+            "candidate_count": candidate_coverage.get("candidate_count", 0),
+            "candidate_outcomes_consumed": candidate_coverage.get("candidate_outcomes_consumed", 0),
+            "coverage_ratio": candidate_coverage.get("coverage_ratio", 0.0),
+            "source_classification": (source_rows.get("candidate_outcomes") or {}).get("classification", "UNKNOWN"),
+        },
+        "Trust": {
+            "confidence_floor": (floors.get("confidence") or {}).get("current") if isinstance(floors.get("confidence"), dict) else 0.0,
+            "trust_floor": (floors.get("trust") or {}).get("current") if isinstance(floors.get("trust"), dict) else 0.0,
+            "missing_primary_floors": canary_proximity.get("missing", []),
+        },
+        "Safety": {
+            "rollback_materialized": (materialization_audit.get("prediction_actuals") or {}).get("materialized", False),
+            "rollback_confidence": components.get("rollback_confidence", 0.0),
+            "blast_radius_confidence": components.get("blast_radius_confidence", 0.0),
+        },
+        "Operator Context": {
+            "reviewable_decisions": (operator_comparisons.get("current") or {}).get("reviewable_decisions", 0),
+            "reviewed_decisions": (operator_comparisons.get("current") or {}).get("reviewed_decisions", 0),
+            "comparison_count": (operator_comparisons.get("current") or {}).get("comparison_count", 0),
+        },
+        "Decision Outcome": {
+            "candidate_outcomes_consumed": candidate_coverage.get("candidate_outcomes_consumed", 0),
+            "missing_candidate_outcomes": candidate_coverage.get("missing_candidate_outcomes", 0),
+            "runtime_apply_allowed_in_this_phase": (candidate_outcome_reality_collection.get("acceleration") or {}).get("runtime_apply_allowed_in_this_phase", False),
+        },
+        "Freshness": {
+            "snapshot_backed": True,
+            "read_owner": "admin_core.intelligence_snapshots.read_snapshot_family",
+        },
+        "Event": {
+            "event_model": "read_only_consumer",
+            "apply_authority": "disabled_by_design",
+        },
+    }
+    return overlay_by_object.get(object_name, {"dynamic_overlay": "canonical_static_read_model"})
+
+
+def build_knowledge_quality_read_model(
+    *,
+    generated_at: str | None = None,
+    prediction_plan: dict[str, Any] | None = None,
+    operator_comparisons: dict[str, Any] | None = None,
+    canary_proximity: dict[str, Any] | None = None,
+    floor_forensics: dict[str, Any] | None = None,
+    materialization_audit: dict[str, Any] | None = None,
+    source_confidence_inventory: dict[str, Any] | None = None,
+    candidate_outcome_reality_collection: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Expose canonical V7 knowledge quality through an existing read-only owner."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    prediction_plan = prediction_plan or {}
+    operator_comparisons = operator_comparisons or {}
+    canary_proximity = canary_proximity or {}
+    floor_forensics = floor_forensics or {}
+    materialization_audit = materialization_audit or {}
+    source_confidence_inventory = source_confidence_inventory or {}
+    candidate_outcome_reality_collection = candidate_outcome_reality_collection or {}
+    objects = []
+    distribution = {stage: 0 for stage in VALID_KNOWLEDGE_MATURITY_STAGES}
+    for definition in CANONICAL_KNOWLEDGE_OBJECTS:
+        scores = _quality_scores(list(definition["scores"]))
+        average = round(sum(scores.values()) / len(scores), 3)
+        stage = _knowledge_maturity_stage(
+            scores=scores,
+            action_authority=bool(definition.get("action_authority")),
+            object_name=str(definition["object"]),
+        )
+        distribution[stage] += 1
+        objects.append({
+            "object": definition["object"],
+            "owner": definition["owner"],
+            "sources": definition["sources"],
+            "consumers": definition["consumers"],
+            "quality_dimensions": scores,
+            "average_score": average,
+            "maturity_stage": stage,
+            "tier_support": definition["tier_support"],
+            "primary_gaps": definition["primary_gaps"],
+            "next_improvement": definition["next_improvement"],
+            "evidence_overlay": _knowledge_evidence_overlay(
+                str(definition["object"]),
+                prediction_plan=prediction_plan,
+                operator_comparisons=operator_comparisons,
+                canary_proximity=canary_proximity,
+                floor_forensics=floor_forensics,
+                materialization_audit=materialization_audit,
+                source_confidence_inventory=source_confidence_inventory,
+                candidate_outcome_reality_collection=candidate_outcome_reality_collection,
+            ),
+            "score_source": "docs/reference/V7_KNOWLEDGE_QUALITY_MODEL.md",
+            "heuristic_fallback": False,
+        })
+    total = len(objects)
+    maturity_distribution = {
+        stage: {
+            "count": count,
+            "share": round(count / total, 4) if total else 0.0,
+        }
+        for stage, count in distribution.items()
+    }
+    tier_readiness = {
+        "TIER_0": {
+            "status": "READY_FOR_READ_ONLY_PREVIEW",
+            "required_knowledge": ["Channel", "User Assignment", "Policy", "Event", "Service", "Quality"],
+            "primary_gaps": [],
+        },
+        "TIER_1": {
+            "status": "READY_FOR_GOVERNED_REVIEW_WITH_OPERATOR_AUTHORITY",
+            "required_knowledge": ["Channel", "User Assignment", "Policy", "Safety"],
+            "primary_gaps": ["operator-free authority is not granted"],
+        },
+        "TIER_2": {
+            "status": "BLOCKED_BY_KNOWLEDGE_QUALITY",
+            "required_knowledge": ["Trust", "Prediction", "Decision Outcome", "Suitability", "Freshness"],
+            "primary_gaps": ["suitability coverage/correctness", "source confidence", "freshness/actionability"],
+        },
+        "TIER_3_PLUS": {
+            "status": "BLOCKED_BY_RECOVERY_AND_AUTONOMY_GRADE_KNOWLEDGE",
+            "required_knowledge": ["Recovery", "Event", "post-action verification", "anti-flap/cooldown"],
+            "primary_gaps": ["recovery admission", "autonomous rollback certification", "anti-flap knowledge"],
+        },
+    }
+    ten_k = {
+        "overall": "PARTIAL_NOT_AUTONOMY_READY",
+        "ready": ["Safety"],
+        "partial": [
+            "Channel",
+            "Service",
+            "User Assignment",
+            "Route",
+            "Capacity",
+            "Quality",
+            "Failure",
+            "Decision Outcome",
+            "Prediction",
+            "Trust",
+            "Policy",
+            "Event",
+        ],
+        "not_ready": ["Recovery", "Suitability", "Freshness", "Operator Context"],
+        "reason": "10k readiness is blocked by knowledge quality, freshness/actionability, and cohort/SLA-scale summaries, not by a missing planner.",
+    }
+    p0_gaps = [
+        {
+            "gap": "Suitability is stable signal",
+            "weak_dimensions": ["coverage", "correctness"],
+            "required_state": "Suitability becomes actionable knowledge",
+            "next_improvement": "Use existing candidate outcome, feedback, and intelligence owners; no synthetic evidence.",
+        },
+        {
+            "gap": "Recovery is stable signal",
+            "weak_dimensions": ["correctness", "consistency", "anti-flap"],
+            "required_state": "Recovery becomes actionable knowledge",
+            "next_improvement": "Define recovery admission contract before autonomous recovery.",
+        },
+        {
+            "gap": "Freshness is implicit/supporting",
+            "weak_dimensions": ["freshness", "actionability"],
+            "required_state": "Freshness blocks stale action and labels stale knowledge",
+            "next_improvement": "Expose stale/expired labels through existing snapshot/trust inventory owners.",
+        },
+        {
+            "gap": "Service knowledge is probe-heavy",
+            "weak_dimensions": ["source_confidence", "service_relevance", "user_impact_relevance"],
+            "required_state": "Service knowledge is service/user/SLA outcome-aware",
+            "next_improvement": "Extend existing service/intelligence summaries after contract proof.",
+        },
+        {
+            "gap": "Safety is strong but autonomous rollback is not certified",
+            "weak_dimensions": ["operator_free_actionability"],
+            "required_state": "Rollback is certified for autonomous tier",
+            "next_improvement": "Certify one-user rollback before TIER_3.",
+        },
+    ]
+    return {
+        "schema_version": "v7.knowledge-quality.read-model.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "surface": "tools/v7-autonomy-trust-evidence-inventory",
+        "model_source": "docs/reference/V7_KNOWLEDGE_QUALITY_MODEL.md",
+        "maturity_rules": {
+            "RAW_OBSERVATION": "average_score < 2.0 or isolated/underfed evidence",
+            "STABLE_SIGNAL": "average_score >= 2.0 and not confirmed/actionable",
+            "CONFIRMED_KNOWLEDGE": "correctness and consistency >= 4 with average_score >= 3.0, or correctness/consistency/source confidence >= 3 with average_score >= 3.0",
+            "ACTIONABLE_KNOWLEDGE": "existing governed/blocking action authority with actionability >= 4, correctness >= 3, source confidence >= 3",
+            "AUTONOMY_GRADE_KNOWLEDGE": "safety-grade knowledge with correctness/source/actionability >= 5 and average_score >= 4.0",
+        },
+        "knowledge_objects": objects,
+        "maturity_distribution": maturity_distribution,
+        "tier_readiness_knowledge": tier_readiness,
+        "10k_readiness": ten_k,
+        "p0_gaps": p0_gaps,
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+        "synthetic_evidence_created": False,
+        "new_truth_source_created": False,
+        "planner_redesigned": False,
+        "governance_redesigned": False,
+        "execution_redesigned": False,
+    }
+
+
 def build_acceleration_inventory(
     *,
     snapshot_root: Path | str,
@@ -1637,6 +2116,16 @@ def build_acceleration_inventory(
         decision_records=decision_records or [],
         floor_forensics=floor_forensics,
     )
+    knowledge_quality_read_model = build_knowledge_quality_read_model(
+        generated_at=generated,
+        prediction_plan=prediction_plan,
+        operator_comparisons=operator_comparisons,
+        canary_proximity=canary,
+        floor_forensics=floor_forensics,
+        materialization_audit=materialization_audit,
+        source_confidence_inventory=source_confidence_inventory,
+        candidate_outcome_reality_collection=candidate_outcome_reality_collection,
+    )
     return {
         "schema_version": "v7.autonomy-trust-acceleration.inventory.v1",
         "generated_at": generated,
@@ -1655,6 +2144,12 @@ def build_acceleration_inventory(
         "real_outcome_source_inventory": real_outcome_source_inventory,
         "candidate_outcome_reality_collection": candidate_outcome_reality_collection,
         "real_outcome_growth_projection": real_outcome_growth_projection,
+        "knowledge_quality_read_model": knowledge_quality_read_model,
+        "knowledge_objects": knowledge_quality_read_model["knowledge_objects"],
+        "maturity_distribution": knowledge_quality_read_model["maturity_distribution"],
+        "tier_readiness_knowledge": knowledge_quality_read_model["tier_readiness_knowledge"],
+        "10k_readiness": knowledge_quality_read_model["10k_readiness"],
+        "p0_gaps": knowledge_quality_read_model["p0_gaps"],
         "collection_plan": {
             "primary_real_evidence_path": [
                 "observe service and channel quality outcomes through existing service/quality snapshots",

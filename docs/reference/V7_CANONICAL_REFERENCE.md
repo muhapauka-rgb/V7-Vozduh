@@ -843,3 +843,17 @@ Related ADR: `docs/decisions/ADR-FUTURE-EVIDENCE-INDEX-AND-FRESHNESS-MODEL.md`.
 - Known caveats: Density must not hide required operator answers. Mobile 390px views must keep filters horizontally usable without clipping. Channel signal explanation must not consume a standalone row; the S/L/R/T legend belongs inside the Signals column header, with detailed meaning in the existing tooltip source.
 - Related reports / ADRs: `CHANNELS_FINAL_DENSITY_AND_CONSISTENCY_REPORT.md`, `CHANNELS_OPERATOR_ENGINEER_SEPARATION_REPORT.md`, `CHANNELS_DRAWER_NO_DUPLICATES_ACTIONABLE_PROBLEMS_REPORT.md`, ADR-006, ADR-007, ADR-010.
 - Last verified commit: `CHANNELS.TABLE_AND_LAYOUT_FINAL_POLISH implementation commit`.
+
+## 20. Autonomous Routing Fit / Outcome / Recovery Foundation
+
+- What it means: Read-only routing foundation that explains whether a user/channel recommendation is service/user/SLA fit, whether real outcome closure exists, whether a recovered channel may be re-admitted, whether anti-flap blocks rapid oscillation, and whether evidence is actionable now or stale.
+- Source of truth: Existing operator decision surface, intelligence snapshots, service/user/channel score families, trust-evolution summaries, candidate suitability, best-available-pool, audit/feedback/closure records, and knowledge quality read model.
+- Where it is calculated: `admin_core/autonomy_trust_acceleration.py` through `build_service_user_sla_fit`, `build_decision_outcome_closure`, `build_recovery_admission`, `build_anti_flapping`, `build_freshness_actionability`, and `build_routing_recommendation_readiness`.
+- Where it is displayed: `tools/v7-autonomy-trust-evidence-inventory` full JSON and `tools/v7-autonomy-trust-evidence-inventory --routing-foundation-only`.
+- What affects it: Required services, service freshness, channel candidate quality, capacity/headroom hints, policy eligibility, route/runtime safety hints, current assignment, real decision/packet/apply/verification/outcome/learning records, recovery successful checks, cooldowns, quarantine/degraded lifecycle, and rapid reverse movement evidence.
+- What does NOT affect it: It does not change planner formulas, floors, assignment selection, service score formulas, recovery trust formulas, governance, execution, storage, snapshots, daemon state, or runtime apply authority.
+- Operator meaning: "Do we actually know this user should stay or move, and what blocks that answer right now?"
+- Engineer meaning: Existing-owner read model that turns known routing gaps into explicit JSON contracts before any planner or autonomy authority changes.
+- Known caveats: This is not a new planner and not autonomy authority. `routing_recommendation_readiness` may say `NOT_READY_FOR_AUTONOMOUS_ROUTING` even while planner previews exist. Recovery admission is staged and read-only; one successful check must not jump a channel to fully trusted. Decision outcome closure requires real fields and must not synthesize outcomes. Freshness actionability classifies stale/missing evidence as recheck/unknown instead of pretending it is usable. Anti-flap currently detects oscillation from existing decision/audit records only.
+- Related reports / ADRs: `docs/reports/V7_AUTONOMOUS_ROUTING_FIT_OUTCOME_RECOVERY_FOUNDATION_REPORT.md`, ADR-V7-SERVICE-USER-SLA-FIT-MODEL, ADR-V7-RECOVERY-ADMISSION-ANTI-FLAP, ADR-V7-FRESHNESS-ACTIONABILITY, `docs/reports/V7_KNOWLEDGE_QUALITY_READ_MODEL_REPORT.md`.
+- Last verified commit: `V7.AUTONOMOUS.ROUTING.FIT_OUTCOME_RECOVERY_FOUNDATION implementation commit`.

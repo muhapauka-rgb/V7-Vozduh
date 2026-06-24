@@ -457,6 +457,140 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertIn("10k_readiness", first)
         self.assertIn("p0_gaps", first)
 
+    def test_fit_model_respects_required_services_and_blocks_bad_service(self):
+        freshness = accel.build_freshness_actionability({
+            "service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "channel-service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "user-service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+        })
+        model = accel.build_service_user_sla_fit(
+            {
+                "users": [
+                    {
+                        "user": "10.7.0.2",
+                        "current_channel": "awg3",
+                        "required_services": ["telegram", "youtube"],
+                        "candidates": [
+                            {"channel": "wireguard", "suitability_score": 91, "required_low": ["youtube"]},
+                            {"channel": "vless", "suitability_score": 82},
+                        ],
+                    }
+                ]
+            },
+            freshness_actionability=freshness,
+        )
+
+        row = model["rows"][0]
+        self.assertEqual(row["best_channel"], "vless")
+        self.assertEqual(row["fit_verdict"], "FIT")
+        blocked = {item["channel"]: item for item in row["candidates"]}
+        self.assertEqual(blocked["wireguard"]["fit_verdict"], "BLOCKED")
+        self.assertIn("youtube", blocked["wireguard"]["missing_requirements"])
+        self.assertFalse(model["runtime_mutation_performed"])
+
+    def test_fit_model_respects_policy_capacity_and_stale_service(self):
+        stale = accel.build_freshness_actionability({
+            "service-scores": {"exists": True, "freshness_state": "STALE", "runtime_behavior": "WARN", "stop_required": False},
+        })
+        model = accel.build_service_user_sla_fit(
+            {
+                "users": [
+                    {
+                        "user": "10.7.0.3",
+                        "current_channel": "awg3",
+                        "required_services": ["telegram"],
+                        "candidates": [
+                            {"channel": "awg0", "suitability_score": 95, "capacity_decision": "over_limit"},
+                            {"channel": "vless", "suitability_score": 94, "policy_eligible": False},
+                        ],
+                    }
+                ]
+            },
+            freshness_actionability=stale,
+        )
+
+        candidates = {item["channel"]: item for item in model["rows"][0]["candidates"]}
+        self.assertEqual(candidates["awg0"]["fit_verdict"], "BLOCKED")
+        self.assertIn("capacity_or_load_blocks_fit", candidates["awg0"]["reason"])
+        self.assertEqual(candidates["vless"]["fit_verdict"], "BLOCKED")
+        self.assertEqual(stale["domains"]["service"]["classification"], "STALE_RECHECK_REQUIRED")
+
+    def test_recovery_requires_staged_admission_not_single_pass(self):
+        fresh = accel.build_freshness_actionability({
+            "trust-evolution-summaries": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+        })
+        model = accel.build_recovery_admission(
+            {},
+            freshness_actionability=fresh,
+            channel_recovery_inputs=[{"channel": "awg0", "lifecycle": "RECOVERING", "successful_checks": 1}],
+        )
+
+        row = model["rows"][0]
+        self.assertNotEqual(row["admission_state"], "ELIGIBLE")
+        self.assertIn("insufficient_successful_checks", row["blockers"])
+        self.assertFalse(model["runtime_mutation_performed"])
+
+    def test_anti_flap_blocks_rapid_oscillation(self):
+        model = accel.build_anti_flapping([
+            {"user": "10.7.0.2", "from": "awg3", "to": "wireguard"},
+            {"user": "10.7.0.2", "from": "wireguard", "to": "awg3"},
+        ])
+
+        row = model["rows"][0]
+        self.assertTrue(row["blocked"])
+        self.assertEqual(row["decision_stability"], "BLOCKED_BY_ANTI_FLAP")
+        self.assertIn("rapid_reverse_move_detected", row["reasons"])
+        self.assertFalse(model["apply_executed"])
+
+    def test_closure_requires_real_outcome_fields(self):
+        incomplete = accel.build_decision_outcome_closure([
+            {"recommendation_hash": "r1", "selected_moves": [{"user": "10.7.0.2", "target": "awg0"}], "status": "preview_only"}
+        ])
+        complete = accel.build_decision_outcome_closure([
+            {
+                "recommendation_id": "r1",
+                "decision_id": "d1",
+                "packet_id": "p1",
+                "apply_result": "success",
+                "post_action_verification": {"status": "passed"},
+                "service_outcome": {"telegram": "ok"},
+                "user_outcome": {"user": "10.7.0.2"},
+                "learning_record": {"stored": True},
+                "outcome_observed_at": "2026-06-24T00:00:00+00:00",
+            }
+        ])
+
+        self.assertEqual(incomplete["closure_state"], "PARTIAL")
+        self.assertGreater(incomplete["summary"]["missing_closure_records"], 0)
+        self.assertEqual(complete["closure_state"], "COMPLETE")
+        self.assertEqual(complete["summary"]["valid_closures"], 1)
+        self.assertFalse(complete["synthetic_outcomes_created"])
+
+    def test_inventory_exposes_routing_foundation_top_level_keys(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-24T00:00:00+00:00",
+            )
+
+        for key in (
+            "service_user_sla_fit",
+            "decision_outcome_closure",
+            "recovery_admission",
+            "anti_flapping",
+            "freshness_actionability",
+            "routing_recommendation_readiness",
+        ):
+            self.assertIn(key, inventory)
+            self.assertFalse(inventory[key]["runtime_mutation_performed"])
+            self.assertFalse(inventory[key]["apply_executed"])
+            self.assertEqual(inventory[key]["users_moved"], 0)
+
     def test_acceleration_inventory_exposes_knowledge_quality_read_model(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -1543,6 +1543,555 @@ def build_operator_authority_model() -> dict[str, Any]:
     }
 
 
+ROUTING_FOUNDATION_SNAPSHOT_FAMILIES = (
+    "prediction-summaries",
+    "service-scores",
+    "channel-service-scores",
+    "user-service-scores",
+    "candidate-suitability-summary",
+    "best-available-pool",
+    "trust-summaries",
+    "risk-summaries",
+    "blast-radius-summaries",
+    "trust-evolution-summaries",
+    "capacity-forecast-summaries",
+    "overview-summary",
+)
+
+FRESHNESS_ACTIONABILITY_DOMAINS = {
+    "service": ["service-scores", "channel-service-scores", "user-service-scores"],
+    "quality": ["channel-service-scores", "prediction-summaries"],
+    "route": ["risk-summaries", "overview-summary"],
+    "capacity": ["capacity-forecast-summaries", "blast-radius-summaries", "overview-summary"],
+    "prediction": ["prediction-summaries"],
+    "suitability": ["candidate-suitability-summary", "best-available-pool"],
+    "recovery": ["trust-evolution-summaries"],
+}
+
+VALID_OUTCOME_CLOSURE_FIELDS = (
+    "recommendation_id",
+    "decision_id",
+    "packet_id",
+    "apply_result",
+    "post_action_verification",
+    "service_outcome",
+    "user_outcome",
+    "learning_record",
+    "outcome_observed_at",
+)
+
+RECOVERY_ADMISSION_POLICY = {
+    "min_successful_checks": 3,
+    "freshness_required": "ACTIONABLE_NOW",
+    "cooldown_seconds": 1800,
+    "limited_recovery_blast_radius_users": 1,
+    "watch_successful_checks": 2,
+}
+
+ANTI_FLAP_POLICY = {
+    "cooldown_seconds": 1800,
+    "minimum_observation_window_seconds": 3600,
+    "rapid_oscillation_threshold": 2,
+    "hysteresis_required": True,
+}
+
+
+def _text(value: Any, default: str = "") -> str:
+    return str(value if value not in (None, "") else default)
+
+
+def _candidate_channel(row: dict[str, Any] | None) -> str:
+    if not isinstance(row, dict):
+        return ""
+    return _text(row.get("channel") or row.get("egress") or row.get("target") or row.get("recommended_channel"))
+
+
+def _candidate_score(row: dict[str, Any] | None) -> float:
+    if not isinstance(row, dict):
+        return 0.0
+    return as_float(row.get("fit_score", row.get("suitability_score", row.get("score", row.get("adjusted_score", row.get("confidence", 0.0))))), 0.0)
+
+
+def _candidate_reasons(row: dict[str, Any] | None) -> list[str]:
+    if not isinstance(row, dict):
+        return []
+    out: list[str] = []
+    for key in ("missing_requirements", "required_missing", "required_low", "blockers", "reasons"):
+        value = row.get(key)
+        if isinstance(value, list):
+            out.extend(str(item) for item in value if item)
+        elif value:
+            out.append(str(value))
+    return list(dict.fromkeys(out))
+
+
+def _required_services_from_surface(user_row: dict[str, Any], candidate_rows: list[dict[str, Any]]) -> list[str]:
+    for value in (
+        user_row.get("required_services"),
+        (user_row.get("service_fit") or {}).get("required_services") if isinstance(user_row.get("service_fit"), dict) else None,
+    ):
+        if isinstance(value, list) and value:
+            return [str(item) for item in value if item]
+    for row in candidate_rows:
+        value = row.get("required_services") or row.get("services_required")
+        if isinstance(value, list) and value:
+            return [str(item) for item in value if item]
+    try:
+        return [str(item) for item in intelligence_workers.DEFAULT_SERVICES]
+    except AttributeError:
+        return ["telegram", "youtube", "instagram", "chatgpt"]
+
+
+def _candidate_rows_for_user(user_row: dict[str, Any]) -> list[dict[str, Any]]:
+    rows = [row for row in (user_row.get("candidates") or user_row.get("pool") or []) if isinstance(row, dict)]
+    current = _text(user_row.get("current_channel") or user_row.get("current"))
+    recommended = _text(user_row.get("recommended_channel") or user_row.get("best_channel") or current)
+    if recommended and all(_candidate_channel(row) != recommended for row in rows):
+        rows.append({
+            "channel": recommended,
+            "score": user_row.get("confidence", user_row.get("fit_score", 0.0)),
+            "required_services": user_row.get("required_services", []),
+            "reasons": user_row.get("reasons", []),
+        })
+    if current and all(_candidate_channel(row) != current for row in rows):
+        rows.append({
+            "channel": current,
+            "score": user_row.get("current_score", 0.0),
+            "required_services": user_row.get("required_services", []),
+        })
+    return rows
+
+
+def build_freshness_actionability(
+    snapshot_statuses: dict[str, dict[str, Any]] | None = None,
+    *,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Classify existing evidence freshness into operator actionability buckets."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    statuses = snapshot_statuses or {}
+    domains: dict[str, dict[str, Any]] = {}
+    counts = {
+        "ACTIONABLE_NOW": 0,
+        "STALE_RECHECK_REQUIRED": 0,
+        "DIAGNOSTIC_ONLY": 0,
+        "HISTORY_ONLY": 0,
+        "UNKNOWN": 0,
+    }
+    for domain, families in FRESHNESS_ACTIONABILITY_DOMAINS.items():
+        family_rows = [statuses.get(name, {}) for name in families if isinstance(statuses.get(name, {}), dict)]
+        existing = [row for row in family_rows if row.get("exists", True) is not False and row]
+        states = {str(row.get("freshness_state") or row.get("status") or "UNKNOWN").upper() for row in family_rows}
+        behaviors = {str(row.get("runtime_behavior") or "").upper() for row in family_rows}
+        stop_required = any(bool(row.get("stop_required")) for row in family_rows)
+        if not family_rows or not existing:
+            classification = "UNKNOWN"
+            reason = "no_existing_snapshot_status"
+        elif "EXPIRED" in states or stop_required:
+            classification = "STALE_RECHECK_REQUIRED"
+            reason = "expired_or_stop_required"
+        elif "STALE" in states:
+            classification = "STALE_RECHECK_REQUIRED"
+            reason = "stale_snapshot_present"
+        elif states and states <= {"FRESH", "OK"} and not stop_required:
+            classification = "ACTIONABLE_NOW"
+            reason = "fresh_existing_evidence"
+        elif "IGNORE" in behaviors:
+            classification = "DIAGNOSTIC_ONLY"
+            reason = "snapshot_runtime_behavior_ignore"
+        elif domain == "recovery":
+            classification = "HISTORY_ONLY"
+            reason = "recovery_needs_recent_successful_observation"
+        else:
+            classification = "UNKNOWN"
+            reason = "freshness_contract_incomplete"
+        counts[classification] += 1
+        domains[domain] = {
+            "classification": classification,
+            "reason": reason,
+            "families": families,
+            "family_statuses": {name: statuses.get(name, {}) for name in families},
+            "runtime_mutation_performed": False,
+        }
+    return {
+        "schema_version": "v7.routing-foundation.freshness-actionability.v1",
+        "generated_at": generated,
+        "owner": "admin_core.intelligence_snapshots",
+        "domains": domains,
+        "summary": counts,
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "apply_executed": False,
+        "users_moved": 0,
+    }
+
+
+def _candidate_fit(candidate: dict[str, Any], required_services: list[str], freshness: dict[str, Any]) -> dict[str, Any]:
+    channel = _candidate_channel(candidate)
+    score = _candidate_score(candidate)
+    missing = _candidate_reasons(candidate)
+    service_classification = ((freshness.get("domains") or {}).get("service") or {}).get("classification", "UNKNOWN")
+    capacity_text = " ".join(str(value).lower() for value in (
+        candidate.get("capacity_decision"),
+        candidate.get("capacity_state"),
+        candidate.get("assignment"),
+        " ".join(missing),
+    ))
+    policy_allowed = candidate.get("policy_eligible", candidate.get("eligible", True)) is not False
+    capacity_allowed = not any(token in capacity_text for token in ("over", "full", "limit", "blocked"))
+    service_ok = not missing and service_classification == "ACTIONABLE_NOW"
+    route_runtime_safe = candidate.get("route_safe", candidate.get("runtime_safe", True)) is not False
+    blockers: list[str] = []
+    if missing:
+        blockers.append("missing_required_services")
+    if service_classification != "ACTIONABLE_NOW":
+        blockers.append("service_freshness_not_actionable")
+    if not capacity_allowed:
+        blockers.append("capacity_or_load_blocks_fit")
+    if not policy_allowed:
+        blockers.append("policy_blocks_fit")
+    if not route_runtime_safe:
+        blockers.append("route_or_runtime_not_safe")
+    if blockers:
+        verdict = "RECHECK_REQUIRED" if blockers == ["service_freshness_not_actionable"] else "BLOCKED"
+    elif score >= 75:
+        verdict = "FIT"
+    else:
+        verdict = "FIT_WITH_WARNINGS"
+    return {
+        "channel": channel,
+        "fit_score": round(score, 3),
+        "fit_verdict": verdict,
+        "required_services": required_services,
+        "missing_requirements": missing,
+        "service_freshness": service_classification,
+        "capacity_headroom": candidate.get("capacity_headroom", candidate.get("headroom", "")),
+        "policy_eligible": bool(policy_allowed),
+        "route_runtime_safe": bool(route_runtime_safe),
+        "reason": "; ".join(blockers) if blockers else "candidate satisfies current required services and safety context",
+    }
+
+
+def build_service_user_sla_fit(
+    decision_surface: dict[str, Any] | None = None,
+    *,
+    freshness_actionability: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Read-only per-user fit lens over existing recommendation/candidate rows."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    surface = decision_surface or {}
+    freshness = freshness_actionability or build_freshness_actionability({})
+    rows: list[dict[str, Any]] = []
+    for user_row in [row for row in (surface.get("users") or []) if isinstance(row, dict)]:
+        user = _text(user_row.get("user") or user_row.get("ip") or user_row.get("address"))
+        if not user:
+            continue
+        candidates = _candidate_rows_for_user(user_row)
+        required = _required_services_from_surface(user_row, candidates)
+        evaluated = [_candidate_fit(row, required, freshness) for row in candidates]
+        usable = [row for row in evaluated if row["fit_verdict"] in {"FIT", "FIT_WITH_WARNINGS"}]
+        best = sorted(usable, key=lambda row: (-as_float(row.get("fit_score")), row.get("channel", "")))[0] if usable else {}
+        current = _text(user_row.get("current_channel") or user_row.get("current"))
+        recommendation = _text(best.get("channel") or user_row.get("recommended_channel") or current)
+        rows.append({
+            "user": user,
+            "current_assignment": current,
+            "required_services": required,
+            "fit_score": best.get("fit_score", 0.0) if best else 0.0,
+            "fit_verdict": best.get("fit_verdict", "BLOCKED" if evaluated else "UNKNOWN"),
+            "missing_requirements": sorted({item for row in evaluated for item in row.get("missing_requirements", [])}),
+            "best_channel": recommendation,
+            "safe_alternatives": [row["channel"] for row in usable if row.get("channel") != recommendation],
+            "reason": best.get("reason") if best else "no candidate satisfies current service/user/SLA fit",
+            "candidates": evaluated,
+            "runtime_mutation_performed": False,
+        })
+    verdict_counts: dict[str, int] = {}
+    for row in rows:
+        verdict = str(row.get("fit_verdict") or "UNKNOWN")
+        verdict_counts[verdict] = verdict_counts.get(verdict, 0) + 1
+    return {
+        "schema_version": "v7.routing-foundation.service-user-sla-fit.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "source_owner": "admin_core.operator_decision_surface + intelligence snapshots",
+        "rows": rows,
+        "summary": {
+            "users_seen": len(rows),
+            "verdict_counts": verdict_counts,
+            "planner_input_candidate_only": True,
+        },
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "apply_executed": False,
+        "users_moved": 0,
+    }
+
+
+def _closure_field_present(record: dict[str, Any], field: str) -> bool:
+    aliases = {
+        "recommendation_id": ("recommendation_id", "recommendation_hash", "proposal_id"),
+        "decision_id": ("decision_id", "operation_id", "object_id"),
+        "packet_id": ("packet_id", "approval_packet_id"),
+        "apply_result": ("apply_result", "result", "status", "execution_outcome"),
+        "post_action_verification": ("post_action_verification", "verification_result", "verification"),
+        "service_outcome": ("service_outcome", "service_actual", "service_delta"),
+        "user_outcome": ("user_outcome", "selected_moves", "user"),
+        "learning_record": ("learning_record", "trust_update", "prediction_actual"),
+        "outcome_observed_at": ("outcome_observed_at", "completed_at", "event_time", "timestamp", "ts"),
+    }
+    return any(record.get(alias) not in (None, "", [], {}) for alias in aliases.get(field, (field,)))
+
+
+def build_decision_outcome_closure(
+    decision_records: list[dict[str, Any]] | None = None,
+    *,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Expose whether real recommendation outcomes are closed end-to-end."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    rows: list[dict[str, Any]] = []
+    for index, record in enumerate([row for row in (decision_records or []) if isinstance(row, dict)]):
+        missing = [field for field in VALID_OUTCOME_CLOSURE_FIELDS if not _closure_field_present(record, field)]
+        evidence = intelligence_workers.normalize_outcome_evidence(record)
+        rows.append({
+            "record_index": index,
+            "closure_valid": not missing,
+            "missing_fields": missing,
+            "outcome_status": evidence.get("outcome_status", "unknown"),
+            "user": evidence.get("user", ""),
+            "channel": evidence.get("channel", ""),
+        })
+    valid = sum(1 for row in rows if row["closure_valid"])
+    state = "COMPLETE" if rows and valid == len(rows) else "PARTIAL" if rows else "ABSENT"
+    return {
+        "schema_version": "v7.routing-foundation.decision-outcome-closure.v1",
+        "generated_at": generated,
+        "owner": "existing audit/feedback/closure records",
+        "required_fields": list(VALID_OUTCOME_CLOSURE_FIELDS),
+        "closure_state": state,
+        "summary": {
+            "records_seen": len(rows),
+            "valid_closures": valid,
+            "missing_closure_records": len(rows) - valid,
+            "real_outcomes_required": state != "COMPLETE",
+        },
+        "rows": rows[:50],
+        "synthetic_outcomes_created": False,
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "apply_executed": False,
+        "users_moved": 0,
+    }
+
+
+def _channel_rows_for_recovery(decision_surface: dict[str, Any], channel_recovery_inputs: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+    if channel_recovery_inputs is not None:
+        return [row for row in channel_recovery_inputs if isinstance(row, dict)]
+    rows = [row for row in (decision_surface or {}).get("channels", []) if isinstance(row, dict)]
+    if rows:
+        return rows
+    channels = {}
+    for user in (decision_surface or {}).get("users", []) or []:
+        if not isinstance(user, dict):
+            continue
+        for key in ("current_channel", "recommended_channel"):
+            channel = _text(user.get(key))
+            if channel:
+                channels.setdefault(channel, {"channel": channel, "successful_checks": 0, "lifecycle": "UNKNOWN"})
+    return list(channels.values())
+
+
+def build_recovery_admission(
+    decision_surface: dict[str, Any] | None = None,
+    *,
+    freshness_actionability: dict[str, Any] | None = None,
+    channel_recovery_inputs: list[dict[str, Any]] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Stage channel recovery admission without changing trust or planner logic."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    freshness = freshness_actionability or build_freshness_actionability({})
+    recovery_freshness = ((freshness.get("domains") or {}).get("recovery") or {}).get("classification", "UNKNOWN")
+    rows: list[dict[str, Any]] = []
+    for row in _channel_rows_for_recovery(decision_surface or {}, channel_recovery_inputs):
+        channel = _text(row.get("channel") or row.get("id") or row.get("egress"))
+        lifecycle = _text(row.get("lifecycle") or row.get("channel_state") or row.get("state"), "UNKNOWN").upper()
+        evidence = row.get("channel_state_evidence_summary") if isinstance(row.get("channel_state_evidence_summary"), dict) else {}
+        successes = int(as_float(row.get("successful_checks", row.get("successes", evidence.get("successes", 0))), 0.0))
+        blockers: list[str] = []
+        if lifecycle in {"QUARANTINED", "DEGRADED"} or row.get("quarantine_until"):
+            blockers.append("quarantine_or_degraded_lifecycle")
+        if successes < RECOVERY_ADMISSION_POLICY["min_successful_checks"]:
+            blockers.append("insufficient_successful_checks")
+        if recovery_freshness != "ACTIONABLE_NOW":
+            blockers.append("recovery_freshness_not_actionable")
+        if row.get("cooldown_active"):
+            blockers.append("cooldown_active")
+        service_specific_ok = row.get("service_specific_recovery_ok", successes >= RECOVERY_ADMISSION_POLICY["min_successful_checks"])
+        if not service_specific_ok:
+            blockers.append("service_specific_recovery_missing")
+        if "quarantine_or_degraded_lifecycle" in blockers:
+            state = "QUARANTINED"
+        elif row.get("blocked") or "service_specific_recovery_missing" in blockers:
+            state = "BLOCKED"
+        elif successes < RECOVERY_ADMISSION_POLICY["watch_successful_checks"]:
+            state = "PROBING"
+        elif blockers:
+            state = "LIMITED_RECOVERY"
+        elif lifecycle in {"RECOVERING", "WATCH"}:
+            state = "RECOVERED_WATCH"
+        else:
+            state = "ELIGIBLE"
+        rows.append({
+            "channel": channel,
+            "admission_state": state,
+            "successful_checks": successes,
+            "min_successful_checks": RECOVERY_ADMISSION_POLICY["min_successful_checks"],
+            "freshness": recovery_freshness,
+            "blockers": blockers,
+            "blast_radius_limit_users": RECOVERY_ADMISSION_POLICY["limited_recovery_blast_radius_users"] if state == "LIMITED_RECOVERY" else None,
+            "operator_visible_reason": "; ".join(blockers) if blockers else "recovery admission evidence is staged and fresh",
+            "runtime_mutation_performed": False,
+        })
+    return {
+        "schema_version": "v7.routing-foundation.recovery-admission.v1",
+        "generated_at": generated,
+        "owner": "trust-evolution/read-only admission overlay",
+        "policy": RECOVERY_ADMISSION_POLICY,
+        "rows": rows,
+        "summary": {
+            "channels_seen": len(rows),
+            "eligible": sum(1 for row in rows if row["admission_state"] == "ELIGIBLE"),
+            "blocked_or_quarantined": sum(1 for row in rows if row["admission_state"] in {"BLOCKED", "QUARANTINED"}),
+        },
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "apply_executed": False,
+        "users_moved": 0,
+    }
+
+
+def _record_user(record: dict[str, Any]) -> str:
+    metadata = record.get("metadata") if isinstance(record.get("metadata"), dict) else {}
+    return _text(record.get("user") or record.get("ip") or metadata.get("user"))
+
+
+def _record_from_to(record: dict[str, Any]) -> tuple[str, str]:
+    selected = record.get("selected_moves") if isinstance(record.get("selected_moves"), list) else []
+    move = selected[0] if selected and isinstance(selected[0], dict) else {}
+    source = _text(record.get("from") or record.get("source") or move.get("from") or move.get("source") or move.get("current"))
+    target = _text(record.get("to") or record.get("target") or record.get("channel") or move.get("to") or move.get("target") or move.get("channel"))
+    return source, target
+
+
+def build_anti_flapping(
+    decision_records: list[dict[str, Any]] | None = None,
+    *,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Detect rapid oscillation using existing decision/audit records only."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    by_user: dict[str, list[dict[str, Any]]] = {}
+    for record in decision_records or []:
+        if not isinstance(record, dict):
+            continue
+        user = _record_user(record)
+        source, target = _record_from_to(record)
+        if not user or not target:
+            continue
+        by_user.setdefault(user, []).append({"source": source, "target": target, "raw": record})
+    rows: list[dict[str, Any]] = []
+    for user, moves in sorted(by_user.items()):
+        transitions = [(row["source"], row["target"]) for row in moves]
+        rapid_reverse = any(a_from == b_to and a_to == b_from and a_from and a_to for a_from, a_to in transitions for b_from, b_to in transitions)
+        repeated_targets = len([target for _source, target in transitions]) - len({target for _source, target in transitions})
+        blocked = bool(rapid_reverse or repeated_targets >= ANTI_FLAP_POLICY["rapid_oscillation_threshold"])
+        rows.append({
+            "user": user,
+            "decision_stability": "BLOCKED_BY_ANTI_FLAP" if blocked else "STABLE_ENOUGH_FOR_PREVIEW",
+            "blocked": blocked,
+            "reasons": (["rapid_reverse_move_detected"] if rapid_reverse else []) + (["repeated_target_oscillation"] if repeated_targets >= ANTI_FLAP_POLICY["rapid_oscillation_threshold"] else []),
+            "cooldown_seconds": ANTI_FLAP_POLICY["cooldown_seconds"] if blocked else 0,
+            "transitions_seen": [f"{source}->{target}" for source, target in transitions],
+        })
+    return {
+        "schema_version": "v7.routing-foundation.anti-flapping.v1",
+        "generated_at": generated,
+        "owner": "existing decision/audit records",
+        "policy": ANTI_FLAP_POLICY,
+        "rows": rows,
+        "summary": {
+            "users_seen": len(rows),
+            "blocked_users": sum(1 for row in rows if row["blocked"]),
+        },
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "apply_executed": False,
+        "users_moved": 0,
+    }
+
+
+def build_routing_recommendation_readiness(
+    *,
+    service_user_sla_fit: dict[str, Any],
+    decision_outcome_closure: dict[str, Any],
+    recovery_admission: dict[str, Any],
+    anti_flapping: dict[str, Any],
+    freshness_actionability: dict[str, Any],
+    knowledge_quality_read_model: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    blockers: list[str] = []
+    fit_counts = (service_user_sla_fit.get("summary") or {}).get("verdict_counts") or {}
+    if fit_counts.get("BLOCKED") or fit_counts.get("UNKNOWN"):
+        blockers.append("service_user_sla_fit_not_clear")
+    if decision_outcome_closure.get("closure_state") != "COMPLETE":
+        blockers.append("decision_outcome_closure_incomplete")
+    if (recovery_admission.get("summary") or {}).get("blocked_or_quarantined", 0):
+        blockers.append("recovery_admission_has_blocked_channels")
+    if (anti_flapping.get("summary") or {}).get("blocked_users", 0):
+        blockers.append("anti_flap_blocks_recent_oscillation")
+    stale_domains = [
+        name for name, row in (freshness_actionability.get("domains") or {}).items()
+        if row.get("classification") in {"STALE_RECHECK_REQUIRED", "UNKNOWN"}
+    ]
+    if stale_domains:
+        blockers.append("freshness_not_actionable:" + ",".join(sorted(stale_domains)))
+    if knowledge_quality_read_model and (knowledge_quality_read_model.get("10k_readiness") or {}).get("overall") != "READY":
+        blockers.append("knowledge_quality_not_autonomy_ready")
+    readiness = "READY_FOR_READ_ONLY_PREVIEW" if not blockers else "NOT_READY_FOR_AUTONOMOUS_ROUTING"
+    return {
+        "schema_version": "v7.routing-foundation.recommendation-readiness.v1",
+        "readiness": readiness,
+        "blockers": blockers,
+        "safe_next_phase": "governed_preview_or_operator_review" if not blockers else "collect_real_outcomes_refresh_evidence_and_recheck",
+        "runtime_apply_allowed": False,
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "apply_executed": False,
+        "users_moved": 0,
+    }
+
+
+def _snapshot_status_from_read_result(result: Any) -> dict[str, Any]:
+    validation = getattr(result, "validation", None)
+    payload = getattr(result, "payload", {}) or {}
+    errors = list(getattr(validation, "errors", []) or [])
+    warnings = list(getattr(validation, "warnings", []) or [])
+    return {
+        "exists": bool(getattr(result, "exists", False)),
+        "validation_ok": bool(getattr(validation, "ok", False)),
+        "freshness_state": str(getattr(result, "freshness_state", payload.get("freshness_state", "UNKNOWN")) or "UNKNOWN"),
+        "confidence": getattr(result, "confidence", payload.get("confidence", 0.0)),
+        "runtime_behavior": str(getattr(result, "runtime_behavior", "STOP") or "STOP"),
+        "stop_required": bool(getattr(result, "stop_required", True)),
+        "path": str(getattr(result, "path", "")),
+        "errors": errors,
+        "warnings": warnings,
+    }
+
+
 KNOWLEDGE_QUALITY_DIMENSIONS = (
     "freshness",
     "coverage",
@@ -1796,6 +2345,7 @@ def _knowledge_evidence_overlay(
     materialization_audit: dict[str, Any],
     source_confidence_inventory: dict[str, Any],
     candidate_outcome_reality_collection: dict[str, Any],
+    routing_foundation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     source_rows = {
         row.get("source"): row
@@ -1805,11 +2355,19 @@ def _knowledge_evidence_overlay(
     components = floor_forensics.get("component_values") if isinstance(floor_forensics.get("component_values"), dict) else {}
     floors = canary_proximity.get("floors") if isinstance(canary_proximity.get("floors"), dict) else {}
     candidate_coverage = candidate_outcome_reality_collection.get("coverage") if isinstance(candidate_outcome_reality_collection.get("coverage"), dict) else {}
+    routing_foundation = routing_foundation or {}
+    fit_summary = (routing_foundation.get("service_user_sla_fit") or {}).get("summary", {})
+    closure_summary = (routing_foundation.get("decision_outcome_closure") or {}).get("summary", {})
+    recovery_summary = (routing_foundation.get("recovery_admission") or {}).get("summary", {})
+    freshness_summary = (routing_foundation.get("freshness_actionability") or {}).get("summary", {})
+    readiness = routing_foundation.get("routing_recommendation_readiness") or {}
     overlay_by_object = {
         "Service": {
             "rows_seen": ((floor_forensics.get("service_root_cause") or {}).get("rows_seen") if isinstance(floor_forensics.get("service_root_cause"), dict) else 0),
             "source_classification": (source_rows.get("service_outcomes") or {}).get("classification", "UNKNOWN"),
             "service_confidence": components.get("service_confidence", 0.0),
+            "service_user_sla_fit_users_seen": fit_summary.get("users_seen", 0),
+            "fit_verdict_counts": fit_summary.get("verdict_counts", {}),
         },
         "Prediction": {
             "forecasts_seen": prediction_plan.get("forecasts_seen", 0),
@@ -1822,6 +2380,7 @@ def _knowledge_evidence_overlay(
             "candidate_outcomes_consumed": candidate_coverage.get("candidate_outcomes_consumed", 0),
             "coverage_ratio": candidate_coverage.get("coverage_ratio", 0.0),
             "source_classification": (source_rows.get("candidate_outcomes") or {}).get("classification", "UNKNOWN"),
+            "service_user_sla_fit_attached": bool(fit_summary),
         },
         "Trust": {
             "confidence_floor": (floors.get("confidence") or {}).get("current") if isinstance(floors.get("confidence"), dict) else 0.0,
@@ -1842,14 +2401,23 @@ def _knowledge_evidence_overlay(
             "candidate_outcomes_consumed": candidate_coverage.get("candidate_outcomes_consumed", 0),
             "missing_candidate_outcomes": candidate_coverage.get("missing_candidate_outcomes", 0),
             "runtime_apply_allowed_in_this_phase": (candidate_outcome_reality_collection.get("acceleration") or {}).get("runtime_apply_allowed_in_this_phase", False),
+            "closure_state": routing_foundation.get("decision_outcome_closure", {}).get("closure_state", "UNKNOWN"),
+            "valid_closures": closure_summary.get("valid_closures", 0),
         },
         "Freshness": {
             "snapshot_backed": True,
             "read_owner": "admin_core.intelligence_snapshots.read_snapshot_family",
+            "actionability_summary": freshness_summary,
+        },
+        "Recovery": {
+            "admission_contract": "staged_read_only",
+            "eligible_channels": recovery_summary.get("eligible", 0),
+            "blocked_or_quarantined": recovery_summary.get("blocked_or_quarantined", 0),
         },
         "Event": {
             "event_model": "read_only_consumer",
             "apply_authority": "disabled_by_design",
+            "routing_recommendation_readiness": readiness.get("readiness", "UNKNOWN"),
         },
     }
     return overlay_by_object.get(object_name, {"dynamic_overlay": "canonical_static_read_model"})
@@ -1865,6 +2433,7 @@ def build_knowledge_quality_read_model(
     materialization_audit: dict[str, Any] | None = None,
     source_confidence_inventory: dict[str, Any] | None = None,
     candidate_outcome_reality_collection: dict[str, Any] | None = None,
+    routing_foundation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Expose canonical V7 knowledge quality through an existing read-only owner."""
     generated = generated_at or datetime.now(timezone.utc).isoformat()
@@ -1875,6 +2444,7 @@ def build_knowledge_quality_read_model(
     materialization_audit = materialization_audit or {}
     source_confidence_inventory = source_confidence_inventory or {}
     candidate_outcome_reality_collection = candidate_outcome_reality_collection or {}
+    routing_foundation = routing_foundation or {}
     objects = []
     distribution = {stage: 0 for stage in VALID_KNOWLEDGE_MATURITY_STAGES}
     for definition in CANONICAL_KNOWLEDGE_OBJECTS:
@@ -1906,6 +2476,7 @@ def build_knowledge_quality_read_model(
                 materialization_audit=materialization_audit,
                 source_confidence_inventory=source_confidence_inventory,
                 candidate_outcome_reality_collection=candidate_outcome_reality_collection,
+                routing_foundation=routing_foundation,
             ),
             "score_source": "docs/reference/V7_KNOWLEDGE_QUALITY_MODEL.md",
             "heuristic_fallback": False,
@@ -2032,16 +2603,15 @@ def build_acceleration_inventory(
 ) -> dict[str, Any]:
     root = Path(snapshot_root)
     generated = generated_at or datetime.now(timezone.utc).isoformat()
-    snapshots = {
-        name: read_snapshot_family(root, name).payload
-        for name in [
-            "prediction-summaries",
-            "service-scores",
-            "channel-service-scores",
-            "candidate-suitability-summary",
-            "trust-evolution-summaries",
-        ]
+    snapshot_results = {
+        name: read_snapshot_family(root, name)
+        for name in ROUTING_FOUNDATION_SNAPSHOT_FAMILIES
     }
+    snapshots = {
+        name: result.payload
+        for name, result in snapshot_results.items()
+    }
+    snapshot_statuses = {name: _snapshot_status_from_read_result(result) for name, result in snapshot_results.items()}
     shadow_model = shadow_autonomy.build_shadow_autonomy_model(decision_surface, history=shadow_history or [], now=generated)
     prediction_plan = build_prediction_collection_plan(
         prediction_snapshot=snapshots["prediction-summaries"],
@@ -2116,6 +2686,26 @@ def build_acceleration_inventory(
         decision_records=decision_records or [],
         floor_forensics=floor_forensics,
     )
+    freshness_actionability = build_freshness_actionability(snapshot_statuses, generated_at=generated)
+    service_user_sla_fit = build_service_user_sla_fit(
+        decision_surface,
+        freshness_actionability=freshness_actionability,
+        generated_at=generated,
+    )
+    decision_outcome_closure = build_decision_outcome_closure(decision_records or [], generated_at=generated)
+    recovery_admission = build_recovery_admission(
+        decision_surface,
+        freshness_actionability=freshness_actionability,
+        generated_at=generated,
+    )
+    anti_flapping = build_anti_flapping(decision_records or [], generated_at=generated)
+    routing_foundation_partial = {
+        "service_user_sla_fit": service_user_sla_fit,
+        "decision_outcome_closure": decision_outcome_closure,
+        "recovery_admission": recovery_admission,
+        "anti_flapping": anti_flapping,
+        "freshness_actionability": freshness_actionability,
+    }
     knowledge_quality_read_model = build_knowledge_quality_read_model(
         generated_at=generated,
         prediction_plan=prediction_plan,
@@ -2125,6 +2715,15 @@ def build_acceleration_inventory(
         materialization_audit=materialization_audit,
         source_confidence_inventory=source_confidence_inventory,
         candidate_outcome_reality_collection=candidate_outcome_reality_collection,
+        routing_foundation=routing_foundation_partial,
+    )
+    routing_recommendation_readiness = build_routing_recommendation_readiness(
+        service_user_sla_fit=service_user_sla_fit,
+        decision_outcome_closure=decision_outcome_closure,
+        recovery_admission=recovery_admission,
+        anti_flapping=anti_flapping,
+        freshness_actionability=freshness_actionability,
+        knowledge_quality_read_model=knowledge_quality_read_model,
     )
     return {
         "schema_version": "v7.autonomy-trust-acceleration.inventory.v1",
@@ -2144,6 +2743,12 @@ def build_acceleration_inventory(
         "real_outcome_source_inventory": real_outcome_source_inventory,
         "candidate_outcome_reality_collection": candidate_outcome_reality_collection,
         "real_outcome_growth_projection": real_outcome_growth_projection,
+        "service_user_sla_fit": service_user_sla_fit,
+        "decision_outcome_closure": decision_outcome_closure,
+        "recovery_admission": recovery_admission,
+        "anti_flapping": anti_flapping,
+        "freshness_actionability": freshness_actionability,
+        "routing_recommendation_readiness": routing_recommendation_readiness,
         "knowledge_quality_read_model": knowledge_quality_read_model,
         "knowledge_objects": knowledge_quality_read_model["knowledge_objects"],
         "maturity_distribution": knowledge_quality_read_model["maturity_distribution"],

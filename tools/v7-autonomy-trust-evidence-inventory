@@ -97,6 +97,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--snapshot-root", default="")
     parser.add_argument("--audit-dir", default="")
     parser.add_argument("--knowledge-quality-only", action="store_true")
+    parser.add_argument("--routing-foundation-only", action="store_true")
     parser.add_argument("--pretty", action="store_true")
     return parser
 
@@ -152,6 +153,18 @@ def main(argv=None) -> int:
     }
     if args.knowledge_quality_only:
         payload = payload["knowledge_quality_read_model"]
+    if args.routing_foundation_only:
+        payload = {
+            key: payload[key]
+            for key in [
+                "service_user_sla_fit",
+                "decision_outcome_closure",
+                "recovery_admission",
+                "anti_flapping",
+                "freshness_actionability",
+                "routing_recommendation_readiness",
+            ]
+        }
     print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
     return 0
 

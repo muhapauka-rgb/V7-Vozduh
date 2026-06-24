@@ -71,6 +71,7 @@ Current production alignment:
 - AUTONOMY.EVIDENCE.SATURATION.MODEL clarified whether V7 can ever know it knows enough. Final verdict is `SATURATION_MODEL_PARTIAL`: V7 has bounded component confidence models, tier floors, candidate coverage, and projections, so autonomy readiness is structurally reachable with high-quality real evidence and explicit authority. The missing part was an explicit saturation contract. Future phases must name the unsaturated component, tier, current value, floor, and exact real evidence needed instead of asking for generic more evidence.
 - V7.IDEAL.AUTONOMOUS.ROUTING.SYSTEM.MODEL created the canonical target model for V7 as a `10,000+` user / `100+` channel event-driven autonomous routing control plane. Final verdict is `IDEAL_MODEL_CREATED`. The model confirms current architecture shape is right and most owners already exist, while the remaining gaps are knowledge maturity, service/user/SLA fit, passive outcome closure, recovery admission, anti-flapping, autonomous rollback certification, freshness/decay, aggregated read models, and 10k-scale operator triage. No runtime behavior, code, formula, floor, planner, governance, execution, truth source, daemon, autoswitch, apply, synthetic evidence, or user movement changed.
 - V7.KNOWLEDGE.QUALITY.MODEL created the canonical model for evaluating routing knowledge quality. Final verdict is `KNOWLEDGE_MODEL_COMPLETE`. Current V7 knowledge is broad, but only Safety Knowledge is autonomy-grade today. The current blockers are quality and maturity gaps: suitability correctness, service/user/SLA fit, passive outcome closure, recovery admission, freshness/decay, source confidence, anti-flap knowledge, and autonomous rollback certification. No runtime behavior, code, formula, floor, planner, governance, execution, truth source, daemon, autoswitch, apply, synthetic evidence, storage, or user movement changed.
+- V7.AUTONOMOUS.ROUTING.FIT_OUTCOME_RECOVERY_FOUNDATION implemented the first read-only routing foundation through the existing trust/evidence inventory owner. The new surfaces are `service_user_sla_fit`, `decision_outcome_closure`, `recovery_admission`, `anti_flapping`, `freshness_actionability`, and `routing_recommendation_readiness`. They expose service/user/SLA fit, outcome closure fields, staged recovery admission, anti-flap blocks, and stale-evidence actionability without changing planner, formulas, floors, governance, execution, storage, snapshots, daemon state, autoswitch, apply, synthetic evidence, or user movement.
 
 ## 2. Full System Inventory
 
@@ -78,7 +79,7 @@ Current production alignment:
 | --- | --- | --- | --- | --- | ---: | --- |
 | Reference / ADR system | Documentation workflow | `docs/reference/V7_CANONICAL_REFERENCE.md`, `docs/reference/SYSTEM_MAP.md`, `docs/decisions/` | Preserve current truth and decisions | ACTIVE | 95% | Reference-first rule accepted |
 | Ideal Autonomous Routing Model | Documentation workflow / future architecture contract | `docs/reference/V7_IDEAL_AUTONOMOUS_ROUTING_MODEL.md`, `docs/reports/V7_IDEAL_AUTONOMOUS_ROUTING_SYSTEM_MODEL_REPORT.md`, `docs/decisions/ADR-V7-IDEAL-AUTONOMOUS-ROUTING-MODEL.md` | Canonical target for event-driven routing at `10,000+` users and `100+` channels | ACTIVE_REFERENCE | 100% model / 0% direct runtime behavior | Ideal target locked; next phase is knowledge quality model |
-| Knowledge Quality Model | Documentation workflow / future read-model contract | `docs/reference/V7_KNOWLEDGE_QUALITY_MODEL.md`, `docs/reports/V7_KNOWLEDGE_QUALITY_MODEL_REPORT.md`, `docs/decisions/ADR-V7-KNOWLEDGE-QUALITY-MODEL.md` | Canonical quality/maturity model for routing knowledge | ACTIVE_REFERENCE | 100% model / 0% direct runtime behavior | Knowledge quality locked; next phase is read-only quality read model |
+| Knowledge Quality Model | Documentation workflow / read-model contract | `docs/reference/V7_KNOWLEDGE_QUALITY_MODEL.md`, `docs/reports/V7_KNOWLEDGE_QUALITY_MODEL_REPORT.md`, `docs/decisions/ADR-V7-KNOWLEDGE-QUALITY-MODEL.md`, `admin_core/autonomy_trust_acceleration.py` | Canonical quality/maturity model for routing knowledge plus implemented read-only overlays | ACTIVE_REFERENCE_AND_READ_MODEL | 100% model / read-only runtime surface active | Knowledge quality locked; routing foundation overlays active without action authority |
 | Truth / Convergence | Truth owner | `tools/v7-truth-check`, `tools/v7-convergence-status`, `tools/v7_sync_lib.py` | Local/GitHub/runtime/deploy alignment | ACTIVE | 100% | PASS / ALIGNED after Branch 1B deploy |
 | Observation | Runtime tools and admin read models | `tools/v7-egress-quality-compact`, `tools/v7-service-matrix-refresh-all`, `tools/v7-telegram-sentinel`, `admin_core/*_views.py` | Observe service, quality, route, runtime, capacity, state | ACTIVE | 90% | Certified as read-only sources |
 | Service Matrix | Service health owner | `tools/v7-service-matrix-refresh-all`, `tools/v7-service-matrix-test`, `admin_core/service_views.py` | Per-channel service availability/freshness | ACTIVE | 90% | Periodic refresh exists; manual targeted refresh exists |
@@ -630,16 +631,16 @@ Do not delete immediately. Classify first.
 
 ## 12. Top 10 Next Actions
 
-1. Run `AUTONOMY.CANDIDATE_OUTCOME.GOVERNED_REALITY_GENERATION` through existing candidate/outcome owners.
-2. Continue service/channel real probe cycles through existing service, quality, prediction, feedback, and closure owners.
-3. Collect time-separated prediction forecast -> later actual evidence until forecast source confidence rises.
-4. Collect contextual operator comparisons only where the operator has enough context.
-5. Recheck restore barrier creation for a single event-triggered packet in preview mode after evidence floors improve.
-6. Recheck rollback packet readiness for the same single event-triggered packet.
-7. Use the existing knowledge quality read model to show maturity, tier readiness, 10k readiness, and P0 gaps without granting action authority.
-8. Keep `v7-users-autoswitch.service/timer` inactive until confidence/trust/prediction floors pass.
+1. Use `tools/v7-autonomy-trust-evidence-inventory --routing-foundation-only` before any routing/autonomy escalation.
+2. Generate real decision outcome closure through existing governed/manual action owners; do not synthesize missing closure fields.
+3. Continue service/channel real probe cycles through existing service, quality, prediction, feedback, and closure owners.
+4. Run `AUTONOMY.CANDIDATE_OUTCOME.GOVERNED_REALITY_GENERATION` through existing candidate/outcome owners.
+5. Collect time-separated prediction forecast -> later actual evidence until forecast source confidence rises.
+6. Collect contextual operator comparisons only where the operator has enough context.
+7. Recheck restore barrier creation for a single event-triggered packet in preview mode after evidence floors improve.
+8. Keep `v7-users-autoswitch.service/timer` inactive until confidence/trust/prediction floors pass and routing foundation readiness is clean.
 9. Preserve Branch 1B evidence and never replace it with synthetic records.
-10. Keep refresh durability and confidence reality audit protected by tests whenever evidence-store lifecycle changes.
+10. Keep freshness/recovery/anti-flap/closure tests protected whenever evidence-store lifecycle changes.
 
 ## 13. Final Blueprint Verdict
 

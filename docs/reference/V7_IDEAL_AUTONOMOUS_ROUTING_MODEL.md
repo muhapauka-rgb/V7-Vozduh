@@ -422,10 +422,10 @@ Therefore current data is insufficient because it is not yet autonomy-grade know
 
 ### NEXT
 
-- Add knowledge quality/readiness views.
-- Close service/user/channel outcome loops.
-- Add SLA/user cohort concepts as read models.
-- Certify recovery admission and anti-flapping semantics.
+- Keep knowledge quality/readiness views and routing foundation overlays wired through the existing trust/evidence owner.
+- Close service/user/channel outcome loops with real outcome records.
+- Extend SLA/user cohort concepts from read-only fit into certified planner inputs only after contract proof.
+- Certify recovery admission and anti-flapping semantics with real recovery/outcome evidence.
 - Certify TIER_2 governed canary after floors pass.
 
 ### POST-PRODUCTION SCALE
@@ -445,8 +445,8 @@ Therefore current data is insufficient because it is not yet autonomy-grade know
 | 1. Ideal Model + Knowledge Contract | Lock target model. | Docs/reference/ADR only. | Runtime/planner/execution. | Truth/convergence. | Low | Ideal model created. |
 | 2. Knowledge Quality Model | Expose quality by freshness/coverage/correctness/actionability. | Existing read-model owners only. | Floors/formulas initially. | Unit + snapshot + truth. | Medium | Operator can see why evidence is not enough. |
 | 3. Passive + Active Evidence Upgrade | Collect better real outcomes. | Existing service/quality/feedback owners. | No synthetic evidence. | Lifecycle tests. | Medium | Source confidence rises through real cycles. |
-| 4. Service/User/Channel Outcome Closure | Tie decisions to verified outcomes. | Existing execution/feedback/intelligence. | Planner authority. | End-to-end dry-run + closure tests. | Medium | Candidate outcomes become actionable knowledge. |
-| 5. Autonomous Routing Decision Upgrade | Add service/user/SLA fit. | Extend planner/read adapters after contract. | One planner/truth source. | Planner regression tests. | High | Decisions explain user/service fit. |
+| 4. Service/User/Channel Outcome Closure | Tie decisions to verified outcomes. | Existing execution/feedback/intelligence; read-only closure contract active in routing foundation. | Planner authority. | End-to-end dry-run + closure tests. | Medium | Candidate outcomes become actionable knowledge. |
+| 5. Autonomous Routing Decision Upgrade | Add service/user/SLA fit. | Read-only fit model active through existing trust/evidence inventory; future planner impact requires certification. | One planner/truth source. | Fit contract + planner regression tests. | High | Decisions explain user/service fit without bypassing governance. |
 | 6. Event-Driven Bounded Autonomy | Enable event -> bounded action after floors. | Existing event/planner/packet/execution owners. | No timer-only movement. | Canary + rollback tests. | High | TIER_3 one-user autonomous canary passes. |
 | 7. Scale Foundation For 10,000 Users | Build aggregated evidence/read models. | Existing-owner evidence index/freshness. | No direct planner impact until shadow passes. | Load/query/shadow tests. | Medium | 100+ channel, 10k user reads stay fast. |
 | 8. Production Autonomy | Controlled production event-driven routing. | Enable certified controller authority. | Truth/convergence/rollback. | Production canary ladder. | Critical | TIER_6 approved and monitored. |
@@ -492,4 +492,3 @@ Industry sources:
 `IDEAL_MODEL_CREATED`
 
 V7's ideal is reachable in architecture shape, but not yet in runtime readiness. The current system already has most owners. The gap is knowledge maturity, service/user/SLA fit, passive outcome closure, recovery admission, anti-flapping, and certified event-driven authority at scale.
-

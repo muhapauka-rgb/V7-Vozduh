@@ -196,13 +196,13 @@ These are missing knowledge, not missing code owners.
 | Capacity | PARTIAL | Configured limits scale; observed practical capacity is not implemented. |
 | Quality | PARTIAL | Quality compact exists; 10k needs indexed summaries and freshness/decay. |
 | Failure | PARTIAL | Events exist; attention prioritization needs cohort impact and source maturity. |
-| Recovery | NOT_READY | Staged recovery admission is not canonical enough. |
+| Recovery | PARTIAL | Staged recovery admission is now exposed as a read-only contract; it is not yet autonomy-grade or planner authority. |
 | Decision Outcome | PARTIAL | Outcome closure exists but coverage is incomplete. |
 | Prediction | PARTIAL | Lifecycle works; source confidence and future cycles are the issue. |
 | Suitability | NOT_READY | Current suitability is too low/incomplete for broad autonomy. |
 | Trust | PARTIAL | Gates are structurally correct; inputs are not enough. |
 | Policy | PARTIAL | Current policy works; SLA/cohort policy needs richer modeling. |
-| Freshness | NOT_READY | Future freshness/index model is documented but not active. |
+| Freshness | PARTIAL | Freshness actionability labels are now exposed through the existing trust/evidence inventory; long-term evidence index remains deferred. |
 | Safety | READY | Restore/rollback/blast knowledge is the strongest area. |
 | Event | PARTIAL | Read-only chain certified; apply authority missing by design. |
 | Operator Context | NOT_READY | Secondary path exists but evidence is sparse and contextual only. |
@@ -212,9 +212,9 @@ These are missing knowledge, not missing code owners.
 | Priority | Current Knowledge State | Required Knowledge State | Gap | Implementation Path |
 | --- | --- | --- | --- | --- |
 | P0 | Suitability is `STABLE_SIGNAL`. | Suitability becomes `ACTIONABLE_KNOWLEDGE`. | Coverage/correctness. | Use existing candidate outcome, feedback, and intelligence owners; no synthetic evidence. |
-| P0 | Recovery is `STABLE_SIGNAL`. | Recovery becomes `ACTIONABLE_KNOWLEDGE`. | Admission/hysteresis. | Define recovery admission contract in planner/read models before any autonomous recovery. |
-| P0 | Freshness is implicit/supporting. | Freshness blocks stale action and labels stale knowledge. | Explicit decay/actionability. | Add read-only freshness/maturity labels through existing snapshot/trust inventory owners. |
-| P0 | Service knowledge is probe-heavy. | Service knowledge is service/user/SLA outcome-aware. | Service relevance and user impact. | Extend existing service/intelligence summaries; keep planner unchanged until contract is proven. |
+| P0 | Recovery is `STABLE_SIGNAL`. | Recovery becomes `ACTIONABLE_KNOWLEDGE`. | Admission/hysteresis. | Read-only recovery admission exists in `build_recovery_admission`; next step is real recovery evidence and certification before planner impact. |
+| P0 | Freshness is implicit/supporting. | Freshness blocks stale action and labels stale knowledge. | Explicit decay/actionability. | Read-only freshness actionability exists in `build_freshness_actionability`; long-term evidence index remains deferred. |
+| P0 | Service knowledge is probe-heavy. | Service knowledge is service/user/SLA outcome-aware. | Service relevance and user impact. | Read-only service/user/SLA fit exists in `build_service_user_sla_fit`; keep planner unchanged until contract is proven. |
 | P0 | Safety is strong but autonomous rollback not certified. | Rollback is certified for autonomous tier. | Operator-free verification. | Certify one-user rollback before TIER_3. |
 | P1 | Prediction matches are accurate but under-confident. | Prediction source confidence grows through future real cycles. | Source confidence. | Continue forecast-to-later-actual evidence through existing owners. |
 | P1 | Event consumer is read-only. | Event can trigger bounded apply after floors. | Authority. | Keep read-only until confidence/trust/prediction and restore/rollback pass. |
@@ -233,6 +233,7 @@ The canonical knowledge quality model is exposed through the existing autonomy t
 | `admin_core/autonomy_trust_acceleration.py::build_knowledge_quality_read_model` | Existing read-only trust/evidence owner | Build deterministic knowledge quality JSON. |
 | `tools/v7-autonomy-trust-evidence-inventory` | Existing CLI inventory surface | Includes the read model in the standard inventory payload. |
 | `tools/v7-autonomy-trust-evidence-inventory --knowledge-quality-only` | Existing CLI inventory surface | Prints only the knowledge quality read model. |
+| `tools/v7-autonomy-trust-evidence-inventory --routing-foundation-only` | Existing CLI inventory surface | Prints service/user/SLA fit, decision outcome closure, recovery admission, anti-flap, freshness actionability, and routing recommendation readiness. |
 
 Stable output fields:
 
@@ -251,6 +252,15 @@ Read-model rules:
 3. Dynamic evidence overlays may show current inventory facts, but they do not rewrite the canonical score table.
 4. The read model is not an action authority.
 5. It must not move users, execute apply, enable daemons, create evidence, change formulas, change floors, change planner, change governance, change execution, create storage, or create a truth source.
+
+Routing foundation overlay:
+
+1. Service Knowledge receives a service/user/SLA fit overlay from existing decision/candidate/snapshot data.
+2. Suitability Knowledge receives fit-context visibility, but its coverage/correctness score does not rise without real candidate outcomes.
+3. Recovery Knowledge receives staged admission state, but a single PASS cannot make a channel eligible.
+4. Freshness Knowledge receives actionability classes: `ACTIONABLE_NOW`, `STALE_RECHECK_REQUIRED`, `DIAGNOSTIC_ONLY`, `HISTORY_ONLY`, `UNKNOWN`.
+5. Decision Outcome Knowledge receives closure-state visibility and required field checks; missing fields remain blockers.
+6. Autonomy readiness receives `routing_recommendation_readiness`, which is read-only and cannot grant apply authority.
 
 Current maturity distribution from the read model:
 

@@ -90,6 +90,13 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "v7-governed-canary-dry-run-cycle",
+        "local_path": "tools/v7-governed-canary-dry-run-cycle",
+        "remote_path": "/usr/local/bin/v7-governed-canary-dry-run-cycle",
+        "mode": "0755",
+        "service": None,
+    },
+    {
         "name": "v7-service-matrix-refresh-all",
         "local_path": "tools/v7-service-matrix-refresh-all",
         "remote_path": "/usr/local/bin/v7-service-matrix-refresh-all",
@@ -324,6 +331,7 @@ RUNTIME_ENTRYPOINTS = (
     "tools/v7-telegram-sentinel",
     "admin/v7-admin-api",
     "tools/v7-operator-execution-packet",
+    "tools/v7-governed-canary-dry-run-cycle",
 )
 
 SNAPSHOT_REQUIRED_FILES = (

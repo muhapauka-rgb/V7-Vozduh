@@ -77,6 +77,7 @@ class V7SyncToolsTest(unittest.TestCase):
         remote_paths = {item["remote_path"] for item in self.lib.APPROVED_DEPLOY_FILES}
         self.assertIn("/usr/local/bin/v7-users-autoswitch", remote_paths)
         self.assertIn("/usr/local/bin/v7-intelligence-snapshot-refresh", remote_paths)
+        self.assertIn("/usr/local/bin/v7-governed-canary-dry-run-cycle", remote_paths)
         self.assertIn("/etc/systemd/system/v7-autoswitch-planner.service", remote_paths)
         self.assertIn("/usr/local/bin/admin_core/intelligence_snapshots.py", remote_paths)
         self.assertIn("/usr/local/bin/admin_core/intelligence_workers.py", remote_paths)

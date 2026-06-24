@@ -349,6 +349,22 @@ Related ADR: `docs/decisions/ADR-FUTURE-EVIDENCE-INDEX-AND-FRESHNESS-MODEL.md`.
 8. Related report / ADR: `docs/reports/AUTONOMY_FLOOR_SEMANTICS_AND_RISK_TIER_REVIEW_REPORT.md`, `docs/decisions/ADR-AUTONOMY-RISK-TIERED-FLOORS.md`.
 9. AUTONOMY.TIER1.GOVERNED_CANARY.READINESS confirms the same tier semantics on fresh production evidence: `TIER_1 MARGINAL_OPERATOR_REVIEW`, `TIER_2+ NO_GO`, and no autonomous apply authority. Current planner-selected TIER_1 packet is `10.7.0.5 vless -> awg0`; the packet and restore preview are valid, but execution is still a separate governed apply decision.
 
+## AUTONOMY_TRUST_SUFFICIENCY_MODEL
+
+1. Trust sufficiency means "enough trust for this tier", not "enough trust for every autonomy tier".
+2. Current stable verdict is `TRUST_MODEL_MIXED`.
+3. The model is correct and safe for blocking autonomous canary and production autonomy: current production remains `TIER_2+ NO_GO` and autonomous one-user canary remains `NO_GO`.
+4. The model is also correct for `TIER_1`: a first one-user governed canary may be `MARGINAL_OPERATOR_REVIEW` when non-negotiable gates are clean, but this is not an autonomous GO.
+5. The mixed part is semantic/operational clarity: `70/70/70` must be described as the hard governed/autonomous progression boundary for TIER_2 and TIER_3+, not as a requirement to merely prepare a TIER_1 operator-reviewed packet.
+6. Current production facts remain: prediction `21/21`, candidate outcomes `84/156`, missing outcomes `72`, blast `100`, rollback `100`, capture/visibility/aggregation loss `0`, confidence about `38.8`, trust about `54.1`, prediction confidence about `35.5`, operator earned confidence about `45.8`.
+7. Full candidate coverage alone is not sufficient. Current projection for converting all `72` missing candidate outcomes reaches only about confidence `51.832`, trust `62.794`, suitability `52.769`, and still fails primary canary floors.
+8. Prediction is undervalued as raw accuracy but fairly discounted as autonomy source confidence because the formula is `mean(matched_forecast_accuracy) * mean(forecast_confidence)`.
+9. Blast and rollback confidence make a bounded governed canary safer, but they do not substitute for prediction, service, or suitability evidence.
+10. No floor, formula, planner, governance, execution, truth source, daemon, autoswitch, runtime apply, synthetic evidence, or user movement changed in AUTONOMY.TRUST.SUFFICIENCY.MODEL.
+11. The exact next phase is `AUTONOMY.TIER1.GOVERNED_CANARY.APPLY_DECISION`: approve or reject packet `pkt_7c64f53a8fd169a07445c438` (`10.7.0.5 vless -> awg0`) through existing owners only.
+12. Related report / ADR: `docs/reports/AUTONOMY_TRUST_SUFFICIENCY_MODEL_REPORT.md`, ADR-AUTONOMY-TRUST-SUFFICIENCY-TIER-AWARE.
+13. Last verified commit: `d4ee291be875b825fb883d835621c8530c8eda8c`.
+
 ## AUTONOMY_ROOT_CONFIDENCE_TRUST_MODEL
 
 1. V7 has two related but separate confidence layers: governed execution evidence and operator-free autonomy evidence.

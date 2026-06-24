@@ -836,6 +836,71 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertFalse(suitability_overlay["autonomy_grade_ready"])
         self.assertIn("candidate_source_confidence_below_confirmed_floor", suitability_overlay["primary_blockers"])
 
+    def test_autonomous_knowledge_growth_program_exposes_cycle_maturity(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        program = inventory["autonomous_knowledge_growth_program"]
+        self.assertEqual(program["schema_version"], "v7.autonomy-trust.autonomous-knowledge-growth-program.v1")
+        self.assertEqual(program["cycle_count"], 12)
+        self.assertGreater(program["overall_autonomy_maturity_score"], 0)
+        self.assertFalse(program["runtime_apply_allowed"])
+        self.assertFalse(program["runtime_mutation_performed"])
+        self.assertEqual(program["users_moved"], 0)
+        self.assertFalse(program["apply_executed"])
+        self.assertFalse(program["synthetic_evidence_created"])
+        cycles = {row["cycle"]: row for row in program["cycles"]}
+        self.assertEqual(cycles["Knowledge-Gated Dry-Run Cycle"]["automation_level"], "AUTONOMOUS_UNTIL_BOUNDARY")
+        self.assertEqual(cycles["Knowledge-Gated Dry-Run Cycle"]["authority_boundary"], "AUTHORITY_BOUNDARY")
+        self.assertEqual(cycles["Outcome Leverage Cycle"]["automation_level"], "FULLY_AUTONOMOUS")
+        self.assertIn("Suitability Growth Cycle", program["cycles_more_autonomous_after_this_phase"])
+        self.assertIn("AUTHORITY_BOUNDARY", program["legitimate_boundaries"])
+        for row in program["cycles"]:
+            self.assertFalse(row["runtime_mutation_performed"])
+            self.assertFalse(row["apply_executed"])
+            self.assertEqual(row["users_moved"], 0)
+
+    def test_autonomous_knowledge_growth_program_survives_refresh_rebuild(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            first = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+            second = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=json.loads(json.dumps(self.decision_surface(), sort_keys=True)),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:01:00+00:00",
+            )
+
+        first_program = first["autonomous_knowledge_growth_program"]
+        second_program = second["autonomous_knowledge_growth_program"]
+        self.assertEqual(first_program["cycle_count"], second_program["cycle_count"])
+        self.assertEqual(first_program["automation_counts"], second_program["automation_counts"])
+        self.assertEqual(first_program["automation_percentages"], second_program["automation_percentages"])
+        self.assertEqual(first_program["overall_autonomy_maturity_score"], second_program["overall_autonomy_maturity_score"])
+        self.assertEqual(
+            {row["cycle"]: row["automation_level"] for row in first_program["cycles"]},
+            {row["cycle"]: row["automation_level"] for row in second_program["cycles"]},
+        )
+        self.assertFalse(second_program["runtime_mutation_performed"])
+        self.assertEqual(second_program["users_moved"], 0)
+        self.assertFalse(second_program["apply_executed"])
+
 
 if __name__ == "__main__":
     unittest.main()

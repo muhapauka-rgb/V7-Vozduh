@@ -1915,6 +1915,277 @@ def build_autonomy_grade_suitability_program(
     }
 
 
+AUTONOMY_CYCLE_LEVEL_SCORES = {
+    "MANUAL": 0.0,
+    "PARTIALLY_AUTOMATED": 0.5,
+    "AUTONOMOUS_UNTIL_BOUNDARY": 0.85,
+    "FULLY_AUTONOMOUS": 1.0,
+}
+
+
+def _cycle_row(
+    *,
+    cycle: str,
+    owner: str,
+    trigger: str,
+    state_transitions: list[str],
+    output: str,
+    authority_boundary: str,
+    automation_level: str,
+    blockers: list[str] | None = None,
+    safe_next_step: str = "",
+) -> dict[str, Any]:
+    blockers = blockers or []
+    score = AUTONOMY_CYCLE_LEVEL_SCORES.get(automation_level, 0.0)
+    gap_classes: list[str] = []
+    if not trigger:
+        gap_classes.append("MISSING_TRIGGER")
+    if any("missing" in str(item).lower() or "unknown" in str(item).lower() for item in blockers):
+        gap_classes.append("MISSING_READINESS")
+    if "outcome" in " ".join(blockers).lower() and automation_level != "FULLY_AUTONOMOUS":
+        gap_classes.append("MISSING_FEEDBACK")
+    if authority_boundary and automation_level == "AUTONOMOUS_UNTIL_BOUNDARY":
+        gap_classes.append("AUTHORITY_BOUNDARY")
+    if not gap_classes and automation_level == "PARTIALLY_AUTOMATED":
+        gap_classes.append("MISSING_STATE_TRANSITION")
+    if not gap_classes:
+        gap_classes.append("NONE")
+    return {
+        "cycle": cycle,
+        "owner": owner,
+        "trigger": trigger,
+        "state_transitions": state_transitions,
+        "output": output,
+        "authority_boundary": authority_boundary,
+        "automation_level": automation_level,
+        "automation_score": score,
+        "gap_classes": sorted(set(gap_classes)),
+        "blockers": blockers,
+        "safe_next_step": safe_next_step,
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
+def build_autonomous_knowledge_growth_program(
+    *,
+    knowledge_quality_read_model: dict[str, Any],
+    suitability_quality_model: dict[str, Any],
+    suitability_knowledge_growth: dict[str, Any],
+    prediction_plan: dict[str, Any],
+    real_outcome_source_inventory: dict[str, Any],
+    freshness_actionability: dict[str, Any],
+    recovery_admission: dict[str, Any],
+    decision_outcome_closure: dict[str, Any],
+    decision_outcome_learning: dict[str, Any],
+    routing_recommendation_readiness: dict[str, Any],
+    outcome_leverage_model: dict[str, Any],
+    canary_proximity: dict[str, Any],
+) -> dict[str, Any]:
+    """Classify how far existing autonomy cycles run without human intervention.
+
+    This is a read-only orchestration inventory. It does not call tools, write
+    state, enable timers, or change authority; it only exposes the next
+    legitimate boundary for each existing cycle.
+    """
+    knowledge_overall = (knowledge_quality_read_model.get("10k_readiness") or {}).get("overall", "UNKNOWN")
+    suitability_blockers = (suitability_quality_model.get("missing_knowledge") or {}).get("primary_blockers", [])
+    freshness_domains = freshness_actionability.get("domains") if isinstance(freshness_actionability.get("domains"), dict) else {}
+    stale_domains = [
+        name for name, row in sorted(freshness_domains.items())
+        if isinstance(row, dict) and row.get("classification") in {"STALE_RECHECK_REQUIRED", "UNKNOWN"}
+    ]
+    source_items = real_outcome_source_inventory.get("items") if isinstance(real_outcome_source_inventory.get("items"), list) else []
+    service_sources = [row for row in source_items if isinstance(row, dict) and row.get("source") in {"service_outcomes", "channel_outcomes"}]
+    service_acceleratable = any(row.get("classification") == "ACCELERATABLE" for row in service_sources)
+    candidate_gap = suitability_knowledge_growth.get("candidate_outcome_gap") if isinstance(suitability_knowledge_growth.get("candidate_outcome_gap"), dict) else {}
+    learning_growth = decision_outcome_learning.get("knowledge_growth") if isinstance(decision_outcome_learning.get("knowledge_growth"), dict) else {}
+    closure_state = decision_outcome_closure.get("closure_state", "UNKNOWN")
+    routing_blockers = list(routing_recommendation_readiness.get("blockers") or [])
+    canary_missing = list(canary_proximity.get("missing") or [])
+    outcome_leverage_verdict = outcome_leverage_model.get("final_verdict", "UNKNOWN")
+
+    cycles = [
+        _cycle_row(
+            cycle="Knowledge Quality Cycle",
+            owner="admin_core.autonomy_trust_acceleration.build_knowledge_quality_read_model",
+            trigger="trust evidence inventory run or snapshot refresh",
+            state_transitions=["snapshots", "dynamic overlays", "knowledge objects", "tier readiness"],
+            output="knowledge_quality_read_model",
+            authority_boundary="knowledge_quality_not_autonomy_ready" if knowledge_overall != "READY" else "",
+            automation_level="FULLY_AUTONOMOUS",
+            blockers=[] if knowledge_overall == "READY" else [f"10k_readiness={knowledge_overall}"],
+            safe_next_step="continue producing read-only readiness on every inventory run",
+        ),
+        _cycle_row(
+            cycle="Suitability Growth Cycle",
+            owner="admin_core.autonomy_trust_acceleration suitability program",
+            trigger="candidate outcomes appear in existing governed/manual/feedback records",
+            state_transitions=["candidate", "selection", "decision", "packet", "verification", "outcome", "learning", "future suitability"],
+            output="suitability_quality_model + suitability_knowledge_growth",
+            authority_boundary="real governed/manual candidate outcome required",
+            automation_level="AUTONOMOUS_UNTIL_BOUNDARY",
+            blockers=list(suitability_blockers),
+            safe_next_step="collect real candidate outcome through existing governed/manual owner, then refresh snapshots",
+        ),
+        _cycle_row(
+            cycle="Prediction Growth Cycle",
+            owner="prediction snapshots + trust-evolution prediction accuracy",
+            trigger="forecast rows and later actual rows exist",
+            state_transitions=["forecast", "actual", "match", "prediction confidence"],
+            output="prediction_evidence",
+            authority_boundary="wait_for_time_separated_real_actuals",
+            automation_level="AUTONOMOUS_UNTIL_BOUNDARY" if prediction_plan.get("pending_rows", 0) else "FULLY_AUTONOMOUS",
+            blockers=[] if prediction_plan.get("pending_rows", 0) else ["no_pending_prediction_rows"],
+            safe_next_step="continue forecast-to-actual cycles through existing snapshot owners",
+        ),
+        _cycle_row(
+            cycle="Service Verification Cycle",
+            owner="service matrix / quality compact / intelligence snapshot refresh",
+            trigger="periodic or manual service/quality probes",
+            state_transitions=["probe", "service score", "channel score", "snapshot refresh", "trust inventory"],
+            output="service/channel outcome source confidence",
+            authority_boundary="real probe evidence only",
+            automation_level="PARTIALLY_AUTOMATED" if service_acceleratable else "MANUAL",
+            blockers=[] if service_acceleratable else ["service_probe_source_not_acceleratable"],
+            safe_next_step="run existing service/quality probes and refresh snapshots; do not move users",
+        ),
+        _cycle_row(
+            cycle="Freshness Cycle",
+            owner="admin_core.autonomy_trust_acceleration.build_freshness_actionability",
+            trigger="snapshot read",
+            state_transitions=["snapshot statuses", "domain freshness", "actionability classification"],
+            output="freshness_actionability",
+            authority_boundary="stale domains require recheck",
+            automation_level="FULLY_AUTONOMOUS",
+            blockers=[f"stale_or_unknown:{','.join(stale_domains)}"] if stale_domains else [],
+            safe_next_step="keep freshness as blocking read-only guard",
+        ),
+        _cycle_row(
+            cycle="Recovery Cycle",
+            owner="admin_core.autonomy_trust_acceleration.build_recovery_admission",
+            trigger="trust inventory run with recovery/channel inputs",
+            state_transitions=["channel state", "successful checks", "cooldown/quarantine", "admission state"],
+            output="recovery_admission",
+            authority_boundary="real recovery evidence and operator/governed authority required",
+            automation_level="AUTONOMOUS_UNTIL_BOUNDARY",
+            blockers=[] if not (recovery_admission.get("summary") or {}).get("blocked_or_quarantined") else ["blocked_or_quarantined_channels"],
+            safe_next_step="continue staged recovery admission; do not promote from one pass",
+        ),
+        _cycle_row(
+            cycle="Outcome Closure Cycle",
+            owner="admin_core.autonomy_trust_acceleration.build_decision_outcome_closure",
+            trigger="existing decision records with required outcome closure fields",
+            state_transitions=["decision record", "closure field validation", "closure state"],
+            output="decision_outcome_closure",
+            authority_boundary="real post-action outcome required",
+            automation_level="AUTONOMOUS_UNTIL_BOUNDARY" if closure_state == "COMPLETE" else "PARTIALLY_AUTOMATED",
+            blockers=[] if closure_state == "COMPLETE" else [f"closure_state={closure_state}"],
+            safe_next_step="close outcomes only after real governed/manual actions",
+        ),
+        _cycle_row(
+            cycle="Learning Cycle",
+            owner="admin_core.operator_execution_feedback + trust-evolution summaries",
+            trigger="closed outcome feedback records",
+            state_transitions=["outcome quality", "learning record", "knowledge growth", "decision effectiveness"],
+            output="decision_outcome_learning",
+            authority_boundary="real outcome required before learning can grow",
+            automation_level="AUTONOMOUS_UNTIL_BOUNDARY",
+            blockers=[] if learning_growth.get("knowledge_gained", 0) else ["no_new_closed_outcome_to_learn_from"],
+            safe_next_step="refresh intelligence after any real outcome closure",
+        ),
+        _cycle_row(
+            cycle="Knowledge-Gated Dry-Run Cycle",
+            owner="admin_core.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle",
+            trigger="current event or current-state candidate",
+            state_transitions=["event/current state", "knowledge gates", "decision", "packet preview", "restore preview", "rollback preview", "verification plan", "outcome closure plan", "learning path", "authority boundary"],
+            output="governed canary dry-run cycle payload",
+            authority_boundary="AUTHORITY_BOUNDARY",
+            automation_level="AUTONOMOUS_UNTIL_BOUNDARY",
+            blockers=list(canary_missing),
+            safe_next_step="run existing dry-run CLI; stop before restore-barrier write/apply",
+        ),
+        _cycle_row(
+            cycle="Event Detection Cycle",
+            owner="admin_core.events + read-only event consumer",
+            trigger="service/channel/quality/runtime regression event",
+            state_transitions=["event", "classification", "planner preview", "dry-run preparation"],
+            output="read-only event-driven preparation",
+            authority_boundary="runtime apply authority disabled",
+            automation_level="AUTONOMOUS_UNTIL_BOUNDARY",
+            blockers=["autoswitch_service_inactive_approved_manual_mode"],
+            safe_next_step="keep event consumer read-only until floors and authority pass",
+        ),
+        _cycle_row(
+            cycle="Decision Effectiveness Cycle",
+            owner="decision_outcome_learning.effectiveness",
+            trigger="closed outcome learning model",
+            state_transitions=["closed outcomes", "effectiveness rates", "knowledge gates"],
+            output="decision_effectiveness",
+            authority_boundary="real closed outcome required",
+            automation_level="AUTONOMOUS_UNTIL_BOUNDARY",
+            blockers=[] if decision_outcome_learning.get("effectiveness") else ["effectiveness_missing"],
+            safe_next_step="consume existing learning model after outcome closure",
+        ),
+        _cycle_row(
+            cycle="Outcome Leverage Cycle",
+            owner="admin_core.autonomy_trust_acceleration.build_outcome_leverage_model",
+            trigger="trust inventory run",
+            state_transitions=["current floors", "source inventory", "growth projections", "ranked outcome activities"],
+            output="outcome_leverage_model",
+            authority_boundary="real outcome activity selection",
+            automation_level="FULLY_AUTONOMOUS",
+            blockers=[] if outcome_leverage_verdict != "UNKNOWN" else ["outcome_leverage_unknown"],
+            safe_next_step="use ranking before choosing canary or probe work",
+        ),
+    ]
+
+    counts = {level: 0 for level in AUTONOMY_CYCLE_LEVEL_SCORES}
+    for row in cycles:
+        counts[row["automation_level"]] = counts.get(row["automation_level"], 0) + 1
+    total = len(cycles)
+    percentages = {
+        level: round((count / total) * 100.0, 3) if total else 0.0
+        for level, count in counts.items()
+    }
+    overall_score = round(sum(as_float(row.get("automation_score")) for row in cycles) / max(1, total) * 100.0, 3)
+    improved_cycles = [
+        "Knowledge Quality Cycle",
+        "Suitability Growth Cycle",
+        "Learning Cycle",
+        "Knowledge-Gated Dry-Run Cycle",
+        "Outcome Leverage Cycle",
+    ]
+    return {
+        "schema_version": "v7.autonomy-trust.autonomous-knowledge-growth-program.v1",
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "purpose": "classify_existing_autonomy_cycles_and_expose_read_only_maturity",
+        "cycles": cycles,
+        "cycle_count": total,
+        "automation_counts": counts,
+        "automation_percentages": percentages,
+        "overall_autonomy_maturity_score": overall_score,
+        "cycles_more_autonomous_after_this_phase": improved_cycles,
+        "legitimate_boundaries": sorted({
+            row["authority_boundary"] for row in cycles if row.get("authority_boundary")
+        }),
+        "safe_integration_fix_implemented": "cycle_maturity_scoring_exposed_through_existing_trust_inventory_owner",
+        "runtime_apply_allowed": False,
+        "read_only": True,
+        "synthetic_evidence_created": False,
+        "planner_redesigned": False,
+        "governance_redesigned": False,
+        "execution_redesigned": False,
+        "new_truth_source_created": False,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+        "autonomy_enabled": False,
+    }
+
+
 def _candidate_key_text(key: tuple[str, str]) -> str:
     return f"{key[0]}:{key[1]}"
 
@@ -3511,6 +3782,20 @@ def build_acceleration_inventory(
         freshness_actionability=freshness_actionability,
         knowledge_quality_read_model=knowledge_quality_read_model,
     )
+    autonomous_knowledge_growth_program = build_autonomous_knowledge_growth_program(
+        knowledge_quality_read_model=knowledge_quality_read_model,
+        suitability_quality_model=suitability_quality_model,
+        suitability_knowledge_growth=suitability_knowledge_growth,
+        prediction_plan=prediction_plan,
+        real_outcome_source_inventory=real_outcome_source_inventory,
+        freshness_actionability=freshness_actionability,
+        recovery_admission=recovery_admission,
+        decision_outcome_closure=decision_outcome_closure,
+        decision_outcome_learning=decision_outcome_learning,
+        routing_recommendation_readiness=routing_recommendation_readiness,
+        outcome_leverage_model=outcome_leverage_model,
+        canary_proximity=canary,
+    )
     return {
         "schema_version": "v7.autonomy-trust-acceleration.inventory.v1",
         "generated_at": generated,
@@ -3543,6 +3828,7 @@ def build_acceleration_inventory(
         "anti_flapping": anti_flapping,
         "freshness_actionability": freshness_actionability,
         "routing_recommendation_readiness": routing_recommendation_readiness,
+        "autonomous_knowledge_growth_program": autonomous_knowledge_growth_program,
         "knowledge_quality_read_model": knowledge_quality_read_model,
         "knowledge_objects": knowledge_quality_read_model["knowledge_objects"],
         "maturity_distribution": knowledge_quality_read_model["maturity_distribution"],

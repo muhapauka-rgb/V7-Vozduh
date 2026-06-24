@@ -309,6 +309,15 @@ Governed canary knowledge-gated dry-run cycle:
 5. If the cycle stops before `AUTHORITY_BOUNDARY`, the stop is classified as one of the existing-owner gap classes and must be fixed/rerun rather than converted into synthetic evidence.
 6. Knowledge quality remains a gate/readiness input, not an action authority. Runtime movement still requires existing governance, explicit approval, restore barrier, verification, feedback, and learning.
 
+Autonomous knowledge growth overlay:
+
+1. `autonomous_knowledge_growth_program` is exposed by the existing trust/evidence inventory owner.
+2. It classifies existing cycles into `MANUAL`, `PARTIALLY_AUTOMATED`, `AUTONOMOUS_UNTIL_BOUNDARY`, and `FULLY_AUTONOMOUS`.
+3. It inventories Knowledge Quality, Suitability Growth, Prediction Growth, Service Verification, Freshness, Recovery, Outcome Closure, Learning, Knowledge-Gated Dry-Run, Event Detection, Decision Effectiveness, and Outcome Leverage.
+4. The overlay reports each cycle's owner, trigger, state transitions, output, authority boundary, blockers, gap classes, safe next step, and read-only safety flags.
+5. The overlay can improve autonomous continuation visibility and cycle scoring, but it cannot create evidence or grant movement authority.
+6. Runtime safety remains fixed: no user movement, no apply, no daemon enablement, no restore-barrier write, no planner rewrite, no governance rewrite, no execution rewrite, and no new truth source.
+
 Current maturity distribution from the read model:
 
 | Maturity Stage | Objects |

@@ -127,6 +127,45 @@ Interpretation:
 
 The local workspace does not have `/opt/v7` production state, so the local dry-run correctly stops at `MISSING_TRIGGER`. This matches the existing canonical caveat. Production runtime verification is required for the real boundary state.
 
+Production `tools/v7-safe-deploy --apply --confirm DEPLOY_V7_APPROVED --update-local-snapshot --restart-admin-if-changed --json` deployed commit `d86a38c13c2b78626e68e622583ce08a72f37763`.
+
+Production `/usr/local/bin/v7-autonomy-trust-evidence-inventory` result:
+
+| Metric | Value |
+| --- | --- |
+| Schema | `v7.autonomy-trust.autonomous-knowledge-growth-program.v1` |
+| Cycle count | `12` |
+| Overall autonomy maturity score | `84.167` |
+| Manual | `0.0%` |
+| Partially automated | `16.667%` |
+| Autonomous until boundary | `50.0%` |
+| Fully autonomous | `33.333%` |
+| Runtime mutation | `false` |
+| Users moved | `0` |
+| Apply executed | `false` |
+| Autonomy enabled | `false` |
+
+Production `/usr/local/bin/v7-governed-canary-dry-run-cycle` result:
+
+| Field | Value |
+| --- | --- |
+| Return code | `0` |
+| Final verdict | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY` |
+| Stop reason | `AUTHORITY_BOUNDARY` |
+| Candidate | `10.7.0.5` |
+| Current channel | `vless` |
+| Target | `awg3` |
+| Next action | `EXPLICIT_OPERATOR_APPROVAL_REQUIRED_FOR_THIS_PACKET` |
+| Non-authority stop requires fix | `false` |
+| Apply executed | `false` |
+| Users moved | `0` |
+| Runtime mutation | `false` |
+| Autonomy enabled | `false` |
+
+Production interpretation:
+
+The production cycle continues automatically until the legitimate authority boundary. The system prepares the candidate, packet preview, restore/rollback preview, verification/outcome/learning path, and then stops for explicit operator approval. No runtime apply, no daemon, and no user movement occurred.
+
 ## 8. Autonomous Growth Achieved
 
 This phase increased autonomy by making V7 automatically answer:
@@ -206,7 +245,7 @@ Remaining legitimate boundaries:
 
 ## 13. Next Safe Phase
 
-Deploy and verify the new inventory field in production, then rerun the production knowledge-gated dry-run cycle. If production again reaches `AUTHORITY_BOUNDARY`, the next useful growth activity is collecting a real governed/manual candidate outcome through the existing approved owner, not building another planner.
+The next useful growth activity is collecting a real governed/manual candidate outcome through the existing approved owner, not building another planner. Production already verifies that autonomous preparation reaches `AUTHORITY_BOUNDARY`; the missing growth input is real outcome evidence after explicit approval.
 
 ## 14. Final Verdict
 

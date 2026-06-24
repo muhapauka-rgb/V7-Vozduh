@@ -93,13 +93,13 @@ outcome_leverage_model
 
 ## 5. Ranked Result
 
-Current ranked interpretation:
+Production ranked interpretation after deploy `3cf500befeb33d368baef0998e5d6d36da46b8a3`:
 
 | Rank | Activity | Why |
 | ---: | --- | --- |
-| 1 | Prediction outcome cycle | Highest direct prediction gain per low-risk cycle |
-| 2 | Feedback outcome closure | Highest value after a real action exists, but cannot create the underlying outcome |
-| 3 | Service verification outcome | Safest low-risk confidence/trust source-confidence growth |
+| 1 | Prediction outcome cycle (`2.194`) | Highest direct prediction gain per low-risk cycle |
+| 2 | Feedback outcome closure (`2.072`) | Highest value after a real action exists, but cannot create the underlying outcome |
+| 3 | Service verification outcome (`1.290`) | Safest low-risk confidence/trust source-confidence growth |
 | Required path | Candidate suitability outcome / governed canary | Only direct path to suitability growth |
 
 Therefore governed canary is not automatically the highest leverage activity overall.
@@ -125,6 +125,8 @@ Expected gain if later explicitly approved, applied, verified, and closed:
 | Learning | Positive if closure fields are written by existing feedback/learning owners |
 
 Important: one governed canary is valuable because it creates reality. It is not valuable because it magically closes TIER_2.
+
+Production leverage model ranks governed one-user canary at `5`, with `is_automatically_best_next_action=false` and expected suitability gain `0.35`.
 
 ## 7. Alternatives Compared
 
@@ -155,7 +157,7 @@ Current
   -> TIER_2
 ```
 
-Current formula-derived evidence requirements:
+Current formula-derived evidence requirements from certified reports and production inventory:
 
 | Area | Requirement |
 | --- | --- |
@@ -206,13 +208,57 @@ Runtime safety:
 
 ## 11. Remaining Gaps
 
-1. Production deployment verification of the new `outcome_leverage_model` is required after commit.
-2. TIER_2 cannot be honestly projected to pass from one governed canary.
-3. TIER_2 also cannot be honestly projected to pass from service/prediction cycles alone.
-4. Suitability correctness remains the hard strategic blocker.
-5. Operator comparison remains secondary and must not be used as blind training data.
+1. TIER_2 cannot be honestly projected to pass from one governed canary.
+2. TIER_2 also cannot be honestly projected to pass from service/prediction cycles alone.
+3. Suitability correctness remains the hard strategic blocker.
+4. Operator comparison remains secondary and must not be used as blind training data.
+5. The next real-action phase still requires explicit operator authority before any restore-barrier write or user movement.
 
-## 12. Final Verdict
+## 12. Production Verification
+
+Command:
+
+```text
+/usr/local/bin/v7-autonomy-trust-evidence-inventory
+```
+
+Production result:
+
+| Field | Value |
+| --- | --- |
+| Runtime commit | `3cf500befeb33d368baef0998e5d6d36da46b8a3` |
+| Model schema | `v7.autonomy-trust.outcome-leverage-model.v1` |
+| Verdict | `MIXED_PATH` |
+| Highest leverage | `prediction_outcome_cycle`, score `2.194` |
+| Second | `feedback_outcome_closure`, score `2.072` |
+| Third | `service_verification_outcome`, score `1.290` |
+| Governed canary rank | `5` |
+| Governed canary auto-best | `false` |
+| Governed canary suitability gain | `0.35` |
+| Apply | `false` |
+| Users moved | `0` |
+| Runtime mutation | `false` |
+
+Production current values in the leverage model:
+
+| Metric | Value |
+| --- | ---: |
+| Confidence | `39.502` |
+| Trust | `54.627` |
+| Prediction | `36.539` |
+| Suitability | `29.282` |
+
+Truth/convergence after deploy:
+
+| Check | Status |
+| --- | --- |
+| Truth | PASS |
+| Convergence | ALIGNED |
+| Local | PASS `3cf500befeb33d368baef0998e5d6d36da46b8a3` |
+| GitHub | PASS `3cf500befeb33d368baef0998e5d6d36da46b8a3` |
+| Runtime | PASS `3cf500befeb33d368baef0998e5d6d36da46b8a3` |
+
+## 13. Final Verdict
 
 `MIXED_PATH`
 

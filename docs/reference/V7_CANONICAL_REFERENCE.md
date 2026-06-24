@@ -156,13 +156,14 @@ Implementation owner: `admin_core/autonomy_trust_acceleration.py`.
 
 1. V7 must not assume that governed canary is automatically the highest-leverage next action.
 2. The existing trust inventory owner now exposes a read-only `outcome_leverage_model` that ranks real outcome activities by expected floor gain per effort and risk.
-3. Current verdict is `MIXED_PATH`: prediction outcome cycles are highest leverage for prediction, service verification cycles are safest for service/trust source confidence, and governed/manual candidate outcomes are mandatory for suitability.
+3. Current production verdict is `MIXED_PATH`: prediction outcome cycles are highest leverage for prediction, service verification cycles are safest for service/trust source confidence, and governed/manual candidate outcomes are mandatory for suitability.
 4. A governed one-user canary is valuable as real candidate/suitability reality, but one canary is too small to close TIER_2 by itself.
 5. TIER_2 requires a mixed path: prediction forecast -> actual cycles, service verification outcome cycles, governed/manual candidate suitability outcomes, and feedback/outcome/learning closure after every real action.
 6. The model is projection-only. It does not change formulas, floors, planner, governance, execution, truth source, storage, daemon state, runtime apply, synthetic evidence, or user movement.
 7. Implementation owner: `admin_core/autonomy_trust_acceleration.py`.
 8. CLI surface: `tools/v7-autonomy-trust-evidence-inventory`.
 9. Related report: `docs/reports/V7_HIGHEST_LEVERAGE_OUTCOME_GROWTH_REPORT.md`.
+10. Last verified runtime commit: `3cf500befeb33d368baef0998e5d6d36da46b8a3`.
 
 ## POST_PRODUCTION_SCALE_PHASE
 

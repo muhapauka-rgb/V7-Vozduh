@@ -93,6 +93,19 @@ Stable conclusions:
 12. Related model / report / ADR: `docs/reference/V7_IDEAL_AUTONOMOUS_ROUTING_MODEL.md`, `docs/reports/V7_IDEAL_AUTONOMOUS_ROUTING_SYSTEM_MODEL_REPORT.md`, ADR-V7-IDEAL-AUTONOMOUS-ROUTING-MODEL.
 13. Last verified commit: `61088d7a9fa48cc593a5cf2b681f520e8734b59d`.
 
+## V7_KNOWLEDGE_QUALITY_MODEL
+
+1. V7 must distinguish data, signal, knowledge, and action authority.
+2. High-quality routing knowledge is fresh, covered, correct, consistent, diverse, source-confident, user-impact relevant, service-relevant, and actionable.
+3. Knowledge maturity stages are `RAW_OBSERVATION`, `STABLE_SIGNAL`, `CONFIRMED_KNOWLEDGE`, `ACTIONABLE_KNOWLEDGE`, and `AUTONOMY_GRADE_KNOWLEDGE`.
+4. Current V7 has broad routing knowledge, but only Safety Knowledge is currently classified as autonomy-grade. Channel, User Assignment, Policy, and Trust are actionable for governed review; Capacity, Failure, Decision Outcome, Prediction, and Event are confirmed; Service, Route, Quality, Recovery, Suitability, and Freshness remain stable signals; Operator Context remains raw/underfed.
+5. Current autonomy blockers are knowledge-quality blockers, not missing planner/execution architecture: service/user/SLA fit, passive real-user outcome closure, recovery admission, suitability correctness, source confidence, freshness/decay, cohort/SLA knowledge, autonomous rollback certification, anti-flap knowledge, and contextual operator evidence.
+6. Future reports must name the weak knowledge object and weak dimension instead of saying generic "more evidence needed".
+7. The exact next phase is `V7.KNOWLEDGE.QUALITY.READ_MODEL`, using existing owners only.
+8. No code, formula, floor, planner, governance, execution, truth source, runtime apply, daemon, autoswitch, synthetic evidence, storage, or user movement changed in `V7.KNOWLEDGE.QUALITY.MODEL`.
+9. Related model / report / ADR: `docs/reference/V7_KNOWLEDGE_QUALITY_MODEL.md`, `docs/reports/V7_KNOWLEDGE_QUALITY_MODEL_REPORT.md`, ADR-V7-KNOWLEDGE-QUALITY-MODEL.
+10. Last verified commit before this model: `f46a28639e839cb585e29289a9f5e044eecb963b`.
+
 ## AUTONOMY_TRUST_SOURCE_HIERARCHY
 
 1. Observed network outcome is the primary autonomy trust source for V7.

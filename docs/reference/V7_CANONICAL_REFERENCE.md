@@ -365,6 +365,20 @@ Related ADR: `docs/decisions/ADR-FUTURE-EVIDENCE-INDEX-AND-FRESHNESS-MODEL.md`.
 12. Related report / ADR: `docs/reports/AUTONOMY_TRUST_SUFFICIENCY_MODEL_REPORT.md`, ADR-AUTONOMY-TRUST-SUFFICIENCY-TIER-AWARE.
 13. Last verified commit: `d4ee291be875b825fb883d835621c8530c8eda8c`.
 
+## AUTONOMY_EVIDENCE_SATURATION_MODEL
+
+1. Evidence saturation means "enough real evidence for this component and tier", not "no more evidence can ever be useful".
+2. Current stable verdict is `SATURATION_MODEL_PARTIAL`.
+3. V7 can theoretically reach trust, confidence, and autonomy readiness saturation: prediction, service, suitability, blast, rollback, and operator comparison confidence models are bounded on a `0..100` scale and can converge to `100` with high-quality real evidence.
+4. V7 can also remain below floor forever if future evidence is low-confidence, wrong, non-representative, stale, or missing. More rows alone are not saturation.
+5. Current blocker is quality and correctness, not hidden data: prediction has `21/21` matches but low source confidence; candidate suitability has `84/156` outcomes and `72` missing, and full current candidate coverage alone still projects below floor.
+6. Blast and rollback are already saturated enough for the current safety role (`100`), but they do not saturate prediction, service, or suitability.
+7. A component is saturated for a tier when non-negotiable gates are clean and either the component crosses the tier floor or additional same-source evidence would not change the tier decision.
+8. Future autonomy phases must not ask for generic "more evidence"; they must name the unsaturated component, the target tier, current value, floor, and exact real evidence that can change the decision.
+9. No code, formula, floor, planner, governance, execution, truth source, runtime apply, daemon, autoswitch, synthetic evidence, or user movement changed in AUTONOMY.EVIDENCE.SATURATION.MODEL.
+10. Related report / ADR: `docs/reports/AUTONOMY_EVIDENCE_SATURATION_MODEL_REPORT.md`, ADR-AUTONOMY-EVIDENCE-SATURATION.
+11. Last verified commit: `55ad5436f50ce0563b26a990d5c5ad175dcfdfa7`.
+
 ## AUTONOMY_ROOT_CONFIDENCE_TRUST_MODEL
 
 1. V7 has two related but separate confidence layers: governed execution evidence and operator-free autonomy evidence.

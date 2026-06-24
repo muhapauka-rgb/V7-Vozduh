@@ -131,16 +131,64 @@ The local workspace does not contain production `/opt/v7` runtime state, so loca
 
 ## 7. Production Verification
 
-Status before deploy: pending.
+Status after deploy: PASS.
 
-Required production checks:
+Deployment:
 
-- deployed inventory exposes `autonomous_routing_evolution_program`;
-- deployed dry-run still reaches `AUTHORITY_BOUNDARY`;
-- no apply;
-- no movement;
-- no daemon/autoswitch enablement;
-- truth/convergence pass.
+| Field | Value |
+| --- | --- |
+| Deployed commit | `702f7f91e53a42d55aa47f29c5d598960de46130` |
+| Deploy id | `deploy-z8-14-Updatesystem-702f7f9-20260625T004127` |
+| Runtime inventory exposes `autonomous_routing_evolution_program` | PASS |
+| Runtime dry-run reaches `AUTHORITY_BOUNDARY` | PASS |
+| Runtime apply | `false` |
+| Users moved | `0` |
+| Runtime mutation | `false` |
+| Autonomy enabled | `false` |
+| Truth check | PASS / `FULLY_ALIGNED` |
+| Convergence | PASS / `ALIGNED` |
+
+Runtime evolution summary:
+
+| Phase | Runtime Status |
+| --- | --- |
+| A_AUTONOMOUS_KNOWLEDGE_GROWTH | `ADVANCED` |
+| B_REAL_SUITABILITY_OUTCOME_PROGRAM | `REAL_OUTCOMES_REQUIRED` |
+| C_CONFIRMED_KNOWLEDGE | `BLOCKED` |
+| D_ACTIONABLE_KNOWLEDGE | `BLOCKED` |
+| E_EVENT_TO_DECISION_TO_OUTCOME | `AUTONOMOUS_UNTIL_AUTHORITY_BOUNDARY` |
+| F_TIER_2_READINESS | `BLOCKED` |
+
+Runtime TIER_2 distance:
+
+| Floor | Current | Target | Gap |
+| --- | ---: | ---: | ---: |
+| Confidence | `39.543` | `70.0` | `30.457` |
+| Trust | `54.657` | `70.0` | `15.343` |
+| Prediction | `36.73` | `70.0` | `33.27` |
+| Suitability | `29.405` | `70.0` | `40.595` |
+
+Runtime suitability maturity:
+
+| Field | Value |
+| --- | --- |
+| Current stage | `STABLE_SIGNAL` |
+| Next stage | `CONFIRMED_KNOWLEDGE` |
+| Autonomy grade ready | `false` |
+| Candidate count | `156` |
+| Candidate outcomes consumed | `84` |
+| Missing candidate outcomes | `72` |
+| Coverage ratio | `0.5385` |
+| Candidate confidence | `0.411` |
+| Candidate correctness | `0.6844` |
+| Decision correctness | `0.0` |
+| Fit correctness | `0.0` |
+
+Runtime highest-leverage next activities:
+
+1. `prediction_outcome_cycle`
+2. `feedback_outcome_closure`
+3. `service_verification_outcome`
 
 ## 8. Current Stop Reason
 

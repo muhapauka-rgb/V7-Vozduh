@@ -1,0 +1,14 @@
+{
+  "approval_id": "appr_fc19be36d4dbd65662bce69d",
+  "audit_store": "/Users/ponch/Documents/New project/docs/track7/productization/e22-evidence/operator-execution-audit.jsonl",
+  "execution_allowed_now": false,
+  "mode": "validate",
+  "packet_path": "/Users/ponch/Documents/New project/docs/reports/AUTONOMY_TIER1_GOVERNED_CANARY_READINESS_EVIDENCE/tier1_current_planner_packet.json",
+  "real_runtime_action_performed": false,
+  "recheck": {
+    "errors": [],
+    "ok": true,
+    "verdict": "PACKET_VALID"
+  },
+  "record_written": false
+}

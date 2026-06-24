@@ -1,0 +1,152 @@
+{
+  "approval_id": "appr_fc19be36d4dbd65662bce69d",
+  "audit_store": "/tmp/docs/track7/productization/e22-evidence/operator-execution-audit.jsonl",
+  "autoswitch_apply": false,
+  "clearance_preview": {
+    "autoswitch_apply": false,
+    "clearance": {
+      "allow_post_ttl_apply": true,
+      "allowed_target": "awg0",
+      "allowed_targets": [
+        "awg0"
+      ],
+      "allowed_user": "10.7.0.5",
+      "allowed_users": [
+        "10.7.0.5"
+      ],
+      "approval_id": "appr_fc19be36d4dbd65662bce69d",
+      "approved_atomic_execution_envelope_hash": "f1cf5629391ef9bcf0cc5d3bf63cad4a342974981ae0739a902048b57b444937",
+      "approved_atomic_execution_envelope_id": "aee_f1cf5629391ef9bcf0cc5d3b",
+      "approved_plan_lock": {
+        "allowed_targets": [
+          "awg0"
+        ],
+        "allowed_users": [
+          "10.7.0.5"
+        ],
+        "atomic_execution_envelope_hash": "f1cf5629391ef9bcf0cc5d3bf63cad4a342974981ae0739a902048b57b444937",
+        "atomic_execution_envelope_id": "aee_f1cf5629391ef9bcf0cc5d3b",
+        "egress_registry_hash": "",
+        "executor_may_replace_targets": false,
+        "executor_may_replace_users": false,
+        "executor_may_reselect": false,
+        "expires_at": "2026-06-24T03:48:38.471959+00:00",
+        "lock_hash": "501bcb89ede14f627db948a2f8d9c0f42b4ddde5f8349ef8f8b09de54c8cc69e",
+        "lock_id": "apl_0682262f4092c6778b836e48",
+        "owner": "admin_core/operator_execution.py",
+        "packet_hash": "1d870eded85023fd35672134edbd911980c2248198612541ffdb1f17926e0737",
+        "packet_id": "pkt_7c64f53a8fd169a07445c438",
+        "planner_generation_id": "d4098562a46e2cb32db70bab1943d638637198b896423da9b633f79d8e250080",
+        "restore_barrier_hash": "1aa54210a7bc26b764c6715eaebe87b0db8c55e11f7d50b8b582e4310854beff",
+        "restore_barrier_id": "rbclear_1aa54210a7bc26b764c6715e",
+        "schema_version": "v7.approved-plan-lock.v1",
+        "selected_move_count": 1,
+        "selected_move_hash": "63bf2cdb3fa989ec8142d8796c3f0fedd7da8225b7d3f33b8d5e46a6998e42e7",
+        "selected_moves": [
+          {
+            "current_egress": "vless",
+            "move_type": "failover",
+            "recommended_egress": "awg0",
+            "user_ip": "10.7.0.5"
+          }
+        ],
+        "snapshot_bundle_hash": "f2ba3e4e86e5d897a75e31cfe82a4849dd765b806c161ea850b493650606d5ca",
+        "source_bundle_hash": "0af72b1de41db31d84fb96caa5e81509ea1c580664511d493f1ff5754d4a939a",
+        "source_hashes": {
+          "egress_registry": "05d8118c43888d046e8fe3aa3cca906db1603b15e478fd0e7eaf282797d13a78",
+          "quality_summary": "f7efc9b063ccc6d67f777b4f6f3094bbddb5e5c0d763f5ad6e206b828259b508",
+          "service_matrix": "6a2c944eafaae50ba672a49ffff8b17221b6554e26ff9f3d828300b47cdef8c6",
+          "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+          "users_registry": "b4af611443edb1114e5946ce577160775b7bf6a08372a4cd0303b758563b4a09"
+        },
+        "users_registry_hash": ""
+      },
+      "approved_plan_lock_hash": "501bcb89ede14f627db948a2f8d9c0f42b4ddde5f8349ef8f8b09de54c8cc69e",
+      "approved_plan_lock_id": "apl_0682262f4092c6778b836e48",
+      "approved_selected_moves_hash": "63bf2cdb3fa989ec8142d8796c3f0fedd7da8225b7d3f33b8d5e46a6998e42e7",
+      "approved_snapshot_bundle_hash": "f2ba3e4e86e5d897a75e31cfe82a4849dd765b806c161ea850b493650606d5ca",
+      "approved_source_bundle_hash": "0af72b1de41db31d84fb96caa5e81509ea1c580664511d493f1ff5754d4a939a",
+      "approved_source_hashes": {
+        "egress_registry": "05d8118c43888d046e8fe3aa3cca906db1603b15e478fd0e7eaf282797d13a78",
+        "quality_summary": "f7efc9b063ccc6d67f777b4f6f3094bbddb5e5c0d763f5ad6e206b828259b508",
+        "service_matrix": "6a2c944eafaae50ba672a49ffff8b17221b6554e26ff9f3d828300b47cdef8c6",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+        "users_registry": "b4af611443edb1114e5946ce577160775b7bf6a08372a4cd0303b758563b4a09"
+      },
+      "clearance_expected_selected_moves": 1,
+      "clearance_expires_at": "2026-06-24T03:48:38.471959+00:00",
+      "clearance_generation_id": "d4098562a46e2cb32db70bab1943d638637198b896423da9b633f79d8e250080",
+      "clearance_max_selected_moves": 1,
+      "created_at": "2026-06-24T03:22:14.956243+00:00",
+      "enabled": true,
+      "expires_at": "2000-01-01T00:00:00+00:00",
+      "generation_clearance": true,
+      "generation_token": "[REDACTED]",
+      "operation_id": "govexec_ebf49d9c3f11a0cdd04cd738",
+      "owner": "admin_core/operator_execution.py",
+      "packet_id": "pkt_7c64f53a8fd169a07445c438",
+      "reason": "C.1 canonical nonzero governance lifecycle clearance",
+      "rollback_manifest_id": "rb_ebf49d9c3f11a0cdd04cd738",
+      "schema_version": 1,
+      "ttl_reason": "generation-bound execution readiness clearance"
+    },
+    "ok": true,
+    "recheck_verdict": "ALLOW_RESTORE_BARRIER_CLEARANCE",
+    "restore_barrier_file": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+    "routing_mutation": false,
+    "runtime_mutation": false,
+    "user_movement": false,
+    "verdict": "RESTORE_BARRIER_CLEARANCE_PREVIEW_VALID"
+  },
+  "execution_allowed_now": false,
+  "mode": "runtime_action_preview",
+  "packet_path": "/tmp/v7-tier1-packet.json",
+  "real_runtime_action_performed": false,
+  "recheck": {
+    "allow": true,
+    "checks": {
+      "atomic_execution_envelope_hash": "f1cf5629391ef9bcf0cc5d3bf63cad4a342974981ae0739a902048b57b444937",
+      "atomic_execution_envelope_id": "aee_f1cf5629391ef9bcf0cc5d3b",
+      "constraints": {
+        "allowed_targets": [
+          "awg0"
+        ],
+        "allowed_users": [
+          "10.7.0.5"
+        ]
+      },
+      "egress_registry_hash": "05d8118c43888d046e8fe3aa3cca906db1603b15e478fd0e7eaf282797d13a78",
+      "moves": [
+        {
+          "current_egress": "vless",
+          "move_type": "failover",
+          "recommended_egress": "awg0",
+          "user_ip": "10.7.0.5"
+        }
+      ],
+      "planner_generation_id": "d4098562a46e2cb32db70bab1943d638637198b896423da9b633f79d8e250080",
+      "real_runtime_action_after_recheck": true,
+      "runtime_action_scope": "restore_barrier_clearance_only",
+      "runtime_snapshot_hash": "c0f25289b26b373b0d44ffc57452a1fb055f9b51900cf9f08e172bbcb9f00285",
+      "selected_move_count": 1,
+      "selected_move_hash": "63bf2cdb3fa989ec8142d8796c3f0fedd7da8225b7d3f33b8d5e46a6998e42e7",
+      "snapshot_bundle_hash": "f2ba3e4e86e5d897a75e31cfe82a4849dd765b806c161ea850b493650606d5ca",
+      "source_bundle_hash": "0af72b1de41db31d84fb96caa5e81509ea1c580664511d493f1ff5754d4a939a",
+      "source_hashes": {
+        "egress_registry": "05d8118c43888d046e8fe3aa3cca906db1603b15e478fd0e7eaf282797d13a78",
+        "quality_summary": "f7efc9b063ccc6d67f777b4f6f3094bbddb5e5c0d763f5ad6e206b828259b508",
+        "service_matrix": "6a2c944eafaae50ba672a49ffff8b17221b6554e26ff9f3d828300b47cdef8c6",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+        "users_registry": "b4af611443edb1114e5946ce577160775b7bf6a08372a4cd0303b758563b4a09"
+      },
+      "users_registry_hash": "b4af611443edb1114e5946ce577160775b7bf6a08372a4cd0303b758563b4a09"
+    },
+    "errors": [],
+    "verdict": "ALLOW_RESTORE_BARRIER_CLEARANCE"
+  },
+  "record_written": false,
+  "routing_mutation": false,
+  "runtime_action_record": null,
+  "runtime_mutation": false,
+  "user_movement": false
+}

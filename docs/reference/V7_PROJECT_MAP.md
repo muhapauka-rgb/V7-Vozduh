@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-24
-Last changed by: `AUTONOMY.CANDIDATE_OUTCOME.REALITY.COLLECTION`
+Last changed by: `AUTONOMY.TIER1.GOVERNED_CANARY.READINESS`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -21,13 +21,15 @@ POOL.1 classified the pool as stable with zero planner candidates. POOL.2 rechec
 
 Current roadmap position:
 
-`CANARY_BLOCKED_BY_OUTCOME_EVIDENCE_INCOMPLETE`
+`TIER1_GOVERNED_CANARY_MARGINAL`
 
 Current experience/trust forensic verdict:
 
 `OUTCOME_EVIDENCE_INCOMPLETE`
 
 The experience pipeline exists and consumes real evidence. Prediction has `21/21` matches, blast and rollback are sufficient, service rows are fresh but low-confidence, and suitability is genuinely incomplete/low with `84/156` candidate outcomes and `72` known missing outcomes. Candidate outcome visibility/aggregation/windowing gaps were fixed in existing owners; the remaining blocker is real missing experience, not hidden data.
+
+Fresh TIER_1 governed canary readiness on 2026-06-24 can prepare but not execute a packet. Current production planner-selected one-user candidate is `10.7.0.5 vless -> awg0`; the packet validates and production restore preview passes, but execution requires a separate explicit operator approval because confidence/trust/prediction floors are still below `70.0` and the selected target differs from the earlier WireGuard expectation.
 
 Deferred post-production scale phase:
 
@@ -143,6 +145,9 @@ contextual operator comparison
 | Suitability Evidence Utilization | 85% | 100% | +15% | `AUTONOMY.CANDIDATE_OUTCOME.REALITY.COLLECTION` | Found and fixed existing-owner underutilization: one older real candidate outcome was visible to inventory but excluded by snapshot refresh windowing. Final production consumes `84/156`; capture, visibility, and aggregation loss are `0`. |
 | Canary Readiness | 35% | 35% | 0% | `AUTONOMY.CANDIDATE_OUTCOME.REALITY.COLLECTION` | Canary remains NO-GO: confidence `38.872`, trust `54.154`, prediction `35.385`, operator earned `45.815`; even all `72` missing candidate outcomes converted at current assumptions projects trust only to `62.794`. |
 | Production Autonomy | 46% | 46% | 0% | `AUTONOMY.CANDIDATE_OUTCOME.REALITY.COLLECTION` | Existing-owner evidence path is cleaner, but no runtime apply, user movement, daemon enablement, formula change, floor change, threshold change, synthetic evidence, or new truth source occurred. |
+| TIER_1 Governed Canary Preparation | 0% | 85% | +85% | `AUTONOMY.TIER1.GOVERNED_CANARY.READINESS` | Fresh one-user packet `pkt_7c64f53a8fd169a07445c438` validates for `10.7.0.5 vless -> awg0`; production restore preview passes without writes or movement. |
+| Canary Readiness | 35% | 55% | +20% | `AUTONOMY.TIER1.GOVERNED_CANARY.READINESS` | V7 can prepare a governed one-user canary packet, but final verdict is `TIER1_GOVERNED_CANARY_MARGINAL` because floors remain low and operator approval is required for the exact awg0 target. |
+| Production Autonomy | 46% | 46% | 0% | `AUTONOMY.TIER1.GOVERNED_CANARY.READINESS` | No apply, no runtime write, no movement, no daemon/autoswitch, no formula/floor change, and no synthetic evidence occurred. Autonomous canary remains `NO_GO`. |
 | Post-Production Scale Roadmap | 0% | 100% | +100% | `DOCUMENT_FUTURE_EVIDENCE_INDEX_AND_FRESHNESS_MODEL` | Documented the deferred evidence index and freshness model for `100+` channels, `1000+` users, and multi-year evidence history. This is documentation only and not a current blocker. |
 
 ## Stable Areas

@@ -1,0 +1,26 @@
+{
+  "approval_id": "appr_fc19be36d4dbd65662bce69d",
+  "audit_store": "/Users/ponch/Documents/New project/docs/track7/productization/e22-evidence/operator-execution-audit.jsonl",
+  "autoswitch_apply": false,
+  "clearance_preview": null,
+  "execution_allowed_now": false,
+  "mode": "runtime_action_preview",
+  "packet_path": "/Users/ponch/Documents/New project/docs/reports/AUTONOMY_TIER1_GOVERNED_CANARY_READINESS_EVIDENCE/tier1_current_planner_packet.json",
+  "real_runtime_action_performed": false,
+  "recheck": {
+    "allow": false,
+    "checks": {
+      "egress_registry_exists": false,
+      "users_registry_exists": false
+    },
+    "errors": [
+      "runtime_registry_missing"
+    ],
+    "verdict": "DENY_STALE_RUNTIME"
+  },
+  "record_written": false,
+  "routing_mutation": false,
+  "runtime_action_record": null,
+  "runtime_mutation": false,
+  "user_movement": false
+}

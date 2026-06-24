@@ -323,6 +323,12 @@ Related ADR: `docs/decisions/ADR-FUTURE-EVIDENCE-INDEX-AND-FRESHNESS-MODEL.md`.
 25. The valid clearance preview survives reread and an explicit snapshot refresh. Normal production observe still stops at `dry_run_restore_barrier_clearance_generation_expired` because 1C intentionally did not write clearance state.
 26. After restore preview is clear, the next canary blocker is evidence confidence: confidence `39.558`, trust `54.668`, prediction confidence `36.511`, and secondary operator earned confidence `45.837`, all below the `70.0` floor.
 27. AUTONOMY.CANARY.1C final verdict is `CANARY_BLOCKED_BY_CONFIDENCE`; the next safe phase is real existing-owner confidence/trust/prediction evidence closure, not runtime apply.
+28. AUTONOMY.TIER1.GOVERNED_CANARY.READINESS on 2026-06-24 prepared and validated a fresh governed one-user canary packet without apply, movement, daemon enablement, runtime write, floor/formula change, synthetic evidence, or new truth source.
+29. Fresh production reality changed from the older 1C candidate: `v7-users-autoswitch --mode observe --max-selected-moves 1` now exposes one planner-selected pre-guard canary candidate `10.7.0.5 vless -> awg0`. The older WireGuard target remains a strong candidate but is not the selected current target; target-constrained WireGuard observe produced no selected pre-guard move.
+30. The fresh packet `pkt_7c64f53a8fd169a07445c438` validates as `PACKET_VALID` for operation `govexec_ebf49d9c3f11a0cdd04cd738`; its rollback manifest maps `10.7.0.5 awg0 -> vless`.
+31. Production registry-backed restore preview for that packet passes with `ALLOW_RESTORE_BARRIER_CLEARANCE` and `RESTORE_BARRIER_CLEARANCE_PREVIEW_VALID`; it writes no record, performs no runtime mutation, performs no user movement, and does not apply autoswitch.
+32. Current trust inventory reports `TIER_1 MARGINAL_OPERATOR_REVIEW`: confidence `38.82`, trust `54.115`, prediction confidence `35.514`, operator earned confidence `45.815`, rollback confidence `100.0`, and `72` missing candidate outcomes. Autonomous one-user canary remains `NO_GO`.
+33. Final verdict for the phase is `TIER1_GOVERNED_CANARY_MARGINAL`: V7 can prepare a complete governed one-user canary packet, but execution still requires a separate explicit operator approval for the exact packet and target. Because the target is now `awg0`, operator review is mandatory before any apply.
 
 ## AUTONOMY_RISK_TIERED_FLOOR_MODEL
 
@@ -341,6 +347,7 @@ Related ADR: `docs/decisions/ADR-FUTURE-EVIDENCE-INDEX-AND-FRESHNESS-MODEL.md`.
 6. Current certified values simulate as `TIER_1 MARGINAL_OPERATOR_REVIEW` and `TIER_3 NO_GO`: confidence `38.872`, trust `54.154`, prediction confidence `35.385`, rollback confidence `100`.
 7. This model changes wording and readiness classification only. It does not change formulas, thresholds, runtime apply, planner, governance, execution, daemon status, autoswitch status, or truth source.
 8. Related report / ADR: `docs/reports/AUTONOMY_FLOOR_SEMANTICS_AND_RISK_TIER_REVIEW_REPORT.md`, `docs/decisions/ADR-AUTONOMY-RISK-TIERED-FLOORS.md`.
+9. AUTONOMY.TIER1.GOVERNED_CANARY.READINESS confirms the same tier semantics on fresh production evidence: `TIER_1 MARGINAL_OPERATOR_REVIEW`, `TIER_2+ NO_GO`, and no autonomous apply authority. Current planner-selected TIER_1 packet is `10.7.0.5 vless -> awg0`; the packet and restore preview are valid, but execution is still a separate governed apply decision.
 
 ## AUTONOMY_ROOT_CONFIDENCE_TRUST_MODEL
 

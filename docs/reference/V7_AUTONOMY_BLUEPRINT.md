@@ -631,19 +631,19 @@ Do not delete immediately. Classify first.
 
 ## 12. Top 10 Next Actions
 
-1. Use `tools/v7-autonomy-trust-evidence-inventory --routing-foundation-only` before any routing/autonomy escalation.
-2. Generate real decision outcome closure through existing governed/manual action owners; do not synthesize missing closure fields.
-3. Continue service/channel real probe cycles through existing service, quality, prediction, feedback, and closure owners.
-4. Run `AUTONOMY.CANDIDATE_OUTCOME.GOVERNED_REALITY_GENERATION` through existing candidate/outcome owners.
-5. Collect time-separated prediction forecast -> later actual evidence until forecast source confidence rises.
-6. Collect contextual operator comparisons only where the operator has enough context.
-7. Recheck restore barrier creation for a single event-triggered packet in preview mode after evidence floors improve.
-8. Keep `v7-users-autoswitch.service/timer` inactive until confidence/trust/prediction floors pass and routing foundation readiness is clean.
-9. Preserve Branch 1B evidence and never replace it with synthetic records.
+1. Use the knowledge-gated `operator_decision_surface` before any packet/governed execution preview.
+2. Use `tools/v7-autonomy-trust-evidence-inventory --routing-foundation-only` before any routing/autonomy escalation.
+3. Generate real decision outcome closure through existing governed/manual action owners; do not synthesize missing closure fields.
+4. Continue service/channel real probe cycles through existing service, quality, prediction, feedback, and closure owners.
+5. Run `AUTONOMY.CANDIDATE_OUTCOME.GOVERNED_REALITY_GENERATION` through existing candidate/outcome owners.
+6. Collect time-separated prediction forecast -> later actual evidence until forecast source confidence rises.
+7. Collect contextual operator comparisons only where the operator has enough context.
+8. Recheck restore barrier creation for a single event-triggered packet in preview mode after evidence floors improve.
+9. Keep `v7-users-autoswitch.service/timer` inactive until confidence/trust/prediction floors pass and routing foundation readiness is clean.
 10. Keep freshness/recovery/anti-flap/closure tests protected whenever evidence-store lifecycle changes.
 
 ## 13. Final Blueprint Verdict
 
 `AUTONOMY_BLUEPRINT_CREATED_EVENT_DRIVEN_AUTONOMY_PARTIAL`
 
-V7 has the right architecture shape and most owners already exist. Branch 1B closed the blast recovery loop as a proven production recovery, AUTONOMY.TRUST.DURABILITY.1 fixed the normal durability gap, AUTONOMY.TRUST.SOURCE.REALITY.1 corrected trust semantics, AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT proved the confidence picture is mixed, AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH proved real probes can be accelerated but are not enough by themselves, and AUTONOMY.CANDIDATE_OUTCOME.REALITY.COLLECTION proved candidate outcome visibility is now aggregation-clean. The remaining blocker is not hidden evidence: it is incomplete real candidate outcome reality and weak consumed suitability correctness. The safe path is not to build another autonomy system, force blind operator reviews, or change formulas. The safe path is to generate real candidate/suitability outcomes through existing governed/manual owners, continue real service/channel outcome cycles, and authorize a bounded canary apply only after floors pass.
+V7 has the right architecture shape and most owners already exist. Branch 1B closed the blast recovery loop as a proven production recovery, AUTONOMY.TRUST.DURABILITY.1 fixed the normal durability gap, AUTONOMY.TRUST.SOURCE.REALITY.1 corrected trust semantics, AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT proved the confidence picture is mixed, AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH proved real probes can be accelerated but are not enough by themselves, and AUTONOMY.CANDIDATE_OUTCOME.REALITY.COLLECTION proved candidate outcome visibility is now aggregation-clean. V7.KNOWLEDGE_TO_DECISION.INTEGRATION then connected the read-only routing foundation to the existing operator decision surface so stale evidence, recovery blockers, anti-flap, and SLA-fit can affect preview recommendations before packet readiness. The remaining blocker is not hidden evidence: it is incomplete real candidate outcome reality and weak consumed suitability correctness. The safe path is not to build another autonomy system, force blind operator reviews, or change formulas. The safe path is to generate real candidate/suitability outcomes through existing governed/manual owners, continue real service/channel outcome cycles, and authorize a bounded canary apply only after floors pass.

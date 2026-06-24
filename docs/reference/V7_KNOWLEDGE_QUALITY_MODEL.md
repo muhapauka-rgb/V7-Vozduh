@@ -212,9 +212,9 @@ These are missing knowledge, not missing code owners.
 | Priority | Current Knowledge State | Required Knowledge State | Gap | Implementation Path |
 | --- | --- | --- | --- | --- |
 | P0 | Suitability is `STABLE_SIGNAL`. | Suitability becomes `ACTIONABLE_KNOWLEDGE`. | Coverage/correctness. | Use existing candidate outcome, feedback, and intelligence owners; no synthetic evidence. |
-| P0 | Recovery is `STABLE_SIGNAL`. | Recovery becomes `ACTIONABLE_KNOWLEDGE`. | Admission/hysteresis. | Read-only recovery admission exists in `build_recovery_admission`; next step is real recovery evidence and certification before planner impact. |
-| P0 | Freshness is implicit/supporting. | Freshness blocks stale action and labels stale knowledge. | Explicit decay/actionability. | Read-only freshness actionability exists in `build_freshness_actionability`; long-term evidence index remains deferred. |
-| P0 | Service knowledge is probe-heavy. | Service knowledge is service/user/SLA outcome-aware. | Service relevance and user impact. | Read-only service/user/SLA fit exists in `build_service_user_sla_fit`; keep planner unchanged until contract is proven. |
+| P0 | Recovery is `STABLE_SIGNAL`. | Recovery becomes `ACTIONABLE_KNOWLEDGE`. | Admission/hysteresis. | Recovery admission now blocks degraded/quarantined/cooldown targets in the existing operator decision surface; planner/runtime authority remains unchanged until real recovery evidence is certified. |
+| P0 | Freshness is implicit/supporting. | Freshness blocks stale action and labels stale knowledge. | Explicit decay/actionability. | Freshness actionability now blocks explicitly stale recommendation evidence in the existing operator decision surface; long-term evidence index remains deferred. |
+| P0 | Service knowledge is probe-heavy. | Service knowledge is service/user/SLA outcome-aware. | Service relevance and user impact. | Service/user/SLA fit now can retarget or block preview recommendations in the existing operator decision surface; planner formulas remain unchanged until contract proof is stronger. |
 | P0 | Safety is strong but autonomous rollback not certified. | Rollback is certified for autonomous tier. | Operator-free verification. | Certify one-user rollback before TIER_3. |
 | P1 | Prediction matches are accurate but under-confident. | Prediction source confidence grows through future real cycles. | Source confidence. | Continue forecast-to-later-actual evidence through existing owners. |
 | P1 | Event consumer is read-only. | Event can trigger bounded apply after floors. | Authority. | Keep read-only until confidence/trust/prediction and restore/rollback pass. |
@@ -261,6 +261,16 @@ Routing foundation overlay:
 4. Freshness Knowledge receives actionability classes: `ACTIONABLE_NOW`, `STALE_RECHECK_REQUIRED`, `DIAGNOSTIC_ONLY`, `HISTORY_ONLY`, `UNKNOWN`.
 5. Decision Outcome Knowledge receives closure-state visibility and required field checks; missing fields remain blockers.
 6. Autonomy readiness receives `routing_recommendation_readiness`, which is read-only and cannot grant apply authority.
+
+Knowledge-to-decision integration:
+
+1. `operator_decision_surface` now builds a read-only `knowledge_decision_overlay`.
+2. Explicit stale suitability evidence blocks preview recommendations.
+3. Degraded/quarantined/cooldown recovery admission blocks target channels.
+4. Anti-flap blocks users with recent rapid reverse movement records.
+5. Service/user/SLA fit may select a safer preview target when the planner's top target has explicit fit blockers.
+6. Decision outcome closure is attached to readiness context but does not grant apply authority.
+7. Missing optional snapshots are not hard blockers by themselves.
 
 Current maturity distribution from the read model:
 

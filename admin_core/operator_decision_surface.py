@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from admin_core import autonomy_trust_acceleration
 from admin_core.explainability_adapter import build_why_cards
 from admin_core.intelligence_snapshots import read_snapshot_bundle
 
@@ -210,6 +211,200 @@ def recommendation_fingerprint(user: str, current: str, recommended: str, source
         ensure_ascii=True,
     )
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:20]
+
+
+def _candidate_rows_for_decision(best_row: dict[str, Any], candidate_row: dict[str, Any]) -> list[dict[str, Any]]:
+    rows = [row for row in (best_row.get("pool") or []) if isinstance(row, dict)]
+    if not rows:
+        rows = [row for row in (candidate_row.get("candidates") or []) if isinstance(row, dict)]
+    return [dict(row) for row in rows]
+
+
+def _knowledge_rows_by_user(model: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    return {
+        str(row.get("user") or ""): row
+        for row in (model.get("rows") or [])
+        if isinstance(row, dict) and row.get("user")
+    }
+
+
+def _knowledge_rows_by_channel(model: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    return {
+        str(row.get("channel") or ""): row
+        for row in (model.get("rows") or [])
+        if isinstance(row, dict) and row.get("channel")
+    }
+
+
+def _fit_reason_is_hard_block(reason: str) -> bool:
+    hard_tokens = (
+        "missing_required_services",
+        "capacity_or_load_blocks_fit",
+        "policy_blocks_fit",
+        "route_or_runtime_not_safe",
+    )
+    return any(token in str(reason or "") for token in hard_tokens)
+
+
+def _domain_has_explicit_stale_evidence(item: dict[str, Any]) -> bool:
+    statuses = item.get("family_statuses") if isinstance(item.get("family_statuses"), dict) else {}
+    for status in statuses.values():
+        if not isinstance(status, dict) or status.get("exists") is False:
+            continue
+        freshness = str(status.get("freshness_state") or status.get("status") or "").upper()
+        if freshness in {"STALE", "EXPIRED"} or bool(status.get("stop_required")):
+            return True
+    return False
+
+
+def build_knowledge_decision_overlay(
+    snapshot: dict[str, Any],
+    user_rows: list[dict[str, Any]],
+    channel_rows: list[dict[str, Any]],
+    *,
+    decision_records: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Attach existing routing knowledge to the read-only decision surface."""
+    statuses = snapshot.get("snapshot_statuses") or {}
+    surface = {"users": user_rows, "channels": channel_rows}
+    freshness = autonomy_trust_acceleration.build_freshness_actionability(statuses)
+    service_fit = autonomy_trust_acceleration.build_service_user_sla_fit(
+        surface,
+        freshness_actionability=freshness,
+    )
+    recovery = autonomy_trust_acceleration.build_recovery_admission(
+        surface,
+        freshness_actionability=freshness,
+    )
+    anti_flap = autonomy_trust_acceleration.build_anti_flapping(decision_records or [])
+    closure = autonomy_trust_acceleration.build_decision_outcome_closure(decision_records or [])
+    readiness = autonomy_trust_acceleration.build_routing_recommendation_readiness(
+        service_user_sla_fit=service_fit,
+        decision_outcome_closure=closure,
+        recovery_admission=recovery,
+        anti_flapping=anti_flap,
+        freshness_actionability=freshness,
+    )
+    return {
+        "schema_version": "v7.knowledge-to-decision.overlay.v1",
+        "mode": "read_only_decision_overlay",
+        "freshness_actionability": freshness,
+        "service_user_sla_fit": service_fit,
+        "recovery_admission": recovery,
+        "anti_flapping": anti_flap,
+        "decision_outcome_closure": closure,
+        "routing_recommendation_readiness": readiness,
+        "runtime_mutation_performed": False,
+        "apply_executed": False,
+        "users_moved": 0,
+    }
+
+
+def _apply_knowledge_to_user_row(row: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
+    out = dict(row)
+    out["runtime_mutation_performed"] = False
+    user = str(out.get("user") or "")
+    current = str(out.get("current_channel") or "")
+    target = str(out.get("recommended_channel") or current)
+    fit_by_user = _knowledge_rows_by_user(overlay.get("service_user_sla_fit") or {})
+    anti_by_user = _knowledge_rows_by_user(overlay.get("anti_flapping") or {})
+    recovery_by_channel = _knowledge_rows_by_channel(overlay.get("recovery_admission") or {})
+    freshness_domains = (overlay.get("freshness_actionability") or {}).get("domains") or {}
+    knowledge: dict[str, Any] = {
+        "status": "CLEAR",
+        "blockers": [],
+        "warnings": [],
+        "selected_by": "planner_recommendation",
+        "runtime_mutation_performed": False,
+    }
+    blockers = set(out.get("blockers") or [])
+    reasons = list(out.get("reasons") or [])
+
+    stale_domains = [
+        name for name, item in freshness_domains.items()
+        if (
+            isinstance(item, dict)
+            and item.get("classification") == "STALE_RECHECK_REQUIRED"
+            and _domain_has_explicit_stale_evidence(item)
+        )
+    ]
+    for domain in stale_domains:
+        blockers.add(f"freshness_recheck_required:{domain}")
+        knowledge["blockers"].append(f"freshness_recheck_required:{domain}")
+
+    fit = fit_by_user.get(user, {})
+    if fit:
+        knowledge["service_user_sla_fit"] = fit
+        best_fit = str(fit.get("best_channel") or "")
+        evaluated = {
+            str(item.get("channel") or ""): item
+            for item in (fit.get("candidates") or [])
+            if isinstance(item, dict)
+        }
+        if best_fit and best_fit != target and fit.get("fit_verdict") in {"FIT", "FIT_WITH_WARNINGS"}:
+            target = best_fit
+            out["recommended_channel"] = best_fit
+            out["recommendation"] = "move_recommended" if current and best_fit != current else "keep"
+            out["highlight"] = out["recommendation"] == "move_recommended"
+            out["operator_state"] = "Recommendation" if out["highlight"] else "OK"
+            source = str(out.get("source_hash") or "") + ":knowledge-fit"
+            out["recommendation_hash"] = recommendation_fingerprint(user, current, best_fit, source)
+            knowledge["selected_by"] = "service_user_sla_fit"
+            reasons.insert(0, "service/user/SLA fit selected safer channel")
+        target_fit = evaluated.get(target, {})
+        target_reason = str(target_fit.get("reason") or fit.get("reason") or "")
+        if target_fit and target_fit.get("fit_verdict") in {"BLOCKED", "RECHECK_REQUIRED"}:
+            if _fit_reason_is_hard_block(target_reason):
+                blockers.add("service_user_sla_fit_blocks_target")
+                knowledge["blockers"].append("service_user_sla_fit_blocks_target")
+            else:
+                knowledge["warnings"].append("service_user_sla_fit_requires_fresh_evidence")
+
+    recovery = recovery_by_channel.get(target, {})
+    if recovery:
+        knowledge["recovery_admission"] = recovery
+        state = str(recovery.get("admission_state") or "UNKNOWN")
+        recovery_blockers = set(recovery.get("blockers") or [])
+        hard_recovery_block = bool(
+            state in {"QUARANTINED", "BLOCKED"}
+            or recovery_blockers.intersection({
+                "quarantine_or_degraded_lifecycle",
+                "service_specific_recovery_missing",
+                "cooldown_active",
+            })
+        )
+        if hard_recovery_block:
+            blockers.add(f"recovery_admission_not_eligible:{state}")
+            knowledge["blockers"].append(f"recovery_admission_not_eligible:{state}")
+        elif state in {"PROBING", "LIMITED_RECOVERY"}:
+            knowledge["warnings"].append(f"recovery_admission_review:{state}")
+
+    anti = anti_by_user.get(user, {})
+    if anti:
+        knowledge["anti_flapping"] = anti
+        if anti.get("blocked"):
+            blockers.add("anti_flap_blocks_recent_oscillation")
+            knowledge["blockers"].append("anti_flap_blocks_recent_oscillation")
+
+    if knowledge["blockers"]:
+        knowledge["status"] = "BLOCKED_REVIEW_REQUIRED"
+        out["recommendation"] = "keep"
+        out["highlight"] = False
+        out["operator_state"] = "Warning"
+        out["review_required"] = True
+        out["review_required_reasons"] = sorted(set(list(out.get("review_required_reasons") or []) + ["knowledge_decision_overlay_requires_review"]))
+        out["review_reason"] = "Knowledge gates require review before movement."
+        out["review_category"] = "knowledge_decision_review"
+        out["review_severity"] = "high"
+        out["review_recommendation"] = "Refresh evidence or inspect blocked routing knowledge before approval."
+        out["review_warning"] = "Recommendation is preview-only and blocked by current knowledge gates."
+        out["review_next_action"] = "Open evidence/readiness details."
+    elif knowledge["warnings"]:
+        knowledge["status"] = "REVIEW_RECOMMENDED"
+    out["blockers"] = sorted(blockers)
+    out["reasons"] = list(dict.fromkeys(reasons))[:8]
+    out["knowledge_decision_overlay"] = knowledge
+    return out
 
 
 def _prediction_summary_for(channel: str, snapshots: dict[str, dict[str, Any]]) -> dict[str, Any]:
@@ -566,6 +761,7 @@ def build_user_decision_rows(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
         current = str(user.get("current") or user.get("current_channel") or "")
         best_row = best_by_user.get(ip, {})
         candidate_row = candidates_by_user.get(ip, {})
+        candidate_rows = _candidate_rows_for_decision(best_row, candidate_row)
         best = _best_candidate(best_row, candidate_row)
         recommended = _candidate_channel(best) or current
         current_row = _current_candidate(current, best_row, candidate_row)
@@ -600,6 +796,9 @@ def build_user_decision_rows(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
             "prediction": _prediction_summary_for(recommended or current, snapshots),
             "reasons": _reason_text(best, current, recommended),
             "reason_breakdown": breakdown,
+            "current_score": round(current_score, 3),
+            "candidates": candidate_rows,
+            "required_services": user.get("required_services") or candidate_row.get("required_services") or best_row.get("required_services") or [],
             "recommendation_hash": fingerprint,
             "source_hash": source,
             "blockers": sorted(set(blockers)),
@@ -678,7 +877,7 @@ def build_channel_decision_rows(snapshot: dict[str, Any]) -> list[dict[str, Any]
     return rows
 
 
-def build_batch_preview(user_rows: list[dict[str, Any]]) -> dict[str, Any]:
+def build_batch_preview(user_rows: list[dict[str, Any]], knowledge_overlay: dict[str, Any] | None = None) -> dict[str, Any]:
     moves = [row for row in user_rows if row.get("recommendation") == "move_recommended"]
     groups: dict[str, int] = {}
     for row in moves:
@@ -721,6 +920,13 @@ def build_batch_preview(user_rows: list[dict[str, Any]]) -> dict[str, Any]:
             "denial_authority": "none",
             "runtime_execution_authority": "none",
         },
+        "knowledge_decision_readiness": {
+            "schema_version": "v7.knowledge-to-decision.batch-readiness.v1",
+            "routing_recommendation_readiness": ((knowledge_overlay or {}).get("routing_recommendation_readiness") or {}).get("readiness", "UNKNOWN"),
+            "blockers": ((knowledge_overlay or {}).get("routing_recommendation_readiness") or {}).get("blockers", []),
+            "blocked_user_recommendations": sum(1 for row in user_rows if (row.get("knowledge_decision_overlay") or {}).get("status") == "BLOCKED_REVIEW_REQUIRED"),
+            "runtime_apply_allowed": False,
+        },
         "blast_radius": {"users": len(moves), "bounded": len(moves) <= 10, "mode": "preview_only"},
         "rollback_readiness": "packet_required_before_execution" if moves else "not_required",
         "confidence": avg_confidence,
@@ -747,6 +953,7 @@ def build_operator_decision_surface(
     users: list[dict[str, Any]],
     egress: list[dict[str, Any]],
     runtime_state: dict[str, Any] | None = None,
+    decision_records: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     request_snapshot = request_decision_snapshot(
         snapshot_root=snapshot_root,
@@ -756,7 +963,14 @@ def build_operator_decision_surface(
     )
     user_rows = build_user_decision_rows(request_snapshot)
     channel_rows = build_channel_decision_rows(request_snapshot)
-    batch_preview = build_batch_preview(user_rows)
+    knowledge_overlay = build_knowledge_decision_overlay(
+        request_snapshot,
+        user_rows,
+        channel_rows,
+        decision_records=decision_records,
+    )
+    user_rows = [_apply_knowledge_to_user_row(row, knowledge_overlay) for row in user_rows]
+    batch_preview = build_batch_preview(user_rows, knowledge_overlay)
     why_cards = build_why_cards(
         users=user_rows,
         channels=channel_rows,
@@ -774,6 +988,7 @@ def build_operator_decision_surface(
         "channels_by_id": {row["channel"]: row for row in channel_rows},
         "batch_preview": batch_preview,
         "why_cards": why_cards,
+        "knowledge_decision_overlay": knowledge_overlay,
         "trust_evolution_advice": _trust_evolution_advice(request_snapshot["snapshots"]),
         "decision_action_matrix": build_decision_action_matrix(),
         "snapshot_statuses": request_snapshot["snapshot_statuses"],
@@ -787,6 +1002,14 @@ def build_operator_decision_surface(
         },
         "reuse": {
             "recommendations": ["candidate-suitability-summary", "best-available-pool"],
+            "routing_knowledge": [
+                "freshness_actionability",
+                "recovery_admission",
+                "anti_flapping",
+                "service_user_sla_fit",
+                "decision_outcome_closure",
+                "routing_recommendation_readiness",
+            ],
             "prediction": ["prediction-summaries"],
             "trust": ["trust-summaries", "trust-evolution-summaries"],
             "governance": "existing operator approval/governance preview endpoints",

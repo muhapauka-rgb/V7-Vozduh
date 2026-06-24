@@ -271,7 +271,7 @@ class OperatorDecisionSurfaceTest(unittest.TestCase):
     def test_admin_channel_state_surface_is_existing_column_and_click_drawer(self):
         source = Path(__file__).resolve().parents[2] / "admin" / "v7-admin-api"
         text = source.read_text(encoding="utf-8")
-        self.assertIn("{id:'channel_state', label:'Состояние доверия'", text)
+        self.assertIn("if (colId === 'channel_state') return channelDecisionRow(id).state || '';", text)
         self.assertIn("function channelStateCell", text)
         self.assertIn("openChannelStateDrawer", text)
         self.assertIn("channel_state_explanation", text)
@@ -322,6 +322,158 @@ class OperatorDecisionSurfaceTest(unittest.TestCase):
         self.assertFalse(model["authority"]["rollback_path_changed"])
         self.assertFalse(model["authority"]["new_truth_sources_created"])
         self.assertFalse(model["authority"]["duplicate_systems_created"])
+
+    def test_knowledge_overlay_blocks_stale_routing_recommendation(self):
+        row = {
+            "user": "10.7.0.2",
+            "current_channel": "slow",
+            "recommended_channel": "fast",
+            "recommendation": "move_recommended",
+            "highlight": True,
+            "operator_state": "Recommendation",
+            "confidence": 88,
+            "current_score": 30,
+            "source_hash": "unit",
+            "reasons": [],
+            "blockers": [],
+            "candidates": [{"channel": "fast", "suitability_score": 88}, {"channel": "slow", "suitability_score": 30}],
+        }
+        snapshot = {
+            "snapshot_statuses": {
+                "candidate-suitability-summary": {"exists": True, "freshness_state": "STALE", "runtime_behavior": "WARN", "stop_required": False},
+                "best-available-pool": {"exists": True, "freshness_state": "STALE", "runtime_behavior": "WARN", "stop_required": False},
+            }
+        }
+
+        overlay = surface.build_knowledge_decision_overlay(snapshot, [row], [], decision_records=[])
+        gated = surface._apply_knowledge_to_user_row(row, overlay)
+
+        self.assertEqual(gated["recommendation"], "keep")
+        self.assertIn("freshness_recheck_required:suitability", gated["blockers"])
+        self.assertFalse(gated["runtime_mutation_performed"])
+        self.assertFalse(overlay["routing_recommendation_readiness"]["runtime_apply_allowed"])
+
+    def test_service_user_sla_fit_selects_safer_candidate(self):
+        row = {
+            "user": "10.7.0.2",
+            "current_channel": "slow",
+            "recommended_channel": "fast",
+            "recommendation": "move_recommended",
+            "highlight": True,
+            "operator_state": "Recommendation",
+            "confidence": 95,
+            "current_score": 30,
+            "source_hash": "unit",
+            "required_services": ["youtube"],
+            "reasons": [],
+            "blockers": [],
+            "candidates": [
+                {"channel": "fast", "suitability_score": 95, "missing_requirements": ["youtube"]},
+                {"channel": "safe", "suitability_score": 82},
+                {"channel": "slow", "suitability_score": 30},
+            ],
+        }
+        snapshot = {
+            "snapshot_statuses": {
+                "service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+                "channel-service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+                "user-service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            }
+        }
+
+        overlay = surface.build_knowledge_decision_overlay(snapshot, [row], [], decision_records=[])
+        gated = surface._apply_knowledge_to_user_row(row, overlay)
+
+        self.assertEqual(gated["recommended_channel"], "safe")
+        self.assertEqual(gated["recommendation"], "move_recommended")
+        self.assertEqual(gated["knowledge_decision_overlay"]["selected_by"], "service_user_sla_fit")
+        self.assertIn("service/user/SLA fit selected safer channel", gated["reasons"])
+
+    def test_recovery_admission_blocks_degraded_target(self):
+        row = {
+            "user": "10.7.0.2",
+            "current_channel": "slow",
+            "recommended_channel": "fast",
+            "recommendation": "move_recommended",
+            "highlight": True,
+            "operator_state": "Recommendation",
+            "confidence": 88,
+            "current_score": 30,
+            "source_hash": "unit",
+            "reasons": [],
+            "blockers": [],
+            "candidates": [{"channel": "fast", "suitability_score": 88}, {"channel": "slow", "suitability_score": 30}],
+        }
+        channel = {"channel": "fast", "lifecycle": "DEGRADED", "successful_checks": 0}
+        snapshot = {"snapshot_statuses": {"trust-evolution-summaries": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False}}}
+
+        overlay = surface.build_knowledge_decision_overlay(snapshot, [row], [channel], decision_records=[])
+        gated = surface._apply_knowledge_to_user_row(row, overlay)
+
+        self.assertEqual(gated["recommendation"], "keep")
+        self.assertTrue(any(item.startswith("recovery_admission_not_eligible") for item in gated["blockers"]))
+
+    def test_anti_flap_blocks_recent_oscillation(self):
+        row = {
+            "user": "10.7.0.2",
+            "current_channel": "slow",
+            "recommended_channel": "fast",
+            "recommendation": "move_recommended",
+            "highlight": True,
+            "operator_state": "Recommendation",
+            "confidence": 88,
+            "current_score": 30,
+            "source_hash": "unit",
+            "reasons": [],
+            "blockers": [],
+            "candidates": [{"channel": "fast", "suitability_score": 88}, {"channel": "slow", "suitability_score": 30}],
+        }
+        records = [
+            {"user": "10.7.0.2", "from": "slow", "to": "fast"},
+            {"user": "10.7.0.2", "from": "fast", "to": "slow"},
+        ]
+
+        overlay = surface.build_knowledge_decision_overlay({}, [row], [], decision_records=records)
+        gated = surface._apply_knowledge_to_user_row(row, overlay)
+
+        self.assertEqual(gated["recommendation"], "keep")
+        self.assertIn("anti_flap_blocks_recent_oscillation", gated["blockers"])
+
+    def test_decision_outcome_closure_is_read_only_and_stable(self):
+        row = {
+            "user": "10.7.0.2",
+            "current_channel": "slow",
+            "recommended_channel": "fast",
+            "recommendation": "move_recommended",
+            "highlight": True,
+            "operator_state": "Recommendation",
+            "confidence": 88,
+            "current_score": 30,
+            "source_hash": "unit",
+            "reasons": [],
+            "blockers": [],
+            "candidates": [{"channel": "fast", "suitability_score": 88}, {"channel": "slow", "suitability_score": 30}],
+        }
+        records = [{
+            "recommendation_id": "r1",
+            "decision_id": "d1",
+            "packet_id": "p1",
+            "apply_result": "success",
+            "post_action_verification": "pass",
+            "service_outcome": "ok",
+            "user_outcome": "ok",
+            "learning_record": "written",
+            "outcome_observed_at": "2026-06-24T00:00:00+00:00",
+        }]
+
+        first = surface.build_knowledge_decision_overlay({}, [row], [], decision_records=records)
+        second = surface.build_knowledge_decision_overlay({}, [row], [], decision_records=records)
+
+        self.assertEqual(first["decision_outcome_closure"]["rows"], second["decision_outcome_closure"]["rows"])
+        self.assertEqual(first["decision_outcome_closure"]["summary"], second["decision_outcome_closure"]["summary"])
+        self.assertEqual(first["decision_outcome_closure"]["closure_state"], "COMPLETE")
+        self.assertFalse(first["decision_outcome_closure"]["runtime_mutation_performed"])
+        self.assertEqual(first["decision_outcome_closure"]["users_moved"], 0)
 
 
 if __name__ == "__main__":

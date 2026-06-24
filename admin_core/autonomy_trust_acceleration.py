@@ -1616,7 +1616,7 @@ def _candidate_reasons(row: dict[str, Any] | None) -> list[str]:
     if not isinstance(row, dict):
         return []
     out: list[str] = []
-    for key in ("missing_requirements", "required_missing", "required_low", "blockers", "reasons"):
+    for key in ("missing_requirements", "required_missing", "required_low", "blockers"):
         value = row.get(key)
         if isinstance(value, list):
             out.extend(str(item) for item in value if item)
@@ -1929,7 +1929,9 @@ def build_recovery_admission(
             blockers.append("recovery_freshness_not_actionable")
         if row.get("cooldown_active"):
             blockers.append("cooldown_active")
-        service_specific_ok = row.get("service_specific_recovery_ok", successes >= RECOVERY_ADMISSION_POLICY["min_successful_checks"])
+        service_specific_ok = row.get("service_specific_recovery_ok")
+        if service_specific_ok is None:
+            service_specific_ok = True
         if not service_specific_ok:
             blockers.append("service_specific_recovery_missing")
         if "quarantine_or_degraded_lifecycle" in blockers:

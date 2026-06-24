@@ -1575,6 +1575,346 @@ def build_outcome_leverage_model(
     }
 
 
+def _safe_ratio(numerator: Any, denominator: Any) -> float:
+    total = as_float(denominator, 0.0)
+    if total <= 0:
+        return 0.0
+    return round(max(0.0, min(1.0, as_float(numerator, 0.0) / total)), 4)
+
+
+def _suitability_stage(
+    *,
+    coverage_ratio: float,
+    mean_correctness: float,
+    mean_candidate_confidence: float,
+    suitability_confidence: float,
+    freshness_classification: str,
+    capture_loss: float,
+    visibility_loss: float,
+    aggregation_loss: float,
+    recommendation_correct_rate: float,
+    fit_correct_rate: float,
+) -> str:
+    no_pipeline_loss = capture_loss <= 0 and visibility_loss <= 0 and aggregation_loss <= 0
+    freshness_ok = freshness_classification in {"ACTIONABLE_NOW", "FRESH", "UNKNOWN"}
+    if (
+        coverage_ratio >= 0.95
+        and mean_correctness >= 85.0
+        and mean_candidate_confidence >= 0.85
+        and suitability_confidence >= 70.0
+        and recommendation_correct_rate >= 0.85
+        and fit_correct_rate >= 0.85
+        and freshness_ok
+        and no_pipeline_loss
+    ):
+        return "AUTONOMY_GRADE_KNOWLEDGE"
+    if (
+        coverage_ratio >= 0.85
+        and mean_correctness >= 75.0
+        and mean_candidate_confidence >= 0.70
+        and recommendation_correct_rate >= 0.70
+        and fit_correct_rate >= 0.70
+        and freshness_ok
+        and no_pipeline_loss
+    ):
+        return "ACTIONABLE_KNOWLEDGE"
+    if coverage_ratio >= 0.70 and mean_correctness >= 70.0 and mean_candidate_confidence >= 0.60 and no_pipeline_loss:
+        return "CONFIRMED_KNOWLEDGE"
+    if coverage_ratio > 0 or suitability_confidence > 0 or mean_candidate_confidence > 0:
+        return "STABLE_SIGNAL"
+    return "RAW_OBSERVATION"
+
+
+def build_suitability_effectiveness_expansion(
+    *,
+    decision_outcome_learning: dict[str, Any],
+    floor_forensics: dict[str, Any],
+    candidate_outcome_reality_collection: dict[str, Any],
+) -> dict[str, Any]:
+    """Expose suitability-specific effectiveness from existing outcome owners."""
+    effectiveness = decision_outcome_learning.get("effectiveness") if isinstance(decision_outcome_learning.get("effectiveness"), dict) else {}
+    quality_counts = decision_outcome_learning.get("outcome_quality_counts") if isinstance(decision_outcome_learning.get("outcome_quality_counts"), dict) else {}
+    suitability_root = floor_forensics.get("suitability_root_cause") if isinstance(floor_forensics.get("suitability_root_cause"), dict) else {}
+    coverage = candidate_outcome_reality_collection.get("coverage") if isinstance(candidate_outcome_reality_collection.get("coverage"), dict) else {}
+    candidate_correctness = round(as_float(suitability_root.get("mean_correctness"), 0.0) / 100.0, 4)
+    candidate_confidence = round(as_float(suitability_root.get("mean_candidate_confidence"), 0.0), 4)
+    user_improved_rate = as_float(effectiveness.get("user_improved_rate"), -1.0)
+    user_improved_known = user_improved_rate >= 0.0
+    if not user_improved_known:
+        user_improved_rate = 0.0
+    return {
+        "schema_version": "v7.autonomy-trust.suitability-effectiveness-expansion.v1",
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "source_owner": "admin_core.operator_execution_feedback + trust-evolution-summaries",
+        "decision_correctness": as_float(effectiveness.get("recommendation_correct_rate"), 0.0),
+        "service_improvement_rate": as_float(effectiveness.get("service_improved_rate"), 0.0),
+        "user_improvement_rate": round(user_improved_rate, 4),
+        "user_improvement_known": user_improved_known,
+        "rollback_rate": as_float(effectiveness.get("rollback_rate"), 0.0),
+        "fit_correctness": as_float(effectiveness.get("fit_prediction_correct_rate"), 0.0),
+        "candidate_correctness": candidate_correctness,
+        "candidate_confidence": candidate_confidence,
+        "candidate_coverage_ratio": as_float(coverage.get("coverage_ratio"), 0.0),
+        "outcome_quality_counts": quality_counts,
+        "missing_candidate_outcomes": int(as_float(coverage.get("missing_candidate_outcomes"), 0.0)),
+        "interpretation": {
+            "candidate_correctness": "observed suitability correctness normalized from trust-evolution candidate rows",
+            "fit_correctness": "existing decision outcome learning fit_prediction_correct_rate",
+            "user_improvement_rate": "UNKNOWN until feedback owner emits explicit user_improved_rate",
+        },
+        "read_only": True,
+        "synthetic_evidence_created": False,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
+def build_suitability_quality_model(
+    *,
+    floor_forensics: dict[str, Any],
+    candidate_outcome_reality_collection: dict[str, Any],
+    freshness_actionability: dict[str, Any],
+    service_user_sla_fit: dict[str, Any],
+    decision_outcome_learning: dict[str, Any],
+    suitability_effectiveness: dict[str, Any],
+) -> dict[str, Any]:
+    """Evaluate whether suitability knowledge is autonomy-grade without changing scoring."""
+    suitability_root = floor_forensics.get("suitability_root_cause") if isinstance(floor_forensics.get("suitability_root_cause"), dict) else {}
+    components = floor_forensics.get("component_values") if isinstance(floor_forensics.get("component_values"), dict) else {}
+    loss = floor_forensics.get("loss_model") if isinstance(floor_forensics.get("loss_model"), dict) else {}
+    coverage = candidate_outcome_reality_collection.get("coverage") if isinstance(candidate_outcome_reality_collection.get("coverage"), dict) else {}
+    missing_analysis = candidate_outcome_reality_collection.get("missing_outcome_analysis") if isinstance(candidate_outcome_reality_collection.get("missing_outcome_analysis"), dict) else {}
+    freshness_domain = ((freshness_actionability.get("domains") or {}).get("suitability") or {})
+    fit_summary = service_user_sla_fit.get("summary") if isinstance(service_user_sla_fit.get("summary"), dict) else {}
+    knowledge_growth = decision_outcome_learning.get("knowledge_growth") if isinstance(decision_outcome_learning.get("knowledge_growth"), dict) else {}
+
+    candidate_count = int(as_float(coverage.get("candidate_count"), as_float(suitability_root.get("candidates_seen"), 0.0)))
+    outcomes_consumed = int(as_float(coverage.get("candidate_outcomes_consumed"), as_float(suitability_root.get("outcomes_seen"), 0.0)))
+    coverage_ratio = as_float(coverage.get("coverage_ratio"), _safe_ratio(outcomes_consumed, candidate_count))
+    mean_correctness = as_float(suitability_root.get("mean_correctness"), 0.0)
+    mean_candidate_confidence = as_float(suitability_root.get("mean_candidate_confidence"), 0.0)
+    suitability_confidence = as_float(components.get("suitability_confidence"), as_float(suitability_root.get("suitability_confidence"), 0.0))
+    freshness_classification = str(freshness_domain.get("classification") or "UNKNOWN")
+    recommendation_correct_rate = as_float(suitability_effectiveness.get("decision_correctness"), 0.0)
+    fit_correct_rate = as_float(suitability_effectiveness.get("fit_correctness"), 0.0)
+    capture_loss = as_float(loss.get("capture_loss_count"), 0.0)
+    visibility_loss = as_float(loss.get("visibility_loss_count"), 0.0)
+    aggregation_loss = as_float(loss.get("aggregation_loss_count"), 0.0)
+    stage = _suitability_stage(
+        coverage_ratio=coverage_ratio,
+        mean_correctness=mean_correctness,
+        mean_candidate_confidence=mean_candidate_confidence,
+        suitability_confidence=suitability_confidence,
+        freshness_classification=freshness_classification,
+        capture_loss=capture_loss,
+        visibility_loss=visibility_loss,
+        aggregation_loss=aggregation_loss,
+        recommendation_correct_rate=recommendation_correct_rate,
+        fit_correct_rate=fit_correct_rate,
+    )
+    blockers: list[str] = []
+    if coverage_ratio < 0.70:
+        blockers.append("candidate_outcome_coverage_below_confirmed_floor")
+    if mean_correctness < 70.0:
+        blockers.append("candidate_correctness_below_confirmed_floor")
+    if mean_candidate_confidence < 0.60:
+        blockers.append("candidate_source_confidence_below_confirmed_floor")
+    if suitability_confidence < 70.0:
+        blockers.append("suitability_confidence_below_autonomy_floor")
+    if capture_loss > 0 or visibility_loss > 0 or aggregation_loss > 0:
+        blockers.append("evidence_pipeline_loss_present")
+    if freshness_classification not in {"ACTIONABLE_NOW", "FRESH", "UNKNOWN"}:
+        blockers.append("suitability_freshness_not_actionable")
+    if recommendation_correct_rate < 0.70:
+        blockers.append("decision_correctness_below_actionable_floor")
+    if fit_correct_rate < 0.70:
+        blockers.append("fit_correctness_below_actionable_floor")
+
+    next_stage = {
+        "RAW_OBSERVATION": "STABLE_SIGNAL",
+        "STABLE_SIGNAL": "CONFIRMED_KNOWLEDGE",
+        "CONFIRMED_KNOWLEDGE": "ACTIONABLE_KNOWLEDGE",
+        "ACTIONABLE_KNOWLEDGE": "AUTONOMY_GRADE_KNOWLEDGE",
+        "AUTONOMY_GRADE_KNOWLEDGE": "AUTONOMY_GRADE_KNOWLEDGE",
+    }[stage]
+    return {
+        "schema_version": "v7.autonomy-trust.suitability-quality-model.v1",
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "source_owners_reused": [
+            "admin_core.intelligence_workers.build_candidate_outcome_rows",
+            "admin_core.operator_execution_feedback.build_decision_outcome_learning",
+            "trust-evolution-summaries",
+            "admin_core.intelligence_snapshots.read_snapshot_family",
+        ],
+        "current_stage": stage,
+        "next_stage": next_stage,
+        "autonomy_grade_ready": stage == "AUTONOMY_GRADE_KNOWLEDGE",
+        "criteria": {
+            "STABLE_SIGNAL": "candidate rows or suitability confidence exist",
+            "CONFIRMED_KNOWLEDGE": "coverage >= 0.70, correctness >= 70, source confidence >= 0.60, no pipeline loss",
+            "ACTIONABLE_KNOWLEDGE": "coverage >= 0.85, correctness >= 75, source confidence >= 0.70, decision/fit correctness >= 0.70",
+            "AUTONOMY_GRADE_KNOWLEDGE": "coverage >= 0.95, correctness >= 85, source confidence >= 0.85, suitability confidence >= 70, decision/fit correctness >= 0.85",
+        },
+        "measurements": {
+            "candidate_count": candidate_count,
+            "candidate_outcomes_consumed": outcomes_consumed,
+            "missing_candidate_outcomes": int(as_float(coverage.get("missing_candidate_outcomes"), max(0, candidate_count - outcomes_consumed))),
+            "coverage_ratio": coverage_ratio,
+            "mean_correctness": round(mean_correctness, 3),
+            "mean_candidate_confidence": round(mean_candidate_confidence, 4),
+            "suitability_confidence": round(suitability_confidence, 3),
+            "freshness": freshness_classification,
+            "service_user_sla_fit_users_seen": fit_summary.get("users_seen", 0),
+            "decision_correctness": recommendation_correct_rate,
+            "fit_correctness": fit_correct_rate,
+            "service_improvement_rate": suitability_effectiveness.get("service_improvement_rate", 0.0),
+            "user_improvement_rate": suitability_effectiveness.get("user_improvement_rate", 0.0),
+            "rollback_rate": suitability_effectiveness.get("rollback_rate", 0.0),
+            "capture_loss_count": int(capture_loss),
+            "visibility_loss_count": int(visibility_loss),
+            "aggregation_loss_count": int(aggregation_loss),
+        },
+        "knowledge_gained": knowledge_growth.get("knowledge_gained", 0),
+        "knowledge_improved": knowledge_growth.get("knowledge_improved", []),
+        "knowledge_degraded": knowledge_growth.get("knowledge_degraded", []),
+        "missing_knowledge": {
+            "never_happened": missing_analysis.get("never_happened", 0),
+            "happened_but_not_visible": missing_analysis.get("happened_but_not_visible", 0),
+            "visible_but_weakly_weighted": missing_analysis.get("visible_but_weakly_weighted", 0),
+            "primary_blockers": blockers,
+        },
+        "read_only": True,
+        "synthetic_evidence_created": False,
+        "formula_changed": False,
+        "floor_changed": False,
+        "planner_redesigned": False,
+        "governance_redesigned": False,
+        "execution_redesigned": False,
+        "new_truth_source_created": False,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
+def build_suitability_knowledge_growth_model(
+    *,
+    suitability_quality_model: dict[str, Any],
+    candidate_outcome_reality_collection: dict[str, Any],
+    decision_outcome_learning: dict[str, Any],
+    outcome_leverage_model: dict[str, Any],
+    real_outcome_growth_projection: dict[str, Any],
+) -> dict[str, Any]:
+    """Explain suitability knowledge growth opportunities from existing owners."""
+    growth = decision_outcome_learning.get("knowledge_growth") if isinstance(decision_outcome_learning.get("knowledge_growth"), dict) else {}
+    coverage = candidate_outcome_reality_collection.get("coverage") if isinstance(candidate_outcome_reality_collection.get("coverage"), dict) else {}
+    missing = suitability_quality_model.get("missing_knowledge") if isinstance(suitability_quality_model.get("missing_knowledge"), dict) else {}
+    ranked = [
+        row for row in (outcome_leverage_model.get("activities_ranked") or [])
+        if isinstance(row, dict) and as_float(row.get("expected_suitability_gain"), 0.0) > 0
+    ]
+    projections = real_outcome_growth_projection.get("projections") if isinstance(real_outcome_growth_projection.get("projections"), list) else []
+    first_projection = projections[0] if projections and isinstance(projections[0], dict) else {}
+    knowledge_improved = set(str(item) for item in (growth.get("knowledge_improved") or []))
+    knowledge_degraded = set(str(item) for item in (growth.get("knowledge_degraded") or []))
+    if "Suitability" in knowledge_improved:
+        direction = "INCREASED"
+    elif "Suitability" in knowledge_degraded:
+        direction = "DECREASED"
+    else:
+        direction = "UNCHANGED"
+    return {
+        "schema_version": "v7.autonomy-trust.suitability-knowledge-growth.v1",
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "current_stage": suitability_quality_model.get("current_stage", "UNKNOWN"),
+        "next_stage": suitability_quality_model.get("next_stage", "UNKNOWN"),
+        "growth_direction": direction,
+        "why_increased": [
+            "closed decision outcome improved Suitability"
+        ] if direction == "INCREASED" else [],
+        "why_decreased": [
+            "closed decision outcome degraded Suitability"
+        ] if direction == "DECREASED" else [],
+        "why_unchanged": [
+            "no new closed suitability outcome in current read model",
+            "remaining candidate outcomes are missing or weakly weighted",
+        ] if direction == "UNCHANGED" else [],
+        "knowledge_gained_total": growth.get("knowledge_gained", 0),
+        "candidate_outcome_gap": {
+            "candidate_count": coverage.get("candidate_count", 0),
+            "candidate_outcomes_consumed": coverage.get("candidate_outcomes_consumed", 0),
+            "missing_candidate_outcomes": coverage.get("missing_candidate_outcomes", 0),
+            "coverage_ratio": coverage.get("coverage_ratio", 0.0),
+            "never_happened": missing.get("never_happened", 0),
+            "happened_but_not_visible": missing.get("happened_but_not_visible", 0),
+            "visible_but_weakly_weighted": missing.get("visible_but_weakly_weighted", 0),
+        },
+        "first_missing_outcome_projection": {
+            "projected_suitability_confidence": first_projection.get("projected_suitability_confidence", first_projection.get("projected_suitability")),
+            "projected_confidence": first_projection.get("projected_confidence"),
+            "projected_trust": first_projection.get("projected_trust"),
+        },
+        "fastest_suitability_growth_activities": ranked[:3],
+        "read_only": True,
+        "synthetic_evidence_created": False,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
+def build_autonomy_grade_suitability_program(
+    *,
+    suitability_quality_model: dict[str, Any],
+    suitability_knowledge_growth: dict[str, Any],
+    suitability_effectiveness: dict[str, Any],
+    outcome_leverage_model: dict[str, Any],
+) -> dict[str, Any]:
+    fastest = suitability_knowledge_growth.get("fastest_suitability_growth_activities")
+    fastest = fastest if isinstance(fastest, list) else []
+    return {
+        "schema_version": "v7.autonomy-trust.autonomy-grade-suitability-program.v1",
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "lifecycle": [
+            {"stage": "candidate", "owner": "candidate-suitability-summary", "status": "EXISTS"},
+            {"stage": "selection", "owner": "planner/shadow autonomy decision surface", "status": "EXISTS"},
+            {"stage": "decision", "owner": "operator/governed packet owners", "status": "EXISTS"},
+            {"stage": "packet", "owner": "existing restore/approval packet owners", "status": "EXISTS"},
+            {"stage": "verification", "owner": "operator_execution_feedback post-action verification", "status": "EXISTS"},
+            {"stage": "outcome", "owner": "candidate outcome matcher", "status": "PARTIAL"},
+            {"stage": "learning", "owner": "decision outcome learning", "status": "EXISTS"},
+            {"stage": "future_suitability", "owner": "trust evolution suitability aggregation", "status": "PARTIAL"},
+        ],
+        "improvements": {
+            "suitability_quality_model": "IMPLEMENTED_READ_ONLY",
+            "suitability_growth_tracking": "IMPLEMENTED_READ_ONLY",
+            "why_suitability_changed": "IMPLEMENTED_READ_ONLY",
+            "decision_effectiveness_expansion": "IMPLEMENTED_READ_ONLY",
+            "knowledge_stage_evaluation": "IMPLEMENTED_READ_ONLY",
+            "high_leverage_path_ranking": "REUSED_OUTCOME_LEVERAGE_MODEL",
+        },
+        "current_stage": suitability_quality_model.get("current_stage", "UNKNOWN"),
+        "autonomy_grade_ready": bool(suitability_quality_model.get("autonomy_grade_ready")),
+        "primary_blockers": (suitability_quality_model.get("missing_knowledge") or {}).get("primary_blockers", []),
+        "fastest_growth_activities": [
+            row.get("activity") for row in fastest if isinstance(row, dict)
+        ],
+        "highest_overall_leverage": (outcome_leverage_model.get("highest_leverage") or {}).get("activity"),
+        "suitability_effectiveness": {
+            "decision_correctness": suitability_effectiveness.get("decision_correctness", 0.0),
+            "fit_correctness": suitability_effectiveness.get("fit_correctness", 0.0),
+            "candidate_correctness": suitability_effectiveness.get("candidate_correctness", 0.0),
+            "candidate_coverage_ratio": suitability_effectiveness.get("candidate_coverage_ratio", 0.0),
+        },
+        "read_only": True,
+        "synthetic_evidence_created": False,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
 def _candidate_key_text(key: tuple[str, str]) -> str:
     return f"{key[0]}:{key[1]}"
 
@@ -2737,6 +3077,7 @@ def _knowledge_evidence_overlay(
     source_confidence_inventory: dict[str, Any],
     candidate_outcome_reality_collection: dict[str, Any],
     routing_foundation: dict[str, Any] | None = None,
+    suitability_quality_model: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     source_rows = {
         row.get("source"): row
@@ -2755,6 +3096,7 @@ def _knowledge_evidence_overlay(
     outcome_learning = routing_foundation.get("decision_outcome_learning") or {}
     outcome_effectiveness = outcome_learning.get("effectiveness") if isinstance(outcome_learning.get("effectiveness"), dict) else {}
     knowledge_growth = outcome_learning.get("knowledge_growth") if isinstance(outcome_learning.get("knowledge_growth"), dict) else {}
+    suitability_quality_model = suitability_quality_model or {}
     overlay_by_object = {
         "Service": {
             "rows_seen": ((floor_forensics.get("service_root_cause") or {}).get("rows_seen") if isinstance(floor_forensics.get("service_root_cause"), dict) else 0),
@@ -2778,6 +3120,9 @@ def _knowledge_evidence_overlay(
             "source_classification": (source_rows.get("candidate_outcomes") or {}).get("classification", "UNKNOWN"),
             "service_user_sla_fit_attached": bool(fit_summary),
             "fit_prediction_correct_rate": outcome_effectiveness.get("fit_prediction_correct_rate", 0.0),
+            "autonomy_grade_stage": suitability_quality_model.get("current_stage", "UNKNOWN"),
+            "autonomy_grade_ready": suitability_quality_model.get("autonomy_grade_ready", False),
+            "primary_blockers": (suitability_quality_model.get("missing_knowledge") or {}).get("primary_blockers", []),
         },
         "Trust": {
             "confidence_floor": (floors.get("confidence") or {}).get("current") if isinstance(floors.get("confidence"), dict) else 0.0,
@@ -2835,6 +3180,7 @@ def build_knowledge_quality_read_model(
     source_confidence_inventory: dict[str, Any] | None = None,
     candidate_outcome_reality_collection: dict[str, Any] | None = None,
     routing_foundation: dict[str, Any] | None = None,
+    suitability_quality_model: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Expose canonical V7 knowledge quality through an existing read-only owner."""
     generated = generated_at or datetime.now(timezone.utc).isoformat()
@@ -2846,6 +3192,7 @@ def build_knowledge_quality_read_model(
     source_confidence_inventory = source_confidence_inventory or {}
     candidate_outcome_reality_collection = candidate_outcome_reality_collection or {}
     routing_foundation = routing_foundation or {}
+    suitability_quality_model = suitability_quality_model or {}
     objects = []
     distribution = {stage: 0 for stage in VALID_KNOWLEDGE_MATURITY_STAGES}
     for definition in CANONICAL_KNOWLEDGE_OBJECTS:
@@ -2878,6 +3225,7 @@ def build_knowledge_quality_read_model(
                 source_confidence_inventory=source_confidence_inventory,
                 candidate_outcome_reality_collection=candidate_outcome_reality_collection,
                 routing_foundation=routing_foundation,
+                suitability_quality_model=suitability_quality_model,
             ),
             "score_source": "docs/reference/V7_KNOWLEDGE_QUALITY_MODEL.md",
             "heuristic_fallback": False,
@@ -3109,6 +3457,32 @@ def build_acceleration_inventory(
     )
     anti_flapping = build_anti_flapping(decision_records or [], generated_at=generated)
     decision_outcome_learning = _decision_outcome_learning_from_trust(snapshots["trust-evolution-summaries"])
+    suitability_effectiveness_expansion = build_suitability_effectiveness_expansion(
+        decision_outcome_learning=decision_outcome_learning,
+        floor_forensics=floor_forensics,
+        candidate_outcome_reality_collection=candidate_outcome_reality_collection,
+    )
+    suitability_quality_model = build_suitability_quality_model(
+        floor_forensics=floor_forensics,
+        candidate_outcome_reality_collection=candidate_outcome_reality_collection,
+        freshness_actionability=freshness_actionability,
+        service_user_sla_fit=service_user_sla_fit,
+        decision_outcome_learning=decision_outcome_learning,
+        suitability_effectiveness=suitability_effectiveness_expansion,
+    )
+    suitability_knowledge_growth = build_suitability_knowledge_growth_model(
+        suitability_quality_model=suitability_quality_model,
+        candidate_outcome_reality_collection=candidate_outcome_reality_collection,
+        decision_outcome_learning=decision_outcome_learning,
+        outcome_leverage_model=outcome_leverage_model,
+        real_outcome_growth_projection=real_outcome_growth_projection,
+    )
+    autonomy_grade_suitability_program = build_autonomy_grade_suitability_program(
+        suitability_quality_model=suitability_quality_model,
+        suitability_knowledge_growth=suitability_knowledge_growth,
+        suitability_effectiveness=suitability_effectiveness_expansion,
+        outcome_leverage_model=outcome_leverage_model,
+    )
     routing_foundation_partial = {
         "service_user_sla_fit": service_user_sla_fit,
         "decision_outcome_closure": decision_outcome_closure,
@@ -3127,6 +3501,7 @@ def build_acceleration_inventory(
         source_confidence_inventory=source_confidence_inventory,
         candidate_outcome_reality_collection=candidate_outcome_reality_collection,
         routing_foundation=routing_foundation_partial,
+        suitability_quality_model=suitability_quality_model,
     )
     routing_recommendation_readiness = build_routing_recommendation_readiness(
         service_user_sla_fit=service_user_sla_fit,
@@ -3159,6 +3534,10 @@ def build_acceleration_inventory(
         "decision_outcome_closure": decision_outcome_closure,
         "decision_outcome_learning": decision_outcome_learning,
         "decision_effectiveness": decision_outcome_learning.get("effectiveness", {}),
+        "suitability_effectiveness_expansion": suitability_effectiveness_expansion,
+        "suitability_quality_model": suitability_quality_model,
+        "suitability_knowledge_growth": suitability_knowledge_growth,
+        "autonomy_grade_suitability_program": autonomy_grade_suitability_program,
         "knowledge_growth": decision_outcome_learning.get("knowledge_growth", {}),
         "recovery_admission": recovery_admission,
         "anti_flapping": anti_flapping,

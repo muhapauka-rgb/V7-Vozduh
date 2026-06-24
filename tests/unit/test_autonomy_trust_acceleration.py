@@ -740,6 +740,102 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertFalse(inventory["knowledge_quality_read_model"]["apply_executed"])
         self.assertEqual(inventory["knowledge_quality_read_model"]["users_moved"], 0)
 
+    def test_inventory_exposes_autonomy_grade_suitability_program(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-24T00:00:00+00:00",
+            )
+
+        quality = inventory["suitability_quality_model"]
+        growth = inventory["suitability_knowledge_growth"]
+        effectiveness = inventory["suitability_effectiveness_expansion"]
+        program = inventory["autonomy_grade_suitability_program"]
+
+        self.assertEqual(quality["schema_version"], "v7.autonomy-trust.suitability-quality-model.v1")
+        self.assertEqual(quality["current_stage"], "STABLE_SIGNAL")
+        self.assertFalse(quality["autonomy_grade_ready"])
+        self.assertIn("candidate_source_confidence_below_confirmed_floor", quality["missing_knowledge"]["primary_blockers"])
+        self.assertEqual(growth["schema_version"], "v7.autonomy-trust.suitability-knowledge-growth.v1")
+        self.assertEqual(growth["growth_direction"], "INCREASED")
+        self.assertGreaterEqual(len(growth["fastest_suitability_growth_activities"]), 1)
+        self.assertEqual(effectiveness["schema_version"], "v7.autonomy-trust.suitability-effectiveness-expansion.v1")
+        self.assertEqual(effectiveness["decision_correctness"], 1.0)
+        self.assertEqual(effectiveness["fit_correctness"], 1.0)
+        self.assertEqual(effectiveness["candidate_correctness"], 0.5)
+        self.assertEqual(program["schema_version"], "v7.autonomy-trust.autonomy-grade-suitability-program.v1")
+        self.assertEqual(program["improvements"]["suitability_quality_model"], "IMPLEMENTED_READ_ONLY")
+        self.assertFalse(program["autonomy_grade_ready"])
+        for key in (
+            "suitability_quality_model",
+            "suitability_knowledge_growth",
+            "suitability_effectiveness_expansion",
+            "autonomy_grade_suitability_program",
+        ):
+            self.assertFalse(inventory[key]["runtime_mutation_performed"])
+            self.assertFalse(inventory[key]["apply_executed"])
+            self.assertEqual(inventory[key]["users_moved"], 0)
+
+    def test_suitability_program_survives_refresh_style_rebuild(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            first = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-24T00:00:00+00:00",
+            )
+            second = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=json.loads(json.dumps(self.decision_surface(), sort_keys=True)),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-24T00:01:00+00:00",
+            )
+
+        for key in (
+            "current_stage",
+            "autonomy_grade_ready",
+            "measurements",
+            "missing_knowledge",
+        ):
+            self.assertEqual(first["suitability_quality_model"][key], second["suitability_quality_model"][key])
+        self.assertEqual(
+            first["suitability_effectiveness_expansion"]["candidate_correctness"],
+            second["suitability_effectiveness_expansion"]["candidate_correctness"],
+        )
+        self.assertEqual(
+            first["suitability_knowledge_growth"]["candidate_outcome_gap"],
+            second["suitability_knowledge_growth"]["candidate_outcome_gap"],
+        )
+        self.assertFalse(second["autonomy_grade_suitability_program"]["runtime_mutation_performed"])
+        self.assertEqual(second["autonomy_grade_suitability_program"]["users_moved"], 0)
+
+    def test_knowledge_quality_overlay_includes_suitability_autonomy_stage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-24T00:00:00+00:00",
+            )
+
+        objects = {row["object"]: row for row in inventory["knowledge_objects"]}
+        suitability_overlay = objects["Suitability"]["evidence_overlay"]
+        self.assertEqual(suitability_overlay["autonomy_grade_stage"], "STABLE_SIGNAL")
+        self.assertFalse(suitability_overlay["autonomy_grade_ready"])
+        self.assertIn("candidate_source_confidence_below_confirmed_floor", suitability_overlay["primary_blockers"])
+
 
 if __name__ == "__main__":
     unittest.main()

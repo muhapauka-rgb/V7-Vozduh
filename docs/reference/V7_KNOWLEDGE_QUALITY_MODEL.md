@@ -262,6 +262,15 @@ Routing foundation overlay:
 5. Decision Outcome Knowledge receives closure-state visibility and required field checks; missing fields remain blockers.
 6. Autonomy readiness receives `routing_recommendation_readiness`, which is read-only and cannot grant apply authority.
 
+Autonomy-grade suitability overlay:
+
+1. Suitability now has a read-only autonomy-grade program exposed by the existing trust/evidence inventory owner.
+2. `suitability_quality_model` evaluates the stage from `STABLE_SIGNAL` to `AUTONOMY_GRADE_KNOWLEDGE` using real coverage, correctness, source confidence, suitability confidence, freshness, decision correctness, fit correctness, and pipeline loss.
+3. `suitability_knowledge_growth` explains whether suitability increased, decreased, or stayed unchanged and lists missing candidate outcome knowledge.
+4. `suitability_effectiveness_expansion` exposes decision correctness, service improvement rate, user improvement rate visibility, rollback rate, fit correctness, candidate correctness, and candidate coverage ratio from existing owners.
+5. `autonomy_grade_suitability_program` ties candidate -> selection -> decision -> packet -> verification -> outcome -> learning -> future suitability into one read-only lifecycle map.
+6. The overlay does not change canonical score values by itself. Suitability maturity rises only after real candidate/outcome evidence improves.
+
 Knowledge-to-decision integration:
 
 1. `operator_decision_surface` now builds a read-only `knowledge_decision_overlay`.
@@ -281,6 +290,15 @@ Decision-to-outcome-to-learning integration:
 5. The operator decision batch preview exposes decision effectiveness and knowledge growth inside `knowledge_decision_readiness`.
 6. Decision Outcome, Suitability, Prediction, Service, Recovery, and Knowledge Quality may improve/degrade only from real closed outcomes. Synthetic evidence remains forbidden.
 7. This model is visibility and learning integration only; it does not change planner formulas, confidence floors, trust floors, governance, execution, runtime apply, storage, or user movement.
+
+Current suitability stage rule:
+
+| Stage | Current Criteria |
+| --- | --- |
+| `STABLE_SIGNAL` | Candidate rows or suitability confidence exist. |
+| `CONFIRMED_KNOWLEDGE` | Coverage >= 0.70, correctness >= 70, source confidence >= 0.60, no pipeline loss. |
+| `ACTIONABLE_KNOWLEDGE` | Coverage >= 0.85, correctness >= 75, source confidence >= 0.70, decision/fit correctness >= 0.70. |
+| `AUTONOMY_GRADE_KNOWLEDGE` | Coverage >= 0.95, correctness >= 85, source confidence >= 0.85, suitability confidence >= 70, decision/fit correctness >= 0.85. |
 
 Governed canary knowledge-gated dry-run cycle:
 

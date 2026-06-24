@@ -2,7 +2,7 @@
 
 Status: project readiness map
 Last updated: 2026-06-24
-Last changed by: `AUTONOMY.TIER1.GOVERNED_CANARY.READINESS`
+Last changed by: `V7.IDEAL.AUTONOMOUS.ROUTING.SYSTEM.MODEL`
 
 This map tracks current roadmap/readiness position. Percent values are operational readiness estimates for the named area, not product marketing scores.
 
@@ -37,6 +37,12 @@ Deferred post-production scale phase:
 
 This future phase is documented so the design is not lost, but it is not a current blocker and must not start before Production Autonomy is certified.
 
+Canonical target model:
+
+`V7_IDEAL_AUTONOMOUS_ROUTING_MODEL`
+
+V7's successful end state is now defined as an event-driven autonomous routing control plane for `10,000+` users and `100+` channels. The target model does not authorize runtime changes. It clarifies that the next step is not another trust audit, but a knowledge quality model: freshness, coverage, correctness, consistency, diversity, source confidence, user impact relevance, service relevance, and actionability.
+
 The blueprint view keeps channel recovery visible, but the project-level autonomy bottleneck is now broader and more precise. Branch 1B closed the blast recovery branch in production, AUTONOMY.TRUST.BUILDOUT.1 found that recovered blast evidence was not durable in the current consumed dry-run, and AUTONOMY.TRUST.DURABILITY.1 fixed the normal refresh code path so rotated evidence survives refresh/rebuild/reread:
 
 ```text
@@ -48,6 +54,7 @@ Blast recovery operationally closed
   -> observed outcome evidence collection
   -> canary readiness recheck
   -> bounded event-driven autonomy canary
+```
 
 Secondary branch:
 
@@ -149,6 +156,8 @@ contextual operator comparison
 | Canary Readiness | 35% | 55% | +20% | `AUTONOMY.TIER1.GOVERNED_CANARY.READINESS` | V7 can prepare a governed one-user canary packet, but final verdict is `TIER1_GOVERNED_CANARY_MARGINAL` because floors remain low and operator approval is required for the exact awg0 target. |
 | Production Autonomy | 46% | 46% | 0% | `AUTONOMY.TIER1.GOVERNED_CANARY.READINESS` | No apply, no runtime write, no movement, no daemon/autoswitch, no formula/floor change, and no synthetic evidence occurred. Autonomous canary remains `NO_GO`. |
 | Post-Production Scale Roadmap | 0% | 100% | +100% | `DOCUMENT_FUTURE_EVIDENCE_INDEX_AND_FRESHNESS_MODEL` | Documented the deferred evidence index and freshness model for `100+` channels, `1000+` users, and multi-year evidence history. This is documentation only and not a current blocker. |
+| Ideal Autonomous Routing Model | 0% | 100% | +100% | `V7.IDEAL.AUTONOMOUS.ROUTING.SYSTEM.MODEL` | Created the canonical ideal model for `10,000+` users and `100+` channels: event-driven reconciliation, knowledge objects, action vocabulary, data quality, evidence maturity, target architecture, and roadmap. Documentation only; no runtime behavior changed. |
+| Knowledge Quality Model | 0% | 20% | +20% | `V7.IDEAL.AUTONOMOUS.ROUTING.SYSTEM.MODEL` | Target dimensions are defined, but implementation/read-model exposure is not done. Next phase should use existing owners only. |
 
 ## Stable Areas
 
@@ -173,6 +182,7 @@ contextual operator comparison
 | P1 | `AUTONOMY.EVIDENCE.SERVICE_CHANNEL_SOURCE_CONFIDENCE_COLLECTION` | Current source confidence verdict is `EVIDENCE_MIXED`; next phase should collect real service/channel probe cycles through existing owners, refresh snapshots, and reread trust inventory. |
 | P1 | `AUTONOMY.SOURCE_CONFIDENCE.REAL_COLLECTION.1` | Current confidence cannot grow materially without new real-world outcomes. Targets: prediction mean forecast confidence `0.7452`, service mean row confidence `0.7`, candidate coverage closure for `72` missing outcomes, and contextual operator comparisons only where the operator has context. |
 | P1 | `AUTONOMY.CANDIDATE_OUTCOME.GOVERNED_REALITY_GENERATION` | Candidate outcome collection is now visible and aggregation-clean. The remaining blocker is `72` candidate outcomes that have not happened yet. Grow them through existing governed/manual outcome owners only; no synthetic evidence and no movement without a separately approved bounded governed/canary phase. |
+| P0 | `V7.KNOWLEDGE.QUALITY.MODEL` | The ideal model is now created. The next gap is a read-only knowledge quality model that classifies evidence by freshness, coverage, correctness, consistency, diversity, source confidence, user impact relevance, service relevance, and actionability. |
 | Future | `AUTONOMY.EVIDENCE.INDEX_AND_FRESHNESS_MODEL` | Deferred post-production scale phase. Start only after Production Autonomy is certified and evidence scale creates real planner/trust read pressure. Must run shadow-first and reuse existing owners/truth/planner/governance/execution. |
 
 ## POST_PRODUCTION_SCALE_PHASE

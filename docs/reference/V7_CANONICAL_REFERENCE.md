@@ -77,6 +77,22 @@ Stable conclusions:
 5. The next roadmap position is `OBSERVED_OUTCOME_EVIDENCE_AND_EVENT_CONSUMER_CLOSURE`.
 6. The post-production scale phase `AUTONOMY.EVIDENCE.INDEX_AND_FRESHNESS_MODEL` is documented but deferred. It must not start until Production Autonomy is certified.
 
+## V7_IDEAL_AUTONOMOUS_ROUTING_MODEL
+
+1. Ideal V7 is an event-driven autonomous routing control plane for `10,000+` users and `100+` channels.
+2. The ideal control loop is: observe -> classify -> decide -> plan -> limit blast radius -> execute only if authorized -> verify -> rollback if needed -> learn -> update knowledge.
+3. V7 must behave like desired-state reconciliation, not a blind timer. The desired state is user/service/channel assignments that satisfy policy, SLA, freshness, capacity, route safety, and recovery constraints.
+4. The ideal action vocabulary is `KEEP`, `MOVE`, `FAILOVER`, `DRAIN`, `QUARANTINE`, `RECOVER`, `PROBE_ONLY`, `ASK_OPERATOR`, and `NO_ACTION`.
+5. Channel Score remains diagnostics. Channel Decision remains planner/governance truth.
+6. Evidence must mature from `RAW_OBSERVATION` to `STABLE_SIGNAL`, `CONFIRMED_KNOWLEDGE`, `ACTIONABLE_KNOWLEDGE`, and only then `AUTONOMY_GRADE_KNOWLEDGE`.
+7. Data quality means freshness, coverage, correctness, consistency, diversity, source confidence, user impact relevance, service relevance, and actionability. Row count alone is not knowledge quality.
+8. Current V7 already has most owners: observation, service matrix, planner, governed execution, restore barrier, rollback, feedback, learning, trust, prediction, event read-only consumer, operator surfaces, and truth/convergence.
+9. Current gaps to ideal are service/user/SLA fit, passive real-user outcome closure, recovery admission, anti-flapping, autonomous rollback certification, explicit evidence maturity labels, active freshness/decay behavior, aggregated read models, and 10k-scale cohort/SLA operator views.
+10. The exact next phase is `V7.KNOWLEDGE.QUALITY.MODEL`, using existing owners only.
+11. No code, formula, floor, planner, governance, execution, truth source, runtime apply, daemon, autoswitch, synthetic evidence, or user movement changed in `V7.IDEAL.AUTONOMOUS.ROUTING.SYSTEM.MODEL`.
+12. Related model / report / ADR: `docs/reference/V7_IDEAL_AUTONOMOUS_ROUTING_MODEL.md`, `docs/reports/V7_IDEAL_AUTONOMOUS_ROUTING_SYSTEM_MODEL_REPORT.md`, ADR-V7-IDEAL-AUTONOMOUS-ROUTING-MODEL.
+13. Last verified commit: `61088d7a9fa48cc593a5cf2b681f520e8734b59d`.
+
 ## AUTONOMY_TRUST_SOURCE_HIERARCHY
 
 1. Observed network outcome is the primary autonomy trust source for V7.

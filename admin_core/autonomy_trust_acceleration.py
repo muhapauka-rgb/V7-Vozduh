@@ -17,6 +17,8 @@ from admin_core.operator_execution_pipeline import (
     AUTONOMY_CANARY_CONFIDENCE_FLOOR,
     AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR,
     AUTONOMY_CANARY_TRUST_FLOOR,
+    autonomy_risk_tier_floor_model,
+    autonomy_risk_tier_review,
 )
 
 
@@ -216,10 +218,27 @@ def build_canary_proximity(
     secondary_evidence = {
         "operator_earned_confidence": _floor_gap(earned, shadow_autonomy.OBSERVATION_TARGETS["minimum_earned_confidence"]),
     }
+    candidate_floor_evaluation = [{
+        "confidence": confidence,
+        "trust": trust,
+        "prediction_confidence": prediction,
+        "rollback_confidence": as_float(confidence_summary.get("rollback_confidence"), 0.0),
+    }]
+    floor_blockers = [
+        "prediction_confidence_too_low" if key == "prediction_confidence" else f"{key}_too_low"
+        for key, value in primary_floors.items()
+        if not value.get("pass")
+    ]
+    tier_review = autonomy_risk_tier_review(
+        candidate_floor_evaluation=candidate_floor_evaluation,
+        blockers=floor_blockers,
+    )
     return {
         "schema_version": "v7.autonomy-trust.canary-proximity.v1",
         "autonomy_canary_1_ready": False,
         "readiness_model": "observed_outcome_primary_operator_comparison_secondary",
+        "risk_tier_floor_model": autonomy_risk_tier_floor_model(),
+        "risk_tier_review": tier_review,
         "floors": {**primary_floors, **secondary_evidence},
         "primary_floors": primary_floors,
         "secondary_evidence": secondary_evidence,

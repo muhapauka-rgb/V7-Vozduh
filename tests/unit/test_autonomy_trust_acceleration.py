@@ -222,6 +222,15 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertIn("trust", second["canary_proximity"]["missing"])
         self.assertNotIn("operator_earned_confidence", second["canary_proximity"]["missing"])
         self.assertIn("operator_earned_confidence", second["canary_proximity"]["secondary_missing"])
+        self.assertEqual(
+            second["canary_proximity"]["risk_tier_review"]["nearest_reachable_status"],
+            "MARGINAL_OPERATOR_REVIEW",
+        )
+        self.assertEqual(
+            second["canary_proximity"]["risk_tier_review"]["autonomous_one_user_status"],
+            "NO_GO",
+        )
+        self.assertFalse(second["canary_proximity"]["risk_tier_review"]["apply_executed"])
         self.assertFalse(second["collection_plan"]["blind_operator_training_required"])
         self.assertIn("primary_real_evidence_path", second["collection_plan"])
         self.assertIn("secondary_supervised_confirmation_path", second["collection_plan"])

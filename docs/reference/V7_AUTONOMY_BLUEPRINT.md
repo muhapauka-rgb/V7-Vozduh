@@ -65,6 +65,7 @@ Current production alignment:
 - AUTONOMY.SOURCE_CONFIDENCE.REALITY.AUDIT added deployed read-only confidence reality audit through the existing trust inventory owner at runtime commit `9d468247f8fbe8a1b472753e566a88fcaa79c147`. Production verdict is `CONFIDENCE_MIXED`: prediction is undervalued as a raw accuracy signal (`21/21` matched, accuracy `93.936`, mean forecast confidence `0.377`, prediction confidence `35.411`), while Service, Suitability, Blast, Rollback, and Operator confidence are fair for autonomy gating. Current floors remain below canary: confidence `38.849`, trust `54.137`, prediction confidence `35.411`, operator earned confidence `45.818`. No runtime apply, user movement, daemon enablement, synthetic evidence, threshold change, floor change, or formula change occurred.
 - AUTONOMY.REAL_OUTCOME_COLLECTION_AND_CONFIDENCE_GROWTH added deployed read-only real outcome source inventory and growth projection at runtime commit `130a6510`. Production verdict is `REAL_OUTCOME_MIXED`: service/channel/feedback/learning outcome paths are acceleratable through existing owners, but one real probe cycle did not materially raise floors, and projected `+50` high-confidence real outcome cycles still fail confidence/trust because suitability remains too weak. Current floors after deploy refresh are confidence `38.946`, trust `54.210`, prediction confidence `35.494`, operator earned confidence `45.806`. No runtime apply, user movement, daemon enablement, synthetic evidence, threshold change, floor change, formula change, or new truth source occurred.
 - AUTONOMY.CANDIDATE_OUTCOME.REALITY.COLLECTION added deployed read-only candidate outcome reality collection and fixed existing-owner aggregation/window loss at runtime commit `3753df1a`. Production verdict is `OUTCOME_EVIDENCE_INCOMPLETE`: candidate outcomes are now consumed at `84/156`; `72` missing outcomes are classified as real experience that has not happened yet, with `0` capture, visibility, or aggregation loss remaining. Current floors after final refresh are confidence `38.872`, trust `54.154`, prediction confidence `35.385`, operator earned confidence `45.815`. No runtime apply, user movement, daemon enablement, synthetic evidence, threshold change, floor change, formula change, planner change, governance change, execution change, or new truth source occurred.
+- AUTONOMY.FLOOR.SEMANTICS_AND_RISK_TIER_REVIEW implemented read-only risk-tier floor semantics. Current production values simulate as `TIER_1 MARGINAL_OPERATOR_REVIEW` for a first governed one-user canary review, but bounded autonomous one-user canary remains `NO_GO`. Existing `70/70/70` autonomous floors were not lowered; no apply, movement, daemon, autoswitch, formula, planner, governance, execution, or truth-source change occurred.
 
 ## 2. Full System Inventory
 
@@ -292,6 +293,7 @@ trust confidence
 rollback confidence
   -> autonomy_engine_trace_model
   -> autonomous_safety_gates
+  -> autonomy_risk_tier_review
   -> apply allowed only if floors pass
 ```
 

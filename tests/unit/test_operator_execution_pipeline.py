@@ -657,8 +657,43 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(floor["confidence"], 45.8)
         self.assertEqual(floor["trust"], 3.15)
         self.assertEqual(floor["prediction_confidence"], 38.6)
+        tier_review = model["safety_gates"]["risk_tier_review"]
+        self.assertEqual(tier_review["nearest_reachable_tier"], "TIER_1")
+        self.assertEqual(tier_review["nearest_reachable_status"], "MARGINAL_OPERATOR_REVIEW")
+        self.assertEqual(tier_review["autonomous_one_user_status"], "NO_GO")
+        self.assertTrue(tier_review["operator_canary_marginal_allowed"])
         self.assertFalse(model["apply_executed"])
         self.assertEqual(model["users_moved"], 0)
+
+    def test_risk_tier_review_does_not_allow_operator_canary_past_absolute_blockers(self):
+        review = pipeline.autonomy_risk_tier_review(
+            candidate_floor_evaluation=[{
+                "confidence": 45.8,
+                "trust": 54.1,
+                "prediction_confidence": 35.3,
+                "rollback_confidence": 100.0,
+            }],
+            blockers=["confidence_too_low", "packet_mismatch"],
+        )
+
+        tiers = {row["tier"]: row for row in review["tiers"]}
+
+        self.assertEqual(tiers["TIER_1"]["status"], "NO_GO")
+        self.assertIn("packet_mismatch", review["non_negotiable_blockers"])
+        self.assertFalse(review["operator_canary_marginal_allowed"])
+        self.assertFalse(review["apply_executed"])
+        self.assertEqual(review["users_moved"], 0)
+
+    def test_risk_tier_model_keeps_higher_autonomy_floors_above_canary_floor(self):
+        model = pipeline.autonomy_risk_tier_floor_model()
+        tiers = {row["tier"]: row for row in model["tier_semantics"]}
+
+        self.assertEqual(tiers["TIER_1"]["floor_mode"], "advisory_gap_visible")
+        self.assertEqual(tiers["TIER_3"]["floors"]["confidence"], pipeline.AUTONOMY_CANARY_CONFIDENCE_FLOOR)
+        self.assertGreater(tiers["TIER_4"]["floors"]["confidence"], tiers["TIER_3"]["floors"]["confidence"])
+        self.assertGreater(tiers["TIER_6"]["floors"]["confidence"], tiers["TIER_4"]["floors"]["confidence"])
+        self.assertFalse(model["floor_change_performed"])
+        self.assertFalse(model["autonomy_enabled"])
 
     def test_autonomous_dry_run_can_use_outcome_evidence_without_lowering_floors(self):
         decision_surface = {

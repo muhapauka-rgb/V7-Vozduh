@@ -118,6 +118,34 @@ AUTONOMY_CANARY_CONFIDENCE_FLOOR = 70.0
 AUTONOMY_CANARY_TRUST_FLOOR = 70.0
 AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR = 70.0
 
+AUTONOMY_TIER_OPERATOR_VISIBLE_FLOOR = 60.0
+AUTONOMY_TIER_OPERATOR_APPROVAL_FLOOR = 70.0
+AUTONOMY_TIER_BOUNDED_AUTONOMY_FLOOR = 85.0
+AUTONOMY_TIER_BATCH_AUTONOMY_FLOOR = 90.0
+AUTONOMY_TIER_PRODUCTION_AUTONOMY_FLOOR = 95.0
+
+AUTONOMY_FLOOR_BLOCKERS = {
+    "confidence_too_low",
+    "trust_too_low",
+    "prediction_confidence_too_low",
+    "unknown_trust",
+}
+
+AUTONOMY_NON_NEGOTIABLE_BLOCKER_PREFIXES = (
+    "snapshot_mismatch",
+    "source_drift",
+)
+
+AUTONOMY_NON_NEGOTIABLE_BLOCKERS = {
+    "no_canary_candidate_available",
+    "packet_mismatch",
+    "unknown_rollback_target",
+    "restore_barrier_invalid",
+    "verification_unavailable",
+    "service_blocker",
+    "capacity_blocker",
+}
+
 REQUIRED_RECOMMENDATION_FIELDS = [
     "user",
     "current_channel",
@@ -478,6 +506,205 @@ def rollback_policy() -> dict[str, Any]:
     }
 
 
+def autonomy_risk_tier_floor_model() -> dict[str, Any]:
+    return {
+        "schema_version": "v7.autonomy-risk-tier-floor-model.v1",
+        "source": "existing autonomy safety/readiness ladders",
+        "score_scale": "0-100",
+        "current_autonomous_canary_floor": {
+            "confidence": AUTONOMY_CANARY_CONFIDENCE_FLOOR,
+            "trust": AUTONOMY_CANARY_TRUST_FLOOR,
+            "prediction_confidence": AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR,
+        },
+        "tier_semantics": [
+            {
+                "tier": "TIER_0",
+                "name": "Read-only preview",
+                "authority": "read_only_no_apply",
+                "floor_mode": "diagnostic_only",
+                "floors": {},
+                "movement_allowed": False,
+                "autonomy_allowed": False,
+            },
+            {
+                "tier": "TIER_1",
+                "name": "First one-user governed canary review",
+                "authority": "operator_approved_existing_runtime_owner_only",
+                "floor_mode": "advisory_gap_visible",
+                "floors": {
+                    "confidence": AUTONOMY_TIER_OPERATOR_APPROVAL_FLOOR,
+                    "trust": AUTONOMY_TIER_OPERATOR_APPROVAL_FLOOR,
+                    "prediction_confidence": AUTONOMY_TIER_OPERATOR_APPROVAL_FLOOR,
+                },
+                "under_floor_status": "MARGINAL_OPERATOR_REVIEW",
+                "movement_allowed": "only_after_existing_packet_restore_barrier_and_operator_apply",
+                "autonomy_allowed": False,
+            },
+            {
+                "tier": "TIER_2",
+                "name": "Governed canary",
+                "authority": "operator_approved_existing_runtime_owner_only",
+                "floor_mode": "hard_governed_floor",
+                "floors": {
+                    "confidence": AUTONOMY_TIER_OPERATOR_APPROVAL_FLOOR,
+                    "trust": AUTONOMY_TIER_OPERATOR_APPROVAL_FLOOR,
+                    "prediction_confidence": AUTONOMY_TIER_OPERATOR_APPROVAL_FLOOR,
+                },
+                "movement_allowed": "only_after_existing_packet_restore_barrier_and_operator_apply",
+                "autonomy_allowed": False,
+            },
+            {
+                "tier": "TIER_3",
+                "name": "Bounded autonomous one-user canary",
+                "authority": "future_explicit_autonomy_program_required",
+                "floor_mode": "hard_autonomy_floor",
+                "floors": {
+                    "confidence": AUTONOMY_CANARY_CONFIDENCE_FLOOR,
+                    "trust": AUTONOMY_CANARY_TRUST_FLOOR,
+                    "prediction_confidence": AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR,
+                },
+                "movement_allowed": False,
+                "autonomy_allowed": False,
+            },
+            {
+                "tier": "TIER_4",
+                "name": "Bounded autonomous small batch",
+                "authority": "future_explicit_autonomy_program_required",
+                "floor_mode": "hard_bounded_autonomy_floor",
+                "floors": {
+                    "confidence": AUTONOMY_TIER_BOUNDED_AUTONOMY_FLOOR,
+                    "trust": AUTONOMY_TIER_BOUNDED_AUTONOMY_FLOOR,
+                    "prediction_confidence": AUTONOMY_TIER_BOUNDED_AUTONOMY_FLOOR,
+                },
+                "movement_allowed": False,
+                "autonomy_allowed": False,
+            },
+            {
+                "tier": "TIER_5",
+                "name": "Batch autonomy",
+                "authority": "future_explicit_autonomy_program_required",
+                "floor_mode": "hard_batch_autonomy_floor",
+                "floors": {
+                    "confidence": AUTONOMY_TIER_BATCH_AUTONOMY_FLOOR,
+                    "trust": AUTONOMY_TIER_BATCH_AUTONOMY_FLOOR,
+                    "prediction_confidence": AUTONOMY_TIER_BATCH_AUTONOMY_FLOOR,
+                },
+                "movement_allowed": False,
+                "autonomy_allowed": False,
+            },
+            {
+                "tier": "TIER_6",
+                "name": "Production autonomy",
+                "authority": "not_granted_by_current_program",
+                "floor_mode": "hard_production_autonomy_floor",
+                "floors": {
+                    "confidence": AUTONOMY_TIER_PRODUCTION_AUTONOMY_FLOOR,
+                    "trust": AUTONOMY_TIER_PRODUCTION_AUTONOMY_FLOOR,
+                    "prediction_confidence": AUTONOMY_TIER_PRODUCTION_AUTONOMY_FLOOR,
+                },
+                "movement_allowed": False,
+                "autonomy_allowed": False,
+            },
+        ],
+        "non_negotiable_gates": [
+            "candidate exists",
+            "packet valid",
+            "rollback target known",
+            "restore barrier available before apply",
+            "snapshot gate clean",
+            "no service/capacity hard blocker",
+            "existing runtime owner only",
+        ],
+        "floor_change_performed": False,
+        "runtime_authority_changed": False,
+        "autonomy_enabled": False,
+    }
+
+
+def _is_non_negotiable_blocker(blocker: str) -> bool:
+    if blocker in AUTONOMY_NON_NEGOTIABLE_BLOCKERS:
+        return True
+    return any(blocker.startswith(prefix) for prefix in AUTONOMY_NON_NEGOTIABLE_BLOCKER_PREFIXES)
+
+
+def _risk_tier_floor_distances(scores: dict[str, Any], floors: dict[str, float]) -> dict[str, float]:
+    return {
+        key: _floor_gap(_score_0_100(scores.get(key), 0.0), floor)
+        for key, floor in floors.items()
+    }
+
+
+def autonomy_risk_tier_review(
+    *,
+    candidate_floor_evaluation: list[dict[str, Any]] | None = None,
+    blockers: list[str] | None = None,
+) -> dict[str, Any]:
+    blocker_list = list(blockers or [])
+    model = autonomy_risk_tier_floor_model()
+    scores = dict(candidate_floor_evaluation[0]) if candidate_floor_evaluation else {}
+    non_negotiable = [blocker for blocker in blocker_list if _is_non_negotiable_blocker(blocker)]
+    floor_blockers = [blocker for blocker in blocker_list if blocker in AUTONOMY_FLOOR_BLOCKERS]
+    tiers = []
+    for tier in model["tier_semantics"]:
+        floors = tier.get("floors") if isinstance(tier.get("floors"), dict) else {}
+        distances = _risk_tier_floor_distances(scores, floors)
+        floors_pass = all(distance == 0.0 for distance in distances.values())
+        if tier["tier"] == "TIER_0":
+            status = "AVAILABLE_READ_ONLY" if not non_negotiable else "DEGRADED_READ_ONLY"
+            tier_blockers = list(non_negotiable)
+        elif non_negotiable:
+            status = "NO_GO"
+            tier_blockers = list(non_negotiable)
+        elif tier["tier"] == "TIER_1" and not floors_pass:
+            status = "MARGINAL_OPERATOR_REVIEW"
+            tier_blockers = list(floor_blockers)
+        elif floors_pass:
+            status = "GO_FOR_REVIEW" if tier["tier"] in {"TIER_1", "TIER_2"} else "GO_FOR_FUTURE_PROGRAM_REVIEW"
+            tier_blockers = []
+        else:
+            status = "NO_GO"
+            tier_blockers = list(floor_blockers) or [
+                key for key, distance in distances.items()
+                if distance > 0.0
+            ]
+        tiers.append({
+            "tier": tier["tier"],
+            "name": tier["name"],
+            "status": status,
+            "authority": tier["authority"],
+            "floor_mode": tier["floor_mode"],
+            "floors": floors,
+            "floor_distances": distances,
+            "floor_pass": floors_pass,
+            "blockers": tier_blockers,
+            "movement_allowed": tier["movement_allowed"],
+            "autonomy_allowed": tier["autonomy_allowed"],
+        })
+    reachable = next((row for row in tiers if row["status"] in {"GO_FOR_REVIEW", "MARGINAL_OPERATOR_REVIEW"}), tiers[0])
+    autonomous = next((row for row in tiers if row["tier"] == "TIER_3"), {})
+    return {
+        "schema_version": "v7.autonomy-risk-tier-review.v1",
+        "model": model,
+        "candidate_scores": {
+            "confidence": _score_0_100(scores.get("confidence"), 0.0),
+            "trust": _score_0_100(scores.get("trust"), 0.0),
+            "prediction_confidence": _score_0_100(scores.get("prediction_confidence"), 0.0),
+            "rollback_confidence": _score_0_100(scores.get("rollback_confidence"), 0.0),
+        },
+        "non_negotiable_blockers": non_negotiable,
+        "floor_blockers": floor_blockers,
+        "tiers": tiers,
+        "nearest_reachable_tier": reachable.get("tier", "TIER_0"),
+        "nearest_reachable_status": reachable.get("status", "AVAILABLE_READ_ONLY"),
+        "autonomous_one_user_status": autonomous.get("status", "NO_GO"),
+        "operator_canary_marginal_allowed": reachable.get("status") == "MARGINAL_OPERATOR_REVIEW",
+        "runtime_mutation_performed": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "autonomy_enabled": False,
+    }
+
+
 AUTONOMOUS_DRY_RUN_SAFETY_GATES = [
     "unknown_trust",
     "trust_too_low",
@@ -497,7 +724,7 @@ AUTONOMOUS_DRY_RUN_SAFETY_GATES = [
 def autonomy_canary_floor_model() -> dict[str, Any]:
     return {
         "schema_version": "v7.autonomy-canary-floor-model.v1",
-        "scope": "dry_run_canary_readiness_only",
+        "scope": "bounded_autonomous_canary_readiness_only",
         "confidence_floor": AUTONOMY_CANARY_CONFIDENCE_FLOOR,
         "trust_floor": AUTONOMY_CANARY_TRUST_FLOOR,
         "prediction_confidence_floor": AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR,
@@ -509,6 +736,8 @@ def autonomy_canary_floor_model() -> dict[str, Any]:
             "prediction_confidence": "same autonomous canary evidence floor as confidence",
         },
         "safety_effect": "clarifies and strengthens canary gates without enabling autonomy",
+        "tiered_semantics_available": True,
+        "risk_tier_model_schema": "v7.autonomy-risk-tier-floor-model.v1",
         "execution_allowed_now": False,
         "apply_executed": False,
     }
@@ -1332,10 +1561,15 @@ def autonomous_safety_gates(decision_surface: dict[str, Any], candidates: list[d
     for blocker in blockers:
         if blocker not in deduped:
             deduped.append(blocker)
+    risk_tier_review = autonomy_risk_tier_review(
+        candidate_floor_evaluation=candidate_floor_evaluation,
+        blockers=deduped,
+    )
     return {
         "schema_version": "v7.autonomous-dry-run-safety-gates.v1",
         "defined_gates": AUTONOMOUS_DRY_RUN_SAFETY_GATES,
         "autonomy_floor": floor_model,
+        "risk_tier_review": risk_tier_review,
         "candidate_floor_evaluation": candidate_floor_evaluation,
         "hard_stop_blockers": deduped,
         "hard_stop": bool(deduped),

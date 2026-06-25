@@ -448,16 +448,16 @@ Current implementation optimizer result:
 
 | Field | Current Value |
 | --- | --- |
-| Highest implementation leverage task | `IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW` |
+| Highest implementation leverage task | `IMPLEMENT_AUTHORITY_BOUNDARY_APPROVAL_PROMPT` |
 | Implementation class | `IMPLEMENT_RUNTIME` |
 | Exact owner | Governed Canary Knowledge-Gated Dry-Run Cycle / Runtime Model composition |
 | Exact module | `admin_core/operator_execution_pipeline.py::governed_canary_knowledge_gated_dry_run_cycle` |
-| Exact files | `admin_core/operator_execution_pipeline.py`, `tools/v7-governed-canary-dry-run-cycle`, focused tests for the governed canary dry-run cycle and runtime lifecycle read-only output |
-| Implementation status | `DEPLOYED_CERTIFIED_READ_ONLY_RUNTIME_LIFECYCLE_PREVIEW` |
-| Certification report | `docs/reports/V7_IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW_CERTIFICATION_REPORT.md` |
-| Truth/convergence | Truth `PASS`; convergence `ALIGNED`; runtime commit `50188d9030d651213b5d06b528fed446889c17bc`. |
-| New highest implementation leverage task | `REFRESH_ATOMIC_SOURCE_BUNDLE_AND_REAPPROVE_EXACT_PACKET` |
-| Stop boundary | `SAFETY_BLOCK_SOURCE_CHANGED`: exact packet approval was consumed and restore-barrier clearance was written, but existing apply-owner stopped before movement because service read-model sources changed; no retry is allowed without refresh, replan, and new exact approval. |
+| Exact files | `admin_core/operator_execution_pipeline.py`, focused tests for governed dry-run authority-bound approval prompt output |
+| Implementation status | `DEPLOYED_CERTIFIED_AUTHORITY_BOUNDARY_APPROVAL_PROMPT` |
+| Certification report | Current Program State section 14 |
+| Truth/convergence | Runtime/local aligned at `4ac727a3795b05e3c50d5877812e5d054994362c`; GitHub check may require network-capable rerun. |
+| New highest implementation leverage task | `EXECUTE_EXACT_GOVERNED_PACKET_AFTER_OPERATOR_APPROVAL` |
+| Stop boundary | `AUTHORITY_BOUNDARY`: production dry-run emits a ready-to-copy approval prompt for exact packet `pkt_preview_43f0151499620a00d2e50f7b`; restore-barrier write and apply still require explicit operator approval. |
 
 ## 2.13. Implementation Program Loop
 
@@ -598,13 +598,13 @@ After every certification, classify bottlenecks across `Architecture`, `Knowledg
 
 Implementation:
 
-`IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW`
+`IMPLEMENT_AUTHORITY_BOUNDARY_APPROVAL_PROMPT`
 
 This is implementation work, not research and not architecture.
 
 Definition:
 
-Implement read-only Runtime lifecycle output inside the existing governed canary dry-run cycle so the completed Runtime Model becomes executable, inspectable, testable, idempotency-aware, and certifiable without apply or user movement.
+Emit a ready-to-copy exact operator approval prompt inside the existing governed canary dry-run cycle whenever the cycle stops at `AUTHORITY_BOUNDARY` with a ready packet.
 
 Exact owner:
 
@@ -617,54 +617,47 @@ Exact module:
 Exact files:
 
 - `admin_core/operator_execution_pipeline.py`
-- `tools/v7-governed-canary-dry-run-cycle`
-- focused tests for governed dry-run runtime lifecycle output
+- focused tests for governed dry-run authority-bound prompt output
 
 Why this is first:
 
 | Criterion | Result |
 | --- | --- |
-| Production leverage | Highest safe implementation leverage before any authority-bound apply. |
+| Production leverage | Removes the last safe implementation gap before authority-bound governed canary execution. |
 | Existing owner reuse | Uses the existing governed canary dry-run cycle and Runtime Model composition. |
 | Architecture risk | None; architecture is complete and unchanged. |
-| Runtime safety | Read-only lifecycle preview only; no apply, no user movement, no daemon, no timer. |
-| Bottleneck relevance | Prepares the exact runtime path needed to produce future governed real outcomes safely after authority. |
-| Testability | State machine, stop reasons, idempotency, stale packet, duplicate work, verification, rollback, outcome, learning, and OMP notification can be tested without mutation. |
+| Runtime safety | Read-only approval prompt output only; no restore-barrier write, no apply, no user movement, no daemon, no timer. |
+| Bottleneck relevance | Gives the operator an exact current packet command so the next real outcome can proceed only through explicit authority. |
+| Testability | Authority boundary prompt emission, stale approval invalidation, unsafe stop suppression, and no-mutation guarantees can be tested without mutation. |
 | Certification path | Truth and convergence can certify no runtime mutation and no user movement. |
 
-Required read-only lifecycle fields:
+Required approval prompt fields:
 
-- lifecycle id;
+- packet preview id;
 - decision id;
 - operation id;
-- packet id;
-- idempotency key fingerprint;
-- current state generation;
 - selected move hash;
-- runtime stage;
-- stage owner;
-- input generation;
-- stop reason;
+- user;
+- current channel;
+- target channel;
+- rollback target;
+- rollback manifest id;
+- authority tier;
 - authority status;
-- packet freshness;
-- duplicate work status;
-- loop guard status;
-- verification status;
-- rollback status;
-- outcome status;
-- learning status;
-- OMP notification status.
+- allowed action;
+- forbidden actions;
+- final exact approval command text.
 
 Expected implementation order:
 
-1. Add read-only lifecycle output to existing governed canary dry-run cycle.
-2. Add focused tests for lifecycle state machine, stop conditions, idempotency key, stale packet, duplicate work, and OMP notification fields.
-3. Add read-only verification for the lifecycle output.
+1. Add read-only authority-bound approval prompt output to existing governed canary dry-run cycle.
+2. Add focused tests for prompt emission, changed-packet invalidation, unsafe stop suppression, and no movement/apply.
+3. Add read-only verification for the approval prompt output.
 4. Certify with truth and convergence.
 5. Update Current Program State.
 
 The old bottleneck action, governed candidate suitability outcome closure, remains the highest real-outcome action but crosses `AUTHORITY_BOUNDARY`.
-The current implementation-first optimizer therefore chooses the highest safe implementation that prepares that path without crossing the boundary.
+The current implementation-first optimizer has completed the safe prompt work and now stops at `AUTHORITY_BOUNDARY`.
 
 ## 8. Current Authority Boundary
 

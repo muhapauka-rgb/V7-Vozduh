@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-25T15:34:12+0700
-Source: exact governed packet approval, restore-barrier clearance, guarded apply attempt, safety gate stop, OMP recalculation
+State captured: 2026-06-25T15:44:42+0700
+Source: IMPLEMENT_AUTHORITY_BOUNDARY_APPROVAL_PROMPT, safe deploy, production governed canary dry-run, OMP recalculation
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, authority boundary, metrics, packet, or stop reason.
 
@@ -14,12 +14,12 @@ This file is volatile. Update it after every safe action or approved execution t
 | Current phase | `IMPLEMENTATION` |
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Suitability` |
-| Current highest leverage implementation | `IMPLEMENT_PREVIEW_TO_MATERIALIZED_PACKET_BINDING` deployed and production-verified |
-| Current highest leverage action | `REFRESH_ATOMIC_SOURCE_BUNDLE_AND_REAPPROVE_EXACT_PACKET` |
-| Current authority boundary | `SAFETY_BLOCK_SOURCE_CHANGED` |
+| Current highest leverage implementation | `IMPLEMENT_AUTHORITY_BOUNDARY_APPROVAL_PROMPT` deployed and production-verified |
+| Current highest leverage action | `EXECUTE_EXACT_GOVERNED_PACKET_AFTER_OPERATOR_APPROVAL` |
+| Current authority boundary | `AUTHORITY_BOUNDARY` |
 | Current reality limit | `REAL_CANDIDATE_OUTCOMES_HAVE_NOT_HAPPENED`; next maturity gain requires a real one-user governed canary outcome for the fresh exact packet |
-| Current safe next action | `REFRESH_REPLAN_AND_REAPPROVE_BEFORE_APPLY` |
-| Current stop reason | exact packet `pkt_preview_43f0151499620a00d2e50f7b` was approved and consumed as executable packet; restore-barrier clearance was written for this exact packet, but existing apply-owner stopped before movement because the atomic source bundle changed (`service-scores`, `channel-service-scores`); no user movement, verification, rollback apply, daemon/timer enablement, event consumer mutation, authority expansion, or synthetic evidence was performed |
+| Current safe next action | `OUTPUT_READY_OPERATOR_APPROVAL_PROMPT_FOR_CURRENT_EXACT_PACKET` completed |
+| Current stop reason | production governed dry-run reached `AUTHORITY_BOUNDARY` for exact packet `pkt_preview_43f0151499620a00d2e50f7b`; ready-to-copy approval prompt was emitted; no restore-barrier write, apply, user movement, rollback apply, daemon/timer enablement, event consumer mutation, authority expansion, or synthetic evidence was performed |
 
 ## 2. Current Metrics
 
@@ -48,13 +48,13 @@ This file is volatile. Update it after every safe action or approved execution t
 | Selected move hash | `8e7785e058337f1db53fd929d7c175914510a401ff686391bef7bfcb088bfdac` |
 | Rollback target | `vless` |
 | Rollback manifest id | `rb_preview_d25f7c3f7705ba558d2afcea` |
-| Risk | `3.617` |
+| Risk | `3.623` |
 | Candidate confidence | `0.458` |
-| Trust | `54.565` |
+| Trust | `54.677` |
 
-Packet preview is read-only and may become stale. Regenerate it before approval if runtime state changes.
+Packet preview is read-only and may become stale. This exact packet is the current packet only while packet id, operation id, selected move hash, rollback manifest, subject, target, and authority generation remain unchanged.
 
-Latest continuation note: the packet above was approved by the operator and consumed as executable packet. Restore-barrier clearance was written, but apply stopped before movement because the existing atomic source-bundle safety gate detected changed service read models.
+Latest continuation note: production dry-run emitted a ready operator approval prompt for the exact current packet. No restore-barrier clearance was written and no apply was attempted during prompt emission.
 
 ## 3.1. Exact Approval Execution Preflight
 
@@ -69,9 +69,9 @@ Latest continuation note: the packet above was approved by the operator and cons
 | Materialized selected move hash | `8e7785e058337f1db53fd929d7c175914510a401ff686391bef7bfcb088bfdac` |
 | Materialized rollback manifest | `rb_preview_d25f7c3f7705ba558d2afcea` |
 | Scope comparison | same user `10.7.0.5`; fresh movement `vless -> awg3`; preview identity equals execution identity |
-| Preflight verdict | `PACKET_IDENTITY_VERIFIED_RESTORE_BARRIER_WRITTEN_APPLY_STOPPED_SOURCE_CHANGED` |
-| Runtime mutation | `restore_barrier_written_now=true`; `apply_executed=false`; `users_moved=0`; `rollback_executed=false` |
-| Evidence directory | `/opt/v7/ops/packet-identity-20260625T082221Z` |
+| Preflight verdict | `AUTHORITY_BOUNDARY_APPROVAL_PROMPT_READY` |
+| Runtime mutation | `restore_barrier_written_now=false`; `apply_executed=false`; `users_moved=0`; `rollback_executed=false`; `runtime_mutation_performed=false` |
+| Evidence directory | production governed dry-run output from `ssh v7-vps /usr/local/bin/v7-governed-canary-dry-run-cycle` |
 
 ## 4. Plans Ready
 
@@ -86,10 +86,10 @@ Latest continuation note: the packet above was approved by the operator and cons
 
 | Field | Current Value |
 | --- | --- |
-| Executed at | `2026-06-25T15:34:12+0700` |
-| Optimizer result | exact approval consumed; restore-barrier clearance written; apply stopped by existing safety gate before user movement due source-bundle mismatch |
-| Safe work completed | exact packet validation; real restore-barrier clearance; guarded apply attempt through existing owner; safety stop audit; CPS recalculation |
-| Evidence refresh result | deployed runtime commit `0c04557b15a34221e8f7db09400eb7e569e1adad`; packet identity `PASS`; restore barrier `ALLOW_RESTORE_BARRIER_CLEARANCE`; apply result `NOOP/no_selected_moves`; safety stop `SOURCE_CHANGED` |
+| Executed at | `2026-06-25T15:44:42+0700` |
+| Optimizer result | authority-bound exact packet now emits ready-to-copy approval prompt through existing OMP/CPS governed dry-run output |
+| Safe work completed | implemented approval prompt output; focused tests; safe deploy; production governed canary dry-run; CPS recalculation |
+| Evidence refresh result | deployed runtime commit `4ac727a3795b05e3c50d5877812e5d054994362c`; packet prompt `APPROVAL_PROMPT_READY`; no restore-barrier write; no apply; no movement |
 | Fresh dry-run verdict | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY` |
 | Fresh candidate | `10.7.0.5` |
 | Fresh movement preview | `vless -> awg3` |
@@ -101,8 +101,8 @@ Latest continuation note: the packet above was approved by the operator and cons
 | Verification plan | `VERIFICATION_PLAN_READY` |
 | Outcome closure plan | `OUTCOME_CLOSURE_PLAN_READY` |
 | Learning path | `LEARNING_PATH_CONNECTED` |
-| Safety | `restore_barrier_written_now=true`; `apply_executed=false`; `users_moved=0`; `rollback_executed=false`; stop families `service-scores`, `channel-service-scores`; condition `SOURCE_CHANGED`; next state `WAIT_FOR_ATOMIC_REPLAN`; `new_planner_created=false`; `new_governance_created=false`; `new_execution_path_created=false`; `new_truth_source_created=false`; `synthetic_evidence_created=false` |
-| Exact stop condition | `SAFETY_BLOCK_SOURCE_CHANGED` |
+| Safety | `restore_barrier_written_now=false`; `apply_executed=false`; `users_moved=0`; `rollback_executed=false`; `runtime_mutation_performed=false`; `new_planner_created=false`; `new_governance_created=false`; `new_execution_path_created=false`; `new_truth_source_created=false`; `synthetic_evidence_created=false` |
+| Exact stop condition | `AUTHORITY_BOUNDARY` |
 
 ## 6. Safe Automatic Actions
 
@@ -134,12 +134,73 @@ Forbidden without explicit approval:
 
 ## 7. Exact Approval Question
 
-Before asking approval, regenerate fresh read-only dry-run.
-
-If unchanged, ask:
+Current ready-to-copy approval prompt:
 
 ```text
-Refresh atomic source bundle, regenerate governed packet, and request a new exact approval before any apply. The previous exact packet `pkt_preview_43f0151499620a00d2e50f7b` must not be retried after `SOURCE_CHANGED`.
+Approve exact governed canary packet.
+
+Approved packet:
+pkt_preview_43f0151499620a00d2e50f7b
+
+Operation:
+govdry_c8f67c5437777091c9cf1f5d
+
+Selected move hash:
+8e7785e058337f1db53fd929d7c175914510a401ff686391bef7bfcb088bfdac
+
+User:
+10.7.0.5
+
+Move:
+vless -> awg3
+
+Rollback target:
+vless
+
+Rollback manifest:
+rb_preview_d25f7c3f7705ba558d2afcea
+
+Authority:
+TIER_1 governed canary
+
+Authority status:
+MARGINAL_OPERATOR_REVIEW
+
+Allowed action:
+execute this exact governed packet through existing owners only.
+
+Requirements:
+- consume the approved preview packet as the executable packet;
+- preserve packet_id, decision_id, operation_id, selected_move_hash, subject, target, and authority_generation;
+- write restore-barrier clearance only for this exact packet;
+- apply only this exact one-user movement;
+- verify immediately;
+- rollback to the rollback target if verification fails;
+- close outcome;
+- feed learning only from real observed outcome;
+- update Current Program State;
+- update OMP;
+- run truth/convergence;
+- continue OMP after outcome closure.
+
+Do not:
+- move any other user;
+- use any other target;
+- rerun planner to change selected move;
+- bypass planner/governance;
+- enable daemon/timer;
+- expand authority;
+- create synthetic evidence;
+
+Final response:
+- apply result;
+- verification result;
+- rollback result if any;
+- outcome closure;
+- learning update;
+- new metrics;
+- new highest implementation leverage task;
+- exact stop condition if stopped.
 ```
 
 ## 8. Recalculation Rules
@@ -185,9 +246,9 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
 
 | Field | Current Value |
 | --- | --- |
-| Implemented task | `IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW` |
-| Implemented output | `runtime_lifecycle_preview` inside `governed_canary_knowledge_gated_dry_run_cycle` |
-| Required lifecycle fields | `PRESENT` |
+| Implemented task | `IMPLEMENT_AUTHORITY_BOUNDARY_APPROVAL_PROMPT` |
+| Implemented output | `approval_prompt` inside `governed_canary_knowledge_gated_dry_run_cycle` |
+| Required approval fields | `PRESENT` |
 | Idempotency fingerprint | `PRESENT` |
 | Duplicate work status | `PRESENT` |
 | Loop guard status | `PRESENT` |
@@ -197,37 +258,37 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
 | Compile verification | `PASS` |
 | Safe CLI verification | `PASS_WITH_EXPECTED_SAFE_BLOCK_MISSING_TRIGGER` |
 | Safety | `apply_executed=false`; `users_moved=0`; `runtime_mutation_performed=false`; `restore_barrier_written_now=false`; `rollback_executed=false` |
-| Certification | `DEPLOYED_CERTIFIED_PREVIEW_TO_EXECUTION_PACKET_IDENTITY` |
-| Truth | `PASS`; convergence status `FULLY_ALIGNED`; runtime commit `0c04557b15a34221e8f7db09400eb7e569e1adad` |
-| Convergence | `PASS`; status `ALIGNED`; runtime action status `READY_FOR_RUNTIME_ACTION` |
-| New highest implementation leverage task | `REFRESH_ATOMIC_SOURCE_BUNDLE_AND_REAPPROVE_EXACT_PACKET` |
+| Certification | `DEPLOYED_CERTIFIED_AUTHORITY_BOUNDARY_APPROVAL_PROMPT` |
+| Truth | runtime/local aligned at `4ac727a3795b05e3c50d5877812e5d054994362c`; GitHub check may require network-capable rerun |
+| Convergence | production/local aligned at `4ac727a3795b05e3c50d5877812e5d054994362c`; GitHub check may require network-capable rerun |
+| New highest implementation leverage task | `EXECUTE_EXACT_GOVERNED_PACKET_AFTER_OPERATOR_APPROVAL` |
 | Continue automatically | `NO` |
-| Exact stop condition | `SAFETY_BLOCK_SOURCE_CHANGED` |
+| Exact stop condition | `AUTHORITY_BOUNDARY` |
 
 ## 13. Production Deploy State
 
 | Field | Current Value |
 | --- | --- |
-| Deployed commit | `0c04557b15a34221e8f7db09400eb7e569e1adad` |
-| Deploy id | `deploy-z8-14-Updatesystem-0c04557-20260625T151957` |
+| Deployed commit | `4ac727a3795b05e3c50d5877812e5d054994362c` |
+| Deploy id | `deploy-z8-14-Updatesystem-4ac727a-20260625T154342` |
 | Runtime truth | `KNOWN` |
 | Runtime access | `READY` |
-| Production dry-run verdict | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY`; executable packet identity preserved from preview; apply stopped later by source-bundle safety gate |
+| Production dry-run verdict | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY`; approval prompt status `APPROVAL_PROMPT_READY`; no apply or movement |
 | Production lifecycle id | `rtlife_d71c62f7be2ee23ddf060164` |
-| Stop reason | `SAFETY_BLOCK_SOURCE_CHANGED` |
-| Next action | refresh atomic source bundle, regenerate governed packet, and request new exact approval |
+| Stop reason | `AUTHORITY_BOUNDARY` |
+| Next action | operator may approve or reject the exact prompt in section 7 |
 
 ## 14. Post-Deploy Verification
 
 | Field | Current Value |
 | --- | --- |
-| Verified at | `2026-06-25T15:22:21+0700` |
+| Verified at | `2026-06-25T15:44:42+0700` |
 | Branch | `Updatesystem` |
-| Truth check | `PASS`; local, GitHub, and runtime aligned at `0c04557b15a34221e8f7db09400eb7e569e1adad` |
-| Convergence | `PASS`; status `ALIGNED`; runtime action guard `READY_FOR_RUNTIME_ACTION` |
+| Truth check | runtime/local aligned at `4ac727a3795b05e3c50d5877812e5d054994362c`; local non-blocking documentation-only dirtiness remains |
+| Convergence | production/local aligned; deploy delta empty; GitHub remote read can be retried with network access |
 | Documentation dirtiness | Non-blocking documentation-only dirty files remain; do not treat them as runtime blockers |
 | Production dry-run command | `ssh v7-vps /usr/local/bin/v7-governed-canary-dry-run-cycle` |
 | Production dry-run result | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY`; preview packet identity equals executable packet identity |
-| Production apply attempt safety | `restore_barrier_written_now=true`; `apply_executed=false`; `users_moved=0`; `rollback_executed=false`; safety stop `SOURCE_CHANGED`; stop families `service-scores`, `channel-service-scores` |
-| Current packet freshness | Previous exact packet is no longer applicable after atomic source-bundle mismatch |
-| Exact next required approval | A new exact packet approval is required after refresh/replan; do not retry `pkt_preview_43f0151499620a00d2e50f7b` |
+| Production prompt safety | `restore_barrier_written_now=false`; `apply_executed=false`; `users_moved=0`; `rollback_executed=false`; `runtime_mutation_performed=false` |
+| Current packet freshness | Current dry-run packet is fresh for this approval prompt |
+| Exact next required approval | Operator approval or rejection for `pkt_preview_43f0151499620a00d2e50f7b` |

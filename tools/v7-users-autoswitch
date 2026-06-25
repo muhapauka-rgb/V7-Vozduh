@@ -4837,12 +4837,18 @@ class AutoswitchPlanner:
                 "clearance_expires_at": expires_at,
             }
         if not approved_generation or approved_generation != current_generation:
-            return {
-                "clearance_generation_ok": False,
-                "clearance_generation_reason": "restore_barrier_clearance_generation_mismatch",
-                "current_generation_id": current_generation,
-                "approved_generation_id": approved_generation,
-            }
+            approved_lock = restore_barrier.get("approved_plan_lock_validation") or {}
+            preview_identity_lock = (
+                bool_value(approved_lock.get("ok"))
+                and str(approved_lock.get("selected_move_hash_source") or "") == "approved_preview_packet"
+            )
+            if not preview_identity_lock:
+                return {
+                    "clearance_generation_ok": False,
+                    "clearance_generation_reason": "restore_barrier_clearance_generation_mismatch",
+                    "current_generation_id": current_generation,
+                    "approved_generation_id": approved_generation,
+                }
         if approved_hash and approved_hash != selected_hash:
             return {
                 "clearance_generation_ok": False,
@@ -4860,6 +4866,23 @@ class AutoswitchPlanner:
                 "approved_generation_id": approved_generation,
                 "approved_selected_moves_count": expected_count,
                 "current_selected_moves_count": len(selected),
+            }
+        approved_lock = restore_barrier.get("approved_plan_lock_validation") or {}
+        preview_identity_lock = (
+            bool_value(approved_lock.get("ok"))
+            and str(approved_lock.get("selected_move_hash_source") or "") == "approved_preview_packet"
+        )
+        if preview_identity_lock:
+            return {
+                "clearance_generation_ok": True,
+                "clearance_generation_reason": "restore_barrier_clearance_preview_packet_identity_match",
+                "current_generation_id": current_generation,
+                "approved_generation_id": approved_generation,
+                "current_selected_moves_hash": selected_hash,
+                "approved_selected_moves_hash": approved_hash or selected_hash,
+                "current_selected_moves_count": len(selected),
+                "approved_selected_moves_count": expected_count if expected_count is not None else len(selected),
+                "approved_plan_lock_identity_source": "approved_preview_packet",
             }
         current_envelope = self._atomic_execution_envelope(
             selected_hash,

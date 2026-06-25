@@ -1987,15 +1987,10 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             bootstrap = bootstrap_planner.plan()
             self.assertEqual(len(bootstrap["selected_moves"]), 1)
             approved_hash = "preview-approved-selected-hash"
-            approved_envelope = bootstrap_planner._atomic_execution_envelope(approved_hash, 1)
             lock = self.approved_plan_lock_from_plan(bootstrap)
             lock["identity_source"] = "approved_preview_packet"
             lock["selected_move_hash"] = approved_hash
-            lock["atomic_execution_envelope_id"] = approved_envelope["envelope_id"]
-            lock["atomic_execution_envelope_hash"] = approved_envelope["envelope_hash"]
-            lock["source_bundle_hash"] = approved_envelope["source_bundle_hash"]
-            lock["source_hashes"] = approved_envelope["source_bundle"]["source_hashes"]
-            lock["snapshot_bundle_hash"] = approved_envelope["snapshot_bundle"]["hash"]
+            lock["authority_generation"] = "preview-authority-generation"
             approved = {
                 "enabled": True,
                 "expires_at": "2000-01-01T00:00:00+00:00",
@@ -2003,17 +1998,17 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 "generation_clearance": True,
                 "clearance_max_selected_moves": 1,
                 "generation_token": "unit-test-approved-preview-packet-token",
-                "clearance_generation_id": bootstrap["safety"]["generation"]["planner_generation_id"],
+                "clearance_generation_id": "preview-authority-generation",
                 "approved_selected_moves_hash": approved_hash,
                 "clearance_expected_selected_moves": 1,
                 "clearance_expires_at": "2999-01-01T00:00:00+00:00",
                 "allowed_users": [bootstrap["selected_moves"][0]["user_ip"]],
                 "allowed_targets": ["vless"],
-                "approved_atomic_execution_envelope_id": approved_envelope["envelope_id"],
-                "approved_atomic_execution_envelope_hash": approved_envelope["envelope_hash"],
-                "approved_source_bundle_hash": approved_envelope["source_bundle_hash"],
-                "approved_source_hashes": approved_envelope["source_bundle"]["source_hashes"],
-                "approved_snapshot_bundle_hash": approved_envelope["snapshot_bundle"]["hash"],
+                "approved_atomic_execution_envelope_id": "aee-preview-derived",
+                "approved_atomic_execution_envelope_hash": "preview-derived-envelope-hash",
+                "approved_source_bundle_hash": "preview-derived-source-bundle-hash",
+                "approved_source_hashes": {"preview_packet": "preview-source"},
+                "approved_snapshot_bundle_hash": "preview-derived-snapshot-bundle-hash",
                 "approved_plan_lock": lock,
                 "owner": "admin_core/operator_execution.py",
             }
@@ -2027,6 +2022,11 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(validation["selected_move_hash"], approved_hash)
         self.assertNotEqual(validation["structural_selected_move_hash"], approved_hash)
         self.assertTrue(plan["safety"]["restore_barrier"]["approved_preview_identity_consumed"])
+        self.assertTrue(plan["safety"]["restore_barrier"]["clearance_generation_ok"])
+        self.assertEqual(
+            plan["safety"]["restore_barrier"]["clearance_generation_reason"],
+            "restore_barrier_clearance_preview_packet_identity_match",
+        )
         self.assertEqual(plan["operation"]["selected_move_hash"], approved_hash)
         self.assertEqual(plan["selected_moves"][0]["selected_move_hash"], approved_hash)
 

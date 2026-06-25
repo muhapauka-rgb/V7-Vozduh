@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `Operational Maturity`
 Created: 2026-06-25
-Version: `2.1`
+Version: `2.2`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -19,7 +19,7 @@ What currently limits V7 the most?
 What action gives the highest maturity gain right now?
 ```
 
-V2.1 adds architectural minimalism, semantic reuse, a new-owner gate, architecture duplication detection, and an explicit optimization engine. OMP always wins over free-form implementation ideas.
+V2.1 adds architectural minimalism, semantic reuse, a new-owner gate, architecture duplication detection, and an explicit optimization engine. V2.2 adds Safety-Bounded Authority: trust decides autonomy tier, safety decides bounded action. OMP always wins over free-form implementation ideas.
 
 ## 1. Project Vision
 
@@ -47,7 +47,100 @@ Operational meaning:
 - ADRs preserve decisions.
 - This program preserves what V7 does next.
 
-## 2.1. Architectural Laws
+## 2.1. Safety-Bounded Authority Model
+
+V7 must not wait for global self-trust before every small governed action.
+
+V7 separates:
+
+- Knowledge Maturity
+- Execution Authority
+
+Knowledge Maturity controls autonomy tier progression.
+
+Execution Authority controls whether an exact bounded action may happen.
+
+Core rule:
+
+```text
+Trust decides autonomy tier.
+Safety decides bounded action.
+```
+
+Knowledge Maturity answers:
+
+```text
+How autonomous may V7 become?
+```
+
+Execution Authority answers:
+
+```text
+May this exact bounded action happen now?
+```
+
+`70/70/70` remains the hard floor for `TIER_2+` and autonomous progression.
+
+It is not a universal blocker for a `TIER_1` governed one-user operator-reviewed canary.
+
+A `TIER_1` governed action may be considered only when:
+
+- exact packet exists;
+- target user is bound;
+- target channel is bound;
+- rollback target exists;
+- restore barrier preview is ready;
+- verification plan is ready;
+- outcome closure plan is ready;
+- learning path is connected;
+- blast radius is bounded;
+- policy allows the action;
+- truth/convergence pass;
+- explicit operator approval exists.
+
+This model does not authorize restore-barrier writes, runtime apply, user movement, rollback apply, daemon/timer enablement, authority expansion, floor changes, synthetic evidence, or new owners.
+
+## 2.2. Background Builds Knowledge, Runtime Spends Knowledge
+
+Background systems may perform expensive work:
+
+- service intelligence;
+- quality snapshots;
+- prediction;
+- trust;
+- suitability;
+- recovery;
+- history;
+- learning;
+- evidence inventory.
+
+Runtime must remain thin.
+
+Runtime path:
+
+```text
+Event
+  -> Current State
+  -> Knowledge Snapshot
+  -> Policy
+  -> Safety Check
+  -> Packet
+  -> Execute or Stop
+  -> Verify
+  -> Rollback if needed
+  -> Outcome Closure
+  -> Learning
+```
+
+Runtime must not perform broad audits, broad historical recomputation, or heavy analytics in the event path.
+
+Scaling rule:
+
+V7 must scale to `10,000+` users by precomputing knowledge into compact read models.
+
+Adding users must not linearly increase event-time decision latency.
+
+## 2.3. Architectural Laws
 
 These laws are immutable unless a future ADR explicitly supersedes them:
 
@@ -64,13 +157,13 @@ These laws are immutable unless a future ADR explicitly supersedes them:
 | Law 9 | No synthetic evidence. |
 | Law 10 | Every implementation must increase at least one of: Knowledge, Decision Quality, Outcome Quality, Learning Quality, Operational Maturity, or Automation. Otherwise the implementation should not exist. |
 
-## 2.2. Project Philosophy
+## 2.4. Project Philosophy
 
 V7 is not allowed to become larger unless it first becomes smarter.
 
 This means new architecture is a last resort. The default posture is to make existing owners more capable, more connected, more explainable, and more mature.
 
-## 2.3. Architectural Minimalism
+## 2.5. Architectural Minimalism
 
 Immutable project law:
 
@@ -88,7 +181,7 @@ Reuse
 
 New components are forbidden until reuse, extension, and merge options have been explicitly evaluated.
 
-## 2.4. Semantic Reuse Audit
+## 2.6. Semantic Reuse Audit
 
 Before every implementation, OMP must execute this audit:
 
@@ -112,6 +205,19 @@ Current semantic reuse audit for OMP V2.1:
 | Extension strategy | Add V2.1 optimizer/minimalism/gate/detector sections in place |
 | Need New Owner | `FALSE` |
 
+Current semantic reuse audit for OMP V2.2:
+
+| Field | Current Value |
+| --- | --- |
+| Desired capability | Add Safety-Bounded Authority as the operating model for separating Knowledge Maturity from Execution Authority. |
+| Existing owner | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` |
+| Semantically equivalent owners | `docs/reference/V7_ENGINEERING_PRINCIPLES.md`, Canonical Reference, SYSTEM_MAP, Autonomy Blueprint, Ideal Autonomous Routing Model, Knowledge Quality Model, ADR-V7-SAFETY-BOUNDED-AUTHORITY |
+| Composition strategy | Extend existing OMP in place and align it with the existing principles/reference/ADR documents. |
+| Semantic coverage | `100%` |
+| Reuse strategy | Reuse OMP as execution authority; reuse principles/reference/ADR as meaning sources. |
+| Extension strategy | Add Safety-Bounded Authority, background/runtime split, safe automatic preparation rule, and Codex execution contract to OMP. |
+| Need New Owner | `FALSE` |
+
 Latest semantic reuse audit for optimizer iteration `2026-06-25`:
 
 | Field | Current Value |
@@ -125,7 +231,7 @@ Latest semantic reuse audit for optimizer iteration `2026-06-25`:
 | Extension strategy | None required for the safe portion. |
 | Need New Owner | `FALSE` |
 
-## 2.5. New Owner Gate
+## 2.7. New Owner Gate
 
 Before creating any new owner, knowledge model, planner, engine, pipeline, API, CLI, storage, snapshot, or truth source, OMP must prove:
 
@@ -156,7 +262,7 @@ Current gate result:
 | Need New Owner | `FALSE` |
 | Reason | OMP V2.1 is fully expressible by extending the existing OMP document and existing reference pointers. |
 
-## 2.6. Architectural Duplication Detector
+## 2.8. Architectural Duplication Detector
 
 After every implementation, OMP must check for duplication across:
 
@@ -211,6 +317,18 @@ Latest optimizer iteration duplication result `2026-06-25`:
 | Duplicate API | `NONE` |
 | Duplicate CLI | `NONE` |
 | Duplicate read model | `NONE` |
+| Verdict | `NONE` |
+
+Latest OMP V2.2 duplication result:
+
+| Field | Current Value |
+| --- | --- |
+| Duplicate owners | `NONE` |
+| Duplicate planners | `NONE` |
+| Duplicate governance | `NONE` |
+| Duplicate execution | `NONE` |
+| Duplicate truth sources | `NONE` |
+| Duplicate architecture | `NONE` |
 | Verdict | `NONE` |
 
 ## 3. Program States
@@ -290,6 +408,17 @@ This is an action, not a phase.
 Definition:
 
 Use the existing governed packet / restore / apply / verification / outcome / feedback / learning owners to produce one real candidate outcome, only after explicit operator authority for the exact packet.
+
+OMP V2.2 interpretation:
+
+This HLA has two parts:
+
+| Part | Name | Authority |
+| --- | --- | --- |
+| Safe automatic part | `PREPARE_EXACT_GOVERNED_PACKET_AUTHORITY_DECISION` | Continue automatically through read-only, documentation-only, verification, refresh, preview, tests, and existing-owner preparation work. |
+| Authority-bound part | `EXECUTE_EXACT_GOVERNED_PACKET_AFTER_OPERATOR_APPROVAL` | Stop at `AUTHORITY_BOUNDARY` until explicit approval exists for the exact packet. |
+
+Only the second part requires approval.
 
 Ranking:
 
@@ -391,6 +520,19 @@ Optimizer rules:
 | Highest leverage action would create duplicate planner/governance/execution/truth | Stop at `UNSAFE_IMPLEMENTATION`. |
 | Certified reports reveal a fundamental missing owner | Stop at `FUNDAMENTAL_ARCHITECTURE_GAP`. |
 
+Safety-Bounded Authority split rule:
+
+When the highest leverage action requires real outcomes, Codex must split it into:
+
+| Portion | Work | Program Response |
+| --- | --- | --- |
+| Safe automatic preparation | Refresh evidence; refresh packet preview; verify restore/rollback preview; verify verification plan; verify outcome closure plan; verify learning path; update OMP; present exact authority decision. | Continue automatically. |
+| Authority-bound execution | Restore-barrier write; runtime apply; user movement; rollback apply; daemon/timer enablement; authority expansion. | Stop at `AUTHORITY_BOUNDARY`. |
+
+The safe automatic portion continues automatically.
+
+The authority-bound execution portion stops at `AUTHORITY_BOUNDARY`.
+
 ## 11. Optimization Target
 
 The current target is no longer `Current Phase`.
@@ -487,6 +629,30 @@ Codex must continue automatically while the highest leverage action does not req
 3. user movement;
 4. authority expansion.
 
+Codex must continue automatically through:
+
+1. docs/reference updates;
+2. ADR updates;
+3. read-only verification;
+4. truth/convergence checks;
+5. inventory refresh;
+6. quality/service/snapshot refresh;
+7. existing-owner implementation;
+8. tests;
+9. duplication detection;
+10. OMP recalculation;
+11. packet preview refresh;
+12. restore/rollback preview verification;
+13. outcome closure plan verification;
+14. learning path verification.
+
+Codex must stop only at:
+
+1. `AUTHORITY_BOUNDARY`;
+2. `REAL_WORLD_LIMIT`;
+3. `UNSAFE_IMPLEMENTATION`;
+4. `FUNDAMENTAL_ARCHITECTURE_GAP`.
+
 If the highest leverage action crosses authority boundary, Codex must:
 
 1. stop before the boundary;
@@ -510,7 +676,46 @@ DISCOVER
 
 This replaces phase-first and roadmap-first thinking with optimization-first thinking.
 
-## 15. Program Health
+## 15. OMP Execution Contract For Codex
+
+Codex must not ask:
+
+```text
+what phase should I execute?
+```
+
+Codex must:
+
+1. read OMP;
+2. recalculate current bottleneck;
+3. find safe automatic portion;
+4. execute safe portion through existing owners;
+5. verify;
+6. certify;
+7. update OMP, reference, system map, or ADR if meaning changed;
+8. recalculate;
+9. continue;
+10. stop only at an allowed stop condition.
+
+If blocked by `AUTHORITY_BOUNDARY`, Codex must output:
+
+- exact packet;
+- exact action;
+- exact user;
+- exact source;
+- exact target;
+- exact rollback target;
+- exact command shape that must not run without approval;
+- exact approval question.
+
+This contract is constrained by Safety-Bounded Authority:
+
+```text
+Trust decides autonomy tier.
+Safety decides bounded action.
+```
+
+## 16. Program Health
 
 | Health Dimension | Current Value | Notes |
 | --- | --- | --- |
@@ -522,7 +727,7 @@ This replaces phase-first and roadmap-first thinking with optimization-first thi
 | Remaining architecture uncertainty | `NONE_FUNDAMENTAL` | Partial classes are future/scale/authority extensions, not missing architecture. |
 | Current optimization velocity | `AUTHORITY_BOUNDARY_AFTER_SAFE_REFRESH` | Safe service/quality/snapshot refresh completed through existing owners; real candidate outcome gain needs exact authority. |
 
-## 16. Historical Phase Anchor
+## 17. Historical Phase Anchor
 
 `GOVERNED_CANDIDATE_OUTCOME_EXECUTION_AND_CLOSURE`
 
@@ -536,7 +741,7 @@ Reason:
 
 The final architecture certification says V7 has no fundamental architecture gap. The governed dry-run reaches `AUTHORITY_BOUNDARY` with packet preview, restore/rollback preview, verification plan, outcome closure plan, and learning path connected. The next maturity gain requires real governed candidate outcome evidence.
 
-## 17. Historical Objective
+## 18. Historical Objective
 
 Use existing owners to create and close one real governed candidate outcome only after explicit operator authority.
 
@@ -553,7 +758,7 @@ The phase must:
 
 No autonomous apply is approved by this program state.
 
-## 18. Success Criteria
+## 19. Success Criteria
 
 | Criterion | Required State |
 | --- | --- |
@@ -565,7 +770,7 @@ No autonomous apply is approved by this program state.
 | Certification | Tests, `tools/v7-truth-check --all --json`, and `tools/v7-convergence-status --json` pass after the phase. |
 | Documentation | Canonical reference, system map, ADRs, and this program are updated when meaning changes. |
 
-## 19. Stop Conditions
+## 20. Stop Conditions
 
 Only these stop conditions are allowed:
 
@@ -585,7 +790,7 @@ Details:
 - confidence, trust, prediction confidence, and suitability are still below autonomous maturity needs;
 - candidate outcome gap remains real-world evidence, not missing architecture.
 
-## 20. Phase History
+## 21. Phase History
 
 | Phase | Certified Result | State | Evidence |
 | --- | --- | --- | --- |
@@ -604,7 +809,7 @@ Details:
 | Final Autonomous Routing Architecture Certification | Verdict `ARCHITECTURE_COMPLETE_WITH_FUTURE_OPTIONAL_EXTENSIONS` | `CERTIFIED` | `docs/reports/V7_FINAL_AUTONOMOUS_ROUTING_ARCHITECTURE_CERTIFICATION_REPORT.md` |
 | Governed Canary Knowledge-Gated Dry-Run Cycle | Production reaches `AUTHORITY_BOUNDARY`; no apply, no movement | `CERTIFIED` | `docs/reports/V7_GOVERNED_CANARY_KNOWLEDGE_GATED_AUTONOMOUS_DRY_RUN_CYCLE_REPORT.md` |
 
-## 21. Next Best Action
+## 22. Next Best Action
 
 `PREPARE_EXACT_GOVERNED_PACKET_AUTHORITY_DECISION`
 
@@ -638,7 +843,7 @@ exact packet approval
 
 If approval is not granted, the program remains blocked at `AUTHORITY_BOUNDARY` and may continue only read-only verification, documentation, and evidence freshness checks.
 
-## 22. Next Best Action Entry Criteria
+## 23. Next Best Action Entry Criteria
 
 | Entry Criterion | Required |
 | --- | --- |
@@ -650,7 +855,7 @@ If approval is not granted, the program remains blocked at `AUTHORITY_BOUNDARY` 
 | Evidence | Outcome closure and learning paths available before apply. |
 | Safety | No daemon enablement, no timer-only movement, no duplicate planner/governance/execution. |
 
-## 23. Program Certification
+## 24. Program Certification
 
 | Field | Current Value |
 | --- | --- |
@@ -667,7 +872,7 @@ If approval is not granted, the program remains blocked at `AUTHORITY_BOUNDARY` 
 | Current next best action | Prepare exact governed packet authority decision, or stay in safe read-only preparation. |
 | Last optimizer iteration | `2026-06-25`: challenged HLA, executed safe service/quality/snapshot refresh, recomputed, stopped at `AUTHORITY_BOUNDARY`. |
 
-## 24. Program Rule For Future Work
+## 25. Program Rule For Future Work
 
 Before starting any future implementation task, Codex must treat this file as the first program source. If a prompt conflicts with this program, the optimizer wins unless the user explicitly changes the program through a new ADR/reference update.
 
@@ -681,9 +886,11 @@ OMP is allowed to improve
 its future prioritization
 using only real historical evidence.
 
-## 25. Latest Exact Governed Packet Authority Decision
+## 26. Latest Exact Governed Packet Authority Decision
 
 Recorded: `2026-06-25`
+
+Source: `docs/handoff/V7_CURRENT_STATE_SNAPSHOT.md` and `docs/handoff/V7_AUTHORITY_BOUNDARY_AND_NEXT_ACTION.md`.
 
 Optimizer decision:
 
@@ -707,10 +914,10 @@ Production recalculation:
 | Metric | Current Value |
 | --- | --- |
 | Overall maturity score | `84.167` |
-| Confidence | `39.429 / 70`, gap `30.571` |
-| Trust | `54.572 / 70`, gap `15.428` |
-| Prediction | `36.778 / 70`, gap `33.222` |
-| Suitability | `29.118 / 70`, gap `40.882` |
+| Confidence | `39.573 / 70`, gap `30.427` |
+| Trust | `54.679 / 70`, gap `15.321` |
+| Prediction | `36.859 / 70`, gap `33.141` |
+| Suitability | `29.493 / 70`, gap `40.507` |
 | Candidate outcomes | `84 / 156` consumed |
 | Missing candidate outcomes | `72` |
 
@@ -720,22 +927,22 @@ Exact operator decision payload:
 | --- | --- |
 | Candidate | `10.7.0.5` |
 | Current channel | `vless` |
-| Target channel | `awg0` |
+| Target channel | `awg3` |
 | Decision action | `MOVE_GOVERNED_CANARY_REVIEW` |
 | Authority tier | `TIER_1` |
 | Authority status | `MARGINAL_OPERATOR_REVIEW` |
 | Reason | `best available channel has higher advisory suitability` |
 | Review warning | `Прямой обход planner/governance всё равно запрещён.` |
 | Packet preview status | `PACKET_PREVIEW_READY` |
-| Packet preview id | `pkt_preview_fb70744bc51ad162b1727dcb` |
-| Operation id | `govdry_97745a383e19446a2a1124e3` |
-| Selected move hash | `41d346ea7f2467b3c677306b863f2ef949715be7035b3358bc911520d4ea4300` |
+| Packet preview id | `pkt_preview_43f0151499620a00d2e50f7b` |
+| Operation id | `govdry_c8f67c5437777091c9cf1f5d` |
+| Selected move hash | `8e7785e058337f1db53fd929d7c175914510a401ff686391bef7bfcb088bfdac` |
 | Selected move count | `1` |
 | Allowed users | `10.7.0.5` |
-| Allowed targets | `awg0` |
-| Risk | `3.691` |
+| Allowed targets | `awg3` |
+| Risk | `3.678` |
 | Candidate confidence | `0.458` |
-| Trust | `54.682` |
+| Trust | `54.679` |
 | Execution allowed now | `FALSE` |
 
 Knowledge gates:
@@ -760,7 +967,7 @@ Restore and rollback preview:
 | Restore barrier required | `TRUE` |
 | Restore barrier written now | `FALSE` |
 | Rollback target | `vless` |
-| Rollback manifest id | `rb_preview_0cffde2b4797f0030c57639d` |
+| Rollback manifest id | `rb_preview_d25f7c3f7705ba558d2afcea` |
 | Rollback executor | `tools/v7-users-autoswitch --rollback-packet --apply --verify` |
 | Rollback owner | `admin_core/operator_execution.py` |
 | Wrong user protection | `allowed_users_bound_to_packet` |
@@ -773,7 +980,7 @@ Verification plan:
 | Status | `VERIFICATION_PLAN_READY` |
 | Owner | `tools/v7-users-autoswitch --apply --verify` |
 | User | `10.7.0.5` |
-| Target | `awg0` |
+| Target | `awg3` |
 | Checks | `connection_check`; `required_service_checks`; `route_runtime_check`; `quality_check`; `rollback_trigger_evaluation` |
 | Rollback triggers | user cannot connect; required service fails; route/runtime mismatch; quality regression after move; partial apply or verification failure |
 | Verification run now | `FALSE` |
@@ -784,7 +991,7 @@ Outcome closure plan:
 | --- | --- |
 | Status | `OUTCOME_CLOSURE_PLAN_READY` |
 | Owner | `admin_core/operator_execution_feedback.py` |
-| Decision id | `decision_preview_39bc893ea3312520de9e4df9` |
+| Decision id | `decision_preview_1f150032ce11c43946772d92` |
 | Closure written now | `FALSE` |
 | Synthetic evidence created | `FALSE` |
 | Legitimate apply-time fields | `apply_result`; `post_action_verification`; `service_outcome`; `user_outcome`; `outcome_observed_at` |
@@ -804,12 +1011,12 @@ Exact authority decision required:
 
 ```text
 Approve or reject the exact governed packet:
-packet_preview_id = pkt_preview_fb70744bc51ad162b1727dcb
-operation_id = govdry_97745a383e19446a2a1124e3
+packet_preview_id = pkt_preview_43f0151499620a00d2e50f7b
+operation_id = govdry_c8f67c5437777091c9cf1f5d
 user = 10.7.0.5
 from = vless
-to = awg0
-selected_move_hash = 41d346ea7f2467b3c677306b863f2ef949715be7035b3358bc911520d4ea4300
+to = awg3
+selected_move_hash = 8e7785e058337f1db53fd929d7c175914510a401ff686391bef7bfcb088bfdac
 ```
 
 Action that requires explicit approval:
@@ -817,19 +1024,19 @@ Action that requires explicit approval:
 ```text
 Create an approved execution packet through the existing packet owner,
 then execute restore-barrier clearance through:
-tools/v7-operator-execution-packet --packet <approved-packet-for-pkt_preview_fb70744bc51ad162b1727dcb> --execute-runtime-action
+tools/v7-operator-execution-packet --packet <approved-packet-for-pkt_preview_43f0151499620a00d2e50f7b> --execute-runtime-action
 ```
 
 The bounded apply action that must not run without that approval:
 
 ```text
-tools/v7-users-autoswitch --mode guarded --user 10.7.0.5 --target-egress awg0 --max-selected-moves 1 --apply --verify --rollback-on-verify-fail
+tools/v7-users-autoswitch --mode guarded --user 10.7.0.5 --target-egress awg3 --max-selected-moves 1 --apply --verify --rollback-on-verify-fail
 ```
 
 Rollback path if approved apply fails verification:
 
 ```text
-tools/v7-users-autoswitch --rollback-packet <rollback-packet-for-rb_preview_0cffde2b4797f0030c57639d> --apply --verify
+tools/v7-users-autoswitch --rollback-packet <rollback-packet-for-rb_preview_d25f7c3f7705ba558d2afcea> --apply --verify
 ```
 
 Program stop:

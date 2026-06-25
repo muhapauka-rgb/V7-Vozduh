@@ -5,6 +5,7 @@ Program: `V7.SAFETY_BOUNDED_AUTHORITY_PRINCIPLES`
 Workspace: `/Users/ponch/Documents/New project`  
 Branch: `Updatesystem`  
 Base commit: `3e4a9ff103f132a2b23596485370a0f06e0b3b31`
+OMP integration: `2.2`
 
 ## 1. Purpose
 
@@ -207,6 +208,11 @@ This document should guide interpretation of OMP bottlenecks:
 - `AUTHORITY_BOUNDARY` remains the current execution boundary.
 - Bounded governed action is the legitimate way to generate real candidate outcomes when explicitly approved.
 
+OMP V2.2 operationalizes this principle by splitting real-outcome work into:
+
+- safe automatic preparation, which Codex continues through existing owners;
+- authority-bound execution, which stops before restore-barrier write, runtime apply, user movement, rollback apply, daemon/timer enablement, or authority expansion.
+
 ## 12. Relationship To Existing Architecture
 
 The current architecture verdict remains:
@@ -263,4 +269,3 @@ Verify immediately.
 Rollback when needed.
 
 Learn forever.
-

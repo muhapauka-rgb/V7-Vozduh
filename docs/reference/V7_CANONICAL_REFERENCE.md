@@ -79,7 +79,7 @@ Stable conclusions:
 
 ## Operational Maturity Program Rule
 
-`docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` is the primary program source for future V7 implementation work. Version `2.1` replaces roadmap-driven, phase-first, and free-form implementation ideas with optimization-driven operational maturity, architectural minimalism, semantic reuse, a new-owner gate, and duplication detection.
+`docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` is the primary program source for future V7 implementation work. Version `2.2` replaces roadmap-driven, phase-first, and free-form implementation ideas with optimization-driven operational maturity, architectural minimalism, semantic reuse, a new-owner gate, duplication detection, and Safety-Bounded Authority.
 
 Stable conclusions:
 
@@ -94,6 +94,9 @@ Stable conclusions:
 9. After every implementation, OMP must run duplication detection across owners, planners, governance, execution, lifecycle, APIs, CLIs, knowledge models, routing logic, learning logic, truth sources, evidence collectors, packet builders, decision surfaces, and maturity models.
 10. Future work may continue automatically only when the highest leverage action stays inside existing owners and does not require restore-barrier write, runtime apply, user movement, or authority expansion.
 11. The program document must be read before future implementation work so V7 does not fall back into disconnected roadmap, phase-first, duplicated-architecture, or repeated-audit behavior.
+12. OMP V2.2 separates Knowledge Maturity from Execution Authority: trust decides autonomy tier, safety decides bounded action.
+13. OMP V2.2 requires Codex to continue automatically through safe read-only, documentation-only, verification, refresh, tests, preview, existing-owner implementation, duplication detection, OMP recalculation, and plan verification work.
+14. When the highest leverage action requires real outcomes, OMP V2.2 splits it into safe automatic preparation and authority-bound execution. The preparation continues automatically; restore-barrier write, runtime apply, user movement, rollback apply, daemon/timer enablement, and authority expansion stop at `AUTHORITY_BOUNDARY`.
 
 ## V7_ENGINEERING_PRINCIPLES
 

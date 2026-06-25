@@ -79,15 +79,21 @@ Stable conclusions:
 
 ## Operational Maturity Program Rule
 
-`docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` is the primary program source for future V7 implementation work. It replaces roadmap-driven development with evidence-driven operational maturity.
+`docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` is the primary program source for future V7 implementation work. Version `2.1` replaces roadmap-driven, phase-first, and free-form implementation ideas with optimization-driven operational maturity, architectural minimalism, semantic reuse, a new-owner gate, and duplication detection.
 
 Stable conclusions:
 
 1. The current program is `Operational Maturity`.
-2. The current phase is `GOVERNED_CANDIDATE_OUTCOME_EXECUTION_AND_CLOSURE`.
-3. The current blocker is `AUTHORITY_BOUNDARY`: production dry-run reaches packet/restore/rollback/verification/outcome/learning readiness, but explicit operator authority is required before restore-barrier write or apply.
-4. Future phases may continue automatically only when they stay inside existing owners and do not cross authority, real-world, unsafe implementation, or fundamental architecture boundaries.
-5. The program document must be read before future implementation work so V7 does not fall back into disconnected roadmap or repeated-audit behavior.
+2. OMP now answers what limits V7 most and what action gives the highest maturity gain right now.
+3. The current highest bottleneck is `Suitability`.
+4. The current highest leverage action is `Governed candidate suitability outcome closure`.
+5. The current blocker is `AUTHORITY_BOUNDARY`: production dry-run reaches packet/restore/rollback/verification/outcome/learning readiness, but explicit operator authority is required before restore-barrier write or apply.
+6. Architectural minimalism is immutable: reuse, extend, merge, implement, and only then create new.
+7. Every implementation must run a semantic reuse audit before creating or extending system behavior.
+8. New owners, knowledge models, planners, engines, pipelines, APIs, CLIs, storage, snapshots, or truth sources are forbidden unless `Need New Owner = TRUE`.
+9. After every implementation, OMP must run duplication detection across owners, planners, governance, execution, lifecycle, APIs, CLIs, knowledge models, routing logic, learning logic, truth sources, evidence collectors, packet builders, decision surfaces, and maturity models.
+10. Future work may continue automatically only when the highest leverage action stays inside existing owners and does not require restore-barrier write, runtime apply, user movement, or authority expansion.
+11. The program document must be read before future implementation work so V7 does not fall back into disconnected roadmap, phase-first, duplicated-architecture, or repeated-audit behavior.
 
 ## V7_IDEAL_AUTONOMOUS_ROUTING_MODEL
 

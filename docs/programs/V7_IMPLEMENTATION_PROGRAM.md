@@ -10,6 +10,9 @@ Runtime Model: COMPLETE
 System Architecture: COMPLETE
 Need New Owner: FALSE
 
+Supersession note:
+`docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` Version `4.0` is the single permanent production execution program for V7. This file remains a supporting implementation reference under OMP and must not be used as a separate roadmap authority.
+
 ## Purpose
 
 V7 Implementation Program drives implementation until Production Autonomy.
@@ -111,25 +114,13 @@ The optimizer must consider:
 
 ## Current Highest Implementation Leverage Task
 
-| Field | Value |
-| --- | --- |
-| Task | `IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW` |
-| Class | `IMPLEMENT_RUNTIME` |
-| Exact owner | Governed Canary Knowledge-Gated Dry-Run Cycle / Runtime Model composition |
-| Exact module | `admin_core/operator_execution_pipeline.py::governed_canary_knowledge_gated_dry_run_cycle` |
-| Exact files | `admin_core/operator_execution_pipeline.py`, `tools/v7-governed-canary-dry-run-cycle`, focused tests for governed dry-run runtime lifecycle output |
-| Production leverage | Converts completed Runtime Model into read-only executable lifecycle output through an existing owner. |
-| Why first | It is the first implementation that moves V7 from architecture-complete to runtime-implementation-ready without apply, user movement, daemon, timer, planner redesign, governance redesign, execution redesign, or truth-source creation. |
-| Expected maturity gain | High production leverage; no direct autonomy-floor increase until real outcomes exist, but it makes the exact runtime path implementable, testable, idempotent, and certifiable. |
+Current HIL is volatile state and lives in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
+
+This supporting reference must not preserve an independent current-task queue.
 
 ## Expected Implementation Order
 
-1. `IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW`
-2. `IMPLEMENT_TEST` for lifecycle state machine, stop conditions, idempotency key, stale packet, duplicate work, and OMP notification fields.
-3. `IMPLEMENT_VERIFICATION` for read-only runtime preview verification and truth/convergence certification.
-4. `IMPLEMENT_OBSERVABILITY` for lifecycle ids, stage, owner, input generation, stop reason, authority, packet freshness, verification, rollback, outcome, and learning status.
-5. `IMPLEMENT_RUNTIME` manual authority-gated invocation preview, still no apply.
-6. Only after explicit approval: bounded execution integration through existing owners.
+Expected implementation order is recalculated by OMP from Current Program State after every certification and authority evaluation.
 
 ## Safety Boundary
 

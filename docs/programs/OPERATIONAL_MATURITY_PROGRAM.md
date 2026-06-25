@@ -1,23 +1,27 @@
 # V7 Operational Maturity Program
 
 Status: `ACTIVE`
-Program: `Operational Maturity`
+Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `3.0`
+Version: `4.0`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
-This document is the primary program source for V7 implementation work. It replaces roadmap-driven development, phase-first development, free-form implementation ideas, and architecture-first continuation with optimization-driven production implementation.
+This document is the permanent production operating program for V7. It replaces roadmap-driven development, phase-first development, free-form implementation ideas, and architecture-first continuation with continuous production maturity evolution.
 
-Roadmaps, reports, ADRs, and reference files remain evidence and context. This program decides the current system state, highest bottleneck, highest leverage action, authority boundary, reality limit, next best action, and whether Codex may continue automatically.
+Roadmaps, reports, ADRs, and reference files remain evidence and context. The complete autonomy roadmap lives inside this OMP. No additional roadmap document is required to drive V7 from current `TIER_1` governed autonomy to full production autonomy.
 
-V3 operating question:
+This program decides the current system state, highest bottleneck, highest leverage action, authority boundary, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically.
+
+V4 operating questions:
 
 ```text
 What implementation gives the highest production leverage right now?
+What authority tier is certified by real outcomes?
+What safe work can continue before an allowed stop condition?
 ```
 
-V2.1 adds architectural minimalism, semantic reuse, a new-owner gate, architecture duplication detection, and an explicit optimization engine. V2.2 adds Safety-Bounded Authority: trust decides autonomy tier, safety decides bounded action. V2.3 adds Kernel and State Split: permanent operating rules live in Kernel/OMP, volatile current state lives in Current Program State. V3.0 closes architecture-first work and activates implementation-first optimization. OMP always wins over free-form implementation ideas.
+V2.1 adds architectural minimalism, semantic reuse, a new-owner gate, architecture duplication detection, and an explicit optimization engine. V2.2 adds Safety-Bounded Authority: trust decides autonomy tier, safety decides bounded action. V2.3 adds Kernel and State Split: permanent operating rules live in Kernel/OMP, volatile current state lives in Current Program State. V3.0 closes architecture-first work and activates implementation-first optimization. V4.0 finalizes OMP as the permanent Production Program and integrates autonomy maturity, implementation, authority evolution, continuous optimization, and continuous knowledge evolution into one operating loop. OMP always wins over free-form implementation ideas.
 
 ## 1. Project Vision
 
@@ -78,6 +82,8 @@ System Architecture is complete.
 
 From V3.0 forward, OMP optimizes implementation, not architecture.
 
+From V4.0 forward, OMP is the single permanent production execution program for V7.
+
 The implementation optimizer asks:
 
 ```text
@@ -107,6 +113,73 @@ Implementation-first means:
 
 Reference program: `docs/programs/V7_IMPLEMENTATION_PROGRAM.md`.
 Reference model: `docs/reference/V7_IMPLEMENTATION_MODEL.md`.
+
+These files are supporting implementation references under OMP. They are not separate roadmap authorities.
+
+## 2.1.2. Permanent Production Maturity Ladder
+
+OMP owns the complete autonomy roadmap.
+
+No additional roadmap document is required.
+
+| Tier | Name | Scope | Status |
+| --- | --- | --- | --- |
+| 0 | Architecture foundation | Architecture, Research, Decision Model, Runtime Model, System Architecture. | `COMPLETE` |
+| 1 | Governed implementation | Implementation, existing owner integration, testing, certification, production deployment, one-user governed canary, outcome closure, learning. | `ACTIVE` |
+| 2 | Low-risk autonomous execution | Only actions proven safe; only bounded blast radius; rollback mandatory; verification mandatory; learning mandatory; no authority expansion without certification. | `LOCKED_UNTIL_CERTIFIED` |
+| 3 | Small-batch autonomy | Multiple bounded users/actions only after Tier 2 evidence proves safety, rollback, verification, and learning. | `FUTURE_CERTIFIED_STEP` |
+| 4 | Operational autonomy | Runtime performs routine production actions automatically inside certified policy and blast-radius limits. | `FUTURE_CERTIFIED_STEP` |
+| 5 | Production autonomy | Operator supervises; Runtime operates; OMP optimizes production leverage and safety. | `FUTURE_CERTIFIED_STEP` |
+| 6 | Authority evolution | After every certified outcome, OMP evaluates whether authority should remain unchanged, shrink, or be proposed for expansion. | `PERMANENT_RULE` |
+| 7 | Continuous implementation | OMP continuously searches for highest implementation leverage; Codex continuously implements until a stop condition. | `PERMANENT_RULE` |
+| 8 | Continuous optimization | OMP continuously searches for performance, simplicity, reuse, latency, runtime cost, readability, testability, and operability improvements. | `PERMANENT_RULE` |
+| 9 | Continuous knowledge evolution | Research Framework continues forever; only proven production engineering principles may change V7; research informs OMP. | `PERMANENT_RULE` |
+| 10 | Production evolution | Runtime -> Outcome -> Learning -> OMP -> Implementation -> Runtime. | `PERMANENT_RULE` |
+
+Tier progression is evidence-gated.
+
+No tier expands authority automatically.
+
+## 2.1.3. Authority Evolution Rule
+
+After every successful certified outcome, OMP must evaluate:
+
+1. can authority remain unchanged;
+2. can authority shrink;
+3. should authority expansion be proposed.
+
+OMP may recommend authority expansion.
+
+OMP must never silently expand authority.
+
+Authority expansion requires explicit operator approval or certified policy approval.
+
+If expansion is needed before safe continuation, OMP must stop at `AUTHORITY_BOUNDARY`.
+
+Authority shrink may be recommended when verification, rollback, learning, or real outcomes show increased risk.
+
+## 2.1.4. Research And Architecture Gating Rules
+
+Research changes implementation only through:
+
+```text
+Research
+  -> Decision Model
+  -> OMP
+  -> Implementation
+```
+
+Research must not create architecture directly.
+
+Architecture changes require a real implementation to prove `FUNDAMENTAL_ARCHITECTURE_GAP`.
+
+Otherwise:
+
+```text
+Reuse
+  -> Extend
+  -> Implement
+```
 
 ## 2.2. Safety-Bounded Authority Model
 
@@ -305,7 +378,7 @@ Latest semantic reuse audit for optimizer iteration `2026-06-25`:
 | Extension strategy | None required for the safe portion. |
 | Need New Owner | `FALSE` |
 
-Current semantic reuse audit for OMP V3.0:
+Historical semantic reuse audit for OMP V3.0:
 
 | Field | Current Value |
 | --- | --- |
@@ -316,6 +389,19 @@ Current semantic reuse audit for OMP V3.0:
 | Semantic coverage | `100%` |
 | Reuse strategy | Reuse OMP as implementation optimizer; reuse Current Program State as volatile implementation state; reuse existing runtime/planner/knowledge/learning owners for code work. |
 | Extension strategy | Add implementation-first question, implementation classes, implementation prioritization, implementation optimizer, and first production-leverage implementation task. |
+| Need New Owner | `FALSE` |
+
+Current semantic reuse audit for OMP V4.0:
+
+| Field | Current Value |
+| --- | --- |
+| Desired capability | Finalize OMP as the permanent production operating program and single execution program without creating a separate roadmap owner. |
+| Existing owner | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` |
+| Semantically equivalent owners | `docs/programs/V7_IMPLEMENTATION_PROGRAM.md`, `docs/reference/V7_IMPLEMENTATION_MODEL.md`, `docs/reference/V7_SYSTEM_ARCHITECTURE.md`, `docs/reference/V7_RUNTIME_MODEL.md`, `docs/reference/V7_DECISION_MODEL.md`, `docs/programs/V7_CURRENT_PROGRAM_STATE.md`, Canonical Reference, SYSTEM_MAP, relevant ADRs |
+| Composition strategy | Extend OMP in place; keep Implementation Program and Implementation Model as supporting references; keep volatile packet and metrics in Current Program State. |
+| Semantic coverage | `100%` |
+| Reuse strategy | Reuse OMP as the production operating program; reuse Current Program State as volatile state; reuse existing research, decision, runtime, planner, governance, execution, truth, evidence, and learning owners. |
+| Extension strategy | Add production maturity ladder, authority evaluation, continuous optimization, continuous knowledge evolution, and permanent command surface to OMP. |
 | Need New Owner | `FALSE` |
 
 ## 2.8. New Owner Gate
@@ -461,24 +547,25 @@ Current implementation optimizer result:
 
 ## 2.13. Implementation Program Loop
 
-Implementation program loop:
+Future production implementation loop:
 
 ```text
-Read OMP
+Read Kernel
+  -> Read OMP
   -> Read Current Program State
-  -> Choose highest implementation leverage
+  -> Determine highest implementation leverage
   -> Semantic Reuse Audit
   -> Reuse
   -> Extend
   -> Implement
-  -> Test
-  -> Verify
+  -> Deploy
   -> Truth
   -> Convergence
   -> Certification
   -> Update Current Program State
   -> Update OMP
-  -> Continue automatically
+  -> Authority Evaluation
+  -> Continue
 ```
 
 Stop only at:
@@ -572,7 +659,7 @@ This section must be recalculated after every certification from canonical refer
 | Learning maturity | `CONNECTED_AFTER_OUTCOME` | Feedback, outcome closure, trust evolution, and learning refresh owners exist and are connected, but need real governed/manual outcomes. |
 | Suitability maturity | `HIGHEST_BOTTLENECK` | Suitability cannot become autonomy-grade without more real candidate outcomes and stronger candidate source confidence. |
 | Authority maturity | `AUTHORITY_BOUNDARY_REACHED` | Production governed dry-run reaches exact authority boundary before restore-barrier write or apply. |
-| Operational maturity | `IMPLEMENTATION_OPTIMIZATION_ACTIVE` | OMP V3.0 optimizes production leverage through existing-owner implementation; no daemon, no autonomous apply, no user movement. |
+| Operational maturity | `PRODUCTION_PROGRAM_ACTIVE` | OMP V4.0 optimizes production leverage through existing-owner implementation and authority evolution; no daemon, no autonomous apply, no user movement without authority. |
 
 ## 6. Current Highest Bottleneck
 
@@ -771,13 +858,13 @@ Current optimization target:
 
 | Field | Current Value |
 | --- | --- |
-| Optimization target | `IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW` |
-| Target class | `IMPLEMENT_RUNTIME` |
-| Gain type | Runtime implementation readiness, stop/idempotency/verification/OMP notification visibility, testability, and certification readiness |
-| Risk | Low; read-only output in existing owner |
-| Effort | Medium |
-| Authority | Does not cross `AUTHORITY_BOUNDARY`; must stop before restore-barrier write, apply, user movement, daemon/timer, event consumer mutation, or authority expansion |
-| Safe automatic portion | Refresh exact governed packet preview, verify restore/rollback preview, verify outcome closure plan, present exact authority decision |
+| Optimization target | Current HIL in `docs/programs/V7_CURRENT_PROGRAM_STATE.md` |
+| Target class | Volatile current state |
+| Gain type | Determined by OMP after reading Current Program State |
+| Risk | Determined by current packet, implementation task, authority boundary, and stop condition |
+| Effort | Determined by current OMP recalculation |
+| Authority | Stop at `AUTHORITY_BOUNDARY` before restore-barrier write, apply, user movement, daemon/timer, event consumer mutation, or authority expansion |
+| Safe automatic portion | Continue only through work that remains inside existing owners and does not cross the current stop boundary |
 
 Latest optimization iteration `2026-06-25`:
 
@@ -818,17 +905,21 @@ Maintain continuously:
 Every implementation must follow:
 
 ```text
-Discover
+Read Kernel
+  -> Read OMP
+  -> Read Current Program State
+  -> Determine highest implementation leverage
   -> Semantic Reuse Audit
   -> Reuse
   -> Extend
   -> Implement
-  -> Verify
+  -> Deploy
   -> Truth
   -> Convergence
   -> Certification
-  -> OMP Update
-  -> Optimization Recalculation
+  -> Update Current Program State
+  -> Update OMP
+  -> Authority Evaluation
   -> Continue
 ```
 
@@ -874,17 +965,24 @@ If the highest leverage action crosses authority boundary, Codex must:
 3. report exact reason;
 4. wait for explicit operator authority for the exact action.
 
-Implementation loop for every future task:
+Production program loop for every future task:
 
 ```text
-DISCOVER
+READ KERNEL
+  -> READ OMP
+  -> READ CURRENT PROGRAM STATE
+  -> DETERMINE HIGHEST IMPLEMENTATION LEVERAGE
+  -> SEMANTIC REUSE AUDIT
   -> REUSE
   -> EXTEND
   -> IMPLEMENT
-  -> VERIFY
-  -> CERTIFY
+  -> DEPLOY
+  -> TRUTH
+  -> CONVERGENCE
+  -> CERTIFICATION
+  -> UPDATE CURRENT PROGRAM STATE
   -> UPDATE OMP
-  -> RECALCULATE BOTTLENECK
+  -> AUTHORITY EVALUATION
   -> CONTINUE
 ```
 
@@ -904,12 +1002,15 @@ Codex must:
 2. recalculate current bottleneck;
 3. find safe automatic portion;
 4. execute safe portion through existing owners;
-5. verify;
-6. certify;
-7. update OMP, reference, system map, or ADR if meaning changed;
-8. recalculate;
-9. continue;
-10. stop only at an allowed stop condition.
+5. deploy completed and tested changes when project policy requires deployment;
+6. run truth and convergence;
+7. certify;
+8. update Current Program State;
+9. update OMP, reference, system map, or ADR if meaning changed;
+10. evaluate authority;
+11. recalculate;
+12. continue;
+13. stop only at an allowed stop condition.
 
 If blocked by `AUTHORITY_BOUNDARY`, Codex must output:
 
@@ -928,6 +1029,16 @@ This contract is constrained by Safety-Bounded Authority:
 Trust decides autonomy tier.
 Safety decides bounded action.
 ```
+
+Permanent operator command surface:
+
+| Command | Meaning |
+| --- | --- |
+| `Continue OMP` | Run the OMP production loop through all safe implementation, verification, deployment, truth, convergence, certification, update, and authority evaluation work until an allowed stop condition. |
+| `Approve packet` | Grant authority for one exact governed packet only, preserving packet identity and existing owner boundaries. |
+| `Approve authority expansion` | Approve a specific authority expansion only after OMP recommends it from certified evidence. |
+
+These commands are sufficient for future production operation unless a real implementation proves `FUNDAMENTAL_ARCHITECTURE_GAP`.
 
 ## 16. Program Health
 
@@ -1073,15 +1184,15 @@ If a restore-barrier write, apply, user movement, rollback apply, daemon, timer,
 
 | Field | Current Value |
 | --- | --- |
-| Completed phases | Canonical reference, reference-first rule, event-driven contract, knowledge quality, routing foundation, knowledge-to-decision, decision-to-outcome-to-learning, outcome leverage, suitability program, knowledge growth, routing evolution, maximum reality extraction, decision model, runtime model, system architecture. |
-| Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle. |
+| Completed phases | Architecture foundation, Research Framework, Decision Model, Runtime Model, System Architecture, Implementation Phase activation, OMP Production Program integration. |
+| Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle; OMP Production Program rule set. |
 | Current bottleneck | Explicit authority for the fresh exact governed packet after one real governed canary outcome was closed. |
 | Current highest leverage action | `EXPLICIT_OPERATOR_APPROVAL_REQUIRED_FOR_THIS_PACKET`. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
 | Current blockers | `AUTHORITY_BOUNDARY`: fresh production dry-run packet is ready for approval; restore-barrier write and apply still require explicit operator authority. |
-| Current maturity | Architecture complete; implementation phase active; read-only runtime lifecycle preview deployed and production-verified; preview-to-execution packet identity deployed and production-verified; execution lease deployed and production-verified; one approved leased governed canary outcome executed, verified, closed, and learned from. |
+| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; read-only runtime lifecycle preview deployed and production-verified; preview-to-execution packet identity deployed and production-verified; execution lease deployed and production-verified; one approved leased governed canary outcome executed, verified, closed, and learned from. |
 | Current runtime posture | No autonomous apply, no daemon enablement; last user movement was the explicitly approved one-user governed canary `10.7.0.5 vless -> awg0`. |
 | Current next best action | Operator approves or rejects the fresh exact governed packet in Current Program State section 7. |
 | Last optimizer iteration | `2026-06-25`: the approved leased packet `pkt_preview_fb70744bc51ad162b1727dcb` was consumed as executable, restore-barrier clearance was written only for that packet, one user was moved to `awg0`, verification passed, rollback was not attempted, outcome closure and learning were written from real observed evidence, snapshot refresh passed, and production OMP recalculated to a fresh `AUTHORITY_BOUNDARY` packet. |
@@ -1110,6 +1221,20 @@ That file owns the current bottleneck, HLA, authority boundary, reality limit, m
 
 OMP owns the scheduler and optimizer rules.
 
+OMP also owns the permanent production maturity ladder, implementation loop, authority evaluation rule, continuous optimization rule, and research-to-implementation gate.
+
 When packet fields, metrics, or stop reason change, update `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
 Update OMP only when scheduler/optimizer meaning changes.
+
+## 27. Permanent Production Command Verdict
+
+V7 can continue production evolution using only:
+
+1. `Continue OMP`;
+2. `Approve packet`;
+3. `Approve authority expansion`.
+
+No additional roadmap document is required.
+
+This remains true unless a real implementation proves `FUNDAMENTAL_ARCHITECTURE_GAP`.

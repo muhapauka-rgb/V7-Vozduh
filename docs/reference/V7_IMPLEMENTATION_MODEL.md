@@ -4,6 +4,9 @@ Status: canonical
 Program: `V7.IMPLEMENTATION.PROGRAM`
 Need New Owner: FALSE
 
+Supersession note:
+`docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` Version `4.0` is the single permanent production execution program for V7. This model remains a supporting implementation reference under OMP and must not be used as a separate roadmap authority.
+
 ## Purpose
 
 V7 Implementation Model defines how implementation work is selected, prioritized, finished, and fed back into OMP.
@@ -113,19 +116,13 @@ Routine volatile state belongs in Current Program State.
 
 ## Current Highest Implementation Leverage
 
-| Field | Value |
-| --- | --- |
-| Task | `IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW` |
-| Class | `IMPLEMENT_RUNTIME` |
-| Owner | Governed Canary Knowledge-Gated Dry-Run Cycle / Runtime Model composition |
-| Module | `admin_core/operator_execution_pipeline.py::governed_canary_knowledge_gated_dry_run_cycle` |
-| Files | `admin_core/operator_execution_pipeline.py`, `tools/v7-governed-canary-dry-run-cycle`, focused tests for runtime lifecycle read-only output |
-| Why first | It turns the completed Runtime Model into read-only executable lifecycle output without crossing authority boundaries. |
-| Expected maturity gain | High production leverage; it prepares runtime implementation, tests, idempotency, stop reason visibility, and OMP notification while preserving no-apply/no-movement safety. |
+Current HIL is volatile state and lives in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
+
+This model defines how OMP selects implementation work; it does not preserve an independent current-task queue.
 
 ## Recommended First Coding Task
 
-Implement read-only Runtime lifecycle output in the existing governed canary dry-run cycle.
+Read OMP and Current Program State, then execute the current OMP-selected highest implementation leverage task unless it crosses an allowed stop condition.
 
 Required output fields:
 

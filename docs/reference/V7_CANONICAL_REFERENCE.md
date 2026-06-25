@@ -79,30 +79,32 @@ Stable conclusions:
 
 ## Operational Maturity Program Rule
 
-`docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` is the primary program source for future V7 implementation work. Version `3.0` replaces roadmap-driven, phase-first, free-form implementation ideas, and architecture-first continuation with implementation-first production leverage optimization, architectural minimalism, semantic reuse, a new-owner gate, duplication detection, Safety-Bounded Authority, Kernel/State split, and Implementation Phase rules.
+`docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` is the permanent production operating program and single execution program for V7. Version `4.0` replaces roadmap-driven, phase-first, free-form implementation ideas, and architecture-first continuation with continuous production maturity evolution.
+
+The complete autonomy roadmap lives inside OMP. No additional roadmap document is required to drive V7 from current `TIER_1` governed autonomy toward full production autonomy.
 
 Stable conclusions:
 
-1. The current program is `Operational Maturity`.
-2. OMP now answers what implementation gives the highest production leverage right now.
-3. The current maturity bottleneck remains `Suitability`, because real candidate outcomes have not happened.
-4. The current highest implementation leverage task is `IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW`.
-5. The current authority boundary remains `AUTHORITY_BOUNDARY` for restore-barrier write, runtime apply, user movement, rollback apply, daemon/timer enablement, event consumer mutation, or authority expansion; read-only implementation may proceed inside existing owners.
-6. Architectural minimalism is immutable: reuse, extend, merge, implement, and only then create new.
-7. Every implementation must run a semantic reuse audit before creating or extending system behavior.
-8. New owners, knowledge models, planners, engines, pipelines, APIs, CLIs, storage, snapshots, or truth sources are forbidden unless `Need New Owner = TRUE`.
-9. After every implementation, OMP must run duplication detection across owners, planners, governance, execution, lifecycle, APIs, CLIs, knowledge models, routing logic, learning logic, truth sources, evidence collectors, packet builders, decision surfaces, and maturity models.
-10. Future work may continue automatically only when the highest leverage action stays inside existing owners and does not require restore-barrier write, runtime apply, user movement, or authority expansion.
-11. The program document must be read before future implementation work so V7 does not fall back into disconnected roadmap, phase-first, duplicated-architecture, or repeated-audit behavior.
-12. OMP V2.2 separates Knowledge Maturity from Execution Authority: trust decides autonomy tier, safety decides bounded action.
-13. OMP V2.2 requires Codex to continue automatically through safe read-only, documentation-only, verification, refresh, tests, preview, existing-owner implementation, duplication detection, OMP recalculation, and plan verification work.
-14. When the highest leverage action requires real outcomes, OMP V2.2 splits it into safe automatic preparation and authority-bound execution. The preparation continues automatically; restore-barrier write, runtime apply, user movement, rollback apply, daemon/timer enablement, and authority expansion stop at `AUTHORITY_BOUNDARY`.
-15. OMP V2.3 separates stable scheduler/optimizer rules from volatile current state. Current packet, metrics, stop reason, bottleneck, HLA, and approval question live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
-16. OMP V3.0 closes architecture-first continuation and activates implementation-first optimization.
-17. Architecture Phase, Research Phase, Decision Model, Runtime Model, and System Architecture are complete.
-18. Future architecture changes require implementation evidence proving `FUNDAMENTAL_ARCHITECTURE_GAP`.
-19. Implementation tasks must be classified as one of: `IMPLEMENT_RUNTIME`, `IMPLEMENT_BACKGROUND`, `IMPLEMENT_READ_MODEL`, `IMPLEMENT_TEST`, `IMPLEMENT_VERIFICATION`, `IMPLEMENT_OBSERVABILITY`, `IMPLEMENT_UI`, `IMPLEMENT_DOCUMENTATION`, or `IMPLEMENT_CERTIFICATION`.
-20. Current highest implementation leverage task is `IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW` in the existing governed canary dry-run cycle.
+1. The current program is `V7.OMP.FINAL.PRODUCTION_PROGRAM`.
+2. OMP is the permanent production operating program and single execution program.
+3. OMP owns the complete autonomy roadmap and production maturity ladder.
+4. Tier 0 is `COMPLETE`: Architecture, Research, Decision Model, Runtime Model, and System Architecture.
+5. Tier 1 is `ACTIVE`: implementation, existing owner integration, testing, certification, production deployment, one-user governed canary, outcome closure, and learning.
+6. Future tiers are evidence-gated: low-risk autonomous execution, small-batch autonomy, operational autonomy, production autonomy, authority evolution, continuous implementation, continuous optimization, continuous knowledge evolution, and production evolution.
+7. OMP answers what implementation gives the highest production leverage right now.
+8. OMP evaluates authority after every successful certified outcome: remain unchanged, shrink, or propose expansion.
+9. OMP may recommend authority expansion, but must never silently expand authority.
+10. Authority expansion requires explicit operator approval or certified policy approval.
+11. Research changes implementation only through Research -> Decision Model -> OMP -> Implementation.
+12. Research never creates architecture directly.
+13. Architecture changes require real implementation evidence proving `FUNDAMENTAL_ARCHITECTURE_GAP`.
+14. Otherwise V7 must reuse, extend, and implement inside existing owners.
+15. Current packet, metrics, stop reason, bottleneck, HLA, and approval question live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
+16. New owners, knowledge models, planners, engines, pipelines, APIs, CLIs, storage, snapshots, or truth sources are forbidden unless `Need New Owner = TRUE`.
+17. Every implementation must run semantic reuse audit before creating or extending system behavior.
+18. After every implementation, OMP must run duplication detection across owners, planners, governance, execution, lifecycle, APIs, CLIs, knowledge models, routing logic, learning logic, truth sources, evidence collectors, packet builders, decision surfaces, and maturity models.
+19. Future work may proceed through only: `Continue OMP`, `Approve packet`, and `Approve authority expansion`, unless a real implementation proves `FUNDAMENTAL_ARCHITECTURE_GAP`.
+20. OMP does not authorize restore-barrier writes, runtime apply, user movement, rollback apply, daemon/timer enablement, authority expansion, floor changes, synthetic evidence, new planner, new governance, new execution, storage, runtime owner, or truth source without the required authority.
 
 ## V7_KERNEL_AND_STATE_SPLIT
 
@@ -231,7 +233,7 @@ Related ADR: `docs/decisions/ADR-V7-SYSTEM-ARCHITECTURE.md`.
 
 ## V7_IMPLEMENTATION_PHASE
 
-`docs/programs/V7_IMPLEMENTATION_PROGRAM.md` and `docs/reference/V7_IMPLEMENTATION_MODEL.md` define the implementation-first phase after architecture completion.
+`docs/programs/V7_IMPLEMENTATION_PROGRAM.md` and `docs/reference/V7_IMPLEMENTATION_MODEL.md` define supporting implementation rules under OMP. OMP Version `4.0` is the single permanent production execution program; these files are not separate roadmap authorities.
 
 Stable conclusions:
 
@@ -245,12 +247,10 @@ Stable conclusions:
 8. Architecture changes require implementation evidence proving `FUNDAMENTAL_ARCHITECTURE_GAP`.
 9. Implementation priority order is: existing owner implementation, existing owner integration, existing owner optimization, read-model improvements, testing, certification.
 10. Every implementation task must be classified before work begins.
-11. Current highest implementation leverage task is `IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW`.
-12. Exact owner: Governed Canary Knowledge-Gated Dry-Run Cycle / Runtime Model composition.
-13. Exact module: `admin_core/operator_execution_pipeline.py::governed_canary_knowledge_gated_dry_run_cycle`.
-14. Exact files: `admin_core/operator_execution_pipeline.py`, `tools/v7-governed-canary-dry-run-cycle`, and focused tests for governed dry-run runtime lifecycle output.
-15. Need New Owner remains `FALSE`.
-16. This phase does not authorize restore-barrier writes, runtime apply, user movement, rollback apply, daemon/timer enablement, event consumer mutation, authority expansion, floor changes, synthetic evidence, new planner, new governance, new execution, storage, runtime owner, or truth source.
+11. OMP now owns continuous production maturity evolution after Implementation Phase activation.
+12. Current highest implementation leverage task lives in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
+13. Need New Owner remains `FALSE`.
+14. This phase does not authorize restore-barrier writes, runtime apply, user movement, rollback apply, daemon/timer enablement, event consumer mutation, authority expansion, floor changes, synthetic evidence, new planner, new governance, new execution, storage, runtime owner, or truth source.
 
 Related ADR: `docs/decisions/ADR-V7-IMPLEMENTATION-PHASE.md`.
 

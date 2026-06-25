@@ -1968,6 +1968,68 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(switch_calls, [("10.0.0.2", "vless", "failover"), ("10.0.0.3", "vless", "failover")])
         self.assertEqual(plan["operation"]["terminal_state"], "APPLIED")
 
+    def test_approved_preview_packet_identity_overrides_structural_selected_hash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=1,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={
+                    "authority_class": "CANARY",
+                    "certified_authority_class": "CANARY",
+                    "authority_lifecycle_state": "CANARY_EXPANSION",
+                    "current_allowed_user_budget": 1,
+                },
+            )
+            args = self.args_for(root, ["--apply", "--mode", "guarded", "--target-egress", "vless", "--max-selected-moves", "1"])
+            bootstrap_planner = self.tool.AutoswitchPlanner(args)
+            bootstrap = bootstrap_planner.plan()
+            self.assertEqual(len(bootstrap["selected_moves"]), 1)
+            approved_hash = "preview-approved-selected-hash"
+            approved_envelope = bootstrap_planner._atomic_execution_envelope(approved_hash, 1)
+            lock = self.approved_plan_lock_from_plan(bootstrap)
+            lock["identity_source"] = "approved_preview_packet"
+            lock["selected_move_hash"] = approved_hash
+            lock["atomic_execution_envelope_id"] = approved_envelope["envelope_id"]
+            lock["atomic_execution_envelope_hash"] = approved_envelope["envelope_hash"]
+            lock["source_bundle_hash"] = approved_envelope["source_bundle_hash"]
+            lock["source_hashes"] = approved_envelope["source_bundle"]["source_hashes"]
+            lock["snapshot_bundle_hash"] = approved_envelope["snapshot_bundle"]["hash"]
+            approved = {
+                "enabled": True,
+                "expires_at": "2000-01-01T00:00:00+00:00",
+                "allow_post_ttl_apply": True,
+                "generation_clearance": True,
+                "clearance_max_selected_moves": 1,
+                "generation_token": "unit-test-approved-preview-packet-token",
+                "clearance_generation_id": bootstrap["safety"]["generation"]["planner_generation_id"],
+                "approved_selected_moves_hash": approved_hash,
+                "clearance_expected_selected_moves": 1,
+                "clearance_expires_at": "2999-01-01T00:00:00+00:00",
+                "allowed_users": [bootstrap["selected_moves"][0]["user_ip"]],
+                "allowed_targets": ["vless"],
+                "approved_atomic_execution_envelope_id": approved_envelope["envelope_id"],
+                "approved_atomic_execution_envelope_hash": approved_envelope["envelope_hash"],
+                "approved_source_bundle_hash": approved_envelope["source_bundle_hash"],
+                "approved_source_hashes": approved_envelope["source_bundle"]["source_hashes"],
+                "approved_snapshot_bundle_hash": approved_envelope["snapshot_bundle"]["hash"],
+                "approved_plan_lock": lock,
+                "owner": "admin_core/operator_execution.py",
+            }
+            (root / "state" / "autoswitch-restore-barrier.json").write_text(json.dumps(approved), encoding="utf-8")
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+
+        validation = plan["safety"]["restore_barrier"]["approved_plan_lock_validation"]
+        self.assertEqual(validation["reason"], "approved_plan_lock_valid")
+        self.assertEqual(validation["selected_move_hash_source"], "approved_preview_packet")
+        self.assertEqual(validation["selected_move_hash"], approved_hash)
+        self.assertNotEqual(validation["structural_selected_move_hash"], approved_hash)
+        self.assertTrue(plan["safety"]["restore_barrier"]["approved_preview_identity_consumed"])
+        self.assertEqual(plan["operation"]["selected_move_hash"], approved_hash)
+        self.assertEqual(plan["selected_moves"][0]["selected_move_hash"], approved_hash)
+
     def test_approved_plan_lock_uses_source_bundle_lease_for_service_matrix_snapshot_drift(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

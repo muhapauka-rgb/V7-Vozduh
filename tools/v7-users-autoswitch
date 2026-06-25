@@ -3961,10 +3961,14 @@ class AutoswitchPlanner:
             for move in selected
         ]
         approved_plan_lock = self._approved_plan_lock_validation(restore_barrier)
+        approved_identity_hash = ""
         if approved_plan_lock.get("present"):
             restore_barrier["approved_plan_lock_validation"] = approved_plan_lock
             if approved_plan_lock.get("ok"):
                 selected = approved_plan_lock["selected_moves"]
+                if approved_plan_lock.get("selected_move_hash_source") == "approved_preview_packet":
+                    approved_identity_hash = str(approved_plan_lock.get("selected_move_hash") or "")
+                    restore_barrier["approved_preview_identity_consumed"] = True
                 selected_before_restore_barrier = list(selected)
                 selected_after_policy_count = len(selected)
                 selected_after_request_cap_count = len(selected)
@@ -3988,6 +3992,8 @@ class AutoswitchPlanner:
                         approved_plan_lock.get("reason") or "approved_plan_lock_invalid"
                     )
         selected_hash = self._selected_moves_hash(selected)
+        if approved_identity_hash and selected:
+            selected_hash = approved_identity_hash
         if (
             bool_value(restore_barrier.get("expired"))
             and bool_value(restore_barrier.get("cleared"))
@@ -4023,6 +4029,8 @@ class AutoswitchPlanner:
         else:
             intelligence_snapshot_gate["selected_moves_after_gate"] = len(selected)
         selected_hash = self._selected_moves_hash(selected)
+        if approved_identity_hash and selected:
+            selected_hash = approved_identity_hash
         operation = self._operation_context(selected_hash, len(selected))
         atomic_execution_envelope = self._atomic_execution_envelope(selected_hash, len(selected))
         operation["atomic_execution_envelope_id"] = atomic_execution_envelope.get("envelope_id", "")
@@ -4141,7 +4149,10 @@ class AutoswitchPlanner:
                 "move_type": str(raw.get("move_type") or "failover"),
             })
         selected = [move for move in selected if move["user_ip"] and move["current_egress"] and move["recommended_egress"]]
-        selected_hash = self._selected_moves_hash(selected)
+        structural_selected_hash = self._selected_moves_hash(selected)
+        approved_identity_mode = str(lock.get("identity_source") or "") == "approved_preview_packet"
+        approved_selected_hash = str(lock.get("selected_move_hash") or "")
+        selected_hash = approved_selected_hash if approved_identity_mode and approved_selected_hash else structural_selected_hash
         allowed_users = [str(item) for item in (lock.get("allowed_users") or restore_barrier.get("allowed_users") or [])]
         allowed_targets = [str(item) for item in (lock.get("allowed_targets") or restore_barrier.get("allowed_targets") or [])]
         locked_users = [move["user_ip"] for move in selected]
@@ -4158,7 +4169,7 @@ class AutoswitchPlanner:
             reasons.append("approved_plan_lock_selected_moves_missing")
         if expected_count != len(selected):
             reasons.append("approved_plan_lock_selected_count_mismatch")
-        if str(lock.get("selected_move_hash") or "") != selected_hash:
+        if not approved_identity_mode and str(lock.get("selected_move_hash") or "") != selected_hash:
             reasons.append("approved_plan_lock_selected_hash_mismatch")
         if allowed_users and sorted(allowed_users) != sorted(locked_users):
             reasons.append("approved_plan_lock_allowed_users_mismatch")
@@ -4200,6 +4211,8 @@ class AutoswitchPlanner:
                 "reason": "approved_plan_lock_invalid",
                 "reasons": sorted(set(reasons)),
                 "selected_move_hash": selected_hash,
+                "structural_selected_move_hash": structural_selected_hash,
+                "selected_move_hash_source": "approved_preview_packet" if approved_identity_mode else "selected_moves",
                 "approved_selected_move_hash": str(lock.get("selected_move_hash") or ""),
                 "selected_users": locked_users,
                 "selected_targets": locked_targets,
@@ -4211,6 +4224,8 @@ class AutoswitchPlanner:
             "lock_id": str(lock.get("lock_id") or ""),
             "lock_hash": str(lock.get("lock_hash") or ""),
             "selected_move_hash": selected_hash,
+            "structural_selected_move_hash": structural_selected_hash,
+            "selected_move_hash_source": "approved_preview_packet" if approved_identity_mode else "selected_moves",
             "selected_move_count": len(selected),
             "selected_users": locked_users,
             "selected_targets": locked_targets,

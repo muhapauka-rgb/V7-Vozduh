@@ -2011,12 +2011,18 @@ def _preview_packet_for_candidate(candidate: dict[str, Any], *, cycle_id: str, n
     selected_move_hash = stable_hash(payload)
     packet_id = "pkt_preview_" + stable_hash({"packet": payload})[:24]
     operation_id = "govdry_" + stable_hash({"operation": payload})[:24]
+    decision_id = "decision_preview_" + stable_hash({
+        "recommendation_id": str(candidate.get("recommendation_hash") or ""),
+        "packet_id": packet_id,
+    })[:24]
     return {
         "schema_version": "v7.governed-canary.packet-preview.v1",
         "owner": CANONICAL_PACKET_TOOL,
         "status": "PACKET_PREVIEW_READY",
         "packet_id": packet_id,
         "operation_id": operation_id,
+        "decision_id": decision_id,
+        "authority_generation": cycle_id,
         "selected_move_count": 1,
         "selected_move_hash": selected_move_hash,
         "allowed_users": [candidate.get("user", "")],

@@ -11,6 +11,7 @@ from admin_core.operator_execution import (
     RUNTIME_ACTION_CREATE_CLEARANCE,
     RUNTIME_ACTION_ZERO_MOVE_GOVERNANCE,
     execute_packet,
+    packet_from_preview,
     packet_from_plan,
     resolve_under_repo,
     runtime_recheck,
@@ -107,6 +108,36 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                     "move_type": "failover",
                 }
             ],
+        }
+
+    def preview_packet(self):
+        return {
+            "schema_version": "v7.governed-canary.packet-preview.v1",
+            "owner": "admin_core/operator_execution.py",
+            "status": "PACKET_PREVIEW_READY",
+            "packet_id": "pkt_preview_unit_identity",
+            "operation_id": "govdry_unit_identity",
+            "decision_id": "decision_preview_unit_identity",
+            "authority_generation": "cycle-unit-identity",
+            "selected_move_count": 1,
+            "selected_move_hash": "preview-selected-hash-unit",
+            "allowed_users": ["10.7.0.11"],
+            "allowed_targets": ["vless"],
+            "rollback_manifest_preview": {
+                "rollback_manifest_id": "rb_preview_unit_identity",
+                "items": [
+                    {
+                        "user_ip": "10.7.0.11",
+                        "rollback_target": "1",
+                        "forward_target": "vless",
+                        "source_operation_id": "govdry_unit_identity",
+                    }
+                ],
+                "partial_failure_policy": "stop_and_contain",
+                "rollback_execution_owner": "admin_core/operator_execution.py",
+            },
+            "preview_only": True,
+            "read_only": True,
         }
 
     def test_runtime_recheck_allows_record_only_for_matching_zero_packet(self):
@@ -272,6 +303,60 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(lifecycle_records[1]["record_type"], "operation_scoped_rollback_bound")
         self.assertEqual(lifecycle_records[2]["record_type"], "execution_readiness_closure_created")
         self.assertTrue(lifecycle_records[2]["execution_allowed_now"])
+
+    def test_packet_from_preview_preserves_approved_semantic_identity(self):
+        preview = self.preview_packet()
+        packet = packet_from_preview(
+            preview,
+            approval_author="operator-a",
+            approval_reviewer="operator-b",
+        )
+
+        self.assertEqual(packet["identity_source"], "approved_preview_packet")
+        self.assertEqual(packet["packet_id"], preview["packet_id"])
+        self.assertEqual(packet["operation_id"], preview["operation_id"])
+        self.assertEqual(packet["decision_id"], preview["decision_id"])
+        self.assertEqual(packet["authority_generation"], preview["authority_generation"])
+        self.assertEqual(packet["expected"]["selected_move_hash"], preview["selected_move_hash"])
+        self.assertEqual(packet["expected"]["decision_id"], preview["decision_id"])
+        self.assertEqual(packet["expected"]["generation_id"], preview["authority_generation"])
+        self.assertEqual(packet["constraints"]["allowed_users"], preview["allowed_users"])
+        self.assertEqual(packet["constraints"]["allowed_targets"], preview["allowed_targets"])
+        self.assertEqual(packet["rollback_manifest"]["rollback_manifest_id"], "rb_preview_unit_identity")
+        self.assertEqual(packet["approved_plan_lock"]["identity_source"], "approved_preview_packet")
+        self.assertEqual(packet["approved_plan_lock"]["packet_id"], preview["packet_id"])
+        self.assertEqual(packet["approved_plan_lock"]["operation_id"], preview["operation_id"])
+        self.assertEqual(packet["approved_plan_lock"]["decision_id"], preview["decision_id"])
+        self.assertEqual(packet["approved_plan_lock"]["authority_generation"], preview["authority_generation"])
+        self.assertEqual(packet["approved_plan_lock"]["selected_move_hash"], preview["selected_move_hash"])
+
+    def test_preview_derived_packet_clearance_recheck_does_not_require_rebuilt_plan(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.make_state(root)
+            audit = root / "audit.jsonl"
+            barrier = state / "autoswitch-restore-barrier.json"
+            packet = packet_from_preview(
+                self.preview_packet(),
+                approval_author="operator-a",
+                approval_reviewer="operator-b",
+            )
+            result = execute_packet(
+                packet,
+                audit,
+                state,
+                mode="runtime_action_preview",
+                restore_barrier_file=barrier,
+            )
+
+        self.assertEqual(result["recheck"]["verdict"], "ALLOW_RESTORE_BARRIER_CLEARANCE")
+        self.assertEqual(result["recheck"]["checks"]["identity_source"], "approved_preview_packet")
+        self.assertEqual(result["clearance_preview"]["clearance"]["packet_id"], "pkt_preview_unit_identity")
+        self.assertEqual(
+            result["clearance_preview"]["clearance"]["approved_selected_moves_hash"],
+            "preview-selected-hash-unit",
+        )
+        self.assertFalse(result["record_written"])
 
     def test_runtime_action_preview_builds_clearance_without_writes_and_survives_reread(self):
         with tempfile.TemporaryDirectory() as tmp:

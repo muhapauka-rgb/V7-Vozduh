@@ -367,6 +367,9 @@ def approved_plan_lock_from_selected(selected, packet, packet_hash):
     constraints = selected.get("constraints") or {}
     payload = {
         "schema_version": "v7.approved-plan-lock.v1",
+        "identity_source": selected.get("identity_source", ""),
+        "decision_id": selected.get("decision_id", ""),
+        "authority_generation": selected.get("authority_generation", ""),
         "planner_generation_id": selected.get("planner_generation_id", ""),
         "selected_move_hash": selected.get("selected_move_hash", ""),
         "selected_move_count": as_int(selected.get("selected_move_count"), 0),
@@ -389,6 +392,7 @@ def approved_plan_lock_from_selected(selected, packet, packet_hash):
         "users_registry_hash": ((packet.get("expected") or {}).get("users_registry_hash") or ""),
         "egress_registry_hash": ((packet.get("expected") or {}).get("egress_registry_hash") or ""),
         "packet_id": packet.get("packet_id", ""),
+        "operation_id": packet.get("operation_id", ""),
         "packet_hash": packet_hash,
         "restore_barrier_id": "",
         "restore_barrier_hash": "",
@@ -403,7 +407,93 @@ def approved_plan_lock_from_selected(selected, packet, packet_hash):
     return payload
 
 
+def is_preview_derived_packet(packet):
+    return (
+        str(packet.get("identity_source") or "") == "approved_preview_packet"
+        or str(((packet.get("execution_metadata") or {}).get("identity_source")) or "") == "approved_preview_packet"
+    )
+
+
+def recheck_preview_derived_nonzero_packet(packet, state_dir):
+    state_dir = Path(state_dir)
+    users_path = state_dir / "users.registry"
+    egress_path = state_dir / "egress.registry"
+    if not users_path.exists() or not egress_path.exists():
+        return {
+            "allow": False,
+            "verdict": "DENY_STALE_RUNTIME",
+            "errors": ["runtime_registry_missing"],
+            "checks": {"users_registry_exists": users_path.exists(), "egress_registry_exists": egress_path.exists()},
+        }
+    expected = packet.get("expected") or {}
+    constraints = packet.get("constraints") or {}
+    lock = packet.get("approved_plan_lock") or {}
+    moves = lock.get("selected_moves") or []
+    allowed_users = constraints.get("allowed_users") or []
+    allowed_targets = constraints.get("allowed_targets") or []
+    move_users = [str(move.get("user_ip") or "") for move in moves]
+    move_targets = sorted({str(move.get("recommended_egress") or "") for move in moves})
+    mismatches = []
+    if not moves:
+        mismatches.append("approved_plan_lock_selected_moves")
+    if str(lock.get("identity_source") or "") != "approved_preview_packet":
+        mismatches.append("approved_plan_lock_identity_source")
+    if str(lock.get("packet_id") or "") != str(packet.get("packet_id") or ""):
+        mismatches.append("packet_id")
+    if str(lock.get("operation_id") or "") != str(packet.get("operation_id") or ""):
+        mismatches.append("operation_id")
+    if str(lock.get("decision_id") or "") != str(packet.get("decision_id") or ""):
+        mismatches.append("decision_id")
+    if str(lock.get("authority_generation") or "") != str(packet.get("authority_generation") or ""):
+        mismatches.append("authority_generation")
+    if str(lock.get("selected_move_hash") or "") != str(expected.get("selected_move_hash") or ""):
+        mismatches.append("selected_move_hash")
+    if as_int(lock.get("selected_move_count"), 0) != as_int(expected.get("selected_move_count"), 0):
+        mismatches.append("selected_move_count")
+    if sorted(allowed_users) != sorted(move_users):
+        mismatches.append("allowed_users")
+    if sorted(allowed_targets) != move_targets:
+        mismatches.append("allowed_targets")
+    if mismatches:
+        return {
+            "allow": False,
+            "verdict": "DENY_HASH_MISMATCH",
+            "errors": sorted(set(mismatches)),
+            "checks": {
+                "packet_id": packet.get("packet_id", ""),
+                "operation_id": packet.get("operation_id", ""),
+                "decision_id": packet.get("decision_id", ""),
+                "authority_generation": packet.get("authority_generation", ""),
+                "selected_move_hash": expected.get("selected_move_hash", ""),
+                "selected_move_count": expected.get("selected_move_count", 0),
+            },
+        }
+    return {
+        "allow": True,
+        "verdict": "ALLOW_RESTORE_BARRIER_CLEARANCE",
+        "errors": [],
+        "checks": {
+            "identity_source": "approved_preview_packet",
+            "packet_id": packet.get("packet_id", ""),
+            "operation_id": packet.get("operation_id", ""),
+            "decision_id": packet.get("decision_id", ""),
+            "authority_generation": packet.get("authority_generation", ""),
+            "selected_move_hash": expected.get("selected_move_hash", ""),
+            "selected_move_count": expected.get("selected_move_count", 0),
+            "planner_generation_id": expected.get("generation_id", ""),
+            "moves": moves,
+            "constraints": constraints,
+            "users_registry_hash": sha256_file(users_path),
+            "egress_registry_hash": sha256_file(egress_path),
+            "real_runtime_action_after_recheck": True,
+            "runtime_action_scope": "restore_barrier_clearance_only",
+        },
+    }
+
+
 def recheck_nonzero_packet(packet, state_dir, planner_snapshot):
+    if is_preview_derived_packet(packet):
+        return recheck_preview_derived_nonzero_packet(packet, state_dir)
     if not isinstance(planner_snapshot, dict):
         return {"allow": False, "verdict": "DENY_RUNTIME_PLAN_MISSING", "errors": ["planner_snapshot_required"]}
     state_dir = Path(state_dir)
@@ -912,6 +1002,200 @@ def load_optional_json(path):
     return read_json(path)
 
 
+def selected_moves_from_preview(preview):
+    packet_id = str(preview.get("packet_id") or "")
+    operation_id = str(preview.get("operation_id") or "")
+    decision_id = str(preview.get("decision_id") or "")
+    authority_generation = str(
+        preview.get("authority_generation")
+        or preview.get("current_state_generation")
+        or preview.get("cycle_id")
+        or ""
+    )
+    selected_hash = str(preview.get("selected_move_hash") or "")
+    selected_count = as_int(preview.get("selected_move_count"), 0)
+    allowed_users = [str(item) for item in (preview.get("allowed_users") or []) if str(item)]
+    allowed_targets = [str(item) for item in (preview.get("allowed_targets") or []) if str(item)]
+    rollback_preview = preview.get("rollback_manifest_preview") or {}
+    rollback_items = rollback_preview.get("items") or []
+    moves = []
+    for index, item in enumerate(rollback_items):
+        if not isinstance(item, dict):
+            continue
+        user_ip = str(item.get("user_ip") or (allowed_users[index] if index < len(allowed_users) else ""))
+        current = str(item.get("rollback_target") or item.get("current_egress") or "")
+        target = str(item.get("forward_target") or item.get("recommended_egress") or (allowed_targets[0] if allowed_targets else ""))
+        if user_ip and current and target:
+            moves.append({
+                "user_ip": user_ip,
+                "current_egress": current,
+                "recommended_egress": target,
+                "move_type": str(item.get("move_type") or "governed_canary"),
+            })
+    if not moves and allowed_users and allowed_targets:
+        moves.append({
+            "user_ip": allowed_users[0],
+            "current_egress": str(preview.get("from") or preview.get("current_channel") or ""),
+            "recommended_egress": allowed_targets[0],
+            "move_type": "governed_canary",
+        })
+    source_hashes = {
+        "preview_packet": sha256_json({
+            "packet_id": packet_id,
+            "operation_id": operation_id,
+            "decision_id": decision_id,
+            "authority_generation": authority_generation,
+            "selected_move_hash": selected_hash,
+        }),
+        "source_hash": str(preview.get("source_hash") or ""),
+        "recommendation_hash": str(preview.get("recommendation_hash") or ""),
+    }
+    source_hashes = {key: value for key, value in source_hashes.items() if value}
+    source_bundle_hash = sha256_json(source_hashes)
+    snapshot_bundle_hash = sha256_json({
+        "preview_packet_id": packet_id,
+        "preview_operation_id": operation_id,
+        "selected_move_hash": selected_hash,
+        "selected_move_count": selected_count,
+    })
+    runtime_snapshot_hash = sha256_json({
+        "authority_generation": authority_generation,
+        "selected_move_hash": selected_hash,
+        "selected_move_count": selected_count,
+    })
+    envelope_payload = {
+        "planner_generation_id": authority_generation,
+        "selected_move_hash": selected_hash,
+        "selected_move_count": selected_count,
+        "runtime_snapshot_hash": runtime_snapshot_hash,
+        "source_bundle_hash": source_bundle_hash,
+        "snapshot_bundle_hash": snapshot_bundle_hash,
+    }
+    envelope_hash = sha256_json(envelope_payload)
+    return {
+        "identity_source": "approved_preview_packet",
+        "decision_id": decision_id,
+        "authority_generation": authority_generation,
+        "planner_generation_id": authority_generation,
+        "selected_move_hash": selected_hash,
+        "selected_move_count": selected_count,
+        "moves": moves,
+        "constraints": {
+            "allowed_users": allowed_users,
+            "allowed_targets": allowed_targets,
+        },
+        "runtime_snapshot_hash": runtime_snapshot_hash,
+        "atomic_execution_envelope_id": "aee_" + envelope_hash[:24],
+        "atomic_execution_envelope_hash": envelope_hash,
+        "source_bundle_hash": source_bundle_hash,
+        "source_hashes": source_hashes,
+        "snapshot_bundle_hash": snapshot_bundle_hash,
+    }
+
+
+def packet_from_preview(preview, *, approval_author, approval_reviewer, ttl_seconds=DEFAULT_CLEARANCE_TTL_SECONDS):
+    now = utc_now()
+    expires_at = now + timedelta(seconds=max(1, as_int(ttl_seconds, DEFAULT_CLEARANCE_TTL_SECONDS)))
+    selected = selected_moves_from_preview(preview)
+    moves = selected.get("moves") or []
+    packet_id = str(preview.get("packet_id") or "")
+    operation_id = str(preview.get("operation_id") or "")
+    decision_id = str(preview.get("decision_id") or "")
+    authority_generation = str(selected.get("authority_generation") or "")
+    if not packet_id:
+        raise PacketError("preview_packet_id_missing")
+    if not operation_id:
+        raise PacketError("preview_operation_id_missing")
+    if not decision_id:
+        raise PacketError("preview_decision_id_missing")
+    if not authority_generation:
+        raise PacketError("preview_authority_generation_missing")
+    if not selected.get("selected_move_hash"):
+        raise PacketError("preview_selected_move_hash_missing")
+    if not moves:
+        raise PacketError("preview_selected_moves_missing")
+    allowed_users = [move["user_ip"] for move in moves]
+    allowed_targets = sorted({move["recommended_egress"] for move in moves})
+    rollback_preview = preview.get("rollback_manifest_preview") or {}
+    packet = {
+        "schema_version": GOVERNANCE_PACKET_SCHEMA,
+        "identity_source": "approved_preview_packet",
+        "packet_id": packet_id,
+        "approval_id": stable_id("appr", {
+            "packet_id": packet_id,
+            "operation_id": operation_id,
+            "decision_id": decision_id,
+            "expires_at": expires_at.isoformat(),
+        }),
+        "operation_id": operation_id,
+        "decision_id": decision_id,
+        "authority_generation": authority_generation,
+        "selected_first_action": NONZERO_ACTION,
+        "runtime_action": RUNTIME_ACTION_CREATE_CLEARANCE,
+        "created_at": now.isoformat(),
+        "expires_at": expires_at.isoformat(),
+        "approvals": [
+            {"operator_id": approval_author, "role": "approval_author", "confirmed_at": now.isoformat()},
+            {"operator_id": approval_reviewer, "role": "approval_reviewer", "confirmed_at": now.isoformat()},
+        ],
+        "constraints": {
+            "selected_move_budget": as_int(selected.get("selected_move_count"), 0),
+            "allowed_users": allowed_users,
+            "allowed_targets": allowed_targets,
+            "user_movement_allowed": False,
+            "routing_mutation_allowed": False,
+            "autoswitch_apply_allowed": False,
+        },
+        "expected": {
+            "generation_id": authority_generation,
+            "decision_id": decision_id,
+            "selected_move_hash": selected.get("selected_move_hash", ""),
+            "selected_move_count": as_int(selected.get("selected_move_count"), 0),
+            "runtime_snapshot_hash": selected.get("runtime_snapshot_hash", ""),
+            "atomic_execution_envelope_id": selected.get("atomic_execution_envelope_id", ""),
+            "atomic_execution_envelope_hash": selected.get("atomic_execution_envelope_hash", ""),
+            "source_bundle_hash": selected.get("source_bundle_hash", ""),
+            "source_hashes": selected.get("source_hashes", {}),
+            "snapshot_bundle_hash": selected.get("snapshot_bundle_hash", ""),
+        },
+        "rollback_manifest": {
+            "rollback_manifest_id": str(rollback_preview.get("rollback_manifest_id") or stable_id("rb", {
+                "packet_id": packet_id,
+                "operation_id": operation_id,
+                "selected_move_hash": selected.get("selected_move_hash", ""),
+            })),
+            "source_operation_id": operation_id,
+            "items": [
+                {
+                    "user_ip": move["user_ip"],
+                    "rollback_target": move["current_egress"],
+                    "forward_target": move["recommended_egress"],
+                    "move_type": move.get("move_type", ""),
+                    "source_operation_id": operation_id,
+                    "selected_move_hash": selected.get("selected_move_hash", ""),
+                }
+                for move in moves
+            ],
+            "partial_failure_policy": "stop_and_contain",
+            "rollback_execution_owner": CANONICAL_CLEARANCE_OWNER,
+        },
+        "execution_metadata": {
+            "identity_source": "approved_preview_packet",
+            "preview_schema_version": preview.get("schema_version", ""),
+            "materialized_at": now.isoformat(),
+            "semantic_identity_preserved": True,
+            "execution_metadata_only_added": True,
+        },
+        "governance_owner": CANONICAL_CLEARANCE_OWNER,
+    }
+    packet_hash = sha256_bytes(canonical_json(packet).encode("utf-8"))
+    packet["approved_plan_lock"] = approved_plan_lock_from_selected(selected, packet, packet_hash)
+    validation = validate_packet(packet, now=now)
+    if not validation.get("ok"):
+        raise PacketError(",".join(validation.get("errors") or ["packet_invalid"]))
+    return packet
+
+
 def packet_from_plan(plan, *, approval_author, approval_reviewer, ttl_seconds=DEFAULT_CLEARANCE_TTL_SECONDS):
     now = utc_now()
     expires_at = now + timedelta(seconds=max(1, as_int(ttl_seconds, DEFAULT_CLEARANCE_TTL_SECONDS)))
@@ -997,6 +1281,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Validate and consume V7 operator execution packets without user movement.")
     parser.add_argument("--packet")
     parser.add_argument("--generate-from-plan", default="")
+    parser.add_argument("--generate-from-preview", default="")
     parser.add_argument("--packet-output", default="")
     parser.add_argument("--approval-author", default="operator-a")
     parser.add_argument("--approval-reviewer", default="operator-b")
@@ -1035,6 +1320,38 @@ def main(argv=None):
                 "mode": "generate",
                 "packet": redact(packet),
                 "packet_path": str(packet_path),
+                "execution_allowed_now": False,
+                "real_runtime_action_performed": False,
+            }
+            text = json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True)
+            print(text)
+            return 0
+        if args.generate_from_preview:
+            preview = read_json(args.generate_from_preview)
+            packet = packet_from_preview(
+                preview,
+                approval_author=args.approval_author,
+                approval_reviewer=args.approval_reviewer,
+                ttl_seconds=args.ttl_seconds,
+            )
+            if args.packet_output:
+                packet_path = resolve_under_repo(args.packet_output, repo_root)
+                write_json_atomic(packet_path, packet)
+            else:
+                packet_path = Path(args.generate_from_preview)
+            result = {
+                "mode": "generate_from_preview",
+                "packet": redact(packet),
+                "packet_path": str(packet_path),
+                "identity_preserved": {
+                    "packet_id": packet.get("packet_id") == preview.get("packet_id"),
+                    "operation_id": packet.get("operation_id") == preview.get("operation_id"),
+                    "decision_id": packet.get("decision_id") == preview.get("decision_id"),
+                    "authority_generation": packet.get("authority_generation") == (
+                        preview.get("authority_generation") or preview.get("current_state_generation") or preview.get("cycle_id")
+                    ),
+                    "selected_move_hash": (packet.get("expected") or {}).get("selected_move_hash") == preview.get("selected_move_hash"),
+                },
                 "execution_allowed_now": False,
                 "real_runtime_action_performed": False,
             }

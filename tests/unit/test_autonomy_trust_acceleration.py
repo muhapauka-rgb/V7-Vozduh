@@ -968,6 +968,79 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(second_program["users_moved"], 0)
         self.assertFalse(second_program["apply_executed"])
 
+    def test_maximum_reality_knowledge_extraction_classifies_current_limits(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        extraction = inventory["maximum_reality_knowledge_extraction"]
+        self.assertEqual(
+            extraction["schema_version"],
+            "v7.autonomy-trust.maximum-reality-knowledge-extraction.v1",
+        )
+        classes = {row["item"]: row["classification"] for row in extraction["knowledge_limit_items"]}
+        self.assertEqual(classes["service_outcomes"], "OBTAINABLE_NOW")
+        self.assertEqual(classes["missing_candidate_outcomes"], "OBTAINABLE_AFTER_GOVERNED_ACTION")
+        self.assertEqual(classes["client_telemetry"], "REQUIRES_NEW_ARCHITECTURE")
+        self.assertEqual(
+            extraction["physical_reality_limit"]["missing_candidate_outcomes"],
+            2,
+        )
+        self.assertEqual(
+            extraction["physical_reality_limit"]["obtainable_after_governed_action_count"],
+            2,
+        )
+        self.assertEqual(
+            extraction["maximum_current_suitability"]["converted_missing_candidate_outcomes_at_max"],
+            2,
+        )
+        self.assertGreaterEqual(
+            extraction["maximum_current_suitability"]["maximum_possible_without_more_users_channels_formula_or_floor_changes"],
+            extraction["maximum_current_suitability"]["current"],
+        )
+        self.assertIn("prediction_outcome_cycle", extraction["highest_leverage_now"])
+        self.assertFalse(extraction["runtime_mutation_performed"])
+        self.assertEqual(extraction["users_moved"], 0)
+        self.assertFalse(extraction["apply_executed"])
+        self.assertFalse(extraction["autonomy_enabled"])
+
+    def test_maximum_reality_knowledge_extraction_survives_refresh_rebuild(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            first = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+            second = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=json.loads(json.dumps(self.decision_surface(), sort_keys=True)),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:05:00+00:00",
+            )
+
+        first_extraction = first["maximum_reality_knowledge_extraction"]
+        second_extraction = second["maximum_reality_knowledge_extraction"]
+        self.assertEqual(first_extraction["classification_summary"], second_extraction["classification_summary"])
+        self.assertEqual(first_extraction["physical_reality_limit"], second_extraction["physical_reality_limit"])
+        self.assertEqual(first_extraction["maximum_current_suitability"], second_extraction["maximum_current_suitability"])
+        self.assertEqual(second_extraction["automatic_cycle_completion"]["new_cycle_automation_level"], "FULLY_AUTONOMOUS")
+        self.assertTrue(second_extraction["automatic_cycle_completion"]["automatic_rerun_works"])
+        self.assertFalse(second_extraction["runtime_mutation_performed"])
+        self.assertEqual(second_extraction["users_moved"], 0)
+        self.assertFalse(second_extraction["apply_executed"])
+
 
 if __name__ == "__main__":
     unittest.main()

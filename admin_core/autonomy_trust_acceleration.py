@@ -2394,6 +2394,304 @@ def build_autonomous_routing_evolution_program(
     }
 
 
+def _knowledge_limit_item(
+    *,
+    item: str,
+    classification: str,
+    owner: str,
+    evidence: str,
+    safe_cycle: str,
+    blocker: str = "",
+    count: int | float | None = None,
+) -> dict[str, Any]:
+    row: dict[str, Any] = {
+        "item": item,
+        "classification": classification,
+        "owner": owner,
+        "evidence": evidence,
+        "safe_cycle": safe_cycle,
+        "blocker": blocker,
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+    if count is not None:
+        row["count"] = count
+    return row
+
+
+def _classification_summary(rows: list[dict[str, Any]]) -> dict[str, int]:
+    summary: dict[str, int] = {}
+    for row in rows:
+        key = str(row.get("classification") or "UNKNOWN")
+        summary[key] = summary.get(key, 0) + 1
+    return summary
+
+
+def _best_candidate_projection(candidate_outcome_reality_collection: dict[str, Any]) -> dict[str, Any]:
+    growth = candidate_outcome_reality_collection.get("growth_model") if isinstance(candidate_outcome_reality_collection.get("growth_model"), dict) else {}
+    rows = [row for row in (growth.get("projections") or []) if isinstance(row, dict)]
+    if not rows:
+        return {}
+    return sorted(
+        rows,
+        key=lambda row: (
+            -int(as_float(row.get("converted_missing_candidate_outcomes"), 0.0)),
+            -as_float(row.get("projected_suitability"), 0.0),
+        ),
+    )[0]
+
+
+def _cycle_blocker_class(cycle: dict[str, Any]) -> str:
+    boundary = str(cycle.get("authority_boundary") or "")
+    blockers = [str(item) for item in (cycle.get("blockers") or [])]
+    automation = str(cycle.get("automation_level") or "")
+    if boundary == "AUTHORITY_BOUNDARY":
+        return "AUTHORITY_BOUNDARY"
+    if any("missing" in item.lower() for item in blockers):
+        return "MISSING_STATE"
+    if any("no_pending" in item.lower() or "wait_for" in item.lower() for item in blockers) or "real" in boundary.lower():
+        return "REAL_WORLD_DEPENDENCY"
+    if automation == "FULLY_AUTONOMOUS":
+        return "NONE"
+    if automation in {"PARTIALLY_AUTOMATED", "MANUAL"}:
+        return "MISSING_TRIGGER"
+    return "MISSING_INTEGRATION" if blockers else "NONE"
+
+
+def build_maximum_reality_knowledge_extraction(
+    *,
+    autonomous_knowledge_growth_program: dict[str, Any],
+    autonomous_routing_evolution_program: dict[str, Any],
+    candidate_outcome_reality_collection: dict[str, Any],
+    real_outcome_source_inventory: dict[str, Any],
+    real_outcome_growth_projection: dict[str, Any],
+    suitability_quality_model: dict[str, Any],
+    suitability_knowledge_growth: dict[str, Any],
+    prediction_plan: dict[str, Any],
+    decision_outcome_closure: dict[str, Any],
+    decision_outcome_learning: dict[str, Any],
+    freshness_actionability: dict[str, Any],
+    outcome_leverage_model: dict[str, Any],
+) -> dict[str, Any]:
+    """Classify the maximum real routing knowledge obtainable today.
+
+    This extends the existing trust inventory as a read-only extraction view. It
+    does not run probes, move users, create evidence, or alter formulas; it
+    shows which existing cycles can continue automatically and where reality or
+    authority is the actual limit.
+    """
+    coverage = candidate_outcome_reality_collection.get("coverage") if isinstance(candidate_outcome_reality_collection.get("coverage"), dict) else {}
+    missing = candidate_outcome_reality_collection.get("missing_outcome_analysis") if isinstance(candidate_outcome_reality_collection.get("missing_outcome_analysis"), dict) else {}
+    growth_current = (candidate_outcome_reality_collection.get("growth_model") or {}).get("current") if isinstance(candidate_outcome_reality_collection.get("growth_model"), dict) else {}
+    best_projection = _best_candidate_projection(candidate_outcome_reality_collection)
+    source_items = [row for row in (real_outcome_source_inventory.get("items") or []) if isinstance(row, dict)]
+    source_by_name = {str(row.get("source")): row for row in source_items}
+    service_source = source_by_name.get("service_outcomes", {})
+    channel_source = source_by_name.get("channel_outcomes", {})
+    learning_source = source_by_name.get("learning_outcomes", {})
+    freshness_domains = freshness_actionability.get("domains") if isinstance(freshness_actionability.get("domains"), dict) else {}
+    closure_summary = decision_outcome_closure.get("summary") if isinstance(decision_outcome_closure.get("summary"), dict) else {}
+    learning_growth = decision_outcome_learning.get("knowledge_growth") if isinstance(decision_outcome_learning.get("knowledge_growth"), dict) else {}
+    prediction_pending = int(as_float(prediction_plan.get("pending_rows"), 0.0))
+    prediction_matched = int(as_float(prediction_plan.get("matched_rows"), 0.0))
+    prediction_seen = int(as_float(prediction_plan.get("forecasts_seen"), 0.0))
+    candidate_count = int(as_float(coverage.get("candidate_count"), 0.0))
+    consumed = int(as_float(coverage.get("candidate_outcomes_consumed"), 0.0))
+    missing_count = int(as_float(coverage.get("missing_candidate_outcomes"), 0.0))
+    never_happened = int(as_float(missing.get("never_happened"), 0.0))
+    happened_but_not_captured = int(as_float(missing.get("happened_but_not_captured"), 0.0))
+    captured_but_not_consumed = int(as_float(missing.get("captured_but_not_consumed"), 0.0))
+    visibility_issue = int(as_float(missing.get("visibility_issue"), 0.0))
+    aggregation_issue = int(as_float(missing.get("aggregation_issue"), 0.0))
+    weakly_weighted = int(as_float(missing.get("consumed_but_weakly_weighted"), 0.0))
+
+    items = [
+        _knowledge_limit_item(
+            item="service_outcomes",
+            classification="OBTAINABLE_NOW",
+            owner=str(service_source.get("owner") or "service/quality probe owners"),
+            evidence=str(service_source.get("current_utilization") or "existing service outcome source is acceleratable"),
+            safe_cycle=str(service_source.get("safe_acceleration") or "run existing probes and refresh snapshots"),
+            count=int(as_float(service_source.get("count"), 0.0)),
+        ),
+        _knowledge_limit_item(
+            item="channel_quality_outcomes",
+            classification="OBTAINABLE_NOW",
+            owner=str(channel_source.get("owner") or "quality compact owner"),
+            evidence=str(channel_source.get("current_utilization") or "existing channel quality source is acceleratable"),
+            safe_cycle=str(channel_source.get("safe_acceleration") or "repeat quality compaction after probe windows"),
+            count=int(as_float(channel_source.get("count"), 0.0)),
+        ),
+        _knowledge_limit_item(
+            item="learning_refresh",
+            classification="OBTAINABLE_NOW",
+            owner=str(learning_source.get("owner") or "intelligence snapshot refresh"),
+            evidence=f"knowledge_gained={learning_growth.get('knowledge_gained', 0)}",
+            safe_cycle=str(learning_source.get("safe_acceleration") or "refresh after real probes/outcomes"),
+            count=int(as_float(learning_source.get("count"), 0.0)),
+        ),
+        _knowledge_limit_item(
+            item="prediction_outcomes",
+            classification="OBTAINABLE_NOW" if prediction_pending > 0 else "OBTAINABLE_AFTER_EXISTING_EVENT",
+            owner="prediction-summaries + service/channel actual rows + existing feedback owners",
+            evidence=f"forecasts={prediction_seen}, matched={prediction_matched}, pending={prediction_pending}",
+            safe_cycle="match pending forecast rows if actuals exist" if prediction_pending > 0 else "wait for next real forecast->actual interval, then refresh",
+            blocker="" if prediction_pending > 0 else "no_pending_prediction_rows",
+            count=prediction_pending,
+        ),
+        _knowledge_limit_item(
+            item="captured_candidate_outcomes_not_consumed",
+            classification="OBTAINABLE_NOW" if (captured_but_not_consumed + visibility_issue + aggregation_issue) > 0 else "OBTAINABLE_AFTER_EXISTING_EVENT",
+            owner="candidate outcome matcher + intelligence snapshot refresh",
+            evidence=f"captured_but_not_consumed={captured_but_not_consumed}, visibility_issue={visibility_issue}, aggregation_issue={aggregation_issue}",
+            safe_cycle="refresh/rebuild existing candidate outcome snapshots if rows appear",
+            blocker="" if (captured_but_not_consumed + visibility_issue + aggregation_issue) > 0 else "no_hidden_candidate_outcomes_available_now",
+            count=captured_but_not_consumed + visibility_issue + aggregation_issue,
+        ),
+        _knowledge_limit_item(
+            item="missing_candidate_outcomes",
+            classification="OBTAINABLE_AFTER_GOVERNED_ACTION" if missing_count > 0 else "OBTAINABLE_NOW",
+            owner="governed/manual outcome closure owners + candidate outcome matcher",
+            evidence=f"candidate_count={candidate_count}, consumed={consumed}, missing={missing_count}, never_happened={never_happened}",
+            safe_cycle="operator-approved governed/manual action followed by verification, closure, learning, and snapshot refresh",
+            blocker="AUTHORITY_BOUNDARY" if missing_count > 0 else "",
+            count=missing_count,
+        ),
+        _knowledge_limit_item(
+            item="post_action_verification_outcomes",
+            classification="OBTAINABLE_AFTER_GOVERNED_ACTION",
+            owner="restore/rollback/verification owners",
+            evidence=f"closure_state={decision_outcome_closure.get('closure_state', 'UNKNOWN')}, valid_closures={closure_summary.get('valid_closures', 0)}",
+            safe_cycle="verify only after a real governed/manual action exists",
+            blocker="real_post_action_outcome_required",
+            count=int(as_float(closure_summary.get("missing_closure_records"), 0.0)),
+        ),
+        _knowledge_limit_item(
+            item="weakly_weighted_candidate_outcomes",
+            classification="OBTAINABLE_AFTER_EXISTING_EVENT" if weakly_weighted > 0 else "OBTAINABLE_AFTER_GOVERNED_ACTION",
+            owner="trust evolution suitability aggregation",
+            evidence=f"consumed_but_weakly_weighted={weakly_weighted}",
+            safe_cycle="wait for stronger observed outcome confidence or produce real governed/manual verification",
+            blocker="low_candidate_source_confidence",
+            count=weakly_weighted,
+        ),
+        _knowledge_limit_item(
+            item="client_telemetry",
+            classification="REQUIRES_NEW_ARCHITECTURE",
+            owner="future telemetry owner",
+            evidence="canonical reference marks client telemetry as future primary source when implemented",
+            safe_cycle="not available in current production system",
+            blocker="telemetry_owner_not_implemented",
+        ),
+    ]
+    if candidate_count <= 0:
+        items.append(_knowledge_limit_item(
+            item="candidate_suitability_diversity",
+            classification="REQUIRES_MORE_USERS",
+            owner="candidate-suitability-summary",
+            evidence="no current candidate rows exist",
+            safe_cycle="requires real users and candidate rows before extraction",
+            blocker="no_current_candidate_population",
+        ))
+
+    current_suitability = as_float(growth_current.get("suitability"), as_float((real_outcome_growth_projection.get("current") or {}).get("suitability_confidence"), 0.0))
+    max_suitability = as_float(best_projection.get("projected_suitability"), current_suitability)
+    converted_at_max = int(as_float(best_projection.get("converted_missing_candidate_outcomes"), 0.0))
+    unreachable_to_floor = round(max(0.0, AUTONOMY_CANARY_CONFIDENCE_FLOOR - max_suitability), 3)
+    obtainable_after_governed = missing_count
+    obtainable_now = captured_but_not_consumed + visibility_issue + aggregation_issue
+    total_missing = max(1, missing_count)
+    physical_impossibility = {
+        "scope": "missing_current_suitability_candidate_outcomes",
+        "missing_candidate_outcomes": missing_count,
+        "obtainable_now_count": obtainable_now,
+        "obtainable_after_governed_action_count": obtainable_after_governed,
+        "requires_more_users_count": 0 if candidate_count > 0 else missing_count,
+        "requires_more_channels_count": 0,
+        "requires_new_services_count": 0,
+        "requires_new_architecture_count": 0,
+        "obtainable_today_percent": round((obtainable_now / total_missing) * 100.0, 3) if missing_count else 100.0,
+        "obtainable_after_governed_action_percent": round((obtainable_after_governed / total_missing) * 100.0, 3) if missing_count else 0.0,
+        "physically_impossible_without_more_users_or_channels_percent": 0.0 if candidate_count > 0 else 100.0,
+        "explanation": "Current missing candidate outcomes are current user->candidate-channel pairs; they are not hidden, they have not happened yet.",
+    }
+    cycle_rows = []
+    for cycle in autonomous_knowledge_growth_program.get("cycles") or []:
+        if not isinstance(cycle, dict):
+            continue
+        blocker_class = _cycle_blocker_class(cycle)
+        can_continue = blocker_class in {"NONE", "MISSING_TRIGGER"} and cycle.get("automation_level") != "MANUAL"
+        cycle_rows.append({
+            "cycle": cycle.get("cycle"),
+            "automation_level": cycle.get("automation_level"),
+            "blocker_class": blocker_class,
+            "can_continue_automatically": can_continue,
+            "safe_rerun": bool(cycle.get("apply_executed") is not True),
+            "safe_next_step": cycle.get("safe_next_step"),
+            "authority_boundary": cycle.get("authority_boundary", ""),
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+            "apply_executed": False,
+        })
+    freshness_obtainable = [
+        domain for domain, row in freshness_domains.items()
+        if isinstance(row, dict) and row.get("classification") in {"STALE_RECHECK_REQUIRED", "UNKNOWN"}
+    ]
+    stop_reason = "AUTHORITY_BOUNDARY" if autonomous_routing_evolution_program.get("exact_stop_reason") == "AUTHORITY_BOUNDARY" else "REAL_WORLD_LIMIT"
+    if unreachable_to_floor > 0 and missing_count == 0:
+        stop_reason = "REAL_WORLD_LIMIT"
+    return {
+        "schema_version": "v7.autonomy-trust.maximum-reality-knowledge-extraction.v1",
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "purpose": "extract_and_classify_all_real_routing_knowledge_obtainable_from_current_production_without_apply_or_new_architecture",
+        "knowledge_limit_items": items,
+        "classification_summary": _classification_summary(items),
+        "outcome_sources_underused": [
+            row.get("source") for row in source_items
+            if row.get("classification") == "ACCELERATABLE" and row.get("current_utilization") not in {"refresh_owner_consumes_available_outcomes"}
+        ],
+        "automatic_cycle_completion": {
+            "cycles": cycle_rows,
+            "summary": _classification_summary([
+                {"classification": row["blocker_class"]} for row in cycle_rows
+            ]),
+            "new_cycle_added": "Maximum Reality Knowledge Extraction Cycle",
+            "new_cycle_automation_level": "FULLY_AUTONOMOUS",
+            "automatic_rerun_works": True,
+        },
+        "physical_reality_limit": physical_impossibility,
+        "maximum_current_suitability": {
+            "current": round(current_suitability, 3),
+            "maximum_possible_without_more_users_channels_formula_or_floor_changes": round(max_suitability, 3),
+            "converted_missing_candidate_outcomes_at_max": converted_at_max,
+            "remaining_unreachable_to_70_floor": unreachable_to_floor,
+            "remaining_reason": "current observed correctness/source confidence cannot reach TIER_2 suitability floor from coverage alone" if unreachable_to_floor > 0 else "suitability_floor_reachable_after_current_real_outcomes",
+            "projection_only": True,
+        },
+        "freshness_domains_recheckable_now": freshness_obtainable,
+        "highest_leverage_now": [
+            row.get("activity") for row in (outcome_leverage_model.get("activities_ranked") or [])[:3]
+            if isinstance(row, dict)
+        ],
+        "final_stop_reason": stop_reason,
+        "final_verdict": "REAL_WORLD_LIMIT_REACHED" if stop_reason == "REAL_WORLD_LIMIT" else "MAXIMUM_REALITY_REACHED",
+        "read_only": True,
+        "synthetic_evidence_created": False,
+        "formula_changed": False,
+        "floor_changed": False,
+        "planner_redesigned": False,
+        "governance_redesigned": False,
+        "execution_redesigned": False,
+        "new_truth_source_created": False,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+        "autonomy_enabled": False,
+    }
+
+
 def _candidate_key_text(key: tuple[str, str]) -> str:
     return f"{key[0]}:{key[1]}"
 
@@ -4020,6 +4318,20 @@ def build_acceleration_inventory(
         prediction_plan=prediction_plan,
         real_outcome_source_inventory=real_outcome_source_inventory,
     )
+    maximum_reality_knowledge_extraction = build_maximum_reality_knowledge_extraction(
+        autonomous_knowledge_growth_program=autonomous_knowledge_growth_program,
+        autonomous_routing_evolution_program=autonomous_routing_evolution_program,
+        candidate_outcome_reality_collection=candidate_outcome_reality_collection,
+        real_outcome_source_inventory=real_outcome_source_inventory,
+        real_outcome_growth_projection=real_outcome_growth_projection,
+        suitability_quality_model=suitability_quality_model,
+        suitability_knowledge_growth=suitability_knowledge_growth,
+        prediction_plan=prediction_plan,
+        decision_outcome_closure=decision_outcome_closure,
+        decision_outcome_learning=decision_outcome_learning,
+        freshness_actionability=freshness_actionability,
+        outcome_leverage_model=outcome_leverage_model,
+    )
     return {
         "schema_version": "v7.autonomy-trust-acceleration.inventory.v1",
         "generated_at": generated,
@@ -4054,6 +4366,7 @@ def build_acceleration_inventory(
         "routing_recommendation_readiness": routing_recommendation_readiness,
         "autonomous_knowledge_growth_program": autonomous_knowledge_growth_program,
         "autonomous_routing_evolution_program": autonomous_routing_evolution_program,
+        "maximum_reality_knowledge_extraction": maximum_reality_knowledge_extraction,
         "knowledge_quality_read_model": knowledge_quality_read_model,
         "knowledge_objects": knowledge_quality_read_model["knowledge_objects"],
         "maturity_distribution": knowledge_quality_read_model["maturity_distribution"],

@@ -448,16 +448,16 @@ Current implementation optimizer result:
 
 | Field | Current Value |
 | --- | --- |
-| Highest implementation leverage task | `IMPLEMENT_EXECUTION_LEASE` |
+| Highest implementation leverage task | `EXECUTE_APPROVED_LEASED_GOVERNED_PACKET` completed |
 | Implementation class | `IMPLEMENT_RUNTIME` |
 | Exact owner | Existing packet owner / Governed Canary Knowledge-Gated Dry-Run Cycle |
 | Exact module | `admin_core/operator_execution.py` execution lease + `admin_core/operator_execution_pipeline.py::governed_canary_knowledge_gated_dry_run_cycle` |
 | Exact files | `admin_core/operator_execution.py`, `admin_core/operator_execution_pipeline.py`, `tools/v7-governed-canary-dry-run-cycle`, focused tests |
-| Implementation status | `DEPLOYED_PRODUCTION_CERTIFIED_EXECUTION_LEASE` |
-| Certification report | Current Program State section 14 |
+| Implementation status | `APPROVED_LEASED_PACKET_EXECUTED_VERIFIED_CLOSED` |
+| Certification report | Current Program State sections 3.2 and 14 |
 | Truth/convergence | `PASS`; local, GitHub, and production are aligned at commit `b11fcebe3e844c662b6d5ffc0ecebd6a3abbf4e3`. |
-| New highest implementation leverage task | `EXPLICIT_OPERATOR_APPROVAL_REQUIRED_FOR_LEASED_PACKET` |
-| Stop boundary | `AUTHORITY_BOUNDARY`: active execution lease preserves the exact packet, but restore-barrier write, apply, user movement, rollback apply, daemon/timer enablement, authority expansion, and synthetic evidence remain forbidden without explicit operator approval. |
+| New highest implementation leverage task | `EXPLICIT_OPERATOR_APPROVAL_REQUIRED_FOR_THIS_PACKET` |
+| Stop boundary | `AUTHORITY_BOUNDARY`: the previous lease is terminal after successful execution; the fresh exact packet requires operator approval before restore-barrier write, apply, user movement, rollback apply, daemon/timer enablement, authority expansion, or synthetic evidence. |
 
 ## 2.13. Implementation Program Loop
 
@@ -1075,16 +1075,16 @@ If a restore-barrier write, apply, user movement, rollback apply, daemon, timer,
 | --- | --- |
 | Completed phases | Canonical reference, reference-first rule, event-driven contract, knowledge quality, routing foundation, knowledge-to-decision, decision-to-outcome-to-learning, outcome leverage, suitability program, knowledge growth, routing evolution, maximum reality extraction, decision model, runtime model, system architecture. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle. |
-| Current bottleneck | Explicit authority for the active leased exact governed packet before real governed canary outcome. |
-| Current highest leverage action | `EXPLICIT_OPERATOR_APPROVAL_REQUIRED_FOR_LEASED_PACKET`. |
+| Current bottleneck | Explicit authority for the fresh exact governed packet after one real governed canary outcome was closed. |
+| Current highest leverage action | `EXPLICIT_OPERATOR_APPROVAL_REQUIRED_FOR_THIS_PACKET`. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | `AUTHORITY_BOUNDARY`: production lease is active and immutable for the exact packet, but execution still requires explicit operator approval. |
-| Current maturity | Architecture complete; implementation phase active; read-only runtime lifecycle preview deployed and production-verified; preview-to-execution packet identity deployed and production-verified; execution lease deployed and production-verified; autonomy cycles mature to leased exact packet authority boundary. |
-| Current runtime posture | No autonomous apply, no user movement, no daemon enablement. |
-| Current next best action | Operator approves or rejects the active leased exact governed packet; if approved, execute only that packet through existing owners. |
-| Last optimizer iteration | `2026-06-25`: execution lease was implemented through existing packet/dry-run owners, tests passed, safe deploy completed, truth/convergence passed, production dry-run created an active lease; no restore-barrier clearance, apply, movement, rollback, outcome closure, or learning write occurred. |
+| Current blockers | `AUTHORITY_BOUNDARY`: fresh production dry-run packet is ready for approval; restore-barrier write and apply still require explicit operator authority. |
+| Current maturity | Architecture complete; implementation phase active; read-only runtime lifecycle preview deployed and production-verified; preview-to-execution packet identity deployed and production-verified; execution lease deployed and production-verified; one approved leased governed canary outcome executed, verified, closed, and learned from. |
+| Current runtime posture | No autonomous apply, no daemon enablement; last user movement was the explicitly approved one-user governed canary `10.7.0.5 vless -> awg0`. |
+| Current next best action | Operator approves or rejects the fresh exact governed packet in Current Program State section 7. |
+| Last optimizer iteration | `2026-06-25`: the approved leased packet `pkt_preview_fb70744bc51ad162b1727dcb` was consumed as executable, restore-barrier clearance was written only for that packet, one user was moved to `awg0`, verification passed, rollback was not attempted, outcome closure and learning were written from real observed evidence, snapshot refresh passed, and production OMP recalculated to a fresh `AUTHORITY_BOUNDARY` packet. |
 
 ## 25. Program Rule For Future Work
 

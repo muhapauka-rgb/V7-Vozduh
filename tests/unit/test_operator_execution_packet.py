@@ -330,6 +330,41 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(packet["approved_plan_lock"]["authority_generation"], preview["authority_generation"])
         self.assertEqual(packet["approved_plan_lock"]["selected_move_hash"], preview["selected_move_hash"])
 
+    def test_packet_from_preview_recomputes_execution_envelope_with_approved_hash(self):
+        preview = self.preview_packet()
+        preview["source_hashes"] = {
+            "users_registry": "users-hash-unit",
+            "egress_registry": "egress-hash-unit",
+            "service_matrix": "matrix-hash-unit",
+        }
+        preview["snapshot_bundle_hash"] = "snapshot-bundle-hash-unit"
+        expected_runtime_snapshot = sha256_json({
+            "users_registry_hash": "users-hash-unit",
+            "egress_registry_hash": "egress-hash-unit",
+            "selected_move_hash": "preview-selected-hash-unit",
+        })
+        expected_source_bundle = sha256_json(preview["source_hashes"])
+        expected_envelope = sha256_json({
+            "planner_generation_id": "cycle-unit-identity",
+            "selected_move_hash": "preview-selected-hash-unit",
+            "selected_move_count": 1,
+            "runtime_snapshot_hash": expected_runtime_snapshot,
+            "source_bundle_hash": expected_source_bundle,
+            "snapshot_bundle_hash": "snapshot-bundle-hash-unit",
+        })
+
+        packet = packet_from_preview(
+            preview,
+            approval_author="operator-a",
+            approval_reviewer="operator-b",
+        )
+
+        self.assertEqual(packet["expected"]["runtime_snapshot_hash"], expected_runtime_snapshot)
+        self.assertEqual(packet["expected"]["source_bundle_hash"], expected_source_bundle)
+        self.assertEqual(packet["expected"]["snapshot_bundle_hash"], "snapshot-bundle-hash-unit")
+        self.assertEqual(packet["expected"]["atomic_execution_envelope_hash"], expected_envelope)
+        self.assertEqual(packet["expected"]["atomic_execution_envelope_id"], "aee_" + expected_envelope[:24])
+
     def test_preview_derived_packet_clearance_recheck_does_not_require_rebuilt_plan(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

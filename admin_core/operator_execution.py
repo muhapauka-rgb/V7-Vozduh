@@ -1039,30 +1039,41 @@ def selected_moves_from_preview(preview):
             "recommended_egress": allowed_targets[0],
             "move_type": "governed_canary",
         })
-    source_hashes = {
-        "preview_packet": sha256_json({
-            "packet_id": packet_id,
-            "operation_id": operation_id,
-            "decision_id": decision_id,
-            "authority_generation": authority_generation,
-            "selected_move_hash": selected_hash,
-        }),
-        "source_hash": str(preview.get("source_hash") or ""),
-        "recommendation_hash": str(preview.get("recommendation_hash") or ""),
-    }
-    source_hashes = {key: value for key, value in source_hashes.items() if value}
+    preview_source_hashes = preview.get("source_hashes") if isinstance(preview.get("source_hashes"), dict) else {}
+    if preview_source_hashes:
+        source_hashes = {str(key): str(value) for key, value in preview_source_hashes.items() if str(value)}
+    else:
+        source_hashes = {
+            "preview_packet": sha256_json({
+                "packet_id": packet_id,
+                "operation_id": operation_id,
+                "decision_id": decision_id,
+                "authority_generation": authority_generation,
+                "selected_move_hash": selected_hash,
+            }),
+            "source_hash": str(preview.get("source_hash") or ""),
+            "recommendation_hash": str(preview.get("recommendation_hash") or ""),
+        }
+        source_hashes = {key: value for key, value in source_hashes.items() if value}
     source_bundle_hash = sha256_json(source_hashes)
-    snapshot_bundle_hash = sha256_json({
+    snapshot_bundle_hash = str(preview.get("snapshot_bundle_hash") or "") or sha256_json({
         "preview_packet_id": packet_id,
         "preview_operation_id": operation_id,
         "selected_move_hash": selected_hash,
         "selected_move_count": selected_count,
     })
-    runtime_snapshot_hash = sha256_json({
-        "authority_generation": authority_generation,
-        "selected_move_hash": selected_hash,
-        "selected_move_count": selected_count,
-    })
+    if source_hashes.get("users_registry") and source_hashes.get("egress_registry"):
+        runtime_snapshot_hash = sha256_json({
+            "users_registry_hash": source_hashes.get("users_registry", ""),
+            "egress_registry_hash": source_hashes.get("egress_registry", ""),
+            "selected_move_hash": selected_hash,
+        })
+    else:
+        runtime_snapshot_hash = sha256_json({
+            "authority_generation": authority_generation,
+            "selected_move_hash": selected_hash,
+            "selected_move_count": selected_count,
+        })
     envelope_payload = {
         "planner_generation_id": authority_generation,
         "selected_move_hash": selected_hash,

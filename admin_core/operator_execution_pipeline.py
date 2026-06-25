@@ -1986,7 +1986,14 @@ STOP_REASON_CLASSES = {
 }
 
 
-def _preview_packet_for_candidate(candidate: dict[str, Any], *, cycle_id: str, now: str = "") -> dict[str, Any]:
+def _preview_packet_for_candidate(
+    candidate: dict[str, Any],
+    *,
+    cycle_id: str,
+    authority_generation: str = "",
+    execution_envelope: dict[str, Any] | None = None,
+    now: str = "",
+) -> dict[str, Any]:
     if not candidate:
         return {
             "schema_version": "v7.governed-canary.packet-preview.v1",
@@ -2015,6 +2022,9 @@ def _preview_packet_for_candidate(candidate: dict[str, Any], *, cycle_id: str, n
         "recommendation_id": str(candidate.get("recommendation_hash") or ""),
         "packet_id": packet_id,
     })[:24]
+    envelope = execution_envelope if isinstance(execution_envelope, dict) else {}
+    source_bundle = envelope.get("source_bundle") if isinstance(envelope.get("source_bundle"), dict) else {}
+    snapshot_bundle = envelope.get("snapshot_bundle") if isinstance(envelope.get("snapshot_bundle"), dict) else {}
     return {
         "schema_version": "v7.governed-canary.packet-preview.v1",
         "owner": CANONICAL_PACKET_TOOL,
@@ -2022,11 +2032,13 @@ def _preview_packet_for_candidate(candidate: dict[str, Any], *, cycle_id: str, n
         "packet_id": packet_id,
         "operation_id": operation_id,
         "decision_id": decision_id,
-        "authority_generation": cycle_id,
+        "authority_generation": authority_generation or cycle_id,
         "selected_move_count": 1,
         "selected_move_hash": selected_move_hash,
         "allowed_users": [candidate.get("user", "")],
         "allowed_targets": [candidate.get("recommended_channel", "")],
+        "source_hashes": source_bundle.get("source_hashes") or {},
+        "snapshot_bundle_hash": snapshot_bundle.get("hash", ""),
         "approved_plan_lock_required": True,
         "approved_plan_lock_created_now": False,
         "wrong_user_protection": "allowed_users_bound_to_packet",
@@ -2382,7 +2394,20 @@ def governed_canary_knowledge_gated_dry_run_cycle(
         },
         "now": now,
     })[:24]
-    packet_preview = _preview_packet_for_candidate(candidate, cycle_id=cycle_id, now=now)
+    dry_run_safety = dry_run.get("safety") if isinstance(dry_run.get("safety"), dict) else {}
+    dry_run_generation = dry_run_safety.get("generation") if isinstance(dry_run_safety.get("generation"), dict) else {}
+    dry_run_envelope = (
+        dry_run_safety.get("atomic_execution_envelope")
+        if isinstance(dry_run_safety.get("atomic_execution_envelope"), dict)
+        else {}
+    )
+    packet_preview = _preview_packet_for_candidate(
+        candidate,
+        cycle_id=cycle_id,
+        authority_generation=str(dry_run_generation.get("planner_generation_id") or ""),
+        execution_envelope=dry_run_envelope,
+        now=now,
+    )
     rollback_items = (packet_preview.get("rollback_manifest_preview") or {}).get("items") or []
     restore_status = {
         "schema_version": "v7.governed-canary.restore-rollback-preview.v1",

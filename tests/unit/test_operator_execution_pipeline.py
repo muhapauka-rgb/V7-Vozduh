@@ -1014,6 +1014,13 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(cycle["target"], "awg0")
         self.assertEqual(cycle["candidate"]["user"], "10.7.0.5")
         self.assertEqual(cycle["packet_preview"]["status"], "PACKET_PREVIEW_READY")
+        dry_run_generation = (((cycle["dry_run"].get("safety") or {}).get("generation") or {}).get("planner_generation_id") or "")
+        if dry_run_generation:
+            self.assertEqual(cycle["packet_preview"]["authority_generation"], dry_run_generation)
+        else:
+            self.assertTrue(cycle["packet_preview"]["authority_generation"])
+        self.assertIn("source_hashes", cycle["packet_preview"])
+        self.assertIn("snapshot_bundle_hash", cycle["packet_preview"])
         self.assertEqual(cycle["restore_status"]["status"], "RESTORE_AND_ROLLBACK_PREVIEW_READY")
         self.assertEqual(cycle["verification_plan"]["status"], "VERIFICATION_PLAN_READY")
         self.assertEqual(cycle["outcome_closure_plan"]["status"], "OUTCOME_CLOSURE_PLAN_READY")

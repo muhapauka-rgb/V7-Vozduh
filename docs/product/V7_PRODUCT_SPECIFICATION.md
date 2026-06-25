@@ -126,7 +126,14 @@ It avoids duplicate planners, duplicate execution, duplicate governance, and dup
 
 Trust and authority are different.
 Trust says how autonomous V7 may become.
-Authority says whether this exact action may happen now.
+Authority says which certified kind of action V7 may perform.
+
+The durable approval object is an Action Class.
+An Action Class is a repeated product capability, such as single-user failover, channel hard-fail failover, service-specific failover, rollback, verification, or learning refresh.
+
+Packets are not the long-term approval object.
+A packet is a fresh runtime execution artifact for one moment in reality.
+It must match an approved Action Class, policy, safety, freshness, rollback, verification, and blast-radius boundary.
 
 ### Explainability
 
@@ -389,22 +396,49 @@ This is the primary long-term competitive advantage of V7.
 
 V7 must not ask the operator to approve the same kind of safe action forever.
 
-At the beginning, the operator approves exact packets.
-That is necessary while the system is still proving that one bounded action is safe.
+Packet approval was useful as the first governed proof step.
+It is not the correct long-term product abstraction.
 
-Over time, the product should move the operator upward:
+Packets become stale because reality changes faster than human review:
 
 ```text
-Approve Packet
-  -> Approve Action Class
+Reality
+  -> Packet
+  -> Operator
+  -> Packet becomes stale
+  -> Packet regenerated
+  -> Operator repeats approval
+```
+
+That loop does not scale to `100+` channels, `10000+` users, many providers, many services, and continuous network change.
+
+The primary approval object is therefore:
+
+```text
+Action Class
+```
+
+The packet becomes:
+
+```text
+fresh runtime execution artifact
+```
+
+The operator approves durable capabilities:
+
+```text
+Approve Action Class
   -> Approve Authority Expansion
   -> Approve Product Policy
   -> Operator Supervision Only
 ```
 
+Packet-level approval remains only as a temporary governed fallback for classes that are still `GOVERNED_ONLY`.
+It is not the future operating model.
+
 This is the job of the Autonomy Promotion Engine.
 
-The engine does not approve packets.
+The engine does not approve runtime execution.
 It does not move users.
 It does not enable runtime apply by itself.
 
@@ -451,14 +485,79 @@ Observe
   -> Recommend Promotion
   -> Operator approves CLASS
   -> Runtime capability updated
-  -> Future packets execute automatically inside policy
+  -> Runtime generates fresh packets inside policy
+  -> Future packets execute only when they match the approved class
 ```
 
 Automation therefore grows continuously.
 It does not arrive all at once.
 
-The operator gradually stops approving repetitive packets.
+The operator stops approving repetitive packets as soon as the class is certified and authority is approved.
 The operator gradually approves capabilities, authority expansion, policy, new action classes, and exceptional situations.
+
+## Delegated Autonomy Policy
+
+The long-term product model is not packet approval.
+It is also not asking the operator to approve every action class forever.
+
+The operator defines a bounded Autonomy Policy once.
+Inside that policy, V7 may make operational routing decisions automatically.
+Outside that policy, V7 stops safely.
+
+The policy says:
+
+- which action classes are allowed;
+- how many users may be affected at once;
+- which failure types are covered;
+- how fresh the evidence must be;
+- what verification must exist;
+- what rollback or no-rollback path must exist;
+- what anti-flap protection must pass;
+- what trust, confidence, and suitability floors must pass;
+- what blast radius is allowed;
+- what cooldown is required;
+- which stop conditions end autonomy;
+- how V7 must report after every action.
+
+The operator approves policy boundaries.
+V7 may approve individual operational decisions only inside those boundaries.
+
+V7 may not:
+
+- expand the policy;
+- add a new action class;
+- increase blast radius;
+- lower safety gates;
+- skip rollback, verification, freshness, or learning;
+- silently turn governed learning into production autonomy.
+
+Runtime therefore asks a simple question before any automatic action:
+
+```text
+Does this fresh packet belong to an approved action class inside an approved Autonomy Policy?
+```
+
+If yes, Runtime may continue through safety, rollback, verification, freshness, anti-flap, and blast-radius gates.
+If no, Runtime stops.
+
+Autonomy modes:
+
+- `MANUAL_PACKET_APPROVAL`: operator approves exact packets as an early governed fallback.
+- `CLASS_APPROVAL`: operator approves durable action classes, but Runtime still stops before autonomous execution.
+- `DELEGATED_AUTONOMY`: operator approves bounded policy, and V7 acts inside that policy.
+- `PRODUCTION_AUTONOMY`: operator supervises policy and exceptions while Runtime performs routine certified work.
+
+Current target direction:
+
+```text
+DELEGATED_AUTONOMY
+```
+
+Current runtime automation state:
+
+```text
+NO
+```
 
 ## Product Maturity
 
@@ -559,7 +658,8 @@ Current maturity:
 TIER_1 governed operator-reviewed action is active; higher autonomy remains evidence- and authority-gated.
 
 Future direction:
-Continuously promote action classes from governed packet approval to class approval, bounded autonomy, operational autonomy, and production autonomy.
+Continuously promote action classes from governed proof to class authority, bounded autonomy, operational autonomy, and production autonomy.
+The goal is to permanently remove packet approval for certified classes, not make packet approval easier.
 
 ### Domain D: Scale Evolution
 
@@ -677,7 +777,7 @@ capabilities are what V7 must be able to do as a product.
 | Predict | Estimate whether a path or action is likely to work under current conditions. |
 | Evaluate | Compare current state with desired connectivity, policy, safety, evidence, and risk. |
 | Choose | Produce an explicit decision: keep, move, failover, drain, quarantine, recover, probe-only, ask operator, or no-action. |
-| Move | Change assignment only when an exact bounded action has authority. |
+| Move | Change assignment only when the action class has authority and the fresh execution packet matches certified bounds. |
 | Verify | Prove whether the action worked. |
 | Rollback | Return to a known safer state when verification fails or safety degrades. |
 | Learn | Convert observed outcomes into better future knowledge. |
@@ -784,8 +884,8 @@ Event
   -> Read Decision Snapshot
   -> Policy
   -> Safety
-  -> Authority
-  -> Packet
+  -> Action-Class Authority
+  -> Fresh Packet
   -> Execute OR Stop
   -> Verify
   -> Rollback if needed
@@ -803,16 +903,17 @@ Runtime should:
 3. read prepared decision and knowledge snapshots;
 4. apply policy;
 5. check safety;
-6. check authority;
-7. consume the exact packet;
-8. execute or stop;
-9. verify;
-10. roll back if needed and authorized;
-11. close outcome;
-12. feed learning;
-13. update continuation state;
-14. notify OMP;
-15. sleep.
+6. check Action-Class Authority;
+7. generate or consume a fresh packet through the existing packet owner;
+8. verify that the packet belongs to the approved class and current policy;
+9. execute or stop;
+10. verify;
+11. roll back if needed and authorized;
+12. close outcome;
+13. feed learning;
+14. update continuation state;
+15. notify OMP;
+16. sleep.
 
 Runtime must not:
 
@@ -823,7 +924,8 @@ Runtime must not:
 - bypass authority;
 - silently retry blocked work;
 - move users because time passed;
-- treat stale packet state as executable.
+- treat stale packet state as executable;
+- treat packet approval as durable authority.
 
 ## E. Autonomy
 
@@ -851,6 +953,7 @@ What becomes autonomous:
 What requires authority:
 
 - action crosses the current certified tier;
+- action class is not approved;
 - blast radius exceeds certification;
 - rollback is not certified;
 - verification cannot run;
@@ -858,7 +961,7 @@ What requires authority:
 - evidence is stale, contradictory, or insufficient;
 - a novel failure mode appears;
 - authority expansion is proposed;
-- the operator has not approved the exact packet or tier.
+- the packet does not match an approved action class, authority generation, policy, freshness, safety, rollback/no-rollback, verification, and blast-radius boundary.
 
 Authority evolution:
 
@@ -890,7 +993,8 @@ Current autonomy state:
 - TIER_1 governed operator-reviewed action is active.
 - TIER_2+ remains evidence- and authority-gated.
 - Trust decides autonomy tier.
-- Safety decides whether one exact bounded action may happen now.
+- Safety decides whether a fresh packet inside an approved class may happen now.
+- Packet-level approval remains required only for `GOVERNED_ONLY` classes until class authority is explicitly approved.
 
 ## F. Scalability
 

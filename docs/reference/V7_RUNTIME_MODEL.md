@@ -16,6 +16,9 @@ Runtime executes, stops, verifies, rolls back, records outcomes, and feeds learn
 Runtime executes certified action classes only when OMP and authority policy have promoted that class.
 Runtime does not promote classes by itself.
 
+Runtime may self-approve operational decisions only inside an approved Delegated Autonomy Policy.
+Runtime may not self-approve policy expansion, new action classes, blast-radius increases, lower gates, or authority expansion.
+
 Runtime is the thin execution path:
 
 ```text
@@ -25,8 +28,8 @@ Event
   -> Read Decision Snapshot
   -> Policy
   -> Safety
-  -> Authority
-  -> Packet
+  -> Action-Class / Policy Authority
+  -> Fresh Packet
   -> Execute OR Stop
   -> Verify
   -> Rollback if needed
@@ -82,7 +85,7 @@ Runtime consumes only existing-owner inputs:
 | Desired State and Policy Basis | Planner / Autoswitch, OMP, policy gates |
 | Evidence Quality and Knowledge Snapshot | Knowledge Quality Model, Background knowledge owners |
 | Safety Gates | Safety-Bounded Authority, Runtime Readiness, restore barrier |
-| Authority State | OMP, Current Program State, explicit operator approval |
+| Authority State | OMP, Current Program State, approved Action Class authority, explicit operator approval only when still required |
 | Action Class State | OMP Autonomy Promotion Engine, Current Program State |
 | Execution Packet / Preview | `tools/v7-operator-execution-packet`, `admin_core/operator_execution.py` |
 | Rollback Target | Restore Barrier / Rollback |
@@ -110,7 +113,13 @@ Runtime output is not a new truth source. Runtime output must reference existing
 
 ## Action-Class Authority
 
-Runtime must evaluate authority at the action-class level before asking for packet approval.
+Runtime must evaluate authority at the action-class level before packet execution.
+
+The primary approval object is the Action Class.
+The packet is a fresh execution artifact.
+
+Runtime must not depend on a long-lived operator-approved packet for autonomous or class-approved work.
+Runtime must generate or consume a fresh packet immediately before execution through the existing packet owner and then verify that the packet belongs to an approved class.
 
 Runtime never asks:
 
@@ -151,8 +160,70 @@ Runtime must ask, stop, or escalate when:
 Action-class authority does not let Runtime invent decisions.
 Runtime still consumes prepared decisions and packets from existing owners.
 
+Runtime must verify every fresh packet against:
+
+- approved Action Class;
+- authority generation;
+- policy;
+- subject;
+- target class;
+- selected move hash;
+- freshness;
+- safety gates;
+- rollback/no-rollback readiness;
+- verification readiness;
+- blast-radius bounds.
+
+If the packet does not match the approved class, Runtime must stop at `AUTHORITY_BOUNDARY` or `UNSAFE_IMPLEMENTATION` depending on whether the problem is missing authority or identity/safety mismatch.
+
 This section does not enable runtime apply, autonomous execution, daemon/timer behavior, user movement, rollback apply, or authority expansion.
 It defines the future rule for when packet-level approval is no longer required for a certified class.
+
+## Delegated Autonomy Policy Gate
+
+Delegated Autonomy Policy is the bounded self-approval contract.
+
+Runtime may execute automatically only when all of the following are true:
+
+1. action belongs to an approved policy;
+2. action class is certified or policy explicitly allows governed learning mode;
+3. fresh packet is generated immediately before execution;
+4. packet matches policy;
+5. rollback is ready;
+6. verification is ready;
+7. anti-flap passes;
+8. blast radius is within policy;
+9. evidence is not stale;
+10. failure mode is known.
+
+If any gate fails, Runtime stops.
+
+Runtime may decide:
+
+- this fresh packet is inside policy;
+- this safety gate passes;
+- this rollback path is ready;
+- this verification path is ready;
+- this action should stop.
+
+Runtime may not decide:
+
+- expand policy;
+- add a new action class;
+- increase max users per action;
+- lower confidence, trust, suitability, freshness, rollback, verification, anti-flap, or blast-radius requirements;
+- convert governed learning mode into production autonomy.
+
+Current default policy is read-only and not approved:
+
+```text
+policy_id: dap_default_tier1_readonly
+state: NOT_APPROVED
+current_mode: CLASS_APPROVAL
+target_mode: DELEGATED_AUTONOMY
+max_users_per_action: 1
+runtime_apply_enabled: NO
+```
 
 ## Forbidden Inside Runtime
 
@@ -199,8 +270,8 @@ Runtime must not:
 | Read Decision Snapshot | Load existing decision output. | Decision id, action, subject, desired/current state, risk, blast radius. | Decision Model, decision surface | No decision, stale decision, unsupported vocabulary. |
 | Policy | Confirm desired state, action vocabulary, eligibility, and policy basis. | Policy gates, candidate ranking, desired state. | Planner / Autoswitch, OMP | Policy block or no eligible subject. |
 | Safety | Confirm evidence quality, health, freshness, blast radius, rollback target. | Knowledge snapshot, safety gates, restore preview. | Safety-Bounded Authority, Runtime Readiness | Safety block, freshness block, rollback missing. |
-| Authority | Confirm action-class authority, exact packet authority if still required, and certified policy bounds. | Action class state, authority state, explicit approval if required. | OMP Autonomy Promotion Engine, operator approval, Current Program State | `AUTHORITY_BOUNDARY`, action class not autonomous, authority exceeded, policy changed, risk exceeds certified blast radius. |
-| Packet | Build or load existing execution packet. | Packet id, selected move hash, generation, verification plan. | Execution Packet owner | Packet invalid, stale, or generation mismatch. |
+| Authority | Confirm action-class authority, delegated policy bounds, packet-level fallback only if the class is still `GOVERNED_ONLY`, and certified policy bounds. | Action class state, delegated policy state, authority state, class approval or explicit packet approval when required. | OMP Autonomy Promotion Engine, Delegated Autonomy Policy preview, operator approval, Current Program State | `AUTHORITY_BOUNDARY`, policy not approved, action class not approved for runtime, authority exceeded, policy changed, risk exceeds certified blast radius. |
+| Packet | Generate or consume a fresh execution packet immediately before execution. | Packet id, selected move hash, generation, verification plan, action-class mapping. | Execution Packet owner | Packet invalid, stale, generation mismatch, class mismatch, authority mismatch, policy mismatch. |
 | Execute OR Stop | Execute only if authority and packet are valid; otherwise stop. | Approved exact action. | Existing governed execution owner | Stop reason present, no explicit apply approval. |
 | Verify | Verify mutation or no-op result. | Verification plan and runtime evidence. | Runtime Readiness, truth/convergence | Verification failed or inconclusive. |
 | Rollback if needed | Roll back only if execution happened and rollback authority exists. | Rollback target, restore barrier state. | Restore Barrier / Rollback | Rollback authority missing or rollback failed. |

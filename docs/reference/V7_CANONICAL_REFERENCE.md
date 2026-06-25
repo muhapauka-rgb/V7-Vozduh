@@ -51,12 +51,16 @@ Stable conclusions:
 1. V7 is a production connectivity product that keeps users online by making routing invisible.
 2. V7 is an autonomous routing control plane for user connectivity, not a VPN panel, manual routing tool, monitoring dashboard, static load balancer, hardcoded switch engine, or planner playground.
 3. Product success means users stay online, important services remain reachable, routing changes are invisible or minimally disruptive, wrong moves are rare, rollback is available, learning improves decisions, and operator workload decreases.
-4. V7 product principles are Reality First, User Connectivity First, Minimal Operator Work, Safety Before Movement, Learning From Reality, Event-Driven Operation, Reuse Before Rewrite, Simplicity Of Authority, Explainability, Reversibility, Verification Before Trust, Background Knowledge / Thin Runtime, and No Duplicated Systems.
+4. V7 product principles are Reality First, User Connectivity First, Minimal Operator Work, Safety Before Movement, Learning From Reality, Event-Driven Operation, Reuse Before Rewrite, Simple Action-Class Authority, Explainability, Reversibility, Verification Before Trust, Background Knowledge / Thin Runtime, and No Duplicated Systems.
 5. Current product maturity is `Operational`, moving through governed `Production` maturity.
 6. Fundamental missing product questions: `NONE`.
 7. Product certification verdict: `PRODUCT_SPECIFICATION_COMPLETE`.
-8. Autonomy Promotion Engine is a product rule: V7 must gradually move the operator from approving repetitive packets to approving action classes, authority expansion, product policy, new classes, and exceptional situations.
+8. Autonomy Promotion Engine is a product rule: V7 must move the operator from temporary governed packet approval to durable Action-Class Authority, authority expansion, product policy, new classes, and exceptional situations.
 9. Automation grows by promoting certified action classes from real outcomes, verification, rollback quality, safety, blast radius, learning, trust, and authority policy; reports alone and synthetic evidence cannot promote a class.
+10. Packet approval is not the primary product authority model. Packets are fresh runtime execution artifacts and may execute only when they match approved Action-Class Authority, policy, freshness, safety, rollback/no-rollback, verification, learning, and blast-radius bounds.
+11. Packet-level approval remains only as a temporary `GOVERNED_ONLY` fallback until an action class is certified and explicitly approved for class authority or runtime capability.
+12. Delegated Autonomy Policy is the target approval model: the operator approves bounded policy once, V7 may self-approve operational routing decisions only inside that policy, and Runtime stops outside it.
+13. V7 may not self-approve policy expansion, new action classes, increased blast radius, lower safety gates, or authority expansion. V7 may only recommend those changes.
 
 ## Certified Root Cause Rule
 
@@ -123,12 +127,16 @@ Stable conclusions:
 16. New owners, knowledge models, planners, engines, pipelines, APIs, CLIs, storage, snapshots, or truth sources are forbidden unless `Need New Owner = TRUE`.
 17. Every implementation must run semantic reuse audit before creating or extending system behavior.
 18. After every implementation, OMP must run duplication detection across owners, planners, governance, execution, lifecycle, APIs, CLIs, knowledge models, routing logic, learning logic, truth sources, evidence collectors, packet builders, decision surfaces, and maturity models.
-19. Future work may proceed through only: `Continue OMP`, `Approve packet`, and `Approve authority expansion`, unless a real implementation proves `FUNDAMENTAL_ARCHITECTURE_GAP`.
+19. Future work may proceed through only: `Continue OMP`, `Approve action class`, and `Approve authority expansion`, unless a real implementation proves `FUNDAMENTAL_ARCHITECTURE_GAP`. `Approve packet` remains only a temporary governed fallback for `GOVERNED_ONLY` classes.
 20. OMP does not authorize restore-barrier writes, runtime apply, user movement, rollback apply, daemon/timer enablement, authority expansion, floor changes, synthetic evidence, new planner, new governance, new execution, storage, runtime owner, or truth source without the required authority.
 21. OMP owns the Autonomy Promotion Engine for action classes. After every certified outcome, OMP must evaluate whether the action class can move to the next autonomy state.
 22. Canonical action class states are `NOT_CERTIFIED`, `GOVERNED_ONLY`, `CERTIFIED_FOR_CLASS_APPROVAL`, `CERTIFIED_FOR_BOUNDED_AUTONOMY`, and `AUTONOMOUS_RUNTIME`.
 23. Current first certifiable action class is `single-user governed candidate failover`; current promotion state is `GOVERNED_ONLY`; current promotion target is `CERTIFIED_FOR_CLASS_APPROVAL`; runtime automation enabled remains `NO`.
 24. Action-Class Runtime Enablement path status is `PARTIAL`: existing OMP, trust inventory, governed dry-run, packet, lease, restore/rollback, feedback, learning, and Runtime Model owners now expose read-only action-class registry, packet-to-action-class mapping, authority-to-action-class mapping, runtime capability view, promotion recommendation, and readiness check. Need New Owner remains `FALSE`; Runtime cannot execute this class automatically yet.
+25. OMP must evaluate after every certified action class whether packet-level approval can be permanently eliminated for that class. If yes, OMP prepares an Authority Promotion recommendation; if no, it records the exact missing evidence or policy that keeps the class in packet-level governed fallback.
+26. The primary authority model is Action-Class Authority. Packet-level authority is a transitional fallback, not the long-term product abstraction.
+27. OMP owns Delegated Autonomy Policy progression through existing owners. Current default policy is `dap_default_tier1_readonly`, state `NOT_APPROVED`, current mode `CLASS_APPROVAL`, target mode `DELEGATED_AUTONOMY`, max users per action `1`, runtime apply enabled `NO`.
+28. Machine-readable Delegated Autonomy Policy preview and runtime eligibility are read-only surfaces exposed through `admin_core/autonomy_trust_acceleration.py` and `tools/v7-autonomy-trust-evidence-inventory`. They must not enable automation, move users, expand authority, write restore barriers, create evidence, or create duplicate planner/governance/execution/truth.
 
 ## V7_KERNEL_AND_STATE_SPLIT
 
@@ -231,8 +239,10 @@ Stable conclusions:
 8. Runtime feeds learning only from real observed outcomes.
 9. Need New Owner remains `FALSE`; Runtime is an existing-owner composition contract.
 10. Runtime must not ask for packet approval when an action class is already `AUTONOMOUS_RUNTIME` and policy, subject, target class, blast radius, freshness, safety, rollback/no-rollback, verification, learning, and authority generation remain inside certified bounds.
-11. Runtime must stop or ask when the class is uncertified, governed-only, not class-approved, authority is exceeded, policy changed, risk exceeds certified blast radius, or required safety/freshness/rollback/verification/learning gates fail.
-12. This design does not implement runtime code, daemon/timer enablement, event consumer changes, autonomous execution, apply, user movement, planner changes, governance changes, execution changes, truth-source changes, floor changes, synthetic evidence, restore-barrier writes, or rollback apply.
+11. Runtime must generate or consume a fresh packet immediately before execution and verify that it belongs to the approved Action Class. Packet validity must not depend on a long-lived operator approval.
+12. Runtime must stop or ask when the class is uncertified, governed-only, not class-approved, authority is exceeded, policy changed, risk exceeds certified blast radius, the packet does not match class authority, or required safety/freshness/rollback/verification/learning gates fail.
+13. Runtime may execute automatically only inside an approved Delegated Autonomy Policy when action class, fresh packet, rollback, verification, anti-flap, blast radius, freshness, evidence, and known-failure-mode gates all pass.
+14. This design does not implement runtime code, daemon/timer enablement, event consumer changes, autonomous execution, apply, user movement, planner changes, governance changes, execution changes, truth-source changes, floor changes, synthetic evidence, restore-barrier writes, or rollback apply.
 
 Related report: `docs/reports/V7_RUNTIME_MODEL_DESIGN_REPORT.md`.
 Related ADR: `docs/decisions/ADR-V7-RUNTIME-MODEL.md`.

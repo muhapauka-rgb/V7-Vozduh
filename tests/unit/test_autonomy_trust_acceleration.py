@@ -953,7 +953,7 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
             )
 
         enablement = inventory["action_class_runtime_enablement"]
-        self.assertEqual(enablement["schema_version"], "v7.action-class-runtime-enablement.v1")
+        self.assertEqual(enablement["schema_version"], "v7.action-class-runtime-enablement.v2")
         self.assertEqual(enablement["path_status"], "PARTIAL")
         self.assertEqual(enablement["semantic_reuse_audit"]["semantic_coverage_percent"], 78)
         self.assertFalse(enablement["semantic_reuse_audit"]["need_new_owner"])
@@ -963,8 +963,23 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(enablement["next_promotion_target"], "CERTIFIED_FOR_CLASS_APPROVAL")
         self.assertFalse(enablement["runtime_capability_view"]["runtime_can_execute_automatically"])
         self.assertFalse(enablement["runtime_capability_view"]["runtime_apply_allowed_now"])
+        self.assertEqual(enablement["runtime_capability_view"]["current_autonomy_mode"], "CLASS_APPROVAL")
+        self.assertEqual(enablement["runtime_capability_view"]["target_autonomy_mode"], "DELEGATED_AUTONOMY")
         self.assertEqual(enablement["enablement_readiness"]["stop_condition_if_promoted"], "AUTHORITY_BOUNDARY")
         self.assertIn("class-level authority_policy_approval", enablement["enablement_readiness"]["missing_evidence"])
+        policy = enablement["delegated_autonomy_policy_preview"]
+        self.assertEqual(policy["policy_id"], "dap_default_tier1_readonly")
+        self.assertEqual(policy["policy_state"], "NOT_APPROVED")
+        self.assertEqual(policy["max_blast_radius"]["users"], 1)
+        self.assertFalse(policy["runtime_apply_enabled"])
+        self.assertFalse(policy["authority_expanded"])
+        self.assertFalse(policy["autonomy_enabled"])
+        eligibility = enablement["delegated_autonomy_runtime_eligibility"]
+        self.assertFalse(eligibility["runtime_may_self_approve_operational_decision"])
+        self.assertIn("POLICY_NOT_APPROVED", eligibility["blockers"])
+        self.assertIn("ACTION_CLASS_NOT_AUTONOMOUS_RUNTIME", eligibility["blockers"])
+        self.assertIn("RUNTIME_APPLY_NOT_ENABLED", eligibility["blockers"])
+        self.assertFalse(eligibility["authority_expansion_allowed_by_runtime"])
         self.assertEqual(
             enablement["packet_to_action_class_mapping"]["action_class"],
             "single-user governed candidate failover",
@@ -982,6 +997,47 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertFalse(enablement["new_governance_created"])
         self.assertFalse(enablement["new_execution_path_created"])
         self.assertFalse(enablement["new_truth_source_created"])
+
+    def test_delegated_autonomy_policy_eligibility_is_policy_bounded(self):
+        packet_mapping = {
+            "action_class": "single-user governed candidate failover",
+            "selected_move_count": 1,
+        }
+        policy = accel.build_delegated_autonomy_policy_preview({
+            "policy_state": "APPROVED",
+            "current_mode": "DELEGATED_AUTONOMY",
+            "runtime_apply_enabled": True,
+        })
+        eligibility = accel.build_delegated_autonomy_runtime_eligibility(
+            policy_preview=policy,
+            packet_mapping=packet_mapping,
+            current_state="AUTONOMOUS_RUNTIME",
+            missing_evidence=[],
+            freshness_actionability={"domains": {}},
+        )
+
+        self.assertTrue(eligibility["runtime_may_self_approve_operational_decision"])
+        self.assertFalse(eligibility["runtime_must_stop"])
+        self.assertEqual(eligibility["blockers"], [])
+        self.assertFalse(eligibility["authority_expansion_allowed_by_runtime"])
+        self.assertFalse(eligibility["policy_expansion_allowed_by_runtime"])
+
+        oversized = accel.build_delegated_autonomy_runtime_eligibility(
+            policy_preview=policy,
+            packet_mapping={
+                "action_class": "small-batch movement",
+                "selected_move_count": 3,
+            },
+            current_state="AUTONOMOUS_RUNTIME",
+            missing_evidence=[],
+            freshness_actionability={"domains": {}},
+        )
+
+        self.assertFalse(oversized["runtime_may_self_approve_operational_decision"])
+        self.assertIn("ACTION_CLASS_NOT_ALLOWED", oversized["blockers"])
+        self.assertIn("BLAST_RADIUS_EXCEEDED", oversized["blockers"])
+        self.assertFalse(oversized["apply_executed"])
+        self.assertEqual(oversized["users_moved"], 0)
 
     def test_autonomous_routing_evolution_program_survives_refresh_rebuild(self):
         with tempfile.TemporaryDirectory() as tmp:

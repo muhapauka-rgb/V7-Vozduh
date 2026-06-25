@@ -99,6 +99,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--knowledge-quality-only", action="store_true")
     parser.add_argument("--routing-foundation-only", action="store_true")
     parser.add_argument("--action-class-runtime-only", action="store_true")
+    parser.add_argument("--delegated-autonomy-policy-only", action="store_true")
+    parser.add_argument("--delegated-autonomy-eligibility-only", action="store_true")
     parser.add_argument("--pretty", action="store_true")
     return parser
 
@@ -168,6 +170,10 @@ def main(argv=None) -> int:
         }
     if args.action_class_runtime_only:
         payload = payload["action_class_runtime_enablement"]
+    if args.delegated_autonomy_policy_only:
+        payload = payload["action_class_runtime_enablement"]["delegated_autonomy_policy_preview"]
+    if args.delegated_autonomy_eligibility_only:
+        payload = payload["action_class_runtime_enablement"]["delegated_autonomy_runtime_eligibility"]
     print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
     return 0
 

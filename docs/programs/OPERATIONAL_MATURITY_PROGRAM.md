@@ -147,6 +147,7 @@ After every successful certified outcome, OMP must evaluate:
 1. can authority remain unchanged;
 2. can authority shrink;
 3. should authority expansion be proposed.
+4. can packet-level approval be retired for the certified action class.
 
 OMP may recommend authority expansion.
 
@@ -157,6 +158,14 @@ Authority expansion requires explicit operator approval or certified policy appr
 If expansion is needed before safe continuation, OMP must stop at `AUTHORITY_BOUNDARY`.
 
 Authority shrink may be recommended when verification, rollback, learning, or real outcomes show increased risk.
+
+Packet-level approval is not the permanent product model.
+
+The durable authority object is the Action Class.
+
+Packets are runtime execution artifacts. They are fresh, bounded, validated, and ephemeral. A packet may execute only when it belongs to an already approved Action Class or when the class is still `GOVERNED_ONLY` and the operator explicitly approves the exact packet as a temporary governed fallback.
+
+OMP must treat packet staleness as evidence that packet approval does not scale. Packet approval is acceptable for early governed proof, but it must be eliminated class-by-class after certification and explicit authority approval.
 
 ## 2.1.4. Autonomy Promotion Engine
 
@@ -182,12 +191,14 @@ These surfaces may classify, map, and recommend. They must not move users, write
 Operator authority must evolve from:
 
 ```text
-Approve Packet
-  -> Approve Action Class
+Approve Action Class
   -> Approve Authority Expansion
   -> Approve Product Policy
   -> Operator Supervision Only
 ```
+
+`Approve Packet` remains only a temporary `GOVERNED_ONLY` fallback while an action class is not yet certified for class approval.
+It is not the primary OMP authority model.
 
 Every certified outcome must trigger Autonomy Promotion evaluation.
 
@@ -200,6 +211,16 @@ Can this action class move to the next autonomy state?
 If yes, OMP must prepare a class promotion or authority expansion recommendation.
 
 If no, OMP must state the exact missing evidence, verification, rollback/no-rollback quality, blast-radius certification, safety gate, freshness gate, anti-flap certification, learning quality, trust gap, authority policy, runtime owner path, or duplication blocker.
+
+After every certified action class, OMP must also ask:
+
+```text
+Can packet approval for this class be permanently eliminated?
+```
+
+If yes, OMP must prepare an Authority Promotion recommendation that moves the class toward runtime capability.
+
+If no, OMP must state the exact missing evidence that still requires packet-level governed fallback.
 
 An action class may become autonomous only if all are true:
 
@@ -239,7 +260,8 @@ Observe
   -> Recommend Promotion
   -> Operator approves CLASS
   -> Runtime capability updated
-  -> Future packets execute automatically inside policy
+  -> Runtime generates fresh packets inside policy
+  -> Future packets execute only when they match approved class authority
 ```
 
 Action class states:
@@ -247,10 +269,10 @@ Action class states:
 | State | Meaning |
 | --- | --- |
 | `NOT_CERTIFIED` | The class lacks enough evidence, certification, owner wiring, safety, freshness, rollback/no-rollback, blast-radius, learning, trust, or authority basis. |
-| `GOVERNED_ONLY` | The class can be prepared or executed only as a governed action with explicit packet-level authority. |
+| `GOVERNED_ONLY` | Temporary proof state. The class can be prepared or executed only as a governed action with explicit packet-level authority while class evidence is still insufficient. |
 | `CERTIFIED_FOR_CLASS_APPROVAL` | The class has enough real evidence for OMP to recommend operator approval of the class, but Runtime must not execute it autonomously yet. |
 | `CERTIFIED_FOR_BOUNDED_AUTONOMY` | The class has enough evidence and approved authority policy for bounded autonomous execution to be proposed. This still does not silently enable Runtime. |
-| `AUTONOMOUS_RUNTIME` | Runtime may execute this class automatically inside explicitly approved policy, authority, blast-radius, freshness, safety, rollback/no-rollback, verification, and learning bounds. |
+| `AUTONOMOUS_RUNTIME` | Runtime may execute this class automatically inside explicitly approved policy, authority, blast-radius, freshness, safety, rollback/no-rollback, verification, and learning bounds. Packet-level operator approval is retired for the class. |
 
 Canonical Action Classes:
 
@@ -285,6 +307,35 @@ Action-class ladder:
 | 11. Verification | Existing verification and truth/convergence owners exist. | Real verification results across executed actions. | Verification must prove action effect or inconclusive state. | N/A unless rollback follows. | N/A. | Existing verification policy. | `GOVERNED_ONLY` |
 | 12. Outcome closure | Existing feedback/outcome owners exist. | Verified real outcomes and closure records. | Closure completeness and learning eligibility. | N/A. | N/A. | Existing outcome policy. | `GOVERNED_ONLY` |
 | 13. Learning refresh | Existing learning/snapshot owners exist. | Verified outcome records only. | Refresh output and truth/convergence. | N/A. | N/A. | Existing learning policy. | `GOVERNED_ONLY` |
+
+Runtime enablement end state:
+
+```text
+Certified Action Class
+  -> Authority Promotion Recommendation
+  -> Operator or certified policy approval
+  -> Runtime capability
+  -> Fresh packet generated immediately before execution
+  -> Packet validated against approved class
+  -> Execute or stop safely
+```
+
+Packet approval is not the promotion endpoint.
+Runtime capability is the promotion endpoint.
+
+Runtime must never depend on a long-lived packet approval for an autonomous or class-approved action.
+Runtime must generate or consume a fresh packet immediately before execution and verify:
+
+- action class match;
+- authority match;
+- policy match;
+- subject and target class match;
+- freshness;
+- safety;
+- rollback/no-rollback readiness;
+- verification readiness;
+- blast-radius bounds;
+- no duplicate planner, governance, execution, or truth.
 
 Stop rule:
 
@@ -323,7 +374,98 @@ Current machine-readable path status:
 
 The path exists as a read-only registry, packet-to-action-class mapping, authority-to-action-class mapping, runtime capability view, promotion recommendation, and enablement readiness check through existing owners. It is not yet autonomous runtime authority.
 
-## 2.1.5. Research And Architecture Gating Rules
+## 2.1.5. Delegated Autonomy Policy Model
+
+Delegated Autonomy Policy is the permanent model for replacing repetitive operator approval.
+
+The operator approves bounded policy.
+V7 may self-approve operational decisions only inside that approved policy.
+V7 may not approve expansion of the policy.
+
+Delegated Autonomy Policy is not runtime apply.
+It is not user movement.
+It is not authority expansion.
+It is not a new planner, governance layer, execution path, runtime owner, truth source, or packet owner.
+
+The policy must define:
+
+- allowed action classes;
+- max users per action;
+- allowed failure types;
+- required freshness;
+- required verification;
+- required rollback or certified no-rollback path;
+- required anti-flap state;
+- required suitability, trust, confidence, and prediction floors;
+- max blast radius;
+- cooldown;
+- stop conditions;
+- automatic downgrade rules;
+- required reporting after action.
+
+Autonomy modes:
+
+| Mode | Meaning |
+| --- | --- |
+| `MANUAL_PACKET_APPROVAL` | Temporary early governed fallback. Operator approves exact fresh packets. |
+| `CLASS_APPROVAL` | Operator approves durable action classes, but Runtime does not execute autonomously. |
+| `DELEGATED_AUTONOMY` | Operator approves bounded policy; V7 may make operational decisions inside policy. |
+| `PRODUCTION_AUTONOMY` | Operator supervises; Runtime performs routine certified work inside policy. |
+
+Current default policy:
+
+| Field | Value |
+| --- | --- |
+| Policy id | `dap_default_tier1_readonly` |
+| Policy state | `NOT_APPROVED` |
+| Current mode | `CLASS_APPROVAL` |
+| Target mode | `DELEGATED_AUTONOMY` |
+| Allowed first class | `single-user governed candidate failover` |
+| Max users per action | `1` |
+| Runtime apply enabled | `NO` |
+| Authority expanded | `NO` |
+
+Runtime may execute automatically only if all are true:
+
+1. action belongs to an approved policy;
+2. action class is certified, or policy explicitly allows governed learning mode;
+3. fresh packet is generated immediately before execution;
+4. packet matches policy;
+5. rollback is ready;
+6. verification is ready;
+7. anti-flap passes;
+8. blast radius is within policy;
+9. evidence is not stale;
+10. failure mode is known.
+
+If any condition fails, Runtime must stop safely.
+
+Self-approval rule:
+
+- V7 may approve operational decisions inside approved policy.
+- V7 may not approve policy expansion.
+- V7 may not silently increase blast radius.
+- V7 may not silently add new action classes.
+- V7 may recommend expansion, but it cannot grant expansion.
+
+Machine-readable Delegated Autonomy Policy state is exposed through the existing read-only owners:
+
+- `admin_core/autonomy_trust_acceleration.py::build_delegated_autonomy_policy_preview`;
+- `admin_core/autonomy_trust_acceleration.py::build_delegated_autonomy_runtime_eligibility`;
+- `admin_core/autonomy_trust_acceleration.py::build_action_class_runtime_enablement_model`;
+- `tools/v7-autonomy-trust-evidence-inventory --delegated-autonomy-policy-only`;
+- `tools/v7-autonomy-trust-evidence-inventory --delegated-autonomy-eligibility-only`;
+- `tools/v7-autonomy-trust-evidence-inventory --action-class-runtime-only`.
+
+Current implementation status:
+
+`READ_ONLY_PREVIEW_AND_ELIGIBILITY_CHECK_ONLY`
+
+Current automation state:
+
+`NO_RUNTIME_AUTOMATION_ENABLED`
+
+## 2.1.6. Research And Architecture Gating Rules
 
 Research changes implementation only through:
 
@@ -357,13 +499,13 @@ V7 separates:
 
 Knowledge Maturity controls autonomy tier progression.
 
-Execution Authority controls whether an exact bounded action may happen.
+Execution Authority controls whether an approved action class may execute a fresh bounded packet now.
 
 Core rule:
 
 ```text
 Trust decides autonomy tier.
-Safety decides bounded action.
+Safety decides whether a fresh packet inside approved authority may execute.
 ```
 
 Knowledge Maturity answers:
@@ -375,7 +517,7 @@ How autonomous may V7 become?
 Execution Authority answers:
 
 ```text
-May this exact bounded action happen now?
+May this action class execute this fresh bounded packet now?
 ```
 
 `70/70/70` remains the hard floor for `TIER_2+` and autonomous progression.
@@ -396,6 +538,9 @@ A `TIER_1` governed action may be considered only when:
 - policy allows the action;
 - truth/convergence pass;
 - explicit operator approval exists.
+
+For `GOVERNED_ONLY`, the explicit approval may still be packet-level because the class is not certified yet.
+For `CERTIFIED_FOR_CLASS_APPROVAL`, `CERTIFIED_FOR_BOUNDED_AUTONOMY`, or `AUTONOMOUS_RUNTIME`, OMP must prefer class authority and policy authority over repeating packet approval.
 
 This model does not authorize restore-barrier writes, runtime apply, user movement, rollback apply, daemon/timer enablement, authority expansion, floor changes, synthetic evidence, or new owners.
 
@@ -423,7 +568,8 @@ Event
   -> Knowledge Snapshot
   -> Policy
   -> Safety Check
-  -> Packet
+  -> Action-Class Authority
+  -> Fresh Packet
   -> Execute or Stop
   -> Verify
   -> Rollback if needed
@@ -1200,8 +1346,12 @@ Permanent operator command surface:
 | Command | Meaning |
 | --- | --- |
 | `Continue OMP` | Run the OMP production loop through all safe implementation, verification, deployment, truth, convergence, certification, update, and authority evaluation work until an allowed stop condition. |
-| `Approve packet` | Grant authority for one exact governed packet only, preserving packet identity and existing owner boundaries. |
+| `Approve action class` | Approve a specific certified Action Class after OMP recommends it from real outcomes, verification, rollback/no-rollback quality, blast-radius certification, safety, freshness, learning, and authority policy. |
 | `Approve authority expansion` | Approve a specific authority expansion only after OMP recommends it from certified evidence. |
+
+Temporary fallback:
+
+`Approve packet` may still be used only for one exact `GOVERNED_ONLY` packet while the action class is not yet certified for class authority. It is not the permanent production command surface.
 
 These commands are sufficient for future production operation unless a real implementation proves `FUNDAMENTAL_ARCHITECTURE_GAP`.
 
@@ -1397,8 +1547,10 @@ Update OMP only when scheduler/optimizer meaning changes.
 V7 can continue production evolution using only:
 
 1. `Continue OMP`;
-2. `Approve packet`;
+2. `Approve action class`;
 3. `Approve authority expansion`.
+
+`Approve packet` remains a temporary governed fallback for `GOVERNED_ONLY` classes only.
 
 No additional roadmap document is required.
 

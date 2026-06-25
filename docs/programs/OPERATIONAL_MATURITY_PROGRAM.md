@@ -112,6 +112,19 @@ Current semantic reuse audit for OMP V2.1:
 | Extension strategy | Add V2.1 optimizer/minimalism/gate/detector sections in place |
 | Need New Owner | `FALSE` |
 
+Latest semantic reuse audit for optimizer iteration `2026-06-25`:
+
+| Field | Current Value |
+| --- | --- |
+| Desired capability | Validate the current highest leverage action and execute any safer maturity-gaining portion before authority boundary. |
+| Existing owners found | `v7-autonomy-trust-evidence-inventory`, `v7-governed-canary-dry-run-cycle`, `v7-egress-quality-compact`, `v7-service-matrix-refresh-all`, `v7-intelligence-snapshot-refresh`, existing packet/restore/verification/outcome/learning owners. |
+| Semantic equivalent owners | Existing service matrix / quality snapshot owners cover service verification and freshness; existing governed canary dry-run covers packet/restore/outcome/learning preview; existing inventory covers OMP recalculation. |
+| Composition strategy | Recalculate with inventory, challenge with governed dry-run, execute only existing service/quality/snapshot refresh owners, then recalculate. |
+| Semantic coverage | `100%` |
+| Reuse strategy | Reuse production owners as-is; no new CLI, API, storage, read model, planner, governance, execution, or truth source. |
+| Extension strategy | None required for the safe portion. |
+| Need New Owner | `FALSE` |
+
 ## 2.5. New Owner Gate
 
 Before creating any new owner, knowledge model, planner, engine, pipeline, API, CLI, storage, snapshot, or truth source, OMP must prove:
@@ -183,6 +196,21 @@ Current detector result:
 | Duplicate execution | `NONE` |
 | Duplicate truth sources | `NONE` |
 | Duplicate maturity models | `NONE` |
+| Verdict | `NONE` |
+
+Latest optimizer iteration duplication result `2026-06-25`:
+
+| Field | Current Value |
+| --- | --- |
+| Duplicate owners | `NONE` |
+| Duplicate planners | `NONE` |
+| Duplicate governance | `NONE` |
+| Duplicate execution | `NONE` |
+| Duplicate knowledge | `NONE` |
+| Duplicate lifecycle | `NONE` |
+| Duplicate API | `NONE` |
+| Duplicate CLI | `NONE` |
+| Duplicate read model | `NONE` |
 | Verdict | `NONE` |
 
 ## 3. Program States
@@ -274,6 +302,19 @@ Ranking:
 | Event integration | Useful for automation readiness, not the current highest bottleneck | Medium | Medium | No apply if read-only | 5 |
 
 Current highest leverage action crosses authority boundary. Codex may continue only preparation and verification until explicit authority is granted.
+
+Latest optimizer challenge `2026-06-25`:
+
+| Challenger | Result |
+| --- | --- |
+| Prediction outcome cycle | Highest named overall leverage in inventory, but current matching is already complete and remaining gain depends on stronger source confidence; no pending autonomous apply is allowed. |
+| Feedback outcome closure | Useful after a real outcome exists; cannot manufacture the missing real outcome. |
+| Service verification outcome | Lower suitability gain than a real candidate outcome, but equal/lower authority, lower risk, and lower effort; safe existing-owner portion was executed. |
+| Candidate suitability outcome closure | Still the direct highest action for the current bottleneck after safe refresh, but it crosses `AUTHORITY_BOUNDARY`. |
+
+Optimizer result:
+
+`Governed candidate suitability outcome closure` remains the final highest leverage action for the bottleneck after the safe challenger was executed. The safe automatic challenger did not replace the final HLA; it completed the allowed read-only/no-movement portion before the boundary.
 
 ## 8. Current Authority Boundary
 
@@ -382,6 +423,25 @@ Current optimization target:
 | Authority | Crosses `AUTHORITY_BOUNDARY` if it proceeds beyond preview |
 | Safe automatic portion | Refresh exact governed packet preview, verify restore/rollback preview, verify outcome closure plan, present exact authority decision |
 
+Latest optimization iteration `2026-06-25`:
+
+| Field | Current Value |
+| --- | --- |
+| Recalculation source | Production `v7-autonomy-trust-evidence-inventory` after service/quality/snapshot refresh. |
+| Challenged action | `Governed candidate suitability outcome closure`. |
+| Best lower-risk challenger | `Service verification and quality snapshot refresh`. |
+| Safe portion executed | `v7-egress-quality-compact`, `v7-service-matrix-refresh-all`, `v7-intelligence-snapshot-refresh`. |
+| Runtime apply | `FALSE` |
+| Users moved | `0` |
+| New owner created | `FALSE` |
+| New planner/governance/execution/truth | `FALSE` |
+| Post-refresh maturity score | `84.167` |
+| Post-refresh largest floor gap | `Suitability`: current `29.11`, gap `40.89` to floor `70`. |
+| Post-refresh candidate gap | `72` missing candidate outcomes, coverage ratio `0.5385`. |
+| Post-refresh dry-run verdict | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY`. |
+| Post-refresh packet state | Packet preview ready; restore/rollback preview ready; verification plan ready; outcome closure plan ready; learning path connected. |
+| Optimizer conclusion | Safe challenger completed; final HLA remains governed candidate suitability outcome closure and stops at `AUTHORITY_BOUNDARY`. |
+
 ## 12. Architecture Health
 
 Maintain continuously:
@@ -460,7 +520,7 @@ This replaces phase-first and roadmap-first thinking with optimization-first thi
 | Authority maturity | `BOUNDARY_REACHED` | Safe preparation reaches authority boundary; apply authority is not granted. |
 | Operational maturity | `OPTIMIZATION_ACTIVE` | OMP now optimizes bottleneck reduction rather than executing a fixed roadmap. |
 | Remaining architecture uncertainty | `NONE_FUNDAMENTAL` | Partial classes are future/scale/authority extensions, not missing architecture. |
-| Current optimization velocity | `BLOCKED_BY_AUTHORITY_FOR_HIGHEST_ACTION` | Safe prep can continue; real maturity gain needs exact authority. |
+| Current optimization velocity | `AUTHORITY_BOUNDARY_AFTER_SAFE_REFRESH` | Safe service/quality/snapshot refresh completed through existing owners; real candidate outcome gain needs exact authority. |
 
 ## 16. Historical Phase Anchor
 
@@ -605,6 +665,7 @@ If approval is not granted, the program remains blocked at `AUTHORITY_BOUNDARY` 
 | Current maturity | Architecture complete with future optional extensions; autonomy cycles mature to authority boundary; real-world outcome evidence remains the maturity bottleneck. |
 | Current runtime posture | No autonomous apply, no user movement, no daemon enablement. |
 | Current next best action | Prepare exact governed packet authority decision, or stay in safe read-only preparation. |
+| Last optimizer iteration | `2026-06-25`: challenged HLA, executed safe service/quality/snapshot refresh, recomputed, stopped at `AUTHORITY_BOUNDARY`. |
 
 ## 24. Program Rule For Future Work
 

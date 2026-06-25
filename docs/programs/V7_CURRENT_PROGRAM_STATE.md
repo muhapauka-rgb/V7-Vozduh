@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-25T16:40:28+0700
-Source: approved leased governed packet execution, outcome closure, learning update, snapshot refresh, production OMP recalculation
+State captured: 2026-06-25T16:45:54+0700
+Source: Continue OMP read-only governed dry-run refresh and authority-bound packet recalculation
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, authority boundary, metrics, packet, or stop reason.
 
@@ -26,9 +26,9 @@ This file is volatile. Update it after every safe action or approved execution t
 | Metric | Current Value |
 | --- | --- |
 | Overall maturity score | `84.167` |
-| Confidence | `45.8 / 70` |
-| Trust | `54.663 / 70` |
-| Prediction | `39.6 / 70` |
+| Confidence | `42.1 / 70` |
+| Trust | `54.188 / 70` |
+| Prediction | `38.0 / 70` |
 | Suitability | `29.493 / 70` |
 | Candidate outcomes consumed | `84 / 156` |
 | Missing candidate outcomes | `72` |
@@ -37,26 +37,26 @@ This file is volatile. Update it after every safe action or approved execution t
 
 | Field | Current Value |
 | --- | --- |
-| Candidate | `10.7.0.17` |
-| Current channel | `vless` |
-| Target channel | `awg3` |
+| Candidate | `10.0.0.2` |
+| Current channel | `awg3` |
+| Target channel | `awg0` |
 | Action | `MOVE_GOVERNED_CANARY_REVIEW` |
 | Authority tier | `TIER_1` |
 | Authority status | `MARGINAL_OPERATOR_REVIEW` |
-| Packet preview id | `pkt_preview_5c4bcfaa59d769ced6d6e5dc` |
-| Operation id | `govdry_27823dc8d8acf421271345f5` |
-| Decision id | `decision_preview_89f97b0be8b2ad54543542fd` |
-| Authority generation | `gkcanary_bc9bcee90310184ba888abb7` |
-| Selected move hash | `e007e0c65bbf4e4cf56b6dbbd557c09676559224ed3ec834fd998e33180fcfdc` |
-| Rollback target | `vless` |
-| Rollback manifest id | `rb_preview_689e956416f95797a018a5fe` |
-| Risk | `3.528` |
-| Candidate confidence | `0.458` |
-| Trust | `54.663` |
+| Packet preview id | `pkt_preview_b55fa389b91f8b508c424283` |
+| Operation id | `govdry_c2211a4737027001767173df` |
+| Decision id | `decision_preview_bab41b89dd77c33aaa96f28a` |
+| Authority generation | `gkcanary_93b2002b4bfadf42e906c726` |
+| Selected move hash | `6de9e973cec56c98c6d2a62c812cc2e4b72cc9f8efd035578b2eb5285a4155f4` |
+| Rollback target | `awg3` |
+| Rollback manifest id | `rb_preview_ba01285ae7b100b8e557879b` |
+| Risk | `3.278` |
+| Candidate confidence | `0.421` |
+| Trust | `54.188` |
 
 No execution lease is active for this fresh packet. The previous leased packet was consumed and closed as `EXECUTION_FINISHED`.
 
-Latest continuation note: approved leased packet `pkt_preview_fb70744bc51ad162b1727dcb` was executed through existing owners, verified successfully, closed as a real outcome, and fed into learning. Production OMP recalculation produced a new exact authority-bound packet.
+Latest continuation note: a read-only Continue OMP dry-run refreshed the exact authority-bound packet. The previous approval prompt for `pkt_preview_5c4bcfaa59d769ced6d6e5dc` is stale and must not be used.
 
 ## 3.1. Execution Lease Preflight
 
@@ -111,16 +111,16 @@ Latest continuation note: approved leased packet `pkt_preview_fb70744bc51ad162b1
 
 | Field | Current Value |
 | --- | --- |
-| Executed at | `2026-06-25T16:40:28+0700` |
-| Optimizer result | approved leased packet executed, verified, closed, learned from, and production OMP recalculated through existing owners |
-| Safe work completed | exact lease consumption; restore-barrier clearance for approved packet; one-user apply; immediate verification; outcome closure; learning append; snapshot refresh; production dry-run recalculation |
-| Evidence refresh result | previous lease terminal; fresh production dry-run emits new authority-bound approval prompt |
+| Executed at | `2026-06-25T16:45:54+0700` |
+| Optimizer result | read-only governed dry-run refresh completed and produced a fresh exact authority-bound packet |
+| Safe work completed | packet preview refresh; restore/rollback preview verification; verification plan refresh; outcome closure plan refresh; learning path verification |
+| Evidence refresh result | previous lease remains terminal; fresh production dry-run emits new authority-bound approval prompt |
 | Fresh dry-run verdict | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY` |
-| Fresh candidate | `10.7.0.17` |
-| Fresh movement preview | `vless -> awg3` |
-| Fresh packet preview id | `pkt_preview_5c4bcfaa59d769ced6d6e5dc` |
-| Fresh operation id | `govdry_27823dc8d8acf421271345f5` |
-| Fresh rollback manifest id | `rb_preview_689e956416f95797a018a5fe` |
+| Fresh candidate | `10.0.0.2` |
+| Fresh movement preview | `awg3 -> awg0` |
+| Fresh packet preview id | `pkt_preview_b55fa389b91f8b508c424283` |
+| Fresh operation id | `govdry_c2211a4737027001767173df` |
+| Fresh rollback manifest id | `rb_preview_ba01285ae7b100b8e557879b` |
 | Runtime lifecycle preview | previous lease terminal; fresh packet preview ready; `execution_lease.active=false`; `execution_lease_state.status=EXECUTION_FINISHED` |
 | Restore/rollback preview | `RESTORE_AND_ROLLBACK_PREVIEW_READY` |
 | Verification plan | `VERIFICATION_PLAN_READY` |
@@ -165,25 +165,25 @@ Current ready-to-copy approval prompt:
 Approve exact governed canary packet.
 
 Approved packet:
-pkt_preview_5c4bcfaa59d769ced6d6e5dc
+pkt_preview_b55fa389b91f8b508c424283
 
 Operation:
-govdry_27823dc8d8acf421271345f5
+govdry_c2211a4737027001767173df
 
 Selected move hash:
-e007e0c65bbf4e4cf56b6dbbd557c09676559224ed3ec834fd998e33180fcfdc
+6de9e973cec56c98c6d2a62c812cc2e4b72cc9f8efd035578b2eb5285a4155f4
 
 User:
-10.7.0.17
+10.0.0.2
 
 Move:
-vless -> awg3
+awg3 -> awg0
 
 Rollback target:
-vless
+awg3
 
 Rollback manifest:
-rb_preview_689e956416f95797a018a5fe
+rb_preview_ba01285ae7b100b8e557879b
 
 Authority:
 TIER_1 governed canary
@@ -304,7 +304,7 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
 | Runtime truth | `KNOWN` |
 | Runtime access | `READY` |
 | Production dry-run verdict | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY`; previous lease status `EXECUTION_FINISHED`; fresh approval prompt status `APPROVAL_PROMPT_READY`; no apply or movement in the recalculation dry-run |
-| Production lifecycle id | `rtlife_0d0e362f0ee3b3881bc59a78` |
+| Production lifecycle id | `rtlife_343bba9fae31eb642dee4dc7` |
 | Stop reason | `AUTHORITY_BOUNDARY` |
 | Next action | operator may approve or reject the fresh exact prompt in section 7 |
 
@@ -312,13 +312,13 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
 
 | Field | Current Value |
 | --- | --- |
-| Verified at | `2026-06-25T16:40:28+0700` |
+| Verified at | `2026-06-25T16:45:54+0700` |
 | Branch | `Updatesystem` |
 | Truth check | `PASS`; local, GitHub, and runtime aligned; non-blocking documentation-only dirtiness remains |
-| Convergence | `PASS`; deploy delta empty; runtime action guard `READY_FOR_RUNTIME_ACTION` |
+| Convergence | `NOT_FULLY_RERUN`; escalated approval timed out twice; sandboxed retry returned GitHub unreadable `NO-GO`; previous full convergence remained `PASS` before this read-only packet refresh |
 | Documentation dirtiness | Non-blocking documentation-only dirty files remain; do not treat them as runtime blockers |
 | Production dry-run command | `ssh v7-vps /usr/local/bin/v7-governed-canary-dry-run-cycle --pretty` |
 | Production dry-run result | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY`; previous lease terminal; fresh packet preview ready |
 | Production prompt safety | `restore_barrier_written_now=false`; `apply_executed=false`; `users_moved=0`; `rollback_executed=false`; `runtime_mutation_performed=false` |
-| Current packet freshness | Current dry-run packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` is ready for approval; no active lease has been created for it yet |
-| Exact next required approval | Operator approval or rejection for `pkt_preview_5c4bcfaa59d769ced6d6e5dc` |
+| Current packet freshness | Current dry-run packet `pkt_preview_b55fa389b91f8b508c424283` is ready for approval; no active lease has been created for it yet |
+| Exact next required approval | Operator approval or rejection for `pkt_preview_b55fa389b91f8b508c424283` |

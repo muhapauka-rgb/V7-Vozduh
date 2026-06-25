@@ -1041,6 +1041,101 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(second_extraction["users_moved"], 0)
         self.assertFalse(second_extraction["apply_executed"])
 
+    def test_final_architecture_certification_covers_core_classes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        certification = inventory["final_autonomous_routing_architecture_certification"]
+        self.assertEqual(
+            certification["schema_version"],
+            "v7.autonomy-trust.final-autonomous-routing-architecture-certification.v1",
+        )
+        self.assertEqual(
+            certification["final_verdict"],
+            "ARCHITECTURE_COMPLETE_WITH_FUTURE_OPTIONAL_EXTENSIONS",
+        )
+        self.assertEqual(certification["fundamental_missing_classes"], [])
+        knowledge = {row["item"]: row for row in certification["knowledge_source_completeness"]}
+        for item in [
+            "Channel Knowledge",
+            "Service Knowledge",
+            "User Knowledge",
+            "Decision Knowledge",
+            "Outcome Knowledge",
+            "Learning Knowledge",
+            "Suitability Knowledge",
+            "Prediction Knowledge",
+            "Safety / Blast / Rollback Knowledge",
+        ]:
+            self.assertIn(item, knowledge)
+            self.assertNotEqual(knowledge[item]["status"], "MISSING")
+        self.assertEqual(knowledge["Client Observation Knowledge"]["status"], "PARTIAL")
+        decisions = {row["item"]: row["status"] for row in certification["decision_completeness"]}
+        for item in ["KEEP", "MOVE", "FAILOVER", "DRAIN", "WAIT", "ASK_OPERATOR", "NO_ACTION", "SELF_STOP", "SELF_LIMIT"]:
+            self.assertEqual(decisions[item], "EXISTS")
+        self.assertEqual(decisions["QUARANTINE"], "PARTIAL")
+        self.assertEqual(decisions["RECOVER"], "PARTIAL")
+        self.assertEqual(certification["lifecycle_status_by_stage"]["observation"], "EXISTS")
+        self.assertEqual(certification["lifecycle_status_by_stage"]["learning"], "EXISTS")
+        self.assertEqual(certification["lifecycle_status_by_stage"]["aging"], "PARTIAL")
+        self.assertEqual(certification["architecture_limit"], "REAL_WORLD_EXPERIENCE_AND_AUTHORITY")
+        self.assertEqual(
+            certification["next_program"],
+            "GOVERNED_CANDIDATE_OUTCOME_EXECUTION_AND_CLOSURE",
+        )
+        self.assertFalse(certification["runtime_mutation_performed"])
+        self.assertEqual(certification["users_moved"], 0)
+        self.assertFalse(certification["apply_executed"])
+        self.assertFalse(certification["autonomy_enabled"])
+
+    def test_final_architecture_certification_survives_refresh_rebuild(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            first = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+            second = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=json.loads(json.dumps(self.decision_surface(), sort_keys=True)),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:05:00+00:00",
+            )
+
+        first_cert = first["final_autonomous_routing_architecture_certification"]
+        second_cert = second["final_autonomous_routing_architecture_certification"]
+        for key in [
+            "knowledge_source_summary",
+            "decision_summary",
+            "lifecycle_summary",
+            "routing_summary",
+            "fundamental_missing_classes",
+            "partial_classes",
+            "final_verdict",
+        ]:
+            self.assertEqual(first_cert[key], second_cert[key])
+        self.assertEqual(
+            second_cert["duplication_audit"]["merged_through_existing_owner"],
+            "admin_core.autonomy_trust_acceleration",
+        )
+        self.assertEqual(second_cert["autonomy_cycle_completeness"]["cycle_count"], 12)
+        self.assertFalse(second_cert["runtime_mutation_performed"])
+        self.assertEqual(second_cert["users_moved"], 0)
+        self.assertFalse(second_cert["apply_executed"])
+
 
 if __name__ == "__main__":
     unittest.main()

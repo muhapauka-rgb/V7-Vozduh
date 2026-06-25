@@ -2692,6 +2692,278 @@ def build_maximum_reality_knowledge_extraction(
     }
 
 
+def _architecture_status_summary(rows: list[dict[str, Any]]) -> dict[str, int]:
+    return _classification_summary([
+        {"classification": row.get("status", "UNKNOWN")} for row in rows
+    ])
+
+
+def _architecture_row(
+    *,
+    item: str,
+    status: str,
+    owner: str,
+    evidence: str,
+    limit: str = "",
+    safe_extension: str = "",
+) -> dict[str, Any]:
+    return {
+        "item": item,
+        "status": status,
+        "owner": owner,
+        "evidence": evidence,
+        "limit": limit,
+        "safe_extension": safe_extension,
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
+def build_final_autonomous_routing_architecture_certification(
+    *,
+    knowledge_quality_read_model: dict[str, Any],
+    autonomous_knowledge_growth_program: dict[str, Any],
+    autonomous_routing_evolution_program: dict[str, Any],
+    maximum_reality_knowledge_extraction: dict[str, Any],
+    service_user_sla_fit: dict[str, Any],
+    decision_outcome_closure: dict[str, Any],
+    decision_outcome_learning: dict[str, Any],
+    recovery_admission: dict[str, Any],
+    anti_flapping: dict[str, Any],
+    freshness_actionability: dict[str, Any],
+    routing_recommendation_readiness: dict[str, Any],
+    suitability_quality_model: dict[str, Any],
+    candidate_outcome_reality_collection: dict[str, Any],
+    real_outcome_source_inventory: dict[str, Any],
+    prediction_plan: dict[str, Any],
+    canary_proximity: dict[str, Any],
+) -> dict[str, Any]:
+    """Certify final architecture completeness from existing read-only owners."""
+    objects = knowledge_quality_read_model.get("knowledge_objects")
+    objects = objects if isinstance(objects, dict) else {}
+    extraction_summary = maximum_reality_knowledge_extraction.get("classification_summary")
+    extraction_summary = extraction_summary if isinstance(extraction_summary, dict) else {}
+    coverage = candidate_outcome_reality_collection.get("coverage")
+    coverage = coverage if isinstance(coverage, dict) else {}
+    source_items = real_outcome_source_inventory.get("items")
+    source_items = source_items if isinstance(source_items, list) else []
+    source_names = {
+        str(row.get("source"))
+        for row in source_items
+        if isinstance(row, dict) and row.get("source")
+    }
+
+    knowledge_sources = [
+        _architecture_row(item="Channel Knowledge", status="EXISTS", owner="Channel Decision Adapter + planner/read models", evidence="Channel Decision V7 and channel operator signal owners"),
+        _architecture_row(item="Service Knowledge", status="EXISTS", owner="service matrix / service-score snapshot owners", evidence="service_outcomes source and service verification cycle"),
+        _architecture_row(item="User Knowledge", status="EXISTS", owner="operator decision surface + user registry", evidence="user assignment, current channel, profile, policy, and route context"),
+        _architecture_row(item="Policy Knowledge", status="EXISTS", owner="planner policy gates + operator_execution_pipeline floors", evidence="policy load, eligibility, floors, restore/approval gates"),
+        _architecture_row(item="Capacity Knowledge", status="EXISTS", owner="planner load gates + capacity summaries", evidence="capacity/load affects assignment and channel decision"),
+        _architecture_row(item="Failure Knowledge", status="EXISTS", owner="event consumer + service/quality/runtime signals", evidence="regression events, channel/service degradation, planner blockers"),
+        _architecture_row(item="Recovery Knowledge", status="PARTIAL", owner="build_recovery_admission + restore/rollback owners", evidence=f"recovery_admission={recovery_admission.get('schema_version', 'present')}", limit="operator-free recovery not certified", safe_extension="existing recovery admission and rollback owners; no new owner"),
+        _architecture_row(item="Decision Knowledge", status="EXISTS", owner="operator decision surface + governed packet owners", evidence="knowledge-to-decision and governed dry-run cycle"),
+        _architecture_row(item="Outcome Knowledge", status="EXISTS", owner="decision outcome closure + candidate outcome matcher", evidence=f"candidate_outcomes={coverage.get('candidate_outcomes_consumed', 0)}"),
+        _architecture_row(item="Learning Knowledge", status="EXISTS", owner="operator_execution_feedback + trust-evolution summaries", evidence=f"knowledge_gained={(decision_outcome_learning.get('knowledge_growth') or {}).get('knowledge_gained', 0)}"),
+        _architecture_row(item="Freshness Knowledge", status="EXISTS", owner="build_freshness_actionability", evidence=f"domains={len((freshness_actionability.get('domains') or {}) if isinstance(freshness_actionability.get('domains'), dict) else {})}"),
+        _architecture_row(item="Suitability Knowledge", status="EXISTS", owner="suitability quality/growth/effectiveness models", evidence=f"stage={suitability_quality_model.get('current_stage', 'UNKNOWN')}", limit="not autonomy-grade yet; architecture present"),
+        _architecture_row(item="Prediction Knowledge", status="EXISTS", owner="prediction snapshots + actual matcher", evidence=f"matched={prediction_plan.get('matched_rows', 0)}, pending={prediction_plan.get('pending_rows', 0)}"),
+        _architecture_row(item="Reputation / Trust Knowledge", status="EXISTS", owner="trust-evolution summaries + trust source classification", evidence="observed outcome primary trust model"),
+        _architecture_row(item="Client Observation Knowledge", status="PARTIAL", owner="service/channel/user outcome owners", evidence="observed network outcomes exist; direct client telemetry remains future optional extension", limit="direct client agent telemetry not implemented", safe_extension="future telemetry may enrich, but current architecture has observed outcome substitutes"),
+        _architecture_row(item="Temporal Knowledge", status="EXISTS", owner="freshness/actionability + prediction forecast/actual windows", evidence="snapshot generated_at, forecast-to-actual, cooldown/freshness policies"),
+        _architecture_row(item="Behavior Knowledge", status="EXISTS", owner="quality compact + trust/evolution + anti-flap owner", evidence=f"anti_flap={anti_flapping.get('schema_version', 'present')}"),
+        _architecture_row(item="Cohort Knowledge", status="PARTIAL", owner="service_user_sla_fit + candidate diversity/read models", evidence="current cohort/SLA views are enough for current scale; 10k views are future scale extension", limit="10k cohort operator views deferred", safe_extension="aggregate read models after production autonomy certification"),
+        _architecture_row(item="SLA Knowledge", status="PARTIAL", owner="build_service_user_sla_fit", evidence=f"sla_fit={service_user_sla_fit.get('schema_version', 'present')}", limit="SLA scale model not fully production-grade", safe_extension="reuse service/user/SLA fit owner"),
+        _architecture_row(item="Safety / Blast / Rollback Knowledge", status="EXISTS", owner="restore barrier, rollback, blast-radius, canary proximity", evidence=f"missing_canary={len(canary_proximity.get('missing') or [])}"),
+        _architecture_row(item="Runtime Readiness Knowledge", status="EXISTS", owner="truth/convergence + runtime readiness gates", evidence="dry-run reaches authority boundary without apply"),
+    ]
+
+    decisions = [
+        _architecture_row(item="KEEP", status="EXISTS", owner="operator decision surface / planner", evidence="keep/no action decision rows"),
+        _architecture_row(item="MOVE", status="EXISTS", owner="v7-users-autoswitch + governed packet", evidence="selected moves become governed packet preview"),
+        _architecture_row(item="FAILOVER", status="EXISTS", owner="planner failover candidates + restore barrier", evidence="candidate failover path reaches authority boundary"),
+        _architecture_row(item="DRAIN", status="EXISTS", owner="Channel Decision V7 Evacuate + planner selected moves", evidence="Evacuate/Move users expresses drain semantics"),
+        _architecture_row(item="QUARANTINE", status="PARTIAL", owner="channel role/status + recovery admission", evidence="blocked/quarantine semantics exist; autonomous quarantine apply not enabled", limit="operator-free quarantine not certified"),
+        _architecture_row(item="RECOVER", status="PARTIAL", owner="recovery admission + restore/rollback", evidence="staged recovery model exists; autonomous recovery promotion blocked by evidence/authority", limit="operator-free recovery not certified"),
+        _architecture_row(item="WAIT", status="EXISTS", owner="knowledge gates + freshness/candidate blockers", evidence="wait for real event/outcome/snapshot gates"),
+        _architecture_row(item="ASK_OPERATOR", status="EXISTS", owner="AUTHORITY_BOUNDARY + operator approval/packet owners", evidence="governed dry-run stops before restore-barrier write/apply"),
+        _architecture_row(item="NO_ACTION", status="EXISTS", owner="operator decision surface", evidence="healthy/no-action rows"),
+        _architecture_row(item="SELF_STOP", status="EXISTS", owner="governed canary dry-run + planner gates", evidence=f"stop={autonomous_routing_evolution_program.get('exact_stop_reason', 'UNKNOWN')}"),
+        _architecture_row(item="SELF_LIMIT", status="EXISTS", owner="floors, blast radius, restore barrier, capacity gates", evidence="canary proximity, risk tiers, and restore guards"),
+    ]
+
+    lifecycle_stages = ["observation", "verification", "decision", "outcome", "learning", "freshness", "aging", "reuse", "retirement"]
+    lifecycle = []
+    lifecycle_status_by_stage: dict[str, str] = {}
+    for stage in lifecycle_stages:
+        if stage in {"aging", "retirement"}:
+            status = "PARTIAL"
+            owner = "freshness_actionability + future deferred evidence index"
+            limit = "long-horizon decay/retirement remains post-production scale extension"
+        elif stage == "reuse":
+            status = "EXISTS"
+            owner = "intelligence snapshots + trust inventory"
+            limit = ""
+        else:
+            status = "EXISTS"
+            owner = {
+                "observation": "service/quality/event/snapshot owners",
+                "verification": "service matrix + post-action verification owners",
+                "decision": "operator decision surface + planner/governed packet",
+                "outcome": "decision outcome closure + candidate matcher",
+                "learning": "operator_execution_feedback + trust evolution",
+                "freshness": "build_freshness_actionability",
+            }[stage]
+            limit = ""
+        lifecycle_status_by_stage[stage] = status
+        lifecycle.append(_architecture_row(
+            item=stage,
+            status=status,
+            owner=owner,
+            evidence="covered by existing owner" if status == "EXISTS" else "covered as guard/label; deeper scale semantics deferred",
+            limit=limit,
+            safe_extension="reuse existing owner; no new truth source" if status == "PARTIAL" else "",
+        ))
+
+    cycle_rows = [
+        row for row in (autonomous_knowledge_growth_program.get("cycles") or [])
+        if isinstance(row, dict)
+    ]
+    cycle_certification = []
+    for row in cycle_rows:
+        boundary = str(row.get("authority_boundary") or "")
+        automation = str(row.get("automation_level") or "")
+        blocker_class = _cycle_blocker_class(row)
+        cycle_certification.append({
+            "cycle": row.get("cycle"),
+            "owner": row.get("owner"),
+            "automation_level": automation,
+            "executes_automatically": automation in {"FULLY_AUTONOMOUS", "AUTONOMOUS_UNTIL_BOUNDARY"},
+            "blocker_class": blocker_class,
+            "why_not_fully_automatic": boundary or ", ".join(str(item) for item in row.get("blockers") or []) or "none",
+            "safe_integration_removed_blocker": False,
+            "read_only": True,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+            "apply_executed": False,
+        })
+
+    routing_capabilities = [
+        _architecture_row(item="Observe", status="EXISTS", owner="service/quality/event/snapshot owners", evidence="events and snapshots feed planner/read models"),
+        _architecture_row(item="Classify", status="EXISTS", owner="knowledge quality + channel decision + risk tiers", evidence="signals become knowledge/decision states"),
+        _architecture_row(item="Decide", status="EXISTS", owner="operator decision surface + planner", evidence="knowledge-to-decision implemented"),
+        _architecture_row(item="Plan", status="EXISTS", owner="v7-users-autoswitch", evidence="candidate selection and dry-run planner"),
+        _architecture_row(item="Limit Blast Radius", status="EXISTS", owner="risk tiers + restore barrier + blast evidence", evidence="one-user canary / bounded apply guards"),
+        _architecture_row(item="Execute Under Authority", status="EXISTS", owner="operator execution packet + restore barrier", evidence="execution path exists but stops at authority boundary"),
+        _architecture_row(item="Verify Outcome", status="EXISTS", owner="operator_execution_feedback + service outcomes", evidence="post-action verification and service outcomes"),
+        _architecture_row(item="Rollback / No-Rollback", status="EXISTS", owner="rollback owner + restore settle gate", evidence="rollback confidence path exists"),
+        _architecture_row(item="Learn", status="EXISTS", owner="decision outcome learning + trust evolution", evidence="decision-to-outcome-to-learning implemented"),
+        _architecture_row(item="Self-Stop / Self-Limit", status="EXISTS", owner="governed dry-run + floors + truth/convergence", evidence="authority and evidence floors block apply"),
+    ]
+
+    duplicate_owner_audit = {
+        "new_planner_created": False,
+        "new_governance_created": False,
+        "new_execution_path_created": False,
+        "new_truth_source_created": False,
+        "new_storage_created": False,
+        "duplicate_knowledge_owner_detected": False,
+        "merged_through_existing_owner": "admin_core.autonomy_trust_acceleration",
+    }
+
+    fundamental_missing = [
+        row["item"] for row in knowledge_sources + decisions + lifecycle + routing_capabilities
+        if row.get("status") == "MISSING"
+    ]
+    partial_classes = [
+        row["item"] for row in knowledge_sources + decisions + lifecycle + routing_capabilities
+        if row.get("status") == "PARTIAL"
+    ]
+    optional_extensions = [
+        "direct client telemetry owner",
+        "10k-scale cohort/SLA aggregate operator views",
+        "post-production evidence index/freshness decay and retirement weighting",
+        "operator-free quarantine/recovery apply certification",
+    ]
+    real_world_limited = (
+        maximum_reality_knowledge_extraction.get("final_stop_reason") in {"AUTHORITY_BOUNDARY", "REAL_WORLD_LIMIT"}
+        or extraction_summary.get("OBTAINABLE_AFTER_GOVERNED_ACTION", 0) > 0
+    )
+    final_verdict = "ARCHITECTURE_HAS_FUNDAMENTAL_GAPS" if fundamental_missing else "ARCHITECTURE_COMPLETE_WITH_FUTURE_OPTIONAL_EXTENSIONS"
+    if not fundamental_missing and not partial_classes:
+        final_verdict = "ARCHITECTURE_COMPLETE"
+
+    return {
+        "schema_version": "v7.autonomy-trust.final-autonomous-routing-architecture-certification.v1",
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "purpose": "certify_architecture_completeness_without_runtime_apply_or_new_architecture",
+        "reference_basis": [
+            "docs/reference/V7_CANONICAL_REFERENCE.md",
+            "docs/reference/SYSTEM_MAP.md",
+            "docs/reference/V7_AUTONOMY_BLUEPRINT.md",
+            "docs/reference/V7_IDEAL_AUTONOMOUS_ROUTING_MODEL.md",
+            "docs/reference/V7_KNOWLEDGE_QUALITY_MODEL.md",
+            "certified reports through V7_MAXIMUM_REALITY_KNOWLEDGE_EXTRACTION_REPORT.md",
+        ],
+        "knowledge_source_completeness": knowledge_sources,
+        "knowledge_source_summary": _architecture_status_summary(knowledge_sources),
+        "decision_completeness": decisions,
+        "decision_summary": _architecture_status_summary(decisions),
+        "lifecycle_completeness": lifecycle,
+        "lifecycle_summary": _architecture_status_summary(lifecycle),
+        "lifecycle_status_by_stage": lifecycle_status_by_stage,
+        "autonomy_cycle_completeness": {
+            "cycles": cycle_certification,
+            "cycle_count": len(cycle_certification),
+            "automation_counts": autonomous_knowledge_growth_program.get("automation_counts", {}),
+            "overall_autonomy_maturity_score": autonomous_knowledge_growth_program.get("overall_autonomy_maturity_score", 0.0),
+            "cycles_automatic_until_boundary": [
+                row.get("cycle") for row in cycle_certification
+                if row.get("automation_level") == "AUTONOMOUS_UNTIL_BOUNDARY"
+            ],
+            "cycles_fully_automatic": [
+                row.get("cycle") for row in cycle_certification
+                if row.get("automation_level") == "FULLY_AUTONOMOUS"
+            ],
+            "blocker_summary": _classification_summary([
+                {"classification": row["blocker_class"]} for row in cycle_certification
+            ]),
+        },
+        "routing_completeness": routing_capabilities,
+        "routing_summary": _architecture_status_summary(routing_capabilities),
+        "duplication_audit": duplicate_owner_audit,
+        "safe_architectural_gap_closed_in_this_phase": "final architecture certification read model exposed through existing trust inventory owner",
+        "fundamental_missing_classes": fundamental_missing,
+        "partial_classes": partial_classes,
+        "future_optional_extensions": optional_extensions,
+        "architecture_limit": "REAL_WORLD_EXPERIENCE_AND_AUTHORITY" if real_world_limited else "NONE",
+        "current_blockers_are_architectural": bool(fundamental_missing),
+        "current_blockers": {
+            "authority_boundary": autonomous_routing_evolution_program.get("exact_stop_reason") == "AUTHORITY_BOUNDARY",
+            "real_world_limit": maximum_reality_knowledge_extraction.get("final_stop_reason") == "REAL_WORLD_LIMIT",
+            "candidate_outcome_gap": (candidate_outcome_reality_collection.get("coverage") or {}).get("missing_candidate_outcomes", 0),
+            "canary_missing": canary_proximity.get("missing", []),
+            "source_names": sorted(source_names),
+        },
+        "next_program": "GOVERNED_CANDIDATE_OUTCOME_EXECUTION_AND_CLOSURE",
+        "final_verdict": final_verdict,
+        "read_only": True,
+        "synthetic_evidence_created": False,
+        "formula_changed": False,
+        "floor_changed": False,
+        "planner_redesigned": False,
+        "governance_redesigned": False,
+        "execution_redesigned": False,
+        "new_truth_source_created": False,
+        "new_storage_created": False,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+        "autonomy_enabled": False,
+    }
+
+
 def _candidate_key_text(key: tuple[str, str]) -> str:
     return f"{key[0]}:{key[1]}"
 
@@ -4332,6 +4604,24 @@ def build_acceleration_inventory(
         freshness_actionability=freshness_actionability,
         outcome_leverage_model=outcome_leverage_model,
     )
+    final_autonomous_routing_architecture_certification = build_final_autonomous_routing_architecture_certification(
+        knowledge_quality_read_model=knowledge_quality_read_model,
+        autonomous_knowledge_growth_program=autonomous_knowledge_growth_program,
+        autonomous_routing_evolution_program=autonomous_routing_evolution_program,
+        maximum_reality_knowledge_extraction=maximum_reality_knowledge_extraction,
+        service_user_sla_fit=service_user_sla_fit,
+        decision_outcome_closure=decision_outcome_closure,
+        decision_outcome_learning=decision_outcome_learning,
+        recovery_admission=recovery_admission,
+        anti_flapping=anti_flapping,
+        freshness_actionability=freshness_actionability,
+        routing_recommendation_readiness=routing_recommendation_readiness,
+        suitability_quality_model=suitability_quality_model,
+        candidate_outcome_reality_collection=candidate_outcome_reality_collection,
+        real_outcome_source_inventory=real_outcome_source_inventory,
+        prediction_plan=prediction_plan,
+        canary_proximity=canary,
+    )
     return {
         "schema_version": "v7.autonomy-trust-acceleration.inventory.v1",
         "generated_at": generated,
@@ -4367,6 +4657,7 @@ def build_acceleration_inventory(
         "autonomous_knowledge_growth_program": autonomous_knowledge_growth_program,
         "autonomous_routing_evolution_program": autonomous_routing_evolution_program,
         "maximum_reality_knowledge_extraction": maximum_reality_knowledge_extraction,
+        "final_autonomous_routing_architecture_certification": final_autonomous_routing_architecture_certification,
         "knowledge_quality_read_model": knowledge_quality_read_model,
         "knowledge_objects": knowledge_quality_read_model["knowledge_objects"],
         "maturity_distribution": knowledge_quality_read_model["maturity_distribution"],

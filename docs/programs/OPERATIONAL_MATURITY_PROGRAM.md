@@ -670,3 +670,172 @@ If approval is not granted, the program remains blocked at `AUTHORITY_BOUNDARY` 
 ## 24. Program Rule For Future Work
 
 Before starting any future implementation task, Codex must treat this file as the first program source. If a prompt conflicts with this program, the optimizer wins unless the user explicitly changes the program through a new ADR/reference update.
+
+OMP itself is a continuously learning system.
+
+Every optimization decision
+must later be evaluated
+against the real outcome.
+
+OMP is allowed to improve
+its future prioritization
+using only real historical evidence.
+
+## 25. Latest Exact Governed Packet Authority Decision
+
+Recorded: `2026-06-25`
+
+Optimizer decision:
+
+| Field | Current Value |
+| --- | --- |
+| Highest leverage action | `Governed candidate suitability outcome closure` |
+| HLA status | `CONFIRMED` |
+| Current bottleneck | `Suitability` |
+| Current authority boundary | `AUTHORITY_BOUNDARY` |
+| Current reality limit | `REAL_CANDIDATE_OUTCOMES_HAVE_NOT_HAPPENED` |
+| Semantic reuse coverage | `100%` |
+| Need new owner | `FALSE` |
+| Duplication before implementation | `NONE` |
+| Duplication after implementation | `NONE` |
+| Runtime apply | `FALSE` |
+| Restore barrier written | `FALSE` |
+| Users moved | `0` |
+
+Production recalculation:
+
+| Metric | Current Value |
+| --- | --- |
+| Overall maturity score | `84.167` |
+| Confidence | `39.429 / 70`, gap `30.571` |
+| Trust | `54.572 / 70`, gap `15.428` |
+| Prediction | `36.778 / 70`, gap `33.222` |
+| Suitability | `29.118 / 70`, gap `40.882` |
+| Candidate outcomes | `84 / 156` consumed |
+| Missing candidate outcomes | `72` |
+
+Exact operator decision payload:
+
+| Field | Current Value |
+| --- | --- |
+| Candidate | `10.7.0.5` |
+| Current channel | `vless` |
+| Target channel | `awg0` |
+| Decision action | `MOVE_GOVERNED_CANARY_REVIEW` |
+| Authority tier | `TIER_1` |
+| Authority status | `MARGINAL_OPERATOR_REVIEW` |
+| Reason | `best available channel has higher advisory suitability` |
+| Review warning | `Прямой обход planner/governance всё равно запрещён.` |
+| Packet preview status | `PACKET_PREVIEW_READY` |
+| Packet preview id | `pkt_preview_fb70744bc51ad162b1727dcb` |
+| Operation id | `govdry_97745a383e19446a2a1124e3` |
+| Selected move hash | `41d346ea7f2467b3c677306b863f2ef949715be7035b3358bc911520d4ea4300` |
+| Selected move count | `1` |
+| Allowed users | `10.7.0.5` |
+| Allowed targets | `awg0` |
+| Risk | `3.691` |
+| Candidate confidence | `0.458` |
+| Trust | `54.682` |
+| Execution allowed now | `FALSE` |
+
+Knowledge gates:
+
+| Gate | Impact | Blockers |
+| --- | --- | --- |
+| `service_user_sla_fit` | `PASSED` | none |
+| `freshness_actionability` | `PASSED` | none |
+| `recovery_admission` | `PASSED` | none |
+| `anti_flapping` | `PASSED` | none |
+| `decision_effectiveness` | `PASSED` | none |
+| `knowledge_quality` | `PASSED` | none |
+| `routing_recommendation_readiness` | `BLOCKED` | `service_user_sla_fit_not_clear`; `decision_outcome_closure_incomplete`; `recovery_admission_has_blocked_channels`; `freshness_not_actionable:capacity,service` |
+| `outcome_evidence` | `PASSED` | none |
+
+Restore and rollback preview:
+
+| Field | Current Value |
+| --- | --- |
+| Restore status | `RESTORE_AND_ROLLBACK_PREVIEW_READY` |
+| Restore action | `CREATE_RESTORE_BARRIER_CLEARANCE_AFTER_OPERATOR_APPROVAL` |
+| Restore barrier required | `TRUE` |
+| Restore barrier written now | `FALSE` |
+| Rollback target | `vless` |
+| Rollback manifest id | `rb_preview_0cffde2b4797f0030c57639d` |
+| Rollback executor | `tools/v7-users-autoswitch --rollback-packet --apply --verify` |
+| Rollback owner | `admin_core/operator_execution.py` |
+| Wrong user protection | `allowed_users_bound_to_packet` |
+| Wrong target protection | `allowed_targets_bound_to_packet` |
+
+Verification plan:
+
+| Field | Current Value |
+| --- | --- |
+| Status | `VERIFICATION_PLAN_READY` |
+| Owner | `tools/v7-users-autoswitch --apply --verify` |
+| User | `10.7.0.5` |
+| Target | `awg0` |
+| Checks | `connection_check`; `required_service_checks`; `route_runtime_check`; `quality_check`; `rollback_trigger_evaluation` |
+| Rollback triggers | user cannot connect; required service fails; route/runtime mismatch; quality regression after move; partial apply or verification failure |
+| Verification run now | `FALSE` |
+
+Outcome closure plan:
+
+| Field | Current Value |
+| --- | --- |
+| Status | `OUTCOME_CLOSURE_PLAN_READY` |
+| Owner | `admin_core/operator_execution_feedback.py` |
+| Decision id | `decision_preview_39bc893ea3312520de9e4df9` |
+| Closure written now | `FALSE` |
+| Synthetic evidence created | `FALSE` |
+| Legitimate apply-time fields | `apply_result`; `post_action_verification`; `service_outcome`; `user_outcome`; `outcome_observed_at` |
+
+Learning path:
+
+| Step | Owner | Connected |
+| --- | --- | --- |
+| outcome | `admin_core/operator_execution_feedback.py` | `TRUE` |
+| feedback | `admin_core/operator_execution_feedback.py` | `TRUE` |
+| trust-evolution summary | `admin_core/intelligence_workers.py` | `TRUE` |
+| decision_outcome_learning | `admin_core/operator_execution_feedback.py` | `TRUE` |
+| knowledge_growth | `admin_core/autonomy_trust_acceleration.py` | `TRUE` |
+| future decision | `admin_core/operator_decision_surface.py` | `TRUE` |
+
+Exact authority decision required:
+
+```text
+Approve or reject the exact governed packet:
+packet_preview_id = pkt_preview_fb70744bc51ad162b1727dcb
+operation_id = govdry_97745a383e19446a2a1124e3
+user = 10.7.0.5
+from = vless
+to = awg0
+selected_move_hash = 41d346ea7f2467b3c677306b863f2ef949715be7035b3358bc911520d4ea4300
+```
+
+Action that requires explicit approval:
+
+```text
+Create an approved execution packet through the existing packet owner,
+then execute restore-barrier clearance through:
+tools/v7-operator-execution-packet --packet <approved-packet-for-pkt_preview_fb70744bc51ad162b1727dcb> --execute-runtime-action
+```
+
+The bounded apply action that must not run without that approval:
+
+```text
+tools/v7-users-autoswitch --mode guarded --user 10.7.0.5 --target-egress awg0 --max-selected-moves 1 --apply --verify --rollback-on-verify-fail
+```
+
+Rollback path if approved apply fails verification:
+
+```text
+tools/v7-users-autoswitch --rollback-packet <rollback-packet-for-rb_preview_0cffde2b4797f0030c57639d> --apply --verify
+```
+
+Program stop:
+
+`AUTHORITY_BOUNDARY`
+
+Reason:
+
+Governed TIER_1 operator approval is required before restore-barrier write or apply.

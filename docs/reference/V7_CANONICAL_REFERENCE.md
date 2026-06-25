@@ -79,7 +79,7 @@ Stable conclusions:
 
 ## Operational Maturity Program Rule
 
-`docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` is the primary program source for future V7 implementation work. Version `2.2` replaces roadmap-driven, phase-first, and free-form implementation ideas with optimization-driven operational maturity, architectural minimalism, semantic reuse, a new-owner gate, duplication detection, and Safety-Bounded Authority.
+`docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` is the primary program source for future V7 implementation work. Version `2.3` replaces roadmap-driven, phase-first, and free-form implementation ideas with optimization-driven operational maturity, architectural minimalism, semantic reuse, a new-owner gate, duplication detection, Safety-Bounded Authority, and Kernel/State split.
 
 Stable conclusions:
 
@@ -97,6 +97,22 @@ Stable conclusions:
 12. OMP V2.2 separates Knowledge Maturity from Execution Authority: trust decides autonomy tier, safety decides bounded action.
 13. OMP V2.2 requires Codex to continue automatically through safe read-only, documentation-only, verification, refresh, tests, preview, existing-owner implementation, duplication detection, OMP recalculation, and plan verification work.
 14. When the highest leverage action requires real outcomes, OMP V2.2 splits it into safe automatic preparation and authority-bound execution. The preparation continues automatically; restore-barrier write, runtime apply, user movement, rollback apply, daemon/timer enablement, and authority expansion stop at `AUTHORITY_BOUNDARY`.
+15. OMP V2.3 separates stable scheduler/optimizer rules from volatile current state. Current packet, metrics, stop reason, bottleneck, HLA, and approval question live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
+
+## V7_KERNEL_AND_STATE_SPLIT
+
+Stable conclusions:
+
+1. `docs/reference/V7_KERNEL.md` is the permanent Codex operating contract for V7 work.
+2. OMP is the scheduler/optimizer.
+3. `docs/programs/V7_CURRENT_PROGRAM_STATE.md` is the volatile state file for current bottleneck, HLA, packet, authority boundary, metrics, stop reason, and next action.
+4. Canonical Reference remains system truth.
+5. SYSTEM_MAP remains owner/topology map.
+6. ADRs remain accepted decisions.
+7. Reports remain evidence and history.
+8. Runtime remains reality and final verification.
+9. `Continue OMP` means Codex runs the Kernel loop until an allowed stop condition.
+10. This split does not create a planner, governance, execution path, runtime truth source, daemon, timer, apply authority, or user movement authority.
 
 ## V7_ENGINEERING_PRINCIPLES
 

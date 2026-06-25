@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `Operational Maturity`
 Created: 2026-06-25
-Version: `2.2`
+Version: `2.3`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -19,7 +19,7 @@ What currently limits V7 the most?
 What action gives the highest maturity gain right now?
 ```
 
-V2.1 adds architectural minimalism, semantic reuse, a new-owner gate, architecture duplication detection, and an explicit optimization engine. V2.2 adds Safety-Bounded Authority: trust decides autonomy tier, safety decides bounded action. OMP always wins over free-form implementation ideas.
+V2.1 adds architectural minimalism, semantic reuse, a new-owner gate, architecture duplication detection, and an explicit optimization engine. V2.2 adds Safety-Bounded Authority: trust decides autonomy tier, safety decides bounded action. V2.3 adds Kernel and State Split: permanent operating rules live in Kernel/OMP, volatile current state lives in Current Program State. OMP always wins over free-form implementation ideas.
 
 ## 1. Project Vision
 
@@ -47,7 +47,30 @@ Operational meaning:
 - ADRs preserve decisions.
 - This program preserves what V7 does next.
 
-## 2.1. Safety-Bounded Authority Model
+## 2.1. Kernel and State Split
+
+V7 separates permanent operating rules from volatile current state.
+
+| Layer | File | Purpose |
+| --- | --- | --- |
+| V7 Kernel | `docs/reference/V7_KERNEL.md` | Permanent Codex operating contract. |
+| OMP | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` | Scheduler and optimizer. |
+| Current Program State | `docs/programs/V7_CURRENT_PROGRAM_STATE.md` | Volatile current bottleneck, HLA, packet, authority boundary, metrics, stop reason, and next automatic action. |
+| Canonical Reference | `docs/reference/V7_CANONICAL_REFERENCE.md` | Current system truth. |
+| SYSTEM_MAP | `docs/reference/SYSTEM_MAP.md` | Owner/topology map. |
+| ADRs | `docs/decisions/` | Accepted decisions. |
+| Reports | `docs/reports/` | Evidence and history. |
+| Runtime | production/runtime state | Reality and final verification. |
+
+Current volatile state lives in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
+
+OMP must not become a dumping ground for every packet or state update.
+
+Long packet/state payloads belong in Current Program State. OMP should keep only scheduler/optimizer rules and pointers unless scheduler meaning changes.
+
+`Continue OMP` means: read Kernel, read OMP, read Current Program State, execute the optimizer loop, continue through safe work, and stop only at an allowed stop condition.
+
+## 2.2. Safety-Bounded Authority Model
 
 V7 must not wait for global self-trust before every small governed action.
 
@@ -100,7 +123,7 @@ A `TIER_1` governed action may be considered only when:
 
 This model does not authorize restore-barrier writes, runtime apply, user movement, rollback apply, daemon/timer enablement, authority expansion, floor changes, synthetic evidence, or new owners.
 
-## 2.2. Background Builds Knowledge, Runtime Spends Knowledge
+## 2.3. Background Builds Knowledge, Runtime Spends Knowledge
 
 Background systems may perform expensive work:
 
@@ -140,7 +163,7 @@ V7 must scale to `10,000+` users by precomputing knowledge into compact read mod
 
 Adding users must not linearly increase event-time decision latency.
 
-## 2.3. Architectural Laws
+## 2.4. Architectural Laws
 
 These laws are immutable unless a future ADR explicitly supersedes them:
 
@@ -157,13 +180,13 @@ These laws are immutable unless a future ADR explicitly supersedes them:
 | Law 9 | No synthetic evidence. |
 | Law 10 | Every implementation must increase at least one of: Knowledge, Decision Quality, Outcome Quality, Learning Quality, Operational Maturity, or Automation. Otherwise the implementation should not exist. |
 
-## 2.4. Project Philosophy
+## 2.5. Project Philosophy
 
 V7 is not allowed to become larger unless it first becomes smarter.
 
 This means new architecture is a last resort. The default posture is to make existing owners more capable, more connected, more explainable, and more mature.
 
-## 2.5. Architectural Minimalism
+## 2.6. Architectural Minimalism
 
 Immutable project law:
 
@@ -181,7 +204,7 @@ Reuse
 
 New components are forbidden until reuse, extension, and merge options have been explicitly evaluated.
 
-## 2.6. Semantic Reuse Audit
+## 2.7. Semantic Reuse Audit
 
 Before every implementation, OMP must execute this audit:
 
@@ -218,6 +241,19 @@ Current semantic reuse audit for OMP V2.2:
 | Extension strategy | Add Safety-Bounded Authority, background/runtime split, safe automatic preparation rule, and Codex execution contract to OMP. |
 | Need New Owner | `FALSE` |
 
+Current semantic reuse audit for OMP V2.3:
+
+| Field | Current Value |
+| --- | --- |
+| Desired capability | Separate permanent Codex operating contract and volatile OMP state from stable scheduler/optimizer rules. |
+| Existing owner | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` |
+| Semantically equivalent owners | OMP, Canonical Reference, SYSTEM_MAP, ADRs, handoff files, Engineering Principles |
+| Composition strategy | Extend OMP in place, add Kernel as the permanent Codex operating contract, add Current Program State as volatile program state, and keep runtime/code owners unchanged. |
+| Semantic coverage | `100%` for documentation/control-plane structure |
+| Reuse strategy | Reuse OMP as scheduler/optimizer; reuse handoff/current snapshot values as state evidence; reuse reference/ADR map for truth. |
+| Extension strategy | Add Kernel/State split section, add pointers, and move volatile packet/state details out of OMP into `docs/programs/V7_CURRENT_PROGRAM_STATE.md`. |
+| Need New Runtime Owner | `FALSE` |
+
 Latest semantic reuse audit for optimizer iteration `2026-06-25`:
 
 | Field | Current Value |
@@ -231,7 +267,7 @@ Latest semantic reuse audit for optimizer iteration `2026-06-25`:
 | Extension strategy | None required for the safe portion. |
 | Need New Owner | `FALSE` |
 
-## 2.7. New Owner Gate
+## 2.8. New Owner Gate
 
 Before creating any new owner, knowledge model, planner, engine, pipeline, API, CLI, storage, snapshot, or truth source, OMP must prove:
 
@@ -262,7 +298,7 @@ Current gate result:
 | Need New Owner | `FALSE` |
 | Reason | OMP V2.1 is fully expressible by extending the existing OMP document and existing reference pointers. |
 
-## 2.8. Architectural Duplication Detector
+## 2.9. Architectural Duplication Detector
 
 After every implementation, OMP must check for duplication across:
 
@@ -329,6 +365,19 @@ Latest OMP V2.2 duplication result:
 | Duplicate execution | `NONE` |
 | Duplicate truth sources | `NONE` |
 | Duplicate architecture | `NONE` |
+| Verdict | `NONE` |
+
+Latest OMP V2.3 duplication result:
+
+| Field | Current Value |
+| --- | --- |
+| Duplicate runtime owners | `NONE` |
+| Duplicate planners | `NONE` |
+| Duplicate governance | `NONE` |
+| Duplicate execution | `NONE` |
+| Duplicate truth sources | `NONE` |
+| Duplicate architecture | `NONE` |
+| Documentation split | `V7_KERNEL` and `V7_CURRENT_PROGRAM_STATE` are control-plane documentation owners, not runtime/code owners. |
 | Verdict | `NONE` |
 
 ## 3. Program States
@@ -886,163 +935,16 @@ OMP is allowed to improve
 its future prioritization
 using only real historical evidence.
 
-## 26. Latest Exact Governed Packet Authority Decision
+## 26. Current Volatile State Pointer
 
-Recorded: `2026-06-25`
+Current volatile state lives in:
 
-Source: `docs/handoff/V7_CURRENT_STATE_SNAPSHOT.md` and `docs/handoff/V7_AUTHORITY_BOUNDARY_AND_NEXT_ACTION.md`.
+`docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 
-Optimizer decision:
+That file owns the current bottleneck, HLA, authority boundary, reality limit, metrics, exact packet, stop reason, and exact approval question.
 
-| Field | Current Value |
-| --- | --- |
-| Highest leverage action | `Governed candidate suitability outcome closure` |
-| HLA status | `CONFIRMED` |
-| Current bottleneck | `Suitability` |
-| Current authority boundary | `AUTHORITY_BOUNDARY` |
-| Current reality limit | `REAL_CANDIDATE_OUTCOMES_HAVE_NOT_HAPPENED` |
-| Semantic reuse coverage | `100%` |
-| Need new owner | `FALSE` |
-| Duplication before implementation | `NONE` |
-| Duplication after implementation | `NONE` |
-| Runtime apply | `FALSE` |
-| Restore barrier written | `FALSE` |
-| Users moved | `0` |
+OMP owns the scheduler and optimizer rules.
 
-Production recalculation:
+When packet fields, metrics, or stop reason change, update `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-| Metric | Current Value |
-| --- | --- |
-| Overall maturity score | `84.167` |
-| Confidence | `39.573 / 70`, gap `30.427` |
-| Trust | `54.679 / 70`, gap `15.321` |
-| Prediction | `36.859 / 70`, gap `33.141` |
-| Suitability | `29.493 / 70`, gap `40.507` |
-| Candidate outcomes | `84 / 156` consumed |
-| Missing candidate outcomes | `72` |
-
-Exact operator decision payload:
-
-| Field | Current Value |
-| --- | --- |
-| Candidate | `10.7.0.5` |
-| Current channel | `vless` |
-| Target channel | `awg3` |
-| Decision action | `MOVE_GOVERNED_CANARY_REVIEW` |
-| Authority tier | `TIER_1` |
-| Authority status | `MARGINAL_OPERATOR_REVIEW` |
-| Reason | `best available channel has higher advisory suitability` |
-| Review warning | `Прямой обход planner/governance всё равно запрещён.` |
-| Packet preview status | `PACKET_PREVIEW_READY` |
-| Packet preview id | `pkt_preview_43f0151499620a00d2e50f7b` |
-| Operation id | `govdry_c8f67c5437777091c9cf1f5d` |
-| Selected move hash | `8e7785e058337f1db53fd929d7c175914510a401ff686391bef7bfcb088bfdac` |
-| Selected move count | `1` |
-| Allowed users | `10.7.0.5` |
-| Allowed targets | `awg3` |
-| Risk | `3.678` |
-| Candidate confidence | `0.458` |
-| Trust | `54.679` |
-| Execution allowed now | `FALSE` |
-
-Knowledge gates:
-
-| Gate | Impact | Blockers |
-| --- | --- | --- |
-| `service_user_sla_fit` | `PASSED` | none |
-| `freshness_actionability` | `PASSED` | none |
-| `recovery_admission` | `PASSED` | none |
-| `anti_flapping` | `PASSED` | none |
-| `decision_effectiveness` | `PASSED` | none |
-| `knowledge_quality` | `PASSED` | none |
-| `routing_recommendation_readiness` | `BLOCKED` | `service_user_sla_fit_not_clear`; `decision_outcome_closure_incomplete`; `recovery_admission_has_blocked_channels`; `freshness_not_actionable:capacity,service` |
-| `outcome_evidence` | `PASSED` | none |
-
-Restore and rollback preview:
-
-| Field | Current Value |
-| --- | --- |
-| Restore status | `RESTORE_AND_ROLLBACK_PREVIEW_READY` |
-| Restore action | `CREATE_RESTORE_BARRIER_CLEARANCE_AFTER_OPERATOR_APPROVAL` |
-| Restore barrier required | `TRUE` |
-| Restore barrier written now | `FALSE` |
-| Rollback target | `vless` |
-| Rollback manifest id | `rb_preview_d25f7c3f7705ba558d2afcea` |
-| Rollback executor | `tools/v7-users-autoswitch --rollback-packet --apply --verify` |
-| Rollback owner | `admin_core/operator_execution.py` |
-| Wrong user protection | `allowed_users_bound_to_packet` |
-| Wrong target protection | `allowed_targets_bound_to_packet` |
-
-Verification plan:
-
-| Field | Current Value |
-| --- | --- |
-| Status | `VERIFICATION_PLAN_READY` |
-| Owner | `tools/v7-users-autoswitch --apply --verify` |
-| User | `10.7.0.5` |
-| Target | `awg3` |
-| Checks | `connection_check`; `required_service_checks`; `route_runtime_check`; `quality_check`; `rollback_trigger_evaluation` |
-| Rollback triggers | user cannot connect; required service fails; route/runtime mismatch; quality regression after move; partial apply or verification failure |
-| Verification run now | `FALSE` |
-
-Outcome closure plan:
-
-| Field | Current Value |
-| --- | --- |
-| Status | `OUTCOME_CLOSURE_PLAN_READY` |
-| Owner | `admin_core/operator_execution_feedback.py` |
-| Decision id | `decision_preview_1f150032ce11c43946772d92` |
-| Closure written now | `FALSE` |
-| Synthetic evidence created | `FALSE` |
-| Legitimate apply-time fields | `apply_result`; `post_action_verification`; `service_outcome`; `user_outcome`; `outcome_observed_at` |
-
-Learning path:
-
-| Step | Owner | Connected |
-| --- | --- | --- |
-| outcome | `admin_core/operator_execution_feedback.py` | `TRUE` |
-| feedback | `admin_core/operator_execution_feedback.py` | `TRUE` |
-| trust-evolution summary | `admin_core/intelligence_workers.py` | `TRUE` |
-| decision_outcome_learning | `admin_core/operator_execution_feedback.py` | `TRUE` |
-| knowledge_growth | `admin_core/autonomy_trust_acceleration.py` | `TRUE` |
-| future decision | `admin_core/operator_decision_surface.py` | `TRUE` |
-
-Exact authority decision required:
-
-```text
-Approve or reject the exact governed packet:
-packet_preview_id = pkt_preview_43f0151499620a00d2e50f7b
-operation_id = govdry_c8f67c5437777091c9cf1f5d
-user = 10.7.0.5
-from = vless
-to = awg3
-selected_move_hash = 8e7785e058337f1db53fd929d7c175914510a401ff686391bef7bfcb088bfdac
-```
-
-Action that requires explicit approval:
-
-```text
-Create an approved execution packet through the existing packet owner,
-then execute restore-barrier clearance through:
-tools/v7-operator-execution-packet --packet <approved-packet-for-pkt_preview_43f0151499620a00d2e50f7b> --execute-runtime-action
-```
-
-The bounded apply action that must not run without that approval:
-
-```text
-tools/v7-users-autoswitch --mode guarded --user 10.7.0.5 --target-egress awg3 --max-selected-moves 1 --apply --verify --rollback-on-verify-fail
-```
-
-Rollback path if approved apply fails verification:
-
-```text
-tools/v7-users-autoswitch --rollback-packet <rollback-packet-for-rb_preview_d25f7c3f7705ba558d2afcea> --apply --verify
-```
-
-Program stop:
-
-`AUTHORITY_BOUNDARY`
-
-Reason:
-
-Governed TIER_1 operator approval is required before restore-barrier write or apply.
+Update OMP only when scheduler/optimizer meaning changes.

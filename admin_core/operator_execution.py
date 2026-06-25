@@ -1002,7 +1002,33 @@ def load_optional_json(path):
     return read_json(path)
 
 
+def extract_packet_preview(payload):
+    if not isinstance(payload, dict):
+        return {}
+    if payload.get("packet_id") and payload.get("selected_move_hash"):
+        return payload
+    direct = payload.get("packet_preview")
+    if isinstance(direct, dict) and direct.get("packet_id") and direct.get("selected_move_hash"):
+        return direct
+    pipeline = payload.get("operator_execution_pipeline")
+    if isinstance(pipeline, dict):
+        pipeline_preview = pipeline.get("packet_preview")
+        if isinstance(pipeline_preview, dict) and pipeline_preview.get("packet_id") and pipeline_preview.get("selected_move_hash"):
+            return pipeline_preview
+    stack = list(payload.values())
+    while stack:
+        item = stack.pop()
+        if isinstance(item, dict):
+            if item.get("packet_id") and item.get("selected_move_hash"):
+                return item
+            stack.extend(item.values())
+        elif isinstance(item, list):
+            stack.extend(item)
+    return {}
+
+
 def selected_moves_from_preview(preview):
+    preview = extract_packet_preview(preview)
     packet_id = str(preview.get("packet_id") or "")
     operation_id = str(preview.get("operation_id") or "")
     decision_id = str(preview.get("decision_id") or "")
@@ -1105,6 +1131,7 @@ def selected_moves_from_preview(preview):
 
 
 def packet_from_preview(preview, *, approval_author, approval_reviewer, ttl_seconds=DEFAULT_CLEARANCE_TTL_SECONDS):
+    preview = extract_packet_preview(preview)
     now = utc_now()
     expires_at = now + timedelta(seconds=max(1, as_int(ttl_seconds, DEFAULT_CLEARANCE_TTL_SECONDS)))
     selected = selected_moves_from_preview(preview)
@@ -1338,7 +1365,7 @@ def main(argv=None):
             print(text)
             return 0
         if args.generate_from_preview:
-            preview = read_json(args.generate_from_preview)
+            preview = extract_packet_preview(read_json(args.generate_from_preview))
             packet = packet_from_preview(
                 preview,
                 approval_author=args.approval_author,

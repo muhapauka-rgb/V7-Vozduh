@@ -11,6 +11,7 @@ from admin_core.operator_execution import (
     RUNTIME_ACTION_CREATE_CLEARANCE,
     RUNTIME_ACTION_ZERO_MOVE_GOVERNANCE,
     execute_packet,
+    extract_packet_preview,
     packet_from_preview,
     packet_from_plan,
     resolve_under_repo,
@@ -329,6 +330,32 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(packet["approved_plan_lock"]["decision_id"], preview["decision_id"])
         self.assertEqual(packet["approved_plan_lock"]["authority_generation"], preview["authority_generation"])
         self.assertEqual(packet["approved_plan_lock"]["selected_move_hash"], preview["selected_move_hash"])
+
+    def test_packet_from_full_governed_cycle_extracts_preview_identity(self):
+        preview = self.preview_packet()
+        full_cycle = {
+            "schema_version": "v7.governed-canary.knowledge-gated-dry-run-cycle.v1",
+            "cycle_id": preview["authority_generation"],
+            "packet_preview": preview,
+            "runtime_lifecycle_preview": {
+                "packet_id": preview["packet_id"],
+                "selected_move_hash": preview["selected_move_hash"],
+            },
+        }
+
+        extracted = extract_packet_preview(full_cycle)
+        packet = packet_from_preview(
+            full_cycle,
+            approval_author="operator-a",
+            approval_reviewer="operator-b",
+        )
+
+        self.assertEqual(extracted["packet_id"], preview["packet_id"])
+        self.assertEqual(packet["packet_id"], preview["packet_id"])
+        self.assertEqual(packet["operation_id"], preview["operation_id"])
+        self.assertEqual(packet["decision_id"], preview["decision_id"])
+        self.assertEqual(packet["authority_generation"], preview["authority_generation"])
+        self.assertEqual(packet["expected"]["selected_move_hash"], preview["selected_move_hash"])
 
     def test_packet_from_preview_recomputes_execution_envelope_with_approved_hash(self):
         preview = self.preview_packet()

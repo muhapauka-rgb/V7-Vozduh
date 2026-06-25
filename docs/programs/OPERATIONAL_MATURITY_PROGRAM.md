@@ -455,9 +455,9 @@ Current implementation optimizer result:
 | Exact files | `admin_core/operator_execution_pipeline.py`, focused tests for governed dry-run authority-bound approval prompt output |
 | Implementation status | `DEPLOYED_CERTIFIED_AUTHORITY_BOUNDARY_APPROVAL_PROMPT` |
 | Certification report | Current Program State section 14 |
-| Truth/convergence | Runtime/local aligned at `4ac727a3795b05e3c50d5877812e5d054994362c`; GitHub check may require network-capable rerun. |
-| New highest implementation leverage task | `EXECUTE_EXACT_GOVERNED_PACKET_AFTER_OPERATOR_APPROVAL` |
-| Stop boundary | `AUTHORITY_BOUNDARY`: production dry-run emits a ready-to-copy approval prompt for exact packet `pkt_preview_43f0151499620a00d2e50f7b`; restore-barrier write and apply still require explicit operator approval. |
+| Truth/convergence | `PASS`; local, GitHub, and runtime aligned; docs-only CPS/OMP update ignored for runtime deployment. |
+| New highest implementation leverage task | `REQUEST_APPROVAL_FOR_FRESH_EXACT_GOVERNED_PACKET` |
+| Stop boundary | `AUTHORITY_BOUNDARY`: operator approval for `pkt_preview_43f0151499620a00d2e50f7b` was invalidated by fresh production dry-run packet `pkt_preview_fb70744bc51ad162b1727dcb`; restore-barrier write and apply still require explicit operator approval for the fresh exact packet. |
 
 ## 2.13. Implementation Program Loop
 
@@ -657,7 +657,7 @@ Expected implementation order:
 5. Update Current Program State.
 
 The old bottleneck action, governed candidate suitability outcome closure, remains the highest real-outcome action but crosses `AUTHORITY_BOUNDARY`.
-The current implementation-first optimizer has completed the safe prompt work and now stops at `AUTHORITY_BOUNDARY`.
+The current implementation-first optimizer has completed the safe prompt work, rejected a stale approval before mutation, and now stops at `AUTHORITY_BOUNDARY` for the fresh exact packet.
 
 ## 8. Current Authority Boundary
 
@@ -667,7 +667,7 @@ The current implementation-first optimizer has completed the safe prompt work an
 | Current stop reason | `AUTHORITY_BOUNDARY` |
 | Boundary location | Before restore-barrier write, runtime apply, and user movement. |
 | Current exact runtime posture | No autonomous apply, no user movement, no daemon enablement. |
-| Next authority expansion | Explicit operator approval or rejection for the exact governed packet. |
+| Next authority expansion | Explicit operator approval or rejection for the fresh exact governed packet. |
 
 Current production evidence:
 
@@ -1075,16 +1075,16 @@ If a restore-barrier write, apply, user movement, rollback apply, daemon, timer,
 | --- | --- |
 | Completed phases | Canonical reference, reference-first rule, event-driven contract, knowledge quality, routing foundation, knowledge-to-decision, decision-to-outcome-to-learning, outcome leverage, suitability program, knowledge growth, routing evolution, maximum reality extraction, decision model, runtime model, system architecture. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle. |
-| Current bottleneck | Atomic source-bundle freshness before real governed canary outcome. |
-| Current highest leverage action | `REFRESH_ATOMIC_SOURCE_BUNDLE_AND_REAPPROVE_EXACT_PACKET`. |
+| Current bottleneck | Fresh exact authority before real governed canary outcome. |
+| Current highest leverage action | `REQUEST_APPROVAL_FOR_FRESH_EXACT_GOVERNED_PACKET`. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | `SAFETY_BLOCK_SOURCE_CHANGED`: packet `pkt_preview_43f0151499620a00d2e50f7b` was approved and restore-barrier clearance was written, but existing apply-owner stopped before movement because `service-scores` and `channel-service-scores` changed. |
+| Current blockers | `AUTHORITY_BOUNDARY`: packet `pkt_preview_43f0151499620a00d2e50f7b` was approved by the operator, but production preflight resolved fresh packet `pkt_preview_fb70744bc51ad162b1727dcb` before any restore-barrier write or apply. |
 | Current maturity | Architecture complete; implementation phase active; read-only runtime lifecycle preview deployed and production-verified; preview-to-execution packet identity deployed and production-verified; autonomy cycles mature to exact packet authority boundary. |
 | Current runtime posture | No autonomous apply, no user movement, no daemon enablement. |
-| Current next best action | Refresh the atomic source bundle, regenerate the governed packet through existing owners, and request new exact approval before any apply. |
-| Last optimizer iteration | `2026-06-25`: exact packet approval was consumed, restore-barrier clearance was written for the approved packet, existing apply-owner stopped before movement on `SOURCE_CHANGED`, and no learning was fed because no real outcome occurred. |
+| Current next best action | Request explicit approval or rejection for fresh packet `pkt_preview_fb70744bc51ad162b1727dcb` before any restore-barrier write or apply. |
+| Last optimizer iteration | `2026-06-25`: exact packet approval was checked against production, invalidated as stale before mutation, and no restore-barrier clearance, apply, movement, rollback, outcome closure, or learning write occurred. |
 
 ## 25. Program Rule For Future Work
 

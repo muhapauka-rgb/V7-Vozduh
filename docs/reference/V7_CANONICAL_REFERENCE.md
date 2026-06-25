@@ -95,6 +95,26 @@ Stable conclusions:
 10. Future work may continue automatically only when the highest leverage action stays inside existing owners and does not require restore-barrier write, runtime apply, user movement, or authority expansion.
 11. The program document must be read before future implementation work so V7 does not fall back into disconnected roadmap, phase-first, duplicated-architecture, or repeated-audit behavior.
 
+## V7_ENGINEERING_PRINCIPLES
+
+`docs/reference/V7_ENGINEERING_PRINCIPLES.md` is the canonical engineering principles document for Safety-Bounded Authority.
+
+Stable conclusions:
+
+1. Trust decides autonomy tier.
+2. Safety decides bounded action.
+3. Knowledge Maturity and Execution Authority must not be collapsed into one concept.
+4. `70/70/70` remains the floor for `TIER_2+` and autonomous progression.
+5. A `TIER_1` governed one-user canary can be valid for explicit operator approval even while `TIER_2` remains blocked.
+6. Background systems build knowledge: service intelligence, suitability, prediction, trust, recovery state, capacity intelligence, history, learning, and snapshots.
+7. Runtime spends knowledge: event -> current state -> knowledge snapshot -> policy -> safety -> packet -> execute/stop.
+8. Runtime must not perform broad audits, broad analytics, or long historical recomputation during the event path.
+9. The principle does not create a new planner, governance, execution, truth source, evidence source, storage, daemon, timer, or authority model.
+10. The principle does not authorize restore-barrier writes, runtime apply, user movement, rollback apply, daemon/timer enablement, floor changes, or synthetic evidence.
+11. OMP remains the execution authority. If future work conflicts with OMP, OMP wins unless explicitly changed by the user.
+
+Related ADR: `docs/decisions/ADR-V7-SAFETY-BOUNDED-AUTHORITY.md`.
+
 ## V7_IDEAL_AUTONOMOUS_ROUTING_MODEL
 
 1. Ideal V7 is an event-driven autonomous routing control plane for `10,000+` users and `100+` channels.

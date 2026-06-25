@@ -8,7 +8,7 @@ Branch: `Updatesystem`
 
 Base commit before work: `1b8502eb9a65cac00a18666443bd544ae6338dae`
 
-Final verdict before production deploy: `MAXIMUM_REALITY_REACHED`
+Final verdict: `MAXIMUM_REALITY_REACHED`
 
 ## 1. Reference First
 
@@ -137,16 +137,68 @@ The local workspace does not contain production `/opt/v7` runtime state, so loca
 
 ## 8. Production Verification
 
-Status before deploy: pending.
+Status after deploy: PASS.
 
-Required production checks:
+Deployment:
 
-- deployed inventory exposes `maximum_reality_knowledge_extraction`;
-- deployed dry-run still reaches `AUTHORITY_BOUNDARY`;
-- no apply;
-- no movement;
-- no daemon/autoswitch enablement;
-- truth/convergence pass.
+| Field | Value |
+| --- | --- |
+| Deployed commit | `215757eb21e8c8c6c4222bd3810bd9e9a7b3edb7` |
+| Deploy id | `deploy-z8-14-Updatesystem-215757e-20260625T085934` |
+| Runtime inventory exposes `maximum_reality_knowledge_extraction` | PASS |
+| Runtime dry-run reaches `AUTHORITY_BOUNDARY` | PASS |
+| Runtime apply | `false` |
+| Users moved | `0` |
+| Runtime mutation | `false` |
+| Autonomy enabled | `false` |
+| Daemon/autoswitch enablement | `false` |
+
+Runtime classification summary:
+
+| Classification | Count |
+| --- | ---: |
+| `OBTAINABLE_NOW` | `3` |
+| `OBTAINABLE_AFTER_EXISTING_EVENT` | `3` |
+| `OBTAINABLE_AFTER_GOVERNED_ACTION` | `2` |
+| `REQUIRES_NEW_ARCHITECTURE` | `1` |
+
+Runtime physical reality limit:
+
+| Metric | Value |
+| --- | ---: |
+| Missing candidate outcomes | `72` |
+| Obtainable now | `0` |
+| Obtainable after governed action | `72` |
+| Obtainable after governed action percent | `100.0` |
+| Requires more users | `0` |
+| Requires more channels | `0` |
+| Requires new services | `0` |
+| Requires new architecture | `0` |
+| Physically impossible without more users/channels | `0.0%` |
+
+Runtime maximum current suitability:
+
+| Metric | Value |
+| --- | ---: |
+| Current suitability | `29.112` |
+| Maximum possible without more users/channels/formula/floor changes | `54.312` |
+| Converted missing candidate outcomes at max | `72` |
+| Remaining unreachable to 70 floor | `15.688` |
+
+Runtime highest-leverage current activities:
+
+1. `prediction_outcome_cycle`
+2. `feedback_outcome_closure`
+3. `service_verification_outcome`
+
+Runtime cycle blocker summary:
+
+| Blocker Class | Count |
+| --- | ---: |
+| `AUTHORITY_BOUNDARY` | `1` |
+| `REAL_WORLD_DEPENDENCY` | `8` |
+| `MISSING_INTEGRATION` | `1` |
+| `NONE` | `2` |
 
 ## 9. Current Maximum Reality Answer
 
@@ -157,7 +209,7 @@ Current read-only extraction is complete when the model can distinguish:
 - knowledge that requires governed/manual action;
 - knowledge that current production cannot provide without new architecture.
 
-The implementation reaches that point locally. Production numbers must be verified after deploy.
+Production reaches that point. The remaining 72 candidate outcomes are current user -> candidate-channel outcomes, not hidden rows. They are obtainable only after governed/manual action and post-action closure. Even if all 72 current missing candidate outcomes are converted, projected suitability reaches `54.312`, still `15.688` below the TIER_2 suitability floor.
 
 ## 10. Remaining Blockers
 

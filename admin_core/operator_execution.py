@@ -38,6 +38,9 @@ GOVERNANCE_PACKET_SCHEMA = "c1.governance-lifecycle-packet.v1"
 ZERO_PACKET_SCHEMA = "e22.operator-execution-packet.v1"
 CANONICAL_CLEARANCE_OWNER = "admin_core/operator_execution.py"
 DEFAULT_CLEARANCE_TTL_SECONDS = 900
+EXECUTION_LEASE_SCHEMA = "v7.execution-lease.v1"
+DEFAULT_EXECUTION_LEASE_TTL_SECONDS = DEFAULT_CLEARANCE_TTL_SECONDS
+LEASE_TERMINAL_STATUSES = {"EXECUTION_FINISHED", "ROLLBACK_FINISHED", "OPERATOR_CANCELLED"}
 
 
 class PacketError(ValueError):
@@ -405,6 +408,196 @@ def approved_plan_lock_from_selected(selected, packet, packet_hash):
     payload["lock_id"] = stable_id("apl", payload)
     payload["lock_hash"] = sha256_bytes(canonical_json(payload).encode("utf-8"))
     return payload
+
+
+def _packet_identity(packet):
+    expected = packet.get("expected") or {}
+    constraints = packet.get("constraints") or {}
+    rollback_manifest = packet.get("rollback_manifest") or {}
+    return {
+        "packet_id": str(packet.get("packet_id") or ""),
+        "operation_id": str(packet.get("operation_id") or ""),
+        "decision_id": str(packet.get("decision_id") or ""),
+        "authority_generation": str(packet.get("authority_generation") or expected.get("generation_id") or ""),
+        "selected_move_hash": str(expected.get("selected_move_hash") or ""),
+        "selected_move_count": as_int(expected.get("selected_move_count"), 0),
+        "allowed_users": [str(item) for item in (constraints.get("allowed_users") or [])],
+        "allowed_targets": [str(item) for item in (constraints.get("allowed_targets") or [])],
+        "rollback_manifest_id": str(rollback_manifest.get("rollback_manifest_id") or ""),
+    }
+
+
+def build_execution_lease(packet, *, source_preview=None, now=None):
+    now = now or utc_now()
+    packet_hash = sha256_bytes(canonical_json(packet).encode("utf-8"))
+    expected = packet.get("expected") or {}
+    source_hashes = expected.get("source_hashes") if isinstance(expected.get("source_hashes"), dict) else {}
+    identity = _packet_identity(packet)
+    lease = {
+        "schema_version": EXECUTION_LEASE_SCHEMA,
+        "status": "ACTIVE",
+        "lease_id": stable_id("execlease", {
+            **identity,
+            "packet_hash": packet_hash,
+        }),
+        "owner": CANONICAL_CLEARANCE_OWNER,
+        "created_at": now.isoformat(),
+        "expires_at": packet.get("expires_at", ""),
+        "terminal_statuses": sorted(LEASE_TERMINAL_STATUSES),
+        "invalidate_only_on": [
+            "timeout",
+            "execution_finished",
+            "rollback_finished",
+            "operator_cancel",
+            "source_state_materially_changed",
+        ],
+        "planner_regeneration_allowed": False,
+        "decision_regeneration_allowed": False,
+        "selected_move_hash_regeneration_allowed": False,
+        "target_regeneration_allowed": False,
+        "packet_freshness_check_allowed": True,
+        "immutable_packet_identity": identity,
+        "packet_hash": packet_hash,
+        "source_hashes": {str(key): str(value) for key, value in source_hashes.items()},
+        "material_source_keys": ["egress_registry", "service_preferences", "users_registry"],
+        "allowed_non_material_source_drift": ["quality_summary", "service_matrix"],
+        "packet": packet,
+        "source_preview": redact(source_preview or {}),
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+    }
+    lease["lease_hash"] = sha256_bytes(canonical_json({
+        key: value for key, value in lease.items() if key != "lease_hash"
+    }).encode("utf-8"))
+    return lease
+
+
+def create_execution_lease_from_preview(
+    preview,
+    *,
+    approval_author,
+    approval_reviewer,
+    ttl_seconds=DEFAULT_EXECUTION_LEASE_TTL_SECONDS,
+):
+    preview = extract_packet_preview(preview)
+    packet = packet_from_preview(
+        preview,
+        approval_author=approval_author,
+        approval_reviewer=approval_reviewer,
+        ttl_seconds=ttl_seconds,
+    )
+    return build_execution_lease(packet, source_preview=preview)
+
+
+def execution_lease_state(lease, *, now=None, current_source_hashes=None):
+    now = now or utc_now()
+    if not isinstance(lease, dict) or not lease:
+        return {"active": False, "status": "MISSING", "reason": "execution_lease_missing"}
+    if lease.get("schema_version") != EXECUTION_LEASE_SCHEMA:
+        return {"active": False, "status": "INVALID", "reason": "execution_lease_schema_invalid"}
+    status = str(lease.get("status") or "")
+    if status in LEASE_TERMINAL_STATUSES:
+        return {"active": False, "status": status, "reason": "execution_lease_terminal"}
+    try:
+        expires_at = parse_ts(lease.get("expires_at"))
+    except PacketError:
+        return {"active": False, "status": "INVALID", "reason": "execution_lease_expires_at_invalid"}
+    if now >= expires_at:
+        return {"active": False, "status": "EXPIRED", "reason": "execution_lease_expired", "expires_at": lease.get("expires_at")}
+    packet = lease.get("packet") if isinstance(lease.get("packet"), dict) else {}
+    identity = _packet_identity(packet)
+    if identity != (lease.get("immutable_packet_identity") or {}):
+        return {
+            "active": False,
+            "status": "INVALID",
+            "reason": "execution_lease_packet_identity_changed",
+            "packet_identity": identity,
+            "lease_identity": lease.get("immutable_packet_identity") or {},
+        }
+    if sha256_bytes(canonical_json(packet).encode("utf-8")) != str(lease.get("packet_hash") or ""):
+        return {"active": False, "status": "INVALID", "reason": "execution_lease_packet_hash_changed"}
+    material_keys = {str(key) for key in (lease.get("material_source_keys") or [])}
+    approved_hashes = lease.get("source_hashes") if isinstance(lease.get("source_hashes"), dict) else {}
+    current_hashes = current_source_hashes if isinstance(current_source_hashes, dict) else None
+    changed_keys: list[str] = []
+    if current_hashes is not None:
+        changed_keys = sorted(
+            key for key, approved in approved_hashes.items()
+            if str(current_hashes.get(key) or "") != str(approved or "")
+        )
+        material_changed = sorted(set(changed_keys) & material_keys)
+        if material_changed:
+            return {
+                "active": False,
+                "status": "INVALIDATED",
+                "reason": "execution_lease_source_state_materially_changed",
+                "changed_source_keys": changed_keys,
+                "material_changed_source_keys": material_changed,
+            }
+    return {
+        "active": True,
+        "status": "ACTIVE",
+        "reason": "execution_lease_active",
+        "lease_id": str(lease.get("lease_id") or ""),
+        "packet_id": identity.get("packet_id", ""),
+        "operation_id": identity.get("operation_id", ""),
+        "selected_move_hash": identity.get("selected_move_hash", ""),
+        "expires_at": lease.get("expires_at"),
+        "changed_source_keys": changed_keys,
+    }
+
+
+def load_execution_lease(path):
+    path = Path(path)
+    if not path.exists():
+        return {}
+    return read_json(path)
+
+
+def write_execution_lease(path, lease, *, now=None):
+    path = Path(path)
+    current = load_execution_lease(path)
+    state = execution_lease_state(current, now=now)
+    if state.get("active"):
+        return {
+            "ok": False,
+            "verdict": "DENY_DUPLICATE_EXECUTION_LEASE",
+            "errors": ["active_execution_lease_exists"],
+            "active_lease": state,
+            "execution_allowed_now": False,
+        }
+    write_json_atomic(path, lease)
+    return {
+        "ok": True,
+        "verdict": "EXECUTION_LEASE_WRITTEN",
+        "lease_file": str(path),
+        "lease": redact(lease),
+        "execution_allowed_now": False,
+    }
+
+
+def cancel_execution_lease(path, *, reason="operator_cancel", now=None):
+    now = now or utc_now()
+    path = Path(path)
+    lease = load_execution_lease(path)
+    if not lease:
+        return {"ok": False, "verdict": "EXECUTION_LEASE_MISSING", "execution_allowed_now": False}
+    lease["status"] = "OPERATOR_CANCELLED"
+    lease["cancel_reason"] = reason
+    lease["cancelled_at"] = now.isoformat()
+    lease["runtime_mutation_performed"] = False
+    lease["apply_executed"] = False
+    lease["users_moved"] = 0
+    write_json_atomic(path, lease)
+    return {
+        "ok": True,
+        "verdict": "EXECUTION_LEASE_CANCELLED",
+        "lease_file": str(path),
+        "lease": redact(lease),
+        "execution_allowed_now": False,
+    }
 
 
 def is_preview_derived_packet(packet):
@@ -1321,6 +1514,10 @@ def main(argv=None):
     parser.add_argument("--generate-from-plan", default="")
     parser.add_argument("--generate-from-preview", default="")
     parser.add_argument("--packet-output", default="")
+    parser.add_argument("--create-execution-lease", action="store_true")
+    parser.add_argument("--execution-lease-file", default="")
+    parser.add_argument("--cancel-execution-lease", action="store_true")
+    parser.add_argument("--cancel-reason", default="operator_cancel")
     parser.add_argument("--approval-author", default="operator-a")
     parser.add_argument("--approval-reviewer", default="operator-b")
     parser.add_argument("--ttl-seconds", type=int, default=DEFAULT_CLEARANCE_TTL_SECONDS)
@@ -1341,6 +1538,14 @@ def main(argv=None):
     args = parser.parse_args(argv)
     repo_root = Path(args.repo_root).resolve()
     try:
+        if args.cancel_execution_lease:
+            if not args.execution_lease_file:
+                raise PacketError("execution_lease_file_required")
+            lease_path = resolve_under_repo(args.execution_lease_file, repo_root)
+            result = cancel_execution_lease(lease_path, reason=args.cancel_reason)
+            text = json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True)
+            print(text)
+            return 0 if result.get("ok") else 2
         if args.generate_from_plan:
             plan = read_json(args.generate_from_plan)
             packet = packet_from_plan(
@@ -1377,10 +1582,30 @@ def main(argv=None):
                 write_json_atomic(packet_path, packet)
             else:
                 packet_path = Path(args.generate_from_preview)
+            lease_result = {}
+            if args.create_execution_lease:
+                if not args.execution_lease_file:
+                    raise PacketError("execution_lease_file_required")
+                lease = build_execution_lease(packet, source_preview=preview)
+                lease_path = resolve_under_repo(args.execution_lease_file, repo_root)
+                lease_result = write_execution_lease(lease_path, lease)
+                if not lease_result.get("ok"):
+                    result = {
+                        "mode": "generate_from_preview",
+                        "packet": redact(packet),
+                        "packet_path": str(packet_path),
+                        "execution_lease": lease_result,
+                        "execution_allowed_now": False,
+                        "real_runtime_action_performed": False,
+                    }
+                    text = json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True)
+                    print(text)
+                    return 2
             result = {
                 "mode": "generate_from_preview",
                 "packet": redact(packet),
                 "packet_path": str(packet_path),
+                "execution_lease": lease_result,
                 "identity_preserved": {
                     "packet_id": packet.get("packet_id") == preview.get("packet_id"),
                     "operation_id": packet.get("operation_id") == preview.get("operation_id"),

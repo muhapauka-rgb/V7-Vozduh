@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from admin_core import events as event_helpers
+from admin_core import operator_execution
 
 
 SCHEMA_VERSION = "v7.operator-governed-execution-pipeline.v1"
@@ -2283,6 +2284,62 @@ def _authority_boundary_approval_prompt(
     }
 
 
+def _candidate_from_execution_lease(lease: dict[str, Any]) -> dict[str, Any]:
+    packet = lease.get("packet") if isinstance(lease.get("packet"), dict) else {}
+    lock = packet.get("approved_plan_lock") if isinstance(packet.get("approved_plan_lock"), dict) else {}
+    moves = lock.get("selected_moves") if isinstance(lock.get("selected_moves"), list) else []
+    move = moves[0] if moves and isinstance(moves[0], dict) else {}
+    return {
+        "user": str(move.get("user_ip") or ""),
+        "current_channel": str(move.get("current_egress") or ""),
+        "recommended_channel": str(move.get("recommended_egress") or ""),
+        "confidence": 0.0,
+        "trust": 0.0,
+        "prediction": {},
+        "risk": 0.0,
+        "recommendation_hash": str((packet.get("expected") or {}).get("selected_move_hash") or ""),
+        "source_hash": str((packet.get("expected") or {}).get("source_bundle_hash") or ""),
+        "reasons": ["active execution lease preserved approved packet identity"],
+        "execution_lease_id": str(lease.get("lease_id") or ""),
+    }
+
+
+def _packet_preview_from_execution_lease(lease: dict[str, Any]) -> dict[str, Any]:
+    packet = lease.get("packet") if isinstance(lease.get("packet"), dict) else {}
+    expected = packet.get("expected") if isinstance(packet.get("expected"), dict) else {}
+    constraints = packet.get("constraints") if isinstance(packet.get("constraints"), dict) else {}
+    rollback_manifest = packet.get("rollback_manifest") if isinstance(packet.get("rollback_manifest"), dict) else {}
+    return {
+        "schema_version": "v7.governed-canary.packet-preview.v1",
+        "owner": CANONICAL_PACKET_OWNER,
+        "status": "PACKET_PREVIEW_READY",
+        "packet_id": str(packet.get("packet_id") or ""),
+        "operation_id": str(packet.get("operation_id") or ""),
+        "decision_id": str(packet.get("decision_id") or ""),
+        "authority_generation": str(packet.get("authority_generation") or expected.get("generation_id") or ""),
+        "selected_move_count": int(expected.get("selected_move_count") or 0),
+        "selected_move_hash": str(expected.get("selected_move_hash") or ""),
+        "allowed_users": [str(item) for item in (constraints.get("allowed_users") or [])],
+        "allowed_targets": [str(item) for item in (constraints.get("allowed_targets") or [])],
+        "source_hashes": expected.get("source_hashes") if isinstance(expected.get("source_hashes"), dict) else {},
+        "snapshot_bundle_hash": str(expected.get("snapshot_bundle_hash") or ""),
+        "rollback_manifest_preview": rollback_manifest,
+        "execution_lease": {
+            "schema_version": operator_execution.EXECUTION_LEASE_SCHEMA,
+            "lease_id": str(lease.get("lease_id") or ""),
+            "status": str(lease.get("status") or ""),
+            "expires_at": str(lease.get("expires_at") or ""),
+            "packet_hash": str(lease.get("packet_hash") or ""),
+            "planner_regeneration_allowed": False,
+            "packet_freshness_check_allowed": True,
+        },
+        "execution_packet_immutable": True,
+        "planner_regeneration_blocked_by_execution_lease": True,
+        "preview_only": True,
+        "read_only": True,
+    }
+
+
 def _learning_path_plan() -> dict[str, Any]:
     steps = [
         ("outcome", CANONICAL_FEEDBACK_OWNER),
@@ -2508,6 +2565,7 @@ def governed_canary_knowledge_gated_dry_run_cycle(
     readiness: dict[str, Any] | None = None,
     decision_surface: dict[str, Any] | None = None,
     execution_summary: dict[str, Any] | None = None,
+    execution_lease: dict[str, Any] | None = None,
     max_users: int = 1,
     now: str = "",
 ) -> dict[str, Any]:
@@ -2526,8 +2584,11 @@ def governed_canary_knowledge_gated_dry_run_cycle(
         max_users=max_users,
     )
     consumer = event_helpers.build_readonly_event_consumer_trace(events, now=now)
+    lease = execution_lease if isinstance(execution_lease, dict) else {}
+    lease_state = operator_execution.execution_lease_state(lease) if lease else {"active": False, "status": "MISSING"}
+    lease_active = bool(lease_state.get("active"))
     candidates = [row for row in (dry_run.get("candidates") or []) if isinstance(row, dict)]
-    candidate = candidates[0] if candidates else {}
+    candidate = _candidate_from_execution_lease(lease) if lease_active else (candidates[0] if candidates else {})
     cycle_id = "gkcanary_" + stable_hash({
         "event_ids": [row.get("event_id") for row in consumer.get("events", [])],
         "candidate": {
@@ -2545,12 +2606,16 @@ def governed_canary_knowledge_gated_dry_run_cycle(
         if isinstance(dry_run_safety.get("atomic_execution_envelope"), dict)
         else {}
     )
-    packet_preview = _preview_packet_for_candidate(
-        candidate,
-        cycle_id=cycle_id,
-        authority_generation=str(dry_run_generation.get("planner_generation_id") or ""),
-        execution_envelope=dry_run_envelope,
-        now=now,
+    packet_preview = (
+        _packet_preview_from_execution_lease(lease)
+        if lease_active
+        else _preview_packet_for_candidate(
+            candidate,
+            cycle_id=cycle_id,
+            authority_generation=str(dry_run_generation.get("planner_generation_id") or ""),
+            execution_envelope=dry_run_envelope,
+            now=now,
+        )
     )
     rollback_items = (packet_preview.get("rollback_manifest_preview") or {}).get("items") or []
     restore_status = {
@@ -2626,6 +2691,15 @@ def governed_canary_knowledge_gated_dry_run_cycle(
         "event_source": "REAL_EVENT_PREVIEW" if consumer.get("event_count", 0) else "CURRENT_STATE_PREVIEW",
         "event_consumer": consumer,
         "candidate": candidate,
+        "execution_lease": {
+            **lease_state,
+            "active": lease_active,
+            "planner_regeneration_allowed": False if lease_active else None,
+            "decision_regeneration_allowed": False if lease_active else None,
+            "selected_move_hash_regeneration_allowed": False if lease_active else None,
+            "target_regeneration_allowed": False if lease_active else None,
+            "packet_freshness_check_allowed": True if lease_active else None,
+        },
         "target": target,
         "decision": {
             "action": "MOVE_GOVERNED_CANARY_REVIEW" if candidate and target and target != old_target else "NO_MOVE_CANDIDATE",
@@ -2679,6 +2753,8 @@ def governed_canary_knowledge_gated_dry_run_cycle(
             "new_truth_source_created": False,
             "new_storage_created": False,
             "new_daemon_created": False,
+            "execution_lease_active": lease_active,
+            "planner_regeneration_blocked_by_execution_lease": lease_active,
         },
         "final_verdict": (
             "AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY"

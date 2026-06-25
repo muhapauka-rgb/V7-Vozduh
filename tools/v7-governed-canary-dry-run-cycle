@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Run the read-only knowledge-gated governed canary dry-run cycle.
+"""Run the knowledge-gated governed canary dry-run cycle.
 
-The tool only reads existing V7 state and snapshots. It does not write
-runtime state, move users, enable daemons, or execute apply.
+By default the tool only reads existing V7 state and snapshots. With
+--create-execution-lease it writes only the existing packet owner's immutable
+execution lease; it never moves users, enables daemons, or executes apply.
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ if str(ROOT) not in sys.path:
 
 from admin_core import (  # noqa: E402
     autonomy_trust_acceleration,
+    operator_execution,
     operator_decision_surface,
     operator_execution_pipeline,
     registry_readers,
@@ -246,6 +248,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-users", type=int, default=1)
     parser.add_argument("--max-events", type=int, default=25)
     parser.add_argument("--skip-planner-observe", action="store_true")
+    parser.add_argument("--execution-lease-file", default="")
+    parser.add_argument("--create-execution-lease", action="store_true")
+    parser.add_argument("--approval-author", default="operator-a")
+    parser.add_argument("--approval-reviewer", default="operator-b")
+    parser.add_argument("--ttl-seconds", type=int, default=operator_execution.DEFAULT_EXECUTION_LEASE_TTL_SECONDS)
     parser.add_argument("--pretty", action="store_true")
     return parser
 
@@ -256,6 +263,10 @@ def main(argv=None) -> int:
     event_dir = Path(args.event_dir)
     snapshot_root = Path(args.snapshot_root) if args.snapshot_root else state_dir / "intelligence"
     audit_dir = Path(args.audit_dir) if args.audit_dir else default_audit_dir(state_dir)
+    lease_file = Path(args.execution_lease_file) if args.execution_lease_file else state_dir / "operator-execution-lease.json"
+    execution_lease = operator_execution.load_execution_lease(lease_file)
+    execution_lease_state = operator_execution.execution_lease_state(execution_lease)
+    active_execution_lease = bool(execution_lease_state.get("active"))
     users = read_registry(state_dir / "users.registry")
     egress = read_registry(state_dir / "egress.registry")
     runtime_state = read_json(state_dir / "v7-state.json", {})
@@ -277,20 +288,54 @@ def main(argv=None) -> int:
     surface["knowledge_quality_read_model"] = inventory.get("knowledge_quality_read_model", {})
     surface["decision_outcome_learning"] = inventory.get("decision_outcome_learning", {})
     planner_observe = {"skipped": True}
-    if not args.skip_planner_observe and not ((surface.get("batch_preview") or {}).get("users_to_move")):
+    if (
+        not active_execution_lease
+        and not args.skip_planner_observe
+        and not ((surface.get("batch_preview") or {}).get("users_to_move"))
+    ):
         planner_observe = run_planner_observe(state_dir, event_dir, snapshot_root, args.max_users)
         moves = selected_moves_from_planner_payload(planner_observe.get("payload", {}))
         surface = merge_planner_moves_into_surface(surface, moves)
     cycle = operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle(
         events=event_rows(event_dir, args.max_events),
         decision_surface=surface,
+        execution_lease=execution_lease if active_execution_lease else None,
         max_users=max(1, int(args.max_users)),
     )
+    lease_create_result = {}
+    if args.create_execution_lease and not active_execution_lease:
+        if cycle.get("stop_reason") == "AUTHORITY_BOUNDARY" and (cycle.get("packet_preview") or {}).get("status") == "PACKET_PREVIEW_READY":
+            lease = operator_execution.create_execution_lease_from_preview(
+                cycle.get("packet_preview") or {},
+                approval_author=args.approval_author,
+                approval_reviewer=args.approval_reviewer,
+                ttl_seconds=args.ttl_seconds,
+            )
+            lease_create_result = operator_execution.write_execution_lease(lease_file, lease)
+            if lease_create_result.get("ok"):
+                execution_lease = lease
+                execution_lease_state = operator_execution.execution_lease_state(execution_lease)
+                cycle = operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle(
+                    events=event_rows(event_dir, args.max_events),
+                    decision_surface=surface,
+                    execution_lease=execution_lease,
+                    max_users=max(1, int(args.max_users)),
+                )
+        else:
+            lease_create_result = {
+                "ok": False,
+                "verdict": "EXECUTION_LEASE_NOT_CREATED",
+                "reason": "packet_not_ready_for_approval",
+                "execution_allowed_now": False,
+            }
     cycle["inputs"] = {
         "state_dir": str(state_dir),
         "event_dir": str(event_dir),
         "snapshot_root": str(snapshot_root),
         "audit_dir": str(audit_dir),
+        "execution_lease_file": str(lease_file),
+        "execution_lease_state": execution_lease_state,
+        "execution_lease_create_result": lease_create_result,
         "decision_records_read": len(records),
         "shadow_history_records_read": len(shadow_history),
         "events_read": len(event_rows(event_dir, args.max_events)),

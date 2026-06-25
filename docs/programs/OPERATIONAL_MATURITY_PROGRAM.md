@@ -448,16 +448,16 @@ Current implementation optimizer result:
 
 | Field | Current Value |
 | --- | --- |
-| Highest implementation leverage task | `IMPLEMENT_AUTHORITY_BOUNDARY_APPROVAL_PROMPT` |
+| Highest implementation leverage task | `IMPLEMENT_EXECUTION_LEASE` |
 | Implementation class | `IMPLEMENT_RUNTIME` |
-| Exact owner | Governed Canary Knowledge-Gated Dry-Run Cycle / Runtime Model composition |
-| Exact module | `admin_core/operator_execution_pipeline.py::governed_canary_knowledge_gated_dry_run_cycle` |
-| Exact files | `admin_core/operator_execution_pipeline.py`, focused tests for governed dry-run authority-bound approval prompt output |
-| Implementation status | `DEPLOYED_CERTIFIED_AUTHORITY_BOUNDARY_APPROVAL_PROMPT` |
+| Exact owner | Existing packet owner / Governed Canary Knowledge-Gated Dry-Run Cycle |
+| Exact module | `admin_core/operator_execution.py` execution lease + `admin_core/operator_execution_pipeline.py::governed_canary_knowledge_gated_dry_run_cycle` |
+| Exact files | `admin_core/operator_execution.py`, `admin_core/operator_execution_pipeline.py`, `tools/v7-governed-canary-dry-run-cycle`, focused tests |
+| Implementation status | `LOCAL_TEST_CERTIFIED_EXECUTION_LEASE`; deploy pending |
 | Certification report | Current Program State section 14 |
-| Truth/convergence | `PASS`; local, GitHub, and runtime aligned; docs-only CPS/OMP update ignored for runtime deployment. |
-| New highest implementation leverage task | `REQUEST_APPROVAL_FOR_FRESH_EXACT_GOVERNED_PACKET` |
-| Stop boundary | `AUTHORITY_BOUNDARY`: operator approval for `pkt_preview_43f0151499620a00d2e50f7b` was invalidated by fresh production dry-run packet `pkt_preview_fb70744bc51ad162b1727dcb`; restore-barrier write and apply still require explicit operator approval for the fresh exact packet. |
+| Truth/convergence | pre-deploy `DEPLOY_REQUIRED` because runtime-critical lease implementation is not yet deployed. |
+| New highest implementation leverage task | `DEPLOY_EXECUTION_LEASE_AND_RERUN_GOVERNED_DRY_RUN` |
+| Stop boundary | `DEPLOY_REQUIRED_BEFORE_RUNTIME_ACTION`: execution lease is implemented and tested, but production must be updated before any restore-barrier write or apply. |
 
 ## 2.13. Implementation Program Loop
 
@@ -657,7 +657,7 @@ Expected implementation order:
 5. Update Current Program State.
 
 The old bottleneck action, governed candidate suitability outcome closure, remains the highest real-outcome action but crosses `AUTHORITY_BOUNDARY`.
-The current implementation-first optimizer has completed the safe prompt work, rejected a stale approval before mutation, and now stops at `AUTHORITY_BOUNDARY` for the fresh exact packet.
+The current implementation-first optimizer has implemented execution lease support so approved packets do not become moving targets. The next automatic step is safe deploy, then production governed dry-run recalculation.
 
 ## 8. Current Authority Boundary
 
@@ -1075,16 +1075,16 @@ If a restore-barrier write, apply, user movement, rollback apply, daemon, timer,
 | --- | --- |
 | Completed phases | Canonical reference, reference-first rule, event-driven contract, knowledge quality, routing foundation, knowledge-to-decision, decision-to-outcome-to-learning, outcome leverage, suitability program, knowledge growth, routing evolution, maximum reality extraction, decision model, runtime model, system architecture. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle. |
-| Current bottleneck | Fresh exact authority before real governed canary outcome. |
-| Current highest leverage action | `REQUEST_APPROVAL_FOR_FRESH_EXACT_GOVERNED_PACKET`. |
+| Current bottleneck | Production deployment of execution lease before real governed canary outcome. |
+| Current highest leverage action | `DEPLOY_EXECUTION_LEASE_AND_RERUN_GOVERNED_DRY_RUN`. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | `AUTHORITY_BOUNDARY`: packet `pkt_preview_43f0151499620a00d2e50f7b` was approved by the operator, but production preflight resolved fresh packet `pkt_preview_fb70744bc51ad162b1727dcb` before any restore-barrier write or apply. |
+| Current blockers | `DEPLOY_REQUIRED_BEFORE_RUNTIME_ACTION`: execution lease is implemented and tested locally, but production still runs the previous packet/dry-run owner code. |
 | Current maturity | Architecture complete; implementation phase active; read-only runtime lifecycle preview deployed and production-verified; preview-to-execution packet identity deployed and production-verified; autonomy cycles mature to exact packet authority boundary. |
 | Current runtime posture | No autonomous apply, no user movement, no daemon enablement. |
-| Current next best action | Request explicit approval or rejection for fresh packet `pkt_preview_fb70744bc51ad162b1727dcb` before any restore-barrier write or apply. |
-| Last optimizer iteration | `2026-06-25`: exact packet approval was checked against production, invalidated as stale before mutation, and no restore-barrier clearance, apply, movement, rollback, outcome closure, or learning write occurred. |
+| Current next best action | Deploy execution lease through existing safe deployment owner, rerun truth/convergence, then rerun production governed canary dry-run. |
+| Last optimizer iteration | `2026-06-25`: execution lease was implemented through existing packet/dry-run owners; tests pass; no restore-barrier clearance, apply, movement, rollback, outcome closure, or learning write occurred. |
 
 ## 25. Program Rule For Future Work
 

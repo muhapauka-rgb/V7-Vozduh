@@ -10,7 +10,10 @@ from admin_core.operator_execution import (
     PacketError,
     RUNTIME_ACTION_CREATE_CLEARANCE,
     RUNTIME_ACTION_ZERO_MOVE_GOVERNANCE,
+    cancel_execution_lease,
+    create_execution_lease_from_preview,
     execute_packet,
+    execution_lease_state,
     extract_packet_preview,
     packet_from_preview,
     packet_from_plan,
@@ -19,6 +22,7 @@ from admin_core.operator_execution import (
     sha256_bytes,
     sha256_file,
     sha256_json,
+    write_execution_lease,
 )
 
 
@@ -419,6 +423,58 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             "preview-selected-hash-unit",
         )
         self.assertFalse(result["record_written"])
+
+    def test_execution_lease_allows_immediate_approved_packet_execution_preview(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.make_state(root)
+            audit = root / "audit.jsonl"
+            barrier = state / "autoswitch-restore-barrier.json"
+            lease = create_execution_lease_from_preview(
+                self.preview_packet(),
+                approval_author="operator-a",
+                approval_reviewer="operator-b",
+            )
+            result = execute_packet(
+                lease["packet"],
+                audit,
+                state,
+                mode="runtime_action_preview",
+                restore_barrier_file=barrier,
+            )
+
+        self.assertTrue(execution_lease_state(lease)["active"])
+        self.assertEqual(result["recheck"]["verdict"], "ALLOW_RESTORE_BARRIER_CLEARANCE")
+        self.assertEqual(result["clearance_preview"]["clearance"]["packet_id"], "pkt_preview_unit_identity")
+        self.assertFalse(result["record_written"])
+
+    def test_execution_lease_expires_and_cancel_releases(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            lease_file = root / "execution-lease.json"
+            lease = create_execution_lease_from_preview(
+                self.preview_packet(),
+                approval_author="operator-a",
+                approval_reviewer="operator-b",
+                ttl_seconds=1,
+            )
+            write_result = write_execution_lease(lease_file, lease)
+            duplicate = write_execution_lease(lease_file, lease)
+            cancel = cancel_execution_lease(lease_file, reason="operator-test-cancel")
+            cancelled = json.loads(lease_file.read_text(encoding="utf-8"))
+            expired = create_execution_lease_from_preview(
+                self.preview_packet(),
+                approval_author="operator-a",
+                approval_reviewer="operator-b",
+                ttl_seconds=1,
+            )
+
+        self.assertTrue(write_result["ok"])
+        self.assertEqual(duplicate["verdict"], "DENY_DUPLICATE_EXECUTION_LEASE")
+        self.assertTrue(cancel["ok"])
+        self.assertFalse(execution_lease_state(cancelled)["active"])
+        past = datetime.now(timezone.utc) + timedelta(seconds=2)
+        self.assertEqual(execution_lease_state(expired, now=past)["status"], "EXPIRED")
 
     def test_runtime_action_preview_builds_clearance_without_writes_and_survives_reread(self):
         with tempfile.TemporaryDirectory() as tmp:

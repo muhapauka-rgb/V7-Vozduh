@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-25T16:03:56+0700
-Source: exact governed packet approval preflight, production governed canary dry-run, stale approval invalidation, OMP recalculation
+State captured: 2026-06-25T16:14:40+0700
+Source: IMPLEMENT_EXECUTION_LEASE, tests, Runtime Model update, OMP recalculation
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, authority boundary, metrics, packet, or stop reason.
 
@@ -14,12 +14,12 @@ This file is volatile. Update it after every safe action or approved execution t
 | Current phase | `IMPLEMENTATION` |
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Suitability` |
-| Current highest leverage implementation | `IMPLEMENT_AUTHORITY_BOUNDARY_APPROVAL_PROMPT` deployed and production-verified |
-| Current highest leverage action | `REQUEST_APPROVAL_FOR_FRESH_EXACT_GOVERNED_PACKET` |
+| Current highest leverage implementation | `IMPLEMENT_EXECUTION_LEASE` implemented and test-certified locally |
+| Current highest leverage action | `DEPLOY_EXECUTION_LEASE_AND_RERUN_GOVERNED_DRY_RUN` |
 | Current authority boundary | `AUTHORITY_BOUNDARY` |
 | Current reality limit | `REAL_CANDIDATE_OUTCOMES_HAVE_NOT_HAPPENED`; next maturity gain requires a real one-user governed canary outcome for the fresh exact packet |
-| Current safe next action | `OUTPUT_READY_OPERATOR_APPROVAL_PROMPT_FOR_CURRENT_EXACT_PACKET` completed for the fresh packet |
-| Current stop reason | operator approved stale packet `pkt_preview_43f0151499620a00d2e50f7b`, but production preflight now resolves fresh packet `pkt_preview_fb70744bc51ad162b1727dcb`; exact approval was invalidated before restore-barrier write, apply, user movement, rollback apply, daemon/timer enablement, event consumer mutation, authority expansion, or synthetic evidence |
+| Current safe next action | deploy tested execution lease through `tools/v7-safe-deploy`, then rerun production governed dry-run with lease support |
+| Current stop reason | `UNSAFE_OPERATIONAL_FLOW` was implemented as `IMPLEMENT_EXECUTION_LEASE`; deployment and production dry-run recalculation are pending before any restore-barrier write, apply, user movement, rollback apply, daemon/timer enablement, event consumer mutation, authority expansion, or synthetic evidence |
 
 ## 2. Current Metrics
 
@@ -56,7 +56,7 @@ This file is volatile. Update it after every safe action or approved execution t
 
 Packet preview is read-only and may become stale. This exact packet is the current packet only while packet id, operation id, selected move hash, rollback manifest, subject, target, and authority generation remain unchanged.
 
-Latest continuation note: operator approval for `pkt_preview_43f0151499620a00d2e50f7b` was checked against production before mutation and invalidated because the current dry-run packet changed to `pkt_preview_fb70744bc51ad162b1727dcb`. No restore-barrier clearance was written and no apply was attempted.
+Latest continuation note: execution lease was implemented to bind approval to one immutable packet and prevent planner refresh from regenerating the execution packet while the lease is active. No restore-barrier clearance was written and no apply was attempted.
 
 ## 3.1. Exact Approval Execution Preflight
 
@@ -89,17 +89,17 @@ Latest continuation note: operator approval for `pkt_preview_43f0151499620a00d2e
 
 | Field | Current Value |
 | --- | --- |
-| Executed at | `2026-06-25T16:03:56+0700` |
-| Optimizer result | approved exact packet changed before mutation; approval invalidated by fresh production dry-run |
-| Safe work completed | production preflight; stale approval detection; CPS recalculation |
-| Evidence refresh result | production dry-run emitted fresh packet prompt `APPROVAL_PROMPT_READY`; stale approval invalidated; no restore-barrier write; no apply; no movement |
+| Executed at | `2026-06-25T16:14:40+0700` |
+| Optimizer result | execution lease implemented through existing packet owner and Runtime Model path |
+| Safe work completed | packet owner lease lifecycle; lease-aware governed dry-run; Runtime Model update; focused and full unit tests |
+| Evidence refresh result | local test certification complete; production deploy pending |
 | Fresh dry-run verdict | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY` |
 | Fresh candidate | `10.7.0.5` |
 | Fresh movement preview | `vless -> awg0` |
 | Fresh packet preview id | `pkt_preview_fb70744bc51ad162b1727dcb` |
 | Fresh operation id | `govdry_97745a383e19446a2a1124e3` |
 | Fresh rollback manifest id | `rb_preview_0cffde2b4797f0030c57639d` |
-| Runtime lifecycle preview | `rtlife_d9fcb357cb1af8e23415f2be`; stage `AUTHORITY_CHECKED`; packet freshness is current for the new prompt |
+| Runtime lifecycle preview | lease-aware lifecycle implemented; production lifecycle id pending deploy dry-run |
 | Restore/rollback preview | `RESTORE_AND_ROLLBACK_PREVIEW_READY` |
 | Verification plan | `VERIFICATION_PLAN_READY` |
 | Outcome closure plan | `OUTCOME_CLOSURE_PLAN_READY` |
@@ -249,8 +249,8 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
 
 | Field | Current Value |
 | --- | --- |
-| Implemented task | `IMPLEMENT_AUTHORITY_BOUNDARY_APPROVAL_PROMPT` |
-| Implemented output | `approval_prompt` inside `governed_canary_knowledge_gated_dry_run_cycle` |
+| Implemented task | `IMPLEMENT_EXECUTION_LEASE` |
+| Implemented output | `approval_prompt` and execution lease support inside existing packet/dry-run owners |
 | Required approval fields | `PRESENT` |
 | Idempotency fingerprint | `PRESENT` |
 | Duplicate work status | `PRESENT` |
@@ -261,12 +261,12 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
 | Compile verification | `PASS` |
 | Safe CLI verification | `PASS_WITH_EXPECTED_SAFE_BLOCK_MISSING_TRIGGER` |
 | Safety | `apply_executed=false`; `users_moved=0`; `runtime_mutation_performed=false`; `restore_barrier_written_now=false`; `rollback_executed=false` |
-| Certification | `DEPLOYED_CERTIFIED_AUTHORITY_BOUNDARY_APPROVAL_PROMPT` |
-| Truth | `PASS`; local, GitHub, and runtime aligned; docs-only CPS/OMP update ignored for runtime deployment |
-| Convergence | `PASS`; status `ALIGNED`; runtime action guard `READY_FOR_RUNTIME_ACTION` with docs-only mismatch ignored |
-| New highest implementation leverage task | `REQUEST_APPROVAL_FOR_FRESH_EXACT_GOVERNED_PACKET` |
-| Continue automatically | `NO` |
-| Exact stop condition | `AUTHORITY_BOUNDARY` |
+| Certification | `LOCAL_TEST_CERTIFIED_EXECUTION_LEASE`; deploy pending |
+| Truth | pre-deploy `NO-GO` because runtime-critical implementation is intentionally dirty before commit/deploy |
+| Convergence | pre-deploy `DEPLOY_REQUIRED` for `admin_core/operator_execution.py`, `admin_core/operator_execution_pipeline.py`, and `tools/v7-governed-canary-dry-run-cycle` |
+| New highest implementation leverage task | `DEPLOY_EXECUTION_LEASE_AND_RERUN_GOVERNED_DRY_RUN` |
+| Continue automatically | `YES_AFTER_DEPLOY` |
+| Exact stop condition | `DEPLOY_REQUIRED_BEFORE_RUNTIME_ACTION` |
 
 ## 13. Production Deploy State
 

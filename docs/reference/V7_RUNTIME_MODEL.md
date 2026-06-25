@@ -322,6 +322,34 @@ If the idempotency key already has a terminal result, Runtime reuses the result 
 If the key is active, Runtime stops with `DUPLICATE_WORK`.
 If the key conflicts with current generation, Runtime stops with `STALE_DECISION` or `STATE_CONFLICT`.
 
+## Execution Lease
+
+After a governed packet reaches `READY_FOR_APPROVAL`, the existing packet owner may create an execution lease.
+
+The execution lease binds operator approval to one immutable execution packet:
+
+- packet id;
+- decision id;
+- operation id;
+- authority generation;
+- selected move hash;
+- subject;
+- target;
+- rollback manifest;
+- approved plan lock.
+
+While the lease is active, Runtime and OMP must not regenerate the decision, selected move hash, target, or execution packet. Planner refresh is allowed only as a freshness check. The executable packet is read from the lease and remains the approved packet.
+
+The lease may be invalidated only by:
+
+- timeout;
+- execution finished;
+- rollback finished;
+- operator cancel;
+- materially changed source state.
+
+The lease is not a new truth source. It is a packet-owner execution guard that points back to the approved packet, Current Program State, restore barrier, and runtime evidence.
+
 ## Loop Avoidance
 
 Runtime avoids loops by requiring a material change before retry:
@@ -439,6 +467,7 @@ Runtime observability must expose:
 - stop reason;
 - authority status;
 - packet freshness;
+- execution lease id and status;
 - verification status;
 - rollback status;
 - outcome status;

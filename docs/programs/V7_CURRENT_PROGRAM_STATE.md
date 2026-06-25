@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-25T14:11:26+0700
-Source: safe deploy, production truth/convergence, production governed canary dry-run, OMP recalculation
+State captured: 2026-06-25T14:16:21+0700
+Source: post-deploy continuation truth/convergence, fresh production governed canary dry-run, OMP recalculation
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, authority boundary, metrics, packet, or stop reason.
 
@@ -48,13 +48,13 @@ This file is volatile. Update it after every safe action or approved execution t
 | Selected move hash | `41d346ea7f2467b3c677306b863f2ef949715be7035b3358bc911520d4ea4300` |
 | Rollback target | `vless` |
 | Rollback manifest id | `rb_preview_0cffde2b4797f0030c57639d` |
-| Risk | `3.562` |
+| Risk | `3.558` |
 | Candidate confidence | `0.458` |
-| Trust | `54.666` |
+| Trust | `54.667` |
 
 Packet preview is read-only and may become stale. Regenerate it before approval if runtime state changes.
 
-Latest takeover note: the packet above was not freshly regenerated during the 2026-06-25T12:48:16+0700 handoff takeover. Full truth and convergence passed with network/runtime visibility, but the default governed dry-run refresh requires the existing planner observe path, which may create/acquire `/opt/v7/.../service-matrix.lock` and trigger production pre-planner refresh behavior. That production-state write was not explicitly approved. The stale packet must not be treated as fresh approval evidence until a new governed dry-run refresh is approved and completed.
+Latest continuation note: the packet above was freshly confirmed by production governed dry-run at 2026-06-25T14:16:21+0700. Packet freshness is `PACKET_PREVIEW_READY_CURRENT_INPUT`. This remains approval evidence only for the exact bounded packet; it does not authorize restore-barrier write, apply, rollback apply, daemon/timer enablement, authority expansion, or user movement.
 
 ## 4. Plans Ready
 
@@ -69,10 +69,10 @@ Latest takeover note: the packet above was not freshly regenerated during the 20
 
 | Field | Current Value |
 | --- | --- |
-| Executed at | `2026-06-25T14:11:26+0700` |
+| Executed at | `2026-06-25T14:16:21+0700` |
 | Optimizer result | implementation deployed; next HLI crosses authority boundary |
-| Safe work completed | safe deploy; truth; convergence; production governed canary dry-run; OMP/CPS recalculation |
-| Evidence refresh result | deploy `50188d9030d651213b5d06b528fed446889c17bc`; truth `PASS`; convergence `PASS`; dry-run `AUTHORITY_BOUNDARY` |
+| Safe work completed | truth; convergence; fresh production governed canary dry-run; CPS recalculation |
+| Evidence refresh result | deployed runtime commit `50188d9030d651213b5d06b528fed446889c17bc`; local/GitHub docs commit `89628954a5028f7774d4edcd5ac8520d5a6d4b79`; truth `PASS`; convergence `PASS`; dry-run `AUTHORITY_BOUNDARY` |
 | Fresh dry-run verdict | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY` |
 | Fresh candidate | `10.7.0.5` |
 | Fresh movement preview | `vless -> awg0` |
@@ -204,7 +204,7 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
 
 | Field | Current Value |
 | --- | --- |
-| Verified at | `2026-06-25T14:11:26+0700` |
+| Verified at | `2026-06-25T14:16:21+0700` |
 | Branch | `Updatesystem` |
 | Truth check | `PASS`; local, GitHub, and runtime aligned at `50188d9030d651213b5d06b528fed446889c17bc` |
 | Convergence | `PASS`; status `ALIGNED`; runtime action guard `READY_FOR_RUNTIME_ACTION` |
@@ -212,5 +212,5 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
 | Production dry-run command | `ssh v7-vps /usr/local/bin/v7-governed-canary-dry-run-cycle` |
 | Production dry-run result | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY` |
 | Production dry-run safety | `apply_executed=false`; `users_moved=0`; `runtime_mutation_performed=false`; no new planner/governance/execution/truth/storage |
-| Current packet freshness | `PACKET_PREVIEW_READY_CURRENT_INPUT` |
+| Current packet freshness | `PACKET_PREVIEW_READY_CURRENT_INPUT`; refreshed by production dry-run during `Continue OMP` |
 | Exact next required approval | Approve exact governed TIER_1 canary packet `pkt_preview_fb70744bc51ad162b1727dcb` for `10.7.0.5 vless -> awg0`; still no autonomous apply and no user movement without explicit approval |

@@ -1002,6 +1002,12 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
             max_users=1,
             now="2026-06-24T16:00:00Z",
         )
+        rebuilt = pipeline.governed_canary_knowledge_gated_dry_run_cycle(
+            events=[],
+            decision_surface=decision_surface,
+            max_users=1,
+            now="2026-06-24T16:00:00Z",
+        )
 
         self.assertEqual(cycle["stop_reason"], "AUTHORITY_BOUNDARY")
         self.assertEqual(cycle["event_source"], "CURRENT_STATE_PREVIEW")
@@ -1020,6 +1026,55 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(cycle["safety"]["users_moved"], 0)
         self.assertFalse(cycle["safety"]["autonomy_enabled"])
         self.assertTrue(all(row["runtime_mutation_performed"] is False for row in cycle["cycle_steps"]))
+        lifecycle = cycle["runtime_lifecycle_preview"]
+        for field in [
+            "lifecycle_id",
+            "decision_id",
+            "operation_id",
+            "packet_id",
+            "idempotency_key_fingerprint",
+            "current_state_generation",
+            "selected_move_hash",
+            "runtime_stage",
+            "stage_owner",
+            "input_generation",
+            "stop_reason",
+            "authority_status",
+            "packet_freshness",
+            "duplicate_work_status",
+            "loop_guard_status",
+            "verification_status",
+            "rollback_status",
+            "outcome_status",
+            "learning_status",
+            "omp_notification_status",
+        ]:
+            self.assertIn(field, lifecycle)
+        self.assertEqual(lifecycle["schema_version"], "v7.runtime-lifecycle-preview.v1")
+        self.assertEqual(lifecycle["runtime_stage"], "AUTHORITY_CHECKED")
+        self.assertEqual(lifecycle["stage_owner"], "OMP")
+        self.assertEqual(lifecycle["stop_reason"], "AUTHORITY_BOUNDARY")
+        self.assertEqual(lifecycle["packet_freshness"], "PACKET_PREVIEW_READY_CURRENT_INPUT")
+        self.assertEqual(lifecycle["verification_status"], "VERIFICATION_PLAN_READY")
+        self.assertEqual(lifecycle["rollback_status"], "RESTORE_AND_ROLLBACK_PREVIEW_READY")
+        self.assertEqual(lifecycle["outcome_status"], "OUTCOME_CLOSURE_PLAN_READY")
+        self.assertEqual(lifecycle["learning_status"], "LEARNING_PATH_CONNECTED")
+        self.assertEqual(lifecycle["omp_notification_status"], "READY_TO_NOTIFY_OMP_WITH_STOP")
+        self.assertEqual(lifecycle["duplicate_work_status"], "NO_DUPLICATE_WORK_DETECTED_READ_ONLY")
+        self.assertEqual(lifecycle["loop_guard_status"], "NO_LOOP_DETECTED_READ_ONLY")
+        self.assertEqual(lifecycle["operation_id"], cycle["packet_preview"]["operation_id"])
+        self.assertEqual(lifecycle["packet_id"], cycle["packet_preview"]["packet_id"])
+        self.assertEqual(lifecycle["selected_move_hash"], cycle["packet_preview"]["selected_move_hash"])
+        self.assertEqual(
+            lifecycle["idempotency_key_fingerprint"],
+            rebuilt["runtime_lifecycle_preview"]["idempotency_key_fingerprint"],
+        )
+        self.assertFalse(lifecycle["runtime_mutation_performed"])
+        self.assertFalse(lifecycle["restore_barrier_written_now"])
+        self.assertFalse(lifecycle["apply_executed"])
+        self.assertEqual(lifecycle["users_moved"], 0)
+        self.assertFalse(lifecycle["rollback_executed"])
+        self.assertFalse(lifecycle["learning_written_now"])
 
     def test_governed_canary_cycle_fails_non_authority_snapshot_stop(self):
         decision_surface = {

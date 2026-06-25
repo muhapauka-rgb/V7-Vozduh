@@ -3,23 +3,21 @@
 Status: `ACTIVE`
 Program: `Operational Maturity`
 Created: 2026-06-25
-Version: `2.3`
+Version: `3.0`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
-This document is the primary program source for future V7 implementation work. It replaces roadmap-driven development, phase-first development, and free-form implementation ideas with optimization-driven operational maturity.
+This document is the primary program source for V7 implementation work. It replaces roadmap-driven development, phase-first development, free-form implementation ideas, and architecture-first continuation with optimization-driven production implementation.
 
 Roadmaps, reports, ADRs, and reference files remain evidence and context. This program decides the current system state, highest bottleneck, highest leverage action, authority boundary, reality limit, next best action, and whether Codex may continue automatically.
 
-V2 operating question:
+V3 operating question:
 
 ```text
-What currently limits V7 the most?
-  ->
-What action gives the highest maturity gain right now?
+What implementation gives the highest production leverage right now?
 ```
 
-V2.1 adds architectural minimalism, semantic reuse, a new-owner gate, architecture duplication detection, and an explicit optimization engine. V2.2 adds Safety-Bounded Authority: trust decides autonomy tier, safety decides bounded action. V2.3 adds Kernel and State Split: permanent operating rules live in Kernel/OMP, volatile current state lives in Current Program State. OMP always wins over free-form implementation ideas.
+V2.1 adds architectural minimalism, semantic reuse, a new-owner gate, architecture duplication detection, and an explicit optimization engine. V2.2 adds Safety-Bounded Authority: trust decides autonomy tier, safety decides bounded action. V2.3 adds Kernel and State Split: permanent operating rules live in Kernel/OMP, volatile current state lives in Current Program State. V3.0 closes architecture-first work and activates implementation-first optimization. OMP always wins over free-form implementation ideas.
 
 ## 1. Project Vision
 
@@ -69,6 +67,46 @@ OMP must not become a dumping ground for every packet or state update.
 Long packet/state payloads belong in Current Program State. OMP should keep only scheduler/optimizer rules and pointers unless scheduler meaning changes.
 
 `Continue OMP` means: read Kernel, read OMP, read Current Program State, execute the optimizer loop, continue through safe work, and stop only at an allowed stop condition.
+
+## 2.1.1. Implementation Phase Rule
+
+Architecture Phase is complete.
+Research Phase is complete.
+Decision Model is complete.
+Runtime Model is complete.
+System Architecture is complete.
+
+From V3.0 forward, OMP optimizes implementation, not architecture.
+
+The implementation optimizer asks:
+
+```text
+What implementation gives the highest production leverage right now?
+```
+
+OMP must not ask:
+
+```text
+What architecture is missing?
+```
+
+Architecture redesign, planner redesign, governance redesign, execution redesign, Runtime redesign, new truth sources, synthetic evidence, and new owners are forbidden unless a real implementation proves `FUNDAMENTAL_ARCHITECTURE_GAP`.
+
+Implementation-first means:
+
+1. choose the highest production-leverage implementation;
+2. reuse the existing owner;
+3. extend the existing owner only when required;
+4. implement the smallest safe increment;
+5. test;
+6. verify;
+7. certify;
+8. update Current Program State;
+9. update OMP only if optimizer meaning changed;
+10. continue automatically until an allowed stop condition.
+
+Reference program: `docs/programs/V7_IMPLEMENTATION_PROGRAM.md`.
+Reference model: `docs/reference/V7_IMPLEMENTATION_MODEL.md`.
 
 ## 2.2. Safety-Bounded Authority Model
 
@@ -267,6 +305,19 @@ Latest semantic reuse audit for optimizer iteration `2026-06-25`:
 | Extension strategy | None required for the safe portion. |
 | Need New Owner | `FALSE` |
 
+Current semantic reuse audit for OMP V3.0:
+
+| Field | Current Value |
+| --- | --- |
+| Desired capability | Transition V7 from architecture-first continuation to implementation-first production leverage optimization. |
+| Existing owner | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` |
+| Semantically equivalent owners | `docs/reference/V7_SYSTEM_ARCHITECTURE.md`, `docs/reference/V7_RUNTIME_MODEL.md`, `docs/reference/V7_DECISION_MODEL.md`, `docs/reference/V7_ENGINEERING_PRINCIPLES.md`, `docs/reference/V7_CANONICAL_REFERENCE.md`, `docs/reference/SYSTEM_MAP.md`, relevant ADRs |
+| Composition strategy | Extend OMP in place, add `docs/programs/V7_IMPLEMENTATION_PROGRAM.md`, add `docs/reference/V7_IMPLEMENTATION_MODEL.md`, and preserve existing owner boundaries. |
+| Semantic coverage | `100%` |
+| Reuse strategy | Reuse OMP as implementation optimizer; reuse Current Program State as volatile implementation state; reuse existing runtime/planner/knowledge/learning owners for code work. |
+| Extension strategy | Add implementation-first question, implementation classes, implementation prioritization, implementation optimizer, and first production-leverage implementation task. |
+| Need New Owner | `FALSE` |
+
 ## 2.8. New Owner Gate
 
 Before creating any new owner, knowledge model, planner, engine, pipeline, API, CLI, storage, snapshot, or truth source, OMP must prove:
@@ -340,6 +391,103 @@ Current detector result:
 | Duplicate maturity models | `NONE` |
 | Verdict | `NONE` |
 
+## 2.10. Implementation Prioritization Rules
+
+OMP must choose implementation work in this order:
+
+| Priority | Class | Rule |
+| --- | --- | --- |
+| A | Existing owner implementation | Implement missing behavior inside the existing owner first. |
+| B | Existing owner integration | Connect existing owners when the behavior already exists but is disconnected. |
+| C | Existing owner optimization | Improve correctness, safety, speed, or clarity inside an existing owner. |
+| D | Read-model improvements | Add read-only fields or summaries that help existing owners decide, stop, verify, or learn. |
+| E | Testing | Add focused tests for implemented behavior, state transitions, safety, idempotency, and stop reasons. |
+| F | Certification | Certify the implemented behavior with truth, convergence, and project-specific verification. |
+
+Never redesign architecture unless implementation evidence proves `FUNDAMENTAL_ARCHITECTURE_GAP`.
+
+## 2.11. Implementation Classes
+
+Every future implementation task must be classified as exactly one primary implementation class:
+
+| Class | Meaning |
+| --- | --- |
+| `IMPLEMENT_RUNTIME` | Runtime lifecycle, wakeup, stop, idempotency, verification, rollback, OMP notification, or runtime preview behavior through existing owners. |
+| `IMPLEMENT_BACKGROUND` | Background knowledge, snapshots, intelligence, trust, suitability, prediction, service, route, capacity, or evidence processing. |
+| `IMPLEMENT_READ_MODEL` | Read-only surfaces that expose state, decisions, safety, authority, verification, learning, or operator visibility. |
+| `IMPLEMENT_TEST` | Tests, fixtures, regression coverage, state-machine coverage, or safety/idempotency coverage. |
+| `IMPLEMENT_VERIFICATION` | Verification logic, read-only checks, convergence gates, truth checks, readiness checks, or post-action validation. |
+| `IMPLEMENT_OBSERVABILITY` | Lifecycle ids, stage visibility, stop reasons, audit records, operator traces, or non-truth-source observability. |
+| `IMPLEMENT_UI` | Operator-facing UI work that consumes existing truth/read models without becoming a decision owner. |
+| `IMPLEMENT_DOCUMENTATION` | Documentation required by an implementation, never a substitute for implementation. |
+| `IMPLEMENT_CERTIFICATION` | Certification reports, truth/convergence confirmation, and release readiness after implemented behavior. |
+
+Documentation-only tasks may support implementation, but they are not the implementation optimizer target unless documentation is the actual highest production-leverage work.
+
+## 2.12. Implementation Optimizer
+
+OMP optimizes Production Leverage.
+
+Production Leverage means the expected improvement to production autonomy, safety, verifiability, learning, operator effectiveness, or implementation readiness per unit of risk and effort.
+
+Ranking inputs:
+
+1. current bottleneck;
+2. current authority boundary;
+3. current reality limit;
+4. existing owner availability;
+5. production safety;
+6. expected maturity gain;
+7. implementation effort;
+8. reversibility;
+9. testability;
+10. truth/convergence impact;
+11. whether the task moves V7 toward Production Autonomy without crossing forbidden boundaries.
+
+Current implementation optimizer result:
+
+| Field | Current Value |
+| --- | --- |
+| Highest implementation leverage task | `IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW` |
+| Implementation class | `IMPLEMENT_RUNTIME` |
+| Exact owner | Governed Canary Knowledge-Gated Dry-Run Cycle / Runtime Model composition |
+| Exact module | `admin_core/operator_execution_pipeline.py::governed_canary_knowledge_gated_dry_run_cycle` |
+| Exact files | `admin_core/operator_execution_pipeline.py`, `tools/v7-governed-canary-dry-run-cycle`, focused tests for the governed canary dry-run cycle and runtime lifecycle read-only output |
+| Implementation status | `LOCAL_CERTIFIED_READ_ONLY_RUNTIME_LIFECYCLE_PREVIEW_DEPLOY_REQUIRED` |
+| Certification report | `docs/reports/V7_IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW_CERTIFICATION_REPORT.md` |
+| Truth/convergence | Truth `NO-GO`; convergence `NOT_ALIGNED`; runtime action status `DEPLOY_REQUIRED` for `admin_core/operator_execution_pipeline.py`. |
+| New highest implementation leverage task | `APPROVE_SAFE_DEPLOY_READ_ONLY_RUNTIME_LIFECYCLE_PREVIEW` |
+| Stop boundary | `AUTHORITY_BOUNDARY`: safe deploy changes production runtime files and requires explicit approval. |
+
+## 2.13. Implementation Program Loop
+
+Implementation program loop:
+
+```text
+Read OMP
+  -> Read Current Program State
+  -> Choose highest implementation leverage
+  -> Semantic Reuse Audit
+  -> Reuse
+  -> Extend
+  -> Implement
+  -> Test
+  -> Verify
+  -> Truth
+  -> Convergence
+  -> Certification
+  -> Update Current Program State
+  -> Update OMP
+  -> Continue automatically
+```
+
+Stop only at:
+
+- `AUTHORITY_BOUNDARY`
+- `REAL_WORLD_LIMIT`
+- `UNSAFE_IMPLEMENTATION`
+- `FUNDAMENTAL_ARCHITECTURE_GAP`
+
 Latest optimizer iteration duplication result `2026-06-25`:
 
 | Field | Current Value |
@@ -398,14 +546,14 @@ Purpose:
 
 Move V7 from architecture-complete / authority-bound autonomy to production maturity through continuous bottleneck reduction.
 
-The program no longer asks "what is the next phase?" first.
+The program no longer asks "what is the next phase?" first and no longer asks "what architecture is missing?" first.
 
 The program asks:
 
 ```text
 Current System State
   -> Current Highest Bottleneck
-  -> Current Highest Leverage Improvement
+  -> Current Highest Implementation Leverage
   -> Current Authority Boundary
   -> Current Real World Limit
   -> Next Best Action
@@ -417,14 +565,14 @@ This section must be recalculated after every certification from canonical refer
 
 | Maturity Area | Current State | Evidence |
 | --- | --- | --- |
-| Architecture maturity | `COMPLETE_WITH_FUTURE_OPTIONAL_EXTENSIONS` | Final architecture certification: no fundamental missing classes; architecture limit is real-world experience and authority. |
+| Architecture maturity | `ARCHITECTURE_COMPLETE` | Final system architecture synthesis: remaining architectural weaknesses `0`; optional improvements are not implementation blockers. |
 | Knowledge maturity | `ADVANCED_BUT_NOT_AUTONOMY_COMPLETE` | Knowledge quality model exists; safety is autonomy-grade; several knowledge classes still need real outcomes, service/user/SLA fit depth, client observation, cohort/SLA scale, and aging/retirement. |
 | Decision maturity | `READY_UNTIL_AUTHORITY_BOUNDARY` | Planner, knowledge-to-decision, governed dry-run, packet preview, restore/rollback preview, and self-stop are connected. |
 | Outcome maturity | `REAL_OUTCOMES_REQUIRED` | Candidate outcome gap remains `72`; missing candidate outcomes are not hidden, they have not happened yet. |
 | Learning maturity | `CONNECTED_AFTER_OUTCOME` | Feedback, outcome closure, trust evolution, and learning refresh owners exist and are connected, but need real governed/manual outcomes. |
 | Suitability maturity | `HIGHEST_BOTTLENECK` | Suitability cannot become autonomy-grade without more real candidate outcomes and stronger candidate source confidence. |
 | Authority maturity | `AUTHORITY_BOUNDARY_REACHED` | Production governed dry-run reaches exact authority boundary before restore-barrier write or apply. |
-| Operational maturity | `OPTIMIZATION_ACTIVE` | Autonomy cycles mature to authority boundary; no daemon, no autonomous apply, no user movement. |
+| Operational maturity | `IMPLEMENTATION_OPTIMIZATION_ACTIVE` | OMP V3.0 optimizes production leverage through existing-owner implementation; no daemon, no autonomous apply, no user movement. |
 
 ## 6. Current Highest Bottleneck
 
@@ -446,53 +594,77 @@ Recompute rule:
 
 After every certification, classify bottlenecks across `Architecture`, `Knowledge`, `Decision`, `Outcome`, `Learning`, `Suitability`, `Prediction`, `Authority`, `Operational`, and `Scale`. Select exactly one class based on the largest maturity gain that cannot be obtained by already-certified safe automation.
 
-## 7. Current Highest Leverage Action
+## 7. Current Highest Implementation Leverage
 
-Action:
+Implementation:
 
-`Governed candidate suitability outcome closure`
+`IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW`
 
-This is an action, not a phase.
+This is implementation work, not research and not architecture.
 
 Definition:
 
-Use the existing governed packet / restore / apply / verification / outcome / feedback / learning owners to produce one real candidate outcome, only after explicit operator authority for the exact packet.
+Implement read-only Runtime lifecycle output inside the existing governed canary dry-run cycle so the completed Runtime Model becomes executable, inspectable, testable, idempotency-aware, and certifiable without apply or user movement.
 
-OMP V2.2 interpretation:
+Exact owner:
 
-This HLA has two parts:
+`Governed Canary Knowledge-Gated Dry-Run Cycle / Runtime Model composition`
 
-| Part | Name | Authority |
-| --- | --- | --- |
-| Safe automatic part | `PREPARE_EXACT_GOVERNED_PACKET_AUTHORITY_DECISION` | Continue automatically through read-only, documentation-only, verification, refresh, preview, tests, and existing-owner preparation work. |
-| Authority-bound part | `EXECUTE_EXACT_GOVERNED_PACKET_AFTER_OPERATOR_APPROVAL` | Stop at `AUTHORITY_BOUNDARY` until explicit approval exists for the exact packet. |
+Exact module:
 
-Only the second part requires approval.
+`admin_core/operator_execution_pipeline.py::governed_canary_knowledge_gated_dry_run_cycle`
 
-Ranking:
+Exact files:
 
-| Candidate Action | Expected Maturity Gain | Risk | Effort | Authority | Rank |
-| --- | --- | --- | --- | --- | --- |
-| Governed candidate suitability outcome closure | Highest for current bottleneck; creates real candidate suitability evidence and feeds confidence/trust/prediction/learning | Medium, bounded by one governed packet | Medium | Requires explicit authority | 1 |
-| Prediction outcome cycle | High prediction gain, lower suitability gain | Low | Low | No apply if read-only | 2 |
-| Service verification outcome | Medium knowledge/confidence gain, low suitability gain | Low | Low | No apply | 3 |
-| Feedback closure / learning refresh | Useful after real outcome exists | Low | Low | No apply | 4 |
-| Event integration | Useful for automation readiness, not the current highest bottleneck | Medium | Medium | No apply if read-only | 5 |
+- `admin_core/operator_execution_pipeline.py`
+- `tools/v7-governed-canary-dry-run-cycle`
+- focused tests for governed dry-run runtime lifecycle output
 
-Current highest leverage action crosses authority boundary. Codex may continue only preparation and verification until explicit authority is granted.
+Why this is first:
 
-Latest optimizer challenge `2026-06-25`:
-
-| Challenger | Result |
+| Criterion | Result |
 | --- | --- |
-| Prediction outcome cycle | Highest named overall leverage in inventory, but current matching is already complete and remaining gain depends on stronger source confidence; no pending autonomous apply is allowed. |
-| Feedback outcome closure | Useful after a real outcome exists; cannot manufacture the missing real outcome. |
-| Service verification outcome | Lower suitability gain than a real candidate outcome, but equal/lower authority, lower risk, and lower effort; safe existing-owner portion was executed. |
-| Candidate suitability outcome closure | Still the direct highest action for the current bottleneck after safe refresh, but it crosses `AUTHORITY_BOUNDARY`. |
+| Production leverage | Highest safe implementation leverage before any authority-bound apply. |
+| Existing owner reuse | Uses the existing governed canary dry-run cycle and Runtime Model composition. |
+| Architecture risk | None; architecture is complete and unchanged. |
+| Runtime safety | Read-only lifecycle preview only; no apply, no user movement, no daemon, no timer. |
+| Bottleneck relevance | Prepares the exact runtime path needed to produce future governed real outcomes safely after authority. |
+| Testability | State machine, stop reasons, idempotency, stale packet, duplicate work, verification, rollback, outcome, learning, and OMP notification can be tested without mutation. |
+| Certification path | Truth and convergence can certify no runtime mutation and no user movement. |
 
-Optimizer result:
+Required read-only lifecycle fields:
 
-`Governed candidate suitability outcome closure` remains the final highest leverage action for the bottleneck after the safe challenger was executed. The safe automatic challenger did not replace the final HLA; it completed the allowed read-only/no-movement portion before the boundary.
+- lifecycle id;
+- decision id;
+- operation id;
+- packet id;
+- idempotency key fingerprint;
+- current state generation;
+- selected move hash;
+- runtime stage;
+- stage owner;
+- input generation;
+- stop reason;
+- authority status;
+- packet freshness;
+- duplicate work status;
+- loop guard status;
+- verification status;
+- rollback status;
+- outcome status;
+- learning status;
+- OMP notification status.
+
+Expected implementation order:
+
+1. Add read-only lifecycle output to existing governed canary dry-run cycle.
+2. Add focused tests for lifecycle state machine, stop conditions, idempotency key, stale packet, duplicate work, and OMP notification fields.
+3. Add read-only verification for the lifecycle output.
+4. Certify with truth and convergence.
+5. Update Current Program State.
+
+The old bottleneck action, governed candidate suitability outcome closure, remains the highest real-outcome action but crosses `AUTHORITY_BOUNDARY`.
+The current implementation-first optimizer therefore chooses the highest safe implementation that prepares that path without crossing the boundary.
 
 ## 8. Current Authority Boundary
 
@@ -549,7 +721,7 @@ After every completed implementation, Codex must recalculate:
 
 1. Current system state.
 2. Current highest bottleneck.
-3. Current highest leverage action.
+3. Current highest implementation leverage.
 4. Current authority boundary.
 5. Current reality limit.
 6. Next best action.
@@ -559,14 +731,14 @@ Optimizer rules:
 
 | Condition | Program Response |
 | --- | --- |
-| Highest leverage action is read-only or docs-only | Continue automatically. |
-| Highest leverage action is safe existing-owner implementation with no runtime apply | Continue automatically. |
-| Highest leverage action requires restore-barrier write | Stop at `AUTHORITY_BOUNDARY`. |
-| Highest leverage action requires runtime apply | Stop at `AUTHORITY_BOUNDARY`. |
-| Highest leverage action requires user movement | Stop at `AUTHORITY_BOUNDARY`. |
-| Highest leverage action requires authority expansion | Stop at `AUTHORITY_BOUNDARY`. |
-| Highest leverage action requires more users/channels/services/reality | Stop at `REAL_WORLD_LIMIT`. |
-| Highest leverage action would create duplicate planner/governance/execution/truth | Stop at `UNSAFE_IMPLEMENTATION`. |
+| Highest implementation leverage is read-only | Continue automatically. |
+| Highest implementation leverage is safe existing-owner implementation with no runtime apply | Continue automatically. |
+| Highest implementation leverage requires restore-barrier write | Stop at `AUTHORITY_BOUNDARY`. |
+| Highest implementation leverage requires runtime apply | Stop at `AUTHORITY_BOUNDARY`. |
+| Highest implementation leverage requires user movement | Stop at `AUTHORITY_BOUNDARY`. |
+| Highest implementation leverage requires authority expansion | Stop at `AUTHORITY_BOUNDARY`. |
+| Highest implementation leverage requires more users/channels/services/reality | Stop at `REAL_WORLD_LIMIT`. |
+| Highest implementation leverage would create duplicate planner/governance/execution/truth | Stop at `UNSAFE_IMPLEMENTATION`. |
 | Certified reports reveal a fundamental missing owner | Stop at `FUNDAMENTAL_ARCHITECTURE_GAP`. |
 
 Safety-Bounded Authority split rule:
@@ -582,36 +754,36 @@ The safe automatic portion continues automatically.
 
 The authority-bound execution portion stops at `AUTHORITY_BOUNDARY`.
 
-## 11. Optimization Target
+## 11. Implementation Optimization Target
 
-The current target is no longer `Current Phase`.
+The current target is no longer `Current Phase` and no longer `Architectural Completeness`.
 
 The current optimization target is:
 
-`Highest Maturity Gain per unit risk`
+`Highest Production Leverage per unit risk`
 
 OMP must rank potential targets across:
 
-- Knowledge;
-- Decision;
-- Outcome;
-- Learning;
-- Suitability;
-- Prediction;
-- Operational maturity;
-- Authority expansion;
-- Scale readiness.
+- runtime implementation;
+- background implementation;
+- read-model improvements;
+- verification;
+- observability;
+- testing;
+- UI;
+- documentation required by implementation;
+- certification.
 
 Current optimization target:
 
 | Field | Current Value |
 | --- | --- |
-| Optimization target | `Governed candidate suitability outcome closure` |
-| Target class | `Suitability` |
-| Gain type | Real candidate outcome evidence, stronger suitability correctness/source confidence, downstream confidence/trust/prediction/learning signal |
-| Risk | Medium, bounded only if exact governed packet and existing owners are used |
+| Optimization target | `IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW` |
+| Target class | `IMPLEMENT_RUNTIME` |
+| Gain type | Runtime implementation readiness, stop/idempotency/verification/OMP notification visibility, testability, and certification readiness |
+| Risk | Low; read-only output in existing owner |
 | Effort | Medium |
-| Authority | Crosses `AUTHORITY_BOUNDARY` if it proceeds beyond preview |
+| Authority | Does not cross `AUTHORITY_BOUNDARY`; must stop before restore-barrier write, apply, user movement, daemon/timer, event consumer mutation, or authority expansion |
 | Safe automatic portion | Refresh exact governed packet preview, verify restore/rollback preview, verify outcome closure plan, present exact authority decision |
 
 Latest optimization iteration `2026-06-25`:
@@ -855,71 +1027,71 @@ Details:
 | Autonomous Knowledge Growth Program | 12 cycles verified; maturity score `84.167`; boundary remains authority | `COMPLETED` | `docs/reports/V7_AUTONOMOUS_KNOWLEDGE_GROWTH_PROGRAM_REPORT.md` |
 | Autonomous Routing Evolution Program | TIER_2 remains blocked by confidence/trust/prediction/suitability and real outcomes | `COMPLETED` | `docs/reports/V7_AUTONOMOUS_ROUTING_EVOLUTION_PROGRAM_REPORT.md` |
 | Maximum Reality Knowledge Extraction | `72` candidate outcomes are not hidden; they require governed/manual action | `COMPLETED` | `docs/reports/V7_MAXIMUM_REALITY_KNOWLEDGE_EXTRACTION_REPORT.md` |
-| Final Autonomous Routing Architecture Certification | Verdict `ARCHITECTURE_COMPLETE_WITH_FUTURE_OPTIONAL_EXTENSIONS` | `CERTIFIED` | `docs/reports/V7_FINAL_AUTONOMOUS_ROUTING_ARCHITECTURE_CERTIFICATION_REPORT.md` |
+| Final Autonomous Routing Architecture Certification | Superseded by final system synthesis: `ARCHITECTURE_COMPLETE`; optional improvements remain non-blocking | `CERTIFIED` | `docs/reports/V7_FINAL_AUTONOMOUS_ROUTING_ARCHITECTURE_CERTIFICATION_REPORT.md`, `docs/reference/V7_SYSTEM_ARCHITECTURE.md`, `docs/decisions/ADR-V7-SYSTEM-ARCHITECTURE.md` |
 | Governed Canary Knowledge-Gated Dry-Run Cycle | Production reaches `AUTHORITY_BOUNDARY`; no apply, no movement | `CERTIFIED` | `docs/reports/V7_GOVERNED_CANARY_KNOWLEDGE_GATED_AUTONOMOUS_DRY_RUN_CYCLE_REPORT.md` |
 
 ## 22. Next Best Action
 
-`PREPARE_EXACT_GOVERNED_PACKET_AUTHORITY_DECISION`
+`IMPLEMENT_READ_ONLY_RUNTIME_LIFECYCLE_PREVIEW`
 
 Program interpretation:
 
-This is not a new phase and not a roadmap step. It is the next best action allowed by the optimizer before the authority boundary.
+This is the first implementation-phase coding task. It is not research, architecture, planning, governance redesign, execution redesign, runtime redesign, apply, daemon work, timer work, or user movement.
+
+The task implements production leverage by exposing the completed Runtime Model through the existing governed dry-run owner.
 
 Safe automatic target:
 
 ```text
-refresh exact governed packet preview
-  -> verify restore/rollback preview
-  -> verify outcome closure plan
-  -> present exact authority decision
+implement read-only Runtime lifecycle preview
+  -> reuse governed_canary_knowledge_gated_dry_run_cycle
+  -> emit lifecycle, stage, stop, idempotency, duplicate, loop, verification, rollback, learning, and OMP-notification status
+  -> add focused tests
+  -> verify no apply, no user movement, no runtime mutation
+  -> run truth
+  -> run convergence
+  -> update Current Program State and OMP
 ```
 
-If approval is granted, the next implementation step is:
+The implementation target is:
 
 ```text
-exact packet approval
-  -> restore-barrier write through existing owner
-  -> bounded governed/manual apply through existing owner
-  -> verification
-  -> rollback/no-rollback decision
-  -> outcome closure
-  -> feedback
-  -> learning refresh
-  -> confidence/trust/prediction/suitability re-evaluation
-  -> certification
+admin_core/operator_execution_pipeline.py
+  -> governed_canary_knowledge_gated_dry_run_cycle
+  -> tools/v7-governed-canary-dry-run-cycle
+  -> focused governed dry-run lifecycle tests
 ```
 
-If approval is not granted, the program remains blocked at `AUTHORITY_BOUNDARY` and may continue only read-only verification, documentation, and evidence freshness checks.
+If a restore-barrier write, apply, user movement, rollback apply, daemon, timer, event consumer mutation, authority expansion, or autonomous execution is required, stop at `AUTHORITY_BOUNDARY`.
 
 ## 23. Next Best Action Entry Criteria
 
 | Entry Criterion | Required |
 | --- | --- |
-| Exact packet | Fresh exact packet from existing governed dry-run cycle. |
-| Operator authority | Explicit approval or rejection for that exact packet. |
-| Restore readiness | Existing restore/rollback preview passes before action. |
-| Scope | One governed candidate outcome unless a future certified phase narrows or expands the scope. |
-| Apply path | Existing guarded/manual owner only. |
-| Evidence | Outcome closure and learning paths available before apply. |
-| Safety | No daemon enablement, no timer-only movement, no duplicate planner/governance/execution. |
+| Existing owner | Reuse `governed_canary_knowledge_gated_dry_run_cycle`; do not create a duplicate runtime owner. |
+| Scope | Read-only lifecycle preview only. |
+| Runtime model | Emit fields that map to `V7_RUNTIME_MODEL.md` lifecycle, state, stop, restart, duplicate, loop, idempotency, verification, rollback, learning, and OMP-notification semantics. |
+| Apply path | Forbidden. No restore-barrier write, apply, rollback apply, or user movement. |
+| Authority | Any action requiring operator approval stops at `AUTHORITY_BOUNDARY`. |
+| Tests | Focused tests must prove the lifecycle output is read-only and idempotency-aware. |
+| Safety | No daemon enablement, no timers, no event consumer mutation, no duplicate planner/governance/execution. |
 
 ## 24. Program Certification
 
 | Field | Current Value |
 | --- | --- |
-| Completed phases | Canonical reference, reference-first rule, event-driven contract, knowledge quality, routing foundation, knowledge-to-decision, decision-to-outcome-to-learning, outcome leverage, suitability program, knowledge growth, routing evolution, maximum reality extraction. |
-| Certified phases | Final autonomous routing architecture certification; governed knowledge-gated dry-run cycle. |
-| Current bottleneck | `Suitability`. |
-| Current highest leverage action | `Governed candidate suitability outcome closure`. |
+| Completed phases | Canonical reference, reference-first rule, event-driven contract, knowledge quality, routing foundation, knowledge-to-decision, decision-to-outcome-to-learning, outcome leverage, suitability program, knowledge growth, routing evolution, maximum reality extraction, decision model, runtime model, system architecture. |
+| Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle. |
+| Current bottleneck | Authority-bound safe deploy after local read-only runtime lifecycle preview implementation. |
+| Current highest leverage action | `APPROVE_SAFE_DEPLOY_READ_ONLY_RUNTIME_LIFECYCLE_PREVIEW`. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | `AUTHORITY_BOUNDARY`; candidate suitability outcome gap; confidence/trust/prediction confidence below autonomous floor; explicit apply authority not granted. |
-| Current maturity | Architecture complete with future optional extensions; autonomy cycles mature to authority boundary; real-world outcome evidence remains the maturity bottleneck. |
+| Current blockers | `AUTHORITY_BOUNDARY` for safe deploy, default governed dry-run refresh, restore-barrier write, apply, user movement, rollback apply, daemon/timer enablement, event consumer mutation, or authority expansion. |
+| Current maturity | Architecture complete; implementation phase active; read-only runtime lifecycle preview locally certified; production convergence pending approved safe deploy. |
 | Current runtime posture | No autonomous apply, no user movement, no daemon enablement. |
-| Current next best action | Prepare exact governed packet authority decision, or stay in safe read-only preparation. |
-| Last optimizer iteration | `2026-06-25`: challenged HLA, executed safe service/quality/snapshot refresh, recomputed, stopped at `AUTHORITY_BOUNDARY`. |
+| Current next best action | Stop for explicit approval before safe deploy of the read-only Runtime lifecycle preview. |
+| Last optimizer iteration | `2026-06-25`: implemented and locally certified read-only Runtime lifecycle preview; truth/convergence stopped at `AUTHORITY_BOUNDARY` because deployment is required. |
 
 ## 25. Program Rule For Future Work
 

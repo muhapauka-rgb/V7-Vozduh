@@ -2233,6 +2233,113 @@ def _classify_cycle_stop(
     return "MISSING_DOCUMENTED_POLICY", str(tier_review.get("nearest_reachable_status") or "tier_policy_unknown")
 
 
+def _runtime_lifecycle_preview(
+    *,
+    cycle_id: str,
+    candidate: dict[str, Any],
+    consumer: dict[str, Any],
+    packet_preview: dict[str, Any],
+    restore_status: dict[str, Any],
+    verification_plan: dict[str, Any],
+    outcome_closure_plan: dict[str, Any],
+    learning_path: dict[str, Any],
+    stop_reason: str,
+    stop_detail: str,
+    dry_run: dict[str, Any],
+    now: str = "",
+) -> dict[str, Any]:
+    decision_id = str(outcome_closure_plan.get("decision_id") or "")
+    packet_id = str(packet_preview.get("packet_id") or "")
+    operation_id = str(packet_preview.get("operation_id") or "")
+    selected_move_hash = str(packet_preview.get("selected_move_hash") or "")
+    current_state_generation = stable_hash({
+        "event_ids": [row.get("event_id") for row in consumer.get("events", [])],
+        "candidate": {
+            "user": candidate.get("user", ""),
+            "from": candidate.get("current_channel", ""),
+            "to": candidate.get("recommended_channel", ""),
+            "recommendation_hash": candidate.get("recommendation_hash", ""),
+            "source_hash": candidate.get("source_hash", ""),
+        },
+        "snapshot_statuses": dry_run.get("snapshot_statuses", {}),
+    })[:24]
+    input_generation = stable_hash({
+        "current_state_generation": current_state_generation,
+        "decision_id": decision_id,
+        "packet_id": packet_id,
+        "operation_id": operation_id,
+        "selected_move_hash": selected_move_hash,
+    })[:24]
+    idempotency_key_fingerprint = stable_hash({
+        "decision_id": decision_id,
+        "operation_id": operation_id,
+        "packet_id": packet_id,
+        "selected_move_hash": selected_move_hash,
+        "current_state_generation": current_state_generation,
+    })
+    lifecycle_id = "rtlife_" + stable_hash({
+        "cycle_id": cycle_id,
+        "idempotency_key_fingerprint": idempotency_key_fingerprint,
+    })[:24]
+    authority_status = str(((dry_run.get("safety_gates") or {}).get("risk_tier_review") or {}).get("nearest_reachable_status", "UNKNOWN"))
+    packet_freshness = "PACKET_PREVIEW_READY_CURRENT_INPUT" if packet_preview.get("status") == "PACKET_PREVIEW_READY" else "PACKET_UNAVAILABLE"
+    if not candidate:
+        runtime_stage = "WOKEN"
+        stage_owner = "Current Program State"
+    elif stop_reason == "AUTHORITY_BOUNDARY":
+        runtime_stage = "AUTHORITY_CHECKED"
+        stage_owner = "OMP"
+    elif packet_preview.get("status") != "PACKET_PREVIEW_READY":
+        runtime_stage = "PACKET_READY"
+        stage_owner = CANONICAL_PACKET_TOOL
+    elif verification_plan.get("status") != "VERIFICATION_PLAN_READY":
+        runtime_stage = "VERIFYING"
+        stage_owner = CANONICAL_RUNTIME_EXECUTOR
+    elif outcome_closure_plan.get("missing_now"):
+        runtime_stage = "OUTCOME_CLOSING"
+        stage_owner = CANONICAL_FEEDBACK_OWNER
+    elif learning_path.get("status") != "LEARNING_PATH_CONNECTED":
+        runtime_stage = "LEARNING_FEED"
+        stage_owner = "admin_core/intelligence_workers.py"
+    else:
+        runtime_stage = "STOPPED"
+        stage_owner = "OMP"
+    return {
+        "schema_version": "v7.runtime-lifecycle-preview.v1",
+        "lifecycle_id": lifecycle_id,
+        "cycle_id": cycle_id,
+        "decision_id": decision_id,
+        "operation_id": operation_id,
+        "packet_id": packet_id,
+        "idempotency_key_fingerprint": idempotency_key_fingerprint,
+        "current_state_generation": current_state_generation,
+        "selected_move_hash": selected_move_hash,
+        "runtime_stage": runtime_stage,
+        "stage_owner": stage_owner,
+        "input_generation": input_generation,
+        "stop_reason": stop_reason,
+        "stop_detail": stop_detail,
+        "authority_status": authority_status,
+        "packet_freshness": packet_freshness,
+        "duplicate_work_status": "NO_DUPLICATE_WORK_DETECTED_READ_ONLY",
+        "loop_guard_status": "NO_LOOP_DETECTED_READ_ONLY",
+        "verification_status": str(verification_plan.get("status") or "UNKNOWN"),
+        "rollback_status": str(restore_status.get("status") or "UNKNOWN"),
+        "outcome_status": str(outcome_closure_plan.get("status") or "UNKNOWN"),
+        "learning_status": str(learning_path.get("status") or "UNKNOWN"),
+        "omp_notification_status": "READY_TO_NOTIFY_OMP_WITH_STOP" if stop_reason else "NOT_READY",
+        "read_only": True,
+        "preview_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "rollback_executed": False,
+        "learning_written_now": False,
+        "generated_at": now,
+    }
+
+
 def governed_canary_knowledge_gated_dry_run_cycle(
     *,
     events: list[dict[str, Any]] | None = None,
@@ -2297,6 +2404,20 @@ def governed_canary_knowledge_gated_dry_run_cycle(
         outcome_closure_plan=outcome_plan,
         learning_path=learning_path,
     )
+    runtime_lifecycle = _runtime_lifecycle_preview(
+        cycle_id=cycle_id,
+        candidate=candidate,
+        consumer=consumer,
+        packet_preview=packet_preview,
+        restore_status=restore_status,
+        verification_plan=verification_plan,
+        outcome_closure_plan=outcome_plan,
+        learning_path=learning_path,
+        stop_reason=stop_reason,
+        stop_detail=stop_detail,
+        dry_run=dry_run,
+        now=now,
+    )
     knowledge_gates = _knowledge_gate_rows(decision_surface, dry_run)
     old_target = str(candidate.get("current_channel") or "")
     target = str(candidate.get("recommended_channel") or "")
@@ -2341,6 +2462,7 @@ def governed_canary_knowledge_gated_dry_run_cycle(
         "verification_plan": verification_plan,
         "outcome_closure_plan": outcome_plan,
         "learning_path": learning_path,
+        "runtime_lifecycle_preview": runtime_lifecycle,
         "dry_run": dry_run,
         "cycle_steps": [
             {

@@ -15,6 +15,16 @@ It is the permanent operating contract for engineering work.
 
 ## 2. Source Hierarchy
 
+Before loading task documents, Codex must resolve context through `docs/reference/V7_CONTEXT_RESOLVER.md`.
+
+Codex must load only the minimum working set required for the current task.
+
+Research tasks must use `docs/programs/V7_RESEARCH_FRAMEWORK.md`.
+
+Execution tasks must use `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`.
+
+If a task contains both research and execution, complete the research process first, then return to OMP before implementation.
+
 Codex must treat sources in this order:
 
 1. OMP = scheduler and optimizer.
@@ -24,6 +34,9 @@ Codex must treat sources in this order:
 5. ADRs = accepted decisions.
 6. Reports = evidence.
 7. Runtime = reality and final verification.
+
+`docs/programs/V7_RESEARCH_FRAMEWORK.md` is the methodology owner for architectural research tasks.
+It is not a truth source, planner, governance layer, execution path, or runtime owner.
 
 If sources conflict:
 
@@ -55,10 +68,11 @@ Codex must ask:
 Codex loop:
 
 ```text
-Read Kernel
-  -> Read OMP
-  -> Read Current Program State
-  -> Read Reference / SYSTEM_MAP / ADRs
+Resolve Context
+  -> Read Kernel
+  -> Read OMP if required by task class
+  -> Read Current Program State only if volatile state is required
+  -> Read Reference / SYSTEM_MAP / ADRs only if required by task class
   -> Discover
   -> Semantic Reuse Audit
   -> Reuse

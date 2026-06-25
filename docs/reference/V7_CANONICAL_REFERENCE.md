@@ -79,15 +79,15 @@ Stable conclusions:
 
 ## Operational Maturity Program Rule
 
-`docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` is the primary program source for future V7 implementation work. Version `2.3` replaces roadmap-driven, phase-first, and free-form implementation ideas with optimization-driven operational maturity, architectural minimalism, semantic reuse, a new-owner gate, duplication detection, Safety-Bounded Authority, and Kernel/State split.
+`docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` is the primary program source for future V7 implementation work. Version `3.0` replaces roadmap-driven, phase-first, free-form implementation ideas, and architecture-first continuation with implementation-first production leverage optimization, architectural minimalism, semantic reuse, a new-owner gate, duplication detection, Safety-Bounded Authority, Kernel/State split, and Implementation Phase rules.
 
 Stable conclusions:
 
 1. The current program is `Operational Maturity`.
-2. OMP now answers what limits V7 most and what action gives the highest maturity gain right now.
-3. The current highest bottleneck is `Suitability`.
-4. The current highest leverage action is `Governed candidate suitability outcome closure`.
-5. The current blocker is `AUTHORITY_BOUNDARY`: production dry-run reaches packet/restore/rollback/verification/outcome/learning readiness, but explicit operator authority is required before restore-barrier write or apply.
+2. OMP now answers what implementation gives the highest production leverage right now.
+3. The current maturity bottleneck remains `Suitability`, because real candidate outcomes have not happened.
+4. The current highest implementation leverage task is `IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW`.
+5. The current authority boundary remains `AUTHORITY_BOUNDARY` for restore-barrier write, runtime apply, user movement, rollback apply, daemon/timer enablement, event consumer mutation, or authority expansion; read-only implementation may proceed inside existing owners.
 6. Architectural minimalism is immutable: reuse, extend, merge, implement, and only then create new.
 7. Every implementation must run a semantic reuse audit before creating or extending system behavior.
 8. New owners, knowledge models, planners, engines, pipelines, APIs, CLIs, storage, snapshots, or truth sources are forbidden unless `Need New Owner = TRUE`.
@@ -98,6 +98,11 @@ Stable conclusions:
 13. OMP V2.2 requires Codex to continue automatically through safe read-only, documentation-only, verification, refresh, tests, preview, existing-owner implementation, duplication detection, OMP recalculation, and plan verification work.
 14. When the highest leverage action requires real outcomes, OMP V2.2 splits it into safe automatic preparation and authority-bound execution. The preparation continues automatically; restore-barrier write, runtime apply, user movement, rollback apply, daemon/timer enablement, and authority expansion stop at `AUTHORITY_BOUNDARY`.
 15. OMP V2.3 separates stable scheduler/optimizer rules from volatile current state. Current packet, metrics, stop reason, bottleneck, HLA, and approval question live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
+16. OMP V3.0 closes architecture-first continuation and activates implementation-first optimization.
+17. Architecture Phase, Research Phase, Decision Model, Runtime Model, and System Architecture are complete.
+18. Future architecture changes require implementation evidence proving `FUNDAMENTAL_ARCHITECTURE_GAP`.
+19. Implementation tasks must be classified as one of: `IMPLEMENT_RUNTIME`, `IMPLEMENT_BACKGROUND`, `IMPLEMENT_READ_MODEL`, `IMPLEMENT_TEST`, `IMPLEMENT_VERIFICATION`, `IMPLEMENT_OBSERVABILITY`, `IMPLEMENT_UI`, `IMPLEMENT_DOCUMENTATION`, or `IMPLEMENT_CERTIFICATION`.
+20. Current highest implementation leverage task is `IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW` in the existing governed canary dry-run cycle.
 
 ## V7_KERNEL_AND_STATE_SPLIT
 
@@ -113,6 +118,141 @@ Stable conclusions:
 8. Runtime remains reality and final verification.
 9. `Continue OMP` means Codex runs the Kernel loop until an allowed stop condition.
 10. This split does not create a planner, governance, execution path, runtime truth source, daemon, timer, apply authority, or user movement authority.
+
+## V7_CONTEXT_RESOLVER
+
+`docs/reference/V7_CONTEXT_RESOLVER.md` is the canonical documentation-only rule for resolving the minimum working document set before each task.
+
+Stable conclusions:
+
+1. Codex must classify each task before loading documents.
+2. Codex must load only the required working set for that task.
+3. Context Resolver prevents unnecessary loading of packet state, current metrics, HLA, research, historical reports, or runtime evidence when they are unrelated to the task.
+4. Research, execution, architecture, and documentation tasks have different working sets.
+5. Historical reports remain evidence and must not be loaded by default.
+6. Runtime truth/convergence remain verification surfaces and contradiction-resolution surfaces, not always-loaded context.
+7. Context Resolver extends the existing Kernel source hierarchy, Reference First workflow, OMP semantic reuse rules, and Kernel/State split.
+8. Need New Owner remains `FALSE`.
+9. This resolver does not create a planner, governance, execution path, truth source, storage, daemon, runtime behavior, apply authority, synthetic evidence, floor change, or user movement authority.
+
+Related ADR: `docs/decisions/ADR-V7-CONTEXT-RESOLVER.md`.
+
+## V7_RESEARCH_FRAMEWORK
+
+`docs/programs/V7_RESEARCH_FRAMEWORK.md` is the permanent owner for architectural research methodology.
+
+Stable conclusions:
+
+1. Research Framework optimizes knowledge acquisition; OMP optimizes implementation.
+2. Architectural research must follow the loop: Question → Resolve Context → Collect Sources → Validate Sources → Extract Patterns → Cross-System Comparison → Universal Principle → Compare With V7 → Reuse Analysis → Gap Classification → Recommendation → Canonical Update.
+3. Research never invents architecture and never copies vendor architecture.
+4. Research searches only for reusable engineering principles proven in mature production systems.
+5. Every recommendation must prove mature production use, purpose, problem solved, V7 equivalent owner, reuse path, extension path, and why a new owner is or is not required.
+6. Gap classifications are `ALREADY_EXISTS`, `EXISTS_BUT_UNDERUSED`, `READ_MODEL_MISSING`, `REAL_OUTCOME_REQUIRED`, `AUTHORITY_REQUIRED`, `FUTURE_SCALE_OPTIONAL`, and `FUNDAMENTAL_ARCHITECTURE_GAP`.
+7. New architecture can be recommended only after extension of existing V7 owners is proven impossible.
+8. Need New Owner remains `FALSE`.
+9. Research Framework is documentation-only and does not create runtime behavior, execution behavior, a planner, governance layer, truth source, synthetic evidence, apply behavior, floor change, or user movement.
+
+Research Standard:
+
+Every architectural research must include:
+
+- Universal Engineering Laws;
+- Cross-System Comparison Matrix;
+- V7 Mapping;
+- Gap Classification;
+- Reuse Analysis;
+- Canonical Recommendations.
+
+Research is complete only when universal principles are extracted, engineering laws are extracted, the comparison matrix is completed, V7 is mapped, gaps are classified, reuse path is defined, and canonical docs are updated.
+
+Related process: `docs/reference/V7_RESEARCH_PROCESS.md`.
+Related ADR: `docs/decisions/ADR-V7-RESEARCH-FRAMEWORK.md`.
+Related ADR: `docs/decisions/ADR-V7-RESEARCH-STANDARD.md`.
+
+## V7_DECISION_MODEL
+
+`docs/reference/V7_DECISION_MODEL.md` is the canonical documentation-only read model for how V7 makes, exposes, escalates, verifies, and learns from decisions.
+
+Stable conclusions:
+
+1. V7 decisions must follow the loop: Event / Question -> Current State -> Desired State / Policy -> Evidence Quality -> Service / User / Channel Fit -> Risk / Blast Radius -> Decision Vocabulary -> Authority Gate -> Packet / Preview / Stop -> Verification -> Outcome -> Learning.
+2. The canonical decision vocabulary remains `KEEP`, `MOVE`, `FAILOVER`, `DRAIN`, `QUARANTINE`, `RECOVER`, `PROBE_ONLY`, `ASK_OPERATOR`, and `NO_ACTION`.
+3. Scores, diagnostics, raw health checks, and confidence fields explain decisions; they must not become a second decision model.
+4. World-class decision principles map to existing V7 owners: desired/current reconciliation, policy/enforcement separation, symptom-first decisions, health/readiness gates, staged blast radius, human escalation, outcome learning, and thin runtime all already exist.
+5. Two principles are underused and must be named in future decision work: make-before-break sequencing and live decision handoff state.
+6. Overall gap classification is `READ_MODEL_MISSING`, now closed by `docs/reference/V7_DECISION_MODEL.md`.
+7. Need New Owner remains `FALSE`; existing V7 decision owners are sufficient.
+8. The model does not create a planner, governance layer, execution path, truth source, storage path, runtime behavior, apply behavior, floor change, synthetic evidence, or user movement authority.
+9. The completed World-Class Decision Model research now contains the permanent research-standard shape: Universal Engineering Laws and Cross-System Comparison Matrix.
+
+Related report: `docs/reports/V7_WORLD_CLASS_DECISION_MODELS_RESEARCH_REPORT.md`.
+Related ADR: `docs/decisions/ADR-V7-WORLD-CLASS-DECISION-MODEL.md`.
+
+## V7_RUNTIME_MODEL
+
+`docs/reference/V7_RUNTIME_MODEL.md` is the canonical design contract for executable V7 Runtime.
+
+Stable conclusions:
+
+1. Runtime executes already-approved Decision Model snapshots; Runtime does not invent decisions.
+2. Runtime follows the lifecycle: Event -> Runtime Wakeup -> Read Current Program State -> Read Decision Snapshot -> Policy -> Safety -> Authority -> Packet -> Execute OR Stop -> Verify -> Rollback if needed -> Outcome -> Learning -> Update Current Program State -> Notify OMP -> Sleep.
+3. Runtime may wake only from approved existing sources: explicit operator/OMP invocation, certified regression event, existing governed canary lifecycle, or recorded-state resume.
+4. Runtime composes existing owners: Event-Driven Autonomy Contract, Current Program State, Decision Model, Planner / Autoswitch, Safety-Bounded Authority, Execution Packet owner, Restore Barrier / Rollback, Runtime Readiness, truth/convergence, feedback, learning, and OMP.
+5. Runtime must stop safely on missing/stale decision, policy block, safety block, authority boundary, invalid packet, duplicate work, loop guard, inconclusive verification, rollback authority boundary, unavailable outcome, or learning without real observed outcome.
+6. Runtime restart and duplicate detection are idempotency-key based and must use durable existing identifiers: decision id, operation id, packet id, selected move hash, current state generation, restore barrier generation, rollback target, verification result id, and outcome closure id.
+7. Runtime updates Current Program State only as a program continuation surface; Current Program State is not a runtime truth source.
+8. Runtime feeds learning only from real observed outcomes.
+9. Need New Owner remains `FALSE`; Runtime is an existing-owner composition contract.
+10. This design does not implement runtime code, daemon/timer enablement, event consumer changes, autonomous execution, apply, user movement, planner changes, governance changes, execution changes, truth-source changes, floor changes, synthetic evidence, restore-barrier writes, or rollback apply.
+
+Related report: `docs/reports/V7_RUNTIME_MODEL_DESIGN_REPORT.md`.
+Related ADR: `docs/decisions/ADR-V7-RUNTIME-MODEL.md`.
+
+## V7_SYSTEM_ARCHITECTURE
+
+`docs/reference/V7_SYSTEM_ARCHITECTURE.md` is the canonical final architecture synthesis for V7 as one integrated production routing control plane.
+
+Stable conclusions:
+
+1. V7 is one event-driven routing control system: runtime reality -> evidence -> knowledge -> decision -> runtime -> verification -> feedback -> learning -> knowledge -> OMP -> sleep.
+2. The final architecture verdict is `ARCHITECTURE_COMPLETE`.
+3. Remaining architectural weaknesses: `0`.
+4. Optional future scale/maturity improvements: `4`.
+5. Need New Owner remains `FALSE`.
+6. Runtime implementation may begin only as a separate implementation phase using existing owners and explicit approval boundaries.
+7. Runtime implementation must not redesign Planner, Governance, Execution, Truth, Evidence, OMP, Decision Model, or Current Program State.
+8. Missing real outcomes, missing evidence, stale packet state, and authority boundaries are current reality/operation limits, not architectural weaknesses.
+9. New planner, governance, execution, truth source, evidence collector, runtime owner, lifecycle, or architecture owner is unnecessary unless a future ADR proves `FUNDAMENTAL_ARCHITECTURE_GAP`.
+10. This synthesis does not implement code, runtime, daemon, timers, apply, user movement, truth-source creation, synthetic evidence, floor changes, restore-barrier writes, or rollback apply.
+
+Related report: `docs/reports/V7_SYSTEM_ARCHITECTURE_SYNTHESIS_REPORT.md`.
+Related ADR: `docs/decisions/ADR-V7-SYSTEM-ARCHITECTURE.md`.
+
+## V7_IMPLEMENTATION_PHASE
+
+`docs/programs/V7_IMPLEMENTATION_PROGRAM.md` and `docs/reference/V7_IMPLEMENTATION_MODEL.md` define the implementation-first phase after architecture completion.
+
+Stable conclusions:
+
+1. Architecture Phase is closed.
+2. Research Phase is closed.
+3. Decision Model is complete.
+4. Runtime Model is complete.
+5. System Architecture is complete.
+6. Future work is implementation-first.
+7. OMP optimizes `Production Leverage`, not architectural completeness.
+8. Architecture changes require implementation evidence proving `FUNDAMENTAL_ARCHITECTURE_GAP`.
+9. Implementation priority order is: existing owner implementation, existing owner integration, existing owner optimization, read-model improvements, testing, certification.
+10. Every implementation task must be classified before work begins.
+11. Current highest implementation leverage task is `IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW`.
+12. Exact owner: Governed Canary Knowledge-Gated Dry-Run Cycle / Runtime Model composition.
+13. Exact module: `admin_core/operator_execution_pipeline.py::governed_canary_knowledge_gated_dry_run_cycle`.
+14. Exact files: `admin_core/operator_execution_pipeline.py`, `tools/v7-governed-canary-dry-run-cycle`, and focused tests for governed dry-run runtime lifecycle output.
+15. Need New Owner remains `FALSE`.
+16. This phase does not authorize restore-barrier writes, runtime apply, user movement, rollback apply, daemon/timer enablement, event consumer mutation, authority expansion, floor changes, synthetic evidence, new planner, new governance, new execution, storage, runtime owner, or truth source.
+
+Related ADR: `docs/decisions/ADR-V7-IMPLEMENTATION-PHASE.md`.
 
 ## V7_ENGINEERING_PRINCIPLES
 
@@ -1036,6 +1176,6 @@ Related ADR: `docs/decisions/ADR-FUTURE-EVIDENCE-INDEX-AND-FRESHNESS-MODEL.md`.
 - What does NOT affect it: It does not move users, execute apply, enable autonomy, create a daemon, create a new planner, create governance, create execution, create storage, create a truth source, create synthetic evidence, change formulas, change floors, or change runtime assignments.
 - Operator meaning: "V7 has the architectural parts it needs; remaining work is to earn real experience and authority before it may move users autonomously."
 - Engineer meaning: The certification machine-checks `EXISTS` / `PARTIAL` / `MISSING` across knowledge sources, decisions, lifecycle stages, autonomy cycles, routing capabilities, and duplication/owner reuse. Fundamental missing classes are empty; partial classes are future/authority/reality extensions rather than new architecture owners.
-- Known caveats: The current verdict is `ARCHITECTURE_COMPLETE_WITH_FUTURE_OPTIONAL_EXTENSIONS`, not `ARCHITECTURE_COMPLETE`, because direct client telemetry, 10k-scale cohort/SLA aggregate views, long-horizon evidence aging/retirement, and operator-free quarantine/recovery apply certification remain optional/future extensions. These are not current fundamental blockers to the V7 architecture. Runtime autonomy remains limited by real-world experience and authority: confidence, trust, prediction, suitability, candidate outcomes, and explicit apply authority still must pass through existing owners. Production deployment at `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b` reports `17` existing knowledge-source classes, `4` partial classes, `0` fundamental missing classes, `9` existing decisions, `2` partial decisions, `7` existing lifecycle stages, `2` partial lifecycle stages, `10` existing routing capabilities, `72` missing candidate outcomes, canary blockers `confidence`, `trust`, and `prediction_confidence`, with `apply_executed=false`, `users_moved=0`, and `autonomy_enabled=false`.
+- Known caveats: The final architecture synthesis supersedes the older wording `ARCHITECTURE_COMPLETE_WITH_FUTURE_OPTIONAL_EXTENSIONS` with `ARCHITECTURE_COMPLETE`: remaining architectural weaknesses are `0`, while direct client telemetry, 10k-scale cohort/SLA aggregate views, long-horizon evidence aging/retirement, and operator-free quarantine/recovery apply certification remain optional future improvements. Runtime autonomy remains limited by real-world experience and authority: confidence, trust, prediction, suitability, candidate outcomes, and explicit apply authority still must pass through existing owners. Production deployment at `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b` reports `17` existing knowledge-source classes, `4` partial classes, `0` fundamental missing classes, `9` existing decisions, `2` partial decisions, `7` existing lifecycle stages, `2` partial lifecycle stages, `10` existing routing capabilities, `72` missing candidate outcomes, canary blockers `confidence`, `trust`, and `prediction_confidence`, with `apply_executed=false`, `users_moved=0`, and `autonomy_enabled=false`.
 - Related reports / ADRs: `docs/reports/V7_FINAL_AUTONOMOUS_ROUTING_ARCHITECTURE_CERTIFICATION_REPORT.md`, `docs/reports/V7_MAXIMUM_REALITY_KNOWLEDGE_EXTRACTION_REPORT.md`, `docs/reports/V7_AUTONOMOUS_ROUTING_EVOLUTION_PROGRAM_REPORT.md`, `docs/reports/V7_AUTONOMOUS_KNOWLEDGE_GROWTH_PROGRAM_REPORT.md`, `docs/reports/V7_GOVERNED_CANARY_KNOWLEDGE_GATED_AUTONOMOUS_DRY_RUN_CYCLE_REPORT.md`, ADR-EVENT-DRIVEN-AUTONOMY, ADR-OBSERVED-OUTCOME-PRIMARY-TRUST.
 - Last verified commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`.

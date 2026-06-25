@@ -77,6 +77,18 @@ Stable conclusions:
 5. The next roadmap position is `OBSERVED_OUTCOME_EVIDENCE_AND_EVENT_CONSUMER_CLOSURE`.
 6. The post-production scale phase `AUTONOMY.EVIDENCE.INDEX_AND_FRESHNESS_MODEL` is documented but deferred. It must not start until Production Autonomy is certified.
 
+## Operational Maturity Program Rule
+
+`docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` is the primary program source for future V7 implementation work. It replaces roadmap-driven development with evidence-driven operational maturity.
+
+Stable conclusions:
+
+1. The current program is `Operational Maturity`.
+2. The current phase is `GOVERNED_CANDIDATE_OUTCOME_EXECUTION_AND_CLOSURE`.
+3. The current blocker is `AUTHORITY_BOUNDARY`: production dry-run reaches packet/restore/rollback/verification/outcome/learning readiness, but explicit operator authority is required before restore-barrier write or apply.
+4. Future phases may continue automatically only when they stay inside existing owners and do not cross authority, real-world, unsafe implementation, or fundamental architecture boundaries.
+5. The program document must be read before future implementation work so V7 does not fall back into disconnected roadmap or repeated-audit behavior.
+
 ## V7_IDEAL_AUTONOMOUS_ROUTING_MODEL
 
 1. Ideal V7 is an event-driven autonomous routing control plane for `10,000+` users and `100+` channels.

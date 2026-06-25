@@ -38,6 +38,24 @@ Before launching any new audit, use Reference First:
 
 A new audit is allowed only when the reference has no answer, the reference explicitly marks the area `UNKNOWN`, system behavior changed after the last verified commit, or evidence contradicts this canonical reference. Otherwise, update the reference if needed and do not create a new audit.
 
+## Product Specification Rule
+
+`docs/product/V7_PRODUCT_SPECIFICATION.md` is the highest-level product specification for V7.
+
+It defines what V7 is as a product.
+
+Architecture, OMP, Codex work, Runtime, implementation programs, research, reports, and ADRs derive product meaning from this specification.
+
+Stable conclusions:
+
+1. V7 is a production connectivity product that keeps users online by making routing invisible.
+2. V7 is an autonomous routing control plane for user connectivity, not a VPN panel, manual routing tool, monitoring dashboard, static load balancer, hardcoded switch engine, or planner playground.
+3. Product success means users stay online, important services remain reachable, routing changes are invisible or minimally disruptive, wrong moves are rare, rollback is available, learning improves decisions, and operator workload decreases.
+4. V7 product principles are Reality First, User Connectivity First, Minimal Operator Work, Safety Before Movement, Learning From Reality, Event-Driven Operation, Reuse Before Rewrite, Simplicity Of Authority, Explainability, Reversibility, Verification Before Trust, Background Knowledge / Thin Runtime, and No Duplicated Systems.
+5. Current product maturity is `Operational`, moving through governed `Production` maturity.
+6. Fundamental missing product questions: `NONE`.
+7. Product certification verdict: `PRODUCT_SPECIFICATION_COMPLETE`.
+
 ## Certified Root Cause Rule
 
 When a phase has already certified all of the following:

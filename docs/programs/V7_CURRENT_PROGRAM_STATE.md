@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-25T13:56:05+0700
-Source: implementation loop, read-only Runtime lifecycle preview implementation, focused tests, read-only CLI verification, truth/convergence, and certification report
+State captured: 2026-06-25T14:11:26+0700
+Source: safe deploy, production truth/convergence, production governed canary dry-run, OMP recalculation
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, authority boundary, metrics, packet, or stop reason.
 
@@ -14,12 +14,12 @@ This file is volatile. Update it after every safe action or approved execution t
 | Current phase | `IMPLEMENTATION` |
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Suitability` |
-| Current highest leverage implementation | `IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW` completed locally; production convergence requires authority-bound safe deploy |
-| Current highest leverage action | `APPROVE_SAFE_DEPLOY_READ_ONLY_RUNTIME_LIFECYCLE_PREVIEW` |
+| Current highest leverage implementation | `IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW` deployed and production-verified |
+| Current highest leverage action | `APPROVE_EXACT_GOVERNED_CANARY_PACKET` |
 | Current authority boundary | `AUTHORITY_BOUNDARY` |
 | Current reality limit | `REAL_CANDIDATE_OUTCOMES_HAVE_NOT_HAPPENED` |
-| Current safe next action | `STOP_AT_AUTHORITY_BOUNDARY_FOR_SAFE_DEPLOY` |
-| Current stop reason | first implementation task is locally certified; truth/convergence report `DEPLOY_REQUIRED` for runtime-relevant `admin_core/operator_execution_pipeline.py`; explicit approval is required before safe deploy |
+| Current safe next action | `STOP_AT_AUTHORITY_BOUNDARY_FOR_EXACT_PACKET_APPROVAL` |
+| Current stop reason | production dry-run reaches `AUTHORITY_BOUNDARY`; explicit operator approval is required before restore-barrier write, apply, user movement, rollback apply, daemon/timer enablement, event consumer mutation, or authority expansion |
 
 ## 2. Current Metrics
 
@@ -39,20 +39,20 @@ This file is volatile. Update it after every safe action or approved execution t
 | --- | --- |
 | Candidate | `10.7.0.5` |
 | Current channel | `vless` |
-| Target channel | `awg3` |
+| Target channel | `awg0` |
 | Action | `MOVE_GOVERNED_CANARY_REVIEW` |
 | Authority tier | `TIER_1` |
 | Authority status | `MARGINAL_OPERATOR_REVIEW` |
-| Packet preview id | `pkt_preview_43f0151499620a00d2e50f7b` |
-| Operation id | `govdry_c8f67c5437777091c9cf1f5d` |
-| Selected move hash | `8e7785e058337f1db53fd929d7c175914510a401ff686391bef7bfcb088bfdac` |
+| Packet preview id | `pkt_preview_fb70744bc51ad162b1727dcb` |
+| Operation id | `govdry_97745a383e19446a2a1124e3` |
+| Selected move hash | `41d346ea7f2467b3c677306b863f2ef949715be7035b3358bc911520d4ea4300` |
 | Rollback target | `vless` |
-| Rollback manifest id | `rb_preview_d25f7c3f7705ba558d2afcea` |
-| Risk | `3.641` |
+| Rollback manifest id | `rb_preview_0cffde2b4797f0030c57639d` |
+| Risk | `3.562` |
 | Candidate confidence | `0.458` |
-| Trust | `54.658` |
+| Trust | `54.666` |
 
-Packet preview is read-only and may become stale. Regenerate it before approval.
+Packet preview is read-only and may become stale. Regenerate it before approval if runtime state changes.
 
 Latest takeover note: the packet above was not freshly regenerated during the 2026-06-25T12:48:16+0700 handoff takeover. Full truth and convergence passed with network/runtime visibility, but the default governed dry-run refresh requires the existing planner observe path, which may create/acquire `/opt/v7/.../service-matrix.lock` and trigger production pre-planner refresh behavior. That production-state write was not explicitly approved. The stale packet must not be treated as fresh approval evidence until a new governed dry-run refresh is approved and completed.
 
@@ -69,16 +69,17 @@ Latest takeover note: the packet above was not freshly regenerated during the 20
 
 | Field | Current Value |
 | --- | --- |
-| Executed at | `2026-06-25T11:58:47+0700` |
-| Optimizer result | HLA confirmed, not replaced |
-| Safe work completed | truth; convergence; semantic reuse audit; architecture duplication check via existing owner inventory; quality refresh; service matrix refresh; intelligence snapshot refresh; governed packet dry-run refresh |
-| Evidence refresh result | quality `users_moved=false`; service matrix `users_moved=false`; snapshots `runtime_behavior_changed=false`, `governance_behavior_changed=false`, `users_moved=false` |
+| Executed at | `2026-06-25T14:11:26+0700` |
+| Optimizer result | implementation deployed; next HLI crosses authority boundary |
+| Safe work completed | safe deploy; truth; convergence; production governed canary dry-run; OMP/CPS recalculation |
+| Evidence refresh result | deploy `50188d9030d651213b5d06b528fed446889c17bc`; truth `PASS`; convergence `PASS`; dry-run `AUTHORITY_BOUNDARY` |
 | Fresh dry-run verdict | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY` |
 | Fresh candidate | `10.7.0.5` |
-| Fresh movement preview | `vless -> awg3` |
-| Fresh packet preview id | `pkt_preview_43f0151499620a00d2e50f7b` |
-| Fresh operation id | `govdry_c8f67c5437777091c9cf1f5d` |
-| Fresh rollback manifest id | `rb_preview_d25f7c3f7705ba558d2afcea` |
+| Fresh movement preview | `vless -> awg0` |
+| Fresh packet preview id | `pkt_preview_fb70744bc51ad162b1727dcb` |
+| Fresh operation id | `govdry_97745a383e19446a2a1124e3` |
+| Fresh rollback manifest id | `rb_preview_0cffde2b4797f0030c57639d` |
+| Runtime lifecycle preview | `rtlife_d9fcb357cb1af8e23415f2be`; stage `AUTHORITY_CHECKED`; packet freshness `PACKET_PREVIEW_READY_CURRENT_INPUT` |
 | Restore/rollback preview | `RESTORE_AND_ROLLBACK_PREVIEW_READY` |
 | Verification plan | `VERIFICATION_PLAN_READY` |
 | Outcome closure plan | `OUTCOME_CLOSURE_PLAN_READY` |
@@ -121,7 +122,7 @@ Before asking approval, regenerate fresh read-only dry-run.
 If unchanged, ask:
 
 ```text
-Approve one governed TIER_1 canary movement for 10.7.0.5 from vless to awg3, using packet pkt_preview_43f0151499620a00d2e50f7b, with rollback to vless via rb_preview_d25f7c3f7705ba558d2afcea if verification fails?
+Approve one governed TIER_1 canary movement for 10.7.0.5 from vless to awg0, using packet pkt_preview_fb70744bc51ad162b1727dcb, with rollback to vless via rb_preview_0cffde2b4797f0030c57639d if verification fails?
 ```
 
 ## 8. Recalculation Rules
@@ -159,7 +160,7 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
 | Highest implementation owner | Governed Canary Knowledge-Gated Dry-Run Cycle / Runtime Model composition |
 | Highest implementation module | `admin_core/operator_execution_pipeline.py::governed_canary_knowledge_gated_dry_run_cycle` |
 | Highest implementation files | `admin_core/operator_execution_pipeline.py`, `tools/v7-governed-canary-dry-run-cycle`, focused tests for runtime lifecycle read-only output |
-| First coding task | `CERTIFIED_READ_ONLY_RUNTIME_LIFECYCLE_PREVIEW` |
+| First coding task | `DEPLOYED_CERTIFIED_READ_ONLY_RUNTIME_LIFECYCLE_PREVIEW` |
 | Certification report | `docs/reports/V7_IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW_CERTIFICATION_REPORT.md` |
 | Forbidden boundaries | no restore-barrier write; no runtime apply; no user movement; no rollback apply; no daemon/timer; no event consumer mutation; no authority expansion |
 
@@ -179,27 +180,37 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
 | Compile verification | `PASS` |
 | Safe CLI verification | `PASS_WITH_EXPECTED_SAFE_BLOCK_MISSING_TRIGGER` |
 | Safety | `apply_executed=false`; `users_moved=0`; `runtime_mutation_performed=false`; `restore_barrier_written_now=false`; `rollback_executed=false` |
-| Certification | `LOCAL_CERTIFIED_READ_ONLY_RUNTIME_LIFECYCLE_PREVIEW_DEPLOY_REQUIRED` |
-| Truth | `NO-GO`; blockers `dirty_workspace`, `unknown_dirty`; runtime-relevant dirty path `admin_core/operator_execution_pipeline.py` |
-| Convergence | `NOT_ALIGNED`; runtime action status `DEPLOY_REQUIRED`; deploy delta mismatch `admin_core/operator_execution_pipeline.py` |
-| New highest implementation leverage task | `APPROVE_SAFE_DEPLOY_READ_ONLY_RUNTIME_LIFECYCLE_PREVIEW` |
+| Certification | `DEPLOYED_CERTIFIED_READ_ONLY_RUNTIME_LIFECYCLE_PREVIEW` |
+| Truth | `PASS`; convergence status `FULLY_ALIGNED`; runtime commit `50188d9030d651213b5d06b528fed446889c17bc` |
+| Convergence | `PASS`; status `ALIGNED`; runtime action status `READY_FOR_RUNTIME_ACTION` |
+| New highest implementation leverage task | `APPROVE_EXACT_GOVERNED_CANARY_PACKET` |
 | Continue automatically | `NO` |
 | Exact stop condition | `AUTHORITY_BOUNDARY` |
 
-## 11. Takeover Verification
+## 13. Production Deploy State
 
 | Field | Current Value |
 | --- | --- |
-| Verified at | `2026-06-25T12:48:16+0700` |
+| Deployed commit | `50188d9030d651213b5d06b528fed446889c17bc` |
+| Deploy id | `deploy-z8-14-Updatesystem-50188d9-20260625T141024` |
+| Runtime truth | `KNOWN` |
+| Runtime access | `READY` |
+| Production dry-run verdict | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY` |
+| Production lifecycle id | `rtlife_d9fcb357cb1af8e23415f2be` |
+| Stop reason | `AUTHORITY_BOUNDARY` |
+| Next action | explicit operator approval for exact governed canary packet |
+
+## 14. Post-Deploy Verification
+
+| Field | Current Value |
+| --- | --- |
+| Verified at | `2026-06-25T14:11:26+0700` |
 | Branch | `Updatesystem` |
-| Truth check | `PASS`; local, GitHub, and runtime aligned after network-enabled verification |
+| Truth check | `PASS`; local, GitHub, and runtime aligned at `50188d9030d651213b5d06b528fed446889c17bc` |
 | Convergence | `PASS`; status `ALIGNED`; runtime action guard `READY_FOR_RUNTIME_ACTION` |
 | Documentation dirtiness | Non-blocking documentation-only dirty files remain; do not treat them as runtime blockers |
-| Safe dry-run variant | `tools/v7-governed-canary-dry-run-cycle --skip-planner-observe --pretty` |
-| Safe dry-run result | `AUTONOMOUS_DRY_RUN_CYCLE_BLOCKED`; `MISSING_TRIGGER`; no packet regenerated |
-| Safe dry-run safety | `apply_executed=false`; `users_moved=0`; `runtime_mutation_performed=false`; no new planner/governance/execution/truth/storage |
-| Default dry-run refresh | `NOT_EXECUTED`; requires explicit approval because planner observe may create/acquire the `/opt/v7` service-matrix lock and run production pre-planner refresh behavior |
-| Current packet freshness | `STALE_UNTIL_DEFAULT_GOVERNED_DRY_RUN_REFRESH_COMPLETES` |
-| Exact next required approval | Approve read-only governed dry-run refresh through the existing planner observe path, acknowledging the service-matrix lock/pre-planner refresh production-state write risk; still no restore-barrier write, no apply, and no user movement |
-
-After that refresh, update this file again. Only if the refreshed packet is ready should the separate movement approval question be asked.
+| Production dry-run command | `ssh v7-vps /usr/local/bin/v7-governed-canary-dry-run-cycle` |
+| Production dry-run result | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY` |
+| Production dry-run safety | `apply_executed=false`; `users_moved=0`; `runtime_mutation_performed=false`; no new planner/governance/execution/truth/storage |
+| Current packet freshness | `PACKET_PREVIEW_READY_CURRENT_INPUT` |
+| Exact next required approval | Approve exact governed TIER_1 canary packet `pkt_preview_fb70744bc51ad162b1727dcb` for `10.7.0.5 vless -> awg0`; still no autonomous apply and no user movement without explicit approval |

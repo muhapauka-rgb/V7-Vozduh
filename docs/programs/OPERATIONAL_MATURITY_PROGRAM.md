@@ -456,8 +456,8 @@ Current implementation optimizer result:
 | Implementation status | `DEPLOYED_CERTIFIED_READ_ONLY_RUNTIME_LIFECYCLE_PREVIEW` |
 | Certification report | `docs/reports/V7_IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW_CERTIFICATION_REPORT.md` |
 | Truth/convergence | Truth `PASS`; convergence `ALIGNED`; runtime commit `50188d9030d651213b5d06b528fed446889c17bc`. |
-| New highest implementation leverage task | `APPROVE_EXACT_GOVERNED_CANARY_PACKET` |
-| Stop boundary | `AUTHORITY_BOUNDARY`: exact packet approval is required before restore-barrier write, apply, user movement, or rollback apply. |
+| New highest implementation leverage task | `IMPLEMENT_PREVIEW_TO_MATERIALIZED_PACKET_BINDING` |
+| Stop boundary | `UNSAFE_IMPLEMENTATION`: operator approval exists for the exact preview packet, but the executable packet materialized by existing owners did not preserve the approved preview selected-move hash; no restore-barrier write, apply, user movement, or rollback apply may occur until this binding is deterministic and certified. |
 
 ## 2.13. Implementation Program Loop
 
@@ -1082,16 +1082,16 @@ If a restore-barrier write, apply, user movement, rollback apply, daemon, timer,
 | --- | --- |
 | Completed phases | Canonical reference, reference-first rule, event-driven contract, knowledge quality, routing foundation, knowledge-to-decision, decision-to-outcome-to-learning, outcome leverage, suitability program, knowledge growth, routing evolution, maximum reality extraction, decision model, runtime model, system architecture. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle. |
-| Current bottleneck | Authority-bound exact governed canary packet after deployed read-only runtime lifecycle preview. |
-| Current highest leverage action | `APPROVE_EXACT_GOVERNED_CANARY_PACKET`. |
+| Current bottleneck | Preview-to-materialized executable packet binding after exact governed canary approval. |
+| Current highest leverage action | `IMPLEMENT_PREVIEW_TO_MATERIALIZED_PACKET_BINDING`. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | `AUTHORITY_BOUNDARY` for exact packet approval, restore-barrier write, apply, user movement, rollback apply, daemon/timer enablement, event consumer mutation, or authority expansion. |
+| Current blockers | `UNSAFE_IMPLEMENTATION`: approved preview packet `pkt_preview_fb70744bc51ad162b1727dcb` maps to the intended user and target, but current executable packet materialization produced a different selected-move hash. |
 | Current maturity | Architecture complete; implementation phase active; read-only runtime lifecycle preview deployed and production-verified; autonomy cycles mature to exact packet authority boundary. |
 | Current runtime posture | No autonomous apply, no user movement, no daemon enablement. |
-| Current next best action | Stop for explicit approval before exact governed canary packet execution. |
-| Last optimizer iteration | `2026-06-25`: deployed and verified read-only Runtime lifecycle preview, refreshed production dry-run, and stopped at `AUTHORITY_BOUNDARY` for exact packet approval. |
+| Current next best action | Implement or certify deterministic preview-to-materialized executable packet binding through existing owners before any exact packet execution. |
+| Last optimizer iteration | `2026-06-25`: exact governed canary approval received, production preflight materialized a different executable selected-move hash, and OMP stopped at `UNSAFE_IMPLEMENTATION` before restore-barrier write or apply. |
 
 ## 25. Program Rule For Future Work
 

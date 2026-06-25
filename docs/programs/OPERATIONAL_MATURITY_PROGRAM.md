@@ -456,8 +456,8 @@ Current implementation optimizer result:
 | Implementation status | `DEPLOYED_CERTIFIED_READ_ONLY_RUNTIME_LIFECYCLE_PREVIEW` |
 | Certification report | `docs/reports/V7_IMPLEMENT_RUNTIME_READONLY_LIFECYCLE_PREVIEW_CERTIFICATION_REPORT.md` |
 | Truth/convergence | Truth `PASS`; convergence `ALIGNED`; runtime commit `50188d9030d651213b5d06b528fed446889c17bc`. |
-| New highest implementation leverage task | `EXECUTE_EXACT_GOVERNED_CANARY_PACKET_AFTER_OPERATOR_APPROVAL` |
-| Stop boundary | `AUTHORITY_BOUNDARY`: preview-to-execution packet identity is deterministic and certified, but the fresh exact governed packet differs from the earlier operator-approved packet; no restore-barrier write, apply, user movement, or rollback apply may occur until explicit approval exists for the fresh packet. |
+| New highest implementation leverage task | `REFRESH_ATOMIC_SOURCE_BUNDLE_AND_REAPPROVE_EXACT_PACKET` |
+| Stop boundary | `SAFETY_BLOCK_SOURCE_CHANGED`: exact packet approval was consumed and restore-barrier clearance was written, but existing apply-owner stopped before movement because service read-model sources changed; no retry is allowed without refresh, replan, and new exact approval. |
 
 ## 2.13. Implementation Program Loop
 
@@ -1082,16 +1082,16 @@ If a restore-barrier write, apply, user movement, rollback apply, daemon, timer,
 | --- | --- |
 | Completed phases | Canonical reference, reference-first rule, event-driven contract, knowledge quality, routing foundation, knowledge-to-decision, decision-to-outcome-to-learning, outcome leverage, suitability program, knowledge growth, routing evolution, maximum reality extraction, decision model, runtime model, system architecture. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle. |
-| Current bottleneck | Real governed canary outcome evidence after exact packet approval. |
-| Current highest leverage action | `EXECUTE_EXACT_GOVERNED_CANARY_PACKET_AFTER_OPERATOR_APPROVAL`. |
+| Current bottleneck | Atomic source-bundle freshness before real governed canary outcome. |
+| Current highest leverage action | `REFRESH_ATOMIC_SOURCE_BUNDLE_AND_REAPPROVE_EXACT_PACKET`. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | `AUTHORITY_BOUNDARY`: fresh packet `pkt_preview_43f0151499620a00d2e50f7b` targets `10.7.0.5` from `vless` to `awg3`; it requires explicit exact approval before restore-barrier write or apply. |
+| Current blockers | `SAFETY_BLOCK_SOURCE_CHANGED`: packet `pkt_preview_43f0151499620a00d2e50f7b` was approved and restore-barrier clearance was written, but existing apply-owner stopped before movement because `service-scores` and `channel-service-scores` changed. |
 | Current maturity | Architecture complete; implementation phase active; read-only runtime lifecycle preview deployed and production-verified; preview-to-execution packet identity deployed and production-verified; autonomy cycles mature to exact packet authority boundary. |
 | Current runtime posture | No autonomous apply, no user movement, no daemon enablement. |
-| Current next best action | Request explicit approval for the fresh exact governed packet, then execute only that packet through existing owners. |
-| Last optimizer iteration | `2026-06-25`: preview-to-execution packet identity was implemented through the existing packet owner, deployed, truth/convergence passed, production identity verification passed, and OMP stopped at `AUTHORITY_BOUNDARY` because the fresh packet differs from the earlier exact approval. |
+| Current next best action | Refresh the atomic source bundle, regenerate the governed packet through existing owners, and request new exact approval before any apply. |
+| Last optimizer iteration | `2026-06-25`: exact packet approval was consumed, restore-barrier clearance was written for the approved packet, existing apply-owner stopped before movement on `SOURCE_CHANGED`, and no learning was fed because no real outcome occurred. |
 
 ## 25. Program Rule For Future Work
 

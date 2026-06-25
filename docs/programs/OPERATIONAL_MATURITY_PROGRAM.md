@@ -158,7 +158,172 @@ If expansion is needed before safe continuation, OMP must stop at `AUTHORITY_BOU
 
 Authority shrink may be recommended when verification, rollback, learning, or real outcomes show increased risk.
 
-## 2.1.4. Research And Architecture Gating Rules
+## 2.1.4. Autonomy Promotion Engine
+
+The Autonomy Promotion Engine is the permanent OMP rule for how action classes become autonomous.
+
+It governs action classes, not individual packets.
+
+It is not runtime apply.
+It is not authority expansion.
+It is not packet execution.
+It is not a new planner, governance layer, execution path, runtime owner, truth source, or authority engine.
+
+The engine reuses OMP, Current Program State, Runtime Model, existing packet/restore/rollback/verification/outcome/learning owners, truth/convergence, ADRs, and certified reports.
+
+Machine-readable Action-Class Runtime Enablement state is exposed through the existing read-only owners:
+
+- `admin_core/autonomy_trust_acceleration.py::build_action_class_runtime_enablement_model`;
+- `tools/v7-autonomy-trust-evidence-inventory --action-class-runtime-only`;
+- `admin_core/operator_execution_pipeline.py::governed_canary_knowledge_gated_dry_run_cycle`.
+
+These surfaces may classify, map, and recommend. They must not move users, write restore barriers, execute apply, expand authority, create evidence, create planners, create governance, create execution, or create truth sources.
+
+Operator authority must evolve from:
+
+```text
+Approve Packet
+  -> Approve Action Class
+  -> Approve Authority Expansion
+  -> Approve Product Policy
+  -> Operator Supervision Only
+```
+
+Every certified outcome must trigger Autonomy Promotion evaluation.
+
+OMP must automatically ask:
+
+```text
+Can this action class move to the next autonomy state?
+```
+
+If yes, OMP must prepare a class promotion or authority expansion recommendation.
+
+If no, OMP must state the exact missing evidence, verification, rollback/no-rollback quality, blast-radius certification, safety gate, freshness gate, anti-flap certification, learning quality, trust gap, authority policy, runtime owner path, or duplication blocker.
+
+An action class may become autonomous only if all are true:
+
+- real outcomes exist;
+- verification passed;
+- rollback/no-rollback path certified;
+- blast radius certified;
+- safety gates certified;
+- freshness gates certified;
+- anti-flap certified;
+- authority policy approved;
+- runtime path exists through existing owners;
+- no duplicate planner, governance, execution, or truth is introduced.
+
+Promotion is based only on:
+
+- real outcomes;
+- verification;
+- rollback quality;
+- safety;
+- blast radius;
+- learning;
+- trust;
+- authority policy.
+
+Promotion must never be based on synthetic evidence.
+Promotion must never be based on reports alone.
+
+Autonomy Promotion loop:
+
+```text
+Observe
+  -> Collect Outcomes
+  -> Verify
+  -> Measure
+  -> Evaluate
+  -> Recommend Promotion
+  -> Operator approves CLASS
+  -> Runtime capability updated
+  -> Future packets execute automatically inside policy
+```
+
+Action class states:
+
+| State | Meaning |
+| --- | --- |
+| `NOT_CERTIFIED` | The class lacks enough evidence, certification, owner wiring, safety, freshness, rollback/no-rollback, blast-radius, learning, trust, or authority basis. |
+| `GOVERNED_ONLY` | The class can be prepared or executed only as a governed action with explicit packet-level authority. |
+| `CERTIFIED_FOR_CLASS_APPROVAL` | The class has enough real evidence for OMP to recommend operator approval of the class, but Runtime must not execute it autonomously yet. |
+| `CERTIFIED_FOR_BOUNDED_AUTONOMY` | The class has enough evidence and approved authority policy for bounded autonomous execution to be proposed. This still does not silently enable Runtime. |
+| `AUTONOMOUS_RUNTIME` | Runtime may execute this class automatically inside explicitly approved policy, authority, blast-radius, freshness, safety, rollback/no-rollback, verification, and learning bounds. |
+
+Canonical Action Classes:
+
+- single-user failover;
+- two-user failover;
+- small batch movement;
+- channel hard failure;
+- channel degradation;
+- recovery admission;
+- service failover;
+- rollback;
+- packet generation;
+- verification;
+- outcome closure;
+- learning refresh;
+- other classes only if discovered through existing owners and added without duplicate planner, governance, execution, truth, or runtime ownership.
+
+Action-class ladder:
+
+| Action class | Current status | Required evidence | Required verification | Required rollback | Required blast radius | Required authority | Action class state |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1. Single-user governed candidate failover | TIER_1 governed path exists; one approved leased governed canary outcome has been executed, verified, closed, and learned from; fresh packets still stop at authority. | More real candidate suitability outcomes, service/user outcome, closure record, learning record, source confidence. | Immediate post-move service/user/channel verification plus truth/convergence. | Rollback target or certified no-rollback decision for the class, not only one packet. | Exactly one user. | Explicit operator approval for each exact packet until class approval exists. | `GOVERNED_ONLY` |
+| 2. Two-user failover | Not certified. | Multiple successful one-user governed outcomes across comparable conditions. | Per-user and cohort verification. | Per-user rollback/no-rollback path. | Two bounded users only. | Class approval and authority expansion recommendation. | `NOT_CERTIFIED` |
+| 3. Five-user failover | Not certified. | Certified two-user outcomes plus stronger candidate/source confidence. | Per-user, cohort, and service verification. | Batch rollback/no-rollback path. | Five bounded users only. | Class approval and authority expansion recommendation. | `NOT_CERTIFIED` |
+| 4. Channel hard-fail failover | Read-only/event path exists; autonomous apply not certified. | Real hard-fail events, verified impact, successful governed failover outcomes. | Failure detection, target safety, post-failover service reachability. | Restore or alternate safe route certification. | Bounded affected users or cohort. | Certified policy approval or operator approval. | `GOVERNED_ONLY` |
+| 5. Channel degradation failover | Read-only degradation evidence exists; autonomous apply not certified. | Real degradation events, freshness, anti-flap, recovery stage, governed outcomes. | Degradation confirmation and post-move improvement. | Restore/no-rollback decision with anti-flap protection. | Bounded affected users or cohort. | Certified policy approval or operator approval. | `GOVERNED_ONLY` |
+| 6. Service-specific failover | Service matrix and service evidence exist; autonomous apply not certified. | Real service-specific failures and successful governed service-targeted outcomes. | Service reachability before/after action. | Service-safe rollback/no-rollback path. | Users affected by the service only. | Certified policy approval or operator approval. | `GOVERNED_ONLY` |
+| 7. Recovery admission | Read-only recovery and anti-flap overlays exist. | Real recovery observations, no-flap windows, successful gradual admission outcomes. | Recovery stability and service/user quality checks. | Re-drain or no-rollback decision. | One channel, cohort, or bounded user set per policy. | Certified policy approval or operator approval. | `GOVERNED_ONLY` |
+| 8. Small batch movement | Future certified step. | Certified one/two/five-user outcomes with strong suitability, safety, rollback, and learning. | Batch verification and per-user exception handling. | Batch rollback/no-rollback path. | Small certified batch only. | Class approval and authority expansion recommendation. | `NOT_CERTIFIED` |
+| 9. Rollback | Existing rollback owner and previews exist; autonomous rollback apply is not broadly certified. | Real rollback/no-rollback outcomes and failure cases. | Post-rollback service/user/channel verification. | Rollback itself must be bounded and idempotent. | Same or smaller than failed action. | Explicit rollback authority or certified policy. | `GOVERNED_ONLY` |
+| 10. Packet generation | Existing packet owner exists and is read-only/generation-safe. | Packet identity stability, selected move hash stability, lease behavior, stale invalidation. | Packet validation and identity checks. | N/A unless execution follows. | N/A until packet is executed. | Existing governed packet policy. | `GOVERNED_ONLY` |
+| 11. Verification | Existing verification and truth/convergence owners exist. | Real verification results across executed actions. | Verification must prove action effect or inconclusive state. | N/A unless rollback follows. | N/A. | Existing verification policy. | `GOVERNED_ONLY` |
+| 12. Outcome closure | Existing feedback/outcome owners exist. | Verified real outcomes and closure records. | Closure completeness and learning eligibility. | N/A. | N/A. | Existing outcome policy. | `GOVERNED_ONLY` |
+| 13. Learning refresh | Existing learning/snapshot owners exist. | Verified outcome records only. | Refresh output and truth/convergence. | N/A. | N/A. | Existing learning policy. | `GOVERNED_ONLY` |
+
+Stop rule:
+
+If Autonomy Promotion requires class approval, authority expansion, product policy approval, runtime apply, restore-barrier write, user movement, rollback apply, daemon/timer enablement, or event-consumer mutation, OMP must stop at `AUTHORITY_BOUNDARY`.
+
+OMP must never silently enable runtime automation.
+
+Current first certifiable Action Class:
+
+`single-user governed candidate failover`
+
+Current promotion state:
+
+`GOVERNED_ONLY`
+
+Current promotion target:
+
+`CERTIFIED_FOR_CLASS_APPROVAL`
+
+Evidence needed for next promotion state:
+
+- more real one-user governed candidate outcomes across comparable conditions;
+- repeated successful verification and outcome closure;
+- certified rollback/no-rollback behavior for the class, not only one packet;
+- sustained blast-radius, safety, freshness, and anti-flap certification;
+- stronger suitability and source confidence;
+- explicit operator approval for the class before any packet-level approval can be removed.
+
+Current runtime automation enabled:
+
+`NO`
+
+Current machine-readable path status:
+
+`PARTIAL`
+
+The path exists as a read-only registry, packet-to-action-class mapping, authority-to-action-class mapping, runtime capability view, promotion recommendation, and enablement readiness check through existing owners. It is not yet autonomous runtime authority.
+
+## 2.1.5. Research And Architecture Gating Rules
 
 Research changes implementation only through:
 

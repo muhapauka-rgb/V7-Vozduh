@@ -940,6 +940,49 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertFalse(program["apply_executed"])
         self.assertFalse(program["autonomy_enabled"])
 
+    def test_action_class_runtime_enablement_exposes_current_path_without_authority(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        enablement = inventory["action_class_runtime_enablement"]
+        self.assertEqual(enablement["schema_version"], "v7.action-class-runtime-enablement.v1")
+        self.assertEqual(enablement["path_status"], "PARTIAL")
+        self.assertEqual(enablement["semantic_reuse_audit"]["semantic_coverage_percent"], 78)
+        self.assertFalse(enablement["semantic_reuse_audit"]["need_new_owner"])
+        self.assertEqual(enablement["semantic_reuse_audit"]["duplicate_detector_result"], "NO_DUPLICATE_OWNER_CREATED")
+        self.assertEqual(enablement["current_action_class"], "single-user governed candidate failover")
+        self.assertEqual(enablement["current_state"], "GOVERNED_ONLY")
+        self.assertEqual(enablement["next_promotion_target"], "CERTIFIED_FOR_CLASS_APPROVAL")
+        self.assertFalse(enablement["runtime_capability_view"]["runtime_can_execute_automatically"])
+        self.assertFalse(enablement["runtime_capability_view"]["runtime_apply_allowed_now"])
+        self.assertEqual(enablement["enablement_readiness"]["stop_condition_if_promoted"], "AUTHORITY_BOUNDARY")
+        self.assertIn("class-level authority_policy_approval", enablement["enablement_readiness"]["missing_evidence"])
+        self.assertEqual(
+            enablement["packet_to_action_class_mapping"]["action_class"],
+            "single-user governed candidate failover",
+        )
+        self.assertEqual(enablement["packet_to_action_class_mapping"]["subject"], ["10.7.0.2"])
+        self.assertEqual(enablement["packet_to_action_class_mapping"]["target"], ["awg0"])
+        self.assertFalse(enablement["authority_to_action_class_mapping"]["authority_expansion_performed"])
+        self.assertFalse(enablement["runtime_mutation_performed"])
+        self.assertFalse(enablement["restore_barrier_written_now"])
+        self.assertFalse(enablement["apply_executed"])
+        self.assertEqual(enablement["users_moved"], 0)
+        self.assertFalse(enablement["authority_expanded"])
+        self.assertFalse(enablement["autonomy_enabled"])
+        self.assertFalse(enablement["new_planner_created"])
+        self.assertFalse(enablement["new_governance_created"])
+        self.assertFalse(enablement["new_execution_path_created"])
+        self.assertFalse(enablement["new_truth_source_created"])
+
     def test_autonomous_routing_evolution_program_survives_refresh_rebuild(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -21,6 +21,26 @@ from admin_core.operator_execution_pipeline import (
     autonomy_risk_tier_review,
 )
 
+ACTION_CLASS_ENABLEMENT_STATES = [
+    "NOT_CERTIFIED",
+    "GOVERNED_ONLY",
+    "CERTIFIED_FOR_CLASS_APPROVAL",
+    "CERTIFIED_FOR_BOUNDED_AUTONOMY",
+    "AUTONOMOUS_RUNTIME",
+]
+
+ACTION_CLASS_LADDER = [
+    ("single-user governed candidate failover", 1, "GOVERNED_ONLY"),
+    ("two-user governed candidate failover", 2, "NOT_CERTIFIED"),
+    ("five-user governed candidate failover", 5, "NOT_CERTIFIED"),
+    ("channel hard-fail failover", None, "GOVERNED_ONLY"),
+    ("channel degradation failover", None, "GOVERNED_ONLY"),
+    ("service-specific failover", None, "GOVERNED_ONLY"),
+    ("recovery admission", None, "GOVERNED_ONLY"),
+    ("small-batch movement", None, "NOT_CERTIFIED"),
+    ("pool-level movement", None, "NOT_CERTIFIED"),
+]
+
 
 def as_float(value: Any, default: float = 0.0) -> float:
     try:
@@ -2394,6 +2414,217 @@ def build_autonomous_routing_evolution_program(
     }
 
 
+def _promotion_missing_evidence(
+    *,
+    canary_proximity: dict[str, Any],
+    candidate_outcome_reality_collection: dict[str, Any],
+    decision_outcome_closure: dict[str, Any],
+    decision_outcome_learning: dict[str, Any],
+    suitability_quality_model: dict[str, Any],
+    freshness_actionability: dict[str, Any],
+) -> list[str]:
+    missing: list[str] = []
+    missing.extend(str(item) for item in (canary_proximity.get("missing") or []))
+    candidate_gap = candidate_outcome_reality_collection.get("candidate_outcome_gap")
+    if not isinstance(candidate_gap, dict):
+        candidate_gap = candidate_outcome_reality_collection.get("coverage")
+    if isinstance(candidate_gap, dict):
+        gap = int(candidate_gap.get("missing_candidate_outcomes") or 0)
+        if gap > 0:
+            missing.append(f"missing_candidate_outcomes={gap}")
+    closure_state = str(decision_outcome_closure.get("closure_state") or decision_outcome_closure.get("status") or "UNKNOWN")
+    if closure_state not in {"COMPLETE", "READY", "CLOSED"}:
+        missing.append(f"outcome_closure_state={closure_state}")
+    learning_growth = decision_outcome_learning.get("knowledge_growth") if isinstance(decision_outcome_learning.get("knowledge_growth"), dict) else {}
+    if not int(learning_growth.get("knowledge_gained") or 0):
+        missing.append("no_verified_learning_growth_from_closed_real_outcomes")
+    if not bool(suitability_quality_model.get("autonomy_grade_ready")):
+        missing.append(f"suitability_stage={suitability_quality_model.get('current_stage', 'UNKNOWN')}")
+    stale_domains = [
+        name for name, row in sorted((freshness_actionability.get("domains") or {}).items())
+        if isinstance(row, dict) and row.get("classification") in {"STALE_RECHECK_REQUIRED", "UNKNOWN"}
+    ]
+    if stale_domains:
+        missing.append("freshness_recheck_required=" + ",".join(stale_domains))
+    required = [
+        "class-level rollback_or_no_rollback_certification",
+        "class-level blast_radius_certification",
+        "class-level authority_policy_approval",
+        "runtime policy binding through existing owners",
+    ]
+    missing.extend(required)
+    return list(dict.fromkeys(missing))
+
+
+def _packet_to_action_class(
+    *,
+    packet_preview: dict[str, Any] | None = None,
+    candidate: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    packet = packet_preview if isinstance(packet_preview, dict) else {}
+    candidate = candidate if isinstance(candidate, dict) else {}
+    selected_count = int(packet.get("selected_move_count") or len(packet.get("allowed_users") or []) or (1 if candidate.get("user") else 0))
+    if selected_count <= 0:
+        action_class = "UNKNOWN_ACTION_CLASS"
+    elif selected_count == 1:
+        action_class = "single-user governed candidate failover"
+    elif selected_count == 2:
+        action_class = "two-user governed candidate failover"
+    elif selected_count <= 5:
+        action_class = "five-user governed candidate failover"
+    else:
+        action_class = "small-batch movement"
+    subject = list(packet.get("allowed_users") or [])
+    if not subject and candidate.get("user"):
+        subject = [str(candidate.get("user"))]
+    target = list(packet.get("allowed_targets") or [])
+    if not target and candidate.get("recommended_channel"):
+        target = [str(candidate.get("recommended_channel"))]
+    return {
+        "schema_version": "v7.action-class.packet-mapping.v1",
+        "packet_id": str(packet.get("packet_id") or ""),
+        "operation_id": str(packet.get("operation_id") or ""),
+        "decision_id": str(packet.get("decision_id") or ""),
+        "selected_move_hash": str(packet.get("selected_move_hash") or ""),
+        "authority_generation": str(packet.get("authority_generation") or ""),
+        "selected_move_count": selected_count,
+        "subject": subject,
+        "target": target,
+        "action_class": action_class,
+        "mapping_owner": "admin_core.autonomy_trust_acceleration",
+        "packet_owner_reused": "admin_core/operator_execution.py",
+        "planner_rerun_required": False,
+        "runtime_mutation_performed": False,
+        "apply_executed": False,
+        "users_moved": 0,
+    }
+
+
+def build_action_class_runtime_enablement_model(
+    *,
+    canary_proximity: dict[str, Any],
+    candidate_outcome_reality_collection: dict[str, Any],
+    decision_outcome_closure: dict[str, Any],
+    decision_outcome_learning: dict[str, Any],
+    suitability_quality_model: dict[str, Any],
+    freshness_actionability: dict[str, Any],
+    autonomous_routing_evolution_program: dict[str, Any],
+    packet_preview: dict[str, Any] | None = None,
+    candidate: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Expose action-class to runtime enablement without creating authority."""
+    first_class = ACTION_CLASS_LADDER[0][0]
+    packet_mapping = _packet_to_action_class(packet_preview=packet_preview, candidate=candidate)
+    missing_evidence = _promotion_missing_evidence(
+        canary_proximity=canary_proximity,
+        candidate_outcome_reality_collection=candidate_outcome_reality_collection,
+        decision_outcome_closure=decision_outcome_closure,
+        decision_outcome_learning=decision_outcome_learning,
+        suitability_quality_model=suitability_quality_model,
+        freshness_actionability=freshness_actionability,
+    )
+    class_rows = []
+    for name, blast_radius, state in ACTION_CLASS_LADDER:
+        next_state = ""
+        if state == "NOT_CERTIFIED":
+            next_state = "GOVERNED_ONLY"
+        elif state == "GOVERNED_ONLY":
+            next_state = "CERTIFIED_FOR_CLASS_APPROVAL"
+        elif state == "CERTIFIED_FOR_CLASS_APPROVAL":
+            next_state = "CERTIFIED_FOR_BOUNDED_AUTONOMY"
+        elif state == "CERTIFIED_FOR_BOUNDED_AUTONOMY":
+            next_state = "AUTONOMOUS_RUNTIME"
+        class_rows.append({
+            "action_class": name,
+            "current_state": state,
+            "next_state": next_state,
+            "required_evidence": missing_evidence if name == first_class else ["successful prior class outcomes", "class-specific real outcomes", "explicit authority review"],
+            "required_verification": "immediate post-action service/user/channel verification",
+            "required_rollback": "class-level rollback or certified no-rollback path",
+            "required_blast_radius": "exactly one user" if blast_radius == 1 else ("bounded cohort" if blast_radius else "class-specific bounded scope"),
+            "required_authority": "explicit packet approval until class approval exists" if name == first_class else "explicit class or packet authority",
+            "runtime_enablement_state": state,
+            "runtime_can_execute_automatically": state == "AUTONOMOUS_RUNTIME",
+        })
+    current = class_rows[0]
+    can_execute = bool(current["runtime_can_execute_automatically"])
+    return {
+        "schema_version": "v7.action-class-runtime-enablement.v1",
+        "generated_at": generated_at or "",
+        "path_status": "PARTIAL",
+        "semantic_reuse_audit": {
+            "desired_capability": "Convert certified action classes into runtime-enabled capabilities after explicit authority approval.",
+            "semantic_coverage_percent": 78,
+            "need_new_owner": False,
+            "existing_owners": [
+                "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md",
+                "admin_core/autonomy_trust_acceleration.py",
+                "admin_core/operator_execution_pipeline.py",
+                "admin_core/operator_execution.py",
+                "tools/v7-governed-canary-dry-run-cycle",
+                "tools/v7-autonomy-trust-evidence-inventory",
+                "docs/reference/V7_RUNTIME_MODEL.md",
+            ],
+            "reuse_strategy": "reuse OMP promotion policy, trust inventory, governed dry-run, packet owner, lease owner, restore/rollback, feedback, and learning owners",
+            "extension_strategy": "add read-only registry, packet-to-action-class mapping, authority-to-action-class mapping, and runtime readiness view inside existing owners",
+            "duplicate_detector_result": "NO_DUPLICATE_OWNER_CREATED",
+        },
+        "states": ACTION_CLASS_ENABLEMENT_STATES,
+        "action_classes": class_rows,
+        "current_action_class": first_class,
+        "current_state": current["current_state"],
+        "next_promotion_target": current["next_state"],
+        "packet_to_action_class_mapping": packet_mapping,
+        "authority_to_action_class_mapping": {
+            "packet_approval": "authorizes one exact packet only",
+            "class_approval": "required before Runtime can execute the class without packet-by-packet operator approval",
+            "current_authority": "packet-level governed authority only",
+            "authority_expansion_performed": False,
+        },
+        "runtime_capability_view": {
+            "runtime_capability": "single_user_governed_candidate_failover",
+            "runtime_path_exists_through_existing_owners": True,
+            "runtime_enablement_state": current["current_state"],
+            "runtime_can_execute_automatically": can_execute,
+            "runtime_must_stop_at": "AUTHORITY_BOUNDARY" if not can_execute else "",
+            "runtime_apply_allowed_now": False,
+        },
+        "promotion_recommendation": {
+            "recommendation": "DO_NOT_ENABLE_RUNTIME_AUTOMATION",
+            "target_state": current["next_state"],
+            "missing_evidence": missing_evidence,
+            "authority_boundary_required_for_next_state": True,
+        },
+        "enablement_readiness": {
+            "can_runtime_execute_automatically": can_execute,
+            "reason": "action_class_not_autonomous_runtime" if not can_execute else "action_class_policy_authority_and_runtime_bounds_pass",
+            "requires_authority_expansion": current["current_state"] != "AUTONOMOUS_RUNTIME",
+            "stop_condition_if_promoted": "AUTHORITY_BOUNDARY" if current["current_state"] != "AUTONOMOUS_RUNTIME" else "",
+            "missing_evidence": missing_evidence,
+        },
+        "omp_output": {
+            "current_action_class": first_class,
+            "current_state": current["current_state"],
+            "missing_evidence": missing_evidence,
+            "next_promotion_target": current["next_state"],
+            "runtime_can_execute_automatically": can_execute,
+            "autonomous_routing_stop_reason": autonomous_routing_evolution_program.get("exact_stop_reason", "UNKNOWN"),
+        },
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "new_planner_created": False,
+        "new_governance_created": False,
+        "new_execution_path_created": False,
+        "new_truth_source_created": False,
+    }
+
+
 def _knowledge_limit_item(
     *,
     item: str,
@@ -4590,6 +4821,19 @@ def build_acceleration_inventory(
         prediction_plan=prediction_plan,
         real_outcome_source_inventory=real_outcome_source_inventory,
     )
+    surface_users = decision_surface.get("users") if isinstance(decision_surface.get("users"), list) else []
+    first_candidate = surface_users[0] if surface_users and isinstance(surface_users[0], dict) else {}
+    action_class_runtime_enablement = build_action_class_runtime_enablement_model(
+        canary_proximity=canary,
+        candidate_outcome_reality_collection=candidate_outcome_reality_collection,
+        decision_outcome_closure=decision_outcome_closure,
+        decision_outcome_learning=decision_outcome_learning,
+        suitability_quality_model=suitability_quality_model,
+        freshness_actionability=freshness_actionability,
+        autonomous_routing_evolution_program=autonomous_routing_evolution_program,
+        candidate=first_candidate,
+        generated_at=generated,
+    )
     maximum_reality_knowledge_extraction = build_maximum_reality_knowledge_extraction(
         autonomous_knowledge_growth_program=autonomous_knowledge_growth_program,
         autonomous_routing_evolution_program=autonomous_routing_evolution_program,
@@ -4656,6 +4900,7 @@ def build_acceleration_inventory(
         "routing_recommendation_readiness": routing_recommendation_readiness,
         "autonomous_knowledge_growth_program": autonomous_knowledge_growth_program,
         "autonomous_routing_evolution_program": autonomous_routing_evolution_program,
+        "action_class_runtime_enablement": action_class_runtime_enablement,
         "maximum_reality_knowledge_extraction": maximum_reality_knowledge_extraction,
         "final_autonomous_routing_architecture_certification": final_autonomous_routing_architecture_certification,
         "knowledge_quality_read_model": knowledge_quality_read_model,

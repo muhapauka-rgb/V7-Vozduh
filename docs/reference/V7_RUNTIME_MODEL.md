@@ -13,6 +13,9 @@ Runtime is not a decision maker.
 Runtime does not invent decisions.
 Runtime executes, stops, verifies, rolls back, records outcomes, and feeds learning only through existing V7 owners.
 
+Runtime executes certified action classes only when OMP and authority policy have promoted that class.
+Runtime does not promote classes by itself.
+
 Runtime is the thin execution path:
 
 ```text
@@ -80,6 +83,7 @@ Runtime consumes only existing-owner inputs:
 | Evidence Quality and Knowledge Snapshot | Knowledge Quality Model, Background knowledge owners |
 | Safety Gates | Safety-Bounded Authority, Runtime Readiness, restore barrier |
 | Authority State | OMP, Current Program State, explicit operator approval |
+| Action Class State | OMP Autonomy Promotion Engine, Current Program State |
 | Execution Packet / Preview | `tools/v7-operator-execution-packet`, `admin_core/operator_execution.py` |
 | Rollback Target | Restore Barrier / Rollback |
 | Verification Plan | Event Trigger Certification, Runtime Readiness, truth/convergence surfaces |
@@ -103,6 +107,52 @@ Runtime may produce only bounded existing-owner outputs:
 | Audit trail / report | Existing documentation and evidence surfaces |
 
 Runtime output is not a new truth source. Runtime output must reference existing owner evidence and must never fabricate success.
+
+## Action-Class Authority
+
+Runtime must evaluate authority at the action-class level before asking for packet approval.
+
+Runtime never asks:
+
+```text
+Approve Packet
+```
+
+when the action class is already:
+
+```text
+AUTONOMOUS_RUNTIME
+```
+
+and all of the following remain inside the certified class bounds:
+
+- policy;
+- subject;
+- target class;
+- blast radius;
+- freshness;
+- safety;
+- rollback/no-rollback path;
+- verification;
+- learning;
+- authority generation.
+
+Runtime must ask, stop, or escalate when:
+
+- the action class is `NOT_CERTIFIED`;
+- the action class is `GOVERNED_ONLY`;
+- the action class is only `CERTIFIED_FOR_CLASS_APPROVAL` and class approval has not been granted;
+- authority is exceeded;
+- policy changed;
+- risk exceeds certified blast radius;
+- freshness, safety, rollback/no-rollback, verification, or learning requirements fail;
+- the packet identity does not match the approved class/policy bounds.
+
+Action-class authority does not let Runtime invent decisions.
+Runtime still consumes prepared decisions and packets from existing owners.
+
+This section does not enable runtime apply, autonomous execution, daemon/timer behavior, user movement, rollback apply, or authority expansion.
+It defines the future rule for when packet-level approval is no longer required for a certified class.
 
 ## Forbidden Inside Runtime
 
@@ -149,7 +199,7 @@ Runtime must not:
 | Read Decision Snapshot | Load existing decision output. | Decision id, action, subject, desired/current state, risk, blast radius. | Decision Model, decision surface | No decision, stale decision, unsupported vocabulary. |
 | Policy | Confirm desired state, action vocabulary, eligibility, and policy basis. | Policy gates, candidate ranking, desired state. | Planner / Autoswitch, OMP | Policy block or no eligible subject. |
 | Safety | Confirm evidence quality, health, freshness, blast radius, rollback target. | Knowledge snapshot, safety gates, restore preview. | Safety-Bounded Authority, Runtime Readiness | Safety block, freshness block, rollback missing. |
-| Authority | Confirm execution authority for exact bounded action. | Authority state, explicit approval if required. | OMP, operator approval, Current Program State | `AUTHORITY_BOUNDARY`. |
+| Authority | Confirm action-class authority, exact packet authority if still required, and certified policy bounds. | Action class state, authority state, explicit approval if required. | OMP Autonomy Promotion Engine, operator approval, Current Program State | `AUTHORITY_BOUNDARY`, action class not autonomous, authority exceeded, policy changed, risk exceeds certified blast radius. |
 | Packet | Build or load existing execution packet. | Packet id, selected move hash, generation, verification plan. | Execution Packet owner | Packet invalid, stale, or generation mismatch. |
 | Execute OR Stop | Execute only if authority and packet are valid; otherwise stop. | Approved exact action. | Existing governed execution owner | Stop reason present, no explicit apply approval. |
 | Verify | Verify mutation or no-op result. | Verification plan and runtime evidence. | Runtime Readiness, truth/convergence | Verification failed or inconclusive. |
@@ -195,7 +245,7 @@ flowchart TD
 | `DECISION_LOADED` | Decision snapshot loaded. | `POLICY_CHECKED` | `NO_DECISION`, `STALE_DECISION`, `UNSUPPORTED_ACTION` |
 | `POLICY_CHECKED` | Policy and eligibility pass. | `SAFETY_CHECKED` | `POLICY_BLOCK`, `ELIGIBILITY_BLOCK` |
 | `SAFETY_CHECKED` | Safety, freshness, blast, rollback pass. | `AUTHORITY_CHECKED` | `SAFETY_BLOCK`, `ROLLBACK_UNAVAILABLE`, `FRESHNESS_BLOCK` |
-| `AUTHORITY_CHECKED` | Exact authority exists or stop classified. | `PACKET_READY` | `AUTHORITY_BOUNDARY` |
+| `AUTHORITY_CHECKED` | Action-class, policy, and exact packet authority if required exist or stop is classified. | `PACKET_READY` | `AUTHORITY_BOUNDARY`, `ACTION_CLASS_UNCERTIFIED`, `POLICY_CHANGED`, `RISK_EXCEEDS_CERTIFIED_BLAST_RADIUS` |
 | `PACKET_READY` | Packet is valid for current generation. | `EXECUTING` or `STOPPED` | `PACKET_INVALID`, `DUPLICATE_WORK` |
 | `EXECUTING` | Explicit approved execution starts. | `VERIFYING` | `EXECUTION_REFUSED` |
 | `VERIFYING` | Verification plan runs. | `ROLLING_BACK` or `OUTCOME_CLOSING` | `VERIFY_FAILED_NO_MUTATION`, `VERIFY_INCONCLUSIVE` |
@@ -215,7 +265,8 @@ flowchart TD
 | Rank candidate moves | No | Reads | Does not rank | Coordinates | Planner / Autoswitch |
 | Enforce policy | Provides data | Defines decision basis | Checks pass/fail | Owns continuation meaning | Planner / policy gates |
 | Check safety | Provides data | Requires safety | Checks pass/fail | Blocks if unsafe | Safety-Bounded Authority, Runtime Readiness |
-| Require authority | No | Marks authority need | Stops or proceeds | Owns authority boundary | OMP, operator approval |
+| Promote action class | Provides outcome evidence | No | Consumes promoted class state only | Owns Autonomy Promotion Engine | OMP, Current Program State, certified reports |
+| Require authority | No | Marks authority need | Stops or proceeds by class/policy/packet authority | Owns authority boundary | OMP, operator approval |
 | Build packet | No | References packet need | Requires packet | Uses packet state | Execution Packet owner |
 | Execute exact action | No | No | Calls existing owner only after authority | Authorizes or stops | Autoswitch Runtime Owner / governed execution |
 | Verify | Provides read models | Requires verification | Runs verification stage | Reads result | Runtime Readiness, truth/convergence |
@@ -236,7 +287,8 @@ flowchart TD
 | Policy and eligibility | Planner / Autoswitch, OMP |
 | Health, freshness, evidence quality | Knowledge Quality Model, Runtime Readiness |
 | Blast radius | Safety-Bounded Authority, Autonomy Risk Tier Floors |
-| Authority gate | OMP, explicit operator approval |
+| Action class promotion | OMP Autonomy Promotion Engine |
+| Authority gate | OMP, explicit operator approval, approved action-class policy |
 | Packet | Execution Packet owner |
 | Restore barrier | Restore Barrier / Rollback |
 | Execution | Existing governed execution path only after authority |
@@ -264,16 +316,19 @@ Runtime must stop safely on:
 10. `FRESHNESS_BLOCK`
 11. `ROLLBACK_UNAVAILABLE`
 12. `AUTHORITY_BOUNDARY`
-13. `PACKET_INVALID`
-14. `DUPLICATE_WORK`
-15. `LOOP_GUARD`
-16. `VERIFY_FAILED_NO_MUTATION`
-17. `VERIFY_INCONCLUSIVE`
-18. `ROLLBACK_REQUIRED_OPERATOR`
-19. `OUTCOME_UNAVAILABLE`
-20. `LEARNING_SKIPPED_NO_REAL_OUTCOME`
-21. `STATE_UPDATE_CONFLICT`
-22. `OMP_NOTIFY_FAILED`
+13. `ACTION_CLASS_UNCERTIFIED`
+14. `POLICY_CHANGED`
+15. `RISK_EXCEEDS_CERTIFIED_BLAST_RADIUS`
+16. `PACKET_INVALID`
+17. `DUPLICATE_WORK`
+18. `LOOP_GUARD`
+19. `VERIFY_FAILED_NO_MUTATION`
+20. `VERIFY_INCONCLUSIVE`
+21. `ROLLBACK_REQUIRED_OPERATOR`
+22. `OUTCOME_UNAVAILABLE`
+23. `LEARNING_SKIPPED_NO_REAL_OUTCOME`
+24. `STATE_UPDATE_CONFLICT`
+25. `OMP_NOTIFY_FAILED`
 
 Stop is a valid runtime outcome. A stopped runtime must record the exact stop reason and must not silently retry.
 

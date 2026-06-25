@@ -2340,6 +2340,65 @@ def _packet_preview_from_execution_lease(lease: dict[str, Any]) -> dict[str, Any
     }
 
 
+def _action_class_runtime_enablement_preview(
+    *,
+    packet_preview: dict[str, Any],
+    candidate: dict[str, Any],
+    stop_reason: str,
+) -> dict[str, Any]:
+    selected_count = int(packet_preview.get("selected_move_count") or len(packet_preview.get("allowed_users") or []) or (1 if candidate.get("user") else 0))
+    if selected_count <= 0:
+        action_class = "UNKNOWN_ACTION_CLASS"
+    elif selected_count == 1:
+        action_class = "single-user governed candidate failover"
+    elif selected_count == 2:
+        action_class = "two-user governed candidate failover"
+    elif selected_count <= 5:
+        action_class = "five-user governed candidate failover"
+    else:
+        action_class = "small-batch movement"
+    state = "GOVERNED_ONLY" if action_class == "single-user governed candidate failover" else "NOT_CERTIFIED"
+    return {
+        "schema_version": "v7.action-class-runtime-enablement-preview.v1",
+        "owner": "admin_core/operator_execution_pipeline.py",
+        "registry_owner": "admin_core/autonomy_trust_acceleration.py",
+        "packet_owner_reused": CANONICAL_PACKET_OWNER,
+        "packet_to_action_class_mapping": {
+            "packet_id": str(packet_preview.get("packet_id") or ""),
+            "operation_id": str(packet_preview.get("operation_id") or ""),
+            "decision_id": str(packet_preview.get("decision_id") or ""),
+            "selected_move_hash": str(packet_preview.get("selected_move_hash") or ""),
+            "authority_generation": str(packet_preview.get("authority_generation") or ""),
+            "selected_move_count": selected_count,
+            "subject": list(packet_preview.get("allowed_users") or ([candidate.get("user")] if candidate.get("user") else [])),
+            "target": list(packet_preview.get("allowed_targets") or ([candidate.get("recommended_channel")] if candidate.get("recommended_channel") else [])),
+            "action_class": action_class,
+        },
+        "authority_to_action_class_mapping": {
+            "packet_approval": "authorizes one exact packet only",
+            "class_approval": "required before Runtime can execute the class automatically",
+            "current_authority": "packet-level governed authority only",
+            "authority_expansion_performed": False,
+        },
+        "current_action_class": action_class,
+        "current_state": state,
+        "next_promotion_target": "CERTIFIED_FOR_CLASS_APPROVAL" if state == "GOVERNED_ONLY" else "GOVERNED_ONLY",
+        "runtime_can_execute_automatically": False,
+        "runtime_must_stop_at": stop_reason or "AUTHORITY_BOUNDARY",
+        "runtime_apply_allowed_now": False,
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "new_planner_created": False,
+        "new_governance_created": False,
+        "new_execution_path_created": False,
+        "new_truth_source_created": False,
+    }
+
+
 def _learning_path_plan() -> dict[str, Any]:
     steps = [
         ("outcome", CANONICAL_FEEDBACK_OWNER),
@@ -2665,6 +2724,11 @@ def governed_canary_knowledge_gated_dry_run_cycle(
         dry_run=dry_run,
         stop_reason=stop_reason,
     )
+    action_class_runtime_enablement = _action_class_runtime_enablement_preview(
+        packet_preview=packet_preview,
+        candidate=candidate,
+        stop_reason=stop_reason,
+    )
     knowledge_gates = _knowledge_gate_rows(decision_surface, dry_run)
     old_target = str(candidate.get("current_channel") or "")
     target = str(candidate.get("recommended_channel") or "")
@@ -2720,6 +2784,7 @@ def governed_canary_knowledge_gated_dry_run_cycle(
         "learning_path": learning_path,
         "runtime_lifecycle_preview": runtime_lifecycle,
         "approval_prompt": approval_prompt,
+        "action_class_runtime_enablement": action_class_runtime_enablement,
         "dry_run": dry_run,
         "cycle_steps": [
             {

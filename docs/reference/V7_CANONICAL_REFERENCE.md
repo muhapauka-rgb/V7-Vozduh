@@ -55,6 +55,8 @@ Stable conclusions:
 5. Current product maturity is `Operational`, moving through governed `Production` maturity.
 6. Fundamental missing product questions: `NONE`.
 7. Product certification verdict: `PRODUCT_SPECIFICATION_COMPLETE`.
+8. Autonomy Promotion Engine is a product rule: V7 must gradually move the operator from approving repetitive packets to approving action classes, authority expansion, product policy, new classes, and exceptional situations.
+9. Automation grows by promoting certified action classes from real outcomes, verification, rollback quality, safety, blast radius, learning, trust, and authority policy; reports alone and synthetic evidence cannot promote a class.
 
 ## Certified Root Cause Rule
 
@@ -123,6 +125,10 @@ Stable conclusions:
 18. After every implementation, OMP must run duplication detection across owners, planners, governance, execution, lifecycle, APIs, CLIs, knowledge models, routing logic, learning logic, truth sources, evidence collectors, packet builders, decision surfaces, and maturity models.
 19. Future work may proceed through only: `Continue OMP`, `Approve packet`, and `Approve authority expansion`, unless a real implementation proves `FUNDAMENTAL_ARCHITECTURE_GAP`.
 20. OMP does not authorize restore-barrier writes, runtime apply, user movement, rollback apply, daemon/timer enablement, authority expansion, floor changes, synthetic evidence, new planner, new governance, new execution, storage, runtime owner, or truth source without the required authority.
+21. OMP owns the Autonomy Promotion Engine for action classes. After every certified outcome, OMP must evaluate whether the action class can move to the next autonomy state.
+22. Canonical action class states are `NOT_CERTIFIED`, `GOVERNED_ONLY`, `CERTIFIED_FOR_CLASS_APPROVAL`, `CERTIFIED_FOR_BOUNDED_AUTONOMY`, and `AUTONOMOUS_RUNTIME`.
+23. Current first certifiable action class is `single-user governed candidate failover`; current promotion state is `GOVERNED_ONLY`; current promotion target is `CERTIFIED_FOR_CLASS_APPROVAL`; runtime automation enabled remains `NO`.
+24. Action-Class Runtime Enablement path status is `PARTIAL`: existing OMP, trust inventory, governed dry-run, packet, lease, restore/rollback, feedback, learning, and Runtime Model owners now expose read-only action-class registry, packet-to-action-class mapping, authority-to-action-class mapping, runtime capability view, promotion recommendation, and readiness check. Need New Owner remains `FALSE`; Runtime cannot execute this class automatically yet.
 
 ## V7_KERNEL_AND_STATE_SPLIT
 
@@ -224,7 +230,9 @@ Stable conclusions:
 7. Runtime updates Current Program State only as a program continuation surface; Current Program State is not a runtime truth source.
 8. Runtime feeds learning only from real observed outcomes.
 9. Need New Owner remains `FALSE`; Runtime is an existing-owner composition contract.
-10. This design does not implement runtime code, daemon/timer enablement, event consumer changes, autonomous execution, apply, user movement, planner changes, governance changes, execution changes, truth-source changes, floor changes, synthetic evidence, restore-barrier writes, or rollback apply.
+10. Runtime must not ask for packet approval when an action class is already `AUTONOMOUS_RUNTIME` and policy, subject, target class, blast radius, freshness, safety, rollback/no-rollback, verification, learning, and authority generation remain inside certified bounds.
+11. Runtime must stop or ask when the class is uncertified, governed-only, not class-approved, authority is exceeded, policy changed, risk exceeds certified blast radius, or required safety/freshness/rollback/verification/learning gates fail.
+12. This design does not implement runtime code, daemon/timer enablement, event consumer changes, autonomous execution, apply, user movement, planner changes, governance changes, execution changes, truth-source changes, floor changes, synthetic evidence, restore-barrier writes, or rollback apply.
 
 Related report: `docs/reports/V7_RUNTIME_MODEL_DESIGN_REPORT.md`.
 Related ADR: `docs/decisions/ADR-V7-RUNTIME-MODEL.md`.

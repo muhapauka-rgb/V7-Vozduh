@@ -2139,6 +2139,150 @@ def _outcome_closure_plan(candidate: dict[str, Any], packet_preview: dict[str, A
     }
 
 
+def _authority_boundary_approval_prompt(
+    *,
+    candidate: dict[str, Any],
+    packet_preview: dict[str, Any],
+    restore_status: dict[str, Any],
+    dry_run: dict[str, Any],
+    stop_reason: str,
+) -> dict[str, Any]:
+    if stop_reason != "AUTHORITY_BOUNDARY" or packet_preview.get("status") != "PACKET_PREVIEW_READY":
+        return {
+            "schema_version": "v7.governed-canary.authority-approval-prompt.v1",
+            "status": "NOT_EMITTED",
+            "reason": "approval_prompt_only_emitted_for_authority_boundary_with_ready_packet",
+            "read_only": True,
+            "preview_only": True,
+            "runtime_mutation_performed": False,
+            "restore_barrier_written_now": False,
+            "apply_executed": False,
+            "users_moved": 0,
+        }
+
+    rollback_preview = packet_preview.get("rollback_manifest_preview") if isinstance(packet_preview.get("rollback_manifest_preview"), dict) else {}
+    rollback_items = rollback_preview.get("items") if isinstance(rollback_preview.get("items"), list) else []
+    rollback_item = rollback_items[0] if rollback_items and isinstance(rollback_items[0], dict) else {}
+    tier_review = (dry_run.get("safety_gates") or {}).get("risk_tier_review") or {}
+    user = str(candidate.get("user") or (packet_preview.get("allowed_users") or [""])[0])
+    current_channel = str(candidate.get("current_channel") or rollback_item.get("rollback_target") or "")
+    target_channel = str(candidate.get("recommended_channel") or (packet_preview.get("allowed_targets") or [""])[0])
+    rollback_target = str(rollback_item.get("rollback_target") or current_channel)
+    authority_tier = str(tier_review.get("nearest_reachable_tier") or "TIER_1")
+    authority_status = str(tier_review.get("nearest_reachable_status") or "MARGINAL_OPERATOR_REVIEW")
+    packet_id = str(packet_preview.get("packet_id") or "")
+    operation_id = str(packet_preview.get("operation_id") or "")
+    selected_move_hash = str(packet_preview.get("selected_move_hash") or "")
+    rollback_manifest_id = str(rollback_preview.get("rollback_manifest_id") or "")
+    allowed_action = "execute this exact governed packet through existing owners only"
+    forbidden_actions = [
+        "move any other user",
+        "use any other target",
+        "rerun planner to change selected move",
+        "bypass planner/governance",
+        "enable daemon/timer",
+        "expand authority",
+        "create synthetic evidence",
+    ]
+    command_lines = [
+        "Approve exact governed canary packet.",
+        "",
+        "Approved packet:",
+        packet_id,
+        "",
+        "Operation:",
+        operation_id,
+        "",
+        "Selected move hash:",
+        selected_move_hash,
+        "",
+        "User:",
+        user,
+        "",
+        "Move:",
+        f"{current_channel} -> {target_channel}",
+        "",
+        "Rollback target:",
+        rollback_target,
+        "",
+        "Rollback manifest:",
+        rollback_manifest_id,
+        "",
+        "Authority:",
+        f"{authority_tier} governed canary",
+        "",
+        "Authority status:",
+        authority_status,
+        "",
+        "Allowed action:",
+        f"{allowed_action}.",
+        "",
+        "Requirements:",
+        "- consume the approved preview packet as the executable packet;",
+        "- preserve packet_id, decision_id, operation_id, selected_move_hash, subject, target, and authority_generation;",
+        "- write restore-barrier clearance only for this exact packet;",
+        "- apply only this exact one-user movement;",
+        "- verify immediately;",
+        "- rollback to the rollback target if verification fails;",
+        "- close outcome;",
+        "- feed learning only from real observed outcome;",
+        "- update Current Program State;",
+        "- update OMP;",
+        "- run truth/convergence;",
+        "- continue OMP after outcome closure.",
+        "",
+        "Do not:",
+    ]
+    command_lines.extend([f"- {action};" for action in forbidden_actions])
+    command_lines.extend([
+        "",
+        "Final response:",
+        "- apply result;",
+        "- verification result;",
+        "- rollback result if any;",
+        "- outcome closure;",
+        "- learning update;",
+        "- new metrics;",
+        "- new highest implementation leverage task;",
+        "- exact stop condition if stopped.",
+    ])
+    return {
+        "schema_version": "v7.governed-canary.authority-approval-prompt.v1",
+        "status": "APPROVAL_PROMPT_READY",
+        "owner": "OMP + Current Program State",
+        "source": "governed_canary_knowledge_gated_dry_run_cycle",
+        "packet_preview_id": packet_id,
+        "packet_id": packet_id,
+        "decision_id": str(packet_preview.get("decision_id") or ""),
+        "operation_id": operation_id,
+        "selected_move_hash": selected_move_hash,
+        "user": user,
+        "current_channel": current_channel,
+        "target_channel": target_channel,
+        "rollback_target": rollback_target,
+        "rollback_manifest_id": rollback_manifest_id,
+        "authority_tier": authority_tier,
+        "authority_status": authority_status,
+        "allowed_action": allowed_action,
+        "forbidden_actions": forbidden_actions,
+        "approval_command_text": "\n".join(command_lines),
+        "restore_status": restore_status.get("status", "UNKNOWN"),
+        "stale_approval_invalidated_by": [
+            "packet_preview_id",
+            "operation_id",
+            "selected_move_hash",
+            "rollback_manifest_id",
+            "authority_generation",
+        ],
+        "read_only": True,
+        "preview_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+    }
+
+
 def _learning_path_plan() -> dict[str, Any]:
     steps = [
         ("outcome", CANONICAL_FEEDBACK_OWNER),
@@ -2449,6 +2593,13 @@ def governed_canary_knowledge_gated_dry_run_cycle(
         dry_run=dry_run,
         now=now,
     )
+    approval_prompt = _authority_boundary_approval_prompt(
+        candidate=candidate,
+        packet_preview=packet_preview,
+        restore_status=restore_status,
+        dry_run=dry_run,
+        stop_reason=stop_reason,
+    )
     knowledge_gates = _knowledge_gate_rows(decision_surface, dry_run)
     old_target = str(candidate.get("current_channel") or "")
     target = str(candidate.get("recommended_channel") or "")
@@ -2494,6 +2645,7 @@ def governed_canary_knowledge_gated_dry_run_cycle(
         "outcome_closure_plan": outcome_plan,
         "learning_path": learning_path,
         "runtime_lifecycle_preview": runtime_lifecycle,
+        "approval_prompt": approval_prompt,
         "dry_run": dry_run,
         "cycle_steps": [
             {

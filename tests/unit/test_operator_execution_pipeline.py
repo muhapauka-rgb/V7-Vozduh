@@ -55,6 +55,56 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
             "emergency_only": False,
         }
 
+    def governed_canary_surface(self, *, target="awg0", recommendation_hash="rec-canary-1", source_hash="source-canary-1"):
+        return {
+            "users_by_ip": {
+                "10.7.0.5": {
+                    "user": "10.7.0.5",
+                    "current_channel": "vless",
+                    "recommended_channel": target,
+                    "confidence": 0.458,
+                    "trust": 54.115,
+                    "prediction": {"confidence": 0.35514},
+                    "risk": 3.2,
+                    "recommendation_hash": recommendation_hash,
+                    "source_hash": source_hash,
+                    "reasons": ["planner selected one-user governed canary"],
+                },
+            },
+            "batch_preview": {
+                "users_to_move": [
+                    {
+                        "user": "10.7.0.5",
+                        "from": "vless",
+                        "to": target,
+                        "confidence": 0.458,
+                        "risk": 3.2,
+                        "recommendation_hash": recommendation_hash,
+                    },
+                ],
+                "knowledge_decision_readiness": {
+                    "routing_recommendation_readiness": "READY_FOR_REVIEW",
+                    "blockers": [],
+                    "decision_effectiveness": {"recommendation_correct_rate": 1.0},
+                    "knowledge_growth": {"knowledge_gained": 1},
+                },
+            },
+            "knowledge_decision_overlay": {
+                "service_user_sla_fit": {"rows": [], "blockers": []},
+                "freshness_actionability": {"domains": {}, "blockers": []},
+                "recovery_admission": {"rows": [], "blockers": []},
+                "anti_flapping": {"rows": [], "blockers": []},
+                "decision_effectiveness": {"recommendation_correct_rate": 1.0},
+                "routing_recommendation_readiness": {"readiness": "READY_FOR_REVIEW", "blockers": []},
+            },
+            "knowledge_quality_read_model": {"schema_version": "v7.knowledge-quality-read-model.v1"},
+            "snapshot_statuses": {
+                "service-scores": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+                "trust-summaries": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+                "prediction-summaries": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+            },
+        }
+
     def test_recommendation_execution_contract_has_required_fields(self):
         contract = pipeline.recommendation_execution_contract(self.recommendation_row())
 
@@ -947,54 +997,7 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         )
 
     def test_governed_canary_cycle_reaches_authority_boundary_with_low_autonomy_floors(self):
-        decision_surface = {
-            "users_by_ip": {
-                "10.7.0.5": {
-                    "user": "10.7.0.5",
-                    "current_channel": "vless",
-                    "recommended_channel": "awg0",
-                    "confidence": 0.458,
-                    "trust": 54.115,
-                    "prediction": {"confidence": 0.35514},
-                    "risk": 3.2,
-                    "recommendation_hash": "rec-canary-1",
-                    "source_hash": "source-canary-1",
-                    "reasons": ["planner selected one-user governed canary"],
-                },
-            },
-            "batch_preview": {
-                "users_to_move": [
-                    {
-                        "user": "10.7.0.5",
-                        "from": "vless",
-                        "to": "awg0",
-                        "confidence": 0.458,
-                        "risk": 3.2,
-                        "recommendation_hash": "rec-canary-1",
-                    },
-                ],
-                "knowledge_decision_readiness": {
-                    "routing_recommendation_readiness": "READY_FOR_REVIEW",
-                    "blockers": [],
-                    "decision_effectiveness": {"recommendation_correct_rate": 1.0},
-                    "knowledge_growth": {"knowledge_gained": 1},
-                },
-            },
-            "knowledge_decision_overlay": {
-                "service_user_sla_fit": {"rows": [], "blockers": []},
-                "freshness_actionability": {"domains": {}, "blockers": []},
-                "recovery_admission": {"rows": [], "blockers": []},
-                "anti_flapping": {"rows": [], "blockers": []},
-                "decision_effectiveness": {"recommendation_correct_rate": 1.0},
-                "routing_recommendation_readiness": {"readiness": "READY_FOR_REVIEW", "blockers": []},
-            },
-            "knowledge_quality_read_model": {"schema_version": "v7.knowledge-quality-read-model.v1"},
-            "snapshot_statuses": {
-                "service-scores": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
-                "trust-summaries": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
-                "prediction-summaries": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
-            },
-        }
+        decision_surface = self.governed_canary_surface()
 
         cycle = pipeline.governed_canary_knowledge_gated_dry_run_cycle(
             events=[],
@@ -1029,6 +1032,30 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertFalse(cycle["manual_prompting_required_before_boundary"])
         self.assertFalse(cycle["non_authority_stop_requires_fix"])
         self.assertEqual(cycle["final_verdict"], "AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY")
+        approval_prompt = cycle["approval_prompt"]
+        self.assertEqual(approval_prompt["status"], "APPROVAL_PROMPT_READY")
+        self.assertEqual(approval_prompt["packet_preview_id"], cycle["packet_preview"]["packet_id"])
+        self.assertEqual(approval_prompt["operation_id"], cycle["packet_preview"]["operation_id"])
+        self.assertEqual(approval_prompt["selected_move_hash"], cycle["packet_preview"]["selected_move_hash"])
+        self.assertEqual(approval_prompt["user"], "10.7.0.5")
+        self.assertEqual(approval_prompt["current_channel"], "vless")
+        self.assertEqual(approval_prompt["target_channel"], "awg0")
+        self.assertEqual(approval_prompt["rollback_target"], "vless")
+        self.assertEqual(
+            approval_prompt["rollback_manifest_id"],
+            cycle["packet_preview"]["rollback_manifest_preview"]["rollback_manifest_id"],
+        )
+        self.assertEqual(approval_prompt["authority_tier"], cycle["decision"]["authority_tier"])
+        self.assertEqual(approval_prompt["authority_status"], cycle["decision"]["authority_status"])
+        self.assertIn("execute this exact governed packet", approval_prompt["allowed_action"])
+        self.assertIn("move any other user", approval_prompt["forbidden_actions"])
+        self.assertIn(cycle["packet_preview"]["packet_id"], approval_prompt["approval_command_text"])
+        self.assertIn(cycle["packet_preview"]["operation_id"], approval_prompt["approval_command_text"])
+        self.assertIn(cycle["packet_preview"]["selected_move_hash"], approval_prompt["approval_command_text"])
+        self.assertFalse(approval_prompt["runtime_mutation_performed"])
+        self.assertFalse(approval_prompt["restore_barrier_written_now"])
+        self.assertFalse(approval_prompt["apply_executed"])
+        self.assertEqual(approval_prompt["users_moved"], 0)
         self.assertFalse(cycle["safety"]["apply_executed"])
         self.assertEqual(cycle["safety"]["users_moved"], 0)
         self.assertFalse(cycle["safety"]["autonomy_enabled"])
@@ -1083,6 +1110,29 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertFalse(lifecycle["rollback_executed"])
         self.assertFalse(lifecycle["learning_written_now"])
 
+    def test_governed_canary_changed_packet_emits_fresh_approval_prompt(self):
+        first = pipeline.governed_canary_knowledge_gated_dry_run_cycle(
+            decision_surface=self.governed_canary_surface(target="awg0", recommendation_hash="rec-canary-1"),
+            max_users=1,
+            now="2026-06-24T16:00:00Z",
+        )
+        changed = pipeline.governed_canary_knowledge_gated_dry_run_cycle(
+            decision_surface=self.governed_canary_surface(target="awg3", recommendation_hash="rec-canary-2", source_hash="source-canary-2"),
+            max_users=1,
+            now="2026-06-24T16:00:00Z",
+        )
+
+        self.assertEqual(first["stop_reason"], "AUTHORITY_BOUNDARY")
+        self.assertEqual(changed["stop_reason"], "AUTHORITY_BOUNDARY")
+        self.assertEqual(first["approval_prompt"]["status"], "APPROVAL_PROMPT_READY")
+        self.assertEqual(changed["approval_prompt"]["status"], "APPROVAL_PROMPT_READY")
+        self.assertNotEqual(first["packet_preview"]["packet_id"], changed["packet_preview"]["packet_id"])
+        self.assertNotEqual(first["packet_preview"]["selected_move_hash"], changed["packet_preview"]["selected_move_hash"])
+        self.assertNotEqual(first["approval_prompt"]["approval_command_text"], changed["approval_prompt"]["approval_command_text"])
+        self.assertNotIn(first["packet_preview"]["packet_id"], changed["approval_prompt"]["approval_command_text"])
+        self.assertIn(changed["packet_preview"]["packet_id"], changed["approval_prompt"]["approval_command_text"])
+        self.assertEqual(changed["approval_prompt"]["target_channel"], "awg3")
+
     def test_governed_canary_cycle_fails_non_authority_snapshot_stop(self):
         decision_surface = {
             "users_by_ip": {
@@ -1119,8 +1169,52 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertTrue(cycle["non_authority_stop_requires_fix"])
         self.assertEqual(cycle["next_action"], "FIX_EXISTING_OWNER_GAP_AND_RERUN")
         self.assertEqual(cycle["final_verdict"], "AUTONOMOUS_DRY_RUN_CYCLE_BLOCKED")
+        self.assertEqual(cycle["approval_prompt"]["status"], "NOT_EMITTED")
+        self.assertNotIn("approval_command_text", cycle["approval_prompt"])
         self.assertFalse(cycle["safety"]["apply_executed"])
         self.assertEqual(cycle["safety"]["users_moved"], 0)
+        self.assertFalse(cycle["approval_prompt"]["runtime_mutation_performed"])
+        self.assertFalse(cycle["approval_prompt"]["restore_barrier_written_now"])
+        self.assertFalse(cycle["approval_prompt"]["apply_executed"])
+        self.assertEqual(cycle["approval_prompt"]["users_moved"], 0)
+
+    def test_governed_canary_no_approval_prompt_for_unsafe_implementation_stop(self):
+        cycle = pipeline.governed_canary_knowledge_gated_dry_run_cycle(
+            decision_surface={
+                "users_by_ip": {
+                    "10.7.0.5": {
+                        "user": "10.7.0.5",
+                        "current_channel": "vless",
+                        "recommended_channel": "awg0",
+                        "confidence": 0.9,
+                        "trust": 90,
+                        "prediction": {"confidence": 0.9},
+                        "risk": 1.0,
+                    },
+                },
+                "batch_preview": {
+                    "users_to_move": [{"user": "10.7.0.5", "from": "vless", "to": "awg0", "confidence": 0.9}],
+                },
+                "snapshot_statuses": {
+                    "service-scores": {
+                        "status": "STALE",
+                        "validation_ok": False,
+                        "freshness_state": "STALE",
+                        "stop_required": True,
+                        "validation_errors": ["source_hash_mismatch:service-scores:service_matrix"],
+                    },
+                },
+            },
+            max_users=1,
+        )
+
+        self.assertNotEqual(cycle["stop_reason"], "AUTHORITY_BOUNDARY")
+        self.assertEqual(cycle["approval_prompt"]["status"], "NOT_EMITTED")
+        self.assertNotIn("approval_command_text", cycle["approval_prompt"])
+        self.assertFalse(cycle["approval_prompt"]["runtime_mutation_performed"])
+        self.assertFalse(cycle["approval_prompt"]["apply_executed"])
+        self.assertEqual(cycle["approval_prompt"]["users_moved"], 0)
+
 
     def test_operator_dashboard_exposes_autonomous_dry_run(self):
         dashboard = pipeline.execution_operator_dashboard_model(

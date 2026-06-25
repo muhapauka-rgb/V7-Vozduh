@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Operational Maturity
-State captured: 2026-06-25T11:44:11+0700
-Source: latest production read-only verification, current OMP, and current handoff files
+State captured: 2026-06-25T11:58:47+0700
+Source: latest OMP execution loop, production read-only verification, safe evidence refresh, current OMP, and current handoff files
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, authority boundary, metrics, packet, or stop reason.
 
@@ -45,9 +45,9 @@ This file is volatile. Update it after every safe action or approved execution t
 | Selected move hash | `8e7785e058337f1db53fd929d7c175914510a401ff686391bef7bfcb088bfdac` |
 | Rollback target | `vless` |
 | Rollback manifest id | `rb_preview_d25f7c3f7705ba558d2afcea` |
-| Risk | `3.678` |
+| Risk | `3.641` |
 | Candidate confidence | `0.458` |
-| Trust | `54.679` |
+| Trust | `54.658` |
 
 Packet preview is read-only and may become stale. Regenerate it before approval.
 
@@ -60,7 +60,28 @@ Packet preview is read-only and may become stale. Regenerate it before approval.
 | Outcome closure plan | `READY` |
 | Learning path | `CONNECTED` |
 
-## 5. Safe Automatic Actions
+## 5. Last OMP Execution Loop
+
+| Field | Current Value |
+| --- | --- |
+| Executed at | `2026-06-25T11:58:47+0700` |
+| Optimizer result | HLA confirmed, not replaced |
+| Safe work completed | truth; convergence; semantic reuse audit; architecture duplication check via existing owner inventory; quality refresh; service matrix refresh; intelligence snapshot refresh; governed packet dry-run refresh |
+| Evidence refresh result | quality `users_moved=false`; service matrix `users_moved=false`; snapshots `runtime_behavior_changed=false`, `governance_behavior_changed=false`, `users_moved=false` |
+| Fresh dry-run verdict | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY` |
+| Fresh candidate | `10.7.0.5` |
+| Fresh movement preview | `vless -> awg3` |
+| Fresh packet preview id | `pkt_preview_43f0151499620a00d2e50f7b` |
+| Fresh operation id | `govdry_c8f67c5437777091c9cf1f5d` |
+| Fresh rollback manifest id | `rb_preview_d25f7c3f7705ba558d2afcea` |
+| Restore/rollback preview | `RESTORE_AND_ROLLBACK_PREVIEW_READY` |
+| Verification plan | `VERIFICATION_PLAN_READY` |
+| Outcome closure plan | `OUTCOME_CLOSURE_PLAN_READY` |
+| Learning path | `LEARNING_PATH_CONNECTED` |
+| Safety | `apply_executed=false`; `users_moved=0`; `runtime_mutation_performed=false`; `new_planner_created=false`; `new_governance_created=false`; `new_execution_path_created=false`; `new_truth_source_created=false` |
+| Exact stop condition | `AUTHORITY_BOUNDARY` |
+
+## 6. Safe Automatic Actions
 
 Allowed:
 
@@ -83,7 +104,7 @@ Forbidden without explicit approval:
 - daemon/timer enablement;
 - authority expansion.
 
-## 6. Exact Approval Question
+## 7. Exact Approval Question
 
 Before asking approval, regenerate fresh read-only dry-run.
 
@@ -93,7 +114,7 @@ If unchanged, ask:
 Approve one governed TIER_1 canary movement for 10.7.0.5 from vless to awg3, using packet pkt_preview_43f0151499620a00d2e50f7b, with rollback to vless via rb_preview_d25f7c3f7705ba558d2afcea if verification fails?
 ```
 
-## 7. Recalculation Rules
+## 8. Recalculation Rules
 
 After every safe action or approved execution:
 

@@ -13,7 +13,8 @@ It transforms policy fit analysis into implementation work without creating a ne
 
 OMP must always choose the highest-priority unfinished backlog item unless it crosses:
 
-- `AUTHORITY_BOUNDARY`;
+- `OPERATIONAL_AUTHORITY`;
+- `ENGINEERING_AUTHORITY`;
 - `REAL_WORLD_LIMIT`;
 - `UNSAFE_IMPLEMENTATION`;
 - `FUNDAMENTAL_ARCHITECTURE_GAP`.
@@ -24,11 +25,12 @@ OMP must always choose the highest-priority unfinished backlog item unless it cr
 2. Every item must reuse an existing owner.
 3. Every item starts as `TODO`, becomes `IN_PROGRESS` only during implementation, and becomes `DONE` only after tests, verification, truth, convergence, and required certification.
 4. After every completion, OMP must recalculate the backlog using `docs/reference/V7_IMPLEMENTATION_PRIORITY_MODEL.md`.
-5. If an item requires authority expansion, OMP prepares a recommendation and stops at `AUTHORITY_BOUNDARY`.
-6. If implementation evidence proves architecture is insufficient, OMP stops at `FUNDAMENTAL_ARCHITECTURE_GAP`.
-7. Documentation-only work is not selected over implementation unless it is the direct implementation blocker.
-8. This backlog is the only live engineering queue in V7.
-9. Policy documents, reports, ADRs, architecture documents, research documents, product documents, and chat history must not generate implementation work directly.
+5. If an item requires exact production action approval, OMP stops at `OPERATIONAL_AUTHORITY`.
+6. If an item requires authority expansion, new action class approval, new runtime capability, new autonomous policy, or blast-radius expansion, OMP prepares a recommendation and stops at `ENGINEERING_AUTHORITY`.
+7. If implementation evidence proves architecture is insufficient, OMP stops at `FUNDAMENTAL_ARCHITECTURE_GAP`.
+8. Documentation-only work is not selected over implementation unless it is the direct implementation blocker.
+9. This backlog is the only live engineering queue in V7.
+10. Policy documents, reports, ADRs, architecture documents, research documents, product documents, and chat history must not generate implementation work directly.
 
 ## Backlog Progress
 
@@ -113,7 +115,7 @@ and stop.
 | `B13` | `TODO` | Certify metric reliability for automated promotion recommendations. | `POLICY_005_ACTION_CLASS_PROMOTION` | Trust/confidence, freshness, rollback, eligibility | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory` | `IMPLEMENT_VERIFICATION` | `MODERATE_EXTENSION` | Representative outcome evidence. | `HIGH` | `HIGH` | `MEDIUM_HIGH` | `HIGH` |
 | `B14` | `TODO` | Add service/pool/cohort blast-radius scope where required. | `POLICY_006_BLAST_RADIUS` | Planner, capacity/load, action-class ladder | `tools/v7-users-autoswitch`, `admin_core/operator_decision_surface.py`, `admin_core/autonomy_trust_acceleration.py` | `IMPLEMENT_READ_MODEL` | `MODERATE_EXTENSION` | Existing capacity/service owners. | `HIGH` | `HIGH` | `HIGH` | `VERY_HIGH` |
 | `B15` | `TODO` | Expose containment/forward-fix classification. | `POLICY_007_ROLLBACK` | Runtime Model, execution packet partial-failure policy | `admin_core/operator_execution.py`, `admin_core/operator_execution_pipeline.py` | `IMPLEMENT_OBSERVABILITY` | `SMALL_EXTENSION` | Existing partial-failure policy. | `HIGH` | `MEDIUM_HIGH` | `HIGH` | `HIGH` |
-| `B16` | `TODO` | Certify automatic rollback authority after reliable verification evidence. | `POLICY_007_ROLLBACK` | Autoswitch rollback-on-verify-fail, OMP authority boundary | `tools/v7-users-autoswitch`, `admin_core/operator_execution.py`, `admin_core/operator_execution_pipeline.py` | `IMPLEMENT_CERTIFICATION` | `MODERATE_EXTENSION` | Verification reliability and authority approval. | `HIGH` | `HIGH` | `VERY_HIGH` | `VERY_HIGH` |
+| `B16` | `TODO` | Certify automatic rollback authority after reliable verification evidence. | `POLICY_007_ROLLBACK` | Autoswitch rollback-on-verify-fail, OMP operational/engineering authority gates | `tools/v7-users-autoswitch`, `admin_core/operator_execution.py`, `admin_core/operator_execution_pipeline.py` | `IMPLEMENT_CERTIFICATION` | `MODERATE_EXTENSION` | Verification reliability and authority approval. | `HIGH` | `HIGH` | `VERY_HIGH` | `VERY_HIGH` |
 | `B17` | `TODO` | Preserve stale-read reporting while blocking mutation. | `POLICY_008_FRESHNESS` | Runtime eligibility, truth/convergence, read-only inventory | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory` | `IMPLEMENT_OBSERVABILITY` | `SMALL_EXTENSION` | Existing read-only/action split. | `HIGH` | `MEDIUM` | `MEDIUM` | `HIGH` |
 | `B18` | `TODO` | Extend owner-issued version/lease pattern where available. | `POLICY_008_FRESHNESS` | Execution lease, runtime snapshot, intelligence snapshots | `admin_core/operator_execution.py`, `admin_core/intelligence_snapshots.py`, `admin_core/autonomy_trust_acceleration.py` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | Existing lease and snapshot generations. | `HIGH` | `HIGH` | `HIGH` | `VERY_HIGH` |
 | `B19` | `TODO` | Centralize hysteresis mapping across failure and recovery owners. | `POLICY_009_ANTI_FLAP` | Service signal thresholds, recovery admission | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-service-matrix-refresh-all` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | Existing thresholds. | `HIGH` | `HIGH` | `MEDIUM_HIGH` | `HIGH` |

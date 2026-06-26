@@ -11,7 +11,7 @@ This document is the permanent production operating program for V7. It replaces 
 
 Roadmaps, reports, ADRs, and reference files remain evidence and context. The complete autonomy roadmap lives inside this OMP. No additional roadmap document is required to drive V7 from current `TIER_1` governed autonomy to full production autonomy.
 
-This program decides the current system state, highest bottleneck, highest leverage action, authority boundary, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically.
+This program decides the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically.
 
 V4 operating questions:
 
@@ -57,7 +57,7 @@ V7 separates permanent operating rules from volatile current state.
 | --- | --- | --- |
 | V7 Kernel | `docs/reference/V7_KERNEL.md` | Permanent Codex operating contract. |
 | OMP | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` | Scheduler and optimizer. |
-| Current Program State | `docs/programs/V7_CURRENT_PROGRAM_STATE.md` | Volatile current bottleneck, HLA, packet, authority boundary, metrics, stop reason, and next automatic action. |
+| Current Program State | `docs/programs/V7_CURRENT_PROGRAM_STATE.md` | Volatile current bottleneck, HLA, packet, normalized authority class, metrics, stop reason, and next automatic action. |
 | Canonical Reference | `docs/reference/V7_CANONICAL_REFERENCE.md` | Current system truth. |
 | SYSTEM_MAP | `docs/reference/SYSTEM_MAP.md` | Owner/topology map. |
 | ADRs | `docs/decisions/` | Accepted decisions. |
@@ -155,7 +155,7 @@ OMP must never silently expand authority.
 
 Authority expansion requires explicit operator approval or certified policy approval.
 
-If expansion is needed before safe continuation, OMP must stop at `AUTHORITY_BOUNDARY`.
+If expansion is needed before safe continuation, OMP must stop at `ENGINEERING_AUTHORITY`.
 
 Authority shrink may be recommended when verification, rollback, learning, or real outcomes show increased risk.
 
@@ -166,6 +166,68 @@ The durable authority object is the Action Class.
 Packets are runtime execution artifacts. They are fresh, bounded, validated, and ephemeral. A packet may execute only when it belongs to an already approved Action Class or when the class is still `GOVERNED_ONLY` and the operator explicitly approves the exact packet as a temporary governed fallback.
 
 OMP must treat packet staleness as evidence that packet approval does not scale. Packet approval is acceptable for early governed proof, but it must be eliminated class-by-class after certification and explicit authority approval.
+
+## 2.1.3.1. Authority Boundary Normalization
+
+OMP must never expose raw `AUTHORITY_BOUNDARY` as the primary status.
+
+Raw `AUTHORITY_BOUNDARY` is a legacy technical compatibility detail only. OMP must normalize it into one of two authority classes before reporting status, updating Current Program State, or asking for operator action.
+
+| Authority Class | Meaning | Examples | OMP Status | Engineering Behavior |
+| --- | --- | --- | --- | --- |
+| `ENGINEERING_AUTHORITY` | Implementation cannot continue because engineering approval is required. | Authority expansion; new action class; new runtime capability; new autonomous policy; blast-radius expansion. | `Engineering Approval Required` | Engineering work pauses until approval or rejection. |
+| `OPERATIONAL_AUTHORITY` | Engineering is complete, implementation is ready, Runtime is ready, and only one production operation requires approval. | Approve exact packet; approve exact rollback; approve exact production action. | `Production Action Ready` | Engineering continues after the production action is approved/rejected and closed. |
+
+Authority classification rules:
+
+| Raw blocker or situation | Normalized result |
+| --- | --- |
+| Exact packet approval | `OPERATIONAL_AUTHORITY` |
+| Exact rollback approval | `OPERATIONAL_AUTHORITY` |
+| Exact production action approval | `OPERATIONAL_AUTHORITY` |
+| Authority expansion | `ENGINEERING_AUTHORITY` |
+| New action class approval | `ENGINEERING_AUTHORITY` |
+| New runtime capability approval | `ENGINEERING_AUTHORITY` |
+| New autonomous policy approval | `ENGINEERING_AUTHORITY` |
+| Blast-radius expansion | `ENGINEERING_AUTHORITY` |
+| Implementation defect | `UNSAFE_IMPLEMENTATION` |
+| Real-world evidence required | `REAL_WORLD_LIMIT` |
+
+Current Program State must store:
+
+- `authority_class`;
+- `authority_reason`;
+- `authority_owner`;
+- `required_action`.
+
+If the class is `ENGINEERING_AUTHORITY`, OMP must output:
+
+```text
+Status
+Engineering Approval Required
+
+Reason
+...
+
+Next engineering task
+...
+```
+
+If the class is `OPERATIONAL_AUTHORITY`, OMP must output:
+
+```text
+Status
+Production Action Ready
+
+Authority
+Operational
+
+Packet
+...
+
+Required operator action
+...
+```
 
 ## 2.1.4. Autonomy Promotion Engine
 
@@ -339,7 +401,9 @@ Runtime must generate or consume a fresh packet immediately before execution and
 
 Stop rule:
 
-If Autonomy Promotion requires class approval, authority expansion, product policy approval, runtime apply, restore-barrier write, user movement, rollback apply, daemon/timer enablement, or event-consumer mutation, OMP must stop at `AUTHORITY_BOUNDARY`.
+If Autonomy Promotion requires runtime apply, exact restore-barrier write, exact user movement, or exact rollback apply, OMP must stop at `OPERATIONAL_AUTHORITY`.
+
+If Autonomy Promotion requires class approval, authority expansion, product policy approval, daemon/timer enablement, event-consumer mutation, new runtime capability, autonomous policy approval, or blast-radius expansion, OMP must stop at `ENGINEERING_AUTHORITY`.
 
 OMP must never silently enable runtime automation.
 
@@ -890,7 +954,7 @@ Latest semantic reuse audit for optimizer iteration `2026-06-25`:
 
 | Field | Current Value |
 | --- | --- |
-| Desired capability | Validate the current highest leverage action and execute any safer maturity-gaining portion before authority boundary. |
+| Desired capability | Validate the current highest leverage action and execute any safer maturity-gaining portion before the normalized authority gate. |
 | Existing owners found | `v7-autonomy-trust-evidence-inventory`, `v7-governed-canary-dry-run-cycle`, `v7-egress-quality-compact`, `v7-service-matrix-refresh-all`, `v7-intelligence-snapshot-refresh`, existing packet/restore/verification/outcome/learning owners. |
 | Semantic equivalent owners | Existing service matrix / quality snapshot owners cover service verification and freshness; existing governed canary dry-run covers packet/restore/outcome/learning preview; existing inventory covers OMP recalculation. |
 | Composition strategy | Recalculate with inventory, challenge with governed dry-run, execute only existing service/quality/snapshot refresh owners, then recalculate. |
@@ -1040,7 +1104,7 @@ Production Leverage means the expected improvement to production autonomy, safet
 Ranking inputs:
 
 1. current bottleneck;
-2. current authority boundary;
+2. current authority class;
 3. current reality limit;
 4. existing owner availability;
 5. production safety;
@@ -1327,8 +1391,14 @@ TIER_1_GOVERNED
 Highest Priority Task
 A3: Certify class-level rollback/no-rollback evidence for governed candidate movement.
 
-Current Stop Condition
-AUTHORITY_BOUNDARY
+Status
+Production Action Ready
+
+Authority
+OPERATIONAL_AUTHORITY
+
+Required Action
+Approve exact packet
 
 Estimated Remaining Work
 Moderate
@@ -1399,12 +1469,12 @@ Current implementation optimizer result:
 | Exact owner | Restore barrier, guarded autoswitch execution, verification, rollback, outcome closure, feedback/learning |
 | Exact module | Canonical Policy Library Stage 4 implementation backlog |
 | Exact files | `admin_core/operator_execution.py`, `tools/v7-users-autoswitch`, `admin_core/operator_execution_feedback.py`, `admin_core/autonomy_trust_acceleration.py` |
-| Implementation status | `STOPPED_AT_AUTHORITY_BOUNDARY_AFTER_APPROVED_PLAN_LOCK_FIX_DEPLOYED` |
+| Implementation status | `STOPPED_AT_OPERATIONAL_AUTHORITY_AFTER_APPROVED_PLAN_LOCK_FIX_DEPLOYED` |
 | Backlog source | `docs/programs/V7_IMPLEMENTATION_BACKLOG.md` item `A3` |
 | Priority model | `docs/reference/V7_IMPLEMENTATION_PRIORITY_MODEL.md` |
 | Truth/convergence | `PASS`: local, GitHub, and runtime aligned at commit `704ec9a2de66e10a5a677d5be1453463063de21e`. |
 | New highest implementation leverage task | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
-| Stop boundary | `AUTHORITY_BOUNDARY`: exact packet preview is ready; restore-barrier write and apply require explicit operator approval. |
+| Stop boundary | `OPERATIONAL_AUTHORITY`: exact packet preview is ready; restore-barrier write and apply require explicit operator approval. |
 
 Latest safe deployment result:
 
@@ -1416,7 +1486,7 @@ Latest safe deployment result:
 | Safety | `restore_barrier_modified=false`; `routing_mutation_executed=false`; `user_movement_executed=false`; `autoswitch_apply_executed=false` |
 | Truth | `PASS` |
 | Convergence | `PASS`; `ALIGNED` |
-| Current stop | `AUTHORITY_BOUNDARY`: A3 exact governed packet approval is required for real outcome certification |
+| Current stop | `OPERATIONAL_AUTHORITY`: A3 exact governed packet approval is required for real outcome certification |
 
 ## 2.13. Implementation Program Loop
 
@@ -1447,7 +1517,8 @@ Read Kernel
 
 Stop only at:
 
-- `AUTHORITY_BOUNDARY`
+- `OPERATIONAL_AUTHORITY`
+- `ENGINEERING_AUTHORITY`
 - `REAL_WORLD_LIMIT`
 - `UNSAFE_IMPLEMENTATION`
 - `FUNDAMENTAL_ARCHITECTURE_GAP`
@@ -1518,7 +1589,7 @@ The program asks:
 Current System State
   -> Current Highest Bottleneck
   -> Current Highest Implementation Leverage
-  -> Current Authority Boundary
+  -> Current Authority Class
   -> Current Real World Limit
   -> Next Best Action
 ```
@@ -1531,11 +1602,11 @@ This section must be recalculated after every certification from canonical refer
 | --- | --- | --- |
 | Architecture maturity | `ARCHITECTURE_COMPLETE` | Final system architecture synthesis: remaining architectural weaknesses `0`; optional improvements are not implementation blockers. |
 | Knowledge maturity | `ADVANCED_BUT_NOT_AUTONOMY_COMPLETE` | Knowledge quality model exists; safety is autonomy-grade; several knowledge classes still need real outcomes, service/user/SLA fit depth, client observation, cohort/SLA scale, and aging/retirement. |
-| Decision maturity | `READY_UNTIL_AUTHORITY_BOUNDARY` | Planner, knowledge-to-decision, governed dry-run, packet preview, restore/rollback preview, and self-stop are connected. |
+| Decision maturity | `READY_UNTIL_OPERATIONAL_AUTHORITY` | Planner, knowledge-to-decision, governed dry-run, packet preview, restore/rollback preview, and self-stop are connected. |
 | Outcome maturity | `REAL_OUTCOMES_REQUIRED` | Candidate outcome gap remains `72`; missing candidate outcomes are not hidden, they have not happened yet. |
 | Learning maturity | `CONNECTED_AFTER_OUTCOME` | Feedback, outcome closure, trust evolution, and learning refresh owners exist and are connected, but need real governed/manual outcomes. |
 | Suitability maturity | `HIGHEST_BOTTLENECK` | Suitability cannot become autonomy-grade without more real candidate outcomes and stronger candidate source confidence. |
-| Authority maturity | `AUTHORITY_BOUNDARY_REACHED` | Production governed dry-run reaches exact authority boundary before restore-barrier write or apply. |
+| Authority maturity | `OPERATIONAL_AUTHORITY_REACHED` | Production governed dry-run reaches exact packet approval boundary before restore-barrier write or apply. |
 | Operational maturity | `PRODUCTION_PROGRAM_ACTIVE` | OMP V4.0 optimizes production leverage through existing-owner implementation and authority evolution; no daemon, no autonomous apply, no user movement without authority. |
 
 ## 6. Current Highest Bottleneck
@@ -1551,7 +1622,7 @@ Why this bottleneck is highest right now:
 | Missing candidate outcomes: `72` | The main weak object is real candidate suitability evidence. |
 | Maximum projected current suitability remains below TIER_2 even after current missing outcomes | More rows alone are not enough; correctness/source confidence must improve too. |
 | Architecture missing classes: none | The limiting factor is not architecture. |
-| Governed dry-run reaches `AUTHORITY_BOUNDARY` | The limiting factor is not disconnected planner/packet/restore/learning owners. |
+| Governed dry-run reaches `OPERATIONAL_AUTHORITY` | The limiting factor is not disconnected planner/packet/restore/learning owners. |
 | Confidence/trust/prediction are also below floor | They matter, but suitability is the bottleneck that specifically requires real candidate outcome closure. |
 
 Recompute rule:
@@ -1568,7 +1639,7 @@ This is implementation work, not research and not architecture.
 
 Definition:
 
-Emit a ready-to-copy exact operator approval prompt inside the existing governed canary dry-run cycle whenever the cycle stops at `AUTHORITY_BOUNDARY` with a ready packet.
+Emit a ready-to-copy exact operator approval prompt inside the existing governed canary dry-run cycle whenever the cycle stops at `OPERATIONAL_AUTHORITY` with a ready packet.
 
 Exact owner:
 
@@ -1620,22 +1691,22 @@ Expected implementation order:
 4. Certify with truth and convergence.
 5. Update Current Program State.
 
-The old bottleneck action, governed candidate suitability outcome closure, remains the highest real-outcome action but crosses `AUTHORITY_BOUNDARY`.
+The old bottleneck action, governed candidate suitability outcome closure, remains the highest real-outcome action but crosses `OPERATIONAL_AUTHORITY`.
 The current implementation-first optimizer has implemented, deployed, and production-verified execution lease support so approved packets do not become moving targets. The next action is explicit operator approval or rejection for the active leased exact packet.
 
-## 8. Current Authority Boundary
+## 8. Current Authority Class
 
 | Field | Current Value |
 | --- | --- |
 | Current authority level | `READ_ONLY_AND_GOVERNED_PREVIEW` |
-| Current stop reason | `AUTHORITY_BOUNDARY` |
-| Boundary location | Before restore-barrier write, runtime apply, and user movement. |
+| Current stop reason | `OPERATIONAL_AUTHORITY` |
+| Boundary location | Before exact restore-barrier write, runtime apply, and user movement. |
 | Current exact runtime posture | No autonomous apply, no user movement, no daemon enablement. |
-| Next authority expansion | Explicit operator approval or rejection for the fresh exact governed packet. |
+| Next authority action | Explicit operator approval or rejection for the fresh exact governed packet. |
 
 Current production evidence:
 
-- governed dry-run reaches `AUTHORITY_BOUNDARY`;
+- governed dry-run reaches `OPERATIONAL_AUTHORITY`;
 - packet preview is ready;
 - restore/rollback preview is ready;
 - verification plan is ready;
@@ -1679,7 +1750,7 @@ After every completed implementation, Codex must recalculate:
 1. Current system state.
 2. Current highest bottleneck.
 3. Current highest implementation leverage.
-4. Current authority boundary.
+4. Current authority class.
 5. Current reality limit.
 6. Next best action.
 7. Whether automatic continuation is allowed.
@@ -1690,10 +1761,12 @@ Optimizer rules:
 | --- | --- |
 | Highest implementation leverage is read-only | Continue automatically. |
 | Highest implementation leverage is safe existing-owner implementation with no runtime apply | Continue automatically. |
-| Highest implementation leverage requires restore-barrier write | Stop at `AUTHORITY_BOUNDARY`. |
-| Highest implementation leverage requires runtime apply | Stop at `AUTHORITY_BOUNDARY`. |
-| Highest implementation leverage requires user movement | Stop at `AUTHORITY_BOUNDARY`. |
-| Highest implementation leverage requires authority expansion | Stop at `AUTHORITY_BOUNDARY`. |
+| Highest implementation leverage requires exact restore-barrier write for an approved packet | Stop at `OPERATIONAL_AUTHORITY`. |
+| Highest implementation leverage requires exact runtime apply | Stop at `OPERATIONAL_AUTHORITY`. |
+| Highest implementation leverage requires exact user movement | Stop at `OPERATIONAL_AUTHORITY`. |
+| Highest implementation leverage requires exact rollback apply | Stop at `OPERATIONAL_AUTHORITY`. |
+| Highest implementation leverage requires authority expansion | Stop at `ENGINEERING_AUTHORITY`. |
+| Highest implementation leverage requires new action class, new runtime capability, new autonomous policy, or blast-radius expansion | Stop at `ENGINEERING_AUTHORITY`. |
 | Highest implementation leverage requires more users/channels/services/reality | Stop at `REAL_WORLD_LIMIT`. |
 | Highest implementation leverage would create duplicate planner/governance/execution/truth | Stop at `UNSAFE_IMPLEMENTATION`. |
 | Certified reports reveal a fundamental missing owner | Stop at `FUNDAMENTAL_ARCHITECTURE_GAP`. |
@@ -1705,11 +1778,12 @@ When the highest leverage action requires real outcomes, Codex must split it int
 | Portion | Work | Program Response |
 | --- | --- | --- |
 | Safe automatic preparation | Refresh evidence; refresh packet preview; verify restore/rollback preview; verify verification plan; verify outcome closure plan; verify learning path; update OMP; present exact authority decision. | Continue automatically. |
-| Authority-bound execution | Restore-barrier write; runtime apply; user movement; rollback apply; daemon/timer enablement; authority expansion. | Stop at `AUTHORITY_BOUNDARY`. |
+| Operational-authority execution | Exact restore-barrier write; exact runtime apply; exact user movement; exact rollback apply; exact production action. | Stop at `OPERATIONAL_AUTHORITY`. |
+| Engineering-authority change | Authority expansion; new action class; new runtime capability; new autonomous policy; blast-radius expansion; daemon/timer enablement. | Stop at `ENGINEERING_AUTHORITY`. |
 
 The safe automatic portion continues automatically.
 
-The authority-bound execution portion stops at `AUTHORITY_BOUNDARY`.
+The authority-bound portion stops at the normalized authority class: `OPERATIONAL_AUTHORITY` for exact production action approval, or `ENGINEERING_AUTHORITY` for capability/policy/authority expansion.
 
 ## 10.1. Root Cause Engine
 
@@ -1759,7 +1833,9 @@ Automatic classification:
 | Stop Condition | Primary Classification | OMP Meaning | Next Action |
 | --- | --- | --- | --- |
 | `UNSAFE_IMPLEMENTATION` | `BUG` or `OWNER_EXTENSION` | Existing implementation path is unsafe, incomplete, or loses required state. | Fix the responsible existing owner, test, deploy if required, then resume OMP. |
-| `AUTHORITY_BOUNDARY` | `AUTHORITY` | The next action requires operator authority, such as restore-barrier write, runtime apply, user movement, daemon/timer enablement, or authority expansion. | Produce exact approve/reject decision or authority expansion request. |
+| `OPERATIONAL_AUTHORITY` | `AUTHORITY` | Engineering is complete and the next action is one exact production operation, such as packet execution, rollback, restore-barrier write, runtime apply, or user movement. | Produce exact approve/reject decision for the current production action. |
+| `ENGINEERING_AUTHORITY` | `AUTHORITY` | Engineering cannot continue because capability, policy, authority, action-class, runtime, or blast-radius approval is required. | Produce exact engineering approval or authority expansion request. |
+| Legacy raw `AUTHORITY_BOUNDARY` | normalize before output | Compatibility-only blocker code. | Convert to `OPERATIONAL_AUTHORITY` or `ENGINEERING_AUTHORITY` before reporting status. |
 | `REAL_WORLD_LIMIT` | `REAL_WORLD_LIMIT` | The next maturity gain requires real production evidence that cannot be synthesized. | Identify exact real-world action or observation required. |
 | `FUNDAMENTAL_ARCHITECTURE_GAP` | `OWNER_EXTENSION` or architecture review | Existing certified owners cannot satisfy the requirement. | Prove why reuse/extension is impossible before any architecture change. |
 
@@ -1771,7 +1847,7 @@ Root Cause Engine constraints:
 - never create new execution;
 - never create a new truth source;
 - never treat reports, policies, or architecture documents as implementation queues;
-- never expose only `UNSAFE_IMPLEMENTATION`, `REAL_WORLD_LIMIT`, `AUTHORITY_BOUNDARY`, or `FUNDAMENTAL_ARCHITECTURE_GAP` as the OMP result.
+- never expose only `UNSAFE_IMPLEMENTATION`, `REAL_WORLD_LIMIT`, legacy raw `AUTHORITY_BOUNDARY`, or `FUNDAMENTAL_ARCHITECTURE_GAP` as the OMP result.
 
 Current Program State storage:
 
@@ -1779,6 +1855,10 @@ Current Program State storage:
 
 - `root_cause`;
 - `responsible_owner`;
+- `authority_class`;
+- `authority_reason`;
+- `authority_owner`;
+- `required_action`;
 - `implementation_class`;
 - `next_engineering_task`;
 - `expected_completion_evidence`.
@@ -1792,7 +1872,8 @@ Continuation rule:
 | `CONFIGURATION` | Continue if read-only or safe configuration update is authorized by existing policy. |
 | `CERTIFICATION` | Continue until real evidence, authority, or unsafe implementation boundary is reached. |
 | `REAL_WORLD_LIMIT` | Stop with exact required production evidence. |
-| `AUTHORITY` | Stop with exact approve/reject command or authority decision. |
+| `AUTHORITY` with `OPERATIONAL_AUTHORITY` | Stop with exact approve/reject command for the current production action. |
+| `AUTHORITY` with `ENGINEERING_AUTHORITY` | Stop with exact engineering approval or authority expansion decision. |
 | `DOCUMENTATION` | Continue if documentation is the active backlog item and no runtime mutation occurs. |
 
 ## 11. Implementation Optimization Target
@@ -1822,9 +1903,9 @@ Current optimization target:
 | Optimization target | Current HIL in `docs/programs/V7_CURRENT_PROGRAM_STATE.md` |
 | Target class | Volatile current state |
 | Gain type | Determined by OMP after reading Current Program State |
-| Risk | Determined by current packet, implementation task, authority boundary, and stop condition |
+| Risk | Determined by current packet, implementation task, normalized authority class, and stop condition |
 | Effort | Determined by current OMP recalculation |
-| Authority | Stop at `AUTHORITY_BOUNDARY` before restore-barrier write, apply, user movement, daemon/timer, event consumer mutation, or authority expansion |
+| Authority | Stop at `OPERATIONAL_AUTHORITY` before exact restore-barrier write, apply, user movement, rollback apply, or production action; stop at `ENGINEERING_AUTHORITY` before daemon/timer, event consumer mutation, runtime capability, autonomous policy, blast-radius, action-class, or authority expansion |
 | Safe automatic portion | Continue only through work that remains inside existing owners and does not cross the current stop boundary |
 
 Latest optimization iteration `2026-06-25`:
@@ -1842,9 +1923,9 @@ Latest optimization iteration `2026-06-25`:
 | Post-refresh maturity score | `84.167` |
 | Post-refresh largest floor gap | `Suitability`: current `29.11`, gap `40.89` to floor `70`. |
 | Post-refresh candidate gap | `72` missing candidate outcomes, coverage ratio `0.5385`. |
-| Post-refresh dry-run verdict | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY`. |
+| Post-refresh dry-run verdict | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY`; normalized OMP stop `OPERATIONAL_AUTHORITY`. |
 | Post-refresh packet state | Packet preview ready; restore/rollback preview ready; verification plan ready; outcome closure plan ready; learning path connected. |
-| Optimizer conclusion | Safe challenger completed; final HLA remains governed candidate suitability outcome closure and stops at `AUTHORITY_BOUNDARY`. |
+| Optimizer conclusion | Safe challenger completed; final HLA remains governed candidate suitability outcome closure and stops at `OPERATIONAL_AUTHORITY`. |
 
 ## 12. Architecture Health
 
@@ -1858,7 +1939,7 @@ Maintain continuously:
 | Extension Ratio | `100%` | Current capability is delivered by extending existing documents in place. |
 | Duplicate Ratio | `0% known introduced` | Duplication detector verdict is `NONE`. |
 | Automation Ratio | `84.167%` | Autonomous knowledge growth program maturity score. |
-| Authority Ratio | `BOUNDARY_REACHED / NOT_EXPANDED` | Governed dry-run reaches authority boundary; no apply authority granted. |
+| Authority Ratio | `OPERATIONAL_AUTHORITY_REACHED / NOT_EXPANDED` | Governed dry-run reaches exact packet approval boundary; no apply authority granted. |
 | Operational Maturity | `OPTIMIZATION_ACTIVE` | OMP now drives bottleneck optimization rather than fixed phases. |
 
 ## 13. Self-Improvement Loop
@@ -1914,19 +1995,21 @@ Codex must continue automatically through:
 
 Codex must stop only at:
 
-1. `AUTHORITY_BOUNDARY`;
-2. `REAL_WORLD_LIMIT`;
-3. `UNSAFE_IMPLEMENTATION`;
-4. `FUNDAMENTAL_ARCHITECTURE_GAP`.
+1. `OPERATIONAL_AUTHORITY`;
+2. `ENGINEERING_AUTHORITY`;
+3. `REAL_WORLD_LIMIT`;
+4. `UNSAFE_IMPLEMENTATION`;
+5. `FUNDAMENTAL_ARCHITECTURE_GAP`.
 
 Before stopping, Codex must run the Root Cause Engine and expose the structured stop record as the primary output.
 
-If the highest leverage action crosses authority boundary, Codex must:
+If the highest leverage action crosses an authority gate, Codex must:
 
 1. stop before the boundary;
 2. update this OMP;
-3. report root cause, responsible owner, expected evidence, and exact next action;
-4. wait for explicit operator authority for the exact action.
+3. normalize the boundary into `OPERATIONAL_AUTHORITY` or `ENGINEERING_AUTHORITY`;
+4. report root cause, responsible owner, expected evidence, and exact next action;
+5. wait for explicit operator authority for the exact action or engineering approval.
 
 Production program loop for every future task:
 
@@ -1989,7 +2072,7 @@ If blocked by any allowed stop condition, Codex must output the Root Cause Engin
 - expected completion evidence;
 - whether OMP can continue automatically after completion.
 
-If blocked by `AUTHORITY_BOUNDARY`, Codex must also output:
+If blocked by `OPERATIONAL_AUTHORITY`, Codex must also output:
 
 - exact packet;
 - exact action;
@@ -1999,6 +2082,14 @@ If blocked by `AUTHORITY_BOUNDARY`, Codex must also output:
 - exact rollback target;
 - exact command shape that must not run without approval;
 - exact approval question.
+
+If blocked by `ENGINEERING_AUTHORITY`, Codex must also output:
+
+- exact authority expansion, action class, runtime capability, autonomous policy, or blast-radius change;
+- owner requesting the approval;
+- why engineering cannot continue without it;
+- what remains unchanged if approval is rejected;
+- exact approve/reject question.
 
 This contract is constrained by Safety-Bounded Authority:
 
@@ -2025,10 +2116,10 @@ These commands are sufficient for future production operation unless a real impl
 | Architecture completeness | `COMPLETE` | Fundamental architecture exists; future extensions remain optional/scale-related. |
 | Knowledge completeness | `PARTIAL_FOR_AUTONOMY` | Knowledge objects exist but real outcome depth is insufficient for autonomy-grade suitability. |
 | Cycle automation % | `84.167` | Autonomous knowledge growth program certified 12 cycles and maturity score `84.167`. |
-| Authority maturity | `BOUNDARY_REACHED` | Safe preparation reaches authority boundary; apply authority is not granted. |
+| Authority maturity | `OPERATIONAL_AUTHORITY_REACHED` | Safe preparation reaches production action approval; apply authority is not granted. |
 | Operational maturity | `OPTIMIZATION_ACTIVE` | OMP now optimizes bottleneck reduction rather than executing a fixed roadmap. |
 | Remaining architecture uncertainty | `NONE_FUNDAMENTAL` | Partial classes are future/scale/authority extensions, not missing architecture. |
-| Current optimization velocity | `AUTHORITY_BOUNDARY_AFTER_SAFE_REFRESH` | Safe service/quality/snapshot refresh completed through existing owners; real candidate outcome gain needs exact authority. |
+| Current optimization velocity | `OPERATIONAL_AUTHORITY_AFTER_SAFE_REFRESH` | Safe service/quality/snapshot refresh completed through existing owners; real candidate outcome gain needs exact packet approval. |
 
 ## 17. Historical Phase Anchor
 
@@ -2042,7 +2133,7 @@ Source:
 
 Reason:
 
-The final architecture certification says V7 has no fundamental architecture gap. The governed dry-run reaches `AUTHORITY_BOUNDARY` with packet preview, restore/rollback preview, verification plan, outcome closure plan, and learning path connected. The next maturity gain requires real governed candidate outcome evidence.
+The final architecture certification says V7 has no fundamental architecture gap. The governed dry-run reaches `OPERATIONAL_AUTHORITY` with packet preview, restore/rollback preview, verification plan, outcome closure plan, and learning path connected. The next maturity gain requires real governed candidate outcome evidence.
 
 ## 18. Historical Objective
 
@@ -2077,19 +2168,23 @@ No autonomous apply is approved by this program state.
 
 Only these stop conditions are allowed:
 
-1. `AUTHORITY_BOUNDARY`
-2. `REAL_WORLD_LIMIT`
-3. `UNSAFE_IMPLEMENTATION`
-4. `FUNDAMENTAL_ARCHITECTURE_GAP`
+1. `OPERATIONAL_AUTHORITY`
+2. `ENGINEERING_AUTHORITY`
+3. `REAL_WORLD_LIMIT`
+4. `UNSAFE_IMPLEMENTATION`
+5. `FUNDAMENTAL_ARCHITECTURE_GAP`
+
+Legacy raw `AUTHORITY_BOUNDARY` may appear in older reports or compatibility tool output, but OMP must normalize it before presenting status.
 
 Current blocker:
 
-`AUTHORITY_BOUNDARY`
+`OPERATIONAL_AUTHORITY`
 
 Details:
 
 - production governed dry-run stops before restore-barrier write or apply;
 - explicit operator approval is required for the exact packet;
+- this is not engineering authority expansion;
 - confidence, trust, prediction confidence, and suitability are still below autonomous maturity needs;
 - candidate outcome gap remains real-world evidence, not missing architecture.
 
@@ -2110,7 +2205,7 @@ Details:
 | Autonomous Routing Evolution Program | TIER_2 remains blocked by confidence/trust/prediction/suitability and real outcomes | `COMPLETED` | `docs/reports/V7_AUTONOMOUS_ROUTING_EVOLUTION_PROGRAM_REPORT.md` |
 | Maximum Reality Knowledge Extraction | `72` candidate outcomes are not hidden; they require governed/manual action | `COMPLETED` | `docs/reports/V7_MAXIMUM_REALITY_KNOWLEDGE_EXTRACTION_REPORT.md` |
 | Final Autonomous Routing Architecture Certification | Superseded by final system synthesis: `ARCHITECTURE_COMPLETE`; optional improvements remain non-blocking | `CERTIFIED` | `docs/reports/V7_FINAL_AUTONOMOUS_ROUTING_ARCHITECTURE_CERTIFICATION_REPORT.md`, `docs/reference/V7_SYSTEM_ARCHITECTURE.md`, `docs/decisions/ADR-V7-SYSTEM-ARCHITECTURE.md` |
-| Governed Canary Knowledge-Gated Dry-Run Cycle | Production reaches `AUTHORITY_BOUNDARY`; no apply, no movement | `CERTIFIED` | `docs/reports/V7_GOVERNED_CANARY_KNOWLEDGE_GATED_AUTONOMOUS_DRY_RUN_CYCLE_REPORT.md` |
+| Governed Canary Knowledge-Gated Dry-Run Cycle | Production reaches legacy dry-run boundary; normalized OMP stop `OPERATIONAL_AUTHORITY`; no apply, no movement | `CERTIFIED` | `docs/reports/V7_GOVERNED_CANARY_KNOWLEDGE_GATED_AUTONOMOUS_DRY_RUN_CYCLE_REPORT.md` |
 
 ## 22. Next Best Action
 
@@ -2144,7 +2239,9 @@ admin_core/operator_execution_pipeline.py
   -> focused governed dry-run lifecycle tests
 ```
 
-If a restore-barrier write, apply, user movement, rollback apply, daemon, timer, event consumer mutation, authority expansion, or autonomous execution is required, stop at `AUTHORITY_BOUNDARY`.
+If an exact restore-barrier write, apply, user movement, rollback apply, or production action is required, stop at `OPERATIONAL_AUTHORITY`.
+
+If daemon, timer, event consumer mutation, autonomous execution, action-class expansion, blast-radius expansion, runtime capability expansion, autonomous policy approval, or authority expansion is required, stop at `ENGINEERING_AUTHORITY`.
 
 ## 23. Next Best Action Entry Criteria
 
@@ -2154,7 +2251,8 @@ If a restore-barrier write, apply, user movement, rollback apply, daemon, timer,
 | Scope | Read-only lifecycle preview only. |
 | Runtime model | Emit fields that map to `V7_RUNTIME_MODEL.md` lifecycle, state, stop, restart, duplicate, loop, idempotency, verification, rollback, learning, and OMP-notification semantics. |
 | Apply path | Forbidden. No restore-barrier write, apply, rollback apply, or user movement. |
-| Authority | Any action requiring operator approval stops at `AUTHORITY_BOUNDARY`. |
+| Operational authority | Exact packet, rollback, restore-barrier, apply, or production action approval stops at `OPERATIONAL_AUTHORITY`. |
+| Engineering authority | Authority expansion, action-class expansion, autonomous policy, runtime capability, daemon/timer, event-consumer mutation, or blast-radius expansion approval stops at `ENGINEERING_AUTHORITY`. |
 | Tests | Focused tests must prove the lifecycle output is read-only and idempotency-aware. |
 | Safety | No daemon enablement, no timers, no event consumer mutation, no duplicate planner/governance/execution. |
 
@@ -2169,11 +2267,11 @@ If a restore-barrier write, apply, user movement, rollback apply, daemon, timer,
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | Root Cause Engine output: previous approved packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` expired before apply and was denied fail-closed; current `AUTHORITY_BOUNDARY` packet is `pkt_preview_4eb137c926917c2761faadb4`; restore-barrier write and apply require explicit operator approval. |
+| Current blockers | Root Cause Engine output: previous approved packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` expired before apply and was denied fail-closed; current `OPERATIONAL_AUTHORITY` packet is `pkt_preview_4eb137c926917c2761faadb4`; restore-barrier write and apply require explicit operator approval. |
 | Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; read-only runtime lifecycle preview deployed and production-verified; preview-to-execution packet identity deployed and production-verified; execution lease deployed and production-verified; one approved leased governed canary outcome executed, verified, closed, and learned from. |
 | Current runtime posture | No autonomous apply, no daemon enablement; last user movement was the explicitly approved one-user governed canary `10.7.0.5 vless -> awg0`. |
 | Current next best action | Operator approves or rejects the exact governed packet in Current Program State section 7. |
-| Last optimizer iteration | `2026-06-26`: approved packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` was denied fail-closed because the approved plan lock expired before apply; route verification confirmed `10.7.0.17` remained on `vless`; intelligence snapshots refreshed; fresh production dry-run reached `AUTHORITY_BOUNDARY` for `pkt_preview_4eb137c926917c2761faadb4`; no user was moved. |
+| Last optimizer iteration | `2026-06-26`: approved packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` was denied fail-closed because the approved plan lock expired before apply; route verification confirmed `10.7.0.17` remained on `vless`; intelligence snapshots refreshed; fresh production dry-run reached `OPERATIONAL_AUTHORITY` for `pkt_preview_4eb137c926917c2761faadb4`; no user was moved. |
 
 ## 25. Program Rule For Future Work
 
@@ -2195,7 +2293,7 @@ Current volatile state lives in:
 
 `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 
-That file owns the current bottleneck, HLA, authority boundary, reality limit, metrics, exact packet, stop reason, and exact approval question.
+That file owns the current bottleneck, HLA, normalized authority class, reality limit, metrics, exact packet, stop reason, and exact approval question.
 
 OMP owns the scheduler and optimizer rules.
 

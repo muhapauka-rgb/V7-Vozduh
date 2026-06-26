@@ -1,3 +1,7 @@
+import json
+import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -1156,6 +1160,95 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertNotIn(first["packet_preview"]["packet_id"], changed["approval_prompt"]["approval_command_text"])
         self.assertIn(changed["packet_preview"]["packet_id"], changed["approval_prompt"]["approval_command_text"])
         self.assertEqual(changed["approval_prompt"]["target_channel"], "awg3")
+
+    def test_same_semantic_governed_decision_keeps_committed_decision_id_when_packet_changes(self):
+        first = pipeline.governed_canary_knowledge_gated_dry_run_cycle(
+            decision_surface=self.governed_canary_surface(target="awg0", recommendation_hash="rec-canary-1", source_hash="source-canary-1"),
+            max_users=1,
+            now="2026-06-24T16:00:00Z",
+        )
+        refreshed = pipeline.governed_canary_knowledge_gated_dry_run_cycle(
+            decision_surface=self.governed_canary_surface(target="awg0", recommendation_hash="rec-canary-2", source_hash="source-canary-2"),
+            max_users=1,
+            now="2026-06-24T16:02:00Z",
+        )
+
+        self.assertNotEqual(first["packet_preview"]["packet_id"], refreshed["packet_preview"]["packet_id"])
+        self.assertEqual(first["packet_preview"]["selected_move_hash"], refreshed["packet_preview"]["selected_move_hash"])
+        self.assertEqual(first["packet_preview"]["decision_id"], refreshed["packet_preview"]["decision_id"])
+        self.assertEqual(first["packet_preview"]["decision_commit"]["status"], "DECISION_COMMITTED")
+        self.assertFalse(first["packet_preview"]["decision_commit"]["commit_is_execution_authority"])
+        self.assertFalse(first["packet_preview"]["decision_commit"]["runtime_mutation_performed"])
+        self.assertFalse(first["packet_preview"]["decision_commit"]["apply_executed"])
+        self.assertEqual(first["packet_preview"]["decision_commit"]["users_moved"], 0)
+
+    def test_material_governed_decision_change_creates_different_committed_decision_id(self):
+        first = pipeline.governed_canary_knowledge_gated_dry_run_cycle(
+            decision_surface=self.governed_canary_surface(target="awg0", recommendation_hash="rec-canary-1"),
+            max_users=1,
+            now="2026-06-24T16:00:00Z",
+        )
+        changed = pipeline.governed_canary_knowledge_gated_dry_run_cycle(
+            decision_surface=self.governed_canary_surface(target="awg3", recommendation_hash="rec-canary-1"),
+            max_users=1,
+            now="2026-06-24T16:00:00Z",
+        )
+
+        self.assertNotEqual(first["packet_preview"]["selected_move_hash"], changed["packet_preview"]["selected_move_hash"])
+        self.assertNotEqual(first["packet_preview"]["decision_id"], changed["packet_preview"]["decision_id"])
+
+    def test_committed_preview_cli_lease_creation_does_not_rerun_planner_selection(self):
+        cycle = pipeline.governed_canary_knowledge_gated_dry_run_cycle(
+            decision_surface=self.governed_canary_surface(target="awg0", recommendation_hash="rec-canary-1"),
+            max_users=1,
+            now="2026-06-24T16:00:00Z",
+        )
+        preview = cycle["packet_preview"]
+        rollback_item = preview["rollback_manifest_preview"]["items"][0]
+        tool = ROOT / "tools" / "v7-governed-canary-dry-run-cycle"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            preview_file = root / "preview.json"
+            lease_file = root / "lease.json"
+            preview_file.write_text(json.dumps({"packet_preview": preview}), encoding="utf-8")
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    str(tool),
+                    "--create-execution-lease",
+                    "--committed-preview-file",
+                    str(preview_file),
+                    "--execution-lease-file",
+                    str(lease_file),
+                    "--approved-packet-id",
+                    preview["packet_id"],
+                    "--approved-decision-id",
+                    preview["decision_id"],
+                    "--approved-operation-id",
+                    preview["operation_id"],
+                    "--approved-selected-move-hash",
+                    preview["selected_move_hash"],
+                    "--approved-user",
+                    "10.7.0.5",
+                    "--approved-source",
+                    rollback_item["rollback_target"],
+                    "--approved-target",
+                    rollback_item["forward_target"],
+                    "--approved-authority-generation",
+                    preview["authority_generation"],
+                ],
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+
+            self.assertEqual(proc.returncode, 0, proc.stderr + proc.stdout)
+            payload = json.loads(proc.stdout)
+            self.assertTrue(payload["committed_preview_consumed"])
+            self.assertFalse(payload["planner_rerun_before_lease"])
+            self.assertFalse(payload["candidate_selection_rerun"])
+            self.assertEqual(payload["execution_lease_create_result"]["verdict"], "EXECUTION_LEASE_WRITTEN")
+            self.assertTrue(lease_file.exists())
 
     def test_execution_lease_blocks_planner_regeneration_when_plan_is_semantically_identical(self):
         first = pipeline.governed_canary_knowledge_gated_dry_run_cycle(

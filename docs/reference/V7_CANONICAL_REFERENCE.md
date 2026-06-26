@@ -151,6 +151,63 @@ Readiness verdict:
 
 `READY_FOR_IMPLEMENTATION_PROMPT`
 
+## MASTER_KNOWLEDGE_SYSTEM_AUDIT_PART_3
+
+Status: `KNOWLEDGE_SYSTEM_OPERATIONAL`
+
+Purpose: preserve the final operational Knowledge Plane contract so future OMP, Codex, AI agents, engineering, audit, implementation, and certification work starts from current knowledge instead of rediscovering old reports.
+
+Stable conclusions:
+
+1. The Knowledge Plane is operational and uses existing owners only. Need New Owner remains `FALSE`.
+2. Audit Knowledge State is not a new truth source. It is the current durable knowledge state assembled from Canonical Reference, SYSTEM_MAP, OMP, Current Program State, Production Maturity, Knowledge Quality Model, Document Lifecycle, ADRs, canonical policies, and engineering reports as supporting evidence.
+3. Knowledge State is current durable truth for engineering work; Engineering Reports are historical evidence; Current Program State is current runtime/program situation; Canonical Reference is durable project truth; OMP is the execution program; Implementation Backlog is the only engineering queue.
+4. Future Codex and future AI agents must not start by reading historical reports. They must first consume Product Specification, Audit Knowledge State, Canonical Reference, Current Program State, OMP, and Implementation Backlog, then load Runtime Model, implementation files, reports, ADRs, policies, or tools only when the resolved task requires them.
+5. Every future engineering action must determine: already known, still valid, re-open required, implementation required, existing owner, existing backlog mapping, confidence, freshness, and expected evidence.
+6. Every future audit must reuse current knowledge first, audit only unknown or invalidated knowledge, update canonical owners when durable knowledge changes, update Audit Knowledge State, and create a historical Engineering Report.
+7. Every future implementation must read the Knowledge Plane, implement the existing backlog item, verify, certify when required, create an Engineering Report, update canonical owners if durable knowledge changed, update Knowledge State, update Current Program State, and update OMP.
+8. Every certification must update Knowledge State, Capability State, Production State, and Current Program State before producing historical evidence.
+9. Knowledge promotion flow is `Temporary Investigation -> Engineering Report -> Verified -> Canonical Owner -> Audit Knowledge State -> OMP Consumption -> Future Codex`.
+10. Knowledge invalidation triggers are Runtime Model changes, Product changes, Policy changes, contradictory production evidence, material implementation changes, operator decision changes, architecture changes, and Product Scale Model changes. Each trigger maps to existing owners; no new invalidation owner is required.
+11. Knowledge System and Engineering Knowledge Preservation remain complete and locked at the canonical level while these rules hold.
+12. Architecture maturity remains `ENGINEERING_COMPLETE`; Production Maturity remains implementation/certification-bound and must advance only through the Implementation Backlog, real verification, production outcomes, certification, and authority decisions.
+
+Mandatory Knowledge Plane workflow:
+
+```text
+Product Specification
+  -> Audit Knowledge State
+  -> Canonical Reference
+  -> Current Program State
+  -> OMP
+  -> Implementation Backlog
+  -> Runtime Model when relevant
+  -> Implementation when authorized
+```
+
+World-practice comparison:
+
+The final V7 Knowledge Plane matches mature production knowledge-management practice:
+
+| Practice family | Equivalent V7 behavior |
+| --- | --- |
+| Google SRE | Current operating state separated from postmortems and durable operational principles. |
+| AWS control planes | Runtime consumes prepared knowledge and current state; durable policies and runbooks govern execution. |
+| Cloudflare operations | Historical incidents/evidence feed durable rules, but live operation uses current control-plane state. |
+| Kubernetes | Desired/current state, status, events, controllers, and API truth remain separated by owner and lifecycle. |
+| ADR workflow | Decisions remain permanent records; they do not become runtime truth or implementation queues. |
+| RFC workflow | Durable consensus moves into canonical references; drafts/reports remain supporting evidence. |
+
+Re-open rule:
+
+The operational Knowledge Plane must not be re-audited unless one of these is true:
+
+1. an existing owner cannot map a finding after complete audit;
+2. production evidence contradicts canonical knowledge;
+3. Runtime Model, Product Specification, Canonical Policy Library, OMP, or Product Scale Model changes materially;
+4. an implementation changes behavior materially;
+5. the operator explicitly requests re-audit.
+
 ## Product Specification Rule
 
 `docs/product/V7_PRODUCT_SPECIFICATION.md` is the highest-level product specification for V7.
@@ -180,6 +237,90 @@ Stable conclusions:
 17. V7 may innovate in policy only after proving that no stable world consensus exists or that world consensus does not fit V7 architecture.
 18. Business Objectives are the canonical top-level interface between the Product Owner and V7. The permanent chain is Product Owner -> Business Objectives -> Policy Translation -> Canonical Policies -> OMP -> Runtime -> Users. Product Owner communicates through Business Objectives, not packets, routing algorithms, action classes, blast-radius internals, rollback internals, runtime gates, planner logic, or protocol engineering.
 19. Initial canonical Business Objectives are Maximum Stability, Fastest Recovery, Lowest User Disruption, Highest Service Availability, Lowest Business Risk, SLA Priorities, Business Risk Appetite, Minimal Operator Work, and Invisible VPN Experience.
+
+## DECISION_OBJECT_MODEL
+
+Status: `CANONICAL`
+
+Purpose: preserve the complete V7 decision-object taxonomy so future work does not rediscover or confuse authority objects, decision objects, execution objects, packet artifacts, learning objects, and product intent.
+
+Canonical hierarchy:
+
+```text
+Business Objective
+  -> Business Intent
+  -> Canonical Policy
+  -> Operational Envelope
+  -> Authority Object
+  -> Action Class
+  -> Decision Snapshot
+  -> Eligibility Decision
+  -> Execution Decision
+  -> Fresh Packet
+  -> Operation
+  -> Verification
+  -> Outcome
+  -> Learning
+  -> Knowledge
+```
+
+Object classes:
+
+| Object | Owner | Class | Canonical rule |
+| --- | --- | --- | --- |
+| Business Objective | Product Specification | Product / canonical | Highest Product Owner interface; not runtime input until translated through policy. |
+| Business Intent | Product Specification | Product / canonical | Product meaning derived from objectives, mission, principles, risk appetite, SLA priorities, and ideal user experience. |
+| Canonical Policy | Canonical Policy Library | Canonical / policy | Translates product intent into operational rules; consumed by OMP and Runtime gates. |
+| Operational Envelope | OMP, Runtime Model, Policy 004, Policy 005 | Canonical / authority | Defines approved class, policy, authority tier, blast radius, rollback, freshness, verification, anti-flap, learning, and risk bounds. |
+| Authority Object | OMP / Policy 004 | Canonical / certification | Current fallback may be exact packet; target durable authority is Action Class / Delegated Policy / Business Objective constraints. |
+| Authority Tier / Generation | OMP / Current Program State / Runtime Model | Runtime + canonical state | Permission scope and generation guard; does not prove runtime safety by itself. |
+| Action Class | OMP / Policy 005 | Canonical / certification | Repeated operational capability promoted only by real outcomes, verification, rollback/no-rollback quality, blast radius, learning, and authority policy. |
+| Delegated Autonomy Policy | OMP / Runtime Model | Canonical / authority | Bounded self-approval contract; current default is read-only and not approved. |
+| Decision Model | V7 Decision Model | Canonical | Defines decision vocabulary, laws, input separation, and decision output shape. |
+| Decision Snapshot | Decision Model + existing decision/read-model owners | Runtime-consumed | Prepared decision output; Runtime consumes it and must not invent it. |
+| Planner Decision | Planner / autoswitch owners | Runtime input / implementation | Candidate/ranking output; not durable authority and not the complete decision model. |
+| Eligibility Decision | Runtime Model + policy/read-model owners | Runtime | Pass/stop decision over policy, freshness, authority, rollback, verification, anti-flap, blast radius, and learning gates. |
+| Execution Decision | Runtime Model + existing execution owner | Runtime | Execute or stop; only after eligibility and authority pass. |
+| Packet / Preview | Execution Packet owner | Transient runtime artifact | Fresh bounded execution artifact; not canonical authority. |
+| Operation | Execution owner / Current Program State | Transient runtime artifact that becomes historical after closure | One concrete production attempt with identifiers. |
+| Selected Move | Planner/autoswitch + packet owner | Transient execution artifact | Concrete user/source/target move; must match authority envelope before execution. |
+| Selected Move Hash | Packet / lease owner | Transient identity guard | Integrity guard for the selected move; not an authority object. |
+| Execution Lease | Packet owner | Runtime guard | Binds approved governed packet while active; expires or closes after execution/rollback/cancel/material change. |
+| Restore Barrier Clearance | Restore barrier owner | Runtime guard | One exact clearance before apply; not durable policy. |
+| Rollback Manifest / Plan | Restore/Rollback owner | Runtime + certification evidence | Must exist or no-rollback path must be certified before trust grows. |
+| Verification Plan | Verification owners / Runtime Model | Runtime + certification evidence | Required before mutation can be trusted. |
+| Outcome | Feedback/outcome owner | Historical + learning | Real observed result of execution, no-op, rollback, or stop; can feed learning only after verification. |
+| Learning Object | Learning/trust owners | Learning / knowledge | Updates future confidence only from observed outcomes, never synthetic evidence. |
+| Knowledge Object | Knowledge Quality Model / Canonical owners | Canonical or historical depending on promotion | Durable knowledge must move to canonical owners; reports remain evidence only. |
+| Engineering Report | OMP report lifecycle | Historical evidence | Never backlog, roadmap, owner, truth source, or runtime authority. |
+| Current Program State | Current Program State | Volatile program state | Stores current bottleneck, authority class, packet when applicable, stop reason, progress, and next action. |
+
+Authority rule:
+
+Current `GOVERNED_ONLY` work may still require exact packet approval, but this is transitional. The durable target is:
+
+```text
+Business Objective
+  -> Canonical Policy
+  -> Delegated Autonomy Policy
+  -> Action-Class Authority
+  -> Runtime Eligibility
+  -> Fresh Packet
+```
+
+Execution rule:
+
+Runtime executes fresh packets or stops. It does not execute raw Business Objectives, raw Product Owner wishes, reports, historical evidence, or unverified planner guesses.
+
+Learning rule:
+
+Learning learns from verified outcomes, action-class evidence, policy/class performance, rollback/no-rollback results, and real user/service impact. It does not learn trust from packet existence, packet approval, synthetic evidence, or unverified expectations.
+
+Need New Owner: `FALSE`.
+
+Need New Backlog Item: `FALSE`.
+
+Architecture gap: `NO`.
 
 ## Certified Root Cause Rule
 
@@ -533,7 +674,7 @@ Stable conclusions:
 6. ADRs remain accepted decisions.
 7. Reports remain evidence and history.
 8. Runtime remains reality and final verification.
-9. `Continue OMP` means Codex runs the Kernel loop until an allowed stop condition.
+9. `Continue OMP` means Codex executes the complete Engineering Control Loop through existing owners until an allowed stop condition. It is not only backlog continuation.
 10. This split does not create a planner, governance, execution path, runtime truth source, daemon, timer, apply authority, or user movement authority.
 
 ## V7_CONTEXT_RESOLVER
@@ -551,8 +692,47 @@ Stable conclusions:
 7. Context Resolver extends the existing Kernel source hierarchy, Reference First workflow, OMP semantic reuse rules, and Kernel/State split.
 8. Need New Owner remains `FALSE`.
 9. This resolver does not create a planner, governance, execution path, truth source, storage, daemon, runtime behavior, apply authority, synthetic evidence, floor change, or user movement authority.
+10. Engineering Context Resolver is the operational form of the same owner. It classifies Architecture, Knowledge, Product, Policy, Implementation, Runtime, Production, Certification, Audit, Scale, Bug, Investigation, Operator Request, and Research tasks before loading context.
+11. ECR must answer what is required, verified, current, historical, refresh-required, ignorable, reopened, implementation-bound, certification-bound, and runtime-investigation-bound.
+12. ECR uses existing owners only: Product Specification, Audit Knowledge State, Canonical Reference, SYSTEM_MAP, Current Program State, OMP, Implementation Backlog, Runtime Model, Production Maturity Model, Knowledge Quality Model, policies, ADRs, and reports as evidence only.
+13. For `Continue OMP`, the default ECR working set is Product Specification -> Audit Knowledge State -> Canonical Reference -> Current Program State -> OMP -> Current Backlog Item.
+14. ECR prevents future Codex/AI agents from starting with full-project reads or report-first rediscovery.
+15. `Continue OMP` is the single default engineering command and must run: Engineering Context Resolver -> Knowledge Consumption -> Re-open Evaluation -> OMP Execution -> Implementation/Audit/Certification/Verification -> Engineering Report -> Knowledge Promotion -> Current Program State Update -> OMP Update -> Continue OMP.
+16. `Continue OMP` stops automatically when operator authority, runtime apply, production movement, architecture contradiction, missing canonical owner, re-open trigger, or product contradiction is encountered; it continues automatically when only implementation, documentation, integration, certification, verification, or knowledge promotion remains.
 
 Related ADR: `docs/decisions/ADR-V7-CONTEXT-RESOLVER.md`.
+
+## ENGINEERING_CONTEXT_RESOLVER_FINAL_AUDIT
+
+Status: `ENGINEERING_CONTEXT_RESOLVER_OPERATIONAL`
+
+Purpose: preserve the final architecture audit for the Engineering Context Resolver so future engineering work starts with minimal authoritative context and avoids repeated rediscovery.
+
+Stable conclusions:
+
+1. An implicit Engineering Context Resolver already existed through Context Resolver, Reference First, Knowledge Plane, OMP, Current Program State, SYSTEM_MAP, Canonical Reference, and Implementation Backlog.
+2. The correct action is `EXTEND_EXISTING`, not `CREATE_NEW`.
+3. ECR is not a new owner, truth source, audit registry, planner, governance layer, runtime path, roadmap, or backlog.
+4. ECR must classify every task before context loading.
+5. ECR task classes are Architecture, Knowledge, Product, Policy, Implementation, Runtime, Production, Certification, Audit, Scale, Bug, Investigation, Operator Request, and Research.
+6. Each task class has mandatory context, optional context, forbidden-by-default context, and authoritative owners.
+7. Historical reports are evidence only and must not be current truth or first-read context unless the resolver determines evidence is required.
+8. ECR must determine whether knowledge is already verified, still current, historical only, refresh-required, ignorable, re-opened, implementation-bound, certification-bound, or runtime-investigation-bound.
+9. `Continue OMP` is the default engineering command because ECR resolves its working set to Product Specification, Audit Knowledge State, Canonical Reference, Current Program State, OMP, and current Backlog item, then hands execution to the complete Engineering Control Loop.
+10. Need New Owner remains `FALSE`; Need New Backlog Item remains `FALSE`; runtime impact is `NONE`.
+11. Architecture phase remains complete. ECR strengthens execution discipline; it does not reopen architecture.
+12. World-practice verdict: ECR matches mature engineering practice in Google SRE, AWS/Cloudflare control planes, Kubernetes controllers, ADR workflows, and large engineering organizations by separating current truth, durable knowledge, historical evidence, ownership, and execution state.
+
+Re-open rule:
+
+ECR must not be re-audited unless:
+
+1. Context Resolver ownership changes materially;
+2. Knowledge Plane ownership changes materially;
+3. OMP workflow changes materially;
+4. future work again starts from reports/full-project loading and creates rediscovery loops;
+5. production evidence contradicts current knowledge-consumption order;
+6. the operator explicitly requests re-audit.
 
 ## V7_RESEARCH_FRAMEWORK
 
@@ -649,6 +829,42 @@ Stable conclusions:
 
 Related report: `docs/reports/V7_SYSTEM_ARCHITECTURE_SYNTHESIS_REPORT.md`.
 Related ADR: `docs/decisions/ADR-V7-SYSTEM-ARCHITECTURE.md`.
+
+## ARCHITECTURE_CLOSED_BY_DEFAULT
+
+Status: `CANONICAL`.
+
+Purpose: record the permanent V7 rule that architecture is complete by default and architecture evolution is the last resort.
+
+Canonical rule:
+
+Every newly discovered problem, idea, regression, optimization, or improvement must first be treated as one of:
+
+- unfinished implementation;
+- missing integration;
+- missing certification;
+- missing runtime consumption;
+- missing read-model consumption;
+- missing production evidence;
+- missing authority maturity;
+- missing capability progress;
+- missing backlog completion;
+- missing canonical-owner update.
+
+Before proposing an architectural extension, OMP must prove that the existing OMP, Runtime Model, Product Specification, Canonical Policies, Implementation Backlog, canonical owners, SYSTEM_MAP, and Canonical Reference cannot own the finding through reuse, extension, integration, certification, read-model consumption, runtime consumption, authority maturity, or production evidence.
+
+Default verdicts:
+
+| Field | Default |
+| --- | --- |
+| Architecture complete | `TRUE` |
+| Need New Owner | `FALSE` |
+| Need New Backlog Item | `FALSE` |
+| Architecture Extension | `LAST_RESORT` |
+
+Architecture extension may be proposed only after a complete audit proves `FUNDAMENTAL_ARCHITECTURE_GAP`.
+
+This rule does not change runtime behavior, planner behavior, governance, execution, truth sources, policies, backlog, authority, apply behavior, daemon/timer behavior, synthetic evidence rules, or user movement.
 
 ## V7_IMPLEMENTATION_PHASE
 
@@ -781,13 +997,107 @@ Implementation owner: `admin_core/autonomy_trust_acceleration.py`.
 9. Related report: `docs/reports/V7_HIGHEST_LEVERAGE_OUTCOME_GROWTH_REPORT.md`.
 10. Last verified runtime commit: `3cf500befeb33d368baef0998e5d6d36da46b8a3`.
 
+## PRODUCTION_SCALE_FIRST
+
+Status: `CANONICAL`.
+
+Purpose: record the permanent V7 rule that every future change must remain efficient, safe, and maintainable at production-control-plane scale.
+
+Product Scale Model:
+
+- Canonical product owner: `docs/product/V7_PRODUCT_SPECIFICATION.md`.
+- Canonical product section: `Product Scale Model`.
+- Product vision subsection: `Product Scale Objectives`.
+- Meaning: Product Scale Model is the product-level non-functional requirement, planning constraint, and long-term scale optimization target for target production scale.
+- Execution consumer: OMP consumes Product Scale Model through `Production Scale First`.
+- Runtime consumer: Runtime consumes Product Scale Model indirectly through OMP, Runtime Model work, Implementation Backlog, read models, and runtime eligibility implementation.
+- This is not a new owner, not a new roadmap, not a new policy, and not a new runtime path.
+
+Scale target:
+
+- `10,000+` users;
+- `100+` channels;
+- millions of runtime decisions;
+- long-lived evidence, telemetry, reports, and learning history.
+
+Canonical rule:
+
+Every future audit, implementation, test, report, policy change, runtime change, evidence model change, learning change, read model, UI/API data-loading change, storage change, background job, canonical update, and OMP decision must answer:
+
+```text
+Will this remain efficient, safe, and maintainable at 10,000+ users and 100+ channels?
+```
+
+Long-term Product Scale Objectives:
+
+1. Runtime cost for one bounded runtime decision should remain approximately constant as the system grows.
+2. Memory growth should remain controlled and should avoid large in-memory global state.
+3. Storage growth should be predictable; raw evidence should be retained once while summaries, indexes, and read models are derived.
+4. Heavy CPU work belongs to background processing, aggregation, and offline analysis.
+5. Operator and API paths should read summarized views by default.
+6. Learning should become incremental where equivalent incremental updates are possible.
+7. Reports remain compact historical evidence; canonical owners store durable knowledge.
+8. V7 should evolve toward bounded cost growth rather than cost proportional to users, channels, history size, or telemetry size.
+9. Architecture should evolve toward scale-independent operation where practical, with representative evidence preferred over exhaustive enumeration when safety is preserved.
+10. Increasing deployment size should have minimal impact on the cost, latency, and operational complexity of processing one bounded runtime decision.
+
+Owner reuse:
+
+| Concern | Existing owner |
+| --- | --- |
+| Product scale truth | `V7_PRODUCT_SPECIFICATION.md` -> `Product Scale Model` |
+| Execution discipline | `OPERATIONAL_MATURITY_PROGRAM.md` |
+| Thin runtime rule | `V7_RUNTIME_MODEL.md` |
+| Production maturity impact | `V7_PRODUCTION_MATURITY_MODEL.md` |
+| Durable canonical truth | `V7_CANONICAL_REFERENCE.md` |
+
+No new owner, roadmap, policy, runtime path, planner, governance layer, execution path, truth source, or backlog item is created by this rule.
+
+Mandatory scale checks:
+
+| Check | Canonical requirement |
+| --- | --- |
+| Algorithmic complexity | Avoid `O(N^2)` behavior and full rescans where possible. Prefer `O(1)`, `O(log N)`, bounded scans, incremental updates, indexes, and summaries. |
+| Runtime path safety | Runtime must remain thin and consume prepared/certified read models. Expensive work belongs to background jobs, pre-aggregation, or offline analysis. |
+| Storage discipline | Store evidence once and derive summaries. Avoid duplicated durable data and unbounded growth without retention or compaction strategy. |
+| Read-model discipline | UI, API, and operator views must use summaries, indexes, and drill-down. Normal views must not read massive raw histories. |
+| Evidence and learning scale | Full enumeration of all user-to-channel combinations must not become a permanent autonomy blocker unless explicitly justified. Prefer representative action-class evidence, risk segmentation, blast radius, rollback/no-rollback proof, and learning quality. |
+| Reporting discipline | Engineering reports are compact historical evidence. Durable knowledge belongs in canonical owners. Large raw outputs should be referenced or summarized. |
+| Indexing and query discipline | Every new persistent data shape must declare lookup pattern and indexing/aggregation strategy when it grows with users, channels, or time. |
+| Resource budget | Future implementation must consider CPU, memory, disk, IO, latency, and write amplification. |
+
+Production scale validation questions:
+
+1. Does runtime cost grow with user count?
+2. Does storage grow without bounds?
+3. Does CPU cost grow linearly?
+4. Does memory growth remain controlled?
+5. Can reports grow indefinitely?
+6. Can telemetry be aggregated?
+7. Can read models be precomputed?
+8. Are indexes sufficient?
+9. Can expensive work move out of Runtime?
+10. Will this still be operationally efficient at production scale?
+
+If the answer proves the proposal is not suitable for production scale, the proposal must be redesigned through existing owners before implementation. V7 must not lower production scale expectations.
+
+Permanent re-audit trigger:
+
+Production Scale First must be re-audited only when one of the following is true:
+
+1. Product scale target changes materially.
+2. Runtime architecture changes materially.
+3. Evidence or learning model changes materially.
+4. Production telemetry proves the current scale assumptions wrong.
+5. Explicit operator request.
+
 ## POST_PRODUCTION_SCALE_PHASE
 
 Phase name: `AUTONOMY.EVIDENCE.INDEX_AND_FRESHNESS_MODEL`.
 
 Status: `DEFERRED_UNTIL_PRODUCTION_AUTONOMY_CERTIFIED`.
 
-Purpose: prepare V7 for `100+` channels, `1000+` users, and years of evidence without planner slowdown, trust distortion, or irrational use of stale data.
+Purpose: prepare V7 for `100+` channels, `10,000+` users, and years of evidence without planner slowdown, trust distortion, or irrational use of stale data.
 
 This is not a current blocker. It is documentation of a future scalability phase. It does not authorize runtime changes, code changes, planner changes, trust changes, execution changes, new owners, new schemas, new storage, or new truth sources.
 
@@ -1540,6 +1850,7 @@ Related ADR: `docs/decisions/ADR-FUTURE-EVIDENCE-INDEX-AND-FRESHNESS-MODEL.md`.
 - Operator meaning: "V7 can now say whether it truly knows that a candidate channel fits a user, what is still missing, and what real action would improve that knowledge."
 - Engineer meaning: Existing-owner read model for graduating suitability from `STABLE_SIGNAL` toward `CONFIRMED_KNOWLEDGE`, `ACTIONABLE_KNOWLEDGE`, and `AUTONOMY_GRADE_KNOWLEDGE`.
 - Known caveats: Current production suitability remains `STABLE_SIGNAL`, next stage `CONFIRMED_KNOWLEDGE`, and not autonomy-grade. Production inventory at deployed code commit `b16cea5f0d77585f9f0c16bf41a9106641f36e07` reports `156` candidates, `84` consumed candidate outcomes, `72` missing candidate outcomes, coverage ratio `0.5385`, mean correctness `68.107`, mean candidate confidence `0.411`, suitability confidence `29.358`, and freshness `ACTIONABLE_NOW`. Prediction/service cycles alone cannot make suitability autonomy-grade. `user_improvement_rate` is visible as unknown until the feedback owner emits it explicitly. Real governed/manual candidate outcomes are still required before higher autonomy.
+- A4 representative evidence scope: `candidate_key` is currently a concrete `user -> candidate_channel` pair, and `candidate_count` is an enumeration of those pairs from the current suitability snapshot. This is useful as a suitability knowledge signal, but it must not be treated as a permanent requirement to exhaustively observe every user/channel combination before action-class promotion. Action-class promotion remains owned by `POLICY_005_ACTION_CLASS_PROMOTION`, OMP, and backlog item `A4`; production-grade certification should use representative class evidence, risk segmentation, rollback/no-rollback proof, blast-radius history, freshness, anti-flap, verification, and learning. Candidate enumeration may inform that decision but must not replace action-class evidence. Need New Owner remains `FALSE`; Need New Backlog Item remains `FALSE`.
 - Related reports / ADRs: `docs/reports/V7_AUTONOMY_GRADE_SUITABILITY_PROGRAM_REPORT.md`, `docs/reports/V7_HIGHEST_LEVERAGE_OUTCOME_GROWTH_REPORT.md`, `docs/reports/V7_DECISION_TO_OUTCOME_TO_LEARNING_INTEGRATION_REPORT.md`, `docs/reports/AUTONOMY_CANDIDATE_OUTCOME_REALITY_COLLECTION_REPORT.md`, ADR-EVENT-DRIVEN-AUTONOMY, ADR-OBSERVED-OUTCOME-PRIMARY-TRUST.
 - Last verified commit: `b16cea5f0d77585f9f0c16bf41a9106641f36e07`.
 

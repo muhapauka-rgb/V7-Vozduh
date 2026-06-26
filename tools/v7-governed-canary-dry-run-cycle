@@ -273,6 +273,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--skip-planner-observe", action="store_true")
     parser.add_argument("--execution-lease-file", default="")
     parser.add_argument("--create-execution-lease", action="store_true")
+    parser.add_argument("--committed-preview-file", default="")
     parser.add_argument("--approval-author", default="operator-a")
     parser.add_argument("--approval-reviewer", default="operator-b")
     parser.add_argument("--ttl-seconds", type=int, default=operator_execution.DEFAULT_EXECUTION_LEASE_TTL_SECONDS)
@@ -298,6 +299,73 @@ def main(argv=None) -> int:
     execution_lease = operator_execution.load_execution_lease(lease_file)
     execution_lease_state = operator_execution.execution_lease_state(execution_lease)
     active_execution_lease = bool(execution_lease_state.get("active"))
+    if args.create_execution_lease and args.committed_preview_file and not active_execution_lease:
+        committed_payload = read_json(Path(args.committed_preview_file), {})
+        committed_preview = operator_execution.extract_packet_preview(committed_payload)
+        approved_identity = approved_identity_from_args(args)
+        current_identity = operator_execution.preview_packet_identity(committed_preview)
+        binding = operator_execution.approved_packet_binding_status(current_identity, approved_identity)
+        lease_create_result = {}
+        if committed_preview.get("status") != "PACKET_PREVIEW_READY":
+            lease_create_result = execution_lease_not_created(
+                "committed_preview_not_ready",
+                committed_preview_status=str(committed_preview.get("status") or ""),
+            )
+        elif not binding.get("ok"):
+            lease_create_result = execution_lease_not_created(
+                "approved_packet_binding_required" if binding.get("missing_fields") else "approved_packet_identity_mismatch",
+                binding=binding,
+            )
+        else:
+            try:
+                packet = operator_execution.packet_from_preview(
+                    committed_preview,
+                    approval_author=args.approval_author,
+                    approval_reviewer=args.approval_reviewer,
+                    ttl_seconds=args.ttl_seconds,
+                )
+                packet_binding = operator_execution.approved_packet_binding_status(
+                    operator_execution.packet_identity(packet),
+                    approved_identity,
+                )
+                if not packet_binding.get("ok"):
+                    lease_create_result = execution_lease_not_created(
+                        "approved_packet_materialization_changed_identity",
+                        binding=packet_binding,
+                    )
+                else:
+                    lease = operator_execution.create_execution_lease_from_packet(
+                        packet,
+                        source_preview=committed_preview,
+                    )
+                    lease_create_result = operator_execution.write_execution_lease(lease_file, lease)
+                    execution_lease = lease if lease_create_result.get("ok") else {}
+                    execution_lease_state = operator_execution.execution_lease_state(execution_lease)
+            except Exception as exc:  # pragma: no cover - surfaced as structured CLI output
+                lease_create_result = execution_lease_not_created(
+                    "committed_preview_lease_creation_failed",
+                    error=str(exc),
+                )
+        result = {
+            "schema_version": "v7.governed-canary.committed-preview-lease.v1",
+            "read_only": False,
+            "preview_only": False,
+            "runtime_mutation_performed": False,
+            "restore_barrier_written_now": False,
+            "apply_executed": False,
+            "users_moved": 0,
+            "authority_expanded": False,
+            "runtime_automation_enabled": False,
+            "committed_preview_consumed": bool(lease_create_result.get("ok")),
+            "planner_rerun_before_lease": False,
+            "candidate_selection_rerun": False,
+            "packet_preview": committed_preview,
+            "execution_lease_file": str(lease_file),
+            "execution_lease_state": execution_lease_state,
+            "execution_lease_create_result": lease_create_result,
+        }
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
+        return 0 if lease_create_result.get("ok") else 2
     users = read_registry(state_dir / "users.registry")
     egress = read_registry(state_dir / "egress.registry")
     runtime_state = read_json(state_dir / "v7-state.json", {})

@@ -2012,6 +2012,30 @@ def _preview_packet_for_candidate(
         "from": candidate.get("current_channel", ""),
         "to": candidate.get("recommended_channel", ""),
     }
+    selected_move_hash = stable_hash(semantic_payload)
+    commit_authority_generation = authority_generation or ("authgen_" + stable_hash(semantic_payload)[:24])
+    rollback_target = str(rollback.get("rollback_target", candidate.get("current_channel", "")))
+    decision_commit_payload = {
+        "action_class": "single-user governed candidate failover",
+        "subject": [candidate.get("user", "")],
+        "source": candidate.get("current_channel", ""),
+        "target": candidate.get("recommended_channel", ""),
+        "selected_move_hash": selected_move_hash,
+        "authority_tier": "TIER_1",
+        "authority_generation": commit_authority_generation,
+        "rollback_target": rollback_target,
+        "verification_required": [
+            "connection_check",
+            "required_service_checks",
+            "route_runtime_check",
+            "quality_check",
+            "rollback_trigger_evaluation",
+        ],
+        "blast_radius_unit": "user",
+        "blast_radius_budget": 1,
+        "decision_reason": "single_user_governed_candidate_failover",
+    }
+    decision_id = "decision_commit_" + stable_hash(decision_commit_payload)[:24]
     payload = {
         "cycle_id": cycle_id,
         **semantic_payload,
@@ -2019,13 +2043,8 @@ def _preview_packet_for_candidate(
         "source_hash": candidate.get("source_hash", ""),
         "created_at": now,
     }
-    selected_move_hash = stable_hash(semantic_payload)
     packet_id = "pkt_preview_" + stable_hash({"packet": payload})[:24]
     operation_id = "govdry_" + stable_hash({"operation": payload})[:24]
-    decision_id = "decision_preview_" + stable_hash({
-        "recommendation_id": str(candidate.get("recommendation_hash") or ""),
-        "packet_id": packet_id,
-    })[:24]
     envelope = execution_envelope if isinstance(execution_envelope, dict) else {}
     source_bundle = envelope.get("source_bundle") if isinstance(envelope.get("source_bundle"), dict) else {}
     snapshot_bundle = envelope.get("snapshot_bundle") if isinstance(envelope.get("snapshot_bundle"), dict) else {}
@@ -2036,7 +2055,20 @@ def _preview_packet_for_candidate(
         "packet_id": packet_id,
         "operation_id": operation_id,
         "decision_id": decision_id,
-        "authority_generation": authority_generation or ("authgen_" + stable_hash(semantic_payload)[:24]),
+        "decision_commit": {
+            "schema_version": "v7.decision-commit.v1",
+            "status": "DECISION_COMMITTED",
+            "owner": "admin_core/operator_execution_pipeline.py",
+            "decision_id": decision_id,
+            "semantic_identity_hash": stable_hash(decision_commit_payload),
+            "semantic_fields": decision_commit_payload,
+            "commit_is_execution_authority": False,
+            "runtime_mutation_performed": False,
+            "restore_barrier_written_now": False,
+            "apply_executed": False,
+            "users_moved": 0,
+        },
+        "authority_generation": commit_authority_generation,
         "selected_move_count": 1,
         "selected_move_hash": selected_move_hash,
         "allowed_users": [candidate.get("user", "")],
@@ -2052,7 +2084,7 @@ def _preview_packet_for_candidate(
             "items": [
                 {
                     "user_ip": candidate.get("user", ""),
-                    "rollback_target": rollback.get("rollback_target", candidate.get("current_channel", "")),
+                    "rollback_target": rollback_target,
                     "forward_target": candidate.get("recommended_channel", ""),
                     "source_operation_id": operation_id,
                 }
@@ -2110,10 +2142,7 @@ def _verification_plan(candidate: dict[str, Any], packet_preview: dict[str, Any]
 
 def _outcome_closure_plan(candidate: dict[str, Any], packet_preview: dict[str, Any]) -> dict[str, Any]:
     recommendation_id = str(candidate.get("recommendation_hash") or "") if candidate else ""
-    decision_id = "decision_preview_" + stable_hash({
-        "recommendation_id": recommendation_id,
-        "packet_id": packet_preview.get("packet_id", ""),
-    })[:24]
+    decision_id = str(packet_preview.get("decision_id") or "")
     fields = {
         "recommendation_id": "MATERIALIZED_PREVIEW" if recommendation_id else "MISSING_APPLY_TIME_OR_SOURCE_FIELD",
         "decision_id": "MATERIALIZED_PREVIEW",

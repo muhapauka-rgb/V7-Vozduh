@@ -659,6 +659,87 @@ Runtime does not invent decisions.
 It consumes prepared knowledge and either executes the certified action or stops safely.
 Users experience working internet.
 
+## Product Scale Model
+
+V7 is a large-scale production control plane.
+
+The product is designed for at least:
+
+- `10,000+` active users;
+- `100+` active and routable channels;
+- millions of runtime decisions;
+- long-lived telemetry, evidence, reports, and learning history.
+
+V7 must optimize for target production scale, not only current deployment size.
+
+Every durable product, architecture, runtime, learning, reporting, storage, and UI decision must remain efficient, maintainable, and operationally safe at target production scale.
+
+The model requires:
+
+- runtime path must remain thin;
+- heavy computation must move to background, read-model, aggregation, index, or offline layers;
+- persistent data must have clear lookup and retention strategy;
+- normal UI/API paths must consume summaries and read models, not raw historical scans;
+- reports must stay compact and must not duplicate large raw evidence;
+- evidence and learning must prefer representative action-class confidence over non-scalable full enumeration when safety is preserved;
+- bounded cost growth is preferred over cost growth proportional to users, channels, or time;
+- any linear growth with users, channels, or time must be explicitly justified.
+
+Mandatory product question:
+
+```text
+Will this remain efficient, maintainable, and operationally safe at 10,000+ users and 100+ channels?
+```
+
+### Product Scale Objectives
+
+These objectives are the long-term optimization target for OMP.
+
+1. Runtime Cost
+   The cost of processing one bounded runtime decision should remain approximately constant as the system grows.
+   Runtime complexity must not scale directly with total users whenever practical.
+
+2. Memory
+   Memory usage should grow in a controlled and bounded way.
+   V7 should avoid designs that require large in-memory global state.
+
+3. Storage
+   Persistent storage growth must be predictable.
+   Raw evidence should be retained once.
+   Derived summaries, indexes, and read models should be preferred over durable duplication.
+
+4. CPU
+   Heavy computation belongs to background processing, aggregation, and offline analysis.
+   Runtime should consume prepared knowledge.
+
+5. Read Models
+   Operator and API paths should read summarized views by default.
+   Large historical scans must not be part of normal runtime or UI paths.
+
+6. Learning
+   Learning should become incremental.
+   V7 should avoid full recomputation whenever equivalent incremental updates are possible.
+
+7. Reporting
+   Reports are historical evidence only.
+   Reports must stay compact.
+   Canonical owners store durable knowledge.
+
+8. Scaling
+   The system should evolve toward bounded cost growth rather than cost proportional to:
+
+   - users;
+   - channels;
+   - history size;
+   - telemetry size.
+
+9. Architecture
+   Architecture should evolve toward scale-independent operation wherever practical.
+   Representative evidence is preferred over exhaustive enumeration when safety is preserved.
+
+10. Product Goal
+    Increasing deployment size should have minimal impact on the cost, latency, and operational complexity of processing one bounded runtime decision.
+
 ## What V7 Is Not
 
 V7 is not a VPN panel.

@@ -2164,16 +2164,16 @@ If a restore-barrier write, apply, user movement, rollback apply, daemon, timer,
 | --- | --- |
 | Completed phases | Architecture foundation, Research Framework, Decision Model, Runtime Model, System Architecture, Implementation Phase activation, OMP Production Program integration. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle; OMP Production Program rule set. |
-| Current bottleneck | Explicit authority for the exact governed packet after approved plan lock consumption fix was deployed. |
+| Current bottleneck | Explicit authority for the current exact governed packet after the previous approval expired before apply and failed closed safely. |
 | Current highest leverage action | `EXPLICIT_OPERATOR_APPROVAL_REQUIRED_FOR_THIS_PACKET`. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | `AUTHORITY_BOUNDARY`: packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` is ready; restore-barrier write and apply require explicit operator approval. |
+| Current blockers | Root Cause Engine output: previous approved packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` expired before apply and was denied fail-closed; current `AUTHORITY_BOUNDARY` packet is `pkt_preview_4eb137c926917c2761faadb4`; restore-barrier write and apply require explicit operator approval. |
 | Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; read-only runtime lifecycle preview deployed and production-verified; preview-to-execution packet identity deployed and production-verified; execution lease deployed and production-verified; one approved leased governed canary outcome executed, verified, closed, and learned from. |
 | Current runtime posture | No autonomous apply, no daemon enablement; last user movement was the explicitly approved one-user governed canary `10.7.0.5 vless -> awg0`. |
 | Current next best action | Operator approves or rejects the exact governed packet in Current Program State section 7. |
-| Last optimizer iteration | `2026-06-26`: approved plan lock consumption was fixed in existing `tools/v7-users-autoswitch`, focused/relevant tests passed, safe deploy aligned local/GitHub/production at `704ec9a2`, production dry-run reached `AUTHORITY_BOUNDARY`, and no user was moved. |
+| Last optimizer iteration | `2026-06-26`: approved packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` was denied fail-closed because the approved plan lock expired before apply; route verification confirmed `10.7.0.17` remained on `vless`; intelligence snapshots refreshed; fresh production dry-run reached `AUTHORITY_BOUNDARY` for `pkt_preview_4eb137c926917c2761faadb4`; no user was moved. |
 
 ## 25. Program Rule For Future Work
 

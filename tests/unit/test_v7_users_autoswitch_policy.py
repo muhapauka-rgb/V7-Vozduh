@@ -1961,6 +1961,8 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             planner.finalize_operation(plan)
 
         self.assertEqual(plan["summary"]["selected_moves"], 2)
+        self.assertEqual(plan["safety"]["selected_moves_diagnostics"]["source"], "approved_plan_lock")
+        self.assertFalse(plan["safety"]["selected_moves_diagnostics"]["planner_recomputed_after_approval"])
         self.assertEqual(
             (plan["safety"]["restore_barrier"]["approved_plan_lock_validation"] or {}).get("reason"),
             "approved_plan_lock_valid",
@@ -2360,6 +2362,66 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertNotIn("source_bundle_lease_used", gate)
         self.assertTrue(gate["stop_required"])
         self.assertEqual(plan["summary"]["selected_moves"], 0)
+        plan["apply_result"] = planner.apply(plan)
+        planner.finalize_operation(plan)
+        self.assertFalse(plan["apply_result"]["applied"])
+        self.assertEqual(plan["apply_result"]["reason"], "approved_plan_lock_selected_moves_missing")
+        self.assertEqual(
+            plan["apply_result"]["unsafe_blocker"],
+            "approved_plan_lock_snapshot_gate_stop_required",
+        )
+        self.assertEqual(plan["operation"]["terminal_state"], "DENIED")
+        self.assertEqual(
+            plan["operation"]["terminal_reason"],
+            "approved_plan_lock_selected_moves_missing",
+        )
+
+    def test_missing_approved_selected_moves_blocks_explicitly_not_noop(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=1,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={
+                    "authority_class": "CANARY",
+                    "certified_authority_class": "CANARY",
+                    "authority_lifecycle_state": "CANARY_EXPANSION",
+                    "current_allowed_user_budget": 1,
+                },
+            )
+            args = self.args_for(root, ["--apply", "--mode", "guarded", "--target-egress", "vless", "--max-selected-moves", "1"])
+            bootstrap = self.tool.AutoswitchPlanner(args).plan()
+            lock = self.approved_plan_lock_from_plan(bootstrap)
+            lock["selected_moves"] = []
+            approved = {
+                "enabled": True,
+                "expires_at": "2000-01-01T00:00:00+00:00",
+                "allow_post_ttl_apply": True,
+                "generation_clearance": True,
+                "clearance_max_selected_moves": 1,
+                "generation_token": "unit-test-missing-approved-selected-moves",
+                "clearance_generation_id": bootstrap["safety"]["generation"]["planner_generation_id"],
+                "approved_selected_moves_hash": bootstrap["operation"]["selected_move_hash"],
+                "clearance_expected_selected_moves": 1,
+                "clearance_expires_at": "2999-01-01T00:00:00+00:00",
+                "allowed_users": [bootstrap["selected_moves"][0]["user_ip"]],
+                "allowed_targets": ["vless"],
+                "approved_plan_lock": lock,
+                "owner": "admin_core/operator_execution.py",
+            }
+            (root / "state" / "autoswitch-restore-barrier.json").write_text(json.dumps(approved), encoding="utf-8")
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        validation = plan["safety"]["restore_barrier"]["approved_plan_lock_validation"]
+        self.assertIn("approved_plan_lock_selected_moves_missing", validation["reasons"])
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+        self.assertFalse(plan["apply_result"]["applied"])
+        self.assertEqual(plan["apply_result"]["reason"], "approved_plan_lock_selected_moves_missing")
+        self.assertEqual(plan["operation"]["terminal_state"], "DENIED")
 
     def test_readiness_dry_run_keeps_snapshot_gate_closed_for_unleased_quality_drift(self):
         with tempfile.TemporaryDirectory() as tmp:

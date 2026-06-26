@@ -1328,7 +1328,7 @@ Highest Priority Task
 A3: Certify class-level rollback/no-rollback evidence for governed candidate movement.
 
 Current Stop Condition
-REAL_WORLD_LIMIT
+UNSAFE_IMPLEMENTATION
 
 Estimated Remaining Work
 Moderate
@@ -1394,17 +1394,17 @@ Current implementation optimizer result:
 
 | Field | Current Value |
 | --- | --- |
-| Highest implementation leverage task | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
-| Implementation class | `IMPLEMENT_CERTIFICATION` |
-| Exact owner | Restore barrier, rollback manifest, governed execution, feedback/learning |
+| Highest implementation leverage task | `A3_FIX_APPROVED_PLAN_LOCK_CONSUMPTION_IN_EXISTING_AUTOSWITCH_OWNER` |
+| Implementation class | `IMPLEMENT_RUNTIME` |
+| Exact owner | Existing `tools/v7-users-autoswitch` restore-barrier / approved-plan-lock apply path |
 | Exact module | Canonical Policy Library Stage 4 implementation backlog |
-| Exact files | `admin_core/operator_execution.py`, `tools/v7-users-autoswitch`, `admin_core/operator_execution_feedback.py`, `admin_core/autonomy_trust_acceleration.py` |
-| Implementation status | `DEPLOYED_STOPPED_AT_REAL_WORLD_LIMIT` |
+| Exact files | `tools/v7-users-autoswitch`, focused approved-plan-lock apply tests |
+| Implementation status | `STOPPED_AT_UNSAFE_IMPLEMENTATION_AFTER_APPROVED_PACKET_NOOP` |
 | Backlog source | `docs/programs/V7_IMPLEMENTATION_BACKLOG.md` item `A3` |
 | Priority model | `docs/reference/V7_IMPLEMENTATION_PRIORITY_MODEL.md` |
 | Truth/convergence | `PASS`: local, GitHub, and runtime aligned at commit `09ccee8bf717d40c326fed925b939824150654f5`. |
-| New highest implementation leverage task | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
-| Stop boundary | `REAL_WORLD_LIMIT`: this item requires real governed outcomes and rollback/no-rollback closure evidence; OMP must not synthesize certification evidence. |
+| New highest implementation leverage task | `A3_FIX_APPROVED_PLAN_LOCK_CONSUMPTION_IN_EXISTING_AUTOSWITCH_OWNER` |
+| Stop boundary | `UNSAFE_IMPLEMENTATION`: exact packet approval and restore-barrier clearance succeeded, but guarded apply selected zero moves instead of consuming the approved one-user plan lock. OMP must not synthesize certification evidence or bypass the existing execution owner. |
 
 Latest safe deployment result:
 
@@ -1416,7 +1416,7 @@ Latest safe deployment result:
 | Safety | `restore_barrier_modified=false`; `routing_mutation_executed=false`; `user_movement_executed=false`; `autoswitch_apply_executed=false` |
 | Truth | `PASS` |
 | Convergence | `PASS`; `ALIGNED` |
-| Current stop | `REAL_WORLD_LIMIT` for `A3` |
+| Current stop | `UNSAFE_IMPLEMENTATION`: A3 approved packet produced `NOOP/no_selected_moves` during guarded apply |
 
 ## 2.13. Implementation Program Loop
 
@@ -2064,16 +2064,16 @@ If a restore-barrier write, apply, user movement, rollback apply, daemon, timer,
 | --- | --- |
 | Completed phases | Architecture foundation, Research Framework, Decision Model, Runtime Model, System Architecture, Implementation Phase activation, OMP Production Program integration. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle; OMP Production Program rule set. |
-| Current bottleneck | Explicit authority for the fresh exact governed packet after one real governed canary outcome was closed. |
-| Current highest leverage action | `EXPLICIT_OPERATOR_APPROVAL_REQUIRED_FOR_THIS_PACKET`. |
+| Current bottleneck | Existing autoswitch owner does not yet consume a valid `approved_plan_lock` as the selected move during guarded apply. |
+| Current highest leverage action | `A3_FIX_APPROVED_PLAN_LOCK_CONSUMPTION_IN_EXISTING_AUTOSWITCH_OWNER`. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | `AUTHORITY_BOUNDARY`: fresh production dry-run packet is ready for approval; restore-barrier write and apply still require explicit operator authority. |
+| Current blockers | `UNSAFE_IMPLEMENTATION`: approved packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` wrote restore-barrier clearance, but apply returned `NOOP/no_selected_moves`. |
 | Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; read-only runtime lifecycle preview deployed and production-verified; preview-to-execution packet identity deployed and production-verified; execution lease deployed and production-verified; one approved leased governed canary outcome executed, verified, closed, and learned from. |
 | Current runtime posture | No autonomous apply, no daemon enablement; last user movement was the explicitly approved one-user governed canary `10.7.0.5 vless -> awg0`. |
-| Current next best action | Operator approves or rejects the fresh exact governed packet in Current Program State section 7. |
-| Last optimizer iteration | `2026-06-25`: the approved leased packet `pkt_preview_fb70744bc51ad162b1727dcb` was consumed as executable, restore-barrier clearance was written only for that packet, one user was moved to `awg0`, verification passed, rollback was not attempted, outcome closure and learning were written from real observed evidence, snapshot refresh passed, and production OMP recalculated to a fresh `AUTHORITY_BOUNDARY` packet. |
+| Current next best action | Implement approved plan lock consumption in the existing `v7-users-autoswitch` owner before requesting any new packet approval. |
+| Last optimizer iteration | `2026-06-26`: operator approved exact packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc`; execution lease was created; restore-barrier clearance was written only for that packet; guarded apply returned `NOOP/no_selected_moves`; no user moved, rollback was not needed, truth/convergence passed, and A3 remains uncertified. |
 
 ## 25. Program Rule For Future Work
 

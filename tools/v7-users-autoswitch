@@ -3951,6 +3951,7 @@ class AutoswitchPlanner:
         else:
             blast_radius_scope = "bounded_by_policy"
         restore_barrier = dict(self.restore_barrier)
+        selected_moves_source = "planner_selection" if selected else "planner_no_selection"
         selected_before_restore_barrier = [
             {
                 "user_ip": str(move.get("user_ip") or ""),
@@ -3966,9 +3967,11 @@ class AutoswitchPlanner:
             restore_barrier["approved_plan_lock_validation"] = approved_plan_lock
             if approved_plan_lock.get("ok"):
                 selected = approved_plan_lock["selected_moves"]
+                selected_moves_source = "approved_plan_lock"
                 if approved_plan_lock.get("selected_move_hash_source") == "approved_preview_packet":
                     approved_identity_hash = str(approved_plan_lock.get("selected_move_hash") or "")
                     restore_barrier["approved_preview_identity_consumed"] = True
+                    selected_moves_source = "approved_preview_packet_lock"
                 selected_before_restore_barrier = list(selected)
                 selected_after_policy_count = len(selected)
                 selected_after_request_cap_count = len(selected)
@@ -4024,7 +4027,16 @@ class AutoswitchPlanner:
             approved_plan_lock,
         )
         if bool_value(intelligence_snapshot_gate.get("active")) and bool_value(intelligence_snapshot_gate.get("stop_required")):
+            if approved_plan_lock.get("present"):
+                restore_barrier["approved_plan_lock_selected_moves_blocked"] = True
+                restore_barrier["approved_plan_lock_blocker"] = "approved_plan_lock_snapshot_gate_stop_required"
+                restore_barrier["approved_plan_lock_selected_moves_before_block"] = len(selected)
+                restore_barrier["approved_plan_lock_selected_moves_source"] = selected_moves_source
+                intelligence_snapshot_gate["approved_plan_lock_selected_moves_blocked"] = True
+                intelligence_snapshot_gate["selected_moves_source_before_block"] = selected_moves_source
+                intelligence_snapshot_gate["unsafe_blocker"] = "approved_plan_lock_snapshot_gate_stop_required"
             selected = []
+            selected_moves_source = "blocked_by_intelligence_snapshot_gate"
             intelligence_snapshot_gate["selected_moves_after_gate"] = 0
         else:
             intelligence_snapshot_gate["selected_moves_after_gate"] = len(selected)
@@ -4089,6 +4101,15 @@ class AutoswitchPlanner:
                 "restore_barrier": restore_barrier,
                 "intelligence_snapshots": intelligence_snapshot_gate,
                 "atomic_execution_envelope": atomic_execution_envelope,
+                "selected_moves_diagnostics": {
+                    "source": selected_moves_source,
+                    "approved_plan_lock_present": bool_value(approved_plan_lock.get("present")),
+                    "approved_plan_lock_ok": bool_value(approved_plan_lock.get("ok")),
+                    "approved_plan_lock_hash_source": str(approved_plan_lock.get("selected_move_hash_source") or ""),
+                    "selected_moves_before_restore_barrier": len(selected_before_restore_barrier),
+                    "selected_moves_after_gate": len(selected),
+                    "planner_recomputed_after_approval": False if approved_plan_lock.get("ok") else None,
+                },
             },
             "summary": {
                 "users_total": len(active),
@@ -6017,6 +6038,24 @@ class AutoswitchPlanner:
         if mode == "observe":
             return {"applied": False, "reason": "mode_observe_blocks_apply"}
         if not plan.get("selected_moves"):
+            safety = plan.get("safety") or {}
+            barrier = safety.get("restore_barrier") or {}
+            approved_lock = barrier.get("approved_plan_lock_validation") or {}
+            diagnostics = safety.get("selected_moves_diagnostics") or {}
+            if approved_lock.get("present"):
+                reason = str(
+                    barrier.get("approved_plan_lock_blocker")
+                    or barrier.get("clearance_guard_reason")
+                    or approved_lock.get("reason")
+                    or "approved_plan_lock_selected_moves_missing"
+                )
+                return {
+                    "applied": False,
+                    "reason": "approved_plan_lock_selected_moves_missing",
+                    "unsafe_blocker": reason,
+                    "selected_moves_diagnostics": diagnostics,
+                    "approved_plan_lock_validation": approved_lock,
+                }
             return {"applied": False, "reason": "no_selected_moves"}
         atomic_validation = self._validate_atomic_execution_envelope(plan)
         plan.setdefault("safety", {})["atomic_execution_envelope_validation"] = atomic_validation

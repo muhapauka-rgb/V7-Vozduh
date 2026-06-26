@@ -10,13 +10,17 @@ from admin_core.operator_execution import (
     PacketError,
     RUNTIME_ACTION_CREATE_CLEARANCE,
     RUNTIME_ACTION_ZERO_MOVE_GOVERNANCE,
+    approved_packet_binding_status,
     cancel_execution_lease,
+    create_execution_lease_from_packet,
     create_execution_lease_from_preview,
     execute_packet,
     execution_lease_state,
     extract_packet_preview,
     packet_from_preview,
+    packet_identity,
     packet_from_plan,
+    preview_packet_identity,
     resolve_under_repo,
     runtime_recheck,
     sha256_bytes,
@@ -447,6 +451,101 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(result["recheck"]["verdict"], "ALLOW_RESTORE_BARRIER_CLEARANCE")
         self.assertEqual(result["clearance_preview"]["clearance"]["packet_id"], "pkt_preview_unit_identity")
         self.assertFalse(result["record_written"])
+
+    def test_execution_lease_from_approved_packet_uses_same_packet_id(self):
+        packet = packet_from_preview(
+            self.preview_packet(),
+            approval_author="operator-a",
+            approval_reviewer="operator-b",
+        )
+        lease = create_execution_lease_from_packet(packet, source_preview=self.preview_packet())
+
+        self.assertEqual(lease["packet"]["packet_id"], packet["packet_id"])
+        self.assertEqual(lease["immutable_packet_identity"]["packet_id"], packet["packet_id"])
+        self.assertEqual(lease["immutable_packet_identity"]["decision_id"], packet["decision_id"])
+        self.assertEqual(lease["immutable_packet_identity"]["operation_id"], packet["operation_id"])
+        self.assertEqual(lease["immutable_packet_identity"]["selected_move_hash"], packet["expected"]["selected_move_hash"])
+        self.assertEqual(lease["immutable_packet_identity"]["user"], "10.7.0.11")
+        self.assertEqual(lease["immutable_packet_identity"]["source"], "1")
+        self.assertEqual(lease["immutable_packet_identity"]["target"], "vless")
+
+    def test_execution_lease_from_packet_never_regenerates_packet(self):
+        preview = self.preview_packet()
+        packet = packet_from_preview(
+            preview,
+            approval_author="operator-a",
+            approval_reviewer="operator-b",
+        )
+        regenerated_preview = dict(preview)
+        regenerated_preview["packet_id"] = "pkt_preview_regenerated"
+        regenerated_preview["selected_move_hash"] = "different-selected-hash"
+
+        lease = create_execution_lease_from_packet(packet, source_preview=regenerated_preview)
+
+        self.assertEqual(lease["packet"]["packet_id"], "pkt_preview_unit_identity")
+        self.assertEqual(lease["packet"]["expected"]["selected_move_hash"], "preview-selected-hash-unit")
+        self.assertNotEqual(lease["packet"]["packet_id"], regenerated_preview["packet_id"])
+
+    def test_approval_binding_rejects_changed_preview_identity(self):
+        preview = self.preview_packet()
+        approved_identity = preview_packet_identity(preview)
+        changed_preview = dict(preview)
+        changed_preview["allowed_targets"] = ["awg3"]
+        changed_preview["rollback_manifest_preview"] = {
+            **preview["rollback_manifest_preview"],
+            "items": [
+                {
+                    **preview["rollback_manifest_preview"]["items"][0],
+                    "forward_target": "awg3",
+                }
+            ],
+        }
+
+        binding = approved_packet_binding_status(preview_packet_identity(changed_preview), approved_identity)
+
+        self.assertFalse(binding["ok"])
+        self.assertEqual(binding["mismatches"][0]["field"], "target")
+
+    def test_create_execution_lease_from_preview_requires_matching_approved_identity(self):
+        preview = self.preview_packet()
+        approved_identity = preview_packet_identity(preview)
+        approved_identity["packet_id"] = "pkt_preview_other"
+
+        with self.assertRaises(PacketError):
+            create_execution_lease_from_preview(
+                preview,
+                approval_author="operator-a",
+                approval_reviewer="operator-b",
+                approved_identity=approved_identity,
+            )
+
+    def test_apply_consumes_identical_packet_from_execution_lease(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.make_state(root)
+            audit = root / "audit.jsonl"
+            barrier = state / "autoswitch-restore-barrier.json"
+            packet = packet_from_preview(
+                self.preview_packet(),
+                approval_author="operator-a",
+                approval_reviewer="operator-b",
+            )
+            lease = create_execution_lease_from_packet(packet, source_preview=self.preview_packet())
+            result = execute_packet(
+                lease["packet"],
+                audit,
+                state,
+                mode="runtime_action_preview",
+                restore_barrier_file=barrier,
+            )
+
+        self.assertEqual(packet_identity(lease["packet"]), lease["immutable_packet_identity"])
+        self.assertEqual(result["recheck"]["verdict"], "ALLOW_RESTORE_BARRIER_CLEARANCE")
+        self.assertEqual(result["clearance_preview"]["clearance"]["packet_id"], packet["packet_id"])
+        self.assertEqual(
+            result["clearance_preview"]["clearance"]["approved_selected_moves_hash"],
+            packet["expected"]["selected_move_hash"],
+        )
 
     def test_execution_lease_preserves_on_freshness_only_change(self):
         lease = create_execution_lease_from_preview(

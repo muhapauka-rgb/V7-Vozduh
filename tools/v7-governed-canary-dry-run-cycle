@@ -239,6 +239,29 @@ def decision_records(state_dir: Path, event_dir: Path, audit_dir: Path) -> list[
     return rows
 
 
+def approved_identity_from_args(args: argparse.Namespace) -> dict[str, str]:
+    return {
+        "packet_id": str(args.approved_packet_id or ""),
+        "decision_id": str(args.approved_decision_id or ""),
+        "operation_id": str(args.approved_operation_id or ""),
+        "selected_move_hash": str(args.approved_selected_move_hash or ""),
+        "user": str(args.approved_user or ""),
+        "source": str(args.approved_source or ""),
+        "target": str(args.approved_target or ""),
+        "authority_generation": str(args.approved_authority_generation or ""),
+    }
+
+
+def execution_lease_not_created(reason: str, **extra: Any) -> dict[str, Any]:
+    return {
+        "ok": False,
+        "verdict": "EXECUTION_LEASE_NOT_CREATED",
+        "reason": reason,
+        "execution_allowed_now": False,
+        **extra,
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run V7 governed canary knowledge-gated dry-run cycle.")
     parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
@@ -253,6 +276,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--approval-author", default="operator-a")
     parser.add_argument("--approval-reviewer", default="operator-b")
     parser.add_argument("--ttl-seconds", type=int, default=operator_execution.DEFAULT_EXECUTION_LEASE_TTL_SECONDS)
+    parser.add_argument("--approved-packet-id", default="")
+    parser.add_argument("--approved-decision-id", default="")
+    parser.add_argument("--approved-operation-id", default="")
+    parser.add_argument("--approved-selected-move-hash", default="")
+    parser.add_argument("--approved-user", default="")
+    parser.add_argument("--approved-source", default="")
+    parser.add_argument("--approved-target", default="")
+    parser.add_argument("--approved-authority-generation", default="")
     parser.add_argument("--pretty", action="store_true")
     return parser
 
@@ -307,29 +338,59 @@ def main(argv=None) -> int:
     lease_create_result = {}
     if args.create_execution_lease and not active_execution_lease:
         if cycle.get("stop_reason") == "AUTHORITY_BOUNDARY" and (cycle.get("packet_preview") or {}).get("status") == "PACKET_PREVIEW_READY":
-            lease = operator_execution.create_execution_lease_from_preview(
-                cycle.get("packet_preview") or {},
-                approval_author=args.approval_author,
-                approval_reviewer=args.approval_reviewer,
-                ttl_seconds=args.ttl_seconds,
-            )
-            lease_create_result = operator_execution.write_execution_lease(lease_file, lease)
-            if lease_create_result.get("ok"):
-                execution_lease = lease
-                execution_lease_state = operator_execution.execution_lease_state(execution_lease)
-                cycle = operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle(
-                    events=events,
-                    decision_surface=surface,
-                    execution_lease=execution_lease,
-                    max_users=max(1, int(args.max_users)),
+            approved_identity = approved_identity_from_args(args)
+            current_identity = operator_execution.preview_packet_identity(cycle.get("packet_preview") or {})
+            binding = operator_execution.approved_packet_binding_status(current_identity, approved_identity)
+            if not binding.get("ok"):
+                lease_create_result = execution_lease_not_created(
+                    "approved_packet_binding_required" if binding.get("missing_fields") else "approved_packet_identity_mismatch",
+                    binding=binding,
                 )
+                cycle["stop_reason"] = "UNSAFE_IMPLEMENTATION"
+                cycle["root_cause"] = "approved_packet_cannot_bind_to_execution_lease"
+                cycle["responsible_owner"] = "admin_core/operator_execution.py"
+                cycle["implementation_class"] = "BUG"
+                cycle["next_engineering_task"] = "A3_FIX_APPROVAL_TO_EXECUTION_LEASE_BINDING"
+                cycle["expected_completion_evidence"] = "execution lease uses the approved packet identity exactly"
+            else:
+                packet = operator_execution.packet_from_preview(
+                    cycle.get("packet_preview") or {},
+                    approval_author=args.approval_author,
+                    approval_reviewer=args.approval_reviewer,
+                    ttl_seconds=args.ttl_seconds,
+                )
+                packet_binding = operator_execution.approved_packet_binding_status(
+                    operator_execution.packet_identity(packet),
+                    approved_identity,
+                )
+                if not packet_binding.get("ok"):
+                    lease_create_result = execution_lease_not_created(
+                        "approved_packet_materialization_changed_identity",
+                        binding=packet_binding,
+                    )
+                    cycle["stop_reason"] = "UNSAFE_IMPLEMENTATION"
+                    cycle["root_cause"] = "approved_packet_identity_changed_during_materialization"
+                    cycle["responsible_owner"] = "admin_core/operator_execution.py"
+                    cycle["implementation_class"] = "BUG"
+                    cycle["next_engineering_task"] = "A3_FIX_APPROVAL_TO_EXECUTION_LEASE_BINDING"
+                    cycle["expected_completion_evidence"] = "materialized packet identity equals approved packet identity"
+                else:
+                    lease = operator_execution.create_execution_lease_from_packet(
+                        packet,
+                        source_preview=cycle.get("packet_preview") or {},
+                    )
+                    lease_create_result = operator_execution.write_execution_lease(lease_file, lease)
+                    if lease_create_result.get("ok"):
+                        execution_lease = lease
+                        execution_lease_state = operator_execution.execution_lease_state(execution_lease)
+                        cycle = operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle(
+                            events=events,
+                            decision_surface=surface,
+                            execution_lease=execution_lease,
+                            max_users=max(1, int(args.max_users)),
+                        )
         else:
-            lease_create_result = {
-                "ok": False,
-                "verdict": "EXECUTION_LEASE_NOT_CREATED",
-                "reason": "packet_not_ready_for_approval",
-                "execution_allowed_now": False,
-            }
+            lease_create_result = execution_lease_not_created("packet_not_ready_for_approval")
     cycle["inputs"] = {
         "state_dir": str(state_dir),
         "event_dir": str(event_dir),

@@ -53,6 +53,16 @@ MATERIAL_STATE_FIELDS = [
     "destination_eligibility",
     "source_eligibility",
 ]
+APPROVED_PACKET_BINDING_FIELDS = [
+    "packet_id",
+    "decision_id",
+    "operation_id",
+    "selected_move_hash",
+    "user",
+    "source",
+    "target",
+    "authority_generation",
+]
 
 
 class PacketError(ValueError):
@@ -426,6 +436,9 @@ def _packet_identity(packet):
     expected = packet.get("expected") or {}
     constraints = packet.get("constraints") or {}
     rollback_manifest = packet.get("rollback_manifest") or {}
+    lock = packet.get("approved_plan_lock") if isinstance(packet.get("approved_plan_lock"), dict) else {}
+    lock_moves = lock.get("selected_moves") if isinstance(lock.get("selected_moves"), list) else []
+    lock_move = lock_moves[0] if lock_moves and isinstance(lock_moves[0], dict) else {}
     return {
         "packet_id": str(packet.get("packet_id") or ""),
         "operation_id": str(packet.get("operation_id") or ""),
@@ -433,9 +446,69 @@ def _packet_identity(packet):
         "authority_generation": str(packet.get("authority_generation") or expected.get("generation_id") or ""),
         "selected_move_hash": str(expected.get("selected_move_hash") or ""),
         "selected_move_count": as_int(expected.get("selected_move_count"), 0),
+        "user": str(lock_move.get("user_ip") or ((constraints.get("allowed_users") or [""])[0]) or ""),
+        "source": str(lock_move.get("current_egress") or ""),
+        "target": str(lock_move.get("recommended_egress") or ((constraints.get("allowed_targets") or [""])[0]) or ""),
         "allowed_users": [str(item) for item in (constraints.get("allowed_users") or [])],
         "allowed_targets": [str(item) for item in (constraints.get("allowed_targets") or [])],
         "rollback_manifest_id": str(rollback_manifest.get("rollback_manifest_id") or ""),
+    }
+
+
+def packet_identity(packet):
+    return _packet_identity(packet if isinstance(packet, dict) else {})
+
+
+def preview_packet_identity(preview):
+    preview = extract_packet_preview(preview)
+    selected = selected_moves_from_preview(preview)
+    moves = selected.get("moves") or []
+    move = moves[0] if moves and isinstance(moves[0], dict) else {}
+    rollback_preview = preview.get("rollback_manifest_preview") if isinstance(preview.get("rollback_manifest_preview"), dict) else {}
+    return {
+        "packet_id": str(preview.get("packet_id") or ""),
+        "operation_id": str(preview.get("operation_id") or ""),
+        "decision_id": str(preview.get("decision_id") or ""),
+        "authority_generation": str(selected.get("authority_generation") or ""),
+        "selected_move_hash": str(selected.get("selected_move_hash") or ""),
+        "selected_move_count": as_int(selected.get("selected_move_count"), 0),
+        "user": str(move.get("user_ip") or ""),
+        "source": str(move.get("current_egress") or ""),
+        "target": str(move.get("recommended_egress") or ""),
+        "allowed_users": [str(item) for item in (preview.get("allowed_users") or [])],
+        "allowed_targets": [str(item) for item in (preview.get("allowed_targets") or [])],
+        "rollback_manifest_id": str(rollback_preview.get("rollback_manifest_id") or ""),
+    }
+
+
+def approved_packet_binding_status(actual_identity, approved_identity):
+    actual = actual_identity if isinstance(actual_identity, dict) else {}
+    approved = approved_identity if isinstance(approved_identity, dict) else {}
+    normalized_approved = {
+        str(key): str(value)
+        for key, value in approved.items()
+        if str(key) and value not in (None, "")
+    }
+    missing_fields = [
+        field for field in APPROVED_PACKET_BINDING_FIELDS
+        if not normalized_approved.get(field)
+    ]
+    mismatches = [
+        {
+            "field": field,
+            "approved": normalized_approved.get(field, ""),
+            "actual": str(actual.get(field) or ""),
+        }
+        for field in APPROVED_PACKET_BINDING_FIELDS
+        if normalized_approved.get(field) and str(actual.get(field) or "") != normalized_approved.get(field)
+    ]
+    return {
+        "ok": not missing_fields and not mismatches,
+        "binding_required_fields": list(APPROVED_PACKET_BINDING_FIELDS),
+        "missing_fields": missing_fields,
+        "mismatches": mismatches,
+        "approved_identity": normalized_approved,
+        "actual_identity": {field: str(actual.get(field) or "") for field in APPROVED_PACKET_BINDING_FIELDS},
     }
 
 
@@ -623,21 +696,38 @@ def build_execution_lease(packet, *, source_preview=None, now=None):
     return lease
 
 
+def create_execution_lease_from_packet(packet, *, source_preview=None):
+    packet = packet if isinstance(packet, dict) else {}
+    validation = validate_packet(packet)
+    if not validation.get("ok"):
+        raise PacketError(",".join(validation.get("errors") or ["approved_packet_invalid"]))
+    return build_execution_lease(packet, source_preview=source_preview)
+
+
 def create_execution_lease_from_preview(
     preview,
     *,
     approval_author,
     approval_reviewer,
     ttl_seconds=DEFAULT_EXECUTION_LEASE_TTL_SECONDS,
+    approved_identity=None,
 ):
     preview = extract_packet_preview(preview)
+    if approved_identity is not None:
+        binding = approved_packet_binding_status(preview_packet_identity(preview), approved_identity)
+        if not binding.get("ok"):
+            raise PacketError("approved_packet_binding_failed:" + sha256_json(binding))
     packet = packet_from_preview(
         preview,
         approval_author=approval_author,
         approval_reviewer=approval_reviewer,
         ttl_seconds=ttl_seconds,
     )
-    return build_execution_lease(packet, source_preview=preview)
+    if approved_identity is not None:
+        binding = approved_packet_binding_status(packet_identity(packet), approved_identity)
+        if not binding.get("ok"):
+            raise PacketError("approved_packet_materialization_changed_identity:" + sha256_json(binding))
+    return create_execution_lease_from_packet(packet, source_preview=preview)
 
 
 def execution_lease_state(lease, *, now=None, current_source_hashes=None, current_material_state=None):

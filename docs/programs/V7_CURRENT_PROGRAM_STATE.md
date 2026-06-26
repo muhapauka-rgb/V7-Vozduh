@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-26T22:08:53+0700
-Source: A3 approved packet reached restore-barrier clearance, but guarded apply failed closed because the existing autoswitch snapshot gate suppressed the approved locked selected move despite no material state change. The autoswitch owner has been fixed locally and tested; deployment and A3 rerun are next.
+State captured: 2026-06-26T22:41:19+0700
+Source: A3 approved packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` executed through existing owners, verified successfully, required no rollback, closed outcome `execfb_55e330784ad36b513d23e12a`, refreshed learning, and passed truth/convergence.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -14,47 +14,47 @@ This file is volatile. Update it after every safe action or approved execution t
 | Current phase | `IMPLEMENTATION` |
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Implementation Backlog` |
-| Current highest leverage implementation | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
-| Current highest leverage action | deploy tested autoswitch snapshot-gate fix, then rerun A3 governed canary flow |
-| Current authority class | `NONE`: current work is engineering fix/deploy, not packet approval |
+| Current highest leverage implementation | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
+| Current highest leverage action | collect additional real comparable governed/manual outcomes; A4 read-only evidence evaluation found representative evidence still insufficient |
+| Current authority class | `NONE`: A3 outcome is closed; A4 evidence materialization is read-only unless another production action becomes necessary |
 | authority_class | `NONE` |
-| authority_reason | No operator approval is required for the safe non-runtime fix. A future fresh packet execution may require `OPERATIONAL_AUTHORITY` after deploy and rerun. |
+| authority_reason | No operator approval is required for read-only A4 evidence evaluation. A future fresh governed production action may require `OPERATIONAL_AUTHORITY` only if additional real outcomes are needed. |
 | authority_owner | Existing packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch`. |
-| required_action | Deploy tested code fix through existing safe deployment owner, then rerun A3. |
-| Current reality limit | `A3_NOT_CERTIFIED`: A3 still requires real movement, verification, rollback/no-rollback classification, outcome closure, and learning from observed production evidence |
-| Current safe next action | deploy tested autoswitch fix, then rerun A3 dry-run/approval flow |
-| Current stop reason | `UNSAFE_IMPLEMENTATION_RESOLVED_LOCALLY_PENDING_DEPLOY`: tested code fix exists locally and must be deployed before production retry |
-| root_cause | Existing autoswitch owner suppressed approved locked `selected_moves` when snapshot gate reported source mismatch even though `snapshot_gate_material_change=false`. |
+| required_action | Wait for or execute only operator-approved real governed/manual actions that create comparable outcomes; no synthetic evidence allowed. |
+| Current reality limit | `A4_REPRESENTATIVE_OUTCOME_EVIDENCE_REQUIRED`: current inventory reports `missing_candidate_outcomes=70`, `outcome_closure_state=PARTIAL`, `freshness_recheck_required=capacity`, and class certification gaps |
+| Current safe next action | when a fresh governed candidate becomes eligible, prepare exact packet and request operational approval; otherwise wait for real production evidence |
+| Current stop reason | `REAL_WORLD_LIMIT`: A4 cannot be completed from the current evidence set without additional real comparable outcomes |
+| root_cause | A4 needs representative real outcome evidence for the first action class; current evidence remains partial after the A3 no-rollback closure. |
 | responsible_owner | Existing apply/verify owner `tools/v7-users-autoswitch`; existing packet/execution lease owner `admin_core/operator_execution.py` remains reused. |
-| implementation_class | `BUG` |
-| next_engineering_task | `DEPLOY_A3_NON_MATERIAL_SNAPSHOT_GATE_APPLY_FIX_AND_RERUN_A3` |
-| expected_completion_evidence | safe deploy, truth/convergence, production A3 rerun, then either fresh `OPERATIONAL_AUTHORITY` packet or real movement verification/outcome closure. |
+| implementation_class | `REAL_WORLD_LIMIT` |
+| next_engineering_task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
+| expected_completion_evidence | additional real comparable governed/manual outcomes, reduced/closed candidate outcome gap, class-level evidence readiness, truth/convergence. |
 
 ## 1.1. Root Cause Engine Output
 
 | Field | Current Value |
 | --- | --- |
-| Stop condition | `OPERATIONAL_AUTHORITY` |
-| Authority Class | `OPERATIONAL_AUTHORITY` |
-| Authority Reason | Exact packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` is ready for governed TIER_1 operator approval. |
-| Root Cause | A3 certification now needs one real governed candidate outcome. Runtime/apply authority is intentionally withheld until the operator approves the exact production action. |
-| Responsible owner | OMP authority boundary plus existing packet/execution/restore/apply owners. |
-| Why it happened | The implementation defect was fixed; the system returned to the intended governed canary path, which must stop before restore-barrier write or user movement. |
-| Why existing safety worked | Dry-run stayed read-only, created no restore-barrier clearance, did not apply, did not move users, and produced an exact approval prompt. |
+| Stop condition | `REAL_WORLD_LIMIT` |
+| Authority Class | `NONE` |
+| Authority Reason | The approved A3 packet has already executed and closed. |
+| Root Cause | A4 needs representative real outcome evidence for the first action class; current evidence remains partial after the A3 no-rollback closure. |
+| Responsible owner | Existing packet/execution/restore/apply/feedback owners. |
+| Why it happened | One real A3 outcome exists, but the action-class runtime inventory still reports insufficient candidate outcome coverage and missing class-level certification evidence. |
+| Why existing safety worked | A4 inventory is read-only; it did not enable runtime automation, expand authority, write restore barrier, apply, or move users. |
 | Can existing owner be extended? | `YES`; already extended by commit `ca8514ae31c6a3536082298acc993c78efd36489`. |
 | Need New Owner | `FALSE` |
-| Implementation Class | `AUTHORITY` |
-| Concrete engineering task | None before operator decision; current action is exact approve/reject for packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc`. |
-| Expected completion evidence | approved/rejected production action outcome, then real verification/rollback/no-rollback/learning evidence if approved. |
-| OMP automatic continuation | `YES` after operator decision and outcome closure. |
+| Implementation Class | `REAL_WORLD_LIMIT` |
+| Concrete engineering task | Produce additional real comparable outcomes through existing governed/manual owners only, then rerun A4 inventory. |
+| Expected completion evidence | Reduced/closed `missing_candidate_outcomes`, class-level rollback/no-rollback evidence, blast-radius certification, authority policy approval, runtime policy binding, and hard-failure classification passing recheck. |
+| OMP automatic continuation | `NO`; current loop stops at real-world evidence limit until more real outcomes exist or an exact operator-approved packet is available. |
 
 ## 2. Current Metrics
 
 | Metric | Current Value |
 | --- | --- |
 | Engineering maturity score | `100.0 / 100` |
-| Production maturity score | `21.5 / 100` |
-| Production maturity remaining | `78.5` |
+| Production maturity score | `24.0 / 100` |
+| Production maturity remaining | `76.0` |
 | Autonomy knowledge maturity score | `84.167` |
 | Confidence | `45.8 / 70` |
 | Trust | `44.465 / 70` |
@@ -68,32 +68,32 @@ This file is volatile. Update it after every safe action or approved execution t
 | Field | Current Value |
 | --- | --- |
 | engineering_maturity | `100.0%`; `ENGINEERING_COMPLETE` |
-| production_maturity | `21.5%` |
+| production_maturity | `24.0%` |
 | production_maturity_target | `100%` |
-| production_maturity_remaining | `78.5%` |
-| implementation_progress | `2 / 34 actionable complete` |
-| certification_progress | `22%`; two read-only backlog items are implemented and tested, while action-class runtime certification still requires real outcomes |
+| production_maturity_remaining | `76.0%` |
+| implementation_progress | `3 / 34 actionable complete` |
+| certification_progress | `28%`; A1/A2 are implemented/tested and A3 now has a real governed no-rollback outcome closure |
 | autonomy_progress | `TIER_1_GOVERNED`; bounded production autonomy not certified |
-| backlog_progress | Tier A `2 / 6`; Tier B `0 / 21`; Tier C `0 / 7`; Tier D optional `0 / 6`; Overall `2 / 34` |
-| remaining_backlog | `32 actionable items`; `6 optional items` |
+| backlog_progress | Tier A `3 / 6`; Tier B `0 / 21`; Tier C `0 / 7`; Tier D optional `0 / 6`; Overall `3 / 34` |
+| remaining_backlog | `31 actionable items`; `6 optional items` |
 | remaining_work | `Moderate` |
 | next_milestone | `35%: Runtime Eligibility Implemented` |
 | current_focus | `IMPLEMENTATION` |
 | current_milestone | `20%: First Implementation Certified` |
 | estimated_remaining_effort | `Moderate` |
-| current_highest_implementation_task | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
+| current_highest_implementation_task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
 | world_equivalence_status | `CANONICAL` |
 | backlog_consistency_status | `CANONICAL_BACKLOG_MAPPING_CURRENT` |
 | state_change_cost_verdict | `ALREADY_EXISTS_SEMANTICALLY`; represented by existing movement-protection owners and extended through backlog item `B19` |
 | active_capability | `Movement Protection`; current backlog item `A3` also contributes to `Rollback`, `Learning`, and `Authority Evolution` |
 | ideal_target_state | Movement Protection target state: Runtime evaluates current state, candidates, failure/degradation, freshness, recovery, blast radius, rollback, anti-flap, authority, State Change Cost, and Net Benefit; movement is allowed only when `NET_BENEFIT > CHANGE_COST` |
-| current_state | Capability-oriented OMP is active; Movement Protection is `IN_PROGRESS`; Decision Explainability is `IN_PROGRESS`; Runtime automation remains disabled; approved plan lock snapshot-gate fix is deployed; current stop is exact operational approval for A3 packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` |
-| capability_progress | Movement Protection `35.7%`; Runtime Eligibility `28.6%`; Authority Evolution `40.0%`; Rollback `42.9%`; Recovery Admission `25.0%`; Learning `40.0%`; Production Readiness `21.5%`; Production Autonomy `0.0%`; Knowledge System `100.0%`; Observability `30.0%`; Decision Explainability `20.0%`; Implementation Discipline `100.0%`; Engineering Knowledge Preservation `100.0%` |
+| current_state | Capability-oriented OMP is active; Movement Protection is `IN_PROGRESS`; Decision Explainability is `IN_PROGRESS`; Runtime automation remains disabled; A3 is closed with real no-rollback evidence; A4 is blocked by insufficient representative real outcomes |
+| capability_progress | Movement Protection `35.7%`; Runtime Eligibility `28.6%`; Authority Evolution `40.0%`; Rollback `42.9%`; Recovery Admission `25.0%`; Learning `40.0%`; Production Readiness `24.0%`; Production Autonomy `0.0%`; Knowledge System `100.0%`; Observability `30.0%`; Decision Explainability `20.0%`; Implementation Discipline `100.0%`; Engineering Knowledge Preservation `100.0%` |
 | capability_remaining | Movement Protection remains blocked by rollback/no-rollback certification, soft degradation certification, recovery admission certification, blast-radius certification, anti-flap certification, central policy arbitration, per-user routing mode, runtime-certified slow start, and pool-health semantics; Decision Explainability remains blocked by Russian approval-request explanation generation, evidence-linked gate display, alternative reasoning, risk/value display, and real governed validation |
 | capability_completion_prediction | Movement Protection completes after `A3`, `A5`, `A6`, `B3`, `B4`, `B5`, `B8`, `B10`, `B16`, `B19`, `B21`, and `C7` are complete or explicitly classified `NOT_APPLICABLE` where allowed; Decision Explainability completes after `A3`, `A6`, `B1`, `B4`, `B13`, `B15`, `B17`, and `C2` provide enough evidence/read-model coverage for complete Russian operator explanations |
 | completed_capabilities | `Knowledge System`; `Implementation Discipline`; `Engineering Knowledge Preservation` |
 | locked_capabilities | `Knowledge System`; `Engineering Knowledge Preservation` |
-| next_capability_target | Complete `A3` to advance `Movement Protection`, `Rollback`, `Learning`, and `Authority Evolution` with real rollback/no-rollback outcome evidence |
+| next_capability_target | Complete `A4` to advance `Learning`, `Authority Evolution`, `Production Readiness`, and `Production Autonomy` with representative real outcome evidence |
 
 ## 2.2. V7 Production Status
 
@@ -117,26 +117,26 @@ Engineering Maturity
 PRODUCTION
 
 Implementation
-5.9%
+8.8%
 
 Certification
-22%
+28%
 
 Autonomy
 0%
 
 Production Maturity
-21.5%
+24.0%
 
 Overall Status
 ENGINEERING_COMPLETE / PRODUCTION_IN_PROGRESS
 
 Current Focus
-IMPLEMENTATION
+CERTIFICATION
 
 Backlog
 Tier A
-2 / 6
+3 / 6
 Tier B
 0 / 21
 Tier C
@@ -144,22 +144,22 @@ Tier C
 Tier D
 0 / 6 optional
 Overall
-2 / 34 complete
+3 / 34 complete
 
 Current Tier
 TIER_1_GOVERNED
 
 Highest Priority Task
-A3: certify class-level rollback/no-rollback evidence for governed candidate movement.
+A4: materialize representative outcome evidence for the first action class.
 
 Status
-Production Action Ready
+Real-World Evidence Required
 
 Authority
-Operational
+None
 
 Required Action
-Approve or reject exact packet pkt_preview_5c4bcfaa59d769ced6d6e5dc.
+Collect additional real comparable outcomes through existing governed/manual owners only.
 
 Engineering
 READY
@@ -168,7 +168,7 @@ Runtime
 READY
 
 Packet
-READY
+NOT_READY
 
 Estimated Remaining Work
 Moderate
@@ -220,8 +220,8 @@ Production maturity category snapshot:
 | Restore barrier written | `true`; clearance written for approved packet `pkt_preview_4eb137c926917c2761faadb4` |
 | Users moved | `0` |
 | Authority expanded | `false` |
-| Next backlog item | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
-| Next item blocker | `UNSAFE_IMPLEMENTATION`: approved plan lock was valid, but selected moves were blocked by the autoswitch intelligence snapshot gate before apply. |
+| Next backlog item | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
+| Next item blocker | `REAL_WORLD_LIMIT_IF_INSUFFICIENT_REPRESENTATIVE_OUTCOMES`: A3 produced one real no-rollback outcome; A4 must not invent additional evidence. |
 
 ## 3. Latest Approved Packet Attempt
 
@@ -253,9 +253,9 @@ Production maturity category snapshot:
 
 No approved execution lease is active. The approved execution attempt consumed `pkt_preview_4eb137c926917c2761faadb4`, wrote the restore-barrier clearance, and failed closed before movement because the existing autoswitch snapshot gate suppressed the approved locked selected move.
 
-Latest continuation note: approved plan lock snapshot-gate consumption is fixed by commit `ca8514ae31c6a3536082298acc993c78efd36489`, deployed as `deploy-z8-14-Updatesystem-ca8514a-20260626T151701`, and verified by tests, truth, convergence, and production dry-run. The previous approval for `pkt_preview_b55fa389b91f8b508c424283` was rejected before mutation because the current packet identity changed. The current blocker is `OPERATIONAL_AUTHORITY`: packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` is ready for exact approve/reject.
+Latest continuation note: approved plan lock snapshot-gate consumption is fixed by commit `ca8514ae31c6a3536082298acc993c78efd36489`, deployed as `deploy-z8-14-Updatesystem-ca8514a-20260626T151701`, and verified by tests, truth, convergence, and production dry-run. Packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` was then approved, executed, verified, closed as a successful no-rollback outcome, and fed into learning. A3 is `DONE`; A4 is next.
 
-## 3.1. Current A3 Operational Authority Packet
+## 3.1. Completed A3 Operational Authority Packet
 
 | Field | Current Value |
 | --- | --- |
@@ -270,9 +270,14 @@ Latest continuation note: approved plan lock snapshot-gate consumption is fixed 
 | Selected move hash | `56fa62f34a169276aa56bcedbb7ad17a3d6731c92313a8833be3fad153dc6159` |
 | Authority tier | `TIER_1 governed canary` |
 | Authority status | `MARGINAL_OPERATOR_REVIEW` |
-| Runtime mutation | `false` |
-| Users moved | `0` |
-| Required operator action | approve or reject this exact packet only |
+| Runtime mutation | `true`; bounded one-user governed movement through existing apply owner |
+| Users moved | `1` |
+| Required operator action | `NONE`; packet already executed and closed |
+| Apply result | `APPLIED`; runtime operation `runtime_autoswitch_c06b1bc2a4ed6b53706de763` |
+| Verification result | `PASS`; `verify_rc=0` |
+| Rollback result | `NOT_ATTEMPTED`; verification passed |
+| Outcome closure | `CLOSED`; feedback `execfb_55e330784ad36b513d23e12a`; outcome quality `SUCCESS`; no rollback |
+| Learning update | `learn_0c3b5cdd250c64ac7d9b97e7`; snapshot refresh `PASS`; synthetic evidence `false` |
 
 ## 3.2. Previous Execution Lease Incident
 
@@ -481,9 +486,9 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
 | Certification | `IMPLEMENTATION_FIX_DEPLOYED`; A3 outcome certification still requires real approved movement, verification, and rollback/no-rollback closure |
 | Truth | `PASS`; local, GitHub, and runtime aligned |
 | Convergence | `PASS`; runtime action guard `READY_FOR_RUNTIME_ACTION` |
-| New highest implementation leverage task | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
-| Continue automatically | `YES_AFTER_OPERATIONAL_DECISION`; current loop stopped before apply |
-| Exact stop condition | `OPERATIONAL_AUTHORITY` |
+| New highest implementation leverage task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
+| Continue automatically | `NO`; A4 read-only evidence evaluation reached `REAL_WORLD_LIMIT` |
+| Exact stop condition | `REAL_WORLD_LIMIT`: representative outcomes are insufficient; no synthetic evidence may be created |
 
 ## 13. Production Deploy State
 
@@ -493,10 +498,10 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
 | Deploy id | `deploy-z8-14-Updatesystem-ca8514a-20260626T151701` |
 | Runtime truth | `KNOWN` |
 | Runtime access | `READY` |
-| Production dry-run verdict | exact packet ready; normalized stop `OPERATIONAL_AUTHORITY` |
+| Production dry-run verdict | A3 packet approved and executed after prior dry-run authority boundary |
 | Production authority generation | `authgen_56fa62f34a169276aa56bced` |
-| Stop reason | `OPERATIONAL_AUTHORITY` |
-| Next action | approve or reject exact packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` |
+| Stop reason | `NONE` after A3 closure |
+| Next action | run A4 evidence materialization read-only; stop at `REAL_WORLD_LIMIT` if more real comparable outcomes are required |
 
 ## 14. Post-Deploy Verification
 
@@ -507,8 +512,8 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
 | Truth check | `PASS`; local, GitHub, and runtime fully aligned on commit `ca8514ae31c6a3536082298acc993c78efd36489` |
 | Convergence | `PASS`; `ALIGNED`; runtime action guard `READY_FOR_RUNTIME_ACTION` |
 | Documentation dirtiness | documentation-only updates and engineering reports ignored by runtime truth |
-| Production execution commands | stale approval preflight and production governed canary dry-run only |
-| Production execution result | previous approval rejected before mutation because packet identity changed; no apply; no restore-barrier write; no movement; dry-run reached fresh exact packet approval boundary |
-| Production prompt safety | `restore_barrier_written_now=false`; `apply_executed=false`; `users_moved=0`; `rollback_executed=false`; no authority expansion |
-| Current packet freshness | Packet preview `pkt_preview_5c4bcfaa59d769ced6d6e5dc` is current for input generation and requires exact operator approval |
-| Exact next required approval | approve or reject packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` |
+| Production execution commands | approved packet execution through existing packet, lease, restore-barrier, autoswitch apply, verification, and feedback owners |
+| Production execution result | packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` applied exactly once: user `10.7.0.17` moved `vless -> awg3`; verification passed; rollback not required |
+| Production prompt safety | `restore_barrier_written_now=true`; `apply_executed=true`; `users_moved=1`; `rollback_executed=false`; no authority expansion |
+| Current packet freshness | No active A3 approval packet remains; A4 is read-only evidence evaluation unless additional real outcome collection is required |
+| Exact next required approval | `NONE` currently |

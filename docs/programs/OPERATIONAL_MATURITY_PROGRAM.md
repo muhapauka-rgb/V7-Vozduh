@@ -1359,9 +1359,9 @@ Current production snapshot:
 Production Maturity:
 
 ```text
-Current: 21.5%
+Current: 24.0%
 Target: 100%
-Remaining: 78.5%
+Remaining: 76.0%
 ```
 
 Backlog:
@@ -1371,7 +1371,7 @@ Tier A: 2 / 6 complete
 Tier B: 0 / 21 complete
 Tier C: 0 / 7 complete
 Tier D: 0 / 6 optional complete
-Overall: 2 / 34 actionable complete
+Overall: 3 / 34 actionable complete
 ```
 
 Current highest implementation task:
@@ -1455,7 +1455,7 @@ Autonomy
 0%
 
 Production Maturity
-21.5%
+24.0%
 
 Overall Status
 ENGINEERING_COMPLETE / PRODUCTION_IN_PROGRESS
@@ -1473,7 +1473,7 @@ Tier C
 Tier D
 0 / 6 optional
 Overall
-2 / 34 complete
+3 / 34 complete
 
 Current Tier
 TIER_1_GOVERNED
@@ -1631,7 +1631,7 @@ Authority Evolution | 40.0% | 100% | 60.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH
 Rollback | 42.9% | 100% | 57.1% | IN_PROGRESS | VERY_HIGH | HIGH | A3, B15, B16, C5 | Complete after rollback/no-rollback class evidence and authority are certified.
 Recovery Admission | 25.0% | 100% | 75.0% | IN_PROGRESS | HIGH | HIGH | B8, B9, B10 | Complete after recovered channels are reintroduced through certified readiness and slow-start.
 Learning | 40.0% | 100% | 60.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3, A4, B5, B13 | Complete after real outcomes reliably improve future decisions.
-Production Readiness | 21.5% | 100% | 78.5% | IN_PROGRESS | VERY_HIGH | HIGH | Remaining actionable backlog and certification | Complete at PRODUCTION_AUTONOMY_CERTIFIED.
+Production Readiness | 24.0% | 100% | 76.0% | IN_PROGRESS | VERY_HIGH | HIGH | Remaining actionable backlog and certification | Complete at PRODUCTION_AUTONOMY_CERTIFIED.
 Production Autonomy | 0.0% | 100% | 100.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3, A4, A5, A6, B10, B12, B16, C4 | Complete when Runtime operates inside certified policy and operator supervises.
 Knowledge System | 100.0% | 100% | 0.0% | LOCKED | HIGH | MEDIUM_HIGH | None | Complete and locked under canonical knowledge rules.
 Observability | 30.0% | 100% | 70.0% | IN_PROGRESS | HIGH | MEDIUM_HIGH | B1, B4, B9, B13, B15, B17, C2 | Complete when operators and OMP can inspect all safety/runtime evidence without mutation.
@@ -1662,7 +1662,7 @@ Initial capability registry:
 | Rollback | Guarantee safe compensation or certified no-rollback behavior for production actions. | `42.9` | `100` | `IN_PROGRESS` | Restore barrier, rollback manifest, Runtime Model, execution feedback | `VERY_HIGH` | `HIGH` | `A3`, `B15`, `B16`, `C5` | Rollback/no-rollback class evidence and automatic rollback authority are certified. | Failed rollback; verification failure pattern; explicit operator request. |
 | Recovery Admission | Admit recovered channels safely without oscillation or premature scale. | `25.0` | `100` | `IN_PROGRESS` | Recovery admission owner, service matrix, quality compact, blast-radius/action-class ladder | `HIGH` | `HIGH` | `B8`, `B9`, `B10`, `D2`, `D3` | Repeated real readiness evidence, observation windows, and runtime-certified slow start are complete. | Recovery incident; service evidence changes; explicit operator request. |
 | Learning | Convert real outcomes into future decision quality without synthetic evidence. | `40.0` | `100` | `IN_PROGRESS` | Feedback/learning owner, OMP, Canonical Reference | `VERY_HIGH` | `VERY_HIGH` | `A3`, `A4`, `B5`, `B13` | Representative real outcomes and metric reliability support promotion recommendations. | Learning regression; synthetic evidence risk; explicit operator request. |
-| Production Readiness | Make V7 deployable, operable, verifiable, and certifiable as a production system. | `21.5` | `100` | `IN_PROGRESS` | OMP, Production Maturity Model, Implementation Backlog | `VERY_HIGH` | `HIGH` | `A1`-`A6`, `B11`, `B14`, `B21`, `C7`, optional `D1`-`D6` only if scope changes | Production Maturity reaches `100%` and outputs `PRODUCTION_AUTONOMY_CERTIFIED`. | Production safety incident; deploy model change; explicit operator request. |
+| Production Readiness | Make V7 deployable, operable, verifiable, and certifiable as a production system. | `24.0` | `100` | `IN_PROGRESS` | OMP, Production Maturity Model, Implementation Backlog | `VERY_HIGH` | `HIGH` | `A1`-`A6`, `B11`, `B14`, `B21`, `C7`, optional `D1`-`D6` only if scope changes | Production Maturity reaches `100%` and outputs `PRODUCTION_AUTONOMY_CERTIFIED`. | Production safety incident; deploy model change; explicit operator request. |
 | Production Autonomy | Enable Runtime to operate inside certified authority while operator supervises. | `0.0` | `100` | `IN_PROGRESS` | OMP, Runtime Model, Authority Evolution, action-class promotion | `VERY_HIGH` | `VERY_HIGH` | `A3`, `A4`, `A5`, `A6`, `B10`, `B12`, `B16`, `C4` | Bounded autonomy and then production autonomy are certified by real outcomes and approved authority. | Autonomy incident; authority policy change; explicit operator request. |
 | Knowledge System | Preserve verified project knowledge and prevent repeated rediscovery. | `100.0` | `100` | `LOCKED` | Canonical Reference, Context Resolver, Research Framework, Policy Library, Document Lifecycle | `HIGH` | `MEDIUM_HIGH` | None current. | Current knowledge owners remain canonical and read-only under document lifecycle rules. | Industry consensus changes; `FUNDAMENTAL_ARCHITECTURE_GAP`; explicit operator request. |
 | Observability | Expose enough read-only truth for operators, OMP, Runtime, and certification. | `30.0` | `100` | `IN_PROGRESS` | Admin read models, trust/evidence inventory, truth/convergence | `HIGH` | `MEDIUM_HIGH` | `B1`, `B4`, `B9`, `B13`, `B15`, `B17`, `C2` | Read-only evidence shows eligibility, rollback, stale reads, promotion quality, and runtime readiness. | Operator cannot diagnose; evidence disagreement; explicit operator request. |
@@ -2239,17 +2239,17 @@ Current implementation optimizer result:
 
 | Field | Current Value |
 | --- | --- |
-| Highest implementation leverage task | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
+| Highest implementation leverage task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
 | Implementation class | `IMPLEMENT_CERTIFICATION` |
 | Exact owner | Restore barrier, guarded autoswitch execution, verification, rollback, outcome closure, feedback/learning |
 | Exact module | Canonical Policy Library Stage 4 implementation backlog |
 | Exact files | `admin_core/operator_execution.py`, `tools/v7-users-autoswitch`, `admin_core/operator_execution_feedback.py`, `admin_core/autonomy_trust_acceleration.py` |
-| Implementation status | `READY_FOR_OPERATIONAL_AUTHORITY_AFTER_APPROVED_PLAN_LOCK_SNAPSHOT_GATE_FIX` |
-| Backlog source | `docs/programs/V7_IMPLEMENTATION_BACKLOG.md` item `A3` |
+| Implementation status | `A3_DONE_A4_EVIDENCE_EVALUATION_NEXT` |
+| Backlog source | `docs/programs/V7_IMPLEMENTATION_BACKLOG.md` item `A4` |
 | Priority model | `docs/reference/V7_IMPLEMENTATION_PRIORITY_MODEL.md` |
 | Truth/convergence | `PASS`; local, GitHub, and production runtime aligned on commit `ca8514ae31c6a3536082298acc993c78efd36489`. |
-| New highest implementation leverage task | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
-| Stop boundary | `OPERATIONAL_AUTHORITY`: exact governed packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` requires approve/reject before restore-barrier write or apply. |
+| New highest implementation leverage task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
+| Stop boundary | `REAL_WORLD_LIMIT`: A4 lacks enough representative real outcomes; no authority boundary is active unless a fresh governed production packet becomes eligible. |
 
 Latest safe deployment result:
 
@@ -2257,11 +2257,11 @@ Latest safe deployment result:
 | --- | --- |
 | Deployed commit | `ca8514ae31c6a3536082298acc993c78efd36489` |
 | Deploy id | `deploy-z8-14-Updatesystem-ca8514a-20260626T151701` |
-| Deployed backlog items | `A1`, `A2`; A3 approval-to-execution lease binding fix; A3 approved plan lock snapshot-gate consumption fix |
+| Deployed backlog items | `A1`, `A2`; A3 approval-to-execution lease binding fix; A3 approved plan lock snapshot-gate consumption fix; A3 real no-rollback outcome closure |
 | Safety | `restore_barrier_modified=false`; `routing_mutation_executed=false`; `user_movement_executed=false`; `autoswitch_apply_executed=false` during fix/deploy/dry-run |
 | Truth | `PASS` |
 | Convergence | `PASS`; `ALIGNED` |
-| Current stop | `OPERATIONAL_AUTHORITY`: exact packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` is ready for operator approve/reject |
+| Current stop | `REAL_WORLD_LIMIT`: A4 representative outcome evidence is insufficient after read-only inventory; no synthetic evidence may be used |
 
 ## 2.13. Implementation Program Loop
 
@@ -3041,16 +3041,16 @@ If daemon, timer, event consumer mutation, autonomous execution, action-class ex
 | --- | --- |
 | Completed phases | Architecture foundation, Research Framework, Decision Model, Runtime Model, System Architecture, Implementation Phase activation, OMP Production Program integration. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle; OMP Production Program rule set. |
-| Current bottleneck | Exact operational approval is required for the current governed A3 packet before restore-barrier write or apply. |
-| Current highest leverage action | Approve or reject exact packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` for A3 governed candidate outcome evidence. |
+| Current bottleneck | Representative real outcome evidence for A4; current inventory reports `missing_candidate_outcomes=70` and class certification gaps. |
+| Current highest leverage action | Collect additional real comparable governed/manual outcomes through existing owners only; prepare exact packet only when a fresh governed candidate becomes eligible. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | `OPERATIONAL_AUTHORITY`: exact packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` requires operator approval/rejection. |
-| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; read-only runtime lifecycle preview deployed and production-verified; preview-to-execution packet identity deployed and production-verified; execution lease deployed and production-verified; approved plan lock snapshot-gate consumption fix deployed and production dry-run verified. |
-| Current runtime posture | No autonomous apply, no daemon enablement; current production dry-run moved no users and stopped before restore-barrier write/apply at the intended authority boundary. |
-| Current next best action | Approve or reject exact packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc`; if approved, execute only through existing owners and close real A3 outcome evidence. |
-| Last optimizer iteration | `2026-06-26`: previous approval for `pkt_preview_b55fa389b91f8b508c424283` was rejected before mutation because the current dry-run packet changed; no lease, restore-barrier write, apply, rollback, user movement, or authority expansion occurred; truth/convergence passed; production dry-run reached `OPERATIONAL_AUTHORITY` for fresh packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc`. |
+| Current blockers | `REAL_WORLD_LIMIT`: A4 requires additional real comparable outcomes, freshness capacity recheck, class-level blast-radius evidence, authority policy approval, runtime policy binding, and hard-failure classification recheck. |
+| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; read-only runtime lifecycle preview deployed and production-verified; preview-to-execution packet identity deployed and production-verified; execution lease deployed and production-verified; approved plan lock snapshot-gate consumption fix deployed and production dry-run verified; A3 real no-rollback outcome closed. |
+| Current runtime posture | No autonomous apply, no daemon enablement, and no authority expansion; A3 performed one explicitly approved governed movement, while A4 evidence evaluation remained read-only. |
+| Current next best action | Wait for or create the next real governed/manual outcome through existing owners only; if a fresh governed packet becomes eligible, stop at `OPERATIONAL_AUTHORITY` with exact approve/reject prompt. |
+| Last optimizer iteration | `2026-06-26`: packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` was approved, leased, restore-cleared, applied for one user `10.7.0.17 vless -> awg3`, verified successfully, closed as no-rollback outcome `execfb_55e330784ad36b513d23e12a`, fed into learning `learn_0c3b5cdd250c64ac7d9b97e7`, and passed truth/convergence. |
 
 ## 25. Program Rule For Future Work
 

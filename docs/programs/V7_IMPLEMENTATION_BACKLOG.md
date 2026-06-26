@@ -36,16 +36,16 @@ OMP must always choose the highest-priority unfinished backlog item unless it cr
 
 | Scope | Complete | Total | Status |
 | --- | ---: | ---: | --- |
-| Tier A | `2` | `6` | `ACTIVE` |
+| Tier A | `3` | `6` | `ACTIVE` |
 | Tier B | `0` | `21` | `PENDING` |
 | Tier C | `0` | `7` | `PENDING` |
 | Tier D optional | `0` | `6` | `OPTIONAL` |
-| Overall actionable | `2` | `34` | `ACTIVE` |
+| Overall actionable | `3` | `34` | `ACTIVE` |
 
 Implementation maturity:
 
 ```text
-5.9%
+8.8%
 ```
 
 Estimated remaining effort:
@@ -57,7 +57,7 @@ Moderate
 Next item:
 
 ```text
-A3
+A4
 ```
 
 If all actionable backlog items are `DONE`, OMP must answer:
@@ -92,14 +92,14 @@ State Change Cost verdict: `ALREADY_EXISTS_SEMANTICALLY`; extend existing B19 vo
 
 | Field | Value |
 | --- | --- |
-| Backlog id | `A3` |
-| Task | Certify class-level rollback/no-rollback evidence for governed candidate movement. |
-| Policy source | `POLICY_007_ROLLBACK`, supported by `POLICY_005_ACTION_CLASS_PROMOTION` |
-| Owner | Restore barrier, rollback manifest, governed execution, feedback/learning |
-| Files/modules | `admin_core/operator_execution.py`, `tools/v7-users-autoswitch`, `admin_core/operator_execution_feedback.py`, `admin_core/autonomy_trust_acceleration.py` |
-| Implementation class | `IMPLEMENT_CERTIFICATION` |
+| Backlog id | `A4` |
+| Task | Materialize representative outcome evidence for the first action class. |
+| Policy source | `POLICY_005_ACTION_CLASS_PROMOTION` |
+| Owner | OMP promotion engine, feedback/learning, outcome leverage model |
+| Files/modules | `admin_core/operator_execution_feedback.py`, `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory` |
+| Implementation class | `IMPLEMENT_BACKGROUND` |
 | Estimated effort | `MODERATE_EXTENSION` |
-| Dependencies | Real governed outcomes and rollback/no-rollback closure evidence. |
+| Dependencies | Real comparable outcomes, no synthetic evidence. |
 | Expected production value | `VERY_HIGH` |
 | Expected autonomy gain | `VERY_HIGH` |
 | Expected runtime gain | `HIGH` |
@@ -111,7 +111,7 @@ State Change Cost verdict: `ALREADY_EXISTS_SEMANTICALLY`; extend existing B19 vo
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `A1` | `DONE` | Bind canonical hard-failure classification to existing liveness/event evidence. | `POLICY_001_HARD_FAILURE` | Event sources, service matrix, quality compact, planner/autoswitch | `tools/v7-users-autoswitch`, `tools/v7-service-matrix-refresh-all`, `tools/v7-egress-quality-compact`, `admin_core/operator_decision_surface.py`, `admin_core/autonomy_trust_acceleration.py` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | Existing liveness, service, route, runtime evidence. | `VERY_HIGH` | `HIGH` | `HIGH` | `VERY_HIGH` |
 | `A2` | `DONE` | Canonicalize per-action-class freshness windows and owner-issued freshness fields. | `POLICY_008_FRESHNESS`, `POLICY_001_HARD_FAILURE`, `POLICY_003_RECOVERY_ADMISSION` | Freshness actionability, delegated policy preview, execution lease | `admin_core/autonomy_trust_acceleration.py`, `admin_core/operator_execution.py`, `tools/v7-autonomy-trust-evidence-inventory` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | Existing freshness classifications, packet lease, runtime fingerprints. | `VERY_HIGH` | `HIGH` | `VERY_HIGH` | `VERY_HIGH` |
-| `A3` | `TODO` | Certify class-level rollback/no-rollback evidence for governed candidate movement. | `POLICY_007_ROLLBACK`, `POLICY_005_ACTION_CLASS_PROMOTION` | Restore barrier, rollback manifest, governed execution, feedback/learning | `admin_core/operator_execution.py`, `tools/v7-users-autoswitch`, `admin_core/operator_execution_feedback.py`, `admin_core/autonomy_trust_acceleration.py` | `IMPLEMENT_CERTIFICATION` | `MODERATE_EXTENSION` | Real governed outcomes and rollback/no-rollback closure evidence. | `VERY_HIGH` | `VERY_HIGH` | `HIGH` | `VERY_HIGH` |
+| `A3` | `DONE` | Certify class-level rollback/no-rollback evidence for governed candidate movement. | `POLICY_007_ROLLBACK`, `POLICY_005_ACTION_CLASS_PROMOTION` | Restore barrier, rollback manifest, governed execution, feedback/learning | `admin_core/operator_execution.py`, `tools/v7-users-autoswitch`, `admin_core/operator_execution_feedback.py`, `admin_core/autonomy_trust_acceleration.py` | `IMPLEMENT_CERTIFICATION` | `MODERATE_EXTENSION` | Real governed no-rollback outcome closed for packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc`; feedback `execfb_55e330784ad36b513d23e12a`; learning `learn_0c3b5cdd250c64ac7d9b97e7`. | `VERY_HIGH` | `VERY_HIGH` | `HIGH` | `VERY_HIGH` |
 | `A4` | `TODO` | Materialize representative outcome evidence for the first action class. | `POLICY_005_ACTION_CLASS_PROMOTION` | OMP promotion engine, feedback/learning, outcome leverage model | `admin_core/operator_execution_feedback.py`, `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory` | `IMPLEMENT_BACKGROUND` | `MODERATE_EXTENSION` | Real comparable outcomes, no synthetic evidence. | `VERY_HIGH` | `VERY_HIGH` | `MEDIUM_HIGH` | `HIGH` |
 | `A5` | `TODO` | Certify class-level blast-radius evidence beyond the one-user guard. | `POLICY_006_BLAST_RADIUS`, `POLICY_005_ACTION_CLASS_PROMOTION` | Action-class ladder, planner budgets, capacity/load gates | `tools/v7-users-autoswitch`, `admin_core/autonomy_trust_acceleration.py`, `admin_core/operator_execution_pipeline.py` | `IMPLEMENT_VERIFICATION` | `MODERATE_EXTENSION` | Planner move counts, capacity, fallback, policy scope. | `VERY_HIGH` | `HIGH` | `HIGH` | `VERY_HIGH` |
 | `A6` | `TODO` | Implement action-class runtime eligibility arbitration using freshness, authority, blast radius, rollback, anti-flap, verification, and learning gates. | `POLICY_004_AUTHORITY`, `POLICY_005_ACTION_CLASS_PROMOTION`, `POLICY_006_BLAST_RADIUS`, `POLICY_007_ROLLBACK`, `POLICY_008_FRESHNESS`, `POLICY_009_ANTI_FLAP` | OMP, delegated policy preview, action-class runtime enablement, Runtime Model | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory`, `admin_core/operator_execution_pipeline.py` | `IMPLEMENT_READ_MODEL` | `MODERATE_EXTENSION` | A1-A5 gate outputs; no runtime apply enabled. | `VERY_HIGH` | `VERY_HIGH` | `VERY_HIGH` | `VERY_HIGH` |

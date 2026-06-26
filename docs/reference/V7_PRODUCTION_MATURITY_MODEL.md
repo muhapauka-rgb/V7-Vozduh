@@ -113,14 +113,14 @@ Weights sum to `100`.
 
 | Category | Current % | Target % | Weight | Current evidence basis |
 | --- | ---: | ---: | ---: | --- |
-| Implementation | `6.1` | `100` | `20` | Implementation Backlog actionable progress is `2 / 33`. |
+| Implementation | `8.8` | `100` | `20` | Implementation Backlog actionable progress is `3 / 34`. |
 | Testing | `34` | `100` | `10` | A1/A2 focused unit tests and read-only CLI smoke checks pass; broader production certification remains open. |
 | Production Deployments | `100` | `100` | `10` | Safe deploy owner exists and local/GitHub/production convergence is aligned. |
-| Production Outcomes | `10` | `100` | `15` | One real governed candidate outcome exists; repeated representative outcomes are missing. |
-| Certification | `22` | `100` | `15` | A1/A2 are implemented and tested as read-only backlog items; class-level rollback/no-rollback certification still requires real outcomes. Architecture/model certification belongs to Engineering Maturity. |
+| Production Outcomes | `15` | `100` | `15` | A3 added a real governed no-rollback candidate outcome with verification passed and outcome closure completed; repeated representative outcomes remain missing. |
+| Certification | `28` | `100` | `15` | A1/A2 are implemented and tested as read-only backlog items; A3 has real class-level no-rollback outcome evidence. Architecture/model certification belongs to Engineering Maturity. |
 | Authority Evolution | `15` | `100` | `10` | TIER_1 governed authority exists; delegated autonomy policy is not approved and authority expansion is not granted. |
 | Production Autonomy | `0` | `100` | `10` | Runtime automation/apply remains disabled; no bounded production autonomy is certified. |
-| Implementation Backlog Completion | `6.1` | `100` | `10` | Mandatory backlog completion is `2 / 33`. |
+| Implementation Backlog Completion | `8.8` | `100` | `10` | Mandatory backlog completion is `3 / 34`. |
 
 ## Current Scores
 
@@ -133,7 +133,7 @@ Engineering calculation:
 Production calculation:
 
 ```text
-(6.1*20 + 34*10 + 100*10 + 10*15 + 22*15 + 15*10 + 0*10 + 6.1*10) / 100 = 21.5
+(8.8*20 + 34*10 + 100*10 + 15*15 + 28*15 + 15*10 + 0*10 + 8.8*10) / 100 = 24.0
 ```
 
 Current Engineering Maturity:
@@ -145,7 +145,7 @@ Current Engineering Maturity:
 Current Production Maturity:
 
 ```text
-21.5%
+24.0%
 ```
 
 Target:
@@ -157,7 +157,7 @@ Target:
 Production remaining:
 
 ```text
-78.5%
+76.0%
 ```
 
 ## Backlog Inputs
@@ -166,16 +166,16 @@ Current backlog progress:
 
 | Scope | Complete | Total | Contribution |
 | --- | ---: | ---: | --- |
-| Tier A | `2` | `6` | A1/A2 read-only foundations are implemented and tested. |
-| Tier B | `0` | `20` | High-value implementation remains open. |
+| Tier A | `3` | `6` | A1/A2 read-only foundations are implemented and tested; A3 real no-rollback outcome evidence is closed. |
+| Tier B | `0` | `21` | High-value implementation remains open. |
 | Tier C | `0` | `7` | Medium implementation remains open. |
 | Tier D optional | `0` | `6` | Optional future-scope work remains open. |
-| Overall actionable | `2` | `33` | Implementation category is `6.1%`. |
+| Overall actionable | `3` | `34` | Implementation category is `8.8%`. |
 
 Current highest implementation task:
 
 ```text
-A3: Certify class-level rollback/no-rollback evidence for governed candidate movement.
+A4: Materialize representative outcome evidence for the first action class.
 ```
 
 ## Milestones
@@ -259,16 +259,16 @@ Engineering Maturity
 PRODUCTION
 
 Implementation
-6.1%
+8.8%
 
 Certification
-22%
+28%
 
 Autonomy
 0%
 
 Production Maturity
-21.5%
+24.0%
 
 Overall Status
 ENGINEERING_COMPLETE / PRODUCTION_IN_PROGRESS
@@ -278,24 +278,24 @@ CERTIFICATION
 
 Backlog
 Tier A
-2 / 6
+3 / 6
 Tier B
-0 / 20
+0 / 21
 Tier C
 0 / 7
 Tier D
 0 / 6 optional
 Overall
-2 / 33 complete
+3 / 34 complete
 
 Current Tier
 TIER_1_GOVERNED
 
 Highest Priority Task
-A3: Certify class-level rollback/no-rollback evidence for governed candidate movement.
+A4: Materialize representative outcome evidence for the first action class.
 
 Current Stop Condition
-REAL_WORLD_LIMIT
+REAL_WORLD_LIMIT if representative outcomes are insufficient for A4
 
 Estimated Remaining Work
 Moderate

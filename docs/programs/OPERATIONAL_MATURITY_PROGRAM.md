@@ -1711,6 +1711,90 @@ The safe automatic portion continues automatically.
 
 The authority-bound execution portion stops at `AUTHORITY_BOUNDARY`.
 
+## 10.1. Root Cause Engine
+
+OMP must run the Root Cause Engine before exposing any stop condition.
+
+Raw blocker codes are technical details only. They must never be the primary result of an OMP stop.
+
+Primary stop output must always be:
+
+```text
+Root Cause
+  -> Owner
+  -> Fix
+  -> Expected Evidence
+  -> Next Action
+```
+
+Root Cause Engine workflow:
+
+```text
+Blocker
+  -> Root Cause Analysis
+  -> Owner Attribution
+  -> Implementation Classification
+  -> Concrete Engineering Task
+  -> Expected Completion Evidence
+  -> Continue Decision
+```
+
+Required stop record:
+
+| Field | Requirement |
+| --- | --- |
+| Root Cause | Concrete cause, not a generic blocker code. |
+| Responsible owner | Exact existing owner, module, and function when known. |
+| Why it happened | Specific mechanism that created the stop. |
+| Why existing safety worked | Which gate prevented unsafe runtime behavior. |
+| Can existing owner be extended? | `YES` or `NO`; default is `YES` unless proven otherwise. |
+| Need New Owner | `FALSE` unless a proven `FUNDAMENTAL_ARCHITECTURE_GAP` requires a new owner. |
+| Implementation Class | One of `BUG`, `OWNER_EXTENSION`, `CONFIGURATION`, `CERTIFICATION`, `REAL_WORLD_LIMIT`, `AUTHORITY`, `DOCUMENTATION`. |
+| Concrete implementation task | Backlog-ready task, not a recommendation. |
+| Expected completion evidence | Observable evidence required to close the task. |
+| Automatic continuation | Whether OMP may continue automatically after the task completes. |
+
+Automatic classification:
+
+| Stop Condition | Primary Classification | OMP Meaning | Next Action |
+| --- | --- | --- | --- |
+| `UNSAFE_IMPLEMENTATION` | `BUG` or `OWNER_EXTENSION` | Existing implementation path is unsafe, incomplete, or loses required state. | Fix the responsible existing owner, test, deploy if required, then resume OMP. |
+| `AUTHORITY_BOUNDARY` | `AUTHORITY` | The next action requires operator authority, such as restore-barrier write, runtime apply, user movement, daemon/timer enablement, or authority expansion. | Produce exact approve/reject decision or authority expansion request. |
+| `REAL_WORLD_LIMIT` | `REAL_WORLD_LIMIT` | The next maturity gain requires real production evidence that cannot be synthesized. | Identify exact real-world action or observation required. |
+| `FUNDAMENTAL_ARCHITECTURE_GAP` | `OWNER_EXTENSION` or architecture review | Existing certified owners cannot satisfy the requirement. | Prove why reuse/extension is impossible before any architecture change. |
+
+Root Cause Engine constraints:
+
+- reuse existing owners first;
+- never create a new planner;
+- never create new governance;
+- never create new execution;
+- never create a new truth source;
+- never treat reports, policies, or architecture documents as implementation queues;
+- never expose only `UNSAFE_IMPLEMENTATION`, `REAL_WORLD_LIMIT`, `AUTHORITY_BOUNDARY`, or `FUNDAMENTAL_ARCHITECTURE_GAP` as the OMP result.
+
+Current Program State storage:
+
+`docs/programs/V7_CURRENT_PROGRAM_STATE.md` must store:
+
+- `root_cause`;
+- `responsible_owner`;
+- `implementation_class`;
+- `next_engineering_task`;
+- `expected_completion_evidence`.
+
+Continuation rule:
+
+| Classification | Automatic Continuation |
+| --- | --- |
+| `BUG` | Continue after implementation, tests, deployment if required, truth, and convergence. |
+| `OWNER_EXTENSION` | Continue if extension stays inside existing owner boundaries and does not require authority expansion. |
+| `CONFIGURATION` | Continue if read-only or safe configuration update is authorized by existing policy. |
+| `CERTIFICATION` | Continue until real evidence, authority, or unsafe implementation boundary is reached. |
+| `REAL_WORLD_LIMIT` | Stop with exact required production evidence. |
+| `AUTHORITY` | Stop with exact approve/reject command or authority decision. |
+| `DOCUMENTATION` | Continue if documentation is the active backlog item and no runtime mutation occurs. |
+
 ## 11. Implementation Optimization Target
 
 The current target is no longer `Current Phase` and no longer `Architectural Completeness`.
@@ -1835,11 +1919,13 @@ Codex must stop only at:
 3. `UNSAFE_IMPLEMENTATION`;
 4. `FUNDAMENTAL_ARCHITECTURE_GAP`.
 
+Before stopping, Codex must run the Root Cause Engine and expose the structured stop record as the primary output.
+
 If the highest leverage action crosses authority boundary, Codex must:
 
 1. stop before the boundary;
 2. update this OMP;
-3. report exact reason;
+3. report root cause, responsible owner, expected evidence, and exact next action;
 4. wait for explicit operator authority for the exact action.
 
 Production program loop for every future task:
@@ -1889,7 +1975,21 @@ Codex must:
 12. continue;
 13. stop only at an allowed stop condition.
 
-If blocked by `AUTHORITY_BOUNDARY`, Codex must output:
+If blocked by any allowed stop condition, Codex must output the Root Cause Engine record first:
+
+- root cause;
+- responsible owner;
+- exact module and function when known;
+- why it happened;
+- why existing safety worked;
+- whether the existing owner can be extended;
+- Need New Owner verdict;
+- implementation class;
+- concrete engineering task;
+- expected completion evidence;
+- whether OMP can continue automatically after completion.
+
+If blocked by `AUTHORITY_BOUNDARY`, Codex must also output:
 
 - exact packet;
 - exact action;

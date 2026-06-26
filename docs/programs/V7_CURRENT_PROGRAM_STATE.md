@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-26T10:34:19+0700
-Source: A3 approved plan lock consumption fix, safe deploy, truth/convergence, production governed canary dry-run
+State captured: 2026-06-26T10:41:13+0700
+Source: OMP Root Cause Engine activation, current A3 authority boundary classification, production governed canary dry-run
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, authority boundary, metrics, packet, or stop reason.
 
@@ -20,6 +20,27 @@ This file is volatile. Update it after every safe action or approved execution t
 | Current reality limit | `A3_NOT_CERTIFIED`: no new successful movement, verification, rollback/no-rollback classification, or outcome closure exists after the fix deployment |
 | Current safe next action | present the exact approval prompt in section 7; do not repeat packet preparation unless freshness changes |
 | Current stop reason | `AUTHORITY_BOUNDARY`: production dry-run reaches approval boundary with read-only safety preserved |
+| root_cause | A3 requires a real governed candidate movement outcome, but the current exact packet crosses the restore-barrier/write/apply/user-movement authority boundary. |
+| responsible_owner | OMP authority boundary; dry-run owner `admin_core/operator_execution_pipeline.py::governed_canary_knowledge_gated_dry_run_cycle`; packet/execution owner `admin_core/operator_execution.py`; apply owner `tools/v7-users-autoswitch`. |
+| implementation_class | `AUTHORITY` |
+| next_engineering_task | `A3_AUTHORIZE_EXACT_GOVERNED_PACKET_FOR_REAL_OUTCOME_CERTIFICATION` |
+| expected_completion_evidence | exact packet authority decision; restore-barrier clearance written only for that packet if approved; one-user apply attempted through existing owner; immediate verification; rollback/no-rollback classification; outcome closure; learning refresh; truth/convergence; A3 certification update. |
+
+## 1.1. Root Cause Engine Output
+
+| Field | Current Value |
+| --- | --- |
+| Stop condition | `AUTHORITY_BOUNDARY` |
+| Root Cause | A3 cannot certify class-level rollback/no-rollback evidence without a real governed candidate movement outcome, and the next real action would write restore-barrier clearance and apply one user movement. |
+| Responsible owner | OMP authority boundary; `admin_core/operator_execution_pipeline.py::governed_canary_knowledge_gated_dry_run_cycle`; `admin_core/operator_execution.py`; `tools/v7-users-autoswitch`. |
+| Why it happened | The safe preparation path completed and produced an exact packet, rollback manifest, verification plan, and learning path; the remaining maturity gain requires operator-approved production execution. |
+| Why existing safety worked | Safety-Bounded Authority stopped before restore-barrier write, runtime apply, or user movement; packet preparation remained read-only. |
+| Can existing owner be extended? | `YES`; no new owner is needed for the current boundary. |
+| Need New Owner | `FALSE` |
+| Implementation Class | `AUTHORITY` |
+| Concrete engineering task | `A3_AUTHORIZE_EXACT_GOVERNED_PACKET_FOR_REAL_OUTCOME_CERTIFICATION`: obtain exact approve/reject decision for packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc`; if approved, execute only that packet through existing guarded owners and close real outcome evidence. |
+| Expected completion evidence | Approved or rejected authority decision; if approved, packet-bound restore-barrier clearance, apply result, immediate verification, rollback if needed, outcome closure, learning refresh, truth/convergence, and A3 certification status. |
+| OMP automatic continuation | `NO` until the operator approves or rejects the exact packet; after outcome closure OMP may recalculate and continue automatically. |
 
 ## 2. Current Metrics
 

@@ -38,6 +38,119 @@ Before launching any new audit, use Reference First:
 
 A new audit is allowed only when the reference has no answer, the reference explicitly marks the area `UNKNOWN`, system behavior changed after the last verified commit, or evidence contradicts this canonical reference. Otherwise, update the reference if needed and do not create a new audit.
 
+## MASTER_SYSTEM_INTEGRATION_AUDIT_PART_1
+
+Status: `SYSTEM_INVENTORY_COMPLETE`
+
+Purpose: preserve the Part 1 master integration inventory so future work does not rediscover system ownership, capability ownership, dependency shape, or report-only knowledge boundaries.
+
+Stable conclusions:
+
+1. V7's major production system parts already exist: Product Specification, Business Objectives, Canonical Policy Library, OMP, Capability Framework, Implementation Backlog, Runtime Model, Runtime/read-only owners, Current Program State, Canonical Reference, SYSTEM_MAP, ADRs, and Engineering Reports.
+2. The canonical dependency chain is `Product Specification -> Business Objectives -> Canonical Policies -> OMP -> Capability Framework -> Implementation Backlog -> Runtime Model -> Runtime -> Users`.
+3. The current integration problem is not missing architecture. The current integration problem is incomplete connection and materialization between existing owners, especially where product language, capability progress, runtime eligibility, operator explanations, UI surfaces, and production evidence must converge.
+4. Mandatory capabilities from the Part 1 audit all map to existing owners. Need New Owner remains `FALSE`.
+5. No duplicate owner requiring replacement was found. Existing overlaps are layered defense-in-depth or lifecycle separation: authority vs runtime eligibility, freshness owners vs leases/snapshot gates, rollback manifest vs rollback execution, reports vs canonical truth, product intent vs policy translation, and OMP vs Current Program State.
+6. Critical knowledge leak verdict: no audited durable rule must remain only in an Engineering Report. Recent durable findings for Business Objectives, Operator Responsibility, Business Intent, Decision Explainability, Execution Intent Authority, Approval Model Progress, Movement Protection, and World Equivalence are already promoted into Product Specification, OMP, Canonical Reference, Runtime Model, SYSTEM_MAP, or existing ADRs.
+7. Engineering Reports remain historical evidence only. If a future report contains durable knowledge, it must immediately update Product Specification, Canonical Reference, OMP, Runtime Model, SYSTEM_MAP, ADR, or another existing canonical owner.
+8. Capabilities currently `LOCKED` or complete at the canonical level: Knowledge System, Engineering Knowledge Preservation, Implementation Discipline.
+9. Capabilities currently partially connected and still needing implementation/certification evidence through existing backlog items: Movement Protection, Decision Explainability, Authority Evolution, Action-Class Authority, Delegated Autonomy Policy, Runtime Eligibility, Rollback, Recovery Admission, Learning, Production Readiness, Production Autonomy, Observability, Business Operator Experience.
+10. Business Objectives and Operator Responsibility are product-level concepts owned by Product Specification and consumed by OMP/policies/runtime only after translation into canonical policies, capability progress, runtime eligibility gates, and operator-facing explanations.
+11. World Equivalence is canonical knowledge, not a recurring research task. Future world comparison is forbidden unless industry consensus materially changes, planner/runtime architecture materially changes, production evidence disproves current behavior, or the operator explicitly requests reopening.
+12. Part 2 may proceed from this inventory without creating a new owner, new document, new roadmap, new planner, new governance, new execution path, or new truth source.
+
+Knowledge leak rule:
+
+If a future audit finds durable knowledge only in `docs/reports/`, old audits, temporary files, screenshots, or conversation history, that finding is `KNOWLEDGE_LEAK_CRITICAL` and must be assigned to an existing canonical owner before the task is considered complete.
+
+## MASTER_SYSTEM_INTEGRATION_AUDIT_PART_2
+
+Status: `SYSTEM_INTEGRATION_ANALYSIS_COMPLETE`
+
+Purpose: preserve the Part 2 integration analysis, root-cause verdict, execution graph, and master integration atlas so future work integrates existing owners instead of redesigning V7.
+
+Root cause verdict:
+
+1. V7's current production gap is `INTEGRATION`, not missing architecture, missing product model, missing policy model, missing Runtime Model, missing OMP, or missing capability framework.
+2. The dominant root-cause classes are missing runtime consumption, missing UI/operator consumption, missing observability/read-model materialization, missing certification, and missing production evidence.
+3. No partially connected capability requires a new owner. Need New Owner remains `FALSE`.
+4. No partially connected capability requires a replacement architecture, planner, governance layer, execution path, runtime owner, truth source, or roadmap.
+5. Current execution stops at the governed production-operation boundary because A3 still needs real rollback/no-rollback outcome evidence and exact operational approval while the first action class remains `GOVERNED_ONLY`.
+6. Product Owner and operator burden persists because routine execution has not yet been certified into Action-Class Authority, Delegated Autonomy Policy, runtime eligibility arbitration, Decision Explainability, and UI business-language surfaces.
+7. Business language already exists in Product Specification as Business Objectives. It is consumed by OMP and policies conceptually, and Runtime consumes it only after policy translation. The remaining gap is consistent operator/UI exposure and evidence-linked decision explanations.
+8. Runtime does not ignore the architecture; it stops where evidence, authority, certification, or runtime eligibility is not yet connected strongly enough for autonomous execution.
+9. OMP does not ignore existing knowledge; it remains bound to the Implementation Backlog, Current Program State, production maturity, and capability framework. The gap is that not every canonical policy/capability has completed implementation and certification evidence.
+10. No knowledge leak was found that requires a new canonical owner. Durable Part 2 findings are stored here and in SYSTEM_MAP; reports remain historical evidence.
+
+Current execution graph:
+
+```text
+Product Owner
+  -> Product Specification
+  -> Business Objectives
+  -> Canonical Policies
+  -> OMP
+  -> Capability
+  -> Implementation Backlog
+  -> Runtime Model
+  -> Runtime / governed execution owners
+  -> Users
+```
+
+Current stop points:
+
+1. `Business Objectives -> UI`: business language is canonical but not yet consistently primary in operator surfaces.
+2. `Policies -> Runtime`: policies are canonical and mapped to backlog, but centralized runtime arbitration and certification remain partial.
+3. `Capability -> Runtime`: capability maturity exists in OMP, but runtime does not yet consume every capability state as executable eligibility.
+4. `Runtime -> Users`: production movement remains governed because action classes are not yet certified for runtime autonomy.
+5. `Outcome -> Learning -> OMP`: learning path exists, but more real representative outcomes and metric reliability are required for promotion.
+
+Ideal execution graph:
+
+```text
+Product Owner
+  -> Business Objectives
+  -> Canonical Policies
+  -> OMP capability state
+  -> Backlog-completed certified gates
+  -> Runtime eligibility arbitration
+  -> Runtime executes or stops inside approved policy
+  -> Verification
+  -> Rollback / containment if needed
+  -> Outcome closure
+  -> Learning
+  -> OMP maturity update
+  -> Product Owner supervises policy and exceptions only
+```
+
+Permanent integration rule:
+
+Future work must target the missing connections in the Master Integration Atlas. It must not start new semantic audits, new roadmaps, new documents, or new owners when an existing owner and backlog/capability path already exists.
+
+## MASTER_SYSTEM_INTEGRATION_AUDIT_PART_3
+
+Status: `MASTER_INTEGRATION_PROGRAM_COMPLETE`
+
+Purpose: preserve the final master integration program so V7 can move from completed capabilities to one coherent production operating system through existing owners and backlog items only.
+
+Stable conclusions:
+
+1. The Master Integration Program lives in OMP, not in a new roadmap document.
+2. The program uses the existing Master Integration Atlas in SYSTEM_MAP and maps every integration task to an existing owner, existing capability, and existing backlog item.
+3. Need New Owner remains `FALSE`.
+4. Need New Backlog Item remains `FALSE`.
+5. No duplicate document, policy, capability, truth source, planner, governance layer, execution path, runtime owner, or roadmap is required.
+6. Integration execution order begins with `A3` because class-level rollback/no-rollback evidence is the first dependency for action-class promotion, authority evolution, production evidence, learning, and production autonomy.
+7. Runtime may consume only canonical policies, certified action classes, delegated autonomy policy, runtime eligibility, authority, freshness, rollback, verification, and learning. Runtime must not consume raw Product Owner text, raw Business Objectives, subjective operator wishes, or report-only knowledge.
+8. Product Owner target interface is Business Objectives, Business Status, Business Risk, Business Profile, Business Results, and Business Exceptions only.
+9. Operator UI target language is business language first; engineering details are secondary, read-only, expandable, and never primary.
+10. OMP remains the permanent operating system and should normally require only `Status`, `Continue OMP`, `Approve authority expansion`, and `Production Action`.
+11. Implementation may begin from the existing backlog and Master Integration Program without creating new audits or roadmaps.
+
+Readiness verdict:
+
+`READY_FOR_IMPLEMENTATION_PROMPT`
+
 ## Product Specification Rule
 
 `docs/product/V7_PRODUCT_SPECIFICATION.md` is the highest-level product specification for V7.
@@ -61,8 +174,12 @@ Stable conclusions:
 11. Packet-level approval remains only as a temporary `GOVERNED_ONLY` fallback until an action class is certified and explicitly approved for class authority or runtime capability.
 12. Delegated Autonomy Policy is the target approval model: the operator approves bounded policy once, V7 may self-approve operational routing decisions only inside that policy, and Runtime stops outside it.
 13. V7 may not self-approve policy expansion, new action classes, increased blast radius, lower safety gates, or authority expansion. V7 may only recommend those changes.
-14. The Canonical Policy Library at `docs/policies/` is the permanent source for operational behavior policy. Policies must be discovered from mature production systems, compared, validated, adapted, implemented, verified, certified, and integrated into OMP before becoming operational.
-15. V7 may innovate in policy only after proving that no stable world consensus exists or that world consensus does not fit V7 architecture.
+14. Execution Intent Authority is not a new owner or new authority model. Its semantics already map to Action-Class Authority plus Delegated Autonomy Policy plus Runtime fresh-packet eligibility: the operator approves constraints, Runtime selects or consumes the current valid packet inside those constraints, and re-approval is required only when constraints, class, policy, authority, safety, freshness, rollback/no-rollback, verification, learning, or blast-radius bounds are violated.
+15. Approval Model Progress is not a new owner. OMP already owns the transition from temporary packet approval to Action-Class Authority, Delegated Autonomy Policy, and Runtime Capability through Autonomy Promotion Engine, Delegated Autonomy Policy Model, Authority Evolution capability, and Current Program State. If a single approval-progress percentage is needed, extend those existing OMP/Current State fields instead of creating a new document or owner.
+16. The Canonical Policy Library at `docs/policies/` is the permanent source for operational behavior policy. Policies must be discovered from mature production systems, compared, validated, adapted, implemented, verified, certified, and integrated into OMP before becoming operational.
+17. V7 may innovate in policy only after proving that no stable world consensus exists or that world consensus does not fit V7 architecture.
+18. Business Objectives are the canonical top-level interface between the Product Owner and V7. The permanent chain is Product Owner -> Business Objectives -> Policy Translation -> Canonical Policies -> OMP -> Runtime -> Users. Product Owner communicates through Business Objectives, not packets, routing algorithms, action classes, blast-radius internals, rollback internals, runtime gates, planner logic, or protocol engineering.
+19. Initial canonical Business Objectives are Maximum Stability, Fastest Recovery, Lowest User Disruption, Highest Service Availability, Lowest Business Risk, SLA Priorities, Business Risk Appetite, Minimal Operator Work, and Invisible VPN Experience.
 
 ## Certified Root Cause Rule
 
@@ -139,7 +256,12 @@ Stable conclusions:
 26. The primary authority model is Action-Class Authority. Packet-level authority is a transitional fallback, not the long-term product abstraction.
 27. OMP owns Delegated Autonomy Policy progression through existing owners. Current default policy is `dap_default_tier1_readonly`, state `NOT_APPROVED`, current mode `CLASS_APPROVAL`, target mode `DELEGATED_AUTONOMY`, max users per action `1`, runtime apply enabled `NO`.
 28. Machine-readable Delegated Autonomy Policy preview and runtime eligibility are read-only surfaces exposed through `admin_core/autonomy_trust_acceleration.py` and `tools/v7-autonomy-trust-evidence-inventory`. They must not enable automation, move users, expand authority, write restore barriers, create evidence, or create duplicate planner/governance/execution/truth.
-29. OMP must check `docs/policies/` before implementing or changing operational behavior. If a canonical policy exists, reuse it. If partial, extend it through methodology. If missing, run full world research before implementation.
+29. Execution Intent Authority must be treated as semantic reuse of existing authority owners, not as a new document, owner, planner, governance layer, execution path, or truth source. If future work needs this phrase, extend Action-Class Authority, Delegated Autonomy Policy, Runtime Eligibility, or OMP authority evaluation through existing owners.
+30. Approval Model Progress must be calculated inside existing OMP/Current Program State ownership if needed. The current canonical inputs are current approval mode, target approval mode, current action-class state, packet-retirement status, delegated policy state, runtime capability state, blocking evidence, and Authority Evolution / Production Autonomy progress.
+31. OMP must check `docs/policies/` before implementing or changing operational behavior. If a canonical policy exists, reuse it. If partial, extend it through methodology. If missing, run full world research before implementation.
+32. OMP owns Decision Explainability as a permanent capability. Before any operator approval request, V7 must explain the decision in Russian using existing evidence owners; the explanation must show reason, evidence, expected value, risks, alternatives, safety gates, and capability impact before Approve / Reject. Explanation does not authorize runtime action, expand authority, write restore barriers, apply, roll back, move users, or create evidence.
+33. The final human operator role is supervision, policy/authority boundary approval, exception handling, and explicit approval for authority expansion. Per-packet and per-routine-action approval are transitional maturity constraints, not the Production Autonomy target. Runtime must own routine certified execution inside approved policy; Product Owner must own business goals, durable product policy, risk appetite, SLA priorities, and approval of policy direction.
+34. Business Intent is semantic reuse of Product Specification ownership, not a new owner or document. Product Specification owns product/business intent through Product Mission, Product Principles, Ideal User Experience, Product Success, Evolution Domains, Action-Class Authority, Delegated Autonomy Policy, SLA/service/user fit, and final product behavior. OMP consumes that intent as production leverage, maturity, backlog priority, and authority recommendations. Runtime consumes it only after translation into existing policies, action classes, eligibility gates, SLA/service/user fit, safety gates, and authority bounds.
 
 ## V7_CANONICAL_POLICY_LIBRARY
 
@@ -165,6 +287,192 @@ Stable conclusions:
 16. Need New Owner remains `FALSE`; the library reuses Product Specification, Research Framework, OMP, Canonical Reference, SYSTEM_MAP, Runtime Model, ADRs, certified reports, and existing implementation owners.
 
 Related ADR: `docs/decisions/ADR-V7-CANONICAL-POLICY-LIBRARY.md`.
+
+## MOVEMENT_PROTECTION_MODEL
+
+Status: `CANONICAL`
+
+Purpose: preserve the production-proven movement protection mechanisms already implemented in V7 so future work extends this knowledge instead of rediscovering it.
+
+Stable conclusions:
+
+1. V7 already protects users from unnecessary movement through existing planner, safety, authority, freshness, recovery, rollback, and read-only anti-flap owners.
+2. Primary implementation owners are `tools/v7-users-autoswitch`, `admin_core/autonomy_trust_acceleration.py`, `admin_core/operator_decision_surface.py`, OMP, Runtime Model, and the Canonical Policy Library.
+3. Need New Owner remains `FALSE`.
+4. Need New Document remains `FALSE`.
+5. Movement protection is layered defense-in-depth, not a separate planner or governance model.
+
+Current movement protection mechanisms:
+
+| Mechanism | V7 implementation | Owner / module | Canonical behavior |
+| --- | --- | --- | --- |
+| Current channel stickiness / stay bias | Current channel score bonus and `sticky_keep_current` explanation | `tools/v7-users-autoswitch` | Keep the current channel unless a real candidate clearly beats it or current channel becomes ineligible. |
+| Minimum movement improvement | `_beats_current` policy check | `tools/v7-users-autoswitch` | Planned movement requires both percentage and absolute score improvement over current. |
+| Cooldown / hold-down | `_cooldown_ok` | `tools/v7-users-autoswitch` | Recent movement blocks planned, reconnect, or rebalance movement until cooldown expires. |
+| User freeze | `_user_frozen` and `_update_safety_after_apply` | `tools/v7-users-autoswitch` | Repeated user movement freezes that user for a safety window. |
+| Pair reversal block | `_pair_reversal_blocked_for_user` | `tools/v7-users-autoswitch` | Immediate reversal back to the prior source is blocked inside the stability window. |
+| Target block after oscillation | `blocked_targets` safety state | `tools/v7-users-autoswitch` | Repeated target oscillation blocks the intermediate target for a safety window. |
+| Egress quarantine | `egress_safety_quarantine` and failed verification quarantine | `tools/v7-users-autoswitch` | Targets with recent failed verification are blocked from new assignments. |
+| Rebalance restraint | `_rebalance_needed`, `_best_alternative`, and score-without-sticky checks | `tools/v7-users-autoswitch` | Load balancing moves only when load gap and target quality are sufficient. |
+| State change cost / movement economics | Sticky/current-channel bonus, minimum improvement threshold, cooldown, user freeze, pair reversal, target block, egress quarantine, rebalance restraint, authority caps, and blast-radius caps | `tools/v7-users-autoswitch`, `admin_core/autonomy_trust_acceleration.py`, OMP | Movement is treated as a state transition with cost; V7 moves only when benefit, safety, freshness, authority, and rollback conditions justify the transition. |
+| Best available pool | `_mark_best_available_pool` | `tools/v7-users-autoswitch` | Candidate pool is constrained to top near-best candidates with service suitability floor. |
+| Service persistence | `_service_failure_persistent` and `_gate_service_failures` | `tools/v7-users-autoswitch` | Transient service failures require repeated samples or persistence before hard blocking. |
+| Freshness / runtime readiness | Freshness actionability, intelligence snapshot gate, runtime eligibility | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-users-autoswitch`, Runtime Model | Stale or unknown evidence stops mutation-capable decisions. |
+| Recovery admission | `build_recovery_admission` | `admin_core/autonomy_trust_acceleration.py` | Recovered channels require repeated success, freshness, cooldown clearance, and limited blast radius. |
+| Anti-flap read model | `build_anti_flapping` | `admin_core/autonomy_trust_acceleration.py` | Existing decision/audit records block preview when recent oscillation is detected. |
+| Blast-radius and authority caps | `_authority_budget_gate`, requested max selected moves, dynamic blast radius | `tools/v7-users-autoswitch`, OMP | Selected moves are capped by current authority, requested scope, and policy. |
+| Rollback protection | Restore barrier, rollback manifest, selected-move identity, verification path | `admin_core/operator_execution.py`, `tools/v7-users-autoswitch` | Movement-capable execution must preserve rollback and selected-move identity. |
+
+Canonical mapping:
+
+| Industry principle | V7 implementation |
+| --- | --- |
+| Hold-down | Cooldown and recovery cooldown. |
+| Dampening | User freeze, target block, pair reversal block, and anti-flap read model. |
+| Health thresholds | Quality floors, service persistence, service suitability, and hard/soft service gates. |
+| Rollback | Restore barrier, rollback manifest, rollback/no-rollback certification path. |
+| Canary | Governed canary and action-class authority ladder. |
+| Readiness | Freshness actionability, runtime eligibility, recovery admission, and intelligence snapshot gate. |
+| Blast radius | Authority budgets, selected-move caps, dynamic blast-radius summary, and action-class ladder. |
+| Consecutive failure threshold | Service failure persistence samples and failure window. |
+| Consecutive success threshold | Recovery admission successful-check requirement. |
+| Slow start / staged re-entry | Partially represented by recovery admission and limited recovery blast radius; runtime-certified slow-start remains a known gap. |
+| Max ejection / minimum health | Partially represented by capacity, authority budgets, and blast-radius bounds; pool max-ejection/minimum-health mapping remains a known gap. |
+| Operator freeze / manual review | OMP authority boundary, runtime stop, planner freeze/quarantine behavior. |
+
+Current implementation thresholds:
+
+| Threshold | Current canonical value |
+| --- | --- |
+| Planner cooldown | `180` seconds. |
+| Minimum planned movement improvement | `20%` and `50.0` absolute score delta. |
+| Current channel sticky bonus | `50.0`. |
+| Group preferred egress bonus | `60.0`. |
+| Reconnect rotation cooldown | `180` seconds. |
+| User freeze threshold, 1h | `2` switches. |
+| User freeze duration, 1h | `3600` seconds. |
+| User freeze threshold, 24h | `5` switches. |
+| User freeze duration, 24h | `21600` seconds. |
+| Target block duration | `1800` seconds. |
+| Pair reversal window | `900` seconds. |
+| Egress quarantine failed verifications | `2` failed verifications in 1h. |
+| Egress quarantine duration | `3600` seconds. |
+| Current egress grace window | `120` seconds. |
+| Post-restore apply suppression window | `120` seconds. |
+| Service failure persistence samples | `3` samples. |
+| Service failure persistence window | `180` seconds. |
+| Service failure minimum critical count | `2`. |
+| Quality minimum average Mbps | `15.0`. |
+| Quality minimum floor Mbps | `10.0`. |
+| Quality minimum stability | `0.45`. |
+| Best available pool top N | `3`. |
+| Best available pool max score gap | `15%`. |
+| Best available pool minimum service suitability | `50.0`. |
+| Rebalance minimum user gap | `2`. |
+| Rebalance minimum target score ratio | `0.75`. |
+| Recovery admission minimum successful checks | `3`. |
+| Recovery admission cooldown | `1800` seconds. |
+| Limited recovery blast radius | `1` user. |
+| Anti-flap cooldown | `1800` seconds. |
+| Anti-flap minimum observation window | `3600` seconds. |
+| Anti-flap rapid oscillation threshold | `2`. |
+| Action authority budgets | CANARY `1`, SMALL_BATCH `2`, MEDIUM_BATCH `5`, LARGE_BATCH `10`, POOL `25`. |
+
+Known remaining gaps:
+
+1. Centralized hysteresis arbitration across hard failure, soft degradation, recovery, freshness, and anti-flap.
+2. Explicit per-user `AUTO` / `PINNED` / `MANUAL` routing control mode.
+3. Runtime-certified slow-start for recovery admission.
+4. Pool max-ejection / minimum-health mapping into V7-native capacity and blast-radius semantics.
+
+Reaudit rule:
+
+Movement Protection must not be audited again unless one of these is true:
+
+1. planner behavior changes materially;
+2. Runtime behavior changes materially;
+3. production evidence disproves the current behavior;
+4. the operator explicitly requests a re-audit.
+
+Permanent rule:
+
+Future implementation must extend this canonical movement-protection knowledge. It must not rediscover it, create a duplicate movement-protection owner, create a new planner, create new governance, create new execution, or create a new truth source.
+
+## WORLD_EQUIVALENCE_MODEL
+
+Status: `CANONICAL`
+
+Purpose: record how V7 maps to proven engineering practices from mature production systems and prevent future re-research of already proven engineering equivalence.
+
+Industry families compared:
+
+- Cisco;
+- Juniper;
+- Cloudflare;
+- Google SRE;
+- Kubernetes;
+- Envoy / Istio;
+- HAProxy / NGINX;
+- AWS / Azure / GCP.
+
+Canonical engineering principles:
+
+| Industry principle | Existing V7 owner | Implementation status | Equivalence | Canonical verdict |
+| --- | --- | --- | --- | --- |
+| Hold-down | `tools/v7-users-autoswitch`, recovery admission overlay | Implemented | Cooldown, recovery cooldown, restore/post-restore suppression windows | `EQUIVALENT` |
+| Dampening | `tools/v7-users-autoswitch`, `admin_core/autonomy_trust_acceleration.py` | Implemented | User freeze, target block, pair reversal block, anti-flap read model | `EQUIVALENT` |
+| Health Thresholds | `tools/v7-users-autoswitch`, service matrix, quality compact | Implemented | Quality floors, service persistence, service suitability, hard/soft service gates | `EQUIVALENT` |
+| Readiness | Runtime Model, freshness actionability, intelligence snapshot gate | Implemented | Freshness, runtime eligibility, recovery admission, intelligence snapshot gate | `EQUIVALENT` |
+| Recovery Admission | `admin_core/autonomy_trust_acceleration.py::build_recovery_admission` | Partially implemented | Repeated success checks, cooldown, freshness, limited recovery blast radius | `PARTIALLY_EQUIVALENT` |
+| Rollback | `admin_core/operator_execution.py`, `tools/v7-users-autoswitch` | Implemented | Restore barrier, rollback manifest, selected-move identity, verification path | `EQUIVALENT` |
+| Blast Radius | OMP, `tools/v7-users-autoswitch`, action-class ladder | Implemented | Authority budgets, selected-move caps, dynamic blast-radius summary | `EQUIVALENT` |
+| Canary | OMP, governed canary dry-run cycle, action-class authority | Implemented | One-user governed canary, packet preview, restore/rollback preview, outcome closure path | `EQUIVALENT` |
+| Progressive Promotion | OMP Autonomy Promotion Engine, Canonical Policy Library | Implemented as policy/readiness; certification still evidence-gated | Action-class states and authority ladder | `EQUIVALENT` |
+| Freshness | `admin_core.autonomy_trust_acceleration`, Runtime Model, snapshot owners | Implemented | Freshness actionability, owner-issued freshness fields, runtime stop on stale/unknown evidence | `EQUIVALENT` |
+| Runtime Eligibility | Runtime Model, delegated autonomy eligibility read model, OMP | Partially implemented | Existing read-only eligibility gates; runtime automation remains disabled | `PARTIALLY_EQUIVALENT` |
+| Authority Separation | OMP, Runtime Model, ADRs, `admin_core/operator_execution.py` | Implemented | Engineering authority, operational authority, action-class authority, delegated policy boundaries | `EQUIVALENT` |
+| Outcome Learning | `admin_core/operator_execution_feedback.py`, trust evolution, OMP | Implemented as read-only learning path; requires real outcomes | Outcome closure, learning records, knowledge growth, no synthetic evidence | `EQUIVALENT` |
+| Anti-Flap | `tools/v7-users-autoswitch`, `admin_core/autonomy_trust_acceleration.py` | Implemented | Cooldown, freeze, pair reversal, target block, anti-flap overlay | `EQUIVALENT` |
+| Stickiness | `tools/v7-users-autoswitch` | Implemented | Current-channel sticky score and `sticky_keep_current` behavior | `EQUIVALENT` |
+| Minimum Improvement Threshold | `tools/v7-users-autoswitch::_beats_current` | Implemented | Planned movement requires percentage and absolute score delta over current | `EQUIVALENT` |
+| State Change Cost / Movement Economics | `tools/v7-users-autoswitch`, Movement Protection Model, OMP | Implemented semantically | Sticky/current bias, benefit threshold, cooldown, freeze, reversal block, target block, quarantine, rebalance restraint, authority caps, and blast-radius caps | `EQUIVALENT` |
+| BGP route-flap damping | None required for current product scope | Not implemented by design | V7 is not currently a routing-protocol owner | `NOT_APPLICABLE` |
+| Weighted traffic split | None required for current product scope | Not implemented by design | V7 currently moves users/cohorts, not proxy traffic weights | `NOT_APPLICABLE` |
+| Pool max-ejection / minimum-health | Planner capacity/load, blast-radius policy | Partial | Capacity and authority budgets exist; proxy-style max-ejection/minimum-health mapping remains open | `EXTENSION_REQUIRED` |
+| Runtime-certified slow-start | Recovery admission, blast-radius policy | Partial | Limited recovery blast radius exists; runtime-certified staged re-entry remains open | `EXTENSION_REQUIRED` |
+| Centralized policy arbitration | Canonical Policy Library, OMP, Runtime eligibility | Partial | Priority/conflict rules exist; implementation-level centralized arbitration remains open | `EXTENSION_REQUIRED` |
+| Per-user AUTO / PINNED / MANUAL | Current user registry, group policy, planner | Partial | Current assignment, group preference, and channel flags exist; explicit per-user control mode remains open | `EXTENSION_REQUIRED` |
+
+Canonical verdict:
+
+1. V7 is already equivalent to mature production systems for hold-down, dampening, health thresholds, readiness, rollback, blast radius, canary, progressive promotion, freshness, authority separation, outcome learning, anti-flap, stickiness, and minimum improvement threshold.
+2. V7 is partially equivalent for recovery admission and runtime eligibility because the read-only and governed paths exist, while runtime-certified autonomous behavior still requires real evidence and authority.
+3. BGP route-flap damping and weighted traffic split are not applicable to current V7 product scope.
+4. No fundamental architecture gap was found.
+5. Need New Owner remains `FALSE`.
+6. Need New Document remains `FALSE`.
+7. Confirmed remaining gaps are represented exactly once in the Implementation Backlog: centralized policy arbitration by `A6`, per-user `AUTO` / `PINNED` / `MANUAL` by `B21`, runtime-certified slow-start recovery by `B10`, and pool max-ejection / minimum-health semantics by `C7`.
+8. State Change Cost already exists semantically and extends existing backlog item `B19`; it must not create a new owner, new document, or new backlog item.
+
+Remaining real gaps:
+
+1. Centralized policy arbitration.
+2. Per-user `AUTO` / `PINNED` / `MANUAL` routing mode.
+3. Runtime-certified slow-start recovery.
+4. Pool max-ejection / minimum-health semantics.
+
+Permanent rule:
+
+Future engineering must first reuse these canonical mappings. It must not repeat world-comparison research, create duplicate owners, create a new planner, create new governance, create new execution, or create a new truth source.
+
+Re-audit trigger:
+
+World Equivalence must not be audited again unless one of these is true:
+
+1. industry consensus materially changes;
+2. planner architecture materially changes;
+3. Runtime architecture materially changes;
+4. the operator explicitly requests a new world comparison.
 
 ## V7_DOCUMENT_LIFECYCLE
 
@@ -208,7 +516,7 @@ Stable conclusions:
 12. Current Production milestone is `20%: First Implementation Certified`; next Production milestone is `35%: Runtime Eligibility Implemented`.
 13. Current highest implementation task remains backlog item `A3`.
 14. OMP must print `V7 PRODUCTION STATUS` after every execution.
-15. Current Production Status is: Engineering Maturity `100.0%`, Production Maturity `21.5%`, Current Autonomy Tier `TIER_1_GOVERNED`, Current Focus `CERTIFICATION`, Backlog `2 / 33` actionable complete, Highest Priority Task `A3`, Current Stop Condition `REAL_WORLD_LIMIT`.
+15. Current Production Status is: Engineering Maturity `100.0%`, Production Maturity `21.5%`, Current Autonomy Tier `TIER_1_GOVERNED`, Current Focus `CERTIFICATION`, Backlog `2 / 34` actionable complete, Highest Priority Task `A3`, Current Stop Condition `REAL_WORLD_LIMIT`.
 16. Future normal operator commands are `Continue OMP`, `Status`, `Approve packet`, and `Approve authority expansion`.
 17. OMP must never request a new roadmap or new implementation plan.
 18. Need New Owner remains `FALSE`.

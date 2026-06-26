@@ -52,6 +52,359 @@ Without V7:
 
 V7 is built so that connectivity becomes a managed product outcome, not a repeated manual rescue.
 
+## Business Objectives
+
+Business Objectives are the canonical top-level interface between the Product Owner and V7.
+
+Permanent product chain:
+
+```text
+Product Owner
+  -> Business Objectives
+  -> Policy Translation
+  -> Canonical Policies
+  -> OMP
+  -> Runtime
+  -> Users
+```
+
+The Product Owner communicates only through Business Objectives.
+
+The Product Owner must never be required to configure or understand:
+
+- packets;
+- routing algorithms;
+- action classes;
+- blast radius internals;
+- rollback internals;
+- runtime gates;
+- planner logic;
+- protocol engineering.
+
+Business Objectives are product language.
+They describe what the product should achieve for users and the business.
+
+Policies translate Business Objectives into operational rules.
+OMP turns those rules into maturity, backlog, certification, and authority decisions.
+Runtime executes certified decisions inside approved policy or stops safely.
+
+### Policy Translation
+
+Policy Translation does not create a new owner.
+
+Canonical Policies already perform the translation from product language into engineering rules:
+
+```text
+Business Objectives
+  -> Canonical Policies
+  -> Operational Rules
+  -> Runtime
+```
+
+Examples:
+
+```text
+Maximum Stability
+  -> Movement Protection
+  -> Stickiness
+  -> Cooldown
+  -> Anti-Flap
+  -> Recovery Admission
+  -> State Change Cost
+  -> Runtime
+
+Fastest Recovery
+  -> Hard Failure
+  -> Rollback
+  -> Freshness
+  -> Runtime Eligibility
+  -> Runtime
+
+Lowest User Disruption
+  -> Movement Protection
+  -> Minimum Improvement Threshold
+  -> Blast Radius
+  -> Verification
+  -> Runtime
+```
+
+### Operator Language
+
+Operator-facing language must use Business Objectives as the primary operating language.
+
+Good operator language:
+
+- Maximum Stability;
+- Fast Recovery;
+- Lowest User Disruption;
+- Business Risk;
+- Operator Workload;
+- Service Availability;
+- Invisible VPN Experience.
+
+Bad primary operator language:
+
+- Packet;
+- Lease;
+- Planner;
+- Selected Move Hash;
+- Rollback Manifest;
+- Blast Radius Generation.
+
+Engineering details may remain available for audit and debugging, but they must not be the first product language shown to operators.
+
+### OMP Integration
+
+OMP must always be able to map:
+
+```text
+Current Business Objectives
+  -> Affected Policies
+  -> Affected Capabilities
+  -> Backlog Items
+  -> Current Progress
+  -> Production Maturity
+```
+
+This does not make OMP the owner of Business Objectives.
+OMP consumes Business Objectives through Product Specification, Canonical Policies, the Implementation Backlog, and Current Program State.
+
+### Initial Business Objectives
+
+#### Maximum Stability
+
+Purpose:
+Keep users on stable working routes and prevent chaotic movement.
+
+Success criteria:
+Users do not oscillate between channels, temporary noise does not cause movement, and current state is preserved when staying is better than switching.
+
+User value:
+The user experiences steady internet access without route churn.
+
+Policy Translation owner:
+Canonical Policies for Anti-Flap, Recovery Admission, Freshness, Blast Radius, and Movement Protection knowledge in OMP / Canonical Reference.
+
+Runtime interpretation:
+Runtime may move only when the certified decision proves that `NET_BENEFIT > CHANGE_COST`; otherwise it keeps current state or stops safely.
+
+Related capabilities:
+Movement Protection, Runtime Eligibility, Recovery Admission, Observability.
+
+Related backlog:
+`A3`, `A5`, `A6`, `B3`, `B4`, `B8`, `B10`, `B19`, `B20`, `B21`, `C7`.
+
+Completion criteria:
+Movement Protection is complete and locked; anti-flap, recovery admission, freshness, state-change cost, routing mode, slow-start, and pool-health semantics are certified by real evidence.
+
+#### Fastest Recovery
+
+Purpose:
+Restore user connectivity quickly when a route, channel, service, or target fails.
+
+Success criteria:
+Confirmed hard failures lead to bounded recovery action without waiting for manual investigation, and failed actions are verified and rolled back when needed.
+
+User value:
+Failures are short and recovery feels automatic.
+
+Policy Translation owner:
+Hard Failure, Rollback, Freshness, Recovery Admission, and Runtime Eligibility policies.
+
+Runtime interpretation:
+Runtime executes certified recovery actions only inside approved authority, with fresh evidence, rollback/no-rollback readiness, and verification.
+
+Related capabilities:
+Runtime Eligibility, Rollback, Recovery Admission, Learning, Production Autonomy.
+
+Related backlog:
+`A3`, `A4`, `A6`, `B8`, `B9`, `B10`, `B15`, `B16`, `B17`, `B18`, `C1`, `C5`, `C6`.
+
+Completion criteria:
+Hard-failure recovery, rollback/no-rollback classification, freshness, verification, and learning are certified for the relevant action classes.
+
+#### Lowest User Disruption
+
+Purpose:
+Avoid unnecessary user movement and make required movement minimally disruptive.
+
+Success criteria:
+V7 does not move users for tiny score differences, unstable evidence, unclear benefit, or unproven targets.
+
+User value:
+The user stays connected and notices as little routing change as possible.
+
+Policy Translation owner:
+Movement Protection, Blast Radius, Verification, Anti-Flap, and State Change Cost owners.
+
+Runtime interpretation:
+Runtime requires a justified movement with measurable expected benefit greater than movement cost and bounded user impact.
+
+Related capabilities:
+Movement Protection, Rollback, Runtime Eligibility, Decision Explainability.
+
+Related backlog:
+`A3`, `A5`, `A6`, `B1`, `B4`, `B5`, `B13`, `B14`, `B19`, `B20`, `B21`, `C2`, `C7`.
+
+Completion criteria:
+Every movement has a clear reason, bounded impact, verification, rollback/no-rollback path, and user-impact explanation.
+
+#### Highest Service Availability
+
+Purpose:
+Keep important services reachable for users, not merely keep channels technically alive.
+
+Success criteria:
+Telegram, YouTube, ChatGPT, browsing, and other important services remain reachable according to service/user/SLA fit.
+
+User value:
+Users can use the services they care about without thinking about channels or VPN routes.
+
+Policy Translation owner:
+Soft Degradation, Hard Failure, Freshness, Service/User/SLA Fit, and Recovery Admission owners.
+
+Runtime interpretation:
+Runtime treats service fit and service degradation as eligibility inputs for execute-or-stop decisions.
+
+Related capabilities:
+Knowledge System, Runtime Eligibility, Observability, Production Readiness.
+
+Related backlog:
+`B2`, `B3`, `B4`, `B5`, `B6`, `B7`, `B8`, `B9`, `B13`, `B17`, `C2`.
+
+Completion criteria:
+Service/user/SLA fit is policy-bound, observable, fresh enough for action, and validated by real outcomes.
+
+#### Lowest Business Risk
+
+Purpose:
+Prevent a technical action from creating unacceptable product, operational, or authority risk.
+
+Success criteria:
+No action exceeds approved authority, blast radius, policy, freshness, rollback, verification, or safety boundaries.
+
+User value:
+V7 protects access without creating broad outages or unsafe surprises.
+
+Policy Translation owner:
+Authority, Blast Radius, Rollback, Freshness, Anti-Flap, and Delegated Autonomy Policy owners.
+
+Runtime interpretation:
+Runtime stops before mutation when risk exceeds approved policy or certified scope.
+
+Related capabilities:
+Authority Evolution, Rollback, Runtime Eligibility, Production Autonomy.
+
+Related backlog:
+`A3`, `A5`, `A6`, `B11`, `B12`, `B14`, `B15`, `B16`, `B17`, `B18`, `C3`, `C4`, `C5`, `C6`.
+
+Completion criteria:
+Authority expansion, blast radius, rollback/no-rollback, freshness, anti-flap, and runtime eligibility are certified and auditable.
+
+#### SLA Priorities
+
+Purpose:
+Let product priorities express which users, services, cohorts, or contexts matter most.
+
+Success criteria:
+V7 can explain and apply service/user/SLA fit without requiring the Product Owner to understand route internals.
+
+User value:
+High-priority services and user groups receive routing decisions aligned with their expected experience.
+
+Policy Translation owner:
+Service/User/SLA Fit, Soft Degradation, Scale Evolution, and policy owners.
+
+Runtime interpretation:
+Runtime consumes SLA/service/user fit as a policy input, not as raw business text.
+
+Related capabilities:
+Knowledge System, Observability, Runtime Eligibility, Production Readiness.
+
+Related backlog:
+`B2`, `B3`, `B4`, `B7`, `B11`, `B13`, `B17`, `C2`.
+
+Completion criteria:
+SLA/service/user fit is readable, policy-bound, fresh, and usable for runtime eligibility and operator explanations.
+
+#### Business Risk Appetite
+
+Purpose:
+Define how much operational risk V7 may take for recovery, stability, cost, and autonomy.
+
+Success criteria:
+Authority, blast radius, rollback, freshness tolerance, and automation tier match approved business risk appetite.
+
+User value:
+Automation becomes safer because V7 does not silently exceed business tolerance.
+
+Policy Translation owner:
+Authority, Blast Radius, Delegated Autonomy Policy, Action-Class Promotion, and Production Maturity owners.
+
+Runtime interpretation:
+Runtime executes only within the approved risk envelope and stops outside it.
+
+Related capabilities:
+Authority Evolution, Production Autonomy, Runtime Eligibility, Production Readiness.
+
+Related backlog:
+`A4`, `A5`, `A6`, `B11`, `B12`, `B13`, `B14`, `B16`, `C3`, `C4`, `C6`.
+
+Completion criteria:
+Delegated Autonomy Policy and action-class authority are approved and certified for bounded production operation.
+
+#### Minimal Operator Work
+
+Purpose:
+Reduce repeated manual investigation and repetitive approval work.
+
+Success criteria:
+The operator sees clear decisions, exceptions, and authority questions instead of raw packet, route, score, and rollback details.
+
+User value:
+The product improves faster because operator attention is spent on real exceptions and policy boundaries.
+
+Policy Translation owner:
+OMP, Decision Explainability, Action-Class Promotion, Delegated Autonomy Policy, and Observability owners.
+
+Runtime interpretation:
+Runtime handles certified routine work inside policy; OMP escalates only policy, authority, safety, or evidence boundaries.
+
+Related capabilities:
+Decision Explainability, Authority Evolution, Observability, Production Autonomy, Implementation Discipline.
+
+Related backlog:
+`A3`, `A4`, `A6`, `B1`, `B4`, `B12`, `B13`, `B17`, `C2`, `C4`.
+
+Completion criteria:
+Packet approval is retired for certified classes, explanations are operator-readable, and routine certified decisions no longer require per-action approval.
+
+#### Invisible VPN Experience
+
+Purpose:
+Make VPN routing disappear from the user's daily experience.
+
+Success criteria:
+Users use Telegram, YouTube, ChatGPT, browsing, and other services without thinking about VPN channels, routes, recovery, rollback, or failover.
+
+User value:
+The product feels like reliable internet access, not a technical VPN tool.
+
+Policy Translation owner:
+Product Specification, Canonical Policies, OMP, Runtime Model, Service/User/SLA Fit, Movement Protection.
+
+Runtime interpretation:
+Runtime preserves or restores service reachability using certified policy-bound actions and stops safely when it cannot prove safety.
+
+Related capabilities:
+Movement Protection, Runtime Eligibility, Recovery Admission, Learning, Production Autonomy, Production Readiness.
+
+Related backlog:
+`A3`, `A4`, `A5`, `A6`, `B2`, `B3`, `B4`, `B5`, `B7`, `B8`, `B10`, `B12`, `B13`, `B16`, `B17`, `C2`, `C4`, `C7`.
+
+Completion criteria:
+Production Autonomy is certified: routine routing work is invisible to users, bounded by policy, verified, reversible where required, and learned from real outcomes.
+
 ## The Ideal User Experience
 
 A user wakes up and opens Telegram.

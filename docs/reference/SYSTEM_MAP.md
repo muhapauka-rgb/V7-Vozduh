@@ -81,6 +81,234 @@ Last verified date: 2026-06-24
 | Runtime Timers / Periodic Checks | Existing periodic probe/refresh definitions. Periodic probes may refresh evidence; timer-only movement is rejected as the product model. | `systemd/v7-egress-quality-compact.timer`, `systemd/v7-service-matrix-refresh.timer`, `systemd/v7-telegram-sentinel.timer`, `systemd/v7-users-autoswitch.timer`, `systemd/drafts/v7-autoswitch-planner.timer`, `systemd/drafts/v7-health.service` | systemd definitions and runtime truth; POOL.3 truth says autoswitch timer/service inactive | Autonomy; Service Matrix; Stability; Technical Health | `docs/reports/POOL.3_RUNTIME_DISCOVER.md`, ADR-EVENT-DRIVEN-AUTONOMY | `f875eeee` |
 | Pool / Channel Health Truth | Current pool health, channel stability, load, readiness, and service evidence used by operators and planner previews | `admin/v7-admin-api` `/api/overview`, `/api/users`, `/api/egress`; `tools/v7-egress-quality-compact`; `tools/v7-service-matrix-refresh-all`; `tools/v7-users-autoswitch` | Runtime state under `/opt/v7/egress/state`, user registry, egress registry, quality summary, service matrix, policy gates | Channels; Stability; Capacity; Service Matrix; Planner | `docs/reports/POOL.3_RUNTIME_DISCOVER.md`, `POOL2_STABILITY_WINDOW_RECHECK_REPORT.md` | `f875eeee` |
 
+## Master System Integration Inventory
+
+Status: `SYSTEM_INVENTORY_COMPLETE`
+
+This inventory records the current Part 1 integration map. It does not create a new owner, roadmap, architecture, planner, governance layer, execution path, runtime owner, or truth source.
+
+Canonical dependency graph:
+
+```text
+Product Specification
+  -> Business Objectives
+  -> Canonical Policies
+  -> OMP
+  -> Capability Framework
+  -> Implementation Backlog
+  -> Runtime Model
+  -> Runtime
+  -> Users
+```
+
+Dependency status:
+
+| Dependency | Status | Reason |
+| --- | --- | --- |
+| Product Specification -> Business Objectives | `CONNECTED` | Product Specification owns Business Objectives as the top-level Product Owner interface. |
+| Business Objectives -> Canonical Policies | `PARTIALLY_CONNECTED` | Translation is documented; policy/runtime/UI consumption still needs further materialization through existing capabilities. |
+| Canonical Policies -> OMP | `CONNECTED` | Policy Library Stage 4 generated the Implementation Backlog and OMP must consult policies before operational changes. |
+| OMP -> Capability Framework | `CONNECTED` | OMP owns capability progress, status, DoD, and locking rules. |
+| Capability Framework -> Implementation Backlog | `CONNECTED` | Every backlog item must map to at least one capability. |
+| Implementation Backlog -> Runtime Model | `PARTIALLY_CONNECTED` | Backlog items implement/certify runtime gates, but runtime automation remains disabled until authority and certification mature. |
+| Runtime Model -> Runtime | `PARTIALLY_CONNECTED` | Runtime semantics and read-only owners exist; production execution remains governed and certification-bound. |
+| Runtime -> Users | `PARTIALLY_CONNECTED` | Governed one-user canary path exists; broad production autonomy is not yet certified. |
+
+Capability ownership map:
+
+| Capability | Single canonical owner | Supporting owners / consumers | Integration status | Current gap |
+| --- | --- | --- | --- | --- |
+| Business Objectives | Product Specification | Canonical Policies, OMP, Runtime Model, Current Program State | `PARTIALLY_CONNECTED` | UI/runtime language must consistently consume objectives through policy translation and explainability. |
+| Movement Protection | OMP / Movement Protection Model | Runtime Model, Canonical Policies, autoswitch/planner, Backlog | `PARTIALLY_CONNECTED` | Remaining certification and implementation items for rollback, degradation, anti-flap, arbitration, routing mode, slow start, and pool health. |
+| Decision Explainability | OMP | Current Program State, Runtime Model, read models, Engineering Reports | `PARTIALLY_CONNECTED` | Russian operator explanations need materialized approval surface and real governed validation. |
+| Authority Evolution | OMP | Policy 004, Runtime Model, Current Program State, action-class ladder | `PARTIALLY_CONNECTED` | Packet approval remains a governed fallback until class/policy authority is certified. |
+| Action-Class Authority | OMP | Policy 005, Runtime Model, delegated autonomy preview, Current Program State | `PARTIALLY_CONNECTED` | First class remains `GOVERNED_ONLY`; promotion requires real certified outcomes. |
+| Delegated Autonomy Policy | OMP | Product Specification, Runtime Model, policy/read-only eligibility owners | `PARTIALLY_CONNECTED` | Default policy is read-only and `NOT_APPROVED`; no runtime automation enabled. |
+| Runtime Eligibility | Runtime Model | OMP, delegated policy preview, action-class enablement read model, policies | `PARTIALLY_CONNECTED` | A6 and related items must complete gate arbitration and stale/read semantics. |
+| Rollback | Runtime Model / Restore Barrier / Rollback owners | OMP, Policy 007, execution feedback, autoswitch rollback | `PARTIALLY_CONNECTED` | A3/B15/B16/C5 must certify class rollback/no-rollback and authority semantics. |
+| Recovery Admission | Canonical Policy Library / OMP | Runtime Model, service matrix, quality compact, recovery owners | `PARTIALLY_CONNECTED` | Repeated success, observation windows, and slow-start certification remain unfinished. |
+| Learning | OMP / Feedback and learning owners | Runtime Model, Decision-to-Outcome-to-Learning, Canonical Reference | `PARTIALLY_CONNECTED` | More real outcomes and metric reliability are required. |
+| Production Readiness | OMP / Production Maturity Model | Backlog, truth/convergence, safe deploy, Current Program State | `PARTIALLY_CONNECTED` | Production Maturity remains implementation/certification-bound. |
+| Production Autonomy | OMP / Runtime Model | Authority Evolution, Action-Class Promotion, Delegated Autonomy Policy | `PARTIALLY_CONNECTED` | Runtime automation remains disabled until certified policy and authority exist. |
+| Knowledge System | Canonical Reference | Context Resolver, Research Framework, Policy Library, SYSTEM_MAP | `CONNECTED` | No current gap; locked unless re-open trigger appears. |
+| Observability | Admin read models / OMP | truth/convergence, evidence inventory, operator surfaces | `PARTIALLY_CONNECTED` | Evidence read models remain incomplete for all gates and explanations. |
+| Capability Framework | OMP | Current Program State, Backlog, Engineering Reports | `CONNECTED` | No owner gap; progress depends on backlog completion. |
+| Production Maturity | Production Maturity Model | OMP, Current Program State, Backlog | `CONNECTED` | Score must continue to recalculate from real status. |
+| Current Program State | OMP / Current Program State | Runtime Model, OMP status, operator approvals | `CONNECTED` | Volatile state must remain current after every action. |
+| Engineering Reports | OMP report lifecycle | Canonical owners consume durable findings | `CONNECTED` | Reports must never become backlog, roadmap, or canonical owner. |
+| Canonical Knowledge | Canonical Reference / SYSTEM_MAP | Product, OMP, Runtime Model, ADRs, policies | `CONNECTED` | Durable findings must be promoted from reports/chats immediately. |
+| World Equivalence | Canonical Reference | Movement Protection Model, Policy Library, OMP | `CONNECTED` | No re-audit unless canonical re-open trigger occurs. |
+| Operator Responsibility | Canonical Reference / Product Specification | OMP, Decision Explainability, Runtime Model | `PARTIALLY_CONNECTED` | Transitional packet approval must disappear as authority/certification mature. |
+| Business Operator Experience | Product Specification | Decision Explainability, OMP, UI/read models | `PARTIALLY_CONNECTED` | Operator-facing surfaces must consistently use Business Objectives before technical artifacts. |
+
+Duplicate owner result:
+
+No duplicate owner requiring replacement was found. Current overlaps are intentional layered ownership:
+
+- Product Specification owns product meaning; policies translate it; OMP executes maturity; Runtime enforces execute-or-stop.
+- OMP owns authority evolution; Runtime eligibility checks present-tense safety; Policy 004 owns authority semantics.
+- Restore barrier and rollback manifest own clearance/state; autoswitch owns operation-scoped rollback execution.
+- Engineering Reports store evidence; Canonical Reference, SYSTEM_MAP, OMP, Product Specification, Runtime Model, and ADRs store durable knowledge.
+
+## Master Integration Atlas
+
+Status: `SYSTEM_INTEGRATION_ANALYSIS_COMPLETE`
+
+This atlas records integration gaps only. It does not create implementation tasks, owners, roadmap items, runtime behavior, authority, apply, restore-barrier writes, or user movement.
+
+Integration graph summary:
+
+| Layer | Incoming dependency | Outgoing dependency | Current state | Root cause |
+| --- | --- | --- | --- | --- |
+| Product Specification | Product Owner intent | Business Objectives | `CONNECTED` | None. |
+| Business Objectives | Product Specification | Canonical Policies, OMP, UI | `PARTIALLY_CONNECTED` | Business language exists but is not yet consistently exposed as primary operator/UI language. |
+| Canonical Policies | Business Objectives, world consensus | OMP, Backlog, Runtime gates | `PARTIALLY_CONNECTED` | Policies are complete and mapped to backlog, but not all runtime arbitration/certification links are complete. |
+| OMP | Policies, Current Program State, Backlog | Capability Framework, authority evaluation, status | `CONNECTED` | None at owner level; maturity depends on production evidence. |
+| Capability Framework | OMP | Backlog, Current Program State, reports | `CONNECTED` | None at framework level; individual capabilities remain partial. |
+| Implementation Backlog | Capability Framework, policies | Runtime/read-model owners | `CONNECTED` | None at queue level; unfinished items remain. |
+| Runtime Model | Backlog, policies, OMP | Runtime owners | `PARTIALLY_CONNECTED` | Runtime semantics exist; not all gates are implemented/certified as executable eligibility. |
+| Runtime owners | Runtime Model, packet/lease/rollback owners | Users, verification, learning | `PARTIALLY_CONNECTED` | Governed execution exists; autonomous execution waits for certification and authority. |
+| Users | Runtime action | Outcome evidence | `PARTIALLY_CONNECTED` | Real outcomes are still sparse for promotion. |
+
+Master Integration Atlas:
+
+| Capability | Current owner | Consumer | Current state | Missing connection | Reason | Expected integration | Related backlog | Related capability | Expected production impact |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Business Objectives | Product Specification | Operator UI, OMP, policies, Runtime via translation | `PARTIALLY_CONNECTED` | Business language not consistently primary in UI/operator approvals | Missing UI/product-language consumption | Operator views use Business Objectives first, technical artifacts second | `B1`, `B4`, `B13`, `B15`, `B17`, `C2` | Decision Explainability; Business Operator Experience | Lower operator cognitive load and fewer packet-level approvals. |
+| Movement Protection | OMP / Movement Protection Model | Runtime, planner/autoswitch, policies | `PARTIALLY_CONNECTED` | Remaining gates not centrally arbitrated/certified | Missing integration, certification, production evidence | Runtime eligibility consumes movement gates before action | `A3`, `A5`, `A6`, `B3`, `B4`, `B5`, `B8`, `B10`, `B16`, `B19`, `B21`, `C7` | Runtime Eligibility; Rollback; Recovery Admission | Stable users, less oscillation, safer movement. |
+| Decision Explainability | OMP | Operator UI, Current Program State, reports | `PARTIALLY_CONNECTED` | Approval requests do not yet always explain decisions in Russian from evidence | Missing UI/read-model consumption | Every approval shows reason, evidence, value, risk, alternatives, and capability impact | `A3`, `A6`, `B1`, `B4`, `B13`, `B15`, `B17`, `C2` | Business Operator Experience; Observability | Operator can approve decisions, not packets. |
+| Authority Evolution | OMP / Policy 004 | Runtime authority gate, operator | `PARTIALLY_CONNECTED` | Packet approval remains transitional | Missing certification and authority promotion evidence | Action-class and delegated policy approval replace repeated packet approval | `A3`, `A4`, `A5`, `A6`, `B11`, `B12`, `B13`, `B16`, `B21`, `C3`, `C4` | Production Autonomy | Less operator burden, safe authority growth. |
+| Action-Class Authority | OMP / Policy 005 | Runtime eligibility, delegated policy preview | `PARTIALLY_CONNECTED` | First action class remains `GOVERNED_ONLY` | Missing certification and production outcomes | Certified class can receive class-level authority recommendation | `A3`, `A4`, `A5`, `A6`, `B12`, `B13` | Authority Evolution; Production Autonomy | Replaces stale packet approval loop. |
+| Delegated Autonomy Policy | OMP | Runtime policy gate | `PARTIALLY_CONNECTED` | Default policy is read-only and not approved | Missing authority approval and runtime capability certification | Runtime self-approves only inside approved policy | `A6`, `B12`, `B16`, `C3`, `C4` | Production Autonomy | Enables bounded autonomy without silent authority expansion. |
+| Runtime Eligibility | Runtime Model | Runtime/read-only eligibility owners, OMP | `PARTIALLY_CONNECTED` | Gate arbitration incomplete | Missing implementation/integration | Freshness, authority, blast, rollback, anti-flap, verification, and learning gates produce one execute-or-stop answer | `A6`, `B17`, `B18`, `C1`, `C6` | Movement Protection; Production Autonomy | Stops unsafe actions and enables certified safe ones. |
+| Rollback | Restore Barrier / Runtime Model | Runtime execution, OMP promotion | `PARTIALLY_CONNECTED` | Rollback/no-rollback class evidence incomplete | Missing certification and production evidence | Class-level rollback/no-rollback evidence closes A3 and feeds promotion | `A3`, `B15`, `B16`, `C5` | Learning; Authority Evolution | Safer production movement and recovery. |
+| Recovery Admission | Policy 003 / OMP | Runtime recovery gates | `PARTIALLY_CONNECTED` | Repeated success and slow-start not certified | Missing certification and runtime consumption | Recovered channels re-enter through readiness, anti-flap, blast, and slow-start | `B8`, `B9`, `B10` | Movement Protection; Runtime Eligibility | Faster recovery without oscillation. |
+| Learning | Feedback/learning owners | OMP, promotion, future decisions | `PARTIALLY_CONNECTED` | Insufficient representative real outcomes | Missing production evidence and metric reliability | Real outcomes update confidence, promotion readiness, and future decisions | `A3`, `A4`, `B5`, `B13` | Production Autonomy | Decisions improve from reality. |
+| Production Readiness | OMP / Production Maturity Model | OMP status, operator | `PARTIALLY_CONNECTED` | Production maturity remains low vs engineering maturity | Missing implementation/certification | Backlog/certification/outcomes raise Production Maturity | All actionable backlog | Production Autonomy | Clear route to production autonomy. |
+| Production Autonomy | OMP / Runtime Model | Runtime, operator | `PARTIALLY_CONNECTED` | Runtime automation disabled | Missing certification, authority, runtime eligibility | Runtime executes certified routine work inside approved policy | `A3`, `A4`, `A5`, `A6`, `B10`, `B12`, `B16`, `C4` | Authority Evolution; Runtime Eligibility | Operator supervises instead of approving routine actions. |
+| Observability | Admin read models / OMP | Operator UI, OMP, reports | `PARTIALLY_CONNECTED` | Not every gate has complete read-only evidence surface | Missing read models/UI | Operators and OMP inspect all safety/runtime evidence without mutation | `B1`, `B4`, `B9`, `B13`, `B15`, `B17`, `C2` | Decision Explainability; Runtime Eligibility | Faster diagnosis and safer approvals. |
+| Operator Responsibility | Product Specification / Canonical Reference | OMP, Runtime, UI | `PARTIALLY_CONNECTED` | Operator still participates in routine packet approvals | Certification, authority, UI, runtime capability gaps | Operator supervises policies, exceptions, and authority expansion only | `A3`, `A4`, `A5`, `A6`, `B12`, `B16`, `C3`, `C4` | Business Operator Experience; Production Autonomy | Minimal operator work. |
+| Business Operator Experience | Product Specification | Operator UI, Decision Explainability | `PARTIALLY_CONNECTED` | UI can still expose engineering artifacts as primary language | Missing UI/business-language integration | UI leads with Business Objectives, reason, evidence, value, risk; packets are secondary artifacts | `B1`, `B4`, `B13`, `B15`, `B17`, `C2` | Decision Explainability; Observability | Human operator understands product decision quickly. |
+
+Current execution graph:
+
+```text
+Product Owner
+  -> Product Specification
+  -> Business Objectives
+  -> Canonical Policies
+  -> OMP
+  -> Capability
+  -> Backlog
+  -> Runtime Model
+  -> Runtime / governed execution owners
+  -> Users
+```
+
+Current execution stops at:
+
+- business language before full UI/operator consumption;
+- policy before full runtime arbitration and certification;
+- capability before complete runtime eligibility consumption;
+- runtime before autonomous production execution;
+- outcome learning before enough representative real production evidence exists.
+
+Ideal execution graph:
+
+```text
+Product Owner
+  -> Business Objectives
+  -> Canonical Policies
+  -> OMP capability state
+  -> Certified backlog gates
+  -> Runtime eligibility arbitration
+  -> Execute or Stop
+  -> Verify
+  -> Rollback / Contain when needed
+  -> Outcome Closure
+  -> Learning
+  -> OMP Maturity Update
+  -> Product Owner supervises policy and exceptions
+```
+
+Operator burden root cause:
+
+| Reason class | Existing owner | Current implementation | Missing connection | Required integration |
+| --- | --- | --- | --- | --- |
+| Certification | OMP / Backlog | A3 remains unfinished | Real rollback/no-rollback outcome evidence | Certify first action class evidence. |
+| Integration | OMP / Runtime Model | Gates exist in separate owners | Unified runtime eligibility arbitration incomplete | Complete A6 and related read models. |
+| Authority | OMP / Policy 004 | Packet approval fallback remains | Class/policy authority not certified/approved | Promote certified action classes. |
+| Runtime | Runtime Model | Execute-or-stop semantics exist | Runtime automation disabled | Runtime capability after certification and approval. |
+| UI | Product Specification / Decision Explainability | Russian explanation requirement exists | Approval surface not fully materialized | Business-language explanation before Approve/Reject. |
+| Knowledge | Canonical Reference / reports | Knowledge preservation exists | More real outcomes needed | Outcome closure and learning evidence. |
+
+Business language analysis:
+
+| Question | Answer | Gap |
+| --- | --- | --- |
+| Does Product Specification define business language? | Yes. Business Objectives are canonical. | None. |
+| Does OMP consume it? | Yes, through production leverage, capabilities, backlog, and maturity. | Consumption is not always visible in operator status. |
+| Do policies consume it? | Yes, as policy translation from objectives to operational rules. | Runtime policy arbitration remains partial. |
+| Does Runtime consume translated policy? | Partially. Runtime Model defines this; implementation/certification remains incomplete. | A6 and related backlog items. |
+| Does Operator UI expose business language? | Partially. Product language is canonical but UI surfaces can still lead with technical artifacts. | Decision Explainability and Observability backlog. |
+| Does UI still expose engineering language? | Yes, where packets, leases, hashes, manifests, and blast-radius generation remain primary approval artifacts. | Business Operator Experience integration. |
+
+Knowledge consumption analysis:
+
+| Canonical document | Knowledge available | Knowledge consumed | Knowledge ignored / orphaned | Assigned owner |
+| --- | --- | --- | --- | --- |
+| Product Specification | Product meaning, Business Objectives, operator language | OMP, policies, Canonical Reference | No orphan; UI consumption partial | Product Specification / Decision Explainability |
+| OMP | Capability framework, authority evolution, backlog execution | Current Program State, Backlog, reports | No orphan; runtime consumption partial | OMP / Runtime Eligibility |
+| Current Program State | Current task, stop, maturity, capability progress | OMP and operator flow | No orphan; volatile state must remain current | OMP |
+| Runtime Model | Execute-or-stop, authority, rollback, learning, eligibility | Runtime owners and OMP | No orphan; certification partial | Runtime Model / Backlog |
+| Canonical Policy Library | Policies, interactions, Stage 4 fit | OMP Backlog and priority model | No orphan; runtime implementation partial | OMP / Runtime Eligibility |
+| Canonical Reference | Durable truth and no-reaudit rules | Future work and OMP | No orphan | Canonical Reference |
+| SYSTEM_MAP | Ownership map and integration atlas | Future work and OMP | No orphan | SYSTEM_MAP |
+| ADRs | Permanent decisions | Reference and implementation constraints | No orphan found in Part 2 | ADR owner / Canonical Reference |
+| Engineering Reports | Historical evidence | Canonical owners consume durable findings | Reports must not become orphan truth | OMP report lifecycle |
+
+## Master Integration Execution Program
+
+Status: `MASTER_INTEGRATION_PROGRAM_COMPLETE`
+
+Owner: `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`
+
+Purpose: execute the Master Integration Atlas through existing backlog items only.
+
+Normalized backlog result:
+
+`Need New Backlog Item = FALSE`
+
+Reason: every integration gap maps to existing backlog item(s) in `docs/programs/V7_IMPLEMENTATION_BACKLOG.md`.
+
+Execution group map:
+
+| Group | Primary existing owner | Existing backlog |
+| --- | --- | --- |
+| Product Layer Integration | Product Specification / Decision Explainability / Observability | `B1`, `B4`, `B13`, `B15`, `B17`, `C2` |
+| Policy Integration | Canonical Policy Library / OMP / Runtime Model | `A6`, `B19`, `B20`, `C1`, `C6` |
+| Capability Integration | OMP / Current Program State / Backlog | Existing mapped backlog |
+| Runtime Integration | Runtime Model / action-class enablement / delegated policy preview | `A6`, `B17`, `B18`, `C1`, `C6` |
+| Runtime Explainability | OMP / Decision Explainability / read models | `A3`, `A6`, `B1`, `B4`, `B13`, `B15`, `B17`, `C2` |
+| Operator Experience | Product Specification / UI and read-model owners / OMP | `B1`, `B4`, `B13`, `B15`, `B17`, `C2` |
+| Certification | OMP / Backlog / policy owners | `A3`, `A4`, `A5`, `B8`, `B10`, `B12`, `B13`, `B16` |
+| Production Evidence | Feedback and learning owners / OMP | `A3`, `A4`, `B5`, `B13` |
+| Autonomy Readiness | OMP / Runtime Model / Authority Evolution | `A3`, `A4`, `A5`, `A6`, `B10`, `B12`, `B16`, `C4` |
+
+Execution order summary:
+
+1. `A3` rollback/no-rollback evidence.
+2. `A4` representative outcome evidence.
+3. `A5` class-level blast-radius evidence.
+4. `A6` runtime eligibility arbitration.
+5. `B5`, `B8`, `B10`, `B12`, `B13`, `B15`, `B16`.
+6. `B17`, `B18`, `B19`, `B20`, `B21`.
+7. `C1`, `C2`, `C3`, `C4`, `C5`, `C6`, `C7`.
+
+Readiness for implementation:
+
+`READY_FOR_IMPLEMENTATION_PROMPT`
+
 ## Workflow Integration Rule
 
 Major logic, planner, UI meaning, governance, runtime, or truth-source work must update the canonical reference before commit. If the work changes a decision, add or update an ADR. Then run:

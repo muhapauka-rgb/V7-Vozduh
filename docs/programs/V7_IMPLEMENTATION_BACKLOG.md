@@ -37,15 +37,15 @@ OMP must always choose the highest-priority unfinished backlog item unless it cr
 | Scope | Complete | Total | Status |
 | --- | ---: | ---: | --- |
 | Tier A | `2` | `6` | `ACTIVE` |
-| Tier B | `0` | `20` | `PENDING` |
+| Tier B | `0` | `21` | `PENDING` |
 | Tier C | `0` | `7` | `PENDING` |
 | Tier D optional | `0` | `6` | `OPTIONAL` |
-| Overall actionable | `2` | `33` | `ACTIVE` |
+| Overall actionable | `2` | `34` | `ACTIVE` |
 
 Implementation maturity:
 
 ```text
-6.1%
+5.9%
 ```
 
 Estimated remaining effort:
@@ -67,6 +67,26 @@ IMPLEMENTATION_COMPLETE
 ```
 
 and stop.
+
+## Backlog Consistency Audit
+
+Status: `CANONICAL_BACKLOG_MAPPING_CURRENT`
+
+This section records the current mapping from confirmed remaining engineering gaps to the single live implementation queue. It is not a second backlog.
+
+| Confirmed gap / model | Existing owner | Existing backlog item | Existing implementation / canonical knowledge | Decision |
+| --- | --- | --- | --- | --- |
+| Centralized Policy Arbitration | OMP, Runtime Model, delegated policy preview, action-class runtime enablement | `A6` | Runtime eligibility arbitration across freshness, authority, blast radius, rollback, anti-flap, verification, and learning gates. Narrow supporting items `B19` and `B20` remain sub-policy extensions, not duplicate owners. | `EXTEND_EXISTING` |
+| Per-user `AUTO` / `PINNED` / `MANUAL` routing mode | User registry, group/organization policy, planner gates, admin UI | `B21` | Current assignment, group preference, and `manual_only`/`reserve_only` flags exist, but explicit per-user routing control mode is missing. | `ADD_TO_BACKLOG` |
+| Runtime-certified Slow-Start Recovery | Recovery admission, blast-radius/action-class ladder | `B10` | Recovery admission and limited recovery blast radius exist; runtime-certified staged re-entry remains unfinished. | `EXTEND_EXISTING` |
+| Pool Max-Ejection / Minimum-Health semantics | Planner capacity/load, action-class ladder, blast-radius bounds | `C7` | Capacity/load and authority budgets exist; proxy-style max-ejection/minimum-health mapping remains unfinished. | `EXTEND_EXISTING` |
+| State Change Cost Model | Planner/autoswitch, movement protection model, anti-flap owners | `B19` | Already exists semantically as sticky/current-channel bonus, minimum improvement threshold, cooldown, freeze, pair reversal, target block, egress quarantine, rebalance restraint, and authority/blast caps. B19 owns vocabulary consolidation only. | `EXTEND_EXISTING` |
+
+Need New Owner: `FALSE`.
+
+Need New Document: `FALSE`.
+
+State Change Cost verdict: `ALREADY_EXISTS_SEMANTICALLY`; extend existing B19 vocabulary only, do not create a new owner or new backlog item.
 
 ## Current Highest Priority
 
@@ -118,8 +138,9 @@ and stop.
 | `B16` | `TODO` | Certify automatic rollback authority after reliable verification evidence. | `POLICY_007_ROLLBACK` | Autoswitch rollback-on-verify-fail, OMP operational/engineering authority gates | `tools/v7-users-autoswitch`, `admin_core/operator_execution.py`, `admin_core/operator_execution_pipeline.py` | `IMPLEMENT_CERTIFICATION` | `MODERATE_EXTENSION` | Verification reliability and authority approval. | `HIGH` | `HIGH` | `VERY_HIGH` | `VERY_HIGH` |
 | `B17` | `TODO` | Preserve stale-read reporting while blocking mutation. | `POLICY_008_FRESHNESS` | Runtime eligibility, truth/convergence, read-only inventory | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory` | `IMPLEMENT_OBSERVABILITY` | `SMALL_EXTENSION` | Existing read-only/action split. | `HIGH` | `MEDIUM` | `MEDIUM` | `HIGH` |
 | `B18` | `TODO` | Extend owner-issued version/lease pattern where available. | `POLICY_008_FRESHNESS` | Execution lease, runtime snapshot, intelligence snapshots | `admin_core/operator_execution.py`, `admin_core/intelligence_snapshots.py`, `admin_core/autonomy_trust_acceleration.py` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | Existing lease and snapshot generations. | `HIGH` | `HIGH` | `HIGH` | `VERY_HIGH` |
-| `B19` | `TODO` | Centralize hysteresis mapping across failure and recovery owners. | `POLICY_009_ANTI_FLAP` | Service signal thresholds, recovery admission | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-service-matrix-refresh-all` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | Existing thresholds. | `HIGH` | `HIGH` | `MEDIUM_HIGH` | `HIGH` |
+| `B19` | `TODO` | Centralize hysteresis and state-change-cost mapping across failure, recovery, and movement-protection owners. | `POLICY_009_ANTI_FLAP` | Service signal thresholds, recovery admission, movement protection | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-service-matrix-refresh-all`, `tools/v7-users-autoswitch` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | Existing thresholds, sticky/current bias, cooldown, freeze, pair reversal, and minimum movement improvement. | `HIGH` | `HIGH` | `MEDIUM_HIGH` | `HIGH` |
 | `B20` | `TODO` | Encode hard-failure override rule for anti-flap arbitration. | `POLICY_009_ANTI_FLAP`, `POLICY_001_HARD_FAILURE` | OMP, planner, runtime eligibility | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-users-autoswitch` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | A1 hard-failure classifier. | `HIGH` | `HIGH` | `HIGH` | `VERY_HIGH` |
+| `B21` | `TODO` | Implement explicit per-user `AUTO` / `PINNED` / `MANUAL` routing control mode through existing user, policy, planner, and admin owners. | `WORLD_EQUIVALENCE_MODEL`, `MOVEMENT_PROTECTION_MODEL`, `POLICY_004_AUTHORITY`, `POLICY_006_BLAST_RADIUS` | User registry, group/organization policy, planner gates, admin operator surface | `admin/v7-admin-api`, `admin_core/operator_decision_surface.py`, `tools/v7-users-autoswitch`, `admin_core/registry_readers.py` | `IMPLEMENT_READ_MODEL` | `MODERATE_EXTENSION` | Current assignment, group preference, `manual_only`/`reserve_only`, org policy, and planner gate semantics. | `HIGH` | `MEDIUM_HIGH` | `MEDIUM_HIGH` | `VERY_HIGH` |
 
 ## Tier C: Medium
 

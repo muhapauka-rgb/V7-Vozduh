@@ -521,6 +521,96 @@ Machine-readable Delegated Autonomy Policy state is exposed through the existing
 - `tools/v7-autonomy-trust-evidence-inventory --delegated-autonomy-eligibility-only`;
 - `tools/v7-autonomy-trust-evidence-inventory --action-class-runtime-only`.
 
+## 2.1.6. Decision Explainability
+
+Decision Explainability is the permanent OMP capability for explaining existing decisions before any operator approval request.
+
+It is an explainability layer only.
+It does not change decision making.
+It does not create a new planner.
+It does not create new governance.
+It does not create a new Runtime owner.
+It does not create a new execution path.
+It does not approve packets, approve action classes, expand authority, write restore barriers, apply, roll back, move users, create evidence, or lower floors.
+
+Purpose:
+
+The operator must approve a decision, not a packet.
+
+Before any approval request, Runtime / OMP must explain the decision in human language using existing decision, evidence, policy, safety, rollback, and authority owners.
+
+Operator explanations must be written only in Russian.
+
+Every approval request must answer:
+
+1. Почему вообще рассматривается переключение?
+2. Почему именно сейчас?
+3. Почему выбран именно этот пользователь?
+4. Почему текущий канал считается недостаточно хорошим?
+5. Почему выбран именно этот целевой канал?
+6. Какие проверки уже прошли успешно: Hard Failure, Soft Degradation, Freshness, Recovery Admission, Blast Radius, Rollback, Anti-Flap, Authority, State Change Cost, Net Benefit?
+7. Почему система считает, что лучше переключить, чем оставить как есть?
+8. Что произойдет, если ничего не делать?
+9. Что произойдет после переключения?
+10. Какие риски остаются?
+11. Почему Runtime уверен в этом решении?
+12. Какое Production Value ожидается?
+13. Какой Capability Progress даст успешное выполнение?
+
+Operator view order:
+
+```text
+Причина
+  -> Доказательства
+  -> Ожидаемая польза
+  -> Риски
+  -> Approve / Reject
+```
+
+Language rules:
+
+| Surface | Language |
+| --- | --- |
+| Operator explanations | Russian only |
+| Engineering Reports | Russian only |
+| Canonical documents | Existing document language |
+| Code comments | Existing project language |
+
+Definition of Done:
+
+Decision Explainability is `COMPLETE` only when the operator can understand every approval request without reading source code and can honestly answer:
+
+```text
+Да, я понимаю, почему система хочет сделать именно это.
+```
+
+Completion criteria:
+
+- every approval request includes the Russian decision explanation fields listed above;
+- explanations are generated from existing evidence owners, not invented;
+- every safety gate result is shown as passed, failed, unknown, or not applicable;
+- alternatives are explained, including why keeping current state was not selected;
+- expected production value and capability progress are shown;
+- remaining risk is shown before Approve / Reject;
+- no explanation can authorize runtime action by itself;
+- missing evidence produces `STOP_SAFE`, not persuasive text.
+
+Current status:
+
+`IN_PROGRESS`.
+
+Current progress:
+
+`20.0%`.
+
+Blocking backlog items:
+
+`A3`, `A6`, `B1`, `B4`, `B13`, `B15`, `B17`, `C2`.
+
+Completion prediction:
+
+Decision Explainability completes after the operator approval surface explains current packet/class/policy decisions in Russian, ties every explanation to existing evidence, shows safety/risk/value before approval, and has been validated by real governed outcomes and operator review.
+
 Current implementation status:
 
 `READ_ONLY_PREVIEW_AND_ELIGIBILITY_CHECK_ONLY`
@@ -599,7 +689,7 @@ Document classes:
 | `REFERENCE` | Permanent knowledge. | System Architecture, Runtime Model, Decision Model, Kernel, Context Resolver, Canonical Policy Library. | Frozen after certification; OMP does not edit during normal implementation. |
 | `PROGRAMS` | Drive execution. | OMP, Implementation Program, Current Program State. | Live and updated when execution or optimizer state changes. |
 | `IMPLEMENTATION` | The only engineering queue. | Implementation Backlog, Implementation Priority Model. | OMP selects work only from the backlog. |
-| `REPORTS` | Historical evidence only. | Certified reports. | Never planning, never backlog, never roadmap. |
+| `REPORTS` | Execution history and historical evidence only. | Certified reports and engineering reports under `docs/reports/engineering/`. | Not project documents; never planning, never backlog, never roadmap, never canonical owner. |
 | `ADR` | Permanent decisions. | Accepted ADRs. | Read-only decision constraints, never queue. |
 
 Permanent rules:
@@ -1155,15 +1245,15 @@ Current backlog progress:
 | Scope | Complete | Total | Status |
 | --- | ---: | ---: | --- |
 | Tier A | `2` | `6` | `ACTIVE` |
-| Tier B | `0` | `20` | `PENDING` |
+| Tier B | `0` | `21` | `PENDING` |
 | Tier C | `0` | `7` | `PENDING` |
 | Tier D optional | `0` | `6` | `OPTIONAL` |
-| Overall actionable | `2` | `33` | `ACTIVE` |
+| Overall actionable | `2` | `34` | `ACTIVE` |
 
 Implementation maturity:
 
 ```text
-6.1%
+5.9%
 ```
 
 Estimated remaining effort:
@@ -1257,14 +1347,14 @@ Current production snapshot:
 
 | Category | Current % | Target % | Weight |
 | --- | ---: | ---: | ---: |
-| Implementation | `6.1` | `100` | `20` |
+| Implementation | `5.9` | `100` | `20` |
 | Testing | `34` | `100` | `10` |
 | Production Deployments | `100` | `100` | `10` |
 | Production Outcomes | `10` | `100` | `15` |
 | Certification | `22` | `100` | `15` |
 | Authority Evolution | `15` | `100` | `10` |
 | Production Autonomy | `0` | `100` | `10` |
-| Implementation Backlog Completion | `6.1` | `100` | `10` |
+| Implementation Backlog Completion | `5.9` | `100` | `10` |
 
 Production Maturity:
 
@@ -1278,10 +1368,10 @@ Backlog:
 
 ```text
 Tier A: 2 / 6 complete
-Tier B: 0 / 20 complete
+Tier B: 0 / 21 complete
 Tier C: 0 / 7 complete
 Tier D: 0 / 6 optional complete
-Overall: 2 / 33 actionable complete
+Overall: 2 / 34 actionable complete
 ```
 
 Current highest implementation task:
@@ -1356,7 +1446,7 @@ Engineering Maturity
 PRODUCTION
 
 Implementation
-6.1%
+5.9%
 
 Certification
 22%
@@ -1377,19 +1467,19 @@ Backlog
 Tier A
 2 / 6
 Tier B
-0 / 20
+0 / 21
 Tier C
 0 / 7
 Tier D
 0 / 6 optional
 Overall
-2 / 33 complete
+2 / 34 complete
 
 Current Tier
 TIER_1_GOVERNED
 
 Highest Priority Task
-A3 fix: Bind operator approval context to execution lease creation.
+A3 fix: preserve approved locked selected moves through the existing autoswitch intelligence snapshot gate.
 
 Status
 Unsafe Implementation
@@ -1398,7 +1488,16 @@ Authority
 None
 
 Required Action
-Implement existing packet/lease owner fix before another approval
+Implement A3_FIX_APPROVED_PLAN_LOCK_SNAPSHOT_GATE_CONSUMPTION_IN_EXISTING_AUTOSWITCH_OWNER.
+
+Engineering
+BLOCKED_BY_OWNER_DEFECT
+
+Runtime
+FAIL_CLOSED_BEFORE_MOVEMENT
+
+Packet
+APPROVED_AND_CONSUMED
 
 Estimated Remaining Work
 Moderate
@@ -1460,6 +1559,682 @@ OMP must never request a new roadmap.
 OMP must never request a new implementation plan.
 OMP must continue using the existing backlog until completion.
 
+## 2.12.3. Capability Management
+
+OMP is capability-oriented.
+
+Tasks are the execution unit.
+
+Capabilities are the maturity unit.
+
+OMP must always know:
+
+1. what capability is currently being built;
+2. how complete it is;
+3. what blocks completion;
+4. which backlog items belong to it;
+5. when it becomes `COMPLETE`;
+6. when it becomes `LOCKED`;
+7. when future work is forbidden unless a re-open trigger is present.
+
+No capability may remain permanently `IN_PROGRESS`.
+
+Every capability record must contain:
+
+- Capability Name;
+- Purpose;
+- Ideal Target State;
+- Current State;
+- Current %;
+- Target %;
+- Definition of Done;
+- Completed Criteria;
+- Remaining Criteria;
+- Blocking Backlog Items;
+- Expected Completion Point;
+- Canonical Owner;
+- Production Value;
+- Autonomy Impact;
+- Current Status;
+- Re-open Triggers.
+
+Capability status values:
+
+| Status | Meaning |
+| --- | --- |
+| `IN_PROGRESS` | The capability has unfinished Definition of Done criteria or unfinished required backlog items. |
+| `COMPLETE` | Every Definition of Done criterion has completion evidence. |
+| `LOCKED` | The capability is complete, canonical, and future engineering is prohibited unless a re-open trigger is present. |
+
+General capability rules:
+
+1. Every backlog item must belong to at least one capability.
+2. OMP must maintain `Capability -> Backlog Items -> Current % -> Remaining % -> Expected Completion`.
+3. OMP must calculate capability progress from Definition of Done criteria and existing backlog status.
+4. OMP must not invent work to fill a capability.
+5. OMP must use only the existing backlog, existing policies, existing Runtime, and existing canonical knowledge.
+6. After every completed backlog item, OMP must update capability progress in Current Program State.
+7. If a Definition of Done becomes satisfied, OMP must mark the capability `COMPLETE`, then `LOCKED`, then update Canonical Reference.
+8. Locked capabilities may be reopened only if production evidence disproves the capability, architecture materially changes, or the operator explicitly requests reopening.
+9. Capability Progress Reports are historical engineering reports only; they must never become a second backlog or roadmap.
+10. Every capability must define how Runtime, OMP, operators, or knowledge owners behave when the capability reaches `100%`.
+
+Capability Dashboard must be printed in OMP Status:
+
+```text
+Capability Dashboard
+
+Capability | Current % | Ideal % | Remaining % | Current Maturity | Production Impact | Autonomy Impact | Blocking Backlog Items | Completion Prediction
+Movement Protection | 35.7% | 100% | 64.3% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3, A5, A6, B3, B4, B5, B8, B10, B16, B19, B21, C7 | Complete after movement stability, rollback, recovery, blast, anti-flap, routing mode, slow-start, and pool-health criteria are satisfied.
+Runtime Eligibility | 28.6% | 100% | 71.4% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A6, B17, B18, C1, C6 | Complete after Runtime can decide execute-or-stop from certified gates.
+Authority Evolution | 40.0% | 100% | 60.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3, A4, A5, A6, B11, B12, B13, B16, B21, C3, C4 | Complete after action classes and delegated policy can replace repeated packet approval.
+Rollback | 42.9% | 100% | 57.1% | IN_PROGRESS | VERY_HIGH | HIGH | A3, B15, B16, C5 | Complete after rollback/no-rollback class evidence and authority are certified.
+Recovery Admission | 25.0% | 100% | 75.0% | IN_PROGRESS | HIGH | HIGH | B8, B9, B10 | Complete after recovered channels are reintroduced through certified readiness and slow-start.
+Learning | 40.0% | 100% | 60.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3, A4, B5, B13 | Complete after real outcomes reliably improve future decisions.
+Production Readiness | 21.5% | 100% | 78.5% | IN_PROGRESS | VERY_HIGH | HIGH | Remaining actionable backlog and certification | Complete at PRODUCTION_AUTONOMY_CERTIFIED.
+Production Autonomy | 0.0% | 100% | 100.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3, A4, A5, A6, B10, B12, B16, C4 | Complete when Runtime operates inside certified policy and operator supervises.
+Knowledge System | 100.0% | 100% | 0.0% | LOCKED | HIGH | MEDIUM_HIGH | None | Complete and locked under canonical knowledge rules.
+Observability | 30.0% | 100% | 70.0% | IN_PROGRESS | HIGH | MEDIUM_HIGH | B1, B4, B9, B13, B15, B17, C2 | Complete when operators and OMP can inspect all safety/runtime evidence without mutation.
+Decision Explainability | 20.0% | 100% | 80.0% | IN_PROGRESS | HIGH | HIGH | A3, A6, B1, B4, B13, B15, B17, C2 | Complete when every approval request explains the decision in Russian before Approve / Reject, using existing evidence owners only.
+Implementation Discipline | 100.0% | 100% | 0.0% | COMPLETE | VERY_HIGH | MEDIUM | None | Complete while Backlog remains the only live queue.
+Engineering Knowledge Preservation | 100.0% | 100% | 0.0% | LOCKED | HIGH | MEDIUM | None | Complete and locked while reference/report/ADR roles remain normalized.
+
+Current Capability
+Movement Protection
+
+Current Backlog Item
+A3
+
+Completion Prediction
+Movement Protection completes after rollback/no-rollback certification, soft degradation certification, recovery admission certification, blast-radius certification, anti-flap certification, central policy arbitration, AUTO/PINNED/MANUAL routing mode, runtime-certified slow start, and pool-health semantics are complete.
+
+Blocking Items
+A3, A5, A6, B3, B4, B5, B8, B10, B16, B19, B21, C7
+```
+
+Initial capability registry:
+
+| Capability | Purpose | Current % | Target % | Current Status | Canonical Owner | Production Value | Autonomy Impact | Blocking Backlog Items | Expected Completion Point | Re-open Triggers |
+| --- | --- | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |
+| Movement Protection | Prevent chaotic user movement while preserving fast reaction to real failures. | `35.7` | `100` | `IN_PROGRESS` | OMP, Movement Protection Model, Runtime Model, Canonical Policy Library | `VERY_HIGH` | `VERY_HIGH` | `A3`, `A5`, `A6`, `B3`, `B4`, `B5`, `B8`, `B10`, `B16`, `B19`, `B21`, `C7` | All Movement Protection DoD criteria complete or explicitly `NOT_APPLICABLE`. | Production evidence disproves behavior; planner/runtime architecture materially changes; explicit operator request. |
+| Runtime Eligibility | Decide whether Runtime may execute or must stop using certified gates. | `28.6` | `100` | `IN_PROGRESS` | Runtime Model, OMP, delegated policy preview, action-class enablement owners | `VERY_HIGH` | `VERY_HIGH` | `A2`, `A6`, `B17`, `B18`, `C1`, `C6` | Action-class runtime eligibility arbitration is implemented and freshness/reporting semantics are certified. | Runtime architecture changes; production eligibility failure; explicit operator request. |
+| Authority Evolution | Move from packet approval to bounded class/policy authority without silent expansion. | `40.0` | `100` | `IN_PROGRESS` | OMP, Authority policy, Runtime Model, action-class ladder | `VERY_HIGH` | `VERY_HIGH` | `A3`, `A4`, `A5`, `A6`, `B11`, `B12`, `B13`, `B16`, `B21`, `C3`, `C4` | Certified class evidence supports authority recommendation and operator/certified policy approval. | Authority incident; operator policy change; explicit authority expansion/shrink request. |
+| Rollback | Guarantee safe compensation or certified no-rollback behavior for production actions. | `42.9` | `100` | `IN_PROGRESS` | Restore barrier, rollback manifest, Runtime Model, execution feedback | `VERY_HIGH` | `HIGH` | `A3`, `B15`, `B16`, `C5` | Rollback/no-rollback class evidence and automatic rollback authority are certified. | Failed rollback; verification failure pattern; explicit operator request. |
+| Recovery Admission | Admit recovered channels safely without oscillation or premature scale. | `25.0` | `100` | `IN_PROGRESS` | Recovery admission owner, service matrix, quality compact, blast-radius/action-class ladder | `HIGH` | `HIGH` | `B8`, `B9`, `B10`, `D2`, `D3` | Repeated real readiness evidence, observation windows, and runtime-certified slow start are complete. | Recovery incident; service evidence changes; explicit operator request. |
+| Learning | Convert real outcomes into future decision quality without synthetic evidence. | `40.0` | `100` | `IN_PROGRESS` | Feedback/learning owner, OMP, Canonical Reference | `VERY_HIGH` | `VERY_HIGH` | `A3`, `A4`, `B5`, `B13` | Representative real outcomes and metric reliability support promotion recommendations. | Learning regression; synthetic evidence risk; explicit operator request. |
+| Production Readiness | Make V7 deployable, operable, verifiable, and certifiable as a production system. | `21.5` | `100` | `IN_PROGRESS` | OMP, Production Maturity Model, Implementation Backlog | `VERY_HIGH` | `HIGH` | `A1`-`A6`, `B11`, `B14`, `B21`, `C7`, optional `D1`-`D6` only if scope changes | Production Maturity reaches `100%` and outputs `PRODUCTION_AUTONOMY_CERTIFIED`. | Production safety incident; deploy model change; explicit operator request. |
+| Production Autonomy | Enable Runtime to operate inside certified authority while operator supervises. | `0.0` | `100` | `IN_PROGRESS` | OMP, Runtime Model, Authority Evolution, action-class promotion | `VERY_HIGH` | `VERY_HIGH` | `A3`, `A4`, `A5`, `A6`, `B10`, `B12`, `B16`, `C4` | Bounded autonomy and then production autonomy are certified by real outcomes and approved authority. | Autonomy incident; authority policy change; explicit operator request. |
+| Knowledge System | Preserve verified project knowledge and prevent repeated rediscovery. | `100.0` | `100` | `LOCKED` | Canonical Reference, Context Resolver, Research Framework, Policy Library, Document Lifecycle | `HIGH` | `MEDIUM_HIGH` | None current. | Current knowledge owners remain canonical and read-only under document lifecycle rules. | Industry consensus changes; `FUNDAMENTAL_ARCHITECTURE_GAP`; explicit operator request. |
+| Observability | Expose enough read-only truth for operators, OMP, Runtime, and certification. | `30.0` | `100` | `IN_PROGRESS` | Admin read models, trust/evidence inventory, truth/convergence | `HIGH` | `MEDIUM_HIGH` | `B1`, `B4`, `B9`, `B13`, `B15`, `B17`, `C2` | Read-only evidence shows eligibility, rollback, stale reads, promotion quality, and runtime readiness. | Operator cannot diagnose; evidence disagreement; explicit operator request. |
+| Decision Explainability | Explain existing Runtime / OMP decisions to the operator before any approval request. | `20.0` | `100` | `IN_PROGRESS` | OMP, Current Program State, Runtime Model, evidence read models | `HIGH` | `HIGH` | `A3`, `A6`, `B1`, `B4`, `B13`, `B15`, `B17`, `C2` | Every approval request explains reason, evidence, expected value, risks, alternatives, and capability impact in Russian before Approve / Reject. | Operator cannot understand approval reason; explanation contradicts evidence; explicit operator request. |
+| Implementation Discipline | Ensure work flows only through Backlog, Priority Model, tests, truth, convergence, deployment, and certification. | `100.0` | `100` | `COMPLETE` | OMP, Implementation Backlog, Implementation Priority Model, Current Program State | `VERY_HIGH` | `MEDIUM` | None current. | OMP + Backlog + Current Program State remain sufficient for execution. | Backlog loses single-queue authority; operator requests process change. |
+| Engineering Knowledge Preservation | Freeze certified reference knowledge and keep reports/ADRs from becoming roadmaps. | `100.0` | `100` | `LOCKED` | Document Lifecycle, Canonical Reference, SYSTEM_MAP | `HIGH` | `MEDIUM` | None current. | Reference, report, ADR, policy, and backlog roles remain normalized. | Reference contradiction; material architecture change; explicit operator request. |
+
+Ideal Target State by capability:
+
+| Capability | Ideal Target State |
+| --- | --- |
+| Movement Protection | Runtime evaluates current state, candidate quality, failure/degradation, freshness, recovery, blast radius, rollback, anti-flap, authority, State Change Cost, and Net Benefit before any movement; it moves only when `NET_BENEFIT > CHANGE_COST`, otherwise it keeps the current state. |
+| Runtime Eligibility | Runtime consumes prepared certified decisions and fresh evidence, then returns `EXECUTE` or `STOP_SAFE`; it never invents decisions, bypasses policy, or mutates from stale/unknown evidence. |
+| Authority Evolution | Operators approve policy, class, or authority boundaries; Runtime self-approves only operational decisions inside approved bounds; authority expansion never happens silently. |
+| Rollback | Every production action has rollback ready or certified no-rollback semantics before execution; verification failure leads to rollback or explicit safe stop through existing owners. |
+| Recovery Admission | Recovered channels re-enter through repeated readiness evidence, observation windows, bounded blast radius, and runtime-certified slow start instead of immediate full trust. |
+| Learning | Only real observed outcomes update knowledge, confidence, suitability, promotion readiness, and future decisions; synthetic evidence is never accepted. |
+| Production Readiness | V7 is deployable, testable, observable, certifiable, and operationally safe; OMP can move from implementation through certification and authority evolution to production autonomy. |
+| Production Autonomy | Runtime executes certified action classes inside delegated policy; the operator supervises, approves expansion, and handles exceptional cases. |
+| Knowledge System | Canonical Reference, SYSTEM_MAP, Context Resolver, Research Framework, Policy Library, and Document Lifecycle preserve verified knowledge and prevent rediscovery or duplicate owners. |
+| Observability | Operators, OMP, and Runtime can inspect liveness, degradation, recovery, rollback, stale reads, eligibility, promotion readiness, and evidence quality without mutation. |
+| Decision Explainability | Operators receive a Russian, evidence-linked explanation of every approval request before Approve / Reject; the explanation covers reason, timing, user, source, target, passed gates, alternatives, risks, confidence, production value, and capability progress. |
+| Implementation Discipline | OMP always selects the highest unfinished backlog item, uses existing owners, verifies with tests/truth/convergence, marks completion, recalculates capability progress, and continues or stops only at allowed boundaries. |
+| Engineering Knowledge Preservation | Durable knowledge is promoted from reports into canonical owners; reports remain evidence, ADRs remain decisions, references remain knowledge, and Backlog remains the only engineering queue. |
+
+Definition of Done by capability:
+
+| Capability | Definition of Done | Completed Criteria | Remaining Criteria |
+| --- | --- | --- | --- |
+| Movement Protection | Hard Failure certified; Soft Degradation certified; Recovery Admission certified; Freshness integrated; Rollback certified; Blast Radius certified; Anti-Flap certified; Stickiness implemented; Minimum Improvement Threshold implemented; State Change Cost Model implemented; Central Policy Arbitration implemented; `AUTO` / `PINNED` / `MANUAL` routing implemented; Runtime-certified Slow Start implemented; Pool Health semantics completed or explicitly `NOT_APPLICABLE`. | Hard Failure classification; Freshness integration; Stickiness; Minimum Improvement Threshold; State Change Cost Model. | Soft Degradation certification; Recovery Admission certification; Rollback certification; Blast Radius certification; Anti-Flap certification; Central Policy Arbitration; `AUTO` / `PINNED` / `MANUAL`; Runtime-certified Slow Start; Pool Health semantics. |
+| Runtime Eligibility | Freshness windows exist; owner-issued freshness exists; authority, blast, rollback, anti-flap, verification, and learning gates are arbitrated; stale read reporting is preserved; bounded stale allowance is decided by action class. | Runtime Model; A2 freshness windows. | A6 arbitration; B17 stale-read reporting; B18 owner lease extension; C1 fail-open/fail-closed; C6 bounded stale allowance. |
+| Authority Evolution | Operational and engineering authority are separated; packet approval is retired class-by-class; class approval and delegated policy approval require certified evidence; authority never expands silently. | Authority normalization; action-class ladder; packet approval classified as temporary governed fallback. | A3-A5 evidence; A6 eligibility; B11 isolation; B12 staged promotion; B13 metric reliability; B16 rollback authority; B21 user mode; C3/C4 authority constraints. |
+| Rollback | Restore barrier works; rollback manifest exists; exact selected move identity is preserved; rollback/no-rollback evidence is certified; automatic rollback authority is certified only after reliable verification. | Restore barrier; rollback manifest; exact packet/lease identity path. | A3 class evidence; B15 containment/forward-fix classification; B16 automatic rollback authority; C5 compensation semantics. |
+| Recovery Admission | Recovered channels require repeated real success/readiness evidence; post-admission observation exists; slow-start recovery is runtime-certified. | Recovery admission read model; limited recovery blast radius. | B8 certification; B9 observation windows; B10 slow-start progression. |
+| Learning | Only real observed outcomes feed learning; outcome closure exists; representative evidence exists; metric reliability supports promotion recommendations. | Real-only learning rule; feedback owner; outcome closure path. | A3/A4 real outcomes; B5 attribution; B13 metric reliability. |
+| Production Readiness | Implementation, deploy, tests, truth, convergence, certification, outcomes, authority, and autonomy reach Production Maturity `100%`. | Engineering Maturity `100%`; safe deployment owner; truth/convergence; A1/A2 complete. | Remaining actionable backlog; production outcomes; certification; authority evolution; autonomy certification. |
+| Production Autonomy | Runtime acts automatically only inside approved policy and certified action classes; operator supervises; production autonomy is certified. | Product and Runtime models define target; runtime automation remains disabled. | Class evidence; runtime eligibility; authority approval; rollback certification; bounded autonomy; production autonomy certification. |
+| Knowledge System | Context Resolver, Research Framework, Canonical Policy Library, Canonical Reference, SYSTEM_MAP, and Document Lifecycle preserve verified knowledge without creating duplicate owners. | All listed knowledge owners exist and are canonical. | None current. |
+| Observability | Operators and OMP can inspect liveness, degradation, recovery, rollback, stale reads, runtime eligibility, promotion readiness, and evidence quality without mutation. | Truth/convergence; admin read models; evidence inventory; service matrix. | B1/B4/B9/B13/B15/B17/C2 observability/read-model items. |
+| Decision Explainability | Every approval request explains the decision in Russian before Approve / Reject; explanations are generated from existing evidence owners; safety gates show passed/failed/unknown/not applicable; alternatives and keep-current-state reasoning are visible; expected Production Value, Capability Progress, and remaining risk are shown; missing evidence stops safely instead of producing persuasive text. | OMP owns the capability; Russian-only operator explanation requirements; Russian-only Engineering Report requirements. | A3/A6/B1/B4/B13/B15/B17/C2 must provide enough evidence/read-model coverage for complete operator-facing explanations and real governed validation. |
+| Implementation Discipline | OMP always selects highest unfinished backlog item, updates Current Program State, runs tests/truth/convergence, marks DONE, recalculates, and continues or stops only at allowed stop conditions. | Backlog; Priority Model; Root Cause Engine; normalized authority; document lifecycle; capability framework. | None current. |
+| Engineering Knowledge Preservation | Certified reference knowledge is frozen; reports and ADRs remain evidence; only Backlog drives implementation. | Canonical Reference; Document Lifecycle; SYSTEM_MAP ownership; no-reaudit triggers. | None current. |
+
+## 2.12.3.1. Master Integration Program
+
+Status: `MASTER_INTEGRATION_PROGRAM_COMPLETE`
+
+Purpose:
+
+Turn existing completed V7 capabilities into one coherent production operating system through existing owners only.
+
+This program does not create a new owner, new roadmap, new architecture, new planner, new governance, new execution path, new Runtime owner, new truth source, new policy, or duplicate backlog.
+
+Source facts:
+
+- `SYSTEM_INVENTORY_COMPLETE`;
+- `SYSTEM_INTEGRATION_ANALYSIS_COMPLETE`;
+- `docs/reference/SYSTEM_MAP.md` -> `Master Integration Atlas`;
+- `docs/reference/V7_CANONICAL_REFERENCE.md` -> `MASTER_SYSTEM_INTEGRATION_AUDIT_PART_1` and `MASTER_SYSTEM_INTEGRATION_AUDIT_PART_2`.
+
+Execution rule:
+
+OMP must execute integration by selecting the highest unfinished existing backlog item that closes the next required integration in the Master Integration Atlas.
+
+Every integration task must map to:
+
+```text
+Existing owner
+  -> Existing capability
+  -> Existing backlog item
+  -> Integration action
+  -> Expected production result
+```
+
+Need New Backlog Item:
+
+`FALSE`
+
+Reason:
+
+All discovered integration work maps to existing backlog items. No mathematically unavoidable new backlog item was found.
+
+Execution groups:
+
+| Group | Purpose | Existing owner | Related backlog | Expected result |
+| --- | --- | --- | --- | --- |
+| Product Layer Integration | Make Business Objectives the primary operating language before technical artifacts. | Product Specification, Decision Explainability, Observability | `B1`, `B4`, `B13`, `B15`, `B17`, `C2` | Product Owner and operator see business reason, evidence, risk, value, and result first. |
+| Policy Integration | Convert canonical policy rules into runtime-readable gate decisions. | Canonical Policy Library, OMP, Runtime Model | `A6`, `B19`, `B20`, `C1`, `C6` | Policies become executable eligibility inputs without new policy owners. |
+| Capability Integration | Keep capability maturity, backlog, Current Program State, and OMP status synchronized. | OMP, Current Program State, Implementation Backlog | Existing mapped backlog | Capability progress updates after every real implementation/certification outcome. |
+| Runtime Integration | Connect Runtime Model semantics to existing read models and guarded execution owners. | Runtime Model, action-class enablement, delegated policy preview | `A6`, `B17`, `B18`, `C1`, `C6` | Runtime can produce one `EXECUTE` or `STOP_SAFE` result from certified gates. |
+| Runtime Explainability | Explain decisions in Russian before approval using existing evidence. | OMP, Decision Explainability, read models | `A3`, `A6`, `B1`, `B4`, `B13`, `B15`, `B17`, `C2` | Operator approves decisions, not opaque packets. |
+| Operator Experience | Keep engineering details secondary, read-only, and expandable. | Product Specification, UI/read-model owners, OMP | `B1`, `B4`, `B13`, `B15`, `B17`, `C2` | Operator interface uses business language first. |
+| Certification | Close rollback/no-rollback, blast-radius, recovery, anti-flap, and authority evidence. | OMP, Backlog, policy owners | `A3`, `A4`, `A5`, `B8`, `B10`, `B12`, `B13`, `B16` | Action classes become eligible for authority promotion. |
+| Production Evidence | Feed only real observed outcomes into learning and promotion. | Feedback/learning owners, OMP | `A3`, `A4`, `B5`, `B13` | Promotion decisions are based on real outcomes, not synthetic evidence. |
+| Autonomy Readiness | Move from governed packet fallback to class/policy authority. | OMP, Runtime Model, Authority Evolution | `A3`, `A4`, `A5`, `A6`, `B10`, `B12`, `B16`, `C4` | Runtime can eventually operate certified routine actions inside approved policy. |
+
+Execution order:
+
+| Order | Existing owner | Existing backlog | Integration work | Expected capability | Expected production impact | Expected maturity increase |
+| ---: | --- | --- | --- | --- | --- | --- |
+| 1 | Restore barrier, rollback manifest, governed execution, feedback/learning | `A3` | Certify class-level rollback/no-rollback evidence for governed candidate movement. | Rollback; Learning; Authority Evolution; Movement Protection | First real class evidence toward retiring packet approval. | High Production Maturity and Authority Evolution gain. |
+| 2 | OMP promotion engine, feedback/learning, outcome leverage model | `A4` | Materialize representative outcome evidence for the first action class. | Learning; Authority Evolution; Production Readiness | Gives promotion decisions enough real evidence. | High autonomy and production evidence gain. |
+| 3 | Action-class ladder, planner budgets, capacity/load gates | `A5` | Certify class-level blast-radius evidence beyond one-user guard. | Movement Protection; Authority Evolution; Runtime Eligibility | Allows safe scope reasoning for next authority step. | High safety and authority gain. |
+| 4 | OMP, delegated policy preview, action-class runtime enablement, Runtime Model | `A6` | Implement action-class runtime eligibility arbitration using certified gates. | Runtime Eligibility; Production Autonomy | Converts separated gates into one execute-or-stop decision. | Very high runtime/autonomy gain. |
+| 5 | Service matrix, quality compact, trust/outcome stores | `B5` | Complete observed degradation attribution using active and passive evidence. | Learning; Movement Protection; Observability | Improves quality of soft-degradation decisions. | Medium-high production gain. |
+| 6 | Recovery admission, service/route/readiness models | `B8` | Certify recovery admission with repeated real success/readiness evidence. | Recovery Admission; Movement Protection | Prevents premature recovery movement. | High stability gain. |
+| 7 | Blast-radius/action-class ladder | `B10` | Define runtime-certified recovery slow-start as V7 progression. | Recovery Admission; Production Autonomy | Enables bounded recovery re-entry. | High autonomy and stability gain. |
+| 8 | Action-class ladder, OMP | `B12` | Implement next action-class stage only after certification evidence exists. | Authority Evolution; Production Autonomy | Advances class authority without silent expansion. | High autonomy gain. |
+| 9 | Trust/confidence, freshness, rollback, eligibility | `B13` | Certify metric reliability for automated promotion recommendations. | Learning; Observability; Authority Evolution | Prevents bad promotion from weak metrics. | High safety gain. |
+| 10 | Runtime Model, execution packet partial-failure policy | `B15` | Expose containment/forward-fix classification. | Rollback; Observability; Decision Explainability | Makes rollback alternatives visible and explainable. | Medium-high safety gain. |
+| 11 | Autoswitch rollback-on-verify-fail, OMP authority gates | `B16` | Certify automatic rollback authority after reliable verification evidence. | Rollback; Production Autonomy; Authority Evolution | Enables safe rollback inside policy. | Very high runtime safety gain. |
+| 12 | Runtime eligibility, truth/convergence, read-only inventory | `B17` | Preserve stale-read reporting while blocking mutation. | Runtime Eligibility; Observability; Decision Explainability | Improves operator trust without unsafe action. | Medium production gain. |
+| 13 | Execution lease, runtime snapshot, intelligence snapshots | `B18` | Extend owner-issued version/lease pattern where available. | Runtime Eligibility; Freshness | Strengthens safe present-tense execution. | High safety gain. |
+| 14 | Service signal thresholds, recovery admission, movement protection | `B19` | Centralize hysteresis and state-change-cost vocabulary. | Movement Protection; Runtime Eligibility | Prevents oscillation and noisy movement. | High stability gain. |
+| 15 | OMP, planner, runtime eligibility | `B20` | Encode hard-failure override rule for anti-flap arbitration. | Movement Protection; Runtime Eligibility | Allows fast failure reaction without false oscillation. | High safety and recovery gain. |
+| 16 | User registry, policy, planner, admin surface | `B21` | Implement explicit per-user `AUTO` / `PINNED` / `MANUAL` routing mode. | Movement Protection; Authority Evolution; Production Readiness | Makes user movement intent explicit. | Medium-high operational safety gain. |
+| 17 | Runtime Model, OMP, planner gates | `C1` | Record fail-open/fail-closed behavior per action class. | Runtime Eligibility | Makes stop/continue semantics explicit. | Medium safety gain. |
+| 18 | Trust/confidence model, shadow autonomy | `C2` | Use probabilistic suspicion only as advisory evidence. | Decision Explainability; Observability | Prevents weak signals from becoming unsafe actions. | Medium safety gain. |
+| 19 | OMP, operator authority | `C3` | Define break-glass authority as audited exceptional operator policy. | Authority Evolution | Keeps emergency paths bounded and explicit. | Medium authority safety gain. |
+| 20 | OMP, blast-radius gates | `C4` | Keep all-at-once promotion unavailable for current action classes. | Production Autonomy; Authority Evolution | Prevents unsafe expansion. | Medium safety gain. |
+| 21 | Runtime Model, rollback policy | `C5` | Preserve rollback as operational compensation rather than transaction rollback. | Rollback | Clarifies safe recovery semantics. | Medium safety gain. |
+| 22 | Freshness actionability, OMP stop rules | `C6` | Decide bounded stale allowance by action class. | Runtime Eligibility; Freshness | Avoids unsafe stale mutation while preserving useful reads. | Medium-high runtime gain. |
+| 23 | Planner capacity/load, action-class ladder | `C7` | Map pool max-ejection/minimum-health semantics to V7 capacity and blast bounds. | Movement Protection; Production Readiness | Prevents over-evacuation and pool instability. | Medium-high stability gain. |
+
+Dependency rule:
+
+1. `A3` must precede `A4`, `A5`, `A6`, `B12`, and `B16`.
+2. `A4` and `B13` must precede authority expansion recommendations.
+3. `A6` must precede runtime autonomy readiness.
+4. `B8` must precede `B10`.
+5. `B16` must not be enabled before rollback/no-rollback evidence and verification reliability exist.
+6. `C3` and `C4` are authority guardrails, not runtime enablement.
+
+Parallel work:
+
+The only safe parallel work is read-only observability/explainability work that does not mutate runtime, authority, policy, users, restore barrier, or evidence:
+
+- `B1`, `B4`, `B15`, `B17`, `C2`;
+- documentation-only clarifications `C1`, `C4`, `C5` when they do not change runtime behavior.
+
+Runtime validation:
+
+Runtime may consume only:
+
+- Canonical Policies;
+- Certified Action Classes;
+- Delegated Autonomy Policy;
+- Runtime Eligibility;
+- Authority;
+- Freshness;
+- Rollback;
+- Verification;
+- Learning.
+
+Runtime must never consume raw Product Owner text, raw Business Objectives, subjective operator wishes, packet approval as durable policy, or unverified report-only knowledge.
+
+Product Owner experience target:
+
+Product Owner interacts only with:
+
+- Business Objectives;
+- Business Status;
+- Business Risk;
+- Business Profile;
+- Business Results;
+- Business Exceptions.
+
+Product Owner must never be required to understand packets, planner, lease, rollback internals, blast-radius internals, routing algorithms, runtime internals, or protocol engineering.
+
+Operator experience target:
+
+Operator UI must use business language first. Engineering details are secondary, read-only, expandable, and never the primary operating language.
+
+OMP normalization:
+
+After this program, normal operation must require only:
+
+- `Status`;
+- `Continue OMP`;
+- `Approve authority expansion`;
+- `Production Action`.
+
+OMP must not request a new roadmap, new integration plan, or new semantic audit for already mapped work.
+
+Master verification:
+
+| Verification item | Result |
+| --- | --- |
+| Duplicate owners | `NONE_FOUND` |
+| Duplicate permanent documents | `NONE_CREATED` |
+| Duplicate policies | `NONE_FOUND` |
+| Duplicate capabilities | `NONE_FOUND` |
+| Duplicate truth sources | `NONE_FOUND` |
+| Orphan knowledge | `NONE_FOUND` |
+| Orphan capability | `NONE_FOUND` |
+| Orphan backlog | `NONE_FOUND` |
+| Disconnected integration | `NONE_UNMAPPED`; remaining gaps map to existing backlog/capabilities |
+
+## 2.12.4. Movement Protection Target State
+
+Purpose:
+
+Define the final runtime behavior for Movement Protection after all required backlog items are complete.
+
+This is the Definition of Done.
+
+This is not an implementation plan.
+
+This section does not create a new planner, Runtime owner, governance owner, execution owner, truth source, or document owner.
+
+Movement Protection target state:
+
+Users must not experience chaotic oscillation while V7 still reacts quickly to real production failures.
+
+Runtime must prefer stability unless changing state has proven production value greater than transition cost.
+
+Final Runtime decision pipeline:
+
+```text
+User
+  -> Current Channel
+  -> Candidate Discovery
+  -> Hard Failure
+  -> Soft Degradation
+  -> Freshness
+  -> Recovery Admission
+  -> Blast Radius
+  -> Rollback Readiness
+  -> Anti-Flap
+  -> Authority
+  -> State Change Cost Evaluation
+  -> Net Benefit Evaluation
+  -> Worth Changing State?
+  -> YES
+  -> Execution
+  -> Verification
+  -> Outcome
+  -> Learning
+  -> Planner Improvement
+```
+
+Runtime pipeline stage contract:
+
+| Stage | Purpose | Owner | Required evidence | Possible outputs | Interaction with previous stage | Interaction with next stage |
+| --- | --- | --- | --- | --- | --- | --- |
+| User | Identify the exact subject whose state may change. | User registry, planner/autoswitch owner, admin read models. | User identity, current assignment, org/group policy, manual/pinned state when implemented. | `USER_ELIGIBLE`, `USER_INELIGIBLE`, `USER_PINNED`, `USER_MANUAL_REVIEW`. | Starts the pipeline from a concrete production subject. | Passes subject constraints to Current Channel. |
+| Current Channel | Preserve known current state before considering movement. | `tools/v7-users-autoswitch`, registry readers, Movement Protection Model. | Current egress/channel, recent movement history, sticky score, current-channel health. | `CURRENT_STABLE`, `CURRENT_SUSPECT`, `CURRENT_FAILED`, `CURRENT_UNKNOWN`. | Receives user constraints. | Defines baseline for Candidate Discovery and future net benefit comparison. |
+| Candidate Discovery | Find valid target candidates without deciding to move yet. | Planner/autoswitch, service matrix, quality compact, route reality. | Candidate channels, service suitability, capacity/load, fallback availability, route reality. | `CANDIDATES_AVAILABLE`, `NO_SAFE_CANDIDATE`, `CANDIDATE_SET_UNKNOWN`. | Uses current channel as baseline. | Passes candidate set to failure/degradation gates. |
+| Hard Failure | Detect complete failure requiring fast reaction. | `POLICY_001_HARD_FAILURE`, liveness/event evidence, service matrix, planner/autoswitch. | Liveness failure, explicit down/unavailable evidence, repeated failed checks, route/service hard-fail classification. | `HARD_FAILURE`, `NO_HARD_FAILURE`, `INSUFFICIENT_LIVENESS_EVIDENCE`. | Evaluates current and candidates discovered upstream. | If hard failure exists, Soft Degradation must not weaken the need to protect availability. |
+| Soft Degradation | Detect meaningful degradation without treating noise as failure. | `POLICY_002_SOFT_DEGRADATION`, quality compact, service matrix, planner/autoswitch. | Active/passive degradation evidence, trend thresholds, service objective mapping, attribution evidence. | `SOFT_DEGRADATION`, `NO_DEGRADATION`, `NOISY_OR_ATTRIBUTION_UNKNOWN`. | Refines Hard Failure result; does not override proven hard failure. | Passes degradation severity to Freshness. |
+| Freshness | Prove evidence is current enough for the action risk. | `POLICY_008_FRESHNESS`, Runtime Model, delegated policy preview, execution lease. | Owner-issued freshness fields, age, TTL/window, snapshot generation, lease/version where available. | `FRESH`, `STALE_READ_ONLY`, `UNKNOWN_FRESHNESS`, `STOP`. | Validates evidence from failure/degradation stages. | Only fresh or explicitly allowed evidence may continue to Recovery Admission. |
+| Recovery Admission | Prevent premature use of recovered channels. | `POLICY_003_RECOVERY_ADMISSION`, recovery admission owner, service matrix, quality compact. | Repeated successful checks, readiness state, recovery cooldown, observation window, limited recovery blast radius. | `RECOVERY_ADMITTED`, `RECOVERY_HOLD`, `RECOVERY_UNKNOWN`, `RECOVERY_NOT_RELEVANT`. | Uses fresh evidence and candidate set. | Passes admitted candidate constraints to Blast Radius. |
+| Blast Radius | Bound the size and scope of possible change. | `POLICY_006_BLAST_RADIUS`, action-class ladder, planner budgets, OMP. | Selected move count, action class, authority budget, capacity/load, org/cohort/service scope. | `WITHIN_BLAST_RADIUS`, `BLAST_RADIUS_EXCEEDED`, `SCOPE_REQUIRES_AUTHORITY`. | Uses candidate and recovery eligibility. | Defines maximum allowed movement before rollback and anti-flap checks. |
+| Rollback Readiness | Confirm the system can compensate or has certified no-rollback semantics. | `POLICY_007_ROLLBACK`, restore barrier, rollback manifest, execution feedback. | Rollback target, restore barrier readiness, rollback manifest, selected-move identity, no-rollback certification where applicable. | `ROLLBACK_READY`, `NO_ROLLBACK_CERTIFIED`, `ROLLBACK_NOT_READY`, `STOP`. | Uses bounded action scope. | Only rollback-ready or certified no-rollback actions may proceed to Anti-Flap. |
+| Anti-Flap | Block repeated oscillation and unsafe rapid reversals. | `POLICY_009_ANTI_FLAP`, movement protection owner, anti-flap read model. | Cooldown, freeze, pair reversal, target block, oscillation history, anti-flap window. | `ANTI_FLAP_PASS`, `COOLDOWN_ACTIVE`, `FREEZE_ACTIVE`, `REVERSAL_BLOCKED`, `TARGET_BLOCKED`. | Uses rollback-safe action candidate. | Passes stable candidate to Authority. |
+| Authority | Verify the action is allowed without expanding authority silently. | `POLICY_004_AUTHORITY`, OMP, Runtime Model, action-class authority. | Operational/engineering authority class, action-class state, delegated policy, operator approval when required. | `AUTHORITY_PASS`, `OPERATIONAL_AUTHORITY_REQUIRED`, `ENGINEERING_AUTHORITY_REQUIRED`, `AUTHORITY_DENIED`. | Uses anti-flap-safe candidate and blast-radius scope. | Only authorized candidates may reach State Change Cost Evaluation. |
+| State Change Cost Evaluation | Calculate the cost of changing from current state to target state. | Movement Protection Model, planner/autoswitch, OMP, Runtime eligibility owners. | Stickiness, threshold, recent movement penalty, cooldown, freeze, reversal risk, rollback risk, verification uncertainty, expected user impact, confidence floors. | `CHANGE_COST`, `KEEP_CURRENT_STATE`, `COST_UNKNOWN_STOP`. | Uses authority-cleared candidate and current-state baseline. | Supplies cost to Net Benefit Evaluation. |
+| Net Benefit Evaluation | Compare expected benefit against transition cost. | Planner/autoswitch, Decision Model, Runtime Model, Movement Protection Model. | Candidate score delta, service benefit, failure severity, confidence, suitability, prediction confidence, user impact, rollback risk. | `NET_BENEFIT`, `NET_BENEFIT_NOT_PROVEN`, `KEEP_CURRENT_STATE`. | Consumes explicit change cost. | Only proven benefit can reach Worth Changing State. |
+| Worth Changing State? | Make the final movement/no-movement decision. | Runtime Model executing Decision Model output through existing owners. | `NET_BENEFIT`, `CHANGE_COST`, authority, freshness, rollback, anti-flap, blast-radius results. | `EXECUTE`, `KEEP_CURRENT_STATE`, `STOP_SAFE`. | Compares net benefit to change cost. | If `EXECUTE`, passes exact bounded action to Execution. |
+| Execution | Perform only the approved/certified movement through existing owners. | Existing execution/autoswitch owners. | Exact selected move, packet/lease identity when governed, rollback readiness, authority clearance. | `EXECUTED`, `NOOP_EXPLICIT_SAFE_STOP`, `EXECUTION_FAILED`. | Receives final execute decision. | Immediately triggers Verification. |
+| Verification | Prove the action worked or failed. | Verification owner, service matrix, user/service checks, truth/convergence. | Post-action service/user/channel evidence, verification result, runtime truth. | `VERIFY_PASS`, `VERIFY_FAILED`, `ROLLBACK_REQUIRED`. | Observes execution outcome. | Feeds Outcome and rollback if required. |
+| Outcome | Close the action with real observed result only. | Feedback/outcome owner, OMP, Current Program State. | Real verification, movement result, rollback/no-rollback classification, user impact. | `OUTCOME_CLOSED`, `OUTCOME_INCOMPLETE`, `REAL_WORLD_LIMIT`. | Consumes verification evidence. | Feeds Learning. |
+| Learning | Convert outcome into future decision quality. | Feedback/learning owner, Canonical Reference where canonical meaning changes, OMP. | Real outcome, verification, rollback result, suitability correctness, trust/confidence deltas. | `LEARNING_UPDATED`, `NO_LEARNING_WITHOUT_REALITY`. | Uses closed outcome only. | Feeds Planner Improvement. |
+| Planner Improvement | Improve future recommendations without rewriting architecture. | Planner/autoswitch, OMP, Implementation Backlog, knowledge owners. | Learned outcome, updated confidence/trust/suitability, canonical constraints. | `PLANNER_IMPROVED`, `BACKLOG_ITEM_UPDATED`, `NO_CHANGE`. | Uses learning from real outcomes. | Closes the loop back to Candidate Discovery for future decisions. |
+
+State Change Cost canonical runtime principle:
+
+Changing state has a cost.
+
+Runtime must evaluate not only:
+
+```text
+Is another channel better?
+```
+
+Runtime must also evaluate:
+
+```text
+Is changing state worth the cost?
+```
+
+The State Change Cost must include at minimum:
+
+- stickiness;
+- minimum improvement threshold;
+- recent movement penalty;
+- cooldown;
+- freeze;
+- pair reversal;
+- target block;
+- rollback risk;
+- verification uncertainty;
+- expected user impact;
+- planner confidence;
+- prediction confidence;
+- suitability confidence.
+
+Canonical comparison:
+
+```text
+NET_BENEFIT = expected production value of the candidate movement.
+CHANGE_COST = operational cost and risk of changing state.
+
+Runtime may continue only if:
+
+NET_BENEFIT > CHANGE_COST
+```
+
+If `NET_BENEFIT <= CHANGE_COST`, Runtime must output:
+
+```text
+KEEP_CURRENT_STATE
+```
+
+If `CHANGE_COST` cannot be calculated safely, Runtime must output:
+
+```text
+COST_UNKNOWN_STOP
+```
+
+Movement Protection completion behavior:
+
+Movement Protection becomes `COMPLETE` only when Runtime satisfies all of the following:
+
+- does not move because of tiny score differences;
+- does not oscillate;
+- does not undo its own actions repeatedly;
+- does not chase temporary noise;
+- reacts quickly to real failures;
+- keeps users stable whenever stability is better than optimization;
+- automatically prefers `stay` unless a move has proven production value;
+- every movement has measurable expected benefit greater than transition cost.
+
+World-practice comparison:
+
+| Mature system family | Matching production principle | V7 target-state match | Backlog owner if incomplete |
+| --- | --- | --- | --- |
+| Cisco | Liveness evidence, protocol/object tracking, hold-down/dampening, bounded failover. | Matches through hard-failure classification, cooldown, movement protection, blast-radius and rollback gates. | `A5`, `B19`, `C7` for remaining centralized/pool semantics. |
+| Juniper | BFD/liveness, damping, timers, routing policy, explicit operational controls. | Matches through liveness/freshness gates, cooldown/dampening, authority separation, and state-change cost. | `A6`, `B19` for arbitration and vocabulary consolidation. |
+| Cloudflare | Health checks, fallback pools, consecutive success/failure, pool health, traffic safety. | Matches through hard failure, recovery admission, freshness, blast radius, rollback, and pool-health target semantics. | `B8`, `B10`, `C7`. |
+| Google SRE | Avoid cascading failure, verify changes, rollback before trust, canary, gradual recovery, learn from outcomes. | Matches through rollback, verification, learning, action-class promotion, and real-outcome-only certification. | `A3`, `A4`, `B13`, `B16`. |
+| Kubernetes | Desired/current state separation, readiness, probes, rollout bounds, reconciliation, backoff. | Matches through Runtime executing prepared decisions, freshness/readiness, recovery admission, anti-flap, and stop-safe semantics. | `A6`, `B8`, `B9`, `B10`, `C1`, `C6`. |
+| Envoy | Outlier detection, ejection, max ejection percent, min health, active health checking, circuit breaking. | Matches through degradation/anti-flap target state and V7-native capacity/blast bounds; proxy-specific max-ejection/min-health mapping remains partial. | `B3`, `B4`, `B5`, `B6`, `C7`. |
+
+World-practice verdict:
+
+The target state fully matches mature production engineering principles at the model level.
+
+No new owner is required.
+
+No new document is required.
+
+No new backlog item is required.
+
+Remaining real engineering gaps are already represented in the Implementation Backlog:
+
+| Remaining gap | Existing backlog item |
+| --- | --- |
+| Rollback/no-rollback production certification | `A3`, `B16` |
+| Soft Degradation certification and mapping | `B3`, `B4`, `B5`, `B6`, `B7` |
+| Recovery Admission certification | `B8`, `B9`, `B10` |
+| Blast Radius certification and scope | `A5`, `B14` |
+| Anti-Flap certification and arbitration | `B19`, `B20` |
+| Central Policy Arbitration | `A6` |
+| Per-user `AUTO` / `PINNED` / `MANUAL` routing mode | `B21` |
+| Runtime-certified Slow Start Recovery | `B10` |
+| Pool Max-Ejection / Minimum-Health semantics | `C7` |
+
+Movement Protection Definition of Done:
+
+Movement Protection is `COMPLETE` only when all are true:
+
+1. all required Movement Protection backlog items are `DONE`;
+2. all runtime behaviors listed in this target state are implemented through existing owners;
+3. all relevant production certifications pass;
+4. real production evidence confirms stable behavior;
+5. Production Maturity reflects completion;
+6. Canonical Reference records the completed capability;
+7. OMP marks Movement Protection `COMPLETE`, then `LOCKED`.
+
+Movement Protection remains `IN_PROGRESS`.
+
+Current estimated Movement Protection completion:
+
+```text
+35.7%
+```
+
+Backlog-to-capability coverage:
+
+| Backlog item | Capability ownership |
+| --- | --- |
+| `A1` | Movement Protection; Runtime Eligibility; Knowledge System |
+| `A2` | Runtime Eligibility; Movement Protection; Recovery Admission |
+| `A3` | Rollback; Movement Protection; Learning; Authority Evolution |
+| `A4` | Learning; Authority Evolution; Production Readiness; Production Autonomy |
+| `A5` | Movement Protection; Authority Evolution; Runtime Eligibility |
+| `A6` | Runtime Eligibility; Authority Evolution; Movement Protection; Production Autonomy |
+| `B1` | Observability; Knowledge System; Movement Protection |
+| `B2` | Runtime Eligibility; Movement Protection |
+| `B3` | Movement Protection; Observability |
+| `B4` | Movement Protection; Observability |
+| `B5` | Movement Protection; Learning; Observability |
+| `B6` | Movement Protection; Runtime Eligibility |
+| `B7` | Runtime Eligibility; Movement Protection |
+| `B8` | Recovery Admission; Movement Protection |
+| `B9` | Recovery Admission; Observability |
+| `B10` | Recovery Admission; Movement Protection; Production Autonomy |
+| `B11` | Authority Evolution; Runtime Eligibility; Production Readiness |
+| `B12` | Authority Evolution; Production Autonomy; Implementation Discipline |
+| `B13` | Authority Evolution; Learning; Observability |
+| `B14` | Authority Evolution; Movement Protection; Production Readiness |
+| `B15` | Rollback; Observability |
+| `B16` | Rollback; Authority Evolution; Production Autonomy |
+| `B17` | Runtime Eligibility; Observability |
+| `B18` | Runtime Eligibility |
+| `B19` | Movement Protection; Runtime Eligibility |
+| `B20` | Movement Protection; Runtime Eligibility |
+| `B21` | Movement Protection; Authority Evolution; Production Readiness |
+| `C1` | Runtime Eligibility; Authority Evolution |
+| `C2` | Knowledge System; Observability |
+| `C3` | Authority Evolution |
+| `C4` | Authority Evolution; Production Autonomy |
+| `C5` | Rollback |
+| `C6` | Runtime Eligibility |
+| `C7` | Movement Protection; Production Readiness |
+| `D1` | Production Readiness; Movement Protection, only if substrate scope changes |
+| `D2` | Recovery Admission, only if provider lifecycle becomes product scope |
+| `D3` | Recovery Admission, only if DNS failover becomes product scope |
+| `D4` | Authority Evolution, only if distributed operator control becomes product scope |
+| `D5` | Movement Protection, only if split-traffic routing becomes product scope |
+| `D6` | Movement Protection, only if routing-protocol ownership becomes product scope |
+
+Engineering Report Lifecycle:
+
+Engineering Reports are not project documents.
+
+Engineering Reports are execution history.
+
+Therefore the rule:
+
+```text
+Do NOT create a new document
+```
+
+does not apply to Engineering Reports.
+
+Engineering Reports must be created automatically after every meaningful engineering action.
+
+Engineering Reports must be written only in Russian.
+
+Project documents include only:
+
+- `REFERENCE`;
+- `PROGRAMS`;
+- `POLICIES`;
+- `ADR`;
+- `BACKLOG`;
+- `PRODUCT`;
+- `SYSTEM MAP`;
+- `CANONICAL REFERENCE`;
+- Runtime Model;
+- Decision Model.
+
+Engineering Reports belong only to:
+
+```text
+docs/reports/engineering/
+```
+
+They are historical evidence.
+
+They never become:
+
+- backlog;
+- roadmap;
+- canonical owner;
+- reference document.
+
+Report types:
+
+| Type | Trigger | Purpose | Length |
+| --- | --- | --- | --- |
+| Type 1: Engineering Report | Automatically after implementation, audit, semantic audit, test, verification, deploy, truth, convergence, certification, runtime investigation, root cause analysis, capability progress change, or production action. | Historical engineering evidence. | Short. |
+| Type 2: Milestone Report | Automatically only when a capability becomes `COMPLETE`, a capability becomes `LOCKED`, a major certification completes, a Production Maturity milestone is reached, or an autonomy tier is promoted. | Summarize an engineering milestone. | Detailed. |
+
+After every meaningful engineering action, OMP must create and save an engineering report as historical evidence.
+
+Applicable actions:
+
+- implementation;
+- semantic audit;
+- testing;
+- verification;
+- certification;
+- deploy;
+- truth;
+- convergence;
+- runtime investigation;
+- root cause analysis;
+- production action;
+- capability progress update.
+
+Report location:
+
+```text
+docs/reports/engineering/
+```
+
+Filename format:
+
+```text
+YYYY-MM-DD_HHMMSS_<topic>.md
+```
+
+Engineering Report must include:
+
+- Summary;
+- Action Performed;
+- Objective Observations;
+- Engineering Conclusions;
+- Business Objective affected;
+- Capability affected;
+- Backlog affected;
+- Canonical knowledge affected;
+- Production impact;
+- User impact;
+- Почему система приняла именно такое решение;
+- Почему решение считается безопасным;
+- Почему решение считается полезным;
+- Почему система НЕ выбрала альтернативные варианты;
+- Impact on Runtime;
+- Impact on OMP;
+- Impact on Backlog;
+- Impact on Capability;
+- Impact on Production;
+- Capability Progress;
+- Backlog Progress;
+- Production Maturity;
+- Canonical Knowledge;
+- Evidence: tests, truth, convergence, deploy, production outcome where applicable;
+- Next Step;
+- Re-audit Rule.
+
+Milestone Report must include:
+
+- Capability;
+- Reason for milestone;
+- What became `COMPLETE`;
+- What became `LOCKED`;
+- Canonical knowledge created;
+- Production impact;
+- Autonomy impact;
+- Lessons learned;
+- Remaining capabilities.
+
+Reports are historical evidence only.
+
+Reports must never become a roadmap, planner, governance layer, execution owner, truth source, or second implementation queue.
+
+Canonical update workflow:
+
+If durable knowledge is discovered during any meaningful engineering action, Codex must update the appropriate existing canonical owner before the work is considered complete:
+
+- `docs/reference/V7_CANONICAL_REFERENCE.md` for system truth;
+- `docs/reference/SYSTEM_MAP.md` for ownership/topology changes;
+- `docs/decisions/` ADR only when project meaning changes;
+- `docs/reference/V7_RUNTIME_MODEL.md` only when Runtime semantics change by explicit approved design;
+- `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` when OMP operating behavior changes.
+
+Durable knowledge must never remain only inside reports.
+
 Current implementation optimizer result:
 
 | Field | Current Value |
@@ -1469,24 +2244,24 @@ Current implementation optimizer result:
 | Exact owner | Restore barrier, guarded autoswitch execution, verification, rollback, outcome closure, feedback/learning |
 | Exact module | Canonical Policy Library Stage 4 implementation backlog |
 | Exact files | `admin_core/operator_execution.py`, `tools/v7-users-autoswitch`, `admin_core/operator_execution_feedback.py`, `admin_core/autonomy_trust_acceleration.py` |
-| Implementation status | `STOPPED_AT_OPERATIONAL_AUTHORITY_FOR_EXACT_PACKET` |
+| Implementation status | `READY_FOR_OPERATIONAL_AUTHORITY_AFTER_APPROVED_PLAN_LOCK_SNAPSHOT_GATE_FIX` |
 | Backlog source | `docs/programs/V7_IMPLEMENTATION_BACKLOG.md` item `A3` |
 | Priority model | `docs/reference/V7_IMPLEMENTATION_PRIORITY_MODEL.md` |
-| Truth/convergence | `PASS`: local, GitHub, and runtime aligned at commit `4add4b3f59ec8b936f17dc00659aff92c18d4b10`. |
+| Truth/convergence | `PASS`; local, GitHub, and production runtime aligned on commit `ca8514ae31c6a3536082298acc993c78efd36489`. |
 | New highest implementation leverage task | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
-| Stop boundary | `OPERATIONAL_AUTHORITY`: exact governed packet `pkt_preview_4eb137c926917c2761faadb4` is ready for approval before restore-barrier write/apply. |
+| Stop boundary | `OPERATIONAL_AUTHORITY`: exact governed packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` requires approve/reject before restore-barrier write or apply. |
 
 Latest safe deployment result:
 
 | Field | Current Value |
 | --- | --- |
-| Deployed commit | `4add4b3f59ec8b936f17dc00659aff92c18d4b10` |
-| Deploy id | `deploy-z8-14-Updatesystem-4add4b3-20260626T123245` |
-| Deployed backlog items | `A1`, `A2`; A3 approval-to-execution lease binding fix |
-| Safety | `restore_barrier_modified=false`; `routing_mutation_executed=false`; `user_movement_executed=false`; `autoswitch_apply_executed=false` |
+| Deployed commit | `ca8514ae31c6a3536082298acc993c78efd36489` |
+| Deploy id | `deploy-z8-14-Updatesystem-ca8514a-20260626T151701` |
+| Deployed backlog items | `A1`, `A2`; A3 approval-to-execution lease binding fix; A3 approved plan lock snapshot-gate consumption fix |
+| Safety | `restore_barrier_modified=false`; `routing_mutation_executed=false`; `user_movement_executed=false`; `autoswitch_apply_executed=false` during fix/deploy/dry-run |
 | Truth | `PASS` |
 | Convergence | `PASS`; `ALIGNED` |
-| Current stop | `OPERATIONAL_AUTHORITY`: exact governed packet is ready; no apply or user movement occurred |
+| Current stop | `OPERATIONAL_AUTHORITY`: exact packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` is ready for operator approve/reject |
 
 ## 2.13. Implementation Program Loop
 
@@ -1691,27 +2466,28 @@ Expected implementation order:
 4. Certify with truth and convergence.
 5. Update Current Program State.
 
-The old bottleneck action, governed candidate suitability outcome closure, remains the highest real-outcome action. The approval-to-execution lease binding defect is fixed and deployed; the current blocker is now operational authority for one exact packet.
-The current implementation-first optimizer must wait for the operator approve/reject decision before restore-barrier write, apply, verification, outcome closure, and learning can continue.
+The old bottleneck action, governed candidate suitability outcome closure, remains the highest real-outcome action. The approval-to-execution lease binding defect is fixed and deployed; the current blocker is now an unsafe implementation defect inside the existing autoswitch owner.
+The current implementation-first optimizer must fix approved plan lock consumption through the intelligence snapshot gate before requesting another packet approval or attempting apply again.
 
 ## 8. Current Authority Class
 
 | Field | Current Value |
 | --- | --- |
-| Current authority level | `OPERATIONAL_AUTHORITY` |
-| Current stop reason | `OPERATIONAL_AUTHORITY` |
-| Boundary location | Before active execution lease, restore-barrier write, runtime apply, and user movement for exact packet `pkt_preview_4eb137c926917c2761faadb4`. |
-| Current exact runtime posture | No autonomous apply, no user movement, no daemon enablement. |
-| Next authority action | Operator approve or reject exact packet `pkt_preview_4eb137c926917c2761faadb4` for `10.7.0.17`, `vless -> awg0`, selected move hash `e1e09d2c95fc6c9b0b77e9ecaaf0def20e9759150eb35db8d70f95e107eb52cd`. |
+| Current authority level | `NONE`; current stop is engineering safety, not authority. |
+| Current stop reason | `UNSAFE_IMPLEMENTATION` |
+| Boundary location | After approved packet consumption and restore-barrier clearance, before mutation inside `tools/v7-users-autoswitch` intelligence snapshot gate. |
+| Current exact runtime posture | Restore-barrier clearance was written for the approved packet, guarded apply failed closed before movement, no autonomous apply, no daemon enablement. |
+| Next authority action | None until the existing autoswitch owner preserves approved locked selected moves through the intelligence snapshot gate. |
 
 Current production evidence:
 
 - approval-to-execution lease binding fix is deployed and production truth/convergence pass;
-- production governed dry-run reaches exact packet approval boundary;
-- no restore-barrier write, apply, user movement, daemon, timer, or authority expansion occurred;
-- exact approval prompt is valid for packet `pkt_preview_4eb137c926917c2761faadb4`;
-- no restore-barrier clearance was written;
-- no apply occurred;
+- operator approved exact packet `pkt_preview_4eb137c926917c2761faadb4`;
+- execution lease `execlease_19550ea3b6750ed163344f8a` preserved packet identity;
+- restore-barrier clearance `rbclear_1951ca727830c155efc8cf0e` was written through the existing owner;
+- guarded apply denied mutation with `approved_plan_lock_selected_moves_missing` and unsafe blocker `approved_plan_lock_snapshot_gate_stop_required`;
+- selected moves were present before restore-barrier clearance and zero after the intelligence snapshot gate;
+- no user movement, daemon, timer, or authority expansion occurred;
 - `apply=false`;
 - `users_moved=0`;
 - `runtime_mutation=false`.
@@ -2178,16 +2954,17 @@ Legacy raw `AUTHORITY_BOUNDARY` may appear in older reports or compatibility too
 
 Current blocker:
 
-`OPERATIONAL_AUTHORITY`
+`UNSAFE_IMPLEMENTATION`
 
 Details:
 
 - approval-to-execution lease binding is fixed, tested, deployed, and verified;
-- production dry-run produced exact packet `pkt_preview_4eb137c926917c2761faadb4`;
+- operator approved exact packet `pkt_preview_4eb137c926917c2761faadb4`;
 - selected move hash is `e1e09d2c95fc6c9b0b77e9ecaaf0def20e9759150eb35db8d70f95e107eb52cd`;
 - user is `10.7.0.17`, move is `vless -> awg0`;
-- Runtime stopped before restore-barrier write or apply;
-- operator approval or rejection is required for this exact production action;
+- restore-barrier clearance was written through the existing owner;
+- guarded apply failed closed before movement because the existing autoswitch owner lost the approved selected move at the intelligence snapshot gate;
+- no additional operator approval is useful until this owner defect is fixed;
 - no new owner is required.
 
 ## 21. Phase History
@@ -2264,16 +3041,16 @@ If daemon, timer, event consumer mutation, autonomous execution, action-class ex
 | --- | --- |
 | Completed phases | Architecture foundation, Research Framework, Decision Model, Runtime Model, System Architecture, Implementation Phase activation, OMP Production Program integration. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle; OMP Production Program rule set. |
-| Current bottleneck | Explicit authority for the current exact governed packet after the previous approval expired before apply and failed closed safely. |
-| Current highest leverage action | `EXPLICIT_OPERATOR_APPROVAL_REQUIRED_FOR_THIS_PACKET`. |
+| Current bottleneck | Exact operational approval is required for the current governed A3 packet before restore-barrier write or apply. |
+| Current highest leverage action | Approve or reject exact packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` for A3 governed candidate outcome evidence. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | Root Cause Engine output: engineering fix complete; A3 now stops at `OPERATIONAL_AUTHORITY` for exact packet `pkt_preview_4eb137c926917c2761faadb4`; operator approve/reject decision is required before restore-barrier write/apply. |
-| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; read-only runtime lifecycle preview deployed and production-verified; preview-to-execution packet identity deployed and production-verified; execution lease deployed and production-verified; one approved leased governed canary outcome executed, verified, closed, and learned from. |
-| Current runtime posture | No autonomous apply, no daemon enablement; last user movement was the explicitly approved one-user governed canary `10.7.0.5 vless -> awg0`. |
-| Current next best action | Present exact approve/reject decision for `pkt_preview_4eb137c926917c2761faadb4`; if approved, execute through existing owners only. |
-| Last optimizer iteration | `2026-06-26`: implemented and deployed approval-to-execution lease binding at commit `4add4b3f59ec8b936f17dc00659aff92c18d4b10`; truth/convergence passed; production dry-run reached exact packet `pkt_preview_4eb137c926917c2761faadb4` and stopped at `OPERATIONAL_AUTHORITY`; no restore-barrier write, apply, or user movement occurred. |
+| Current blockers | `OPERATIONAL_AUTHORITY`: exact packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` requires operator approval/rejection. |
+| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; read-only runtime lifecycle preview deployed and production-verified; preview-to-execution packet identity deployed and production-verified; execution lease deployed and production-verified; approved plan lock snapshot-gate consumption fix deployed and production dry-run verified. |
+| Current runtime posture | No autonomous apply, no daemon enablement; current production dry-run moved no users and stopped before restore-barrier write/apply at the intended authority boundary. |
+| Current next best action | Approve or reject exact packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc`; if approved, execute only through existing owners and close real A3 outcome evidence. |
+| Last optimizer iteration | `2026-06-26`: previous approval for `pkt_preview_b55fa389b91f8b508c424283` was rejected before mutation because the current dry-run packet changed; no lease, restore-barrier write, apply, rollback, user movement, or authority expansion occurred; truth/convergence passed; production dry-run reached `OPERATIONAL_AUTHORITY` for fresh packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc`. |
 
 ## 25. Program Rule For Future Work
 

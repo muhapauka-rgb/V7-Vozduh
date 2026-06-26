@@ -1860,6 +1860,32 @@ class AutoswitchPlanner:
         approved_plan_lock: dict[str, Any],
     ) -> dict[str, Any]:
         materiality = self._approved_plan_lock_snapshot_gate_materiality(gate, restore_barrier, approved_plan_lock)
+
+        def allow_non_material_source_mismatch() -> dict[str, Any]:
+            leased = dict(gate)
+            leased.update(materiality)
+            leased["snapshot_gate_decision"] = "allow_approved_plan_lock_non_material_source_mismatch"
+            leased["stop_required_before_approved_plan_lock"] = True
+            leased["stop_required"] = False
+            leased["runtime_behavior"] = "ALLOW_APPROVED_PLAN_LOCK_NON_MATERIAL_SOURCE_MISMATCH"
+            leased["selected_moves_suppressed"] = False
+            leased["selected_moves_after_gate"] = int(gate.get("selected_moves_before_gate") or 0)
+            leased["approved_plan_lock_consumed"] = True
+            leased["hard_gate_override"] = "approved_plan_lock_non_material_source_mismatch"
+            leased["read_only_without_apply"] = not bool_value(getattr(self.args, "apply", False))
+            leased["execution_behavior_changed"] = False
+            leased["governance_behavior_changed"] = False
+            leased["runtime_behavior_changed"] = False
+            return leased
+
+        def can_allow_non_material_source_mismatch() -> bool:
+            return (
+                materiality.get("snapshot_gate_decision") == "evaluate_source_bundle_lease"
+                and bool_value(getattr(self.args, "apply", False))
+                and not bool_value(materiality.get("snapshot_gate_material_change"))
+                and not materiality.get("snapshot_gate_changed_fields")
+            )
+
         if not approved_plan_lock.get("ok"):
             if bool_value(gate.get("active")) and bool_value(gate.get("stop_required")):
                 gate.update(materiality)
@@ -1873,7 +1899,6 @@ class AutoswitchPlanner:
         if materiality.get("snapshot_gate_material_change"):
             gate.update(materiality)
             return gate
-        lease = restore_barrier.get("source_bundle_lease") or {}
         if materiality.get("snapshot_gate_decision") == "allow_approved_plan_lock_non_material_snapshot_drift":
             leased = dict(gate)
             leased.update(materiality)
@@ -1889,12 +1914,22 @@ class AutoswitchPlanner:
             leased["governance_behavior_changed"] = False
             leased["runtime_behavior_changed"] = False
             return leased
+        lease = restore_barrier.get("source_bundle_lease") or {}
+        if (
+            materiality.get("snapshot_gate_decision") == "evaluate_source_bundle_lease"
+            and not isinstance(lease, dict)
+        ):
+            lease = {}
+        if can_allow_non_material_source_mismatch() and not bool_value(lease.get("ok")):
+            return allow_non_material_source_mismatch()
         if not isinstance(lease, dict) or not bool_value(lease.get("ok")):
             gate.update(materiality)
             return gate
         allowed_drift = {str(item) for item in (lease.get("allowed_source_drift") or [])}
         changed_keys = {str(item) for item in (lease.get("changed_source_keys") or [])}
         if not allowed_drift or not changed_keys.issubset(allowed_drift):
+            if can_allow_non_material_source_mismatch():
+                return allow_non_material_source_mismatch()
             gate.update(materiality)
             return gate
 
@@ -1907,13 +1942,19 @@ class AutoswitchPlanner:
         for family in stop_families:
             payload = results.get(family) if isinstance(results, dict) else {}
             if not isinstance(payload, dict):
+                if can_allow_non_material_source_mismatch():
+                    return allow_non_material_source_mismatch()
                 return gate
             errors = [str(item) for item in (payload.get("validation_errors") or [])]
             if not errors:
+                if can_allow_non_material_source_mismatch():
+                    return allow_non_material_source_mismatch()
                 return gate
             for error in errors:
                 match = re.fullmatch(r"source_hash_mismatch:[^:]+:([^:]+)", error)
                 if not match or match.group(1) not in allowed_drift:
+                    if can_allow_non_material_source_mismatch():
+                        return allow_non_material_source_mismatch()
                     return gate
                 accepted_errors.append(error)
 

@@ -2521,7 +2521,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(plan["apply_result"]["reason"], "approved_plan_lock_selected_moves_missing")
         self.assertEqual(plan["apply_result"]["unsafe_blocker"], "approved_plan_lock_invalid")
 
-    def test_approved_plan_lock_keeps_snapshot_gate_closed_for_unleased_drift(self):
+    def test_approved_plan_lock_allows_non_material_source_mismatch_without_lease(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.write_fixture(
@@ -2581,24 +2581,29 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 },
             }
             plan = planner.plan()
+            gate = plan["safety"]["intelligence_snapshots"]
+            self.assertNotIn("source_bundle_lease_used", gate)
+            self.assertFalse(gate["stop_required"])
+            self.assertEqual(gate["snapshot_gate_decision"], "allow_approved_plan_lock_non_material_source_mismatch")
+            self.assertFalse(gate["snapshot_gate_material_change"])
+            self.assertTrue(gate["approved_plan_lock_consumed"])
+            self.assertEqual(plan["summary"]["selected_moves"], 2)
+            switch_calls = []
 
-        gate = plan["safety"]["intelligence_snapshots"]
-        self.assertNotIn("source_bundle_lease_used", gate)
-        self.assertTrue(gate["stop_required"])
-        self.assertEqual(plan["summary"]["selected_moves"], 0)
-        plan["apply_result"] = planner.apply(plan)
-        planner.finalize_operation(plan)
-        self.assertFalse(plan["apply_result"]["applied"])
-        self.assertEqual(plan["apply_result"]["reason"], "approved_plan_lock_selected_moves_missing")
-        self.assertEqual(
-            plan["apply_result"]["unsafe_blocker"],
-            "approved_plan_lock_snapshot_gate_stop_required",
-        )
-        self.assertEqual(plan["operation"]["terminal_state"], "DENIED")
-        self.assertEqual(
-            plan["operation"]["terminal_reason"],
-            "approved_plan_lock_selected_moves_missing",
-        )
+            def fake_run_switch(ip: str, egress: str, reason: str):
+                switch_calls.append((ip, egress, reason))
+                return subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+
+            def fake_verify_routes():
+                return subprocess.CompletedProcess(["v7-user-route-check"], 0, stdout="verify ok\n")
+
+            planner._run_switch = fake_run_switch
+            planner._verify_routes = fake_verify_routes
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+            self.assertTrue(plan["apply_result"]["applied"])
+            self.assertEqual(len(switch_calls), 2)
+            self.assertEqual(plan["operation"]["terminal_state"], "APPLIED")
 
     def test_missing_approved_selected_moves_blocks_explicitly_not_noop(self):
         with tempfile.TemporaryDirectory() as tmp:

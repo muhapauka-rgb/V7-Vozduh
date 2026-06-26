@@ -448,6 +448,79 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(result["clearance_preview"]["clearance"]["packet_id"], "pkt_preview_unit_identity")
         self.assertFalse(result["record_written"])
 
+    def test_execution_lease_preserves_on_freshness_only_change(self):
+        lease = create_execution_lease_from_preview(
+            self.preview_packet(),
+            approval_author="operator-a",
+            approval_reviewer="operator-b",
+        )
+        current_state = dict(lease["material_state"])
+        current_state["freshness_timestamp"] = "2026-06-26T01:00:00Z"
+        current_state["snapshot_generation"] = "new-snapshot-generation"
+
+        state = execution_lease_state(lease, current_material_state=current_state)
+
+        self.assertTrue(state["active"])
+        self.assertFalse(state["material_state_change"])
+        self.assertEqual(state["changed_fields"], [])
+        self.assertEqual(state["lease_keep_reason"], "no_material_state_change")
+
+    def test_execution_lease_preserves_regenerated_packet_with_identical_semantic_plan(self):
+        lease = create_execution_lease_from_preview(
+            self.preview_packet(),
+            approval_author="operator-a",
+            approval_reviewer="operator-b",
+        )
+        current_state = dict(lease["material_state"])
+        current_state["packet_id"] = "pkt_preview_regenerated_same_plan"
+        current_state["operation_id"] = "govdry_regenerated_same_plan"
+
+        state = execution_lease_state(lease, current_material_state=current_state)
+
+        self.assertTrue(state["active"])
+        self.assertFalse(state["material_state_change"])
+        self.assertEqual(state["changed_fields"], [])
+
+    def test_execution_lease_invalidates_on_target_change(self):
+        lease = create_execution_lease_from_preview(
+            self.preview_packet(),
+            approval_author="operator-a",
+            approval_reviewer="operator-b",
+        )
+        current_state = dict(lease["material_state"])
+        current_state["target_channel"] = ["awg3"]
+
+        state = execution_lease_state(lease, current_material_state=current_state)
+
+        self.assertFalse(state["active"])
+        self.assertEqual(state["status"], "INVALIDATED")
+        self.assertEqual(state["changed_fields"], ["target_channel"])
+
+    def test_execution_lease_invalidates_on_rollback_policy_authority_or_hash_change(self):
+        cases = {
+            "rollback_target": ["awg0"],
+            "policy_generation": "policy-generation-next",
+            "authority_generation": "authority-generation-next",
+            "selected_move_hash": "selected-move-hash-next",
+        }
+        for field, value in cases.items():
+            with self.subTest(field=field):
+                lease = create_execution_lease_from_preview(
+                    self.preview_packet(),
+                    approval_author="operator-a",
+                    approval_reviewer="operator-b",
+                )
+                if field == "policy_generation":
+                    lease["material_state"]["policy_generation"] = "policy-generation-current"
+                current_state = dict(lease["material_state"])
+                current_state[field] = value
+
+                state = execution_lease_state(lease, current_material_state=current_state)
+
+                self.assertFalse(state["active"])
+                self.assertEqual(state["status"], "INVALIDATED")
+                self.assertEqual(state["changed_fields"], [field])
+
     def test_execution_lease_expires_and_cancel_releases(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

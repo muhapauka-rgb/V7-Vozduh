@@ -1157,7 +1157,35 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertIn(changed["packet_preview"]["packet_id"], changed["approval_prompt"]["approval_command_text"])
         self.assertEqual(changed["approval_prompt"]["target_channel"], "awg3")
 
-    def test_execution_lease_blocks_planner_regeneration_during_refresh(self):
+    def test_execution_lease_blocks_planner_regeneration_when_plan_is_semantically_identical(self):
+        first = pipeline.governed_canary_knowledge_gated_dry_run_cycle(
+            decision_surface=self.governed_canary_surface(target="awg0", recommendation_hash="rec-canary-1"),
+            max_users=1,
+            now="2026-06-24T16:00:00Z",
+        )
+        lease = operator_execution.create_execution_lease_from_preview(
+            first["packet_preview"],
+            approval_author="operator-a",
+            approval_reviewer="operator-b",
+        )
+        refreshed = pipeline.governed_canary_knowledge_gated_dry_run_cycle(
+            decision_surface=self.governed_canary_surface(target="awg0", recommendation_hash="rec-canary-2", source_hash="source-canary-2"),
+            execution_lease=lease,
+            max_users=1,
+            now="2026-06-24T16:01:00Z",
+        )
+
+        self.assertTrue(refreshed["execution_lease"]["active"])
+        self.assertEqual(refreshed["packet_preview"]["packet_id"], first["packet_preview"]["packet_id"])
+        self.assertEqual(refreshed["packet_preview"]["selected_move_hash"], first["packet_preview"]["selected_move_hash"])
+        self.assertEqual(refreshed["packet_preview"]["allowed_targets"], ["awg0"])
+        self.assertEqual(refreshed["approval_prompt"]["target_channel"], "awg0")
+        self.assertFalse(refreshed["execution_lease"]["material_state_change"])
+        self.assertEqual(refreshed["execution_lease"]["lease_keep_reason"], "no_material_state_change")
+        self.assertTrue(refreshed["packet_preview"]["planner_regeneration_blocked_by_execution_lease"])
+        self.assertTrue(refreshed["safety"]["planner_regeneration_blocked_by_execution_lease"])
+
+    def test_execution_lease_invalidates_when_planner_target_changes_materially(self):
         first = pipeline.governed_canary_knowledge_gated_dry_run_cycle(
             decision_surface=self.governed_canary_surface(target="awg0", recommendation_hash="rec-canary-1"),
             max_users=1,
@@ -1175,13 +1203,11 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
             now="2026-06-24T16:01:00Z",
         )
 
-        self.assertTrue(refreshed["execution_lease"]["active"])
-        self.assertEqual(refreshed["packet_preview"]["packet_id"], first["packet_preview"]["packet_id"])
-        self.assertEqual(refreshed["packet_preview"]["selected_move_hash"], first["packet_preview"]["selected_move_hash"])
-        self.assertEqual(refreshed["packet_preview"]["allowed_targets"], ["awg0"])
-        self.assertEqual(refreshed["approval_prompt"]["target_channel"], "awg0")
-        self.assertTrue(refreshed["packet_preview"]["planner_regeneration_blocked_by_execution_lease"])
-        self.assertTrue(refreshed["safety"]["planner_regeneration_blocked_by_execution_lease"])
+        self.assertFalse(refreshed["execution_lease"]["active"])
+        self.assertTrue(refreshed["execution_lease"]["material_state_change"])
+        self.assertIn("target_channel", refreshed["execution_lease"]["changed_fields"])
+        self.assertEqual(refreshed["packet_preview"]["allowed_targets"], ["awg3"])
+        self.assertEqual(refreshed["approval_prompt"]["target_channel"], "awg3")
 
     def test_governed_canary_cycle_fails_non_authority_snapshot_stop(self):
         decision_surface = {

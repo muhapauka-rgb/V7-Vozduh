@@ -2007,16 +2007,19 @@ def _preview_packet_for_candidate(
             "runtime_mutation_performed": False,
         }
     rollback = candidate.get("rollback_plan") if isinstance(candidate.get("rollback_plan"), dict) else {}
-    payload = {
-        "cycle_id": cycle_id,
+    semantic_payload = {
         "user": candidate.get("user", ""),
         "from": candidate.get("current_channel", ""),
         "to": candidate.get("recommended_channel", ""),
+    }
+    payload = {
+        "cycle_id": cycle_id,
+        **semantic_payload,
         "recommendation_hash": candidate.get("recommendation_hash", ""),
         "source_hash": candidate.get("source_hash", ""),
         "created_at": now,
     }
-    selected_move_hash = stable_hash(payload)
+    selected_move_hash = stable_hash(semantic_payload)
     packet_id = "pkt_preview_" + stable_hash({"packet": payload})[:24]
     operation_id = "govdry_" + stable_hash({"operation": payload})[:24]
     decision_id = "decision_preview_" + stable_hash({
@@ -2033,7 +2036,7 @@ def _preview_packet_for_candidate(
         "packet_id": packet_id,
         "operation_id": operation_id,
         "decision_id": decision_id,
-        "authority_generation": authority_generation or cycle_id,
+        "authority_generation": authority_generation or ("authgen_" + stable_hash(semantic_payload)[:24]),
         "selected_move_count": 1,
         "selected_move_hash": selected_move_hash,
         "allowed_users": [candidate.get("user", "")],
@@ -2643,18 +2646,15 @@ def governed_canary_knowledge_gated_dry_run_cycle(
         max_users=max_users,
     )
     consumer = event_helpers.build_readonly_event_consumer_trace(events, now=now)
-    lease = execution_lease if isinstance(execution_lease, dict) else {}
-    lease_state = operator_execution.execution_lease_state(lease) if lease else {"active": False, "status": "MISSING"}
-    lease_active = bool(lease_state.get("active"))
     candidates = [row for row in (dry_run.get("candidates") or []) if isinstance(row, dict)]
-    candidate = _candidate_from_execution_lease(lease) if lease_active else (candidates[0] if candidates else {})
-    cycle_id = "gkcanary_" + stable_hash({
+    planner_candidate = candidates[0] if candidates else {}
+    planner_cycle_id = "gkcanary_" + stable_hash({
         "event_ids": [row.get("event_id") for row in consumer.get("events", [])],
         "candidate": {
-            "user": candidate.get("user", ""),
-            "from": candidate.get("current_channel", ""),
-            "to": candidate.get("recommended_channel", ""),
-            "recommendation_hash": candidate.get("recommendation_hash", ""),
+            "user": planner_candidate.get("user", ""),
+            "from": planner_candidate.get("current_channel", ""),
+            "to": planner_candidate.get("recommended_channel", ""),
+            "recommendation_hash": planner_candidate.get("recommendation_hash", ""),
         },
         "now": now,
     })[:24]
@@ -2665,16 +2665,30 @@ def governed_canary_knowledge_gated_dry_run_cycle(
         if isinstance(dry_run_safety.get("atomic_execution_envelope"), dict)
         else {}
     )
+    planner_packet_preview = _preview_packet_for_candidate(
+        planner_candidate,
+        cycle_id=planner_cycle_id,
+        authority_generation=str(dry_run_generation.get("planner_generation_id") or ""),
+        execution_envelope=dry_run_envelope,
+        now=now,
+    )
+    lease = execution_lease if isinstance(execution_lease, dict) else {}
+    lease_state = (
+        operator_execution.execution_lease_state(
+            lease,
+            current_material_state=operator_execution.material_state_from_packet_preview(planner_packet_preview),
+            current_source_hashes=planner_packet_preview.get("source_hashes") if isinstance(planner_packet_preview.get("source_hashes"), dict) else None,
+        )
+        if lease
+        else {"active": False, "status": "MISSING"}
+    )
+    lease_active = bool(lease_state.get("active"))
+    candidate = _candidate_from_execution_lease(lease) if lease_active else planner_candidate
+    cycle_id = planner_cycle_id
     packet_preview = (
         _packet_preview_from_execution_lease(lease)
         if lease_active
-        else _preview_packet_for_candidate(
-            candidate,
-            cycle_id=cycle_id,
-            authority_generation=str(dry_run_generation.get("planner_generation_id") or ""),
-            execution_envelope=dry_run_envelope,
-            now=now,
-        )
+        else planner_packet_preview
     )
     rollback_items = (packet_preview.get("rollback_manifest_preview") or {}).get("items") or []
     restore_status = {

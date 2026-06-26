@@ -41,6 +41,18 @@ DEFAULT_CLEARANCE_TTL_SECONDS = 900
 EXECUTION_LEASE_SCHEMA = "v7.execution-lease.v1"
 DEFAULT_EXECUTION_LEASE_TTL_SECONDS = DEFAULT_CLEARANCE_TTL_SECONDS
 LEASE_TERMINAL_STATUSES = {"EXECUTION_FINISHED", "ROLLBACK_FINISHED", "OPERATOR_CANCELLED"}
+MATERIAL_STATE_FIELDS = [
+    "selected_move_hash",
+    "target_channel",
+    "rollback_target",
+    "policy_generation",
+    "authority_generation",
+    "blast_radius_eligibility",
+    "rollback_readiness",
+    "verification_prerequisites",
+    "destination_eligibility",
+    "source_eligibility",
+]
 
 
 class PacketError(ValueError):
@@ -427,6 +439,141 @@ def _packet_identity(packet):
     }
 
 
+def _string_list(value):
+    if isinstance(value, list):
+        return sorted(str(item) for item in value if str(item))
+    if value in (None, ""):
+        return []
+    return [str(value)]
+
+
+def _rollback_targets_from_manifest(manifest):
+    manifest = manifest if isinstance(manifest, dict) else {}
+    items = manifest.get("items") if isinstance(manifest.get("items"), list) else []
+    return sorted(str(item.get("rollback_target") or "") for item in items if isinstance(item, dict) and str(item.get("rollback_target") or ""))
+
+
+def _material_state_from_components(
+    *,
+    selected_move_hash="",
+    target_channel=None,
+    rollback_target=None,
+    policy_generation="",
+    authority_generation="",
+    blast_radius_eligibility="",
+    rollback_readiness="",
+    verification_prerequisites=None,
+    destination_eligibility="",
+    source_eligibility="",
+):
+    return {
+        "selected_move_hash": str(selected_move_hash or ""),
+        "target_channel": _string_list(target_channel),
+        "rollback_target": _string_list(rollback_target),
+        "policy_generation": str(policy_generation or ""),
+        "authority_generation": str(authority_generation or ""),
+        "blast_radius_eligibility": str(blast_radius_eligibility or ""),
+        "rollback_readiness": str(rollback_readiness or ""),
+        "verification_prerequisites": _string_list(verification_prerequisites),
+        "destination_eligibility": str(destination_eligibility or ""),
+        "source_eligibility": str(source_eligibility or ""),
+    }
+
+
+def material_state_from_packet_preview(preview):
+    preview = extract_packet_preview(preview)
+    rollback_preview = preview.get("rollback_manifest_preview") if isinstance(preview.get("rollback_manifest_preview"), dict) else {}
+    targets = _string_list(preview.get("allowed_targets"))
+    users = _string_list(preview.get("allowed_users"))
+    rollback_targets = _rollback_targets_from_manifest(rollback_preview)
+    return _material_state_from_components(
+        selected_move_hash=preview.get("selected_move_hash", ""),
+        target_channel=targets,
+        rollback_target=rollback_targets,
+        policy_generation=preview.get("policy_generation", ""),
+        authority_generation=preview.get("authority_generation", ""),
+        blast_radius_eligibility=preview.get("blast_radius_eligibility", ""),
+        rollback_readiness=preview.get("rollback_readiness", "") or ("READY" if rollback_targets else "BLOCKED"),
+        verification_prerequisites=preview.get("verification_prerequisites") or preview.get("verification_required"),
+        destination_eligibility=preview.get("destination_eligibility", "") or ("ELIGIBLE" if targets else "UNKNOWN"),
+        source_eligibility=preview.get("source_eligibility", "") or ("ELIGIBLE" if users else "UNKNOWN"),
+    )
+
+
+def material_state_from_packet(packet):
+    packet = packet if isinstance(packet, dict) else {}
+    expected = packet.get("expected") if isinstance(packet.get("expected"), dict) else {}
+    constraints = packet.get("constraints") if isinstance(packet.get("constraints"), dict) else {}
+    rollback_manifest = packet.get("rollback_manifest") if isinstance(packet.get("rollback_manifest"), dict) else {}
+    targets = _string_list(constraints.get("allowed_targets"))
+    users = _string_list(constraints.get("allowed_users"))
+    rollback_targets = _rollback_targets_from_manifest(rollback_manifest)
+    return _material_state_from_components(
+        selected_move_hash=expected.get("selected_move_hash", ""),
+        target_channel=targets,
+        rollback_target=rollback_targets,
+        policy_generation=packet.get("policy_generation", ""),
+        authority_generation=packet.get("authority_generation") or expected.get("generation_id", ""),
+        blast_radius_eligibility=packet.get("blast_radius_eligibility", ""),
+        rollback_readiness=packet.get("rollback_readiness", "") or ("READY" if rollback_targets else "BLOCKED"),
+        verification_prerequisites=packet.get("verification_prerequisites"),
+        destination_eligibility=packet.get("destination_eligibility", "") or ("ELIGIBLE" if targets else "UNKNOWN"),
+        source_eligibility=packet.get("source_eligibility", "") or ("ELIGIBLE" if users else "UNKNOWN"),
+    )
+
+
+def _normalize_material_state(state):
+    state = state if isinstance(state, dict) else {}
+    normalized = {}
+    for field in MATERIAL_STATE_FIELDS:
+        value = state.get(field)
+        if field in {"target_channel", "rollback_target", "verification_prerequisites"}:
+            normalized[field] = _string_list(value)
+        else:
+            normalized[field] = str(value or "")
+    return normalized
+
+
+def material_state_change_gate(lease, *, current_material_state=None, current_source_hashes=None):
+    lease = lease if isinstance(lease, dict) else {}
+    approved_state = _normalize_material_state(
+        lease.get("material_state") if isinstance(lease.get("material_state"), dict) else material_state_from_packet(lease.get("packet") or {})
+    )
+    current_state = _normalize_material_state(current_material_state) if isinstance(current_material_state, dict) else None
+    changed_fields = []
+    if current_state is not None:
+        changed_fields = [
+            field for field in MATERIAL_STATE_FIELDS
+            if approved_state.get(field) != current_state.get(field)
+        ]
+    material_keys = {str(key) for key in (lease.get("material_source_keys") or [])}
+    approved_hashes = lease.get("source_hashes") if isinstance(lease.get("source_hashes"), dict) else {}
+    current_hashes = current_source_hashes if isinstance(current_source_hashes, dict) else None
+    changed_source_keys: list[str] = []
+    material_changed_source_keys: list[str] = []
+    if current_hashes is not None:
+        changed_source_keys = sorted(
+            key for key, approved in approved_hashes.items()
+            if str(current_hashes.get(key) or "") != str(approved or "")
+        )
+        material_changed_source_keys = sorted(set(changed_source_keys) & material_keys)
+    material_change = bool(changed_fields or material_changed_source_keys)
+    return {
+        "material_state_change": material_change,
+        "changed_fields": changed_fields,
+        "changed_source_keys": changed_source_keys,
+        "material_changed_source_keys": material_changed_source_keys,
+        "approved_material_state": approved_state,
+        "current_material_state": current_state or {},
+        "lease_keep_reason": "" if material_change else "no_material_state_change",
+        "lease_invalidation_reason": (
+            "material_state_fields_changed"
+            if changed_fields
+            else ("material_source_keys_changed" if material_changed_source_keys else "")
+        ),
+    }
+
+
 def build_execution_lease(packet, *, source_preview=None, now=None):
     now = now or utc_now()
     packet_hash = sha256_bytes(canonical_json(packet).encode("utf-8"))
@@ -459,6 +606,8 @@ def build_execution_lease(packet, *, source_preview=None, now=None):
         "immutable_packet_identity": identity,
         "packet_hash": packet_hash,
         "source_hashes": {str(key): str(value) for key, value in source_hashes.items()},
+        "material_state": material_state_from_packet(packet),
+        "material_state_fields": list(MATERIAL_STATE_FIELDS),
         "material_source_keys": ["egress_registry", "service_preferences", "users_registry"],
         "allowed_non_material_source_drift": ["quality_summary", "service_matrix"],
         "packet": packet,
@@ -491,7 +640,7 @@ def create_execution_lease_from_preview(
     return build_execution_lease(packet, source_preview=preview)
 
 
-def execution_lease_state(lease, *, now=None, current_source_hashes=None):
+def execution_lease_state(lease, *, now=None, current_source_hashes=None, current_material_state=None):
     now = now or utc_now()
     if not isinstance(lease, dict) or not lease:
         return {"active": False, "status": "MISSING", "reason": "execution_lease_missing"}
@@ -518,24 +667,18 @@ def execution_lease_state(lease, *, now=None, current_source_hashes=None):
         }
     if sha256_bytes(canonical_json(packet).encode("utf-8")) != str(lease.get("packet_hash") or ""):
         return {"active": False, "status": "INVALID", "reason": "execution_lease_packet_hash_changed"}
-    material_keys = {str(key) for key in (lease.get("material_source_keys") or [])}
-    approved_hashes = lease.get("source_hashes") if isinstance(lease.get("source_hashes"), dict) else {}
-    current_hashes = current_source_hashes if isinstance(current_source_hashes, dict) else None
-    changed_keys: list[str] = []
-    if current_hashes is not None:
-        changed_keys = sorted(
-            key for key, approved in approved_hashes.items()
-            if str(current_hashes.get(key) or "") != str(approved or "")
-        )
-        material_changed = sorted(set(changed_keys) & material_keys)
-        if material_changed:
-            return {
-                "active": False,
-                "status": "INVALIDATED",
-                "reason": "execution_lease_source_state_materially_changed",
-                "changed_source_keys": changed_keys,
-                "material_changed_source_keys": material_changed,
-            }
+    gate = material_state_change_gate(
+        lease,
+        current_material_state=current_material_state,
+        current_source_hashes=current_source_hashes,
+    )
+    if gate.get("material_state_change"):
+        return {
+            "active": False,
+            "status": "INVALIDATED",
+            "reason": "execution_lease_source_state_materially_changed",
+            **gate,
+        }
     return {
         "active": True,
         "status": "ACTIVE",
@@ -545,7 +688,7 @@ def execution_lease_state(lease, *, now=None, current_source_hashes=None):
         "operation_id": identity.get("operation_id", ""),
         "selected_move_hash": identity.get("selected_move_hash", ""),
         "expires_at": lease.get("expires_at"),
-        "changed_source_keys": changed_keys,
+        **gate,
     }
 
 

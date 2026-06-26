@@ -1859,18 +1859,43 @@ class AutoswitchPlanner:
         restore_barrier: dict[str, Any],
         approved_plan_lock: dict[str, Any],
     ) -> dict[str, Any]:
+        materiality = self._approved_plan_lock_snapshot_gate_materiality(gate, restore_barrier, approved_plan_lock)
         if not approved_plan_lock.get("ok"):
+            if bool_value(gate.get("active")) and bool_value(gate.get("stop_required")):
+                gate.update(materiality)
             return gate
         if not bool_value(gate.get("active")) or not bool_value(gate.get("stop_required")):
+            gate.update(materiality)
             return gate
         if not bool_value(restore_barrier.get("clearance_generation_ok")):
+            gate.update(materiality)
+            return gate
+        if materiality.get("snapshot_gate_material_change"):
+            gate.update(materiality)
             return gate
         lease = restore_barrier.get("source_bundle_lease") or {}
+        if materiality.get("snapshot_gate_decision") == "allow_approved_plan_lock_non_material_snapshot_drift":
+            leased = dict(gate)
+            leased.update(materiality)
+            leased["stop_required_before_approved_plan_lock"] = True
+            leased["stop_required"] = False
+            leased["runtime_behavior"] = "ALLOW_APPROVED_PLAN_LOCK_NON_MATERIAL_SNAPSHOT_DRIFT"
+            leased["selected_moves_suppressed"] = False
+            leased["selected_moves_after_gate"] = int(gate.get("selected_moves_before_gate") or 0)
+            leased["approved_plan_lock_consumed"] = True
+            leased["hard_gate_override"] = "approved_plan_lock_non_material_snapshot_drift"
+            leased["read_only_without_apply"] = not bool_value(getattr(self.args, "apply", False))
+            leased["execution_behavior_changed"] = False
+            leased["governance_behavior_changed"] = False
+            leased["runtime_behavior_changed"] = False
+            return leased
         if not isinstance(lease, dict) or not bool_value(lease.get("ok")):
+            gate.update(materiality)
             return gate
         allowed_drift = {str(item) for item in (lease.get("allowed_source_drift") or [])}
         changed_keys = {str(item) for item in (lease.get("changed_source_keys") or [])}
         if not allowed_drift or not changed_keys.issubset(allowed_drift):
+            gate.update(materiality)
             return gate
 
         results = gate.get("results") if isinstance(gate.get("results"), dict) else {}
@@ -1893,6 +1918,7 @@ class AutoswitchPlanner:
                 accepted_errors.append(error)
 
         leased = dict(gate)
+        leased.update(materiality)
         leased["stop_required_before_source_bundle_lease"] = True
         leased["stop_required"] = False
         leased["runtime_behavior"] = "ALLOW_APPROVED_SOURCE_BUNDLE_LEASE"
@@ -1909,6 +1935,72 @@ class AutoswitchPlanner:
         leased["governance_behavior_changed"] = False
         leased["runtime_behavior_changed"] = False
         return leased
+
+    def _approved_plan_lock_snapshot_gate_materiality(
+        self,
+        gate: dict[str, Any],
+        restore_barrier: dict[str, Any],
+        approved_plan_lock: dict[str, Any],
+    ) -> dict[str, Any]:
+        changed_fields: list[str] = []
+        source = "approved_plan_lock_snapshot_gate"
+        if not bool_value(gate.get("active")):
+            return {
+                "snapshot_gate_source": source,
+                "snapshot_gate_decision": "snapshot_gate_inactive",
+                "snapshot_gate_changed_fields": [],
+                "snapshot_gate_material_change": False,
+                "approved_plan_lock_consumed": bool_value(approved_plan_lock.get("ok")),
+            }
+        if not bool_value(gate.get("stop_required")):
+            return {
+                "snapshot_gate_source": source,
+                "snapshot_gate_decision": "snapshot_gate_pass",
+                "snapshot_gate_changed_fields": [],
+                "snapshot_gate_material_change": False,
+                "approved_plan_lock_consumed": bool_value(approved_plan_lock.get("ok")),
+            }
+        if not bool_value(approved_plan_lock.get("ok")):
+            changed_fields.extend(approved_plan_lock.get("reasons") or [approved_plan_lock.get("reason") or "approved_plan_lock_invalid"])
+        if not bool_value(restore_barrier.get("clearance_generation_ok")):
+            changed_fields.append(str(restore_barrier.get("clearance_guard_reason") or restore_barrier.get("clearance_generation_reason") or "restore_barrier_clearance_invalid"))
+
+        material_source_keys = {"users_registry", "egress_registry", "service_preferences", "policy", "authority_policy", "rollback_readiness", "verification_prerequisites"}
+        source_mismatch_families = list(gate.get("source_mismatch_families") or [])
+        results = gate.get("results") if isinstance(gate.get("results"), dict) else {}
+        for family in source_mismatch_families:
+            payload = results.get(family) if isinstance(results, dict) else {}
+            if not isinstance(payload, dict):
+                changed_fields.append(f"snapshot_source_mismatch:{family}:unknown")
+                continue
+            for error in payload.get("validation_errors") or []:
+                text = str(error)
+                match = re.fullmatch(r"source_hash_mismatch:[^:]+:([^:]+)", text)
+                if match and match.group(1) in material_source_keys:
+                    changed_fields.append(text)
+                elif not match and "source_hash_mismatch" in text:
+                    changed_fields.append(text)
+                elif not match:
+                    changed_fields.append(text)
+
+        has_source_mismatch = bool(source_mismatch_families)
+        snapshot_stop_without_material_source = bool_value(gate.get("stop_required")) and not changed_fields and not has_source_mismatch
+        material = bool(changed_fields)
+        if material:
+            decision = "block_material_snapshot_change"
+        elif snapshot_stop_without_material_source:
+            decision = "allow_approved_plan_lock_non_material_snapshot_drift"
+        elif has_source_mismatch:
+            decision = "evaluate_source_bundle_lease"
+        else:
+            decision = "snapshot_gate_pass"
+        return {
+            "snapshot_gate_source": source,
+            "snapshot_gate_decision": decision,
+            "snapshot_gate_changed_fields": sorted(set(str(item) for item in changed_fields if item)),
+            "snapshot_gate_material_change": material,
+            "approved_plan_lock_consumed": bool_value(approved_plan_lock.get("ok")) and not material,
+        }
 
     def _load_safety(self) -> dict[str, Any]:
         safety = read_json(self.safety_file, {})
@@ -4108,6 +4200,11 @@ class AutoswitchPlanner:
                     "approved_plan_lock_hash_source": str(approved_plan_lock.get("selected_move_hash_source") or ""),
                     "selected_moves_before_restore_barrier": len(selected_before_restore_barrier),
                     "selected_moves_after_gate": len(selected),
+                    "snapshot_gate_source": str(intelligence_snapshot_gate.get("snapshot_gate_source") or ""),
+                    "snapshot_gate_decision": str(intelligence_snapshot_gate.get("snapshot_gate_decision") or ""),
+                    "snapshot_gate_changed_fields": list(intelligence_snapshot_gate.get("snapshot_gate_changed_fields") or []),
+                    "snapshot_gate_material_change": bool_value(intelligence_snapshot_gate.get("snapshot_gate_material_change")),
+                    "approved_plan_lock_consumed": bool_value(intelligence_snapshot_gate.get("approved_plan_lock_consumed")),
                     "planner_recomputed_after_approval": False if approved_plan_lock.get("ok") else None,
                 },
             },
@@ -4174,6 +4271,8 @@ class AutoswitchPlanner:
         approved_identity_mode = str(lock.get("identity_source") or "") == "approved_preview_packet"
         approved_selected_hash = str(lock.get("selected_move_hash") or "")
         selected_hash = approved_selected_hash if approved_identity_mode and approved_selected_hash else structural_selected_hash
+        approved_snapshot_hash = str(lock.get("snapshot_bundle_hash") or "")
+        barrier_snapshot_hash = str(restore_barrier.get("approved_snapshot_bundle_hash") or "")
         allowed_users = [str(item) for item in (lock.get("allowed_users") or restore_barrier.get("allowed_users") or [])]
         allowed_targets = [str(item) for item in (lock.get("allowed_targets") or restore_barrier.get("allowed_targets") or [])]
         locked_users = [move["user_ip"] for move in selected]
@@ -4192,6 +4291,10 @@ class AutoswitchPlanner:
             reasons.append("approved_plan_lock_selected_count_mismatch")
         if not approved_identity_mode and str(lock.get("selected_move_hash") or "") != selected_hash:
             reasons.append("approved_plan_lock_selected_hash_mismatch")
+        if not approved_snapshot_hash:
+            reasons.append("approved_plan_lock_snapshot_missing")
+        if approved_snapshot_hash and barrier_snapshot_hash and approved_snapshot_hash != barrier_snapshot_hash:
+            reasons.append("approved_plan_lock_snapshot_mismatch")
         if allowed_users and sorted(allowed_users) != sorted(locked_users):
             reasons.append("approved_plan_lock_allowed_users_mismatch")
         if allowed_targets and sorted(allowed_targets) != locked_targets:
@@ -4235,6 +4338,8 @@ class AutoswitchPlanner:
                 "structural_selected_move_hash": structural_selected_hash,
                 "selected_move_hash_source": "approved_preview_packet" if approved_identity_mode else "selected_moves",
                 "approved_selected_move_hash": str(lock.get("selected_move_hash") or ""),
+                "approved_snapshot_bundle_hash": approved_snapshot_hash,
+                "expected_snapshot_bundle_hash": barrier_snapshot_hash,
                 "selected_users": locked_users,
                 "selected_targets": locked_targets,
             }
@@ -4248,6 +4353,8 @@ class AutoswitchPlanner:
             "structural_selected_move_hash": structural_selected_hash,
             "selected_move_hash_source": "approved_preview_packet" if approved_identity_mode else "selected_moves",
             "selected_move_count": len(selected),
+            "approved_snapshot_bundle_hash": approved_snapshot_hash,
+            "expected_snapshot_bundle_hash": barrier_snapshot_hash,
             "selected_users": locked_users,
             "selected_targets": locked_targets,
             "selected_moves": selected,
@@ -6043,10 +6150,13 @@ class AutoswitchPlanner:
             approved_lock = barrier.get("approved_plan_lock_validation") or {}
             diagnostics = safety.get("selected_moves_diagnostics") or {}
             if approved_lock.get("present"):
+                approved_lock_reason = str(approved_lock.get("reason") or "")
+                if bool_value(approved_lock.get("ok")):
+                    approved_lock_reason = ""
                 reason = str(
-                    barrier.get("approved_plan_lock_blocker")
+                    approved_lock_reason
+                    or barrier.get("approved_plan_lock_blocker")
                     or barrier.get("clearance_guard_reason")
-                    or approved_lock.get("reason")
                     or "approved_plan_lock_selected_moves_missing"
                 )
                 return {

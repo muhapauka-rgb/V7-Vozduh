@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-26T10:03:28+0700
-Source: Approved A3 governed packet execution attempt, restore-barrier clearance write, guarded autoswitch apply/verify attempt, truth/convergence
+State captured: 2026-06-26T10:34:19+0700
+Source: A3 approved plan lock consumption fix, safe deploy, truth/convergence, production governed canary dry-run
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, authority boundary, metrics, packet, or stop reason.
 
@@ -15,11 +15,11 @@ This file is volatile. Update it after every safe action or approved execution t
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Implementation Backlog` |
 | Current highest leverage implementation | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
-| Current highest leverage action | fix existing autoswitch owner so active `approved_plan_lock` is consumed as the selected move during guarded apply; do not request another packet approval until this is fixed |
-| Current authority boundary | `CLEARED_FOR_PACKET`: operator approval was consumed for exact packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc`; restore-barrier clearance was written only for that packet |
-| Current reality limit | `A3_NOT_CERTIFIED`: no successful movement, verification, rollback/no-rollback classification, or outcome closure exists for this attempt |
-| Current safe next action | implement `A3_FIX_APPROVED_PLAN_LOCK_CONSUMPTION_IN_EXISTING_AUTOSWITCH_OWNER`; no new owner, no new planner, no new governance, no new execution path |
-| Current stop reason | `UNSAFE_IMPLEMENTATION`: approved packet identity and restore-barrier clearance were preserved, but `v7-users-autoswitch --apply --verify` selected zero moves instead of consuming the approved one-user plan lock |
+| Current highest leverage action | request exact operator approve/reject decision for current governed packet; execution remains blocked until explicit authority is granted |
+| Current authority boundary | `AUTHORITY_BOUNDARY`: exact packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` is ready for approval; restore-barrier write and apply require explicit operator authority |
+| Current reality limit | `A3_NOT_CERTIFIED`: no new successful movement, verification, rollback/no-rollback classification, or outcome closure exists after the fix deployment |
+| Current safe next action | present the exact approval prompt in section 7; do not repeat packet preparation unless freshness changes |
+| Current stop reason | `AUTHORITY_BOUNDARY`: production dry-run reaches approval boundary with read-only safety preserved |
 
 ## 2. Current Metrics
 
@@ -114,7 +114,7 @@ Highest Priority Task
 A3: Certify class-level rollback/no-rollback evidence for governed candidate movement.
 
 Current Stop Condition
-UNSAFE_IMPLEMENTATION
+AUTHORITY_BOUNDARY
 
 Estimated Remaining Work
 Moderate
@@ -156,9 +156,9 @@ Production maturity category snapshot:
 | A1 result | Existing event, liveness, service, route, and freshness owners now emit canonical hard-failure classification without runtime mutation. |
 | Completed backlog item | `A2_CANONICALIZE_PER_ACTION_CLASS_FRESHNESS_WINDOWS_AND_OWNER_ISSUED_FRESHNESS_FIELDS` |
 | A2 result | Existing freshness/action-class owners now expose per-action-class freshness windows and owner-issued freshness fields without runtime mutation. |
-| Tests | `79` focused unit tests passed. |
-| Deployed commit | `09ccee8bf717d40c326fed925b939824150654f5` |
-| Deploy id | `deploy-z8-14-Updatesystem-09ccee8-20260626T093816` |
+| Tests | `77` autoswitch policy tests + `59` operator/governed canary tests passed for A3 fix; A1/A2 focused tests remain passed. |
+| Deployed commit | `704ec9a2de66e10a5a677d5be1453463063de21e` |
+| Deploy id | `deploy-z8-14-Updatesystem-704ec9a-20260626T103417` |
 | Deploy result | `PASS`; existing safe deployment owner; no runtime apply, no user movement, no restore-barrier write |
 | Truth | `PASS`; local, GitHub, and runtime aligned |
 | Convergence | `PASS`; status `ALIGNED`; deploy delta mismatches `0` |
@@ -167,7 +167,7 @@ Production maturity category snapshot:
 | Users moved | `0` |
 | Authority expanded | `false` |
 | Next backlog item | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
-| Next item blocker | `UNSAFE_IMPLEMENTATION`: active approved plan lock did not become the selected move during guarded apply; apply returned `NOOP/no_selected_moves`, so A3 has no certifiable outcome yet. |
+| Next item blocker | `AUTHORITY_BOUNDARY`: A3 needs one real governed movement outcome, and restore-barrier write/apply require explicit operator approval for the exact current packet. |
 
 ## 3. Current Exact Governed Packet
 
@@ -190,16 +190,16 @@ Production maturity category snapshot:
 | Candidate confidence | `0.458` |
 | Trust | `54.569` |
 
-Execution lease is active for this packet until expiry. The approved packet was consumed for restore-barrier clearance, but guarded apply did not move the user.
+No execution lease is active. The previous lease for this packet expired after the unsafe implementation attempt; the current dry-run is a fresh read-only approval boundary.
 
-Latest continuation note: operator approval for this packet was used. Do not request or reuse approval for this same packet. The blocker is implementation safety: approved plan lock consumption failed at apply selection time.
+Latest continuation note: approved plan lock consumption fix is deployed and verified. The current blocker is authority, not implementation safety.
 
 ## 3.1. Execution Lease Preflight
 
 | Field | Current Value |
 | --- | --- |
-| Execution lease id | `execlease_d51410c7667dfb7ae2152897` |
-| Execution lease status | `ACTIVE_UNTIL_EXPIRY_AFTER_NOOP_APPLY_ATTEMPT` |
+| Execution lease id | `none` |
+| Execution lease status | `EXPIRED` |
 | Lease owner | `admin_core/operator_execution.py` |
 | Lease file | `/opt/v7/egress/state/operator-execution-lease.json` |
 | Leased packet | `pkt_preview_5c4bcfaa59d769ced6d6e5dc` |
@@ -213,11 +213,11 @@ Latest continuation note: operator approval for this packet was used. Do not req
 | Target regeneration allowed | `false` |
 | Selected move hash regeneration allowed | `false` |
 | Packet freshness check allowed | `true` |
-| Duplicate active lease | `NO_DUPLICATE_LEASE`; current lease remains active until expiry |
-| Preflight verdict | `RESTORE_BARRIER_CLEARANCE_WRITTEN`; apply attempt did not consume selected move |
-| Runtime mutation | `restore_barrier_written_now=true for exact leased packet`; `apply_executed=false`; `users_moved=0`; `rollback_executed=false`; `runtime_mutation_performed=true only for restore-barrier clearance` |
-| Deployment id | `deploy-z8-14-Updatesystem-09ccee8-20260626T093816` |
-| Deployed commit | `09ccee8bf717d40c326fed925b939824150654f5` |
+| Duplicate active lease | `NO_ACTIVE_LEASE` |
+| Preflight verdict | `APPROVAL_PROMPT_READY` |
+| Runtime mutation | `restore_barrier_written_now=false`; `apply_executed=false`; `users_moved=0`; `rollback_executed=false`; `runtime_mutation_performed=false` |
+| Deployment id | `deploy-z8-14-Updatesystem-704ec9a-20260626T103417` |
+| Deployed commit | `704ec9a2de66e10a5a677d5be1453463063de21e` |
 
 ## 3.2. Last Approved Execution Outcome
 
@@ -247,23 +247,23 @@ Latest continuation note: operator approval for this packet was used. Do not req
 
 | Field | Current Value |
 | --- | --- |
-| Executed at | `2026-06-26T10:03:28+0700` |
-| Optimizer result | exact governed packet approved; execution lease created; restore-barrier clearance written; guarded apply attempted; apply returned `NOOP/no_selected_moves` |
-| Safe work completed | packet identity preserved; execution lease created; restore-barrier clearance written for exact packet; truth/convergence passed |
-| Evidence refresh result | real production attempt observed; no user movement, no verification outcome, no rollback/no-rollback classification, and no A3 certification |
-| Fresh dry-run verdict | `NOT_RERUN_AFTER_APPROVAL`; approved packet consumed for clearance |
+| Executed at | `2026-06-26T10:34:19+0700` |
+| Optimizer result | approved plan lock consumption fix deployed; production governed canary dry-run reached exact authority boundary |
+| Safe work completed | existing autoswitch owner fixed; truth/convergence fully aligned; packet preview, rollback preview, verification plan, outcome closure plan, and learning path are ready |
+| Evidence refresh result | no synthetic evidence; no user movement; A3 remains uncertified until real approved outcome exists |
+| Fresh dry-run verdict | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY` |
 | Fresh candidate | `10.7.0.17` |
 | Fresh movement preview | `vless -> awg3` |
 | Fresh packet preview id | `pkt_preview_5c4bcfaa59d769ced6d6e5dc` |
 | Fresh operation id | `govdry_27823dc8d8acf421271345f5` |
 | Fresh rollback manifest id | `rb_preview_689e956416f95797a018a5fe` |
-| Runtime lifecycle preview | active lease `execlease_d51410c7667dfb7ae2152897`; approved plan lock present; guarded apply selected zero moves |
-| Restore/rollback preview | `RESTORE_BARRIER_CLEARANCE_WRITTEN`; rollback manifest bound but rollback not executed because no movement occurred |
-| Verification plan | `NOT_RUN_FOR_MOVEMENT`; apply returned `NOOP/no_selected_moves` |
-| Outcome closure plan | `NOT_CLOSED_AS_SUCCESS`; no successful movement outcome exists |
-| Learning path | `NO_NEW_SUCCESS_LEARNING`; only real negative implementation evidence observed |
-| Safety | `restore_barrier_written_now=true`; `apply_executed=false`; `users_moved=0`; `rollback_executed=false`; `runtime_mutation_performed=true only for restore-barrier clearance`; `new_planner_created=false`; `new_governance_created=false`; `new_execution_path_created=false`; `new_truth_source_created=false`; `synthetic_evidence_created=false` |
-| Exact stop condition | `UNSAFE_IMPLEMENTATION` |
+| Runtime lifecycle preview | no active lease; packet preview ready; duplicate work guard clear; loop guard clear |
+| Restore/rollback preview | `RESTORE_AND_ROLLBACK_PREVIEW_READY` |
+| Verification plan | `VERIFICATION_PLAN_READY` |
+| Outcome closure plan | `OUTCOME_CLOSURE_PLAN_READY` |
+| Learning path | `LEARNING_PATH_CONNECTED` |
+| Safety | `restore_barrier_written_now=false`; `apply_executed=false`; `users_moved=0`; `rollback_executed=false`; `runtime_mutation_performed=false`; `new_planner_created=false`; `new_governance_created=false`; `new_execution_path_created=false`; `new_truth_source_created=false`; `synthetic_evidence_created=false` |
+| Exact stop condition | `AUTHORITY_BOUNDARY` |
 
 ## 6. Safe Automatic Actions
 
@@ -295,31 +295,73 @@ Forbidden without explicit approval:
 
 ## 7. Exact Approval Question
 
-No approval prompt is currently active.
-
-The previous approval for `pkt_preview_5c4bcfaa59d769ced6d6e5dc` was consumed to write restore-barrier clearance. Guarded apply then returned `NOOP/no_selected_moves`, so the same packet must not be re-approved or retried through a bypass path.
-
-Current required work:
+Current ready-to-copy approval prompt:
 
 ```text
-Continue OMP
+Approve exact governed canary packet.
 
-Current blocker:
-UNSAFE_IMPLEMENTATION
+Approved packet:
+pkt_preview_5c4bcfaa59d769ced6d6e5dc
 
-Task:
-Implement approved_plan_lock consumption in the existing v7-users-autoswitch owner.
+Operation:
+govdry_27823dc8d8acf421271345f5
+
+Selected move hash:
+e007e0c65bbf4e4cf56b6dbbd557c09676559224ed3ec834fd998e33180fcfdc
+
+User:
+10.7.0.17
+
+Move:
+vless -> awg3
+
+Rollback target:
+vless
+
+Rollback manifest:
+rb_preview_689e956416f95797a018a5fe
+
+Authority:
+TIER_1 governed canary
+
+Authority status:
+MARGINAL_OPERATOR_REVIEW
+
+Allowed action:
+execute this exact governed packet through existing owners only.
 
 Requirements:
-- reuse existing autoswitch owner;
-- when restore-barrier contains a valid approved_plan_lock, guarded apply must consume that locked one-user move;
-- do not rerun planner to replace the approved user/target/hash;
-- preserve packet_id, operation_id, decision_id, selected_move_hash, subject, target, and authority_generation;
-- no new planner;
-- no new governance;
-- no new execution owner;
-- no new truth source;
-- add tests proving approved_plan_lock becomes selected_moves during apply.
+- consume the approved preview packet as the executable packet;
+- preserve packet_id, decision_id, operation_id, selected_move_hash, subject, target, and authority_generation;
+- write restore-barrier clearance only for this exact packet;
+- apply only this exact one-user movement;
+- verify immediately;
+- rollback to the rollback target if verification fails;
+- close outcome;
+- feed learning only from real observed outcome;
+- update Current Program State;
+- update OMP;
+- run truth/convergence;
+- continue OMP after outcome closure.
+
+Do not:
+- move any other user;
+- use any other target;
+- rerun planner to change selected move;
+- bypass planner/governance;
+- enable daemon/timer;
+- expand authority;
+- create synthetic evidence.
+
+Final response:
+- apply result;
+- verification result;
+- rollback result if any;
+- outcome closure;
+- learning update;
+- new metrics;
+- new highest implementation leverage task;
+- exact stop condition if stopped.
 ```
 
 ## 8. Recalculation Rules
@@ -365,8 +407,8 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
 
 | Field | Current Value |
 | --- | --- |
-| Implemented task | `ATTEMPT_APPROVED_LEASED_GOVERNED_PACKET_EXECUTION` |
-| Implemented output | consumed operator approval for exact leased packet and wrote restore-barrier clearance, but guarded apply returned `NOOP/no_selected_moves` |
+| Implemented task | `A3_FIX_APPROVED_PLAN_LOCK_CONSUMPTION_IN_EXISTING_AUTOSWITCH_OWNER` |
+| Implemented output | existing `tools/v7-users-autoswitch` owner now diagnoses approved selected-move source and returns explicit unsafe blocker instead of silent `NOOP` if approved moves are missing or blocked |
 | Required approval fields | `PRESENT` |
 | Idempotency fingerprint | `PRESENT` |
 | Duplicate work status | `PRESENT` |
@@ -381,38 +423,38 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
 | Production lease dry-run | `PASS` |
 | Compile verification | `PASS` |
 | Safe CLI verification | `PASS_WITH_EXPECTED_SAFE_BLOCK_MISSING_TRIGGER` |
-| Safety | `apply_executed=false`; `users_moved=0`; `runtime_mutation_performed=true only for restore-barrier clearance`; `restore_barrier_written_now=true for exact packet`; `rollback_executed=false`; `synthetic_evidence_created=false` |
-| Certification | `NOT_CERTIFIED`; no successful movement, verification, rollback/no-rollback classification, or outcome closure |
+| Safety | `apply_executed=false`; `users_moved=0`; `runtime_mutation_performed=false`; `restore_barrier_written_now=false`; `rollback_executed=false`; `synthetic_evidence_created=false` |
+| Certification | `IMPLEMENTATION_FIX_DEPLOYED`; A3 outcome certification still requires real approved movement, verification, and rollback/no-rollback closure |
 | Truth | `PASS`; local, GitHub, and runtime aligned |
 | Convergence | `PASS`; runtime action guard `READY_FOR_RUNTIME_ACTION` |
-| New highest implementation leverage task | `A3_FIX_APPROVED_PLAN_LOCK_CONSUMPTION_IN_EXISTING_AUTOSWITCH_OWNER` |
-| Continue automatically | `STOPPED_AT_UNSAFE_IMPLEMENTATION` |
-| Exact stop condition | `UNSAFE_IMPLEMENTATION` |
+| New highest implementation leverage task | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
+| Continue automatically | `STOPPED_AT_AUTHORITY_BOUNDARY` |
+| Exact stop condition | `AUTHORITY_BOUNDARY` |
 
 ## 13. Production Deploy State
 
 | Field | Current Value |
 | --- | --- |
-| Deployed commit | `09ccee8bf717d40c326fed925b939824150654f5` |
-| Deploy id | `deploy-z8-14-Updatesystem-09ccee8-20260626T093816` |
+| Deployed commit | `704ec9a2de66e10a5a677d5be1453463063de21e` |
+| Deploy id | `deploy-z8-14-Updatesystem-704ec9a-20260626T103417` |
 | Runtime truth | `KNOWN` |
 | Runtime access | `READY` |
-| Production dry-run verdict | `NOT_RERUN_AFTER_APPROVAL`; exact packet approval already consumed for clearance |
+| Production dry-run verdict | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY`; fresh read-only approval prompt ready |
 | Production authority generation | `gkcanary_bc9bcee90310184ba888abb7` |
-| Stop reason | `UNSAFE_IMPLEMENTATION` |
-| Next action | implement approved plan lock consumption in the existing autoswitch owner before any new packet approval |
+| Stop reason | `AUTHORITY_BOUNDARY` |
+| Next action | operator approve/reject decision for exact packet in section 7 |
 
 ## 14. Post-Deploy Verification
 
 | Field | Current Value |
 | --- | --- |
-| Verified at | `2026-06-26T10:03:28+0700` |
+| Verified at | `2026-06-26T10:34:19+0700` |
 | Branch | `Updatesystem` |
-| Truth check | `PASS`; local, GitHub, and runtime aligned; non-blocking documentation-only dirtiness remains |
+| Truth check | `PASS`; local, GitHub, and runtime aligned |
 | Convergence | `PASS`; deploy delta empty; runtime action guard `READY_FOR_RUNTIME_ACTION` |
-| Documentation dirtiness | Non-blocking documentation-only dirty files remain; do not treat them as runtime blockers |
-| Production execution commands | `v7-governed-canary-dry-run-cycle --create-execution-lease`; `v7-operator-execution-packet --execute-runtime-action`; `v7-users-autoswitch --apply --verify --rollback-on-verify-fail` |
-| Production execution result | restore-barrier clearance written for exact packet; guarded apply returned `NOOP/no_selected_moves`; no user movement occurred |
-| Production prompt safety | `restore_barrier_written_now=true`; `apply_executed=false`; `users_moved=0`; `rollback_executed=false`; `runtime_mutation_performed=true only for clearance` |
-| Current packet freshness | Previous packet approval consumed; active lease expires at `2026-06-26T03:14:51.964623+00:00`; do not re-approve the same packet |
-| Exact next required approval | `NONE`; next step is implementation fix, not authority approval |
+| Documentation dirtiness | none after implementation-fix commit; update this file again after next approved execution |
+| Production execution commands | `v7-governed-canary-dry-run-cycle --pretty` |
+| Production execution result | exact approval prompt ready; no restore-barrier write, no apply, no movement |
+| Production prompt safety | `restore_barrier_written_now=false`; `apply_executed=false`; `users_moved=0`; `rollback_executed=false`; `runtime_mutation_performed=false` |
+| Current packet freshness | Current dry-run packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` is ready for approval; no active lease exists |
+| Exact next required approval | operator approve/reject for `pkt_preview_5c4bcfaa59d769ced6d6e5dc` |

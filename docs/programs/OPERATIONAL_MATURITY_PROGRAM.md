@@ -1399,12 +1399,24 @@ Current implementation optimizer result:
 | Exact owner | Restore barrier, rollback manifest, governed execution, feedback/learning |
 | Exact module | Canonical Policy Library Stage 4 implementation backlog |
 | Exact files | `admin_core/operator_execution.py`, `tools/v7-users-autoswitch`, `admin_core/operator_execution_feedback.py`, `admin_core/autonomy_trust_acceleration.py` |
-| Implementation status | `STOPPED_AT_REAL_WORLD_LIMIT` |
+| Implementation status | `DEPLOYED_STOPPED_AT_REAL_WORLD_LIMIT` |
 | Backlog source | `docs/programs/V7_IMPLEMENTATION_BACKLOG.md` item `A3` |
 | Priority model | `docs/reference/V7_IMPLEMENTATION_PRIORITY_MODEL.md` |
-| Truth/convergence | Must pass after implementation. |
+| Truth/convergence | `PASS`: local, GitHub, and runtime aligned at commit `09ccee8bf717d40c326fed925b939824150654f5`. |
 | New highest implementation leverage task | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
 | Stop boundary | `REAL_WORLD_LIMIT`: this item requires real governed outcomes and rollback/no-rollback closure evidence; OMP must not synthesize certification evidence. |
+
+Latest safe deployment result:
+
+| Field | Current Value |
+| --- | --- |
+| Deployed commit | `09ccee8bf717d40c326fed925b939824150654f5` |
+| Deploy id | `deploy-z8-14-Updatesystem-09ccee8-20260626T093816` |
+| Deployed backlog items | `A1`, `A2` |
+| Safety | `restore_barrier_modified=false`; `routing_mutation_executed=false`; `user_movement_executed=false`; `autoswitch_apply_executed=false` |
+| Truth | `PASS` |
+| Convergence | `PASS`; `ALIGNED` |
+| Current stop | `REAL_WORLD_LIMIT` for `A3` |
 
 ## 2.13. Implementation Program Loop
 

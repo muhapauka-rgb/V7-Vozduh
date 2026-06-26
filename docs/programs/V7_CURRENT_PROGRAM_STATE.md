@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-26T00:00:00+0700
-Source: Continue OMP implementation refresh, backlog A1/A2 read-only implementation, tests, current stop evaluation
+State captured: 2026-06-26T09:38:16+0700
+Source: Continue OMP safe deploy of completed backlog A1/A2, truth/convergence, current stop evaluation
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, authority boundary, metrics, packet, or stop reason.
 
@@ -157,6 +157,11 @@ Production maturity category snapshot:
 | Completed backlog item | `A2_CANONICALIZE_PER_ACTION_CLASS_FRESHNESS_WINDOWS_AND_OWNER_ISSUED_FRESHNESS_FIELDS` |
 | A2 result | Existing freshness/action-class owners now expose per-action-class freshness windows and owner-issued freshness fields without runtime mutation. |
 | Tests | `79` focused unit tests passed. |
+| Deployed commit | `09ccee8bf717d40c326fed925b939824150654f5` |
+| Deploy id | `deploy-z8-14-Updatesystem-09ccee8-20260626T093816` |
+| Deploy result | `PASS`; existing safe deployment owner; no runtime apply, no user movement, no restore-barrier write |
+| Truth | `PASS`; local, GitHub, and runtime aligned |
+| Convergence | `PASS`; status `ALIGNED`; deploy delta mismatches `0` |
 | Runtime mutation | `false` |
 | Restore barrier written | `false` |
 | Users moved | `0` |

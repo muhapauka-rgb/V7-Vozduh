@@ -1,0 +1,402 @@
+{
+  "users": [
+    {
+      "ip": "10.0.0.2",
+      "current": "awg3",
+      "table": "100",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.0.0.3",
+      "current": "wireguard-1779454504-c43409",
+      "table": "101",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.0.0.6",
+      "current": "wireguard-1779454504-c43409",
+      "table": "104",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.3",
+      "current": "awg3",
+      "table": "1001",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.2",
+      "current": "wireguard-1779454504-c43409",
+      "table": "1000",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.4",
+      "current": "awg3",
+      "table": "1002",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.5",
+      "current": "vless",
+      "table": "1003",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.6",
+      "current": "wireguard-1779454504-c43409",
+      "table": "1004",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.7",
+      "current": "vless",
+      "table": "1005",
+      "enabled": "0"
+    },
+    {
+      "ip": "10.7.0.8",
+      "current": "awg3",
+      "table": "1006",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.9",
+      "current": "wireguard-1779454504-c43409",
+      "table": "1007",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.10",
+      "current": "awg3",
+      "table": "1008",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.11",
+      "current": "wireguard-1779454504-c43409",
+      "table": "1009",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.12",
+      "current": "awg3",
+      "table": "1010",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.13",
+      "current": "wireguard-1779454504-c43409",
+      "table": "1011",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.14",
+      "current": "awg3",
+      "table": "1012",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.15",
+      "current": "wireguard-1779454504-c43409",
+      "table": "1013",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.16",
+      "current": "awg3",
+      "table": "1014",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.17",
+      "current": "vless",
+      "table": "1015",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.18",
+      "current": "vless",
+      "table": "1016",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.19",
+      "current": "vless",
+      "table": "1017",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.20",
+      "current": "vless",
+      "table": "1018",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.21",
+      "current": "vless",
+      "table": "1019",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.22",
+      "current": "vless",
+      "table": "1020",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.23",
+      "current": "vless",
+      "table": "1021",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.24",
+      "current": "vless",
+      "table": "1022",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.25",
+      "current": "vless",
+      "table": "1023",
+      "enabled": "1"
+    }
+  ],
+  "route_reality": [
+    {
+      "ip": "10.0.0.2",
+      "table": "100",
+      "current": "awg3",
+      "expected_dev": "awg3",
+      "route_get": "8.8.8.8 from 10.0.0.2 dev awg3 table 100 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.0.0.3",
+      "table": "101",
+      "current": "wireguard-1779454504-c43409",
+      "expected_dev": "v7e06a394c478",
+      "route_get": "8.8.8.8 from 10.0.0.3 dev v7e06a394c478 table 101 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.0.0.6",
+      "table": "104",
+      "current": "wireguard-1779454504-c43409",
+      "expected_dev": "v7e06a394c478",
+      "route_get": "8.8.8.8 from 10.0.0.6 dev v7e06a394c478 table 104 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.3",
+      "table": "1001",
+      "current": "awg3",
+      "expected_dev": "awg3",
+      "route_get": "8.8.8.8 from 10.7.0.3 dev awg3 table 1001 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.2",
+      "table": "1000",
+      "current": "wireguard-1779454504-c43409",
+      "expected_dev": "v7e06a394c478",
+      "route_get": "8.8.8.8 from 10.7.0.2 dev v7e06a394c478 table 1000 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.4",
+      "table": "1002",
+      "current": "awg3",
+      "expected_dev": "awg3",
+      "route_get": "8.8.8.8 from 10.7.0.4 dev awg3 table 1002 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.5",
+      "table": "1003",
+      "current": "vless",
+      "expected_dev": "tun0",
+      "route_get": "8.8.8.8 from 10.7.0.5 dev tun0 table 1003 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.6",
+      "table": "1004",
+      "current": "wireguard-1779454504-c43409",
+      "expected_dev": "v7e06a394c478",
+      "route_get": "8.8.8.8 from 10.7.0.6 dev v7e06a394c478 table 1004 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.8",
+      "table": "1006",
+      "current": "awg3",
+      "expected_dev": "awg3",
+      "route_get": "8.8.8.8 from 10.7.0.8 dev awg3 table 1006 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.9",
+      "table": "1007",
+      "current": "wireguard-1779454504-c43409",
+      "expected_dev": "v7e06a394c478",
+      "route_get": "8.8.8.8 from 10.7.0.9 dev v7e06a394c478 table 1007 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.10",
+      "table": "1008",
+      "current": "awg3",
+      "expected_dev": "awg3",
+      "route_get": "8.8.8.8 from 10.7.0.10 dev awg3 table 1008 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.11",
+      "table": "1009",
+      "current": "wireguard-1779454504-c43409",
+      "expected_dev": "v7e06a394c478",
+      "route_get": "8.8.8.8 from 10.7.0.11 dev v7e06a394c478 table 1009 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.12",
+      "table": "1010",
+      "current": "awg3",
+      "expected_dev": "awg3",
+      "route_get": "8.8.8.8 from 10.7.0.12 dev awg3 table 1010 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.13",
+      "table": "1011",
+      "current": "wireguard-1779454504-c43409",
+      "expected_dev": "v7e06a394c478",
+      "route_get": "8.8.8.8 from 10.7.0.13 dev v7e06a394c478 table 1011 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.14",
+      "table": "1012",
+      "current": "awg3",
+      "expected_dev": "awg3",
+      "route_get": "8.8.8.8 from 10.7.0.14 dev awg3 table 1012 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.15",
+      "table": "1013",
+      "current": "wireguard-1779454504-c43409",
+      "expected_dev": "v7e06a394c478",
+      "route_get": "8.8.8.8 from 10.7.0.15 dev v7e06a394c478 table 1013 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.16",
+      "table": "1014",
+      "current": "awg3",
+      "expected_dev": "awg3",
+      "route_get": "8.8.8.8 from 10.7.0.16 dev awg3 table 1014 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.17",
+      "table": "1015",
+      "current": "vless",
+      "expected_dev": "tun0",
+      "route_get": "8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.18",
+      "table": "1016",
+      "current": "vless",
+      "expected_dev": "tun0",
+      "route_get": "8.8.8.8 from 10.7.0.18 dev tun0 table 1016 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.19",
+      "table": "1017",
+      "current": "vless",
+      "expected_dev": "tun0",
+      "route_get": "8.8.8.8 from 10.7.0.19 dev tun0 table 1017 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.20",
+      "table": "1018",
+      "current": "vless",
+      "expected_dev": "tun0",
+      "route_get": "8.8.8.8 from 10.7.0.20 dev tun0 table 1018 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.21",
+      "table": "1019",
+      "current": "vless",
+      "expected_dev": "tun0",
+      "route_get": "8.8.8.8 from 10.7.0.21 dev tun0 table 1019 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.22",
+      "table": "1020",
+      "current": "vless",
+      "expected_dev": "tun0",
+      "route_get": "8.8.8.8 from 10.7.0.22 dev tun0 table 1020 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.23",
+      "table": "1021",
+      "current": "vless",
+      "expected_dev": "tun0",
+      "route_get": "8.8.8.8 from 10.7.0.23 dev tun0 table 1021 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.24",
+      "table": "1022",
+      "current": "vless",
+      "expected_dev": "tun0",
+      "route_get": "8.8.8.8 from 10.7.0.24 dev tun0 table 1022 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    },
+    {
+      "ip": "10.7.0.25",
+      "table": "1023",
+      "current": "vless",
+      "expected_dev": "tun0",
+      "route_get": "8.8.8.8 from 10.7.0.25 dev tun0 table 1023 \n    cache iif wg0",
+      "ok": true,
+      "leak_risk": false
+    }
+  ]
+}

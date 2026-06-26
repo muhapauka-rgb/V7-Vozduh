@@ -156,6 +156,21 @@ Runtime uses prepared knowledge and either acts safely or stops.
 
 V7 must stay one coherent product, not competing tools with competing truths.
 
+### World Consensus Before Policy
+
+Operational behavior must not come from personal opinion.
+Before V7 turns a behavior into policy, it must discover how mature production systems solve the same problem, compare consensus and disagreement, audit V7 reality, reuse existing V7 owners, verify, certify, and only then integrate the policy into OMP.
+
+The Canonical Policy Library is:
+
+```text
+docs/policies/
+```
+
+Policies start as research-required shells.
+Stage 1 world research, Stage 1.5 normalization, Stage 2 industry consensus, Stage 2.5 interaction audit, and Stage 3 reality audit are complete for the initial policy library; V7 fit analysis is the next stage.
+Policies become operational only after world research, V7 fit analysis, implementation, verification, certification, and OMP integration.
+
 ## What V7 Actually Does
 
 V7 constantly does six product things.
@@ -558,6 +573,65 @@ Current runtime automation state:
 ```text
 NO
 ```
+
+## Canonical Policy Library
+
+V7 needs durable operational policies for failure, degradation, recovery, authority, promotion, blast radius, rollback, freshness, and anti-flap behavior.
+
+Those policies must not be invented.
+They must be discovered from mature production systems, compared, validated against V7 reality, adapted, implemented, verified, certified, and integrated into OMP.
+
+The permanent policy source is:
+
+```text
+docs/policies/
+```
+
+Policy lifecycle:
+
+```text
+DISCOVER
+  -> FULL WORLD RESEARCH
+  -> KNOWLEDGE NORMALIZATION
+  -> INDUSTRY CONSENSUS DETECTION
+  -> INDUSTRY DISAGREEMENT DETECTION
+  -> CANONICAL POLICY INTERACTION AUDIT
+  -> REALITY AUDIT
+  -> V7 FIT ANALYSIS
+  -> REUSE EXISTING V7 OWNERS
+  -> CANONICAL POLICY
+  -> IMPLEMENTATION
+  -> VERIFICATION
+  -> CERTIFICATION
+  -> OMP INTEGRATION
+```
+
+V7 may innovate only after proving:
+
+- no stable world consensus exists;
+- or world consensus does not fit V7 architecture.
+
+Otherwise, V7 reuses world knowledge.
+
+Initial first policy selected for research was:
+
+```text
+POLICY_001_HARD_FAILURE
+```
+
+Current policy library state:
+
+```text
+V7_FIT_ANALYSIS_COMPLETE_IMPLEMENTATION_BACKLOG_READY
+```
+
+Current policy implementation source:
+
+```text
+docs/programs/V7_IMPLEMENTATION_BACKLOG.md
+```
+
+OMP now chooses policy-derived implementation work by production leverage, not by policy document order.
 
 ## Product Maturity
 

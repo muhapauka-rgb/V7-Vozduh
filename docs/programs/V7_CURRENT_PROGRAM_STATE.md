@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-25T16:52:38+0700
-Source: Continue OMP read-only governed dry-run refresh, authority-bound packet recalculation, truth/convergence
+State captured: 2026-06-26T00:00:00+0700
+Source: Continue OMP implementation refresh, backlog A1/A2 read-only implementation, tests, current stop evaluation
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, authority boundary, metrics, packet, or stop reason.
 
@@ -13,25 +13,156 @@ This file is volatile. Update it after every safe action or approved execution t
 | --- | --- |
 | Current phase | `IMPLEMENTATION` |
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
-| Current bottleneck | `Suitability` |
-| Current highest leverage implementation | `EXECUTE_LEASED_GOVERNED_PACKET` completed for the approved packet |
-| Current highest leverage action | `EXPLICIT_OPERATOR_APPROVAL_REQUIRED_FOR_THIS_PACKET` |
-| Current authority boundary | `AUTHORITY_BOUNDARY` |
-| Current reality limit | One real governed canary outcome has been observed; next maturity gain requires explicit authority for the new exact one-user governed canary packet |
-| Current safe next action | wait for explicit approval or rejection of the fresh exact governed packet |
-| Current stop reason | `AUTHORITY_BOUNDARY`: the previous leased packet is closed, and the fresh packet requires explicit operator approval before restore-barrier write, apply, user movement, rollback apply, daemon/timer enablement, event consumer mutation, authority expansion, or synthetic evidence |
+| Current bottleneck | `Implementation Backlog` |
+| Current highest leverage implementation | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
+| Current highest leverage action | certify backlog item `A3` through existing rollback/outcome/learning owners only after real governed outcome evidence exists |
+| Current authority boundary | `NONE_CURRENTLY_IDENTIFIED_FOR_A3_READ_ONLY_CERTIFICATION_EVALUATION` |
+| Current reality limit | `REAL_WORLD_LIMIT`: class-level rollback/no-rollback certification requires additional real comparable governed outcomes and rollback/no-rollback closure evidence; this evidence cannot be synthesized |
+| Current safe next action | stop until additional real governed outcomes or explicit operator-approved production evidence is available for `A3` |
+| Current stop reason | `REAL_WORLD_LIMIT`: A1/A2 are implemented; A3 depends on real production outcome evidence beyond code-only implementation |
 
 ## 2. Current Metrics
 
 | Metric | Current Value |
 | --- | --- |
-| Overall maturity score | `84.167` |
+| Engineering maturity score | `100.0 / 100` |
+| Production maturity score | `21.5 / 100` |
+| Production maturity remaining | `78.5` |
+| Autonomy knowledge maturity score | `84.167` |
 | Confidence | `42.1 / 70` |
 | Trust | `54.188 / 70` |
 | Prediction | `38.0 / 70` |
 | Suitability | `29.493 / 70` |
 | Candidate outcomes consumed | `84 / 156` |
 | Missing candidate outcomes | `72` |
+
+## 2.1. Engineering and Production Maturity
+
+| Field | Current Value |
+| --- | --- |
+| engineering_maturity | `100.0%`; `ENGINEERING_COMPLETE` |
+| production_maturity | `21.5%` |
+| production_maturity_target | `100%` |
+| production_maturity_remaining | `78.5%` |
+| implementation_progress | `2 / 33 actionable complete` |
+| certification_progress | `22%`; two read-only backlog items are implemented and tested, while action-class runtime certification still requires real outcomes |
+| autonomy_progress | `TIER_1_GOVERNED`; bounded production autonomy not certified |
+| backlog_progress | Tier A `2 / 6`; Tier B `0 / 20`; Tier C `0 / 7`; Tier D optional `0 / 6`; Overall `2 / 33` |
+| remaining_backlog | `31 actionable items`; `6 optional items` |
+| remaining_work | `Moderate` |
+| next_milestone | `35%: Runtime Eligibility Implemented` |
+| current_focus | `CERTIFICATION` |
+| current_milestone | `20%: First Implementation Certified` |
+| estimated_remaining_effort | `Moderate` |
+| current_highest_implementation_task | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
+
+## 2.2. V7 Production Status
+
+```text
+V7 PRODUCTION STATUS
+
+ENGINEERING
+
+Architecture
+100%
+
+Research
+100%
+
+Policies
+100%
+
+Engineering Maturity
+100.0%
+
+PRODUCTION
+
+Implementation
+6.1%
+
+Certification
+22%
+
+Autonomy
+0%
+
+Production Maturity
+21.5%
+
+Overall Status
+ENGINEERING_COMPLETE / PRODUCTION_IN_PROGRESS
+
+Current Focus
+CERTIFICATION
+
+Backlog
+Tier A
+2 / 6
+Tier B
+0 / 20
+Tier C
+0 / 7
+Tier D
+0 / 6 optional
+Overall
+2 / 33 complete
+
+Current Tier
+TIER_1_GOVERNED
+
+Highest Priority Task
+A3: Certify class-level rollback/no-rollback evidence for governed candidate movement.
+
+Current Stop Condition
+REAL_WORLD_LIMIT
+
+Estimated Remaining Work
+Moderate
+
+Expected Next Milestone
+35%: Runtime Eligibility Implemented
+```
+
+Engineering maturity category snapshot:
+
+| Category | Current % | Target % | Weight |
+| --- | ---: | ---: | ---: |
+| Architecture | `100` | `100` | `15` |
+| Decision Model | `100` | `100` | `15` |
+| Runtime Model | `100` | `100` | `15` |
+| System Architecture | `100` | `100` | `15` |
+| Research | `100` | `100` | `15` |
+| Canonical Policy Library | `100` | `100` | `15` |
+| OMP | `100` | `100` | `10` |
+
+Production maturity category snapshot:
+
+| Category | Current % | Target % | Weight |
+| --- | ---: | ---: | ---: |
+| Implementation | `6.1` | `100` | `20` |
+| Testing | `34` | `100` | `10` |
+| Production Deployments | `100` | `100` | `10` |
+| Production Outcomes | `10` | `100` | `15` |
+| Certification | `22` | `100` | `15` |
+| Authority Evolution | `15` | `100` | `10` |
+| Production Autonomy | `0` | `100` | `10` |
+| Implementation Backlog Completion | `6.1` | `100` | `10` |
+
+## 2.3. Latest Implementation Progress
+
+| Field | Current Value |
+| --- | --- |
+| Completed backlog item | `A1_BIND_CANONICAL_HARD_FAILURE_CLASSIFICATION_TO_EXISTING_LIVENESS_EVENT_EVIDENCE` |
+| A1 result | Existing event, liveness, service, route, and freshness owners now emit canonical hard-failure classification without runtime mutation. |
+| Completed backlog item | `A2_CANONICALIZE_PER_ACTION_CLASS_FRESHNESS_WINDOWS_AND_OWNER_ISSUED_FRESHNESS_FIELDS` |
+| A2 result | Existing freshness/action-class owners now expose per-action-class freshness windows and owner-issued freshness fields without runtime mutation. |
+| Tests | `79` focused unit tests passed. |
+| Runtime mutation | `false` |
+| Restore barrier written | `false` |
+| Users moved | `0` |
+| Authority expanded | `false` |
+| Next backlog item | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
+| Next item blocker | `REAL_WORLD_LIMIT`: A3 requires real governed outcomes and rollback/no-rollback closure evidence. |
 
 ## 3. Current Exact Governed Packet
 

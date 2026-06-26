@@ -61,6 +61,8 @@ Stable conclusions:
 11. Packet-level approval remains only as a temporary `GOVERNED_ONLY` fallback until an action class is certified and explicitly approved for class authority or runtime capability.
 12. Delegated Autonomy Policy is the target approval model: the operator approves bounded policy once, V7 may self-approve operational routing decisions only inside that policy, and Runtime stops outside it.
 13. V7 may not self-approve policy expansion, new action classes, increased blast radius, lower safety gates, or authority expansion. V7 may only recommend those changes.
+14. The Canonical Policy Library at `docs/policies/` is the permanent source for operational behavior policy. Policies must be discovered from mature production systems, compared, validated, adapted, implemented, verified, certified, and integrated into OMP before becoming operational.
+15. V7 may innovate in policy only after proving that no stable world consensus exists or that world consensus does not fit V7 architecture.
 
 ## Certified Root Cause Rule
 
@@ -127,7 +129,7 @@ Stable conclusions:
 16. New owners, knowledge models, planners, engines, pipelines, APIs, CLIs, storage, snapshots, or truth sources are forbidden unless `Need New Owner = TRUE`.
 17. Every implementation must run semantic reuse audit before creating or extending system behavior.
 18. After every implementation, OMP must run duplication detection across owners, planners, governance, execution, lifecycle, APIs, CLIs, knowledge models, routing logic, learning logic, truth sources, evidence collectors, packet builders, decision surfaces, and maturity models.
-19. Future work may proceed through only: `Continue OMP`, `Approve action class`, and `Approve authority expansion`, unless a real implementation proves `FUNDAMENTAL_ARCHITECTURE_GAP`. `Approve packet` remains only a temporary governed fallback for `GOVERNED_ONLY` classes.
+19. Future work may normally proceed through only: `Continue OMP`, `Status`, `Approve packet`, and `Approve authority expansion`, unless a real implementation proves `FUNDAMENTAL_ARCHITECTURE_GAP`.
 20. OMP does not authorize restore-barrier writes, runtime apply, user movement, rollback apply, daemon/timer enablement, authority expansion, floor changes, synthetic evidence, new planner, new governance, new execution, storage, runtime owner, or truth source without the required authority.
 21. OMP owns the Autonomy Promotion Engine for action classes. After every certified outcome, OMP must evaluate whether the action class can move to the next autonomy state.
 22. Canonical action class states are `NOT_CERTIFIED`, `GOVERNED_ONLY`, `CERTIFIED_FOR_CLASS_APPROVAL`, `CERTIFIED_FOR_BOUNDED_AUTONOMY`, and `AUTONOMOUS_RUNTIME`.
@@ -137,6 +139,79 @@ Stable conclusions:
 26. The primary authority model is Action-Class Authority. Packet-level authority is a transitional fallback, not the long-term product abstraction.
 27. OMP owns Delegated Autonomy Policy progression through existing owners. Current default policy is `dap_default_tier1_readonly`, state `NOT_APPROVED`, current mode `CLASS_APPROVAL`, target mode `DELEGATED_AUTONOMY`, max users per action `1`, runtime apply enabled `NO`.
 28. Machine-readable Delegated Autonomy Policy preview and runtime eligibility are read-only surfaces exposed through `admin_core/autonomy_trust_acceleration.py` and `tools/v7-autonomy-trust-evidence-inventory`. They must not enable automation, move users, expand authority, write restore barriers, create evidence, or create duplicate planner/governance/execution/truth.
+29. OMP must check `docs/policies/` before implementing or changing operational behavior. If a canonical policy exists, reuse it. If partial, extend it through methodology. If missing, run full world research before implementation.
+
+## V7_CANONICAL_POLICY_LIBRARY
+
+`docs/policies/` is the Canonical Policy Library for V7 operational behavior.
+
+Stable conclusions:
+
+1. The library is documentation-only and creates no planner, governance layer, execution path, runtime owner, truth source, synthetic evidence, apply authority, user movement authority, daemon, timer, or authority expansion.
+2. Policy lifecycle is: DISCOVER -> FULL WORLD RESEARCH -> KNOWLEDGE NORMALIZATION -> INDUSTRY CONSENSUS DETECTION -> INDUSTRY DISAGREEMENT DETECTION -> CANONICAL POLICY INTERACTION AUDIT -> REALITY AUDIT -> V7 FIT ANALYSIS -> REUSE EXISTING V7 OWNERS -> CANONICAL POLICY -> IMPLEMENTATION -> VERIFICATION -> CERTIFICATION -> OMP INTEGRATION.
+3. Operational implementation before certification is forbidden. The `IMPLEMENTATION` lifecycle step may prepare code or documentation only after a canonical policy exists; runtime enablement waits for `CERTIFICATION` and OMP integration.
+4. World research must include all relevant successful systems, including mature network vendors, hyperscalers, cloud platforms, service mesh/proxy systems, routing protocols, RFCs, academic work, production postmortems, operator best practices, and community consensus where applicable.
+5. Every policy must record industry consensus, consensus strength, supporting systems, industry disagreement, tradeoffs, V7 applicability, V7 fit analysis, owner reuse, implementation owner, certification state, and open questions.
+6. OMP must consult the policy library before any operational behavior change.
+7. Initial policy set is `POLICY_001_HARD_FAILURE`, `POLICY_002_SOFT_DEGRADATION`, `POLICY_003_RECOVERY_ADMISSION`, `POLICY_004_AUTHORITY`, `POLICY_005_ACTION_CLASS_PROMOTION`, `POLICY_006_BLAST_RADIUS`, `POLICY_007_ROLLBACK`, `POLICY_008_FRESHNESS`, and `POLICY_009_ANTI_FLAP`.
+8. Current library state is `V7_FIT_ANALYSIS_COMPLETE_IMPLEMENTATION_BACKLOG_READY`.
+9. Stage 1 `FULL WORLD RESEARCH`, Stage 1.5 `KNOWLEDGE NORMALIZATION`, Stage 2 `INDUSTRY CONSENSUS DETECTION`, Stage 2.5 `CANONICAL POLICY INTERACTION AUDIT`, Stage 3 `REALITY AUDIT`, and Stage 4 `V7 FIT ANALYSIS` are complete for the initial policy set.
+10. Stage 4 policy-level classification is: `REUSE` for Authority, Action-Class Promotion, Rollback, Freshness, and Anti-Flap; `ADAPT` for Hard Failure, Soft Degradation, Recovery Admission, and Blast Radius; `REJECT` for no whole policy.
+11. Specialized practice-level patterns rejected for current scope include MPLS/router-local repair, DNS recovery, provider replacement as runtime operation, distributed quorum authority, weighted traffic split, and BGP route-flap damping.
+12. The implementation backlog derived from Stage 4 is `docs/programs/V7_IMPLEMENTATION_BACKLOG.md`.
+13. The implementation priority model is `docs/reference/V7_IMPLEMENTATION_PRIORITY_MODEL.md`.
+14. OMP must choose the highest-priority unfinished backlog item by production leverage, mark completed items `DONE`, recalculate backlog priority, and continue automatically unless a canonical stop condition is reached.
+15. Current highest backlog item is `A3`: certify class-level rollback/no-rollback evidence for governed candidate movement.
+16. Need New Owner remains `FALSE`; the library reuses Product Specification, Research Framework, OMP, Canonical Reference, SYSTEM_MAP, Runtime Model, ADRs, certified reports, and existing implementation owners.
+
+Related ADR: `docs/decisions/ADR-V7-CANONICAL-POLICY-LIBRARY.md`.
+
+## V7_DOCUMENT_LIFECYCLE
+
+`docs/reference/V7_DOCUMENT_LIFECYCLE.md` is the canonical rule for permanent document roles.
+
+Stable conclusions:
+
+1. Only `docs/programs/V7_IMPLEMENTATION_BACKLOG.md` drives engineering work.
+2. Everything else is knowledge, execution state, historical evidence, or permanent decision record.
+3. Reference documents are frozen after certification.
+4. The Canonical Policy Library is frozen after Stage 4 V7 Fit Analysis.
+5. Reference documents may change only when industry consensus changes, a real implementation proves `FUNDAMENTAL_ARCHITECTURE_GAP`, or the operator explicitly requests a reference update.
+6. Program documents are live execution documents and may be updated continuously.
+7. The Implementation Backlog is the only live implementation queue.
+8. The Implementation Priority Model ranks the backlog; it is not a second queue.
+9. Reports are historical evidence only and must never be used as planning queue, roadmap, or direct implementation source.
+10. ADRs are permanent decisions and must never be used as implementation queue.
+11. Policies, reports, architecture, research documents, ADRs, product documents, and chat history never generate implementation work directly.
+12. OMP must always read the highest unfinished backlog item instead of asking what to implement.
+13. When the backlog becomes empty, OMP must answer `IMPLEMENTATION_COMPLETE` and stop.
+
+Need New Owner remains `FALSE`.
+
+## V7_PRODUCTION_MATURITY_MODEL
+
+`docs/reference/V7_PRODUCTION_MATURITY_MODEL.md` is the canonical model for calculating V7's Engineering Maturity and Production Maturity scores.
+
+Stable conclusions:
+
+1. Engineering Maturity and Production Maturity are independent dimensions and must never be merged into one score.
+2. Engineering Maturity measures completed engineering knowledge: Architecture, Decision Model, Runtime Model, System Architecture, Research, Canonical Policy Library, and OMP.
+3. Production Maturity measures production readiness: Implementation, Testing, Production Deployments, Production Outcomes, Certification, Authority Evolution, Production Autonomy, and Implementation Backlog Completion.
+4. `100%` Engineering Maturity means `ENGINEERING_COMPLETE`.
+5. `100%` Production Maturity means `PRODUCTION_AUTONOMY_CERTIFIED`.
+6. Production Maturity must increase only through real implementation, deploy, testing, verification, certification, production outcomes, authority decisions, and certified autonomy.
+7. Backlog completion increases only Production Maturity.
+8. Reference documents must never change Engineering Maturity after certification unless industry consensus changes, implementation proves `FUNDAMENTAL_ARCHITECTURE_GAP`, or the operator explicitly requests a reference update.
+9. OMP must recalculate both maturity dimensions after every implementation, deploy, truth, convergence, certification, production outcome, and authority decision.
+10. Current Engineering Maturity is `100.0%`; current Engineering status is `ENGINEERING_COMPLETE`.
+11. Current Production Maturity is `21.5%`; current remaining Production Maturity is `78.5%`.
+12. Current Production milestone is `20%: First Implementation Certified`; next Production milestone is `35%: Runtime Eligibility Implemented`.
+13. Current highest implementation task remains backlog item `A3`.
+14. OMP must print `V7 PRODUCTION STATUS` after every execution.
+15. Current Production Status is: Engineering Maturity `100.0%`, Production Maturity `21.5%`, Current Autonomy Tier `TIER_1_GOVERNED`, Current Focus `CERTIFICATION`, Backlog `2 / 33` actionable complete, Highest Priority Task `A3`, Current Stop Condition `REAL_WORLD_LIMIT`.
+16. Future normal operator commands are `Continue OMP`, `Status`, `Approve packet`, and `Approve authority expansion`.
+17. OMP must never request a new roadmap or new implementation plan.
+18. Need New Owner remains `FALSE`.
 
 ## V7_KERNEL_AND_STATE_SPLIT
 

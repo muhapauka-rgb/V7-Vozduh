@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from admin_core import events as v7_events
 from admin_core import intelligence_platform, intelligence_workers, shadow_autonomy
 from admin_core.intelligence_snapshots import read_snapshot_family
 from admin_core.operator_execution_pipeline import (
@@ -40,6 +41,90 @@ ACTION_CLASS_LADDER = [
     ("small-batch movement", None, "NOT_CERTIFIED"),
     ("pool-level movement", None, "NOT_CERTIFIED"),
 ]
+
+ACTION_CLASS_FRESHNESS_WINDOWS = {
+    "single-user governed candidate failover": {
+        "service": 900,
+        "quality": 900,
+        "route": 900,
+        "capacity": 900,
+        "prediction": 1800,
+        "suitability": 900,
+        "recovery": 3600,
+    },
+    "two-user governed candidate failover": {
+        "service": 600,
+        "quality": 600,
+        "route": 600,
+        "capacity": 600,
+        "prediction": 1200,
+        "suitability": 600,
+        "recovery": 1800,
+    },
+    "five-user governed candidate failover": {
+        "service": 300,
+        "quality": 300,
+        "route": 300,
+        "capacity": 300,
+        "prediction": 900,
+        "suitability": 300,
+        "recovery": 900,
+    },
+    "channel hard-fail failover": {
+        "service": 300,
+        "quality": 300,
+        "route": 300,
+        "capacity": 300,
+        "prediction": 900,
+        "suitability": 300,
+        "recovery": 900,
+    },
+    "channel degradation failover": {
+        "service": 900,
+        "quality": 600,
+        "route": 900,
+        "capacity": 600,
+        "prediction": 1200,
+        "suitability": 600,
+        "recovery": 1800,
+    },
+    "service-specific failover": {
+        "service": 600,
+        "quality": 600,
+        "route": 900,
+        "capacity": 900,
+        "prediction": 1200,
+        "suitability": 600,
+        "recovery": 1800,
+    },
+    "recovery admission": {
+        "service": 900,
+        "quality": 900,
+        "route": 900,
+        "capacity": 900,
+        "prediction": 1800,
+        "suitability": 900,
+        "recovery": 900,
+    },
+    "small-batch movement": {
+        "service": 300,
+        "quality": 300,
+        "route": 300,
+        "capacity": 300,
+        "prediction": 900,
+        "suitability": 300,
+        "recovery": 900,
+    },
+    "pool-level movement": {
+        "service": 180,
+        "quality": 180,
+        "route": 180,
+        "capacity": 180,
+        "prediction": 600,
+        "suitability": 180,
+        "recovery": 600,
+    },
+}
 
 AUTONOMY_MODES = [
     "MANUAL_PACKET_APPROVAL",
@@ -2719,6 +2804,8 @@ def build_action_class_runtime_enablement_model(
     suitability_quality_model: dict[str, Any],
     freshness_actionability: dict[str, Any],
     autonomous_routing_evolution_program: dict[str, Any],
+    hard_failure_classification: dict[str, Any] | None = None,
+    action_class_freshness_windows: dict[str, Any] | None = None,
     packet_preview: dict[str, Any] | None = None,
     candidate: dict[str, Any] | None = None,
     generated_at: str | None = None,
@@ -2734,7 +2821,18 @@ def build_action_class_runtime_enablement_model(
         suitability_quality_model=suitability_quality_model,
         freshness_actionability=freshness_actionability,
     )
+    hard_failure_state = str((hard_failure_classification or {}).get("classification") or "UNKNOWN")
+    if hard_failure_state == "HARD_FAILURE_SUSPECTED":
+        missing_evidence.append("hard_failure_confirmation_required")
+    elif hard_failure_state not in {"HARD_FAILURE_CONFIRMED"}:
+        missing_evidence.append(f"canonical_hard_failure_classification={hard_failure_state}")
+    missing_evidence = list(dict.fromkeys(missing_evidence))
     class_rows = []
+    freshness_by_class = {
+        str(row.get("action_class") or ""): row
+        for row in ((action_class_freshness_windows or {}).get("rows") or [])
+        if isinstance(row, dict)
+    }
     for name, blast_radius, state in ACTION_CLASS_LADDER:
         next_state = ""
         if state == "NOT_CERTIFIED":
@@ -2754,6 +2852,8 @@ def build_action_class_runtime_enablement_model(
             "required_rollback": "class-level rollback or certified no-rollback path",
             "required_blast_radius": "exactly one user" if blast_radius == 1 else ("bounded cohort" if blast_radius else "class-specific bounded scope"),
             "required_authority": "explicit packet approval until class approval exists" if name == first_class else "explicit class or packet authority",
+            "freshness_windows": dict(ACTION_CLASS_FRESHNESS_WINDOWS.get(name, {})),
+            "freshness_ready": bool(freshness_by_class.get(name, {}).get("freshness_ready", False)),
             "runtime_enablement_state": state,
             "runtime_can_execute_automatically": state == "AUTONOMOUS_RUNTIME",
         })
@@ -2807,6 +2907,9 @@ def build_action_class_runtime_enablement_model(
             "runtime_capability": "single_user_governed_candidate_failover",
             "runtime_path_exists_through_existing_owners": True,
             "runtime_enablement_state": current["current_state"],
+            "hard_failure_classification": hard_failure_state,
+            "freshness_ready": bool(current.get("freshness_ready")),
+            "freshness_windows": current.get("freshness_windows", {}),
             "runtime_can_execute_automatically": can_execute and delegated_eligibility["runtime_can_execute_automatically"],
             "runtime_must_stop_at": "AUTHORITY_BOUNDARY" if not can_execute else "",
             "runtime_apply_allowed_now": False,
@@ -2830,6 +2933,8 @@ def build_action_class_runtime_enablement_model(
         "omp_output": {
             "current_action_class": first_class,
             "current_state": current["current_state"],
+            "hard_failure_classification": hard_failure_state,
+            "freshness_ready": bool(current.get("freshness_ready")),
             "missing_evidence": missing_evidence,
             "next_promotion_target": current["next_state"],
             "runtime_can_execute_automatically": can_execute,
@@ -3862,6 +3967,294 @@ def _candidate_rows_for_user(user_row: dict[str, Any]) -> list[dict[str, Any]]:
     return rows
 
 
+HARD_FAILURE_EXPLICIT_TOKENS = (
+    "down",
+    "unreachable",
+    "no response",
+    "timeout",
+    "timed out",
+    "connection refused",
+    "connection reset",
+    "network unreachable",
+    "host unreachable",
+    "route unreachable",
+    "dead",
+    "blackhole",
+    "all probes failed",
+    "health check failed",
+    "not able to carry",
+    "cannot carry",
+)
+
+HARD_FAILURE_STATUS_TOKENS = {
+    "DOWN",
+    "FAILED",
+    "FAIL",
+    "UNHEALTHY",
+    "CRITICAL",
+    "UNREACHABLE",
+    "NOT_STARTED",
+    "NO_ROUTE",
+    "NO_RESPONSE",
+    "TIMEOUT",
+}
+
+HARD_FAILURE_STRONG_SOURCES = {
+    "runtime_readiness",
+    "route_readiness",
+}
+
+HARD_FAILURE_LIVENESS_SOURCES = {
+    "telegram_sentinel",
+    "service_matrix",
+    "quality_compact",
+    "runtime_readiness",
+    "route_readiness",
+}
+
+
+def _hard_failure_evidence_object(event: dict[str, Any]) -> str:
+    return _text(
+        event.get("object")
+        or event.get("channel")
+        or event.get("egress")
+        or event.get("target")
+        or event.get("service")
+        or event.get("component")
+        or "unknown"
+    )
+
+
+def _hard_failure_event_state(event: dict[str, Any]) -> tuple[bool, str]:
+    text = " ".join(
+        _text(event.get(key)).lower()
+        for key in ("status", "state", "severity", "message", "reason", "raw_reason", "action", "event_type", "type")
+    )
+    status = _text(event.get("status") or event.get("state") or event.get("severity")).upper()
+    if status in HARD_FAILURE_STATUS_TOKENS:
+        return True, f"explicit_status={status}"
+    for token in HARD_FAILURE_EXPLICIT_TOKENS:
+        if token in text:
+            return True, f"explicit_liveness_token={token}"
+    if event.get("severity") == "error" and event.get("source") in HARD_FAILURE_LIVENESS_SOURCES:
+        return True, "source_error_from_liveness_owner"
+    return False, "no_explicit_hard_failure_liveness"
+
+
+def build_hard_failure_classification(
+    *,
+    decision_surface: dict[str, Any] | None = None,
+    freshness_actionability: dict[str, Any] | None = None,
+    service_user_sla_fit: dict[str, Any] | None = None,
+    snapshot_statuses: dict[str, dict[str, Any]] | None = None,
+    event_rows: list[dict[str, Any]] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Classify hard-failure evidence without creating actions or new truth."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    normalized_events = [
+        v7_events.normalize_regression_event(row)
+        for row in (event_rows or [])
+        if isinstance(row, dict)
+    ]
+    evidence_by_object: dict[str, list[dict[str, Any]]] = {}
+    for event in normalized_events:
+        source = _text(event.get("source"))
+        explicit, reason = _hard_failure_event_state(event)
+        if source not in HARD_FAILURE_LIVENESS_SOURCES and not explicit:
+            continue
+        obj = _hard_failure_evidence_object(event)
+        evidence_by_object.setdefault(obj, []).append({
+            "source": source,
+            "event_id": event.get("event_id", ""),
+            "event_type": event.get("event_type", ""),
+            "severity": event.get("severity", ""),
+            "confidence": event.get("confidence", 0.0),
+            "explicit_liveness_failure": explicit,
+            "reason": reason,
+            "requires_confirmation": event.get("requires_confirmation", True),
+            "timestamp": event.get("timestamp", ""),
+        })
+    fit_rows = [
+        row for row in ((service_user_sla_fit or {}).get("rows") or [])
+        if isinstance(row, dict)
+    ]
+    for row in fit_rows:
+        blockers = " ".join([
+            _text(row.get("reason")),
+            " ".join(_text(item) for item in row.get("missing_requirements", []) if item),
+            _text(row.get("fit_verdict")),
+        ]).lower()
+        if not any(token in blockers for token in ("route_or_runtime_not_safe", "missing_required_services", "service_freshness_not_actionable")):
+            continue
+        channel = _text(row.get("current_assignment") or row.get("best_channel") or "unknown")
+        evidence_by_object.setdefault(channel, []).append({
+            "source": "service_user_sla_fit",
+            "event_id": "",
+            "event_type": "service_user_fit_blocker",
+            "severity": "warning",
+            "confidence": 0.5,
+            "explicit_liveness_failure": False,
+            "reason": "fit_model_blocks_or_requires_recheck",
+            "requires_confirmation": True,
+            "timestamp": "",
+        })
+    rows: list[dict[str, Any]] = []
+    for obj, evidence in sorted(evidence_by_object.items()):
+        explicit = [row for row in evidence if row.get("explicit_liveness_failure")]
+        sources = sorted({_text(row.get("source")) for row in evidence if row.get("source")})
+        strong_source = any(source in HARD_FAILURE_STRONG_SOURCES for source in sources)
+        if len({row.get("source") for row in explicit}) >= 2 or (strong_source and explicit):
+            classification = "HARD_FAILURE_CONFIRMED"
+        elif explicit:
+            classification = "HARD_FAILURE_SUSPECTED"
+        else:
+            classification = "NO_HARD_FAILURE_CONFIRMED"
+        rows.append({
+            "object": obj,
+            "classification": classification,
+            "evidence_count": len(evidence),
+            "explicit_liveness_evidence_count": len(explicit),
+            "independent_sources": sources,
+            "requires_confirmation": classification != "HARD_FAILURE_CONFIRMED",
+            "reaction_allowed_without_policy": False,
+            "runtime_apply_allowed": False,
+            "evidence": evidence[:20],
+        })
+    stale_domains = [
+        name for name, row in ((freshness_actionability or {}).get("domains") or {}).items()
+        if isinstance(row, dict) and row.get("classification") in {"STALE_RECHECK_REQUIRED", "UNKNOWN"}
+    ]
+    if not rows:
+        verdict = "NO_HARD_FAILURE_EVIDENCE"
+    elif any(row["classification"] == "HARD_FAILURE_CONFIRMED" for row in rows):
+        verdict = "HARD_FAILURE_CONFIRMED"
+    elif any(row["classification"] == "HARD_FAILURE_SUSPECTED" for row in rows):
+        verdict = "HARD_FAILURE_SUSPECTED"
+    else:
+        verdict = "NO_HARD_FAILURE_CONFIRMED"
+    if stale_domains and verdict != "HARD_FAILURE_CONFIRMED":
+        verdict = "RECHECK_REQUIRED"
+    return {
+        "schema_version": "v7.policy-001.hard-failure-classification.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "source_owners_reused": [
+            "admin_core.events",
+            "tools/v7-service-matrix-refresh-all",
+            "tools/v7-service-matrix-test",
+            "tools/v7-egress-quality-compact",
+            "tools/v7-telegram-sentinel",
+            "admin_core.operator_decision_surface",
+            "admin_core.intelligence_snapshots",
+        ],
+        "policy_source": "docs/policies/POLICY_001_HARD_FAILURE.md",
+        "classification": verdict,
+        "rows": rows,
+        "summary": {
+            "objects_seen": len(rows),
+            "confirmed": sum(1 for row in rows if row["classification"] == "HARD_FAILURE_CONFIRMED"),
+            "suspected": sum(1 for row in rows if row["classification"] == "HARD_FAILURE_SUSPECTED"),
+            "stale_or_unknown_domains": sorted(stale_domains),
+            "normalized_events_consumed": len(normalized_events),
+        },
+        "consensus_rules_applied": [
+            "hard_failure_requires_explicit_liveness_evidence",
+            "single_noisy_observation_is_suspected_not_confirmed",
+            "reaction_requires_policy_blast_radius_rollback_verification_and_authority",
+            "classification_does_not_execute",
+        ],
+        "implementation_backlog_item": "A1",
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+    }
+
+
+def _owner_issued_freshness_fields(freshness_actionability: dict[str, Any], domain: str) -> dict[str, Any]:
+    domain_row = ((freshness_actionability.get("domains") or {}).get(domain) or {})
+    family_statuses = domain_row.get("family_statuses") if isinstance(domain_row.get("family_statuses"), dict) else {}
+    fields: dict[str, Any] = {}
+    for family, status in sorted(family_statuses.items()):
+        if not isinstance(status, dict):
+            continue
+        fields[family] = {
+            "exists": bool(status.get("exists", False)),
+            "freshness_state": _text(status.get("freshness_state") or status.get("status") or "UNKNOWN"),
+            "runtime_behavior": _text(status.get("runtime_behavior") or "STOP"),
+            "stop_required": bool(status.get("stop_required", True)),
+            "confidence": as_float(status.get("confidence"), 0.0),
+            "path": _text(status.get("path")),
+            "source_hashes": status.get("source_hashes") if isinstance(status.get("source_hashes"), dict) else {},
+        }
+    return fields
+
+
+def build_action_class_freshness_windows(
+    freshness_actionability: dict[str, Any] | None = None,
+    *,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Expose canonical per-action-class freshness windows from existing owners."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    freshness = freshness_actionability or build_freshness_actionability({})
+    rows: list[dict[str, Any]] = []
+    for action_class, windows in ACTION_CLASS_FRESHNESS_WINDOWS.items():
+        domain_rows = []
+        blockers = []
+        for domain, max_age in sorted(windows.items()):
+            domain_state = ((freshness.get("domains") or {}).get(domain) or {})
+            classification = _text(domain_state.get("classification") or "UNKNOWN")
+            if classification != "ACTIONABLE_NOW":
+                blockers.append(f"{domain}={classification}")
+            domain_rows.append({
+                "domain": domain,
+                "max_age_seconds": int(max_age),
+                "classification": classification,
+                "reason": _text(domain_state.get("reason")),
+                "owner_issued_fields": _owner_issued_freshness_fields(freshness, domain),
+            })
+        rows.append({
+            "action_class": action_class,
+            "freshness_windows": dict(windows),
+            "domains": domain_rows,
+            "freshness_ready": not blockers,
+            "blockers": blockers,
+            "owner_issued_freshness_fields_present": any(
+                bool(domain.get("owner_issued_fields")) for domain in domain_rows
+            ),
+        })
+    return {
+        "schema_version": "v7.action-class-freshness-windows.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "source_owner_reused": "admin_core.intelligence_snapshots + existing snapshot families",
+        "policy_source": "docs/programs/V7_IMPLEMENTATION_BACKLOG.md item A2",
+        "rows": rows,
+        "summary": {
+            "action_classes": len(rows),
+            "ready": sum(1 for row in rows if row["freshness_ready"]),
+            "blocked": sum(1 for row in rows if not row["freshness_ready"]),
+        },
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+    }
+
+
 def build_freshness_actionability(
     snapshot_statuses: dict[str, dict[str, Any]] | None = None,
     *,
@@ -4852,6 +5245,7 @@ def build_acceleration_inventory(
     decision_surface: dict[str, Any],
     shadow_history: list[dict[str, Any]] | None = None,
     decision_records: list[dict[str, Any]] | None = None,
+    event_rows: list[dict[str, Any]] | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     root = Path(snapshot_root)
@@ -4948,9 +5342,21 @@ def build_acceleration_inventory(
         operator_comparisons=operator_comparisons,
     )
     freshness_actionability = build_freshness_actionability(snapshot_statuses, generated_at=generated)
+    action_class_freshness_windows = build_action_class_freshness_windows(
+        freshness_actionability,
+        generated_at=generated,
+    )
     service_user_sla_fit = build_service_user_sla_fit(
         decision_surface,
         freshness_actionability=freshness_actionability,
+        generated_at=generated,
+    )
+    hard_failure_classification = build_hard_failure_classification(
+        decision_surface=decision_surface,
+        freshness_actionability=freshness_actionability,
+        service_user_sla_fit=service_user_sla_fit,
+        snapshot_statuses=snapshot_statuses,
+        event_rows=event_rows or [],
         generated_at=generated,
     )
     decision_outcome_closure = build_decision_outcome_closure(decision_records or [], generated_at=generated)
@@ -4994,6 +5400,7 @@ def build_acceleration_inventory(
         "recovery_admission": recovery_admission,
         "anti_flapping": anti_flapping,
         "freshness_actionability": freshness_actionability,
+        "action_class_freshness_windows": action_class_freshness_windows,
     }
     knowledge_quality_read_model = build_knowledge_quality_read_model(
         generated_at=generated,
@@ -5055,6 +5462,8 @@ def build_acceleration_inventory(
         suitability_quality_model=suitability_quality_model,
         freshness_actionability=freshness_actionability,
         autonomous_routing_evolution_program=autonomous_routing_evolution_program,
+        hard_failure_classification=hard_failure_classification,
+        action_class_freshness_windows=action_class_freshness_windows,
         candidate=first_candidate,
         generated_at=generated,
     )
@@ -5109,7 +5518,9 @@ def build_acceleration_inventory(
         "candidate_outcome_reality_collection": candidate_outcome_reality_collection,
         "real_outcome_growth_projection": real_outcome_growth_projection,
         "outcome_leverage_model": outcome_leverage_model,
+        "hard_failure_classification": hard_failure_classification,
         "service_user_sla_fit": service_user_sla_fit,
+        "action_class_freshness_windows": action_class_freshness_windows,
         "decision_outcome_closure": decision_outcome_closure,
         "decision_outcome_learning": decision_outcome_learning,
         "decision_effectiveness": decision_outcome_learning.get("effectiveness", {}),

@@ -1,0 +1,112 @@
+{
+  "summary": {
+    "users_total": 26,
+    "egress_total": 7,
+    "healthy_egress_total": 2,
+    "candidate_moves": 8,
+    "candidate_moves_total": 8,
+    "selected_moves": 0,
+    "reconnect_rotation_candidates": 0,
+    "rebalance_candidates": 0,
+    "org_groups": [
+      "default"
+    ]
+  },
+  "dynamic_load": {
+    "mode": "dynamic",
+    "active_users": 26,
+    "total_channels": 7,
+    "healthy_channels": 2,
+    "reserve_only_channels": 0,
+    "degraded_or_dead_channels": 5,
+    "reserve_ratio": 0.15,
+    "reserve_channels": 1,
+    "working_channels": 1,
+    "avg_load": 26.0,
+    "soft_limit": 30,
+    "hard_limit": 38,
+    "failover_hard_limit": 52,
+    "per_egress": {
+      "1": {
+        "users": 0,
+        "soft_limit": 30,
+        "hard_limit": 38,
+        "failover_hard_limit": 52,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "amneziawg-exec-20260528-10-8-1-14": {
+        "users": 0,
+        "soft_limit": 30,
+        "hard_limit": 38,
+        "failover_hard_limit": 52,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "awg0": {
+        "users": 0,
+        "soft_limit": 30,
+        "hard_limit": 38,
+        "failover_hard_limit": 52,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "awg3": {
+        "users": 8,
+        "soft_limit": 30,
+        "hard_limit": 38,
+        "failover_hard_limit": 52,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "users": 0,
+        "soft_limit": 30,
+        "hard_limit": 38,
+        "failover_hard_limit": 52,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "vless": {
+        "users": 10,
+        "soft_limit": 30,
+        "hard_limit": 38,
+        "failover_hard_limit": 52,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "wireguard-1779454504-c43409": {
+        "users": 8,
+        "soft_limit": 30,
+        "hard_limit": 38,
+        "failover_hard_limit": 52,
+        "capacity_users": 0,
+        "status": "OK"
+      }
+    },
+    "status": "ok"
+  },
+  "operation": {
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_type": "runtime_autoswitch",
+    "operation_started_at": "2026-06-19T15:32:31.072740+00:00",
+    "planner_generation_id": "d4098562a46e2cb32db70bab1943d638637198b896423da9b633f79d8e250080",
+    "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "selected_move_count": 0,
+    "runtime_snapshot_hash": "7238b5f624d2bf160cbc4a0f49ddb51d56f74fbb7d2549a5167031db709507c6",
+    "operation_id": "runtime_autoswitch_beca05c6724c5a42fad5ff7e",
+    "atomic_execution_envelope_id": "aee_bd13ca6f1dd485f2eab48fe6",
+    "atomic_execution_envelope_hash": "bd13ca6f1dd485f2eab48fe6a00f01386bd0d15c9438a3cfffce512a4d1ea703",
+    "terminal_state": "DRY_RUN",
+    "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired"
+  },
+  "authority": {
+    "authority_class": "POOL",
+    "prepared_authority_class": "POOL",
+    "certified_authority_class": "POOL",
+    "current_allowed_user_budget": 25,
+    "selected_moves_before_gate": 8,
+    "selected_moves_after_gate": 8,
+    "decision": "selected_moves_within_authority_budget"
+  }
+}

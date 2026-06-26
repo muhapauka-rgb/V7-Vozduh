@@ -1,0 +1,139 @@
+                           V7 VOZDUH
+                         PROJECT MAP
+
+                                │
+                                ▼
+
+┌──────────────────────────────────────────────────────────────┐
+│                    TRUTH / CONVERGENCE (100%)               │
+└──────────────────────────────────────────────────────────────┘
+
+Local Workspace                ██████████ 100%
+GitHub Branch                  ██████████ 100%
+Production Runtime             ██████████ 100%
+Runtime Action Gate            ██████████ 100%
+Deploy Delta                   ██████████ 100%
+
+                                │
+                                ▼
+
+┌──────────────────────────────────────────────────────────────┐
+│                       OBSERVATION (95%)                     │
+└──────────────────────────────────────────────────────────────┘
+
+Telegram Sentinel              ██████████ 100%
+Service Matrix                 ██████████ 100%
+Channel Health                 ████████░░ 80%
+Quality Metrics                ████████░░ 80%
+Capacity Model                 █████████░ 90%
+Runtime Readiness              ██████████ 100%
+Route Reality                  ██████████ 100%
+History & Evidence             █████████░ 90%
+
+                                │
+                                ▼
+
+┌──────────────────────────────────────────────────────────────┐
+│                    POOL EQUILIBRIUM (65%)                   │
+└──────────────────────────────────────────────────────────────┘
+
+Current Distribution           ██████████ 100%
+Pool Diversity                 ████████░░ 80%
+Planner Agreement              ████░░░░░░ 40%
+Healthy Planner Pool           ██████░░░░ 60%
+AWG3 Recovery                  ██░░░░░░░░ 20%
+AWG0 Recovery                  ███████░░░ 70%
+Failover Pressure              ███░░░░░░░ 30%
+
+Current:
+
+awg3                           ████████░░ 8 users
+wireguard                      ████████░░ 8 users
+vless                          ██████████ 10 users
+
+Planner now sees:
+
+candidate_moves_total          ████████░░ 8 users
+recommended movement           awg3 → wireguard
+
+                                │
+                                ▼
+
+┌──────────────────────────────────────────────────────────────┐
+│                         PLANNER (95%)                       │
+└──────────────────────────────────────────────────────────────┘
+
+Candidate Discovery            ██████████ 100%
+Ranking                        █████████░ 95%
+Eligibility Gates              █████████░ 95%
+Capacity Gates                 █████████░ 95%
+Policy Gates                   █████████░ 95%
+Snapshot Gate                  ██████████ 100%
+Atomic Envelope                ██████████ 100%
+
+                                │
+                                ▼
+
+┌──────────────────────────────────────────────────────────────┐
+│                    EXECUTION SYSTEM (95%)                   │
+└──────────────────────────────────────────────────────────────┘
+
+Execution Packet               ██████████ 100%
+Restore Barrier                █████████░ 95%
+Rollback System                █████████░ 95%
+Verification                   ██████████ 100%
+Feedback                       ██████████ 100%
+Governed Apply Path            ██████████ 100%
+
+                                │
+                                ▼
+
+┌──────────────────────────────────────────────────────────────┐
+│                     LEARNING SYSTEM (85%)                   │
+└──────────────────────────────────────────────────────────────┘
+
+Feedback Storage               ██████████ 100%
+Outcome Analysis               █████████░ 95%
+Prediction Tracking            ███████░░░ 70%
+Trust Evolution                ███████░░░ 70%
+Shadow Autonomy                ███████░░░ 70%
+
+                                │
+                                ▼
+
+┌──────────────────────────────────────────────────────────────┐
+│                    AUTONOMY READINESS (80%)                 │
+└──────────────────────────────────────────────────────────────┘
+
+1 User Certified               ██████████ 100%
+2 Users Certified              ██████████ 100%
+5 Users Certified              ██████████ 100%
+10 Users Certified             ██████████ 100%
+25 User Budget                 ████████░░ 80%
+Current Pool Safe To Execute   ██████░░░░ 60%
+Production Autonomy Daemon     ░░░░░░░░░░ 0%
+
+                                │
+                                ▼
+
+┌──────────────────────────────────────────────────────────────┐
+│                         ROADMAP (95%)                       │
+└──────────────────────────────────────────────────────────────┘
+
+Next Stage Known               ██████████ 100%
+Risk Area Known                ██████████ 100%
+Recovery Target Known          █████████░ 95%
+Operator Clarity               █████████░ 95%
+Execution Decision             ████████░░ 80%
+
+SAFE NEXT STEP:
+
+CHANNEL_RECOVERY_AWG3_AWG0_STABILITY_REVIEW
+
+WHY:
+
+POOL.1 was stable.
+POOL.2 found 8 failover candidates from awg3 to wireguard.
+No users were moved.
+No apply was run.
+The system is aligned, but the pool needs recovery review.

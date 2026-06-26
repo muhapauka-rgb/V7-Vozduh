@@ -42,6 +42,21 @@ The selected task must:
 5. be verifiable;
 6. move V7 closer to Production Autonomy.
 
+After Canonical Policy Library Stage 4, OMP selects implementation work from:
+
+```text
+docs/programs/V7_IMPLEMENTATION_BACKLOG.md
+```
+
+Priority is calculated by:
+
+```text
+docs/reference/V7_IMPLEMENTATION_PRIORITY_MODEL.md
+```
+
+This model remains a supporting rule.
+The backlog is the current implementation queue; it is not a separate roadmap authority.
+
 ## Prioritization Rule
 
 Implementation work is prioritized in this order:
@@ -122,7 +137,13 @@ This model defines how OMP selects implementation work; it does not preserve an 
 
 ## Recommended First Coding Task
 
-Read OMP and Current Program State, then execute the current OMP-selected highest implementation leverage task unless it crosses an allowed stop condition.
+Read OMP, Current Program State, Implementation Backlog, and Implementation Priority Model, then execute the current OMP-selected highest implementation leverage task unless it crosses an allowed stop condition.
+
+Current backlog-selected first task:
+
+```text
+A1: Bind canonical hard-failure classification to existing liveness/event evidence.
+```
 
 Required output fields:
 

@@ -465,7 +465,217 @@ Current automation state:
 
 `NO_RUNTIME_AUTOMATION_ENABLED`
 
-## 2.1.6. Research And Architecture Gating Rules
+## 2.1.6. Canonical Policy Library Rule
+
+The Canonical Policy Library is the permanent source for operational behavior policy:
+
+```text
+docs/policies/
+```
+
+Before implementing or changing any operational behavior, OMP must ask:
+
+```text
+Does a Canonical Policy already exist?
+```
+
+Decision rule:
+
+| Answer | OMP action |
+| --- | --- |
+| `YES` | Reuse the policy. |
+| `PARTIAL` | Extend the policy through the complete methodology. |
+| `NO` | Execute the complete World Research methodology before implementation. |
+
+Complete policy methodology:
+
+```text
+DISCOVER
+  -> FULL WORLD RESEARCH
+  -> KNOWLEDGE NORMALIZATION
+  -> INDUSTRY CONSENSUS DETECTION
+  -> INDUSTRY DISAGREEMENT DETECTION
+  -> CANONICAL POLICY INTERACTION AUDIT
+  -> REALITY AUDIT
+  -> V7 FIT ANALYSIS
+  -> REUSE EXISTING V7 OWNERS
+  -> CANONICAL POLICY
+  -> IMPLEMENTATION
+  -> VERIFICATION
+  -> CERTIFICATION
+  -> OMP INTEGRATION
+```
+
+Operational implementation before certification is forbidden.
+The `IMPLEMENTATION` lifecycle step may prepare code or documentation only after a canonical policy exists; runtime enablement waits for `CERTIFICATION` and OMP integration.
+
+After Stage 4 `V7 FIT ANALYSIS`, implementation is driven by:
+
+```text
+docs/programs/V7_IMPLEMENTATION_BACKLOG.md
+docs/reference/V7_IMPLEMENTATION_PRIORITY_MODEL.md
+```
+
+OMP must choose the highest-priority unfinished backlog item.
+OMP must not create a new roadmap document for policy implementation.
+After a backlog item is completed, OMP must mark it `DONE`, recalculate priority, and continue.
+
+## 2.1.7. Document Lifecycle Rule
+
+Permanent document lifecycle owner:
+
+```text
+docs/reference/V7_DOCUMENT_LIFECYCLE.md
+```
+
+Document classes:
+
+| Class | Purpose | Examples | OMP rule |
+| --- | --- | --- | --- |
+| `REFERENCE` | Permanent knowledge. | System Architecture, Runtime Model, Decision Model, Kernel, Context Resolver, Canonical Policy Library. | Frozen after certification; OMP does not edit during normal implementation. |
+| `PROGRAMS` | Drive execution. | OMP, Implementation Program, Current Program State. | Live and updated when execution or optimizer state changes. |
+| `IMPLEMENTATION` | The only engineering queue. | Implementation Backlog, Implementation Priority Model. | OMP selects work only from the backlog. |
+| `REPORTS` | Historical evidence only. | Certified reports. | Never planning, never backlog, never roadmap. |
+| `ADR` | Permanent decisions. | Accepted ADRs. | Read-only decision constraints, never queue. |
+
+Permanent rules:
+
+1. Reference documents are frozen after certification.
+2. The Canonical Policy Library is frozen after Stage 4 V7 Fit Analysis.
+3. OMP must never generate implementation work from policy documents.
+4. OMP generates implementation work only from:
+
+```text
+docs/programs/V7_IMPLEMENTATION_BACKLOG.md
+```
+
+5. After every implementation:
+
+```text
+Update backlog
+  -> Update Current Program State
+  -> Update OMP
+  -> Continue
+```
+
+6. OMP must never ask:
+
+```text
+What should I implement?
+```
+
+It must always read:
+
+```text
+Highest unfinished backlog item
+```
+
+7. Reports never generate implementation.
+8. Policies never generate implementation.
+9. Architecture never generates implementation.
+10. Only the Implementation Backlog generates implementation.
+11. When the backlog becomes empty, OMP must answer:
+
+```text
+IMPLEMENTATION_COMPLETE
+```
+
+and stop.
+
+World research must include all relevant successful systems and must not stop after the first example.
+Required sources include, where applicable: Cisco, Juniper, Arista, Cloudflare, Google, Google SRE, Google Traffic Engineering, Netflix, AWS, Azure, GCP, Kubernetes, Envoy, Istio, Linkerd, HAProxy, NGINX, Meta, Microsoft, Apple, OpenBSD PF, Linux routing, BGP, OSPF, IS-IS, MPLS, SD-WAN, IETF RFCs, academic papers, production postmortems, large-scale distributed systems, operator best practices, community consensus, and any other highly relevant industry source.
+
+Consensus detection must record:
+
+- consensus;
+- strength of consensus;
+- supporting systems.
+
+Disagreement detection must record:
+
+- why disagreement exists;
+- tradeoffs;
+- when each approach is used.
+
+Reality audit must compare world practice against:
+
+- current V7 architecture;
+- current Runtime;
+- current Product Specification;
+- current OMP;
+- current implementation.
+
+V7 fit analysis must evaluate:
+
+- compatibility;
+- performance;
+- safety;
+- operator burden;
+- autonomy;
+- learning;
+- scalability;
+- complexity;
+- reuse potential.
+
+Allowed policy decisions:
+
+- `REUSE`;
+- `ADAPT`;
+- `REJECT`.
+
+Innovation rule:
+
+V7 may innovate only after proving:
+
+- no stable world consensus exists;
+- or world consensus does not fit V7 architecture.
+
+Otherwise:
+
+```text
+Reuse world knowledge.
+```
+
+Initial first policy selected for research was:
+
+`POLICY_001_HARD_FAILURE`
+
+Current Canonical Policy Library state:
+
+`V7_FIT_ANALYSIS_COMPLETE_IMPLEMENTATION_BACKLOG_READY`
+
+Current policy lifecycle stop:
+
+```text
+POLICY_001_HARD_FAILURE
+POLICY_002_SOFT_DEGRADATION
+POLICY_003_RECOVERY_ADMISSION
+POLICY_004_AUTHORITY
+POLICY_005_ACTION_CLASS_PROMOTION
+POLICY_006_BLAST_RADIUS
+POLICY_007_ROLLBACK
+POLICY_008_FRESHNESS
+POLICY_009_ANTI_FLAP
+  -> DISCOVER
+  -> FULL WORLD RESEARCH
+  -> KNOWLEDGE NORMALIZATION
+  -> INDUSTRY CONSENSUS DETECTION
+  -> CANONICAL POLICY INTERACTION AUDIT
+  -> REALITY AUDIT
+  -> V7 FIT ANALYSIS
+  -> IMPLEMENTATION BACKLOG READY
+  -> STOP
+```
+
+Next allowed lifecycle stage:
+
+`IMPLEMENTATION_BACKLOG_EXECUTION`
+
+Runtime behavior remains unchanged.
+Authority remains unchanged.
+No policy implementation is enabled.
+
+## 2.1.8. Research And Architecture Gating Rules
 
 Research changes implementation only through:
 
@@ -841,20 +1051,360 @@ Ranking inputs:
 10. truth/convergence impact;
 11. whether the task moves V7 toward Production Autonomy without crossing forbidden boundaries.
 
+Canonical Policy Library Stage 4 adds a permanent backlog-backed selection rule:
+
+```text
+Read Implementation Backlog
+  -> Apply Implementation Priority Model
+  -> Select highest-priority unfinished item
+  -> Semantic Reuse Audit
+  -> Reuse existing owner
+  -> Implement
+  -> Test
+  -> Verify
+  -> Truth
+  -> Convergence
+  -> Certification if required
+  -> Mark backlog item DONE
+  -> Recalculate backlog
+  -> Continue
+```
+
+The implementation backlog is:
+
+```text
+docs/programs/V7_IMPLEMENTATION_BACKLOG.md
+```
+
+The priority model is:
+
+```text
+docs/reference/V7_IMPLEMENTATION_PRIORITY_MODEL.md
+```
+
+OMP must not select implementation work by document order.
+OMP must select by production leverage.
+If the highest item crosses authority, real-world, unsafe-implementation, or fundamental-architecture boundaries, OMP stops with the exact stop condition and may choose the next highest item only when the blocked item cannot progress.
+
+Current backlog progress:
+
+| Scope | Complete | Total | Status |
+| --- | ---: | ---: | --- |
+| Tier A | `2` | `6` | `ACTIVE` |
+| Tier B | `0` | `20` | `PENDING` |
+| Tier C | `0` | `7` | `PENDING` |
+| Tier D optional | `0` | `6` | `OPTIONAL` |
+| Overall actionable | `2` | `33` | `ACTIVE` |
+
+Implementation maturity:
+
+```text
+6.1%
+```
+
+Estimated remaining effort:
+
+```text
+Moderate
+```
+
+Next backlog item:
+
+```text
+A3
+```
+
+## 2.12.1. Engineering and Production Maturity
+
+Permanent maturity model:
+
+```text
+docs/reference/V7_PRODUCTION_MATURITY_MODEL.md
+```
+
+OMP must track two independent maturity dimensions:
+
+1. `ENGINEERING MATURITY`
+2. `PRODUCTION MATURITY`
+
+Engineering Maturity measures completed engineering knowledge.
+
+Production Maturity measures production readiness.
+
+Engineering completion does not imply production autonomy.
+
+Production Maturity must increase only through real implementation, deploy, testing, verification, certification, production outcomes, authority decisions, and certified autonomy.
+
+Backlog completion must increase only Production Maturity.
+
+Reference documents must never change Engineering Maturity after certification unless industry consensus changes, implementation proves `FUNDAMENTAL_ARCHITECTURE_GAP`, or the operator explicitly requests a reference update.
+
+OMP must recalculate both maturity dimensions after every:
+
+- implementation;
+- deploy;
+- truth;
+- convergence;
+- certification;
+- production outcome;
+- authority decision.
+
+Engineering Maturity is the weighted total of:
+
+- Architecture;
+- Decision Model;
+- Runtime Model;
+- System Architecture;
+- Research;
+- Canonical Policies;
+- OMP.
+
+Production Maturity is the weighted total of:
+
+- Implementation;
+- Production Deployment;
+- Testing;
+- Certification;
+- Authority Evolution;
+- Production Outcomes;
+- Production Autonomy;
+- Implementation Backlog Completion.
+
+Current engineering snapshot:
+
+| Category | Current % | Target % | Weight |
+| --- | ---: | ---: | ---: |
+| Architecture | `100` | `100` | `15` |
+| Decision Model | `100` | `100` | `15` |
+| Runtime Model | `100` | `100` | `15` |
+| System Architecture | `100` | `100` | `15` |
+| Research | `100` | `100` | `15` |
+| Canonical Policy Library | `100` | `100` | `15` |
+| OMP | `100` | `100` | `10` |
+
+Engineering Maturity:
+
+```text
+Current: 100.0%
+Status: ENGINEERING_COMPLETE
+```
+
+Current production snapshot:
+
+| Category | Current % | Target % | Weight |
+| --- | ---: | ---: | ---: |
+| Implementation | `6.1` | `100` | `20` |
+| Testing | `34` | `100` | `10` |
+| Production Deployments | `100` | `100` | `10` |
+| Production Outcomes | `10` | `100` | `15` |
+| Certification | `22` | `100` | `15` |
+| Authority Evolution | `15` | `100` | `10` |
+| Production Autonomy | `0` | `100` | `10` |
+| Implementation Backlog Completion | `6.1` | `100` | `10` |
+
+Production Maturity:
+
+```text
+Current: 21.5%
+Target: 100%
+Remaining: 78.5%
+```
+
+Backlog:
+
+```text
+Tier A: 2 / 6 complete
+Tier B: 0 / 20 complete
+Tier C: 0 / 7 complete
+Tier D: 0 / 6 optional complete
+Overall: 2 / 33 actionable complete
+```
+
+Current highest implementation task:
+
+```text
+A3: Certify class-level rollback/no-rollback evidence for governed candidate movement.
+```
+
+Estimated remaining effort:
+
+```text
+Moderate
+```
+
+Current autonomy tier:
+
+```text
+TIER_1_GOVERNED
+```
+
+Next milestone:
+
+```text
+35%: Runtime Eligibility Implemented
+```
+
+Milestones:
+
+Engineering milestones finish at:
+
+```text
+ENGINEERING_COMPLETE
+```
+
+Production milestones finish at:
+
+```text
+PRODUCTION_AUTONOMY_CERTIFIED
+```
+
+| Production milestone | Meaning |
+| ---: | --- |
+| `20%` | First Implementation Certified |
+| `35%` | Runtime Eligibility Implemented |
+| `50%` | Implementation Half Complete |
+| `65%` | Certification Half Complete |
+| `80%` | Runtime Production Ready |
+| `90%` | Bounded Production Autonomy |
+| `100%` | Production Autonomy Certified |
+
+## 2.12.2. V7 Production Status
+
+OMP must print this block after every execution:
+
+```text
+V7 PRODUCTION STATUS
+
+ENGINEERING
+
+Architecture
+100%
+
+Research
+100%
+
+Policies
+100%
+
+Engineering Maturity
+100.0%
+
+PRODUCTION
+
+Implementation
+6.1%
+
+Certification
+22%
+
+Autonomy
+0%
+
+Production Maturity
+21.5%
+
+Overall Status
+ENGINEERING_COMPLETE / PRODUCTION_IN_PROGRESS
+
+Current Focus
+CERTIFICATION
+
+Backlog
+Tier A
+2 / 6
+Tier B
+0 / 20
+Tier C
+0 / 7
+Tier D
+0 / 6 optional
+Overall
+2 / 33 complete
+
+Current Tier
+TIER_1_GOVERNED
+
+Highest Priority Task
+A3: Certify class-level rollback/no-rollback evidence for governed candidate movement.
+
+Current Stop Condition
+REAL_WORLD_LIMIT
+
+Estimated Remaining Work
+Moderate
+
+Expected Next Milestone
+35%: Runtime Eligibility Implemented
+```
+
+Progress calculation must be automatic.
+The displayed percentage must come from `docs/reference/V7_PRODUCTION_MATURITY_MODEL.md`.
+Backlog progress must come from `docs/programs/V7_IMPLEMENTATION_BACKLOG.md`.
+Current volatile state must come from `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
+
+OMP must recalculate Production Status after:
+
+- backlog completion;
+- deploy;
+- truth;
+- convergence;
+- certification;
+- production outcome;
+- authority decision.
+
+Current focus values:
+
+- `IMPLEMENTATION`
+- `CERTIFICATION`
+- `AUTHORITY`
+- `AUTONOMY`
+- `PRODUCTION`
+
+Focus transition:
+
+```text
+IMPLEMENTATION
+  -> CERTIFICATION
+  -> AUTHORITY EVOLUTION
+  -> PRODUCTION AUTONOMY
+  -> CONTINUOUS IMPROVEMENT
+```
+
+Completion outputs:
+
+| Condition | OMP output |
+| --- | --- |
+| Every mandatory implementation item is complete | `IMPLEMENTATION_COMPLETE` |
+| Every certification is complete | `CERTIFICATION_COMPLETE` |
+| Bounded autonomy is certified | `PRODUCTION_AUTONOMY_READY` |
+| Production autonomy is certified | `PRODUCTION_AUTONOMY_CERTIFIED` |
+
+Future normal operator commands:
+
+- `Continue OMP`
+- `Status`
+- `Approve packet`
+- `Approve authority expansion`
+
+OMP must never request a new roadmap.
+OMP must never request a new implementation plan.
+OMP must continue using the existing backlog until completion.
+
 Current implementation optimizer result:
 
 | Field | Current Value |
 | --- | --- |
-| Highest implementation leverage task | `EXECUTE_APPROVED_LEASED_GOVERNED_PACKET` completed |
-| Implementation class | `IMPLEMENT_RUNTIME` |
-| Exact owner | Existing packet owner / Governed Canary Knowledge-Gated Dry-Run Cycle |
-| Exact module | `admin_core/operator_execution.py` execution lease + `admin_core/operator_execution_pipeline.py::governed_canary_knowledge_gated_dry_run_cycle` |
-| Exact files | `admin_core/operator_execution.py`, `admin_core/operator_execution_pipeline.py`, `tools/v7-governed-canary-dry-run-cycle`, focused tests |
-| Implementation status | `APPROVED_LEASED_PACKET_EXECUTED_VERIFIED_CLOSED` |
-| Certification report | Current Program State sections 3.2 and 14 |
-| Truth/convergence | `PASS`; local, GitHub, and production are aligned at commit `b11fcebe3e844c662b6d5ffc0ecebd6a3abbf4e3`. |
-| New highest implementation leverage task | `EXPLICIT_OPERATOR_APPROVAL_REQUIRED_FOR_THIS_PACKET` |
-| Stop boundary | `AUTHORITY_BOUNDARY`: the previous lease is terminal after successful execution; the fresh exact packet requires operator approval before restore-barrier write, apply, user movement, rollback apply, daemon/timer enablement, authority expansion, or synthetic evidence. |
+| Highest implementation leverage task | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
+| Implementation class | `IMPLEMENT_CERTIFICATION` |
+| Exact owner | Restore barrier, rollback manifest, governed execution, feedback/learning |
+| Exact module | Canonical Policy Library Stage 4 implementation backlog |
+| Exact files | `admin_core/operator_execution.py`, `tools/v7-users-autoswitch`, `admin_core/operator_execution_feedback.py`, `admin_core/autonomy_trust_acceleration.py` |
+| Implementation status | `STOPPED_AT_REAL_WORLD_LIMIT` |
+| Backlog source | `docs/programs/V7_IMPLEMENTATION_BACKLOG.md` item `A3` |
+| Priority model | `docs/reference/V7_IMPLEMENTATION_PRIORITY_MODEL.md` |
+| Truth/convergence | Must pass after implementation. |
+| New highest implementation leverage task | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
+| Stop boundary | `REAL_WORLD_LIMIT`: this item requires real governed outcomes and rollback/no-rollback closure evidence; OMP must not synthesize certification evidence. |
 
 ## 2.13. Implementation Program Loop
 
@@ -864,7 +1414,9 @@ Future production implementation loop:
 Read Kernel
   -> Read OMP
   -> Read Current Program State
-  -> Determine highest implementation leverage
+  -> Read Implementation Backlog
+  -> Apply Implementation Priority Model
+  -> Determine highest unfinished implementation leverage
   -> Semantic Reuse Audit
   -> Reuse
   -> Extend
@@ -875,6 +1427,8 @@ Read Kernel
   -> Certification
   -> Update Current Program State
   -> Update OMP
+  -> Mark backlog item DONE
+  -> Recalculate backlog
   -> Authority Evaluation
   -> Continue
 ```
@@ -1346,12 +1900,9 @@ Permanent operator command surface:
 | Command | Meaning |
 | --- | --- |
 | `Continue OMP` | Run the OMP production loop through all safe implementation, verification, deployment, truth, convergence, certification, update, and authority evaluation work until an allowed stop condition. |
-| `Approve action class` | Approve a specific certified Action Class after OMP recommends it from real outcomes, verification, rollback/no-rollback quality, blast-radius certification, safety, freshness, learning, and authority policy. |
+| `Status` | Print the current `V7 PRODUCTION STATUS` block without changing runtime state. |
+| `Approve packet` | Approve one exact `GOVERNED_ONLY` packet while packet-level fallback is still required. |
 | `Approve authority expansion` | Approve a specific authority expansion only after OMP recommends it from certified evidence. |
-
-Temporary fallback:
-
-`Approve packet` may still be used only for one exact `GOVERNED_ONLY` packet while the action class is not yet certified for class authority. It is not the permanent production command surface.
 
 These commands are sufficient for future production operation unless a real implementation proves `FUNDAMENTAL_ARCHITECTURE_GAP`.
 
@@ -1547,10 +2098,9 @@ Update OMP only when scheduler/optimizer meaning changes.
 V7 can continue production evolution using only:
 
 1. `Continue OMP`;
-2. `Approve action class`;
-3. `Approve authority expansion`.
-
-`Approve packet` remains a temporary governed fallback for `GOVERNED_ONLY` classes only.
+2. `Status`;
+3. `Approve packet`;
+4. `Approve authority expansion`.
 
 No additional roadmap document is required.
 

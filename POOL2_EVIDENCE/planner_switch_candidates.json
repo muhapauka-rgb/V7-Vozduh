@@ -1,0 +1,77 @@
+[
+  {
+    "user_ip": "10.0.0.2",
+    "current_egress": "awg3",
+    "recommended_egress": "wireguard-1779454504-c43409",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ]
+  },
+  {
+    "user_ip": "10.7.0.3",
+    "current_egress": "awg3",
+    "recommended_egress": "wireguard-1779454504-c43409",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ]
+  },
+  {
+    "user_ip": "10.7.0.4",
+    "current_egress": "awg3",
+    "recommended_egress": "wireguard-1779454504-c43409",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ]
+  },
+  {
+    "user_ip": "10.7.0.8",
+    "current_egress": "awg3",
+    "recommended_egress": "wireguard-1779454504-c43409",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible",
+      "projected_load_target_adjusted"
+    ]
+  },
+  {
+    "user_ip": "10.7.0.10",
+    "current_egress": "awg3",
+    "recommended_egress": "wireguard-1779454504-c43409",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ]
+  },
+  {
+    "user_ip": "10.7.0.12",
+    "current_egress": "awg3",
+    "recommended_egress": "wireguard-1779454504-c43409",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible",
+      "projected_load_target_adjusted"
+    ]
+  },
+  {
+    "user_ip": "10.7.0.14",
+    "current_egress": "awg3",
+    "recommended_egress": "wireguard-1779454504-c43409",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ]
+  },
+  {
+    "user_ip": "10.7.0.16",
+    "current_egress": "awg3",
+    "recommended_egress": "wireguard-1779454504-c43409",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible",
+      "projected_load_target_adjusted"
+    ]
+  }
+]

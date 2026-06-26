@@ -1,0 +1,513 @@
+[
+  {
+    "egress": "wireguard-1779454504-c43409",
+    "eligible": true,
+    "score": 2254.08,
+    "blocked": [],
+    "best_available_pool": true,
+    "pool_rank": 1,
+    "avg_mbps": 58.59,
+    "min_mbps": 53.99,
+    "stability": 0.922,
+    "users": 8,
+    "service_score": 100.0,
+    "telegram": "OK",
+    "quality_decision": {
+      "min_avg_mbps": 15.0,
+      "min_floor_mbps": 10.0,
+      "min_stability": 0.45,
+      "hist_1h_avg_mbps": 59.36,
+      "hist_1h_min_mbps": 55.145,
+      "hist_1h_stability": 0.9286,
+      "evidence_backed_exception": false,
+      "service_aggregate_score": 100.0
+    },
+    "quality_windows": {
+      "5m": {
+        "samples": 7904,
+        "avg_mbps": 59.143,
+        "min_mbps": 54.555,
+        "p95_latency_ms": 1030.6,
+        "fail_rate": 0.0715,
+        "stability": 0.9223,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "1h": {
+        "samples": 7904,
+        "avg_mbps": 59.36,
+        "min_mbps": 55.145,
+        "p95_latency_ms": 1100.4,
+        "fail_rate": 0.0716,
+        "stability": 0.9286,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "24h": {
+        "samples": 7904,
+        "avg_mbps": 59.284,
+        "min_mbps": 55.062,
+        "p95_latency_ms": 1210.8,
+        "fail_rate": 0.0722,
+        "stability": 0.9241,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "7d": {
+        "samples": 7904,
+        "avg_mbps": 59.228,
+        "min_mbps": 54.306,
+        "p95_latency_ms": 1102.0,
+        "fail_rate": 0.0738,
+        "stability": 0.9041,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      }
+    },
+    "load": {
+      "users": 8,
+      "soft_limit": 30,
+      "hard_limit": 38,
+      "failover_hard_limit": 52,
+      "capacity_users": 0,
+      "status": "OK"
+    }
+  },
+  {
+    "egress": "vless",
+    "eligible": true,
+    "score": 2101.72,
+    "blocked": [],
+    "best_available_pool": true,
+    "pool_rank": 2,
+    "avg_mbps": 47.84,
+    "min_mbps": 44.26,
+    "stability": 0.925,
+    "users": 10,
+    "service_score": 99.846,
+    "telegram": "OK",
+    "quality_decision": {
+      "min_avg_mbps": 15.0,
+      "min_floor_mbps": 10.0,
+      "min_stability": 0.45,
+      "hist_1h_avg_mbps": 47.923,
+      "hist_1h_min_mbps": 43.142,
+      "hist_1h_stability": 0.899,
+      "evidence_backed_exception": true,
+      "service_aggregate_score": 99.846
+    },
+    "quality_windows": {
+      "5m": {
+        "samples": 8990,
+        "avg_mbps": 48.248,
+        "min_mbps": 44.122,
+        "p95_latency_ms": 1126.8,
+        "fail_rate": 0.9999,
+        "stability": 0.9145,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "1h": {
+        "samples": 8990,
+        "avg_mbps": 47.923,
+        "min_mbps": 43.142,
+        "p95_latency_ms": 1304.0,
+        "fail_rate": 0.9998,
+        "stability": 0.899,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "24h": {
+        "samples": 8990,
+        "avg_mbps": 46.705,
+        "min_mbps": 38.871,
+        "p95_latency_ms": 1575.3,
+        "fail_rate": 0.9992,
+        "stability": 0.8193,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "7d": {
+        "samples": 8990,
+        "avg_mbps": 46.957,
+        "min_mbps": 38.309,
+        "p95_latency_ms": 1727.5,
+        "fail_rate": 0.9976,
+        "stability": 0.7956,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      }
+    },
+    "load": {
+      "users": 10,
+      "soft_limit": 30,
+      "hard_limit": 38,
+      "failover_hard_limit": 52,
+      "capacity_users": 0,
+      "status": "OK"
+    }
+  },
+  {
+    "egress": "1",
+    "eligible": false,
+    "score": 0.0,
+    "blocked": [
+      "health_code_000",
+      "severity_FAIL",
+      "avg_mbps_below_floor",
+      "min_mbps_below_floor",
+      "telegram_required_telegram_down_14s"
+    ],
+    "best_available_pool": false,
+    "pool_rank": 0,
+    "avg_mbps": 0.0,
+    "min_mbps": 0.0,
+    "stability": 0.0,
+    "users": 0,
+    "service_score": 2.724,
+    "telegram": "TELEGRAM_DOWN_14S",
+    "quality_decision": {
+      "min_avg_mbps": 15.0,
+      "min_floor_mbps": 10.0,
+      "min_stability": 0.45,
+      "hist_1h_avg_mbps": 0.002,
+      "hist_1h_min_mbps": 0.002,
+      "hist_1h_stability": 0.0002,
+      "evidence_backed_exception": false,
+      "service_aggregate_score": 2.724
+    },
+    "quality_windows": {
+      "5m": {
+        "samples": 8443,
+        "avg_mbps": 0.001,
+        "min_mbps": 0.001,
+        "p95_latency_ms": 0.1,
+        "fail_rate": 0.9999,
+        "stability": 0.0001,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "1h": {
+        "samples": 8443,
+        "avg_mbps": 0.002,
+        "min_mbps": 0.002,
+        "p95_latency_ms": 0.2,
+        "fail_rate": 0.9998,
+        "stability": 0.0002,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "24h": {
+        "samples": 8443,
+        "avg_mbps": 0.008,
+        "min_mbps": 0.008,
+        "p95_latency_ms": 0.8,
+        "fail_rate": 0.9992,
+        "stability": 0.0008,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "7d": {
+        "samples": 8443,
+        "avg_mbps": 0.185,
+        "min_mbps": 0.185,
+        "p95_latency_ms": 2.5,
+        "fail_rate": 0.9976,
+        "stability": 0.0024,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      }
+    },
+    "load": {
+      "users": 0,
+      "soft_limit": 30,
+      "hard_limit": 38,
+      "failover_hard_limit": 52,
+      "capacity_users": 0,
+      "status": "OK"
+    }
+  },
+  {
+    "egress": "amneziawg-exec-20260528-10-8-1-14",
+    "eligible": false,
+    "score": 0.0,
+    "blocked": [
+      "manual_only",
+      "reserve_only",
+      "canary_reserved_production_assignment_blocked"
+    ],
+    "best_available_pool": false,
+    "pool_rank": 0,
+    "avg_mbps": 63.7,
+    "min_mbps": 50.07,
+    "stability": 0.786,
+    "users": 0,
+    "service_score": 100.0,
+    "telegram": "OK",
+    "quality_decision": {
+      "min_avg_mbps": 15.0,
+      "min_floor_mbps": 10.0,
+      "min_stability": 0.45,
+      "hist_1h_avg_mbps": 34.477,
+      "hist_1h_min_mbps": 11.13,
+      "hist_1h_stability": 0.2017,
+      "evidence_backed_exception": false,
+      "service_aggregate_score": 100.0
+    },
+    "quality_windows": {
+      "5m": {
+        "samples": 6172,
+        "avg_mbps": 48.353,
+        "min_mbps": 20.017,
+        "p95_latency_ms": 1941.2,
+        "fail_rate": 0.0715,
+        "stability": 0.3277,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "1h": {
+        "samples": 6172,
+        "avg_mbps": 34.477,
+        "min_mbps": 11.13,
+        "p95_latency_ms": 2276.0,
+        "fail_rate": 0.0716,
+        "stability": 0.2017,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "24h": {
+        "samples": 6172,
+        "avg_mbps": 21.835,
+        "min_mbps": 5.118,
+        "p95_latency_ms": 2756.2,
+        "fail_rate": 0.0727,
+        "stability": 0.1292,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "7d": {
+        "samples": 6172,
+        "avg_mbps": 27.006,
+        "min_mbps": 9.254,
+        "p95_latency_ms": 2774.9,
+        "fail_rate": 0.0742,
+        "stability": 0.2104,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      }
+    },
+    "load": {
+      "users": 0,
+      "soft_limit": 30,
+      "hard_limit": 38,
+      "failover_hard_limit": 52,
+      "capacity_users": 0,
+      "status": "OK"
+    }
+  },
+  {
+    "egress": "awg0",
+    "eligible": false,
+    "score": 0.0,
+    "blocked": [
+      "stability_below_floor"
+    ],
+    "best_available_pool": false,
+    "pool_rank": 0,
+    "avg_mbps": 43.36,
+    "min_mbps": 18.71,
+    "stability": 0.432,
+    "users": 0,
+    "service_score": 100.0,
+    "telegram": "OK",
+    "quality_decision": {
+      "min_avg_mbps": 15.0,
+      "min_floor_mbps": 10.0,
+      "min_stability": 0.45,
+      "hist_1h_avg_mbps": 27.528,
+      "hist_1h_min_mbps": 6.685,
+      "hist_1h_stability": 0.2035,
+      "evidence_backed_exception": false,
+      "service_aggregate_score": 100.0
+    },
+    "quality_windows": {
+      "5m": {
+        "samples": 8646,
+        "avg_mbps": 35.814,
+        "min_mbps": 10.371,
+        "p95_latency_ms": 2446.2,
+        "fail_rate": 0.0715,
+        "stability": 0.2646,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "1h": {
+        "samples": 8646,
+        "avg_mbps": 27.528,
+        "min_mbps": 6.685,
+        "p95_latency_ms": 2775.0,
+        "fail_rate": 0.0716,
+        "stability": 0.2035,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "24h": {
+        "samples": 8646,
+        "avg_mbps": 21.515,
+        "min_mbps": 4.907,
+        "p95_latency_ms": 2876.0,
+        "fail_rate": 0.081,
+        "stability": 0.1839,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "7d": {
+        "samples": 8646,
+        "avg_mbps": 28.552,
+        "min_mbps": 10.795,
+        "p95_latency_ms": 2759.9,
+        "fail_rate": 0.095,
+        "stability": 0.2696,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      }
+    },
+    "load": {
+      "users": 0,
+      "soft_limit": 30,
+      "hard_limit": 38,
+      "failover_hard_limit": 52,
+      "capacity_users": 0,
+      "status": "OK"
+    }
+  },
+  {
+    "egress": "awg3",
+    "eligible": false,
+    "score": 0.0,
+    "blocked": [
+      "min_mbps_below_floor",
+      "stability_below_floor"
+    ],
+    "best_available_pool": false,
+    "pool_rank": 0,
+    "avg_mbps": 36.47,
+    "min_mbps": 6.03,
+    "stability": 0.165,
+    "users": 8,
+    "service_score": 100.0,
+    "telegram": "OK",
+    "quality_decision": {
+      "min_avg_mbps": 15.0,
+      "min_floor_mbps": 10.0,
+      "min_stability": 0.45,
+      "hist_1h_avg_mbps": 26.535,
+      "hist_1h_min_mbps": 3.427,
+      "hist_1h_stability": 0.1179,
+      "evidence_backed_exception": false,
+      "service_aggregate_score": 100.0
+    },
+    "quality_windows": {
+      "5m": {
+        "samples": 8642,
+        "avg_mbps": 30.38,
+        "min_mbps": 3.804,
+        "p95_latency_ms": 2565.3,
+        "fail_rate": 0.0715,
+        "stability": 0.1192,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "1h": {
+        "samples": 8642,
+        "avg_mbps": 26.535,
+        "min_mbps": 3.427,
+        "p95_latency_ms": 3133.1,
+        "fail_rate": 0.0716,
+        "stability": 0.1179,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "24h": {
+        "samples": 8642,
+        "avg_mbps": 24.887,
+        "min_mbps": 5.018,
+        "p95_latency_ms": 3153.6,
+        "fail_rate": 0.0831,
+        "stability": 0.1724,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "7d": {
+        "samples": 8642,
+        "avg_mbps": 30.047,
+        "min_mbps": 11.524,
+        "p95_latency_ms": 2693.0,
+        "fail_rate": 0.1009,
+        "stability": 0.3016,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      }
+    },
+    "load": {
+      "users": 8,
+      "soft_limit": 30,
+      "hard_limit": 38,
+      "failover_hard_limit": 52,
+      "capacity_users": 0,
+      "status": "OK"
+    }
+  },
+  {
+    "egress": "openvpn-1779388847-d2ad7c",
+    "eligible": false,
+    "score": 0.0,
+    "blocked": [
+      "health_code_000",
+      "severity_FAIL",
+      "avg_mbps_below_floor",
+      "min_mbps_below_floor",
+      "telegram_required_telegram_down_14s"
+    ],
+    "best_available_pool": false,
+    "pool_rank": 0,
+    "avg_mbps": 0.0,
+    "min_mbps": 0.0,
+    "stability": 0.0,
+    "users": 0,
+    "service_score": 2.71,
+    "telegram": "TELEGRAM_DOWN_14S",
+    "quality_decision": {
+      "min_avg_mbps": 15.0,
+      "min_floor_mbps": 10.0,
+      "min_stability": 0.45,
+      "hist_1h_avg_mbps": 0.002,
+      "hist_1h_min_mbps": 0.002,
+      "hist_1h_stability": 0.0002,
+      "evidence_backed_exception": false,
+      "service_aggregate_score": 2.71
+    },
+    "quality_windows": {
+      "5m": {
+        "samples": 8126,
+        "avg_mbps": 0.001,
+        "min_mbps": 0.001,
+        "p95_latency_ms": 0.1,
+        "fail_rate": 0.9999,
+        "stability": 0.0001,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "1h": {
+        "samples": 8126,
+        "avg_mbps": 0.002,
+        "min_mbps": 0.002,
+        "p95_latency_ms": 0.2,
+        "fail_rate": 0.9998,
+        "stability": 0.0002,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "24h": {
+        "samples": 8126,
+        "avg_mbps": 0.008,
+        "min_mbps": 0.008,
+        "p95_latency_ms": 0.8,
+        "fail_rate": 0.9992,
+        "stability": 0.0008,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      },
+      "7d": {
+        "samples": 8126,
+        "avg_mbps": 0.025,
+        "min_mbps": 0.025,
+        "p95_latency_ms": 2.5,
+        "fail_rate": 0.9976,
+        "stability": 0.0024,
+        "updated": "2026-06-19T15:32:54.627154+00:00"
+      }
+    },
+    "load": {
+      "users": 0,
+      "soft_limit": 30,
+      "hard_limit": 38,
+      "failover_hard_limit": 52,
+      "capacity_users": 0,
+      "status": "OK"
+    }
+  }
+]

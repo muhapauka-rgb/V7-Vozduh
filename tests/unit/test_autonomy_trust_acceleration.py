@@ -699,8 +699,10 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
             "recovery_admission",
             "anti_flapping",
             "freshness_actionability",
+            "action_class_freshness_windows",
             "routing_recommendation_readiness",
             "decision_outcome_learning",
+            "hard_failure_classification",
         ):
             self.assertIn(key, inventory)
             self.assertFalse(inventory[key]["runtime_mutation_performed"])
@@ -709,6 +711,112 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertIn("decision_effectiveness", inventory)
         self.assertEqual(inventory["decision_effectiveness"]["recommendation_correct_rate"], 1.0)
         self.assertEqual(inventory["knowledge_growth"]["knowledge_gained"], 1)
+
+    def test_hard_failure_classification_requires_liveness_evidence(self):
+        model = accel.build_hard_failure_classification(
+            event_rows=[
+                {
+                    "source": "service_matrix",
+                    "channel": "awg0",
+                    "status": "DOWN",
+                    "message": "all probes failed",
+                    "updated_at": "2026-06-25T00:00:00Z",
+                    "confidence": 0.9,
+                },
+                {
+                    "source": "telegram_sentinel",
+                    "channel": "awg0",
+                    "status": "DOWN",
+                    "message": "telegram no response",
+                    "updated_at": "2026-06-25T00:00:10Z",
+                    "confidence": 0.86,
+                },
+            ],
+            freshness_actionability={"domains": {}},
+            generated_at="2026-06-25T00:01:00+00:00",
+        )
+
+        self.assertEqual(model["schema_version"], "v7.policy-001.hard-failure-classification.v1")
+        self.assertEqual(model["classification"], "HARD_FAILURE_CONFIRMED")
+        self.assertEqual(model["summary"]["confirmed"], 1)
+        row = model["rows"][0]
+        self.assertEqual(row["object"], "awg0")
+        self.assertEqual(row["classification"], "HARD_FAILURE_CONFIRMED")
+        self.assertEqual(row["explicit_liveness_evidence_count"], 2)
+        self.assertIn("service_matrix", row["independent_sources"])
+        self.assertIn("telegram_sentinel", row["independent_sources"])
+        self.assertFalse(row["runtime_apply_allowed"])
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["synthetic_evidence_created"])
+        self.assertFalse(model["new_truth_source_created"])
+
+    def test_hard_failure_single_noisy_observation_is_only_suspected(self):
+        model = accel.build_hard_failure_classification(
+            event_rows=[
+                {
+                    "source": "service_matrix",
+                    "channel": "awg3",
+                    "message": "youtube timeout",
+                    "updated_at": "2026-06-25T00:00:00Z",
+                },
+            ],
+            freshness_actionability={"domains": {}},
+            generated_at="2026-06-25T00:01:00+00:00",
+        )
+
+        self.assertEqual(model["classification"], "HARD_FAILURE_SUSPECTED")
+        self.assertEqual(model["summary"]["suspected"], 1)
+        self.assertTrue(model["rows"][0]["requires_confirmation"])
+        self.assertFalse(model["rows"][0]["reaction_allowed_without_policy"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+
+    def test_action_class_freshness_windows_reuse_owner_issued_fields(self):
+        freshness = accel.build_freshness_actionability({
+            "service-scores": {
+                "exists": True,
+                "freshness_state": "FRESH",
+                "runtime_behavior": "ALLOW",
+                "stop_required": False,
+                "confidence": 0.9,
+                "source_hashes": {"service-matrix.json": "abc"},
+            },
+            "channel-service-scores": {
+                "exists": True,
+                "freshness_state": "FRESH",
+                "runtime_behavior": "ALLOW",
+                "stop_required": False,
+                "confidence": 0.8,
+                "source_hashes": {"egress-quality-summary.json": "def"},
+            },
+            "user-service-scores": {
+                "exists": True,
+                "freshness_state": "FRESH",
+                "runtime_behavior": "ALLOW",
+                "stop_required": False,
+                "confidence": 0.7,
+            },
+        })
+        model = accel.build_action_class_freshness_windows(
+            freshness,
+            generated_at="2026-06-25T00:01:00+00:00",
+        )
+
+        self.assertEqual(model["schema_version"], "v7.action-class-freshness-windows.v1")
+        rows = {row["action_class"]: row for row in model["rows"]}
+        canary = rows["single-user governed candidate failover"]
+        self.assertEqual(canary["freshness_windows"]["service"], 900)
+        service_domain = {row["domain"]: row for row in canary["domains"]}["service"]
+        self.assertEqual(service_domain["classification"], "ACTIONABLE_NOW")
+        self.assertIn("service-scores", service_domain["owner_issued_fields"])
+        self.assertEqual(
+            service_domain["owner_issued_fields"]["service-scores"]["source_hashes"]["service-matrix.json"],
+            "abc",
+        )
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["new_truth_source_created"])
 
     def test_acceleration_inventory_exposes_knowledge_quality_read_model(self):
         with tempfile.TemporaryDirectory() as tmp:

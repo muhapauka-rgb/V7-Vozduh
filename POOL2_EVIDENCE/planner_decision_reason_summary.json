@@ -1,0 +1,30 @@
+[
+  {
+    "action": "keep",
+    "count": 18,
+    "reasons": [
+      {
+        "reason": "current_is_best",
+        "count": 8
+      },
+      {
+        "reason": "sticky_keep_current",
+        "count": 10
+      }
+    ]
+  },
+  {
+    "action": "switch",
+    "count": 8,
+    "reasons": [
+      {
+        "reason": "current_egress_not_eligible",
+        "count": 8
+      },
+      {
+        "reason": "projected_load_target_adjusted",
+        "count": 3
+      }
+    ]
+  }
+]

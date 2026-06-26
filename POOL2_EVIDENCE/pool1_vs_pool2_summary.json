@@ -1,0 +1,30 @@
+{
+  "then": {
+    "source": "POOL1_POST_AUTONOMY_STABILITY_AND_EQUILIBRIUM_REPORT.md",
+    "verdict": "POOL_STABLE",
+    "users_total": 26,
+    "egress_total": 7,
+    "healthy_egress_total": 3,
+    "candidate_moves_total": 0,
+    "selected_moves": 0,
+    "distribution": {
+      "awg3": 8,
+      "wireguard": 8,
+      "vless": 10
+    }
+  },
+  "now": {
+    "source": "POOL2 production API",
+    "verdict_pending": true,
+    "users_total": 26,
+    "egress_total": 7,
+    "healthy_egress_total": 2,
+    "candidate_moves_total": 8,
+    "selected_moves": 0,
+    "distribution": {
+      "awg3": 8,
+      "wireguard": 8,
+      "vless": 10
+    }
+  }
+}

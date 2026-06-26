@@ -90,6 +90,19 @@ def default_audit_dir(state_dir: Path) -> Path:
     return state_dir.parent / "audit"
 
 
+def event_rows(event_dir: Path, limit: int = 5000) -> list[dict[str, Any]]:
+    paths = [
+        event_dir / "telegram-sentinel.jsonl",
+        event_dir / "service-matrix.jsonl",
+        event_dir / "quality-regressions.jsonl",
+        event_dir / "events.jsonl",
+    ]
+    rows: list[dict[str, Any]] = []
+    for path in paths:
+        rows.extend(read_jsonl_family(path, limit=limit))
+    return rows[-max(1, int(limit)):]
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Read-only V7 autonomy trust evidence inventory.")
     parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
@@ -138,11 +151,13 @@ def main(argv=None) -> int:
     for path in audit_paths + feedback_paths + rollback_paths:
         decision_records.extend(read_jsonl_family(path))
     shadow_history = read_jsonl_family(state_dir / "shadow-autonomy-decisions.jsonl")
+    events = event_rows(event_dir)
     payload = autonomy_trust_acceleration.build_acceleration_inventory(
         snapshot_root=snapshot_root,
         decision_surface=decision_surface,
         shadow_history=shadow_history,
         decision_records=decision_records,
+        event_rows=events,
     )
     payload["inputs"] = {
         "state_dir": str(state_dir),
@@ -153,6 +168,7 @@ def main(argv=None) -> int:
         "rollback_paths": [str(path) for path in rollback_paths],
         "decision_records_read": len(decision_records),
         "shadow_history_records_read": len(shadow_history),
+        "event_records_read": len(events),
     }
     if args.knowledge_quality_only:
         payload = payload["knowledge_quality_read_model"]
@@ -165,6 +181,8 @@ def main(argv=None) -> int:
                 "recovery_admission",
                 "anti_flapping",
                 "freshness_actionability",
+                "action_class_freshness_windows",
+                "hard_failure_classification",
                 "routing_recommendation_readiness",
             ]
         }

@@ -112,6 +112,20 @@ The optimizer must consider:
 8. truth/convergence impact;
 9. whether the task moves V7 toward Production Autonomy.
 
+After Canonical Policy Library Stage 4, implementation work is selected from:
+
+```text
+docs/programs/V7_IMPLEMENTATION_BACKLOG.md
+```
+
+Priority is calculated by:
+
+```text
+docs/reference/V7_IMPLEMENTATION_PRIORITY_MODEL.md
+```
+
+OMP must choose the highest-priority unfinished backlog item, mark completed items `DONE`, recalculate priority, and continue automatically unless a canonical stop condition is reached.
+
 ## Current Highest Implementation Leverage Task
 
 Current HIL is volatile state and lives in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.

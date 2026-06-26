@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-26T12:19:01+0700
-Source: operator approved current OMP packet, production lease creation regenerated a different packet, unauthorized lease cancelled, route verification confirmed no user movement
+State captured: 2026-06-26T12:33:49+0700
+Source: A3 approval-to-execution lease binding fixed, tested, deployed, truth/convergence passed, production dry-run reached operational authority with exact packet ready
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -14,39 +14,39 @@ This file is volatile. Update it after every safe action or approved execution t
 | Current phase | `IMPLEMENTATION` |
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Implementation Backlog` |
-| Current highest leverage implementation | `A3_FIX_APPROVAL_CONTEXT_TO_EXECUTION_LEASE_BINDING_IN_EXISTING_PACKET_OWNER` |
-| Current highest leverage action | fix existing packet/lease owner so an operator approval for an exact current packet cannot create or consume a different packet |
-| Current authority class | `NONE`: approval attempt stopped before authorized production action because packet identity changed |
-| authority_class | `NONE` |
-| authority_reason | No operational approval is active; the approved packet `pkt_preview_4eb137c926917c2761faadb4` was not consumed, and a different packet lease was cancelled. |
+| Current highest leverage implementation | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
+| Current highest leverage action | approve or reject the exact current governed packet so A3 can collect one real production outcome through existing owners |
+| Current authority class | `OPERATIONAL_AUTHORITY`: production action ready; engineering fix is complete and Runtime is stopped before restore-barrier write/apply |
+| authority_class | `OPERATIONAL_AUTHORITY` |
+| authority_reason | Exact governed packet `pkt_preview_4eb137c926917c2761faadb4` is ready for operator approval; no active lease, restore-barrier write, apply, or user movement has occurred. |
 | authority_owner | Existing packet/execution lease owner `admin_core/operator_execution.py`; dry-run owner `admin_core/operator_execution_pipeline.py::governed_canary_knowledge_gated_dry_run_cycle`; CLI owner `tools/v7-governed-canary-dry-run-cycle`. |
-| required_action | Implement approval-context-to-lease binding before requesting another packet approval. |
+| required_action | Operator approve or reject exact packet `pkt_preview_4eb137c926917c2761faadb4` for user `10.7.0.17`, move `vless -> awg0`, selected move hash `e1e09d2c95fc6c9b0b77e9ecaaf0def20e9759150eb35db8d70f95e107eb52cd`. |
 | Current reality limit | `A3_NOT_CERTIFIED`: no successful movement, verification, rollback/no-rollback classification, or outcome closure exists for this attempt |
-| Current safe next action | implement the existing-owner fix; do not request another packet approval until the lease creation path can bind to the approved packet or fail closed without creating a different lease |
-| Current stop reason | `UNSAFE_IMPLEMENTATION`: operator approved one packet, but lease creation produced a different packet before apply |
-| root_cause | The operator approved `pkt_preview_4eb137c926917c2761faadb4`, but the production lease creation path regenerated/selected `pkt_preview_5c4bcfaa59d769ced6d6e5dc` with target `awg3` and selected move hash `56fa62f34a169276aa56bcedbb7ad17a3d6731c92313a8833be3fad153dc6159`. |
-| responsible_owner | Existing packet/execution lease owner `admin_core/operator_execution.py`; governed dry-run CLI `tools/v7-governed-canary-dry-run-cycle`; dry-run composition owner `admin_core/operator_execution_pipeline.py`. |
-| implementation_class | `BUG` |
-| next_engineering_task | `A3_FIX_APPROVAL_CONTEXT_TO_EXECUTION_LEASE_BINDING_IN_EXISTING_PACKET_OWNER` |
-| expected_completion_evidence | focused tests proving approval for packet A cannot create/consume packet B; lease creation accepts an expected packet id/hash or equivalent approved context; mismatched packet fails closed without active lease, restore-barrier write, apply, or user movement; truth/convergence pass. |
+| Current safe next action | wait for exact operational approval; if approved, create execution lease bound to this exact packet identity, write restore-barrier clearance, apply only this one-user movement, verify immediately, rollback if needed, close outcome, and feed learning |
+| Current stop reason | `OPERATIONAL_AUTHORITY`: exact production action requires operator approval |
+| root_cause | Engineering defect is fixed; A3 now needs real governed candidate outcome evidence, which requires one exact production operation. |
+| responsible_owner | Existing packet/execution lease owner `admin_core/operator_execution.py`; governed dry-run CLI `tools/v7-governed-canary-dry-run-cycle`; apply/verify owner `tools/v7-users-autoswitch`; outcome owner `admin_core/operator_execution_feedback.py`. |
+| implementation_class | `AUTHORITY` |
+| next_engineering_task | none until operator approves or rejects the exact current packet |
+| expected_completion_evidence | real observed apply outcome, immediate verification, rollback/no-rollback classification, outcome closure, learning refresh, truth/convergence, and A3 certification update. |
 
 ## 1.1. Root Cause Engine Output
 
 | Field | Current Value |
 | --- | --- |
-| Stop condition | `UNSAFE_IMPLEMENTATION` |
-| Authority Class | `NONE` |
-| Authority Reason | The approved packet was not consumed; no authority exists for the regenerated packet. |
-| Root Cause | Approval context was not bound to lease creation. A shorthand approval for `pkt_preview_4eb137c926917c2761faadb4` allowed the dry-run lease path to materialize `pkt_preview_5c4bcfaa59d769ced6d6e5dc` instead. |
-| Responsible owner | Existing packet/execution lease owner `admin_core/operator_execution.py`; `tools/v7-governed-canary-dry-run-cycle`; `admin_core/operator_execution_pipeline.py`. |
-| Why it happened | The lease creation command did not require an expected approved packet id/hash from Current Program State before creating a lease. Production reality changed, and the fresh dry-run selected a different packet. |
-| Why existing safety worked | The packet mismatch was detected before restore-barrier clearance or apply; the unauthorized lease was cancelled; route verification confirmed `10.7.0.17` remained on `vless`; no rollback was required. |
+| Stop condition | `OPERATIONAL_AUTHORITY` |
+| Authority Class | `OPERATIONAL_AUTHORITY` |
+| Authority Reason | Engineering is complete and production dry-run has prepared one exact governed packet; restore-barrier write/apply/user movement require operator approval. |
+| Root Cause | A3 requires real production evidence; real evidence cannot be created synthetically and must come from one approved governed candidate movement. |
+| Responsible owner | Existing packet/execution lease owner `admin_core/operator_execution.py`; `tools/v7-governed-canary-dry-run-cycle`; `tools/v7-users-autoswitch`; `admin_core/operator_execution_feedback.py`. |
+| Why it happened | The approval-to-lease binding defect was fixed and deployed; the remaining boundary is operational authority for one exact production operation. |
+| Why existing safety worked | Production dry-run stopped before restore-barrier write/apply; no runtime mutation, no users moved, no authority expansion. |
 | Can existing owner be extended? | `YES`; no new owner is needed for the current boundary. |
 | Need New Owner | `FALSE` |
-| Implementation Class | `BUG` |
-| Concrete engineering task | `A3_FIX_APPROVAL_CONTEXT_TO_EXECUTION_LEASE_BINDING_IN_EXISTING_PACKET_OWNER`: require lease creation/packet consumption to prove it is consuming the operator-approved packet identity, and fail closed before writing any active lease if the current preview differs. |
-| Expected completion evidence | Unit tests and production dry-run proving approved packet id/hash/operation/selected move hash/target are preserved into lease or mismatch fails closed without active lease, restore-barrier write, apply, or movement. |
-| OMP automatic continuation | `YES` after implementation, tests, deploy if required, truth, and convergence; then rerun A3 approval flow. |
+| Implementation Class | `AUTHORITY` |
+| Concrete engineering task | none; operator decision required for exact packet `pkt_preview_4eb137c926917c2761faadb4`. |
+| Expected completion evidence | approved or rejected packet decision; if approved, real observed outcome closure and learning. |
+| OMP automatic continuation | `YES` after the production action is approved/rejected and closed. |
 
 ## 2. Current Metrics
 
@@ -81,7 +81,7 @@ This file is volatile. Update it after every safe action or approved execution t
 | current_focus | `IMPLEMENTATION` |
 | current_milestone | `20%: First Implementation Certified` |
 | estimated_remaining_effort | `Moderate` |
-| current_highest_implementation_task | `A3_FIX_APPROVAL_CONTEXT_TO_EXECUTION_LEASE_BINDING_IN_EXISTING_PACKET_OWNER` |
+| current_highest_implementation_task | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
 
 ## 2.2. V7 Production Status
 
@@ -138,25 +138,25 @@ Current Tier
 TIER_1_GOVERNED
 
 Highest Priority Task
-A3 fix: bind operator approval context to execution lease creation.
+A3 certification: collect one real governed candidate movement outcome.
 
 Status
-Unsafe Implementation
+Production Action Ready
 
 Authority
-None
+Operational
 
 Required Action
-Implement approval-context-to-lease binding before another approval
+Approve or reject exact packet pkt_preview_4eb137c926917c2761faadb4
 
 Engineering
-FIX_REQUIRED
+READY
 
 Runtime
-BLOCKED_BEFORE_APPLY
+READY_BEFORE_OPERATIONAL_AUTHORITY
 
 Packet
-APPROVED_PACKET_NOT_CONSUMED
+READY_FOR_APPROVAL
 
 Estimated Remaining Work
 Moderate
@@ -198,9 +198,9 @@ Production maturity category snapshot:
 | A1 result | Existing event, liveness, service, route, and freshness owners now emit canonical hard-failure classification without runtime mutation. |
 | Completed backlog item | `A2_CANONICALIZE_PER_ACTION_CLASS_FRESHNESS_WINDOWS_AND_OWNER_ISSUED_FRESHNESS_FIELDS` |
 | A2 result | Existing freshness/action-class owners now expose per-action-class freshness windows and owner-issued freshness fields without runtime mutation. |
-| Tests | `77` autoswitch policy tests + `59` operator/governed canary tests passed for A3 fix; A1/A2 focused tests remain passed. |
-| Deployed commit | `704ec9a2de66e10a5a677d5be1453463063de21e` |
-| Deploy id | `deploy-z8-14-Updatesystem-704ec9a-20260626T103417` |
+| Tests | `525` unit tests passed, including packet/lease, governed canary pipeline, and autoswitch apply owner tests. |
+| Deployed commit | `4add4b3f59ec8b936f17dc00659aff92c18d4b10` |
+| Deploy id | `deploy-z8-14-Updatesystem-4add4b3-20260626T123245` |
 | Deploy result | `PASS`; existing safe deployment owner; no runtime apply, no user movement, no restore-barrier write |
 | Truth | `PASS`; local, GitHub, and runtime aligned |
 | Convergence | `PASS`; status `ALIGNED`; deploy delta mismatches `0` |
@@ -209,7 +209,7 @@ Production maturity category snapshot:
 | Users moved | `0` |
 | Authority expanded | `false` |
 | Next backlog item | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
-| Next item blocker | `UNSAFE_IMPLEMENTATION`: approved packet was not consumed; lease creation generated a different packet before apply. |
+| Next item blocker | `OPERATIONAL_AUTHORITY`: exact governed packet is ready and requires operator approval before restore-barrier write/apply. |
 
 ## 3. Latest Approved Packet Attempt
 
@@ -221,29 +221,26 @@ Production maturity category snapshot:
 | Action | `MOVE_GOVERNED_CANARY_REVIEW` |
 | Authority tier | `TIER_1` |
 | Authority status | `MARGINAL_OPERATOR_REVIEW` |
-| Operator-approved packet preview id | `pkt_preview_4eb137c926917c2761faadb4` |
+| Current packet preview id | `pkt_preview_4eb137c926917c2761faadb4` |
 | Operation id | `govdry_5570f5503f3e320172e7785b` |
 | Decision id | `decision_preview_0febce4f948e1d1a2c966b72` |
-| Authority generation | `gkcanary_fccca194f45976b23205775a` |
-| Selected move hash | `d113b94e937869209802ba1823a71af6928f02c555333112a55f44f6063d34d1` |
+| Authority generation | `authgen_e1e09d2c95fc6c9b0b77e9ec` |
+| Selected move hash | `e1e09d2c95fc6c9b0b77e9ecaaf0def20e9759150eb35db8d70f95e107eb52cd` |
 | Rollback target | `vless` |
 | Rollback manifest id | `rb_preview_7dfe2a7f69d218c2037e39df` |
-| Consumption result | `NOT_CONSUMED`; production lease creation produced different packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` |
-| Unauthorized generated target | `awg3` |
-| Unauthorized selected move hash | `56fa62f34a169276aa56bcedbb7ad17a3d6731c92313a8833be3fad153dc6159` |
-| Unauthorized lease status | `OPERATOR_CANCELLED`; reason `unauthorized_packet_changed_after_operator_approval` |
-| Apply result | `NOT_ATTEMPTED`; packet identity mismatch stopped before restore-barrier write/apply |
-| Verification result | `PASS_NO_MOVEMENT`; `10.7.0.17` remained on `vless` / `tun0`; `V7_USER_ROUTE_CHECK=OK` |
+| Consumption result | `PENDING_OPERATOR_APPROVAL`; execution lease will be created only with matching approved identity |
+| Apply result | `NOT_ATTEMPTED`; stopped at `OPERATIONAL_AUTHORITY` before restore-barrier write/apply |
+| Verification result | `NOT_RUN`; no movement occurred |
 | Rollback result | `NOT_ATTEMPTED`; no movement occurred |
-| Risk | `3.704` |
+| Risk | `3.618` |
 | Candidate confidence | `0.458` |
-| Trust | `54.685` |
+| Trust | `54.674` |
 
-No approved execution lease is active. The unauthorized lease for `pkt_preview_5c4bcfaa59d769ced6d6e5dc` was cancelled because it did not match the operator-approved packet `pkt_preview_4eb137c926917c2761faadb4`.
+No approved execution lease is active. The current production dry-run has produced a valid approval prompt for `pkt_preview_4eb137c926917c2761faadb4`; execution lease creation must bind to that exact packet identity or fail closed.
 
-Latest continuation note: the current blocker is not authority. The blocker is approval-context mismatch in the existing packet/lease owner.
+Latest continuation note: the approval-context mismatch is fixed and deployed. The current blocker is `OPERATIONAL_AUTHORITY` for the exact current packet.
 
-## 3.1. Execution Lease Preflight
+## 3.1. Previous Execution Lease Incident
 
 | Field | Current Value |
 | --- | --- |
@@ -264,7 +261,7 @@ Latest continuation note: the current blocker is not authority. The blocker is a
 | Selected move hash regeneration allowed | `false` |
 | Packet freshness check allowed | `true` |
 | Duplicate active lease | `NO_ACTIVE_LEASE` |
-| Preflight verdict | `UNSAFE_IMPLEMENTATION_AFTER_APPROVAL_CONTEXT_MISMATCH`; no approval prompt is valid |
+| Preflight verdict | historical `UNSAFE_IMPLEMENTATION_AFTER_APPROVAL_CONTEXT_MISMATCH`; resolved by commit `4add4b3f59ec8b936f17dc00659aff92c18d4b10` |
 | Runtime mutation | `restore_barrier_written_now=false`; `apply_executed=false`; `users_moved=0`; `rollback_executed=false`; `runtime_mutation_performed=false` |
 | Deployment id | `deploy-z8-14-Updatesystem-704ec9a-20260626T103417` |
 | Deployed commit | `704ec9a2de66e10a5a677d5be1453463063de21e` |
@@ -312,24 +309,23 @@ Latest continuation note: the current blocker is not authority. The blocker is a
 
 | Field | Current Value |
 | --- | --- |
-| Executed at | `2026-06-26T12:19:01+0700` |
-| Optimizer result | operator approved `pkt_preview_4eb137c926917c2761faadb4`, but production lease creation generated `pkt_preview_5c4bcfaa59d769ced6d6e5dc`; OMP stopped before apply and cancelled the unauthorized lease |
-| Safe work completed | unauthorized lease cancelled through existing owner; route verification confirmed `10.7.0.17` remained on `vless`; no synthetic evidence; no restore-barrier write; no apply; no user movement |
-| Evidence refresh result | no successful candidate outcome; no user movement; A3 remains uncertified until real approved outcome exists |
-| Fresh dry-run verdict | `UNSAFE_IMPLEMENTATION_AFTER_APPROVAL_CONTEXT_MISMATCH` |
+| Executed at | `2026-06-26T12:33:49+0700` |
+| Optimizer result | approval-to-execution lease binding fixed, tested, deployed, and production dry-run reached exact packet approval boundary |
+| Safe work completed | commit `4add4b3f59ec8b936f17dc00659aff92c18d4b10` deployed through safe owner; truth/convergence pass; production dry-run read-only; no synthetic evidence; no restore-barrier write; no apply; no user movement |
+| Evidence refresh result | no successful candidate outcome yet; A3 remains uncertified until real approved outcome exists |
+| Fresh dry-run verdict | `AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY`; normalized stop `OPERATIONAL_AUTHORITY` |
 | Fresh candidate | `10.7.0.17` |
 | Approved movement preview | `vless -> awg0` |
-| Unauthorized lease movement preview | `vless -> awg3` |
-| Approved packet preview id | `pkt_preview_4eb137c926917c2761faadb4` |
-| Unauthorized lease packet id | `pkt_preview_5c4bcfaa59d769ced6d6e5dc` |
-| Unauthorized lease cancel result | `EXECUTION_LEASE_CANCELLED` |
-| Runtime lifecycle preview | unauthorized active lease cancelled; no approved execution lease remains |
-| Restore/rollback preview | `NOT_USED`; mismatch stopped before restore-barrier clearance |
-| Verification plan | `PASS_NO_MOVEMENT`; route reality verified after stop |
+| Current packet preview id | `pkt_preview_4eb137c926917c2761faadb4` |
+| Current operation id | `govdry_5570f5503f3e320172e7785b` |
+| Current selected move hash | `e1e09d2c95fc6c9b0b77e9ecaaf0def20e9759150eb35db8d70f95e107eb52cd` |
+| Runtime lifecycle preview | exact packet ready; no approved execution lease remains active |
+| Restore/rollback preview | `READY`; rollback target `vless`; manifest `rb_preview_7dfe2a7f69d218c2037e39df` |
+| Verification plan | `READY`; will run immediately after approved apply |
 | Outcome closure plan | `NOT_CLOSED`; no production outcome occurred |
 | Learning path | `NO_LEARNING_WRITTEN`; no observed movement outcome |
 | Safety | `restore_barrier_written_now=false`; `apply_executed=false`; `users_moved=0`; `rollback_executed=false`; `runtime_mutation_performed=false`; `new_planner_created=false`; `new_governance_created=false`; `new_execution_path_created=false`; `new_truth_source_created=false`; `synthetic_evidence_created=false` |
-| Exact stop condition | `UNSAFE_IMPLEMENTATION` |
+| Exact stop condition | `OPERATIONAL_AUTHORITY` |
 
 ## 6. Safe Automatic Actions
 
@@ -361,37 +357,45 @@ Forbidden without explicit approval:
 
 ## 7. Exact Approval Question
 
-No approval prompt is currently valid.
-
-Reason:
+Current status:
 
 ```text
-UNSAFE_IMPLEMENTATION
+OPERATIONAL_AUTHORITY
 ```
 
-The last operator approval targeted:
+Exact production action ready:
 
 ```text
-pkt_preview_4eb137c926917c2761faadb4
-vless -> awg0
-selected_move_hash=d113b94e937869209802ba1823a71af6928f02c555333112a55f44f6063d34d1
+Approve exact governed canary packet:
+packet=pkt_preview_4eb137c926917c2761faadb4
+operation=govdry_5570f5503f3e320172e7785b
+decision=decision_preview_0febce4f948e1d1a2c966b72
+selected_move_hash=e1e09d2c95fc6c9b0b77e9ecaaf0def20e9759150eb35db8d70f95e107eb52cd
+user=10.7.0.17
+move=vless -> awg0
+rollback_target=vless
+rollback_manifest=rb_preview_7dfe2a7f69d218c2037e39df
+authority=TIER_1 governed canary
+authority_generation=authgen_e1e09d2c95fc6c9b0b77e9ec
 ```
 
-The production lease creation path generated a different packet:
+Allowed action:
 
 ```text
-pkt_preview_5c4bcfaa59d769ced6d6e5dc
-vless -> awg3
-selected_move_hash=56fa62f34a169276aa56bcedbb7ad17a3d6731c92313a8833be3fad153dc6159
+Execute this exact packet through existing owners only.
 ```
 
-Required next action:
+Forbidden:
 
 ```text
-Implement A3_FIX_APPROVAL_CONTEXT_TO_EXECUTION_LEASE_BINDING_IN_EXISTING_PACKET_OWNER.
+move any other user;
+use any other target;
+rerun planner to change selected move;
+bypass planner/governance;
+enable daemon/timer;
+expand authority;
+create synthetic evidence.
 ```
-
-Do not ask for another packet approval until this fix is implemented, tested, deployed if required, and verified.
 
 ## 8. Recalculation Rules
 
@@ -436,54 +440,54 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
 
 | Field | Current Value |
 | --- | --- |
-| Implemented task | `A3_FIX_APPROVED_PLAN_LOCK_CONSUMPTION_IN_EXISTING_AUTOSWITCH_OWNER` |
-| Implemented output | existing `tools/v7-users-autoswitch` owner now diagnoses approved selected-move source and returns explicit unsafe blocker instead of silent `NOOP` if approved moves are missing or blocked |
+| Implemented task | `A3_FIX_APPROVAL_TO_EXECUTION_LEASE_BINDING` |
+| Implemented output | existing packet/lease owner now binds execution lease creation to exact approved packet identity and fails closed before writing a lease if packet identity differs |
 | Required approval fields | `PRESENT` |
 | Idempotency fingerprint | `PRESENT` |
 | Duplicate work status | `PRESENT` |
 | Loop guard status | `PRESENT` |
 | OMP notification status | `PRESENT` |
-| Focused tests | `PASS` |
+| Focused tests | `PASS`; packet/lease binding, governed canary pipeline, autoswitch apply owner |
 | Owner tests | `PASS` |
-| Full unit tests | `PASS` |
+| Full unit tests | `PASS`; `525` tests |
 | Safe deploy | `PASS` |
 | Truth | `PASS` |
 | Convergence | `PASS` |
-| Production lease dry-run | `PASS` |
+| Production dry-run | `PASS`; exact packet reached operational authority |
 | Compile verification | `PASS` |
-| Safe CLI verification | `PASS_WITH_EXPECTED_SAFE_BLOCK_MISSING_TRIGGER` |
+| Safe CLI verification | `PASS`; lease creation requires approved identity and fails closed on mismatch |
 | Safety | `apply_executed=false`; `users_moved=0`; `runtime_mutation_performed=false`; `restore_barrier_written_now=false`; `rollback_executed=false`; `synthetic_evidence_created=false` |
 | Certification | `IMPLEMENTATION_FIX_DEPLOYED`; A3 outcome certification still requires real approved movement, verification, and rollback/no-rollback closure |
 | Truth | `PASS`; local, GitHub, and runtime aligned |
 | Convergence | `PASS`; runtime action guard `READY_FOR_RUNTIME_ACTION` |
-| New highest implementation leverage task | `A3_FIX_APPROVAL_CONTEXT_TO_EXECUTION_LEASE_BINDING_IN_EXISTING_PACKET_OWNER` |
-| Continue automatically | `YES_AFTER_FIX`; current loop stopped before apply |
-| Exact stop condition | `UNSAFE_IMPLEMENTATION` |
+| New highest implementation leverage task | `A3_CERTIFY_CLASS_LEVEL_ROLLBACK_NO_ROLLBACK_EVIDENCE_FOR_GOVERNED_CANDIDATE_MOVEMENT` |
+| Continue automatically | `YES_AFTER_OPERATIONAL_DECISION`; current loop stopped before apply |
+| Exact stop condition | `OPERATIONAL_AUTHORITY` |
 
 ## 13. Production Deploy State
 
 | Field | Current Value |
 | --- | --- |
-| Deployed commit | `704ec9a2de66e10a5a677d5be1453463063de21e` |
-| Deploy id | `deploy-z8-14-Updatesystem-704ec9a-20260626T103417` |
+| Deployed commit | `4add4b3f59ec8b936f17dc00659aff92c18d4b10` |
+| Deploy id | `deploy-z8-14-Updatesystem-4add4b3-20260626T123245` |
 | Runtime truth | `KNOWN` |
 | Runtime access | `READY` |
-| Production dry-run verdict | approval-context mismatch after operator approval; unauthorized lease cancelled |
-| Production authority generation | approved `gkcanary_fccca194f45976b23205775a`; unauthorized lease `authgen_56fa62f34a169276aa56bced` |
-| Stop reason | `UNSAFE_IMPLEMENTATION` |
-| Next action | implement approval-context-to-lease binding before another approval |
+| Production dry-run verdict | exact packet ready; normalized stop `OPERATIONAL_AUTHORITY` |
+| Production authority generation | `authgen_e1e09d2c95fc6c9b0b77e9ec` |
+| Stop reason | `OPERATIONAL_AUTHORITY` |
+| Next action | operator approve or reject exact packet `pkt_preview_4eb137c926917c2761faadb4` |
 
 ## 14. Post-Deploy Verification
 
 | Field | Current Value |
 | --- | --- |
-| Verified at | `2026-06-26T12:19:01+0700` |
+| Verified at | `2026-06-26T12:33:49+0700` |
 | Branch | `Updatesystem` |
 | Truth check | `PASS`; local, GitHub, and runtime aligned |
 | Convergence | `PASS`; deploy delta empty; runtime action guard `READY_FOR_RUNTIME_ACTION` |
-| Documentation dirtiness | this file updated for approval-context mismatch; commit after truth/convergence |
-| Production execution commands | `v7-governed-canary-dry-run-cycle --create-execution-lease`, `v7-operator-execution-packet --cancel-execution-lease`, `v7-user-route-check` |
-| Production execution result | approved packet was not consumed; different packet lease was created, then cancelled before restore-barrier write/apply |
-| Production prompt safety | `restore_barrier_written_now=false`; `apply_executed=false`; `users_moved=0`; `rollback_executed=false`; unauthorized lease `OPERATOR_CANCELLED` |
-| Current packet freshness | No valid approval prompt until existing packet/lease owner fix is complete |
-| Exact next required approval | none; engineering fix required first |
+| Documentation dirtiness | this file updated for current operational authority; commit after truth/convergence |
+| Production execution commands | `v7-governed-canary-dry-run-cycle --pretty` |
+| Production execution result | exact packet ready; no lease written; stopped before restore-barrier write/apply |
+| Production prompt safety | `restore_barrier_written_now=false`; `apply_executed=false`; `users_moved=0`; `rollback_executed=false`; no active lease |
+| Current packet freshness | Current packet ready for approval |
+| Exact next required approval | approve/reject `pkt_preview_4eb137c926917c2761faadb4` |

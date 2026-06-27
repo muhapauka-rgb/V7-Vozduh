@@ -27,6 +27,7 @@ from admin_core import (  # noqa: E402
     autonomy_trust_acceleration,
     operator_execution,
     operator_decision_surface,
+    operator_execution_feedback,
     operator_execution_pipeline,
     registry_readers,
 )
@@ -41,6 +42,12 @@ def read_json(path: Path, default: Any) -> Any:
         return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return default
+
+
+def append_jsonl(path: Path, row: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(row, ensure_ascii=True, separators=(",", ":")) + "\n")
 
 
 def read_registry(path: Path) -> list[dict[str, str]]:
@@ -387,6 +394,91 @@ def lease_terminal_status_from_apply(payload: dict[str, Any]) -> str:
     return "OPERATOR_CANCELLED"
 
 
+def materialize_governed_transaction_feedback(
+    *,
+    state_dir: Path,
+    packet: dict[str, Any],
+    operation: dict[str, Any],
+    apply_result: dict[str, Any],
+    user: str,
+    source: str,
+    target: str,
+    rollback_attempted: bool,
+    verification_passed: bool,
+) -> dict[str, Any]:
+    if not apply_result.get("applied"):
+        return {
+            "materialized": False,
+            "reason": "apply_not_executed",
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
+    packet_id = str(packet.get("packet_id") or "")
+    selected_move_hash = str((packet.get("expected") or {}).get("selected_move_hash") or "")
+    execution_result = {
+        "success": True,
+        "result": "applied",
+        "packet_id": packet_id,
+        "decision_id": str(packet.get("decision_id") or ""),
+        "operation_id": str(packet.get("operation_id") or operation.get("operation_id") or ""),
+        "selected_move_hash": selected_move_hash,
+        "apply_result": apply_result,
+        "runtime_mutation_performed": True,
+        "users_moved": len(apply_result.get("results") or []),
+    }
+    verification_result = {
+        "success": bool(verification_passed),
+        "result": "verified" if verification_passed else "failed",
+        "packet_id": packet_id,
+        "verification_passed": bool(verification_passed),
+        "user_outcome": {
+            "user": user,
+            "source_channel": source,
+            "target_channel": target,
+            "connected": bool(verification_passed),
+        },
+        "service_outcome": {
+            "target_channel": target,
+            "status": "ok" if verification_passed else "failed",
+        },
+    }
+    rollback_result = {
+        "rollback_required": bool(rollback_attempted),
+        "rollback_verdict": operation.get("rollback_verdict", "NOT_REQUIRED" if not rollback_attempted else ""),
+    }
+    contract = operator_execution_feedback.execution_feedback_contract(
+        user=user,
+        source_channel=source,
+        target_channel=target,
+        execution_result=execution_result,
+        verification_result=verification_result,
+        rollback_result=rollback_result,
+        recommendation_hash=selected_move_hash,
+        prediction_expected=1.0,
+        prediction_actual=1.0 if verification_passed else 0.0,
+        audit_reference=packet_id,
+        closure_reference=str(operation.get("operation_id") or packet.get("operation_id") or packet_id),
+        packet_id=packet_id,
+    )
+    records = operator_execution_feedback.materialized_feedback_records(contract)
+    append_jsonl(state_dir / "execution-events.jsonl", records["outcome"])
+    append_jsonl(state_dir / "runtime-trust.jsonl", records["trust"])
+    append_jsonl(state_dir / "execution-events.jsonl", records["prediction"])
+    append_jsonl(state_dir / "proposal-records.jsonl", records["recommendation"])
+    append_jsonl(state_dir / "closure-records.jsonl", records["closure"])
+    return {
+        "materialized": True,
+        "feedback_id": contract.get("feedback_id", ""),
+        "outcome_status": contract.get("outcome_status", ""),
+        "outcome_quality": (contract.get("outcome_quality") or {}).get("outcome_quality", ""),
+        "learning_value": (contract.get("outcome_quality") or {}).get("learning_value", ""),
+        "knowledge_gained": bool((contract.get("knowledge_growth") or {}).get("knowledge_gained")),
+        "records_written": sorted(records),
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+    }
+
+
 def execute_governed_transaction(args: argparse.Namespace, *, state_dir: Path, event_dir: Path, snapshot_root: Path, audit_dir: Path, lease_file: Path) -> dict[str, Any]:
     if args.confirm_governed_transaction != "EXECUTE_GOVERNED_TRANSACTION_APPROVED":
         return transaction_stop("transaction_confirmation_required")
@@ -505,6 +597,19 @@ def execute_governed_transaction(args: argparse.Namespace, *, state_dir: Path, e
     apply_result = apply_payload.get("apply_result") if isinstance(apply_payload.get("apply_result"), dict) else {}
     results = apply_result.get("results") if isinstance(apply_result.get("results"), list) else []
     rollback_attempted = any(bool(row.get("rollback_attempted")) for row in results if isinstance(row, dict))
+    verification_passed = all(int(row.get("verify_rc", 1)) == 0 for row in results if isinstance(row, dict)) and bool(results)
+    source = ((packet.get("rollback_manifest") or {}).get("items") or [{}])[0].get("rollback_target", "")
+    feedback_materialization = materialize_governed_transaction_feedback(
+        state_dir=state_dir,
+        packet=packet,
+        operation=operation,
+        apply_result=apply_result,
+        user=user,
+        source=source,
+        target=target,
+        rollback_attempted=rollback_attempted,
+        verification_passed=verification_passed,
+    )
     return {
         "schema_version": "v7.governed-execution-transaction.v1",
         "transaction_status": "COMPLETED" if apply_result.get("applied") else "STOP_SAFE",
@@ -514,15 +619,17 @@ def execute_governed_transaction(args: argparse.Namespace, *, state_dir: Path, e
         "operation_id": packet.get("operation_id", ""),
         "selected_move_hash": (packet.get("expected") or {}).get("selected_move_hash", ""),
         "user": user,
-        "source": ((packet.get("rollback_manifest") or {}).get("items") or [{}])[0].get("rollback_target", ""),
+        "source": source,
         "target": target,
         "one_execution_attempt": True,
         "runtime_mutation_performed": bool(apply_result.get("applied")),
         "restore_barrier_written_now": bool((clearance_result.get("clearance_result") or {}).get("ok")),
         "apply_executed": bool(apply_result.get("applied")),
-        "verification_result": "PASS" if all(int(row.get("verify_rc", 1)) == 0 for row in results if isinstance(row, dict)) and results else ("NOT_RUN" if not results else "FAIL"),
+        "verification_result": "PASS" if verification_passed else ("NOT_RUN" if not results else "FAIL"),
         "rollback_attempted": rollback_attempted,
         "rollback_result": operation.get("rollback_verdict", "NOT_REQUIRED" if not rollback_attempted else ""),
+        "feedback_materialization": feedback_materialization,
+        "a4_evidence_updated": bool(feedback_materialization.get("materialized")),
         "users_moved": len(results) if apply_result.get("applied") else 0,
         "runtime_automation_enabled": False,
         "authority_expanded": False,

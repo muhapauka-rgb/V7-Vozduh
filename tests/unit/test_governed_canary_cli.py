@@ -149,6 +149,22 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     lease_file=root / "state" / "operator-execution-lease.json",
                 )
                 lease = json.loads((root / "state" / "operator-execution-lease.json").read_text(encoding="utf-8"))
+                execution_rows = [
+                    json.loads(line)
+                    for line in (root / "state" / "execution-events.jsonl").read_text(encoding="utf-8").splitlines()
+                ]
+                trust_rows = [
+                    json.loads(line)
+                    for line in (root / "state" / "runtime-trust.jsonl").read_text(encoding="utf-8").splitlines()
+                ]
+                recommendation_rows = [
+                    json.loads(line)
+                    for line in (root / "state" / "proposal-records.jsonl").read_text(encoding="utf-8").splitlines()
+                ]
+                closure_rows = [
+                    json.loads(line)
+                    for line in (root / "state" / "closure-records.jsonl").read_text(encoding="utf-8").splitlines()
+                ]
             finally:
                 module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle = original_cycle
                 module.run_autoswitch_apply = original_apply
@@ -163,6 +179,17 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(lease["status"], "EXECUTION_FINISHED")
         self.assertTrue(lease["apply_executed"])
         self.assertEqual(lease["users_moved"], 1)
+        self.assertTrue(result["feedback_materialization"]["materialized"])
+        self.assertTrue(result["feedback_materialization"]["knowledge_gained"])
+        self.assertTrue(result["a4_evidence_updated"])
+
+        self.assertEqual(len(execution_rows), 2)
+        self.assertEqual(len(trust_rows), 1)
+        self.assertEqual(len(recommendation_rows), 1)
+        self.assertEqual(len(closure_rows), 1)
+        self.assertEqual(execution_rows[0]["packet_id"], "pkt_preview_test")
+        self.assertEqual(execution_rows[0]["outcome_quality"]["outcome_quality"], "SUCCESS")
+        self.assertEqual(closure_rows[0]["closure_state"], "CLOSED")
 
     def test_execute_governed_transaction_requires_explicit_transaction_confirmation(self):
         module = load_cli_module()

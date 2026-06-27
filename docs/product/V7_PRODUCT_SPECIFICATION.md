@@ -204,6 +204,7 @@ Restore user connectivity quickly when a route, channel, service, or target fail
 
 Success criteria:
 Confirmed hard failures lead to bounded recovery action without waiting for manual investigation, and failed actions are verified and rolled back when needed.
+V7 reduces reaction latency by preparing trusted knowledge before runtime action while keeping live safety gates active.
 
 User value:
 Failures are short and recovery feels automatic.
@@ -739,6 +740,11 @@ These objectives are the long-term optimization target for OMP.
 
 10. Product Goal
     Increasing deployment size should have minimal impact on the cost, latency, and operational complexity of processing one bounded runtime decision.
+
+11. Recovery Latency
+    V7 should reduce the time from real degradation or failure to verified user-safe recovery.
+    This must be achieved by prepared knowledge, thin runtime execution, live safety gates, verification, rollback/no-rollback, and learning.
+    Product-level recovery latency is not a Phase 1 runtime SLO and must not bypass safety, authority, blast-radius, freshness, verification, or rollback requirements.
 
 ## What V7 Is Not
 

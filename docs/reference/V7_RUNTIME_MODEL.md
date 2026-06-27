@@ -61,6 +61,242 @@ Runtime inherits the permanent Decision Model and Engineering Principles laws:
 
 Runtime applies these laws by spending prepared knowledge and stopping whenever an existing owner cannot prove eligibility, authority, safety, verification, or rollback readiness.
 
+## Runtime Time Architecture
+
+Status: `RT_PHASE_1_CANONICAL`
+Owner: `V7_RUNTIME_MODEL`
+Phase: documentation/program alignment only.
+
+V7's time architecture separates slow knowledge work from the live execution path.
+
+This is not performance tuning.
+It is the architecture of time for a production control plane:
+
+```text
+Observation Plane
+  -> World Model Plane
+  -> Planning Plane
+  -> Execution Plane
+  -> Verification Plane
+  -> Feedback / Learning Plane
+  -> OMP / Certification Plane
+```
+
+Permanent principle:
+
+```text
+Slow knowledge work should be prepared outside the execution path wherever safety permits.
+Execution consumes prepared knowledge, then applies live safety gates.
+```
+
+### Time Architecture Planes
+
+| Plane | Purpose | Owns | Must not own | Existing owner / read model | Relationship to Runtime | Relationship to OMP | Future automation role |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Observation Plane | Observe current production reality. | Health, service matrix, sentinel, quality, route/runtime, channel status, evidence freshness. | Execution authority, movement, policy expansion, certification. | Service matrix, quality compact, Telegram sentinel, runtime truth, route reality. | Supplies trusted evidence to Runtime through prepared read models and live freshness checks. | Supplies evidence used by OMP certification and maturity. | Continuous observation becomes the input to event-driven autonomy. |
+| World Model Plane | Maintain the current known state of users, channels, services, policies, capacity, trust, and evidence. | Current state summaries, intelligence snapshots, trust/evidence summaries, CPS-visible state. | Apply, rollback, autonomous authority, broad recomputation inside Runtime. | Intelligence snapshots, Current Program State, Knowledge Plane, read-model owners. | Runtime consumes compact state, not raw historical scans. | OMP reads it to decide next work, certification, and authority boundaries. | Becomes continuous only after bounded automation and data scale controls are certified. |
+| Planning Plane | Prepare candidate readiness, target readiness, risk estimates, rollback/no-rollback plan, and bounded execution candidates. | Candidate universe, target readiness, policy fit, risk classification, capacity/blast hints. | Runtime apply, authority expansion, final live safety bypass. | Planner/autoswitch, operator decision surface, A5/A6/B13 owners. | Runtime consumes prepared decisions and must still revalidate live gates. | OMP certifies planner/read-model reliability before increasing authority. | Evolves toward desired-safe-state delta planning through existing owners. |
+| Execution Plane | Perform the shortest safe execute-or-stop action. | Lease-bound execution, STOP_SAFE, apply, rollback if required, terminal runtime result. | Slow knowledge building, broad audits, raw history scans, policy design, certification. | Runtime Model, governed transaction owner, autoswitch owner, packet/lease owner, restore barrier. | This is Runtime's thin path. It remains deterministic and fail-closed. | OMP consumes results and stop reasons; it does not execute inside Runtime. | Can become bounded autonomous only after A5/A6/B13/B16 and authority approval. |
+| Verification Plane | Prove whether the user/action is safe after mutation. | Post-apply verification, safety proof, rollback trigger. | Prediction-only success, synthetic evidence, authority promotion. | Verification/runtime readiness owners, truth/convergence surfaces where applicable. | Runtime must verify every mutation. | OMP consumes verified outcomes for certification. | Verification latency becomes a measured part of reaction latency. |
+| Feedback / Learning Plane | Convert terminal outcomes into feedback, trust, evidence, and learning. | Terminal classification, feedback, learning, evidence inventory, trust/recommendation updates. | Runtime apply authority, synthetic outcome creation, certification by itself. | Feedback/learning owners, evidence inventory, trust/read-model owners. | Runtime feeds it only from observed outcomes. | OMP consumes materialized learning for promotion and maturity. | Becomes incremental and latency-aware after measurement exists. |
+| OMP / Certification Plane | Decide maturity, certification, authority, backlog progression, and stop/continue. | Production maturity, capability progress, certification status, authority recommendation, next OMP step. | Runtime execution, live mutation, duplicate roadmap. | OMP, Current Program State, Implementation Backlog, Production Maturity Model. | Runtime notifies OMP after outcomes/stops; Runtime does not certify itself. | This is OMP's operating plane. | Decides when Phase 2 automation-time work may start. |
+
+Completion condition for RT1:
+
+```text
+All runtime time planes are named, owned, bounded, and mapped to existing owners.
+```
+
+Validation:
+
+- no new owner;
+- no new runtime path;
+- no automation;
+- no user movement;
+- no authority expansion.
+
+## Reaction Latency Model
+
+Status: `RT_PHASE_1_CANONICAL`
+Owner: `V7_RUNTIME_MODEL`
+
+Canonical definition:
+
+```text
+Reaction Latency =
+  Observation Latency
+  + Decision Latency
+  + Execution Latency
+  + Verification Latency
+  + Feedback / Learning Latency
+```
+
+Component definitions:
+
+| Component | Definition | Primary owner | User outage relevance |
+| --- | --- | --- | --- |
+| Observation Latency | Time from real degradation/failure to trusted evidence. | Observation Plane owners. | Direct. |
+| Decision Latency | Time from trusted evidence to eligible decision or `STOP_SAFE`. | Planning Plane, Decision Model, A6/runtime eligibility owners. | Direct. |
+| Execution Latency | Time from authority/eligibility to completed apply or `STOP_SAFE`. | Execution Plane owners. | Direct when apply is allowed. |
+| Verification Latency | Time from apply to verified safe/unsafe outcome. | Verification Plane owners. | Direct until safety is known. |
+| Feedback / Learning Latency | Time from terminal outcome to materialized feedback, learning, evidence, and OMP visibility. | Feedback / Learning Plane and OMP. | Product maturity latency; usually not direct outage time. |
+
+User recovery latency is mainly:
+
+```text
+Observation Latency
+  + Decision Latency
+  + Execution Latency
+  + Verification Latency
+```
+
+Feedback / Learning Latency affects product maturity, future decisions, certification, and trust.
+
+Phase 1 does not define numeric latency SLOs.
+Phase 1 does not create latency gates.
+Phase 1 only makes latency visible, owned, and reportable.
+
+Completion condition for RT2:
+
+```text
+Reaction Latency and all components are defined without numeric SLOs or runtime gates.
+```
+
+## Thin Runtime Path Contract
+
+Status: `RT_PHASE_1_CANONICAL`
+Owner: `V7_RUNTIME_MODEL`
+
+Runtime execution path must stay:
+
+- short;
+- deterministic;
+- lease-bound;
+- fail-closed.
+
+Runtime must not become the place where slow knowledge work is performed.
+Runtime may only do work that must be live for safety.
+
+Allowed live execution work:
+
+- freshness recheck;
+- authority generation / authority match;
+- action class / policy match;
+- source eligibility;
+- target eligibility;
+- lease validation;
+- restore barrier;
+- rollback/no-rollback readiness;
+- anti-flap / movement protection;
+- selected move identity verification;
+- apply;
+- verification;
+- rollback if required;
+- `STOP_SAFE`.
+
+Work that should be prepared earlier where safe:
+
+- health history;
+- service matrix;
+- quality summaries;
+- trust summaries;
+- candidate universe;
+- target readiness summaries;
+- capacity summaries;
+- rollback readiness summaries;
+- A4/B13 evidence summaries;
+- risk classification;
+- cohort/user suitability;
+- marginal evidence value;
+- operator/runtime read models.
+
+Permanent engineering rule:
+
+```text
+Every future owner must justify why a computation remains in Runtime
+if it can be safely prepared earlier.
+```
+
+This rule never finishes.
+It is a continuing engineering law.
+
+Completion condition for RT3:
+
+```text
+Runtime remains the thin live path; slow knowledge work is assigned to prepared owners unless safety requires live execution.
+```
+
+## Latency Ownership And Live/Precompute Matrix
+
+Status: `RT_PHASE_1_CANONICAL`
+Owner: `V7_RUNTIME_MODEL`
+
+This is the canonical matrix.
+Other documents may reference it but must not duplicate it as a second owner.
+
+| Stage | Existing owner | Files / modules | Latency contribution | Can be precomputed? | Must stay live? | Safety reason | Future optimization opportunity | Measurement field |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Observation | Service matrix, quality compact, Telegram sentinel, route/runtime truth | `tools/v7-service-matrix-refresh-all`, `tools/v7-egress-quality-compact`, `tools/v7-telegram-sentinel`, runtime state readers | Probe cadence and evidence freshness. | `YES` | `PARTIAL` | Runtime needs current enough evidence but should not run broad probes inside apply. | Continuous observation and fresher summaries. | `observation_latency` |
+| Snapshot / read model | Intelligence snapshots, Knowledge Plane, read-model owners | `admin_core/intelligence_snapshots.py`, `admin_core/intelligence_workers.py`, `admin_core/autonomy_trust_acceleration.py` | Aggregation and summarization time. | `YES` | `NO` | Expensive aggregation must stay outside Runtime. | Incremental summaries and hot read models. | `world_model_latency` |
+| Candidate generation | Planner/autoswitch, operator decision surface | `tools/v7-users-autoswitch`, `admin_core/operator_decision_surface.py` | Candidate universe and scoring time. | `PARTIAL` | `PARTIAL` | Candidate preparation can be early; final decision must match fresh state. | Candidate readiness and marginal evidence value precompute. | `candidate_generation_latency` |
+| Eligibility | Runtime eligibility, action-class enablement, policy gates | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory`, `admin_core/operator_execution_pipeline.py` | Gate arbitration time. | `PARTIAL` | `YES` | Final execute/stop must reflect live authority, freshness, blast, rollback, anti-flap, and verification. | A6 centralized eligibility read model. | `decision_latency` |
+| Decision | Decision Model, decision surface, governed pipeline | `admin_core/operator_decision_surface.py`, `admin_core/operator_execution_pipeline.py` | Time to produce committed eligible decision or stop. | `YES` after commit | `PARTIAL` | Committed decision may be reused until material change; live gates still apply. | Decision freshness lifetime and material-change checks. | `decision_latency` |
+| Packet / lease | Packet owner and execution lease owner | `tools/v7-operator-execution-packet`, `admin_core/operator_execution.py` | Fresh execution artifact and lease binding time. | `PARTIAL` | `YES` | Packet is transient and must match current authority/policy/class bounds. | Faster committed-preview to lease binding. | `execution_latency` |
+| Restore barrier | Restore / rollback owners | `admin_core/operator_execution.py`, restore-barrier state | Safety clearance time. | `NO` | `YES` | Restore barrier must be current at commit. | Prepared rollback summaries, live final clearance. | `execution_latency` |
+| Apply | Existing autoswitch owner | `tools/v7-users-autoswitch` | Irreversible mutation time. | `NO` | `YES` | Apply is the commit/mutation point and must be deterministic and fail-closed. | Keep path short; no broad scans. | `execution_latency` |
+| Verify | Verification/runtime readiness owners | governed transaction / verification owners | Post-apply proof time. | `NO` | `YES` | Prediction cannot replace verification. | Fast service-specific verification. | `verification_latency` |
+| Rollback / no-rollback | Restore barrier / rollback / autoswitch rollback owners | `admin_core/operator_execution.py`, `tools/v7-users-autoswitch` | Compensation decision/action time. | `PARTIAL` plan | `YES` | Plan can be prepared; action must respond to observed outcome. | Automatic rollback authority only after B16 certification. | `rollback_latency` |
+| Feedback | Feedback owner | `admin_core/operator_execution_feedback.py` | Terminal outcome materialization time. | `PARTIAL` | `PARTIAL` | Must use real terminal state and observed outcome. | Automatic terminal propagation. | `feedback_latency` |
+| Learning | Learning/evidence owners | `admin_core/operator_execution_feedback.py`, `admin_core/autonomy_trust_acceleration.py`, intelligence workers | Trust/evidence update time. | `YES` | `NO` | Learning is not part of user recovery fast path. | Incremental learning and compact evidence summaries. | `learning_latency` |
+| OMP / CPS | OMP, Current Program State, Production Maturity Model | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, `docs/programs/V7_CURRENT_PROGRAM_STATE.md`, `docs/reference/V7_PRODUCTION_MATURITY_MODEL.md` | Certification and program visibility time. | `YES` | `NO` | Program maturity is not live mutation. | Faster status recalculation after outcomes. | `omp_visibility_latency` |
+
+Completion condition for RT4:
+
+```text
+Every current runtime path stage has an owner, precompute/live classification, safety reason, future optimization path, and measurement field.
+```
+
+## Phase 2 Automation-Time Contract
+
+Status: `DEFERRED_UNTIL_BOUNDED_AUTONOMY_CERTIFIED`
+Owner: `V7_RUNTIME_MODEL` for the contract; OMP for execution order.
+
+Phase 2 is not optional.
+It is deferred because it requires bounded automation, real latency data, certified runtime eligibility, and explicit authority.
+
+Phase 2 must not start until:
+
+- bounded automation is certified;
+- A5 class-level blast-radius evidence is complete;
+- A6 runtime eligibility arbitration is complete;
+- B13 metric reliability is complete;
+- rollback/verification authority is certified where required;
+- Product Scale Objectives remain satisfied;
+- OMP authorizes Phase 2 work through the existing backlog/authority model.
+
+| Phase 2 item | Purpose | Why not Phase 1 | Dependency | Existing likely owner | Safety condition before implementation | Expected output |
+| --- | --- | --- | --- | --- | --- | --- |
+| Continuous World Model | Keep current state hot and queryable. | Requires scale-safe data freshness and bounded automation consumers. | A6, B13, Product Scale Objectives. | Intelligence snapshots, Knowledge Plane, runtime read models. | No heavy runtime scans; indexed/aggregated data. | Current-state read model with latency fields. |
+| Continuous Candidate Readiness | Maintain eligible candidate readiness before events. | Candidate readiness must not become autonomous movement. | A5, A6, B13. | Planner/autoswitch, operator decision surface. | Read-only until authority and eligibility pass. | Candidate readiness summary. |
+| Continuous Target Readiness | Maintain safe target readiness and capacity state. | Needs blast/capacity certification. | A5, B14, C7. | Planner capacity/load, service matrix, quality compact. | Target eligibility must still be live-checked. | Target readiness read model. |
+| Precomputed Recovery Plans | Prepare likely rollback/recovery options. | Recovery plans cannot replace live verification/rollback readiness. | A3, B8, B10, B16. | Restore/rollback owners, recovery admission. | Live restore barrier remains mandatory. | Recovery plan preview/read model. |
+| Desired Safe State | Express where users/channels should safely converge. | Desired state must not bypass current evidence and authority. | A6, B12, B13. | Runtime Model, OMP, planner owners. | Must be bounded by policy and blast radius. | Desired safe state artifact. |
+| Desired-State Delta Planner | Compute bounded delta from current to desired safe state. | A planner rewrite is forbidden; must evolve through existing planner. | Desired Safe State, A6, B13. | Existing planner/autoswitch. | Delta execution must be bounded, verified, and reversible where required. | Bounded delta plan. |
+| Safe Execution Queue | Schedule safe bounded execution attempts. | Queue implies automation and must wait for authority. | Bounded autonomy, A6, B16. | Governed transaction/runtime owners. | One queue item must still pass all live gates. | Auditable execution queue. |
+| Rate Limits | Prevent overreaction and storm behavior. | Needs real latency and blast evidence. | A5, B19, B20. | Anti-flap, blast-radius, runtime eligibility owners. | Hard failure override and anti-flap arbitration certified. | Rate-limit policy/read model. |
+| Blast-Radius Scheduling | Sequence actions by certified blast budget. | Depends on A5 and authority. | A5, B14, C7. | Blast-radius/action-class owners. | No silent blast expansion. | Schedule bounded by class/policy. |
+| Bounded Parallelism | Execute multiple safe actions when certified. | Forbidden before bounded automation and blast proof. | A5, A6, B13, B16. | Runtime/OMP/action-class owners. | Certified max concurrency and rollback/verification capacity. | Parallel execution envelope. |
+| Latency Budget | Define measured target budgets. | Phase 1 has no numeric gates or SLOs. | Real latency data, bounded automation. | OMP, Production Maturity Model, Runtime Model. | Must not create unsafe fast action incentives. | Latency budget per action class. |
+| Decision Freshness Lifetime | Define how long decisions remain valid by class. | Requires real freshness/material-change evidence. | A2, A6, C6, B18. | Freshness and lease owners. | Material state change gate remains mandatory. | Class-specific freshness lifetime. |
+| Runtime Performance Dashboard | Expose latency and fast-path health. | Needs measured fields and stable read models. | Latency instrumentation. | Admin/read-model owners. | Dashboard must not become decision owner. | Operator/engineering latency surface. |
+| Reaction Latency Certification | Certify reaction latency behavior by class. | Needs data, authority, and bounded automation. | Latency budgets, runtime dashboard, A6/B13. | OMP, Runtime Model, Production Maturity Model. | Certification cannot bypass safety gates. | Certified reaction-latency status. |
+
+Completion condition for RT6:
+
+```text
+Phase 2 scope, dependencies, owners, safety conditions, and expected outputs are defined without implementing Phase 2.
+```
+
 ## Wakeup Model
 
 Runtime may wake only from approved existing sources:

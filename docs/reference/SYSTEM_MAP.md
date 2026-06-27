@@ -14,6 +14,29 @@ Last verified date: 2026-06-24
 | `REPORTS` | Historical evidence only. | Evidence/report owners | `docs/reports/`, certified report files | Read only when evidence is explicitly required; never planning, backlog, or roadmap. |
 | `ADR` | Permanent decisions. | ADR owner / Canonical Reference | `docs/decisions/` | Read-only decisions; never implementation queue. |
 
+## Runtime Time Architecture Ownership
+
+Status: `RT_PHASE_1_COMPLETE`
+
+Canonical owner:
+
+```text
+docs/reference/V7_RUNTIME_MODEL.md
+```
+
+SYSTEM_MAP owns only the ownership reference.
+It does not duplicate the canonical live/precompute matrix.
+
+| Plane / stage family | Existing owners | Main files / modules | Lifecycle rule |
+| --- | --- | --- | --- |
+| Observation Plane | Service matrix, quality compact, Telegram sentinel, route/runtime truth | `tools/v7-service-matrix-refresh-all`, `tools/v7-egress-quality-compact`, `tools/v7-telegram-sentinel`, runtime state readers | Prepare trusted evidence outside apply; no movement authority. |
+| World Model Plane | Intelligence snapshots, Knowledge Plane, Current Program State | `admin_core/intelligence_snapshots.py`, `admin_core/intelligence_workers.py`, `docs/programs/V7_CURRENT_PROGRAM_STATE.md` | Maintain compact state/read models; no runtime apply. |
+| Planning Plane | Planner/autoswitch, operator decision surface, A5/A6/B13 owners | `tools/v7-users-autoswitch`, `admin_core/operator_decision_surface.py`, `admin_core/autonomy_trust_acceleration.py` | Prepare candidates and decisions; Runtime still applies live gates. |
+| Execution Plane | Runtime Model, governed transaction, packet/lease, restore barrier, autoswitch | `docs/reference/V7_RUNTIME_MODEL.md`, `admin_core/operator_execution.py`, `admin_core/operator_execution_pipeline.py`, `tools/v7-users-autoswitch` | Short, deterministic, lease-bound, fail-closed execute-or-stop path. |
+| Verification Plane | Verification/runtime readiness owners | governed transaction and verification owners | Prove post-action safety; prediction alone is insufficient. |
+| Feedback / Learning Plane | Feedback, learning, evidence inventory, trust/read-model owners | `admin_core/operator_execution_feedback.py`, `admin_core/autonomy_trust_acceleration.py`, intelligence workers | Materialize terminal outcomes and learning; no synthetic evidence. |
+| OMP / Certification Plane | OMP, Current Program State, Backlog, Production Maturity Model | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, `docs/programs/V7_CURRENT_PROGRAM_STATE.md`, `docs/programs/V7_IMPLEMENTATION_BACKLOG.md`, `docs/reference/V7_PRODUCTION_MATURITY_MODEL.md` | Certify maturity and authority; never execute runtime mutation. |
+
 | Module | Purpose | Main files | Truth source | Related reference section | Related reports | Last verified commit |
 | --- | --- | --- | --- | --- | --- | --- |
 | Product Specification | Highest-level product definition for V7. It defines what V7 is as a product: a production connectivity product that keeps users online by making routing invisible, learns from real outcomes, uses Action-Class Authority as the durable capability model, targets Delegated Autonomy Policy as the durable approval-boundary model, and owns Product Scale Model as the canonical product-level non-functional requirement for `10,000+` users, `100+` channels, millions of runtime decisions, and long-lived evidence history. Packets are fresh runtime execution artifacts, while the operator supervises policy boundaries, class authority, authority expansion, new classes, and exceptions. Architecture, OMP, Runtime, implementation, research, reports, and ADRs derive product meaning from it. | `docs/product/V7_PRODUCT_SPECIFICATION.md` | Certified project history, Canonical Reference, SYSTEM_MAP, Architecture, OMP, Decision Model, Runtime Model, Knowledge Quality Model, Autonomy Blueprint, ADRs, certified reports | Product Specification Rule; Product Scale Model | Product specification extracted from certified project history | documentation commit containing Product Specification 1.0 |

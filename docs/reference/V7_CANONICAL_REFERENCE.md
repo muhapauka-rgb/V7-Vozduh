@@ -38,6 +38,34 @@ Before launching any new audit, use Reference First:
 
 A new audit is allowed only when the reference has no answer, the reference explicitly marks the area `UNKNOWN`, system behavior changed after the last verified commit, or evidence contradicts this canonical reference. Otherwise, update the reference if needed and do not create a new audit.
 
+## RUNTIME_TIME_ARCHITECTURE_MODEL
+
+Status: `CANONICAL`
+
+Purpose: preserve the durable RT Phase 1 conclusion so future work does not rediscover or bypass V7's architecture of time.
+
+Canonical owner:
+
+```text
+docs/reference/V7_RUNTIME_MODEL.md
+```
+
+Stable conclusions:
+
+1. V7's time architecture is `Observation Plane -> World Model Plane -> Planning Plane -> Execution Plane -> Verification Plane -> Feedback / Learning Plane -> OMP / Certification Plane`.
+2. Runtime must remain the thin execution path: short, deterministic, lease-bound, and fail-closed.
+3. Slow knowledge work should be prepared outside the execution path wherever safety permits.
+4. Execution consumes prepared knowledge and then applies live safety gates.
+5. Reaction Latency means `Observation Latency + Decision Latency + Execution Latency + Verification Latency + Feedback / Learning Latency`.
+6. User recovery latency is mainly Observation, Decision, Execution, and Verification latency. Feedback / Learning latency affects product maturity, future decisions, and certification.
+7. Phase 1 creates no numeric latency SLOs, no latency gates, no runtime automation, no batch movement, no parallel movement, no execution queue, no user movement, no authority expansion, and no runtime behavior change.
+8. Phase 2 Automation-Time work is deferred, not optional. It may start only after bounded automation, runtime eligibility, blast radius, metric reliability, rollback/verification authority, and Product Scale constraints are certified through existing owners.
+9. Need New Owner remains `FALSE`; Need New Backlog Item remains `FALSE`; Need New Architecture remains `FALSE`.
+
+Re-audit rule:
+
+Do not re-audit Runtime Time Architecture unless runtime architecture changes materially, bounded automation is certified and Phase 2 begins, production latency evidence contradicts the current model, or the operator explicitly requests reopening.
+
 ## MASTER_SYSTEM_INTEGRATION_AUDIT_PART_1
 
 Status: `SYSTEM_INVENTORY_COMPLETE`

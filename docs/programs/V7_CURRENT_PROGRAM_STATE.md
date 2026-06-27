@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-27T23:29:00+0700
-Source: Continue OMP after A4 bounded collection and closure read-model certification validation. A4 representative outcome evidence is materialized from real governed production outcomes; candidate inventory signals are empty; decision outcome closure is `COMPLETE`; A4 is marked `DONE`. Runtime automation remains disabled, authority was not expanded, and no new owner/backlog/architecture was created.
+State captured: 2026-06-28T00:33:25+0700
+Source: RT Phase 1 documentation/program alignment after Runtime Latency and Continuous Control Plane audit. A4 representative outcome evidence remains `DONE`; A5 remains the current highest implementation item. RT Phase 1 embedded Runtime Time Architecture, Reaction Latency, Thin Runtime Path, live/precompute matrix, Engineering Report Latency Impact, and Phase 2 Automation-Time Contract through existing owners. Runtime automation remains disabled, authority was not expanded, no users were moved, and no new owner/backlog/architecture was created.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -16,10 +16,10 @@ This file is volatile. Update it after every safe action or approved execution t
 | Current bottleneck | `Implementation Backlog` |
 | Current highest leverage implementation | `A5_CERTIFY_CLASS_LEVEL_BLAST_RADIUS_EVIDENCE_BEYOND_ONE_USER_GUARD` |
 | Current highest leverage action | start A5 through existing blast-radius/action-class/planner budget owners; do not expand blast radius or authority silently |
-| Current authority class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE` |
-| authority_class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE` |
-| authority_reason | Operator approved bounded A4 collection for the current A4 scope; packet-by-packet approval is not required inside this envelope, but the envelope stops on failed live gates, duplicate candidates, or scope changes. |
-| authority_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch`. |
+| Current authority class | `NONE` |
+| authority_class | `NONE` |
+| authority_reason | A4 bounded collection authority is closed; no active production operation is approved. |
+| authority_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch` remain owners when a future governed action is explicitly approved. |
 | required_action | Execute A5 certification analysis through existing owners; A4 no longer requires additional governed movements. |
 | non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
 | optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
@@ -31,14 +31,15 @@ This file is volatile. Update it after every safe action or approved execution t
 | implementation_class | `OWNER_EXTENSION_COMPLETED` |
 | next_engineering_task | `A5_CERTIFY_CLASS_LEVEL_BLAST_RADIUS_EVIDENCE_BEYOND_ONE_USER_GUARD` |
 | expected_completion_evidence | Existing blast-radius/action-class/planner budget owners show whether one-user governed evidence can support the next certified blast-radius state without expanding authority silently. |
+| rt_phase1_status | `COMPLETE`; Runtime Time Architecture and Reaction Latency are canonicalized in Runtime Model and consumed by OMP/report lifecycle. |
 
 ## 1.1. Root Cause Engine Output
 
 | Field | Current Value |
 | --- | --- |
 | Stop condition | `NONE_FOR_A4`; continue to A5 |
-| Authority Class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE` |
-| Authority Reason | Bounded A4 authority is active for the current scope; no packet-by-packet approval is needed inside the approved envelope. |
+| Authority Class | `NONE` |
+| Authority Reason | No active operational authority; A4 collection authority is closed. |
 | Root Cause | A4 evidence inventory correctly counts concrete `user -> candidate_channel` keys; the implementation now prevents that inventory from becoming a mandatory full-matrix certification blocker. |
 | Responsible owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; existing A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration`; existing candidate outcome owner `admin_core.intelligence_workers`. |
 | Why it happened | Candidate coverage was useful for suitability learning, then became treated as the primary A4 completion counter without a separate representative sufficiency gate. |
@@ -89,7 +90,7 @@ This file is volatile. Update it after every safe action or approved execution t
 | world_equivalence_status | `CANONICAL` |
 | backlog_consistency_status | `CANONICAL_BACKLOG_MAPPING_CURRENT` |
 | state_change_cost_verdict | `ALREADY_EXISTS_SEMANTICALLY`; represented by existing movement-protection owners and extended through backlog item `B19` |
-| active_capability | `Learning`, `Authority Evolution`, `Production Readiness`, and `Production Autonomy`; current backlog item `A4` also contributes to `Movement Protection` through representative outcome evidence |
+| active_capability | `Runtime Eligibility`, `Authority Evolution`, `Production Readiness`, `Production Autonomy`, and `Movement Protection`; current backlog item `A5` certifies class-level blast-radius evidence beyond the one-user guard |
 | ideal_target_state | Movement Protection target state: Runtime evaluates current state, candidates, failure/degradation, freshness, recovery, blast radius, rollback, anti-flap, authority, State Change Cost, and Net Benefit; movement is allowed only when `NET_BENEFIT > CHANGE_COST` |
 | current_state | Capability-oriented OMP is active; Movement Protection is `IN_PROGRESS`; Decision Explainability is `IN_PROGRESS`; Runtime automation remains disabled; A3 is closed with real no-rollback evidence; A4 representative outcome evidence is `DONE`; A5 is next. |
 | knowledge_plane_status | `OPERATIONAL`; Audit Knowledge State is consumed through existing Canonical Reference, SYSTEM_MAP, OMP, Current Program State, Backlog, Knowledge Quality, Production Maturity, and Engineering Reports as historical evidence only |

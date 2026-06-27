@@ -105,6 +105,33 @@ State Change Cost verdict: `ALREADY_EXISTS_SEMANTICALLY`; extend existing B19 vo
 | Expected runtime gain | `HIGH` |
 | Expected safety gain | `VERY_HIGH` |
 
+## Runtime Latency Foundation Placement
+
+Status: `RT_PHASE_1_COMPLETE`.
+
+RT Phase 1 did not create a new backlog item.
+Runtime latency work must be absorbed by existing owners and backlog items.
+
+Canonical owner:
+
+```text
+docs/reference/V7_RUNTIME_MODEL.md
+```
+
+Backlog placement:
+
+| RT concern | Existing backlog owner | Reason |
+| --- | --- | --- |
+| Class-level blast-radius timing and action-size safety | `A5` | Safe low-latency recovery cannot expand action size before blast radius is certified. |
+| Runtime eligibility arbitration and live gate ordering | `A6` | The final execute/stop decision owns live safety gates and must preserve the thin runtime path. |
+| Metric reliability for promotion and latency-aware recommendations | `B13` | Fast decisions are unsafe unless metrics are reliable enough for promotion recommendations. |
+| Rollback authority and verification-dependent compensation | `B16` | Faster execution requires certified rollback/verification handling. |
+| Owner-issued freshness and decision lifetime | `B18`, `C6` | Reaction latency depends on freshness without permitting stale unsafe action. |
+| Anti-flap, state-change cost, and rate-limit semantics | `B19`, `B20` | Faster reaction must not create oscillation or retry storms. |
+| Recovery admission and slow-start timing | `B8`, `B9`, `B10` | Recovered targets must be re-admitted through repeated readiness, observation windows, and staged recovery. |
+
+No new owner, planner, runtime path, execution queue, daemon, authority model, or backlog item is allowed for RT Phase 1.
+
 ## Tier A: Highest Production Leverage
 
 | Id | Status | Task | Policy source | Owner | Files/modules | Implementation class | Estimated effort | Dependencies | Expected production value | Expected autonomy gain | Expected runtime gain | Expected safety gain |

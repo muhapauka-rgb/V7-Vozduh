@@ -833,6 +833,53 @@ def cancel_execution_lease(path, *, reason="operator_cancel", now=None):
     }
 
 
+def finish_execution_lease(path, *, status="EXECUTION_FINISHED", reason="", operation=None, now=None):
+    now = now or utc_now()
+    path = Path(path)
+    lease = load_execution_lease(path)
+    if not lease:
+        return {"ok": False, "verdict": "EXECUTION_LEASE_MISSING", "execution_allowed_now": False}
+    if status not in LEASE_TERMINAL_STATUSES:
+        return {
+            "ok": False,
+            "verdict": "EXECUTION_LEASE_TERMINAL_STATUS_INVALID",
+            "errors": ["invalid_execution_lease_terminal_status"],
+            "execution_allowed_now": False,
+        }
+    state = execution_lease_state(lease, now=now)
+    if not state.get("active") and state.get("status") in LEASE_TERMINAL_STATUSES:
+        return {
+            "ok": True,
+            "verdict": "EXECUTION_LEASE_ALREADY_TERMINAL",
+            "lease_file": str(path),
+            "lease": redact(lease),
+            "execution_allowed_now": False,
+        }
+    operation = operation if isinstance(operation, dict) else {}
+    apply_result = operation.get("apply_result") if isinstance(operation.get("apply_result"), dict) else {}
+    results = apply_result.get("results") if isinstance(apply_result.get("results"), list) else []
+    lease["status"] = status
+    lease["terminal_reason"] = str(reason or operation.get("terminal_reason") or status.lower())
+    lease["finished_at"] = now.isoformat()
+    lease["runtime_mutation_performed"] = bool(apply_result.get("applied"))
+    lease["apply_executed"] = bool(apply_result.get("applied"))
+    lease["users_moved"] = len(results)
+    lease["operation_terminal_state"] = str(operation.get("terminal_state") or "")
+    lease["operation_terminal_reason"] = str(operation.get("terminal_reason") or "")
+    lease["rollback_verdict"] = str(operation.get("rollback_verdict") or "")
+    lease["operation_id"] = str(operation.get("operation_id") or state.get("operation_id") or "")
+    lease["packet_id"] = str(state.get("packet_id") or ((lease.get("packet") or {}).get("packet_id") if isinstance(lease.get("packet"), dict) else ""))
+    lease["selected_move_hash"] = str(state.get("selected_move_hash") or "")
+    write_json_atomic(path, lease)
+    return {
+        "ok": True,
+        "verdict": "EXECUTION_LEASE_TERMINALIZED",
+        "lease_file": str(path),
+        "lease": redact(lease),
+        "execution_allowed_now": False,
+    }
+
+
 def is_preview_derived_packet(packet):
     return (
         str(packet.get("identity_source") or "") == "approved_preview_packet"
@@ -1751,6 +1798,10 @@ def main(argv=None):
     parser.add_argument("--execution-lease-file", default="")
     parser.add_argument("--cancel-execution-lease", action="store_true")
     parser.add_argument("--cancel-reason", default="operator_cancel")
+    parser.add_argument("--finish-execution-lease", action="store_true")
+    parser.add_argument("--finish-status", default="EXECUTION_FINISHED")
+    parser.add_argument("--finish-reason", default="")
+    parser.add_argument("--operation-result", default="")
     parser.add_argument("--approval-author", default="operator-a")
     parser.add_argument("--approval-reviewer", default="operator-b")
     parser.add_argument("--ttl-seconds", type=int, default=DEFAULT_CLEARANCE_TTL_SECONDS)
@@ -1776,6 +1827,20 @@ def main(argv=None):
                 raise PacketError("execution_lease_file_required")
             lease_path = resolve_under_repo(args.execution_lease_file, repo_root)
             result = cancel_execution_lease(lease_path, reason=args.cancel_reason)
+            text = json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True)
+            print(text)
+            return 0 if result.get("ok") else 2
+        if args.finish_execution_lease:
+            if not args.execution_lease_file:
+                raise PacketError("execution_lease_file_required")
+            lease_path = resolve_under_repo(args.execution_lease_file, repo_root)
+            operation = load_optional_json(args.operation_result) or {}
+            result = finish_execution_lease(
+                lease_path,
+                status=args.finish_status,
+                reason=args.finish_reason,
+                operation=operation,
+            )
             text = json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True)
             print(text)
             return 0 if result.get("ok") else 2

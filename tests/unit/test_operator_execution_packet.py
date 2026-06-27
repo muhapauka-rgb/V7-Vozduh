@@ -17,6 +17,7 @@ from admin_core.operator_execution import (
     execute_packet,
     execution_lease_state,
     extract_packet_preview,
+    finish_execution_lease,
     packet_from_preview,
     packet_identity,
     packet_from_plan,
@@ -647,6 +648,47 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertFalse(execution_lease_state(cancelled)["active"])
         past = datetime.now(timezone.utc) + timedelta(seconds=2)
         self.assertEqual(execution_lease_state(expired, now=past)["status"], "EXPIRED")
+
+    def test_finish_execution_lease_preserves_successful_apply_facts_and_releases_duplicate_guard(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            lease_file = root / "execution-lease.json"
+            lease = create_execution_lease_from_preview(
+                self.preview_packet(),
+                approval_author="operator-a",
+                approval_reviewer="operator-b",
+            )
+            write_result = write_execution_lease(lease_file, lease)
+            finish = finish_execution_lease(
+                lease_file,
+                status="EXECUTION_FINISHED",
+                reason="selected_moves_applied",
+                operation={
+                    "operation_id": "op-finished",
+                    "terminal_state": "APPLIED",
+                    "terminal_reason": "selected_moves_applied",
+                    "apply_result": {
+                        "applied": True,
+                        "results": [{"user_ip": "10.7.0.5", "from": "vless", "to": "awg3"}],
+                    },
+                },
+            )
+            finished = json.loads(lease_file.read_text(encoding="utf-8"))
+            second_lease = create_execution_lease_from_preview(
+                self.preview_packet(),
+                approval_author="operator-a",
+                approval_reviewer="operator-b",
+            )
+            second_write = write_execution_lease(lease_file, second_lease)
+
+        self.assertTrue(write_result["ok"])
+        self.assertTrue(finish["ok"])
+        self.assertEqual(execution_lease_state(finished)["status"], "EXECUTION_FINISHED")
+        self.assertFalse(execution_lease_state(finished)["active"])
+        self.assertTrue(finished["apply_executed"])
+        self.assertEqual(finished["users_moved"], 1)
+        self.assertEqual(finished["operation_terminal_state"], "APPLIED")
+        self.assertEqual(second_write["verdict"], "EXECUTION_LEASE_WRITTEN")
 
     def test_runtime_action_preview_builds_clearance_without_writes_and_survives_reread(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -3,7 +3,9 @@
 
 By default the tool only reads existing V7 state and snapshots. With
 --create-execution-lease it writes only the existing packet owner's immutable
-execution lease; it never moves users, enables daemons, or executes apply.
+execution lease. With --execute-governed-transaction and explicit confirmation
+it may execute one bounded governed apply through existing owners; it never
+enables daemons or runtime automation.
 """
 
 from __future__ import annotations
@@ -262,6 +264,283 @@ def execution_lease_not_created(reason: str, **extra: Any) -> dict[str, Any]:
     }
 
 
+def transaction_stop(reason: str, *, cycle: dict[str, Any] | None = None, **extra: Any) -> dict[str, Any]:
+    return {
+        "schema_version": "v7.governed-execution-transaction.v1",
+        "transaction_status": "STOP_SAFE",
+        "final_verdict": "GOVERNED_TRANSACTION_STOPPED",
+        "stop_reason": reason,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "runtime_automation_enabled": False,
+        "authority_expanded": False,
+        "new_architecture_created": False,
+        "new_authority_created": False,
+        "new_runtime_path_created": False,
+        "new_governance_created": False,
+        "new_owner_created": False,
+        "new_backlog_item_created": False,
+        "cycle": cycle or {},
+        **extra,
+    }
+
+
+def transaction_packet_constraints_ok(packet: dict[str, Any], cycle: dict[str, Any], max_users: int) -> dict[str, Any]:
+    constraints = packet.get("constraints") if isinstance(packet.get("constraints"), dict) else {}
+    expected = packet.get("expected") if isinstance(packet.get("expected"), dict) else {}
+    action_class = str(
+        ((cycle.get("action_class_runtime_enablement") or {}).get("current_action_class"))
+        or ((cycle.get("runtime_capability_view") or {}).get("runtime_capability"))
+        or ""
+    )
+    users = [str(item) for item in (constraints.get("allowed_users") or []) if str(item)]
+    targets = [str(item) for item in (constraints.get("allowed_targets") or []) if str(item)]
+    selected_count = int(expected.get("selected_move_count") or 0)
+    errors: list[str] = []
+    if action_class != "single-user governed candidate failover":
+        errors.append("action_class_changed")
+    if selected_count != 1:
+        errors.append("selected_move_count_not_one")
+    if len(users) != 1:
+        errors.append("user_scope_not_one")
+    if len(targets) != 1:
+        errors.append("target_scope_not_one")
+    if max_users != 1:
+        errors.append("transaction_max_users_not_one")
+    return {
+        "ok": not errors,
+        "errors": errors,
+        "action_class": action_class,
+        "users": users,
+        "targets": targets,
+        "selected_move_count": selected_count,
+    }
+
+
+def run_autoswitch_apply(
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    snapshot_root: Path,
+    restore_barrier_file: Path,
+    user: str,
+    target: str,
+) -> dict[str, Any]:
+    command = [
+        str(planner_observe_executable()),
+        "--mode",
+        "guarded",
+        "--max-selected-moves",
+        "1",
+        "--user",
+        user,
+        "--target-egress",
+        target,
+        "--state-dir",
+        str(state_dir),
+        "--event-dir",
+        str(event_dir),
+        "--intelligence-snapshot-root",
+        str(snapshot_root),
+        "--restore-barrier-file",
+        str(restore_barrier_file),
+        "--apply",
+        "--verify",
+        "--allow-pre-planner-refresh-with-apply",
+        "--pretty",
+    ]
+    try:
+        proc = subprocess.run(command, capture_output=True, text=True, timeout=90)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "ok": False,
+            "command": command,
+            "returncode": 124,
+            "error": str(exc),
+            "payload": {},
+        }
+    try:
+        payload = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        payload = {}
+    return {
+        "ok": proc.returncode == 0 and isinstance(payload, dict),
+        "command": command,
+        "returncode": proc.returncode,
+        "payload": payload if isinstance(payload, dict) else {},
+        "stderr_tail": proc.stderr[-1200:],
+        "stdout_tail": proc.stdout[-1200:] if not isinstance(payload, dict) else "",
+    }
+
+
+def lease_terminal_status_from_apply(payload: dict[str, Any]) -> str:
+    operation = payload.get("operation") if isinstance(payload.get("operation"), dict) else {}
+    apply_result = payload.get("apply_result") if isinstance(payload.get("apply_result"), dict) else {}
+    terminal = str(operation.get("terminal_state") or "")
+    rollback = str(operation.get("rollback_verdict") or "")
+    if terminal in {"ROLLED_BACK", "ROLLBACK_COMPLETED"} or rollback in {"ROLLBACK_COMPLETED", "ROLLED_BACK"}:
+        return "ROLLBACK_FINISHED"
+    if apply_result.get("applied"):
+        return "EXECUTION_FINISHED"
+    return "OPERATOR_CANCELLED"
+
+
+def execute_governed_transaction(args: argparse.Namespace, *, state_dir: Path, event_dir: Path, snapshot_root: Path, audit_dir: Path, lease_file: Path) -> dict[str, Any]:
+    if args.confirm_governed_transaction != "EXECUTE_GOVERNED_TRANSACTION_APPROVED":
+        return transaction_stop("transaction_confirmation_required")
+    if int(args.max_users) != 1:
+        return transaction_stop("transaction_max_users_must_be_one")
+
+    existing_lease = operator_execution.load_execution_lease(lease_file)
+    existing_state = operator_execution.execution_lease_state(existing_lease)
+    if existing_state.get("active"):
+        return transaction_stop("active_execution_lease_exists", execution_lease_state=existing_state)
+
+    users = read_registry(state_dir / "users.registry")
+    egress = read_registry(state_dir / "egress.registry")
+    runtime_state = read_json(state_dir / "v7-state.json", {})
+    records = decision_records(state_dir, event_dir, audit_dir)
+    events = event_rows(event_dir, args.max_events)
+    surface = operator_decision_surface.build_operator_decision_surface(
+        snapshot_root=snapshot_root,
+        users=users,
+        egress=egress,
+        runtime_state=runtime_state,
+        decision_records=records,
+    )
+    shadow_history = read_jsonl_family(state_dir / "shadow-autonomy-decisions.jsonl")
+    inventory = autonomy_trust_acceleration.build_acceleration_inventory(
+        snapshot_root=snapshot_root,
+        decision_surface=surface,
+        shadow_history=shadow_history,
+        decision_records=records,
+        event_rows=events,
+    )
+    surface["knowledge_quality_read_model"] = inventory.get("knowledge_quality_read_model", {})
+    surface["decision_outcome_learning"] = inventory.get("decision_outcome_learning", {})
+    planner_observe = {"skipped": True}
+    if not args.skip_planner_observe and not ((surface.get("batch_preview") or {}).get("users_to_move")):
+        planner_observe = run_planner_observe(state_dir, event_dir, snapshot_root, 1)
+        moves = selected_moves_from_planner_payload(planner_observe.get("payload", {}))
+        surface = merge_planner_moves_into_surface(surface, moves)
+
+    cycle = operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle(
+        events=events,
+        decision_surface=surface,
+        execution_lease=None,
+        max_users=1,
+    )
+    packet_preview = cycle.get("packet_preview") if isinstance(cycle.get("packet_preview"), dict) else {}
+    if cycle.get("stop_reason") != "AUTHORITY_BOUNDARY" or packet_preview.get("status") != "PACKET_PREVIEW_READY":
+        return transaction_stop("packet_not_ready", cycle=cycle, planner_observe=planner_observe)
+
+    try:
+        packet = operator_execution.packet_from_preview(
+            packet_preview,
+            approval_author=args.approval_author,
+            approval_reviewer=args.approval_reviewer,
+            ttl_seconds=args.ttl_seconds,
+        )
+    except Exception as exc:
+        return transaction_stop("packet_materialization_failed", cycle=cycle, error=str(exc))
+
+    constraints = transaction_packet_constraints_ok(packet, cycle, int(args.max_users))
+    if not constraints.get("ok"):
+        return transaction_stop("transaction_scope_invalid", cycle=cycle, constraints=constraints)
+
+    lease = operator_execution.create_execution_lease_from_packet(packet, source_preview=packet_preview)
+    lease_create_result = operator_execution.write_execution_lease(lease_file, lease)
+    if not lease_create_result.get("ok"):
+        return transaction_stop("execution_lease_not_created", cycle=cycle, execution_lease_create_result=lease_create_result)
+
+    restore_barrier_file = Path(args.restore_barrier_file) if args.restore_barrier_file else state_dir / "autoswitch-restore-barrier.json"
+    audit_store = audit_dir / "operator-execution-audit.jsonl"
+    lifecycle_store = audit_dir / "governance-lifecycle.jsonl"
+    clearance_result = operator_execution.execute_packet(
+        packet,
+        audit_store,
+        state_dir,
+        mode="runtime_action",
+        restore_barrier_file=restore_barrier_file,
+        lifecycle_store=lifecycle_store,
+    )
+    if not clearance_result.get("execution_allowed_now"):
+        terminal = operator_execution.finish_execution_lease(
+            lease_file,
+            status="OPERATOR_CANCELLED",
+            reason="transaction_stop_safe_before_apply",
+            operation={"terminal_state": "STOP_SAFE", "terminal_reason": "restore_barrier_clearance_denied", "apply_result": {"applied": False, "results": []}},
+        )
+        return transaction_stop(
+            "restore_barrier_clearance_denied",
+            cycle=cycle,
+            packet=operator_execution.redact(packet),
+            execution_lease_create_result=lease_create_result,
+            clearance_result=clearance_result,
+            lease_terminalization=terminal,
+        )
+
+    user = constraints["users"][0]
+    target = constraints["targets"][0]
+    apply_run = run_autoswitch_apply(
+        state_dir=state_dir,
+        event_dir=event_dir,
+        snapshot_root=snapshot_root,
+        restore_barrier_file=restore_barrier_file,
+        user=user,
+        target=target,
+    )
+    apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}
+    operation = dict(apply_payload.get("operation") or {})
+    operation["apply_result"] = apply_payload.get("apply_result") if isinstance(apply_payload.get("apply_result"), dict) else {}
+    terminal_status = lease_terminal_status_from_apply(apply_payload)
+    lease_terminalization = operator_execution.finish_execution_lease(
+        lease_file,
+        status=terminal_status,
+        reason=str(operation.get("terminal_reason") or "governed_transaction_complete"),
+        operation=operation,
+    )
+    apply_result = apply_payload.get("apply_result") if isinstance(apply_payload.get("apply_result"), dict) else {}
+    results = apply_result.get("results") if isinstance(apply_result.get("results"), list) else []
+    rollback_attempted = any(bool(row.get("rollback_attempted")) for row in results if isinstance(row, dict))
+    return {
+        "schema_version": "v7.governed-execution-transaction.v1",
+        "transaction_status": "COMPLETED" if apply_result.get("applied") else "STOP_SAFE",
+        "final_verdict": "GOVERNED_TRANSACTION_COMPLETED" if apply_result.get("applied") else "GOVERNED_TRANSACTION_STOPPED",
+        "fresh_packet_id": packet.get("packet_id", ""),
+        "decision_id": packet.get("decision_id", ""),
+        "operation_id": packet.get("operation_id", ""),
+        "selected_move_hash": (packet.get("expected") or {}).get("selected_move_hash", ""),
+        "user": user,
+        "source": ((packet.get("rollback_manifest") or {}).get("items") or [{}])[0].get("rollback_target", ""),
+        "target": target,
+        "one_execution_attempt": True,
+        "runtime_mutation_performed": bool(apply_result.get("applied")),
+        "restore_barrier_written_now": bool((clearance_result.get("clearance_result") or {}).get("ok")),
+        "apply_executed": bool(apply_result.get("applied")),
+        "verification_result": "PASS" if all(int(row.get("verify_rc", 1)) == 0 for row in results if isinstance(row, dict)) and results else ("NOT_RUN" if not results else "FAIL"),
+        "rollback_attempted": rollback_attempted,
+        "rollback_result": operation.get("rollback_verdict", "NOT_REQUIRED" if not rollback_attempted else ""),
+        "users_moved": len(results) if apply_result.get("applied") else 0,
+        "runtime_automation_enabled": False,
+        "authority_expanded": False,
+        "new_architecture_created": False,
+        "new_authority_created": False,
+        "new_runtime_path_created": False,
+        "new_governance_created": False,
+        "new_owner_created": False,
+        "new_backlog_item_created": False,
+        "cycle": cycle,
+        "planner_observe": planner_observe,
+        "execution_lease_create_result": lease_create_result,
+        "clearance_result": clearance_result,
+        "autoswitch_apply": apply_run,
+        "lease_terminalization": lease_terminalization,
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run V7 governed canary knowledge-gated dry-run cycle.")
     parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
@@ -273,7 +552,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--skip-planner-observe", action="store_true")
     parser.add_argument("--execution-lease-file", default="")
     parser.add_argument("--create-execution-lease", action="store_true")
+    parser.add_argument("--execute-governed-transaction", action="store_true")
+    parser.add_argument("--confirm-governed-transaction", default="")
     parser.add_argument("--committed-preview-file", default="")
+    parser.add_argument("--restore-barrier-file", default="")
     parser.add_argument("--approval-author", default="operator-a")
     parser.add_argument("--approval-reviewer", default="operator-b")
     parser.add_argument("--ttl-seconds", type=int, default=operator_execution.DEFAULT_EXECUTION_LEASE_TTL_SECONDS)
@@ -296,6 +578,17 @@ def main(argv=None) -> int:
     snapshot_root = Path(args.snapshot_root) if args.snapshot_root else state_dir / "intelligence"
     audit_dir = Path(args.audit_dir) if args.audit_dir else default_audit_dir(state_dir)
     lease_file = Path(args.execution_lease_file) if args.execution_lease_file else state_dir / "operator-execution-lease.json"
+    if args.execute_governed_transaction:
+        result = execute_governed_transaction(
+            args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
+        return 0 if result.get("final_verdict") == "GOVERNED_TRANSACTION_COMPLETED" else 2
     execution_lease = operator_execution.load_execution_lease(lease_file)
     execution_lease_state = operator_execution.execution_lease_state(execution_lease)
     active_execution_lease = bool(execution_lease_state.get("active"))

@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-27T00:39:54+0700
-Source: `Continue OMP` Engineering Control Loop ran ECR/Knowledge Plane/OMP, rechecked A4 through read-only production governed canary dry-run, and reached `OPERATIONAL_AUTHORITY` for exact packet `pkt_preview_c72b642b2b6cd55532979944`. No apply, restore barrier, rollback, authority expansion, runtime mutation, or user movement occurred.
+State captured: 2026-06-27T09:59:49+0700
+Source: Operator authorized one bounded governed execution transaction for A4. Fresh production packet `pkt_preview_2cb1fe3b8ce1551c75ccff11` was committed, leased, restored, applied, verified, closed as no-rollback evidence, and learned from. One user moved: `10.7.0.18` from `vless` to `awg3`. Runtime automation remains disabled and authority was not expanded. Residual blocker: the existing execution lease owner has no safe terminal-close path for successful apply, so production lease `execlease_dc58e5ca28c4ea6adc96418f` remains `ACTIVE` until expiry even though the outcome is recorded.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -15,38 +15,38 @@ This file is volatile. Update it after every safe action or approved execution t
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Implementation Backlog` |
 | Current highest leverage implementation | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Current highest leverage action | execute exact fresh governed packet `pkt_preview_c72b642b2b6cd55532979944` only if the operator approves; otherwise keep A4 blocked without synthetic evidence |
-| Current authority class | `OPERATIONAL_AUTHORITY`: engineering is ready, Runtime is ready, and one exact production action requires approval |
-| authority_class | `OPERATIONAL_AUTHORITY` |
-| authority_reason | A4 needs another real comparable governed outcome, and production dry-run prepared one exact packet: user `10.7.0.5` move `awg0 -> wireguard-1779454504-c43409`; approval is required before restore-barrier write or apply. |
+| Current highest leverage action | fix A4 governed transaction terminal closure inside the existing execution lease owner before another production transaction; do not create a new owner, new runtime path, or synthetic evidence |
+| Current authority class | `NONE`: the approved one-time governed transaction has already been consumed |
+| authority_class | `NONE` |
+| authority_reason | No new operator approval is currently requested. The latest approved transaction produced one real no-rollback outcome; the remaining blocker is an implementation closure gap, not authority. |
 | authority_owner | Existing packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch`. |
-| required_action | Operator must approve or reject exact packet `pkt_preview_c72b642b2b6cd55532979944`; no other packet, user, target, authority expansion, daemon/timer, runtime automation, or synthetic evidence is allowed. |
-| Current reality limit | `A4_REPRESENTATIVE_OUTCOME_EVIDENCE_REQUIRED`: A4 still requires real representative outcomes; a fresh governed packet is available to produce one such outcome if approved |
-| Current safe next action | stop and present exact approve/reject decision for packet `pkt_preview_c72b642b2b6cd55532979944` |
-| Current stop reason | `OPERATIONAL_AUTHORITY`: governed TIER_1 operator approval is required before restore-barrier write or apply |
-| root_cause | A4 needs representative real outcome evidence for the first action class; production dry-run found one fresh candidate, but V7 has no authority to execute it without operator approval. |
+| required_action | Implement only the existing-owner lease terminal-close gap for successful governed transaction outcomes; no apply, user movement, daemon/timer, runtime automation, authority expansion, or synthetic evidence is allowed during the fix. |
+| Current reality limit | `A4_REPRESENTATIVE_OUTCOME_EVIDENCE_REQUIRED`: A4 still requires more real representative outcomes; latest inventory reports `missing_candidate_outcomes=69` |
+| Current safe next action | implement and test terminal lease closure for successful governed transactions inside the existing execution lease owner, then rerun truth/convergence and A4 inventory |
+| Current stop reason | `UNSAFE_IMPLEMENTATION`: successful transaction outcome is recorded, but the execution lease remains `ACTIVE` until expiry because no safe `EXECUTION_FINISHED` materialization exists |
+| root_cause | A4 transaction execution path can produce real evidence, but the existing execution lease owner only exposes cancel/expiry and does not safely mark successful apply as terminal without corrupting outcome facts. |
 | responsible_owner | Existing apply/verify owner `tools/v7-users-autoswitch`; existing packet/execution lease owner `admin_core/operator_execution.py` remains reused. |
-| implementation_class | `AUTHORITY` |
+| implementation_class | `OWNER_EXTENSION` |
 | next_engineering_task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| expected_completion_evidence | exact approved packet execution, immediate verification, rollback/no-rollback classification, outcome closure, learning update, reduced candidate outcome gap, truth/convergence. |
+| expected_completion_evidence | execution lease can be marked `EXECUTION_FINISHED` after successful apply without changing packet identity, losing outcome facts, moving additional users, expanding authority, or bypassing safety. |
 
 ## 1.1. Root Cause Engine Output
 
 | Field | Current Value |
 | --- | --- |
-| Stop condition | `OPERATIONAL_AUTHORITY` |
-| Authority Class | `OPERATIONAL_AUTHORITY` |
-| Authority Reason | Exact packet `pkt_preview_c72b642b2b6cd55532979944` is ready for one governed production action and cannot proceed without operator approval. |
-| Root Cause | A4 needs representative real outcome evidence for the first action class; production dry-run found one fresh candidate, but V7 has no authority to execute it without operator approval. |
-| Responsible owner | Existing packet/execution/restore/apply/feedback owners. |
-| Why it happened | One real A3 outcome exists, but A4 needs more real representative outcomes; the dry-run prepared a candidate and stopped at the authority boundary. |
-| Why existing safety worked | Dry-run was read-only; it emitted an approval prompt and did not enable runtime automation, expand authority, write restore barrier, apply, rollback, or move users. |
-| Can existing owner be extended? | `YES`; already extended by commit `ca8514ae31c6a3536082298acc993c78efd36489`. |
+| Stop condition | `UNSAFE_IMPLEMENTATION` |
+| Authority Class | `NONE` |
+| Authority Reason | No new production authority is requested; the one-time transaction authority was consumed. |
+| Root Cause | Successful governed transaction execution is recorded, but the active execution lease remains `ACTIVE` until expiry because the existing lease owner has no terminal-close command/state materialization for successful apply. |
+| Responsible owner | Existing packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch` remains reused. |
+| Why it happened | `cancel_execution_lease` exists, but it writes `OPERATOR_CANCELLED` and clears apply/user-move fields; using it after success would corrupt the outcome. No existing safe `EXECUTION_FINISHED` path is exposed. |
+| Why existing safety worked | The transaction stayed inside one-user governed scope, wrote restore-barrier clearance, applied exactly one move, verified route health, did not rollback, did not enable runtime automation, and did not expand authority. |
+| Can existing owner be extended? | `YES`; extend existing execution lease owner only. |
 | Need New Owner | `FALSE` |
-| Implementation Class | `AUTHORITY` |
-| Concrete engineering task | Execute only exact packet `pkt_preview_c72b642b2b6cd55532979944` after operator approval, then verify, rollback if needed, close outcome, feed learning, and rerun A4 inventory. |
-| Expected completion evidence | One additional real governed outcome for the first action class, rollback/no-rollback classification, learning update, truth/convergence, and updated A4 evidence inventory. |
-| OMP automatic continuation | `NO`; current loop stops at operational authority until the exact packet is approved or rejected. |
+| Implementation Class | `OWNER_EXTENSION` |
+| Concrete engineering task | Add/test safe successful lease terminalization inside existing execution lease owner: `ACTIVE` -> `EXECUTION_FINISHED` after verified apply, preserving packet/decision/operation/move identity and outcome facts. |
+| Expected completion evidence | Active lease becomes terminal after success; duplicate lease guard releases; outcome facts remain intact; tests, truth, convergence, and A4 inventory pass. |
+| OMP automatic continuation | `YES_AFTER_FIX`; no authority is required for the lease terminal-close implementation itself. |
 
 ## 2. Current Metrics
 
@@ -57,11 +57,11 @@ This file is volatile. Update it after every safe action or approved execution t
 | Production maturity remaining | `76.0` |
 | Autonomy knowledge maturity score | `84.167` |
 | Confidence | `45.8 / 70` |
-| Trust | `44.465 / 70` |
+| Trust | `47.889 / 70` |
 | Prediction | `39.6 / 70` |
 | Suitability | `29.515 / 70` |
-| Candidate outcomes consumed | `84 / 156` |
-| Missing candidate outcomes | `72` |
+| Candidate outcomes consumed | `87 / 156` |
+| Missing candidate outcomes | `69` |
 
 ## 2.1. Engineering and Production Maturity
 
@@ -87,7 +87,7 @@ This file is volatile. Update it after every safe action or approved execution t
 | state_change_cost_verdict | `ALREADY_EXISTS_SEMANTICALLY`; represented by existing movement-protection owners and extended through backlog item `B19` |
 | active_capability | `Movement Protection`; current backlog item `A3` also contributes to `Rollback`, `Learning`, and `Authority Evolution` |
 | ideal_target_state | Movement Protection target state: Runtime evaluates current state, candidates, failure/degradation, freshness, recovery, blast radius, rollback, anti-flap, authority, State Change Cost, and Net Benefit; movement is allowed only when `NET_BENEFIT > CHANGE_COST` |
-| current_state | Capability-oriented OMP is active; Movement Protection is `IN_PROGRESS`; Decision Explainability is `IN_PROGRESS`; Runtime automation remains disabled; A3 is closed with real no-rollback evidence; A4 is blocked by insufficient representative real outcomes |
+| current_state | Capability-oriented OMP is active; Movement Protection is `IN_PROGRESS`; Decision Explainability is `IN_PROGRESS`; Runtime automation remains disabled; A3 is closed with real no-rollback evidence; A4 gained one additional governed no-rollback production outcome but remains blocked by insufficient representative real outcomes and a lease terminal-close implementation gap |
 | knowledge_plane_status | `OPERATIONAL`; Audit Knowledge State is consumed through existing Canonical Reference, SYSTEM_MAP, OMP, Current Program State, Backlog, Knowledge Quality, Production Maturity, and Engineering Reports as historical evidence only |
 | engineering_context_resolver_status | `OPERATIONAL`; ECR reuses existing `V7_CONTEXT_RESOLVER.md` and resolves task class, minimum working set, current/historical knowledge, re-open requirement, owner mapping, backlog mapping, and certification/runtime investigation need before work begins |
 | capability_progress | Movement Protection `35.7%`; Runtime Eligibility `28.6%`; Authority Evolution `40.0%`; Rollback `42.9%`; Recovery Admission `25.0%`; Learning `40.0%`; Production Readiness `24.0%`; Production Autonomy `0.0%`; Knowledge System `100.0%`; Observability `30.0%`; Decision Explainability `20.0%`; Implementation Discipline `100.0%`; Engineering Knowledge Preservation `100.0%` |
@@ -134,7 +134,7 @@ Overall Status
 ENGINEERING_COMPLETE / PRODUCTION_IN_PROGRESS
 
 Current Focus
-AUTHORITY
+IMPLEMENTATION
 
 Backlog
 Tier A
@@ -155,13 +155,13 @@ Highest Priority Task
 A4: materialize representative outcome evidence for the first action class.
 
 Status
-Production Action Ready
+Implementation Fix Required
 
 Authority
-Operational
+None
 
 Required Action
-Approve or reject exact packet `pkt_preview_c72b642b2b6cd55532979944`.
+Fix successful execution lease terminal closure inside existing owner.
 
 Engineering
 READY
@@ -170,7 +170,7 @@ Runtime
 READY
 
 Packet
-READY
+CONSUMED
 
 Estimated Remaining Work
 Moderate
@@ -517,5 +517,5 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
 | Production execution commands | approved packet execution through existing packet, lease, restore-barrier, autoswitch apply, verification, and feedback owners |
 | Production execution result | packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` applied exactly once: user `10.7.0.17` moved `vless -> awg3`; verification passed; rollback not required |
 | Production prompt safety | `restore_barrier_written_now=true`; `apply_executed=true`; `users_moved=1`; `rollback_executed=false`; no authority expansion |
-| Current packet freshness | A4 production dry-run prepared packet `pkt_preview_c72b642b2b6cd55532979944`; packet is current only for exact user `10.7.0.5`, move `awg0 -> wireguard-1779454504-c43409`, selected move hash `2d0af437b5fa7131596633a669014e24b5cdb55a943d4ee30b64956d990d968c` |
+| Current packet freshness | Prior approved packet `pkt_preview_2cb1fe3b8ce1551c75ccff11` is stale. A4 production recheck prepared packet `pkt_preview_c72b642b2b6cd55532979944`; packet is current only for exact user `10.7.0.5`, move `awg0 -> wireguard-1779454504-c43409`, selected move hash `2d0af437b5fa7131596633a669014e24b5cdb55a943d4ee30b64956d990d968c`, operation `govdry_3252ccec7fc7335c069d5a84`, decision `decision_commit_7732839641102c73ea53670c`, rollback manifest `rb_preview_25caf0af554686e597a37116` |
 | Exact next required approval | approve or reject exact packet `pkt_preview_c72b642b2b6cd55532979944` |

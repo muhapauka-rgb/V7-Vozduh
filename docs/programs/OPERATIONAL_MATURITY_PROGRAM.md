@@ -2826,6 +2826,25 @@ Latest Master OMP Certification Alignment implementation:
 | Validation | `python3 -m unittest tests.unit.test_autonomy_trust_acceleration`; `python3 -m unittest tests.unit.test_governed_canary_cli tests.unit.test_operator_execution_pipeline`; `tools/v7-autonomy-trust-evidence-inventory --action-class-runtime-only --pretty` |
 | Next OMP action | `A4_REPRESENTATIVE_CERTIFICATION_VALIDATION_AND_CONTINUE_OMP` |
 
+Latest A4 representative certification validation:
+
+| Field | Current Value |
+| --- | --- |
+| Engineering report | `docs/reports/engineering/2026-06-27_222642_a4_representative_certification_validation.md` |
+| Existing owner | `tools/v7-governed-canary-dry-run-cycle`; `admin_core.autonomy_trust_acceleration` |
+| Bounded collection command | `tools/v7-governed-canary-dry-run-cycle --execute-a4-bounded-evidence-collection --confirm-a4-bounded-evidence-collection EXECUTE_A4_BOUNDED_EVIDENCE_COLLECTION_APPROVED --max-users 1 --max-evidence-outcomes 68 --pretty` |
+| Collection status | `STOP_SAFE` |
+| Stop reason | `no_missing_a4_candidate_outcomes` |
+| Current missing A4 candidate keys | `0` |
+| Transactions attempted | `0` |
+| Users moved | `0` |
+| Runtime automation enabled | `NO` |
+| Authority expanded | `NO` |
+| Truth | `PASS` |
+| Convergence | `PASS` |
+| OMP meaning | Current A4 bounded collection has no gap-reducing candidate to execute; continue through mandatory certification gates instead of inventory enumeration. |
+| Next OMP action | `A4_MANDATORY_CERTIFICATION_GATE_VALIDATION` |
+
 Previous bounded A4 collection result:
 
 | Field | Current Value |
@@ -3696,16 +3715,16 @@ If daemon, timer, event consumer mutation, autonomous execution, action-class ex
 | --- | --- |
 | Completed phases | Architecture foundation, Research Framework, Decision Model, Runtime Model, System Architecture, Implementation Phase activation, OMP Production Program integration. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle; OMP Production Program rule set. |
-| Current bottleneck | A4 certification gate mismatch: A4 owns representative real outcome evidence, but current implementation over-treats full inventory closure as the certification gate. |
-| Current highest leverage action | Align existing A4/B13 evidence owners with the canonical certification model. |
+| Current bottleneck | A4 mandatory certification gates remain unsatisfied after signal taxonomy alignment and no current gap-reducing A4 candidates are available for bounded collection. |
+| Current highest leverage action | Validate the first action class against remaining mandatory certification gates through existing owners. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | `A4_CERTIFICATION_GATE_MISMATCH`: current inventory gap `62 / 156` must not be treated as proof that 62 additional governed moves are mandatory for first action-class certification. |
-| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; A4 evidence inventory is `94 / 156`, but A4 completion must be based on representative action-class evidence quality. |
-| Current runtime posture | No autonomous apply, no daemon enablement, and no authority expansion; do not continue moving users solely to close exhaustive inventory coverage. |
-| Current next best action | Implement existing-owner A4 certification gate alignment; no synthetic evidence, no threshold lowering, no new owner, no new backlog, no architecture change. |
-| Last optimizer iteration | `2026-06-27`: A4 goal-directed selection fixed, tested, deployed, and verified by truth/convergence; no users moved during implementation. |
+| Current blockers | `outcome_closure_state=ABSENT`; `no_verified_learning_growth_from_closed_real_outcomes`; `class-level rollback_or_no_rollback_certification`; `class-level blast_radius_certification`; `class-level authority_policy_approval`; `runtime policy binding through existing owners`. |
+| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; Production Maturity `24.0%`; Tier A backlog `3 / 6`; overall backlog `3 / 34`. |
+| Current runtime posture | No autonomous apply, no daemon enablement, no authority expansion; latest bounded A4 collection moved `0` users because no current missing candidate keys exist. |
+| Current next best action | `A4_MANDATORY_CERTIFICATION_GATE_VALIDATION`; no synthetic evidence, no threshold lowering, no new owner, no new backlog, no architecture change. |
+| Last optimizer iteration | `2026-06-27`: A4 signal taxonomy alignment deployed and verified; bounded A4 collection then stopped safely with `no_missing_a4_candidate_outcomes`. |
 
 ## 25. Program Rule For Future Work
 

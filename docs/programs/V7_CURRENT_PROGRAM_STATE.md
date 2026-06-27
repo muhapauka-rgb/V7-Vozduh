@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-27T21:56:15+0700
-Source: Master OMP Certification Alignment implementation completed. Existing A4/B13 evidence owner now separates mandatory certification requirements from supporting, inventory, reliability, and runtime-safety signals. Runtime, thresholds, formulas, authority, and architecture were not changed.
+State captured: 2026-06-27T22:26:42+0700
+Source: Continue OMP after A4 certification signal alignment. Existing A4 bounded collection owner found no current missing A4 candidate keys, performed no transactions, and moved no users. Runtime, thresholds, formulas, authority, and architecture were not changed.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -15,28 +15,28 @@ This file is volatile. Update it after every safe action or approved execution t
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Implementation Backlog` |
 | Current highest leverage implementation | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Current highest leverage action | continue A4 representative certification validation using the aligned signal taxonomy; do not require exhaustive `user -> candidate_channel` inventory enumeration as a hard gate |
+| Current highest leverage action | continue A4 through the remaining mandatory certification gates; current bounded collection found no gap-reducing A4 candidate outcomes to execute |
 | Current authority class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE` |
 | authority_class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE` |
 | authority_reason | Operator approved bounded A4 collection for the current A4 scope; packet-by-packet approval is not required inside this envelope, but the envelope stops on failed live gates, duplicate candidates, or scope changes. |
 | authority_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch`. |
-| required_action | Continue A4 through representative action-class evidence and certification validation; inventory coverage remains visible as supporting signal only. |
+| required_action | Stop trying to collect non-existent current A4 candidate keys; continue through existing certification owners for outcome closure, verified learning growth, rollback/no-rollback certification, blast-radius certification, authority policy approval, and runtime policy binding. |
 | non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
 | optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
-| Current reality limit | `A4_EVIDENCE_REQUIREMENT_OVERSCOPED`: A4 still requires real representative outcomes, but the current `62 / 156` inventory gap is not canonical proof that 62 more moves are mandatory. |
-| Current safe next action | run A4 representative certification validation through existing OMP owners, then continue to the highest remaining blocker. |
-| Current stop reason | `A4_SIGNAL_TAXONOMY_ALIGNED`; implementation no longer treats full inventory coverage as the A4 hard certification blocker |
+| Current reality limit | `NO_CURRENT_A4_GAP_REDUCING_CANDIDATE`: bounded A4 collection found `0` current missing candidate keys and therefore performed no production transaction. |
+| Current safe next action | validate remaining A4 mandatory certification gates through existing OMP/read-model owners; do not move users solely for inventory coverage. |
+| Current stop reason | `A4_COLLECTION_STOPPED_NO_MISSING_CANDIDATES`; no runtime mutation occurred |
 | root_cause | Fixed locally: `admin_core.autonomy_trust_acceleration` now classifies certification signals before exposing runtime enablement/readiness, and `missing_candidate_outcomes` remains an inventory signal instead of missing evidence. |
 | responsible_owner | Existing governed transaction feedback owner `tools/v7-governed-canary-dry-run-cycle`; existing feedback classifier owner `admin_core/operator_execution_feedback.py`; existing A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
 | implementation_class | `OWNER_EXTENSION_COMPLETED` |
-| next_engineering_task | `A4_REPRESENTATIVE_CERTIFICATION_VALIDATION_AND_CONTINUE_OMP` |
-| expected_completion_evidence | Tests and read-only inventory prove `missing_candidate_outcomes` is visible as inventory signal while `missing_evidence` contains only mandatory certification requirements. |
+| next_engineering_task | `A4_MANDATORY_CERTIFICATION_GATE_VALIDATION` |
+| expected_completion_evidence | Existing owners prove whether outcome closure, learning growth, rollback/no-rollback certification, blast-radius certification, authority policy approval, and runtime policy binding are satisfied for the first action class. |
 
 ## 1.1. Root Cause Engine Output
 
 | Field | Current Value |
 | --- | --- |
-| Stop condition | `NONE_FOR_ALIGNMENT`; A4 signal taxonomy alignment is complete and ready for representative certification validation |
+| Stop condition | `REAL_WORLD_LIMIT_NO_CURRENT_GAP_REDUCING_CANDIDATE`; A4 bounded collection has no current candidate to execute |
 | Authority Class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE` |
 | Authority Reason | Bounded A4 authority is active for the current scope; no packet-by-packet approval is needed inside the approved envelope. |
 | Root Cause | A4 evidence inventory correctly counts concrete `user -> candidate_channel` keys; the implementation now prevents that inventory from becoming a mandatory full-matrix certification blocker. |
@@ -46,9 +46,9 @@ This file is volatile. Update it after every safe action or approved execution t
 | Can existing owner be extended? | `YES`; existing owner was extended. |
 | Need New Owner | `FALSE` |
 | Implementation Class | `OWNER_EXTENSION_COMPLETED` |
-| Concrete engineering task | `A4_CERTIFICATION_GATE_ALIGNMENT_IN_EXISTING_EVIDENCE_OWNER` |
-| Expected completion evidence | `tests.unit.test_autonomy_trust_acceleration`, governed canary/pipeline tests, and `tools/v7-autonomy-trust-evidence-inventory --action-class-runtime-only --pretty` all preserve inventory visibility without promoting it to hard missing evidence. |
-| OMP automatic continuation | `YES`; continue with A4 representative certification validation. |
+| Concrete engineering task | `A4_MANDATORY_CERTIFICATION_GATE_VALIDATION` |
+| Expected completion evidence | Existing read-models show the first action class has or lacks required outcome closure, learning growth, rollback/no-rollback certification, blast-radius certification, authority policy approval, and runtime policy binding. |
+| OMP automatic continuation | `YES`; continue with existing certification owners, but do not execute user movement when no gap-reducing candidate exists. |
 
 ## 2. Current Metrics
 
@@ -62,10 +62,10 @@ This file is volatile. Update it after every safe action or approved execution t
 | Trust | `47.889 / 70` |
 | Prediction | `39.6 / 70` |
 | Suitability | `29.515 / 70` |
-| Candidate outcomes consumed | `94 / 156` |
-| Missing candidate outcomes | `62` |
+| Candidate outcomes consumed | Historical inventory signal remains supporting evidence; latest current missing A4 candidate key count is `0`. |
+| Missing candidate outcomes | `0 current missing candidate keys`; historical `94 / 156` inventory coverage is no longer a mandatory A4 gate. |
 | Future efficiency note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`; current A4 still proceeds with bounded gap-reduction guard, not candidate value ranking. |
-| Last bounded collection result | A4 gap-directed selection fix deployed; no user movement during implementation; A4 coverage remains `94 / 156 = 60.3%` until next real governed outcome. |
+| Last bounded collection result | `A4_BOUNDED_EVIDENCE_COLLECTION_STOPPED`; stop reason `no_missing_a4_candidate_outcomes`; transactions attempted `0`; users moved `0`; runtime automation `NO`; authority expansion `NO`. |
 
 ## 2.1. Engineering and Production Maturity
 

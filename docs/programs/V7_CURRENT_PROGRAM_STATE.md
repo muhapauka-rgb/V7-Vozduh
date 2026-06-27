@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-27T12:10:18+0700
-Source: A4 old exact-packet workflow was replaced in implementation by the existing Governed Execution Transaction workflow. Deployed commit `23752b68c072817976068f2813f199301ca6b31b` passed truth and convergence. Commit `93c89ed1c9a652cbd413f970ac4a3b9720a900f9` connects the successful governed transaction path to `admin_core/operator_execution_feedback.py`, passes focused tests, and is deployed as `deploy-z8-14-Updatesystem-93c89ed-20260627T113347`. A bounded A4 governed transaction then completed in production: fresh packet `pkt_preview_2b4c165055beb66d37b0581e`, user `10.7.0.19`, `vless -> awg3`, verification `PASS`, rollback `NOT_REQUIRED`, lease `execlease_bfb2dc40d9a78eea5e11a7e5` terminalized as `EXECUTION_FINISHED`, and feedback `execfb_dc570c36697ac0c9986d6661` was materialized through the existing feedback/learning owner. A4 evidence moved to `88 / 156` candidate outcomes consumed, with `68` missing. Commit `87c9d2fecec9a418cf9214d0b523f90ee4ecc0af` materializes the bounded A4 evidence collection mode in the existing governed canary owner, passes focused/relevant tests, is pushed to GitHub, and is deployed as `deploy-z8-14-Updatesystem-87c9d2f-20260627T120908`. Full truth with network access is `PASS` and production CLI exposes `--execute-a4-bounded-evidence-collection`. Runtime automation remains disabled, no users were moved by this implementation, and authority was not expanded.
+State captured: 2026-06-27T12:19:32+0700
+Source: A4 old exact-packet workflow was replaced in implementation by the existing Governed Execution Transaction workflow. Deployed commit `23752b68c072817976068f2813f199301ca6b31b` passed truth and convergence. Commit `93c89ed1c9a652cbd413f970ac4a3b9720a900f9` connects the successful governed transaction path to `admin_core/operator_execution_feedback.py`, passes focused tests, and is deployed as `deploy-z8-14-Updatesystem-93c89ed-20260627T113347`. A bounded A4 governed transaction then completed in production: fresh packet `pkt_preview_2b4c165055beb66d37b0581e`, user `10.7.0.19`, `vless -> awg3`, verification `PASS`, rollback `NOT_REQUIRED`, lease `execlease_bfb2dc40d9a78eea5e11a7e5` terminalized as `EXECUTION_FINISHED`, and feedback `execfb_dc570c36697ac0c9986d6661` was materialized through the existing feedback/learning owner. A4 evidence moved to `88 / 156` candidate outcomes consumed, with `68` missing. Commit `87c9d2fecec9a418cf9214d0b523f90ee4ecc0af` materializes the bounded A4 evidence collection mode in the existing governed canary owner, passes focused/relevant tests, is pushed to GitHub, and is deployed as `deploy-z8-14-Updatesystem-87c9d2f-20260627T120908`. Operator approved bounded A4 collection; production executed `4` successful governed transaction records and then stopped safely at `duplicate_transaction_candidate`. Runtime automation remains disabled and authority was not expanded. Evidence inventory after refresh still reports `88 / 156` consumed and `68` missing, so A4 progress did not increase; further production movement is stopped until the existing feedback/evidence path consumes successful bounded transaction outcomes.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -15,18 +15,18 @@ This file is volatile. Update it after every safe action or approved execution t
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Implementation Backlog` |
 | Current highest leverage implementation | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Current highest leverage action | stop at `OPERATIONAL_AUTHORITY` for bounded A4 evidence collection; if approved, execute up to `68` one-user governed transactions through the existing bounded collection mode, stopping on the first failed gate |
-| Current authority class | `OPERATIONAL_AUTHORITY`: bounded production evidence collection is implemented and deployed, but any restore-barrier write/apply/user movement still requires explicit operator authority |
-| authority_class | `OPERATIONAL_AUTHORITY` |
-| authority_reason | A4 needs real representative outcomes; the system can now collect them through one bounded production authority envelope instead of repeated packet approvals. |
+| Current highest leverage action | implement `A4_FIX_BOUNDED_COLLECTION_OUTCOME_VISIBILITY_AND_DUPLICATE_CANDIDATE_GUARD` before any more production movements |
+| Current authority class | `NONE`; current stop is implementation safety, not missing operator approval |
+| authority_class | `NONE` |
+| authority_reason | Bounded authority was consumed; further movement is unsafe until successful transaction records are consumed by A4 evidence and duplicate candidates are blocked before apply. |
 | authority_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch`. |
-| required_action | Approve or reject bounded A4 evidence collection for up to `68` successful one-user governed outcomes; no batch movement, no daemon/timer, no runtime automation, no permanent authority expansion. |
+| required_action | No approval requested now; fix existing A4 outcome visibility and duplicate-candidate guard first. |
 | Current reality limit | `A4_REPRESENTATIVE_OUTCOME_EVIDENCE_REQUIRED`: A4 still requires more real representative outcomes; latest inventory reports `missing_candidate_outcomes=68` |
-| Current safe next action | present the exact approve/reject decision for bounded A4 evidence collection; no synthetic evidence, no automation enablement, no permanent authority expansion |
-| Current stop reason | `OPERATIONAL_AUTHORITY`: bounded A4 evidence collection is ready but production movement authority is required |
-| root_cause | A4 still needs real representative production outcomes; repeated packet approvals are operationally inefficient, so the existing governed transaction owner was extended to collect bounded evidence under one explicit authority envelope. |
-| responsible_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; existing packet/lease owner `admin_core/operator_execution.py`; existing apply owner `tools/v7-users-autoswitch`; existing feedback owner `admin_core/operator_execution_feedback.py`. |
-| implementation_class | `AUTHORITY` |
+| Current safe next action | do not move more users; fix the existing feedback/evidence owner path so completed bounded transactions increment A4 representative evidence, and fix duplicate-candidate guard to stop before duplicate apply |
+| Current stop reason | `UNSAFE_IMPLEMENTATION`: bounded collection moved users and closed feedback, but A4 evidence inventory did not consume the new outcomes |
+| root_cause | Successful bounded transaction records were written to execution/closure/runtime-trust stores, but `admin_core.autonomy_trust_acceleration` still reports `candidate_outcomes_consumed=88`; additionally the same packet/user `pkt_preview_c5ff8a2d389a0f7e16343654` / `10.7.0.4` appeared twice before the duplicate stop. |
+| responsible_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; existing packet/lease owner `admin_core/operator_execution.py`; existing apply owner `tools/v7-users-autoswitch`; existing feedback owner `admin_core/operator_execution_feedback.py`; existing A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
+| implementation_class | `BUG` |
 | next_engineering_task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
 | expected_completion_evidence | A4 evidence inventory shows sufficient representative closed real outcomes, rollback/no-rollback certification, blast-radius certification, verified learning growth, and class-level readiness through existing owners. |
 
@@ -34,19 +34,19 @@ This file is volatile. Update it after every safe action or approved execution t
 
 | Field | Current Value |
 | --- | --- |
-| Stop condition | `OPERATIONAL_AUTHORITY` |
-| Authority Class | `OPERATIONAL_AUTHORITY` |
-| Authority Reason | Bounded A4 evidence collection is ready and requires explicit production-action approval before any restore-barrier write or apply. |
-| Root Cause | A4 evidence can advance only through real governed production outcomes; repeated exact-packet approval was replaced by a bounded collection mode, but production movement remains authority-bound. |
-| Responsible owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/lease owner `admin_core/operator_execution.py`; apply owner `tools/v7-users-autoswitch`; feedback owner `admin_core/operator_execution_feedback.py`. |
-| Why it happened | OMP consumed one approved A4 transaction successfully, then implementation showed that repeating exact packet approval would require many manual approvals for the same bounded evidence class. |
-| Why existing safety worked | The new collection mode reuses the one-user governed transaction path, requires an explicit confirmation token, stops on the first failed gate, rejects non-one-user scope, does not enable runtime automation, and does not expand authority. |
-| Can existing owner be extended? | `YES`; no new owner is required. Current step is approval/execution through existing owners, not architecture or implementation. |
+| Stop condition | `UNSAFE_IMPLEMENTATION` |
+| Authority Class | `NONE` |
+| Authority Reason | The approved bounded authority was consumed; no further authority request is valid until the implementation defect is fixed. |
+| Root Cause | Four successful governed transaction records were produced, but A4 evidence remained `88 / 156`; the collection also reached a duplicate transaction candidate after repeating `pkt_preview_c5ff8a2d389a0f7e16343654` for user `10.7.0.4`. |
+| Responsible owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/lease owner `admin_core/operator_execution.py`; apply owner `tools/v7-users-autoswitch`; feedback owner `admin_core/operator_execution_feedback.py`; A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
+| Why it happened | Bounded collection records feedback/closure rows, but the A4 candidate evidence read model does not treat those rows as newly consumed representative candidate outcomes. Duplicate detection also fired only after a repeated candidate appeared in the collection. |
+| Why existing safety worked | The collection stopped automatically at `duplicate_transaction_candidate`, did not enable runtime automation, did not expand authority, and truth/convergence remained `PASS`. |
+| Can existing owner be extended? | `YES`; no new owner is required. Current step is an implementation fix inside existing governed collection and feedback/evidence owners. |
 | Need New Owner | `FALSE` |
-| Implementation Class | `AUTHORITY` |
-| Concrete engineering task | If approved, execute bounded A4 evidence collection through `tools/v7-governed-canary-dry-run-cycle --execute-a4-bounded-evidence-collection`, with `--max-users 1`, `--max-evidence-outcomes 68`, and the explicit confirmation token; stop on the first failed gate. |
-| Expected completion evidence | Up to `68` additional one-user governed transactions close with verification/rollback/no-rollback classification and feedback/learning records, reducing A4 missing representative outcomes if consumed by the inventory. |
-| OMP automatic continuation | `NO`; stop for explicit operational approval before any restore-barrier write, apply, or user movement. |
+| Implementation Class | `BUG` |
+| Concrete engineering task | `A4_FIX_BOUNDED_COLLECTION_OUTCOME_VISIBILITY_AND_DUPLICATE_CANDIDATE_GUARD`: reuse existing feedback/evidence and governed collection owners; make completed bounded transactions visible to candidate outcome evidence; ensure duplicate candidate detection happens before apply. |
+| Expected completion evidence | Replaying read-only evidence inventory after the fix shows new bounded transaction outcomes consumed by A4, and duplicate packet/user candidates produce STOP before restore-barrier write or apply. |
+| OMP automatic continuation | `YES_AFTER_FIX`; implementation may continue through existing owners, but no production movement until tests/truth/convergence pass. |
 
 ## 2. Current Metrics
 
@@ -62,6 +62,7 @@ This file is volatile. Update it after every safe action or approved execution t
 | Suitability | `29.515 / 70` |
 | Candidate outcomes consumed | `88 / 156` |
 | Missing candidate outcomes | `68` |
+| Last bounded collection result | `4` successful governed transaction records; A4 evidence gain `0`; stop `duplicate_transaction_candidate` |
 
 ## 2.1. Engineering and Production Maturity
 
@@ -87,7 +88,7 @@ This file is volatile. Update it after every safe action or approved execution t
 | state_change_cost_verdict | `ALREADY_EXISTS_SEMANTICALLY`; represented by existing movement-protection owners and extended through backlog item `B19` |
 | active_capability | `Learning`, `Authority Evolution`, `Production Readiness`, and `Production Autonomy`; current backlog item `A4` also contributes to `Movement Protection` through representative outcome evidence |
 | ideal_target_state | Movement Protection target state: Runtime evaluates current state, candidates, failure/degradation, freshness, recovery, blast radius, rollback, anti-flap, authority, State Change Cost, and Net Benefit; movement is allowed only when `NET_BENEFIT > CHANGE_COST` |
-| current_state | Capability-oriented OMP is active; Movement Protection is `IN_PROGRESS`; Decision Explainability is `IN_PROGRESS`; Runtime automation remains disabled; A3 is closed with real no-rollback evidence; A4 Governed Execution Transaction workflow is operational; A4 feedback materialization is deployed and verified by one real production transaction; A4 bounded evidence collection mode is deployed and stops at `OPERATIONAL_AUTHORITY` before production movement |
+| current_state | Capability-oriented OMP is active; Movement Protection is `IN_PROGRESS`; Decision Explainability is `IN_PROGRESS`; Runtime automation remains disabled; A3 is closed with real no-rollback evidence; A4 Governed Execution Transaction workflow is operational; A4 bounded evidence collection mode executed `4` successful transaction records but A4 evidence did not advance, so OMP stops at `UNSAFE_IMPLEMENTATION` |
 | knowledge_plane_status | `OPERATIONAL`; Audit Knowledge State is consumed through existing Canonical Reference, SYSTEM_MAP, OMP, Current Program State, Backlog, Knowledge Quality, Production Maturity, and Engineering Reports as historical evidence only |
 | engineering_context_resolver_status | `OPERATIONAL`; ECR reuses existing `V7_CONTEXT_RESOLVER.md` and resolves task class, minimum working set, current/historical knowledge, re-open requirement, owner mapping, backlog mapping, and certification/runtime investigation need before work begins |
 | capability_progress | Movement Protection `35.7%`; Runtime Eligibility `28.6%`; Authority Evolution `40.0%`; Rollback `42.9%`; Recovery Admission `25.0%`; Learning `40.0%`; Production Readiness `24.0%`; Production Autonomy `0.0%`; Knowledge System `100.0%`; Observability `30.0%`; Decision Explainability `20.0%`; Implementation Discipline `100.0%`; Engineering Knowledge Preservation `100.0%` |

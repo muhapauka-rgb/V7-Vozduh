@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-27T12:58:30+0700
-Source: A4 bounded evidence collection defect was fixed through existing owners and deployed at commit `19882a14d81cc8a6d05e8e46d40fc63ae7ed5446` as `deploy-z8-14-Updatesystem-19882a1-20260627T125619`. The fix makes bounded collection stop before lease, restore barrier, and apply when the fresh transaction does not close a current missing A4 candidate key or repeats a transaction identity. Feedback records now preserve selected-move lineage. Focused tests passed `58 / 58`; relevant tests passed `209 / 209`; truth and convergence after deploy are `PASS` / `FULLY_ALIGNED`. A4 evidence remains `88 / 156 = 56.4%`; missing evidence remains `68 / 156 = 43.6%`. Runtime automation remains disabled and authority was not expanded. The next OMP step requires operational authority for one bounded A4 evidence collection cycle, not exact packet approval.
+State captured: 2026-06-27T13:04:00+0700
+Source: A4 bounded evidence collection defect was fixed through existing owners and deployed at commit `19882a14d81cc8a6d05e8e46d40fc63ae7ed5446` as `deploy-z8-14-Updatesystem-19882a1-20260627T125619`. The fix makes bounded collection stop before lease, restore barrier, and apply when the fresh transaction does not close a current missing A4 candidate key or repeats a transaction identity. Feedback records now preserve selected-move lineage. Focused tests passed `58 / 58`; relevant tests passed `209 / 209`; truth and convergence after deploy are `PASS` / `FULLY_ALIGNED`. A4 evidence remains `88 / 156 = 56.4%`; missing evidence remains `68 / 156 = 43.6%`. Runtime automation remains disabled and authority was not expanded. The next OMP step requires operational authority for one bounded A4 evidence collection cycle, not exact packet approval. Non-blocking future efficiency work `A4_MARGINAL_EVIDENCE_VALUE_RANKING` is recorded; it does not block current A4 collection and does not create a new backlog item.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -21,6 +21,8 @@ This file is volatile. Update it after every safe action or approved execution t
 | authority_reason | A4 still needs real production outcomes. Bounded collection may move users, so operator authority is required before restore-barrier write or apply. |
 | authority_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch`. |
 | required_action | Approve or reject one bounded A4 evidence collection cycle: max `68` successful outcomes, one user per transaction, current A4 action class only, stop on first failed gate. |
+| non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
+| optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
 | Current reality limit | `A4_REPRESENTATIVE_OUTCOME_EVIDENCE_REQUIRED`: A4 still requires more real representative outcomes; latest inventory reports `missing_candidate_outcomes=68` |
 | Current safe next action | stop at operational authority; if approved, run bounded A4 collection through existing governed transaction owner |
 | Current stop reason | `OPERATIONAL_AUTHORITY`: production movement is required to collect more real A4 evidence |
@@ -62,6 +64,7 @@ This file is volatile. Update it after every safe action or approved execution t
 | Suitability | `29.515 / 70` |
 | Candidate outcomes consumed | `88 / 156` |
 | Missing candidate outcomes | `68` |
+| Future efficiency note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`; current A4 still proceeds with bounded gap-reduction guard, not candidate value ranking. |
 | Last bounded collection result | Previous collection stopped safely; guard fix deployed. Current next collection is pending operator approval. |
 
 ## 2.1. Engineering and Production Maturity

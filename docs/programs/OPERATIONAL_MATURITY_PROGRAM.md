@@ -2693,6 +2693,22 @@ Current implementation optimizer result:
 | New highest implementation leverage task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
 | Stop boundary | `OPERATIONAL_AUTHORITY`: A4 requires real production movement to collect missing candidate outcomes. |
 
+Non-blocking A4 optimization note:
+
+| Field | Current Value |
+| --- | --- |
+| Optimization | `A4_MARGINAL_EVIDENCE_VALUE_RANKING` |
+| Status | `RECORDED_NOT_BLOCKING` |
+| Classification | `FUTURE_EFFICIENCY_WORK` |
+| Blocks A4 | `NO` |
+| Creates backlog item | `NO` |
+| Current behavior | Bounded A4 collection asks: `Does this fresh candidate reduce the current A4 evidence gap?` |
+| Future behavior | Rank currently eligible candidates by marginal evidence value and prefer the highest-value safe one. |
+| Marginal Evidence Value | Expected reduction of the current A4 representative evidence gap + verified learning value + new cohort/user/channel coverage value - movement/risk/cost/anti-flap penalty. |
+| Boundaries | No new authority; no runtime automation; no batch movement; one user per governed A4 transaction; stop on any failed live gate; no synthetic evidence; no threshold or formula change now. |
+| Existing owners | A4 evidence matcher/read-model owners; governed dry-run owner; intelligence workers; outcome leverage model; OMP. |
+| Current OMP action | Continue current bounded evidence collection; this note must not delay A4 evidence collection. |
+
 Latest safe deployment result:
 
 | Field | Current Value |

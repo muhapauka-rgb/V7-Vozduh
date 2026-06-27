@@ -2691,7 +2691,22 @@ Current implementation optimizer result:
 | Priority model | `docs/reference/V7_IMPLEMENTATION_PRIORITY_MODEL.md` |
 | Truth/convergence | Commit `19882a14d81cc8a6d05e8e46d40fc63ae7ed5446` is local/GitHub/production aligned; truth and convergence are `PASS`. |
 | New highest implementation leverage task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Stop boundary | `OPERATIONAL_AUTHORITY`: A4 requires real production movement to collect missing candidate outcomes. |
+| Stop boundary | `REAL_WORLD_LIMIT`: latest approved bounded cycle recorded two real outcomes, then stopped safely at `duplicate_transaction_candidate`; A4 now needs a fresh non-duplicate candidate. |
+
+Latest bounded A4 collection result:
+
+| Field | Current Value |
+| --- | --- |
+| Collection status | `STOP_SAFE` after bounded production execution |
+| Successful outcomes | `2` |
+| Users moved | `10.7.0.20 vless -> awg3`; `10.7.0.21 vless -> awg3` |
+| Verification | `PASS` for both governed transactions |
+| Rollback | `NOT_REQUIRED` for both governed transactions |
+| A4 evidence | `90 / 156 = 57.7%`; missing `66 / 156 = 42.3%` |
+| Stop reason | `duplicate_transaction_candidate`; duplicate guard stopped before another lease, restore-barrier write, or apply |
+| Runtime automation | `NO`; still disabled |
+| Authority expansion | `NO` |
+| Current next action | Continue A4 only when a fresh non-duplicate candidate exists; do not synthesize evidence or repeat the duplicate candidate |
 
 Non-blocking A4 optimization note:
 

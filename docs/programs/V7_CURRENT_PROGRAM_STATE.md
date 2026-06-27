@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-27T13:04:00+0700
-Source: A4 bounded evidence collection defect was fixed through existing owners and deployed at commit `19882a14d81cc8a6d05e8e46d40fc63ae7ed5446` as `deploy-z8-14-Updatesystem-19882a1-20260627T125619`. The fix makes bounded collection stop before lease, restore barrier, and apply when the fresh transaction does not close a current missing A4 candidate key or repeats a transaction identity. Feedback records now preserve selected-move lineage. Focused tests passed `58 / 58`; relevant tests passed `209 / 209`; truth and convergence after deploy are `PASS` / `FULLY_ALIGNED`. A4 evidence remains `88 / 156 = 56.4%`; missing evidence remains `68 / 156 = 43.6%`. Runtime automation remains disabled and authority was not expanded. The next OMP step requires operational authority for one bounded A4 evidence collection cycle, not exact packet approval. Non-blocking future efficiency work `A4_MARGINAL_EVIDENCE_VALUE_RANKING` is recorded; it does not block current A4 collection and does not create a new backlog item.
+State captured: 2026-06-27T14:13:22+0700
+Source: Approved bounded A4 evidence collection ran through the existing production governed transaction owner. Two one-user governed transactions succeeded and were verified: `10.7.0.20 vless -> awg3` and `10.7.0.21 vless -> awg3`. Rollback was not required. Learning and execution feedback records were written from real observed outcomes. The bounded cycle then stopped safely before another apply at `duplicate_transaction_candidate`. A4 evidence increased from `88 / 156 = 56.4%` to `90 / 156 = 57.7%`; missing evidence decreased from `68` to `66 = 42.3%`. Runtime automation remains disabled and authority was not expanded.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -15,18 +15,18 @@ This file is volatile. Update it after every safe action or approved execution t
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Implementation Backlog` |
 | Current highest leverage implementation | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Current highest leverage action | request operational authority for one bounded A4 evidence collection cycle, up to `68` successful missing candidate outcomes |
-| Current authority class | `OPERATIONAL_AUTHORITY`; engineering fix is deployed and production is aligned |
-| authority_class | `OPERATIONAL_AUTHORITY` |
-| authority_reason | A4 still needs real production outcomes. Bounded collection may move users, so operator authority is required before restore-barrier write or apply. |
+| Current highest leverage action | wait for or produce a fresh non-duplicate A4 candidate through existing read-model/runtime owners; do not repeat the duplicate candidate |
+| Current authority class | `NONE_ACTIVE`; the approved bounded cycle was consumed |
+| authority_class | `NONE_ACTIVE` |
+| authority_reason | No immediate production action is ready after the bounded cycle stopped at `duplicate_transaction_candidate`. Future movement still requires operational authority unless a separately approved bounded cycle is granted. |
 | authority_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch`. |
-| required_action | Approve or reject one bounded A4 evidence collection cycle: max `68` successful outcomes, one user per transaction, current A4 action class only, stop on first failed gate. |
+| required_action | No immediate approval request. Continue A4 only when a fresh non-duplicate candidate exists and live gates pass; do not create synthetic evidence. |
 | non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
 | optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
-| Current reality limit | `A4_REPRESENTATIVE_OUTCOME_EVIDENCE_REQUIRED`: A4 still requires more real representative outcomes; latest inventory reports `missing_candidate_outcomes=68` |
-| Current safe next action | stop at operational authority; if approved, run bounded A4 collection through existing governed transaction owner |
-| Current stop reason | `OPERATIONAL_AUTHORITY`: production movement is required to collect more real A4 evidence |
-| root_cause | A4 is correctly blocked by missing real representative outcomes after the implementation defect was fixed and deployed. |
+| Current reality limit | `A4_REPRESENTATIVE_OUTCOME_EVIDENCE_REQUIRED`: A4 still requires more real representative outcomes; latest production inventory reports `missing_candidate_outcomes=66` |
+| Current safe next action | stop until a fresh non-duplicate A4 candidate exists; current bounded cycle already consumed its one-time authority |
+| Current stop reason | `REAL_WORLD_LIMIT`: current state produced a duplicate transaction candidate after two successful outcomes |
+| root_cause | A4 needs more real representative outcomes, but the current immediate candidate repeats an already recorded transaction identity. |
 | responsible_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; existing packet/lease owner `admin_core/operator_execution.py`; existing apply owner `tools/v7-users-autoswitch`; existing feedback owner `admin_core/operator_execution_feedback.py`; existing A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
 | implementation_class | `BUG` |
 | next_engineering_task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
@@ -36,19 +36,19 @@ This file is volatile. Update it after every safe action or approved execution t
 
 | Field | Current Value |
 | --- | --- |
-| Stop condition | `OPERATIONAL_AUTHORITY` |
-| Authority Class | `OPERATIONAL_AUTHORITY` |
-| Authority Reason | Bounded A4 collection may perform production user movements. |
-| Root Cause | A4 still needs `68` real missing candidate outcomes; production movement requires explicit operational authority. |
+| Stop condition | `REAL_WORLD_LIMIT` |
+| Authority Class | `NONE_ACTIVE` |
+| Authority Reason | The approved bounded cycle was consumed; no fresh non-duplicate production candidate is currently ready. |
+| Root Cause | A4 collected two real outcomes, then stopped safely at `duplicate_transaction_candidate`. |
 | Responsible owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/lease owner `admin_core/operator_execution.py`; apply owner `tools/v7-users-autoswitch`; feedback owner `admin_core/operator_execution_feedback.py`; A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
-| Why it happened | Evidence cannot be synthesized; A4 must collect real bounded governed outcomes. |
-| Why existing safety worked | Runtime automation remains disabled; authority was not expanded; next production movement is blocked until operator approval. |
+| Why it happened | The current eligible candidate repeated a transaction identity already seen in the bounded cycle. |
+| Why existing safety worked | Duplicate guard stopped before lease, restore-barrier write, and apply for the repeated candidate. |
 | Can existing owner be extended? | `YES`; existing bounded governed transaction owner is ready for the next approved collection cycle. |
 | Need New Owner | `FALSE` |
-| Implementation Class | `AUTHORITY` |
-| Concrete engineering task | None before approval; execute one bounded A4 collection cycle only if approved. |
-| Expected completion evidence | A4 evidence inventory increases from `88 / 156`; duplicate/non-missing candidates stop before lease, restore barrier, and apply. |
-| OMP automatic continuation | `NO`; stop for operational authority before production movement. |
+| Implementation Class | `REAL_WORLD_LIMIT` |
+| Concrete engineering task | None immediately; wait for or discover a fresh non-duplicate A4 candidate through existing owners. |
+| Expected completion evidence | A4 evidence inventory increases beyond `90 / 156` only through real non-duplicate governed outcomes. |
+| OMP automatic continuation | `NO`; stop until a fresh non-duplicate production candidate exists or the operator explicitly grants another bounded cycle. |
 
 ## 2. Current Metrics
 
@@ -62,10 +62,10 @@ This file is volatile. Update it after every safe action or approved execution t
 | Trust | `47.889 / 70` |
 | Prediction | `39.6 / 70` |
 | Suitability | `29.515 / 70` |
-| Candidate outcomes consumed | `88 / 156` |
-| Missing candidate outcomes | `68` |
+| Candidate outcomes consumed | `90 / 156` |
+| Missing candidate outcomes | `66` |
 | Future efficiency note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`; current A4 still proceeds with bounded gap-reduction guard, not candidate value ranking. |
-| Last bounded collection result | Previous collection stopped safely; guard fix deployed. Current next collection is pending operator approval. |
+| Last bounded collection result | Approved production bounded cycle recorded two verified no-rollback outcomes, then stopped safely at `duplicate_transaction_candidate`. |
 
 ## 2.1. Engineering and Production Maturity
 

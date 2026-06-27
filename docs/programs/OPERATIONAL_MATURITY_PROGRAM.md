@@ -2684,26 +2684,26 @@ Current implementation optimizer result:
 | Highest implementation leverage task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
 | Implementation class | `IMPLEMENT_CERTIFICATION` |
 | Exact owner | Restore barrier, guarded autoswitch execution, verification, rollback, outcome closure, feedback/learning |
-| Exact module | Canonical Policy Library Stage 4 implementation backlog |
-| Exact files | `admin_core/operator_execution.py`, `tools/v7-users-autoswitch`, `admin_core/operator_execution_feedback.py`, `admin_core/autonomy_trust_acceleration.py` |
-| Implementation status | `A4_GOVERNED_TRANSACTION_EVIDENCE_COLLECTION_ACTIVE` |
+| Exact module | Canonical Policy Library Stage 4 implementation backlog and existing governed canary transaction owner |
+| Exact files | `tools/v7-governed-canary-dry-run-cycle`, `tests/unit/test_governed_canary_cli.py`, `admin_core/operator_execution.py`, `tools/v7-users-autoswitch`, `admin_core/operator_execution_feedback.py`, `admin_core/autonomy_trust_acceleration.py` |
+| Implementation status | `A4_BOUNDED_EVIDENCE_COLLECTION_READY` |
 | Backlog source | `docs/programs/V7_IMPLEMENTATION_BACKLOG.md` item `A4` |
 | Priority model | `docs/reference/V7_IMPLEMENTATION_PRIORITY_MODEL.md` |
-| Truth/convergence | Local and production runtime passed after the latest A4 transaction; full truth/convergence remain blocked only by the existing GitHub remote read/canonical-branch tool issue. |
+| Truth/convergence | Commit `87c9d2fecec9a418cf9214d0b523f90ee4ecc0af` is local/GitHub/production aligned; full truth with network access is `PASS`. |
 | New highest implementation leverage task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Stop boundary | `OPERATIONAL_AUTHORITY`: A4 still lacks enough representative real outcomes, and a fresh one-user governed packet is ready for explicit approval. |
+| Stop boundary | `OPERATIONAL_AUTHORITY`: bounded A4 evidence collection is ready, but production movement authority is required before any restore-barrier write or apply. |
 
 Latest safe deployment result:
 
 | Field | Current Value |
 | --- | --- |
-| Deployed commit | `93c89ed1c9a652cbd413f970ac4a3b9720a900f9` |
-| Deploy id | `deploy-z8-14-Updatesystem-93c89ed-20260627T113347` |
-| Deployed backlog items | `A1`, `A2`; A3 approval-to-execution lease binding fix; A3 approved plan lock snapshot-gate consumption fix; A3 real no-rollback outcome closure; A4 governed transaction feedback materialization |
-| Safety | Latest approved A4 transaction stayed inside one-user governed scope; runtime automation disabled; authority not expanded. |
-| Truth | Local and production runtime `PASS`; full `--all` blocked by GitHub remote read/canonical-branch tool condition. |
-| Convergence | Runtime aligned; full convergence `NO-GO` only because GitHub remote branch cannot be read by the convergence tool. |
-| Current stop | `OPERATIONAL_AUTHORITY`: packet `pkt_preview_79169161d388d83473ae732e` is ready for exactly one bounded A4 governed transaction; no synthetic evidence may be used |
+| Deployed commit | `87c9d2fecec9a418cf9214d0b523f90ee4ecc0af` |
+| Deploy id | `deploy-z8-14-Updatesystem-87c9d2f-20260627T120908` |
+| Deployed backlog items | `A1`, `A2`; A3 approval-to-execution lease binding fix; A3 approved plan lock snapshot-gate consumption fix; A3 real no-rollback outcome closure; A4 governed transaction feedback materialization; A4 bounded evidence collection mode |
+| Safety | Bounded collection mode reuses existing one-user governed transaction owner, requires explicit confirmation, stops on the first failed gate, keeps runtime automation disabled, and does not expand authority. |
+| Truth | Full `tools/v7-truth-check --all --json` with network access: `PASS`; local, GitHub, and production all at `87c9d2fecec9a418cf9214d0b523f90ee4ecc0af`. |
+| Convergence | Runtime aligned; deploy delta empty; production CLI exposes `--execute-a4-bounded-evidence-collection`. |
+| Current stop | `OPERATIONAL_AUTHORITY`: bounded A4 evidence collection can collect up to `68` successful one-user governed outcomes, but requires explicit approval before production movement; no synthetic evidence may be used |
 
 ## 2.13. Implementation Program Loop
 

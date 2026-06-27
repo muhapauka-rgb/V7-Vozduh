@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-27T18:27:35+0700
-Source: Master Action Class Certification Model audit completed. A4 owns representative real outcome evidence for the first action class, but full first-class certification requires `A4 -> A5 -> B13 -> A6 -> B12/authority`. `missing_candidate_outcomes` is inventory coverage/supporting evidence, not the canonical hard certification gate. Runtime, thresholds, formulas, authority, and architecture were not changed.
+State captured: 2026-06-27T21:32:51+0700
+Source: Master OMP Certification Alignment audit completed. OMP certification chain is internally consistent; first program-wide divergence is implementation/read-model semantics where A4/B13 evidence owner treats `missing_candidate_outcomes` inventory coverage as missing evidence. Runtime, thresholds, formulas, authority, and architecture were not changed.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -24,7 +24,7 @@ This file is volatile. Update it after every safe action or approved execution t
 | non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
 | optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
 | Current reality limit | `A4_EVIDENCE_REQUIREMENT_OVERSCOPED`: A4 still requires real representative outcomes, but the current `62 / 156` inventory gap is not canonical proof that 62 more moves are mandatory. |
-| Current safe next action | implement `A4_CERTIFICATION_GATE_ALIGNMENT_IN_EXISTING_EVIDENCE_OWNER`; do not lower thresholds, synthesize evidence, create new owners, or move users to exhaust inventory |
+| Current safe next action | implement `A4_CERTIFICATION_GATE_ALIGNMENT_IN_EXISTING_EVIDENCE_OWNER`; separate certification requirements from supporting, coverage, inventory, learning, reliability, optimization, and implementation-artifact signals |
 | Current stop reason | `A4_CERTIFICATION_GATE_MISMATCH`: current implementation over-treats full `user -> candidate_channel` coverage as the A4 completion blocker, while the canonical model requires representative action-class evidence |
 | root_cause | Fixed and deployed: `tools/v7-governed-canary-dry-run-cycle::materialize_governed_transaction_feedback` now sends terminal outcome classification, and `admin_core.operator_execution_feedback` classifies from final terminal transaction state instead of intermediate apply result. |
 | responsible_owner | Existing governed transaction feedback owner `tools/v7-governed-canary-dry-run-cycle`; existing feedback classifier owner `admin_core/operator_execution_feedback.py`; existing A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
@@ -47,7 +47,7 @@ This file is volatile. Update it after every safe action or approved execution t
 | Need New Owner | `FALSE` |
 | Implementation Class | `OWNER_EXTENSION_REQUIRED` |
 | Concrete engineering task | `A4_SEPARATE_REPRESENTATIVE_COMPLETION_GATE_FROM_CANDIDATE_INVENTORY_COVERAGE` |
-| Expected completion evidence | Tests and read-only inventory prove representative action-class criteria can be evaluated without requiring full enumeration of every current `user -> candidate_channel` key. |
+| Expected completion evidence | Tests and read-only inventory prove representative action-class criteria can be evaluated without requiring full enumeration of every current `user -> candidate_channel` key, while `missing_candidate_outcomes` remains visible as inventory/coverage signal. |
 | OMP automatic continuation | `NO`; continue after the existing evidence gate is corrected and verified. |
 
 ## 2. Current Metrics

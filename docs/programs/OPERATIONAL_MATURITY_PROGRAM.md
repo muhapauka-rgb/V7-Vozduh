@@ -2753,7 +2753,7 @@ Latest bounded A4 authority-envelope run:
 | A4 evidence | `93 / 156 = 59.6%`; missing `63 / 156 = 40.4%` |
 | Runtime automation | `NO` |
 | Authority expansion | `NO` |
-| Current next action | Do not ask for packet approval. Fix existing feedback/learning classification before resuming bounded collection. |
+| Current next action | Do not ask for packet approval. Safe deploy the implemented terminal outcome classification fix, run truth/convergence, then resume bounded collection. |
 
 Latest rollback learning audit:
 
@@ -2763,13 +2763,13 @@ Latest rollback learning audit:
 | Rollback behavior | `EXPECTED_RUNTIME_PROTECTION`; verification failed and rollback completed to `vless` |
 | Exact verification failure | Assignment expected `awg3`, but table route and route_get for `10.7.0.24` still used `tun0` after apply |
 | Planner verdict | No planner defect proven; candidate was in A4 scope and passed pre-apply guards |
-| Feedback defect | `tools/v7-governed-canary-dry-run-cycle::materialize_governed_transaction_feedback` passed `success=true/result=applied` into feedback classification even when verification failed and rollback completed |
-| Incorrect learning result | `outcome_status=success`, `outcome_quality=SUCCESS`, positive trust/recommendation deltas |
-| Correct learning result | Rollback/failure learning; preserve rollback success evidence; do not count as successful move evidence |
+| Feedback defect | Fixed locally: `tools/v7-governed-canary-dry-run-cycle::materialize_governed_transaction_feedback` now materializes terminal outcome classification and `admin_core.operator_execution_feedback` consumes terminal state before feedback/learning |
+| Incorrect learning result | Previous behavior produced `outcome_status=success`, `outcome_quality=SUCCESS`, positive trust/recommendation deltas |
+| Correct learning result | `ROLLBACK_SUCCESS` / rollback learning; preserve rollback success evidence; do not count as successful move evidence or promotion success |
 | Existing owner | `tools/v7-governed-canary-dry-run-cycle`; `admin_core/operator_execution_feedback.py`; A4 evidence owners |
 | Need New Owner | `FALSE` |
 | Need New Backlog | `FALSE` |
-| Current next action | Implement existing-owner feedback classification fix, then resume bounded A4 collection without packet-by-packet approval |
+| Current next action | Safe deploy the existing-owner terminal classification fix, run truth/convergence, then resume bounded A4 collection without packet-by-packet approval |
 
 Non-blocking A4 optimization note:
 
@@ -2797,7 +2797,7 @@ Latest safe deployment result:
 | Safety | Bounded collection mode reuses the existing one-user governed transaction owner, requires explicit confirmation, stops before lease/restore/apply for non-missing or duplicate candidates, keeps runtime automation disabled, and does not expand authority. |
 | Truth | Full `tools/v7-truth-check --all --json` with network access: `PASS`; local, GitHub, and production all at `19882a14d81cc8a6d05e8e46d40fc63ae7ed5446`. |
 | Convergence | Runtime aligned; deploy delta empty; runtime action guard `READY_FOR_RUNTIME_ACTION`. |
-| Current stop | `UNSAFE_IMPLEMENTATION`: feedback/learning currently misclassifies rollback-completed verification failure as success; no packet approval is needed, but bounded collection must wait for the existing-owner classification fix |
+| Current stop | `DEPLOY_REQUIRED`: terminal classification fix is implemented and tested locally; no packet approval is needed, but production must be aligned before bounded collection resumes |
 
 ## 2.13. Implementation Program Loop
 

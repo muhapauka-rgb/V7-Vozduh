@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-27T16:29:29+0700
-Source: OMP audited the A4 verification-failed rollback outcome. Rollback behavior was correct and protected the user, but feedback/learning materialization incorrectly classified `apply YES + verification FAIL + rollback COMPLETED` as `SUCCESS`. Current A4 progress remains `93 / 156 = 59.6%`; missing evidence remains `63 / 156 = 40.4%`. Do not continue bounded A4 collection until the existing feedback/learning owner classifies rollback-completed verification failures as rollback/failure learning instead of success learning.
+State captured: 2026-06-27T16:47:41+0700
+Source: OMP implemented the A4 terminal outcome classification fix through existing feedback/learning owners. `apply YES + verification FAIL + rollback COMPLETED` now classifies as `ROLLBACK_SUCCESS`, not `SUCCESS`; rollback outcomes remain learning evidence but do not increase success, trust, or promotion readiness as success. Current A4 progress remains `93 / 156 = 59.6%`; missing evidence remains `63 / 156 = 40.4%`. Safe deploy, truth, convergence, and A4 bounded collection continuation are next.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -15,40 +15,40 @@ This file is volatile. Update it after every safe action or approved execution t
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Implementation Backlog` |
 | Current highest leverage implementation | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Current highest leverage action | fix existing feedback/learning classification for `apply YES + verification FAIL + rollback COMPLETED`; do not request packet approval |
+| Current highest leverage action | deploy and validate the existing-owner terminal outcome classification fix, then resume bounded A4 collection under the already approved A4 envelope |
 | Current authority class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE_BUT_STOPPED_ON_FAILED_GATE` |
 | authority_class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE_BUT_STOPPED_ON_FAILED_GATE` |
 | authority_reason | Operator approved bounded A4 collection for the current A4 scope; packet-by-packet approval is not required inside this envelope, but the envelope stops on failed verification gate. |
 | authority_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch`. |
-| required_action | Do not request a new packet approval. Implement the existing-owner A4 feedback/learning classification fix before resuming bounded collection. |
+| required_action | Do not request a new packet approval. Safe deploy the implemented terminal classification fix, run truth/convergence, then resume bounded A4 collection. |
 | non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
 | optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
 | Current reality limit | `A4_REPRESENTATIVE_OUTCOME_EVIDENCE_REQUIRED`: A4 still requires more real representative outcomes; latest production inventory reports `missing_candidate_outcomes=63` |
-| Current safe next action | stop for existing-owner implementation fix; do not continue movement while rollback-completed failure learning is misclassified as success |
-| Current stop reason | `UNSAFE_IMPLEMENTATION`: feedback materialization misclassifies rollback-completed verification failure as success |
-| root_cause | `tools/v7-governed-canary-dry-run-cycle::materialize_governed_transaction_feedback` passes `success=true/result=applied` into `admin_core.operator_execution_feedback` even when verification failed and rollback completed, causing `outcome_status=success` and positive trust/recommendation deltas. |
+| Current safe next action | safe deploy the local fix, then truth/convergence; do not continue movement until production is aligned |
+| Current stop reason | `DEPLOY_REQUIRED`: local tests pass for the terminal classification fix; production must be aligned before A4 resumes |
+| root_cause | Fixed locally: `tools/v7-governed-canary-dry-run-cycle::materialize_governed_transaction_feedback` now sends terminal outcome classification, and `admin_core.operator_execution_feedback` classifies from final terminal transaction state instead of intermediate apply result. |
 | responsible_owner | Existing governed transaction feedback owner `tools/v7-governed-canary-dry-run-cycle`; existing feedback classifier owner `admin_core/operator_execution_feedback.py`; existing A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
 | implementation_class | `BUG` |
-| next_engineering_task | `A4_FIX_ROLLBACK_COMPLETED_VERIFICATION_FAILURE_FEEDBACK_CLASSIFICATION` |
-| expected_completion_evidence | Existing tests prove `apply YES + verification FAIL + rollback COMPLETED` is classified as rollback/failure learning, not success; truth/convergence pass; A4 can resume bounded collection without packet-by-packet approval. |
+| next_engineering_task | `A4_DEPLOY_TERMINAL_OUTCOME_CLASSIFICATION_FIX_AND_RESUME_BOUNDED_COLLECTION` |
+| expected_completion_evidence | Relevant tests pass; truth/convergence pass locally and after safe deploy; A4 can resume bounded collection without packet-by-packet approval. |
 
 ## 1.1. Root Cause Engine Output
 
 | Field | Current Value |
 | --- | --- |
-| Stop condition | `UNSAFE_IMPLEMENTATION` |
+| Stop condition | `DEPLOY_REQUIRED` |
 | Authority Class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE_BUT_STOPPED_ON_FAILED_GATE` |
 | Authority Reason | Bounded A4 authority is active for the current scope; no packet-by-packet approval is needed, but failed verification stops the envelope. |
-| Root Cause | Rollback-completed verification failure was materialized as `outcome_status=success` / `outcome_quality=SUCCESS`. |
+| Root Cause | Fixed locally: rollback-completed verification failure is now terminally classified as `ROLLBACK_SUCCESS`, not `SUCCESS`. |
 | Responsible owner | Existing governed transaction feedback owner `tools/v7-governed-canary-dry-run-cycle`; existing feedback classifier owner `admin_core/operator_execution_feedback.py`. |
-| Why it happened | The feedback payload treated successful apply as `success=true/result=applied`; verification failure and rollback context did not dominate outcome classification. |
+| Why it happened | The previous feedback payload treated successful apply as `success=true/result=applied`; verification failure and rollback context did not dominate outcome classification. |
 | Why existing safety worked | Autoswitch verified immediately, detected route mismatch, executed rollback, terminalized the lease as `ROLLBACK_FINISHED`, and stopped bounded collection. |
 | Can existing owner be extended? | `YES`; reuse existing feedback/learning owners. |
 | Need New Owner | `FALSE` |
 | Implementation Class | `BUG` |
-| Concrete engineering task | Fix existing feedback materialization/classification so `verification FAIL + rollback COMPLETED` becomes rollback/failure learning with non-positive recommendation/trust impact, while preserving rollback evidence. |
+| Concrete engineering task | Safe deploy the existing-owner terminal classification fix and validate truth/convergence before resuming A4. |
 | Expected completion evidence | Unit tests cover rollback-completed governed transaction feedback; truth/convergence pass; no runtime automation or authority expansion. |
-| OMP automatic continuation | `NO`; stop on unsafe learning classification until implemented. |
+| OMP automatic continuation | `YES_AFTER_DEPLOY`; continue A4 bounded collection after production alignment. |
 
 ## 2. Current Metrics
 

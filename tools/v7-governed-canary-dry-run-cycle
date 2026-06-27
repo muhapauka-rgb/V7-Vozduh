@@ -418,9 +418,22 @@ def materialize_governed_transaction_feedback(
         }
     packet_id = str(packet.get("packet_id") or "")
     selected_move_hash = str((packet.get("expected") or {}).get("selected_move_hash") or "")
+    operation_terminal_state = str(operation.get("terminal_state") or "")
+    rollback_verdict = str(operation.get("rollback_verdict") or ("NOT_REQUIRED" if not rollback_attempted else ""))
+    if verification_passed and not rollback_attempted:
+        terminal_outcome_classification = "SUCCESS"
+    elif rollback_verdict in {"ROLLBACK_COMPLETED", "ROLLED_BACK"}:
+        terminal_outcome_classification = "ROLLBACK_SUCCESS"
+    elif rollback_attempted:
+        terminal_outcome_classification = "ROLLBACK_FAILURE"
+    else:
+        terminal_outcome_classification = "APPLY_FAILURE"
     execution_result = {
-        "success": True,
-        "result": "applied",
+        "success": terminal_outcome_classification == "SUCCESS",
+        "result": "applied" if terminal_outcome_classification == "SUCCESS" else terminal_outcome_classification.lower(),
+        "terminal_state": operation_terminal_state,
+        "terminal_reason": str(operation.get("terminal_reason") or ""),
+        "terminal_outcome_classification": terminal_outcome_classification,
         "packet_id": packet_id,
         "decision_id": str(packet.get("decision_id") or ""),
         "operation_id": str(packet.get("operation_id") or operation.get("operation_id") or ""),
@@ -448,7 +461,8 @@ def materialize_governed_transaction_feedback(
     }
     rollback_result = {
         "rollback_required": bool(rollback_attempted),
-        "rollback_verdict": operation.get("rollback_verdict", "NOT_REQUIRED" if not rollback_attempted else ""),
+        "rollback_verdict": rollback_verdict,
+        "terminal_outcome_classification": terminal_outcome_classification,
     }
     contract = operator_execution_feedback.execution_feedback_contract(
         user=user,
@@ -474,6 +488,7 @@ def materialize_governed_transaction_feedback(
         "materialized": True,
         "feedback_id": contract.get("feedback_id", ""),
         "outcome_status": contract.get("outcome_status", ""),
+        "terminal_outcome_classification": contract.get("terminal_outcome_classification", ""),
         "outcome_quality": (contract.get("outcome_quality") or {}).get("outcome_quality", ""),
         "learning_value": (contract.get("outcome_quality") or {}).get("learning_value", ""),
         "knowledge_gained": bool((contract.get("knowledge_growth") or {}).get("knowledge_gained")),

@@ -104,15 +104,89 @@ class OperatorExecutionFeedbackTest(unittest.TestCase):
             user="10.7.0.3",
             source_channel="awg0",
             target_channel="awg3",
-            execution_result={"rollback_required": True},
-            verification_result={"rollback_required": True},
+            execution_result={"applied": True, "result": "applied"},
+            verification_result={"success": False, "result": "failed"},
+            rollback_result={"rollback_required": True, "rollback_verdict": "ROLLBACK_COMPLETED"},
             recommendation_hash="rec-3",
         )
 
         self.assertEqual(failure["outcome_status"], "failure")
         self.assertLess(failure["trust_delta"], 0)
-        self.assertEqual(rollback["outcome_status"], "rollback_required")
+        self.assertEqual(rollback["outcome_status"], "rollback_success")
         self.assertLess(rollback["recommendation_delta"], 0)
+
+    def test_terminal_outcome_classification_matrix(self):
+        success = feedback.execution_feedback_contract(
+            user="10.7.0.3",
+            source_channel="vless",
+            target_channel="awg3",
+            execution_result={"applied": True, "result": "applied"},
+            verification_result={"success": True, "result": "verified"},
+            rollback_result={"rollback_required": False, "rollback_verdict": "NOT_REQUIRED"},
+            recommendation_hash="rec-success",
+            prediction_expected=1.0,
+            prediction_actual=1.0,
+        )
+        rollback_success = feedback.execution_feedback_contract(
+            user="10.7.0.4",
+            source_channel="vless",
+            target_channel="awg3",
+            execution_result={"applied": True, "result": "applied"},
+            verification_result={"success": False, "result": "failed"},
+            rollback_result={"rollback_required": True, "rollback_verdict": "ROLLBACK_COMPLETED"},
+            recommendation_hash="rec-rollback-success",
+            prediction_expected=1.0,
+            prediction_actual=0.0,
+        )
+        rollback_failure = feedback.execution_feedback_contract(
+            user="10.7.0.5",
+            source_channel="vless",
+            target_channel="awg3",
+            execution_result={"applied": True, "result": "applied"},
+            verification_result={"success": False, "result": "failed"},
+            rollback_result={"rollback_required": True, "rollback_verdict": "ROLLBACK_FAILED"},
+            recommendation_hash="rec-rollback-failure",
+            prediction_expected=1.0,
+            prediction_actual=0.0,
+        )
+        no_execution = feedback.execution_feedback_contract(
+            user="10.7.0.6",
+            source_channel="vless",
+            target_channel="awg3",
+            execution_result={"apply_attempted": False, "result": "stop_safe"},
+            verification_result={},
+            rollback_result={},
+            recommendation_hash="rec-no-execution",
+        )
+        model = feedback.decision_outcome_learning_model(
+            [success, rollback_success, rollback_failure, no_execution],
+            generated_at="2026-06-27T00:00:00+00:00",
+        )
+
+        self.assertEqual(success["terminal_outcome_classification"], "SUCCESS")
+        self.assertEqual(success["outcome_quality"]["outcome_quality"], "SUCCESS")
+        self.assertGreater(success["trust_delta"], 0)
+
+        self.assertEqual(rollback_success["terminal_outcome_classification"], "ROLLBACK_SUCCESS")
+        self.assertEqual(rollback_success["outcome_quality"]["outcome_quality"], "ROLLBACK_SUCCESS")
+        self.assertEqual(rollback_success["trust_delta"], 0.0)
+        self.assertLess(rollback_success["recommendation_delta"], 0)
+        self.assertIn("Recovery", rollback_success["knowledge_growth"]["knowledge_improved"])
+
+        self.assertEqual(rollback_failure["terminal_outcome_classification"], "ROLLBACK_FAILURE")
+        self.assertEqual(rollback_failure["outcome_quality"]["outcome_quality"], "ROLLBACK_FAILURE")
+        self.assertLess(rollback_failure["recommendation_delta"], 0)
+        self.assertIn("Recovery", rollback_failure["knowledge_growth"]["knowledge_degraded"])
+
+        self.assertEqual(no_execution["terminal_outcome_classification"], "NO_EXECUTION")
+        self.assertEqual(no_execution["outcome_quality"]["outcome_quality"], "NO_EXECUTION")
+        self.assertFalse(no_execution["knowledge_growth"]["knowledge_gained"])
+
+        self.assertEqual(model["outcome_quality_counts"]["SUCCESS"], 1)
+        self.assertEqual(model["outcome_quality_counts"]["ROLLBACK_SUCCESS"], 1)
+        self.assertEqual(model["outcome_quality_counts"]["ROLLBACK_FAILURE"], 1)
+        self.assertEqual(model["outcome_quality_counts"]["NO_EXECUTION"], 1)
+        self.assertLess(model["effectiveness"]["recommendation_correct_rate"], 1.0)
 
     def test_recommendation_approval_intent_is_not_execution(self):
         packet = feedback.recommendation_approval_packet(

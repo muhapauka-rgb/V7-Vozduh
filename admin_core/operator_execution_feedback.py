@@ -16,6 +16,11 @@ from typing import Any
 SCHEMA_VERSION = "v7.operator-execution-feedback.v1"
 OUTCOME_QUALITY_SCHEMA_VERSION = "v7.decision-outcome-quality.v1"
 LEARNING_RECORD_SCHEMA_VERSION = "v7.decision-outcome-learning-record.v1"
+TERMINAL_OUTCOME_SUCCESS = "SUCCESS"
+TERMINAL_OUTCOME_ROLLBACK_SUCCESS = "ROLLBACK_SUCCESS"
+TERMINAL_OUTCOME_ROLLBACK_FAILURE = "ROLLBACK_FAILURE"
+TERMINAL_OUTCOME_APPLY_FAILURE = "APPLY_FAILURE"
+TERMINAL_OUTCOME_NO_EXECUTION = "NO_EXECUTION"
 
 
 def utc_now() -> str:
@@ -35,9 +40,100 @@ def as_float(value: Any, default: float = 0.0) -> float:
     return default if number != number else number
 
 
+def bool_value(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "ok", "pass", "passed", "verified", "success", "applied"}
+    return bool(value)
+
+
+def terminal_transaction_classification(
+    execution_result: dict[str, Any] | None = None,
+    verification_result: dict[str, Any] | None = None,
+    rollback_result: dict[str, Any] | None = None,
+) -> str:
+    """Classify from final terminal transaction state, never only from apply."""
+    row = execution_result if isinstance(execution_result, dict) else {}
+    verify = verification_result if isinstance(verification_result, dict) else {}
+    rollback = rollback_result if isinstance(rollback_result, dict) else {}
+    explicit = str(row.get("terminal_outcome_classification") or row.get("terminal_classification") or "").upper()
+    if explicit in {
+        TERMINAL_OUTCOME_SUCCESS,
+        TERMINAL_OUTCOME_ROLLBACK_SUCCESS,
+        TERMINAL_OUTCOME_ROLLBACK_FAILURE,
+        TERMINAL_OUTCOME_APPLY_FAILURE,
+        TERMINAL_OUTCOME_NO_EXECUTION,
+    }:
+        return explicit
+
+    apply_result = row.get("apply_result") if isinstance(row.get("apply_result"), dict) else {}
+    legacy_result = str(row.get("result") or row.get("status") or "").lower()
+    if legacy_result in {"rollback_success", "rolled_back"} and not verify:
+        return TERMINAL_OUTCOME_ROLLBACK_SUCCESS
+    if legacy_result in {"rollback_failure", "rollback_failed"} and not verify:
+        return TERMINAL_OUTCOME_ROLLBACK_FAILURE
+    applied = (
+        bool_value(row.get("applied"))
+        or bool_value(apply_result.get("applied"))
+        or str(row.get("result") or "").lower() == "applied"
+        or str(row.get("status") or "").lower() == "applied"
+        or legacy_result in {"ok", "success", "pass", "passed", "verified"}
+    )
+    apply_attempted = (
+        bool_value(row.get("apply_attempted"))
+        or bool_value(row.get("apply_executed"))
+        or applied
+        or row.get("success") is False
+        or str(row.get("terminal_state") or "").upper() in {"FAILED", "DENIED"}
+    )
+    if not applied:
+        return TERMINAL_OUTCOME_APPLY_FAILURE if apply_attempted else TERMINAL_OUTCOME_NO_EXECUTION
+
+    verification_passed = (
+        verify.get("success") is True
+        or verify.get("verification_passed") is True
+        or str(verify.get("status") or verify.get("result") or "").lower() in {"success", "verified", "pass", "passed"}
+    )
+    if verification_passed or (legacy_result in {"ok", "success", "pass", "passed", "verified"} and not verify):
+        return TERMINAL_OUTCOME_SUCCESS
+
+    rollback_verdict = str(
+        rollback.get("rollback_verdict")
+        or rollback.get("verdict")
+        or row.get("rollback_verdict")
+        or ""
+    ).upper()
+    rollback_required = (
+        bool_value(rollback.get("rollback_required"))
+        or bool_value(row.get("rollback_required"))
+        or bool_value(rollback.get("rollback_attempted"))
+        or bool_value(row.get("rollback_attempted"))
+        or bool(rollback_verdict)
+    )
+    if rollback_required and rollback_verdict in {"ROLLBACK_COMPLETED", "ROLLED_BACK", "OK", "SUCCESS"}:
+        return TERMINAL_OUTCOME_ROLLBACK_SUCCESS
+    if rollback_required:
+        return TERMINAL_OUTCOME_ROLLBACK_FAILURE
+    return TERMINAL_OUTCOME_APPLY_FAILURE
+
+
+def outcome_status_from_terminal(terminal_classification: str) -> str:
+    return {
+        TERMINAL_OUTCOME_SUCCESS: "success",
+        TERMINAL_OUTCOME_ROLLBACK_SUCCESS: "rollback_success",
+        TERMINAL_OUTCOME_ROLLBACK_FAILURE: "rollback_failure",
+        TERMINAL_OUTCOME_APPLY_FAILURE: "failure",
+        TERMINAL_OUTCOME_NO_EXECUTION: "no_execution",
+    }.get(terminal_classification, "unknown")
+
+
 def classify_outcome(result: dict[str, Any] | None = None, verification: dict[str, Any] | None = None) -> str:
     row = result if isinstance(result, dict) else {}
     verify = verification if isinstance(verification, dict) else {}
+    terminal = str(row.get("terminal_outcome_classification") or row.get("terminal_classification") or "").upper()
+    if terminal:
+        return outcome_status_from_terminal(terminal)
     text = " ".join(
         str(value).lower()
         for value in [
@@ -71,10 +167,10 @@ def feedback_deltas(outcome_status: str, prediction_expected: float = 0.0, predi
     elif outcome_status == "partial_success":
         trust_delta = 0.25
         recommendation_delta = 0.25
-    elif outcome_status == "rollback_required":
-        trust_delta = -1.0
+    elif outcome_status in {"rollback_required", "rollback_success"}:
+        trust_delta = 0.0
         recommendation_delta = -0.75
-    elif outcome_status == "failure":
+    elif outcome_status in {"failure", "rollback_failure"}:
         trust_delta = -1.5
         recommendation_delta = -1.0
     else:
@@ -108,7 +204,7 @@ def _service_impact(result: dict[str, Any], verification: dict[str, Any], outcom
             return "IMPROVED"
     if outcome_status == "success":
         return "IMPROVED"
-    if outcome_status in {"failure", "rollback_required"}:
+    if outcome_status in {"failure", "rollback_required", "rollback_success", "rollback_failure"}:
         return "DEGRADED"
     if outcome_status == "partial_success":
         return "UNCHANGED"
@@ -125,7 +221,7 @@ def _user_impact(result: dict[str, Any], verification: dict[str, Any], outcome_s
             return "DEGRADED"
     if outcome_status == "success":
         return "IMPROVED"
-    if outcome_status in {"failure", "rollback_required"}:
+    if outcome_status in {"failure", "rollback_required", "rollback_success", "rollback_failure"}:
         return "DEGRADED"
     if outcome_status == "partial_success":
         return "UNCHANGED"
@@ -144,13 +240,20 @@ def outcome_quality_evaluation(
     execution_result = execution_result if isinstance(execution_result, dict) else {}
     verification_result = verification_result if isinstance(verification_result, dict) else {}
     rollback_result = rollback_result if isinstance(rollback_result, dict) else {}
-    outcome_status = classify_outcome(execution_result, verification_result)
-    if outcome_status == "success":
+    terminal_classification = terminal_transaction_classification(execution_result, verification_result, rollback_result)
+    outcome_status = outcome_status_from_terminal(terminal_classification)
+    if terminal_classification == TERMINAL_OUTCOME_SUCCESS:
         quality = "SUCCESS"
     elif outcome_status == "partial_success":
         quality = "PARTIAL_SUCCESS"
-    elif outcome_status in {"failure", "rollback_required"}:
+    elif terminal_classification == TERMINAL_OUTCOME_ROLLBACK_SUCCESS:
+        quality = "ROLLBACK_SUCCESS"
+    elif terminal_classification == TERMINAL_OUTCOME_ROLLBACK_FAILURE:
+        quality = "ROLLBACK_FAILURE"
+    elif terminal_classification == TERMINAL_OUTCOME_APPLY_FAILURE:
         quality = "FAILED"
+    elif terminal_classification == TERMINAL_OUTCOME_NO_EXECUTION:
+        quality = "NO_EXECUTION"
     else:
         quality = "UNKNOWN"
     verification_complete = _verification_complete(verification_result)
@@ -158,12 +261,12 @@ def outcome_quality_evaluation(
         rollback_result
         or execution_result.get("rollback_required")
         or verification_result.get("rollback_required")
-        or outcome_status == "rollback_required"
+        or outcome_status in {"rollback_required", "rollback_success", "rollback_failure"}
     )
     prediction_error = abs(as_float(prediction_expected) - as_float(prediction_actual))
     if quality == "SUCCESS" and verification_complete and prediction_error <= 0.2:
         learning_value = "HIGH"
-    elif quality in {"SUCCESS", "PARTIAL_SUCCESS", "FAILED"}:
+    elif quality in {"SUCCESS", "PARTIAL_SUCCESS", "FAILED", "ROLLBACK_SUCCESS", "ROLLBACK_FAILURE"}:
         learning_value = "MEDIUM"
     else:
         learning_value = "LOW"
@@ -171,6 +274,7 @@ def outcome_quality_evaluation(
         "schema_version": OUTCOME_QUALITY_SCHEMA_VERSION,
         "outcome_quality": quality,
         "outcome_status": outcome_status,
+        "terminal_outcome_classification": terminal_classification,
         "service_impact": _service_impact(execution_result, verification_result, outcome_status),
         "user_impact": _user_impact(execution_result, verification_result, outcome_status),
         "verification_complete": verification_complete,
@@ -206,11 +310,23 @@ def knowledge_growth_from_outcome(outcome_quality: dict[str, Any]) -> dict[str, 
         prediction = "degraded"
         service = "degraded" if outcome_quality.get("service_impact") == "DEGRADED" else "unchanged"
         recovery = "improved" if rollback_used else "unchanged"
+    elif quality == "ROLLBACK_SUCCESS":
+        decision = "gained"
+        suitability = "degraded"
+        prediction = "degraded"
+        service = "degraded" if outcome_quality.get("service_impact") == "DEGRADED" else "unchanged"
+        recovery = "improved"
+    elif quality == "ROLLBACK_FAILURE":
+        decision = "gained"
+        suitability = "degraded"
+        prediction = "degraded"
+        service = "degraded" if outcome_quality.get("service_impact") == "DEGRADED" else "unchanged"
+        recovery = "degraded"
     else:
         decision = suitability = prediction = service = recovery = "unchanged"
     return {
         "schema_version": "v7.decision-knowledge-growth.v1",
-        "knowledge_gained": quality in {"SUCCESS", "PARTIAL_SUCCESS", "FAILED"},
+        "knowledge_gained": quality in {"SUCCESS", "PARTIAL_SUCCESS", "FAILED", "ROLLBACK_SUCCESS", "ROLLBACK_FAILURE"},
         "knowledge_improved": [name for name, state in {
             "Decision Outcome": decision,
             "Suitability": suitability,
@@ -261,6 +377,7 @@ def decision_learning_record(contract: dict[str, Any]) -> dict[str, Any]:
         "source_channel": contract.get("source_channel", ""),
         "target_channel": contract.get("target_channel", ""),
         "outcome_quality": outcome_quality.get("outcome_quality", "UNKNOWN"),
+        "terminal_outcome_classification": outcome_quality.get("terminal_outcome_classification", ""),
         "learning_value": outcome_quality.get("learning_value", "LOW"),
         "knowledge_growth": knowledge_growth,
         "trust_delta": contract.get("trust_delta", 0.0),
@@ -296,7 +413,8 @@ def execution_feedback_contract(
     execution_result = execution_result if isinstance(execution_result, dict) else {}
     verification_result = verification_result if isinstance(verification_result, dict) else {}
     rollback_result = rollback_result if isinstance(rollback_result, dict) else {}
-    outcome_status = classify_outcome(execution_result, verification_result)
+    terminal_classification = terminal_transaction_classification(execution_result, verification_result, rollback_result)
+    outcome_status = outcome_status_from_terminal(terminal_classification)
     deltas = feedback_deltas(outcome_status, prediction_expected, prediction_actual)
     quality = outcome_quality_evaluation(
         execution_result=execution_result,
@@ -321,6 +439,7 @@ def execution_feedback_contract(
         "execution_time": execution_time or str(execution_result.get("execution_time") or execution_result.get("created_at") or now),
         "verification_time": verification_time or str(verification_result.get("verification_time") or verification_result.get("created_at") or now),
         "outcome_status": outcome_status,
+        "terminal_outcome_classification": terminal_classification,
         "outcome_quality": quality,
         "knowledge_growth": growth,
         "execution_outcome": execution_result,
@@ -333,17 +452,20 @@ def execution_feedback_contract(
             "subject": target_channel,
             "delta": deltas["trust_delta"],
             "reason": outcome_status,
+            "terminal_outcome_classification": terminal_classification,
         },
         "prediction_feedback": {
             "prediction_expected": prediction_expected,
             "prediction_actual": prediction_actual,
             "delta": deltas["prediction_delta"],
             "outcome": outcome_status,
+            "terminal_outcome_classification": terminal_classification,
         },
         "recommendation_feedback": {
             "recommendation_hash": recommendation_hash,
             "delta": deltas["recommendation_delta"],
             "outcome": outcome_status,
+            "terminal_outcome_classification": terminal_classification,
         },
         "audit_reference": audit_reference,
         "closure_reference": closure_reference,
@@ -373,6 +495,7 @@ def materialized_feedback_records(contract: dict[str, Any]) -> dict[str, dict[st
         "source_channel": contract.get("source_channel", ""),
         "target_channel": contract.get("target_channel", ""),
         "outcome_status": contract.get("outcome_status", "unknown"),
+        "terminal_outcome_classification": contract.get("terminal_outcome_classification", ""),
         "audit_reference": contract.get("audit_reference", ""),
         "closure_reference": contract.get("closure_reference", ""),
         "recommendation_id": contract.get("recommendation_id", contract.get("recommendation_hash", "")),
@@ -467,6 +590,7 @@ def decision_outcome_learning_model(
             "user": str(record.get("user") or record.get("ip") or ""),
             "channel": str(record.get("target_channel") or record.get("channel") or record.get("egress") or record.get("target") or ""),
             "outcome_quality": outcome_quality,
+            "terminal_outcome_classification": str(quality.get("terminal_outcome_classification") or record.get("terminal_outcome_classification") or ""),
             "service_impact": quality.get("service_impact", "UNKNOWN"),
             "user_impact": quality.get("user_impact", "UNKNOWN"),
             "verification_complete": bool(quality.get("verification_complete")),
@@ -479,6 +603,9 @@ def decision_outcome_learning_model(
     success = sum(1 for row in rows if row["outcome_quality"] == "SUCCESS")
     partial = sum(1 for row in rows if row["outcome_quality"] == "PARTIAL_SUCCESS")
     failed = sum(1 for row in rows if row["outcome_quality"] == "FAILED")
+    rollback_success = sum(1 for row in rows if row["outcome_quality"] == "ROLLBACK_SUCCESS")
+    rollback_failure = sum(1 for row in rows if row["outcome_quality"] == "ROLLBACK_FAILURE")
+    no_execution = sum(1 for row in rows if row["outcome_quality"] == "NO_EXECUTION")
     service_improved = sum(1 for row in rows if row["service_impact"] == "IMPROVED")
     rollback_used = sum(1 for row in rows if row["rollback_used"])
     prediction_correct = sum(
@@ -512,6 +639,9 @@ def decision_outcome_learning_model(
             "SUCCESS": success,
             "PARTIAL_SUCCESS": partial,
             "FAILED": failed,
+            "ROLLBACK_SUCCESS": rollback_success,
+            "ROLLBACK_FAILURE": rollback_failure,
+            "NO_EXECUTION": no_execution,
             "UNKNOWN": 0,
         },
         "effectiveness": {

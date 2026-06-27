@@ -191,6 +191,67 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(execution_rows[0]["outcome_quality"]["outcome_quality"], "SUCCESS")
         self.assertEqual(closure_rows[0]["closure_state"], "CLOSED")
 
+    def test_materialized_feedback_classifies_rollback_completed_as_rollback_success(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir(parents=True)
+            packet = {
+                "packet_id": "pkt_preview_rollback",
+                "decision_id": "decision_commit_rollback",
+                "operation_id": "govdry_rollback",
+                "expected": {"selected_move_hash": "hash_rollback"},
+            }
+            apply_result = {
+                "applied": True,
+                "results": [
+                    {
+                        "user_ip": "10.7.0.24",
+                        "from": "vless",
+                        "to": "awg3",
+                        "verify_rc": 1,
+                        "rollback_attempted": True,
+                        "rollback_rc": 0,
+                        "rollback_verdict": "ROLLBACK_COMPLETED",
+                    }
+                ],
+            }
+            result = module.materialize_governed_transaction_feedback(
+                state_dir=state,
+                packet=packet,
+                operation={
+                    "operation_id": "runtime_autoswitch_rollback",
+                    "terminal_state": "ROLLED_BACK",
+                    "terminal_reason": "verification_failed_rollback_completed",
+                    "rollback_verdict": "ROLLBACK_COMPLETED",
+                },
+                apply_result=apply_result,
+                user="10.7.0.24",
+                source="vless",
+                target="awg3",
+                rollback_attempted=True,
+                verification_passed=False,
+            )
+            outcome_rows = [
+                json.loads(line)
+                for line in (state / "execution-events.jsonl").read_text(encoding="utf-8").splitlines()
+                if '"schema_version":"v7.execution-outcome-record.v1"' in line
+                or '"schema_version": "v7.execution-outcome-record.v1"' in line
+            ]
+            recommendation_rows = [
+                json.loads(line)
+                for line in (state / "proposal-records.jsonl").read_text(encoding="utf-8").splitlines()
+            ]
+
+        self.assertTrue(result["materialized"])
+        self.assertEqual(result["terminal_outcome_classification"], "ROLLBACK_SUCCESS")
+        self.assertEqual(result["outcome_quality"], "ROLLBACK_SUCCESS")
+        self.assertEqual(result["outcome_status"], "rollback_success")
+        self.assertEqual(outcome_rows[0]["outcome_quality"]["outcome_quality"], "ROLLBACK_SUCCESS")
+        self.assertEqual(outcome_rows[0]["terminal_outcome_classification"], "ROLLBACK_SUCCESS")
+        self.assertLess(recommendation_rows[0]["delta"], 0)
+
     def test_execute_governed_transaction_requires_explicit_transaction_confirmation(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

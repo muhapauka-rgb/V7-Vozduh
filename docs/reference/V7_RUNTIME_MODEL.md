@@ -281,6 +281,39 @@ Runtime must not:
 | Notify OMP | Surface result for next HLA and bottleneck decision. | Updated Current Program State. | OMP | OMP notification unavailable. |
 | Sleep | Terminate safe and await next approved wakeup. | Final state. | Runtime Model | Any unresolved unsafe state stops before sleep. |
 
+## Terminal Outcome Classification
+
+Runtime outcome classification must use the final terminal transaction state, not an intermediate apply result.
+
+Canonical classification order:
+
+```text
+Apply
+  -> Verification
+  -> Rollback / No-Rollback
+  -> Terminal Transaction State
+  -> Outcome Classification
+  -> Feedback
+  -> Learning
+  -> Trust
+  -> Evidence
+  -> Promotion
+```
+
+Canonical terminal classifications:
+
+| Terminal facts | Outcome classification | Learning rule | Promotion rule |
+| --- | --- | --- | --- |
+| Apply PASS, Verification PASS, Rollback NOT_REQUIRED | `SUCCESS` | Positive learning; trust, prediction confidence, recommendation confidence, and representative success evidence may increase from real observation. | May count as success evidence when other A4 gates pass. |
+| Apply PASS, Verification FAIL, Rollback COMPLETED | `ROLLBACK_SUCCESS` | Rollback learning; rollback knowledge, failure-family knowledge, and recovery confidence may increase; recommendation confidence for this condition must decrease or stay non-positive. | Must not count as successful move evidence or increase promotion readiness as success. |
+| Apply PASS, Verification FAIL, Rollback FAILED | `ROLLBACK_FAILURE` | Failure learning; rollback failure knowledge, recovery investigation priority, and risk knowledge may increase. | Must not count as success evidence. |
+| Apply FAIL | `APPLY_FAILURE` | Failure learning only. | Must not count as success evidence. |
+| STOP_SAFE before Apply | `NO_EXECUTION` | No production outcome learning; preserve stop reason only. | Must not increase maturity, authority, or promotion readiness. |
+
+Rollback must never be reclassified as `SUCCESS`.
+Representative evidence may include success, rollback, and failed outcomes, but each category must preserve its own semantics.
+Feedback, learning, trust, evidence inventory, and promotion owners must consume the terminal classification rather than inferring success from `apply_result` alone.
+
 ## Runtime Lifecycle Diagram
 
 ```mermaid

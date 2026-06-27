@@ -2777,6 +2777,23 @@ Latest A4 goal-directed selection implementation:
 | Convergence | `PASS / ALIGNED` |
 | Next OMP action | Resume A4 bounded representative evidence collection through the existing governed transaction owner. |
 
+Latest A4 evidence requirement sanity audit:
+
+| Field | Current Value |
+| --- | --- |
+| Engineering report | `docs/reports/engineering/2026-06-27_181934_a4_evidence_requirement_sanity_audit.md` |
+| Final verdict | `A4_EVIDENCE_REQUIREMENT_OVERSCOPED` |
+| `candidate_count` origin | Dynamic count of concrete `user -> candidate_channel` keys from `candidate-suitability-summary` |
+| Current count | `94 / 156 = 60.3%`; missing inventory keys `62` |
+| Canonical finding | The `156` keys are inventory coverage, not a canonical A4 completion threshold. |
+| A4 intent | Representative action-class evidence for the first action class, not exhaustive full-matrix enumeration. |
+| Product Scale alignment | Full user-channel enumeration must not become a permanent autonomy blocker unless explicitly justified. |
+| Existing owners | `A4`; `B13`; `A5`; `A6`; `POLICY_005_ACTION_CLASS_PROMOTION`; Product Scale Model |
+| Need New Owner | `FALSE` |
+| Need New Backlog Item | `FALSE` |
+| Runtime changed | `NO` |
+| Next OMP action | Extend existing A4/B13 evidence owners to separate representative completion from candidate inventory coverage before continuing bounded collection as a completion strategy. |
+
 Previous bounded A4 collection result:
 
 | Field | Current Value |
@@ -3647,15 +3664,15 @@ If daemon, timer, event consumer mutation, autonomous execution, action-class ex
 | --- | --- |
 | Completed phases | Architecture foundation, Research Framework, Decision Model, Runtime Model, System Architecture, Implementation Phase activation, OMP Production Program integration. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle; OMP Production Program rule set. |
-| Current bottleneck | A4 representative real outcome evidence; current inventory is `94 / 156 = 60.3%`, with `62 / 156 = 39.7%` missing. |
-| Current highest leverage action | Continue bounded A4 evidence collection under the existing approved envelope; do not request packet-by-packet approval. |
+| Current bottleneck | A4 representative evidence gate is over-scoped if it requires full `94 / 156` inventory closure before progression. |
+| Current highest leverage action | Correct existing A4/B13 evidence gate semantics so representative action-class completion is separated from candidate inventory coverage. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | None from implementation selection. A4 still requires additional real comparable outcomes; bounded collection must continue through live gates and real production evidence only. |
-| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; A4 bounded collection is production-operational; A4 evidence is `94 / 156` consumed outcomes. |
-| Current runtime posture | No autonomous apply, no daemon enablement, and no authority expansion; A4 bounded collection uses the approved operational envelope and still stops on failed gates or duplicates. |
-| Current next best action | Continue A4 bounded representative evidence collection with goal-directed selection; no synthetic evidence, no runtime automation, no authority expansion, and no packet-by-packet approval inside the approved envelope. |
+| Current blockers | `A4_EVIDENCE_REQUIREMENT_OVERSCOPED`: current inventory gap `62 / 156` must not be treated as proof that 62 additional governed moves are mandatory for first action-class certification. |
+| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; A4 evidence inventory is `94 / 156`, but A4 completion must be based on representative action-class evidence quality. |
+| Current runtime posture | No autonomous apply, no daemon enablement, and no authority expansion; do not continue moving users solely to close exhaustive inventory coverage. |
+| Current next best action | Implement existing-owner A4/B13 evidence gate correction; no synthetic evidence, no threshold lowering, no new owner, no new backlog, no architecture change. |
 | Last optimizer iteration | `2026-06-27`: A4 goal-directed selection fixed, tested, deployed, and verified by truth/convergence; no users moved during implementation. |
 
 ## 25. Program Rule For Future Work

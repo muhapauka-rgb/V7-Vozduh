@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-27T18:08:48+0700
-Source: A4 goal-directed selection defect is fixed and deployed through existing owners. `tools/v7-governed-canary-dry-run-cycle` now loads missing A4 candidate keys, scans the existing eligible candidate universe, selects a safe gap-reducing one-user candidate when available, and stops as `NO_SAFE_GAP_REDUCING_A4_CANDIDATE` before lease/restore/apply when none is safe. Truth and convergence are PASS/FULLY_ALIGNED. Current A4 progress remains `94 / 156 = 60.3%`; missing evidence is `62 / 156 = 39.7%`. Continue A4 bounded collection through the existing governed transaction owner.
+State captured: 2026-06-27T18:19:34+0700
+Source: A4 evidence requirement sanity audit completed. `candidate_count=156` is a dynamic inventory count of current `user -> candidate_channel` keys, not a canonical A4 completion threshold. The remaining `62` outcomes are inventory coverage gaps, not proven mandatory representative outcomes for first action-class certification. Current A4 evidence gate is over-scoped if it treats full matrix coverage as required. Runtime, thresholds, formulas, authority, and architecture were not changed.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -15,40 +15,40 @@ This file is volatile. Update it after every safe action or approved execution t
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Implementation Backlog` |
 | Current highest leverage implementation | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Current highest leverage action | resume bounded A4 representative evidence collection under the already approved A4 envelope |
+| Current highest leverage action | correct existing A4/B13 evidence gate semantics so full `user -> candidate_channel` enumeration remains a signal, not the A4 completion blocker |
 | Current authority class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE` |
 | authority_class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE` |
 | authority_reason | Operator approved bounded A4 collection for the current A4 scope; packet-by-packet approval is not required inside this envelope, but the envelope stops on failed live gates, duplicate candidates, or scope changes. |
 | authority_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch`. |
-| required_action | Do not request a new packet approval. Continue bounded A4 collection through the existing governed transaction owner. |
+| required_action | Do not move more users solely to close all `156` inventory keys. Extend existing A4/B13 owners so representative action-class completion is separated from inventory coverage. |
 | non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
 | optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
-| Current reality limit | `A4_REPRESENTATIVE_OUTCOME_EVIDENCE_REQUIRED`: A4 still requires more real representative outcomes; latest production inventory reports `missing_candidate_outcomes=62` |
-| Current safe next action | continue A4 bounded collection through existing governed transaction owner; selection is now gap-directed |
-| Current stop reason | `IMPLEMENTATION_READY_FOR_A4_BOUNDED_COLLECTION`: goal-directed selection fix is deployed; next stop, if any, must come from live gates, no safe gap candidate, verification/rollback, or real-world evidence progression |
+| Current reality limit | `A4_EVIDENCE_REQUIREMENT_OVERSCOPED`: A4 still requires real representative outcomes, but the current `62 / 156` inventory gap is not canonical proof that 62 more moves are mandatory. |
+| Current safe next action | implement existing-owner A4/B13 gate correction; do not lower thresholds, synthesize evidence, or create new owners |
+| Current stop reason | `A4_EVIDENCE_REQUIREMENT_OVERSCOPED`: current implementation over-treats full `user -> candidate_channel` coverage as a completion blocker |
 | root_cause | Fixed and deployed: `tools/v7-governed-canary-dry-run-cycle::materialize_governed_transaction_feedback` now sends terminal outcome classification, and `admin_core.operator_execution_feedback` classifies from final terminal transaction state instead of intermediate apply result. |
 | responsible_owner | Existing governed transaction feedback owner `tools/v7-governed-canary-dry-run-cycle`; existing feedback classifier owner `admin_core/operator_execution_feedback.py`; existing A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
 | implementation_class | `BUG` |
-| next_engineering_task | `A4_CONTINUE_BOUNDED_REPRESENTATIVE_EVIDENCE_COLLECTION` |
-| expected_completion_evidence | More real bounded A4 outcomes are recorded with terminal classification preserved; no synthetic evidence; no runtime automation; no authority expansion. |
+| next_engineering_task | `A4_SEPARATE_REPRESENTATIVE_COMPLETION_GATE_FROM_CANDIDATE_INVENTORY_COVERAGE` |
+| expected_completion_evidence | Existing A4/B13 owners expose a representative action-class completion gate where `candidate_count` remains a useful evidence signal but full `missing_candidate_outcomes == 0` is not the sole completion requirement. |
 
 ## 1.1. Root Cause Engine Output
 
 | Field | Current Value |
 | --- | --- |
-| Stop condition | `NONE_FOR_IMPLEMENTATION`; A4 may continue bounded collection under existing authority envelope |
+| Stop condition | `UNSAFE_IMPLEMENTATION_A4_EVIDENCE_GATE_OVERSCOPED`; A4 must not continue by forcing exhaustive inventory movement until the existing evidence gate is corrected |
 | Authority Class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE` |
 | Authority Reason | Bounded A4 authority is active for the current scope; no packet-by-packet approval is needed inside the approved envelope. |
-| Root Cause | Fixed: governed A4 selection previously filtered only after selecting one candidate; it now selects from missing A4 candidate keys before packet cycle. |
+| Root Cause | A4 evidence inventory correctly counts concrete `user -> candidate_channel` keys, but current OMP/runtime readiness wording overinterprets this inventory as a mandatory full-matrix completion criterion. |
 | Responsible owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; existing A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration`; existing candidate outcome owner `admin_core.intelligence_workers`. |
-| Why it happened | The existing transaction path reused generic planner output before consulting A4 evidence gap. |
-| Why existing safety worked | Evidence-gap guard stopped before lease creation, restore-barrier write, apply, or user movement; the new selector now fails closed even earlier when no safe gap-reducing candidate exists. |
+| Why it happened | Candidate coverage was useful for suitability learning, then became treated as the primary A4 completion counter without a separate representative sufficiency gate. |
+| Why existing safety worked | The system did not lower thresholds, did not synthesize evidence, and did not enable automation; it continued to stop safely unless real governed evidence existed. |
 | Can existing owner be extended? | `YES`; reuse existing feedback/learning owners. |
 | Need New Owner | `FALSE` |
-| Implementation Class | `OWNER_EXTENSION_COMPLETE` |
-| Concrete engineering task | `A4_EXTEND_EXISTING_GOVERNED_SELECTION_TO_REQUIRE_GAP_REDUCING_CANDIDATE` = DONE |
-| Expected completion evidence | Tests prove current selection picks a missing A4 candidate when eligible candidates exist; bounded transaction stops before mutation if no safe gap-reducing candidate exists; deploy/truth/convergence pass. |
-| OMP automatic continuation | `YES`; continue A4 bounded representative evidence collection. |
+| Implementation Class | `OWNER_EXTENSION_REQUIRED` |
+| Concrete engineering task | `A4_SEPARATE_REPRESENTATIVE_COMPLETION_GATE_FROM_CANDIDATE_INVENTORY_COVERAGE` |
+| Expected completion evidence | Tests and read-only inventory prove representative action-class criteria can be evaluated without requiring full enumeration of every current `user -> candidate_channel` key. |
+| OMP automatic continuation | `NO`; continue after the existing evidence gate is corrected and verified. |
 
 ## 2. Current Metrics
 

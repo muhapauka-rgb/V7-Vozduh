@@ -378,6 +378,10 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(collection["missing_outcome_analysis"]["happened_but_not_captured"], 1)
         self.assertEqual(collection["missing_outcome_analysis"]["never_happened"], 1)
         self.assertEqual(collection["missing_outcome_analysis"]["captured_but_not_consumed"], 0)
+        self.assertEqual(collection["readiness_impact"]["exact_outcome_deficit_blocks_canary"], 0)
+        self.assertEqual(collection["readiness_impact"]["inventory_deficit_supporting_signal"], 2)
+        self.assertFalse(collection["readiness_impact"]["inventory_deficit_is_mandatory_certification_requirement"])
+        self.assertEqual(collection["readiness_impact"]["signal_category"], "INVENTORY_SIGNAL")
         self.assertEqual(collection["diversity"]["all_candidates"]["unique_channels"], 3)
         self.assertEqual(collection["growth_model"]["projections"][0]["converted_missing_candidate_outcomes"], 1)
         self.assertFalse(collection["runtime_mutation_performed"])
@@ -1075,6 +1079,17 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(enablement["runtime_capability_view"]["target_autonomy_mode"], "DELEGATED_AUTONOMY")
         self.assertEqual(enablement["enablement_readiness"]["stop_condition_if_promoted"], "AUTHORITY_BOUNDARY")
         self.assertIn("class-level authority_policy_approval", enablement["enablement_readiness"]["missing_evidence"])
+        self.assertNotIn(
+            "missing_candidate_outcomes",
+            " ".join(enablement["enablement_readiness"]["missing_evidence"]),
+        )
+        self.assertIn(
+            "missing_candidate_outcomes=2",
+            enablement["enablement_readiness"]["inventory_signals"],
+        )
+        self.assertFalse(enablement["enablement_readiness"]["inventory_signals_are_mandatory"])
+        self.assertFalse(enablement["downstream_certification_alignment"]["A4"]["inventory_coverage_is_hard_gate"])
+        self.assertFalse(enablement["downstream_certification_alignment"]["A6"]["inventory_coverage_is_runtime_blocker"])
         policy = enablement["delegated_autonomy_policy_preview"]
         self.assertEqual(policy["policy_id"], "dap_default_tier1_readonly")
         self.assertEqual(policy["policy_state"], "NOT_APPROVED")

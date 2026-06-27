@@ -30,6 +30,19 @@ ACTION_CLASS_ENABLEMENT_STATES = [
     "AUTONOMOUS_RUNTIME",
 ]
 
+CERTIFICATION_SIGNAL_CATEGORIES = [
+    "MANDATORY_CERTIFICATION_REQUIREMENT",
+    "SUPPORTING_EVIDENCE",
+    "COVERAGE_SIGNAL",
+    "INVENTORY_SIGNAL",
+    "LEARNING_SIGNAL",
+    "RELIABILITY_SIGNAL",
+    "RUNTIME_SAFETY_SIGNAL",
+    "OPTIMIZATION_SIGNAL",
+    "HISTORICAL_EVIDENCE",
+    "IMPLEMENTATION_ARTIFACT",
+]
+
 ACTION_CLASS_LADDER = [
     ("single-user governed candidate failover", 1, "GOVERNED_ONLY"),
     ("two-user governed candidate failover", 2, "NOT_CERTIFIED"),
@@ -2588,6 +2601,83 @@ def build_autonomous_routing_evolution_program(
     }
 
 
+def _empty_certification_signal_taxonomy() -> dict[str, list[str]]:
+    return {category: [] for category in CERTIFICATION_SIGNAL_CATEGORIES}
+
+
+def _add_certification_signal(taxonomy: dict[str, list[str]], category: str, signal: str) -> None:
+    bucket = taxonomy.setdefault(category, [])
+    if signal not in bucket:
+        bucket.append(signal)
+
+
+def _promotion_signal_taxonomy(
+    *,
+    canary_proximity: dict[str, Any],
+    candidate_outcome_reality_collection: dict[str, Any],
+    decision_outcome_closure: dict[str, Any],
+    decision_outcome_learning: dict[str, Any],
+    suitability_quality_model: dict[str, Any],
+    freshness_actionability: dict[str, Any],
+) -> dict[str, Any]:
+    taxonomy = _empty_certification_signal_taxonomy()
+    for item in (canary_proximity.get("missing") or []):
+        _add_certification_signal(taxonomy, "RELIABILITY_SIGNAL", str(item))
+    candidate_gap = candidate_outcome_reality_collection.get("candidate_outcome_gap")
+    if not isinstance(candidate_gap, dict):
+        candidate_gap = candidate_outcome_reality_collection.get("coverage")
+    if isinstance(candidate_gap, dict):
+        gap = int(candidate_gap.get("missing_candidate_outcomes") or 0)
+        if gap > 0:
+            _add_certification_signal(taxonomy, "INVENTORY_SIGNAL", f"missing_candidate_outcomes={gap}")
+    closure_state = str(decision_outcome_closure.get("closure_state") or decision_outcome_closure.get("status") or "UNKNOWN")
+    if closure_state not in {"COMPLETE", "READY", "CLOSED"}:
+        _add_certification_signal(taxonomy, "MANDATORY_CERTIFICATION_REQUIREMENT", f"outcome_closure_state={closure_state}")
+    learning_growth = decision_outcome_learning.get("knowledge_growth") if isinstance(decision_outcome_learning.get("knowledge_growth"), dict) else {}
+    if not int(learning_growth.get("knowledge_gained") or 0):
+        _add_certification_signal(
+            taxonomy,
+            "MANDATORY_CERTIFICATION_REQUIREMENT",
+            "no_verified_learning_growth_from_closed_real_outcomes",
+        )
+    if not bool(suitability_quality_model.get("autonomy_grade_ready")):
+        _add_certification_signal(
+            taxonomy,
+            "RELIABILITY_SIGNAL",
+            f"suitability_stage={suitability_quality_model.get('current_stage', 'UNKNOWN')}",
+        )
+    stale_domains = [
+        name for name, row in sorted((freshness_actionability.get("domains") or {}).items())
+        if isinstance(row, dict) and row.get("classification") in {"STALE_RECHECK_REQUIRED", "UNKNOWN"}
+    ]
+    if stale_domains:
+        _add_certification_signal(taxonomy, "RUNTIME_SAFETY_SIGNAL", "freshness_recheck_required=" + ",".join(stale_domains))
+    required = [
+        "class-level rollback_or_no_rollback_certification",
+        "class-level blast_radius_certification",
+        "class-level authority_policy_approval",
+        "runtime policy binding through existing owners",
+    ]
+    for item in required:
+        _add_certification_signal(taxonomy, "MANDATORY_CERTIFICATION_REQUIREMENT", item)
+    return {
+        "schema_version": "v7.certification-signal-taxonomy.v1",
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "canonical_rule": "implementation owners must not promote supporting signals into mandatory certification requirements",
+        "categories": taxonomy,
+        "mandatory_certification_requirements": taxonomy["MANDATORY_CERTIFICATION_REQUIREMENT"],
+        "supporting_evidence": taxonomy["SUPPORTING_EVIDENCE"],
+        "coverage_signals": taxonomy["COVERAGE_SIGNAL"],
+        "inventory_signals": taxonomy["INVENTORY_SIGNAL"],
+        "learning_signals": taxonomy["LEARNING_SIGNAL"],
+        "reliability_signals": taxonomy["RELIABILITY_SIGNAL"],
+        "runtime_safety_signals": taxonomy["RUNTIME_SAFETY_SIGNAL"],
+        "optimization_signals": taxonomy["OPTIMIZATION_SIGNAL"],
+        "historical_evidence": taxonomy["HISTORICAL_EVIDENCE"],
+        "implementation_artifacts": taxonomy["IMPLEMENTATION_ARTIFACT"],
+    }
+
+
 def _promotion_missing_evidence(
     *,
     canary_proximity: dict[str, Any],
@@ -2597,37 +2687,15 @@ def _promotion_missing_evidence(
     suitability_quality_model: dict[str, Any],
     freshness_actionability: dict[str, Any],
 ) -> list[str]:
-    missing: list[str] = []
-    missing.extend(str(item) for item in (canary_proximity.get("missing") or []))
-    candidate_gap = candidate_outcome_reality_collection.get("candidate_outcome_gap")
-    if not isinstance(candidate_gap, dict):
-        candidate_gap = candidate_outcome_reality_collection.get("coverage")
-    if isinstance(candidate_gap, dict):
-        gap = int(candidate_gap.get("missing_candidate_outcomes") or 0)
-        if gap > 0:
-            missing.append(f"missing_candidate_outcomes={gap}")
-    closure_state = str(decision_outcome_closure.get("closure_state") or decision_outcome_closure.get("status") or "UNKNOWN")
-    if closure_state not in {"COMPLETE", "READY", "CLOSED"}:
-        missing.append(f"outcome_closure_state={closure_state}")
-    learning_growth = decision_outcome_learning.get("knowledge_growth") if isinstance(decision_outcome_learning.get("knowledge_growth"), dict) else {}
-    if not int(learning_growth.get("knowledge_gained") or 0):
-        missing.append("no_verified_learning_growth_from_closed_real_outcomes")
-    if not bool(suitability_quality_model.get("autonomy_grade_ready")):
-        missing.append(f"suitability_stage={suitability_quality_model.get('current_stage', 'UNKNOWN')}")
-    stale_domains = [
-        name for name, row in sorted((freshness_actionability.get("domains") or {}).items())
-        if isinstance(row, dict) and row.get("classification") in {"STALE_RECHECK_REQUIRED", "UNKNOWN"}
-    ]
-    if stale_domains:
-        missing.append("freshness_recheck_required=" + ",".join(stale_domains))
-    required = [
-        "class-level rollback_or_no_rollback_certification",
-        "class-level blast_radius_certification",
-        "class-level authority_policy_approval",
-        "runtime policy binding through existing owners",
-    ]
-    missing.extend(required)
-    return list(dict.fromkeys(missing))
+    taxonomy = _promotion_signal_taxonomy(
+        canary_proximity=canary_proximity,
+        candidate_outcome_reality_collection=candidate_outcome_reality_collection,
+        decision_outcome_closure=decision_outcome_closure,
+        decision_outcome_learning=decision_outcome_learning,
+        suitability_quality_model=suitability_quality_model,
+        freshness_actionability=freshness_actionability,
+    )
+    return list(dict.fromkeys(taxonomy["mandatory_certification_requirements"]))
 
 
 def _packet_to_action_class(
@@ -2813,7 +2881,7 @@ def build_action_class_runtime_enablement_model(
     """Expose action-class to runtime enablement without creating authority."""
     first_class = ACTION_CLASS_LADDER[0][0]
     packet_mapping = _packet_to_action_class(packet_preview=packet_preview, candidate=candidate)
-    missing_evidence = _promotion_missing_evidence(
+    signal_taxonomy = _promotion_signal_taxonomy(
         canary_proximity=canary_proximity,
         candidate_outcome_reality_collection=candidate_outcome_reality_collection,
         decision_outcome_closure=decision_outcome_closure,
@@ -2823,9 +2891,12 @@ def build_action_class_runtime_enablement_model(
     )
     hard_failure_state = str((hard_failure_classification or {}).get("classification") or "UNKNOWN")
     if hard_failure_state == "HARD_FAILURE_SUSPECTED":
-        missing_evidence.append("hard_failure_confirmation_required")
+        _add_certification_signal(signal_taxonomy["categories"], "RUNTIME_SAFETY_SIGNAL", "hard_failure_confirmation_required")
     elif hard_failure_state not in {"HARD_FAILURE_CONFIRMED"}:
-        missing_evidence.append(f"canonical_hard_failure_classification={hard_failure_state}")
+        _add_certification_signal(signal_taxonomy["categories"], "RUNTIME_SAFETY_SIGNAL", f"canonical_hard_failure_classification={hard_failure_state}")
+    signal_taxonomy["mandatory_certification_requirements"] = signal_taxonomy["categories"]["MANDATORY_CERTIFICATION_REQUIREMENT"]
+    signal_taxonomy["runtime_safety_signals"] = signal_taxonomy["categories"]["RUNTIME_SAFETY_SIGNAL"]
+    missing_evidence = list(signal_taxonomy["mandatory_certification_requirements"])
     missing_evidence = list(dict.fromkeys(missing_evidence))
     class_rows = []
     freshness_by_class = {
@@ -2848,6 +2919,10 @@ def build_action_class_runtime_enablement_model(
             "current_state": state,
             "next_state": next_state,
             "required_evidence": missing_evidence if name == first_class else ["successful prior class outcomes", "class-specific real outcomes", "explicit authority review"],
+            "supporting_evidence": signal_taxonomy["supporting_evidence"] if name == first_class else [],
+            "coverage_signals": signal_taxonomy["coverage_signals"] if name == first_class else [],
+            "inventory_signals": signal_taxonomy["inventory_signals"] if name == first_class else [],
+            "reliability_signals": signal_taxonomy["reliability_signals"] if name == first_class else [],
             "required_verification": "immediate post-action service/user/channel verification",
             "required_rollback": "class-level rollback or certified no-rollback path",
             "required_blast_radius": "exactly one user" if blast_radius == 1 else ("bounded cohort" if blast_radius else "class-specific bounded scope"),
@@ -2889,6 +2964,8 @@ def build_action_class_runtime_enablement_model(
             "duplicate_detector_result": "NO_DUPLICATE_OWNER_CREATED",
         },
         "states": ACTION_CLASS_ENABLEMENT_STATES,
+        "certification_signal_taxonomy": signal_taxonomy,
+        "program_wide_signal_taxonomy": CERTIFICATION_SIGNAL_CATEGORIES,
         "action_classes": class_rows,
         "current_action_class": first_class,
         "current_state": current["current_state"],
@@ -2903,6 +2980,34 @@ def build_action_class_runtime_enablement_model(
         },
         "delegated_autonomy_policy_preview": delegated_policy,
         "delegated_autonomy_runtime_eligibility": delegated_eligibility,
+        "downstream_certification_alignment": {
+            "A4": {
+                "owns": "representative action-class evidence",
+                "inventory_coverage_role": "INVENTORY_SIGNAL",
+                "inventory_coverage_is_hard_gate": False,
+            },
+            "A5": {
+                "owns": "blast-radius proof",
+                "consumes": "certified A4 outputs, not raw inventory deficits",
+                "inventory_coverage_is_hard_gate": False,
+            },
+            "B13": {
+                "owns": "metric reliability proof",
+                "consumes": "representative evidence, verification, rollback/no-rollback, learning, calibration, confidence",
+                "inventory_coverage_role": "SUPPORTING_SIGNAL",
+            },
+            "A6": {
+                "owns": "runtime eligibility arbitration",
+                "consumes": "certified gates and live safety checks, not exhaustive user-channel inventory",
+                "inventory_coverage_is_runtime_blocker": False,
+            },
+            "promotion_authority_runtime": {
+                "promotion_consumes_certification": True,
+                "authority_consumes_promotion_recommendation": True,
+                "runtime_consumes_certified_eligibility": True,
+                "raw_inventory_deficit_grants_or_denies_authority": False,
+            },
+        },
         "runtime_capability_view": {
             "runtime_capability": "single_user_governed_candidate_failover",
             "runtime_path_exists_through_existing_owners": True,
@@ -2920,6 +3025,11 @@ def build_action_class_runtime_enablement_model(
             "recommendation": "DO_NOT_ENABLE_RUNTIME_AUTOMATION",
             "target_state": current["next_state"],
             "missing_evidence": missing_evidence,
+            "supporting_evidence": signal_taxonomy["supporting_evidence"],
+            "coverage_signals": signal_taxonomy["coverage_signals"],
+            "inventory_signals": signal_taxonomy["inventory_signals"],
+            "reliability_signals": signal_taxonomy["reliability_signals"],
+            "runtime_safety_signals": signal_taxonomy["runtime_safety_signals"],
             "authority_boundary_required_for_next_state": True,
         },
         "enablement_readiness": {
@@ -2928,6 +3038,8 @@ def build_action_class_runtime_enablement_model(
             "requires_authority_expansion": current["current_state"] != "AUTONOMOUS_RUNTIME",
             "stop_condition_if_promoted": "AUTHORITY_BOUNDARY" if current["current_state"] != "AUTONOMOUS_RUNTIME" else "",
             "missing_evidence": missing_evidence,
+            "inventory_signals": signal_taxonomy["inventory_signals"],
+            "inventory_signals_are_mandatory": False,
             "delegated_policy_blockers": delegated_eligibility["blockers"],
         },
         "omp_output": {
@@ -2936,6 +3048,7 @@ def build_action_class_runtime_enablement_model(
             "hard_failure_classification": hard_failure_state,
             "freshness_ready": bool(current.get("freshness_ready")),
             "missing_evidence": missing_evidence,
+            "signal_taxonomy": signal_taxonomy,
             "next_promotion_target": current["next_state"],
             "runtime_can_execute_automatically": can_execute,
             "autonomous_routing_stop_reason": autonomous_routing_evolution_program.get("exact_stop_reason", "UNKNOWN"),
@@ -3716,7 +3829,10 @@ def build_candidate_outcome_reality_collection(
             "uses_current_formulas_only": True,
         },
         "readiness_impact": {
-            "exact_outcome_deficit_blocks_canary": missing_count,
+            "exact_outcome_deficit_blocks_canary": 0,
+            "inventory_deficit_supporting_signal": missing_count,
+            "inventory_deficit_is_mandatory_certification_requirement": False,
+            "signal_category": "INVENTORY_SIGNAL",
             "real_missing_experience": len(never_happened),
             "capture_loss": len(happened_but_not_captured),
             "aggregation_loss": len(visibility_or_aggregation_loss),

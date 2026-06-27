@@ -2810,6 +2810,22 @@ Latest Master Action Class Certification Model audit:
 | Need New Architecture | `FALSE` |
 | Next OMP action | `A4_CERTIFICATION_GATE_ALIGNMENT_IN_EXISTING_EVIDENCE_OWNER`; do not move users solely to exhaust all remaining inventory keys. |
 
+Latest Master OMP Certification Alignment implementation:
+
+| Field | Current Value |
+| --- | --- |
+| Engineering report | `docs/reports/engineering/2026-06-27_215615_master_omp_certification_alignment_implementation.md` |
+| Implementation owner | `admin_core.autonomy_trust_acceleration` |
+| Existing owners reused | `YES` |
+| New owner | `NO` |
+| New backlog item | `NO` |
+| New architecture | `NO` |
+| Runtime behavior changed | `NO` |
+| Canonical alignment | `missing_candidate_outcomes` remains visible as `INVENTORY_SIGNAL`; it is no longer exposed as mandatory `missing_evidence` for A4 certification/runtime enablement. |
+| Downstream alignment | A5 consumes certified A4 outputs; B13 consumes representative evidence/reliability; A6 consumes certified gates and live runtime safety, not exhaustive inventory deficits. |
+| Validation | `python3 -m unittest tests.unit.test_autonomy_trust_acceleration`; `python3 -m unittest tests.unit.test_governed_canary_cli tests.unit.test_operator_execution_pipeline`; `tools/v7-autonomy-trust-evidence-inventory --action-class-runtime-only --pretty` |
+| Next OMP action | `A4_REPRESENTATIVE_CERTIFICATION_VALIDATION_AND_CONTINUE_OMP` |
+
 Previous bounded A4 collection result:
 
 | Field | Current Value |

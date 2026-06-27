@@ -2691,7 +2691,22 @@ Current implementation optimizer result:
 | Priority model | `docs/reference/V7_IMPLEMENTATION_PRIORITY_MODEL.md` |
 | Truth/convergence | Commit `19882a14d81cc8a6d05e8e46d40fc63ae7ed5446` is local/GitHub/production aligned; truth and convergence are `PASS`. |
 | New highest implementation leverage task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Stop boundary | `REAL_WORLD_LIMIT`: latest approved bounded cycle recorded two real outcomes, then stopped safely at `duplicate_transaction_candidate`; A4 now needs a fresh non-duplicate candidate. |
+| Stop boundary | `OPERATIONAL_AUTHORITY`: production read-only dry-run now has a fresh ready A4 packet requiring exact approve/reject. |
+
+Current A4 approval packet:
+
+| Field | Current Value |
+| --- | --- |
+| Packet | `pkt_preview_a61462aaffb4510b6237fb95` |
+| Decision | `decision_commit_7233dd92de99c5974829e2b5` |
+| Operation | `govdry_66d71cca6063ee5ef38d7c74` |
+| Selected move hash | `a3671ffeb70facc1d6d1dba05cbbc9732e46b5240859cf86768f12507723c53e` |
+| User | `10.7.0.5` |
+| Move | `awg3 -> awg0` |
+| Rollback target | `awg3` |
+| Rollback manifest | `rb_preview_1a2127208b90a46069dc38ff` |
+| Authority | `TIER_1` governed canary |
+| Required operator action | Approve or reject this exact packet; no apply occurs without approval. |
 
 Latest bounded A4 collection result:
 

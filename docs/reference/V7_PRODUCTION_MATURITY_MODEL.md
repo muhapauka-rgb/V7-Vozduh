@@ -113,14 +113,14 @@ Weights sum to `100`.
 
 | Category | Current % | Target % | Weight | Current evidence basis |
 | --- | ---: | ---: | ---: | --- |
-| Implementation | `8.8` | `100` | `20` | Implementation Backlog actionable progress is `3 / 34`. |
-| Testing | `34` | `100` | `10` | A1/A2 focused unit tests and read-only CLI smoke checks pass; broader production certification remains open. |
+| Implementation | `11.8` | `100` | `20` | Implementation Backlog actionable progress is `4 / 34`. |
+| Testing | `36` | `100` | `10` | A1/A2 focused unit tests, A4 closure read-model regression tests, and read-only CLI smoke checks pass; broader production certification remains open. |
 | Production Deployments | `100` | `100` | `10` | Safe deploy owner exists and local/GitHub/production convergence is aligned. |
-| Production Outcomes | `15` | `100` | `15` | A3 added a real governed no-rollback candidate outcome with verification passed and outcome closure completed; repeated representative outcomes remain missing. |
-| Certification | `28` | `100` | `15` | A1/A2 are implemented and tested as read-only backlog items; A3 has real class-level no-rollback outcome evidence. Architecture/model certification belongs to Engineering Maturity. |
+| Production Outcomes | `25` | `100` | `15` | A3 added a real governed no-rollback candidate outcome; A4 representative real outcomes are materialized and outcome closure is `COMPLETE`. |
+| Certification | `32` | `100` | `15` | A1/A2 are implemented and tested; A3 has real no-rollback evidence; A4 representative evidence and closure read-model are complete. Architecture/model certification belongs to Engineering Maturity. |
 | Authority Evolution | `15` | `100` | `10` | TIER_1 governed authority exists; delegated autonomy policy is not approved and authority expansion is not granted. |
 | Production Autonomy | `0` | `100` | `10` | Runtime automation/apply remains disabled; no bounded production autonomy is certified. |
-| Implementation Backlog Completion | `8.8` | `100` | `10` | Mandatory backlog completion is `3 / 34`. |
+| Implementation Backlog Completion | `11.8` | `100` | `10` | Mandatory backlog completion is `4 / 34`. |
 
 ## Current Scores
 
@@ -133,7 +133,7 @@ Engineering calculation:
 Production calculation:
 
 ```text
-(8.8*20 + 34*10 + 100*10 + 15*15 + 28*15 + 15*10 + 0*10 + 8.8*10) / 100 = 24.0
+(11.8*20 + 36*10 + 100*10 + 25*15 + 32*15 + 15*10 + 0*10 + 11.8*10) / 100 = 27.2
 ```
 
 Current Engineering Maturity:
@@ -145,7 +145,7 @@ Current Engineering Maturity:
 Current Production Maturity:
 
 ```text
-24.0%
+27.2%
 ```
 
 Target:
@@ -157,7 +157,7 @@ Target:
 Production remaining:
 
 ```text
-76.0%
+72.8%
 ```
 
 ## Backlog Inputs
@@ -166,16 +166,16 @@ Current backlog progress:
 
 | Scope | Complete | Total | Contribution |
 | --- | ---: | ---: | --- |
-| Tier A | `3` | `6` | A1/A2 read-only foundations are implemented and tested; A3 real no-rollback outcome evidence is closed. |
+| Tier A | `4` | `6` | A1/A2 read-only foundations are implemented and tested; A3 real no-rollback outcome evidence is closed; A4 representative outcome evidence is materialized and closure-complete. |
 | Tier B | `0` | `21` | High-value implementation remains open. |
 | Tier C | `0` | `7` | Medium implementation remains open. |
 | Tier D optional | `0` | `6` | Optional future-scope work remains open. |
-| Overall actionable | `3` | `34` | Implementation category is `8.8%`. |
+| Overall actionable | `4` | `34` | Implementation category is `11.8%`. |
 
 Current highest implementation task:
 
 ```text
-A4: Materialize representative outcome evidence for the first action class.
+A5: Certify class-level blast-radius evidence beyond the one-user guard.
 ```
 
 ## Milestones
@@ -259,16 +259,16 @@ Engineering Maturity
 PRODUCTION
 
 Implementation
-8.8%
+11.8%
 
 Certification
-28%
+32%
 
 Autonomy
 0%
 
 Production Maturity
-24.0%
+27.2%
 
 Overall Status
 ENGINEERING_COMPLETE / PRODUCTION_IN_PROGRESS
@@ -278,7 +278,7 @@ CERTIFICATION
 
 Backlog
 Tier A
-3 / 6
+4 / 6
 Tier B
 0 / 21
 Tier C
@@ -286,16 +286,16 @@ Tier C
 Tier D
 0 / 6 optional
 Overall
-3 / 34 complete
+4 / 34 complete
 
 Current Tier
 TIER_1_GOVERNED
 
 Highest Priority Task
-A4: Materialize representative outcome evidence for the first action class.
+A5: Certify class-level blast-radius evidence beyond the one-user guard.
 
 Current Stop Condition
-REAL_WORLD_LIMIT if representative outcomes are insufficient for A4
+NONE: continue through existing A5 certification owner
 
 Estimated Remaining Work
 Moderate

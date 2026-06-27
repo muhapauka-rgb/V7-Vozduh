@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-27T22:41:28+0700
-Source: Continue OMP after A4 certification signal alignment. The existing A4 bounded collection owner now fails closed when required runtime state/evidence inputs are unavailable, so local missing `/opt/v7` state can no longer be misread as `no_missing_a4_candidate_outcomes`. Production-side validation is still required because direct production SSH read-only access was denied. Runtime, thresholds, formulas, authority, and architecture were not changed.
+State captured: 2026-06-27T23:29:00+0700
+Source: Continue OMP after A4 bounded collection and closure read-model certification validation. A4 representative outcome evidence is materialized from real governed production outcomes; candidate inventory signals are empty; decision outcome closure is `COMPLETE`; A4 is marked `DONE`. Runtime automation remains disabled, authority was not expanded, and no new owner/backlog/architecture was created.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -14,29 +14,29 @@ This file is volatile. Update it after every safe action or approved execution t
 | Current phase | `IMPLEMENTATION` |
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Implementation Backlog` |
-| Current highest leverage implementation | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Current highest leverage action | continue A4 through production-side representative certification validation using existing owners; do not accept local missing-state defaults as production evidence |
+| Current highest leverage implementation | `A5_CERTIFY_CLASS_LEVEL_BLAST_RADIUS_EVIDENCE_BEYOND_ONE_USER_GUARD` |
+| Current highest leverage action | start A5 through existing blast-radius/action-class/planner budget owners; do not expand blast radius or authority silently |
 | Current authority class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE` |
 | authority_class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE` |
 | authority_reason | Operator approved bounded A4 collection for the current A4 scope; packet-by-packet approval is not required inside this envelope, but the envelope stops on failed live gates, duplicate candidates, or scope changes. |
 | authority_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch`. |
-| required_action | Run A4 bounded collection / mandatory certification validation on the production host through existing owners, or restore authenticated production runtime access; local missing `/opt/v7` state now fails closed as `runtime_state_unavailable`. |
+| required_action | Execute A5 certification analysis through existing owners; A4 no longer requires additional governed movements. |
 | non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
 | optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
-| Current reality limit | `PRODUCTION_RUNTIME_ACCESS_REQUIRED`: local workspace cannot read production `/opt/v7` state directly, and SSH read-only access was denied. |
-| Current safe next action | execute the existing A4 production-side owner with authenticated runtime access; if unavailable, stop at `REAL_WORLD_LIMIT_PRODUCTION_RUNTIME_ACCESS`. |
-| Current stop reason | `REAL_WORLD_LIMIT_PRODUCTION_RUNTIME_ACCESS`; no runtime mutation occurred |
-| root_cause | Fixed locally: `admin_core.autonomy_trust_acceleration` now classifies certification signals before exposing runtime enablement/readiness, and `tools/v7-governed-canary-dry-run-cycle` fails closed when A4 runtime/evidence inputs are unavailable. |
+| Current reality limit | `NONE_FOR_A4`: A4 production evidence and closure validation are complete. |
+| Current safe next action | continue to A5 certification through existing owners. |
+| Current stop reason | `NONE`; no runtime automation, authority expansion, or unapproved movement occurred |
+| root_cause | Resolved: A4 collection and closure validation previously over-counted non-outcome history as missing closure evidence. Existing read-only closure owner now ignores non-closure audit/history records. |
 | responsible_owner | Existing governed transaction feedback owner `tools/v7-governed-canary-dry-run-cycle`; existing feedback classifier owner `admin_core/operator_execution_feedback.py`; existing A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
 | implementation_class | `OWNER_EXTENSION_COMPLETED` |
-| next_engineering_task | `A4_PRODUCTION_SIDE_CERTIFICATION_VALIDATION` |
-| expected_completion_evidence | Production-side existing owners prove whether current candidates exist and whether outcome closure, learning growth, rollback/no-rollback certification, blast-radius certification, authority policy approval, and runtime policy binding are satisfied for the first action class. |
+| next_engineering_task | `A5_CERTIFY_CLASS_LEVEL_BLAST_RADIUS_EVIDENCE_BEYOND_ONE_USER_GUARD` |
+| expected_completion_evidence | Existing blast-radius/action-class/planner budget owners show whether one-user governed evidence can support the next certified blast-radius state without expanding authority silently. |
 
 ## 1.1. Root Cause Engine Output
 
 | Field | Current Value |
 | --- | --- |
-| Stop condition | `REAL_WORLD_LIMIT_PRODUCTION_RUNTIME_ACCESS`; production-side execution/validation access is required |
+| Stop condition | `NONE_FOR_A4`; continue to A5 |
 | Authority Class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE` |
 | Authority Reason | Bounded A4 authority is active for the current scope; no packet-by-packet approval is needed inside the approved envelope. |
 | Root Cause | A4 evidence inventory correctly counts concrete `user -> candidate_channel` keys; the implementation now prevents that inventory from becoming a mandatory full-matrix certification blocker. |
@@ -45,61 +45,61 @@ This file is volatile. Update it after every safe action or approved execution t
 | Why existing safety worked | The system did not lower thresholds, did not synthesize evidence, and did not enable automation; it continued to stop safely unless real governed evidence existed. |
 | Can existing owner be extended? | `YES`; existing owner was extended. |
 | Need New Owner | `FALSE` |
-| Implementation Class | `OWNER_EXTENSION_COMPLETED`; A4 collection input guard added to existing governed transaction owner. |
-| Concrete engineering task | `A4_PRODUCTION_SIDE_CERTIFICATION_VALIDATION` |
-| Expected completion evidence | Existing production read-models show current A4 candidate availability and mandatory certification gate status. |
-| OMP automatic continuation | `NO` until authenticated production runtime access is available; do not execute from local missing-state defaults. |
+| Implementation Class | `OWNER_EXTENSION_COMPLETED`; A4 collection input guard and A4 closure read-model filter completed. |
+| Concrete engineering task | `A5_CERTIFY_CLASS_LEVEL_BLAST_RADIUS_EVIDENCE_BEYOND_ONE_USER_GUARD` |
+| Expected completion evidence | Existing A5 owners classify class-level blast-radius evidence and define the next safe certification boundary. |
+| OMP automatic continuation | `YES`; A4 is complete and OMP continues to A5. |
 
 ## 2. Current Metrics
 
 | Metric | Current Value |
 | --- | --- |
 | Engineering maturity score | `100.0 / 100` |
-| Production maturity score | `24.0 / 100` |
-| Production maturity remaining | `76.0` |
+| Production maturity score | `27.2 / 100` |
+| Production maturity remaining | `72.8` |
 | Autonomy knowledge maturity score | `84.167` |
 | Confidence | `45.8 / 70` |
 | Trust | `47.889 / 70` |
 | Prediction | `39.6 / 70` |
 | Suitability | `29.515 / 70` |
-| Candidate outcomes consumed | Historical inventory signal remains supporting evidence; latest production-side count not verified in this run. |
-| Missing candidate outcomes | Production-side current missing candidate key count not verified; local `0` is invalid because local `/opt/v7` state is absent. |
+| Candidate outcomes consumed | A4 representative candidate inventory signal is complete; decision outcome closure read-model is `COMPLETE` with `387` valid closure candidates. |
+| Missing candidate outcomes | `0`; inventory signals are empty and no longer block A4. |
 | Future efficiency note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`; current A4 still proceeds with bounded gap-reduction guard, not candidate value ranking. |
-| Last bounded collection result | Local run invalid for production evidence because `/opt/v7` state is absent in this workspace; transactions attempted `0`; users moved `0`; runtime automation `NO`; authority expansion `NO`. |
+| Last bounded collection result | A4 bounded collection completed: final missing candidate outcomes reached `0`; runtime automation `NO`; authority expansion `NO`. |
 
 ## 2.1. Engineering and Production Maturity
 
 | Field | Current Value |
 | --- | --- |
 | engineering_maturity | `100.0%`; `ENGINEERING_COMPLETE` |
-| production_maturity | `24.0%` |
+| production_maturity | `27.2%` |
 | production_maturity_target | `100%` |
-| production_maturity_remaining | `76.0%` |
-| implementation_progress | `3 / 34 actionable complete` |
-| certification_progress | `28%`; A1/A2 are implemented/tested and A3 now has a real governed no-rollback outcome closure |
+| production_maturity_remaining | `72.8%` |
+| implementation_progress | `4 / 34 actionable complete` |
+| certification_progress | `32%`; A1/A2 are implemented/tested, A3 has a real governed no-rollback outcome closure, and A4 representative evidence is closure-complete |
 | autonomy_progress | `TIER_1_GOVERNED`; bounded production autonomy not certified |
-| backlog_progress | Tier A `3 / 6`; Tier B `0 / 21`; Tier C `0 / 7`; Tier D optional `0 / 6`; Overall `3 / 34` |
-| remaining_backlog | `31 actionable items`; `6 optional items` |
+| backlog_progress | Tier A `4 / 6`; Tier B `0 / 21`; Tier C `0 / 7`; Tier D optional `0 / 6`; Overall `4 / 34` |
+| remaining_backlog | `30 actionable items`; `6 optional items` |
 | remaining_work | `Moderate` |
 | next_milestone | `35%: Runtime Eligibility Implemented` |
 | current_focus | `IMPLEMENTATION` |
-| current_milestone | `20%: First Implementation Certified` |
+| current_milestone | `20%: First Implementation Certified`; progressing toward `35%: Runtime Eligibility Implemented` |
 | estimated_remaining_effort | `Moderate` |
-| current_highest_implementation_task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
+| current_highest_implementation_task | `A5_CERTIFY_CLASS_LEVEL_BLAST_RADIUS_EVIDENCE_BEYOND_ONE_USER_GUARD` |
 | world_equivalence_status | `CANONICAL` |
 | backlog_consistency_status | `CANONICAL_BACKLOG_MAPPING_CURRENT` |
 | state_change_cost_verdict | `ALREADY_EXISTS_SEMANTICALLY`; represented by existing movement-protection owners and extended through backlog item `B19` |
 | active_capability | `Learning`, `Authority Evolution`, `Production Readiness`, and `Production Autonomy`; current backlog item `A4` also contributes to `Movement Protection` through representative outcome evidence |
 | ideal_target_state | Movement Protection target state: Runtime evaluates current state, candidates, failure/degradation, freshness, recovery, blast radius, rollback, anti-flap, authority, State Change Cost, and Net Benefit; movement is allowed only when `NET_BENEFIT > CHANGE_COST` |
-| current_state | Capability-oriented OMP is active; Movement Protection is `IN_PROGRESS`; Decision Explainability is `IN_PROGRESS`; Runtime automation remains disabled; A3 is closed with real no-rollback evidence; A4 Governed Execution Transaction workflow is operational; A4 bounded evidence collection now uses goal-directed selection and may continue. |
+| current_state | Capability-oriented OMP is active; Movement Protection is `IN_PROGRESS`; Decision Explainability is `IN_PROGRESS`; Runtime automation remains disabled; A3 is closed with real no-rollback evidence; A4 representative outcome evidence is `DONE`; A5 is next. |
 | knowledge_plane_status | `OPERATIONAL`; Audit Knowledge State is consumed through existing Canonical Reference, SYSTEM_MAP, OMP, Current Program State, Backlog, Knowledge Quality, Production Maturity, and Engineering Reports as historical evidence only |
 | engineering_context_resolver_status | `OPERATIONAL`; ECR reuses existing `V7_CONTEXT_RESOLVER.md` and resolves task class, minimum working set, current/historical knowledge, re-open requirement, owner mapping, backlog mapping, and certification/runtime investigation need before work begins |
-| capability_progress | Movement Protection `35.7%`; Runtime Eligibility `28.6%`; Authority Evolution `40.0%`; Rollback `42.9%`; Recovery Admission `25.0%`; Learning `40.0%`; Production Readiness `24.0%`; Production Autonomy `0.0%`; Knowledge System `100.0%`; Observability `30.0%`; Decision Explainability `20.0%`; Implementation Discipline `100.0%`; Engineering Knowledge Preservation `100.0%` |
+| capability_progress | Movement Protection `35.7%`; Runtime Eligibility `28.6%`; Authority Evolution `45.0%`; Rollback `42.9%`; Recovery Admission `25.0%`; Learning `55.0%`; Production Readiness `27.2%`; Production Autonomy `0.0%`; Knowledge System `100.0%`; Observability `30.0%`; Decision Explainability `20.0%`; Implementation Discipline `100.0%`; Engineering Knowledge Preservation `100.0%` |
 | capability_remaining | Movement Protection remains blocked by rollback/no-rollback certification, soft degradation certification, recovery admission certification, blast-radius certification, anti-flap certification, central policy arbitration, per-user routing mode, runtime-certified slow start, and pool-health semantics; Decision Explainability remains blocked by Russian approval-request explanation generation, evidence-linked gate display, alternative reasoning, risk/value display, and real governed validation |
 | capability_completion_prediction | Movement Protection completes after `A3`, `A5`, `A6`, `B3`, `B4`, `B5`, `B8`, `B10`, `B16`, `B19`, `B21`, and `C7` are complete or explicitly classified `NOT_APPLICABLE` where allowed; Decision Explainability completes after `A3`, `A6`, `B1`, `B4`, `B13`, `B15`, `B17`, and `C2` provide enough evidence/read-model coverage for complete Russian operator explanations |
 | completed_capabilities | `Knowledge System`; `Implementation Discipline`; `Engineering Knowledge Preservation` |
 | locked_capabilities | `Knowledge System`; `Engineering Knowledge Preservation` |
-| next_capability_target | Complete `A4` to advance `Learning`, `Authority Evolution`, `Production Readiness`, and `Production Autonomy` with representative real outcome evidence |
+| next_capability_target | Complete `A5` to advance `Authority Evolution`, `Production Readiness`, `Movement Protection`, and `Production Autonomy` with class-level blast-radius evidence |
 
 ## 2.2. V7 Production Status
 
@@ -123,16 +123,16 @@ Engineering Maturity
 PRODUCTION
 
 Implementation
-8.8%
+11.8%
 
 Certification
-28%
+32%
 
 Autonomy
 0%
 
 Production Maturity
-24.0%
+27.2%
 
 Overall Status
 ENGINEERING_COMPLETE / PRODUCTION_IN_PROGRESS
@@ -142,7 +142,7 @@ IMPLEMENTATION
 
 Backlog
 Tier A
-3 / 6
+4 / 6
 Tier B
 0 / 21
 Tier C
@@ -150,22 +150,22 @@ Tier C
 Tier D
 0 / 6 optional
 Overall
-3 / 34 complete
+4 / 34 complete
 
 Current Tier
 TIER_1_GOVERNED
 
 Highest Priority Task
-A4: materialize representative outcome evidence for the first action class.
+A5: certify class-level blast-radius evidence beyond the one-user guard.
 
 Status
-A4 Bounded Collection Active
+A4 DONE / A5 Ready
 
 Authority
-Operational envelope active
+No expansion active
 
 Required Action
-Continue bounded A4 evidence collection through existing governed transaction owner; no packet-by-packet approval inside the approved A4 envelope.
+Start A5 certification through existing blast-radius/action-class/planner budget owners.
 
 Engineering
 READY
@@ -226,8 +226,14 @@ Production maturity category snapshot:
 | Restore barrier written | `true`; clearance written for approved packet `pkt_preview_4eb137c926917c2761faadb4` |
 | Users moved | `0` |
 | Authority expanded | `false` |
-| Next backlog item | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Next item blocker | `REAL_WORLD_LIMIT_IF_INSUFFICIENT_REPRESENTATIVE_OUTCOMES`: A3 produced one real no-rollback outcome; A4 must not invent additional evidence. |
+| Completed backlog item | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
+| A4 result | Real representative governed outcomes materialized; inventory signal empty; outcome closure read-model `COMPLETE`; no synthetic evidence. |
+| Latest deployed commit | `f49f4fa8d4ffe0d582bd807f0b45e7e48d724b38` |
+| Latest deploy id | `deploy-z8-14-Updatesystem-f49f4fa-20260627T232657` |
+| Latest truth | `PASS`; local, GitHub, and runtime aligned |
+| Latest convergence | `PASS`; status `ALIGNED`; runtime action guard `READY_FOR_RUNTIME_ACTION` |
+| Next backlog item | `A5_CERTIFY_CLASS_LEVEL_BLAST_RADIUS_EVIDENCE_BEYOND_ONE_USER_GUARD` |
+| Next item blocker | `NONE_YET`: A5 must begin with existing blast-radius/action-class/planner budget owners; no authority expansion or runtime automation is enabled. |
 
 ## 3. Latest Approved Packet Attempt
 
@@ -492,9 +498,10 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
 | Certification | `IMPLEMENTATION_FIX_DEPLOYED`; A3 outcome certification still requires real approved movement, verification, and rollback/no-rollback closure |
 | Truth | `PASS`; local, GitHub, and runtime aligned |
 | Convergence | `PASS`; runtime action guard `READY_FOR_RUNTIME_ACTION` |
-| New highest implementation leverage task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Continue automatically | `NO`; A4 requires approved production movement to collect real evidence |
-| Exact stop condition | `OPERATIONAL_AUTHORITY`: approve or reject one bounded A4 evidence collection cycle; no synthetic evidence may be created |
+| Historical next task at that time | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS`; now `DONE` |
+| Current highest implementation leverage task | `A5_CERTIFY_CLASS_LEVEL_BLAST_RADIUS_EVIDENCE_BEYOND_ONE_USER_GUARD` |
+| Continue automatically | `YES`; A4 no longer requires approved production movement |
+| Exact stop condition | `NONE_FOR_A4`; continue to A5 through existing owners |
 
 ## 13. Production Deploy State
 

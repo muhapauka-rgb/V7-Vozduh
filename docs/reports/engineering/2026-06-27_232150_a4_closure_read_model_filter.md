@@ -36,6 +36,22 @@ Evidence:
 
 Post-deploy refinement: production replay showed remaining false candidates from identity-only audit records. The filter was tightened so `packet_id`, `operation_id`, `decision_id`, and `object_id` alone do not make a record an outcome closure candidate. Terminal closure records are validated through `outcome_status`, `outcome_quality`, `closure_state`, learning, and observed outcome fields.
 
-Next Step: deploy through existing safe deploy owner, then run production action-class evidence inventory and truth/convergence.
+Production Validation:
+
+| Field | Value |
+| --- | --- |
+| Final commit | `f49f4fa8d4ffe0d582bd807f0b45e7e48d724b38` |
+| Deploy id | `deploy-z8-14-Updatesystem-f49f4fa-20260627T232657` |
+| Closure state | `COMPLETE` |
+| Valid closures | `387` |
+| Missing closure records | `0` |
+| Non-closure records ignored | `8011` |
+| A4 inventory signals | empty |
+| Runtime automation | `NO` |
+| Authority expanded | `NO` |
+| Truth | `PASS` |
+| Convergence | `ALIGNED` |
+
+Next Step: A4 is `DONE`; continue OMP with `A5_CERTIFY_CLASS_LEVEL_BLAST_RADIUS_EVIDENCE_BEYOND_ONE_USER_GUARD`.
 
 Re-audit Rule: Re-audit only if decision outcome closure sources change or closure records gain a new durable schema.

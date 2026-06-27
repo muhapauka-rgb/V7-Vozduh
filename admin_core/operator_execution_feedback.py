@@ -312,6 +312,12 @@ def execution_feedback_contract(
         "user": str(user or ""),
         "source_channel": str(source_channel or ""),
         "target_channel": str(target_channel or ""),
+        "selected_moves": execution_result.get("selected_moves") if isinstance(execution_result.get("selected_moves"), list) else [{
+            "user": str(user or ""),
+            "from": str(source_channel or ""),
+            "target": str(target_channel or ""),
+            "to": str(target_channel or ""),
+        }],
         "execution_time": execution_time or str(execution_result.get("execution_time") or execution_result.get("created_at") or now),
         "verification_time": verification_time or str(verification_result.get("verification_time") or verification_result.get("created_at") or now),
         "outcome_status": outcome_status,
@@ -375,6 +381,7 @@ def materialized_feedback_records(contract: dict[str, Any]) -> dict[str, dict[st
         "outcome_quality": contract.get("outcome_quality", {}),
         "knowledge_growth": contract.get("knowledge_growth", {}),
         "learning_record": contract.get("learning_record", {}),
+        "selected_moves": contract.get("selected_moves", []),
         "outcome_observed_at": contract.get("verification_time") or contract.get("execution_time") or utc_now(),
         "service_outcome": (contract.get("verification_result") or {}).get("service_outcome", {}),
         "user_outcome": (contract.get("verification_result") or {}).get("user_outcome", {

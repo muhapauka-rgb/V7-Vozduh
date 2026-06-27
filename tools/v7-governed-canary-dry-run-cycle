@@ -26,12 +26,14 @@ if str(ROOT) not in sys.path:
 
 from admin_core import (  # noqa: E402
     autonomy_trust_acceleration,
+    intelligence_workers,
     operator_execution,
     operator_decision_surface,
     operator_execution_feedback,
     operator_execution_pipeline,
     registry_readers,
 )
+from admin_core.intelligence_snapshots import read_snapshot_family  # noqa: E402
 
 
 DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
@@ -423,6 +425,7 @@ def materialize_governed_transaction_feedback(
         "decision_id": str(packet.get("decision_id") or ""),
         "operation_id": str(packet.get("operation_id") or operation.get("operation_id") or ""),
         "selected_move_hash": selected_move_hash,
+        "selected_moves": [{"user": user, "from": source, "target": target, "to": target}],
         "apply_result": apply_result,
         "runtime_mutation_performed": True,
         "users_moved": len(apply_result.get("results") or []),
@@ -481,6 +484,27 @@ def materialize_governed_transaction_feedback(
 
 
 def execute_governed_transaction(args: argparse.Namespace, *, state_dir: Path, event_dir: Path, snapshot_root: Path, audit_dir: Path, lease_file: Path) -> dict[str, Any]:
+    return execute_governed_transaction_with_guards(
+        args,
+        state_dir=state_dir,
+        event_dir=event_dir,
+        snapshot_root=snapshot_root,
+        audit_dir=audit_dir,
+        lease_file=lease_file,
+    )
+
+
+def execute_governed_transaction_with_guards(
+    args: argparse.Namespace,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    snapshot_root: Path,
+    audit_dir: Path,
+    lease_file: Path,
+    required_a4_candidate_keys: set[tuple[str, str]] | None = None,
+    blocked_transaction_identities: set[tuple[str, str, str, str]] | None = None,
+) -> dict[str, Any]:
     if args.confirm_governed_transaction != "EXECUTE_GOVERNED_TRANSACTION_APPROVED":
         return transaction_stop("transaction_confirmation_required")
     if int(args.max_users) != 1:
@@ -543,6 +567,32 @@ def execute_governed_transaction(args: argparse.Namespace, *, state_dir: Path, e
     if not constraints.get("ok"):
         return transaction_stop("transaction_scope_invalid", cycle=cycle, constraints=constraints)
 
+    user = constraints["users"][0]
+    target = constraints["targets"][0]
+    source = ((packet.get("rollback_manifest") or {}).get("items") or [{}])[0].get("rollback_target", "")
+    identity = (str(packet.get("packet_id") or ""), user, str(source or ""), target)
+    if blocked_transaction_identities is not None and identity in blocked_transaction_identities:
+        return transaction_stop(
+            "duplicate_transaction_candidate",
+            cycle=cycle,
+            packet=operator_execution.redact(packet),
+            transaction_identity={
+                "packet_id": identity[0],
+                "user": identity[1],
+                "source": identity[2],
+                "target": identity[3],
+            },
+            duplicate_guard_stage="pre_lease_pre_restore_barrier_pre_apply",
+        )
+    if required_a4_candidate_keys is not None and (user, target) not in required_a4_candidate_keys:
+        return transaction_stop(
+            "candidate_not_missing_a4_evidence",
+            cycle=cycle,
+            packet=operator_execution.redact(packet),
+            candidate_key={"user": user, "target": target},
+            evidence_guard_stage="pre_lease_pre_restore_barrier_pre_apply",
+        )
+
     lease = operator_execution.create_execution_lease_from_packet(packet, source_preview=packet_preview)
     lease_create_result = operator_execution.write_execution_lease(lease_file, lease)
     if not lease_create_result.get("ok"):
@@ -575,8 +625,6 @@ def execute_governed_transaction(args: argparse.Namespace, *, state_dir: Path, e
             lease_terminalization=terminal,
         )
 
-    user = constraints["users"][0]
-    target = constraints["targets"][0]
     apply_run = run_autoswitch_apply(
         state_dir=state_dir,
         event_dir=event_dir,
@@ -599,7 +647,6 @@ def execute_governed_transaction(args: argparse.Namespace, *, state_dir: Path, e
     results = apply_result.get("results") if isinstance(apply_result.get("results"), list) else []
     rollback_attempted = any(bool(row.get("rollback_attempted")) for row in results if isinstance(row, dict))
     verification_passed = all(int(row.get("verify_rc", 1)) == 0 for row in results if isinstance(row, dict)) and bool(results)
-    source = ((packet.get("rollback_manifest") or {}).get("items") or [{}])[0].get("rollback_target", "")
     feedback_materialization = materialize_governed_transaction_feedback(
         state_dir=state_dir,
         packet=packet,
@@ -647,6 +694,20 @@ def execute_governed_transaction(args: argparse.Namespace, *, state_dir: Path, e
         "autoswitch_apply": apply_run,
         "lease_terminalization": lease_terminalization,
     }
+
+
+def current_a4_missing_candidate_keys(snapshot_root: Path, records: list[dict[str, Any]]) -> set[tuple[str, str]]:
+    snapshot = read_snapshot_family(snapshot_root, "candidate-suitability-summary")
+    candidate_rows = snapshot.payload.get("items") if isinstance(snapshot.payload.get("items"), list) else []
+    candidate_keys = intelligence_workers._candidate_keys(candidate_rows)
+    consumed_outcomes = intelligence_workers.build_candidate_outcome_rows(candidate_rows, records)
+    consumed_keys = {
+        (str(row.get("user") or ""), str(row.get("channel") or row.get("egress") or row.get("target") or ""))
+        for row in consumed_outcomes
+        if isinstance(row, dict)
+    }
+    consumed_keys = {(user, channel) for user, channel in consumed_keys if user and channel}
+    return candidate_keys - consumed_keys
 
 
 def collection_stop(reason: str, *, transactions: list[dict[str, Any]] | None = None, **extra: Any) -> dict[str, Any]:
@@ -698,16 +759,24 @@ def execute_a4_bounded_evidence_collection(
     transactions: list[dict[str, Any]] = []
     seen_candidates: set[tuple[str, str, str, str]] = set()
     while len(transactions) < max_outcomes:
+        missing_candidate_keys = current_a4_missing_candidate_keys(
+            snapshot_root,
+            decision_records(state_dir, event_dir, audit_dir),
+        )
+        if not missing_candidate_keys:
+            return collection_stop("no_missing_a4_candidate_outcomes", transactions=transactions)
         transaction_args = copy.copy(args)
         transaction_args.confirm_governed_transaction = "EXECUTE_GOVERNED_TRANSACTION_APPROVED"
         transaction_args.execute_governed_transaction = True
-        result = execute_governed_transaction(
+        result = execute_governed_transaction_with_guards(
             transaction_args,
             state_dir=state_dir,
             event_dir=event_dir,
             snapshot_root=snapshot_root,
             audit_dir=audit_dir,
             lease_file=lease_file,
+            required_a4_candidate_keys=missing_candidate_keys,
+            blocked_transaction_identities=seen_candidates,
         )
         transactions.append(result)
         if result.get("final_verdict") != "GOVERNED_TRANSACTION_COMPLETED":
@@ -721,8 +790,6 @@ def execute_a4_bounded_evidence_collection(
             str(result.get("source") or ""),
             str(result.get("target") or ""),
         )
-        if identity in seen_candidates:
-            return collection_stop("duplicate_transaction_candidate", transactions=transactions)
         seen_candidates.add(identity)
         if int(result.get("users_moved") or 0) != 1:
             return collection_stop("transaction_user_count_not_one", transactions=transactions)

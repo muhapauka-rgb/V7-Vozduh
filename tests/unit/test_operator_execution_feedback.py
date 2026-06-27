@@ -41,6 +41,8 @@ class OperatorExecutionFeedbackTest(unittest.TestCase):
         self.assertEqual(set(records), {"outcome", "trust", "prediction", "recommendation", "closure"})
         self.assertEqual(records["closure"]["closure_state"], "CLOSED")
         self.assertEqual(records["outcome"]["packet_id"], "packet-1")
+        self.assertEqual(records["outcome"]["selected_moves"][0]["user"], "10.7.0.3")
+        self.assertEqual(records["outcome"]["selected_moves"][0]["target"], "awg3")
         self.assertEqual(records["outcome"]["learning_record"]["learning_record_id"], contract["learning_record"]["learning_record_id"])
 
     def test_decision_outcome_learning_model_uses_existing_records_only(self):

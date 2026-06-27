@@ -262,9 +262,14 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     "authority_expanded": False,
                 }
 
-            original = module.execute_governed_transaction
+            original = module.execute_governed_transaction_with_guards
+            original_missing = module.current_a4_missing_candidate_keys
             try:
-                module.execute_governed_transaction = fake_transaction
+                module.current_a4_missing_candidate_keys = lambda *_args, **_kwargs: {
+                    ("10.7.0.1", "awg3"),
+                    ("10.7.0.2", "awg3"),
+                }
+                module.execute_governed_transaction_with_guards = fake_transaction
                 result = module.execute_a4_bounded_evidence_collection(
                     args,
                     state_dir=root / "state",
@@ -274,7 +279,8 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     lease_file=root / "state" / "operator-execution-lease.json",
                 )
             finally:
-                module.execute_governed_transaction = original
+                module.execute_governed_transaction_with_guards = original
+                module.current_a4_missing_candidate_keys = original_missing
 
         self.assertEqual(result["final_verdict"], "A4_BOUNDED_EVIDENCE_COLLECTION_COMPLETED")
         self.assertEqual(result["successful_outcomes"], 2)
@@ -321,9 +327,11 @@ class GovernedCanaryCliTest(unittest.TestCase):
             def fake_transaction(*_args, **_kwargs):
                 return results.pop(0)
 
-            original = module.execute_governed_transaction
+            original = module.execute_governed_transaction_with_guards
+            original_missing = module.current_a4_missing_candidate_keys
             try:
-                module.execute_governed_transaction = fake_transaction
+                module.current_a4_missing_candidate_keys = lambda *_args, **_kwargs: {("10.7.0.1", "awg3")}
+                module.execute_governed_transaction_with_guards = fake_transaction
                 result = module.execute_a4_bounded_evidence_collection(
                     args,
                     state_dir=root / "state",
@@ -333,7 +341,8 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     lease_file=root / "state" / "operator-execution-lease.json",
                 )
             finally:
-                module.execute_governed_transaction = original
+                module.execute_governed_transaction_with_guards = original
+                module.current_a4_missing_candidate_keys = original_missing
 
         self.assertEqual(result["final_verdict"], "A4_BOUNDED_EVIDENCE_COLLECTION_STOPPED")
         self.assertEqual(result["stop_reason"], "packet_not_ready")
@@ -366,9 +375,11 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     "authority_expanded": False,
                 }
 
-            original = module.execute_governed_transaction
+            original = module.execute_governed_transaction_with_guards
+            original_missing = module.current_a4_missing_candidate_keys
             try:
-                module.execute_governed_transaction = fake_transaction
+                module.current_a4_missing_candidate_keys = lambda *_args, **_kwargs: {("10.7.0.9", "awg3")}
+                module.execute_governed_transaction_with_guards = fake_transaction
                 result = module.execute_a4_bounded_evidence_collection(
                     args,
                     state_dir=root / "state",
@@ -378,12 +389,89 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     lease_file=root / "state" / "operator-execution-lease.json",
                 )
             finally:
-                module.execute_governed_transaction = original
+                module.execute_governed_transaction_with_guards = original
+                module.current_a4_missing_candidate_keys = original_missing
 
         self.assertEqual(result["final_verdict"], "A4_BOUNDED_EVIDENCE_COLLECTION_STOPPED")
         self.assertEqual(result["stop_reason"], "transaction_verification_failed")
         self.assertEqual(result["successful_outcomes"], 0)
         self.assertEqual(result["transactions_attempted"], 1)
+
+    def test_governed_transaction_stops_before_apply_for_duplicate_candidate(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root)
+            original_cycle = module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle
+            original_apply = module.run_autoswitch_apply
+            try:
+                module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle = (
+                    lambda **kwargs: self.ready_cycle()
+                )
+
+                def fail_apply(**_kwargs):
+                    raise AssertionError("duplicate guard must stop before apply")
+
+                module.run_autoswitch_apply = fail_apply
+                result = module.execute_governed_transaction_with_guards(
+                    args,
+                    state_dir=root / "state",
+                    event_dir=root / "events",
+                    snapshot_root=root / "state" / "intelligence",
+                    audit_dir=root / "audit",
+                    lease_file=root / "state" / "operator-execution-lease.json",
+                    blocked_transaction_identities={("pkt_preview_test", "10.7.0.5", "vless", "awg3")},
+                )
+                lease_exists = (root / "state" / "operator-execution-lease.json").exists()
+                barrier_exists = (root / "state" / "autoswitch-restore-barrier.json").exists()
+            finally:
+                module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle = original_cycle
+                module.run_autoswitch_apply = original_apply
+
+        self.assertEqual(result["final_verdict"], "GOVERNED_TRANSACTION_STOPPED")
+        self.assertEqual(result["stop_reason"], "duplicate_transaction_candidate")
+        self.assertEqual(result["duplicate_guard_stage"], "pre_lease_pre_restore_barrier_pre_apply")
+        self.assertFalse(lease_exists)
+        self.assertFalse(barrier_exists)
+
+    def test_governed_transaction_stops_before_apply_for_non_missing_a4_candidate(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root)
+            original_cycle = module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle
+            original_apply = module.run_autoswitch_apply
+            try:
+                module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle = (
+                    lambda **kwargs: self.ready_cycle()
+                )
+
+                def fail_apply(**_kwargs):
+                    raise AssertionError("A4 evidence guard must stop before apply")
+
+                module.run_autoswitch_apply = fail_apply
+                result = module.execute_governed_transaction_with_guards(
+                    args,
+                    state_dir=root / "state",
+                    event_dir=root / "events",
+                    snapshot_root=root / "state" / "intelligence",
+                    audit_dir=root / "audit",
+                    lease_file=root / "state" / "operator-execution-lease.json",
+                    required_a4_candidate_keys={("10.7.0.99", "awg3")},
+                )
+                lease_exists = (root / "state" / "operator-execution-lease.json").exists()
+                barrier_exists = (root / "state" / "autoswitch-restore-barrier.json").exists()
+            finally:
+                module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle = original_cycle
+                module.run_autoswitch_apply = original_apply
+
+        self.assertEqual(result["final_verdict"], "GOVERNED_TRANSACTION_STOPPED")
+        self.assertEqual(result["stop_reason"], "candidate_not_missing_a4_evidence")
+        self.assertEqual(result["evidence_guard_stage"], "pre_lease_pre_restore_barrier_pre_apply")
+        self.assertFalse(lease_exists)
+        self.assertFalse(barrier_exists)
 
 
 if __name__ == "__main__":

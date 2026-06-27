@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-27T14:49:06+0700
-Source: OMP consumed the approved A4 packet `pkt_preview_a61462aaffb4510b6237fb95` through existing governed transaction owners. Production apply moved `10.7.0.5` from `awg3` to `awg0`, verification passed, rollback was `NOT_REQUIRED`, outcome closure and learning records were written from real observed evidence. A4 coverage remains `90 / 156 = 57.7%`; missing evidence remains `66 / 156 = 42.3%`. OMP then ran a fresh read-only governed dry-run and stopped at `OPERATIONAL_AUTHORITY` for packet `pkt_preview_0d08f864938833c4eb172f88`, user `10.7.0.8`, move `awg3 -> awg0`.
+State captured: 2026-06-27T15:59:24+0700
+Source: OMP continued A4 under the operator-approved bounded A4 evidence collection authority envelope, not packet-by-packet authority. Existing owner `tools/v7-governed-canary-dry-run-cycle --execute-a4-bounded-evidence-collection` ran with max `66` remaining evidence outcomes. It completed two verified no-rollback outcomes (`10.7.0.22 vless -> awg3`, `10.7.0.23 vless -> awg3`) and stopped safely on the third transaction (`10.7.0.24 vless -> awg3`) because verification failed and rollback completed to `vless`. A4 coverage is now `93 / 156 = 59.6%`; missing evidence is `63 / 156 = 40.4%`.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -15,18 +15,18 @@ This file is volatile. Update it after every safe action or approved execution t
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Implementation Backlog` |
 | Current highest leverage implementation | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Current highest leverage action | approve or reject exact current governed A4 packet `pkt_preview_0d08f864938833c4eb172f88` |
-| Current authority class | `OPERATIONAL_AUTHORITY` |
-| authority_class | `OPERATIONAL_AUTHORITY` |
-| authority_reason | The previous approved packet executed successfully; a fresh A4 packet is now ready and production movement requires operator authority before restore-barrier write or apply. |
+| Current highest leverage action | investigate/handle `transaction_verification_failed` from bounded A4 collection through existing owners; do not request packet approval |
+| Current authority class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE_BUT_STOPPED_ON_FAILED_GATE` |
+| authority_class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE_BUT_STOPPED_ON_FAILED_GATE` |
+| authority_reason | Operator approved bounded A4 collection for the current A4 scope; packet-by-packet approval is not required inside this envelope, but the envelope stops on failed verification gate. |
 | authority_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch`. |
-| required_action | Approve or reject packet `pkt_preview_0d08f864938833c4eb172f88`: user `10.7.0.8`, move `awg3 -> awg0`, rollback target `awg3`, selected move hash `114055479fb7f6ae7381ee841ea6bb55de0211c5ea15bfb7bbf1435d958d62bf`. |
+| required_action | Do not request a new packet approval. Current stop requires root-cause review of `10.7.0.24 vless -> awg3` verification failure and rollback-completed outcome through existing A4/verification owners. |
 | non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
 | optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
-| Current reality limit | `A4_REPRESENTATIVE_OUTCOME_EVIDENCE_REQUIRED`: A4 still requires more real representative outcomes; latest production inventory reports `missing_candidate_outcomes=66` |
-| Current safe next action | stop for operator approve/reject decision on the exact packet; do not continue read-only loops that do not change maturity |
-| Current stop reason | `OPERATIONAL_AUTHORITY`: exact production action approval is required |
-| root_cause | A4 has a fresh real candidate ready, but governed TIER_1 production movement cannot proceed without operator approval. |
+| Current reality limit | `A4_REPRESENTATIVE_OUTCOME_EVIDENCE_REQUIRED`: A4 still requires more real representative outcomes; latest production inventory reports `missing_candidate_outcomes=63` |
+| Current safe next action | stop for verification-failure analysis; do not continue movement while the failed gate is unresolved |
+| Current stop reason | `VERIFY_FAILED_ROLLBACK_COMPLETED`: bounded A4 collection stopped on first failed verification gate |
+| root_cause | Candidate `10.7.0.24 vless -> awg3` applied, route verification failed, and rollback completed to `vless`; existing safety stopped the bounded collection. |
 | responsible_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; existing packet/lease owner `admin_core/operator_execution.py`; existing apply owner `tools/v7-users-autoswitch`; existing feedback owner `admin_core/operator_execution_feedback.py`; existing A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
 | implementation_class | `BUG` |
 | next_engineering_task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
@@ -36,19 +36,19 @@ This file is volatile. Update it after every safe action or approved execution t
 
 | Field | Current Value |
 | --- | --- |
-| Stop condition | `OPERATIONAL_AUTHORITY` |
-| Authority Class | `OPERATIONAL_AUTHORITY` |
-| Authority Reason | Fresh packet `pkt_preview_0d08f864938833c4eb172f88` is ready and requires approval before production movement. |
-| Root Cause | Governed TIER_1 A4 candidate is ready; operator approval is required before restore-barrier write or apply. |
+| Stop condition | `VERIFY_FAILED_ROLLBACK_COMPLETED` |
+| Authority Class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE_BUT_STOPPED_ON_FAILED_GATE` |
+| Authority Reason | Bounded A4 authority is active for the current scope; no packet-by-packet approval is needed, but failed verification stops the envelope. |
+| Root Cause | Candidate `10.7.0.24 vless -> awg3` failed route verification after apply; rollback completed to `vless`. |
 | Responsible owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/lease owner `admin_core/operator_execution.py`; apply owner `tools/v7-users-autoswitch`; feedback owner `admin_core/operator_execution_feedback.py`; A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
-| Why it happened | The approved packet `pkt_preview_a61462aaffb4510b6237fb95` completed successfully, then a fresh A4 candidate appeared. |
-| Why existing safety worked | Dry-run stopped before restore-barrier write and apply at operational authority. |
-| Can existing owner be extended? | `YES`; existing bounded governed transaction owner is ready for the next approved collection cycle. |
+| Why it happened | The bounded collection correctly advanced through two successful transactions, then encountered a real failed verification on the third transaction. |
+| Why existing safety worked | The apply owner verified immediately, detected route mismatch, executed rollback, terminalized the lease as `ROLLBACK_FINISHED`, and stopped the bounded collection. |
+| Can existing owner be extended? | `YES`; existing verification/apply/read-model owners own the next investigation if needed. |
 | Need New Owner | `FALSE` |
-| Implementation Class | `AUTHORITY` |
-| Concrete engineering task | Execute exact packet only if operator approves; otherwise stop. |
-| Expected completion evidence | If approved and verified, A4 receives another real governed outcome; A4 coverage must be rechecked after outcome closure and may remain unchanged if the candidate key is already covered. |
-| OMP automatic continuation | `NO`; stop for exact approve/reject. |
+| Implementation Class | `VERIFICATION` |
+| Concrete engineering task | Audit the failed verification/rollback outcome for `10.7.0.24 vless -> awg3` and determine whether this is expected production evidence, a route verification defect, or a candidate eligibility issue. |
+| Expected completion evidence | Existing owners classify the failure; if safe, A4 bounded collection may resume under the existing bounded authority envelope without packet-by-packet approvals. |
+| OMP automatic continuation | `NO`; stop on failed verification gate. |
 
 ## 2. Current Metrics
 
@@ -62,10 +62,10 @@ This file is volatile. Update it after every safe action or approved execution t
 | Trust | `47.889 / 70` |
 | Prediction | `39.6 / 70` |
 | Suitability | `29.515 / 70` |
-| Candidate outcomes consumed | `90 / 156` |
-| Missing candidate outcomes | `66` |
+| Candidate outcomes consumed | `93 / 156` |
+| Missing candidate outcomes | `63` |
 | Future efficiency note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`; current A4 still proceeds with bounded gap-reduction guard, not candidate value ranking. |
-| Last bounded collection result | Approved packet `pkt_preview_a61462aaffb4510b6237fb95` moved `10.7.0.5 awg3 -> awg0`, verification passed, rollback was `NOT_REQUIRED`, feedback/learning closed; A4 coverage remained `90 / 156 = 57.7%`. |
+| Last bounded collection result | Bounded A4 collection completed two verified no-rollback outcomes, then stopped on `transaction_verification_failed`; rollback completed for `10.7.0.24`; A4 coverage is `93 / 156 = 59.6%`. |
 
 ## 2.1. Engineering and Production Maturity
 

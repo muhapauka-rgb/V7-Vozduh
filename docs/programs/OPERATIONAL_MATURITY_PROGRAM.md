@@ -2691,22 +2691,21 @@ Current implementation optimizer result:
 | Priority model | `docs/reference/V7_IMPLEMENTATION_PRIORITY_MODEL.md` |
 | Truth/convergence | Latest run: local and production truth `PASS`; runtime aligned; GitHub read failed in the local checker with `github_remote_unreadable` / `canonical_branch_missing_on_remote`, so full convergence reports `NO-GO` for source visibility only. |
 | New highest implementation leverage task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Stop boundary | `OPERATIONAL_AUTHORITY`: the previous approved packet executed successfully; production read-only dry-run now has the next fresh ready A4 packet requiring exact approve/reject. |
+| Stop boundary | `VERIFY_FAILED_ROLLBACK_COMPLETED`: bounded A4 collection ran under the already-approved authority envelope and stopped on the first failed verification gate. |
 
-Current A4 approval packet:
+Current A4 bounded authority envelope:
 
 | Field | Current Value |
 | --- | --- |
-| Packet | `pkt_preview_0d08f864938833c4eb172f88` |
-| Decision | `decision_commit_77345bb4771bd1b0ad4c2d46` |
-| Operation | `govdry_1b32617e18c1c6b0499a54c5` |
-| Selected move hash | `114055479fb7f6ae7381ee841ea6bb55de0211c5ea15bfb7bbf1435d958d62bf` |
-| User | `10.7.0.8` |
-| Move | `awg3 -> awg0` |
-| Rollback target | `awg3` |
-| Rollback manifest | `rb_preview_dabe8f801504b55306dc8819` |
-| Authority | `TIER_1` governed canary |
-| Required operator action | Approve or reject this exact packet; no apply occurs without approval. |
+| Authority status | `ACTIVE_BUT_STOPPED_ON_FAILED_GATE` |
+| Approved scope | Current A4 bounded evidence collection only |
+| Max successful evidence outcomes requested | `66` remaining at start of latest bounded run |
+| One-user limit | `YES` |
+| Runtime automation | `NO` |
+| Authority expansion | `NO` |
+| Packet-by-packet approval | `NO` inside this bounded envelope |
+| Stop rule | Stop on first failed gate, failed verification, rollback need, duplicate, non-missing candidate, scope expansion, or runtime automation attempt |
+| Current stop | `transaction_verification_failed`; rollback completed |
 
 Latest bounded A4 collection result:
 
@@ -2739,6 +2738,23 @@ Latest single approved A4 transaction:
 | A4 coverage after outcome | `90 / 156 = 57.7%`; missing `66 / 156 = 42.3%` |
 | Progression note | Real outcome was recorded, but representative coverage did not increase; continue with the next fresh A4 candidate through existing OMP. |
 
+Latest bounded A4 authority-envelope run:
+
+| Field | Current Value |
+| --- | --- |
+| Final verdict | `A4_BOUNDED_EVIDENCE_COLLECTION_STOPPED` |
+| Stop reason | `transaction_verification_failed` |
+| Transactions attempted | `3` |
+| Successful verified outcomes | `2` |
+| Successful moves | `10.7.0.22 vless -> awg3`; `10.7.0.23 vless -> awg3` |
+| Failed transaction | `10.7.0.24 vless -> awg3` |
+| Verification | `FAIL` for `10.7.0.24` |
+| Rollback | `ROLLBACK_COMPLETED`; user returned to `vless` |
+| A4 evidence | `93 / 156 = 59.6%`; missing `63 / 156 = 40.4%` |
+| Runtime automation | `NO` |
+| Authority expansion | `NO` |
+| Current next action | Do not ask for packet approval. Investigate the failed verification/rollback outcome through existing verification/apply/A4 owners before resuming bounded collection. |
+
 Non-blocking A4 optimization note:
 
 | Field | Current Value |
@@ -2765,7 +2781,7 @@ Latest safe deployment result:
 | Safety | Bounded collection mode reuses the existing one-user governed transaction owner, requires explicit confirmation, stops before lease/restore/apply for non-missing or duplicate candidates, keeps runtime automation disabled, and does not expand authority. |
 | Truth | Full `tools/v7-truth-check --all --json` with network access: `PASS`; local, GitHub, and production all at `19882a14d81cc8a6d05e8e46d40fc63ae7ed5446`. |
 | Convergence | Runtime aligned; deploy delta empty; runtime action guard `READY_FOR_RUNTIME_ACTION`. |
-| Current stop | `OPERATIONAL_AUTHORITY`: approve or reject one bounded A4 evidence collection cycle before production movement |
+| Current stop | `VERIFY_FAILED_ROLLBACK_COMPLETED`: bounded A4 evidence collection is stopped on a real failed verification gate; no packet approval is needed to continue after the failure is classified/resolved |
 
 ## 2.13. Implementation Program Loop
 

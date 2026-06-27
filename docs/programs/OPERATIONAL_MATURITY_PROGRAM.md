@@ -2686,24 +2686,24 @@ Current implementation optimizer result:
 | Exact owner | Restore barrier, guarded autoswitch execution, verification, rollback, outcome closure, feedback/learning |
 | Exact module | Canonical Policy Library Stage 4 implementation backlog and existing governed canary transaction owner |
 | Exact files | `tools/v7-governed-canary-dry-run-cycle`, `tests/unit/test_governed_canary_cli.py`, `admin_core/operator_execution.py`, `tools/v7-users-autoswitch`, `admin_core/operator_execution_feedback.py`, `admin_core/autonomy_trust_acceleration.py` |
-| Implementation status | `A4_BOUNDED_EVIDENCE_COLLECTION_STOPPED_ON_OUTCOME_VISIBILITY_DEFECT` |
+| Implementation status | `A4_BOUNDED_EVIDENCE_COLLECTION_GUARD_FIX_DEPLOYED` |
 | Backlog source | `docs/programs/V7_IMPLEMENTATION_BACKLOG.md` item `A4` |
 | Priority model | `docs/reference/V7_IMPLEMENTATION_PRIORITY_MODEL.md` |
-| Truth/convergence | Commit `87c9d2fecec9a418cf9214d0b523f90ee4ecc0af` is local/GitHub/production aligned; full truth with network access is `PASS`. |
-| New highest implementation leverage task | `A4_FIX_BOUNDED_COLLECTION_OUTCOME_VISIBILITY_AND_DUPLICATE_CANDIDATE_GUARD` |
-| Stop boundary | `UNSAFE_IMPLEMENTATION`: bounded collection produced `4` successful governed transaction records, but A4 evidence inventory remained `88 / 156` and the collection stopped at `duplicate_transaction_candidate`. |
+| Truth/convergence | Commit `19882a14d81cc8a6d05e8e46d40fc63ae7ed5446` is local/GitHub/production aligned; truth and convergence are `PASS`. |
+| New highest implementation leverage task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
+| Stop boundary | `OPERATIONAL_AUTHORITY`: A4 requires real production movement to collect missing candidate outcomes. |
 
 Latest safe deployment result:
 
 | Field | Current Value |
 | --- | --- |
-| Deployed commit | `87c9d2fecec9a418cf9214d0b523f90ee4ecc0af` |
-| Deploy id | `deploy-z8-14-Updatesystem-87c9d2f-20260627T120908` |
-| Deployed backlog items | `A1`, `A2`; A3 approval-to-execution lease binding fix; A3 approved plan lock snapshot-gate consumption fix; A3 real no-rollback outcome closure; A4 governed transaction feedback materialization; A4 bounded evidence collection mode |
-| Safety | Bounded collection mode reused the existing one-user governed transaction owner, required explicit confirmation, stopped at `duplicate_transaction_candidate`, kept runtime automation disabled, and did not expand authority. |
-| Truth | Full `tools/v7-truth-check --all --json` with network access: `PASS`; local, GitHub, and production all at `87c9d2fecec9a418cf9214d0b523f90ee4ecc0af`. |
-| Convergence | Runtime aligned; deploy delta empty; production CLI exposes `--execute-a4-bounded-evidence-collection`. |
-| Current stop | `UNSAFE_IMPLEMENTATION`: no more production movement until completed bounded transaction outcomes are consumed by A4 evidence and duplicate candidates stop before apply |
+| Deployed commit | `19882a14d81cc8a6d05e8e46d40fc63ae7ed5446` |
+| Deploy id | `deploy-z8-14-Updatesystem-19882a1-20260627T125619` |
+| Deployed backlog items | `A1`, `A2`; A3 approval-to-execution lease binding fix; A3 approved plan lock snapshot-gate consumption fix; A3 real no-rollback outcome closure; A4 governed transaction feedback materialization; A4 bounded evidence collection mode; A4 bounded collection evidence/duplicate pre-apply guard |
+| Safety | Bounded collection mode reuses the existing one-user governed transaction owner, requires explicit confirmation, stops before lease/restore/apply for non-missing or duplicate candidates, keeps runtime automation disabled, and does not expand authority. |
+| Truth | Full `tools/v7-truth-check --all --json` with network access: `PASS`; local, GitHub, and production all at `19882a14d81cc8a6d05e8e46d40fc63ae7ed5446`. |
+| Convergence | Runtime aligned; deploy delta empty; runtime action guard `READY_FOR_RUNTIME_ACTION`. |
+| Current stop | `OPERATIONAL_AUTHORITY`: approve or reject one bounded A4 evidence collection cycle before production movement |
 
 ## 2.13. Implementation Program Loop
 
@@ -3483,16 +3483,16 @@ If daemon, timer, event consumer mutation, autonomous execution, action-class ex
 | --- | --- |
 | Completed phases | Architecture foundation, Research Framework, Decision Model, Runtime Model, System Architecture, Implementation Phase activation, OMP Production Program integration. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle; OMP Production Program rule set. |
-| Current bottleneck | A4 representative real outcome evidence; production dry-run prepared packet `pkt_preview_79169161d388d83473ae732e` for one governed outcome. |
-| Current highest leverage action | Stop at `OPERATIONAL_AUTHORITY`; execute only exact packet `pkt_preview_79169161d388d83473ae732e` if operator approves, otherwise keep A4 blocked without synthetic evidence. |
+| Current bottleneck | A4 representative real outcome evidence; current inventory is `88 / 156 = 56.4%`, with `68 / 156 = 43.6%` missing. |
+| Current highest leverage action | Stop at `OPERATIONAL_AUTHORITY`; run one bounded A4 evidence collection cycle only if operator approves. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | `OPERATIONAL_AUTHORITY`: exact TIER_1 governed production action approval is required before restore-barrier write or apply. A4 still requires additional real comparable outcomes, freshness recheck, class-level blast-radius evidence, authority policy approval, runtime policy binding, and hard-failure classification recheck before promotion. |
-| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; A4 governed transaction workflow and feedback materialization are production-deployed; latest completed transaction moved one user and raised A4 evidence to `88 / 156` consumed outcomes. |
-| Current runtime posture | No autonomous apply, no daemon enablement, and no authority expansion; A4 performed one explicitly approved governed movement, while the next A4 movement is stopped at operational authority. |
-| Current next best action | Present exact approve/reject prompt for packet `pkt_preview_79169161d388d83473ae732e`; no apply, restore barrier, user movement, authority expansion, daemon/timer, or runtime automation without approval. |
-| Last optimizer iteration | `2026-06-27`: governed transaction packet `pkt_preview_2b4c165055beb66d37b0581e` was executed for user `10.7.0.19 vless -> awg3`, verified successfully, closed as no-rollback outcome with feedback `execfb_dc570c36697ac0c9986d6661`, and updated A4 inventory to `88 / 156` consumed outcomes. |
+| Current blockers | `OPERATIONAL_AUTHORITY`: bounded TIER_1 governed production collection approval is required before restore-barrier write or apply. A4 still requires additional real comparable outcomes, freshness recheck, class-level blast-radius evidence, authority policy approval, runtime policy binding, and hard-failure classification recheck before promotion. |
+| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; A4 bounded collection guard fix is production-deployed; A4 evidence remains `88 / 156` consumed outcomes. |
+| Current runtime posture | No autonomous apply, no daemon enablement, and no authority expansion; next A4 production movement is stopped at operational authority. |
+| Current next best action | Present approve/reject prompt for one bounded A4 evidence collection cycle; no apply, restore barrier, user movement, authority expansion, daemon/timer, or runtime automation without approval. |
+| Last optimizer iteration | `2026-06-27`: A4 bounded collection guard fix was implemented, tested (`209 / 209` relevant tests), deployed as `deploy-z8-14-Updatesystem-19882a1-20260627T125619`, and verified with truth/convergence `PASS`. |
 
 ## 25. Program Rule For Future Work
 

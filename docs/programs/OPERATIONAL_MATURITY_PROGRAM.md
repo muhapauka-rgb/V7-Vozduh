@@ -2689,25 +2689,41 @@ Current implementation optimizer result:
 | Implementation status | `A4_BOUNDED_EVIDENCE_COLLECTION_GUARD_FIX_DEPLOYED` |
 | Backlog source | `docs/programs/V7_IMPLEMENTATION_BACKLOG.md` item `A4` |
 | Priority model | `docs/reference/V7_IMPLEMENTATION_PRIORITY_MODEL.md` |
-| Truth/convergence | Latest run: local and production truth `PASS`; runtime aligned; GitHub read failed in the local checker with `github_remote_unreadable` / `canonical_branch_missing_on_remote`, so full convergence reports `NO-GO` for source visibility only. |
+| Truth/convergence | Latest run after A4 bounded collection: truth `PASS`; convergence `ALIGNED`. |
 | New highest implementation leverage task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Stop boundary | `UNSAFE_IMPLEMENTATION`: rollback-completed verification failure was protected correctly, but feedback/learning materialized it as success. |
+| Stop boundary | `NONE`: continue A4 bounded representative evidence collection under the approved envelope; latest stop was safe duplicate-candidate protection before mutation. |
 
 Current A4 bounded authority envelope:
 
 | Field | Current Value |
 | --- | --- |
-| Authority status | `ACTIVE_BUT_STOPPED_ON_UNSAFE_LEARNING_CLASSIFICATION` |
+| Authority status | `ACTIVE` |
 | Approved scope | Current A4 bounded evidence collection only |
-| Max successful evidence outcomes requested | `66` remaining at start of latest bounded run |
+| Max successful evidence outcomes requested | `63` remaining at start of latest bounded run |
 | One-user limit | `YES` |
 | Runtime automation | `NO` |
 | Authority expansion | `NO` |
 | Packet-by-packet approval | `NO` inside this bounded envelope |
 | Stop rule | Stop on first failed gate, failed verification, rollback need, duplicate, non-missing candidate, scope expansion, or runtime automation attempt |
-| Current stop | `feedback_learning_classification_defect`; rollback completed but learning classified the outcome as success |
+| Current stop | `A4_BOUNDED_COLLECTION_STOP_SAFE_DUPLICATE_CANDIDATE`; duplicate guard stopped before second lease, restore-barrier write, or apply |
 
-Latest bounded A4 collection result:
+Latest bounded A4 collection continuation:
+
+| Field | Current Value |
+| --- | --- |
+| Engineering report | `docs/reports/engineering/2026-06-27_170227_a4_bounded_collection_outcome.md` |
+| Final verdict | `A4_BOUNDED_EVIDENCE_COLLECTION_STOPPED` |
+| Stop reason | `duplicate_transaction_candidate` |
+| Successful verified outcomes | `1` |
+| Successful move | `10.7.0.25 vless -> awg3` |
+| Verification | `PASS` |
+| Rollback | `NOT_REQUIRED` |
+| A4 evidence | `94 / 156 = 60.3%`; missing `62 / 156 = 39.7%` |
+| Runtime automation | `NO` |
+| Authority expansion | `NO` |
+| Current next action | Continue A4 bounded collection under the existing approved envelope; do not ask for packet approval. |
+
+Previous bounded A4 collection result:
 
 | Field | Current Value |
 | --- | --- |
@@ -2722,7 +2738,7 @@ Latest bounded A4 collection result:
 | Authority expansion | `NO` |
 | Current next action | Continue A4 only when a fresh non-duplicate candidate exists; do not synthesize evidence or repeat the duplicate candidate |
 
-Latest single approved A4 transaction:
+Previous single approved A4 transaction:
 
 | Field | Current Value |
 | --- | --- |
@@ -2738,7 +2754,7 @@ Latest single approved A4 transaction:
 | A4 coverage after outcome | `90 / 156 = 57.7%`; missing `66 / 156 = 42.3%` |
 | Progression note | Real outcome was recorded, but representative coverage did not increase; continue with the next fresh A4 candidate through existing OMP. |
 
-Latest bounded A4 authority-envelope run:
+Previous bounded A4 authority-envelope run:
 
 | Field | Current Value |
 | --- | --- |
@@ -3577,16 +3593,16 @@ If daemon, timer, event consumer mutation, autonomous execution, action-class ex
 | --- | --- |
 | Completed phases | Architecture foundation, Research Framework, Decision Model, Runtime Model, System Architecture, Implementation Phase activation, OMP Production Program integration. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle; OMP Production Program rule set. |
-| Current bottleneck | A4 representative real outcome evidence; current inventory is `88 / 156 = 56.4%`, with `68 / 156 = 43.6%` missing. |
-| Current highest leverage action | Stop at `OPERATIONAL_AUTHORITY`; run one bounded A4 evidence collection cycle only if operator approves. |
+| Current bottleneck | A4 representative real outcome evidence; current inventory is `94 / 156 = 60.3%`, with `62 / 156 = 39.7%` missing. |
+| Current highest leverage action | Continue bounded A4 evidence collection under the existing approved envelope; do not request packet-by-packet approval. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | `OPERATIONAL_AUTHORITY`: bounded TIER_1 governed production collection approval is required before restore-barrier write or apply. A4 still requires additional real comparable outcomes, freshness recheck, class-level blast-radius evidence, authority policy approval, runtime policy binding, and hard-failure classification recheck before promotion. |
-| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; A4 bounded collection guard fix is production-deployed; A4 evidence remains `88 / 156` consumed outcomes. |
-| Current runtime posture | No autonomous apply, no daemon enablement, and no authority expansion; next A4 production movement is stopped at operational authority. |
-| Current next best action | Present approve/reject prompt for one bounded A4 evidence collection cycle; no apply, restore barrier, user movement, authority expansion, daemon/timer, or runtime automation without approval. |
-| Last optimizer iteration | `2026-06-27`: A4 bounded collection guard fix was implemented, tested (`209 / 209` relevant tests), deployed as `deploy-z8-14-Updatesystem-19882a1-20260627T125619`, and verified with truth/convergence `PASS`. |
+| Current blockers | `REAL_WORLD_LIMIT`: A4 still requires additional real comparable outcomes, freshness recheck, class-level blast-radius evidence, authority policy approval, runtime policy binding, and hard-failure classification recheck before promotion. Latest run stopped safely on `duplicate_transaction_candidate` before a second mutation. |
+| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; A4 bounded collection is production-operational; A4 evidence is `94 / 156` consumed outcomes. |
+| Current runtime posture | No autonomous apply, no daemon enablement, and no authority expansion; A4 bounded collection uses the approved operational envelope and still stops on failed gates or duplicates. |
+| Current next best action | Continue bounded A4 collection through existing owners; no synthetic evidence, no runtime automation, no authority expansion, and no packet-by-packet approval inside the approved envelope. |
+| Last optimizer iteration | `2026-06-27`: A4 bounded collection recorded one real no-rollback outcome for `10.7.0.25 vless -> awg3`, then stopped safely on duplicate candidate; truth/convergence `PASS`/`ALIGNED`. |
 
 ## 25. Program Rule For Future Work
 

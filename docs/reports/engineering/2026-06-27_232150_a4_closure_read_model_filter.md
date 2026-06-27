@@ -34,6 +34,8 @@ Evidence:
 - `python3 -m unittest tests.unit.test_autonomy_trust_acceleration`
 - `python3 -m unittest tests.unit.test_autonomy_trust_acceleration tests.unit.test_governed_canary_cli tests.unit.test_operator_execution_pipeline`
 
+Post-deploy refinement: production replay showed remaining false candidates from identity-only audit records. The filter was tightened so `packet_id`, `operation_id`, `decision_id`, and `object_id` alone do not make a record an outcome closure candidate. Terminal closure records are validated through `outcome_status`, `outcome_quality`, `closure_state`, learning, and observed outcome fields.
+
 Next Step: deploy through existing safe deploy owner, then run production action-class evidence inventory and truth/convergence.
 
 Re-audit Rule: Re-audit only if decision outcome closure sources change or closure records gain a new durable schema.

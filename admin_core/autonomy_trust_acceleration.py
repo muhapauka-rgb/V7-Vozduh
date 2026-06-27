@@ -4002,14 +4002,6 @@ VALID_OUTCOME_CLOSURE_FIELDS = (
 )
 
 OUTCOME_CLOSURE_CANDIDATE_FIELDS = (
-    "recommendation_id",
-    "recommendation_hash",
-    "proposal_id",
-    "decision_id",
-    "operation_id",
-    "object_id",
-    "packet_id",
-    "approval_packet_id",
     "apply_result",
     "execution_outcome",
     "post_action_verification",
@@ -4022,6 +4014,10 @@ OUTCOME_CLOSURE_CANDIDATE_FIELDS = (
     "learning_record",
     "trust_update",
     "prediction_actual",
+    "outcome",
+    "outcome_status",
+    "outcome_quality",
+    "knowledge_growth",
 )
 
 OUTCOME_CLOSURE_MARKER_FIELDS = (
@@ -4577,12 +4573,12 @@ def _closure_field_present(record: dict[str, Any], field: str) -> bool:
         "recommendation_id": ("recommendation_id", "recommendation_hash", "proposal_id"),
         "decision_id": ("decision_id", "operation_id", "object_id"),
         "packet_id": ("packet_id", "approval_packet_id"),
-        "apply_result": ("apply_result", "result", "status", "execution_outcome"),
-        "post_action_verification": ("post_action_verification", "verification_result", "verification"),
+        "apply_result": ("apply_result", "result", "status", "execution_outcome", "outcome", "outcome_status", "outcome_quality"),
+        "post_action_verification": ("post_action_verification", "verification_result", "verification", "closure_state", "outcome_status", "outcome_quality"),
         "service_outcome": ("service_outcome", "service_actual", "service_delta"),
         "user_outcome": ("user_outcome", "selected_moves", "user"),
         "learning_record": ("learning_record", "trust_update", "prediction_actual"),
-        "outcome_observed_at": ("outcome_observed_at", "completed_at", "event_time", "timestamp", "ts"),
+        "outcome_observed_at": ("outcome_observed_at", "closure_timestamp", "created_at", "completed_at", "event_time", "timestamp", "ts"),
     }
     return any(record.get(alias) not in (None, "", [], {}) for alias in aliases.get(field, (field,)))
 

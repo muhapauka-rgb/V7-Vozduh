@@ -663,7 +663,7 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
 
     def test_closure_requires_real_outcome_fields(self):
         incomplete = accel.build_decision_outcome_closure([
-            {"recommendation_hash": "r1", "selected_moves": [{"user": "10.7.0.2", "target": "awg0"}], "status": "preview_only"}
+            {"feedback_id": "f1", "recommendation_id": "r1", "outcome_status": "pending"}
         ])
         complete = accel.build_decision_outcome_closure([
             {

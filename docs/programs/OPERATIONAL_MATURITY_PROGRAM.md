@@ -2689,22 +2689,22 @@ Current implementation optimizer result:
 | Implementation status | `A4_BOUNDED_EVIDENCE_COLLECTION_GUARD_FIX_DEPLOYED` |
 | Backlog source | `docs/programs/V7_IMPLEMENTATION_BACKLOG.md` item `A4` |
 | Priority model | `docs/reference/V7_IMPLEMENTATION_PRIORITY_MODEL.md` |
-| Truth/convergence | Commit `19882a14d81cc8a6d05e8e46d40fc63ae7ed5446` is local/GitHub/production aligned; truth and convergence are `PASS`. |
+| Truth/convergence | Latest run: local and production truth `PASS`; runtime aligned; GitHub read failed in the local checker with `github_remote_unreadable` / `canonical_branch_missing_on_remote`, so full convergence reports `NO-GO` for source visibility only. |
 | New highest implementation leverage task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Stop boundary | `OPERATIONAL_AUTHORITY`: production read-only dry-run now has a fresh ready A4 packet requiring exact approve/reject. |
+| Stop boundary | `OPERATIONAL_AUTHORITY`: the previous approved packet executed successfully; production read-only dry-run now has the next fresh ready A4 packet requiring exact approve/reject. |
 
 Current A4 approval packet:
 
 | Field | Current Value |
 | --- | --- |
-| Packet | `pkt_preview_a61462aaffb4510b6237fb95` |
-| Decision | `decision_commit_7233dd92de99c5974829e2b5` |
-| Operation | `govdry_66d71cca6063ee5ef38d7c74` |
-| Selected move hash | `a3671ffeb70facc1d6d1dba05cbbc9732e46b5240859cf86768f12507723c53e` |
-| User | `10.7.0.5` |
+| Packet | `pkt_preview_0d08f864938833c4eb172f88` |
+| Decision | `decision_commit_77345bb4771bd1b0ad4c2d46` |
+| Operation | `govdry_1b32617e18c1c6b0499a54c5` |
+| Selected move hash | `114055479fb7f6ae7381ee841ea6bb55de0211c5ea15bfb7bbf1435d958d62bf` |
+| User | `10.7.0.8` |
 | Move | `awg3 -> awg0` |
 | Rollback target | `awg3` |
-| Rollback manifest | `rb_preview_1a2127208b90a46069dc38ff` |
+| Rollback manifest | `rb_preview_dabe8f801504b55306dc8819` |
 | Authority | `TIER_1` governed canary |
 | Required operator action | Approve or reject this exact packet; no apply occurs without approval. |
 
@@ -2722,6 +2722,22 @@ Latest bounded A4 collection result:
 | Runtime automation | `NO`; still disabled |
 | Authority expansion | `NO` |
 | Current next action | Continue A4 only when a fresh non-duplicate candidate exists; do not synthesize evidence or repeat the duplicate candidate |
+
+Latest single approved A4 transaction:
+
+| Field | Current Value |
+| --- | --- |
+| Packet | `pkt_preview_a61462aaffb4510b6237fb95` |
+| User moved | `10.7.0.5 awg3 -> awg0` |
+| Apply | `PASS` |
+| Verification | `PASS` |
+| Rollback | `NOT_REQUIRED` |
+| Outcome closure | `CLOSED`; feedback and learning records written from real observed outcome |
+| Users moved | `1` |
+| Runtime automation | `NO` |
+| Authority expansion | `NO` |
+| A4 coverage after outcome | `90 / 156 = 57.7%`; missing `66 / 156 = 42.3%` |
+| Progression note | Real outcome was recorded, but representative coverage did not increase; continue with the next fresh A4 candidate through existing OMP. |
 
 Non-blocking A4 optimization note:
 

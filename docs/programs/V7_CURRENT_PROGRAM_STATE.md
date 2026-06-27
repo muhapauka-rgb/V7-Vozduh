@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-27T14:22:00+0700
-Source: OMP continued from A4 after the bounded collection outcome. Production read-only governed dry-run now reaches `OPERATIONAL_AUTHORITY` with a fresh ready packet: `pkt_preview_a61462aaffb4510b6237fb95`, user `10.7.0.5`, move `awg3 -> awg0`, rollback target `awg3`, action class `single-user governed candidate failover`, authority tier `TIER_1`. No apply, restore-barrier write, rollback, runtime automation, authority expansion, or user movement occurred during this check. A4 evidence remains `90 / 156 = 57.7%`; missing evidence remains `66 / 156 = 42.3%`.
+State captured: 2026-06-27T14:49:06+0700
+Source: OMP consumed the approved A4 packet `pkt_preview_a61462aaffb4510b6237fb95` through existing governed transaction owners. Production apply moved `10.7.0.5` from `awg3` to `awg0`, verification passed, rollback was `NOT_REQUIRED`, outcome closure and learning records were written from real observed evidence. A4 coverage remains `90 / 156 = 57.7%`; missing evidence remains `66 / 156 = 42.3%`. OMP then ran a fresh read-only governed dry-run and stopped at `OPERATIONAL_AUTHORITY` for packet `pkt_preview_0d08f864938833c4eb172f88`, user `10.7.0.8`, move `awg3 -> awg0`.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -15,12 +15,12 @@ This file is volatile. Update it after every safe action or approved execution t
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Implementation Backlog` |
 | Current highest leverage implementation | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Current highest leverage action | approve or reject exact current governed A4 packet `pkt_preview_a61462aaffb4510b6237fb95` |
+| Current highest leverage action | approve or reject exact current governed A4 packet `pkt_preview_0d08f864938833c4eb172f88` |
 | Current authority class | `OPERATIONAL_AUTHORITY` |
 | authority_class | `OPERATIONAL_AUTHORITY` |
-| authority_reason | A fresh non-duplicate A4 packet is ready; production movement requires operator authority before restore-barrier write or apply. |
+| authority_reason | The previous approved packet executed successfully; a fresh A4 packet is now ready and production movement requires operator authority before restore-barrier write or apply. |
 | authority_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch`. |
-| required_action | Approve or reject packet `pkt_preview_a61462aaffb4510b6237fb95`: user `10.7.0.5`, move `awg3 -> awg0`, rollback target `awg3`, selected move hash `a3671ffeb70facc1d6d1dba05cbbc9732e46b5240859cf86768f12507723c53e`. |
+| required_action | Approve or reject packet `pkt_preview_0d08f864938833c4eb172f88`: user `10.7.0.8`, move `awg3 -> awg0`, rollback target `awg3`, selected move hash `114055479fb7f6ae7381ee841ea6bb55de0211c5ea15bfb7bbf1435d958d62bf`. |
 | non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
 | optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
 | Current reality limit | `A4_REPRESENTATIVE_OUTCOME_EVIDENCE_REQUIRED`: A4 still requires more real representative outcomes; latest production inventory reports `missing_candidate_outcomes=66` |
@@ -38,16 +38,16 @@ This file is volatile. Update it after every safe action or approved execution t
 | --- | --- |
 | Stop condition | `OPERATIONAL_AUTHORITY` |
 | Authority Class | `OPERATIONAL_AUTHORITY` |
-| Authority Reason | Fresh packet `pkt_preview_a61462aaffb4510b6237fb95` is ready and requires approval before production movement. |
+| Authority Reason | Fresh packet `pkt_preview_0d08f864938833c4eb172f88` is ready and requires approval before production movement. |
 | Root Cause | Governed TIER_1 A4 candidate is ready; operator approval is required before restore-barrier write or apply. |
 | Responsible owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/lease owner `admin_core/operator_execution.py`; apply owner `tools/v7-users-autoswitch`; feedback owner `admin_core/operator_execution_feedback.py`; A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
-| Why it happened | A fresh non-duplicate A4 candidate appeared after the prior duplicate stop. |
+| Why it happened | The approved packet `pkt_preview_a61462aaffb4510b6237fb95` completed successfully, then a fresh A4 candidate appeared. |
 | Why existing safety worked | Dry-run stopped before restore-barrier write and apply at operational authority. |
 | Can existing owner be extended? | `YES`; existing bounded governed transaction owner is ready for the next approved collection cycle. |
 | Need New Owner | `FALSE` |
 | Implementation Class | `AUTHORITY` |
 | Concrete engineering task | Execute exact packet only if operator approves; otherwise stop. |
-| Expected completion evidence | If approved and verified, A4 evidence inventory increases beyond `90 / 156` through one real non-duplicate governed outcome. |
+| Expected completion evidence | If approved and verified, A4 receives another real governed outcome; A4 coverage must be rechecked after outcome closure and may remain unchanged if the candidate key is already covered. |
 | OMP automatic continuation | `NO`; stop for exact approve/reject. |
 
 ## 2. Current Metrics
@@ -65,7 +65,7 @@ This file is volatile. Update it after every safe action or approved execution t
 | Candidate outcomes consumed | `90 / 156` |
 | Missing candidate outcomes | `66` |
 | Future efficiency note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`; current A4 still proceeds with bounded gap-reduction guard, not candidate value ranking. |
-| Last bounded collection result | Approved production bounded cycle recorded two verified no-rollback outcomes, then stopped safely at `duplicate_transaction_candidate`. |
+| Last bounded collection result | Approved packet `pkt_preview_a61462aaffb4510b6237fb95` moved `10.7.0.5 awg3 -> awg0`, verification passed, rollback was `NOT_REQUIRED`, feedback/learning closed; A4 coverage remained `90 / 156 = 57.7%`. |
 
 ## 2.1. Engineering and Production Maturity
 

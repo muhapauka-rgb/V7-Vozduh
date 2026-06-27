@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-27T18:19:34+0700
-Source: A4 evidence requirement sanity audit completed. `candidate_count=156` is a dynamic inventory count of current `user -> candidate_channel` keys, not a canonical A4 completion threshold. The remaining `62` outcomes are inventory coverage gaps, not proven mandatory representative outcomes for first action-class certification. Current A4 evidence gate is over-scoped if it treats full matrix coverage as required. Runtime, thresholds, formulas, authority, and architecture were not changed.
+State captured: 2026-06-27T18:27:35+0700
+Source: Master Action Class Certification Model audit completed. A4 owns representative real outcome evidence for the first action class, but full first-class certification requires `A4 -> A5 -> B13 -> A6 -> B12/authority`. `missing_candidate_outcomes` is inventory coverage/supporting evidence, not the canonical hard certification gate. Runtime, thresholds, formulas, authority, and architecture were not changed.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -24,19 +24,19 @@ This file is volatile. Update it after every safe action or approved execution t
 | non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
 | optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
 | Current reality limit | `A4_EVIDENCE_REQUIREMENT_OVERSCOPED`: A4 still requires real representative outcomes, but the current `62 / 156` inventory gap is not canonical proof that 62 more moves are mandatory. |
-| Current safe next action | implement existing-owner A4/B13 gate correction; do not lower thresholds, synthesize evidence, or create new owners |
-| Current stop reason | `A4_EVIDENCE_REQUIREMENT_OVERSCOPED`: current implementation over-treats full `user -> candidate_channel` coverage as a completion blocker |
+| Current safe next action | implement `A4_CERTIFICATION_GATE_ALIGNMENT_IN_EXISTING_EVIDENCE_OWNER`; do not lower thresholds, synthesize evidence, create new owners, or move users to exhaust inventory |
+| Current stop reason | `A4_CERTIFICATION_GATE_MISMATCH`: current implementation over-treats full `user -> candidate_channel` coverage as the A4 completion blocker, while the canonical model requires representative action-class evidence |
 | root_cause | Fixed and deployed: `tools/v7-governed-canary-dry-run-cycle::materialize_governed_transaction_feedback` now sends terminal outcome classification, and `admin_core.operator_execution_feedback` classifies from final terminal transaction state instead of intermediate apply result. |
 | responsible_owner | Existing governed transaction feedback owner `tools/v7-governed-canary-dry-run-cycle`; existing feedback classifier owner `admin_core/operator_execution_feedback.py`; existing A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
 | implementation_class | `BUG` |
-| next_engineering_task | `A4_SEPARATE_REPRESENTATIVE_COMPLETION_GATE_FROM_CANDIDATE_INVENTORY_COVERAGE` |
-| expected_completion_evidence | Existing A4/B13 owners expose a representative action-class completion gate where `candidate_count` remains a useful evidence signal but full `missing_candidate_outcomes == 0` is not the sole completion requirement. |
+| next_engineering_task | `A4_CERTIFICATION_GATE_ALIGNMENT_IN_EXISTING_EVIDENCE_OWNER` |
+| expected_completion_evidence | Existing A4/B13 owners expose canonical certification criteria: representative outcomes, terminal classification, verification, rollback/no-rollback semantics, freshness/safety/anti-flap, blast-radius handoff, learning, metric reliability, and authority-policy readiness. |
 
 ## 1.1. Root Cause Engine Output
 
 | Field | Current Value |
 | --- | --- |
-| Stop condition | `UNSAFE_IMPLEMENTATION_A4_EVIDENCE_GATE_OVERSCOPED`; A4 must not continue by forcing exhaustive inventory movement until the existing evidence gate is corrected |
+| Stop condition | `UNSAFE_IMPLEMENTATION_A4_CERTIFICATION_GATE_MISMATCH`; A4 must not continue by forcing exhaustive inventory movement until the existing evidence gate matches the canonical certification model |
 | Authority Class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE` |
 | Authority Reason | Bounded A4 authority is active for the current scope; no packet-by-packet approval is needed inside the approved envelope. |
 | Root Cause | A4 evidence inventory correctly counts concrete `user -> candidate_channel` keys, but current OMP/runtime readiness wording overinterprets this inventory as a mandatory full-matrix completion criterion. |

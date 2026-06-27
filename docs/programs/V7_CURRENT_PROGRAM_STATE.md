@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-27T11:31:09+0700
-Source: A4 old exact-packet workflow was replaced in implementation by the existing Governed Execution Transaction workflow. Deployed commit `23752b68c072817976068f2813f199301ca6b31b` passed truth and convergence. One bounded production transaction completed: fresh packet `pkt_preview_a69fe12e51c528c2a0402c0c`, user `10.7.0.5`, `awg0 -> awg3`, verification `PASS`, rollback `NOT_REQUIRED`, lease `execlease_5f4d34d80de62bf6445d73b4` terminalized as `EXECUTION_FINISHED`. Follow-up forensics proved that feedback/learning was not written because the governed transaction CLI did not call the existing feedback materialization owner after successful apply. Local implementation now connects the successful governed transaction path to `admin_core/operator_execution_feedback.py`; focused tests pass. Runtime automation remains disabled and authority was not expanded. A4 still requires deployment and a new real governed outcome through the corrected path before evidence/learning progress can increase.
+State captured: 2026-06-27T11:35:34+0700
+Source: A4 old exact-packet workflow was replaced in implementation by the existing Governed Execution Transaction workflow. Deployed commit `23752b68c072817976068f2813f199301ca6b31b` passed truth and convergence. One bounded production transaction completed: fresh packet `pkt_preview_a69fe12e51c528c2a0402c0c`, user `10.7.0.5`, `awg0 -> awg3`, verification `PASS`, rollback `NOT_REQUIRED`, lease `execlease_5f4d34d80de62bf6445d73b4` terminalized as `EXECUTION_FINISHED`. Follow-up forensics proved that feedback/learning was not written because the governed transaction CLI did not call the existing feedback materialization owner after successful apply. Commit `93c89ed1c9a652cbd413f970ac4a3b9720a900f9` connects the successful governed transaction path to `admin_core/operator_execution_feedback.py`, passes focused tests, and is deployed as `deploy-z8-14-Updatesystem-93c89ed-20260627T113347`. Post-deploy truth and convergence are `PASS` / `FULLY_ALIGNED`. Runtime automation remains disabled and authority was not expanded. Production dry-run after deploy found no current A4 candidate, so no packet or approval was emitted and no apply occurred. A4 now waits for a real governed candidate/regression through the corrected path.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -15,18 +15,18 @@ This file is volatile. Update it after every safe action or approved execution t
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Implementation Backlog` |
 | Current highest leverage implementation | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Current highest leverage action | deploy the A4 feedback materialization fix through the existing safe deploy owner, then collect only real governed representative outcomes through the corrected path; do not create a new owner, new runtime path, or synthetic evidence |
+| Current highest leverage action | wait for or discover a real eligible A4 governed candidate, then collect only real governed representative outcomes through the corrected feedback materialization path; do not create a new owner, new runtime path, or synthetic evidence |
 | Current authority class | `NONE`: the approved one-time governed transaction has already been consumed |
 | authority_class | `NONE` |
 | authority_reason | No new operator approval is currently requested. The latest approved transaction completed and terminalized successfully; the remaining blocker is A4 evidence/learning sufficiency, not authority. |
 | authority_owner | Existing packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch`. |
-| required_action | Safe deploy the completed A4 feedback materialization fix, run truth/convergence, then continue A4 evidence collection only with real governed outcomes. |
+| required_action | Continue A4 evidence collection only when a real governed candidate exists; no approval packet is currently ready. |
 | Current reality limit | `A4_REPRESENTATIVE_OUTCOME_EVIDENCE_REQUIRED`: A4 still requires more real representative outcomes; latest inventory reports `missing_candidate_outcomes=69` |
-| Current safe next action | commit and deploy the local A4 feedback materialization fix; after deploy, rerun A4 through real governed transaction only when OMP/authority allow |
-| Current stop reason | `DEPLOY_REQUIRED`: the A4 learning ingestion implementation exists locally and passes focused tests, but production has not consumed it yet |
+| Current safe next action | continue read-only monitoring/dry-run until a real A4 candidate appears; if a READY transaction appears, stop for explicit bounded operational authority |
+| Current stop reason | `REAL_WORLD_LIMIT`: post-deploy production dry-run returned `MISSING_TRIGGER` / no canary candidate available |
 | root_cause | Successful governed transactions reached apply/verify/lease closure, but the governed transaction CLI did not invoke the existing feedback materialization owner. |
 | responsible_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; existing feedback owner `admin_core/operator_execution_feedback.py` remains reused. |
-| implementation_class | `OWNER_EXTENSION` |
+| implementation_class | `REAL_WORLD_LIMIT` |
 | next_engineering_task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
 | expected_completion_evidence | A4 evidence inventory shows sufficient representative closed real outcomes, rollback/no-rollback certification, blast-radius certification, verified learning growth, and class-level readiness through existing owners. |
 
@@ -34,7 +34,7 @@ This file is volatile. Update it after every safe action or approved execution t
 
 | Field | Current Value |
 | --- | --- |
-| Stop condition | `DEPLOY_REQUIRED` |
+| Stop condition | `REAL_WORLD_LIMIT` |
 | Authority Class | `NONE` |
 | Authority Reason | No new production authority is requested; the one-time transaction authority was consumed. |
 | Root Cause | The governed transaction CLI completed apply/verify/lease closure but did not call the existing feedback materialization owner, so closed learning records were not written. |
@@ -43,10 +43,10 @@ This file is volatile. Update it after every safe action or approved execution t
 | Why existing safety worked | The transaction stayed inside one-user governed scope, wrote restore-barrier clearance, applied exactly one move, verified route health, did not rollback, terminalized the lease, did not enable runtime automation, and did not expand authority. |
 | Can existing owner be extended? | `YES`; local fix extends the existing governed transaction owner and reuses the existing feedback owner. |
 | Need New Owner | `FALSE` |
-| Implementation Class | `OWNER_EXTENSION` |
-| Concrete engineering task | Deploy the A4 feedback materialization fix, then validate that the next real governed transaction writes execution, trust, recommendation, and closure records. |
-| Expected completion evidence | Production governed transaction records write to existing feedback stores and A4 inventory no longer reports missing verified learning growth for corrected outcomes. |
-| OMP automatic continuation | `YES_AFTER_DEPLOY`; after safe deploy and truth/convergence, continue to real A4 governed evidence collection. |
+| Implementation Class | `REAL_WORLD_LIMIT` |
+| Concrete engineering task | Wait for or discover a real eligible A4 governed candidate, then validate that the corrected production path writes execution, trust, recommendation, and closure records. |
+| Expected completion evidence | A real governed transaction through deployed commit `93c89ed1c9a652cbd413f970ac4a3b9720a900f9` writes feedback records and A4 inventory no longer reports missing verified learning growth for corrected outcomes. |
+| OMP automatic continuation | `NO_RUNTIME_ACTION_AVAILABLE`; continue read-only monitoring/dry-run until a real candidate exists. |
 
 ## 2. Current Metrics
 
@@ -87,7 +87,7 @@ This file is volatile. Update it after every safe action or approved execution t
 | state_change_cost_verdict | `ALREADY_EXISTS_SEMANTICALLY`; represented by existing movement-protection owners and extended through backlog item `B19` |
 | active_capability | `Movement Protection`; current backlog item `A3` also contributes to `Rollback`, `Learning`, and `Authority Evolution` |
 | ideal_target_state | Movement Protection target state: Runtime evaluates current state, candidates, failure/degradation, freshness, recovery, blast radius, rollback, anti-flap, authority, State Change Cost, and Net Benefit; movement is allowed only when `NET_BENEFIT > CHANGE_COST` |
-| current_state | Capability-oriented OMP is active; Movement Protection is `IN_PROGRESS`; Decision Explainability is `IN_PROGRESS`; Runtime automation remains disabled; A3 is closed with real no-rollback evidence; A4 Governed Execution Transaction workflow is operational; A4 feedback materialization is implemented locally and awaits safe deploy plus a new real outcome through the corrected path |
+| current_state | Capability-oriented OMP is active; Movement Protection is `IN_PROGRESS`; Decision Explainability is `IN_PROGRESS`; Runtime automation remains disabled; A3 is closed with real no-rollback evidence; A4 Governed Execution Transaction workflow is operational; A4 feedback materialization is deployed; post-deploy dry-run found no current canary candidate, so A4 waits for a real governed candidate/regression through the corrected path |
 | knowledge_plane_status | `OPERATIONAL`; Audit Knowledge State is consumed through existing Canonical Reference, SYSTEM_MAP, OMP, Current Program State, Backlog, Knowledge Quality, Production Maturity, and Engineering Reports as historical evidence only |
 | engineering_context_resolver_status | `OPERATIONAL`; ECR reuses existing `V7_CONTEXT_RESOLVER.md` and resolves task class, minimum working set, current/historical knowledge, re-open requirement, owner mapping, backlog mapping, and certification/runtime investigation need before work begins |
 | capability_progress | Movement Protection `35.7%`; Runtime Eligibility `28.6%`; Authority Evolution `40.0%`; Rollback `42.9%`; Recovery Admission `25.0%`; Learning `40.0%`; Production Readiness `24.0%`; Production Autonomy `0.0%`; Knowledge System `100.0%`; Observability `30.0%`; Decision Explainability `20.0%`; Implementation Discipline `100.0%`; Engineering Knowledge Preservation `100.0%` |

@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-27T09:59:49+0700
-Source: Operator authorized one bounded governed execution transaction for A4. Fresh production packet `pkt_preview_2cb1fe3b8ce1551c75ccff11` was committed, leased, restored, applied, verified, closed as no-rollback evidence, and learned from. One user moved: `10.7.0.18` from `vless` to `awg3`. Runtime automation remains disabled and authority was not expanded. Residual blocker: the existing execution lease owner has no safe terminal-close path for successful apply, so production lease `execlease_dc58e5ca28c4ea6adc96418f` remains `ACTIVE` until expiry even though the outcome is recorded.
+State captured: 2026-06-27T10:13:32+0700
+Source: A4 old exact-packet workflow was replaced in implementation by the existing Governed Execution Transaction workflow. Deployed commit `23752b68c072817976068f2813f199301ca6b31b` passed truth and convergence. One bounded production transaction completed: fresh packet `pkt_preview_a69fe12e51c528c2a0402c0c`, user `10.7.0.5`, `awg0 -> awg3`, verification `PASS`, rollback `NOT_REQUIRED`, lease `execlease_5f4d34d80de62bf6445d73b4` terminalized as `EXECUTION_FINISHED`. Runtime automation remains disabled and authority was not expanded. A4 remains blocked by `REAL_WORLD_LIMIT`: latest inventory still reports `missing_candidate_outcomes=69` and missing verified learning growth from closed real outcomes.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -15,38 +15,38 @@ This file is volatile. Update it after every safe action or approved execution t
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Implementation Backlog` |
 | Current highest leverage implementation | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Current highest leverage action | fix A4 governed transaction terminal closure inside the existing execution lease owner before another production transaction; do not create a new owner, new runtime path, or synthetic evidence |
+| Current highest leverage action | continue A4 through existing OMP: verify why the completed governed transaction has not reduced representative evidence/learning blockers, then collect only real governed representative outcomes; do not create a new owner, new runtime path, or synthetic evidence |
 | Current authority class | `NONE`: the approved one-time governed transaction has already been consumed |
 | authority_class | `NONE` |
-| authority_reason | No new operator approval is currently requested. The latest approved transaction produced one real no-rollback outcome; the remaining blocker is an implementation closure gap, not authority. |
+| authority_reason | No new operator approval is currently requested. The latest approved transaction completed and terminalized successfully; the remaining blocker is A4 evidence/learning sufficiency, not authority. |
 | authority_owner | Existing packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch`. |
-| required_action | Implement only the existing-owner lease terminal-close gap for successful governed transaction outcomes; no apply, user movement, daemon/timer, runtime automation, authority expansion, or synthetic evidence is allowed during the fix. |
+| required_action | Continue A4 evidence investigation/collection through existing owners only; no daemon/timer, runtime automation, authority expansion, new backlog, or synthetic evidence is allowed. |
 | Current reality limit | `A4_REPRESENTATIVE_OUTCOME_EVIDENCE_REQUIRED`: A4 still requires more real representative outcomes; latest inventory reports `missing_candidate_outcomes=69` |
-| Current safe next action | implement and test terminal lease closure for successful governed transactions inside the existing execution lease owner, then rerun truth/convergence and A4 inventory |
-| Current stop reason | `UNSAFE_IMPLEMENTATION`: successful transaction outcome is recorded, but the execution lease remains `ACTIVE` until expiry because no safe `EXECUTION_FINISHED` materialization exists |
-| root_cause | A4 transaction execution path can produce real evidence, but the existing execution lease owner only exposes cancel/expiry and does not safely mark successful apply as terminal without corrupting outcome facts. |
+| Current safe next action | audit A4 evidence/learning ingestion for the completed governed transaction, then continue only with real representative production outcomes when OMP/authority allow |
+| Current stop reason | `REAL_WORLD_LIMIT`: Governed Execution Transaction is operational, but A4 is not certified and runtime automation remains disabled because representative evidence and verified learning growth remain insufficient |
+| root_cause | The old stale exact-packet approval loop is removed, but A4 promotion still requires representative real outcomes and verified learning growth through existing evidence owners. |
 | responsible_owner | Existing apply/verify owner `tools/v7-users-autoswitch`; existing packet/execution lease owner `admin_core/operator_execution.py` remains reused. |
-| implementation_class | `OWNER_EXTENSION` |
+| implementation_class | `REAL_WORLD_LIMIT` |
 | next_engineering_task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| expected_completion_evidence | execution lease can be marked `EXECUTION_FINISHED` after successful apply without changing packet identity, losing outcome facts, moving additional users, expanding authority, or bypassing safety. |
+| expected_completion_evidence | A4 evidence inventory shows sufficient representative closed real outcomes, rollback/no-rollback certification, blast-radius certification, verified learning growth, and class-level readiness through existing owners. |
 
 ## 1.1. Root Cause Engine Output
 
 | Field | Current Value |
 | --- | --- |
-| Stop condition | `UNSAFE_IMPLEMENTATION` |
+| Stop condition | `REAL_WORLD_LIMIT` |
 | Authority Class | `NONE` |
 | Authority Reason | No new production authority is requested; the one-time transaction authority was consumed. |
-| Root Cause | Successful governed transaction execution is recorded, but the active execution lease remains `ACTIVE` until expiry because the existing lease owner has no terminal-close command/state materialization for successful apply. |
+| Root Cause | A4 transaction execution is now operational and terminalized, but A4 promotion still lacks enough representative closed real outcomes and verified learning growth. |
 | Responsible owner | Existing packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch` remains reused. |
-| Why it happened | `cancel_execution_lease` exists, but it writes `OPERATOR_CANCELLED` and clears apply/user-move fields; using it after success would corrupt the outcome. No existing safe `EXECUTION_FINISHED` path is exposed. |
-| Why existing safety worked | The transaction stayed inside one-user governed scope, wrote restore-barrier clearance, applied exactly one move, verified route health, did not rollback, did not enable runtime automation, and did not expand authority. |
-| Can existing owner be extended? | `YES`; extend existing execution lease owner only. |
+| Why it happened | Governed transaction materialization fixed the non-completable operator workflow, but A4 certification intentionally requires more than a single successful execution path: representative evidence, verified learning, rollback/no-rollback certification, blast-radius certification, and authority readiness. |
+| Why existing safety worked | The transaction stayed inside one-user governed scope, wrote restore-barrier clearance, applied exactly one move, verified route health, did not rollback, terminalized the lease, did not enable runtime automation, and did not expand authority. |
+| Can existing owner be extended? | `YES_IF_NEEDED`; continue through existing A4 evidence, learning, runtime eligibility, and OMP owners only. |
 | Need New Owner | `FALSE` |
-| Implementation Class | `OWNER_EXTENSION` |
-| Concrete engineering task | Add/test safe successful lease terminalization inside existing execution lease owner: `ACTIVE` -> `EXECUTION_FINISHED` after verified apply, preserving packet/decision/operation/move identity and outcome facts. |
-| Expected completion evidence | Active lease becomes terminal after success; duplicate lease guard releases; outcome facts remain intact; tests, truth, convergence, and A4 inventory pass. |
-| OMP automatic continuation | `YES_AFTER_FIX`; no authority is required for the lease terminal-close implementation itself. |
+| Implementation Class | `REAL_WORLD_LIMIT` |
+| Concrete engineering task | Continue A4 evidence path: verify outcome ingestion/learning recognition for completed governed transactions, then gather only real representative governed outcomes through existing owners. |
+| Expected completion evidence | A4 inventory no longer reports missing representative outcomes or missing verified learning growth; class-level rollback/no-rollback, blast-radius, and authority readiness are certified. |
+| OMP automatic continuation | `NO_RUNTIME_AUTOMATION`; continue only with safe read-only evidence audit or with explicit bounded operational authority for another governed transaction. |
 
 ## 2. Current Metrics
 
@@ -87,7 +87,7 @@ This file is volatile. Update it after every safe action or approved execution t
 | state_change_cost_verdict | `ALREADY_EXISTS_SEMANTICALLY`; represented by existing movement-protection owners and extended through backlog item `B19` |
 | active_capability | `Movement Protection`; current backlog item `A3` also contributes to `Rollback`, `Learning`, and `Authority Evolution` |
 | ideal_target_state | Movement Protection target state: Runtime evaluates current state, candidates, failure/degradation, freshness, recovery, blast radius, rollback, anti-flap, authority, State Change Cost, and Net Benefit; movement is allowed only when `NET_BENEFIT > CHANGE_COST` |
-| current_state | Capability-oriented OMP is active; Movement Protection is `IN_PROGRESS`; Decision Explainability is `IN_PROGRESS`; Runtime automation remains disabled; A3 is closed with real no-rollback evidence; A4 gained one additional governed no-rollback production outcome but remains blocked by insufficient representative real outcomes and a lease terminal-close implementation gap |
+| current_state | Capability-oriented OMP is active; Movement Protection is `IN_PROGRESS`; Decision Explainability is `IN_PROGRESS`; Runtime automation remains disabled; A3 is closed with real no-rollback evidence; A4 Governed Execution Transaction workflow is operational, but A4 remains blocked by insufficient representative real outcomes and missing verified learning growth |
 | knowledge_plane_status | `OPERATIONAL`; Audit Knowledge State is consumed through existing Canonical Reference, SYSTEM_MAP, OMP, Current Program State, Backlog, Knowledge Quality, Production Maturity, and Engineering Reports as historical evidence only |
 | engineering_context_resolver_status | `OPERATIONAL`; ECR reuses existing `V7_CONTEXT_RESOLVER.md` and resolves task class, minimum working set, current/historical knowledge, re-open requirement, owner mapping, backlog mapping, and certification/runtime investigation need before work begins |
 | capability_progress | Movement Protection `35.7%`; Runtime Eligibility `28.6%`; Authority Evolution `40.0%`; Rollback `42.9%`; Recovery Admission `25.0%`; Learning `40.0%`; Production Readiness `24.0%`; Production Autonomy `0.0%`; Knowledge System `100.0%`; Observability `30.0%`; Decision Explainability `20.0%`; Implementation Discipline `100.0%`; Engineering Knowledge Preservation `100.0%` |
@@ -155,13 +155,13 @@ Highest Priority Task
 A4: materialize representative outcome evidence for the first action class.
 
 Status
-Implementation Fix Required
+Real Evidence Required
 
 Authority
 None
 
 Required Action
-Fix successful execution lease terminal closure inside existing owner.
+Continue A4 evidence/learning ingestion audit or collect another real governed representative outcome only with explicit bounded authority.
 
 Engineering
 READY

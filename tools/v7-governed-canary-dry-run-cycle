@@ -11,6 +11,7 @@ enables daemons or runtime automation.
 from __future__ import annotations
 
 import argparse
+import copy
 import gzip
 import json
 import subprocess
@@ -648,6 +649,112 @@ def execute_governed_transaction(args: argparse.Namespace, *, state_dir: Path, e
     }
 
 
+def collection_stop(reason: str, *, transactions: list[dict[str, Any]] | None = None, **extra: Any) -> dict[str, Any]:
+    transactions = transactions or []
+    successful = [
+        row for row in transactions
+        if row.get("final_verdict") == "GOVERNED_TRANSACTION_COMPLETED"
+        and row.get("verification_result") == "PASS"
+        and row.get("a4_evidence_updated")
+    ]
+    return {
+        "schema_version": "v7.a4-bounded-evidence-collection.v1",
+        "collection_status": "STOP_SAFE",
+        "final_verdict": "A4_BOUNDED_EVIDENCE_COLLECTION_STOPPED",
+        "stop_reason": reason,
+        "successful_outcomes": len(successful),
+        "transactions_attempted": len(transactions),
+        "transactions": transactions,
+        "runtime_automation_enabled": False,
+        "authority_expanded": False,
+        "temporary_authority_consumed": bool(transactions),
+        "new_architecture_created": False,
+        "new_authority_created": False,
+        "new_runtime_path_created": False,
+        "new_governance_created": False,
+        "new_owner_created": False,
+        "new_backlog_item_created": False,
+        **extra,
+    }
+
+
+def execute_a4_bounded_evidence_collection(
+    args: argparse.Namespace,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    snapshot_root: Path,
+    audit_dir: Path,
+    lease_file: Path,
+) -> dict[str, Any]:
+    if args.confirm_a4_bounded_evidence_collection != "EXECUTE_A4_BOUNDED_EVIDENCE_COLLECTION_APPROVED":
+        return collection_stop("collection_confirmation_required")
+    if int(args.max_users) != 1:
+        return collection_stop("collection_max_users_must_be_one")
+    max_outcomes = int(args.max_evidence_outcomes)
+    if max_outcomes <= 0:
+        return collection_stop("max_evidence_outcomes_must_be_positive")
+
+    transactions: list[dict[str, Any]] = []
+    seen_candidates: set[tuple[str, str, str, str]] = set()
+    while len(transactions) < max_outcomes:
+        transaction_args = copy.copy(args)
+        transaction_args.confirm_governed_transaction = "EXECUTE_GOVERNED_TRANSACTION_APPROVED"
+        transaction_args.execute_governed_transaction = True
+        result = execute_governed_transaction(
+            transaction_args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+        transactions.append(result)
+        if result.get("final_verdict") != "GOVERNED_TRANSACTION_COMPLETED":
+            return collection_stop(
+                str(result.get("stop_reason") or "transaction_stop_safe"),
+                transactions=transactions,
+            )
+        identity = (
+            str(result.get("fresh_packet_id") or ""),
+            str(result.get("user") or ""),
+            str(result.get("source") or ""),
+            str(result.get("target") or ""),
+        )
+        if identity in seen_candidates:
+            return collection_stop("duplicate_transaction_candidate", transactions=transactions)
+        seen_candidates.add(identity)
+        if int(result.get("users_moved") or 0) != 1:
+            return collection_stop("transaction_user_count_not_one", transactions=transactions)
+        if result.get("verification_result") != "PASS":
+            return collection_stop("transaction_verification_failed", transactions=transactions)
+        if not result.get("a4_evidence_updated"):
+            return collection_stop("transaction_feedback_not_materialized", transactions=transactions)
+        if result.get("runtime_automation_enabled") or result.get("authority_expanded"):
+            return collection_stop("transaction_scope_expanded", transactions=transactions)
+
+    return {
+        "schema_version": "v7.a4-bounded-evidence-collection.v1",
+        "collection_status": "COMPLETED",
+        "final_verdict": "A4_BOUNDED_EVIDENCE_COLLECTION_COMPLETED",
+        "successful_outcomes": len(transactions),
+        "max_evidence_outcomes": max_outcomes,
+        "transactions_attempted": len(transactions),
+        "transactions": transactions,
+        "one_user_per_transaction": True,
+        "stop_on_first_failed_gate": True,
+        "runtime_automation_enabled": False,
+        "authority_expanded": False,
+        "temporary_authority_consumed": True,
+        "new_architecture_created": False,
+        "new_authority_created": False,
+        "new_runtime_path_created": False,
+        "new_governance_created": False,
+        "new_owner_created": False,
+        "new_backlog_item_created": False,
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run V7 governed canary knowledge-gated dry-run cycle.")
     parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
@@ -661,6 +768,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--create-execution-lease", action="store_true")
     parser.add_argument("--execute-governed-transaction", action="store_true")
     parser.add_argument("--confirm-governed-transaction", default="")
+    parser.add_argument("--execute-a4-bounded-evidence-collection", action="store_true")
+    parser.add_argument("--confirm-a4-bounded-evidence-collection", default="")
+    parser.add_argument("--max-evidence-outcomes", type=int, default=0)
     parser.add_argument("--committed-preview-file", default="")
     parser.add_argument("--restore-barrier-file", default="")
     parser.add_argument("--approval-author", default="operator-a")
@@ -685,6 +795,17 @@ def main(argv=None) -> int:
     snapshot_root = Path(args.snapshot_root) if args.snapshot_root else state_dir / "intelligence"
     audit_dir = Path(args.audit_dir) if args.audit_dir else default_audit_dir(state_dir)
     lease_file = Path(args.execution_lease_file) if args.execution_lease_file else state_dir / "operator-execution-lease.json"
+    if args.execute_a4_bounded_evidence_collection:
+        result = execute_a4_bounded_evidence_collection(
+            args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
+        return 0 if result.get("final_verdict") == "A4_BOUNDED_EVIDENCE_COLLECTION_COMPLETED" else 2
     if args.execute_governed_transaction:
         result = execute_governed_transaction(
             args,

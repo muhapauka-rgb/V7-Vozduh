@@ -211,6 +211,180 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(result["stop_reason"], "transaction_confirmation_required")
         self.assertFalse(result["apply_executed"])
 
+    def test_a4_bounded_evidence_collection_requires_explicit_confirmation(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root)
+            args.execute_a4_bounded_evidence_collection = True
+            args.confirm_a4_bounded_evidence_collection = ""
+            args.max_evidence_outcomes = 2
+            result = module.execute_a4_bounded_evidence_collection(
+                args,
+                state_dir=root / "state",
+                event_dir=root / "events",
+                snapshot_root=root / "state" / "intelligence",
+                audit_dir=root / "audit",
+                lease_file=root / "state" / "operator-execution-lease.json",
+            )
+
+        self.assertEqual(result["final_verdict"], "A4_BOUNDED_EVIDENCE_COLLECTION_STOPPED")
+        self.assertEqual(result["stop_reason"], "collection_confirmation_required")
+        self.assertEqual(result["transactions_attempted"], 0)
+        self.assertFalse(result["runtime_automation_enabled"])
+        self.assertFalse(result["authority_expanded"])
+
+    def test_a4_bounded_evidence_collection_runs_limited_one_user_transactions(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root)
+            args.execute_a4_bounded_evidence_collection = True
+            args.confirm_a4_bounded_evidence_collection = "EXECUTE_A4_BOUNDED_EVIDENCE_COLLECTION_APPROVED"
+            args.max_evidence_outcomes = 2
+            calls = []
+
+            def fake_transaction(*_args, **_kwargs):
+                idx = len(calls) + 1
+                calls.append(idx)
+                return {
+                    "final_verdict": "GOVERNED_TRANSACTION_COMPLETED",
+                    "fresh_packet_id": f"pkt_preview_{idx}",
+                    "user": f"10.7.0.{idx}",
+                    "source": "vless",
+                    "target": "awg3",
+                    "users_moved": 1,
+                    "verification_result": "PASS",
+                    "a4_evidence_updated": True,
+                    "runtime_automation_enabled": False,
+                    "authority_expanded": False,
+                }
+
+            original = module.execute_governed_transaction
+            try:
+                module.execute_governed_transaction = fake_transaction
+                result = module.execute_a4_bounded_evidence_collection(
+                    args,
+                    state_dir=root / "state",
+                    event_dir=root / "events",
+                    snapshot_root=root / "state" / "intelligence",
+                    audit_dir=root / "audit",
+                    lease_file=root / "state" / "operator-execution-lease.json",
+                )
+            finally:
+                module.execute_governed_transaction = original
+
+        self.assertEqual(result["final_verdict"], "A4_BOUNDED_EVIDENCE_COLLECTION_COMPLETED")
+        self.assertEqual(result["successful_outcomes"], 2)
+        self.assertEqual(result["transactions_attempted"], 2)
+        self.assertEqual(calls, [1, 2])
+        self.assertTrue(result["one_user_per_transaction"])
+        self.assertTrue(result["stop_on_first_failed_gate"])
+        self.assertFalse(result["runtime_automation_enabled"])
+        self.assertFalse(result["authority_expanded"])
+        self.assertFalse(result["new_owner_created"])
+        self.assertFalse(result["new_backlog_item_created"])
+
+    def test_a4_bounded_evidence_collection_stops_on_first_failed_gate(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root)
+            args.execute_a4_bounded_evidence_collection = True
+            args.confirm_a4_bounded_evidence_collection = "EXECUTE_A4_BOUNDED_EVIDENCE_COLLECTION_APPROVED"
+            args.max_evidence_outcomes = 3
+            results = [
+                {
+                    "final_verdict": "GOVERNED_TRANSACTION_COMPLETED",
+                    "fresh_packet_id": "pkt_preview_1",
+                    "user": "10.7.0.1",
+                    "source": "vless",
+                    "target": "awg3",
+                    "users_moved": 1,
+                    "verification_result": "PASS",
+                    "a4_evidence_updated": True,
+                    "runtime_automation_enabled": False,
+                    "authority_expanded": False,
+                },
+                {
+                    "final_verdict": "GOVERNED_TRANSACTION_STOPPED",
+                    "stop_reason": "packet_not_ready",
+                    "users_moved": 0,
+                    "runtime_automation_enabled": False,
+                    "authority_expanded": False,
+                },
+            ]
+
+            def fake_transaction(*_args, **_kwargs):
+                return results.pop(0)
+
+            original = module.execute_governed_transaction
+            try:
+                module.execute_governed_transaction = fake_transaction
+                result = module.execute_a4_bounded_evidence_collection(
+                    args,
+                    state_dir=root / "state",
+                    event_dir=root / "events",
+                    snapshot_root=root / "state" / "intelligence",
+                    audit_dir=root / "audit",
+                    lease_file=root / "state" / "operator-execution-lease.json",
+                )
+            finally:
+                module.execute_governed_transaction = original
+
+        self.assertEqual(result["final_verdict"], "A4_BOUNDED_EVIDENCE_COLLECTION_STOPPED")
+        self.assertEqual(result["stop_reason"], "packet_not_ready")
+        self.assertEqual(result["successful_outcomes"], 1)
+        self.assertEqual(result["transactions_attempted"], 2)
+        self.assertFalse(result["runtime_automation_enabled"])
+        self.assertFalse(result["authority_expanded"])
+
+    def test_a4_bounded_evidence_collection_does_not_count_failed_verification(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root)
+            args.execute_a4_bounded_evidence_collection = True
+            args.confirm_a4_bounded_evidence_collection = "EXECUTE_A4_BOUNDED_EVIDENCE_COLLECTION_APPROVED"
+            args.max_evidence_outcomes = 2
+
+            def fake_transaction(*_args, **_kwargs):
+                return {
+                    "final_verdict": "GOVERNED_TRANSACTION_COMPLETED",
+                    "fresh_packet_id": "pkt_preview_failed",
+                    "user": "10.7.0.9",
+                    "source": "vless",
+                    "target": "awg3",
+                    "users_moved": 1,
+                    "verification_result": "FAIL",
+                    "a4_evidence_updated": True,
+                    "runtime_automation_enabled": False,
+                    "authority_expanded": False,
+                }
+
+            original = module.execute_governed_transaction
+            try:
+                module.execute_governed_transaction = fake_transaction
+                result = module.execute_a4_bounded_evidence_collection(
+                    args,
+                    state_dir=root / "state",
+                    event_dir=root / "events",
+                    snapshot_root=root / "state" / "intelligence",
+                    audit_dir=root / "audit",
+                    lease_file=root / "state" / "operator-execution-lease.json",
+                )
+            finally:
+                module.execute_governed_transaction = original
+
+        self.assertEqual(result["final_verdict"], "A4_BOUNDED_EVIDENCE_COLLECTION_STOPPED")
+        self.assertEqual(result["stop_reason"], "transaction_verification_failed")
+        self.assertEqual(result["successful_outcomes"], 0)
+        self.assertEqual(result["transactions_attempted"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

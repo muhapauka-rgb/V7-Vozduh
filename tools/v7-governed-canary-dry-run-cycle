@@ -232,6 +232,202 @@ def merge_planner_moves_into_surface(surface: dict[str, Any], moves: list[dict[s
     return out
 
 
+def candidate_channel(row: dict[str, Any]) -> str:
+    return str(
+        row.get("channel")
+        or row.get("egress")
+        or row.get("target")
+        or row.get("recommended_channel")
+        or row.get("to")
+        or ""
+    )
+
+
+def numeric_value(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def blocked_a4_transaction_candidate(
+    *,
+    blocked_transaction_identities: set[tuple[str, str, str, str]] | None,
+    user: str,
+    source: str,
+    target: str,
+) -> bool:
+    if not blocked_transaction_identities:
+        return False
+    return any(
+        identity_user == user and identity_source == source and identity_target == target
+        for _packet_id, identity_user, identity_source, identity_target in blocked_transaction_identities
+    )
+
+
+def select_a4_gap_reducing_candidate(
+    *,
+    surface: dict[str, Any],
+    snapshot_root: Path,
+    required_a4_candidate_keys: set[tuple[str, str]],
+    blocked_transaction_identities: set[tuple[str, str, str, str]] | None = None,
+) -> dict[str, Any]:
+    snapshot = read_snapshot_family(snapshot_root, "candidate-suitability-summary")
+    candidate_rows = snapshot.payload.get("items") if isinstance(snapshot.payload.get("items"), list) else []
+    users_by_ip = surface.get("users_by_ip") if isinstance(surface.get("users_by_ip"), dict) else {}
+    missing_keys = {
+        (str(user), str(channel))
+        for user, channel in (required_a4_candidate_keys or set())
+        if str(user) and str(channel)
+    }
+    eligible_rows: list[dict[str, Any]] = []
+    gap_rows: list[dict[str, Any]] = []
+    skipped: list[dict[str, Any]] = []
+    source_hash = json.dumps(snapshot.payload.get("source_hashes") or {}, sort_keys=True, ensure_ascii=True)
+
+    for row in candidate_rows:
+        if not isinstance(row, dict):
+            continue
+        user = str(row.get("user") or "")
+        source = users_by_ip.get(user) if isinstance(users_by_ip.get(user), dict) else {}
+        current = str(source.get("current_channel") or source.get("current") or "")
+        for candidate in row.get("candidates") if isinstance(row.get("candidates"), list) else [row]:
+            if not isinstance(candidate, dict):
+                continue
+            target = candidate_channel(candidate)
+            key = (user, target)
+            reason = ""
+            if not user or not target:
+                reason = "candidate_key_incomplete"
+            elif not current:
+                reason = "current_channel_unknown"
+            elif target == current:
+                reason = "candidate_is_current_state"
+            elif candidate.get("eligible", candidate.get("policy_eligible", True)) is False:
+                reason = "candidate_not_eligible"
+            elif candidate.get("policy_eligible", True) is False:
+                reason = "candidate_policy_ineligible"
+            elif key not in missing_keys:
+                reason = "candidate_not_missing_a4_evidence"
+            elif blocked_a4_transaction_candidate(
+                blocked_transaction_identities=blocked_transaction_identities,
+                user=user,
+                source=current,
+                target=target,
+            ):
+                reason = "duplicate_transaction_candidate"
+
+            entry = {
+                "user": user,
+                "source": current,
+                "target": target,
+                "candidate_key": {"user": user, "target": target},
+                "missing_a4_evidence": key in missing_keys,
+                "eligible": reason in {"", "candidate_not_missing_a4_evidence"},
+                "skip_reason": reason,
+                "evidence_value": 1 if key in missing_keys and not reason else 0,
+                "suitability_score": numeric_value(candidate.get("suitability_score"), 0.0),
+                "confidence": numeric_value(candidate.get("confidence"), 0.0),
+                "risk": numeric_value(candidate.get("risk"), numeric_value((candidate.get("reason_breakdown") or {}).get("risk"), 0.0) if isinstance(candidate.get("reason_breakdown"), dict) else 0.0),
+            }
+            if reason == "candidate_not_missing_a4_evidence":
+                eligible_rows.append(entry)
+            elif reason:
+                skipped.append(entry)
+                continue
+            else:
+                eligible_rows.append(entry)
+                gap_rows.append({
+                    **entry,
+                    "candidate": candidate,
+                    "surface_user": source,
+                })
+
+    gap_rows.sort(
+        key=lambda entry: (
+            -int(entry.get("evidence_value") or 0),
+            numeric_value(entry.get("risk"), 0.0),
+            -numeric_value(entry.get("confidence"), 0.0),
+            -numeric_value(entry.get("suitability_score"), 0.0),
+            str(entry.get("user") or ""),
+            str(entry.get("target") or ""),
+        )
+    )
+    selected = gap_rows[0] if gap_rows else {}
+    return {
+        "schema_version": "v7.a4.goal-directed-candidate-selection.v1",
+        "owner": "tools/v7-governed-canary-dry-run-cycle",
+        "candidate_snapshot_family": "candidate-suitability-summary",
+        "missing_candidate_keys_count": len(missing_keys),
+        "eligible_candidate_count": len(eligible_rows),
+        "gap_reducing_candidate_count": len(gap_rows),
+        "selection_status": "SELECTED" if selected else "NO_SAFE_GAP_REDUCING_A4_CANDIDATE",
+        "selected_candidate": {
+            "user": selected.get("user", ""),
+            "source": selected.get("source", ""),
+            "target": selected.get("target", ""),
+            "evidence_value": selected.get("evidence_value", 0),
+            "suitability_score": selected.get("suitability_score", 0.0),
+            "confidence": selected.get("confidence", 0.0),
+            "risk": selected.get("risk", 0.0),
+        } if selected else {},
+        "skipped_candidates": skipped[:50],
+        "source_hash": source_hash,
+        "runtime_mutation_performed": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "runtime_automation_enabled": False,
+        "authority_expanded": False,
+    }
+
+
+def merge_a4_gap_candidate_into_surface(surface: dict[str, Any], selection: dict[str, Any]) -> dict[str, Any]:
+    selected = selection.get("selected_candidate") if isinstance(selection.get("selected_candidate"), dict) else {}
+    user = str(selected.get("user") or "")
+    source = str(selected.get("source") or "")
+    target = str(selected.get("target") or "")
+    if not user or not source or not target or source == target:
+        return surface
+    out = dict(surface)
+    users_by_ip = dict(out.get("users_by_ip") or {})
+    existing = dict(users_by_ip.get(user) or {})
+    recommendation_hash = operator_decision_surface.recommendation_fingerprint(
+        user,
+        source,
+        target,
+        str(selection.get("source_hash") or ""),
+    )
+    existing.update({
+        "user": user,
+        "current_channel": source,
+        "recommended_channel": target,
+        "confidence": selected.get("confidence", existing.get("confidence", 0.0)),
+        "trust": existing.get("trust", 0.0),
+        "prediction": existing.get("prediction", {}),
+        "risk": selected.get("risk", existing.get("risk", 0.0)),
+        "recommendation_hash": recommendation_hash,
+        "source_hash": str(selection.get("source_hash") or existing.get("source_hash") or ""),
+        "reasons": ["A4 goal-directed selection chose a missing evidence candidate"],
+    })
+    users_by_ip[user] = existing
+    out["users_by_ip"] = users_by_ip
+    out["batch_preview"] = {
+        **dict(out.get("batch_preview") or {}),
+        "users_to_move": [{
+            "user": user,
+            "from": source,
+            "to": target,
+            "confidence": selected.get("confidence", 0.0),
+            "risk": selected.get("risk", 0.0),
+            "recommendation_hash": recommendation_hash,
+            "a4_goal_directed": True,
+            "evidence_value": selected.get("evidence_value", 1),
+        }],
+    }
+    out["a4_goal_directed_selection"] = selection
+    return out
+
+
 def decision_records(state_dir: Path, event_dir: Path, audit_dir: Path) -> list[dict[str, Any]]:
     paths = [
         event_dir / "switch-history.jsonl",
@@ -557,6 +753,21 @@ def execute_governed_transaction_with_guards(
         planner_observe = run_planner_observe(state_dir, event_dir, snapshot_root, 1)
         moves = selected_moves_from_planner_payload(planner_observe.get("payload", {}))
         surface = merge_planner_moves_into_surface(surface, moves)
+    a4_goal_directed_selection = {}
+    if required_a4_candidate_keys is not None:
+        a4_goal_directed_selection = select_a4_gap_reducing_candidate(
+            surface=surface,
+            snapshot_root=snapshot_root,
+            required_a4_candidate_keys=required_a4_candidate_keys,
+            blocked_transaction_identities=blocked_transaction_identities,
+        )
+        if a4_goal_directed_selection.get("selection_status") != "SELECTED":
+            return transaction_stop(
+                "NO_SAFE_GAP_REDUCING_A4_CANDIDATE",
+                a4_goal_directed_selection=a4_goal_directed_selection,
+                planner_observe=planner_observe,
+            )
+        surface = merge_a4_gap_candidate_into_surface(surface, a4_goal_directed_selection)
 
     cycle = operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle(
         events=events,
@@ -704,6 +915,7 @@ def execute_governed_transaction_with_guards(
         "new_backlog_item_created": False,
         "cycle": cycle,
         "planner_observe": planner_observe,
+        "a4_goal_directed_selection": a4_goal_directed_selection,
         "execution_lease_create_result": lease_create_result,
         "clearance_result": clearance_result,
         "autoswitch_apply": apply_run,

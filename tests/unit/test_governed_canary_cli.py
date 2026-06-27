@@ -70,7 +70,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
             pretty=False,
         )
 
-    def ready_cycle(self):
+    def ready_cycle(self, *, user="10.7.0.5", source="vless", target="awg3"):
         preview = {
             "schema_version": "v7.governed-canary.packet-preview.v1",
             "status": "PACKET_PREVIEW_READY",
@@ -80,15 +80,15 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "authority_generation": "authgen_test",
             "selected_move_hash": "hash_test",
             "selected_move_count": 1,
-            "allowed_users": ["10.7.0.5"],
-            "allowed_targets": ["awg3"],
+            "allowed_users": [user],
+            "allowed_targets": [target],
             "rollback_manifest_preview": {
                 "rollback_manifest_id": "rb_preview_test",
                 "items": [
                     {
-                        "user_ip": "10.7.0.5",
-                        "rollback_target": "vless",
-                        "forward_target": "awg3",
+                        "user_ip": user,
+                        "rollback_target": source,
+                        "forward_target": target,
                     }
                 ],
             },
@@ -110,6 +110,9 @@ class GovernedCanaryCliTest(unittest.TestCase):
             path.mkdir(parents=True, exist_ok=True)
         (state / "users.registry").write_text("10.7.0.5 vless\n", encoding="utf-8")
         (state / "egress.registry").write_text("vless\nawg3\n", encoding="utf-8")
+
+    def fake_candidate_snapshot(self, items):
+        return type("Snapshot", (), {"payload": {"items": items, "source_hashes": {"test": "hash"}}})()
 
     def test_execute_governed_transaction_completes_one_attempt_and_terminalizes_lease(self):
         module = load_cli_module()
@@ -458,6 +461,182 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(result["successful_outcomes"], 0)
         self.assertEqual(result["transactions_attempted"], 1)
 
+    def test_a4_goal_directed_selection_skips_non_missing_and_selects_missing_candidate(self):
+        module = load_cli_module()
+        surface = {
+            "users_by_ip": {
+                "10.7.0.5": {"current_channel": "awg0"},
+                "10.7.0.8": {"current_channel": "vless"},
+            },
+            "batch_preview": {"users_to_move": [{"user": "10.7.0.5", "from": "awg0", "to": "vless"}]},
+        }
+        original_snapshot = module.read_snapshot_family
+        try:
+            module.read_snapshot_family = lambda *_args, **_kwargs: self.fake_candidate_snapshot([
+                {
+                    "user": "10.7.0.5",
+                    "candidates": [
+                        {"channel": "vless", "eligible": True, "suitability_score": 99, "confidence": 0.9},
+                    ],
+                },
+                {
+                    "user": "10.7.0.8",
+                    "candidates": [
+                        {"channel": "awg3", "eligible": True, "suitability_score": 80, "confidence": 0.7},
+                    ],
+                },
+            ])
+            selection = module.select_a4_gap_reducing_candidate(
+                surface=surface,
+                snapshot_root=Path("/unused"),
+                required_a4_candidate_keys={("10.7.0.8", "awg3")},
+            )
+        finally:
+            module.read_snapshot_family = original_snapshot
+
+        self.assertEqual(selection["selection_status"], "SELECTED")
+        self.assertEqual(selection["eligible_candidate_count"], 2)
+        self.assertEqual(selection["gap_reducing_candidate_count"], 1)
+        self.assertEqual(selection["selected_candidate"]["user"], "10.7.0.8")
+        self.assertEqual(selection["selected_candidate"]["target"], "awg3")
+        self.assertFalse(selection["runtime_automation_enabled"])
+        self.assertFalse(selection["authority_expanded"])
+        merged = module.merge_a4_gap_candidate_into_surface(surface, selection)
+        self.assertEqual(merged["batch_preview"]["users_to_move"][0]["user"], "10.7.0.8")
+        self.assertEqual(merged["batch_preview"]["users_to_move"][0]["to"], "awg3")
+
+    def test_governed_transaction_stops_when_no_safe_gap_reducing_a4_candidate_exists(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root)
+            original_surface = module.operator_decision_surface.build_operator_decision_surface
+            original_snapshot = module.read_snapshot_family
+            original_cycle = module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle
+            try:
+                module.operator_decision_surface.build_operator_decision_surface = lambda **_kwargs: {
+                    "users_by_ip": {"10.7.0.5": {"current_channel": "vless"}},
+                    "batch_preview": {"users_to_move": []},
+                }
+                module.read_snapshot_family = lambda *_args, **_kwargs: self.fake_candidate_snapshot([
+                    {
+                        "user": "10.7.0.5",
+                        "candidates": [
+                            {"channel": "awg3", "eligible": False, "suitability_score": 90, "confidence": 0.9},
+                            {"channel": "vless", "eligible": True, "suitability_score": 80, "confidence": 0.8},
+                        ],
+                    }
+                ])
+
+                def fail_cycle(**_kwargs):
+                    raise AssertionError("A4 selector must stop before packet cycle when no safe gap candidate exists")
+
+                module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle = fail_cycle
+                result = module.execute_governed_transaction_with_guards(
+                    args,
+                    state_dir=root / "state",
+                    event_dir=root / "events",
+                    snapshot_root=root / "state" / "intelligence",
+                    audit_dir=root / "audit",
+                    lease_file=root / "state" / "operator-execution-lease.json",
+                    required_a4_candidate_keys={("10.7.0.5", "awg3")},
+                )
+                lease_exists = (root / "state" / "operator-execution-lease.json").exists()
+                barrier_exists = (root / "state" / "autoswitch-restore-barrier.json").exists()
+            finally:
+                module.operator_decision_surface.build_operator_decision_surface = original_surface
+                module.read_snapshot_family = original_snapshot
+                module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle = original_cycle
+
+        self.assertEqual(result["final_verdict"], "GOVERNED_TRANSACTION_STOPPED")
+        self.assertEqual(result["stop_reason"], "NO_SAFE_GAP_REDUCING_A4_CANDIDATE")
+        self.assertEqual(result["a4_goal_directed_selection"]["missing_candidate_keys_count"], 1)
+        self.assertEqual(result["a4_goal_directed_selection"]["gap_reducing_candidate_count"], 0)
+        self.assertFalse(result["apply_executed"])
+        self.assertFalse(lease_exists)
+        self.assertFalse(barrier_exists)
+
+    def test_governed_transaction_uses_gap_reducing_candidate_before_packet_cycle(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root)
+            original_surface = module.operator_decision_surface.build_operator_decision_surface
+            original_snapshot = module.read_snapshot_family
+            original_cycle = module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle
+            original_apply = module.run_autoswitch_apply
+            try:
+                module.operator_decision_surface.build_operator_decision_surface = lambda **_kwargs: {
+                    "users_by_ip": {
+                        "10.7.0.5": {"current_channel": "awg0"},
+                        "10.7.0.8": {"current_channel": "vless"},
+                    },
+                    "batch_preview": {"users_to_move": [{"user": "10.7.0.5", "from": "awg0", "to": "vless"}]},
+                }
+                module.read_snapshot_family = lambda *_args, **_kwargs: self.fake_candidate_snapshot([
+                    {
+                        "user": "10.7.0.5",
+                        "candidates": [
+                            {"channel": "vless", "eligible": True, "suitability_score": 99, "confidence": 0.9},
+                        ],
+                    },
+                    {
+                        "user": "10.7.0.8",
+                        "candidates": [
+                            {"channel": "awg3", "eligible": True, "suitability_score": 75, "confidence": 0.7},
+                        ],
+                    },
+                ])
+
+                def cycle_from_surface(**kwargs):
+                    move = kwargs["decision_surface"]["batch_preview"]["users_to_move"][0]
+                    self.assertEqual(move["user"], "10.7.0.8")
+                    self.assertEqual(move["to"], "awg3")
+                    return self.ready_cycle(user=move["user"], source=move["from"], target=move["to"])
+
+                module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle = cycle_from_surface
+                module.run_autoswitch_apply = lambda **_kwargs: {
+                    "ok": True,
+                    "returncode": 0,
+                    "payload": {
+                        "operation": {
+                            "operation_id": "runtime_autoswitch_test",
+                            "terminal_state": "APPLIED",
+                            "terminal_reason": "selected_moves_applied",
+                        },
+                        "apply_result": {
+                            "applied": True,
+                            "results": [
+                                {"user_ip": "10.7.0.8", "from": "vless", "to": "awg3", "verify_rc": 0}
+                            ],
+                        },
+                    },
+                }
+                result = module.execute_governed_transaction_with_guards(
+                    args,
+                    state_dir=root / "state",
+                    event_dir=root / "events",
+                    snapshot_root=root / "state" / "intelligence",
+                    audit_dir=root / "audit",
+                    lease_file=root / "state" / "operator-execution-lease.json",
+                    required_a4_candidate_keys={("10.7.0.8", "awg3")},
+                )
+            finally:
+                module.operator_decision_surface.build_operator_decision_surface = original_surface
+                module.read_snapshot_family = original_snapshot
+                module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle = original_cycle
+                module.run_autoswitch_apply = original_apply
+
+        self.assertEqual(result["final_verdict"], "GOVERNED_TRANSACTION_COMPLETED")
+        self.assertEqual(result["user"], "10.7.0.8")
+        self.assertEqual(result["target"], "awg3")
+        self.assertEqual(result["a4_goal_directed_selection"]["selection_status"], "SELECTED")
+        self.assertEqual(result["a4_goal_directed_selection"]["selected_candidate"]["target"], "awg3")
+        self.assertFalse(result["runtime_automation_enabled"])
+        self.assertFalse(result["authority_expanded"])
+
     def test_governed_transaction_stops_before_apply_for_duplicate_candidate(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:
@@ -496,7 +675,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertFalse(lease_exists)
         self.assertFalse(barrier_exists)
 
-    def test_governed_transaction_stops_before_apply_for_non_missing_a4_candidate(self):
+    def test_governed_transaction_stops_before_apply_when_no_gap_directed_candidate_is_available(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -529,8 +708,8 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 module.run_autoswitch_apply = original_apply
 
         self.assertEqual(result["final_verdict"], "GOVERNED_TRANSACTION_STOPPED")
-        self.assertEqual(result["stop_reason"], "candidate_not_missing_a4_evidence")
-        self.assertEqual(result["evidence_guard_stage"], "pre_lease_pre_restore_barrier_pre_apply")
+        self.assertEqual(result["stop_reason"], "NO_SAFE_GAP_REDUCING_A4_CANDIDATE")
+        self.assertEqual(result["a4_goal_directed_selection"]["selection_status"], "NO_SAFE_GAP_REDUCING_A4_CANDIDATE")
         self.assertFalse(lease_exists)
         self.assertFalse(barrier_exists)
 

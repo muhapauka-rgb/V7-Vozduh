@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-27T16:47:41+0700
-Source: OMP implemented the A4 terminal outcome classification fix through existing feedback/learning owners. `apply YES + verification FAIL + rollback COMPLETED` now classifies as `ROLLBACK_SUCCESS`, not `SUCCESS`; rollback outcomes remain learning evidence but do not increase success, trust, or promotion readiness as success. Current A4 progress remains `93 / 156 = 59.6%`; missing evidence remains `63 / 156 = 40.4%`. Safe deploy, truth, convergence, and A4 bounded collection continuation are next.
+State captured: 2026-06-27T16:50:24+0700
+Source: OMP implemented, tested, deployed, and verified the A4 terminal outcome classification fix through existing feedback/learning owners. `apply YES + verification FAIL + rollback COMPLETED` now classifies as `ROLLBACK_SUCCESS`, not `SUCCESS`; rollback outcomes remain learning evidence but do not increase success, trust, or promotion readiness as success. Truth and convergence are PASS/FULLY_ALIGNED at deployed commit `c31569b62173ba93d4f9e4ed13bdf411b21f1207`. Current A4 progress remains `93 / 156 = 59.6%`; missing evidence remains `63 / 156 = 40.4%`. Continue A4 bounded collection under the existing approved envelope.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -15,40 +15,40 @@ This file is volatile. Update it after every safe action or approved execution t
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Implementation Backlog` |
 | Current highest leverage implementation | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Current highest leverage action | deploy and validate the existing-owner terminal outcome classification fix, then resume bounded A4 collection under the already approved A4 envelope |
+| Current highest leverage action | resume bounded A4 representative evidence collection under the already approved A4 envelope |
 | Current authority class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE_BUT_STOPPED_ON_FAILED_GATE` |
 | authority_class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE_BUT_STOPPED_ON_FAILED_GATE` |
 | authority_reason | Operator approved bounded A4 collection for the current A4 scope; packet-by-packet approval is not required inside this envelope, but the envelope stops on failed verification gate. |
 | authority_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch`. |
-| required_action | Do not request a new packet approval. Safe deploy the implemented terminal classification fix, run truth/convergence, then resume bounded A4 collection. |
+| required_action | Do not request a new packet approval. Continue bounded A4 collection through the existing governed transaction owner. |
 | non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
 | optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
 | Current reality limit | `A4_REPRESENTATIVE_OUTCOME_EVIDENCE_REQUIRED`: A4 still requires more real representative outcomes; latest production inventory reports `missing_candidate_outcomes=63` |
-| Current safe next action | safe deploy the local fix, then truth/convergence; do not continue movement until production is aligned |
-| Current stop reason | `DEPLOY_REQUIRED`: local tests pass for the terminal classification fix; production must be aligned before A4 resumes |
-| root_cause | Fixed locally: `tools/v7-governed-canary-dry-run-cycle::materialize_governed_transaction_feedback` now sends terminal outcome classification, and `admin_core.operator_execution_feedback` classifies from final terminal transaction state instead of intermediate apply result. |
+| Current safe next action | continue A4 bounded collection through existing owners; stop only on failed live gate, missing candidate, real-world limit, unsafe implementation, or authority/policy boundary |
+| Current stop reason | `NONE_FOR_CLASSIFICATION_FIX`: terminal outcome classification defect is fixed, deployed, and verified |
+| root_cause | Fixed and deployed: `tools/v7-governed-canary-dry-run-cycle::materialize_governed_transaction_feedback` now sends terminal outcome classification, and `admin_core.operator_execution_feedback` classifies from final terminal transaction state instead of intermediate apply result. |
 | responsible_owner | Existing governed transaction feedback owner `tools/v7-governed-canary-dry-run-cycle`; existing feedback classifier owner `admin_core/operator_execution_feedback.py`; existing A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
 | implementation_class | `BUG` |
-| next_engineering_task | `A4_DEPLOY_TERMINAL_OUTCOME_CLASSIFICATION_FIX_AND_RESUME_BOUNDED_COLLECTION` |
-| expected_completion_evidence | Relevant tests pass; truth/convergence pass locally and after safe deploy; A4 can resume bounded collection without packet-by-packet approval. |
+| next_engineering_task | `A4_CONTINUE_BOUNDED_REPRESENTATIVE_EVIDENCE_COLLECTION` |
+| expected_completion_evidence | More real bounded A4 outcomes are recorded with terminal classification preserved; no synthetic evidence; no runtime automation; no authority expansion. |
 
 ## 1.1. Root Cause Engine Output
 
 | Field | Current Value |
 | --- | --- |
-| Stop condition | `DEPLOY_REQUIRED` |
+| Stop condition | `NONE_FOR_CLASSIFICATION_FIX` |
 | Authority Class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE_BUT_STOPPED_ON_FAILED_GATE` |
 | Authority Reason | Bounded A4 authority is active for the current scope; no packet-by-packet approval is needed, but failed verification stops the envelope. |
-| Root Cause | Fixed locally: rollback-completed verification failure is now terminally classified as `ROLLBACK_SUCCESS`, not `SUCCESS`. |
+| Root Cause | Fixed and deployed: rollback-completed verification failure is now terminally classified as `ROLLBACK_SUCCESS`, not `SUCCESS`. |
 | Responsible owner | Existing governed transaction feedback owner `tools/v7-governed-canary-dry-run-cycle`; existing feedback classifier owner `admin_core/operator_execution_feedback.py`. |
 | Why it happened | The previous feedback payload treated successful apply as `success=true/result=applied`; verification failure and rollback context did not dominate outcome classification. |
 | Why existing safety worked | Autoswitch verified immediately, detected route mismatch, executed rollback, terminalized the lease as `ROLLBACK_FINISHED`, and stopped bounded collection. |
 | Can existing owner be extended? | `YES`; reuse existing feedback/learning owners. |
 | Need New Owner | `FALSE` |
 | Implementation Class | `BUG` |
-| Concrete engineering task | Safe deploy the existing-owner terminal classification fix and validate truth/convergence before resuming A4. |
+| Concrete engineering task | Continue A4 bounded collection and preserve terminal classifications for every real outcome. |
 | Expected completion evidence | Unit tests cover rollback-completed governed transaction feedback; truth/convergence pass; no runtime automation or authority expansion. |
-| OMP automatic continuation | `YES_AFTER_DEPLOY`; continue A4 bounded collection after production alignment. |
+| OMP automatic continuation | `YES`; continue A4 bounded collection under existing approved envelope. |
 
 ## 2. Current Metrics
 

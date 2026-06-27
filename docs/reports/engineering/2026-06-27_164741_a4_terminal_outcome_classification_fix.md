@@ -1,7 +1,7 @@
 # Engineering Report: A4 Terminal Outcome Classification Fix
 
 Дата: 2026-06-27 16:47:41 +0700
-Статус: IMPLEMENTED_LOCALLY
+Статус: DEPLOYED_AND_VERIFIED
 Owner reused: `tools/v7-governed-canary-dry-run-cycle`, `admin_core/operator_execution_feedback.py`
 Need New Owner: FALSE
 Need New Backlog: FALSE
@@ -63,7 +63,7 @@ Progress unchanged until the next real bounded transaction outcome.
 
 ## Production Maturity
 
-Production Maturity remains `24.0%` until deployment and further certified production outcomes.
+Production Maturity remains `24.0%` until further certified production outcomes.
 
 ## Canonical Knowledge
 
@@ -97,9 +97,21 @@ PYTHONPYCACHEPREFIX=/private/tmp/v7_pycache python3 -m py_compile \
 PASS
 ```
 
+Deployment and alignment:
+
+```text
+commit: c31569b62173ba93d4f9e4ed13bdf411b21f1207
+deploy_id: deploy-z8-14-Updatesystem-c31569b-20260627T165024
+truth: PASS
+convergence: PASS / ALIGNED
+runtime automation: NO
+authority expansion: NO
+users moved: NO
+```
+
 ## Next Step
 
-Run safe deploy, truth, convergence, then continue bounded A4 evidence collection under the existing approved A4 envelope.
+Continue bounded A4 evidence collection under the existing approved A4 envelope.
 
 ## Re-audit Rule
 

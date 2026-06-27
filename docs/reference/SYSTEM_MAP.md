@@ -16,7 +16,7 @@ Last verified date: 2026-06-24
 
 ## Runtime Time Architecture Ownership
 
-Status: `RT_PHASE_1_COMPLETE`
+Status: `RT_PHASE_1_FULLY_COMPLETE`
 
 Canonical owner:
 
@@ -25,7 +25,7 @@ docs/reference/V7_RUNTIME_MODEL.md
 ```
 
 SYSTEM_MAP owns only the ownership reference.
-It does not duplicate the canonical live/precompute matrix.
+It does not duplicate the canonical live/precompute matrix, Runtime Latency Engineering Review Checklist, or Phase 2 Automation Contract.
 
 | Plane / stage family | Existing owners | Main files / modules | Lifecycle rule |
 | --- | --- | --- | --- |

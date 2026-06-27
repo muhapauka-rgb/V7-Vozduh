@@ -107,7 +107,7 @@ State Change Cost verdict: `ALREADY_EXISTS_SEMANTICALLY`; extend existing B19 vo
 
 ## Runtime Latency Foundation Placement
 
-Status: `RT_PHASE_1_COMPLETE`.
+Status: `RT_PHASE_1_FULLY_COMPLETE`.
 
 RT Phase 1 did not create a new backlog item.
 Runtime latency work must be absorbed by existing owners and backlog items.
@@ -131,6 +131,19 @@ Backlog placement:
 | Recovery admission and slow-start timing | `B8`, `B9`, `B10` | Recovered targets must be re-admitted through repeated readiness, observation windows, and staged recovery. |
 
 No new owner, planner, runtime path, execution queue, daemon, authority model, or backlog item is allowed for RT Phase 1.
+
+RT Phase 1 completion includes:
+
+- `RT1` Canonical Time Architecture;
+- `RT2` Reaction Latency Model;
+- `RT3` Thin Runtime Path Contract;
+- `RT4` Latency Ownership & Live/Precompute Matrix;
+- `RT5` Engineering Report Latency Requirement;
+- `RT6` Phase 2 Automation-Time Contract;
+- `RT7` Runtime Latency Engineering Review Checklist;
+- `RT8` complete Phase 2 Automation Contract.
+
+Future runtime-latency work must map to the existing backlog owners above unless a complete OMP audit proves reuse impossible.
 
 ## Tier A: Highest Production Leverage
 

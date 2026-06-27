@@ -1155,7 +1155,7 @@ Required OMP output for meaningful work:
 
 ### Runtime Time Architecture Discipline
 
-Status: `RT_PHASE_1_COMPLETE`.
+Status: `RT_PHASE_1_FULLY_COMPLETE`.
 
 OMP consumes Runtime Time Architecture from `docs/reference/V7_RUNTIME_MODEL.md`.
 OMP does not own a second time model.
@@ -1170,6 +1170,8 @@ RT Phase 1 implemented the permanent foundation:
 | `RT4` Latency Ownership & Live/Precompute Matrix | `COMPLETE` | Runtime Model | Every current runtime path stage has owner, precompute/live classification, safety reason, future optimization path, and measurement field. |
 | `RT5` Engineering Report Latency Requirement | `COMPLETE` | OMP Engineering Report Lifecycle | Every future meaningful engineering report must include Latency Impact. |
 | `RT6` Phase 2 Automation-Time Contract | `COMPLETE` | Runtime Model + OMP | Phase 2 scope, dependencies, owners, safety conditions, and expected outputs are defined without implementation. |
+| `RT7` Engineering Review Rule | `COMPLETE` | Runtime Model + OMP Engineering Report Lifecycle | Every future engineering activity must answer the Runtime Latency Engineering Review Checklist. |
+| `RT8` Phase 2 Automation Contract | `COMPLETE` | Runtime Model + OMP | Phase 2 entry criteria, forbidden pre-entry behavior, complete item contracts, exit criteria, owners, dependencies, safety constraints, and success criteria are defined without implementation. |
 
 OMP execution rule:
 
@@ -1185,6 +1187,23 @@ Every future change must answer:
 4. Which live safety gate must remain live?
 5. Does the change move V7 toward lower safe Reaction Latency or away from it?
 
+Mandatory Runtime Latency Engineering Review:
+
+| Question | Required answer |
+| --- | --- |
+| Does this work increase the Runtime execution path? | `YES`, `NO`, or `UNKNOWN_WITH_MEASUREMENT_PLAN`. |
+| Can this work move into Observation, World Model, Planning, read model, or background computation? | `YES`, `NO_WITH_SAFETY_REASON`, or `NOT_APPLICABLE`. |
+| If it must stay live, why? | Existing safety gate, live eligibility, irreversible apply, verification, rollback, authority, freshness, or `NOT_APPLICABLE`. |
+| Which latency components change? | Observation, Decision, Execution, Verification, Feedback, Learning, Reaction, or `NONE`. |
+| Does it reduce any latency? | Component name and reason, or `NO`. |
+| Does it create a wait state or blocking dependency? | `YES_WITH_OWNER`, `NO`, or `UNKNOWN_WITH_MEASUREMENT_PLAN`. |
+| Does it change safety gates? | Freshness, restore barrier, rollback, verification, authority, anti-flap, blast radius, source/target eligibility, or `NONE`. |
+| Does it preserve Thin Runtime Path? | `YES` required; `NO` blocks implementation. |
+| Can computation be precomputed safely? | `YES`, `NO_WITH_SAFETY_REASON`, or `UNKNOWN_WITH_MEASUREMENT_PLAN`. |
+| If latency impact is unknown, how will it be measured later? | Existing field, existing owner extension, or explicit `NOT_APPLICABLE` reason. |
+
+This checklist is mandatory for implementation, audit, verification, test, deployment, certification, owner extension, planner change, runtime change, feedback change, learning change, read-model change, policy change, and OMP change.
+
 Phase 1 forbids:
 
 - runtime automation;
@@ -1199,7 +1218,29 @@ Phase 1 forbids:
 - runtime behavior change.
 
 Phase 2 is deferred, not optional.
-It may start only after bounded automation is certified and OMP/authority explicitly allows the relevant backlog work.
+It may start only after bounded automation, runtime eligibility, verification, rollback, blast radius, metric reliability, reaction latency measurement, and explicit authority are certified or approved through existing owners.
+
+Before Phase 2 entry, OMP forbids:
+
+- parallel movement;
+- batch movement;
+- continuous apply;
+- execution queues;
+- desired-state runtime;
+- latency SLO gates;
+- planner rewrite;
+- authority expansion.
+
+Phase 2 completion requires:
+
+- end-to-end Reaction Latency measurement;
+- per-plane latency visibility;
+- Desired-State Delta implemented through existing planner owners;
+- Execution Queue certification;
+- Bounded Parallelism certification;
+- fail-closed Runtime preserved;
+- rollback and verification preserved unless separately certified;
+- authority unchanged unless separately approved.
 
 ## 2.4. Architectural Laws
 
@@ -2530,13 +2571,18 @@ Latency Impact must include:
 | Execution Latency | `measured`, `estimated`, `unknown`, or `not applicable`. |
 | Verification Latency | `measured`, `estimated`, `unknown`, or `not applicable`. |
 | Feedback / Learning Latency | `measured`, `estimated`, `unknown`, or `not applicable`. |
+| Reaction Latency | `measured`, `estimated`, `unknown`, or `not applicable`. |
 | Runtime path impact | `increased`, `decreased`, `unchanged`, or `not applicable`. |
 | Precompute opportunity | `YES` or `NO`. |
 | Live gate impact | `YES` or `NO`. |
+| Wait-state impact | `YES_WITH_OWNER`, `NO`, or `UNKNOWN_WITH_MEASUREMENT_PLAN`. |
+| Measurement plan | Existing measurement field, existing owner extension, or `NOT_APPLICABLE_WITH_REASON`. |
 | Notes | Short explanation. |
 
 `UNKNOWN` is acceptable in RT Phase 1.
 Omitting Latency Impact is not acceptable after RT Phase 1.
+
+Engineering Reports must use the canonical Runtime Latency Engineering Review Checklist from `docs/reference/V7_RUNTIME_MODEL.md`.
 
 Milestone Report must include:
 
@@ -3756,7 +3802,7 @@ Details:
 | Maximum Reality Knowledge Extraction | `72` candidate outcomes are not hidden; they require governed/manual action | `COMPLETED` | `docs/reports/V7_MAXIMUM_REALITY_KNOWLEDGE_EXTRACTION_REPORT.md` |
 | Final Autonomous Routing Architecture Certification | Superseded by final system synthesis: `ARCHITECTURE_COMPLETE`; optional improvements remain non-blocking | `CERTIFIED` | `docs/reports/V7_FINAL_AUTONOMOUS_ROUTING_ARCHITECTURE_CERTIFICATION_REPORT.md`, `docs/reference/V7_SYSTEM_ARCHITECTURE.md`, `docs/decisions/ADR-V7-SYSTEM-ARCHITECTURE.md` |
 | Governed Canary Knowledge-Gated Dry-Run Cycle | Production reaches legacy dry-run boundary; normalized OMP stop `OPERATIONAL_AUTHORITY`; no apply, no movement | `CERTIFIED` | `docs/reports/V7_GOVERNED_CANARY_KNOWLEDGE_GATED_AUTONOMOUS_DRY_RUN_CYCLE_REPORT.md` |
-| Runtime Latency Foundation | Runtime Time Architecture, Reaction Latency, Thin Runtime Path Contract, live/precompute matrix, Engineering Report Latency Impact, and Phase 2 Automation-Time Contract embedded through existing owners | `COMPLETED` | `docs/reference/V7_RUNTIME_MODEL.md`, `docs/reports/engineering/2026-06-28_003325_rt_phase1_runtime_latency_foundation.md` |
+| Runtime Latency Foundation | RT1-RT8 complete: Runtime Time Architecture, Reaction Latency, Thin Runtime Path Contract, live/precompute matrix, Engineering Report Latency Impact, Phase 2 Automation-Time Contract, Runtime Latency Engineering Review Checklist, and complete Phase 2 Automation Contract embedded through existing owners | `COMPLETED` | `docs/reference/V7_RUNTIME_MODEL.md`, `docs/reports/engineering/2026-06-28_003325_rt_phase1_runtime_latency_foundation.md`, `docs/reports/engineering/2026-06-28_004129_rt_phase1_extension_rt7_rt8.md` |
 
 ## 22. Next Best Action
 

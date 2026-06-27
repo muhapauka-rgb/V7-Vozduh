@@ -256,9 +256,51 @@ Completion condition for RT4:
 Every current runtime path stage has an owner, precompute/live classification, safety reason, future optimization path, and measurement field.
 ```
 
+## Runtime Latency Engineering Review Checklist
+
+Status: `RT_PHASE_1_CANONICAL`
+Owner: `V7_RUNTIME_MODEL` for latency semantics; OMP for mandatory execution discipline.
+
+This checklist is mandatory for every future V7 engineering activity that can affect runtime, policies, OMP, reports, read models, feedback, learning, verification, tests, deploy, certification, owner extension, planner behavior, or runtime behavior.
+
+It does not create a new owner, backlog item, planner, runtime path, automation mode, authority model, or architecture.
+
+Every future engineering task must answer:
+
+1. Does this work increase the Runtime execution path?
+2. Can this work be moved into the Observation Plane, World Model Plane, Planning Plane, read model, or background computation?
+3. If it cannot move earlier, why must it stay live?
+4. What safety requirement forces it to remain live?
+5. Does it increase Observation Latency, Decision Latency, Execution Latency, Verification Latency, Feedback Latency, Learning Latency, or total Reaction Latency?
+6. Does it reduce any latency component?
+7. Does it create a new wait state?
+8. Does it create a new blocking dependency?
+9. Does it change freshness, restore barrier, rollback, verification, authority, anti-flap, or blast radius behavior?
+10. Does it preserve the Thin Runtime Path Contract?
+11. Can this computation be safely precomputed?
+12. If latency impact is `UNKNOWN`, how will it be measured later?
+
+Review outputs:
+
+| Field | Required meaning |
+| --- | --- |
+| Runtime path impact | Whether the live execution path increases, decreases, or remains unchanged. |
+| Precompute opportunity | Whether work can safely move before Runtime execution. |
+| Live safety reason | The safety reason work must stay live, or `NOT_APPLICABLE`. |
+| Latency component impact | The affected Reaction Latency component(s). |
+| Wait-state impact | Any new blocking dependency, queue, human wait, external wait, or `NONE`. |
+| Gate impact | Any effect on freshness, restore barrier, rollback, verification, authority, anti-flap, blast radius, source/target eligibility, or `NONE`. |
+| Measurement plan | Existing measurement field, future field through an existing owner, or reason measurement is not applicable. |
+
+Completion condition for RT7:
+
+```text
+Runtime Latency Engineering Review is canonical, mandatory through OMP, referenced by Engineering Reports, and owned by existing Runtime/OMP owners without duplicate rules.
+```
+
 ## Phase 2 Automation-Time Contract
 
-Status: `DEFERRED_UNTIL_BOUNDED_AUTONOMY_CERTIFIED`
+Status: `RT_PHASE_1_CANONICAL_DEFERRED_UNTIL_BOUNDED_AUTONOMY_CERTIFIED`
 Owner: `V7_RUNTIME_MODEL` for the contract; OMP for execution order.
 
 Phase 2 is not optional.
@@ -271,30 +313,62 @@ Phase 2 must not start until:
 - A6 runtime eligibility arbitration is complete;
 - B13 metric reliability is complete;
 - rollback/verification authority is certified where required;
+- verification is certified;
+- reaction latency measurements are available;
+- authority explicitly permits the next phase;
 - Product Scale Objectives remain satisfied;
 - OMP authorizes Phase 2 work through the existing backlog/authority model.
 
-| Phase 2 item | Purpose | Why not Phase 1 | Dependency | Existing likely owner | Safety condition before implementation | Expected output |
-| --- | --- | --- | --- | --- | --- | --- |
-| Continuous World Model | Keep current state hot and queryable. | Requires scale-safe data freshness and bounded automation consumers. | A6, B13, Product Scale Objectives. | Intelligence snapshots, Knowledge Plane, runtime read models. | No heavy runtime scans; indexed/aggregated data. | Current-state read model with latency fields. |
-| Continuous Candidate Readiness | Maintain eligible candidate readiness before events. | Candidate readiness must not become autonomous movement. | A5, A6, B13. | Planner/autoswitch, operator decision surface. | Read-only until authority and eligibility pass. | Candidate readiness summary. |
-| Continuous Target Readiness | Maintain safe target readiness and capacity state. | Needs blast/capacity certification. | A5, B14, C7. | Planner capacity/load, service matrix, quality compact. | Target eligibility must still be live-checked. | Target readiness read model. |
-| Precomputed Recovery Plans | Prepare likely rollback/recovery options. | Recovery plans cannot replace live verification/rollback readiness. | A3, B8, B10, B16. | Restore/rollback owners, recovery admission. | Live restore barrier remains mandatory. | Recovery plan preview/read model. |
-| Desired Safe State | Express where users/channels should safely converge. | Desired state must not bypass current evidence and authority. | A6, B12, B13. | Runtime Model, OMP, planner owners. | Must be bounded by policy and blast radius. | Desired safe state artifact. |
-| Desired-State Delta Planner | Compute bounded delta from current to desired safe state. | A planner rewrite is forbidden; must evolve through existing planner. | Desired Safe State, A6, B13. | Existing planner/autoswitch. | Delta execution must be bounded, verified, and reversible where required. | Bounded delta plan. |
-| Safe Execution Queue | Schedule safe bounded execution attempts. | Queue implies automation and must wait for authority. | Bounded autonomy, A6, B16. | Governed transaction/runtime owners. | One queue item must still pass all live gates. | Auditable execution queue. |
-| Rate Limits | Prevent overreaction and storm behavior. | Needs real latency and blast evidence. | A5, B19, B20. | Anti-flap, blast-radius, runtime eligibility owners. | Hard failure override and anti-flap arbitration certified. | Rate-limit policy/read model. |
-| Blast-Radius Scheduling | Sequence actions by certified blast budget. | Depends on A5 and authority. | A5, B14, C7. | Blast-radius/action-class owners. | No silent blast expansion. | Schedule bounded by class/policy. |
-| Bounded Parallelism | Execute multiple safe actions when certified. | Forbidden before bounded automation and blast proof. | A5, A6, B13, B16. | Runtime/OMP/action-class owners. | Certified max concurrency and rollback/verification capacity. | Parallel execution envelope. |
-| Latency Budget | Define measured target budgets. | Phase 1 has no numeric gates or SLOs. | Real latency data, bounded automation. | OMP, Production Maturity Model, Runtime Model. | Must not create unsafe fast action incentives. | Latency budget per action class. |
-| Decision Freshness Lifetime | Define how long decisions remain valid by class. | Requires real freshness/material-change evidence. | A2, A6, C6, B18. | Freshness and lease owners. | Material state change gate remains mandatory. | Class-specific freshness lifetime. |
-| Runtime Performance Dashboard | Expose latency and fast-path health. | Needs measured fields and stable read models. | Latency instrumentation. | Admin/read-model owners. | Dashboard must not become decision owner. | Operator/engineering latency surface. |
-| Reaction Latency Certification | Certify reaction latency behavior by class. | Needs data, authority, and bounded automation. | Latency budgets, runtime dashboard, A6/B13. | OMP, Runtime Model, Production Maturity Model. | Certification cannot bypass safety gates. | Certified reaction-latency status. |
+Forbidden before entry:
+
+- parallel movement;
+- batch movement;
+- continuous apply;
+- execution queues;
+- desired-state runtime;
+- latency SLO gates;
+- planner rewrite;
+- authority expansion.
+
+| Phase 2 item | Purpose | Inputs | Outputs | Owner | Dependencies | Safety constraints | Success criteria | Reason it belongs only after automation |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Continuous Observation | Keep production health, service, quality, and route evidence current enough for bounded automation. | Probes, service matrix, quality compact, sentinel, route/runtime truth. | Time-stamped observation stream and freshness summaries. | Existing observation owners. | A1, A2, B13, Product Scale Objectives. | Observation does not move users or grant authority. | Observation latency is measurable and bounded by owner-issued freshness. | Continuous observation matters only when Runtime can consume it repeatedly without human-triggered dry runs. |
+| Continuous World Model | Keep current user/channel/service/policy state hot and queryable. | Observation outputs, CPS, trust/evidence summaries, policy state. | Current-state read model with latency fields. | Intelligence snapshots, Knowledge Plane, runtime read models. | A6, B13, Product Scale Objectives. | No heavy runtime scans; indexed/aggregated data only. | Runtime can read compact state without raw-history scans. | Requires scale-safe consumers and bounded automation demand. |
+| Continuous Candidate Readiness | Maintain eligible candidate readiness before events. | World Model, planner inputs, service/user requirements, action-class state. | Candidate readiness summary. | Planner/autoswitch, operator decision surface. | A5, A6, B13. | Read-only until authority and eligibility pass. | Candidate readiness can be refreshed without applying movement. | Candidate readiness must not become autonomous movement before authority. |
+| Continuous Target Readiness | Maintain safe target readiness and capacity state. | Channel health, capacity/load, service availability, policy constraints. | Target readiness read model. | Planner capacity/load, service matrix, quality compact. | A5, B14, C7. | Target eligibility must still be live-checked at execution. | Runtime can reject unsafe targets quickly. | Needs blast/capacity certification before automation consumes it. |
+| Continuous Recovery Planning | Prepare likely rollback/no-rollback and recovery options. | Current route, rollback target, recovery admission, historical outcome. | Recovery plan preview/read model. | Restore/rollback owners, recovery admission. | A3, B8, B10, B16. | Live restore barrier remains mandatory. | Recovery options are prepared without bypassing rollback readiness. | Recovery planning is valuable only when execution can happen without repeated manual assembly. |
+| Desired Safe State | Express where users/channels should safely converge under policy. | Business Objectives, policies, World Model, action-class certification. | Desired safe state artifact. | Runtime Model, OMP, planner owners. | A6, B12, B13. | Must be bounded by policy, blast radius, authority, and rollback/verification. | Desired state is explainable and never self-authorizing. | Desired state implies automation semantics and must wait for authority. |
+| Desired-State Delta | Compute bounded difference between current state and desired safe state. | Desired Safe State, current state, movement protection, state-change cost. | Bounded delta plan. | Existing planner/autoswitch. | Desired Safe State, A6, B13, B19, B20. | Delta execution must be bounded, verified, and reversible where required. | Deltas are ranked by safe production value and fail closed. | This is not a planner rewrite; it needs certified runtime eligibility first. |
+| Execution Queue | Schedule safe bounded execution attempts. | Certified deltas, authority envelope, rate limits, blast budget, rollback/verification readiness. | Auditable queue entries with idempotency and terminal status. | Governed transaction/runtime owners. | Bounded autonomy, A6, B16. | Every queue item still passes all live gates before apply. | Queue never bypasses live validation or authority. | Queue implies automation and is forbidden before authority. |
+| Rate Limits | Prevent overreaction, storms, and unsafe repeated movement. | Action-class state, blast budget, anti-flap, outcome history, latency measurements. | Rate-limit policy/read model. | Anti-flap, blast-radius, runtime eligibility owners. | A5, B19, B20. | Hard-failure override and anti-flap arbitration must be certified. | Runtime can bound attempts per class/user/channel/time window. | Needs real latency and blast evidence to avoid unsafe throttling. |
+| Bounded Parallelism | Execute multiple safe actions when certified. | Execution Queue, blast budget, rollback/verification capacity, authority envelope. | Parallel execution envelope. | Runtime/OMP/action-class owners. | A5, A6, B13, B16. | Certified max concurrency; no silent blast expansion. | Parallelism remains bounded, observable, reversible where required, and fail-closed. | Parallel movement is explicitly forbidden before bounded automation. |
+| Latency Budget | Define measured target budgets per action class. | Measured Reaction Latency components, production outcomes, business objectives. | Latency budget per action class. | OMP, Production Maturity Model, Runtime Model. | Real latency data, bounded automation. | Must not create unsafe fast-action incentives. | Budgets are measured, explainable, and subordinate to safety. | Phase 1 has no numeric gates or SLOs. |
+| Decision Freshness Lifetime | Define how long decisions remain valid by class. | Freshness evidence, material-change evidence, lease history, outcomes. | Class-specific freshness lifetime. | Freshness and lease owners. | A2, A6, C6, B18. | Material state change gate remains mandatory. | Decision lifetime is long enough to be useful and short enough to be safe. | Requires real freshness/material-change evidence. |
+| Runtime Performance Dashboard | Expose latency and fast-path health. | Measurement fields, execution outcomes, STOP_SAFE reasons, read models. | Operator/engineering latency surface. | Admin/read-model owners. | Latency instrumentation, stable summaries. | Dashboard must not become a decision owner. | Operators can see where latency accumulates by plane/stage. | Needs measured fields and stable read models first. |
+| Reaction Latency Certification | Certify reaction latency behavior by class. | Latency budgets, production outcomes, runtime dashboard, certification status. | Certified reaction-latency status. | OMP, Runtime Model, Production Maturity Model. | Latency budgets, runtime dashboard, A6/B13. | Certification cannot bypass safety gates. | Reaction latency is certified per action class without weakening safety. | Needs data, authority, and bounded automation. |
+
+Exit criteria:
+
+- Reaction Latency is measurable end-to-end.
+- Latency is visible per time plane.
+- Desired-State Delta is implemented through existing planner owners.
+- Execution Queue is certified.
+- Bounded Parallelism is certified.
+- Runtime still fails closed.
+- Rollback behavior is unchanged unless separately certified.
+- Verification behavior is unchanged unless separately certified.
+- Authority is unchanged unless separately approved.
 
 Completion condition for RT6:
 
 ```text
 Phase 2 scope, dependencies, owners, safety conditions, and expected outputs are defined without implementing Phase 2.
+```
+
+Completion condition for RT8:
+
+```text
+Phase 2 entry criteria, forbidden pre-entry behavior, complete item contracts, exit criteria, owners, dependencies, safety constraints, and success criteria are canonical without implementing automation.
 ```
 
 ## Wakeup Model

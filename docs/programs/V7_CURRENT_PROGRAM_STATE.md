@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-28T00:33:25+0700
-Source: RT Phase 1 documentation/program alignment after Runtime Latency and Continuous Control Plane audit. A4 representative outcome evidence remains `DONE`; A5 remains the current highest implementation item. RT Phase 1 embedded Runtime Time Architecture, Reaction Latency, Thin Runtime Path, live/precompute matrix, Engineering Report Latency Impact, and Phase 2 Automation-Time Contract through existing owners. Runtime automation remains disabled, authority was not expanded, no users were moved, and no new owner/backlog/architecture was created.
+State captured: 2026-06-28T00:41:29+0700
+Source: RT Phase 1 full documentation/program alignment after RT7 Engineering Review Rule and RT8 Phase 2 Automation Contract extension. A4 representative outcome evidence remains `DONE`; A5 remains the current highest implementation item. RT Phase 1 now includes Runtime Time Architecture, Reaction Latency, Thin Runtime Path, live/precompute matrix, Engineering Report Latency Impact, Phase 2 Automation-Time Contract, Runtime Latency Engineering Review Checklist, and complete Phase 2 Automation Contract through existing owners. Runtime automation remains disabled, authority was not expanded, no users were moved, and no new owner/backlog/architecture was created.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -31,7 +31,7 @@ This file is volatile. Update it after every safe action or approved execution t
 | implementation_class | `OWNER_EXTENSION_COMPLETED` |
 | next_engineering_task | `A5_CERTIFY_CLASS_LEVEL_BLAST_RADIUS_EVIDENCE_BEYOND_ONE_USER_GUARD` |
 | expected_completion_evidence | Existing blast-radius/action-class/planner budget owners show whether one-user governed evidence can support the next certified blast-radius state without expanding authority silently. |
-| rt_phase1_status | `COMPLETE`; Runtime Time Architecture and Reaction Latency are canonicalized in Runtime Model and consumed by OMP/report lifecycle. |
+| rt_phase1_status | `FULLY_COMPLETE`; RT1-RT8 are canonicalized through Runtime Model and consumed by OMP/report lifecycle. |
 
 ## 1.1. Root Cause Engine Output
 

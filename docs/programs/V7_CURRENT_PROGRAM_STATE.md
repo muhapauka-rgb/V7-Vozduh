@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-27T15:59:24+0700
-Source: OMP continued A4 under the operator-approved bounded A4 evidence collection authority envelope, not packet-by-packet authority. Existing owner `tools/v7-governed-canary-dry-run-cycle --execute-a4-bounded-evidence-collection` ran with max `66` remaining evidence outcomes. It completed two verified no-rollback outcomes (`10.7.0.22 vless -> awg3`, `10.7.0.23 vless -> awg3`) and stopped safely on the third transaction (`10.7.0.24 vless -> awg3`) because verification failed and rollback completed to `vless`. A4 coverage is now `93 / 156 = 59.6%`; missing evidence is `63 / 156 = 40.4%`.
+State captured: 2026-06-27T16:29:29+0700
+Source: OMP audited the A4 verification-failed rollback outcome. Rollback behavior was correct and protected the user, but feedback/learning materialization incorrectly classified `apply YES + verification FAIL + rollback COMPLETED` as `SUCCESS`. Current A4 progress remains `93 / 156 = 59.6%`; missing evidence remains `63 / 156 = 40.4%`. Do not continue bounded A4 collection until the existing feedback/learning owner classifies rollback-completed verification failures as rollback/failure learning instead of success learning.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -15,40 +15,40 @@ This file is volatile. Update it after every safe action or approved execution t
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Implementation Backlog` |
 | Current highest leverage implementation | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Current highest leverage action | investigate/handle `transaction_verification_failed` from bounded A4 collection through existing owners; do not request packet approval |
+| Current highest leverage action | fix existing feedback/learning classification for `apply YES + verification FAIL + rollback COMPLETED`; do not request packet approval |
 | Current authority class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE_BUT_STOPPED_ON_FAILED_GATE` |
 | authority_class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE_BUT_STOPPED_ON_FAILED_GATE` |
 | authority_reason | Operator approved bounded A4 collection for the current A4 scope; packet-by-packet approval is not required inside this envelope, but the envelope stops on failed verification gate. |
 | authority_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch`. |
-| required_action | Do not request a new packet approval. Current stop requires root-cause review of `10.7.0.24 vless -> awg3` verification failure and rollback-completed outcome through existing A4/verification owners. |
+| required_action | Do not request a new packet approval. Implement the existing-owner A4 feedback/learning classification fix before resuming bounded collection. |
 | non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
 | optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
 | Current reality limit | `A4_REPRESENTATIVE_OUTCOME_EVIDENCE_REQUIRED`: A4 still requires more real representative outcomes; latest production inventory reports `missing_candidate_outcomes=63` |
-| Current safe next action | stop for verification-failure analysis; do not continue movement while the failed gate is unresolved |
-| Current stop reason | `VERIFY_FAILED_ROLLBACK_COMPLETED`: bounded A4 collection stopped on first failed verification gate |
-| root_cause | Candidate `10.7.0.24 vless -> awg3` applied, route verification failed, and rollback completed to `vless`; existing safety stopped the bounded collection. |
-| responsible_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; existing packet/lease owner `admin_core/operator_execution.py`; existing apply owner `tools/v7-users-autoswitch`; existing feedback owner `admin_core/operator_execution_feedback.py`; existing A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
+| Current safe next action | stop for existing-owner implementation fix; do not continue movement while rollback-completed failure learning is misclassified as success |
+| Current stop reason | `UNSAFE_IMPLEMENTATION`: feedback materialization misclassifies rollback-completed verification failure as success |
+| root_cause | `tools/v7-governed-canary-dry-run-cycle::materialize_governed_transaction_feedback` passes `success=true/result=applied` into `admin_core.operator_execution_feedback` even when verification failed and rollback completed, causing `outcome_status=success` and positive trust/recommendation deltas. |
+| responsible_owner | Existing governed transaction feedback owner `tools/v7-governed-canary-dry-run-cycle`; existing feedback classifier owner `admin_core/operator_execution_feedback.py`; existing A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
 | implementation_class | `BUG` |
-| next_engineering_task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| expected_completion_evidence | A4 evidence inventory shows sufficient representative closed real outcomes, rollback/no-rollback certification, blast-radius certification, verified learning growth, and class-level readiness through existing owners. |
+| next_engineering_task | `A4_FIX_ROLLBACK_COMPLETED_VERIFICATION_FAILURE_FEEDBACK_CLASSIFICATION` |
+| expected_completion_evidence | Existing tests prove `apply YES + verification FAIL + rollback COMPLETED` is classified as rollback/failure learning, not success; truth/convergence pass; A4 can resume bounded collection without packet-by-packet approval. |
 
 ## 1.1. Root Cause Engine Output
 
 | Field | Current Value |
 | --- | --- |
-| Stop condition | `VERIFY_FAILED_ROLLBACK_COMPLETED` |
+| Stop condition | `UNSAFE_IMPLEMENTATION` |
 | Authority Class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE_BUT_STOPPED_ON_FAILED_GATE` |
 | Authority Reason | Bounded A4 authority is active for the current scope; no packet-by-packet approval is needed, but failed verification stops the envelope. |
-| Root Cause | Candidate `10.7.0.24 vless -> awg3` failed route verification after apply; rollback completed to `vless`. |
-| Responsible owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/lease owner `admin_core/operator_execution.py`; apply owner `tools/v7-users-autoswitch`; feedback owner `admin_core/operator_execution_feedback.py`; A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
-| Why it happened | The bounded collection correctly advanced through two successful transactions, then encountered a real failed verification on the third transaction. |
-| Why existing safety worked | The apply owner verified immediately, detected route mismatch, executed rollback, terminalized the lease as `ROLLBACK_FINISHED`, and stopped the bounded collection. |
-| Can existing owner be extended? | `YES`; existing verification/apply/read-model owners own the next investigation if needed. |
+| Root Cause | Rollback-completed verification failure was materialized as `outcome_status=success` / `outcome_quality=SUCCESS`. |
+| Responsible owner | Existing governed transaction feedback owner `tools/v7-governed-canary-dry-run-cycle`; existing feedback classifier owner `admin_core/operator_execution_feedback.py`. |
+| Why it happened | The feedback payload treated successful apply as `success=true/result=applied`; verification failure and rollback context did not dominate outcome classification. |
+| Why existing safety worked | Autoswitch verified immediately, detected route mismatch, executed rollback, terminalized the lease as `ROLLBACK_FINISHED`, and stopped bounded collection. |
+| Can existing owner be extended? | `YES`; reuse existing feedback/learning owners. |
 | Need New Owner | `FALSE` |
-| Implementation Class | `VERIFICATION` |
-| Concrete engineering task | Audit the failed verification/rollback outcome for `10.7.0.24 vless -> awg3` and determine whether this is expected production evidence, a route verification defect, or a candidate eligibility issue. |
-| Expected completion evidence | Existing owners classify the failure; if safe, A4 bounded collection may resume under the existing bounded authority envelope without packet-by-packet approvals. |
-| OMP automatic continuation | `NO`; stop on failed verification gate. |
+| Implementation Class | `BUG` |
+| Concrete engineering task | Fix existing feedback materialization/classification so `verification FAIL + rollback COMPLETED` becomes rollback/failure learning with non-positive recommendation/trust impact, while preserving rollback evidence. |
+| Expected completion evidence | Unit tests cover rollback-completed governed transaction feedback; truth/convergence pass; no runtime automation or authority expansion. |
+| OMP automatic continuation | `NO`; stop on unsafe learning classification until implemented. |
 
 ## 2. Current Metrics
 

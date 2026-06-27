@@ -2705,7 +2705,7 @@ Current A4 bounded authority envelope:
 | Authority expansion | `NO` |
 | Packet-by-packet approval | `NO` inside this bounded envelope |
 | Stop rule | Stop on first failed gate, failed verification, rollback need, duplicate, non-missing candidate, scope expansion, or runtime automation attempt |
-| Current stop | `A4_BOUNDED_COLLECTION_STOP_SAFE_DUPLICATE_CANDIDATE`; duplicate guard stopped before second lease, restore-barrier write, or apply |
+| Current stop | `REAL_WORLD_LIMIT_A4_NO_GAP_REDUCING_CANDIDATE`; evidence-gap guard stopped before lease, restore-barrier write, or apply |
 
 Latest bounded A4 collection continuation:
 
@@ -2722,6 +2722,23 @@ Latest bounded A4 collection continuation:
 | Runtime automation | `NO` |
 | Authority expansion | `NO` |
 | Current next action | Continue A4 bounded collection under the existing approved envelope; do not ask for packet approval. |
+
+Latest bounded A4 gap-guard stop:
+
+| Field | Current Value |
+| --- | --- |
+| Engineering report | `docs/reports/engineering/2026-06-27_170634_a4_gap_guard_stop.md` |
+| Final verdict | `A4_BOUNDED_EVIDENCE_COLLECTION_STOPPED` |
+| Stop reason | `candidate_not_missing_a4_evidence` |
+| Candidate | `10.7.0.5 awg0 -> vless` |
+| Successful verified outcomes | `0` |
+| Apply | `NO` |
+| Restore barrier | `NO` |
+| Users moved | `0` |
+| A4 evidence | `94 / 156 = 60.3%`; missing `62 / 156 = 39.7%` |
+| Runtime automation | `NO` |
+| Authority expansion | `NO` |
+| Current next action | Wait for a fresh gap-reducing candidate or read-model refresh through existing owners; do not request packet approval and do not synthesize evidence. |
 
 Previous bounded A4 collection result:
 
@@ -3598,11 +3615,11 @@ If daemon, timer, event consumer mutation, autonomous execution, action-class ex
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | `REAL_WORLD_LIMIT`: A4 still requires additional real comparable outcomes, freshness recheck, class-level blast-radius evidence, authority policy approval, runtime policy binding, and hard-failure classification recheck before promotion. Latest run stopped safely on `duplicate_transaction_candidate` before a second mutation. |
+| Current blockers | `REAL_WORLD_LIMIT`: A4 still requires additional real comparable outcomes, freshness recheck, class-level blast-radius evidence, authority policy approval, runtime policy binding, and hard-failure classification recheck before promotion. Latest run stopped safely on `candidate_not_missing_a4_evidence` before mutation. |
 | Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; A4 bounded collection is production-operational; A4 evidence is `94 / 156` consumed outcomes. |
 | Current runtime posture | No autonomous apply, no daemon enablement, and no authority expansion; A4 bounded collection uses the approved operational envelope and still stops on failed gates or duplicates. |
-| Current next best action | Continue bounded A4 collection through existing owners; no synthetic evidence, no runtime automation, no authority expansion, and no packet-by-packet approval inside the approved envelope. |
-| Last optimizer iteration | `2026-06-27`: A4 bounded collection recorded one real no-rollback outcome for `10.7.0.25 vless -> awg3`, then stopped safely on duplicate candidate; truth/convergence `PASS`/`ALIGNED`. |
+| Current next best action | Wait for a fresh A4 candidate that reduces the remaining evidence gap, or refresh existing read models through existing owners; no synthetic evidence, no runtime automation, no authority expansion, and no packet-by-packet approval inside the approved envelope. |
+| Last optimizer iteration | `2026-06-27`: A4 bounded collection recorded one real no-rollback outcome for `10.7.0.25 vless -> awg3`; follow-up run stopped on non-missing candidate; truth/convergence `PASS`/`ALIGNED`. |
 
 ## 25. Program Rule For Future Work
 

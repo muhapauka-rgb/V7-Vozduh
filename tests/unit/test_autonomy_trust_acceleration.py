@@ -685,6 +685,29 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(complete["summary"]["valid_closures"], 1)
         self.assertFalse(complete["synthetic_outcomes_created"])
 
+    def test_closure_ignores_non_outcome_audit_history(self):
+        complete = accel.build_decision_outcome_closure([
+            {"user": "10.0.0.2", "channel": "vless", "event_time": "2026-06-24T00:00:00+00:00"},
+            {"user": "10.0.0.3", "channel": "awg2", "status": "preview_only"},
+            {
+                "recommendation_id": "r1",
+                "decision_id": "d1",
+                "packet_id": "p1",
+                "apply_result": "success",
+                "post_action_verification": {"status": "passed"},
+                "service_outcome": {"telegram": "ok"},
+                "user_outcome": {"user": "10.7.0.2"},
+                "learning_record": {"stored": True},
+                "outcome_observed_at": "2026-06-24T00:01:00+00:00",
+            },
+        ])
+
+        self.assertEqual(complete["closure_state"], "COMPLETE")
+        self.assertEqual(complete["summary"]["source_records_seen"], 3)
+        self.assertEqual(complete["summary"]["records_seen"], 1)
+        self.assertEqual(complete["summary"]["non_closure_records_ignored"], 2)
+        self.assertEqual(complete["summary"]["valid_closures"], 1)
+
     def test_inventory_exposes_routing_foundation_top_level_keys(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

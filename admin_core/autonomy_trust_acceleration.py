@@ -4001,6 +4001,40 @@ VALID_OUTCOME_CLOSURE_FIELDS = (
     "outcome_observed_at",
 )
 
+OUTCOME_CLOSURE_CANDIDATE_FIELDS = (
+    "recommendation_id",
+    "recommendation_hash",
+    "proposal_id",
+    "decision_id",
+    "operation_id",
+    "object_id",
+    "packet_id",
+    "approval_packet_id",
+    "apply_result",
+    "execution_outcome",
+    "post_action_verification",
+    "verification_result",
+    "verification",
+    "service_outcome",
+    "service_actual",
+    "service_delta",
+    "user_outcome",
+    "learning_record",
+    "trust_update",
+    "prediction_actual",
+)
+
+OUTCOME_CLOSURE_MARKER_FIELDS = (
+    "closure_state",
+    "terminal_outcome_classification",
+    "terminal_transaction_state",
+    "feedback_id",
+    "learning_id",
+    "execution_outcome",
+    "verification_result",
+    "rollback_result",
+)
+
 RECOVERY_ADMISSION_POLICY = {
     "min_successful_checks": 3,
     "freshness_required": "ACTIONABLE_NOW",
@@ -4553,6 +4587,16 @@ def _closure_field_present(record: dict[str, Any], field: str) -> bool:
     return any(record.get(alias) not in (None, "", [], {}) for alias in aliases.get(field, (field,)))
 
 
+def _closure_candidate_record(record: dict[str, Any]) -> bool:
+    if any(record.get(field) not in (None, "", [], {}) for field in OUTCOME_CLOSURE_CANDIDATE_FIELDS):
+        return True
+    if any(record.get(field) not in (None, "", [], {}) for field in OUTCOME_CLOSURE_MARKER_FIELDS):
+        return True
+    metadata = record.get("metadata") if isinstance(record.get("metadata"), dict) else {}
+    marker_fields = OUTCOME_CLOSURE_CANDIDATE_FIELDS + OUTCOME_CLOSURE_MARKER_FIELDS
+    return any(metadata.get(field) not in (None, "", [], {}) for field in marker_fields)
+
+
 def build_decision_outcome_closure(
     decision_records: list[dict[str, Any]] | None = None,
     *,
@@ -4561,7 +4605,12 @@ def build_decision_outcome_closure(
     """Expose whether real recommendation outcomes are closed end-to-end."""
     generated = generated_at or datetime.now(timezone.utc).isoformat()
     rows: list[dict[str, Any]] = []
-    for index, record in enumerate([row for row in (decision_records or []) if isinstance(row, dict)]):
+    source_count = len([row for row in (decision_records or []) if isinstance(row, dict)])
+    closure_candidates = [
+        row for row in (decision_records or [])
+        if isinstance(row, dict) and _closure_candidate_record(row)
+    ]
+    for index, record in enumerate(closure_candidates):
         missing = [field for field in VALID_OUTCOME_CLOSURE_FIELDS if not _closure_field_present(record, field)]
         evidence = intelligence_workers.normalize_outcome_evidence(record)
         rows.append({
@@ -4581,7 +4630,9 @@ def build_decision_outcome_closure(
         "required_fields": list(VALID_OUTCOME_CLOSURE_FIELDS),
         "closure_state": state,
         "summary": {
+            "source_records_seen": source_count,
             "records_seen": len(rows),
+            "non_closure_records_ignored": max(0, source_count - len(rows)),
             "valid_closures": valid,
             "missing_closure_records": len(rows) - valid,
             "real_outcomes_required": state != "COMPLETE",

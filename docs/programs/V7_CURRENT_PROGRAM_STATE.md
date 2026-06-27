@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-27T22:26:42+0700
-Source: Continue OMP after A4 certification signal alignment. Local default `/opt/v7` runtime state is unavailable in this workspace, and direct production SSH read-only access was denied; therefore the local `no_missing_a4_candidate_outcomes` result is not accepted as production evidence. Runtime, thresholds, formulas, authority, and architecture were not changed.
+State captured: 2026-06-27T22:41:28+0700
+Source: Continue OMP after A4 certification signal alignment. The existing A4 bounded collection owner now fails closed when required runtime state/evidence inputs are unavailable, so local missing `/opt/v7` state can no longer be misread as `no_missing_a4_candidate_outcomes`. Production-side validation is still required because direct production SSH read-only access was denied. Runtime, thresholds, formulas, authority, and architecture were not changed.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -20,13 +20,13 @@ This file is volatile. Update it after every safe action or approved execution t
 | authority_class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE` |
 | authority_reason | Operator approved bounded A4 collection for the current A4 scope; packet-by-packet approval is not required inside this envelope, but the envelope stops on failed live gates, duplicate candidates, or scope changes. |
 | authority_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch`. |
-| required_action | Run A4 bounded collection / mandatory certification validation on the production host through existing owners, or restore authenticated production runtime access; do not synthesize evidence from local missing `/opt/v7` state. |
+| required_action | Run A4 bounded collection / mandatory certification validation on the production host through existing owners, or restore authenticated production runtime access; local missing `/opt/v7` state now fails closed as `runtime_state_unavailable`. |
 | non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
 | optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
 | Current reality limit | `PRODUCTION_RUNTIME_ACCESS_REQUIRED`: local workspace cannot read production `/opt/v7` state directly, and SSH read-only access was denied. |
 | Current safe next action | execute the existing A4 production-side owner with authenticated runtime access; if unavailable, stop at `REAL_WORLD_LIMIT_PRODUCTION_RUNTIME_ACCESS`. |
 | Current stop reason | `REAL_WORLD_LIMIT_PRODUCTION_RUNTIME_ACCESS`; no runtime mutation occurred |
-| root_cause | Fixed locally: `admin_core.autonomy_trust_acceleration` now classifies certification signals before exposing runtime enablement/readiness, and `missing_candidate_outcomes` remains an inventory signal instead of missing evidence. |
+| root_cause | Fixed locally: `admin_core.autonomy_trust_acceleration` now classifies certification signals before exposing runtime enablement/readiness, and `tools/v7-governed-canary-dry-run-cycle` fails closed when A4 runtime/evidence inputs are unavailable. |
 | responsible_owner | Existing governed transaction feedback owner `tools/v7-governed-canary-dry-run-cycle`; existing feedback classifier owner `admin_core/operator_execution_feedback.py`; existing A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
 | implementation_class | `OWNER_EXTENSION_COMPLETED` |
 | next_engineering_task | `A4_PRODUCTION_SIDE_CERTIFICATION_VALIDATION` |
@@ -45,7 +45,7 @@ This file is volatile. Update it after every safe action or approved execution t
 | Why existing safety worked | The system did not lower thresholds, did not synthesize evidence, and did not enable automation; it continued to stop safely unless real governed evidence existed. |
 | Can existing owner be extended? | `YES`; existing owner was extended. |
 | Need New Owner | `FALSE` |
-| Implementation Class | `OWNER_EXTENSION_COMPLETED` |
+| Implementation Class | `OWNER_EXTENSION_COMPLETED`; A4 collection input guard added to existing governed transaction owner. |
 | Concrete engineering task | `A4_PRODUCTION_SIDE_CERTIFICATION_VALIDATION` |
 | Expected completion evidence | Existing production read-models show current A4 candidate availability and mandatory certification gate status. |
 | OMP automatic continuation | `NO` until authenticated production runtime access is available; do not execute from local missing-state defaults. |

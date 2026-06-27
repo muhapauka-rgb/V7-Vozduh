@@ -937,6 +937,37 @@ def current_a4_missing_candidate_keys(snapshot_root: Path, records: list[dict[st
     return candidate_keys - consumed_keys
 
 
+def a4_collection_input_status(state_dir: Path, event_dir: Path, snapshot_root: Path, audit_dir: Path) -> dict[str, Any]:
+    candidate_snapshot = Path(read_snapshot_family(snapshot_root, "candidate-suitability-summary").path)
+    required_paths = [
+        state_dir,
+        state_dir / "users.registry",
+        state_dir / "egress.registry",
+        candidate_snapshot,
+    ]
+    evidence_paths = [
+        event_dir / "switch-history.jsonl",
+        audit_dir / "audit.jsonl",
+        audit_dir / "operator-execution-audit.jsonl",
+        audit_dir / "operator-runtime-governance-actions.jsonl",
+        state_dir / "execution-events.jsonl",
+        state_dir / "runtime-trust.jsonl",
+        state_dir / "proposal-records.jsonl",
+        state_dir / "proposals.jsonl",
+        state_dir / "closure-records.jsonl",
+        event_dir / "rollback-history.jsonl",
+    ]
+    missing_required = [str(path) for path in required_paths if not path.exists()]
+    available_evidence = [str(path) for path in evidence_paths if path.exists()]
+    return {
+        "runtime_state_available": not missing_required and bool(available_evidence),
+        "missing_required_inputs": missing_required,
+        "available_evidence_sources": available_evidence,
+        "required_evidence_source_count": len(evidence_paths),
+        "owner": "tools/v7-governed-canary-dry-run-cycle",
+    }
+
+
 def collection_stop(reason: str, *, transactions: list[dict[str, Any]] | None = None, **extra: Any) -> dict[str, Any]:
     transactions = transactions or []
     successful = [
@@ -982,6 +1013,15 @@ def execute_a4_bounded_evidence_collection(
     max_outcomes = int(args.max_evidence_outcomes)
     if max_outcomes <= 0:
         return collection_stop("max_evidence_outcomes_must_be_positive")
+
+    input_status = a4_collection_input_status(state_dir, event_dir, snapshot_root, audit_dir)
+    if not input_status["runtime_state_available"]:
+        return collection_stop(
+            "runtime_state_unavailable",
+            runtime_state_available=False,
+            input_status=input_status,
+            transactions=[],
+        )
 
     transactions: list[dict[str, Any]] = []
     seen_candidates: set[tuple[str, str, str, str]] = set()

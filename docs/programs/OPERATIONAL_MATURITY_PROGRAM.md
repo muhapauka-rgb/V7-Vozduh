@@ -2846,6 +2846,20 @@ Latest A4 representative certification validation access correction:
 | OMP meaning | Do not infer A4 candidate absence from local missing runtime state; continue only through authenticated production-side validation. |
 | Next OMP action | `A4_PRODUCTION_SIDE_CERTIFICATION_VALIDATION` |
 
+Latest A4 collection input guard implementation:
+
+| Field | Current Value |
+| --- | --- |
+| Engineering report | `docs/reports/engineering/2026-06-27_224128_a4_collection_input_guard.md` |
+| Existing owner | `tools/v7-governed-canary-dry-run-cycle` |
+| Implementation | A4 bounded collection now checks required runtime state, candidate snapshot, and evidence sources before calculating missing candidate keys. |
+| Stop reason when inputs are unavailable | `runtime_state_unavailable` |
+| False completion prevented | Local missing `/opt/v7` state can no longer be interpreted as `no_missing_a4_candidate_outcomes`. |
+| Runtime automation enabled | `NO` |
+| Users moved | `0` |
+| Authority expanded | `NO` |
+| Next OMP action | `A4_PRODUCTION_SIDE_CERTIFICATION_VALIDATION` through production-side existing owners. |
+
 Previous bounded A4 collection result:
 
 | Field | Current Value |
@@ -3716,16 +3730,16 @@ If daemon, timer, event consumer mutation, autonomous execution, action-class ex
 | --- | --- |
 | Completed phases | Architecture foundation, Research Framework, Decision Model, Runtime Model, System Architecture, Implementation Phase activation, OMP Production Program integration. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle; OMP Production Program rule set. |
-| Current bottleneck | A4 production-side validation requires authenticated access to runtime state; local workspace cannot prove candidate absence because `/opt/v7` state is not present. |
+| Current bottleneck | A4 production-side validation requires authenticated access to runtime state; the local owner now fails closed when `/opt/v7` state is not present. |
 | Current highest leverage action | Run the existing A4 production-side owner where runtime state is available, then validate mandatory certification gates. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
 | Current blockers | `REAL_WORLD_LIMIT_PRODUCTION_RUNTIME_ACCESS`; then validate `outcome_closure_state`, `verified_learning_growth`, `class-level rollback_or_no_rollback_certification`, `class-level blast_radius_certification`, `class-level authority_policy_approval`, and `runtime policy binding through existing owners`. |
 | Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; Production Maturity `24.0%`; Tier A backlog `3 / 6`; overall backlog `3 / 34`. |
-| Current runtime posture | No autonomous apply, no daemon enablement, no authority expansion; local validation moved `0` users and is not accepted as production evidence because local `/opt/v7` state is absent. |
+| Current runtime posture | No autonomous apply, no daemon enablement, no authority expansion; local validation moved `0` users and now stops explicitly with `runtime_state_unavailable` when local `/opt/v7` state is absent. |
 | Current next best action | `A4_PRODUCTION_SIDE_CERTIFICATION_VALIDATION`; no synthetic evidence, no threshold lowering, no new owner, no new backlog, no architecture change. |
-| Last optimizer iteration | `2026-06-27`: A4 signal taxonomy alignment deployed and verified; subsequent local bounded collection result was corrected as non-production-valid due missing local runtime state. |
+| Last optimizer iteration | `2026-06-27`: A4 signal taxonomy alignment deployed and verified; A4 collection input guard added so missing runtime state fails closed instead of producing false candidate absence. |
 
 ## 25. Program Rule For Future Work
 

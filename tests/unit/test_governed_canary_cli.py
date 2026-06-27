@@ -110,6 +110,19 @@ class GovernedCanaryCliTest(unittest.TestCase):
             path.mkdir(parents=True, exist_ok=True)
         (state / "users.registry").write_text("10.7.0.5 vless\n", encoding="utf-8")
         (state / "egress.registry").write_text("vless\nawg3\n", encoding="utf-8")
+        (state / "execution-events.jsonl").write_text("", encoding="utf-8")
+        (snapshot / "candidate-suitability-summary.json").write_text(
+            json.dumps({
+                "schema_version": "v7.intelligence.candidate-suitability-summary.v1",
+                "generated_at": "2026-06-27T00:00:00+00:00",
+                "expires_at": "2026-06-27T00:02:00+00:00",
+                "freshness_state": "FRESH",
+                "confidence": 0.9,
+                "items": [],
+                "source_hashes": {"test": "hash"},
+            }),
+            encoding="utf-8",
+        )
 
     def fake_candidate_snapshot(self, items):
         return type("Snapshot", (), {"payload": {"items": items, "source_hashes": {"test": "hash"}}})()
@@ -296,6 +309,31 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(result["final_verdict"], "A4_BOUNDED_EVIDENCE_COLLECTION_STOPPED")
         self.assertEqual(result["stop_reason"], "collection_confirmation_required")
         self.assertEqual(result["transactions_attempted"], 0)
+        self.assertFalse(result["runtime_automation_enabled"])
+        self.assertFalse(result["authority_expanded"])
+
+    def test_a4_bounded_evidence_collection_fails_closed_when_runtime_state_missing(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            args = self.transaction_args(root)
+            args.execute_a4_bounded_evidence_collection = True
+            args.confirm_a4_bounded_evidence_collection = "EXECUTE_A4_BOUNDED_EVIDENCE_COLLECTION_APPROVED"
+            args.max_evidence_outcomes = 1
+            result = module.execute_a4_bounded_evidence_collection(
+                args,
+                state_dir=root / "missing-state",
+                event_dir=root / "missing-events",
+                snapshot_root=root / "missing-state" / "intelligence",
+                audit_dir=root / "missing-audit",
+                lease_file=root / "missing-state" / "operator-execution-lease.json",
+            )
+
+        self.assertEqual(result["final_verdict"], "A4_BOUNDED_EVIDENCE_COLLECTION_STOPPED")
+        self.assertEqual(result["stop_reason"], "runtime_state_unavailable")
+        self.assertEqual(result["transactions_attempted"], 0)
+        self.assertFalse(result["runtime_state_available"])
+        self.assertIn("missing_required_inputs", result["input_status"])
         self.assertFalse(result["runtime_automation_enabled"])
         self.assertFalse(result["authority_expanded"])
 

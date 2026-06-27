@@ -2757,6 +2757,26 @@ Latest A4 gap-directed candidate existence audit:
 | Existing owner | `tools/v7-governed-canary-dry-run-cycle`; `admin_core.autonomy_trust_acceleration`; `admin_core.intelligence_workers` |
 | Next OMP action | Extend existing A4 governed selection to choose a safe gap-reducing candidate before attempting bounded transaction execution. |
 
+Latest A4 goal-directed selection implementation:
+
+| Field | Current Value |
+| --- | --- |
+| Engineering report | `docs/reports/engineering/2026-06-27_180848_a4_goal_directed_selection_fix.md` |
+| Code commit | `1db9267d862675d85742339532ed8180b10552ef` |
+| Deploy id | `deploy-z8-14-Updatesystem-1db9267-20260627T180506` |
+| Owner reused | `tools/v7-governed-canary-dry-run-cycle` |
+| Missing keys loaded before selection | `YES` |
+| Eligible universe scanned | `YES` |
+| Non-missing candidate skipped | `YES` |
+| Gap-reducing candidate selected when available | `YES` |
+| Explicit stop when none available | `NO_SAFE_GAP_REDUCING_A4_CANDIDATE` |
+| Runtime automation | `NO` |
+| Authority expansion | `NO` |
+| Users moved during implementation | `0` |
+| Truth | `PASS` |
+| Convergence | `PASS / ALIGNED` |
+| Next OMP action | Resume A4 bounded representative evidence collection through the existing governed transaction owner. |
+
 Previous bounded A4 collection result:
 
 | Field | Current Value |
@@ -3632,11 +3652,11 @@ If daemon, timer, event consumer mutation, autonomous execution, action-class ex
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | `UNSAFE_IMPLEMENTATION_A4_SELECTION_NOT_GAP_DIRECTED`: A4 still requires additional real comparable outcomes, but eligible gap-reducing candidates exist and the governed selection path is choosing non-missing candidates. Latest run stopped safely before mutation. |
+| Current blockers | None from implementation selection. A4 still requires additional real comparable outcomes; bounded collection must continue through live gates and real production evidence only. |
 | Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; A4 bounded collection is production-operational; A4 evidence is `94 / 156` consumed outcomes. |
 | Current runtime posture | No autonomous apply, no daemon enablement, and no authority expansion; A4 bounded collection uses the approved operational envelope and still stops on failed gates or duplicates. |
-| Current next best action | Implement existing-owner A4 gap-directed selection; no synthetic evidence, no runtime automation, no authority expansion, and no packet-by-packet approval inside the approved envelope. |
-| Last optimizer iteration | `2026-06-27`: A4 gap-directed audit found `18` gap-reducing eligible candidate rows but governed selection chose non-missing `10.7.0.5 -> vless`; no users moved. |
+| Current next best action | Continue A4 bounded representative evidence collection with goal-directed selection; no synthetic evidence, no runtime automation, no authority expansion, and no packet-by-packet approval inside the approved envelope. |
+| Last optimizer iteration | `2026-06-27`: A4 goal-directed selection fixed, tested, deployed, and verified by truth/convergence; no users moved during implementation. |
 
 ## 25. Program Rule For Future Work
 

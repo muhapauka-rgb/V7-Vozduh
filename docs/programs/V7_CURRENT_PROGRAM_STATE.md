@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-27T17:06:34+0700
-Source: OMP continued A4 bounded evidence collection through the existing governed transaction owner. The first run recorded one real no-rollback governed outcome for `10.7.0.25 vless -> awg3`; verification passed and rollback was not required. A follow-up bounded run stopped safely as `candidate_not_missing_a4_evidence` before lease, restore barrier, apply, or user movement because the fresh candidate would not reduce the current A4 evidence gap. Truth and convergence are PASS/FULLY_ALIGNED. Current A4 progress is `94 / 156 = 60.3%`; missing evidence is `62 / 156 = 39.7%`. Continue only when a fresh candidate can reduce the A4 evidence gap; do not request packet-by-packet approval.
+State captured: 2026-06-27T18:08:48+0700
+Source: A4 goal-directed selection defect is fixed and deployed through existing owners. `tools/v7-governed-canary-dry-run-cycle` now loads missing A4 candidate keys, scans the existing eligible candidate universe, selects a safe gap-reducing one-user candidate when available, and stops as `NO_SAFE_GAP_REDUCING_A4_CANDIDATE` before lease/restore/apply when none is safe. Truth and convergence are PASS/FULLY_ALIGNED. Current A4 progress remains `94 / 156 = 60.3%`; missing evidence is `62 / 156 = 39.7%`. Continue A4 bounded collection through the existing governed transaction owner.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -24,8 +24,8 @@ This file is volatile. Update it after every safe action or approved execution t
 | non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
 | optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
 | Current reality limit | `A4_REPRESENTATIVE_OUTCOME_EVIDENCE_REQUIRED`: A4 still requires more real representative outcomes; latest production inventory reports `missing_candidate_outcomes=62` |
-| Current safe next action | fix existing A4 governed selection owner so it selects a safe gap-reducing candidate when one exists |
-| Current stop reason | `UNSAFE_IMPLEMENTATION_A4_SELECTION_NOT_GAP_DIRECTED`: audit found `18` gap-reducing eligible candidate rows, but governed planner selected non-missing `10.7.0.5 -> vless` |
+| Current safe next action | continue A4 bounded collection through existing governed transaction owner; selection is now gap-directed |
+| Current stop reason | `IMPLEMENTATION_READY_FOR_A4_BOUNDED_COLLECTION`: goal-directed selection fix is deployed; next stop, if any, must come from live gates, no safe gap candidate, verification/rollback, or real-world evidence progression |
 | root_cause | Fixed and deployed: `tools/v7-governed-canary-dry-run-cycle::materialize_governed_transaction_feedback` now sends terminal outcome classification, and `admin_core.operator_execution_feedback` classifies from final terminal transaction state instead of intermediate apply result. |
 | responsible_owner | Existing governed transaction feedback owner `tools/v7-governed-canary-dry-run-cycle`; existing feedback classifier owner `admin_core/operator_execution_feedback.py`; existing A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
 | implementation_class | `BUG` |
@@ -36,19 +36,19 @@ This file is volatile. Update it after every safe action or approved execution t
 
 | Field | Current Value |
 | --- | --- |
-| Stop condition | `UNSAFE_IMPLEMENTATION_A4_SELECTION_NOT_GAP_DIRECTED` |
+| Stop condition | `NONE_FOR_IMPLEMENTATION`; A4 may continue bounded collection under existing authority envelope |
 | Authority Class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE` |
 | Authority Reason | Bounded A4 authority is active for the current scope; no packet-by-packet approval is needed inside the approved envelope. |
-| Root Cause | Current governed A4 selection is not gap-directed: gap-reducing candidates exist in the eligible candidate universe, but the selected candidate does not reduce the A4 evidence gap. |
+| Root Cause | Fixed: governed A4 selection previously filtered only after selecting one candidate; it now selects from missing A4 candidate keys before packet cycle. |
 | Responsible owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; existing A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration`; existing candidate outcome owner `admin_core.intelligence_workers`. |
-| Why it happened | A4 bounded collection filters the single selected candidate after selection instead of directing selection toward missing A4 candidate keys. |
-| Why existing safety worked | Evidence-gap guard stopped before lease creation, restore-barrier write, apply, or user movement. |
+| Why it happened | The existing transaction path reused generic planner output before consulting A4 evidence gap. |
+| Why existing safety worked | Evidence-gap guard stopped before lease creation, restore-barrier write, apply, or user movement; the new selector now fails closed even earlier when no safe gap-reducing candidate exists. |
 | Can existing owner be extended? | `YES`; reuse existing feedback/learning owners. |
 | Need New Owner | `FALSE` |
-| Implementation Class | `OWNER_EXTENSION` |
-| Concrete engineering task | `A4_EXTEND_EXISTING_GOVERNED_SELECTION_TO_REQUIRE_GAP_REDUCING_CANDIDATE` |
-| Expected completion evidence | Read-only test proves current selection picks a missing A4 candidate when eligible candidates exist; bounded transaction still stops before mutation if no safe gap-reducing candidate exists. |
-| OMP automatic continuation | `YES_SAFE_IMPLEMENTATION`; implement existing-owner selection extension before further A4 runtime attempts. |
+| Implementation Class | `OWNER_EXTENSION_COMPLETE` |
+| Concrete engineering task | `A4_EXTEND_EXISTING_GOVERNED_SELECTION_TO_REQUIRE_GAP_REDUCING_CANDIDATE` = DONE |
+| Expected completion evidence | Tests prove current selection picks a missing A4 candidate when eligible candidates exist; bounded transaction stops before mutation if no safe gap-reducing candidate exists; deploy/truth/convergence pass. |
+| OMP automatic continuation | `YES`; continue A4 bounded representative evidence collection. |
 
 ## 2. Current Metrics
 
@@ -65,7 +65,7 @@ This file is volatile. Update it after every safe action or approved execution t
 | Candidate outcomes consumed | `94 / 156` |
 | Missing candidate outcomes | `62` |
 | Future efficiency note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`; current A4 still proceeds with bounded gap-reduction guard, not candidate value ranking. |
-| Last bounded collection result | Follow-up bounded A4 runs stopped safely on `candidate_not_missing_a4_evidence`; audit found `18` gap-reducing eligible candidate rows not selected by the governed A4 path; A4 coverage remains `94 / 156 = 60.3%`. |
+| Last bounded collection result | A4 gap-directed selection fix deployed; no user movement during implementation; A4 coverage remains `94 / 156 = 60.3%` until next real governed outcome. |
 
 ## 2.1. Engineering and Production Maturity
 
@@ -91,7 +91,7 @@ This file is volatile. Update it after every safe action or approved execution t
 | state_change_cost_verdict | `ALREADY_EXISTS_SEMANTICALLY`; represented by existing movement-protection owners and extended through backlog item `B19` |
 | active_capability | `Learning`, `Authority Evolution`, `Production Readiness`, and `Production Autonomy`; current backlog item `A4` also contributes to `Movement Protection` through representative outcome evidence |
 | ideal_target_state | Movement Protection target state: Runtime evaluates current state, candidates, failure/degradation, freshness, recovery, blast radius, rollback, anti-flap, authority, State Change Cost, and Net Benefit; movement is allowed only when `NET_BENEFIT > CHANGE_COST` |
-| current_state | Capability-oriented OMP is active; Movement Protection is `IN_PROGRESS`; Decision Explainability is `IN_PROGRESS`; Runtime automation remains disabled; A3 is closed with real no-rollback evidence; A4 Governed Execution Transaction workflow is operational; A4 bounded evidence collection is blocked by existing-owner selection not being gap-directed. |
+| current_state | Capability-oriented OMP is active; Movement Protection is `IN_PROGRESS`; Decision Explainability is `IN_PROGRESS`; Runtime automation remains disabled; A3 is closed with real no-rollback evidence; A4 Governed Execution Transaction workflow is operational; A4 bounded evidence collection now uses goal-directed selection and may continue. |
 | knowledge_plane_status | `OPERATIONAL`; Audit Knowledge State is consumed through existing Canonical Reference, SYSTEM_MAP, OMP, Current Program State, Backlog, Knowledge Quality, Production Maturity, and Engineering Reports as historical evidence only |
 | engineering_context_resolver_status | `OPERATIONAL`; ECR reuses existing `V7_CONTEXT_RESOLVER.md` and resolves task class, minimum working set, current/historical knowledge, re-open requirement, owner mapping, backlog mapping, and certification/runtime investigation need before work begins |
 | capability_progress | Movement Protection `35.7%`; Runtime Eligibility `28.6%`; Authority Evolution `40.0%`; Rollback `42.9%`; Recovery Admission `25.0%`; Learning `40.0%`; Production Readiness `24.0%`; Production Autonomy `0.0%`; Knowledge System `100.0%`; Observability `30.0%`; Decision Explainability `20.0%`; Implementation Discipline `100.0%`; Engineering Knowledge Preservation `100.0%` |

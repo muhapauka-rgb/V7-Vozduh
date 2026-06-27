@@ -2686,24 +2686,24 @@ Current implementation optimizer result:
 | Exact owner | Restore barrier, guarded autoswitch execution, verification, rollback, outcome closure, feedback/learning |
 | Exact module | Canonical Policy Library Stage 4 implementation backlog |
 | Exact files | `admin_core/operator_execution.py`, `tools/v7-users-autoswitch`, `admin_core/operator_execution_feedback.py`, `admin_core/autonomy_trust_acceleration.py` |
-| Implementation status | `A3_DONE_A4_EVIDENCE_EVALUATION_NEXT` |
+| Implementation status | `A4_GOVERNED_TRANSACTION_EVIDENCE_COLLECTION_ACTIVE` |
 | Backlog source | `docs/programs/V7_IMPLEMENTATION_BACKLOG.md` item `A4` |
 | Priority model | `docs/reference/V7_IMPLEMENTATION_PRIORITY_MODEL.md` |
-| Truth/convergence | `PASS`; local, GitHub, and production runtime aligned on commit `ca8514ae31c6a3536082298acc993c78efd36489`. |
+| Truth/convergence | Local and production runtime passed after the latest A4 transaction; full truth/convergence remain blocked only by the existing GitHub remote read/canonical-branch tool issue. |
 | New highest implementation leverage task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Stop boundary | `REAL_WORLD_LIMIT`: A4 lacks enough representative real outcomes; no authority boundary is active unless a fresh governed production packet becomes eligible. |
+| Stop boundary | `OPERATIONAL_AUTHORITY`: A4 still lacks enough representative real outcomes, and a fresh one-user governed packet is ready for explicit approval. |
 
 Latest safe deployment result:
 
 | Field | Current Value |
 | --- | --- |
-| Deployed commit | `ca8514ae31c6a3536082298acc993c78efd36489` |
-| Deploy id | `deploy-z8-14-Updatesystem-ca8514a-20260626T151701` |
-| Deployed backlog items | `A1`, `A2`; A3 approval-to-execution lease binding fix; A3 approved plan lock snapshot-gate consumption fix; A3 real no-rollback outcome closure |
-| Safety | `restore_barrier_modified=false`; `routing_mutation_executed=false`; `user_movement_executed=false`; `autoswitch_apply_executed=false` during fix/deploy/dry-run |
-| Truth | `PASS` |
-| Convergence | `PASS`; `ALIGNED` |
-| Current stop | `REAL_WORLD_LIMIT`: A4 representative outcome evidence is insufficient after read-only inventory; no synthetic evidence may be used |
+| Deployed commit | `93c89ed1c9a652cbd413f970ac4a3b9720a900f9` |
+| Deploy id | `deploy-z8-14-Updatesystem-93c89ed-20260627T113347` |
+| Deployed backlog items | `A1`, `A2`; A3 approval-to-execution lease binding fix; A3 approved plan lock snapshot-gate consumption fix; A3 real no-rollback outcome closure; A4 governed transaction feedback materialization |
+| Safety | Latest approved A4 transaction stayed inside one-user governed scope; runtime automation disabled; authority not expanded. |
+| Truth | Local and production runtime `PASS`; full `--all` blocked by GitHub remote read/canonical-branch tool condition. |
+| Convergence | Runtime aligned; full convergence `NO-GO` only because GitHub remote branch cannot be read by the convergence tool. |
+| Current stop | `OPERATIONAL_AUTHORITY`: packet `pkt_preview_79169161d388d83473ae732e` is ready for exactly one bounded A4 governed transaction; no synthetic evidence may be used |
 
 ## 2.13. Implementation Program Loop
 
@@ -3483,16 +3483,16 @@ If daemon, timer, event consumer mutation, autonomous execution, action-class ex
 | --- | --- |
 | Completed phases | Architecture foundation, Research Framework, Decision Model, Runtime Model, System Architecture, Implementation Phase activation, OMP Production Program integration. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle; OMP Production Program rule set. |
-| Current bottleneck | A4 representative real outcome evidence; production dry-run prepared exact packet `pkt_preview_c72b642b2b6cd55532979944` for one governed outcome. |
-| Current highest leverage action | Stop at `OPERATIONAL_AUTHORITY`; execute only exact packet `pkt_preview_c72b642b2b6cd55532979944` if operator approves, otherwise keep A4 blocked without synthetic evidence. |
+| Current bottleneck | A4 representative real outcome evidence; production dry-run prepared packet `pkt_preview_79169161d388d83473ae732e` for one governed outcome. |
+| Current highest leverage action | Stop at `OPERATIONAL_AUTHORITY`; execute only exact packet `pkt_preview_79169161d388d83473ae732e` if operator approves, otherwise keep A4 blocked without synthetic evidence. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | `OPERATIONAL_AUTHORITY`: exact TIER_1 governed packet approval is required before restore-barrier write or apply. A4 still requires additional real comparable outcomes, freshness recheck, class-level blast-radius evidence, authority policy approval, runtime policy binding, and hard-failure classification recheck before promotion. |
-| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; read-only runtime lifecycle preview deployed and production-verified; preview-to-execution packet identity deployed and production-verified; execution lease deployed and production-verified; approved plan lock snapshot-gate consumption fix deployed and production dry-run verified; A3 real no-rollback outcome closed. |
-| Current runtime posture | No autonomous apply, no daemon enablement, and no authority expansion; A3 performed one explicitly approved governed movement, while A4 evidence evaluation remained read-only. |
-| Current next best action | Present exact approve/reject prompt for packet `pkt_preview_c72b642b2b6cd55532979944`; no apply, restore barrier, user movement, authority expansion, daemon/timer, or runtime automation without approval. |
-| Last optimizer iteration | `2026-06-26`: packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` was approved, leased, restore-cleared, applied for one user `10.7.0.17 vless -> awg3`, verified successfully, closed as no-rollback outcome `execfb_55e330784ad36b513d23e12a`, fed into learning `learn_0c3b5cdd250c64ac7d9b97e7`, and passed truth/convergence. |
+| Current blockers | `OPERATIONAL_AUTHORITY`: exact TIER_1 governed production action approval is required before restore-barrier write or apply. A4 still requires additional real comparable outcomes, freshness recheck, class-level blast-radius evidence, authority policy approval, runtime policy binding, and hard-failure classification recheck before promotion. |
+| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; A4 governed transaction workflow and feedback materialization are production-deployed; latest completed transaction moved one user and raised A4 evidence to `88 / 156` consumed outcomes. |
+| Current runtime posture | No autonomous apply, no daemon enablement, and no authority expansion; A4 performed one explicitly approved governed movement, while the next A4 movement is stopped at operational authority. |
+| Current next best action | Present exact approve/reject prompt for packet `pkt_preview_79169161d388d83473ae732e`; no apply, restore barrier, user movement, authority expansion, daemon/timer, or runtime automation without approval. |
+| Last optimizer iteration | `2026-06-27`: governed transaction packet `pkt_preview_2b4c165055beb66d37b0581e` was executed for user `10.7.0.19 vless -> awg3`, verified successfully, closed as no-rollback outcome with feedback `execfb_dc570c36697ac0c9986d6661`, and updated A4 inventory to `88 / 156` consumed outcomes. |
 
 ## 25. Program Rule For Future Work
 

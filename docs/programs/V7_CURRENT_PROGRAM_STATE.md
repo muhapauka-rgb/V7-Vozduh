@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Implementation Program
-State captured: 2026-06-27T11:35:34+0700
-Source: A4 old exact-packet workflow was replaced in implementation by the existing Governed Execution Transaction workflow. Deployed commit `23752b68c072817976068f2813f199301ca6b31b` passed truth and convergence. One bounded production transaction completed: fresh packet `pkt_preview_a69fe12e51c528c2a0402c0c`, user `10.7.0.5`, `awg0 -> awg3`, verification `PASS`, rollback `NOT_REQUIRED`, lease `execlease_5f4d34d80de62bf6445d73b4` terminalized as `EXECUTION_FINISHED`. Follow-up forensics proved that feedback/learning was not written because the governed transaction CLI did not call the existing feedback materialization owner after successful apply. Commit `93c89ed1c9a652cbd413f970ac4a3b9720a900f9` connects the successful governed transaction path to `admin_core/operator_execution_feedback.py`, passes focused tests, and is deployed as `deploy-z8-14-Updatesystem-93c89ed-20260627T113347`. Post-deploy truth and convergence are `PASS` / `FULLY_ALIGNED`. Runtime automation remains disabled and authority was not expanded. Production dry-run after deploy found no current A4 candidate, so no packet or approval was emitted and no apply occurred. A4 now waits for a real governed candidate/regression through the corrected path.
+State captured: 2026-06-27T11:51:55+0700
+Source: A4 old exact-packet workflow was replaced in implementation by the existing Governed Execution Transaction workflow. Deployed commit `23752b68c072817976068f2813f199301ca6b31b` passed truth and convergence. Commit `93c89ed1c9a652cbd413f970ac4a3b9720a900f9` connects the successful governed transaction path to `admin_core/operator_execution_feedback.py`, passes focused tests, and is deployed as `deploy-z8-14-Updatesystem-93c89ed-20260627T113347`. A bounded A4 governed transaction then completed in production: fresh packet `pkt_preview_2b4c165055beb66d37b0581e`, user `10.7.0.19`, `vless -> awg3`, verification `PASS`, rollback `NOT_REQUIRED`, lease `execlease_bfb2dc40d9a78eea5e11a7e5` terminalized as `EXECUTION_FINISHED`, and feedback `execfb_dc570c36697ac0c9986d6661` was materialized through the existing feedback/learning owner. A4 evidence moved to `88 / 156` candidate outcomes consumed, with `68` missing. Runtime automation remains disabled and authority was not expanded. The next read-only production dry-run prepared packet `pkt_preview_79169161d388d83473ae732e` for user `10.7.0.20`, `vless -> awg3`, and stopped at `OPERATIONAL_AUTHORITY`.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -15,18 +15,18 @@ This file is volatile. Update it after every safe action or approved execution t
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Implementation Backlog` |
 | Current highest leverage implementation | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Current highest leverage action | wait for or discover a real eligible A4 governed candidate, then collect only real governed representative outcomes through the corrected feedback materialization path; do not create a new owner, new runtime path, or synthetic evidence |
-| Current authority class | `NONE`: the approved one-time governed transaction has already been consumed |
-| authority_class | `NONE` |
-| authority_reason | No new operator approval is currently requested. The latest approved transaction completed and terminalized successfully; the remaining blocker is A4 evidence/learning sufficiency, not authority. |
+| Current highest leverage action | stop at `OPERATIONAL_AUTHORITY` for the current fresh A4 governed packet; if approved, execute exactly one bounded governed transaction and record only real evidence |
+| Current authority class | `OPERATIONAL_AUTHORITY`: a fresh one-user A4 governed packet is ready and requires explicit operator approval before restore-barrier write or apply |
+| authority_class | `OPERATIONAL_AUTHORITY` |
+| authority_reason | Engineering and runtime preparation are ready for the next bounded A4 production action; exact apply/user movement still requires operator authority. |
 | authority_owner | Existing packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch`. |
-| required_action | Continue A4 evidence collection only when a real governed candidate exists; no approval packet is currently ready. |
-| Current reality limit | `A4_REPRESENTATIVE_OUTCOME_EVIDENCE_REQUIRED`: A4 still requires more real representative outcomes; latest inventory reports `missing_candidate_outcomes=69` |
-| Current safe next action | continue read-only monitoring/dry-run until a real A4 candidate appears; if a READY transaction appears, stop for explicit bounded operational authority |
-| Current stop reason | `REAL_WORLD_LIMIT`: post-deploy production dry-run returned `MISSING_TRIGGER` / no canary candidate available |
-| root_cause | Successful governed transactions reached apply/verify/lease closure, but the governed transaction CLI did not invoke the existing feedback materialization owner. |
-| responsible_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; existing feedback owner `admin_core/operator_execution_feedback.py` remains reused. |
-| implementation_class | `REAL_WORLD_LIMIT` |
+| required_action | Approve or reject exact current packet `pkt_preview_79169161d388d83473ae732e`; do not execute any other packet, user, target, or authority scope. |
+| Current reality limit | `A4_REPRESENTATIVE_OUTCOME_EVIDENCE_REQUIRED`: A4 still requires more real representative outcomes; latest inventory reports `missing_candidate_outcomes=68` |
+| Current safe next action | present the exact approve/reject decision for packet `pkt_preview_79169161d388d83473ae732e`; no synthetic evidence, no automation enablement, no authority expansion |
+| Current stop reason | `OPERATIONAL_AUTHORITY`: current A4 governed dry-run reached a fresh one-user packet approval boundary |
+| root_cause | A4 still needs real representative production outcomes; a fresh eligible governed candidate exists and cannot be applied without operational authority. |
+| responsible_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; existing packet/lease owner `admin_core/operator_execution.py`; existing apply owner `tools/v7-users-autoswitch`; existing feedback owner `admin_core/operator_execution_feedback.py`. |
+| implementation_class | `AUTHORITY` |
 | next_engineering_task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
 | expected_completion_evidence | A4 evidence inventory shows sufficient representative closed real outcomes, rollback/no-rollback certification, blast-radius certification, verified learning growth, and class-level readiness through existing owners. |
 
@@ -34,19 +34,19 @@ This file is volatile. Update it after every safe action or approved execution t
 
 | Field | Current Value |
 | --- | --- |
-| Stop condition | `REAL_WORLD_LIMIT` |
-| Authority Class | `NONE` |
-| Authority Reason | No new production authority is requested; the one-time transaction authority was consumed. |
-| Root Cause | The governed transaction CLI completed apply/verify/lease closure but did not call the existing feedback materialization owner, so closed learning records were not written. |
-| Responsible owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; existing feedback owner `admin_core/operator_execution_feedback.py` remains reused. |
-| Why it happened | Governed transaction workflow was materialized before the feedback/learning write step was wired into its successful terminal path. |
-| Why existing safety worked | The transaction stayed inside one-user governed scope, wrote restore-barrier clearance, applied exactly one move, verified route health, did not rollback, terminalized the lease, did not enable runtime automation, and did not expand authority. |
-| Can existing owner be extended? | `YES`; local fix extends the existing governed transaction owner and reuses the existing feedback owner. |
+| Stop condition | `OPERATIONAL_AUTHORITY` |
+| Authority Class | `OPERATIONAL_AUTHORITY` |
+| Authority Reason | Fresh packet `pkt_preview_79169161d388d83473ae732e` is ready for one bounded A4 governed transaction and requires explicit production-action approval. |
+| Root Cause | A4 evidence can advance only through real governed production outcomes; the next candidate is ready but apply/user movement is authority-bound. |
+| Responsible owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/lease owner `admin_core/operator_execution.py`; apply owner `tools/v7-users-autoswitch`; feedback owner `admin_core/operator_execution_feedback.py`. |
+| Why it happened | OMP consumed one approved A4 transaction successfully, then the next read-only dry-run discovered another eligible governed candidate. |
+| Why existing safety worked | The completed transaction stayed inside one-user governed scope, wrote restore-barrier clearance, applied exactly one move, verified route health, did not rollback, terminalized the lease, materialized feedback/learning, did not enable runtime automation, and did not expand authority. |
+| Can existing owner be extended? | `YES`; no new owner is required. Current step is approval/execution through existing owners, not architecture or implementation. |
 | Need New Owner | `FALSE` |
-| Implementation Class | `REAL_WORLD_LIMIT` |
-| Concrete engineering task | Wait for or discover a real eligible A4 governed candidate, then validate that the corrected production path writes execution, trust, recommendation, and closure records. |
-| Expected completion evidence | A real governed transaction through deployed commit `93c89ed1c9a652cbd413f970ac4a3b9720a900f9` writes feedback records and A4 inventory no longer reports missing verified learning growth for corrected outcomes. |
-| OMP automatic continuation | `NO_RUNTIME_ACTION_AVAILABLE`; continue read-only monitoring/dry-run until a real candidate exists. |
+| Implementation Class | `AUTHORITY` |
+| Concrete engineering task | Execute exactly one approved A4 governed transaction for packet `pkt_preview_79169161d388d83473ae732e`, then verify, rollback if needed, close outcome, feed learning, and update evidence inventory. |
+| Expected completion evidence | One additional real governed transaction closes with verification/rollback/no-rollback classification and feedback/learning records, reducing A4 missing representative outcomes if consumed by the inventory. |
+| OMP automatic continuation | `NO`; stop for explicit operational approval before any restore-barrier write, apply, or user movement. |
 
 ## 2. Current Metrics
 
@@ -60,8 +60,8 @@ This file is volatile. Update it after every safe action or approved execution t
 | Trust | `47.889 / 70` |
 | Prediction | `39.6 / 70` |
 | Suitability | `29.515 / 70` |
-| Candidate outcomes consumed | `87 / 156` |
-| Missing candidate outcomes | `69` |
+| Candidate outcomes consumed | `88 / 156` |
+| Missing candidate outcomes | `68` |
 
 ## 2.1. Engineering and Production Maturity
 
@@ -87,7 +87,7 @@ This file is volatile. Update it after every safe action or approved execution t
 | state_change_cost_verdict | `ALREADY_EXISTS_SEMANTICALLY`; represented by existing movement-protection owners and extended through backlog item `B19` |
 | active_capability | `Movement Protection`; current backlog item `A3` also contributes to `Rollback`, `Learning`, and `Authority Evolution` |
 | ideal_target_state | Movement Protection target state: Runtime evaluates current state, candidates, failure/degradation, freshness, recovery, blast radius, rollback, anti-flap, authority, State Change Cost, and Net Benefit; movement is allowed only when `NET_BENEFIT > CHANGE_COST` |
-| current_state | Capability-oriented OMP is active; Movement Protection is `IN_PROGRESS`; Decision Explainability is `IN_PROGRESS`; Runtime automation remains disabled; A3 is closed with real no-rollback evidence; A4 Governed Execution Transaction workflow is operational; A4 feedback materialization is deployed; post-deploy dry-run found no current canary candidate, so A4 waits for a real governed candidate/regression through the corrected path |
+| current_state | Capability-oriented OMP is active; Movement Protection is `IN_PROGRESS`; Decision Explainability is `IN_PROGRESS`; Runtime automation remains disabled; A3 is closed with real no-rollback evidence; A4 Governed Execution Transaction workflow is operational; A4 feedback materialization is deployed and verified by one real production transaction; the next A4 packet is ready and stops at `OPERATIONAL_AUTHORITY` |
 | knowledge_plane_status | `OPERATIONAL`; Audit Knowledge State is consumed through existing Canonical Reference, SYSTEM_MAP, OMP, Current Program State, Backlog, Knowledge Quality, Production Maturity, and Engineering Reports as historical evidence only |
 | engineering_context_resolver_status | `OPERATIONAL`; ECR reuses existing `V7_CONTEXT_RESOLVER.md` and resolves task class, minimum working set, current/historical knowledge, re-open requirement, owner mapping, backlog mapping, and certification/runtime investigation need before work begins |
 | capability_progress | Movement Protection `35.7%`; Runtime Eligibility `28.6%`; Authority Evolution `40.0%`; Rollback `42.9%`; Recovery Admission `25.0%`; Learning `40.0%`; Production Readiness `24.0%`; Production Autonomy `0.0%`; Knowledge System `100.0%`; Observability `30.0%`; Decision Explainability `20.0%`; Implementation Discipline `100.0%`; Engineering Knowledge Preservation `100.0%` |
@@ -155,13 +155,13 @@ Highest Priority Task
 A4: materialize representative outcome evidence for the first action class.
 
 Status
-Real Evidence Required
+Production Action Ready
 
 Authority
-None
+Operational
 
 Required Action
-Continue A4 evidence/learning ingestion audit or collect another real governed representative outcome only with explicit bounded authority.
+Approve or reject packet `pkt_preview_79169161d388d83473ae732e` for exactly one bounded A4 governed transaction.
 
 Engineering
 READY
@@ -170,7 +170,7 @@ Runtime
 READY
 
 Packet
-CONSUMED
+READY
 
 Estimated Remaining Work
 Moderate
@@ -489,33 +489,33 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
 | Truth | `PASS`; local, GitHub, and runtime aligned |
 | Convergence | `PASS`; runtime action guard `READY_FOR_RUNTIME_ACTION` |
 | New highest implementation leverage task | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Continue automatically | `NO`; A4 production dry-run prepared exact packet `pkt_preview_c72b642b2b6cd55532979944` and stopped at `OPERATIONAL_AUTHORITY` |
-| Exact stop condition | `OPERATIONAL_AUTHORITY`: approve or reject exact packet `pkt_preview_c72b642b2b6cd55532979944`; no synthetic evidence may be created |
+| Continue automatically | `NO`; latest A4 production dry-run prepared packet `pkt_preview_79169161d388d83473ae732e` and stopped at `OPERATIONAL_AUTHORITY` |
+| Exact stop condition | `OPERATIONAL_AUTHORITY`: approve or reject exact packet `pkt_preview_79169161d388d83473ae732e`; no synthetic evidence may be created |
 
 ## 13. Production Deploy State
 
 | Field | Current Value |
 | --- | --- |
-| Deployed commit | `ca8514ae31c6a3536082298acc993c78efd36489` |
-| Deploy id | `deploy-z8-14-Updatesystem-ca8514a-20260626T151701` |
+| Deployed commit | `93c89ed1c9a652cbd413f970ac4a3b9720a900f9` |
+| Deploy id | `deploy-z8-14-Updatesystem-93c89ed-20260627T113347` |
 | Runtime truth | `KNOWN` |
 | Runtime access | `READY` |
-| Production dry-run verdict | A3 packet approved and executed after prior dry-run authority boundary |
-| Production authority generation | `authgen_56fa62f34a169276aa56bced` |
-| Stop reason | `NONE` after A3 closure |
-| Next action | run A4 evidence materialization read-only; stop at `REAL_WORLD_LIMIT` if more real comparable outcomes are required |
+| Production dry-run verdict | A4 governed transaction feedback materialization is deployed; latest completed transaction closed successfully, and the next dry-run reaches `OPERATIONAL_AUTHORITY` |
+| Production authority generation | current dry-run authority remains `MARGINAL_OPERATOR_REVIEW` for packet `pkt_preview_79169161d388d83473ae732e` |
+| Stop reason | `OPERATIONAL_AUTHORITY` for the next one-user A4 governed transaction |
+| Next action | approve or reject packet `pkt_preview_79169161d388d83473ae732e`; do not synthesize evidence or expand authority |
 
 ## 14. Post-Deploy Verification
 
 | Field | Current Value |
 | --- | --- |
-| Verified at | `2026-06-26T16:27:00+0700` |
+| Verified at | `2026-06-27T11:51:55+0700` |
 | Branch | `Updatesystem` |
-| Truth check | `PASS`; local, GitHub, and runtime fully aligned on commit `ca8514ae31c6a3536082298acc993c78efd36489` |
-| Convergence | `PASS`; `ALIGNED`; runtime action guard `READY_FOR_RUNTIME_ACTION` |
+| Truth check | Local and production runtime `PASS`; full `--all` reports `NO-GO` only because GitHub remote is unreadable / canonical branch cannot be read by the tool |
+| Convergence | Runtime aligned; full convergence `NO-GO` only because GitHub remote read fails |
 | Documentation dirtiness | documentation-only updates and engineering reports ignored by runtime truth |
-| Production execution commands | approved packet execution through existing packet, lease, restore-barrier, autoswitch apply, verification, and feedback owners |
-| Production execution result | packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc` applied exactly once: user `10.7.0.17` moved `vless -> awg3`; verification passed; rollback not required |
+| Production execution commands | approved governed transaction execution through existing dry-run, decision commit, packet, lease, restore-barrier, autoswitch apply, verification, and feedback owners |
+| Production execution result | packet `pkt_preview_2b4c165055beb66d37b0581e` applied exactly once: user `10.7.0.19` moved `vless -> awg3`; verification passed; rollback not required; feedback `execfb_dc570c36697ac0c9986d6661` materialized |
 | Production prompt safety | `restore_barrier_written_now=true`; `apply_executed=true`; `users_moved=1`; `rollback_executed=false`; no authority expansion |
-| Current packet freshness | Prior approved packet `pkt_preview_2cb1fe3b8ce1551c75ccff11` is stale. A4 production recheck prepared packet `pkt_preview_c72b642b2b6cd55532979944`; packet is current only for exact user `10.7.0.5`, move `awg0 -> wireguard-1779454504-c43409`, selected move hash `2d0af437b5fa7131596633a669014e24b5cdb55a943d4ee30b64956d990d968c`, operation `govdry_3252ccec7fc7335c069d5a84`, decision `decision_commit_7732839641102c73ea53670c`, rollback manifest `rb_preview_25caf0af554686e597a37116` |
-| Exact next required approval | approve or reject exact packet `pkt_preview_c72b642b2b6cd55532979944` |
+| Current packet freshness | Latest A4 production recheck prepared packet `pkt_preview_79169161d388d83473ae732e`; packet is current only for exact user `10.7.0.20`, move `vless -> awg3`, selected move hash `8d056b79529a89e1a399c4751b2235f467e40145c36b40719e5e3ccc1625afa9`, operation `govdry_8548ff9f1ae8b3ae423cc364`, decision `decision_commit_6583630f6e037909878116e2` |
+| Exact next required approval | approve or reject exact packet `pkt_preview_79169161d388d83473ae732e` |

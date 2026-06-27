@@ -3,7 +3,7 @@
 Status: active current state
 Program: Implementation Program
 State captured: 2026-06-27T22:26:42+0700
-Source: Continue OMP after A4 certification signal alignment. Existing A4 bounded collection owner found no current missing A4 candidate keys, performed no transactions, and moved no users. Runtime, thresholds, formulas, authority, and architecture were not changed.
+Source: Continue OMP after A4 certification signal alignment. Local default `/opt/v7` runtime state is unavailable in this workspace, and direct production SSH read-only access was denied; therefore the local `no_missing_a4_candidate_outcomes` result is not accepted as production evidence. Runtime, thresholds, formulas, authority, and architecture were not changed.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -15,28 +15,28 @@ This file is volatile. Update it after every safe action or approved execution t
 | Architecture phase | `CLOSED_ARCHITECTURE_COMPLETE` |
 | Current bottleneck | `Implementation Backlog` |
 | Current highest leverage implementation | `A4_MATERIALIZE_REPRESENTATIVE_OUTCOME_EVIDENCE_FOR_FIRST_ACTION_CLASS` |
-| Current highest leverage action | continue A4 through the remaining mandatory certification gates; current bounded collection found no gap-reducing A4 candidate outcomes to execute |
+| Current highest leverage action | continue A4 through production-side representative certification validation using existing owners; do not accept local missing-state defaults as production evidence |
 | Current authority class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE` |
 | authority_class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE` |
 | authority_reason | Operator approved bounded A4 collection for the current A4 scope; packet-by-packet approval is not required inside this envelope, but the envelope stops on failed live gates, duplicate candidates, or scope changes. |
 | authority_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch`. |
-| required_action | Stop trying to collect non-existent current A4 candidate keys; continue through existing certification owners for outcome closure, verified learning growth, rollback/no-rollback certification, blast-radius certification, authority policy approval, and runtime policy binding. |
+| required_action | Run A4 bounded collection / mandatory certification validation on the production host through existing owners, or restore authenticated production runtime access; do not synthesize evidence from local missing `/opt/v7` state. |
 | non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
 | optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
-| Current reality limit | `NO_CURRENT_A4_GAP_REDUCING_CANDIDATE`: bounded A4 collection found `0` current missing candidate keys and therefore performed no production transaction. |
-| Current safe next action | validate remaining A4 mandatory certification gates through existing OMP/read-model owners; do not move users solely for inventory coverage. |
-| Current stop reason | `A4_COLLECTION_STOPPED_NO_MISSING_CANDIDATES`; no runtime mutation occurred |
+| Current reality limit | `PRODUCTION_RUNTIME_ACCESS_REQUIRED`: local workspace cannot read production `/opt/v7` state directly, and SSH read-only access was denied. |
+| Current safe next action | execute the existing A4 production-side owner with authenticated runtime access; if unavailable, stop at `REAL_WORLD_LIMIT_PRODUCTION_RUNTIME_ACCESS`. |
+| Current stop reason | `REAL_WORLD_LIMIT_PRODUCTION_RUNTIME_ACCESS`; no runtime mutation occurred |
 | root_cause | Fixed locally: `admin_core.autonomy_trust_acceleration` now classifies certification signals before exposing runtime enablement/readiness, and `missing_candidate_outcomes` remains an inventory signal instead of missing evidence. |
 | responsible_owner | Existing governed transaction feedback owner `tools/v7-governed-canary-dry-run-cycle`; existing feedback classifier owner `admin_core/operator_execution_feedback.py`; existing A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
 | implementation_class | `OWNER_EXTENSION_COMPLETED` |
-| next_engineering_task | `A4_MANDATORY_CERTIFICATION_GATE_VALIDATION` |
-| expected_completion_evidence | Existing owners prove whether outcome closure, learning growth, rollback/no-rollback certification, blast-radius certification, authority policy approval, and runtime policy binding are satisfied for the first action class. |
+| next_engineering_task | `A4_PRODUCTION_SIDE_CERTIFICATION_VALIDATION` |
+| expected_completion_evidence | Production-side existing owners prove whether current candidates exist and whether outcome closure, learning growth, rollback/no-rollback certification, blast-radius certification, authority policy approval, and runtime policy binding are satisfied for the first action class. |
 
 ## 1.1. Root Cause Engine Output
 
 | Field | Current Value |
 | --- | --- |
-| Stop condition | `REAL_WORLD_LIMIT_NO_CURRENT_GAP_REDUCING_CANDIDATE`; A4 bounded collection has no current candidate to execute |
+| Stop condition | `REAL_WORLD_LIMIT_PRODUCTION_RUNTIME_ACCESS`; production-side execution/validation access is required |
 | Authority Class | `A4_BOUNDED_COLLECTION_AUTHORITY_ACTIVE` |
 | Authority Reason | Bounded A4 authority is active for the current scope; no packet-by-packet approval is needed inside the approved envelope. |
 | Root Cause | A4 evidence inventory correctly counts concrete `user -> candidate_channel` keys; the implementation now prevents that inventory from becoming a mandatory full-matrix certification blocker. |
@@ -46,9 +46,9 @@ This file is volatile. Update it after every safe action or approved execution t
 | Can existing owner be extended? | `YES`; existing owner was extended. |
 | Need New Owner | `FALSE` |
 | Implementation Class | `OWNER_EXTENSION_COMPLETED` |
-| Concrete engineering task | `A4_MANDATORY_CERTIFICATION_GATE_VALIDATION` |
-| Expected completion evidence | Existing read-models show the first action class has or lacks required outcome closure, learning growth, rollback/no-rollback certification, blast-radius certification, authority policy approval, and runtime policy binding. |
-| OMP automatic continuation | `YES`; continue with existing certification owners, but do not execute user movement when no gap-reducing candidate exists. |
+| Concrete engineering task | `A4_PRODUCTION_SIDE_CERTIFICATION_VALIDATION` |
+| Expected completion evidence | Existing production read-models show current A4 candidate availability and mandatory certification gate status. |
+| OMP automatic continuation | `NO` until authenticated production runtime access is available; do not execute from local missing-state defaults. |
 
 ## 2. Current Metrics
 
@@ -62,10 +62,10 @@ This file is volatile. Update it after every safe action or approved execution t
 | Trust | `47.889 / 70` |
 | Prediction | `39.6 / 70` |
 | Suitability | `29.515 / 70` |
-| Candidate outcomes consumed | Historical inventory signal remains supporting evidence; latest current missing A4 candidate key count is `0`. |
-| Missing candidate outcomes | `0 current missing candidate keys`; historical `94 / 156` inventory coverage is no longer a mandatory A4 gate. |
+| Candidate outcomes consumed | Historical inventory signal remains supporting evidence; latest production-side count not verified in this run. |
+| Missing candidate outcomes | Production-side current missing candidate key count not verified; local `0` is invalid because local `/opt/v7` state is absent. |
 | Future efficiency note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`; current A4 still proceeds with bounded gap-reduction guard, not candidate value ranking. |
-| Last bounded collection result | `A4_BOUNDED_EVIDENCE_COLLECTION_STOPPED`; stop reason `no_missing_a4_candidate_outcomes`; transactions attempted `0`; users moved `0`; runtime automation `NO`; authority expansion `NO`. |
+| Last bounded collection result | Local run invalid for production evidence because `/opt/v7` state is absent in this workspace; transactions attempted `0`; users moved `0`; runtime automation `NO`; authority expansion `NO`. |
 
 ## 2.1. Engineering and Production Maturity
 

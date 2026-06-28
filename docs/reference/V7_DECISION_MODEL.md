@@ -32,6 +32,12 @@ Event / Question
 Runtime must spend prepared knowledge.
 Background systems must build knowledge.
 
+Decision lifecycle, decision freshness, world model ownership, desired-state chain, runtime cost, budget categories, and product evolution review gate are canonicalized in `docs/reference/V7_RUNTIME_MODEL.md` under `Decision Lifecycle And Runtime Foundation`.
+
+Decision Model owns decision semantics.
+Runtime Model owns runtime lifecycle and placement semantics.
+Decision Model must not redefine packet, lease, runtime freshness, execution budget, or runtime cost requirements as a competing owner.
+
 ## Decision Inputs
 
 World-class decision systems separate inputs before producing actions:

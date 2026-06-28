@@ -178,6 +178,171 @@ Automation rule:
 Future automation may increase frequency of execution, but it may not move slow knowledge work into Runtime.
 Phase 2 automation must preserve this law through existing owners.
 
+### Decision Lifecycle And Runtime Foundation
+
+Status: `CANONICAL`
+Owner: `V7_RUNTIME_MODEL`
+
+This foundation consolidates existing V7 concepts that were previously spread across Decision Model, Runtime Model, OMP, Product Scale Objectives, freshness policy, packet/lease owners, Work Placement Law, and Engineering Report Lifecycle.
+
+It does not create a new planner, owner, truth source, runtime path, automation mode, authority model, backlog item, or architecture.
+
+#### DL1: Decision Lifetime Model
+
+Every runtime-relevant decision object has a lifecycle.
+
+| Object | Birth | Valid while | Invalidated by | Terminal state | Primary owner |
+| --- | --- | --- | --- | --- | --- |
+| Planner decision | Planner/read-model owner produces an eligible candidate or stop. | Inputs, policy, target, source, subject, and action class remain materially identical. | Material change in selected move, source, target, policy, authority, rollback, verification, blast radius, or eligibility. | Committed, superseded, stopped, or expired. | Planner/autoswitch and decision surface owners. |
+| Candidate universe | Observation/world-model/planning owners produce eligible candidates. | Observation freshness and policy/gate assumptions remain usable. | Freshness expiry, policy change, target/source eligibility change, service requirement change, or evidence contradiction. | Recomputed, partially reused, or rejected. | Planning Plane owners. |
+| Packet | Packet owner creates a fresh execution artifact for a moment in reality. | Packet matches committed decision, authority, policy, freshness, rollback, verification, and blast bounds. | Material identity mismatch, freshness failure, authority generation mismatch, live gate failure, or lease expiry. | Consumed, expired, rejected, or archived. | Packet owner / execution pipeline. |
+| Execution lease | Lease owner binds execution to an approved/committed packet or transaction. | Lease identity and material state remain valid inside approved authority. | Lease expiry, material state change, packet mismatch, authority mismatch, restore-barrier failure, or cancellation. | Execution finished, rollback finished, cancelled, expired, or fail-closed. | Execution lease owner. |
+| Authority generation | Authority owner snapshots approved authority boundary. | Action class/policy/blast/subject/risk envelope remains unchanged. | Authority expansion requirement, policy generation change, unapproved class, or revoked/expired authority. | Consumed, remains governing, or stops at authority boundary. | OMP / authority owners. |
+| World model | Observation/knowledge owners publish current compact state. | Evidence remains fresh enough for its declared use. | Freshness expiry, contradictory reality, missing source, or newer state. | Refreshed, superseded, or rejected. | World Model Plane owners. |
+| Target readiness | Planning/target owners prove target eligibility. | Target remains healthy, policy-compatible, capacity-safe, and verification-ready. | Target health/capacity/service/policy/freshness failure. | Accepted, rejected, or rechecked live. | Target readiness / planner owners. |
+| Rollback readiness | Restore/rollback owners prepare recovery or no-rollback proof. | Rollback/no-rollback assumptions remain valid and restore barrier passes. | Missing target, restore-barrier failure, rollback target change, or verification uncertainty. | Ready, not required, failed, or stop-safe. | Restore/rollback owners. |
+| Verification readiness | Verification owners prepare post-action proof. | Verification method remains available and relevant to the action class. | Verification prerequisite missing, stale check, service mismatch, or unknown outcome path. | Ready, failed, unavailable, or stop-safe. | Verification owners. |
+
+Lifecycle rule:
+
+```text
+Prepared objects may be reused only while their material assumptions remain valid.
+Runtime must revalidate live gates before irreversible apply.
+```
+
+#### DL2: Decision Freshness Contract
+
+Every runtime-relevant decision has one of these freshness states:
+
+| State | Meaning | Runtime behavior |
+| --- | --- | --- |
+| `BORN` | Owner created the object but it has not yet been consumed by the next stage. | May continue only through owner-defined validation. |
+| `FRESH` | Evidence and material assumptions are current enough for the next stage. | May continue to the next gate. |
+| `STALE` | Evidence age or source freshness is no longer sufficient, but no material contradiction is proven. | Must refresh or stop before mutation; may remain reportable/read-only. |
+| `INVALID` | A material assumption changed or a required gate failed. | Must `STOP_SAFE`; no apply. |
+| `DESTROYED` | Object was consumed, expired, cancelled, superseded, or archived. | Must not be reused for execution. |
+
+Freshness rule:
+
+```text
+Freshness timestamp changes alone do not prove material invalidation.
+Material state changes invalidate execution authority.
+```
+
+#### DL3: World Model Ownership
+
+V7 owns world state by plane, not by one global mutable object.
+
+| State family | Canonical owner | Must not own |
+| --- | --- | --- |
+| Observations | Observation Plane owners: service matrix, quality compact, sentinel, route/runtime truth. | Movement authority or certification. |
+| Current world model | World Model Plane: intelligence snapshots, Knowledge Plane, Current Program State, read-model owners. | Apply, rollback, or authority expansion. |
+| Planning state | Planning Plane: planner/autoswitch, decision surface, A5/A6/B13 owners. | Runtime apply or final live safety bypass. |
+| Runtime state | Execution Plane: transaction, packet, lease, restore barrier, apply/verify/rollback owners. | Broad research, policy design, certification, or raw-history scans. |
+| Desired state | Product Specification, Business Objectives, policies, Decision Model, OMP, and planner owners. | Direct runtime mutation without authority and gates. |
+| Truth | Truth/convergence owners and production runtime evidence. | Planning or authority by itself. |
+
+Ownership rule:
+
+```text
+No owner may silently replace another plane's world-state responsibility.
+Consumers read prepared state; they do not become the owner of that state.
+```
+
+#### DL4: Desired State Contract
+
+V7 follows the canonical control-plane chain:
+
+```text
+Current State
+  -> Desired State
+  -> Delta
+  -> Execution Plan
+  -> Verification
+  -> Outcome
+  -> Learning
+```
+
+| Stage | Meaning | Owner |
+| --- | --- | --- |
+| Current State | What production reality currently proves. | Observation / World Model owners. |
+| Desired State | What product, policy, authority, safety, and business objectives want reality to become. | Product Specification, Business Objectives, policies, OMP, Decision Model. |
+| Delta | The bounded difference worth considering. | Planner/autoswitch and decision surface owners. |
+| Execution Plan | Packet/lease/restore/verification bounded action or `STOP_SAFE`. | Packet, lease, restore, runtime eligibility owners. |
+| Verification | Proof that the action was safe or unsafe. | Verification owners. |
+| Outcome | Terminal state: success, rollback success/failure, apply failure, no execution. | Feedback/outcome owners. |
+| Learning | Trust/evidence/promotion updates from real outcome only. | Feedback, learning, evidence, OMP owners. |
+
+Desired state never authorizes execution by itself.
+It must pass policy, authority, freshness, blast radius, rollback, verification, anti-flap, and runtime eligibility.
+
+#### DL5: Runtime Cost Model
+
+Runtime cost is the cost of work performed in or blocking the live execution path.
+
+Every future runtime-relevant change must classify:
+
+| Cost dimension | Required review |
+| --- | --- |
+| CPU | Does live CPU grow with users, channels, candidates, history, or telemetry? |
+| Memory | Does Runtime require large or growing in-memory state? |
+| IO | Does Runtime perform disk/network reads that could block apply/verify/rollback? |
+| Blocking | Does the change add human wait, external wait, queue wait, lock wait, or slow probe wait? |
+| Lock contention | Does the change introduce shared mutable state that can block runtime execution? |
+| Execution cost | Does apply/verify/rollback become slower or less deterministic? |
+| Rollback cost | Does rollback/no-rollback readiness become slower, less available, or less certain? |
+| Runtime cost | Does the live execute-or-stop path become heavier? |
+
+Cost rule:
+
+```text
+Runtime cost must remain bounded.
+Expensive cost belongs in Observation, World Model, Planning, read models, background computation, or OMP unless live safety requires it.
+```
+
+#### DL6: Runtime Budget Allocation
+
+Phase 1 defines budget categories, not numeric values.
+
+Numeric budgets are Phase 2 work and must wait for measurement, bounded automation, and explicit authority.
+
+| Budget | Scope | Owner |
+| --- | --- | --- |
+| Observation Budget | Cost and latency of producing trusted evidence. | Observation Plane owners. |
+| World Model Budget | Cost and latency of maintaining compact current state. | Knowledge/read-model owners. |
+| Planning Budget | Cost and latency of candidate, target, delta, and plan preparation. | Planner/decision-surface owners. |
+| Execution Budget | Cost and latency of lease, restore barrier, apply, and `STOP_SAFE`. | Execution Plane owners. |
+| Verification Budget | Cost and latency of proving post-action safety. | Verification owners. |
+| Learning Budget | Cost and latency of feedback, trust, evidence, and learning updates. | Feedback/Learning owners. |
+| OMP Budget | Cost and latency of certification, maturity, reporting, and authority evaluation. | OMP / CPS / Production Maturity owners. |
+
+Budget rule:
+
+```text
+Budgets are measurement categories until Phase 2.
+They are not SLO gates and must not authorize faster unsafe action.
+```
+
+#### DL7: Product Evolution Review Gate
+
+Every future product, policy, runtime, planner, read-model, OMP, report, learning, deploy, test, verification, certification, or owner-extension change must pass one canonical review gate:
+
+| Review | Question |
+| --- | --- |
+| Certification Review | Does the canonical certification owner define this as mandatory, supporting, or optional evidence? |
+| Work Placement Review | Which plane owns the computation, and can it move earlier? |
+| Runtime Latency Review | Which Reaction Latency component changes? |
+| Runtime Cost Review | Which runtime cost dimension changes? |
+| Decision Freshness Review | What is born/fresh/stale/invalid/destroyed, and who owns that state? |
+| Safety Review | Which live gates must remain live, and what forces `STOP_SAFE`? |
+
+Gate rule:
+
+```text
+If a future change cannot answer these reviews through existing owners,
+OMP must stop and map the gap before implementation.
+```
+
 ### Time Architecture Planes
 
 | Plane | Purpose | Owns | Must not own | Existing owner / read model | Relationship to Runtime | Relationship to OMP | Future automation role |

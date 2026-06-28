@@ -1196,6 +1196,21 @@ Required placement outputs:
 | `can_move_earlier` | `YES`, `NO_WITH_SAFETY_REASON`, or `ALREADY_PREPARED`. |
 | `reaction_latency_impact` | Observation, Decision, Execution, Verification, Feedback/Learning, Reaction, `NONE`, or `UNKNOWN_WITH_MEASUREMENT_PLAN`. |
 
+Product Evolution Review Gate:
+
+Every future OMP task must pass these reviews before implementation is considered complete:
+
+| Review | Required output |
+| --- | --- |
+| Certification Review | Mandatory, supporting, optional, or not applicable evidence, according to the canonical certification owner. |
+| Work Placement Review | Canonical plane and owner for each meaningful computation. |
+| Runtime Latency Review | Reaction Latency component affected, or `NONE`. |
+| Runtime Cost Review | CPU, memory, IO, blocking, lock contention, execution cost, rollback cost, and runtime cost impact. |
+| Decision Freshness Review | Birth/fresh/stale/invalid/destroyed state and owner for runtime-relevant decision objects. |
+| Safety Review | Live gates that remain live and exact `STOP_SAFE` triggers. |
+
+If any review cannot map to an existing owner, OMP must stop and run owner mapping before implementation.
+
 Every future change must answer:
 
 1. Does this increase Runtime work?
@@ -2573,6 +2588,7 @@ Engineering Report must include:
 - Capability Progress;
 - Backlog Progress;
 - Production Maturity;
+- Product Evolution Review;
 - Work Placement;
 - Latency Impact;
 - Canonical Knowledge;
@@ -2612,6 +2628,17 @@ Work Placement must include:
 | Runtime Placement | `YES_ONLY_IF_LIVE_SAFETY_REQUIRED`, `NO`, or `NOT_APPLICABLE`. |
 | Move Earlier? | `YES`, `NO_WITH_SAFETY_REASON`, or `ALREADY_PREPARED`. |
 | Reaction Latency Impact | Observation, Decision, Execution, Verification, Feedback/Learning, Reaction, `NONE`, or `UNKNOWN_WITH_MEASUREMENT_PLAN`. |
+
+Product Evolution Review must include:
+
+| Field | Required value |
+| --- | --- |
+| Certification Review | Mandatory, supporting, optional, or not applicable evidence with owner. |
+| Work Placement Review | `PASS`, `FAIL`, or `NOT_APPLICABLE_WITH_REASON`. |
+| Runtime Latency Review | Affected component or `NONE`. |
+| Runtime Cost Review | CPU, memory, IO, blocking, lock contention, execution cost, rollback cost, runtime cost, or `NONE`. |
+| Decision Freshness Review | Relevant lifecycle states and owner, or `NOT_APPLICABLE_WITH_REASON`. |
+| Safety Review | Live gates and `STOP_SAFE` triggers, or `NOT_APPLICABLE_WITH_REASON`. |
 
 Milestone Report must include:
 

@@ -59,14 +59,21 @@ Stable conclusions:
 5. Work Placement Law: every V7 computation must have one canonical execution plane and owner. Other planes may consume the result, but must not become competing owners.
 6. A computation may move earlier only when prepared knowledge remains fresh enough and live safety gates still revalidate material state before apply.
 7. Computation must stay live only when safety would be weaker if the work were precomputed.
-8. Reaction Latency means `Observation Latency + Decision Latency + Execution Latency + Verification Latency + Feedback / Learning Latency`.
-9. User recovery latency is mainly Observation, Decision, Execution, and Verification latency. Feedback / Learning latency affects product maturity, future decisions, and certification.
-10. Phase 1 creates no numeric latency SLOs, no latency gates, no runtime automation, no batch movement, no parallel movement, no execution queue, no user movement, no authority expansion, and no runtime behavior change.
-11. Every future engineering activity must apply the Runtime Latency Engineering Review Checklist from `docs/reference/V7_RUNTIME_MODEL.md` and must preserve the Thin Runtime Path Contract.
-12. Engineering Reports must include Latency Impact, including Reaction Latency, runtime path impact, precompute opportunity, live gate impact, wait-state impact, and measurement plan.
-13. Phase 2 Automation-Time work is deferred, not optional. It may start only after bounded automation, runtime eligibility, verification, rollback, blast radius, metric reliability, reaction latency measurements, and explicit authority are certified or approved through existing owners.
-14. Phase 2 forbids parallel movement, batch movement, continuous apply, execution queues, desired-state runtime, latency SLO gates, planner rewrite, and authority expansion before entry criteria are satisfied.
-15. Need New Owner remains `FALSE`; Need New Backlog Item remains `FALSE`; Need New Architecture remains `FALSE`.
+8. Decision Lifecycle And Runtime Foundation defines the lifecycle of planner decisions, candidate universe, packets, leases, authority generation, world model, target readiness, rollback readiness, and verification readiness.
+9. Decision Freshness states are `BORN`, `FRESH`, `STALE`, `INVALID`, and `DESTROYED`.
+10. World Model Ownership is plane-based: Observation, World Model, Planning, Execution, Verification, Feedback/Learning, and OMP/Certification owners must not silently replace each other.
+11. Desired State Contract follows `Current State -> Desired State -> Delta -> Execution Plan -> Verification -> Outcome -> Learning`.
+12. Runtime Cost Model reviews CPU, memory, IO, blocking, lock contention, execution cost, rollback cost, and runtime cost.
+13. Runtime Budget Allocation defines Observation, World Model, Planning, Execution, Verification, Learning, and OMP budget categories without numeric Phase 1 SLOs.
+14. Product Evolution Review Gate requires Certification, Work Placement, Runtime Latency, Runtime Cost, Decision Freshness, and Safety review before future implementation is considered complete.
+15. Reaction Latency means `Observation Latency + Decision Latency + Execution Latency + Verification Latency + Feedback / Learning Latency`.
+16. User recovery latency is mainly Observation, Decision, Execution, and Verification latency. Feedback / Learning latency affects product maturity, future decisions, and certification.
+17. Phase 1 creates no numeric latency SLOs, no latency gates, no runtime automation, no batch movement, no parallel movement, no execution queue, no user movement, no authority expansion, and no runtime behavior change.
+18. Every future engineering activity must apply the Runtime Latency Engineering Review Checklist from `docs/reference/V7_RUNTIME_MODEL.md` and must preserve the Thin Runtime Path Contract.
+19. Engineering Reports must include Product Evolution Review, Work Placement, and Latency Impact.
+20. Phase 2 Automation-Time work is deferred, not optional. It may start only after bounded automation, runtime eligibility, verification, rollback, blast radius, metric reliability, reaction latency measurements, and explicit authority are certified or approved through existing owners.
+21. Phase 2 forbids parallel movement, batch movement, continuous apply, execution queues, desired-state runtime, latency SLO gates, planner rewrite, and authority expansion before entry criteria are satisfied.
+22. Need New Owner remains `FALSE`; Need New Backlog Item remains `FALSE`; Need New Architecture remains `FALSE`.
 
 Re-audit rule:
 

@@ -25,7 +25,7 @@ docs/reference/V7_RUNTIME_MODEL.md
 ```
 
 SYSTEM_MAP owns only the ownership reference.
-It does not duplicate the canonical Work Placement Law, live/precompute matrix, Runtime Latency Engineering Review Checklist, or Phase 2 Automation Contract.
+It does not duplicate the canonical Work Placement Law, Decision Lifecycle And Runtime Foundation, live/precompute matrix, Runtime Latency Engineering Review Checklist, Product Evolution Review Gate, or Phase 2 Automation Contract.
 
 | Plane / stage family | Existing owners | Main files / modules | Lifecycle rule |
 | --- | --- | --- | --- |

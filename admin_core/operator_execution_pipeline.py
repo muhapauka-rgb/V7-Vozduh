@@ -97,6 +97,7 @@ REQUESTED_EXECUTION_TIMING_METRICS = [
     "restore_barrier_duration_ms",
     "apply_duration_ms",
     "verification_duration_ms",
+    "rollback_duration_ms",
     "feedback_duration_ms",
     "closure_duration_ms",
     "total_duration_ms",
@@ -109,6 +110,7 @@ SLOW_PATH_THRESHOLDS_MS = {
     "restore_barrier_duration_ms": 10000.0,
     "apply_duration_ms": 60000.0,
     "verification_duration_ms": 30000.0,
+    "rollback_duration_ms": 60000.0,
     "feedback_duration_ms": 15000.0,
     "closure_duration_ms": 15000.0,
     "total_duration_ms": 120000.0,
@@ -239,6 +241,8 @@ def _stage_from_row(row: dict[str, Any]) -> str:
         return "packet"
     if "verify" in text or "verification" in text:
         return "verification"
+    if "rollback" in text:
+        return "rollback"
     if "feedback" in text or "outcome" in text or "recommendation" in text or "prediction" in text or "trust" in text:
         return "feedback"
     if "closure" in text or "closed" in text:
@@ -3573,6 +3577,197 @@ def execution_loop_readiness_foundation(
     }
 
 
+def _rt2_s1_measurement_row(
+    *,
+    category: str,
+    status: str,
+    owner: str,
+    evidence: Any,
+    consumer: str,
+    certification_relevance: str,
+) -> dict[str, Any]:
+    return {
+        "category": category,
+        "status": status,
+        "owner": owner,
+        "producer": owner,
+        "consumer": consumer,
+        "storage": "existing_contract_event_read_models",
+        "measurement": "existing fields only; no synthetic metrics",
+        "evidence": evidence,
+        "certification_relevance": certification_relevance,
+    }
+
+
+def rt2_s1_measurement_observability_foundation(
+    *,
+    contracts: list[dict[str, Any]] | None = None,
+    events: list[dict[str, Any]] | None = None,
+    planner_result: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Materialize RT2-S1 measurement without creating authority or runtime behavior."""
+    readiness = execution_loop_readiness_foundation(
+        contracts=contracts,
+        events=events,
+        planner_result=planner_result,
+    )
+    dashboard = execution_operator_dashboard_model(readiness=readiness)
+    performance = readiness.get("performance_audit") if isinstance(readiness.get("performance_audit"), dict) else {}
+    requested = performance.get("requested_metrics") if isinstance(performance.get("requested_metrics"), dict) else {}
+    observability = readiness.get("execution_observability") if isinstance(readiness.get("execution_observability"), dict) else {}
+    gaps = readiness.get("readiness_gap_analysis") if isinstance(readiness.get("readiness_gap_analysis"), list) else []
+    chain = readiness.get("execution_chain_audit") if isinstance(readiness.get("execution_chain_audit"), list) else []
+    mapping = readiness.get("execution_loop_mapping") if isinstance(readiness.get("execution_loop_mapping"), dict) else {}
+    total_metric = requested.get("total_duration_ms") if isinstance(requested.get("total_duration_ms"), dict) else {}
+    rollback_metric = requested.get("rollback_duration_ms") if isinstance(requested.get("rollback_duration_ms"), dict) else {}
+    any_duration = bool(performance.get("available_metrics"))
+    all_missing_owner_mapped = all(
+        isinstance(row, dict) and row.get("owner")
+        for row in gaps
+        if str((row or {}).get("severity") or "") == "observability_gap"
+    )
+    measurement_rows = [
+        _rt2_s1_measurement_row(
+            category="runtime_time",
+            status="OBSERVED" if any_duration else "OWNER_MAPPED_MISSING",
+            owner="admin_core.operator_execution_pipeline.execution_performance_foundation",
+            evidence={
+                "available_metrics": performance.get("available_metrics", []),
+                "missing_metrics": performance.get("missing_metrics", []),
+            },
+            consumer="OMP, Runtime Model, Engineering Reports, read-only dashboards",
+            certification_relevance="base timing visibility for RT2-S1",
+        ),
+        _rt2_s1_measurement_row(
+            category="runtime_cost",
+            status="PARTIAL_OWNER_MAPPED" if any_duration else "OWNER_MAPPED_MISSING",
+            owner="Runtime Model + Production Maturity + admin_core.operator_execution_pipeline",
+            evidence="duration/per-user duration is visible when present; CPU/resource/runtime overhead cost remains future owner-mapped evidence",
+            consumer="OMP Runtime Cost Review",
+            certification_relevance="cost remains non-authorizing until future certification",
+        ),
+        _rt2_s1_measurement_row(
+            category="reaction_latency",
+            status="OBSERVED" if total_metric.get("available") else "OWNER_MAPPED_MISSING",
+            owner="admin_core.operator_execution_pipeline.execution_performance_foundation",
+            evidence=total_metric,
+            consumer="OMP Latency Review and Production Maturity",
+            certification_relevance="reaction latency is visible or missing with owner",
+        ),
+        _rt2_s1_measurement_row(
+            category="stop_reasons",
+            status="OBSERVED",
+            owner="execution_loop_readiness_foundation.readiness_certification",
+            evidence=readiness.get("readiness_certification", {}),
+            consumer="CPS, OMP, operator dashboard",
+            certification_relevance="safe stop explanation remains visible",
+        ),
+        _rt2_s1_measurement_row(
+            category="lifecycle",
+            status="OBSERVED" if chain else "OWNER_MAPPED_MISSING",
+            owner="admin_core.operator_execution_pipeline.execution_chain_audit",
+            evidence={"stages": [row.get("stage") for row in chain if isinstance(row, dict)]},
+            consumer="Runtime Model lifecycle and OMP transition contract",
+            certification_relevance="execution lifecycle is owner-mapped",
+        ),
+        _rt2_s1_measurement_row(
+            category="wait_states",
+            status="OBSERVED" if gaps else "OWNER_MAPPED_MISSING",
+            owner="admin_core.operator_execution_pipeline.execution_readiness_gap_analysis",
+            evidence=gaps,
+            consumer="OMP, operator dashboard, future RT2-S2 readiness work",
+            certification_relevance="wait/blocking causes are visible without granting authority",
+        ),
+        _rt2_s1_measurement_row(
+            category="dependency_topology",
+            status="OBSERVED" if mapping else "OWNER_MAPPED_MISSING",
+            owner="admin_core.operator_execution_pipeline.execution_loop_mapping",
+            evidence=mapping,
+            consumer="Runtime Time Topology, OMP, Engineering Reports",
+            certification_relevance="producer/consumer chain is explainable",
+        ),
+        _rt2_s1_measurement_row(
+            category="time_to_safe_recovery",
+            status="PARTIAL_OWNER_MAPPED" if rollback_metric.get("available") else "OWNER_MAPPED_MISSING",
+            owner="restore/rollback/verification owners + admin_core.operator_execution_pipeline",
+            evidence={
+                "verification_duration_ms": requested.get("verification_duration_ms", {}),
+                "rollback_duration_ms": rollback_metric,
+            },
+            consumer="OMP recovery and rollback certification",
+            certification_relevance="rollback/recovery time is visible when events exist; missing rollback events are owner-mapped",
+        ),
+        _rt2_s1_measurement_row(
+            category="bottlenecks",
+            status="OBSERVED" if dashboard.get("performance", {}).get("bottleneck") else "OWNER_MAPPED_MISSING",
+            owner="admin_core.operator_execution_pipeline.execution_operator_dashboard_model",
+            evidence=dashboard.get("performance", {}),
+            consumer="RT2-S6 evidence-based continuous improvement",
+            certification_relevance="bottleneck finding remains advisory and non-authorizing",
+        ),
+    ]
+    unmapped = [
+        row["category"]
+        for row in measurement_rows
+        if row["status"] == "MISSING_UNMAPPED"
+    ]
+    completed = not unmapped and all_missing_owner_mapped
+    return {
+        "schema_version": "v7.rt2-s1-measurement-observability-foundation.v1",
+        "workstream": "RT2-S1",
+        "status": "DONE_READ_ONLY_MEASUREMENT_OWNER_MAPPED" if completed else "PARTIAL_MEASUREMENT_MAPPING",
+        "read_only": True,
+        "preview_only": True,
+        "purpose": "make runtime cost, runtime time, reaction latency, stop reasons, lifecycle, wait states, dependency topology, Time-To-Safe-Recovery, and bottlenecks visible or owner-mapped as missing",
+        "measurement_rows": measurement_rows,
+        "owner_mapped_missing_categories": [
+            row["category"]
+            for row in measurement_rows
+            if row["status"] in {"OWNER_MAPPED_MISSING", "PARTIAL_OWNER_MAPPED"}
+        ],
+        "unmapped_categories": unmapped,
+        "completion_criteria_met": completed,
+        "produced_evidence": [
+            "measurement_rows",
+            "owner_mapped_missing_categories",
+            "execution_performance_foundation",
+            "execution_observability_snapshot",
+            "operator_dashboard_performance_bottleneck",
+        ],
+        "unlocked_capability": "RT2-S2_WORLD_READINESS_MATURATION" if completed else "",
+        "still_blocked": [
+            "RT2-S3_DESIRED_STATE_DELTA",
+            "RT2-S4_GOVERNED_EXECUTION_COORDINATION",
+            "RT2-S5_CERTIFIED_CONCURRENCY",
+            "RT2-S6_EVIDENCE_BASED_CONTINUOUS_IMPROVEMENT",
+            "runtime_apply",
+            "automation",
+            "authority_expansion",
+            "dashboard_authority",
+            "user_movement",
+        ],
+        "next_safe_action": "continue to RT2-S2 world and readiness maturation" if completed else "map remaining measurement gaps through existing owners",
+        "safety": {
+            "dashboard_can_decide": False,
+            "dashboard_can_approve": False,
+            "dashboard_can_mutate": False,
+            "synthetic_metrics_created": False,
+            "runtime_behavior_changed": False,
+            "runtime_apply_allowed_now": False,
+            "authority_expanded": False,
+            "users_moved": 0,
+            "new_owner_created": False,
+            "new_runtime_created": False,
+            "new_truth_source_created": False,
+            "new_planner_created": False,
+        },
+        "source_models": {
+            "readiness": readiness,
+            "dashboard_performance": dashboard.get("performance", {}),
+        },
+    }
+
+
 def _controller_step(
     step: int,
     name: str,
@@ -3788,6 +3983,159 @@ def operator_approved_execution_controller_preview(decision: str = "DRAFT") -> d
             "approve_path_preview_ready": True,
             "live_execution_enabled": False,
             "operator_reduced_to_approve_reject": True,
+        },
+    }
+
+
+def _rt2_s4_coordination_row(step: dict[str, Any]) -> dict[str, Any]:
+    mutation_if_live = bool(step.get("runtime_mutation_if_live"))
+    return {
+        "stage": step.get("name", ""),
+        "status": "OWNER_MAPPED",
+        "owner": step.get("owner", ""),
+        "producer": step.get("owner", ""),
+        "consumer": "RT2-S5 certified concurrency ladder, OMP, Runtime Model",
+        "inputs": list(step.get("inputs") or []),
+        "outputs": list(step.get("outputs") or []),
+        "runtime_mutation_performed_now": False,
+        "runtime_mutation_if_live": mutation_if_live,
+        "requires_existing_authority_if_live": mutation_if_live,
+        "new_execution_path_created": False,
+    }
+
+
+def rt2_s4_governed_execution_coordination(
+    *,
+    rt2_s3_delta: dict[str, Any] | None = None,
+    controller_decision: str = "APPROVE",
+) -> dict[str, Any]:
+    """Materialize RT2-S4 governed execution coordination as a read-only surface."""
+    controller = operator_approved_execution_controller_preview(controller_decision)
+    action_matrix = execution_action_matrix()
+    lifecycle = approval_packet_lifecycle()
+    steps = controller.get("steps") if isinstance(controller.get("steps"), list) else []
+    rows = [_rt2_s4_coordination_row(step) for step in steps if isinstance(step, dict)]
+    required = [
+        "packet",
+        "runtime_recheck",
+        "restore_barrier",
+        "apply",
+        "verify",
+        "rollback_readiness",
+        "feedback",
+        "closure",
+    ]
+    present = {str(row.get("stage") or "") for row in rows}
+    missing = [stage for stage in required if stage not in present]
+    ownerless = [row.get("stage", "") for row in rows if not row.get("owner")]
+    terminal_states = [
+        row["next_state"]
+        for row in action_matrix
+        if row.get("next_state") in {"CLOSED", "BLOCKER", "PACKET_REJECTED", "EXECUTION_BLOCKED"}
+    ]
+    no_bypass = controller.get("no_bypass_certification") if isinstance(controller.get("no_bypass_certification"), dict) else {}
+    completed = bool(rows) and not missing and not ownerless and all(value is False for value in no_bypass.values())
+    s3_status = str((rt2_s3_delta or {}).get("status") or "OWNER_MAPPED_EXTERNAL")
+    return {
+        "schema_version": "v7.rt2-s4-governed-execution-coordination.v1",
+        "workstream": "RT2-S4",
+        "status": "DONE_READ_ONLY_GOVERNED_EXECUTION_COORDINATION_OWNER_MAPPED" if completed else "PARTIAL_GOVERNED_EXECUTION_COORDINATION_MAPPING",
+        "read_only": True,
+        "preview_only": True,
+        "purpose": "coordinate one bounded decision-to-terminal-outcome path through existing execution owners without enabling live apply",
+        "consumed_capability": {
+            "source_workstream": "RT2-S3",
+            "source_status": s3_status,
+            "consumed_evidence": [
+                "prepared_delta",
+                "prepared_plan",
+                "packet_preview_context",
+                "runtime_live_gate_context",
+            ],
+        },
+        "coordination_rows": rows,
+        "terminal_classification": {
+            "terminal_states": sorted(set(terminal_states)),
+            "success_path": "EXECUTION_SUCCESS -> CLOSED",
+            "failure_path": "EXECUTION_FAILED -> ROLLBACK_REQUIRED -> ROLLBACK_SUCCESS/ROLLBACK_FAILED -> CLOSED/BLOCKER",
+            "rejection_path": "PACKET_REJECTED -> EXECUTION_BLOCKED",
+            "closure_owner": CANONICAL_FEEDBACK_OWNER,
+            "terminal_classification_ready": bool(terminal_states),
+        },
+        "idempotency_and_loop_controls": {
+            "packet_identity_required": True,
+            "selected_move_hash_required": True,
+            "restore_barrier_generation_required": True,
+            "execution_lease_owner": CANONICAL_PACKET_OWNER,
+            "planner_regeneration_after_approval_blocked": True,
+            "stale_loop_prevention": [
+                "packet ttl",
+                "fresh runtime recheck",
+                "restore barrier generation binding",
+                "selected move hash binding",
+                "terminal closure before OMP continuation",
+            ],
+            "queue_daemon_created": False,
+        },
+        "owner_mapping": {
+            "planner": CANONICAL_PLANNER,
+            "packet": CANONICAL_PACKET_TOOL,
+            "packet_owner": CANONICAL_PACKET_OWNER,
+            "restore_barrier": CANONICAL_PACKET_OWNER,
+            "apply": CANONICAL_RUNTIME_EXECUTOR,
+            "verify": CANONICAL_RUNTIME_EXECUTOR,
+            "rollback": CANONICAL_ROLLBACK_EXECUTOR,
+            "feedback": CANONICAL_FEEDBACK_OWNER,
+            "closure": CANONICAL_FEEDBACK_OWNER,
+        },
+        "completion_criteria_met": completed,
+        "missing_stages": missing,
+        "ownerless_stages": ownerless,
+        "produced_evidence": [
+            "coordination_rows",
+            "terminal_classification",
+            "idempotency_and_loop_controls",
+            "owner_mapping",
+            "no_bypass_certification",
+        ],
+        "unlocked_capability": "RT2-S5_CERTIFIED_CONCURRENCY_LADDER" if completed else "",
+        "still_blocked": [
+            "RT2-S6_EVIDENCE_BASED_CONTINUOUS_IMPROVEMENT",
+            "runtime_apply",
+            "automation",
+            "concurrency",
+            "queue_daemon",
+            "authority_expansion",
+            "user_movement",
+        ],
+        "next_safe_action": "continue to RT2-S5 certified concurrency ladder" if completed else "map remaining governed execution coordination owners",
+        "source_models": {
+            "controller_schema": controller.get("schema_version", ""),
+            "controller_terminal_preview_state": controller.get("terminal_preview_state", ""),
+            "approval_packet_lifecycle": lifecycle,
+            "execution_recheck_policy": execution_recheck_policy(),
+            "governed_apply_policy": governed_apply_policy(),
+            "verification_policy": verification_policy(),
+            "rollback_policy": rollback_policy(),
+            "execution_action_matrix": action_matrix,
+            "no_bypass_certification": no_bypass,
+        },
+        "safety": {
+            "runtime_behavior_changed": False,
+            "runtime_apply_allowed_now": False,
+            "restore_barrier_written_now": False,
+            "apply_executed": False,
+            "rollback_executed": False,
+            "feedback_written_now": False,
+            "closure_written_now": False,
+            "users_moved": 0,
+            "authority_expanded": False,
+            "concurrency_enabled": False,
+            "queue_daemon_created": False,
+            "new_execution_path_created": False,
+            "new_owner_created": False,
+            "new_truth_source_created": False,
+            "synthetic_evidence_created": False,
         },
     }
 

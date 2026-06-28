@@ -1832,37 +1832,37 @@ Current production snapshot:
 
 | Category | Current % | Target % | Weight |
 | --- | ---: | ---: | ---: |
-| Implementation | `5.9` | `100` | `20` |
-| Testing | `34` | `100` | `10` |
+| Implementation | `29.4` | `100` | `20` |
+| Testing | `47` | `100` | `10` |
 | Production Deployments | `100` | `100` | `10` |
-| Production Outcomes | `10` | `100` | `15` |
-| Certification | `22` | `100` | `15` |
+| Production Outcomes | `25` | `100` | `15` |
+| Certification | `68` | `100` | `15` |
 | Authority Evolution | `15` | `100` | `10` |
 | Production Autonomy | `0` | `100` | `10` |
-| Implementation Backlog Completion | `5.9` | `100` | `10` |
+| Implementation Backlog Completion | `29.4` | `100` | `10` |
 
 Production Maturity:
 
 ```text
-Current: 27.2%
+Current: 39.0%
 Target: 100%
-Remaining: 72.8%
+Remaining: 61.0%
 ```
 
 Backlog:
 
 ```text
-Tier A: 2 / 6 complete
-Tier B: 0 / 21 complete
+Tier A: 6 / 6 complete
+Tier B: 4 / 21 complete
 Tier C: 0 / 7 complete
 Tier D: 0 / 6 optional complete
-Overall: 4 / 34 actionable complete
+Overall: 10 / 34 actionable complete
 ```
 
 Current highest implementation task:
 
 ```text
-A3: Certify class-level rollback/no-rollback evidence for governed candidate movement.
+B3: Align soft-degradation trend thresholds to canonical policy vocabulary.
 ```
 
 Estimated remaining effort:
@@ -1880,7 +1880,7 @@ TIER_1_GOVERNED
 Next milestone:
 
 ```text
-35%: Runtime Eligibility Implemented
+50%: Implementation Half Complete
 ```
 
 Milestones:
@@ -1931,16 +1931,16 @@ Engineering Maturity
 PRODUCTION
 
 Implementation
-5.9%
+29.4%
 
 Certification
-22%
+68%
 
 Autonomy
 0%
 
 Production Maturity
-27.2%
+39.0%
 
 Overall Status
 ENGINEERING_COMPLETE / PRODUCTION_IN_PROGRESS
@@ -1950,45 +1950,45 @@ IMPLEMENTATION
 
 Backlog
 Tier A
-2 / 6
+6 / 6
 Tier B
-0 / 21
+4 / 21
 Tier C
 0 / 7
 Tier D
 0 / 6 optional
 Overall
-4 / 34 complete
+10 / 34 complete
 
 Current Tier
 TIER_1_GOVERNED
 
 Highest Priority Task
-A3 fix: preserve approved locked selected moves through the existing autoswitch intelligence snapshot gate.
+B3: align soft-degradation trend thresholds to canonical policy vocabulary.
 
 Status
-Unsafe Implementation
+B2 DONE_READ_ONLY / B3 Ready
 
 Authority
-None
+No expansion active
 
 Required Action
-Implement A3_FIX_APPROVED_PLAN_LOCK_SNAPSHOT_GATE_CONSUMPTION_IN_EXISTING_AUTOSWITCH_OWNER.
+Run B3 through existing planner/autoswitch, quality compact, and service matrix owners.
 
 Engineering
-BLOCKED_BY_OWNER_DEFECT
+READY
 
 Runtime
-FAIL_CLOSED_BEFORE_MOVEMENT
+READY_READ_ONLY
 
 Packet
-APPROVED_AND_CONSUMED
+NONE_ACTIVE
 
 Estimated Remaining Work
 Moderate
 
 Expected Next Milestone
-35%: Runtime Eligibility Implemented
+50%: Implementation Half Complete
 ```
 
 Progress calculation must be automatic.
@@ -2110,48 +2110,48 @@ Capability Dashboard must be printed in OMP Status:
 Capability Dashboard
 
 Capability | Current % | Ideal % | Remaining % | Current Maturity | Production Impact | Autonomy Impact | Blocking Backlog Items | Completion Prediction
-Movement Protection | 35.7% | 100% | 64.3% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3, A5, A6, B3, B4, B5, B8, B10, B16, B19, B21, C7 | Complete after movement stability, rollback, recovery, blast, anti-flap, routing mode, slow-start, and pool-health criteria are satisfied.
-Runtime Eligibility | 28.6% | 100% | 71.4% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A6, B17, B18, C1, C6 | Complete after Runtime can decide execute-or-stop from certified gates.
-Authority Evolution | 45.0% | 100% | 55.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3, A5, A6, B11, B12, B13, B16, B21, C3, C4 | Complete after action classes and delegated policy can replace repeated packet approval.
+Movement Protection | 50.0% | 100% | 50.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | B3, B4, B5, B8, B10, B16, B19, B21, C7 | Complete after movement stability, rollback, recovery, anti-flap, routing mode, slow-start, and pool-health criteria are satisfied.
+Runtime Eligibility | 42.9% | 100% | 57.1% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | B17, B18, C1, C6 | Complete after Runtime can decide execute-or-stop from certified gates and related stale-read/lease semantics are certified.
+Authority Evolution | 60.0% | 100% | 40.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | B11, B12, B16, B21, C3, C4 | Complete after action classes and delegated policy can replace repeated packet approval.
 Rollback | 42.9% | 100% | 57.1% | IN_PROGRESS | VERY_HIGH | HIGH | A3, B15, B16, C5 | Complete after rollback/no-rollback class evidence and authority are certified.
 Recovery Admission | 25.0% | 100% | 75.0% | IN_PROGRESS | HIGH | HIGH | B8, B9, B10 | Complete after recovered channels are reintroduced through certified readiness and slow-start.
-Learning | 55.0% | 100% | 45.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3, B5, B13 | Complete after real outcomes reliably improve future decisions.
-Production Readiness | 27.2% | 100% | 72.8% | IN_PROGRESS | VERY_HIGH | HIGH | Remaining actionable backlog and certification | Complete at PRODUCTION_AUTONOMY_CERTIFIED.
+Learning | 60.0% | 100% | 40.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3, B5 | Complete after real outcomes reliably improve future decisions.
+Production Readiness | 39.0% | 100% | 61.0% | IN_PROGRESS | VERY_HIGH | HIGH | Remaining actionable backlog and certification | Complete at PRODUCTION_AUTONOMY_CERTIFIED.
 Production Autonomy | 0.0% | 100% | 100.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3, A4, A5, A6, B10, B12, B16, C4 | Complete when Runtime operates inside certified policy and operator supervises.
 Knowledge System | 100.0% | 100% | 0.0% | LOCKED | HIGH | MEDIUM_HIGH | None | Complete and locked under canonical knowledge rules.
-Observability | 30.0% | 100% | 70.0% | IN_PROGRESS | HIGH | MEDIUM_HIGH | B1, B4, B9, B13, B15, B17, C2 | Complete when operators and OMP can inspect all safety/runtime evidence without mutation.
-Decision Explainability | 20.0% | 100% | 80.0% | IN_PROGRESS | HIGH | HIGH | A3, A6, B1, B4, B13, B15, B17, C2 | Complete when every approval request explains the decision in Russian before Approve / Reject, using existing evidence owners only.
+Observability | 35.0% | 100% | 65.0% | IN_PROGRESS | HIGH | MEDIUM_HIGH | B1, B4, B9, B15, B17, C2 | Complete when operators and OMP can inspect all safety/runtime evidence without mutation.
+Decision Explainability | 25.0% | 100% | 75.0% | IN_PROGRESS | HIGH | HIGH | B1, B4, B13, B15, B17, C2 | Complete when every approval request explains the decision in Russian before Approve / Reject, using existing evidence owners only.
 Implementation Discipline | 100.0% | 100% | 0.0% | COMPLETE | VERY_HIGH | MEDIUM | None | Complete while Backlog remains the only live queue.
 Engineering Knowledge Preservation | 100.0% | 100% | 0.0% | LOCKED | HIGH | MEDIUM | None | Complete and locked while reference/report/ADR roles remain normalized.
 
 Current Capability
-Movement Protection
+Liveness Evidence Aggregation / Production Readiness / Decision Explainability
 
 Current Backlog Item
-A5
+B1
 
 Completion Prediction
-Movement Protection completes after rollback/no-rollback certification, soft degradation certification, recovery admission certification, blast-radius certification, anti-flap certification, central policy arbitration, AUTO/PINNED/MANUAL routing mode, runtime-certified slow start, and pool-health semantics are complete.
+B1 completes after liveness evidence is aggregated by source family, confidence, owner, freshness/status, and policy relevance through existing service matrix, Telegram sentinel, quality compact, route reality, and intelligence worker owners.
 
 Blocking Items
-A3, A5, A6, B3, B4, B5, B8, B10, B16, B19, B21, C7
+B1 current; later Observability and Decision Explainability work remains blocked by B4, B9, B15, B17, and C2 where applicable.
 ```
 
 Initial capability registry:
 
 | Capability | Purpose | Current % | Target % | Current Status | Canonical Owner | Production Value | Autonomy Impact | Blocking Backlog Items | Expected Completion Point | Re-open Triggers |
 | --- | --- | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |
-| Movement Protection | Prevent chaotic user movement while preserving fast reaction to real failures. | `35.7` | `100` | `IN_PROGRESS` | OMP, Movement Protection Model, Runtime Model, Canonical Policy Library | `VERY_HIGH` | `VERY_HIGH` | `A3`, `A5`, `A6`, `B3`, `B4`, `B5`, `B8`, `B10`, `B16`, `B19`, `B21`, `C7` | All Movement Protection DoD criteria complete or explicitly `NOT_APPLICABLE`. | Production evidence disproves behavior; planner/runtime architecture materially changes; explicit operator request. |
-| Runtime Eligibility | Decide whether Runtime may execute or must stop using certified gates. | `28.6` | `100` | `IN_PROGRESS` | Runtime Model, OMP, delegated policy preview, action-class enablement owners | `VERY_HIGH` | `VERY_HIGH` | `A2`, `A6`, `B17`, `B18`, `C1`, `C6` | Action-class runtime eligibility arbitration is implemented and freshness/reporting semantics are certified. | Runtime architecture changes; production eligibility failure; explicit operator request. |
-| Authority Evolution | Move from packet approval to bounded class/policy authority without silent expansion. | `45.0` | `100` | `IN_PROGRESS` | OMP, Authority policy, Runtime Model, action-class ladder | `VERY_HIGH` | `VERY_HIGH` | `A3`, `A5`, `A6`, `B11`, `B12`, `B13`, `B16`, `B21`, `C3`, `C4` | Certified class evidence supports authority recommendation and operator/certified policy approval. | Authority incident; operator policy change; explicit authority expansion/shrink request. |
+| Movement Protection | Prevent chaotic user movement while preserving fast reaction to real failures. | `50.0` | `100` | `IN_PROGRESS` | OMP, Movement Protection Model, Runtime Model, Canonical Policy Library | `VERY_HIGH` | `VERY_HIGH` | `B3`, `B4`, `B5`, `B8`, `B10`, `B16`, `B19`, `B21`, `C7` | All Movement Protection DoD criteria complete or explicitly `NOT_APPLICABLE`. | Production evidence disproves behavior; planner/runtime architecture materially changes; explicit operator request. |
+| Runtime Eligibility | Decide whether Runtime may execute or must stop using certified gates. | `42.9` | `100` | `IN_PROGRESS` | Runtime Model, OMP, delegated policy preview, action-class enablement owners | `VERY_HIGH` | `VERY_HIGH` | `B17`, `B18`, `C1`, `C6` | Action-class runtime eligibility arbitration is implemented; freshness/reporting semantics remain to be certified. | Runtime architecture changes; production eligibility failure; explicit operator request. |
+| Authority Evolution | Move from packet approval to bounded class/policy authority without silent expansion. | `60.0` | `100` | `IN_PROGRESS` | OMP, Authority policy, Runtime Model, action-class ladder | `VERY_HIGH` | `VERY_HIGH` | `B11`, `B12`, `B16`, `B21`, `C3`, `C4` | Certified class evidence supports authority recommendation and operator/certified policy approval. | Authority incident; operator policy change; explicit authority expansion/shrink request. |
 | Rollback | Guarantee safe compensation or certified no-rollback behavior for production actions. | `42.9` | `100` | `IN_PROGRESS` | Restore barrier, rollback manifest, Runtime Model, execution feedback | `VERY_HIGH` | `HIGH` | `A3`, `B15`, `B16`, `C5` | Rollback/no-rollback class evidence and automatic rollback authority are certified. | Failed rollback; verification failure pattern; explicit operator request. |
 | Recovery Admission | Admit recovered channels safely without oscillation or premature scale. | `25.0` | `100` | `IN_PROGRESS` | Recovery admission owner, service matrix, quality compact, blast-radius/action-class ladder | `HIGH` | `HIGH` | `B8`, `B9`, `B10`, `D2`, `D3` | Repeated real readiness evidence, observation windows, and runtime-certified slow start are complete. | Recovery incident; service evidence changes; explicit operator request. |
-| Learning | Convert real outcomes into future decision quality without synthetic evidence. | `55.0` | `100` | `IN_PROGRESS` | Feedback/learning owner, OMP, Canonical Reference | `VERY_HIGH` | `VERY_HIGH` | `A3`, `B5`, `B13` | Representative real outcomes and metric reliability support promotion recommendations. | Learning regression; synthetic evidence risk; explicit operator request. |
-| Production Readiness | Make V7 deployable, operable, verifiable, and certifiable as a production system. | `27.2` | `100` | `IN_PROGRESS` | OMP, Production Maturity Model, Implementation Backlog | `VERY_HIGH` | `HIGH` | `A1`-`A6`, `B11`, `B14`, `B21`, `C7`, optional `D1`-`D6` only if scope changes | Production Maturity reaches `100%` and outputs `PRODUCTION_AUTONOMY_CERTIFIED`. | Production safety incident; deploy model change; explicit operator request. |
+| Learning | Convert real outcomes into future decision quality without synthetic evidence. | `60.0` | `100` | `IN_PROGRESS` | Feedback/learning owner, OMP, Canonical Reference | `VERY_HIGH` | `VERY_HIGH` | `A3`, `B5` | Representative real outcomes and metric reliability support promotion recommendations. | Learning regression; synthetic evidence risk; explicit operator request. |
+| Production Readiness | Make V7 deployable, operable, verifiable, and certifiable as a production system. | `39.0` | `100` | `IN_PROGRESS` | OMP, Production Maturity Model, Implementation Backlog | `VERY_HIGH` | `HIGH` | `B11`, `B14`, `B21`, `C7`, optional `D1`-`D6` only if scope changes | Production Maturity reaches `100%` and outputs `PRODUCTION_AUTONOMY_CERTIFIED`. | Production safety incident; deploy model change; explicit operator request. |
 | Production Autonomy | Enable Runtime to operate inside certified authority while operator supervises. | `0.0` | `100` | `IN_PROGRESS` | OMP, Runtime Model, Authority Evolution, action-class promotion | `VERY_HIGH` | `VERY_HIGH` | `A3`, `A4`, `A5`, `A6`, `B10`, `B12`, `B16`, `C4` | Bounded autonomy and then production autonomy are certified by real outcomes and approved authority. | Autonomy incident; authority policy change; explicit operator request. |
 | Knowledge System | Preserve verified project knowledge and prevent repeated rediscovery. | `100.0` | `100` | `LOCKED` | Canonical Reference, Context Resolver, Research Framework, Policy Library, Document Lifecycle | `HIGH` | `MEDIUM_HIGH` | None current. | Current knowledge owners remain canonical and read-only under document lifecycle rules. | Industry consensus changes; `FUNDAMENTAL_ARCHITECTURE_GAP`; explicit operator request. |
-| Observability | Expose enough read-only truth for operators, OMP, Runtime, and certification. | `30.0` | `100` | `IN_PROGRESS` | Admin read models, trust/evidence inventory, truth/convergence | `HIGH` | `MEDIUM_HIGH` | `B1`, `B4`, `B9`, `B13`, `B15`, `B17`, `C2` | Read-only evidence shows eligibility, rollback, stale reads, promotion quality, and runtime readiness. | Operator cannot diagnose; evidence disagreement; explicit operator request. |
-| Decision Explainability | Explain existing Runtime / OMP decisions to the operator before any approval request. | `20.0` | `100` | `IN_PROGRESS` | OMP, Current Program State, Runtime Model, evidence read models | `HIGH` | `HIGH` | `A3`, `A6`, `B1`, `B4`, `B13`, `B15`, `B17`, `C2` | Every approval request explains reason, evidence, expected value, risks, alternatives, and capability impact in Russian before Approve / Reject. | Operator cannot understand approval reason; explanation contradicts evidence; explicit operator request. |
+| Observability | Expose enough read-only truth for operators, OMP, Runtime, and certification. | `35.0` | `100` | `IN_PROGRESS` | Admin read models, trust/evidence inventory, truth/convergence | `HIGH` | `MEDIUM_HIGH` | `B1`, `B4`, `B9`, `B15`, `B17`, `C2` | Read-only evidence shows eligibility, rollback, stale reads, promotion quality, and runtime readiness. | Operator cannot diagnose; evidence disagreement; explicit operator request. |
+| Decision Explainability | Explain existing Runtime / OMP decisions to the operator before any approval request. | `25.0` | `100` | `IN_PROGRESS` | OMP, Current Program State, Runtime Model, evidence read models | `HIGH` | `HIGH` | `B1`, `B4`, `B13`, `B15`, `B17`, `C2` | Every approval request explains reason, evidence, expected value, risks, alternatives, and capability impact in Russian before Approve / Reject. | Operator cannot understand approval reason; explanation contradicts evidence; explicit operator request. |
 | Implementation Discipline | Ensure work flows only through Backlog, Priority Model, tests, truth, convergence, deployment, and certification. | `100.0` | `100` | `COMPLETE` | OMP, Implementation Backlog, Implementation Priority Model, Current Program State | `VERY_HIGH` | `MEDIUM` | None current. | OMP + Backlog + Current Program State remain sufficient for execution. | Backlog loses single-queue authority; operator requests process change. |
 | Engineering Knowledge Preservation | Freeze certified reference knowledge and keep reports/ADRs from becoming roadmaps. | `100.0` | `100` | `LOCKED` | Document Lifecycle, Canonical Reference, SYSTEM_MAP | `HIGH` | `MEDIUM` | None current. | Reference, report, ADR, policy, and backlog roles remain normalized. | Reference contradiction; material architecture change; explicit operator request. |
 
@@ -2178,11 +2178,11 @@ Definition of Done by capability:
 | Capability | Definition of Done | Completed Criteria | Remaining Criteria |
 | --- | --- | --- | --- |
 | Movement Protection | Hard Failure certified; Soft Degradation certified; Recovery Admission certified; Freshness integrated; Rollback certified; Blast Radius certified; Anti-Flap certified; Stickiness implemented; Minimum Improvement Threshold implemented; State Change Cost Model implemented; Central Policy Arbitration implemented; `AUTO` / `PINNED` / `MANUAL` routing implemented; Runtime-certified Slow Start implemented; Pool Health semantics completed or explicitly `NOT_APPLICABLE`. | Hard Failure classification; Freshness integration; Stickiness; Minimum Improvement Threshold; State Change Cost Model. | Soft Degradation certification; Recovery Admission certification; Rollback certification; Blast Radius certification; Anti-Flap certification; Central Policy Arbitration; `AUTO` / `PINNED` / `MANUAL`; Runtime-certified Slow Start; Pool Health semantics. |
-| Runtime Eligibility | Freshness windows exist; owner-issued freshness exists; authority, blast, rollback, anti-flap, verification, and learning gates are arbitrated; stale read reporting is preserved; bounded stale allowance is decided by action class. | Runtime Model; A2 freshness windows. | A6 arbitration; B17 stale-read reporting; B18 owner lease extension; C1 fail-open/fail-closed; C6 bounded stale allowance. |
-| Authority Evolution | Operational and engineering authority are separated; packet approval is retired class-by-class; class approval and delegated policy approval require certified evidence; authority never expands silently. | Authority normalization; action-class ladder; packet approval classified as temporary governed fallback. | A3-A5 evidence; A6 eligibility; B11 isolation; B12 staged promotion; B13 metric reliability; B16 rollback authority; B21 user mode; C3/C4 authority constraints. |
+| Runtime Eligibility | Freshness windows exist; owner-issued freshness exists; authority, blast, rollback, anti-flap, verification, and learning gates are arbitrated; stale read reporting is preserved; bounded stale allowance is decided by action class. | Runtime Model; A2 freshness windows; A6 read-only execute-or-stop arbitration. | B17 stale-read reporting; B18 owner lease extension; C1 fail-open/fail-closed; C6 bounded stale allowance. |
+| Authority Evolution | Operational and engineering authority are separated; packet approval is retired class-by-class; class approval and delegated policy approval require certified evidence; authority never expands silently. | Authority normalization; action-class ladder; packet approval classified as temporary governed fallback; A3-A5 evidence; A6 read-only eligibility; B13 blocking recommendation metric reliability. | B11 isolation; B12 staged promotion; B16 rollback authority; B21 user mode; C3/C4 authority constraints. |
 | Rollback | Restore barrier works; rollback manifest exists; exact selected move identity is preserved; rollback/no-rollback evidence is certified; automatic rollback authority is certified only after reliable verification. | Restore barrier; rollback manifest; exact packet/lease identity path. | A3 class evidence; B15 containment/forward-fix classification; B16 automatic rollback authority; C5 compensation semantics. |
 | Recovery Admission | Recovered channels require repeated real success/readiness evidence; post-admission observation exists; slow-start recovery is runtime-certified. | Recovery admission read model; limited recovery blast radius. | B8 certification; B9 observation windows; B10 slow-start progression. |
-| Learning | Only real observed outcomes feed learning; outcome closure exists; representative evidence exists; metric reliability supports promotion recommendations. | Real-only learning rule; feedback owner; outcome closure path. | A3/A4 real outcomes; B5 attribution; B13 metric reliability. |
+| Learning | Only real observed outcomes feed learning; outcome closure exists; representative evidence exists; metric reliability supports promotion recommendations. | Real-only learning rule; feedback owner; outcome closure path; B13 blocking recommendation metric reliability. | A3/A4 real outcomes; B5 attribution. |
 | Production Readiness | Implementation, deploy, tests, truth, convergence, certification, outcomes, authority, and autonomy reach Production Maturity `100%`. | Engineering Maturity `100%`; safe deployment owner; truth/convergence; A1/A2 complete. | Remaining actionable backlog; production outcomes; certification; authority evolution; autonomy certification. |
 | Production Autonomy | Runtime acts automatically only inside approved policy and certified action classes; operator supervises; production autonomy is certified. | Product and Runtime models define target; runtime automation remains disabled. | Class evidence; runtime eligibility; authority approval; rollback certification; bounded autonomy; production autonomy certification. |
 | Knowledge System | Context Resolver, Research Framework, Canonical Policy Library, Canonical Reference, SYSTEM_MAP, and Document Lifecycle preserve verified knowledge without creating duplicate owners. | All listed knowledge owners exist and are canonical. | None current. |
@@ -3087,7 +3087,7 @@ Latest Master Action Class Certification Model audit:
 | Final verdict | `ACTION_CLASS_CERTIFICATION_MODEL_COMPLETE` |
 | Canonical A4 objective | Materialize representative real outcome evidence for the first action class. |
 | First action class | `single-user governed candidate failover` |
-| Full certification chain | `A4 -> A5 -> B13 -> A6 -> B12/authority` |
+| Full certification chain | `A4 -> A5 -> A6 -> B13 -> B12/authority` |
 | `missing_candidate_outcomes` role | Inventory coverage / supporting evidence / learning input; not canonical hard gate |
 | Current implementation mismatch | `readiness_impact.exact_outcome_deficit_blocks_canary = missing_candidate_outcomes` over-converts inventory deficit into a hard blocker |
 | Need New Owner | `FALSE` |
@@ -3107,7 +3107,7 @@ Latest Master OMP Certification Alignment implementation:
 | New architecture | `NO` |
 | Runtime behavior changed | `NO` |
 | Canonical alignment | `missing_candidate_outcomes` remains visible as `INVENTORY_SIGNAL`; it is no longer exposed as mandatory `missing_evidence` for A4 certification/runtime enablement. |
-| Downstream alignment | A5 consumes certified A4 outputs; B13 consumes representative evidence/reliability; A6 consumes certified gates and live runtime safety, not exhaustive inventory deficits. |
+| Downstream alignment | A5 consumes certified A4 outputs; A6 consumes certified gates and live runtime safety, not exhaustive inventory deficits; B13 consumes representative evidence/reliability. |
 | Validation | `python3 -m unittest tests.unit.test_autonomy_trust_acceleration`; `python3 -m unittest tests.unit.test_governed_canary_cli tests.unit.test_operator_execution_pipeline`; `tools/v7-autonomy-trust-evidence-inventory --action-class-runtime-only --pretty` |
 | Next OMP action | `A4_REPRESENTATIVE_CERTIFICATION_VALIDATION_AND_CONTINUE_OMP` |
 
@@ -4032,16 +4032,645 @@ If daemon, timer, event consumer mutation, autonomous execution, action-class ex
 | --- | --- |
 | Completed phases | Architecture foundation, Research Framework, Decision Model, Runtime Model, System Architecture, Implementation Phase activation, OMP Production Program integration. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle; OMP Production Program rule set. |
-| Current bottleneck | A5 class-level blast-radius certification is next; A4 representative evidence and closure validation are complete. |
-| Current highest leverage action | Run A5 certification analysis through existing blast-radius/action-class/planner budget owners. |
+| Current bottleneck | B3 soft-degradation trend threshold vocabulary alignment is next; B2 is complete as read-only hard-failure policy windows. |
+| Current highest leverage action | Run B3 through existing planner/autoswitch, quality compact, and service matrix owners. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | None yet for A5; certification must not expand blast radius or authority silently. |
-| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; Production Maturity `27.2%`; Tier A backlog `4 / 6`; overall backlog `4 / 34`. |
+| Current blockers | None yet for B3 threshold vocabulary work; B3 must not synthesize evidence, grant runtime authority, move users, or bypass existing planner/autoswitch, quality compact, and service matrix owners. |
+| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; Production Maturity `39.0%`; Tier A backlog `6 / 6`; Tier B backlog `4 / 21`; overall backlog `10 / 34`. |
 | Current runtime posture | No autonomous apply, no daemon enablement, no authority expansion; local validation moved `0` users and now stops explicitly with `runtime_state_unavailable` when local `/opt/v7` state is absent. |
-| Current next best action | `A5_CERTIFY_CLASS_LEVEL_BLAST_RADIUS_EVIDENCE_BEYOND_ONE_USER_GUARD`; no synthetic evidence, no threshold lowering, no new owner, no new backlog, no architecture change. |
-| Last optimizer iteration | `2026-06-27`: A4 representative evidence completed; closure read-model now ignores non-outcome history; truth/convergence passed. |
+| Current next best action | `B3_ALIGN_SOFT_DEGRADATION_TREND_THRESHOLDS_TO_CANONICAL_POLICY_VOCABULARY`; no runtime apply, no automation, no authority expansion, no synthetic evidence, no user movement, no planner replacement, no new owner, no new backlog, no architecture change. |
+| Last optimizer iteration | `2026-06-29`: RT2-S6 evidence-based continuous improvement implemented as read-only owner-mapped advisory recommendation; current result is `DONE_READ_ONLY_OWNER_MAPPED_RECOMMENDATION`; tests passed. |
+
+## 24.1 Capability Transition Contract
+
+Status: `ACTIVE_CANONICAL`.
+
+Owner: OMP.
+
+Purpose:
+
+OMP must permanently explain not only what the next step is, but why that step is now available, which capability produced the unlocking evidence, which owner may consume it, and why later steps remain forbidden.
+
+This contract is not a new lifecycle, roadmap, owner, planner, runtime, truth source, capability program, dashboard authority, automation mode, or implementation queue.
+
+Transition audit:
+
+| Item | Classification | Existing expression | Required extension |
+| --- | --- | --- | --- |
+| Execution order | `EXISTS_COMPLETE` | `A5 -> A6 -> B13 -> B16 -> Runtime Capability Maturation Program`. | None. |
+| RT2 entry criteria | `EXISTS_COMPLETE` | Section 28.1 entry criteria. | None. |
+| Workstream flow | `EXISTS_COMPLETE` | Section 28.3 workstream table and OMP engineering lifecycle. | None. |
+| Transition explanation | `EXISTS_PARTIAL` | CPS and OMP state show the next step and produced evidence, but not a durable transition reason table. | Add this contract inside OMP. |
+| Transition owner mapping | `EXISTS_PARTIAL` | SYSTEM_MAP maps owners but not transition ownership as a first-class lookup. | Add SYSTEM_MAP transition row. |
+| Durable transition rule | `EXISTS_PARTIAL` | Canonical Reference preserves execution order and current state. | Add durable rule that reports must not be the only transition explanation. |
+
+Transition rule:
+
+1. A step becomes available only when the previous step produced real or read-only certified evidence accepted by its canonical owner.
+2. A step may consume only the evidence named for that transition.
+3. Unlocking a step never unlocks later steps by implication.
+4. Runtime apply, automation, authority expansion, user movement, dashboard authority, synthetic evidence, and new ownership remain forbidden unless the specific transition explicitly produces certified authority for them.
+5. If the next step cannot explain current capability, produced evidence, consumed evidence, unlocked capability, blocked capability, and safety reason, OMP must stop and extend this contract before continuing.
+
+Major capability transitions:
+
+| From step | Current capability | Produced evidence | Consumed evidence | Unlocked capability | Still blocked capability | Why next step is available | Why later steps remain forbidden |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `A5` -> `A6` | Blast-radius certification. | Class-level blast-radius evidence beyond one-user guard; historical E29 one/two/four-user proofs consumed read-only. | A3 rollback/no-rollback evidence, A4 representative outcome evidence, action-class ladder, policy/blast-radius owners. | Runtime eligibility arbitration. | Runtime apply, authority expansion, automation, concurrency, class promotion. | A6 can safely arbitrate execute-or-stop only after blast-radius evidence is no longer unknown. | A5 proves evidence shape only; it does not approve execution, authority, positive promotion, or runtime mutation. |
+| `A6` -> `B13` | Runtime eligibility arbitration. | Read-only execute-or-stop gate rows across freshness, authority, blast radius, rollback/no-rollback, anti-flap, verification, learning, routing readiness, and runtime_apply. | A1-A5 certification outputs, freshness owners, authority owners, runtime_apply boundary. | Metric reliability certification for promotion recommendations. | Positive promotion, automatic execution, authority expansion, runtime apply. | B13 may consume A6 because metric reliability needs one canonical gate answer before metrics can support promotion recommendations. | A6 result is `STOP_SAFE` at authority/runtime_apply; it cannot unlock execution or authority by itself. |
+| `B13` -> `B16` | Metric reliability certification. | Reliable blocking recommendation certification; positive promotion remains blocked. | Trust/confidence, source confidence, rollback evidence, blast-radius evidence, closure, learning, A6 runtime eligibility. | Rollback authority readiness certification. | Positive promotion, automatic rollback authority, runtime apply, action-class authority, automation. | B16 may start because rollback authority review needs reliable metric and evidence classification before evaluating rollback readiness. | B13 certifies blocking recommendations only; it does not certify authority, rollback execution, or movement. |
+| `B16` -> `RT2-S1` | Rollback authority readiness. | Rollback/verification/metric/runtime evidence certified for authority review only; authority/runtime_apply remain STOP gates. | Rollback evidence, verification closure, no-rollback learning, B13 metric reliability, A6 runtime eligibility. | RT2-S1 Measurement & Observability Foundation. | RT2-S2 through RT2-S6 execution, runtime apply, automation, dashboard authority, concurrency, authority expansion. | RT2-S1 may begin because measurement can safely consume certified rollback/verification evidence as read-only context without granting authority. | B16 does not grant automatic rollback authority; only read-only measurement becomes safe, and later RT2 workstreams still require S1 outputs and their own completion criteria. |
+| `RT2-S1` -> `RT2-S2` | Measurement and observability. | Runtime cost, runtime time, reaction latency, stop reasons, lifecycle, wait states, dependency topology, Time-To-Safe-Recovery, and bottlenecks visible or owner-mapped as missing. | Execution contracts, events, read models, timestamps, duration fields, latency fields, CPS, truth/convergence. | World and readiness maturation. | Desired-state delta, governed execution coordination, concurrency, recommendations, runtime apply. | S2 may begin only after measurement blockers are owner-mapped so world/readiness can consume known observability gaps safely. | Measurement fields are read-only; dashboards/read models cannot decide, approve, rank execution, mutate, or certify later workstreams. |
+| `RT2-S2` -> `RT2-S3` | World and readiness maturation. | Fresh prepared state and readiness summaries bounded for runtime consumption. | Observation outputs, snapshots, freshness, service matrix, quality compact, user/channel/policy state. | Desired-state delta preparedness. | Execution coordination, queue behavior, concurrency, authority expansion, runtime mutation. | S3 may begin when readiness is prepared and bounded, allowing deltas to reference current state without raw runtime scans. | Prepared world/readiness state cannot approve movement, become a planner, or bypass live gates. |
+| `RT2-S3` -> `RT2-S4` | Desired-state delta preparedness. | Advisory desired-state delta or bounded prepared plan. | Business Objectives, policies, current state, action-class certification, movement protection. | Governed execution coordination. | Concurrency, automation, runtime queue, authority expansion. | S4 may begin only when a prepared plan can be consumed safely by existing packet/lease/verification owners. | Desired State and deltas remain advisory and non-authorizing; they cannot become Runtime behavior. |
+| `RT2-S4` -> `RT2-S5` | Governed execution coordination. | Idempotent governed execution coordination and terminal classification. | Prepared plan, packet, lease, restore barrier, verification plan, rollback/no-rollback state. | Certified concurrency ladder. | Parallelism, blast-radius expansion, automatic execution without authority. | S5 may begin only after one bounded action can move from approval to terminal outcome without stale loops. | Coordination proof for one bounded path does not certify parallelism, wider blast radius, or authority. |
+| `RT2-S5` -> `RT2-S6` | Certified concurrency ladder. | Certified concurrency level or explicit STOP_SAFE. | Blast-radius evidence, rollback capacity, verification capacity, policy scope, authority envelope, anti-flap state. | Evidence-based continuous improvement. | Runtime self-optimization, automatic recommendations, authority lowering, safety gate weakening. | S6 may begin after concurrency is certified or explicitly deferred, because recommendations need known safe execution limits. | Parallelism is safety certification only; recommendations cannot mutate runtime, expand authority, or convert metrics into authority. |
+| `RT2-S6` -> graduate or return to OMP | Evidence-based continuous improvement. | Owner-mapped recommendation or explicit no-change verdict with safety, latency, cost, time, evidence, and canonical update. | Outcomes, reports, latency/cost/time/topology data, fit analysis, maturity gaps. | Graduation or return to highest unfinished OMP/backlog owner. | New roadmap, new owner, Runtime self-optimization, direct implementation without OMP. | Graduation is allowed only when S6 produces a no-change or owner-mapped recommendation that has been canonically preserved. | S6 output is advisory until OMP routes approved implementation to an existing owner or backlog item. |
+
+Current transition state:
+
+| Field | Value |
+| --- | --- |
+| Last completed transition | `B2 -> B3` |
+| Produced evidence | `hard_failure_policy_windows = DONE_READ_ONLY_OWNER_MAPPED`; B2 maps hard-failure risk classes to existing action-class freshness windows and anti-flap policy impact without changing timers. |
+| Current unlocked step | `B3_ALIGN_SOFT_DEGRADATION_TREND_THRESHOLDS_TO_CANONICAL_POLICY_VOCABULARY` |
+| Current forbidden later steps | Runtime self-optimization; automatic recommendations; direct implementation without OMP; authority lowering; safety-gate weakening; Runtime apply; automation; concurrency enablement; authority expansion; queue daemon; planner replacement; user movement |
+| Safety reason | Only existing backlog continuation is unlocked; B2 output is read-only policy-window evidence and cannot mutate Runtime, change timers, expand authority, lower gates, synthesize evidence, start implementation outside OMP, or move users. |
+
+## 24.2 Capability Production Contract
+
+Status: `ACTIVE_CANONICAL`.
+
+Owner: OMP.
+
+Purpose:
+
+OMP must permanently explain not only what stage comes next and why it becomes available, but what capability each stage produces, who owns that capability, who consumes it, what future capability it unlocks, what remains blocked, and why.
+
+This contract is not a new lifecycle, roadmap, owner, planner, runtime, truth source, capability program, dashboard authority, automation mode, or implementation queue.
+
+Capability production audit:
+
+| Item | Classification | Existing expression | Required extension |
+| --- | --- | --- | --- |
+| Stage execution order | `EXISTS_COMPLETE` | OMP order and transition contract already define `A5 -> A6 -> B13 -> B16 -> RT2-S1 -> RT2-S6`. | None. |
+| Produced evidence | `EXISTS_COMPLETE` | Transition contract names evidence produced by each prior stage. | Reuse. |
+| Capability owner | `EXISTS_PARTIAL` | Workstream tables and SYSTEM_MAP name owners, but not as a production graph. | Add production contract and graph. |
+| Capability consumers | `EXISTS_PARTIAL` | Workstream tables name consumers, but not one producer / owner / consumer validation. | Add producer-consumer matrix. |
+| Blocked capability rule | `EXISTS_PARTIAL` | Transition contract names blocked later stages. | Extend into capability-production terms. |
+| Durable production rule | `MISSING` | Reports recorded production evidence, but OMP did not permanently state that production knowledge cannot remain report-only. | Add OMP rule and Canonical Reference durable conclusion. |
+
+Capability production rule:
+
+1. Every produced capability must have exactly one stage producer.
+2. Every produced capability must have one canonical owner.
+3. Every produced capability must have one or more named consumers.
+4. A consumer may use only the evidence and capability named by the producing stage.
+5. Producing a capability unlocks only the named next capability and never unlocks later capabilities by implication.
+6. Blocked capabilities remain blocked until their own producing stage emits accepted evidence.
+7. If a capability has no owner, no consumer, duplicate producers, or circular production, OMP must stop before continuing.
+8. Engineering reports may record evidence, but the Capability Production Graph, producer/consumer relationships, and unlocked/blocked rules must live in OMP/SYSTEM_MAP/Canonical Reference/CPS.
+
+Capability production graph:
+
+```text
+A5 Blast-Radius Certification
+  -> A6 Runtime Eligibility Arbitration
+  -> B13 Metric Reliability Certification
+  -> B16 Rollback Authority Certification
+  -> RT2-S1 Measurement & Observability Foundation
+  -> RT2-S2 Prepared World & Readiness
+  -> RT2-S3 Prepared Delta / Prepared Plan
+  -> RT2-S4 Governed Execution Coordination
+  -> RT2-S5 Certified Concurrency
+  -> RT2-S6 Engineering Recommendation / Engineering Learning
+  -> OMP continuation or existing-owner backlog implementation
+```
+
+Producer / consumer matrix:
+
+| Stage | Produced Capability | Produced Evidence | Capability Owner | Capability Consumers | Unlocked Capability | Unlocked Stage | Blocked Capability | Blocked Stage | Reason |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `A5` | Blast-Radius Certification. | `class_level_blast_radius_certification`; E29 one/two/four-user historical proof consumed read-only. | OMP + blast-radius/action-class owners. | `A6`, Runtime Model, Production Maturity, OMP. | Runtime Eligibility Arbitration. | `A6` | Runtime apply, automation, authority expansion, class promotion, concurrency. | `B13+`, RT2, runtime apply. | Blast-radius evidence shape is certified, but it does not grant execution or authority. |
+| `A6` | Runtime Eligibility Arbitration. | `runtime_eligibility_arbitration`; execute-or-stop gate rows. | Runtime Model + OMP + delegated policy/action-class owners. | `B13`, Runtime Model, Production Maturity, OMP. | Metric Reliability Certification. | `B13` | Positive promotion, automatic execution, authority expansion, runtime apply. | `B16+`, RT2, runtime apply. | Metric reliability can consume one canonical STOP/execute answer; A6 itself stops at authority/runtime_apply. |
+| `B13` | Metric Reliability Certification. | `metric_reliability_certification`; reliable blocking recommendation evidence. | OMP + metric/promotion evidence owners. | `B16`, Production Maturity, Engineering Intelligence, OMP. | Rollback Authority Certification. | `B16` | Positive promotion, automatic rollback authority, action-class authority, runtime apply. | RT2 and runtime apply. | Rollback authority review needs reliable metric classification; B13 certifies blocking recommendations only. |
+| `B16` | Rollback Authority Certification. | `rollback_authority_certification`; rollback evidence certified for authority review only. | Rollback authority/certification owners + OMP. | `RT2-S1`, Runtime Model, Engineering Intelligence, OMP. | Measurement Foundation. | `RT2-S1` | Runtime apply, automation, authority expansion, user movement, RT2-S2+. | `RT2-S2+`, runtime apply. | Measurement may safely consume rollback evidence read-only; authority is not granted. |
+| `RT2-S1` | Measurement Evidence, Time Domains, Runtime Observability. | `rt2_s1_measurement_observability_foundation`; cost/time/latency/stop/lifecycle/topology fields visible or owner-mapped. | OMP + Runtime Model + measurement/read-model owners. | `RT2-S2`, `RT2-S6`, Runtime Model, Engineering Intelligence, operator dashboards as read-only surfaces. | Prepared World & Readiness. | `RT2-S2` | Desired-state delta, governed execution coordination, concurrency, recommendations, runtime apply. | `RT2-S3+`, runtime apply. | S2 can consume known measurement/observability gaps; measurement cannot decide or mutate. |
+| `RT2-S2` | Prepared World, Prepared Readiness. | `rt2_s2_world_readiness_maturation`; compact state, freshness/readiness, policy gate ownership, trust/learning context. | World Model Plane + Runtime Model placement rules + OMP. | `RT2-S3`, Runtime consumption contract, `RT2-S6`, Engineering Intelligence. | Prepared Delta / Prepared Plan. | `RT2-S3` | Execution coordination, queue behavior, concurrency, authority expansion, runtime mutation. | `RT2-S4+`, runtime apply. | S3 may reference bounded current/readiness state; prepared state cannot approve or bypass gates. |
+| `RT2-S3` | Prepared Delta, Prepared Execution Plan. | `rt2_s3_desired_state_delta_preparedness`; advisory desired-state delta and preview-only prepared plan. | Decision Model + existing planner/autoswitch owners + OMP. | `RT2-S4`, Runtime live-gate validation, packet/preview owners. | Governed Execution Coordination. | `RT2-S4` | Concurrency, automation, runtime queue, authority expansion, user movement. | `RT2-S5+`, runtime apply. | S4 may consume a bounded prepared plan; desired state and deltas remain advisory and non-authorizing. |
+| `RT2-S4` | Governed Execution Coordination. | `rt2_s4_governed_execution_coordination`; read-only owner-mapped bounded decision-to-terminal-outcome coordination and terminal classification. | Runtime Model + existing execution owners + OMP. | `RT2-S5`, feedback/learning owners, Production Maturity, OMP. | Certified Concurrency. | `RT2-S5` | Parallelism, blast-radius expansion, automatic execution without authority. | `RT2-S6` and runtime apply. | One bounded path is owner-mapped; concurrency still needs its own proof, authority, and capacity certification. |
+| `RT2-S5` | Certified Concurrency. | `rt2_s5_certified_concurrency_ladder`; serial-only read-only boundary certified and wider levels explicitly STOP_SAFE. | OMP + action-class/blast-radius/rollback/verification owners + `admin_core.autonomy_trust_acceleration`. | `RT2-S6`, Runtime execution owners, authority model, CPS, Production Maturity. | Evidence-Based Continuous Improvement. | `RT2-S6` | Runtime self-optimization, automatic recommendations, authority lowering, safety gate weakening, runtime apply, concurrency enablement. | `RT2-S6` recommendation effects and runtime apply. | Recommendations now have known safe execution limits; concurrency certification remains safety boundary, not performance-only parallelism or authority. |
+| `RT2-S6` | Engineering Recommendation, Engineering Learning, Recommendation Confidence. | `rt2_s6_evidence_based_continuous_improvement`; owner-mapped recommendation to return OMP to existing backlog item `B1`. | OMP + Backlog + Production Maturity + Research Framework/Process + canonical owners + `admin_core.autonomy_trust_acceleration`. | OMP, Engineering Intelligence, future capability evolution, `B1`, Current Program State, Production Maturity. | OMP backlog continuation. | `B1`. | New roadmap, new owner, Runtime self-optimization, direct implementation without OMP, authority lowering, safety-gate weakening. | Any parallel lifecycle. | S6 output is advisory and canonically preserved; OMP now routes continuation to existing backlog item B1. |
+
+Capability graph validation:
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| One producer per capability | `PASS` | Each produced capability is tied to exactly one stage in the matrix. |
+| One canonical owner per capability | `PASS` | Owners are existing OMP/Runtime/Decision/workstream owners; no new owner is introduced. |
+| One or more consumers per capability | `PASS` | Every row names at least one consumer. |
+| No orphan capability | `PASS` | Every produced capability unlocks one stage or returns to OMP/existing owner flow. |
+| No duplicated producer | `PASS` | Related concepts may be consumed later, but production belongs to one stage only. |
+| No circular production | `PASS` | The graph is linear through RT2-S6, then returns to OMP continuation; it does not loop back as a producer of earlier stages. |
+
+Current produced capability state:
+
+| Field | Value |
+| --- | --- |
+| Last produced capability | Hard-Failure Policy Windows |
+| Producer stage | `B2` |
+| Produced evidence | `hard_failure_policy_windows = DONE_READ_ONLY_OWNER_MAPPED`; next step is existing backlog item `B3`. |
+| Capability owner | Existing hard-failure classification, liveness aggregation, action-class freshness, anti-flap owners + OMP + Backlog + Production Maturity + `admin_core.autonomy_trust_acceleration` |
+| Current consumers | OMP, `B3`, Current Program State, Production Maturity, Canonical Reference, Movement Protection, Observability, Runtime Eligibility |
+| Current unlocked capability | Soft-degradation trend threshold vocabulary alignment |
+| Current blocked capabilities | Runtime apply, automation, concurrency enablement, authority expansion, queue daemon, planner replacement, timer changes, synthetic evidence, user movement |
+
+## 24.3 OMP Progress Dashboard Model
+
+Status: `ACTIVE_CANONICAL_READ_ONLY`.
+
+Owner: OMP.
+
+Purpose:
+
+OMP must provide a permanent read-only dashboard model so an operator can understand current project state within one minute without reading historical reports.
+
+This dashboard model is not a Runtime, Planner, owner, truth source, roadmap, master program, capability program, authority surface, automation mode, implementation queue, or scoring engine. It consumes canonical owners only.
+
+Dashboard audit:
+
+| Dashboard area | Classification | Existing expression | Required extension |
+| --- | --- | --- | --- |
+| Overall OMP Progress | `EXISTS_PARTIAL` | V7 Production Status, Production Maturity, backlog progress, and CPS metrics. | Define one read-only visual grouping. |
+| Current OMP State | `EXISTS_PARTIAL` | CPS current state, transition state, produced capability state. | Define mandatory current-state dashboard fields. |
+| Capability Progress | `EXISTS_PARTIAL` | Capability Dashboard and CPS capability progress. | Reuse existing capability registry and status terms. |
+| Capability Production Graph | `EXISTS_COMPLETE` | OMP Capability Production Contract. | Reuse graph as dashboard source. |
+| RT2 Progress | `EXISTS_PARTIAL` | RT2 workstreams and CPS RT2 statuses. | Define compact S1-S6 visual status. |
+| Production Maturity | `EXISTS_PARTIAL` | Production Maturity Model and CPS metrics. | Define visual score, target, remaining, and trend fields. |
+| Engineering Intelligence | `EXISTS_PARTIAL` | Runtime Model, OMP lifecycle, Production Maturity, SYSTEM_MAP, CPS. | Define compact maturity view. |
+| Current Stop Gates | `EXISTS_PARTIAL` | CPS stop reason, OMP stop conditions, Runtime/authority boundaries. | Define operator-visible gate list. |
+| Transition Explanation | `EXISTS_COMPLETE` | OMP Capability Transition Contract. | Reuse current transition explanation in dashboard. |
+| Capability Quality Future View | `MISSING` | Quality/confidence/readiness/reliability may exist per owner but not as a dashboard read-model placeholder. | Add future-ready read-only placeholder; no scoring yet. |
+
+Dashboard source map:
+
+| Dashboard data | Permanent source | Dashboard use |
+| --- | --- | --- |
+| Scheduler rules, execution order, transition explanation, production graph | OMP | Explain why current and next steps exist. |
+| Current step, previous step, next step, stop reason, current metrics | Current Program State | Display volatile current state only. |
+| Owner lookup | SYSTEM_MAP | Show where evidence and capabilities belong. |
+| Durable conclusions | Canonical Reference | Prevent report-only dashboard knowledge. |
+| Production maturity score | Production Maturity Model | Display current score, target, remaining, and trend. |
+| Capability state | OMP capability registry + CPS snapshot | Display capability status without creating a second backlog. |
+
+Visual grammar:
+
+| Visual element | Required meaning |
+| --- | --- |
+| Progress bar | Shows current value against target only; it is not authority and not certification by itself. |
+| Status color | Green = complete/certified, blue = current, amber = waiting/partial, red = blocked/STOP, gray = not started. |
+| Capability graph | Displays producer -> produced capability -> owner -> consumers -> unlocked stage -> blocked stage. |
+| Compact card | Displays one dashboard area with source owner and current state. |
+| Expandable details | May reveal evidence, owner, consumers, stop reason, and source document. |
+
+Dual-view visualization audit:
+
+| Item | Classification | Existing expression | Required extension |
+| --- | --- | --- | --- |
+| Operator-facing project view | `EXISTS_PARTIAL` | V7 Production Status, CPS snapshot, UI Operator Surface principle. | Add Operator View contract inside the existing dashboard model. |
+| Engineering trace view | `EXISTS_PARTIAL` | Capability Production Contract, Transition Contract, SYSTEM_MAP ownership lookup, Engineering Surface principle. | Add Engineering View contract inside the existing dashboard model. |
+| Shared canonical data | `EXISTS_COMPLETE` | OMP, SYSTEM_MAP, CPS, Production Maturity Model, Canonical Reference. | Reuse only; no duplicated read model. |
+| View synchronization rule | `MISSING` | Current dashboard says sources, but not that both views use identical data. | Add explicit synchronization rule. |
+| Future-ready quality/confidence placeholders | `EXISTS_PARTIAL` | Capability Quality future view exists; Recommendation Confidence exists through RT2-S6/confidence owners. | Expose placeholders in both views without scoring. |
+
+Dual-view rule:
+
+1. OMP Dashboard has exactly two presentation views: `OPERATOR_VIEW` and `ENGINEERING_VIEW`.
+2. Both views consume the same canonical data from OMP, SYSTEM_MAP, Current Program State, Production Maturity Model, and Canonical Reference.
+3. The views may differ only by presentation density, labels, grouping, and default expansion level.
+4. Neither view may duplicate state, create a read model, create a truth source, change priority, approve work, certify evidence, mutate Runtime, expand authority, create a queue, or replace Planner.
+5. If the two views disagree, the dashboard must treat the mismatch as a visualization defect and resolve back to canonical owners before display.
+
+Synchronization model:
+
+| Shared data | Operator View presentation | Engineering View presentation | Canonical owner |
+| --- | --- | --- | --- |
+| Overall OMP Progress | Progress bars and status cards. | Score components, backlog counts, maturity source. | OMP + CPS + Production Maturity Model. |
+| Current Step / Previous Step / Next Step | Simple current-state card. | Transition contract row with evidence and blockers. | CPS + OMP. |
+| Current Production Maturity | One score, target, trend. | Score inputs, target, remaining, next milestone. | Production Maturity Model + CPS. |
+| RT2 stage | Compact S1-S6 progress. | RT2 workstream table, owners, inputs, outputs, consumers. | OMP + CPS. |
+| Engineering Intelligence stage | Compact maturity strip. | EI ownership lookup, lifecycle, validation/adaptation status. | Runtime Model + OMP + SYSTEM_MAP + CPS. |
+| Stop Gates | Red/amber gate cards with reason. | Gate owner, evidence, stop condition, blocked capability. | OMP + Runtime Model + CPS. |
+| Produced / Unlocked / Blocked Capability | Simple capability graph. | Capability Production Graph and producer/consumer matrix. | OMP + SYSTEM_MAP + CPS. |
+| Current Risks | Short risk cards. | Evidence gaps, blockers, owners, canonical references. | CPS + OMP + Canonical Reference. |
+| Current Recommendation | Plain recommendation card. | Recommendation evidence, owner, confidence placeholder, consumers. | OMP + RT2-S6 + CPS. |
+| Capability Quality future fields | Placeholder chips only. | Owner-mapped placeholder table. | Existing future read-model owners through SYSTEM_MAP. |
+
+Operator View contract:
+
+| Area | Required display | Default presentation |
+| --- | --- | --- |
+| Overall OMP Progress | Architecture, Tier A, Tier B, RT2, Engineering Intelligence, Overall Progress, Production Maturity. | Progress bars and compact cards. |
+| Current Step | Current Step, Previous Step, Next Step, Reason. | One current-state card with expandable detail. |
+| Current Production Maturity | Current score, target, remaining, trend. | Progress bar and milestone label. |
+| Current RT2 stage | S1-S6 status. | Compact stage strip. |
+| Current Engineering Intelligence stage | Observation, Process, Time, Recommendation, Validation, Adaptation. | Compact maturity strip. |
+| Current Stop Gates | Runtime Apply, Automation, Authority, User Movement, Planner, Queue, Concurrency, Desired State. | Color-coded gate cards. |
+| Capability state | Current Produced Capability, Current Unlocked Capability, Current Blocked Capability. | Simple capability graph. |
+| Current Risks | Active stop risks and forbidden later steps. | Short risk cards. |
+| Current Recommendation | Current OMP recommendation and required action. | Plain-language recommendation card. |
+| Expandable details | Source owner, evidence pointer, blocker reason. | Hidden by default. |
+
+Operator View principles:
+
+1. Minimal.
+2. Fast.
+3. Visually understandable.
+4. Uses progress bars, cards, color coding, and a simple capability graph.
+5. No engineering noise by default.
+6. Every card can expand to show its source owner.
+
+Engineering View contract:
+
+| Area | Required display | Default presentation |
+| --- | --- | --- |
+| Capability Graph | Current capability dependency graph. | Expanded graph. |
+| Capability Production Graph | Stage -> Produced Capability -> Owner -> Consumers -> Unlocked Stage -> Blocked Stage. | Full production graph. |
+| Producer / Consumer Matrix | Producer, produced evidence, owner, consumers, blockers. | Full matrix. |
+| Transition Contracts | Why next step is available and why later steps remain blocked. | Full transition rows. |
+| Capability Contracts | Capability status, DoD, remaining criteria, reopen triggers. | Traceable tables. |
+| Capability Quality future-ready | Quality, Confidence, Readiness, Reliability, Recommendation Confidence. | Placeholder table; no scoring. |
+| Owner Mapping | Canonical owner, existing read owners, forbidden ownership. | SYSTEM_MAP links. |
+| Engineering Intelligence | Observation, Process, Time, Recommendation, Validation, Adaptation. | Owner and lifecycle trace. |
+| RT2 Workstreams | Purpose, owners, inputs, outputs, consumers, criteria, evidence. | Full workstream rows. |
+| Dependency Graph | Produced capability, consumed evidence, blocked future capabilities. | Expanded dependency view. |
+| Current Evidence | Current produced evidence and consumers. | Evidence trace table. |
+| Current Blockers | Stop gates, blocked capabilities, unsafe later steps. | Blocker matrix. |
+
+Engineering View principles:
+
+1. Complete.
+2. Traceable.
+3. Explainable.
+4. Evidence based.
+5. Every displayed field must point back to OMP, SYSTEM_MAP, CPS, Production Maturity Model, Canonical Reference, or an existing owner named by those documents.
+
+Dashboard sections:
+
+| Section | Required display | Canonical source |
+| --- | --- | --- |
+| Overall OMP Progress | Architecture, Tier A, Tier B, RT2, Engineering Intelligence, Overall Progress, Production Maturity. | OMP + CPS + Production Maturity Model. |
+| Current OMP State | Current Step, Previous Step, Next Step, Reason, Current Stop, Current Capability Produced, Current Capability Consumed. | CPS + OMP transition/production contracts. |
+| Capability Progress | Status for each major capability: `NOT_STARTED`, `IN_PROGRESS`, `COMPLETED`, `BLOCKED`, `WAITING`, `CERTIFIED`, `CONSUMED`. | OMP capability registry + CPS. |
+| Capability Production Graph | Stage -> Produced Capability -> Capability Owner -> Consumers -> Unlocked Stage -> Blocked Stage. | OMP Capability Production Contract + SYSTEM_MAP. |
+| RT2 Progress | `RT2-S1` through `RT2-S6` and current maturity. | OMP RT2 workstreams + CPS. |
+| Production Maturity | Current score, target score, remaining score, latest trend, next milestone. | Production Maturity Model + CPS. |
+| Engineering Intelligence | Observation, Process, Time, Recommendation, Validation, Adaptation, current maturity. | Runtime Model + OMP + Production Maturity + CPS. |
+| Current Stop Gates | Runtime Apply, Automation, Authority, User Movement, Planner, Queue, Concurrency, Desired State, and why each is blocked or open. | OMP stop rules + Runtime Model + CPS. |
+| Transition Explanation | Current stage -> Produced capability -> Why next stage unlocked -> Why later stages remain blocked. | OMP Capability Transition Contract. |
+| Capability Quality Future View | Capability Quality, Confidence, Readiness, Reliability as reserved read-model fields only. | Future existing-owner read models; no score until certified. |
+
+Current dashboard snapshot:
+
+| Area | Current display |
+| --- | --- |
+| Architecture | `[##########] 100% COMPLETE` |
+| Tier A | `[##########] 6 / 6 COMPLETE` |
+| Tier B | `[##--------] 4 / 21 IN_PROGRESS` |
+| RT2 | `[##########] 6 / 6 COMPLETE_READ_ONLY` |
+| Engineering Intelligence | `[########--] FINAL_CANONICAL_STATE / implementation evidence future` |
+| Overall actionable backlog | `10 / 34 complete` |
+| Production Maturity | `[####------] 39.0 / 100; target 100; remaining 61.0` |
+| Current step | `B3_ALIGN_SOFT_DEGRADATION_TREND_THRESHOLDS_TO_CANONICAL_POLICY_VOCABULARY` |
+| Previous step | `B2_ADD_HARD_FAILURE_TIMER_RISK_CLASS_TO_POLICY_WINDOWS` |
+| Reason current step is available | B2 produced read-only hard-failure policy windows through existing owners, enabling soft-degradation threshold vocabulary alignment. |
+| Current stop | `NONE_FOR_B3_SOFT_DEGRADATION_THRESHOLDS` |
+
+RT2 dashboard:
+
+| Workstream | Status | Current maturity | Dashboard note |
+| --- | --- | --- | --- |
+| `RT2-S1` | `DONE_READ_ONLY` | Complete | Measurement/observability visible or owner-mapped. |
+| `RT2-S2` | `DONE_READ_ONLY` | Complete | Prepared world/readiness is read-only and non-authorizing. |
+| `RT2-S3` | `DONE_READ_ONLY` | Complete | Desired-state delta remains advisory. |
+| `RT2-S4` | `DONE_READ_ONLY` | Complete | Governed coordination is owner-mapped without queue creation. |
+| `RT2-S5` | `DONE_READ_ONLY` | Complete | Wider concurrency remains STOP_SAFE. |
+| `RT2-S6` | `DONE_READ_ONLY` | Complete | Recommendation returns OMP to `B1`; advisory only. |
+
+Engineering Intelligence dashboard:
+
+| Capability | Current maturity | Source |
+| --- | --- | --- |
+| Observation | `MEASURED_PARTIAL` | `RT2-S1`, existing observation/read-model owners. |
+| Process | `UNDERSTOOD_EXPRESSED` | Runtime Model + Work Placement + Decision Lifecycle + OMP. |
+| Time | `CANONICALIZED_INSIDE_RT2` | Runtime Model + `RT2-S1` + `RT2-S6`. |
+| Recommendation | `MATERIALIZED_ADVISORY` | `RT2-S6` + OMP + Backlog. |
+| Validation | `UNDERSTOOD_PARTIAL_VALIDATION` | Engineering Intelligence Phase 2 owners. |
+| Adaptation | `ADAPTIVE_ENGINEERING_READY_IMPLEMENTATION_FUTURE` | Engineering Intelligence Phase 3 owners. |
+
+Current stop gates dashboard:
+
+| Gate | Display status | Why |
+| --- | --- | --- |
+| Runtime Apply | `BLOCKED` | No runtime apply authority or certification is active. |
+| Automation | `BLOCKED` | Production autonomy is not certified. |
+| Authority | `BLOCKED` | No authority expansion is active. |
+| User Movement | `BLOCKED` | No approved packet or movement authority is active. |
+| Planner | `BLOCKED` | Existing planner/autoswitch owners remain; no replacement is allowed. |
+| Queue | `BLOCKED` | No queue daemon or hidden retry engine is certified. |
+| Concurrency | `BLOCKED` | Current certified boundary is serial-only/read-only. |
+| Desired State | `ADVISORY_ONLY` | Desired state and deltas cannot authorize movement or mutate Runtime. |
+
+Capability quality future view:
+
+| Field | Current status | Rule |
+| --- | --- | --- |
+| Capability Quality | `RESERVED_READ_MODEL_ONLY` | No score until an existing owner produces certified quality evidence. |
+| Capability Confidence | `RESERVED_READ_MODEL_ONLY` | May display existing confidence only; cannot become authority. |
+| Capability Readiness | `RESERVED_READ_MODEL_ONLY` | May display readiness from canonical owners only. |
+| Capability Reliability | `RESERVED_READ_MODEL_ONLY` | May display reliability after verification/certification evidence exists. |
+
+Dashboard rules:
+
+1. Dashboard is read-only.
+2. Dashboard consumes canonical owners only.
+3. Dashboard cannot decide, approve, rank implementation, mutate Runtime, certify evidence, expand authority, create a queue, create a planner, create a roadmap, or become a truth source.
+4. Dashboard status must name its source owner.
+5. Dashboard may show future-ready placeholders only as `RESERVED_READ_MODEL_ONLY`; placeholders cannot affect OMP priority or authority.
+6. Engineering reports may record dashboard audit evidence, but the dashboard model must live in OMP and the current snapshot must live in Current Program State.
+7. Deleting the engineering report must not remove any important dashboard structure, ownership rule, current state field, or durable conclusion.
+
+### Dashboard UI Foundation Contract
+
+Status: `ACTIVE_CANONICAL_UI_FOUNDATION`.
+
+Owner: OMP.
+
+Purpose:
+
+The OMP Dashboard is the canonical V7 home screen. It visualizes existing canonical state so the operator can understand project status within one minute and the engineer can trace every displayed fact to its owner.
+
+The UI foundation is not dashboard implementation code, a Runtime, Planner, owner, truth source, roadmap, scoring engine, authority surface, automation surface, queue, or implementation path.
+
+UI discovery audit:
+
+| Existing UI/read-model area | Classification | Reuse decision | Dashboard role |
+| --- | --- | --- | --- |
+| Existing admin Overview / dashboard schema | `EXISTS_PARTIAL` | Reuse read-only summary, health, route, service, and alert patterns from `admin_core.overview_views` and `v7.admin.dashboard.v1`. | Secondary drill-down and source pattern; not canonical OMP home truth. |
+| Existing admin navigation | `EXISTS_UNDER_OTHER_NAME` | Reuse simple top-level sections and one-click section switching. | OMP Dashboard becomes default home; existing pages remain drill-down destinations. |
+| Existing Operator surfaces | `EXISTS_PARTIAL` | Reuse recommendation, evidence, blocker, drawer, and progressive-disclosure patterns from operator view/decision/observability surfaces. | Operator View language and expandable details. |
+| Existing Execution surfaces | `EXISTS_PARTIAL` | Reuse governed execution, packet, lease, rollback, evidence, and terminal-state trace as details. | Engineering View trace links only; no execution control. |
+| Existing Health / Checks / Runtime read views | `EXISTS_PARTIAL` | Reuse read-only health, runtime-summary, service, route, and diagnostic contracts. | Drill-down evidence panels and stop-gate explanations. |
+| Existing design HTML dashboards | `EXISTS_UNDER_OTHER_NAME` | Reuse layout vocabulary only: top navigation, compact metrics, status chips, cards, tables, alerts, topology, responsive grid. | Visual reference only; no state, owner, or implementation truth. |
+| OMP Dashboard Model and Dual-View Model | `EXISTS_COMPLETE` | Reuse as canonical dashboard data contract and presentation split. | Permanent model for the home screen. |
+| Canonical OMP home screen rule | `MISSING` | Add inside OMP. | `OMP_DASHBOARD` is the main landing page. |
+
+Home screen rule:
+
+1. The V7 main landing page is `OMP_DASHBOARD`.
+2. `OMP_DASHBOARD` defaults to `OPERATOR_VIEW`.
+3. `ENGINEERING_VIEW` is a synchronized mode on the same page, not a separate source, read model, or dashboard.
+4. Existing Overview, Health, Operator, Routing, Users, Channels, Checks, Execution, Logs, Settings, and Security surfaces are secondary drill-down destinations.
+5. A secondary surface may display domain-specific state only from its existing owner; it must not override OMP Dashboard state.
+6. If a secondary surface and OMP Dashboard disagree, the disagreement is a visualization/data wiring defect and must resolve back to canonical owners.
+
+Dashboard hierarchy:
+
+| Layer | UI responsibility | Required content | Source |
+| --- | --- | --- | --- |
+| App shell | Provide stable navigation. | Home: `OMP Dashboard`; drill-downs: Operator, Execution, Health/Read Models, Reports/Canonical, existing admin sections when implemented. | OMP + SYSTEM_MAP. |
+| Page header | Show current program identity. | V7, Product Execution Mode, current step, mode toggle, source timestamp, read-only badge. | CPS + OMP. |
+| Operator summary band | One-minute status. | Overall progress, Production Maturity, RT2, Engineering Intelligence, current step, next step, stop gates. | CPS + OMP + Production Maturity. |
+| Current work area | Explain why now. | Previous/current/next step, reason, produced capability, consumed capability, unlocked capability, blocked capability, recommendation, risk. | OMP transition/production contracts + CPS. |
+| Capability visual area | Show system flow. | Simple capability graph in Operator View; full production/dependency graph in Engineering View. | OMP + SYSTEM_MAP. |
+| Detail drawer / expandable rows | Preserve traceability without noise. | Owner, evidence, consumers, blockers, source document, related report, current verification state. | SYSTEM_MAP + CPS + Canonical Reference + existing owners. |
+
+Operator View UI foundation:
+
+| Region | Required widgets | Rule |
+| --- | --- | --- |
+| Status strip | Production Maturity indicator, current step badge, read-only badge, stop-gate summary. | Must fit one scan; no raw engineering tables by default. |
+| Progress row | Overall OMP progress, Tier A/B/C, RT2, Engineering Intelligence, backlog completion. | Progress bars only; progress is not authority. |
+| Current work card | Previous step, current step, next step, reason current step is available. | Plain operator language. |
+| Capability card | Produced, consumed, unlocked, blocked capability. | Simple graph or stacked cards. |
+| Stop gates | Runtime Apply, Automation, Authority, User Movement, Planner, Queue, Concurrency, Desired State. | Red/amber/blue/green/gray status colors with reason. |
+| Recommendation / risk cards | Current recommendation, current risks, why later steps remain forbidden. | Short by default; expandable details. |
+| Drill-down links | Operator, Execution, Health, Evidence, Canonical owner. | One click from the card; no duplicated state. |
+
+Engineering View UI foundation:
+
+| Region | Required widgets | Rule |
+| --- | --- | --- |
+| Capability graph | Capability dependency graph and current position. | Trace every node to owner. |
+| Production graph | Stage -> produced capability -> owner -> consumers -> unlocked stage -> blocked stage. | Reuse OMP Capability Production Contract. |
+| Producer / consumer matrix | Producer, evidence, consumers, blockers, owner. | Full trace table. |
+| Transition contracts | Why next step is available; why later steps remain blocked. | Reuse OMP Capability Transition Contract. |
+| RT2 / Engineering Intelligence | Workstream and EI maturity details. | Read-only/advisory boundaries visible. |
+| Evidence and blocker panes | Produced evidence, consumed evidence, stop gates, missing proof. | Link to existing reports/owners; no synthetic evidence. |
+| Owner mapping | Canonical owner and existing read owners. | SYSTEM_MAP owns lookup. |
+| Future quality placeholders | Quality, confidence, readiness, reliability, recommendation confidence. | `RESERVED_READ_MODEL_ONLY`; no scoring. |
+
+Navigation model:
+
+| Navigation target | User meaning | Source rule |
+| --- | --- | --- |
+| `Home / OMP Dashboard` | See complete project state and current OMP step. | Default landing page; consumes canonical owners only. |
+| `Current Step` | Jump to current backlog/work item context. | CPS current step + OMP. |
+| `Current Report` | Open latest relevant Engineering Report as evidence. | Report is evidence only. |
+| `Canonical Owner` | Open the document that owns the displayed rule. | SYSTEM_MAP + Canonical Reference. |
+| `Evidence` | Open evidence, tests, or read-only payload behind a card. | Existing evidence/read-model owner. |
+| `Operator` | Open operator-facing recommendation/workflow details. | Existing operator surfaces. |
+| `Execution` | Open governed execution/packet trace when relevant. | Existing execution owners; no apply control from dashboard. |
+| `Health / Read Models` | Open health, route, service, runtime, and diagnostic details. | Existing read-only owners. |
+
+Visual foundation:
+
+| Component | Required use | Forbidden use |
+| --- | --- | --- |
+| Progress bar | Show percent/count against canonical target. | Authority, certification, or hidden scoring. |
+| Timeline | Show previous/current/next OMP stage. | New roadmap or alternate queue. |
+| Stage card | Show one OMP capability/stage with owner and status. | Duplicated backlog item. |
+| Badge/chip | Show status, owner, gate, or maturity. | Substitute for evidence. |
+| Capability graph | Explain producer/consumer/unlock/block flow. | Planner or dependency executor. |
+| Producer -> consumer graph | Show traceability. | Automation trigger. |
+| Stop-gate indicator | Show why something is blocked/open. | Gate decision or authority change. |
+| Expandable detail | Show source, evidence, owner, blockers. | Hide missing ownership. |
+| Charts | Reserved for later implementation. | Do not implement or require charts in this task. |
+
+UX principles:
+
+1. Modern engineering platform: calm, fast, readable, sparse, and high signal.
+2. Operator View is minimal and beautiful enough to understand in one minute.
+3. Engineering View is complete, traceable, and evidence based.
+4. Both views use identical canonical data.
+5. No duplicated widgets when a single shared widget can change presentation density.
+6. No duplicated read model, state, truth, score, priority, or authority.
+7. Default view hides engineering noise but keeps one-click traceability.
+8. Dashboard is read-only and must visibly say so.
+9. Charts are not part of this foundation; only the UI model is canonicalized.
+10. Existing admin surfaces remain useful, but the OMP Dashboard is the home screen.
+
+### Dashboard Design System
+
+Status: `ACTIVE_CANONICAL_DESIGN_SYSTEM`.
+
+Owner: OMP.
+
+Purpose:
+
+The Dashboard Design System defines the permanent visual language for future OMP Dashboard implementation. It does not implement UI, React, HTML, Runtime behavior, OMP logic, new read models, new data models, new authority, or new architecture.
+
+Dashboard philosophy:
+
+The dashboard must answer immediately:
+
+1. Where are we?
+2. Why are we here?
+3. What is blocked?
+4. What was produced?
+5. What comes next?
+6. Why?
+7. What changed today?
+8. What is the current maturity?
+
+Reference-product research:
+
+| Reference | Reuse for V7 | Avoid for V7 |
+| --- | --- | --- |
+| Linear | Focused workspace, restrained density, keyboard-fast feel, low visual noise, elegant status language. | Ambiguous beauty without explicit evidence trace. |
+| GitHub Projects | Multiple synchronized views over the same underlying items: table, board, roadmap, filters, fields. | Turning view configuration into a second planning system. |
+| Stripe Dashboard | Clear home surface, sidebar navigation, search/command access, strong hierarchy, operational polish. | Business-metric cards that imply authority without evidence. |
+| Datadog | Dashboard purpose, widgets, grouping, drill-down, operational status visualization. | Metric overload, duplicated dashboards, noisy wallboards. |
+| Grafana | Time-series/dashboard discipline, panels, variables, reusable views, drill-down by data source. | Chart-first UI before V7 has certified chart read models. |
+| Apple HIG / modern macOS / modern iOS | Clarity, hierarchy, spacing, legibility, calm color, accessible targets, dark/light mode quality. | Decorative motion, low contrast, tiny hit targets, excessive translucency. |
+
+V7 visual language:
+
+| Dimension | Canonical rule |
+| --- | --- |
+| Tone | Calm, precise, production-grade, minimal, not decorative. |
+| Density | Operator View is sparse; Engineering View is dense but structured. |
+| Typography | Large readable headings, compact labels, numeric emphasis only for canonical metrics. |
+| Spacing | Consistent 8px rhythm; card interiors breathe; engineering tables remain scan-friendly. |
+| Radius | Small radius, preferably `6-8px`; no large bubbly cards. |
+| Color | Soft semantic palette: green complete, blue current/info, amber waiting/risk, red blocked/STOP, gray inactive. |
+| Dark mode | First-class, low-glare, high-contrast text, restrained borders, no heavy gradients. |
+| Light mode | First-class, quiet background, clear cards, same semantic colors. |
+| Icons | Use simple recognizable icons for status/navigation when implemented; text labels remain required for safety-critical status. |
+| Motion | Minimal and functional only: expansion, focus, selection, graph highlight. |
+| Visual noise | No decorative blobs, no chart clutter, no duplicated widgets, no irrelevant metrics. |
+
+Dashboard layout system:
+
+| Surface | Layout |
+| --- | --- |
+| Operator Home Screen | Header + status strip + progress row + current stage card + stop-gate/risk row + simple capability graph + expandable details. |
+| Engineering View | Header + graph/matrix split + transition/production contracts + RT2/EI panels + evidence/blocker/owner tables + expandable technical detail. |
+| Capability Graph | Left-to-right flow: stage -> produced capability -> owner -> consumers -> unlocked stage -> blocked stage. |
+| Production Maturity | One large maturity indicator with target, remaining, next milestone, and source owner. |
+| RT2 Progress | Six-stage horizontal strip with complete/current/blocked markers and workstream detail expansion. |
+| Engineering Intelligence | Six-part maturity strip: Observation, Process, Time, Recommendation, Validation, Adaptation. |
+| Current Stage | Timeline card: previous -> current -> next, plus why current is available. |
+| Current Stop Gates | Grid of gate cards with status, reason, owner, and blocked capability. |
+
+Operator Home Screen conceptual mockup:
+
+```text
+V7 / OMP Dashboard                                      READ ONLY
+Product Execution Mode             Operator View | Engineering View
+
+[Production Maturity 39.0/100] [Current: B3] [RT2 Complete] [EI Canonical]
+
+Overall Progress
+Architecture [##########]  Tier A [##########]  Tier B [#---------]
+RT2          [##########]  Backlog [###-------] Production [####------]
+
+Current Stage
+B2 completed -> B3 current -> Continue OMP after evidence/report/canonical update
+Why now: B2 produced owner-mapped hard-failure policy windows.
+
+Capability
+Produced: Liveness Evidence Aggregation
+Consumed by: B3 soft-degradation threshold vocabulary alignment
+Unlocked: Soft-degradation trend threshold vocabulary
+Blocked: Runtime apply, automation, authority, queue, concurrency, user movement
+
+Stop Gates
+[BLOCKED Runtime Apply] [BLOCKED Automation] [BLOCKED Authority] [BLOCKED User Movement]
+[BLOCKED Planner] [BLOCKED Queue] [BLOCKED Concurrency] [ADVISORY Desired State]
+
+Recommendation
+Execute B3 through existing planner/autoswitch, quality compact, and service matrix owners.
+```
+
+Engineering View conceptual mockup:
+
+```text
+V7 / OMP Dashboard                                      READ ONLY
+Engineering View
+
+Capability Production Graph
+B2 -> Hard-Failure Policy Windows -> existing hard-failure/liveness/freshness/anti-flap owners
+   -> consumers: OMP, B3, CPS, Production Maturity, Canonical Reference
+   -> unlocks: B3
+   -> blocks: runtime apply, automation, authority expansion, queue, user movement
+
+Producer / Consumer Matrix
+| Producer | Evidence | Owner | Consumers | Unlocked | Blocked |
+
+Transition Contract
+Why B3 is available: B2 evidence is read-only, owner-mapped, tested, and safe to consume.
+Why later steps remain forbidden: no authority/runtime/concurrency/apply proof.
+
+Panels
+[RT2 S1-S6] [Engineering Intelligence] [Production Maturity] [Stop Gates]
+[Evidence] [Canonical Owners] [Risks] [Expandable Technical Detail]
+```
+
+Component design:
+
+| Component | Visual rule | Interaction |
+| --- | --- | --- |
+| Progress bar | Thin, labeled, source-owned, no hidden formula. | Hover/focus shows source and last update. |
+| Timeline | Previous/current/next only by default. | Click current opens transition detail. |
+| Capability card | Status, owner, produced/consumed/unlocked/blocked. | Expand for evidence and consumers. |
+| Capability graph | Simple in Operator View; full in Engineering View. | Select node to show owner/evidence/details. |
+| Stage graph | Horizontal OMP/RT2 stage flow. | Click stage opens workstream/contract detail. |
+| Dependency graph | Engineering-only by default. | Filter by owner, blocker, consumer. |
+| Status badge | Semantic color plus text. | Never color-only. |
+| Maturity indicator | Score, target, remaining, next milestone. | Expand to category breakdown. |
+| Risk indicator | Amber/red card with reason and owner. | Expand to mitigation/blocked capability. |
+| Stop Gate card | Gate status, reason, owner, blocked capability. | Expand to rule/evidence. |
+| Engineering card | Dense trace card with owner and source. | Expand/collapse technical details. |
+| Recommendation card | Plain-language recommendation plus safety boundary. | Expand for evidence/confidence placeholder. |
+| Expandable section | Progressive disclosure. | Default closed unless current blocker. |
+
+Interaction model:
+
+1. Default view is `OPERATOR_VIEW`.
+2. `ENGINEERING_VIEW` is a mode switch, not a new page or data source.
+3. Every card supports one-click drill-down to owner/evidence when implemented.
+4. Search is global across current step, capability, owner, evidence, gate, report, and canonical reference.
+5. Filters exist only in Engineering View by default: owner, status, stage, blocker, consumer, evidence type.
+6. Timeline interaction shows previous/current/next; deeper history is an expansion.
+7. Capability graph interaction highlights producer, produced capability, owner, consumers, unlocked stage, and blocked stages.
+8. Mobile adaptation stacks status strip, current stage, stop gates, and recommendation first; graph becomes scrollable/summary-first.
+9. Keyboard access and visible focus are required in future implementation.
+10. Dashboard interactions cannot mutate Runtime, approve work, rank implementation, or change authority.
+
+Design Do / Do Not:
+
+| Do | Do not |
+| --- | --- |
+| Use clear hierarchy, calm contrast, compact status language. | Create decorative hero/marketing UI. |
+| Show source owner for every important field. | Present unsourced numbers. |
+| Prefer progress bars, timelines, cards, badges, and simple graphs. | Require charts before chart read models exist. |
+| Use progressive disclosure. | Dump full engineering tables into Operator View. |
+| Preserve identical data across both views. | Duplicate state, truth, read models, or widgets. |
+| Make blocked state explicit. | Hide STOP gates behind green progress. |
+| Keep dark and light modes equally polished. | Treat dark mode as an afterthought. |
 
 ## 25. Program Rule For Future Work
 
@@ -4085,3 +4714,1040 @@ V7 can continue production evolution using only:
 No additional roadmap document is required.
 
 This remains true unless a real implementation proves `FUNDAMENTAL_ARCHITECTURE_GAP`.
+
+## 28. Runtime Capability Maturation Program / RT Phase 2
+
+Status: `DISCOVERED_VALIDATED_REFINED_NOT_IMPLEMENTED`.
+
+Canonical name:
+
+```text
+Runtime Capability Maturation Program
+```
+
+Alias:
+
+```text
+RT Phase 2
+```
+
+Purpose:
+Mature existing runtime capabilities through OMP without creating a new Runtime, Planner, World Model, Truth Source, Owner, Backlog, roadmap, dashboard authority, queue daemon, or automation path.
+
+Current execution order remains:
+
+```text
+A5 -> A6 -> B13 -> B16 -> Runtime Capability Maturation Program
+```
+
+RT2 execution must not begin until OMP proves all entry criteria below.
+The entry chain is complete or explicitly scoped through A5/A6/B13/B16. RT2-S1 through RT2-S6 are complete as read-only/advisory owner-mapped surfaces. RT2 produced an owner-mapped recommendation to return OMP to existing backlog item `B1_AGGREGATE_LIVENESS_EVIDENCE_BY_SOURCE_FAMILY_AND_CONFIDENCE`.
+
+### 28.1 Entry Criteria
+
+| Criterion | Required state |
+| --- | --- |
+| A5 | Class-level blast-radius evidence beyond one-user guard complete. |
+| A6 | Runtime eligibility arbitration complete. |
+| B13 | Metric reliability for promotion recommendations certified. |
+| B16 | Automatic rollback authority after reliable verification evidence certified or explicitly scoped. |
+| Runtime automation | Still disabled until explicit authority/certification exists. |
+| Authority | No silent expansion; required class/policy/blast authority explicitly approved. |
+| Measurement readiness | Runtime cost and reaction-latency measurement owners available through existing read models. |
+| Safety readiness | Freshness, authority, verification, rollback, blast radius, anti-flap, and STOP_SAFE gates preserved. |
+| Owner reuse | Existing owners cover the work; Need New Owner remains `FALSE`. |
+
+### 28.2 Stop Conditions
+
+RT2 must stop at the existing OMP stop conditions:
+
+1. `OPERATIONAL_AUTHORITY`
+2. `ENGINEERING_AUTHORITY`
+3. `REAL_WORLD_LIMIT`
+4. `UNSAFE_IMPLEMENTATION`
+5. `FUNDAMENTAL_ARCHITECTURE_GAP`
+
+Additional RT2-specific stop rules:
+
+- stop if a workstream requires a new runtime/planner/truth-source/owner before reuse is proven impossible;
+- stop if a queue, dashboard, desired-state artifact, latency metric, or improvement recommendation starts granting authority;
+- stop if automation, concurrency, blast-radius expansion, or runtime behavior change is requested without certification and explicit authority;
+- stop if evidence is synthetic or not tied to observed outcomes.
+
+### 28.3 Workstreams
+
+| Workstream | Purpose | Existing owners | Inputs | Outputs | Consumers | Completion criteria | Safety gates | Evidence requirements | Report requirements | Canonical promotion rule | Next OMP step |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `RT2-S1` Measurement & Observability Foundation | Make runtime cost, runtime time, reaction latency, stop reasons, lifecycle, wait states, dependency topology, Time-To-Safe-Recovery, and bottlenecks visible without hot-path cost. | OMP, Runtime Model, `admin_core/runtime_read_views.py`, `admin_core/operator_execution_pipeline.py`, `admin/v7-admin-api`, `admin_core/autonomy_trust_acceleration.py`. | Execution contracts, events, planner durations, read models, CPS, truth/convergence, existing timestamps, duration fields, latency fields, and blocker/wait reasons. | Read-only measurement, topology explanation, and dashboard payloads. Current implementation surface: `rt2_s1_measurement_observability_foundation`. | OMP, Engineering Reports, Runtime Model, Production Maturity, operator dashboards as read-only surfaces. | `DONE_READ_ONLY`; required latency/cost/time/topology fields are visible or explicitly marked missing with owner. | Dashboard/read model cannot decide, approve, rank execution, certify, or mutate. | Existing event/contract/read-model fields; no synthetic metrics. | Engineering report with Latency Impact, Work Placement, Runtime Cost Review, and Time Topology owner mapping when applicable. | Durable measurement semantics go to Runtime Model/OMP; UI field meaning goes to SYSTEM_MAP only if ownership changes. | `RT2-S2` is unlocked; S3+ remain blocked until S2 evidence exists. |
+| `RT2-S2` World & Readiness Maturation | Mature prepared world/readiness state for runtime consumption. | World Model Plane, `admin_core/intelligence_snapshots.py`, `admin_core/intelligence_workers.py`, `admin_core/runtime_read_views.py`, `tools/v7-users-autoswitch`, `admin_core/operator_decision_surface.py`. | Observation, snapshots, freshness, service matrix, quality compact, user/channel/policy state. | Fresh/bounded prepared state and readiness summaries. Current implementation surface: `rt2_s2_world_readiness_maturation`. | Runtime consumption contract, planner/autoswitch owners, decision surface, OMP readiness review. | `DONE_READ_ONLY`; Runtime can consume compact state as READY/STOP; live gates remain live. | Prepared state cannot approve movement or authority. | Freshness and source hashes from existing owners. | Report freshness/readiness owners and stale behavior. | Durable state semantics to Runtime Model; ownership lookup to SYSTEM_MAP. | `RT2-S3` is unlocked; S4+ remain blocked until S3 evidence exists. |
+| `RT2-S3` Desired-State Delta Preparedness | Prepare bounded deltas from current state toward Desired Safe State through existing planner owners. | Product Specification, policies, Decision Model, Runtime Model, `tools/v7-users-autoswitch`, `admin_core/operator_decision_surface.py`, OMP. | Business Objectives, policies, current state, action-class certification, movement protection. | Advisory desired-state delta / prepared plan. Current implementation surface: `rt2_s3_desired_state_delta_preparedness`. | Existing planner/autoswitch, packet/preview owners, Runtime live-gate validation, OMP. | `DONE_READ_ONLY`; delta is bounded, explainable, owner-mapped, and non-authorizing. | Desired State cannot become authority, planner, or runtime mutation. | Decision freshness, policy basis, gate status, real outcome requirements. | Report decision semantics and owner reuse. | Decision semantics to Decision Model; execution rules remain Runtime/OMP. | `RT2-S4` is unlocked; S5+ remain blocked until S4 evidence exists. |
+| `RT2-S4` Governed Execution Coordination | Mature the bounded decision-to-terminal-outcome path. | `admin_core/operator_execution.py`, `admin_core/operator_execution_pipeline.py`, `tools/v7-governed-canary-dry-run-cycle`, `tools/v7-users-autoswitch`, `admin_core/operator_execution_feedback.py`. | Prepared plan, packet, lease, restore barrier, verification plan, rollback/no-rollback state. | Idempotent governed execution coordination and terminal classification. Current implementation surface: `rt2_s4_governed_execution_coordination`. | Feedback/learning owners, OMP, CPS, Runtime Model execution contract. | `DONE_READ_ONLY`; one bounded action path is owner-mapped from packet/recheck/restore/apply/verify/rollback/feedback/closure without stale loops or new execution path. | Queue is not created; every live action would still revalidate gates and require explicit authority. | Lease, packet identity, verification, rollback/no-rollback, feedback, terminal classification. | Report terminal state, STOP_SAFE, rollback and learning paths. | Durable execution contract to Runtime Model/OMP; no new execution path. | `RT2-S5` is unlocked; S6+ remain blocked until S5 evidence exists. |
+| `RT2-S5` Certified Concurrency Ladder | Certify safe levels beyond one action only when evidence supports it. | OMP, action-class ladder, Policy 006, A5/A6/B13/B16 owners, `tools/v7-users-autoswitch`, `admin_core/autonomy_trust_acceleration.py`. | Blast-radius evidence, rollback capacity, verification capacity, policy scope, authority envelope, anti-flap state. | Certified concurrency level or STOP_SAFE. Current implementation surface: `build_rt2_s5_certified_concurrency_ladder`. | Runtime execution owners, authority model, CPS, Production Maturity, operator approval surface. | `DONE_READ_ONLY`; current certified level is `SERIAL_ONLY_READ_ONLY`, wider levels are explicit `STOP_SAFE`, and no silent blast expansion exists. | Parallelism is safety certification, not performance optimization; concurrency enablement remains forbidden without explicit authority. | Real outcomes, capacity/load, rollback, verification, metric reliability, authority. | Report class, level, proof, limits, and stop condition. | Certification results go through OMP/Current Program State; no backlog fork. | `RT2-S6` is unlocked; runtime apply/concurrency enablement remain blocked. |
+| `RT2-S6` Evidence-Based Continuous Improvement | Convert measured evidence into OMP-owned recommendations, including Runtime Time Intelligence recommendations that reduce safe recovery time. | OMP, Backlog, Production Maturity Model, Engineering Reports, Research Framework/Process, Canonical Reference, `admin_core/autonomy_trust_acceleration.py`. | Outcomes, reports, latency/cost/time/topology data, fit analysis, maturity gaps, RT2-S5 safe execution limits. | Owner-mapped recommendations or explicit no-change verdict. Current implementation surface: `build_rt2_s6_evidence_based_continuous_improvement`. | OMP optimizer, Backlog, Canonical Reference, Research Framework, Current Program State. | `DONE_READ_ONLY`; recommendation is owner-mapped to existing backlog item `B1` and remains advisory. | Recommendations cannot mutate runtime, expand authority, lower gates, create synthetic evidence, convert latency metrics into authority, or start direct implementation. | Real evidence, fit analysis, Product Evolution Review, Work Placement Review, Safety/Authority/Verification/Rollback/STOP_SAFE review. | Report recommendation, owner, safety, latency/cost/time impact, and canonical update. | Durable conclusions promoted to canonical owner; reports remain historical evidence only. | Return to existing backlog item `B1`. |
+
+Every RT2 workstream executes the same OMP engineering lifecycle:
+
+```text
+Resolve current workstream
+  -> consume canonical knowledge and research inventory
+  -> verify existing implementation and owner coverage
+  -> reuse existing owner if sufficient
+  -> extend existing owner only when evidence proves a gap
+  -> implement only the minimal safe change allowed by current authority
+  -> verify tests, truth, convergence, safety, latency, cost, freshness, rollback, and STOP_SAFE
+  -> create Engineering Report
+  -> promote durable conclusions through canonical owner update
+  -> update Current Program State when state changes
+  -> continue next RT2 workstream or graduate
+```
+
+### 28.4 Old RT2 Mapping
+
+The old RT2.1-RT2.12 proposal is superseded as an active roadmap.
+Its content is preserved only as absorbed responsibilities:
+
+| Old item | Canonical workstream |
+| --- | --- |
+| RT2.1 Continuous World Model | `RT2-S2` |
+| RT2.2 Continuous Readiness | `RT2-S2` |
+| RT2.3 Desired State Engine | `RT2-S3` |
+| RT2.4 Continuous Planning | `RT2-S3` |
+| RT2.5 Execution Orchestration | `RT2-S4` |
+| RT2.6 Safe Execution Queue | `RT2-S4` as queue feasibility only |
+| RT2.7 Bounded Parallelism | `RT2-S5` |
+| RT2.8 Runtime Cost Intelligence | `RT2-S1` |
+| RT2.9 Runtime Intelligence / Latency Intelligence | `RT2-S1` |
+| RT2.10 Runtime Evolution Engine | `RT2-S6` |
+| RT2.11 Runtime Performance Dashboard | `RT2-S1` as read-only consumer |
+| RT2.12 Continuous Runtime Evolution Framework | `RT2-S6` |
+
+### 28.4.1 Runtime Time Intelligence Placement
+
+Runtime Time Intelligence fits existing RT2 architecture.
+It does not create a new Runtime, Planner, Owner, Truth Source, roadmap, or automation mode.
+
+Placement:
+
+| Capability | Canonical placement | Rule |
+| --- | --- | --- |
+| Runtime Time Model | Runtime Model + `RT2-S1` | Defines time domains as read-only measurement categories. |
+| Time Topology | Runtime Model + `RT2-S1` | Explains why time is spent by mapping waits/dependencies to existing owners. |
+| Time Domains | Runtime Model | Observation, World Update, Readiness, Planning, Decision, Execution Wait, Execution, Verification, Rollback, Learning, Engineering Report, Canonical Update, and OMP Progress Time. |
+| Recommendation Model | `RT2-S6` | Recommends move-earlier, remove-duplicate, reduce-blocking, reduce-waiting, reduce-cost, or reduce-latency changes only through existing owners. |
+| Time/Latency/Cost read models | Existing read-model/admin/runtime owners under `RT2-S1` | Read-only evidence; no decision authority or truth-source promotion. |
+
+All Runtime Time Intelligence work must preserve Safety, Authority, Verification, Rollback, and `STOP_SAFE`.
+If a proposed time optimization requires new authority, runtime behavior, queue behavior, or user movement, OMP stops and maps the gap before implementation.
+
+### 28.4.2 Runtime Time Intelligence Capability Maturation
+
+Status: `CANONICALIZED_INSIDE_RT2`.
+
+Runtime Time Intelligence matures only inside `RT2-S1` and `RT2-S6`.
+It is not a new phase, roadmap, owner, planner, runtime, truth source, dashboard authority, or implementation queue.
+
+| Level | Maturity capability | RT2 owner | OMP rule |
+| --- | --- | --- | --- |
+| 1 | Time Measurement | `RT2-S1` | Measure or mark missing with owner. |
+| 2 | Time Domains | `RT2-S1` + Runtime Model | Map each field to one canonical domain. |
+| 3 | Time Topology | `RT2-S1` + Runtime Model | Explain dependency/wait cause without ranking or approval. |
+| 4 | Critical Path | `RT2-S1` | Identify longest safe-recovery path or missing evidence. |
+| 5 | Time Budget | Runtime Model + OMP/Production Maturity | Categorize budgets without unsafe numeric gates. |
+| 6 | Dependency Weight | `RT2-S1` evidence + `RT2-S6` use | Estimate bottleneck contribution with uncertainty. |
+| 7 | Impact Prediction | `RT2-S6` | Predict effect only as advisory engineering evidence. |
+| 8 | Engineering Recommendation | `RT2-S6` | Produce owner-mapped recommendation/no-change verdict. |
+| 9 | Certification | OMP + Production Maturity + relevant owner | Certify implemented change only after separate implementation approval. |
+| 10 | Continuous Runtime Optimization Recommendation Loop | `RT2-S6` + Learning owners | Feed certified measurements back into future recommendations; Runtime never self-optimizes. |
+
+Required lifecycle:
+
+```text
+Measurement
+  -> domains
+  -> topology
+  -> critical path
+  -> budget category
+  -> dependency weight
+  -> impact prediction
+  -> engineering recommendation
+  -> OMP/backlog/canonical owner
+  -> implementation only after separate approval
+  -> certification
+  -> measured learning
+  -> future recommendation or no-change
+```
+
+Every level must produce an Engineering Report when it changes durable knowledge, owner mapping, certification state, or future implementation placement.
+No level may change Runtime behavior, authority, safety gates, verification, rollback, `STOP_SAFE`, users, or automation.
+
+### 28.5 RT2 Continue OMP Loop
+
+When OMP reaches RT2, it must execute:
+
+```text
+Resolve current RT2 workstream
+  -> consume Research Framework / canonical owners
+  -> verify existing implementation
+  -> reuse or extend existing owner
+  -> implement minimal safe change
+  -> verify tests / truth / convergence / safety
+  -> create Engineering Report
+  -> promote durable knowledge to canonical owner when needed
+  -> update Current Program State
+  -> continue next workstream or graduate
+```
+
+Unfinished RT2 work must be resumed, closed, or explicitly deferred by OMP before unrelated new work is selected.
+
+### 28.6 External Model Loop
+
+External runtime/control-plane practices enter V7 only through:
+
+```text
+Research Framework / Research Process
+  -> research inventory inside existing research owner
+  -> V7 Fit Analysis
+  -> Work Placement Review
+  -> Safety / Authority / Verification / Rollback / Freshness Review
+  -> canonical owner or backlog mapping only if applicable
+```
+
+External models never override V7 architecture directly.
+Vendor-specific mechanisms are examples, not authority.
+Research may update OMP only when scheduler or optimizer meaning changes.
+
+### 28.7 Graduation Criteria
+
+RT2 graduates when all six workstreams are complete, explicitly deferred with safety reason, or marked not applicable by OMP, and Runtime can:
+
+- consume prepared world/readiness/desired-state/planning knowledge;
+- perform only live validation, bounded mutation, verification, rollback/STOP_SAFE, and outcome collection;
+- expose runtime cost/reaction latency/stop reason visibility through read models;
+- coordinate bounded certified execution through existing owners;
+- feed real outcomes back into OMP without creating new architecture.
+
+No `RT3` program is created by default.
+Future runtime improvement after graduation proceeds through Product Evolution Review, Engineering Review, OMP, Backlog, production evidence, certification, and explicit authority where required.
+
+### 28.8 Current Status
+
+RT2 Program Integration: `CANONICALIZED_DOCS_ONLY`.
+
+RT2 implementation: `FUTURE_NOT_ACTIVE`.
+
+Current practical next OMP step: `A5_CERTIFY_CLASS_LEVEL_BLAST_RADIUS_EVIDENCE_BEYOND_ONE_USER_GUARD`.
+
+## 29. Master OMP Completeness Certification
+
+Status: `MASTER_2_COMPLETE`.
+
+Purpose:
+Certify OMP as the only long-term execution program of V7.
+
+This section does not create a new roadmap, master program, runtime, planner, owner, truth source, phase, automation path, authority path, or implementation queue.
+
+OMP remains the operating system of V7 development:
+
+```text
+Future capability
+  -> Engineering Context Resolver
+  -> Knowledge Plane
+  -> OMP placement
+  -> existing owner / backlog / canonical owner
+  -> implementation or audit only when required
+  -> verification / certification
+  -> Engineering Report
+  -> Canonical Update
+  -> Current Program State
+  -> next OMP step
+```
+
+### 29.1 Future Capability Coverage
+
+Every future capability class must enter through the existing OMP path below.
+
+| Future activity | OMP entry | Existing owner destination | Canonical destination | Completion evidence |
+| --- | --- | --- | --- | --- |
+| Runtime evolution | RT2 / Runtime Eligibility / Authority Evolution | Runtime Model, existing runtime owners, Backlog | Runtime Model, OMP, CPS | Tests, truth/convergence, safety, authority, Engineering Report |
+| Routing evolution | Movement Protection / Routing capability backlog | Autoswitch/planner, policies, service matrix owners | OMP, SYSTEM_MAP, policies | Real outcomes, rollback/verification, production evidence |
+| Research / world practices | Research integration gate | Research Framework / Research Process | Canonical owner or OMP only if durable | Fit Analysis, Work Placement, Safety Review, Engineering Report |
+| Product evolution | Product Evolution Review | Product Specification, OMP, Backlog | Product Specification, Canonical Reference | Business Objective mapping and certification review |
+| Runtime optimization | Continuous optimization / RT2 | Runtime Model, read models, existing runtime owners | Runtime Model or OMP | Runtime cost, latency, safety, no live gate bypass |
+| Latency optimization | Runtime Latency Review | Runtime Model, Work Placement owners | Runtime Model / OMP | Latency Impact and measurement owner |
+| Runtime cost optimization | Product Evolution Review / RT2-S1 | Runtime Model, Production Maturity, read models | Runtime Model / Production Maturity | Cost dimension evidence and report |
+| Decision evolution | Decision Lifecycle / Decision Explainability | Decision Model, decision surface, planner owners | Decision Model / OMP | Freshness, lifecycle, authority separation |
+| Policy evolution | Policy library to OMP gate | Canonical Policy Library, Backlog, Runtime gates | Policies, OMP, Canonical Reference | Policy fit, interaction audit, certification |
+| UX evolution | Business Operator Experience / Decision Explainability | Product Specification, UI/read-model owners, OMP | Product Specification / SYSTEM_MAP if ownership changes | Operator evidence, no truth-source promotion |
+| Dashboard evolution | Observability / read-model discipline | Admin read models, OMP, Runtime Model | SYSTEM_MAP only if owner meaning changes | Read-only evidence, no authority |
+| Read-model evolution | Observability / Knowledge System | Existing read-model owners | SYSTEM_MAP / Canonical Reference if durable | Scale, freshness, truth consistency |
+| Observability | Observability capability | Admin read models, truth/convergence, evidence inventory | OMP / SYSTEM_MAP | Read-only safety evidence coverage |
+| Deployment | Production Readiness | Safe deploy, truth/convergence, production owners | CPS, Production Maturity | Deploy verification and no unapproved mutation |
+| Certification | Certification workflow | OMP, policies, action-class owners | CPS, Production Maturity, Canonical Reference | Mandatory/supporting evidence closed |
+| Production maturity | Production Maturity ladder | Production Maturity Model, Backlog, CPS | CPS / Production Maturity Model | Score recalculation from real state |
+| Operator workflow | Decision Explainability / Operator Responsibility | Product Specification, UI/read-model owners, OMP | Product Specification / Canonical Reference | Russian explanation, risk/value/evidence |
+| AI-assisted engineering | ECR / Knowledge Plane / Continue OMP | Kernel, Context Resolver, OMP, reports | OMP / Canonical Reference if durable | Existing-owner mapping and report |
+| Future protocols | Architecture Closed by Default / Movement Protection | Policies, Runtime Model, routing owners, Backlog | Policies / Runtime Model / SYSTEM_MAP | Reuse proof, certification, production evidence |
+| Future routing methods | Movement Protection / Routing evolution | Autoswitch/planner, policy, service matrix owners | OMP / SYSTEM_MAP / policies | Safety gates, rollback, verification, outcomes |
+| Capability change / merge / split / deprecation / retirement | Product Evolution Review / Capability state | Owning capability, Backlog, CPS | OMP / CPS / Canonical Reference | Consumer inventory, ownership review, safety and rollback review |
+
+If a future activity cannot be mapped to this table, OMP must run Architecture Closed by Default before proposing any new owner or roadmap.
+
+Capability lifecycle state changes use this same table.
+Changing, merging, splitting, deprecating, or retiring a capability is normal Product Execution work when the existing owner, consumer inventory, evidence, report, canonical update, CPS update, and next OMP step are clear.
+If any of those are unclear, OMP stops at owner/evidence discovery before architecture is reopened.
+
+### 29.2 Growth Readiness
+
+OMP may grow for years only by extending existing owner sections.
+
+Forbidden growth patterns:
+
+- duplicate roadmap;
+- duplicate OMP;
+- duplicate capability program;
+- nested master program;
+- repeated stage sequence with a new name;
+- dead stage without owner, evidence, report, and canonical destination;
+- parallel implementation queue;
+- report-only truth;
+- dashboard authority;
+- research-driven runtime change without OMP placement.
+
+Allowed growth patterns:
+
+- add a row to an existing capability table;
+- extend an existing owner contract;
+- add backlog mapping through OMP;
+- promote durable report findings to canonical owners;
+- update CPS for volatile state;
+- retire or deprecate capability wording when no live consumer remains.
+
+### 29.3 OMP Engineering Language
+
+Canonical OMP vocabulary for future work:
+
+| Term | Meaning |
+| --- | --- |
+| Discovery | Find current reality and existing owners. |
+| Research | Collect mature outside practice through Research Framework. |
+| Fit Analysis | Compare research to V7 constraints, owners, product intent, and safety. |
+| Reuse | Use existing owner without new architecture. |
+| Extension | Add capability to an existing owner when reuse is insufficient. |
+| Implementation | Change existing code/doc owner only after OMP placement. |
+| Verification | Prove behavior, truth, convergence, safety, and no unintended mutation. |
+| Certification | Close required evidence for capability, policy, action class, or maturity. |
+| Production | Real deployed/runtime state and observed outcomes. |
+| Learning | Feed real outcomes into existing evidence and OMP owners. |
+| Engineering Report | Historical evidence saved after meaningful action. |
+| Canonical Update | Durable knowledge promoted from reports to existing canonical owner. |
+| Current Program State | Volatile current bottleneck, task, authority, metrics, and stop reason. |
+| Product Evolution | Product Review -> OMP -> Backlog/canonical owner update. |
+| Retirement | Mark a capability path complete, superseded, or no longer active. |
+| Deprecation | Remove active recommendation status while preserving history. |
+
+### 29.4 Self-Evolution Rule
+
+OMP improves only through:
+
+```text
+Engineering Report
+  -> durable conclusion extracted
+  -> Canonical Update
+  -> Current Program State when state changes
+  -> next OMP step
+  -> future Engineering Report
+```
+
+Reports may trigger OMP improvement, but reports never become OMP, backlog, roadmap, truth source, or owner.
+
+OMP update is required only when scheduler, optimizer, capability, command, stop condition, maturity, or canonical placement semantics change.
+
+### 29.5 Completeness Verdict
+
+OMP completeness score: `100 / 100`.
+
+Architecture completeness score inside OMP: `100 / 100`.
+
+Growth readiness: `READY`.
+
+Future evolution readiness: `READY_THROUGH_EXISTING_OMP`.
+
+No second roadmap is justified.
+No parallel capability program is justified.
+No MASTER 3 was started by this certification at that time.
+
+Historical practical implementation next step at that time:
+
+```text
+A5_CERTIFY_CLASS_LEVEL_BLAST_RADIUS_EVIDENCE_BEYOND_ONE_USER_GUARD
+```
+
+## 30. OMP Resilience Certification / Master 3
+
+Status: `MASTER_3_COMPLETE`.
+
+Purpose:
+Record the destructive stress test of OMP.
+
+MASTER 3 does not create a new canonicalization layer, integration layer, roadmap, master program, runtime, planner, owner, truth source, automation path, authority path, or capability program.
+
+### 30.1 Stress Test Results
+
+| Test | Break attempt | Result | Required invariant |
+| --- | --- | --- | --- |
+| Duplicate Test | Split OMP into another roadmap/program or duplicate capability flow. | `FAILED_TO_BREAK`; duplicate would create conflicting scheduler/queue/authority. | OMP remains the only execution program; Backlog remains the only queue. |
+| Dependency Test | Remove ECR, Knowledge Plane, Backlog, Runtime Model, Decision Model, SYSTEM_MAP, Canonical Reference, CPS, reports, or truth/convergence. | `FAILED_TO_BREAK`; each removal loses placement, owner, state, evidence, or verification. | Dependencies are mandatory by task class and loaded through ECR. |
+| Completion Criteria Test | Mark stages complete without criteria. | `FAILED_TO_BREAK`; stage remains incomplete without owner, evidence, report, and canonical destination. | Every stage needs objective completion criteria. |
+| Evidence Test | Execute stages without evidence. | `FAILED_TO_BREAK`; OMP stops at safety, authority, certification, or real-world limit. | No evidence means no certification or authority promotion. |
+| Owner Test | Remove owners from stages. | `FAILED_TO_BREAK`; responsibility becomes ambiguous. | Every stage maps to existing owner, existing backlog, or canonical owner. |
+| Engineering Report Test | Remove reports. | `FAILED_TO_BREAK`; history, why, safety, and verification context are lost. | Every meaningful action creates a report. |
+| Canonical Update Test | Remove canonical updates. | `FAILED_TO_BREAK`; durable knowledge stays trapped in history. | Durable findings must be promoted to existing canonical owners. |
+| Capability Injection Test | Inject future capabilities. | `PASSED`; all tested capabilities enter OMP through existing placement. | New capability starts with ECR -> OMP placement -> existing owner. |
+| Evolution Pressure Test | Run V7 for 1/3/5/10 years. | `PASSED_WITH_INVARIANT`; pressure to create OMP2/Roadmap2 is blocked. | Extend existing OMP sections; never create parallel program. |
+| Growth Test | Simplify, merge, remove, shorten. | `NO_SAFE_SIMPLIFICATION_FOUND`; removal loses owner/evidence/report/canonical/state function. | Growth by rows and owner extensions only. |
+| Failure Test | Remove one master, capability, lifecycle, owner, criterion, or flow. | `FAILED_TO_BREAK`; each removal loses a required invariant. | No required invariant may be optionalized. |
+| Architecture Pressure Test | Invent future architecture. | `PASSED`; proposed architecture must map to existing OMP or stop at Architecture Closed by Default. | New architecture is last resort after impossible reuse proof. |
+| Self-Evolution Test | Remove Engineering Report -> Canonical Update -> CPS -> next OMP step -> future report loop. | `FAILED_TO_BREAK`; OMP stops learning and future work rediscovers history. | OMP self-evolves only through report, canonical promotion, CPS update, and next OMP step. |
+| Knowledge Preservation Test | Leave durable knowledge only in reports, audits, research, or implementation notes. | `FAILED_TO_BREAK`; future agents lose durable truth or treat history as current truth. | Durable conclusions must have a canonical destination before closure. |
+
+### 30.2 Required Resilience Invariants
+
+OMP is resilient only while all invariants remain true:
+
+1. OMP is the only long-term execution program.
+2. Implementation Backlog is the only engineering queue.
+3. Current Program State owns volatile current state.
+4. Canonical Reference and SYSTEM_MAP own durable truth and owner lookup.
+5. Engineering Reports are historical evidence only and mandatory after meaningful work.
+6. Durable findings never remain only in reports.
+7. Every stage has owner, completion criteria, evidence, engineering report, and canonical destination.
+8. Runtime remains thin; OMP never authorizes runtime behavior without certification and explicit authority.
+9. Research cannot bypass Fit Analysis, Work Placement, owner mapping, and OMP.
+10. Dashboard, UX, read model, telemetry, and AI assistance never become truth source or authority.
+11. Retirement and deprecation preserve history and require no live consumer plus safety review.
+12. Any unmappable future capability stops at Architecture Closed by Default.
+
+### 30.3 Capability Injection Matrix
+
+| Injected future capability | OMP entry | Existing owner | Production path | Canonical path |
+| --- | --- | --- | --- | --- |
+| New routing protocol | Future protocols / Movement Protection | Policies, Runtime Model, autoswitch/planner, Backlog | Certification, rollback, verification, real outcomes | Policies / Runtime Model / SYSTEM_MAP |
+| New VPN protocol | Future protocols / Product Evolution Review | Product Specification, policies, service matrix, routing owners | Backlog, safe deploy, truth/convergence, production evidence | Product Specification / policies / SYSTEM_MAP |
+| New transport | Future protocols / Product Evolution Review | Product Specification, policies, Runtime Model, routing owners | Backlog, compatibility tests, verification, production evidence | Product Specification / Runtime Model / SYSTEM_MAP |
+| New telemetry | Observability / read-model discipline | Admin read models, evidence inventory, Runtime Model | Read-only rollout, truth consistency, no authority | SYSTEM_MAP / Runtime Model if semantics change |
+| New runtime optimization | Continuous optimization / RT2 | Runtime Model, existing runtime/read-model owners | Tests, latency/cost review, no live gate bypass | Runtime Model / OMP |
+| New latency optimization | Runtime Latency Review / Work Placement | Runtime Model, Work Placement owners, OMP | Measurement plan, tests, no live safety bypass | Runtime Model / OMP |
+| New Runtime Cost optimization | Runtime Cost Review / Product Evolution Review | Runtime Model, Production Maturity, read-model owners | Cost evidence, safety review, no authority expansion | Runtime Model / Production Maturity |
+| New dashboard | Observability / Dashboard evolution | Admin API/read-model owners, OMP | Read-only UI/API, no decision authority | SYSTEM_MAP only if owner meaning changes |
+| New UX | Business Operator Experience / Decision Explainability | Product Specification, UI/read-model owners | Operator validation, evidence-linked explanation | Product Specification / Canonical Reference |
+| New AI subsystem | AI-assisted engineering / ECR | Kernel, Context Resolver, OMP, Research Framework | Advisory use only, report, no authority | OMP / Canonical Reference if durable |
+| New policy | Policy evolution | Canonical Policy Library, Research Framework, OMP | Fit Analysis, interaction audit, backlog/certification | Policies / OMP / Canonical Reference |
+| New routing algorithm | Routing evolution | Autoswitch/planner, policies, service matrix | Backlog, tests, rollback/verification, outcomes | OMP / SYSTEM_MAP / policies |
+| New verification | Certification workflow | Verification owners, truth/convergence, Runtime Model | Evidence validation before certification | Runtime Model / OMP / SYSTEM_MAP |
+| New rollback strategy | Rollback / Movement Protection | Restore barrier, rollback owners, Runtime Model | Governed proof, rollback/no-rollback evidence | Runtime Model / policies / SYSTEM_MAP |
+| New deployment model | Production Readiness | Safe deploy, truth/convergence, Production Maturity | Deploy verification, no unapproved mutation | CPS / Production Maturity / Canonical Reference |
+| New observability source | Observability / Knowledge System | Read-model/evidence owners, SYSTEM_MAP | Read-only evidence, freshness and source validation | SYSTEM_MAP / Canonical Reference |
+| New Research result | Research integration gate | Research Framework, Research Process, OMP | Fit Analysis, owner mapping, implementation only through Backlog if required | Canonical owner / OMP only when durable |
+| New Client capability | Product Evolution Review / Business Operator Experience | Product Specification, policies, UI/read-model/routing owners | Backlog, tests, operator validation, production evidence | Product Specification / SYSTEM_MAP / Canonical Reference |
+| New Server capability | Product Evolution Review / Production Readiness | Product Specification, Runtime Model, deploy/runtime owners | Backlog, tests, safe deploy, truth/convergence | Runtime Model / SYSTEM_MAP / Production Maturity |
+
+### 30.4 Growth Pressure Verdict
+
+For 1 year, 3 years, 5 years, and 10 years, OMP must resist creation of `OMP2`, `Roadmap2`, a new master program, or a new capability program.
+
+The correct growth action is:
+
+```text
+Extend existing OMP section
+  -> map to existing owner
+  -> update Backlog only through OMP when implementation is required
+  -> report
+  -> canonical update
+  -> Current Program State
+```
+
+If this path cannot hold a future capability, OMP must stop at `FUNDAMENTAL_ARCHITECTURE_GAP`; it must not silently create parallel structure.
+
+### 30.4.1 Failure Injection Results
+
+| Removed item | What breaks |
+| --- | --- |
+| One MASTER conclusion | Closure chain loses proof that prior architecture/canonicalization/resilience work is complete. |
+| One capability | Backlog-to-maturity mapping loses production purpose and progress visibility. |
+| One lifecycle | Work can skip owner mapping, verification, report, canonical update, or CPS. |
+| One owner | Responsibility becomes ambiguous and duplicate owners become tempting. |
+| One completion criterion | Two engineers can close the same stage differently. |
+| One engineering report | Historical reason, safety, evidence, and alternative analysis disappear. |
+| One canonical update | Durable knowledge remains trapped in report/audit/research history. |
+| One dependency | Context, placement, owner lookup, runtime semantics, decision semantics, state, or verification becomes unbounded. |
+
+### 30.4.2 Architecture Pressure Results
+
+Invented future architectures tested:
+
+| Future architecture pressure | OMP result |
+| --- | --- |
+| Event-driven autonomous runtime expansion | Maps to Runtime Model, RT2, Authority Evolution, and explicit authority; no new runtime by default. |
+| Multi-protocol routing substrate | Maps to Product Evolution, policies, Movement Protection, Runtime Model, and Backlog. |
+| AI engineering assistant subsystem | Maps to ECR, Knowledge Plane, Research Framework, OMP, and reports as advisory-only. |
+| New observability/control dashboard plane | Maps to Observability/read-model owners; dashboard cannot become truth or authority. |
+| Distributed deployment model | Maps to Production Readiness, safe deploy, truth/convergence, CPS, and Production Maturity. |
+
+No tested future architecture requires a new architecture proposal.
+
+### 30.4.3 Knowledge Preservation Results
+
+Durable knowledge must never remain only inside:
+
+- Engineering Reports;
+- audits;
+- research;
+- implementation notes;
+- chat handoffs.
+
+Required preservation path:
+
+```text
+Historical evidence
+  -> durable conclusion extraction
+  -> canonical owner update
+  -> SYSTEM_MAP only if ownership/topology changes
+  -> Current Program State only if volatile state changes
+  -> OMP only if scheduler/optimizer/capability semantics change
+```
+
+### 30.5 Resilience Verdict
+
+OMP resilience score: `100 / 100`.
+
+OMP simplicity score: `100 / 100`.
+
+OMP long-term evolution score: `100 / 100`.
+
+Weaknesses found: `1`; stress-test invariants and injected-capability examples were implicit rather than explicit.
+
+Improvements made: `1`; this section records destructive test results, required invariants, injection matrix, and growth pressure verdict.
+
+Simplifications performed: `0`; no safe merge/removal preserved owner, evidence, report, canonical, and state invariants.
+
+Merges performed: `0`; existing flows are layered responsibilities, not duplicates.
+
+MASTER 4 later completed; this historical Master 3 section did not itself start it.
+
+## 31. Architecture Graduation & Product Transition / Master 4
+
+Status: `MASTER_4_COMPLETE`.
+
+Purpose:
+Certify that V7 architecture is complete and graduate V7 from Architecture Mode to Product Execution Mode.
+
+MASTER 4 does not create a new roadmap, master program, runtime, planner, owner, truth source, capability program, implementation queue, automation path, authority path, or runtime behavior.
+
+### 31.1 Architecture Graduation Certification
+
+Architecture Graduation Score: `100 / 100`.
+
+Graduation checks:
+
+| Area | Verdict | Owner |
+| --- | --- | --- |
+| Runtime architecture | `COMPLETE` | Runtime Model |
+| Decision architecture | `COMPLETE` | Decision Model |
+| OMP | `COMPLETE` | OMP |
+| Work Placement | `COMPLETE` | Runtime Model + OMP |
+| RT2 integration | `COMPLETE_DOCS_ONLY` | OMP + Runtime Model |
+| Capability ownership | `COMPLETE` | SYSTEM_MAP + OMP |
+| Canonical ownership | `COMPLETE` | Canonical Reference + SYSTEM_MAP |
+| Research flow | `COMPLETE` | Research Framework / Research Process |
+| Knowledge preservation | `COMPLETE` | Canonical Reference + Document Lifecycle + OMP |
+
+No architecture gap remains inside MASTER 4 scope.
+
+### 31.2 Architecture Constitution
+
+Architecture exists to preserve:
+
+- Reality;
+- Safety;
+- Authority;
+- Certification;
+- Verification;
+- Knowledge;
+- Evolution.
+
+Architecture does not own:
+
+- backlog execution;
+- runtime mutations;
+- deployments;
+- user movement;
+- engineering tasks;
+- implementation selection;
+- production operations;
+- engineering history.
+
+Architecture is now closed by default.
+It changes only when existing architecture cannot express a capability after complete owner, OMP, canonical, policy, runtime, decision, research, and backlog reuse review.
+
+### 31.3 Architecture Change Protocol
+
+Normal change path:
+
+```text
+Idea
+  -> Existing Owner Check
+  -> Reuse / Extend Existing Owner
+  -> OMP
+  -> Implementation only if approved and backlog-owned
+  -> Verification
+  -> Engineering Report
+  -> Canonical Update
+  -> Current Program State
+  -> Continue OMP
+```
+
+Architecture proposal path:
+
+```text
+Existing architecture cannot express capability
+  -> Architecture Proposal
+  -> Discovery
+  -> Validation
+  -> OMP Integration
+  -> Implementation only through existing or newly certified owner
+```
+
+Architecture changes must never bypass OMP, Engineering Report, Canonical Update, or Current Program State.
+
+### 31.4 Capability Admission Rule
+
+Every future capability must answer:
+
+```text
+Why can the existing owner not express this capability?
+```
+
+If the answer is missing, incomplete, speculative, implementation-convenience-only, or based on preference, new capability ownership is forbidden.
+
+Default result:
+
+```text
+Need New Owner = FALSE
+Need New Roadmap = FALSE
+Need New Architecture = FALSE
+```
+
+Only a proven `FUNDAMENTAL_ARCHITECTURE_GAP` may change the default.
+
+Engineering Review capability injection:
+
+| Future capability | Existing entry | Existing owner destination |
+| --- | --- | --- |
+| Runtime Time Intelligence | `RT2-S1` / `RT2-S6` | Runtime Model, OMP, read-model owners, Production Maturity |
+| Client Intelligence | Product Evolution Review / Client capability | Product Specification, UI/client/read-model owners, OMP |
+| Future Routing | Movement Protection / routing evolution | Autoswitch/planner, policies, service matrix, Runtime Model |
+| AI Engineering | ECR / Knowledge Plane / Research Framework | Kernel, Context Resolver, OMP, Research Framework, Canonical Reference if durable |
+| Future Telemetry | Observability / read-model discipline | Admin read models, evidence inventory, Runtime Model, SYSTEM_MAP if ownership changes |
+| Advanced Recovery | Recovery Admission / Rollback / Movement Protection | Restore barrier, rollback owners, Runtime Model, policies, OMP |
+| New Dashboard | Observability / dashboard evolution | Admin API/read-model owners, OMP, SYSTEM_MAP if owner meaning changes |
+| New Verification | Certification workflow | Verification owners, truth/convergence, Runtime Model, OMP |
+| New Research | Research integration gate | Research Framework, Research Process, OMP, canonical owner if durable |
+
+All injected examples enter existing architecture.
+None justifies reopening architecture.
+
+### 31.5 Knowledge Preservation Contract
+
+Durable knowledge must never remain only inside:
+
+- reports;
+- audits;
+- research;
+- chats;
+- implementation notes;
+- handoff notes.
+
+Every durable conclusion must have exactly one canonical owner.
+
+Required preservation path:
+
+```text
+Historical evidence
+  -> durable conclusion extraction
+  -> exactly one canonical owner
+  -> SYSTEM_MAP only if ownership/topology changes
+  -> Current Program State only if volatile state changes
+  -> OMP only if scheduler/optimizer/capability semantics change
+```
+
+Reports remain historical evidence.
+Canonical owners preserve durable truth.
+
+### 31.6 Product Execution Contract
+
+Product Execution Mode is active after MASTER 4.
+
+The only normal engineering workflow is:
+
+```text
+OMP
+  -> Implementation Backlog or existing owner
+  -> Verification
+  -> Engineering Report
+  -> Canonical Update
+  -> Current Program State
+  -> Continue OMP
+```
+
+No parallel workflow is allowed.
+Future architecture work is exceptional and must pass Architecture Closed by Default first.
+
+Capability lifecycle certification:
+
+```text
+Idea
+  -> Existing Owner Check
+  -> Architecture Fit
+  -> OMP Admission
+  -> Capability Classification
+  -> Owner Mapping
+  -> Canonical Integration
+  -> Implementation Backlog or existing owner
+  -> Implementation only after approval
+  -> Verification / Certification
+  -> Engineering Report
+  -> Canonical Update
+  -> Current Program State
+  -> Continue OMP
+```
+
+Capability evolution, including measurement, topology, critical path, budget, recommendation, certification, optimization, change, merge, split, deprecation, and retirement, must reuse this same Product Execution workflow.
+
+Governance mapping:
+
+| Question | Existing answer |
+| --- | --- |
+| Who approves? | OMP / operator approval where authority is required. |
+| Who owns? | Existing canonical owner identified by SYSTEM_MAP and OMP owner check. |
+| Who implements? | Existing owner or Implementation Backlog item selected by OMP. |
+| Who certifies? | OMP, Production Maturity, policy/action-class owner, or affected canonical owner. |
+| Who preserves knowledge? | Exactly one canonical owner; reports remain evidence. |
+| Who updates Current Program State? | OMP through `docs/programs/V7_CURRENT_PROGRAM_STATE.md`. |
+| Who continues work? | `Continue OMP`. |
+
+No separate capability lifecycle, roadmap, owner, or master program is allowed.
+
+### 31.7 Program Navigation
+
+Separate `ARCHITECTURAL_INVARIANTS.md` and `PROGRAM_MAP.md` files are not created.
+
+Existing navigation is sufficient:
+
+| Navigation need | Existing owner |
+| --- | --- |
+| Architectural invariants | OMP, Canonical Reference, Runtime Model, Decision Model, Kernel |
+| Program map | OMP, SYSTEM_MAP, Current Program State, Document Lifecycle |
+| Document roles | SYSTEM_MAP + Document Lifecycle |
+| Current execution state | Current Program State |
+| Future capability routing | OMP + SYSTEM_MAP |
+
+Future engineer navigation:
+
+| Question | Destination |
+| --- | --- |
+| Where to implement? | OMP selects Implementation Backlog item or existing owner. |
+| Where to document? | Engineering Report for evidence; canonical owner for durable conclusion. |
+| Where to certify? | OMP, Production Maturity, policy/action-class owner, or affected canonical owner. |
+| Where to report? | `docs/reports/engineering/` after meaningful work. |
+| Where to preserve knowledge? | Exactly one canonical owner; SYSTEM_MAP only for ownership/topology; CPS only for volatile state. |
+| Where to continue? | `Continue OMP`. |
+
+Creating additional navigation files would duplicate existing owners.
+
+### 31.8 Boundary Review
+
+Architecture owns:
+
+- laws;
+- contracts;
+- ownership;
+- structure;
+- evolution rules.
+
+Architecture does not own:
+
+- implementation;
+- runtime mutation;
+- deployment;
+- production operations;
+- user movement;
+- engineering history;
+- backlog ranking;
+- certification evidence execution.
+
+### 31.9 Graduation Review
+
+Attempt to reopen architecture: `FAILED`.
+
+Future work can continue without modifying architecture because:
+
+- OMP is complete and self-evolving;
+- SYSTEM_MAP owns future capability placement;
+- Canonical Reference owns durable conclusions;
+- Current Program State owns volatile state;
+- Engineering Reports preserve historical evidence;
+- Architecture Closed by Default blocks speculative redesign;
+- Product Execution Mode routes work through OMP and existing owners.
+
+Graduation verdict:
+
+```text
+MASTER_4_COMPLETE
+```
+
+Product Execution Mode is active.
+Do not begin A5 from MASTER 4.
+
+## 32. Engineering Intelligence Materialization / Phase 1
+
+Status: `PHASE_1_COMPLETE`.
+
+Engineering Intelligence Materialization turns existing architecture into explicit engineering capability.
+It does not create a new Runtime, Planner, Owner, Truth Source, roadmap, master program, capability program, automation mode, or implementation queue.
+
+Gate 0 classification:
+
+| Target | Classification | Existing owner reused |
+| --- | --- | --- |
+| Observation Intelligence | `EXISTS_UNDER_OTHER_NAME` | Observation Plane owners + `RT2-S1` |
+| Process Intelligence | `EXISTS_UNDER_OTHER_NAME` | Runtime Model + Work Placement + Decision Lifecycle + `RT2-S1` |
+| Runtime Time Intelligence | `EXISTS_COMPLETE` | Runtime Model + `RT2-S1` + `RT2-S6` |
+| Recommendation Intelligence | `EXISTS_PARTIAL` | `RT2-S6` + OMP + Backlog + Engineering Reports |
+| Execution Intelligence | `EXISTS_UNDER_OTHER_NAME` | Runtime Model + execution/lease/packet/verification/rollback owners |
+| Prediction Intelligence | `EXISTS_COMPLETE` | Prediction Evidence / Confidence owners |
+| Confidence Intelligence | `EXISTS_COMPLETE` | Autonomy Root Confidence / Trust owners |
+| Adaptive Engineering Intelligence | `EXISTS_PARTIAL` | Decision To Outcome To Learning + feedback/learning owners + `RT2-S6` |
+
+### Engineering Intelligence Lifecycle
+
+Engineering Intelligence lifecycle:
+
+```text
+Observation
+  -> Process Understanding
+  -> Runtime Time Understanding
+  -> Recommendation
+  -> Implementation through OMP if approved
+  -> Outcome
+  -> Prediction vs Reality
+  -> Confidence Update
+  -> Recommendation Evolution
+```
+
+Materialization rule:
+
+Only `EXISTS_PARTIAL` read-model or lifecycle surfaces may be extended, and only under the existing owner.
+`EXISTS_COMPLETE` and `EXISTS_UNDER_OTHER_NAME` surfaces must be reused.
+Recommendation evolution remains advisory until OMP selects an implementation owner and later certification proves the outcome.
+
+### RT2-S1 Engineering Measurement Contract
+
+`RT2-S1` owns Engineering Measurement for Engineering Intelligence.
+It materializes only read-only evidence:
+
+- observation evidence;
+- time fields;
+- process/topology/critical-path fields;
+- wait and blocker evidence;
+- missing-field owner mapping;
+- measurement reliability status.
+
+`RT2-S1` must not decide, approve, rank execution, certify, mutate Runtime, create synthetic evidence, or become a truth source.
+
+### RT2-S6 Engineering Recommendation Contract
+
+`RT2-S6` owns Engineering Recommendation for Engineering Intelligence.
+It materializes:
+
+- owner-mapped recommendation;
+- explicit no-change verdict;
+- missing-evidence verdict;
+- expected measurement plan;
+- Product Evolution Review;
+- Work Placement Review;
+- Safety/Authority/Verification/Rollback/STOP_SAFE review.
+
+`RT2-S6` recommendations are advisory until OMP routes approved implementation to an existing owner or Backlog.
+`RT2-S6` must not mutate Runtime, expand authority, bypass verification, create a parallel roadmap, or replace OMP prioritization.
+
+Engineering Intelligence maturity states:
+
+```text
+Measured
+  -> Understood
+  -> Recommended
+  -> Validated
+  -> Predictive
+  -> Adaptive
+```
+
+The current Phase 1 materialization state is `UNDERSTOOD_PARTIAL_RECOMMENDED`: observation/process/time/prediction/confidence owners exist; recommendation and adaptive loops exist but need future measured implementation outcomes before `VALIDATED`, `PREDICTIVE`, or `ADAPTIVE` can be claimed for Engineering Intelligence as an operating capability.
+
+## 33. Engineering Intelligence Materialization / Phase 2
+
+Status: `PHASE_2_COMPLETE`.
+
+Phase 2 materializes the Engineering Validation Loop.
+It does not create a new Runtime, Planner, Owner, Truth Source, roadmap, master program, capability program, automation mode, or implementation queue.
+
+Gate 0 classification:
+
+| Target | Classification | Existing owner reused |
+| --- | --- | --- |
+| Prediction History | `EXISTS_COMPLETE` | Prediction Evidence / Confidence owners |
+| Prediction vs Reality | `EXISTS_COMPLETE` | Prediction Evidence / Confidence + feedback/outcome owners |
+| Recommendation History | `EXISTS_PARTIAL` | OMP + Engineering Reports + Backlog |
+| Outcome History | `EXISTS_COMPLETE` | Feedback/outcome/learning owners |
+| Confidence History | `EXISTS_COMPLETE` | Autonomy Root Confidence / Trust owners |
+| Engineering Validation | `EXISTS_PARTIAL` | OMP + Runtime Model + Engineering Reports |
+| Recommendation Accuracy | `EXISTS_PARTIAL` | `RT2-S6` + Prediction Evidence / Confidence |
+| Recommendation Success | `EXISTS_PARTIAL` | `RT2-S6` + outcome owners |
+| Recommendation Failure | `EXISTS_PARTIAL` | `RT2-S6` + outcome owners |
+| Recommendation Drift | `MISSING` -> materialized | `RT2-S6` + OMP + confidence owners |
+| Recommendation Confidence | `EXISTS_PARTIAL` | `RT2-S6` + Autonomy Root Confidence / Trust |
+| Prediction Confidence | `EXISTS_COMPLETE` | Prediction Evidence / Confidence owners |
+| Engineering Validation Loop | `EXISTS_PARTIAL` | OMP |
+
+### Engineering Validation Lifecycle
+
+Engineering Validation uses the existing OMP lifecycle.
+No second engineering lifecycle is allowed.
+
+```text
+Recommendation
+  -> Implementation through OMP if approved
+  -> Outcome
+  -> Prediction vs Reality
+  -> Difference
+  -> Confidence Update
+  -> Recommendation Evolution
+```
+
+### Recommendation Validation Lifecycle
+
+Every implemented recommendation must eventually be classified:
+
+| Validation class | Meaning | Required evidence |
+| --- | --- | --- |
+| `RECOMMENDATION_SUCCESS` | Observed outcome supports the recommendation. | Verification/outcome evidence and expected-result match. |
+| `RECOMMENDATION_FAILURE` | Observed outcome contradicts the recommendation or harms safety/product objective. | Verification/outcome evidence and contradiction. |
+| `RECOMMENDATION_PARTIAL` | Outcome is mixed or incomplete. | Known pass/fail/unknown evidence split. |
+| `RECOMMENDATION_DRIFT` | Recommendation assumptions changed before or after implementation. | Material state, owner, freshness, or evidence-version difference. |
+| `RECOMMENDATION_UNVALIDATED` | Implementation/outcome evidence is missing. | Explicit missing owner/evidence reason. |
+
+Recommendation validation must report expected result, observed result, difference, confidence delta, evidence source, owner, and canonical update need.
+Validation cannot approve runtime action, expand authority, certify automation, or replace verification.
+
+### Phase 2 Knowledge Preservation Rule
+
+Validation-loop knowledge must survive report deletion through existing owners:
+
+- Runtime Model owns Prediction, Validation, and Confidence contracts.
+- OMP owns Engineering Validation Lifecycle and Recommendation Validation Lifecycle.
+- Production Maturity owns Engineering Intelligence Validation Maturity.
+- SYSTEM_MAP owns validation ownership lookup.
+- Canonical Reference owns durable conclusions only.
+- CPS owns current Engineering Intelligence validation maturity.
+
+## 34. Engineering Intelligence Materialization / Phase 3
+
+Status: `PHASE_3_COMPLETE`.
+
+Phase 3 materializes Adaptive Engineering and closes the Engineering Intelligence materialization roadmap.
+It does not create a new Runtime, Planner, Owner, Truth Source, roadmap, master program, capability family, automation mode, or implementation queue.
+Runtime never self-improves.
+Only Engineering Intelligence evolves through OMP and existing owners.
+
+Gate 0 classification:
+
+| Target | Classification | Existing owner reused |
+| --- | --- | --- |
+| Engineering Adaptation | `EXISTS_PARTIAL` | OMP + `RT2-S6` + Production Maturity |
+| Recommendation Evolution | `EXISTS_PARTIAL` | `RT2-S6` + OMP |
+| Recommendation Confidence Evolution | `EXISTS_PARTIAL` | `RT2-S6` + confidence owners |
+| Engineering Learning | `EXISTS_PARTIAL` | Decision To Outcome To Learning + OMP |
+| Recommendation Drift | `EXISTS_COMPLETE` | OMP + `RT2-S6` + affected owner |
+| Recommendation Improvement | `EXISTS_PARTIAL` | `RT2-S6` + validation/outcome owners |
+| Prediction Improvement | `EXISTS_UNDER_OTHER_NAME` | Prediction Evidence / Confidence owners |
+| Adaptive Engineering | `EXISTS_PARTIAL` | Runtime Model + OMP + Production Maturity |
+| Engineering Feedback Loop | `EXISTS_UNDER_OTHER_NAME` | Engineering Report -> Canonical Update -> CPS -> Continue OMP |
+| Engineering Recommendation Quality | `EXISTS_PARTIAL` | `RT2-S6` + validation/outcome owners |
+| Engineering Recommendation Confidence | `EXISTS_PARTIAL` | `RT2-S6` + confidence owners |
+
+### Adaptive Engineering Lifecycle
+
+Adaptive Engineering uses the existing OMP lifecycle.
+No second engineering loop is allowed.
+
+```text
+Recommendation
+  -> Implementation through OMP if approved
+  -> Outcome
+  -> Prediction vs Reality
+  -> Confidence Update
+  -> Recommendation Improvement
+  -> Future Recommendation
+  -> Engineering Learning
+  -> Future Engineering
+```
+
+### Recommendation Evolution Lifecycle
+
+Recommendation Evolution belongs to `RT2-S6` and OMP.
+
+| Stage | Owner | Output |
+| --- | --- | --- |
+| Recommendation Version | `RT2-S6` + Engineering Report | Versioned recommendation basis. |
+| Recommendation Confidence | `RT2-S6` + confidence owners | Advisory confidence. |
+| Recommendation History | OMP + Engineering Reports + Backlog | Historical evidence and implementation state. |
+| Recommendation Quality | `RT2-S6` + validation/outcome owners | Quality classification from real outcomes. |
+| Recommendation Evolution | `RT2-S6` + OMP | Improved, degraded, drifted, retired, unchanged, or blocked. |
+| Future Recommendation | `RT2-S6` + OMP | Owner-mapped future recommendation/no-change/missing-evidence verdict. |
+
+### Engineering Learning Lifecycle
+
+Engineering Learning is a documentation/control-plane learning loop.
+It reuses existing learning owners but does not modify Runtime Learning.
+
+```text
+Outcome
+  -> Engineering Learning
+  -> Recommendation Confidence
+  -> Recommendation Evolution
+  -> Future Recommendation
+```
+
+Engineering Learning must name the outcome, prediction difference, confidence delta, recommendation quality, affected owner, canonical update need, and future recommendation state.
+It cannot mutate Runtime, expand authority, approve implementation, create synthetic evidence, or replace OMP.
+
+### Adaptive Read Models
+
+Adaptive read models remain future read-only surfaces under existing owners.
+
+| Possible read model | Existing owner | Phase 3 status |
+| --- | --- | --- |
+| Recommendation Confidence Trend | `RT2-S6` + confidence owners | `EXISTS_PARTIAL` |
+| Recommendation Quality Trend | `RT2-S6` + outcome/validation owners | `EXISTS_PARTIAL` |
+| Prediction Accuracy Trend | Prediction Evidence / Confidence owners | `EXISTS_COMPLETE` |
+| Engineering Learning History | OMP + Engineering Reports + learning owners | `EXISTS_PARTIAL` |
+| Recommendation Evolution History | OMP + Engineering Reports + Backlog | `EXISTS_PARTIAL` |
+| Engineering Confidence History | Autonomy Root Confidence / Trust owners | `EXISTS_COMPLETE` |
+| Engineering Improvement History | OMP + Engineering Reports + Production Maturity | `EXISTS_PARTIAL` |
+
+Adaptive read models must not decide, approve, rank execution, mutate Runtime, certify themselves, or become a truth source.
+
+### Engineering Intelligence Final State
+
+Engineering Intelligence materialization is complete at the architecture/canonical level.
+Remaining work is future implementation and evidence collection only.
+Final canonical state: `MEASURED_UNDERSTOOD_RECOMMENDED_VALIDATION_MATERIALIZED_ADAPTIVE_ENGINEERING_READY`.

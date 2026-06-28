@@ -86,3 +86,20 @@ Research never changes runtime behavior.
 Research never runs apply.
 Research never moves users.
 Research never creates synthetic evidence.
+
+## Runtime Evolution Research Process
+
+Runtime evolution, RT2, control-plane, queue, concurrency, latency, and runtime-cost research must use the existing Research Framework.
+
+Process:
+
+1. Resolve context.
+2. Collect mature production models.
+3. Store inventory in the research report or existing research/canonical owner.
+4. Run V7 Fit Analysis against OMP, Runtime Model, Decision Model, SYSTEM_MAP, policies, and existing code owners.
+5. Run Work Placement Review.
+6. Run Safety, Authority, Verification, Rollback, Freshness, STOP_SAFE, and synthetic-evidence review.
+7. Recommend canonical owner/backlog updates only when applicable.
+
+Do not create `docs/research/RUNTIME_EVOLUTION_MODELS.md` by default.
+Create it only if existing research owners cannot keep the inventory discoverable.

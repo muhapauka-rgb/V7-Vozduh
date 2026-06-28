@@ -263,3 +263,34 @@ Research Framework must not:
 - move users.
 
 Research recommendations remain proposals until accepted through the existing V7 decision and documentation paths.
+
+## Runtime Evolution Model Collection Rule
+
+Status: `ACTIVE_RESEARCH_OWNER_EXTENSION`.
+
+Runtime evolution and control-plane model research uses this existing Research Framework.
+Do not create a separate research owner unless a future audit proves this framework cannot store or govern the inventory.
+
+Required flow:
+
+```text
+Research question
+  -> collect mature production models
+  -> normalize vocabulary and operating assumptions
+  -> validate source maturity
+  -> extract shared engineering principles
+  -> compare against V7 owners
+  -> V7 Fit Analysis
+  -> Work Placement Review
+  -> Owner Mapping
+  -> Safety / Authority / Verification / Rollback / Freshness Review
+  -> Canonical Promotion if durable
+  -> OMP / Backlog / Current Program State only when applicable
+```
+
+Research inventory may be stored in the research report, relevant policy/reference owner, or OMP section when scheduler meaning changes.
+An extra `docs/research/RUNTIME_EVOLUTION_MODELS.md` file is optional and must not be created unless existing owners become insufficient.
+
+External models must never directly override V7 architecture.
+They can only recommend reuse or extension through existing owners.
+Research recommendations do not become executable work until OMP accepts placement, owner mapping, safety review, and canonical promotion.

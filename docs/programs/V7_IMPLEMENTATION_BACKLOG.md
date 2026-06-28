@@ -36,16 +36,16 @@ OMP must always choose the highest-priority unfinished backlog item unless it cr
 
 | Scope | Complete | Total | Status |
 | --- | ---: | ---: | --- |
-| Tier A | `4` | `6` | `ACTIVE` |
-| Tier B | `0` | `21` | `PENDING` |
+| Tier A | `6` | `6` | `COMPLETE` |
+| Tier B | `3` | `21` | `ACTIVE` |
 | Tier C | `0` | `7` | `PENDING` |
 | Tier D optional | `0` | `6` | `OPTIONAL` |
-| Overall actionable | `4` | `34` | `ACTIVE` |
+| Overall actionable | `9` | `34` | `ACTIVE` |
 
 Implementation maturity:
 
 ```text
-11.8%
+26.5%
 ```
 
 Estimated remaining effort:
@@ -57,7 +57,7 @@ Moderate
 Next item:
 
 ```text
-A4
+B1
 ```
 
 If all actionable backlog items are `DONE`, OMP must answer:
@@ -92,18 +92,19 @@ State Change Cost verdict: `ALREADY_EXISTS_SEMANTICALLY`; extend existing B19 vo
 
 | Field | Value |
 | --- | --- |
-| Backlog id | `A5` |
-| Task | Certify class-level blast-radius evidence beyond the one-user guard. |
-| Policy source | `POLICY_006_BLAST_RADIUS`, `POLICY_005_ACTION_CLASS_PROMOTION` |
-| Owner | Action-class ladder, planner budgets, capacity/load gates |
-| Files/modules | `tools/v7-users-autoswitch`, `admin_core/autonomy_trust_acceleration.py`, `admin_core/operator_execution_pipeline.py` |
-| Implementation class | `IMPLEMENT_VERIFICATION` |
-| Estimated effort | `MODERATE_EXTENSION` |
-| Dependencies | Planner move counts, capacity, fallback, policy scope; A4 representative evidence is now complete. |
-| Expected production value | `VERY_HIGH` |
-| Expected autonomy gain | `HIGH` |
+| Backlog id | `B2` |
+| Status | `READY` |
+| Task | Add hard-failure timer/risk class to policy windows. |
+| Policy source | `POLICY_001_HARD_FAILURE`, `POLICY_009_ANTI_FLAP` |
+| Owner | OMP floors, safety policy, anti-flap overlay |
+| Files/modules | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory` |
+| Implementation class | `IMPLEMENT_READ_MODEL` |
+| Estimated effort | `SMALL_EXTENSION` |
+| Dependencies | A2 freshness windows; B1 liveness evidence aggregation. |
+| Expected production value | `HIGH` |
+| Expected autonomy gain | `MEDIUM_HIGH` |
 | Expected runtime gain | `HIGH` |
-| Expected safety gain | `VERY_HIGH` |
+| Expected safety gain | `HIGH` |
 
 ## Runtime Latency Foundation Placement
 
@@ -153,15 +154,15 @@ Future runtime-latency work must map to the existing backlog owners above unless
 | `A2` | `DONE` | Canonicalize per-action-class freshness windows and owner-issued freshness fields. | `POLICY_008_FRESHNESS`, `POLICY_001_HARD_FAILURE`, `POLICY_003_RECOVERY_ADMISSION` | Freshness actionability, delegated policy preview, execution lease | `admin_core/autonomy_trust_acceleration.py`, `admin_core/operator_execution.py`, `tools/v7-autonomy-trust-evidence-inventory` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | Existing freshness classifications, packet lease, runtime fingerprints. | `VERY_HIGH` | `HIGH` | `VERY_HIGH` | `VERY_HIGH` |
 | `A3` | `DONE` | Certify class-level rollback/no-rollback evidence for governed candidate movement. | `POLICY_007_ROLLBACK`, `POLICY_005_ACTION_CLASS_PROMOTION` | Restore barrier, rollback manifest, governed execution, feedback/learning | `admin_core/operator_execution.py`, `tools/v7-users-autoswitch`, `admin_core/operator_execution_feedback.py`, `admin_core/autonomy_trust_acceleration.py` | `IMPLEMENT_CERTIFICATION` | `MODERATE_EXTENSION` | Real governed no-rollback outcome closed for packet `pkt_preview_5c4bcfaa59d769ced6d6e5dc`; feedback `execfb_55e330784ad36b513d23e12a`; learning `learn_0c3b5cdd250c64ac7d9b97e7`. | `VERY_HIGH` | `VERY_HIGH` | `HIGH` | `VERY_HIGH` |
 | `A4` | `DONE` | Materialize representative outcome evidence for the first action class. | `POLICY_005_ACTION_CLASS_PROMOTION` | OMP promotion engine, feedback/learning, outcome leverage model | `admin_core/operator_execution_feedback.py`, `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory` | `IMPLEMENT_BACKGROUND` | `MODERATE_EXTENSION` | Real comparable outcomes collected; candidate inventory signal is empty; outcome closure read-model is `COMPLETE`; no synthetic evidence. | `VERY_HIGH` | `VERY_HIGH` | `MEDIUM_HIGH` | `HIGH` |
-| `A5` | `TODO` | Certify class-level blast-radius evidence beyond the one-user guard. | `POLICY_006_BLAST_RADIUS`, `POLICY_005_ACTION_CLASS_PROMOTION` | Action-class ladder, planner budgets, capacity/load gates | `tools/v7-users-autoswitch`, `admin_core/autonomy_trust_acceleration.py`, `admin_core/operator_execution_pipeline.py` | `IMPLEMENT_VERIFICATION` | `MODERATE_EXTENSION` | Planner move counts, capacity, fallback, policy scope. | `VERY_HIGH` | `HIGH` | `HIGH` | `VERY_HIGH` |
-| `A6` | `TODO` | Implement action-class runtime eligibility arbitration using freshness, authority, blast radius, rollback, anti-flap, verification, and learning gates. | `POLICY_004_AUTHORITY`, `POLICY_005_ACTION_CLASS_PROMOTION`, `POLICY_006_BLAST_RADIUS`, `POLICY_007_ROLLBACK`, `POLICY_008_FRESHNESS`, `POLICY_009_ANTI_FLAP` | OMP, delegated policy preview, action-class runtime enablement, Runtime Model | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory`, `admin_core/operator_execution_pipeline.py` | `IMPLEMENT_READ_MODEL` | `MODERATE_EXTENSION` | A1-A5 gate outputs; no runtime apply enabled. | `VERY_HIGH` | `VERY_HIGH` | `VERY_HIGH` | `VERY_HIGH` |
+| `A5` | `DONE` | Certify class-level blast-radius evidence beyond the one-user guard. | `POLICY_006_BLAST_RADIUS`, `POLICY_005_ACTION_CLASS_PROMOTION` | Action-class ladder, planner budgets, capacity/load gates | `tools/v7-users-autoswitch`, `admin_core/autonomy_trust_acceleration.py`, `admin_core/operator_execution_pipeline.py` | `IMPLEMENT_VERIFICATION` | `MODERATE_EXTENSION` | Read-only verifier consumed existing E29 historical governed execution proofs: one-user, two-user, and four-user movement are certified; authority remains unchanged. | `VERY_HIGH` | `HIGH` | `HIGH` | `VERY_HIGH` |
+| `A6` | `DONE` | Implement action-class runtime eligibility arbitration using freshness, authority, blast radius, rollback, anti-flap, verification, and learning gates. | `POLICY_004_AUTHORITY`, `POLICY_005_ACTION_CLASS_PROMOTION`, `POLICY_006_BLAST_RADIUS`, `POLICY_007_ROLLBACK`, `POLICY_008_FRESHNESS`, `POLICY_009_ANTI_FLAP` | OMP, delegated policy preview, action-class runtime enablement, Runtime Model | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory`, `admin_core/operator_execution_pipeline.py` | `IMPLEMENT_READ_MODEL` | `MODERATE_EXTENSION` | `runtime_eligibility_arbitration` consumes A1-A5 gate outputs and returns read-only execute-or-stop gate rows; current decision is `STOP_SAFE` at authority/runtime_apply; no runtime apply or authority expansion. | `VERY_HIGH` | `VERY_HIGH` | `VERY_HIGH` | `VERY_HIGH` |
 
 ## Tier B: High Value
 
 | Id | Status | Task | Policy source | Owner | Files/modules | Implementation class | Estimated effort | Dependencies | Expected production value | Expected autonomy gain | Expected runtime gain | Expected safety gain |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `B1` | `TODO` | Aggregate liveness evidence by source family and confidence. | `POLICY_001_HARD_FAILURE` | Service matrix, Telegram sentinel, quality compact, route reality | `tools/v7-service-matrix-refresh-all`, `tools/v7-egress-quality-compact`, `admin_core/intelligence_workers.py` | `IMPLEMENT_BACKGROUND` | `MODERATE_EXTENSION` | A1 classifier shape. | `HIGH` | `HIGH` | `MEDIUM_HIGH` | `HIGH` |
-| `B2` | `TODO` | Add hard-failure timer/risk class to policy windows. | `POLICY_001_HARD_FAILURE`, `POLICY_009_ANTI_FLAP` | OMP floors, safety policy, anti-flap overlay | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | A2 freshness windows. | `HIGH` | `MEDIUM_HIGH` | `HIGH` | `HIGH` |
+| `B1` | `DONE` | Aggregate liveness evidence by source family and confidence. | `POLICY_001_HARD_FAILURE` | Service matrix, Telegram sentinel, quality compact, route reality | `admin_core/autonomy_trust_acceleration.py::build_liveness_evidence_aggregation`, `tools/v7-service-matrix-refresh-all`, `tools/v7-egress-quality-compact`, `admin_core/intelligence_workers.py` | `IMPLEMENT_BACKGROUND` | `MODERATE_EXTENSION` | A1 classifier shape. | `HIGH` | `HIGH` | `MEDIUM_HIGH` | `HIGH` |
+| `B2` | `DONE` | Add hard-failure timer/risk class to policy windows. | `POLICY_001_HARD_FAILURE`, `POLICY_009_ANTI_FLAP` | OMP floors, safety policy, anti-flap overlay | `admin_core/autonomy_trust_acceleration.py::build_hard_failure_policy_windows`, `tools/v7-autonomy-trust-evidence-inventory --routing-foundation-only` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | `hard_failure_policy_windows` exposes hard-failure risk classes, reaction window impact, anti-flap blockers, and no-timer-change proof from existing A1/A2/B1 owners; no runtime apply or authority expansion. | `HIGH` | `MEDIUM_HIGH` | `HIGH` | `HIGH` |
 | `B3` | `TODO` | Align soft-degradation trend thresholds to canonical policy vocabulary. | `POLICY_002_SOFT_DEGRADATION` | Planner/autoswitch, quality compact, service matrix | `tools/v7-users-autoswitch`, `tools/v7-egress-quality-compact` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | Existing signal thresholds. | `HIGH` | `MEDIUM` | `MEDIUM_HIGH` | `HIGH` |
 | `B4` | `TODO` | Normalize signal-to-policy mapping for degradation evidence. | `POLICY_002_SOFT_DEGRADATION` | Quality compact, service matrix, route/service views | `tools/v7-egress-quality-compact`, `tools/v7-service-matrix-refresh-all`, `admin_core/operator_decision_surface.py` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | Existing signal families. | `HIGH` | `HIGH` | `MEDIUM_HIGH` | `HIGH` |
 | `B5` | `TODO` | Complete observed degradation attribution using active and passive evidence. | `POLICY_002_SOFT_DEGRADATION` | Service matrix, quality compact, trust/outcome stores | `admin_core/intelligence_workers.py`, `admin_core/operator_execution_feedback.py`, `admin_core/autonomy_trust_acceleration.py` | `IMPLEMENT_BACKGROUND` | `MODERATE_EXTENSION` | Outcome attribution evidence. | `HIGH` | `HIGH` | `MEDIUM` | `HIGH` |
@@ -172,10 +173,10 @@ Future runtime-latency work must map to the existing backlog owners above unless
 | `B10` | `TODO` | Define recovery slow-start as V7 user/action-class progression. | `POLICY_003_RECOVERY_ADMISSION`, `POLICY_006_BLAST_RADIUS` | Blast-radius/action-class ladder | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, `admin_core/autonomy_trust_acceleration.py` | `IMPLEMENT_READ_MODEL` | `MODERATE_EXTENSION` | B8 recovery certification. | `HIGH` | `HIGH` | `HIGH` | `HIGH` |
 | `B11` | `TODO` | Complete org/cohort isolation and identity policy integration. | `POLICY_004_AUTHORITY`, `POLICY_006_BLAST_RADIUS` | Planner gates, identity/policy owners, OMP | `admin/v7-admin-api`, `admin_core/operator_decision_surface.py`, `tools/v7-users-autoswitch` | `IMPLEMENT_READ_MODEL` | `MODERATE_EXTENSION` | Identity DB and org policy availability. | `HIGH` | `MEDIUM_HIGH` | `MEDIUM` | `VERY_HIGH` |
 | `B12` | `TODO` | Implement next action-class stage only after certification evidence exists. | `POLICY_005_ACTION_CLASS_PROMOTION` | Action-class ladder, OMP | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, `admin_core/autonomy_trust_acceleration.py` | `IMPLEMENT_CERTIFICATION` | `SMALL_EXTENSION` | A3-A5 certification. | `HIGH` | `VERY_HIGH` | `HIGH` | `HIGH` |
-| `B13` | `TODO` | Certify metric reliability for automated promotion recommendations. | `POLICY_005_ACTION_CLASS_PROMOTION` | Trust/confidence, freshness, rollback, eligibility | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory` | `IMPLEMENT_VERIFICATION` | `MODERATE_EXTENSION` | Representative outcome evidence. | `HIGH` | `HIGH` | `MEDIUM_HIGH` | `HIGH` |
+| `B13` | `DONE` | Certify metric reliability for automated promotion recommendations. | `POLICY_005_ACTION_CLASS_PROMOTION` | Trust/confidence, freshness, rollback, eligibility | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory` | `IMPLEMENT_VERIFICATION` | `MODERATE_EXTENSION` | `metric_reliability_certification` certifies reliable blocking recommendations only: current recommendation is `DO_NOT_PROMOTE_COLLECT_REAL_EVIDENCE`; positive promotion remains blocked by partial service/candidate/floor/freshness/runtime/authority evidence; no runtime apply or authority expansion. | `HIGH` | `HIGH` | `MEDIUM_HIGH` | `HIGH` |
 | `B14` | `TODO` | Add service/pool/cohort blast-radius scope where required. | `POLICY_006_BLAST_RADIUS` | Planner, capacity/load, action-class ladder | `tools/v7-users-autoswitch`, `admin_core/operator_decision_surface.py`, `admin_core/autonomy_trust_acceleration.py` | `IMPLEMENT_READ_MODEL` | `MODERATE_EXTENSION` | Existing capacity/service owners. | `HIGH` | `HIGH` | `HIGH` | `VERY_HIGH` |
 | `B15` | `TODO` | Expose containment/forward-fix classification. | `POLICY_007_ROLLBACK` | Runtime Model, execution packet partial-failure policy | `admin_core/operator_execution.py`, `admin_core/operator_execution_pipeline.py` | `IMPLEMENT_OBSERVABILITY` | `SMALL_EXTENSION` | Existing partial-failure policy. | `HIGH` | `MEDIUM_HIGH` | `HIGH` | `HIGH` |
-| `B16` | `TODO` | Certify automatic rollback authority after reliable verification evidence. | `POLICY_007_ROLLBACK` | Autoswitch rollback-on-verify-fail, OMP operational/engineering authority gates | `tools/v7-users-autoswitch`, `admin_core/operator_execution.py`, `admin_core/operator_execution_pipeline.py` | `IMPLEMENT_CERTIFICATION` | `MODERATE_EXTENSION` | Verification reliability and authority approval. | `HIGH` | `HIGH` | `VERY_HIGH` | `VERY_HIGH` |
+| `B16` | `DONE` | Certify automatic rollback authority after reliable verification evidence. | `POLICY_007_ROLLBACK` | Autoswitch rollback-on-verify-fail, OMP operational/engineering authority gates | `tools/v7-users-autoswitch`, `admin_core/operator_execution.py`, `admin_core/operator_execution_pipeline.py`, `admin_core/autonomy_trust_acceleration.py` | `IMPLEMENT_CERTIFICATION` | `MODERATE_EXTENSION` | `rollback_authority_certification` certifies rollback/verification/metric/runtime evidence for authority review only; automatic rollback authority is not granted, runtime apply remains disabled, rollback execution is not performed, and authority/runtime_apply remain STOP gates. | `HIGH` | `HIGH` | `VERY_HIGH` | `VERY_HIGH` |
 | `B17` | `TODO` | Preserve stale-read reporting while blocking mutation. | `POLICY_008_FRESHNESS` | Runtime eligibility, truth/convergence, read-only inventory | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-autonomy-trust-evidence-inventory` | `IMPLEMENT_OBSERVABILITY` | `SMALL_EXTENSION` | Existing read-only/action split. | `HIGH` | `MEDIUM` | `MEDIUM` | `HIGH` |
 | `B18` | `TODO` | Extend owner-issued version/lease pattern where available. | `POLICY_008_FRESHNESS` | Execution lease, runtime snapshot, intelligence snapshots | `admin_core/operator_execution.py`, `admin_core/intelligence_snapshots.py`, `admin_core/autonomy_trust_acceleration.py` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | Existing lease and snapshot generations. | `HIGH` | `HIGH` | `HIGH` | `VERY_HIGH` |
 | `B19` | `TODO` | Centralize hysteresis and state-change-cost mapping across failure, recovery, and movement-protection owners. | `POLICY_009_ANTI_FLAP` | Service signal thresholds, recovery admission, movement protection | `admin_core/autonomy_trust_acceleration.py`, `tools/v7-service-matrix-refresh-all`, `tools/v7-users-autoswitch` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | Existing thresholds, sticky/current bias, cooldown, freeze, pair reversal, and minimum movement improvement. | `HIGH` | `HIGH` | `MEDIUM_HIGH` | `HIGH` |

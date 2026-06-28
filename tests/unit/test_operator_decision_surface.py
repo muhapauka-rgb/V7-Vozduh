@@ -89,6 +89,8 @@ class OperatorDecisionSurfaceTest(unittest.TestCase):
                 egress=[{"id": "slow", "enabled": "1"}, {"id": "fast", "enabled": "1"}],
                 runtime_state={"egress": {"fast": {"code": "200"}}},
             )
+            rt2_s2 = surface.rt2_s2_world_readiness_maturation(decision_surface=model)
+            rt2_s3 = surface.rt2_s3_desired_state_delta_preparedness(decision_surface=model)
 
         row = model["users_by_ip"]["10.7.0.2"]
         self.assertEqual(row["recommended_channel"], "fast")
@@ -113,6 +115,43 @@ class OperatorDecisionSurfaceTest(unittest.TestCase):
         self.assertIn("ctr_state_requires_operator_review", row["review_required_reasons"])
         self.assertEqual(model["batch_preview"]["users_to_move"][0]["ctr_governance_evidence"]["state"], "NEW")
         self.assertEqual(model["batch_preview"]["ctr_review_summary"]["review_required_count"], 1)
+        rows = {item["category"]: item for item in rt2_s2["world_rows"]}
+        self.assertEqual(rt2_s2["schema_version"], "v7.rt2-s2-world-readiness-maturation.v1")
+        self.assertEqual(rt2_s2["status"], "DONE_READ_ONLY_WORLD_READINESS_OWNER_MAPPED")
+        self.assertTrue(rt2_s2["completion_criteria_met"])
+        self.assertTrue(rt2_s2["runtime_can_consume_compact_state"])
+        self.assertFalse(rt2_s2["prepared_state_is_authority"])
+        self.assertTrue(rt2_s2["live_gates_remain_live"])
+        self.assertEqual(rows["snapshots"]["status"], "BOUNDED_STOP")
+        self.assertEqual(rows["user_state"]["status"], "OBSERVED")
+        self.assertEqual(rows["channel_state"]["status"], "OBSERVED")
+        self.assertEqual(rows["policy_state"]["status"], "LIVE_GATE_REQUIRED")
+        self.assertEqual(rt2_s2["unlocked_capability"], "RT2-S3_DESIRED_STATE_DELTA_PREPAREDNESS")
+        self.assertIn("RT2-S4_GOVERNED_EXECUTION_COORDINATION", rt2_s2["still_blocked"])
+        self.assertFalse(rt2_s2["safety"]["prepared_state_can_approve"])
+        self.assertFalse(rt2_s2["safety"]["runtime_apply_allowed_now"])
+        self.assertFalse(rt2_s2["safety"]["authority_expanded"])
+        self.assertEqual(rt2_s2["safety"]["users_moved"], 0)
+        self.assertEqual(rt2_s3["schema_version"], "v7.rt2-s3-desired-state-delta-preparedness.v1")
+        self.assertEqual(rt2_s3["status"], "DONE_READ_ONLY_DELTA_OWNER_MAPPED")
+        self.assertTrue(rt2_s3["completion_criteria_met"])
+        self.assertEqual(rt2_s3["delta_rows"][0]["user"], "10.7.0.2")
+        self.assertEqual(rt2_s3["delta_rows"][0]["current_state"], "slow")
+        self.assertEqual(rt2_s3["delta_rows"][0]["desired_state"], "fast")
+        self.assertEqual(rt2_s3["delta_rows"][0]["status"], "ADVISORY_DELTA_READY")
+        self.assertEqual(rt2_s3["delta_rows"][0]["authority"], "none")
+        self.assertEqual(rt2_s3["prepared_plan"]["candidate_moves"], 1)
+        self.assertTrue(rt2_s3["prepared_plan"]["preview_only"])
+        self.assertFalse(rt2_s3["prepared_plan"]["execution_allowed_now"])
+        self.assertEqual(rt2_s3["unlocked_capability"], "RT2-S4_GOVERNED_EXECUTION_COORDINATION")
+        self.assertIn("RT2-S5_CERTIFIED_CONCURRENCY", rt2_s3["still_blocked"])
+        self.assertIn("runtime_apply", rt2_s3["still_blocked"])
+        self.assertIn("user_movement", rt2_s3["still_blocked"])
+        self.assertFalse(rt2_s3["safety"]["desired_state_authority_created"])
+        self.assertFalse(rt2_s3["safety"]["planner_created"])
+        self.assertFalse(rt2_s3["safety"]["runtime_apply_allowed_now"])
+        self.assertFalse(rt2_s3["safety"]["authority_expanded"])
+        self.assertEqual(rt2_s3["safety"]["users_moved"], 0)
 
     def test_recommendation_fingerprint_changes_when_advice_changes(self):
         first = surface.recommendation_fingerprint("10.7.0.2", "slow", "fast", "aaa")
@@ -127,12 +166,32 @@ class OperatorDecisionSurfaceTest(unittest.TestCase):
                 egress=[{"id": "slow", "enabled": "1"}],
                 runtime_state={},
             )
+            readiness = surface.rt2_s2_world_readiness_maturation(decision_surface=model)
+            delta = surface.rt2_s3_desired_state_delta_preparedness(decision_surface=model)
 
         row = model["users_by_ip"]["10.7.0.2"]
         self.assertEqual(row["recommendation"], "keep")
         self.assertIn("best_candidate_missing", row["blockers"])
         self.assertFalse(row["runtime_mutation_performed"])
         self.assertFalse(model["authority"]["new_truth_sources_created"])
+        rows = {item["category"]: item for item in readiness["world_rows"]}
+        self.assertEqual(readiness["status"], "DONE_READ_ONLY_WORLD_READINESS_OWNER_MAPPED")
+        self.assertEqual(rows["snapshots"]["status"], "BOUNDED_STOP")
+        self.assertIn("snapshots", readiness["owner_mapped_missing_categories"])
+        self.assertEqual(readiness["unmapped_categories"], [])
+        self.assertFalse(readiness["safety"]["synthetic_evidence_created"])
+        self.assertFalse(readiness["safety"]["planner_created"])
+        self.assertFalse(readiness["safety"]["new_truth_source_created"])
+        self.assertEqual(delta["status"], "DONE_READ_ONLY_DELTA_OWNER_MAPPED")
+        self.assertTrue(delta["completion_criteria_met"])
+        self.assertEqual(delta["delta_rows"][0]["status"], "NO_DELTA_RECOMMENDED")
+        self.assertEqual(delta["prepared_plan"]["candidate_moves"], 0)
+        self.assertFalse(delta["prepared_plan"]["execution_allowed_now"])
+        self.assertEqual(delta["unmapped_delta_owners"], [])
+        self.assertFalse(delta["safety"]["synthetic_evidence_created"])
+        self.assertFalse(delta["safety"]["desired_state_authority_created"])
+        self.assertFalse(delta["safety"]["planner_created"])
+        self.assertFalse(delta["safety"]["new_truth_source_created"])
 
     def test_snapshot_status_contract_includes_autonomy_gate_fields(self):
         with tempfile.TemporaryDirectory() as tmp:

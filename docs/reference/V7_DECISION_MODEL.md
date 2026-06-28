@@ -428,3 +428,50 @@ This model was derived from primary documentation and mature production systems:
 
 Research never copies vendor architecture.
 It extracts shared engineering principles and maps them to existing V7 owners.
+
+## Runtime Capability Maturation Decision Semantics
+
+Status: `CANONICAL_REFERENCE_ONLY`.
+
+RT2 decision semantics are owned here only as vocabulary and meaning.
+OMP owns RT2 execution.
+Runtime Model owns runtime consumption and live safety.
+
+Definitions:
+
+| Term | Meaning | Owner |
+| --- | --- | --- |
+| Current State | The observed and prepared present-tense system state. | Observation, World Model, read-model owners. |
+| Desired Safe State | The policy/business/safety target state V7 wants reality to approach. | Product Specification, policies, OMP, Decision Model. |
+| Delta | The bounded difference worth considering between current state and Desired Safe State. | Existing planner/autoswitch and decision surface owners. |
+| Prepared Plan | Advisory candidate/action artifact produced before live execution. | Planner, decision surface, packet/preview owners. |
+| Decision Lifetime | The period in which a decision's material assumptions remain valid. | Runtime Model freshness/lifecycle owners. |
+| Runtime Eligibility | Whether Runtime may continue to execute-or-stop evaluation. | A6/runtime eligibility owners. |
+| Execution Eligibility | Whether the exact bounded action may execute after live gates. | Runtime Model, execution owners, OMP authority owners. |
+
+Canonical RT2 decision flow:
+
+```text
+Current State
+  -> Desired Safe State
+  -> Delta
+  -> Prepared Plan
+  -> Runtime Eligibility
+  -> Execution Eligibility
+  -> Execution
+```
+
+Rules:
+
+1. Desired State is intent, not authority.
+2. Desired State must not become a second planner.
+3. Desired State must not become a second authority owner.
+4. Prepared Plan is advisory until live authority, freshness, blast radius, rollback, verification, anti-flap, and runtime eligibility pass.
+5. Decision remains separate from execution.
+6. Runtime may consume decisions but must not invent them.
+7. External models may inform decision semantics only after Research Framework and V7 Fit Analysis.
+8. Delta ranking may order advisory candidates, but cannot select execution without existing planner and authority owners.
+9. Prepared Plan cannot create a packet, lease, restore barrier, apply, rollback, or feedback record by itself.
+
+RT2-S3 may mature Desired-State Delta Preparedness only through existing owners.
+If a proposed delta requires a new planner, new authority model, or new runtime decision path, OMP must stop at `FUNDAMENTAL_ARCHITECTURE_GAP` unless reuse is proven impossible.

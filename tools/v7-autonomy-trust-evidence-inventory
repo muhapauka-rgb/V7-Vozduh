@@ -183,6 +183,8 @@ def main(argv=None) -> int:
                 "freshness_actionability",
                 "action_class_freshness_windows",
                 "hard_failure_classification",
+                "liveness_evidence_aggregation",
+                "hard_failure_policy_windows",
                 "routing_recommendation_readiness",
             ]
         }

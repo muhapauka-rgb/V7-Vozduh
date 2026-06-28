@@ -426,6 +426,61 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertFalse(model["routing_changed"])
         self.assertIn("governed apply", model["blocked_actions"])
 
+    def test_rt2_s4_governed_execution_coordination_owner_maps_terminal_path(self):
+        s4 = pipeline.rt2_s4_governed_execution_coordination(
+            rt2_s3_delta={"status": "DONE_READ_ONLY_DELTA_OWNER_MAPPED"},
+        )
+
+        rows = {row["stage"]: row for row in s4["coordination_rows"]}
+        self.assertEqual(s4["schema_version"], "v7.rt2-s4-governed-execution-coordination.v1")
+        self.assertEqual(s4["status"], "DONE_READ_ONLY_GOVERNED_EXECUTION_COORDINATION_OWNER_MAPPED")
+        self.assertTrue(s4["completion_criteria_met"])
+        for stage in [
+            "packet",
+            "runtime_recheck",
+            "restore_barrier",
+            "apply",
+            "verify",
+            "rollback_readiness",
+            "feedback",
+            "closure",
+        ]:
+            self.assertIn(stage, rows)
+            self.assertEqual(rows[stage]["status"], "OWNER_MAPPED")
+            self.assertFalse(rows[stage]["runtime_mutation_performed_now"])
+        self.assertEqual(rows["packet"]["owner"], pipeline.CANONICAL_PACKET_TOOL)
+        self.assertEqual(rows["restore_barrier"]["owner"], pipeline.CANONICAL_PACKET_OWNER)
+        self.assertEqual(rows["apply"]["owner"], pipeline.CANONICAL_RUNTIME_EXECUTOR)
+        self.assertEqual(rows["feedback"]["owner"], pipeline.CANONICAL_FEEDBACK_OWNER)
+        self.assertEqual(s4["terminal_classification"]["closure_owner"], pipeline.CANONICAL_FEEDBACK_OWNER)
+        self.assertTrue(s4["terminal_classification"]["terminal_classification_ready"])
+        self.assertEqual(s4["unlocked_capability"], "RT2-S5_CERTIFIED_CONCURRENCY_LADDER")
+        self.assertEqual(s4["missing_stages"], [])
+        self.assertEqual(s4["ownerless_stages"], [])
+
+    def test_rt2_s4_governed_execution_coordination_remains_read_only(self):
+        s4 = pipeline.rt2_s4_governed_execution_coordination()
+
+        self.assertTrue(s4["read_only"])
+        self.assertTrue(s4["preview_only"])
+        self.assertFalse(s4["safety"]["runtime_behavior_changed"])
+        self.assertFalse(s4["safety"]["runtime_apply_allowed_now"])
+        self.assertFalse(s4["safety"]["restore_barrier_written_now"])
+        self.assertFalse(s4["safety"]["apply_executed"])
+        self.assertFalse(s4["safety"]["rollback_executed"])
+        self.assertFalse(s4["safety"]["feedback_written_now"])
+        self.assertFalse(s4["safety"]["closure_written_now"])
+        self.assertEqual(s4["safety"]["users_moved"], 0)
+        self.assertFalse(s4["safety"]["authority_expanded"])
+        self.assertFalse(s4["safety"]["concurrency_enabled"])
+        self.assertFalse(s4["safety"]["queue_daemon_created"])
+        self.assertFalse(s4["safety"]["new_execution_path_created"])
+        self.assertIn("RT2-S6_EVIDENCE_BASED_CONTINUOUS_IMPROVEMENT", s4["still_blocked"])
+        self.assertIn("runtime_apply", s4["still_blocked"])
+        self.assertIn("concurrency", s4["still_blocked"])
+        self.assertTrue(s4["idempotency_and_loop_controls"]["planner_regeneration_after_approval_blocked"])
+        self.assertFalse(s4["idempotency_and_loop_controls"]["queue_daemon_created"])
+
     def test_execution_loop_readiness_foundation_extracts_stage_timing(self):
         foundation = pipeline.execution_loop_readiness_foundation(
             planner_result={"stage": "planner", "elapsed_ms": 12.5, "operation": {"selected_move_count": 2}},
@@ -558,6 +613,54 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(dashboard["users_moved"], 0)
         self.assertFalse(dashboard["apply_executed"])
         self.assertFalse(dashboard["autonomy_enabled"])
+
+    def test_rt2_s1_measurement_observability_foundation_owner_maps_required_fields(self):
+        foundation = pipeline.rt2_s1_measurement_observability_foundation(
+            planner_result={"stage": "planner", "duration_ms": 15, "operation": {"selected_move_count": 2}},
+            contracts=[
+                {"contract_id": "contract-1", "stage": "packet", "duration_ms": 5, "affected_users": ["10.0.0.3", "10.0.0.6"]},
+                {"contract_id": "contract-1", "stage": "restore_barrier", "duration_ms": 10},
+            ],
+            events=[
+                {"event_id": "apply-1", "event_type": "APPLY_COMPLETED", "duration_ms": 65000, "completed_at": "2026-06-08T10:00:01Z"},
+                {"event_id": "verify-1", "event_type": "VERIFICATION_FAILED", "duration_ms": 200, "completed_at": "2026-06-08T10:00:02Z"},
+                {"event_id": "rollback-1", "event_type": "ROLLBACK_COMPLETED", "duration_ms": 300, "completed_at": "2026-06-08T10:00:03Z"},
+                {"event_id": "feedback-1", "event_type": "FEEDBACK_MATERIALIZED", "duration_ms": 20, "completed_at": "2026-06-08T10:00:04Z"},
+                {"event_id": "closure-1", "event_type": "CLOSURE_CLOSED", "duration_ms": 10, "completed_at": "2026-06-08T10:00:05Z"},
+            ],
+        )
+
+        rows = {row["category"]: row for row in foundation["measurement_rows"]}
+        self.assertEqual(foundation["schema_version"], "v7.rt2-s1-measurement-observability-foundation.v1")
+        self.assertEqual(foundation["workstream"], "RT2-S1")
+        self.assertEqual(foundation["status"], "DONE_READ_ONLY_MEASUREMENT_OWNER_MAPPED")
+        self.assertTrue(foundation["completion_criteria_met"])
+        self.assertEqual(rows["runtime_time"]["status"], "OBSERVED")
+        self.assertEqual(rows["reaction_latency"]["status"], "OBSERVED")
+        self.assertEqual(rows["dependency_topology"]["status"], "OBSERVED")
+        self.assertEqual(rows["time_to_safe_recovery"]["status"], "PARTIAL_OWNER_MAPPED")
+        self.assertEqual(foundation["source_models"]["dashboard_performance"]["bottleneck"], "apply_duration_ms")
+        self.assertEqual(foundation["unlocked_capability"], "RT2-S2_WORLD_READINESS_MATURATION")
+        self.assertIn("RT2-S3_DESIRED_STATE_DELTA", foundation["still_blocked"])
+        self.assertFalse(foundation["safety"]["dashboard_can_approve"])
+        self.assertFalse(foundation["safety"]["runtime_apply_allowed_now"])
+        self.assertFalse(foundation["safety"]["authority_expanded"])
+        self.assertEqual(foundation["safety"]["users_moved"], 0)
+        self.assertFalse(foundation["safety"]["new_owner_created"])
+
+    def test_rt2_s1_measurement_observability_foundation_marks_missing_fields_with_owner(self):
+        foundation = pipeline.rt2_s1_measurement_observability_foundation()
+        rows = {row["category"]: row for row in foundation["measurement_rows"]}
+
+        self.assertEqual(foundation["status"], "DONE_READ_ONLY_MEASUREMENT_OWNER_MAPPED")
+        self.assertTrue(foundation["completion_criteria_met"])
+        self.assertEqual(rows["runtime_time"]["status"], "OWNER_MAPPED_MISSING")
+        self.assertEqual(rows["reaction_latency"]["status"], "OWNER_MAPPED_MISSING")
+        self.assertEqual(rows["time_to_safe_recovery"]["status"], "OWNER_MAPPED_MISSING")
+        self.assertIn("runtime_time", foundation["owner_mapped_missing_categories"])
+        self.assertEqual(foundation["unmapped_categories"], [])
+        self.assertFalse(foundation["safety"]["synthetic_metrics_created"])
+        self.assertFalse(foundation["safety"]["runtime_behavior_changed"])
 
     def test_autonomous_dry_run_simulates_canary_without_runtime_mutation(self):
         decision_surface = {

@@ -7,6 +7,7 @@ evidence so operators know which real evidence to collect next.
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -2863,6 +2864,1116 @@ def build_delegated_autonomy_runtime_eligibility(
     }
 
 
+def build_historical_blast_radius_evidence(
+    evidence_dir: Path | str | None = None,
+    *,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Read existing historical scale proofs without treating them as authority."""
+    root = Path(evidence_dir) if evidence_dir is not None else Path("docs/track7/productization/e29-evidence")
+    files = {
+        "scaling_review": root / "scaling-review.md",
+        "governance_proof_matrix": root / "governance-proof-matrix.md",
+        "execution_history_review": root / "execution-history-review.md",
+        "tests": root / "tests.md",
+    }
+    contents: dict[str, str] = {}
+    for name, path in files.items():
+        try:
+            contents[name] = path.read_text(encoding="utf-8")
+        except OSError:
+            contents[name] = ""
+    combined = "\n".join(contents.values())
+    rows = [
+        {
+            "scale": "one-user",
+            "users": 1,
+            "certified": "one_user_governed_execution_certified=true" in combined,
+            "evidence": "E25.15",
+        },
+        {
+            "scale": "two-user",
+            "users": 2,
+            "certified": "two_user_governed_execution_certified=true" in combined,
+            "evidence": "E27.2",
+        },
+        {
+            "scale": "small-cohort",
+            "users": 4,
+            "certified": "small_cohort_governed_execution_certified=true" in combined,
+            "evidence": "E28.2",
+        },
+    ]
+    certified_users = [row["users"] for row in rows if row["certified"]]
+    scale_match = re.search(r"Current certified scale=(\d+) users", combined)
+    if scale_match:
+        certified_users.append(int(scale_match.group(1)))
+    max_certified = max(certified_users or [0])
+    required_phrases = [
+        "approval_packet_system_certified=true",
+        "execution_time_recheck_certified=true",
+        "rollback_certified=true",
+        "replay_protection_certified=true",
+        "restore_settle_certified=true",
+        "governance_isolation_certified=true",
+        "latest_forward_success=true",
+        "latest_rollback_success=true",
+        "latest_delayed_movement_observed=false",
+        "latest_replay_rejection_verified=true",
+        "latest_runtime_checkers_ok=true",
+    ]
+    missing = [phrase for phrase in required_phrases if phrase not in combined]
+    return {
+        "schema_version": "v7.historical-blast-radius-evidence.v1",
+        "generated_at": generated_at or "",
+        "owner": "docs/track7/productization/e29-evidence",
+        "evidence_dir": str(root),
+        "files_read": {name: str(path) for name, path in files.items() if contents.get(name)},
+        "rows": rows,
+        "max_certified_blast_radius_users": max_certified,
+        "beyond_one_user_historical_evidence_exists": max_certified > 1,
+        "required_historical_proofs_present": not missing,
+        "missing_historical_proofs": missing,
+        "evidence_role": "historical_certification_evidence_only",
+        "authority_granted": False,
+        "runtime_apply_allowed": False,
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "new_truth_source_created": False,
+    }
+
+
+def build_class_level_blast_radius_certification(
+    *,
+    action_class_runtime_enablement: dict[str, Any],
+    floor_forensics: dict[str, Any],
+    service_user_sla_fit: dict[str, Any],
+    hard_failure_classification: dict[str, Any],
+    decision_outcome_closure: dict[str, Any],
+    historical_blast_radius_evidence: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Certify blast-radius evidence for A5 without approving larger scope."""
+    classes = [
+        row for row in action_class_runtime_enablement.get("action_classes", [])
+        if isinstance(row, dict)
+    ]
+    current = next(
+        (row for row in classes if row.get("action_class") == action_class_runtime_enablement.get("current_action_class")),
+        classes[0] if classes else {},
+    )
+    next_candidates = [
+        row for row in classes
+        if row.get("runtime_enablement_state") == "NOT_CERTIFIED"
+    ]
+    next_class = next_candidates[0] if next_candidates else {}
+    components = floor_forensics.get("component_values") if isinstance(floor_forensics.get("component_values"), dict) else {}
+    rollback_blast = floor_forensics.get("rollback_and_blast") if isinstance(floor_forensics.get("rollback_and_blast"), dict) else {}
+    fit_summary = service_user_sla_fit.get("summary") if isinstance(service_user_sla_fit.get("summary"), dict) else {}
+    closure_summary = decision_outcome_closure.get("summary") if isinstance(decision_outcome_closure.get("summary"), dict) else {}
+    blast_confidence = as_float(components.get("blast_radius_confidence"), 0.0)
+    blast_records = int(as_float(rollback_blast.get("blast_records_seen"), 0.0))
+    selected_budget = int((DEFAULT_DELEGATED_AUTONOMY_POLICY.get("max_blast_radius") or {}).get("users") or 1)
+    next_required = next_class.get("required_blast_radius") or "bounded cohort"
+    evidence_rows = [
+        {
+            "signal": "current_policy_max_users_per_action",
+            "value": selected_budget,
+            "status": "PASS" if selected_budget == 1 else "REVIEW",
+        },
+        {
+            "signal": "blast_radius_confidence",
+            "value": round(blast_confidence, 3),
+            "status": "PASS" if blast_confidence >= 100.0 else "BLOCKED",
+        },
+        {
+            "signal": "blast_records_seen",
+            "value": blast_records,
+            "status": "PASS" if blast_records > 0 else "BLOCKED",
+        },
+        {
+            "signal": "service_capacity_policy_fit",
+            "value": fit_summary.get("verdict_counts", {}),
+            "status": "PASS" if fit_summary.get("users_seen", 0) else "BLOCKED",
+        },
+        {
+            "signal": "decision_outcome_closure",
+            "value": decision_outcome_closure.get("closure_state", "UNKNOWN"),
+            "status": "PASS" if decision_outcome_closure.get("closure_state") == "COMPLETE" else "BLOCKED",
+        },
+        {
+            "signal": "valid_closure_candidates",
+            "value": int(closure_summary.get("valid_closures") or 0),
+            "status": "PASS" if int(closure_summary.get("valid_closures") or 0) > 0 else "BLOCKED",
+        },
+        {
+            "signal": "hard_failure_classification",
+            "value": hard_failure_classification.get("classification", "UNKNOWN"),
+            "status": "PASS" if hard_failure_classification.get("classification") == "HARD_FAILURE_CONFIRMED" else "SUPPORTING_ONLY",
+        },
+    ]
+    blockers = [
+        row["signal"] for row in evidence_rows
+        if row["status"] == "BLOCKED"
+    ]
+    current_one_user_certified = not blockers and current.get("required_blast_radius") == "exactly one user"
+    historical = historical_blast_radius_evidence if isinstance(historical_blast_radius_evidence, dict) else {}
+    max_historical_users = int(historical.get("max_certified_blast_radius_users") or 0)
+    historical_proofs_present = bool(historical.get("required_historical_proofs_present"))
+    beyond_one_user_certified = max_historical_users > 1 and historical_proofs_present
+    beyond_blockers = []
+    if not beyond_one_user_certified:
+        beyond_blockers.append("beyond_one_user_real_outcome_evidence_missing")
+    if not historical_proofs_present:
+        beyond_blockers.append("historical_blast_radius_proof_matrix_incomplete")
+    return {
+        "schema_version": "v7.a5-class-level-blast-radius-certification.v1",
+        "generated_at": generated_at or "",
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "A5",
+        "policy_sources": ["POLICY_006_BLAST_RADIUS", "POLICY_005_ACTION_CLASS_PROMOTION"],
+        "current_action_class": current.get("action_class", "UNKNOWN_ACTION_CLASS"),
+        "current_blast_radius": current.get("required_blast_radius", "UNKNOWN"),
+        "current_one_user_guard_certified": current_one_user_certified,
+        "next_candidate_action_class": next_class.get("action_class", ""),
+        "next_candidate_required_blast_radius": next_required,
+        "beyond_one_user_certified": beyond_one_user_certified,
+        "max_historical_certified_blast_radius_users": max_historical_users,
+        "historical_blast_radius_evidence": historical,
+        "certification_state": "BEYOND_ONE_USER_EVIDENCE_CERTIFIED_READ_ONLY" if beyond_one_user_certified else "WAITING_FOR_BEYOND_ONE_USER_EVIDENCE",
+        "blockers": blockers + beyond_blockers + ["class_authority_not_approved"],
+        "evidence_rows": evidence_rows,
+        "certification_rules": {
+            "one_user_guard_is_not_beyond_one_user_certification": True,
+            "planner_move_counts_required": True,
+            "capacity_load_gates_required": True,
+            "fallback_policy_scope_required": True,
+            "real_outcomes_required_before_scope_expansion": True,
+            "authority_required_before_scope_expansion": True,
+        },
+        "omp_output": {
+            "a5_status": "CERTIFICATION_EVIDENCE_READY_AUTHORITY_NOT_GRANTED" if beyond_one_user_certified else "IN_PROGRESS_WAITING_FOR_REAL_BEYOND_ONE_USER_EVIDENCE",
+            "recommendation": "CERTIFY_A5_EVIDENCE_ONLY_DO_NOT_EXPAND_AUTHORITY" if beyond_one_user_certified else "DO_NOT_EXPAND_BLAST_RADIUS",
+            "next_safe_action": "update A5 as evidence-certified and continue to A6/B13 without authority expansion" if beyond_one_user_certified else "preserve one-user governed guard and collect/certify only real owner evidence",
+            "stop_condition_if_scope_expansion_requested": "ENGINEERING_AUTHORITY",
+        },
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+        "new_runtime_created": False,
+    }
+
+
+def build_runtime_eligibility_arbitration(
+    *,
+    action_class_runtime_enablement: dict[str, Any],
+    class_level_blast_radius_certification: dict[str, Any],
+    freshness_actionability: dict[str, Any],
+    anti_flapping: dict[str, Any],
+    decision_outcome_closure: dict[str, Any],
+    decision_outcome_learning: dict[str, Any],
+    routing_recommendation_readiness: dict[str, Any],
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Expose A6 execute-or-stop arbitration without enabling Runtime."""
+    delegated = action_class_runtime_enablement.get("delegated_autonomy_runtime_eligibility")
+    if not isinstance(delegated, dict):
+        delegated = {}
+    missing_evidence = list((action_class_runtime_enablement.get("enablement_readiness") or {}).get("missing_evidence") or [])
+    knowledge_growth = decision_outcome_learning.get("knowledge_growth") if isinstance(decision_outcome_learning.get("knowledge_growth"), dict) else {}
+    stale_domains = sorted(delegated.get("stale_required_domains") or [])
+    anti_flap_blocked = int((anti_flapping.get("summary") or {}).get("blocked_users") or 0)
+    closure_state = str(decision_outcome_closure.get("closure_state") or "UNKNOWN")
+    learning_gained = int(knowledge_growth.get("knowledge_gained") or 0)
+    routing_blockers = list(routing_recommendation_readiness.get("blockers") or [])
+    blast_ready = bool(class_level_blast_radius_certification.get("beyond_one_user_certified"))
+    gate_rows = [
+        {
+            "gate": "freshness",
+            "state": "PASS" if not stale_domains else "STOP",
+            "owner": "freshness_actionability",
+            "evidence": stale_domains,
+        },
+        {
+            "gate": "authority",
+            "state": "STOP" if "AUTHORITY_POLICY_NOT_APPROVED" in delegated.get("blockers", []) else "PASS",
+            "owner": "delegated_autonomy_policy_preview",
+            "evidence": delegated.get("blockers", []),
+        },
+        {
+            "gate": "blast_radius",
+            "state": "PASS" if blast_ready else "STOP",
+            "owner": "class_level_blast_radius_certification",
+            "evidence": {
+                "max_historical_certified_blast_radius_users": class_level_blast_radius_certification.get("max_historical_certified_blast_radius_users", 0),
+                "certification_state": class_level_blast_radius_certification.get("certification_state", "UNKNOWN"),
+            },
+        },
+        {
+            "gate": "rollback_or_no_rollback",
+            "state": "STOP" if any("rollback_or_no_rollback" in item for item in missing_evidence) else "PASS",
+            "owner": "decision_outcome_closure",
+            "evidence": missing_evidence,
+        },
+        {
+            "gate": "anti_flap",
+            "state": "PASS" if anti_flap_blocked == 0 else "STOP",
+            "owner": "anti_flapping",
+            "evidence": {"blocked_users": anti_flap_blocked},
+        },
+        {
+            "gate": "verification",
+            "state": "PASS" if closure_state == "COMPLETE" else "STOP",
+            "owner": "decision_outcome_closure",
+            "evidence": {"closure_state": closure_state},
+        },
+        {
+            "gate": "learning",
+            "state": "PASS" if learning_gained > 0 else "STOP",
+            "owner": "decision_outcome_learning",
+            "evidence": {"knowledge_gained": learning_gained},
+        },
+        {
+            "gate": "routing_readiness",
+            "state": "PASS" if not routing_blockers else "STOP",
+            "owner": "routing_recommendation_readiness",
+            "evidence": routing_blockers,
+        },
+        {
+            "gate": "runtime_apply",
+            "state": "STOP" if not delegated.get("runtime_can_execute_automatically") else "PASS",
+            "owner": "Runtime Model / delegated policy",
+            "evidence": delegated.get("blockers", []),
+        },
+    ]
+    stop_gates = [row["gate"] for row in gate_rows if row["state"] == "STOP"]
+    authority_stop = "authority" in stop_gates or "runtime_apply" in stop_gates
+    return {
+        "schema_version": "v7.a6-runtime-eligibility-arbitration.v1",
+        "generated_at": generated_at or "",
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "A6",
+        "purpose": "read_only_execute_or_stop_arbitration_from_existing_certified_gates",
+        "gate_rows": gate_rows,
+        "stop_gates": stop_gates,
+        "arbitration_state": "STOP_AT_AUTHORITY_OR_RUNTIME_APPLY" if authority_stop else ("STOP_AT_EVIDENCE_GATE" if stop_gates else "ELIGIBLE_READ_ONLY_PREVIEW"),
+        "runtime_execute_decision": "STOP_SAFE" if stop_gates else "ELIGIBLE_READ_ONLY_PREVIEW",
+        "runtime_apply_allowed": False,
+        "runtime_can_execute_automatically": False,
+        "authority_required_before_runtime_apply": True,
+        "certified_gate_outputs_consumed": {
+            "A1_hard_failure": True,
+            "A2_freshness": True,
+            "A3_rollback_no_rollback": "rollback_or_no_rollback" not in " ".join(missing_evidence),
+            "A4_representative_outcomes": True,
+            "A5_blast_radius": blast_ready,
+        },
+        "omp_output": {
+            "a6_status": "READ_MODEL_IMPLEMENTED_STOPPED_BY_AUTHORITY" if authority_stop else "READ_MODEL_IMPLEMENTED",
+            "next_safe_action": "continue to B13 metric reliability after A6 report/canonical update" if authority_stop else "certify read-only preview only",
+            "authority_expansion_required": authority_stop,
+        },
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+        "new_runtime_created": False,
+    }
+
+
+def _source_by_name(source_confidence_inventory: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    return {
+        str(row.get("source")): row
+        for row in source_confidence_inventory.get("sources") or []
+        if isinstance(row, dict)
+    }
+
+
+def _metric_certification_row(
+    *,
+    metric: str,
+    owner: str,
+    current: Any,
+    target: Any = "",
+    evidence: Any = "",
+    state: str,
+    role: str,
+) -> dict[str, Any]:
+    return {
+        "metric": metric,
+        "owner": owner,
+        "current": current,
+        "target": target,
+        "evidence": evidence,
+        "state": state,
+        "role": role,
+    }
+
+
+def build_metric_reliability_certification(
+    *,
+    canary_proximity: dict[str, Any],
+    floor_forensics: dict[str, Any],
+    source_confidence_inventory: dict[str, Any],
+    evidence_sufficiency: dict[str, Any],
+    decision_outcome_closure: dict[str, Any],
+    decision_outcome_learning: dict[str, Any],
+    freshness_actionability: dict[str, Any],
+    routing_recommendation_readiness: dict[str, Any],
+    action_class_runtime_enablement: dict[str, Any],
+    class_level_blast_radius_certification: dict[str, Any],
+    runtime_eligibility_arbitration: dict[str, Any],
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Certify B13 metric reliability without granting promotion authority."""
+    floors = canary_proximity.get("primary_floors") if isinstance(canary_proximity.get("primary_floors"), dict) else {}
+    components = floor_forensics.get("component_values") if isinstance(floor_forensics.get("component_values"), dict) else {}
+    sources = _source_by_name(source_confidence_inventory)
+    closure_state = str(decision_outcome_closure.get("closure_state") or "UNKNOWN")
+    knowledge_growth = decision_outcome_learning.get("knowledge_growth") if isinstance(decision_outcome_learning.get("knowledge_growth"), dict) else {}
+    learning_gained = int(as_float(knowledge_growth.get("knowledge_gained"), 0.0))
+    stale_domains = [
+        name for name, row in sorted((freshness_actionability.get("domains") or {}).items())
+        if isinstance(row, dict) and row.get("classification") in {"STALE_RECHECK_REQUIRED", "UNKNOWN"}
+    ]
+    runtime_schema = str(runtime_eligibility_arbitration.get("schema_version") or "")
+    runtime_decision = str(runtime_eligibility_arbitration.get("runtime_execute_decision") or "UNKNOWN")
+    runtime_stop_gates = list(runtime_eligibility_arbitration.get("stop_gates") or [])
+    source_rows = []
+    for source_name in (
+        "prediction_matches",
+        "service_outcomes",
+        "candidate_outcomes",
+        "rollback_evidence",
+        "blast_radius_evidence",
+    ):
+        source = sources.get(source_name, {})
+        classification = str(source.get("classification") or "MISSING")
+        source_rows.append(_metric_certification_row(
+            metric=source_name,
+            owner="source_confidence_inventory",
+            current={
+                "evidence_count": source.get("evidence_count", 0),
+                "confidence_weight": source.get("confidence_weight", 0.0),
+                "current_contribution": source.get("current_contribution", 0.0),
+                "classification": classification,
+            },
+            evidence=source.get("reason", ""),
+            state="PASS" if classification.startswith("SUFFICIENT") else "PARTIAL",
+            role="RELIABILITY_SIGNAL",
+        ))
+    floor_rows = [
+        _metric_certification_row(
+            metric=name,
+            owner="canary_proximity.primary_floors",
+            current=(row or {}).get("current", 0.0) if isinstance(row, dict) else 0.0,
+            target=(row or {}).get("target", 0.0) if isinstance(row, dict) else 0.0,
+            evidence=(row or {}).get("gap", 0.0) if isinstance(row, dict) else 0.0,
+            state="PASS" if isinstance(row, dict) and row.get("pass") else "PARTIAL",
+            role="POSITIVE_PROMOTION_RELIABILITY_REQUIREMENT",
+        )
+        for name, row in sorted(floors.items())
+    ]
+    gate_rows = [
+        _metric_certification_row(
+            metric="outcome_closure",
+            owner="decision_outcome_closure",
+            current=closure_state,
+            target="COMPLETE",
+            evidence=(decision_outcome_closure.get("summary") or {}),
+            state="PASS" if closure_state == "COMPLETE" else "STOP",
+            role="MANDATORY_CERTIFICATION_REQUIREMENT",
+        ),
+        _metric_certification_row(
+            metric="learning",
+            owner="decision_outcome_learning",
+            current=learning_gained,
+            target=">0",
+            evidence=knowledge_growth,
+            state="PASS" if learning_gained > 0 else "STOP",
+            role="MANDATORY_CERTIFICATION_REQUIREMENT",
+        ),
+        _metric_certification_row(
+            metric="freshness",
+            owner="freshness_actionability",
+            current=stale_domains,
+            target=[],
+            evidence={"stale_domains": stale_domains},
+            state="PASS" if not stale_domains else "PARTIAL",
+            role="RUNTIME_SAFETY_SIGNAL",
+        ),
+        _metric_certification_row(
+            metric="a5_blast_radius",
+            owner="class_level_blast_radius_certification",
+            current=class_level_blast_radius_certification.get("certification_state", "UNKNOWN"),
+            target="BEYOND_ONE_USER_EVIDENCE_CERTIFIED_READ_ONLY",
+            evidence={
+                "max_historical_certified_blast_radius_users": class_level_blast_radius_certification.get("max_historical_certified_blast_radius_users", 0),
+            },
+            state="PASS" if class_level_blast_radius_certification.get("beyond_one_user_certified") else "STOP",
+            role="MANDATORY_CERTIFICATION_REQUIREMENT",
+        ),
+        _metric_certification_row(
+            metric="a6_runtime_eligibility",
+            owner="runtime_eligibility_arbitration",
+            current=runtime_decision,
+            target="read_only_execute_or_stop_answer",
+            evidence={"schema_version": runtime_schema, "stop_gates": runtime_stop_gates},
+            state="PASS" if runtime_schema == "v7.a6-runtime-eligibility-arbitration.v1" else "STOP",
+            role="MANDATORY_CERTIFICATION_REQUIREMENT",
+        ),
+    ]
+    reliability_rows = source_rows + floor_rows + gate_rows
+    stop_metrics = [row["metric"] for row in reliability_rows if row["state"] == "STOP"]
+    partial_metrics = [row["metric"] for row in reliability_rows if row["state"] == "PARTIAL"]
+    positive_blockers = list(dict.fromkeys(
+        list(canary_proximity.get("missing") or [])
+        + list(evidence_sufficiency.get("insufficient_sources") or [])
+        + list(evidence_sufficiency.get("low_attribution_sources") or [])
+        + list(routing_recommendation_readiness.get("blockers") or [])
+        + list((action_class_runtime_enablement.get("enablement_readiness") or {}).get("missing_evidence") or [])
+        + runtime_stop_gates
+    ))
+    safety_certified = not stop_metrics
+    blocking_recommendation_certified = safety_certified and runtime_schema == "v7.a6-runtime-eligibility-arbitration.v1"
+    positive_recommendation_certified = blocking_recommendation_certified and not positive_blockers and not partial_metrics
+    if positive_recommendation_certified:
+        certification_state = "CERTIFIED_FOR_POSITIVE_PROMOTION_RECOMMENDATION_REQUIRES_AUTHORITY"
+        recommendation = "PROMOTION_RECOMMENDATION_METRICS_RELIABLE_REQUIRES_AUTHORITY_REVIEW"
+    elif blocking_recommendation_certified:
+        certification_state = "CERTIFIED_FOR_BLOCKING_RECOMMENDATIONS_ONLY"
+        recommendation = "DO_NOT_PROMOTE_COLLECT_REAL_EVIDENCE"
+    else:
+        certification_state = "NOT_CERTIFIED_MANDATORY_METRIC_GATE_FAILED"
+        recommendation = "DO_NOT_PROMOTE_FIX_MANDATORY_METRIC_GATES"
+    return {
+        "schema_version": "v7.b13-metric-reliability-certification.v1",
+        "generated_at": generated_at or "",
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "B13",
+        "purpose": "certify_metric_reliability_for_automated_promotion_recommendations_without_runtime_apply",
+        "certification_state": certification_state,
+        "recommendation": recommendation,
+        "metric_rows": reliability_rows,
+        "stop_metrics": stop_metrics,
+        "partial_metrics": partial_metrics,
+        "positive_promotion_blockers": positive_blockers,
+        "blocking_recommendation_certified": blocking_recommendation_certified,
+        "automated_positive_promotion_recommendation_allowed": False,
+        "positive_recommendation_metrics_certified": positive_recommendation_certified,
+        "authority_required_for_positive_promotion": True,
+        "current_floor_components": {
+            "decision_confidence": components.get("decision_confidence", 0.0),
+            "service_confidence": components.get("service_confidence", 0.0),
+            "suitability_confidence": components.get("suitability_confidence", 0.0),
+            "prediction_confidence": components.get("prediction_confidence", 0.0),
+            "rollback_confidence": components.get("rollback_confidence", 0.0),
+            "blast_radius_confidence": components.get("blast_radius_confidence", 0.0),
+        },
+        "omp_output": {
+            "b13_status": "DONE_READ_ONLY_BLOCKING_RECOMMENDATION_CERTIFIED" if blocking_recommendation_certified else "NOT_CERTIFIED",
+            "next_safe_action": "continue to B16 rollback authority certification" if blocking_recommendation_certified else "fix mandatory metric gates through existing owners",
+            "promotion_allowed_now": False,
+            "authority_expansion_required": positive_recommendation_certified,
+        },
+        "read_only": True,
+        "synthetic_evidence_created": False,
+        "formula_changed": False,
+        "floor_changed": False,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+        "new_runtime_created": False,
+    }
+
+
+def build_rollback_authority_certification(
+    *,
+    floor_forensics: dict[str, Any],
+    decision_outcome_closure: dict[str, Any],
+    decision_outcome_learning: dict[str, Any],
+    runtime_eligibility_arbitration: dict[str, Any],
+    metric_reliability_certification: dict[str, Any],
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Certify B16 rollback authority readiness without granting authority."""
+    rollback_blast = floor_forensics.get("rollback_and_blast") if isinstance(floor_forensics.get("rollback_and_blast"), dict) else {}
+    rollback_records = int(as_float(rollback_blast.get("rollback_records_seen"), 0.0))
+    rollback_confidence = as_float(rollback_blast.get("rollback_confidence"), 0.0)
+    closure_state = str(decision_outcome_closure.get("closure_state") or "UNKNOWN")
+    closure_summary = decision_outcome_closure.get("summary") if isinstance(decision_outcome_closure.get("summary"), dict) else {}
+    effectiveness = decision_outcome_learning.get("effectiveness") if isinstance(decision_outcome_learning.get("effectiveness"), dict) else {}
+    rollback_rate = as_float(effectiveness.get("rollback_rate"), 0.0)
+    runtime_schema = str(runtime_eligibility_arbitration.get("schema_version") or "")
+    metric_schema = str(metric_reliability_certification.get("schema_version") or "")
+    metric_certified = bool(metric_reliability_certification.get("blocking_recommendation_certified"))
+    runtime_known = runtime_schema == "v7.a6-runtime-eligibility-arbitration.v1"
+
+    gate_rows = [
+        _metric_certification_row(
+            metric="rollback_evidence",
+            owner="floor_forensics.rollback_and_blast",
+            current={"records_seen": rollback_records, "rollback_confidence": rollback_confidence},
+            target={"records_seen": ">0", "rollback_confidence": "100"},
+            evidence=rollback_blast,
+            state="PASS" if rollback_records > 0 and rollback_confidence >= 100.0 else "STOP",
+            role="MANDATORY_CERTIFICATION_REQUIREMENT",
+        ),
+        _metric_certification_row(
+            metric="verification_reliability",
+            owner="decision_outcome_closure",
+            current=closure_state,
+            target="COMPLETE",
+            evidence=closure_summary,
+            state="PASS" if closure_state == "COMPLETE" else "STOP",
+            role="MANDATORY_CERTIFICATION_REQUIREMENT",
+        ),
+        _metric_certification_row(
+            metric="no_rollback_observed",
+            owner="decision_outcome_learning.effectiveness",
+            current=rollback_rate,
+            target="0.0 observed rollback rate for current governed outcome class",
+            evidence=effectiveness,
+            state="PASS" if rollback_rate == 0.0 and closure_state == "COMPLETE" else "PARTIAL",
+            role="SUPPORTING_EVIDENCE",
+        ),
+        _metric_certification_row(
+            metric="metric_reliability",
+            owner="metric_reliability_certification",
+            current=metric_reliability_certification.get("certification_state", "UNKNOWN"),
+            target="CERTIFIED_FOR_BLOCKING_RECOMMENDATIONS_ONLY or stronger",
+            evidence={"schema_version": metric_schema, "stop_metrics": metric_reliability_certification.get("stop_metrics", [])},
+            state="PASS" if metric_schema == "v7.b13-metric-reliability-certification.v1" and metric_certified else "STOP",
+            role="MANDATORY_CERTIFICATION_REQUIREMENT",
+        ),
+        _metric_certification_row(
+            metric="runtime_eligibility",
+            owner="runtime_eligibility_arbitration",
+            current=runtime_eligibility_arbitration.get("runtime_execute_decision", "UNKNOWN"),
+            target="read_only_execute_or_stop_answer",
+            evidence={"schema_version": runtime_schema, "stop_gates": runtime_eligibility_arbitration.get("stop_gates", [])},
+            state="PASS" if runtime_known else "STOP",
+            role="MANDATORY_CERTIFICATION_REQUIREMENT",
+        ),
+        _metric_certification_row(
+            metric="authority",
+            owner="OMP authority gates",
+            current="PACKET_LEVEL_GOVERNED_AUTHORITY_ONLY",
+            target="EXPLICIT_AUTOMATIC_ROLLBACK_AUTHORITY_APPROVAL",
+            evidence="authority expansion is outside B16 read-only certification",
+            state="STOP",
+            role="AUTHORITY_BOUNDARY",
+        ),
+        _metric_certification_row(
+            metric="runtime_apply",
+            owner="Runtime Model live gates",
+            current="DISABLED",
+            target="explicit runtime apply authority",
+            evidence="B16 does not enable Runtime apply or rollback execution",
+            state="STOP",
+            role="RUNTIME_BOUNDARY",
+        ),
+    ]
+    mandatory_stop_gates = [
+        row["metric"]
+        for row in gate_rows
+        if row["state"] == "STOP" and row["role"] == "MANDATORY_CERTIFICATION_REQUIREMENT"
+    ]
+    authority_stop_gates = [
+        row["metric"]
+        for row in gate_rows
+        if row["state"] == "STOP" and row["role"] in {"AUTHORITY_BOUNDARY", "RUNTIME_BOUNDARY"}
+    ]
+    evidence_ready_for_authority_review = not mandatory_stop_gates
+    if evidence_ready_for_authority_review:
+        certification_state = "CERTIFIED_FOR_AUTHORITY_REVIEW_ONLY"
+        recommendation = "DO_NOT_ENABLE_AUTOMATIC_ROLLBACK_AUTHORITY_WITHOUT_OPERATOR_APPROVAL"
+        b16_status = "DONE_READ_ONLY_AUTHORITY_REVIEW_CERTIFIED"
+        next_safe_action = "continue to Runtime Capability Maturation Program RT2-S1 measurement and observability"
+    else:
+        certification_state = "NOT_CERTIFIED_MANDATORY_ROLLBACK_GATE_FAILED"
+        recommendation = "DO_NOT_ENABLE_AUTOMATIC_ROLLBACK_AUTHORITY_FIX_MANDATORY_GATES"
+        b16_status = "NOT_CERTIFIED"
+        next_safe_action = "fix rollback and verification evidence through existing owners"
+    return {
+        "schema_version": "v7.b16-rollback-authority-certification.v1",
+        "generated_at": generated_at or "",
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "B16",
+        "purpose": "certify_automatic_rollback_authority_readiness_after_reliable_verification_evidence_without_granting_authority",
+        "certification_state": certification_state,
+        "recommendation": recommendation,
+        "gate_rows": gate_rows,
+        "mandatory_stop_gates": mandatory_stop_gates,
+        "authority_stop_gates": authority_stop_gates,
+        "evidence_ready_for_authority_review": evidence_ready_for_authority_review,
+        "automatic_rollback_authority_granted": False,
+        "automatic_rollback_execution_allowed": False,
+        "authority_required_for_automatic_rollback": True,
+        "runtime_apply_allowed_now": False,
+        "omp_output": {
+            "b16_status": b16_status,
+            "next_safe_action": next_safe_action,
+            "automatic_rollback_authority_granted": False,
+            "runtime_apply_allowed_now": False,
+        },
+        "read_only": True,
+        "synthetic_evidence_created": False,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "rollback_executed": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+        "new_runtime_created": False,
+    }
+
+
+def _rt2_s5_evidence_state(
+    *,
+    source: dict[str, Any],
+    pass_when: bool,
+    partial_when_present: bool = True,
+) -> str:
+    if pass_when:
+        return "PASS"
+    if partial_when_present and source:
+        return "PARTIAL"
+    return "STOP_SAFE"
+
+
+def build_rt2_s5_certified_concurrency_ladder(
+    *,
+    action_class_runtime_enablement: dict[str, Any],
+    class_level_blast_radius_certification: dict[str, Any],
+    runtime_eligibility_arbitration: dict[str, Any],
+    metric_reliability_certification: dict[str, Any],
+    rollback_authority_certification: dict[str, Any],
+    anti_flapping: dict[str, Any],
+    rt2_s4_governed_execution_coordination: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Certify RT2-S5 concurrency limits without enabling concurrency."""
+    s4 = rt2_s4_governed_execution_coordination if isinstance(rt2_s4_governed_execution_coordination, dict) else {}
+    delegated = action_class_runtime_enablement.get("delegated_autonomy_runtime_eligibility")
+    if not isinstance(delegated, dict):
+        delegated = {}
+    anti_flap_blocked = int((anti_flapping.get("summary") or {}).get("blocked_users") or 0)
+    s4_complete = str(s4.get("status") or s4.get("coordination_state") or "").startswith("DONE_READ_ONLY")
+    if not s4:
+        s4_complete = True
+    blast_beyond_one_user = bool(class_level_blast_radius_certification.get("beyond_one_user_certified"))
+    max_blast_users = int(class_level_blast_radius_certification.get("max_historical_certified_blast_radius_users") or 0)
+    runtime_known = runtime_eligibility_arbitration.get("schema_version") == "v7.a6-runtime-eligibility-arbitration.v1"
+    metric_known = metric_reliability_certification.get("schema_version") == "v7.b13-metric-reliability-certification.v1"
+    rollback_known = rollback_authority_certification.get("schema_version") == "v7.b16-rollback-authority-certification.v1"
+    metric_ready = bool(metric_reliability_certification.get("blocking_recommendation_certified"))
+    rollback_ready = bool(rollback_authority_certification.get("evidence_ready_for_authority_review"))
+    authority_explicit = False
+    runtime_apply_allowed = bool(runtime_eligibility_arbitration.get("runtime_apply_allowed"))
+
+    gate_rows = [
+        _metric_certification_row(
+            metric="governed_execution_coordination",
+            owner="RT2-S4 / operator_execution_pipeline",
+            current=s4.get("status") or s4.get("coordination_state") or ("OWNER_MAPPED_BY_OMP" if not s4 else "UNKNOWN"),
+            target="DONE_READ_ONLY_GOVERNED_EXECUTION_COORDINATION_OWNER_MAPPED",
+            evidence=s4 or "RT2-S4 canonical completion evidence",
+            state="PASS" if s4_complete else "STOP_SAFE",
+            role="MANDATORY_CERTIFICATION_REQUIREMENT",
+        ),
+        _metric_certification_row(
+            metric="blast_radius",
+            owner="class_level_blast_radius_certification",
+            current=class_level_blast_radius_certification.get("certification_state", "UNKNOWN"),
+            target="BEYOND_ONE_USER_EVIDENCE_CERTIFIED_READ_ONLY for levels above serial-only",
+            evidence={
+                "max_historical_certified_blast_radius_users": max_blast_users,
+                "blockers": class_level_blast_radius_certification.get("blockers", []),
+            },
+            state=_rt2_s5_evidence_state(
+                source=class_level_blast_radius_certification,
+                pass_when=blast_beyond_one_user,
+            ),
+            role="MANDATORY_CERTIFICATION_REQUIREMENT",
+        ),
+        _metric_certification_row(
+            metric="rollback_capacity",
+            owner="rollback_authority_certification",
+            current=rollback_authority_certification.get("certification_state", "UNKNOWN"),
+            target="CERTIFIED_FOR_AUTHORITY_REVIEW_ONLY",
+            evidence={
+                "mandatory_stop_gates": rollback_authority_certification.get("mandatory_stop_gates", []),
+                "authority_stop_gates": rollback_authority_certification.get("authority_stop_gates", []),
+            },
+            state="PASS" if rollback_known and rollback_ready else "STOP_SAFE",
+            role="MANDATORY_CERTIFICATION_REQUIREMENT",
+        ),
+        _metric_certification_row(
+            metric="verification_capacity",
+            owner="metric_reliability_certification + decision_outcome_closure",
+            current=metric_reliability_certification.get("certification_state", "UNKNOWN"),
+            target="blocking recommendation metrics certified",
+            evidence={
+                "stop_metrics": metric_reliability_certification.get("stop_metrics", []),
+                "partial_metrics": metric_reliability_certification.get("partial_metrics", []),
+            },
+            state="PASS" if metric_known and metric_ready else "STOP_SAFE",
+            role="MANDATORY_CERTIFICATION_REQUIREMENT",
+        ),
+        _metric_certification_row(
+            metric="runtime_eligibility",
+            owner="runtime_eligibility_arbitration",
+            current=runtime_eligibility_arbitration.get("runtime_execute_decision", "UNKNOWN"),
+            target="known execute-or-stop arbitration",
+            evidence={
+                "stop_gates": runtime_eligibility_arbitration.get("stop_gates", []),
+                "runtime_apply_allowed": runtime_apply_allowed,
+            },
+            state="PASS" if runtime_known else "STOP_SAFE",
+            role="MANDATORY_CERTIFICATION_REQUIREMENT",
+        ),
+        _metric_certification_row(
+            metric="anti_flap",
+            owner="anti_flapping",
+            current={"blocked_users": anti_flap_blocked},
+            target={"blocked_users": 0},
+            evidence=anti_flapping.get("summary", {}),
+            state="PASS" if anti_flap_blocked == 0 else "STOP_SAFE",
+            role="MANDATORY_CERTIFICATION_REQUIREMENT",
+        ),
+        _metric_certification_row(
+            metric="authority_envelope",
+            owner="OMP authority gates / Policy 006",
+            current="NO_CONCURRENCY_ENABLEMENT_AUTHORITY",
+            target="explicit concurrency authority before any wider level",
+            evidence=delegated.get("blockers", []) or "authority expansion remains forbidden",
+            state="STOP_SAFE",
+            role="AUTHORITY_BOUNDARY",
+        ),
+        _metric_certification_row(
+            metric="runtime_apply",
+            owner="Runtime Model live gates",
+            current="DISABLED",
+            target="explicit runtime apply authority",
+            evidence=runtime_eligibility_arbitration.get("stop_gates", []),
+            state="STOP_SAFE",
+            role="RUNTIME_BOUNDARY",
+        ),
+    ]
+    stop_metrics = [row["metric"] for row in gate_rows if row["state"] == "STOP_SAFE" and row["role"] == "MANDATORY_CERTIFICATION_REQUIREMENT"]
+    authority_stop_gates = [row["metric"] for row in gate_rows if row["role"] in {"AUTHORITY_BOUNDARY", "RUNTIME_BOUNDARY"}]
+    serial_level_certified = s4_complete and metric_known and runtime_known
+    concurrency_levels = [
+        {
+            "level": "L0_SERIAL_ONLY",
+            "max_parallel_actions": 1,
+            "status": "CERTIFIED_READ_ONLY" if serial_level_certified else "STOP_SAFE_MISSING_BASE_EVIDENCE",
+            "produced_evidence": ["RT2-S4 coordination", "A6 runtime arbitration", "B13 metric reliability"],
+            "consumed_evidence": ["governed_execution_coordination", "runtime_eligibility", "verification_capacity"],
+            "safe_to_enable_now": False,
+            "reason": "current governed serial boundary is owner-mapped; enablement still requires explicit authority",
+        },
+        {
+            "level": "L1_TWO_USER_OR_TWO_ACTION",
+            "max_parallel_actions": 2,
+            "status": "STOP_SAFE_AUTHORITY_AND_CAPACITY_REQUIRED",
+            "produced_evidence": [],
+            "consumed_evidence": ["blast_radius", "rollback_capacity", "verification_capacity", "authority_envelope", "anti_flap"],
+            "safe_to_enable_now": False,
+            "reason": "beyond-one-user evidence is not authority and concurrency requires explicit authority plus rollback/verification capacity",
+        },
+        {
+            "level": "L2_SMALL_BATCH_OR_POOL",
+            "max_parallel_actions": "not certified",
+            "status": "STOP_SAFE_NO_SILENT_BLAST_EXPANSION",
+            "produced_evidence": [],
+            "consumed_evidence": ["policy_scope", "authority_envelope", "rollback_capacity", "verification_capacity"],
+            "safe_to_enable_now": False,
+            "reason": "batch or pool movement would expand blast radius and must be separately certified",
+        },
+    ]
+    certification_closed = not any(row["status"].startswith("STOP_SAFE_MISSING") for row in concurrency_levels)
+    certified_level = "SERIAL_ONLY_READ_ONLY" if serial_level_certified else "NONE_STOP_SAFE"
+    return {
+        "schema_version": "v7.rt2-s5-certified-concurrency-ladder.v1",
+        "generated_at": generated_at or "",
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "omp_workstream": "RT2-S5",
+        "purpose": "certify_safe_concurrency_limits_or_explicit_stop_safe_without_enabling_parallelism",
+        "certification_state": "DONE_READ_ONLY_CONCURRENCY_LADDER_OWNER_MAPPED" if certification_closed else "STOP_SAFE_BASE_EVIDENCE_INCOMPLETE",
+        "certification_verdict": "STOP_SAFE_CONCURRENCY_NOT_ENABLED",
+        "certified_concurrency_level": certified_level,
+        "concurrency_levels": concurrency_levels,
+        "gate_rows": gate_rows,
+        "stop_metrics": stop_metrics,
+        "authority_stop_gates": authority_stop_gates,
+        "completion_criteria_met": certification_closed,
+        "rt2_s6_unlocked": certification_closed,
+        "next_safe_action": "continue to RT2-S6 evidence-based continuous improvement" if certification_closed else "complete missing base evidence through existing owners",
+        "still_blocked": [
+            "runtime_apply",
+            "automation",
+            "concurrency_enablement",
+            "authority_expansion",
+            "queue_daemon",
+            "planner_replacement",
+            "user_movement",
+            "silent_blast_radius_expansion",
+        ],
+        "safety_constraints": {
+            "parallelism_is_safety_certification_not_performance_optimization": True,
+            "no_silent_blast_expansion": True,
+            "authority_required_before_any_concurrency_enablement": True,
+            "recommendations_need_known_safe_execution_limits": True,
+        },
+        "omp_output": {
+            "rt2_s5_status": "DONE_READ_ONLY_CONCURRENCY_LADDER_OWNER_MAPPED" if certification_closed else "STOP_SAFE_BASE_EVIDENCE_INCOMPLETE",
+            "produced_evidence": "certified serial-only concurrency boundary plus explicit STOP_SAFE for wider levels",
+            "unlocked_capability": "RT2-S6_EVIDENCE_BASED_CONTINUOUS_IMPROVEMENT" if certification_closed else "",
+            "blocked_later_steps": [
+                "runtime_self_optimization",
+                "automatic_recommendations",
+                "authority_lowering",
+                "safety_gate_weakening",
+                "runtime_apply",
+                "automation",
+            ],
+        },
+        "read_only": True,
+        "synthetic_evidence_created": False,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "rollback_executed": False,
+        "apply_executed": False,
+        "concurrency_enabled": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+        "new_runtime_created": False,
+    }
+
+
+def build_rt2_s6_evidence_based_continuous_improvement(
+    *,
+    outcome_leverage_model: dict[str, Any],
+    maximum_reality_knowledge_extraction: dict[str, Any],
+    rt2_s5_certified_concurrency_ladder: dict[str, Any],
+    routing_recommendation_readiness: dict[str, Any],
+    metric_reliability_certification: dict[str, Any],
+    decision_outcome_learning: dict[str, Any],
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Produce the RT2-S6 advisory recommendation without mutating Runtime."""
+    s5_done = rt2_s5_certified_concurrency_ladder.get("certification_state") == "DONE_READ_ONLY_CONCURRENCY_LADDER_OWNER_MAPPED"
+    safe_level = str(rt2_s5_certified_concurrency_ladder.get("certified_concurrency_level") or "UNKNOWN")
+    leverage_rows = [
+        row for row in outcome_leverage_model.get("activities_ranked") or []
+        if isinstance(row, dict)
+    ]
+    top_activities = [str(row.get("activity")) for row in leverage_rows[:3]]
+    top_activity = leverage_rows[0] if leverage_rows else {}
+    knowledge_verdict = str(maximum_reality_knowledge_extraction.get("final_verdict") or "UNKNOWN")
+    classification_summary = maximum_reality_knowledge_extraction.get("classification_summary")
+    if not isinstance(classification_summary, dict):
+        classification_summary = {}
+    learning_growth = decision_outcome_learning.get("knowledge_growth") if isinstance(decision_outcome_learning.get("knowledge_growth"), dict) else {}
+    metric_known = metric_reliability_certification.get("schema_version") == "v7.b13-metric-reliability-certification.v1"
+    blocking_recommendation_certified = bool(metric_reliability_certification.get("blocking_recommendation_certified"))
+    routing_blockers = list(routing_recommendation_readiness.get("blockers") or [])
+    evidence_rows = [
+        _metric_certification_row(
+            metric="safe_execution_limit",
+            owner="RT2-S5 / concurrency ladder",
+            current=safe_level,
+            target="SERIAL_ONLY_READ_ONLY or explicit STOP_SAFE",
+            evidence={
+                "certification_state": rt2_s5_certified_concurrency_ladder.get("certification_state", "UNKNOWN"),
+                "still_blocked": rt2_s5_certified_concurrency_ladder.get("still_blocked", []),
+            },
+            state="PASS" if s5_done else "STOP_SAFE",
+            role="MANDATORY_RECOMMENDATION_REQUIREMENT",
+        ),
+        _metric_certification_row(
+            metric="outcome_leverage",
+            owner="outcome_leverage_model",
+            current=outcome_leverage_model.get("final_verdict", "UNKNOWN"),
+            target="ranked improvement activities",
+            evidence=top_activities,
+            state="PASS" if leverage_rows else "STOP_SAFE",
+            role="MANDATORY_RECOMMENDATION_REQUIREMENT",
+        ),
+        _metric_certification_row(
+            metric="maximum_reality_knowledge",
+            owner="maximum_reality_knowledge_extraction",
+            current=knowledge_verdict,
+            target="REAL_WORLD_LIMIT_REACHED or MAXIMUM_REALITY_REACHED with owner mapping",
+            evidence=classification_summary,
+            state="PASS" if knowledge_verdict in {"REAL_WORLD_LIMIT_REACHED", "MAXIMUM_REALITY_REACHED"} else "PARTIAL",
+            role="EVIDENCE_CONTEXT",
+        ),
+        _metric_certification_row(
+            metric="metric_reliability",
+            owner="B13 metric_reliability_certification",
+            current=metric_reliability_certification.get("certification_state", "UNKNOWN"),
+            target="blocking recommendation metrics certified",
+            evidence={"stop_metrics": metric_reliability_certification.get("stop_metrics", [])},
+            state="PASS" if metric_known and blocking_recommendation_certified else "STOP_SAFE",
+            role="MANDATORY_RECOMMENDATION_REQUIREMENT",
+        ),
+        _metric_certification_row(
+            metric="routing_recommendation_readiness",
+            owner="routing_recommendation_readiness",
+            current=routing_recommendation_readiness.get("readiness", "UNKNOWN"),
+            target="owner-mapped blockers allowed; runtime apply forbidden",
+            evidence=routing_blockers,
+            state="PASS" if isinstance(routing_recommendation_readiness, dict) else "STOP_SAFE",
+            role="EVIDENCE_CONTEXT",
+        ),
+        _metric_certification_row(
+            metric="learning",
+            owner="decision_outcome_learning",
+            current=learning_growth.get("knowledge_gained", 0),
+            target="observed learning available or owner-mapped missing",
+            evidence=learning_growth,
+            state="PASS" if int(as_float(learning_growth.get("knowledge_gained"), 0.0)) > 0 else "PARTIAL",
+            role="EVIDENCE_CONTEXT",
+        ),
+        _metric_certification_row(
+            metric="authority_boundary",
+            owner="OMP authority gates",
+            current="ADVISORY_ONLY",
+            target="no authority lowering or runtime mutation",
+            evidence="RT2-S6 recommendation is not an approval, queue, runtime behavior, or automatic implementation order",
+            state="STOP_SAFE",
+            role="AUTHORITY_BOUNDARY",
+        ),
+    ]
+    mandatory_stop = [
+        row["metric"] for row in evidence_rows
+        if row["state"] == "STOP_SAFE" and row["role"] == "MANDATORY_RECOMMENDATION_REQUIREMENT"
+    ]
+    recommendation_rows = [
+        {
+            "recommendation_id": "RT2-S6-RETURN-TO-B1",
+            "recommendation_type": "OWNER_MAPPED_BACKLOG_CONTINUATION",
+            "recommended_next_task": "B1_AGGREGATE_LIVENESS_EVIDENCE_BY_SOURCE_FAMILY_AND_CONFIDENCE",
+            "canonical_owner": "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#B1",
+            "implementation_owners": [
+                "tools/v7-service-matrix-refresh-all",
+                "tools/v7-egress-quality-compact",
+                "admin_core/intelligence_workers.py",
+            ],
+            "why_now": "RT2-S1 through RT2-S5 are complete, S6 has known safe execution limits, and OMP must return to the highest unfinished existing backlog owner.",
+            "evidence_basis": {
+                "safe_execution_limit": safe_level,
+                "top_evidence_activities": top_activities,
+                "highest_leverage_activity": top_activity.get("activity", ""),
+                "knowledge_verdict": knowledge_verdict,
+            },
+            "safety_review": {
+                "runtime_mutation_allowed": False,
+                "authority_expansion_allowed": False,
+                "automatic_implementation_allowed": False,
+                "synthetic_evidence_allowed": False,
+                "requires_omp_backlog_execution": True,
+            },
+        }
+    ]
+    recommendation_ready = not mandatory_stop
+    return {
+        "schema_version": "v7.rt2-s6-evidence-based-continuous-improvement.v1",
+        "generated_at": generated_at or "",
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "omp_workstream": "RT2-S6",
+        "purpose": "convert_existing_measurement_outcome_latency_cost_time_and_learning_evidence_into_omp_owned_advisory_recommendation",
+        "certification_state": "DONE_READ_ONLY_OWNER_MAPPED_RECOMMENDATION" if recommendation_ready else "STOP_SAFE_RECOMMENDATION_EVIDENCE_INCOMPLETE",
+        "recommendation_verdict": "OWNER_MAPPED_RECOMMENDATION" if recommendation_ready else "MISSING_EVIDENCE_STOP_SAFE",
+        "recommendation_rows": recommendation_rows if recommendation_ready else [],
+        "no_change_verdict": False,
+        "evidence_rows": evidence_rows,
+        "mandatory_stop": mandatory_stop,
+        "top_evidence_activities": top_activities,
+        "knowledge_verdict": knowledge_verdict,
+        "next_omp_step": "B1_AGGREGATE_LIVENESS_EVIDENCE_BY_SOURCE_FAMILY_AND_CONFIDENCE" if recommendation_ready else "FIX_RT2_S6_MANDATORY_EVIDENCE",
+        "rt2_graduated": recommendation_ready,
+        "completion_criteria_met": recommendation_ready,
+        "still_blocked": [
+            "runtime_self_optimization",
+            "automatic_recommendations",
+            "direct_implementation_without_omp",
+            "authority_lowering",
+            "safety_gate_weakening",
+            "runtime_apply",
+            "automation",
+            "concurrency_enablement",
+            "new_roadmap",
+            "new_owner",
+            "planner_replacement",
+            "user_movement",
+        ],
+        "omp_output": {
+            "rt2_s6_status": "DONE_READ_ONLY_OWNER_MAPPED_RECOMMENDATION" if recommendation_ready else "STOP_SAFE_RECOMMENDATION_EVIDENCE_INCOMPLETE",
+            "produced_evidence": "owner-mapped recommendation to return OMP to B1" if recommendation_ready else "mandatory evidence missing",
+            "unlocked_capability": "OMP_BACKLOG_CONTINUATION_B1" if recommendation_ready else "",
+            "blocked_later_steps": [
+                "runtime self-optimization",
+                "automatic recommendations",
+                "direct implementation without OMP",
+                "authority lowering",
+                "safety gate weakening",
+                "runtime apply",
+                "automation",
+            ],
+        },
+        "read_only": True,
+        "advisory_only": True,
+        "synthetic_evidence_created": False,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "rollback_executed": False,
+        "apply_executed": False,
+        "concurrency_enabled": False,
+        "automatic_recommendation_enabled": False,
+        "direct_implementation_started": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+        "new_runtime_created": False,
+    }
+
+
 def build_action_class_runtime_enablement_model(
     *,
     canary_proximity: dict[str, Any],
@@ -4158,6 +5269,39 @@ HARD_FAILURE_LIVENESS_SOURCES = {
     "route_readiness",
 }
 
+LIVENESS_SOURCE_FAMILIES = {
+    "telegram_sentinel": {
+        "family": "telegram_sentinel",
+        "owner": "tools/v7-telegram-sentinel",
+        "policy_relevance": "service_specific_liveness",
+    },
+    "service_matrix": {
+        "family": "service_matrix",
+        "owner": "tools/v7-service-matrix-refresh-all",
+        "policy_relevance": "multi_service_liveness",
+    },
+    "quality_compact": {
+        "family": "quality_compact",
+        "owner": "tools/v7-egress-quality-compact",
+        "policy_relevance": "quality_degradation_liveness",
+    },
+    "route_readiness": {
+        "family": "route_reality",
+        "owner": "admin_core.operator_decision_surface",
+        "policy_relevance": "route_runtime_liveness",
+    },
+    "runtime_readiness": {
+        "family": "route_reality",
+        "owner": "admin_core.operator_decision_surface",
+        "policy_relevance": "route_runtime_liveness",
+    },
+    "service_user_sla_fit": {
+        "family": "policy_fit",
+        "owner": "admin_core.operator_decision_surface",
+        "policy_relevance": "service_user_policy_liveness",
+    },
+}
+
 
 def _hard_failure_evidence_object(event: dict[str, Any]) -> str:
     return _text(
@@ -4324,6 +5468,205 @@ def build_hard_failure_classification(
     }
 
 
+def _liveness_source_meta(source: str) -> dict[str, str]:
+    return LIVENESS_SOURCE_FAMILIES.get(source, {
+        "family": source or "unknown",
+        "owner": "unknown_existing_liveness_owner",
+        "policy_relevance": "supporting_liveness_evidence",
+    })
+
+
+def _liveness_confidence(value: Any) -> float:
+    confidence = as_float(value, 0.0)
+    if 0.0 < confidence <= 1.0:
+        confidence *= 100.0
+    return round(max(0.0, min(100.0, confidence)), 3)
+
+
+def _liveness_confidence_band(confidence: float) -> str:
+    if confidence >= 70.0:
+        return "HIGH"
+    if confidence >= 40.0:
+        return "MEDIUM"
+    if confidence > 0.0:
+        return "LOW"
+    return "UNKNOWN"
+
+
+def _liveness_status_from_evidence(evidence: list[dict[str, Any]]) -> str:
+    if any(row.get("explicit_liveness_failure") for row in evidence):
+        return "LIVENESS_FAILURE_OBSERVED"
+    if evidence:
+        return "SUPPORTING_ONLY"
+    return "NO_EVIDENCE"
+
+
+def _liveness_freshness_for_source(snapshot_statuses: dict[str, dict[str, Any]], source: str) -> dict[str, Any]:
+    source_to_families = {
+        "service_matrix": ("service-scores", "channel-service-scores"),
+        "telegram_sentinel": ("service-scores",),
+        "quality_compact": ("service-scores", "channel-service-scores", "risk-summaries"),
+        "route_readiness": ("best-available-pool", "risk-summaries"),
+        "runtime_readiness": ("risk-summaries",),
+        "service_user_sla_fit": ("service-scores", "channel-service-scores", "best-available-pool"),
+    }
+    rows = [
+        snapshot_statuses.get(name, {})
+        for name in source_to_families.get(source, ())
+        if isinstance(snapshot_statuses.get(name, {}), dict)
+    ]
+    if not rows:
+        return {
+            "freshness_state": "UNKNOWN",
+            "runtime_behavior": "STOP",
+            "stop_required": True,
+            "confidence": 0.0,
+        }
+    states = {_text(row.get("freshness_state") or row.get("status") or "UNKNOWN").upper() for row in rows}
+    if "FRESH" in states and not any(bool(row.get("stop_required", True)) for row in rows):
+        freshness_state = "FRESH"
+    elif "STALE" in states or "EXPIRED" in states:
+        freshness_state = "STALE"
+    else:
+        freshness_state = sorted(states)[0] if states else "UNKNOWN"
+    return {
+        "freshness_state": freshness_state,
+        "runtime_behavior": "ALLOW" if freshness_state == "FRESH" else "STOP",
+        "stop_required": any(bool(row.get("stop_required", True)) for row in rows),
+        "confidence": round(sum(as_float(row.get("confidence"), 0.0) for row in rows) / len(rows), 3),
+    }
+
+
+def build_liveness_evidence_aggregation(
+    *,
+    hard_failure_classification: dict[str, Any] | None = None,
+    snapshot_statuses: dict[str, dict[str, Any]] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Aggregate existing liveness evidence by source family and confidence for B1."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    classification = hard_failure_classification or {}
+    statuses = snapshot_statuses or {}
+    by_family: dict[str, dict[str, Any]] = {}
+    object_rows = []
+
+    for row in classification.get("rows") or []:
+        if not isinstance(row, dict):
+            continue
+        object_name = _text(row.get("object") or "unknown")
+        evidence = [item for item in (row.get("evidence") or []) if isinstance(item, dict)]
+        object_sources = []
+        for item in evidence:
+            source = _text(item.get("source") or "unknown")
+            meta = _liveness_source_meta(source)
+            family = meta["family"]
+            confidence = _liveness_confidence(item.get("confidence"))
+            freshness = _liveness_freshness_for_source(statuses, source)
+            family_row = by_family.setdefault(family, {
+                "source_family": family,
+                "owner": meta["owner"],
+                "policy_relevance": meta["policy_relevance"],
+                "evidence_count": 0,
+                "explicit_liveness_failure_count": 0,
+                "objects": set(),
+                "sources": set(),
+                "confidence_values": [],
+                "freshness_states": set(),
+                "runtime_behaviors": set(),
+                "stop_required": False,
+            })
+            family_row["evidence_count"] += 1
+            family_row["explicit_liveness_failure_count"] += 1 if item.get("explicit_liveness_failure") else 0
+            family_row["objects"].add(object_name)
+            family_row["sources"].add(source)
+            family_row["confidence_values"].append(confidence)
+            family_row["freshness_states"].add(_text(freshness.get("freshness_state") or "UNKNOWN"))
+            family_row["runtime_behaviors"].add(_text(freshness.get("runtime_behavior") or "STOP"))
+            family_row["stop_required"] = bool(family_row["stop_required"] or freshness.get("stop_required", True))
+            object_sources.append({
+                "source": source,
+                "source_family": family,
+                "owner": meta["owner"],
+                "confidence": confidence,
+                "confidence_band": _liveness_confidence_band(confidence),
+                "explicit_liveness_failure": bool(item.get("explicit_liveness_failure")),
+                "freshness_state": freshness.get("freshness_state", "UNKNOWN"),
+                "policy_relevance": meta["policy_relevance"],
+            })
+        object_rows.append({
+            "object": object_name,
+            "classification": row.get("classification", "UNKNOWN"),
+            "status": _liveness_status_from_evidence(evidence),
+            "source_families": sorted({item["source_family"] for item in object_sources}),
+            "source_count": len({item["source"] for item in object_sources}),
+            "explicit_liveness_evidence_count": row.get("explicit_liveness_evidence_count", 0),
+            "sources": object_sources,
+            "runtime_apply_allowed": False,
+            "authority_expanded": False,
+        })
+
+    family_rows = []
+    for family, row in sorted(by_family.items()):
+        confidence_values = row.pop("confidence_values")
+        average_confidence = round(sum(confidence_values) / len(confidence_values), 3) if confidence_values else 0.0
+        family_rows.append({
+            **row,
+            "objects": sorted(row["objects"]),
+            "sources": sorted(row["sources"]),
+            "freshness_states": sorted(row["freshness_states"]),
+            "runtime_behaviors": sorted(row["runtime_behaviors"]),
+            "average_confidence": average_confidence,
+            "confidence_band": _liveness_confidence_band(average_confidence),
+            "status": "HAS_EXPLICIT_LIVENESS" if row["explicit_liveness_failure_count"] else "SUPPORTING_ONLY",
+        })
+
+    confirmed_objects = [
+        row["object"] for row in object_rows
+        if row.get("classification") == "HARD_FAILURE_CONFIRMED"
+    ]
+    return {
+        "schema_version": "v7.b1.liveness-evidence-aggregation.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "B1",
+        "purpose": "aggregate_existing_liveness_evidence_by_source_family_confidence_owner_freshness_and_policy_relevance",
+        "source_owners_reused": [
+            "tools/v7-service-matrix-refresh-all",
+            "tools/v7-telegram-sentinel",
+            "tools/v7-egress-quality-compact",
+            "admin_core.operator_decision_surface",
+            "admin_core.intelligence_workers",
+            "admin_core.intelligence_snapshots",
+        ],
+        "inputs": {
+            "hard_failure_classification_schema": classification.get("schema_version", ""),
+            "snapshot_status_families": sorted(statuses.keys()),
+        },
+        "summary": {
+            "source_families": len(family_rows),
+            "objects_seen": len(object_rows),
+            "confirmed_objects": len(confirmed_objects),
+            "confirmed_object_names": confirmed_objects,
+            "evidence_count": sum(row["evidence_count"] for row in family_rows),
+            "explicit_liveness_evidence_count": sum(row["explicit_liveness_failure_count"] for row in family_rows),
+        },
+        "source_family_rows": family_rows,
+        "object_rows": object_rows,
+        "policy_source": "docs/policies/POLICY_001_HARD_FAILURE.md",
+        "canonical_owner": "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#B1",
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+    }
+
+
 def _owner_issued_freshness_fields(freshness_actionability: dict[str, Any], domain: str) -> dict[str, Any]:
     domain_row = ((freshness_actionability.get("domains") or {}).get(domain) or {})
     family_statuses = domain_row.get("family_statuses") if isinstance(domain_row.get("family_statuses"), dict) else {}
@@ -4396,6 +5739,169 @@ def build_action_class_freshness_windows(
         "users_moved": 0,
         "authority_expanded": False,
         "autonomy_enabled": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+    }
+
+
+def _policy_window_row_by_action_class(action_class_freshness_windows: dict[str, Any], action_class: str) -> dict[str, Any]:
+    for row in action_class_freshness_windows.get("rows") or []:
+        if isinstance(row, dict) and row.get("action_class") == action_class:
+            return row
+    return {
+        "action_class": action_class,
+        "freshness_windows": dict(ACTION_CLASS_FRESHNESS_WINDOWS.get(action_class, {})),
+        "domains": [],
+        "freshness_ready": False,
+        "blockers": ["action_class_freshness_window_missing"],
+    }
+
+
+def _hard_failure_policy_risk_class(classification: str, explicit_count: int, source_count: int) -> str:
+    if classification == "HARD_FAILURE_CONFIRMED" and explicit_count >= 2 and source_count >= 2:
+        return "CRITICAL_CONFIRMED_HARD_FAILURE"
+    if classification == "HARD_FAILURE_CONFIRMED":
+        return "CONFIRMED_HARD_FAILURE"
+    if classification == "HARD_FAILURE_SUSPECTED":
+        return "SUSPECTED_HARD_FAILURE"
+    if classification == "RECHECK_REQUIRED":
+        return "RECHECK_REQUIRED"
+    return "NO_HARD_FAILURE_POLICY_WINDOW"
+
+
+def build_hard_failure_policy_windows(
+    *,
+    hard_failure_classification: dict[str, Any] | None = None,
+    liveness_evidence_aggregation: dict[str, Any] | None = None,
+    action_class_freshness_windows: dict[str, Any] | None = None,
+    anti_flapping: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Map hard-failure risk classes to existing policy windows without changing timers."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    classification_model = hard_failure_classification or {}
+    aggregation = liveness_evidence_aggregation or {}
+    freshness_windows = action_class_freshness_windows or build_action_class_freshness_windows({})
+    anti_flap = anti_flapping or {"policy": ANTI_FLAP_POLICY, "summary": {"blocked_users": 0}}
+    hard_fail_window = _policy_window_row_by_action_class(freshness_windows, "channel hard-fail failover")
+    conservative_window = _policy_window_row_by_action_class(freshness_windows, "single-user governed candidate failover")
+    anti_flap_policy = anti_flap.get("policy") if isinstance(anti_flap.get("policy"), dict) else ANTI_FLAP_POLICY
+    anti_flap_blocked = int((anti_flap.get("summary") or {}).get("blocked_users") or 0)
+    objects = {
+        row.get("object"): row
+        for row in (classification_model.get("rows") or [])
+        if isinstance(row, dict) and row.get("object")
+    }
+    aggregate_objects = {
+        row.get("object"): row
+        for row in (aggregation.get("object_rows") or [])
+        if isinstance(row, dict) and row.get("object")
+    }
+    object_names = sorted(set(objects) | set(aggregate_objects))
+    rows: list[dict[str, Any]] = []
+    for object_name in object_names:
+        classification_row = objects.get(object_name, {})
+        aggregate_row = aggregate_objects.get(object_name, {})
+        classification = _text(
+            classification_row.get("classification")
+            or aggregate_row.get("classification")
+            or classification_model.get("classification")
+            or "UNKNOWN"
+        )
+        explicit_count = int(
+            classification_row.get(
+                "explicit_liveness_evidence_count",
+                aggregate_row.get("explicit_liveness_evidence_count", 0),
+            )
+            or 0
+        )
+        source_count = int(
+            aggregate_row.get(
+                "source_count",
+                len(classification_row.get("independent_sources") or []),
+            )
+            or 0
+        )
+        risk_class = _hard_failure_policy_risk_class(classification, explicit_count, source_count)
+        if risk_class in {"CRITICAL_CONFIRMED_HARD_FAILURE", "CONFIRMED_HARD_FAILURE"}:
+            selected_action_class = "channel hard-fail failover"
+            selected_window = hard_fail_window
+            timer_policy = "FAST_REACTION_WINDOW"
+        elif risk_class == "SUSPECTED_HARD_FAILURE":
+            selected_action_class = "single-user governed candidate failover"
+            selected_window = conservative_window
+            timer_policy = "CONFIRMATION_RECHECK_WINDOW"
+        else:
+            selected_action_class = "single-user governed candidate failover"
+            selected_window = conservative_window
+            timer_policy = "NO_HARD_FAILURE_ACCELERATION"
+        domain_windows = dict(selected_window.get("freshness_windows") or {})
+        reaction_window_seconds = min(domain_windows.values()) if domain_windows else 0
+        blockers = list(selected_window.get("blockers") or [])
+        if anti_flap_blocked:
+            blockers.append("anti_flap_blocks_recent_oscillation")
+        if risk_class in {"RECHECK_REQUIRED", "NO_HARD_FAILURE_POLICY_WINDOW"}:
+            blockers.append("hard_failure_not_confirmed_for_fast_window")
+        rows.append({
+            "object": object_name,
+            "hard_failure_classification": classification,
+            "risk_class": risk_class,
+            "selected_action_class": selected_action_class,
+            "timer_policy": timer_policy,
+            "reaction_window_seconds": int(reaction_window_seconds),
+            "freshness_windows": domain_windows,
+            "anti_flap_cooldown_seconds": int(anti_flap_policy.get("cooldown_seconds", 0) or 0),
+            "minimum_observation_window_seconds": int(anti_flap_policy.get("minimum_observation_window_seconds", 0) or 0),
+            "source_count": source_count,
+            "explicit_liveness_evidence_count": explicit_count,
+            "policy_window_ready": not blockers,
+            "blockers": sorted(set(blockers)),
+            "timer_changed": False,
+            "risk_class_changes_runtime": False,
+            "runtime_apply_allowed": False,
+            "authority_expanded": False,
+        })
+    return {
+        "schema_version": "v7.b2.hard-failure-policy-windows.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "B2",
+        "purpose": "expose_hard_failure_timer_risk_class_policy_window_impact_without_changing_runtime_timers",
+        "source_owners_reused": [
+            "admin_core.autonomy_trust_acceleration.build_hard_failure_classification",
+            "admin_core.autonomy_trust_acceleration.build_liveness_evidence_aggregation",
+            "admin_core.autonomy_trust_acceleration.build_action_class_freshness_windows",
+            "admin_core.autonomy_trust_acceleration.build_anti_flapping",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_001_HARD_FAILURE.md",
+            "docs/policies/POLICY_009_ANTI_FLAP.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#B2",
+        ],
+        "rows": rows,
+        "summary": {
+            "objects_seen": len(rows),
+            "ready": sum(1 for row in rows if row["policy_window_ready"]),
+            "blocked": sum(1 for row in rows if not row["policy_window_ready"]),
+            "critical_confirmed": sum(1 for row in rows if row["risk_class"] == "CRITICAL_CONFIRMED_HARD_FAILURE"),
+            "suspected": sum(1 for row in rows if row["risk_class"] == "SUSPECTED_HARD_FAILURE"),
+            "timer_changes": 0,
+        },
+        "canonical_rules": [
+            "hard_failure_fast_window_requires_confirmed_liveness_evidence",
+            "suspected_hard_failure_uses_confirmation_recheck_window",
+            "anti_flap_remains_a_stop_gate",
+            "risk_class_is_read_only_and_non_authorizing",
+            "b2_does_not_change_timer_values",
+        ],
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
         "new_owner_created": False,
         "new_truth_source_created": False,
     }
@@ -5522,6 +7028,11 @@ def build_acceleration_inventory(
         event_rows=event_rows or [],
         generated_at=generated,
     )
+    liveness_evidence_aggregation = build_liveness_evidence_aggregation(
+        hard_failure_classification=hard_failure_classification,
+        snapshot_statuses=snapshot_statuses,
+        generated_at=generated,
+    )
     decision_outcome_closure = build_decision_outcome_closure(decision_records or [], generated_at=generated)
     recovery_admission = build_recovery_admission(
         decision_surface,
@@ -5529,6 +7040,13 @@ def build_acceleration_inventory(
         generated_at=generated,
     )
     anti_flapping = build_anti_flapping(decision_records or [], generated_at=generated)
+    hard_failure_policy_windows = build_hard_failure_policy_windows(
+        hard_failure_classification=hard_failure_classification,
+        liveness_evidence_aggregation=liveness_evidence_aggregation,
+        action_class_freshness_windows=action_class_freshness_windows,
+        anti_flapping=anti_flapping,
+        generated_at=generated,
+    )
     decision_outcome_learning = _decision_outcome_learning_from_trust(snapshots["trust-evolution-summaries"])
     suitability_effectiveness_expansion = build_suitability_effectiveness_expansion(
         decision_outcome_learning=decision_outcome_learning,
@@ -5630,6 +7148,57 @@ def build_acceleration_inventory(
         candidate=first_candidate,
         generated_at=generated,
     )
+    historical_blast_radius_evidence = build_historical_blast_radius_evidence(generated_at=generated)
+    class_level_blast_radius_certification = build_class_level_blast_radius_certification(
+        action_class_runtime_enablement=action_class_runtime_enablement,
+        floor_forensics=floor_forensics,
+        service_user_sla_fit=service_user_sla_fit,
+        hard_failure_classification=hard_failure_classification,
+        decision_outcome_closure=decision_outcome_closure,
+        historical_blast_radius_evidence=historical_blast_radius_evidence,
+        generated_at=generated,
+    )
+    runtime_eligibility_arbitration = build_runtime_eligibility_arbitration(
+        action_class_runtime_enablement=action_class_runtime_enablement,
+        class_level_blast_radius_certification=class_level_blast_radius_certification,
+        freshness_actionability=freshness_actionability,
+        anti_flapping=anti_flapping,
+        decision_outcome_closure=decision_outcome_closure,
+        decision_outcome_learning=decision_outcome_learning,
+        routing_recommendation_readiness=routing_recommendation_readiness,
+        generated_at=generated,
+    )
+    metric_reliability_certification = build_metric_reliability_certification(
+        canary_proximity=canary,
+        floor_forensics=floor_forensics,
+        source_confidence_inventory=source_confidence_inventory,
+        evidence_sufficiency=evidence_sufficiency,
+        decision_outcome_closure=decision_outcome_closure,
+        decision_outcome_learning=decision_outcome_learning,
+        freshness_actionability=freshness_actionability,
+        routing_recommendation_readiness=routing_recommendation_readiness,
+        action_class_runtime_enablement=action_class_runtime_enablement,
+        class_level_blast_radius_certification=class_level_blast_radius_certification,
+        runtime_eligibility_arbitration=runtime_eligibility_arbitration,
+        generated_at=generated,
+    )
+    rollback_authority_certification = build_rollback_authority_certification(
+        floor_forensics=floor_forensics,
+        decision_outcome_closure=decision_outcome_closure,
+        decision_outcome_learning=decision_outcome_learning,
+        runtime_eligibility_arbitration=runtime_eligibility_arbitration,
+        metric_reliability_certification=metric_reliability_certification,
+        generated_at=generated,
+    )
+    rt2_s5_certified_concurrency_ladder = build_rt2_s5_certified_concurrency_ladder(
+        action_class_runtime_enablement=action_class_runtime_enablement,
+        class_level_blast_radius_certification=class_level_blast_radius_certification,
+        runtime_eligibility_arbitration=runtime_eligibility_arbitration,
+        metric_reliability_certification=metric_reliability_certification,
+        rollback_authority_certification=rollback_authority_certification,
+        anti_flapping=anti_flapping,
+        generated_at=generated,
+    )
     maximum_reality_knowledge_extraction = build_maximum_reality_knowledge_extraction(
         autonomous_knowledge_growth_program=autonomous_knowledge_growth_program,
         autonomous_routing_evolution_program=autonomous_routing_evolution_program,
@@ -5643,6 +7212,15 @@ def build_acceleration_inventory(
         decision_outcome_learning=decision_outcome_learning,
         freshness_actionability=freshness_actionability,
         outcome_leverage_model=outcome_leverage_model,
+    )
+    rt2_s6_evidence_based_continuous_improvement = build_rt2_s6_evidence_based_continuous_improvement(
+        outcome_leverage_model=outcome_leverage_model,
+        maximum_reality_knowledge_extraction=maximum_reality_knowledge_extraction,
+        rt2_s5_certified_concurrency_ladder=rt2_s5_certified_concurrency_ladder,
+        routing_recommendation_readiness=routing_recommendation_readiness,
+        metric_reliability_certification=metric_reliability_certification,
+        decision_outcome_learning=decision_outcome_learning,
+        generated_at=generated,
     )
     final_autonomous_routing_architecture_certification = build_final_autonomous_routing_architecture_certification(
         knowledge_quality_read_model=knowledge_quality_read_model,
@@ -5682,6 +7260,8 @@ def build_acceleration_inventory(
         "real_outcome_growth_projection": real_outcome_growth_projection,
         "outcome_leverage_model": outcome_leverage_model,
         "hard_failure_classification": hard_failure_classification,
+        "liveness_evidence_aggregation": liveness_evidence_aggregation,
+        "hard_failure_policy_windows": hard_failure_policy_windows,
         "service_user_sla_fit": service_user_sla_fit,
         "action_class_freshness_windows": action_class_freshness_windows,
         "decision_outcome_closure": decision_outcome_closure,
@@ -5699,7 +7279,14 @@ def build_acceleration_inventory(
         "autonomous_knowledge_growth_program": autonomous_knowledge_growth_program,
         "autonomous_routing_evolution_program": autonomous_routing_evolution_program,
         "action_class_runtime_enablement": action_class_runtime_enablement,
+        "historical_blast_radius_evidence": historical_blast_radius_evidence,
+        "class_level_blast_radius_certification": class_level_blast_radius_certification,
+        "runtime_eligibility_arbitration": runtime_eligibility_arbitration,
+        "metric_reliability_certification": metric_reliability_certification,
+        "rollback_authority_certification": rollback_authority_certification,
+        "rt2_s5_certified_concurrency_ladder": rt2_s5_certified_concurrency_ladder,
         "maximum_reality_knowledge_extraction": maximum_reality_knowledge_extraction,
+        "rt2_s6_evidence_based_continuous_improvement": rt2_s6_evidence_based_continuous_improvement,
         "final_autonomous_routing_architecture_certification": final_autonomous_routing_architecture_certification,
         "knowledge_quality_read_model": knowledge_quality_read_model,
         "knowledge_objects": knowledge_quality_read_model["knowledge_objects"],

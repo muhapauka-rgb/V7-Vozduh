@@ -730,6 +730,8 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
             "routing_recommendation_readiness",
             "decision_outcome_learning",
             "hard_failure_classification",
+            "liveness_evidence_aggregation",
+            "hard_failure_policy_windows",
         ):
             self.assertIn(key, inventory)
             self.assertFalse(inventory[key]["runtime_mutation_performed"])
@@ -797,6 +799,191 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertFalse(model["rows"][0]["reaction_allowed_without_policy"])
         self.assertFalse(model["apply_executed"])
         self.assertEqual(model["users_moved"], 0)
+
+    def test_b1_liveness_evidence_aggregation_groups_source_family_and_confidence(self):
+        hard_failure = accel.build_hard_failure_classification(
+            event_rows=[
+                {
+                    "source": "service_matrix",
+                    "channel": "awg0",
+                    "status": "DOWN",
+                    "message": "all probes failed",
+                    "confidence": 0.9,
+                },
+                {
+                    "source": "telegram_sentinel",
+                    "channel": "awg0",
+                    "status": "DOWN",
+                    "message": "telegram no response",
+                    "confidence": 0.86,
+                },
+                {
+                    "source": "quality_compact",
+                    "channel": "awg0",
+                    "status": "DEGRADED",
+                    "message": "quality cannot carry service",
+                    "confidence": 0.62,
+                },
+            ],
+            freshness_actionability={"domains": {}},
+            generated_at="2026-06-29T00:20:00+00:00",
+        )
+        aggregation = accel.build_liveness_evidence_aggregation(
+            hard_failure_classification=hard_failure,
+            snapshot_statuses={
+                "service-scores": {
+                    "exists": True,
+                    "freshness_state": "FRESH",
+                    "runtime_behavior": "ALLOW",
+                    "stop_required": False,
+                    "confidence": 0.9,
+                },
+                "channel-service-scores": {
+                    "exists": True,
+                    "freshness_state": "FRESH",
+                    "runtime_behavior": "ALLOW",
+                    "stop_required": False,
+                    "confidence": 0.8,
+                },
+                "risk-summaries": {
+                    "exists": True,
+                    "freshness_state": "FRESH",
+                    "runtime_behavior": "ALLOW",
+                    "stop_required": False,
+                    "confidence": 0.7,
+                },
+            },
+            generated_at="2026-06-29T00:21:00+00:00",
+        )
+
+        self.assertEqual(aggregation["schema_version"], "v7.b1.liveness-evidence-aggregation.v1")
+        self.assertEqual(aggregation["backlog_item"], "B1")
+        self.assertEqual(aggregation["summary"]["confirmed_objects"], 1)
+        self.assertEqual(aggregation["summary"]["evidence_count"], 3)
+        by_family = {row["source_family"]: row for row in aggregation["source_family_rows"]}
+        self.assertEqual(by_family["service_matrix"]["owner"], "tools/v7-service-matrix-refresh-all")
+        self.assertEqual(by_family["telegram_sentinel"]["owner"], "tools/v7-telegram-sentinel")
+        self.assertEqual(by_family["quality_compact"]["owner"], "tools/v7-egress-quality-compact")
+        self.assertEqual(by_family["service_matrix"]["average_confidence"], 90.0)
+        self.assertEqual(by_family["telegram_sentinel"]["confidence_band"], "HIGH")
+        self.assertEqual(by_family["quality_compact"]["policy_relevance"], "quality_degradation_liveness")
+        self.assertEqual(aggregation["object_rows"][0]["object"], "awg0")
+        self.assertIn("service_matrix", aggregation["object_rows"][0]["source_families"])
+        self.assertFalse(aggregation["runtime_mutation_performed"])
+        self.assertFalse(aggregation["apply_executed"])
+        self.assertEqual(aggregation["users_moved"], 0)
+        self.assertFalse(aggregation["authority_expanded"])
+        self.assertFalse(aggregation["synthetic_evidence_created"])
+        self.assertFalse(aggregation["new_truth_source_created"])
+
+    def test_inventory_exposes_b1_liveness_evidence_aggregation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                event_rows=[
+                    {
+                        "source": "service_matrix",
+                        "channel": "awg0",
+                        "status": "DOWN",
+                        "message": "all probes failed",
+                        "confidence": 0.9,
+                    },
+                    {
+                        "source": "telegram_sentinel",
+                        "channel": "awg0",
+                        "status": "DOWN",
+                        "message": "telegram no response",
+                        "confidence": 0.86,
+                    },
+                ],
+                generated_at="2026-06-29T00:22:00+00:00",
+            )
+
+        aggregation = inventory["liveness_evidence_aggregation"]
+        self.assertEqual(aggregation["backlog_item"], "B1")
+        self.assertEqual(aggregation["summary"]["confirmed_object_names"], ["awg0"])
+        self.assertGreaterEqual(aggregation["summary"]["source_families"], 2)
+        self.assertFalse(aggregation["runtime_mutation_performed"])
+        self.assertFalse(aggregation["apply_executed"])
+        self.assertEqual(aggregation["users_moved"], 0)
+
+    def test_b2_hard_failure_policy_windows_maps_risk_class_without_timer_change(self):
+        freshness = accel.build_freshness_actionability({
+            "service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "channel-service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "user-service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "risk-summaries": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "overview-summary": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "capacity-forecast-summaries": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "blast-radius-summaries": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "prediction-summaries": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "candidate-suitability-summary": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "best-available-pool": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "trust-evolution-summaries": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+        })
+        windows = accel.build_action_class_freshness_windows(freshness)
+        confirmed = accel.build_hard_failure_classification(
+            event_rows=[
+                {"source": "service_matrix", "channel": "awg0", "status": "DOWN", "message": "all probes failed", "confidence": 0.9},
+                {"source": "telegram_sentinel", "channel": "awg0", "status": "DOWN", "message": "telegram no response", "confidence": 0.86},
+            ],
+            freshness_actionability=freshness,
+        )
+        aggregation = accel.build_liveness_evidence_aggregation(
+            hard_failure_classification=confirmed,
+            snapshot_statuses={
+                "service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+                "channel-service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            },
+        )
+        model = accel.build_hard_failure_policy_windows(
+            hard_failure_classification=confirmed,
+            liveness_evidence_aggregation=aggregation,
+            action_class_freshness_windows=windows,
+            anti_flapping={"policy": accel.ANTI_FLAP_POLICY, "summary": {"blocked_users": 0}},
+        )
+
+        self.assertEqual(model["schema_version"], "v7.b2.hard-failure-policy-windows.v1")
+        self.assertEqual(model["backlog_item"], "B2")
+        row = model["rows"][0]
+        self.assertEqual(row["object"], "awg0")
+        self.assertEqual(row["risk_class"], "CRITICAL_CONFIRMED_HARD_FAILURE")
+        self.assertEqual(row["selected_action_class"], "channel hard-fail failover")
+        self.assertEqual(row["reaction_window_seconds"], 300)
+        self.assertTrue(row["policy_window_ready"])
+        self.assertFalse(row["timer_changed"])
+        self.assertFalse(row["runtime_apply_allowed"])
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+        self.assertFalse(model["new_truth_source_created"])
+
+    def test_b2_suspected_hard_failure_uses_confirmation_window_and_blocks_fast_path(self):
+        suspected = accel.build_hard_failure_classification(
+            event_rows=[
+                {"source": "service_matrix", "channel": "awg3", "message": "youtube timeout"},
+            ],
+            freshness_actionability={"domains": {}},
+        )
+        aggregation = accel.build_liveness_evidence_aggregation(hard_failure_classification=suspected)
+        model = accel.build_hard_failure_policy_windows(
+            hard_failure_classification=suspected,
+            liveness_evidence_aggregation=aggregation,
+            anti_flapping={"policy": accel.ANTI_FLAP_POLICY, "summary": {"blocked_users": 1}},
+        )
+
+        row = model["rows"][0]
+        self.assertEqual(row["risk_class"], "SUSPECTED_HARD_FAILURE")
+        self.assertEqual(row["selected_action_class"], "single-user governed candidate failover")
+        self.assertIn("anti_flap_blocks_recent_oscillation", row["blockers"])
+        self.assertFalse(row["policy_window_ready"])
+        self.assertFalse(row["risk_class_changes_runtime"])
 
     def test_action_class_freshness_windows_reuse_owner_issued_fields(self):
         freshness = accel.build_freshness_actionability({
@@ -1184,6 +1371,486 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertIn("BLAST_RADIUS_EXCEEDED", oversized["blockers"])
         self.assertFalse(oversized["apply_executed"])
         self.assertEqual(oversized["users_moved"], 0)
+
+    def test_a5_class_level_blast_radius_certification_consumes_historical_proofs_read_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[{
+                    "recommendation_id": "r1",
+                    "decision_id": "decision-1",
+                    "packet_id": "p1",
+                    "apply_result": "success",
+                    "post_action_verification": {"status": "passed"},
+                    "service_outcome": {"telegram": "ok"},
+                    "user_outcome": {"user": "10.7.0.2"},
+                    "learning_record": {"stored": True},
+                    "outcome_observed_at": "2026-06-24T00:00:00+00:00",
+                    "blast_radius": 1,
+                    "selected_move_count": 1,
+                    "user": "10.7.0.2",
+                    "target": "awg0",
+                    "service_delta": 5,
+                    "prediction_delta": 3,
+                }],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        certification = inventory["class_level_blast_radius_certification"]
+        self.assertEqual(certification["schema_version"], "v7.a5-class-level-blast-radius-certification.v1")
+        self.assertEqual(certification["backlog_item"], "A5")
+        self.assertEqual(certification["owner"], "admin_core.autonomy_trust_acceleration")
+        self.assertTrue(certification["current_one_user_guard_certified"])
+        self.assertTrue(certification["beyond_one_user_certified"])
+        self.assertGreaterEqual(certification["max_historical_certified_blast_radius_users"], 2)
+        self.assertEqual(certification["certification_state"], "BEYOND_ONE_USER_EVIDENCE_CERTIFIED_READ_ONLY")
+        self.assertNotIn("beyond_one_user_real_outcome_evidence_missing", certification["blockers"])
+        self.assertIn("class_authority_not_approved", certification["blockers"])
+        self.assertEqual(
+            certification["omp_output"]["recommendation"],
+            "CERTIFY_A5_EVIDENCE_ONLY_DO_NOT_EXPAND_AUTHORITY",
+        )
+        self.assertEqual(
+            certification["omp_output"]["stop_condition_if_scope_expansion_requested"],
+            "ENGINEERING_AUTHORITY",
+        )
+        self.assertFalse(certification["runtime_mutation_performed"])
+        self.assertFalse(certification["apply_executed"])
+        self.assertEqual(certification["users_moved"], 0)
+        self.assertFalse(certification["authority_expanded"])
+        self.assertFalse(certification["autonomy_enabled"])
+        self.assertFalse(certification["new_owner_created"])
+        self.assertFalse(certification["new_runtime_created"])
+
+    def test_a5_class_level_blast_radius_certification_blocks_without_historical_proofs(self):
+        certification = accel.build_class_level_blast_radius_certification(
+            action_class_runtime_enablement={
+                "current_action_class": "single-user governed candidate failover",
+                "action_classes": [
+                    {
+                        "action_class": "single-user governed candidate failover",
+                        "required_blast_radius": "exactly one user",
+                        "runtime_enablement_state": "GOVERNED_ONLY",
+                    },
+                    {
+                        "action_class": "two-user governed candidate failover",
+                        "required_blast_radius": "bounded cohort",
+                        "runtime_enablement_state": "NOT_CERTIFIED",
+                    },
+                ],
+            },
+            floor_forensics={
+                "component_values": {"blast_radius_confidence": 100},
+                "rollback_and_blast": {"blast_records_seen": 1},
+            },
+            service_user_sla_fit={"summary": {"users_seen": 1, "verdict_counts": {"PASS": 1}}},
+            hard_failure_classification={"classification": "HARD_FAILURE_CONFIRMED"},
+            decision_outcome_closure={"closure_state": "COMPLETE", "summary": {"valid_closures": 1}},
+            historical_blast_radius_evidence={
+                "max_certified_blast_radius_users": 1,
+                "required_historical_proofs_present": True,
+            },
+        )
+
+        self.assertTrue(certification["current_one_user_guard_certified"])
+        self.assertFalse(certification["beyond_one_user_certified"])
+        self.assertIn("beyond_one_user_real_outcome_evidence_missing", certification["blockers"])
+        self.assertFalse(certification["authority_expanded"])
+        self.assertFalse(certification["apply_executed"])
+
+    def test_a6_runtime_eligibility_arbitration_is_read_only_stop_model(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[{
+                    "recommendation_id": "r1",
+                    "decision_id": "decision-1",
+                    "packet_id": "p1",
+                    "apply_result": "success",
+                    "post_action_verification": {"status": "passed"},
+                    "service_outcome": {"telegram": "ok"},
+                    "user_outcome": {"user": "10.7.0.2"},
+                    "learning_record": {"stored": True},
+                    "outcome_observed_at": "2026-06-24T00:00:00+00:00",
+                    "blast_radius": 1,
+                    "selected_move_count": 1,
+                    "user": "10.7.0.2",
+                    "target": "awg0",
+                    "service_delta": 5,
+                    "prediction_delta": 3,
+                }],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        arbitration = inventory["runtime_eligibility_arbitration"]
+        self.assertEqual(arbitration["schema_version"], "v7.a6-runtime-eligibility-arbitration.v1")
+        self.assertEqual(arbitration["backlog_item"], "A6")
+        gates = {row["gate"]: row["state"] for row in arbitration["gate_rows"]}
+        self.assertIn("freshness", gates)
+        self.assertIn("authority", gates)
+        self.assertIn("blast_radius", gates)
+        self.assertIn("rollback_or_no_rollback", gates)
+        self.assertIn("anti_flap", gates)
+        self.assertIn("verification", gates)
+        self.assertIn("learning", gates)
+        self.assertIn("routing_readiness", gates)
+        self.assertIn("runtime_apply", gates)
+        self.assertEqual(gates["blast_radius"], "PASS")
+        self.assertEqual(gates["authority"], "STOP")
+        self.assertEqual(gates["runtime_apply"], "STOP")
+        self.assertEqual(arbitration["runtime_execute_decision"], "STOP_SAFE")
+        self.assertFalse(arbitration["runtime_apply_allowed"])
+        self.assertFalse(arbitration["runtime_can_execute_automatically"])
+        self.assertFalse(arbitration["authority_expanded"])
+        self.assertFalse(arbitration["apply_executed"])
+        self.assertEqual(arbitration["users_moved"], 0)
+        self.assertFalse(arbitration["new_runtime_created"])
+
+    def test_a6_runtime_eligibility_arbitration_blocks_evidence_gates(self):
+        arbitration = accel.build_runtime_eligibility_arbitration(
+            action_class_runtime_enablement={
+                "delegated_autonomy_runtime_eligibility": {
+                    "blockers": [],
+                    "runtime_can_execute_automatically": False,
+                    "stale_required_domains": [],
+                },
+                "enablement_readiness": {"missing_evidence": ["class-level rollback_or_no_rollback_certification"]},
+            },
+            class_level_blast_radius_certification={"beyond_one_user_certified": False},
+            freshness_actionability={"domains": {}},
+            anti_flapping={"summary": {"blocked_users": 1}},
+            decision_outcome_closure={"closure_state": "PARTIAL"},
+            decision_outcome_learning={"knowledge_growth": {"knowledge_gained": 0}},
+            routing_recommendation_readiness={"blockers": ["service_user_sla_fit_not_clear"]},
+        )
+
+        self.assertEqual(arbitration["arbitration_state"], "STOP_AT_AUTHORITY_OR_RUNTIME_APPLY")
+        self.assertIn("blast_radius", arbitration["stop_gates"])
+        self.assertIn("anti_flap", arbitration["stop_gates"])
+        self.assertIn("verification", arbitration["stop_gates"])
+        self.assertIn("learning", arbitration["stop_gates"])
+        self.assertFalse(arbitration["runtime_mutation_performed"])
+        self.assertFalse(arbitration["autonomy_enabled"])
+
+    def test_b13_metric_reliability_certifies_blocking_recommendation_read_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[{
+                    "recommendation_id": "r1",
+                    "decision_id": "decision-1",
+                    "packet_id": "p1",
+                    "apply_result": "success",
+                    "post_action_verification": {"status": "passed"},
+                    "service_outcome": {"telegram": "ok"},
+                    "user_outcome": {"user": "10.7.0.2"},
+                    "learning_record": {"stored": True},
+                    "outcome_observed_at": "2026-06-24T00:00:00+00:00",
+                    "blast_radius": 1,
+                    "selected_move_count": 1,
+                    "user": "10.7.0.2",
+                    "target": "awg0",
+                    "service_delta": 5,
+                    "prediction_delta": 3,
+                }],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        certification = inventory["metric_reliability_certification"]
+        self.assertEqual(certification["schema_version"], "v7.b13-metric-reliability-certification.v1")
+        self.assertEqual(certification["backlog_item"], "B13")
+        self.assertEqual(certification["certification_state"], "CERTIFIED_FOR_BLOCKING_RECOMMENDATIONS_ONLY")
+        metrics = {row["metric"]: row["state"] for row in certification["metric_rows"]}
+        self.assertIn("confidence", metrics)
+        self.assertIn("trust", metrics)
+        self.assertIn("prediction_confidence", metrics)
+        self.assertIn("prediction_matches", metrics)
+        self.assertIn("service_outcomes", metrics)
+        self.assertIn("candidate_outcomes", metrics)
+        self.assertIn("rollback_evidence", metrics)
+        self.assertIn("blast_radius_evidence", metrics)
+        self.assertIn("outcome_closure", metrics)
+        self.assertIn("learning", metrics)
+        self.assertIn("a6_runtime_eligibility", metrics)
+        self.assertTrue(certification["blocking_recommendation_certified"])
+        self.assertFalse(certification["automated_positive_promotion_recommendation_allowed"])
+        self.assertIn("runtime_apply", certification["positive_promotion_blockers"])
+        self.assertEqual(
+            certification["omp_output"]["next_safe_action"],
+            "continue to B16 rollback authority certification",
+        )
+        self.assertFalse(certification["runtime_mutation_performed"])
+        self.assertFalse(certification["apply_executed"])
+        self.assertEqual(certification["users_moved"], 0)
+        self.assertFalse(certification["authority_expanded"])
+        self.assertFalse(certification["new_owner_created"])
+
+    def test_b13_metric_reliability_blocks_mandatory_metric_gate_failures(self):
+        certification = accel.build_metric_reliability_certification(
+            canary_proximity={"primary_floors": {}},
+            floor_forensics={"component_values": {}},
+            source_confidence_inventory={"sources": []},
+            evidence_sufficiency={"insufficient_sources": ["candidate_outcomes"]},
+            decision_outcome_closure={"closure_state": "PARTIAL"},
+            decision_outcome_learning={"knowledge_growth": {"knowledge_gained": 0}},
+            freshness_actionability={"domains": {"service": {"classification": "UNKNOWN"}}},
+            routing_recommendation_readiness={"blockers": ["decision_outcome_closure_incomplete"]},
+            action_class_runtime_enablement={"enablement_readiness": {"missing_evidence": ["class-level authority_policy_approval"]}},
+            class_level_blast_radius_certification={"beyond_one_user_certified": False},
+            runtime_eligibility_arbitration={"schema_version": "missing", "runtime_execute_decision": "UNKNOWN"},
+        )
+
+        self.assertEqual(certification["certification_state"], "NOT_CERTIFIED_MANDATORY_METRIC_GATE_FAILED")
+        self.assertFalse(certification["blocking_recommendation_certified"])
+        self.assertIn("outcome_closure", certification["stop_metrics"])
+        self.assertIn("learning", certification["stop_metrics"])
+        self.assertIn("freshness", certification["partial_metrics"])
+        self.assertIn("a5_blast_radius", certification["stop_metrics"])
+        self.assertIn("a6_runtime_eligibility", certification["stop_metrics"])
+        self.assertFalse(certification["runtime_mutation_performed"])
+        self.assertFalse(certification["autonomy_enabled"])
+
+    def test_b16_rollback_authority_certification_is_read_only_authority_review(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[{
+                    "recommendation_id": "r1",
+                    "decision_id": "decision-1",
+                    "packet_id": "p1",
+                    "apply_result": "success",
+                    "post_action_verification": {"status": "passed"},
+                    "service_outcome": {"telegram": "ok"},
+                    "user_outcome": {"user": "10.7.0.2"},
+                    "learning_record": {"stored": True},
+                    "outcome_observed_at": "2026-06-24T00:00:00+00:00",
+                    "blast_radius": 1,
+                    "selected_move_count": 1,
+                    "user": "10.7.0.2",
+                    "target": "awg0",
+                    "service_delta": 5,
+                    "prediction_delta": 3,
+                }],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        certification = inventory["rollback_authority_certification"]
+        self.assertEqual(certification["schema_version"], "v7.b16-rollback-authority-certification.v1")
+        self.assertEqual(certification["backlog_item"], "B16")
+        self.assertEqual(certification["certification_state"], "CERTIFIED_FOR_AUTHORITY_REVIEW_ONLY")
+        gates = {row["metric"]: row["state"] for row in certification["gate_rows"]}
+        self.assertEqual(gates["rollback_evidence"], "PASS")
+        self.assertEqual(gates["verification_reliability"], "PASS")
+        self.assertEqual(gates["no_rollback_observed"], "PASS")
+        self.assertEqual(gates["metric_reliability"], "PASS")
+        self.assertEqual(gates["runtime_eligibility"], "PASS")
+        self.assertEqual(gates["authority"], "STOP")
+        self.assertEqual(gates["runtime_apply"], "STOP")
+        self.assertTrue(certification["evidence_ready_for_authority_review"])
+        self.assertFalse(certification["automatic_rollback_authority_granted"])
+        self.assertFalse(certification["automatic_rollback_execution_allowed"])
+        self.assertEqual(certification["authority_stop_gates"], ["authority", "runtime_apply"])
+        self.assertEqual(
+            certification["omp_output"]["next_safe_action"],
+            "continue to Runtime Capability Maturation Program RT2-S1 measurement and observability",
+        )
+        self.assertFalse(certification["runtime_mutation_performed"])
+        self.assertFalse(certification["rollback_executed"])
+        self.assertFalse(certification["apply_executed"])
+        self.assertEqual(certification["users_moved"], 0)
+        self.assertFalse(certification["authority_expanded"])
+        self.assertFalse(certification["new_owner_created"])
+
+    def test_b16_rollback_authority_certification_blocks_missing_mandatory_evidence(self):
+        certification = accel.build_rollback_authority_certification(
+            floor_forensics={"rollback_and_blast": {"rollback_records_seen": 0, "rollback_confidence": 0.0}},
+            decision_outcome_closure={"closure_state": "PARTIAL"},
+            decision_outcome_learning={"effectiveness": {"rollback_rate": 0.0}},
+            runtime_eligibility_arbitration={"schema_version": "missing", "runtime_execute_decision": "UNKNOWN"},
+            metric_reliability_certification={"schema_version": "missing", "blocking_recommendation_certified": False},
+            generated_at="2026-06-25T00:00:00+00:00",
+        )
+
+        self.assertEqual(certification["certification_state"], "NOT_CERTIFIED_MANDATORY_ROLLBACK_GATE_FAILED")
+        self.assertFalse(certification["evidence_ready_for_authority_review"])
+        self.assertIn("rollback_evidence", certification["mandatory_stop_gates"])
+        self.assertIn("verification_reliability", certification["mandatory_stop_gates"])
+        self.assertIn("metric_reliability", certification["mandatory_stop_gates"])
+        self.assertIn("runtime_eligibility", certification["mandatory_stop_gates"])
+        self.assertFalse(certification["automatic_rollback_authority_granted"])
+        self.assertFalse(certification["automatic_rollback_execution_allowed"])
+        self.assertFalse(certification["runtime_mutation_performed"])
+        self.assertFalse(certification["authority_expanded"])
+
+    def test_rt2_s5_certified_concurrency_ladder_closes_serial_only_stop_safe(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[{
+                    "recommendation_id": "r1",
+                    "decision_id": "decision-1",
+                    "packet_id": "p1",
+                    "apply_result": "success",
+                    "post_action_verification": {"status": "passed"},
+                    "service_outcome": {"telegram": "ok"},
+                    "user_outcome": {"user": "10.7.0.2"},
+                    "learning_record": {"stored": True},
+                    "outcome_observed_at": "2026-06-24T00:00:00+00:00",
+                    "blast_radius": 1,
+                    "selected_move_count": 1,
+                    "user": "10.7.0.2",
+                    "target": "awg0",
+                    "service_delta": 5,
+                    "prediction_delta": 3,
+                }],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        ladder = inventory["rt2_s5_certified_concurrency_ladder"]
+        self.assertEqual(ladder["schema_version"], "v7.rt2-s5-certified-concurrency-ladder.v1")
+        self.assertEqual(ladder["omp_workstream"], "RT2-S5")
+        self.assertEqual(ladder["certification_state"], "DONE_READ_ONLY_CONCURRENCY_LADDER_OWNER_MAPPED")
+        self.assertEqual(ladder["certification_verdict"], "STOP_SAFE_CONCURRENCY_NOT_ENABLED")
+        self.assertEqual(ladder["certified_concurrency_level"], "SERIAL_ONLY_READ_ONLY")
+        self.assertTrue(ladder["completion_criteria_met"])
+        self.assertTrue(ladder["rt2_s6_unlocked"])
+        levels = {row["level"]: row for row in ladder["concurrency_levels"]}
+        self.assertEqual(levels["L0_SERIAL_ONLY"]["status"], "CERTIFIED_READ_ONLY")
+        self.assertEqual(levels["L1_TWO_USER_OR_TWO_ACTION"]["status"], "STOP_SAFE_AUTHORITY_AND_CAPACITY_REQUIRED")
+        self.assertEqual(levels["L2_SMALL_BATCH_OR_POOL"]["status"], "STOP_SAFE_NO_SILENT_BLAST_EXPANSION")
+        gates = {row["metric"]: row["state"] for row in ladder["gate_rows"]}
+        self.assertEqual(gates["governed_execution_coordination"], "PASS")
+        self.assertEqual(gates["runtime_eligibility"], "PASS")
+        self.assertEqual(gates["verification_capacity"], "PASS")
+        self.assertEqual(gates["rollback_capacity"], "PASS")
+        self.assertEqual(gates["authority_envelope"], "STOP_SAFE")
+        self.assertEqual(gates["runtime_apply"], "STOP_SAFE")
+        self.assertIn("RT2-S6_EVIDENCE_BASED_CONTINUOUS_IMPROVEMENT", ladder["omp_output"]["unlocked_capability"])
+        self.assertFalse(ladder["concurrency_enabled"])
+        self.assertFalse(ladder["runtime_mutation_performed"])
+        self.assertFalse(ladder["apply_executed"])
+        self.assertEqual(ladder["users_moved"], 0)
+        self.assertFalse(ladder["authority_expanded"])
+        self.assertFalse(ladder["new_runtime_created"])
+
+    def test_rt2_s5_certified_concurrency_ladder_blocks_missing_base_evidence(self):
+        ladder = accel.build_rt2_s5_certified_concurrency_ladder(
+            action_class_runtime_enablement={},
+            class_level_blast_radius_certification={},
+            runtime_eligibility_arbitration={},
+            metric_reliability_certification={},
+            rollback_authority_certification={},
+            anti_flapping={"summary": {"blocked_users": 1}},
+            rt2_s4_governed_execution_coordination={"status": "PARTIAL"},
+            generated_at="2026-06-25T00:00:00+00:00",
+        )
+
+        self.assertEqual(ladder["certification_state"], "STOP_SAFE_BASE_EVIDENCE_INCOMPLETE")
+        self.assertEqual(ladder["certified_concurrency_level"], "NONE_STOP_SAFE")
+        self.assertFalse(ladder["completion_criteria_met"])
+        self.assertFalse(ladder["rt2_s6_unlocked"])
+        self.assertIn("governed_execution_coordination", ladder["stop_metrics"])
+        self.assertIn("runtime_eligibility", ladder["stop_metrics"])
+        self.assertIn("verification_capacity", ladder["stop_metrics"])
+        self.assertIn("rollback_capacity", ladder["stop_metrics"])
+        self.assertFalse(ladder["concurrency_enabled"])
+        self.assertFalse(ladder["runtime_mutation_performed"])
+        self.assertFalse(ladder["authority_expanded"])
+
+    def test_rt2_s6_evidence_based_continuous_improvement_returns_to_b1_advisory_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[{
+                    "recommendation_id": "r1",
+                    "decision_id": "decision-1",
+                    "packet_id": "p1",
+                    "apply_result": "success",
+                    "post_action_verification": {"status": "passed"},
+                    "service_outcome": {"telegram": "ok"},
+                    "user_outcome": {"user": "10.7.0.2"},
+                    "learning_record": {"stored": True},
+                    "outcome_observed_at": "2026-06-24T00:00:00+00:00",
+                    "blast_radius": 1,
+                    "selected_move_count": 1,
+                    "user": "10.7.0.2",
+                    "target": "awg0",
+                    "service_delta": 5,
+                    "prediction_delta": 3,
+                }],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        s6 = inventory["rt2_s6_evidence_based_continuous_improvement"]
+        self.assertEqual(s6["schema_version"], "v7.rt2-s6-evidence-based-continuous-improvement.v1")
+        self.assertEqual(s6["omp_workstream"], "RT2-S6")
+        self.assertEqual(s6["certification_state"], "DONE_READ_ONLY_OWNER_MAPPED_RECOMMENDATION")
+        self.assertEqual(s6["recommendation_verdict"], "OWNER_MAPPED_RECOMMENDATION")
+        self.assertTrue(s6["completion_criteria_met"])
+        self.assertTrue(s6["rt2_graduated"])
+        self.assertEqual(s6["next_omp_step"], "B1_AGGREGATE_LIVENESS_EVIDENCE_BY_SOURCE_FAMILY_AND_CONFIDENCE")
+        recommendation = s6["recommendation_rows"][0]
+        self.assertEqual(recommendation["canonical_owner"], "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#B1")
+        self.assertIn("admin_core/intelligence_workers.py", recommendation["implementation_owners"])
+        gates = {row["metric"]: row["state"] for row in s6["evidence_rows"]}
+        self.assertEqual(gates["safe_execution_limit"], "PASS")
+        self.assertEqual(gates["outcome_leverage"], "PASS")
+        self.assertEqual(gates["metric_reliability"], "PASS")
+        self.assertEqual(gates["authority_boundary"], "STOP_SAFE")
+        self.assertTrue(s6["advisory_only"])
+        self.assertFalse(s6["automatic_recommendation_enabled"])
+        self.assertFalse(s6["direct_implementation_started"])
+        self.assertFalse(s6["runtime_mutation_performed"])
+        self.assertFalse(s6["apply_executed"])
+        self.assertEqual(s6["users_moved"], 0)
+        self.assertFalse(s6["authority_expanded"])
+        self.assertFalse(s6["new_owner_created"])
+
+    def test_rt2_s6_evidence_based_continuous_improvement_blocks_missing_mandatory_evidence(self):
+        s6 = accel.build_rt2_s6_evidence_based_continuous_improvement(
+            outcome_leverage_model={"activities_ranked": []},
+            maximum_reality_knowledge_extraction={"final_verdict": "UNKNOWN"},
+            rt2_s5_certified_concurrency_ladder={"certification_state": "STOP_SAFE_BASE_EVIDENCE_INCOMPLETE"},
+            routing_recommendation_readiness={},
+            metric_reliability_certification={"schema_version": "missing", "blocking_recommendation_certified": False},
+            decision_outcome_learning={},
+            generated_at="2026-06-25T00:00:00+00:00",
+        )
+
+        self.assertEqual(s6["certification_state"], "STOP_SAFE_RECOMMENDATION_EVIDENCE_INCOMPLETE")
+        self.assertEqual(s6["recommendation_verdict"], "MISSING_EVIDENCE_STOP_SAFE")
+        self.assertFalse(s6["completion_criteria_met"])
+        self.assertFalse(s6["rt2_graduated"])
+        self.assertIn("safe_execution_limit", s6["mandatory_stop"])
+        self.assertIn("outcome_leverage", s6["mandatory_stop"])
+        self.assertIn("metric_reliability", s6["mandatory_stop"])
+        self.assertFalse(s6["runtime_mutation_performed"])
+        self.assertFalse(s6["direct_implementation_started"])
+        self.assertFalse(s6["authority_expanded"])
 
     def test_autonomous_routing_evolution_program_survives_refresh_rebuild(self):
         with tempfile.TemporaryDirectory() as tmp:

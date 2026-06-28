@@ -120,16 +120,20 @@ The backlog remains the implementation queue.
 Current highest implementation priority:
 
 ```text
-A1: Bind canonical hard-failure classification to existing liveness/event evidence.
+B2: Add hard-failure timer/risk class to policy windows.
 ```
 
-Why first:
+Why current:
 
-1. It has very high production value.
-2. It has very high safety gain.
-3. It reuses existing owners.
-4. It does not require authority expansion.
-5. It does not enable runtime apply.
-6. It supplies a prerequisite signal for freshness, anti-flap, blast-radius, rollback, action-class promotion, and future runtime eligibility.
+1. Tier A is complete.
+2. B13 metric reliability is certified for blocking recommendations only.
+3. B16 rollback authority certification is complete as read-only authority-review evidence.
+4. RT2-S1 through RT2-S6 are complete as read-only/advisory owner-mapped surfaces.
+5. RT2-S6 produced an OMP-owned advisory recommendation to return to existing backlog item `B1`.
+6. `B1` is complete as read-only liveness evidence aggregation through existing owners.
+7. `B2` is the first unfinished Tier B item and reuses existing OMP floors, safety policy, anti-flap overlay, and trust inventory owners.
+8. It does not require authority expansion.
+9. It does not enable runtime apply, automation, or user movement.
+10. It improves hard-failure timing/risk policy readiness without creating a new owner.
 
 Need New Owner: `FALSE`.

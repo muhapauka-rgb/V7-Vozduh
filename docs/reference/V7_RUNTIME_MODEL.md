@@ -510,6 +510,36 @@ Completion condition for RT4:
 Every current runtime path stage has an owner, precompute/live classification, safety reason, future optimization path, and measurement field.
 ```
 
+## A6 Runtime Eligibility Arbitration
+
+Status: `DONE_READ_ONLY`
+
+Owner: Runtime Model for the contract; OMP and `admin_core.autonomy_trust_acceleration` for the read-only implementation surface.
+
+`runtime_eligibility_arbitration` is the current A6 execute-or-stop read model. It consumes existing certified gate outputs for freshness, authority, blast radius, rollback/no-rollback, anti-flap, verification, learning, routing readiness, and runtime_apply. It may report `ELIGIBLE_READ_ONLY_PREVIEW` only as advisory state; it must not enable runtime apply, expand authority, write restore barriers, move users, create a new runtime path, or bypass live gates.
+
+Current canonical result: `STOP_SAFE` at authority/runtime_apply.
+
+## B13 Metric Reliability Certification
+
+Status: `DONE_READ_ONLY`
+
+Owner: Runtime Model for the certification contract; OMP and `admin_core.autonomy_trust_acceleration` for the read-only implementation surface.
+
+`metric_reliability_certification` is the current B13 read-only verifier for automated promotion recommendations. It consumes existing trust/confidence, source-confidence, freshness, rollback, blast-radius, outcome closure, learning, runtime eligibility, and routing-readiness evidence. It may certify a reliable blocking recommendation when evidence safely supports `DO_NOT_PROMOTE_COLLECT_REAL_EVIDENCE`; it must not convert partial metrics into positive promotion, enable Runtime apply, expand authority, move users, change formulas, lower floors, create evidence, or create a new owner.
+
+Current canonical result: `CERTIFIED_FOR_BLOCKING_RECOMMENDATIONS_ONLY`; positive promotion remains blocked by partial service/candidate/floor/freshness/runtime/authority evidence.
+
+## B16 Rollback Authority Certification
+
+Status: `DONE_READ_ONLY`
+
+Owner: Runtime Model for the rollback authority contract; OMP and `admin_core.autonomy_trust_acceleration` for the read-only implementation surface; `admin_core/operator_execution.py`, `admin_core/operator_execution_pipeline.py`, and `tools/v7-users-autoswitch` remain execution/rollback owners when separately authorized.
+
+`rollback_authority_certification` is the current B16 read-only verifier for automatic rollback authority readiness. It consumes existing rollback evidence, verification/outcome closure, no-rollback learning, B13 metric reliability, and A6 runtime eligibility. It may certify `CERTIFIED_FOR_AUTHORITY_REVIEW_ONLY`; it must not grant automatic rollback authority, execute rollback, enable Runtime apply, expand authority, move users, create a rollback owner, create a runtime path, or bypass live restore/verification gates.
+
+Current canonical result: `CERTIFIED_FOR_AUTHORITY_REVIEW_ONLY`; authority and runtime_apply remain STOP gates.
+
 ## Runtime Latency Engineering Review Checklist
 
 Status: `RT_PHASE_1_CANONICAL`
@@ -1218,3 +1248,441 @@ This roadmap is not implementation approval.
 
 Runtime is design-ready for a future implementation phase.
 Runtime is not implemented by this document.
+
+## Runtime Capability Maturation Consumption Contract
+
+Status: `CANONICAL_REFERENCE_ONLY`.
+
+Program owner:
+
+```text
+docs/programs/OPERATIONAL_MATURITY_PROGRAM.md#runtime-capability-maturation-program--rt-phase-2
+```
+
+Runtime Capability Maturation, alias `RT Phase 2`, is not a new Runtime architecture.
+It is the future OMP program that matures how existing Runtime owners consume prepared knowledge and execute bounded certified decisions.
+
+Runtime consumption rule:
+
+```text
+Prepared knowledge moves earlier.
+Execution does not move earlier.
+```
+
+Thin Runtime invariants:
+
+1. Preparation may move earlier into Observation, World Model, Planning, Research, and OMP owners.
+2. Execution remains the thin live path: validate, mutate only if authorized, verify, rollback or STOP_SAFE, close outcome.
+3. Execution must not become analytics.
+4. Execution must not become planning.
+5. Execution must not become research.
+6. Execution must not become certification.
+7. Execution must not consume prepared knowledge without live gate revalidation.
+
+Runtime may consume prepared outputs from Observation, World Model, Planning, Decision, Research, and OMP owners only when:
+
+- the producing owner declares freshness and material assumptions;
+- Runtime revalidates live authority, freshness, target/source eligibility, rollback/no-rollback readiness, verification readiness, blast radius, anti-flap, and movement protection;
+- every mutation remains bounded, lease-bound, idempotent, terminally classified, and fail-closed.
+
+RT2-S1 Measurement & Observability Foundation owns future measurement domains for:
+
+- observation latency;
+- world-model latency;
+- candidate-generation latency;
+- decision latency;
+- execution latency;
+- verification latency;
+- rollback latency;
+- feedback/learning latency;
+- OMP visibility latency;
+- runtime CPU, memory, IO, blocking, lock contention, execution cost, rollback cost, and runtime cost.
+
+These domains are read-model and report fields until OMP certifies their use.
+They are not latency SLO gates, authority gates, or safety bypasses.
+
+Runtime must not become:
+
+- an analytics engine;
+- a planner;
+- a research engine;
+- a dashboard truth source;
+- an execution queue daemon;
+- a self-optimizer;
+- a certification owner;
+- a policy owner;
+- a source of synthetic evidence.
+
+Queue and concurrency are future certified capabilities only.
+An execution queue, if ever approved, schedules already-certified bounded attempts and still cannot approve, select, or execute without live gates.
+Concurrency, if ever approved, is a certified action-class/blast-radius/rollback/verification/authority level, not a speed optimization.
+
+No runtime behavior is changed by this contract.
+
+## Runtime Time Intelligence Architecture Contract
+
+Status: `CANONICAL_REFERENCE_ONLY`.
+
+Runtime Time Intelligence is not a new Runtime, Planner, Owner, World Model, Truth Source, automation mode, authority model, or roadmap.
+It extends the existing Runtime Time Architecture so V7 can explain both:
+
+```text
+how long work took
+why that time was spent
+```
+
+Canonical placement:
+
+- `RT2-S1` owns measurement and observability of runtime time, latency, cost, wait states, and dependency timing through read-only fields.
+- `RT2-S6` owns evidence-based recommendations that reduce safe time-to-recovery through existing OMP/backlog/canonical-owner flow.
+- Runtime Model owns time semantics, thin-runtime constraints, Work Placement, and live/precompute boundaries.
+- SYSTEM_MAP owns ownership lookup only.
+
+Runtime Time Intelligence must preserve:
+
+- Runtime stays thin;
+- preparation moves earlier where safety permits;
+- execution remains validate, mutate only if authorized, verify, rollback or `STOP_SAFE`, close outcome;
+- execution never becomes analytics, planner, research engine, dashboard truth source, certification owner, or self-optimizer;
+- every recommendation remains subordinate to Safety, Authority, Verification, Rollback, and `STOP_SAFE`.
+
+### Runtime Time Domains
+
+These domains are architectural measurement categories.
+They are not SLO gates, authority gates, runtime behavior, or implementation approval.
+
+| Domain | Owner | Producer | Consumer | Storage | Measurement | Evidence | Certification relevance |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Observation Time | Observation Plane owners + RT2-S1 | Service matrix, quality compact, sentinel, route/runtime truth, evidence freshness owners | Runtime read models, OMP, Engineering Reports | Existing observation/read-model timestamps and reports | event time, freshness age, probe duration, missing-field owner | real observation records only | Proves source freshness and detection latency; never grants action authority. |
+| World Update Time | World Model Plane, Knowledge Plane, intelligence/read-model owners | `admin_core/intelligence_snapshots.py`, `admin_core/intelligence_workers.py`, trust/evidence summaries | Runtime consumption contract, planner, OMP | snapshots, compact current-state read models, CPS summaries | generated/updated/expires timestamps, aggregation duration | source hashes, freshness declarations, snapshot metadata | Proves prepared state is current enough to consume; stale state forces stop or refresh. |
+| Readiness Time | Runtime readiness, service readiness, quality/readiness owners | service matrix, quality compact, recovery admission, runtime eligibility summaries | Runtime gates, planner, OMP | readiness read models and reports | readiness refresh age, gate evaluation duration, missing readiness reason | gate evidence and blocker lists | Certifies whether prepared readiness can be consumed before live gates. |
+| Planning Time | Existing planner/autoswitch and decision-surface owners | `tools/v7-users-autoswitch`, `admin_core/operator_decision_surface.py` | Decision Model, packet/preview owners, Runtime validation | planner outputs, preview rows, report fields | candidate generation duration, scoring duration, planner result timestamp | planner evidence and candidate/blocker rows | Proves planning cost is outside thin Runtime except live validation. |
+| Decision Time | Decision Model + decision surface/governed pipeline owners | decision surface, governed pipeline, runtime eligibility owners | Runtime, OMP, Engineering Reports | decision artifacts, eligibility/readiness rows, reports | decision creation time, eligibility evaluation duration, decision lifetime | decision id, assumptions, freshness, gate status | Certifies decision semantics and prevents a second planner/authority owner. |
+| Execution Wait Time | Runtime Model + execution/lease/authority/gate owners | execution pipeline, lease owner, approval/authority gates, blocker read models | OMP, Engineering Reports, dashboards as read-only surfaces | existing execution contract/event rows and report fields | queue/human/external/lock/gate wait duration where present; otherwise missing-field owner | wait reason, blocker owner, lease/approval/gate state | Identifies blocking without allowing queues, dashboards, or metrics to approve execution. |
+| Execution Time | Execution Plane owners | governed execution, packet/lease owner, autoswitch apply owner | verification, feedback, OMP | execution events/contracts, lease records, terminal outcome records | apply duration, lease duration, total/per-user execution duration | packet id, lease id, mutation/result evidence | Proves thin execute-or-stop path remains bounded and fail-closed. |
+| Verification Time | Verification Plane owners | post-apply verification, runtime readiness verification, truth/convergence where applicable | Runtime closure, rollback decision, OMP | verification records and reports | verification duration, verification freshness, failure/unknown duration | real verification outcome only | Certification cannot accept prediction as verification. |
+| Rollback Time | Restore barrier, rollback/no-rollback, governed execution owners | restore barrier owner, rollback owner, autoswitch rollback owner | Runtime, OMP, Engineering Reports | restore/rollback state, execution events, reports | rollback readiness age, rollback action duration, no-rollback decision duration | restore barrier, rollback/no-rollback evidence, terminal status | Proves recovery remains safe and bounded; rollback authority is not inferred from timing. |
+| Learning Time | Feedback/Learning Plane owners | execution feedback, trust/evidence updates, intelligence workers | OMP, Research Framework, Production Maturity | feedback records, trust/evidence summaries, learning reports | terminal-to-feedback duration, feedback-to-learning duration | observed outcomes only; no synthetic evidence | Matures future decisions without changing live execution authority. |
+| Engineering Report Time | OMP + Engineering Report lifecycle owner | Codex/engineering workflow after verification | Canonical owners, OMP, CPS | `docs/reports/engineering/` | work completion to report creation/update duration where relevant | report file, verification evidence, Product Evolution Review | Keeps improvement evidence inspectable before promotion. |
+| Canonical Update Time | Canonical owner of affected document + OMP | Engineering Report durable conclusions | Future OMP, Codex, audits, implementation | Runtime Model, OMP, SYSTEM_MAP, Canonical Reference, CPS, ADRs as applicable | report-to-canonical-promotion duration where relevant | canonical diff, owner mapping, no-duplication proof | Prevents durable knowledge from remaining only in reports. |
+| OMP Progress Time | OMP, CPS, Production Maturity Model, Backlog | OMP control loop and current program state updates | Continue OMP, future engineering tasks | OMP, CPS, backlog, Production Maturity | workstream duration, blocker duration, state update age | CPS state, OMP status, report references | Proves OMP can continue without external planning. |
+
+### Runtime Time Topology
+
+Runtime Time Topology is the dependency explanation for time spent.
+It belongs to existing Runtime Time Architecture and Work Placement owners, not to a new graph owner.
+
+Canonical explanation shape:
+
+```text
+Execution Time
+  -> may wait for Decision Time
+  -> may wait for Planning Time
+  -> may wait for Readiness Time
+  -> may wait for World Update Time
+  -> may wait for Observation Time
+```
+
+Topology rule:
+
+```text
+Each measured or unknown wait must point to one existing owner, one producing evidence source, and one safe next action:
+reuse, extend owner field, refresh evidence, stop safe, or report missing evidence.
+```
+
+The topology may be exposed through future read models or dashboards only as read-only explanation.
+It must not rank, approve, schedule, execute, certify, or mutate.
+
+### Runtime Time Recommendation Rule
+
+Runtime Time recommendations belong to `RT2-S6`.
+They may recommend:
+
+- move computation earlier;
+- remove duplicate calculation;
+- reduce blocking or waiting;
+- reduce Runtime Cost;
+- reduce Reaction Latency;
+- reduce Time-To-Safe-Recovery;
+- improve read-model freshness or measurement coverage.
+
+They must not:
+
+- mutate Runtime;
+- expand authority;
+- lower gates;
+- bypass verification;
+- weaken rollback;
+- convert latency metrics into SLO gates before certification;
+- create synthetic evidence;
+- create a new owner or planner.
+
+Every recommendation requires Product Evolution Review, Work Placement Review, Runtime Latency Review, Runtime Cost Review, Safety Review, and canonical owner mapping before implementation.
+
+### Runtime Time Intelligence Capability Maturity Ladder
+
+Status: `CANONICAL_REFERENCE_ONLY`.
+
+This ladder is a capability maturation track inside existing `RT2-S1` and `RT2-S6`.
+It is not a new RT phase, roadmap, Runtime, Planner, Owner, Truth Source, dashboard authority, certification authority, or implementation queue.
+
+The proposed ten levels are retained because each level adds one distinct evidence capability without duplicating existing architecture.
+Level 10 means continuous recommendation and measurement loop through OMP, not Runtime self-optimization.
+
+| Level | Name | Purpose | Inputs | Outputs | Existing owners | Consumers | Completion criteria | Evidence | Certification | Safety constraints | Runtime impact | Work Placement |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | Time Measurement | Make existing runtime-relevant time visible. | Existing timestamps, duration fields, latency fields, planner durations, stage events. | Read-only measured/unknown time fields with source owner. | `RT2-S1`, Runtime Model, read-model/admin owners. | OMP, Engineering Reports, Production Maturity, dashboards. | Each required field is measured or marked missing with owner. | Existing event/contract/read-model evidence only. | Measurement reliability can be certified later; no gate. | No synthetic metrics; no authority. | None; docs/read-only only. | Observation/read-model/reporting plane. |
+| 2 | Time Domains | Classify time by canonical domain. | Level 1 fields, Runtime Time Domains. | Domain-mapped time inventory. | Runtime Model + `RT2-S1`. | OMP, Engineering Reports, SYSTEM_MAP lookup. | Every measured/unknown time maps to one domain owner. | Domain owner and producing source. | Owner mapping review. | No duplicate plane owner. | None. | Runtime Model semantics; read-model storage. |
+| 3 | Time Topology | Explain why time is spent. | Domain inventory, waits, blockers, freshness, readiness, decision/lease state. | Dependency/wait topology with producer and consumer. | Runtime Model + `RT2-S1`. | OMP, Engineering Reports, read-only dashboard. | Each wait/dependency points to one owner and safe next action. | Wait reason, blocker owner, source evidence. | Topology completeness review. | Topology cannot rank, approve, schedule, or mutate. | None. | Read-only observability. |
+| 4 | Critical Path | Identify the longest safe recovery path. | Topology, durations, unknown/missing fields. | Critical path explanation and unknown-path gaps. | `RT2-S1` + Runtime Model. | `RT2-S6`, OMP, Production Maturity. | Critical path is explainable or missing evidence is owner-mapped. | Measured path, unknown fields, owner map. | Engineering Review confirms no synthetic inference. | Critical path cannot become SLO/authority gate. | None. | Measurement/reporting plane. |
+| 5 | Time Budget | Group time into budget categories. | Critical path, Runtime Budget Allocation, Reaction Latency, Runtime Cost. | Non-authorizing budget categories by domain/action class. | Runtime Model, OMP, Production Maturity. | OMP, Engineering Reports, future certification. | Budgets are categorized without numeric unsafe gates. | Measured/estimated/unknown with source. | Budget readiness only; numeric gates require later certification. | No unsafe speed incentive. | None. | OMP/Certification plane. |
+| 6 | Dependency Weight | Estimate which dependency contributes most to delay. | Critical path, budget categories, repeated observations. | Weight/rank explanation for engineering review. | `RT2-S1` for evidence; `RT2-S6` for recommendation use. | OMP, Backlog, Engineering Reports. | Weight is evidence-linked and uncertainty is explicit. | Repeated real evidence or declared insufficient data. | Reliability review before use in recommendations. | Weight cannot approve or deprioritize safety gates. | None. | Analysis in OMP/reporting plane. |
+| 7 | Impact Prediction | Predict effect of moving/reducing time. | Dependency weights, Work Placement, Runtime Cost, safety gates. | Non-authorizing impact estimate. | `RT2-S6`, Runtime Model, Production Maturity, Research Framework when external practice is used. | OMP, Backlog, Engineering Reports. | Prediction names affected domain, owner, risk, and measurement plan. | Historical measured evidence or explicit unknown. | Prediction quality review; no certification by prediction alone. | Prediction cannot replace verification or rollback. | None. | OMP/Research/reporting plane. |
+| 8 | Engineering Recommendation | Recommend owner-mapped improvements. | Impact prediction, Product Evolution Review, Work Placement Review. | Recommendation, no-change verdict, or missing-evidence verdict. | `RT2-S6`, OMP, Backlog, canonical owner. | Backlog, canonical owners, CPS. | Recommendation has owner, safety review, evidence, expected measurement. | Real evidence, fit analysis, latency/cost/time review. | Engineering Review required before implementation. | Recommendation cannot mutate Runtime or expand authority. | None. | OMP/backlog plane. |
+| 9 | Certification | Certify implemented improvement behavior. | Implemented owner change, tests, truth/convergence, measured before/after evidence. | Certification result or stop condition. | OMP, Production Maturity, relevant canonical owner. | CPS, Canonical Reference if durable, future OMP. | Improvement is proven safe, measured, and owner-scoped. | Tests, real outcomes where required, truth/convergence. | Certification owner declares mandatory/supporting evidence. | Certification cannot lower Safety, Authority, Verification, Rollback, or `STOP_SAFE`. | Only after separately approved implementation. | OMP/Certification plane. |
+| 10 | Continuous Runtime Optimization Recommendation Loop | Feed certified measurements back into future recommendations. | Certification results, outcomes, learning, reports, canonical updates. | Updated measurement baseline and future recommendation candidates. | `RT2-S6`, OMP, Production Maturity, Learning owners. | OMP, Backlog, Research Framework, Canonical Reference. | Loop produces evidence-based recommendation/no-change without self-optimizing Runtime. | Certified results, observed outcomes, canonical updates. | Continuous improvement certification remains OMP-owned. | No runtime self-optimization; no automatic mutation. | None unless a later implementation is separately approved. | OMP/Learning/reporting plane. |
+
+Maturity flow:
+
+```text
+Time Measurement
+  -> Time Domains
+  -> Time Topology
+  -> Critical Path
+  -> Time Budget
+  -> Dependency Weight
+  -> Impact Prediction
+  -> Engineering Recommendation
+  -> Certification
+  -> Continuous Runtime Optimization Recommendation Loop
+```
+
+Recommendation lifecycle:
+
+```text
+Measured evidence
+  -> domain/topology/critical-path review
+  -> Product Evolution Review
+  -> Work Placement Review
+  -> Safety / Authority / Verification / Rollback / STOP_SAFE review
+  -> owner-mapped Engineering Recommendation
+  -> OMP / Backlog only if implementation is justified
+  -> implementation by existing owner only after approval
+  -> measurement
+  -> learning
+  -> future recommendation or no-change verdict
+```
+
+The ladder is complete only when every active level can be executed by existing owners and every higher-level output remains advisory until separately certified by OMP.
+
+## Engineering Intelligence Materialization Contract
+
+Status: `PHASE_1_MATERIALIZED`.
+
+Engineering Intelligence is not a new Runtime, Planner, Owner, Truth Source, roadmap, master program, capability program, automation mode, or authority model.
+It is the engineering use of existing V7 intelligence owners to turn observed evidence into owner-mapped recommendations and later verify whether those recommendations improved reality.
+
+### Engineering Intelligence Runtime Contract
+
+The Runtime-facing contract is read-only until a separate OMP-approved implementation changes an existing owner.
+Runtime consumes only prepared, owner-mapped engineering intelligence artifacts:
+
+- observation evidence from existing observation/read-model owners;
+- process and placement semantics from Runtime Model, Work Placement, and Decision Lifecycle;
+- time/topology/critical-path evidence from Runtime Time Intelligence;
+- recommendations from `RT2-S6` only after OMP keeps them advisory or routes them to Backlog;
+- outcome, prediction, confidence, and learning evidence from existing feedback/intelligence owners.
+
+Engineering Intelligence must never become runtime analytics, planner, authority owner, truth source, mutation path, scheduler, dashboard authority, or certification owner.
+
+Canonical lifecycle:
+
+```text
+Observation
+  -> Process Understanding
+  -> Runtime Time Understanding
+  -> Recommendation
+  -> Implementation through OMP if approved
+  -> Outcome
+  -> Prediction vs Reality
+  -> Confidence Update
+  -> Recommendation Evolution
+```
+
+Materialized concept map:
+
+| Concept | Existing owner | Materialized as | Must not become |
+| --- | --- | --- | --- |
+| Observation Intelligence | Observation Plane owners + `RT2-S1` | Read-only evidence, freshness, events, service/quality/runtime observations. | Truth source replacement, movement authority. |
+| Process Intelligence | Runtime Model + Work Placement + Decision Lifecycle + `RT2-S1` | Lifecycle, topology, producer/consumer, wait/blocker, critical-path evidence. | Planner, execution graph authority, scheduler. |
+| Runtime Time Intelligence | Runtime Model + `RT2-S1` + `RT2-S6` | Time domains, topology, critical path, dependency weight, impact prediction. | Runtime behavior, SLO authority, self-optimization. |
+| Recommendation Intelligence | `RT2-S6` + OMP + Backlog | Owner-mapped recommendation, no-change verdict, or missing-evidence verdict. | Direct implementation order, authority expansion. |
+| Execution Intelligence | Execution / lease / packet / verification / rollback owners | Outcome-bearing execution evidence and STOP_SAFE classification. | New execution path or runtime mutation. |
+| Prediction Intelligence | Prediction Evidence / Confidence owners | Forecast-to-actual comparison and prediction confidence. | Verification substitute or authority gate by itself. |
+| Confidence Intelligence | Autonomy Root Confidence / Trust owners | Trust/confidence evolution from real evidence. | Safety override or synthetic evidence. |
+| Adaptive Engineering Intelligence | Decision To Outcome To Learning + `RT2-S6` + OMP | Learned recommendation evolution from certified outcomes. | Runtime self-modification or parallel roadmap. |
+
+Engineering Intelligence read-model targets reuse existing read-model owners.
+They may be added only as read-only fields or summaries under existing owners:
+
+| Target read model | Existing owner | Phase 1 classification |
+| --- | --- | --- |
+| Recommendation History | OMP / Engineering Reports / Backlog | `EXISTS_PARTIAL` |
+| Prediction History | Prediction Evidence / Confidence owners | `EXISTS_COMPLETE` |
+| Confidence History | Autonomy Root Confidence / Trust owners | `EXISTS_COMPLETE` |
+| Time History | Runtime Model + `RT2-S1` | `EXISTS_PARTIAL` |
+| Critical Path | Runtime Time Intelligence level 4 | `EXISTS_COMPLETE` |
+| Process Graph | Runtime Time Topology + Work Placement | `EXISTS_UNDER_OTHER_NAME` |
+| Recommendation Evidence | `RT2-S6` + Engineering Reports | `EXISTS_COMPLETE` |
+| Outcome History | Feedback/outcome/learning owners | `EXISTS_COMPLETE` |
+
+No Engineering Intelligence read model may decide, approve, rank execution, mutate runtime, certify itself, create evidence, or bypass OMP.
+
+### Engineering Validation Prediction Contract
+
+Status: `PHASE_2_MATERIALIZED`.
+
+Prediction validation reuses existing Prediction Evidence / Confidence owners.
+It is not a new prediction engine, planner, truth source, authority gate, or verification substitute.
+
+| Field | Meaning | Canonical owner |
+| --- | --- | --- |
+| Prediction | Expected engineering effect, recommendation effect, or runtime-relevant forecast. | Prediction Evidence / Confidence owners, `RT2-S6` when recommendation-scoped. |
+| Expected Result | The specific result predicted before implementation or validation. | `RT2-S6` + OMP report lifecycle. |
+| Observed Result | Real verification/outcome/learning evidence after implementation or action. | Verification, feedback/outcome, and learning owners. |
+| Difference | Comparison between expected and observed result. | Prediction Evidence / Confidence owners + Engineering Report. |
+| Confidence Delta | Change in confidence/trust/recommendation confidence after observed result. | Autonomy Root Confidence / Trust owners. |
+| Prediction Version | Version, report id, recommendation id, or owner-issued identifier for the prediction basis. | Existing prediction/recommendation owner. |
+| Evidence Source | Real observation, verification, outcome, feedback, prediction actual, or report evidence. | Source evidence owner. |
+| Owner | Existing owner responsible for the prediction or recommendation being validated. | SYSTEM_MAP + affected canonical owner. |
+
+Prediction validation cannot certify success without verification/outcome evidence.
+Prediction confidence may inform OMP recommendations, but it must not grant authority, bypass safety, or replace rollback/verification.
+
+### Engineering Validation Contract
+
+Status: `PHASE_2_MATERIALIZED`.
+
+Engineering Validation is the permanent read-only loop that checks whether implemented recommendations improved reality.
+It reuses OMP, Engineering Reports, verification, feedback/outcome, learning, prediction, and confidence owners.
+
+Canonical validation chain:
+
+```text
+Recommendation
+  -> Implementation if approved
+  -> Outcome
+  -> Prediction vs Reality
+  -> Difference
+  -> Confidence Update
+  -> Recommendation Evolution
+```
+
+Validation result types:
+
+| Result | Meaning |
+| --- | --- |
+| `VALIDATED_SUCCESS` | Observed result matches or improves on expected result with required evidence. |
+| `VALIDATED_FAILURE` | Observed result contradicts expected result or harms safety/product objective. |
+| `VALIDATED_PARTIAL` | Some expected effects are proven and some remain unknown or mixed. |
+| `NO_VALIDATION_WITHOUT_OUTCOME` | Outcome or verification evidence is missing. |
+| `NO_CHANGE_VERDICT` | Evidence does not justify implementation or further recommendation. |
+
+Validation is reportable evidence only until OMP promotes durable conclusions to the correct canonical owner.
+
+### Engineering Confidence Contract
+
+Status: `PHASE_2_MATERIALIZED`.
+
+Engineering confidence reuses Autonomy Root Confidence / Trust, Prediction Evidence / Confidence, and Decision To Outcome To Learning owners.
+It tracks confidence in recommendation quality, not authority.
+
+| Concept | Canonical owner | Rule |
+| --- | --- | --- |
+| Recommendation Confidence | `RT2-S6` + OMP + confidence owners | Advisory confidence in an owner-mapped recommendation. |
+| Confidence Trend | Autonomy Root Confidence / Trust owners | Trend must derive from real evidence, not opinion. |
+| Confidence History | Trust/confidence read-model owners | Existing history/read models only; no duplicate store. |
+| Confidence Version | Existing confidence/prediction owner | Identifies formula/evidence generation used for comparison. |
+| Confidence Evidence | Observation, outcome, prediction actual, feedback, learning, report evidence | Synthetic evidence is forbidden. |
+| Confidence Evolution | Decision To Outcome To Learning + OMP | Real outcomes may improve, reduce, or leave confidence unchanged. |
+| Confidence Consumer | OMP, Production Maturity, affected canonical owner | Confidence informs recommendations; it does not approve execution. |
+
+Recommendation confidence must remain subordinate to Safety, Authority, Verification, Rollback, and `STOP_SAFE`.
+
+### Adaptive Engineering Contract
+
+Status: `PHASE_3_MATERIALIZED`.
+
+Adaptive Engineering is the final Engineering Intelligence materialization layer.
+It is not Runtime adaptation, Runtime self-optimization, a planner, a new owner, a truth source, a roadmap, or a capability family.
+Only Engineering Intelligence evolves: recommendations, confidence, evidence interpretation, and future engineering choices.
+
+Canonical adaptive loop:
+
+```text
+Recommendation
+  -> Implementation through OMP if approved
+  -> Outcome
+  -> Prediction vs Reality
+  -> Confidence Update
+  -> Recommendation Improvement
+  -> Future Recommendation
+  -> Engineering Learning
+  -> Future Engineering
+```
+
+Adaptive Engineering may update future recommendation quality only from real engineering outcomes, validation results, prediction-vs-reality evidence, confidence trends, and canonical owner updates.
+It must not mutate Runtime, change authority, rewrite planner behavior, bypass verification, or create synthetic evidence.
+
+### Recommendation Evolution Contract
+
+Status: `PHASE_3_MATERIALIZED`.
+
+Recommendation Evolution belongs to `RT2-S6` and OMP.
+
+| Concept | Canonical owner | Rule |
+| --- | --- | --- |
+| Recommendation Version | `RT2-S6` + OMP report lifecycle | Version must identify recommendation basis, report, owner, and evidence generation. |
+| Recommendation Confidence | `RT2-S6` + confidence owners | Advisory only; never authority. |
+| Recommendation History | OMP + Engineering Reports + Backlog | Historical evidence remains report/backlog state; durable conclusions promote to canonical owner. |
+| Recommendation Evolution | `RT2-S6` + OMP | Evolution happens through future recommendation/no-change/missing-evidence verdicts. |
+| Recommendation Quality | `RT2-S6` + validation/outcome owners | Quality is judged by validated outcome, prediction difference, safety, and owner fit. |
+| Recommendation Consumer | OMP, Backlog, affected canonical owner | Consumers may act only through OMP-selected implementation and certification. |
+
+Recommendation Evolution states:
+
+| State | Meaning |
+| --- | --- |
+| `UNCHANGED` | Evidence does not justify recommendation change. |
+| `IMPROVED` | Real outcome/validation improves future recommendation quality. |
+| `DEGRADED` | Real outcome/validation lowers confidence or reveals wrong assumptions. |
+| `DRIFTED` | Material assumptions changed enough to require revalidation. |
+| `RETIRED` | No live consumer or no product value remains. |
+| `BLOCKED_BY_EVIDENCE` | More real evidence is required before evolution. |
+
+### Engineering Learning Contract
+
+Status: `PHASE_3_MATERIALIZED`.
+
+Engineering Learning reuses existing Feedback/Learning owners and OMP.
+It is separate from Runtime Learning and does not change Runtime behavior.
+
+```text
+Outcome
+  -> Engineering Learning
+  -> Recommendation Confidence
+  -> Recommendation Evolution
+  -> Future Recommendation
+```
+
+Engineering Learning may preserve:
+
+- what recommendation was made;
+- what was implemented;
+- what outcome occurred;
+- what prediction was wrong or right;
+- what confidence changed;
+- what future recommendation should change;
+- which canonical owner must receive durable knowledge.
+
+Engineering Learning must not create a learning engine, synthetic evidence, runtime adaptation, automatic implementation, or authority expansion.

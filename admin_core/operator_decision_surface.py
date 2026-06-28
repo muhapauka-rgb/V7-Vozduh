@@ -1027,3 +1027,364 @@ def build_operator_decision_surface(
             "rollback": "existing rollback preview/manifest owner",
         },
     }
+
+
+def _rt2_s2_world_row(
+    *,
+    category: str,
+    status: str,
+    owner: str,
+    evidence: Any,
+    consumer: str,
+) -> dict[str, Any]:
+    return {
+        "category": category,
+        "status": status,
+        "owner": owner,
+        "producer": owner,
+        "consumer": consumer,
+        "storage": "existing_snapshot_and_decision_surface_read_models",
+        "evidence": evidence,
+        "runtime_authority": "none",
+        "live_gate_required": True,
+    }
+
+
+def rt2_s2_world_readiness_maturation(
+    *,
+    decision_surface: dict[str, Any] | None = None,
+    snapshot_root: Path | str | None = None,
+    users: list[dict[str, Any]] | None = None,
+    egress: list[dict[str, Any]] | None = None,
+    runtime_state: dict[str, Any] | None = None,
+    decision_records: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Materialize RT2-S2 prepared world/readiness as a read-only surface."""
+    if not isinstance(decision_surface, dict):
+        if snapshot_root is None:
+            decision_surface = {}
+        else:
+            decision_surface = build_operator_decision_surface(
+                snapshot_root=snapshot_root,
+                users=list(users or []),
+                egress=list(egress or []),
+                runtime_state=runtime_state,
+                decision_records=decision_records,
+            )
+    snapshot_statuses = decision_surface.get("snapshot_statuses") if isinstance(decision_surface.get("snapshot_statuses"), dict) else {}
+    users_rows = decision_surface.get("users") if isinstance(decision_surface.get("users"), list) else []
+    channels = decision_surface.get("channels") if isinstance(decision_surface.get("channels"), list) else []
+    batch = decision_surface.get("batch_preview") if isinstance(decision_surface.get("batch_preview"), dict) else {}
+    knowledge = decision_surface.get("knowledge_decision_overlay") if isinstance(decision_surface.get("knowledge_decision_overlay"), dict) else {}
+    trust = decision_surface.get("trust_evolution_advice") if isinstance(decision_surface.get("trust_evolution_advice"), dict) else {}
+    stop_snapshots = [
+        name for name, row in snapshot_statuses.items()
+        if isinstance(row, dict) and (row.get("stop_required") or row.get("status") in {"MISSING", "INVALID", "STOP"})
+    ]
+    stale_or_warn = [
+        name for name, row in snapshot_statuses.items()
+        if isinstance(row, dict) and row.get("status") in {"STALE", "WARN", "UNKNOWN"}
+    ]
+    move_previews = batch.get("users_to_move") if isinstance(batch.get("users_to_move"), list) else []
+    knowledge_readiness = batch.get("knowledge_decision_readiness") if isinstance(batch.get("knowledge_decision_readiness"), dict) else {}
+    world_rows = [
+        _rt2_s2_world_row(
+            category="observation",
+            status="OBSERVED" if snapshot_statuses else "OWNER_MAPPED_MISSING",
+            owner="admin_core.intelligence_snapshots.read_snapshot_bundle",
+            evidence={"snapshot_families": sorted(snapshot_statuses.keys())},
+            consumer="Runtime Model, OMP, planner/autoswitch, operator decision surface",
+        ),
+        _rt2_s2_world_row(
+            category="snapshots",
+            status="BOUNDED_STOP" if stop_snapshots else ("OBSERVED_READY" if snapshot_statuses else "OWNER_MAPPED_MISSING"),
+            owner="admin_core.intelligence_snapshots",
+            evidence={"stop_snapshots": stop_snapshots, "snapshot_statuses": snapshot_statuses},
+            consumer="Runtime live gates and OMP readiness review",
+        ),
+        _rt2_s2_world_row(
+            category="freshness",
+            status="BOUNDED_STOP" if stop_snapshots else ("OBSERVED_WITH_WARNINGS" if stale_or_warn else "OBSERVED_READY"),
+            owner="snapshot validators + freshness_actionability",
+            evidence={"stale_or_warn": stale_or_warn, "stop_snapshots": stop_snapshots},
+            consumer="Runtime freshness gate, OMP, Engineering Reports",
+        ),
+        _rt2_s2_world_row(
+            category="user_state",
+            status="OBSERVED" if users_rows else "OWNER_MAPPED_MISSING",
+            owner="admin_core.operator_decision_surface",
+            evidence={"users_total": len(users_rows)},
+            consumer="planner/autoswitch and Runtime compact state",
+        ),
+        _rt2_s2_world_row(
+            category="channel_state",
+            status="OBSERVED" if channels else "OWNER_MAPPED_MISSING",
+            owner="admin_core.operator_decision_surface",
+            evidence={"channels_total": len(channels)},
+            consumer="planner/autoswitch and Runtime compact state",
+        ),
+        _rt2_s2_world_row(
+            category="service_readiness",
+            status="OBSERVED" if channels else "OWNER_MAPPED_MISSING",
+            owner="service matrix / channel-service snapshot owners",
+            evidence={"channels_with_service_rows": sum(1 for row in channels if isinstance(row, dict) and row.get("services"))},
+            consumer="planner/autoswitch and OMP readiness review",
+        ),
+        _rt2_s2_world_row(
+            category="candidate_readiness",
+            status="OBSERVED_READY" if move_previews else "OWNER_MAPPED_NO_CANDIDATES",
+            owner="candidate-suitability-summary + best-available-pool + operator decision surface",
+            evidence={"candidate_moves": len(move_previews), "blast_radius": batch.get("blast_radius", {})},
+            consumer="future RT2-S3 desired-state delta preparedness",
+        ),
+        _rt2_s2_world_row(
+            category="policy_state",
+            status="LIVE_GATE_REQUIRED",
+            owner="tools/v7-users-autoswitch policy gates + Runtime Model",
+            evidence="policy remains a live gate and is not promoted to this read model",
+            consumer="Runtime live gate validation",
+        ),
+        _rt2_s2_world_row(
+            category="knowledge_readiness",
+            status="OBSERVED" if knowledge or knowledge_readiness else "OWNER_MAPPED_MISSING",
+            owner="admin_core.autonomy_trust_acceleration + operator decision surface",
+            evidence={"knowledge_overlay": knowledge, "batch_readiness": knowledge_readiness},
+            consumer="OMP readiness review and future RT2-S3",
+        ),
+        _rt2_s2_world_row(
+            category="trust_and_learning",
+            status="OBSERVED" if trust.get("available") else "OWNER_MAPPED_MISSING",
+            owner="trust-evolution-summaries + feedback/learning owners",
+            evidence=trust,
+            consumer="OMP, Runtime Model, future readiness review",
+        ),
+    ]
+    unmapped = [
+        row["category"]
+        for row in world_rows
+        if row["status"] == "MISSING_UNMAPPED"
+    ]
+    completed = not unmapped and bool(decision_surface)
+    return {
+        "schema_version": "v7.rt2-s2-world-readiness-maturation.v1",
+        "workstream": "RT2-S2",
+        "status": "DONE_READ_ONLY_WORLD_READINESS_OWNER_MAPPED" if completed else "PARTIAL_WORLD_READINESS_MAPPING",
+        "read_only": True,
+        "preview_only": True,
+        "purpose": "prepare compact world/readiness state for Runtime consumption without granting authority",
+        "world_rows": world_rows,
+        "stop_snapshots": stop_snapshots,
+        "stale_or_warn_snapshots": stale_or_warn,
+        "owner_mapped_missing_categories": [
+            row["category"]
+            for row in world_rows
+            if row["status"].startswith("OWNER_MAPPED") or row["status"] in {"LIVE_GATE_REQUIRED", "BOUNDED_STOP"}
+        ],
+        "unmapped_categories": unmapped,
+        "completion_criteria_met": completed,
+        "runtime_can_consume_compact_state": completed,
+        "prepared_state_is_authority": False,
+        "live_gates_remain_live": True,
+        "produced_evidence": [
+            "world_rows",
+            "snapshot_statuses",
+            "knowledge_decision_readiness",
+            "compact_user_channel_state",
+            "bounded_stop_snapshots",
+        ],
+        "unlocked_capability": "RT2-S3_DESIRED_STATE_DELTA_PREPAREDNESS" if completed else "",
+        "still_blocked": [
+            "RT2-S4_GOVERNED_EXECUTION_COORDINATION",
+            "RT2-S5_CERTIFIED_CONCURRENCY",
+            "RT2-S6_EVIDENCE_BASED_CONTINUOUS_IMPROVEMENT",
+            "runtime_apply",
+            "automation",
+            "authority_expansion",
+            "desired_state_authority",
+            "planner_replacement",
+            "user_movement",
+        ],
+        "next_safe_action": "continue to RT2-S3 desired-state delta preparedness" if completed else "map remaining world/readiness gaps through existing owners",
+        "safety": {
+            "prepared_state_can_approve": False,
+            "prepared_state_can_move_users": False,
+            "desired_state_created": False,
+            "planner_created": False,
+            "runtime_behavior_changed": False,
+            "runtime_apply_allowed_now": False,
+            "authority_expanded": False,
+            "synthetic_evidence_created": False,
+            "users_moved": 0,
+            "new_owner_created": False,
+            "new_runtime_created": False,
+            "new_truth_source_created": False,
+        },
+        "source_models": {
+            "decision_surface_schema": decision_surface.get("schema_version", ""),
+            "batch_preview": batch,
+            "authority": decision_surface.get("authority", {}),
+        },
+    }
+
+
+def _rt2_s3_delta_row(move: dict[str, Any]) -> dict[str, Any]:
+    current = str(move.get("from") or "")
+    desired = str(move.get("to") or current)
+    ready = bool(move.get("user") and current and desired and current != desired)
+    return {
+        "user": move.get("user", ""),
+        "current_state": current,
+        "desired_state": desired,
+        "delta_type": "candidate_route_change" if ready else "no_route_change",
+        "status": "ADVISORY_DELTA_READY" if ready else "NO_DELTA_RECOMMENDED",
+        "owner": "tools/v7-users-autoswitch + admin_core.operator_decision_surface",
+        "producer": "existing planner/autoswitch recommendation and batch preview",
+        "consumer": "packet/preview owners, Runtime live-gate validation, OMP",
+        "storage": "existing operator decision surface batch_preview",
+        "evidence": {
+            "confidence": move.get("confidence"),
+            "risk": move.get("risk"),
+            "recommendation_hash": move.get("recommendation_hash"),
+            "ctr_governance_evidence": move.get("ctr_governance_evidence", {}),
+            "review_required": bool(move.get("review_required")),
+            "review_reason": move.get("review_reason", ""),
+            "review_category": move.get("review_category", ""),
+            "review_severity": move.get("review_severity", ""),
+        },
+        "bounded_by": [
+            "approval_packet",
+            "blast_radius_validation",
+            "governance",
+            "rollback_prep",
+            "runtime_live_gates",
+        ],
+        "authority": "none",
+        "runtime_mutation_performed": False,
+        "user_moved": False,
+    }
+
+
+def rt2_s3_desired_state_delta_preparedness(
+    *,
+    decision_surface: dict[str, Any] | None = None,
+    snapshot_root: Path | str | None = None,
+    users: list[dict[str, Any]] | None = None,
+    egress: list[dict[str, Any]] | None = None,
+    runtime_state: dict[str, Any] | None = None,
+    decision_records: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Materialize RT2-S3 advisory desired-state deltas without authority."""
+    if not isinstance(decision_surface, dict):
+        if snapshot_root is None:
+            decision_surface = {}
+        else:
+            decision_surface = build_operator_decision_surface(
+                snapshot_root=snapshot_root,
+                users=list(users or []),
+                egress=list(egress or []),
+                runtime_state=runtime_state,
+                decision_records=decision_records,
+            )
+    readiness = rt2_s2_world_readiness_maturation(decision_surface=decision_surface)
+    batch = decision_surface.get("batch_preview") if isinstance(decision_surface.get("batch_preview"), dict) else {}
+    move_previews = batch.get("users_to_move") if isinstance(batch.get("users_to_move"), list) else []
+    users_rows = decision_surface.get("users") if isinstance(decision_surface.get("users"), list) else []
+    channels = decision_surface.get("channels") if isinstance(decision_surface.get("channels"), list) else []
+    deltas = [_rt2_s3_delta_row(move) for move in move_previews if isinstance(move, dict)]
+    if not deltas:
+        deltas = [{
+            "user": "",
+            "current_state": "",
+            "desired_state": "",
+            "delta_type": "no_route_change",
+            "status": "NO_DELTA_RECOMMENDED",
+            "owner": "tools/v7-users-autoswitch + admin_core.operator_decision_surface",
+            "producer": "existing planner/autoswitch recommendation and batch preview",
+            "consumer": "packet/preview owners, Runtime live-gate validation, OMP",
+            "storage": "existing operator decision surface batch_preview",
+            "evidence": {"candidate_moves": 0},
+            "bounded_by": ["runtime_live_gates"],
+            "authority": "none",
+            "runtime_mutation_performed": False,
+            "user_moved": False,
+        }]
+    unmapped = [
+        row["user"]
+        for row in deltas
+        if row["status"] == "ADVISORY_DELTA_READY" and not row.get("owner")
+    ]
+    completed = bool(decision_surface) and bool(readiness.get("completion_criteria_met")) and not unmapped
+    return {
+        "schema_version": "v7.rt2-s3-desired-state-delta-preparedness.v1",
+        "workstream": "RT2-S3",
+        "status": "DONE_READ_ONLY_DELTA_OWNER_MAPPED" if completed else "PARTIAL_DELTA_MAPPING",
+        "read_only": True,
+        "preview_only": True,
+        "purpose": "prepare bounded advisory desired-state deltas without granting authority or replacing planner owners",
+        "current_state_summary": {
+            "users_total": len(users_rows),
+            "channels_total": len(channels),
+            "s2_status": readiness.get("status", ""),
+            "stop_snapshots": readiness.get("stop_snapshots", []),
+        },
+        "desired_state_semantics": {
+            "meaning": "advisory target state from existing product/policy/planner evidence",
+            "authority": "none",
+            "planner_replacement": False,
+            "runtime_behavior": "unchanged",
+            "live_gates_remain_live": True,
+        },
+        "delta_rows": deltas,
+        "prepared_plan": {
+            "preview_only": True,
+            "execution_allowed_now": False,
+            "source": "existing batch_preview",
+            "owner": "tools/v7-users-autoswitch + admin_core.operator_decision_surface",
+            "consumer": "existing packet/preview owners, Runtime live gates, OMP",
+            "candidate_moves": len(move_previews),
+            "workflow": list(batch.get("workflow") or []),
+            "blast_radius": batch.get("blast_radius", {}),
+            "rollback_readiness": batch.get("rollback_readiness", ""),
+            "confidence": batch.get("confidence", 0.0),
+            "risk": batch.get("risk", "UNKNOWN"),
+            "knowledge_decision_readiness": batch.get("knowledge_decision_readiness", {}),
+        },
+        "completion_criteria_met": completed,
+        "unmapped_delta_owners": unmapped,
+        "produced_evidence": [
+            "delta_rows",
+            "prepared_plan",
+            "current_state_summary",
+            "desired_state_semantics",
+            "s2_readiness_evidence",
+        ],
+        "unlocked_capability": "RT2-S4_GOVERNED_EXECUTION_COORDINATION" if completed else "",
+        "still_blocked": [
+            "RT2-S5_CERTIFIED_CONCURRENCY",
+            "RT2-S6_EVIDENCE_BASED_CONTINUOUS_IMPROVEMENT",
+            "runtime_apply",
+            "automation",
+            "authority_expansion",
+            "desired_state_authority",
+            "planner_replacement",
+            "user_movement",
+        ],
+        "next_safe_action": "continue to RT2-S4 governed execution coordination" if completed else "map remaining advisory delta owners",
+        "safety": {
+            "desired_state_authority_created": False,
+            "planner_created": False,
+            "runtime_behavior_changed": False,
+            "runtime_apply_allowed_now": False,
+            "authority_expanded": False,
+            "synthetic_evidence_created": False,
+            "users_moved": 0,
+            "new_owner_created": False,
+            "new_runtime_created": False,
+            "new_truth_source_created": False,
+        },
+        "source_models": {
+            "decision_surface_schema": decision_surface.get("schema_version", ""),
+            "s2_readiness_schema": readiness.get("schema_version", ""),
+            "authority": decision_surface.get("authority", {}),
+        },
+    }

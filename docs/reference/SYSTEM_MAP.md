@@ -14,6 +14,20 @@ Last verified date: 2026-06-24
 | `REPORTS` | Historical evidence only. | Evidence/report owners | `docs/reports/`, certified report files | Read only when evidence is explicitly required; never planning, backlog, or roadmap. |
 | `ADR` | Permanent decisions. | ADR owner / Canonical Reference | `docs/decisions/` | Read-only decisions; never implementation queue. |
 
+## Architectural Design Methodology Ownership
+
+Status: `CANONICAL_REFERENCE_ONLY`
+
+Canonical owner:
+
+```text
+docs/reference/V7_CANONICAL_REFERENCE.md#architectural_design_methodology
+```
+
+SYSTEM_MAP owns only the ownership lookup.
+It does not duplicate the methodology.
+The methodology composes existing owners: Product Specification for product intent, Runtime Model for Work Placement / Runtime Time / Decision Lifecycle, Decision Model for decision semantics, OMP for execution discipline, policies for operational certification semantics, ADRs for decisions, Backlog for implementation queue, and Current Program State for volatile state.
+
 ## Runtime Time Architecture Ownership
 
 Status: `RT_PHASE_1_FULLY_COMPLETE`

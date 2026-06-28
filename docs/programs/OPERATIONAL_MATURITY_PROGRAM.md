@@ -1293,6 +1293,28 @@ These laws are immutable unless a future ADR explicitly supersedes them:
 | Law 11 | Production Scale First. Every change must remain efficient, safe, and maintainable at `10,000+` users and `100+` channels. Runtime stays thin; scale work belongs to read models, indexes, background jobs, summaries, and existing owners. |
 | Law 12 | Architecture Closed by Default. V7 architecture is complete unless a complete audit proves that existing OMP capabilities, backlog items, runtime model, product specification, canonical policies, canonical owners, SYSTEM_MAP, and Canonical Reference cannot own the finding. |
 
+### Architectural Design Methodology Execution
+
+OMP does not own a separate architectural law.
+OMP executes the complete methodology preserved in `docs/reference/V7_CANONICAL_REFERENCE.md` under `ARCHITECTURAL_DESIGN_METHODOLOGY`.
+
+For every meaningful future capability, OMP must prove:
+
+| Review | Required OMP answer |
+| --- | --- |
+| Product intent | Which Business Objective and Product Scale Objective are affected. |
+| Existing owner | Which owner in SYSTEM_MAP, Canonical Reference, OMP, policy, ADR, Runtime Model, Decision Model, or backlog already owns the capability. |
+| Work placement | Which plane owns the computation and whether it can safely move earlier. |
+| Decision lifecycle | Which objects are born, fresh, stale, invalid, destroyed, committed, or terminal. |
+| Certification truth | Which canonical owner declares mandatory, supporting, optional, inventory, or optimization evidence. |
+| Runtime time / cost | Which Reaction Latency component and Runtime Cost dimension are affected. |
+| Product scale | Whether the design remains suitable for `10,000+` users, `100+` channels, millions of decisions, and long-lived evidence. |
+| Safety | Which live gates remain live and what forces `STOP_SAFE`. |
+| Automation / authority | Whether the work changes authority, autonomy, runtime apply, or production movement. |
+| Execution queue | Which existing backlog item or OMP capability owns the implementation. |
+
+If any answer requires a new owner, new backlog item, new runtime path, or new architecture, OMP must first run Architecture Closed by Default and the Root Cause Engine.
+
 ## 2.5. Project Philosophy
 
 V7 is not allowed to become larger unless it first becomes smarter.
@@ -2639,6 +2661,15 @@ Product Evolution Review must include:
 | Runtime Cost Review | CPU, memory, IO, blocking, lock contention, execution cost, rollback cost, runtime cost, or `NONE`. |
 | Decision Freshness Review | Relevant lifecycle states and owner, or `NOT_APPLICABLE_WITH_REASON`. |
 | Safety Review | Live gates and `STOP_SAFE` triggers, or `NOT_APPLICABLE_WITH_REASON`. |
+
+Architectural Methodology Review must include:
+
+| Field | Required value |
+| --- | --- |
+| Methodology status | `COMPLETE`, `REUSED`, or `BLOCKED_WITH_REASON`. |
+| Existing laws used | Product intent, owner reuse, Work Placement, Decision Lifecycle, Certification Truth, Runtime Time, Product Scale, Safety, Authority, and OMP/backlog path, or `NOT_APPLICABLE_WITH_REASON`. |
+| Missing law | `NONE` unless a complete Architecture Closed by Default audit proves otherwise. |
+| New owner/backlog/architecture | `FALSE` unless explicitly proven. |
 
 Milestone Report must include:
 

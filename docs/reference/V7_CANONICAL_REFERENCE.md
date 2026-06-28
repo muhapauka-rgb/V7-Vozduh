@@ -38,6 +38,68 @@ Before launching any new audit, use Reference First:
 
 A new audit is allowed only when the reference has no answer, the reference explicitly marks the area `UNKNOWN`, system behavior changed after the last verified commit, or evidence contradicts this canonical reference. Otherwise, update the reference if needed and do not create a new audit.
 
+## ARCHITECTURAL_DESIGN_METHODOLOGY
+
+Status: `CANONICAL`
+
+Purpose: preserve the complete V7 architectural design methodology so future capability work reuses existing laws instead of inventing new foundational principles.
+
+Canonical verdict:
+
+```text
+ARCHITECTURAL_METHODOLOGY_COMPLETE
+```
+
+V7 does not need a new architectural law to design future capabilities.
+The complete methodology is the composition of existing canonical owners:
+
+| Methodology question | Canonical answer owner |
+| --- | --- |
+| What product outcome should the capability serve? | `docs/product/V7_PRODUCT_SPECIFICATION.md` through Business Objectives and Product Scale Objectives. |
+| Does the capability already have an owner? | `docs/reference/SYSTEM_MAP.md`, this Canonical Reference, OMP, ADRs, policies, and the Implementation Backlog. |
+| Where does the computation belong? | `docs/reference/V7_RUNTIME_MODEL.md` through Runtime Time Architecture and Work Placement Law. |
+| What is the decision lifecycle and freshness contract? | `docs/reference/V7_RUNTIME_MODEL.md` through Decision Lifecycle And Runtime Foundation. |
+| What is the desired-state chain? | `docs/reference/V7_RUNTIME_MODEL.md` and `docs/reference/V7_DECISION_MODEL.md`. |
+| What is mandatory for certification? | Canonical certification owners: OMP, policies, Product Specification, Runtime Model, Decision Model, and existing certification sections. Implementation owners may not promote supporting metrics into mandatory gates unless the canonical owner says so. |
+| What must remain live in Runtime? | Runtime Model safety gates, Thin Runtime Path Contract, STOP_SAFE, rollback, verification, freshness, authority, blast radius, anti-flap, movement protection, and restore barrier owners. |
+| What can move earlier? | Work Placement Law: work may move earlier only when prepared knowledge stays fresh enough and live gates still revalidate material state before apply. |
+| How does the change affect time? | Runtime Time Architecture, Reaction Latency Model, Runtime Cost Model, and Runtime Budget Allocation. |
+| How does the change affect scale? | Product Scale Model/Objectives and OMP Production Scale First. |
+| How does the change affect automation? | OMP, Action-Class Authority, Delegated Autonomy Policy, Safety-Bounded Authority, and Runtime Model authority rules. |
+| How does work proceed? | OMP `Continue OMP` Engineering Control Loop, Implementation Backlog, Current Program State, Engineering Reports, and knowledge promotion rules. |
+
+Permanent methodology:
+
+```text
+Discover
+  -> Resolve canonical owner
+  -> Reuse existing owner
+  -> Extend existing owner only if required
+  -> Apply Work Placement
+  -> Apply Decision Lifecycle / Freshness
+  -> Apply Certification Truth
+  -> Apply Runtime Time / Cost / Latency review
+  -> Apply Product Scale review
+  -> Apply Safety / STOP_SAFE review
+  -> Implement through backlog only
+  -> Verify
+  -> Report
+  -> Promote durable knowledge
+  -> Continue OMP
+```
+
+Stable conclusions:
+
+1. V7 already contains canonical equivalents of Reality First, Truth Source, Certification Truth, Thin Runtime, Runtime Time Architecture, Reaction Latency, Work Placement, Decision Lifecycle, Decision Freshness, Desired State, World Model, Prepared Knowledge, Read Model Discipline, STOP_SAFE, Fail Closed, Authority Before Automation, Verification Before Promotion, Rollback First, Representative Evidence, Background Builds Knowledge, Runtime Consumes Prepared Knowledge, Discover -> Reuse -> Extend -> Implement, Product Scale First, Engineering Review, and Safety Review.
+2. These principles are distributed intentionally by ownership, not missing: Product Specification owns product intent, Runtime Model owns runtime/time/placement/lifecycle semantics, OMP owns execution discipline, policies own operational certification semantics, SYSTEM_MAP owns ownership lookup, and this Canonical Reference preserves durable truth.
+3. A future V7 capability can be designed without inventing a new architectural law if it answers the methodology questions above through existing owners.
+4. New architecture remains the last resort under Architecture Closed by Default.
+5. Need New Owner remains `FALSE`; Need New Backlog Item remains `FALSE`; Need New Architecture remains `FALSE`.
+
+Re-audit rule:
+
+Do not re-audit architectural methodology unless a future capability cannot be mapped to an existing canonical owner after complete discovery, production evidence contradicts the current methodology, a certified ADR changes the architectural law set, or the operator explicitly requests reopening.
+
 ## RUNTIME_TIME_ARCHITECTURE_MODEL
 
 Status: `CANONICAL`

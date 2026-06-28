@@ -89,6 +89,95 @@ Slow knowledge work should be prepared outside the execution path wherever safet
 Execution consumes prepared knowledge, then applies live safety gates.
 ```
 
+### Work Placement Law
+
+Status: `CANONICAL`
+Owner: `V7_RUNTIME_MODEL`
+
+Every V7 computation must have one canonical execution plane.
+
+This is the Work Placement Law.
+It reconciles the existing principles:
+
+- Runtime must stay thin;
+- Background builds knowledge;
+- Runtime consumes prepared knowledge;
+- Slow knowledge work should be prepared outside the execution path wherever safety permits;
+- Execution consumes prepared knowledge, then applies live safety gates;
+- Product Scale Objectives require bounded runtime cost.
+
+Definitions:
+
+| Term | Canonical meaning |
+| --- | --- |
+| Computation | Any work that observes, reads, aggregates, scores, ranks, decides, verifies, stores, reports, learns, certifies, or mutates state. |
+| Plane | The canonical place where a computation belongs in the runtime time architecture: Observation, World Model, Planning, Execution, Verification, Feedback/Learning, or OMP/Certification. |
+| Placement | The assignment of a computation to exactly one primary plane and owner. Other planes may consume the result, but must not become competing owners. |
+
+Why every computation needs one plane:
+
+- prevents duplicate owners and hidden second planners;
+- keeps Runtime short, deterministic, lease-bound, and fail-closed;
+- keeps expensive work out of the irreversible execution path;
+- preserves Product Scale Objectives at `10,000+` users and `100+` channels;
+- makes Reaction Latency explainable and measurable;
+- lets OMP certify the correct owner instead of certifying accidental behavior.
+
+Runtime is expensive because it is the irreversible safety-critical path.
+Runtime may stop, apply, verify, rollback, or close a terminal result.
+Runtime must not perform broad historical scans, research, reporting, policy design, certification, long aggregation, or duplicated planning.
+
+Computation may move earlier when:
+
+- the result can be represented as prepared knowledge, summary, index, read model, lease input, or certified decision artifact;
+- freshness can be proven by an existing owner;
+- live safety gates still revalidate the material state before apply;
+- moving earlier does not create stale authority, stale rollback, stale verification, or stale target eligibility.
+
+Computation must stay live when:
+
+- it proves freshness at the final eligibility boundary;
+- it checks authority generation / authority match;
+- it validates source or target eligibility at commit time;
+- it validates restore barrier, rollback/no-rollback readiness, verification readiness, anti-flap, movement protection, or blast-radius limits;
+- it performs apply, verification, rollback, or `STOP_SAFE`;
+- safety would be weaker if the work were precomputed.
+
+Ownership:
+
+| Responsibility | Canonical owner |
+| --- | --- |
+| Work Placement Law | Runtime Model |
+| Runtime execution placement | Runtime Model and existing execution owners |
+| Planning placement | Existing planner/autoswitch and decision-surface owners |
+| Observation placement | Existing observation/read-model owners |
+| World Model placement | Knowledge Plane, intelligence snapshots, read-model owners |
+| Verification placement | Verification/runtime readiness owners |
+| Feedback/Learning placement | Feedback, learning, evidence, trust owners |
+| Certification placement | OMP, Current Program State, Production Maturity Model |
+
+Engineering rule:
+
+```text
+Every future owner must answer:
+Why does this computation live in this Plane?
+Can it safely move earlier?
+If not, what safety rule prevents it?
+Does it increase Runtime work?
+Does it increase Reaction Latency?
+```
+
+Certification rule:
+
+OMP certifies the plane/owner result.
+Runtime consumes certification decisions.
+Runtime does not define certification requirements and must not silently move computations between planes.
+
+Automation rule:
+
+Future automation may increase frequency of execution, but it may not move slow knowledge work into Runtime.
+Phase 2 automation must preserve this law through existing owners.
+
 ### Time Architecture Planes
 
 | Plane | Purpose | Owns | Must not own | Existing owner / read model | Relationship to Runtime | Relationship to OMP | Future automation role |

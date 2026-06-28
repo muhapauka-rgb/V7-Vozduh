@@ -1179,6 +1179,23 @@ OMP execution rule:
 Every future audit, implementation, verification, certification, deploy, production action, and OMP status update must preserve the thin runtime path.
 ```
 
+Work Placement execution rule:
+
+```text
+Every future OMP task must identify the canonical execution plane for every meaningful computation it touches.
+```
+
+Required placement outputs:
+
+| Field | Required value |
+| --- | --- |
+| `computation` | The work being introduced, audited, moved, or certified. |
+| `canonical_plane` | Observation, World Model, Planning, Execution, Verification, Feedback/Learning, OMP/Certification, or `NOT_APPLICABLE_WITH_REASON`. |
+| `canonical_owner` | Existing owner responsible for the computation. |
+| `runtime_placement_allowed` | `YES_ONLY_IF_LIVE_SAFETY_REQUIRED`, `NO`, or `NOT_APPLICABLE`. |
+| `can_move_earlier` | `YES`, `NO_WITH_SAFETY_REASON`, or `ALREADY_PREPARED`. |
+| `reaction_latency_impact` | Observation, Decision, Execution, Verification, Feedback/Learning, Reaction, `NONE`, or `UNKNOWN_WITH_MEASUREMENT_PLAN`. |
+
 Every future change must answer:
 
 1. Does this increase Runtime work?
@@ -2556,6 +2573,7 @@ Engineering Report must include:
 - Capability Progress;
 - Backlog Progress;
 - Production Maturity;
+- Work Placement;
 - Latency Impact;
 - Canonical Knowledge;
 - Evidence: tests, truth, convergence, deploy, production outcome where applicable;
@@ -2583,6 +2601,17 @@ Latency Impact must include:
 Omitting Latency Impact is not acceptable after RT Phase 1.
 
 Engineering Reports must use the canonical Runtime Latency Engineering Review Checklist from `docs/reference/V7_RUNTIME_MODEL.md`.
+
+Work Placement must include:
+
+| Field | Required value |
+| --- | --- |
+| Computation | Meaningful computation touched by the action, or `NOT_APPLICABLE_WITH_REASON`. |
+| Canonical Plane | Observation, World Model, Planning, Execution, Verification, Feedback/Learning, OMP/Certification, or `NOT_APPLICABLE_WITH_REASON`. |
+| Canonical Owner | Existing owner responsible for the computation. |
+| Runtime Placement | `YES_ONLY_IF_LIVE_SAFETY_REQUIRED`, `NO`, or `NOT_APPLICABLE`. |
+| Move Earlier? | `YES`, `NO_WITH_SAFETY_REASON`, or `ALREADY_PREPARED`. |
+| Reaction Latency Impact | Observation, Decision, Execution, Verification, Feedback/Learning, Reaction, `NONE`, or `UNKNOWN_WITH_MEASUREMENT_PLAN`. |
 
 Milestone Report must include:
 

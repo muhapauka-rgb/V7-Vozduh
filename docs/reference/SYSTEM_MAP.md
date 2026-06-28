@@ -41,6 +41,13 @@ docs/reference/V7_RUNTIME_MODEL.md
 SYSTEM_MAP owns only the ownership reference.
 It does not duplicate the canonical Work Placement Law, Decision Lifecycle And Runtime Foundation, live/precompute matrix, Runtime Latency Engineering Review Checklist, Product Evolution Review Gate, or Phase 2 Automation Contract.
 
+Pre-Phase-2 Readiness ownership:
+
+- OMP owns the readiness program and Phase 2 entry contract.
+- Runtime Model owns DL1-DL7 foundations.
+- Canonical Reference preserves the durable readiness verdict.
+- SYSTEM_MAP remains reference-only and must not become a second readiness program.
+
 | Plane / stage family | Existing owners | Main files / modules | Lifecycle rule |
 | --- | --- | --- | --- |
 | Observation Plane | Service matrix, quality compact, Telegram sentinel, route/runtime truth | `tools/v7-service-matrix-refresh-all`, `tools/v7-egress-quality-compact`, `tools/v7-telegram-sentinel`, runtime state readers | Prepare trusted evidence outside apply; no movement authority. |

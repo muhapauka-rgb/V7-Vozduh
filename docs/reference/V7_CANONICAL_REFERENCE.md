@@ -141,6 +141,41 @@ Re-audit rule:
 
 Do not re-audit Runtime Time Architecture unless runtime architecture changes materially, bounded automation is certified and Phase 2 begins, production latency evidence contradicts the current model, or the operator explicitly requests reopening.
 
+## PRE_PHASE_2_READINESS_PROGRAM
+
+Status: `CANONICAL`
+
+Purpose: preserve the durable conclusion that V7 already contains the foundations required to prepare for Runtime Phase 2, but Phase 2 itself remains closed until existing certification, measurement, and authority conditions are satisfied.
+
+Canonical owner:
+
+```text
+docs/programs/OPERATIONAL_MATURITY_PROGRAM.md
+```
+
+Foundation owner:
+
+```text
+docs/reference/V7_RUNTIME_MODEL.md
+```
+
+Stable conclusions:
+
+1. DL1 Decision Lifetime Model exists and is canonical.
+2. DL2 Decision Freshness Contract exists and is canonical.
+3. DL3 World Model Ownership exists and is canonical by plane ownership.
+4. DL4 Desired Safe State exists partially: Desired State is canonical, but the Phase 2 Desired Safe State artifact must wait for A6/B13/B16 and authority.
+5. DL5 Runtime Cost Model exists and is canonical.
+6. DL6 Runtime Budget Allocation exists partially: budget categories are canonical, but numeric budgets are deferred until measurement and Phase 2 entry.
+7. DL7 Product Evolution Review Gate exists and is canonical through Runtime Model and OMP.
+8. Pre-Phase-2 Readiness is an OMP program, not a new architecture, owner, backlog item, runtime path, automation mode, or authority model.
+9. Phase 2 may begin only after RT Phase 1, Work Placement, Decision Lifecycle, Pre-Phase-2 Readiness, A5, A6, B13, B16, Reaction Latency measurement, Runtime Cost measurement, canonical World Model, canonical Desired Safe State, active Engineering Review, and explicit authority are complete.
+10. Until then, OMP continues through the existing Implementation Backlog. Current next item remains A5.
+
+Re-audit rule:
+
+Do not re-audit Pre-Phase-2 Readiness unless a Phase 2 entry criterion changes, A5/A6/B13/B16 completion changes the readiness state, production evidence contradicts the readiness model, or the operator explicitly requests reopening.
+
 ## MASTER_SYSTEM_INTEGRATION_AUDIT_PART_1
 
 Status: `SYSTEM_INVENTORY_COMPLETE`

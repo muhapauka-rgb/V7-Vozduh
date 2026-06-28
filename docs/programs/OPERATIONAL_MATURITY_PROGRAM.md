@@ -1252,6 +1252,83 @@ Phase 1 forbids:
 Phase 2 is deferred, not optional.
 It may start only after bounded automation, runtime eligibility, verification, rollback, blast radius, metric reliability, reaction latency measurement, and explicit authority are certified or approved through existing owners.
 
+### Pre-Phase-2 Readiness
+
+Status: `CANONICAL_PROGRAM`
+Owner: OMP.
+Canonical foundation owner: `docs/reference/V7_RUNTIME_MODEL.md`.
+
+Purpose:
+
+Prepare V7 for Runtime Phase 2 Automation & Runtime Optimization without starting Phase 2, enabling runtime automation, expanding authority, moving users, creating a new owner, or creating a new backlog item.
+
+Pre-Phase-2 Readiness is an implementation-readiness program inside OMP.
+It does not replace RT Phase 1, RT6, RT8, A5, A6, B13, B16, or the Implementation Backlog.
+It consumes them and decides whether Phase 2 may be opened later.
+
+Foundation status:
+
+| Foundation | Status | Canonical owner | Current integration |
+| --- | --- | --- | --- |
+| `DL1` Decision Lifetime Model | `EXISTS` | Runtime Model | Canonicalized in Decision Lifecycle And Runtime Foundation; consumed by OMP/report lifecycle. |
+| `DL2` Decision Freshness Contract | `EXISTS` | Runtime Model | Canonical states `BORN`, `FRESH`, `STALE`, `INVALID`, `DESTROYED`; consumed by freshness, lease, material-change, and OMP review owners. |
+| `DL3` World Model Ownership | `EXISTS` | Runtime Model + SYSTEM_MAP reference | Plane-based ownership exists; SYSTEM_MAP maps current owners. |
+| `DL4` Desired Safe State Contract | `EXISTS_PARTIAL` | Runtime Model + Decision Model | Desired State exists; Desired Safe State artifact belongs to Phase 2 and must wait for A6/B13/authority. |
+| `DL5` Runtime Cost Model | `EXISTS` | Runtime Model | Runtime cost review is mandatory in Product Evolution Review; measurement remains pre-Phase-2/Phase-2 work. |
+| `DL6` Runtime Budget Allocation | `EXISTS_PARTIAL` | Runtime Model | Budget categories exist; numeric budgets are forbidden before measurement and Phase 2 entry. |
+| `DL7` Product Evolution Review Gate | `EXISTS` | Runtime Model + OMP | Mandatory for future OMP tasks and Engineering Reports. |
+
+Readiness stages:
+
+| Stage | Goal | Dependencies | Existing owner | Completion criteria | Validation | Relationship to A5/A6/B13/B16/RT Phase 2 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `DL1` Decision Lifetime Implementation | Make all runtime-relevant decision objects traceable from birth to terminal state. | Decision Lifecycle Foundation, packet/lease/outcome owners. | Runtime Model, packet/lease/governed transaction owners. | Objects have owner, valid-while rule, invalidation rule, and terminal state. | Tests/truth/convergence/report when implementation touches behavior. | Required before A6 can arbitrate live execute/stop reliably. |
+| `DL2` Decision Freshness Implementation | Ensure every decision object has a freshness state and material-change semantics. | A2, material-state gate, freshness owners. | Freshness/lease/runtime eligibility owners. | Freshness changes and material invalidation are separated. | Freshness tests, material-change tests, truth/convergence. | Required for A6 and Phase 2 decision freshness lifetime. |
+| `DL3` World Model Ownership | Ensure every state family has one plane owner and no silent owner replacement. | SYSTEM_MAP, Work Placement Law, read-model owners. | Runtime Model + SYSTEM_MAP + OMP. | Observation, World Model, Planning, Execution, Verification, Feedback/Learning, and OMP ownership are explicit. | Work Placement review and duplicate-owner checks. | Required before continuous world model work in Phase 2. |
+| `DL4` Desired Safe State | Define desired safe state without self-authorizing execution. | Business Objectives, policies, A6, B13, authority model. | Runtime Model, Decision Model, OMP, planner owners. | Desired Safe State is bounded by policy, blast radius, authority, rollback, verification, and runtime eligibility. | Product Evolution Review and safety review. | Cannot become runtime behavior before A6/B13/B16 and authority; Phase 2 consumes it later. |
+| `DL5` Runtime Cost Model | Make runtime cost visible before optimization. | Work Placement, Runtime Latency Review, Product Scale. | Runtime Model + OMP. | CPU, memory, IO, blocking, lock contention, execution, rollback, and runtime cost are reviewed. | Engineering Report Runtime Cost Review. | Required before any Phase 2 runtime optimization. |
+| `DL6` Runtime Budget Allocation | Keep budget categories ready without premature SLO gates. | Runtime Cost Model, Reaction Latency measurements. | Runtime Model + Production Maturity/OMP owners. | Observation, World Model, Planning, Execution, Verification, Learning, and OMP budgets are categorized; numeric gates remain deferred. | Reported as measurement category, not authority. | Numeric budgets wait for Phase 2 entry evidence. |
+| `DL7` Product Evolution Review Gate | Ensure every future change passes certification, placement, time, cost, freshness, and safety review. | Engineering Report Lifecycle, OMP. | OMP + Runtime Model. | Every meaningful action records Product Evolution Review or explicit not-applicable reason. | Engineering Report completeness and truth/convergence. | Guards A5/A6/B13/B16 and all Phase 2 readiness work. |
+
+Pre-Phase-2 Readiness is complete only when:
+
+- RT Phase 1 is `FULLY_COMPLETE`;
+- Work Placement Law is canonical;
+- Decision Lifecycle And Runtime Foundation is canonical;
+- Engineering Report Lifecycle requires Product Evolution Review, Work Placement, Latency Impact, Runtime Cost Review, and Decision Freshness Review;
+- A5 is complete;
+- A6 is complete;
+- B13 is complete;
+- B16 is complete;
+- bounded automation is certified or explicitly approved through existing authority owners;
+- Reaction Latency is measurable;
+- Runtime Cost is measurable;
+- World Model ownership is canonical and consumed by implementation owners;
+- Desired Safe State is canonical and bounded by policy/authority/safety;
+- OMP explicitly authorizes Phase 2 entry.
+
+Phase 2 entry contract:
+
+```text
+Phase 2 may begin only when:
+RT Phase 1 COMPLETE
+AND Work Placement COMPLETE
+AND Decision Lifecycle COMPLETE
+AND Pre-Phase-2 Readiness COMPLETE
+AND A5 COMPLETE
+AND A6 COMPLETE
+AND B13 COMPLETE
+AND B16 COMPLETE
+AND Reaction Latency measurable
+AND Runtime Cost measurable
+AND World Model canonical
+AND Desired Safe State canonical
+AND Engineering Review active
+AND explicit authority permits Phase 2 work.
+```
+
+If any condition is missing, OMP must continue through the existing highest-priority backlog item and must not start Phase 2.
+
 Before Phase 2 entry, OMP forbids:
 
 - parallel movement;
@@ -2670,6 +2747,15 @@ Architectural Methodology Review must include:
 | Existing laws used | Product intent, owner reuse, Work Placement, Decision Lifecycle, Certification Truth, Runtime Time, Product Scale, Safety, Authority, and OMP/backlog path, or `NOT_APPLICABLE_WITH_REASON`. |
 | Missing law | `NONE` unless a complete Architecture Closed by Default audit proves otherwise. |
 | New owner/backlog/architecture | `FALSE` unless explicitly proven. |
+
+Pre-Phase-2 Readiness Review must include:
+
+| Field | Required value |
+| --- | --- |
+| DL1-DL7 impact | Affected foundation or `NONE`. |
+| Phase 2 readiness impact | `TOWARD`, `AWAY`, or `NEUTRAL_WITH_REASON`. |
+| Entry contract impact | Which Phase 2 entry criterion changed, or `NONE`. |
+| Runtime automation impact | `NO` unless explicit authority and certification exist. |
 
 Milestone Report must include:
 

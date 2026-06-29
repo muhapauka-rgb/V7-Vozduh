@@ -64,6 +64,7 @@ APPROVED_PACKET_BINDING_FIELDS = [
     "authority_generation",
 ]
 B15_CONTAINMENT_FORWARD_FIX_SCHEMA = "v7.b15-containment-forward-fix-classification.v1"
+C5_ROLLBACK_OPERATIONAL_COMPENSATION_SCHEMA = "v7.c5-rollback-operational-compensation.v1"
 
 
 class PacketError(ValueError):
@@ -680,6 +681,134 @@ def containment_forward_fix_classification(
             "partial_failure_policy_stop_and_contain_remains_existing_packet_policy",
             "b15_does_not_execute_runtime_apply_or_rollback",
         ],
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "rollback_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_runtime_created": False,
+        "new_planner_created": False,
+    }
+
+
+def rollback_operational_compensation_contract(*, generated_at=None):
+    """Preserve rollback semantics as operational compensation, not transaction rewind."""
+    generated = generated_at or utc_now().isoformat()
+    terminal_outcomes = [
+        {
+            "outcome": "NO_EXECUTION_CONTAINED",
+            "meaning": "No runtime mutation occurred; nothing needs transaction-style rollback.",
+            "compensation_required": False,
+        },
+        {
+            "outcome": "FORWARD_FIX_VERIFIED",
+            "meaning": "Forward path verified; rollback is unnecessary and learning can close the outcome.",
+            "compensation_required": False,
+        },
+        {
+            "outcome": "CONTAINED_BY_ROLLBACK",
+            "meaning": "Failed forward path was compensated by a certified restore/rollback action.",
+            "compensation_required": True,
+        },
+        {
+            "outcome": "PARTIAL_FORWARD_FIX_REQUIRES_CONTAINMENT_REVIEW",
+            "meaning": "Partial outcome requires containment review before success can be claimed.",
+            "compensation_required": "operator_review",
+        },
+        {
+            "outcome": "CONTAINMENT_FAILED_OPERATOR_REVIEW_REQUIRED",
+            "meaning": "Compensation did not complete; operator review remains required.",
+            "compensation_required": "operator_review",
+        },
+        {
+            "outcome": "FORWARD_FIX_UNVERIFIED_CONTAINMENT_PENDING",
+            "meaning": "Verification or containment evidence is still missing.",
+            "compensation_required": "pending_evidence",
+        },
+    ]
+    return {
+        "schema_version": C5_ROLLBACK_OPERATIONAL_COMPENSATION_SCHEMA,
+        "generated_at": generated,
+        "owner": CANONICAL_CLEARANCE_OWNER,
+        "backlog_item": "C5",
+        "purpose": "preserve_rollback_as_operational_compensation_not_transaction_rollback",
+        "policy_source": "POLICY_007_ROLLBACK",
+        "source_owners_reused": [
+            "docs/reference/V7_RUNTIME_MODEL.md rollback/no-rollback contract",
+            "docs/policies/POLICY_007_ROLLBACK.md rollback policy",
+            "admin_core.operator_execution containment_forward_fix_classification",
+            "admin_core.operator_execution_pipeline governed execution coordination",
+            "tools/v7-users-autoswitch rollback/apply/verify owner when separately approved",
+            "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md C5 transition owner",
+        ],
+        "semantic_contract": {
+            "rollback_semantics": "OPERATIONAL_COMPENSATION",
+            "transaction_rollback_supported": False,
+            "database_transaction_semantics_claimed": False,
+            "rollback_is_global_state_rewind": False,
+            "rollback_is_authority": False,
+            "rollback_is_planner": False,
+            "allowed_compensation_forms": [
+                "abort_before_mutation",
+                "certified_no_rollback",
+                "restore_to_fresh_rollback_target",
+                "containment_review",
+                "forward_fix_with_verification",
+                "operator_review_when_compensation_fails",
+            ],
+            "required_evidence": [
+                "restore_barrier_or_explicit_no_rollback_classification",
+                "fresh_rollback_target_when_restore_is_claimed",
+                "verification_or_terminal_outcome_evidence",
+                "authority_for_any_future_runtime_action",
+                "post_action_verification",
+                "feedback_and_learning_closure",
+            ],
+        },
+        "terminal_outcome_model": terminal_outcomes,
+        "canonical_rules": [
+            "c5_rollback_is_operational_compensation_not_transaction_rewind",
+            "c5_compensation_can_abort_restore_contain_forward_fix_or_certify_no_rollback",
+            "c5_restore_barrier_is_safety_preparation_not_transaction_log",
+            "c5_compensation_requires_fresh_evidence_authority_verification_and_closure",
+            "c5_does_not_execute_runtime_apply_or_rollback",
+            "c5_does_not_expand_authority_runtime_planner_owner_or_truth_source",
+        ],
+        "forbidden": [
+            "database_transaction_rollback_claim",
+            "global_state_rewind_claim",
+            "rollback_without_fresh_restore_target",
+            "rollback_without_authority",
+            "rollback_without_post_action_verification",
+            "automatic_rollback_execution",
+            "runtime_apply",
+            "authority_expansion",
+            "planner_replacement",
+            "synthetic_evidence",
+            "user_movement",
+        ],
+        "omp_output": {
+            "c5_status": "DONE_READ_ONLY_ROLLBACK_OPERATIONAL_COMPENSATION_PRESERVED",
+            "produced_evidence": "rollback_operational_compensation_contract",
+            "unlocked_capability": "C6_BOUNDED_STALE_ALLOWANCE_BY_ACTION_CLASS",
+            "blocked_later_steps": [
+                "runtime_apply",
+                "automatic_rollback_execution",
+                "authority_expansion",
+                "automation",
+                "planner_replacement",
+                "synthetic_evidence",
+                "user_movement",
+                "transaction_rollback_abstraction",
+            ],
+            "next_safe_action": "continue_omp_to_c6_bounded_stale_allowance_by_action_class",
+        },
         "read_only": True,
         "runtime_mutation_performed": False,
         "restore_barrier_written_now": False,

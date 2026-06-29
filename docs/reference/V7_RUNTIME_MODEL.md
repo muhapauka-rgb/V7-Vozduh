@@ -550,6 +550,18 @@ Owner: Runtime Model for the promotion boundary contract; OMP, blast-radius gate
 
 Current canonical result: `DONE_READ_ONLY_ALL_AT_ONCE_PROMOTION_UNAVAILABLE`; C5 rollback operational-compensation preservation is the next OMP step.
 
+## C5 Rollback Operational Compensation Contract
+
+Status: `DONE_READ_ONLY`
+
+Owner: Runtime Model for rollback semantics; rollback policy and `admin_core.operator_execution` for the read-only implementation surface; existing apply/verify/rollback owners remain execution owners only when separately authorized.
+
+`rollback_operational_compensation_contract` is the current C5 read-only contract for rollback meaning. V7 rollback is operational compensation, not database transaction rollback, not global state rewind, not authority, and not a planner. Allowed compensation forms are abort before mutation, certified no-rollback, restore to a fresh rollback target, containment review, forward-fix with verification, or operator review when compensation fails. Required evidence remains restore barrier or explicit no-rollback classification, fresh rollback target when restore is claimed, terminal verification/outcome evidence, authority for any future runtime action, post-action verification, and feedback/learning closure.
+
+The contract must not execute rollback, enable Runtime apply, expand authority, mutate runtime state, move users, replace the Planner, create synthetic evidence, create a new owner, or introduce transaction-rollback semantics.
+
+Current canonical result: `DONE_READ_ONLY_ROLLBACK_OPERATIONAL_COMPENSATION_PRESERVED`; C6 bounded stale allowance by action class is the next OMP step.
+
 ## Runtime Latency Engineering Review Checklist
 
 Status: `RT_PHASE_1_CANONICAL`

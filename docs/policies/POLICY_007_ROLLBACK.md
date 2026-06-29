@@ -189,7 +189,7 @@ Reality source:
 | CS3: some actions need containment/forward fix. | `PARTIALLY_IMPLEMENTED` | Runtime Model, execution packet partial-failure policy. | `stop_and_contain` exists; forward-fix semantics are not canonicalized. | Reuse execution lifecycle owner. | `SMALL_EXTENSION`: document/apply containment classification. |
 | CS4: stable previous version/fallback target is common. | `FULLY_IMPLEMENTED` | Rollback manifest, planner current target. | Rollback target/user/current egress are captured in manifests. | Reuse rollback manifest. | None. |
 | CS5: automatic rollback common when signals reliable and authority pre-approved. | `PARTIALLY_IMPLEMENTED` | Autoswitch rollback-on-verify-fail. | Tool can rollback on verification failure; autonomous authority is not approved. | Reuse existing dry-run/apply guarded owner. | `MODERATE_EXTENSION`: certify automatic rollback authority. |
-| CS6: transaction rollback does not generalize everywhere. | `FULLY_IMPLEMENTED` | Runtime Model, rollback policy. | V7 treats rollback as operational compensation, not database transaction. | Reuse model. | None. |
+| CS6: transaction rollback does not generalize everywhere. | `DONE_READ_ONLY` | Runtime Model, rollback policy, `admin_core.operator_execution`. | `rollback_operational_compensation_contract` preserves rollback as operational compensation, not database transaction/global rewind. | Reuse contract. | None. |
 
 ### Policy Coverage
 
@@ -217,7 +217,7 @@ Rollback practice already fits V7's restore-barrier and operation-scoped rollbac
 | Containment/forward-fix for non-reversible actions. | `YES` | `ADAPT` | V7 has `stop_and_contain`; needs canonical classification. | Runtime Model, execution packet partial-failure policy. | Document and expose containment classification. | `SMALL_EXTENSION` | High: avoids unsafe rollback. | `B15` |
 | Stable previous version/fallback target. | `YES` | `REUSE` | Current target and rollback manifest already capture fallback. | Rollback manifest, planner current target. | Keep target freshness gate. | `NONE` | High: preserves reversibility. | `A3` |
 | Automatic rollback when signals reliable and authority pre-approved. | `YES_LATER` | `ADAPT` | Tool support exists but autonomous rollback authority is not approved. | Autoswitch rollback-on-verify-fail. | Certify automatic rollback authority after class evidence. | `MODERATE_EXTENSION` | High: reduces incident duration. | `B16` |
-| Transaction rollback does not generalize. | `YES` | `REUSE` | V7 already treats rollback as operational compensation. | Runtime Model, rollback policy. | Preserve operational compensation semantics. | `NONE` | Medium: avoids false abstraction. | `C5` |
+| Transaction rollback does not generalize. | `YES` | `REUSE_DONE_READ_ONLY` | V7 treats rollback as operational compensation and now exposes that as a read-only C5 contract. | Runtime Model, rollback policy, `admin_core.operator_execution`. | Preserve operational compensation semantics without executing rollback. | `NONE` | Medium: avoids false abstraction. | `C5` |
 
 Need New Owner: `FALSE`.
 

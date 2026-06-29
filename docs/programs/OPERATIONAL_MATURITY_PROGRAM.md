@@ -1731,14 +1731,14 @@ Current backlog progress:
 | --- | ---: | ---: | --- |
 | Tier A | `6` | `6` | `COMPLETE` |
 | Tier B | `21` | `21` | `COMPLETE` |
-| Tier C | `4` | `7` | `IN_PROGRESS` |
+| Tier C | `5` | `7` | `IN_PROGRESS` |
 | Tier D optional | `0` | `6` | `OPTIONAL` |
-| Overall actionable | `31` | `34` | `ACTIVE` |
+| Overall actionable | `32` | `34` | `ACTIVE` |
 
 Implementation maturity:
 
 ```text
-91.2%
+94.1%
 ```
 
 Estimated remaining effort:
@@ -1750,7 +1750,7 @@ Moderate
 Next backlog item:
 
 ```text
-C5
+C6
 ```
 
 ## 2.12.1. Engineering and Production Maturity
@@ -1832,21 +1832,21 @@ Current production snapshot:
 
 | Category | Current % | Target % | Weight |
 | --- | ---: | ---: | ---: |
-| Implementation | `91.2` | `100` | `20` |
+| Implementation | `94.1` | `100` | `20` |
 | Testing | `74` | `100` | `10` |
 | Production Deployments | `100` | `100` | `10` |
 | Production Outcomes | `25` | `100` | `15` |
 | Certification | `95` | `100` | `15` |
 | Authority Evolution | `15` | `100` | `10` |
 | Production Autonomy | `0` | `100` | `10` |
-| Implementation Backlog Completion | `91.2` | `100` | `10` |
+| Implementation Backlog Completion | `94.1` | `100` | `10` |
 
 Production Maturity:
 
 ```text
-Current: 64.3%
+Current: 65.1%
 Target: 100%
-Remaining: 35.7%
+Remaining: 34.9%
 ```
 
 Backlog:
@@ -1854,15 +1854,15 @@ Backlog:
 ```text
 Tier A: 6 / 6 complete
 Tier B: 21 / 21 complete
-Tier C: 4 / 7 complete
+Tier C: 5 / 7 complete
 Tier D: 0 / 6 optional complete
-Overall: 31 / 34 actionable complete
+Overall: 32 / 34 actionable complete
 ```
 
 Current highest implementation task:
 
 ```text
-C5: Preserve rollback as operational compensation rather than transaction rollback.
+C6: Decide bounded stale allowance by action class.
 ```
 
 Estimated remaining effort:
@@ -1931,7 +1931,7 @@ Engineering Maturity
 PRODUCTION
 
 Implementation
-91.2%
+94.1%
 
 Certification
 95%
@@ -1940,7 +1940,7 @@ Autonomy
 0%
 
 Production Maturity
-64.3%
+65.1%
 
 Overall Status
 ENGINEERING_COMPLETE / PRODUCTION_IN_PROGRESS
@@ -1954,20 +1954,20 @@ Tier A
 Tier B
 21 / 21
 Tier C
-4 / 7
+5 / 7
 Tier D
 0 / 6 optional
 Overall
-31 / 34 complete
+32 / 34 complete
 
 Current Tier
 TIER_1_GOVERNED
 
 Highest Priority Task
-C5: preserve rollback as operational compensation rather than transaction rollback.
+C6: decide bounded stale allowance by action class.
 
 Status
-C4 DONE_READ_ONLY / C5 Ready
+C5 DONE_READ_ONLY / C6 Ready
 
 Authority
 No expansion active
@@ -2113,10 +2113,10 @@ Capability | Current % | Ideal % | Remaining % | Current Maturity | Production I
 Movement Protection | 76.0% | 100% | 24.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | B16, B19, B21, C7 | Complete after movement stability, rollback, recovery, anti-flap, routing mode, slow-start, and pool-health criteria are satisfied.
 Runtime Eligibility | 61.0% | 100% | 39.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | B17, B18, C1, C6 | Complete after Runtime can decide execute-or-stop from certified gates and related stale-read/lease semantics are certified.
 Authority Evolution | 68.0% | 100% | 32.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | B12, B16, B21, C3, C4 | Complete after action classes and delegated policy can replace repeated packet approval.
-Rollback | 47.0% | 100% | 53.0% | IN_PROGRESS | VERY_HIGH | HIGH | A3, B15, B16, C5 | Complete after rollback/no-rollback class evidence and authority are certified.
+Rollback | 49.0% | 100% | 51.0% | IN_PROGRESS | VERY_HIGH | HIGH | A3, B15, B16 | Complete after rollback/no-rollback class evidence and authority are certified; C5 compensation semantics are complete.
 Recovery Admission | 78.0% | 100% | 22.0% | IN_PROGRESS | HIGH | HIGH | D2, D3 if optional recovery scope changes | Complete after recovered channels are reintroduced through certified readiness and slow-start and optional recovery scope remains resolved or explicitly not applicable.
 Learning | 63.0% | 100% | 37.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3 | Complete after real outcomes reliably improve future decisions.
-Production Readiness | 64.3% | 100% | 35.7% | IN_PROGRESS | VERY_HIGH | HIGH | Remaining actionable backlog and certification | Complete at PRODUCTION_AUTONOMY_CERTIFIED.
+Production Readiness | 65.1% | 100% | 34.9% | IN_PROGRESS | VERY_HIGH | HIGH | Remaining actionable backlog and certification | Complete at PRODUCTION_AUTONOMY_CERTIFIED.
 Production Autonomy | 0.0% | 100% | 100.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3, A4, A5, A6, B10, B12, B16, C4 | Complete when Runtime operates inside certified policy and operator supervises.
 Knowledge System | 100.0% | 100% | 0.0% | LOCKED | HIGH | MEDIUM_HIGH | None | Complete and locked under canonical knowledge rules.
 Observability | 63.0% | 100% | 37.0% | IN_PROGRESS | HIGH | MEDIUM_HIGH | B15, B17, C2 | Complete when operators and OMP can inspect all safety/runtime evidence without mutation.
@@ -2144,10 +2144,10 @@ Initial capability registry:
 | Movement Protection | Prevent chaotic user movement while preserving fast reaction to real failures. | `76.0` | `100` | `IN_PROGRESS` | OMP, Movement Protection Model, Runtime Model, Canonical Policy Library | `VERY_HIGH` | `VERY_HIGH` | `B16`, `B19`, `B21`, `C7` | All Movement Protection DoD criteria complete or explicitly `NOT_APPLICABLE`. | Production evidence disproves behavior; planner/runtime architecture materially changes; explicit operator request. |
 | Runtime Eligibility | Decide whether Runtime may execute or must stop using certified gates. | `61.0` | `100` | `IN_PROGRESS` | Runtime Model, OMP, delegated policy preview, action-class enablement owners | `VERY_HIGH` | `VERY_HIGH` | `B17`, `B18`, `C1`, `C6` | Action-class runtime eligibility arbitration is implemented; freshness/reporting semantics remain to be certified. | Runtime architecture changes; production eligibility failure; explicit operator request. |
 | Authority Evolution | Move from packet approval to bounded class/policy authority without silent expansion. | `68.0` | `100` | `IN_PROGRESS` | OMP, Authority policy, Runtime Model, action-class ladder | `VERY_HIGH` | `VERY_HIGH` | `B12`, `B16`, `B21`, `C3`, `C4` | Certified class evidence supports authority recommendation and operator/certified policy approval. | Authority incident; operator policy change; explicit authority expansion/shrink request. |
-| Rollback | Guarantee safe compensation or certified no-rollback behavior for production actions. | `42.9` | `100` | `IN_PROGRESS` | Restore barrier, rollback manifest, Runtime Model, execution feedback | `VERY_HIGH` | `HIGH` | `A3`, `B15`, `B16`, `C5` | Rollback/no-rollback class evidence and automatic rollback authority are certified. | Failed rollback; verification failure pattern; explicit operator request. |
+| Rollback | Guarantee safe compensation or certified no-rollback behavior for production actions. | `49.0` | `100` | `IN_PROGRESS` | Restore barrier, rollback manifest, Runtime Model, execution feedback | `VERY_HIGH` | `HIGH` | `A3`, `B15`, `B16` | Rollback/no-rollback class evidence and automatic rollback authority are certified; C5 compensation semantics are complete. | Failed rollback; verification failure pattern; explicit operator request. |
 | Recovery Admission | Admit recovered channels safely without oscillation or premature scale. | `78.0` | `100` | `IN_PROGRESS` | Recovery admission owner, service matrix, quality compact, blast-radius/action-class ladder | `HIGH` | `HIGH` | `D2`, `D3` if optional recovery scope changes | Repeated real readiness evidence, observation windows, and read-only slow-start progression are complete; runtime consumption remains future authority/implementation work. | Recovery incident; service evidence changes; explicit operator request. |
 | Learning | Convert real outcomes into future decision quality without synthetic evidence. | `63.0` | `100` | `IN_PROGRESS` | Feedback/learning owner, OMP, Canonical Reference | `VERY_HIGH` | `VERY_HIGH` | `A3` | Representative real outcomes and metric reliability support promotion recommendations. | Learning regression; synthetic evidence risk; explicit operator request. |
-| Production Readiness | Make V7 deployable, operable, verifiable, and certifiable as a production system. | `64.3` | `100` | `IN_PROGRESS` | OMP, Production Maturity Model, Implementation Backlog | `VERY_HIGH` | `HIGH` | `C7`, optional `D1`-`D6` only if scope changes | Production Maturity reaches `100%` and outputs `PRODUCTION_AUTONOMY_CERTIFIED`. | Production safety incident; deploy model change; explicit operator request. |
+| Production Readiness | Make V7 deployable, operable, verifiable, and certifiable as a production system. | `65.1` | `100` | `IN_PROGRESS` | OMP, Production Maturity Model, Implementation Backlog | `VERY_HIGH` | `HIGH` | `C6`, `C7`, optional `D1`-`D6` only if scope changes | Production Maturity reaches `100%` and outputs `PRODUCTION_AUTONOMY_CERTIFIED`. | Production safety incident; deploy model change; explicit operator request. |
 | Production Autonomy | Enable Runtime to operate inside certified authority while operator supervises. | `0.0` | `100` | `IN_PROGRESS` | OMP, Runtime Model, Authority Evolution, action-class promotion | `VERY_HIGH` | `VERY_HIGH` | `A3`, `A4`, `A5`, `A6`, `B10`, `B12`, `B16`, `C4` | Bounded autonomy and then production autonomy are certified by real outcomes and approved authority. | Autonomy incident; authority policy change; explicit operator request. |
 | Knowledge System | Preserve verified project knowledge and prevent repeated rediscovery. | `100.0` | `100` | `LOCKED` | Canonical Reference, Context Resolver, Research Framework, Policy Library, Document Lifecycle | `HIGH` | `MEDIUM_HIGH` | None current. | Current knowledge owners remain canonical and read-only under document lifecycle rules. | Industry consensus changes; `FUNDAMENTAL_ARCHITECTURE_GAP`; explicit operator request. |
 | Observability | Expose enough read-only truth for operators, OMP, Runtime, and certification. | `35.0` | `100` | `IN_PROGRESS` | Admin read models, trust/evidence inventory, truth/convergence | `HIGH` | `MEDIUM_HIGH` | `B1`, `B4`, `B9`, `B15`, `B17`, `C2` | Read-only evidence shows eligibility, rollback, stale reads, promotion quality, and runtime readiness. | Operator cannot diagnose; evidence disagreement; explicit operator request. |
@@ -2533,7 +2533,7 @@ Movement Protection remains `IN_PROGRESS`.
 Current estimated Movement Protection completion:
 
 ```text
-35.7%
+34.9%
 ```
 
 Backlog-to-capability coverage:
@@ -4032,15 +4032,15 @@ If daemon, timer, event consumer mutation, autonomous execution, action-class ex
 | --- | --- |
 | Completed phases | Architecture foundation, Research Framework, Decision Model, Runtime Model, System Architecture, Implementation Phase activation, OMP Production Program integration. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle; OMP Production Program rule set. |
-| Current bottleneck | C5 rollback-as-operational-compensation documentation is next; C4 is complete as read-only all-at-once promotion unavailable verification. |
-| Current highest leverage action | Run C5 through existing Runtime Model, rollback policy, verification, and canonical update owners. |
+| Current bottleneck | C6 bounded stale allowance by action class is next; C5 is complete as read-only rollback operational compensation contract. |
+| Current highest leverage action | Run C6 through existing freshness actionability, Runtime Model, OMP stop-rule, verification, and canonical update owners. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | None yet for C5 rollback semantics preservation; C5 must not execute rollback, grant authority, enable Runtime apply, enable automation, move users, replace planner ownership, create a new owner, or bypass existing Runtime Model/rollback policy owners. |
-| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; Production Maturity `64.3%`; Tier A backlog `6 / 6`; Tier B backlog `21 / 21`; Tier C backlog `4 / 7`; overall backlog `31 / 34`. |
+| Current blockers | None yet for C6 bounded stale allowance; C6 must not turn stale-read visibility into stale-read mutation, grant authority, enable Runtime apply, enable automation, move users, replace planner ownership, create a new owner, or bypass existing freshness/OMP stop-rule owners. |
+| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; Production Maturity `65.1%`; Tier A backlog `6 / 6`; Tier B backlog `21 / 21`; Tier C backlog `5 / 7`; overall backlog `32 / 34`. |
 | Current runtime posture | No autonomous apply, no daemon enablement, no authority expansion; local validation moved `0` users and now stops explicitly with `runtime_state_unavailable` when local `/opt/v7` state is absent. |
-| Current next best action | `C5_PRESERVE_ROLLBACK_AS_OPERATIONAL_COMPENSATION_NOT_TRANSACTION_ROLLBACK`; no runtime apply, no automation, no authority expansion, no rollback execution, no synthetic evidence, no user movement, no planner replacement, no new owner, no new backlog, no architecture change. |
+| Current next best action | `C6_DECIDE_BOUNDED_STALE_ALLOWANCE_BY_ACTION_CLASS`; no runtime apply, no automation, no authority expansion, no stale-read mutation, no synthetic evidence, no user movement, no planner replacement, no new owner, no new backlog, no architecture change. |
 | Last optimizer iteration | `2026-06-29`: RT2-S6 evidence-based continuous improvement implemented as read-only owner-mapped advisory recommendation; current result is `DONE_READ_ONLY_OWNER_MAPPED_RECOMMENDATION`; tests passed. |
 
 ## 24.1 Capability Transition Contract
@@ -4101,16 +4101,17 @@ Major capability transitions:
 | `C2` -> `C3` | Probabilistic suspicion advisory evidence. | `probabilistic_suspicion_advisory_evidence = DONE_READ_ONLY_PROBABILISTIC_SUSPICION_ADVISORY_EVIDENCE`; shadow autonomy, source-confidence, and soft-degradation suspicion have direct blocking power `NONE` and direct execution power `NONE`. | Trust/confidence model, shadow autonomy, soft-degradation policy, OMP, read-only inventory, C1 fail-closed behavior. | Break-glass authority audited exceptional operator policy. | Runtime apply, automation, direct suspicion blocking, authority expansion, planner replacement, threshold/formula mutation, synthetic evidence, user movement. | C3 may start because C2 proves weak/probabilistic suspicion cannot become action authority, so exceptional authority can be documented against a non-silent advisory boundary. | C2 is advisory read-only evidence only; it cannot grant emergency authority, mutate Runtime, lower gates, replace Planner, synthesize evidence, or move users. |
 | `C3` -> `C4` | Break-glass authority audited exceptional operator policy. | `break_glass_authority_policy_contract = DONE_READ_ONLY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY`; break-glass is disabled by default, exceptional, audited, operator-policy controlled, and non-authorizing by itself. | OMP, operator authority, governed execution pipeline, observability/audit, feedback/closure, packet/rollback evidence, C2 advisory-only boundary. | All-at-once promotion unavailable verification. | Runtime apply, automation, silent authority expansion, all-at-once promotion, blast-radius expansion, direct class promotion, planner replacement, synthetic evidence, rollback/apply execution, user movement. | C4 may start because C3 proves exceptional authority cannot silently become runtime/class authority, so all-at-once promotion can be verified as unavailable against an explicit non-silent authority boundary. | C3 defines policy only; it cannot invoke break-glass, write restore barrier, execute apply/rollback, expand authority, synthesize evidence, or move users. |
 | `C4` -> `C5` | All-at-once promotion unavailable verification. | `all_at_once_promotion_unavailable_verification = DONE_READ_ONLY_ALL_AT_ONCE_PROMOTION_UNAVAILABLE`; current action classes have no all-at-once/direct promotion path and remain class-by-class/authority-review bounded. | Action-class runtime enablement, A5 blast-radius certification, B12 stage certification, B14 service/pool/cohort scope, C3 break-glass policy boundary, OMP. | Rollback as operational compensation preservation. | Runtime apply, automation, silent authority expansion, all-at-once promotion, direct class promotion, blast-radius expansion, rollback/apply execution, planner replacement, synthetic evidence, user movement. | C5 may start because C4 proves promotion cannot silently widen authority, so rollback semantics can be preserved as compensation rather than transaction rollback against a stable non-promoting action-class boundary. | C4 is read-only verification only; it cannot promote classes, widen blast radius, mutate Runtime, grant authority, execute rollback/apply, synthesize evidence, or move users. |
+| `C5` -> `C6` | Rollback as operational compensation preservation. | `rollback_operational_compensation_contract = DONE_READ_ONLY_ROLLBACK_OPERATIONAL_COMPENSATION_PRESERVED`; rollback is operational compensation, not database transaction/global rewind. | Runtime Model rollback semantics, rollback policy, B15 containment/forward-fix classification, B16 authority review boundary, C4 promotion-boundary evidence, OMP. | Bounded stale allowance by action class. | Runtime apply, automation, stale-read mutation, authority expansion, automatic rollback execution, transaction rollback abstraction, planner replacement, synthetic evidence, user movement. | C6 may start because C5 proves rollback/recovery semantics are explicit and non-authorizing, so stale-read allowance can be decided by action class without confusing stale evidence with rollback or transaction-rewind authority. | C5 is a read-only contract only; it cannot execute rollback, mutate Runtime, grant stale-read mutation authority, create transaction rollback semantics, expand authority, synthesize evidence, or move users. |
 
 Current transition state:
 
 | Field | Value |
 | --- | --- |
-| Last completed transition | `C4 -> C5` |
-| Produced evidence | `all_at_once_promotion_unavailable_verification = DONE_READ_ONLY_ALL_AT_ONCE_PROMOTION_UNAVAILABLE`; C4 verifies broad/direct promotion remains unavailable through existing owners. |
-| Current unlocked step | `C5_PRESERVE_ROLLBACK_AS_OPERATIONAL_COMPENSATION_NOT_TRANSACTION_ROLLBACK` |
-| Current forbidden later steps | Runtime self-optimization; automatic recommendations; direct implementation without OMP; authority lowering; safety-gate weakening; Runtime apply; automation; concurrency enablement; authority expansion; blast-radius expansion; all-at-once promotion; queue daemon; planner replacement; registry write; user movement |
-| Safety reason | Only existing backlog continuation is unlocked; C4 output is read-only verification evidence and cannot promote classes, mutate Runtime, expand authority, synthesize evidence, start implementation outside OMP, create a new owner, replace Planner, execute rollback/apply, or move users. |
+| Last completed transition | `C5 -> C6` |
+| Produced evidence | `rollback_operational_compensation_contract = DONE_READ_ONLY_ROLLBACK_OPERATIONAL_COMPENSATION_PRESERVED`; C5 preserves rollback as operational compensation through existing owners. |
+| Current unlocked step | `C6_DECIDE_BOUNDED_STALE_ALLOWANCE_BY_ACTION_CLASS` |
+| Current forbidden later steps | Runtime self-optimization; automatic recommendations; direct implementation without OMP; authority lowering; safety-gate weakening; Runtime apply; automation; concurrency enablement; authority expansion; stale-read mutation; blast-radius expansion; all-at-once promotion; queue daemon; planner replacement; registry write; transaction rollback abstraction; user movement |
+| Safety reason | Only existing backlog continuation is unlocked; C5 output is read-only semantics evidence and cannot execute rollback, mutate Runtime, expand authority, synthesize evidence, start implementation outside OMP, create a new owner, replace Planner, create transaction rollback semantics, or move users. |
 
 ## 24.2 Capability Production Contract
 
@@ -4192,6 +4193,7 @@ Producer / consumer matrix:
 | `C2` | Probabilistic Suspicion Advisory Evidence. | `probabilistic_suspicion_advisory_evidence`; shadow autonomy, source-confidence, and soft-degradation suspicion are advisory-only with direct blocking power `NONE` and direct execution power `NONE`. | Existing trust/confidence model, shadow autonomy, soft-degradation policy, OMP, read-only inventory, C1 fail-closed behavior, Backlog, Production Maturity + `admin_core.autonomy_trust_acceleration`. | OMP, `C3`, Current Program State, Production Maturity, Canonical Reference, Decision Explainability, Observability, Authority Evolution, Production Autonomy. | Break-Glass Authority Audited Exceptional Operator Policy. | `C3` | Runtime apply, automation, direct suspicion blocking, authority expansion, threshold/formula mutation, traffic admission, concurrency, queue, synthetic evidence, user movement, planner replacement. | `C4+`, runtime apply. | C2 makes weak/probabilistic suspicion non-authorizing; C3 may now define exceptional authority boundaries without allowing suspicion to become action authority. |
 | `C3` | Break-Glass Authority Audited Exceptional Operator Policy. | `break_glass_authority_policy_contract`; break-glass is disabled-by-default, audited, exceptional operator policy only, requiring explicit operator policy, incident context, audit, verification/closure, truth/convergence, OMP, and CPS updates. | Existing OMP, operator authority, governed execution pipeline, audit/observability, feedback/closure, packet/rollback owners, Backlog, Production Maturity + `admin_core.operator_execution_pipeline`. | OMP, `C4`, Current Program State, Production Maturity, Canonical Reference, Authority Evolution, Blast Radius, Decision Explainability, Observability, Production Autonomy. | All-at-Once Promotion Unavailable Verification. | `C4` | Runtime apply, automation, silent authority expansion, all-at-once promotion, blast-radius expansion, direct class promotion, rollback/apply execution, synthetic evidence, user movement, planner replacement. | `C5+`, runtime apply. | C3 makes exceptional authority explicit and non-authorizing; C4 may now verify broad promotion remains unavailable under a non-silent authority boundary. |
 | `C4` | All-at-Once Promotion Unavailable Verification. | `all_at_once_promotion_unavailable_verification`; current action classes have all-at-once/direct promotion unavailable and class-by-class authority review remains required. | Existing OMP, blast-radius/action-class gates, A5/B12/B14 evidence owners, C3 break-glass policy boundary, Backlog, Production Maturity + `admin_core.autonomy_trust_acceleration`. | OMP, `C5`, Current Program State, Production Maturity, Canonical Reference, Authority Evolution, Blast Radius, Decision Explainability, Observability, Production Autonomy. | Rollback As Operational Compensation. | `C5` | Runtime apply, automation, silent authority expansion, all-at-once promotion, direct class promotion, blast-radius expansion, rollback/apply execution, synthetic evidence, user movement, planner replacement. | `C6+`, runtime apply. | C4 proves broad promotion is unavailable without authorizing anything; C5 may now preserve rollback semantics against stable authority/promotion boundaries. |
+| `C5` | Rollback Operational Compensation Contract. | `rollback_operational_compensation_contract`; rollback is preserved as operational compensation, not database transaction/global rewind. | Existing Runtime Model, rollback policy, OMP, Backlog, Production Maturity + `admin_core.operator_execution`. | OMP, `C6`, Current Program State, Production Maturity, Canonical Reference, Runtime Eligibility, Rollback, Decision Explainability, Observability, Production Autonomy. | Bounded Stale Allowance By Action Class. | `C6` | Runtime apply, automation, stale-read mutation, authority expansion, automatic rollback execution, transaction rollback abstraction, synthetic evidence, user movement, planner replacement. | `C7+`, runtime apply. | C5 preserves rollback semantics without authorizing anything; C6 may now decide stale-read allowance by action class against explicit freshness and compensation boundaries. |
 
 Capability graph validation:
 
@@ -4208,13 +4210,13 @@ Current produced capability state:
 
 | Field | Value |
 | --- | --- |
-| Last produced capability | Probabilistic Suspicion Advisory Evidence |
-| Producer stage | `C2` |
-| Produced evidence | `probabilistic_suspicion_advisory_evidence = DONE_READ_ONLY_PROBABILISTIC_SUSPICION_ADVISORY_EVIDENCE`; next step is existing backlog item `C3`. |
-| Capability owner | Existing trust/confidence model, shadow autonomy, soft-degradation policy, OMP, read-only inventory, Backlog, Production Maturity + `admin_core.autonomy_trust_acceleration` |
-| Current consumers | OMP, `C3`, Current Program State, Production Maturity, Canonical Reference, Decision Explainability, Observability, Authority Evolution, Production Autonomy |
-| Current unlocked capability | Break-Glass Authority Audited Exceptional Operator Policy |
-| Current blocked capabilities | Runtime apply, automation, direct suspicion blocking, authority expansion, threshold/formula mutation, new owner, queue daemon, planner replacement, synthetic evidence, user movement |
+| Last produced capability | Rollback Operational Compensation Contract |
+| Producer stage | `C5` |
+| Produced evidence | `rollback_operational_compensation_contract = DONE_READ_ONLY_ROLLBACK_OPERATIONAL_COMPENSATION_PRESERVED`; next step is existing backlog item `C6`. |
+| Capability owner | Existing Runtime Model, rollback policy, OMP, Backlog, Production Maturity + `admin_core.operator_execution` |
+| Current consumers | OMP, `C6`, Current Program State, Production Maturity, Canonical Reference, Runtime Eligibility, Rollback, Decision Explainability, Observability, Production Autonomy |
+| Current unlocked capability | Bounded Stale Allowance By Action Class |
+| Current blocked capabilities | Runtime apply, automation, stale-read mutation, authority expansion, automatic rollback execution, transaction rollback abstraction, new owner, queue daemon, planner replacement, synthetic evidence, user movement |
 
 ## 24.3 OMP Progress Dashboard Model
 
@@ -4370,12 +4372,12 @@ Current dashboard snapshot:
 | Tier B | `[##########] 21 / 21 COMPLETE` |
 | RT2 | `[##########] 6 / 6 COMPLETE_READ_ONLY` |
 | Engineering Intelligence | `[########--] FINAL_CANONICAL_STATE / implementation evidence future` |
-| Overall actionable backlog | `31 / 34 complete` |
-| Production Maturity | `[######----] 64.3 / 100; target 100; remaining 35.7` |
-| Current step | `C5_PRESERVE_ROLLBACK_AS_OPERATIONAL_COMPENSATION_NOT_TRANSACTION_ROLLBACK` |
-| Previous step | `C4_ALL_AT_ONCE_PROMOTION_UNAVAILABLE_FOR_CURRENT_ACTION_CLASSES` |
-| Reason current step is available | C4 produced all-at-once promotion unavailable evidence without granting runtime/class authority, enabling C5 to preserve rollback semantics against stable authority boundaries. |
-| Current stop | `NONE_FOR_C5_ROLLBACK_OPERATIONAL_COMPENSATION_NOT_TRANSACTION_ROLLBACK` |
+| Overall actionable backlog | `32 / 34 complete` |
+| Production Maturity | `[#######---] 65.1 / 100; target 100; remaining 34.9` |
+| Current step | `C6_DECIDE_BOUNDED_STALE_ALLOWANCE_BY_ACTION_CLASS` |
+| Previous step | `C5_PRESERVE_ROLLBACK_AS_OPERATIONAL_COMPENSATION_NOT_TRANSACTION_ROLLBACK` |
+| Reason current step is available | C5 produced rollback operational-compensation evidence without granting runtime/rollback authority, enabling C6 to decide bounded stale allowance against explicit freshness and compensation boundaries. |
+| Current stop | `NONE_FOR_C6_BOUNDED_STALE_ALLOWANCE_BY_ACTION_CLASS` |
 
 RT2 dashboard:
 
@@ -4611,15 +4613,15 @@ Operator Home Screen conceptual mockup:
 V7 / OMP Dashboard                                      READ ONLY
 Product Execution Mode             Operator View | Engineering View
 
-[Production Maturity 64.3/100] [Current: C5] [RT2 Complete] [EI Canonical]
+[Production Maturity 65.1/100] [Current: C6] [RT2 Complete] [EI Canonical]
 
 Overall Progress
 Architecture [##########]  Tier A [##########]  Tier B [######----]
 RT2          [##########]  Backlog [######----] Production [#####-----]
 
 Current Stage
-C4 completed -> C5 current -> Continue OMP after evidence/report/canonical update
-Why now: C4 produced owner-mapped all-at-once promotion unavailable verification evidence.
+C5 completed -> C6 current -> Continue OMP after evidence/report/canonical update
+Why now: C5 produced owner-mapped rollback operational-compensation contract evidence.
 
 Capability
 Produced: Probabilistic Suspicion Advisory Evidence

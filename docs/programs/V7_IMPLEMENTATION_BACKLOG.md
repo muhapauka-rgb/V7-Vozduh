@@ -38,14 +38,14 @@ OMP must always choose the highest-priority unfinished backlog item unless it cr
 | --- | ---: | ---: | --- |
 | Tier A | `6` | `6` | `COMPLETE` |
 | Tier B | `21` | `21` | `COMPLETE` |
-| Tier C | `4` | `7` | `IN_PROGRESS` |
+| Tier C | `5` | `7` | `IN_PROGRESS` |
 | Tier D optional | `0` | `6` | `OPTIONAL` |
-| Overall actionable | `31` | `34` | `ACTIVE` |
+| Overall actionable | `32` | `34` | `ACTIVE` |
 
 Implementation maturity:
 
 ```text
-91.2%
+94.1%
 ```
 
 Estimated remaining effort:
@@ -191,7 +191,7 @@ Future runtime-latency work must map to the existing backlog owners above unless
 | `C2` | `DONE` | Use probabilistic suspicion only as advisory evidence. | `POLICY_002_SOFT_DEGRADATION` | Trust/confidence model, shadow autonomy | `admin_core/shadow_autonomy.py`, `admin_core/autonomy_trust_acceleration.py::build_probabilistic_suspicion_advisory_evidence`, `tools/v7-autonomy-trust-evidence-inventory --routing-foundation-only` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | `probabilistic_suspicion_advisory_evidence` keeps shadow autonomy, source-confidence, and soft-degradation suspicion as advisory-only evidence with direct blocking power `NONE`, direct execution power `NONE`, and no Runtime apply, authority expansion, threshold/formula mutation, synthetic evidence, planner replacement, or user movement. | `MEDIUM` | `MEDIUM` | `MEDIUM` | `MEDIUM_HIGH` |
 | `C3` | `DONE` | Define break-glass authority as audited exceptional operator policy. | `POLICY_004_AUTHORITY` | OMP, operator authority | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, `admin_core/operator_execution_pipeline.py::break_glass_authority_policy_contract` | `IMPLEMENT_DOCUMENTATION` | `SMALL_EXTENSION` | `break_glass_authority_policy_contract` defines break-glass as disabled-by-default, audited, exceptional operator policy only; it grants no Runtime apply, automation, silent authority expansion, planner replacement, synthetic evidence, rollback/apply execution, or user movement. | `MEDIUM` | `LOW` | `MEDIUM` | `HIGH` |
 | `C4` | `DONE` | Keep all-at-once promotion unavailable for current action classes. | `POLICY_005_ACTION_CLASS_PROMOTION` | OMP, blast-radius gates | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, `admin_core/autonomy_trust_acceleration.py::build_all_at_once_promotion_unavailable_verification`, `tools/v7-autonomy-trust-evidence-inventory --routing-foundation-only` | `IMPLEMENT_VERIFICATION` | `NONE` | `all_at_once_promotion_unavailable_verification` consumes action-class runtime enablement, A5 blast-radius certification, B12 stage certification, B14 service/pool/cohort scope, and C3 break-glass policy evidence; it verifies all-at-once/direct class promotion remains unavailable and keeps Runtime apply, authority expansion, automation, blast-radius expansion, synthetic evidence, and user movement blocked. | `MEDIUM` | `MEDIUM` | `LOW` | `HIGH` |
-| `C5` | `TODO` | Preserve rollback as operational compensation rather than transaction rollback. | `POLICY_007_ROLLBACK` | Runtime Model, rollback policy | `docs/reference/V7_RUNTIME_MODEL.md`, `admin_core/operator_execution.py` | `IMPLEMENT_DOCUMENTATION` | `NONE` | Existing rollback semantics. | `MEDIUM` | `LOW` | `MEDIUM` | `MEDIUM_HIGH` |
+| `C5` | `DONE` | Preserve rollback as operational compensation rather than transaction rollback. | `POLICY_007_ROLLBACK` | Runtime Model, rollback policy | `docs/reference/V7_RUNTIME_MODEL.md`, `admin_core/operator_execution.py::rollback_operational_compensation_contract` | `IMPLEMENT_DOCUMENTATION` | `NONE` | `rollback_operational_compensation_contract` preserves rollback semantics as operational compensation, not database transaction/global rewind; allowed forms are abort, certified no-rollback, restore to fresh target, containment review, forward-fix with verification, or operator review when compensation fails; it grants no Runtime apply, rollback execution, authority expansion, planner replacement, synthetic evidence, or user movement. | `MEDIUM` | `LOW` | `MEDIUM` | `MEDIUM_HIGH` |
 | `C6` | `TODO` | Decide bounded stale allowance by action class. | `POLICY_008_FRESHNESS` | Freshness actionability, OMP stop rules | `admin_core/autonomy_trust_acceleration.py`, `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | A2 freshness windows. | `MEDIUM_HIGH` | `MEDIUM` | `MEDIUM` | `HIGH` |
 | `C7` | `TODO` | Map pool max-ejection/minimum-health semantics to V7 capacity and blast bounds. | `POLICY_009_ANTI_FLAP`, `POLICY_006_BLAST_RADIUS` | Planner capacity/load, action-class ladder | `tools/v7-users-autoswitch`, `admin_core/autonomy_trust_acceleration.py` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | Capacity/load evidence. | `MEDIUM_HIGH` | `MEDIUM` | `MEDIUM_HIGH` | `HIGH` |
 

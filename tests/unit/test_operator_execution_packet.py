@@ -24,6 +24,7 @@ from admin_core.operator_execution import (
     packet_from_plan,
     preview_packet_identity,
     resolve_under_repo,
+    rollback_operational_compensation_contract,
     runtime_recheck,
     sha256_bytes,
     sha256_file,
@@ -142,6 +143,51 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             self.assertEqual(model["users_moved"], 0)
             self.assertFalse(model["authority_expanded"])
             self.assertFalse(model["synthetic_evidence_created"])
+
+    def test_c5_rollback_operational_compensation_contract_is_read_only(self):
+        contract = rollback_operational_compensation_contract(
+            generated_at="2026-06-29T18:30:00+07:00"
+        )
+
+        self.assertEqual(
+            contract["schema_version"],
+            "v7.c5-rollback-operational-compensation.v1",
+        )
+        self.assertEqual(contract["backlog_item"], "C5")
+        self.assertEqual(
+            contract["semantic_contract"]["rollback_semantics"],
+            "OPERATIONAL_COMPENSATION",
+        )
+        self.assertFalse(contract["semantic_contract"]["transaction_rollback_supported"])
+        self.assertFalse(contract["semantic_contract"]["database_transaction_semantics_claimed"])
+        self.assertIn(
+            "c5_rollback_is_operational_compensation_not_transaction_rewind",
+            contract["canonical_rules"],
+        )
+        self.assertIn("automatic_rollback_execution", contract["forbidden"])
+        self.assertIn("runtime_apply", contract["forbidden"])
+        self.assertEqual(
+            contract["omp_output"]["c5_status"],
+            "DONE_READ_ONLY_ROLLBACK_OPERATIONAL_COMPENSATION_PRESERVED",
+        )
+        self.assertEqual(
+            contract["omp_output"]["unlocked_capability"],
+            "C6_BOUNDED_STALE_ALLOWANCE_BY_ACTION_CLASS",
+        )
+        self.assertIn(
+            "transaction_rollback_abstraction",
+            contract["omp_output"]["blocked_later_steps"],
+        )
+        self.assertTrue(contract["read_only"])
+        self.assertFalse(contract["runtime_mutation_performed"])
+        self.assertFalse(contract["restore_barrier_written_now"])
+        self.assertFalse(contract["apply_executed"])
+        self.assertFalse(contract["rollback_executed"])
+        self.assertEqual(contract["users_moved"], 0)
+        self.assertFalse(contract["authority_expanded"])
+        self.assertFalse(contract["synthetic_evidence_created"])
+        self.assertFalse(contract["new_owner_created"])
+        self.assertFalse(contract["new_runtime_created"])
 
     def make_state(self, root):
         state = root / "state"

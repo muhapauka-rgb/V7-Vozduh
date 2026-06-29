@@ -578,7 +578,29 @@ Canonical rule:
 - owner-issued version or lease evidence is preferred where an existing owner provides it;
 - C6 does not change freshness windows, timers, thresholds, formulas, lease behavior, Runtime behavior, authority, planner ownership, or user assignment.
 
-Current canonical result: `DONE_READ_ONLY_BOUNDED_STALE_ALLOWANCE_BY_ACTION_CLASS`; C7 pool max-ejection/minimum-health capacity and blast-bound mapping is the next OMP step.
+Current canonical result: `DONE_READ_ONLY_BOUNDED_STALE_ALLOWANCE_BY_ACTION_CLASS`; C7 pool max-ejection/minimum-health capacity and blast-bound mapping is complete as the next read-only OMP step.
+
+## C7 Pool Health Capacity And Blast Bounds Runtime Contract
+
+Status: `DONE_READ_ONLY`.
+
+Owner: existing planner capacity/load, action-class ladder, Runtime Model freshness/blast bounds, OMP, Backlog, Production Maturity, and `admin_core.autonomy_trust_acceleration`.
+
+Implementation surface:
+
+```text
+admin_core.autonomy_trust_acceleration.build_pool_health_capacity_blast_bounds
+```
+
+Canonical rule:
+
+- proxy-style max-ejection maps to V7 action-class user limits plus certified blast-radius bounds;
+- proxy-style minimum-health maps to V7 service-fit, projected load, soft/hard capacity, freshness, and STOP_SAFE blockers;
+- pool health is a read-only planner/capacity/blast view, not a new Runtime capability;
+- C7 may explain safe bounds but cannot approve execution, widen scope, or move users;
+- C7 does not change capacity thresholds, formulas, freshness windows, Runtime behavior, authority, planner ownership, or user assignment.
+
+Current canonical result: `DONE_READ_ONLY_POOL_HEALTH_CAPACITY_BLAST_BOUNDS_MAPPED`; actionable implementation backlog is complete and Runtime apply remains blocked until separate authority/runtime certification exists.
 
 ## Runtime Latency Engineering Review Checklist
 

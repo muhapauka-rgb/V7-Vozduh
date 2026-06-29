@@ -10256,6 +10256,202 @@ def build_service_pool_cohort_blast_radius_scope(
     }
 
 
+def _action_class_user_limit(action_class: str) -> int | None:
+    for name, max_users, _state in ACTION_CLASS_LADDER:
+        if name == action_class:
+            return max_users if isinstance(max_users, int) else None
+    return None
+
+
+def build_pool_health_capacity_blast_bounds(
+    *,
+    service_pool_cohort_blast_radius_scope: dict[str, Any] | None = None,
+    class_level_blast_radius_certification: dict[str, Any] | None = None,
+    next_action_class_stage_certification: dict[str, Any] | None = None,
+    bounded_stale_allowance_by_action_class: dict[str, Any] | None = None,
+    action_class_freshness_windows: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Map proxy-style pool health semantics to existing V7 capacity and blast bounds."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    scope = service_pool_cohort_blast_radius_scope if isinstance(service_pool_cohort_blast_radius_scope, dict) else {}
+    blast = class_level_blast_radius_certification if isinstance(class_level_blast_radius_certification, dict) else {}
+    stage = next_action_class_stage_certification if isinstance(next_action_class_stage_certification, dict) else {}
+    stale = bounded_stale_allowance_by_action_class if isinstance(bounded_stale_allowance_by_action_class, dict) else {}
+    windows = action_class_freshness_windows if isinstance(action_class_freshness_windows, dict) else {}
+    stale_decision = stale.get("decision") if isinstance(stale.get("decision"), dict) else {}
+    stale_mutation_allowed = bool(stale_decision.get("stale_evidence_mutation_allowed"))
+    max_historical_users = int(as_float(blast.get("max_historical_certified_blast_radius_users"), 0.0))
+    rows: list[dict[str, Any]] = []
+    for scope_row in [row for row in (scope.get("rows") or []) if isinstance(row, dict)]:
+        action_scope = scope_row.get("action_class_scope") if isinstance(scope_row.get("action_class_scope"), dict) else {}
+        pool_scope = scope_row.get("pool_scope") if isinstance(scope_row.get("pool_scope"), dict) else {}
+        service_scope = scope_row.get("service_scope") if isinstance(scope_row.get("service_scope"), dict) else {}
+        blast_scope = scope_row.get("blast_radius_scope") if isinstance(scope_row.get("blast_radius_scope"), dict) else {}
+        action_class = _text(action_scope.get("current_action_class"), _text(scope_row.get("action_class"), "UNKNOWN_ACTION_CLASS"))
+        class_user_limit = _action_class_user_limit(action_class)
+        numeric_limits = [value for value in [class_user_limit, max_historical_users] if isinstance(value, int) and value > 0]
+        max_ejection_users = min(numeric_limits) if numeric_limits else 0
+        capacity_decision = _text(pool_scope.get("capacity_decision"), "UNKNOWN")
+        projected_load = pool_scope.get("projected_load") if isinstance(pool_scope.get("projected_load"), dict) else {}
+        soft_limit = int(as_float(projected_load.get("soft_limit"), 0.0))
+        hard_limit = int(as_float(projected_load.get("hard_limit"), 0.0))
+        users = int(as_float(projected_load.get("users"), 0.0))
+        capacity_blocks = capacity_decision in {"", "UNKNOWN", "BLOCK", "BLOCKED", "NO_CAPACITY", "hard_capacity_full"}
+        fit_blocks = service_scope.get("fit_verdict") not in {"FIT", "FIT_WITH_WARNINGS"}
+        blockers = list(scope_row.get("blockers") or [])
+        if not numeric_limits:
+            blockers.append("action_class_or_certified_blast_user_bound_missing")
+        if capacity_blocks:
+            blockers.append("minimum_health_capacity_blocked")
+        if fit_blocks:
+            blockers.append("minimum_health_service_fit_blocked")
+        if stale_mutation_allowed:
+            blockers.append("bounded_stale_allowance_violation")
+        if not bool(blast_scope.get("beyond_one_user_certified", blast.get("beyond_one_user_certified"))):
+            blockers.append("blast_radius_not_certified_for_pool_health_mapping")
+        freshness_window: dict[str, Any] = {}
+        for action_row in [row for row in (windows.get("rows") or []) if isinstance(row, dict)]:
+            if _text(action_row.get("action_class")) == action_class:
+                freshness_window = dict(action_row.get("freshness_windows") or {})
+                break
+        rows.append({
+            "user": scope_row.get("user", ""),
+            "target_channel": scope_row.get("target_channel", ""),
+            "pool": pool_scope.get("pool", ""),
+            "action_class": action_class,
+            "proxy_semantics": {
+                "max_ejection": "mapped_to_v7_action_class_user_limit_and_certified_blast_radius",
+                "minimum_health": "mapped_to_v7_capacity_decision_projected_load_and_service_fit",
+                "outlier_ejection": "mapped_to_v7_hold_quarantine_or_governed_movement_review_not_runtime_ejection",
+            },
+            "v7_max_ejection_bound": {
+                "action_class_user_limit": class_user_limit,
+                "max_historical_certified_blast_radius_users": max_historical_users,
+                "max_ejection_users_read_model": max_ejection_users,
+                "blast_radius_expanded_now": False,
+            },
+            "v7_minimum_health_bound": {
+                "capacity_decision": capacity_decision,
+                "projected_users": users,
+                "soft_limit": soft_limit,
+                "hard_limit": hard_limit,
+                "service_fit_verdict": service_scope.get("fit_verdict", "UNKNOWN"),
+                "minimum_health_state": "PASS" if not capacity_blocks and not fit_blocks else "STOP_SAFE",
+            },
+            "freshness_bound": {
+                "freshness_windows": freshness_window,
+                "stale_mutation_allowed": stale_mutation_allowed,
+                "fresh_evidence_required_before_mutation": bool(stale_decision.get("fresh_evidence_required_before_mutation", True)),
+            },
+            "stage_bound": {
+                "stage_certification_state": (stage.get("next_stage") or {}).get("stage_certification_state", "UNKNOWN"),
+                "authority_review_required": bool((stage.get("next_stage") or {}).get("authority_review_required", True)),
+            },
+            "mapping_state": (
+                "POOL_HEALTH_CAPACITY_BLAST_BOUNDS_MAPPED_READ_ONLY"
+                if not blockers
+                else "POOL_HEALTH_CAPACITY_BLAST_BOUNDS_STOP_SAFE"
+            ),
+            "blockers": sorted(set(blockers)),
+            "runtime_apply_allowed": False,
+            "authority_expanded": False,
+            "blast_radius_expanded": False,
+            "threshold_values_changed": False,
+            "formula_changed": False,
+            "synthetic_evidence_created": False,
+            "users_moved": 0,
+        })
+    return {
+        "schema_version": "v7.c7-pool-health-capacity-blast-bounds.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "C7",
+        "purpose": "map_pool_max_ejection_minimum_health_semantics_to_existing_v7_capacity_and_blast_bounds",
+        "source_owners_reused": [
+            "tools/v7-users-autoswitch._load_limits_for_egress",
+            "tools/v7-users-autoswitch._capacity_decision",
+            "tools/v7-users-autoswitch._mark_best_available_pool",
+            "tools/v7-users-autoswitch dynamic_blast_radius",
+            "admin_core.autonomy_trust_acceleration.build_service_pool_cohort_blast_radius_scope",
+            "admin_core.autonomy_trust_acceleration.build_class_level_blast_radius_certification",
+            "admin_core.autonomy_trust_acceleration.build_next_action_class_stage_certification",
+            "admin_core.autonomy_trust_acceleration.build_bounded_stale_allowance_by_action_class",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_009_ANTI_FLAP.md",
+            "docs/policies/POLICY_006_BLAST_RADIUS.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#C7",
+        ],
+        "consumed_prior_capabilities": {
+            "B14": scope.get("schema_version", "UNKNOWN"),
+            "A5": blast.get("schema_version", "UNKNOWN"),
+            "B12": stage.get("schema_version", "UNKNOWN"),
+            "C6": stale.get("schema_version", "UNKNOWN"),
+            "A2": windows.get("schema_version", "UNKNOWN"),
+        },
+        "semantic_mapping": {
+            "max_ejection": "V7 does not eject arbitrary pool members; it bounds movement by action class, certified blast radius, authority, and runtime_apply gates.",
+            "minimum_health": "V7 minimum health is represented by service fit, projected load, soft/hard capacity, freshness, and STOP_SAFE blockers.",
+            "pool_health": "Pool health is a read-only planner/capacity/blast scope view, not a new Runtime capability.",
+            "authority": "C7 can explain safe bounds but cannot approve scope expansion or execution.",
+        },
+        "rows": rows,
+        "summary": {
+            "scope_rows": len(rows),
+            "mapped_rows": sum(1 for row in rows if row["mapping_state"] == "POOL_HEALTH_CAPACITY_BLAST_BOUNDS_MAPPED_READ_ONLY"),
+            "stop_safe_rows": sum(1 for row in rows if row["mapping_state"] != "POOL_HEALTH_CAPACITY_BLAST_BOUNDS_MAPPED_READ_ONLY"),
+            "runtime_actions_created": 0,
+            "authority_changes": 0,
+            "blast_radius_expansions": 0,
+            "threshold_changes": 0,
+            "formula_changes": 0,
+            "synthetic_evidence_created": 0,
+            "users_moved": 0,
+        },
+        "canonical_rules": [
+            "proxy_max_ejection_maps_to_v7_action_class_and_certified_blast_radius_bounds",
+            "proxy_minimum_health_maps_to_v7_capacity_load_service_fit_and_freshness_bounds",
+            "c7_reuses_existing_planner_capacity_and_blast_radius_owners",
+            "c7_does_not_change_capacity_thresholds_formulas_or_runtime_behavior",
+            "c7_does_not_expand_blast_radius_authority_or_runtime_apply",
+            "pool_level_movement_remains_blocked_without_separate_authority",
+        ],
+        "omp_output": {
+            "c7_status": "DONE_READ_ONLY_POOL_HEALTH_CAPACITY_BLAST_BOUNDS_MAPPED",
+            "produced_evidence": "pool_health_capacity_blast_bounds",
+            "unlocked_capability": "IMPLEMENTATION_COMPLETE",
+            "blocked_later_steps": [
+                "runtime_apply",
+                "automation",
+                "authority_expansion",
+                "blast_radius_expansion",
+                "threshold_formula_mutation",
+                "new_owner",
+                "planner_replacement",
+                "synthetic_evidence",
+                "user_movement",
+            ],
+            "next_safe_action": "stop_actionable_backlog_complete_report_status_or_wait_for_operator_authority",
+        },
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "blast_radius_expanded": False,
+        "threshold_values_changed": False,
+        "formula_changed": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+        "new_runtime_created": False,
+    }
+
+
 def build_all_at_once_promotion_unavailable_verification(
     *,
     action_class_runtime_enablement: dict[str, Any] | None = None,
@@ -11484,6 +11680,14 @@ def build_acceleration_inventory(
         org_cohort_identity_policy_integration=org_cohort_identity_policy_integration,
         generated_at=generated,
     )
+    pool_health_capacity_blast_bounds = build_pool_health_capacity_blast_bounds(
+        service_pool_cohort_blast_radius_scope=service_pool_cohort_blast_radius_scope,
+        class_level_blast_radius_certification=class_level_blast_radius_certification,
+        next_action_class_stage_certification=next_action_class_stage_certification,
+        bounded_stale_allowance_by_action_class=bounded_stale_allowance_by_action_class,
+        action_class_freshness_windows=action_class_freshness_windows,
+        generated_at=generated,
+    )
     all_at_once_promotion_unavailable_verification = build_all_at_once_promotion_unavailable_verification(
         action_class_runtime_enablement=action_class_runtime_enablement,
         class_level_blast_radius_certification=class_level_blast_radius_certification,
@@ -11611,6 +11815,7 @@ def build_acceleration_inventory(
         "metric_reliability_certification": metric_reliability_certification,
         "next_action_class_stage_certification": next_action_class_stage_certification,
         "service_pool_cohort_blast_radius_scope": service_pool_cohort_blast_radius_scope,
+        "pool_health_capacity_blast_bounds": pool_health_capacity_blast_bounds,
         "all_at_once_promotion_unavailable_verification": all_at_once_promotion_unavailable_verification,
         "rollback_authority_certification": rollback_authority_certification,
         "rt2_s5_certified_concurrency_ladder": rt2_s5_certified_concurrency_ladder,

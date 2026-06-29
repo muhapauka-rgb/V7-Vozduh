@@ -38,26 +38,26 @@ OMP must always choose the highest-priority unfinished backlog item unless it cr
 | --- | ---: | ---: | --- |
 | Tier A | `6` | `6` | `COMPLETE` |
 | Tier B | `21` | `21` | `COMPLETE` |
-| Tier C | `6` | `7` | `IN_PROGRESS` |
+| Tier C | `7` | `7` | `COMPLETE` |
 | Tier D optional | `0` | `6` | `OPTIONAL` |
-| Overall actionable | `33` | `34` | `ACTIVE` |
+| Overall actionable | `34` | `34` | `COMPLETE` |
 
 Implementation maturity:
 
 ```text
-97.1%
+100.0%
 ```
 
 Estimated remaining effort:
 
 ```text
-Moderate
+None for actionable backlog
 ```
 
 Next item:
 
 ```text
-C7
+IMPLEMENTATION_COMPLETE
 ```
 
 If all actionable backlog items are `DONE`, OMP must answer:
@@ -79,7 +79,7 @@ This section records the current mapping from confirmed remaining engineering ga
 | Centralized Policy Arbitration | OMP, Runtime Model, delegated policy preview, action-class runtime enablement | `A6` | Runtime eligibility arbitration across freshness, authority, blast radius, rollback, anti-flap, verification, and learning gates. Narrow supporting items `B19` and `B20` remain sub-policy extensions, not duplicate owners. | `EXTEND_EXISTING` |
 | Per-user `AUTO` / `PINNED` / `MANUAL` routing mode | User registry, group/organization policy, planner gates, admin UI | `B21` | Current assignment, group preference, and `manual_only`/`reserve_only` flags exist, but explicit per-user routing control mode is missing. | `ADD_TO_BACKLOG` |
 | Runtime-certified Slow-Start Recovery | Recovery admission, blast-radius/action-class ladder | `B10` | Recovery slow-start progression is defined read-only through existing B8/B9 recovery evidence and B10 blast-radius/action-class stage mapping; runtime consumption remains blocked until later certified implementation/authority. | `EXTEND_EXISTING_DONE_READ_ONLY` |
-| Pool Max-Ejection / Minimum-Health semantics | Planner capacity/load, action-class ladder, blast-radius bounds | `C7` | Capacity/load and authority budgets exist; proxy-style max-ejection/minimum-health mapping remains unfinished. | `EXTEND_EXISTING` |
+| Pool Max-Ejection / Minimum-Health semantics | Planner capacity/load, action-class ladder, blast-radius bounds | `C7` | `pool_health_capacity_blast_bounds` maps proxy-style max-ejection/minimum-health to existing V7 action-class, certified blast-radius, capacity/load, service-fit, freshness, and STOP_SAFE bounds without Runtime behavior change, authority expansion, threshold/formula mutation, synthetic evidence, or user movement. | `EXTEND_EXISTING_DONE_READ_ONLY` |
 | State Change Cost Model | Planner/autoswitch, movement protection model, anti-flap owners | `B19` | Already exists semantically as sticky/current-channel bonus, minimum improvement threshold, cooldown, freeze, pair reversal, target block, egress quarantine, rebalance restraint, and authority/blast caps. B19 owns vocabulary consolidation only. | `EXTEND_EXISTING` |
 
 Need New Owner: `FALSE`.
@@ -92,19 +92,19 @@ State Change Cost verdict: `ALREADY_EXISTS_SEMANTICALLY`; extend existing B19 vo
 
 | Field | Value |
 | --- | --- |
-| Backlog id | `C7` |
-| Status | `READY` |
-| Task | Map pool max-ejection/minimum-health semantics to V7 capacity and blast bounds. |
-| Policy source | `POLICY_009_ANTI_FLAP`, `POLICY_006_BLAST_RADIUS` |
-| Owner | Planner capacity/load, action-class ladder |
-| Files/modules | `tools/v7-users-autoswitch`, `admin_core/autonomy_trust_acceleration.py` |
-| Implementation class | `IMPLEMENT_READ_MODEL` |
-| Estimated effort | `SMALL_EXTENSION` |
-| Dependencies | Capacity/load evidence; C6 bounded stale allowance by action class. |
-| Expected production value | `MEDIUM_HIGH` |
-| Expected autonomy gain | `MEDIUM` |
-| Expected runtime gain | `MEDIUM_HIGH` |
-| Expected safety gain | `HIGH` |
+| Backlog id | `IMPLEMENTATION_COMPLETE` |
+| Status | `COMPLETE` |
+| Task | No actionable implementation backlog item remains. |
+| Policy source | Existing canonical policy library |
+| Owner | OMP |
+| Files/modules | Existing owners only |
+| Implementation class | `NONE` |
+| Estimated effort | `NONE` |
+| Dependencies | C7 complete. |
+| Expected production value | `N/A` |
+| Expected autonomy gain | `N/A` |
+| Expected runtime gain | `N/A` |
+| Expected safety gain | `N/A` |
 
 ## Runtime Latency Foundation Placement
 
@@ -193,7 +193,7 @@ Future runtime-latency work must map to the existing backlog owners above unless
 | `C4` | `DONE` | Keep all-at-once promotion unavailable for current action classes. | `POLICY_005_ACTION_CLASS_PROMOTION` | OMP, blast-radius gates | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, `admin_core/autonomy_trust_acceleration.py::build_all_at_once_promotion_unavailable_verification`, `tools/v7-autonomy-trust-evidence-inventory --routing-foundation-only` | `IMPLEMENT_VERIFICATION` | `NONE` | `all_at_once_promotion_unavailable_verification` consumes action-class runtime enablement, A5 blast-radius certification, B12 stage certification, B14 service/pool/cohort scope, and C3 break-glass policy evidence; it verifies all-at-once/direct class promotion remains unavailable and keeps Runtime apply, authority expansion, automation, blast-radius expansion, synthetic evidence, and user movement blocked. | `MEDIUM` | `MEDIUM` | `LOW` | `HIGH` |
 | `C5` | `DONE` | Preserve rollback as operational compensation rather than transaction rollback. | `POLICY_007_ROLLBACK` | Runtime Model, rollback policy | `docs/reference/V7_RUNTIME_MODEL.md`, `admin_core/operator_execution.py::rollback_operational_compensation_contract` | `IMPLEMENT_DOCUMENTATION` | `NONE` | `rollback_operational_compensation_contract` preserves rollback semantics as operational compensation, not database transaction/global rewind; allowed forms are abort, certified no-rollback, restore to fresh target, containment review, forward-fix with verification, or operator review when compensation fails; it grants no Runtime apply, rollback execution, authority expansion, planner replacement, synthetic evidence, or user movement. | `MEDIUM` | `LOW` | `MEDIUM` | `MEDIUM_HIGH` |
 | `C6` | `DONE` | Decide bounded stale allowance by action class. | `POLICY_008_FRESHNESS` | Freshness actionability, OMP stop rules | `admin_core/autonomy_trust_acceleration.py::build_bounded_stale_allowance_by_action_class`, `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | `bounded_stale_allowance_by_action_class` decides stale/unknown evidence is observable, diagnosable, and reportable, but has zero mutation allowance; fresh evidence inside existing action-class windows is required before mutation review; no Runtime behavior, authority, thresholds, formulas, synthetic evidence, or users changed. | `MEDIUM_HIGH` | `MEDIUM` | `MEDIUM` | `HIGH` |
-| `C7` | `TODO` | Map pool max-ejection/minimum-health semantics to V7 capacity and blast bounds. | `POLICY_009_ANTI_FLAP`, `POLICY_006_BLAST_RADIUS` | Planner capacity/load, action-class ladder | `tools/v7-users-autoswitch`, `admin_core/autonomy_trust_acceleration.py` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | Capacity/load evidence. | `MEDIUM_HIGH` | `MEDIUM` | `MEDIUM_HIGH` | `HIGH` |
+| `C7` | `DONE` | Map pool max-ejection/minimum-health semantics to V7 capacity and blast bounds. | `POLICY_009_ANTI_FLAP`, `POLICY_006_BLAST_RADIUS` | Planner capacity/load, action-class ladder, Runtime Model freshness/blast bounds, OMP | `tools/v7-users-autoswitch`, `admin_core/autonomy_trust_acceleration.py::build_pool_health_capacity_blast_bounds` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | `pool_health_capacity_blast_bounds` maps max-ejection to action-class and certified blast-radius user bounds, maps minimum-health to capacity/load, service-fit, freshness, and STOP_SAFE bounds, and reuses existing capacity/load, B14, A5, B12, C6, and freshness owners without Runtime behavior change, authority expansion, blast-radius expansion, threshold/formula mutation, synthetic evidence, or user movement. | `MEDIUM_HIGH` | `MEDIUM` | `MEDIUM_HIGH` | `HIGH` |
 
 ## Tier D: Optional
 

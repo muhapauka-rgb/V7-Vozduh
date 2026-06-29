@@ -1733,24 +1733,24 @@ Current backlog progress:
 | Tier B | `21` | `21` | `COMPLETE` |
 | Tier C | `6` | `7` | `IN_PROGRESS` |
 | Tier D optional | `0` | `6` | `OPTIONAL` |
-| Overall actionable | `33` | `34` | `ACTIVE` |
+| Overall actionable | `34` | `34` | `COMPLETE` |
 
 Implementation maturity:
 
 ```text
-97.1%
+100.0%
 ```
 
 Estimated remaining effort:
 
 ```text
-Moderate
+None for actionable backlog
 ```
 
 Next backlog item:
 
 ```text
-C7
+IMPLEMENTATION_COMPLETE
 ```
 
 ## 2.12.1. Engineering and Production Maturity
@@ -1832,21 +1832,21 @@ Current production snapshot:
 
 | Category | Current % | Target % | Weight |
 | --- | ---: | ---: | ---: |
-| Implementation | `97.1` | `100` | `20` |
+| Implementation | `100.0` | `100` | `20` |
 | Testing | `74` | `100` | `10` |
 | Production Deployments | `100` | `100` | `10` |
 | Production Outcomes | `25` | `100` | `15` |
 | Certification | `95` | `100` | `15` |
 | Authority Evolution | `15` | `100` | `10` |
 | Production Autonomy | `0` | `100` | `10` |
-| Implementation Backlog Completion | `97.1` | `100` | `10` |
+| Implementation Backlog Completion | `100.0` | `100` | `10` |
 
 Production Maturity:
 
 ```text
-Current: 66.0%
+Current: 66.9%
 Target: 100%
-Remaining: 34.0%
+Remaining: 33.1%
 ```
 
 Backlog:
@@ -1854,21 +1854,21 @@ Backlog:
 ```text
 Tier A: 6 / 6 complete
 Tier B: 21 / 21 complete
-Tier C: 6 / 7 complete
+Tier C: 7 / 7 complete
 Tier D: 0 / 6 optional complete
-Overall: 33 / 34 actionable complete
+Overall: 34 / 34 actionable complete
 ```
 
 Current highest implementation task:
 
 ```text
-C7: Map pool max-ejection/minimum-health semantics to V7 capacity and blast bounds.
+IMPLEMENTATION_COMPLETE
 ```
 
 Estimated remaining effort:
 
 ```text
-Moderate
+None for actionable backlog
 ```
 
 Current autonomy tier:
@@ -1880,7 +1880,7 @@ TIER_1_GOVERNED
 Next milestone:
 
 ```text
-50%: Implementation Half Complete
+80%: Runtime Production Ready
 ```
 
 Milestones:
@@ -1931,7 +1931,7 @@ Engineering Maturity
 PRODUCTION
 
 Implementation
-97.1%
+100.0%
 
 Certification
 95%
@@ -1940,13 +1940,13 @@ Autonomy
 0%
 
 Production Maturity
-66.0%
+66.9%
 
 Overall Status
 ENGINEERING_COMPLETE / PRODUCTION_IN_PROGRESS
 
 Current Focus
-IMPLEMENTATION
+IMPLEMENTATION_COMPLETE
 
 Backlog
 Tier A
@@ -1954,26 +1954,26 @@ Tier A
 Tier B
 21 / 21
 Tier C
-6 / 7
+7 / 7
 Tier D
 0 / 6 optional
 Overall
-33 / 34 complete
+34 / 34 complete
 
 Current Tier
 TIER_1_GOVERNED
 
 Highest Priority Task
-C7: map pool max-ejection/minimum-health semantics to V7 capacity and blast bounds.
+IMPLEMENTATION_COMPLETE
 
 Status
-C6 DONE_READ_ONLY / C7 Ready
+C7 DONE_READ_ONLY / ACTIONABLE BACKLOG COMPLETE
 
 Authority
 No expansion active
 
 Required Action
-Run C7 through existing planner capacity/load, action-class ladder, blast-radius-bound, verification, and canonical update owners.
+No actionable implementation item remains. Continue only for status reporting or explicit operator-approved new scope.
 
 Engineering
 READY
@@ -1985,10 +1985,10 @@ Packet
 NONE_ACTIVE
 
 Estimated Remaining Work
-Moderate
+None for actionable implementation backlog
 
 Expected Next Milestone
-50%: Implementation Half Complete
+80%: Runtime Production Ready
 ```
 
 Progress calculation must be automatic.
@@ -2009,6 +2009,7 @@ OMP must recalculate Production Status after:
 Current focus values:
 
 - `IMPLEMENTATION`
+- `IMPLEMENTATION_COMPLETE`
 - `CERTIFICATION`
 - `AUTHORITY`
 - `AUTONOMY`
@@ -2018,6 +2019,7 @@ Focus transition:
 
 ```text
 IMPLEMENTATION
+  -> IMPLEMENTATION_COMPLETE
   -> CERTIFICATION
   -> AUTHORITY EVOLUTION
   -> PRODUCTION AUTONOMY
@@ -2110,13 +2112,13 @@ Capability Dashboard must be printed in OMP Status:
 Capability Dashboard
 
 Capability | Current % | Ideal % | Remaining % | Current Maturity | Production Impact | Autonomy Impact | Blocking Backlog Items | Completion Prediction
-Movement Protection | 76.0% | 100% | 24.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | B16, B19, B21, C7 | Complete after movement stability, rollback, recovery, anti-flap, routing mode, slow-start, and pool-health criteria are satisfied.
+Movement Protection | 83.0% | 100% | 17.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | Future authority/runtime/certification and production outcome evidence | Actionable backlog prerequisites are complete through C7; movement remains blocked until certified authority/runtime scope exists.
 Runtime Eligibility | 61.0% | 100% | 39.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | B17, B18, C1, C6 | Complete after Runtime can decide execute-or-stop from certified gates and related stale-read/lease semantics are certified.
 Authority Evolution | 68.0% | 100% | 32.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | B12, B16, B21, C3, C4 | Complete after action classes and delegated policy can replace repeated packet approval.
 Rollback | 49.0% | 100% | 51.0% | IN_PROGRESS | VERY_HIGH | HIGH | A3, B15, B16 | Complete after rollback/no-rollback class evidence and authority are certified; C5 compensation semantics are complete.
 Recovery Admission | 78.0% | 100% | 22.0% | IN_PROGRESS | HIGH | HIGH | D2, D3 if optional recovery scope changes | Complete after recovered channels are reintroduced through certified readiness and slow-start and optional recovery scope remains resolved or explicitly not applicable.
 Learning | 63.0% | 100% | 37.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3 | Complete after real outcomes reliably improve future decisions.
-Production Readiness | 66.0% | 100% | 34.0% | IN_PROGRESS | VERY_HIGH | HIGH | Remaining actionable backlog and certification | Complete at PRODUCTION_AUTONOMY_CERTIFIED.
+Production Readiness | 66.9% | 100% | 33.1% | IN_PROGRESS | VERY_HIGH | HIGH | Future authority/runtime/certification and production outcome evidence | Complete at PRODUCTION_AUTONOMY_CERTIFIED.
 Production Autonomy | 0.0% | 100% | 100.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3, A4, A5, A6, B10, B12, B16, C4 | Complete when Runtime operates inside certified policy and operator supervises.
 Knowledge System | 100.0% | 100% | 0.0% | LOCKED | HIGH | MEDIUM_HIGH | None | Complete and locked under canonical knowledge rules.
 Observability | 63.0% | 100% | 37.0% | IN_PROGRESS | HIGH | MEDIUM_HIGH | B15, B17, C2 | Complete when operators and OMP can inspect all safety/runtime evidence without mutation.
@@ -2141,13 +2143,13 @@ Initial capability registry:
 
 | Capability | Purpose | Current % | Target % | Current Status | Canonical Owner | Production Value | Autonomy Impact | Blocking Backlog Items | Expected Completion Point | Re-open Triggers |
 | --- | --- | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |
-| Movement Protection | Prevent chaotic user movement while preserving fast reaction to real failures. | `76.0` | `100` | `IN_PROGRESS` | OMP, Movement Protection Model, Runtime Model, Canonical Policy Library | `VERY_HIGH` | `VERY_HIGH` | `B16`, `B19`, `B21`, `C7` | All Movement Protection DoD criteria complete or explicitly `NOT_APPLICABLE`. | Production evidence disproves behavior; planner/runtime architecture materially changes; explicit operator request. |
+| Movement Protection | Prevent chaotic user movement while preserving fast reaction to real failures. | `83.0` | `100` | `IN_PROGRESS` | OMP, Movement Protection Model, Runtime Model, Canonical Policy Library | `VERY_HIGH` | `VERY_HIGH` | Future authority/runtime/certification and production outcome evidence | Actionable implementation prerequisites are complete through C7; movement remains blocked until certified authority/runtime scope exists. | Production evidence disproves behavior; planner/runtime architecture materially changes; explicit operator request. |
 | Runtime Eligibility | Decide whether Runtime may execute or must stop using certified gates. | `61.0` | `100` | `IN_PROGRESS` | Runtime Model, OMP, delegated policy preview, action-class enablement owners | `VERY_HIGH` | `VERY_HIGH` | `B17`, `B18`, `C1`, `C6` | Action-class runtime eligibility arbitration is implemented; freshness/reporting semantics remain to be certified. | Runtime architecture changes; production eligibility failure; explicit operator request. |
 | Authority Evolution | Move from packet approval to bounded class/policy authority without silent expansion. | `68.0` | `100` | `IN_PROGRESS` | OMP, Authority policy, Runtime Model, action-class ladder | `VERY_HIGH` | `VERY_HIGH` | `B12`, `B16`, `B21`, `C3`, `C4` | Certified class evidence supports authority recommendation and operator/certified policy approval. | Authority incident; operator policy change; explicit authority expansion/shrink request. |
 | Rollback | Guarantee safe compensation or certified no-rollback behavior for production actions. | `49.0` | `100` | `IN_PROGRESS` | Restore barrier, rollback manifest, Runtime Model, execution feedback | `VERY_HIGH` | `HIGH` | `A3`, `B15`, `B16` | Rollback/no-rollback class evidence and automatic rollback authority are certified; C5 compensation semantics are complete. | Failed rollback; verification failure pattern; explicit operator request. |
 | Recovery Admission | Admit recovered channels safely without oscillation or premature scale. | `78.0` | `100` | `IN_PROGRESS` | Recovery admission owner, service matrix, quality compact, blast-radius/action-class ladder | `HIGH` | `HIGH` | `D2`, `D3` if optional recovery scope changes | Repeated real readiness evidence, observation windows, and read-only slow-start progression are complete; runtime consumption remains future authority/implementation work. | Recovery incident; service evidence changes; explicit operator request. |
 | Learning | Convert real outcomes into future decision quality without synthetic evidence. | `63.0` | `100` | `IN_PROGRESS` | Feedback/learning owner, OMP, Canonical Reference | `VERY_HIGH` | `VERY_HIGH` | `A3` | Representative real outcomes and metric reliability support promotion recommendations. | Learning regression; synthetic evidence risk; explicit operator request. |
-| Production Readiness | Make V7 deployable, operable, verifiable, and certifiable as a production system. | `66.0` | `100` | `IN_PROGRESS` | OMP, Production Maturity Model, Implementation Backlog | `VERY_HIGH` | `HIGH` | `C7`, optional `D1`-`D6` only if scope changes | Production Maturity reaches `100%` and outputs `PRODUCTION_AUTONOMY_CERTIFIED`. | Production safety incident; deploy model change; explicit operator request. |
+| Production Readiness | Make V7 deployable, operable, verifiable, and certifiable as a production system. | `66.9` | `100` | `IN_PROGRESS` | OMP, Production Maturity Model, Implementation Backlog | `VERY_HIGH` | `HIGH` | Future authority/runtime/certification and production outcome evidence; optional `D1`-`D6` only if scope changes | Production Maturity reaches `100%` and outputs `PRODUCTION_AUTONOMY_CERTIFIED`. | Production safety incident; deploy model change; explicit operator request. |
 | Production Autonomy | Enable Runtime to operate inside certified authority while operator supervises. | `0.0` | `100` | `IN_PROGRESS` | OMP, Runtime Model, Authority Evolution, action-class promotion | `VERY_HIGH` | `VERY_HIGH` | `A3`, `A4`, `A5`, `A6`, `B10`, `B12`, `B16`, `C4` | Bounded autonomy and then production autonomy are certified by real outcomes and approved authority. | Autonomy incident; authority policy change; explicit operator request. |
 | Knowledge System | Preserve verified project knowledge and prevent repeated rediscovery. | `100.0` | `100` | `LOCKED` | Canonical Reference, Context Resolver, Research Framework, Policy Library, Document Lifecycle | `HIGH` | `MEDIUM_HIGH` | None current. | Current knowledge owners remain canonical and read-only under document lifecycle rules. | Industry consensus changes; `FUNDAMENTAL_ARCHITECTURE_GAP`; explicit operator request. |
 | Observability | Expose enough read-only truth for operators, OMP, Runtime, and certification. | `35.0` | `100` | `IN_PROGRESS` | Admin read models, trust/evidence inventory, truth/convergence | `HIGH` | `MEDIUM_HIGH` | `B1`, `B4`, `B9`, `B15`, `B17`, `C2` | Read-only evidence shows eligibility, rollback, stale reads, promotion quality, and runtime readiness. | Operator cannot diagnose; evidence disagreement; explicit operator request. |
@@ -2485,12 +2487,12 @@ World-practice comparison:
 
 | Mature system family | Matching production principle | V7 target-state match | Backlog owner if incomplete |
 | --- | --- | --- | --- |
-| Cisco | Liveness evidence, protocol/object tracking, hold-down/dampening, bounded failover. | Matches through hard-failure classification, cooldown, movement protection, blast-radius and rollback gates. | `A5`, `B19`, `C7` for remaining centralized/pool semantics. |
+| Cisco | Liveness evidence, protocol/object tracking, hold-down/dampening, bounded failover. | Matches through hard-failure classification, cooldown, movement protection, blast-radius and rollback gates. | Read-only mapping complete through `A5`, `B19`, and `C7`; future runtime consumption requires authority/certification. |
 | Juniper | BFD/liveness, damping, timers, routing policy, explicit operational controls. | Matches through liveness/freshness gates, cooldown/dampening, authority separation, and state-change cost. | `A6`, `B19` for arbitration and vocabulary consolidation. |
-| Cloudflare | Health checks, fallback pools, consecutive success/failure, pool health, traffic safety. | Matches through hard failure, recovery admission, freshness, blast radius, rollback, and pool-health target semantics. | `B8`, `B10`, `C7`. |
+| Cloudflare | Health checks, fallback pools, consecutive success/failure, pool health, traffic safety. | Matches through hard failure, recovery admission, freshness, blast radius, rollback, and pool-health target semantics. | Read-only mapping complete through `B8`, `B10`, and `C7`; future runtime consumption requires authority/certification. |
 | Google SRE | Avoid cascading failure, verify changes, rollback before trust, canary, gradual recovery, learn from outcomes. | Matches through rollback, verification, learning, action-class promotion, and real-outcome-only certification. | `A3`, `A4`, `B13`, `B16`. |
 | Kubernetes | Desired/current state separation, readiness, probes, rollout bounds, reconciliation, backoff. | Matches through Runtime executing prepared decisions, freshness/readiness, recovery admission, anti-flap, and stop-safe semantics. | `A6`, `B8`, `B9`, `B10`, `C1`, `C6`. |
-| Envoy | Outlier detection, ejection, max ejection percent, min health, active health checking, circuit breaking. | Matches through degradation/anti-flap target state and V7-native capacity/blast bounds; proxy-specific max-ejection/min-health mapping remains partial. | `B3`, `B4`, `B5`, `B6`, `C7`. |
+| Envoy | Outlier detection, ejection, max ejection percent, min health, active health checking, circuit breaking. | Matches through degradation/anti-flap target state and V7-native capacity/blast bounds; proxy-specific max-ejection/min-health mapping is complete as read-only C7 semantics, not runtime ejection behavior. | Read-only mapping complete through `B3`, `B4`, `B5`, `B6`, and `C7`; future runtime consumption requires authority/certification. |
 
 World-practice verdict:
 
@@ -2533,7 +2535,7 @@ Movement Protection remains `IN_PROGRESS`.
 Current estimated Movement Protection completion:
 
 ```text
-34.0%
+33.1%
 ```
 
 Backlog-to-capability coverage:
@@ -4032,15 +4034,15 @@ If daemon, timer, event consumer mutation, autonomous execution, action-class ex
 | --- | --- |
 | Completed phases | Architecture foundation, Research Framework, Decision Model, Runtime Model, System Architecture, Implementation Phase activation, OMP Production Program integration. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle; OMP Production Program rule set. |
-| Current bottleneck | C6 bounded stale allowance by action class is next; C5 is complete as read-only rollback operational compensation contract. |
-| Current highest leverage action | Run C7 through existing planner capacity/load, action-class ladder, blast-radius-bound, verification, and canonical update owners. |
+| Current bottleneck | Actionable implementation backlog is complete; future work requires explicit operator-approved scope and OMP admission. |
+| Current highest leverage action | Stop actionable backlog execution; report status or wait for explicit operator-approved new scope. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | None yet for C7 pool health/capacity mapping; C7 must not turn capacity semantics into Runtime apply, blast-radius expansion, authority expansion, threshold/formula mutation, automation, synthetic evidence, user movement, planner replacement, or a new owner. |
-| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; Production Maturity `66.0%`; Tier A backlog `6 / 6`; Tier B backlog `21 / 21`; Tier C backlog `6 / 7`; overall backlog `33 / 34`. |
+| Current blockers | Actionable backlog is complete; Runtime apply, blast-radius expansion, authority expansion, threshold/formula mutation, automation, synthetic evidence, user movement, planner replacement, and new owner creation remain blocked without explicit future authority/scope. |
+| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; Production Maturity `66.9%`; Tier A backlog `6 / 6`; Tier B backlog `21 / 21`; Tier C backlog `7 / 7`; overall backlog `34 / 34`. |
 | Current runtime posture | No autonomous apply, no daemon enablement, no authority expansion; local validation moved `0` users and now stops explicitly with `runtime_state_unavailable` when local `/opt/v7` state is absent. |
-| Current next best action | `C7_MAP_POOL_MAX_EJECTION_MINIMUM_HEALTH_SEMANTICS_TO_V7_CAPACITY_AND_BLAST_BOUNDS`; no runtime apply, no automation, no authority expansion, no blast-radius expansion, no threshold/formula mutation, no synthetic evidence, no user movement, no planner replacement, no new owner, no new backlog, no architecture change. |
+| Current next best action | `IMPLEMENTATION_COMPLETE`; no runtime apply, no automation, no authority expansion, no blast-radius expansion, no threshold/formula mutation, no synthetic evidence, no user movement, no planner replacement, no new owner, no new backlog, no architecture change. |
 | Last optimizer iteration | `2026-06-29`: RT2-S6 evidence-based continuous improvement implemented as read-only owner-mapped advisory recommendation; current result is `DONE_READ_ONLY_OWNER_MAPPED_RECOMMENDATION`; tests passed. |
 
 ## 24.1 Capability Transition Contract
@@ -4107,11 +4109,11 @@ Current transition state:
 
 | Field | Value |
 | --- | --- |
-| Last completed transition | `C6 -> C7` |
-| Produced evidence | `bounded_stale_allowance_by_action_class = DONE_READ_ONLY_BOUNDED_STALE_ALLOWANCE_BY_ACTION_CLASS`; C6 preserves stale-read visibility while keeping stale mutation allowance at `0`. |
-| Current unlocked step | `C7_MAP_POOL_MAX_EJECTION_MINIMUM_HEALTH_SEMANTICS_TO_V7_CAPACITY_AND_BLAST_BOUNDS` |
+| Last completed transition | `C7 -> IMPLEMENTATION_COMPLETE` |
+| Produced evidence | `pool_health_capacity_blast_bounds = DONE_READ_ONLY_POOL_HEALTH_CAPACITY_BLAST_BOUNDS_MAPPED`; C7 maps max-ejection/minimum-health semantics to existing capacity/load, action-class, freshness, certified blast-radius, and STOP_SAFE bounds. |
+| Current unlocked step | `IMPLEMENTATION_COMPLETE` |
 | Current forbidden later steps | Runtime self-optimization; automatic recommendations; direct implementation without OMP; authority lowering; safety-gate weakening; Runtime apply; automation; concurrency enablement; authority expansion; stale-read mutation; blast-radius expansion; all-at-once promotion; queue daemon; planner replacement; registry write; stale mutation authority; user movement |
-| Safety reason | Only existing backlog continuation is unlocked; C6 output is read-only freshness evidence and cannot mutate Runtime, authorize stale-read mutation, expand authority, synthesize evidence, start implementation outside OMP, create a new owner, replace Planner, widen blast radius, or move users. |
+| Safety reason | Only actionable backlog closure is unlocked; C7 output is read-only capacity/blast-bound evidence and cannot mutate Runtime, authorize pool movement, expand authority, synthesize evidence, start implementation outside OMP, create a new owner, replace Planner, widen blast radius, or move users. |
 
 ## 24.2 Capability Production Contract
 
@@ -4195,6 +4197,7 @@ Producer / consumer matrix:
 | `C4` | All-at-Once Promotion Unavailable Verification. | `all_at_once_promotion_unavailable_verification`; current action classes have all-at-once/direct promotion unavailable and class-by-class authority review remains required. | Existing OMP, blast-radius/action-class gates, A5/B12/B14 evidence owners, C3 break-glass policy boundary, Backlog, Production Maturity + `admin_core.autonomy_trust_acceleration`. | OMP, `C5`, Current Program State, Production Maturity, Canonical Reference, Authority Evolution, Blast Radius, Decision Explainability, Observability, Production Autonomy. | Rollback As Operational Compensation. | `C5` | Runtime apply, automation, silent authority expansion, all-at-once promotion, direct class promotion, blast-radius expansion, rollback/apply execution, synthetic evidence, user movement, planner replacement. | `C6+`, runtime apply. | C4 proves broad promotion is unavailable without authorizing anything; C5 may now preserve rollback semantics against stable authority/promotion boundaries. |
 | `C5` | Rollback Operational Compensation Contract. | `rollback_operational_compensation_contract`; rollback is preserved as operational compensation, not database transaction/global rewind. | Existing Runtime Model, rollback policy, OMP, Backlog, Production Maturity + `admin_core.operator_execution`. | OMP, `C6`, Current Program State, Production Maturity, Canonical Reference, Runtime Eligibility, Rollback, Decision Explainability, Observability, Production Autonomy. | Bounded Stale Allowance By Action Class. | `C6` | Runtime apply, automation, stale-read mutation, authority expansion, automatic rollback execution, transaction rollback abstraction, synthetic evidence, user movement, planner replacement. | `C7+`, runtime apply. | C5 preserves rollback semantics without authorizing anything; C6 may now decide stale-read allowance by action class against explicit freshness and compensation boundaries. |
 | `C6` | Bounded Stale Allowance By Action Class. | `bounded_stale_allowance_by_action_class`; stale/unknown evidence is observable, diagnosable, and reportable, but stale mutation allowance is `0` and fresh evidence inside existing action-class windows is required before mutation review. | Existing freshness actionability, Runtime Model freshness gates, OMP stop rules, Backlog, Production Maturity + `admin_core.autonomy_trust_acceleration`. | OMP, `C7`, Current Program State, Production Maturity, Canonical Reference, Runtime Eligibility, Decision Explainability, Observability, Production Autonomy. | Pool Max-Ejection / Minimum-Health Capacity and Blast Bounds. | `C7` | Runtime apply, automation, stale-read mutation, authority expansion, threshold/formula mutation, blast-radius expansion, synthetic evidence, user movement, planner replacement. | Runtime apply and post-C7 implementation. | C6 makes stale-read allowance explicit without authorizing stale mutation; C7 may now map pool health/capacity semantics against known freshness and blast boundaries. |
+| `C7` | Pool Max-Ejection / Minimum-Health Capacity and Blast Bounds. | `pool_health_capacity_blast_bounds`; proxy-style max-ejection maps to action-class and certified blast-radius user bounds, and minimum-health maps to capacity/load, service-fit, freshness, and STOP_SAFE bounds. | Existing planner capacity/load, action-class ladder, Runtime Model freshness/blast bounds, OMP, Backlog, Production Maturity + `admin_core.autonomy_trust_acceleration`. | OMP, Current Program State, Production Maturity, Canonical Reference, Runtime Eligibility, Movement Protection, Blast Radius, Decision Explainability, Observability, Production Autonomy. | Actionable Implementation Backlog Complete. | `IMPLEMENTATION_COMPLETE` | Runtime apply, automation, authority expansion, blast-radius expansion, threshold/formula mutation, synthetic evidence, new owner, planner replacement, pool-level movement, user movement. | Explicit operator-approved future scope only. | C7 closes the final actionable backlog mapping without authorizing execution or changing Runtime behavior; OMP now stops actionable backlog execution. |
 
 Capability graph validation:
 
@@ -4211,13 +4214,13 @@ Current produced capability state:
 
 | Field | Value |
 | --- | --- |
-| Last produced capability | Bounded Stale Allowance By Action Class |
-| Producer stage | `C6` |
-| Produced evidence | `bounded_stale_allowance_by_action_class = DONE_READ_ONLY_BOUNDED_STALE_ALLOWANCE_BY_ACTION_CLASS`; next step is existing backlog item `C7`. |
-| Capability owner | Existing freshness actionability, Runtime Model freshness gates, OMP stop rules, Backlog, Production Maturity + `admin_core.autonomy_trust_acceleration` |
-| Current consumers | OMP, `C7`, Current Program State, Production Maturity, Canonical Reference, Runtime Eligibility, Decision Explainability, Observability, Production Autonomy |
-| Current unlocked capability | Pool Max-Ejection / Minimum-Health Capacity and Blast Bounds |
-| Current blocked capabilities | Runtime apply, automation, stale-read mutation, authority expansion, threshold/formula mutation, blast-radius expansion, new owner, queue daemon, planner replacement, synthetic evidence, user movement |
+| Last produced capability | Pool Max-Ejection / Minimum-Health Capacity and Blast Bounds |
+| Producer stage | `C7` |
+| Produced evidence | `pool_health_capacity_blast_bounds = DONE_READ_ONLY_POOL_HEALTH_CAPACITY_BLAST_BOUNDS_MAPPED`; actionable implementation backlog is complete. |
+| Capability owner | Existing planner capacity/load, action-class ladder, Runtime Model freshness/blast bounds, OMP stop rules, Backlog, Production Maturity + `admin_core.autonomy_trust_acceleration` |
+| Current consumers | OMP, Current Program State, Production Maturity, Canonical Reference, Runtime Eligibility, Movement Protection, Blast Radius, Decision Explainability, Observability, Production Autonomy |
+| Current unlocked capability | `IMPLEMENTATION_COMPLETE` |
+| Current blocked capabilities | Runtime apply, automation, stale-read mutation, authority expansion, threshold/formula mutation, blast-radius expansion, new owner, queue daemon, planner replacement, synthetic evidence, pool-level movement, user movement |
 
 ## 24.3 OMP Progress Dashboard Model
 
@@ -4373,12 +4376,12 @@ Current dashboard snapshot:
 | Tier B | `[##########] 21 / 21 COMPLETE` |
 | RT2 | `[##########] 6 / 6 COMPLETE_READ_ONLY` |
 | Engineering Intelligence | `[########--] FINAL_CANONICAL_STATE / implementation evidence future` |
-| Overall actionable backlog | `33 / 34 complete` |
-| Production Maturity | `[#######---] 66.0 / 100; target 100; remaining 34.0` |
-| Current step | `C7_MAP_POOL_MAX_EJECTION_MINIMUM_HEALTH_SEMANTICS_TO_V7_CAPACITY_AND_BLAST_BOUNDS` |
-| Previous step | `C6_DECIDE_BOUNDED_STALE_ALLOWANCE_BY_ACTION_CLASS` |
-| Reason current step is available | C6 produced bounded stale allowance evidence without granting stale mutation, Runtime apply, or authority, enabling C7 to map pool health/capacity semantics against explicit freshness and blast boundaries. |
-| Current stop | `NONE_FOR_C7_POOL_HEALTH_CAPACITY_BLAST_BOUNDS` |
+| Overall actionable backlog | `34 / 34 complete` |
+| Production Maturity | `[#######---] 66.9 / 100; target 100; remaining 33.1` |
+| Current step | `IMPLEMENTATION_COMPLETE` |
+| Previous step | `C7_MAP_POOL_MAX_EJECTION_MINIMUM_HEALTH_SEMANTICS_TO_V7_CAPACITY_AND_BLAST_BOUNDS` |
+| Reason current step is available | C7 produced pool health capacity and blast-bound evidence without granting Runtime apply, authority, blast-radius expansion, threshold/formula mutation, synthetic evidence, or user movement. |
+| Current stop | `ACTIONABLE_BACKLOG_COMPLETE` |
 
 RT2 dashboard:
 
@@ -4614,15 +4617,15 @@ Operator Home Screen conceptual mockup:
 V7 / OMP Dashboard                                      READ ONLY
 Product Execution Mode             Operator View | Engineering View
 
-[Production Maturity 66.0/100] [Current: C7] [RT2 Complete] [EI Canonical]
+[Production Maturity 66.9/100] [Current: IMPLEMENTATION_COMPLETE] [RT2 Complete] [EI Canonical]
 
 Overall Progress
 Architecture [##########]  Tier A [##########]  Tier B [######----]
 RT2          [##########]  Backlog [######----] Production [#####-----]
 
 Current Stage
-C6 completed -> C7 current -> Continue OMP after evidence/report/canonical update
-Why now: C6 produced owner-mapped bounded stale allowance evidence.
+C7 completed -> IMPLEMENTATION_COMPLETE -> Stop actionable backlog execution
+Why now: C7 produced owner-mapped pool health capacity and blast-bound evidence.
 
 Capability
 Produced: Probabilistic Suspicion Advisory Evidence

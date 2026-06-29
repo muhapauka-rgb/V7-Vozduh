@@ -3102,6 +3102,102 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(model["users_moved"], 0)
         self.assertFalse(model["authority_expanded"])
 
+    def test_c7_pool_health_capacity_blast_bounds_maps_proxy_semantics_read_only(self):
+        model = accel.build_pool_health_capacity_blast_bounds(
+            service_pool_cohort_blast_radius_scope={
+                "schema_version": "v7.b14-service-pool-cohort-blast-radius-scope.v1",
+                "rows": [{
+                    "user": "10.7.0.2",
+                    "target_channel": "awg0",
+                    "pool_scope": {
+                        "pool": "awg0",
+                        "capacity_decision": "capacity_available",
+                        "projected_load": {"users": 1, "soft_limit": 5, "hard_limit": 10},
+                    },
+                    "service_scope": {"fit_verdict": "FIT", "required_services": ["telegram"]},
+                    "blast_radius_scope": {"beyond_one_user_certified": True},
+                    "action_class_scope": {
+                        "current_action_class": "two-user governed candidate failover",
+                        "stage_certification_state": "NEXT_ACTION_CLASS_STAGE_CERTIFIED_FOR_AUTHORITY_REVIEW_READ_ONLY",
+                    },
+                    "blockers": [],
+                }],
+            },
+            class_level_blast_radius_certification={
+                "schema_version": "v7.a5-class-level-blast-radius-certification.v1",
+                "beyond_one_user_certified": True,
+                "max_historical_certified_blast_radius_users": 4,
+            },
+            next_action_class_stage_certification={
+                "schema_version": "v7.b12-next-action-class-stage-certification.v1",
+                "next_stage": {
+                    "stage_certification_state": "NEXT_ACTION_CLASS_STAGE_CERTIFIED_FOR_AUTHORITY_REVIEW_READ_ONLY",
+                    "authority_review_required": True,
+                },
+            },
+            bounded_stale_allowance_by_action_class={
+                "schema_version": "v7.c6-bounded-stale-allowance-by-action-class.v1",
+                "decision": {
+                    "stale_evidence_mutation_allowed": False,
+                    "fresh_evidence_required_before_mutation": True,
+                },
+            },
+            action_class_freshness_windows={
+                "schema_version": "v7.action-class-freshness-windows.v1",
+                "rows": [{
+                    "action_class": "two-user governed candidate failover",
+                    "freshness_windows": {"capacity": 600, "service": 600},
+                }],
+            },
+            generated_at="2026-06-25T00:00:00+00:00",
+        )
+
+        self.assertEqual(model["schema_version"], "v7.c7-pool-health-capacity-blast-bounds.v1")
+        self.assertEqual(model["backlog_item"], "C7")
+        row = model["rows"][0]
+        self.assertEqual(row["mapping_state"], "POOL_HEALTH_CAPACITY_BLAST_BOUNDS_MAPPED_READ_ONLY")
+        self.assertEqual(row["v7_max_ejection_bound"]["max_ejection_users_read_model"], 2)
+        self.assertEqual(row["v7_minimum_health_bound"]["minimum_health_state"], "PASS")
+        self.assertEqual(row["freshness_bound"]["freshness_windows"]["capacity"], 600)
+        self.assertIn("max_ejection", model["semantic_mapping"])
+        self.assertEqual(model["summary"]["threshold_changes"], 0)
+        self.assertEqual(model["summary"]["formula_changes"], 0)
+        self.assertEqual(model["omp_output"]["unlocked_capability"], "IMPLEMENTATION_COMPLETE")
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+        self.assertFalse(model["blast_radius_expanded"])
+        self.assertFalse(model["threshold_values_changed"])
+        self.assertFalse(model["formula_changed"])
+        self.assertFalse(model["new_owner_created"])
+
+    def test_c7_inventory_exposes_pool_health_capacity_blast_bounds(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        model = inventory["pool_health_capacity_blast_bounds"]
+        self.assertEqual(model["schema_version"], "v7.c7-pool-health-capacity-blast-bounds.v1")
+        self.assertEqual(model["backlog_item"], "C7")
+        self.assertEqual(
+            model["omp_output"]["c7_status"],
+            "DONE_READ_ONLY_POOL_HEALTH_CAPACITY_BLAST_BOUNDS_MAPPED",
+        )
+        self.assertEqual(model["summary"]["runtime_actions_created"], 0)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+        self.assertFalse(model["blast_radius_expanded"])
+
     def test_c2_probabilistic_suspicion_is_advisory_only(self):
         shadow = shadow_autonomy.build_shadow_autonomy_model(
             {

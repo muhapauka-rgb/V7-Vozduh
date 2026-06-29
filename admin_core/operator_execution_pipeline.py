@@ -2320,6 +2320,106 @@ def _authority_boundary_approval_prompt(
     }
 
 
+def break_glass_authority_policy_contract() -> dict[str, Any]:
+    """Define C3 break-glass policy as audited exception, not authority grant."""
+    return {
+        "schema_version": "v7.c3-break-glass-authority-policy.v1",
+        "owner": "OMP + operator authority + admin_core/operator_execution_pipeline.py",
+        "backlog_item": "C3",
+        "policy_status": "DEFINED_NOT_APPROVED_FOR_RUNTIME",
+        "omp_output": {
+            "c3_status": "DONE_READ_ONLY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY",
+            "produced_evidence": "break_glass_authority_policy_contract",
+            "unlocked_capability": "C4_OR_NEXT_OMP_ITEM_AFTER_CANONICAL_UPDATE",
+        },
+        "definition": {
+            "purpose": "exceptional operator-controlled recovery path for real incident handling",
+            "default_state": "DISABLED",
+            "normal_runtime_authority": "UNCHANGED",
+            "runtime_apply_permission": "NOT_GRANTED",
+            "automation_permission": "NOT_GRANTED",
+            "authority_expansion_permission": "NOT_GRANTED",
+            "operator_policy_approval_required": True,
+            "incident_or_emergency_context_required": True,
+            "audit_required": True,
+            "truth_convergence_required": True,
+            "omp_and_cps_update_required": True,
+        },
+        "required_evidence_before_use": [
+            "operator declared incident or emergency context",
+            "explicit operator policy approval for this exceptional path",
+            "exact subject, target, scope, and timebox",
+            "existing packet or rollback evidence when movement/rollback is involved",
+            "audit path availability",
+            "verification and closure plan",
+            "truth/convergence check before and after any approved operation",
+        ],
+        "forbidden_triggers": [
+            "probabilistic suspicion alone",
+            "shadow recommendation alone",
+            "low confidence alone",
+            "dashboard status",
+            "Runtime self-optimization",
+            "automatic recommendation ranking",
+            "planner preference",
+        ],
+        "forbidden_effects": [
+            "silent authority expansion",
+            "Runtime apply enablement",
+            "automation enablement",
+            "new planner creation",
+            "new owner creation",
+            "new truth source creation",
+            "synthetic evidence creation",
+            "threshold or formula mutation",
+            "user movement without exact approved packet",
+            "rollback execution without exact approved rollback packet",
+        ],
+        "audit_contract": {
+            "must_record": [
+                "operator identity or approval owner",
+                "incident/context id",
+                "scope",
+                "timebox",
+                "approved action",
+                "evidence consumed",
+                "verification result",
+                "rollback result if any",
+                "closure state",
+                "truth/convergence result",
+                "OMP/CPS continuation",
+            ],
+            "audit_owner": CANONICAL_OBSERVABILITY_OWNER,
+            "closure_owner": CANONICAL_FEEDBACK_OWNER,
+            "packet_owner": CANONICAL_PACKET_OWNER,
+        },
+        "safety": {
+            "read_only_contract": True,
+            "break_glass_authority_granted_now": False,
+            "runtime_apply_allowed_now": False,
+            "automation_enabled": False,
+            "authority_expanded": False,
+            "planner_replaced": False,
+            "synthetic_evidence_created": False,
+            "users_moved": 0,
+        },
+        "blocked_until_explicit_operator_policy": [
+            "break_glass_invocation",
+            "restore_barrier_write",
+            "apply",
+            "rollback_apply",
+            "user_movement",
+            "authority_expansion",
+        ],
+        "canonical_rule": (
+            "Break-glass in V7 is an audited exceptional operator policy only; "
+            "it is never a Runtime default, never a Planner capability, and never "
+            "a substitute for evidence, packet identity, verification, rollback, "
+            "truth/convergence, OMP reporting, or Current Program State update."
+        ),
+    }
+
+
 def _candidate_from_execution_lease(lease: dict[str, Any]) -> dict[str, Any]:
     packet = lease.get("packet") if isinstance(lease.get("packet"), dict) else {}
     lock = packet.get("approved_plan_lock") if isinstance(packet.get("approved_plan_lock"), dict) else {}
@@ -2771,6 +2871,7 @@ def governed_canary_knowledge_gated_dry_run_cycle(
         dry_run=dry_run,
         stop_reason=stop_reason,
     )
+    break_glass_policy = break_glass_authority_policy_contract()
     action_class_runtime_enablement = _action_class_runtime_enablement_preview(
         packet_preview=packet_preview,
         candidate=candidate,
@@ -2831,6 +2932,7 @@ def governed_canary_knowledge_gated_dry_run_cycle(
         "learning_path": learning_path,
         "runtime_lifecycle_preview": runtime_lifecycle,
         "approval_prompt": approval_prompt,
+        "break_glass_authority_policy": break_glass_policy,
         "action_class_runtime_enablement": action_class_runtime_enablement,
         "dry_run": dry_run,
         "cycle_steps": [

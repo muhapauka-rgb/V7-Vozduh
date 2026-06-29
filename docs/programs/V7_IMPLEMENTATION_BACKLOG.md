@@ -38,14 +38,14 @@ OMP must always choose the highest-priority unfinished backlog item unless it cr
 | --- | ---: | ---: | --- |
 | Tier A | `6` | `6` | `COMPLETE` |
 | Tier B | `21` | `21` | `COMPLETE` |
-| Tier C | `2` | `7` | `IN_PROGRESS` |
+| Tier C | `3` | `7` | `IN_PROGRESS` |
 | Tier D optional | `0` | `6` | `OPTIONAL` |
-| Overall actionable | `29` | `34` | `ACTIVE` |
+| Overall actionable | `30` | `34` | `ACTIVE` |
 
 Implementation maturity:
 
 ```text
-85.3%
+88.2%
 ```
 
 Estimated remaining effort:
@@ -57,7 +57,7 @@ Moderate
 Next item:
 
 ```text
-C3
+C4
 ```
 
 If all actionable backlog items are `DONE`, OMP must answer:
@@ -92,18 +92,18 @@ State Change Cost verdict: `ALREADY_EXISTS_SEMANTICALLY`; extend existing B19 vo
 
 | Field | Value |
 | --- | --- |
-| Backlog id | `C3` |
+| Backlog id | `C4` |
 | Status | `READY` |
-| Task | Define break-glass authority as audited exceptional operator policy. |
-| Policy source | `POLICY_004_AUTHORITY` |
-| Owner | OMP, operator authority |
-| Files/modules | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, `admin_core/operator_execution_pipeline.py` |
-| Implementation class | `IMPLEMENT_DOCUMENTATION` |
-| Estimated effort | `SMALL_EXTENSION` |
-| Dependencies | Operator policy approval; C2 advisory-only suspicion boundary. |
+| Task | Keep all-at-once promotion unavailable for current action classes. |
+| Policy source | `POLICY_005_ACTION_CLASS_PROMOTION` |
+| Owner | OMP, blast-radius gates |
+| Files/modules | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, `admin_core/autonomy_trust_acceleration.py` |
+| Implementation class | `IMPLEMENT_VERIFICATION` |
+| Estimated effort | `NONE` |
+| Dependencies | Current authority model; C3 break-glass audited exceptional operator policy. |
 | Expected production value | `MEDIUM` |
-| Expected autonomy gain | `LOW` |
-| Expected runtime gain | `MEDIUM` |
+| Expected autonomy gain | `MEDIUM` |
+| Expected runtime gain | `LOW` |
 | Expected safety gain | `HIGH` |
 
 ## Runtime Latency Foundation Placement
@@ -189,7 +189,7 @@ Future runtime-latency work must map to the existing backlog owners above unless
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `C1` | `DONE` | Record fail-open/fail-closed behavior per action class. | `POLICY_001_HARD_FAILURE` | Runtime Model, OMP, planner gates | `docs/reference/V7_RUNTIME_MODEL.md`, `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, `admin_core/autonomy_trust_acceleration.py::build_fail_open_fail_closed_action_class_behavior`, `tools/v7-autonomy-trust-evidence-inventory --routing-foundation-only` | `IMPLEMENT_READ_MODEL` | `NONE` | `fail_open_fail_closed_action_class_behavior` records per-action-class fail-closed runtime mutation/apply behavior and read-only fail-open allowance for diagnosis/evidence/report/canonical update, without Runtime changes, authority expansion, planner replacement, synthetic evidence, or user movement. | `MEDIUM` | `MEDIUM` | `MEDIUM` | `HIGH` |
 | `C2` | `DONE` | Use probabilistic suspicion only as advisory evidence. | `POLICY_002_SOFT_DEGRADATION` | Trust/confidence model, shadow autonomy | `admin_core/shadow_autonomy.py`, `admin_core/autonomy_trust_acceleration.py::build_probabilistic_suspicion_advisory_evidence`, `tools/v7-autonomy-trust-evidence-inventory --routing-foundation-only` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | `probabilistic_suspicion_advisory_evidence` keeps shadow autonomy, source-confidence, and soft-degradation suspicion as advisory-only evidence with direct blocking power `NONE`, direct execution power `NONE`, and no Runtime apply, authority expansion, threshold/formula mutation, synthetic evidence, planner replacement, or user movement. | `MEDIUM` | `MEDIUM` | `MEDIUM` | `MEDIUM_HIGH` |
-| `C3` | `TODO` | Define break-glass authority as audited exceptional operator policy. | `POLICY_004_AUTHORITY` | OMP, operator authority | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, `admin_core/operator_execution_pipeline.py` | `IMPLEMENT_DOCUMENTATION` | `SMALL_EXTENSION` | Operator policy approval. | `MEDIUM` | `LOW` | `MEDIUM` | `HIGH` |
+| `C3` | `DONE` | Define break-glass authority as audited exceptional operator policy. | `POLICY_004_AUTHORITY` | OMP, operator authority | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, `admin_core/operator_execution_pipeline.py::break_glass_authority_policy_contract` | `IMPLEMENT_DOCUMENTATION` | `SMALL_EXTENSION` | `break_glass_authority_policy_contract` defines break-glass as disabled-by-default, audited, exceptional operator policy only; it grants no Runtime apply, automation, silent authority expansion, planner replacement, synthetic evidence, rollback/apply execution, or user movement. | `MEDIUM` | `LOW` | `MEDIUM` | `HIGH` |
 | `C4` | `TODO` | Keep all-at-once promotion unavailable for current action classes. | `POLICY_005_ACTION_CLASS_PROMOTION` | OMP, blast-radius gates | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, `admin_core/autonomy_trust_acceleration.py` | `IMPLEMENT_VERIFICATION` | `NONE` | Current authority model. | `MEDIUM` | `MEDIUM` | `LOW` | `HIGH` |
 | `C5` | `TODO` | Preserve rollback as operational compensation rather than transaction rollback. | `POLICY_007_ROLLBACK` | Runtime Model, rollback policy | `docs/reference/V7_RUNTIME_MODEL.md`, `admin_core/operator_execution.py` | `IMPLEMENT_DOCUMENTATION` | `NONE` | Existing rollback semantics. | `MEDIUM` | `LOW` | `MEDIUM` | `MEDIUM_HIGH` |
 | `C6` | `TODO` | Decide bounded stale allowance by action class. | `POLICY_008_FRESHNESS` | Freshness actionability, OMP stop rules | `admin_core/autonomy_trust_acceleration.py`, `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | A2 freshness windows. | `MEDIUM_HIGH` | `MEDIUM` | `MEDIUM` | `HIGH` |

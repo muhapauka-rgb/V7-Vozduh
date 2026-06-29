@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Product Execution Mode
-State captured: 2026-06-29T17:45:13+0700
-Source: Continue OMP C2 Probabilistic Suspicion Advisory Evidence. C2 is `DONE_READ_ONLY`; `probabilistic_suspicion_advisory_evidence` keeps shadow autonomy, source-confidence, and soft-degradation suspicion as advisory-only evidence with direct blocking power `NONE`, direct execution power `NONE`, and no Runtime apply, authority expansion, threshold/formula mutation, synthetic evidence, planner replacement, or user movement.
+State captured: 2026-06-29T18:03:06+0700
+Source: Continue OMP C3 Break-Glass Authority Audited Exceptional Operator Policy. C3 is `DONE_READ_ONLY`; `break_glass_authority_policy_contract` defines break-glass as disabled-by-default, audited, exceptional operator policy only, with no Runtime apply, automation, silent authority expansion, planner replacement, synthetic evidence, rollback/apply execution, or user movement.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -13,24 +13,24 @@ This file is volatile. Update it after every safe action or approved execution t
 | --- | --- |
 | Current phase | `PRODUCT_EXECUTION` |
 | Architecture phase | `CLOSED_BY_DEFAULT_GRADUATED` |
-| Current bottleneck | `C3_BREAK_GLASS_AUTHORITY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY` |
-| Current highest leverage implementation | `C3_BREAK_GLASS_AUTHORITY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY` |
-| Current highest leverage action | begin C3 through existing OMP and operator authority owners; define break-glass authority as audited exceptional operator policy without granting authority, Runtime apply, automation, planner replacement, synthetic evidence, or user movement |
+| Current bottleneck | `C4_ALL_AT_ONCE_PROMOTION_UNAVAILABLE_FOR_CURRENT_ACTION_CLASSES` |
+| Current highest leverage implementation | `C4_ALL_AT_ONCE_PROMOTION_UNAVAILABLE_FOR_CURRENT_ACTION_CLASSES` |
+| Current highest leverage action | begin C4 through existing OMP and blast-radius/action-class owners; verify all-at-once promotion remains unavailable for current action classes without granting authority, Runtime apply, automation, blast-radius expansion, synthetic evidence, or user movement |
 | Current authority class | `NONE` |
 | authority_class | `NONE` |
 | authority_reason | A4 bounded collection authority is closed; no active production operation is approved. |
 | authority_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch` remain owners when a future governed action is explicitly approved. |
-| required_action | Execute C3 through existing OMP and operator authority owners; no runtime apply, automation, authority expansion, new roadmap, new owner, planner replacement, synthetic evidence, or unapproved user movement. |
+| required_action | Execute C4 through existing OMP and blast-radius/action-class owners; no runtime apply, automation, authority expansion, new roadmap, new owner, planner replacement, synthetic evidence, blast-radius expansion, direct class promotion, or unapproved user movement. |
 | non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
 | optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
 | Current reality limit | `NONE_FOR_A4`: A4 production evidence and closure validation are complete. |
-| Current safe next action | continue to C3 break-glass authority audited exceptional operator policy through existing OMP and operator authority owners. |
-| Current stop reason | `NONE_FOR_C3_BREAK_GLASS_AUTHORITY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY`; no runtime apply, automation, authority expansion, new roadmap, new owner, planner replacement, synthetic evidence, or unapproved movement occurred |
+| Current safe next action | continue to C4 all-at-once promotion unavailable verification through existing OMP and blast-radius/action-class owners. |
+| Current stop reason | `NONE_FOR_C4_ALL_AT_ONCE_PROMOTION_UNAVAILABLE_FOR_CURRENT_ACTION_CLASSES`; no runtime apply, automation, authority expansion, blast-radius expansion, direct class promotion, new roadmap, new owner, planner replacement, synthetic evidence, or unapproved movement occurred |
 | root_cause | Resolved: A4 collection and closure validation previously over-counted non-outcome history as missing closure evidence. Existing read-only closure owner now ignores non-closure audit/history records. |
 | responsible_owner | Existing governed transaction feedback owner `tools/v7-governed-canary-dry-run-cycle`; existing feedback classifier owner `admin_core/operator_execution_feedback.py`; existing A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
-| implementation_class | `IMPLEMENT_DOCUMENTATION` |
-| next_engineering_task | `C3_BREAK_GLASS_AUTHORITY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY` |
-| expected_completion_evidence | C3 proves break-glass authority is an audited exceptional operator policy only, with no silent authority expansion, Runtime apply, automation, planner replacement, synthetic evidence, or user movement. |
+| implementation_class | `IMPLEMENT_VERIFICATION` |
+| next_engineering_task | `C4_ALL_AT_ONCE_PROMOTION_UNAVAILABLE_FOR_CURRENT_ACTION_CLASSES` |
+| expected_completion_evidence | C4 proves all-at-once promotion remains unavailable for current action classes, with no Runtime apply, automation, authority expansion, blast-radius expansion, direct class promotion, synthetic evidence, or user movement. |
 | rt_phase1_status | `FULLY_COMPLETE`; RT1-RT8 are canonicalized through Runtime Model and consumed by OMP/report lifecycle. |
 | decision_lifecycle_foundation_status | `CANONICALIZED`; DL1-DL7 are consolidated in `docs/reference/V7_RUNTIME_MODEL.md` and consumed by OMP/report lifecycle. |
 | architectural_methodology_status | `COMPLETE`; future capability design can proceed through existing architectural laws without creating a new foundational principle. |
@@ -41,8 +41,8 @@ This file is volatile. Update it after every safe action or approved execution t
 | rt2_current_execution_status | `COMPLETE_READ_ONLY`; RT2-S1 through RT2-S6 are complete as owner-mapped read-only/advisory surfaces. RT2-S6 produced an OMP-owned recommendation to return to existing backlog item `B1`; Runtime self-optimization and automatic recommendations remain forbidden. |
 | omp_capability_transition_contract | `ACTIVE_CANONICAL`; OMP now explains current capability, produced evidence, consumed evidence, unlocked capability, still-blocked capability, safety reason, and later-step prohibition for each major transition. |
 | omp_capability_production_contract | `ACTIVE_CANONICAL`; OMP now explains produced capability, produced evidence, capability owner, capability consumers, unlocked capability/stage, blocked capability/stage, and production reason for each major OMP stage. |
-| current_transition_state | `C2 -> C3`; produced evidence is `probabilistic_suspicion_advisory_evidence = DONE_READ_ONLY_PROBABILISTIC_SUSPICION_ADVISORY_EVIDENCE`; unlocked capability is break-glass authority audited exceptional operator policy at `C3`; runtime self-optimization, automatic recommendations, direct implementation without OMP, authority lowering, safety-gate weakening, Runtime apply, automation, concurrency enablement, authority expansion, queue daemon, planner replacement, rollback execution, registry write, synthetic evidence, threshold/formula mutation, new owner, and user movement remain blocked. |
-| current_produced_capability_state | `C2` produced Probabilistic Suspicion Advisory Evidence through `admin_core.autonomy_trust_acceleration.build_probabilistic_suspicion_advisory_evidence` and `tools/v7-autonomy-trust-evidence-inventory --routing-foundation-only`; owner is existing trust/confidence, shadow autonomy, soft-degradation policy, OMP, read-only inventory, and Production Maturity owners; consumers are OMP, `C3`, Current Program State, Production Maturity, Canonical Reference, Decision Explainability, Observability, Authority Evolution, and Production Autonomy; blocked capabilities remain direct suspicion blocking, direct suspicion execution, runtime apply, automation, authority expansion, threshold/formula mutation, planner replacement, synthetic evidence, new owner, and user movement. |
+| current_transition_state | `C3 -> C4`; produced evidence is `break_glass_authority_policy_contract = DONE_READ_ONLY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY`; unlocked capability is all-at-once promotion unavailable verification at `C4`; runtime self-optimization, automatic recommendations, direct implementation without OMP, authority lowering, safety-gate weakening, Runtime apply, automation, concurrency enablement, authority expansion, blast-radius expansion, direct class promotion, queue daemon, planner replacement, rollback/apply execution, registry write, synthetic evidence, threshold/formula mutation, new owner, and user movement remain blocked. |
+| current_produced_capability_state | `C3` produced Break-Glass Authority Audited Exceptional Operator Policy through `admin_core.operator_execution_pipeline.break_glass_authority_policy_contract`; owner is existing OMP, operator authority, governed execution pipeline, observability, feedback/closure, packet, and Production Maturity owners; consumers are OMP, `C4`, Current Program State, Production Maturity, Canonical Reference, Authority Evolution, Production Autonomy, Decision Explainability, and Observability; blocked capabilities remain break-glass invocation, Runtime apply, automation, silent authority expansion, direct class promotion, blast-radius expansion, rollback/apply execution, synthetic evidence, new owner, planner replacement, and user movement. |
 | rt2_research_inventory_decision | Existing Research Framework and Research Process are sufficient; no default `docs/research/RUNTIME_EVOLUTION_MODELS.md` owner was created. |
 | master1_status | `COMPLETE`; RT2 canonicalization, OMP self-drive mechanics, research flow, runtime contract, decision contract, owner map, Canonical Reference, and CPS alignment are closed. |
 | master2_architecture_milestone | `COMPLETE`; OMP completeness, capability coverage, growth readiness, engineering language, self-evolution, and ownership placement are certified through existing owners. |
@@ -86,14 +86,15 @@ This file is volatile. Update it after every safe action or approved execution t
 | b18_owner_issued_version_lease_pattern | `DONE_READ_ONLY`; `admin_core.autonomy_trust_acceleration` exposes `build_owner_issued_version_lease_pattern`; B18 maps owner-issued version/lease/generation/TTL/source-hash coverage through existing lease and snapshot owners without changing lease behavior, runtime apply, authority, synthetic evidence, threshold/formula mutation, or user movement. |
 | c1_fail_open_fail_closed_action_class_behavior | `DONE_READ_ONLY`; `admin_core.autonomy_trust_acceleration` exposes `build_fail_open_fail_closed_action_class_behavior`; C1 records action-class fail-closed Runtime mutation/apply behavior and read-only fail-open allowance for diagnosis/evidence/report/canonical update without changing Runtime behavior, authority, planner ownership, synthetic evidence, or user movement. |
 | c2_probabilistic_suspicion_advisory_evidence | `DONE_READ_ONLY`; `admin_core.autonomy_trust_acceleration` exposes `build_probabilistic_suspicion_advisory_evidence`; C2 keeps shadow autonomy, source-confidence, and soft-degradation suspicion as advisory-only evidence with direct blocking power `NONE`, direct execution power `NONE`, and no Runtime apply, authority expansion, threshold/formula mutation, synthetic evidence, planner replacement, or user movement. |
+| c3_break_glass_authority_policy_contract | `DONE_READ_ONLY`; `admin_core.operator_execution_pipeline` exposes `break_glass_authority_policy_contract`; C3 defines break-glass as disabled-by-default, audited, exceptional operator policy only, requiring explicit operator policy, incident context, audit, verification/closure, truth/convergence, OMP, and CPS updates without granting Runtime apply, automation, authority expansion, synthetic evidence, rollback/apply execution, or user movement. |
 | product_execution_mode | `ACTIVE`; OMP -> Implementation Backlog/existing owner -> Verification -> Engineering Report -> Canonical Update -> Current Program State -> Continue OMP. |
-| post_architecture_implementation_milestone | `C3_BREAK_GLASS_AUTHORITY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY`; C2 is complete and OMP continues through the existing implementation backlog. |
+| post_architecture_implementation_milestone | `C4_ALL_AT_ONCE_PROMOTION_UNAVAILABLE_FOR_CURRENT_ACTION_CLASSES`; C3 is complete and OMP continues through the existing implementation backlog. |
 
 ## 1.1. Root Cause Engine Output
 
 | Field | Current Value |
 | --- | --- |
-| Stop condition | `NONE_FOR_C3_BREAK_GLASS_AUTHORITY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY`; continue to C3 |
+| Stop condition | `NONE_FOR_C4_ALL_AT_ONCE_PROMOTION_UNAVAILABLE_FOR_CURRENT_ACTION_CLASSES`; continue to C4 |
 | Authority Class | `NONE` |
 | Authority Reason | No active operational authority; A4 collection authority is closed. |
 | Root Cause | A4 evidence inventory correctly counts concrete `user -> candidate_channel` keys; the implementation now prevents that inventory from becoming a mandatory full-matrix certification blocker. |
@@ -102,18 +103,18 @@ This file is volatile. Update it after every safe action or approved execution t
 | Why existing safety worked | The system did not lower thresholds, did not synthesize evidence, and did not enable automation; it continued to stop safely unless real governed evidence existed. |
 | Can existing owner be extended? | `YES`; existing owner was extended. |
 | Need New Owner | `FALSE` |
-| Implementation Class | `OWNER_EXTENSION_COMPLETED`; RT2-S6 evidence-based continuous improvement completed as read-only owner-mapped advisory recommendation. |
-| Concrete engineering task | `C3_BREAK_GLASS_AUTHORITY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY` |
-| Expected completion evidence | Break-glass authority is proven as audited exceptional operator policy only through existing OMP and operator authority owners. |
-| OMP automatic continuation | `YES`; C2 is read-only complete and OMP continues to C3. |
+| Implementation Class | `OWNER_EXTENSION_COMPLETED`; C3 break-glass authority policy completed as read-only audited exceptional operator policy. |
+| Concrete engineering task | `C4_ALL_AT_ONCE_PROMOTION_UNAVAILABLE_FOR_CURRENT_ACTION_CLASSES` |
+| Expected completion evidence | All-at-once promotion is proven unavailable for current action classes through existing OMP, blast-radius, and action-class owners. |
+| OMP automatic continuation | `YES`; C3 is read-only complete and OMP continues to C4. |
 
 ## 2. Current Metrics
 
 | Metric | Current Value |
 | --- | --- |
 | Engineering maturity score | `100.0 / 100` |
-| Production maturity score | `62.5 / 100` |
-| Production maturity remaining | `37.5` |
+| Production maturity score | `63.4 / 100` |
+| Production maturity remaining | `36.6` |
 | Autonomy knowledge maturity score | `84.167` |
 | Confidence | `45.8 / 70` |
 | Trust | `47.889 / 70` |
@@ -129,34 +130,34 @@ This file is volatile. Update it after every safe action or approved execution t
 | Field | Current Value |
 | --- | --- |
 | engineering_maturity | `100.0%`; `ENGINEERING_COMPLETE` |
-| production_maturity | `62.5%` |
+| production_maturity | `63.4%` |
 | production_maturity_target | `100%` |
-| production_maturity_remaining | `37.5%` |
-| implementation_progress | `29 / 34 actionable complete` |
-| certification_progress | `95%`; A1/A2 are implemented/tested, A3 has a real governed no-rollback outcome closure, A4 representative evidence is closure-complete, A5 blast-radius evidence is certified read-only from E29 one/two/four-user proofs, A6 execute-or-stop arbitration is read-only complete, B1 liveness evidence aggregation is implemented/tested read-only, B2 hard-failure policy windows are implemented/tested read-only, B3 soft-degradation threshold vocabulary is implemented/tested read-only, B4 degradation signal policy mapping is implemented/tested read-only, B5 observed degradation attribution is implemented/tested read-only, B6 V7-native degradation response mapping is implemented/tested read-only, B7 service-objective threshold binding is implemented/tested read-only, B8 recovery admission certification is implemented/tested read-only, B9 post-admission observation windows are implemented/tested read-only, B10 recovery slow-start progression is implemented/tested read-only, B11 org/cohort identity policy integration is implemented/tested read-only, B12 next action-class stage certification is implemented/tested read-only, B13 metric reliability is certified for blocking recommendations only, B14 service/pool/cohort blast-radius scope is implemented/tested read-only, B15 containment/forward-fix classification is implemented/tested read-only, B16 rollback authority evidence is certified for authority review only, B17 stale-read mutation blocking is implemented/tested read-only, B18 owner-issued version/lease pattern is implemented/tested read-only, B19 hysteresis/state-change-cost mapping is implemented/tested read-only, B20 hard-failure override anti-flap arbitration is implemented/tested read-only, B21 per-user routing control mode is implemented/tested read-only, C1 fail-open/fail-closed action-class behavior is implemented/tested read-only, RT2-S1 measurement/observability is owner-mapped read-only complete, RT2-S2 world/readiness is owner-mapped read-only complete, RT2-S3 desired-state delta preparedness is owner-mapped read-only complete, RT2-S4 governed execution coordination is owner-mapped read-only complete, RT2-S5 certified concurrency ladder is owner-mapped read-only complete, and RT2-S6 evidence-based continuous improvement is owner-mapped advisory complete |
+| production_maturity_remaining | `36.6%` |
+| implementation_progress | `30 / 34 actionable complete` |
+| certification_progress | `95%`; A1/A2 are implemented/tested, A3 has a real governed no-rollback outcome closure, A4 representative evidence is closure-complete, A5 blast-radius evidence is certified read-only from E29 one/two/four-user proofs, A6 execute-or-stop arbitration is read-only complete, B1-B21 are implemented/tested read-only where applicable, C1 fail-open/fail-closed action-class behavior is implemented/tested read-only, C2 probabilistic suspicion advisory evidence is implemented/tested read-only, C3 break-glass authority policy is implemented/tested read-only, RT2-S1 through RT2-S6 are owner-mapped read-only/advisory complete |
 | autonomy_progress | `TIER_1_GOVERNED`; bounded production autonomy not certified |
-| backlog_progress | Tier A `6 / 6`; Tier B `21 / 21`; Tier C `2 / 7`; Tier D optional `0 / 6`; Overall `29 / 34` |
-| remaining_backlog | `5 actionable items`; `6 optional items` |
+| backlog_progress | Tier A `6 / 6`; Tier B `21 / 21`; Tier C `3 / 7`; Tier D optional `0 / 6`; Overall `30 / 34` |
+| remaining_backlog | `4 actionable items`; `6 optional items` |
 | remaining_work | `Moderate` |
 | next_milestone | `50%: Implementation Half Complete` |
 | current_focus | `IMPLEMENTATION` |
 | current_milestone | `35%: Runtime Eligibility Implemented`; progressing toward `50%: Implementation Half Complete` |
 | estimated_remaining_effort | `Moderate` |
-| current_highest_implementation_task | `C3_BREAK_GLASS_AUTHORITY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY` |
+| current_highest_implementation_task | `C4_ALL_AT_ONCE_PROMOTION_UNAVAILABLE_FOR_CURRENT_ACTION_CLASSES` |
 | world_equivalence_status | `CANONICAL` |
 | backlog_consistency_status | `CANONICAL_BACKLOG_MAPPING_CURRENT` |
 | state_change_cost_verdict | `ALREADY_EXISTS_SEMANTICALLY`; represented by existing movement-protection owners and extended through backlog item `B19` |
-| active_capability | `Break-Glass Authority Audited Exceptional Operator Policy`, `Authority Evolution`, `Decision Explainability`, and `Production Readiness`; current OMP backlog item `C3` keeps emergency authority exceptional, audited, and non-silent through existing owners |
+| active_capability | `All-at-Once Promotion Unavailable Verification`, `Authority Evolution`, `Blast Radius`, `Decision Explainability`, and `Production Readiness`; current OMP backlog item `C4` keeps broad promotion unavailable unless explicitly certified later through existing owners |
 | ideal_target_state | Movement Protection target state: Runtime evaluates current state, candidates, failure/degradation, freshness, recovery, blast radius, rollback, anti-flap, authority, State Change Cost, and Net Benefit; movement is allowed only when `NET_BENEFIT > CHANGE_COST` |
-| current_state | Capability-oriented OMP is active; Movement Protection is `IN_PROGRESS`; Observability is `IN_PROGRESS`; Runtime automation remains disabled; A3 is closed with real no-rollback evidence; A4 representative outcome evidence is `DONE`; A5 blast-radius evidence is `DONE_READ_ONLY`; A6 runtime eligibility arbitration is `DONE_READ_ONLY`; B1 liveness evidence aggregation is `DONE_READ_ONLY`; B2 hard-failure policy windows are `DONE_READ_ONLY`; B3 soft-degradation threshold vocabulary is `DONE_READ_ONLY`; B4 degradation signal policy mapping is `DONE_READ_ONLY`; B5 observed degradation attribution is `DONE_READ_ONLY`; B6 V7-native degradation response mapping is `DONE_READ_ONLY`; B7 service-objective policy threshold binding is `DONE_READ_ONLY`; B8 recovery admission certification is `DONE_READ_ONLY`; B9 post-admission observation windows is `DONE_READ_ONLY`; B10 recovery slow-start progression is `DONE_READ_ONLY`; B11 org/cohort identity policy integration is `DONE_READ_ONLY`; B12 next action-class stage certification is `DONE_READ_ONLY`; B13 metric reliability certification is `DONE_READ_ONLY`; B14 service/pool/cohort blast-radius scope is `DONE_READ_ONLY`; B15 containment/forward-fix classification is `DONE_READ_ONLY`; B16 rollback authority certification is `DONE_READ_ONLY`; B17 stale-read mutation blocking is `DONE_READ_ONLY`; B18 owner-issued version/lease pattern is `DONE_READ_ONLY`; B19 hysteresis/state-change-cost mapping is `DONE_READ_ONLY`; B20 hard-failure override anti-flap arbitration is `DONE_READ_ONLY`; B21 per-user routing control mode is `DONE_READ_ONLY`; C1 fail-open/fail-closed action-class behavior is `DONE_READ_ONLY`; C2 probabilistic suspicion advisory evidence is `DONE_READ_ONLY`; RT2-S1 measurement and observability is `DONE_READ_ONLY`; RT2-S2 world/readiness is `DONE_READ_ONLY`; RT2-S3 desired-state delta is `DONE_READ_ONLY`; RT2-S4 governed execution coordination is `DONE_READ_ONLY`; RT2-S5 certified concurrency ladder is `DONE_READ_ONLY`; RT2-S6 evidence-based continuous improvement is `DONE_READ_ONLY`; C3 is next. |
+| current_state | Capability-oriented OMP is active; Movement Protection is `IN_PROGRESS`; Observability is `IN_PROGRESS`; Runtime automation remains disabled; A3 is closed with real no-rollback evidence; A4 representative outcome evidence is `DONE`; A5 blast-radius evidence is `DONE_READ_ONLY`; A6 runtime eligibility arbitration is `DONE_READ_ONLY`; B1 liveness evidence aggregation is `DONE_READ_ONLY`; B2 hard-failure policy windows are `DONE_READ_ONLY`; B3 soft-degradation threshold vocabulary is `DONE_READ_ONLY`; B4 degradation signal policy mapping is `DONE_READ_ONLY`; B5 observed degradation attribution is `DONE_READ_ONLY`; B6 V7-native degradation response mapping is `DONE_READ_ONLY`; B7 service-objective policy threshold binding is `DONE_READ_ONLY`; B8 recovery admission certification is `DONE_READ_ONLY`; B9 post-admission observation windows is `DONE_READ_ONLY`; B10 recovery slow-start progression is `DONE_READ_ONLY`; B11 org/cohort identity policy integration is `DONE_READ_ONLY`; B12 next action-class stage certification is `DONE_READ_ONLY`; B13 metric reliability certification is `DONE_READ_ONLY`; B14 service/pool/cohort blast-radius scope is `DONE_READ_ONLY`; B15 containment/forward-fix classification is `DONE_READ_ONLY`; B16 rollback authority certification is `DONE_READ_ONLY`; B17 stale-read mutation blocking is `DONE_READ_ONLY`; B18 owner-issued version/lease pattern is `DONE_READ_ONLY`; B19 hysteresis/state-change-cost mapping is `DONE_READ_ONLY`; B20 hard-failure override anti-flap arbitration is `DONE_READ_ONLY`; B21 per-user routing control mode is `DONE_READ_ONLY`; C1 fail-open/fail-closed action-class behavior is `DONE_READ_ONLY`; C2 probabilistic suspicion advisory evidence is `DONE_READ_ONLY`; C3 break-glass authority audited exceptional operator policy is `DONE_READ_ONLY`; RT2-S1 measurement and observability is `DONE_READ_ONLY`; RT2-S2 world/readiness is `DONE_READ_ONLY`; RT2-S3 desired-state delta is `DONE_READ_ONLY`; RT2-S4 governed execution coordination is `DONE_READ_ONLY`; RT2-S5 certified concurrency ladder is `DONE_READ_ONLY`; RT2-S6 evidence-based continuous improvement is `DONE_READ_ONLY`; C4 is next. |
 | knowledge_plane_status | `OPERATIONAL`; Audit Knowledge State is consumed through existing Canonical Reference, SYSTEM_MAP, OMP, Current Program State, Backlog, Knowledge Quality, Production Maturity, and Engineering Reports as historical evidence only |
 | engineering_context_resolver_status | `OPERATIONAL`; ECR reuses existing `V7_CONTEXT_RESOLVER.md` and resolves task class, minimum working set, current/historical knowledge, re-open requirement, owner mapping, backlog mapping, and certification/runtime investigation need before work begins |
-| capability_progress | Movement Protection `83.0%`; Runtime Eligibility `71.0%`; Authority Evolution `72.0%`; Rollback `47.0%`; Recovery Admission `78.0%`; Learning `63.0%`; Production Readiness `62.5%`; Production Autonomy `0.0%`; Knowledge System `100.0%`; Observability `67.0%`; Decision Explainability `39.0%`; Implementation Discipline `100.0%`; Engineering Knowledge Preservation `100.0%` |
+| capability_progress | Movement Protection `83.0%`; Runtime Eligibility `71.0%`; Authority Evolution `74.0%`; Rollback `47.0%`; Recovery Admission `78.0%`; Learning `63.0%`; Production Readiness `63.4%`; Production Autonomy `0.0%`; Knowledge System `100.0%`; Observability `67.0%`; Decision Explainability `39.0%`; Implementation Discipline `100.0%`; Engineering Knowledge Preservation `100.0%` |
 | capability_remaining | Movement Protection remains blocked by observed degradation attribution, recovery admission certification, anti-flap certification, central policy arbitration, per-user routing mode, runtime-certified slow start, and pool-health semantics; Decision Explainability remains blocked by Russian approval-request explanation generation, evidence-linked gate display, alternative reasoning, risk/value display, and real governed validation |
 | capability_completion_prediction | Movement Protection completes after `A3`, `A5`, `A6`, `B5`, `B8`, `B10`, `B16`, `B19`, `B21`, and `C7` are complete or explicitly classified `NOT_APPLICABLE` where allowed; Decision Explainability completes after `A3`, `A6`, `B1`, `B4`, `B13`, `B15`, `B17`, and `C2` provide enough evidence/read-model coverage for complete Russian operator explanations |
 | completed_capabilities | `Knowledge System`; `Implementation Discipline`; `Engineering Knowledge Preservation` |
 | locked_capabilities | `Knowledge System`; `Engineering Knowledge Preservation` |
-| next_capability_target | Complete `C3` break-glass authority audited exceptional operator policy without runtime apply, silent authority expansion, automation, planner replacement, synthetic evidence, or user movement |
+| next_capability_target | Complete `C4` all-at-once promotion unavailable verification without runtime apply, authority expansion, blast-radius expansion, direct class promotion, automation, planner replacement, synthetic evidence, or user movement |
 
 ## 2.2. V7 Production Status
 
@@ -180,7 +181,7 @@ Engineering Maturity
 PRODUCTION
 
 Implementation
-85.3%
+88.2%
 
 Certification
 95%
@@ -189,7 +190,7 @@ Autonomy
 0%
 
 Production Maturity
-62.5%
+63.4%
 
 Overall Status
 ENGINEERING_COMPLETE / PRODUCTION_IN_PROGRESS
@@ -207,22 +208,22 @@ Tier C
 Tier D
 0 / 6 optional
 Overall
-29 / 34 complete
+30 / 34 complete
 
 Current Tier
 TIER_1_GOVERNED
 
 Highest Priority Task
-C3: define break-glass authority as audited exceptional operator policy.
+C4: keep all-at-once promotion unavailable for current action classes.
 
 Status
-C2 DONE_READ_ONLY / C3 Ready
+C3 DONE_READ_ONLY / C4 Ready
 
 Authority
 No expansion active
 
 Required Action
-Start C3 break-glass authority audited exceptional operator policy through existing OMP and operator authority owners.
+Start C4 all-at-once promotion unavailable verification through existing OMP, blast-radius, and action-class owners.
 
 Engineering
 READY
@@ -258,21 +259,21 @@ Overall OMP progress:
 | Tier C | `[###-------]` | `2 / 7 IN_PROGRESS` |
 | RT2 | `[##########]` | `6 / 6 COMPLETE_READ_ONLY` |
 | Engineering Intelligence | `[########--]` | `FINAL_CANONICAL_STATE`; implementation evidence remains future work |
-| Overall actionable backlog | `[########--]` | `29 / 34 complete` |
-| Production Maturity | `[######----]` | `62.5 / 100`; target `100`; remaining `37.5` |
+| Overall actionable backlog | `[#########-]` | `30 / 34 complete` |
+| Production Maturity | `[######----]` | `63.4 / 100`; target `100`; remaining `36.6` |
 
 Current OMP state:
 
 | Field | Current Value |
 | --- | --- |
-| Previous step | `C2_PROBABILISTIC_SUSPICION_ADVISORY_EVIDENCE` |
-| Current step | `C3_BREAK_GLASS_AUTHORITY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY` |
-| Next step | Continue through OMP after C3 evidence, verification, report, canonical update, and CPS update. |
-| Reason current step is available | C2 produced advisory-only suspicion evidence through existing trust/confidence, shadow autonomy, OMP, and soft-degradation owners, so emergency authority can be bounded as an exceptional audited operator policy without converting suspicion into action authority. |
-| Current stop | `NONE_FOR_C3_BREAK_GLASS_AUTHORITY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY` |
-| Current capability produced | Probabilistic Suspicion Advisory Evidence from `C2`. |
-| Current capability consumed | Existing backlog continuation at `C3`; break-glass authority policy consumes OMP, operator authority, and C2 advisory-only boundaries. |
-| Current capability blocked | Runtime self-optimization, automatic recommendations, direct implementation without OMP, runtime apply, automation, authority expansion, queue daemon, planner replacement, threshold/formula mutation, and user movement. |
+| Previous step | `C3_BREAK_GLASS_AUTHORITY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY` |
+| Current step | `C4_ALL_AT_ONCE_PROMOTION_UNAVAILABLE_FOR_CURRENT_ACTION_CLASSES` |
+| Next step | Continue through OMP after C4 evidence, verification, report, canonical update, and CPS update. |
+| Reason current step is available | C3 produced an audited exceptional operator-policy contract for break-glass without granting Runtime authority, so C4 can verify broad/all-at-once promotion remains unavailable under the same non-silent authority boundary. |
+| Current stop | `NONE_FOR_C4_ALL_AT_ONCE_PROMOTION_UNAVAILABLE_FOR_CURRENT_ACTION_CLASSES` |
+| Current capability produced | Break-Glass Authority Audited Exceptional Operator Policy from `C3`. |
+| Current capability consumed | Existing backlog continuation at `C4`; all-at-once promotion verification consumes OMP, action-class, blast-radius, authority, and C3 exceptional-policy boundaries. |
+| Current capability blocked | Runtime self-optimization, automatic recommendations, direct implementation without OMP, runtime apply, automation, authority expansion, blast-radius expansion, direct class promotion, queue daemon, planner replacement, threshold/formula mutation, and user movement. |
 
 Capability progress:
 
@@ -284,7 +285,7 @@ Capability progress:
 | Engineering Knowledge Preservation | `CERTIFIED` | Reports are historical evidence only. |
 | RT2 | `COMPLETED` | S1-S6 complete as read-only/advisory owner-mapped surfaces. |
 | Engineering Intelligence | `CERTIFIED` | Canonical state complete; implementation evidence future. |
-| Production Readiness | `IN_PROGRESS` | `62.5%`; current C3 path. |
+| Production Readiness | `IN_PROGRESS` | `63.4%`; current C4 path. |
 | Movement Protection | `IN_PROGRESS` | `78.0%`; B14 complete, still depends on remaining Tier B/C evidence. |
 | Decision Explainability | `IN_PROGRESS` | `32.0%`; B1/B2/B3/B4/B5/B6/B7 contribute evidence/read-model coverage. |
 | Production Autonomy | `BLOCKED` | `0.0%`; no autonomous apply or authority expansion. |
@@ -400,31 +401,31 @@ Operator View current cards:
 
 | Card | Current Display |
 | --- | --- |
-| Overall OMP Progress | Architecture `100%`; Tier A `6 / 6`; Tier B `21 / 21`; Tier C `2 / 7`; RT2 `6 / 6`; Overall `29 / 34`; Production Maturity `62.5 / 100`. |
-| Current Step | `C3_BREAK_GLASS_AUTHORITY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY`. |
-| Previous Step | `C2_PROBABILISTIC_SUSPICION_ADVISORY_EVIDENCE`. |
-| Next Step | Continue OMP after C3 evidence, verification, Engineering Report, canonical update, and CPS update. |
+| Overall OMP Progress | Architecture `100%`; Tier A `6 / 6`; Tier B `21 / 21`; Tier C `3 / 7`; RT2 `6 / 6`; Overall `30 / 34`; Production Maturity `63.4 / 100`. |
+| Current Step | `C4_ALL_AT_ONCE_PROMOTION_UNAVAILABLE_FOR_CURRENT_ACTION_CLASSES`. |
+| Previous Step | `C3_BREAK_GLASS_AUTHORITY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY`. |
+| Next Step | Continue OMP after C4 evidence, verification, Engineering Report, canonical update, and CPS update. |
 | Current RT2 stage | `RT2 COMPLETE_READ_ONLY`. |
 | Engineering Intelligence stage | `FINAL_CANONICAL_STATE`; implementation evidence remains future work. |
 | Current Stop Gates | Runtime Apply, Automation, Authority, User Movement, Planner, Queue, Concurrency = `BLOCKED`; Desired State = `ADVISORY_ONLY`. |
-| Produced Capability | Probabilistic Suspicion Advisory Evidence from `C2`. |
-| Unlocked Capability | Existing backlog continuation at `C3`. |
-| Blocked Capability | Runtime self-optimization, automatic recommendations, direct implementation without OMP, runtime apply, automation, authority expansion, queue daemon, planner replacement, threshold/formula mutation, user movement. |
-| Current Risks | C3 must not turn break-glass policy into silent authority expansion, Runtime apply, automation, planner replacement, synthetic evidence, or user movement. |
-| Current Recommendation | Execute C3 through existing OMP, operator authority, documentation, and canonical update owners. |
+| Produced Capability | Break-Glass Authority Audited Exceptional Operator Policy from `C3`. |
+| Unlocked Capability | Existing backlog continuation at `C4`. |
+| Blocked Capability | Runtime self-optimization, automatic recommendations, direct implementation without OMP, runtime apply, automation, authority expansion, blast-radius expansion, direct class promotion, queue daemon, planner replacement, threshold/formula mutation, user movement. |
+| Current Risks | C4 must not turn verification into all-at-once promotion, silent authority expansion, Runtime apply, automation, blast-radius expansion, synthetic evidence, or user movement. |
+| Current Recommendation | Execute C4 through existing OMP, blast-radius, action-class, verification, and canonical update owners. |
 
 Engineering View current trace:
 
 | Trace Area | Current Display |
 | --- | --- |
-| Capability Production Graph | `C2` produced Probabilistic Suspicion Advisory Evidence -> unlocks `C3`; later runtime/authority capabilities remain blocked. |
-| Producer / Consumer Matrix | Producer `C2`; owner existing trust/confidence, shadow autonomy, soft-degradation policy, OMP, read-only inventory, Backlog, and Production Maturity; consumers OMP, `C3`, CPS, Production Maturity, Canonical Reference, Decision Explainability, Observability, Authority Evolution, Production Autonomy. |
-| Transition Contract | `C2 -> C3`; advisory-only suspicion evidence is owner-mapped and safe to consume through OMP only. |
-| Capability Contract | C3 is current; Authority Evolution, Decision Explainability, Observability, and Production Autonomy consumed C2 evidence and continue through later items. |
+| Capability Production Graph | `C3` produced Break-Glass Authority Audited Exceptional Operator Policy -> unlocks `C4`; later runtime/authority capabilities remain blocked. |
+| Producer / Consumer Matrix | Producer `C3`; owner existing OMP, operator authority, governed execution pipeline, observability, feedback/closure, packet, Backlog, and Production Maturity; consumers OMP, `C4`, CPS, Production Maturity, Canonical Reference, Authority Evolution, Production Autonomy, Decision Explainability, Observability. |
+| Transition Contract | `C3 -> C4`; break-glass policy is audited, exceptional, disabled-by-default, and safe to consume through OMP only. |
+| Capability Contract | C4 is current; Authority Evolution, Blast Radius, Decision Explainability, Observability, and Production Autonomy consumed C3 evidence and continue through later items. |
 | Owner Mapping | Dashboard model OMP; current snapshot CPS; ownership lookup SYSTEM_MAP; durable rule Canonical Reference. |
-| Current Produced Evidence | `probabilistic_suspicion_advisory_evidence = DONE_READ_ONLY_PROBABILISTIC_SUSPICION_ADVISORY_EVIDENCE`. |
-| Current Consumers | OMP, `C3`, CPS, Production Maturity, Canonical Reference, Decision Explainability, Observability, Authority Evolution, Production Autonomy. |
-| Current Blockers | Runtime apply, automation, concurrency, queue, authority expansion, planner replacement, user movement. |
+| Current Produced Evidence | `break_glass_authority_policy_contract = DONE_READ_ONLY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY`. |
+| Current Consumers | OMP, `C4`, CPS, Production Maturity, Canonical Reference, Authority Evolution, Blast Radius, Decision Explainability, Observability, Production Autonomy. |
+| Current Blockers | Runtime apply, automation, concurrency, queue, authority expansion, blast-radius expansion, direct class promotion, planner replacement, user movement. |
 | Future Quality Placeholders | Capability Quality, Capability Confidence, Capability Readiness, Capability Reliability, Recommendation Confidence = `RESERVED_READ_MODEL_ONLY`; no scoring. |
 
 Dashboard UI foundation current state:
@@ -452,7 +453,7 @@ Dashboard UI navigation snapshot:
 | Navigation target | Current destination meaning |
 | --- | --- |
 | `OMP` | Top-level admin tab at `/admin/omp` for OMP state and Product Execution Mode. |
-| `Current Step` | `C3_BREAK_GLASS_AUTHORITY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY`. |
+| `Current Step` | `C4_ALL_AT_ONCE_PROMOTION_UNAVAILABLE_FOR_CURRENT_ACTION_CLASSES`. |
 | `Current Report` | Latest B2 completion report as historical evidence; not truth source. |
 | `Canonical Owner` | OMP for dashboard model/UI contract; CPS for current dashboard state; SYSTEM_MAP for owner lookup; Canonical Reference for durable UX rule. |
 | `Evidence` | Existing read-only payloads and engineering reports only. |
@@ -470,7 +471,7 @@ Dashboard design system current state:
 | Engineering visual mode | Trace-first, dense, owner/evidence-based. |
 | Visual language | Minimal, elegant, calm, fast, low-noise, progressive disclosure, soft semantic colors, modern dark/light mode. |
 | Primary components | Progress bars, timeline, capability cards, capability graph, production graph, status badges, maturity indicators, risk indicators, stop-gate cards, recommendation cards, expandable sections. |
-| Current mockup basis | C2 -> C3 transition; Production Maturity `62.5 / 100`; RT2 complete; Engineering Intelligence canonical; runtime apply/automation/authority/user movement blocked. |
+| Current mockup basis | C3 -> C4 transition; Production Maturity `63.4 / 100`; RT2 complete; Engineering Intelligence canonical; runtime apply/automation/authority/user movement blocked. |
 | Charts | `RESERVED_FOR_LATER_IMPLEMENTATION`; no chart requirement exists yet. |
 | Implementation status | `DESIGN_ONLY`; no React, HTML, Runtime, OMP logic, or read-model implementation. |
 
@@ -490,14 +491,14 @@ Production maturity category snapshot:
 
 | Category | Current % | Target % | Weight |
 | --- | ---: | ---: | ---: |
-| Implementation | `85.3` | `100` | `20` |
+| Implementation | `88.2` | `100` | `20` |
 | Testing | `74` | `100` | `10` |
 | Production Deployments | `100` | `100` | `10` |
 | Production Outcomes | `25` | `100` | `15` |
 | Certification | `95` | `100` | `15` |
 | Authority Evolution | `15` | `100` | `10` |
 | Production Autonomy | `0` | `100` | `10` |
-| Implementation Backlog Completion | `85.3` | `100` | `10` |
+| Implementation Backlog Completion | `88.2` | `100` | `10` |
 
 ## 2.3. Latest Implementation Progress
 
@@ -523,8 +524,8 @@ Production maturity category snapshot:
 | Latest deploy id | `deploy-z8-14-Updatesystem-f49f4fa-20260627T232657` |
 | Latest truth | `PASS`; local, GitHub, and runtime aligned |
 | Latest convergence | `PASS`; status `ALIGNED`; runtime action guard `READY_FOR_RUNTIME_ACTION` |
-| Next backlog item | `C3_BREAK_GLASS_AUTHORITY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY` |
-| Next item blocker | `NONE_YET`: C3 must begin with existing OMP and operator authority owners; no authority expansion, runtime automation, synthetic evidence, planner replacement, or user movement is enabled. |
+| Next backlog item | `C4_ALL_AT_ONCE_PROMOTION_UNAVAILABLE_FOR_CURRENT_ACTION_CLASSES` |
+| Next item blocker | `NONE_YET`: C4 must begin with existing OMP, blast-radius, and action-class owners; no authority expansion, runtime automation, all-at-once promotion, blast-radius expansion, synthetic evidence, planner replacement, or user movement is enabled. |
 
 ## 3. Latest Approved Packet Attempt
 

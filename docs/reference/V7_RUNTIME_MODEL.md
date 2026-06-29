@@ -730,6 +730,14 @@ Runtime must not treat probabilistic suspicion as authority, Runtime apply permi
 
 The canonical read-only owner is `admin_core.autonomy_trust_acceleration.build_probabilistic_suspicion_advisory_evidence`; OMP and SYSTEM_MAP own sequence and owner lookup.
 
+C3 Break-Glass Authority Audited Exceptional Operator Policy:
+
+Break-glass is disabled-by-default, audited, exceptional operator policy only. It is not Runtime default authority, not Planner authority, not class promotion, and not a substitute for evidence, packet identity, verification, rollback, truth/convergence, Engineering Report, OMP update, or Current Program State update.
+
+Runtime must not treat break-glass policy definition as invocation permission, Runtime apply permission, automation permission, silent authority expansion, rollback/apply execution permission, synthetic evidence permission, or user movement approval. Any future break-glass use requires explicit operator policy, incident context, exact scope/timebox, audit, verification/closure, and truth/convergence through existing owners.
+
+The canonical read-only owner is `admin_core.operator_execution_pipeline.break_glass_authority_policy_contract`; OMP and SYSTEM_MAP own sequence and owner lookup.
+
 Runtime must not depend on a long-lived operator-approved packet for autonomous or class-approved work.
 Runtime must generate or consume a fresh packet immediately before execution through the existing packet owner and then verify that the packet belongs to an approved class.
 

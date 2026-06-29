@@ -1731,14 +1731,14 @@ Current backlog progress:
 | --- | ---: | ---: | --- |
 | Tier A | `6` | `6` | `COMPLETE` |
 | Tier B | `21` | `21` | `COMPLETE` |
-| Tier C | `2` | `7` | `IN_PROGRESS` |
+| Tier C | `3` | `7` | `IN_PROGRESS` |
 | Tier D optional | `0` | `6` | `OPTIONAL` |
-| Overall actionable | `29` | `34` | `ACTIVE` |
+| Overall actionable | `30` | `34` | `ACTIVE` |
 
 Implementation maturity:
 
 ```text
-85.3%
+88.2%
 ```
 
 Estimated remaining effort:
@@ -1750,7 +1750,7 @@ Moderate
 Next backlog item:
 
 ```text
-C2
+C4
 ```
 
 ## 2.12.1. Engineering and Production Maturity
@@ -1832,21 +1832,21 @@ Current production snapshot:
 
 | Category | Current % | Target % | Weight |
 | --- | ---: | ---: | ---: |
-| Implementation | `85.3` | `100` | `20` |
+| Implementation | `88.2` | `100` | `20` |
 | Testing | `74` | `100` | `10` |
 | Production Deployments | `100` | `100` | `10` |
 | Production Outcomes | `25` | `100` | `15` |
 | Certification | `95` | `100` | `15` |
 | Authority Evolution | `15` | `100` | `10` |
 | Production Autonomy | `0` | `100` | `10` |
-| Implementation Backlog Completion | `85.3` | `100` | `10` |
+| Implementation Backlog Completion | `88.2` | `100` | `10` |
 
 Production Maturity:
 
 ```text
-Current: 62.5%
+Current: 63.4%
 Target: 100%
-Remaining: 37.5%
+Remaining: 36.6%
 ```
 
 Backlog:
@@ -1854,15 +1854,15 @@ Backlog:
 ```text
 Tier A: 6 / 6 complete
 Tier B: 21 / 21 complete
-Tier C: 2 / 7 complete
+Tier C: 3 / 7 complete
 Tier D: 0 / 6 optional complete
-Overall: 29 / 34 actionable complete
+Overall: 30 / 34 actionable complete
 ```
 
 Current highest implementation task:
 
 ```text
-C3: Define break-glass authority as audited exceptional operator policy.
+C4: Keep all-at-once promotion unavailable for current action classes.
 ```
 
 Estimated remaining effort:
@@ -1931,7 +1931,7 @@ Engineering Maturity
 PRODUCTION
 
 Implementation
-85.3%
+88.2%
 
 Certification
 95%
@@ -1940,7 +1940,7 @@ Autonomy
 0%
 
 Production Maturity
-62.5%
+63.4%
 
 Overall Status
 ENGINEERING_COMPLETE / PRODUCTION_IN_PROGRESS
@@ -1958,22 +1958,22 @@ Tier C
 Tier D
 0 / 6 optional
 Overall
-29 / 34 complete
+30 / 34 complete
 
 Current Tier
 TIER_1_GOVERNED
 
 Highest Priority Task
-C3: define break-glass authority as audited exceptional operator policy.
+C4: keep all-at-once promotion unavailable for current action classes.
 
 Status
-C2 DONE_READ_ONLY / C3 Ready
+C3 DONE_READ_ONLY / C4 Ready
 
 Authority
 No expansion active
 
 Required Action
-Run C3 through existing OMP, operator authority, documentation, and canonical update owners.
+Run C4 through existing OMP, blast-radius, action-class, verification, and canonical update owners.
 
 Engineering
 READY
@@ -2116,7 +2116,7 @@ Authority Evolution | 68.0% | 100% | 32.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH
 Rollback | 47.0% | 100% | 53.0% | IN_PROGRESS | VERY_HIGH | HIGH | A3, B15, B16, C5 | Complete after rollback/no-rollback class evidence and authority are certified.
 Recovery Admission | 78.0% | 100% | 22.0% | IN_PROGRESS | HIGH | HIGH | D2, D3 if optional recovery scope changes | Complete after recovered channels are reintroduced through certified readiness and slow-start and optional recovery scope remains resolved or explicitly not applicable.
 Learning | 63.0% | 100% | 37.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3 | Complete after real outcomes reliably improve future decisions.
-Production Readiness | 62.5% | 100% | 37.5% | IN_PROGRESS | VERY_HIGH | HIGH | Remaining actionable backlog and certification | Complete at PRODUCTION_AUTONOMY_CERTIFIED.
+Production Readiness | 63.4% | 100% | 36.6% | IN_PROGRESS | VERY_HIGH | HIGH | Remaining actionable backlog and certification | Complete at PRODUCTION_AUTONOMY_CERTIFIED.
 Production Autonomy | 0.0% | 100% | 100.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3, A4, A5, A6, B10, B12, B16, C4 | Complete when Runtime operates inside certified policy and operator supervises.
 Knowledge System | 100.0% | 100% | 0.0% | LOCKED | HIGH | MEDIUM_HIGH | None | Complete and locked under canonical knowledge rules.
 Observability | 63.0% | 100% | 37.0% | IN_PROGRESS | HIGH | MEDIUM_HIGH | B15, B17, C2 | Complete when operators and OMP can inspect all safety/runtime evidence without mutation.
@@ -2147,7 +2147,7 @@ Initial capability registry:
 | Rollback | Guarantee safe compensation or certified no-rollback behavior for production actions. | `42.9` | `100` | `IN_PROGRESS` | Restore barrier, rollback manifest, Runtime Model, execution feedback | `VERY_HIGH` | `HIGH` | `A3`, `B15`, `B16`, `C5` | Rollback/no-rollback class evidence and automatic rollback authority are certified. | Failed rollback; verification failure pattern; explicit operator request. |
 | Recovery Admission | Admit recovered channels safely without oscillation or premature scale. | `78.0` | `100` | `IN_PROGRESS` | Recovery admission owner, service matrix, quality compact, blast-radius/action-class ladder | `HIGH` | `HIGH` | `D2`, `D3` if optional recovery scope changes | Repeated real readiness evidence, observation windows, and read-only slow-start progression are complete; runtime consumption remains future authority/implementation work. | Recovery incident; service evidence changes; explicit operator request. |
 | Learning | Convert real outcomes into future decision quality without synthetic evidence. | `63.0` | `100` | `IN_PROGRESS` | Feedback/learning owner, OMP, Canonical Reference | `VERY_HIGH` | `VERY_HIGH` | `A3` | Representative real outcomes and metric reliability support promotion recommendations. | Learning regression; synthetic evidence risk; explicit operator request. |
-| Production Readiness | Make V7 deployable, operable, verifiable, and certifiable as a production system. | `62.5` | `100` | `IN_PROGRESS` | OMP, Production Maturity Model, Implementation Backlog | `VERY_HIGH` | `HIGH` | `C7`, optional `D1`-`D6` only if scope changes | Production Maturity reaches `100%` and outputs `PRODUCTION_AUTONOMY_CERTIFIED`. | Production safety incident; deploy model change; explicit operator request. |
+| Production Readiness | Make V7 deployable, operable, verifiable, and certifiable as a production system. | `63.4` | `100` | `IN_PROGRESS` | OMP, Production Maturity Model, Implementation Backlog | `VERY_HIGH` | `HIGH` | `C7`, optional `D1`-`D6` only if scope changes | Production Maturity reaches `100%` and outputs `PRODUCTION_AUTONOMY_CERTIFIED`. | Production safety incident; deploy model change; explicit operator request. |
 | Production Autonomy | Enable Runtime to operate inside certified authority while operator supervises. | `0.0` | `100` | `IN_PROGRESS` | OMP, Runtime Model, Authority Evolution, action-class promotion | `VERY_HIGH` | `VERY_HIGH` | `A3`, `A4`, `A5`, `A6`, `B10`, `B12`, `B16`, `C4` | Bounded autonomy and then production autonomy are certified by real outcomes and approved authority. | Autonomy incident; authority policy change; explicit operator request. |
 | Knowledge System | Preserve verified project knowledge and prevent repeated rediscovery. | `100.0` | `100` | `LOCKED` | Canonical Reference, Context Resolver, Research Framework, Policy Library, Document Lifecycle | `HIGH` | `MEDIUM_HIGH` | None current. | Current knowledge owners remain canonical and read-only under document lifecycle rules. | Industry consensus changes; `FUNDAMENTAL_ARCHITECTURE_GAP`; explicit operator request. |
 | Observability | Expose enough read-only truth for operators, OMP, Runtime, and certification. | `35.0` | `100` | `IN_PROGRESS` | Admin read models, trust/evidence inventory, truth/convergence | `HIGH` | `MEDIUM_HIGH` | `B1`, `B4`, `B9`, `B15`, `B17`, `C2` | Read-only evidence shows eligibility, rollback, stale reads, promotion quality, and runtime readiness. | Operator cannot diagnose; evidence disagreement; explicit operator request. |
@@ -4032,15 +4032,15 @@ If daemon, timer, event consumer mutation, autonomous execution, action-class ex
 | --- | --- |
 | Completed phases | Architecture foundation, Research Framework, Decision Model, Runtime Model, System Architecture, Implementation Phase activation, OMP Production Program integration. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle; OMP Production Program rule set. |
-| Current bottleneck | C3 break-glass authority audited exceptional operator policy is next; C2 is complete as read-only probabilistic suspicion advisory evidence. |
-| Current highest leverage action | Run C3 through existing OMP, operator authority, documentation, and canonical update owners. |
+| Current bottleneck | C4 all-at-once promotion unavailable verification is next; C3 is complete as read-only audited exceptional operator policy. |
+| Current highest leverage action | Run C4 through existing OMP, blast-radius, action-class, verification, and canonical update owners. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | None yet for C3 break-glass authority policy; C3 must not grant authority, enable Runtime apply, enable automation, move users, replace planner ownership, create a new owner, or bypass existing OMP/operator authority owners. |
-| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; Production Maturity `62.5%`; Tier A backlog `6 / 6`; Tier B backlog `21 / 21`; Tier C backlog `2 / 7`; overall backlog `29 / 34`. |
+| Current blockers | None yet for C4 all-at-once promotion verification; C4 must not grant authority, enable Runtime apply, enable automation, move users, expand blast radius, promote all action classes, replace planner ownership, create a new owner, or bypass existing OMP/action-class owners. |
+| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; Production Maturity `63.4%`; Tier A backlog `6 / 6`; Tier B backlog `21 / 21`; Tier C backlog `3 / 7`; overall backlog `30 / 34`. |
 | Current runtime posture | No autonomous apply, no daemon enablement, no authority expansion; local validation moved `0` users and now stops explicitly with `runtime_state_unavailable` when local `/opt/v7` state is absent. |
-| Current next best action | `C3_BREAK_GLASS_AUTHORITY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY`; no runtime apply, no automation, no authority expansion, no synthetic evidence, no user movement, no planner replacement, no new owner, no new backlog, no architecture change. |
+| Current next best action | `C4_ALL_AT_ONCE_PROMOTION_UNAVAILABLE_FOR_CURRENT_ACTION_CLASSES`; no runtime apply, no automation, no authority expansion, no blast-radius expansion, no all-at-once promotion, no synthetic evidence, no user movement, no planner replacement, no new owner, no new backlog, no architecture change. |
 | Last optimizer iteration | `2026-06-29`: RT2-S6 evidence-based continuous improvement implemented as read-only owner-mapped advisory recommendation; current result is `DONE_READ_ONLY_OWNER_MAPPED_RECOMMENDATION`; tests passed. |
 
 ## 24.1 Capability Transition Contract
@@ -4099,16 +4099,17 @@ Major capability transitions:
 | `B21` -> `C1` | Per-user routing control mode. | `per_user_routing_control_mode = DONE_READ_ONLY_PER_USER_ROUTING_CONTROL_MODE`; explicit or inferred per-user `AUTO` / `PINNED` / `MANUAL` routing control semantics are visible through existing owners. | User registry, group/org policy, planner gates, admin operator surface, B11 identity/cohort policy, B20 hard-failure/anti-flap arbitration, OMP. | Fail-open/fail-closed action-class behavior. | Runtime apply, automation, authority expansion, registry write, planner replacement, new owner, concurrency, queue, synthetic evidence, user movement. | C1 may start because B21 makes user-control mode explicit and non-authorizing, so action-class fail behavior can be recorded against known movement/authority boundaries. | B21 is read-only routing control evidence only; it cannot write the registry, mutate Runtime, expand authority, replace Planner, synthesize evidence, or move users. |
 | `C1` -> `C2` | Fail-open/fail-closed action-class behavior. | `fail_open_fail_closed_action_class_behavior = DONE_READ_ONLY_FAIL_OPEN_FAIL_CLOSED_ACTION_CLASS_BEHAVIOR`; every action class records fail-closed Runtime mutation/apply behavior and read-only fail-open allowances for diagnosis, evidence collection, operator explanation, engineering report, and canonical update. | Runtime Model, OMP, planner gates, action-class policy, B21 user mode, stale-read/lease owners, hard-failure arbitration, read-only inventory. | Probabilistic suspicion advisory evidence. | Runtime apply, automation, authority expansion, fail-open runtime mutation, planner replacement, new owner, concurrency, queue, synthetic evidence, user movement. | C2 may start because C1 makes stop/continue behavior explicit and non-authorizing, so weak probabilistic suspicion can be classified advisory-only against a known fail behavior contract. | C1 records behavior only; it cannot make suspicion actionable, grant authority, mutate Runtime, replace Planner, synthesize evidence, or move users. |
 | `C2` -> `C3` | Probabilistic suspicion advisory evidence. | `probabilistic_suspicion_advisory_evidence = DONE_READ_ONLY_PROBABILISTIC_SUSPICION_ADVISORY_EVIDENCE`; shadow autonomy, source-confidence, and soft-degradation suspicion have direct blocking power `NONE` and direct execution power `NONE`. | Trust/confidence model, shadow autonomy, soft-degradation policy, OMP, read-only inventory, C1 fail-closed behavior. | Break-glass authority audited exceptional operator policy. | Runtime apply, automation, direct suspicion blocking, authority expansion, planner replacement, threshold/formula mutation, synthetic evidence, user movement. | C3 may start because C2 proves weak/probabilistic suspicion cannot become action authority, so exceptional authority can be documented against a non-silent advisory boundary. | C2 is advisory read-only evidence only; it cannot grant emergency authority, mutate Runtime, lower gates, replace Planner, synthesize evidence, or move users. |
+| `C3` -> `C4` | Break-glass authority audited exceptional operator policy. | `break_glass_authority_policy_contract = DONE_READ_ONLY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY`; break-glass is disabled by default, exceptional, audited, operator-policy controlled, and non-authorizing by itself. | OMP, operator authority, governed execution pipeline, observability/audit, feedback/closure, packet/rollback evidence, C2 advisory-only boundary. | All-at-once promotion unavailable verification. | Runtime apply, automation, silent authority expansion, all-at-once promotion, blast-radius expansion, direct class promotion, planner replacement, synthetic evidence, rollback/apply execution, user movement. | C4 may start because C3 proves exceptional authority cannot silently become runtime/class authority, so all-at-once promotion can be verified as unavailable against an explicit non-silent authority boundary. | C3 defines policy only; it cannot invoke break-glass, write restore barrier, execute apply/rollback, expand authority, synthesize evidence, or move users. |
 
 Current transition state:
 
 | Field | Value |
 | --- | --- |
-| Last completed transition | `C2 -> C3` |
-| Produced evidence | `probabilistic_suspicion_advisory_evidence = DONE_READ_ONLY_PROBABILISTIC_SUSPICION_ADVISORY_EVIDENCE`; C2 records probabilistic suspicion as advisory-only evidence through existing owners. |
-| Current unlocked step | `C3_BREAK_GLASS_AUTHORITY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY` |
-| Current forbidden later steps | Runtime self-optimization; automatic recommendations; direct implementation without OMP; authority lowering; safety-gate weakening; Runtime apply; automation; concurrency enablement; authority expansion; queue daemon; planner replacement; registry write; user movement |
-| Safety reason | Only existing backlog continuation is unlocked; C2 output is read-only advisory evidence and cannot grant emergency authority, mutate Runtime, expand authority, synthesize evidence, start implementation outside OMP, create a new owner, replace Planner, or move users. |
+| Last completed transition | `C3 -> C4` |
+| Produced evidence | `break_glass_authority_policy_contract = DONE_READ_ONLY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY`; C3 defines break-glass as audited exceptional operator policy through existing owners. |
+| Current unlocked step | `C4_ALL_AT_ONCE_PROMOTION_UNAVAILABLE_FOR_CURRENT_ACTION_CLASSES` |
+| Current forbidden later steps | Runtime self-optimization; automatic recommendations; direct implementation without OMP; authority lowering; safety-gate weakening; Runtime apply; automation; concurrency enablement; authority expansion; blast-radius expansion; all-at-once promotion; queue daemon; planner replacement; registry write; user movement |
+| Safety reason | Only existing backlog continuation is unlocked; C3 output is read-only policy evidence and cannot invoke break-glass, mutate Runtime, expand authority, synthesize evidence, start implementation outside OMP, create a new owner, replace Planner, or move users. |
 
 ## 24.2 Capability Production Contract
 
@@ -4188,6 +4189,7 @@ Producer / consumer matrix:
 | `B21` | Per-User Routing Control Mode. | `per_user_routing_control_mode`; explicit or inferred per-user `AUTO` / `PINNED` / `MANUAL` routing control semantics are exposed read-only. | Existing user registry, group/org policy, planner gate, admin operator surface, B11 identity/cohort policy, B20 hard-failure/anti-flap arbitration, OMP, Backlog, Production Maturity + `admin_core.autonomy_trust_acceleration`. | OMP, `C1`, Current Program State, Production Maturity, Canonical Reference, Movement Protection, Runtime Eligibility, Authority Evolution, Decision Explainability, Production Autonomy. | Fail-Open / Fail-Closed Action-Class Behavior. | `C1` | Runtime apply, automation, authority expansion, registry write, new owner, traffic admission, concurrency, queue, synthetic evidence, user movement, planner replacement. | `C2+`, runtime apply. | B21 proves user-control boundaries are explicit and non-authorizing; C1 may now record action-class fail behavior without creating a new planner, registry owner, or runtime behavior. |
 | `C1` | Fail-Open / Fail-Closed Action-Class Behavior. | `fail_open_fail_closed_action_class_behavior`; per-action-class fail-closed Runtime mutation/apply behavior and read-only fail-open allowance are recorded. | Existing Runtime Model, OMP, planner gates, action-class policy, B21 user mode, stale-read/lease, hard-failure arbitration, Backlog, Production Maturity + `admin_core.autonomy_trust_acceleration`. | OMP, `C2`, Current Program State, Production Maturity, Canonical Reference, Runtime Eligibility, Authority Evolution, Movement Protection, Decision Explainability, Production Autonomy. | Probabilistic Suspicion Advisory Evidence. | `C2` | Runtime apply, automation, authority expansion, fail-open runtime mutation, traffic admission, concurrency, queue, synthetic evidence, user movement, planner replacement. | `C3+`, runtime apply. | C1 makes stop/continue semantics explicit without authorizing execution; C2 may now constrain probabilistic suspicion as advisory-only evidence. |
 | `C2` | Probabilistic Suspicion Advisory Evidence. | `probabilistic_suspicion_advisory_evidence`; shadow autonomy, source-confidence, and soft-degradation suspicion are advisory-only with direct blocking power `NONE` and direct execution power `NONE`. | Existing trust/confidence model, shadow autonomy, soft-degradation policy, OMP, read-only inventory, C1 fail-closed behavior, Backlog, Production Maturity + `admin_core.autonomy_trust_acceleration`. | OMP, `C3`, Current Program State, Production Maturity, Canonical Reference, Decision Explainability, Observability, Authority Evolution, Production Autonomy. | Break-Glass Authority Audited Exceptional Operator Policy. | `C3` | Runtime apply, automation, direct suspicion blocking, authority expansion, threshold/formula mutation, traffic admission, concurrency, queue, synthetic evidence, user movement, planner replacement. | `C4+`, runtime apply. | C2 makes weak/probabilistic suspicion non-authorizing; C3 may now define exceptional authority boundaries without allowing suspicion to become action authority. |
+| `C3` | Break-Glass Authority Audited Exceptional Operator Policy. | `break_glass_authority_policy_contract`; break-glass is disabled-by-default, audited, exceptional operator policy only, requiring explicit operator policy, incident context, audit, verification/closure, truth/convergence, OMP, and CPS updates. | Existing OMP, operator authority, governed execution pipeline, audit/observability, feedback/closure, packet/rollback owners, Backlog, Production Maturity + `admin_core.operator_execution_pipeline`. | OMP, `C4`, Current Program State, Production Maturity, Canonical Reference, Authority Evolution, Blast Radius, Decision Explainability, Observability, Production Autonomy. | All-at-Once Promotion Unavailable Verification. | `C4` | Runtime apply, automation, silent authority expansion, all-at-once promotion, blast-radius expansion, direct class promotion, rollback/apply execution, synthetic evidence, user movement, planner replacement. | `C5+`, runtime apply. | C3 makes exceptional authority explicit and non-authorizing; C4 may now verify broad promotion remains unavailable under a non-silent authority boundary. |
 
 Capability graph validation:
 
@@ -4366,12 +4368,12 @@ Current dashboard snapshot:
 | Tier B | `[##########] 21 / 21 COMPLETE` |
 | RT2 | `[##########] 6 / 6 COMPLETE_READ_ONLY` |
 | Engineering Intelligence | `[########--] FINAL_CANONICAL_STATE / implementation evidence future` |
-| Overall actionable backlog | `29 / 34 complete` |
-| Production Maturity | `[######----] 62.5 / 100; target 100; remaining 37.5` |
-| Current step | `C3_BREAK_GLASS_AUTHORITY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY` |
-| Previous step | `C2_PROBABILISTIC_SUSPICION_ADVISORY_EVIDENCE` |
-| Reason current step is available | C2 produced advisory-only suspicion evidence through existing trust/confidence, shadow autonomy, soft-degradation policy, OMP, and inventory owners, enabling C3 to bound break-glass authority as exceptional and audited. |
-| Current stop | `NONE_FOR_C3_BREAK_GLASS_AUTHORITY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY` |
+| Overall actionable backlog | `30 / 34 complete` |
+| Production Maturity | `[######----] 63.4 / 100; target 100; remaining 36.6` |
+| Current step | `C4_ALL_AT_ONCE_PROMOTION_UNAVAILABLE_FOR_CURRENT_ACTION_CLASSES` |
+| Previous step | `C3_BREAK_GLASS_AUTHORITY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY` |
+| Reason current step is available | C3 produced audited exceptional operator policy evidence without granting runtime/class authority, enabling C4 to verify all-at-once promotion remains unavailable. |
+| Current stop | `NONE_FOR_C4_ALL_AT_ONCE_PROMOTION_UNAVAILABLE_FOR_CURRENT_ACTION_CLASSES` |
 
 RT2 dashboard:
 
@@ -4607,15 +4609,15 @@ Operator Home Screen conceptual mockup:
 V7 / OMP Dashboard                                      READ ONLY
 Product Execution Mode             Operator View | Engineering View
 
-[Production Maturity 62.5/100] [Current: C3] [RT2 Complete] [EI Canonical]
+[Production Maturity 63.4/100] [Current: C4] [RT2 Complete] [EI Canonical]
 
 Overall Progress
 Architecture [##########]  Tier A [##########]  Tier B [######----]
 RT2          [##########]  Backlog [######----] Production [#####-----]
 
 Current Stage
-C2 completed -> C3 current -> Continue OMP after evidence/report/canonical update
-Why now: C2 produced owner-mapped advisory-only probabilistic suspicion evidence.
+C3 completed -> C4 current -> Continue OMP after evidence/report/canonical update
+Why now: C3 produced owner-mapped audited exceptional operator policy evidence.
 
 Capability
 Produced: Probabilistic Suspicion Advisory Evidence

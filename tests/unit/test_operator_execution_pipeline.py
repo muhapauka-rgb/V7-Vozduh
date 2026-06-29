@@ -1175,6 +1175,24 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertFalse(approval_prompt["restore_barrier_written_now"])
         self.assertFalse(approval_prompt["apply_executed"])
         self.assertEqual(approval_prompt["users_moved"], 0)
+        break_glass = cycle["break_glass_authority_policy"]
+        self.assertEqual(break_glass["schema_version"], "v7.c3-break-glass-authority-policy.v1")
+        self.assertEqual(break_glass["policy_status"], "DEFINED_NOT_APPROVED_FOR_RUNTIME")
+        self.assertEqual(
+            break_glass["omp_output"]["c3_status"],
+            "DONE_READ_ONLY_AUDITED_EXCEPTIONAL_OPERATOR_POLICY",
+        )
+        self.assertTrue(break_glass["definition"]["operator_policy_approval_required"])
+        self.assertEqual(break_glass["definition"]["default_state"], "DISABLED")
+        self.assertEqual(break_glass["definition"]["runtime_apply_permission"], "NOT_GRANTED")
+        self.assertIn("probabilistic suspicion alone", break_glass["forbidden_triggers"])
+        self.assertIn("Runtime apply enablement", break_glass["forbidden_effects"])
+        self.assertIn("user movement without exact approved packet", break_glass["forbidden_effects"])
+        self.assertFalse(break_glass["safety"]["break_glass_authority_granted_now"])
+        self.assertFalse(break_glass["safety"]["runtime_apply_allowed_now"])
+        self.assertFalse(break_glass["safety"]["automation_enabled"])
+        self.assertFalse(break_glass["safety"]["authority_expanded"])
+        self.assertEqual(break_glass["safety"]["users_moved"], 0)
         action_class = cycle["action_class_runtime_enablement"]
         self.assertEqual(action_class["schema_version"], "v7.action-class-runtime-enablement-preview.v1")
         self.assertEqual(action_class["current_action_class"], "single-user governed candidate failover")

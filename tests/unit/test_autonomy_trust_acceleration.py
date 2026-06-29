@@ -3012,6 +3012,96 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(model["users_moved"], 0)
         self.assertFalse(model["authority_expanded"])
 
+    def test_c6_bounded_stale_allowance_by_action_class_is_read_only(self):
+        freshness = accel.build_freshness_actionability({
+            "service-scores": {"freshness_state": "STALE", "stop_required": True, "runtime_behavior": "STOP"},
+            "channel-service-scores": {"freshness_state": "FRESH", "stop_required": False, "runtime_behavior": "READ"},
+        })
+        windows = accel.build_action_class_freshness_windows(freshness)
+        runtime = {
+            "schema_version": "v7.a6-runtime-eligibility-arbitration.v1",
+            "gate_rows": [{"gate": "freshness", "state": "STOP", "owner": "freshness_actionability"}],
+        }
+        stale = accel.build_stale_read_mutation_blocking(
+            freshness_actionability=freshness,
+            runtime_eligibility_arbitration=runtime,
+        )
+        lease = accel.build_owner_issued_version_lease_pattern(
+            freshness_actionability=freshness,
+            action_class_freshness_windows=windows,
+            stale_read_mutation_blocking=stale,
+        )
+        fail_behavior = accel.build_fail_open_fail_closed_action_class_behavior(
+            runtime_eligibility_arbitration=runtime,
+            stale_read_mutation_blocking=stale,
+            owner_issued_version_lease_pattern=lease,
+        )
+        model = accel.build_bounded_stale_allowance_by_action_class(
+            freshness_actionability=freshness,
+            action_class_freshness_windows=windows,
+            stale_read_mutation_blocking=stale,
+            owner_issued_version_lease_pattern=lease,
+            fail_open_fail_closed_action_class_behavior=fail_behavior,
+            runtime_eligibility_arbitration=runtime,
+            generated_at="2026-06-25T00:00:00+00:00",
+        )
+
+        self.assertEqual(model["schema_version"], "v7.c6-bounded-stale-allowance-by-action-class.v1")
+        self.assertEqual(model["backlog_item"], "C6")
+        self.assertEqual(model["decision"]["bounded_stale_mutation_allowance_seconds"], 0)
+        self.assertTrue(model["decision"]["stale_evidence_observation_allowed"])
+        self.assertTrue(model["decision"]["stale_evidence_engineering_report_allowed"])
+        self.assertFalse(model["decision"]["stale_evidence_mutation_allowed"])
+        self.assertTrue(model["decision"]["fresh_evidence_required_before_mutation"])
+        self.assertGreaterEqual(model["summary"]["action_classes"], 1)
+        self.assertEqual(model["summary"]["stale_mutation_allowed"], 0)
+        self.assertTrue(all(row["stale_read_allowed_for_observation"] for row in model["rows"]))
+        self.assertTrue(all(row["stale_read_allowed_for_mutation"] is False for row in model["rows"]))
+        self.assertTrue(all(row["bounded_stale_mutation_allowance_seconds"] == 0 for row in model["rows"]))
+        self.assertTrue(all(row["fresh_evidence_required_before_mutation"] for row in model["rows"]))
+        self.assertTrue(any(
+            "runtime_eligibility_freshness_gate_stop" in row["mutation_blockers"]
+            for row in model["rows"]
+        ))
+        self.assertIn(
+            "C7_POOL_MAX_EJECTION_MINIMUM_HEALTH_CAPACITY_BLAST_BOUNDS",
+            model["omp_output"]["unlocked_capability"],
+        )
+        self.assertIn("mutation_from_stale_read", model["omp_output"]["blocked_later_steps"])
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+        self.assertFalse(model["threshold_values_changed"])
+        self.assertFalse(model["formula_changed"])
+        self.assertFalse(model["new_owner_created"])
+
+    def test_c6_inventory_exposes_bounded_stale_allowance(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        model = inventory["bounded_stale_allowance_by_action_class"]
+        self.assertEqual(model["schema_version"], "v7.c6-bounded-stale-allowance-by-action-class.v1")
+        self.assertEqual(model["backlog_item"], "C6")
+        self.assertEqual(
+            model["omp_output"]["c6_status"],
+            "DONE_READ_ONLY_BOUNDED_STALE_ALLOWANCE_BY_ACTION_CLASS",
+        )
+        self.assertEqual(model["summary"]["action_classes"], len(accel.ACTION_CLASS_LADDER))
+        self.assertEqual(model["summary"]["stale_mutation_allowed"], 0)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+
     def test_c2_probabilistic_suspicion_is_advisory_only(self):
         shadow = shadow_autonomy.build_shadow_autonomy_model(
             {

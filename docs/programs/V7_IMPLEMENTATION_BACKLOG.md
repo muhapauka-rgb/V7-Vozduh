@@ -38,14 +38,14 @@ OMP must always choose the highest-priority unfinished backlog item unless it cr
 | --- | ---: | ---: | --- |
 | Tier A | `6` | `6` | `COMPLETE` |
 | Tier B | `21` | `21` | `COMPLETE` |
-| Tier C | `5` | `7` | `IN_PROGRESS` |
+| Tier C | `6` | `7` | `IN_PROGRESS` |
 | Tier D optional | `0` | `6` | `OPTIONAL` |
-| Overall actionable | `32` | `34` | `ACTIVE` |
+| Overall actionable | `33` | `34` | `ACTIVE` |
 
 Implementation maturity:
 
 ```text
-94.1%
+97.1%
 ```
 
 Estimated remaining effort:
@@ -57,7 +57,7 @@ Moderate
 Next item:
 
 ```text
-C5
+C7
 ```
 
 If all actionable backlog items are `DONE`, OMP must answer:
@@ -92,19 +92,19 @@ State Change Cost verdict: `ALREADY_EXISTS_SEMANTICALLY`; extend existing B19 vo
 
 | Field | Value |
 | --- | --- |
-| Backlog id | `C5` |
+| Backlog id | `C7` |
 | Status | `READY` |
-| Task | Preserve rollback as operational compensation rather than transaction rollback. |
-| Policy source | `POLICY_007_ROLLBACK` |
-| Owner | Runtime Model, rollback policy |
-| Files/modules | `docs/reference/V7_RUNTIME_MODEL.md`, `admin_core/operator_execution.py` |
-| Implementation class | `IMPLEMENT_DOCUMENTATION` |
-| Estimated effort | `NONE` |
-| Dependencies | Existing rollback semantics; C4 all-at-once promotion unavailable verification. |
-| Expected production value | `MEDIUM` |
-| Expected autonomy gain | `LOW` |
-| Expected runtime gain | `MEDIUM` |
-| Expected safety gain | `MEDIUM_HIGH` |
+| Task | Map pool max-ejection/minimum-health semantics to V7 capacity and blast bounds. |
+| Policy source | `POLICY_009_ANTI_FLAP`, `POLICY_006_BLAST_RADIUS` |
+| Owner | Planner capacity/load, action-class ladder |
+| Files/modules | `tools/v7-users-autoswitch`, `admin_core/autonomy_trust_acceleration.py` |
+| Implementation class | `IMPLEMENT_READ_MODEL` |
+| Estimated effort | `SMALL_EXTENSION` |
+| Dependencies | Capacity/load evidence; C6 bounded stale allowance by action class. |
+| Expected production value | `MEDIUM_HIGH` |
+| Expected autonomy gain | `MEDIUM` |
+| Expected runtime gain | `MEDIUM_HIGH` |
+| Expected safety gain | `HIGH` |
 
 ## Runtime Latency Foundation Placement
 
@@ -192,7 +192,7 @@ Future runtime-latency work must map to the existing backlog owners above unless
 | `C3` | `DONE` | Define break-glass authority as audited exceptional operator policy. | `POLICY_004_AUTHORITY` | OMP, operator authority | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, `admin_core/operator_execution_pipeline.py::break_glass_authority_policy_contract` | `IMPLEMENT_DOCUMENTATION` | `SMALL_EXTENSION` | `break_glass_authority_policy_contract` defines break-glass as disabled-by-default, audited, exceptional operator policy only; it grants no Runtime apply, automation, silent authority expansion, planner replacement, synthetic evidence, rollback/apply execution, or user movement. | `MEDIUM` | `LOW` | `MEDIUM` | `HIGH` |
 | `C4` | `DONE` | Keep all-at-once promotion unavailable for current action classes. | `POLICY_005_ACTION_CLASS_PROMOTION` | OMP, blast-radius gates | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, `admin_core/autonomy_trust_acceleration.py::build_all_at_once_promotion_unavailable_verification`, `tools/v7-autonomy-trust-evidence-inventory --routing-foundation-only` | `IMPLEMENT_VERIFICATION` | `NONE` | `all_at_once_promotion_unavailable_verification` consumes action-class runtime enablement, A5 blast-radius certification, B12 stage certification, B14 service/pool/cohort scope, and C3 break-glass policy evidence; it verifies all-at-once/direct class promotion remains unavailable and keeps Runtime apply, authority expansion, automation, blast-radius expansion, synthetic evidence, and user movement blocked. | `MEDIUM` | `MEDIUM` | `LOW` | `HIGH` |
 | `C5` | `DONE` | Preserve rollback as operational compensation rather than transaction rollback. | `POLICY_007_ROLLBACK` | Runtime Model, rollback policy | `docs/reference/V7_RUNTIME_MODEL.md`, `admin_core/operator_execution.py::rollback_operational_compensation_contract` | `IMPLEMENT_DOCUMENTATION` | `NONE` | `rollback_operational_compensation_contract` preserves rollback semantics as operational compensation, not database transaction/global rewind; allowed forms are abort, certified no-rollback, restore to fresh target, containment review, forward-fix with verification, or operator review when compensation fails; it grants no Runtime apply, rollback execution, authority expansion, planner replacement, synthetic evidence, or user movement. | `MEDIUM` | `LOW` | `MEDIUM` | `MEDIUM_HIGH` |
-| `C6` | `TODO` | Decide bounded stale allowance by action class. | `POLICY_008_FRESHNESS` | Freshness actionability, OMP stop rules | `admin_core/autonomy_trust_acceleration.py`, `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | A2 freshness windows. | `MEDIUM_HIGH` | `MEDIUM` | `MEDIUM` | `HIGH` |
+| `C6` | `DONE` | Decide bounded stale allowance by action class. | `POLICY_008_FRESHNESS` | Freshness actionability, OMP stop rules | `admin_core/autonomy_trust_acceleration.py::build_bounded_stale_allowance_by_action_class`, `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | `bounded_stale_allowance_by_action_class` decides stale/unknown evidence is observable, diagnosable, and reportable, but has zero mutation allowance; fresh evidence inside existing action-class windows is required before mutation review; no Runtime behavior, authority, thresholds, formulas, synthetic evidence, or users changed. | `MEDIUM_HIGH` | `MEDIUM` | `MEDIUM` | `HIGH` |
 | `C7` | `TODO` | Map pool max-ejection/minimum-health semantics to V7 capacity and blast bounds. | `POLICY_009_ANTI_FLAP`, `POLICY_006_BLAST_RADIUS` | Planner capacity/load, action-class ladder | `tools/v7-users-autoswitch`, `admin_core/autonomy_trust_acceleration.py` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | Capacity/load evidence. | `MEDIUM_HIGH` | `MEDIUM` | `MEDIUM_HIGH` | `HIGH` |
 
 ## Tier D: Optional

@@ -560,7 +560,25 @@ Owner: Runtime Model for rollback semantics; rollback policy and `admin_core.ope
 
 The contract must not execute rollback, enable Runtime apply, expand authority, mutate runtime state, move users, replace the Planner, create synthetic evidence, create a new owner, or introduce transaction-rollback semantics.
 
-Current canonical result: `DONE_READ_ONLY_ROLLBACK_OPERATIONAL_COMPENSATION_PRESERVED`; C6 bounded stale allowance by action class is the next OMP step.
+Current canonical result: `DONE_READ_ONLY_ROLLBACK_OPERATIONAL_COMPENSATION_PRESERVED`; C6 bounded stale allowance by action class consumed this boundary and is complete.
+
+## C6 Bounded Stale Allowance By Action Class
+
+Status: `DONE_READ_ONLY`
+
+Owner: Runtime Model for freshness semantics; freshness actionability, OMP stop rules, Backlog, Production Maturity, and `admin_core.autonomy_trust_acceleration` for the read-only implementation surface.
+
+`bounded_stale_allowance_by_action_class` is the current C6 read-only contract for stale evidence use. It consumes existing freshness actionability, action-class freshness windows, B17 stale-read mutation blocking, B18 owner-issued version/lease pattern, C1 fail-open/fail-closed action-class behavior, and A6 runtime eligibility arbitration.
+
+Canonical rule:
+
+- stale or unknown evidence may remain observable, diagnosable, and reportable;
+- stale or unknown evidence has `0` seconds of mutation allowance;
+- mutation review requires fresh evidence inside the existing action-class window;
+- owner-issued version or lease evidence is preferred where an existing owner provides it;
+- C6 does not change freshness windows, timers, thresholds, formulas, lease behavior, Runtime behavior, authority, planner ownership, or user assignment.
+
+Current canonical result: `DONE_READ_ONLY_BOUNDED_STALE_ALLOWANCE_BY_ACTION_CLASS`; C7 pool max-ejection/minimum-health capacity and blast-bound mapping is the next OMP step.
 
 ## Runtime Latency Engineering Review Checklist
 

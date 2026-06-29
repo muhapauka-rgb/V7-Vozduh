@@ -3504,6 +3504,186 @@ def build_owner_issued_version_lease_pattern(
     }
 
 
+def build_bounded_stale_allowance_by_action_class(
+    *,
+    freshness_actionability: dict[str, Any] | None = None,
+    action_class_freshness_windows: dict[str, Any] | None = None,
+    stale_read_mutation_blocking: dict[str, Any] | None = None,
+    owner_issued_version_lease_pattern: dict[str, Any] | None = None,
+    fail_open_fail_closed_action_class_behavior: dict[str, Any] | None = None,
+    runtime_eligibility_arbitration: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Decide bounded stale allowance by action class without changing Runtime behavior."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    freshness = freshness_actionability if isinstance(freshness_actionability, dict) else {}
+    windows = (
+        action_class_freshness_windows
+        if isinstance(action_class_freshness_windows, dict)
+        else build_action_class_freshness_windows(freshness)
+    )
+    stale = stale_read_mutation_blocking if isinstance(stale_read_mutation_blocking, dict) else {}
+    lease = owner_issued_version_lease_pattern if isinstance(owner_issued_version_lease_pattern, dict) else {}
+    fail_behavior = fail_open_fail_closed_action_class_behavior if isinstance(fail_open_fail_closed_action_class_behavior, dict) else {}
+    runtime = runtime_eligibility_arbitration if isinstance(runtime_eligibility_arbitration, dict) else {}
+    runtime_gate_rows = [row for row in (runtime.get("gate_rows") or []) if isinstance(row, dict)]
+    runtime_freshness_gate = next((row for row in runtime_gate_rows if row.get("gate") == "freshness"), {})
+    stale_domains = set(str(domain) for domain in (stale.get("stale_domains") or []))
+    lease_rows = [row for row in (lease.get("rows") or []) if isinstance(row, dict)]
+    lease_status_by_class: dict[str, set[str]] = {}
+    for row in lease_rows:
+        action_class = _text(row.get("action_class"), "UNKNOWN_ACTION_CLASS")
+        lease_status_by_class.setdefault(action_class, set()).add(_text(row.get("pattern_status"), "UNKNOWN"))
+    fail_rows = [row for row in (fail_behavior.get("rows") or []) if isinstance(row, dict)]
+    fail_closed_by_class = {
+        _text(row.get("action_class"), ""): bool(row.get("runtime_mutation_fail_closed"))
+        for row in fail_rows
+    }
+    rows: list[dict[str, Any]] = []
+    for action_row in [row for row in (windows.get("rows") or []) if isinstance(row, dict)]:
+        action_class = _text(action_row.get("action_class"), "UNKNOWN_ACTION_CLASS")
+        domain_rows = [row for row in (action_row.get("domains") or []) if isinstance(row, dict)]
+        stale_or_unknown_domains = [
+            _text(row.get("domain"), "unknown")
+            for row in domain_rows
+            if _text(row.get("classification"), "UNKNOWN") in {"STALE_RECHECK_REQUIRED", "UNKNOWN"}
+        ]
+        configured_windows = dict(action_row.get("freshness_windows") or {})
+        shortest_window = min(configured_windows.values()) if configured_windows else 0
+        longest_window = max(configured_windows.values()) if configured_windows else 0
+        freshness_ready = bool(action_row.get("freshness_ready")) and not stale_or_unknown_domains
+        mutation_blockers = sorted(set(
+            [f"stale_or_unknown:{domain}" for domain in stale_or_unknown_domains]
+            + [f"b17_stale_read:{domain}" for domain in stale_domains if domain in configured_windows]
+            + (["runtime_eligibility_freshness_gate_stop"] if runtime_freshness_gate.get("state") == "STOP" else [])
+            + ["runtime_apply_boundary", "authority_boundary"]
+        ))
+        owner_issued_statuses = sorted(lease_status_by_class.get(action_class, set()))
+        owner_issued_partial = any(status in {
+            "OWNER_ISSUED_VERSION_LEASE_PATTERN_PARTIAL",
+            "OWNER_ISSUED_VERSION_LEASE_PATTERN_MISSING",
+        } for status in owner_issued_statuses)
+        if owner_issued_partial:
+            mutation_blockers.append("owner_issued_version_or_lease_incomplete")
+        if freshness_ready:
+            mutation_freshness_decision = "FRESHNESS_READY_AUTHORITY_STILL_REQUIRED"
+        else:
+            mutation_freshness_decision = "STOP_SAFE_REFRESH_REQUIRED_BEFORE_MUTATION"
+        rows.append({
+            "action_class": action_class,
+            "freshness_windows": configured_windows,
+            "shortest_window_seconds": int(shortest_window or 0),
+            "longest_window_seconds": int(longest_window or 0),
+            "freshness_ready": freshness_ready,
+            "stale_or_unknown_domains": stale_or_unknown_domains,
+            "stale_read_allowed_for_observation": True,
+            "stale_read_allowed_for_diagnosis": True,
+            "stale_read_allowed_for_engineering_report": True,
+            "stale_read_allowed_for_mutation": False,
+            "bounded_stale_mutation_allowance_seconds": 0,
+            "fresh_evidence_required_before_mutation": True,
+            "owner_issued_version_or_lease_required_when_available": True,
+            "owner_issued_pattern_statuses": owner_issued_statuses,
+            "runtime_mutation_fail_closed": fail_closed_by_class.get(action_class, True),
+            "mutation_freshness_decision": mutation_freshness_decision,
+            "mutation_blockers": sorted(set(mutation_blockers)),
+            "runtime_apply_allowed": False,
+            "authority_expanded": False,
+            "runtime_mutation_performed": False,
+            "apply_executed": False,
+            "users_moved": 0,
+        })
+    return {
+        "schema_version": "v7.c6-bounded-stale-allowance-by-action-class.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "C6",
+        "purpose": "decide_bounded_stale_allowance_by_action_class_without_runtime_behavior_change",
+        "source_owners_reused": [
+            "admin_core.autonomy_trust_acceleration.build_freshness_actionability",
+            "admin_core.autonomy_trust_acceleration.build_action_class_freshness_windows",
+            "admin_core.autonomy_trust_acceleration.build_stale_read_mutation_blocking",
+            "admin_core.autonomy_trust_acceleration.build_owner_issued_version_lease_pattern",
+            "admin_core.autonomy_trust_acceleration.build_fail_open_fail_closed_action_class_behavior",
+            "admin_core.autonomy_trust_acceleration.build_runtime_eligibility_arbitration",
+            "Runtime Model freshness gates",
+            "OMP stop rules",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_008_FRESHNESS.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#C6",
+        ],
+        "consumed_prior_capabilities": {
+            "freshness_actionability": freshness.get("schema_version", "UNKNOWN"),
+            "action_class_freshness_windows": windows.get("schema_version", "UNKNOWN"),
+            "stale_read_mutation_blocking": stale.get("schema_version", "UNKNOWN"),
+            "owner_issued_version_lease_pattern": lease.get("schema_version", "UNKNOWN"),
+            "fail_open_fail_closed_action_class_behavior": fail_behavior.get("schema_version", "UNKNOWN"),
+            "runtime_eligibility_arbitration": runtime.get("schema_version", "UNKNOWN"),
+        },
+        "decision": {
+            "bounded_stale_mutation_allowance_seconds": 0,
+            "stale_evidence_observation_allowed": True,
+            "stale_evidence_diagnosis_allowed": True,
+            "stale_evidence_engineering_report_allowed": True,
+            "stale_evidence_mutation_allowed": False,
+            "fresh_evidence_required_before_mutation": True,
+            "owner_issued_version_or_lease_preferred": True,
+        },
+        "rows": rows,
+        "summary": {
+            "action_classes": len(rows),
+            "freshness_ready": sum(1 for row in rows if row["freshness_ready"]),
+            "refresh_required_before_mutation": sum(1 for row in rows if row["mutation_freshness_decision"] == "STOP_SAFE_REFRESH_REQUIRED_BEFORE_MUTATION"),
+            "stale_mutation_allowed": sum(1 for row in rows if row["stale_read_allowed_for_mutation"]),
+            "runtime_actions_created": 0,
+            "authority_changes": 0,
+            "synthetic_evidence_created": 0,
+            "users_moved": 0,
+        },
+        "canonical_rules": [
+            "c6_decides_stale_allowance_by_existing_action_class_windows",
+            "stale_or_unknown_evidence_is_observable_and_reportable",
+            "stale_or_unknown_evidence_never_authorizes_mutation",
+            "fresh_evidence_inside_existing_windows_is_required_before_mutation_review",
+            "owner_issued_version_or_lease_is_preferred_when_available",
+            "c6_does_not_change_freshness_windows_thresholds_or_formulas",
+            "c6_does_not_grant_runtime_apply_or_authority",
+        ],
+        "omp_output": {
+            "c6_status": "DONE_READ_ONLY_BOUNDED_STALE_ALLOWANCE_BY_ACTION_CLASS",
+            "produced_evidence": "bounded_stale_allowance_by_action_class",
+            "unlocked_capability": "C7_POOL_MAX_EJECTION_MINIMUM_HEALTH_CAPACITY_BLAST_BOUNDS",
+            "blocked_later_steps": [
+                "runtime_apply",
+                "automation",
+                "authority_expansion",
+                "mutation_from_stale_read",
+                "threshold_formula_mutation",
+                "new_owner",
+                "planner_replacement",
+                "synthetic_evidence",
+                "user_movement",
+            ],
+            "next_safe_action": "continue_omp_to_c7_pool_health_capacity_blast_bounds",
+        },
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "threshold_values_changed": False,
+        "formula_changed": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+        "new_runtime_created": False,
+    }
+
+
 def build_hysteresis_state_change_cost_mapping(
     *,
     anti_flapping: dict[str, Any] | None = None,
@@ -11255,6 +11435,15 @@ def build_acceleration_inventory(
         owner_issued_version_lease_pattern=owner_issued_version_lease_pattern,
         generated_at=generated,
     )
+    bounded_stale_allowance_by_action_class = build_bounded_stale_allowance_by_action_class(
+        freshness_actionability=freshness_actionability,
+        action_class_freshness_windows=action_class_freshness_windows,
+        stale_read_mutation_blocking=stale_read_mutation_blocking,
+        owner_issued_version_lease_pattern=owner_issued_version_lease_pattern,
+        fail_open_fail_closed_action_class_behavior=fail_open_fail_closed_action_class_behavior,
+        runtime_eligibility_arbitration=runtime_eligibility_arbitration,
+        generated_at=generated,
+    )
     metric_reliability_certification = build_metric_reliability_certification(
         canary_proximity=canary,
         floor_forensics=floor_forensics,
@@ -11417,6 +11606,7 @@ def build_acceleration_inventory(
         "hard_failure_override_anti_flap_arbitration": hard_failure_override_anti_flap_arbitration,
         "per_user_routing_control_mode": per_user_routing_control_mode,
         "fail_open_fail_closed_action_class_behavior": fail_open_fail_closed_action_class_behavior,
+        "bounded_stale_allowance_by_action_class": bounded_stale_allowance_by_action_class,
         "probabilistic_suspicion_advisory_evidence": probabilistic_suspicion_advisory_evidence,
         "metric_reliability_certification": metric_reliability_certification,
         "next_action_class_stage_certification": next_action_class_stage_certification,

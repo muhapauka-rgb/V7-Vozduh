@@ -4250,6 +4250,246 @@ def build_fail_open_fail_closed_action_class_behavior(
     }
 
 
+def build_probabilistic_suspicion_advisory_evidence(
+    *,
+    decision_surface: dict[str, Any] | None = None,
+    shadow_model: dict[str, Any] | None = None,
+    source_confidence_inventory: dict[str, Any] | None = None,
+    degradation_signal_policy_mapping: dict[str, Any] | None = None,
+    observed_degradation_attribution: dict[str, Any] | None = None,
+    metric_reliability_certification: dict[str, Any] | None = None,
+    fail_open_fail_closed_action_class_behavior: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Expose probabilistic suspicion as advisory-only evidence for C2."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    surface = decision_surface if isinstance(decision_surface, dict) else {}
+    shadow = shadow_model if isinstance(shadow_model, dict) else {}
+    source_inventory = source_confidence_inventory if isinstance(source_confidence_inventory, dict) else {}
+    signal_mapping = degradation_signal_policy_mapping if isinstance(degradation_signal_policy_mapping, dict) else {}
+    attribution = observed_degradation_attribution if isinstance(observed_degradation_attribution, dict) else {}
+    metric_reliability = metric_reliability_certification if isinstance(metric_reliability_certification, dict) else {}
+    c1_behavior = fail_open_fail_closed_action_class_behavior if isinstance(fail_open_fail_closed_action_class_behavior, dict) else {}
+
+    decisions = [
+        row for row in (shadow.get("current_decisions") or [])
+        if isinstance(row, dict)
+    ]
+    if not decisions and surface.get("users"):
+        decisions = shadow_autonomy.build_shadow_decisions(surface, now=generated)
+
+    rows: list[dict[str, Any]] = []
+    for decision in decisions:
+        confidence = as_float(decision.get("confidence"), 0.0)
+        risk = as_float(decision.get("risk"), 0.0)
+        blockers = [_text(item) for item in (decision.get("blockers") or []) if _text(item)]
+        reasons = []
+        if confidence < shadow_autonomy.OBSERVATION_TARGETS["minimum_earned_confidence"]:
+            reasons.append("shadow_confidence_below_operator_floor")
+        if risk >= 50.0:
+            reasons.append("elevated_shadow_risk")
+        if blockers:
+            reasons.append("decision_surface_blockers_present")
+        if _text(decision.get("recommended_action")) == "MOVE_USER":
+            reasons.append("movement_recommendation_requires_operator_or_authority_review")
+        rows.append({
+            "evidence_id": _text(decision.get("decision_id") or f"shadow-{len(rows)}"),
+            "source": "shadow_autonomy",
+            "owner": "admin_core.shadow_autonomy",
+            "object": _text(decision.get("user") or "unknown-user"),
+            "evidence_kind": "probabilistic_shadow_decision_suspicion",
+            "probabilistic_inputs": {
+                "confidence": round(confidence, 3),
+                "risk": round(risk, 3),
+                "trust": as_float(decision.get("trust"), 0.0),
+                "prediction_confidence": as_float((decision.get("prediction") or {}).get("confidence"), 0.0)
+                if isinstance(decision.get("prediction"), dict) else 0.0,
+            },
+            "suspicion_state": "ADVISORY_SUSPICION_EVIDENCE" if reasons else "NO_PROBABILISTIC_SUSPICION",
+            "advisory_reasons": sorted(set(reasons)),
+            "existing_blockers": blockers,
+            "allowed_consumers": [
+                "operator_explanation",
+                "decision_explainability",
+                "engineering_report",
+                "canonical_update",
+                "future_existing_owner_review",
+            ],
+            "forbidden_consumers": [
+                "runtime_apply",
+                "automatic_user_movement",
+                "authority_expansion",
+                "planner_replacement",
+                "threshold_formula_mutation",
+            ],
+            "direct_blocking_power": "NONE",
+            "direct_execution_power": "NONE",
+            "runtime_apply_allowed": False,
+            "authority_expanded": False,
+            "user_movement_allowed": False,
+        })
+
+    source_rows = [
+        row for row in (source_inventory.get("sources") or [])
+        if isinstance(row, dict)
+    ]
+    for source in source_rows:
+        score = as_float(source.get("confidence") or source.get("score") or source.get("current"), 0.0)
+        if score >= 70.0:
+            continue
+        rows.append({
+            "evidence_id": "source_confidence:" + _text(source.get("source") or source.get("name") or len(rows)),
+            "source": "source_confidence_inventory",
+            "owner": _text(source.get("owner") or "admin_core.autonomy_trust_acceleration.build_source_confidence_inventory"),
+            "object": _text(source.get("source") or source.get("name") or "unknown-source"),
+            "evidence_kind": "source_confidence_suspicion",
+            "probabilistic_inputs": {
+                "confidence": round(score, 3),
+                "maturity": _text(source.get("maturity") or source.get("classification") or "UNKNOWN"),
+            },
+            "suspicion_state": "ADVISORY_SOURCE_CONFIDENCE_EVIDENCE",
+            "advisory_reasons": ["source_confidence_below_operator_floor"],
+            "existing_blockers": [_text(item) for item in (source.get("blockers") or []) if _text(item)],
+            "allowed_consumers": ["trust_confidence_review", "engineering_report", "canonical_update"],
+            "forbidden_consumers": ["runtime_apply", "authority_expansion", "threshold_formula_mutation"],
+            "direct_blocking_power": "NONE",
+            "direct_execution_power": "NONE",
+            "runtime_apply_allowed": False,
+            "authority_expanded": False,
+            "user_movement_allowed": False,
+        })
+
+    for evidence in [
+        row for row in (signal_mapping.get("evidence_rows") or [])
+        if isinstance(row, dict)
+    ]:
+        policy_result = _text(evidence.get("canonical_policy_result") or "UNKNOWN")
+        if policy_result not in {"SOFT_DEGRADATION", "NOISY_OR_ATTRIBUTION_UNKNOWN"}:
+            continue
+        rows.append({
+            "evidence_id": "degradation_signal:" + _text(evidence.get("object") or len(rows)) + ":" + _text(evidence.get("signal_family") or "unknown"),
+            "source": _text(evidence.get("source") or "degradation_signal_policy_mapping"),
+            "owner": _text(evidence.get("owner") or "admin_core.autonomy_trust_acceleration.build_degradation_signal_policy_mapping"),
+            "object": _text(evidence.get("object") or "unknown-object"),
+            "evidence_kind": "mapped_soft_degradation_suspicion",
+            "probabilistic_inputs": {
+                "signal_family": _text(evidence.get("signal_family") or "unknown"),
+                "canonical_policy_result": policy_result,
+            },
+            "suspicion_state": "ADVISORY_SOFT_DEGRADATION_EVIDENCE",
+            "advisory_reasons": ["mapped_soft_degradation_signal"],
+            "existing_blockers": ["requires_observed_attribution_before_action"]
+            if evidence.get("requires_attribution_before_action") else [],
+            "allowed_consumers": ["operator_explanation", "decision_explainability", "B5_or_existing_attribution_review"],
+            "forbidden_consumers": ["runtime_apply", "authority_expansion", "root_cause_claim"],
+            "direct_blocking_power": "NONE",
+            "direct_execution_power": "NONE",
+            "runtime_apply_allowed": False,
+            "authority_expanded": False,
+            "user_movement_allowed": False,
+        })
+
+    attribution_rows = [
+        row for row in (attribution.get("rows") or [])
+        if isinstance(row, dict)
+    ]
+    attributed_objects = {
+        _text(row.get("object"))
+        for row in attribution_rows
+        if _text(row.get("attribution_state")) in {
+            "ACTIVE_AND_PASSIVE_OBSERVED",
+            "ACTIVE_OBSERVED_WITH_PASSIVE_CONTEXT",
+            "ACTIVE_ONLY_PASSIVE_OUTCOME_PENDING",
+        }
+    }
+    metric_summary = metric_reliability.get("summary") if isinstance(metric_reliability.get("summary"), dict) else {}
+    c1_summary = c1_behavior.get("summary") if isinstance(c1_behavior.get("summary"), dict) else {}
+
+    return {
+        "schema_version": "v7.c2-probabilistic-suspicion-advisory-evidence.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "C2",
+        "purpose": "keep_probabilistic_suspicion_as_advisory_evidence_only_without_runtime_authority_or_behavior_change",
+        "source_owners_reused": [
+            "admin_core.shadow_autonomy",
+            "admin_core.autonomy_trust_acceleration.build_source_confidence_inventory",
+            "admin_core.autonomy_trust_acceleration.build_degradation_signal_policy_mapping",
+            "admin_core.autonomy_trust_acceleration.build_observed_degradation_attribution",
+            "admin_core.autonomy_trust_acceleration.build_metric_reliability_certification",
+            "admin_core.autonomy_trust_acceleration.build_fail_open_fail_closed_action_class_behavior",
+            "Trust/confidence model",
+            "OMP",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_002_SOFT_DEGRADATION.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#C2",
+        ],
+        "consumed_prior_capabilities": {
+            "shadow_autonomy": shadow.get("schema_version", "UNKNOWN"),
+            "source_confidence_inventory": source_inventory.get("schema_version", "UNKNOWN"),
+            "degradation_signal_policy_mapping": signal_mapping.get("schema_version", "UNKNOWN"),
+            "observed_degradation_attribution": attribution.get("schema_version", "UNKNOWN"),
+            "metric_reliability_certification": metric_reliability.get("schema_version", "UNKNOWN"),
+            "fail_open_fail_closed_action_class_behavior": c1_behavior.get("schema_version", "UNKNOWN"),
+        },
+        "rows": rows,
+        "summary": {
+            "advisory_evidence_rows": len(rows),
+            "shadow_decision_rows": sum(1 for row in rows if row["source"] == "shadow_autonomy"),
+            "source_confidence_rows": sum(1 for row in rows if row["source"] == "source_confidence_inventory"),
+            "soft_degradation_rows": sum(1 for row in rows if row["evidence_kind"] == "mapped_soft_degradation_suspicion"),
+            "attributed_objects_available": len(attributed_objects),
+            "metric_reliability_positive_promotion_allowed": False,
+            "metric_reliability_schema": metric_reliability.get("schema_version", "UNKNOWN"),
+            "c1_fail_closed_runtime_apply_classes": int(c1_summary.get("fail_closed_runtime_apply_classes") or 0),
+            "direct_blocking_rows": 0,
+            "direct_execution_rows": 0,
+            "runtime_actions_created": 0,
+            "authority_changes": 0,
+            "synthetic_evidence_created": 0,
+            "users_moved": 0,
+        },
+        "canonical_rules": [
+            "probabilistic_suspicion_is_advisory_evidence_only",
+            "probabilistic_suspicion_cannot_authorize_runtime_apply_or_user_movement",
+            "probabilistic_suspicion_cannot_expand_authority_or_replace_planner_owners",
+            "probabilistic_suspicion_cannot_override_freshness_authority_rollback_anti_flap_or_c1_fail_closed_behavior",
+            "probabilistic_suspicion_may_feed_operator_explanation_decision_explainability_engineering_report_and_existing_owner_review",
+            "c2_does_not_change_threshold_values_formulas_confidence_floors_or_source_evidence",
+        ],
+        "omp_output": {
+            "c2_status": "DONE_READ_ONLY_PROBABILISTIC_SUSPICION_ADVISORY_EVIDENCE",
+            "produced_evidence": "probabilistic_suspicion_advisory_evidence",
+            "unlocked_capability": "C3_OR_NEXT_OMP_ITEM_AFTER_CANONICAL_UPDATE",
+            "blocked_later_steps": [
+                "runtime_apply",
+                "automation",
+                "authority_expansion",
+                "direct_suspicion_blocking",
+                "planner_replacement",
+                "threshold_formula_mutation",
+                "synthetic_evidence",
+                "user_movement",
+            ],
+        },
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "threshold_values_changed": False,
+        "formula_changed": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+        "new_runtime_created": False,
+    }
+
+
 def _source_by_name(source_confidence_inventory: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {
         str(row.get("source")): row
@@ -10859,6 +11099,16 @@ def build_acceleration_inventory(
         runtime_eligibility_arbitration=runtime_eligibility_arbitration,
         generated_at=generated,
     )
+    probabilistic_suspicion_advisory_evidence = build_probabilistic_suspicion_advisory_evidence(
+        decision_surface=decision_surface,
+        shadow_model=shadow_model,
+        source_confidence_inventory=source_confidence_inventory,
+        degradation_signal_policy_mapping=degradation_signal_policy_mapping,
+        observed_degradation_attribution=observed_degradation_attribution,
+        metric_reliability_certification=metric_reliability_certification,
+        fail_open_fail_closed_action_class_behavior=fail_open_fail_closed_action_class_behavior,
+        generated_at=generated,
+    )
     next_action_class_stage_certification = build_next_action_class_stage_certification(
         action_class_runtime_enablement=action_class_runtime_enablement,
         class_level_blast_radius_certification=class_level_blast_radius_certification,
@@ -10990,6 +11240,7 @@ def build_acceleration_inventory(
         "hard_failure_override_anti_flap_arbitration": hard_failure_override_anti_flap_arbitration,
         "per_user_routing_control_mode": per_user_routing_control_mode,
         "fail_open_fail_closed_action_class_behavior": fail_open_fail_closed_action_class_behavior,
+        "probabilistic_suspicion_advisory_evidence": probabilistic_suspicion_advisory_evidence,
         "metric_reliability_certification": metric_reliability_certification,
         "next_action_class_stage_certification": next_action_class_stage_certification,
         "service_pool_cohort_blast_radius_scope": service_pool_cohort_blast_radius_scope,

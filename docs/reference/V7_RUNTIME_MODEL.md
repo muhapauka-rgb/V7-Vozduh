@@ -722,6 +722,14 @@ Hard-failure override remains an authority-review candidate only. It is not fail
 
 The canonical read-only owner is `admin_core.autonomy_trust_acceleration.build_fail_open_fail_closed_action_class_behavior`; OMP and SYSTEM_MAP own sequence and owner lookup.
 
+C2 Probabilistic Suspicion Advisory Evidence:
+
+Probabilistic suspicion from shadow autonomy, source confidence, or soft-degradation signals is advisory evidence only. It has direct blocking power `NONE` and direct execution power `NONE`.
+
+Runtime must not treat probabilistic suspicion as authority, Runtime apply permission, threshold/formula mutation permission, Planner replacement, synthetic evidence, or user movement approval. Suspicion may be consumed only by operator explanation, Decision Explainability, Engineering Reports, Canonical Update, and existing owner review until a later OMP item explicitly certifies a stronger authority boundary.
+
+The canonical read-only owner is `admin_core.autonomy_trust_acceleration.build_probabilistic_suspicion_advisory_evidence`; OMP and SYSTEM_MAP own sequence and owner lookup.
+
 Runtime must not depend on a long-lived operator-approved packet for autonomous or class-approved work.
 Runtime must generate or consume a fresh packet immediately before execution through the existing packet owner and then verify that the packet belongs to an approved class.
 

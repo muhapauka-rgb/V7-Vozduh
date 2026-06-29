@@ -2906,6 +2906,108 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(model["users_moved"], 0)
         self.assertFalse(model["authority_expanded"])
 
+    def test_c2_probabilistic_suspicion_is_advisory_only(self):
+        shadow = shadow_autonomy.build_shadow_autonomy_model(
+            {
+                "users": [{
+                    "user": "10.7.0.2",
+                    "current_channel": "vless",
+                    "recommended_channel": "awg0",
+                    "recommendation": "move_recommended",
+                    "confidence": 0.42,
+                    "risk": 61,
+                    "trust": 30,
+                    "prediction": {"confidence": 0.2},
+                    "blockers": ["freshness_recheck_required"],
+                }]
+            },
+            now="2026-06-25T00:00:00+00:00",
+        )
+        model = accel.build_probabilistic_suspicion_advisory_evidence(
+            shadow_model=shadow,
+            source_confidence_inventory={
+                "schema_version": "v7.source-confidence-inventory.v1",
+                "sources": [{
+                    "source": "prediction",
+                    "confidence": 39.5,
+                    "owner": "admin_core.intelligence_workers",
+                }],
+            },
+            degradation_signal_policy_mapping={
+                "schema_version": "v7.b4.degradation-signal-policy-mapping.v1",
+                "evidence_rows": [{
+                    "object": "awg0",
+                    "source": "quality",
+                    "owner": "tools/v7-egress-quality-compact",
+                    "signal_family": "latency",
+                    "canonical_policy_result": "SOFT_DEGRADATION",
+                    "requires_attribution_before_action": True,
+                }],
+            },
+            observed_degradation_attribution={
+                "schema_version": "v7.b5.observed-degradation-attribution.v1",
+                "rows": [{
+                    "object": "awg0",
+                    "attribution_state": "ACTIVE_ONLY_PASSIVE_OUTCOME_PENDING",
+                }],
+            },
+            metric_reliability_certification={
+                "schema_version": "v7.b13-metric-reliability-certification.v1",
+                "summary": {"positive_promotion_allowed": False},
+            },
+            fail_open_fail_closed_action_class_behavior={
+                "schema_version": "v7.c1-fail-open-fail-closed-action-class-behavior.v1",
+                "summary": {"fail_closed_runtime_apply_classes": 9},
+            },
+            generated_at="2026-06-25T00:00:00+00:00",
+        )
+
+        self.assertEqual(model["schema_version"], "v7.c2-probabilistic-suspicion-advisory-evidence.v1")
+        self.assertEqual(model["backlog_item"], "C2")
+        self.assertEqual(model["omp_output"]["c2_status"], "DONE_READ_ONLY_PROBABILISTIC_SUSPICION_ADVISORY_EVIDENCE")
+        self.assertGreaterEqual(model["summary"]["advisory_evidence_rows"], 3)
+        self.assertEqual(model["summary"]["direct_blocking_rows"], 0)
+        self.assertEqual(model["summary"]["direct_execution_rows"], 0)
+        self.assertIn("probabilistic_suspicion_is_advisory_evidence_only", model["canonical_rules"])
+        self.assertTrue(all(row["direct_blocking_power"] == "NONE" for row in model["rows"]))
+        self.assertTrue(all(row["direct_execution_power"] == "NONE" for row in model["rows"]))
+        self.assertTrue(all(row["runtime_apply_allowed"] is False for row in model["rows"]))
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+        self.assertFalse(model["synthetic_evidence_created"])
+        self.assertFalse(model["threshold_values_changed"])
+        self.assertFalse(model["formula_changed"])
+        self.assertFalse(model["new_owner_created"])
+
+    def test_c2_inventory_exposes_probabilistic_suspicion_advisory_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        model = inventory["probabilistic_suspicion_advisory_evidence"]
+        self.assertEqual(model["schema_version"], "v7.c2-probabilistic-suspicion-advisory-evidence.v1")
+        self.assertEqual(model["backlog_item"], "C2")
+        self.assertEqual(
+            model["omp_output"]["c2_status"],
+            "DONE_READ_ONLY_PROBABILISTIC_SUSPICION_ADVISORY_EVIDENCE",
+        )
+        self.assertEqual(model["summary"]["direct_blocking_rows"], 0)
+        self.assertEqual(model["summary"]["direct_execution_rows"], 0)
+        self.assertTrue(model["read_only"])
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+
     def test_b16_rollback_authority_certification_is_read_only_authority_review(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

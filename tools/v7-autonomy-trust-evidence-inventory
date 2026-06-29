@@ -202,6 +202,7 @@ def main(argv=None) -> int:
                 "hard_failure_override_anti_flap_arbitration",
                 "per_user_routing_control_mode",
                 "fail_open_fail_closed_action_class_behavior",
+                "probabilistic_suspicion_advisory_evidence",
                 "routing_recommendation_readiness",
             ]
         }

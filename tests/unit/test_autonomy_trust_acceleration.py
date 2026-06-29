@@ -732,6 +732,22 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
             "hard_failure_classification",
             "liveness_evidence_aggregation",
             "hard_failure_policy_windows",
+            "soft_degradation_threshold_vocabulary",
+            "degradation_signal_policy_mapping",
+            "observed_degradation_attribution",
+            "v7_native_degradation_response_mapping",
+            "service_objective_policy_threshold_binding",
+            "recovery_admission_certification",
+            "post_admission_observation_windows",
+            "recovery_slow_start_progression",
+            "org_cohort_identity_policy_integration",
+            "next_action_class_stage_certification",
+            "service_pool_cohort_blast_radius_scope",
+            "stale_read_mutation_blocking",
+            "owner_issued_version_lease_pattern",
+            "hysteresis_state_change_cost_mapping",
+            "hard_failure_override_anti_flap_arbitration",
+            "per_user_routing_control_mode",
         ):
             self.assertIn(key, inventory)
             self.assertFalse(inventory[key]["runtime_mutation_performed"])
@@ -984,6 +1000,664 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertIn("anti_flap_blocks_recent_oscillation", row["blockers"])
         self.assertFalse(row["policy_window_ready"])
         self.assertFalse(row["risk_class_changes_runtime"])
+
+    def test_b3_soft_degradation_threshold_vocabulary_aligns_existing_signals(self):
+        freshness = accel.build_freshness_actionability({
+            "service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "channel-service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "user-service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "prediction-summaries": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+        })
+        model = accel.build_soft_degradation_threshold_vocabulary_alignment(
+            decision_surface={
+                "users": [{
+                    "user": "10.7.0.2",
+                    "current_channel": "awg0",
+                    "recommended_channel": "awg1",
+                    "candidates": [
+                        {
+                            "channel": "awg1",
+                            "score": 77,
+                            "ctr_state": "DEGRADED",
+                            "reasons": ["service_signal_DEGRADED_SERVICE"],
+                        }
+                    ],
+                }]
+            },
+            service_scores_snapshot={"items": [{"channel": "awg1", "status": "DEGRADED", "score": 77}]},
+            channel_service_scores_snapshot={"items": [{"channel": "awg1", "score": {"current": 77, "trend": "degrading"}}]},
+            freshness_actionability=freshness,
+            anti_flapping={"policy": accel.ANTI_FLAP_POLICY, "summary": {"blocked_users": 0}},
+            generated_at="2026-06-29T01:20:00+00:00",
+        )
+
+        self.assertEqual(model["schema_version"], "v7.b3.soft-degradation-threshold-vocabulary.v1")
+        self.assertEqual(model["backlog_item"], "B3")
+        row = {item["object"]: item for item in model["rows"]}["awg1"]
+        self.assertEqual(row["canonical_policy"], "POLICY_002_SOFT_DEGRADATION")
+        self.assertEqual(row["canonical_policy_result"], "SOFT_DEGRADATION")
+        self.assertEqual(row["canonical_decision_action"], "ASK_OPERATOR")
+        self.assertIn("tools/v7-users-autoswitch", row["owner_sources"])
+        self.assertIn("tools/v7-egress-quality-compact", row["owner_sources"])
+        self.assertFalse(row["threshold_values_changed"])
+        self.assertFalse(row["formula_changed"])
+        self.assertFalse(row["runtime_apply_allowed"])
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+        self.assertFalse(model["synthetic_evidence_created"])
+        self.assertFalse(model["new_truth_source_created"])
+
+    def test_inventory_exposes_b3_soft_degradation_threshold_vocabulary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-29T01:21:00+00:00",
+            )
+
+        model = inventory["soft_degradation_threshold_vocabulary"]
+        self.assertEqual(model["backlog_item"], "B3")
+        self.assertTrue(model["read_only"])
+        self.assertEqual(model["summary"]["threshold_changes"], 0)
+        self.assertEqual(model["summary"]["formula_changes"], 0)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+
+    def test_b4_degradation_signal_policy_mapping_normalizes_existing_signal_families(self):
+        freshness = accel.build_freshness_actionability({
+            "service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "channel-service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "user-service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "prediction-summaries": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+        })
+        b3 = accel.build_soft_degradation_threshold_vocabulary_alignment(
+            decision_surface={
+                "users": [{
+                    "user": "10.7.0.2",
+                    "current_channel": "awg0",
+                    "recommended_channel": "awg1",
+                    "candidates": [{
+                        "channel": "awg1",
+                        "score": 77,
+                        "ctr_state": "DEGRADED",
+                        "reasons": ["service_signal_DEGRADED_SERVICE"],
+                    }],
+                }]
+            },
+            service_scores_snapshot={"items": [{"channel": "awg1", "status": "DEGRADED", "score": 77}]},
+            channel_service_scores_snapshot={"items": [{"channel": "awg1", "score": {"current": 77, "trend": "degrading"}}]},
+            freshness_actionability=freshness,
+        )
+        model = accel.build_degradation_signal_policy_mapping(
+            decision_surface={
+                "users": [{
+                    "user": "10.7.0.2",
+                    "current_channel": "awg0",
+                    "recommended_channel": "awg1",
+                    "candidates": [{
+                        "channel": "awg1",
+                        "score": 77,
+                        "reasons": ["service_signal_DEGRADED_SERVICE", "latency p95 high"],
+                    }],
+                }]
+            },
+            service_scores_snapshot={"items": [{"channel": "awg1", "services": {"instagram": {"ok": False, "status": "DEGRADED", "score": 40}}}]},
+            channel_service_scores_snapshot={"items": [{"channel": "awg1", "p95_latency_ms": 1800, "score": {"current": 77, "trend": "degrading"}}]},
+            risk_summaries_snapshot={"items": [{"channel": "awg1", "route_safe": False, "reason": "route_class_VIDEO_OPTIMIZED_failed"}]},
+            soft_degradation_threshold_vocabulary=b3,
+            freshness_actionability=freshness,
+            generated_at="2026-06-29T01:45:00+00:00",
+        )
+
+        self.assertEqual(model["schema_version"], "v7.b4.degradation-signal-policy-mapping.v1")
+        self.assertEqual(model["backlog_item"], "B4")
+        families = {row["signal_family"]: row for row in model["signal_family_rows"]}
+        self.assertIn("latency", families)
+        self.assertIn("service_response", families)
+        self.assertIn("route_readiness", families)
+        self.assertEqual(families["latency"]["canonical_signal"], "LATENCY_DEGRADATION")
+        self.assertEqual(families["service_response"]["canonical_policy_result"], "SOFT_DEGRADATION")
+        self.assertEqual(families["route_readiness"]["canonical_decision_action"], "PROBE_ONLY")
+        self.assertEqual(model["summary"]["threshold_changes"], 0)
+        self.assertEqual(model["summary"]["formula_changes"], 0)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+        self.assertFalse(model["synthetic_evidence_created"])
+        self.assertFalse(model["new_truth_source_created"])
+
+    def test_inventory_exposes_b4_degradation_signal_policy_mapping(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-29T01:46:00+00:00",
+            )
+
+        model = inventory["degradation_signal_policy_mapping"]
+        self.assertEqual(model["backlog_item"], "B4")
+        self.assertTrue(model["read_only"])
+        self.assertEqual(model["summary"]["threshold_changes"], 0)
+        self.assertEqual(model["summary"]["formula_changes"], 0)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+
+    def test_b5_observed_degradation_attribution_joins_active_and_passive_evidence(self):
+        b4 = accel.build_degradation_signal_policy_mapping(
+            service_scores_snapshot={
+                "items": [{
+                    "channel": "awg1",
+                    "services": {"instagram": {"ok": False, "status": "DEGRADED", "score": 40}},
+                }]
+            },
+            channel_service_scores_snapshot={
+                "items": [{"channel": "awg1", "p95_latency_ms": 1800, "score": {"current": 51, "trend": "degrading"}}]
+            },
+            generated_at="2026-06-29T02:05:00+00:00",
+        )
+        model = accel.build_observed_degradation_attribution(
+            service_scores_snapshot={
+                "items": [{
+                    "channel": "awg1",
+                    "services": {"instagram": {"ok": False, "status": "DEGRADED", "score": 40}},
+                }]
+            },
+            channel_service_scores_snapshot={
+                "items": [{"channel": "awg1", "p95_latency_ms": 1800, "score": {"current": 51, "trend": "degrading"}}]
+            },
+            degradation_signal_policy_mapping=b4,
+            decision_outcome_learning={
+                "knowledge_growth": {"knowledge_degraded": ["service_signal"]},
+                "outcome_quality_counts": {"FAILED": 1},
+            },
+            decision_records=[{
+                "decision_id": "d-b5",
+                "channel": "awg1",
+                "outcome_quality": {"service_impact": "DEGRADED"},
+                "service_delta": {"instagram": "failed after degraded route"},
+            }],
+            generated_at="2026-06-29T02:06:00+00:00",
+        )
+
+        self.assertEqual(model["schema_version"], "v7.b5.observed-degradation-attribution.v1")
+        self.assertEqual(model["backlog_item"], "B5")
+        rows = {row["object"]: row for row in model["rows"]}
+        self.assertIn("awg1", rows)
+        self.assertEqual(rows["awg1"]["attribution_state"], "ACTIVE_AND_PASSIVE_OBSERVED")
+        self.assertGreater(rows["awg1"]["active_evidence_count"], 0)
+        self.assertGreater(rows["awg1"]["passive_evidence_count"], 0)
+        self.assertFalse(rows["awg1"]["root_cause_claimed"])
+        self.assertEqual(model["summary"]["root_cause_claims"], 0)
+        self.assertEqual(model["summary"]["threshold_changes"], 0)
+        self.assertEqual(model["summary"]["formula_changes"], 0)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+        self.assertFalse(model["synthetic_evidence_created"])
+        self.assertFalse(model["new_truth_source_created"])
+
+    def test_inventory_exposes_b5_observed_degradation_attribution(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[{
+                    "decision_id": "d-b5",
+                    "channel": "awg1",
+                    "outcome_quality": {"service_impact": "DEGRADED"},
+                }],
+                generated_at="2026-06-29T02:07:00+00:00",
+            )
+
+        model = inventory["observed_degradation_attribution"]
+        self.assertEqual(model["backlog_item"], "B5")
+        self.assertTrue(model["read_only"])
+        self.assertEqual(model["summary"]["root_cause_claims"], 0)
+        self.assertEqual(model["summary"]["threshold_changes"], 0)
+        self.assertEqual(model["summary"]["formula_changes"], 0)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+
+    def test_b6_maps_circuit_breaker_and_outlier_ejection_to_v7_actions(self):
+        observed = {
+            "rows": [{
+                "object": "awg1",
+                "attribution_state": "ACTIVE_AND_PASSIVE_OBSERVED",
+                "signal_families": ["latency", "service_response"],
+                "owners": ["tools/v7-service-matrix-refresh-all"],
+                "sources": ["service_scores"],
+            }],
+        }
+        model = accel.build_v7_native_degradation_response_mapping(
+            decision_surface={
+                "users": [{
+                    "user": "10.7.0.2",
+                    "current_channel": "awg0",
+                    "recommended_channel": "awg1",
+                    "candidates": [
+                        {"channel": "awg1", "ctr_state": "DEGRADED"},
+                        {"channel": "awg2", "ctr_state": "QUARANTINED"},
+                    ],
+                }]
+            },
+            observed_degradation_attribution=observed,
+            degradation_signal_policy_mapping={
+                "evidence_rows": [{
+                    "object": "awg1",
+                    "signal_family": "latency",
+                    "source": "operator_decision_surface",
+                    "owner": "admin_core.operator_decision_surface",
+                }]
+            },
+            anti_flapping={"summary": {"blocked_users": 0}},
+            recovery_admission={"summary": {"blocked_or_quarantined": 1}},
+            generated_at="2026-06-29T02:30:00+00:00",
+        )
+
+        self.assertEqual(model["schema_version"], "v7.b6.v7-native-degradation-response-mapping.v1")
+        self.assertEqual(model["backlog_item"], "B6")
+        rows = {row["object"]: row for row in model["rows"]}
+        self.assertEqual(rows["awg1"]["external_practice"], "CIRCUIT_BREAKER_OPEN_AND_OUTLIER_REVIEW")
+        self.assertIn("ASK_OPERATOR", rows["awg1"]["v7_native_actions"])
+        self.assertIn("PROBE_ONLY", rows["awg1"]["v7_native_actions"])
+        self.assertEqual(rows["awg2"]["external_practice"], "OUTLIER_EJECTION")
+        self.assertIn("QUARANTINE_FOR_NORMAL_TARGET_USE", rows["awg2"]["v7_native_actions"])
+        self.assertEqual(model["summary"]["runtime_actions_created"], 0)
+        self.assertEqual(model["summary"]["threshold_changes"], 0)
+        self.assertEqual(model["summary"]["formula_changes"], 0)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+        self.assertFalse(model["synthetic_evidence_created"])
+        self.assertFalse(model["new_owner_created"])
+        self.assertFalse(model["new_planner_created"])
+
+    def test_inventory_exposes_b6_v7_native_degradation_response_mapping(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-29T02:31:00+00:00",
+            )
+
+        model = inventory["v7_native_degradation_response_mapping"]
+        self.assertEqual(model["backlog_item"], "B6")
+        self.assertTrue(model["read_only"])
+        self.assertEqual(model["summary"]["runtime_actions_created"], 0)
+        self.assertEqual(model["summary"]["threshold_changes"], 0)
+        self.assertEqual(model["summary"]["formula_changes"], 0)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+
+    def test_b7_binds_service_objectives_to_existing_policy_threshold_sources(self):
+        freshness = accel.build_freshness_actionability({
+            "service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "channel-service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "user-service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+        })
+        fit = accel.build_service_user_sla_fit(
+            {
+                "users": [{
+                    "user": "10.7.0.2",
+                    "current_channel": "awg0",
+                    "required_services": ["telegram", "youtube"],
+                    "candidates": [
+                        {"channel": "awg1", "suitability_score": 88},
+                        {"channel": "vless", "suitability_score": 60, "required_low": ["youtube"]},
+                    ],
+                }]
+            },
+            freshness_actionability=freshness,
+            generated_at="2026-06-29T02:50:00+00:00",
+        )
+        model = accel.build_service_objective_policy_threshold_binding(
+            service_user_sla_fit=fit,
+            freshness_actionability=freshness,
+            soft_degradation_threshold_vocabulary={
+                "rows": [{"object": "awg1", "canonical_policy_result": "NO_DEGRADATION"}],
+            },
+            v7_native_degradation_response_mapping={
+                "rows": [{"object": "awg1", "v7_native_actions": ["KEEP"]}],
+            },
+            generated_at="2026-06-29T02:51:00+00:00",
+        )
+
+        self.assertEqual(model["schema_version"], "v7.b7.service-objective-policy-threshold-binding.v1")
+        self.assertEqual(model["backlog_item"], "B7")
+        rows = {row["candidate_channel"]: row for row in model["rows"]}
+        self.assertIn("awg1", rows)
+        objectives = {item["objective"]: item for item in rows["awg1"]["objective_bindings"]}
+        self.assertIn("required_service_reachability", objectives)
+        self.assertIn("service_freshness", objectives)
+        self.assertIn("soft_degradation_policy", objectives)
+        self.assertIn("degradation_response", objectives)
+        for binding in objectives.values():
+            self.assertFalse(binding["threshold_values_changed"])
+            self.assertFalse(binding["formula_changed"])
+        self.assertEqual(model["summary"]["threshold_changes"], 0)
+        self.assertEqual(model["summary"]["formula_changes"], 0)
+        self.assertEqual(model["summary"]["runtime_actions_created"], 0)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+        self.assertFalse(model["synthetic_evidence_created"])
+        self.assertFalse(model["new_owner_created"])
+
+    def test_inventory_exposes_b7_service_objective_policy_threshold_binding(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-29T02:52:00+00:00",
+            )
+
+        model = inventory["service_objective_policy_threshold_binding"]
+        self.assertEqual(model["backlog_item"], "B7")
+        self.assertTrue(model["read_only"])
+        self.assertEqual(model["summary"]["threshold_changes"], 0)
+        self.assertEqual(model["summary"]["formula_changes"], 0)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+
+    def test_b8_certifies_recovery_admission_with_repeated_readiness_evidence(self):
+        freshness = accel.build_freshness_actionability({
+            "trust-evolution-summaries": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "channel-service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "user-service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+        })
+        recovery = accel.build_recovery_admission(
+            {},
+            freshness_actionability=freshness,
+            channel_recovery_inputs=[{
+                "channel": "awg1",
+                "lifecycle": "WATCH",
+                "successful_checks": 3,
+                "service_specific_recovery_ok": True,
+            }],
+            generated_at="2026-06-29T03:10:00+00:00",
+        )
+        model = accel.build_recovery_admission_certification(
+            recovery_admission=recovery,
+            service_scores_snapshot={
+                "items": [{"channel": "awg1", "services": {"telegram": {"ok": True, "status": "OK"}}}]
+            },
+            channel_service_scores_snapshot={
+                "items": [{"channel": "awg1", "score": {"current": 88, "trend": "stable"}}]
+            },
+            freshness_actionability=freshness,
+            service_objective_policy_threshold_binding={
+                "rows": [{"candidate_channel": "awg1", "binding_state": "BOUND_TO_EXISTING_POLICY_GATES", "objective_bindings": [{"objective": "service_freshness"}]}]
+            },
+            generated_at="2026-06-29T03:11:00+00:00",
+        )
+
+        self.assertEqual(model["schema_version"], "v7.b8.recovery-admission-certification.v1")
+        self.assertEqual(model["backlog_item"], "B8")
+        row = model["rows"][0]
+        self.assertEqual(row["certification_state"], "CERTIFIED_FOR_RECOVERY_ADMISSION_REVIEW")
+        self.assertTrue(row["repeated_success_evidence"])
+        self.assertTrue(row["service_readiness_evidence"])
+        self.assertTrue(row["quality_readiness_evidence"])
+        self.assertTrue(row["objective_binding_evidence"])
+        self.assertEqual(row["blockers"], [])
+        self.assertEqual(model["summary"]["certified"], 1)
+        self.assertEqual(model["summary"]["runtime_actions_created"], 0)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+        self.assertFalse(model["synthetic_evidence_created"])
+
+    def test_b8_blocks_single_pass_or_missing_readiness_evidence(self):
+        freshness = accel.build_freshness_actionability({
+            "trust-evolution-summaries": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "channel-service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+            "user-service-scores": {"exists": True, "freshness_state": "FRESH", "runtime_behavior": "ALLOW", "stop_required": False},
+        })
+        recovery = accel.build_recovery_admission(
+            {},
+            freshness_actionability=freshness,
+            channel_recovery_inputs=[{"channel": "awg1", "lifecycle": "RECOVERING", "successful_checks": 1}],
+        )
+        model = accel.build_recovery_admission_certification(
+            recovery_admission=recovery,
+            service_scores_snapshot={"items": [{"channel": "awg1", "services": {"telegram": {"ok": True}}}]},
+            channel_service_scores_snapshot={"items": []},
+            freshness_actionability=freshness,
+        )
+
+        row = model["rows"][0]
+        self.assertEqual(row["certification_state"], "NOT_CERTIFIED_COLLECT_REAL_EVIDENCE")
+        self.assertIn("insufficient_repeated_success_evidence", row["blockers"])
+        self.assertIn("quality_readiness_evidence_missing", row["blockers"])
+        self.assertEqual(model["summary"]["certified"], 0)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+
+    def test_b9_verifies_post_admission_observation_windows(self):
+        model = accel.build_post_admission_observation_windows(
+            recovery_admission_certification={
+                "rows": [{
+                    "channel": "awg1",
+                    "certification_state": "CERTIFIED_FOR_RECOVERY_ADMISSION_REVIEW",
+                }],
+            },
+            service_scores_snapshot={
+                "items": [{"channel": "awg1", "services": {"telegram": {"ok": True, "status": "OK"}}}]
+            },
+            channel_service_scores_snapshot={
+                "items": [{
+                    "channel": "awg1",
+                    "windows": {
+                        "5m": {"samples": 3, "fail_rate": 0.0, "stability": 1.0},
+                        "1h": {"samples": 12, "fail_rate": 0.0, "stability": 1.0},
+                    },
+                }]
+            },
+            generated_at="2026-06-29T03:30:00+00:00",
+        )
+
+        self.assertEqual(model["schema_version"], "v7.b9.post-admission-observation-windows.v1")
+        self.assertEqual(model["backlog_item"], "B9")
+        row = model["rows"][0]
+        self.assertEqual(row["verification_state"], "POST_ADMISSION_WINDOWS_VERIFIED_READ_ONLY")
+        self.assertEqual(row["observed_windows"], ["1h", "5m"])
+        self.assertTrue(row["service_observed"])
+        self.assertEqual(row["blockers"], [])
+        self.assertEqual(model["summary"]["verified"], 1)
+        self.assertEqual(model["summary"]["runtime_actions_created"], 0)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+        self.assertFalse(model["synthetic_evidence_created"])
+
+    def test_b9_blocks_missing_post_admission_observation_window(self):
+        model = accel.build_post_admission_observation_windows(
+            recovery_admission_certification={
+                "rows": [{
+                    "channel": "awg1",
+                    "certification_state": "CERTIFIED_FOR_RECOVERY_ADMISSION_REVIEW",
+                }],
+            },
+            service_scores_snapshot={
+                "items": [{"channel": "awg1", "services": {"telegram": {"ok": True}}}]
+            },
+            channel_service_scores_snapshot={
+                "items": [{"channel": "awg1", "windows": {"5m": {"samples": 2}}}]
+            },
+        )
+
+        row = model["rows"][0]
+        self.assertEqual(row["verification_state"], "POST_ADMISSION_WINDOWS_NOT_VERIFIED")
+        self.assertIn("post_admission_quality_windows_missing:1h", row["blockers"])
+        self.assertEqual(model["summary"]["verified"], 0)
+        self.assertEqual(model["summary"]["not_verified"], 1)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+
+    def test_b10_defines_recovery_slow_start_progression_without_runtime_apply(self):
+        model = accel.build_recovery_slow_start_progression(
+            post_admission_observation_windows={
+                "rows": [{
+                    "channel": "awg1",
+                    "verification_state": "POST_ADMISSION_WINDOWS_VERIFIED_READ_ONLY",
+                }],
+            },
+            recovery_admission_certification={
+                "rows": [{
+                    "channel": "awg1",
+                    "certification_state": "CERTIFIED_FOR_RECOVERY_ADMISSION_REVIEW",
+                }],
+            },
+            class_level_blast_radius_certification={
+                "certification_state": "BEYOND_ONE_USER_EVIDENCE_CERTIFIED_READ_ONLY",
+                "current_one_user_guard_certified": True,
+                "beyond_one_user_certified": True,
+                "max_historical_certified_blast_radius_users": 2,
+            },
+            generated_at="2026-06-29T04:00:00+00:00",
+        )
+
+        self.assertEqual(model["schema_version"], "v7.b10.recovery-slow-start-progression.v1")
+        self.assertEqual(model["backlog_item"], "B10")
+        row = model["rows"][0]
+        self.assertEqual(row["progression_state"], "SLOW_START_PROGRESSION_READY_READ_ONLY")
+        self.assertEqual(row["safe_next_stage"], "ONE_USER_GOVERNED_RECOVERY_REVIEW")
+        self.assertEqual(row["blockers"], [])
+        self.assertIn("runtime_apply", row["still_blocked_capabilities"])
+        self.assertIn("ONE_USER_GOVERNED_RECOVERY_REVIEW", [stage["stage"] for stage in model["stage_catalog"]])
+        self.assertEqual(model["summary"]["ready_for_one_user_governed_recovery_review"], 1)
+        self.assertEqual(model["summary"]["runtime_actions_created"], 0)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+        self.assertFalse(model["synthetic_evidence_created"])
+
+    def test_b10_blocks_slow_start_without_post_admission_windows(self):
+        model = accel.build_recovery_slow_start_progression(
+            post_admission_observation_windows={
+                "rows": [{
+                    "channel": "awg1",
+                    "verification_state": "POST_ADMISSION_WINDOWS_NOT_VERIFIED",
+                }],
+            },
+            recovery_admission_certification={
+                "rows": [{
+                    "channel": "awg1",
+                    "certification_state": "CERTIFIED_FOR_RECOVERY_ADMISSION_REVIEW",
+                }],
+            },
+            class_level_blast_radius_certification={"current_one_user_guard_certified": True},
+        )
+
+        row = model["rows"][0]
+        self.assertEqual(row["progression_state"], "SLOW_START_PROGRESSION_BLOCKED")
+        self.assertEqual(row["safe_next_stage"], "BLOCKED")
+        self.assertIn("post_admission_observation_windows_not_verified", row["blockers"])
+        self.assertEqual(model["summary"]["blocked"], 1)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+
+    def test_b11_integrates_org_cohort_identity_policy_gates_read_only(self):
+        model = accel.build_org_cohort_identity_policy_integration(
+            decision_surface={
+                "users": [{"ip": "10.7.0.11", "current": "awg1", "group": "vip", "recommended_channel": "awg2"}],
+                "channels": [{"id": "awg1"}, {"id": "awg2", "groups": "vip,staff"}],
+            },
+            org_policy={
+                "default_isolation": "shared",
+                "groups": {
+                    "vip": {
+                        "allowed_egress": ["awg*"],
+                        "preferred_egress": ["awg2"],
+                        "excluded_egress": [],
+                        "isolation": "shared",
+                    }
+                },
+                "egress": {"awg2": {"groups": ["vip", "staff"]}},
+            },
+            recovery_slow_start_progression={"schema_version": "v7.b10.recovery-slow-start-progression.v1"},
+            generated_at="2026-06-29T04:30:00+00:00",
+        )
+
+        self.assertEqual(model["schema_version"], "v7.b11.org-cohort-identity-policy-integration.v1")
+        self.assertEqual(model["backlog_item"], "B11")
+        target = next(row for row in model["rows"] if row["target_channel"] == "awg2")
+        self.assertEqual(target["integration_state"], "ORG_COHORT_IDENTITY_POLICY_INTEGRATED_READ_ONLY")
+        self.assertEqual(target["blockers"], [])
+        self.assertTrue(target["is_preferred_target"])
+        self.assertEqual(model["summary"]["integrated_rows"], 2)
+        self.assertEqual(model["summary"]["runtime_actions_created"], 0)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+        self.assertFalse(model["synthetic_evidence_created"])
+
+    def test_b11_exposes_existing_policy_blocks_without_runtime_apply(self):
+        model = accel.build_org_cohort_identity_policy_integration(
+            decision_surface={
+                "users": [
+                    {"ip": "10.7.0.11", "current": "awg1", "group": "vip", "recommended_channel": "awg2"},
+                    {"ip": "10.7.0.12", "current": "awg2", "group": "staff", "recommended_channel": "awg2"},
+                ],
+                "channels": [{"id": "awg1"}, {"id": "awg2", "exclusive_group": "staff"}],
+            },
+            org_policy={
+                "default_isolation": "exclusive",
+                "groups": {
+                    "vip": {"allowed_egress": ["awg1"], "isolation": "exclusive"},
+                    "staff": {"allowed_egress": ["awg2"], "isolation": "exclusive"},
+                },
+            },
+        )
+
+        target = next(row for row in model["rows"] if row["user"] == "10.7.0.11" and row["target_channel"] == "awg2")
+        self.assertEqual(target["integration_state"], "ORG_COHORT_IDENTITY_POLICY_BLOCKED_BY_EXISTING_GATES")
+        self.assertIn("group_allowed_egress", target["blockers"])
+        self.assertIn("egress_exclusive_group", target["blockers"])
+        self.assertIn("exclusive_isolation", target["blockers"])
+        self.assertGreaterEqual(model["summary"]["blocked_by_existing_policy_gates"], 1)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
 
     def test_action_class_freshness_windows_reuse_owner_issued_fields(self):
         freshness = accel.build_freshness_actionability({
@@ -1621,6 +2295,530 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertIn("a6_runtime_eligibility", certification["stop_metrics"])
         self.assertFalse(certification["runtime_mutation_performed"])
         self.assertFalse(certification["autonomy_enabled"])
+
+    def test_b12_next_action_class_stage_certification_is_read_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[{
+                    "recommendation_id": "r1",
+                    "decision_id": "decision-1",
+                    "packet_id": "p1",
+                    "apply_result": "success",
+                    "post_action_verification": {"status": "passed"},
+                    "service_outcome": {"telegram": "ok"},
+                    "user_outcome": {"user": "10.7.0.2"},
+                    "learning_record": {"stored": True},
+                    "outcome_observed_at": "2026-06-24T00:00:00+00:00",
+                    "blast_radius": 1,
+                    "selected_move_count": 1,
+                    "user": "10.7.0.2",
+                    "target": "awg0",
+                    "service_delta": 5,
+                    "prediction_delta": 3,
+                }],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        certification = inventory["next_action_class_stage_certification"]
+        self.assertEqual(certification["schema_version"], "v7.b12-next-action-class-stage-certification.v1")
+        self.assertEqual(certification["backlog_item"], "B12")
+        self.assertEqual(
+            certification["next_stage"]["stage_certification_state"],
+            "NEXT_ACTION_CLASS_STAGE_CERTIFIED_FOR_AUTHORITY_REVIEW_READ_ONLY",
+        )
+        self.assertTrue(certification["next_stage"]["stage_certified_for_review"])
+        self.assertFalse(certification["next_stage"]["stage_certified_for_runtime"])
+        self.assertFalse(certification["next_stage"]["stage_promoted"])
+        self.assertFalse(certification["next_stage"]["runtime_apply_allowed"])
+        self.assertFalse(certification["next_stage"]["direct_class_promotion_allowed"])
+        self.assertIn("authority_boundary", certification["next_stage"]["blockers"])
+        self.assertIn("runtime_apply_boundary", certification["next_stage"]["blockers"])
+        self.assertEqual(certification["summary"]["hard_blockers"], 0)
+        self.assertFalse(certification["runtime_mutation_performed"])
+        self.assertFalse(certification["apply_executed"])
+        self.assertEqual(certification["users_moved"], 0)
+        self.assertFalse(certification["authority_expanded"])
+        self.assertFalse(certification["direct_class_promotion_performed"])
+        self.assertFalse(certification["new_owner_created"])
+
+    def test_b12_blocks_when_required_certification_evidence_is_missing(self):
+        certification = accel.build_next_action_class_stage_certification(
+            action_class_runtime_enablement={
+                "current_action_class": "single-user governed candidate failover",
+                "action_classes": [{
+                    "action_class": "single-user governed candidate failover",
+                    "current_state": "NOT_CERTIFIED",
+                    "next_state": "GOVERNED_ONLY",
+                }],
+            },
+            class_level_blast_radius_certification={
+                "schema_version": "v7.a5-class-level-blast-radius-certification.v1",
+                "beyond_one_user_certified": False,
+            },
+            runtime_eligibility_arbitration={"schema_version": "missing"},
+            metric_reliability_certification={
+                "schema_version": "v7.b13-metric-reliability-certification.v1",
+                "blocking_recommendation_certified": False,
+            },
+            org_cohort_identity_policy_integration={"schema_version": "missing"},
+        )
+
+        self.assertEqual(
+            certification["next_stage"]["stage_certification_state"],
+            "NEXT_ACTION_CLASS_STAGE_BLOCKED_BY_EVIDENCE",
+        )
+        self.assertFalse(certification["next_stage"]["stage_certified_for_review"])
+        self.assertIn("action_class_ladder_current_stage", certification["next_stage"]["blockers"])
+        self.assertIn("a5_blast_radius_certification", certification["next_stage"]["blockers"])
+        self.assertIn("a6_runtime_eligibility_arbitration", certification["next_stage"]["blockers"])
+        self.assertIn("b13_blocking_recommendation_metric_reliability", certification["next_stage"]["blockers"])
+        self.assertIn("b11_identity_policy_boundary", certification["next_stage"]["blockers"])
+        self.assertFalse(certification["authority_expanded"])
+        self.assertFalse(certification["autonomy_enabled"])
+        self.assertFalse(certification["direct_class_promotion_performed"])
+
+    def test_b14_service_pool_cohort_blast_radius_scope_is_read_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[{
+                    "recommendation_id": "r1",
+                    "decision_id": "decision-1",
+                    "packet_id": "p1",
+                    "apply_result": "success",
+                    "post_action_verification": {"status": "passed"},
+                    "service_outcome": {"telegram": "ok"},
+                    "user_outcome": {"user": "10.7.0.2"},
+                    "learning_record": {"stored": True},
+                    "outcome_observed_at": "2026-06-24T00:00:00+00:00",
+                    "blast_radius": 1,
+                    "selected_move_count": 1,
+                    "user": "10.7.0.2",
+                    "target": "awg0",
+                    "service_delta": 5,
+                    "prediction_delta": 3,
+                }],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        scope = inventory["service_pool_cohort_blast_radius_scope"]
+        self.assertEqual(scope["schema_version"], "v7.b14-service-pool-cohort-blast-radius-scope.v1")
+        self.assertEqual(scope["backlog_item"], "B14")
+        self.assertEqual(scope["consumed_prior_capabilities"]["B11"], "v7.b11.org-cohort-identity-policy-integration.v1")
+        self.assertEqual(scope["consumed_prior_capabilities"]["B12"], "v7.b12-next-action-class-stage-certification.v1")
+        self.assertGreaterEqual(scope["summary"]["scope_rows"], 1)
+        self.assertIn("service_pool_cohort_scope_is_read_only_visibility_not_runtime_apply", scope["canonical_rules"])
+        self.assertFalse(scope["runtime_mutation_performed"])
+        self.assertFalse(scope["apply_executed"])
+        self.assertEqual(scope["users_moved"], 0)
+        self.assertFalse(scope["authority_expanded"])
+        self.assertFalse(scope["blast_radius_expanded"])
+        self.assertFalse(scope["synthetic_evidence_created"])
+        self.assertFalse(scope["new_owner_created"])
+        self.assertFalse(scope["threshold_values_changed"])
+        self.assertFalse(scope["formula_changed"])
+        first = scope["rows"][0]
+        self.assertIn("service_scope", first)
+        self.assertIn("pool_scope", first)
+        self.assertIn("cohort_scope", first)
+        self.assertIn("blast_radius_scope", first)
+        self.assertFalse(first["runtime_apply_allowed"])
+        self.assertFalse(first["authority_expanded"])
+
+    def test_b14_blocks_scope_when_existing_gates_are_missing(self):
+        scope = accel.build_service_pool_cohort_blast_radius_scope(
+            decision_surface={"users": [{"user": "10.7.0.2", "current_channel": "vless", "recommended_channel": "awg0"}]},
+            service_user_sla_fit={
+                "schema_version": "v7.routing-foundation.service-user-sla-fit.v1",
+                "rows": [{
+                    "user": "10.7.0.2",
+                    "current_assignment": "vless",
+                    "required_services": ["telegram"],
+                    "best_channel": "awg0",
+                    "fit_verdict": "BLOCKED",
+                    "candidates": [{
+                        "channel": "awg0",
+                        "fit_verdict": "BLOCKED",
+                        "missing_requirements": ["telegram"],
+                    }],
+                }],
+            },
+            class_level_blast_radius_certification={
+                "schema_version": "v7.a5-class-level-blast-radius-certification.v1",
+                "beyond_one_user_certified": False,
+            },
+            next_action_class_stage_certification={
+                "schema_version": "v7.b12-next-action-class-stage-certification.v1",
+                "next_stage": {"stage_certification_state": "NEXT_ACTION_CLASS_STAGE_BLOCKED_BY_EVIDENCE"},
+            },
+            org_cohort_identity_policy_integration={"schema_version": "missing", "rows": []},
+            generated_at="2026-06-25T00:00:00+00:00",
+        )
+
+        self.assertEqual(scope["summary"]["scope_rows"], 1)
+        self.assertEqual(scope["summary"]["mapped_rows"], 0)
+        self.assertEqual(scope["rows"][0]["scope_state"], "SERVICE_POOL_COHORT_SCOPE_BLOCKED_BY_EXISTING_GATES")
+        self.assertIn("cohort_scope_missing", scope["rows"][0]["blockers"])
+        self.assertIn("a5_blast_radius_not_certified_beyond_one_user", scope["rows"][0]["blockers"])
+        self.assertIn("b12_next_action_class_stage_not_certified_for_review", scope["rows"][0]["blockers"])
+        self.assertFalse(scope["runtime_mutation_performed"])
+        self.assertFalse(scope["apply_executed"])
+        self.assertEqual(scope["users_moved"], 0)
+        self.assertFalse(scope["authority_expanded"])
+        self.assertFalse(scope["blast_radius_expanded"])
+
+    def test_b17_stale_read_mutation_blocking_is_read_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        model = inventory["stale_read_mutation_blocking"]
+        self.assertEqual(model["schema_version"], "v7.b17-stale-read-mutation-blocking.v1")
+        self.assertEqual(model["backlog_item"], "B17")
+        self.assertIn("stale_reads_are_reportable", model["read_only_contract"])
+        self.assertTrue(model["read_only_contract"]["stale_reads_are_reportable"])
+        self.assertFalse(model["read_only_contract"]["stale_reads_can_authorize_mutation"])
+        self.assertIn("runtime_apply_boundary", model["mutation_blockers"])
+        self.assertIn("authority_boundary", model["mutation_blockers"])
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+        self.assertFalse(model["synthetic_evidence_created"])
+        self.assertFalse(model["threshold_values_changed"])
+        self.assertFalse(model["formula_changed"])
+        self.assertFalse(model["new_owner_created"])
+
+    def test_b17_reports_stale_reads_while_blocking_mutation(self):
+        freshness = accel.build_freshness_actionability({
+            "service-scores": {"freshness_state": "STALE", "stop_required": True, "runtime_behavior": "STOP"},
+            "channel-service-scores": {"freshness_state": "FRESH", "stop_required": False, "runtime_behavior": "READ"},
+        })
+        runtime = {
+            "schema_version": "v7.a6-runtime-eligibility-arbitration.v1",
+            "gate_rows": [{"gate": "freshness", "state": "STOP", "owner": "freshness_actionability"}],
+        }
+        model = accel.build_stale_read_mutation_blocking(
+            freshness_actionability=freshness,
+            runtime_eligibility_arbitration=runtime,
+            routing_recommendation_readiness={
+                "schema_version": "v7.routing-foundation.recommendation-readiness.v1",
+                "blockers": ["freshness_not_actionable:service"],
+            },
+            generated_at="2026-06-25T00:00:00+00:00",
+        )
+
+        stale_rows = [row for row in model["rows"] if row["read_visibility"] == "REPORT_STALE_READ"]
+        self.assertGreaterEqual(len(stale_rows), 1)
+        self.assertIn("stale_read:service", model["mutation_blockers"])
+        self.assertIn("runtime_eligibility_freshness_gate_stop", model["mutation_blockers"])
+        self.assertIn("routing:freshness_not_actionable:service", model["mutation_blockers"])
+        self.assertTrue(all(row["runtime_read_allowed"] for row in model["rows"]))
+        self.assertTrue(all(row["runtime_mutation_allowed"] is False for row in model["rows"]))
+        self.assertEqual(model["summary"]["runtime_actions_created"], 0)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+
+    def test_b18_owner_issued_version_lease_pattern_is_read_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        model = inventory["owner_issued_version_lease_pattern"]
+        self.assertEqual(model["schema_version"], "v7.b18-owner-issued-version-lease-pattern.v1")
+        self.assertEqual(model["backlog_item"], "B18")
+        self.assertEqual(model["existing_execution_lease_contract"]["status"], "REUSED_NO_BEHAVIOR_CHANGE")
+        self.assertTrue(model["existing_execution_lease_contract"]["freshness_only_change_preserves_lease"])
+        self.assertTrue(model["existing_execution_lease_contract"]["material_state_change_invalidates_lease"])
+        self.assertGreaterEqual(model["summary"]["coverage_rows"], 1)
+        self.assertEqual(model["summary"]["runtime_actions_created"], 0)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+        self.assertFalse(model["synthetic_evidence_created"])
+        self.assertFalse(model["threshold_values_changed"])
+        self.assertFalse(model["formula_changed"])
+        self.assertFalse(model["lease_behavior_changed"])
+        self.assertFalse(model["new_owner_created"])
+
+    def test_b18_classifies_owner_issued_pattern_present_and_partial(self):
+        freshness = accel.build_freshness_actionability({
+            "service-scores": {
+                "exists": True,
+                "schema": "v7.intelligence.service-scores.v1",
+                "generated_at": "2026-06-25T00:00:00+00:00",
+                "expires_at": "2026-06-25T00:02:00+00:00",
+                "ttl_seconds": 120,
+                "freshness_state": "FRESH",
+                "runtime_behavior": "ALLOW",
+                "source_hashes": {"service-matrix": "hash-service"},
+                "generator": "test-owner",
+                "path": "/tmp/service-scores.json",
+            },
+            "channel-service-scores": {
+                "exists": True,
+                "freshness_state": "FRESH",
+                "runtime_behavior": "ALLOW",
+            },
+        })
+        windows = accel.build_action_class_freshness_windows(freshness)
+        stale = accel.build_stale_read_mutation_blocking(
+            freshness_actionability=freshness,
+            runtime_eligibility_arbitration={
+                "schema_version": "v7.a6-runtime-eligibility-arbitration.v1",
+                "gate_rows": [{"gate": "freshness", "state": "PASS"}],
+            },
+        )
+        model = accel.build_owner_issued_version_lease_pattern(
+            freshness_actionability=freshness,
+            action_class_freshness_windows=windows,
+            stale_read_mutation_blocking=stale,
+            generated_at="2026-06-25T00:00:00+00:00",
+        )
+
+        service_row = next(row for row in model["rows"] if row["snapshot_family"] == "service-scores")
+        channel_row = next(row for row in model["rows"] if row["snapshot_family"] == "channel-service-scores")
+        self.assertEqual(service_row["pattern_status"], "OWNER_ISSUED_VERSION_LEASE_PATTERN_PRESENT")
+        self.assertEqual(channel_row["pattern_status"], "OWNER_ISSUED_VERSION_LEASE_PATTERN_MISSING")
+        self.assertTrue(service_row["owner_issued_identity_present"])
+        self.assertTrue(service_row["owner_issued_lifetime_present"])
+        self.assertFalse(channel_row["runtime_mutation_allowed"])
+        self.assertEqual(model["omp_output"]["b18_status"], "DONE_READ_ONLY_OWNER_ISSUED_VERSION_LEASE_PATTERN")
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+
+    def test_b19_hysteresis_state_change_cost_mapping_is_read_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        model = inventory["hysteresis_state_change_cost_mapping"]
+        self.assertEqual(model["schema_version"], "v7.b19-hysteresis-state-change-cost-mapping.v1")
+        self.assertEqual(model["backlog_item"], "B19")
+        controls = {row["control"] for row in model["catalog_rows"]}
+        self.assertIn("sticky_current_bias", controls)
+        self.assertIn("cooldown_hold_down", controls)
+        self.assertIn("user_freeze", controls)
+        self.assertIn("pair_reversal_window", controls)
+        self.assertIn("recovery_success_threshold", controls)
+        self.assertIn("hard_failure_override_is_not_implemented_by_b19_and_remains_b20", model["canonical_rules"])
+        self.assertEqual(model["summary"]["threshold_changes"], 0)
+        self.assertEqual(model["summary"]["formula_changes"], 0)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+        self.assertFalse(model["synthetic_evidence_created"])
+        self.assertFalse(model["threshold_values_changed"])
+        self.assertFalse(model["formula_changed"])
+        self.assertFalse(model["new_owner_created"])
+
+    def test_b19_maps_active_anti_flap_block_without_runtime_apply(self):
+        anti = accel.build_anti_flapping([
+            {"user": "10.7.0.11", "from": "vless", "to": "awg0"},
+            {"user": "10.7.0.11", "from": "awg0", "to": "vless"},
+        ])
+        recovery = accel.build_recovery_admission(
+            {"channels": [{"channel": "awg0", "successful_checks": 3, "lifecycle": "RECOVERING"}]},
+            freshness_actionability=accel.build_freshness_actionability({
+                "trust-evolution-summaries": {"freshness_state": "FRESH", "runtime_behavior": "ALLOW"}
+            }),
+        )
+        model = accel.build_hysteresis_state_change_cost_mapping(
+            anti_flapping=anti,
+            recovery_admission=recovery,
+            owner_issued_version_lease_pattern={"schema_version": "v7.b18-owner-issued-version-lease-pattern.v1"},
+            generated_at="2026-06-25T00:00:00+00:00",
+        )
+
+        self.assertEqual(model["summary"]["active_anti_flap_blocked_users"], 1)
+        self.assertEqual(model["active_evidence"]["blocked_users"], 1)
+        self.assertEqual(model["omp_output"]["b19_status"], "DONE_READ_ONLY_HYSTERESIS_STATE_CHANGE_COST_MAPPING")
+        self.assertIn("threshold_formula_mutation", model["omp_output"]["blocked_later_steps"])
+        self.assertIn("hard_failure_override", model["omp_output"]["blocked_later_steps"])
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+
+    def test_b20_confirmed_hard_failure_marks_anti_flap_override_candidate_read_only(self):
+        anti = accel.build_anti_flapping([
+            {"user": "10.7.0.11", "from": "vless", "to": "awg0"},
+            {"user": "10.7.0.11", "from": "awg0", "to": "vless"},
+        ])
+        model = accel.build_hard_failure_override_anti_flap_arbitration(
+            hard_failure_classification={"schema_version": "v7.policy-001.hard-failure-classification.v1"},
+            hard_failure_policy_windows={
+                "schema_version": "v7.b2.hard-failure-policy-windows.v1",
+                "rows": [{
+                    "object": "awg0",
+                    "risk_class": "CRITICAL_CONFIRMED_HARD_FAILURE",
+                    "hard_failure_classification": "HARD_FAILURE_CONFIRMED",
+                    "selected_action_class": "channel hard-fail failover",
+                    "blockers": ["anti_flap_blocks_recent_oscillation"],
+                }],
+            },
+            anti_flapping=anti,
+            hysteresis_state_change_cost_mapping={"schema_version": "v7.b19-hysteresis-state-change-cost-mapping.v1"},
+            generated_at="2026-06-25T00:00:00+00:00",
+        )
+
+        self.assertEqual(model["schema_version"], "v7.b20-hard-failure-override-anti-flap-arbitration.v1")
+        self.assertEqual(model["backlog_item"], "B20")
+        row = model["rows"][0]
+        self.assertEqual(row["arbitration_result"], "HARD_FAILURE_OVERRIDE_ELIGIBLE_FOR_AUTHORITY_REVIEW")
+        self.assertEqual(row["anti_flap_result"], "OVERRIDE_CANDIDATE_READ_ONLY")
+        self.assertTrue(row["anti_flap_conflict"])
+        self.assertFalse(row["hard_failure_override_executed"])
+        self.assertFalse(row["runtime_apply_allowed"])
+        self.assertFalse(row["authority_expansion_allowed"])
+        self.assertEqual(model["summary"]["override_candidates"], 1)
+        self.assertEqual(model["summary"]["runtime_actions_created"], 0)
+        self.assertEqual(model["summary"]["threshold_changes"], 0)
+        self.assertIn("confirmed_hard_failure_may_override_anti_flap_only_as_read_only_authority_review_candidate", model["canonical_rules"])
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+        self.assertFalse(model["hard_failure_override_executed"])
+
+    def test_b20_suspected_hard_failure_never_overrides_anti_flap(self):
+        model = accel.build_hard_failure_override_anti_flap_arbitration(
+            hard_failure_policy_windows={
+                "schema_version": "v7.b2.hard-failure-policy-windows.v1",
+                "rows": [{
+                    "object": "awg3",
+                    "risk_class": "SUSPECTED_HARD_FAILURE",
+                    "hard_failure_classification": "HARD_FAILURE_SUSPECTED",
+                    "selected_action_class": "single-user governed candidate failover",
+                    "blockers": ["anti_flap_blocks_recent_oscillation"],
+                }],
+            },
+            anti_flapping={"schema_version": "v7.routing-foundation.anti-flapping.v1", "summary": {"blocked_users": 1}},
+            hysteresis_state_change_cost_mapping={"schema_version": "v7.b19-hysteresis-state-change-cost-mapping.v1"},
+            generated_at="2026-06-25T00:00:00+00:00",
+        )
+
+        row = model["rows"][0]
+        self.assertEqual(row["arbitration_result"], "ANTI_FLAP_HOLDS_CONFIRMATION_REQUIRED")
+        self.assertEqual(row["anti_flap_result"], "HOLD")
+        self.assertIn("hard_failure_confirmation_required", row["remaining_blockers"])
+        self.assertEqual(model["summary"]["override_candidates"], 0)
+        self.assertEqual(model["summary"]["anti_flap_holds"], 1)
+        self.assertFalse(model["hard_failure_override_executed"])
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+
+    def test_b21_per_user_routing_control_mode_normalizes_existing_fields_read_only(self):
+        model = accel.build_per_user_routing_control_mode(
+            decision_surface={
+                "users": [
+                    {
+                        "user": "10.7.0.2",
+                        "current_channel": "vless",
+                        "recommended_channel": "awg0",
+                        "routing_control_mode": "AUTO",
+                    },
+                    {
+                        "user": "10.7.0.3",
+                        "current_channel": "awg1",
+                        "recommended_channel": "awg2",
+                        "raw": {"manual_only": "1", "group": "vip"},
+                    },
+                    {
+                        "user": "10.7.0.4",
+                        "current_channel": "awg3",
+                        "recommended_channel": "awg0",
+                        "pinned_channel": "awg3",
+                    },
+                ]
+            },
+            org_cohort_identity_policy_integration={"schema_version": "v7.b11.org-cohort-identity-policy-integration.v1"},
+            hard_failure_override_anti_flap_arbitration={"schema_version": "v7.b20-hard-failure-override-anti-flap-arbitration.v1"},
+            generated_at="2026-06-25T00:00:00+00:00",
+        )
+
+        self.assertEqual(model["schema_version"], "v7.b21-per-user-routing-control-mode.v1")
+        self.assertEqual(model["backlog_item"], "B21")
+        by_user = {row["user"]: row for row in model["rows"]}
+        self.assertEqual(by_user["10.7.0.2"]["routing_control_mode"], "AUTO")
+        self.assertEqual(by_user["10.7.0.2"]["mode_source_status"], "EXISTS_COMPLETE")
+        self.assertTrue(by_user["10.7.0.2"]["planner_recommendation_allowed"])
+        self.assertEqual(by_user["10.7.0.3"]["routing_control_mode"], "MANUAL")
+        self.assertEqual(by_user["10.7.0.3"]["mode_source_status"], "EXISTS_UNDER_OTHER_NAME")
+        self.assertTrue(by_user["10.7.0.3"]["planner_move_blocked_by_mode"])
+        self.assertEqual(by_user["10.7.0.4"]["routing_control_mode"], "PINNED")
+        self.assertIn("recommended_channel_differs_from_pinned_channel", by_user["10.7.0.4"]["blockers"])
+        self.assertEqual(model["summary"]["auto"], 1)
+        self.assertEqual(model["summary"]["manual"], 1)
+        self.assertEqual(model["summary"]["pinned"], 1)
+        self.assertEqual(model["summary"]["runtime_actions_created"], 0)
+        self.assertFalse(model["registry_written"])
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+        self.assertFalse(model["new_owner_created"])
+
+    def test_b21_inventory_exposes_per_user_routing_control_mode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        model = inventory["per_user_routing_control_mode"]
+        self.assertEqual(model["schema_version"], "v7.b21-per-user-routing-control-mode.v1")
+        self.assertEqual(model["backlog_item"], "B21")
+        self.assertEqual(model["summary"]["users_seen"], 2)
+        self.assertEqual(model["summary"]["missing_explicit_mode"], 2)
+        self.assertEqual(model["omp_output"]["b21_status"], "DONE_READ_ONLY_PER_USER_ROUTING_CONTROL_MODE")
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
 
     def test_b16_rollback_authority_certification_is_read_only_authority_review(self):
         with tempfile.TemporaryDirectory() as tmp:

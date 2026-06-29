@@ -113,14 +113,14 @@ Weights sum to `100`.
 
 | Category | Current % | Target % | Weight | Current evidence basis |
 | --- | ---: | ---: | ---: | --- |
-| Implementation | `29.4` | `100` | `20` | Implementation Backlog actionable progress is `10 / 34`. |
-| Testing | `47` | `100` | `10` | A1/A2 focused unit tests, A4 closure read-model regression tests, A6/B13/B16 read-only verification tests, B1 liveness evidence aggregation tests, B2 hard-failure policy-window tests, RT2-S1 measurement/observability tests, RT2-S2 world/readiness tests, RT2-S3 desired-state delta tests, RT2-S4 governed coordination tests, RT2-S5 certified concurrency ladder tests, RT2-S6 evidence-based continuous improvement tests, and read-only CLI smoke checks pass; broader production certification remains open. |
+| Implementation | `79.4` | `100` | `20` | Implementation Backlog actionable progress is `27 / 34`. |
+| Testing | `73` | `100` | `10` | A1/A2 focused unit tests, A4 closure read-model regression tests, A6/B13/B16 read-only verification tests, B1 liveness evidence aggregation tests, B2 hard-failure policy-window tests, B3 soft-degradation threshold vocabulary tests, B4 degradation signal policy mapping tests, B5 observed degradation attribution tests, B6 V7-native degradation response mapping tests, B7 service-objective threshold binding tests, B8 recovery admission certification tests, B9 post-admission observation window tests, B10 recovery slow-start progression tests, B11 org/cohort identity policy integration tests, B12 next action-class stage certification tests, B14 service/pool/cohort blast-radius scope tests, B15 containment/forward-fix classification tests, B17 stale-read mutation blocking tests, B18 owner-issued version/lease pattern tests, B19 hysteresis/state-change-cost mapping tests, B20 hard-failure override anti-flap arbitration tests, B21 per-user routing control mode tests, RT2-S1 measurement/observability tests, RT2-S2 world/readiness tests, RT2-S3 desired-state delta tests, RT2-S4 governed coordination tests, RT2-S5 certified concurrency ladder tests, RT2-S6 evidence-based continuous improvement tests, and read-only CLI/import smoke checks pass; broader production certification remains open. |
 | Production Deployments | `100` | `100` | `10` | Safe deploy owner exists and local/GitHub/production convergence is aligned. |
 | Production Outcomes | `25` | `100` | `15` | A3 added a real governed no-rollback candidate outcome; A4 representative real outcomes are materialized and outcome closure is `COMPLETE`. |
-| Certification | `68` | `100` | `15` | A1/A2 are implemented and tested; A3 has real no-rollback evidence; A4 representative evidence and closure read-model are complete; A5 blast-radius evidence is certified read-only from E29 one/two/four-user proofs; A6 runtime eligibility arbitration is read-only complete and stops at authority/runtime_apply; B1 liveness evidence aggregation is implemented/tested read-only; B2 hard-failure policy windows are implemented/tested read-only; B13 metric reliability is certified for blocking recommendations only; B16 rollback authority evidence is certified for authority review only; RT2-S1 measurement/observability is complete as owner-mapped read-only evidence; RT2-S2 world/readiness is complete as owner-mapped read-only prepared state; RT2-S3 desired-state delta preparedness is complete as owner-mapped read-only advisory delta/prepared plan; RT2-S4 governed execution coordination is complete as owner-mapped read-only bounded coordination; RT2-S5 certified concurrency ladder is complete as serial-only read-only boundary plus explicit STOP_SAFE for wider levels; RT2-S6 evidence-based continuous improvement is complete as owner-mapped advisory recommendation to existing backlog item B1. Architecture/model certification belongs to Engineering Maturity. |
+| Certification | `94` | `100` | `15` | A1/A2 are implemented and tested; A3 has real no-rollback evidence; A4 representative evidence and closure read-model are complete; A5 blast-radius evidence is certified read-only from E29 one/two/four-user proofs; A6 runtime eligibility arbitration is read-only complete and stops at authority/runtime_apply; B1 liveness evidence aggregation is implemented/tested read-only; B2 hard-failure policy windows are implemented/tested read-only; B3 soft-degradation threshold vocabulary is implemented/tested read-only; B4 degradation signal policy mapping is implemented/tested read-only; B5 observed degradation attribution is implemented/tested read-only; B6 V7-native degradation response mapping is implemented/tested read-only; B7 service-objective threshold binding is implemented/tested read-only; B8 recovery admission certification is implemented/tested read-only; B9 post-admission observation windows are implemented/tested read-only; B10 recovery slow-start progression is implemented/tested read-only; B11 org/cohort identity policy integration is implemented/tested read-only; B12 next action-class stage certification is implemented/tested read-only and stops at authority/runtime_apply; B13 metric reliability is certified for blocking recommendations only; B14 service/pool/cohort blast-radius scope is implemented/tested read-only and does not expand blast radius; B15 containment/forward-fix classification is implemented/tested read-only and does not execute apply or rollback; B16 rollback authority evidence is certified for authority review only; B17 stale-read mutation blocking is implemented/tested read-only and preserves stale reporting without mutation; B18 owner-issued version/lease pattern is implemented/tested read-only and changes no lease behavior; B19 hysteresis/state-change-cost mapping is implemented/tested read-only and changes no thresholds or formulas; B20 hard-failure override anti-flap arbitration is implemented/tested read-only and does not execute override, expand authority, mutate thresholds/formulas, or move users; B21 per-user routing control mode is implemented/tested read-only and does not write registry, replace planner, expand authority, or move users; RT2-S1 measurement/observability is complete as owner-mapped read-only evidence; RT2-S2 world/readiness is complete as owner-mapped read-only prepared state; RT2-S3 desired-state delta preparedness is complete as owner-mapped read-only advisory delta/prepared plan; RT2-S4 governed execution coordination is complete as owner-mapped read-only bounded coordination; RT2-S5 certified concurrency ladder is complete as serial-only read-only boundary plus explicit STOP_SAFE for wider levels; RT2-S6 evidence-based continuous improvement is complete as owner-mapped advisory recommendation to existing backlog item B1. Architecture/model certification belongs to Engineering Maturity. |
 | Authority Evolution | `15` | `100` | `10` | TIER_1 governed authority exists; delegated autonomy policy is not approved and authority expansion is not granted. |
 | Production Autonomy | `0` | `100` | `10` | Runtime automation/apply remains disabled; no bounded production autonomy is certified. |
-| Implementation Backlog Completion | `29.4` | `100` | `10` | Mandatory backlog completion is `10 / 34`. |
+| Implementation Backlog Completion | `79.4` | `100` | `10` | Mandatory backlog completion is `27 / 34`. |
 
 ## Current Scores
 
@@ -133,7 +133,7 @@ Engineering calculation:
 Production calculation:
 
 ```text
-(29.4*20 + 47*10 + 100*10 + 25*15 + 68*15 + 15*10 + 0*10 + 29.4*10) / 100 = 39.0
+(79.4*20 + 73*10 + 100*10 + 25*15 + 94*15 + 15*10 + 0*10 + 79.4*10) / 100 = 60.5
 ```
 
 Current Engineering Maturity:
@@ -145,7 +145,7 @@ Current Engineering Maturity:
 Current Production Maturity:
 
 ```text
-39.0%
+60.5%
 ```
 
 Target:
@@ -157,7 +157,7 @@ Target:
 Production remaining:
 
 ```text
-61.0%
+39.5%
 ```
 
 ## Backlog Inputs
@@ -167,15 +167,15 @@ Current backlog progress:
 | Scope | Complete | Total | Contribution |
 | --- | ---: | ---: | --- |
 | Tier A | `6` | `6` | A1/A2 read-only foundations are implemented and tested; A3 real no-rollback outcome evidence is closed; A4 representative outcome evidence is materialized and closure-complete; A5 blast-radius evidence is certified read-only from E29 historical proofs; A6 runtime eligibility arbitration is read-only complete. |
-| Tier B | `4` | `21` | B1 liveness evidence aggregation is implemented/tested read-only; B2 hard-failure policy windows are implemented/tested read-only; B13 metric reliability certification is read-only complete for blocking recommendations; B16 rollback authority certification is read-only complete for authority review. |
+| Tier B | `21` | `21` | B1 liveness evidence aggregation is implemented/tested read-only; B2 hard-failure policy windows are implemented/tested read-only; B3 soft-degradation threshold vocabulary is implemented/tested read-only; B4 degradation signal policy mapping is implemented/tested read-only; B5 observed degradation attribution is implemented/tested read-only; B6 V7-native degradation response mapping is implemented/tested read-only; B7 service-objective threshold binding is implemented/tested read-only; B8 recovery admission certification is implemented/tested read-only; B9 post-admission observation windows are implemented/tested read-only; B10 recovery slow-start progression is implemented/tested read-only; B11 org/cohort identity policy integration is implemented/tested read-only; B12 next action-class stage certification is implemented/tested read-only; B13 metric reliability certification is read-only complete for blocking recommendations; B14 service/pool/cohort blast-radius scope is implemented/tested read-only; B15 containment/forward-fix classification is implemented/tested read-only; B16 rollback authority certification is read-only complete for authority review; B17 stale-read mutation blocking is implemented/tested read-only; B18 owner-issued version/lease pattern is implemented/tested read-only; B19 hysteresis/state-change-cost mapping is implemented/tested read-only; B20 hard-failure override anti-flap arbitration is implemented/tested read-only; B21 per-user routing control mode is implemented/tested read-only. |
 | Tier C | `0` | `7` | Medium implementation remains open. |
 | Tier D optional | `0` | `6` | Optional future-scope work remains open. |
-| Overall actionable | `10` | `34` | Implementation category is `29.4%`. |
+| Overall actionable | `27` | `34` | Implementation category is `79.4%`. |
 
 Current highest implementation task:
 
 ```text
-B3: Align soft-degradation trend thresholds to canonical policy vocabulary.
+C1: Record fail-open/fail-closed behavior per action class.
 ```
 
 ## Milestones
@@ -226,13 +226,13 @@ ENGINEERING_COMPLETE
 Current Production milestone:
 
 ```text
-20%: First Implementation Certified
+35%: Runtime Eligibility Implemented
 ```
 
 Next Production milestone:
 
 ```text
-35%: Runtime Eligibility Implemented
+50%: Implementation Half Complete
 ```
 
 ## OMP Print Contract
@@ -259,16 +259,16 @@ Engineering Maturity
 PRODUCTION
 
 Implementation
-26.5%
+79.4%
 
 Certification
-67%
+94%
 
 Autonomy
 0%
 
 Production Maturity
-39.0%
+60.5%
 
 Overall Status
 ENGINEERING_COMPLETE / PRODUCTION_IN_PROGRESS
@@ -280,27 +280,27 @@ Backlog
 Tier A
 6 / 6
 Tier B
-4 / 21
+21 / 21
 Tier C
 0 / 7
 Tier D
 0 / 6 optional
 Overall
-10 / 34 complete
+27 / 34 complete
 
 Current Tier
 TIER_1_GOVERNED
 
 Highest Priority Task
-B3: Align soft-degradation trend thresholds to canonical policy vocabulary.
+C1: Record fail-open/fail-closed behavior per action class.
 
 Current Stop Condition
-NONE_FOR_B3_SOFT_DEGRADATION_THRESHOLDS: continue through existing planner/autoswitch, quality compact, and service matrix owners
+NONE_FOR_C1_FAIL_OPEN_FAIL_CLOSED_ACTION_CLASS_BEHAVIOR: continue through existing Runtime Model, OMP, planner gate, and action-class policy owners
 
 Estimated Remaining Work
 Moderate
 
-Expected Next Milestone
+Current Production Milestone
 50%: Implementation Half Complete
 ```
 

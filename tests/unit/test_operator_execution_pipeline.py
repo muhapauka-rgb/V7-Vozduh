@@ -454,6 +454,17 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(rows["feedback"]["owner"], pipeline.CANONICAL_FEEDBACK_OWNER)
         self.assertEqual(s4["terminal_classification"]["closure_owner"], pipeline.CANONICAL_FEEDBACK_OWNER)
         self.assertTrue(s4["terminal_classification"]["terminal_classification_ready"])
+        self.assertEqual(
+            s4["terminal_classification"]["containment_forward_fix_schema"],
+            "v7.b15-containment-forward-fix-classification.v1",
+        )
+        b15 = s4["source_models"]["containment_forward_fix_classification"]
+        self.assertEqual(b15["backlog_item"], "B15")
+        self.assertTrue(b15["read_only"])
+        self.assertFalse(b15["runtime_mutation_performed"])
+        self.assertFalse(b15["apply_executed"])
+        self.assertFalse(b15["rollback_executed"])
+        self.assertEqual(b15["users_moved"], 0)
         self.assertEqual(s4["unlocked_capability"], "RT2-S5_CERTIFIED_CONCURRENCY_LADDER")
         self.assertEqual(s4["missing_stages"], [])
         self.assertEqual(s4["ownerless_stages"], [])

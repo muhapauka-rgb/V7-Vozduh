@@ -63,6 +63,7 @@ APPROVED_PACKET_BINDING_FIELDS = [
     "target",
     "authority_generation",
 ]
+B15_CONTAINMENT_FORWARD_FIX_SCHEMA = "v7.b15-containment-forward-fix-classification.v1"
 
 
 class PacketError(ValueError):
@@ -524,6 +525,175 @@ def _rollback_targets_from_manifest(manifest):
     manifest = manifest if isinstance(manifest, dict) else {}
     items = manifest.get("items") if isinstance(manifest.get("items"), list) else []
     return sorted(str(item.get("rollback_target") or "") for item in items if isinstance(item, dict) and str(item.get("rollback_target") or ""))
+
+
+def _truthy(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "ok", "pass", "passed", "verified", "success", "applied"}
+    return bool(value)
+
+
+def _terminal_text(*values):
+    return " ".join(str(value or "").upper() for value in values if value is not None)
+
+
+def containment_forward_fix_classification(
+    *,
+    packet=None,
+    execution_result=None,
+    verification_result=None,
+    rollback_result=None,
+    generated_at=None,
+):
+    """Classify containment vs forward-fix from existing terminal evidence only."""
+    generated = generated_at or utc_now().isoformat()
+    packet = packet if isinstance(packet, dict) else {}
+    execution = execution_result if isinstance(execution_result, dict) else {}
+    verification = verification_result if isinstance(verification_result, dict) else {}
+    rollback = rollback_result if isinstance(rollback_result, dict) else {}
+    manifest = packet.get("rollback_manifest") if isinstance(packet.get("rollback_manifest"), dict) else {}
+    manifest_items = [item for item in (manifest.get("items") or []) if isinstance(item, dict)]
+    apply_result = execution.get("apply_result") if isinstance(execution.get("apply_result"), dict) else {}
+    results = apply_result.get("results") if isinstance(apply_result.get("results"), list) else []
+    applied = (
+        _truthy(execution.get("applied"))
+        or _truthy(execution.get("apply_executed"))
+        or _truthy(apply_result.get("applied"))
+        or str(execution.get("result") or "").lower() == "applied"
+    )
+    verification_passed = (
+        verification.get("success") is True
+        or verification.get("verification_passed") is True
+        or str(verification.get("status") or verification.get("result") or "").lower() in {"success", "verified", "pass", "passed"}
+    )
+    rollback_verdict = str(
+        rollback.get("rollback_verdict")
+        or rollback.get("verdict")
+        or execution.get("rollback_verdict")
+        or ""
+    ).upper()
+    rollback_required = (
+        _truthy(rollback.get("rollback_required"))
+        or _truthy(verification.get("rollback_required"))
+        or _truthy(execution.get("rollback_required"))
+        or bool(rollback_verdict)
+    )
+    rollback_completed = rollback_verdict in {"ROLLBACK_COMPLETED", "ROLLED_BACK", "OK", "SUCCESS"}
+    rollback_failed = rollback_required and not rollback_completed
+    partial = (
+        _truthy(execution.get("partial_success"))
+        or _truthy(verification.get("partial_success"))
+        or (results and len(results) < len(manifest_items))
+    )
+    text = _terminal_text(
+        execution.get("terminal_state"),
+        execution.get("terminal_reason"),
+        execution.get("result"),
+        verification.get("status"),
+        verification.get("result"),
+        rollback_verdict,
+    )
+    if not applied:
+        classification = "NO_EXECUTION_CONTAINED"
+        operator_summary = "No runtime mutation executed; containment is already satisfied."
+        safe_next = "review_or_refresh_evidence"
+    elif verification_passed and not partial:
+        classification = "FORWARD_FIX_VERIFIED"
+        operator_summary = "Forward action verified; rollback is not required by observed terminal evidence."
+        safe_next = "close_outcome_and_learn"
+    elif rollback_completed:
+        classification = "CONTAINED_BY_ROLLBACK"
+        operator_summary = "Forward action did not verify, but rollback completed and contained the failed path."
+        safe_next = "close_rollback_outcome_and_learn"
+    elif rollback_failed:
+        classification = "CONTAINMENT_FAILED_OPERATOR_REVIEW_REQUIRED"
+        operator_summary = "Rollback was required but did not complete; operator review remains required."
+        safe_next = "operator_review_required"
+    elif partial or "PARTIAL" in text:
+        classification = "PARTIAL_FORWARD_FIX_REQUIRES_CONTAINMENT_REVIEW"
+        operator_summary = "Forward action appears partial; containment review is required before treating it as success."
+        safe_next = "containment_review_required"
+    elif applied:
+        classification = "FORWARD_FIX_UNVERIFIED_CONTAINMENT_PENDING"
+        operator_summary = "Forward action exists without complete verification; containment remains pending."
+        safe_next = "complete_verification_or_containment_review"
+    else:
+        classification = "UNKNOWN_TERMINAL_STATE"
+        operator_summary = "Terminal evidence is insufficient for containment or forward-fix classification."
+        safe_next = "collect_terminal_evidence"
+    rows = []
+    for index, item in enumerate(manifest_items):
+        rows.append({
+            "user": str(item.get("user_ip") or ""),
+            "forward_target": str(item.get("forward_target") or ""),
+            "rollback_target": str(item.get("rollback_target") or ""),
+            "move_type": str(item.get("move_type") or ""),
+            "containment_owner": CANONICAL_CLEARANCE_OWNER,
+            "source_operation_id": str(item.get("source_operation_id") or packet.get("operation_id") or ""),
+            "classification": classification,
+            "row_index": index,
+        })
+    return {
+        "schema_version": B15_CONTAINMENT_FORWARD_FIX_SCHEMA,
+        "generated_at": generated,
+        "owner": CANONICAL_CLEARANCE_OWNER,
+        "backlog_item": "B15",
+        "purpose": "expose_containment_forward_fix_classification_without_runtime_behavior_change",
+        "policy_source": "POLICY_007_ROLLBACK",
+        "source_owners_reused": [
+            "admin_core.operator_execution packet and execution lease owner",
+            "admin_core.operator_execution_feedback terminal outcome classification",
+            "admin_core.operator_execution_pipeline governed execution coordination",
+            "tools/v7-users-autoswitch rollback/apply/verify owner when separately approved",
+        ],
+        "packet_identity": _packet_identity(packet) if packet else {},
+        "partial_failure_policy": str(manifest.get("partial_failure_policy") or "UNKNOWN"),
+        "rollback_execution_owner": str(manifest.get("rollback_execution_owner") or ""),
+        "classification": classification,
+        "operator_summary": operator_summary,
+        "safe_next_step": safe_next,
+        "evidence": {
+            "applied": applied,
+            "verification_passed": verification_passed,
+            "partial_success": bool(partial),
+            "rollback_required": rollback_required,
+            "rollback_completed": rollback_completed,
+            "rollback_failed": rollback_failed,
+            "manifest_items": len(manifest_items),
+            "result_rows": len(results),
+        },
+        "rows": rows,
+        "classification_matrix": [
+            {"terminal_condition": "no apply", "classification": "NO_EXECUTION_CONTAINED", "meaning": "nothing to roll back"},
+            {"terminal_condition": "apply + verification pass", "classification": "FORWARD_FIX_VERIFIED", "meaning": "forward path succeeded"},
+            {"terminal_condition": "apply + verification fail + rollback complete", "classification": "CONTAINED_BY_ROLLBACK", "meaning": "failure contained"},
+            {"terminal_condition": "apply + verification fail + rollback fail", "classification": "CONTAINMENT_FAILED_OPERATOR_REVIEW_REQUIRED", "meaning": "operator review required"},
+            {"terminal_condition": "partial apply or partial verification", "classification": "PARTIAL_FORWARD_FIX_REQUIRES_CONTAINMENT_REVIEW", "meaning": "cannot treat as success"},
+            {"terminal_condition": "apply without verification", "classification": "FORWARD_FIX_UNVERIFIED_CONTAINMENT_PENDING", "meaning": "verification or containment still required"},
+        ],
+        "canonical_rules": [
+            "b15_classifies_terminal_evidence_only",
+            "containment_is_observability_not_automatic_rollback_authority",
+            "forward_fix_requires_verification_before_success",
+            "partial_failure_policy_stop_and_contain_remains_existing_packet_policy",
+            "b15_does_not_execute_runtime_apply_or_rollback",
+        ],
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "rollback_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_runtime_created": False,
+        "new_planner_created": False,
+    }
 
 
 def _material_state_from_components(

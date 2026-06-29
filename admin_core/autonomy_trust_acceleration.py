@@ -7,6 +7,7 @@ evidence so operators know which real evidence to collect next.
 
 from __future__ import annotations
 
+import fnmatch
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,7 +15,7 @@ from typing import Any
 
 from admin_core import events as v7_events
 from admin_core import intelligence_platform, intelligence_workers, shadow_autonomy
-from admin_core.intelligence_snapshots import read_snapshot_family
+from admin_core.intelligence_snapshots import SNAPSHOT_FAMILIES, read_snapshot_family
 from admin_core.operator_execution_pipeline import (
     AUTONOMY_CANARY_CONFIDENCE_FLOOR,
     AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR,
@@ -3196,6 +3197,871 @@ def build_runtime_eligibility_arbitration(
     }
 
 
+def build_stale_read_mutation_blocking(
+    *,
+    freshness_actionability: dict[str, Any] | None = None,
+    runtime_eligibility_arbitration: dict[str, Any] | None = None,
+    routing_recommendation_readiness: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Preserve stale-read visibility while keeping mutation blocked for B17."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    freshness = freshness_actionability if isinstance(freshness_actionability, dict) else {}
+    runtime = runtime_eligibility_arbitration if isinstance(runtime_eligibility_arbitration, dict) else {}
+    readiness = routing_recommendation_readiness if isinstance(routing_recommendation_readiness, dict) else {}
+    domains = freshness.get("domains") if isinstance(freshness.get("domains"), dict) else {}
+    rows: list[dict[str, Any]] = []
+    for domain, row in sorted(domains.items()):
+        if not isinstance(row, dict):
+            continue
+        classification = _text(row.get("classification"), "UNKNOWN")
+        stale = classification in {"STALE_RECHECK_REQUIRED", "UNKNOWN"}
+        rows.append({
+            "domain": domain,
+            "freshness_classification": classification,
+            "reason": row.get("reason", ""),
+            "families": row.get("families", []),
+            "family_statuses": row.get("family_statuses", {}),
+            "read_visibility": "REPORT_STALE_READ" if stale else "REPORT_FRESH_READ",
+            "mutation_gate": "MUTATION_BLOCKED_RECHECK_REQUIRED" if stale else "MUTATION_STILL_BLOCKED_BY_AUTHORITY_RUNTIME_APPLY",
+            "runtime_read_allowed": True,
+            "runtime_mutation_allowed": False,
+            "operator_action": "refresh_existing_owner_snapshot_before_mutation_review" if stale else "may_continue_read_only_review",
+            "evidence_role": "blocking_evidence" if stale else "supporting_read_only_evidence",
+            "runtime_mutation_performed": False,
+            "apply_executed": False,
+            "users_moved": 0,
+        })
+    runtime_gate_rows = [
+        row for row in (runtime.get("gate_rows") or [])
+        if isinstance(row, dict)
+    ]
+    runtime_freshness_gate = next((row for row in runtime_gate_rows if row.get("gate") == "freshness"), {})
+    routing_blockers = list(readiness.get("blockers") or [])
+    stale_domains = [
+        row["domain"] for row in rows
+        if row["freshness_classification"] in {"STALE_RECHECK_REQUIRED", "UNKNOWN"}
+    ]
+    mutation_blockers = sorted(set(
+        [f"stale_read:{domain}" for domain in stale_domains]
+        + (["runtime_eligibility_freshness_gate_stop"] if runtime_freshness_gate.get("state") == "STOP" else [])
+        + [f"routing:{item}" for item in routing_blockers if "freshness" in str(item)]
+        + ["runtime_apply_boundary", "authority_boundary"]
+    ))
+    return {
+        "schema_version": "v7.b17-stale-read-mutation-blocking.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "B17",
+        "purpose": "preserve_stale_read_reporting_while_blocking_mutation_through_existing_freshness_and_runtime_eligibility_owners",
+        "source_owners_reused": [
+            "admin_core.autonomy_trust_acceleration.build_freshness_actionability",
+            "admin_core.autonomy_trust_acceleration.build_runtime_eligibility_arbitration",
+            "admin_core.autonomy_trust_acceleration.build_routing_recommendation_readiness",
+            "tools/v7-autonomy-trust-evidence-inventory --routing-foundation-only",
+            "truth/convergence read-only owners",
+            "Runtime Model freshness and runtime_apply gates",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_008_FRESHNESS.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#B17",
+        ],
+        "consumed_prior_capabilities": {
+            "freshness_actionability": freshness.get("schema_version", "UNKNOWN"),
+            "runtime_eligibility_arbitration": runtime.get("schema_version", "UNKNOWN"),
+            "routing_recommendation_readiness": readiness.get("schema_version", "UNKNOWN"),
+        },
+        "rows": rows,
+        "runtime_freshness_gate": runtime_freshness_gate,
+        "routing_readiness": {
+            "readiness": readiness.get("readiness", "UNKNOWN"),
+            "freshness_blockers": [item for item in routing_blockers if "freshness" in str(item)],
+        },
+        "summary": {
+            "domains_seen": len(rows),
+            "stale_or_unknown_domains": len(stale_domains),
+            "fresh_domains": sum(1 for row in rows if row["freshness_classification"] == "ACTIONABLE_NOW"),
+            "mutation_blockers": len(mutation_blockers),
+            "runtime_actions_created": 0,
+            "authority_changes": 0,
+            "synthetic_evidence_created": 0,
+            "users_moved": 0,
+        },
+        "stale_domains": stale_domains,
+        "mutation_blockers": mutation_blockers,
+        "read_only_contract": {
+            "stale_reads_are_reportable": True,
+            "stale_reads_can_support_diagnosis": True,
+            "stale_reads_can_authorize_mutation": False,
+            "fresh_reads_still_do_not_bypass_authority": True,
+            "runtime_apply_remains_blocked": True,
+        },
+        "canonical_rules": [
+            "b17_preserves_stale_read_reporting_instead_of_hiding_stale_inputs",
+            "stale_or_unknown_freshness_blocks_mutation_but_not_read_only_diagnosis",
+            "freshness_actionability_is_existing_owner_and_not_a_new_truth_source",
+            "runtime_eligibility_remains_the_execute_or_stop_consumer",
+            "b17_does_not_change_freshness_thresholds_windows_or_formulas",
+            "b17_does_not_grant_runtime_apply_or_authority",
+        ],
+        "omp_output": {
+            "b17_status": "DONE_READ_ONLY_STALE_READ_MUTATION_BLOCKING",
+            "produced_evidence": "stale_read_mutation_blocking",
+            "unlocked_capability": "B18_OR_NEXT_OMP_ITEM_AFTER_CANONICAL_UPDATE",
+            "blocked_later_steps": [
+                "runtime_apply",
+                "automation",
+                "authority_expansion",
+                "mutation_from_stale_read",
+                "user_movement",
+            ],
+        },
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "threshold_values_changed": False,
+        "formula_changed": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+        "new_runtime_created": False,
+    }
+
+
+def _owner_issued_version_fields(owner_fields: dict[str, Any]) -> dict[str, Any]:
+    source_hashes = owner_fields.get("source_hashes") if isinstance(owner_fields.get("source_hashes"), dict) else {}
+    present = {
+        "schema": bool(_text(owner_fields.get("schema"))),
+        "generated_at": bool(_text(owner_fields.get("generated_at"))),
+        "expires_at": bool(_text(owner_fields.get("expires_at"))),
+        "ttl_seconds": isinstance(owner_fields.get("ttl_seconds"), int) and int(owner_fields.get("ttl_seconds")) > 0,
+        "source_hashes": bool(source_hashes),
+        "generator": bool(_text(owner_fields.get("generator"))),
+        "path": bool(_text(owner_fields.get("path"))),
+    }
+    return {
+        "present_fields": [field for field, ok in present.items() if ok],
+        "missing_fields": [field for field, ok in present.items() if not ok],
+        "source_hash_count": len(source_hashes),
+        "has_owner_issued_identity": bool(present["schema"] or present["source_hashes"]),
+        "has_owner_issued_lifetime": bool(present["generated_at"] and present["expires_at"] and present["ttl_seconds"]),
+        "has_owner_path": bool(present["path"]),
+    }
+
+
+def build_owner_issued_version_lease_pattern(
+    *,
+    freshness_actionability: dict[str, Any] | None = None,
+    action_class_freshness_windows: dict[str, Any] | None = None,
+    stale_read_mutation_blocking: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Expose owner-issued version/lease coverage without changing lease behavior."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    freshness = freshness_actionability if isinstance(freshness_actionability, dict) else {}
+    windows = action_class_freshness_windows if isinstance(action_class_freshness_windows, dict) else {}
+    stale = stale_read_mutation_blocking if isinstance(stale_read_mutation_blocking, dict) else {}
+    rows: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for action_row in [row for row in (windows.get("rows") or []) if isinstance(row, dict)]:
+        action_class = _text(action_row.get("action_class"), "UNKNOWN_ACTION_CLASS")
+        for domain_row in [row for row in (action_row.get("domains") or []) if isinstance(row, dict)]:
+            domain = _text(domain_row.get("domain"), "unknown")
+            owner_fields = domain_row.get("owner_issued_fields") if isinstance(domain_row.get("owner_issued_fields"), dict) else {}
+            for family, fields in sorted(owner_fields.items()):
+                if not isinstance(fields, dict):
+                    continue
+                key = (action_class, domain, family)
+                if key in seen:
+                    continue
+                seen.add(key)
+                field_coverage = _owner_issued_version_fields(fields)
+                exists = bool(fields.get("exists"))
+                identity = bool(field_coverage["has_owner_issued_identity"])
+                lifetime = bool(field_coverage["has_owner_issued_lifetime"])
+                if exists and identity and lifetime:
+                    status = "OWNER_ISSUED_VERSION_LEASE_PATTERN_PRESENT"
+                    blockers: list[str] = []
+                elif exists and (identity or lifetime):
+                    status = "OWNER_ISSUED_VERSION_LEASE_PATTERN_PARTIAL"
+                    blockers = ["owner_issued_pattern_incomplete"]
+                else:
+                    status = "OWNER_ISSUED_VERSION_LEASE_PATTERN_MISSING"
+                    blockers = ["owner_issued_pattern_missing"]
+                rows.append({
+                    "action_class": action_class,
+                    "domain": domain,
+                    "snapshot_family": family,
+                    "snapshot_contract": {
+                        "schema": SNAPSHOT_FAMILIES[family].schema if family in SNAPSHOT_FAMILIES else _text(fields.get("schema")),
+                        "producer": SNAPSHOT_FAMILIES[family].producer if family in SNAPSHOT_FAMILIES else "UNKNOWN",
+                        "consumer": SNAPSHOT_FAMILIES[family].consumer if family in SNAPSHOT_FAMILIES else "UNKNOWN",
+                        "ttl_seconds": SNAPSHOT_FAMILIES[family].ttl_seconds if family in SNAPSHOT_FAMILIES else fields.get("ttl_seconds"),
+                        "stale_after_seconds": SNAPSHOT_FAMILIES[family].stale_after_seconds if family in SNAPSHOT_FAMILIES else None,
+                    },
+                    "pattern_status": status,
+                    "freshness_state": fields.get("freshness_state", "UNKNOWN"),
+                    "runtime_behavior": fields.get("runtime_behavior", "STOP"),
+                    "stop_required": bool(fields.get("stop_required", True)),
+                    "owner_issued_identity_present": identity,
+                    "owner_issued_lifetime_present": lifetime,
+                    "owner_issued_fields": field_coverage,
+                    "blockers": blockers,
+                    "runtime_mutation_allowed": False,
+                    "runtime_read_allowed": True,
+                })
+    stale_blockers = list(stale.get("mutation_blockers") or [])
+    present = sum(1 for row in rows if row["pattern_status"] == "OWNER_ISSUED_VERSION_LEASE_PATTERN_PRESENT")
+    partial = sum(1 for row in rows if row["pattern_status"] == "OWNER_ISSUED_VERSION_LEASE_PATTERN_PARTIAL")
+    missing = sum(1 for row in rows if row["pattern_status"] == "OWNER_ISSUED_VERSION_LEASE_PATTERN_MISSING")
+    return {
+        "schema_version": "v7.b18-owner-issued-version-lease-pattern.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "B18",
+        "purpose": "extend_owner_issued_version_lease_pattern_where_available_without_runtime_behavior_change",
+        "source_owners_reused": [
+            "admin_core.intelligence_snapshots.SNAPSHOT_FAMILIES",
+            "admin_core.autonomy_trust_acceleration.build_action_class_freshness_windows",
+            "admin_core.autonomy_trust_acceleration.build_freshness_actionability",
+            "admin_core.autonomy_trust_acceleration.build_stale_read_mutation_blocking",
+            "admin_core.operator_execution execution lease semantics",
+            "Runtime Model packet/lease/freshness gates",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_008_FRESHNESS.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#B18",
+        ],
+        "consumed_prior_capabilities": {
+            "freshness_actionability": freshness.get("schema_version", "UNKNOWN"),
+            "action_class_freshness_windows": windows.get("schema_version", "UNKNOWN"),
+            "stale_read_mutation_blocking": stale.get("schema_version", "UNKNOWN"),
+        },
+        "rows": rows,
+        "summary": {
+            "coverage_rows": len(rows),
+            "pattern_present": present,
+            "pattern_partial": partial,
+            "pattern_missing": missing,
+            "runtime_actions_created": 0,
+            "authority_changes": 0,
+            "synthetic_evidence_created": 0,
+            "users_moved": 0,
+        },
+        "existing_execution_lease_contract": {
+            "owner": "admin_core.operator_execution",
+            "status": "REUSED_NO_BEHAVIOR_CHANGE",
+            "packet_identity_preserved": True,
+            "freshness_only_change_preserves_lease": True,
+            "material_state_change_invalidates_lease": True,
+            "lease_is_not_truth_source": True,
+        },
+        "stale_read_dependency": {
+            "b17_status": ((stale.get("omp_output") or {}).get("b17_status") or "UNKNOWN"),
+            "mutation_blockers_consumed": stale_blockers,
+        },
+        "canonical_rules": [
+            "owner_issued_version_or_lease_is_stronger_than_local_timestamp_where_available",
+            "b18_extends_read_model_coverage_only",
+            "missing_owner_issued_pattern_blocks_mutation_but_not_read_only_diagnosis",
+            "execution_lease_owner_remains_admin_core_operator_execution",
+            "snapshot_family_owner_remains_admin_core_intelligence_snapshots",
+            "b18_does_not_change_ttl_windows_thresholds_formulas_or_lease_behavior",
+            "b18_does_not_grant_runtime_apply_or_authority",
+        ],
+        "omp_output": {
+            "b18_status": "DONE_READ_ONLY_OWNER_ISSUED_VERSION_LEASE_PATTERN",
+            "produced_evidence": "owner_issued_version_lease_pattern",
+            "unlocked_capability": "B19_OR_NEXT_OMP_ITEM_AFTER_CANONICAL_UPDATE",
+            "blocked_later_steps": [
+                "runtime_apply",
+                "automation",
+                "authority_expansion",
+                "new_lease_owner",
+                "user_movement",
+            ],
+        },
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "threshold_values_changed": False,
+        "formula_changed": False,
+        "lease_behavior_changed": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+        "new_runtime_created": False,
+    }
+
+
+def build_hysteresis_state_change_cost_mapping(
+    *,
+    anti_flapping: dict[str, Any] | None = None,
+    recovery_admission: dict[str, Any] | None = None,
+    service_objective_policy_threshold_binding: dict[str, Any] | None = None,
+    owner_issued_version_lease_pattern: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Centralize existing hysteresis and state-change-cost vocabulary for B19."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    anti = anti_flapping if isinstance(anti_flapping, dict) else {}
+    recovery = recovery_admission if isinstance(recovery_admission, dict) else {}
+    objectives = service_objective_policy_threshold_binding if isinstance(service_objective_policy_threshold_binding, dict) else {}
+    version_lease = owner_issued_version_lease_pattern if isinstance(owner_issued_version_lease_pattern, dict) else {}
+    anti_policy = anti.get("policy") if isinstance(anti.get("policy"), dict) else ANTI_FLAP_POLICY
+    recovery_policy = recovery.get("policy") if isinstance(recovery.get("policy"), dict) else RECOVERY_ADMISSION_POLICY
+    catalog_rows = [
+        {
+            "control": "sticky_current_bias",
+            "canonical_category": "STATE_CHANGE_COST",
+            "existing_owner": "tools/v7-users-autoswitch score_parts.sticky / keep-current explanation",
+            "existing_signal": "sticky/current route kept; candidate must beat current by policy threshold",
+            "protects": ["unnecessary_movement", "low_value_rebalance", "operator_noise"],
+            "consumer": "movement protection and planner/autoswitch read-only recommendation",
+            "status": "EXISTS_UNDER_OTHER_NAME",
+            "runtime_mutation_allowed": False,
+        },
+        {
+            "control": "minimum_score_improvement",
+            "canonical_category": "STATE_CHANGE_COST",
+            "existing_owner": "tools/v7-users-autoswitch._beats_current",
+            "existing_signal": "min_score_improvement_pct + min_score_delta",
+            "protects": ["small_delta_churn", "suboptimal_move_cost"],
+            "consumer": "movement protection and decision explainability",
+            "status": "EXISTS_UNDER_OTHER_NAME",
+            "runtime_mutation_allowed": False,
+        },
+        {
+            "control": "cooldown_hold_down",
+            "canonical_category": "HYSTERESIS",
+            "existing_owner": "build_anti_flapping + tools/v7-users-autoswitch._cooldown_ok",
+            "existing_signal": f"cooldown_seconds={int(anti_policy.get('cooldown_seconds', 0) or 0)}",
+            "protects": ["rapid_repeat_movement", "retry_storm", "operator_loop"],
+            "consumer": "runtime eligibility anti_flap gate",
+            "status": "EXISTS_COMPLETE",
+            "runtime_mutation_allowed": False,
+        },
+        {
+            "control": "minimum_observation_window",
+            "canonical_category": "HYSTERESIS",
+            "existing_owner": "POLICY_009_ANTI_FLAP + recovery admission / observation windows",
+            "existing_signal": f"minimum_observation_window_seconds={int(anti_policy.get('minimum_observation_window_seconds', 0) or 0)}",
+            "protects": ["premature_recovery", "noisy_signal_reaction"],
+            "consumer": "recovery admission and runtime eligibility",
+            "status": "EXISTS_COMPLETE",
+            "runtime_mutation_allowed": False,
+        },
+        {
+            "control": "rapid_oscillation_detection",
+            "canonical_category": "HYSTERESIS",
+            "existing_owner": "build_anti_flapping",
+            "existing_signal": f"rapid_oscillation_threshold={int(anti_policy.get('rapid_oscillation_threshold', 0) or 0)}",
+            "protects": ["source_target_ping_pong", "repeated_target_oscillation"],
+            "consumer": "runtime eligibility anti_flap gate",
+            "status": "EXISTS_COMPLETE",
+            "runtime_mutation_allowed": False,
+        },
+        {
+            "control": "user_freeze",
+            "canonical_category": "STATE_CHANGE_COST",
+            "existing_owner": "tools/v7-users-autoswitch safety_policy",
+            "existing_signal": "user_switches_1h_limit / user_switches_24h_limit / penalty_until",
+            "protects": ["per_user_churn", "incident_loop"],
+            "consumer": "movement protection and operator review",
+            "status": "EXISTS_UNDER_OTHER_NAME",
+            "runtime_mutation_allowed": False,
+        },
+        {
+            "control": "pair_reversal_window",
+            "canonical_category": "HYSTERESIS",
+            "existing_owner": "tools/v7-users-autoswitch._pair_reversal_blocked_for_user",
+            "existing_signal": "pair_reversal_stability_window",
+            "protects": ["back_and_forth_switching", "unstable_pair_loop"],
+            "consumer": "movement protection and runtime eligibility",
+            "status": "EXISTS_UNDER_OTHER_NAME",
+            "runtime_mutation_allowed": False,
+        },
+        {
+            "control": "target_block_and_quarantine",
+            "canonical_category": "STATE_CHANGE_COST",
+            "existing_owner": "tools/v7-users-autoswitch safety_state",
+            "existing_signal": "target_blocked_for_user / egress_safety_quarantine / egress_failed_verifications_limit",
+            "protects": ["known_bad_target_reuse", "failed_verification_reentry"],
+            "consumer": "movement protection and recovery admission",
+            "status": "EXISTS_UNDER_OTHER_NAME",
+            "runtime_mutation_allowed": False,
+        },
+        {
+            "control": "recovery_success_threshold",
+            "canonical_category": "HYSTERESIS",
+            "existing_owner": "build_recovery_admission",
+            "existing_signal": f"min_successful_checks={int(recovery_policy.get('min_successful_checks', 0) or 0)}; watch_successful_checks={int(recovery_policy.get('watch_successful_checks', 0) or 0)}",
+            "protects": ["premature_recovery_admission", "flapping_recovered_channel"],
+            "consumer": "recovery admission and movement protection",
+            "status": "EXISTS_COMPLETE",
+            "runtime_mutation_allowed": False,
+        },
+        {
+            "control": "freshness_identity_cost",
+            "canonical_category": "STATE_CHANGE_COST",
+            "existing_owner": "B18 owner-issued version/lease pattern + freshness actionability",
+            "existing_signal": "missing owner-issued identity/lifetime blocks mutation but not diagnosis",
+            "protects": ["stale_decision_apply", "identity_mismatch_apply"],
+            "consumer": "runtime eligibility and movement protection",
+            "status": "EXISTS_COMPLETE" if version_lease.get("schema_version") == "v7.b18-owner-issued-version-lease-pattern.v1" else "EXISTS_PARTIAL",
+            "runtime_mutation_allowed": False,
+        },
+    ]
+    active_rows = [row for row in (anti.get("rows") or []) if isinstance(row, dict)]
+    blocked_users = int((anti.get("summary") or {}).get("blocked_users") or 0)
+    recovery_rows = [row for row in (recovery.get("rows") or []) if isinstance(row, dict)]
+    objective_rows = [row for row in (objectives.get("rows") or []) if isinstance(row, dict)]
+    return {
+        "schema_version": "v7.b19-hysteresis-state-change-cost-mapping.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "B19",
+        "purpose": "centralize_existing_hysteresis_and_state_change_cost_vocabulary_without_changing_thresholds_or_formulas",
+        "source_owners_reused": [
+            "admin_core.autonomy_trust_acceleration.build_anti_flapping",
+            "admin_core.autonomy_trust_acceleration.build_recovery_admission",
+            "admin_core.autonomy_trust_acceleration.build_service_objective_policy_threshold_binding",
+            "admin_core.autonomy_trust_acceleration.build_owner_issued_version_lease_pattern",
+            "tools/v7-users-autoswitch sticky/cooldown/freeze/pair-reversal/target-block owners",
+            "tools/v7-service-matrix-refresh-all service signal threshold owners",
+            "Runtime Model movement protection and anti-flap gates",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_009_ANTI_FLAP.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#B19",
+        ],
+        "consumed_prior_capabilities": {
+            "anti_flapping": anti.get("schema_version", "UNKNOWN"),
+            "recovery_admission": recovery.get("schema_version", "UNKNOWN"),
+            "service_objective_policy_threshold_binding": objectives.get("schema_version", "UNKNOWN"),
+            "owner_issued_version_lease_pattern": version_lease.get("schema_version", "UNKNOWN"),
+        },
+        "catalog_rows": catalog_rows,
+        "active_evidence": {
+            "anti_flap_rows": active_rows[:25],
+            "blocked_users": blocked_users,
+            "recovery_rows": recovery_rows[:25],
+            "objective_binding_rows": len(objective_rows),
+        },
+        "summary": {
+            "catalog_controls": len(catalog_rows),
+            "hysteresis_controls": sum(1 for row in catalog_rows if row["canonical_category"] == "HYSTERESIS"),
+            "state_change_cost_controls": sum(1 for row in catalog_rows if row["canonical_category"] == "STATE_CHANGE_COST"),
+            "existing_complete": sum(1 for row in catalog_rows if row["status"] == "EXISTS_COMPLETE"),
+            "existing_under_other_name": sum(1 for row in catalog_rows if row["status"] == "EXISTS_UNDER_OTHER_NAME"),
+            "active_anti_flap_blocked_users": blocked_users,
+            "threshold_changes": 0,
+            "formula_changes": 0,
+            "runtime_actions_created": 0,
+            "authority_changes": 0,
+            "synthetic_evidence_created": 0,
+            "users_moved": 0,
+        },
+        "canonical_rules": [
+            "b19_centralizes_vocabulary_only",
+            "state_change_cost_already_exists_as_sticky_current_bias_minimum_improvement_cooldown_freeze_pair_reversal_target_block_quarantine_and_recovery_windows",
+            "b19_does_not_change_threshold_values_or_formulas",
+            "b19_does_not_create_new_policy_owner_or_planner",
+            "anti_flap_remains_a_runtime_eligibility_stop_gate",
+            "hard_failure_override_is_not_implemented_by_b19_and_remains_b20",
+            "b19_does_not_grant_runtime_apply_or_authority",
+        ],
+        "omp_output": {
+            "b19_status": "DONE_READ_ONLY_HYSTERESIS_STATE_CHANGE_COST_MAPPING",
+            "produced_evidence": "hysteresis_state_change_cost_mapping",
+            "unlocked_capability": "B20_OR_NEXT_OMP_ITEM_AFTER_CANONICAL_UPDATE",
+            "blocked_later_steps": [
+                "runtime_apply",
+                "automation",
+                "authority_expansion",
+                "threshold_formula_mutation",
+                "hard_failure_override",
+                "user_movement",
+            ],
+        },
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "threshold_values_changed": False,
+        "formula_changed": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+        "new_runtime_created": False,
+    }
+
+
+def build_hard_failure_override_anti_flap_arbitration(
+    *,
+    hard_failure_classification: dict[str, Any] | None = None,
+    hard_failure_policy_windows: dict[str, Any] | None = None,
+    anti_flapping: dict[str, Any] | None = None,
+    hysteresis_state_change_cost_mapping: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Encode B20 hard-failure vs anti-flap arbitration as read-only evidence."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    classification = hard_failure_classification if isinstance(hard_failure_classification, dict) else {}
+    windows = hard_failure_policy_windows if isinstance(hard_failure_policy_windows, dict) else {}
+    anti = anti_flapping if isinstance(anti_flapping, dict) else {}
+    hysteresis = hysteresis_state_change_cost_mapping if isinstance(hysteresis_state_change_cost_mapping, dict) else {}
+    anti_rows = [row for row in (anti.get("rows") or []) if isinstance(row, dict)]
+    anti_blocked_users = {
+        _text(row.get("user")) for row in anti_rows
+        if row.get("blocked") and _text(row.get("user"))
+    }
+    global_anti_flap_blocked = bool(int((anti.get("summary") or {}).get("blocked_users") or 0))
+    window_rows = [row for row in (windows.get("rows") or []) if isinstance(row, dict)]
+    if not window_rows:
+        for row in (classification.get("rows") or []):
+            if not isinstance(row, dict):
+                continue
+            window_rows.append({
+                "object": row.get("object"),
+                "risk_class": _hard_failure_policy_risk_class(
+                    _text(row.get("classification")),
+                    int(row.get("explicit_liveness_evidence_count") or 0),
+                    len(row.get("independent_sources") or []),
+                ),
+                "hard_failure_classification": row.get("classification"),
+                "selected_action_class": "channel hard-fail failover",
+                "policy_window_ready": False,
+                "blockers": ["hard_failure_policy_window_missing"],
+            })
+    rows: list[dict[str, Any]] = []
+    for row in window_rows:
+        object_name = _text(row.get("object") or "unknown")
+        risk_class = _text(row.get("risk_class") or "NO_HARD_FAILURE_POLICY_WINDOW")
+        blockers = sorted({_text(item) for item in (row.get("blockers") or []) if _text(item)})
+        anti_conflict = global_anti_flap_blocked or "anti_flap_blocks_recent_oscillation" in blockers
+        confirmed = risk_class in {"CRITICAL_CONFIRMED_HARD_FAILURE", "CONFIRMED_HARD_FAILURE"}
+        suspected = risk_class == "SUSPECTED_HARD_FAILURE"
+        if confirmed and anti_conflict:
+            arbitration = "HARD_FAILURE_OVERRIDE_ELIGIBLE_FOR_AUTHORITY_REVIEW"
+            anti_flap_result = "OVERRIDE_CANDIDATE_READ_ONLY"
+            reason = "confirmed_hard_failure_may_override_anti_flap_hold_only_after_existing_authority_and_runtime_eligibility_review"
+            remaining_blockers = [item for item in blockers if item != "anti_flap_blocks_recent_oscillation"]
+        elif confirmed:
+            arbitration = "NO_ANTI_FLAP_CONFLICT_FAST_FAILURE_REVIEW"
+            anti_flap_result = "NO_OVERRIDE_NEEDED"
+            reason = "confirmed_hard_failure_has_no_current_anti_flap_conflict"
+            remaining_blockers = blockers
+        elif suspected:
+            arbitration = "ANTI_FLAP_HOLDS_CONFIRMATION_REQUIRED"
+            anti_flap_result = "HOLD"
+            reason = "suspected_hard_failure_cannot_override_anti_flap_without_confirmed_liveness_evidence"
+            remaining_blockers = sorted(set(blockers + ["hard_failure_confirmation_required"]))
+        else:
+            arbitration = "ANTI_FLAP_HOLDS_NO_HARD_FAILURE"
+            anti_flap_result = "HOLD"
+            reason = "no_confirmed_hard_failure_policy_window_exists"
+            remaining_blockers = sorted(set(blockers + ["hard_failure_not_confirmed"]))
+        rows.append({
+            "object": object_name,
+            "risk_class": risk_class,
+            "hard_failure_classification": _text(row.get("hard_failure_classification") or risk_class),
+            "selected_action_class": _text(row.get("selected_action_class") or ""),
+            "anti_flap_conflict": anti_conflict,
+            "anti_flap_blocked_users": sorted(anti_blocked_users),
+            "arbitration_result": arbitration,
+            "anti_flap_result": anti_flap_result,
+            "reason": reason,
+            "remaining_blockers": remaining_blockers,
+            "hard_failure_override_executed": False,
+            "runtime_apply_allowed": False,
+            "authority_expansion_allowed": False,
+            "user_movement_allowed": False,
+        })
+    return {
+        "schema_version": "v7.b20-hard-failure-override-anti-flap-arbitration.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "B20",
+        "purpose": "encode_hard_failure_override_rule_for_anti_flap_arbitration_without_runtime_behavior_change",
+        "source_owners_reused": [
+            "admin_core.autonomy_trust_acceleration.build_hard_failure_classification",
+            "admin_core.autonomy_trust_acceleration.build_hard_failure_policy_windows",
+            "admin_core.autonomy_trust_acceleration.build_anti_flapping",
+            "admin_core.autonomy_trust_acceleration.build_hysteresis_state_change_cost_mapping",
+            "tools/v7-users-autoswitch anti-flap and planner safety gates",
+            "Runtime Model runtime eligibility anti_flap gate",
+            "OMP",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_001_HARD_FAILURE.md",
+            "docs/policies/POLICY_009_ANTI_FLAP.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#B20",
+        ],
+        "consumed_prior_capabilities": {
+            "hard_failure_classification": classification.get("schema_version", "UNKNOWN"),
+            "hard_failure_policy_windows": windows.get("schema_version", "UNKNOWN"),
+            "anti_flapping": anti.get("schema_version", "UNKNOWN"),
+            "hysteresis_state_change_cost_mapping": hysteresis.get("schema_version", "UNKNOWN"),
+        },
+        "rows": rows,
+        "summary": {
+            "objects_seen": len(rows),
+            "override_candidates": sum(1 for row in rows if row["arbitration_result"] == "HARD_FAILURE_OVERRIDE_ELIGIBLE_FOR_AUTHORITY_REVIEW"),
+            "anti_flap_holds": sum(1 for row in rows if row["anti_flap_result"] == "HOLD"),
+            "no_override_needed": sum(1 for row in rows if row["anti_flap_result"] == "NO_OVERRIDE_NEEDED"),
+            "anti_flap_blocked_users": len(anti_blocked_users),
+            "hard_failure_override_executed": 0,
+            "threshold_changes": 0,
+            "formula_changes": 0,
+            "runtime_actions_created": 0,
+            "authority_changes": 0,
+            "synthetic_evidence_created": 0,
+            "users_moved": 0,
+        },
+        "canonical_rules": [
+            "confirmed_hard_failure_may_override_anti_flap_only_as_read_only_authority_review_candidate",
+            "suspected_hard_failure_never_overrides_anti_flap",
+            "no_hard_failure_never_overrides_anti_flap",
+            "anti_flap_override_candidate_does_not_grant_runtime_apply",
+            "anti_flap_override_candidate_does_not_expand_authority",
+            "b20_does_not_change_threshold_values_timers_or_formulas",
+            "b20_does_not_create_new_policy_owner_planner_or_runtime",
+        ],
+        "omp_output": {
+            "b20_status": "DONE_READ_ONLY_HARD_FAILURE_OVERRIDE_ANTI_FLAP_ARBITRATION",
+            "produced_evidence": "hard_failure_override_anti_flap_arbitration",
+            "unlocked_capability": "B21_OR_NEXT_OMP_ITEM_AFTER_CANONICAL_UPDATE",
+            "blocked_later_steps": [
+                "runtime_apply",
+                "automation",
+                "authority_expansion",
+                "threshold_formula_mutation",
+                "hard_failure_override_execution",
+                "user_movement",
+            ],
+        },
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "threshold_values_changed": False,
+        "formula_changed": False,
+        "hard_failure_override_executed": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+        "new_runtime_created": False,
+    }
+
+
+def _truthy(value: Any) -> bool:
+    return _text(value).strip().lower() in {"1", "true", "yes", "y", "on", "manual", "pinned"}
+
+
+def _routing_mode_text(row: dict[str, Any]) -> str:
+    for key in ("routing_control_mode", "routing_mode", "route_mode", "user_routing_mode"):
+        value = _text(row.get(key)).upper()
+        if value in {"AUTO", "PINNED", "MANUAL"}:
+            return value
+    return ""
+
+
+def build_per_user_routing_control_mode(
+    *,
+    decision_surface: dict[str, Any] | None = None,
+    org_cohort_identity_policy_integration: dict[str, Any] | None = None,
+    hard_failure_override_anti_flap_arbitration: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Materialize explicit per-user routing mode as read-only B21 evidence."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    surface = decision_surface if isinstance(decision_surface, dict) else {}
+    policy = org_cohort_identity_policy_integration if isinstance(org_cohort_identity_policy_integration, dict) else {}
+    arbitration = hard_failure_override_anti_flap_arbitration if isinstance(hard_failure_override_anti_flap_arbitration, dict) else {}
+    policy_by_user = {
+        _text(row.get("user") or row.get("ip")): row
+        for row in (policy.get("rows") or [])
+        if isinstance(row, dict) and _text(row.get("user") or row.get("ip"))
+    }
+    rows: list[dict[str, Any]] = []
+    for user_row in (surface.get("users") or []):
+        if not isinstance(user_row, dict):
+            continue
+        raw = user_row.get("raw") if isinstance(user_row.get("raw"), dict) else {}
+        user = _text(user_row.get("user") or user_row.get("ip") or raw.get("ip"))
+        if not user:
+            continue
+        current = _text(user_row.get("current_channel") or user_row.get("current") or raw.get("current"))
+        recommended = _text(user_row.get("recommended_channel") or user_row.get("best_channel") or current)
+        explicit = _routing_mode_text(user_row) or _routing_mode_text(raw)
+        pinned_channel = _text(
+            user_row.get("pinned_channel")
+            or user_row.get("pinned_egress")
+            or user_row.get("fixed_channel")
+            or raw.get("pinned_channel")
+            or raw.get("pinned_egress")
+            or raw.get("fixed_channel")
+        )
+        manual_flag = any(_truthy(value) for value in (
+            user_row.get("manual_only"),
+            user_row.get("manual"),
+            raw.get("manual_only"),
+            raw.get("manual"),
+        ))
+        pinned_flag = bool(pinned_channel) or any(_truthy(value) for value in (
+            user_row.get("pinned"),
+            user_row.get("pin"),
+            raw.get("pinned"),
+            raw.get("pin"),
+        ))
+        blockers = sorted({
+            _text(item)
+            for item in (user_row.get("blockers") or [])
+            if _text(item)
+        })
+        policy_row = policy_by_user.get(user, {})
+        policy_blockers = sorted({
+            _text(item)
+            for item in (policy_row.get("blockers") or [])
+            if _text(item)
+        })
+        if explicit:
+            mode = explicit
+            source_status = "EXISTS_COMPLETE"
+            source = "explicit_user_routing_mode_field"
+        elif manual_flag or "manual_only" in blockers:
+            mode = "MANUAL"
+            source_status = "EXISTS_UNDER_OTHER_NAME"
+            source = "manual_only_flag_or_planner_blocker"
+        elif pinned_flag:
+            mode = "PINNED"
+            source_status = "EXISTS_UNDER_OTHER_NAME"
+            source = "pinned_or_fixed_channel_field"
+        else:
+            mode = "AUTO"
+            source_status = "MISSING"
+            source = "default_planner_auto_semantics_without_explicit_mode_field"
+        mode_blocks_planner_move = mode in {"MANUAL", "PINNED"}
+        if mode == "PINNED" and pinned_channel and recommended and recommended != pinned_channel:
+            policy_blockers.append("recommended_channel_differs_from_pinned_channel")
+        rows.append({
+            "user": user,
+            "current_channel": current,
+            "recommended_channel": recommended,
+            "routing_control_mode": mode,
+            "mode_source_status": source_status,
+            "mode_source": source,
+            "pinned_channel": pinned_channel,
+            "group": _text(user_row.get("group") or raw.get("group") or raw.get("org") or raw.get("organization") or policy_row.get("group")),
+            "planner_recommendation_allowed": mode == "AUTO",
+            "planner_move_blocked_by_mode": mode_blocks_planner_move,
+            "runtime_apply_allowed": False,
+            "authority_expansion_allowed": False,
+            "user_movement_allowed": False,
+            "blockers": sorted(set(blockers + policy_blockers)),
+            "policy_context": {
+                "org_cohort_policy_row_present": bool(policy_row),
+                "policy_blockers": sorted(set(policy_blockers)),
+            },
+        })
+    missing_explicit = sum(1 for row in rows if row["mode_source_status"] == "MISSING")
+    return {
+        "schema_version": "v7.b21-per-user-routing-control-mode.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "B21",
+        "purpose": "materialize_explicit_per_user_auto_pinned_manual_routing_control_mode_without_runtime_behavior_change",
+        "source_owners_reused": [
+            "admin_core.operator_decision_surface user rows",
+            "admin_core.registry_readers.parse_registry_lines",
+            "tools/v7-users-autoswitch user registry loader",
+            "tools/v7-users-autoswitch org policy gates",
+            "tools/v7-users-autoswitch manual_only/reserve_only planner gates",
+            "admin_core.autonomy_trust_acceleration.build_org_cohort_identity_policy_integration",
+            "admin_core.autonomy_trust_acceleration.build_hard_failure_override_anti_flap_arbitration",
+            "OMP",
+        ],
+        "policy_sources": [
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#B21",
+            "docs/reference/WORLD_EQUIVALENCE_MODEL.md",
+            "docs/reference/MOVEMENT_PROTECTION_MODEL.md",
+            "docs/policies/POLICY_004_AUTHORITY.md",
+            "docs/policies/POLICY_006_BLAST_RADIUS.md",
+        ],
+        "consumed_prior_capabilities": {
+            "org_cohort_identity_policy_integration": policy.get("schema_version", "UNKNOWN"),
+            "hard_failure_override_anti_flap_arbitration": arbitration.get("schema_version", "UNKNOWN"),
+        },
+        "rows": rows,
+        "summary": {
+            "users_seen": len(rows),
+            "auto": sum(1 for row in rows if row["routing_control_mode"] == "AUTO"),
+            "pinned": sum(1 for row in rows if row["routing_control_mode"] == "PINNED"),
+            "manual": sum(1 for row in rows if row["routing_control_mode"] == "MANUAL"),
+            "explicit_complete": sum(1 for row in rows if row["mode_source_status"] == "EXISTS_COMPLETE"),
+            "under_other_name": sum(1 for row in rows if row["mode_source_status"] == "EXISTS_UNDER_OTHER_NAME"),
+            "missing_explicit_mode": missing_explicit,
+            "runtime_actions_created": 0,
+            "authority_changes": 0,
+            "synthetic_evidence_created": 0,
+            "users_moved": 0,
+        },
+        "canonical_rules": [
+            "auto_means_planner_may_recommend_but_cannot_apply_without_authority",
+            "pinned_means_user_assignment_is_fixed_until_explicit_owner_change",
+            "manual_means_planner_must_not_move_user_without_explicit_operator_action",
+            "missing_explicit_mode_is_reported_as_auto_semantics_not_written_to_registry",
+            "b21_does_not_create_new_user_registry_owner_or_planner",
+            "b21_does_not_grant_runtime_apply_authority_or_user_movement",
+        ],
+        "omp_output": {
+            "b21_status": "DONE_READ_ONLY_PER_USER_ROUTING_CONTROL_MODE",
+            "produced_evidence": "per_user_routing_control_mode",
+            "unlocked_capability": "C1_OR_NEXT_OMP_ITEM_AFTER_CANONICAL_UPDATE",
+            "blocked_later_steps": [
+                "runtime_apply",
+                "automation",
+                "authority_expansion",
+                "planner_replacement",
+                "registry_write",
+                "user_movement",
+            ],
+        },
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "registry_written": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+        "new_runtime_created": False,
+    }
+
+
 def _source_by_name(source_confidence_inventory: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {
         str(row.get("source")): row
@@ -5675,11 +6541,17 @@ def _owner_issued_freshness_fields(freshness_actionability: dict[str, Any], doma
         if not isinstance(status, dict):
             continue
         fields[family] = {
+            "schema": _text(status.get("schema") or status.get("schema_version")),
             "exists": bool(status.get("exists", False)),
+            "generated_at": _text(status.get("generated_at")),
+            "expires_at": _text(status.get("expires_at")),
+            "ttl_seconds": status.get("ttl_seconds"),
             "freshness_state": _text(status.get("freshness_state") or status.get("status") or "UNKNOWN"),
             "runtime_behavior": _text(status.get("runtime_behavior") or "STOP"),
             "stop_required": bool(status.get("stop_required", True)),
             "confidence": as_float(status.get("confidence"), 0.0),
+            "generator": _text(status.get("generator")),
+            "item_count": status.get("item_count"),
             "path": _text(status.get("path")),
             "source_hashes": status.get("source_hashes") if isinstance(status.get("source_hashes"), dict) else {},
         }
@@ -5907,6 +6779,1104 @@ def build_hard_failure_policy_windows(
     }
 
 
+def _soft_degradation_object_key(row: dict[str, Any], index: int = 0) -> str:
+    return _text(
+        row.get("channel")
+        or row.get("egress")
+        or row.get("service")
+        or row.get("target")
+        or row.get("id")
+        or row.get("object")
+        or f"unknown-{index}"
+    )
+
+
+def _soft_degradation_trend(row: dict[str, Any]) -> str:
+    score = row.get("score") if isinstance(row.get("score"), dict) else {}
+    for value in (
+        row.get("trend"),
+        row.get("quality_trend"),
+        row.get("service_trend"),
+        score.get("trend"),
+    ):
+        text = _text(value).upper()
+        if text:
+            return text
+    return "UNKNOWN"
+
+
+def _soft_degradation_score(row: dict[str, Any]) -> float:
+    score = row.get("score") if isinstance(row.get("score"), dict) else {}
+    for value in (
+        score.get("current"),
+        row.get("score"),
+        row.get("quality_score"),
+        row.get("service_score"),
+        row.get("suitability_score"),
+        row.get("aggregate_score"),
+    ):
+        if isinstance(value, dict):
+            continue
+        parsed = as_float(value, -1.0)
+        if parsed >= 0.0:
+            return round(parsed, 3)
+    return 0.0
+
+
+def _soft_degradation_result(trend: str, states: set[str], reasons: list[str], hard_failure: str) -> tuple[str, str, str, str]:
+    reason_text = " ".join(reasons).lower()
+    if hard_failure in {"CRITICAL_CONFIRMED_HARD_FAILURE", "CONFIRMED_HARD_FAILURE"}:
+        return (
+            "HARD_FAILURE_OVERRIDES_SOFT_DEGRADATION",
+            "FAILOVER",
+            "hard_failure_policy_window_already_confirmed",
+            "hard_failure_result_must_not_be_weakened_by_soft_degradation",
+        )
+    if "QUARANTINED" in states:
+        return (
+            "SOFT_DEGRADATION",
+            "QUARANTINE",
+            "existing_quarantined_state",
+            "quarantine_state_is_existing_policy_vocabulary",
+        )
+    if "DEGRADED" in states or trend == "DEGRADING" or "degraded" in reason_text or "degradation" in reason_text:
+        return (
+            "SOFT_DEGRADATION",
+            "ASK_OPERATOR",
+            "existing_degradation_trend_or_state",
+            "soft_degradation_is_read_only_until_authority_and_evidence_certification",
+        )
+    if trend in {"STABLE", "IMPROVING"} or states & {"TRUSTED", "WATCH", "RECOVERING", "NEW"}:
+        return (
+            "NO_DEGRADATION",
+            "KEEP",
+            "existing_signal_not_showing_degradation",
+            "no_soft_degradation_policy_window_is_open",
+        )
+    return (
+        "NOISY_OR_ATTRIBUTION_UNKNOWN",
+        "PROBE_ONLY",
+        "insufficient_or_unknown_attribution",
+        "collect_more_existing_owner_evidence_before_policy_action",
+    )
+
+
+def build_soft_degradation_threshold_vocabulary_alignment(
+    *,
+    decision_surface: dict[str, Any] | None = None,
+    service_scores_snapshot: dict[str, Any] | None = None,
+    channel_service_scores_snapshot: dict[str, Any] | None = None,
+    service_user_sla_fit: dict[str, Any] | None = None,
+    hard_failure_policy_windows: dict[str, Any] | None = None,
+    freshness_actionability: dict[str, Any] | None = None,
+    anti_flapping: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Align existing soft-degradation trend thresholds to canonical policy vocabulary for B3."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    surface = decision_surface or {}
+    freshness = freshness_actionability or build_freshness_actionability({})
+    fit = service_user_sla_fit or {}
+    hard_windows = hard_failure_policy_windows or {}
+    anti_flap = anti_flapping or {"policy": ANTI_FLAP_POLICY, "summary": {"blocked_users": 0}}
+    objects: dict[str, dict[str, Any]] = {}
+
+    def ensure_object(key: str) -> dict[str, Any]:
+        return objects.setdefault(key, {
+            "object": key,
+            "owners": set(),
+            "sources": set(),
+            "trends": set(),
+            "states": set(),
+            "reasons": [],
+            "scores": [],
+            "hard_failure_risk_class": "NO_HARD_FAILURE_POLICY_WINDOW",
+        })
+
+    for source_name, snapshot in (
+        ("service-scores", service_scores_snapshot),
+        ("channel-service-scores", channel_service_scores_snapshot),
+    ):
+        for index, item in enumerate(_items(snapshot)):
+            key = _soft_degradation_object_key(item, index)
+            row = ensure_object(key)
+            row["owners"].add("tools/v7-service-matrix-refresh-all" if source_name == "service-scores" else "tools/v7-egress-quality-compact")
+            row["sources"].add(source_name)
+            row["trends"].add(_soft_degradation_trend(item))
+            status = _text(item.get("status") or item.get("state") or item.get("lifecycle") or item.get("diagnose_severity")).upper()
+            if status:
+                row["states"].add(status)
+            score = _soft_degradation_score(item)
+            if score:
+                row["scores"].append(score)
+
+    for user_row in [row for row in (surface.get("users") or []) if isinstance(row, dict)]:
+        for candidate in _candidate_rows_for_user(user_row):
+            key = _candidate_channel(candidate)
+            if not key:
+                continue
+            row = ensure_object(key)
+            row["owners"].add("tools/v7-users-autoswitch")
+            row["sources"].add("planner_autoswitch_candidate")
+            state = _text(
+                candidate.get("ctr_state")
+                or candidate.get("state")
+                or candidate.get("lifecycle")
+                or candidate.get("service_state")
+            ).upper()
+            if state:
+                row["states"].add(state)
+            row["trends"].add(_soft_degradation_trend(candidate))
+            row["reasons"].extend(_candidate_reasons(candidate))
+            score = _soft_degradation_score(candidate)
+            if score:
+                row["scores"].append(score)
+
+    for fit_row in [row for row in (fit.get("rows") or []) if isinstance(row, dict)]:
+        key = _text(fit_row.get("best_channel") or fit_row.get("current_assignment"))
+        if not key:
+            continue
+        row = ensure_object(key)
+        row["owners"].add("admin_core.autonomy_trust_acceleration.build_service_user_sla_fit")
+        row["sources"].add("service_user_sla_fit")
+        verdict = _text(fit_row.get("fit_verdict")).upper()
+        if verdict:
+            row["states"].add(verdict)
+        row["reasons"].append(_text(fit_row.get("reason")))
+        score = as_float(fit_row.get("fit_score"), 0.0)
+        if score:
+            row["scores"].append(round(score, 3))
+
+    for hard_row in [row for row in (hard_windows.get("rows") or []) if isinstance(row, dict)]:
+        key = _text(hard_row.get("object"))
+        if not key:
+            continue
+        row = ensure_object(key)
+        row["owners"].add("admin_core.autonomy_trust_acceleration.build_hard_failure_policy_windows")
+        row["sources"].add("hard_failure_policy_windows")
+        row["hard_failure_risk_class"] = _text(hard_row.get("risk_class") or "NO_HARD_FAILURE_POLICY_WINDOW")
+
+    quality_freshness = ((freshness.get("domains") or {}).get("quality") or {}).get("classification", "UNKNOWN")
+    service_freshness = ((freshness.get("domains") or {}).get("service") or {}).get("classification", "UNKNOWN")
+    anti_flap_blocked = int((anti_flap.get("summary") or {}).get("blocked_users") or 0)
+    rows: list[dict[str, Any]] = []
+    for key in sorted(objects):
+        item = objects[key]
+        trends = {trend for trend in item["trends"] if trend and trend != "UNKNOWN"}
+        trend = sorted(trends)[0] if trends else "UNKNOWN"
+        result, action, reason, note = _soft_degradation_result(
+            trend,
+            {state for state in item["states"] if state},
+            [reason for reason in item["reasons"] if reason],
+            item["hard_failure_risk_class"],
+        )
+        blockers = []
+        if quality_freshness != "ACTIONABLE_NOW":
+            blockers.append("quality_freshness_not_actionable")
+        if service_freshness != "ACTIONABLE_NOW":
+            blockers.append("service_freshness_not_actionable")
+        if anti_flap_blocked:
+            blockers.append("anti_flap_blocks_recent_oscillation")
+        rows.append({
+            "object": key,
+            "canonical_policy": "POLICY_002_SOFT_DEGRADATION",
+            "canonical_policy_result": result,
+            "canonical_decision_action": action,
+            "trend": trend,
+            "observed_states": sorted({state for state in item["states"] if state}),
+            "average_signal_score": round(sum(item["scores"]) / len(item["scores"]), 3) if item["scores"] else 0.0,
+            "hard_failure_risk_class": item["hard_failure_risk_class"],
+            "quality_freshness": quality_freshness,
+            "service_freshness": service_freshness,
+            "owner_sources": sorted(item["owners"]),
+            "evidence_sources": sorted(item["sources"]),
+            "threshold_vocabulary_reason": reason,
+            "policy_note": note,
+            "blockers": sorted(set(blockers)),
+            "threshold_values_changed": False,
+            "formula_changed": False,
+            "runtime_apply_allowed": False,
+            "authority_expanded": False,
+        })
+
+    vocabulary_rows = [
+        {
+            "existing_signal": "quality_compact_score_trend_degrading",
+            "owner": "tools/v7-egress-quality-compact",
+            "canonical_policy_result": "SOFT_DEGRADATION",
+            "canonical_decision_action": "ASK_OPERATOR",
+            "threshold_source": "existing quality compact score/trend calculation",
+        },
+        {
+            "existing_signal": "planner_ctr_state_degraded",
+            "owner": "tools/v7-users-autoswitch",
+            "canonical_policy_result": "SOFT_DEGRADATION",
+            "canonical_decision_action": "ASK_OPERATOR",
+            "threshold_source": "existing CTR state vocabulary",
+        },
+        {
+            "existing_signal": "planner_ctr_state_quarantined",
+            "owner": "tools/v7-users-autoswitch",
+            "canonical_policy_result": "SOFT_DEGRADATION",
+            "canonical_decision_action": "QUARANTINE",
+            "threshold_source": "existing CTR state vocabulary",
+        },
+        {
+            "existing_signal": "stable_or_improving_quality_trend",
+            "owner": "tools/v7-egress-quality-compact",
+            "canonical_policy_result": "NO_DEGRADATION",
+            "canonical_decision_action": "KEEP",
+            "threshold_source": "existing quality compact score/trend calculation",
+        },
+        {
+            "existing_signal": "unknown_or_unattributed_quality_signal",
+            "owner": "service matrix + quality compact + planner/autoswitch",
+            "canonical_policy_result": "NOISY_OR_ATTRIBUTION_UNKNOWN",
+            "canonical_decision_action": "PROBE_ONLY",
+            "threshold_source": "existing signal owners; no synthetic evidence",
+        },
+    ]
+    return {
+        "schema_version": "v7.b3.soft-degradation-threshold-vocabulary.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "B3",
+        "purpose": "align_existing_soft_degradation_trend_thresholds_to_canonical_policy_vocabulary_without_changing_thresholds",
+        "source_owners_reused": [
+            "tools/v7-users-autoswitch",
+            "tools/v7-egress-quality-compact",
+            "tools/v7-service-matrix-refresh-all",
+            "admin_core.autonomy_trust_acceleration.build_service_user_sla_fit",
+            "admin_core.autonomy_trust_acceleration.build_hard_failure_policy_windows",
+            "admin_core.autonomy_trust_acceleration.build_freshness_actionability",
+            "admin_core.autonomy_trust_acceleration.build_anti_flapping",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_002_SOFT_DEGRADATION.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#B3",
+            "docs/reference/V7_CANONICAL_REFERENCE.md canonical decision vocabulary",
+        ],
+        "vocabulary_rows": vocabulary_rows,
+        "rows": rows,
+        "summary": {
+            "objects_seen": len(rows),
+            "soft_degradation": sum(1 for row in rows if row["canonical_policy_result"] == "SOFT_DEGRADATION"),
+            "no_degradation": sum(1 for row in rows if row["canonical_policy_result"] == "NO_DEGRADATION"),
+            "noisy_or_unknown": sum(1 for row in rows if row["canonical_policy_result"] == "NOISY_OR_ATTRIBUTION_UNKNOWN"),
+            "hard_failure_overrides": sum(1 for row in rows if row["canonical_policy_result"] == "HARD_FAILURE_OVERRIDES_SOFT_DEGRADATION"),
+            "threshold_changes": 0,
+            "formula_changes": 0,
+        },
+        "canonical_rules": [
+            "soft_degradation_is_trend_or_threshold_vocabulary_not_single_event_truth",
+            "hard_failure_policy_windows_override_soft_degradation_when_confirmed",
+            "unknown_or_unattributed_quality_remains_probe_only",
+            "b3_does_not_change_threshold_values_or_formulas",
+            "b3_does_not_grant_runtime_apply_or_authority",
+        ],
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+    }
+
+
+DEGRADATION_SIGNAL_POLICY_FAMILIES = (
+    {
+        "signal_family": "latency",
+        "canonical_signal": "LATENCY_DEGRADATION",
+        "tokens": ("latency", "p95", "deadline", "slow", "delay"),
+        "policy_result": "SOFT_DEGRADATION",
+        "decision_action": "ASK_OPERATOR",
+        "owner": "tools/v7-egress-quality-compact + route/service views",
+    },
+    {
+        "signal_family": "error_rate",
+        "canonical_signal": "ERROR_RATE_DEGRADATION",
+        "tokens": ("error", "5xx", "failed", "fail_rate", "failure"),
+        "policy_result": "SOFT_DEGRADATION",
+        "decision_action": "ASK_OPERATOR",
+        "owner": "tools/v7-service-matrix-refresh-all",
+    },
+    {
+        "signal_family": "timeout",
+        "canonical_signal": "TIMEOUT_DEGRADATION",
+        "tokens": ("timeout", "timed out", "no response"),
+        "policy_result": "SOFT_DEGRADATION",
+        "decision_action": "ASK_OPERATOR",
+        "owner": "tools/v7-service-matrix-refresh-all",
+    },
+    {
+        "signal_family": "loss",
+        "canonical_signal": "LOSS_DEGRADATION",
+        "tokens": ("loss", "packet_loss", "dropped"),
+        "policy_result": "SOFT_DEGRADATION",
+        "decision_action": "ASK_OPERATOR",
+        "owner": "tools/v7-egress-quality-compact + route/service views",
+    },
+    {
+        "signal_family": "jitter",
+        "canonical_signal": "JITTER_DEGRADATION",
+        "tokens": ("jitter",),
+        "policy_result": "SOFT_DEGRADATION",
+        "decision_action": "ASK_OPERATOR",
+        "owner": "tools/v7-egress-quality-compact + route/service views",
+    },
+    {
+        "signal_family": "saturation",
+        "canonical_signal": "SATURATION_DEGRADATION",
+        "tokens": ("saturation", "overload", "capacity", "full", "headroom"),
+        "policy_result": "SOFT_DEGRADATION",
+        "decision_action": "ASK_OPERATOR",
+        "owner": "tools/v7-users-autoswitch + route/service views",
+    },
+    {
+        "signal_family": "service_response",
+        "canonical_signal": "SERVICE_RESPONSE_DEGRADATION",
+        "tokens": ("service_signal", "degraded_service", "degraded", "service_instagram", "service_telegram"),
+        "policy_result": "SOFT_DEGRADATION",
+        "decision_action": "ASK_OPERATOR",
+        "owner": "tools/v7-service-matrix-refresh-all + admin_core.operator_decision_surface",
+    },
+    {
+        "signal_family": "route_readiness",
+        "canonical_signal": "ROUTE_READINESS_DEGRADATION",
+        "tokens": ("route", "route_safe", "runtime_safe", "route_class"),
+        "policy_result": "NOISY_OR_ATTRIBUTION_UNKNOWN",
+        "decision_action": "PROBE_ONLY",
+        "owner": "admin_core.operator_decision_surface",
+    },
+)
+
+
+def _degradation_signal_text(value: Any) -> str:
+    if isinstance(value, dict):
+        return " ".join(f"{key} {_degradation_signal_text(item)}" for key, item in sorted(value.items()))
+    if isinstance(value, list):
+        return " ".join(_degradation_signal_text(item) for item in value)
+    return _text(value).lower()
+
+
+def _degradation_signal_items(payload: dict[str, Any] | None) -> list[dict[str, Any]]:
+    value = (payload or {}).get("items")
+    if isinstance(value, list):
+        return [row for row in value if isinstance(row, dict)]
+    if isinstance(value, dict):
+        return [row for row in value.values() if isinstance(row, dict)]
+    summary = (payload or {}).get("summary")
+    return [summary] if isinstance(summary, dict) else []
+
+
+def _degradation_signal_matches(text: str) -> list[dict[str, Any]]:
+    matches = []
+    for family in DEGRADATION_SIGNAL_POLICY_FAMILIES:
+        matched_tokens = [token for token in family["tokens"] if token in text]
+        if matched_tokens:
+            matches.append({**family, "matched_tokens": sorted(set(matched_tokens))})
+    return matches
+
+
+def build_degradation_signal_policy_mapping(
+    *,
+    decision_surface: dict[str, Any] | None = None,
+    service_scores_snapshot: dict[str, Any] | None = None,
+    channel_service_scores_snapshot: dict[str, Any] | None = None,
+    risk_summaries_snapshot: dict[str, Any] | None = None,
+    overview_summary_snapshot: dict[str, Any] | None = None,
+    soft_degradation_threshold_vocabulary: dict[str, Any] | None = None,
+    freshness_actionability: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Normalize existing degradation evidence signals to canonical POLICY_002 mapping for B4."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    surface = decision_surface or {}
+    freshness = freshness_actionability or build_freshness_actionability({})
+    sources: list[tuple[str, str, list[dict[str, Any]]]] = [
+        (
+            "service_scores",
+            "tools/v7-service-matrix-refresh-all",
+            _degradation_signal_items(service_scores_snapshot),
+        ),
+        (
+            "channel_service_scores",
+            "tools/v7-egress-quality-compact",
+            _degradation_signal_items(channel_service_scores_snapshot),
+        ),
+        (
+            "risk_summaries",
+            "admin_core.operator_decision_surface",
+            _degradation_signal_items(risk_summaries_snapshot),
+        ),
+        (
+            "overview_summary",
+            "admin_core.operator_decision_surface",
+            _degradation_signal_items(overview_summary_snapshot),
+        ),
+    ]
+    surface_rows = []
+    for user_row in [row for row in (surface.get("users") or []) if isinstance(row, dict)]:
+        for candidate in _candidate_rows_for_user(user_row):
+            surface_rows.append({
+                "user": user_row.get("user") or user_row.get("ip") or user_row.get("address"),
+                "channel": _candidate_channel(candidate),
+                "score": candidate.get("score", candidate.get("suitability_score")),
+                "reasons": _candidate_reasons(candidate),
+                "blocked": candidate.get("blocked") if isinstance(candidate.get("blocked"), list) else [],
+                "ctr_state": candidate.get("ctr_state"),
+                "state": candidate.get("state"),
+                "lifecycle": candidate.get("lifecycle"),
+                "route_safe": candidate.get("route_safe"),
+                "runtime_safe": candidate.get("runtime_safe"),
+                "capacity_state": candidate.get("capacity_state"),
+                "capacity_decision": candidate.get("capacity_decision"),
+            })
+    sources.append(("operator_decision_surface", "admin_core.operator_decision_surface", surface_rows))
+
+    evidence_rows: list[dict[str, Any]] = []
+    for source, owner, rows in sources:
+        for index, row in enumerate(rows):
+            text = _degradation_signal_text(row)
+            matches = _degradation_signal_matches(text)
+            if not matches:
+                continue
+            object_key = _soft_degradation_object_key(row, index)
+            for match in matches:
+                evidence_rows.append({
+                    "object": object_key,
+                    "source": source,
+                    "owner": owner,
+                    "signal_family": match["signal_family"],
+                    "canonical_signal": match["canonical_signal"],
+                    "matched_tokens": match["matched_tokens"],
+                    "canonical_policy": "POLICY_002_SOFT_DEGRADATION",
+                    "canonical_policy_result": match["policy_result"],
+                    "canonical_decision_action": match["decision_action"],
+                    "mapping_role": "existing_signal_to_policy_meaning",
+                    "requires_attribution_before_action": match["signal_family"] in {"route_readiness", "saturation"},
+                    "runtime_apply_allowed": False,
+                    "authority_expanded": False,
+                })
+
+    b3_rows = [
+        row for row in ((soft_degradation_threshold_vocabulary or {}).get("rows") or [])
+        if isinstance(row, dict)
+    ]
+    b3_by_object = {_text(row.get("object")): row for row in b3_rows if row.get("object")}
+    for row in evidence_rows:
+        b3_row = b3_by_object.get(row["object"], {})
+        row["b3_policy_result"] = _text(b3_row.get("canonical_policy_result") or "UNKNOWN")
+        row["b3_decision_action"] = _text(b3_row.get("canonical_decision_action") or "UNKNOWN")
+        row["b3_consistent"] = row["b3_policy_result"] in {"UNKNOWN", row["canonical_policy_result"], "SOFT_DEGRADATION"}
+
+    quality_freshness = ((freshness.get("domains") or {}).get("quality") or {}).get("classification", "UNKNOWN")
+    service_freshness = ((freshness.get("domains") or {}).get("service") or {}).get("classification", "UNKNOWN")
+    by_family: dict[str, dict[str, Any]] = {}
+    for row in evidence_rows:
+        family = row["signal_family"]
+        target = by_family.setdefault(family, {
+            "signal_family": family,
+            "canonical_signal": row["canonical_signal"],
+            "canonical_policy": row["canonical_policy"],
+            "canonical_policy_result": row["canonical_policy_result"],
+            "canonical_decision_action": row["canonical_decision_action"],
+            "owners": set(),
+            "sources": set(),
+            "objects": set(),
+            "matched_tokens": set(),
+            "evidence_count": 0,
+        })
+        target["owners"].add(row["owner"])
+        target["sources"].add(row["source"])
+        target["objects"].add(row["object"])
+        target["matched_tokens"].update(row["matched_tokens"])
+        target["evidence_count"] += 1
+
+    family_rows = []
+    for family in sorted(by_family):
+        row = by_family[family]
+        family_rows.append({
+            **row,
+            "owners": sorted(row["owners"]),
+            "sources": sorted(row["sources"]),
+            "objects": sorted(row["objects"]),
+            "matched_tokens": sorted(row["matched_tokens"]),
+            "quality_freshness": quality_freshness,
+            "service_freshness": service_freshness,
+            "mapping_complete": True,
+            "threshold_values_changed": False,
+            "formula_changed": False,
+        })
+
+    catalog_rows = [
+        {
+            "signal_family": family["signal_family"],
+            "canonical_signal": family["canonical_signal"],
+            "canonical_policy": "POLICY_002_SOFT_DEGRADATION",
+            "canonical_policy_result": family["policy_result"],
+            "canonical_decision_action": family["decision_action"],
+            "owner": family["owner"],
+            "threshold_source": "existing_signal_owner_only",
+            "implemented_here": "mapping_only",
+        }
+        for family in DEGRADATION_SIGNAL_POLICY_FAMILIES
+    ]
+    return {
+        "schema_version": "v7.b4.degradation-signal-policy-mapping.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "B4",
+        "purpose": "normalize_existing_degradation_signal_families_to_POLICY_002_policy_mapping_without_changing_signals",
+        "source_owners_reused": [
+            "tools/v7-egress-quality-compact",
+            "tools/v7-service-matrix-refresh-all",
+            "admin_core.operator_decision_surface",
+            "admin_core.autonomy_trust_acceleration.build_soft_degradation_threshold_vocabulary_alignment",
+            "admin_core.autonomy_trust_acceleration.build_freshness_actionability",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_002_SOFT_DEGRADATION.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#B4",
+        ],
+        "catalog_rows": catalog_rows,
+        "signal_family_rows": family_rows,
+        "evidence_rows": evidence_rows,
+        "summary": {
+            "signal_families_defined": len(catalog_rows),
+            "signal_families_seen": len(family_rows),
+            "evidence_rows": len(evidence_rows),
+            "objects_seen": len({row["object"] for row in evidence_rows}),
+            "threshold_changes": 0,
+            "formula_changes": 0,
+        },
+        "canonical_rules": [
+            "b4_maps_signal_families_to_policy_meaning_only",
+            "b4_does_not_attribute_root_cause_or_complete_B5",
+            "b4_does_not_change_threshold_values_or_formulas",
+            "route_readiness_and_saturation_need_attribution_before_action",
+            "unknown_or_unmapped_signals_remain_probe_only_until_existing_owners_emit evidence",
+        ],
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+    }
+
+
+PASSIVE_DEGRADATION_TOKENS = (
+    "degraded",
+    "degradation",
+    "failed",
+    "failure",
+    "partial_failure",
+    "partial success",
+    "partial_success",
+    "timeout",
+    "latency",
+    "loss",
+    "jitter",
+    "rollback_required",
+    "service_delta",
+    "knowledge_degraded",
+)
+
+
+def _observed_degradation_object_key(row: dict[str, Any], index: int = 0) -> str:
+    key = _soft_degradation_object_key(row, index)
+    if key.startswith("unknown-"):
+        for nested_key in ("service_outcome", "service_actual", "outcome", "outcome_quality", "post_action_verification"):
+            nested = row.get(nested_key)
+            if isinstance(nested, dict):
+                nested_object = _soft_degradation_object_key(nested, index)
+                if not nested_object.startswith("unknown-"):
+                    return nested_object
+    return key
+
+
+def _passive_degradation_signal_present(row: dict[str, Any]) -> bool:
+    text = _degradation_signal_text(row)
+    if any(token in text for token in PASSIVE_DEGRADATION_TOKENS):
+        return True
+    outcome_quality = row.get("outcome_quality")
+    if isinstance(outcome_quality, dict):
+        return any(
+            _text(value).upper() in {"FAILED", "PARTIAL_FAILURE", "PARTIAL_SUCCESS", "DEGRADED"}
+            for value in outcome_quality.values()
+        )
+    return False
+
+
+def _observed_degradation_family_names(row: dict[str, Any]) -> list[str]:
+    return sorted({match["signal_family"] for match in _degradation_signal_matches(_degradation_signal_text(row))})
+
+
+def _add_b5_evidence(
+    objects: dict[str, dict[str, Any]],
+    *,
+    object_key: str,
+    source: str,
+    owner: str,
+    evidence_role: str,
+    evidence_kind: str,
+    signal_families: list[str],
+) -> None:
+    target = objects.setdefault(object_key, {
+        "object": object_key,
+        "active_evidence": [],
+        "passive_evidence": [],
+        "signal_families": set(),
+        "owners": set(),
+        "sources": set(),
+    })
+    target["owners"].add(owner)
+    target["sources"].add(source)
+    target["signal_families"].update(signal_families)
+    evidence = {
+        "source": source,
+        "owner": owner,
+        "evidence_kind": evidence_kind,
+        "signal_families": signal_families,
+    }
+    if evidence_role == "active":
+        target["active_evidence"].append(evidence)
+    else:
+        target["passive_evidence"].append(evidence)
+
+
+def build_observed_degradation_attribution(
+    *,
+    service_scores_snapshot: dict[str, Any] | None = None,
+    channel_service_scores_snapshot: dict[str, Any] | None = None,
+    trust_evolution_snapshot: dict[str, Any] | None = None,
+    degradation_signal_policy_mapping: dict[str, Any] | None = None,
+    decision_outcome_learning: dict[str, Any] | None = None,
+    decision_records: list[dict[str, Any]] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Join existing active and passive degradation evidence for B5.
+
+    B5 attributes observed degradation to existing evidence sources only. It
+    does not claim root cause, create evidence, change thresholds, or authorize
+    movement.
+    """
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    objects: dict[str, dict[str, Any]] = {}
+
+    for source, owner, snapshot in (
+        ("service_scores", "tools/v7-service-matrix-refresh-all", service_scores_snapshot),
+        ("channel_service_scores", "tools/v7-egress-quality-compact", channel_service_scores_snapshot),
+    ):
+        for index, row in enumerate(_degradation_signal_items(snapshot)):
+            families = _observed_degradation_family_names(row)
+            status_text = _degradation_signal_text({
+                "status": row.get("status"),
+                "state": row.get("state"),
+                "score": row.get("score"),
+                "services": row.get("services"),
+                "trend": row.get("trend"),
+            })
+            if not families and "degraded" not in status_text:
+                continue
+            _add_b5_evidence(
+                objects,
+                object_key=_observed_degradation_object_key(row, index),
+                source=source,
+                owner=owner,
+                evidence_role="active",
+                evidence_kind="probe_or_quality_observation",
+                signal_families=families or ["service_response"],
+            )
+
+    for row in [
+        item for item in ((degradation_signal_policy_mapping or {}).get("evidence_rows") or [])
+        if isinstance(item, dict)
+    ]:
+        _add_b5_evidence(
+            objects,
+            object_key=_text(row.get("object") or "unknown"),
+            source=_text(row.get("source") or "degradation_signal_policy_mapping"),
+            owner=_text(row.get("owner") or "admin_core.autonomy_trust_acceleration.build_degradation_signal_policy_mapping"),
+            evidence_role="active",
+            evidence_kind="policy_mapped_signal",
+            signal_families=[_text(row.get("signal_family") or "unknown")],
+        )
+
+    for index, row in enumerate(decision_records or []):
+        if not isinstance(row, dict) or not _passive_degradation_signal_present(row):
+            continue
+        _add_b5_evidence(
+            objects,
+            object_key=_observed_degradation_object_key(row, index),
+            source="decision_records",
+            owner="admin_core.operator_execution_feedback + closure/runtime trust stores",
+            evidence_role="passive",
+            evidence_kind="observed_outcome_or_feedback",
+            signal_families=_observed_degradation_family_names(row) or ["outcome_degradation"],
+        )
+
+    passive_global_context = 0
+    for index, row in enumerate(_degradation_signal_items(trust_evolution_snapshot)):
+        if not _passive_degradation_signal_present(row):
+            continue
+        object_key = _observed_degradation_object_key(row, index)
+        if object_key.startswith("unknown-"):
+            object_key = "trust-evolution-summary"
+            passive_global_context += 1
+        _add_b5_evidence(
+            objects,
+            object_key=object_key,
+            source="trust_evolution_summaries",
+            owner="admin_core.intelligence_workers.build_trust_evolution_snapshot",
+            evidence_role="passive",
+            evidence_kind="trust_or_learning_observation",
+            signal_families=_observed_degradation_family_names(row) or ["learning_degradation"],
+        )
+
+    if isinstance(decision_outcome_learning, dict) and _passive_degradation_signal_present(decision_outcome_learning):
+        _add_b5_evidence(
+            objects,
+            object_key="decision-outcome-learning",
+            source="decision_outcome_learning",
+            owner="admin_core.autonomy_trust_acceleration._decision_outcome_learning_from_trust",
+            evidence_role="passive",
+            evidence_kind="learning_summary",
+            signal_families=_observed_degradation_family_names(decision_outcome_learning) or ["learning_degradation"],
+        )
+        passive_global_context += 1
+
+    global_passive_available = any(
+        row["passive_evidence"] and row["object"] in {"trust-evolution-summary", "decision-outcome-learning"}
+        for row in objects.values()
+    )
+    rows = []
+    for object_key in sorted(objects):
+        item = objects[object_key]
+        active_count = len(item["active_evidence"])
+        passive_count = len(item["passive_evidence"])
+        if active_count and passive_count:
+            attribution_state = "ACTIVE_AND_PASSIVE_OBSERVED"
+            next_requirement = "eligible_for_B6_v7_native_response_mapping"
+        elif active_count and global_passive_available:
+            attribution_state = "ACTIVE_OBSERVED_WITH_PASSIVE_CONTEXT"
+            next_requirement = "object_specific_passive_outcome_would_raise_confidence"
+        elif active_count:
+            attribution_state = "ACTIVE_ONLY_PASSIVE_OUTCOME_PENDING"
+            next_requirement = "wait_for_existing_feedback_or_trust_outcome"
+        elif passive_count:
+            attribution_state = "PASSIVE_ONLY_ACTIVE_OBSERVATION_PENDING"
+            next_requirement = "collect_or_refresh_existing_service_quality_probe"
+        else:
+            attribution_state = "NO_OBSERVED_DEGRADATION_EVIDENCE"
+            next_requirement = "no_action"
+        rows.append({
+            "object": object_key,
+            "canonical_policy": "POLICY_002_SOFT_DEGRADATION",
+            "attribution_type": "evidence_source_attribution_not_root_cause",
+            "attribution_state": attribution_state,
+            "active_evidence_count": active_count,
+            "passive_evidence_count": passive_count,
+            "active_evidence": item["active_evidence"],
+            "passive_evidence": item["passive_evidence"],
+            "signal_families": sorted({family for family in item["signal_families"] if family}),
+            "owners": sorted(item["owners"]),
+            "sources": sorted(item["sources"]),
+            "next_requirement": next_requirement,
+            "root_cause_claimed": False,
+            "threshold_values_changed": False,
+            "formula_changed": False,
+            "runtime_apply_allowed": False,
+            "authority_expanded": False,
+        })
+
+    return {
+        "schema_version": "v7.b5.observed-degradation-attribution.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "B5",
+        "purpose": "complete_observed_degradation_attribution_using_existing_active_and_passive_evidence_without_claiming_root_cause",
+        "source_owners_reused": [
+            "tools/v7-service-matrix-refresh-all",
+            "tools/v7-egress-quality-compact",
+            "admin_core.operator_execution_feedback",
+            "admin_core.intelligence_workers.build_trust_evolution_snapshot",
+            "admin_core.autonomy_trust_acceleration.build_degradation_signal_policy_mapping",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_002_SOFT_DEGRADATION.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#B5",
+        ],
+        "rows": rows,
+        "summary": {
+            "objects_seen": len(rows),
+            "active_objects": sum(1 for row in rows if row["active_evidence_count"] > 0),
+            "passive_objects": sum(1 for row in rows if row["passive_evidence_count"] > 0),
+            "active_and_passive_objects": sum(1 for row in rows if row["attribution_state"] == "ACTIVE_AND_PASSIVE_OBSERVED"),
+            "active_with_passive_context_objects": sum(1 for row in rows if row["attribution_state"] == "ACTIVE_OBSERVED_WITH_PASSIVE_CONTEXT"),
+            "passive_global_context_records": passive_global_context,
+            "root_cause_claims": 0,
+            "threshold_changes": 0,
+            "formula_changes": 0,
+        },
+        "canonical_rules": [
+            "b5_attributes_observed_degradation_to_existing_evidence_sources_only",
+            "active_evidence_is_service_matrix_or_quality_probe_observation",
+            "passive_evidence_is_feedback_outcome_or_trust_learning_observation",
+            "b5_does_not_claim_root_cause",
+            "b5_does_not_change_threshold_values_or_formulas",
+            "b5_does_not_grant_runtime_apply_or_authority",
+        ],
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+    }
+
+
+def _b6_candidate_state(row: dict[str, Any]) -> str:
+    return _text(
+        row.get("ctr_state")
+        or row.get("state")
+        or row.get("lifecycle")
+        or row.get("service_state")
+        or "UNKNOWN"
+    ).upper()
+
+
+def _b6_response_for_object(
+    *,
+    attribution_state: str,
+    candidate_states: set[str],
+    signal_families: set[str],
+    anti_flap_blocked: bool,
+) -> tuple[str, list[str], list[str], str]:
+    if anti_flap_blocked:
+        return (
+            "CIRCUIT_BREAKER_OPEN",
+            ["HOLD_MOVEMENT", "REQUIRE_COOLDOWN", "ASK_OPERATOR"],
+            ["selected_moves", "apply", "authority_promotion"],
+            "anti_flap_blocks_recent_oscillation",
+        )
+    if "QUARANTINED" in candidate_states:
+        return (
+            "OUTLIER_EJECTION",
+            ["QUARANTINE_FOR_NORMAL_TARGET_USE", "PROBE_ONLY", "REQUIRE_RECOVERY_ADMISSION"],
+            ["direct_user_switch", "autoswitch_apply", "authority_promotion"],
+            "existing_ctr_state_quarantined",
+        )
+    if attribution_state == "ACTIVE_AND_PASSIVE_OBSERVED":
+        return (
+            "CIRCUIT_BREAKER_OPEN_AND_OUTLIER_REVIEW",
+            ["ASK_OPERATOR", "PROBE_ONLY", "BLOCK_AUTOMATIC_NORMALIZATION"],
+            ["runtime_apply", "automatic_failover", "authority_promotion"],
+            "active_and_passive_degradation_evidence_joined",
+        )
+    if "DEGRADED" in candidate_states or signal_families:
+        return (
+            "CIRCUIT_BREAKER_HALF_OPEN",
+            ["ASK_OPERATOR", "PROBE_ONLY", "KEEP_CURRENT_ROUTE_UNCHANGED"],
+            ["automatic_failover", "authority_promotion"],
+            "degradation_signal_requires_governed_review",
+        )
+    return (
+        "OBSERVE_ONLY",
+        ["KEEP", "OBSERVE"],
+        ["runtime_apply", "authority_promotion"],
+        "no_complete_degradation_response_trigger",
+    )
+
+
+def build_v7_native_degradation_response_mapping(
+    *,
+    decision_surface: dict[str, Any] | None = None,
+    observed_degradation_attribution: dict[str, Any] | None = None,
+    soft_degradation_threshold_vocabulary: dict[str, Any] | None = None,
+    degradation_signal_policy_mapping: dict[str, Any] | None = None,
+    anti_flapping: dict[str, Any] | None = None,
+    recovery_admission: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Map circuit-breaker/outlier-ejection practice to existing V7-native actions for B6."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    objects: dict[str, dict[str, Any]] = {}
+
+    def ensure_object(key: str) -> dict[str, Any]:
+        return objects.setdefault(key, {
+            "object": key,
+            "attribution_state": "UNKNOWN",
+            "candidate_states": set(),
+            "signal_families": set(),
+            "owners": set(),
+            "sources": set(),
+            "evidence": [],
+        })
+
+    for row in [
+        item for item in ((observed_degradation_attribution or {}).get("rows") or [])
+        if isinstance(item, dict)
+    ]:
+        key = _text(row.get("object") or "unknown")
+        target = ensure_object(key)
+        target["attribution_state"] = _text(row.get("attribution_state") or "UNKNOWN")
+        target["signal_families"].update(str(item) for item in (row.get("signal_families") or []) if item)
+        target["owners"].update(str(item) for item in (row.get("owners") or []) if item)
+        target["sources"].update(str(item) for item in (row.get("sources") or []) if item)
+        target["evidence"].append("observed_degradation_attribution")
+
+    for row in [
+        item for item in ((soft_degradation_threshold_vocabulary or {}).get("rows") or [])
+        if isinstance(item, dict)
+    ]:
+        key = _text(row.get("object") or "unknown")
+        target = ensure_object(key)
+        state = _text(row.get("canonical_policy_result") or "")
+        if state:
+            target["candidate_states"].add(state)
+        action = _text(row.get("canonical_decision_action") or "")
+        if action:
+            target["candidate_states"].add(action)
+        target["owners"].update(str(item) for item in (row.get("owner_sources") or []) if item)
+        target["sources"].update(str(item) for item in (row.get("evidence_sources") or []) if item)
+        target["evidence"].append("soft_degradation_threshold_vocabulary")
+
+    for row in [
+        item for item in ((degradation_signal_policy_mapping or {}).get("evidence_rows") or [])
+        if isinstance(item, dict)
+    ]:
+        key = _text(row.get("object") or "unknown")
+        target = ensure_object(key)
+        family = _text(row.get("signal_family") or "")
+        if family:
+            target["signal_families"].add(family)
+        target["owners"].add(_text(row.get("owner") or ""))
+        target["sources"].add(_text(row.get("source") or ""))
+        target["evidence"].append("degradation_signal_policy_mapping")
+
+    surface = decision_surface or {}
+    for user_row in [row for row in (surface.get("users") or []) if isinstance(row, dict)]:
+        for candidate in _candidate_rows_for_user(user_row):
+            key = _candidate_channel(candidate)
+            if not key:
+                continue
+            target = ensure_object(key)
+            target["candidate_states"].add(_b6_candidate_state(candidate))
+            target["owners"].add("tools/v7-users-autoswitch")
+            target["sources"].add("operator_decision_surface_candidate")
+            target["evidence"].append("planner_candidate_state")
+
+    anti_blocked = bool((anti_flapping or {}).get("summary", {}).get("blocked_users", 0))
+    recovery_blocked = bool((recovery_admission or {}).get("summary", {}).get("blocked_or_quarantined", 0))
+    rows = []
+    for key in sorted(objects):
+        item = objects[key]
+        practice, actions, blocked_actions, reason = _b6_response_for_object(
+            attribution_state=item["attribution_state"],
+            candidate_states={state for state in item["candidate_states"] if state},
+            signal_families={family for family in item["signal_families"] if family},
+            anti_flap_blocked=anti_blocked,
+        )
+        if recovery_blocked and "REQUIRE_RECOVERY_ADMISSION" not in actions:
+            actions.append("REQUIRE_RECOVERY_ADMISSION")
+        rows.append({
+            "object": key,
+            "external_practice": practice,
+            "v7_native_actions": actions,
+            "blocked_actions": sorted(set(blocked_actions)),
+            "attribution_state": item["attribution_state"],
+            "candidate_states": sorted({state for state in item["candidate_states"] if state and state != "UNKNOWN"}),
+            "signal_families": sorted({family for family in item["signal_families"] if family}),
+            "owners": sorted({owner for owner in item["owners"] if owner}),
+            "sources": sorted({source for source in item["sources"] if source}),
+            "evidence": sorted(set(item["evidence"])),
+            "mapping_reason": reason,
+            "implementation_role": "read_only_mapping_only",
+            "runtime_apply_allowed": False,
+            "authority_expanded": False,
+            "threshold_values_changed": False,
+            "formula_changed": False,
+        })
+
+    catalog_rows = [
+        {
+            "external_practice": "circuit_breaker_open",
+            "v7_native_action": "HOLD_MOVEMENT + ASK_OPERATOR + PROBE_ONLY",
+            "existing_owner": "tools/v7-users-autoswitch + admin_core.operator_decision_surface",
+        },
+        {
+            "external_practice": "circuit_breaker_half_open",
+            "v7_native_action": "PROBE_ONLY + RECOVERY_ADMISSION + SLOW_START_AFTER_CERTIFICATION",
+            "existing_owner": "recovery admission + action-class/blast-radius owners",
+        },
+        {
+            "external_practice": "outlier_ejection",
+            "v7_native_action": "QUARANTINE_FOR_NORMAL_TARGET_USE + REQUIRE_RECOVERY_ADMISSION",
+            "existing_owner": "planner/autoswitch CTR state + recovery admission owners",
+        },
+    ]
+    return {
+        "schema_version": "v7.b6.v7-native-degradation-response-mapping.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "B6",
+        "purpose": "map_circuit_breaker_and_outlier_ejection_practice_to_existing_v7_native_actions_without_runtime_behavior_change",
+        "source_owners_reused": [
+            "tools/v7-users-autoswitch",
+            "admin_core.operator_decision_surface",
+            "admin_core.autonomy_trust_acceleration.build_observed_degradation_attribution",
+            "admin_core.autonomy_trust_acceleration.build_anti_flapping",
+            "admin_core.autonomy_trust_acceleration.build_recovery_admission",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_002_SOFT_DEGRADATION.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#B6",
+        ],
+        "catalog_rows": catalog_rows,
+        "rows": rows,
+        "summary": {
+            "objects_seen": len(rows),
+            "circuit_breaker_rows": sum(1 for row in rows if "CIRCUIT_BREAKER" in row["external_practice"]),
+            "outlier_ejection_rows": sum(1 for row in rows if "OUTLIER" in row["external_practice"]),
+            "runtime_actions_created": 0,
+            "threshold_changes": 0,
+            "formula_changes": 0,
+        },
+        "canonical_rules": [
+            "b6_maps_external_resilience_practice_to_existing_v7_actions_only",
+            "circuit_breaker_is_a_governed_stop_or_probe_mapping_not_runtime_apply",
+            "outlier_ejection_maps_to_quarantine_or_normal_target_exclusion_until_recovery_admission",
+            "b6_does_not_create_new_planner_or_runtime_behavior",
+            "b6_does_not_change_threshold_values_or_formulas",
+        ],
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+    }
+
+
 def build_freshness_actionability(
     snapshot_statuses: dict[str, dict[str, Any]] | None = None,
     *,
@@ -6071,6 +8041,182 @@ def build_service_user_sla_fit(
         "runtime_mutation_performed": False,
         "apply_executed": False,
         "users_moved": 0,
+    }
+
+
+def _b7_threshold_source_for_objective(objective: str) -> tuple[str, str]:
+    mapping = {
+        "required_service_reachability": (
+            "service_user_sla_fit.required_services + candidate.missing_requirements",
+            "existing_service_required_or_missing",
+        ),
+        "service_freshness": (
+            "freshness_actionability.domains.service.classification",
+            "ACTIONABLE_NOW",
+        ),
+        "candidate_fit_score": (
+            "service_user_sla_fit.candidates.fit_score",
+            "existing_fit_score_interpretation",
+        ),
+        "capacity_headroom": (
+            "service_user_sla_fit.candidates.capacity_headroom/capacity_decision",
+            "existing_capacity_policy_gate",
+        ),
+        "route_runtime_safety": (
+            "service_user_sla_fit.candidates.route_runtime_safe",
+            "existing_route_runtime_safe_flag",
+        ),
+        "soft_degradation_policy": (
+            "soft_degradation_threshold_vocabulary.canonical_policy_result",
+            "POLICY_002_SOFT_DEGRADATION existing vocabulary",
+        ),
+        "degradation_response": (
+            "v7_native_degradation_response_mapping.v7_native_actions",
+            "existing_v7_native_action_mapping",
+        ),
+    }
+    return mapping.get(objective, ("existing_owner_field", "existing_policy_gate"))
+
+
+def build_service_objective_policy_threshold_binding(
+    *,
+    service_user_sla_fit: dict[str, Any] | None = None,
+    freshness_actionability: dict[str, Any] | None = None,
+    soft_degradation_threshold_vocabulary: dict[str, Any] | None = None,
+    v7_native_degradation_response_mapping: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Bind service objectives to existing policy threshold sources for B7."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    fit_rows = [
+        row for row in ((service_user_sla_fit or {}).get("rows") or [])
+        if isinstance(row, dict)
+    ]
+    soft_by_object = {
+        _text(row.get("object")): row
+        for row in ((soft_degradation_threshold_vocabulary or {}).get("rows") or [])
+        if isinstance(row, dict) and row.get("object")
+    }
+    response_by_object = {
+        _text(row.get("object")): row
+        for row in ((v7_native_degradation_response_mapping or {}).get("rows") or [])
+        if isinstance(row, dict) and row.get("object")
+    }
+    service_freshness = (
+        ((freshness_actionability or {}).get("domains") or {}).get("service") or {}
+    ).get("classification", "UNKNOWN")
+
+    rows: list[dict[str, Any]] = []
+    for fit in fit_rows:
+        user = _text(fit.get("user") or "")
+        required_services = [str(item) for item in (fit.get("required_services") or []) if item]
+        candidates = [row for row in (fit.get("candidates") or []) if isinstance(row, dict)]
+        for candidate in candidates:
+            channel = _text(candidate.get("channel") or "")
+            if not channel:
+                continue
+            missing = [str(item) for item in (candidate.get("missing_requirements") or []) if item]
+            objectives = [
+                "required_service_reachability",
+                "service_freshness",
+                "candidate_fit_score",
+                "capacity_headroom",
+                "route_runtime_safety",
+            ]
+            if channel in soft_by_object:
+                objectives.append("soft_degradation_policy")
+            if channel in response_by_object:
+                objectives.append("degradation_response")
+            bindings = []
+            for objective in objectives:
+                source, gate = _b7_threshold_source_for_objective(objective)
+                bindings.append({
+                    "objective": objective,
+                    "threshold_source": source,
+                    "existing_policy_gate": gate,
+                    "owner": "admin_core.autonomy_trust_acceleration.build_service_user_sla_fit"
+                    if objective in {"required_service_reachability", "candidate_fit_score", "capacity_headroom", "route_runtime_safety"}
+                    else "existing freshness/degradation owner",
+                    "threshold_values_changed": False,
+                    "formula_changed": False,
+                })
+            rows.append({
+                "user": user,
+                "candidate_channel": channel,
+                "required_services": required_services,
+                "missing_services": missing,
+                "fit_verdict": _text(candidate.get("fit_verdict") or "UNKNOWN"),
+                "service_freshness": service_freshness,
+                "objective_bindings": bindings,
+                "binding_state": "BOUND_TO_EXISTING_POLICY_GATES",
+                "planner_role": "read_only_policy_gate_visibility",
+                "runtime_apply_allowed": False,
+                "authority_expanded": False,
+                "threshold_values_changed": False,
+                "formula_changed": False,
+            })
+
+    catalog_rows = [
+        {
+            "objective": objective,
+            "threshold_source": _b7_threshold_source_for_objective(objective)[0],
+            "existing_policy_gate": _b7_threshold_source_for_objective(objective)[1],
+        }
+        for objective in (
+            "required_service_reachability",
+            "service_freshness",
+            "candidate_fit_score",
+            "capacity_headroom",
+            "route_runtime_safety",
+            "soft_degradation_policy",
+            "degradation_response",
+        )
+    ]
+    return {
+        "schema_version": "v7.b7.service-objective-policy-threshold-binding.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "B7",
+        "purpose": "bind_service_objectives_to_existing_policy_threshold_sources_without_changing_thresholds",
+        "source_owners_reused": [
+            "admin_core.autonomy_trust_acceleration.build_service_user_sla_fit",
+            "admin_core.autonomy_trust_acceleration.build_freshness_actionability",
+            "admin_core.autonomy_trust_acceleration.build_soft_degradation_threshold_vocabulary_alignment",
+            "admin_core.autonomy_trust_acceleration.build_v7_native_degradation_response_mapping",
+            "tools/v7-users-autoswitch",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_002_SOFT_DEGRADATION.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#B7",
+        ],
+        "catalog_rows": catalog_rows,
+        "rows": rows,
+        "summary": {
+            "users_seen": len({row["user"] for row in rows if row["user"]}),
+            "candidate_bindings": len(rows),
+            "objective_bindings": sum(len(row["objective_bindings"]) for row in rows),
+            "threshold_changes": 0,
+            "formula_changes": 0,
+            "runtime_actions_created": 0,
+        },
+        "canonical_rules": [
+            "b7_binds_objectives_to_existing_threshold_sources_only",
+            "b7_does_not_define_new_service_objective_values",
+            "b7_does_not_change_threshold_values_or_formulas",
+            "b7_does_not_create_new_planner_or_runtime_behavior",
+            "b7_does_not_grant_runtime_apply_or_authority",
+        ],
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
     }
 
 
@@ -6267,6 +8413,1238 @@ def build_recovery_admission(
         "runtime_mutation_performed": False,
         "apply_executed": False,
         "users_moved": 0,
+    }
+
+
+def _b8_channel_key(row: dict[str, Any], index: int = 0) -> str:
+    return _text(
+        row.get("channel")
+        or row.get("egress")
+        or row.get("id")
+        or row.get("target")
+        or row.get("object")
+        or f"unknown-{index}"
+    )
+
+
+def _b8_service_readiness(row: dict[str, Any]) -> tuple[bool, list[str]]:
+    services = row.get("services") if isinstance(row.get("services"), dict) else {}
+    evidence = []
+    ready = False
+    if services:
+        for service, value in sorted(services.items()):
+            service_row = value if isinstance(value, dict) else {"ok": bool(value)}
+            ok = service_row.get("ok")
+            status = _text(service_row.get("status") or service_row.get("state")).upper()
+            if ok is True or status in {"OK", "PASS", "READY", "HEALTHY", "SUCCESS"}:
+                ready = True
+                evidence.append(f"{service}:ready")
+            elif ok is False or status in {"FAILED", "FAIL", "DEGRADED", "DOWN"}:
+                evidence.append(f"{service}:not_ready")
+    status = _text(row.get("status") or row.get("state") or row.get("readiness")).upper()
+    if status in {"OK", "PASS", "READY", "HEALTHY", "SUCCESS"}:
+        ready = True
+        evidence.append("channel_service_status_ready")
+    if as_float(row.get("score"), -1.0) >= 0.0:
+        evidence.append("service_score_present")
+    return ready, sorted(set(evidence))
+
+
+def _b8_quality_readiness(row: dict[str, Any]) -> tuple[bool, list[str]]:
+    score = row.get("score") if isinstance(row.get("score"), dict) else {}
+    status = _text(row.get("status") or row.get("state") or row.get("readiness")).upper()
+    trend = _text(row.get("trend") or row.get("quality_trend") or score.get("trend")).upper()
+    evidence = []
+    ready = False
+    if status in {"OK", "PASS", "READY", "HEALTHY", "SUCCESS", "STABLE"}:
+        ready = True
+        evidence.append("quality_status_ready")
+    if trend in {"STABLE", "IMPROVING"}:
+        ready = True
+        evidence.append("quality_trend_ready")
+    current_score = score.get("current") if score else row.get("quality_score", row.get("score"))
+    if as_float(current_score, -1.0) >= 0.0:
+        evidence.append("quality_score_present")
+    return ready, sorted(set(evidence))
+
+
+def build_recovery_admission_certification(
+    *,
+    recovery_admission: dict[str, Any] | None = None,
+    service_scores_snapshot: dict[str, Any] | None = None,
+    channel_service_scores_snapshot: dict[str, Any] | None = None,
+    freshness_actionability: dict[str, Any] | None = None,
+    service_objective_policy_threshold_binding: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Certify B8 recovery admission evidence without admitting traffic or changing Runtime."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    recovery_rows = [
+        row for row in ((recovery_admission or {}).get("rows") or [])
+        if isinstance(row, dict)
+    ]
+    service_rows = _items(service_scores_snapshot)
+    quality_rows = _items(channel_service_scores_snapshot)
+    objective_rows = [
+        row for row in ((service_objective_policy_threshold_binding or {}).get("rows") or [])
+        if isinstance(row, dict)
+    ]
+    channels: dict[str, dict[str, Any]] = {}
+
+    def ensure_channel(channel: str) -> dict[str, Any]:
+        return channels.setdefault(channel, {
+            "channel": channel,
+            "recovery_rows": [],
+            "service_evidence": [],
+            "quality_evidence": [],
+            "objective_evidence": [],
+            "owners": set(),
+            "sources": set(),
+        })
+
+    for index, row in enumerate(recovery_rows):
+        channel = _b8_channel_key(row, index)
+        item = ensure_channel(channel)
+        item["recovery_rows"].append(row)
+        item["owners"].add("admin_core.autonomy_trust_acceleration.build_recovery_admission")
+        item["sources"].add("recovery_admission")
+
+    for index, row in enumerate(service_rows):
+        channel = _b8_channel_key(row, index)
+        item = ensure_channel(channel)
+        ready, evidence = _b8_service_readiness(row)
+        item["service_evidence"].append({"ready": ready, "evidence": evidence})
+        item["owners"].add("tools/v7-service-matrix-refresh-all")
+        item["sources"].add("service-scores")
+
+    for index, row in enumerate(quality_rows):
+        channel = _b8_channel_key(row, index)
+        item = ensure_channel(channel)
+        ready, evidence = _b8_quality_readiness(row)
+        item["quality_evidence"].append({"ready": ready, "evidence": evidence})
+        item["owners"].add("tools/v7-egress-quality-compact")
+        item["sources"].add("channel-service-scores")
+
+    for row in objective_rows:
+        channel = _text(row.get("candidate_channel") or row.get("channel"))
+        if not channel:
+            continue
+        item = ensure_channel(channel)
+        item["objective_evidence"].append({
+            "user": _text(row.get("user")),
+            "binding_state": _text(row.get("binding_state")),
+            "objective_count": len([entry for entry in row.get("objective_bindings", []) if isinstance(entry, dict)]),
+        })
+        item["owners"].add("admin_core.autonomy_trust_acceleration.build_service_objective_policy_threshold_binding")
+        item["sources"].add("service_objective_policy_threshold_binding")
+
+    recovery_freshness = (
+        ((freshness_actionability or {}).get("domains") or {}).get("recovery") or {}
+    ).get("classification", "UNKNOWN")
+    service_freshness = (
+        ((freshness_actionability or {}).get("domains") or {}).get("service") or {}
+    ).get("classification", "UNKNOWN")
+    min_success = int(RECOVERY_ADMISSION_POLICY["min_successful_checks"])
+    rows: list[dict[str, Any]] = []
+    for channel in sorted(channels):
+        item = channels[channel]
+        recovery_row = item["recovery_rows"][0] if item["recovery_rows"] else {}
+        successful_checks = int(as_float(recovery_row.get("successful_checks"), 0.0))
+        admission_state = _text(recovery_row.get("admission_state"), "UNKNOWN")
+        recovery_blockers = [str(blocker) for blocker in (recovery_row.get("blockers") or []) if blocker]
+        service_ready = any(row["ready"] for row in item["service_evidence"])
+        quality_ready = any(row["ready"] for row in item["quality_evidence"])
+        objectives_bound = bool(item["objective_evidence"])
+        blockers = []
+        if successful_checks < min_success:
+            blockers.append("insufficient_repeated_success_evidence")
+        if admission_state not in {"ELIGIBLE", "RECOVERED_WATCH"}:
+            blockers.append("recovery_admission_not_eligible")
+        if not service_ready:
+            blockers.append("service_readiness_evidence_missing")
+        if not quality_ready:
+            blockers.append("quality_readiness_evidence_missing")
+        if recovery_freshness != "ACTIONABLE_NOW":
+            blockers.append("recovery_freshness_not_actionable")
+        if service_freshness != "ACTIONABLE_NOW":
+            blockers.append("service_freshness_not_actionable")
+        blockers.extend(recovery_blockers)
+        certification_state = (
+            "CERTIFIED_FOR_RECOVERY_ADMISSION_REVIEW"
+            if not blockers
+            else "NOT_CERTIFIED_COLLECT_REAL_EVIDENCE"
+        )
+        rows.append({
+            "channel": channel,
+            "certification_state": certification_state,
+            "admission_state": admission_state,
+            "successful_checks": successful_checks,
+            "min_successful_checks": min_success,
+            "repeated_success_evidence": successful_checks >= min_success,
+            "service_readiness_evidence": service_ready,
+            "quality_readiness_evidence": quality_ready,
+            "objective_binding_evidence": objectives_bound,
+            "recovery_freshness": recovery_freshness,
+            "service_freshness": service_freshness,
+            "service_evidence": [evidence for row in item["service_evidence"] for evidence in row["evidence"]],
+            "quality_evidence": [evidence for row in item["quality_evidence"] for evidence in row["evidence"]],
+            "objective_evidence": item["objective_evidence"],
+            "owners": sorted(item["owners"]),
+            "sources": sorted(item["sources"]),
+            "blockers": sorted(set(blockers)),
+            "certification_role": "read_only_evidence_certification_only",
+            "runtime_apply_allowed": False,
+            "authority_expanded": False,
+            "synthetic_evidence_created": False,
+            "users_moved": 0,
+        })
+
+    return {
+        "schema_version": "v7.b8.recovery-admission-certification.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "B8",
+        "purpose": "certify_recovery_admission_with_repeated_real_success_and_readiness_evidence_without_runtime_apply",
+        "source_owners_reused": [
+            "admin_core.autonomy_trust_acceleration.build_recovery_admission",
+            "tools/v7-service-matrix-refresh-all",
+            "tools/v7-egress-quality-compact",
+            "admin_core.autonomy_trust_acceleration.build_freshness_actionability",
+            "admin_core.autonomy_trust_acceleration.build_service_objective_policy_threshold_binding",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_003_RECOVERY_ADMISSION.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#B8",
+        ],
+        "rows": rows,
+        "summary": {
+            "channels_seen": len(rows),
+            "certified": sum(1 for row in rows if row["certification_state"] == "CERTIFIED_FOR_RECOVERY_ADMISSION_REVIEW"),
+            "not_certified": sum(1 for row in rows if row["certification_state"] != "CERTIFIED_FOR_RECOVERY_ADMISSION_REVIEW"),
+            "runtime_actions_created": 0,
+            "authority_changes": 0,
+            "synthetic_evidence_created": 0,
+            "users_moved": 0,
+        },
+        "canonical_rules": [
+            "b8_certifies_existing_recovery_evidence_only",
+            "recovery_admission_requires_repeated_success_not_single_pass",
+            "readiness_requires_existing_service_and_quality_evidence",
+            "b8_does_not_admit_traffic_or_move_users",
+            "b8_does_not_grant_runtime_apply_or_authority",
+        ],
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+    }
+
+
+B9_REQUIRED_OBSERVATION_WINDOWS = ("5m", "1h")
+
+
+def _b9_quality_windows(row: dict[str, Any]) -> list[dict[str, Any]]:
+    windows = row.get("windows") if isinstance(row.get("windows"), dict) else {}
+    rows = []
+    for name in B9_REQUIRED_OBSERVATION_WINDOWS:
+        window = windows.get(name) if isinstance(windows.get(name), dict) else {}
+        samples = int(as_float(window.get("samples"), 0.0))
+        rows.append({
+            "window": name,
+            "samples": samples,
+            "observed": samples > 0,
+            "updated": _text(window.get("updated") or window.get("last_seen_at") or window.get("generated_at")),
+            "fail_rate_present": window.get("fail_rate") is not None,
+            "stability_present": window.get("stability") is not None,
+            "score_inputs_present": any(window.get(key) is not None for key in ("avg_mbps", "min_mbps", "p95_latency_ms", "fail_rate", "stability")),
+        })
+    return rows
+
+
+def build_post_admission_observation_windows(
+    *,
+    recovery_admission_certification: dict[str, Any] | None = None,
+    service_scores_snapshot: dict[str, Any] | None = None,
+    channel_service_scores_snapshot: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Verify B9 post-admission observation windows without admitting traffic or changing Runtime."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    certification_rows = [
+        row for row in ((recovery_admission_certification or {}).get("rows") or [])
+        if isinstance(row, dict)
+    ]
+    channels: dict[str, dict[str, Any]] = {}
+
+    def ensure_channel(channel: str) -> dict[str, Any]:
+        return channels.setdefault(channel, {
+            "channel": channel,
+            "certification_rows": [],
+            "service_rows": [],
+            "quality_rows": [],
+            "owners": set(),
+            "sources": set(),
+        })
+
+    for index, row in enumerate(certification_rows):
+        channel = _b8_channel_key(row, index)
+        item = ensure_channel(channel)
+        item["certification_rows"].append(row)
+        item["owners"].add("admin_core.autonomy_trust_acceleration.build_recovery_admission_certification")
+        item["sources"].add("recovery_admission_certification")
+
+    for index, row in enumerate(_items(service_scores_snapshot)):
+        channel = _b8_channel_key(row, index)
+        item = ensure_channel(channel)
+        item["service_rows"].append(row)
+        item["owners"].add("tools/v7-service-matrix-refresh-all")
+        item["sources"].add("service-scores")
+
+    for index, row in enumerate(_items(channel_service_scores_snapshot)):
+        channel = _b8_channel_key(row, index)
+        item = ensure_channel(channel)
+        item["quality_rows"].append(row)
+        item["owners"].add("tools/v7-egress-quality-compact")
+        item["sources"].add("channel-service-scores")
+
+    rows = []
+    for channel in sorted(channels):
+        item = channels[channel]
+        certification = item["certification_rows"][0] if item["certification_rows"] else {}
+        certification_state = _text(certification.get("certification_state"), "UNKNOWN")
+        service_evidence = [_b8_service_readiness(row) for row in item["service_rows"]]
+        service_observed = any(ready for ready, _evidence in service_evidence)
+        quality_windows = [
+            window
+            for quality_row in item["quality_rows"]
+            for window in _b9_quality_windows(quality_row)
+        ]
+        by_window: dict[str, list[dict[str, Any]]] = {}
+        for window in quality_windows:
+            by_window.setdefault(window["window"], []).append(window)
+        missing_windows = [
+            name for name in B9_REQUIRED_OBSERVATION_WINDOWS
+            if not any(window.get("observed") for window in by_window.get(name, []))
+        ]
+        blockers = []
+        if certification_state != "CERTIFIED_FOR_RECOVERY_ADMISSION_REVIEW":
+            blockers.append("recovery_admission_certification_not_ready")
+        if not service_observed:
+            blockers.append("post_admission_service_observation_missing")
+        if missing_windows:
+            blockers.append("post_admission_quality_windows_missing:" + ",".join(missing_windows))
+        verification_state = (
+            "POST_ADMISSION_WINDOWS_VERIFIED_READ_ONLY"
+            if not blockers
+            else "POST_ADMISSION_WINDOWS_NOT_VERIFIED"
+        )
+        rows.append({
+            "channel": channel,
+            "verification_state": verification_state,
+            "certification_state": certification_state,
+            "required_windows": list(B9_REQUIRED_OBSERVATION_WINDOWS),
+            "observed_windows": sorted([
+                name for name in B9_REQUIRED_OBSERVATION_WINDOWS
+                if any(window.get("observed") for window in by_window.get(name, []))
+            ]),
+            "quality_windows": quality_windows,
+            "service_observation_evidence": sorted({
+                evidence
+                for _ready, evidence_rows in service_evidence
+                for evidence in evidence_rows
+            }),
+            "service_observed": service_observed,
+            "owners": sorted(item["owners"]),
+            "sources": sorted(item["sources"]),
+            "blockers": sorted(set(blockers)),
+            "verification_role": "read_only_observation_window_verification_only",
+            "runtime_apply_allowed": False,
+            "authority_expanded": False,
+            "synthetic_evidence_created": False,
+            "users_moved": 0,
+        })
+
+    return {
+        "schema_version": "v7.b9.post-admission-observation-windows.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "B9",
+        "purpose": "verify_post_admission_observation_windows_from_existing_service_and_quality_owners_without_runtime_apply",
+        "source_owners_reused": [
+            "admin_core.autonomy_trust_acceleration.build_recovery_admission_certification",
+            "tools/v7-service-matrix-refresh-all",
+            "tools/v7-egress-quality-compact",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_003_RECOVERY_ADMISSION.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#B9",
+        ],
+        "rows": rows,
+        "summary": {
+            "channels_seen": len(rows),
+            "verified": sum(1 for row in rows if row["verification_state"] == "POST_ADMISSION_WINDOWS_VERIFIED_READ_ONLY"),
+            "not_verified": sum(1 for row in rows if row["verification_state"] != "POST_ADMISSION_WINDOWS_VERIFIED_READ_ONLY"),
+            "runtime_actions_created": 0,
+            "authority_changes": 0,
+            "synthetic_evidence_created": 0,
+            "users_moved": 0,
+        },
+        "canonical_rules": [
+            "b9_requires_existing_post_admission_observation_windows",
+            "b9_consumes_b8_recovery_admission_certification_only_as_evidence",
+            "b9_does_not_admit_traffic_or_move_users",
+            "b9_does_not_grant_runtime_apply_or_authority",
+            "b9_does_not_create_new_observation_owner",
+        ],
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+    }
+
+
+def build_recovery_slow_start_progression(
+    *,
+    post_admission_observation_windows: dict[str, Any] | None = None,
+    recovery_admission_certification: dict[str, Any] | None = None,
+    class_level_blast_radius_certification: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Define B10 recovery slow-start progression without moving users or changing Runtime."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    observation_rows = [
+        row for row in ((post_admission_observation_windows or {}).get("rows") or [])
+        if isinstance(row, dict)
+    ]
+    certification_by_channel = {
+        _b8_channel_key(row, index): row
+        for index, row in enumerate((recovery_admission_certification or {}).get("rows") or [])
+        if isinstance(row, dict)
+    }
+    blast = class_level_blast_radius_certification if isinstance(class_level_blast_radius_certification, dict) else {}
+    one_user_blast_certified = bool(blast.get("current_one_user_guard_certified")) or (
+        int(as_float(blast.get("max_historical_certified_blast_radius_users"), 0.0)) >= 1
+    )
+    beyond_one_user_certified = bool(blast.get("beyond_one_user_certified"))
+    policy_user_limit = int(RECOVERY_ADMISSION_POLICY["limited_recovery_blast_radius_users"])
+    stage_catalog = [
+        {
+            "stage": "OBSERVATION_CERTIFIED_READ_ONLY",
+            "purpose": "consume B8/B9 evidence before any recovery traffic can be considered",
+            "required_capability": "B9_POST_ADMISSION_OBSERVATION_WINDOWS_VERIFIED",
+            "blast_radius_users": 0,
+            "action_class": "recovery admission",
+            "owner": "admin_core.autonomy_trust_acceleration.build_post_admission_observation_windows",
+            "runtime_apply_allowed": False,
+        },
+        {
+            "stage": "ONE_USER_GOVERNED_RECOVERY_REVIEW",
+            "purpose": "define the only currently bounded recovery slow-start candidate",
+            "required_capability": "POLICY_006_ONE_USER_BLAST_RADIUS_GUARD",
+            "blast_radius_users": policy_user_limit,
+            "action_class": "recovery admission",
+            "owner": "admin_core.autonomy_trust_acceleration.build_class_level_blast_radius_certification",
+            "runtime_apply_allowed": False,
+        },
+        {
+            "stage": "BEYOND_ONE_USER_ACTION_CLASS_REVIEW",
+            "purpose": "keep larger recovery scope blocked until existing action-class certification and authority exist",
+            "required_capability": "BEYOND_ONE_USER_ACTION_CLASS_CERTIFICATION_AND_AUTHORITY",
+            "blast_radius_users": "bounded_by_future_certified_action_class",
+            "action_class": "future certified recovery action class",
+            "owner": "POLICY_005_ACTION_CLASS_PROMOTION / POLICY_006_BLAST_RADIUS",
+            "runtime_apply_allowed": False,
+        },
+    ]
+    rows: list[dict[str, Any]] = []
+    for index, observation in enumerate(observation_rows):
+        channel = _b8_channel_key(observation, index)
+        certification = certification_by_channel.get(channel, {})
+        blockers = []
+        if observation.get("verification_state") != "POST_ADMISSION_WINDOWS_VERIFIED_READ_ONLY":
+            blockers.append("post_admission_observation_windows_not_verified")
+        if certification.get("certification_state") != "CERTIFIED_FOR_RECOVERY_ADMISSION_REVIEW":
+            blockers.append("recovery_admission_certification_not_ready")
+        if not one_user_blast_certified:
+            blockers.append("one_user_blast_radius_guard_not_certified")
+        safe_next_stage = "ONE_USER_GOVERNED_RECOVERY_REVIEW" if not blockers else "BLOCKED"
+        rows.append({
+            "channel": channel,
+            "progression_state": "SLOW_START_PROGRESSION_READY_READ_ONLY" if not blockers else "SLOW_START_PROGRESSION_BLOCKED",
+            "safe_next_stage": safe_next_stage,
+            "current_capability": "POST_ADMISSION_OBSERVATION_VERIFIED",
+            "produced_evidence": [
+                "recovery_admission_certification",
+                "post_admission_observation_windows",
+                "class_level_blast_radius_certification",
+            ],
+            "consumed_evidence": [
+                observation.get("verification_state", "UNKNOWN"),
+                certification.get("certification_state", "UNKNOWN"),
+                blast.get("certification_state", "UNKNOWN"),
+            ],
+            "unlocked_capability": "one_user_governed_recovery_review" if not blockers else "none",
+            "still_blocked_capabilities": [
+                "runtime_apply",
+                "automation",
+                "authority_expansion",
+                "user_movement",
+                "beyond_one_user_recovery",
+            ],
+            "why_next_step_safe": (
+                "B8 certification, B9 observation windows, and one-user blast-radius guard exist as read-only evidence"
+                if not blockers
+                else "required B8/B9/blast-radius evidence is incomplete"
+            ),
+            "why_later_steps_forbidden": (
+                "beyond-one-user recovery requires separate action-class certification and authority"
+                if not beyond_one_user_certified
+                else "authority is still not granted and Runtime apply remains disabled"
+            ),
+            "stage_catalog": stage_catalog,
+            "blockers": sorted(set(blockers)),
+            "runtime_apply_allowed": False,
+            "authority_expanded": False,
+            "synthetic_evidence_created": False,
+            "users_moved": 0,
+        })
+
+    return {
+        "schema_version": "v7.b10.recovery-slow-start-progression.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "B10",
+        "purpose": "define_recovery_slow_start_as_existing_v7_action_class_and_blast_radius_progression_without_runtime_apply",
+        "source_owners_reused": [
+            "admin_core.autonomy_trust_acceleration.build_recovery_admission_certification",
+            "admin_core.autonomy_trust_acceleration.build_post_admission_observation_windows",
+            "admin_core.autonomy_trust_acceleration.build_class_level_blast_radius_certification",
+            "POLICY_005_ACTION_CLASS_PROMOTION",
+            "POLICY_006_BLAST_RADIUS",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_003_RECOVERY_ADMISSION.md",
+            "docs/policies/POLICY_006_BLAST_RADIUS.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#B10",
+        ],
+        "stage_catalog": stage_catalog,
+        "rows": rows,
+        "summary": {
+            "channels_seen": len(rows),
+            "ready_for_one_user_governed_recovery_review": sum(
+                1 for row in rows if row["progression_state"] == "SLOW_START_PROGRESSION_READY_READ_ONLY"
+            ),
+            "blocked": sum(1 for row in rows if row["progression_state"] != "SLOW_START_PROGRESSION_READY_READ_ONLY"),
+            "one_user_blast_radius_guard_available": one_user_blast_certified,
+            "beyond_one_user_certified": beyond_one_user_certified,
+            "runtime_actions_created": 0,
+            "authority_changes": 0,
+            "synthetic_evidence_created": 0,
+            "users_moved": 0,
+        },
+        "canonical_rules": [
+            "b10_defines_recovery_slow_start_progression_only",
+            "b10_reuses_b8_b9_and_existing_blast_radius_action_class_owners",
+            "one_user_governed_recovery_review_is_not_runtime_apply",
+            "beyond_one_user_recovery_remains_blocked_without_action_class_certification_and_authority",
+            "b10_does_not_create_runtime_planner_owner_truth_source_or_capability_program",
+        ],
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+    }
+
+
+def _b11_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, tuple):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if value in (None, ""):
+        return []
+    return [part.strip() for part in str(value).replace(";", ",").split(",") if part.strip()]
+
+
+def _b11_glob_contains(patterns: list[str], value: str) -> bool:
+    return any(fnmatch.fnmatchcase(value, pattern) for pattern in patterns)
+
+
+def _b11_group_for_user(user: dict[str, Any], org_policy: dict[str, Any]) -> tuple[str, str]:
+    ip = _text(user.get("ip") or user.get("user") or user.get("address"))
+    direct = _text(user.get("group") or user.get("org") or user.get("organization"))
+    if direct:
+        return direct, "user_registry_field"
+    explicit = org_policy.get("user_groups") if isinstance(org_policy.get("user_groups"), dict) else {}
+    if ip and explicit.get(ip):
+        return _text(explicit.get(ip)), "org_policy_user_groups"
+    groups = org_policy.get("groups") if isinstance(org_policy.get("groups"), dict) else {}
+    for group_name, group in groups.items():
+        if ip and ip in _b11_list((group or {}).get("users")):
+            return _text(group_name), "org_policy_groups_users"
+    return _text(org_policy.get("default_group"), "default"), "org_policy_default_group"
+
+
+def _b11_channel_key(row: dict[str, Any], index: int = 0) -> str:
+    return _text(
+        row.get("id")
+        or row.get("egress")
+        or row.get("channel")
+        or row.get("target")
+        or row.get("recommended_channel")
+        or f"unknown-{index}"
+    )
+
+
+def build_org_cohort_identity_policy_integration(
+    *,
+    decision_surface: dict[str, Any] | None = None,
+    org_policy: dict[str, Any] | None = None,
+    recovery_slow_start_progression: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Certify B11 identity/group/cohort policy visibility without applying movement."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    surface = decision_surface if isinstance(decision_surface, dict) else {}
+    policy = org_policy if isinstance(org_policy, dict) else {}
+    users = [
+        row for row in (surface.get("users") or surface.get("user_rows") or [])
+        if isinstance(row, dict)
+    ]
+    channels_raw = surface.get("channels") or surface.get("egress") or surface.get("channel_rows") or []
+    channels = [
+        row for row in channels_raw
+        if isinstance(row, dict)
+    ]
+    channel_by_id = {
+        _b11_channel_key(row, index): row
+        for index, row in enumerate(channels)
+    }
+    group_usage: dict[str, set[str]] = {}
+    for user in users:
+        current = _text(user.get("current") or user.get("current_channel"))
+        group, _source = _b11_group_for_user(user, policy)
+        if current:
+            group_usage.setdefault(current, set()).add(group)
+
+    groups = policy.get("groups") if isinstance(policy.get("groups"), dict) else {}
+    egress_policy = policy.get("egress") if isinstance(policy.get("egress"), dict) else {}
+    default_isolation = _text(policy.get("default_isolation"), "shared")
+    rows: list[dict[str, Any]] = []
+    for user_index, user in enumerate(users):
+        user_id = _text(user.get("ip") or user.get("user") or user.get("address") or f"unknown-user-{user_index}")
+        group, identity_source = _b11_group_for_user(user, policy)
+        group_policy = groups.get(group) if isinstance(groups.get(group), dict) else {}
+        current = _text(user.get("current") or user.get("current_channel"))
+        target = _text(user.get("recommended_channel") or user.get("target") or current)
+        policy_patterns = _b11_list(group_policy.get("allowed_egress")) + _b11_list(group_policy.get("preferred_egress"))
+        policy_targets = [
+            channel_id for channel_id in sorted(channel_by_id)
+            if _b11_glob_contains(policy_patterns, channel_id)
+        ] if policy_patterns else []
+        candidate_ids = list(dict.fromkeys([
+            item for item in [current, target] + policy_targets
+            if item
+        ]))
+        if not candidate_ids:
+            candidate_ids = sorted(channel_by_id)
+        for target_id in candidate_ids:
+            channel = channel_by_id.get(target_id, {"id": target_id})
+            meta = egress_policy.get(target_id) if isinstance(egress_policy.get(target_id), dict) else {}
+            allowed = _b11_list(group_policy.get("allowed_egress"))
+            preferred = _b11_list(group_policy.get("preferred_egress"))
+            excluded = _b11_list(group_policy.get("excluded_egress"))
+            egress_groups = _b11_list(meta.get("groups") or channel.get("groups"))
+            exclusive_group = _text(meta.get("exclusive_group") or channel.get("exclusive_group"))
+            isolation = _text(group_policy.get("isolation") or default_isolation, "shared")
+            other_groups = sorted(group_usage.get(target_id, set()) - {group})
+            gate_results = []
+
+            def add_gate(name: str, passed: bool, reason: str) -> None:
+                gate_results.append({
+                    "gate": name,
+                    "state": "PASS" if passed else "BLOCK",
+                    "reason": reason,
+                })
+
+            add_gate("identity_group_resolved", bool(user_id and group), identity_source)
+            add_gate(
+                "group_allowed_egress",
+                not allowed or _b11_glob_contains(allowed, target_id),
+                "allowed_egress_empty_means_no_group_allowlist" if not allowed else "target_in_group_allowed_egress",
+            )
+            add_gate(
+                "group_excluded_egress",
+                not excluded or not _b11_glob_contains(excluded, target_id),
+                "target_not_excluded_by_group_policy",
+            )
+            add_gate(
+                "egress_exclusive_group",
+                not exclusive_group or exclusive_group == group,
+                "exclusive_group_empty_or_matches_user_group",
+            )
+            add_gate(
+                "egress_group_acl",
+                not egress_groups or group in egress_groups,
+                "egress_groups_empty_or_contains_user_group",
+            )
+            add_gate(
+                "exclusive_isolation",
+                isolation != "exclusive" or not other_groups,
+                "exclusive_isolation_has_no_other_group_on_target",
+            )
+            add_gate(
+                "manual_only",
+                not bool(meta.get("manual_only") or channel.get("manual_only")),
+                "manual_only_channels_are_not_planner_eligible",
+            )
+            add_gate(
+                "reserve_only",
+                not bool(meta.get("reserve_only") or channel.get("reserve_only")),
+                "reserve_only_channels_are_not_planned_targets",
+            )
+            blockers = [gate["gate"] for gate in gate_results if gate["state"] == "BLOCK"]
+            rows.append({
+                "user": user_id,
+                "group": group,
+                "identity_source": identity_source,
+                "current_channel": current,
+                "target_channel": target_id,
+                "is_preferred_target": bool(preferred and _b11_glob_contains(preferred, target_id)),
+                "isolation": isolation,
+                "other_groups_on_target": other_groups,
+                "group_policy": {
+                    "allowed_egress": allowed,
+                    "preferred_egress": preferred,
+                    "excluded_egress": excluded,
+                    "isolation": isolation,
+                },
+                "egress_policy": {
+                    "exclusive_group": exclusive_group,
+                    "groups": egress_groups,
+                    "manual_only": bool(meta.get("manual_only") or channel.get("manual_only")),
+                    "reserve_only": bool(meta.get("reserve_only") or channel.get("reserve_only")),
+                },
+                "policy_gate_results": gate_results,
+                "integration_state": "ORG_COHORT_IDENTITY_POLICY_INTEGRATED_READ_ONLY" if not blockers else "ORG_COHORT_IDENTITY_POLICY_BLOCKED_BY_EXISTING_GATES",
+                "blockers": blockers,
+                "owners": [
+                    "tools/v7-users-autoswitch._load_users",
+                    "tools/v7-users-autoswitch._org_user_map",
+                    "tools/v7-users-autoswitch._gate_org",
+                    "admin_core.operator_decision_surface",
+                    "admin/v7-admin-api identity/policy surfaces",
+                ],
+                "runtime_apply_allowed": False,
+                "authority_expanded": False,
+                "synthetic_evidence_created": False,
+                "users_moved": 0,
+            })
+
+    return {
+        "schema_version": "v7.b11.org-cohort-identity-policy-integration.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "B11",
+        "purpose": "complete_org_cohort_isolation_and_identity_policy_integration_as_read_only_visibility_over_existing_planner_gates",
+        "source_owners_reused": [
+            "admin/v7-admin-api identity and org policy surfaces",
+            "admin_core.operator_decision_surface",
+            "tools/v7-users-autoswitch._load_users",
+            "tools/v7-users-autoswitch._org_user_map",
+            "tools/v7-users-autoswitch._load_egress",
+            "tools/v7-users-autoswitch._gate_org",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_004_AUTHORITY.md",
+            "docs/policies/POLICY_006_BLAST_RADIUS.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#B11",
+        ],
+        "consumed_prior_capability": {
+            "recovery_slow_start_progression": (recovery_slow_start_progression or {}).get("schema_version", "UNKNOWN"),
+            "state": "CONSUMED_READ_ONLY" if recovery_slow_start_progression else "NOT_PROVIDED",
+        },
+        "rows": rows,
+        "summary": {
+            "users_seen": len(users),
+            "channels_seen": len(channels),
+            "policy_rows": len(rows),
+            "integrated_rows": sum(1 for row in rows if row["integration_state"] == "ORG_COHORT_IDENTITY_POLICY_INTEGRATED_READ_ONLY"),
+            "blocked_by_existing_policy_gates": sum(1 for row in rows if row["integration_state"] != "ORG_COHORT_IDENTITY_POLICY_INTEGRATED_READ_ONLY"),
+            "groups_seen": sorted({row["group"] for row in rows}),
+            "runtime_actions_created": 0,
+            "authority_changes": 0,
+            "synthetic_evidence_created": 0,
+            "users_moved": 0,
+        },
+        "canonical_rules": [
+            "b11_reuses_existing_identity_org_policy_and_planner_gate_owners",
+            "identity_group_resolution_precedes_policy_target_review",
+            "allowed_excluded_exclusive_group_egress_acl_and_exclusive_isolation_are_existing_planner_gates",
+            "b11_policy_blockers_are_visibility_not_runtime_mutation",
+            "b11_does_not_create_runtime_planner_owner_truth_source_or_authority",
+        ],
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+    }
+
+
+def build_next_action_class_stage_certification(
+    *,
+    action_class_runtime_enablement: dict[str, Any] | None = None,
+    class_level_blast_radius_certification: dict[str, Any] | None = None,
+    runtime_eligibility_arbitration: dict[str, Any] | None = None,
+    metric_reliability_certification: dict[str, Any] | None = None,
+    org_cohort_identity_policy_integration: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Certify B12 next action-class stage review without granting authority."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    enablement = action_class_runtime_enablement if isinstance(action_class_runtime_enablement, dict) else {}
+    blast = class_level_blast_radius_certification if isinstance(class_level_blast_radius_certification, dict) else {}
+    runtime = runtime_eligibility_arbitration if isinstance(runtime_eligibility_arbitration, dict) else {}
+    metrics = metric_reliability_certification if isinstance(metric_reliability_certification, dict) else {}
+    policy = org_cohort_identity_policy_integration if isinstance(org_cohort_identity_policy_integration, dict) else {}
+    current_class_name = _text(enablement.get("current_action_class"), ACTION_CLASS_LADDER[0][0])
+    class_rows = [row for row in (enablement.get("action_classes") or []) if isinstance(row, dict)]
+    current_row = next(
+        (row for row in class_rows if row.get("action_class") == current_class_name),
+        class_rows[0] if class_rows else {},
+    )
+    current_state = _text(current_row.get("current_state") or enablement.get("current_state"), "UNKNOWN")
+    target_state = _text(current_row.get("next_state") or enablement.get("next_promotion_target"), "CERTIFIED_FOR_CLASS_APPROVAL")
+    policy_summary = policy.get("summary") if isinstance(policy.get("summary"), dict) else {}
+    policy_rows = int(as_float(policy_summary.get("policy_rows"), 0.0))
+    policy_blocked = int(as_float(policy_summary.get("blocked_by_existing_policy_gates"), 0.0))
+    policy_schema = _text(policy.get("schema_version"))
+    evidence_rows = [
+        {
+            "evidence": "action_class_ladder_current_stage",
+            "owner": "action_class_runtime_enablement",
+            "current": current_state,
+            "target": "GOVERNED_ONLY",
+            "state": "PASS" if current_state == "GOVERNED_ONLY" else "STOP",
+            "reason": "current class must be governed before class-approval certification review",
+        },
+        {
+            "evidence": "a5_blast_radius_certification",
+            "owner": "class_level_blast_radius_certification",
+            "current": blast.get("certification_state", "UNKNOWN"),
+            "target": "BEYOND_ONE_USER_EVIDENCE_CERTIFIED_READ_ONLY",
+            "state": "PASS" if bool(blast.get("beyond_one_user_certified")) else "STOP",
+            "reason": "B12 can review the next stage only after A5 has certified blast-radius evidence",
+        },
+        {
+            "evidence": "a6_runtime_eligibility_arbitration",
+            "owner": "runtime_eligibility_arbitration",
+            "current": runtime.get("runtime_execute_decision", "UNKNOWN"),
+            "target": "STOP_SAFE or ELIGIBLE_READ_ONLY_PREVIEW",
+            "state": "PASS" if runtime.get("schema_version") == "v7.a6-runtime-eligibility-arbitration.v1" else "STOP",
+            "reason": "B12 consumes A6 execute-or-stop arbitration as read-only safety evidence",
+        },
+        {
+            "evidence": "b13_blocking_recommendation_metric_reliability",
+            "owner": "metric_reliability_certification",
+            "current": metrics.get("certification_state", "UNKNOWN"),
+            "target": "blocking recommendation certified",
+            "state": "PASS" if bool(metrics.get("blocking_recommendation_certified")) else "STOP",
+            "reason": "B12 can use reliable blocking metrics, not automatic positive promotion",
+        },
+        {
+            "evidence": "b11_identity_policy_boundary",
+            "owner": "org_cohort_identity_policy_integration",
+            "current": {
+                "schema_version": policy_schema,
+                "policy_rows": policy_rows,
+                "blocked_by_existing_policy_gates": policy_blocked,
+            },
+            "target": "owner-mapped policy boundary",
+            "state": "PASS" if policy_schema == "v7.b11.org-cohort-identity-policy-integration.v1" else "STOP",
+            "reason": "B12 requires identity/cohort policy boundary visibility before stage certification",
+        },
+        {
+            "evidence": "authority_boundary",
+            "owner": "POLICY_004_AUTHORITY / OMP",
+            "current": "NO_AUTHORITY_EXPANSION",
+            "target": "authority review required before promotion",
+            "state": "STOP",
+            "reason": "B12 may certify stage readiness but cannot approve class authority",
+        },
+        {
+            "evidence": "runtime_apply_boundary",
+            "owner": "Runtime Model / OMP",
+            "current": "RUNTIME_APPLY_DISABLED",
+            "target": "runtime apply remains disabled",
+            "state": "STOP",
+            "reason": "stage certification cannot become Runtime behavior",
+        },
+    ]
+    hard_blockers = [
+        row["evidence"] for row in evidence_rows
+        if row["state"] == "STOP" and row["evidence"] not in {"authority_boundary", "runtime_apply_boundary"}
+    ]
+    safety_stops = [
+        row["evidence"] for row in evidence_rows
+        if row["evidence"] in {"authority_boundary", "runtime_apply_boundary"}
+    ]
+    stage_review_ready = not hard_blockers
+    next_stage = {
+        "action_class": current_class_name,
+        "from_state": current_state,
+        "to_state": target_state,
+        "stage_certification_state": (
+            "NEXT_ACTION_CLASS_STAGE_CERTIFIED_FOR_AUTHORITY_REVIEW_READ_ONLY"
+            if stage_review_ready
+            else "NEXT_ACTION_CLASS_STAGE_BLOCKED_BY_EVIDENCE"
+        ),
+        "stage_certified_for_review": stage_review_ready,
+        "stage_certified_for_runtime": False,
+        "stage_promoted": False,
+        "authority_review_required": True,
+        "runtime_apply_allowed": False,
+        "direct_class_promotion_allowed": False,
+        "blockers": hard_blockers + safety_stops,
+    }
+    return {
+        "schema_version": "v7.b12-next-action-class-stage-certification.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "B12",
+        "purpose": "implement_next_action_class_stage_only_after_certification_evidence_exists_without_promotion_or_runtime_apply",
+        "source_owners_reused": [
+            "admin_core.autonomy_trust_acceleration.build_action_class_runtime_enablement_model",
+            "admin_core.autonomy_trust_acceleration.build_class_level_blast_radius_certification",
+            "admin_core.autonomy_trust_acceleration.build_runtime_eligibility_arbitration",
+            "admin_core.autonomy_trust_acceleration.build_metric_reliability_certification",
+            "admin_core.autonomy_trust_acceleration.build_org_cohort_identity_policy_integration",
+            "POLICY_005_ACTION_CLASS_PROMOTION",
+            "POLICY_004_AUTHORITY",
+            "OMP",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_005_ACTION_CLASS_PROMOTION.md",
+            "docs/policies/POLICY_004_AUTHORITY.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#B12",
+        ],
+        "consumed_prior_capabilities": {
+            "A5": blast.get("schema_version", "UNKNOWN"),
+            "A6": runtime.get("schema_version", "UNKNOWN"),
+            "B13": metrics.get("schema_version", "UNKNOWN"),
+            "B11": policy.get("schema_version", "UNKNOWN"),
+        },
+        "current_action_class": current_class_name,
+        "current_state": current_state,
+        "next_stage": next_stage,
+        "evidence_rows": evidence_rows,
+        "stage_catalog": [
+            {
+                "state": row[2],
+                "action_class": row[0],
+                "blast_radius_users": row[1],
+                "current": row[0] == current_class_name,
+            }
+            for row in ACTION_CLASS_LADDER
+        ],
+        "summary": {
+            "evidence_rows": len(evidence_rows),
+            "hard_blockers": len(hard_blockers),
+            "safety_stops": len(safety_stops),
+            "stage_review_ready": stage_review_ready,
+            "authority_changes": 0,
+            "runtime_actions_created": 0,
+            "direct_promotions_created": 0,
+            "synthetic_evidence_created": 0,
+            "users_moved": 0,
+        },
+        "canonical_rules": [
+            "b12_reuses_existing_action_class_ladder_and_certification_owners",
+            "b12_stage_review_requires_a5_a6_b13_and_b11_evidence",
+            "b12_may_certify_stage_readiness_for_authority_review_only",
+            "b12_does_not_grant_action_class_authority_or_runtime_apply",
+            "b12_does_not_create_runtime_planner_owner_truth_source_or_direct_promotion",
+        ],
+        "omp_output": {
+            "b12_status": (
+                "DONE_READ_ONLY_STAGE_CERTIFIED_FOR_AUTHORITY_REVIEW"
+                if stage_review_ready
+                else "STOP_SAFE_STAGE_CERTIFICATION_EVIDENCE_INCOMPLETE"
+            ),
+            "produced_evidence": "next_action_class_stage_certification",
+            "unlocked_capability": "B14_OR_NEXT_OMP_ITEM_AFTER_CANONICAL_UPDATE" if stage_review_ready else "",
+            "blocked_later_steps": [
+                "runtime_apply",
+                "automation",
+                "authority_expansion",
+                "direct_class_promotion",
+                "delegated_policy_approval",
+                "user_movement",
+            ],
+        },
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "direct_class_promotion_performed": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+        "new_runtime_created": False,
+    }
+
+
+def build_service_pool_cohort_blast_radius_scope(
+    *,
+    decision_surface: dict[str, Any] | None = None,
+    service_user_sla_fit: dict[str, Any] | None = None,
+    class_level_blast_radius_certification: dict[str, Any] | None = None,
+    next_action_class_stage_certification: dict[str, Any] | None = None,
+    org_cohort_identity_policy_integration: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Expose B14 service/pool/cohort blast-radius scope without widening it."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    surface = decision_surface if isinstance(decision_surface, dict) else {}
+    fit = service_user_sla_fit if isinstance(service_user_sla_fit, dict) else {}
+    blast = class_level_blast_radius_certification if isinstance(class_level_blast_radius_certification, dict) else {}
+    stage = next_action_class_stage_certification if isinstance(next_action_class_stage_certification, dict) else {}
+    policy = org_cohort_identity_policy_integration if isinstance(org_cohort_identity_policy_integration, dict) else {}
+    policy_rows = [
+        row for row in (policy.get("rows") or [])
+        if isinstance(row, dict)
+    ]
+    policy_by_user_target = {
+        (_text(row.get("user")), _text(row.get("target_channel"))): row
+        for row in policy_rows
+    }
+    policy_by_user = {
+        _text(row.get("user")): row
+        for row in policy_rows
+        if _text(row.get("user"))
+    }
+    fit_rows = [
+        row for row in (fit.get("rows") or [])
+        if isinstance(row, dict)
+    ]
+    users_by_id = {
+        _text(row.get("user") or row.get("ip") or row.get("address")): row
+        for row in (surface.get("users") or [])
+        if isinstance(row, dict)
+    }
+    rows: list[dict[str, Any]] = []
+    for fit_row in fit_rows:
+        user = _text(fit_row.get("user"))
+        candidates = [
+            row for row in (fit_row.get("candidates") or [])
+            if isinstance(row, dict)
+        ]
+        if not candidates:
+            candidates = [{
+                "channel": fit_row.get("best_channel") or fit_row.get("current_assignment"),
+                "fit_verdict": fit_row.get("fit_verdict", "UNKNOWN"),
+                "fit_score": fit_row.get("fit_score", 0.0),
+                "capacity_headroom": fit_row.get("capacity_headroom", ""),
+                "capacity_decision": fit_row.get("capacity_decision", ""),
+                "route_runtime_safe": False,
+            }]
+        for candidate in candidates:
+            target = _text(candidate.get("channel") or candidate.get("target") or fit_row.get("best_channel"))
+            policy_row = policy_by_user_target.get((user, target)) or policy_by_user.get(user) or {}
+            group = _text(policy_row.get("group"), "unknown")
+            capacity_decision = _text(candidate.get("capacity_decision") or candidate.get("capacity") or "UNKNOWN")
+            capacity_headroom = candidate.get("capacity_headroom", candidate.get("headroom", "UNKNOWN"))
+            pool = _text(
+                candidate.get("pool")
+                or candidate.get("pool_id")
+                or candidate.get("best_available_pool")
+                or candidate.get("channel")
+                or target
+            )
+            blockers: list[str] = []
+            if not user:
+                blockers.append("user_scope_missing")
+            if not target:
+                blockers.append("target_scope_missing")
+            if not pool:
+                blockers.append("pool_scope_missing")
+            if group == "unknown":
+                blockers.append("cohort_scope_missing")
+            if candidate.get("fit_verdict") not in {"FIT", "FIT_WITH_WARNINGS"}:
+                blockers.append("service_user_sla_fit_not_clear")
+            if capacity_decision in {"", "UNKNOWN", "BLOCK", "BLOCKED", "NO_CAPACITY"}:
+                blockers.append("capacity_scope_not_clear")
+            if policy_row and policy_row.get("integration_state") != "ORG_COHORT_IDENTITY_POLICY_INTEGRATED_READ_ONLY":
+                blockers.extend([f"cohort_policy:{item}" for item in (policy_row.get("blockers") or [])])
+            if not bool(blast.get("beyond_one_user_certified")):
+                blockers.append("a5_blast_radius_not_certified_beyond_one_user")
+            if (stage.get("next_stage") or {}).get("stage_certification_state") != "NEXT_ACTION_CLASS_STAGE_CERTIFIED_FOR_AUTHORITY_REVIEW_READ_ONLY":
+                blockers.append("b12_next_action_class_stage_not_certified_for_review")
+            rows.append({
+                "user": user,
+                "current_assignment": fit_row.get("current_assignment") or users_by_id.get(user, {}).get("current_channel"),
+                "target_channel": target,
+                "service_scope": {
+                    "required_services": fit_row.get("required_services", []),
+                    "missing_requirements": candidate.get("missing_requirements", fit_row.get("missing_requirements", [])),
+                    "fit_verdict": candidate.get("fit_verdict", fit_row.get("fit_verdict", "UNKNOWN")),
+                    "fit_score": candidate.get("fit_score", fit_row.get("fit_score", 0.0)),
+                },
+                "pool_scope": {
+                    "pool": pool,
+                    "capacity_headroom": capacity_headroom,
+                    "capacity_decision": capacity_decision,
+                    "route_runtime_safe": bool(candidate.get("route_runtime_safe")),
+                },
+                "cohort_scope": {
+                    "group": group,
+                    "identity_source": policy_row.get("identity_source", "unknown"),
+                    "isolation": policy_row.get("isolation", "unknown"),
+                    "policy_integration_state": policy_row.get("integration_state", "UNKNOWN"),
+                },
+                "blast_radius_scope": {
+                    "certification_state": blast.get("certification_state", "UNKNOWN"),
+                    "max_historical_certified_blast_radius_users": blast.get("max_historical_certified_blast_radius_users", 0),
+                    "beyond_one_user_certified": bool(blast.get("beyond_one_user_certified")),
+                    "scope_expanded_now": False,
+                },
+                "action_class_scope": {
+                    "current_action_class": stage.get("current_action_class", "UNKNOWN"),
+                    "current_state": stage.get("current_state", "UNKNOWN"),
+                    "stage_certification_state": (stage.get("next_stage") or {}).get("stage_certification_state", "UNKNOWN"),
+                },
+                "scope_state": (
+                    "SERVICE_POOL_COHORT_SCOPE_MAPPED_READ_ONLY"
+                    if not blockers
+                    else "SERVICE_POOL_COHORT_SCOPE_BLOCKED_BY_EXISTING_GATES"
+                ),
+                "blockers": sorted(set(blockers)),
+                "runtime_apply_allowed": False,
+                "authority_expanded": False,
+                "synthetic_evidence_created": False,
+                "users_moved": 0,
+            })
+    summary = {
+        "users_seen": len(fit_rows),
+        "scope_rows": len(rows),
+        "mapped_rows": sum(1 for row in rows if row["scope_state"] == "SERVICE_POOL_COHORT_SCOPE_MAPPED_READ_ONLY"),
+        "blocked_by_existing_gates": sum(1 for row in rows if row["scope_state"] != "SERVICE_POOL_COHORT_SCOPE_MAPPED_READ_ONLY"),
+        "services_seen": sorted({
+            service
+            for row in rows
+            for service in (row.get("service_scope", {}).get("required_services") or [])
+        }),
+        "pools_seen": sorted({
+            row.get("pool_scope", {}).get("pool")
+            for row in rows
+            if row.get("pool_scope", {}).get("pool")
+        }),
+        "cohorts_seen": sorted({
+            row.get("cohort_scope", {}).get("group")
+            for row in rows
+            if row.get("cohort_scope", {}).get("group")
+        }),
+        "runtime_actions_created": 0,
+        "authority_changes": 0,
+        "blast_radius_expansions": 0,
+        "synthetic_evidence_created": 0,
+        "users_moved": 0,
+    }
+    return {
+        "schema_version": "v7.b14-service-pool-cohort-blast-radius-scope.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "B14",
+        "purpose": "add_service_pool_cohort_blast_radius_scope_where_required_without_expanding_blast_radius",
+        "source_owners_reused": [
+            "tools/v7-users-autoswitch._load_limits_for_egress",
+            "tools/v7-users-autoswitch._capacity_decision",
+            "tools/v7-users-autoswitch._mark_best_available_pool",
+            "tools/v7-users-autoswitch dynamic_blast_radius",
+            "admin_core.autonomy_trust_acceleration.build_service_user_sla_fit",
+            "admin_core.autonomy_trust_acceleration.build_org_cohort_identity_policy_integration",
+            "admin_core.autonomy_trust_acceleration.build_class_level_blast_radius_certification",
+            "admin_core.autonomy_trust_acceleration.build_next_action_class_stage_certification",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_006_BLAST_RADIUS.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#B14",
+        ],
+        "consumed_prior_capabilities": {
+            "B11": policy.get("schema_version", "UNKNOWN"),
+            "B12": stage.get("schema_version", "UNKNOWN"),
+            "A5": blast.get("schema_version", "UNKNOWN"),
+            "routing_foundation_service_fit": fit.get("schema_version", "UNKNOWN"),
+        },
+        "rows": rows,
+        "summary": summary,
+        "canonical_rules": [
+            "b14_reuses_existing_planner_capacity_service_and_action_class_owners",
+            "service_pool_cohort_scope_is_read_only_visibility_not_runtime_apply",
+            "b14_does_not_expand_blast_radius_or_authority",
+            "pool_scope_uses_existing_best_available_pool_and_capacity_signals",
+            "cohort_scope_consumes_b11_identity_policy_boundaries",
+        ],
+        "omp_output": {
+            "b14_status": "DONE_READ_ONLY_SCOPE_MAPPED" if rows else "STOP_SAFE_NO_SCOPE_ROWS_VISIBLE",
+            "produced_evidence": "service_pool_cohort_blast_radius_scope",
+            "unlocked_capability": "B15_OR_NEXT_OMP_ITEM_AFTER_CANONICAL_UPDATE" if rows else "",
+            "blocked_later_steps": [
+                "runtime_apply",
+                "automation",
+                "authority_expansion",
+                "blast_radius_expansion",
+                "direct_class_promotion",
+                "user_movement",
+            ],
+        },
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "blast_radius_expanded": False,
+        "threshold_values_changed": False,
+        "formula_changed": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+        "new_runtime_created": False,
     }
 
 
@@ -7047,7 +10425,66 @@ def build_acceleration_inventory(
         anti_flapping=anti_flapping,
         generated_at=generated,
     )
+    soft_degradation_threshold_vocabulary = build_soft_degradation_threshold_vocabulary_alignment(
+        decision_surface=decision_surface,
+        service_scores_snapshot=snapshots["service-scores"],
+        channel_service_scores_snapshot=snapshots["channel-service-scores"],
+        service_user_sla_fit=service_user_sla_fit,
+        hard_failure_policy_windows=hard_failure_policy_windows,
+        freshness_actionability=freshness_actionability,
+        anti_flapping=anti_flapping,
+        generated_at=generated,
+    )
+    degradation_signal_policy_mapping = build_degradation_signal_policy_mapping(
+        decision_surface=decision_surface,
+        service_scores_snapshot=snapshots["service-scores"],
+        channel_service_scores_snapshot=snapshots["channel-service-scores"],
+        risk_summaries_snapshot=snapshots["risk-summaries"],
+        overview_summary_snapshot=snapshots["overview-summary"],
+        soft_degradation_threshold_vocabulary=soft_degradation_threshold_vocabulary,
+        freshness_actionability=freshness_actionability,
+        generated_at=generated,
+    )
     decision_outcome_learning = _decision_outcome_learning_from_trust(snapshots["trust-evolution-summaries"])
+    observed_degradation_attribution = build_observed_degradation_attribution(
+        service_scores_snapshot=snapshots["service-scores"],
+        channel_service_scores_snapshot=snapshots["channel-service-scores"],
+        trust_evolution_snapshot=snapshots["trust-evolution-summaries"],
+        degradation_signal_policy_mapping=degradation_signal_policy_mapping,
+        decision_outcome_learning=decision_outcome_learning,
+        decision_records=decision_records or [],
+        generated_at=generated,
+    )
+    v7_native_degradation_response_mapping = build_v7_native_degradation_response_mapping(
+        decision_surface=decision_surface,
+        observed_degradation_attribution=observed_degradation_attribution,
+        soft_degradation_threshold_vocabulary=soft_degradation_threshold_vocabulary,
+        degradation_signal_policy_mapping=degradation_signal_policy_mapping,
+        anti_flapping=anti_flapping,
+        recovery_admission=recovery_admission,
+        generated_at=generated,
+    )
+    service_objective_policy_threshold_binding = build_service_objective_policy_threshold_binding(
+        service_user_sla_fit=service_user_sla_fit,
+        freshness_actionability=freshness_actionability,
+        soft_degradation_threshold_vocabulary=soft_degradation_threshold_vocabulary,
+        v7_native_degradation_response_mapping=v7_native_degradation_response_mapping,
+        generated_at=generated,
+    )
+    recovery_admission_certification = build_recovery_admission_certification(
+        recovery_admission=recovery_admission,
+        service_scores_snapshot=snapshots["service-scores"],
+        channel_service_scores_snapshot=snapshots["channel-service-scores"],
+        freshness_actionability=freshness_actionability,
+        service_objective_policy_threshold_binding=service_objective_policy_threshold_binding,
+        generated_at=generated,
+    )
+    post_admission_observation_windows = build_post_admission_observation_windows(
+        recovery_admission_certification=recovery_admission_certification,
+        service_scores_snapshot=snapshots["service-scores"],
+        channel_service_scores_snapshot=snapshots["channel-service-scores"],
+        generated_at=generated,
+    )
     suitability_effectiveness_expansion = build_suitability_effectiveness_expansion(
         decision_outcome_learning=decision_outcome_learning,
         floor_forensics=floor_forensics,
@@ -7158,6 +10595,17 @@ def build_acceleration_inventory(
         historical_blast_radius_evidence=historical_blast_radius_evidence,
         generated_at=generated,
     )
+    recovery_slow_start_progression = build_recovery_slow_start_progression(
+        post_admission_observation_windows=post_admission_observation_windows,
+        recovery_admission_certification=recovery_admission_certification,
+        class_level_blast_radius_certification=class_level_blast_radius_certification,
+        generated_at=generated,
+    )
+    org_cohort_identity_policy_integration = build_org_cohort_identity_policy_integration(
+        decision_surface=decision_surface,
+        recovery_slow_start_progression=recovery_slow_start_progression,
+        generated_at=generated,
+    )
     runtime_eligibility_arbitration = build_runtime_eligibility_arbitration(
         action_class_runtime_enablement=action_class_runtime_enablement,
         class_level_blast_radius_certification=class_level_blast_radius_certification,
@@ -7166,6 +10614,38 @@ def build_acceleration_inventory(
         decision_outcome_closure=decision_outcome_closure,
         decision_outcome_learning=decision_outcome_learning,
         routing_recommendation_readiness=routing_recommendation_readiness,
+        generated_at=generated,
+    )
+    stale_read_mutation_blocking = build_stale_read_mutation_blocking(
+        freshness_actionability=freshness_actionability,
+        runtime_eligibility_arbitration=runtime_eligibility_arbitration,
+        routing_recommendation_readiness=routing_recommendation_readiness,
+        generated_at=generated,
+    )
+    owner_issued_version_lease_pattern = build_owner_issued_version_lease_pattern(
+        freshness_actionability=freshness_actionability,
+        action_class_freshness_windows=action_class_freshness_windows,
+        stale_read_mutation_blocking=stale_read_mutation_blocking,
+        generated_at=generated,
+    )
+    hysteresis_state_change_cost_mapping = build_hysteresis_state_change_cost_mapping(
+        anti_flapping=anti_flapping,
+        recovery_admission=recovery_admission,
+        service_objective_policy_threshold_binding=service_objective_policy_threshold_binding,
+        owner_issued_version_lease_pattern=owner_issued_version_lease_pattern,
+        generated_at=generated,
+    )
+    hard_failure_override_anti_flap_arbitration = build_hard_failure_override_anti_flap_arbitration(
+        hard_failure_classification=hard_failure_classification,
+        hard_failure_policy_windows=hard_failure_policy_windows,
+        anti_flapping=anti_flapping,
+        hysteresis_state_change_cost_mapping=hysteresis_state_change_cost_mapping,
+        generated_at=generated,
+    )
+    per_user_routing_control_mode = build_per_user_routing_control_mode(
+        decision_surface=decision_surface,
+        org_cohort_identity_policy_integration=org_cohort_identity_policy_integration,
+        hard_failure_override_anti_flap_arbitration=hard_failure_override_anti_flap_arbitration,
         generated_at=generated,
     )
     metric_reliability_certification = build_metric_reliability_certification(
@@ -7180,6 +10660,22 @@ def build_acceleration_inventory(
         action_class_runtime_enablement=action_class_runtime_enablement,
         class_level_blast_radius_certification=class_level_blast_radius_certification,
         runtime_eligibility_arbitration=runtime_eligibility_arbitration,
+        generated_at=generated,
+    )
+    next_action_class_stage_certification = build_next_action_class_stage_certification(
+        action_class_runtime_enablement=action_class_runtime_enablement,
+        class_level_blast_radius_certification=class_level_blast_radius_certification,
+        runtime_eligibility_arbitration=runtime_eligibility_arbitration,
+        metric_reliability_certification=metric_reliability_certification,
+        org_cohort_identity_policy_integration=org_cohort_identity_policy_integration,
+        generated_at=generated,
+    )
+    service_pool_cohort_blast_radius_scope = build_service_pool_cohort_blast_radius_scope(
+        decision_surface=decision_surface,
+        service_user_sla_fit=service_user_sla_fit,
+        class_level_blast_radius_certification=class_level_blast_radius_certification,
+        next_action_class_stage_certification=next_action_class_stage_certification,
+        org_cohort_identity_policy_integration=org_cohort_identity_policy_integration,
         generated_at=generated,
     )
     rollback_authority_certification = build_rollback_authority_certification(
@@ -7262,6 +10758,15 @@ def build_acceleration_inventory(
         "hard_failure_classification": hard_failure_classification,
         "liveness_evidence_aggregation": liveness_evidence_aggregation,
         "hard_failure_policy_windows": hard_failure_policy_windows,
+        "soft_degradation_threshold_vocabulary": soft_degradation_threshold_vocabulary,
+        "degradation_signal_policy_mapping": degradation_signal_policy_mapping,
+        "observed_degradation_attribution": observed_degradation_attribution,
+        "v7_native_degradation_response_mapping": v7_native_degradation_response_mapping,
+        "service_objective_policy_threshold_binding": service_objective_policy_threshold_binding,
+        "recovery_admission_certification": recovery_admission_certification,
+        "post_admission_observation_windows": post_admission_observation_windows,
+        "recovery_slow_start_progression": recovery_slow_start_progression,
+        "org_cohort_identity_policy_integration": org_cohort_identity_policy_integration,
         "service_user_sla_fit": service_user_sla_fit,
         "action_class_freshness_windows": action_class_freshness_windows,
         "decision_outcome_closure": decision_outcome_closure,
@@ -7282,7 +10787,14 @@ def build_acceleration_inventory(
         "historical_blast_radius_evidence": historical_blast_radius_evidence,
         "class_level_blast_radius_certification": class_level_blast_radius_certification,
         "runtime_eligibility_arbitration": runtime_eligibility_arbitration,
+        "stale_read_mutation_blocking": stale_read_mutation_blocking,
+        "owner_issued_version_lease_pattern": owner_issued_version_lease_pattern,
+        "hysteresis_state_change_cost_mapping": hysteresis_state_change_cost_mapping,
+        "hard_failure_override_anti_flap_arbitration": hard_failure_override_anti_flap_arbitration,
+        "per_user_routing_control_mode": per_user_routing_control_mode,
         "metric_reliability_certification": metric_reliability_certification,
+        "next_action_class_stage_certification": next_action_class_stage_certification,
+        "service_pool_cohort_blast_radius_scope": service_pool_cohort_blast_radius_scope,
         "rollback_authority_certification": rollback_authority_certification,
         "rt2_s5_certified_concurrency_ladder": rt2_s5_certified_concurrency_ladder,
         "maximum_reality_knowledge_extraction": maximum_reality_knowledge_extraction,

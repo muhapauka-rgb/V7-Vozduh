@@ -12,6 +12,7 @@ from admin_core.operator_execution import (
     RUNTIME_ACTION_ZERO_MOVE_GOVERNANCE,
     approved_packet_binding_status,
     cancel_execution_lease,
+    containment_forward_fix_classification,
     create_execution_lease_from_packet,
     create_execution_lease_from_preview,
     execute_packet,
@@ -80,6 +81,68 @@ def packet_template(state_dir, expires_delta=timedelta(hours=1)):
 
 
 class OperatorExecutionPacketTest(unittest.TestCase):
+    def test_b15_containment_forward_fix_classification_matrix_is_read_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "users.registry").write_text("users", encoding="utf-8")
+            (state_dir / "egress.registry").write_text("egress", encoding="utf-8")
+            packet = packet_template(state_dir)
+            packet["rollback_manifest"] = {
+                "rollback_manifest_id": "rb-b15",
+                "source_operation_id": packet["operation_id"],
+                "partial_failure_policy": "stop_and_contain",
+                "rollback_execution_owner": CANONICAL_CLEARANCE_OWNER,
+                "items": [{
+                    "user_ip": "10.7.0.2",
+                    "rollback_target": "vless",
+                    "forward_target": "awg0",
+                    "source_operation_id": packet["operation_id"],
+                }],
+            }
+
+        no_execution = containment_forward_fix_classification(packet=packet)
+        forward_fix = containment_forward_fix_classification(
+            packet=packet,
+            execution_result={"applied": True, "result": "applied"},
+            verification_result={"success": True, "result": "verified"},
+        )
+        contained = containment_forward_fix_classification(
+            packet=packet,
+            execution_result={"applied": True, "result": "applied"},
+            verification_result={"success": False, "result": "failed", "rollback_required": True},
+            rollback_result={"rollback_required": True, "rollback_verdict": "ROLLBACK_COMPLETED"},
+        )
+        failed = containment_forward_fix_classification(
+            packet=packet,
+            execution_result={"applied": True, "result": "applied"},
+            verification_result={"success": False, "result": "failed", "rollback_required": True},
+            rollback_result={"rollback_required": True, "rollback_verdict": "ROLLBACK_FAILED"},
+        )
+        partial = containment_forward_fix_classification(
+            packet=packet,
+            execution_result={"applied": True, "partial_success": True},
+            verification_result={"partial_success": True},
+        )
+
+        self.assertEqual(no_execution["schema_version"], "v7.b15-containment-forward-fix-classification.v1")
+        self.assertEqual(no_execution["backlog_item"], "B15")
+        self.assertEqual(no_execution["classification"], "NO_EXECUTION_CONTAINED")
+        self.assertEqual(forward_fix["classification"], "FORWARD_FIX_VERIFIED")
+        self.assertEqual(contained["classification"], "CONTAINED_BY_ROLLBACK")
+        self.assertEqual(failed["classification"], "CONTAINMENT_FAILED_OPERATOR_REVIEW_REQUIRED")
+        self.assertEqual(partial["classification"], "PARTIAL_FORWARD_FIX_REQUIRES_CONTAINMENT_REVIEW")
+        self.assertEqual(no_execution["partial_failure_policy"], "stop_and_contain")
+        self.assertIn("b15_does_not_execute_runtime_apply_or_rollback", no_execution["canonical_rules"])
+        for model in [no_execution, forward_fix, contained, failed, partial]:
+            self.assertTrue(model["read_only"])
+            self.assertFalse(model["runtime_mutation_performed"])
+            self.assertFalse(model["restore_barrier_written_now"])
+            self.assertFalse(model["apply_executed"])
+            self.assertFalse(model["rollback_executed"])
+            self.assertEqual(model["users_moved"], 0)
+            self.assertFalse(model["authority_expanded"])
+            self.assertFalse(model["synthetic_evidence_created"])
+
     def make_state(self, root):
         state = root / "state"
         state.mkdir()

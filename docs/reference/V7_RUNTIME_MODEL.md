@@ -908,6 +908,117 @@ Rollback must never be reclassified as `SUCCESS`.
 Representative evidence may include success, rollback, and failed outcomes, but each category must preserve its own semantics.
 Feedback, learning, trust, evidence inventory, and promotion owners must consume the terminal classification rather than inferring success from `apply_result` alone.
 
+### Containment / Forward-Fix Classification
+
+Status: `CANONICAL_READ_ONLY`.
+
+B15 materializes terminal classification into a read-only containment/forward-fix lens.
+
+Owner: existing Runtime Model, execution packet, verification, rollback, partial-failure policy, RT2-S4 coordination, OMP, and `admin_core.operator_execution`.
+
+Canonical classifications:
+
+| Terminal facts | B15 classification | Meaning |
+| --- | --- | --- |
+| No apply occurred | `NO_EXECUTION_CONTAINED` | Nothing was mutated; containment is already satisfied. |
+| Apply occurred and verification passed | `FORWARD_FIX_VERIFIED` | Forward action is verified; rollback is not required by observed evidence. |
+| Apply occurred, verification failed, rollback completed | `CONTAINED_BY_ROLLBACK` | Failed forward path was contained by rollback. |
+| Apply occurred, verification failed, rollback failed | `CONTAINMENT_FAILED_OPERATOR_REVIEW_REQUIRED` | Operator review is required; authority is not expanded. |
+| Partial apply or partial verification | `PARTIAL_FORWARD_FIX_REQUIRES_CONTAINMENT_REVIEW` | Cannot be treated as success until containment review is complete. |
+| Apply occurred without complete verification | `FORWARD_FIX_UNVERIFIED_CONTAINMENT_PENDING` | Verification or containment review is still required. |
+
+B15 is observability only. It must not execute Runtime apply, execute rollback, create authority, create synthetic evidence, change thresholds or formulas, move users, or replace terminal outcome classification.
+
+### Stale-Read Reporting / Mutation Blocking
+
+Status: `CANONICAL_READ_ONLY`.
+
+B17 materializes stale-read handling into a read-only Runtime eligibility lens.
+
+Owner: existing freshness actionability, runtime eligibility arbitration, routing readiness, truth/convergence, read-only inventory, OMP, and `admin_core.autonomy_trust_acceleration`.
+
+Canonical rules:
+
+1. Stale or unknown freshness must remain reportable as read-only diagnostic evidence.
+2. Stale or unknown freshness must block mutation unless a later existing owner explicitly certifies a bounded stale allowance.
+3. Fresh reads do not bypass authority, Runtime apply, packet, lease, rollback, verification, or action-class gates.
+4. Runtime eligibility remains the consumer that turns freshness state into `EXECUTE` or `STOP_SAFE`; stale-read reporting is not a second planner or truth source.
+5. B17 must not change freshness windows, threshold values, formulas, owners, authority, runtime apply, or user placement.
+
+B17 is observability and gating only. It must not execute Runtime apply, mutate from stale reads, create authority, create synthetic evidence, change thresholds or formulas, move users, create a new owner, or replace freshness/runtime eligibility owners.
+
+### Owner-Issued Version / Lease Pattern
+
+Status: `CANONICAL_READ_ONLY`.
+
+B18 materializes owner-issued version, lease, generation, TTL, and source-hash coverage into a read-only freshness/lease lens.
+
+Owner: existing execution lease owner, Runtime Model freshness gates, `admin_core.intelligence_snapshots.SNAPSHOT_FAMILIES`, freshness actionability, action-class freshness windows, B17 stale-read mutation blocking, OMP, and `admin_core.autonomy_trust_acceleration`.
+
+Canonical rules:
+
+1. Owner-issued version, lease, generation, TTL, source-hash, and schema fields are stronger than local timestamps where they exist.
+2. Missing owner-issued identity or lifetime fields may block mutation, but they must not hide read-only diagnosis.
+3. Execution lease behavior remains owned by `admin_core.operator_execution`; B18 only reports coverage.
+4. Snapshot family ownership remains with `admin_core.intelligence_snapshots`; B18 must not create a parallel snapshot owner.
+5. B18 must not change TTL windows, freshness windows, threshold values, formulas, lease invalidation behavior, authority, runtime apply, or user placement.
+
+B18 is coverage and observability only. It must not execute Runtime apply, change lease behavior, create authority, create synthetic evidence, change thresholds or formulas, move users, create a new owner, or replace freshness/snapshot/lease owners.
+
+### Hysteresis / State-Change-Cost Mapping
+
+Status: `CANONICAL_READ_ONLY`.
+
+B19 materializes existing hysteresis and state-change-cost controls into one read-only vocabulary.
+
+Owner: existing anti-flap, recovery admission, service threshold, movement-protection, autoswitch safety, OMP, and `admin_core.autonomy_trust_acceleration` owners.
+
+Canonical controls:
+
+1. Sticky/current-route bias and minimum improvement thresholds express state-change cost.
+2. Cooldown, hold-down, observation windows, rapid oscillation detection, and pair-reversal windows express hysteresis.
+3. User freeze, target block, egress quarantine, failed verification limits, and recovery success thresholds protect movement stability.
+4. Missing owner-issued freshness/lease identity contributes state-change cost by blocking mutation while allowing diagnosis.
+5. Hard-failure override is not implemented by B19; it remains the next existing backlog item `B20`.
+
+B19 is vocabulary and owner mapping only. It must not change threshold values, formulas, Runtime behavior, authority, planner ownership, automation, or user placement.
+
+### Hard-Failure Override Anti-Flap Arbitration
+
+Status: `CANONICAL_READ_ONLY`.
+
+B20 materializes the hard-failure override rule for anti-flap arbitration as read-only eligibility evidence.
+
+Owner: existing hard-failure classification, hard-failure policy window, anti-flap, planner/runtime eligibility, OMP, and `admin_core.autonomy_trust_acceleration` owners.
+
+Canonical rules:
+
+1. Confirmed hard failure may become an anti-flap override candidate only for authority/runtime eligibility review.
+2. Suspected hard failure never overrides anti-flap.
+3. No hard failure never overrides anti-flap.
+4. An anti-flap override candidate does not grant Runtime apply, authority expansion, automation, or user movement.
+5. B20 must not change threshold values, timers, formulas, Runtime behavior, planner ownership, or anti-flap ownership.
+
+B20 is arbitration and owner mapping only. It must not execute hard-failure override, mutate Runtime, expand authority, create synthetic evidence, create a new owner, or move users.
+
+### Per-User Routing Control Mode
+
+Status: `CANONICAL_READ_ONLY`.
+
+B21 materializes per-user routing control mode as read-only user-control evidence.
+
+Owner: existing user registry, group/org policy, planner gate, admin operator surface, B11 identity/cohort policy, B20 hard-failure anti-flap arbitration, OMP, and `admin_core.autonomy_trust_acceleration` owners.
+
+Canonical rules:
+
+1. `AUTO` means the planner may recommend a route, but Runtime cannot apply without certified authority and live gates.
+2. `PINNED` means the user assignment is fixed until an existing owner records an explicit operator or policy change.
+3. `MANUAL` means the planner must not move the user without explicit operator action.
+4. Missing explicit mode may be reported as `AUTO` semantics for read-only diagnosis, but B21 must not write that mode into the registry.
+5. B21 must not create a user registry owner, replace the planner, grant Runtime apply, expand authority, synthesize evidence, or move users.
+
+B21 is user-control evidence and owner mapping only. It must not write the registry, mutate Runtime, expand authority, create synthetic evidence, create a new owner, replace Planner ownership, or move users.
+
 ## Runtime Lifecycle Diagram
 
 ```mermaid

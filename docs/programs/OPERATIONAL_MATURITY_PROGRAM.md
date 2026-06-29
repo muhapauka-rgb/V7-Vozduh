@@ -1832,37 +1832,37 @@ Current production snapshot:
 
 | Category | Current % | Target % | Weight |
 | --- | ---: | ---: | ---: |
-| Implementation | `29.4` | `100` | `20` |
-| Testing | `47` | `100` | `10` |
+| Implementation | `79.4` | `100` | `20` |
+| Testing | `73` | `100` | `10` |
 | Production Deployments | `100` | `100` | `10` |
 | Production Outcomes | `25` | `100` | `15` |
-| Certification | `68` | `100` | `15` |
+| Certification | `94` | `100` | `15` |
 | Authority Evolution | `15` | `100` | `10` |
 | Production Autonomy | `0` | `100` | `10` |
-| Implementation Backlog Completion | `29.4` | `100` | `10` |
+| Implementation Backlog Completion | `79.4` | `100` | `10` |
 
 Production Maturity:
 
 ```text
-Current: 39.0%
+Current: 60.5%
 Target: 100%
-Remaining: 61.0%
+Remaining: 39.5%
 ```
 
 Backlog:
 
 ```text
 Tier A: 6 / 6 complete
-Tier B: 4 / 21 complete
+Tier B: 21 / 21 complete
 Tier C: 0 / 7 complete
 Tier D: 0 / 6 optional complete
-Overall: 10 / 34 actionable complete
+Overall: 27 / 34 actionable complete
 ```
 
 Current highest implementation task:
 
 ```text
-B3: Align soft-degradation trend thresholds to canonical policy vocabulary.
+C1: Record fail-open/fail-closed behavior per action class.
 ```
 
 Estimated remaining effort:
@@ -1931,16 +1931,16 @@ Engineering Maturity
 PRODUCTION
 
 Implementation
-29.4%
+79.4%
 
 Certification
-68%
+94%
 
 Autonomy
 0%
 
 Production Maturity
-39.0%
+60.5%
 
 Overall Status
 ENGINEERING_COMPLETE / PRODUCTION_IN_PROGRESS
@@ -1952,28 +1952,28 @@ Backlog
 Tier A
 6 / 6
 Tier B
-4 / 21
+21 / 21
 Tier C
 0 / 7
 Tier D
 0 / 6 optional
 Overall
-10 / 34 complete
+27 / 34 complete
 
 Current Tier
 TIER_1_GOVERNED
 
 Highest Priority Task
-B3: align soft-degradation trend thresholds to canonical policy vocabulary.
+C1: record fail-open/fail-closed behavior per action class.
 
 Status
-B2 DONE_READ_ONLY / B3 Ready
+B21 DONE_READ_ONLY / C1 Ready
 
 Authority
 No expansion active
 
 Required Action
-Run B3 through existing planner/autoswitch, quality compact, and service matrix owners.
+Run C1 through existing Runtime Model, OMP, planner gates, action-class policy owners, read-only inventory, and canonical update owners.
 
 Engineering
 READY
@@ -2110,44 +2110,44 @@ Capability Dashboard must be printed in OMP Status:
 Capability Dashboard
 
 Capability | Current % | Ideal % | Remaining % | Current Maturity | Production Impact | Autonomy Impact | Blocking Backlog Items | Completion Prediction
-Movement Protection | 50.0% | 100% | 50.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | B3, B4, B5, B8, B10, B16, B19, B21, C7 | Complete after movement stability, rollback, recovery, anti-flap, routing mode, slow-start, and pool-health criteria are satisfied.
-Runtime Eligibility | 42.9% | 100% | 57.1% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | B17, B18, C1, C6 | Complete after Runtime can decide execute-or-stop from certified gates and related stale-read/lease semantics are certified.
-Authority Evolution | 60.0% | 100% | 40.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | B11, B12, B16, B21, C3, C4 | Complete after action classes and delegated policy can replace repeated packet approval.
-Rollback | 42.9% | 100% | 57.1% | IN_PROGRESS | VERY_HIGH | HIGH | A3, B15, B16, C5 | Complete after rollback/no-rollback class evidence and authority are certified.
-Recovery Admission | 25.0% | 100% | 75.0% | IN_PROGRESS | HIGH | HIGH | B8, B9, B10 | Complete after recovered channels are reintroduced through certified readiness and slow-start.
-Learning | 60.0% | 100% | 40.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3, B5 | Complete after real outcomes reliably improve future decisions.
-Production Readiness | 39.0% | 100% | 61.0% | IN_PROGRESS | VERY_HIGH | HIGH | Remaining actionable backlog and certification | Complete at PRODUCTION_AUTONOMY_CERTIFIED.
+Movement Protection | 76.0% | 100% | 24.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | B16, B19, B21, C7 | Complete after movement stability, rollback, recovery, anti-flap, routing mode, slow-start, and pool-health criteria are satisfied.
+Runtime Eligibility | 61.0% | 100% | 39.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | B17, B18, C1, C6 | Complete after Runtime can decide execute-or-stop from certified gates and related stale-read/lease semantics are certified.
+Authority Evolution | 68.0% | 100% | 32.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | B12, B16, B21, C3, C4 | Complete after action classes and delegated policy can replace repeated packet approval.
+Rollback | 47.0% | 100% | 53.0% | IN_PROGRESS | VERY_HIGH | HIGH | A3, B15, B16, C5 | Complete after rollback/no-rollback class evidence and authority are certified.
+Recovery Admission | 78.0% | 100% | 22.0% | IN_PROGRESS | HIGH | HIGH | D2, D3 if optional recovery scope changes | Complete after recovered channels are reintroduced through certified readiness and slow-start and optional recovery scope remains resolved or explicitly not applicable.
+Learning | 63.0% | 100% | 37.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3 | Complete after real outcomes reliably improve future decisions.
+Production Readiness | 60.5% | 100% | 39.5% | IN_PROGRESS | VERY_HIGH | HIGH | Remaining actionable backlog and certification | Complete at PRODUCTION_AUTONOMY_CERTIFIED.
 Production Autonomy | 0.0% | 100% | 100.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3, A4, A5, A6, B10, B12, B16, C4 | Complete when Runtime operates inside certified policy and operator supervises.
 Knowledge System | 100.0% | 100% | 0.0% | LOCKED | HIGH | MEDIUM_HIGH | None | Complete and locked under canonical knowledge rules.
-Observability | 35.0% | 100% | 65.0% | IN_PROGRESS | HIGH | MEDIUM_HIGH | B1, B4, B9, B15, B17, C2 | Complete when operators and OMP can inspect all safety/runtime evidence without mutation.
+Observability | 63.0% | 100% | 37.0% | IN_PROGRESS | HIGH | MEDIUM_HIGH | B15, B17, C2 | Complete when operators and OMP can inspect all safety/runtime evidence without mutation.
 Decision Explainability | 25.0% | 100% | 75.0% | IN_PROGRESS | HIGH | HIGH | B1, B4, B13, B15, B17, C2 | Complete when every approval request explains the decision in Russian before Approve / Reject, using existing evidence owners only.
 Implementation Discipline | 100.0% | 100% | 0.0% | COMPLETE | VERY_HIGH | MEDIUM | None | Complete while Backlog remains the only live queue.
 Engineering Knowledge Preservation | 100.0% | 100% | 0.0% | LOCKED | HIGH | MEDIUM | None | Complete and locked while reference/report/ADR roles remain normalized.
 
 Current Capability
-Liveness Evidence Aggregation / Production Readiness / Decision Explainability
+Action-Class Stage Certification / Authority Evolution / Production Readiness
 
 Current Backlog Item
-B1
+B12
 
 Completion Prediction
-B1 completes after liveness evidence is aggregated by source family, confidence, owner, freshness/status, and policy relevance through existing service matrix, Telegram sentinel, quality compact, route reality, and intelligence worker owners.
+B12 completes after the next action-class stage is implemented only from existing certification evidence, authority policy owners, and OMP without direct class promotion, Runtime apply, authority expansion, synthetic evidence, or user movement.
 
 Blocking Items
-B1 current; later Observability and Decision Explainability work remains blocked by B4, B9, B15, B17, and C2 where applicable.
+B12 current; later authority, runtime apply, delegated policy, user-mode, and production autonomy work remains blocked by B16, B21, C3, C4, and remaining certification where applicable.
 ```
 
 Initial capability registry:
 
 | Capability | Purpose | Current % | Target % | Current Status | Canonical Owner | Production Value | Autonomy Impact | Blocking Backlog Items | Expected Completion Point | Re-open Triggers |
 | --- | --- | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |
-| Movement Protection | Prevent chaotic user movement while preserving fast reaction to real failures. | `50.0` | `100` | `IN_PROGRESS` | OMP, Movement Protection Model, Runtime Model, Canonical Policy Library | `VERY_HIGH` | `VERY_HIGH` | `B3`, `B4`, `B5`, `B8`, `B10`, `B16`, `B19`, `B21`, `C7` | All Movement Protection DoD criteria complete or explicitly `NOT_APPLICABLE`. | Production evidence disproves behavior; planner/runtime architecture materially changes; explicit operator request. |
-| Runtime Eligibility | Decide whether Runtime may execute or must stop using certified gates. | `42.9` | `100` | `IN_PROGRESS` | Runtime Model, OMP, delegated policy preview, action-class enablement owners | `VERY_HIGH` | `VERY_HIGH` | `B17`, `B18`, `C1`, `C6` | Action-class runtime eligibility arbitration is implemented; freshness/reporting semantics remain to be certified. | Runtime architecture changes; production eligibility failure; explicit operator request. |
-| Authority Evolution | Move from packet approval to bounded class/policy authority without silent expansion. | `60.0` | `100` | `IN_PROGRESS` | OMP, Authority policy, Runtime Model, action-class ladder | `VERY_HIGH` | `VERY_HIGH` | `B11`, `B12`, `B16`, `B21`, `C3`, `C4` | Certified class evidence supports authority recommendation and operator/certified policy approval. | Authority incident; operator policy change; explicit authority expansion/shrink request. |
+| Movement Protection | Prevent chaotic user movement while preserving fast reaction to real failures. | `76.0` | `100` | `IN_PROGRESS` | OMP, Movement Protection Model, Runtime Model, Canonical Policy Library | `VERY_HIGH` | `VERY_HIGH` | `B16`, `B19`, `B21`, `C7` | All Movement Protection DoD criteria complete or explicitly `NOT_APPLICABLE`. | Production evidence disproves behavior; planner/runtime architecture materially changes; explicit operator request. |
+| Runtime Eligibility | Decide whether Runtime may execute or must stop using certified gates. | `61.0` | `100` | `IN_PROGRESS` | Runtime Model, OMP, delegated policy preview, action-class enablement owners | `VERY_HIGH` | `VERY_HIGH` | `B17`, `B18`, `C1`, `C6` | Action-class runtime eligibility arbitration is implemented; freshness/reporting semantics remain to be certified. | Runtime architecture changes; production eligibility failure; explicit operator request. |
+| Authority Evolution | Move from packet approval to bounded class/policy authority without silent expansion. | `68.0` | `100` | `IN_PROGRESS` | OMP, Authority policy, Runtime Model, action-class ladder | `VERY_HIGH` | `VERY_HIGH` | `B12`, `B16`, `B21`, `C3`, `C4` | Certified class evidence supports authority recommendation and operator/certified policy approval. | Authority incident; operator policy change; explicit authority expansion/shrink request. |
 | Rollback | Guarantee safe compensation or certified no-rollback behavior for production actions. | `42.9` | `100` | `IN_PROGRESS` | Restore barrier, rollback manifest, Runtime Model, execution feedback | `VERY_HIGH` | `HIGH` | `A3`, `B15`, `B16`, `C5` | Rollback/no-rollback class evidence and automatic rollback authority are certified. | Failed rollback; verification failure pattern; explicit operator request. |
-| Recovery Admission | Admit recovered channels safely without oscillation or premature scale. | `25.0` | `100` | `IN_PROGRESS` | Recovery admission owner, service matrix, quality compact, blast-radius/action-class ladder | `HIGH` | `HIGH` | `B8`, `B9`, `B10`, `D2`, `D3` | Repeated real readiness evidence, observation windows, and runtime-certified slow start are complete. | Recovery incident; service evidence changes; explicit operator request. |
-| Learning | Convert real outcomes into future decision quality without synthetic evidence. | `60.0` | `100` | `IN_PROGRESS` | Feedback/learning owner, OMP, Canonical Reference | `VERY_HIGH` | `VERY_HIGH` | `A3`, `B5` | Representative real outcomes and metric reliability support promotion recommendations. | Learning regression; synthetic evidence risk; explicit operator request. |
-| Production Readiness | Make V7 deployable, operable, verifiable, and certifiable as a production system. | `39.0` | `100` | `IN_PROGRESS` | OMP, Production Maturity Model, Implementation Backlog | `VERY_HIGH` | `HIGH` | `B11`, `B14`, `B21`, `C7`, optional `D1`-`D6` only if scope changes | Production Maturity reaches `100%` and outputs `PRODUCTION_AUTONOMY_CERTIFIED`. | Production safety incident; deploy model change; explicit operator request. |
+| Recovery Admission | Admit recovered channels safely without oscillation or premature scale. | `78.0` | `100` | `IN_PROGRESS` | Recovery admission owner, service matrix, quality compact, blast-radius/action-class ladder | `HIGH` | `HIGH` | `D2`, `D3` if optional recovery scope changes | Repeated real readiness evidence, observation windows, and read-only slow-start progression are complete; runtime consumption remains future authority/implementation work. | Recovery incident; service evidence changes; explicit operator request. |
+| Learning | Convert real outcomes into future decision quality without synthetic evidence. | `63.0` | `100` | `IN_PROGRESS` | Feedback/learning owner, OMP, Canonical Reference | `VERY_HIGH` | `VERY_HIGH` | `A3` | Representative real outcomes and metric reliability support promotion recommendations. | Learning regression; synthetic evidence risk; explicit operator request. |
+| Production Readiness | Make V7 deployable, operable, verifiable, and certifiable as a production system. | `60.5` | `100` | `IN_PROGRESS` | OMP, Production Maturity Model, Implementation Backlog | `VERY_HIGH` | `HIGH` | `C1`, `C7`, optional `D1`-`D6` only if scope changes | Production Maturity reaches `100%` and outputs `PRODUCTION_AUTONOMY_CERTIFIED`. | Production safety incident; deploy model change; explicit operator request. |
 | Production Autonomy | Enable Runtime to operate inside certified authority while operator supervises. | `0.0` | `100` | `IN_PROGRESS` | OMP, Runtime Model, Authority Evolution, action-class promotion | `VERY_HIGH` | `VERY_HIGH` | `A3`, `A4`, `A5`, `A6`, `B10`, `B12`, `B16`, `C4` | Bounded autonomy and then production autonomy are certified by real outcomes and approved authority. | Autonomy incident; authority policy change; explicit operator request. |
 | Knowledge System | Preserve verified project knowledge and prevent repeated rediscovery. | `100.0` | `100` | `LOCKED` | Canonical Reference, Context Resolver, Research Framework, Policy Library, Document Lifecycle | `HIGH` | `MEDIUM_HIGH` | None current. | Current knowledge owners remain canonical and read-only under document lifecycle rules. | Industry consensus changes; `FUNDAMENTAL_ARCHITECTURE_GAP`; explicit operator request. |
 | Observability | Expose enough read-only truth for operators, OMP, Runtime, and certification. | `35.0` | `100` | `IN_PROGRESS` | Admin read models, trust/evidence inventory, truth/convergence | `HIGH` | `MEDIUM_HIGH` | `B1`, `B4`, `B9`, `B15`, `B17`, `C2` | Read-only evidence shows eligibility, rollback, stale reads, promotion quality, and runtime readiness. | Operator cannot diagnose; evidence disagreement; explicit operator request. |
@@ -4032,15 +4032,15 @@ If daemon, timer, event consumer mutation, autonomous execution, action-class ex
 | --- | --- |
 | Completed phases | Architecture foundation, Research Framework, Decision Model, Runtime Model, System Architecture, Implementation Phase activation, OMP Production Program integration. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle; OMP Production Program rule set. |
-| Current bottleneck | B3 soft-degradation trend threshold vocabulary alignment is next; B2 is complete as read-only hard-failure policy windows. |
-| Current highest leverage action | Run B3 through existing planner/autoswitch, quality compact, and service matrix owners. |
+| Current bottleneck | C1 fail-open/fail-closed action-class behavior is next; B21 is complete as read-only per-user routing control mode. |
+| Current highest leverage action | Run C1 through existing Runtime Model, OMP, planner gates, action-class policy owners, read-only inventory, and canonical update owners. |
 | Current reuse ratio | `100%`. |
 | Current duplicate ratio | `0% known introduced`. |
 | Current automation ratio | `84.167%`. |
-| Current blockers | None yet for B3 threshold vocabulary work; B3 must not synthesize evidence, grant runtime authority, move users, or bypass existing planner/autoswitch, quality compact, and service matrix owners. |
-| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; Production Maturity `39.0%`; Tier A backlog `6 / 6`; Tier B backlog `4 / 21`; overall backlog `10 / 34`. |
+| Current blockers | None yet for C1 fail-open/fail-closed action-class behavior; C1 must not synthesize evidence, grant runtime authority, move users, replace planner ownership, create a new owner, or bypass existing Runtime Model, OMP, planner gate, action-class policy, read-only inventory, and canonical update owners. |
+| Current maturity | Tier 0 `COMPLETE`; Tier 1 `ACTIVE`; Production Maturity `60.5%`; Tier A backlog `6 / 6`; Tier B backlog `21 / 21`; overall backlog `27 / 34`. |
 | Current runtime posture | No autonomous apply, no daemon enablement, no authority expansion; local validation moved `0` users and now stops explicitly with `runtime_state_unavailable` when local `/opt/v7` state is absent. |
-| Current next best action | `B3_ALIGN_SOFT_DEGRADATION_TREND_THRESHOLDS_TO_CANONICAL_POLICY_VOCABULARY`; no runtime apply, no automation, no authority expansion, no synthetic evidence, no user movement, no planner replacement, no new owner, no new backlog, no architecture change. |
+| Current next best action | `C1_FAIL_OPEN_FAIL_CLOSED_ACTION_CLASS_BEHAVIOR`; no runtime apply, no automation, no authority expansion, no synthetic evidence, no user movement, no planner replacement, no new owner, no new backlog, no architecture change. |
 | Last optimizer iteration | `2026-06-29`: RT2-S6 evidence-based continuous improvement implemented as read-only owner-mapped advisory recommendation; current result is `DONE_READ_ONLY_OWNER_MAPPED_RECOMMENDATION`; tests passed. |
 
 ## 24.1 Capability Transition Contract
@@ -4088,16 +4088,25 @@ Major capability transitions:
 | `RT2-S4` -> `RT2-S5` | Governed execution coordination. | Idempotent governed execution coordination and terminal classification. | Prepared plan, packet, lease, restore barrier, verification plan, rollback/no-rollback state. | Certified concurrency ladder. | Parallelism, blast-radius expansion, automatic execution without authority. | S5 may begin only after one bounded action can move from approval to terminal outcome without stale loops. | Coordination proof for one bounded path does not certify parallelism, wider blast radius, or authority. |
 | `RT2-S5` -> `RT2-S6` | Certified concurrency ladder. | Certified concurrency level or explicit STOP_SAFE. | Blast-radius evidence, rollback capacity, verification capacity, policy scope, authority envelope, anti-flap state. | Evidence-based continuous improvement. | Runtime self-optimization, automatic recommendations, authority lowering, safety gate weakening. | S6 may begin after concurrency is certified or explicitly deferred, because recommendations need known safe execution limits. | Parallelism is safety certification only; recommendations cannot mutate runtime, expand authority, or convert metrics into authority. |
 | `RT2-S6` -> graduate or return to OMP | Evidence-based continuous improvement. | Owner-mapped recommendation or explicit no-change verdict with safety, latency, cost, time, evidence, and canonical update. | Outcomes, reports, latency/cost/time/topology data, fit analysis, maturity gaps. | Graduation or return to highest unfinished OMP/backlog owner. | New roadmap, new owner, Runtime self-optimization, direct implementation without OMP. | Graduation is allowed only when S6 produces a no-change or owner-mapped recommendation that has been canonically preserved. | S6 output is advisory until OMP routes approved implementation to an existing owner or backlog item. |
+| `B9` -> `B10` | Post-admission observation windows. | `post_admission_observation_windows = DONE_READ_ONLY_OWNER_MAPPED`; verified service observation and quality compact `5m`/`1h` windows. | B8 recovery admission certification, service matrix, quality compact. | Recovery slow-start progression. | Runtime apply, traffic admission, authority expansion, queue, synthetic evidence, user movement. | B10 could safely define slow-start only after observation windows were owner-mapped and tested. | B9 only verified observation windows; it could not grant runtime behavior or authority. |
+| `B10` -> `B11` | Recovery slow-start progression. | `recovery_slow_start_progression = DONE_READ_ONLY_OWNER_MAPPED`; staged progression `OBSERVATION_CERTIFIED_READ_ONLY` -> `ONE_USER_GOVERNED_RECOVERY_REVIEW` -> `BEYOND_ONE_USER_ACTION_CLASS_REVIEW`. | B8 recovery certification, B9 observation windows, class-level blast-radius certification, action-class ladder. | Org/cohort isolation and identity policy integration. | Runtime apply, traffic admission, automation, authority expansion, concurrency, queue, synthetic evidence, user movement. | B11 may start because B10 defines the recovery progression boundary and keeps identity/cohort scope as the next policy integration gap. | B10 is read-only progression only; it cannot approve recovery traffic, expand authority, or bypass identity/cohort policy gates. |
+| `B11` -> `B12` | Org/cohort identity policy integration. | `org_cohort_identity_policy_integration = DONE_READ_ONLY_OWNER_MAPPED`; existing identity -> group/cohort -> allowed/preferred/excluded egress -> exclusive_group/egress ACL/default isolation gates are integrated read-only. | B10 recovery slow-start progression, existing planner gates, identity policy, org policy, channel policy, action-class ladder, authority policy owners. | Next action-class stage certification. | Runtime apply, traffic admission, automation, authority expansion, concurrency, queue, synthetic evidence, user movement, direct class promotion. | B12 may start because B11 proves identity/cohort policy boundaries are visible through existing owners before action-class certification can consume them. | B11 is read-only policy integration only; it cannot grant action-class authority, promote a class, admit traffic, move users, or bypass certification evidence. |
+| `B12` -> `B14` | Next action-class stage certification. | `next_action_class_stage_certification = DONE_READ_ONLY_STAGE_GATE_IMPLEMENTED`; A5/A6/B13/B11 evidence is consumed into a stage-review gate that cannot grant authority or runtime apply. | A5 blast-radius evidence, A6 runtime eligibility arbitration, B13 blocking metric reliability, B11 identity/policy boundaries, action-class ladder. | Service/pool/cohort blast-radius scope. | Runtime apply, traffic admission, automation, authority expansion, concurrency, queue, synthetic evidence, user movement, direct class promotion, blast-radius expansion. | B14 may start because B12 proves next-stage work is bounded by certification evidence and explicit authority/runtime STOP gates. | B12 is a read-only stage gate only; it cannot approve class authority, expand blast radius, mutate Runtime, or bypass service/pool/cohort blast-radius review. |
+| `B17` -> `B18` | Stale-read reporting with mutation blocking. | `stale_read_mutation_blocking = DONE_READ_ONLY_STALE_READ_MUTATION_BLOCKING`; stale/unknown freshness remains reportable as read-only evidence while mutation stays blocked. | Freshness actionability, runtime eligibility arbitration, routing recommendation readiness, truth/convergence, read-only inventory, OMP. | Owner-issued version/lease pattern extension. | Runtime apply, automation, mutation from stale read, authority expansion, concurrency, queue, planner replacement, synthetic evidence, threshold/formula mutation, user movement. | B18 may start because B17 proves stale reads remain visible but cannot authorize mutation, so lease/version extension can consume freshness and snapshot identity safely. | B17 is observability and gating only; it cannot grant runtime apply, change lease semantics, create a new owner, mutate thresholds/formulas, or move users. |
+| `B18` -> `B19` | Owner-issued version/lease pattern. | `owner_issued_version_lease_pattern = DONE_READ_ONLY_OWNER_ISSUED_VERSION_LEASE_PATTERN`; owner-issued version/lease/generation/TTL/source-hash coverage is visible without lease behavior change. | Execution lease, Runtime Model freshness gates, `SNAPSHOT_FAMILIES`, freshness actionability, action-class freshness windows, B17 stale-read mutation blocking, OMP. | Hysteresis and state-change-cost mapping. | Runtime apply, automation, authority expansion, threshold/formula mutation, lease behavior change, new owner, concurrency, queue, planner replacement, synthetic evidence, user movement. | B19 may start because B18 makes freshness/lease identity coverage explicit, allowing state-change-cost and hysteresis mapping to consume currentness boundaries safely. | B18 is read-only coverage only; it cannot change lease behavior, become a truth source, mutate thresholds/formulas, or authorize movement. |
+| `B19` -> `B20` | Hysteresis and state-change-cost mapping. | `hysteresis_state_change_cost_mapping = DONE_READ_ONLY_HYSTERESIS_STATE_CHANGE_COST_MAPPING`; existing sticky/current bias, minimum improvement, cooldown, observation window, oscillation detection, user freeze, pair reversal, target block/quarantine, recovery thresholds, and freshness identity cost vocabulary are centralized. | Anti-flap, recovery admission, service threshold, movement-protection, autoswitch safety, OMP. | Hard-failure override anti-flap arbitration. | Runtime apply, automation, authority expansion, threshold/formula mutation, new owner, concurrency, queue, planner replacement, synthetic evidence, user movement. | B20 may start because B19 defines the anti-flap/state-change-cost vocabulary that hard-failure override must arbitrate against. | B19 is read-only vocabulary only; it cannot implement hard-failure override, mutate thresholds/formulas, or authorize movement. |
+| `B20` -> `B21` | Hard-failure override anti-flap arbitration. | `hard_failure_override_anti_flap_arbitration = DONE_READ_ONLY_HARD_FAILURE_OVERRIDE_ANTI_FLAP_ARBITRATION`; confirmed hard failure is encoded as anti-flap override candidate for authority review only, while suspected/no hard failure cannot override anti-flap. | Hard-failure classification, hard-failure policy windows, anti-flap, B19 hysteresis/state-change-cost mapping, planner/runtime eligibility, OMP. | Per-user routing control mode. | Runtime apply, automation, authority expansion, hard-failure override execution, threshold/formula mutation, new owner, concurrency, queue, planner replacement, synthetic evidence, user movement. | B21 may start because B20 makes hard-failure/anti-flap arbitration explicit and non-authorizing, so per-user routing control can consume clear safety boundaries. | B20 is read-only arbitration only; it cannot execute override, mutate Runtime, change thresholds/formulas, expand authority, or move users. |
+| `B21` -> `C1` | Per-user routing control mode. | `per_user_routing_control_mode = DONE_READ_ONLY_PER_USER_ROUTING_CONTROL_MODE`; explicit or inferred per-user `AUTO` / `PINNED` / `MANUAL` routing control semantics are visible through existing owners. | User registry, group/org policy, planner gates, admin operator surface, B11 identity/cohort policy, B20 hard-failure/anti-flap arbitration, OMP. | Fail-open/fail-closed action-class behavior. | Runtime apply, automation, authority expansion, registry write, planner replacement, new owner, concurrency, queue, synthetic evidence, user movement. | C1 may start because B21 makes user-control mode explicit and non-authorizing, so action-class fail behavior can be recorded against known movement/authority boundaries. | B21 is read-only routing control evidence only; it cannot write the registry, mutate Runtime, expand authority, replace Planner, synthesize evidence, or move users. |
 
 Current transition state:
 
 | Field | Value |
 | --- | --- |
-| Last completed transition | `B2 -> B3` |
-| Produced evidence | `hard_failure_policy_windows = DONE_READ_ONLY_OWNER_MAPPED`; B2 maps hard-failure risk classes to existing action-class freshness windows and anti-flap policy impact without changing timers. |
-| Current unlocked step | `B3_ALIGN_SOFT_DEGRADATION_TREND_THRESHOLDS_TO_CANONICAL_POLICY_VOCABULARY` |
-| Current forbidden later steps | Runtime self-optimization; automatic recommendations; direct implementation without OMP; authority lowering; safety-gate weakening; Runtime apply; automation; concurrency enablement; authority expansion; queue daemon; planner replacement; user movement |
-| Safety reason | Only existing backlog continuation is unlocked; B2 output is read-only policy-window evidence and cannot mutate Runtime, change timers, expand authority, lower gates, synthesize evidence, start implementation outside OMP, or move users. |
+| Last completed transition | `B21 -> C1` |
+| Produced evidence | `per_user_routing_control_mode = DONE_READ_ONLY_PER_USER_ROUTING_CONTROL_MODE`; B21 encodes per-user `AUTO` / `PINNED` / `MANUAL` routing control mode through existing owners. |
+| Current unlocked step | `C1_FAIL_OPEN_FAIL_CLOSED_ACTION_CLASS_BEHAVIOR` |
+| Current forbidden later steps | Runtime self-optimization; automatic recommendations; direct implementation without OMP; authority lowering; safety-gate weakening; Runtime apply; automation; concurrency enablement; authority expansion; queue daemon; planner replacement; registry write; user movement |
+| Safety reason | Only existing backlog continuation is unlocked; B21 output is read-only routing control evidence and cannot write the registry, mutate Runtime, expand authority, synthesize evidence, start implementation outside OMP, create a new owner, replace Planner, or move users. |
 
 ## 24.2 Capability Production Contract
 
@@ -4147,6 +4156,7 @@ A5 Blast-Radius Certification
   -> RT2-S5 Certified Concurrency
   -> RT2-S6 Engineering Recommendation / Engineering Learning
   -> OMP continuation or existing-owner backlog implementation
+  -> B1/B2/B3/B4/B5/B6/B7/B8/B9/B10/B11/B12/B14/B15/B17/B18/B19/B20/B21/C1 implementation queue continuation
 ```
 
 Producer / consumer matrix:
@@ -4163,6 +4173,17 @@ Producer / consumer matrix:
 | `RT2-S4` | Governed Execution Coordination. | `rt2_s4_governed_execution_coordination`; read-only owner-mapped bounded decision-to-terminal-outcome coordination and terminal classification. | Runtime Model + existing execution owners + OMP. | `RT2-S5`, feedback/learning owners, Production Maturity, OMP. | Certified Concurrency. | `RT2-S5` | Parallelism, blast-radius expansion, automatic execution without authority. | `RT2-S6` and runtime apply. | One bounded path is owner-mapped; concurrency still needs its own proof, authority, and capacity certification. |
 | `RT2-S5` | Certified Concurrency. | `rt2_s5_certified_concurrency_ladder`; serial-only read-only boundary certified and wider levels explicitly STOP_SAFE. | OMP + action-class/blast-radius/rollback/verification owners + `admin_core.autonomy_trust_acceleration`. | `RT2-S6`, Runtime execution owners, authority model, CPS, Production Maturity. | Evidence-Based Continuous Improvement. | `RT2-S6` | Runtime self-optimization, automatic recommendations, authority lowering, safety gate weakening, runtime apply, concurrency enablement. | `RT2-S6` recommendation effects and runtime apply. | Recommendations now have known safe execution limits; concurrency certification remains safety boundary, not performance-only parallelism or authority. |
 | `RT2-S6` | Engineering Recommendation, Engineering Learning, Recommendation Confidence. | `rt2_s6_evidence_based_continuous_improvement`; owner-mapped recommendation to return OMP to existing backlog item `B1`. | OMP + Backlog + Production Maturity + Research Framework/Process + canonical owners + `admin_core.autonomy_trust_acceleration`. | OMP, Engineering Intelligence, future capability evolution, `B1`, Current Program State, Production Maturity. | OMP backlog continuation. | `B1`. | New roadmap, new owner, Runtime self-optimization, direct implementation without OMP, authority lowering, safety-gate weakening. | Any parallel lifecycle. | S6 output is advisory and canonically preserved; OMP now routes continuation to existing backlog item B1. |
+| `B9` | Post-Admission Observation Window Verification. | `post_admission_observation_windows`; existing service observation and quality compact `5m`/`1h` windows verified after B8. | Existing recovery admission, service matrix, quality compact owners + OMP + Backlog + Production Maturity. | OMP, `B10`, Current Program State, Production Maturity, Canonical Reference, Movement Protection, Observability, Recovery Admission, Runtime Eligibility. | Recovery Slow-Start Progression. | `B10` | Runtime apply, automation, traffic admission, authority expansion, queue, synthetic evidence, user movement. | `B11+`, runtime apply. | Observation windows are verified read-only; they only unlock slow-start progression design. |
+| `B10` | Recovery Slow-Start Progression. | `recovery_slow_start_progression`; staged mapping to existing recovery admission and blast-radius/action-class ladder. | Existing recovery admission, blast-radius/action-class ladder owners + OMP + Backlog + Production Maturity + `admin_core.autonomy_trust_acceleration`. | OMP, `B11`, Current Program State, Production Maturity, Canonical Reference, Movement Protection, Recovery Admission, Runtime Eligibility, Authority Evolution. | Org/Cohort Isolation and Identity Policy Integration. | `B11` | Runtime apply, automation, traffic admission, authority expansion, concurrency, queue, synthetic evidence, user movement. | `B12+`, runtime apply. | Slow-start is defined as a read-only progression only; identity/cohort policy boundaries are now the next integration gap. |
+| `B11` | Org/Cohort Identity Policy Integration. | `org_cohort_identity_policy_integration`; existing identity, org/cohort, allowed/preferred/excluded egress, exclusive group, ACL, and default isolation gates integrated read-only. | Existing planner gates, identity/policy owners, OMP, Backlog, Production Maturity + `admin_core.autonomy_trust_acceleration`. | OMP, `B12`, Current Program State, Production Maturity, Canonical Reference, Movement Protection, Runtime Eligibility, Authority Evolution, Production Autonomy. | Next Action-Class Stage Certification. | `B12` | Runtime apply, automation, traffic admission, authority expansion, concurrency, queue, synthetic evidence, user movement, direct class promotion. | `B13+`, runtime apply. | Identity/cohort policy boundaries are now visible to action-class certification; B11 does not grant authority or promote a class. |
+| `B12` | Next Action-Class Stage Certification. | `next_action_class_stage_certification`; A5/A6/B13/B11 evidence consumed into a read-only stage certification gate. | Existing action-class ladder, A5/A6/B13/B11 evidence owners, OMP, Backlog, Production Maturity + `admin_core.autonomy_trust_acceleration`. | OMP, `B14`, Current Program State, Production Maturity, Canonical Reference, Movement Protection, Runtime Eligibility, Authority Evolution, Blast Radius, Production Autonomy. | Service/Pool/Cohort Blast-Radius Scope. | `B14` | Runtime apply, automation, traffic admission, authority expansion, concurrency, queue, synthetic evidence, user movement, direct class promotion, blast-radius expansion. | `B15+`, runtime apply. | B12 guarantees next-stage work consumes certification evidence and stops at authority/runtime boundaries; B14 must still model service/pool/cohort scope before any wider blast radius can exist. |
+| `B14` | Service/Pool/Cohort Blast-Radius Scope. | `service_pool_cohort_blast_radius_scope`; service/user/SLA fit, B11 identity/cohort policy, A5 blast-radius certification, B12 stage certification, and autoswitch capacity/load owners consumed read-only. | Existing planner capacity/load, service/user/SLA, B11 identity/cohort, A5 blast-radius, B12 stage-certification, autoswitch dynamic blast-radius owners, OMP, Backlog, Production Maturity + `admin_core.autonomy_trust_acceleration`. | OMP, `B15`, Current Program State, Production Maturity, Canonical Reference, Movement Protection, Runtime Eligibility, Authority Evolution, Blast Radius, Production Autonomy. | Containment / Forward-Fix Classification. | `B15` | Runtime apply, automation, traffic admission, authority expansion, concurrency, queue, synthetic evidence, user movement, direct class promotion, blast-radius expansion, threshold/formula mutation. | `B16+`, runtime apply. | B14 makes blast-radius scope visible across service, pool, and cohort dimensions, but does not widen scope or grant authority; B15 may now classify containment/forward-fix outcomes through existing rollback/execution owners. |
+| `B15` | Containment / Forward-Fix Classification. | `containment_forward_fix_classification`; terminal containment vs forward-fix states exposed from packet, verification, rollback, and partial-failure policy evidence. | Existing Runtime Model, execution packet, verification, rollback, partial-failure policy, RT2-S4 owners, OMP, Backlog, Production Maturity + `admin_core.operator_execution` and `admin_core.operator_execution_pipeline`. | OMP, `B17`, Current Program State, Production Maturity, Canonical Reference, Movement Protection, Runtime Eligibility, Rollback, Decision Explainability, Production Autonomy. | Stale-Read Reporting With Mutation Blocking. | `B17` | Runtime apply, rollback execution, automation, traffic admission, authority expansion, concurrency, queue, synthetic evidence, user movement, planner replacement, threshold/formula mutation. | `B18+`, runtime apply. | B15 makes terminal containment and forward-fix outcomes visible and explainable, but does not execute rollback or grant authority; B17 may now preserve stale-read reporting while keeping mutation blocked. |
+| `B17` | Stale-Read Reporting With Mutation Blocking. | `stale_read_mutation_blocking`; stale/unknown freshness visibility is preserved as reportable read-only evidence while mutation remains blocked. | Existing freshness actionability, runtime eligibility, routing readiness, truth/convergence, read-only inventory owners, OMP, Backlog, Production Maturity + `admin_core.autonomy_trust_acceleration`. | OMP, `B18`, Current Program State, Production Maturity, Canonical Reference, Freshness, Runtime Eligibility, Observability, Decision Explainability, Production Autonomy. | Owner-Issued Version / Lease Pattern. | `B18` | Runtime apply, automation, mutation from stale read, traffic admission, authority expansion, concurrency, queue, synthetic evidence, user movement, planner replacement, threshold/formula mutation, new owner. | `B19+`, runtime apply. | B17 proves stale reads can remain visible without becoming mutation authority; B18 may now extend existing lease/version semantics where owner-issued fields already exist. |
+| `B18` | Owner-Issued Version / Lease Pattern. | `owner_issued_version_lease_pattern`; owner-issued version/lease/generation/TTL/source-hash coverage exposed without changing lease behavior. | Existing execution lease, Runtime Model freshness gates, `SNAPSHOT_FAMILIES`, freshness actionability, action-class freshness windows, B17 stale-read mutation blocking, OMP, Backlog, Production Maturity + `admin_core.autonomy_trust_acceleration`. | OMP, `B19`, Current Program State, Production Maturity, Canonical Reference, Freshness, Runtime Eligibility, Observability, Decision Explainability, Production Autonomy. | Hysteresis and State-Change-Cost Mapping. | `B19` | Runtime apply, automation, authority expansion, threshold/formula mutation, lease behavior change, new owner, traffic admission, concurrency, queue, synthetic evidence, user movement, planner replacement. | `B20+`, runtime apply. | B18 makes owner-issued currentness and identity coverage visible; B19 may now centralize existing state-change-cost vocabulary without changing formulas or authority. |
+| `B19` | Hysteresis and State-Change-Cost Mapping. | `hysteresis_state_change_cost_mapping`; sticky/current bias, minimum improvement, cooldown, observation window, oscillation detection, user freeze, pair reversal, target block/quarantine, recovery thresholds, and freshness identity cost vocabulary centralized read-only. | Existing anti-flap, recovery admission, service threshold, movement-protection, autoswitch safety, OMP, Backlog, Production Maturity + `admin_core.autonomy_trust_acceleration`. | OMP, `B20`, Current Program State, Production Maturity, Canonical Reference, Movement Protection, Runtime Eligibility, Observability, Decision Explainability, Production Autonomy. | Hard-Failure Override Anti-Flap Arbitration. | `B20` | Runtime apply, automation, authority expansion, hard-failure override execution, threshold/formula mutation, new owner, traffic admission, concurrency, queue, synthetic evidence, user movement, planner replacement. | `B21+`, runtime apply. | B19 proves the existing anti-flap/state-change-cost vocabulary is centralized; B20 may now encode hard-failure override arbitration without creating a new policy owner. |
+| `B20` | Hard-Failure Override Anti-Flap Arbitration. | `hard_failure_override_anti_flap_arbitration`; confirmed hard failure becomes anti-flap override candidate for authority review only, while suspected/no hard failure cannot override anti-flap. | Existing hard-failure, hard-failure policy window, anti-flap, B19 hysteresis/state-change-cost, planner/runtime eligibility owners, OMP, Backlog, Production Maturity + `admin_core.autonomy_trust_acceleration`. | OMP, `B21`, Current Program State, Production Maturity, Canonical Reference, Movement Protection, Runtime Eligibility, Observability, Decision Explainability, Production Autonomy. | Per-User Routing Control Mode. | `B21` | Runtime apply, automation, authority expansion, hard-failure override execution, threshold/formula mutation, new owner, traffic admission, concurrency, queue, synthetic evidence, user movement, planner replacement. | `C1+`, runtime apply. | B20 proves hard-failure/anti-flap arbitration is explicit and non-authorizing; B21 may now expose user-level routing control mode without creating a new planner or owner. |
+| `B21` | Per-User Routing Control Mode. | `per_user_routing_control_mode`; explicit or inferred per-user `AUTO` / `PINNED` / `MANUAL` routing control semantics are exposed read-only. | Existing user registry, group/org policy, planner gate, admin operator surface, B11 identity/cohort policy, B20 hard-failure/anti-flap arbitration, OMP, Backlog, Production Maturity + `admin_core.autonomy_trust_acceleration`. | OMP, `C1`, Current Program State, Production Maturity, Canonical Reference, Movement Protection, Runtime Eligibility, Authority Evolution, Decision Explainability, Production Autonomy. | Fail-Open / Fail-Closed Action-Class Behavior. | `C1` | Runtime apply, automation, authority expansion, registry write, new owner, traffic admission, concurrency, queue, synthetic evidence, user movement, planner replacement. | `C2+`, runtime apply. | B21 proves user-control boundaries are explicit and non-authorizing; C1 may now record action-class fail behavior without creating a new planner, registry owner, or runtime behavior. |
 
 Capability graph validation:
 
@@ -4179,13 +4200,13 @@ Current produced capability state:
 
 | Field | Value |
 | --- | --- |
-| Last produced capability | Hard-Failure Policy Windows |
-| Producer stage | `B2` |
-| Produced evidence | `hard_failure_policy_windows = DONE_READ_ONLY_OWNER_MAPPED`; next step is existing backlog item `B3`. |
-| Capability owner | Existing hard-failure classification, liveness aggregation, action-class freshness, anti-flap owners + OMP + Backlog + Production Maturity + `admin_core.autonomy_trust_acceleration` |
-| Current consumers | OMP, `B3`, Current Program State, Production Maturity, Canonical Reference, Movement Protection, Observability, Runtime Eligibility |
-| Current unlocked capability | Soft-degradation trend threshold vocabulary alignment |
-| Current blocked capabilities | Runtime apply, automation, concurrency enablement, authority expansion, queue daemon, planner replacement, timer changes, synthetic evidence, user movement |
+| Last produced capability | Per-User Routing Control Mode |
+| Producer stage | `B21` |
+| Produced evidence | `per_user_routing_control_mode = DONE_READ_ONLY_PER_USER_ROUTING_CONTROL_MODE`; next step is existing backlog item `C1`. |
+| Capability owner | Existing user registry, group/org policy, planner gate, admin operator surface, B11 identity/cohort policy, B20 hard-failure/anti-flap arbitration owners + OMP + Backlog + Production Maturity + `admin_core.autonomy_trust_acceleration` |
+| Current consumers | OMP, `C1`, Current Program State, Production Maturity, Canonical Reference, Movement Protection, Runtime Eligibility, Authority Evolution, Decision Explainability, Production Autonomy |
+| Current unlocked capability | Fail-Open / Fail-Closed Action-Class Behavior |
+| Current blocked capabilities | Runtime apply, automation, authority expansion, registry write, new owner, queue daemon, planner replacement, synthetic evidence, user movement |
 
 ## 24.3 OMP Progress Dashboard Model
 
@@ -4338,15 +4359,15 @@ Current dashboard snapshot:
 | --- | --- |
 | Architecture | `[##########] 100% COMPLETE` |
 | Tier A | `[##########] 6 / 6 COMPLETE` |
-| Tier B | `[##--------] 4 / 21 IN_PROGRESS` |
+| Tier B | `[##########] 21 / 21 COMPLETE` |
 | RT2 | `[##########] 6 / 6 COMPLETE_READ_ONLY` |
 | Engineering Intelligence | `[########--] FINAL_CANONICAL_STATE / implementation evidence future` |
-| Overall actionable backlog | `10 / 34 complete` |
-| Production Maturity | `[####------] 39.0 / 100; target 100; remaining 61.0` |
-| Current step | `B3_ALIGN_SOFT_DEGRADATION_TREND_THRESHOLDS_TO_CANONICAL_POLICY_VOCABULARY` |
-| Previous step | `B2_ADD_HARD_FAILURE_TIMER_RISK_CLASS_TO_POLICY_WINDOWS` |
-| Reason current step is available | B2 produced read-only hard-failure policy windows through existing owners, enabling soft-degradation threshold vocabulary alignment. |
-| Current stop | `NONE_FOR_B3_SOFT_DEGRADATION_THRESHOLDS` |
+| Overall actionable backlog | `27 / 34 complete` |
+| Production Maturity | `[######----] 60.5 / 100; target 100; remaining 39.5` |
+| Current step | `C1_FAIL_OPEN_FAIL_CLOSED_ACTION_CLASS_BEHAVIOR` |
+| Previous step | `B21_PER_USER_ROUTING_CONTROL_MODE` |
+| Reason current step is available | B21 produced read-only per-user routing control mode through existing user registry, group/org policy, planner gate, admin operator surface, and OMP owners, enabling C1 to record action-class fail-open/fail-closed semantics against explicit user-control boundaries. |
+| Current stop | `NONE_FOR_C1_FAIL_OPEN_FAIL_CLOSED_ACTION_CLASS_BEHAVIOR` |
 
 RT2 dashboard:
 
@@ -4410,7 +4431,7 @@ Owner: OMP.
 
 Purpose:
 
-The OMP Dashboard is the canonical V7 home screen. It visualizes existing canonical state so the operator can understand project status within one minute and the engineer can trace every displayed fact to its owner.
+The OMP Dashboard is the canonical V7 OMP section inside the admin panel. It lives behind the separate top-level admin navigation item `OMP` and route `/admin/omp`; it does not replace the existing admin home / overview screen. Inside the OMP tab, Executive View is the top layer, followed by synchronized Operator View and Engineering View, all from the same canonical data.
 
 The UI foundation is not dashboard implementation code, a Runtime, Planner, owner, truth source, roadmap, scoring engine, authority surface, automation surface, queue, or implementation path.
 
@@ -4418,30 +4439,31 @@ UI discovery audit:
 
 | Existing UI/read-model area | Classification | Reuse decision | Dashboard role |
 | --- | --- | --- | --- |
-| Existing admin Overview / dashboard schema | `EXISTS_PARTIAL` | Reuse read-only summary, health, route, service, and alert patterns from `admin_core.overview_views` and `v7.admin.dashboard.v1`. | Secondary drill-down and source pattern; not canonical OMP home truth. |
-| Existing admin navigation | `EXISTS_UNDER_OTHER_NAME` | Reuse simple top-level sections and one-click section switching. | OMP Dashboard becomes default home; existing pages remain drill-down destinations. |
+| Existing admin Overview / dashboard schema | `EXISTS_PARTIAL` | Reuse read-only summary, health, route, service, and alert patterns from `admin_core.overview_views` and `v7.admin.dashboard.v1`. | Existing admin home / overview remains unchanged; OMP is a separate top-level tab. |
+| Existing admin navigation | `EXISTS_UNDER_OTHER_NAME` | Reuse simple top-level sections and one-click section switching. | Add/reuse top-level `OMP` tab; do not create a second shell or replace the home screen. |
 | Existing Operator surfaces | `EXISTS_PARTIAL` | Reuse recommendation, evidence, blocker, drawer, and progressive-disclosure patterns from operator view/decision/observability surfaces. | Operator View language and expandable details. |
 | Existing Execution surfaces | `EXISTS_PARTIAL` | Reuse governed execution, packet, lease, rollback, evidence, and terminal-state trace as details. | Engineering View trace links only; no execution control. |
 | Existing Health / Checks / Runtime read views | `EXISTS_PARTIAL` | Reuse read-only health, runtime-summary, service, route, and diagnostic contracts. | Drill-down evidence panels and stop-gate explanations. |
 | Existing design HTML dashboards | `EXISTS_UNDER_OTHER_NAME` | Reuse layout vocabulary only: top navigation, compact metrics, status chips, cards, tables, alerts, topology, responsive grid. | Visual reference only; no state, owner, or implementation truth. |
-| OMP Dashboard Model and Dual-View Model | `EXISTS_COMPLETE` | Reuse as canonical dashboard data contract and presentation split. | Permanent model for the home screen. |
-| Canonical OMP home screen rule | `MISSING` | Add inside OMP. | `OMP_DASHBOARD` is the main landing page. |
+| OMP Dashboard Model and Dual-View Model | `EXISTS_COMPLETE` | Reuse as canonical dashboard data contract and presentation split. | Permanent model for the OMP tab. |
+| Canonical OMP navigation rule | `MISSING` | Add inside OMP. | `OMP_DASHBOARD` is a separate top-level admin section, not the global home page. |
 
-Home screen rule:
+OMP tab rule:
 
-1. The V7 main landing page is `OMP_DASHBOARD`.
-2. `OMP_DASHBOARD` defaults to `OPERATOR_VIEW`.
-3. `ENGINEERING_VIEW` is a synchronized mode on the same page, not a separate source, read model, or dashboard.
-4. Existing Overview, Health, Operator, Routing, Users, Channels, Checks, Execution, Logs, Settings, and Security surfaces are secondary drill-down destinations.
-5. A secondary surface may display domain-specific state only from its existing owner; it must not override OMP Dashboard state.
-6. If a secondary surface and OMP Dashboard disagree, the disagreement is a visualization/data wiring defect and must resolve back to canonical owners.
+1. The existing V7 admin home / overview page remains unchanged.
+2. `OMP_DASHBOARD` is reached through the top-level `OMP` admin tab and route `/admin/omp`.
+3. Executive View is the first layer inside the OMP tab.
+4. Operator View and Engineering View are synchronized modes on the same OMP page, not separate sources, read models, or dashboards.
+5. Existing Overview, Health, Operator, Routing, Users, Channels, Checks, Execution, Logs, Settings, and Security surfaces keep their existing navigation meaning and may be drill-down destinations.
+6. A secondary surface may display domain-specific state only from its existing owner; it must not override OMP Dashboard state.
+7. If a secondary surface and OMP Dashboard disagree, the disagreement is a visualization/data wiring defect and must resolve back to canonical owners.
 
 Dashboard hierarchy:
 
 | Layer | UI responsibility | Required content | Source |
 | --- | --- | --- | --- |
-| App shell | Provide stable navigation. | Home: `OMP Dashboard`; drill-downs: Operator, Execution, Health/Read Models, Reports/Canonical, existing admin sections when implemented. | OMP + SYSTEM_MAP. |
-| Page header | Show current program identity. | V7, Product Execution Mode, current step, mode toggle, source timestamp, read-only badge. | CPS + OMP. |
+| App shell | Provide stable navigation. | Existing home / overview remains default; top-level `OMP` tab opens `/admin/omp`; drill-downs reuse existing admin sections. | OMP + SYSTEM_MAP. |
+| Page header | Show current program identity inside OMP tab. | V7, Product Execution Mode, current step, Executive/Operator/Engineering view toggle, source timestamp, read-only badge. | CPS + OMP. |
 | Operator summary band | One-minute status. | Overall progress, Production Maturity, RT2, Engineering Intelligence, current step, next step, stop gates. | CPS + OMP + Production Maturity. |
 | Current work area | Explain why now. | Previous/current/next step, reason, produced capability, consumed capability, unlocked capability, blocked capability, recommendation, risk. | OMP transition/production contracts + CPS. |
 | Capability visual area | Show system flow. | Simple capability graph in Operator View; full production/dependency graph in Engineering View. | OMP + SYSTEM_MAP. |
@@ -4476,7 +4498,7 @@ Navigation model:
 
 | Navigation target | User meaning | Source rule |
 | --- | --- | --- |
-| `Home / OMP Dashboard` | See complete project state and current OMP step. | Default landing page; consumes canonical owners only. |
+| `OMP` | See complete project state and current OMP step. | Top-level admin tab at `/admin/omp`; consumes canonical owners only and does not replace existing home. |
 | `Current Step` | Jump to current backlog/work item context. | CPS current step + OMP. |
 | `Current Report` | Open latest relevant Engineering Report as evidence. | Report is evidence only. |
 | `Canonical Owner` | Open the document that owns the displayed rule. | SYSTEM_MAP + Canonical Reference. |
@@ -4510,7 +4532,7 @@ UX principles:
 7. Default view hides engineering noise but keeps one-click traceability.
 8. Dashboard is read-only and must visibly say so.
 9. Charts are not part of this foundation; only the UI model is canonicalized.
-10. Existing admin surfaces remain useful, but the OMP Dashboard is the home screen.
+10. Existing admin surfaces remain useful, and the OMP Dashboard is a separate top-level admin section rather than the home screen.
 
 ### Dashboard Design System
 
@@ -4581,28 +4603,28 @@ Operator Home Screen conceptual mockup:
 V7 / OMP Dashboard                                      READ ONLY
 Product Execution Mode             Operator View | Engineering View
 
-[Production Maturity 39.0/100] [Current: B3] [RT2 Complete] [EI Canonical]
+[Production Maturity 60.5/100] [Current: C1] [RT2 Complete] [EI Canonical]
 
 Overall Progress
-Architecture [##########]  Tier A [##########]  Tier B [#---------]
-RT2          [##########]  Backlog [###-------] Production [####------]
+Architecture [##########]  Tier A [##########]  Tier B [######----]
+RT2          [##########]  Backlog [######----] Production [#####-----]
 
 Current Stage
-B2 completed -> B3 current -> Continue OMP after evidence/report/canonical update
-Why now: B2 produced owner-mapped hard-failure policy windows.
+B21 completed -> C1 current -> Continue OMP after evidence/report/canonical update
+Why now: B21 produced owner-mapped per-user routing control mode.
 
 Capability
-Produced: Liveness Evidence Aggregation
-Consumed by: B3 soft-degradation threshold vocabulary alignment
-Unlocked: Soft-degradation trend threshold vocabulary
-Blocked: Runtime apply, automation, authority, queue, concurrency, user movement
+Produced: Per-User Routing Control Mode
+Consumed by: C1 fail-open/fail-closed action-class behavior
+Unlocked: Fail-Open / Fail-Closed Action-Class Behavior
+Blocked: Runtime apply, automation, authority, queue, concurrency, registry write, user movement, new owner
 
 Stop Gates
 [BLOCKED Runtime Apply] [BLOCKED Automation] [BLOCKED Authority] [BLOCKED User Movement]
 [BLOCKED Planner] [BLOCKED Queue] [BLOCKED Concurrency] [ADVISORY Desired State]
 
 Recommendation
-Execute B3 through existing planner/autoswitch, quality compact, and service matrix owners.
+Execute C1 through existing Runtime Model, OMP, planner gates, action-class policy owners, read-only inventory owners, and canonical update owners.
 ```
 
 Engineering View conceptual mockup:
@@ -4612,17 +4634,17 @@ V7 / OMP Dashboard                                      READ ONLY
 Engineering View
 
 Capability Production Graph
-B2 -> Hard-Failure Policy Windows -> existing hard-failure/liveness/freshness/anti-flap owners
-   -> consumers: OMP, B3, CPS, Production Maturity, Canonical Reference
-   -> unlocks: B3
-   -> blocks: runtime apply, automation, authority expansion, queue, user movement
+B12 -> Next Action-Class Stage Certification -> existing action-class ladder/A5/A6/B13/B11 evidence owners
+   -> consumers: OMP, B14, CPS, Production Maturity, Canonical Reference
+   -> unlocks: B14
+   -> blocks: runtime apply, automation, authority expansion, queue, user movement, direct class promotion, blast-radius expansion
 
 Producer / Consumer Matrix
 | Producer | Evidence | Owner | Consumers | Unlocked | Blocked |
 
 Transition Contract
-Why B3 is available: B2 evidence is read-only, owner-mapped, tested, and safe to consume.
-Why later steps remain forbidden: no authority/runtime/concurrency/apply proof.
+Why C1 is available: B21 evidence is read-only, owner-mapped, tested, and safe to consume.
+Why later steps remain forbidden: no runtime apply, authority, registry write, concurrency, planner replacement, user movement, or new-owner proof.
 
 Panels
 [RT2 S1-S6] [Engineering Intelligence] [Production Maturity] [Stop Gates]

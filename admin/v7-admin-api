@@ -748,6 +748,7 @@ GET_MIN_ROLE = {
     "/api/egress-config-export": "admin",
     "/api/evidence": "viewer",
     "/api/proposals": "viewer",
+    "/api/omp/dashboard": "viewer",
     "/api/runtime/convergence": "viewer",
     "/api/runtime/fingerprint": "viewer",
     "/api/runtime/drift": "viewer",
@@ -19653,6 +19654,94 @@ def overview_for_session(data, session=None, stale=False):
     return result
 
 
+def _canonical_doc_text(relative_path):
+    try:
+        path = REPO_ROOT / relative_path
+        if not path.exists() or not path.is_file():
+            return ""
+        return path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+
+
+def _markdown_table_value(text, key, default="UNKNOWN"):
+    pattern = re.compile(r"^\|\s*" + re.escape(key) + r"\s*\|\s*`?([^|`]+?)`?\s*\|", re.MULTILINE)
+    match = pattern.search(text or "")
+    return match.group(1).strip() if match else default
+
+
+def _first_match(text, pattern, default="UNKNOWN"):
+    match = re.search(pattern, text or "", re.MULTILINE)
+    return match.group(1).strip() if match else default
+
+
+def omp_dashboard_response():
+    cps = _canonical_doc_text("docs/programs/V7_CURRENT_PROGRAM_STATE.md")
+    omp = _canonical_doc_text("docs/programs/OPERATIONAL_MATURITY_PROGRAM.md")
+    system_map = _canonical_doc_text("docs/reference/SYSTEM_MAP.md")
+    canonical = _canonical_doc_text("docs/reference/V7_CANONICAL_REFERENCE.md")
+    current_step = _markdown_table_value(cps, "Current step", _markdown_table_value(cps, "Current bottleneck"))
+    previous_step = _markdown_table_value(cps, "Previous Step", "B2_ADD_HARD_FAILURE_TIMER_RISK_CLASS_TO_POLICY_WINDOWS")
+    next_step = _markdown_table_value(cps, "Next step", _markdown_table_value(cps, "Current safe next action"))
+    production_maturity = _markdown_table_value(cps, "Production maturity score", _first_match(cps, r"Production Maturity\s*\n([0-9.]+%)", "39.0 / 100"))
+    overall_progress = _markdown_table_value(cps, "Implementation backlog", _first_match(cps, r"Overall `?([0-9]+\s*/\s*[0-9]+)`?", "10 / 34"))
+    return {
+        "schema": "v7.omp.dashboard.executive-ui.v1",
+        "route_url": "/admin/omp",
+        "admin_shell": "admin/v7-admin-api html_page_v2",
+        "read_only": True,
+        "home_preserved": True,
+        "default_home_route": "/admin-v2",
+        "top_level_tab": "OMP",
+        "duplicate_dashboard": False,
+        "runtime_change": False,
+        "authority_change": False,
+        "sources": [
+            "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md",
+            "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
+            "docs/reference/SYSTEM_MAP.md",
+            "docs/reference/V7_CANONICAL_REFERENCE.md",
+        ],
+        "executive_view": {
+            "title": "OMP Executive View",
+            "overall_progress": overall_progress,
+            "production_maturity": production_maturity,
+            "current_stage": current_step,
+            "current_capability": _markdown_table_value(cps, "Current capability produced", "Hard-Failure Policy Windows from B2"),
+            "current_risks": _markdown_table_value(cps, "Current Risks", "No runtime apply, automation, authority expansion, timer change, synthetic evidence, or user movement."),
+            "current_recommendation": _markdown_table_value(cps, "Current Recommendation", _markdown_table_value(cps, "Current highest leverage action")),
+        },
+        "operator_view": {
+            "current_step": current_step,
+            "previous_step": previous_step,
+            "next_step": next_step,
+            "current_stop": _markdown_table_value(cps, "Current stop", _markdown_table_value(cps, "Current stop reason")),
+            "rt2_stage": _markdown_table_value(cps, "rt2_current_execution_status", "COMPLETE_READ_ONLY"),
+            "engineering_intelligence": _markdown_table_value(cps, "engineering_intelligence_completion_status", "FINAL_CANONICAL_STATE"),
+            "produced_capability": _markdown_table_value(cps, "Produced Capability", "Hard-Failure Policy Windows from B2"),
+            "unlocked_capability": _markdown_table_value(cps, "Unlocked Capability", "B3"),
+            "blocked_capability": _markdown_table_value(cps, "Blocked Capability", "Runtime apply, automation, authority expansion, queue daemon, planner replacement, user movement."),
+        },
+        "engineering_view": {
+            "transition": _markdown_table_value(cps, "Transition Contract", "B2 -> B3"),
+            "produced_evidence": _markdown_table_value(cps, "Produced evidence", "hard_failure_policy_windows = DONE_READ_ONLY_OWNER_MAPPED"),
+            "consumed_evidence": _markdown_table_value(cps, "Current capability consumed", "B3 soft-degradation threshold vocabulary alignment"),
+            "owner_mapping": _markdown_table_value(cps, "Owner Mapping", "OMP, CPS, SYSTEM_MAP, Canonical Reference"),
+            "canonical_route_rule_present": "/admin/omp" in (omp + system_map + canonical),
+            "sources_traceable": all(bool(text) for text in (cps, omp, system_map, canonical)),
+        },
+        "stop_gates": [
+            "Runtime Apply",
+            "Automation",
+            "Authority",
+            "User Movement",
+            "Planner Replacement",
+            "Queue Daemon",
+            "Synthetic Evidence",
+        ],
+    }
+
+
 def refresh_overview_cache():
     with OVERVIEW_CACHE_LOCK:
         if OVERVIEW_CACHE.get("refreshing"):
@@ -20520,6 +20609,44 @@ def html_page_v2():
     .pill.bad { color:var(--red); background:rgba(251,113,133,.10); border-color:rgba(251,113,133,.24); }
     .pill.info { color:var(--blue); background:rgba(96,165,250,.10); border-color:rgba(96,165,250,.24); }
     .pill.muted { color:var(--muted); background:rgba(148,163,184,.10); }
+    .omp-page { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:12px; align-content:start; }
+    .omp-hero { grid-column:span 12; display:grid; grid-template-columns:minmax(0,1.25fr) minmax(260px,.75fr); gap:12px; }
+    .omp-hero-band { border:1px solid var(--line); border-radius:12px; background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 90%,var(--green)),var(--panel)); padding:18px; min-width:0; }
+    .omp-hero-band h1 { margin:4px 0 6px; font-size:26px; line-height:1.1; letter-spacing:0; }
+    .omp-hero-band p { margin:0; color:var(--muted); line-height:1.4; }
+    .omp-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-top:16px; }
+    .omp-kpi { border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.035); padding:10px; min-width:0; }
+    .omp-kpi span { display:block; color:var(--muted); font-size:11px; font-weight:820; }
+    .omp-kpi strong { display:block; margin-top:5px; font-size:18px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .omp-source-card { border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:14px; display:grid; gap:8px; align-content:start; }
+    .omp-source-card h2 { padding:0; margin:0; font-size:15px; }
+    .omp-view-tabs { grid-column:span 12; display:flex; gap:8px; flex-wrap:wrap; }
+    .omp-view-tabs button { min-height:34px; border:1px solid var(--line); border-radius:8px; background:transparent; color:var(--muted); padding:0 10px; cursor:pointer; font-weight:820; }
+    .omp-view-tabs button.active { color:var(--green); background:rgba(52,211,153,.08); border-color:rgba(52,211,153,.28); }
+    .omp-view { grid-column:span 12; display:none; }
+    .omp-view.active { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:12px; }
+    .omp-card { border:1px solid var(--line); border-radius:12px; background:var(--panel); padding:14px; min-width:0; display:grid; gap:8px; }
+    .omp-card h2, .omp-card h3 { margin:0; padding:0; font-size:15px; }
+    .omp-card p { margin:0; color:var(--muted); line-height:1.4; overflow-wrap:anywhere; }
+    .omp-card.span-4 { grid-column:span 4; }
+    .omp-card.span-6 { grid-column:span 6; }
+    .omp-card.span-8 { grid-column:span 8; }
+    .omp-card.span-12 { grid-column:span 12; }
+    .omp-progress-track { height:8px; border-radius:999px; background:rgba(148,163,184,.18); overflow:hidden; }
+    .omp-progress-fill { height:100%; width:39%; border-radius:999px; background:linear-gradient(90deg,var(--green),var(--blue)); }
+    .omp-flow { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    .omp-flow-step { border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.025); padding:10px; min-width:0; }
+    .omp-flow-step strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .omp-flow-step em { display:block; margin-top:4px; color:var(--muted); font-style:normal; font-size:12px; line-height:1.3; overflow-wrap:anywhere; }
+    .omp-gate-list { display:flex; flex-wrap:wrap; gap:6px; }
+    .omp-table { width:100%; border-collapse:collapse; table-layout:fixed; }
+    .omp-table td, .omp-table th { padding:9px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; white-space:normal; overflow-wrap:anywhere; }
+    .omp-table th { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:0; }
+    @media(max-width:900px){
+      .omp-hero, .omp-flow { grid-template-columns:1fr; }
+      .omp-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .omp-card.span-4, .omp-card.span-6, .omp-card.span-8 { grid-column:span 12; }
+    }
     .operator-decision-button { border:1px solid rgba(96,165,250,.18); border-radius:8px; background:rgba(96,165,250,.06); color:var(--text); min-height:30px; padding:4px 8px; text-align:left; cursor:pointer; max-width:190px; }
     .operator-decision-button:hover { border-color:rgba(96,165,250,.32); background:rgba(96,165,250,.11); }
     .operator-decision-button.is-highlight { border-color:rgba(250,204,21,.34); background:rgba(250,204,21,.08); }
@@ -21200,6 +21327,7 @@ def html_page_v2():
         <div class="brand">V7</div>
         <nav class="nav" id="tabs">
           <button type="button" data-tab="overview" class="active">Главная</button>
+          <button type="button" data-tab="omp">OMP</button>
           <button type="button" data-tab="users">Пользователи</button>
           <button type="button" data-tab="channels">Каналы</button>
           <button type="button" data-tab="routing">Маршруты</button>
@@ -21241,6 +21369,35 @@ def html_page_v2():
         <article class="panel"><div class="toolbar"><div><h2>Каналы</h2></div><button class="ghost" onclick="showTab('channels')">Все каналы</button></div><div class="table-shell" id="overviewChannels"></div></article>
       </div>
     </section>
+
+    <section id="tab-omp" class="tab-page"><div class="omp-page">
+      <div class="omp-hero">
+        <article class="omp-hero-band">
+          <div class="muted">READ ONLY · top-level admin tab</div>
+          <h1>OMP Dashboard</h1>
+          <p id="ompExecutiveSummary">Загрузка canonical OMP state. Главная админки остаётся отдельным overview-экраном.</p>
+          <div class="omp-kpis" id="ompExecutiveKpis"></div>
+        </article>
+        <article class="omp-source-card">
+          <h2>Navigation Contract</h2>
+          <div class="omp-gate-list">
+            <span class="pill ok">Home preserved</span>
+            <span class="pill info">Route /admin/omp</span>
+            <span class="pill ok">No duplicate shell</span>
+            <span class="pill ok">No Runtime change</span>
+          </div>
+          <p class="muted">OMP is a separate top-level section. Executive View is the first layer inside this tab, not the global home page.</p>
+        </article>
+      </div>
+      <div class="omp-view-tabs">
+        <button type="button" class="active" data-omp-view="executive" onclick="showOmpView('executive')">Executive View</button>
+        <button type="button" data-omp-view="operator" onclick="showOmpView('operator')">Operator View</button>
+        <button type="button" data-omp-view="engineering" onclick="showOmpView('engineering')">Engineering View</button>
+      </div>
+      <div class="omp-view active" data-omp-panel="executive" id="ompExecutiveView"></div>
+      <div class="omp-view" data-omp-panel="operator" id="ompOperatorView"></div>
+      <div class="omp-view" data-omp-panel="engineering" id="ompEngineeringView"></div>
+    </div></section>
 
     <section id="tab-operator" class="tab-page"><div class="module-page">
       <div class="operator-hero">
@@ -22677,7 +22834,9 @@ def html_page_v2():
     }
     const UI_PREFS_KEY = 'v7.admin.ui.prefs.phase133';
     const ACTIVE_TAB_KEY = 'v7.admin.active.tab.phase134';
-    const VALID_TABS = ['overview','users','channels','routing','operator','identity','checks','security','settings','logs'];
+    const VALID_TABS = ['overview','omp','users','channels','routing','operator','identity','checks','security','settings','logs'];
+    let ompDashboard = null;
+    let ompDashboardLoading = false;
     let operatorView = null;
     let operatorCandidateWorkflow = null;
     let operatorViewLoading = false;
@@ -23439,7 +23598,7 @@ def html_page_v2():
       const raw = String(location.hash || '').replace(/^#/, '').trim();
       const parts = raw.split('/').filter(Boolean);
       let tab = normalizeTabName(parts[0] || '');
-      if (!parts[0]) tab = 'overview';
+      if (!parts[0]) tab = location.pathname === '/admin/omp' ? 'omp' : 'overview';
       let workspace = parts[1] ? decodeURIComponent(parts[1]) : '';
       return {tab, workspace: normalizeWorkspaceName(tab, workspace)};
     }
@@ -23492,6 +23651,71 @@ def html_page_v2():
       name = normalizeTabName(name);
       rememberAdminRoute(name, workspace || WORKSPACE_DEFAULTS[name] || 'overview', mode);
     }
+    function showOmpView(name='executive') {
+      const view = ['executive','operator','engineering'].includes(String(name)) ? String(name) : 'executive';
+      document.querySelectorAll('[data-omp-view]').forEach(b => b.classList.toggle('active', b.dataset.ompView === view));
+      document.querySelectorAll('[data-omp-panel]').forEach(p => p.classList.toggle('active', p.dataset.ompPanel === view));
+    }
+    function ompCard(title='', value='', tone='info', detail='') {
+      return `<article class="omp-card span-4"><h3>${esc(title)}</h3><strong>${esc(value || 'UNKNOWN')}</strong>${pill(tone === 'bad' ? 'blocked' : tone === 'ok' ? 'ready' : 'read-only', tone)}<p>${esc(detail || '')}</p></article>`;
+    }
+    function renderOmpDashboard() {
+      const data = ompDashboard || {};
+      const executive = data.executive_view || {};
+      const operator = data.operator_view || {};
+      const engineering = data.engineering_view || {};
+      const kpis = document.getElementById('ompExecutiveKpis');
+      const summary = document.getElementById('ompExecutiveSummary');
+      if (summary) summary.textContent = `${executive.current_stage || 'OMP'} · ${executive.current_recommendation || 'read-only dashboard'}`;
+      if (kpis) kpis.innerHTML = [
+        ['Overall', executive.overall_progress || '10 / 34'],
+        ['Production', executive.production_maturity || '39.0 / 100'],
+        ['Current', operator.current_step || executive.current_stage || 'B3'],
+        ['RT2', operator.rt2_stage || 'COMPLETE_READ_ONLY'],
+      ].map(([label,value]) => `<div class="omp-kpi"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('');
+      const execHost = document.getElementById('ompExecutiveView');
+      if (execHost) execHost.innerHTML = [
+        `<article class="omp-card span-8"><h2>Executive View</h2><p>${esc(executive.current_recommendation || '')}</p><div class="omp-progress-track"><div class="omp-progress-fill"></div></div><p>Production maturity: ${esc(executive.production_maturity || 'UNKNOWN')}</p></article>`,
+        ompCard('Current Stage', executive.current_stage, 'info', 'Current OMP step inside Product Execution Mode.'),
+        ompCard('Current Capability', executive.current_capability, 'ok', 'Produced capability now consumed by OMP.'),
+        ompCard('Current Risks', executive.current_risks, 'warn', 'Risks remain visible but non-authorizing.'),
+        ompCard('Route', data.route_url || '/admin/omp', 'ok', data.home_preserved ? 'Existing overview/home page is preserved.' : 'Home preservation unknown.'),
+      ].join('');
+      const operatorHost = document.getElementById('ompOperatorView');
+      if (operatorHost) operatorHost.innerHTML = [
+        `<article class="omp-card span-12"><h2>Operator View</h2><div class="omp-flow"><div class="omp-flow-step"><strong>Previous</strong><em>${esc(operator.previous_step || '')}</em></div><div class="omp-flow-step"><strong>Current</strong><em>${esc(operator.current_step || '')}</em></div><div class="omp-flow-step"><strong>Next</strong><em>${esc(operator.next_step || '')}</em></div></div></article>`,
+        ompCard('Current Stop', operator.current_stop, operator.current_stop && String(operator.current_stop).startsWith('NONE') ? 'ok' : 'warn', 'Safe next action is still OMP-governed.'),
+        ompCard('Produced', operator.produced_capability, 'ok', 'Capability produced by the prior OMP stage.'),
+        ompCard('Unlocked', operator.unlocked_capability, 'info', 'Only the current next capability is available.'),
+        `<article class="omp-card span-12"><h2>Stop Gates</h2><div class="omp-gate-list">${(data.stop_gates || []).map(x => pill(x, 'bad')).join('')}</div><p>No stop gate is converted into authority by this dashboard.</p></article>`,
+      ].join('');
+      const engineeringHost = document.getElementById('ompEngineeringView');
+      if (engineeringHost) engineeringHost.innerHTML = [
+        `<article class="omp-card span-12"><h2>Engineering View</h2><table class="omp-table"><tbody>
+          <tr><th>Transition</th><td>${esc(engineering.transition || '')}</td></tr>
+          <tr><th>Produced evidence</th><td>${esc(engineering.produced_evidence || '')}</td></tr>
+          <tr><th>Consumed evidence</th><td>${esc(engineering.consumed_evidence || '')}</td></tr>
+          <tr><th>Owner mapping</th><td>${esc(engineering.owner_mapping || '')}</td></tr>
+          <tr><th>Canonical route</th><td>${esc(engineering.canonical_route_rule_present ? 'present' : 'pending canonical update')}</td></tr>
+        </tbody></table></article>`,
+        `<article class="omp-card span-12"><h2>Canonical Sources</h2><div class="omp-gate-list">${(data.sources || []).map(x => pill(x, 'muted')).join('')}</div><p>Same sources feed Executive, Operator, and Engineering views. No duplicated truth or duplicated read model.</p></article>`,
+      ].join('');
+    }
+    async function loadOmpDashboard(force=false) {
+      if (ompDashboardLoading || (ompDashboard && !force)) {
+        renderOmpDashboard();
+        return;
+      }
+      ompDashboardLoading = true;
+      try {
+        ompDashboard = await api('/api/omp/dashboard');
+      } catch (error) {
+        ompDashboard = {executive_view:{current_stage:'OMP dashboard unavailable', current_recommendation:String(error?.message || error)}, operator_view:{}, engineering_view:{}, stop_gates:[], sources:[]};
+      } finally {
+        ompDashboardLoading = false;
+        renderOmpDashboard();
+      }
+    }
     function showTab(name, options={}) {
       closeInfoPanel();
       name = normalizeTabName(name);
@@ -23499,6 +23723,7 @@ def html_page_v2():
       document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === navName));
       document.querySelectorAll('.tab-page').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
       document.querySelector(`[data-tab="${navName}"]`)?.scrollIntoView({block:'nearest', inline:'center'});
+      if (name === 'omp') loadOmpDashboard();
       if (name === 'operator') loadOperatorView();
       if (options.persist !== false) rememberActiveTab(name, options.history || 'push', options.workspace);
       if (options.scroll !== false) window.scrollTo({top:0, behavior: options.instant ? 'auto' : 'smooth'});
@@ -23594,6 +23819,7 @@ def html_page_v2():
     function v2NavigationSections() {
       return [
         ['Статус', 'Главная', 'Короткая сводка: работает ли V7, кто онлайн, какие блокеры есть сейчас.', 'showTab("overview");closeDrawer()'],
+        ['Статус', 'OMP', 'Read-only OMP Dashboard: Executive, Operator и Engineering views из canonical OMP/CPS данных.', 'showTab("omp");closeDrawer()'],
         ['Работа', 'Пользователи', 'Профили, телефоны, устройства, готовность подключения и действия по одному человеку.', 'showTab("users");closeDrawer()'],
         ['Работа', 'Каналы', 'Внешние туннели, скорость, сервисная матрица и безопасное добавление новых каналов.', 'showTab("channels");closeDrawer()'],
         ['Работа', 'Маршруты', 'Режимы клиентов, категории трафика, предпросмотр политики и фактические проверки маршрутов.', 'showTab("routing");closeDrawer()'],
@@ -36319,6 +36545,7 @@ PersistentKeepalive = 25
       }
       try {
         applyOverviewData(await api('/api/overview'), {render:true, traffic:true});
+        if (document.getElementById('tab-omp')?.classList.contains('active')) loadOmpDashboard(true);
         loadOperatorDecisionSurface(true);
         loadTrustSurfaces();
       } catch (error) {
@@ -36555,7 +36782,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Location", "/admin-v2")
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
-        elif path == "/admin-v2":
+        elif path in ("/admin-v2", "/admin/omp"):
             if auth_configured() and not self.current_session():
                 self.send_response(303)
                 self.send_header("Location", "/login")
@@ -36726,7 +36953,7 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_auth(api=False):
                 return
             self.send_redirect("/admin-v2")
-        elif path == "/admin-v2":
+        elif path in ("/admin-v2", "/admin/omp"):
             if not self.require_auth(api=False):
                 return
             self.send_html_v2()
@@ -36743,6 +36970,10 @@ class Handler(BaseHTTPRequestHandler):
                 return
             force = (parse_qs(urlparse(self.path).query).get("force") or [""])[0] in ("1", "true", "yes")
             self.send_json(overview_cached(session, force=force))
+        elif path == "/api/omp/dashboard":
+            if not self.require_auth(api=True):
+                return
+            self.send_json(omp_dashboard_response())
         elif path == "/api/evidence":
             if not self.require_auth(api=True):
                 return

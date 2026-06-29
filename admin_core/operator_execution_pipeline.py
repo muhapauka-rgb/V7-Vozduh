@@ -4013,6 +4013,7 @@ def rt2_s4_governed_execution_coordination(
     controller = operator_approved_execution_controller_preview(controller_decision)
     action_matrix = execution_action_matrix()
     lifecycle = approval_packet_lifecycle()
+    containment_forward_fix = operator_execution.containment_forward_fix_classification()
     steps = controller.get("steps") if isinstance(controller.get("steps"), list) else []
     rows = [_rt2_s4_coordination_row(step) for step in steps if isinstance(step, dict)]
     required = [
@@ -4059,6 +4060,8 @@ def rt2_s4_governed_execution_coordination(
             "success_path": "EXECUTION_SUCCESS -> CLOSED",
             "failure_path": "EXECUTION_FAILED -> ROLLBACK_REQUIRED -> ROLLBACK_SUCCESS/ROLLBACK_FAILED -> CLOSED/BLOCKER",
             "rejection_path": "PACKET_REJECTED -> EXECUTION_BLOCKED",
+            "containment_forward_fix_schema": containment_forward_fix.get("schema_version", ""),
+            "containment_forward_fix_classification": containment_forward_fix.get("classification", "UNKNOWN_TERMINAL_STATE"),
             "closure_owner": CANONICAL_FEEDBACK_OWNER,
             "terminal_classification_ready": bool(terminal_states),
         },
@@ -4117,6 +4120,7 @@ def rt2_s4_governed_execution_coordination(
             "governed_apply_policy": governed_apply_policy(),
             "verification_policy": verification_policy(),
             "rollback_policy": rollback_policy(),
+            "containment_forward_fix_classification": containment_forward_fix,
             "execution_action_matrix": action_matrix,
             "no_bypass_certification": no_bypass,
         },

@@ -1,4 +1,4 @@
-# Product Evolution Through Operational Maturity Campaigns
+# Product Evolution Framework
 
 STATUS: DESIGN PROPOSAL
 CANONICAL: NO
@@ -7,17 +7,27 @@ IMPLEMENTATION: NOT STARTED
 
 ## Purpose
 
-This proposal defines a future Product Evolution Framework for V7 based on Capability Growth.
+This proposal defines a future Product Evolution Framework for V7.
 
-Operational Maturity Campaigns are only one mechanism inside that framework. They are not the center of the model.
+The primary subject is Product Evolution.
 
-The center is:
+Operational Maturity Campaigns are one possible mechanism inside the framework. They are not the center of the model, not a roadmap, not an OMP replacement, and not an implementation queue.
+
+The framework asks:
 
 ```text
-Product Evolution through certified Capability Growth.
+How does V7 observe product reality, identify capability growth needs, collect certified evidence, and evolve the product for many years without creating new architecture?
 ```
 
-V7 has completed the actionable implementation backlog, while Production Maturity remains `66.9 / 100`. The next milestone is `80% Runtime Production Ready`, but maturity should not be treated as a passive score waiting to rise. Future product growth should be driven by explicit product goals, capability goals, capability gaps, evidence gaps, operator-reviewed campaigns, certification, and measured capability advancement.
+Current context:
+
+- actionable implementation backlog is complete;
+- Production Maturity is `66.9 / 100`;
+- next milestone is `80% Runtime Production Ready`;
+- architecture is closed by default;
+- Product Execution Mode is active.
+
+This proposal remains design-only. It does not change OMP, Runtime, Production Maturity, Dashboard, SYSTEM_MAP, canonical owners, implementation, automation, authority, or user movement.
 
 ## Design Status
 
@@ -25,98 +35,171 @@ This document is editable design only.
 
 It is not canonical.
 
-It does not modify OMP, Runtime, Production Maturity, Dashboard, authority, automation, production behavior, Current Program State, SYSTEM_MAP, or any canonical owner.
+It does not create an active Evolution Engine, campaign generator, campaign system, dashboard model, automation mode, Runtime path, OMP mode, owner, truth source, roadmap, backlog, or authority model.
 
-It does not create an active campaign system.
+It does not execute Runtime, move users, expand authority, approve automation, change production behavior, change thresholds, change formulas, or write Production Maturity.
 
-It does not create a new roadmap, OMP, backlog, planner, Runtime, owner, truth source, authority model, or execution mode.
+## Continuous Product Evolution Cycle
 
-## Product Evolution Model
+V2 used a linear model. V3 replaces it with a continuous cycle:
 
-The proposed model is:
+```text
+Current Product Reality
+-> Product Observation
+-> Product Goal
+-> Capability Strategy
+-> Capability Goal
+-> Capability Gap
+-> Evidence Gap
+-> Evolution Engine
+-> Campaign Generator
+-> Suggested Campaigns
+-> Operator Review
+-> Evidence Collection
+-> Certification
+-> Capability Growth
+-> New Product Reality
+-> Product Observation
+```
+
+The cycle is continuous because product reality changes after every certified outcome, blocked campaign, operator decision, production observation, or capability advancement.
+
+Campaigns are not the success condition.
+
+Success is:
+
+```text
+Certified Capability Advancement
+-> New Product Reality
+-> Better Product Evolution
+```
+
+## Product Observation
+
+Product Observation is the Reality First entry point for future product evolution.
+
+It explains how new goals appear.
+
+Product goals must not be invented from taste, speculation, or campaign enthusiasm. They must come from observed reality, operator need, production behavior, evidence gap, or explicit product direction.
+
+Observation examples:
+
+| Observation source | What it may reveal | Design status |
+| --- | --- | --- |
+| Production behavior | Unsafe stop frequency, recovery limits, stale evidence, routing friction, degraded channels, capacity limits. | DESIGN |
+| Operator workload | Too many manual reviews, unclear blocker reasons, repeated approval friction, dashboard confusion. | DESIGN |
+| Recovery quality | Slow recovery, unsafe recovery admission, missing observation windows, weak slow-start evidence. | DESIGN |
+| Prediction quality | Prediction vs Reality mismatch, confidence drift, weak recommendation accuracy. | DESIGN |
+| Engineering outcomes | Recommendations succeed, fail, drift, remain unvalidated, or produce low ROI. | DESIGN |
+| Runtime cost | Too much live work, duplicate computation, expensive reads, slow safe recovery path. | DESIGN |
+| Customer experience | Connectivity loss, unstable routing, poor service fit, unnecessary movement, delayed restoration. | DESIGN |
+| Dashboard signals | Blocked gates, missing evidence, stale read models, unclear current product state. | DESIGN |
+
+Product Observation must follow Reality First:
+
+- source must be named;
+- freshness must be known or marked unknown;
+- owner must be known or marked missing;
+- observation must not imply authority;
+- observation must not update maturity;
+- observation must not create a campaign directly;
+- observation must pass through Capability Strategy before any proposed campaign.
+
+## Capability Hierarchy
+
+The framework distinguishes four levels.
+
+They must not be collapsed into one vague "gap."
 
 ```text
 Product Goal
 -> Capability Goal
 -> Capability Gap
 -> Evidence Gap
--> Operational Campaign
--> Evidence
--> Certification
--> Capability Growth
--> Product Evolution
 ```
-
-Expanded operating model:
-
-```text
-Goal
--> Capability Strategy
--> Capability Gap Analysis
--> Evidence Gap Analysis
--> Campaign Generator
--> Suggested Campaigns
--> Operator Review
--> Campaign Approval
--> Evidence Collection
--> Certification
--> Capability Growth
--> Product Evolution
-```
-
-This model makes campaign work subordinate to capability growth. A campaign succeeds only when it produces certifiable evidence that advances a capability. A campaign that collects data but does not advance a capability is incomplete, blocked, or mis-scoped.
-
-## Non-Goals
-
-This proposal does not replace OMP.
-
-It does not create a new OMP, roadmap, backlog, planner, Runtime, owner, truth source, authority model, automation mode, or product strategy owner.
-
-It does not enable automation, expand authority, mutate Runtime, move users, approve Runtime apply, bypass certification, or create synthetic evidence.
-
-It does not change Production Maturity directly. Maturity changes only after evidence is certified through existing owners.
-
-It does not execute campaigns. It defines a future design language only.
-
-It does not make campaigns the goal. Campaigns are a means to capability advancement.
-
-## Definitions
 
 Product Goal:
-A product-level desired outcome, such as becoming Runtime Production Ready, improving Time-To-Safe-Recovery, increasing prediction confidence, or proving bounded autonomy readiness.
+The product-level outcome V7 wants to reach. Examples: `80% Runtime Production Ready`, lower Time-To-Safe-Recovery, clearer operator control, safer recovery, higher prediction confidence, or future bounded autonomy readiness.
 
 Capability Goal:
-The specific capability state required to serve a product goal. Examples include Runtime Readiness, Prediction Confidence, Rollback Reliability, Recovery Admission, Engineering Intelligence, Runtime Time Intelligence, Movement Protection, Authority Evolution, or a future capability admitted through OMP.
-
-Capability Strategy:
-The proposed approach for moving a capability from its current certified state toward the target state while reusing existing owners and preserving safety, authority, verification, rollback, and STOP_SAFE constraints.
+The capability state required to serve the product goal. Examples: Runtime Readiness, Prediction Confidence, Rollback Reliability, Recovery Admission, Runtime Time Intelligence, Engineering Intelligence, Movement Protection, Authority Evolution, Dashboard Clarity.
 
 Capability Gap:
-The measurable distance between current capability state and target capability state. This replaces the V1 term "Production Maturity Gap" as the primary abstraction. Production Maturity gaps are only one type of capability gap.
+The measurable difference between current certified capability state and target capability state.
 
 Evidence Gap:
-The missing evidence required to close or reduce a capability gap. Evidence gaps name source owner, evidence type, required sample or quality bar, certification owner, freshness/expiry rules, and stop gates.
+The missing proof required to close or reduce the capability gap. Evidence gaps name source owner, certification owner, evidence type, quality requirement, sample requirement if known, freshness/expiry, stop gates, and forbidden shortcuts.
 
-Campaign Generator:
-A proposed future design component or OMP-owned rule that converts capability gaps and evidence gaps into suggested campaigns. It is non-authorizing and does not execute anything.
+Example:
 
-Operational Campaign:
-A proposed, bounded evidence effort generated from a capability gap and evidence gap. A campaign may collect evidence and recommend action, but it cannot execute Runtime behavior, grant authority, move users, or update maturity by itself.
+```text
+Product Goal:
+80% Runtime Production Ready
 
-Evidence Yield:
-The advisory evidence produced by a campaign before certification. Yield may estimate possible capability growth, production impact, investment cost, and ROI, but it is not certified maturity.
+Capability Goal:
+Runtime can safely consume prepared eligibility, rollback, verification, anti-flap, freshness, and blast gates.
 
-Operational Investment:
-The expected effort and risk profile of a campaign, including evidence cost, engineering cost, operational cost, risk, and expected ROI.
+Capability Gap:
+Read-only readiness surfaces exist, but certified operational runtime-readiness evidence remains insufficient.
 
-Capability Advancement:
-The certified improvement of a capability after evidence is collected and validated. This replaces "Campaign Completion" as the success target.
+Evidence Gap:
+Missing certified STOP_SAFE / readiness / rollback / verification / freshness outcomes across required action classes.
+```
 
-Campaign Certification:
-The existing-owner review that decides whether campaign evidence is valid enough to advance a capability, update Production Maturity, improve confidence, support authority review, or close a gap.
+## Evolution Engine
 
-Campaign Stop Gate:
-A hard boundary that prevents campaign progress, such as missing operator approval, Runtime apply requirement, authority expansion requirement, user movement requirement, synthetic evidence risk, unsafe production action, or uncertified owner.
+Evolution Engine is the central design concept in V3.
+
+It replaces Campaign Generator as the center of the proposal.
+
+The Evolution Engine is advisory only.
+
+It does not execute Runtime, approve campaigns, update maturity, certify evidence, expand authority, move users, automate work, create a queue, create a roadmap, or become a truth source.
+
+Possible responsibilities:
+
+| Responsibility | Meaning | Authority |
+| --- | --- | --- |
+| Product Observation | Convert product reality into candidate product goals. | Advisory only. |
+| Capability Strategy | Identify which capability must grow and why. | Advisory only. |
+| Capability Gap Analysis | Compare current capability state with target capability state. | Advisory only. |
+| Evidence Gap Analysis | Identify missing evidence required for capability advancement. | Advisory only. |
+| Campaign Generation | Suggest bounded evidence campaigns from evidence gaps. | Advisory only. |
+| Recommendation | Explain possible next product-evolution action. | Advisory only. |
+| Evolution Planning | Sequence suggested evidence work by product goal, capability impact, investment, risk, and certification path. | Advisory only. |
+
+The Evolution Engine is not a planner.
+
+It may later recommend work to OMP, but OMP remains the execution program.
+
+It may later feed Dashboard, but Dashboard remains read-only.
+
+It may later feed Engineering Intelligence, but Engineering Intelligence remains advisory and OMP-governed.
+
+## Capability Strategy
+
+Capability Strategy is the design step between observation and gap analysis.
+
+It answers:
+
+1. What product reality was observed?
+2. What product goal follows from that reality?
+3. Which capability must grow?
+4. What is the current certified capability state?
+5. What target capability state is needed?
+6. Which existing owner owns the capability?
+7. Which consumers need the capability?
+8. Which evidence is missing?
+9. Which stop gates apply?
+10. Which safety/authority/verification/rollback/STOP_SAFE rules constrain the work?
+11. Which campaign, if any, could safely collect the evidence?
+12. What investment and risk would the campaign require?
+13. What capability advancement would count as success?
+14. How would new product reality be observed after certification?
+
+Capability Strategy must not become a roadmap or backlog.
+
+It is a design-stage analysis that may later be routed through OMP only after validation and canonical readiness.
 
 ## Capability Gap Model
 
@@ -132,10 +215,13 @@ It can describe any future product evolution need:
 | Recovery | Recovery admission is read-only complete, but production recovery maturity is not certified. | Repeated recovery admission, observation-window, slow-start, and no-regression evidence. |
 | Engineering Intelligence | Architecture/materialization is complete, but real evidence phase is incomplete. | Recommendation -> implementation -> outcome -> prediction-vs-reality -> confidence update records. |
 | Runtime Time Intelligence | Time model is canonical, but operational time evidence is future. | Measured domains, topology, critical path, Time-To-Safe-Recovery, and optimization recommendation outcomes. |
+| Dashboard Clarity | Dashboard model exists, but product-evolution visibility is not canonical or implemented. | Read-only visualization needs owner-mapped product reality, goals, gaps, campaigns, ROI, and certification state. |
 | Future capabilities | New product capability is proposed. | Existing owner check, capability fit, missing evidence, certification owner, and safe implementation path. |
 
 Every capability gap must name:
 
+- current product reality;
+- product observation source;
 - product goal;
 - capability goal;
 - current capability state;
@@ -146,41 +232,54 @@ Every capability gap must name:
 - certification owner;
 - stop gates;
 - forbidden shortcuts;
-- expected capability growth if certified.
+- expected capability growth if certified;
+- expected new product reality after advancement.
 
-## Capability Strategy
+## Evidence Gap Analysis
 
-Capability Strategy is the design step between goal and campaign.
+Evidence Gap Analysis prevents vague strategy from turning into invented campaigns.
 
-It answers:
+It must answer:
 
-1. What product goal is being served?
-2. Which capability must grow?
-3. What is the current certified capability state?
-4. What target state is needed?
-5. Which existing owner owns the capability?
-6. Which evidence is missing?
-7. Which campaign, if any, can safely collect that evidence?
-8. What operational investment is required?
-9. What risk is introduced?
-10. What capability growth would certification unlock?
+1. What evidence is missing?
+2. Which existing owner can produce it?
+3. Which existing owner can certify it?
+4. Is the evidence observational, operational, verification, rollback, authority, prediction, confidence, runtime-time, dashboard, or engineering evidence?
+5. Does evidence require Runtime apply?
+6. Does evidence require user movement?
+7. Does evidence require authority expansion?
+8. Can evidence be collected read-only?
+9. Can evidence be collected through governed operator review?
+10. What makes the evidence synthetic or invalid?
+11. When does evidence expire?
+12. What proves capability advancement?
 
-Capability Strategy must not become a roadmap or backlog. It is a scoped analysis that may later be routed through OMP only if validated.
+Evidence Gap Analysis must happen before campaign generation.
 
-## Campaign Generation Rule
+## Operational Campaigns
+
+Operational Campaigns remain useful, but their importance is reduced.
+
+They are generated mechanisms, not the framework itself.
+
+Campaigns must originate from:
+
+```text
+Product Observation
+-> Capability Strategy
+-> Capability Gap
+-> Evidence Gap
+-> Evolution Engine
+-> Campaign Generator
+-> Suggested Campaign
+```
 
 Campaigns must never be manually invented.
 
-Every campaign must originate from:
-
-```text
-Capability Gap
--> Evidence Gap
--> Campaign Generator
-```
-
 A suggested campaign is invalid unless it can trace to:
 
+- current product reality;
+- product observation;
 - product goal;
 - capability goal;
 - capability gap;
@@ -191,61 +290,36 @@ A suggested campaign is invalid unless it can trace to:
 - allowed actions;
 - forbidden actions;
 - expected capability growth;
-- expected production impact;
+- expected product evolution;
+- expected ROI;
 - operational investment.
 
-If a campaign cannot trace to a capability gap and evidence gap, it must be rejected, rewritten, or left as an open question.
-
-## Campaign Lifecycle
-
-Campaign lifecycle remains useful, but it is no longer the top-level lifecycle.
+Campaign lifecycle:
 
 ```text
-Capability Gap Detected
--> Evidence Gap Identified
--> Campaign Suggested
+Campaign Suggested
 -> Operator Reviewed
 -> Campaign Approved
 -> Evidence Collected
 -> Evidence Certified
--> Capability Advanced
--> Product Evolution Updated
--> Next Capability Gap Analysis
+-> Capability Advanced or Not Advanced
+-> New Product Reality Observed
 ```
 
-Capability Gap Detected:
-An existing owner shows that current capability state is below a product or maturity target.
+Campaign completion is not success.
 
-Evidence Gap Identified:
-The missing proof is named with source owner, sample or quality requirement, certification owner, and stop gates.
+Campaign success is not the objective.
 
-Campaign Suggested:
-Campaign Generator proposes one or more bounded evidence campaigns. Suggestions are non-authorizing.
+The objective is:
 
-Operator Reviewed:
-The operator reviews product goal, capability goal, evidence, allowed actions, forbidden actions, stop gates, operational investment, expected ROI, and expected capability growth.
-
-Campaign Approved:
-The operator approves only campaign scope, not Runtime apply, automation, authority expansion, rollback execution, or user movement.
-
-Evidence Collected:
-Evidence is collected through existing owners. Collection may include read-only snapshots, governed outcomes, operator-reviewed operational evidence, or certified observation.
-
-Evidence Certified:
-Existing certification owners validate the evidence.
-
-Capability Advanced:
-The capability advances only if evidence certification passes.
-
-Product Evolution Updated:
-Production Maturity, Engineering Intelligence, Dashboard, CPS, or OMP may be updated later only if their canonical owners are valid destinations and the concept has matured beyond design proposal.
-
-Next Capability Gap Analysis:
-The system identifies the next capability gap from certified state, not from campaign enthusiasm.
+```text
+Capability Advancement
+-> Product Evolution
+```
 
 ## Campaign Types
 
-Initial candidate campaign types remain examples only. Each must be generated from a capability gap and evidence gap.
+Campaign types remain examples only.
 
 | Campaign Type | Capability Growth Target | Example Evidence | Primary Risk |
 | --- | --- | --- | --- |
@@ -259,111 +333,110 @@ Initial candidate campaign types remain examples only. Each must be generated fr
 | Anti-Flap Evidence Campaign | Movement Protection / Recovery | Cooldown, hysteresis, target block/quarantine, pair reversal evidence. | Changing thresholds or formulas. |
 | Time-To-Safe-Recovery Campaign | Runtime Time Intelligence / Recovery | Observation time, readiness time, decision time, verification time, recovery closure. | Optimizing time by weakening safety. |
 
-## Capability-Oriented Data Model
+## Capability Advancement
 
-Suggested fields:
+Capability Advancement is the success condition.
+
+It is the certified improvement of a capability after evidence has been collected, verified, and reviewed by existing owners.
+
+Campaign completion alone is not advancement.
+
+Evidence collection alone is not advancement.
+
+Expected ROI alone is not advancement.
+
+Dashboard progress alone is not advancement.
+
+Capability Advancement requires:
+
+- named capability;
+- current certified state;
+- target state;
+- certified evidence;
+- certification owner;
+- affected consumers;
+- safety review;
+- authority review if relevant;
+- verification/rollback/STOP_SAFE review if relevant;
+- declared result: advanced, partially advanced, not advanced, blocked, or invalid evidence;
+- new product reality to observe.
+
+## Evolution Metrics
+
+Evolution Metrics are future design concepts only.
+
+They must not be implemented, scored, displayed as canonical, or used for authority until canonicalized.
+
+Possible metrics:
+
+| Metric | Meaning | Current status |
+| --- | --- | --- |
+| Product Evolution Rate | Rate at which certified product reality improves. | DESIGN |
+| Capability Advancement Rate | Rate at which capabilities advance after certification. | DESIGN |
+| Evidence Yield | Value and coverage of collected evidence before certification. | DESIGN |
+| Campaign Success Rate | Fraction of campaigns that produce certified capability advancement. | DESIGN |
+| Certification Throughput | Rate of evidence packets certified by existing owners. | DESIGN |
+| Mean Time To Capability Growth | Time from observation to certified advancement. | DESIGN |
+| Operational Investment | Operator/production effort and risk. | DESIGN |
+| Engineering Investment | Engineering effort required to support evidence collection or read-only surfaces. | DESIGN |
+| Evidence Investment | Cost of collecting, refreshing, validating, and preserving evidence. | DESIGN |
+| Expected ROI | Expected product/capability value relative to investment and risk. | DESIGN |
+
+All metrics are advisory until certified.
+
+No metric may override Safety, Authority, Verification, Rollback, or STOP_SAFE.
+
+## Product Evolution Data Model
+
+Suggested design fields:
 
 | Field | Meaning |
 | --- | --- |
+| `current_product_reality` | Observed current state of the product. |
+| `product_observation` | Source and summary of observed reality. |
 | `product_goal` | Product-level outcome the work serves. |
+| `capability_strategy` | Proposed approach for capability growth. |
 | `capability_goal` | Target capability state. |
 | `capability_id` | Existing capability or future OMP-admitted capability. |
 | `current_capability_state` | Current certified state. |
 | `target_capability_state` | Desired certified state. |
 | `capability_gap` | Measurable difference between current and target state. |
 | `evidence_gap` | Missing evidence required to advance capability. |
+| `evolution_engine_recommendation` | Advisory recommendation from the future Evolution Engine. |
 | `campaign_id` | Stable campaign identifier if a campaign is generated. |
 | `campaign_type` | Suggested campaign type. |
 | `evidence_owner` | Existing owner that produces or stores evidence. |
 | `certification_owner` | Existing owner that certifies evidence. |
-| `required_sample_count` | Required sample threshold, if known. |
-| `collected_sample_count` | Current collected evidence count. |
 | `expected_capability_growth` | Advisory capability movement if evidence is certified. |
-| `expected_production_impact` | Advisory effect on Production Maturity or product readiness. |
+| `expected_product_evolution` | Advisory product reality change if capability advances. |
 | `evidence_yield` | Advisory value of collected evidence before certification. |
-| `evidence_cost` | Cost to gather required evidence. |
-| `engineering_cost` | Cost to build or extend read-only/supporting surfaces if later approved. |
-| `operational_cost` | Operator/runtime/production effort or disruption cost. |
-| `risk` | Safety, authority, operational, or product risk. |
-| `expected_roi` | Expected capability/production value relative to investment and risk. |
-| `stop_gates` | Boundaries that stop the campaign. |
-| `allowed_actions` | Actions permitted inside campaign scope. |
+| `operational_investment` | Operational effort, risk, and cost. |
+| `engineering_investment` | Engineering support cost. |
+| `evidence_investment` | Evidence collection and preservation cost. |
+| `expected_roi` | Expected value relative to investment and risk. |
+| `stop_gates` | Boundaries that stop the work. |
+| `allowed_actions` | Actions permitted inside scope. |
 | `forbidden_actions` | Actions forbidden even if they could produce evidence faster. |
 | `capability_advancement_criteria` | Conditions for capability growth after certification. |
 | `certification_result` | Result after certification review. |
-
-Example shape:
-
-```text
-product_goal: 80% Runtime Production Ready
-capability_goal: Runtime Readiness can safely consume prepared gates
-capability_id: Runtime Readiness
-current_capability_state: read-only readiness surfaces complete; runtime_apply blocked
-target_capability_state: certified runtime-readiness evidence for authority review
-capability_gap: missing certified operational readiness evidence
-evidence_gap: freshness/authority/rollback/verification/anti-flap/blast STOP_SAFE outcomes
-campaign_id: OMC-RUNTIME-READINESS-001
-campaign_type: Runtime Readiness Campaign
-evidence_owner: existing Runtime Eligibility / OMP read-model owners
-certification_owner: existing OMP / Production Maturity certification owners
-required_sample_count: TBD
-collected_sample_count: 0
-expected_capability_growth: Runtime Readiness moves closer to Runtime Production Ready
-expected_production_impact: advisory only until certified
-evidence_yield: TBD, advisory only
-evidence_cost: TBD
-engineering_cost: TBD
-operational_cost: TBD
-risk: unsafe readiness interpretation, authority confusion, stale evidence
-expected_roi: TBD
-stop_gates: Runtime apply, authority expansion, user movement, automation
-allowed_actions: read-only evidence review, approved governed evidence collection
-forbidden_actions: runtime mutation, automation, authority expansion, synthetic evidence
-capability_advancement_criteria: required evidence certified and stop gates respected
-certification_result: NOT_REVIEWED
-```
-
-## Evidence Yield And Operational Investment
-
-V1 treated Evidence Yield mainly as expected maturity gain.
-
-V2 separates five advisory concepts:
-
-| Concept | Meaning | Certification rule |
-| --- | --- | --- |
-| Expected Capability Growth | How far a capability might advance if evidence is certified. | Advisory until certification. |
-| Expected Production Impact | Possible effect on Production Maturity or milestone readiness. | Advisory until Production Maturity owner updates score. |
-| Evidence Yield | Value and coverage of collected evidence. | Cannot update maturity by itself. |
-| Operational Investment | Evidence cost, engineering cost, operational cost, and risk. | Used for operator review, not authority. |
-| Expected ROI | Expected value relative to investment and risk. | Advisory; cannot override safety or certification. |
-
-Operational Investment dimensions:
-
-- Expected Maturity Gain;
-- Evidence Cost;
-- Engineering Cost;
-- Operational Cost;
-- Risk;
-- Expected ROI.
-
-These are design concepts only.
-
-Nothing updates Production Maturity, authority, Runtime behavior, or capability state before certification.
+| `new_product_reality` | Product reality after certification or blocked outcome. |
 
 ## Safety Rules
 
-Campaigns may:
+The Product Evolution Framework may eventually:
 
-- collect evidence through existing owners;
-- recommend operator-reviewed action;
-- expose missing evidence;
-- estimate expected capability growth;
-- estimate expected production impact;
-- estimate operational investment;
+- observe product reality;
+- suggest product goals;
+- analyze capability strategy;
+- identify capability gaps;
+- identify evidence gaps;
+- suggest campaigns;
+- estimate evolution metrics;
+- recommend operator-reviewed evidence work;
 - prepare certification packets;
-- update campaign progress after evidence is collected.
+- learn from certified outcomes.
 
-Campaigns may not:
+It may not:
 
 - execute Runtime;
 - enable automation;
@@ -378,56 +451,64 @@ Campaigns may not:
 - create a new roadmap;
 - replace OMP;
 - write Production Maturity directly;
-- declare capability growth without certification.
+- declare capability growth without certification;
+- treat campaign completion as success;
+- become a planner or truth source.
 
-## Dashboard Relationship
+## Dashboard Evolution
 
-If this proposal is later canonicalized, OMP Dashboard may display Product Evolution and Capability Growth views.
+Dashboard should eventually visualize Product Evolution, not just campaigns.
 
-Suggested read-only dashboard areas:
+Dashboard remains read-only.
 
-- product goal;
-- capability goal;
-- current capability state;
-- target capability state;
-- capability gap;
-- evidence gap;
-- suggested campaigns;
-- active campaigns;
-- expected capability growth;
-- expected production impact;
-- evidence yield;
-- operational investment;
-- expected ROI;
-- missing evidence;
-- blockers;
+Future dashboard areas may include:
+
+- Current Product Reality;
+- Current Product Goal;
+- Current Capability Goals;
+- Current Capability Gaps;
+- Current Evidence Gaps;
+- Current Campaigns;
+- Expected Capability Growth;
+- Expected Product Evolution;
+- Expected ROI;
+- Evolution Metrics;
 - stop gates;
 - certification status;
 - next operator review.
 
-Dashboard display must remain read-only and consume canonical owners only after canonicalization.
+Dashboard must not become:
 
-Dashboard must not become a campaign generator, authority surface, execution surface, truth source, maturity writer, or second OMP.
+- Evolution Engine;
+- Campaign Generator;
+- authority surface;
+- execution surface;
+- truth source;
+- maturity writer;
+- second OMP;
+- campaign approval system.
+
+Dashboard should show campaigns as a child view of Product Evolution.
 
 ## Relationship To Engineering Intelligence
 
-Product Evolution through Capability Growth can produce structured real outcomes for Engineering Intelligence.
+Product Evolution Framework can provide structured evidence for Engineering Intelligence.
 
 It can feed:
 
-- Prediction vs Reality: compare expected capability growth / expected ROI with certified results.
-- Recommendation Confidence: test whether suggested campaigns and capability strategies produce certified growth.
-- Engineering Learning: learn from successful, blocked, rejected, or low-yield campaigns.
+- Prediction vs Reality: compare expected product evolution with certified new product reality.
+- Recommendation Confidence: test whether Evolution Engine recommendations produce capability advancement.
+- Engineering Learning: learn from successful, blocked, rejected, invalid, or low-ROI evolution attempts.
 - Adaptive Engineering: improve future recommendations without Runtime self-modification.
 - Recommendation Evolution: retire, revise, or strengthen capability strategies after real outcomes.
 
 Engineering Intelligence remains advisory and OMP-governed.
 
-Campaigns do not make Engineering Intelligence autonomous. They provide certified evidence for existing learning owners.
+The Evolution Engine must not become autonomous engineering authority.
 
 ## Relationship To OMP
 
-This proposal may later become a future Operational Mode of existing OMP.
+This proposal may later become a future operational capability of existing OMP.
 
 It is not a new OMP.
 
@@ -437,32 +518,41 @@ It is not a roadmap.
 
 If validated later, OMP may own:
 
-- capability strategy admission;
+- product evolution admission;
+- capability strategy routing;
 - capability gap analysis routing;
 - evidence gap analysis routing;
+- Evolution Engine boundaries;
 - campaign suggestion rules;
 - operator review flow;
 - stop gates;
 - certification routing;
-- capability growth update routing;
-- product evolution update routing.
+- capability advancement update routing;
+- product reality update routing.
 
 Until canonicalized, this document is only an editable design proposal.
 
 ## Open Questions
 
-### Architecture
+### Product Evolution
 
-1. Is Capability Strategy a section of OMP, Production Maturity, or Engineering Intelligence after validation?
-2. Does any part of this model require a new canonical concept, or can all mature parts fit existing owners?
-3. What prevents Product Evolution Framework from becoming a parallel roadmap?
+1. What product goals should be allowed to enter the framework?
+2. How does V7 prevent Product Evolution from becoming a second roadmap?
+3. Which product reality changes are important enough to trigger evolution analysis?
+4. How should new product reality be recorded after failed or blocked evolution attempts?
 
-### Capability Growth
+### Observation
 
-1. How is current capability state measured consistently across Runtime Readiness, Prediction Confidence, Rollback Reliability, Recovery, Engineering Intelligence, and future capabilities?
-2. What is the minimum evidence required to claim Capability Advancement?
-3. Can one campaign advance multiple capabilities, and how is double counting prevented?
-4. Which capability should be targeted first after `66.9 / 100` Production Maturity?
+1. Which owners may produce Product Observation?
+2. How should observation freshness be represented?
+3. How should conflicting observations be reconciled?
+4. Which observations are too weak to create product goals?
+
+### Capability Strategy
+
+1. Is Capability Strategy later owned by OMP, Engineering Intelligence, or Production Maturity?
+2. What is the minimum strategy packet required before gap analysis?
+3. How does strategy remain non-roadmap and non-authorizing?
 
 ### Gap Analysis
 
@@ -470,6 +560,14 @@ Until canonicalized, this document is only an editable design proposal.
 2. Who performs Evidence Gap Analysis?
 3. How are stale, missing, contradictory, or partial evidence gaps represented?
 4. How does gap analysis avoid inventing work without measured evidence?
+
+### Evolution Engine
+
+1. Is Evolution Engine a future OMP rule, Engineering Intelligence read model, or dashboard-backed advisory model?
+2. What inputs may it consume?
+3. What outputs may it produce?
+4. How is it prevented from becoming a planner?
+5. How is it prevented from becoming automation?
 
 ### Campaign Generation
 
@@ -485,44 +583,88 @@ Until canonicalized, this document is only an editable design proposal.
 2. How is Expected Capability Growth compared with certified growth?
 3. When does campaign output become canonical?
 4. How should campaign evidence expire or be refreshed?
+5. How is new product reality certified after capability advancement?
 
 ### Dashboard
 
-1. Should dashboard show Product Evolution first and campaigns second?
+1. Should dashboard show Product Evolution before capability gaps and campaigns?
 2. How should expected ROI be displayed without implying authority?
 3. How should blocked campaigns be represented in CPS if campaigns become active?
+4. How should cyclic evolution be visualized without becoming a roadmap?
 
 ### Engineering Intelligence
 
-1. How should Engineering Intelligence compare expected campaign ROI with certified outcome?
+1. How should Engineering Intelligence compare expected evolution with actual new product reality?
 2. How should recommendation confidence change after blocked or rejected campaigns?
-3. Which adaptive read models are required before campaign learning becomes useful?
+3. Which adaptive read models are required before evolution learning becomes useful?
+4. Can Evolution Metrics become Engineering Intelligence inputs without becoming authority?
 
-### Future Automation
+### Automation
 
 1. Which evidence is safe to collect without authority expansion?
 2. What evidence collection could later be automated without Runtime apply?
 3. What certification is required before any automated campaign suggestion is trusted?
-4. What hard rule prevents campaign automation from becoming action automation?
+4. What hard rule prevents Evolution Engine automation from becoming action automation?
 
-## Future Canonicalization Plan
+## Canonical Readiness
+
+This section classifies major V3 concepts.
+
+Classification values:
+
+- `DESIGN`: useful concept but not validated.
+- `READY`: ready for focused discovery/validation.
+- `CANONICAL`: already canonical elsewhere.
+- `NOT_READY`: too vague, risky, or immature for migration.
+
+| Concept | Classification | Reason |
+| --- | --- | --- |
+| Product Observation | `READY` | Reality First already exists; observation-to-goal routing needs validation. |
+| Product Goal | `CANONICAL` | Product goals exist through Product Specification, OMP, and Production Maturity, but this framework's use is design-only. |
+| Capability Strategy | `DESIGN` | Useful abstraction, but owner and packet shape are not validated. |
+| Capability Goal | `READY` | Capability lifecycle exists; goal vocabulary needs validation across capability families. |
+| Capability Gap | `READY` | Gap model is generic and aligns with Production Maturity / Engineering Intelligence, but not canonical here. |
+| Evidence Gap | `READY` | Evidence-gap thinking exists, but framework-level use needs validation. |
+| Evolution Engine | `DESIGN` | Central V3 concept; high risk of becoming planner if not constrained. |
+| Campaign Generator | `DESIGN` | Valid only as Evolution Engine subsystem; not ready as owner. |
+| Operational Campaign | `DESIGN` | Mechanism exists in proposal only; no active system. |
+| Capability Advancement | `READY` | Matches certified capability lifecycle; needs exact result classes. |
+| Evolution Metrics | `DESIGN` | Useful future concepts; not ready for dashboard or scoring. |
+| Dashboard | `READY` | Dashboard model exists, but Product Evolution visualization is design-only. |
+| Engineering Intelligence relationship | `READY` | Existing EI owners can likely consume outcomes, but integration is not canonical. |
+| OMP relationship | `READY` | OMP is the likely future owner after validation, but no migration yet. |
+
+## Future Canonicalization
 
 Canonicalization is postponed.
 
-Only mature concepts may migrate later.
+Only mature concepts may migrate.
 
-Possible staged migration:
+Staged migration path:
 
-| Stage | Mature concept | Possible future destination | Migration condition |
-| --- | --- | --- | --- |
-| 1 | Capability Strategy vocabulary | OMP or Engineering Intelligence | Validated as non-roadmap, owner-reusing analysis. |
-| 2 | Capability Gap / Evidence Gap definitions | Production Maturity, OMP, or Engineering Intelligence | Proven generic across multiple capability families. |
-| 3 | Campaign Generation Rule | OMP | Proven to prevent manual campaign invention and shadow backlog creation. |
-| 4 | Operational Investment / Expected ROI | Engineering Intelligence and Dashboard | Proven advisory, non-authorizing, and safety-subordinate. |
-| 5 | Active campaign state | Current Program State | Only if campaigns become active and volatile state must be tracked. |
-| 6 | Owner mappings | SYSTEM_MAP | Only if mature owner lookup is needed. |
-| 7 | Read-only visualization | Dashboard | Only after canonical data owners exist. |
-| 8 | Durable conclusions | Canonical Reference | Only final durable rules, not proposal details. |
+```text
+Design
+-> Discovery
+-> Validation
+-> Canonical Readiness
+-> OMP
+-> Production Maturity
+-> Dashboard
+-> SYSTEM_MAP
+-> Canonical Reference
+```
+
+Migration rules:
+
+1. Design remains editable and non-canonical.
+2. Discovery proves whether each concept already exists under another owner.
+3. Validation proves the concept does not create a new roadmap, planner, owner, truth source, or authority path.
+4. Canonical Readiness classifies each concept before migration.
+5. OMP may receive only operating rules that belong to execution discipline.
+6. Production Maturity may receive only score-impact rules after certification semantics are proven.
+7. Dashboard may receive only read-only visualization after canonical data owners exist.
+8. SYSTEM_MAP may receive only ownership lookup.
+9. Canonical Reference may receive only durable conclusions.
 
 No migration should occur until review proves the concept is stable, owner-mapped, non-duplicative, and safe.
 

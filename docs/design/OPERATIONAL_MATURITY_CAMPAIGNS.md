@@ -74,6 +74,212 @@ Certified Capability Advancement
 -> Better Product Evolution
 ```
 
+## Target-Driven Product Evolution
+
+V3 explains how V7 evolves.
+
+This extension explains how V7 decides which Product Goal is currently active.
+
+Target-Driven Product Evolution adds a management layer above Capability Strategy:
+
+```text
+Vision
+-> Product Intent
+-> Target Catalog
+-> Current Active Target
+-> Target Gap Analysis
+-> Capability Strategy
+-> Capability Gap
+-> Evidence Gap
+-> Evolution Engine
+-> Operational Campaign
+-> Evidence
+-> Certification
+-> Capability Advancement
+-> Target Completion
+-> Target Selection
+-> Next Product Evolution Cycle
+```
+
+Target Management remains design-only.
+
+It does not create a roadmap, backlog, implementation queue, campaign list, authority model, automation mode, or second OMP.
+
+It answers:
+
+1. Which product target is active now?
+2. Why is it active?
+3. Which capability goals belong to it?
+4. Which capability gaps block it?
+5. Which evidence gaps must be closed?
+6. Which campaigns, if any, belong to that target?
+7. What proves target completion?
+8. How is the next target selected after completion?
+
+## Target Catalog
+
+Target Catalog is the ordered set of certified Product Goals that define long-term product evolution.
+
+Target Catalog is not:
+
+- backlog;
+- roadmap;
+- implementation queue;
+- campaign list;
+- authority approval list;
+- dashboard task list;
+- replacement for OMP.
+
+Target Catalog is:
+
+- a design concept for organizing Product Goals;
+- a way to explain which target V7 is trying to advance;
+- a way to prevent campaigns from being invented without a target;
+- a way to keep Product Evolution goal-driven instead of campaign-driven.
+
+Example target catalog:
+
+| Target | Meaning | Status in this proposal |
+| --- | --- | --- |
+| `80% Runtime Production Ready` | Runtime readiness, safety gates, certification, and evidence become production-ready enough for the next milestone. | Example based on current Production Maturity milestone. |
+| `90% Authority Ready` | Authority evidence is mature enough for bounded authority review. | Future example only. |
+| `95% Production Autonomy` | Bounded routine autonomy has strong certified evidence and operator governance. | Future example only. |
+| `100% Production Certified` | Production autonomy is certified. | Future example only. |
+
+Future goals remain examples only until admitted and validated through existing owners.
+
+## Current Active Target
+
+Only one Product Target should normally be active.
+
+The Current Active Target is the product-level focus that organizes capability strategy, gaps, evidence, and campaigns.
+
+The framework must always explain:
+
+- why this target is active;
+- which product observation or product intent supports it;
+- which capability goals belong to it;
+- which capability gaps belong to it;
+- which evidence gaps belong to it;
+- which campaigns belong to it;
+- which stop gates prevent target completion;
+- which certification owner can declare target completion.
+
+Current design example:
+
+```text
+Current Active Target:
+80% Runtime Production Ready
+
+Why active:
+Production Maturity is 66.9 / 100 and the next Production Maturity milestone is 80%.
+
+Capability goals:
+Runtime Readiness, Rollback Reliability, Recovery, STOP_SAFE Evidence, Runtime Time Intelligence, Prediction Confidence, Authority Evidence.
+
+Target not achieved because:
+certified capability advancement is still missing across production readiness, authority, autonomy, and real evidence dimensions.
+```
+
+This example does not activate work. It is a design illustration only.
+
+## Target Gap Analysis
+
+Target Gap Analysis happens before Capability Gap Analysis.
+
+The sequence becomes:
+
+```text
+Current Active Target
+-> Target Gap Analysis
+-> Capability Gap Analysis
+-> Evidence Gap Analysis
+```
+
+Target Gap Analysis answers:
+
+```text
+Why is the target not yet achieved?
+```
+
+It must identify:
+
+- current target;
+- current certified target progress;
+- missing capability goals;
+- incomplete capability advancement;
+- missing evidence families;
+- stop gates;
+- certification blockers;
+- target completion owner;
+- next analysis step.
+
+Target Gap Analysis must not generate campaigns directly.
+
+It routes to Capability Gap Analysis first.
+
+## Target Completion
+
+Target Completion is not campaign completion.
+
+Target Completion is not capability completion.
+
+Target Completion means:
+
+```text
+Enough certified capability advancement exists to declare the Product Target achieved.
+```
+
+Target Completion requires:
+
+- Current Active Target;
+- target completion criteria;
+- certified capability advancements;
+- certification owner;
+- Production Maturity or affected owner review when relevant;
+- safety review;
+- authority review when relevant;
+- evidence preservation;
+- new product reality statement;
+- explicit next target selection trigger.
+
+Only after Target Completion can the framework proceed to Next Target Selection.
+
+## Target Selection
+
+After Target Completion, the framework starts the next cycle:
+
+```text
+Current Product Reality
+-> Product Observation
+-> Target Selection
+-> Current Active Target
+-> New Evolution Cycle
+```
+
+Target Selection chooses the next Current Active Target from validated Product Goals.
+
+Target Selection must be advisory until canonicalized.
+
+It must consider:
+
+- Product Vision;
+- Product Intent;
+- Current Product Reality;
+- Production Maturity;
+- operator direction;
+- certified capability state;
+- unresolved safety or authority blockers;
+- expected capability growth;
+- expected product evolution;
+- operational investment;
+- risk;
+- expected ROI.
+
+Target Selection must not silently skip an unfinished active target.
+
+If priority changes before completion, the framework must explain why the target changed, what evidence changed, who approved it, and what remains blocked.
+
 ## Product Observation
 
 Product Observation is the Reality First entry point for future product evolution.
@@ -392,6 +598,14 @@ Suggested design fields:
 
 | Field | Meaning |
 | --- | --- |
+| `vision` | Long-term product direction the target serves. |
+| `product_intent` | Product intent that justifies target admission. |
+| `target_catalog_entry` | Product Target from the future Target Catalog. |
+| `current_active_target` | The normally single active Product Target. |
+| `target_gap` | Why the active target is not yet achieved. |
+| `target_completion_criteria` | Certified conditions required to declare the target complete. |
+| `target_completion_result` | Complete, partial, blocked, invalid, or not reviewed. |
+| `next_target_candidate` | Possible next Product Target after completion. |
 | `current_product_reality` | Observed current state of the product. |
 | `product_observation` | Source and summary of observed reality. |
 | `product_goal` | Product-level outcome the work serves. |
@@ -463,6 +677,12 @@ Dashboard remains read-only.
 
 Future dashboard areas may include:
 
+- Vision;
+- Current Active Target;
+- Progress toward Target;
+- Target Gap;
+- Target Completion;
+- Next Target;
 - Current Product Reality;
 - Current Product Goal;
 - Current Capability Goals;
@@ -540,6 +760,17 @@ Until canonicalized, this document is only an editable design proposal.
 2. How does V7 prevent Product Evolution from becoming a second roadmap?
 3. Which product reality changes are important enough to trigger evolution analysis?
 4. How should new product reality be recorded after failed or blocked evolution attempts?
+
+### Target Management
+
+1. How are Product Targets admitted?
+2. Can several Product Targets be active?
+3. Who approves Current Active Target?
+4. Can Target priority change?
+5. How does OMP choose the next Target?
+6. How is Target Completion certified?
+7. What prevents Target Catalog from becoming a roadmap?
+8. Which owner records Current Active Target before canonicalization?
 
 ### Observation
 
@@ -621,6 +852,11 @@ Classification values:
 | --- | --- | --- |
 | Product Observation | `READY` | Reality First already exists; observation-to-goal routing needs validation. |
 | Product Goal | `CANONICAL` | Product goals exist through Product Specification, OMP, and Production Maturity, but this framework's use is design-only. |
+| Target Catalog | `DESIGN` | Useful organizing concept, but high roadmap-confusion risk until validated. |
+| Current Active Target | `READY` | Current milestone already exists through Production Maturity / CPS, but target-management semantics are not canonical here. |
+| Target Gap Analysis | `DESIGN` | Required before capability gaps, but owner and packet shape need validation. |
+| Target Completion | `DESIGN` | Completion semantics must be certified before migration. |
+| Target Selection | `DESIGN` | Important cyclic concept, but high priority/roadmap risk until constrained. |
 | Capability Strategy | `DESIGN` | Useful abstraction, but owner and packet shape are not validated. |
 | Capability Goal | `READY` | Capability lifecycle exists; goal vocabulary needs validation across capability families. |
 | Capability Gap | `READY` | Gap model is generic and aligns with Production Maturity / Engineering Intelligence, but not canonical here. |
@@ -648,6 +884,7 @@ Design
 -> Validation
 -> Canonical Readiness
 -> OMP
+-> Current Program State
 -> Production Maturity
 -> Dashboard
 -> SYSTEM_MAP
@@ -660,11 +897,22 @@ Migration rules:
 2. Discovery proves whether each concept already exists under another owner.
 3. Validation proves the concept does not create a new roadmap, planner, owner, truth source, or authority path.
 4. Canonical Readiness classifies each concept before migration.
-5. OMP may receive only operating rules that belong to execution discipline.
-6. Production Maturity may receive only score-impact rules after certification semantics are proven.
-7. Dashboard may receive only read-only visualization after canonical data owners exist.
-8. SYSTEM_MAP may receive only ownership lookup.
-9. Canonical Reference may receive only durable conclusions.
+5. OMP may receive only operating rules that belong to execution discipline, including target selection rules if validated.
+6. Current Program State may receive only volatile Current Active Target state if target management becomes active.
+7. Production Maturity may receive only target/maturity impact rules after certification semantics are proven.
+8. Dashboard may receive only read-only visualization after canonical data owners exist.
+9. SYSTEM_MAP may receive only ownership lookup.
+10. Canonical Reference may receive only durable conclusions.
+
+Target concepts may later migrate into:
+
+| Target concept | Possible future destination | Migration condition |
+| --- | --- | --- |
+| Target Catalog | OMP / Production Maturity | Proven not to be a roadmap or backlog. |
+| Current Active Target | Current Program State / OMP | Proven as volatile execution focus, not a queue. |
+| Target Gap Analysis | OMP / Production Maturity | Proven to route to capability gaps before campaigns. |
+| Target Completion | Production Maturity / OMP | Certification semantics and completion owner validated. |
+| Target Selection | OMP | Proven advisory until existing owners certify next target. |
 
 No migration should occur until review proves the concept is stable, owner-mapped, non-duplicative, and safe.
 

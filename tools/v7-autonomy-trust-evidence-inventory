@@ -201,6 +201,7 @@ def main(argv=None) -> int:
                 "hysteresis_state_change_cost_mapping",
                 "hard_failure_override_anti_flap_arbitration",
                 "per_user_routing_control_mode",
+                "fail_open_fail_closed_action_class_behavior",
                 "routing_recommendation_readiness",
             ]
         }

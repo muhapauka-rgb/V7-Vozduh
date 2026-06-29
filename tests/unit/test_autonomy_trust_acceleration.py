@@ -748,6 +748,7 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
             "hysteresis_state_change_cost_mapping",
             "hard_failure_override_anti_flap_arbitration",
             "per_user_routing_control_mode",
+            "fail_open_fail_closed_action_class_behavior",
         ):
             self.assertIn(key, inventory)
             self.assertFalse(inventory[key]["runtime_mutation_performed"])
@@ -2815,6 +2816,91 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(model["summary"]["users_seen"], 2)
         self.assertEqual(model["summary"]["missing_explicit_mode"], 2)
         self.assertEqual(model["omp_output"]["b21_status"], "DONE_READ_ONLY_PER_USER_ROUTING_CONTROL_MODE")
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+
+    def test_c1_fail_open_fail_closed_action_class_behavior_is_read_only(self):
+        model = accel.build_fail_open_fail_closed_action_class_behavior(
+            action_class_runtime_enablement={
+                "schema_version": "v7.action-class-runtime-enablement.v1",
+                "action_classes": [
+                    {
+                        "action_class": "single-user governed candidate failover",
+                        "runtime_state": "GOVERNED_ONLY",
+                        "missing_evidence": ["authority_not_granted"],
+                    },
+                    {
+                        "action_class": "channel hard-fail failover",
+                        "runtime_state": "GOVERNED_ONLY",
+                    },
+                ],
+            },
+            runtime_eligibility_arbitration={
+                "schema_version": "v7.a6-runtime-eligibility-arbitration.v1",
+                "gate_rows": [
+                    {"gate": "runtime_apply", "state": "STOP"},
+                    {"gate": "authority", "state": "STOP"},
+                ],
+            },
+            per_user_routing_control_mode={
+                "schema_version": "v7.b21-per-user-routing-control-mode.v1",
+                "summary": {"manual": 1, "pinned": 1},
+            },
+            hard_failure_override_anti_flap_arbitration={
+                "schema_version": "v7.b20-hard-failure-override-anti-flap-arbitration.v1",
+                "summary": {"override_candidates": 1},
+            },
+            stale_read_mutation_blocking={
+                "schema_version": "v7.b17-stale-read-mutation-blocking.v1",
+                "stale_domains": ["capacity"],
+            },
+            owner_issued_version_lease_pattern={
+                "schema_version": "v7.b18-owner-issued-version-lease-pattern.v1",
+                "summary": {"pattern_missing": 1},
+            },
+            generated_at="2026-06-25T00:00:00+00:00",
+        )
+
+        self.assertEqual(model["schema_version"], "v7.c1-fail-open-fail-closed-action-class-behavior.v1")
+        self.assertEqual(model["backlog_item"], "C1")
+        by_class = {row["action_class"]: row for row in model["rows"]}
+        single = by_class["single-user governed candidate failover"]
+        self.assertEqual(single["runtime_apply_behavior"], "FAIL_CLOSED")
+        self.assertIn("read_only_diagnosis", single["fail_open_allowed"])
+        self.assertIn("authority_not_granted", single["fail_closed_conditions"])
+        self.assertIn("manual_or_pinned_user_mode_present", single["fail_closed_conditions"])
+        hard_fail = by_class["channel hard-fail failover"]
+        self.assertIn("authority_review_candidate_only", hard_fail["fail_open_allowed"])
+        self.assertFalse(hard_fail["hard_failure_override_context"]["override_execution_allowed"])
+        self.assertEqual(model["summary"]["runtime_actions_created"], 0)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["authority_expanded"])
+        self.assertFalse(model["new_owner_created"])
+
+    def test_c1_inventory_exposes_fail_open_fail_closed_behavior(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        model = inventory["fail_open_fail_closed_action_class_behavior"]
+        self.assertEqual(model["schema_version"], "v7.c1-fail-open-fail-closed-action-class-behavior.v1")
+        self.assertEqual(model["backlog_item"], "C1")
+        self.assertEqual(model["summary"]["action_classes_seen"], len(accel.ACTION_CLASS_LADDER))
+        self.assertEqual(
+            model["omp_output"]["c1_status"],
+            "DONE_READ_ONLY_FAIL_OPEN_FAIL_CLOSED_ACTION_CLASS_BEHAVIOR",
+        )
         self.assertFalse(model["runtime_mutation_performed"])
         self.assertFalse(model["apply_executed"])
         self.assertEqual(model["users_moved"], 0)

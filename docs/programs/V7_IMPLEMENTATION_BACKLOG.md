@@ -38,14 +38,14 @@ OMP must always choose the highest-priority unfinished backlog item unless it cr
 | --- | ---: | ---: | --- |
 | Tier A | `6` | `6` | `COMPLETE` |
 | Tier B | `21` | `21` | `COMPLETE` |
-| Tier C | `0` | `7` | `PENDING` |
+| Tier C | `1` | `7` | `IN_PROGRESS` |
 | Tier D optional | `0` | `6` | `OPTIONAL` |
-| Overall actionable | `27` | `34` | `ACTIVE` |
+| Overall actionable | `28` | `34` | `ACTIVE` |
 
 Implementation maturity:
 
 ```text
-79.4%
+82.4%
 ```
 
 Estimated remaining effort:
@@ -57,7 +57,7 @@ Moderate
 Next item:
 
 ```text
-C1
+C2
 ```
 
 If all actionable backlog items are `DONE`, OMP must answer:
@@ -92,19 +92,19 @@ State Change Cost verdict: `ALREADY_EXISTS_SEMANTICALLY`; extend existing B19 vo
 
 | Field | Value |
 | --- | --- |
-| Backlog id | `C1` |
+| Backlog id | `C2` |
 | Status | `READY` |
-| Task | Record fail-open/fail-closed behavior per action class. |
-| Policy source | `POLICY_001_HARD_FAILURE` |
-| Owner | Runtime Model, OMP, planner gates |
-| Files/modules | `docs/reference/V7_RUNTIME_MODEL.md`, `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, `admin_core/autonomy_trust_acceleration.py` |
+| Task | Use probabilistic suspicion only as advisory evidence. |
+| Policy source | `POLICY_002_SOFT_DEGRADATION` |
+| Owner | Trust/confidence model, shadow autonomy, OMP |
+| Files/modules | `admin_core/shadow_autonomy.py`, `admin_core/autonomy_trust_acceleration.py`, `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` |
 | Implementation class | `IMPLEMENT_READ_MODEL` |
-| Estimated effort | `NONE` |
-| Dependencies | Action-class policy update; B21 per-user routing control mode. |
+| Estimated effort | `SMALL_EXTENSION` |
+| Dependencies | Signal confidence reliability; C1 fail-open/fail-closed action-class behavior. |
 | Expected production value | `MEDIUM` |
 | Expected autonomy gain | `MEDIUM` |
 | Expected runtime gain | `MEDIUM` |
-| Expected safety gain | `HIGH` |
+| Expected safety gain | `MEDIUM_HIGH` |
 
 ## Runtime Latency Foundation Placement
 
@@ -187,7 +187,7 @@ Future runtime-latency work must map to the existing backlog owners above unless
 
 | Id | Status | Task | Policy source | Owner | Files/modules | Implementation class | Estimated effort | Dependencies | Expected production value | Expected autonomy gain | Expected runtime gain | Expected safety gain |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `C1` | `TODO` | Record fail-open/fail-closed behavior per action class. | `POLICY_001_HARD_FAILURE` | Runtime Model, OMP, planner gates | `docs/reference/V7_RUNTIME_MODEL.md`, `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, `admin_core/autonomy_trust_acceleration.py` | `IMPLEMENT_DOCUMENTATION` | `NONE` | Action-class policy update. | `MEDIUM` | `MEDIUM` | `MEDIUM` | `HIGH` |
+| `C1` | `DONE` | Record fail-open/fail-closed behavior per action class. | `POLICY_001_HARD_FAILURE` | Runtime Model, OMP, planner gates | `docs/reference/V7_RUNTIME_MODEL.md`, `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, `admin_core/autonomy_trust_acceleration.py::build_fail_open_fail_closed_action_class_behavior`, `tools/v7-autonomy-trust-evidence-inventory --routing-foundation-only` | `IMPLEMENT_READ_MODEL` | `NONE` | `fail_open_fail_closed_action_class_behavior` records per-action-class fail-closed runtime mutation/apply behavior and read-only fail-open allowance for diagnosis/evidence/report/canonical update, without Runtime changes, authority expansion, planner replacement, synthetic evidence, or user movement. | `MEDIUM` | `MEDIUM` | `MEDIUM` | `HIGH` |
 | `C2` | `TODO` | Use probabilistic suspicion only as advisory evidence. | `POLICY_002_SOFT_DEGRADATION` | Trust/confidence model, shadow autonomy | `admin_core/shadow_autonomy.py`, `admin_core/autonomy_trust_acceleration.py` | `IMPLEMENT_READ_MODEL` | `SMALL_EXTENSION` | Signal confidence reliability. | `MEDIUM` | `MEDIUM` | `MEDIUM` | `MEDIUM_HIGH` |
 | `C3` | `TODO` | Define break-glass authority as audited exceptional operator policy. | `POLICY_004_AUTHORITY` | OMP, operator authority | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, `admin_core/operator_execution_pipeline.py` | `IMPLEMENT_DOCUMENTATION` | `SMALL_EXTENSION` | Operator policy approval. | `MEDIUM` | `LOW` | `MEDIUM` | `HIGH` |
 | `C4` | `TODO` | Keep all-at-once promotion unavailable for current action classes. | `POLICY_005_ACTION_CLASS_PROMOTION` | OMP, blast-radius gates | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, `admin_core/autonomy_trust_acceleration.py` | `IMPLEMENT_VERIFICATION` | `NONE` | Current authority model. | `MEDIUM` | `MEDIUM` | `LOW` | `HIGH` |

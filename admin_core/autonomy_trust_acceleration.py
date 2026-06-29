@@ -4062,6 +4062,194 @@ def build_per_user_routing_control_mode(
     }
 
 
+def build_fail_open_fail_closed_action_class_behavior(
+    *,
+    action_class_runtime_enablement: dict[str, Any] | None = None,
+    runtime_eligibility_arbitration: dict[str, Any] | None = None,
+    per_user_routing_control_mode: dict[str, Any] | None = None,
+    hard_failure_override_anti_flap_arbitration: dict[str, Any] | None = None,
+    stale_read_mutation_blocking: dict[str, Any] | None = None,
+    owner_issued_version_lease_pattern: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Record action-class fail behavior without changing Runtime behavior."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    enablement = action_class_runtime_enablement if isinstance(action_class_runtime_enablement, dict) else {}
+    runtime = runtime_eligibility_arbitration if isinstance(runtime_eligibility_arbitration, dict) else {}
+    routing_mode = per_user_routing_control_mode if isinstance(per_user_routing_control_mode, dict) else {}
+    arbitration = hard_failure_override_anti_flap_arbitration if isinstance(hard_failure_override_anti_flap_arbitration, dict) else {}
+    stale = stale_read_mutation_blocking if isinstance(stale_read_mutation_blocking, dict) else {}
+    version_lease = owner_issued_version_lease_pattern if isinstance(owner_issued_version_lease_pattern, dict) else {}
+
+    class_rows = [
+        row for row in (enablement.get("action_classes") or [])
+        if isinstance(row, dict)
+    ]
+    class_by_name = {
+        _text(row.get("action_class")): row
+        for row in class_rows
+        if _text(row.get("action_class"))
+    }
+    runtime_gate_rows = [
+        row for row in (runtime.get("gate_rows") or [])
+        if isinstance(row, dict)
+    ]
+    stopped_gates = sorted({
+        _text(row.get("gate"))
+        for row in runtime_gate_rows
+        if _text(row.get("state")).upper() in {"STOP", "STOP_SAFE", "BLOCKED"}
+        and _text(row.get("gate"))
+    })
+    routing_summary = routing_mode.get("summary") if isinstance(routing_mode.get("summary"), dict) else {}
+    manual_or_pinned_users = int(routing_summary.get("manual") or 0) + int(routing_summary.get("pinned") or 0)
+    stale_domains = list(stale.get("stale_domains") or [])
+    version_summary = version_lease.get("summary") if isinstance(version_lease.get("summary"), dict) else {}
+    arbitration_summary = arbitration.get("summary") if isinstance(arbitration.get("summary"), dict) else {}
+
+    rows: list[dict[str, Any]] = []
+    for action_class, max_users, default_state in ACTION_CLASS_LADDER:
+        class_row = class_by_name.get(action_class, {})
+        enablement_state = _text(class_row.get("runtime_state") or class_row.get("state") or default_state, default_state)
+        current_blockers = sorted({
+            _text(item)
+            for item in (
+                list(class_row.get("missing_evidence") or [])
+                + list(class_row.get("blockers") or [])
+                + stopped_gates
+            )
+            if _text(item)
+        })
+        hard_failure_class = action_class == "channel hard-fail failover"
+        wider_than_one = bool(max_users is None or int(max_users or 0) > 1)
+        runtime_certified = enablement_state == "AUTONOMOUS_RUNTIME"
+        fail_closed_conditions = sorted(set(current_blockers + [
+            "runtime_apply_disabled",
+            "authority_not_granted",
+            "uncertified_action_class" if not runtime_certified else "",
+            "stale_or_unknown_freshness" if stale_domains else "",
+            "missing_owner_issued_version_or_lease" if int(version_summary.get("pattern_missing") or 0) else "",
+            "manual_or_pinned_user_mode_present" if manual_or_pinned_users else "",
+            "wider_blast_radius_requires_authority_review" if wider_than_one else "",
+        ]))
+        fail_closed_conditions = [item for item in fail_closed_conditions if item]
+        fail_open_allowed = [
+            "read_only_diagnosis",
+            "evidence_collection",
+            "operator_explanation",
+            "engineering_report",
+            "canonical_update",
+        ]
+        if hard_failure_class and int(arbitration_summary.get("override_candidates") or 0):
+            fail_open_allowed.append("authority_review_candidate_only")
+        rows.append({
+            "action_class": action_class,
+            "max_users": max_users,
+            "current_enablement_state": enablement_state,
+            "default_runtime_behavior": "FAIL_CLOSED",
+            "runtime_mutation_behavior": "FAIL_CLOSED",
+            "runtime_apply_behavior": "FAIL_CLOSED",
+            "authority_behavior": "FAIL_CLOSED_UNLESS_EXPLICITLY_CERTIFIED",
+            "planner_behavior": "FAIL_CLOSED_FOR_MUTATION_FAIL_OPEN_FOR_READ_ONLY_RECOMMENDATION",
+            "observability_behavior": "FAIL_OPEN_READ_ONLY",
+            "fail_open_allowed": fail_open_allowed,
+            "fail_closed_conditions": fail_closed_conditions,
+            "consumed_user_control_modes": {
+                "manual_or_pinned_users": manual_or_pinned_users,
+                "routing_control_schema": routing_mode.get("schema_version", "UNKNOWN"),
+            },
+            "hard_failure_override_context": {
+                "override_candidates": int(arbitration_summary.get("override_candidates") or 0),
+                "override_execution_allowed": False,
+            },
+            "runtime_apply_allowed": False,
+            "authority_expansion_allowed": False,
+            "user_movement_allowed": False,
+        })
+
+    return {
+        "schema_version": "v7.c1-fail-open-fail-closed-action-class-behavior.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "C1",
+        "purpose": "record_fail_open_fail_closed_behavior_per_action_class_without_runtime_behavior_change",
+        "source_owners_reused": [
+            "ACTION_CLASS_LADDER",
+            "admin_core.autonomy_trust_acceleration.build_action_class_runtime_enablement_model",
+            "admin_core.autonomy_trust_acceleration.build_runtime_eligibility_arbitration",
+            "admin_core.autonomy_trust_acceleration.build_per_user_routing_control_mode",
+            "admin_core.autonomy_trust_acceleration.build_hard_failure_override_anti_flap_arbitration",
+            "admin_core.autonomy_trust_acceleration.build_stale_read_mutation_blocking",
+            "admin_core.autonomy_trust_acceleration.build_owner_issued_version_lease_pattern",
+            "Runtime Model fail-closed execution contract",
+            "OMP",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_001_HARD_FAILURE.md",
+            "docs/policies/POLICY_004_AUTHORITY.md",
+            "docs/policies/POLICY_006_BLAST_RADIUS.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#C1",
+        ],
+        "consumed_prior_capabilities": {
+            "action_class_runtime_enablement": enablement.get("schema_version", "UNKNOWN"),
+            "runtime_eligibility_arbitration": runtime.get("schema_version", "UNKNOWN"),
+            "per_user_routing_control_mode": routing_mode.get("schema_version", "UNKNOWN"),
+            "hard_failure_override_anti_flap_arbitration": arbitration.get("schema_version", "UNKNOWN"),
+            "stale_read_mutation_blocking": stale.get("schema_version", "UNKNOWN"),
+            "owner_issued_version_lease_pattern": version_lease.get("schema_version", "UNKNOWN"),
+        },
+        "rows": rows,
+        "summary": {
+            "action_classes_seen": len(rows),
+            "fail_closed_runtime_apply_classes": sum(1 for row in rows if row["runtime_apply_behavior"] == "FAIL_CLOSED"),
+            "fail_open_read_only_classes": sum(1 for row in rows if "read_only_diagnosis" in row["fail_open_allowed"]),
+            "authority_review_candidates": sum(
+                1 for row in rows
+                if "authority_review_candidate_only" in row["fail_open_allowed"]
+            ),
+            "runtime_actions_created": 0,
+            "authority_changes": 0,
+            "synthetic_evidence_created": 0,
+            "users_moved": 0,
+        },
+        "canonical_rules": [
+            "c1_records_behavior_only_and_does_not_change_runtime_behavior",
+            "runtime_mutation_and_apply_fail_closed_for_every_action_class_until_explicit_authority_and_runtime_apply_are_certified",
+            "read_only_diagnosis_evidence_collection_operator_explanation_engineering_report_and_canonical_update_may_fail_open",
+            "hard_failure_override_is_authority_review_candidate_only_not_execution_permission",
+            "manual_or_pinned_user_control_mode_keeps_mutation_fail_closed",
+            "c1_does_not_create_new_policy_owner_planner_runtime_or_truth_source",
+        ],
+        "omp_output": {
+            "c1_status": "DONE_READ_ONLY_FAIL_OPEN_FAIL_CLOSED_ACTION_CLASS_BEHAVIOR",
+            "produced_evidence": "fail_open_fail_closed_action_class_behavior",
+            "unlocked_capability": "C2_OR_NEXT_OMP_ITEM_AFTER_CANONICAL_UPDATE",
+            "blocked_later_steps": [
+                "runtime_apply",
+                "automation",
+                "authority_expansion",
+                "fail_open_runtime_mutation",
+                "planner_replacement",
+                "user_movement",
+            ],
+        },
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "autonomy_enabled": False,
+        "synthetic_evidence_created": False,
+        "registry_written": False,
+        "threshold_values_changed": False,
+        "formula_changed": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+        "new_runtime_created": False,
+    }
+
+
 def _source_by_name(source_confidence_inventory: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {
         str(row.get("source")): row
@@ -10648,6 +10836,15 @@ def build_acceleration_inventory(
         hard_failure_override_anti_flap_arbitration=hard_failure_override_anti_flap_arbitration,
         generated_at=generated,
     )
+    fail_open_fail_closed_action_class_behavior = build_fail_open_fail_closed_action_class_behavior(
+        action_class_runtime_enablement=action_class_runtime_enablement,
+        runtime_eligibility_arbitration=runtime_eligibility_arbitration,
+        per_user_routing_control_mode=per_user_routing_control_mode,
+        hard_failure_override_anti_flap_arbitration=hard_failure_override_anti_flap_arbitration,
+        stale_read_mutation_blocking=stale_read_mutation_blocking,
+        owner_issued_version_lease_pattern=owner_issued_version_lease_pattern,
+        generated_at=generated,
+    )
     metric_reliability_certification = build_metric_reliability_certification(
         canary_proximity=canary,
         floor_forensics=floor_forensics,
@@ -10792,6 +10989,7 @@ def build_acceleration_inventory(
         "hysteresis_state_change_cost_mapping": hysteresis_state_change_cost_mapping,
         "hard_failure_override_anti_flap_arbitration": hard_failure_override_anti_flap_arbitration,
         "per_user_routing_control_mode": per_user_routing_control_mode,
+        "fail_open_fail_closed_action_class_behavior": fail_open_fail_closed_action_class_behavior,
         "metric_reliability_certification": metric_reliability_certification,
         "next_action_class_stage_certification": next_action_class_stage_certification,
         "service_pool_cohort_blast_radius_scope": service_pool_cohort_blast_radius_scope,

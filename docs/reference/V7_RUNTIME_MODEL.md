@@ -712,6 +712,16 @@ Runtime must evaluate authority at the action-class level before packet executio
 The primary approval object is the Action Class.
 The packet is a fresh execution artifact.
 
+C1 Fail-Open / Fail-Closed Action-Class Behavior:
+
+Runtime mutation and Runtime apply fail closed for every action class unless explicit authority, certified action-class state, freshness, packet/lease, rollback/no-rollback, verification, anti-flap, blast-radius, and `runtime_apply` gates all pass.
+
+Read-only diagnosis, evidence collection, operator explanation, Engineering Report, and Canonical Update may fail open because they do not mutate Runtime, grant authority, replace Planner, synthesize evidence, or move users.
+
+Hard-failure override remains an authority-review candidate only. It is not fail-open execution permission.
+
+The canonical read-only owner is `admin_core.autonomy_trust_acceleration.build_fail_open_fail_closed_action_class_behavior`; OMP and SYSTEM_MAP own sequence and owner lookup.
+
 Runtime must not depend on a long-lived operator-approved packet for autonomous or class-approved work.
 Runtime must generate or consume a fresh packet immediately before execution through the existing packet owner and then verify that the packet belongs to an approved class.
 

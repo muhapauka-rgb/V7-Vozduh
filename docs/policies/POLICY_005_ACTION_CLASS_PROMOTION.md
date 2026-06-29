@@ -229,7 +229,7 @@ Action-class promotion directly matches V7's authority evolution model. The impl
 | One canary is not proof for unbounded promotion. | `YES` | `REUSE` | Existing blockers prevent broad promotion. | OMP promotion rules. | Preserve representativeness rule. | `NONE` | High: prevents overfitting to one success. | `A4` |
 | Canary/ring/small-batch stages. | `YES` | `ADAPT` | V7 should express rings as action classes/user counts, not deployment rings. | Action-class ladder. | Implement next class only after evidence. | `SMALL_EXTENSION` | High: supports scale progression. | `B12` |
 | Automated metric promotion. | `YES_LATER` | `ADAPT` | Metrics can recommend promotion after reliability certification; they cannot grant authority alone. | Trust/confidence, freshness, rollback, eligibility. | Certify metric reliability and stop at authority boundary. | `MODERATE_EXTENSION` | High: reduces operator workload over time. | `B13` |
-| All-at-once only for low-risk isolated scopes. | `YES` | `REUSE` | V7 already forbids unbounded promotion without authority expansion. | OMP, blast-radius gates. | Keep all-at-once unavailable for current classes. | `NONE` | Medium: preserves safety. | `C4` |
+| All-at-once only for low-risk isolated scopes. | `YES` | `REUSE_DONE_READ_ONLY` | V7 forbids unbounded promotion without authority expansion and now verifies the boundary through C4. | OMP, blast-radius gates, `admin_core.autonomy_trust_acceleration`. | `all_at_once_promotion_unavailable_verification` keeps all-at-once/direct promotion unavailable for current classes. | `NONE` | Medium: preserves safety. | `C4` |
 
 Need New Owner: `FALSE`.
 

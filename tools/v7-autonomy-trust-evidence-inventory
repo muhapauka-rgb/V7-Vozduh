@@ -196,6 +196,7 @@ def main(argv=None) -> int:
                 "org_cohort_identity_policy_integration",
                 "next_action_class_stage_certification",
                 "service_pool_cohort_blast_radius_scope",
+                "all_at_once_promotion_unavailable_verification",
                 "stale_read_mutation_blocking",
                 "owner_issued_version_lease_pattern",
                 "hysteresis_state_change_cost_mapping",

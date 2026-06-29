@@ -540,6 +540,16 @@ Owner: Runtime Model for the rollback authority contract; OMP and `admin_core.au
 
 Current canonical result: `CERTIFIED_FOR_AUTHORITY_REVIEW_ONLY`; authority and runtime_apply remain STOP gates.
 
+## C4 All-at-Once Promotion Unavailable Verification
+
+Status: `DONE_READ_ONLY`
+
+Owner: Runtime Model for the promotion boundary contract; OMP, blast-radius gates, action-class ladder, and `admin_core.autonomy_trust_acceleration` for the read-only implementation surface.
+
+`all_at_once_promotion_unavailable_verification` is the current C4 read-only verifier for action-class promotion availability. It consumes existing action-class runtime enablement, A5 blast-radius certification, B12 stage certification, B14 service/pool/cohort scope, and C3 break-glass policy evidence. It must verify that current action classes cannot use all-at-once promotion or direct class promotion; class-by-class certification and explicit authority review remain required. It must not enable Runtime apply, automation, authority expansion, blast-radius expansion, rollback/apply execution, synthetic evidence, new ownership, planner replacement, or user movement.
+
+Current canonical result: `DONE_READ_ONLY_ALL_AT_ONCE_PROMOTION_UNAVAILABLE`; C5 rollback operational-compensation preservation is the next OMP step.
+
 ## Runtime Latency Engineering Review Checklist
 
 Status: `RT_PHASE_1_CANONICAL`

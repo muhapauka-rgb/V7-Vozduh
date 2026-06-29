@@ -10076,6 +10076,176 @@ def build_service_pool_cohort_blast_radius_scope(
     }
 
 
+def build_all_at_once_promotion_unavailable_verification(
+    *,
+    action_class_runtime_enablement: dict[str, Any] | None = None,
+    class_level_blast_radius_certification: dict[str, Any] | None = None,
+    next_action_class_stage_certification: dict[str, Any] | None = None,
+    service_pool_cohort_blast_radius_scope: dict[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Verify C4 keeps all-at-once class promotion unavailable."""
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    enablement = action_class_runtime_enablement if isinstance(action_class_runtime_enablement, dict) else {}
+    blast = class_level_blast_radius_certification if isinstance(class_level_blast_radius_certification, dict) else {}
+    stage = next_action_class_stage_certification if isinstance(next_action_class_stage_certification, dict) else {}
+    scope = service_pool_cohort_blast_radius_scope if isinstance(service_pool_cohort_blast_radius_scope, dict) else {}
+    class_rows = [
+        row for row in (enablement.get("action_classes") or [])
+        if isinstance(row, dict)
+    ]
+    if not class_rows:
+        class_rows = [
+            {
+                "action_class": name,
+                "current_state": state,
+                "next_state": "GOVERNED_ONLY" if state == "NOT_CERTIFIED" else "CERTIFIED_FOR_CLASS_APPROVAL",
+                "runtime_enablement_state": state,
+                "runtime_can_execute_automatically": False,
+            }
+            for name, _radius, state in ACTION_CLASS_LADDER
+        ]
+    direct_promotion_requested = bool((stage.get("next_stage") or {}).get("stage_promoted"))
+    direct_promotion_allowed = bool((stage.get("next_stage") or {}).get("direct_class_promotion_allowed"))
+    runtime_apply_allowed = any(
+        bool(row.get("runtime_apply_allowed")) for row in (scope.get("rows") or []) if isinstance(row, dict)
+    )
+    class_summaries = []
+    for row in class_rows:
+        current_state = _text(row.get("current_state") or row.get("runtime_enablement_state"), "UNKNOWN")
+        class_summaries.append({
+            "action_class": row.get("action_class", "UNKNOWN"),
+            "current_state": current_state,
+            "next_state": row.get("next_state", ""),
+            "runtime_can_execute_automatically": bool(row.get("runtime_can_execute_automatically")),
+            "eligible_for_all_at_once_promotion": False,
+            "promotion_mode_allowed_now": "NONE",
+            "reason": "class_by_class_authority_review_required_before_any_runtime_enablement",
+        })
+    blocking_rules = [
+        {
+            "rule": "class_by_class_certification_required",
+            "source": "POLICY_005_ACTION_CLASS_PROMOTION / OMP",
+            "state": "PASS",
+        },
+        {
+            "rule": "authority_review_required",
+            "source": "POLICY_004_AUTHORITY / B12",
+            "state": "PASS" if (stage.get("next_stage") or {}).get("authority_review_required", True) else "STOP",
+        },
+        {
+            "rule": "runtime_apply_remains_disabled",
+            "source": "Runtime Model / B14",
+            "state": "PASS" if not runtime_apply_allowed else "STOP",
+        },
+        {
+            "rule": "blast_radius_not_expanded_now",
+            "source": "A5 / B14",
+            "state": "PASS" if not bool(scope.get("blast_radius_expanded")) else "STOP",
+        },
+        {
+            "rule": "direct_class_promotion_forbidden",
+            "source": "B12",
+            "state": "PASS" if not direct_promotion_allowed and not direct_promotion_requested else "STOP",
+        },
+        {
+            "rule": "break_glass_is_exceptional_operator_policy_not_promotion_path",
+            "source": "C3 / OMP",
+            "state": "PASS",
+        },
+    ]
+    violations = [row["rule"] for row in blocking_rules if row["state"] != "PASS"]
+    return {
+        "schema_version": "v7.c4-all-at-once-promotion-unavailable.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration",
+        "backlog_item": "C4",
+        "purpose": "keep_all_at_once_promotion_unavailable_for_current_action_classes",
+        "source_owners_reused": [
+            "admin_core.autonomy_trust_acceleration.build_action_class_runtime_enablement_model",
+            "admin_core.autonomy_trust_acceleration.build_class_level_blast_radius_certification",
+            "admin_core.autonomy_trust_acceleration.build_next_action_class_stage_certification",
+            "admin_core.autonomy_trust_acceleration.build_service_pool_cohort_blast_radius_scope",
+            "admin_core.operator_execution_pipeline.break_glass_authority_policy_contract",
+            "POLICY_005_ACTION_CLASS_PROMOTION",
+            "POLICY_004_AUTHORITY",
+            "OMP",
+        ],
+        "policy_sources": [
+            "docs/policies/POLICY_005_ACTION_CLASS_PROMOTION.md",
+            "docs/policies/POLICY_004_AUTHORITY.md",
+            "docs/programs/V7_IMPLEMENTATION_BACKLOG.md#C4",
+        ],
+        "consumed_prior_capabilities": {
+            "action_class_runtime_enablement": enablement.get("schema_version", "UNKNOWN"),
+            "A5": blast.get("schema_version", "UNKNOWN"),
+            "B12": stage.get("schema_version", "UNKNOWN"),
+            "B14": scope.get("schema_version", "UNKNOWN"),
+            "C3": "break_glass_authority_policy_contract",
+        },
+        "verification_state": (
+            "DONE_READ_ONLY_ALL_AT_ONCE_PROMOTION_UNAVAILABLE"
+            if not violations
+            else "STOP_SAFE_PROMOTION_AVAILABILITY_VIOLATION_DETECTED"
+        ),
+        "all_at_once_promotion_allowed": False,
+        "direct_class_promotion_allowed": False,
+        "runtime_apply_allowed": False,
+        "authority_expanded": False,
+        "blast_radius_expanded": False,
+        "automation_enabled": False,
+        "users_moved": 0,
+        "class_summaries": class_summaries,
+        "blocking_rules": blocking_rules,
+        "violations": violations,
+        "summary": {
+            "action_classes_seen": len(class_summaries),
+            "all_at_once_promotions_available": 0,
+            "direct_promotions_available": 0,
+            "runtime_apply_paths_available": 0,
+            "authority_changes": 0,
+            "blast_radius_expansions": 0,
+            "automation_changes": 0,
+            "synthetic_evidence_created": 0,
+            "users_moved": 0,
+        },
+        "canonical_rules": [
+            "c4_reuses_existing_action_class_ladder_and_blast_radius_gate_owners",
+            "c4_keeps_all_at_once_promotion_unavailable_for_current_action_classes",
+            "c4_requires_class_by_class_certification_and_explicit_authority_review",
+            "c4_does_not_grant_runtime_apply_authority_automation_or_user_movement",
+            "c4_does_not_create_runtime_planner_owner_truth_source_or_promotion_path",
+        ],
+        "omp_output": {
+            "c4_status": (
+                "DONE_READ_ONLY_ALL_AT_ONCE_PROMOTION_UNAVAILABLE"
+                if not violations
+                else "STOP_SAFE_PROMOTION_AVAILABILITY_VIOLATION_DETECTED"
+            ),
+            "produced_evidence": "all_at_once_promotion_unavailable_verification",
+            "unlocked_capability": "C5_ROLLBACK_OPERATIONAL_COMPENSATION_NOT_TRANSACTION_ROLLBACK" if not violations else "",
+            "blocked_later_steps": [
+                "runtime_apply",
+                "automation",
+                "authority_expansion",
+                "direct_class_promotion",
+                "all_at_once_action_class_promotion",
+                "blast_radius_expansion",
+                "user_movement",
+            ],
+        },
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "synthetic_evidence_created": False,
+        "new_owner_created": False,
+        "new_truth_source_created": False,
+        "new_planner_created": False,
+        "new_runtime_created": False,
+    }
+
+
 def _record_user(record: dict[str, Any]) -> str:
     metadata = record.get("metadata") if isinstance(record.get("metadata"), dict) else {}
     return _text(record.get("user") or record.get("ip") or metadata.get("user"))
@@ -11125,6 +11295,13 @@ def build_acceleration_inventory(
         org_cohort_identity_policy_integration=org_cohort_identity_policy_integration,
         generated_at=generated,
     )
+    all_at_once_promotion_unavailable_verification = build_all_at_once_promotion_unavailable_verification(
+        action_class_runtime_enablement=action_class_runtime_enablement,
+        class_level_blast_radius_certification=class_level_blast_radius_certification,
+        next_action_class_stage_certification=next_action_class_stage_certification,
+        service_pool_cohort_blast_radius_scope=service_pool_cohort_blast_radius_scope,
+        generated_at=generated,
+    )
     rollback_authority_certification = build_rollback_authority_certification(
         floor_forensics=floor_forensics,
         decision_outcome_closure=decision_outcome_closure,
@@ -11244,6 +11421,7 @@ def build_acceleration_inventory(
         "metric_reliability_certification": metric_reliability_certification,
         "next_action_class_stage_certification": next_action_class_stage_certification,
         "service_pool_cohort_blast_radius_scope": service_pool_cohort_blast_radius_scope,
+        "all_at_once_promotion_unavailable_verification": all_at_once_promotion_unavailable_verification,
         "rollback_authority_certification": rollback_authority_certification,
         "rt2_s5_certified_concurrency_ladder": rt2_s5_certified_concurrency_ladder,
         "maximum_reality_knowledge_extraction": maximum_reality_knowledge_extraction,

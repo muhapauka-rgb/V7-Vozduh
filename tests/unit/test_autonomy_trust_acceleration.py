@@ -743,6 +743,7 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
             "org_cohort_identity_policy_integration",
             "next_action_class_stage_certification",
             "service_pool_cohort_blast_radius_scope",
+            "all_at_once_promotion_unavailable_verification",
             "stale_read_mutation_blocking",
             "owner_issued_version_lease_pattern",
             "hysteresis_state_change_cost_mapping",
@@ -2476,6 +2477,111 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(scope["users_moved"], 0)
         self.assertFalse(scope["authority_expanded"])
         self.assertFalse(scope["blast_radius_expanded"])
+
+    def test_c4_all_at_once_promotion_unavailable_verification_is_read_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.populate_snapshots(root)
+            inventory = accel.build_acceleration_inventory(
+                snapshot_root=root,
+                decision_surface=self.decision_surface(),
+                shadow_history=[],
+                decision_records=[{
+                    "recommendation_id": "r1",
+                    "decision_id": "decision-1",
+                    "packet_id": "p1",
+                    "apply_result": "success",
+                    "post_action_verification": {"status": "passed"},
+                    "service_outcome": {"telegram": "ok"},
+                    "user_outcome": {"user": "10.7.0.2"},
+                    "learning_record": {"stored": True},
+                    "outcome_observed_at": "2026-06-24T00:00:00+00:00",
+                    "blast_radius": 1,
+                    "selected_move_count": 1,
+                    "user": "10.7.0.2",
+                    "target": "awg0",
+                    "service_delta": 5,
+                    "prediction_delta": 3,
+                }],
+                generated_at="2026-06-25T00:00:00+00:00",
+            )
+
+        verification = inventory["all_at_once_promotion_unavailable_verification"]
+        self.assertEqual(verification["schema_version"], "v7.c4-all-at-once-promotion-unavailable.v1")
+        self.assertEqual(verification["backlog_item"], "C4")
+        self.assertEqual(
+            verification["verification_state"],
+            "DONE_READ_ONLY_ALL_AT_ONCE_PROMOTION_UNAVAILABLE",
+        )
+        self.assertFalse(verification["all_at_once_promotion_allowed"])
+        self.assertFalse(verification["direct_class_promotion_allowed"])
+        self.assertFalse(verification["runtime_apply_allowed"])
+        self.assertFalse(verification["authority_expanded"])
+        self.assertFalse(verification["blast_radius_expanded"])
+        self.assertFalse(verification["automation_enabled"])
+        self.assertEqual(verification["summary"]["all_at_once_promotions_available"], 0)
+        self.assertEqual(verification["summary"]["direct_promotions_available"], 0)
+        self.assertEqual(verification["summary"]["runtime_apply_paths_available"], 0)
+        self.assertIn(
+            "c4_keeps_all_at_once_promotion_unavailable_for_current_action_classes",
+            verification["canonical_rules"],
+        )
+        self.assertEqual(
+            verification["omp_output"]["unlocked_capability"],
+            "C5_ROLLBACK_OPERATIONAL_COMPENSATION_NOT_TRANSACTION_ROLLBACK",
+        )
+        self.assertIn(
+            "all_at_once_action_class_promotion",
+            verification["omp_output"]["blocked_later_steps"],
+        )
+        self.assertFalse(verification["runtime_mutation_performed"])
+        self.assertFalse(verification["apply_executed"])
+        self.assertEqual(verification["users_moved"], 0)
+        self.assertFalse(verification["synthetic_evidence_created"])
+        self.assertFalse(verification["new_owner_created"])
+        self.assertFalse(verification["new_runtime_created"])
+
+    def test_c4_all_at_once_promotion_verification_stops_on_existing_gate_violation(self):
+        verification = accel.build_all_at_once_promotion_unavailable_verification(
+            action_class_runtime_enablement={
+                "schema_version": "v7.action-class-runtime-enablement.v2",
+                "action_classes": [{
+                    "action_class": "single-user governed candidate failover",
+                    "current_state": "GOVERNED_ONLY",
+                    "next_state": "CERTIFIED_FOR_CLASS_APPROVAL",
+                }],
+            },
+            class_level_blast_radius_certification={
+                "schema_version": "v7.a5-class-level-blast-radius-certification.v1",
+            },
+            next_action_class_stage_certification={
+                "schema_version": "v7.b12-next-action-class-stage-certification.v1",
+                "next_stage": {
+                    "authority_review_required": False,
+                    "direct_class_promotion_allowed": True,
+                    "stage_promoted": True,
+                },
+            },
+            service_pool_cohort_blast_radius_scope={
+                "schema_version": "v7.b14-service-pool-cohort-blast-radius-scope.v1",
+                "rows": [{"runtime_apply_allowed": True}],
+                "blast_radius_expanded": True,
+            },
+            generated_at="2026-06-25T00:00:00+00:00",
+        )
+
+        self.assertEqual(
+            verification["verification_state"],
+            "STOP_SAFE_PROMOTION_AVAILABILITY_VIOLATION_DETECTED",
+        )
+        self.assertIn("authority_review_required", verification["violations"])
+        self.assertIn("runtime_apply_remains_disabled", verification["violations"])
+        self.assertIn("blast_radius_not_expanded_now", verification["violations"])
+        self.assertIn("direct_class_promotion_forbidden", verification["violations"])
+        self.assertFalse(verification["all_at_once_promotion_allowed"])
+        self.assertFalse(verification["direct_class_promotion_allowed"])
+        self.assertFalse(verification["runtime_mutation_performed"])
+        self.assertFalse(verification["new_owner_created"])
 
     def test_b17_stale_read_mutation_blocking_is_read_only(self):
         with tempfile.TemporaryDirectory() as tmp:

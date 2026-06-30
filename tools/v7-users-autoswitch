@@ -134,6 +134,17 @@ DEFAULT_SERVICE_SIGNAL_POLICY = {
     "apply_restore_approved": False,
     "restore_stage": False,
 }
+DEFAULT_EMERGENCY_FAILOVER_AUTONOMY_POLICY = {
+    "enabled": False,
+    "max_users_per_run": 1,
+    "max_users_per_channel": 1,
+    "cooldown_seconds": 180,
+    "require_fresh_evidence": True,
+    "require_restore_barrier": True,
+    "require_rollback": True,
+    "require_verification": True,
+    "service_verify_timeout_seconds": 5,
+}
 DEFAULT_SERVICE_QUALITY_POLICY = {
     "min_required_service_score": 50.0,
     "min_required_service_confidence": 0.35,
@@ -631,6 +642,7 @@ class AutoswitchPlanner:
         self.reconnect_policy = self._reconnect_policy()
         self.safety_policy = self._safety_policy()
         self.service_signal_policy = self._service_signal_policy()
+        self.emergency_failover_policy = self._emergency_failover_policy()
         self.service_quality_policy = self._service_quality_policy()
         self.best_available_pool_policy = self._best_available_pool_policy()
         self.last_switch = self._last_switches()
@@ -728,6 +740,16 @@ class AutoswitchPlanner:
         }
         return policy
 
+    def _emergency_failover_policy(self) -> dict[str, Any]:
+        policy = merge_defaults(
+            (self.policy or {}).get("emergency_failover_autonomy", {}),
+            DEFAULT_EMERGENCY_FAILOVER_AUTONOMY_POLICY,
+        )
+        policy.update((self.org_policy or {}).get("emergency_failover_autonomy", {}))
+        if bool_value(getattr(self.args, "emergency_failover_autonomy", False)):
+            policy["enabled"] = True
+        return policy
+
     def _authority_promotion_truth_check(self) -> dict[str, Any]:
         command = str(getattr(self.args, "authority_promotion_truth_check_command", "") or "v7-truth-check")
         result = {
@@ -800,6 +822,155 @@ class AutoswitchPlanner:
             "actual_sha256": actual,
             "passed": passed,
             "truth_source": "existing_safe_deploy_runtime_fingerprint",
+        }
+
+    def _emergency_failover_authority_gate(
+        self,
+        selected: list[dict[str, Any]],
+        restore_barrier: dict[str, Any],
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        policy = dict(self.emergency_failover_policy)
+        enabled = bool_value(policy.get("enabled"))
+        gate: dict[str, Any] = {
+            "schema_version": "v7.emergency-failover-autonomy-gate.v1",
+            "enabled": enabled,
+            "mode": "EMERGENCY_FAILOVER_AUTONOMY" if enabled else "DISABLED",
+            "decision": "disabled",
+            "ok": False,
+            "blockers": [],
+            "selected_moves_before_gate": len(selected),
+            "selected_moves_after_gate": len(selected),
+            "max_users_per_run": to_int(policy.get("max_users_per_run"), 1),
+            "max_users_per_channel": to_int(policy.get("max_users_per_channel"), 1),
+            "require_fresh_evidence": bool_value(policy.get("require_fresh_evidence", True)),
+            "require_restore_barrier": bool_value(policy.get("require_restore_barrier", True)),
+            "require_rollback": bool_value(policy.get("require_rollback", True)),
+            "require_verification": bool_value(policy.get("require_verification", True)),
+            "broad_automation_enabled": False,
+        }
+        if not enabled:
+            return selected, gate
+        blockers: list[str] = []
+        if gate["require_restore_barrier"] and not bool_value(restore_barrier.get("failover_quarantine")):
+            blockers.append("restore_barrier_required_for_emergency_failover")
+        if gate["require_rollback"] and not bool_value(getattr(self.args, "rollback_on_verify_fail", False)):
+            blockers.append("rollback_required_for_emergency_failover")
+        if gate["require_verification"] and not bool_value(getattr(self.args, "verify", False)):
+            blockers.append("verification_required_for_emergency_failover")
+
+        eligible: list[dict[str, Any]] = []
+        per_move: list[dict[str, Any]] = []
+        for move in selected:
+            evidence = self._emergency_failover_move_evidence(move)
+            per_move.append(evidence)
+            if evidence.get("ok"):
+                eligible.append(move)
+            else:
+                blockers.extend(str(reason) for reason in evidence.get("blockers") or [])
+
+        max_run = max(0, to_int(policy.get("max_users_per_run"), 1))
+        max_channel = max(0, to_int(policy.get("max_users_per_channel"), max_run or 1))
+        per_target_counts: dict[str, int] = {}
+        bounded: list[dict[str, Any]] = []
+        for move in eligible:
+            if len(bounded) >= max_run:
+                break
+            target = str(move.get("recommended_egress") or "")
+            count = per_target_counts.get(target, 0)
+            if count >= max_channel:
+                blockers.append("emergency_target_channel_limit_reached")
+                continue
+            row = dict(move)
+            row["execution_mode"] = "emergency_failover"
+            row.setdefault("reason", []).append("emergency_failover_autonomy_authorized")
+            bounded.append(row)
+            per_target_counts[target] = count + 1
+
+        if not selected:
+            blockers.append("no_selected_moves_for_emergency_failover")
+        if selected and not bounded and not blockers:
+            blockers.append("no_emergency_eligible_failover_moves")
+
+        gate["move_evidence"] = per_move
+        gate["blockers"] = sorted(set(blockers))
+        gate["selected_moves_after_gate"] = len(bounded)
+        gate["ok"] = bool(bounded) and not gate["blockers"]
+        gate["decision"] = "authorize_bounded_emergency_failover" if gate["ok"] else "block_emergency_failover"
+        return bounded if gate["ok"] else [], gate
+
+    def _emergency_failover_move_evidence(self, move: dict[str, Any]) -> dict[str, Any]:
+        blockers: list[str] = []
+        user_ip = str(move.get("user_ip") or "")
+        reasons = [str(reason) for reason in (move.get("reason") or [])]
+        if str(move.get("move_type") or "") != "failover":
+            blockers.append("emergency_allows_failover_only")
+        if "current_egress_not_eligible" not in reasons:
+            blockers.append("current_egress_not_eligible_required")
+
+        current_id = str(move.get("current_egress") or "")
+        target_id = str(move.get("recommended_egress") or "")
+        candidates = move.get("candidates") if isinstance(move.get("candidates"), list) else []
+        current = next((row for row in candidates if str(row.get("egress") or "") == current_id), {})
+        target = next((row for row in candidates if str(row.get("egress") or "") == target_id), {})
+        if current and bool_value(current.get("eligible")):
+            blockers.append("current_candidate_still_eligible")
+        if not target or not bool_value(target.get("eligible")):
+            blockers.append("safe_target_required")
+        target_load = target.get("load") if isinstance(target.get("load"), dict) else {}
+        if str(target_load.get("status") or "OK") in {"HARD_FULL", "FAILOVER_FULL"}:
+            blockers.append("target_load_gate_failed")
+
+        required_services = normalize_service_ids(move.get("important_services") or [])
+        current_service = current.get("service_suitability") if isinstance(current.get("service_suitability"), dict) else {}
+        target_service = target.get("service_suitability") if isinstance(target.get("service_suitability"), dict) else {}
+        current_failures: list[dict[str, Any]] = []
+        per_service = current_service.get("per_service") if isinstance(current_service.get("per_service"), dict) else {}
+        for service in required_services:
+            row = per_service.get(service) if isinstance(per_service.get(service), dict) else {}
+            status = str(row.get("status") or "").upper()
+            truth_class = str(row.get("truth_class") or "")
+            if (
+                row.get("available") is False
+                or truth_class == "PERSISTENT_FAIL"
+                or status in {"DOWN", "FAIL", "ERROR", "NOT_STARTED"}
+            ):
+                current_failures.append(row)
+        if not current_failures:
+            blockers.append("required_service_failure_required")
+        if bool_value(self.emergency_failover_policy.get("require_fresh_evidence", True)):
+            stale_failures = [
+                row for row in current_failures
+                if str(((row.get("freshness") or {}).get("state") or "")) not in {"FRESH", "AGING"}
+            ]
+            if stale_failures:
+                blockers.append("fresh_service_failure_evidence_required")
+        if target_service.get("required_missing") or target_service.get("required_low"):
+            blockers.append("target_required_services_not_ready")
+        cooldown = max(0, to_int(self.emergency_failover_policy.get("cooldown_seconds"), 180))
+        cooldown_remaining = 0
+        last = self.last_switch.get(user_ip)
+        if cooldown > 0 and last:
+            age = max(0.0, time.time() - last)
+            if age < cooldown:
+                cooldown_remaining = int(cooldown - age)
+                blockers.append("emergency_failover_cooldown_active")
+
+        return {
+            "user_ip": user_ip,
+            "current_egress": current_id,
+            "recommended_egress": target_id,
+            "ok": not blockers,
+            "blockers": sorted(set(blockers)),
+            "cooldown_remaining_seconds": cooldown_remaining,
+            "current_failures": [
+                {
+                    "service": row.get("service"),
+                    "status": row.get("status"),
+                    "truth_class": row.get("truth_class"),
+                    "freshness": row.get("freshness"),
+                }
+                for row in current_failures
+            ],
         }
 
     def _authority_promotion_feedback_paths(self) -> dict[str, list[Path]]:
@@ -4179,6 +4350,23 @@ class AutoswitchPlanner:
             intelligence_snapshot_gate["selected_moves_after_gate"] = 0
         else:
             intelligence_snapshot_gate["selected_moves_after_gate"] = len(selected)
+        selected, emergency_failover_gate = self._emergency_failover_authority_gate(selected, restore_barrier)
+        if bool_value(emergency_failover_gate.get("enabled")):
+            if bool_value(emergency_failover_gate.get("ok")):
+                selected_moves_source = "emergency_failover_autonomy"
+                selected_after_policy_count = len(selected)
+                selected_after_request_cap_count = len(selected)
+                authority_budget_gate = {
+                    **authority_budget_gate,
+                    "emergency_failover_autonomy_used": True,
+                    "selected_moves_after_gate": len(selected),
+                }
+                effective_blast_radius = len(selected)
+                blast_radius_scope = "emergency_failover_autonomy"
+            else:
+                selected_moves_source = "blocked_by_emergency_failover_autonomy_gate"
+                effective_blast_radius = 0
+                blast_radius_scope = "blocked_by_emergency_failover_autonomy_gate"
         restore_barrier_execution_gate = {
             "active": bool_value(restore_barrier.get("failover_quarantine")),
             "decision": "pass",
@@ -4192,6 +4380,7 @@ class AutoswitchPlanner:
             selected
             and bool_value(restore_barrier_execution_gate.get("active"))
             and not bool_value(approved_plan_lock.get("ok"))
+            and not bool_value(emergency_failover_gate.get("ok"))
         ):
             restore_barrier_execution_gate.update(
                 {
@@ -4212,6 +4401,17 @@ class AutoswitchPlanner:
             effective_blast_radius = 0
             blast_radius_scope = "blocked_by_restore_barrier_execution_gate"
         else:
+            if bool_value(emergency_failover_gate.get("ok")) and bool_value(restore_barrier_execution_gate.get("active")):
+                restore_barrier_execution_gate.update(
+                    {
+                        "decision": "allow_selected_moves_emergency_failover_autonomy",
+                        "reason": "emergency_failover_autonomy_authorized",
+                        "selected_moves_after_gate": len(selected),
+                        "execution_blocked": False,
+                        "execution_blocker": "",
+                    }
+                )
+                restore_barrier["emergency_failover_authorized"] = True
             restore_barrier["execution_blocked"] = False
             restore_barrier["execution_blocker"] = ""
             restore_barrier["execution_selected_moves_before_gate"] = len(selected)
@@ -4277,6 +4477,7 @@ class AutoswitchPlanner:
                 },
                 "restore_barrier": restore_barrier,
                 "restore_barrier_execution_gate": restore_barrier_execution_gate,
+                "emergency_failover_autonomy": emergency_failover_gate,
                 "intelligence_snapshots": intelligence_snapshot_gate,
                 "atomic_execution_envelope": atomic_execution_envelope,
                 "selected_moves_diagnostics": {
@@ -4287,7 +4488,31 @@ class AutoswitchPlanner:
                     "selected_moves_before_restore_barrier": len(selected_before_restore_barrier),
                     "selected_moves_after_gate": len(selected),
                     "restore_barrier_execution_blocked": bool_value(restore_barrier_execution_gate.get("execution_blocked")),
-                    "execution_blocker": str(restore_barrier_execution_gate.get("execution_blocker") or ""),
+                    "execution_blocker": str(
+                        restore_barrier_execution_gate.get("execution_blocker")
+                        or ("emergency_failover_autonomy" if bool_value(emergency_failover_gate.get("enabled")) and not bool_value(emergency_failover_gate.get("ok")) else "")
+                    ),
+                    "emergency_failover_authorized": bool_value(emergency_failover_gate.get("ok")),
+                    "emergency_failed_sources": sorted({
+                        str(row.get("current_egress") or "")
+                        for row in (emergency_failover_gate.get("move_evidence") or [])
+                        if row.get("current_failures")
+                    }),
+                    "emergency_target_channels": sorted({
+                        str(move.get("recommended_egress") or "")
+                        for move in selected
+                        if str(move.get("execution_mode") or "") == "emergency_failover"
+                    }),
+                    "emergency_selected_users": [
+                        str(move.get("user_ip") or "")
+                        for move in selected
+                        if str(move.get("execution_mode") or "") == "emergency_failover"
+                    ],
+                    "emergency_blast_radius_used": len([
+                        move for move in selected
+                        if str(move.get("execution_mode") or "") == "emergency_failover"
+                    ]),
+                    "emergency_cooldown_seconds": to_int(self.emergency_failover_policy.get("cooldown_seconds"), 180),
                     "snapshot_gate_source": str(intelligence_snapshot_gate.get("snapshot_gate_source") or ""),
                     "snapshot_gate_decision": str(intelligence_snapshot_gate.get("snapshot_gate_decision") or ""),
                     "snapshot_gate_changed_fields": list(intelligence_snapshot_gate.get("snapshot_gate_changed_fields") or []),
@@ -4305,8 +4530,37 @@ class AutoswitchPlanner:
                 "proposal_moves_total": sum(1 for item in decisions if item.get("recommended_egress") and item.get("recommended_egress") != item.get("current_egress")),
                 "selected_moves": len(selected),
                 "selected_move_count": len(selected),
-                "execution_blocked": bool_value(restore_barrier_execution_gate.get("execution_blocked")),
-                "execution_blocker": str(restore_barrier_execution_gate.get("execution_blocker") or ""),
+                "execution_blocked": bool_value(restore_barrier_execution_gate.get("execution_blocked")) or (
+                    bool_value(emergency_failover_gate.get("enabled")) and not bool_value(emergency_failover_gate.get("ok"))
+                ),
+                "execution_blocker": str(
+                    restore_barrier_execution_gate.get("execution_blocker")
+                    or ("emergency_failover_autonomy" if bool_value(emergency_failover_gate.get("enabled")) and not bool_value(emergency_failover_gate.get("ok")) else "")
+                ),
+                "execution_mode": "emergency_failover" if bool_value(emergency_failover_gate.get("ok")) else "",
+                "emergency_failover_enabled": bool_value(emergency_failover_gate.get("enabled")),
+                "emergency_failover_authorized": bool_value(emergency_failover_gate.get("ok")),
+                "emergency_incident_active": bool_value(emergency_failover_gate.get("enabled")) and bool_value(emergency_failover_gate.get("move_evidence")),
+                "emergency_failed_sources": sorted({
+                    str(row.get("current_egress") or "")
+                    for row in (emergency_failover_gate.get("move_evidence") or [])
+                    if row.get("current_failures")
+                }),
+                "emergency_target_channels": sorted({
+                    str(move.get("recommended_egress") or "")
+                    for move in selected
+                    if str(move.get("execution_mode") or "") == "emergency_failover"
+                }),
+                "emergency_selected_users": [
+                    str(move.get("user_ip") or "")
+                    for move in selected
+                    if str(move.get("execution_mode") or "") == "emergency_failover"
+                ],
+                "emergency_blast_radius_used": len([
+                    move for move in selected
+                    if str(move.get("execution_mode") or "") == "emergency_failover"
+                ]),
+                "emergency_cooldown_seconds": to_int(self.emergency_failover_policy.get("cooldown_seconds"), 180),
                 "reconnect_rotation_candidates": sum(1 for item in decisions if item.get("move_type") == "reconnect_rotation"),
                 "rebalance_candidates": sum(1 for item in decisions if item.get("move_type") == "rebalance"),
                 "org_groups": sorted({user.group for user in active}),
@@ -6269,6 +6523,7 @@ class AutoswitchPlanner:
             }
 
         results: list[dict[str, Any]] = []
+        emergency_mode = str(((plan.get("summary") or {}).get("execution_mode") or "")) == "emergency_failover"
         for move in plan["selected_moves"]:
             ip = move["user_ip"]
             target = move["recommended_egress"]
@@ -6290,8 +6545,16 @@ class AutoswitchPlanner:
                 verify = self._verify_routes()
                 row["verify_rc"] = verify.returncode
                 row["verify_output"] = verify.stdout[-4000:]
-                if verify.returncode != 0 and self.args.rollback_on_verify_fail:
+                service_verify = None
+                if verify.returncode == 0 and emergency_mode:
+                    service_verify = self._verify_emergency_required_services(move)
+                    row["service_verify_rc"] = service_verify.returncode
+                    row["service_verify_output"] = service_verify.stdout[-4000:]
+                verification_failed = verify.returncode != 0 or (service_verify is not None and service_verify.returncode != 0)
+                if verification_failed and self.args.rollback_on_verify_fail:
                     row["verification_failure_reason"] = "route_verify_failed"
+                    if service_verify is not None and service_verify.returncode != 0:
+                        row["verification_failure_reason"] = "required_service_verify_failed"
                     row["rollback_attempted"] = True
                     rollback = self._run_switch(ip, current, "rollback")
                     row["rollback_rc"] = rollback.returncode
@@ -6574,6 +6837,38 @@ class AutoswitchPlanner:
             timeout=20,
         )
 
+    def _verify_emergency_required_services(self, move: dict[str, Any]) -> subprocess.CompletedProcess[str]:
+        target = str(move.get("recommended_egress") or "")
+        services = normalize_service_ids(move.get("important_services") or [])
+        if not target or not services:
+            return subprocess.CompletedProcess(["v7-service-matrix-test"], 1, stdout="missing target or services\n")
+        timeout_sec = max(1, min(to_int(self.emergency_failover_policy.get("service_verify_timeout_seconds"), 5), 30))
+        outputs: list[str] = []
+        for service in services:
+            try:
+                proc = subprocess.run(
+                    [
+                        "v7-service-matrix-test",
+                        target,
+                        service,
+                        "--timeout",
+                        str(timeout_sec),
+                        "--state-dir",
+                        str(self.state_dir),
+                    ],
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    check=False,
+                    timeout=timeout_sec + 5,
+                )
+            except (OSError, subprocess.TimeoutExpired) as exc:
+                return subprocess.CompletedProcess(["v7-service-matrix-test"], 1, stdout=f"service verify error: {exc}\n")
+            outputs.append(proc.stdout or "")
+            if proc.returncode != 0:
+                return subprocess.CompletedProcess(proc.args, proc.returncode, stdout="".join(outputs))
+        return subprocess.CompletedProcess(["v7-service-matrix-test"], 0, stdout="".join(outputs) or "service verify ok\n")
+
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Plan and optionally apply guarded V7 egress autoswitch decisions.")
@@ -6597,6 +6892,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--route-class", default="", help="Override derived route class.")
     parser.add_argument("--max-selected-moves", type=int, default=0, help="Narrow selected moves to this maximum without raising policy limits.")
     parser.add_argument("--allow-hard-full", action="store_true", help="Allow HARD_FULL egress as a candidate.")
+    parser.add_argument("--emergency-failover-autonomy", action="store_true", help="Enable one-run bounded emergency failover autonomy from existing policy gates.")
     parser.add_argument("--apply", action="store_true", help="Apply selected moves. Default is read-only dry-run.")
     parser.add_argument("--verify", action="store_true", default=True, help="Run v7-user-route-check after apply.")
     parser.add_argument("--no-verify", dest="verify", action="store_false")

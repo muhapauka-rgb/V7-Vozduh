@@ -42,6 +42,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         service_signals: Optional[dict] = None,
         restore_barrier: Optional[dict] = None,
         authority_budget: Optional[dict] = None,
+        emergency_failover_autonomy: Optional[dict] = None,
     ) -> None:
         state_dir = root / "state"
         event_dir = root / "events"
@@ -131,6 +132,8 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         }
         if authority_budget is not None:
             policy["authority_budget"] = authority_budget
+        if emergency_failover_autonomy is not None:
+            policy["emergency_failover_autonomy"] = emergency_failover_autonomy
         (root / "policy.json").write_text(json.dumps(policy), encoding="utf-8")
         (root / "org-policy.json").write_text("{}", encoding="utf-8")
         for name in [
@@ -1184,6 +1187,240 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertTrue(plan["summary"]["execution_blocked"])
         self.assertEqual(plan["apply_result"]["reason"], "no_selected_moves")
         self.assertEqual(plan["operation"]["terminal_state"], "NOOP")
+
+    def test_emergency_failover_autonomy_authorizes_bounded_failover_when_gates_pass(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                users=3,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={
+                    "enabled": True,
+                    "max_users_per_run": 1,
+                    "max_users_per_channel": 1,
+                },
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--emergency-failover-autonomy"]))
+            plan = planner.plan()
+
+        gate = plan["safety"]["emergency_failover_autonomy"]
+        self.assertTrue(gate["ok"])
+        self.assertEqual(gate["decision"], "authorize_bounded_emergency_failover")
+        self.assertEqual(plan["summary"]["selected_moves"], 1)
+        self.assertEqual(plan["summary"]["execution_mode"], "emergency_failover")
+        self.assertFalse(plan["summary"]["execution_blocked"])
+        self.assertEqual(plan["selected_moves"][0]["execution_mode"], "emergency_failover")
+
+    def test_emergency_failover_autonomy_off_keeps_proposal_visible_but_not_executable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root))
+            plan = planner.plan()
+
+        self.assertFalse(plan["summary"]["emergency_failover_enabled"])
+        self.assertGreater(plan["summary"]["proposal_moves_total"], 0)
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+        self.assertTrue(plan["summary"]["execution_blocked"])
+
+    def test_emergency_failover_autonomy_blocks_non_failover_candidate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, emergency_failover_autonomy={"enabled": True})
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--emergency-failover-autonomy"]))
+            selected = [{
+                "user_ip": "10.0.0.2",
+                "current_egress": "1",
+                "recommended_egress": "vless",
+                "move_type": "planned",
+                "reason": ["candidate_score_beats_current"],
+                "important_services": ["telegram"],
+                "candidates": [
+                    {"egress": "1", "eligible": False, "service_suitability": {"per_service": {"telegram": {"available": False, "status": "DOWN", "truth_class": "PERSISTENT_FAIL", "freshness": {"state": "FRESH"}}}}},
+                    {"egress": "vless", "eligible": True, "service_suitability": {"per_service": {"telegram": {"available": True, "status": "OK", "freshness": {"state": "FRESH"}}}}},
+                ],
+            }]
+            _, gate = planner._emergency_failover_authority_gate(selected, {"failover_quarantine": True})
+
+        self.assertFalse(gate["ok"])
+        self.assertIn("emergency_allows_failover_only", gate["blockers"])
+
+    def test_emergency_failover_autonomy_blocks_recent_cooldown(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True, "cooldown_seconds": 180},
+            )
+            (root / "events" / "switch-history.jsonl").write_text(
+                json.dumps({"ts": self.tool.now_iso(), "user_ip": "10.0.0.2", "from": "vless", "to": "1"}) + "\n",
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--emergency-failover-autonomy"]))
+            plan = planner.plan()
+
+        self.assertFalse(plan["safety"]["emergency_failover_autonomy"]["ok"])
+        self.assertIn("emergency_failover_cooldown_active", plan["safety"]["emergency_failover_autonomy"]["blockers"])
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+
+    def test_emergency_failover_autonomy_blocks_stale_service_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True},
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--emergency-failover-autonomy"]))
+            plan = planner.plan()
+
+        gate = plan["safety"]["emergency_failover_autonomy"]
+        self.assertFalse(gate["ok"])
+        self.assertIn("fresh_service_failure_evidence_required", gate["blockers"])
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+        self.assertTrue(plan["summary"]["execution_blocked"])
+        self.assertEqual(plan["summary"]["execution_blocker"], "emergency_failover_autonomy")
+
+    def test_emergency_failover_autonomy_blocks_when_rollback_unavailable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True},
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--no-rollback-on-verify-fail"])
+            )
+            plan = planner.plan()
+
+        self.assertIn("rollback_required_for_emergency_failover", plan["safety"]["emergency_failover_autonomy"]["blockers"])
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+
+    def test_emergency_failover_autonomy_blocks_when_no_safe_target_exists(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True},
+            )
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix["items"]["vless"]["services"]["telegram"] = {
+                "ok": False,
+                "status": "DOWN",
+                "score": 0,
+                "consecutive_failures": 3,
+                "tested_at": fresh,
+            }
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--emergency-failover-autonomy"]))
+            plan = planner.plan()
+
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+        self.assertTrue(plan["summary"]["execution_blocked"])
+        self.assertIn("no_selected_moves_for_emergency_failover", plan["safety"]["emergency_failover_autonomy"]["blockers"])
+
+    def test_emergency_apply_success_verifies_required_services(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True},
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--mode", "guarded", "--apply"])
+            )
+            switch_calls = []
+            planner._run_switch = lambda ip, egress, reason: switch_calls.append((ip, egress, reason)) or subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+            planner._verify_routes = lambda: subprocess.CompletedProcess(["v7-user-route-check"], 0, stdout="verify ok\n")
+            planner._verify_emergency_required_services = lambda move: subprocess.CompletedProcess(["v7-service-matrix-test"], 0, stdout="service ok\n")
+            plan = planner.plan()
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        self.assertEqual(switch_calls, [("10.0.0.2", "vless", "failover")])
+        self.assertTrue(plan["apply_result"]["applied"])
+        self.assertEqual(plan["operation"]["terminal_state"], "APPLIED")
+        self.assertEqual(plan["apply_result"]["results"][0]["service_verify_rc"], 0)
+
+    def test_emergency_apply_service_verification_failure_rolls_back_and_stops(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True},
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--mode", "guarded", "--apply"])
+            )
+            switch_calls = []
+            planner._run_switch = lambda ip, egress, reason: switch_calls.append((ip, egress, reason)) or subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+            planner._verify_routes = lambda: subprocess.CompletedProcess(["v7-user-route-check"], 0, stdout="verify ok\n")
+            planner._verify_emergency_required_services = lambda move: subprocess.CompletedProcess(["v7-service-matrix-test"], 1, stdout="service fail\n")
+            plan = planner.plan()
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        self.assertEqual(switch_calls, [("10.0.0.2", "vless", "failover"), ("10.0.0.2", "1", "rollback")])
+        row = plan["apply_result"]["results"][0]
+        self.assertEqual(row["verification_failure_reason"], "required_service_verify_failed")
+        self.assertEqual(row["rollback_verdict"], "ROLLBACK_COMPLETED")
+        self.assertEqual(plan["operation"]["terminal_state"], "ROLLED_BACK")
 
     def test_apply_verify_failure_records_operation_rollback_and_audit_lineage(self):
         with tempfile.TemporaryDirectory() as tmp:

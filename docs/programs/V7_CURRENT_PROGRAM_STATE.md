@@ -223,10 +223,11 @@ If Production Maturity produces `NO_CHANGE`, `BLOCK`, or `INVALID_EVIDENCE`, Cur
 | remaining_backlog | `0 actionable items`; `6 optional future-scope items` |
 | remaining_work | `None for actionable implementation backlog` |
 | next_milestone | `80%: Runtime Production Ready` |
-| current_focus | `IMPLEMENTATION_COMPLETE` |
+| current_focus | `L3_PRODUCTION_CANDIDATE` |
 | current_milestone | `65%: Certification Half Complete`; progressing toward `80%: Runtime Production Ready` |
 | estimated_remaining_effort | `None for actionable implementation backlog` |
-| current_highest_implementation_task | `IMPLEMENTATION_COMPLETE` |
+| current_highest_implementation_task | `L3_PRODUCTION_CANDIDATE_READY_FOR_SAFE_DEPLOY` |
+| production_promotion_state | `PRODUCTION_CANDIDATE`; L3 engineering is sealed into canonical source commit `200119a4cec44e31ee39f9906e5d5b43512f5850`; local/GitHub truth prerequisite `PASS`; safe deploy dry-run `PASS`; production runtime deploy remains the next promotion step and has not run. |
 | world_equivalence_status | `CANONICAL` |
 | backlog_consistency_status | `CANONICAL_BACKLOG_MAPPING_CURRENT` |
 | state_change_cost_verdict | `ALREADY_EXISTS_SEMANTICALLY`; represented by existing movement-protection owners and extended through backlog item `B19` |
@@ -240,7 +241,7 @@ If Production Maturity produces `NO_CHANGE`, `BLOCK`, or `INVALID_EVIDENCE`, Cur
 | capability_completion_prediction | Movement Protection has consumed the actionable backlog prerequisites through C7 but still requires explicit future authority/runtime/certification and production outcome evidence before production movement can be certified; Decision Explainability completes after its future operator-facing explanation implementation and governed validation work. |
 | completed_capabilities | `Knowledge System`; `Implementation Discipline`; `Engineering Knowledge Preservation` |
 | locked_capabilities | `Knowledge System`; `Engineering Knowledge Preservation` |
-| next_capability_target | `IMPLEMENTATION_COMPLETE`; no actionable backlog target remains. Future capability work must be explicitly admitted through OMP. |
+| next_capability_target | `SAFE_DEPLOY`; L3 Production Candidate is ready for the next Production Promotion step. |
 
 ## 2.2. V7 Production Status
 

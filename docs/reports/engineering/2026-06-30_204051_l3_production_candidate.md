@@ -97,23 +97,21 @@ Pre-seal commit:
 ad773ab2ad37af6211d2df25122e32fea3542f90
 ```
 
-Production candidate commit:
+Production candidate code commit:
 
 ```text
-PENDING_SAFE_COMMIT
+200119a4cec44e31ee39f9906e5d5b43512f5850
 ```
 
 ## Truth Readiness
 
-Pre-commit truth readiness:
+Post-seal truth readiness:
 
-- local source is not yet clean before sealing.
-- expected blocker before safe commit: dirty workspace.
-
-Expected after safe commit:
-
-- working tree clean.
-- no runtime-critical dirty files.
+- local truth: `PASS`
+- GitHub truth: `PASS`
+- local/remote candidate code commit verified before final report-state sealing: `200119a4cec44e31ee39f9906e5d5b43512f5850`
+- working tree: clean after safe commit.
+- runtime-critical dirty files: none after safe commit.
 
 ## Deploy Readiness
 
@@ -121,25 +119,25 @@ No deploy performed.
 
 Deploy readiness target after sealing and push:
 
-- safe deploy dry-run may evaluate the candidate.
-- deployment may be required because production runtime is behind candidate.
+- safe deploy dry-run evaluated the candidate: `PASS`.
+- deployment required: `true`.
+- deployment required paths:
+  - `tools/v7-users-autoswitch`
+  - `admin/v7-admin-api`
+- production runtime is behind candidate, as expected before Safe Deploy.
 - actual deploy remains a separate Production Promotion step.
 
 ## Remaining Blockers
 
-Before safe commit:
+Remaining blocker:
 
-- workspace dirty because production candidate has not yet been sealed.
+- none for Production Candidate.
 
-After safe commit/push/truth verification this report must be superseded by command evidence from:
+Remaining promotion work:
 
-- `tools/v7-safe-commit --apply`
-- `tools/v7-safe-push --apply`
-- `tools/v7-truth-check --github --json`
-- `tools/v7-safe-deploy --json`
+- Safe Deploy has not run.
+- Production Runtime, Truth, Convergence, Runtime Validation, Production Validation, and Production Certification remain future Production Promotion steps.
 
 ## Verdict
 
-Candidate report created.
-
-Final production candidate readiness depends on successful safe commit, safe push, truth prerequisite, and safe deploy dry-run.
+L3 Production Candidate is ready for Safe Deploy.

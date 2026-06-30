@@ -1,36 +1,115 @@
 # V7 Current Program State
 
 Status: active current state
-Program: Product Execution Mode
-State captured: 2026-06-29T19:07:13+0700
-Source: Continue OMP C7 Pool Health Capacity And Blast Bounds. C7 is `DONE_READ_ONLY`; `pool_health_capacity_blast_bounds` maps proxy-style max-ejection/minimum-health semantics to existing V7 action-class, certified blast-radius, capacity/load, service-fit, freshness, and STOP_SAFE bounds without Runtime behavior change, authority expansion, threshold/formula mutation, synthetic evidence, or user movement.
+Program: Autonomous Execution Canonical Integration
+State captured: 2026-06-30T19:18:00+0700
+Source: L3 Phase 3 implementation. Existing autoswitch owner now materializes L3 production behavior contracts, operator-visible L3 surface, production validation ladder, and certification pipeline for `EMERGENCY_FAILOVER_AUTONOMY`; existing Admin UI owner renders the L3 operator surface inside the current autoswitch plan view. Next stage is `L3_PRODUCTION_CERTIFICATION`. No production runtime apply, automation enablement, authority expansion, new owner, new planner, new runtime path, roadmap, truth source, or user movement occurred.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
+
+## Current Program State Behavior Contract
+
+Status: `CANONICAL`
+
+Current Program State is the volatile consumer of Production Maturity outputs.
+
+It stores current operational reality only.
+It does not own Product Evolution Framework logic, Production Maturity scoring, certification rules, authority, automation, Runtime behavior, routing, or implementation planning.
+
+Current Program State must consume:
+
+| Input | Required source |
+| --- | --- |
+| Current Production Maturity | `docs/reference/V7_PRODUCTION_MATURITY_MODEL.md`. |
+| Accepted Maturity Advancement | Production Maturity decision after Engineering Report and certification. |
+| Blocked Result | Production Maturity decision, OMP decision, or certification owner result. |
+| Current Active Target | Existing OMP / Current Program State target field. |
+| Current Transition | OMP transition contract and current capability state. |
+| Current Capability State | Existing capability owner, OMP, and Production Maturity. |
+| Behavior Contract | Production Maturity decision and OMP behavior decision. |
+
+Current Program State must update only when volatile operational state changes:
+
+- current product reality;
+- current active target;
+- current transition state;
+- current blockers;
+- current readiness context;
+- current maturity state;
+- current stop reason;
+- current safe next action.
+
+Current Program State must produce:
+
+| Output | Consumer |
+| --- | --- |
+| Current Product Reality | Product Observation and Product Evolution Field Validation. |
+| Current Active Target | OMP, Product Observation, Dashboard read models. |
+| Current Transition State | OMP, Dashboard read models, Engineering Reports. |
+| Current Blockers | OMP, Product Observation, Production Maturity, Dashboard read models. |
+| Current Readiness Context | OMP, Product Observation, Engineering Reports. |
+
+Current Program State must not:
+
+- duplicate Product Evolution Framework logic;
+- recalculate Production Maturity independently;
+- accept maturity advancement without Production Maturity owner decision;
+- approve Runtime apply;
+- expand authority;
+- enable automation;
+- move users;
+- change routing;
+- create backlog, roadmap, owner, planner, campaign, or truth source.
+
+Behavior propagation path:
+
+```text
+Engineering Report
+  -> Production Maturity decision
+  -> Current Program State volatile update or explicit no-change
+  -> Current Product Reality
+  -> Product Observation
+  -> Product Evolution Framework
+```
+
+If Production Maturity produces `NO_CHANGE`, `BLOCK`, or `INVALID_EVIDENCE`, Current Program State must preserve the blocker/no-change reason only when it changes volatile current state or current operator-facing context.
 
 ## 1. Current State Summary
 
 | Field | Current Value |
 | --- | --- |
-| Current phase | `PRODUCT_EXECUTION` |
-| Architecture phase | `CLOSED_BY_DEFAULT_GRADUATED` |
-| Current bottleneck | `ACTIONABLE_BACKLOG_COMPLETE` |
+| Current phase | `L3_IMPLEMENTATION_COMPLETE` |
+| Architecture phase | `COMPLETE` |
+| Current stage | `L3_IMPLEMENTATION_PHASE3` |
+| Next stage | `L3_PRODUCTION_CERTIFICATION` |
+| autonomous_execution_program_status | `CANONICAL_INTEGRATED` |
+| autonomous_runtime_model_status | `CANONICAL_INTEGRATED` |
+| autonomy_architecture_status | `AUTONOMY_ARCHITECTURE_COMPLETE` |
+| canonical_integration_status | `COMPLETE` |
+| l3_capability_specification_status | `LOCKED` |
+| l3_phase1_status | `COMPLETE` |
+| l3_phase2_status | `COMPLETE` |
+| l3_phase3_status | `COMPLETE` |
+| l3_implementation_status | `COMPLETE` |
+| runtime_operating_system_status | `STABLE_CANONICAL` |
+| Current bottleneck | `NONE_L3_IMPLEMENTATION_COMPLETE` |
 | Current highest leverage implementation | `IMPLEMENTATION_COMPLETE` |
-| Current highest leverage action | stop actionable implementation backlog execution; report status or wait for explicit operator authority / explicit new product scope. |
+| Current highest leverage action | continue through OMP to `L3_PRODUCTION_CERTIFICATION`. |
 | Current authority class | `NONE` |
 | authority_class | `NONE` |
 | authority_reason | A4 bounded collection authority is closed; no active production operation is approved. |
 | authority_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch` remain owners when a future governed action is explicitly approved. |
-| required_action | No actionable implementation backlog item remains. Do not begin Runtime apply, automation, authority expansion, blast-radius expansion, threshold/formula mutation, new roadmap, new owner, planner replacement, synthetic evidence, rollback execution, or unapproved user movement without explicit operator authority and a new OMP-admitted scope. |
+| required_action | Continue to `L3_PRODUCTION_CERTIFICATION` through OMP; do not begin production Runtime apply, automation, authority expansion, blast-radius expansion, threshold/formula mutation, new roadmap, new owner, planner replacement, synthetic evidence, rollback execution, or unapproved user movement outside the L3 production certification ladder. |
 | non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
 | optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
 | Current reality limit | `NONE_FOR_A4`: A4 production evidence and closure validation are complete. |
-| Current safe next action | `IMPLEMENTATION_COMPLETE`; report current status or wait for explicit operator authority / explicit new OMP-admitted scope. |
-| Current stop reason | `ACTIONABLE_BACKLOG_COMPLETE`; no runtime apply, automation, authority expansion, blast-radius expansion, threshold/formula mutation, rollback execution, new roadmap, new owner, planner replacement, synthetic evidence, or unapproved movement occurred. |
+| Current safe next action | `L3_PRODUCTION_CERTIFICATION` |
+| Current stop reason | `L3_IMPLEMENTATION_COMPLETE`; production behavior contracts, operator surface, Admin UI visibility, production validation ladder, certification pipeline, execution eligibility, existing apply path, verification, rollback, rollback failure, verification timeout, target-lost STOP_SAFE, and partial-success classification are materialized through existing owners; no production runtime apply, automation, authority expansion, blast-radius expansion, threshold/formula mutation, rollback execution, new roadmap, new owner, planner replacement, synthetic evidence, or user movement occurred. |
 | root_cause | Resolved: A4 collection and closure validation previously over-counted non-outcome history as missing closure evidence. Existing read-only closure owner now ignores non-closure audit/history records. |
 | responsible_owner | Existing governed transaction feedback owner `tools/v7-governed-canary-dry-run-cycle`; existing feedback classifier owner `admin_core/operator_execution_feedback.py`; existing A4 evidence/read-model owner `admin_core.autonomy_trust_acceleration` and candidate outcome row generation owners. |
 | implementation_class | `OWNER_EXTENSION_COMPLETED` |
-| next_engineering_task | `IMPLEMENTATION_COMPLETE` |
-| expected_completion_evidence | All actionable implementation backlog items are complete. C7 produced `pool_health_capacity_blast_bounds`; optional Tier D items remain future-scope only. |
+| next_engineering_task | `L3_PRODUCTION_CERTIFICATION` |
+| expected_completion_evidence | L3 Phase 3 focused tests and autoswitch policy test suite pass; next evidence is production validation/certification through existing owners only, without automation enablement or authority expansion unless explicitly approved. |
 | rt_phase1_status | `FULLY_COMPLETE`; RT1-RT8 are canonicalized through Runtime Model and consumed by OMP/report lifecycle. |
 | decision_lifecycle_foundation_status | `CANONICALIZED`; DL1-DL7 are consolidated in `docs/reference/V7_RUNTIME_MODEL.md` and consumed by OMP/report lifecycle. |
 | architectural_methodology_status | `COMPLETE`; future capability design can proceed through existing architectural laws without creating a new foundational principle. |

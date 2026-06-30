@@ -38,6 +38,25 @@ Safety answers:
 May V7 execute this exact action right now?
 ```
 
+## 2.1. Universal Engineering Law Hierarchy
+
+All V7 engineering work follows this order:
+
+1. Reality First.
+2. Behavior Propagation Law.
+3. State Transition Law.
+4. Continue OMP Law.
+
+Reality First means current facts, owners, evidence, and limits must be discovered before design, implementation, certification, or reporting.
+
+Behavior Propagation Law means every component must change the behavior of another existing component before it can be considered complete.
+
+State Transition Law means every verified behavior must either change system state or fully explain why system state cannot yet change.
+
+Continue OMP Law means that when state cannot change, OMP must identify the smallest executable next action through existing owners, existing backlog, existing capability, existing Runtime, existing certification, and existing authority model.
+
+No engineering process may terminate at diagnosis, no-change, dashboard visibility, report, recommendation, or score without verified state transition or transition explanation.
+
 ## 3. Why This Exists
 
 Current V7 can reach a deadlock:

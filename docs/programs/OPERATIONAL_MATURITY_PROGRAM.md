@@ -112,11 +112,11 @@ Step responsibilities:
 | Engineering Context Resolver | Classify task, resolve minimum context, load only required owners. | `docs/reference/V7_CONTEXT_RESOLVER.md` |
 | Knowledge Consumption | Read Product Specification, Canonical Reference, SYSTEM_MAP, Audit Knowledge State, Current Program State, OMP, current Backlog item, and Runtime Model only if runtime relevant. | Knowledge Plane / OMP |
 | Re-open Evaluation | Determine whether knowledge is already verified, still current, stale, confidence-limited, or re-opened by trigger. | Knowledge Plane / Canonical Reference / relevant owner |
-| OMP Execution | Determine highest production-leverage existing backlog item; reuse existing owners; do not redesign. | OMP |
-| Implementation | Implement only existing backlog work when implementation is the resolved action. | Implementation Backlog + existing code owner |
+| OMP Execution | Determine highest production-leverage existing backlog item; consume Product Evolution behavior inputs when meaningful; produce an OMP behavior decision; reuse existing owners; do not redesign. | OMP |
+| Implementation | Implement only existing backlog work when implementation is the resolved action and the OMP behavior decision allows execution; otherwise record blocked, deferred, rejected, or not-applicable result. | Implementation Backlog + existing code owner |
 | Verification | Run relevant tests, truth, convergence, runtime verification, documentation consistency, or knowledge consistency only when required by task class. | OMP + relevant verification owner |
 | Certification | Certify only when required by OMP capability, policy, action class, or production maturity. | OMP + certification owner |
-| Engineering Report | Create a Russian Engineering Report after every meaningful engineering action. | OMP report lifecycle |
+| Engineering Report | Create a Russian Engineering Report after every meaningful engineering action, including Product Evolution Field Validation, OMP behavior decision, new output, and Learning trigger when applicable. | OMP report lifecycle |
 | Knowledge Promotion | Extract durable knowledge from reports and update canonical owners when needed. | Canonical owner + Canonical Reference + SYSTEM_MAP |
 | Current Program State Update | Update only when execution state, bottleneck, authority class, maturity, current task, or stop condition changes. | Current Program State |
 | OMP Update | Update only when optimizer, capability, command, stop, or maturity semantics change. | OMP |
@@ -132,6 +132,269 @@ Engineering Context Resolver
 ```
 
 unless explicitly requested by the operator.
+
+### Autonomous Execution Canonical Consumption
+
+Status: `CANONICAL_INTEGRATED`
+
+OMP is the only execution program for autonomous execution.
+
+OMP explicitly consumes:
+
+| Canonical input | OMP consumption |
+| --- | --- |
+| `docs/reference/V7_AUTONOMOUS_EXECUTION_PROGRAM.md` | Defines when V7 may execute without an operator and the L3 -> L7 autonomy ladder. |
+| `docs/reference/V7_AUTONOMOUS_RUNTIME_MODEL.md` | Defines the stable Runtime Operating System, dispatcher/control-loop/state-machine contracts, Architecture Lock, Implementation Handoff, Runtime Stability Law, and implementation consumer ladder. |
+| `ARCHITECTURE_LOCKED_FOR_AUTONOMY_IMPLEMENTATION` | Blocks new Runtime, Planner, Authority, OMP, Governance, Truth Source, and roadmap creation by default. |
+| `AUTONOMY_ARCHITECTURE_COMPLETE` | Closes autonomy architecture work and routes future work through OMP implementation only. |
+| Runtime Stability Law | Requires every new autonomous capability to extend certified action classes, not Runtime OS behavior. |
+| Implementation Handoff | Sets the next sequence: Canonical Integration -> OMP Integration -> L3 Emergency Autonomous Failover Design -> L3 Implementation -> L3 Production Validation -> L3 Certification -> L4 -> L5 -> L6 -> L7. |
+
+Future capability ladder:
+
+| Level | OMP meaning |
+| --- | --- |
+| `L3` | Emergency Autonomous Failover. |
+| `L4` | Degraded Channel Autonomy. |
+| `L5` | Recovery Autonomy. |
+| `L6` | Bounded Rebalance. |
+| `L7` | Full Routing Autonomy. |
+
+OMP must not create another autonomy roadmap, Runtime model, Planner model, Authority model, execution architecture, or lifecycle.
+
+Next stage after Canonical Integration:
+
+```text
+L3_EMERGENCY_FAILOVER_DESIGN
+```
+
+### Behavior Architecture Completion Rule
+
+Status: `CANONICAL`
+
+OMP must treat architecture, implementation, certification, or capability work as complete only when the relevant behavior chain reaches a legal executable terminal consumer.
+
+Architecture diagrams, implementation code, analysis, recommendations, reports, dashboard views, read models, diagnostics, previews, advisory surfaces, or scores alone are not completion.
+
+The required propagation shape is:
+
+```text
+Producer
+  -> Output Produced
+  -> Output Available
+  -> Consumer Exists
+  -> Consumer Consumed Output
+  -> Consumption Verified
+  -> Consumer Behavior Changed
+  -> Next Output Produced
+  -> Next Consumer
+  -> Legal Terminal Consumer
+```
+
+OMP must distinguish these engineering states:
+
+- `OUTPUT_PRODUCED`;
+- `OUTPUT_AVAILABLE`;
+- `OUTPUT_CONSUMED`;
+- `CONSUMPTION_VERIFIED`;
+- `BEHAVIOR_CHANGED`;
+- `NEXT_OUTPUT_PRODUCED`.
+
+These states are not interchangeable.
+An output that exists is not automatically consumed.
+A named consumer is not proof of consumption.
+Consumption is not verified until owner state, tests, runtime behavior, certification evidence, Current Program State, or another canonical owner proves that the consumer used the output and changed behavior.
+
+Legal terminal consumers are:
+
+- Runtime Ready For Next Cycle;
+- Capability Certified;
+- Production Maturity Updated;
+- OMP Next Step Produced;
+- Capability Locked;
+- Capability Retired;
+- Terminal `STOP_SAFE`;
+- `ENGINEERING_AUTHORITY`;
+- `OPERATIONAL_AUTHORITY`;
+- `REAL_WORLD_LIMIT`.
+
+Forbidden terminal consumers are:
+
+- read model;
+- dashboard;
+- Engineering Report;
+- diagnostic output;
+- recommendation;
+- placeholder;
+- future work;
+- TODO;
+- comment;
+- preview;
+- simulation;
+- advisory surface;
+- read-only status.
+
+Forbidden terminal consumers may exist only as intermediate evidence when another executable owner consumes them and produces the next executable input.
+
+If a producer has no existing consumer, if the consumer does not consume the output, if consumption cannot be verified, if consumer behavior does not change, if the next output is not produced, if the next output is not consumed, or if the chain cannot reach a legal terminal consumer, OMP must classify the work as `PARTIAL`, `BLOCKED`, `BROKEN`, deferred, or not applicable with reason. OMP must never classify the work as `COMPLETE`.
+
+### Behavior Enforcement Framework
+
+Status: `CANONICAL`
+
+Behavior Enforcement turns documented Behavior Contracts into verifiable engineering gates.
+
+OMP must not assume that a consumer performed the required behavior.
+OMP must verify behavior propagation before declaring a meaningful step complete.
+
+Behavior Chain Status values:
+
+| Status | Meaning |
+| --- | --- |
+| `COMPLETE` | Producer output exists, output is available, intended consumer exists, consumer consumed it, consumption is verified, consumer behavior changed, expected next output exists, downstream consumer exists, legal terminal consumer is reached, and verification evidence exists. |
+| `PARTIAL` | Some required behavior occurred, but at least one expected output, downstream consumer, or evidence item remains incomplete. |
+| `BLOCKED` | A stop gate, owner, certification, authority, safety, evidence, or state condition prevents behavior propagation. |
+| `BROKEN` | Producer output, consumer, behavior change, output, or downstream consumer is missing or contradictory. |
+| `UNKNOWN` | Verification evidence is insufficient to classify the chain. |
+
+Every Behavior Contract must define:
+
+| Field | Required meaning |
+| --- | --- |
+| Trigger | Event, report, OMP decision, certification result, state change, or operator action that starts verification. |
+| Expected Consumer | Existing owner expected to consume the producer output. |
+| Output Produced | Output the producer emitted, or `NOT_APPLICABLE_WITH_REASON`. |
+| Output Available | Proof that the output is reachable by the consumer, or `NOT_APPLICABLE_WITH_REASON`. |
+| Consumer Consumed Output | Proof that the consumer read, accepted, loaded, invoked, stored, certified, or otherwise used the output. |
+| Consumption Verified | Verification method proving the consumed output changed execution, state, certification, maturity, OMP step, or legal terminal status. |
+| Expected Behavior | Required consumer behavior change. |
+| Expected Output | Next output the consumer must produce after verified consumption. |
+| Terminal Consumer | Legal terminal consumer reached by the chain, or the next executable owner that must consume the output. |
+| Verification Method | Report field, owner state, certification result, CPS field, dashboard source, test, truth/convergence, or explicit `NOT_APPLICABLE_WITH_REASON`. |
+| Failure Condition | `OUTPUT_NOT_CONSUMED`, `CONSUMPTION_NOT_VERIFIED`, `NO_BEHAVIOR_CHANGE`, `NEXT_OUTPUT_NOT_PRODUCED`, `ORPHAN_OUTPUT`, `ORPHAN_CONSUMER`, missing output, missing evidence, missing legal terminal consumer, contradiction, synthetic evidence, duplicate owner, or forbidden authority/runtime/automation path. |
+| Recovery Path | Existing owner re-run, Engineering Report correction, canonical update, CPS update, OMP `DEFER`, OMP `BLOCK`, owner mapping, or explicit `NOT_APPLICABLE_WITH_REASON`. |
+
+Major Behavior Enforcement Gates:
+
+| Producer -> Consumer | Verification gate | Required evidence | Failure output | Blocked output | Recovery output |
+| --- | --- | --- | --- | --- | --- |
+| Framework -> OMP | Framework outputs referenced and OMP behavior decision recorded. | Product Observation / Product Value / target / gap / evidence fields or `UNKNOWN`; OMP decision. | `BROKEN_FRAMEWORK_TO_OMP` | `BLOCKED_BY_OWNER_OR_EVIDENCE` | OMP Field Validation correction or owner mapping. |
+| OMP -> Execution | Execution decision allows existing-owner work or explicit non-execution result exists. | Execution Decision, Blocked Result, Deferred Result, Rejected Result, or `NOT_APPLICABLE`. | `BROKEN_OMP_TO_EXECUTION` | `BLOCKED_BY_STOP_GATE` | Re-run OMP decision or record blocked/deferred result. |
+| Execution -> Engineering Report | Meaningful action produced report evidence. | Engineering Report with action, evidence, safety, alternatives, and Product Evolution fields. | `BROKEN_EXECUTION_TO_REPORT` | `BLOCKED_BY_MISSING_REPORT_EVIDENCE` | Create or correct Engineering Report. |
+| Engineering Report -> Production Maturity | Maturity-affecting work has Production Maturity Decision or `NOT_APPLICABLE`. | `ACCEPT`, `PARTIAL_ACCEPT`, `BLOCK`, `NO_CHANGE`, `INVALID_EVIDENCE`, or `NOT_APPLICABLE`. | `BROKEN_REPORT_TO_MATURITY` | `BLOCKED_BY_CERTIFICATION_OR_EVIDENCE` | Production Maturity review or report correction. |
+| Production Maturity -> CPS | Volatile state changed or explicit no-change recorded. | CPS impact field; current maturity/target/blocker state or no volatile change. | `BROKEN_MATURITY_TO_CPS` | `BLOCKED_BY_VOLATILE_STATE_GAP` | CPS update or explicit no-change reason. |
+| CPS -> Product Observation / Framework | Current Product Reality is available or marked `UNKNOWN` / `NOT_APPLICABLE`. | CPS current reality, target, transition, blockers, readiness context. | `BROKEN_CPS_TO_FRAMEWORK` | `BLOCKED_BY_CURRENT_STATE_GAP` | CPS correction or Framework Field Validation `UNKNOWN`. |
+| Engineering Report / Learning -> Engineering Intelligence | Learning, prediction-vs-reality, confidence, or recommendation impact is recorded. | Engineering Intelligence learning impact fields. | `BROKEN_LEARNING_TO_EI` | `BLOCKED_BY_OUTCOME_OR_PREDICTION_GAP` | Learning owner review or report correction. |
+| Engineering Intelligence -> Dashboard | EI outputs are visible only as read-only advisory context or marked `UNKNOWN` / `NOT_APPLICABLE`. | Dashboard visibility impact and source owner. | `BROKEN_EI_TO_DASHBOARD` | `BLOCKED_BY_VISIBILITY_OWNER_GAP` | Dashboard source mapping correction. |
+| Dashboard -> Operator -> OMP | Operator-visible state can be traced to canonical owners and any operator question returns through ECR/OMP. | Dashboard authority check, source owner, operator/engineering observation if any. | `BROKEN_DASHBOARD_TO_OMP` | `BLOCKED_BY_NON_CANONICAL_VISIBILITY` | Remove display, fix owner mapping, or route observation through ECR. |
+
+After every meaningful OMP step, OMP must verify:
+
+- output was produced;
+- output is available to the named consumer;
+- the named consumer exists;
+- the named consumer consumed the output;
+- consumption was verified;
+- consumer behavior changed;
+- next output was produced;
+- downstream consumer exists;
+- terminal consumer is verified;
+- verification evidence exists;
+- Behavior Chain Status is recorded.
+
+If verification fails, OMP must not declare the step complete.
+It must record `PARTIAL`, `BLOCKED`, `BROKEN`, or `UNKNOWN` with failure condition and recovery path.
+
+### State Transition Law
+
+Status: `CANONICAL`
+
+Every meaningful engineering process must end in exactly one of two states:
+
+```text
+State Transition Completed
+```
+
+or
+
+```text
+State Transition Explained
+```
+
+No third state is allowed.
+
+A verified process is not complete unless:
+
+- its behavior is verified; and
+- its resulting system state is verified; or
+- its inability to change system state is fully explained through existing owners, existing prerequisites, and the next executable OMP action.
+
+State transition verification must distinguish:
+
+- `STATE_PRODUCED`;
+- `STATE_AVAILABLE`;
+- `STATE_CONSUMED`;
+- `STATE_CONSUMPTION_VERIFIED`;
+- `NEW_STATE_PRODUCED`.
+
+The required state transition shape is:
+
+```text
+State Produced
+  -> State Available
+  -> State Consumed
+  -> Consumption Verified
+  -> New State Produced
+```
+
+A state that was produced or displayed but not consumed by the next owner is not a completed state transition.
+
+Every meaningful OMP step must answer:
+
+| Question | Allowed values |
+| --- | --- |
+| Behavior Verified? | `YES`, `NO`, `PARTIAL`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| State Changed? | `YES`, `NO`, `PARTIAL`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+
+If `State Changed?` is `NO`, `PARTIAL`, or `UNKNOWN`, OMP must not stop at diagnosis.
+OMP must produce Transition Analysis.
+
+Transition Analysis must include:
+
+| Field | Required value |
+| --- | --- |
+| Transition Blocker | Exact blocker, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Current State | Current owner-backed state. |
+| Required State | State required for transition completion. |
+| Missing Preconditions | Prerequisites that must become `TRUE`. |
+| Responsible Owner | Existing owner responsible for the missing prerequisite. |
+| Required Capability | Existing capability required for transition. |
+| Required Evidence | Evidence required by existing owner/certification path. |
+| Required Certification | Certification required before transition. |
+| Reality Limit | Real-world limit preventing transition, or `NONE`. |
+| Authority Limit | Authority boundary preventing transition, or `NONE`. |
+| Engineering Limit | Engineering/capability limit preventing transition, or `NONE`. |
+| Smallest Existing Next Action | Smallest executable next action through existing owner/backlog/capability/runtime/certification/authority model. |
+| Expected State Transition | Next state expected if the action succeeds. |
+
+Transition Preconditions Rule:
+
+The system must identify which prerequisite must become `TRUE` before the state transition becomes possible.
+It must not stop at symptoms.
+
+Continue OMP Integration:
+
+OMP must never terminate with diagnosis only.
+When state cannot change, OMP must generate `Smallest Existing Next Action` using only:
+
+- existing owners;
+- existing backlog;
+- existing capability;
+- existing Runtime;
+- existing certification;
+- existing authority model.
+
+If no executable next action exists inside current authority, OMP must record the smallest blocked next action and the exact authority, evidence, certification, or owner prerequisite that must become true.
 
 Automatic stop conditions:
 
@@ -1211,6 +1474,89 @@ Every future OMP task must pass these reviews before implementation is considere
 
 If any review cannot map to an existing owner, OMP must stop and run owner mapping before implementation.
 
+Product Evolution Field Validation:
+
+After every meaningful OMP execution step, implementation, certification, audit, or production validation, the Engineering Report must include Product Evolution Field Validation.
+
+This block validates the design-only Product Evolution Framework as an observational lens.
+
+It does not canonicalize the framework.
+
+It does not activate Operational Campaigns, Evolution Engine, Target Management, Decision Score, Dashboard behavior, Runtime behavior, automation, authority, user movement, OMP sequence changes, Production Maturity writes, Current Program State changes, new owners, new roadmaps, or new planners.
+
+Product Evolution OMP Behavior Gate:
+
+Every meaningful OMP step is the first execution consumer of Product Evolution Framework behavior contracts.
+
+OMP must consume Framework outputs before the step can be considered behavior-complete:
+
+| Framework input | Required handling |
+| --- | --- |
+| Product Observation | Existing owner value, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Product Value | Existing Business Objective / Product Intent value, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Current Active Target | Existing Current Program State / OMP target, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Production Maturity Gap | Existing Production Maturity / target gap, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Capability Gap | Existing capability owner gap, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Evidence Gap | Existing evidence / certification owner gap, `UNKNOWN`, or `NOT_APPLICABLE`. |
+
+If an input is unavailable, OMP must write `UNKNOWN`.
+If an input does not apply to the task class, OMP must write `NOT_APPLICABLE`.
+OMP must not invent Product Value, Target, Capability Gap, Evidence Gap, owner, evidence, or maturity state.
+
+OMP must then make exactly one behavior decision:
+
+| Decision | Meaning |
+| --- | --- |
+| `ACCEPT` | Framework inputs are sufficient for the resolved existing OMP action to proceed. |
+| `REJECT` | Framework inputs would force duplicate owner, roadmap, planner, authority, Runtime logic, synthetic evidence, or non-canonical execution. |
+| `DEFER` | The action belongs to existing architecture but required owner state, evidence, validation, or timing is not ready. |
+| `BLOCK` | The action cannot proceed because a stop gate, safety boundary, authority boundary, certification boundary, or owner mapping condition blocks it. |
+| `NOT_APPLICABLE` | The task class does not produce Product Evolution behavior inputs, with explicit reason. |
+
+Every decision must include:
+
+- consumed Framework inputs;
+- decision value;
+- justification;
+- existing owner path;
+- safety / authority / Runtime boundary;
+- reason later steps remain blocked when applicable.
+
+OMP must produce the corresponding new output:
+
+| OMP output | Produced when |
+| --- | --- |
+| Execution Decision | `ACCEPT` permits implementation, audit, certification, verification, or documentation execution through existing owners. |
+| Evidence Collection Decision | `ACCEPT` or `DEFER` identifies existing evidence owner, certification owner, and missing proof without creating a campaign. |
+| Blocked Result | `BLOCK` records the gate, owner, and condition that stopped the step. |
+| Deferred Result | `DEFER` records what owner state, evidence, or validation must exist before reconsideration. |
+| Rejected Result | `REJECT` records which forbidden architecture expansion or duplicate responsibility was prevented. |
+| Engineering Report Requirement | Every decision requires an Engineering Report entry with Product Evolution behavior fields. |
+
+Behavior propagation path:
+
+```text
+Product Evolution Framework
+  -> OMP behavior decision
+  -> Execution / Blocked / Deferred / Rejected / Not Applicable result
+  -> Engineering Report
+  -> Learning
+  -> Product Evolution Framework as new reality
+```
+
+An OMP step is complete only when:
+
+```text
+Framework output consumed
+  -> OMP behavior changed
+  -> Execution performed or explicitly blocked / deferred / rejected / marked not applicable
+  -> Engineering Report produced
+  -> Learning updated or explicitly marked NOT_APPLICABLE
+  -> Framework receives new reality through future Product Observation / Field Validation
+```
+
+Otherwise the OMP step remains incomplete.
+
 Every future change must answer:
 
 1. Does this increase Runtime work?
@@ -1369,6 +1715,9 @@ These laws are immutable unless a future ADR explicitly supersedes them:
 | Law 10 | Every implementation must increase at least one of: Knowledge, Decision Quality, Outcome Quality, Learning Quality, Operational Maturity, or Automation. Otherwise the implementation should not exist. |
 | Law 11 | Production Scale First. Every change must remain efficient, safe, and maintainable at `10,000+` users and `100+` channels. Runtime stays thin; scale work belongs to read models, indexes, background jobs, summaries, and existing owners. |
 | Law 12 | Architecture Closed by Default. V7 architecture is complete unless a complete audit proves that existing OMP capabilities, backlog items, runtime model, product specification, canonical policies, canonical owners, SYSTEM_MAP, and Canonical Reference cannot own the finding. |
+| Law 13 | Behavior Propagation Law. Every component must change the behavior of another existing component before completion. |
+| Law 14 | State Transition Law. Every verified behavior must either change system state or explain why state cannot yet change. |
+| Law 15 | Continue OMP Law. If state cannot change, OMP must identify the smallest executable next action through existing owners. |
 
 ### Architectural Design Methodology Execution
 
@@ -2082,6 +2431,15 @@ Every capability record must contain:
 - Canonical Owner;
 - Production Value;
 - Autonomy Impact;
+- Output Produced;
+- Output Available;
+- Consumer;
+- Output Consumed;
+- Consumption Verified;
+- Behavior Changed;
+- Next Output;
+- Terminal Consumer;
+- Production Promotion State;
 - Current Status;
 - Re-open Triggers.
 
@@ -2090,7 +2448,7 @@ Capability status values:
 | Status | Meaning |
 | --- | --- |
 | `IN_PROGRESS` | The capability has unfinished Definition of Done criteria or unfinished required backlog items. |
-| `COMPLETE` | Every Definition of Done criterion has completion evidence. |
+| `COMPLETE` | Every Definition of Done criterion has completion evidence, Output Produced is `PASS`, Output Consumed is `PASS`, Consumption Verified is `PASS`, Behavior Changed is `PASS`, Next Output Produced is `PASS`, executable closure is `PASS`, consumer chain is `PASS`, Terminal Consumer Verified is `PASS`, Production Promotion is `PASS` when the capability requires production certification, and Capability Certification is accepted by the existing certification owner. |
 | `LOCKED` | The capability is complete, canonical, and future engineering is prohibited unless a re-open trigger is present. |
 
 General capability rules:
@@ -2105,6 +2463,35 @@ General capability rules:
 8. Locked capabilities may be reopened only if production evidence disproves the capability, architecture materially changes, or the operator explicitly requests reopening.
 9. Capability Progress Reports are historical engineering reports only; they must never become a second backlog or roadmap.
 10. Every capability must define how Runtime, OMP, operators, or knowledge owners behave when the capability reaches `100%`.
+11. OMP must never stop because implementation code exists or tests pass alone.
+12. OMP may stop only when Capability Closure is complete or when an allowed stop condition is reached.
+13. A capability remains `OPEN`, `PARTIAL`, `BLOCKED`, or `BROKEN` if any output is read-model-only, diagnostic-only, report-only, documentation-only, placeholder-only, future-work-only, manually bridged, or orphaned.
+14. Capability Closure requires:
+
+```text
+Design
+  -> Implementation
+  -> Output Produced
+  -> Output Consumed
+  -> Consumption Verified
+  -> Runtime Consumption
+  -> Behavior Changed
+  -> Verification
+  -> Rollback or Success
+  -> Learning
+  -> Evidence
+  -> Production Maturity
+  -> OMP
+  -> Capability State
+  -> Next Runtime Cycle
+```
+
+15. If any transition in the Capability Closure chain is not applicable, the capability must record the legal terminal consumer that replaces it: Runtime Ready For Next Cycle, Capability Certified, Production Maturity Updated, OMP Next Step Produced, Capability Locked, Capability Retired, Terminal `STOP_SAFE`, `ENGINEERING_AUTHORITY`, `OPERATIONAL_AUTHORITY`, or `REAL_WORLD_LIMIT`.
+16. A capability must not reach `COMPLETE` because an implementation, read model, diagnostic, dashboard, report, or API response exists. It reaches `COMPLETE` only after the next executable owner consumed the output and changed behavior.
+17. If the old L3 pattern appears again, where implementation code, diagnostics, reports, or read models exist but Runtime, OMP, Learning, Certification, or the next capability has not verifiably consumed them, OMP must classify the capability as `PARTIAL` or `BROKEN`, never `COMPLETE`.
+18. Engineering Complete alone is never a terminal capability state when the capability is intended for production behavior. The capability must pass Production Promotion, Capability Certification, Production Maturity consumption, and Current Program State propagation, or stop at a legal terminal condition with reason.
+19. Production Candidate is an OMP lifecycle state only. It means the intended capability output has passed implementation/test evidence and is ready to be sealed into canonical source through existing safe commit, safe push, truth, safe deploy, and convergence owners. It creates no deployment mechanics, owner, lifecycle, runtime path, authority, or document.
+20. The Production Promotion Matrix in the Capability Production Contract applies to L3, L4, L5, L6, L7, and any future capability. Capability-specific documents may define validation evidence, but OMP owns the reusable promotion sequence.
 
 Capability Dashboard must be printed in OMP Status:
 
@@ -2689,7 +3076,15 @@ Engineering Report must include:
 - Capability Progress;
 - Backlog Progress;
 - Production Maturity;
+- Production Maturity Decision when maturity-affecting;
+- Current Program State impact;
+- Engineering Intelligence learning impact;
+- Dashboard visibility impact;
+- Behavior Enforcement;
+- State Transition Verification;
 - Product Evolution Review;
+- Product Evolution Field Validation;
+- Product Evolution OMP Behavior;
 - Work Placement;
 - Latency Impact;
 - Canonical Knowledge;
@@ -2740,6 +3135,129 @@ Product Evolution Review must include:
 | Runtime Cost Review | CPU, memory, IO, blocking, lock contention, execution cost, rollback cost, runtime cost, or `NONE`. |
 | Decision Freshness Review | Relevant lifecycle states and owner, or `NOT_APPLICABLE_WITH_REASON`. |
 | Safety Review | Live gates and `STOP_SAFE` triggers, or `NOT_APPLICABLE_WITH_REASON`. |
+
+Product Evolution Field Validation must include:
+
+| Question | Required answer |
+| --- | --- |
+| What Product Observation appeared? | Product observation, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| What Product Value was improved or protected? | Product Value, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Which Current Active Target did this support? | Target name, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Which Production Maturity Gap did this address? | Production Maturity Gap, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Which Capability Goal advanced? | Capability Goal, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Which Capability Gap was reduced? | Capability Gap, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Which Evidence Gap was reduced? | Evidence Gap, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Did the Product Evolution Framework correctly predict the work, evidence, risk, and expected outcome? | `YES`, `NO`, `PARTIAL`, `UNKNOWN`, or `NOT_APPLICABLE`, with short reason. |
+| What should be improved inside the framework? | Improvement, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Did any concept attempt to become roadmap, planner, authority, Runtime logic, or duplicate owner? | `YES_WITH_EXPLANATION`, `NO`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| OMP Decision | Exactly one of `ACCEPT`, `REJECT`, `DEFER`, `BLOCK`, or `NOT_APPLICABLE`, with short justification. |
+| Behavior Changed | How OMP behavior changed because it consumed the Framework output, or `NOT_APPLICABLE_WITH_REASON`. |
+| New Output Produced | Execution Decision, Evidence Collection Decision, Blocked Result, Deferred Result, Rejected Result, Engineering Report Requirement, or `NOT_APPLICABLE_WITH_REASON`. |
+| Production Effect | `DIRECT`, `INDIRECT`, `SUPPORTS`, `NO_CHANGE_WITH_REASON`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Learning Trigger | Learning update, framework improvement signal, `NONE_WITH_REASON`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+
+Rules:
+
+- if the answer is unknown, write `UNKNOWN`;
+- if not applicable, write `NOT_APPLICABLE`;
+- do not invent Product Value, Target, Gap, or Evidence;
+- Product Evolution OMP Behavior is part of this same block and must not duplicate the Field Validation section;
+- OMP Decision must be exactly one of `ACCEPT`, `REJECT`, `DEFER`, `BLOCK`, or `NOT_APPLICABLE`;
+- New Output Produced must identify the downstream consumer for execution, evidence, blocked/deferred/rejected result, Engineering Report, or Learning;
+- Field Validation is observational and advisory only;
+- Field Validation cannot update Production Maturity, approve authority, approve Runtime apply, create campaigns, change OMP sequence, change Current Program State, become roadmap, become planner, or become owner.
+
+Production Maturity Decision must include when the work is maturity-affecting:
+
+| Field | Required value |
+| --- | --- |
+| Capability Advancement | Existing owner result, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Certification Result | Existing certification owner result, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Evidence Economy | Certification-grade, duplicate, stale, invalid, synthetic, insufficient, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Production Maturity Decision | Exactly one of `ACCEPT`, `PARTIAL_ACCEPT`, `BLOCK`, `NO_CHANGE`, `INVALID_EVIDENCE`, or `NOT_APPLICABLE`. |
+| Current Maturity State | Current Production Maturity owner value, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Current Target Status | Existing CPS / OMP target status, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Current Blockers | Blocker list, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| CPS Impact | Volatile state updated, no volatile state change, `UNKNOWN`, or `NOT_APPLICABLE`. |
+
+Current Program State impact must record whether Production Maturity produced a state change, blocked result, no-change result, target-status change, blocker change, readiness-context change, or no volatile change.
+
+Engineering Intelligence learning impact must include when recommendation, prediction, confidence, evidence, or learning changed:
+
+| Field | Required value |
+| --- | --- |
+| Learning consumed | Learning record, Engineering Report, outcome, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Prediction vs Reality | Match, mismatch, partial, drift, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Confidence update | Increased, decreased, unchanged, blocked, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Recommendation adjustment | Improved, degraded, drifted, retired, unchanged, blocked-by-evidence, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Evidence quality feedback | Certification-grade, duplicate, stale, invalid, insufficient, synthetic-forbidden, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Framework improvement signal | Improvement, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+
+Dashboard visibility impact must include when current state, blockers, confidence, target, recommendation, or learning visibility changed:
+
+| Field | Required value |
+| --- | --- |
+| Operator Visibility | Changed, unchanged, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Engineering Visibility | Changed, unchanged, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Blocker Visibility | Changed, unchanged, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Confidence Visibility | Changed, unchanged, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Target Visibility | Changed, unchanged, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Learning Visibility | Changed, unchanged, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Dashboard authority check | `READ_ONLY_CONFIRMED`, `VIOLATION_WITH_EXPLANATION`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+
+Behavior Enforcement must include:
+
+| Field | Required value |
+| --- | --- |
+| Behavior Chain Verified | `YES`, `NO`, `PARTIAL`, `UNKNOWN`, or `NOT_APPLICABLE`, with reason. |
+| Behavior Chain Status | `COMPLETE`, `PARTIAL`, `BLOCKED`, `BROKEN`, or `UNKNOWN`. |
+| Producer | Existing producer owner/component, or `NOT_APPLICABLE`. |
+| Output Produced | Produced output, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Output Available | `YES`, `NO`, `PARTIAL`, `UNKNOWN`, or `NOT_APPLICABLE`, with source. |
+| Consumer | Existing consumer owner/component, `MISSING_WITH_REASON`, or `NOT_APPLICABLE`. |
+| Consumer Consumed Output | `YES`, `NO`, `PARTIAL`, `UNKNOWN`, or `NOT_APPLICABLE`, with consuming owner and evidence. |
+| Consumption Verified | `PASS`, `FAIL`, `PARTIAL`, `BLOCKED`, `UNKNOWN`, or `NOT_APPLICABLE`, with verification method. |
+| Behavior Changed | `YES`, `NO`, `PARTIAL`, `UNKNOWN`, or `NOT_APPLICABLE`, with changed behavior. |
+| Expected Behavior Change | Required consumer behavior, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Expected Output | Required output, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Output Consumed | `YES`, `NO`, `PARTIAL`, `UNKNOWN`, or `NOT_APPLICABLE`, with consuming owner. |
+| Next Output Produced | Produced next output, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Terminal Consumer | Runtime Ready For Next Cycle, Capability Certified, Production Maturity Updated, OMP Next Step Produced, Capability Locked, Capability Retired, Terminal `STOP_SAFE`, `ENGINEERING_AUTHORITY`, `OPERATIONAL_AUTHORITY`, `REAL_WORLD_LIMIT`, or `NOT_APPLICABLE_WITH_REASON`. |
+| Terminal Consumer Verified | `PASS`, `FAIL`, `PARTIAL`, `BLOCKED`, `UNKNOWN`, or `NOT_APPLICABLE`, with evidence. |
+| Verification Method | Report field, owner state, certification result, CPS field, dashboard source, test, truth/convergence, or `NOT_APPLICABLE_WITH_REASON`. |
+| Verification Result | `PASS`, `FAIL`, `PARTIAL`, `BLOCKED`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Broken Contracts | Contract id/list, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Missing Consumer | Consumer, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Missing Output | Output, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Orphan Output | Output without executable consumer, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Forbidden Completion Claim | Read model, dashboard, Engineering Report, diagnostic output, recommendation, placeholder, future work, TODO, comment, preview, simulation, advisory surface, read-only status, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Failure Condition | `OUTPUT_NOT_CONSUMED`, `CONSUMPTION_NOT_VERIFIED`, `NO_BEHAVIOR_CHANGE`, `NEXT_OUTPUT_NOT_PRODUCED`, `ORPHAN_OUTPUT`, `ORPHAN_CONSUMER`, missing output, missing evidence, missing legal terminal consumer, contradiction, forbidden authority/runtime/automation path, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Recovery Path | Existing owner re-run, Engineering Report correction, canonical update, CPS update, OMP `DEFER`, OMP `BLOCK`, owner mapping, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+
+State Transition Verification must include:
+
+| Field | Required value |
+| --- | --- |
+| Behavior Verified | `YES`, `NO`, `PARTIAL`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| State Produced | `YES`, `NO`, `PARTIAL`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| State Consumed | `YES`, `NO`, `PARTIAL`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| State Consumption Verified | `PASS`, `FAIL`, `PARTIAL`, `BLOCKED`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| New State Produced | `YES`, `NO`, `PARTIAL`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| State Changed | `YES`, `NO`, `PARTIAL`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Transition Result | `STATE_TRANSITION_COMPLETED`, `STATE_TRANSITION_EXPLAINED`, or `NOT_APPLICABLE_WITH_REASON`. |
+| Transition Blocker | Exact blocker, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Current State | Owner-backed current state, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Required State | Required target state, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Missing Preconditions | Preconditions that must become `TRUE`, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Responsible Owner | Existing owner, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Required Capability | Existing capability, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Required Evidence | Required evidence, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Required Certification | Required certification, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Reality Limit | Reality limit, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Authority Limit | Authority boundary, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Engineering Limit | Engineering/capability limit, `NONE`, `UNKNOWN`, or `NOT_APPLICABLE`. |
+| Next OMP Action | Smallest existing next action, smallest blocked next action with prerequisite, or `NOT_APPLICABLE_WITH_REASON`. |
+| Expected State Transition | Expected next state if next action succeeds, `UNKNOWN`, or `NOT_APPLICABLE`. |
 
 Architectural Methodology Review must include:
 
@@ -4143,11 +4661,125 @@ Capability production rule:
 1. Every produced capability must have exactly one stage producer.
 2. Every produced capability must have one canonical owner.
 3. Every produced capability must have one or more named consumers.
-4. A consumer may use only the evidence and capability named by the producing stage.
-5. Producing a capability unlocks only the named next capability and never unlocks later capabilities by implication.
-6. Blocked capabilities remain blocked until their own producing stage emits accepted evidence.
-7. If a capability has no owner, no consumer, duplicate producers, or circular production, OMP must stop before continuing.
-8. Engineering reports may record evidence, but the Capability Production Graph, producer/consumer relationships, and unlocked/blocked rules must live in OMP/SYSTEM_MAP/Canonical Reference/CPS.
+4. A named consumer is not enough; OMP must verify that the consumer actually consumed the produced capability.
+5. A consumer may use only the evidence and capability named by the producing stage.
+6. Producing a capability unlocks only the named next capability and never unlocks later capabilities by implication.
+7. Blocked capabilities remain blocked until their own producing stage emits accepted evidence.
+8. If a capability has no owner, no consumer, duplicate producers, or circular production, OMP must stop before continuing.
+9. Engineering reports may record evidence, but the Capability Production Graph, producer/consumer relationships, and unlocked/blocked rules must live in OMP/SYSTEM_MAP/Canonical Reference/CPS.
+10. Every producer must have a consumer.
+11. Every consumer must consume the produced output, verify consumption, change behavior, and produce the next executable input.
+12. Every capability must terminate in a closed executable loop or an allowed stop condition.
+13. A produced capability is not `COMPLETE` if its last output is a read model, dashboard, Engineering Report, diagnostic output, recommendation, placeholder, future work, TODO, comment, preview, simulation, advisory surface, or read-only status without another executable consumer.
+14. Legal terminal consumers are limited to Runtime Ready For Next Cycle, Capability Certified, Production Maturity Updated, OMP Next Step Produced, Capability Locked, Capability Retired, Terminal `STOP_SAFE`, `ENGINEERING_AUTHORITY`, `OPERATIONAL_AUTHORITY`, and `REAL_WORLD_LIMIT`.
+15. If an output has no executable consumer, OMP must mark the capability `PARTIAL`, `BLOCKED`, or `BROKEN`; it must not mark it `COMPLETE`.
+16. If an output has a named consumer but consumption is not verified, OMP must emit `CONSUMPTION_NOT_VERIFIED` and keep the capability open.
+17. If consumption is verified but no behavior changes, OMP must emit `NO_BEHAVIOR_CHANGE` and keep the capability open.
+18. If behavior changes but the next executable output is missing, OMP must emit `NEXT_OUTPUT_NOT_PRODUCED` and keep the capability open.
+
+Capability production completion shape:
+
+```text
+Produced Capability
+  -> Consumed Capability
+  -> Consumption Verified
+  -> Capability Behavior Changed
+  -> Next Capability Produced
+  -> Next Consumer
+  -> Legal Terminal Consumer
+```
+
+Production promotion shape:
+
+```text
+Engineering Complete
+  -> Production Candidate
+  -> Canonical Source
+  -> Safe Deploy
+  -> Production Runtime
+  -> Truth
+  -> Convergence
+  -> Runtime Validation
+  -> Production Validation
+  -> Production Certification
+  -> Capability Certified
+  -> Production Maturity
+  -> Next Capability
+```
+
+This shape is an OMP integration of existing owners. It is not a new lifecycle, deployment flow, truth source, certification flow, owner, roadmap, Runtime, Planner, or authority model.
+
+Production Candidate is the OMP state between Engineering Complete and Canonical Source. It is materialized only by existing owners:
+
+- `tools/v7-safe-commit`;
+- `tools/v7-safe-push`;
+- `tools/v7-truth-check`;
+- `tools/v7-safe-deploy`;
+- `tools/v7-convergence-status`.
+
+Production Candidate must not bypass tests, truth, convergence, safe deploy, production validation, authority, runtime validation, rollback, learning, Production Maturity, or Current Program State.
+
+Production Promotion Matrix:
+
+| Lifecycle Stage | Owner | Consumer | Evidence | Legal Exit Condition | Next Stage |
+| --- | --- | --- | --- | --- | --- |
+| Engineering Complete | Existing implementation owner + OMP + Production Maturity Model | OMP | Implementation closure, tests, verification, Engineering Report, owner evidence | `ENGINEERING_COMPLETE`, or legal stop condition | Production Candidate |
+| Production Candidate | OMP + safe commit/push owners | Canonical Source | Clean intended change set, passing tests, report evidence, deployable files known | Clean canonical candidate, or `UNSAFE_DEPLOY` / `ENGINEERING_AUTHORITY` | Canonical Source |
+| Canonical Source | `tools/v7-safe-commit`, `tools/v7-safe-push`, `tools/v7-truth-check.local_check`, `tools/v7-truth-check.github_check` | Safe Deploy / Truth | Clean workspace, canonical branch, remote branch aligned, no runtime-critical dirtiness | Source truth `PASS`, or `UNSAFE_DEPLOY` / truth blocker | Safe Deploy |
+| Safe Deploy | `tools/v7-safe-deploy`, `tools/v7_sync_lib.safe_deploy_plan` | Production Runtime | Allowlist, deploy delta, deploy manifest, runtime linkage, runtime fingerprint, rollback/backup path | Deploy `PASS`, or `UNSAFE_DEPLOY` | Production Runtime |
+| Production Runtime | Runtime Model + safe deploy runtime fingerprint owner | Truth / Convergence / Runtime Validation | Deployed files, runtime commit, runtime hashes, runtime snapshot | Runtime identity known, or `RUNTIME_FAIL` / `TRUTH_FAIL` | Truth |
+| Truth | `tools/v7-truth-check` | Convergence / OMP | Local, GitHub, runtime checks | Truth `PASS`, or `TRUTH_FAIL` | Convergence |
+| Convergence | `tools/v7-convergence-status`, runtime action guard | Runtime Validation / OMP | Local/GitHub/production alignment, deploy delta, runtime action guard | Convergence `PASS`, or `CONVERGENCE_FAIL` | Runtime Validation |
+| Runtime Validation | Runtime Model + existing runtime owners | Production Validation | Executable chain evidence, no orphan outputs, verified consumption, live runtime readiness | Runtime validation `PASS`, or `RUNTIME_FAIL` | Production Validation |
+| Production Validation | Capability owner + OMP + production validation owners | Production Certification | Real production evidence, behavior contracts, verification, rollback/no-rollback, learning, report | Production validation `PASS`, or `PRODUCTION_VALIDATION_FAIL` / `REAL_WORLD_LIMIT` / authority stop | Production Certification |
+| Production Certification | OMP + capability certification owner + Production Maturity Model | Capability State / CPS | Tests, deploy, truth, convergence, runtime validation, production validation, execution closure, verified consumption | Certification accepted, or certification blocker | Capability Certified |
+| Capability Certified | OMP legal terminal consumer | Production Maturity / CPS / next capability | Certified capability state and certification report | `Capability Certified`, or legal stop condition | Production Maturity |
+| Production Maturity | Production Maturity Model | Current Program State / OMP | `ACCEPT`, `PARTIAL_ACCEPT`, `BLOCK`, `NO_CHANGE`, or `INVALID_EVIDENCE` decision | Maturity decision recorded | Next Capability |
+| Next Capability | OMP Capability Production Contract + CPS | Existing next capability owner | Updated capability state, next OMP step, remaining blockers | Next capability selected, locked, retired, or legal stop condition | Continue OMP |
+
+Production promotion completion rule:
+
+```text
+Capability COMPLETE =
+  Engineering Complete
+  AND Production Promotion PASS when production behavior is in scope
+  AND Capability Certified
+  AND Production Maturity consumed the certification
+  AND Current Program State recorded the resulting state
+  AND the next capability or legal terminal consumer is known.
+```
+
+If a capability is documentation-only, read-only, research-only, design-only, or explicitly not intended for production behavior, OMP must record the legal terminal consumer that replaces Production Promotion. Otherwise Production Promotion is mandatory.
+
+OMP architecture freeze audit:
+
+| Responsibility | OMP ownership after integration | Verdict |
+| --- | --- | --- |
+| Capability Engineering | Capability Management + Implementation Discipline + existing owners. | `OWNED` |
+| Capability Closure | Behavior Architecture Completion Rule + Capability Management. | `OWNED` |
+| Verified Consumption | Behavior Enforcement Framework + Verified Consumption states. | `OWNED` |
+| Execution Closure | Capability Closure chain + legal terminal consumers. | `OWNED` |
+| Production Promotion | Production Promotion Matrix in this Capability Production Contract. | `OWNED` |
+| Capability Certification | OMP + capability certification owner + Production Maturity Model. | `OWNED` |
+| Capability Progression | Capability Production Contract + Current Program State + next capability selection. | `OWNED` |
+
+Architecture freeze recommendation:
+
+```text
+OMP_ARCHITECTURE_FROZEN
+```
+
+OMP is the canonical execution framework for all future V7 capabilities.
+Future changes should occur only when a real implementation reveals an architectural gap that cannot be solved by existing OMP structures, or when the operator explicitly requests architecture review.
+
+Capability production failure reasons:
+
+- `OUTPUT_NOT_CONSUMED`;
+- `CONSUMPTION_NOT_VERIFIED`;
+- `NO_BEHAVIOR_CHANGE`;
+- `NEXT_OUTPUT_NOT_PRODUCED`;
+- `ORPHAN_OUTPUT`;
+- `ORPHAN_CONSUMER`.
 
 Capability production graph:
 
@@ -4436,6 +5068,66 @@ Dashboard rules:
 5. Dashboard may show future-ready placeholders only as `RESERVED_READ_MODEL_ONLY`; placeholders cannot affect OMP priority or authority.
 6. Engineering reports may record dashboard audit evidence, but the dashboard model must live in OMP and the current snapshot must live in Current Program State.
 7. Deleting the engineering report must not remove any important dashboard structure, ownership rule, current state field, or durable conclusion.
+
+Product Evolution Dashboard Behavior Contract:
+
+Dashboard is the read-only visibility consumer in the Product Evolution behavior loop.
+
+Dashboard must consume:
+
+| Input | Required source |
+| --- | --- |
+| Current Program State | Current step, target, transition, blockers, readiness context, and dashboard snapshot. |
+| Production Maturity | Current maturity, target, remaining score, milestone, blockers, and maturity decision when present. |
+| Framework outputs | Product Observation, Product Value, Target, Capability Gap, Evidence Gap, and Field Validation results when present in Engineering Reports. |
+| Engineering Intelligence outputs | Recommendation Confidence, Prediction Quality, Recommendation Adjustment, Evidence Quality Feedback, Reasoning Improvement, and Framework Improvement Signal. |
+| Engineering Reports | Historical evidence, latest decision, validation, blockers, and learning trigger. |
+
+Dashboard must produce:
+
+| Output | Meaning |
+| --- | --- |
+| Operator Visibility | One-minute current reality, target, stop gates, blockers, recommendation, and confidence context. |
+| Engineering Visibility | Traceable owner/evidence/recommendation/learning graph for engineers. |
+| Blocker Visibility | Current blocked capability, stop gate, owner, and reason. |
+| Confidence Visibility | Read-only recommendation confidence, prediction quality, and uncertainty context. |
+| Target Visibility | Current active target, target status, maturity gap, and next visible target context. |
+| Learning Visibility | What changed, what was learned, what prediction differed, and what future recommendation changed. |
+
+Dashboard behavior contract:
+
+- Operator may use Dashboard output to ask better questions, choose what to inspect, or request OMP continuation.
+- Engineering reviewer may use Dashboard output to find owners, blockers, evidence, confidence, and learning context.
+- OMP may consume operator questions and engineering observations as inputs to the next Engineering Context Resolver.
+- Dashboard output itself must never become approval, priority, certification, execution permission, maturity write, authority, automation, Runtime logic, routing logic, planner behavior, evidence, or truth source.
+
+Dashboard completion rule:
+
+```text
+Canonical state consumed
+  -> Operator / engineer visibility changed
+  -> Operator question or engineering observation becomes clearer
+  -> OMP decision is better informed through existing Engineering Context Resolver
+  -> Engineering Report records the decision and whether visibility helped
+```
+
+If Dashboard output cannot be traced back to canonical owners, Dashboard is incomplete for that displayed field and must show the field as `UNKNOWN`, `NOT_APPLICABLE`, or owner-mapping defect.
+
+Behavior Chain Dashboard Readiness:
+
+Dashboard must expose read-only Behavior Chain visibility when the data exists:
+
+| Display field | Required source | Rule |
+| --- | --- | --- |
+| Behavior Chain Status | Engineering Report Behavior Enforcement section + OMP. | Display `COMPLETE`, `PARTIAL`, `BLOCKED`, `BROKEN`, or `UNKNOWN`; never decide. |
+| Producer status | SYSTEM_MAP Behavior Propagation Ownership Matrix + report evidence. | Show source owner and output state. |
+| Consumer status | SYSTEM_MAP + report evidence. | Show consumed, missing, blocked, or unknown. |
+| Behavior change status | Engineering Report Behavior Enforcement section. | Show pass/fail/partial/unknown only. |
+| Output status | Engineering Report / CPS / Production Maturity / EI output field. | Show produced, missing, blocked, or not applicable. |
+| Recovery path | OMP or Engineering Report recovery field. | Show next verification path; never execute it. |
+
+Dashboard must not hide `PARTIAL`, `BLOCKED`, `BROKEN`, or `UNKNOWN` chain status behind positive progress indicators.
+Dashboard may show checkmarks only when the source Behavior Chain Status is `COMPLETE`.
 
 ### Dashboard UI Foundation Contract
 

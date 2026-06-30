@@ -1,0 +1,53 @@
+{
+  "file": "fixture_all_no_target.json",
+  "summary": {
+    "users_total": 27,
+    "egress_total": 7,
+    "healthy_egress_total": 4,
+    "candidate_moves": 11,
+    "candidate_moves_total": 11,
+    "selected_moves": 1,
+    "reconnect_rotation_candidates": 0,
+    "rebalance_candidates": 11,
+    "org_groups": [
+      "default"
+    ]
+  },
+  "operation": {
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_type": "runtime_autoswitch",
+    "operation_started_at": "2026-06-29T17:15:31.953092+00:00",
+    "planner_generation_id": "5ac20d4906a172d0bdb9f8ecd5de019cdc9e054a967439c72730910538b8dc2e",
+    "selected_move_hash": "dd37cb09bf92e82e042f428ff0eda4bfe45a03c8db443c95fbe3587349849fe7",
+    "selected_move_count": 1,
+    "runtime_snapshot_hash": "a8dd68f75f0d96bb759bbdc4090114915790318f40294a879446be48ac78a2d6",
+    "operation_id": "runtime_autoswitch_7d1a84de540d525fa249ac22",
+    "atomic_execution_envelope_id": "aee_b0b7a31fd4d8a3b43b84f689",
+    "atomic_execution_envelope_hash": "b0b7a31fd4d8a3b43b84f6895cd45fa86b8328525c03e8a1e455e959f9c820ab",
+    "terminal_state": "DRY_RUN",
+    "terminal_reason": "dry_run_selected_moves_available"
+  },
+  "affected_count": 14,
+  "affected_actions": {
+    "keep": 14
+  },
+  "affected_move_types": {
+    "none": 14
+  },
+  "affected_recommendations": {
+    "openvpn-1779388847-d2ad7c": 14
+  },
+  "affected_reasons": {
+    "('restore_barrier_failover_suppressed',)": 14
+  },
+  "affected_current_scores": {
+    "0.0": 14
+  },
+  "selected_moves_count": 1,
+  "selected_users": [
+    "10.7.0.16"
+  ],
+  "selected_targets": [
+    "vless"
+  ]
+}

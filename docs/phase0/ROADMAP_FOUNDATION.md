@@ -1,5 +1,17 @@
 # V7 Phase 0 Roadmap Foundation
 
+Status: `SUPERSEDED`
+
+Superseded by:
+
+- `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`
+- `docs/reference/V7_AUTONOMOUS_EXECUTION_PROGRAM.md`
+- `docs/reference/V7_AUTONOMOUS_RUNTIME_MODEL.md`
+- `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+
+This document is historical Phase 0 context only.
+It is not a live roadmap and must not drive OMP execution.
+
 Purpose: define what Phase 0 prepares for later phases without implementing later phases.
 
 ## Phase 0 Output
@@ -105,4 +117,3 @@ Phase 8 must not become black-box routing or uncontrolled experimentation.
 ## Do Not Advance Automatically
 
 Moving from Phase 0 to any later phase requires a separate explicit command.
-

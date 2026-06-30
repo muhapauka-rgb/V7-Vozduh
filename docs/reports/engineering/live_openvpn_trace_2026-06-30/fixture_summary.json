@@ -1,0 +1,4504 @@
+{
+  "fixture_user_no_target": {
+    "rc": 0,
+    "summary": {
+      "users_total": 27,
+      "egress_total": 7,
+      "healthy_egress_total": 4,
+      "candidate_moves": 0,
+      "candidate_moves_total": 0,
+      "selected_moves": 0,
+      "reconnect_rotation_candidates": 0,
+      "rebalance_candidates": 0,
+      "org_groups": [
+        "default"
+      ]
+    },
+    "operation": {
+      "operation_owner": "tools/v7-users-autoswitch",
+      "operation_type": "runtime_autoswitch",
+      "operation_started_at": "2026-06-29T17:15:31.614568+00:00",
+      "planner_generation_id": "5ac20d4906a172d0bdb9f8ecd5de019cdc9e054a967439c72730910538b8dc2e",
+      "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "selected_move_count": 0,
+      "runtime_snapshot_hash": "e2cd52f59ec3c06ff1d46784188f91bae818ce9b95af870f67e5ffe0dc1c6ffa",
+      "operation_id": "runtime_autoswitch_a7416f5cae875731f3e99cb3",
+      "atomic_execution_envelope_id": "aee_b4fa226cbaa72ed161d91563",
+      "atomic_execution_envelope_hash": "b4fa226cbaa72ed161d91563277755020c21a68ab2f909998e4acd38c8399943",
+      "terminal_state": "DRY_RUN",
+      "terminal_reason": "dry_run_restore_barrier_active"
+    },
+    "target_egress": "",
+    "selected_moves": [],
+    "selected_moves_diagnostics": {
+      "source": "planner_no_selection",
+      "approved_plan_lock_present": false,
+      "approved_plan_lock_ok": false,
+      "approved_plan_lock_hash_source": "",
+      "selected_moves_before_restore_barrier": 0,
+      "selected_moves_after_gate": 0,
+      "snapshot_gate_source": "",
+      "snapshot_gate_decision": "",
+      "snapshot_gate_changed_fields": [],
+      "snapshot_gate_material_change": false,
+      "approved_plan_lock_consumed": false,
+      "planner_recomputed_after_approval": null
+    },
+    "restore_barrier": {
+      "file": "/Users/ponch/Documents/New project/docs/reports/engineering/live_openvpn_trace_2026-06-30/fixture/state/autoswitch-restore-barrier.json",
+      "enabled": true,
+      "active": true,
+      "expired": false,
+      "cleared": true,
+      "post_ttl_blocking": false,
+      "failover_quarantine": true,
+      "expires_at": "",
+      "reason": "",
+      "clearance_max_selected_moves": 0,
+      "clearance_generation_id": "fixture-generation",
+      "clearance_expires_at": "2000-01-01T00:00:00+00:00",
+      "generation_token": "fixture",
+      "apply_refresh_clearance": {
+        "generation_clearance": false,
+        "allowed_targets": [],
+        "approved_atomic_execution_envelope_id": "",
+        "approved_atomic_execution_envelope_hash": "",
+        "approved_source_bundle_hash": "",
+        "approved_snapshot_bundle_hash": "",
+        "owner": ""
+      }
+    },
+    "first_decision": {
+      "user_ip": "10.7.0.11",
+      "current_egress": "openvpn-1779388847-d2ad7c",
+      "recommended_egress": "openvpn-1779388847-d2ad7c",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "restore_barrier_failover_suppressed"
+      ],
+      "current_score": 0.0,
+      "recommended_score": 0.0,
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "route_class": "VIDEO_OPTIMIZED"
+    },
+    "candidates": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 2170.34,
+        "blocked": [],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "best_available_pool_rank_1"
+        ],
+        "users": 0,
+        "load": {
+          "users": 0,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "OK"
+        }
+      },
+      {
+        "egress": "awg3",
+        "eligible": true,
+        "score": 2112.44,
+        "blocked": [],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "best_available_pool_rank_2"
+        ],
+        "users": 1,
+        "load": {
+          "users": 1,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "OK"
+        }
+      },
+      {
+        "egress": "awg0",
+        "eligible": true,
+        "score": 2093.79,
+        "blocked": [],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "best_available_pool_rank_3"
+        ],
+        "users": 1,
+        "load": {
+          "users": 1,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "OK"
+        }
+      },
+      {
+        "egress": "wireguard-1779454504-c43409",
+        "eligible": true,
+        "score": 2060.8,
+        "blocked": [],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "users": 11,
+        "load": {
+          "users": 11,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "SOFT_FULL"
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "blocked": [
+          "telegram_required_down"
+        ],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_google_ok",
+          "service_google_auth_truth_stale",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "users": 0,
+        "load": {
+          "users": 0,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "OK"
+        }
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked"
+        ],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "users": 0,
+        "load": {
+          "users": 0,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "OK"
+        }
+      },
+      {
+        "egress": "openvpn-1779388847-d2ad7c",
+        "eligible": false,
+        "score": 0.0,
+        "blocked": [
+          "telegram_required_telegram_down_14s",
+          "planned_hard_full"
+        ],
+        "reasons": [
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded",
+          "service_instagram_failed_samples_1",
+          "service_google_transient_fail",
+          "service_google_degraded",
+          "service_google_failed_samples_1",
+          "service_google_auth_transient_fail",
+          "service_google_auth_degraded",
+          "service_google_auth_failed_samples_1",
+          "service_signal_DEGRADED_SERVICE",
+          "route_class_VIDEO_OPTIMIZED_failed_nonpersistent_service_truth",
+          "service_signal_ROUTE_FAIL_REVALIDATION_REQUIRED"
+        ],
+        "users": 14,
+        "load": {
+          "users": 14,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "HARD_FULL"
+        }
+      }
+    ]
+  },
+  "fixture_user_best_target": {
+    "rc": 0,
+    "summary": {
+      "users_total": 27,
+      "egress_total": 7,
+      "healthy_egress_total": 4,
+      "candidate_moves": 0,
+      "candidate_moves_total": 0,
+      "selected_moves": 0,
+      "reconnect_rotation_candidates": 0,
+      "rebalance_candidates": 0,
+      "org_groups": [
+        "default"
+      ]
+    },
+    "operation": {
+      "operation_owner": "tools/v7-users-autoswitch",
+      "operation_type": "runtime_autoswitch",
+      "operation_started_at": "2026-06-29T17:15:31.730382+00:00",
+      "planner_generation_id": "5ac20d4906a172d0bdb9f8ecd5de019cdc9e054a967439c72730910538b8dc2e",
+      "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "selected_move_count": 0,
+      "runtime_snapshot_hash": "e2cd52f59ec3c06ff1d46784188f91bae818ce9b95af870f67e5ffe0dc1c6ffa",
+      "operation_id": "runtime_autoswitch_1eb6dee9be194b9cfc03fb7c",
+      "atomic_execution_envelope_id": "aee_b4fa226cbaa72ed161d91563",
+      "atomic_execution_envelope_hash": "b4fa226cbaa72ed161d91563277755020c21a68ab2f909998e4acd38c8399943",
+      "terminal_state": "DRY_RUN",
+      "terminal_reason": "dry_run_restore_barrier_active"
+    },
+    "target_egress": "amneziawg-exec-20260528-10-8-1-14",
+    "selected_moves": [],
+    "selected_moves_diagnostics": {
+      "source": "planner_no_selection",
+      "approved_plan_lock_present": false,
+      "approved_plan_lock_ok": false,
+      "approved_plan_lock_hash_source": "",
+      "selected_moves_before_restore_barrier": 0,
+      "selected_moves_after_gate": 0,
+      "snapshot_gate_source": "",
+      "snapshot_gate_decision": "",
+      "snapshot_gate_changed_fields": [],
+      "snapshot_gate_material_change": false,
+      "approved_plan_lock_consumed": false,
+      "planner_recomputed_after_approval": null
+    },
+    "restore_barrier": {
+      "file": "/Users/ponch/Documents/New project/docs/reports/engineering/live_openvpn_trace_2026-06-30/fixture/state/autoswitch-restore-barrier.json",
+      "enabled": true,
+      "active": true,
+      "expired": false,
+      "cleared": true,
+      "post_ttl_blocking": false,
+      "failover_quarantine": true,
+      "expires_at": "",
+      "reason": "",
+      "clearance_max_selected_moves": 0,
+      "clearance_generation_id": "fixture-generation",
+      "clearance_expires_at": "2000-01-01T00:00:00+00:00",
+      "generation_token": "fixture",
+      "apply_refresh_clearance": {
+        "generation_clearance": false,
+        "allowed_targets": [],
+        "approved_atomic_execution_envelope_id": "",
+        "approved_atomic_execution_envelope_hash": "",
+        "approved_source_bundle_hash": "",
+        "approved_snapshot_bundle_hash": "",
+        "owner": ""
+      }
+    },
+    "first_decision": {
+      "user_ip": "10.7.0.11",
+      "current_egress": "openvpn-1779388847-d2ad7c",
+      "recommended_egress": "openvpn-1779388847-d2ad7c",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "restore_barrier_failover_suppressed"
+      ],
+      "current_score": 0.0,
+      "recommended_score": 0.0,
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "route_class": "VIDEO_OPTIMIZED"
+    },
+    "candidates": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 2170.34,
+        "blocked": [],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "best_available_pool_rank_1"
+        ],
+        "users": 0,
+        "load": {
+          "users": 0,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "OK"
+        }
+      },
+      {
+        "egress": "awg3",
+        "eligible": true,
+        "score": 2112.44,
+        "blocked": [],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "best_available_pool_rank_2"
+        ],
+        "users": 1,
+        "load": {
+          "users": 1,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "OK"
+        }
+      },
+      {
+        "egress": "awg0",
+        "eligible": true,
+        "score": 2093.79,
+        "blocked": [],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "best_available_pool_rank_3"
+        ],
+        "users": 1,
+        "load": {
+          "users": 1,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "OK"
+        }
+      },
+      {
+        "egress": "wireguard-1779454504-c43409",
+        "eligible": true,
+        "score": 2060.8,
+        "blocked": [],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "users": 11,
+        "load": {
+          "users": 11,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "SOFT_FULL"
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "blocked": [
+          "telegram_required_down"
+        ],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_google_ok",
+          "service_google_auth_truth_stale",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "users": 0,
+        "load": {
+          "users": 0,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "OK"
+        }
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked"
+        ],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "users": 0,
+        "load": {
+          "users": 0,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "OK"
+        }
+      },
+      {
+        "egress": "openvpn-1779388847-d2ad7c",
+        "eligible": false,
+        "score": 0.0,
+        "blocked": [
+          "telegram_required_telegram_down_14s",
+          "planned_hard_full"
+        ],
+        "reasons": [
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded",
+          "service_instagram_failed_samples_1",
+          "service_google_transient_fail",
+          "service_google_degraded",
+          "service_google_failed_samples_1",
+          "service_google_auth_transient_fail",
+          "service_google_auth_degraded",
+          "service_google_auth_failed_samples_1",
+          "service_signal_DEGRADED_SERVICE",
+          "route_class_VIDEO_OPTIMIZED_failed_nonpersistent_service_truth",
+          "service_signal_ROUTE_FAIL_REVALIDATION_REQUIRED"
+        ],
+        "users": 14,
+        "load": {
+          "users": 14,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "HARD_FULL"
+        }
+      }
+    ]
+  },
+  "fixture_user_bad_target": {
+    "rc": 0,
+    "summary": {
+      "users_total": 27,
+      "egress_total": 7,
+      "healthy_egress_total": 4,
+      "candidate_moves": 0,
+      "candidate_moves_total": 0,
+      "selected_moves": 0,
+      "reconnect_rotation_candidates": 0,
+      "rebalance_candidates": 0,
+      "org_groups": [
+        "default"
+      ]
+    },
+    "operation": {
+      "operation_owner": "tools/v7-users-autoswitch",
+      "operation_type": "runtime_autoswitch",
+      "operation_started_at": "2026-06-29T17:15:31.848750+00:00",
+      "planner_generation_id": "5ac20d4906a172d0bdb9f8ecd5de019cdc9e054a967439c72730910538b8dc2e",
+      "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "selected_move_count": 0,
+      "runtime_snapshot_hash": "e2cd52f59ec3c06ff1d46784188f91bae818ce9b95af870f67e5ffe0dc1c6ffa",
+      "operation_id": "runtime_autoswitch_12cdb522ad16d30c956c36bd",
+      "atomic_execution_envelope_id": "aee_b4fa226cbaa72ed161d91563",
+      "atomic_execution_envelope_hash": "b4fa226cbaa72ed161d91563277755020c21a68ab2f909998e4acd38c8399943",
+      "terminal_state": "DRY_RUN",
+      "terminal_reason": "dry_run_restore_barrier_active"
+    },
+    "target_egress": "openvpn-1779388847-d2ad7c",
+    "selected_moves": [],
+    "selected_moves_diagnostics": {
+      "source": "planner_no_selection",
+      "approved_plan_lock_present": false,
+      "approved_plan_lock_ok": false,
+      "approved_plan_lock_hash_source": "",
+      "selected_moves_before_restore_barrier": 0,
+      "selected_moves_after_gate": 0,
+      "snapshot_gate_source": "",
+      "snapshot_gate_decision": "",
+      "snapshot_gate_changed_fields": [],
+      "snapshot_gate_material_change": false,
+      "approved_plan_lock_consumed": false,
+      "planner_recomputed_after_approval": null
+    },
+    "restore_barrier": {
+      "file": "/Users/ponch/Documents/New project/docs/reports/engineering/live_openvpn_trace_2026-06-30/fixture/state/autoswitch-restore-barrier.json",
+      "enabled": true,
+      "active": true,
+      "expired": false,
+      "cleared": true,
+      "post_ttl_blocking": false,
+      "failover_quarantine": true,
+      "expires_at": "",
+      "reason": "",
+      "clearance_max_selected_moves": 0,
+      "clearance_generation_id": "fixture-generation",
+      "clearance_expires_at": "2000-01-01T00:00:00+00:00",
+      "generation_token": "fixture",
+      "apply_refresh_clearance": {
+        "generation_clearance": false,
+        "allowed_targets": [],
+        "approved_atomic_execution_envelope_id": "",
+        "approved_atomic_execution_envelope_hash": "",
+        "approved_source_bundle_hash": "",
+        "approved_snapshot_bundle_hash": "",
+        "owner": ""
+      }
+    },
+    "first_decision": {
+      "user_ip": "10.7.0.11",
+      "current_egress": "openvpn-1779388847-d2ad7c",
+      "recommended_egress": "openvpn-1779388847-d2ad7c",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "restore_barrier_failover_suppressed"
+      ],
+      "current_score": 0.0,
+      "recommended_score": 0.0,
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "route_class": "VIDEO_OPTIMIZED"
+    },
+    "candidates": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 2170.34,
+        "blocked": [],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "best_available_pool_rank_1"
+        ],
+        "users": 0,
+        "load": {
+          "users": 0,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "OK"
+        }
+      },
+      {
+        "egress": "awg3",
+        "eligible": true,
+        "score": 2112.44,
+        "blocked": [],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "best_available_pool_rank_2"
+        ],
+        "users": 1,
+        "load": {
+          "users": 1,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "OK"
+        }
+      },
+      {
+        "egress": "awg0",
+        "eligible": true,
+        "score": 2093.79,
+        "blocked": [],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "best_available_pool_rank_3"
+        ],
+        "users": 1,
+        "load": {
+          "users": 1,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "OK"
+        }
+      },
+      {
+        "egress": "wireguard-1779454504-c43409",
+        "eligible": true,
+        "score": 2060.8,
+        "blocked": [],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "users": 11,
+        "load": {
+          "users": 11,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "SOFT_FULL"
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "blocked": [
+          "telegram_required_down"
+        ],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_google_ok",
+          "service_google_auth_truth_stale",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "users": 0,
+        "load": {
+          "users": 0,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "OK"
+        }
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked"
+        ],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "users": 0,
+        "load": {
+          "users": 0,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "OK"
+        }
+      },
+      {
+        "egress": "openvpn-1779388847-d2ad7c",
+        "eligible": false,
+        "score": 0.0,
+        "blocked": [
+          "telegram_required_telegram_down_14s",
+          "planned_hard_full"
+        ],
+        "reasons": [
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded",
+          "service_instagram_failed_samples_1",
+          "service_google_transient_fail",
+          "service_google_degraded",
+          "service_google_failed_samples_1",
+          "service_google_auth_transient_fail",
+          "service_google_auth_degraded",
+          "service_google_auth_failed_samples_1",
+          "service_signal_DEGRADED_SERVICE",
+          "route_class_VIDEO_OPTIMIZED_failed_nonpersistent_service_truth",
+          "service_signal_ROUTE_FAIL_REVALIDATION_REQUIRED"
+        ],
+        "users": 14,
+        "load": {
+          "users": 14,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "HARD_FULL"
+        }
+      }
+    ]
+  },
+  "fixture_all_no_target": {
+    "rc": 0,
+    "summary": {
+      "users_total": 27,
+      "egress_total": 7,
+      "healthy_egress_total": 4,
+      "candidate_moves": 11,
+      "candidate_moves_total": 11,
+      "selected_moves": 1,
+      "reconnect_rotation_candidates": 0,
+      "rebalance_candidates": 11,
+      "org_groups": [
+        "default"
+      ]
+    },
+    "operation": {
+      "operation_owner": "tools/v7-users-autoswitch",
+      "operation_type": "runtime_autoswitch",
+      "operation_started_at": "2026-06-29T17:15:31.953092+00:00",
+      "planner_generation_id": "5ac20d4906a172d0bdb9f8ecd5de019cdc9e054a967439c72730910538b8dc2e",
+      "selected_move_hash": "dd37cb09bf92e82e042f428ff0eda4bfe45a03c8db443c95fbe3587349849fe7",
+      "selected_move_count": 1,
+      "runtime_snapshot_hash": "a8dd68f75f0d96bb759bbdc4090114915790318f40294a879446be48ac78a2d6",
+      "operation_id": "runtime_autoswitch_7d1a84de540d525fa249ac22",
+      "atomic_execution_envelope_id": "aee_b0b7a31fd4d8a3b43b84f689",
+      "atomic_execution_envelope_hash": "b0b7a31fd4d8a3b43b84f6895cd45fa86b8328525c03e8a1e455e959f9c820ab",
+      "terminal_state": "DRY_RUN",
+      "terminal_reason": "dry_run_selected_moves_available"
+    },
+    "target_egress": "",
+    "selected_moves": [
+      {
+        "user_ip": "10.7.0.16",
+        "group": "default",
+        "route_class": "VIDEO_OPTIMIZED",
+        "important_services": [
+          "youtube",
+          "instagram",
+          "telegram",
+          "google",
+          "google_auth"
+        ],
+        "current_egress": "wireguard-1779454504-c43409",
+        "recommended_egress": "vless",
+        "action": "switch",
+        "move_type": "rebalance",
+        "reason": [
+          "load_rebalance_even_distribution"
+        ],
+        "current_score": 2110.8,
+        "recommended_score": 2170.34,
+        "candidates": [
+          {
+            "egress": "vless",
+            "eligible": true,
+            "score": 2170.34,
+            "blocked": [],
+            "reasons": [
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_telegram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "route_class_VIDEO_OPTIMIZED_ok",
+              "best_available_pool_rank_1"
+            ],
+            "score_parts": {
+              "health": 1000.0,
+              "service": 299.62,
+              "telegram_required": 40.0,
+              "speed": 171.26,
+              "stability": 120.0,
+              "latency": 81.46,
+              "load": 80.0,
+              "capacity": 100.0,
+              "quality_history": 128.0,
+              "priority": 50.0,
+              "weight": 100.0,
+              "sticky": 0.0,
+              "org_preference": 0.0,
+              "reserve_penalty": 0.0
+            },
+            "severity_classification": {
+              "severity": "OK",
+              "category": "normal",
+              "hard_block": false,
+              "reason": ""
+            },
+            "service_suitability": {
+              "schema_version": 1,
+              "route_class": "VIDEO_OPTIMIZED",
+              "aggregate_score": 99.875,
+              "confidence": 0.84,
+              "per_service": {
+                "youtube": {
+                  "service": "youtube",
+                  "score": 100.0,
+                  "confidence": 0.8,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3220.611,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.398329,
+                  "failure_count": 0,
+                  "reason": "",
+                  "profile": {
+                    "availability": "page/API reachability",
+                    "latency": "first_byte_sec or total_sec",
+                    "content": "video/CDN score when available",
+                    "error_rate": "failure samples",
+                    "stability": "recent matrix status"
+                  }
+                },
+                "instagram": {
+                  "service": "instagram",
+                  "score": 100.0,
+                  "confidence": 0.8,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3220.433,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.349206,
+                  "failure_count": 0,
+                  "reason": "",
+                  "profile": {
+                    "availability": "feed/media endpoint reachability",
+                    "latency": "first_byte_sec or total_sec",
+                    "content": "image/video score when available",
+                    "error_rate": "failure samples",
+                    "stability": "recent matrix status"
+                  }
+                },
+                "telegram": {
+                  "service": "telegram",
+                  "score": 100.0,
+                  "confidence": 1.0,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 2345.501,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.001,
+                  "failure_count": 0,
+                  "reason": "telegram tcp endpoints reachable",
+                  "profile": {
+                    "availability": "telegram status and matrix ok",
+                    "latency": "first_byte_sec or total_sec when available",
+                    "content": "score/media checks when available",
+                    "error_rate": "failure samples and service matrix ok",
+                    "stability": "recent matrix/sentinel status"
+                  }
+                },
+                "google": {
+                  "service": "google",
+                  "score": 100.0,
+                  "confidence": 0.8,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3220.756,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.293097,
+                  "failure_count": 0,
+                  "reason": "",
+                  "profile": {}
+                },
+                "google_auth": {
+                  "service": "google_auth",
+                  "score": 99.373,
+                  "confidence": 0.8,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3219.828,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.812724,
+                  "failure_count": 0,
+                  "reason": "",
+                  "profile": {}
+                }
+              },
+              "ignored_failures": [
+                {
+                  "service": "anthropic",
+                  "score": 12.0,
+                  "confidence": 0.8,
+                  "status": "FAIL",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": false,
+                  "truth_class": "PROFILE_IRRELEVANT_FAIL",
+                  "planner_decision": "ignore_for_current_profile",
+                  "eligibility_behavior": "no_block",
+                  "runtime_behavior": "visible_ignored_failure",
+                  "blocked_action": "",
+                  "evidence": "service_not_requested_by_user_or_route_profile",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3219.687,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "profile_irrelevant",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.435805,
+                  "failure_count": 1,
+                  "reason": "curl: (22) The requested URL returned error: 404\n404 0.435805 0.435860",
+                  "profile": {}
+                }
+              ],
+              "required_missing": [],
+              "required_low": [],
+              "route_class_fitness": "OK",
+              "semantics": "service suitability 0-100; not generic Mbps"
+            },
+            "quality_decision": {
+              "min_avg_mbps": 15.0,
+              "min_floor_mbps": 10.0,
+              "min_stability": 0.45,
+              "hist_1h_avg_mbps": 60.0,
+              "hist_1h_min_mbps": 40.0,
+              "hist_1h_stability": 0.8,
+              "evidence_backed_exception": false,
+              "service_aggregate_score": 99.875
+            },
+            "capacity_decision": {
+              "capacity_score": 100.0,
+              "load_penalty": 0.0,
+              "projected_load": {
+                "users": 0,
+                "soft_limit": 11,
+                "hard_limit": 14,
+                "status": "OK"
+              },
+              "capacity_decision": "empty_capacity_available",
+              "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+            },
+            "routing_intelligence": {
+              "schema_version": "ri3.candidate-advisory-score.v1",
+              "target": "vless",
+              "score_part": 0.0,
+              "advisory_score": 0.0,
+              "recommendation": "neutral",
+              "planner_influence_active": false,
+              "explainability": [
+                "routing_intelligence_candidate_score_missing"
+              ],
+              "authority": {
+                "routing_intelligence": "advice_only",
+                "candidate_creation": "forbidden",
+                "hard_gate_override": "forbidden",
+                "governance_authority": "none",
+                "runtime_execution_authority": "none"
+              }
+            },
+            "ctr_advisory": {
+              "schema_version": "v7.ctr.candidate-advisory.v1",
+              "available": false,
+              "state": "UNKNOWN",
+              "reason": "channel_trust_recovery_missing",
+              "recovery_state": "UNKNOWN",
+              "recovery_path": "collect_channel_trust_recovery_snapshot",
+              "confidence": 0.0,
+              "trust_score": 0.0,
+              "current_service_score": 0.0,
+              "soft_adjustment": 0.0,
+              "advisory_score": 0.0,
+              "recommended_action": "observe",
+              "blocked_actions": [
+                "direct_user_switch",
+                "governance_bypass"
+              ],
+              "planner_score_applied": false,
+              "hard_gate_applied": false,
+              "target_suppression_applied": false,
+              "authority": {
+                "planner_decision_owner": "tools/v7-users-autoswitch",
+                "governance_authority": "none",
+                "runtime_execution_authority": "none",
+                "selected_moves_write_authority": "none"
+              }
+            },
+            "ctr_score_simulation": {
+              "schema_version": "v7.ctr.dry-run-score-simulation.v1",
+              "mode": "dry_run_simulation_only",
+              "existing_score": 2170.337,
+              "ctr_soft_adjustment": 0.0,
+              "simulated_score": 2170.337,
+              "score_delta": 0.0,
+              "old_position": 1,
+              "new_position": 1,
+              "ranking_delta": 0,
+              "ctr_state": "UNKNOWN",
+              "reason": "ctr_state_unknown_soft_adjustment_simulated",
+              "why_changed": "channel_trust_recovery_missing",
+              "service_impact": {
+                "aggregate_score": 99.875,
+                "required_missing": [],
+                "required_low": [],
+                "ctr_current_service_score": 0.0
+              },
+              "capacity_impact": {
+                "capacity_score": 100.0,
+                "load_penalty": 0.0,
+                "projected_load": {
+                  "users": 0,
+                  "soft_limit": 11,
+                  "hard_limit": 14,
+                  "status": "OK"
+                },
+                "capacity_decision": "empty_capacity_available",
+                "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+              },
+              "trust_impact": {
+                "trust_score": 0.0,
+                "advisory_score": 0.0,
+                "confidence": 0.0
+              },
+              "recovery_impact": {
+                "recovery_state": "UNKNOWN",
+                "recovery_path": "collect_channel_trust_recovery_snapshot",
+                "recommended_action": "observe",
+                "blocked_actions": [
+                  "direct_user_switch",
+                  "governance_bypass"
+                ]
+              },
+              "planner_score_applied": false,
+              "planner_ranking_changed": false,
+              "selected_moves_changed": false,
+              "runtime_behavior_changed": false,
+              "simulation_authority": "none"
+            },
+            "best_available_pool": true,
+            "pool_rank": 1,
+            "pool_reason": "best_available_pool_member",
+            "pool_cutoff_reason": "",
+            "avg_mbps": 60.0,
+            "min_mbps": 40.0,
+            "stability": 0.8,
+            "users": 0,
+            "capacity_users": 0,
+            "load": {
+              "users": 0,
+              "soft_limit": 11,
+              "hard_limit": 14,
+              "failover_hard_limit": 18,
+              "capacity_users": 0,
+              "status": "OK"
+            },
+            "quality_history": {
+              "windows": {
+                "1h": {
+                  "avg_mbps": 60,
+                  "min_mbps": 40,
+                  "stability": 0.8,
+                  "fail_rate": 0.0
+                }
+              },
+              "score": {
+                "current": 100,
+                "trend": "stable",
+                "penalty": 0
+              }
+            },
+            "safety": {},
+            "telegram": {
+              "required": true,
+              "status": "OK",
+              "ok": true,
+              "hard_blocked": false,
+              "degraded": false,
+              "bad_now": false,
+              "bad_for_seconds": 0.0,
+              "score": 100.0,
+              "reason": "telegram tcp endpoints reachable",
+              "source": "matrix"
+            },
+            "role": "GLOBAL_FAST",
+            "canary_reserved": false,
+            "groups": [],
+            "exclusive_group": ""
+          },
+          {
+            "egress": "awg3",
+            "eligible": true,
+            "score": 2112.44,
+            "blocked": [],
+            "reasons": [
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_telegram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "route_class_VIDEO_OPTIMIZED_ok",
+              "best_available_pool_rank_2"
+            ],
+            "score_parts": {
+              "health": 1000.0,
+              "service": 300.0,
+              "telegram_required": 40.0,
+              "speed": 171.26,
+              "stability": 120.0,
+              "latency": 81.04,
+              "load": 74.29,
+              "capacity": 92.86,
+              "quality_history": 128.0,
+              "priority": 30.0,
+              "weight": 75.0,
+              "sticky": 0.0,
+              "org_preference": 0.0,
+              "reserve_penalty": 0.0
+            },
+            "severity_classification": {
+              "severity": "OK",
+              "category": "normal",
+              "hard_block": false,
+              "reason": ""
+            },
+            "service_suitability": {
+              "schema_version": 1,
+              "route_class": "VIDEO_OPTIMIZED",
+              "aggregate_score": 100.0,
+              "confidence": 0.84,
+              "per_service": {
+                "youtube": {
+                  "service": "youtube",
+                  "score": 100.0,
+                  "confidence": 0.8,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3203.838,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.313729,
+                  "failure_count": 0,
+                  "reason": "",
+                  "profile": {
+                    "availability": "page/API reachability",
+                    "latency": "first_byte_sec or total_sec",
+                    "content": "video/CDN score when available",
+                    "error_rate": "failure samples",
+                    "stability": "recent matrix status"
+                  }
+                },
+                "instagram": {
+                  "service": "instagram",
+                  "score": 100.0,
+                  "confidence": 0.8,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3202.753,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.514818,
+                  "failure_count": 0,
+                  "reason": "",
+                  "profile": {
+                    "availability": "feed/media endpoint reachability",
+                    "latency": "first_byte_sec or total_sec",
+                    "content": "image/video score when available",
+                    "error_rate": "failure samples",
+                    "stability": "recent matrix status"
+                  }
+                },
+                "telegram": {
+                  "service": "telegram",
+                  "score": 100.0,
+                  "confidence": 1.0,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 2345.499,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.071,
+                  "failure_count": 0,
+                  "reason": "telegram tcp endpoints reachable",
+                  "profile": {
+                    "availability": "telegram status and matrix ok",
+                    "latency": "first_byte_sec or total_sec when available",
+                    "content": "score/media checks when available",
+                    "error_rate": "failure samples and service matrix ok",
+                    "stability": "recent matrix/sentinel status"
+                  }
+                },
+                "google": {
+                  "service": "google",
+                  "score": 100.0,
+                  "confidence": 0.8,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3203.822,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.324605,
+                  "failure_count": 0,
+                  "reason": "",
+                  "profile": {}
+                },
+                "google_auth": {
+                  "service": "google_auth",
+                  "score": 100.0,
+                  "confidence": 0.8,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3202.663,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.671827,
+                  "failure_count": 0,
+                  "reason": "",
+                  "profile": {}
+                }
+              },
+              "ignored_failures": [
+                {
+                  "service": "anthropic",
+                  "score": 12.0,
+                  "confidence": 0.8,
+                  "status": "FAIL",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": false,
+                  "truth_class": "PROFILE_IRRELEVANT_FAIL",
+                  "planner_decision": "ignore_for_current_profile",
+                  "eligibility_behavior": "no_block",
+                  "runtime_behavior": "visible_ignored_failure",
+                  "blocked_action": "",
+                  "evidence": "service_not_requested_by_user_or_route_profile",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3202.624,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "profile_irrelevant",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.415595,
+                  "failure_count": 1,
+                  "reason": "curl: (22) The requested URL returned error: 404\n404 0.415595 0.415670",
+                  "profile": {}
+                }
+              ],
+              "required_missing": [],
+              "required_low": [],
+              "route_class_fitness": "OK",
+              "semantics": "service suitability 0-100; not generic Mbps"
+            },
+            "quality_decision": {
+              "min_avg_mbps": 15.0,
+              "min_floor_mbps": 10.0,
+              "min_stability": 0.45,
+              "hist_1h_avg_mbps": 60.0,
+              "hist_1h_min_mbps": 40.0,
+              "hist_1h_stability": 0.8,
+              "evidence_backed_exception": false,
+              "service_aggregate_score": 100.0
+            },
+            "capacity_decision": {
+              "capacity_score": 92.857,
+              "load_penalty": 0.0,
+              "projected_load": {
+                "users": 1,
+                "soft_limit": 11,
+                "hard_limit": 14,
+                "status": "OK"
+              },
+              "capacity_decision": "capacity_available",
+              "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+            },
+            "routing_intelligence": {
+              "schema_version": "ri3.candidate-advisory-score.v1",
+              "target": "awg3",
+              "score_part": 0.0,
+              "advisory_score": 0.0,
+              "recommendation": "neutral",
+              "planner_influence_active": false,
+              "explainability": [
+                "routing_intelligence_candidate_score_missing"
+              ],
+              "authority": {
+                "routing_intelligence": "advice_only",
+                "candidate_creation": "forbidden",
+                "hard_gate_override": "forbidden",
+                "governance_authority": "none",
+                "runtime_execution_authority": "none"
+              }
+            },
+            "ctr_advisory": {
+              "schema_version": "v7.ctr.candidate-advisory.v1",
+              "available": false,
+              "state": "UNKNOWN",
+              "reason": "channel_trust_recovery_missing",
+              "recovery_state": "UNKNOWN",
+              "recovery_path": "collect_channel_trust_recovery_snapshot",
+              "confidence": 0.0,
+              "trust_score": 0.0,
+              "current_service_score": 0.0,
+              "soft_adjustment": 0.0,
+              "advisory_score": 0.0,
+              "recommended_action": "observe",
+              "blocked_actions": [
+                "direct_user_switch",
+                "governance_bypass"
+              ],
+              "planner_score_applied": false,
+              "hard_gate_applied": false,
+              "target_suppression_applied": false,
+              "authority": {
+                "planner_decision_owner": "tools/v7-users-autoswitch",
+                "governance_authority": "none",
+                "runtime_execution_authority": "none",
+                "selected_moves_write_authority": "none"
+              }
+            },
+            "ctr_score_simulation": {
+              "schema_version": "v7.ctr.dry-run-score-simulation.v1",
+              "mode": "dry_run_simulation_only",
+              "existing_score": 2112.438,
+              "ctr_soft_adjustment": 0.0,
+              "simulated_score": 2112.438,
+              "score_delta": 0.0,
+              "old_position": 2,
+              "new_position": 2,
+              "ranking_delta": 0,
+              "ctr_state": "UNKNOWN",
+              "reason": "ctr_state_unknown_soft_adjustment_simulated",
+              "why_changed": "channel_trust_recovery_missing",
+              "service_impact": {
+                "aggregate_score": 100.0,
+                "required_missing": [],
+                "required_low": [],
+                "ctr_current_service_score": 0.0
+              },
+              "capacity_impact": {
+                "capacity_score": 92.857,
+                "load_penalty": 0.0,
+                "projected_load": {
+                  "users": 1,
+                  "soft_limit": 11,
+                  "hard_limit": 14,
+                  "status": "OK"
+                },
+                "capacity_decision": "capacity_available",
+                "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+              },
+              "trust_impact": {
+                "trust_score": 0.0,
+                "advisory_score": 0.0,
+                "confidence": 0.0
+              },
+              "recovery_impact": {
+                "recovery_state": "UNKNOWN",
+                "recovery_path": "collect_channel_trust_recovery_snapshot",
+                "recommended_action": "observe",
+                "blocked_actions": [
+                  "direct_user_switch",
+                  "governance_bypass"
+                ]
+              },
+              "planner_score_applied": false,
+              "planner_ranking_changed": false,
+              "selected_moves_changed": false,
+              "runtime_behavior_changed": false,
+              "simulation_authority": "none"
+            },
+            "best_available_pool": true,
+            "pool_rank": 2,
+            "pool_reason": "best_available_pool_member",
+            "pool_cutoff_reason": "",
+            "avg_mbps": 60.0,
+            "min_mbps": 40.0,
+            "stability": 0.8,
+            "users": 1,
+            "capacity_users": 0,
+            "load": {
+              "users": 1,
+              "soft_limit": 11,
+              "hard_limit": 14,
+              "failover_hard_limit": 18,
+              "capacity_users": 0,
+              "status": "OK"
+            },
+            "quality_history": {
+              "windows": {
+                "1h": {
+                  "avg_mbps": 60,
+                  "min_mbps": 40,
+                  "stability": 0.8,
+                  "fail_rate": 0.0
+                }
+              },
+              "score": {
+                "current": 100,
+                "trend": "stable",
+                "penalty": 0
+              }
+            },
+            "safety": {},
+            "telegram": {
+              "required": true,
+              "status": "OK",
+              "ok": true,
+              "hard_blocked": false,
+              "degraded": false,
+              "bad_now": false,
+              "bad_for_seconds": 0.0,
+              "score": 100.0,
+              "reason": "telegram tcp endpoints reachable",
+              "source": "matrix"
+            },
+            "role": "GLOBAL_STABLE",
+            "canary_reserved": false,
+            "groups": [],
+            "exclusive_group": ""
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "eligible": true,
+            "score": 2110.8,
+            "blocked": [],
+            "reasons": [
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_telegram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "route_class_VIDEO_OPTIMIZED_ok"
+            ],
+            "score_parts": {
+              "health": 1000.0,
+              "service": 300.0,
+              "telegram_required": 40.0,
+              "speed": 171.26,
+              "stability": 120.0,
+              "latency": 82.97,
+              "load": 17.14,
+              "capacity": 21.43,
+              "quality_history": 128.0,
+              "priority": 80.0,
+              "weight": 100.0,
+              "sticky": 50.0,
+              "org_preference": 0.0,
+              "reserve_penalty": 0.0
+            },
+            "severity_classification": {
+              "severity": "OK",
+              "category": "normal",
+              "hard_block": false,
+              "reason": ""
+            },
+            "service_suitability": {
+              "schema_version": 1,
+              "route_class": "VIDEO_OPTIMIZED",
+              "aggregate_score": 100.0,
+              "confidence": 0.84,
+              "per_service": {
+                "youtube": {
+                  "service": "youtube",
+                  "score": 100.0,
+                  "confidence": 0.8,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3166.872,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.277743,
+                  "failure_count": 0,
+                  "reason": "",
+                  "profile": {
+                    "availability": "page/API reachability",
+                    "latency": "first_byte_sec or total_sec",
+                    "content": "video/CDN score when available",
+                    "error_rate": "failure samples",
+                    "stability": "recent matrix status"
+                  }
+                },
+                "instagram": {
+                  "service": "instagram",
+                  "score": 100.0,
+                  "confidence": 0.8,
+                  "status": "HTTP_LIMITED",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3166.618,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.522267,
+                  "failure_count": 0,
+                  "reason": "HTTP 429: endpoint reached but returned an application/CDN limit",
+                  "profile": {
+                    "availability": "feed/media endpoint reachability",
+                    "latency": "first_byte_sec or total_sec",
+                    "content": "image/video score when available",
+                    "error_rate": "failure samples",
+                    "stability": "recent matrix status"
+                  }
+                },
+                "telegram": {
+                  "service": "telegram",
+                  "score": 100.0,
+                  "confidence": 1.0,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 2345.5,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.05,
+                  "failure_count": 0,
+                  "reason": "telegram tcp endpoints reachable",
+                  "profile": {
+                    "availability": "telegram status and matrix ok",
+                    "latency": "first_byte_sec or total_sec when available",
+                    "content": "score/media checks when available",
+                    "error_rate": "failure samples and service matrix ok",
+                    "stability": "recent matrix/sentinel status"
+                  }
+                },
+                "google": {
+                  "service": "google",
+                  "score": 100.0,
+                  "confidence": 0.8,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3166.935,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.21514,
+                  "failure_count": 0,
+                  "reason": "",
+                  "profile": {}
+                },
+                "google_auth": {
+                  "service": "google_auth",
+                  "score": 100.0,
+                  "confidence": 0.8,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3166.052,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.638005,
+                  "failure_count": 0,
+                  "reason": "",
+                  "profile": {}
+                }
+              },
+              "ignored_failures": [
+                {
+                  "service": "anthropic",
+                  "score": 12.0,
+                  "confidence": 0.8,
+                  "status": "FAIL",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": false,
+                  "truth_class": "PROFILE_IRRELEVANT_FAIL",
+                  "planner_decision": "ignore_for_current_profile",
+                  "eligibility_behavior": "no_block",
+                  "runtime_behavior": "visible_ignored_failure",
+                  "blocked_action": "",
+                  "evidence": "service_not_requested_by_user_or_route_profile",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3166.013,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "profile_irrelevant",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.409703,
+                  "failure_count": 1,
+                  "reason": "curl: (22) The requested URL returned error: 404\n404 0.409703 0.409785",
+                  "profile": {}
+                }
+              ],
+              "required_missing": [],
+              "required_low": [],
+              "route_class_fitness": "OK",
+              "semantics": "service suitability 0-100; not generic Mbps"
+            },
+            "quality_decision": {
+              "min_avg_mbps": 15.0,
+              "min_floor_mbps": 10.0,
+              "min_stability": 0.45,
+              "hist_1h_avg_mbps": 60.0,
+              "hist_1h_min_mbps": 40.0,
+              "hist_1h_stability": 0.8,
+              "evidence_backed_exception": false,
+              "service_aggregate_score": 100.0
+            },
+            "capacity_decision": {
+              "capacity_score": 21.429,
+              "load_penalty": 0.0,
+              "projected_load": {
+                "users": 11,
+                "soft_limit": 11,
+                "hard_limit": 14,
+                "status": "SOFT_FULL"
+              },
+              "capacity_decision": "soft_capacity_full",
+              "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+            },
+            "routing_intelligence": {
+              "schema_version": "ri3.candidate-advisory-score.v1",
+              "target": "wireguard-1779454504-c43409",
+              "score_part": 0.0,
+              "advisory_score": 0.0,
+              "recommendation": "neutral",
+              "planner_influence_active": false,
+              "explainability": [
+                "routing_intelligence_candidate_score_missing"
+              ],
+              "authority": {
+                "routing_intelligence": "advice_only",
+                "candidate_creation": "forbidden",
+                "hard_gate_override": "forbidden",
+                "governance_authority": "none",
+                "runtime_execution_authority": "none"
+              }
+            },
+            "ctr_advisory": {
+              "schema_version": "v7.ctr.candidate-advisory.v1",
+              "available": false,
+              "state": "UNKNOWN",
+              "reason": "channel_trust_recovery_missing",
+              "recovery_state": "UNKNOWN",
+              "recovery_path": "collect_channel_trust_recovery_snapshot",
+              "confidence": 0.0,
+              "trust_score": 0.0,
+              "current_service_score": 0.0,
+              "soft_adjustment": 0.0,
+              "advisory_score": 0.0,
+              "recommended_action": "observe",
+              "blocked_actions": [
+                "direct_user_switch",
+                "governance_bypass"
+              ],
+              "planner_score_applied": false,
+              "hard_gate_applied": false,
+              "target_suppression_applied": false,
+              "authority": {
+                "planner_decision_owner": "tools/v7-users-autoswitch",
+                "governance_authority": "none",
+                "runtime_execution_authority": "none",
+                "selected_moves_write_authority": "none"
+              }
+            },
+            "ctr_score_simulation": {
+              "schema_version": "v7.ctr.dry-run-score-simulation.v1",
+              "mode": "dry_run_simulation_only",
+              "existing_score": 2110.796,
+              "ctr_soft_adjustment": 0.0,
+              "simulated_score": 2110.796,
+              "score_delta": 0.0,
+              "old_position": 3,
+              "new_position": 3,
+              "ranking_delta": 0,
+              "ctr_state": "UNKNOWN",
+              "reason": "ctr_state_unknown_soft_adjustment_simulated",
+              "why_changed": "channel_trust_recovery_missing",
+              "service_impact": {
+                "aggregate_score": 100.0,
+                "required_missing": [],
+                "required_low": [],
+                "ctr_current_service_score": 0.0
+              },
+              "capacity_impact": {
+                "capacity_score": 21.429,
+                "load_penalty": 0.0,
+                "projected_load": {
+                  "users": 11,
+                  "soft_limit": 11,
+                  "hard_limit": 14,
+                  "status": "SOFT_FULL"
+                },
+                "capacity_decision": "soft_capacity_full",
+                "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+              },
+              "trust_impact": {
+                "trust_score": 0.0,
+                "advisory_score": 0.0,
+                "confidence": 0.0
+              },
+              "recovery_impact": {
+                "recovery_state": "UNKNOWN",
+                "recovery_path": "collect_channel_trust_recovery_snapshot",
+                "recommended_action": "observe",
+                "blocked_actions": [
+                  "direct_user_switch",
+                  "governance_bypass"
+                ]
+              },
+              "planner_score_applied": false,
+              "planner_ranking_changed": false,
+              "selected_moves_changed": false,
+              "runtime_behavior_changed": false,
+              "simulation_authority": "none"
+            },
+            "best_available_pool": false,
+            "pool_rank": 0,
+            "pool_reason": "",
+            "pool_cutoff_reason": "outside_best_available_pool_top_n",
+            "avg_mbps": 60.0,
+            "min_mbps": 40.0,
+            "stability": 0.8,
+            "users": 11,
+            "capacity_users": 0,
+            "load": {
+              "users": 11,
+              "soft_limit": 11,
+              "hard_limit": 14,
+              "failover_hard_limit": 18,
+              "capacity_users": 0,
+              "status": "SOFT_FULL"
+            },
+            "quality_history": {
+              "windows": {
+                "1h": {
+                  "avg_mbps": 60,
+                  "min_mbps": 40,
+                  "stability": 0.8,
+                  "fail_rate": 0.0
+                }
+              },
+              "score": {
+                "current": 100,
+                "trend": "stable",
+                "penalty": 0
+              }
+            },
+            "safety": {},
+            "telegram": {
+              "required": true,
+              "status": "OK",
+              "ok": true,
+              "hard_blocked": false,
+              "degraded": false,
+              "bad_now": false,
+              "bad_for_seconds": 0.0,
+              "score": 100.0,
+              "reason": "telegram tcp endpoints reachable",
+              "source": "matrix"
+            },
+            "role": "GLOBAL_FAST",
+            "canary_reserved": false,
+            "groups": [],
+            "exclusive_group": ""
+          },
+          {
+            "egress": "awg0",
+            "eligible": true,
+            "score": 2093.79,
+            "blocked": [],
+            "reasons": [
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_telegram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "route_class_VIDEO_OPTIMIZED_ok",
+              "best_available_pool_rank_3"
+            ],
+            "score_parts": {
+              "health": 1000.0,
+              "service": 295.23,
+              "telegram_required": 40.0,
+              "speed": 171.26,
+              "stability": 120.0,
+              "latency": 62.16,
+              "load": 74.29,
+              "capacity": 92.86,
+              "quality_history": 128.0,
+              "priority": 40.0,
+              "weight": 70.0,
+              "sticky": 0.0,
+              "org_preference": 0.0,
+              "reserve_penalty": 0.0
+            },
+            "severity_classification": {
+              "severity": "OK",
+              "category": "normal",
+              "hard_block": false,
+              "reason": ""
+            },
+            "service_suitability": {
+              "schema_version": 1,
+              "route_class": "VIDEO_OPTIMIZED",
+              "aggregate_score": 98.411,
+              "confidence": 0.84,
+              "per_service": {
+                "youtube": {
+                  "service": "youtube",
+                  "score": 100.0,
+                  "confidence": 0.8,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3211.693,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.722611,
+                  "failure_count": 0,
+                  "reason": "",
+                  "profile": {
+                    "availability": "page/API reachability",
+                    "latency": "first_byte_sec or total_sec",
+                    "content": "video/CDN score when available",
+                    "error_rate": "failure samples",
+                    "stability": "recent matrix status"
+                  }
+                },
+                "instagram": {
+                  "service": "instagram",
+                  "score": 99.492,
+                  "confidence": 0.8,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3206.562,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.800765,
+                  "failure_count": 0,
+                  "reason": "",
+                  "profile": {
+                    "availability": "feed/media endpoint reachability",
+                    "latency": "first_byte_sec or total_sec",
+                    "content": "image/video score when available",
+                    "error_rate": "failure samples",
+                    "stability": "recent matrix status"
+                  }
+                },
+                "telegram": {
+                  "service": "telegram",
+                  "score": 100.0,
+                  "confidence": 1.0,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 2345.499,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.07,
+                  "failure_count": 0,
+                  "reason": "telegram tcp endpoints reachable",
+                  "profile": {
+                    "availability": "telegram status and matrix ok",
+                    "latency": "first_byte_sec or total_sec when available",
+                    "content": "score/media checks when available",
+                    "error_rate": "failure samples and service matrix ok",
+                    "stability": "recent matrix/sentinel status"
+                  }
+                },
+                "google": {
+                  "service": "google",
+                  "score": 100.0,
+                  "confidence": 0.8,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3211.723,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.696486,
+                  "failure_count": 0,
+                  "reason": "",
+                  "profile": {}
+                },
+                "google_auth": {
+                  "service": "google_auth",
+                  "score": 92.561,
+                  "confidence": 0.8,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3204.38,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 1.493874,
+                  "failure_count": 0,
+                  "reason": "",
+                  "profile": {}
+                }
+              },
+              "ignored_failures": [
+                {
+                  "service": "anthropic",
+                  "score": 3.887,
+                  "confidence": 0.8,
+                  "status": "FAIL",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": false,
+                  "truth_class": "PROFILE_IRRELEVANT_FAIL",
+                  "planner_decision": "ignore_for_current_profile",
+                  "eligibility_behavior": "no_block",
+                  "runtime_behavior": "visible_ignored_failure",
+                  "blocked_action": "",
+                  "evidence": "service_not_requested_by_user_or_route_profile",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3206.921,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "profile_irrelevant",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 2.245014,
+                  "failure_count": 1,
+                  "reason": "curl: (22) The requested URL returned error: 404\n404 2.245014 2.245158",
+                  "profile": {}
+                }
+              ],
+              "required_missing": [],
+              "required_low": [],
+              "route_class_fitness": "OK",
+              "semantics": "service suitability 0-100; not generic Mbps"
+            },
+            "quality_decision": {
+              "min_avg_mbps": 15.0,
+              "min_floor_mbps": 10.0,
+              "min_stability": 0.45,
+              "hist_1h_avg_mbps": 60.0,
+              "hist_1h_min_mbps": 40.0,
+              "hist_1h_stability": 0.8,
+              "evidence_backed_exception": false,
+              "service_aggregate_score": 98.411
+            },
+            "capacity_decision": {
+              "capacity_score": 92.857,
+              "load_penalty": 0.0,
+              "projected_load": {
+                "users": 1,
+                "soft_limit": 11,
+                "hard_limit": 14,
+                "status": "OK"
+              },
+              "capacity_decision": "capacity_available",
+              "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+            },
+            "routing_intelligence": {
+              "schema_version": "ri3.candidate-advisory-score.v1",
+              "target": "awg0",
+              "score_part": 0.0,
+              "advisory_score": 0.0,
+              "recommendation": "neutral",
+              "planner_influence_active": false,
+              "explainability": [
+                "routing_intelligence_candidate_score_missing"
+              ],
+              "authority": {
+                "routing_intelligence": "advice_only",
+                "candidate_creation": "forbidden",
+                "hard_gate_override": "forbidden",
+                "governance_authority": "none",
+                "runtime_execution_authority": "none"
+              }
+            },
+            "ctr_advisory": {
+              "schema_version": "v7.ctr.candidate-advisory.v1",
+              "available": false,
+              "state": "UNKNOWN",
+              "reason": "channel_trust_recovery_missing",
+              "recovery_state": "UNKNOWN",
+              "recovery_path": "collect_channel_trust_recovery_snapshot",
+              "confidence": 0.0,
+              "trust_score": 0.0,
+              "current_service_score": 0.0,
+              "soft_adjustment": 0.0,
+              "advisory_score": 0.0,
+              "recommended_action": "observe",
+              "blocked_actions": [
+                "direct_user_switch",
+                "governance_bypass"
+              ],
+              "planner_score_applied": false,
+              "hard_gate_applied": false,
+              "target_suppression_applied": false,
+              "authority": {
+                "planner_decision_owner": "tools/v7-users-autoswitch",
+                "governance_authority": "none",
+                "runtime_execution_authority": "none",
+                "selected_moves_write_authority": "none"
+              }
+            },
+            "ctr_score_simulation": {
+              "schema_version": "v7.ctr.dry-run-score-simulation.v1",
+              "mode": "dry_run_simulation_only",
+              "existing_score": 2093.794,
+              "ctr_soft_adjustment": 0.0,
+              "simulated_score": 2093.794,
+              "score_delta": 0.0,
+              "old_position": 4,
+              "new_position": 4,
+              "ranking_delta": 0,
+              "ctr_state": "UNKNOWN",
+              "reason": "ctr_state_unknown_soft_adjustment_simulated",
+              "why_changed": "channel_trust_recovery_missing",
+              "service_impact": {
+                "aggregate_score": 98.411,
+                "required_missing": [],
+                "required_low": [],
+                "ctr_current_service_score": 0.0
+              },
+              "capacity_impact": {
+                "capacity_score": 92.857,
+                "load_penalty": 0.0,
+                "projected_load": {
+                  "users": 1,
+                  "soft_limit": 11,
+                  "hard_limit": 14,
+                  "status": "OK"
+                },
+                "capacity_decision": "capacity_available",
+                "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+              },
+              "trust_impact": {
+                "trust_score": 0.0,
+                "advisory_score": 0.0,
+                "confidence": 0.0
+              },
+              "recovery_impact": {
+                "recovery_state": "UNKNOWN",
+                "recovery_path": "collect_channel_trust_recovery_snapshot",
+                "recommended_action": "observe",
+                "blocked_actions": [
+                  "direct_user_switch",
+                  "governance_bypass"
+                ]
+              },
+              "planner_score_applied": false,
+              "planner_ranking_changed": false,
+              "selected_moves_changed": false,
+              "runtime_behavior_changed": false,
+              "simulation_authority": "none"
+            },
+            "best_available_pool": true,
+            "pool_rank": 3,
+            "pool_reason": "best_available_pool_member",
+            "pool_cutoff_reason": "",
+            "avg_mbps": 60.0,
+            "min_mbps": 40.0,
+            "stability": 0.8,
+            "users": 1,
+            "capacity_users": 0,
+            "load": {
+              "users": 1,
+              "soft_limit": 11,
+              "hard_limit": 14,
+              "failover_hard_limit": 18,
+              "capacity_users": 0,
+              "status": "OK"
+            },
+            "quality_history": {
+              "windows": {
+                "1h": {
+                  "avg_mbps": 60,
+                  "min_mbps": 40,
+                  "stability": 0.8,
+                  "fail_rate": 0.0
+                }
+              },
+              "score": {
+                "current": 100,
+                "trend": "stable",
+                "penalty": 0
+              }
+            },
+            "safety": {},
+            "telegram": {
+              "required": true,
+              "status": "OK",
+              "ok": true,
+              "hard_blocked": false,
+              "degraded": false,
+              "bad_now": false,
+              "bad_for_seconds": 0.0,
+              "score": 100.0,
+              "reason": "telegram tcp endpoints reachable",
+              "source": "matrix"
+            },
+            "role": "GLOBAL_STABLE",
+            "canary_reserved": false,
+            "groups": [],
+            "exclusive_group": ""
+          },
+          {
+            "egress": "1",
+            "eligible": false,
+            "score": 0.0,
+            "blocked": [
+              "telegram_required_down"
+            ],
+            "reasons": [
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_google_ok",
+              "service_google_auth_truth_stale",
+              "route_class_VIDEO_OPTIMIZED_ok"
+            ],
+            "score_parts": {},
+            "severity_classification": {
+              "severity": "OK",
+              "category": "normal",
+              "hard_block": false,
+              "reason": ""
+            },
+            "service_suitability": {
+              "schema_version": 1,
+              "route_class": "VIDEO_OPTIMIZED",
+              "aggregate_score": 60.399,
+              "confidence": 0.56,
+              "per_service": {
+                "youtube": {
+                  "service": "youtube",
+                  "score": 100.0,
+                  "confidence": 0.7,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "UNKNOWN",
+                    "age_seconds": null,
+                    "runtime_behavior": "fail_closed_if_required"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.068,
+                  "failure_count": 0,
+                  "reason": "reachable",
+                  "profile": {
+                    "availability": "page/API reachability",
+                    "latency": "first_byte_sec or total_sec",
+                    "content": "video/CDN score when available",
+                    "error_rate": "failure samples",
+                    "stability": "recent matrix status"
+                  }
+                },
+                "instagram": {
+                  "service": "instagram",
+                  "score": 100.0,
+                  "confidence": 0.7,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "UNKNOWN",
+                    "age_seconds": null,
+                    "runtime_behavior": "fail_closed_if_required"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.387,
+                  "failure_count": 0,
+                  "reason": "reachable",
+                  "profile": {
+                    "availability": "feed/media endpoint reachability",
+                    "latency": "first_byte_sec or total_sec",
+                    "content": "image/video score when available",
+                    "error_rate": "failure samples",
+                    "stability": "recent matrix status"
+                  }
+                },
+                "telegram": {
+                  "service": "telegram",
+                  "score": 1.995,
+                  "confidence": 0.7,
+                  "status": "FAIL",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "TRANSIENT_FAIL",
+                  "planner_decision": "degrade_and_require_bounded_revalidation",
+                  "eligibility_behavior": "penalty_only_until_persistent",
+                  "runtime_behavior": "bounded_revalidation_before_promotion",
+                  "blocked_action": "",
+                  "evidence": "failure_samples_1",
+                  "critical_unknown_truth": false,
+                  "freshness": {
+                    "state": "UNKNOWN",
+                    "age_seconds": null,
+                    "runtime_behavior": "fail_closed_if_required"
+                  },
+                  "revalidation": {
+                    "mode": "bounded_required",
+                    "reason": "transient_failure_needs_targeted_recheck",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "profile_relevant_only": true,
+                    "existing_command": [
+                      "tools/v7-service-matrix-test",
+                      "1",
+                      "telegram",
+                      "--timeout",
+                      "5",
+                      "--state-dir",
+                      "/Users/ponch/Documents/New project/docs/reports/engineering/live_openvpn_trace_2026-06-30/fixture/state"
+                    ],
+                    "existing_truth_writer": "tools/v7-service-matrix-test",
+                    "truth_source": "service-matrix.json",
+                    "scope": {
+                      "egress": "1",
+                      "service": "telegram",
+                      "full_matrix_refresh": false,
+                      "healthy_services_scanned": false,
+                      "history_scan": false
+                    }
+                  },
+                  "latency_sec": 3.002,
+                  "failure_count": 1,
+                  "reason": "curl: (28) Connection timed out after 3002 milliseconds",
+                  "profile": {
+                    "availability": "telegram status and matrix ok",
+                    "latency": "first_byte_sec or total_sec when available",
+                    "content": "score/media checks when available",
+                    "error_rate": "failure samples and service matrix ok",
+                    "stability": "recent matrix/sentinel status"
+                  }
+                },
+                "google": {
+                  "service": "google",
+                  "score": 100.0,
+                  "confidence": 0.7,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "UNKNOWN",
+                    "age_seconds": null,
+                    "runtime_behavior": "fail_closed_if_required"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.069,
+                  "failure_count": 0,
+                  "reason": "reachable",
+                  "profile": {}
+                },
+                "google_auth": {
+                  "service": "google_auth",
+                  "score": 0.0,
+                  "confidence": 0.0,
+                  "status": "UNKNOWN",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "STALE_SERVICE_TRUTH",
+                  "planner_decision": "unknown_service_truth",
+                  "eligibility_behavior": "block_if_required",
+                  "runtime_behavior": "fail_closed_if_required",
+                  "blocked_action": "",
+                  "evidence": "service_evidence_missing",
+                  "freshness": {
+                    "state": "UNKNOWN",
+                    "age_seconds": null,
+                    "runtime_behavior": "fail_closed_if_required"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "no_existing_row_to_revalidate_inside_planner_loop",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": [
+                      "tools/v7-service-matrix-test",
+                      "1",
+                      "google_auth",
+                      "--timeout",
+                      "5",
+                      "--state-dir",
+                      "/Users/ponch/Documents/New project/docs/reports/engineering/live_openvpn_trace_2026-06-30/fixture/state"
+                    ],
+                    "existing_truth_writer": "tools/v7-service-matrix-test",
+                    "truth_source": "service-matrix.json",
+                    "scope": {
+                      "egress": "1",
+                      "service": "google_auth",
+                      "full_matrix_refresh": false,
+                      "healthy_services_scanned": false,
+                      "history_scan": false
+                    }
+                  },
+                  "reason": "service_evidence_missing",
+                  "profile": {}
+                }
+              },
+              "ignored_failures": [
+                {
+                  "service": "whatsapp",
+                  "score": 1.992,
+                  "confidence": 0.7,
+                  "status": "FAIL",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": false,
+                  "truth_class": "PROFILE_IRRELEVANT_FAIL",
+                  "planner_decision": "ignore_for_current_profile",
+                  "eligibility_behavior": "no_block",
+                  "runtime_behavior": "visible_ignored_failure",
+                  "blocked_action": "",
+                  "evidence": "service_not_requested_by_user_or_route_profile",
+                  "freshness": {
+                    "state": "UNKNOWN",
+                    "age_seconds": null,
+                    "runtime_behavior": "fail_closed_if_required"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "profile_irrelevant",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 3.003,
+                  "failure_count": 1,
+                  "reason": "curl: (28) Connection timed out after 3002 milliseconds",
+                  "profile": {}
+                }
+              ],
+              "required_missing": [],
+              "required_low": [],
+              "route_class_fitness": "OK",
+              "semantics": "service suitability 0-100; not generic Mbps"
+            },
+            "quality_decision": {
+              "min_avg_mbps": 15.0,
+              "min_floor_mbps": 10.0,
+              "min_stability": 0.45,
+              "hist_1h_avg_mbps": 60.0,
+              "hist_1h_min_mbps": 40.0,
+              "hist_1h_stability": 0.8,
+              "evidence_backed_exception": false,
+              "service_aggregate_score": 60.399
+            },
+            "capacity_decision": {
+              "capacity_score": 100.0,
+              "load_penalty": 0.0,
+              "projected_load": {
+                "users": 0,
+                "soft_limit": 11,
+                "hard_limit": 14,
+                "status": "OK"
+              },
+              "capacity_decision": "empty_capacity_available",
+              "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+            },
+            "routing_intelligence": {
+              "schema_version": "ri3.candidate-advisory-score.v1",
+              "target": "1",
+              "score_part": 0.0,
+              "advisory_score": 0.0,
+              "recommendation": "neutral",
+              "planner_influence_active": false,
+              "explainability": [
+                "routing_intelligence_candidate_score_missing"
+              ],
+              "authority": {
+                "routing_intelligence": "advice_only",
+                "candidate_creation": "forbidden",
+                "hard_gate_override": "forbidden",
+                "governance_authority": "none",
+                "runtime_execution_authority": "none"
+              }
+            },
+            "ctr_advisory": {
+              "schema_version": "v7.ctr.candidate-advisory.v1",
+              "available": false,
+              "state": "UNKNOWN",
+              "reason": "channel_trust_recovery_missing",
+              "recovery_state": "UNKNOWN",
+              "recovery_path": "collect_channel_trust_recovery_snapshot",
+              "confidence": 0.0,
+              "trust_score": 0.0,
+              "current_service_score": 0.0,
+              "soft_adjustment": 0.0,
+              "advisory_score": 0.0,
+              "recommended_action": "observe",
+              "blocked_actions": [
+                "direct_user_switch",
+                "governance_bypass"
+              ],
+              "planner_score_applied": false,
+              "hard_gate_applied": false,
+              "target_suppression_applied": false,
+              "authority": {
+                "planner_decision_owner": "tools/v7-users-autoswitch",
+                "governance_authority": "none",
+                "runtime_execution_authority": "none",
+                "selected_moves_write_authority": "none"
+              }
+            },
+            "ctr_score_simulation": {
+              "schema_version": "v7.ctr.dry-run-score-simulation.v1",
+              "mode": "dry_run_simulation_only",
+              "existing_score": 0.0,
+              "ctr_soft_adjustment": 0.0,
+              "simulated_score": 0.0,
+              "score_delta": 0.0,
+              "old_position": 5,
+              "new_position": 5,
+              "ranking_delta": 0,
+              "ctr_state": "UNKNOWN",
+              "reason": "ctr_state_unknown_soft_adjustment_simulated",
+              "why_changed": "channel_trust_recovery_missing",
+              "service_impact": {
+                "aggregate_score": 60.399,
+                "required_missing": [],
+                "required_low": [],
+                "ctr_current_service_score": 0.0
+              },
+              "capacity_impact": {
+                "capacity_score": 100.0,
+                "load_penalty": 0.0,
+                "projected_load": {
+                  "users": 0,
+                  "soft_limit": 11,
+                  "hard_limit": 14,
+                  "status": "OK"
+                },
+                "capacity_decision": "empty_capacity_available",
+                "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+              },
+              "trust_impact": {
+                "trust_score": 0.0,
+                "advisory_score": 0.0,
+                "confidence": 0.0
+              },
+              "recovery_impact": {
+                "recovery_state": "UNKNOWN",
+                "recovery_path": "collect_channel_trust_recovery_snapshot",
+                "recommended_action": "observe",
+                "blocked_actions": [
+                  "direct_user_switch",
+                  "governance_bypass"
+                ]
+              },
+              "planner_score_applied": false,
+              "planner_ranking_changed": false,
+              "selected_moves_changed": false,
+              "runtime_behavior_changed": false,
+              "simulation_authority": "none"
+            },
+            "best_available_pool": false,
+            "pool_rank": 0,
+            "pool_reason": "",
+            "pool_cutoff_reason": "",
+            "avg_mbps": 60.0,
+            "min_mbps": 40.0,
+            "stability": 0.8,
+            "users": 0,
+            "capacity_users": 0,
+            "load": {
+              "users": 0,
+              "soft_limit": 11,
+              "hard_limit": 14,
+              "failover_hard_limit": 18,
+              "capacity_users": 0,
+              "status": "OK"
+            },
+            "quality_history": {
+              "windows": {
+                "1h": {
+                  "avg_mbps": 60,
+                  "min_mbps": 40,
+                  "stability": 0.8,
+                  "fail_rate": 0.0
+                }
+              },
+              "score": {
+                "current": 100,
+                "trend": "stable",
+                "penalty": 0
+              }
+            },
+            "safety": {},
+            "telegram": {
+              "required": true,
+              "status": "DOWN",
+              "ok": false,
+              "hard_blocked": true,
+              "degraded": false,
+              "bad_now": false,
+              "bad_for_seconds": 0.0,
+              "score": 0.0,
+              "reason": "curl: (28) Connection timed out after 3002 milliseconds",
+              "source": "matrix"
+            },
+            "role": "GLOBAL_FAST",
+            "canary_reserved": false,
+            "groups": [],
+            "exclusive_group": ""
+          },
+          {
+            "egress": "amneziawg-exec-20260528-10-8-1-14",
+            "eligible": false,
+            "score": 0.0,
+            "blocked": [
+              "manual_only",
+              "reserve_only",
+              "canary_reserved_production_assignment_blocked"
+            ],
+            "reasons": [
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_telegram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "route_class_VIDEO_OPTIMIZED_ok"
+            ],
+            "score_parts": {},
+            "severity_classification": {
+              "severity": "OK",
+              "category": "normal",
+              "hard_block": false,
+              "reason": ""
+            },
+            "service_suitability": {
+              "schema_version": 1,
+              "route_class": "VIDEO_OPTIMIZED",
+              "aggregate_score": 100.0,
+              "confidence": 0.84,
+              "per_service": {
+                "youtube": {
+                  "service": "youtube",
+                  "score": 100.0,
+                  "confidence": 0.8,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3162.633,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.296122,
+                  "failure_count": 0,
+                  "reason": "",
+                  "profile": {
+                    "availability": "page/API reachability",
+                    "latency": "first_byte_sec or total_sec",
+                    "content": "video/CDN score when available",
+                    "error_rate": "failure samples",
+                    "stability": "recent matrix status"
+                  }
+                },
+                "instagram": {
+                  "service": "instagram",
+                  "score": 100.0,
+                  "confidence": 0.8,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3161.879,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.45147,
+                  "failure_count": 0,
+                  "reason": "",
+                  "profile": {
+                    "availability": "feed/media endpoint reachability",
+                    "latency": "first_byte_sec or total_sec",
+                    "content": "image/video score when available",
+                    "error_rate": "failure samples",
+                    "stability": "recent matrix status"
+                  }
+                },
+                "telegram": {
+                  "service": "telegram",
+                  "score": 100.0,
+                  "confidence": 1.0,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 2345.488,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.07,
+                  "failure_count": 0,
+                  "reason": "telegram tcp endpoints reachable",
+                  "profile": {
+                    "availability": "telegram status and matrix ok",
+                    "latency": "first_byte_sec or total_sec when available",
+                    "content": "score/media checks when available",
+                    "error_rate": "failure samples and service matrix ok",
+                    "stability": "recent matrix/sentinel status"
+                  }
+                },
+                "google": {
+                  "service": "google",
+                  "score": 100.0,
+                  "confidence": 0.8,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3162.656,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.254883,
+                  "failure_count": 0,
+                  "reason": "",
+                  "profile": {}
+                },
+                "google_auth": {
+                  "service": "google_auth",
+                  "score": 100.0,
+                  "confidence": 0.8,
+                  "status": "OK",
+                  "available": true,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "HEALTHY",
+                  "planner_decision": "service_truth_accepted",
+                  "eligibility_behavior": "allow",
+                  "runtime_behavior": "use_existing_truth",
+                  "blocked_action": "",
+                  "evidence": "fresh_ok_or_degraded_truth",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3161.731,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.610259,
+                  "failure_count": 0,
+                  "reason": "",
+                  "profile": {}
+                }
+              },
+              "ignored_failures": [
+                {
+                  "service": "anthropic",
+                  "score": 12.0,
+                  "confidence": 0.8,
+                  "status": "FAIL",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": false,
+                  "truth_class": "PROFILE_IRRELEVANT_FAIL",
+                  "planner_decision": "ignore_for_current_profile",
+                  "eligibility_behavior": "no_block",
+                  "runtime_behavior": "visible_ignored_failure",
+                  "blocked_action": "",
+                  "evidence": "service_not_requested_by_user_or_route_profile",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3161.671,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "profile_irrelevant",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.290327,
+                  "failure_count": 1,
+                  "reason": "curl: (22) The requested URL returned error: 404\n404 0.290327 0.290414",
+                  "profile": {}
+                }
+              ],
+              "required_missing": [],
+              "required_low": [],
+              "route_class_fitness": "OK",
+              "semantics": "service suitability 0-100; not generic Mbps"
+            },
+            "quality_decision": {
+              "min_avg_mbps": 15.0,
+              "min_floor_mbps": 10.0,
+              "min_stability": 0.45,
+              "hist_1h_avg_mbps": 60.0,
+              "hist_1h_min_mbps": 40.0,
+              "hist_1h_stability": 0.8,
+              "evidence_backed_exception": false,
+              "service_aggregate_score": 100.0
+            },
+            "capacity_decision": {
+              "capacity_score": 100.0,
+              "load_penalty": 0.0,
+              "projected_load": {
+                "users": 0,
+                "soft_limit": 11,
+                "hard_limit": 14,
+                "status": "OK"
+              },
+              "capacity_decision": "empty_capacity_available",
+              "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+            },
+            "routing_intelligence": {
+              "schema_version": "ri3.candidate-advisory-score.v1",
+              "target": "amneziawg-exec-20260528-10-8-1-14",
+              "score_part": 0.0,
+              "advisory_score": 0.0,
+              "recommendation": "neutral",
+              "planner_influence_active": false,
+              "explainability": [
+                "routing_intelligence_candidate_score_missing"
+              ],
+              "authority": {
+                "routing_intelligence": "advice_only",
+                "candidate_creation": "forbidden",
+                "hard_gate_override": "forbidden",
+                "governance_authority": "none",
+                "runtime_execution_authority": "none"
+              }
+            },
+            "ctr_advisory": {
+              "schema_version": "v7.ctr.candidate-advisory.v1",
+              "available": false,
+              "state": "UNKNOWN",
+              "reason": "channel_trust_recovery_missing",
+              "recovery_state": "UNKNOWN",
+              "recovery_path": "collect_channel_trust_recovery_snapshot",
+              "confidence": 0.0,
+              "trust_score": 0.0,
+              "current_service_score": 0.0,
+              "soft_adjustment": 0.0,
+              "advisory_score": 0.0,
+              "recommended_action": "observe",
+              "blocked_actions": [
+                "direct_user_switch",
+                "governance_bypass"
+              ],
+              "planner_score_applied": false,
+              "hard_gate_applied": false,
+              "target_suppression_applied": false,
+              "authority": {
+                "planner_decision_owner": "tools/v7-users-autoswitch",
+                "governance_authority": "none",
+                "runtime_execution_authority": "none",
+                "selected_moves_write_authority": "none"
+              }
+            },
+            "ctr_score_simulation": {
+              "schema_version": "v7.ctr.dry-run-score-simulation.v1",
+              "mode": "dry_run_simulation_only",
+              "existing_score": 0.0,
+              "ctr_soft_adjustment": 0.0,
+              "simulated_score": 0.0,
+              "score_delta": 0.0,
+              "old_position": 6,
+              "new_position": 6,
+              "ranking_delta": 0,
+              "ctr_state": "UNKNOWN",
+              "reason": "ctr_state_unknown_soft_adjustment_simulated",
+              "why_changed": "channel_trust_recovery_missing",
+              "service_impact": {
+                "aggregate_score": 100.0,
+                "required_missing": [],
+                "required_low": [],
+                "ctr_current_service_score": 0.0
+              },
+              "capacity_impact": {
+                "capacity_score": 100.0,
+                "load_penalty": 0.0,
+                "projected_load": {
+                  "users": 0,
+                  "soft_limit": 11,
+                  "hard_limit": 14,
+                  "status": "OK"
+                },
+                "capacity_decision": "empty_capacity_available",
+                "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+              },
+              "trust_impact": {
+                "trust_score": 0.0,
+                "advisory_score": 0.0,
+                "confidence": 0.0
+              },
+              "recovery_impact": {
+                "recovery_state": "UNKNOWN",
+                "recovery_path": "collect_channel_trust_recovery_snapshot",
+                "recommended_action": "observe",
+                "blocked_actions": [
+                  "direct_user_switch",
+                  "governance_bypass"
+                ]
+              },
+              "planner_score_applied": false,
+              "planner_ranking_changed": false,
+              "selected_moves_changed": false,
+              "runtime_behavior_changed": false,
+              "simulation_authority": "none"
+            },
+            "best_available_pool": false,
+            "pool_rank": 0,
+            "pool_reason": "",
+            "pool_cutoff_reason": "",
+            "avg_mbps": 60.0,
+            "min_mbps": 40.0,
+            "stability": 0.8,
+            "users": 0,
+            "capacity_users": 0,
+            "load": {
+              "users": 0,
+              "soft_limit": 11,
+              "hard_limit": 14,
+              "failover_hard_limit": 18,
+              "capacity_users": 0,
+              "status": "OK"
+            },
+            "quality_history": {
+              "windows": {
+                "1h": {
+                  "avg_mbps": 60,
+                  "min_mbps": 40,
+                  "stability": 0.8,
+                  "fail_rate": 0.0
+                }
+              },
+              "score": {
+                "current": 100,
+                "trend": "stable",
+                "penalty": 0
+              }
+            },
+            "safety": {},
+            "telegram": {
+              "required": true,
+              "status": "OK",
+              "ok": true,
+              "hard_blocked": false,
+              "degraded": false,
+              "bad_now": false,
+              "bad_for_seconds": 0.0,
+              "score": 100.0,
+              "reason": "telegram tcp endpoints reachable",
+              "source": "matrix"
+            },
+            "role": "EXECUTION_ONLY",
+            "canary_reserved": true,
+            "groups": [],
+            "exclusive_group": ""
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "eligible": false,
+            "score": 0.0,
+            "blocked": [
+              "telegram_required_telegram_down_14s",
+              "planned_hard_full"
+            ],
+            "reasons": [
+              "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+              "service_multiple_transient_failed_degraded",
+              "service_youtube_transient_fail",
+              "service_youtube_degraded",
+              "service_youtube_failed_samples_1",
+              "service_instagram_transient_fail",
+              "service_instagram_degraded",
+              "service_instagram_failed_samples_1",
+              "service_google_transient_fail",
+              "service_google_degraded",
+              "service_google_failed_samples_1",
+              "service_google_auth_transient_fail",
+              "service_google_auth_degraded",
+              "service_google_auth_failed_samples_1",
+              "service_signal_DEGRADED_SERVICE",
+              "route_class_VIDEO_OPTIMIZED_failed_nonpersistent_service_truth",
+              "service_signal_ROUTE_FAIL_REVALIDATION_REQUIRED"
+            ],
+            "score_parts": {},
+            "severity_classification": {
+              "severity": "OK",
+              "category": "normal",
+              "hard_block": false,
+              "reason": ""
+            },
+            "service_suitability": {
+              "schema_version": 1,
+              "route_class": "VIDEO_OPTIMIZED",
+              "aggregate_score": 2.788,
+              "confidence": 0.72,
+              "per_service": {
+                "youtube": {
+                  "service": "youtube",
+                  "score": 0.0,
+                  "confidence": 0.65,
+                  "status": "FAIL",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "TRANSIENT_FAIL",
+                  "planner_decision": "degrade_and_require_bounded_revalidation",
+                  "eligibility_behavior": "penalty_only_until_persistent",
+                  "runtime_behavior": "bounded_revalidation_before_promotion",
+                  "blocked_action": "",
+                  "evidence": "failure_samples_1",
+                  "critical_unknown_truth": false,
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3175.45,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "bounded_required",
+                    "reason": "transient_failure_needs_targeted_recheck",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "profile_relevant_only": true,
+                    "existing_command": [
+                      "tools/v7-service-matrix-test",
+                      "openvpn-1779388847-d2ad7c",
+                      "youtube",
+                      "--timeout",
+                      "5",
+                      "--state-dir",
+                      "/Users/ponch/Documents/New project/docs/reports/engineering/live_openvpn_trace_2026-06-30/fixture/state"
+                    ],
+                    "existing_truth_writer": "tools/v7-service-matrix-test",
+                    "truth_source": "service-matrix.json",
+                    "scope": {
+                      "egress": "openvpn-1779388847-d2ad7c",
+                      "service": "youtube",
+                      "full_matrix_refresh": false,
+                      "healthy_services_scanned": false,
+                      "history_scan": false
+                    }
+                  },
+                  "latency_sec": 0.0,
+                  "failure_count": 1,
+                  "reason": "curl: (28) Connection timed out after 8010 milliseconds\n000 0.000000 8.010033",
+                  "profile": {
+                    "availability": "page/API reachability",
+                    "latency": "first_byte_sec or total_sec",
+                    "content": "video/CDN score when available",
+                    "error_rate": "failure samples",
+                    "stability": "recent matrix status"
+                  }
+                },
+                "instagram": {
+                  "service": "instagram",
+                  "score": 0.0,
+                  "confidence": 0.65,
+                  "status": "FAIL",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "TRANSIENT_FAIL",
+                  "planner_decision": "degrade_and_require_bounded_revalidation",
+                  "eligibility_behavior": "penalty_only_until_persistent",
+                  "runtime_behavior": "bounded_revalidation_before_promotion",
+                  "blocked_action": "",
+                  "evidence": "failure_samples_1",
+                  "critical_unknown_truth": false,
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3175.451,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "bounded_required",
+                    "reason": "transient_failure_needs_targeted_recheck",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "profile_relevant_only": true,
+                    "existing_command": [
+                      "tools/v7-service-matrix-test",
+                      "openvpn-1779388847-d2ad7c",
+                      "instagram",
+                      "--timeout",
+                      "5",
+                      "--state-dir",
+                      "/Users/ponch/Documents/New project/docs/reports/engineering/live_openvpn_trace_2026-06-30/fixture/state"
+                    ],
+                    "existing_truth_writer": "tools/v7-service-matrix-test",
+                    "truth_source": "service-matrix.json",
+                    "scope": {
+                      "egress": "openvpn-1779388847-d2ad7c",
+                      "service": "instagram",
+                      "full_matrix_refresh": false,
+                      "healthy_services_scanned": false,
+                      "history_scan": false
+                    }
+                  },
+                  "latency_sec": 0.0,
+                  "failure_count": 1,
+                  "reason": "curl: (28) Connection timed out after 8009 milliseconds\n000 0.000000 8.009245",
+                  "profile": {
+                    "availability": "feed/media endpoint reachability",
+                    "latency": "first_byte_sec or total_sec",
+                    "content": "image/video score when available",
+                    "error_rate": "failure samples",
+                    "stability": "recent matrix status"
+                  }
+                },
+                "telegram": {
+                  "service": "telegram",
+                  "score": 13.94,
+                  "confidence": 1.0,
+                  "status": "TELEGRAM_DOWN_14S",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "PERSISTENT_FAIL",
+                  "planner_decision": "block_persistent_fail",
+                  "eligibility_behavior": "block",
+                  "runtime_behavior": "fail_closed",
+                  "blocked_action": "service_telegram_persistent_failed",
+                  "evidence": "failure_samples_1",
+                  "critical_unknown_truth": false,
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 2345.499,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "bounded_required",
+                    "reason": "persistent_failure_already_blocking",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "profile_relevant_only": true,
+                    "existing_command": [
+                      "tools/v7-service-matrix-test",
+                      "openvpn-1779388847-d2ad7c",
+                      "telegram",
+                      "--timeout",
+                      "5",
+                      "--state-dir",
+                      "/Users/ponch/Documents/New project/docs/reports/engineering/live_openvpn_trace_2026-06-30/fixture/state"
+                    ],
+                    "existing_truth_writer": "tools/v7-service-matrix-test",
+                    "truth_source": "service-matrix.json",
+                    "scope": {
+                      "egress": "openvpn-1779388847-d2ad7c",
+                      "service": "telegram",
+                      "full_matrix_refresh": false,
+                      "healthy_services_scanned": false,
+                      "history_scan": false
+                    }
+                  },
+                  "latency_sec": 1.056,
+                  "failure_count": 1,
+                  "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+                  "profile": {
+                    "availability": "telegram status and matrix ok",
+                    "latency": "first_byte_sec or total_sec when available",
+                    "content": "score/media checks when available",
+                    "error_rate": "failure samples and service matrix ok",
+                    "stability": "recent matrix/sentinel status"
+                  }
+                },
+                "google": {
+                  "service": "google",
+                  "score": 0.0,
+                  "confidence": 0.65,
+                  "status": "FAIL",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "TRANSIENT_FAIL",
+                  "planner_decision": "degrade_and_require_bounded_revalidation",
+                  "eligibility_behavior": "penalty_only_until_persistent",
+                  "runtime_behavior": "bounded_revalidation_before_promotion",
+                  "blocked_action": "",
+                  "evidence": "failure_samples_1",
+                  "critical_unknown_truth": false,
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3175.467,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "bounded_required",
+                    "reason": "transient_failure_needs_targeted_recheck",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "profile_relevant_only": true,
+                    "existing_command": [
+                      "tools/v7-service-matrix-test",
+                      "openvpn-1779388847-d2ad7c",
+                      "google",
+                      "--timeout",
+                      "5",
+                      "--state-dir",
+                      "/Users/ponch/Documents/New project/docs/reports/engineering/live_openvpn_trace_2026-06-30/fixture/state"
+                    ],
+                    "existing_truth_writer": "tools/v7-service-matrix-test",
+                    "truth_source": "service-matrix.json",
+                    "scope": {
+                      "egress": "openvpn-1779388847-d2ad7c",
+                      "service": "google",
+                      "full_matrix_refresh": false,
+                      "healthy_services_scanned": false,
+                      "history_scan": false
+                    }
+                  },
+                  "latency_sec": 0.0,
+                  "failure_count": 1,
+                  "reason": "curl: (28) Connection timed out after 8001 milliseconds\n000 0.000000 8.001568",
+                  "profile": {}
+                },
+                "google_auth": {
+                  "service": "google_auth",
+                  "score": 0.0,
+                  "confidence": 0.65,
+                  "status": "FAIL",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": true,
+                  "truth_class": "TRANSIENT_FAIL",
+                  "planner_decision": "degrade_and_require_bounded_revalidation",
+                  "eligibility_behavior": "penalty_only_until_persistent",
+                  "runtime_behavior": "bounded_revalidation_before_promotion",
+                  "blocked_action": "",
+                  "evidence": "failure_samples_1",
+                  "critical_unknown_truth": false,
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3175.452,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "bounded_required",
+                    "reason": "transient_failure_needs_targeted_recheck",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "profile_relevant_only": true,
+                    "existing_command": [
+                      "tools/v7-service-matrix-test",
+                      "openvpn-1779388847-d2ad7c",
+                      "google_auth",
+                      "--timeout",
+                      "5",
+                      "--state-dir",
+                      "/Users/ponch/Documents/New project/docs/reports/engineering/live_openvpn_trace_2026-06-30/fixture/state"
+                    ],
+                    "existing_truth_writer": "tools/v7-service-matrix-test",
+                    "truth_source": "service-matrix.json",
+                    "scope": {
+                      "egress": "openvpn-1779388847-d2ad7c",
+                      "service": "google_auth",
+                      "full_matrix_refresh": false,
+                      "healthy_services_scanned": false,
+                      "history_scan": false
+                    }
+                  },
+                  "latency_sec": 0.0,
+                  "failure_count": 1,
+                  "reason": "curl: (28) Connection timed out after 8007 milliseconds\n000 0.000000 8.007541",
+                  "profile": {}
+                }
+              },
+              "ignored_failures": [
+                {
+                  "service": "anthropic",
+                  "score": 0.0,
+                  "confidence": 0.65,
+                  "status": "FAIL",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": false,
+                  "truth_class": "PROFILE_IRRELEVANT_FAIL",
+                  "planner_decision": "ignore_for_current_profile",
+                  "eligibility_behavior": "no_block",
+                  "runtime_behavior": "visible_ignored_failure",
+                  "blocked_action": "",
+                  "evidence": "service_not_requested_by_user_or_route_profile",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3167.381,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "profile_irrelevant",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.0,
+                  "failure_count": 1,
+                  "reason": "curl: (28) Connection timed out after 8008 milliseconds\n000 0.000000 8.008356",
+                  "profile": {}
+                },
+                {
+                  "service": "apple",
+                  "score": 0.0,
+                  "confidence": 0.65,
+                  "status": "FAIL",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": false,
+                  "truth_class": "PROFILE_IRRELEVANT_FAIL",
+                  "planner_decision": "ignore_for_current_profile",
+                  "eligibility_behavior": "no_block",
+                  "runtime_behavior": "visible_ignored_failure",
+                  "blocked_action": "",
+                  "evidence": "service_not_requested_by_user_or_route_profile",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3175.449,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "profile_irrelevant",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.0,
+                  "failure_count": 1,
+                  "reason": "curl: (28) Connection timed out after 8003 milliseconds\n000 0.000000 8.003718",
+                  "profile": {}
+                },
+                {
+                  "service": "chatgpt",
+                  "score": 0.0,
+                  "confidence": 0.65,
+                  "status": "FAIL",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": false,
+                  "truth_class": "PROFILE_IRRELEVANT_FAIL",
+                  "planner_decision": "ignore_for_current_profile",
+                  "eligibility_behavior": "no_block",
+                  "runtime_behavior": "visible_ignored_failure",
+                  "blocked_action": "",
+                  "evidence": "service_not_requested_by_user_or_route_profile",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3167.375,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "profile_irrelevant",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.0,
+                  "failure_count": 1,
+                  "reason": "curl: (28) Connection timed out after 8002 milliseconds\n000 0.000000 8.002623",
+                  "profile": {
+                    "availability": "chatgpt.com reachability",
+                    "latency": "first_byte_sec or total_sec",
+                    "content": "response/stream score when available",
+                    "error_rate": "failure samples",
+                    "stability": "recent matrix status"
+                  }
+                },
+                {
+                  "service": "claude",
+                  "score": 0.0,
+                  "confidence": 0.65,
+                  "status": "FAIL",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": false,
+                  "truth_class": "PROFILE_IRRELEVANT_FAIL",
+                  "planner_decision": "ignore_for_current_profile",
+                  "eligibility_behavior": "no_block",
+                  "runtime_behavior": "visible_ignored_failure",
+                  "blocked_action": "",
+                  "evidence": "service_not_requested_by_user_or_route_profile",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3167.38,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "profile_irrelevant",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.0,
+                  "failure_count": 1,
+                  "reason": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006645",
+                  "profile": {}
+                },
+                {
+                  "service": "facebook",
+                  "score": 0.0,
+                  "confidence": 0.65,
+                  "status": "FAIL",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": false,
+                  "truth_class": "PROFILE_IRRELEVANT_FAIL",
+                  "planner_decision": "ignore_for_current_profile",
+                  "eligibility_behavior": "no_block",
+                  "runtime_behavior": "visible_ignored_failure",
+                  "blocked_action": "",
+                  "evidence": "service_not_requested_by_user_or_route_profile",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3175.451,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "profile_irrelevant",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.0,
+                  "failure_count": 1,
+                  "reason": "curl: (28) Connection timed out after 8007 milliseconds\n000 0.000000 8.007595",
+                  "profile": {}
+                },
+                {
+                  "service": "openai_auth",
+                  "score": 0.0,
+                  "confidence": 0.65,
+                  "status": "FAIL",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": false,
+                  "truth_class": "PROFILE_IRRELEVANT_FAIL",
+                  "planner_decision": "ignore_for_current_profile",
+                  "eligibility_behavior": "no_block",
+                  "runtime_behavior": "visible_ignored_failure",
+                  "blocked_action": "",
+                  "evidence": "service_not_requested_by_user_or_route_profile",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3167.377,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "profile_irrelevant",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.0,
+                  "failure_count": 1,
+                  "reason": "curl: (28) Connection timed out after 8003 milliseconds\n000 0.000000 8.003248",
+                  "profile": {}
+                },
+                {
+                  "service": "soundcloud",
+                  "score": 0.0,
+                  "confidence": 0.65,
+                  "status": "FAIL",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": false,
+                  "truth_class": "PROFILE_IRRELEVANT_FAIL",
+                  "planner_decision": "ignore_for_current_profile",
+                  "eligibility_behavior": "no_block",
+                  "runtime_behavior": "visible_ignored_failure",
+                  "blocked_action": "",
+                  "evidence": "service_not_requested_by_user_or_route_profile",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3167.394,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "profile_irrelevant",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.0,
+                  "failure_count": 1,
+                  "reason": "curl: (28) Connection timed out after 8002 milliseconds\n000 0.000000 8.002406",
+                  "profile": {}
+                },
+                {
+                  "service": "spotify",
+                  "score": 0.0,
+                  "confidence": 0.65,
+                  "status": "FAIL",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": false,
+                  "truth_class": "PROFILE_IRRELEVANT_FAIL",
+                  "planner_decision": "ignore_for_current_profile",
+                  "eligibility_behavior": "no_block",
+                  "runtime_behavior": "visible_ignored_failure",
+                  "blocked_action": "",
+                  "evidence": "service_not_requested_by_user_or_route_profile",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3171.451,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "profile_irrelevant",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.0,
+                  "failure_count": 1,
+                  "reason": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006866",
+                  "profile": {}
+                },
+                {
+                  "service": "whatsapp",
+                  "score": 0.0,
+                  "confidence": 0.65,
+                  "status": "FAIL",
+                  "available": false,
+                  "required": false,
+                  "profile_relevant": false,
+                  "truth_class": "PROFILE_IRRELEVANT_FAIL",
+                  "planner_decision": "ignore_for_current_profile",
+                  "eligibility_behavior": "no_block",
+                  "runtime_behavior": "visible_ignored_failure",
+                  "blocked_action": "",
+                  "evidence": "service_not_requested_by_user_or_route_profile",
+                  "freshness": {
+                    "state": "AGING",
+                    "age_seconds": 3175.394,
+                    "runtime_behavior": "degrade_confidence"
+                  },
+                  "revalidation": {
+                    "mode": "not_run",
+                    "reason": "profile_irrelevant",
+                    "budget_seconds": 5,
+                    "target_egress_only": true,
+                    "existing_command": []
+                  },
+                  "latency_sec": 0.0,
+                  "failure_count": 1,
+                  "reason": "curl: (28) Connection timed out after 8012 milliseconds\n000 0.000000 8.012657",
+                  "profile": {}
+                }
+              ],
+              "required_missing": [],
+              "required_low": [],
+              "route_class_fitness": "FAIL",
+              "semantics": "service suitability 0-100; not generic Mbps"
+            },
+            "quality_decision": {
+              "min_avg_mbps": 15.0,
+              "min_floor_mbps": 10.0,
+              "min_stability": 0.45,
+              "hist_1h_avg_mbps": 60.0,
+              "hist_1h_min_mbps": 40.0,
+              "hist_1h_stability": 0.8,
+              "evidence_backed_exception": false,
+              "service_aggregate_score": 2.788
+            },
+            "capacity_decision": {
+              "capacity_score": 0.0,
+              "load_penalty": 16.364,
+              "projected_load": {
+                "users": 14,
+                "soft_limit": 11,
+                "hard_limit": 14,
+                "status": "HARD_FULL"
+              },
+              "capacity_decision": "hard_capacity_full",
+              "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+            },
+            "routing_intelligence": {
+              "schema_version": "ri3.candidate-advisory-score.v1",
+              "target": "openvpn-1779388847-d2ad7c",
+              "score_part": 0.0,
+              "advisory_score": 0.0,
+              "recommendation": "neutral",
+              "planner_influence_active": false,
+              "explainability": [
+                "routing_intelligence_candidate_score_missing"
+              ],
+              "authority": {
+                "routing_intelligence": "advice_only",
+                "candidate_creation": "forbidden",
+                "hard_gate_override": "forbidden",
+                "governance_authority": "none",
+                "runtime_execution_authority": "none"
+              }
+            },
+            "ctr_advisory": {
+              "schema_version": "v7.ctr.candidate-advisory.v1",
+              "available": false,
+              "state": "UNKNOWN",
+              "reason": "channel_trust_recovery_missing",
+              "recovery_state": "UNKNOWN",
+              "recovery_path": "collect_channel_trust_recovery_snapshot",
+              "confidence": 0.0,
+              "trust_score": 0.0,
+              "current_service_score": 0.0,
+              "soft_adjustment": 0.0,
+              "advisory_score": 0.0,
+              "recommended_action": "observe",
+              "blocked_actions": [
+                "direct_user_switch",
+                "governance_bypass"
+              ],
+              "planner_score_applied": false,
+              "hard_gate_applied": false,
+              "target_suppression_applied": false,
+              "authority": {
+                "planner_decision_owner": "tools/v7-users-autoswitch",
+                "governance_authority": "none",
+                "runtime_execution_authority": "none",
+                "selected_moves_write_authority": "none"
+              }
+            },
+            "ctr_score_simulation": {
+              "schema_version": "v7.ctr.dry-run-score-simulation.v1",
+              "mode": "dry_run_simulation_only",
+              "existing_score": 0.0,
+              "ctr_soft_adjustment": 0.0,
+              "simulated_score": 0.0,
+              "score_delta": 0.0,
+              "old_position": 7,
+              "new_position": 7,
+              "ranking_delta": 0,
+              "ctr_state": "UNKNOWN",
+              "reason": "ctr_state_unknown_soft_adjustment_simulated",
+              "why_changed": "channel_trust_recovery_missing",
+              "service_impact": {
+                "aggregate_score": 2.788,
+                "required_missing": [],
+                "required_low": [],
+                "ctr_current_service_score": 0.0
+              },
+              "capacity_impact": {
+                "capacity_score": 0.0,
+                "load_penalty": 16.364,
+                "projected_load": {
+                  "users": 14,
+                  "soft_limit": 11,
+                  "hard_limit": 14,
+                  "status": "HARD_FULL"
+                },
+                "capacity_decision": "hard_capacity_full",
+                "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+              },
+              "trust_impact": {
+                "trust_score": 0.0,
+                "advisory_score": 0.0,
+                "confidence": 0.0
+              },
+              "recovery_impact": {
+                "recovery_state": "UNKNOWN",
+                "recovery_path": "collect_channel_trust_recovery_snapshot",
+                "recommended_action": "observe",
+                "blocked_actions": [
+                  "direct_user_switch",
+                  "governance_bypass"
+                ]
+              },
+              "planner_score_applied": false,
+              "planner_ranking_changed": false,
+              "selected_moves_changed": false,
+              "runtime_behavior_changed": false,
+              "simulation_authority": "none"
+            },
+            "best_available_pool": false,
+            "pool_rank": 0,
+            "pool_reason": "",
+            "pool_cutoff_reason": "",
+            "avg_mbps": 61.6,
+            "min_mbps": 44.14,
+            "stability": 0.717,
+            "users": 14,
+            "capacity_users": 0,
+            "load": {
+              "users": 14,
+              "soft_limit": 11,
+              "hard_limit": 14,
+              "failover_hard_limit": 18,
+              "capacity_users": 0,
+              "status": "HARD_FULL"
+            },
+            "quality_history": {
+              "windows": {
+                "1h": {
+                  "avg_mbps": 60,
+                  "min_mbps": 40,
+                  "stability": 0.8,
+                  "fail_rate": 0.0
+                }
+              },
+              "score": {
+                "current": 100,
+                "trend": "stable",
+                "penalty": 0
+              }
+            },
+            "safety": {},
+            "telegram": {
+              "required": true,
+              "status": "TELEGRAM_DOWN_14S",
+              "ok": false,
+              "hard_blocked": true,
+              "degraded": false,
+              "bad_now": false,
+              "bad_for_seconds": 2345207.1,
+              "score": 0.0,
+              "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+              "source": "matrix"
+            },
+            "role": "GLOBAL_FAST",
+            "canary_reserved": false,
+            "groups": [],
+            "exclusive_group": ""
+          }
+        ],
+        "explanation": {
+          "chosen": "vless",
+          "action": "switch",
+          "move_type": "rebalance",
+          "confidence": "low",
+          "why": [
+            "load 0/14 status OK",
+            "speed avg 60.0 Mbps min 40.0 Mbps",
+            "stability 0.8",
+            "quality trend stable score 100",
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "routing intelligence neutral score_part 0.0 risk 0.0",
+            "ctr advisory UNKNOWN action observe soft_adjustment 0.0 score_not_applied",
+            "group default allowed"
+          ],
+          "rejected": [
+            {
+              "egress": "awg3",
+              "reason": "score 2112.44 below chosen/current"
+            },
+            {
+              "egress": "wireguard-1779454504-c43409",
+              "reason": "score 2110.8 below chosen/current"
+            },
+            {
+              "egress": "awg0",
+              "reason": "score 2093.79 below chosen/current"
+            },
+            {
+              "egress": "1",
+              "reason": "telegram_required_down"
+            },
+            {
+              "egress": "amneziawg-exec-20260528-10-8-1-14",
+              "reason": "manual_only, reserve_only, canary_reserved_production_assignment_blocked"
+            },
+            {
+              "egress": "openvpn-1779388847-d2ad7c",
+              "reason": "telegram_required_telegram_down_14s, planned_hard_full"
+            }
+          ],
+          "safety": {
+            "user": {},
+            "frozen": false
+          }
+        },
+        "capacity_decision": {
+          "capacity_score": 92.857,
+          "load_penalty": 0.0,
+          "projected_load": {
+            "users": 1,
+            "soft_limit": 11,
+            "hard_limit": 14,
+            "status": "OK"
+          },
+          "capacity_decision": "capacity_available",
+          "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+        },
+        "projected_load": {
+          "users": 1,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "status": "OK"
+        },
+        "operation_id": "runtime_autoswitch_7d1a84de540d525fa249ac22",
+        "selected_move_hash": "dd37cb09bf92e82e042f428ff0eda4bfe45a03c8db443c95fbe3587349849fe7",
+        "atomic_execution_envelope_id": "aee_b0b7a31fd4d8a3b43b84f689",
+        "selected_move_index": 0
+      }
+    ],
+    "selected_moves_diagnostics": {
+      "source": "planner_selection",
+      "approved_plan_lock_present": false,
+      "approved_plan_lock_ok": false,
+      "approved_plan_lock_hash_source": "",
+      "selected_moves_before_restore_barrier": 1,
+      "selected_moves_after_gate": 1,
+      "snapshot_gate_source": "",
+      "snapshot_gate_decision": "",
+      "snapshot_gate_changed_fields": [],
+      "snapshot_gate_material_change": false,
+      "approved_plan_lock_consumed": false,
+      "planner_recomputed_after_approval": null
+    },
+    "restore_barrier": {
+      "file": "/Users/ponch/Documents/New project/docs/reports/engineering/live_openvpn_trace_2026-06-30/fixture/state/autoswitch-restore-barrier.json",
+      "enabled": true,
+      "active": true,
+      "expired": false,
+      "cleared": true,
+      "post_ttl_blocking": false,
+      "failover_quarantine": true,
+      "expires_at": "",
+      "reason": "",
+      "clearance_max_selected_moves": 0,
+      "clearance_generation_id": "fixture-generation",
+      "clearance_expires_at": "2000-01-01T00:00:00+00:00",
+      "generation_token": "fixture",
+      "apply_refresh_clearance": {
+        "generation_clearance": false,
+        "allowed_targets": [],
+        "approved_atomic_execution_envelope_id": "",
+        "approved_atomic_execution_envelope_hash": "",
+        "approved_source_bundle_hash": "",
+        "approved_snapshot_bundle_hash": "",
+        "owner": ""
+      }
+    },
+    "first_decision": {
+      "user_ip": "10.0.0.2",
+      "current_egress": "openvpn-1779388847-d2ad7c",
+      "recommended_egress": "openvpn-1779388847-d2ad7c",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "restore_barrier_failover_suppressed"
+      ],
+      "current_score": 0.0,
+      "recommended_score": 0.0,
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "route_class": "VIDEO_OPTIMIZED"
+    },
+    "candidates": [
+      {
+        "egress": "vless",
+        "eligible": true,
+        "score": 2170.34,
+        "blocked": [],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "best_available_pool_rank_1"
+        ],
+        "users": 0,
+        "load": {
+          "users": 0,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "OK"
+        }
+      },
+      {
+        "egress": "awg3",
+        "eligible": true,
+        "score": 2112.44,
+        "blocked": [],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "best_available_pool_rank_2"
+        ],
+        "users": 1,
+        "load": {
+          "users": 1,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "OK"
+        }
+      },
+      {
+        "egress": "awg0",
+        "eligible": true,
+        "score": 2093.79,
+        "blocked": [],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "best_available_pool_rank_3"
+        ],
+        "users": 1,
+        "load": {
+          "users": 1,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "OK"
+        }
+      },
+      {
+        "egress": "wireguard-1779454504-c43409",
+        "eligible": true,
+        "score": 2060.8,
+        "blocked": [],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "users": 11,
+        "load": {
+          "users": 11,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "SOFT_FULL"
+        }
+      },
+      {
+        "egress": "1",
+        "eligible": false,
+        "score": 0.0,
+        "blocked": [
+          "telegram_required_down"
+        ],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_google_ok",
+          "service_google_auth_truth_stale",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "users": 0,
+        "load": {
+          "users": 0,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "OK"
+        }
+      },
+      {
+        "egress": "amneziawg-exec-20260528-10-8-1-14",
+        "eligible": false,
+        "score": 0.0,
+        "blocked": [
+          "manual_only",
+          "reserve_only",
+          "canary_reserved_production_assignment_blocked"
+        ],
+        "reasons": [
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok"
+        ],
+        "users": 0,
+        "load": {
+          "users": 0,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "OK"
+        }
+      },
+      {
+        "egress": "openvpn-1779388847-d2ad7c",
+        "eligible": false,
+        "score": 0.0,
+        "blocked": [
+          "telegram_required_telegram_down_14s",
+          "planned_hard_full"
+        ],
+        "reasons": [
+          "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+          "service_multiple_transient_failed_degraded",
+          "service_youtube_transient_fail",
+          "service_youtube_degraded",
+          "service_youtube_failed_samples_1",
+          "service_instagram_transient_fail",
+          "service_instagram_degraded",
+          "service_instagram_failed_samples_1",
+          "service_google_transient_fail",
+          "service_google_degraded",
+          "service_google_failed_samples_1",
+          "service_google_auth_transient_fail",
+          "service_google_auth_degraded",
+          "service_google_auth_failed_samples_1",
+          "service_signal_DEGRADED_SERVICE",
+          "route_class_VIDEO_OPTIMIZED_failed_nonpersistent_service_truth",
+          "service_signal_ROUTE_FAIL_REVALIDATION_REQUIRED"
+        ],
+        "users": 14,
+        "load": {
+          "users": 14,
+          "soft_limit": 11,
+          "hard_limit": 14,
+          "failover_hard_limit": 18,
+          "capacity_users": 0,
+          "status": "HARD_FULL"
+        }
+      }
+    ]
+  }
+}

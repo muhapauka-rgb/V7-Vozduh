@@ -71,6 +71,84 @@ Values must be calculated from category status, backlog progress, certification 
 
 They must not be hand-edited as opinion.
 
+## Product Evolution Behavior Contract
+
+Status: `CANONICAL`
+
+Production Maturity is the canonical consumer of certified maturity impact after Engineering Reports.
+
+It does not consume Product Evolution Framework directly as authority.
+It consumes only existing-owner evidence produced through OMP, execution, verification, certification, and Engineering Reports.
+
+Production Maturity must consume:
+
+| Input | Required source |
+| --- | --- |
+| Capability Advancement | OMP / existing capability owner / Engineering Report. |
+| Certification Result | Existing certification owner, policy owner, action-class owner, or OMP certification path. |
+| Evidence Economy | Engineering Report evidence quality, freshness, uniqueness, and certification-grade review. |
+| Engineering Report | `docs/reports/engineering/` report with Product Evolution Field Validation and OMP behavior decision. |
+| Behavior Contract | Existing OMP behavior decision and downstream output. |
+
+Production Maturity must produce exactly one maturity decision for meaningful maturity-affecting work:
+
+| Decision | Meaning |
+| --- | --- |
+| `ACCEPT` | Certified evidence is sufficient to update maturity state or category status. |
+| `PARTIAL_ACCEPT` | Certified evidence advances only a bounded category, capability, blocker, or target status. |
+| `BLOCK` | Required evidence, certification, owner acceptance, authority, safety, production outcome, or stop-gate condition is missing. |
+| `NO_CHANGE` | Work was valid but does not change Production Maturity. |
+| `INVALID_EVIDENCE` | Evidence is synthetic, stale, duplicate, ownerless, uncertified, or otherwise not acceptable for maturity impact. |
+
+Every maturity decision must include:
+
+- consumed Engineering Report;
+- consumed certification result;
+- evidence owner;
+- certification owner;
+- affected maturity category or `NOT_APPLICABLE`;
+- current target status;
+- blocker state;
+- reason for acceptance, partial acceptance, block, no-change, or invalid evidence.
+
+Production Maturity must produce:
+
+| Output | Consumer |
+| --- | --- |
+| Accepted Maturity Advancement | Current Program State and OMP. |
+| Blocked Result | Current Program State, OMP, Engineering Report lifecycle, and Product Observation. |
+| No Change Result | Current Program State, OMP, Engineering Report lifecycle, and Learning. |
+| Current Maturity State | Current Program State and Dashboard read models. |
+| Current Target Status | Current Program State and Product Observation. |
+| Current Blockers | Current Program State, OMP, and Product Observation. |
+
+Production Maturity must not:
+
+- approve Runtime apply;
+- expand authority;
+- enable automation;
+- move users;
+- change routing;
+- create evidence;
+- create campaigns;
+- create a roadmap;
+- replace OMP;
+- become the Product Evolution Framework.
+
+## Production Maturity Completion Rule
+
+Production Maturity is behavior-complete only when:
+
+```text
+Engineering Report consumed
+  -> certification completed or explicitly marked NOT_APPLICABLE
+  -> ACCEPT / PARTIAL_ACCEPT / BLOCK / NO_CHANGE / INVALID_EVIDENCE decision produced
+  -> Current Program State updated when volatile state changes
+  -> Product Observation can consume updated Current Product Reality
+```
+
+If any link is missing, the maturity behavior chain remains incomplete and the Engineering Report must record the broken link.
+
 ## Engineering Maturity Categories
 
 Engineering Maturity is the weighted total of completed knowledge categories:

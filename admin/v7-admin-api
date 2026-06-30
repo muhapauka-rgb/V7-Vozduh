@@ -36044,6 +36044,9 @@ PersistentKeepalive = 25
       const summary = plan.summary || {};
       const dyn = plan.dynamic_load || {};
       const safety = plan.safety?.anti_flap || {};
+      const l3Surface = summary.l3_operator_surface || plan.safety?.l3_incident?.operator_surface || {};
+      const l3Ladder = summary.l3_production_validation_ladder || plan.safety?.l3_incident?.production_validation_ladder || {};
+      const l3Cert = summary.l3_certification_pipeline || plan.safety?.l3_incident?.certification_pipeline || {};
       const decisions = (plan.decisions || []).slice(0, 18);
       const rows = decisions.map(d => {
         const exp = d.explanation || {};
@@ -36051,6 +36054,23 @@ PersistentKeepalive = 25
         const rejected = (exp.rejected || []).slice(0, 4).map(r => `${r.egress}: ${r.reason}`).join('; ');
         return `<tr><td><strong>${esc(d.user_ip || '')}</strong><br><span class="muted">${esc(d.group || 'default')}</span></td><td>${esc(d.current_egress || '')}</td><td>${esc(d.recommended_egress || '')}<br>${pill(exp.confidence || d.move_type || 'check', exp.confidence === 'high' ? 'ok' : 'info')}</td><td>${esc(why || 'нет объяснения')}</td><td>${esc(rejected || 'нет блокировок')}</td></tr>`;
       });
+      const l3Section = l3Surface.incident ? drawerSection('L3 Emergency Failover', kvRows({
+        'Incident': l3Surface.incident || '',
+        'Reason': l3Surface.reason || '',
+        'Failed channel': (l3Surface.failed_channel || []).join(', '),
+        'Affected users': (l3Surface.affected_users || []).join(', '),
+        'Selected target': (l3Surface.selected_target || []).join(', '),
+        'Authority': l3Surface.authority || '',
+        'Execution state': l3Surface.execution_state || '',
+        'Verification': l3Surface.verification || '',
+        'Rollback': l3Surface.rollback || '',
+        'Behavior reason': l3Surface.behavior_reason || '',
+        'Terminal outcome': l3Surface.terminal_outcome || '',
+        'Next action': l3Surface.next_action || '',
+        'Behavior contracts': l3Surface.behavior_contract_count ?? 0,
+        'Validation ladder': l3Ladder.current_level_status || l3Ladder.current_level || '',
+        'Certification': l3Cert.certification_state || '',
+      })) : '';
       return [
         drawerSection('Сводка', kvRows({
           'Статус': plan.enabled === false ? 'выключен' : (plan.mode || 'guarded'),
@@ -36073,6 +36093,7 @@ PersistentKeepalive = 25
           'История качества': `${plan.quality_history?.tracked_egress ?? 0} каналов`,
           'Антифлаппинг': `${safety.users_frozen ?? 0} frozen / ${safety.egress_quarantined ?? 0} quarantine`,
         })),
+        l3Section,
         listTable(['Пользователь','Сейчас','Рекомендация','Почему выбран','Почему не другие'], rows, 'Решений пока нет.'),
       ].join('');
     }

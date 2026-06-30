@@ -1,0 +1,109 @@
+{
+  "items": {
+    "vless": {
+      "windows": {
+        "1h": {
+          "avg_mbps": 60,
+          "min_mbps": 40,
+          "stability": 0.8,
+          "fail_rate": 0.0
+        }
+      },
+      "score": {
+        "current": 100,
+        "trend": "stable",
+        "penalty": 0
+      }
+    },
+    "awg0": {
+      "windows": {
+        "1h": {
+          "avg_mbps": 60,
+          "min_mbps": 40,
+          "stability": 0.8,
+          "fail_rate": 0.0
+        }
+      },
+      "score": {
+        "current": 100,
+        "trend": "stable",
+        "penalty": 0
+      }
+    },
+    "awg3": {
+      "windows": {
+        "1h": {
+          "avg_mbps": 60,
+          "min_mbps": 40,
+          "stability": 0.8,
+          "fail_rate": 0.0
+        }
+      },
+      "score": {
+        "current": 100,
+        "trend": "stable",
+        "penalty": 0
+      }
+    },
+    "1": {
+      "windows": {
+        "1h": {
+          "avg_mbps": 60,
+          "min_mbps": 40,
+          "stability": 0.8,
+          "fail_rate": 0.0
+        }
+      },
+      "score": {
+        "current": 100,
+        "trend": "stable",
+        "penalty": 0
+      }
+    },
+    "openvpn-1779388847-d2ad7c": {
+      "windows": {
+        "1h": {
+          "avg_mbps": 60,
+          "min_mbps": 40,
+          "stability": 0.8,
+          "fail_rate": 0.0
+        }
+      },
+      "score": {
+        "current": 100,
+        "trend": "stable",
+        "penalty": 0
+      }
+    },
+    "wireguard-1779454504-c43409": {
+      "windows": {
+        "1h": {
+          "avg_mbps": 60,
+          "min_mbps": 40,
+          "stability": 0.8,
+          "fail_rate": 0.0
+        }
+      },
+      "score": {
+        "current": 100,
+        "trend": "stable",
+        "penalty": 0
+      }
+    },
+    "amneziawg-exec-20260528-10-8-1-14": {
+      "windows": {
+        "1h": {
+          "avg_mbps": 60,
+          "min_mbps": 40,
+          "stability": 0.8,
+          "fail_rate": 0.0
+        }
+      },
+      "score": {
+        "current": 100,
+        "trend": "stable",
+        "penalty": 0
+      }
+    }
+  }
+}

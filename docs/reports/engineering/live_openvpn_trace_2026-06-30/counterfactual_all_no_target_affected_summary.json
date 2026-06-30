@@ -1,0 +1,54 @@
+{
+  "file": "counterfactual_all_no_target.json",
+  "summary": {
+    "users_total": 27,
+    "egress_total": 7,
+    "healthy_egress_total": 4,
+    "candidate_moves": 25,
+    "candidate_moves_total": 25,
+    "selected_moves": 1,
+    "reconnect_rotation_candidates": 0,
+    "rebalance_candidates": 11,
+    "org_groups": [
+      "default"
+    ]
+  },
+  "operation": {
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_type": "runtime_autoswitch",
+    "operation_started_at": "2026-06-29T17:16:20.652396+00:00",
+    "planner_generation_id": "5ac20d4906a172d0bdb9f8ecd5de019cdc9e054a967439c72730910538b8dc2e",
+    "selected_move_hash": "4e274ac3c2d1df060ce0c9217d7cc107a3a96c151541fe276761fad68c0efd94",
+    "selected_move_count": 1,
+    "runtime_snapshot_hash": "3fc1f17b7e75ce9a44daedc91e586ffa76b2a9c2ed32ad39e6a5cfad627c8e13",
+    "operation_id": "runtime_autoswitch_7dbff307de1c1c29095bfbca",
+    "atomic_execution_envelope_id": "aee_72271fe58e34030683c6eb00",
+    "atomic_execution_envelope_hash": "72271fe58e34030683c6eb0019d246dfc37cebac8c962249630bacf72bcedfc2",
+    "terminal_state": "DRY_RUN",
+    "terminal_reason": "dry_run_selected_moves_available"
+  },
+  "affected_count": 14,
+  "affected_actions": {
+    "switch": 14
+  },
+  "affected_move_types": {
+    "failover": 14
+  },
+  "affected_recommendations": {
+    "vless": 14
+  },
+  "affected_reasons": {
+    "('current_egress_not_eligible',)": 6,
+    "('current_egress_not_eligible', 'projected_load_target_adjusted')": 8
+  },
+  "affected_current_scores": {
+    "0.0": 14
+  },
+  "selected_moves_count": 1,
+  "selected_users": [
+    "10.0.0.2"
+  ],
+  "selected_targets": [
+    "vless"
+  ]
+}

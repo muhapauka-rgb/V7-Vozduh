@@ -1218,6 +1218,190 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertFalse(plan["summary"]["execution_blocked"])
         self.assertEqual(plan["selected_moves"][0]["execution_mode"], "emergency_failover")
 
+    def test_l3_wake_accepts_confirmed_service_failure_and_incident_consumes_planner_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={
+                    "enabled": True,
+                    "max_users_per_run": 1,
+                    "max_users_per_channel": 1,
+                    "wake_source": "confirmed_service_failure",
+                },
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--emergency-failover-autonomy"]))
+            plan = planner.plan()
+
+        wake = plan["safety"]["l3_wake"]
+        incident = plan["safety"]["l3_incident"]
+        self.assertEqual(wake["decision"], "ACCEPT_WAKE")
+        self.assertIn("confirmed_service_failure", wake["accepted_wake_sources"])
+        self.assertIn("confirmed_current_channel_failure", wake["accepted_wake_sources"])
+        self.assertEqual(incident["incident_state"], "READY_FOR_EXECUTION")
+        self.assertEqual(incident["authority_object"], "EMERGENCY_FAILOVER_AUTONOMY")
+        self.assertEqual(incident["allowed_move"], "FAILOVER")
+        self.assertEqual(incident["allowed_reason"], "CURRENT_CHANNEL_FAILED")
+        self.assertEqual(incident["affected_users"], ["10.0.0.2"])
+        self.assertEqual(incident["failed_sources"], ["1"])
+        self.assertEqual(incident["target_channels"], ["vless"])
+        self.assertEqual(incident["selected_move_hash"], plan["operation"]["selected_move_hash"])
+        self.assertFalse(incident["planner_consumption"]["runtime_replaced_planner"])
+        self.assertFalse(incident["runtime_apply_allowed_now"])
+        self.assertFalse(incident["authority_expanded"])
+        self.assertEqual(plan["summary"]["l3_incident_state"], "READY_FOR_EXECUTION")
+
+    def test_l3_wake_rejects_timer_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True, "wake_source": "timer"},
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--emergency-failover-autonomy"]))
+            plan = planner.plan()
+
+        gate = plan["safety"]["emergency_failover_autonomy"]
+        self.assertFalse(gate["ok"])
+        self.assertEqual(plan["safety"]["l3_wake"]["decision"], "REJECT_WAKE")
+        self.assertIn("rejected_wake_source_timer", gate["blockers"])
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+        self.assertTrue(plan["summary"]["execution_blocked"])
+
+    def test_l3_incident_key_merges_same_scope_and_splits_different_scope(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            planner = self.tool.AutoswitchPlanner(self.args_for(root))
+
+            first = planner._l3_incident_key(
+                source_channels=["1"],
+                services=["telegram"],
+                authority="EMERGENCY_FAILOVER_AUTONOMY",
+                generation="gen-1",
+            )
+            same = planner._l3_incident_key(
+                source_channels=["1"],
+                services=["telegram"],
+                authority="EMERGENCY_FAILOVER_AUTONOMY",
+                generation="gen-1",
+            )
+            split_source = planner._l3_incident_key(
+                source_channels=["vless"],
+                services=["telegram"],
+                authority="EMERGENCY_FAILOVER_AUTONOMY",
+                generation="gen-1",
+            )
+            split_service = planner._l3_incident_key(
+                source_channels=["1"],
+                services=["youtube"],
+                authority="EMERGENCY_FAILOVER_AUTONOMY",
+                generation="gen-1",
+            )
+
+        self.assertEqual(first["key"], same["key"])
+        self.assertNotEqual(first["key"], split_source["key"])
+        self.assertNotEqual(first["key"], split_service["key"])
+
+    def test_l3_phase3_behavior_contracts_and_operator_surface_are_visible(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True},
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--mode", "guarded", "--apply"])
+            )
+            plan = planner.plan()
+
+        incident = plan["safety"]["l3_incident"]
+        contracts = incident["production_behavior_contracts"]
+        behavior_names = {row["behavior"] for row in contracts["behaviors"]}
+        self.assertEqual(contracts["schema_version"], "v7.l3-production-behavior-contracts.v1")
+        self.assertTrue(contracts["all_required_behaviors_mapped"])
+        self.assertFalse(contracts["new_behavior_framework_created"])
+        self.assertEqual(
+            behavior_names,
+            {
+                "Event Collapse",
+                "Incident Merge",
+                "Incident Split",
+                "Retry Budget",
+                "Backoff",
+                "Target Lost Before Apply",
+                "Partial Success",
+                "Verification Timeout",
+                "Unknown State Quarantine",
+                "Recovery During Execution",
+                "Recovery After Suspend",
+                "Late Event Handling",
+                "Budget Exhaustion",
+                "Duplicate Event Suppression",
+            },
+        )
+        surface = incident["operator_surface"]
+        self.assertEqual(surface["schema_version"], "v7.l3-operator-surface.v1")
+        self.assertEqual(surface["reason"], "CURRENT_CHANNEL_FAILED")
+        self.assertEqual(surface["authority"], "EMERGENCY_FAILOVER_AUTONOMY")
+        self.assertEqual(surface["execution_state"], "READY")
+        self.assertFalse(surface["new_ui_framework_created"])
+        self.assertEqual(plan["summary"]["l3_operator_surface"]["incident"], incident["incident_key"])
+        self.assertEqual(plan["summary"]["l3_production_validation_ladder"]["schema_version"], "v7.l3-production-validation-ladder.v1")
+        self.assertEqual(plan["summary"]["l3_certification_pipeline"]["schema_version"], "v7.l3-certification-pipeline.v1")
+
+    def test_l3_retry_budget_exhaustion_blocks_without_new_incident_owner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True, "retry_budget_per_incident": 0},
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--mode", "guarded", "--apply"])
+            )
+            plan = planner.plan()
+
+        gate = plan["safety"]["emergency_failover_autonomy"]
+        incident = plan["safety"]["l3_incident"]
+        budget = {
+            row["behavior"]: row
+            for row in incident["production_behavior_contracts"]["behaviors"]
+        }["Budget Exhaustion"]
+        self.assertFalse(gate["ok"])
+        self.assertIn("l3_retry_budget_exhausted", gate["blockers"])
+        self.assertEqual(budget["decision"], "STOP_SAFE_BUDGET_EXHAUSTED")
+        self.assertEqual(budget["terminal_outcome"], "BUDGET_EXHAUSTED")
+        self.assertFalse(incident["new_incident_framework_created"])
+
     def test_emergency_failover_autonomy_off_keeps_proposal_visible_but_not_executable(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -1390,6 +1574,13 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertTrue(plan["apply_result"]["applied"])
         self.assertEqual(plan["operation"]["terminal_state"], "APPLIED")
         self.assertEqual(plan["apply_result"]["results"][0]["service_verify_rc"], 0)
+        self.assertEqual(plan["apply_result"]["results"][0]["terminal_outcome_classification"], "SUCCESS")
+        self.assertTrue(plan["apply_result"]["l3_execution_eligibility"]["ok"])
+        self.assertEqual(plan["safety"]["l3_execution_eligibility"]["decision"], "EXECUTE")
+        self.assertEqual(plan["safety"]["l3_incident"]["terminal_outcome"], "SUCCESS")
+        self.assertEqual(plan["safety"]["l3_incident"]["operator_surface"]["execution_state"], "TERMINAL")
+        self.assertEqual(plan["safety"]["l3_incident"]["operator_surface"]["terminal_outcome"], "SUCCESS")
+        self.assertEqual(plan["safety"]["l3_incident"]["operator_surface"]["next_action"], "close_outcome_and_report")
 
     def test_emergency_apply_service_verification_failure_rolls_back_and_stops(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1420,7 +1611,290 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         row = plan["apply_result"]["results"][0]
         self.assertEqual(row["verification_failure_reason"], "required_service_verify_failed")
         self.assertEqual(row["rollback_verdict"], "ROLLBACK_COMPLETED")
+        self.assertEqual(row["terminal_outcome_classification"], "ROLLBACK_SUCCESS")
+        self.assertEqual(plan["safety"]["l3_incident"]["terminal_outcome"], "ROLLBACK_SUCCESS")
         self.assertEqual(plan["operation"]["terminal_state"], "ROLLED_BACK")
+
+    def test_l3_execution_stops_safe_when_target_lost_before_apply(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True},
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--mode", "guarded", "--apply"])
+            )
+            plan = planner.plan()
+            switch_calls = []
+            planner._run_switch = lambda *args, **kwargs: switch_calls.append(args) or subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+            planner._load_egress = lambda: {key: value for key, value in planner.egress.items() if key != "vless"}
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        self.assertEqual(switch_calls, [])
+        self.assertFalse(plan["apply_result"]["applied"])
+        self.assertEqual(plan["apply_result"]["reason"], "l3_execution_eligibility_stop_safe")
+        self.assertIn("target_lost_before_apply", plan["apply_result"]["unsafe_blocker"])
+        self.assertEqual(plan["safety"]["l3_execution_eligibility"]["decision"], "STOP_SAFE")
+        self.assertEqual(plan["safety"]["l3_incident"]["terminal_outcome"], "STOP_SAFE")
+        self.assertEqual(plan["safety"]["l3_incident"]["operator_surface"]["execution_state"], "STOP_SAFE")
+        self.assertEqual(plan["operation"]["terminal_state"], "DENIED")
+
+    def test_l3_unknown_incident_state_stops_safe_before_apply(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True},
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--mode", "guarded", "--apply"])
+            )
+            plan = planner.plan()
+            plan["safety"]["l3_incident"]["incident_state"] = "UNKNOWN_STATE"
+            switch_calls = []
+            planner._run_switch = lambda *args, **kwargs: switch_calls.append(args) or subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+            plan["apply_result"] = planner.apply(plan)
+
+        self.assertEqual(switch_calls, [])
+        self.assertFalse(plan["apply_result"]["applied"])
+        self.assertEqual(plan["apply_result"]["reason"], "l3_execution_eligibility_stop_safe")
+        self.assertIn("l3_incident_not_ready", plan["apply_result"]["unsafe_blocker"])
+        self.assertEqual(plan["safety"]["l3_incident"]["operator_surface"]["execution_state"], "STOP_SAFE")
+
+    def test_emergency_apply_service_verification_timeout_rolls_back(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True},
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--mode", "guarded", "--apply"])
+            )
+            switch_calls = []
+            planner._run_switch = lambda ip, egress, reason: switch_calls.append((ip, egress, reason)) or subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+            planner._verify_routes = lambda: subprocess.CompletedProcess(["v7-user-route-check"], 0, stdout="verify ok\n")
+            planner._verify_emergency_required_services = lambda move: subprocess.CompletedProcess(["v7-service-matrix-test"], 1, stdout="service verify error: timeout\n")
+            plan = planner.plan()
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        row = plan["apply_result"]["results"][0]
+        self.assertEqual(switch_calls, [("10.0.0.2", "vless", "failover"), ("10.0.0.2", "1", "rollback")])
+        self.assertEqual(row["verification_failure_reason"], "required_service_verify_timeout")
+        self.assertEqual(row["rollback_verdict"], "ROLLBACK_COMPLETED")
+        self.assertEqual(row["terminal_outcome_classification"], "ROLLBACK_SUCCESS")
+
+    def test_emergency_apply_rollback_failure_is_terminal_rollback_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True},
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--mode", "guarded", "--apply"])
+            )
+            switch_calls = []
+
+            def fake_run_switch(ip, egress, reason):
+                switch_calls.append((ip, egress, reason))
+                rc = 1 if reason == "rollback" else 0
+                return subprocess.CompletedProcess(["v7-user-switch"], rc, stdout=("rollback failed\n" if rc else "ok\n"))
+
+            planner._run_switch = fake_run_switch
+            planner._verify_routes = lambda: subprocess.CompletedProcess(["v7-user-route-check"], 0, stdout="verify ok\n")
+            planner._verify_emergency_required_services = lambda move: subprocess.CompletedProcess(["v7-service-matrix-test"], 1, stdout="service fail\n")
+            plan = planner.plan()
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        row = plan["apply_result"]["results"][0]
+        self.assertEqual(switch_calls, [("10.0.0.2", "vless", "failover"), ("10.0.0.2", "1", "rollback")])
+        self.assertEqual(row["rollback_verdict"], "ROLLBACK_FAILED")
+        self.assertEqual(row["terminal_outcome_classification"], "ROLLBACK_FAILURE")
+        self.assertEqual(plan["operation"]["terminal_state"], "ROLLBACK_FAILED")
+        self.assertEqual(plan["safety"]["l3_incident"]["terminal_outcome"], "ROLLBACK_FAILURE")
+
+    def test_l3_success_closes_learning_evidence_capability_cycle(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True},
+            )
+            (root / "events" / "l3-wake-events.jsonl").write_text(
+                json.dumps({
+                    "event_id": "evt-l3-service-failure",
+                    "wake_source": "confirmed_service_failure",
+                    "channel": "1",
+                    "service": "telegram",
+                    "ts": fresh,
+                }) + "\n",
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--mode", "guarded", "--apply"])
+            )
+            switch_calls = []
+            planner._run_switch = lambda ip, egress, reason: switch_calls.append((ip, egress, reason)) or subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+            planner._verify_routes = lambda: subprocess.CompletedProcess(["v7-user-route-check"], 0, stdout="verify ok\n")
+            planner._verify_emergency_required_services = lambda move: subprocess.CompletedProcess(["v7-service-matrix-test"], 0, stdout="service ok\n")
+            planner._emit_terminal_audit = lambda audit: {**audit, "emitted": True, "status": "emitted"}
+            plan = planner.plan()
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+            self.assertEqual(switch_calls, [("10.0.0.2", "vless", "failover")])
+            self.assertTrue(plan["l3_learning_closure"]["materialized"])
+            self.assertTrue(plan["l3_learning_closure"]["capability_state"]["active_capability"])
+            closure = plan["l3_learning_closure"]["execution_closure_verification"]
+            self.assertEqual(closure["schema_version"], "v7.l3-execution-closure-verification.v1")
+            self.assertEqual(closure["behavior_chain_status"], "COMPLETE")
+            self.assertTrue(closure["ready_for_safe_deploy"])
+            self.assertTrue(closure["terminal_consumer_verified"])
+            self.assertEqual(closure["broken_chains"], [])
+            self.assertEqual(
+                [row["stage"] for row in closure["chains"]],
+                [
+                    "Wake",
+                    "Incident",
+                    "Planner",
+                    "Authority",
+                    "Eligibility",
+                    "Execution",
+                    "Verification",
+                    "Rollback or Success",
+                    "Learning",
+                    "Evidence",
+                    "Capability State",
+                    "OMP",
+                    "Next Runtime Cycle",
+                ],
+            )
+            for row in closure["chains"]:
+                self.assertEqual(row["output_produced"], "PASS")
+                self.assertEqual(row["output_consumed"], "PASS")
+                self.assertEqual(row["consumption_verified"], "PASS")
+                self.assertEqual(row["behavior_changed"], "PASS")
+                self.assertEqual(row["next_output_produced"], "PASS")
+            self.assertIn("evt-l3-service-failure", plan["safety"]["l3_wake"]["consumed_event_ids"])
+            self.assertEqual(plan["safety"]["l3_execution_closure_verification"]["behavior_chain_status"], "COMPLETE")
+            runtime_state = json.loads((root / "state" / "l3-runtime-state.json").read_text(encoding="utf-8"))
+            incident = runtime_state["incidents"][plan["safety"]["l3_incident"]["incident_key"]]
+            self.assertEqual(incident["status"], "CLOSED")
+            self.assertEqual(incident["attempt_count"], 1)
+            self.assertTrue(incident["feeds_next_runtime_cycle"])
+            capability_state = json.loads((root / "state" / "l3-capability-state.json").read_text(encoding="utf-8"))
+            self.assertEqual(capability_state["state"], "ACTIVE_CAPABILITY")
+            self.assertTrue((root / "state" / "execution-events.jsonl").read_text(encoding="utf-8"))
+            self.assertTrue((root / "state" / "runtime-trust.jsonl").read_text(encoding="utf-8"))
+            self.assertTrue((root / "state" / "proposal-records.jsonl").read_text(encoding="utf-8"))
+            self.assertTrue((root / "state" / "closure-records.jsonl").read_text(encoding="utf-8"))
+
+    def test_l3_persistent_retry_budget_blocks_second_attempt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True, "retry_budget_per_incident": 1},
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--mode", "guarded", "--apply"])
+            )
+            planner._run_switch = lambda ip, egress, reason: subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+            planner._verify_routes = lambda: subprocess.CompletedProcess(["v7-user-route-check"], 0, stdout="verify ok\n")
+            planner._verify_emergency_required_services = lambda move: subprocess.CompletedProcess(["v7-service-matrix-test"], 0, stdout="service ok\n")
+            planner._emit_terminal_audit = lambda audit: {**audit, "emitted": True, "status": "emitted"}
+            first = planner.plan()
+            first["apply_result"] = planner.apply(first)
+            planner.finalize_operation(first)
+
+            second_planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--mode", "guarded", "--apply"])
+            )
+            second = second_planner.plan()
+
+        self.assertFalse(second["safety"]["emergency_failover_autonomy"]["ok"])
+        self.assertIn("l3_retry_budget_exhausted", second["safety"]["emergency_failover_autonomy"]["blockers"])
+        self.assertEqual(second["summary"]["selected_moves"], 0)
+
+    def test_l3_recovery_before_apply_stops_safe(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True},
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--mode", "guarded", "--apply"])
+            )
+            plan = planner.plan()
+            for candidate in plan["selected_moves"][0]["candidates"]:
+                if candidate["egress"] == "1":
+                    candidate["service_suitability"]["per_service"]["telegram"] = {
+                        "available": True,
+                        "status": "OK",
+                        "freshness": {"state": "FRESH"},
+                    }
+            switch_calls = []
+            planner._run_switch = lambda *args, **kwargs: switch_calls.append(args) or subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+            plan["apply_result"] = planner.apply(plan)
+
+        self.assertEqual(switch_calls, [])
+        self.assertFalse(plan["apply_result"]["applied"])
+        self.assertIn("source_recovered_before_apply", plan["apply_result"]["unsafe_blocker"])
 
     def test_apply_verify_failure_records_operation_rollback_and_audit_lineage(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1448,6 +1922,40 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertEqual(plan["audit"]["status"], "emitted")
             self.assertEqual(plan["closure_target"]["closure_state"], "VERIFIED_READY")
             self.assertEqual(plan["closure_target"]["closure_blocker"], "")
+
+    def test_apply_partial_success_is_classified_without_new_execution_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=2,
+                egress_1_services={"instagram": {"ok": False, "score": 0, "consecutive_failures": 3}},
+                authority_budget={
+                    "authority_class": "SMALL_BATCH",
+                    "certified_authority_class": "SMALL_BATCH",
+                    "current_allowed_user_budget": 2,
+                },
+            )
+            args = self.args_for(root, ["--apply"])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+            self.assertEqual(plan["summary"]["selected_moves"], 2)
+            switch_calls = []
+
+            def fake_run_switch(ip, egress, reason):
+                switch_calls.append((ip, egress, reason))
+                rc = 1 if ip == "10.0.0.3" else 0
+                return subprocess.CompletedProcess(["v7-user-switch"], rc, stdout=("fail\n" if rc else "ok\n"))
+
+            planner._run_switch = fake_run_switch
+            planner._verify_routes = lambda: subprocess.CompletedProcess(["v7-user-route-check"], 0, stdout="verify ok\n")
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        self.assertEqual(len(switch_calls), 2)
+        self.assertEqual(plan["operation"]["terminal_state"], "PARTIAL_SUCCESS")
+        self.assertEqual(plan["operation"]["terminal_reason"], "partial_apply_failure")
+        self.assertEqual([row["terminal_outcome_classification"] for row in plan["apply_result"]["results"]], ["SUCCESS", "APPLY_FAILURE"])
 
     def test_apply_stops_when_atomic_envelope_source_changes_before_switch(self):
         with tempfile.TemporaryDirectory() as tmp:

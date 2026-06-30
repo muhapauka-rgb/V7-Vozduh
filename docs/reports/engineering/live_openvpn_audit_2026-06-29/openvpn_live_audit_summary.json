@@ -1,0 +1,1080 @@
+{
+  "channel": "openvpn-1779388847-d2ad7c",
+  "captured_at": "2026-06-29T16:36:27.599289+00:00",
+  "affected_users_count": 14,
+  "affected_users": [
+    {
+      "ip": "10.0.0.2",
+      "current": "openvpn-1779388847-d2ad7c",
+      "table": "100",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.0.0.3",
+      "current": "openvpn-1779388847-d2ad7c",
+      "table": "101",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.0.0.6",
+      "current": "openvpn-1779388847-d2ad7c",
+      "table": "104",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.3",
+      "current": "openvpn-1779388847-d2ad7c",
+      "table": "1001",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.2",
+      "current": "openvpn-1779388847-d2ad7c",
+      "table": "1000",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.4",
+      "current": "openvpn-1779388847-d2ad7c",
+      "table": "1002",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.6",
+      "current": "openvpn-1779388847-d2ad7c",
+      "table": "1004",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.8",
+      "current": "openvpn-1779388847-d2ad7c",
+      "table": "1006",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.9",
+      "current": "openvpn-1779388847-d2ad7c",
+      "table": "1007",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.10",
+      "current": "openvpn-1779388847-d2ad7c",
+      "table": "1008",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.11",
+      "current": "openvpn-1779388847-d2ad7c",
+      "table": "1009",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.12",
+      "current": "openvpn-1779388847-d2ad7c",
+      "table": "1010",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.13",
+      "current": "openvpn-1779388847-d2ad7c",
+      "table": "1011",
+      "enabled": "1"
+    },
+    {
+      "ip": "10.7.0.15",
+      "current": "openvpn-1779388847-d2ad7c",
+      "table": "1013",
+      "enabled": "1"
+    }
+  ],
+  "route_reality_count": 14,
+  "route_reality_all_ok": true,
+  "egress_registry": {
+    "id": "openvpn-1779388847-d2ad7c",
+    "protocol": "openvpn",
+    "type": "interface",
+    "interface": "v7edb0c189291",
+    "test": "interface",
+    "enabled": "1",
+    "config": "/etc/v7/egress-openvpn/v7edb0c189291.ovpn",
+    "role": "GLOBAL_FAST",
+    "priority": "20",
+    "weight": "100",
+    "soft_limit": "1",
+    "hard_limit": "2",
+    "manual_only": "0",
+    "reserve_only": "0",
+    "service_tags": "google,telegram,instagram,global",
+    "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU"
+  },
+  "service_matrix_status": {
+    "status": "FAIL",
+    "ok_count": 0,
+    "total": 14
+  },
+  "service_failures": {
+    "telegram": {
+      "ok": false,
+      "severity": "FAIL",
+      "http_code": null,
+      "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout"
+    },
+    "google": {
+      "ok": false,
+      "severity": "FAIL",
+      "http_code": "000",
+      "reason": "curl: (28) Connection timed out after 8001 milliseconds\n000 0.000000 8.001568"
+    },
+    "google_auth": {
+      "ok": false,
+      "severity": "FAIL",
+      "http_code": "000",
+      "reason": "curl: (28) Connection timed out after 8007 milliseconds\n000 0.000000 8.007541"
+    },
+    "youtube": {
+      "ok": false,
+      "severity": "FAIL",
+      "http_code": "000",
+      "reason": "curl: (28) Connection timed out after 8010 milliseconds\n000 0.000000 8.010033"
+    },
+    "apple": {
+      "ok": false,
+      "severity": "FAIL",
+      "http_code": "000",
+      "reason": "curl: (28) Connection timed out after 8003 milliseconds\n000 0.000000 8.003718"
+    },
+    "instagram": {
+      "ok": false,
+      "severity": "FAIL",
+      "http_code": "000",
+      "reason": "curl: (28) Connection timed out after 8009 milliseconds\n000 0.000000 8.009245"
+    },
+    "whatsapp": {
+      "ok": false,
+      "severity": "FAIL",
+      "http_code": "000",
+      "reason": "curl: (28) Connection timed out after 8012 milliseconds\n000 0.000000 8.012657"
+    },
+    "facebook": {
+      "ok": false,
+      "severity": "FAIL",
+      "http_code": "000",
+      "reason": "curl: (28) Connection timed out after 8007 milliseconds\n000 0.000000 8.007595"
+    },
+    "spotify": {
+      "ok": false,
+      "severity": "FAIL",
+      "http_code": "000",
+      "reason": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006866"
+    },
+    "soundcloud": {
+      "ok": false,
+      "severity": "FAIL",
+      "http_code": "000",
+      "reason": "curl: (28) Connection timed out after 8002 milliseconds\n000 0.000000 8.002406"
+    },
+    "chatgpt": {
+      "ok": false,
+      "severity": "FAIL",
+      "http_code": "000",
+      "reason": "curl: (28) Connection timed out after 8002 milliseconds\n000 0.000000 8.002623"
+    },
+    "openai_auth": {
+      "ok": false,
+      "severity": "FAIL",
+      "http_code": "000",
+      "reason": "curl: (28) Connection timed out after 8003 milliseconds\n000 0.000000 8.003248"
+    },
+    "claude": {
+      "ok": false,
+      "severity": "FAIL",
+      "http_code": "000",
+      "reason": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006645"
+    },
+    "anthropic": {
+      "ok": false,
+      "severity": "FAIL",
+      "http_code": "000",
+      "reason": "curl: (28) Connection timed out after 8008 milliseconds\n000 0.000000 8.008356"
+    }
+  },
+  "runtime_readiness": {
+    "status": "READY",
+    "enable_ready": true,
+    "reason": "ready for explicit enable",
+    "profile_paths_checked": [
+      "/etc/v7/egress-openvpn/v7edb0c189291.ovpn",
+      "/etc/wireguard/v7edb0c189291.conf",
+      "/etc/amnezia/amneziawg/v7edb0c189291.conf",
+      "/etc/amneziawg/v7edb0c189291.conf"
+    ],
+    "profile_path": "/etc/v7/egress-openvpn/v7edb0c189291.ovpn",
+    "interface": "v7edb0c189291",
+    "checks": [
+      {
+        "id": "registry_present",
+        "status": "OK",
+        "detail": "egress is listed in egress.registry"
+      },
+      {
+        "id": "pool_enabled_flag",
+        "status": "OK",
+        "detail": "enabled=1"
+      },
+      {
+        "id": "protocol",
+        "status": "OK",
+        "detail": "openvpn"
+      },
+      {
+        "id": "type",
+        "status": "OK",
+        "detail": "interface"
+      },
+      {
+        "id": "interface_name",
+        "status": "OK",
+        "detail": "v7edb0c189291"
+      },
+      {
+        "id": "runtime_profile",
+        "status": "OK",
+        "detail": "/etc/v7/egress-openvpn/v7edb0c189291.ovpn"
+      },
+      {
+        "id": "interface_live_now",
+        "status": "OK",
+        "detail": "interface exists"
+      }
+    ]
+  },
+  "capacity_summary": {
+    "status": "FAIL",
+    "target_users": 500,
+    "active_users": 27,
+    "registered_users": 28,
+    "total_capacity": 1275,
+    "free_capacity": 1247,
+    "warnings": [
+      "capacity readiness check needs attention"
+    ]
+  },
+  "why_cards": [
+    {
+      "ip": "10.0.0.2",
+      "table": "100",
+      "current_channel": "openvpn-1779388847-d2ad7c",
+      "current_ok": false,
+      "required_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "failed_services": [
+        "google",
+        "google_auth",
+        "instagram",
+        "telegram",
+        "youtube"
+      ],
+      "recommended_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "recommendation_status": "SWITCH_AVAILABLE",
+      "service_recommendation_action": "manual_review",
+      "top_safe_candidates": [
+        {
+          "egress": "amneziawg-exec-20260528-10-8-1-14",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.337
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.341
+        },
+        {
+          "egress": "vless",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.371
+        },
+        {
+          "egress": "awg3",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.379
+        },
+        {
+          "egress": "awg0",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.757
+        }
+      ]
+    },
+    {
+      "ip": "10.0.0.3",
+      "table": "101",
+      "current_channel": "openvpn-1779388847-d2ad7c",
+      "current_ok": false,
+      "required_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "failed_services": [
+        "google",
+        "google_auth",
+        "instagram",
+        "telegram",
+        "youtube"
+      ],
+      "recommended_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "recommendation_status": "SWITCH_AVAILABLE",
+      "service_recommendation_action": "manual_review",
+      "top_safe_candidates": [
+        {
+          "egress": "amneziawg-exec-20260528-10-8-1-14",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.337
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.341
+        },
+        {
+          "egress": "vless",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.371
+        },
+        {
+          "egress": "awg3",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.379
+        },
+        {
+          "egress": "awg0",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.757
+        }
+      ]
+    },
+    {
+      "ip": "10.0.0.6",
+      "table": "104",
+      "current_channel": "openvpn-1779388847-d2ad7c",
+      "current_ok": false,
+      "required_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "failed_services": [
+        "google",
+        "google_auth",
+        "instagram",
+        "telegram",
+        "youtube"
+      ],
+      "recommended_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "recommendation_status": "SWITCH_AVAILABLE",
+      "service_recommendation_action": "manual_review",
+      "top_safe_candidates": [
+        {
+          "egress": "amneziawg-exec-20260528-10-8-1-14",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.337
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.341
+        },
+        {
+          "egress": "vless",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.371
+        },
+        {
+          "egress": "awg3",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.379
+        },
+        {
+          "egress": "awg0",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.757
+        }
+      ]
+    },
+    {
+      "ip": "10.7.0.3",
+      "table": "1001",
+      "current_channel": "openvpn-1779388847-d2ad7c",
+      "current_ok": false,
+      "required_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "failed_services": [
+        "google",
+        "google_auth",
+        "instagram",
+        "telegram",
+        "youtube"
+      ],
+      "recommended_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "recommendation_status": "SWITCH_AVAILABLE",
+      "service_recommendation_action": "manual_review",
+      "top_safe_candidates": [
+        {
+          "egress": "amneziawg-exec-20260528-10-8-1-14",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.337
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.341
+        },
+        {
+          "egress": "vless",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.371
+        },
+        {
+          "egress": "awg3",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.379
+        },
+        {
+          "egress": "awg0",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.757
+        }
+      ]
+    },
+    {
+      "ip": "10.7.0.2",
+      "table": "1000",
+      "current_channel": "openvpn-1779388847-d2ad7c",
+      "current_ok": false,
+      "required_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "failed_services": [
+        "google",
+        "google_auth",
+        "instagram",
+        "telegram",
+        "youtube"
+      ],
+      "recommended_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "recommendation_status": "SWITCH_AVAILABLE",
+      "service_recommendation_action": "manual_review",
+      "top_safe_candidates": [
+        {
+          "egress": "amneziawg-exec-20260528-10-8-1-14",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.337
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.341
+        },
+        {
+          "egress": "vless",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.371
+        },
+        {
+          "egress": "awg3",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.379
+        },
+        {
+          "egress": "awg0",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.757
+        }
+      ]
+    },
+    {
+      "ip": "10.7.0.4",
+      "table": "1002",
+      "current_channel": "openvpn-1779388847-d2ad7c",
+      "current_ok": false,
+      "required_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "failed_services": [
+        "google",
+        "google_auth",
+        "instagram",
+        "telegram",
+        "youtube"
+      ],
+      "recommended_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "recommendation_status": "SWITCH_AVAILABLE",
+      "service_recommendation_action": "manual_review",
+      "top_safe_candidates": [
+        {
+          "egress": "amneziawg-exec-20260528-10-8-1-14",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.337
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.341
+        },
+        {
+          "egress": "vless",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.371
+        },
+        {
+          "egress": "awg3",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.379
+        },
+        {
+          "egress": "awg0",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.757
+        }
+      ]
+    },
+    {
+      "ip": "10.7.0.6",
+      "table": "1004",
+      "current_channel": "openvpn-1779388847-d2ad7c",
+      "current_ok": false,
+      "required_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "failed_services": [
+        "google",
+        "google_auth",
+        "instagram",
+        "telegram",
+        "youtube"
+      ],
+      "recommended_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "recommendation_status": "SWITCH_AVAILABLE",
+      "service_recommendation_action": "manual_review",
+      "top_safe_candidates": [
+        {
+          "egress": "amneziawg-exec-20260528-10-8-1-14",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.337
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.341
+        },
+        {
+          "egress": "vless",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.371
+        },
+        {
+          "egress": "awg3",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.379
+        },
+        {
+          "egress": "awg0",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.757
+        }
+      ]
+    },
+    {
+      "ip": "10.7.0.8",
+      "table": "1006",
+      "current_channel": "openvpn-1779388847-d2ad7c",
+      "current_ok": false,
+      "required_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "failed_services": [
+        "google",
+        "google_auth",
+        "instagram",
+        "telegram",
+        "youtube"
+      ],
+      "recommended_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "recommendation_status": "SWITCH_AVAILABLE",
+      "service_recommendation_action": "manual_review",
+      "top_safe_candidates": [
+        {
+          "egress": "amneziawg-exec-20260528-10-8-1-14",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.337
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.341
+        },
+        {
+          "egress": "vless",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.371
+        },
+        {
+          "egress": "awg3",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.379
+        },
+        {
+          "egress": "awg0",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.757
+        }
+      ]
+    },
+    {
+      "ip": "10.7.0.9",
+      "table": "1007",
+      "current_channel": "openvpn-1779388847-d2ad7c",
+      "current_ok": false,
+      "required_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "failed_services": [
+        "google",
+        "google_auth",
+        "instagram",
+        "telegram",
+        "youtube"
+      ],
+      "recommended_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "recommendation_status": "SWITCH_AVAILABLE",
+      "service_recommendation_action": "manual_review",
+      "top_safe_candidates": [
+        {
+          "egress": "amneziawg-exec-20260528-10-8-1-14",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.337
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.341
+        },
+        {
+          "egress": "vless",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.371
+        },
+        {
+          "egress": "awg3",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.379
+        },
+        {
+          "egress": "awg0",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.757
+        }
+      ]
+    },
+    {
+      "ip": "10.7.0.10",
+      "table": "1008",
+      "current_channel": "openvpn-1779388847-d2ad7c",
+      "current_ok": false,
+      "required_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "failed_services": [
+        "google",
+        "google_auth",
+        "instagram",
+        "telegram",
+        "youtube"
+      ],
+      "recommended_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "recommendation_status": "SWITCH_AVAILABLE",
+      "service_recommendation_action": "manual_review",
+      "top_safe_candidates": [
+        {
+          "egress": "amneziawg-exec-20260528-10-8-1-14",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.337
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.341
+        },
+        {
+          "egress": "vless",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.371
+        },
+        {
+          "egress": "awg3",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.379
+        },
+        {
+          "egress": "awg0",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.757
+        }
+      ]
+    },
+    {
+      "ip": "10.7.0.11",
+      "table": "1009",
+      "current_channel": "openvpn-1779388847-d2ad7c",
+      "current_ok": false,
+      "required_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "failed_services": [
+        "google",
+        "google_auth",
+        "instagram",
+        "telegram",
+        "youtube"
+      ],
+      "recommended_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "recommendation_status": "SWITCH_AVAILABLE",
+      "service_recommendation_action": "manual_review",
+      "top_safe_candidates": [
+        {
+          "egress": "amneziawg-exec-20260528-10-8-1-14",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.337
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.341
+        },
+        {
+          "egress": "vless",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.371
+        },
+        {
+          "egress": "awg3",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.379
+        },
+        {
+          "egress": "awg0",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.757
+        }
+      ]
+    },
+    {
+      "ip": "10.7.0.12",
+      "table": "1010",
+      "current_channel": "openvpn-1779388847-d2ad7c",
+      "current_ok": false,
+      "required_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "failed_services": [
+        "google",
+        "google_auth",
+        "instagram",
+        "telegram",
+        "youtube"
+      ],
+      "recommended_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "recommendation_status": "SWITCH_AVAILABLE",
+      "service_recommendation_action": "manual_review",
+      "top_safe_candidates": [
+        {
+          "egress": "amneziawg-exec-20260528-10-8-1-14",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.337
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.341
+        },
+        {
+          "egress": "vless",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.371
+        },
+        {
+          "egress": "awg3",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.379
+        },
+        {
+          "egress": "awg0",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.757
+        }
+      ]
+    },
+    {
+      "ip": "10.7.0.13",
+      "table": "1011",
+      "current_channel": "openvpn-1779388847-d2ad7c",
+      "current_ok": false,
+      "required_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "failed_services": [
+        "google",
+        "google_auth",
+        "instagram",
+        "telegram",
+        "youtube"
+      ],
+      "recommended_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "recommendation_status": "SWITCH_AVAILABLE",
+      "service_recommendation_action": "manual_review",
+      "top_safe_candidates": [
+        {
+          "egress": "amneziawg-exec-20260528-10-8-1-14",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.337
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.341
+        },
+        {
+          "egress": "vless",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.371
+        },
+        {
+          "egress": "awg3",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.379
+        },
+        {
+          "egress": "awg0",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.757
+        }
+      ]
+    },
+    {
+      "ip": "10.7.0.15",
+      "table": "1013",
+      "current_channel": "openvpn-1779388847-d2ad7c",
+      "current_ok": false,
+      "required_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "failed_services": [
+        "google",
+        "google_auth",
+        "instagram",
+        "telegram",
+        "youtube"
+      ],
+      "recommended_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "recommendation_status": "SWITCH_AVAILABLE",
+      "service_recommendation_action": "manual_review",
+      "top_safe_candidates": [
+        {
+          "egress": "amneziawg-exec-20260528-10-8-1-14",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.337
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.341
+        },
+        {
+          "egress": "vless",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.371
+        },
+        {
+          "egress": "awg3",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.379
+        },
+        {
+          "egress": "awg0",
+          "ok_count": 5,
+          "required_count": 5,
+          "avg_latency_sec": 0.757
+        }
+      ]
+    }
+  ],
+  "warnings_count": 70,
+  "autoswitch_plan_all": {
+    "rc": 0,
+    "plan_is_null": true,
+    "cmd": [
+      "v7-users-autoswitch",
+      "--pre-planner-refresh",
+      "write",
+      "--pre-planner-refresh-command",
+      "v7-intelligence-snapshot-refresh",
+      "--pretty"
+    ],
+    "contexts": {
+      "selected_move_count_context": "f9fcbdeb987979\",\n      \"selected_move_hash\": \"4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945\",\n      \"selected_move_count\": 0,\n      \"runtime_snapshot_hash\": \"2bdb1b4ac7db9f429d8ed9b9c7f2d2a3eba3cf97b9bc764d7e8f342cdc1568b7\",\n      \"terminal_state\": \"DRY_RUN\",\n      \"terminal_reason\": \"dry_run_restore_barrier_clearance_selected_moves_exceed_budget\",\n      \"restore_barrier_status\": \"restore_barrier_c",
+      "terminal_state_context": "ve_count\": 0,\n      \"runtime_snapshot_hash\": \"2bdb1b4ac7db9f429d8ed9b9c7f2d2a3eba3cf97b9bc764d7e8f342cdc1568b7\",\n      \"terminal_state\": \"DRY_RUN\",\n      \"terminal_reason\": \"dry_run_restore_barrier_clearance_selected_moves_exceed_budget\",\n      \"restore_barrier_status\": \"restore_barrier_clearance_selected_moves_exceed_budget\",\n      \"rollback_verdict\": \"\",\n      \"apply_requested\": false,\n      \"mode\": \"guarded\",\n    ",
+      "terminal_reason_context": "ot_hash\": \"2bdb1b4ac7db9f429d8ed9b9c7f2d2a3eba3cf97b9bc764d7e8f342cdc1568b7\",\n      \"terminal_state\": \"DRY_RUN\",\n      \"terminal_reason\": \"dry_run_restore_barrier_clearance_selected_moves_exceed_budget\",\n      \"restore_barrier_status\": \"restore_barrier_clearance_selected_moves_exceed_budget\",\n      \"rollback_verdict\": \"\",\n      \"apply_requested\": false,\n      \"mode\": \"guarded\",\n      \"target_egress\": \"\"\n    },\n    \"e",
+      "restore_barrier_status_context": "al_state\": \"DRY_RUN\",\n      \"terminal_reason\": \"dry_run_restore_barrier_clearance_selected_moves_exceed_budget\",\n      \"restore_barrier_status\": \"restore_barrier_clearance_selected_moves_exceed_budget\",\n      \"rollback_verdict\": \"\",\n      \"apply_requested\": false,\n      \"mode\": \"guarded\",\n      \"target_egress\": \"\"\n    },\n    \"emitted\": false,\n    \"status\": \"ready_not_emitted_dry_run\"\n  },\n  \"closure_target\": {\n    \"o",
+      "apply_requested_context": "restore_barrier_status\": \"restore_barrier_clearance_selected_moves_exceed_budget\",\n      \"rollback_verdict\": \"\",\n      \"apply_requested\": false,\n      \"mode\": \"guarded\",\n      \"target_egress\": \"\"\n    },\n    \"emitted\": false,\n    \"status\": \"ready_not_emitted_dry_run\"\n  },\n  \"closure_target\": {\n    \"object_type\": \"runtime\",\n    \"object_id\": \"runtime_autoswitch_7bb71f9b9f5642d74c3a5e0f\",\n    \"closure_owner\": \"admin/v7-a",
+      "mode_context": "},\n          \"ctr_score_simulation\": {\n            \"schema_version\": \"v7.ctr.dry-run-score-simulation.v1\",\n            \"mode\": \"dry_run_simulation_only\",\n            \"existing_score\": 0.0,\n            \"ctr_soft_adjustment\": -24.0,\n            \"simulated_score\": -24.0,\n            \"score_delta\": -24.0,\n            \"old_position\": 7,\n            \"new_position\": 7,\n            \"ranking_delta\": 0,\n            \"ctr_state\"",
+      "target_egress_context": "ted_moves_exceed_budget\",\n      \"rollback_verdict\": \"\",\n      \"apply_requested\": false,\n      \"mode\": \"guarded\",\n      \"target_egress\": \"\"\n    },\n    \"emitted\": false,\n    \"status\": \"ready_not_emitted_dry_run\"\n  },\n  \"closure_target\": {\n    \"object_type\": \"runtime\",\n    \"object_id\": \"runtime_autoswitch_7bb71f9b9f5642d74c3a5e0f\",\n    \"closure_owner\": \"admin/v7-admin-api\",\n    \"observability_owner\": \"admin_core/operato"
+    }
+  },
+  "autoswitch_plan_target": {
+    "rc": 0,
+    "plan_is_null": true,
+    "cmd": [
+      "v7-users-autoswitch",
+      "--pre-planner-refresh",
+      "write",
+      "--pre-planner-refresh-command",
+      "v7-intelligence-snapshot-refresh",
+      "--pretty",
+      "--target-egress",
+      "openvpn-1779388847-d2ad7c"
+    ],
+    "contexts": {
+      "selected_move_count_context": "f9fcbdeb987979\",\n      \"selected_move_hash\": \"4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945\",\n      \"selected_move_count\": 0,\n      \"runtime_snapshot_hash\": \"2bdb1b4ac7db9f429d8ed9b9c7f2d2a3eba3cf97b9bc764d7e8f342cdc1568b7\",\n      \"terminal_state\": \"DRY_RUN\",\n      \"terminal_reason\": \"dry_run_restore_barrier_clearance_generation_expired\",\n      \"restore_barrier_status\": \"restore_barrier_clearance_g",
+      "terminal_state_context": "ve_count\": 0,\n      \"runtime_snapshot_hash\": \"2bdb1b4ac7db9f429d8ed9b9c7f2d2a3eba3cf97b9bc764d7e8f342cdc1568b7\",\n      \"terminal_state\": \"DRY_RUN\",\n      \"terminal_reason\": \"dry_run_restore_barrier_clearance_generation_expired\",\n      \"restore_barrier_status\": \"restore_barrier_clearance_generation_expired\",\n      \"rollback_verdict\": \"\",\n      \"apply_requested\": false,\n      \"mode\": \"guarded\",\n      \"target_egress\": \"",
+      "terminal_reason_context": "ot_hash\": \"2bdb1b4ac7db9f429d8ed9b9c7f2d2a3eba3cf97b9bc764d7e8f342cdc1568b7\",\n      \"terminal_state\": \"DRY_RUN\",\n      \"terminal_reason\": \"dry_run_restore_barrier_clearance_generation_expired\",\n      \"restore_barrier_status\": \"restore_barrier_clearance_generation_expired\",\n      \"rollback_verdict\": \"\",\n      \"apply_requested\": false,\n      \"mode\": \"guarded\",\n      \"target_egress\": \"openvpn-1779388847-d2ad7c\"\n    },\n ",
+      "restore_barrier_status_context": "   \"terminal_state\": \"DRY_RUN\",\n      \"terminal_reason\": \"dry_run_restore_barrier_clearance_generation_expired\",\n      \"restore_barrier_status\": \"restore_barrier_clearance_generation_expired\",\n      \"rollback_verdict\": \"\",\n      \"apply_requested\": false,\n      \"mode\": \"guarded\",\n      \"target_egress\": \"openvpn-1779388847-d2ad7c\"\n    },\n    \"emitted\": false,\n    \"status\": \"ready_not_emitted_dry_run\"\n  },\n  \"closure_ta",
+      "apply_requested_context": "\",\n      \"restore_barrier_status\": \"restore_barrier_clearance_generation_expired\",\n      \"rollback_verdict\": \"\",\n      \"apply_requested\": false,\n      \"mode\": \"guarded\",\n      \"target_egress\": \"openvpn-1779388847-d2ad7c\"\n    },\n    \"emitted\": false,\n    \"status\": \"ready_not_emitted_dry_run\"\n  },\n  \"closure_target\": {\n    \"object_type\": \"runtime\",\n    \"object_id\": \"runtime_autoswitch_4c9a588a98e2117ae2df53bd\",\n    \"cl",
+      "mode_context": "},\n          \"ctr_score_simulation\": {\n            \"schema_version\": \"v7.ctr.dry-run-score-simulation.v1\",\n            \"mode\": \"dry_run_simulation_only\",\n            \"existing_score\": 0.0,\n            \"ctr_soft_adjustment\": -24.0,\n            \"simulated_score\": -24.0,\n            \"score_delta\": -24.0,\n            \"old_position\": 7,\n            \"new_position\": 7,\n            \"ranking_delta\": 0,\n            \"ctr_state\"",
+      "target_egress_context": "ance_generation_expired\",\n      \"rollback_verdict\": \"\",\n      \"apply_requested\": false,\n      \"mode\": \"guarded\",\n      \"target_egress\": \"openvpn-1779388847-d2ad7c\"\n    },\n    \"emitted\": false,\n    \"status\": \"ready_not_emitted_dry_run\"\n  },\n  \"closure_target\": {\n    \"object_type\": \"runtime\",\n    \"object_id\": \"runtime_autoswitch_4c9a588a98e2117ae2df53bd\",\n    \"closure_owner\": \"admin/v7-admin-api\",\n    \"observability_ow"
+    }
+  }
+}

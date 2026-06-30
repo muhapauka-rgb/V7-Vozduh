@@ -1,11 +1,17 @@
 # V7 Autonomy Blueprint
 
-Status: permanent autonomy engineering reference  
+Status: `ACTIVE_HISTORICAL_CONTEXT_WITH_SUPERSEDED_ROADMAP`
 Program: `V7.AUTONOMY.BLUEPRINT.1_FULL_SYSTEM_MAP_AND_GAP_PLAN`  
 Date: 2026-06-22  
 Workspace: `/Users/ponch/Documents/New project`  
 Branch: `Updatesystem`  
 Blueprint base commit: `0d0de83c85ed51908933afe518b4012c319de11a`
+
+Supersession:
+
+- Historical autonomy discovery and system inventory remain useful context.
+- Any autonomy roadmap, runtime architecture, execution architecture, or implementation sequencing in this document is superseded by `docs/reference/V7_AUTONOMOUS_EXECUTION_PROGRAM.md`, `docs/reference/V7_AUTONOMOUS_RUNTIME_MODEL.md`, `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`, and `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
+- OMP must not use this document as a live roadmap.
 
 This document is the complete autonomy blueprint for V7. It describes the current system architecture, dependency flows, maturity state, hidden or disconnected systems, and the safe roadmap from operator-driven control to production event-driven autonomy.
 

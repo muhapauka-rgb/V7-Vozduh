@@ -42,6 +42,14 @@ Event
 
 This document is design-only. It does not implement a daemon, timer, event consumer change, autonomous execution, apply path, user movement, planner change, governance change, execution change, or truth-source change.
 
+## Autonomous Runtime Model Reference
+
+`docs/reference/V7_AUTONOMOUS_RUNTIME_MODEL.md` is the specialized autonomous-runtime reference for how future certified autonomous Runtime wakes, observes, executes or stops, verifies, rolls back or contains, learns, suspends, and sleeps.
+
+It extends this Runtime Model and `docs/reference/V7_AUTONOMOUS_EXECUTION_PROGRAM.md`.
+
+It does not replace this Runtime Model, grant authority, enable automation, implement runtime apply, move users, create a daemon/timer, create a new Runtime, create a new Planner, or create a new truth source.
+
 ## Runtime Laws
 
 Runtime inherits the permanent Decision Model and Engineering Principles laws:
@@ -1885,3 +1893,68 @@ Engineering Learning may preserve:
 - which canonical owner must receive durable knowledge.
 
 Engineering Learning must not create a learning engine, synthetic evidence, runtime adaptation, automatic implementation, or authority expansion.
+
+### Product Evolution Engineering Intelligence Behavior Contract
+
+Status: `CANONICAL_BEHAVIOR_INTEGRATION`.
+
+Engineering Intelligence is the learning consumer in the Product Evolution behavior loop.
+
+It must consume:
+
+| Input | Required source |
+| --- | --- |
+| Learning | Engineering Reports, Feedback / Learning owners, Decision To Outcome To Learning. |
+| Engineering Reports | OMP report lifecycle with Product Evolution Field Validation, OMP behavior decision, Production Maturity Decision, and CPS impact. |
+| Decision Score | Design-only Product Evolution context when present; `UNKNOWN` or `NOT_APPLICABLE` is valid. |
+| Evolution Engine outputs | Design-only advisory recommendation, no-change, or missing-evidence output when present; never authority. |
+| Evidence Economy | Engineering Report / Production Maturity evidence quality classification. |
+| Prediction vs Reality | Prediction Evidence / Confidence owners and validation/outcome owners. |
+
+Engineering Intelligence must compare:
+
+```text
+expected
+  -> actual
+  -> difference
+  -> confidence impact
+  -> recommendation adjustment
+```
+
+Engineering Intelligence must produce:
+
+| Output | Consumer |
+| --- | --- |
+| Updated Recommendation Confidence | OMP, Dashboard read-only view, Production Maturity as advisory context. |
+| Updated Prediction Quality | Prediction Evidence / Confidence owners, OMP, Engineering Reports. |
+| Recommendation Adjustment | `RT2-S6`, OMP, affected canonical owner. |
+| Evidence Quality Feedback | Production Maturity, Engineering Reports, Learning owners. |
+| Reasoning Improvement | OMP, Product Evolution Field Validation, affected canonical owner. |
+| Framework Improvement Signal | Product Evolution Framework design document and future Engineering Reports. |
+
+Engineering Intelligence must never:
+
+- execute Runtime;
+- change routing;
+- change authority;
+- approve automation;
+- modify Production Maturity;
+- change Current Program State directly;
+- create evidence;
+- create a planner;
+- create a roadmap;
+- bypass OMP;
+- become dashboard authority.
+
+Engineering Intelligence completion rule:
+
+```text
+Learning consumed
+  -> Prediction vs Reality compared
+  -> Confidence updated or explicitly unchanged
+  -> Recommendation adjusted, unchanged, blocked, or retired
+  -> OMP receives updated recommendation / no-change / missing-evidence output
+  -> Future Engineering Report compares prediction vs reality
+```
+
+If any link is missing, Engineering Intelligence remains incomplete for that recommendation cycle.

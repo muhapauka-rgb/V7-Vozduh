@@ -1,11 +1,17 @@
 # V7 Ideal Autonomous Routing Model
 
-Status: canonical target model  
+Status: `ACTIVE_TARGET_MODEL_WITH_SUPERSEDED_EXECUTION_PATH`
 Phase: `V7.IDEAL.AUTONOMOUS.ROUTING.SYSTEM.MODEL`  
 Date: 2026-06-24  
 Workspace: `/Users/ponch/Documents/New project`  
 Branch: `Updatesystem`  
 Base commit: `61088d7a9fa48cc593a5cf2b681f520e8734b59d`
+
+Supersession:
+
+- Product target vision remains active.
+- Runtime Operating System, autonomous execution ladder, implementation sequence, and authority/execution architecture are superseded by `docs/reference/V7_AUTONOMOUS_EXECUTION_PROGRAM.md`, `docs/reference/V7_AUTONOMOUS_RUNTIME_MODEL.md`, and OMP.
+- OMP must not use this document as a live execution roadmap.
 
 This document defines what V7 should be when it is fully successful: an autonomous routing/control-plane system for `10,000+` users and `100+` channels.
 

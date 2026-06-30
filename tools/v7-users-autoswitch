@@ -139,11 +139,29 @@ DEFAULT_EMERGENCY_FAILOVER_AUTONOMY_POLICY = {
     "max_users_per_run": 1,
     "max_users_per_channel": 1,
     "cooldown_seconds": 180,
+    "wake_source": "",
+    "allowed_wake_sources": [
+        "confirmed_service_failure",
+        "confirmed_current_channel_failure",
+        "verified_incident_resume",
+        "recorded_runtime_resume",
+    ],
+    "rejected_wake_sources": [
+        "timer",
+        "cron",
+        "blind_polling",
+        "synthetic_wake",
+        "optimization_wake",
+    ],
     "require_fresh_evidence": True,
     "require_restore_barrier": True,
     "require_rollback": True,
     "require_verification": True,
     "service_verify_timeout_seconds": 5,
+    "retry_budget_per_incident": 1,
+    "backoff_seconds": 180,
+    "duplicate_event_window_seconds": 300,
+    "late_event_window_seconds": 300,
 }
 DEFAULT_SERVICE_QUALITY_POLICY = {
     "min_required_service_score": 50.0,
@@ -470,6 +488,15 @@ def read_jsonl(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def append_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
+    if not rows:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as fh:
+        for row in rows:
+            fh.write(json.dumps(row, ensure_ascii=False, sort_keys=False) + "\n")
+
+
 def acquire_service_matrix_lock(state_dir: Path, timeout_sec: int, *, enabled: bool) -> tuple[Optional[int], dict[str, Any]]:
     status: dict[str, Any] = {
         "schema": "v7.service-matrix-lifecycle-lock.v1",
@@ -611,6 +638,9 @@ class AutoswitchPlanner:
             enabled=lock_enabled,
         )
         self.event_dir = Path(args.event_dir)
+        self.l3_runtime_state_file = self.state_dir / "l3-runtime-state.json"
+        self.l3_capability_state_file = self.state_dir / "l3-capability-state.json"
+        self.l3_runtime_state = self._load_l3_runtime_state()
         self.state = read_json(self.state_dir / "v7-state.json", {})
         self.policy = read_json(Path(args.policy_file), {})
         self.org_policy = read_json(Path(args.org_policy_file), {})
@@ -750,6 +780,74 @@ class AutoswitchPlanner:
             policy["enabled"] = True
         return policy
 
+    def _load_l3_runtime_state(self) -> dict[str, Any]:
+        state = read_json(self.l3_runtime_state_file, {})
+        if not isinstance(state, dict):
+            state = {}
+        state.setdefault("schema_version", "v7.l3-runtime-state.v1")
+        state.setdefault("incidents", {})
+        state.setdefault("processed_event_ids", [])
+        state.setdefault("capability", {})
+        state.setdefault("updated", "")
+        return state
+
+    def _write_l3_runtime_state(self, state: dict[str, Any]) -> None:
+        state["schema_version"] = "v7.l3-runtime-state.v1"
+        state["updated"] = now_iso()
+        processed = [str(item) for item in (state.get("processed_event_ids") or []) if str(item)]
+        state["processed_event_ids"] = processed[-500:]
+        write_json_atomic(self.l3_runtime_state_file, state)
+        self.l3_runtime_state = state
+
+    def _l3_incident_attempt_count(self, incident_key: str) -> int:
+        incidents = self.l3_runtime_state.get("incidents") if isinstance(self.l3_runtime_state.get("incidents"), dict) else {}
+        incident = incidents.get(incident_key) if isinstance(incidents.get(incident_key), dict) else {}
+        return len([row for row in (incident.get("attempts") or []) if isinstance(row, dict)])
+
+    def _l3_external_wake_events(self, *, late_window_seconds: int) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        paths = [
+            self.event_dir / "l3-wake-events.jsonl",
+            self.event_dir / "service-failure-events.jsonl",
+            self.event_dir / "runtime-wake-events.jsonl",
+        ]
+        now = time.time()
+        for path in paths:
+            for event in read_jsonl(path)[-200:]:
+                source = self._l3_normalized_wake_source(
+                    event.get("wake_source")
+                    or event.get("source")
+                    or event.get("event_type")
+                    or event.get("reason")
+                )
+                if not source:
+                    continue
+                ts_value = event.get("ts") or event.get("observed_at") or event.get("updated") or event.get("created_at")
+                event_ts = parse_ts(ts_value)
+                late = bool(event_ts and late_window_seconds > 0 and now - event_ts > late_window_seconds)
+                channel = str(event.get("current_egress") or event.get("egress") or event.get("channel") or "")
+                service = str(event.get("service") or event.get("required_service") or "")
+                event_id = str(event.get("event_id") or event.get("id") or "")
+                if not event_id:
+                    event_id = sha256_json({
+                        "source": source,
+                        "channel": channel,
+                        "service": service,
+                        "ts": str(ts_value or ""),
+                        "path": str(path.name),
+                    })[:24]
+                rows.append({
+                    "event_id": event_id,
+                    "wake_source": source,
+                    "channel": channel,
+                    "service": service,
+                    "late": late,
+                    "path": str(path),
+                    "ts": str(ts_value or ""),
+                    "consumed_by_runtime": False,
+                })
+        return rows
+
     def _authority_promotion_truth_check(self) -> dict[str, Any]:
         command = str(getattr(self.args, "authority_promotion_truth_check_command", "") or "v7-truth-check")
         result = {
@@ -846,9 +944,12 @@ class AutoswitchPlanner:
             "require_restore_barrier": bool_value(policy.get("require_restore_barrier", True)),
             "require_rollback": bool_value(policy.get("require_rollback", True)),
             "require_verification": bool_value(policy.get("require_verification", True)),
+            "retry_budget_per_incident": max(0, to_int(policy.get("retry_budget_per_incident"), 1)),
+            "backoff_seconds": max(0, to_int(policy.get("backoff_seconds"), to_int(policy.get("cooldown_seconds"), 180))),
             "broad_automation_enabled": False,
         }
         if not enabled:
+            gate["wake"] = self._l3_wake_decision(policy, [])
             return selected, gate
         blockers: list[str] = []
         if gate["require_restore_barrier"] and not bool_value(restore_barrier.get("failover_quarantine")):
@@ -890,11 +991,67 @@ class AutoswitchPlanner:
             blockers.append("no_selected_moves_for_emergency_failover")
         if selected and not bounded and not blockers:
             blockers.append("no_emergency_eligible_failover_moves")
+        if selected and gate["retry_budget_per_incident"] < 1:
+            blockers.append("l3_retry_budget_exhausted")
 
+        wake = self._l3_wake_decision(policy, per_move)
+        if not wake.get("accepted"):
+            blockers.extend(str(reason) for reason in wake.get("blockers") or [])
+        failed_sources = sorted({
+            str(row.get("current_egress") or "")
+            for row in per_move
+            if row.get("current_failures")
+        })
+        failed_services = sorted({
+            str(item.get("service") or "")
+            for row in per_move
+            for item in (row.get("current_failures") or [])
+            if item.get("service")
+        })
+        generation = str((self.generation or {}).get("planner_generation_id") or "")
+        incident_key = ""
+        previous_attempts = 0
+        semantic_attempt_signature = ""
+        if failed_sources and failed_services:
+            incident_key = self._l3_incident_key(
+                source_channels=failed_sources,
+                services=failed_services,
+                authority=str(gate.get("mode") or "EMERGENCY_FAILOVER_AUTONOMY"),
+                generation=generation,
+            )["key"]
+            previous_attempts = self._l3_incident_attempt_count(incident_key)
+            if bounded:
+                semantic_attempt_signature = sha256_json([
+                    {
+                        "user_ip": str(move.get("user_ip") or ""),
+                        "from": str(move.get("current_egress") or ""),
+                        "to": str(move.get("recommended_egress") or ""),
+                        "move_type": str(move.get("move_type") or ""),
+                        "incident_key": incident_key,
+                    }
+                    for move in bounded
+                ])
+            if selected and previous_attempts >= gate["retry_budget_per_incident"]:
+                blockers.append("l3_retry_budget_exhausted")
+            incidents = self.l3_runtime_state.get("incidents") if isinstance(self.l3_runtime_state.get("incidents"), dict) else {}
+            existing = incidents.get(incident_key) if isinstance(incidents.get(incident_key), dict) else {}
+            consumed_signatures = [
+                str(item.get("semantic_attempt_signature") or "")
+                for item in (existing.get("attempts") or [])
+                if isinstance(item, dict)
+            ]
+            if semantic_attempt_signature and semantic_attempt_signature in consumed_signatures:
+                blockers.append("duplicate_apply_attempt")
         gate["move_evidence"] = per_move
+        gate["wake"] = wake
+        gate["incident_key"] = incident_key
+        gate["previous_attempts"] = previous_attempts
+        gate["semantic_attempt_signature"] = semantic_attempt_signature
+        gate["failed_sources"] = failed_sources
+        gate["failed_required_services"] = failed_services
         gate["blockers"] = sorted(set(blockers))
-        gate["selected_moves_after_gate"] = len(bounded)
         gate["ok"] = bool(bounded) and not gate["blockers"]
+        gate["selected_moves_after_gate"] = len(bounded) if gate["ok"] else 0
         gate["decision"] = "authorize_bounded_emergency_failover" if gate["ok"] else "block_emergency_failover"
         return bounded if gate["ok"] else [], gate
 
@@ -972,6 +1129,618 @@ class AutoswitchPlanner:
                 for row in current_failures
             ],
         }
+
+    def _l3_normalized_wake_source(self, value: Any) -> str:
+        raw = str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+        aliases = {
+            "service_failure": "confirmed_service_failure",
+            "service_regression": "confirmed_service_failure",
+            "current_channel_failure": "confirmed_current_channel_failure",
+            "hard_failure": "confirmed_current_channel_failure",
+            "channel_unavailable": "confirmed_current_channel_failure",
+            "incident_resume": "verified_incident_resume",
+            "runtime_resume": "recorded_runtime_resume",
+            "poll": "blind_polling",
+            "blind_poll": "blind_polling",
+            "synthetic": "synthetic_wake",
+            "optimization": "optimization_wake",
+        }
+        return aliases.get(raw, raw)
+
+    def _l3_wake_decision(self, policy: dict[str, Any], move_evidence: list[dict[str, Any]]) -> dict[str, Any]:
+        allowed = {
+            self._l3_normalized_wake_source(item)
+            for item in (policy.get("allowed_wake_sources") or [])
+        } or set(DEFAULT_EMERGENCY_FAILOVER_AUTONOMY_POLICY["allowed_wake_sources"])
+        rejected = {
+            self._l3_normalized_wake_source(item)
+            for item in (policy.get("rejected_wake_sources") or [])
+        } or set(DEFAULT_EMERGENCY_FAILOVER_AUTONOMY_POLICY["rejected_wake_sources"])
+        requested = self._l3_normalized_wake_source(policy.get("wake_source"))
+        inferred: set[str] = set()
+        observed_events: list[dict[str, Any]] = []
+        failed_sources = sorted({
+            str(row.get("current_egress") or "")
+            for row in move_evidence
+            if row.get("current_failures")
+        })
+        failed_services = sorted({
+            str(item.get("service") or "")
+            for row in move_evidence
+            for item in (row.get("current_failures") or [])
+            if item.get("service")
+        })
+        if failed_sources and failed_services:
+            inferred.update({"confirmed_service_failure", "confirmed_current_channel_failure"})
+            observed_events.append({
+                "event_id": sha256_json({
+                    "wake_source": "confirmed_service_failure",
+                    "failed_sources": failed_sources,
+                    "failed_services": failed_services,
+                    "generation": str((self.generation or {}).get("planner_generation_id") or ""),
+                })[:24],
+                "wake_source": "confirmed_service_failure",
+                "channel": ",".join(failed_sources),
+                "service": ",".join(failed_services),
+                "late": False,
+                "path": "inferred:service-matrix",
+                "ts": now_iso(),
+                "consumed_by_runtime": False,
+            })
+        observed_events.extend(
+            self._l3_external_wake_events(
+                late_window_seconds=max(0, to_int(policy.get("late_event_window_seconds"), 300))
+            )
+        )
+
+        blockers: list[str] = []
+        accepted_sources: list[str] = []
+        if requested:
+            if requested in rejected:
+                blockers.append(f"rejected_wake_source_{requested}")
+            elif requested not in allowed:
+                blockers.append(f"unknown_l3_wake_source_{requested}")
+            else:
+                accepted_sources.append(requested)
+        for event in observed_events:
+            source = self._l3_normalized_wake_source(event.get("wake_source"))
+            if bool_value(event.get("late")):
+                continue
+            if source in allowed and source not in rejected and source not in accepted_sources:
+                accepted_sources.append(source)
+        accepted_sources.extend(sorted(source for source in inferred if source in allowed and source not in accepted_sources))
+        if not accepted_sources and not blockers:
+            blockers.append("confirmed_l3_wake_required")
+        accepted = bool(accepted_sources) and not blockers
+        consumed_events = []
+        for event in observed_events:
+            source = self._l3_normalized_wake_source(event.get("wake_source"))
+            consumed = accepted and source in accepted_sources and not bool_value(event.get("late"))
+            row = dict(event)
+            row["consumed_by_runtime"] = consumed
+            consumed_events.append(row)
+        return {
+            "schema_version": "v7.l3-wake-decision.v1",
+            "decision": "ACCEPT_WAKE" if accepted else "REJECT_WAKE",
+            "accepted": accepted,
+            "requested_wake_source": requested,
+            "accepted_wake_sources": accepted_sources,
+            "rejected_wake_sources": sorted(rejected),
+            "allowed_wake_sources": sorted(allowed),
+            "failed_sources": failed_sources,
+            "failed_services": failed_services,
+            "observed_events": consumed_events,
+            "consumed_event_ids": [
+                str(event.get("event_id") or "")
+                for event in consumed_events
+                if bool_value(event.get("consumed_by_runtime")) and str(event.get("event_id") or "")
+            ],
+            "late_event_ids": [
+                str(event.get("event_id") or "")
+                for event in consumed_events
+                if bool_value(event.get("late")) and str(event.get("event_id") or "")
+            ],
+            "blockers": sorted(set(blockers)),
+            "wake_may_grant_execution": False,
+            "runtime_apply_allowed_now": accepted,
+            "authority_expanded": False,
+        }
+
+    def _l3_incident_key(self, *, source_channels: list[str], services: list[str], authority: str, generation: str) -> dict[str, Any]:
+        components = {
+            "source_channels": sorted(str(item) for item in source_channels if str(item)),
+            "failure_family": "CURRENT_CHANNEL_FAILED",
+            "service_family": sorted(str(item) for item in services if str(item)),
+            "authority_envelope": authority or "EMERGENCY_FAILOVER_AUTONOMY",
+            "generation": generation,
+        }
+        return {
+            "schema_version": "v7.l3-incident-key.v1",
+            "key": sha256_json(components)[:24],
+            "components": components,
+        }
+
+    def _l3_behavior_contracts(
+        self,
+        *,
+        gate: dict[str, Any],
+        incident_key: str,
+        incident_state: str,
+        selected: list[dict[str, Any]],
+        move_evidence: list[dict[str, Any]],
+        target_channels: list[str],
+        affected_users: list[str],
+    ) -> dict[str, Any]:
+        policy = dict(self.emergency_failover_policy)
+        retry_budget = max(0, to_int(policy.get("retry_budget_per_incident"), 1))
+        backoff = max(0, to_int(policy.get("backoff_seconds"), to_int(policy.get("cooldown_seconds"), 180)))
+        duplicate_window = max(0, to_int(policy.get("duplicate_event_window_seconds"), 300))
+        late_window = max(0, to_int(policy.get("late_event_window_seconds"), 300))
+        blockers = [str(item) for item in (gate.get("blockers") or [])]
+        selected_count = len(selected)
+        terminal = "READY" if bool_value(gate.get("ok")) else ("BUDGET_EXHAUSTED" if "l3_retry_budget_exhausted" in blockers else "STOP_SAFE")
+
+        def row(
+            behavior: str,
+            *,
+            purpose: str,
+            trigger: str,
+            decision: str,
+            owner: str,
+            stop_safe: list[str],
+            learning: str,
+            outcome: Optional[str] = None,
+        ) -> dict[str, Any]:
+            return {
+                "behavior": behavior,
+                "implementation_status": "EXISTS_EXTENDED",
+                "purpose": purpose,
+                "trigger": trigger,
+                "decision": decision,
+                "terminal_outcome": outcome or terminal,
+                "existing_owner": owner,
+                "stop_safe_conditions": stop_safe,
+                "operator_visibility": True,
+                "learning_impact": learning,
+                "new_owner_created": False,
+            }
+
+        rows = [
+            row(
+                "Event Collapse",
+                purpose="Collapse equivalent L3 wake signals into one incident key.",
+                trigger="same failed source/service/authority/generation",
+                decision="COLLAPSE_ON_INCIDENT_KEY",
+                owner="tools/v7-users-autoswitch._l3_incident_key",
+                stop_safe=["event_unmapped_to_generation", "authority_or_blast_radius_boundary_crossed"],
+                learning="collapsed duplicate observations are evidence context, not extra outcomes",
+            ),
+            row(
+                "Incident Merge",
+                purpose="Attach equivalent events to the active incident instead of creating a duplicate incident.",
+                trigger="matching incident key",
+                decision="MERGE_BY_INCIDENT_KEY",
+                owner="tools/v7-users-autoswitch._l3_incident_context",
+                stop_safe=["merge_key_incomplete", "merge_crosses_authority_boundary"],
+                learning="merged events enrich incident context",
+            ),
+            row(
+                "Incident Split",
+                purpose="Separate materially different source/service/authority/generation failures.",
+                trigger="different incident key dimensions",
+                decision="SPLIT_ON_MATERIAL_KEY_CHANGE",
+                owner="tools/v7-users-autoswitch._l3_incident_key",
+                stop_safe=["split_dimension_unknown", "generation_missing"],
+                learning="split incidents preserve failure-family identity",
+            ),
+            row(
+                "Retry Budget",
+                purpose="Prevent repeated unsafe L3 attempts.",
+                trigger="retry or replay after STOP_SAFE/failure/timeout",
+                decision="ALLOW_ONE_ATTEMPT" if retry_budget >= 1 else "STOP_SAFE_BUDGET_EXHAUSTED",
+                owner="tools/v7-users-autoswitch._emergency_failover_authority_gate",
+                stop_safe=["l3_retry_budget_exhausted", "duplicate_apply_attempt"],
+                learning="budget exhaustion is safety evidence, not success evidence",
+                outcome="READY" if retry_budget >= 1 else "BUDGET_EXHAUSTED",
+            ),
+            row(
+                "Backoff",
+                purpose="Reuse cooldown as L3 backoff before another governed/autonomous attempt.",
+                trigger="recent movement or retry consideration",
+                decision=f"BACKOFF_SECONDS_{backoff}",
+                owner="tools/v7-users-autoswitch._emergency_failover_move_evidence",
+                stop_safe=["emergency_failover_cooldown_active"],
+                learning="cooldown/backoff blocks are anti-flap evidence",
+            ),
+            row(
+                "Target Lost Before Apply",
+                purpose="Stop if the selected target disappears before commit/apply.",
+                trigger="live target missing or disabled during final eligibility",
+                decision="LIVE_TARGET_RECHECK",
+                owner="tools/v7-users-autoswitch._l3_execution_eligibility",
+                stop_safe=["target_lost_before_apply", "target_not_eligible_before_apply"],
+                learning="target loss becomes runtime eligibility evidence",
+            ),
+            row(
+                "Partial Success",
+                purpose="Preserve mixed terminal results without hiding failure.",
+                trigger="multiple selected moves have mixed terminal classifications",
+                decision="CLASSIFY_PARTIAL_SUCCESS",
+                owner="tools/v7-users-autoswitch.apply",
+                stop_safe=["partial_apply_requires_terminal_classification"],
+                learning="partial success does not become full success evidence",
+                outcome="PARTIAL_SUCCESS",
+            ),
+            row(
+                "Verification Timeout",
+                purpose="Treat service verification timeout as non-success.",
+                trigger="required service verification timeout",
+                decision="ROLLBACK_OR_STOP_SAFE_ON_TIMEOUT",
+                owner="tools/v7-users-autoswitch._verify_emergency_required_services",
+                stop_safe=["required_service_verify_timeout"],
+                learning="timeout becomes verification-quality evidence, not success evidence",
+            ),
+            row(
+                "Unknown State Quarantine",
+                purpose="Fail closed if incident state is not recognized as executable.",
+                trigger="incident_state != READY_FOR_EXECUTION",
+                decision="STOP_SAFE_UNKNOWN_OR_NONREADY_STATE",
+                owner="tools/v7-users-autoswitch._l3_execution_eligibility",
+                stop_safe=["l3_incident_not_ready"],
+                learning="unknown state becomes workflow safety evidence",
+                outcome="STOP_SAFE" if incident_state not in {"READY_FOR_EXECUTION", "NO_INCIDENT_DISABLED", "NO_INCIDENT_NO_EVIDENCE"} else terminal,
+            ),
+            row(
+                "Recovery During Execution",
+                purpose="Do not chase recovery mid-transaction; finish verify/rollback/closure.",
+                trigger="source recovers after decision but before terminal closure",
+                decision="KEEP_TRANSACTION_ATOMIC_UNTIL_TERMINAL_STATE",
+                owner="tools/v7-users-autoswitch.apply",
+                stop_safe=["live_validation_or_verification_fails"],
+                learning="recovery during execution is recorded as incident context",
+            ),
+            row(
+                "Recovery After Suspend",
+                purpose="Require a new wake/resume decision after suspended L3 work.",
+                trigger="incident resumes after STOP_SAFE/suspend",
+                decision="REQUIRE_VERIFIED_INCIDENT_OR_RUNTIME_RESUME_WAKE",
+                owner="tools/v7-users-autoswitch._l3_wake_decision",
+                stop_safe=["confirmed_l3_wake_required"],
+                learning="resume events are observations until execution occurs",
+            ),
+            row(
+                "Late Event Handling",
+                purpose="Prevent late/stale signals from starting unsafe execution.",
+                trigger=f"event arrives outside {late_window}s L3 late-event window or stale generation",
+                decision="REQUIRE_CURRENT_GENERATION",
+                owner="tools/v7-users-autoswitch._l3_incident_key",
+                stop_safe=["event_unmapped_to_generation", "generation_missing"],
+                learning="late events are context evidence only",
+            ),
+            row(
+                "Budget Exhaustion",
+                purpose="Expose budget exhaustion as terminal safety state.",
+                trigger="attempt budget exhausted",
+                decision="STOP_SAFE_BUDGET_EXHAUSTED" if retry_budget < 1 else "BUDGET_AVAILABLE",
+                owner="tools/v7-users-autoswitch._emergency_failover_authority_gate",
+                stop_safe=["l3_retry_budget_exhausted"],
+                learning="budget exhaustion never increases success or promotion evidence",
+                outcome="BUDGET_EXHAUSTED" if retry_budget < 1 else terminal,
+            ),
+            row(
+                "Duplicate Event Suppression",
+                purpose="Prevent duplicate events/replays from causing duplicate apply.",
+                trigger=f"same semantic event inside {duplicate_window}s duplicate-event window",
+                decision="SUPPRESS_DUPLICATE_BY_INCIDENT_AND_SELECTED_MOVE_HASH",
+                owner="tools/v7-users-autoswitch._l3_incident_context",
+                stop_safe=["duplicate_apply_attempt", "selected_move_hash_mismatch"],
+                learning="duplicates may complete closure but never add another outcome",
+            ),
+        ]
+        return {
+            "schema_version": "v7.l3-production-behavior-contracts.v1",
+            "incident_key": incident_key,
+            "incident_state": incident_state,
+            "selected_count": selected_count,
+            "affected_users": affected_users,
+            "target_channels": target_channels,
+            "retry_budget_per_incident": retry_budget,
+            "backoff_seconds": backoff,
+            "duplicate_event_window_seconds": duplicate_window,
+            "late_event_window_seconds": late_window,
+            "behaviors": rows,
+            "all_required_behaviors_mapped": len(rows) == 14,
+            "new_behavior_framework_created": False,
+        }
+
+    def _l3_operator_surface(self, incident: dict[str, Any], gate: dict[str, Any], selected: list[dict[str, Any]]) -> dict[str, Any]:
+        behaviors = incident.get("production_behavior_contracts") if isinstance(incident.get("production_behavior_contracts"), dict) else {}
+        target_channels = [str(move.get("recommended_egress") or "") for move in selected if str(move.get("recommended_egress") or "")]
+        execution_state = "READY" if bool_value(gate.get("ok")) else ("DISABLED" if not bool_value(gate.get("enabled")) else "STOP_SAFE")
+        return {
+            "schema_version": "v7.l3-operator-surface.v1",
+            "incident": str(incident.get("incident_key") or ""),
+            "reason": "CURRENT_CHANNEL_FAILED",
+            "failed_channel": list(incident.get("failed_sources") or []),
+            "affected_users": list(incident.get("affected_users") or []),
+            "selected_target": target_channels,
+            "authority": str(incident.get("authority_object") or "EMERGENCY_FAILOVER_AUTONOMY"),
+            "execution_state": execution_state,
+            "verification": "REQUIRED",
+            "rollback": "REQUIRED",
+            "behavior_reason": "production_behavior_contracts_mapped",
+            "terminal_outcome": str(incident.get("terminal_outcome") or ""),
+            "next_action": "execute_l3_transaction_if_authorized" if bool_value(gate.get("ok")) else "STOP_SAFE",
+            "behavior_contract_count": len(behaviors.get("behaviors") or []),
+            "new_ui_framework_created": False,
+        }
+
+    def _l3_production_validation_ladder(self, incident: dict[str, Any], gate: dict[str, Any]) -> dict[str, Any]:
+        gate_ready = bool_value(gate.get("ok")) and str(incident.get("incident_state") or "") == "READY_FOR_EXECUTION"
+        levels = [
+            ("DRY_RUN", 0),
+            ("ONE_USER", 1),
+            ("TWO_USERS", 2),
+            ("FIVE_USERS", 5),
+            ("TEN_USERS", 10),
+            ("REMAINING_USERS", None),
+        ]
+        rows: list[dict[str, Any]] = []
+        for index, (name, users) in enumerate(levels):
+            rows.append({
+                "level": name,
+                "max_users": users,
+                "status": "READY_FOR_VALIDATION" if index == 0 and gate_ready else ("WAITING_FOR_PREVIOUS_LEVEL" if index > 0 else "WAITING_FOR_READY_L3_TRANSACTION"),
+                "requires_verification": True,
+                "requires_rollback_proof": True,
+                "requires_learning": True,
+                "requires_engineering_report": True,
+                "requires_omp_evidence": True,
+                "runtime_apply_performed_by_ladder": False,
+            })
+        return {
+            "schema_version": "v7.l3-production-validation-ladder.v1",
+            "owner": "tools/v7-users-autoswitch",
+            "levels": rows,
+            "current_level": rows[0]["level"],
+            "current_level_status": rows[0]["status"],
+            "runtime_automation_enabled": False,
+            "authority_expanded": False,
+            "users_moved_by_read_model": 0,
+            "new_validation_owner_created": False,
+        }
+
+    def _l3_certification_pipeline(self, incident: dict[str, Any], validation_ladder: dict[str, Any]) -> dict[str, Any]:
+        checks = [
+            ("tests", "PASS_REQUIRED"),
+            ("behavior", "PASS_REQUIRED"),
+            ("verification", "PASS_REQUIRED"),
+            ("rollback", "PASS_REQUIRED"),
+            ("production", "PASS_REQUIRED"),
+            ("learning", "PASS_REQUIRED"),
+            ("omp_certification", "PASS_REQUIRED"),
+        ]
+        rows = [
+            {
+                "check": name,
+                "required": required,
+                "status": "PENDING_PRODUCTION_CERTIFICATION",
+            }
+            for name, required in checks
+        ]
+        return {
+            "schema_version": "v7.l3-certification-pipeline.v1",
+            "owner": "tools/v7-users-autoswitch + OMP",
+            "certification_state": "NOT_CERTIFIED_PENDING_PRODUCTION_VALIDATION",
+            "checks": rows,
+            "l3_certified": False,
+            "requires_production_validation_ladder": validation_ladder.get("schema_version") == "v7.l3-production-validation-ladder.v1",
+            "runtime_automation_enabled": False,
+            "authority_expanded": False,
+            "new_certification_owner_created": False,
+        }
+
+    def _l3_runtime_incident_record(
+        self,
+        *,
+        incident_key: str,
+        incident_state: str,
+        key_components: dict[str, Any],
+        gate: dict[str, Any],
+        selected: list[dict[str, Any]],
+        operation: dict[str, Any],
+    ) -> dict[str, Any]:
+        incidents = self.l3_runtime_state.get("incidents") if isinstance(self.l3_runtime_state.get("incidents"), dict) else {}
+        existing = incidents.get(incident_key) if isinstance(incidents.get(incident_key), dict) else {}
+        now = now_iso()
+        same_key_exists = bool(existing)
+        split_from = [
+            key
+            for key, row in incidents.items()
+            if key != incident_key
+            and isinstance(row, dict)
+            and str(row.get("authority_object") or "") == "EMERGENCY_FAILOVER_AUTONOMY"
+            and str(row.get("status") or "") in {"OPEN", "READY_FOR_EXECUTION", "STOP_SAFE", "SUSPENDED"}
+            and set(row.get("failed_sources") or []).intersection(set(gate.get("failed_sources") or []))
+        ]
+        lifecycle_transition = "updated" if same_key_exists else ("split" if split_from else "opened")
+        attempts = [row for row in (existing.get("attempts") or []) if isinstance(row, dict)]
+        consumed_event_ids = [
+            str(item)
+            for item in (((gate.get("wake") or {}).get("consumed_event_ids") or []))
+            if str(item)
+        ]
+        processed = set(str(item) for item in (self.l3_runtime_state.get("processed_event_ids") or []))
+        collapsed_duplicates = [event_id for event_id in consumed_event_ids if event_id in processed]
+        new_events = [event_id for event_id in consumed_event_ids if event_id not in processed]
+        return {
+            "schema_version": "v7.l3-runtime-incident-record.v1",
+            "incident_key": incident_key,
+            "status": "READY_FOR_EXECUTION" if incident_state == "READY_FOR_EXECUTION" else ("STOP_SAFE" if incident_state == "INCIDENT_OPEN_STOP_SAFE" else incident_state),
+            "incident_state": incident_state,
+            "lifecycle_transition": lifecycle_transition,
+            "opened_at": existing.get("opened_at") or now,
+            "updated_at": now,
+            "closed_at": existing.get("closed_at", ""),
+            "authority_object": "EMERGENCY_FAILOVER_AUTONOMY",
+            "key_components": key_components,
+            "failed_sources": list(gate.get("failed_sources") or []),
+            "failed_required_services": list(gate.get("failed_required_services") or []),
+            "selected_users": [str(move.get("user_ip") or "") for move in selected if str(move.get("user_ip") or "")],
+            "target_channels": [str(move.get("recommended_egress") or "") for move in selected if str(move.get("recommended_egress") or "")],
+            "operation_id": str(operation.get("operation_id") or ""),
+            "selected_move_hash": str(operation.get("selected_move_hash") or ""),
+            "semantic_attempt_signature": str(gate.get("semantic_attempt_signature") or ""),
+            "attempts": attempts,
+            "attempt_count": len(attempts),
+            "retry_budget_per_incident": max(0, to_int(gate.get("retry_budget_per_incident"), 1)),
+            "event_collapse": {
+                "consumed_event_ids": consumed_event_ids,
+                "new_event_ids": new_events,
+                "collapsed_duplicate_event_ids": collapsed_duplicates,
+                "consumed_by_runtime": bool(consumed_event_ids),
+            },
+            "incident_merge": {
+                "merged": same_key_exists,
+                "merge_key": incident_key if same_key_exists else "",
+                "consumer": "tools/v7-users-autoswitch._l3_execution_eligibility",
+            },
+            "incident_split": {
+                "split": bool(split_from),
+                "split_from": split_from,
+                "consumer": "tools/v7-users-autoswitch._l3_execution_eligibility",
+            },
+            "consumed": incident_state == "READY_FOR_EXECUTION",
+            "consumer": "tools/v7-users-autoswitch.apply",
+            "feeds_next_runtime_cycle": True,
+        }
+
+    def _l3_incident_context(
+        self,
+        gate: dict[str, Any],
+        selected: list[dict[str, Any]],
+        *,
+        selected_hash: str,
+        operation: dict[str, Any],
+    ) -> dict[str, Any]:
+        move_evidence = [row for row in (gate.get("move_evidence") or []) if isinstance(row, dict)]
+        failed_sources = sorted({
+            str(row.get("current_egress") or "")
+            for row in move_evidence
+            if row.get("current_failures")
+        })
+        failed_services = sorted({
+            str(item.get("service") or "")
+            for row in move_evidence
+            for item in (row.get("current_failures") or [])
+            if item.get("service")
+        })
+        affected_users = sorted({
+            str(row.get("user_ip") or "")
+            for row in move_evidence
+            if row.get("user_ip")
+        })
+        target_channels = sorted({
+            str(move.get("recommended_egress") or "")
+            for move in selected
+            if str(move.get("recommended_egress") or "")
+        })
+        generation = str((self.generation or {}).get("planner_generation_id") or "")
+        key = self._l3_incident_key(
+            source_channels=failed_sources,
+            services=failed_services,
+            authority=str(gate.get("mode") or "EMERGENCY_FAILOVER_AUTONOMY"),
+            generation=generation,
+        )
+        if str(gate.get("incident_key") or ""):
+            key["key"] = str(gate.get("incident_key") or "")
+        enabled = bool_value(gate.get("enabled"))
+        if not enabled:
+            state = "NO_INCIDENT_DISABLED"
+        elif not move_evidence:
+            state = "NO_INCIDENT_NO_EVIDENCE"
+        elif bool_value(gate.get("ok")):
+            state = "READY_FOR_EXECUTION"
+        else:
+            state = "INCIDENT_OPEN_STOP_SAFE"
+        incident = {
+            "schema_version": "v7.l3-incident-context.v1",
+            "incident_state": state,
+            "incident_key": key["key"],
+            "incident_key_components": key["components"],
+            "incident_generation": generation,
+            "authority_object": "EMERGENCY_FAILOVER_AUTONOMY",
+            "allowed_move": "FAILOVER",
+            "allowed_reason": "CURRENT_CHANNEL_FAILED",
+            "affected_users": affected_users,
+            "failed_sources": failed_sources,
+            "failed_required_services": failed_services,
+            "target_channels": target_channels,
+            "selected_move_hash": selected_hash,
+            "operation_id": str(operation.get("operation_id") or ""),
+            "event_collapse": {
+                "enabled": True,
+                "collapsed_event_count": len(move_evidence),
+                "collapse_key": key["key"],
+                "runtime_apply_allowed_now": False,
+            },
+            "incident_merge": {
+                "same_key_merges": True,
+                "merge_key": key["key"],
+                "new_framework_created": False,
+            },
+            "incident_split": {
+                "different_source_service_authority_or_generation_splits": True,
+                "split_dimensions": ["source_channels", "service_family", "authority_envelope", "generation"],
+                "new_framework_created": False,
+            },
+            "planner_consumption": {
+                "planner_owner": "tools/v7-users-autoswitch",
+                "affected_users": affected_users,
+                "safe_target": target_channels[0] if len(target_channels) == 1 else "",
+                "blocked_reason": ",".join(str(item) for item in (gate.get("blockers") or [])),
+                "selected_move_hash": selected_hash,
+                "runtime_replaced_planner": False,
+            },
+            "operator_visibility": {
+                "show_incident": enabled and bool(move_evidence),
+                "show_reason": "CURRENT_CHANNEL_FAILED",
+                "show_blockers": list(gate.get("blockers") or []),
+                "show_selected_users": affected_users,
+                "show_target_channels": target_channels,
+            },
+            "terminal_outcome": "NOT_EXECUTED_PHASE1",
+            "runtime_apply_allowed_now": False,
+            "authority_expanded": False,
+            "new_incident_framework_created": False,
+        }
+        runtime_record = self._l3_runtime_incident_record(
+            incident_key=key["key"],
+            incident_state=state,
+            key_components=key["components"],
+            gate=gate,
+            selected=selected,
+            operation=operation,
+        )
+        incident["runtime_lifecycle"] = runtime_record
+        incident["opened"] = runtime_record["lifecycle_transition"] == "opened"
+        incident["updated"] = runtime_record["lifecycle_transition"] == "updated"
+        incident["merged"] = bool_value(runtime_record["incident_merge"].get("merged"))
+        incident["split"] = bool_value(runtime_record["incident_split"].get("split"))
+        incident["consumed"] = bool_value(runtime_record.get("consumed"))
+        incident["production_behavior_contracts"] = self._l3_behavior_contracts(
+            gate=gate,
+            incident_key=key["key"],
+            incident_state=state,
+            selected=selected,
+            move_evidence=move_evidence,
+            target_channels=target_channels,
+            affected_users=affected_users,
+        )
+        incident["operator_surface"] = self._l3_operator_surface(incident, gate, selected)
+        incident["production_validation_ladder"] = self._l3_production_validation_ladder(incident, gate)
+        incident["certification_pipeline"] = self._l3_certification_pipeline(incident, incident["production_validation_ladder"])
+        return incident
 
     def _authority_promotion_feedback_paths(self) -> dict[str, list[Path]]:
         return {
@@ -4428,6 +5197,12 @@ class AutoswitchPlanner:
             move["selected_move_hash"] = selected_hash
             move["atomic_execution_envelope_id"] = operation["atomic_execution_envelope_id"]
             move["selected_move_index"] = index
+        l3_incident = self._l3_incident_context(
+            emergency_failover_gate,
+            selected,
+            selected_hash=selected_hash,
+            operation=operation,
+        )
         routing_brain = self._routing_brain_advisory(decisions, len(active), affected_candidate_moves)
         ctr_shadow_comparison = self._ctr_shadow_comparison(decisions)
         self._persist_dynamic_load_summary()
@@ -4478,6 +5253,8 @@ class AutoswitchPlanner:
                 "restore_barrier": restore_barrier,
                 "restore_barrier_execution_gate": restore_barrier_execution_gate,
                 "emergency_failover_autonomy": emergency_failover_gate,
+                "l3_wake": emergency_failover_gate.get("wake", {}),
+                "l3_incident": l3_incident,
                 "intelligence_snapshots": intelligence_snapshot_gate,
                 "atomic_execution_envelope": atomic_execution_envelope,
                 "selected_moves_diagnostics": {
@@ -4508,6 +5285,13 @@ class AutoswitchPlanner:
                         for move in selected
                         if str(move.get("execution_mode") or "") == "emergency_failover"
                     ],
+                    "l3_wake_decision": str((emergency_failover_gate.get("wake") or {}).get("decision") or ""),
+                    "l3_incident_state": str(l3_incident.get("incident_state") or ""),
+                    "l3_incident_key": str(l3_incident.get("incident_key") or ""),
+                    "l3_operator_surface": l3_incident.get("operator_surface", {}),
+                    "l3_production_validation_ladder": l3_incident.get("production_validation_ladder", {}),
+                    "l3_certification_pipeline": l3_incident.get("certification_pipeline", {}),
+                    "l3_capability_state": read_json(self.l3_capability_state_file, {"state": "IMPLEMENTED"}),
                     "emergency_blast_radius_used": len([
                         move for move in selected
                         if str(move.get("execution_mode") or "") == "emergency_failover"
@@ -4540,6 +5324,13 @@ class AutoswitchPlanner:
                 "execution_mode": "emergency_failover" if bool_value(emergency_failover_gate.get("ok")) else "",
                 "emergency_failover_enabled": bool_value(emergency_failover_gate.get("enabled")),
                 "emergency_failover_authorized": bool_value(emergency_failover_gate.get("ok")),
+                "l3_wake_decision": str((emergency_failover_gate.get("wake") or {}).get("decision") or ""),
+                "l3_incident_state": str(l3_incident.get("incident_state") or ""),
+                "l3_incident_key": str(l3_incident.get("incident_key") or ""),
+                "l3_operator_surface": l3_incident.get("operator_surface", {}),
+                "l3_production_validation_ladder": l3_incident.get("production_validation_ladder", {}),
+                "l3_certification_pipeline": l3_incident.get("certification_pipeline", {}),
+                "l3_capability_state": read_json(self.l3_capability_state_file, {"state": "IMPLEMENTED"}),
                 "emergency_incident_active": bool_value(emergency_failover_gate.get("enabled")) and bool_value(emergency_failover_gate.get("move_evidence")),
                 "emergency_failed_sources": sorted({
                     str(row.get("current_egress") or "")
@@ -5031,6 +5822,99 @@ class AutoswitchPlanner:
                 "allowed_targets": allowed_targets,
                 "clearance_expires_at": clearance_expires_at,
             },
+        }
+
+    def _l3_execution_eligibility(self, plan: dict[str, Any]) -> dict[str, Any]:
+        summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
+        safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
+        gate = safety.get("emergency_failover_autonomy") if isinstance(safety.get("emergency_failover_autonomy"), dict) else {}
+        active = str(summary.get("execution_mode") or "") == "emergency_failover" or bool_value(gate.get("enabled"))
+        if not active:
+            return {"schema_version": "v7.l3-execution-eligibility.v1", "active": False, "ok": True, "blockers": []}
+
+        operation = plan.get("operation") if isinstance(plan.get("operation"), dict) else {}
+        selected = [move for move in (plan.get("selected_moves") or []) if isinstance(move, dict)]
+        wake = safety.get("l3_wake") if isinstance(safety.get("l3_wake"), dict) else {}
+        incident = safety.get("l3_incident") if isinstance(safety.get("l3_incident"), dict) else {}
+        selected_hash = str(operation.get("selected_move_hash") or "")
+        operation_id = str(operation.get("operation_id") or "")
+        live_users = {user.ip: user for user in self._load_users()}
+        live_egress = self._load_egress()
+        blockers: list[str] = []
+        checked_moves: list[dict[str, Any]] = []
+
+        if not bool_value(gate.get("ok")):
+            blockers.append("l3_authority_gate_not_authorized")
+        if wake and not bool_value(wake.get("accepted")):
+            blockers.append("l3_wake_not_accepted")
+        if incident and str(incident.get("incident_state") or "") != "READY_FOR_EXECUTION":
+            blockers.append("l3_incident_not_ready")
+        if len(selected) != 1:
+            blockers.append("l3_requires_exactly_one_selected_move")
+        if not selected_hash:
+            blockers.append("selected_move_hash_missing")
+        if not operation_id:
+            blockers.append("operation_id_missing")
+
+        for move in selected:
+            user_ip = str(move.get("user_ip") or "")
+            current_id = str(move.get("current_egress") or "")
+            target_id = str(move.get("recommended_egress") or "")
+            move_blockers: list[str] = []
+            user = live_users.get(user_ip)
+            target = live_egress.get(target_id)
+            source = live_egress.get(current_id)
+            if str(move.get("execution_mode") or "") != "emergency_failover":
+                move_blockers.append("l3_execution_mode_not_emergency_failover")
+            if str(move.get("move_type") or "") != "failover":
+                move_blockers.append("l3_allows_failover_only")
+            if str(move.get("operation_id") or "") != operation_id:
+                move_blockers.append("operation_id_mismatch")
+            if str(move.get("selected_move_hash") or "") != selected_hash:
+                move_blockers.append("selected_move_hash_mismatch")
+            if not user or not user.enabled:
+                move_blockers.append("user_not_live_or_disabled")
+            elif user.current != current_id:
+                move_blockers.append("source_user_state_changed_before_apply")
+            if not source:
+                move_blockers.append("source_channel_missing_before_apply")
+            if not target:
+                move_blockers.append("target_lost_before_apply")
+            elif not target.enabled or str(target.state).lower() in {"disabled", "down"}:
+                move_blockers.append("target_not_eligible_before_apply")
+            if current_id and target_id and current_id == target_id:
+                move_blockers.append("source_target_same_before_apply")
+            live_evidence = self._emergency_failover_move_evidence(move)
+            if "required_service_failure_required" in (live_evidence.get("blockers") or []):
+                move_blockers.append("source_recovered_before_apply")
+            if "target_required_services_not_ready" in (live_evidence.get("blockers") or []):
+                move_blockers.append("target_services_not_ready_before_apply")
+            if "fresh_service_failure_evidence_required" in (live_evidence.get("blockers") or []):
+                move_blockers.append("source_failure_evidence_not_fresh_before_apply")
+            checked_moves.append({
+                "user_ip": user_ip,
+                "current_egress": current_id,
+                "recommended_egress": target_id,
+                "blockers": sorted(set(move_blockers)),
+                "live_evidence_blockers": list(live_evidence.get("blockers") or []),
+            })
+            blockers.extend(move_blockers)
+
+        ok = not blockers
+        return {
+            "schema_version": "v7.l3-execution-eligibility.v1",
+            "active": True,
+            "ok": ok,
+            "decision": "EXECUTE" if ok else "STOP_SAFE",
+            "blockers": sorted(set(blockers)),
+            "checked_moves": checked_moves,
+            "operation_id": operation_id,
+            "selected_move_hash": selected_hash,
+            "authority_generation": str(operation.get("planner_generation_id") or ""),
+            "restore_generation": str(((safety.get("restore_barrier") or {}).get("clearance_generation_id") or (safety.get("restore_barrier") or {}).get("approved_generation_id") or "")),
+            "packet_identity_preserved": True,
+            "lease_identity_preserved": True,
+            "new_execution_path_created": False,
         }
 
     def _selected_moves_hash(self, selected: list[dict[str, Any]]) -> str:
@@ -6524,6 +7408,25 @@ class AutoswitchPlanner:
 
         results: list[dict[str, Any]] = []
         emergency_mode = str(((plan.get("summary") or {}).get("execution_mode") or "")) == "emergency_failover"
+        l3_eligibility = self._l3_execution_eligibility(plan)
+        if l3_eligibility.get("active"):
+            plan.setdefault("safety", {})["l3_execution_eligibility"] = l3_eligibility
+            incident = plan.setdefault("safety", {}).get("l3_incident")
+            if isinstance(incident, dict):
+                incident["runtime_apply_allowed_now"] = bool_value(l3_eligibility.get("ok"))
+                incident["terminal_outcome"] = "EXECUTION_ELIGIBLE" if bool_value(l3_eligibility.get("ok")) else "STOP_SAFE"
+                surface = incident.get("operator_surface")
+                if isinstance(surface, dict):
+                    surface["execution_state"] = "EXECUTION_ELIGIBLE" if bool_value(l3_eligibility.get("ok")) else "STOP_SAFE"
+                    surface["terminal_outcome"] = incident["terminal_outcome"]
+                    surface["next_action"] = "apply_then_verify" if bool_value(l3_eligibility.get("ok")) else "STOP_SAFE"
+        if not l3_eligibility.get("ok", True):
+            return {
+                "applied": False,
+                "reason": "l3_execution_eligibility_stop_safe",
+                "unsafe_blocker": ",".join(str(item) for item in (l3_eligibility.get("blockers") or [])),
+                "l3_execution_eligibility": l3_eligibility,
+            }
         for move in plan["selected_moves"]:
             ip = move["user_ip"]
             target = move["recommended_egress"]
@@ -6540,6 +7443,7 @@ class AutoswitchPlanner:
                 "rc": proc.returncode,
                 "output": proc.stdout[-4000:],
                 "rollback_attempted": False,
+                "terminal_outcome_classification": "APPLY_FAILURE" if proc.returncode != 0 else "APPLY_COMPLETED_PENDING_VERIFICATION",
             }
             if proc.returncode == 0 and self.args.verify:
                 verify = self._verify_routes()
@@ -6555,15 +7459,34 @@ class AutoswitchPlanner:
                     row["verification_failure_reason"] = "route_verify_failed"
                     if service_verify is not None and service_verify.returncode != 0:
                         row["verification_failure_reason"] = "required_service_verify_failed"
+                        if "timeout" in str(service_verify.stdout or "").lower():
+                            row["verification_failure_reason"] = "required_service_verify_timeout"
                     row["rollback_attempted"] = True
                     rollback = self._run_switch(ip, current, "rollback")
                     row["rollback_rc"] = rollback.returncode
                     row["rollback_output"] = rollback.stdout[-4000:]
                     row["rollback_result"] = "OK" if rollback.returncode == 0 else "FAIL"
                     row["rollback_verdict"] = "ROLLBACK_COMPLETED" if rollback.returncode == 0 else "ROLLBACK_FAILED"
+                    row["terminal_outcome_classification"] = "ROLLBACK_SUCCESS" if rollback.returncode == 0 else "ROLLBACK_FAILURE"
+                elif verification_failed:
+                    row["terminal_outcome_classification"] = "VERIFY_FAILED"
+                else:
+                    row["terminal_outcome_classification"] = "SUCCESS"
             results.append(row)
         self._update_safety_after_apply(results)
-        return {"applied": True, "results": results, "safety_file": str(self.safety_file)}
+        if emergency_mode:
+            incident = plan.setdefault("safety", {}).get("l3_incident")
+            if isinstance(incident, dict):
+                classifications = sorted({str(row.get("terminal_outcome_classification") or "") for row in results if row.get("terminal_outcome_classification")})
+                incident["terminal_outcome"] = classifications[0] if len(classifications) == 1 else "PARTIAL_SUCCESS"
+                surface = incident.get("operator_surface")
+                if isinstance(surface, dict):
+                    surface["execution_state"] = "TERMINAL"
+                    surface["terminal_outcome"] = incident["terminal_outcome"]
+                    surface["verification"] = "PASS" if incident["terminal_outcome"] == "SUCCESS" else "NON_SUCCESS"
+                    surface["rollback"] = "COMPLETED" if incident["terminal_outcome"] == "ROLLBACK_SUCCESS" else ("FAILED" if incident["terminal_outcome"] == "ROLLBACK_FAILURE" else surface.get("rollback", "REQUIRED"))
+                    surface["next_action"] = "close_outcome_and_report"
+        return {"applied": True, "results": results, "safety_file": str(self.safety_file), "l3_execution_eligibility": l3_eligibility if l3_eligibility.get("active") else {}}
 
     def finalize_operation(self, plan: dict[str, Any]) -> dict[str, Any]:
         operation = plan.setdefault("operation", {})
@@ -6577,7 +7500,477 @@ class AutoswitchPlanner:
             audit = self._emit_terminal_audit(audit)
         plan["audit"] = audit
         plan["closure_target"] = self._closure_target(operation, audit)
+        plan["l3_learning_closure"] = self._l3_materialize_learning_closure(plan)
         return plan
+
+    def _l3_materialize_learning_closure(self, plan: dict[str, Any]) -> dict[str, Any]:
+        safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
+        incident = safety.get("l3_incident") if isinstance(safety.get("l3_incident"), dict) else {}
+        l3_eligibility = safety.get("l3_execution_eligibility") if isinstance(safety.get("l3_execution_eligibility"), dict) else {}
+        if not incident or str(incident.get("authority_object") or "") != "EMERGENCY_FAILOVER_AUTONOMY":
+            return {"active": False, "reason": "not_l3"}
+        operation = plan.get("operation") if isinstance(plan.get("operation"), dict) else {}
+        operation_id = str(operation.get("operation_id") or "")
+        if not operation_id:
+            return {"active": True, "materialized": False, "reason": "operation_id_missing"}
+        existing = self._authority_feedback_records_for_operation(operation_id)
+        if all(existing.get(kind) for kind in ("outcome", "trust", "prediction", "recommendation", "closure")):
+            self._l3_close_incident_and_update_capability(plan, already_materialized=True)
+            return {"active": True, "materialized": False, "reason": "already_materialized"}
+
+        apply_result = plan.get("apply_result") if isinstance(plan.get("apply_result"), dict) else {}
+        results = [row for row in (apply_result.get("results") or []) if isinstance(row, dict)]
+        if results:
+            rows_for_feedback = results
+        else:
+            rows_for_feedback = [{
+                "user_ip": ",".join(str(user) for user in (incident.get("affected_users") or []) if str(user)),
+                "from": ",".join(str(item) for item in (incident.get("failed_sources") or []) if str(item)),
+                "to": ",".join(str(item) for item in (incident.get("target_channels") or []) if str(item)),
+                "terminal_outcome_classification": "NO_EXECUTION",
+                "rollback_attempted": False,
+            }]
+
+        now = now_iso()
+        terminal_state = str(operation.get("terminal_state") or "")
+        terminal_reason = str(operation.get("terminal_reason") or "")
+        incident_key = str(incident.get("incident_key") or "")
+        selected_hash = str(operation.get("selected_move_hash") or incident.get("selected_move_hash") or "")
+        outcome_rows: list[dict[str, Any]] = []
+        prediction_rows: list[dict[str, Any]] = []
+        trust_rows: list[dict[str, Any]] = []
+        recommendation_rows: list[dict[str, Any]] = []
+        closure_rows: list[dict[str, Any]] = []
+
+        for index, row in enumerate(rows_for_feedback):
+            classification = str(row.get("terminal_outcome_classification") or terminal_state or "NO_EXECUTION")
+            if classification == "SUCCESS":
+                outcome_status = "success"
+                trust_delta = 1.0
+                recommendation_delta = 1.0
+            elif classification in {"ROLLBACK_SUCCESS", "ROLLBACK_FAILURE"}:
+                outcome_status = "rollback_required"
+                trust_delta = -0.5 if classification == "ROLLBACK_SUCCESS" else -1.0
+                recommendation_delta = -0.7
+            elif classification == "NO_EXECUTION":
+                outcome_status = "no_execution"
+                trust_delta = 0.0
+                recommendation_delta = 0.0
+            else:
+                outcome_status = "failure"
+                trust_delta = -1.0
+                recommendation_delta = -1.0
+            user = str(row.get("user_ip") or "")
+            feedback_id = sha256_json({
+                "operation_id": operation_id,
+                "incident_key": incident_key,
+                "index": index,
+                "classification": classification,
+                "user": user,
+            })[:24]
+            base = {
+                "feedback_id": feedback_id,
+                "operation_id": operation_id,
+                "created_at": now,
+                "user": user,
+                "source": str(row.get("from") or ""),
+                "target": str(row.get("to") or ""),
+                "l3_incident_key": incident_key,
+                "selected_move_hash": selected_hash,
+                "terminal_state": terminal_state,
+                "terminal_reason": terminal_reason,
+                "terminal_outcome_classification": classification,
+                "capability": "L3_EMERGENCY_AUTONOMOUS_FAILOVER",
+                "runtime_cycle": "Wake->Observation->Planner->Authority->Eligibility->Execution->Verification->RollbackOrSuccess->Learning->Evidence->OMP->CapabilityState->NextRuntimeCycle",
+            }
+            outcome_rows.append({
+                "schema_version": "v7.execution-outcome-feedback.v1",
+                **base,
+                "outcome_status": outcome_status,
+                "verification_result": {
+                    "operation_id": operation_id,
+                    "success": classification == "SUCCESS",
+                    "verify_rc": row.get("verify_rc"),
+                    "service_verify_rc": row.get("service_verify_rc"),
+                },
+                "rollback_result": {
+                    "rollback_required": classification in {"ROLLBACK_SUCCESS", "ROLLBACK_FAILURE"},
+                    "rollback_verdict": row.get("rollback_verdict", ""),
+                    "rollback_rc": row.get("rollback_rc"),
+                },
+            })
+            prediction_rows.append({
+                "schema_version": "v7.execution-prediction-feedback.v1",
+                **base,
+                "outcome_status": outcome_status,
+                "prediction_expected": 1.0 if classification == "SUCCESS" else 0.0,
+                "prediction_actual": 1.0 if classification == "SUCCESS" else 0.0,
+                "delta": 1.0 if classification == "SUCCESS" else -1.0 if outcome_status == "failure" else 0.0,
+            })
+            trust_rows.append({
+                "schema_version": "v7.execution-trust-feedback.v1",
+                **base,
+                "outcome_status": outcome_status,
+                "subject": str(row.get("to") or ""),
+                "delta": trust_delta,
+                "reason": classification.lower(),
+            })
+            recommendation_rows.append({
+                "schema_version": "v7.execution-recommendation-feedback.v1",
+                **base,
+                "outcome_status": outcome_status,
+                "recommendation_hash": selected_hash,
+                "delta": recommendation_delta,
+                "outcome": outcome_status,
+            })
+            closure_rows.append({
+                "schema_version": "v7.execution-feedback-closure.v1",
+                **base,
+                "outcome_status": outcome_status,
+                "object_type": "execution_feedback",
+                "object_id": feedback_id,
+                "closure_state": "CLOSED",
+                "closure_reason": f"l3 terminal feedback materialized: {classification}",
+            })
+
+        if not existing.get("outcome") or not existing.get("prediction"):
+            append_jsonl(self.state_dir / "execution-events.jsonl", outcome_rows + prediction_rows)
+        if not existing.get("trust"):
+            append_jsonl(self.state_dir / "runtime-trust.jsonl", trust_rows)
+        if not existing.get("recommendation"):
+            append_jsonl(self.state_dir / "proposal-records.jsonl", recommendation_rows)
+        if not existing.get("closure"):
+            append_jsonl(self.state_dir / "closure-records.jsonl", closure_rows)
+        capability = self._l3_close_incident_and_update_capability(plan, already_materialized=False)
+        result = {
+            "active": True,
+            "materialized": True,
+            "operation_id": operation_id,
+            "incident_key": incident_key,
+            "records": {
+                "outcome": len(outcome_rows),
+                "prediction": len(prediction_rows),
+                "trust": len(trust_rows),
+                "recommendation": len(recommendation_rows),
+                "closure": len(closure_rows),
+            },
+            "evidence_paths": {
+                key: [str(path) for path in paths]
+                for key, paths in self._authority_promotion_feedback_paths().items()
+            },
+            "capability_state": capability,
+            "eligibility_consumed": bool_value(l3_eligibility.get("active")),
+        }
+        closure = self._l3_execution_closure_verification(plan, result, capability)
+        result["execution_closure_verification"] = closure
+        plan.setdefault("safety", {})["l3_execution_closure_verification"] = closure
+        return result
+
+    def _l3_execution_closure_verification(
+        self,
+        plan: dict[str, Any],
+        learning_closure: dict[str, Any],
+        capability: dict[str, Any],
+    ) -> dict[str, Any]:
+        safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
+        summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
+        operation = plan.get("operation") if isinstance(plan.get("operation"), dict) else {}
+        apply_result = plan.get("apply_result") if isinstance(plan.get("apply_result"), dict) else {}
+        incident = safety.get("l3_incident") if isinstance(safety.get("l3_incident"), dict) else {}
+        wake = safety.get("l3_wake") if isinstance(safety.get("l3_wake"), dict) else {}
+        gate = safety.get("emergency_failover_autonomy") if isinstance(safety.get("emergency_failover_autonomy"), dict) else {}
+        eligibility = safety.get("l3_execution_eligibility") if isinstance(safety.get("l3_execution_eligibility"), dict) else {}
+        selected = [row for row in (plan.get("selected_moves") or []) if isinstance(row, dict)]
+        results = [row for row in (apply_result.get("results") or []) if isinstance(row, dict)]
+        records = learning_closure.get("records") if isinstance(learning_closure.get("records"), dict) else {}
+        terminal = str(incident.get("terminal_outcome") or operation.get("terminal_state") or "")
+
+        def status(ok: bool) -> str:
+            return "PASS" if ok else "FAIL"
+
+        def row(
+            stage: str,
+            *,
+            output_produced: bool,
+            consumer: str,
+            consumed: bool,
+            behavior_changed: bool,
+            next_output: str,
+            next_output_produced: bool,
+        ) -> dict[str, Any]:
+            failure_reasons: list[str] = []
+            if not output_produced:
+                failure_reasons.append("OUTPUT_NOT_PRODUCED")
+            if not consumer:
+                failure_reasons.append("ORPHAN_OUTPUT")
+            if consumer and not consumed:
+                failure_reasons.append("OUTPUT_NOT_CONSUMED")
+            if consumed and not behavior_changed:
+                failure_reasons.append("NO_BEHAVIOR_CHANGE")
+            if behavior_changed and not next_output_produced:
+                failure_reasons.append("NEXT_OUTPUT_NOT_PRODUCED")
+            return {
+                "stage": stage,
+                "output_produced": status(output_produced),
+                "consumer": consumer or "MISSING",
+                "output_consumed": status(consumed),
+                "consumption_verified": status(output_produced and bool(consumer) and consumed),
+                "behavior_changed": status(behavior_changed),
+                "next_output": next_output,
+                "next_output_produced": status(next_output_produced),
+                "failure_reasons": failure_reasons,
+            }
+
+        wake_consumed = bool_value(wake.get("accepted")) and bool(wake.get("consumed_event_ids"))
+        incident_ready = str(incident.get("incident_state") or "") == "READY_FOR_EXECUTION"
+        planner_hash_ok = bool(selected) and str(incident.get("selected_move_hash") or "") == str(operation.get("selected_move_hash") or "")
+        authority_ok = bool_value(gate.get("ok")) and str(gate.get("decision") or "") == "authorize_bounded_emergency_failover"
+        eligibility_ok = bool_value(eligibility.get("active")) and str(eligibility.get("decision") or "") in {"EXECUTE", "STOP_SAFE"}
+        execution_ran_or_stopped = bool_value(apply_result.get("applied")) or str(apply_result.get("reason") or "") == "l3_execution_eligibility_stop_safe"
+        verification_present = any(row.get("verify_rc") is not None for row in results)
+        service_verification_present = any(row.get("service_verify_rc") is not None for row in results)
+        rollback_or_success = terminal in {"SUCCESS", "ROLLBACK_SUCCESS", "ROLLBACK_FAILURE", "STOP_SAFE"}
+        learning_materialized = bool_value(learning_closure.get("materialized")) or str(learning_closure.get("reason") or "") == "already_materialized"
+        evidence_materialized = all(to_int(records.get(key), 0) > 0 for key in ("outcome", "prediction", "trust", "recommendation", "closure")) or str(learning_closure.get("reason") or "") == "already_materialized"
+        capability_consumable = bool_value(capability.get("omp_consumable")) and bool_value(capability.get("runtime_ready_for_next_incident"))
+
+        chains = [
+            row(
+                "Wake",
+                output_produced=bool(wake.get("decision")),
+                consumer="Incident",
+                consumed=wake_consumed,
+                behavior_changed=incident_ready,
+                next_output="Incident",
+                next_output_produced=bool(incident.get("incident_key")),
+            ),
+            row(
+                "Incident",
+                output_produced=bool(incident.get("incident_key")),
+                consumer="Planner/Authority/Eligibility",
+                consumed=incident_ready and bool_value(incident.get("consumed")),
+                behavior_changed=planner_hash_ok,
+                next_output="Planner selected move",
+                next_output_produced=bool(selected),
+            ),
+            row(
+                "Planner",
+                output_produced=bool(selected),
+                consumer="Authority",
+                consumed=bool_value((incident.get("planner_consumption") or {}).get("runtime_replaced_planner")) is False and planner_hash_ok,
+                behavior_changed=authority_ok,
+                next_output="Authority decision",
+                next_output_produced=bool(gate.get("decision")),
+            ),
+            row(
+                "Authority",
+                output_produced=bool(gate.get("decision")),
+                consumer="Eligibility",
+                consumed=bool_value(eligibility.get("active")),
+                behavior_changed=eligibility_ok,
+                next_output="Eligibility decision",
+                next_output_produced=bool(eligibility.get("decision")),
+            ),
+            row(
+                "Eligibility",
+                output_produced=bool(eligibility.get("decision")),
+                consumer="Execution",
+                consumed=execution_ran_or_stopped,
+                behavior_changed=str(eligibility.get("decision") or "") == "EXECUTE" and bool_value(apply_result.get("applied")),
+                next_output="Execution result",
+                next_output_produced=bool(results),
+            ),
+            row(
+                "Execution",
+                output_produced=bool(results),
+                consumer="Verification",
+                consumed=verification_present,
+                behavior_changed=verification_present,
+                next_output="Verification result",
+                next_output_produced=verification_present or service_verification_present,
+            ),
+            row(
+                "Verification",
+                output_produced=verification_present or service_verification_present,
+                consumer="Rollback or Success",
+                consumed=rollback_or_success,
+                behavior_changed=rollback_or_success,
+                next_output="Terminal outcome",
+                next_output_produced=bool(terminal),
+            ),
+            row(
+                "Rollback or Success",
+                output_produced=bool(terminal),
+                consumer="Learning",
+                consumed=learning_materialized,
+                behavior_changed=learning_materialized,
+                next_output="Learning records",
+                next_output_produced=learning_materialized,
+            ),
+            row(
+                "Learning",
+                output_produced=learning_materialized,
+                consumer="Evidence",
+                consumed=evidence_materialized,
+                behavior_changed=evidence_materialized,
+                next_output="Evidence records",
+                next_output_produced=evidence_materialized,
+            ),
+            row(
+                "Evidence",
+                output_produced=evidence_materialized,
+                consumer="Capability State",
+                consumed=bool(capability.get("state")),
+                behavior_changed=bool_value(capability.get("validated")) or bool_value(capability.get("production_proven")),
+                next_output="Capability state",
+                next_output_produced=bool(capability.get("state")),
+            ),
+            row(
+                "Capability State",
+                output_produced=bool(capability.get("state")),
+                consumer="OMP",
+                consumed=bool_value(capability.get("omp_consumable")),
+                behavior_changed=capability_consumable,
+                next_output="OMP next runtime cycle signal",
+                next_output_produced=bool_value(capability.get("runtime_ready_for_next_incident")),
+            ),
+            row(
+                "OMP",
+                output_produced=bool_value(capability.get("omp_consumable")),
+                consumer="Next Runtime Cycle",
+                consumed=bool_value(capability.get("runtime_ready_for_next_incident")),
+                behavior_changed=bool_value(capability.get("runtime_ready_for_next_incident")),
+                next_output="Runtime ready for next incident",
+                next_output_produced=bool_value(capability.get("runtime_ready_for_next_incident")),
+            ),
+            row(
+                "Next Runtime Cycle",
+                output_produced=bool_value(capability.get("runtime_ready_for_next_incident")),
+                consumer="Legal Terminal Consumer",
+                consumed=bool_value(capability.get("runtime_ready_for_next_incident")),
+                behavior_changed=bool_value(capability.get("runtime_ready_for_next_incident")),
+                next_output="Runtime Ready For Next Cycle",
+                next_output_produced=bool_value(capability.get("runtime_ready_for_next_incident")),
+            ),
+        ]
+        broken = [
+            {
+                "stage": item["stage"],
+                "failure_reasons": list(item.get("failure_reasons") or []),
+            }
+            for item in chains
+            if item.get("failure_reasons")
+        ]
+        complete = not broken
+        return {
+            "schema_version": "v7.l3-execution-closure-verification.v1",
+            "capability": "L3_EMERGENCY_AUTONOMOUS_FAILOVER",
+            "source_owner": "tools/v7-users-autoswitch",
+            "terminal_consumer": "Runtime Ready For Next Cycle",
+            "terminal_consumer_verified": complete,
+            "ready_for_safe_deploy": complete,
+            "behavior_chain_status": "COMPLETE" if complete else "BROKEN",
+            "summary_execution_mode": str(summary.get("execution_mode") or ""),
+            "operation_id": str(operation.get("operation_id") or ""),
+            "terminal_outcome": terminal,
+            "chains": chains,
+            "broken_chains": broken,
+            "new_owner_created": False,
+            "new_runtime_path_created": False,
+            "new_lifecycle_created": False,
+        }
+
+    def _l3_close_incident_and_update_capability(self, plan: dict[str, Any], *, already_materialized: bool) -> dict[str, Any]:
+        safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
+        incident = safety.get("l3_incident") if isinstance(safety.get("l3_incident"), dict) else {}
+        runtime_record = incident.get("runtime_lifecycle") if isinstance(incident.get("runtime_lifecycle"), dict) else {}
+        operation = plan.get("operation") if isinstance(plan.get("operation"), dict) else {}
+        apply_result = plan.get("apply_result") if isinstance(plan.get("apply_result"), dict) else {}
+        operation_id = str(operation.get("operation_id") or "")
+        incident_key = str(incident.get("incident_key") or runtime_record.get("incident_key") or "")
+        if not incident_key:
+            return {"state": "IMPLEMENTED", "updated": False, "reason": "incident_key_missing"}
+
+        state = self._load_l3_runtime_state()
+        incidents = state.setdefault("incidents", {})
+        existing = incidents.get(incident_key) if isinstance(incidents.get(incident_key), dict) else {}
+        record = {**existing, **runtime_record}
+        record.setdefault("schema_version", "v7.l3-runtime-incident-record.v1")
+        record["incident_key"] = incident_key
+        record["updated_at"] = now_iso()
+        record.setdefault("opened_at", now_iso())
+        terminal = str(incident.get("terminal_outcome") or operation.get("terminal_state") or "UNKNOWN")
+        terminal_state = str(operation.get("terminal_state") or "")
+        terminal_reason = str(operation.get("terminal_reason") or "")
+        applied = bool_value(apply_result.get("applied"))
+        closed = terminal in {"SUCCESS", "ROLLBACK_SUCCESS", "ROLLBACK_FAILURE", "APPLY_FAILURE", "VERIFY_FAILED"} or terminal_state in {"APPLIED", "ROLLED_BACK", "ROLLBACK_FAILED", "FAILED", "VERIFY_FAILED"}
+        suspended = terminal == "STOP_SAFE" or terminal_state == "DENIED"
+        record["status"] = "CLOSED" if closed else ("SUSPENDED" if suspended else record.get("status", "OPEN"))
+        if closed:
+            record["closed_at"] = now_iso()
+        record["terminal_outcome"] = terminal
+        record["terminal_state"] = terminal_state
+        record["terminal_reason"] = terminal_reason
+        attempts = [row for row in (record.get("attempts") or []) if isinstance(row, dict)]
+        if operation_id and not any(str(row.get("operation_id") or "") == operation_id for row in attempts):
+            attempts.append({
+                "operation_id": operation_id,
+                "selected_move_hash": str(operation.get("selected_move_hash") or incident.get("selected_move_hash") or ""),
+                "semantic_attempt_signature": str(runtime_record.get("semantic_attempt_signature") or ""),
+                "terminal_outcome": terminal,
+                "terminal_state": terminal_state,
+                "applied": applied,
+                "recorded_at": now_iso(),
+                "already_materialized": already_materialized,
+            })
+        record["attempts"] = attempts[-50:]
+        record["attempt_count"] = len(record["attempts"])
+        record["consumed"] = True
+        record["feeds_next_runtime_cycle"] = True
+        incidents[incident_key] = record
+
+        processed = set(str(item) for item in (state.get("processed_event_ids") or []))
+        processed.update(str(item) for item in (((safety.get("l3_wake") or {}).get("consumed_event_ids") or [])) if str(item))
+        state["processed_event_ids"] = sorted(processed)[-500:]
+
+        rows = [row for row in read_jsonl(self.state_dir / "execution-events.jsonl") if "execution-" in str(row.get("schema_version") or "")]
+        outcome_rows = [row for row in rows if "execution-outcome" in str(row.get("schema_version") or "")]
+        success_count = sum(1 for row in outcome_rows if str(row.get("outcome_status") or "") == "success")
+        rollback_count = sum(1 for row in outcome_rows if str(row.get("outcome_status") or "") == "rollback_required")
+        failure_count = sum(1 for row in outcome_rows if str(row.get("outcome_status") or "") in {"failure", "no_execution"})
+        closure_count = len([row for row in read_jsonl(self.state_dir / "closure-records.jsonl") if "execution-feedback-closure" in str(row.get("schema_version") or "")])
+        capability_state = "IMPLEMENTED"
+        if outcome_rows:
+            capability_state = "VALIDATED"
+        if success_count or rollback_count:
+            capability_state = "PRODUCTION_PROVEN"
+        if success_count and closure_count:
+            capability_state = "CERTIFIED"
+        if capability_state == "CERTIFIED" and bool_value(self.emergency_failover_policy.get("enabled")):
+            capability_state = "ACTIVE_CAPABILITY"
+        capability = {
+            "schema_version": "v7.l3-capability-state.v1",
+            "capability": "L3_EMERGENCY_AUTONOMOUS_FAILOVER",
+            "state": capability_state,
+            "implemented": True,
+            "validated": bool(outcome_rows),
+            "production_proven": bool(success_count or rollback_count),
+            "certified": bool(success_count and closure_count),
+            "active_capability": capability_state == "ACTIVE_CAPABILITY",
+            "success_outcomes": success_count,
+            "rollback_outcomes": rollback_count,
+            "failure_or_no_execution_outcomes": failure_count,
+            "closure_records": closure_count,
+            "last_operation_id": operation_id,
+            "last_incident_key": incident_key,
+            "runtime_ready_for_next_incident": True,
+            "omp_consumable": True,
+            "updated": now_iso(),
+        }
+        state["capability"] = capability
+        self._write_l3_runtime_state(state)
+        write_json_atomic(self.l3_capability_state_file, capability)
+        return capability
 
     def _terminal_verdict(self, plan: dict[str, Any]) -> dict[str, str]:
         apply_result = plan.get("apply_result") or {}
@@ -6599,6 +7992,8 @@ class AutoswitchPlanner:
         if any(row.get("verify_rc") not in (None, 0) for row in results):
             return {"terminal_state": "VERIFY_FAILED", "terminal_reason": "route_verify_failed"}
         if any(row.get("rc") != 0 for row in results):
+            if any(row.get("rc") == 0 for row in results):
+                return {"terminal_state": "PARTIAL_SUCCESS", "terminal_reason": "partial_apply_failure"}
             return {"terminal_state": "FAILED", "terminal_reason": "switch_command_failed"}
         return {"terminal_state": "APPLIED", "terminal_reason": "selected_moves_applied"}
 

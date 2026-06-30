@@ -15960,26 +15960,39 @@ def run_json_command(cmd, timeout=40, max_output=5_000_000):
             timeout=timeout,
             check=False,
         )
-        output = proc.stdout[-max_output:]
+        output = proc.stdout or ""
     except subprocess.TimeoutExpired as exc:
+        timeout_output = (exc.stdout or "") + "\nTIMEOUT"
         return {
             "cmd": cmd,
             "rc": 124,
-            "output": redact((exc.stdout or "") + "\nTIMEOUT"),
+            "output": redact(timeout_output[-12000:]),
+            "output_truncated": len(timeout_output) > 12000,
             "json": None,
+            "parse_error": "timeout",
         }
     except OSError as exc:
-        return {"cmd": cmd, "rc": 127, "output": f"ERROR: {exc}", "json": None}
+        return {"cmd": cmd, "rc": 127, "output": f"ERROR: {exc}", "output_truncated": False, "json": None, "parse_error": str(exc)}
     parsed = None
+    parse_error = ""
     if output.strip():
         try:
             parsed = json.loads(output)
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as exc:
             parsed = None
-    return {"cmd": cmd, "rc": proc.returncode, "output": redact(output[-12000:]), "json": redact(parsed)}
+            parse_error = str(exc)
+    display_output = output[-12000:]
+    return {
+        "cmd": cmd,
+        "rc": proc.returncode,
+        "output": redact(display_output),
+        "output_truncated": len(output) > len(display_output),
+        "json": redact(parsed),
+        "parse_error": parse_error,
+    }
 
 
-def autoswitch_read_only_plan_command(target_egress=""):
+def autoswitch_read_only_plan_command(target_egress="", source_egress=""):
     cmd = [
         "v7-users-autoswitch",
         "--pre-planner-refresh", "write",
@@ -15987,29 +16000,53 @@ def autoswitch_read_only_plan_command(target_egress=""):
         "--pretty",
     ]
     target_egress = safe_egress_id(target_egress)
+    source_egress = safe_egress_id(source_egress)
+    if source_egress:
+        cmd.extend(["--source-egress", source_egress])
     if target_egress:
         cmd.extend(["--target-egress", target_egress])
-    return cmd, target_egress
+    return cmd, target_egress, source_egress
 
 
-def autoswitch_plan_state(target_egress=""):
-    cmd, target_egress = autoswitch_read_only_plan_command(target_egress)
+def autoswitch_plan_state(target_egress="", source_egress=""):
+    cmd, target_egress, source_egress = autoswitch_read_only_plan_command(target_egress, source_egress)
     result = run_json_command(cmd, timeout=45)
+    plan = result.get("json")
+    summary = plan.get("summary") if isinstance(plan, dict) and isinstance(plan.get("summary"), dict) else {}
     return {
         "action": "autoswitch_plan",
         "target_egress": target_egress,
+        "source_egress": source_egress,
         "rc": result.get("rc"),
-        "plan": result.get("json"),
+        "plan": plan,
+        "parse_error": result.get("parse_error", ""),
+        "output_truncated": bool(result.get("output_truncated")),
+        "proposal_count": summary.get("proposal_moves_total", summary.get("candidate_moves_total", summary.get("candidate_moves", 0))),
+        "execution_blocked": bool(summary.get("execution_blocked", False)),
         "output": result.get("output", ""),
         "cmd": result.get("cmd", []),
     }
 
 
-def autoswitch_dry_run_state(actor, target_egress=""):
-    cmd, target_egress = autoswitch_read_only_plan_command(target_egress)
+def autoswitch_dry_run_state(actor, target_egress="", source_egress=""):
+    cmd, target_egress, source_egress = autoswitch_read_only_plan_command(target_egress, source_egress)
     result = run_json_command(cmd, timeout=45)
-    audit_admin(actor, "admin_action_autoswitch_dry_run", f"autoswitch dry-run target={target_egress or 'all'}", object_type="autoswitch", object_id=target_egress or "plan", result="OK" if result.get("rc") == 0 else "FAIL")
-    return {"action": "autoswitch_dry_run", "target_egress": target_egress, "rc": result.get("rc"), "plan": result.get("json"), "output": result.get("output", ""), "cmd": result.get("cmd", [])}
+    plan = result.get("json")
+    summary = plan.get("summary") if isinstance(plan, dict) and isinstance(plan.get("summary"), dict) else {}
+    audit_admin(actor, "admin_action_autoswitch_dry_run", f"autoswitch dry-run source={source_egress or 'all'} target={target_egress or 'all'}", object_type="autoswitch", object_id=target_egress or source_egress or "plan", result="OK" if result.get("rc") == 0 else "FAIL")
+    return {
+        "action": "autoswitch_dry_run",
+        "target_egress": target_egress,
+        "source_egress": source_egress,
+        "rc": result.get("rc"),
+        "plan": plan,
+        "parse_error": result.get("parse_error", ""),
+        "output_truncated": bool(result.get("output_truncated")),
+        "proposal_count": summary.get("proposal_moves_total", summary.get("candidate_moves_total", summary.get("candidate_moves", 0))),
+        "execution_blocked": bool(summary.get("execution_blocked", False)),
+        "output": result.get("output", ""),
+        "cmd": result.get("cmd", []),
+    }
 
 
 def _count_best_available_pool(obj):
@@ -16099,18 +16136,32 @@ def autoswitch_planner_refresh_dry_run_state(actor):
     }
 
 
-def autoswitch_apply_guarded(actor, confirm="", target_egress=""):
+def autoswitch_apply_guarded(actor, confirm="", target_egress="", source_egress=""):
     if str(confirm) != "AUTOSWITCH":
         return {"error": "autoswitch_apply_requires_confirm_AUTOSWITCH"}, 400
     cmd = ["v7-users-autoswitch", "--mode", "guarded", "--apply", "--pretty"]
     target_egress = safe_egress_id(target_egress)
+    source_egress = safe_egress_id(source_egress)
+    if source_egress:
+        cmd.extend(["--source-egress", source_egress])
     if target_egress:
         cmd.extend(["--target-egress", target_egress])
     result = run_json_command(cmd, timeout=120)
     plan = result.get("json") or {}
     applied = (plan.get("apply_result") or {}).get("applied") if isinstance(plan, dict) else False
-    audit_admin(actor, "admin_action_autoswitch_apply_guarded", f"rc={result.get('rc')} applied={applied} target={target_egress or 'all'}", object_type="autoswitch", object_id=target_egress or "guarded", result="OK" if result.get("rc") == 0 else "FAIL", severity="warning")
-    return {"action": "autoswitch_apply_guarded", "target_egress": target_egress, "rc": result.get("rc"), "plan": plan, "output": result.get("output", ""), "cmd": result.get("cmd", []), "overview": overview()}, 200 if result.get("rc") == 0 else 409
+    audit_admin(actor, "admin_action_autoswitch_apply_guarded", f"rc={result.get('rc')} applied={applied} source={source_egress or 'all'} target={target_egress or 'all'}", object_type="autoswitch", object_id=target_egress or source_egress or "guarded", result="OK" if result.get("rc") == 0 else "FAIL", severity="warning")
+    return {
+        "action": "autoswitch_apply_guarded",
+        "target_egress": target_egress,
+        "source_egress": source_egress,
+        "rc": result.get("rc"),
+        "plan": plan,
+        "parse_error": result.get("parse_error", ""),
+        "output_truncated": bool(result.get("output_truncated")),
+        "output": result.get("output", ""),
+        "cmd": result.get("cmd", []),
+        "overview": overview(),
+    }, 200 if result.get("rc") == 0 else 409
 
 
 def admin_safe_mode_state():
@@ -29559,7 +29610,7 @@ def html_page_v2():
                 <label class="field">Приоритет<input id="v2ChPriority_${key}" type="number" min="0" max="1000" value="${esc(priority)}"></label>
                 <label class="field">Вес<input id="v2ChWeight_${key}" type="number" min="0" max="10000" step="1" value="${esc(weight)}"></label>
               </div>
-              <div class="channel-control-actions"><button class="primary" onclick="saveV2ChannelAutoswitchPolicy('${safeId}')">Сохранить</button><button class="ghost" onclick="previewV2ChannelAutoswitch('${safeId}')">Показать план</button><button class="primary" onclick="runV2ChannelAutoswitch('${safeId}')">AUTOSWITCH</button></div>
+              <div class="channel-control-actions"><button class="primary" onclick="saveV2ChannelAutoswitchPolicy('${safeId}')">Сохранить</button><button class="ghost" onclick="previewV2ChannelAutoswitch('${safeId}', 'target')">Рекомендации сюда</button><button class="ghost" onclick="previewV2ChannelAutoswitch('${safeId}', 'source')">Эвакуация отсюда</button><button class="primary" onclick="runV2ChannelAutoswitch('${safeId}')">AUTOSWITCH</button></div>
             </div>
             <div class="channel-control-block">
               <h4>Группы</h4>
@@ -29578,31 +29629,38 @@ def html_page_v2():
     function channelAutoswitchPlanHtml(payload, id='') {
       const plan = payload?.plan || payload || {};
       const decisions = plan.decisions || [];
+      const sourceScope = String(payload?.source_egress || plan.source_egress || '') === String(id);
       const targetRows = decisions
-        .filter(d => d.recommended_egress === id && d.current_egress !== id)
+        .filter(d => sourceScope ? (d.current_egress === id && d.recommended_egress !== id) : (d.recommended_egress === id && d.current_egress !== id))
         .slice(0, 30)
         .map(d => {
           const exp = d.explanation || {};
           const why = (exp.why || d.reason || []).slice(0, 4).join('; ');
-          return `<tr><td><strong>${esc(d.user_ip || '')}</strong><br><span class="muted">${esc(d.group || 'default')}</span></td><td>${esc(d.current_egress || '')}</td><td>${pill(d.move_type || 'planned', d.move_type === 'failover' ? 'warn' : 'info')}</td><td>${esc(why || 'нет объяснения')}</td></tr>`;
+          const blocked = (d.reason || []).includes('restore_barrier_execution_blocked') || (plan.summary || {}).execution_blocked;
+          return `<tr><td><strong>${esc(d.user_ip || '')}</strong><br><span class="muted">${esc(d.group || 'default')}</span></td><td>${esc(d.current_egress || '')}</td><td>${esc(d.recommended_egress || '')}</td><td>${pill(d.move_type || 'planned', d.move_type === 'failover' ? 'warn' : 'info')} ${blocked ? pill('blocked', 'warn') : pill('proposal', 'info')}</td><td>${esc(why || 'нет объяснения')}</td></tr>`;
         });
-      const selected = (plan.selected_moves || []).filter(m => m.recommended_egress === id).length;
+      const selected = (plan.selected_moves || []).filter(m => sourceScope ? m.current_egress === id : m.recommended_egress === id).length;
       const summary = plan.summary || {};
       return [
         kvRows({
           'Режим': plan.enabled === false ? 'выключен' : (plan.mode || 'guarded'),
-          'Кандидатов именно сюда': summary.candidate_moves ?? targetRows.length,
-          'Выбрано на этот запуск': selected,
-          'Всего кандидатов по системе': summary.candidate_moves_total ?? summary.candidate_moves ?? 0,
+          'Тип просмотра': sourceScope ? 'эвакуация С канала' : 'рекомендации НА канал',
+          'Рекомендаций в этом просмотре': summary.candidate_moves ?? targetRows.length,
+          'Выбрано к исполнению': selected,
+          'Исполнение заблокировано': summary.execution_blocked ? (summary.execution_blocker || 'yes') : 'no',
+          'Всего рекомендаций по системе': summary.proposal_moves_total ?? summary.candidate_moves_total ?? summary.candidate_moves ?? 0,
         }),
-        listTable(['Пользователь','Сейчас','Тип','Почему'], targetRows, 'Сейчас система не выбрала пользователей для автоматического перевода на этот канал.'),
+        listTable(['Пользователь','Сейчас','Рекомендовано','Статус','Почему'], targetRows, 'Сейчас нет рекомендаций для этого просмотра.'),
       ].join('');
     }
-    async function previewV2ChannelAutoswitch(id='') {
+    async function previewV2ChannelAutoswitch(id='', scope='target') {
       const key = domSafeId(id || 'channel');
       const host = document.getElementById(`v2ChAutoswitchPlan_${key}`);
       if (host) host.innerHTML = '<div class="muted">Считаю план для этого канала...</div>';
-      const d = await api(`/api/autoswitch-plan?egress=${encodeURIComponent(id || '')}`);
+      const query = scope === 'source'
+        ? `source_egress=${encodeURIComponent(id || '')}`
+        : `egress=${encodeURIComponent(id || '')}`;
+      const d = await api(`/api/autoswitch-plan?${query}`);
       if (host) host.innerHTML = channelAutoswitchPlanHtml(d, id);
     }
     async function applyV2ChannelAutoswitch(id='') {
@@ -37650,7 +37708,12 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_auth(api=True):
                 return
             query = parse_qs(urlparse(self.path).query)
-            self.send_json(autoswitch_plan_state((query.get("egress") or [""])[0]))
+            self.send_json(
+                autoswitch_plan_state(
+                    (query.get("egress") or query.get("target_egress") or [""])[0],
+                    (query.get("source_egress") or query.get("current_egress") or [""])[0],
+                )
+            )
         elif path == "/api/backups":
             if not self.require_auth(api=True):
                 return
@@ -39694,7 +39757,13 @@ class Handler(BaseHTTPRequestHandler):
                 return
             data = read_request_data(self)
             actor = session.get("sub", "admin")
-            self.send_json(autoswitch_dry_run_state(actor, target_egress=data.get("egress", "")))
+            self.send_json(
+                autoswitch_dry_run_state(
+                    actor,
+                    target_egress=data.get("egress", data.get("target_egress", "")),
+                    source_egress=data.get("source_egress", data.get("current_egress", "")),
+                )
+            )
         elif path == "/api/actions/planner-refresh-dry-run":
             session = self.require_auth(api=True)
             if not session:
@@ -39711,7 +39780,12 @@ class Handler(BaseHTTPRequestHandler):
                 return
             data = read_request_data(self)
             actor = session.get("sub", "admin")
-            payload, status = autoswitch_apply_guarded(actor, confirm=data.get("confirm", ""), target_egress=data.get("egress", ""))
+            payload, status = autoswitch_apply_guarded(
+                actor,
+                confirm=data.get("confirm", ""),
+                target_egress=data.get("egress", data.get("target_egress", "")),
+                source_egress=data.get("source_egress", data.get("current_egress", "")),
+            )
             self.send_json(payload, status=status)
         elif path == "/api/actions/policy-systemd-preview":
             session = self.require_auth(api=True)

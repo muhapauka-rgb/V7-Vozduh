@@ -4044,10 +4044,16 @@ class AutoswitchPlanner:
         decisions = [self._decision_for_user(user) for user in active if not self.args.user or user.ip == self.args.user]
         enabled = bool_value(self.switch_policy.get("autoswitch_enabled"))
         target_egress = str(self.args.target_egress or "").strip()
+        source_egress = str(getattr(self.args, "source_egress", "") or "").strip()
         selection_source = decisions
+        if source_egress:
+            selection_source = [
+                item for item in selection_source
+                if item.get("current_egress") == source_egress
+            ]
         if target_egress:
             selection_source = [
-                item for item in decisions
+                item for item in selection_source
                 if item.get("recommended_egress") == target_egress and item.get("current_egress") != target_egress
             ]
         affected_candidate_moves = sum(
@@ -4173,6 +4179,43 @@ class AutoswitchPlanner:
             intelligence_snapshot_gate["selected_moves_after_gate"] = 0
         else:
             intelligence_snapshot_gate["selected_moves_after_gate"] = len(selected)
+        restore_barrier_execution_gate = {
+            "active": bool_value(restore_barrier.get("failover_quarantine")),
+            "decision": "pass",
+            "reason": "",
+            "selected_moves_before_gate": len(selected),
+            "selected_moves_after_gate": len(selected),
+            "execution_blocked": False,
+            "execution_blocker": "",
+        }
+        if (
+            selected
+            and bool_value(restore_barrier_execution_gate.get("active"))
+            and not bool_value(approved_plan_lock.get("ok"))
+        ):
+            restore_barrier_execution_gate.update(
+                {
+                    "decision": "block_selected_moves_restore_barrier",
+                    "reason": "restore_barrier_execution_blocked",
+                    "selected_moves_after_gate": 0,
+                    "execution_blocked": True,
+                    "execution_blocker": "restore_barrier",
+                }
+            )
+            restore_barrier["execution_blocked"] = True
+            restore_barrier["execution_blocker"] = "restore_barrier"
+            restore_barrier["execution_blocker_reason"] = "restore_barrier_execution_blocked"
+            restore_barrier["execution_selected_moves_before_gate"] = len(selected)
+            restore_barrier["execution_selected_moves_after_gate"] = 0
+            selected = []
+            selected_moves_source = "blocked_by_restore_barrier_execution_gate"
+            effective_blast_radius = 0
+            blast_radius_scope = "blocked_by_restore_barrier_execution_gate"
+        else:
+            restore_barrier["execution_blocked"] = False
+            restore_barrier["execution_blocker"] = ""
+            restore_barrier["execution_selected_moves_before_gate"] = len(selected)
+            restore_barrier["execution_selected_moves_after_gate"] = len(selected)
         selected_hash = self._selected_moves_hash(selected)
         if approved_identity_hash and selected:
             selected_hash = approved_identity_hash
@@ -4198,6 +4241,7 @@ class AutoswitchPlanner:
             "mode": self.switch_policy.get("autoswitch_mode", "guarded") if enabled else "disabled",
             "apply_requested": bool(self.args.apply),
             "target_egress": target_egress,
+            "source_egress": source_egress,
             "safety": {
                 "read_only_without_apply": not self.args.apply,
                 "planned_limit": to_int(self.switch_policy.get("autoswitch_max_planned_per_run"), 1),
@@ -4232,6 +4276,7 @@ class AutoswitchPlanner:
                     "events_detected": len(self.reconnect_events),
                 },
                 "restore_barrier": restore_barrier,
+                "restore_barrier_execution_gate": restore_barrier_execution_gate,
                 "intelligence_snapshots": intelligence_snapshot_gate,
                 "atomic_execution_envelope": atomic_execution_envelope,
                 "selected_moves_diagnostics": {
@@ -4241,6 +4286,8 @@ class AutoswitchPlanner:
                     "approved_plan_lock_hash_source": str(approved_plan_lock.get("selected_move_hash_source") or ""),
                     "selected_moves_before_restore_barrier": len(selected_before_restore_barrier),
                     "selected_moves_after_gate": len(selected),
+                    "restore_barrier_execution_blocked": bool_value(restore_barrier_execution_gate.get("execution_blocked")),
+                    "execution_blocker": str(restore_barrier_execution_gate.get("execution_blocker") or ""),
                     "snapshot_gate_source": str(intelligence_snapshot_gate.get("snapshot_gate_source") or ""),
                     "snapshot_gate_decision": str(intelligence_snapshot_gate.get("snapshot_gate_decision") or ""),
                     "snapshot_gate_changed_fields": list(intelligence_snapshot_gate.get("snapshot_gate_changed_fields") or []),
@@ -4255,7 +4302,11 @@ class AutoswitchPlanner:
                 "healthy_egress_total": self.dynamic_load.get("healthy_channels", 0),
                 "candidate_moves": affected_candidate_moves,
                 "candidate_moves_total": sum(1 for item in decisions if item.get("recommended_egress") and item.get("recommended_egress") != item.get("current_egress")),
+                "proposal_moves_total": sum(1 for item in decisions if item.get("recommended_egress") and item.get("recommended_egress") != item.get("current_egress")),
                 "selected_moves": len(selected),
+                "selected_move_count": len(selected),
+                "execution_blocked": bool_value(restore_barrier_execution_gate.get("execution_blocked")),
+                "execution_blocker": str(restore_barrier_execution_gate.get("execution_blocker") or ""),
                 "reconnect_rotation_candidates": sum(1 for item in decisions if item.get("move_type") == "reconnect_rotation"),
                 "rebalance_candidates": sum(1 for item in decisions if item.get("move_type") == "rebalance"),
                 "org_groups": sorted({user.group for user in active}),
@@ -5282,12 +5333,7 @@ class AutoswitchPlanner:
                 and bool_value(self.service_signal_policy.get("restore_stage"))
                 and not bool_value(self.service_signal_policy.get("apply_restore_approved"))
             )
-            if current and bool_value(self.restore_barrier.get("failover_quarantine")):
-                if bool_value(self.restore_barrier.get("post_ttl_blocking")):
-                    reason.append("restore_barrier_post_ttl_generation_clearance_required")
-                else:
-                    reason.append("restore_barrier_failover_suppressed")
-            elif service_signal_restore_gate:
+            if service_signal_restore_gate:
                 reason.append("restore_stage_service_signal_failover_requires_approval")
             else:
                 failover_candidates = [self._candidate(user, egress, important, route_class, purpose="failover") for egress in self.egress.values()]
@@ -5300,6 +5346,11 @@ class AutoswitchPlanner:
                     recommended = best_failover.egress.id
                     recommended_score = best_failover.score
                     reason.append("current_egress_not_eligible")
+                    if current and bool_value(self.restore_barrier.get("failover_quarantine")):
+                        if bool_value(self.restore_barrier.get("post_ttl_blocking")):
+                            reason.append("restore_barrier_post_ttl_execution_blocked")
+                        else:
+                            reason.append("restore_barrier_execution_blocked")
                 else:
                     reason.append("no_eligible_failover_target")
         elif user.ip in self.reconnect_events:
@@ -6541,6 +6592,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--mode", choices=("observe", "guarded", "active"), default="")
     parser.add_argument("--user", default="", help="Limit planning to one user IP.")
     parser.add_argument("--target-egress", default="", help="Limit selected autoswitch moves to users recommended for this egress.")
+    parser.add_argument("--source-egress", "--current-egress", dest="source_egress", default="", help="Limit selected autoswitch moves to users currently on this egress.")
     parser.add_argument("--service", default="", help="Score candidates for one important service.")
     parser.add_argument("--route-class", default="", help="Override derived route class.")
     parser.add_argument("--max-selected-moves", type=int, default=0, help="Narrow selected moves to this maximum without raising policy limits.")

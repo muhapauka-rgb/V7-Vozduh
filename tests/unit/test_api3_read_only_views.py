@@ -123,8 +123,9 @@ class Api3ReadOnlyViewsTest(unittest.TestCase):
                 self.assertNotIn(token, source)
 
     def test_autoswitch_read_only_plan_uses_pre_planner_refresh(self):
-        cmd, target = self.admin.autoswitch_read_only_plan_command("awg0")
+        cmd, target, source = self.admin.autoswitch_read_only_plan_command("awg0")
         self.assertEqual(target, "awg0")
+        self.assertEqual(source, "")
         self.assertEqual(cmd[:5], [
             "v7-users-autoswitch",
             "--pre-planner-refresh",
@@ -135,25 +136,62 @@ class Api3ReadOnlyViewsTest(unittest.TestCase):
         self.assertIn("--pretty", cmd)
         self.assertEqual(cmd[-2:], ["--target-egress", "awg0"])
 
+    def test_autoswitch_read_only_plan_supports_source_and_target_scope(self):
+        cmd, target, source = self.admin.autoswitch_read_only_plan_command("vless", "awg0")
+        self.assertEqual(target, "vless")
+        self.assertEqual(source, "awg0")
+        self.assertIn("--source-egress", cmd)
+        self.assertIn("awg0", cmd)
+        self.assertEqual(cmd[-2:], ["--target-egress", "vless"])
+
     def test_autoswitch_plan_state_reuses_refresh_command(self):
         calls = []
         original = self.admin.run_json_command
         try:
             def fake_run_json_command(cmd, timeout=45, max_output=12000):
                 calls.append((cmd, timeout, max_output))
-                return {"cmd": cmd, "rc": 0, "json": {"ok": True}, "output": "{}"}
+                return {
+                    "cmd": cmd,
+                    "rc": 0,
+                    "json": {"ok": True, "summary": {"proposal_moves_total": 2, "execution_blocked": True}},
+                    "output": "{}",
+                    "parse_error": "",
+                    "output_truncated": False,
+                }
 
             self.admin.run_json_command = fake_run_json_command
-            result = self.admin.autoswitch_plan_state("vless")
+            result = self.admin.autoswitch_plan_state("vless", "awg0")
         finally:
             self.admin.run_json_command = original
 
         self.assertEqual(result["rc"], 0)
-        self.assertEqual(result["plan"], {"ok": True})
+        self.assertEqual(result["plan"]["ok"], True)
+        self.assertEqual(result["target_egress"], "vless")
+        self.assertEqual(result["source_egress"], "awg0")
+        self.assertEqual(result["proposal_count"], 2)
+        self.assertTrue(result["execution_blocked"])
         self.assertEqual(result["cmd"], calls[0][0])
         self.assertIn("--pre-planner-refresh", calls[0][0])
         self.assertIn("write", calls[0][0])
         self.assertEqual(calls[0][1], 45)
+
+    def test_run_json_command_parses_full_stdout_and_truncates_display_only(self):
+        original = self.admin.subprocess.run
+
+        class FakeProc:
+            returncode = 0
+            stdout = json.dumps({"ok": True, "payload": "x" * 20000})
+
+        try:
+            self.admin.subprocess.run = lambda *args, **kwargs: FakeProc()
+            result = self.admin.run_json_command(["fake"], max_output=100)
+        finally:
+            self.admin.subprocess.run = original
+
+        self.assertEqual(result["json"]["ok"], True)
+        self.assertEqual(result["parse_error"], "")
+        self.assertTrue(result["output_truncated"])
+        self.assertLessEqual(len(result["output"]), 12000)
 
 
 if __name__ == "__main__":

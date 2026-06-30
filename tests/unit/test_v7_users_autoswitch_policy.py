@@ -748,6 +748,26 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertEqual(plan["selected_moves"][0]["selected_move_hash"], plan["operation"]["selected_move_hash"])
             self.assertEqual(plan["selected_moves"][0]["selected_move_index"], 0)
 
+    def test_source_egress_limits_selected_moves_to_current_channel(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                egress_1_services={"instagram": {"ok": False, "score": 0, "consecutive_failures": 3}},
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--source-egress", "1"]))
+            source_plan = planner.plan()
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--source-egress", "vless"]))
+            unrelated_source_plan = planner.plan()
+
+        self.assertEqual(source_plan["source_egress"], "1")
+        self.assertEqual(source_plan["summary"]["candidate_moves"], 1)
+        self.assertEqual(source_plan["summary"]["selected_moves"], 1)
+        self.assertEqual(source_plan["selected_moves"][0]["current_egress"], "1")
+        self.assertEqual(unrelated_source_plan["source_egress"], "vless")
+        self.assertEqual(unrelated_source_plan["summary"]["candidate_moves"], 0)
+        self.assertEqual(unrelated_source_plan["summary"]["selected_moves"], 0)
+
     def test_multiple_single_sample_fails_are_transient_not_hard_block(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -1108,7 +1128,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertIn("authority_frozen", gate["authority_lifecycle"]["governance"]["promotion"]["blockers"])
         self.assertIn("user_movement", gate["authority_lifecycle"]["action_matrix"]["FROZEN"]["blocked_actions"])
 
-    def test_restore_barrier_suppresses_telegram_service_signal_failover(self):
+    def test_restore_barrier_exposes_telegram_failover_proposal_but_blocks_execution(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.write_fixture(
@@ -1125,12 +1145,45 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertEqual(plan["operation"]["terminal_state"], "DRY_RUN")
             self.assertEqual(plan["operation"]["terminal_reason"], "dry_run_restore_barrier_active")
             self.assertTrue(plan["safety"]["restore_barrier"]["active"])
-            self.assertEqual(plan["summary"]["candidate_moves_total"], 0)
+            self.assertEqual(plan["summary"]["candidate_moves_total"], 1)
+            self.assertEqual(plan["summary"]["proposal_moves_total"], 1)
             self.assertEqual(plan["summary"]["selected_moves"], 0)
+            self.assertTrue(plan["summary"]["execution_blocked"])
+            self.assertEqual(plan["summary"]["execution_blocker"], "restore_barrier")
+            self.assertEqual(plan["safety"]["restore_barrier_execution_gate"]["decision"], "block_selected_moves_restore_barrier")
+            self.assertEqual(plan["safety"]["restore_barrier_execution_gate"]["selected_moves_before_gate"], 1)
+            self.assertEqual(plan["safety"]["restore_barrier_execution_gate"]["selected_moves_after_gate"], 0)
+            self.assertEqual(plan["decisions"][0]["action"], "switch")
+            self.assertEqual(plan["decisions"][0]["move_type"], "failover")
+            self.assertEqual(plan["decisions"][0]["recommended_egress"], "vless")
             self.assertIn(
-                "restore_barrier_failover_suppressed",
+                "restore_barrier_execution_blocked",
                 plan["decisions"][0]["reason"],
             )
+
+    def test_restore_barrier_execution_gate_keeps_apply_fail_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--mode", "guarded", "--apply"]))
+            planner._run_switch = lambda *args, **kwargs: self.fail("_run_switch must not run while restore barrier blocks execution")
+            plan = planner.plan()
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        self.assertEqual(plan["summary"]["proposal_moves_total"], 1)
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+        self.assertTrue(plan["summary"]["execution_blocked"])
+        self.assertEqual(plan["apply_result"]["reason"], "no_selected_moves")
+        self.assertEqual(plan["operation"]["terminal_state"], "NOOP")
 
     def test_apply_verify_failure_records_operation_rollback_and_audit_lineage(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1473,7 +1526,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(len(result["rollback_result"]["results"]), 2)
         self.assertTrue(result["audit"]["emitted"])
 
-    def test_restore_barrier_suppresses_non_service_failover(self):
+    def test_restore_barrier_exposes_non_service_failover_proposal_but_blocks_execution(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.write_fixture(
@@ -1487,9 +1540,13 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             )
             plan = self.plan(root)
             self.assertTrue(plan["safety"]["restore_barrier"]["active"])
-            self.assertEqual(plan["summary"]["candidate_moves_total"], 0)
+            self.assertEqual(plan["summary"]["candidate_moves_total"], 1)
+            self.assertEqual(plan["summary"]["proposal_moves_total"], 1)
             self.assertEqual(plan["summary"]["selected_moves"], 0)
-            self.assertIn("restore_barrier_failover_suppressed", plan["decisions"][0]["reason"])
+            self.assertTrue(plan["summary"]["execution_blocked"])
+            self.assertEqual(plan["decisions"][0]["action"], "switch")
+            self.assertEqual(plan["decisions"][0]["move_type"], "failover")
+            self.assertIn("restore_barrier_execution_blocked", plan["decisions"][0]["reason"])
 
     def test_expired_restore_barrier_requires_generation_clearance(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1507,10 +1564,12 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertFalse(plan["safety"]["restore_barrier"]["active"])
             self.assertTrue(plan["safety"]["restore_barrier"]["expired"])
             self.assertTrue(plan["safety"]["restore_barrier"]["post_ttl_blocking"])
-            self.assertEqual(plan["summary"]["candidate_moves_total"], 0)
+            self.assertEqual(plan["summary"]["candidate_moves_total"], 1)
+            self.assertEqual(plan["summary"]["proposal_moves_total"], 1)
             self.assertEqual(plan["summary"]["selected_moves"], 0)
+            self.assertTrue(plan["summary"]["execution_blocked"])
             self.assertIn(
-                "restore_barrier_post_ttl_generation_clearance_required",
+                "restore_barrier_post_ttl_execution_blocked",
                 plan["decisions"][0]["reason"],
             )
 

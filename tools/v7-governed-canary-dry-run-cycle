@@ -175,6 +175,65 @@ def run_planner_observe(state_dir: Path, event_dir: Path, snapshot_root: Path, m
     }
 
 
+def run_l3_production_validation_plan(
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    snapshot_root: Path,
+    restore_barrier_file: Path,
+    max_users: int,
+    pre_planner_refresh_command: str = "v7-intelligence-snapshot-refresh",
+) -> dict[str, Any]:
+    command = [
+        str(planner_observe_executable()),
+        "--pre-planner-refresh",
+        "write",
+        "--pre-planner-refresh-command",
+        pre_planner_refresh_command,
+        "--emergency-failover-autonomy",
+        "--mode",
+        "guarded",
+        "--max-selected-moves",
+        str(max(1, int(max_users))),
+        "--state-dir",
+        str(state_dir),
+        "--event-dir",
+        str(event_dir),
+        "--intelligence-snapshot-root",
+        str(snapshot_root),
+        "--restore-barrier-file",
+        str(restore_barrier_file),
+        "--pretty",
+    ]
+    try:
+        proc = subprocess.run(command, capture_output=True, text=True, timeout=90)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "ok": False,
+            "command": command,
+            "error": str(exc),
+            "payload": {},
+            "runtime_mutation_performed": False,
+            "apply_executed": False,
+            "users_moved": 0,
+        }
+    try:
+        payload = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        payload = {}
+    return {
+        "ok": proc.returncode == 0 and isinstance(payload, dict),
+        "returncode": proc.returncode,
+        "command": command,
+        "payload": payload if isinstance(payload, dict) else {},
+        "stderr_tail": proc.stderr[-1200:],
+        "stdout_tail": proc.stdout[-1200:] if not isinstance(payload, dict) else "",
+        "runtime_mutation_performed": False,
+        "apply_executed": False,
+        "users_moved": 0,
+    }
+
+
 def selected_moves_from_planner_payload(payload: dict[str, Any]) -> list[dict[str, Any]]:
     safety = payload.get("safety") if isinstance(payload.get("safety"), dict) else {}
     barrier = safety.get("restore_barrier") if isinstance(safety.get("restore_barrier"), dict) else {}
@@ -533,6 +592,7 @@ def run_autoswitch_apply(
     restore_barrier_file: Path,
     user: str,
     target: str,
+    emergency_failover_autonomy: bool = False,
 ) -> dict[str, Any]:
     command = [
         str(planner_observe_executable()),
@@ -557,6 +617,8 @@ def run_autoswitch_apply(
         "--allow-pre-planner-refresh-with-apply",
         "--pretty",
     ]
+    if emergency_failover_autonomy:
+        command.insert(1, "--emergency-failover-autonomy")
     try:
         proc = subprocess.run(command, capture_output=True, text=True, timeout=90)
     except (OSError, subprocess.TimeoutExpired) as exc:
@@ -694,6 +756,37 @@ def materialize_governed_transaction_feedback(
     }
 
 
+def l3_packet_constraints_ok(packet: dict[str, Any], transition: dict[str, Any], max_users: int) -> dict[str, Any]:
+    constraints = packet.get("constraints") if isinstance(packet.get("constraints"), dict) else {}
+    expected = packet.get("expected") if isinstance(packet.get("expected"), dict) else {}
+    users = [str(item) for item in (constraints.get("allowed_users") or []) if str(item)]
+    targets = [str(item) for item in (constraints.get("allowed_targets") or []) if str(item)]
+    selected_count = int(expected.get("selected_move_count") or 0)
+    moves = transition.get("selected_moves") if isinstance(transition.get("selected_moves"), list) else []
+    errors: list[str] = []
+    if int(max_users) != 1:
+        errors.append("l3_validation_max_users_not_one")
+    if selected_count != 1:
+        errors.append("selected_move_count_not_one")
+    if len(users) != 1:
+        errors.append("user_scope_not_one")
+    if len(targets) != 1:
+        errors.append("target_scope_not_one")
+    if len(moves) != 1:
+        errors.append("transition_selected_move_count_not_one")
+    for move in moves:
+        if str(move.get("move_type") or "") != "failover":
+            errors.append("transition_move_type_not_failover")
+    return {
+        "ok": not errors,
+        "errors": errors,
+        "users": users,
+        "targets": targets,
+        "selected_move_count": selected_count,
+        "transition_status": str(transition.get("status") or ""),
+    }
+
+
 def execute_governed_transaction(args: argparse.Namespace, *, state_dir: Path, event_dir: Path, snapshot_root: Path, audit_dir: Path, lease_file: Path) -> dict[str, Any]:
     return execute_governed_transaction_with_guards(
         args,
@@ -703,6 +796,159 @@ def execute_governed_transaction(args: argparse.Namespace, *, state_dir: Path, e
         audit_dir=audit_dir,
         lease_file=lease_file,
     )
+
+
+def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Path, event_dir: Path, snapshot_root: Path, audit_dir: Path, lease_file: Path) -> dict[str, Any]:
+    if args.confirm_l3_production_validation != "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED":
+        return transaction_stop("l3_production_validation_confirmation_required")
+    if int(args.max_users) != 1:
+        return transaction_stop("l3_production_validation_max_users_must_be_one")
+
+    existing_lease = operator_execution.load_execution_lease(lease_file)
+    existing_state = operator_execution.execution_lease_state(existing_lease)
+    if existing_state.get("active"):
+        return transaction_stop("active_execution_lease_exists", execution_lease_state=existing_state)
+
+    restore_barrier_file = Path(args.restore_barrier_file) if args.restore_barrier_file else state_dir / "autoswitch-restore-barrier.json"
+    l3_plan_run = run_l3_production_validation_plan(
+        state_dir=state_dir,
+        event_dir=event_dir,
+        snapshot_root=snapshot_root,
+        restore_barrier_file=restore_barrier_file,
+        max_users=1,
+        pre_planner_refresh_command=str(args.pre_planner_refresh_command or "v7-intelligence-snapshot-refresh"),
+    )
+    plan = l3_plan_run.get("payload") if isinstance(l3_plan_run.get("payload"), dict) else {}
+    if not plan:
+        return transaction_stop("l3_production_validation_plan_unavailable", l3_plan_run=l3_plan_run)
+
+    transition = operator_execution_pipeline.l3_production_validation_runtime_action_transition(plan, max_users=1)
+    if not transition.get("ok"):
+        return transaction_stop("l3_production_validation_transition_blocked", l3_plan_run=l3_plan_run, transition=transition)
+
+    try:
+        packet = operator_execution.packet_from_plan(
+            plan,
+            approval_author=args.approval_author,
+            approval_reviewer=args.approval_reviewer,
+            ttl_seconds=args.ttl_seconds,
+        )
+    except Exception as exc:
+        return transaction_stop("l3_packet_materialization_failed", l3_plan_run=l3_plan_run, transition=transition, error=str(exc))
+
+    constraints = l3_packet_constraints_ok(packet, transition, int(args.max_users))
+    if not constraints.get("ok"):
+        return transaction_stop(
+            "l3_transaction_scope_invalid",
+            l3_plan_run=l3_plan_run,
+            transition=transition,
+            packet=operator_execution.redact(packet),
+            constraints=constraints,
+        )
+
+    user = constraints["users"][0]
+    target = constraints["targets"][0]
+    source = ((packet.get("rollback_manifest") or {}).get("items") or [{}])[0].get("rollback_target", "")
+    lease = operator_execution.create_execution_lease_from_packet(packet, source_preview=plan)
+    lease_create_result = operator_execution.write_execution_lease(lease_file, lease)
+    if not lease_create_result.get("ok"):
+        return transaction_stop(
+            "l3_execution_lease_not_created",
+            l3_plan_run=l3_plan_run,
+            transition=transition,
+            execution_lease_create_result=lease_create_result,
+        )
+
+    audit_store = audit_dir / "operator-execution-audit.jsonl"
+    lifecycle_store = audit_dir / "governance-lifecycle.jsonl"
+    clearance_result = operator_execution.execute_packet(
+        packet,
+        audit_store,
+        state_dir,
+        mode="runtime_action",
+        planner_snapshot=plan,
+        restore_barrier_file=restore_barrier_file,
+        lifecycle_store=lifecycle_store,
+    )
+    if not clearance_result.get("execution_allowed_now"):
+        terminal = operator_execution.finish_execution_lease(
+            lease_file,
+            status="OPERATOR_CANCELLED",
+            reason="l3_transaction_stop_safe_before_apply",
+            operation={"terminal_state": "STOP_SAFE", "terminal_reason": "restore_barrier_clearance_denied", "apply_result": {"applied": False, "results": []}},
+        )
+        return transaction_stop(
+            "l3_restore_barrier_clearance_denied",
+            l3_plan_run=l3_plan_run,
+            transition=transition,
+            packet=operator_execution.redact(packet),
+            execution_lease_create_result=lease_create_result,
+            clearance_result=clearance_result,
+            lease_terminalization=terminal,
+        )
+
+    apply_run = run_autoswitch_apply(
+        state_dir=state_dir,
+        event_dir=event_dir,
+        snapshot_root=snapshot_root,
+        restore_barrier_file=restore_barrier_file,
+        user=user,
+        target=target,
+        emergency_failover_autonomy=True,
+    )
+    apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}
+    operation = dict(apply_payload.get("operation") or {})
+    operation["apply_result"] = apply_payload.get("apply_result") if isinstance(apply_payload.get("apply_result"), dict) else {}
+    terminal_status = lease_terminal_status_from_apply(apply_payload)
+    lease_terminalization = operator_execution.finish_execution_lease(
+        lease_file,
+        status=terminal_status,
+        reason=str(operation.get("terminal_reason") or "l3_production_validation_complete"),
+        operation=operation,
+    )
+    apply_result = apply_payload.get("apply_result") if isinstance(apply_payload.get("apply_result"), dict) else {}
+    results = apply_result.get("results") if isinstance(apply_result.get("results"), list) else []
+    l3_learning = apply_payload.get("l3_learning_closure") if isinstance(apply_payload.get("l3_learning_closure"), dict) else {}
+    capability_state = l3_learning.get("capability_state") if isinstance(l3_learning.get("capability_state"), dict) else {}
+    production_proven = bool(capability_state.get("production_proven"))
+    return {
+        "schema_version": "v7.l3-production-validation-execution.v1",
+        "transaction_status": "COMPLETED" if production_proven else "STOP_SAFE",
+        "final_verdict": "L3_PRODUCTION_PROVEN" if production_proven else "STOP_SAFE",
+        "fresh_packet_id": packet.get("packet_id", ""),
+        "decision_id": packet.get("decision_id", ""),
+        "operation_id": packet.get("operation_id", ""),
+        "selected_move_hash": (packet.get("expected") or {}).get("selected_move_hash", ""),
+        "user": user,
+        "source": source,
+        "target": target,
+        "one_execution_attempt": True,
+        "runtime_mutation_performed": bool(apply_result.get("applied")),
+        "restore_barrier_written_now": bool((clearance_result.get("clearance_result") or {}).get("ok")),
+        "apply_executed": bool(apply_result.get("applied")),
+        "verification_result": "PASS" if results and all(int(row.get("verify_rc", 1)) == 0 for row in results if isinstance(row, dict)) else ("NOT_RUN" if not results else "FAIL"),
+        "rollback_result": operation.get("rollback_verdict", "NOT_REQUIRED"),
+        "l3_learning_closure": l3_learning,
+        "capability_state": capability_state,
+        "production_proven": production_proven,
+        "certified": bool(capability_state.get("certified")),
+        "active_capability": bool(capability_state.get("active_capability")),
+        "users_moved": len(results) if apply_result.get("applied") else 0,
+        "runtime_automation_enabled": False,
+        "authority_expanded": False,
+        "new_architecture_created": False,
+        "new_authority_created": False,
+        "new_runtime_path_created": False,
+        "new_governance_created": False,
+        "new_owner_created": False,
+        "new_backlog_item_created": False,
+        "transition": transition,
+        "l3_plan_run": l3_plan_run,
+        "execution_lease_create_result": lease_create_result,
+        "clearance_result": clearance_result,
+        "autoswitch_apply": apply_run,
+        "lease_terminalization": lease_terminalization,
+    }
 
 
 def execute_governed_transaction_with_guards(
@@ -1102,9 +1348,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--create-execution-lease", action="store_true")
     parser.add_argument("--execute-governed-transaction", action="store_true")
     parser.add_argument("--confirm-governed-transaction", default="")
+    parser.add_argument("--execute-l3-production-validation", action="store_true")
+    parser.add_argument("--confirm-l3-production-validation", default="")
     parser.add_argument("--execute-a4-bounded-evidence-collection", action="store_true")
     parser.add_argument("--confirm-a4-bounded-evidence-collection", default="")
     parser.add_argument("--max-evidence-outcomes", type=int, default=0)
+    parser.add_argument("--pre-planner-refresh-command", default="v7-intelligence-snapshot-refresh")
     parser.add_argument("--committed-preview-file", default="")
     parser.add_argument("--restore-barrier-file", default="")
     parser.add_argument("--approval-author", default="operator-a")
@@ -1140,6 +1389,17 @@ def main(argv=None) -> int:
         )
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
         return 0 if result.get("final_verdict") == "A4_BOUNDED_EVIDENCE_COLLECTION_COMPLETED" else 2
+    if args.execute_l3_production_validation:
+        result = execute_l3_production_validation(
+            args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
+        return 0 if result.get("final_verdict") == "L3_PRODUCTION_PROVEN" else 2
     if args.execute_governed_transaction:
         result = execute_governed_transaction(
             args,

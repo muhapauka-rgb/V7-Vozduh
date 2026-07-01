@@ -3036,6 +3036,62 @@ def autonomy_execution_integration_model() -> dict[str, Any]:
     }
 
 
+def l3_production_validation_runtime_action_transition(plan: dict[str, Any], *, max_users: int = 1) -> dict[str, Any]:
+    selected = operator_execution.selected_moves_from_plan(plan)
+    moves = selected.get("moves") if isinstance(selected.get("moves"), list) else []
+    safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
+    summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
+    emergency_gate = safety.get("emergency_failover_autonomy") if isinstance(safety.get("emergency_failover_autonomy"), dict) else {}
+    diagnostics = safety.get("selected_moves_diagnostics") if isinstance(safety.get("selected_moves_diagnostics"), dict) else {}
+    errors: list[str] = []
+    if int(max_users) != 1:
+        errors.append("l3_validation_max_users_not_one")
+    if len(moves) != 1:
+        errors.append("l3_validation_selected_move_count_not_one")
+    for move in moves:
+        if str(move.get("move_type") or "") != "failover":
+            errors.append("l3_validation_move_type_not_failover")
+        if not str(move.get("user_ip") or ""):
+            errors.append("l3_validation_user_missing")
+        if not str(move.get("current_egress") or ""):
+            errors.append("l3_validation_source_missing")
+        if not str(move.get("recommended_egress") or ""):
+            errors.append("l3_validation_target_missing")
+    emergency_enabled = (
+        str(summary.get("execution_mode") or "") == "emergency_failover"
+        or bool(emergency_gate.get("enabled"))
+        or bool(diagnostics.get("emergency_failover_authorized"))
+    )
+    if not emergency_enabled:
+        errors.append("l3_validation_emergency_failover_not_enabled")
+    return {
+        "schema_version": "v7.l3-production-validation-runtime-action-transition.v1",
+        "owner": "admin_core/operator_execution_pipeline.py",
+        "canonical_owner": "admin_core/operator_execution_pipeline.py",
+        "materialization_owner": CANONICAL_PACKET_OWNER,
+        "runtime_consumer": CANONICAL_RUNTIME_EXECUTOR,
+        "transition": "L3 Production Validation -> Runtime Action",
+        "status": "READY" if not errors else "BLOCKED",
+        "ok": not errors,
+        "errors": errors,
+        "selected_move_count": len(moves),
+        "selected_moves": moves,
+        "max_users": int(max_users),
+        "required_chain": [
+            "OMP approval",
+            "admin_core/operator_execution_pipeline.py",
+            "admin_core/operator_execution.py",
+            "tools/v7-users-autoswitch",
+            "apply",
+        ],
+        "duplicate_execution_path_created": False,
+        "new_owner_created": False,
+        "new_runtime_created": False,
+        "new_planner_created": False,
+        "new_authority_created": False,
+    }
+
+
 def direct_user_switch_blocker(user: str, target: str, actor: str = "") -> dict[str, Any]:
     return {
         "action": "user_switch",

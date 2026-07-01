@@ -54,11 +54,14 @@ class GovernedCanaryCliTest(unittest.TestCase):
             create_execution_lease=False,
             execute_governed_transaction=True,
             confirm_governed_transaction="EXECUTE_GOVERNED_TRANSACTION_APPROVED",
+            execute_l3_production_validation=False,
+            confirm_l3_production_validation="",
             committed_preview_file="",
             restore_barrier_file=str(root / "state" / "autoswitch-restore-barrier.json"),
             approval_author="operator-a",
             approval_reviewer="operator-b",
             ttl_seconds=600,
+            pre_planner_refresh_command="v7-intelligence-snapshot-refresh",
             approved_packet_id="",
             approved_decision_id="",
             approved_operation_id="",
@@ -99,6 +102,47 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "action_class_runtime_enablement": {
                 "current_action_class": "single-user governed candidate failover",
             },
+        }
+
+    def ready_l3_plan(self, *, user="10.7.0.5", source="vless", target="awg3"):
+        return {
+            "operation": {
+                "runtime_snapshot_hash": "l3-runtime-snapshot",
+            },
+            "summary": {
+                "execution_mode": "emergency_failover",
+            },
+            "safety": {
+                "generation": {
+                    "planner_generation_id": "l3-generation",
+                },
+                "atomic_execution_envelope": {
+                    "schema_version": "v7.atomic-execution-envelope.v1",
+                    "envelope_id": "aee-l3",
+                    "envelope_hash": "aee-l3-hash",
+                    "source_bundle_hash": "l3-source-bundle",
+                    "snapshot_bundle_hash": "l3-snapshot-bundle",
+                },
+                "restore_barrier": {
+                    "clearance_selected_moves_before_guard": 1,
+                    "clearance_selected_moves_hash": "l3-selected-hash",
+                    "approved_candidate_moves_before_guard": [
+                        {
+                            "user_ip": user,
+                            "current_egress": source,
+                            "recommended_egress": target,
+                            "move_type": "failover",
+                        }
+                    ],
+                },
+                "emergency_failover_autonomy": {
+                    "enabled": True,
+                },
+                "selected_moves_diagnostics": {
+                    "emergency_failover_authorized": True,
+                },
+            },
+            "decisions": [],
         }
 
     def make_transaction_state(self, root: Path):
@@ -287,6 +331,101 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(result["final_verdict"], "GOVERNED_TRANSACTION_STOPPED")
         self.assertEqual(result["stop_reason"], "transaction_confirmation_required")
         self.assertFalse(result["apply_executed"])
+
+    def test_l3_production_validation_requires_explicit_confirmation(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root)
+            args.execute_l3_production_validation = True
+            args.confirm_l3_production_validation = ""
+            result = module.execute_l3_production_validation(
+                args,
+                state_dir=root / "state",
+                event_dir=root / "events",
+                snapshot_root=root / "state" / "intelligence",
+                audit_dir=root / "audit",
+                lease_file=root / "state" / "operator-execution-lease.json",
+            )
+
+        self.assertEqual(result["final_verdict"], "GOVERNED_TRANSACTION_STOPPED")
+        self.assertEqual(result["stop_reason"], "l3_production_validation_confirmation_required")
+        self.assertFalse(result["apply_executed"])
+
+    def test_l3_production_validation_routes_through_pipeline_before_apply(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root)
+            args.execute_l3_production_validation = True
+            args.confirm_l3_production_validation = "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED"
+            apply_calls = []
+            original_plan = module.run_l3_production_validation_plan
+            original_apply = module.run_autoswitch_apply
+            try:
+                module.run_l3_production_validation_plan = lambda **kwargs: {
+                    "ok": True,
+                    "returncode": 0,
+                    "command": ["l3-plan"],
+                    "payload": self.ready_l3_plan(),
+                }
+
+                def fake_apply(**kwargs):
+                    apply_calls.append(kwargs)
+                    return {
+                        "ok": True,
+                        "returncode": 0,
+                        "payload": {
+                            "operation": {
+                                "operation_id": "l3-runtime-apply",
+                                "terminal_state": "SUCCESS",
+                                "terminal_reason": "l3_validated",
+                            },
+                            "apply_result": {
+                                "applied": True,
+                                "results": [
+                                    {"user_ip": "10.7.0.5", "from": "vless", "to": "awg3", "verify_rc": 0}
+                                ],
+                            },
+                            "l3_learning_closure": {
+                                "materialized": True,
+                                "capability_state": {
+                                    "production_proven": True,
+                                    "certified": False,
+                                    "active_capability": False,
+                                },
+                            },
+                        },
+                    }
+
+                module.run_autoswitch_apply = fake_apply
+                result = module.execute_l3_production_validation(
+                    args,
+                    state_dir=root / "state",
+                    event_dir=root / "events",
+                    snapshot_root=root / "state" / "intelligence",
+                    audit_dir=root / "audit",
+                    lease_file=root / "state" / "operator-execution-lease.json",
+                )
+            finally:
+                module.run_l3_production_validation_plan = original_plan
+                module.run_autoswitch_apply = original_apply
+
+            barrier = json.loads((root / "state" / "autoswitch-restore-barrier.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(result["final_verdict"], "L3_PRODUCTION_PROVEN")
+        self.assertEqual(result["transition"]["owner"], "admin_core/operator_execution_pipeline.py")
+        self.assertTrue(result["restore_barrier_written_now"])
+        self.assertTrue(result["apply_executed"])
+        self.assertEqual(result["users_moved"], 1)
+        self.assertTrue(result["production_proven"])
+        self.assertFalse(result["runtime_automation_enabled"])
+        self.assertFalse(result["authority_expanded"])
+        self.assertEqual(barrier["allowed_users"], ["10.7.0.5"])
+        self.assertEqual(barrier["allowed_targets"], ["awg3"])
+        self.assertTrue(apply_calls[0]["emergency_failover_autonomy"])
 
     def test_a4_bounded_evidence_collection_requires_explicit_confirmation(self):
         module = load_cli_module()

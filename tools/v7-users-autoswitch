@@ -948,11 +948,18 @@ class AutoswitchPlanner:
             "backoff_seconds": max(0, to_int(policy.get("backoff_seconds"), to_int(policy.get("cooldown_seconds"), 180))),
             "broad_automation_enabled": False,
         }
+        approved_validation = restore_barrier.get("approved_plan_lock_validation") if isinstance(restore_barrier.get("approved_plan_lock_validation"), dict) else {}
+        approved_envelope = self._approved_l3_production_validation_envelope(selected, restore_barrier, approved_validation)
+        gate["approved_production_validation_envelope"] = approved_envelope
         if not enabled:
             gate["wake"] = self._l3_wake_decision(policy, [])
             return selected, gate
         blockers: list[str] = []
-        if gate["require_restore_barrier"] and not bool_value(restore_barrier.get("failover_quarantine")):
+        if (
+            gate["require_restore_barrier"]
+            and not bool_value(restore_barrier.get("failover_quarantine"))
+            and not bool_value(approved_envelope.get("ok"))
+        ):
             blockers.append("restore_barrier_required_for_emergency_failover")
         if gate["require_rollback"] and not bool_value(getattr(self.args, "rollback_on_verify_fail", False)):
             blockers.append("rollback_required_for_emergency_failover")
@@ -1052,8 +1059,114 @@ class AutoswitchPlanner:
         gate["blockers"] = sorted(set(blockers))
         gate["ok"] = bool(bounded) and not gate["blockers"]
         gate["selected_moves_after_gate"] = len(bounded) if gate["ok"] else 0
-        gate["decision"] = "authorize_bounded_emergency_failover" if gate["ok"] else "block_emergency_failover"
+        if gate["ok"] and bool_value(approved_envelope.get("ok")):
+            gate["decision"] = "authorize_one_user_production_validation_envelope"
+            gate["authority_source"] = "current_approved_emergency_envelope"
+            gate["production_validation_only"] = True
+            gate["autonomy_certified"] = False
+        else:
+            gate["decision"] = "authorize_bounded_emergency_failover" if gate["ok"] else "block_emergency_failover"
+            gate["authority_source"] = "certified_emergency_failover_policy" if gate["ok"] else ""
+            gate["production_validation_only"] = False
+            gate["autonomy_certified"] = bool(gate["ok"])
         return bounded if gate["ok"] else [], gate
+
+    def _approved_l3_production_validation_envelope(
+        self,
+        selected: list[dict[str, Any]],
+        restore_barrier: dict[str, Any],
+        approved_lock: dict[str, Any],
+    ) -> dict[str, Any]:
+        expected: list[dict[str, Any]] = [
+            {
+                "condition": "l3_production_validation_mode",
+                "expected": True,
+                "actual": bool_value(getattr(self.args, "emergency_failover_autonomy", False))
+                and bool_value(getattr(self.args, "apply", False)),
+                "owner": "tools/v7-governed-canary-dry-run-cycle",
+                "applies_to_l3_production_validation": True,
+            },
+            {
+                "condition": "one_user_exactly",
+                "expected": 1,
+                "actual": len(selected),
+                "owner": "tools/v7-users-autoswitch",
+                "applies_to_l3_production_validation": True,
+            },
+            {
+                "condition": "approved_plan_lock_valid",
+                "expected": True,
+                "actual": bool_value(approved_lock.get("ok")),
+                "owner": "tools/v7-users-autoswitch._approved_plan_lock_validation",
+                "applies_to_l3_production_validation": True,
+            },
+            {
+                "condition": "restore_barrier_clearance_valid",
+                "expected": True,
+                "actual": bool_value(restore_barrier.get("cleared"))
+                and str(restore_barrier.get("clearance_guard_reason") or "") in {
+                    "restore_barrier_clearance_budget_and_generation_ok",
+                    "restore_barrier_clearance_preview_packet_identity_match",
+                    "restore_barrier_clearance_generation_match_source_bundle_lease",
+                    "restore_barrier_clearance_budget_ok",
+                },
+                "owner": "admin_core/operator_execution.py",
+                "applies_to_l3_production_validation": True,
+            },
+            {
+                "condition": "selected_move_hash_matches",
+                "expected": True,
+                "actual": bool(selected)
+                and str(approved_lock.get("selected_move_hash") or "")
+                == str(restore_barrier.get("clearance_selected_moves_hash") or approved_lock.get("selected_move_hash") or ""),
+                "owner": "admin_core/operator_execution.py",
+                "applies_to_l3_production_validation": True,
+            },
+            {
+                "condition": "verify_enabled",
+                "expected": True,
+                "actual": bool_value(getattr(self.args, "verify", False)),
+                "owner": "tools/v7-users-autoswitch",
+                "applies_to_l3_production_validation": True,
+            },
+            {
+                "condition": "rollback_on_verify_fail_enabled",
+                "expected": True,
+                "actual": bool_value(getattr(self.args, "rollback_on_verify_fail", False)),
+                "owner": "tools/v7-users-autoswitch",
+                "applies_to_l3_production_validation": True,
+            },
+            {
+                "condition": "no_batch_movement",
+                "expected": True,
+                "actual": to_int(restore_barrier.get("clearance_max_selected_moves"), 1) == 1
+                and to_int(approved_lock.get("selected_move_count"), len(selected)) == 1,
+                "owner": "admin_core/operator_execution.py",
+                "applies_to_l3_production_validation": True,
+            },
+        ]
+        selected_users = [str(move.get("user_ip") or "") for move in selected]
+        selected_targets = sorted({str(move.get("recommended_egress") or "") for move in selected if move.get("recommended_egress")})
+        allowed_users = [str(item) for item in (restore_barrier.get("allowed_users") or approved_lock.get("selected_users") or [])]
+        allowed_targets = sorted(str(item) for item in (restore_barrier.get("allowed_targets") or approved_lock.get("selected_targets") or []))
+        expected.append({
+            "condition": "user_and_target_scope_match",
+            "expected": True,
+            "actual": bool(selected) and sorted(selected_users) == sorted(allowed_users) and selected_targets == allowed_targets,
+            "owner": "tools/v7-users-autoswitch._approved_plan_lock_validation",
+            "applies_to_l3_production_validation": True,
+        })
+        failed = [row for row in expected if row["actual"] != row["expected"]]
+        return {
+            "schema_version": "v7.l3-production-validation-envelope-gate.v1",
+            "ok": not failed,
+            "conditions": expected,
+            "failed_conditions": [str(row["condition"]) for row in failed],
+            "authority_source": "current_approved_emergency_envelope" if not failed else "",
+            "production_validation_only": True,
+            "broad_automation_enabled": False,
+            "autonomy_certified": False,
+        }
 
     def _emergency_failover_move_evidence(self, move: dict[str, Any]) -> dict[str, Any]:
         blockers: list[str] = []
@@ -5045,7 +5158,7 @@ class AutoswitchPlanner:
         if approved_plan_lock.get("present"):
             restore_barrier["approved_plan_lock_validation"] = approved_plan_lock
             if approved_plan_lock.get("ok"):
-                selected = approved_plan_lock["selected_moves"]
+                selected = self._merge_locked_moves_with_live_decisions(approved_plan_lock["selected_moves"], decisions)
                 selected_moves_source = "approved_plan_lock"
                 if approved_plan_lock.get("selected_move_hash_source") == "approved_preview_packet":
                     approved_identity_hash = str(approved_plan_lock.get("selected_move_hash") or "")
@@ -5381,6 +5494,35 @@ class AutoswitchPlanner:
         }
         payload["operation_id"] = "runtime_autoswitch_" + sha256_json(payload)[:24]
         return payload
+
+    def _merge_locked_moves_with_live_decisions(
+        self,
+        locked_moves: list[dict[str, Any]],
+        decisions: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        merged: list[dict[str, Any]] = []
+        for move in locked_moves:
+            row = dict(move)
+            match = next(
+                (
+                    decision
+                    for decision in decisions
+                    if str(decision.get("user_ip") or "") == str(move.get("user_ip") or "")
+                    and str(decision.get("current_egress") or "") == str(move.get("current_egress") or "")
+                    and str(decision.get("recommended_egress") or "") == str(move.get("recommended_egress") or "")
+                    and str(decision.get("move_type") or "") == str(move.get("move_type") or "")
+                ),
+                {},
+            )
+            if match:
+                for key in ("reason", "important_services", "candidates", "scores", "service_failover"):
+                    if key in match and key not in row:
+                        row[key] = match[key]
+                row["live_decision_consumed_for_approved_lock"] = True
+            else:
+                row["live_decision_consumed_for_approved_lock"] = False
+            merged.append(row)
+        return merged
 
     def _runtime_snapshot_hash(self, selected_hash: str) -> str:
         return sha256_json({

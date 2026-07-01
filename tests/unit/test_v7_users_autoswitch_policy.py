@@ -515,6 +515,96 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             "executor_may_replace_targets": False,
         }
 
+    def approved_restore_barrier_from_plan(
+        self,
+        plan: dict,
+        *,
+        max_selected_moves: Optional[int] = None,
+        expires_at: str = "2999-01-01T00:00:00+00:00",
+    ) -> dict:
+        selected = plan["selected_moves"]
+        envelope = plan["safety"]["atomic_execution_envelope"]
+        max_moves = len(selected) if max_selected_moves is None else max_selected_moves
+        lock = self.approved_plan_lock_from_plan(plan, expires_at=expires_at)
+        lock["identity_source"] = "approved_preview_packet"
+        return {
+            "enabled": True,
+            "expires_at": "2000-01-01T00:00:00+00:00",
+            "allow_post_ttl_apply": True,
+            "generation_clearance": True,
+            "clearance_max_selected_moves": max_moves,
+            "generation_token": "unit-test-l3-production-validation-token",
+            "clearance_generation_id": plan["safety"]["generation"]["planner_generation_id"],
+            "approved_selected_moves_hash": plan["operation"]["selected_move_hash"],
+            "clearance_expected_selected_moves": len(selected),
+            "clearance_expires_at": expires_at,
+            "allowed_users": [move["user_ip"] for move in selected],
+            "allowed_targets": sorted({move["recommended_egress"] for move in selected}),
+            "approved_atomic_execution_envelope_id": envelope["envelope_id"],
+            "approved_atomic_execution_envelope_hash": envelope["envelope_hash"],
+            "approved_source_bundle_hash": envelope["source_bundle_hash"],
+            "approved_source_hashes": envelope["source_bundle"]["source_hashes"],
+            "approved_snapshot_bundle_hash": envelope["snapshot_bundle"]["hash"],
+            "approved_plan_lock": lock,
+            "owner": "admin_core/operator_execution.py",
+        }
+
+    def prepare_l3_validation_envelope(self, root: Path, *, users: int = 1) -> dict:
+        fresh = "2999-01-01T00:00:00+00:00"
+        authority_budget = None
+        if users > 1:
+            authority_budget = {
+                "authority_class": "SMALL_BATCH",
+                "certified_authority_class": "CANARY",
+                "authority_lifecycle_state": "CANARY_EXPANSION",
+                "current_allowed_user_budget": users,
+            }
+        self.write_fixture(
+            root,
+            users=users,
+            egress_1_services={
+                "telegram": {
+                    "ok": False,
+                    "status": "DOWN",
+                    "score": 0,
+                    "consecutive_failures": 3,
+                    "tested_at": fresh,
+                }
+            },
+            authority_budget=authority_budget,
+        )
+        bootstrap_args = self.args_for(
+            root,
+            [
+                "--apply",
+                "--mode",
+                "guarded",
+                "--target-egress",
+                "vless",
+                "--max-selected-moves",
+                str(users),
+            ],
+        )
+        bootstrap_planner = self.tool.AutoswitchPlanner(bootstrap_args)
+        bootstrap = bootstrap_planner.plan()
+        barrier = self.approved_restore_barrier_from_plan(bootstrap)
+        (root / "state" / "autoswitch-restore-barrier.json").write_text(json.dumps(barrier), encoding="utf-8")
+        policy_path = root / "policy.json"
+        policy = json.loads(policy_path.read_text(encoding="utf-8"))
+        policy["emergency_failover_autonomy"] = {
+            "enabled": True,
+            "max_users_per_run": 1,
+            "max_users_per_channel": 1,
+        }
+        policy_path.write_text(json.dumps(policy), encoding="utf-8")
+        return bootstrap
+
+    def _set_emergency_wake_source(self, root: Path, source: str) -> None:
+        policy_path = root / "policy.json"
+        policy = json.loads(policy_path.read_text(encoding="utf-8"))
+        policy.setdefault("emergency_failover_autonomy", {})["wake_source"] = source
+        policy_path.write_text(json.dumps(policy), encoding="utf-8")
+
     def assert_operation_envelope(self, plan: dict) -> None:
         for key in ("schema_version", "summary", "safety", "decisions", "selected_moves"):
             self.assertIn(key, plan)
@@ -2773,6 +2863,128 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         )
         self.assertEqual(switch_calls, [("10.0.0.2", "vless", "failover"), ("10.0.0.3", "vless", "failover")])
         self.assertEqual(plan["operation"]["terminal_state"], "APPLIED")
+
+    def test_l3_production_validation_envelope_reaches_switch_without_certifying_autonomy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.prepare_l3_validation_envelope(root)
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(
+                    root,
+                    [
+                        "--emergency-failover-autonomy",
+                        "--apply",
+                        "--mode",
+                        "guarded",
+                        "--target-egress",
+                        "vless",
+                        "--max-selected-moves",
+                        "1",
+                    ],
+                )
+            )
+            switch_calls = []
+            planner._run_switch = lambda ip, egress, reason: switch_calls.append((ip, egress, reason)) or subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+            planner._verify_routes = lambda: subprocess.CompletedProcess(["v7-user-route-check"], 0, stdout="verify ok\n")
+            planner._verify_emergency_required_services = lambda move: subprocess.CompletedProcess(["v7-service-matrix-test"], 0, stdout="service ok\n")
+            plan = planner.plan()
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        gate = plan["safety"]["emergency_failover_autonomy"]
+        envelope = gate["approved_production_validation_envelope"]
+        self.assertTrue(envelope["ok"])
+        self.assertTrue(gate["ok"])
+        self.assertEqual(gate["decision"], "authorize_one_user_production_validation_envelope")
+        self.assertEqual(gate["authority_source"], "current_approved_emergency_envelope")
+        self.assertTrue(gate["production_validation_only"])
+        self.assertFalse(gate["autonomy_certified"])
+        self.assertFalse(gate["broad_automation_enabled"])
+        self.assertEqual(plan["summary"]["selected_moves"], 1)
+        self.assertEqual(switch_calls, [("10.0.0.2", "vless", "failover")])
+        self.assertTrue(plan["apply_result"]["applied"])
+
+    def test_l3_production_validation_envelope_negative_cases_stop_safe(self):
+        cases = [
+            ("expired_envelope", lambda root, barrier: barrier["approved_plan_lock"].update({"expires_at": "2000-01-01T00:00:00+00:00"}), [], "approved_plan_lock_expired"),
+            ("wrong_user", lambda root, barrier: barrier["approved_plan_lock"]["selected_moves"][0].update({"user_ip": "10.0.0.99"}), [], "approved_plan_lock_user_missing"),
+            ("wrong_source", lambda root, barrier: (root / "state" / "users.registry").write_text("ip=10.0.0.2 current=vless table=100 enabled=1\n", encoding="utf-8"), [], "approved_plan_lock_user_source_mismatch"),
+            ("wrong_target", lambda root, barrier: barrier["approved_plan_lock"].update({"allowed_targets": ["other"]}), [], "approved_plan_lock_allowed_targets_mismatch"),
+            ("hash_mismatch", lambda root, barrier: barrier.update({"approved_selected_moves_hash": "wrong-hash"}), [], "restore_barrier_clearance_selected_moves_hash_mismatch"),
+            ("missing_verify", lambda root, barrier: None, ["--no-verify"], "verification_required_for_emergency_failover"),
+            ("missing_rollback", lambda root, barrier: None, ["--no-rollback-on-verify-fail"], "rollback_required_for_emergency_failover"),
+            ("target_unsafe", lambda root, barrier: (root / "state" / "egress.registry").write_text("id=1 interface=v7one enabled=1 state=enabled role=GLOBAL_FAST\nid=vless interface=tun0 enabled=0 state=down role=GLOBAL_FAST\n", encoding="utf-8"), [], "approved_plan_lock_target_disabled"),
+            ("timer_path", lambda root, barrier: self._set_emergency_wake_source(root, "timer"), [], "rejected_wake_source_timer"),
+        ]
+        for name, mutate, extra_args, expected in cases:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                self.prepare_l3_validation_envelope(root)
+                barrier_path = root / "state" / "autoswitch-restore-barrier.json"
+                barrier = json.loads(barrier_path.read_text(encoding="utf-8"))
+                mutate(root, barrier)
+                barrier_path.write_text(json.dumps(barrier), encoding="utf-8")
+                planner = self.tool.AutoswitchPlanner(
+                    self.args_for(
+                        root,
+                        [
+                            "--emergency-failover-autonomy",
+                            "--apply",
+                            "--mode",
+                            "guarded",
+                            "--target-egress",
+                            "vless",
+                            "--max-selected-moves",
+                            "1",
+                        ]
+                        + extra_args,
+                    )
+                )
+                switch_calls = []
+                planner._run_switch = lambda ip, egress, reason: switch_calls.append((ip, egress, reason)) or subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+                plan = planner.plan()
+                plan["apply_result"] = planner.apply(plan)
+
+            gate = plan["safety"]["emergency_failover_autonomy"]
+            lock = plan["safety"]["restore_barrier"].get("approved_plan_lock_validation") or {}
+            barrier = plan["safety"]["restore_barrier"]
+            envelope = gate.get("approved_production_validation_envelope") or {}
+            blockers = (
+                set(gate.get("blockers") or [])
+                | set(lock.get("reasons") or [])
+                | set(envelope.get("failed_conditions") or [])
+                | {str(barrier.get("clearance_guard_reason") or "")}
+            )
+            self.assertFalse(plan["apply_result"].get("applied"), name)
+            self.assertEqual(switch_calls, [], name)
+            self.assertIn(expected, blockers, name)
+
+    def test_l3_production_validation_blocks_two_users_and_source_recovered(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.prepare_l3_validation_envelope(root, users=2)
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--apply", "--mode", "guarded", "--target-egress", "vless", "--max-selected-moves", "2"])
+            )
+            plan = planner.plan()
+            plan["apply_result"] = planner.apply(plan)
+        self.assertFalse(plan["apply_result"].get("applied"))
+        self.assertIn("one_user_exactly", plan["safety"]["emergency_failover_autonomy"]["approved_production_validation_envelope"]["failed_conditions"])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.prepare_l3_validation_envelope(root)
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix["items"]["1"]["services"]["telegram"] = {"ok": True, "status": "OK", "score": 100}
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--apply", "--mode", "guarded", "--target-egress", "vless", "--max-selected-moves", "1"])
+            )
+            plan = planner.plan()
+            plan["apply_result"] = planner.apply(plan)
+        self.assertFalse(plan["apply_result"].get("applied"))
+        self.assertIn("required_service_failure_required", plan["safety"]["emergency_failover_autonomy"]["blockers"])
 
     def test_approved_preview_packet_identity_overrides_structural_selected_hash(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -490,10 +490,17 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             "selected_move_count": len(selected),
             "selected_moves": [
                 {
-                    "user_ip": move["user_ip"],
-                    "current_egress": move["current_egress"],
-                    "recommended_egress": move["recommended_egress"],
-                    "move_type": move.get("move_type", "failover"),
+                    **{
+                        "user_ip": move["user_ip"],
+                        "current_egress": move["current_egress"],
+                        "recommended_egress": move["recommended_egress"],
+                        "move_type": move.get("move_type", "failover"),
+                    },
+                    **{
+                        key: move[key]
+                        for key in ("reason", "important_services", "candidates", "scores", "service_failover")
+                        if key in move
+                    },
                 }
                 for move in selected
             ],
@@ -2893,6 +2900,8 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
 
         gate = plan["safety"]["emergency_failover_autonomy"]
         envelope = gate["approved_production_validation_envelope"]
+        lock = plan["safety"]["restore_barrier"]["approved_plan_lock_validation"]
+        wake = plan["safety"]["l3_wake"]
         self.assertTrue(envelope["ok"])
         self.assertTrue(gate["ok"])
         self.assertEqual(gate["decision"], "authorize_one_user_production_validation_envelope")
@@ -2900,6 +2909,10 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertTrue(gate["production_validation_only"])
         self.assertFalse(gate["autonomy_certified"])
         self.assertFalse(gate["broad_automation_enabled"])
+        self.assertIn("telegram", lock["selected_moves"][0]["important_services"])
+        self.assertEqual(gate["move_evidence"][0]["current_failures"][0]["service"], "telegram")
+        self.assertEqual(wake["decision"], "ACCEPT_WAKE")
+        self.assertIn("confirmed_current_channel_failure", wake["accepted_wake_sources"])
         self.assertEqual(plan["summary"]["selected_moves"], 1)
         self.assertEqual(switch_calls, [("10.0.0.2", "vless", "failover")])
         self.assertTrue(plan["apply_result"]["applied"])

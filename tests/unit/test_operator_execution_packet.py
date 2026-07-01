@@ -225,6 +225,37 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                     "recommended_egress": "vless",
                     "action": "switch",
                     "move_type": "failover",
+                    "reason": ["current_egress_not_eligible"],
+                    "important_services": ["telegram"],
+                    "candidates": [
+                        {
+                            "egress": "1",
+                            "eligible": False,
+                            "service_suitability": {
+                                "per_service": {
+                                    "telegram": {
+                                        "available": False,
+                                        "status": "DOWN",
+                                        "truth_class": "PERSISTENT_FAIL",
+                                        "freshness": {"state": "FRESH"},
+                                    }
+                                }
+                            },
+                        },
+                        {
+                            "egress": "vless",
+                            "eligible": True,
+                            "service_suitability": {
+                                "per_service": {
+                                    "telegram": {
+                                        "available": True,
+                                        "status": "OK",
+                                        "freshness": {"state": "FRESH"},
+                                    }
+                                }
+                            },
+                        },
+                    ],
                 }
             ],
         }
@@ -413,8 +444,14 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(packet["approved_plan_lock"]["schema_version"], "v7.approved-plan-lock.v1")
         self.assertEqual(packet["approved_plan_lock"]["selected_move_count"], 1)
         self.assertEqual(packet["approved_plan_lock"]["selected_moves"][0]["user_ip"], "10.7.0.11")
+        self.assertEqual(packet["approved_plan_lock"]["selected_moves"][0]["important_services"], ["telegram"])
+        self.assertEqual(
+            packet["approved_plan_lock"]["selected_moves"][0]["candidates"][0]["service_suitability"]["per_service"]["telegram"]["status"],
+            "DOWN",
+        )
         self.assertFalse(packet["approved_plan_lock"]["executor_may_reselect"])
         self.assertEqual(barrier_data["approved_plan_lock"]["selected_moves"][0]["recommended_egress"], "vless")
+        self.assertEqual(barrier_data["approved_plan_lock"]["selected_moves"][0]["reason"], ["current_egress_not_eligible"])
         self.assertEqual(barrier_data["approved_plan_lock_id"], packet["approved_plan_lock"]["lock_id"])
         self.assertEqual(len(audit_records), 1)
         self.assertEqual(len(lifecycle_records), 3)

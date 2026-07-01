@@ -11,6 +11,7 @@ apply actions.
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import os
@@ -41,6 +42,13 @@ DEFAULT_CLEARANCE_TTL_SECONDS = 900
 EXECUTION_LEASE_SCHEMA = "v7.execution-lease.v1"
 DEFAULT_EXECUTION_LEASE_TTL_SECONDS = DEFAULT_CLEARANCE_TTL_SECONDS
 LEASE_TERMINAL_STATUSES = {"EXECUTION_FINISHED", "ROLLBACK_FINISHED", "OPERATOR_CANCELLED"}
+SELECTED_MOVE_SEMANTIC_FIELDS = (
+    "reason",
+    "important_services",
+    "candidates",
+    "scores",
+    "service_failover",
+)
 MATERIAL_STATE_FIELDS = [
     "selected_move_hash",
     "target_channel",
@@ -324,12 +332,16 @@ def selected_moves_from_plan(plan):
             row.get("action") == "switch"
             and row.get("recommended_egress") != row.get("current_egress")
         ):
-            moves.append({
+            move = {
                 "user_ip": str(row.get("user_ip") or ""),
                 "current_egress": str(row.get("current_egress") or ""),
                 "recommended_egress": str(row.get("recommended_egress") or ""),
                 "move_type": str(row.get("move_type") or ""),
-            })
+            }
+            for key in SELECTED_MOVE_SEMANTIC_FIELDS:
+                if key in row:
+                    move[key] = copy.deepcopy(row.get(key))
+            moves.append(move)
     if selected_count > 0 and len(moves) > selected_count:
         moves = moves[:selected_count]
     if not selected_hash and moves:
@@ -402,10 +414,17 @@ def approved_plan_lock_from_selected(selected, packet, packet_hash):
         "selected_move_count": as_int(selected.get("selected_move_count"), 0),
         "selected_moves": [
             {
-                "user_ip": move["user_ip"],
-                "current_egress": move["current_egress"],
-                "recommended_egress": move["recommended_egress"],
-                "move_type": move.get("move_type", ""),
+                **{
+                    "user_ip": move["user_ip"],
+                    "current_egress": move["current_egress"],
+                    "recommended_egress": move["recommended_egress"],
+                    "move_type": move.get("move_type", ""),
+                },
+                **{
+                    key: copy.deepcopy(move.get(key))
+                    for key in SELECTED_MOVE_SEMANTIC_FIELDS
+                    if key in move
+                },
             }
             for move in moves
         ],

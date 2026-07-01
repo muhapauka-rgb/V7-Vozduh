@@ -8,6 +8,7 @@ set of safe moves through the existing v7-user-switch command.
 """
 
 import argparse
+import copy
 import fcntl
 import fnmatch
 import hashlib
@@ -43,6 +44,13 @@ SAFE_IP_RE = re.compile(r"^10\.(0|7)\.[0-9]{1,3}\.[0-9]{1,3}$")
 DEFAULT_REQUIRED_SERVICES: tuple[str, ...] = ()
 _SERVICE_MATRIX_LOCKS_HELD_BY_PROCESS: set[str] = set()
 DEFAULT_USER_PRIORITY_SERVICES = ("youtube", "instagram", "telegram", "google", "google_auth")
+SELECTED_MOVE_SEMANTIC_FIELDS = (
+    "reason",
+    "important_services",
+    "candidates",
+    "scores",
+    "service_failover",
+)
 RUNTIME_INTELLIGENCE_SNAPSHOT_FAMILIES = (
     "service-scores",
     "channel-service-scores",
@@ -5503,7 +5511,7 @@ class AutoswitchPlanner:
         merged: list[dict[str, Any]] = []
         for move in locked_moves:
             row = dict(move)
-            match = next(
+            exact_match = next(
                 (
                     decision
                     for decision in decisions
@@ -5514,11 +5522,21 @@ class AutoswitchPlanner:
                 ),
                 {},
             )
-            if match:
-                for key in ("reason", "important_services", "candidates", "scores", "service_failover"):
-                    if key in match and key not in row:
-                        row[key] = match[key]
+            source_match = exact_match or next(
+                (
+                    decision
+                    for decision in decisions
+                    if str(decision.get("user_ip") or "") == str(move.get("user_ip") or "")
+                    and str(decision.get("current_egress") or "") == str(move.get("current_egress") or "")
+                ),
+                {},
+            )
+            if source_match:
+                for key in SELECTED_MOVE_SEMANTIC_FIELDS:
+                    if key in source_match:
+                        row[key] = copy.deepcopy(source_match[key])
                 row["live_decision_consumed_for_approved_lock"] = True
+                row["live_decision_match_scope"] = "exact_move" if exact_match else "user_source"
             else:
                 row["live_decision_consumed_for_approved_lock"] = False
             merged.append(row)
@@ -5539,12 +5557,16 @@ class AutoswitchPlanner:
         for raw in lock.get("selected_moves") or []:
             if not isinstance(raw, dict):
                 continue
-            selected.append({
+            move = {
                 "user_ip": str(raw.get("user_ip") or ""),
                 "current_egress": str(raw.get("current_egress") or raw.get("from") or ""),
                 "recommended_egress": str(raw.get("recommended_egress") or raw.get("to") or ""),
                 "move_type": str(raw.get("move_type") or "failover"),
-            })
+            }
+            for key in SELECTED_MOVE_SEMANTIC_FIELDS:
+                if key in raw:
+                    move[key] = copy.deepcopy(raw.get(key))
+            selected.append(move)
         selected = [move for move in selected if move["user_ip"] and move["current_egress"] and move["recommended_egress"]]
         structural_selected_hash = self._selected_moves_hash(selected)
         approved_identity_mode = str(lock.get("identity_source") or "") == "approved_preview_packet"

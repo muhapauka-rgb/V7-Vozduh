@@ -142,7 +142,29 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     "emergency_failover_authorized": True,
                 },
             },
-            "decisions": [],
+            "decisions": [
+                {
+                    "user_ip": user,
+                    "current_egress": source,
+                    "recommended_egress": target,
+                    "action": "switch",
+                    "move_type": "failover",
+                    "reason": "CURRENT_CHANNEL_FAILED",
+                    "important_services": ["telegram"],
+                    "candidates": [
+                        {
+                            "egress": target,
+                            "safe_now": True,
+                            "service_suitability": {
+                                "required_services_ok": True,
+                                "current_failures": [
+                                    {"service": "telegram", "status": "fail"},
+                                ],
+                            },
+                        }
+                    ],
+                }
+            ],
         }
 
     def make_transaction_state(self, root: Path):
@@ -425,6 +447,10 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertFalse(result["authority_expanded"])
         self.assertEqual(barrier["allowed_users"], ["10.7.0.5"])
         self.assertEqual(barrier["allowed_targets"], ["awg3"])
+        locked_move = barrier["approved_plan_lock"]["selected_moves"][0]
+        self.assertEqual(locked_move["reason"], "CURRENT_CHANNEL_FAILED")
+        self.assertEqual(locked_move["important_services"], ["telegram"])
+        self.assertEqual(locked_move["candidates"][0]["egress"], "awg3")
         self.assertTrue(apply_calls[0]["emergency_failover_autonomy"])
 
     def test_a4_bounded_evidence_collection_requires_explicit_confirmation(self):

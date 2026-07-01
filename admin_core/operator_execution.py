@@ -317,6 +317,18 @@ def selected_moves_from_plan(plan):
         approved_candidates = []
     decisions = plan.get("decisions") or []
     constraints = None
+    semantic_rows_by_identity = {}
+    if isinstance(decisions, list):
+        for row in decisions:
+            if not isinstance(row, dict):
+                continue
+            identity = (
+                str(row.get("user_ip") or row.get("user") or ""),
+                str(row.get("current_egress") or row.get("from") or ""),
+                str(row.get("recommended_egress") or row.get("to") or ""),
+            )
+            if all(identity):
+                semantic_rows_by_identity.setdefault(identity, row)
 
     if selected_moves:
         source_rows = selected_moves
@@ -332,15 +344,23 @@ def selected_moves_from_plan(plan):
             row.get("action") == "switch"
             and row.get("recommended_egress") != row.get("current_egress")
         ):
+            user_ip = str(row.get("user_ip") or row.get("user") or "")
+            current_egress = str(row.get("current_egress") or row.get("from") or "")
+            recommended_egress = str(row.get("recommended_egress") or row.get("to") or "")
             move = {
-                "user_ip": str(row.get("user_ip") or ""),
-                "current_egress": str(row.get("current_egress") or ""),
-                "recommended_egress": str(row.get("recommended_egress") or ""),
+                "user_ip": user_ip,
+                "current_egress": current_egress,
+                "recommended_egress": recommended_egress,
                 "move_type": str(row.get("move_type") or ""),
             }
             for key in SELECTED_MOVE_SEMANTIC_FIELDS:
                 if key in row:
                     move[key] = copy.deepcopy(row.get(key))
+            semantic_row = semantic_rows_by_identity.get((user_ip, current_egress, recommended_egress))
+            if isinstance(semantic_row, dict):
+                for key in SELECTED_MOVE_SEMANTIC_FIELDS:
+                    if key not in move and key in semantic_row:
+                        move[key] = copy.deepcopy(semantic_row.get(key))
             moves.append(move)
     if selected_count > 0 and len(moves) > selected_count:
         moves = moves[:selected_count]

@@ -38,6 +38,7 @@ from admin_core.intelligence_snapshots import read_snapshot_family  # noqa: E402
 
 DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
 DEFAULT_EVENT_DIR = Path("/opt/v7/events")
+SELECTED_MOVE_SEMANTIC_FIELDS = ("reason", "important_services", "candidates", "scores", "service_failover")
 
 
 def read_json(path: Path, default: Any) -> Any:
@@ -251,14 +252,18 @@ def selected_moves_from_planner_payload(payload: dict[str, Any]) -> list[dict[st
         target = str(row.get("recommended_egress") or row.get("to") or "")
         action = str(row.get("action") or "switch")
         if user and current and target and current != target and action in {"switch", "move", ""}:
-            moves.append({
+            move = {
                 "user": user,
                 "from": current,
                 "to": target,
                 "confidence": row.get("confidence", row.get("score", 0.0)),
                 "risk": row.get("risk", 0.0),
                 "recommendation_hash": row.get("recommendation_hash", ""),
-            })
+            }
+            for key in SELECTED_MOVE_SEMANTIC_FIELDS:
+                if key in row:
+                    move[key] = copy.deepcopy(row.get(key))
+            moves.append(move)
     return moves
 
 

@@ -932,10 +932,62 @@ class AutoswitchPlanner:
                     "owner": "tools/v7-users-autoswitch",
                 })
         if not candidates:
+            if not bool_value(self.emergency_failover_policy.get("enabled")):
+                return {
+                    "schema_version": "v7.l3-incident-source-continuity.v1",
+                    "active": False,
+                    "reason": "emergency_failover_autonomy_not_enabled",
+                }
+            observed_sources = sorted({
+                str(user.current)
+                for user in self.users
+                if user.enabled and str(user.current or "")
+            })
+            observed_candidates: list[dict[str, Any]] = []
+            for source in observed_sources:
+                scope = self._l3_failed_source_scope(source)
+                if not bool_value(scope.get("source_failed")):
+                    continue
+                observed_candidates.append({
+                    "incident_key": "",
+                    "incident_source": source,
+                    "status": "OBSERVED",
+                    "updated_at": now_iso(),
+                    "opened_at": now_iso(),
+                    "failed_required_services": [],
+                    "scope": scope,
+                    "producer": "tools/v7-users-autoswitch._l3_failed_source_scope",
+                    "consumer": "tools/v7-users-autoswitch.plan",
+                    "owner": "tools/v7-users-autoswitch",
+                })
+            if not observed_candidates:
+                return {
+                    "schema_version": "v7.l3-incident-source-continuity.v1",
+                    "active": False,
+                    "reason": "no_active_failed_source_incident",
+                }
+            observed_candidates.sort(
+                key=lambda item: (
+                    to_int((item.get("scope") or {}).get("affected_users_count"), 0),
+                    str(item.get("incident_source") or ""),
+                ),
+                reverse=True,
+            )
+            selected = observed_candidates[0]
             return {
                 "schema_version": "v7.l3-incident-source-continuity.v1",
-                "active": False,
-                "reason": "no_active_failed_source_incident",
+                "active": True,
+                "reason": "confirmed_failed_source_observation_with_affected_users",
+                "incident_key": "",
+                "incident_source": selected["incident_source"],
+                "incident_status": selected["status"],
+                "failed_required_services": selected["failed_required_services"],
+                "affected_users": list((selected.get("scope") or {}).get("affected_users") or []),
+                "affected_users_count": to_int((selected.get("scope") or {}).get("affected_users_count"), 0),
+                "scope": selected["scope"],
+                "producer": selected["producer"],
+                "consumer": selected["consumer"],
+                "owner": selected["owner"],
             }
         candidates.sort(key=lambda item: (parse_ts(item.get("updated_at")) or 0, parse_ts(item.get("opened_at")) or 0), reverse=True)
         selected = candidates[0]

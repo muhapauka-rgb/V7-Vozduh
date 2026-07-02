@@ -1522,6 +1522,66 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(plan["safety"]["l3_wake"]["decision"], "ACCEPT_WAKE")
         self.assertIn("confirmed_current_channel_failure", plan["safety"]["l3_wake"]["accepted_wake_sources"])
 
+    def test_lost_incident_source_recovers_from_confirmed_failed_source_observation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=3,
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={
+                    "enabled": True,
+                    "max_users_per_run": 1,
+                    "max_users_per_channel": 1,
+                },
+            )
+            self.add_failed_egress(root, egress="2")
+            self.mark_current_channel_failed(root, egress="1")
+            (root / "state" / "users.registry").write_text(
+                "ip=10.0.0.2 current=2 table=100 enabled=1\n"
+                "ip=10.0.0.3 current=1 table=101 enabled=1\n"
+                "ip=10.0.0.4 current=1 table=102 enabled=1\n",
+                encoding="utf-8",
+            )
+            (root / "state" / "l3-runtime-state.json").write_text(
+                json.dumps({
+                    "schema_version": "v7.l3-runtime-state.v1",
+                    "incidents": {
+                        "incident-lost-source": {
+                            "incident_key": "incident-lost-source",
+                            "status": "SUSPENDED",
+                            "authority_object": "EMERGENCY_FAILOVER_AUTONOMY",
+                            "failed_sources": [],
+                            "incident_source": "",
+                            "failed_required_services": [],
+                            "updated_at": "2999-01-01T00:00:00+00:00",
+                        }
+                    },
+                    "processed_event_ids": [],
+                    "capability": {},
+                }),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--emergency-failover-autonomy"]))
+            plan = planner.plan()
+
+        continuity = plan["safety"]["incident_source_continuity"]
+        gate = plan["safety"]["emergency_failover_autonomy"]
+        self.assertTrue(continuity["active"])
+        self.assertEqual(continuity["reason"], "confirmed_failed_source_observation_with_affected_users")
+        self.assertEqual(continuity["incident_source"], "1")
+        self.assertEqual(continuity["affected_users_count"], 2)
+        self.assertEqual(plan["selected_moves"][0]["current_egress"], "1")
+        self.assertIn(plan["selected_moves"][0]["user_ip"], {"10.0.0.3", "10.0.0.4"})
+        self.assertNotEqual(plan["selected_moves"][0]["current_egress"], "2")
+        self.assertEqual(gate["selected_moves_after_gate"], 1)
+        self.assertEqual(plan["safety"]["l3_wake"]["decision"], "ACCEPT_WAKE")
+        self.assertIn("confirmed_current_channel_failure", plan["safety"]["l3_wake"]["accepted_wake_sources"])
+
     def test_approved_plan_lock_rejects_non_incident_source_during_l3_continuation(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Controlled Production Certification Program
-State captured: 2026-07-03T00:19:26+0700
-Source: Controlled Production Certification Program execution. Phase 0, Phase 1, Phase 2, and Phase 3 are PASS. Phase 3 SMALL_BATCH certification used the existing governed L3 owner with `--max-users 5`, existing Authority, Approved Plan Lock, Restore Barrier, Runtime Apply, Verification, and Rollback/No-Rollback path. Five real production users moved from failed source `openvpn-1779388847-d2ad7c`; verification passed for all five; rollback was not required; incident remains OPEN because three enabled users remain on the failed source. No new owner, Planner, Runtime, Authority, Restore Barrier owner, execution path, truth source, or broad automation was created.
+State captured: 2026-07-03T00:23:00+0700
+Source: Controlled Production Certification Program execution. Phase 0, Phase 1, Phase 2, and Phase 3 are PASS. Phase 4 MEDIUM_BATCH precheck reached HOLD because the active failed-source incident has only three remaining enabled affected users on `openvpn-1779388847-d2ad7c`, while MEDIUM_BATCH requires at least ten same-incident users or an explicit owner decision for fewer remaining users than stage budget. No production movement was executed for Phase 4. Current certified capability remains SMALL_BATCH. No new owner, Planner, Runtime, Authority, Restore Barrier owner, execution path, truth source, or broad automation was created.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -78,10 +78,10 @@ If Production Maturity produces `NO_CHANGE`, `BLOCK`, or `INVALID_EVIDENCE`, Cur
 
 | Field | Current Value |
 | --- | --- |
-| Current phase | `CONTROLLED_PRODUCTION_CERTIFICATION_PHASE3_PASS` |
+| Current phase | `CONTROLLED_PRODUCTION_CERTIFICATION_PHASE4_HOLD` |
 | Architecture phase | `COMPLETE` |
-| Current stage | `SMALL_BATCH_CERTIFIED` |
-| Next stage | `PHASE4_MEDIUM_BATCH_CERTIFICATION` |
+| Current stage | `MEDIUM_BATCH_PRECHECK_HOLD` |
+| Next stage | `PHASE4_MEDIUM_BATCH_CERTIFICATION_RETRY_AFTER_REAL_EVIDENCE_OR_OWNER_DECISION` |
 | autonomous_execution_program_status | `CANONICAL_INTEGRATED` |
 | autonomous_runtime_model_status | `CANONICAL_INTEGRATED` |
 | autonomy_architecture_status | `AUTONOMY_ARCHITECTURE_COMPLETE` |
@@ -92,26 +92,26 @@ If Production Maturity produces `NO_CHANGE`, `BLOCK`, or `INVALID_EVIDENCE`, Cur
 | l3_phase3_status | `COMPLETE` |
 | l3_implementation_status | `COMPLETE` |
 | runtime_operating_system_status | `STABLE_CANONICAL` |
-| Current bottleneck | `PHASE4_MEDIUM_BATCH_CERTIFICATION_NOT_STARTED` |
-| Current highest leverage implementation | `PHASE4_MEDIUM_BATCH_CERTIFICATION_PRECHECK` |
-| Current highest leverage action | Begin Phase 4 only through the canonical Controlled Production Certification Program: confirm Authority budget, run existing governed owner with Stage 2 budget only if authorized, and stop/demote on any verification, rollback, Runtime, Restore Barrier, or Authority failure. |
+| Current bottleneck | `INSUFFICIENT_REAL_SAME_INCIDENT_USERS_FOR_MEDIUM_BATCH_CERTIFICATION` |
+| Current highest leverage implementation | `NO_IMPLEMENTATION_REQUIRED_FOR_PHASE4_HOLD` |
+| Current highest leverage action | Do not claim MEDIUM_BATCH certification from the current incident. Resume Phase 4 only when a real or controlled production incident has at least ten eligible affected users on the same incident source, or when Planner / Authority / OMP owners explicitly decide the fewer-remaining-users-than-stage-budget rule for MEDIUM_BATCH certification. |
 | Current authority class | `POOL` |
 | authority_class | `POOL` |
 | authority_reason | Production policy currently authorized governed L3 budget 25; Phase 3 consumed only SMALL_BATCH max-users=5 and did not enable larger automatic batches. |
 | authority_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch` remain owners when a future governed action is explicitly approved. |
-| required_action | Proceed to Phase 4 MEDIUM_BATCH certification only after precheck; do not auto-run Stage 2, FULL_INCIDENT, production timer expansion, broad automation, authority bypass, Restore Barrier bypass, Runtime bypass, Planner bypass, synthetic evidence, new owner, or unrelated user movement. |
+| required_action | Keep current capability at SMALL_BATCH_CERTIFIED. Do not auto-run Stage 2, FULL_INCIDENT, production timer expansion, broad automation, authority bypass, Restore Barrier bypass, Runtime bypass, Planner bypass, synthetic evidence, new owner, unrelated user movement, or MEDIUM_BATCH promotion without real Stage 2 evidence or owner decision. |
 | non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
 | optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
-| Current reality limit | `PHASE4_NOT_STARTED`: Stage 1 SMALL_BATCH is certified, but Stage 2 MEDIUM_BATCH must be separately authorized and certified; production automation remains bounded by existing governance and no larger batch is automatically enabled. |
-| Current safe next action | `PHASE4_MEDIUM_BATCH_CERTIFICATION_PRECHECK` |
-| Current stop reason | `PHASE3_PASS_TERMINAL`; current phase reached terminal PASS and the next phase is not yet executed. |
-| root_cause | Previous Stage 1 blocker was an implementation defect in the existing L3 emergency failover gate/runtime eligibility path: approved production-validation batch envelopes were collapsed to one selected move by policy and Runtime eligibility required exactly one selected move. |
-| responsible_owner | Existing `tools/v7-users-autoswitch` emergency failover gate and `_l3_execution_eligibility`; governed execution owner remains `tools/v7-governed-canary-dry-run-cycle`; packet/restore owner remains `admin_core/operator_execution.py`. |
-| implementation_class | `OWNER_EXTENSION_COMPLETED` |
-| next_engineering_task | `PHASE4_MEDIUM_BATCH_CERTIFICATION_PRECHECK` |
-| expected_completion_evidence | Phase 4 report with Authority budget, selected users, Runtime Apply, Verification, Rollback/No-Rollback, remaining users, and PASS/HOLD/BLOCKED/CANONICAL_IMPOSSIBILITY terminal state. |
+| Current reality limit | `MEDIUM_BATCH_REQUIRES_AT_LEAST_10_SAME_INCIDENT_USERS`; current active failed-source incident has three remaining enabled affected users. |
+| Current safe next action | `WAIT_FOR_REAL_STAGE2_EVIDENCE_OR_OWNER_DECISION` |
+| Current stop reason | `PHASE4_HOLD_REALITY_LIMIT`; the phase reached deterministic HOLD before Runtime Apply because current production reality cannot prove MEDIUM_BATCH. |
+| root_cause | Current incident has fewer same-incident remaining users than the MEDIUM_BATCH stage budget, and the canonical owner mapping still marks the fewer-remaining-users-than-stage-budget certification rule as `NEEDED_OWNER_DECISION`. |
+| responsible_owner | Controlled Production Certification Program; unresolved rule owner is Planner / Authority / OMP for fewer remaining users than stage budget. |
+| implementation_class | `NO_IMPLEMENTATION_DEFECT_PHASE4_HOLD` |
+| next_engineering_task | `PHASE4_MEDIUM_BATCH_CERTIFICATION_RETRY_AFTER_REAL_EVIDENCE_OR_OWNER_DECISION` |
+| expected_completion_evidence | Future Phase 4 report with at least ten same-incident users moved through the governed owner, or explicit Planner / Authority / OMP owner decision allowing smaller remaining-user certification and complete evidence under that rule. |
 | automation_debt_current | `0_UNCLASSIFIED`; current manual actions were classified in the Phase 2 execution report. |
-| automation_debt_delta | `created=3; closed=3; remaining_unclassified=0` |
+| automation_debt_delta | `created=1; closed=1; remaining_unclassified=0` |
 | workflow_debt_current | `0_UNCLASSIFIED`; the certification execution workflow was classified in the Phase 2 execution report. |
 | workflow_debt_delta | `created=1; closed=1; remaining_unclassified=0` |
 | current_pipeline_candidates | `CONTROLLED_CERTIFICATION_PHASE_EXECUTION_PIPELINE`; `CERTIFICATION_REPORT_AND_HISTORY_PROJECTION_PIPELINE`; `PASSPORT_AND_DEBT_METRIC_PROJECTION_PIPELINE` |

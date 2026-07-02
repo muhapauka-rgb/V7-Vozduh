@@ -512,8 +512,8 @@ class GovernedCanaryCliTest(unittest.TestCase):
         ]
         authority_budget = {
             "current_allowed_user_budget": 5,
-            "authority_class": "MEDIUM_BATCH",
-            "certified_authority_class": "MEDIUM_BATCH",
+            "authority_class": "SMALL_BATCH",
+            "certified_authority_class": "SMALL_BATCH",
             "authority_lifecycle_state": "PROMOTED",
         }
         with tempfile.TemporaryDirectory() as tmp:
@@ -616,30 +616,31 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertIn("l3_validation_requested_users_above_authorized_budget", result["errors"])
         self.assertIn("selected_move_count_above_authorized_budget", result["errors"])
 
-    def test_l3_packet_constraints_accept_small_batch_two_users_with_small_budget(self):
+    def test_l3_packet_constraints_accept_small_batch_five_users_with_small_budget(self):
         module = load_cli_module()
+        moves = [
+            {"user_ip": f"10.7.0.{idx}", "current_egress": "openvpn-failed", "recommended_egress": "vless", "move_type": "failover"}
+            for idx in range(2, 7)
+        ]
         packet = {
             "constraints": {
-                "allowed_users": ["10.7.0.2", "10.7.0.3"],
+                "allowed_users": [move["user_ip"] for move in moves],
                 "allowed_targets": ["vless"],
             },
             "expected": {
-                "selected_move_count": 2,
+                "selected_move_count": 5,
             },
         }
         transition = {
             "status": "READY",
-            "selected_moves": [
-                {"user_ip": "10.7.0.2", "current_egress": "openvpn-failed", "recommended_egress": "vless", "move_type": "failover"},
-                {"user_ip": "10.7.0.3", "current_egress": "openvpn-failed", "recommended_egress": "vless", "move_type": "failover"},
-            ],
+            "selected_moves": moves,
         }
 
-        result = module.l3_packet_constraints_ok(packet, transition, 2, authorized_l3_budget=2)
+        result = module.l3_packet_constraints_ok(packet, transition, 5, authorized_l3_budget=5)
 
         self.assertTrue(result["ok"])
-        self.assertEqual(result["selected_move_count"], 2)
-        self.assertEqual(result["authorized_l3_budget"], 2)
+        self.assertEqual(result["selected_move_count"], 5)
+        self.assertEqual(result["authorized_l3_budget"], 5)
 
     def test_a4_bounded_evidence_collection_requires_explicit_confirmation(self):
         module = load_cli_module()

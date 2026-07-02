@@ -673,7 +673,7 @@ Current implementation thresholds:
 | Anti-flap cooldown | `1800` seconds. |
 | Anti-flap minimum observation window | `3600` seconds. |
 | Anti-flap rapid oscillation threshold | `2`. |
-| Action authority budgets | CANARY `1`, SMALL_BATCH `2`, MEDIUM_BATCH `5`, LARGE_BATCH `10`, POOL `25`. |
+| Action authority budgets | CANARY `1`, SMALL_BATCH `5`, MEDIUM_BATCH `10`, LARGE_BATCH `25`, XLARGE_BATCH `50`, FULL_INCIDENT `remaining affected users on the same active failed-source incident`. |
 
 Known remaining gaps:
 

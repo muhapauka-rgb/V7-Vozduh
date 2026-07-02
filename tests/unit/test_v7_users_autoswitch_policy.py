@@ -1123,8 +1123,8 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
                 authority_budget={
                     "authority_class": "SMALL_BATCH",
-                    "current_allowed_user_budget": 2,
-                    "next_allowed_user_budget": 5,
+                    "current_allowed_user_budget": 5,
+                    "next_allowed_user_budget": 10,
                 },
             )
             args = self.args_for(root, ["--max-selected-moves", "25"])
@@ -1147,55 +1147,18 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertFalse(lifecycle["governance"]["promotion"]["eligible"])
         self.assertIn("prepared_authority_exceeds_certified_evidence", lifecycle["governance"]["promotion"]["blockers"])
 
-    def test_authority_bridge_allows_transitional_two_user_budget_without_certifying_small_batch(self):
+    def test_authority_bridge_allows_transitional_five_user_budget_without_certifying_small_batch(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.write_fixture(
                 root,
-                users=4,
+                users=6,
                 egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
                 authority_budget={
                     "authority_class": "SMALL_BATCH",
                     "certified_authority_class": "CANARY",
                     "authority_lifecycle_state": "CANARY_EXPANSION",
-                    "current_allowed_user_budget": 2,
-                    "next_allowed_user_budget": 2,
-                },
-            )
-            args = self.args_for(root, ["--max-selected-moves", "25"])
-            planner = self.tool.AutoswitchPlanner(args)
-            plan = planner.plan()
-
-        gate = plan["safety"]["authority_budget_gate"]
-        self.assertEqual(plan["summary"]["candidate_moves_total"], 4)
-        self.assertEqual(plan["summary"]["selected_moves"], 2)
-        self.assertEqual(gate["authority_class"], "CANARY")
-        self.assertEqual(gate["prepared_authority_class"], "SMALL_BATCH")
-        self.assertEqual(gate["certified_authority_class"], "CANARY")
-        self.assertEqual(gate["authority_lifecycle_state"], "CANARY_EXPANSION")
-        self.assertEqual(gate["current_allowed_user_budget"], 2)
-        self.assertEqual(gate["decision"], "allow_transitional_authority_bridge_budget")
-        self.assertEqual(gate["action"], "permit_next_blast_radius_step_without_certifying_prepared_authority")
-        self.assertIn("promotion_without_certification", gate["blocked_actions"])
-        self.assertIn("apply_above_bridge_budget", gate["blocked_actions"])
-        self.assertTrue(gate["authority_bridge"]["active"])
-        self.assertFalse(gate["authority_bridge"]["promotion_certification"])
-        self.assertEqual(gate["authority_bridge"]["bridge_budget_ceiling"], 2)
-        self.assertEqual(gate["authority_lifecycle"]["bridge_model"]["states"]["CANARY_EXPANSION"]["budget"], 2)
-        self.assertFalse(gate["authority_lifecycle"]["governance"]["promotion"]["eligible"])
-        self.assertIn("bridge_state_is_not_certification", gate["authority_lifecycle"]["governance"]["promotion"]["blockers"])
-
-    def test_authority_budget_allows_certified_small_batch_to_class_ceiling(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            self.write_fixture(
-                root,
-                users=4,
-                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
-                authority_budget={
-                    "authority_class": "SMALL_BATCH",
-                    "certified_authority_class": "SMALL_BATCH",
-                    "current_allowed_user_budget": 2,
+                    "current_allowed_user_budget": 5,
                     "next_allowed_user_budget": 5,
                 },
             )
@@ -1204,15 +1167,52 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             plan = planner.plan()
 
         gate = plan["safety"]["authority_budget_gate"]
-        self.assertEqual(plan["summary"]["candidate_moves_total"], 4)
-        self.assertEqual(plan["summary"]["selected_moves"], 2)
+        self.assertEqual(plan["summary"]["candidate_moves_total"], 6)
+        self.assertEqual(plan["summary"]["selected_moves"], 5)
+        self.assertEqual(gate["authority_class"], "CANARY")
+        self.assertEqual(gate["prepared_authority_class"], "SMALL_BATCH")
+        self.assertEqual(gate["certified_authority_class"], "CANARY")
+        self.assertEqual(gate["authority_lifecycle_state"], "CANARY_EXPANSION")
+        self.assertEqual(gate["current_allowed_user_budget"], 5)
+        self.assertEqual(gate["decision"], "allow_transitional_authority_bridge_budget")
+        self.assertEqual(gate["action"], "permit_next_blast_radius_step_without_certifying_prepared_authority")
+        self.assertIn("promotion_without_certification", gate["blocked_actions"])
+        self.assertIn("apply_above_bridge_budget", gate["blocked_actions"])
+        self.assertTrue(gate["authority_bridge"]["active"])
+        self.assertFalse(gate["authority_bridge"]["promotion_certification"])
+        self.assertEqual(gate["authority_bridge"]["bridge_budget_ceiling"], 5)
+        self.assertEqual(gate["authority_lifecycle"]["bridge_model"]["states"]["CANARY_EXPANSION"]["budget"], 5)
+        self.assertFalse(gate["authority_lifecycle"]["governance"]["promotion"]["eligible"])
+        self.assertIn("bridge_state_is_not_certification", gate["authority_lifecycle"]["governance"]["promotion"]["blockers"])
+
+    def test_authority_budget_allows_certified_small_batch_to_class_ceiling(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=6,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={
+                    "authority_class": "SMALL_BATCH",
+                    "certified_authority_class": "SMALL_BATCH",
+                    "current_allowed_user_budget": 5,
+                    "next_allowed_user_budget": 10,
+                },
+            )
+            args = self.args_for(root, ["--max-selected-moves", "25"])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+
+        gate = plan["safety"]["authority_budget_gate"]
+        self.assertEqual(plan["summary"]["candidate_moves_total"], 6)
+        self.assertEqual(plan["summary"]["selected_moves"], 5)
         self.assertEqual(gate["authority_class"], "SMALL_BATCH")
         self.assertEqual(gate["prepared_authority_class"], "SMALL_BATCH")
         self.assertEqual(gate["certified_authority_class"], "SMALL_BATCH")
         self.assertEqual(gate["authority_lifecycle_state"], "CERTIFIED")
-        self.assertEqual(gate["current_allowed_user_budget"], 2)
+        self.assertEqual(gate["current_allowed_user_budget"], 5)
         self.assertEqual(gate["next_authority_class"], "MEDIUM_BATCH")
-        self.assertEqual(gate["next_allowed_user_budget"], 5)
+        self.assertEqual(gate["next_allowed_user_budget"], 10)
         self.assertTrue(gate["authority_cap_applied"])
         self.assertTrue(gate["authority_lifecycle"]["governance"]["promotion"]["eligible"])
 
@@ -1237,7 +1237,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(plan["summary"]["selected_moves"], 1)
         self.assertEqual(gate["authority_class"], "CANARY")
         self.assertEqual(gate["current_allowed_user_budget"], 1)
-        self.assertEqual(gate["next_allowed_user_budget"], 2)
+        self.assertEqual(gate["next_allowed_user_budget"], 5)
         self.assertEqual(gate["policy"]["class_budget_ceiling"], 1)
 
     def test_authority_budget_disabled_fails_closed(self):
@@ -1266,7 +1266,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 authority_budget={
                     "authority_class": "SMALL_BATCH",
                     "certified_authority_class": "SMALL_BATCH",
-                    "current_allowed_user_budget": 2,
+                    "current_allowed_user_budget": 5,
                     "authority_lifecycle_state": "FROZEN",
                 },
             )
@@ -4976,12 +4976,12 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     "authority_class": "SMALL_BATCH",
                     "certified_authority_class": "SMALL_BATCH",
                     "authority_lifecycle_state": "SMALL_BATCH_CERTIFIED",
-                    "current_allowed_user_budget": 2,
-                    "next_allowed_user_budget": 5,
+                    "current_allowed_user_budget": 5,
+                    "next_allowed_user_budget": 10,
                 },
             )
-            self.write_feedback_records(root, "runtime_autoswitch_small_1", ["10.0.0.3", "10.0.0.6"])
-            self.write_feedback_records(root, "runtime_autoswitch_small_2", ["10.7.0.2", "10.7.0.3"])
+            self.write_feedback_records(root, "runtime_autoswitch_small_1", [f"10.0.0.{idx}" for idx in range(2, 7)])
+            self.write_feedback_records(root, "runtime_autoswitch_small_2", [f"10.7.0.{idx}" for idx in range(2, 7)])
             before_policy = json.loads((root / "policy.json").read_text(encoding="utf-8"))
             old_path = os.environ.get("PATH", "")
             os.environ["PATH"] = f"{bin_dir}{os.pathsep}{old_path}"
@@ -5009,7 +5009,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertTrue(result["authority_promoted"])
             self.assertEqual(after_policy["authority_budget"]["authority_class"], "MEDIUM_BATCH")
             self.assertEqual(after_policy["authority_budget"]["certified_authority_class"], "MEDIUM_BATCH")
-            self.assertEqual(after_policy["authority_budget"]["current_allowed_user_budget"], 5)
+            self.assertEqual(after_policy["authority_budget"]["current_allowed_user_budget"], 10)
             self.assertEqual(after_policy["switch"], before_policy["switch"])
             self.assertEqual(after_policy["load"], before_policy["load"])
             self.assertEqual(after_policy["reconnect"], before_policy["reconnect"])
@@ -5037,11 +5037,11 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     "authority_class": "SMALL_BATCH",
                     "certified_authority_class": "SMALL_BATCH",
                     "authority_lifecycle_state": "SMALL_BATCH_CERTIFIED",
-                    "current_allowed_user_budget": 2,
-                    "next_allowed_user_budget": 5,
+                    "current_allowed_user_budget": 5,
+                    "next_allowed_user_budget": 10,
                 },
             )
-            self.write_feedback_records(root, "runtime_autoswitch_small_1", ["10.0.0.3", "10.0.0.6"])
+            self.write_feedback_records(root, "runtime_autoswitch_small_1", [f"10.0.0.{idx}" for idx in range(2, 7)])
             before = (root / "policy.json").read_text(encoding="utf-8")
             old_path = os.environ.get("PATH", "")
             os.environ["PATH"] = f"{bin_dir}{os.pathsep}{old_path}"
@@ -5081,7 +5081,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     "certified_authority_class": "CANARY",
                     "authority_lifecycle_state": "CANARY_CERTIFIED",
                     "current_allowed_user_budget": 1,
-                    "next_allowed_user_budget": 2,
+                    "next_allowed_user_budget": 5,
                 },
             )
             self.write_feedback_records(root, "runtime_autoswitch_canary_1", ["10.0.0.2"])
@@ -5107,7 +5107,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             after_policy = json.loads((root / "policy.json").read_text(encoding="utf-8"))
             self.assertEqual(result["status"], "PROMOTED")
             self.assertEqual(after_policy["authority_budget"]["authority_class"], "SMALL_BATCH")
-            self.assertEqual(after_policy["authority_budget"]["current_allowed_user_budget"], 2)
+            self.assertEqual(after_policy["authority_budget"]["current_allowed_user_budget"], 5)
             self.assertEqual(after_policy["authority_budget"]["promotion_action"], "CANARY_TO_SMALL_BATCH")
             self.assertEqual(result["users_moved"], 0)
             self.assertFalse(result["autoswitch_apply_run"])
@@ -5124,20 +5124,20 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     "authority_class": "MEDIUM_BATCH",
                     "certified_authority_class": "MEDIUM_BATCH",
                     "authority_lifecycle_state": "PROMOTED",
-                    "current_allowed_user_budget": 5,
-                    "next_allowed_user_budget": 10,
+                    "current_allowed_user_budget": 10,
+                    "next_allowed_user_budget": 25,
                 },
             )
             self.write_feedback_records(
                 root,
                 "runtime_autoswitch_medium_1",
-                [f"10.0.0.{idx}" for idx in range(2, 7)],
+                [f"10.0.0.{idx}" for idx in range(2, 12)],
                 stability_window_seconds=900,
             )
             self.write_feedback_records(
                 root,
                 "runtime_autoswitch_medium_2",
-                [f"10.0.1.{idx}" for idx in range(2, 7)],
+                [f"10.0.1.{idx}" for idx in range(2, 12)],
                 stability_window_seconds=900,
             )
             old_path = os.environ.get("PATH", "")
@@ -5165,38 +5165,38 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertEqual(result["status"], "PROMOTED")
             self.assertNotIn("only_medium_batch_promotion_supported_by_this_action", result["blockers"])
             self.assertEqual(after_policy["authority_budget"]["authority_class"], "LARGE_BATCH")
-            self.assertEqual(after_policy["authority_budget"]["current_allowed_user_budget"], 10)
+            self.assertEqual(after_policy["authority_budget"]["current_allowed_user_budget"], 25)
             self.assertEqual(after_policy["authority_budget"]["promotion_action"], "MEDIUM_BATCH_TO_LARGE_BATCH")
             self.assertEqual(after_policy["authority_budget"]["promotion_evidence"]["successful_medium_batch_runs"], 2)
             self.assertEqual(result["users_moved"], 0)
             self.assertFalse(result["routing_mutation_performed"])
 
-    def test_authority_promotion_to_pool_requires_two_large_runs_and_no_regression_window(self):
+    def test_authority_promotion_to_xlarge_batch_requires_two_large_runs_and_no_regression_window(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             bin_dir, truth, _audit = self.write_authority_test_binaries(root)
             self.write_fixture(
                 root,
-                users=25,
+                users=50,
                 authority_budget={
                     "enabled": True,
                     "authority_class": "LARGE_BATCH",
                     "certified_authority_class": "LARGE_BATCH",
                     "authority_lifecycle_state": "PROMOTED",
-                    "current_allowed_user_budget": 10,
-                    "next_allowed_user_budget": 25,
+                    "current_allowed_user_budget": 25,
+                    "next_allowed_user_budget": 50,
                 },
             )
             self.write_feedback_records(
                 root,
                 "runtime_autoswitch_large_1",
-                [f"10.0.0.{idx}" for idx in range(2, 12)],
+                [f"10.0.0.{idx}" for idx in range(2, 27)],
                 stability_window_seconds=3600,
             )
             self.write_feedback_records(
                 root,
                 "runtime_autoswitch_large_2",
-                [f"10.2.1.{idx}" for idx in range(2, 12)],
+                [f"10.2.1.{idx}" for idx in range(2, 27)],
                 stability_window_seconds=3600,
             )
             old_path = os.environ.get("PATH", "")
@@ -5206,7 +5206,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     root,
                     [
                         "--promote-authority-to",
-                        "POOL",
+                        "XLARGE_BATCH",
                         "--authority-promotion-operation-id",
                         "runtime_autoswitch_large_1",
                         "--authority-promotion-operation-id",
@@ -5217,18 +5217,18 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                         str(truth),
                     ],
                 )
-                result = self.tool.AutoswitchPlanner(args).promote_authority("POOL")
+                result = self.tool.AutoswitchPlanner(args).promote_authority("XLARGE_BATCH")
             finally:
                 os.environ["PATH"] = old_path
             after_policy = json.loads((root / "policy.json").read_text(encoding="utf-8"))
             self.assertEqual(result["status"], "PROMOTED")
-            self.assertEqual(after_policy["authority_budget"]["authority_class"], "POOL")
-            self.assertEqual(after_policy["authority_budget"]["current_allowed_user_budget"], 25)
-            self.assertEqual(after_policy["authority_budget"]["promotion_action"], "LARGE_BATCH_TO_POOL")
+            self.assertEqual(after_policy["authority_budget"]["authority_class"], "XLARGE_BATCH")
+            self.assertEqual(after_policy["authority_budget"]["current_allowed_user_budget"], 50)
+            self.assertEqual(after_policy["authority_budget"]["promotion_action"], "LARGE_BATCH_TO_XLARGE_BATCH")
             self.assertEqual(after_policy["authority_budget"]["promotion_evidence"]["successful_large_batch_runs"], 2)
             self.assertEqual(result["users_moved"], 0)
 
-    def test_authority_promotion_to_pool_accepts_balanced_zero_move_equivalence_with_operator_approval(self):
+    def test_legacy_pool_promotion_is_not_canonical_next_after_large_batch(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             bin_dir, truth, _audit = self.write_authority_test_binaries(root)
@@ -5240,8 +5240,8 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     "authority_class": "LARGE_BATCH",
                     "certified_authority_class": "LARGE_BATCH",
                     "authority_lifecycle_state": "PROMOTED",
-                    "current_allowed_user_budget": 10,
-                    "next_allowed_user_budget": 25,
+                    "current_allowed_user_budget": 25,
+                    "next_allowed_user_budget": 50,
                 },
             )
             self.write_balanced_pool_users(root)
@@ -5251,6 +5251,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 [f"10.0.0.{idx}" for idx in range(2, 12)],
                 stability_window_seconds=3600,
             )
+            before = (root / "policy.json").read_text(encoding="utf-8")
             old_path = os.environ.get("PATH", "")
             os.environ["PATH"] = f"{bin_dir}{os.pathsep}{old_path}"
             try:
@@ -5270,16 +5271,9 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 result = self.tool.AutoswitchPlanner(args).promote_authority("POOL")
             finally:
                 os.environ["PATH"] = old_path
-            after_policy = json.loads((root / "policy.json").read_text(encoding="utf-8"))
-            self.assertEqual(result["status"], "PROMOTED")
-            self.assertEqual(after_policy["authority_budget"]["authority_class"], "POOL")
-            self.assertEqual(after_policy["authority_budget"]["current_allowed_user_budget"], 25)
-            evidence = result["evidence_review"]
-            self.assertTrue(evidence["equivalence_accepted"])
-            self.assertEqual(evidence["successful_large_batch_runs"], 1)
-            self.assertTrue(evidence["equivalence_review"]["requirements"]["balanced_pool"])
-            self.assertTrue(evidence["equivalence_review"]["requirements"]["zero_planner_candidate_moves"])
-            self.assertTrue(after_policy["authority_budget"]["promotion_evidence"]["equivalence_accepted"])
+            self.assertEqual(result["status"], "DENIED")
+            self.assertIn("invalid_target_authority_transition_LARGE_BATCH_to_POOL", result["blockers"])
+            self.assertEqual((root / "policy.json").read_text(encoding="utf-8"), before)
             self.assertEqual(result["users_moved"], 0)
             self.assertFalse(result["autoswitch_apply_run"])
 
@@ -5295,8 +5289,8 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     "authority_class": "LARGE_BATCH",
                     "certified_authority_class": "LARGE_BATCH",
                     "authority_lifecycle_state": "PROMOTED",
-                    "current_allowed_user_budget": 10,
-                    "next_allowed_user_budget": 25,
+                    "current_allowed_user_budget": 25,
+                    "next_allowed_user_budget": 50,
                 },
             )
             self.write_balanced_pool_users(root)
@@ -5326,7 +5320,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 os.environ["PATH"] = old_path
             self.assertEqual(result["status"], "DENIED")
             self.assertIn("missing_explicit_authority_promotion_confirmation", result["blockers"])
-            self.assertTrue(result["evidence_review"]["equivalence_accepted"])
+            self.assertIn("invalid_target_authority_transition_LARGE_BATCH_to_POOL", result["blockers"])
             self.assertEqual((root / "policy.json").read_text(encoding="utf-8"), before)
 
     def test_authority_promotion_to_pool_equivalence_denies_rollback_history(self):
@@ -5341,8 +5335,8 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     "authority_class": "LARGE_BATCH",
                     "certified_authority_class": "LARGE_BATCH",
                     "authority_lifecycle_state": "PROMOTED",
-                    "current_allowed_user_budget": 10,
-                    "next_allowed_user_budget": 25,
+                    "current_allowed_user_budget": 25,
+                    "next_allowed_user_budget": 50,
                 },
             )
             self.write_balanced_pool_users(root)
@@ -5373,9 +5367,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             finally:
                 os.environ["PATH"] = old_path
             self.assertEqual(result["status"], "DENIED")
-            equivalence = result["evidence_review"]["equivalence_review"]
-            self.assertFalse(equivalence["accepted"])
-            self.assertIn("pool_equivalence_requires_clean_rollback_history", equivalence["blockers"])
+            self.assertIn("invalid_target_authority_transition_LARGE_BATCH_to_POOL", result["blockers"])
 
     def test_authority_promotion_to_pool_equivalence_denies_nonzero_planner_demand(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -5391,8 +5383,8 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     "authority_class": "LARGE_BATCH",
                     "certified_authority_class": "LARGE_BATCH",
                     "authority_lifecycle_state": "PROMOTED",
-                    "current_allowed_user_budget": 10,
-                    "next_allowed_user_budget": 25,
+                    "current_allowed_user_budget": 25,
+                    "next_allowed_user_budget": 50,
                 },
             )
             self.write_balanced_pool_users(root)
@@ -5422,9 +5414,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             finally:
                 os.environ["PATH"] = old_path
             self.assertEqual(result["status"], "DENIED")
-            equivalence = result["evidence_review"]["equivalence_review"]
-            self.assertFalse(equivalence["accepted"])
-            self.assertIn("pool_equivalence_requires_zero_planner_candidate_moves", equivalence["blockers"])
+            self.assertIn("invalid_target_authority_transition_LARGE_BATCH_to_POOL", result["blockers"])
 
     def test_authority_promotion_denied_without_operator_approval(self):
         with tempfile.TemporaryDirectory() as tmp:

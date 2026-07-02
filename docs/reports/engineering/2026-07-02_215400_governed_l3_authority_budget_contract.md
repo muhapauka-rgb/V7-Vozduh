@@ -102,11 +102,12 @@ plan.safety.authority_budget_gate.current_allowed_user_budget
 Existing authority classes are preserved:
 
 ```text
-CANARY      -> 1
-SMALL_BATCH -> 2
-MEDIUM_BATCH -> 5
-LARGE_BATCH -> 10
-POOL        -> 25
+CANARY        -> 1
+SMALL_BATCH   -> 5
+MEDIUM_BATCH  -> 10
+LARGE_BATCH   -> 25
+XLARGE_BATCH  -> 50
+FULL_INCIDENT -> remaining affected users on the same active failed-source incident
 ```
 
 The implementation consumes the current allowed budget emitted by the existing authority/capability model. It does not promote the class, certify Stage 1, or change production timer scope.

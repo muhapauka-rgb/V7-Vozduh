@@ -180,19 +180,25 @@ DEFAULT_SERVICE_QUALITY_POLICY = {
 }
 AUTHORITY_CLASS_BUDGETS = {
     "CANARY": 1,
-    "SMALL_BATCH": 2,
-    "MEDIUM_BATCH": 5,
-    "LARGE_BATCH": 10,
+    "SMALL_BATCH": 5,
+    "MEDIUM_BATCH": 10,
+    "LARGE_BATCH": 25,
+    "XLARGE_BATCH": 50,
     "POOL": 25,
+}
+AUTHORITY_DYNAMIC_CLASS_BUDGETS = {
+    "FULL_INCIDENT": "remaining_affected_users_on_same_active_incident",
 }
 AUTHORITY_CLASS_NEXT = {
     "CANARY": "SMALL_BATCH",
     "SMALL_BATCH": "MEDIUM_BATCH",
     "MEDIUM_BATCH": "LARGE_BATCH",
-    "LARGE_BATCH": "POOL",
+    "LARGE_BATCH": "XLARGE_BATCH",
+    "XLARGE_BATCH": "FULL_INCIDENT",
+    "FULL_INCIDENT": "FULL_INCIDENT",
     "POOL": "POOL",
 }
-AUTHORITY_CLASS_RANK = {name: index for index, name in enumerate(AUTHORITY_CLASS_BUDGETS)}
+AUTHORITY_CLASS_RANK = {name: index for index, name in enumerate(AUTHORITY_CLASS_NEXT)}
 AUTHORITY_PROMOTION_RULES = {
     "SMALL_BATCH": {
         "from": "CANARY",
@@ -210,7 +216,7 @@ AUTHORITY_PROMOTION_RULES = {
     "MEDIUM_BATCH": {
         "from": "SMALL_BATCH",
         "required_successful_runs": 2,
-        "min_users_per_run": 2,
+        "min_users_per_run": 5,
         "run_label": "small_batch",
         "evidence_floor": "two_successful_small_batch_runs_with_feedback_closure",
         "promotion_action": "SMALL_BATCH_TO_MEDIUM_BATCH",
@@ -223,7 +229,7 @@ AUTHORITY_PROMOTION_RULES = {
     "LARGE_BATCH": {
         "from": "MEDIUM_BATCH",
         "required_successful_runs": 2,
-        "min_users_per_run": 5,
+        "min_users_per_run": 10,
         "run_label": "medium_batch",
         "evidence_floor": "two_successful_medium_batch_runs_with_feedback_closure_and_stable_truth_window",
         "promotion_action": "MEDIUM_BATCH_TO_LARGE_BATCH",
@@ -233,10 +239,36 @@ AUTHORITY_PROMOTION_RULES = {
         "requires_stability_window": True,
         "stability_window_seconds": 900,
     },
+    "XLARGE_BATCH": {
+        "from": "LARGE_BATCH",
+        "required_successful_runs": 2,
+        "min_users_per_run": 25,
+        "run_label": "large_batch",
+        "evidence_floor": "two_successful_large_batch_runs_with_feedback_closure_and_no_regression_window",
+        "promotion_action": "LARGE_BATCH_TO_XLARGE_BATCH",
+        "failure_blocker": "xlarge_batch_evidence_validation_failed",
+        "count_blocker": "two_successful_large_batch_operation_ids_required",
+        "requires_feedback": ("outcome", "trust", "prediction", "recommendation", "closure"),
+        "requires_stability_window": True,
+        "stability_window_seconds": 3600,
+    },
+    "FULL_INCIDENT": {
+        "from": "XLARGE_BATCH",
+        "required_successful_runs": 2,
+        "min_users_per_run": 50,
+        "run_label": "xlarge_batch",
+        "evidence_floor": "two_successful_xlarge_batch_runs_with_feedback_closure_and_incident_scope_no_regression_window",
+        "promotion_action": "XLARGE_BATCH_TO_FULL_INCIDENT",
+        "failure_blocker": "full_incident_evidence_validation_failed",
+        "count_blocker": "two_successful_xlarge_batch_operation_ids_required",
+        "requires_feedback": ("outcome", "trust", "prediction", "recommendation", "closure"),
+        "requires_stability_window": True,
+        "stability_window_seconds": 3600,
+    },
     "POOL": {
         "from": "LARGE_BATCH",
         "required_successful_runs": 2,
-        "min_users_per_run": 10,
+        "min_users_per_run": 25,
         "run_label": "large_batch",
         "evidence_floor": "two_successful_large_batch_runs_with_feedback_closure_and_pool_no_regression_window",
         "promotion_action": "LARGE_BATCH_TO_POOL",
@@ -273,7 +305,7 @@ DEFAULT_AUTHORITY_BUDGET_POLICY = {
     "certified_authority_class": "CANARY",
     "authority_lifecycle_state": "",
     "current_allowed_user_budget": 1,
-    "next_allowed_user_budget": 2,
+    "next_allowed_user_budget": 5,
     "minimum_residence_seconds": 300,
     "cooldown_seconds": 180,
     "promotion_delay_seconds": 900,
@@ -339,7 +371,14 @@ def read_json(path: Path, default: Any) -> Any:
 
 def normalize_authority_class(value: Any) -> str:
     name = str(value or "CANARY").strip().upper()
-    return name if name in AUTHORITY_CLASS_BUDGETS else "CANARY"
+    return name if name in AUTHORITY_CLASS_RANK else "CANARY"
+
+
+def authority_class_budget(value: Any, default: int = 1) -> int:
+    authority_class = normalize_authority_class(value)
+    if authority_class in AUTHORITY_CLASS_BUDGETS:
+        return AUTHORITY_CLASS_BUDGETS[authority_class]
+    return max(0, to_int(default, 0))
 
 
 def normalize_authority_lifecycle_state(value: Any) -> str:
@@ -730,8 +769,8 @@ class AutoswitchPlanner:
         runtime_class = min_authority_class(prepared_class, certified_class)
         if lifecycle_state in {"FROZEN", "REVOKED"}:
             runtime_class = "CANARY"
-        prepared_budget = AUTHORITY_CLASS_BUDGETS[prepared_class]
-        certified_budget = AUTHORITY_CLASS_BUDGETS[certified_class]
+        prepared_budget = authority_class_budget(prepared_class, to_int(policy.get("current_allowed_user_budget"), 1))
+        certified_budget = authority_class_budget(certified_class, to_int(policy.get("current_allowed_user_budget"), 1))
         next_class_for_certified = AUTHORITY_CLASS_NEXT.get(certified_class, certified_class)
         bridge_budget_ceiling = 0
         if (
@@ -739,15 +778,15 @@ class AutoswitchPlanner:
             and AUTHORITY_CLASS_RANK[prepared_class] == AUTHORITY_CLASS_RANK[certified_class] + 1
             and prepared_class == next_class_for_certified
         ):
-            bridge_budget_ceiling = min(prepared_budget, AUTHORITY_CLASS_BUDGETS[next_class_for_certified])
-        runtime_ceiling = 0 if lifecycle_state in {"FROZEN", "REVOKED"} else AUTHORITY_CLASS_BUDGETS[runtime_class]
+            bridge_budget_ceiling = min(prepared_budget, authority_class_budget(next_class_for_certified, prepared_budget))
+        runtime_ceiling = 0 if lifecycle_state in {"FROZEN", "REVOKED"} else authority_class_budget(runtime_class, to_int(policy.get("current_allowed_user_budget"), 1))
         if bridge_budget_ceiling:
             runtime_ceiling = bridge_budget_ceiling
         requested_budget = to_int(policy.get("current_allowed_user_budget"), prepared_budget)
         certification_ceiling = bridge_budget_ceiling or certified_budget
         current_budget = max(0, min(requested_budget, prepared_budget, certification_ceiling, runtime_ceiling))
         next_class = AUTHORITY_CLASS_NEXT.get(runtime_class, "CANARY")
-        next_budget_default = AUTHORITY_CLASS_BUDGETS.get(next_class, current_budget)
+        next_budget_default = authority_class_budget(next_class, current_budget)
         policy["prepared_authority_class"] = prepared_class
         policy["certified_authority_class"] = certified_class
         policy["authority_lifecycle_state"] = lifecycle_state
@@ -2637,9 +2676,9 @@ class AutoswitchPlanner:
                 "prepared_authority_class": target,
                 "certified_authority_class": target,
                 "authority_lifecycle_state": "PROMOTED",
-                "current_allowed_user_budget": AUTHORITY_CLASS_BUDGETS[target],
+                "current_allowed_user_budget": authority_class_budget(target, to_int(after_authority.get("current_allowed_user_budget"), 0)),
                 "next_authority_class": AUTHORITY_CLASS_NEXT.get(target, target),
-                "next_allowed_user_budget": AUTHORITY_CLASS_BUDGETS[AUTHORITY_CLASS_NEXT.get(target, target)],
+                "next_allowed_user_budget": authority_class_budget(AUTHORITY_CLASS_NEXT.get(target, target), authority_class_budget(target, 0)),
                 "evidence_floor": rule["evidence_floor"],
                 "promoted_at": promoted_at,
                 "promoted_by": "tools/v7-users-autoswitch",
@@ -2680,7 +2719,7 @@ class AutoswitchPlanner:
                 "from_authority_class": current,
                 "to_authority_class": target,
                 "from_allowed_user_budget": before_effective.get("current_allowed_user_budget"),
-                "to_allowed_user_budget": AUTHORITY_CLASS_BUDGETS[target],
+                "to_allowed_user_budget": authority_class_budget(target, 0),
                 "operation_ids": ",".join(operation_ids),
                 "backup_path": str(backup_path),
                 "policy_hash_before": result["before"]["policy_hash"],
@@ -4394,7 +4433,7 @@ class AutoswitchPlanner:
             "CERTIFIED": "Evidence supports the prepared class and runtime may use that class ceiling.",
             "CANARY_CERTIFIED": "Alias of CERTIFIED for the one-user governed authority floor.",
             "CANARY_EXPANSION": "A transitional bridge from certified CANARY to prepared SMALL_BATCH that permits only the next blast-radius step with explicit bridge evidence.",
-            "PROVISIONAL_SMALL_BATCH": "A transitional bridge that allows the first bounded 2-user cohort without certifying SMALL_BATCH.",
+            "PROVISIONAL_SMALL_BATCH": "A transitional bridge that allows the first bounded 5-user cohort without certifying SMALL_BATCH.",
             "SMALL_BATCH_CERTIFIED": "Alias of CERTIFIED for completed SMALL_BATCH evidence.",
             "PROMOTED": "A certified class has been explicitly promoted after required outcomes, rollback, verification, and closure evidence.",
             "DEMOTED": "Runtime authority is intentionally below available certification because risk or operator policy reduced scope.",
@@ -4413,20 +4452,20 @@ class AutoswitchPlanner:
                     "exit_criteria": ["explicit_operator_bridge_request", "fresh_restore_barrier", "snapshot_gate_clean"],
                 },
                 "CANARY_EXPANSION": {
-                    "budget": 2,
+                    "budget": 5,
                     "entry_criteria": ["CANARY_CERTIFIED", "prepared_authority_class_SMALL_BATCH", "certified_authority_class_CANARY"],
-                    "exit_criteria": ["2_user_execution_verified", "outcome_feedback_materialized"],
+                    "exit_criteria": ["5_user_execution_verified", "outcome_feedback_materialized"],
                     "promotion_certification": False,
                 },
                 "PROVISIONAL_SMALL_BATCH": {
-                    "budget": 2,
+                    "budget": 5,
                     "entry_criteria": ["CANARY_EXPANSION_ready", "operator_approval_packet", "rollback_manifest_ready"],
-                    "exit_criteria": ["successful_2_user_governed_execution", "trust_prediction_recommendation_feedback"],
+                    "exit_criteria": ["successful_5_user_governed_execution", "trust_prediction_recommendation_feedback"],
                     "promotion_certification": False,
                 },
                 "SMALL_BATCH_CERTIFIED": {
-                    "budget": 2,
-                    "entry_criteria": ["successful_2_user_governed_execution", "verification", "outcome_feedback", "no_snapshot_mismatch"],
+                    "budget": 5,
+                    "entry_criteria": ["successful_5_user_governed_execution", "verification", "outcome_feedback", "no_snapshot_mismatch"],
                     "exit_criteria": ["operator_promoted_next_authority_class"],
                     "promotion_certification": True,
                 },
@@ -4444,7 +4483,7 @@ class AutoswitchPlanner:
                 "requires_outcome_closure": True,
             },
             "SMALL_BATCH": {
-                "required_successful_governed_users": 2,
+                "required_successful_governed_users": 5,
                 "requires_prior_canary_certification": True,
                 "requires_atomic_execution_envelope": True,
                 "requires_no_snapshot_source_mismatch": True,
@@ -4458,6 +4497,17 @@ class AutoswitchPlanner:
             "LARGE_BATCH": {
                 "required_successful_medium_batch_runs": 2,
                 "requires_stable_runtime_truth_window": True,
+                "requires_operator_review": True,
+            },
+            "XLARGE_BATCH": {
+                "required_successful_large_batch_runs": 2,
+                "requires_stable_runtime_truth_window": True,
+                "requires_operator_review": True,
+            },
+            "FULL_INCIDENT": {
+                "required_successful_xlarge_batch_runs": 2,
+                "scope": "remaining_affected_users_on_same_active_incident",
+                "requires_no_cross_incident_batching": True,
                 "requires_operator_review": True,
             },
             "POOL": {
@@ -4544,17 +4594,17 @@ class AutoswitchPlanner:
             },
             "CANARY_EXPANSION": {
                 "condition": "certified_CANARY_prepared_SMALL_BATCH_with_explicit_bridge_state",
-                "decision": "allow_transitional_2_user_bridge_budget_without_certifying_small_batch",
+                "decision": "allow_transitional_5_user_bridge_budget_without_certifying_small_batch",
                 "action": "permit_only_next_blast_radius_step_through_existing_restore_barrier_snapshot_and_apply_path",
                 "executor": "tools/v7-users-autoswitch",
                 "trigger": "authority_budget_gate",
                 "written_evidence": "plan.safety.authority_budget_gate.authority_bridge",
-                "blocked_actions": ["small_batch_certification", "budget_above_2", "promotion_without_2_user_outcome_feedback"],
+                "blocked_actions": ["small_batch_certification", "budget_above_5", "promotion_without_5_user_outcome_feedback"],
                 "next_state": "PROVISIONAL_SMALL_BATCH or FROZEN on risk",
             },
             "PROVISIONAL_SMALL_BATCH": {
-                "condition": "first_2_user_governed_cohort_ready_but_not_yet_certified",
-                "decision": "allow_single_provisional_2_user_cohort",
+                "condition": "first_5_user_governed_cohort_ready_but_not_yet_certified",
+                "decision": "allow_single_provisional_5_user_cohort",
                 "action": "require_verification_outcome_feedback_before_certification",
                 "executor": "tools/v7-users-autoswitch",
                 "trigger": "authority_budget_gate",
@@ -4625,7 +4675,7 @@ class AutoswitchPlanner:
         lifecycle_state = normalize_authority_lifecycle_state(policy.get("authority_lifecycle_state")) or "CERTIFIED"
         bridge = dict(policy.get("authority_bridge") or {})
         bridge_enabled = bool(bridge.get("enabled")) and lifecycle_state in AUTHORITY_BRIDGE_STATES
-        class_budget = AUTHORITY_CLASS_BUDGETS[authority_class]
+        class_budget = authority_class_budget(authority_class, to_int(policy.get("current_allowed_user_budget"), 1))
         allowed_budget = max(0, min(to_int(policy.get("current_allowed_user_budget"), class_budget), class_budget))
         if bridge_enabled:
             allowed_budget = max(0, min(to_int(policy.get("current_allowed_user_budget"), 0), to_int(bridge.get("bridge_budget_ceiling"), 0)))
@@ -4681,8 +4731,8 @@ class AutoswitchPlanner:
                 "prepared_authority_class": prepared_class,
                 "certified_authority_class": certified_class,
                 "runtime_authority_class": authority_class,
-                "prepared_budget_ceiling": AUTHORITY_CLASS_BUDGETS[prepared_class],
-                "certified_budget_ceiling": AUTHORITY_CLASS_BUDGETS[certified_class],
+                "prepared_budget_ceiling": authority_class_budget(prepared_class, allowed_budget),
+                "certified_budget_ceiling": authority_class_budget(certified_class, allowed_budget),
                 "runtime_allowed_user_budget": allowed_budget,
                 "prepared_exceeds_certified": prepared_exceeds_certified,
                 "model": self._authority_lifecycle_model(),
@@ -4699,7 +4749,7 @@ class AutoswitchPlanner:
                 "decision": decision if bridge_enabled else "not_in_bridge_state",
                 "action": action if bridge_enabled else "use_certified_authority_gate",
                 "blocked_actions": [
-                    "small_batch_certification_without_2_user_success",
+                    "small_batch_certification_without_5_user_success",
                     "budget_above_bridge_ceiling",
                     "bounded_autonomy",
                     "production_autonomy",
@@ -4727,7 +4777,7 @@ class AutoswitchPlanner:
         if prepared_exceeds_certified:
             gate["blocked_actions"] = sorted(set(gate["blocked_actions"] + ["promotion_without_certification", "apply_above_certified_budget"]))
         if bridge_enabled:
-            gate["blocked_actions"] = sorted(set(gate["blocked_actions"] + ["small_batch_certification_without_2_user_success", "apply_above_bridge_budget"]))
+            gate["blocked_actions"] = sorted(set(gate["blocked_actions"] + ["small_batch_certification_without_5_user_success", "apply_above_bridge_budget"]))
         if not gate["enabled"]:
             gate["decision"] = "authority_budget_gate_disabled_by_policy"
             gate["blocked_actions"] = ["disable_authority_budget_gate_in_production"]

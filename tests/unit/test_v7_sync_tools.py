@@ -76,6 +76,7 @@ class V7SyncToolsTest(unittest.TestCase):
     def test_approved_deploy_files_cover_runtime_package_and_perf4_dependencies(self):
         remote_paths = {item["remote_path"] for item in self.lib.APPROVED_DEPLOY_FILES}
         self.assertIn("/usr/local/bin/v7-users-autoswitch", remote_paths)
+        self.assertIn("/etc/systemd/system/v7-users-autoswitch.service", remote_paths)
         self.assertIn("/usr/local/bin/v7-intelligence-snapshot-refresh", remote_paths)
         self.assertIn("/usr/local/bin/v7-governed-canary-dry-run-cycle", remote_paths)
         self.assertIn("/etc/systemd/system/v7-autoswitch-planner.service", remote_paths)
@@ -90,6 +91,14 @@ class V7SyncToolsTest(unittest.TestCase):
         self.assertFalse(validation["missing_required_paths"])
         self.assertIn("admin_core/intelligence_snapshots.py", validation["approved_local_paths"])
         self.assertIn("admin_core/intelligence_platform.py", validation["approved_local_paths"])
+
+    def test_autoswitch_timer_invokes_governed_l3_owner_not_direct_apply(self):
+        service = (ROOT / "systemd" / "v7-users-autoswitch.service").read_text(encoding="utf-8")
+        self.assertIn("/usr/local/bin/v7-governed-canary-dry-run-cycle", service)
+        self.assertIn("--execute-l3-production-validation", service)
+        self.assertIn("--confirm-l3-production-validation EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED", service)
+        self.assertIn("--max-users 1", service)
+        self.assertNotIn("/usr/local/bin/v7-users-autoswitch --apply", service)
 
     def test_deploy_manifest_contains_runtime_fingerprint(self):
         manifest = self.lib.build_deploy_manifest(branch="Updatesystem", commit="abc123", deploy_id="deploy-test")

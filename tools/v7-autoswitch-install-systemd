@@ -3,6 +3,7 @@ set -eu
 
 ROOT="${V7_REPO_ROOT:-$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)}"
 BIN_SRC="$ROOT/tools/v7-users-autoswitch"
+GOVERNED_CANARY_SRC="$ROOT/tools/v7-governed-canary-dry-run-cycle"
 QUALITY_SRC="$ROOT/tools/v7-egress-quality-compact"
 TELEGRAM_SENTINEL_SRC="$ROOT/tools/v7-telegram-sentinel"
 MATRIX_REFRESH_SRC="$ROOT/tools/v7-service-matrix-refresh-all"
@@ -20,6 +21,10 @@ if [ ! -x "$BIN_SRC" ]; then
   echo "ERROR: missing executable $BIN_SRC" >&2
   exit 1
 fi
+if [ ! -x "$GOVERNED_CANARY_SRC" ]; then
+  echo "ERROR: missing executable $GOVERNED_CANARY_SRC" >&2
+  exit 1
+fi
 if [ ! -x "$QUALITY_SRC" ]; then
   echo "ERROR: missing executable $QUALITY_SRC" >&2
   exit 1
@@ -35,6 +40,7 @@ fi
 
 if [ "${1:-}" = "--apply" ]; then
   install -m 0755 "$BIN_SRC" /usr/local/bin/v7-users-autoswitch
+  install -m 0755 "$GOVERNED_CANARY_SRC" /usr/local/bin/v7-governed-canary-dry-run-cycle
   install -m 0755 "$QUALITY_SRC" /usr/local/bin/v7-egress-quality-compact
   install -m 0755 "$TELEGRAM_SENTINEL_SRC" /usr/local/bin/v7-telegram-sentinel
   install -m 0755 "$MATRIX_REFRESH_SRC" /usr/local/bin/v7-service-matrix-refresh-all
@@ -59,6 +65,7 @@ if [ "${1:-}" = "--apply" ]; then
 else
   echo "DRY_RUN=1"
   echo "would install $BIN_SRC -> /usr/local/bin/v7-users-autoswitch"
+  echo "would install $GOVERNED_CANARY_SRC -> /usr/local/bin/v7-governed-canary-dry-run-cycle"
   echo "would install $QUALITY_SRC -> /usr/local/bin/v7-egress-quality-compact"
   echo "would install $TELEGRAM_SENTINEL_SRC -> /usr/local/bin/v7-telegram-sentinel"
   echo "would install $MATRIX_REFRESH_SRC -> /usr/local/bin/v7-service-matrix-refresh-all"

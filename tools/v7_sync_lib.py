@@ -97,6 +97,13 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "v7-users-autoswitch.service",
+        "local_path": "systemd/v7-users-autoswitch.service",
+        "remote_path": "/etc/systemd/system/v7-users-autoswitch.service",
+        "mode": "0644",
+        "service": None,
+    },
+    {
         "name": "v7-service-matrix-refresh-all",
         "local_path": "tools/v7-service-matrix-refresh-all",
         "remote_path": "/usr/local/bin/v7-service-matrix-refresh-all",

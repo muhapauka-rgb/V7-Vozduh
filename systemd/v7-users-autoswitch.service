@@ -5,8 +5,8 @@ After=network-online.target v7-health.service v7-benchmark.service
 
 [Service]
 Type=oneshot
-Environment=V7_ACTOR=autoswitch
-ExecStart=/usr/local/bin/v7-users-autoswitch --apply
+Environment=V7_ACTOR=autoswitch-governed-l3
+ExecStart=/usr/local/bin/v7-governed-canary-dry-run-cycle --execute-l3-production-validation --confirm-l3-production-validation EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED --max-users 1
 Nice=5
 IOSchedulingClass=best-effort
 IOSchedulingPriority=6

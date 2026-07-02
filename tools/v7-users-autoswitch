@@ -1017,20 +1017,27 @@ class AutoswitchPlanner:
             for row in per_move
             if row.get("current_failures")
         })
+        channel_failed_sources = sorted({
+            str(((row.get("current_channel_failure") or {}).get("channel")) or row.get("current_egress") or "")
+            for row in per_move
+            if bool_value((row.get("current_channel_failure") or {}).get("confirmed"))
+        })
+        failed_sources = sorted(set(failed_sources) | set(channel_failed_sources))
         failed_services = sorted({
             str(item.get("service") or "")
             for row in per_move
             for item in (row.get("current_failures") or [])
             if item.get("service")
         })
+        incident_services = failed_services or (["current_channel_failure"] if channel_failed_sources else [])
         generation = str((self.generation or {}).get("planner_generation_id") or "")
         incident_key = ""
         previous_attempts = 0
         semantic_attempt_signature = ""
-        if failed_sources and failed_services:
+        if failed_sources and incident_services:
             incident_key = self._l3_incident_key(
                 source_channels=failed_sources,
-                services=failed_services,
+                services=incident_services,
                 authority=str(gate.get("mode") or "EMERGENCY_FAILOVER_AUTONOMY"),
                 generation=generation,
             )["key"]
@@ -1190,6 +1197,7 @@ class AutoswitchPlanner:
         candidates = move.get("candidates") if isinstance(move.get("candidates"), list) else []
         current = next((row for row in candidates if str(row.get("egress") or "") == current_id), {})
         target = next((row for row in candidates if str(row.get("egress") or "") == target_id), {})
+        current_channel_failure = self._current_channel_failure_evidence(current, user_ip=user_ip)
         if current and bool_value(current.get("eligible")):
             blockers.append("current_candidate_still_eligible")
         if not target or not bool_value(target.get("eligible")):
@@ -1213,7 +1221,7 @@ class AutoswitchPlanner:
                 or status in {"DOWN", "FAIL", "ERROR", "NOT_STARTED"}
             ):
                 current_failures.append(row)
-        if not current_failures:
+        if not current_failures and not bool_value(current_channel_failure.get("confirmed")):
             blockers.append("required_service_failure_required")
         if bool_value(self.emergency_failover_policy.get("require_fresh_evidence", True)):
             stale_failures = [
@@ -1222,6 +1230,9 @@ class AutoswitchPlanner:
             ]
             if stale_failures:
                 blockers.append("fresh_service_failure_evidence_required")
+            freshness_state = str(((current_channel_failure.get("freshness") or {}).get("state") or ""))
+            if current_channel_failure and freshness_state not in {"FRESH", "AGING"}:
+                blockers.append("fresh_channel_failure_evidence_required")
         if target_service.get("required_missing") or target_service.get("required_low"):
             blockers.append("target_required_services_not_ready")
         cooldown = max(0, to_int(self.emergency_failover_policy.get("cooldown_seconds"), 180))
@@ -1240,6 +1251,7 @@ class AutoswitchPlanner:
             "ok": not blockers,
             "blockers": sorted(set(blockers)),
             "cooldown_remaining_seconds": cooldown_remaining,
+            "current_channel_failure": current_channel_failure,
             "current_failures": [
                 {
                     "service": row.get("service"),
@@ -1249,6 +1261,65 @@ class AutoswitchPlanner:
                 }
                 for row in current_failures
             ],
+        }
+
+    def _state_file_freshness(self) -> dict[str, Any]:
+        max_age = max(1, to_int(self.quality_policy.get("metrics_fresh_seconds"), DEFAULT_QUALITY_POLICY["metrics_fresh_seconds"]))
+        path = self.state_dir / "v7-state.json"
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            return {
+                "state": "UNKNOWN",
+                "age_seconds": None,
+                "max_age_seconds": max_age,
+                "path": str(path),
+                "runtime_behavior": "fail_closed_if_required",
+            }
+        age = max(0.0, time.time() - mtime)
+        return {
+            "state": "FRESH" if age <= max_age else "STALE",
+            "age_seconds": round(age, 3),
+            "max_age_seconds": max_age,
+            "path": str(path),
+            "observed_at": datetime.fromtimestamp(mtime, timezone.utc).isoformat(),
+            "runtime_behavior": "use_existing_observation" if age <= max_age else "fail_closed_if_required",
+        }
+
+    def _current_channel_failure_evidence(self, current: dict[str, Any], *, user_ip: str) -> dict[str, Any]:
+        if not isinstance(current, dict) or not current:
+            return {}
+        severity = current.get("severity_classification") if isinstance(current.get("severity_classification"), dict) else {}
+        reason = str(severity.get("reason") or "")
+        hard_block = bool_value(severity.get("hard_block"))
+        severity_value = str(severity.get("severity") or "").upper()
+        affected_users = to_int(current.get("users"), 0)
+        freshness = self._state_file_freshness()
+        confirmed = (
+            hard_block
+            and severity_value == "FAIL"
+            and reason == "interface_down_or_missing"
+            and affected_users > 0
+            and str(freshness.get("state") or "") in {"FRESH", "AGING"}
+        )
+        if not (hard_block or severity_value == "FAIL" or reason):
+            return {}
+        return {
+            "schema_version": "v7.confirmed-current-channel-failure-evidence.v1",
+            "confirmed": confirmed,
+            "wake_source": "confirmed_current_channel_failure",
+            "channel": str(current.get("egress") or ""),
+            "affected_user": user_ip,
+            "affected_users_on_channel": affected_users,
+            "severity": severity_value,
+            "diagnose_reason": reason,
+            "block_reason": str(severity.get("block_reason") or ""),
+            "freshness": freshness,
+            "producer": "tools/v7-users-autoswitch._emergency_failover_move_evidence",
+            "source_object": "v7-state.json:egress[].diagnose_severity/diagnose_reason + users.registry assignment",
+            "owner": "tools/v7-users-autoswitch",
+            "authority_expanded": False,
+            "runtime_apply_allowed_now": False,
         }
 
     def _l3_normalized_wake_source(self, value: Any) -> str:
@@ -1285,6 +1356,12 @@ class AutoswitchPlanner:
             for row in move_evidence
             if row.get("current_failures")
         })
+        channel_failed_sources = sorted({
+            str(((row.get("current_channel_failure") or {}).get("channel")) or row.get("current_egress") or "")
+            for row in move_evidence
+            if bool_value((row.get("current_channel_failure") or {}).get("confirmed"))
+        })
+        failed_sources = sorted(set(failed_sources) | set(channel_failed_sources))
         failed_services = sorted({
             str(item.get("service") or "")
             for row in move_evidence
@@ -1305,6 +1382,28 @@ class AutoswitchPlanner:
                 "service": ",".join(failed_services),
                 "late": False,
                 "path": "inferred:service-matrix",
+                "ts": now_iso(),
+                "consumed_by_runtime": False,
+            })
+        if channel_failed_sources:
+            inferred.add("confirmed_current_channel_failure")
+            event_payload = {
+                "wake_source": "confirmed_current_channel_failure",
+                "failed_sources": channel_failed_sources,
+                "generation": str((self.generation or {}).get("planner_generation_id") or ""),
+                "failure_reasons": sorted({
+                    str((row.get("current_channel_failure") or {}).get("diagnose_reason") or "")
+                    for row in move_evidence
+                    if bool_value((row.get("current_channel_failure") or {}).get("confirmed"))
+                }),
+            }
+            observed_events.append({
+                "event_id": sha256_json(event_payload)[:24],
+                "wake_source": "confirmed_current_channel_failure",
+                "channel": ",".join(channel_failed_sources),
+                "service": "",
+                "late": False,
+                "path": "inferred:v7-state-current-channel-failure",
                 "ts": now_iso(),
                 "consumed_by_runtime": False,
             })
@@ -1750,12 +1849,19 @@ class AutoswitchPlanner:
             for row in move_evidence
             if row.get("current_failures")
         })
+        channel_failed_sources = sorted({
+            str(((row.get("current_channel_failure") or {}).get("channel")) or row.get("current_egress") or "")
+            for row in move_evidence
+            if bool_value((row.get("current_channel_failure") or {}).get("confirmed"))
+        })
+        failed_sources = sorted(set(failed_sources) | set(channel_failed_sources))
         failed_services = sorted({
             str(item.get("service") or "")
             for row in move_evidence
             for item in (row.get("current_failures") or [])
             if item.get("service")
         })
+        incident_services = failed_services or (["current_channel_failure"] if channel_failed_sources else [])
         affected_users = sorted({
             str(row.get("user_ip") or "")
             for row in move_evidence
@@ -1769,7 +1875,7 @@ class AutoswitchPlanner:
         generation = str((self.generation or {}).get("planner_generation_id") or "")
         key = self._l3_incident_key(
             source_channels=failed_sources,
-            services=failed_services,
+            services=incident_services,
             authority=str(gate.get("mode") or "EMERGENCY_FAILOVER_AUTONOMY"),
             generation=generation,
         )
@@ -1796,6 +1902,11 @@ class AutoswitchPlanner:
             "affected_users": affected_users,
             "failed_sources": failed_sources,
             "failed_required_services": failed_services,
+            "confirmed_current_channel_failures": [
+                row.get("current_channel_failure")
+                for row in move_evidence
+                if bool_value((row.get("current_channel_failure") or {}).get("confirmed"))
+            ],
             "target_channels": target_channels,
             "selected_move_hash": selected_hash,
             "operation_id": str(operation.get("operation_id") or ""),
@@ -5395,6 +5506,10 @@ class AutoswitchPlanner:
                         str(row.get("current_egress") or "")
                         for row in (emergency_failover_gate.get("move_evidence") or [])
                         if row.get("current_failures")
+                    } | {
+                        str(((row.get("current_channel_failure") or {}).get("channel")) or row.get("current_egress") or "")
+                        for row in (emergency_failover_gate.get("move_evidence") or [])
+                        if bool_value((row.get("current_channel_failure") or {}).get("confirmed"))
                     }),
                     "emergency_target_channels": sorted({
                         str(move.get("recommended_egress") or "")

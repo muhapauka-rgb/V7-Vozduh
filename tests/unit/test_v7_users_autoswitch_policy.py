@@ -612,6 +612,22 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         policy.setdefault("emergency_failover_autonomy", {})["wake_source"] = source
         policy_path.write_text(json.dumps(policy), encoding="utf-8")
 
+    def mark_current_channel_failed(self, root: Path, *, egress: str = "1") -> None:
+        state_path = root / "state" / "v7-state.json"
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        state.setdefault("egress", {}).setdefault(egress, {}).update(
+            {
+                "avg_mbps": 0,
+                "min_mbps": 0,
+                "stability": 0,
+                "code": "000",
+                "diagnose_severity": "FAIL",
+                "diagnose_reason": "interface_down_or_missing",
+                "diagnose_detail": "protocol=openvpn",
+            }
+        )
+        state_path.write_text(json.dumps(state), encoding="utf-8")
+
     def assert_operation_envelope(self, plan: dict) -> None:
         for key in ("schema_version", "summary", "safety", "decisions", "selected_moves"):
             self.assertIn(key, plan)
@@ -1354,6 +1370,97 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertFalse(incident["runtime_apply_allowed_now"])
         self.assertFalse(incident["authority_expanded"])
         self.assertEqual(plan["summary"]["l3_incident_state"], "READY_FOR_EXECUTION")
+
+    def test_observation_fail_with_affected_users_produces_confirmed_current_channel_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=13,
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={
+                    "enabled": True,
+                    "max_users_per_run": 1,
+                    "max_users_per_channel": 1,
+                },
+            )
+            self.mark_current_channel_failed(root)
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--emergency-failover-autonomy"]))
+            plan = planner.plan()
+            replay = self.tool.AutoswitchPlanner(self.args_for(root, ["--emergency-failover-autonomy"])).plan()
+
+        gate = plan["safety"]["emergency_failover_autonomy"]
+        wake = plan["safety"]["l3_wake"]
+        incident = plan["safety"]["l3_incident"]
+        current_events = [
+            row for row in wake["observed_events"]
+            if row["wake_source"] == "confirmed_current_channel_failure"
+        ]
+        replay_events = [
+            row for row in replay["safety"]["l3_wake"]["observed_events"]
+            if row["wake_source"] == "confirmed_current_channel_failure"
+        ]
+        self.assertTrue(gate["ok"])
+        self.assertEqual(plan["summary"]["proposal_moves_total"], 13)
+        self.assertEqual(plan["summary"]["selected_moves"], 1)
+        self.assertGreater(plan["safety"]["selected_moves_diagnostics"]["selected_moves_before_restore_barrier"], 0)
+        self.assertEqual(plan["safety"]["selected_moves_diagnostics"]["selected_moves_after_gate"], 1)
+        self.assertEqual(plan["selected_moves"][0]["current_egress"], "1")
+        self.assertIn(plan["selected_moves"][0]["user_ip"], {f"10.0.0.{idx}" for idx in range(2, 15)})
+        self.assertEqual(plan["selected_moves"][0]["move_type"], "failover")
+        self.assertEqual(wake["decision"], "ACCEPT_WAKE")
+        self.assertIn("confirmed_current_channel_failure", wake["accepted_wake_sources"])
+        self.assertNotIn("confirmed_service_failure", wake["accepted_wake_sources"])
+        self.assertEqual(current_events[0]["path"], "inferred:v7-state-current-channel-failure")
+        self.assertEqual(current_events[0]["event_id"], replay_events[0]["event_id"])
+        self.assertEqual(incident["incident_state"], "READY_FOR_EXECUTION")
+        self.assertNotIn(incident["incident_state"], {"NO_INCIDENT_DISABLED", "NO_INCIDENT_NO_EVIDENCE"})
+        self.assertEqual(incident["failed_sources"], ["1"])
+        self.assertEqual(incident["failed_required_services"], [])
+        self.assertEqual(incident["incident_key_components"]["service_family"], ["current_channel_failure"])
+        self.assertEqual(incident["confirmed_current_channel_failures"][0]["diagnose_reason"], "interface_down_or_missing")
+        self.assertTrue(gate["move_evidence"][0]["current_channel_failure"]["confirmed"])
+        self.assertNotIn("required_service_failure_required", gate["blockers"])
+        self.assertFalse(gate["broad_automation_enabled"])
+
+    def test_observation_fail_does_not_legalize_timer_wake(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=2,
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={
+                    "enabled": True,
+                    "max_users_per_run": 1,
+                    "max_users_per_channel": 1,
+                    "wake_source": "timer",
+                },
+            )
+            self.mark_current_channel_failed(root)
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--emergency-failover-autonomy"]))
+            plan = planner.plan()
+
+        gate = plan["safety"]["emergency_failover_autonomy"]
+        wake = plan["safety"]["l3_wake"]
+        current_events = [
+            row for row in wake["observed_events"]
+            if row["wake_source"] == "confirmed_current_channel_failure"
+        ]
+        self.assertFalse(gate["ok"])
+        self.assertEqual(wake["decision"], "REJECT_WAKE")
+        self.assertIn("rejected_wake_source_timer", gate["blockers"])
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+        self.assertFalse(current_events[0]["consumed_by_runtime"])
+        self.assertNotEqual(plan["summary"]["l3_incident_state"], "NO_INCIDENT_NO_EVIDENCE")
 
     def test_l3_wake_rejects_timer_source(self):
         with tempfile.TemporaryDirectory() as tmp:

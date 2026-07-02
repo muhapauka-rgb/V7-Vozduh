@@ -834,6 +834,80 @@ class AutoswitchPlanner:
             "VERIFY_FAILED",
         }
 
+    @staticmethod
+    def _l3_semantic_attempt_signature(
+        moves: list[dict[str, Any]],
+        *,
+        incident_key: str,
+    ) -> str:
+        if not incident_key or not moves:
+            return ""
+        return sha256_json([
+            {
+                "user_ip": str(move.get("user_ip") or ""),
+                "from": str(move.get("current_egress") or ""),
+                "to": str(move.get("recommended_egress") or ""),
+                "move_type": str(move.get("move_type") or ""),
+                "incident_key": incident_key,
+            }
+            for move in moves
+        ])
+
+    def _l3_consumed_retry_attempts(
+        self,
+        *,
+        incident_key: str,
+        semantic_attempt_signature: str,
+    ) -> list[dict[str, Any]]:
+        if not incident_key or not semantic_attempt_signature:
+            return []
+        incidents = self.l3_runtime_state.get("incidents") if isinstance(self.l3_runtime_state.get("incidents"), dict) else {}
+        incident = incidents.get(incident_key) if isinstance(incidents.get(incident_key), dict) else {}
+        return [
+            row
+            for row in (incident.get("attempts") or [])
+            if isinstance(row, dict)
+            and self._l3_attempt_consumed_retry_budget(row)
+            and str(row.get("semantic_attempt_signature") or "") == semantic_attempt_signature
+        ]
+
+    def _l3_retry_budget_exhausted_for_move(
+        self,
+        move: dict[str, Any],
+        *,
+        target: str,
+        incident_source_context: dict[str, Any],
+        retry_budget_per_incident: int,
+    ) -> dict[str, Any]:
+        incident_key = str(incident_source_context.get("incident_key") or "")
+        incident_source = str(incident_source_context.get("incident_source") or "")
+        if (
+            not bool_value(incident_source_context.get("active"))
+            or not incident_key
+            or not incident_source
+            or str(move.get("current_egress") or "") != incident_source
+        ):
+            return {"exhausted": False}
+        candidate = dict(move)
+        candidate["recommended_egress"] = target
+        signature = self._l3_semantic_attempt_signature([candidate], incident_key=incident_key)
+        consumed = self._l3_consumed_retry_attempts(
+            incident_key=incident_key,
+            semantic_attempt_signature=signature,
+        )
+        exhausted = bool(consumed) and len(consumed) >= max(0, retry_budget_per_incident)
+        return {
+            "exhausted": exhausted,
+            "incident_key": incident_key,
+            "incident_source": incident_source,
+            "semantic_attempt_signature": signature,
+            "consumed_attempts": len(consumed),
+            "retry_budget_per_incident": max(0, retry_budget_per_incident),
+            "user_ip": str(candidate.get("user_ip") or ""),
+            "current_egress": str(candidate.get("current_egress") or ""),
+            "recommended_egress": target,
+        }
+
     def _l3_enabled_users_on_source(self, source: str, *, excluding_users: Optional[set[str]] = None) -> list[str]:
         excluded = excluding_users or set()
         return sorted(
@@ -1251,28 +1325,11 @@ class AutoswitchPlanner:
                 )["key"]
             previous_attempts = self._l3_incident_attempt_count(incident_key)
             if bounded:
-                semantic_attempt_signature = sha256_json([
-                    {
-                        "user_ip": str(move.get("user_ip") or ""),
-                        "from": str(move.get("current_egress") or ""),
-                        "to": str(move.get("recommended_egress") or ""),
-                        "move_type": str(move.get("move_type") or ""),
-                        "incident_key": incident_key,
-                    }
-                    for move in bounded
-                ])
-            incidents = self.l3_runtime_state.get("incidents") if isinstance(self.l3_runtime_state.get("incidents"), dict) else {}
-            existing = incidents.get(incident_key) if isinstance(incidents.get(incident_key), dict) else {}
-            consumed_signature_attempts = [
-                item
-                for item in (existing.get("attempts") or [])
-                if isinstance(item, dict) and self._l3_attempt_consumed_retry_budget(item)
-            ]
-            consumed_signatures = [str(item.get("semantic_attempt_signature") or "") for item in consumed_signature_attempts]
-            duplicate_consumed_attempts = [
-                item for item in consumed_signature_attempts
-                if semantic_attempt_signature and str(item.get("semantic_attempt_signature") or "") == semantic_attempt_signature
-            ]
+                semantic_attempt_signature = self._l3_semantic_attempt_signature(bounded, incident_key=incident_key)
+            duplicate_consumed_attempts = self._l3_consumed_retry_attempts(
+                incident_key=incident_key,
+                semantic_attempt_signature=semantic_attempt_signature,
+            )
             if duplicate_consumed_attempts:
                 blockers.append("duplicate_apply_attempt")
                 if len(duplicate_consumed_attempts) >= gate["retry_budget_per_incident"]:
@@ -5491,7 +5548,7 @@ class AutoswitchPlanner:
             1 for item in selection_source
             if item.get("recommended_egress") and item.get("recommended_egress") != item.get("current_egress")
         )
-        selected = self._select_moves(selection_source) if enabled else []
+        selected = self._select_moves(selection_source, incident_source_context=incident_source_continuity) if enabled else []
         selected_after_policy_count = len(selected)
         max_selected_moves = to_int(getattr(self.args, "max_selected_moves", 0), 0)
         blast_radius_cap_applied = False
@@ -7908,7 +7965,12 @@ class AutoswitchPlanner:
             "exclusive_group": egress.exclusive_group,
         }
 
-    def _select_moves(self, decisions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _select_moves(
+        self,
+        decisions: list[dict[str, Any]],
+        *,
+        incident_source_context: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
         failover_limit = to_int(self.switch_policy.get("autoswitch_max_failover_per_run"), 25)
         if bool_value(self.service_signal_policy.get("restore_stage")):
             failover_limit = min(
@@ -7924,14 +7986,30 @@ class AutoswitchPlanner:
         rebalance = [d for d in decisions if d.get("action") == "switch" and d.get("move_type") == "rebalance"]
         planned = [d for d in decisions if d.get("action") == "switch" and d.get("move_type") == "planned"]
         projected = {egress_id: egress.users for egress_id, egress in self.egress.items()}
-        selected.extend(self._pick_projected_moves(failovers, failover_limit, projected, allow_over_soft=True))
+        selected.extend(self._pick_projected_moves(
+            failovers,
+            failover_limit,
+            projected,
+            allow_over_soft=True,
+            incident_source_context=incident_source_context,
+        ))
         selected.extend(self._pick_projected_moves(reconnect, reconnect_limit, projected, allow_over_soft=False))
         selected.extend(self._pick_projected_moves(rebalance, rebalance_limit, projected, allow_over_soft=False))
         selected.extend(self._pick_projected_moves(planned, planned_limit, projected, allow_over_soft=False))
         return selected
 
-    def _pick_projected_moves(self, moves: list[dict[str, Any]], limit: int, projected: dict[str, int], allow_over_soft: bool) -> list[dict[str, Any]]:
+    def _pick_projected_moves(
+        self,
+        moves: list[dict[str, Any]],
+        limit: int,
+        projected: dict[str, int],
+        allow_over_soft: bool,
+        *,
+        incident_source_context: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
         picked: list[dict[str, Any]] = []
+        incident_source_context = incident_source_context or {}
+        retry_budget = max(0, to_int(self.emergency_failover_policy.get("retry_budget_per_incident"), 1))
         ranked = sorted(
             moves,
             key=lambda d: (
@@ -7945,6 +8023,16 @@ class AutoswitchPlanner:
             source = str(move.get("current_egress") or "")
             target = self._projected_target_for_move(move, projected, allow_over_soft)
             if not target or target == source or target not in self.egress:
+                continue
+            retry_state = self._l3_retry_budget_exhausted_for_move(
+                move,
+                target=target,
+                incident_source_context=incident_source_context,
+                retry_budget_per_incident=retry_budget,
+            )
+            if bool_value(retry_state.get("exhausted")):
+                incident_source_context.setdefault("retry_exhausted_attempts_excluded", []).append(retry_state)
+                incident_source_context["retry_filter_applied"] = True
                 continue
             limits = self._load_limits_for_egress(self.egress[target])
             soft_limit = to_int(limits.get("soft_limit"), 1)

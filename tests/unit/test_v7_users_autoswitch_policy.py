@@ -1522,6 +1522,106 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(plan["safety"]["l3_wake"]["decision"], "ACCEPT_WAKE")
         self.assertIn("confirmed_current_channel_failure", plan["safety"]["l3_wake"]["accepted_wake_sources"])
 
+    def test_active_incident_skips_exhausted_semantic_attempt_and_selects_next_user(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=4,
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={
+                    "enabled": True,
+                    "max_users_per_run": 1,
+                    "max_users_per_channel": 1,
+                    "retry_budget_per_incident": 1,
+                },
+            )
+            self.add_failed_egress(root, egress="2")
+            self.mark_current_channel_failed(root, egress="1")
+            (root / "state" / "users.registry").write_text(
+                "ip=10.0.0.2 current=1 table=100 enabled=1\n"
+                "ip=10.0.0.3 current=1 table=101 enabled=1\n"
+                "ip=10.0.0.4 current=1 table=102 enabled=1\n"
+                "ip=10.0.0.5 current=2 table=103 enabled=1\n",
+                encoding="utf-8",
+            )
+            incident_key = "incident-open-1"
+            exhausted_signature = self.tool.AutoswitchPlanner._l3_semantic_attempt_signature(
+                [{
+                    "user_ip": "10.0.0.2",
+                    "current_egress": "1",
+                    "recommended_egress": "vless",
+                    "move_type": "failover",
+                }],
+                incident_key=incident_key,
+            )
+            (root / "state" / "l3-runtime-state.json").write_text(
+                json.dumps({
+                    "schema_version": "v7.l3-runtime-state.v1",
+                    "incidents": {
+                        incident_key: {
+                            "incident_key": incident_key,
+                            "status": "OPEN",
+                            "authority_object": "EMERGENCY_FAILOVER_AUTONOMY",
+                            "failed_sources": ["1"],
+                            "incident_source": "1",
+                            "failed_required_services": [],
+                            "updated_at": "2999-01-01T00:00:00+00:00",
+                            "attempts": [
+                                {
+                                    "operation_id": "runtime-autoswitch-rolled-back",
+                                    "selected_move_hash": "unit-test-hash",
+                                    "semantic_attempt_signature": exhausted_signature,
+                                    "terminal_outcome": "ROLLBACK_SUCCESS",
+                                    "terminal_state": "ROLLED_BACK",
+                                    "applied": True,
+                                }
+                            ],
+                        }
+                    },
+                    "processed_event_ids": [],
+                    "capability": {},
+                }),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, [
+                    "--emergency-failover-autonomy",
+                    "--target-egress",
+                    "vless",
+                    "--max-selected-moves",
+                    "1",
+                ])
+            )
+            plan = planner.plan()
+
+        continuity = plan["safety"]["incident_source_continuity"]
+        gate = plan["safety"]["emergency_failover_autonomy"]
+        self.assertTrue(continuity["active"])
+        self.assertEqual(continuity["incident_key"], incident_key)
+        self.assertEqual(continuity["incident_source"], "1")
+        self.assertTrue(continuity["retry_filter_applied"])
+        self.assertEqual(continuity["retry_exhausted_attempts_excluded"][0]["user_ip"], "10.0.0.2")
+        self.assertEqual(continuity["retry_exhausted_attempts_excluded"][0]["semantic_attempt_signature"], exhausted_signature)
+        self.assertEqual(continuity["selected_candidates_after_filter"], 3)
+        self.assertEqual(plan["summary"]["selected_moves"], 1)
+        self.assertEqual(gate["selected_moves_after_gate"], 1)
+        self.assertTrue(gate["ok"])
+        self.assertEqual(gate["incident_key"], incident_key)
+        self.assertNotIn("duplicate_apply_attempt", gate["blockers"])
+        self.assertNotIn("l3_retry_budget_exhausted", gate["blockers"])
+        self.assertEqual(plan["selected_moves"][0]["current_egress"], "1")
+        self.assertEqual(plan["selected_moves"][0]["recommended_egress"], "vless")
+        self.assertEqual(plan["selected_moves"][0]["move_type"], "failover")
+        self.assertNotEqual(plan["selected_moves"][0]["user_ip"], "10.0.0.2")
+        self.assertIn(plan["selected_moves"][0]["user_ip"], {"10.0.0.3", "10.0.0.4"})
+        self.assertNotEqual(plan["selected_moves"][0]["current_egress"], "2")
+        self.assertEqual(plan["safety"]["l3_incident"]["incident_key"], incident_key)
+
     def test_lost_incident_source_recovers_from_confirmed_failed_source_observation(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

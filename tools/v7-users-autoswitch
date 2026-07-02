@@ -2715,10 +2715,14 @@ class AutoswitchPlanner:
             allowed_targets = [str(item) for item in (apply_refresh_clearance.get("allowed_targets") or [])]
             target_scope_ok = bool(target_egress and target_egress in allowed_targets)
             governed_multi_target_scope = bool(not target_egress and allowed_targets)
+            committed_identity = self._committed_apply_identity_validation(self.restore_barrier)
+            committed_identity_required = bool_value(committed_identity.get("requested"))
+            committed_identity_ok = bool_value(committed_identity.get("ok"))
             governed_envelope_scope = (
                 mode == "write"
                 and allow_apply_refresh
                 and (target_scope_ok or governed_multi_target_scope)
+                and (not committed_identity_required or committed_identity_ok)
                 and requested_max_selected_moves > 0
                 and clearance_max_selected_moves > 0
                 and requested_max_selected_moves <= clearance_max_selected_moves
@@ -2731,18 +2735,23 @@ class AutoswitchPlanner:
                 mode == "write"
                 and bool(str(getattr(self.args, "user", "") or "").strip())
                 and bool(target_egress)
+                and (not committed_identity_required or committed_identity_ok)
                 and requested_max_selected_moves == 1
             )
             if allow_apply_refresh and bounded_apply_scope:
                 status.update({
                     "state": "APPLY_REFRESH_BOUNDED_ALLOWED",
-                    "decision": "refresh_before_bounded_one_user_apply",
+                    "decision": "refresh_before_committed_identity_bounded_apply"
+                    if committed_identity_required
+                    else "refresh_before_bounded_one_user_apply",
                     "blocked_actions": [],
                     "next_state": "load_refreshed_snapshots_for_bounded_apply",
                     "apply_refresh_scope": {
                         "user": str(getattr(self.args, "user", "") or ""),
+                        "source_egress": str(getattr(self.args, "source_egress", "") or ""),
                         "target_egress": str(getattr(self.args, "target_egress", "") or ""),
                         "max_selected_moves": 1,
+                        "committed_apply_identity": committed_identity,
                     },
                 })
             elif governed_envelope_scope:
@@ -2759,8 +2768,20 @@ class AutoswitchPlanner:
                         "clearance_max_selected_moves": clearance_max_selected_moves,
                         "approved_atomic_execution_envelope_id": str(apply_refresh_clearance.get("approved_atomic_execution_envelope_id") or ""),
                         "governance_owner": str(apply_refresh_clearance.get("owner") or ""),
+                        "committed_apply_identity": committed_identity,
                     },
                 })
+            elif allow_apply_refresh and committed_identity_required and not committed_identity_ok:
+                status.update({
+                    "action": "block_refresh_and_apply_promotion",
+                    "state": "SKIPPED_COMMITTED_IDENTITY_MISMATCH",
+                    "decision": "pre_planner_refresh_apply_requires_committed_identity_match",
+                    "stop_required": True,
+                    "blocked_actions": ["committed_identity_mismatch", "selected_moves", "apply"],
+                    "next_state": "fail_closed_planner_output",
+                    "committed_apply_identity": committed_identity,
+                })
+                return status
             else:
                 blocked = ["apply", "selected_moves"]
                 if allow_apply_refresh:
@@ -5664,6 +5685,90 @@ class AutoswitchPlanner:
             "selected_move_hash": selected_hash,
         })
 
+    def _committed_apply_identity_validation(
+        self,
+        restore_barrier: dict[str, Any],
+        *,
+        selected_hash: str = "",
+        selected_moves: Optional[list[dict[str, Any]]] = None,
+    ) -> dict[str, Any]:
+        lock = restore_barrier.get("approved_plan_lock") or {}
+        lock = lock if isinstance(lock, dict) else {}
+        moves = selected_moves
+        if moves is None:
+            moves = []
+            for raw in lock.get("selected_moves") or []:
+                if not isinstance(raw, dict):
+                    continue
+                moves.append({
+                    "user_ip": str(raw.get("user_ip") or ""),
+                    "current_egress": str(raw.get("current_egress") or raw.get("from") or ""),
+                    "recommended_egress": str(raw.get("recommended_egress") or raw.get("to") or ""),
+                    "move_type": str(raw.get("move_type") or ""),
+                })
+        requested = {
+            "packet_id": str(getattr(self.args, "approved_packet_id", "") or "").strip(),
+            "operation_id": str(getattr(self.args, "approved_operation_id", "") or "").strip(),
+            "selected_move_hash": str(getattr(self.args, "approved_selected_move_hash", "") or "").strip(),
+            "authority_generation": str(getattr(self.args, "approved_authority_generation", "") or "").strip(),
+        }
+        requested = {key: value for key, value in requested.items() if value}
+        if not requested:
+            return {"requested": False, "ok": True, "reasons": []}
+
+        users = sorted({str(move.get("user_ip") or "") for move in moves if str(move.get("user_ip") or "")})
+        sources = sorted({str(move.get("current_egress") or "") for move in moves if str(move.get("current_egress") or "")})
+        targets = sorted({str(move.get("recommended_egress") or "") for move in moves if str(move.get("recommended_egress") or "")})
+        actual = {
+            "packet_id": [
+                str(lock.get("packet_id") or ""),
+                str(restore_barrier.get("packet_id") or ""),
+            ],
+            "operation_id": [
+                str(lock.get("operation_id") or ""),
+                str(restore_barrier.get("operation_id") or ""),
+            ],
+            "selected_move_hash": [
+                str(lock.get("selected_move_hash") or ""),
+                str(restore_barrier.get("approved_selected_moves_hash") or ""),
+                str(selected_hash or ""),
+            ],
+            "authority_generation": [
+                str(lock.get("authority_generation") or ""),
+                str(restore_barrier.get("clearance_generation_id") or ""),
+                str(restore_barrier.get("approved_generation_id") or ""),
+            ],
+        }
+        reasons: list[str] = []
+        for key, value in requested.items():
+            if value not in {item for item in actual.get(key, []) if item}:
+                reasons.append(f"approved_plan_lock_committed_{key}_mismatch")
+
+        requested_user = str(getattr(self.args, "user", "") or "").strip()
+        requested_source = str(getattr(self.args, "source_egress", "") or "").strip()
+        requested_target = str(getattr(self.args, "target_egress", "") or "").strip()
+        if requested_user and users != [requested_user]:
+            reasons.append("approved_plan_lock_user_scope_mismatch")
+        if requested_source and sources != [requested_source]:
+            reasons.append("approved_plan_lock_source_scope_mismatch")
+        if requested_target and targets != [requested_target]:
+            reasons.append("approved_plan_lock_target_scope_mismatch")
+
+        return {
+            "requested": True,
+            "ok": not reasons,
+            "reason": "committed_apply_identity_valid" if not reasons else "committed_apply_identity_mismatch",
+            "reasons": sorted(set(reasons)),
+            "requested_identity": requested,
+            "actual_identity": {
+                key: [item for item in values if item]
+                for key, values in actual.items()
+            },
+            "selected_users": users,
+            "selected_sources": sources,
+            "selected_targets": targets,
+        }
+
     def _approved_plan_lock_validation(self, restore_barrier: dict[str, Any]) -> dict[str, Any]:
         lock = restore_barrier.get("approved_plan_lock") or {}
         if not isinstance(lock, dict) or not lock:
@@ -5698,6 +5803,8 @@ class AutoswitchPlanner:
             to_int(restore_barrier.get("clearance_expected_selected_moves"), 0),
         )
         requested_target = str(getattr(self.args, "target_egress", "") or "").strip()
+        requested_user = str(getattr(self.args, "user", "") or "").strip()
+        requested_source = str(getattr(self.args, "source_egress", "") or "").strip()
         reasons: list[str] = []
         if lock.get("schema_version") != "v7.approved-plan-lock.v1":
             reasons.append("approved_plan_lock_schema_invalid")
@@ -5715,8 +5822,20 @@ class AutoswitchPlanner:
             reasons.append("approved_plan_lock_allowed_users_mismatch")
         if allowed_targets and sorted(allowed_targets) != locked_targets:
             reasons.append("approved_plan_lock_allowed_targets_mismatch")
+        locked_sources = sorted({move["current_egress"] for move in selected})
+        if requested_user and locked_users != [requested_user]:
+            reasons.append("approved_plan_lock_user_scope_mismatch")
+        if requested_source and locked_sources != [requested_source]:
+            reasons.append("approved_plan_lock_source_scope_mismatch")
         if requested_target and locked_targets != [requested_target]:
             reasons.append("approved_plan_lock_target_scope_mismatch")
+        committed_identity = self._committed_apply_identity_validation(
+            restore_barrier,
+            selected_hash=selected_hash,
+            selected_moves=selected,
+        )
+        if committed_identity.get("requested") and not committed_identity.get("ok"):
+            reasons.extend(committed_identity.get("reasons") or [])
         if to_int(restore_barrier.get("clearance_max_selected_moves"), 0) < len(selected):
             reasons.append("approved_plan_lock_exceeds_clearance_budget")
         expires_at = str(lock.get("expires_at") or restore_barrier.get("clearance_expires_at") or "")
@@ -5757,7 +5876,9 @@ class AutoswitchPlanner:
                 "approved_snapshot_bundle_hash": approved_snapshot_hash,
                 "expected_snapshot_bundle_hash": barrier_snapshot_hash,
                 "selected_users": locked_users,
+                "selected_sources": locked_sources,
                 "selected_targets": locked_targets,
+                "committed_apply_identity": committed_identity,
             }
         return {
             "present": True,
@@ -5772,8 +5893,10 @@ class AutoswitchPlanner:
             "approved_snapshot_bundle_hash": approved_snapshot_hash,
             "expected_snapshot_bundle_hash": barrier_snapshot_hash,
             "selected_users": locked_users,
+            "selected_sources": locked_sources,
             "selected_targets": locked_targets,
             "selected_moves": selected,
+            "committed_apply_identity": committed_identity,
         }
 
     def _runtime_source_hashes(self, *, from_disk: bool = False) -> dict[str, str]:
@@ -8562,6 +8685,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--user", default="", help="Limit planning to one user IP.")
     parser.add_argument("--target-egress", default="", help="Limit selected autoswitch moves to users recommended for this egress.")
     parser.add_argument("--source-egress", "--current-egress", dest="source_egress", default="", help="Limit selected autoswitch moves to users currently on this egress.")
+    parser.add_argument("--approved-packet-id", default="", help="Fail closed unless apply consumes this approved packet identity.")
+    parser.add_argument("--approved-operation-id", default="", help="Fail closed unless apply consumes this approved operation identity.")
+    parser.add_argument("--approved-selected-move-hash", default="", help="Fail closed unless apply consumes this approved selected move hash.")
+    parser.add_argument("--approved-authority-generation", default="", help="Fail closed unless apply consumes this approved authority generation.")
     parser.add_argument("--service", default="", help="Score candidates for one important service.")
     parser.add_argument("--route-class", default="", help="Override derived route class.")
     parser.add_argument("--max-selected-moves", type=int, default=0, help="Narrow selected moves to this maximum without raising policy limits.")

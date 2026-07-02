@@ -3169,6 +3169,117 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(plan["operation"]["selected_move_hash"], approved_hash)
         self.assertEqual(plan["selected_moves"][0]["selected_move_hash"], approved_hash)
 
+    def test_committed_apply_identity_must_match_approved_plan_lock(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=1,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={
+                    "authority_class": "CANARY",
+                    "certified_authority_class": "CANARY",
+                    "authority_lifecycle_state": "CANARY_EXPANSION",
+                    "current_allowed_user_budget": 1,
+                },
+            )
+            bootstrap = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--apply", "--mode", "guarded", "--target-egress", "vless", "--max-selected-moves", "1"])
+            ).plan()
+            move = bootstrap["selected_moves"][0]
+            approved = self.approved_restore_barrier_from_plan(bootstrap)
+            approved["packet_id"] = "pkt-unit-test"
+            approved["operation_id"] = "operation-unit-test"
+            approved["clearance_generation_id"] = bootstrap["safety"]["generation"]["planner_generation_id"]
+            approved["approved_plan_lock"]["packet_id"] = "pkt-unit-test"
+            approved["approved_plan_lock"]["operation_id"] = "operation-unit-test"
+            approved["approved_plan_lock"]["authority_generation"] = approved["clearance_generation_id"]
+            (root / "state" / "autoswitch-restore-barrier.json").write_text(json.dumps(approved), encoding="utf-8")
+            args = self.args_for(root, [
+                "--apply",
+                "--mode",
+                "guarded",
+                "--user",
+                move["user_ip"],
+                "--source-egress",
+                move["current_egress"],
+                "--target-egress",
+                move["recommended_egress"],
+                "--max-selected-moves",
+                "1",
+                "--approved-packet-id",
+                "pkt-unit-test",
+                "--approved-operation-id",
+                "operation-unit-test",
+                "--approved-selected-move-hash",
+                bootstrap["operation"]["selected_move_hash"],
+                "--approved-authority-generation",
+                approved["clearance_generation_id"],
+            ])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+
+        validation = plan["safety"]["restore_barrier"]["approved_plan_lock_validation"]
+        self.assertTrue(validation["ok"])
+        self.assertTrue(validation["committed_apply_identity"]["ok"])
+        self.assertEqual(validation["committed_apply_identity"]["requested_identity"]["packet_id"], "pkt-unit-test")
+        self.assertEqual(plan["summary"]["selected_moves"], 1)
+        self.assertEqual(plan["operation"]["selected_move_hash"], bootstrap["operation"]["selected_move_hash"])
+
+    def test_committed_apply_identity_mismatch_blocks_approved_plan_lock(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=1,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={
+                    "authority_class": "CANARY",
+                    "certified_authority_class": "CANARY",
+                    "authority_lifecycle_state": "CANARY_EXPANSION",
+                    "current_allowed_user_budget": 1,
+                },
+            )
+            bootstrap = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--apply", "--mode", "guarded", "--target-egress", "vless", "--max-selected-moves", "1"])
+            ).plan()
+            move = bootstrap["selected_moves"][0]
+            approved = self.approved_restore_barrier_from_plan(bootstrap)
+            approved["packet_id"] = "pkt-unit-test"
+            approved["operation_id"] = "operation-unit-test"
+            approved["approved_plan_lock"]["packet_id"] = "pkt-unit-test"
+            approved["approved_plan_lock"]["operation_id"] = "operation-unit-test"
+            (root / "state" / "autoswitch-restore-barrier.json").write_text(json.dumps(approved), encoding="utf-8")
+            args = self.args_for(root, [
+                "--apply",
+                "--mode",
+                "guarded",
+                "--user",
+                move["user_ip"],
+                "--source-egress",
+                move["current_egress"],
+                "--target-egress",
+                move["recommended_egress"],
+                "--max-selected-moves",
+                "1",
+                "--approved-packet-id",
+                "pkt-unit-test",
+                "--approved-operation-id",
+                "operation-unit-test",
+                "--approved-selected-move-hash",
+                "wrong-selected-hash",
+            ])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+            plan["apply_result"] = planner.apply(plan)
+
+        validation = plan["safety"]["restore_barrier"]["approved_plan_lock_validation"]
+        self.assertFalse(validation["ok"])
+        self.assertFalse(validation["committed_apply_identity"]["ok"])
+        self.assertIn("approved_plan_lock_committed_selected_move_hash_mismatch", validation["reasons"])
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+        self.assertEqual(plan["apply_result"]["reason"], "approved_plan_lock_selected_moves_missing")
+
     def test_approved_plan_lock_uses_source_bundle_lease_for_service_matrix_snapshot_drift(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

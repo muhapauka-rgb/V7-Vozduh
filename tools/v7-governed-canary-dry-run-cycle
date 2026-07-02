@@ -597,6 +597,11 @@ def run_autoswitch_apply(
     restore_barrier_file: Path,
     user: str,
     target: str,
+    source: str = "",
+    packet_id: str = "",
+    operation_id: str = "",
+    selected_move_hash: str = "",
+    authority_generation: str = "",
     emergency_failover_autonomy: bool = False,
 ) -> dict[str, Any]:
     command = [
@@ -607,6 +612,8 @@ def run_autoswitch_apply(
         "1",
         "--user",
         user,
+        "--source-egress",
+        source,
         "--target-egress",
         target,
         "--state-dir",
@@ -622,6 +629,14 @@ def run_autoswitch_apply(
         "--allow-pre-planner-refresh-with-apply",
         "--pretty",
     ]
+    if packet_id:
+        command.extend(["--approved-packet-id", packet_id])
+    if operation_id:
+        command.extend(["--approved-operation-id", operation_id])
+    if selected_move_hash:
+        command.extend(["--approved-selected-move-hash", selected_move_hash])
+    if authority_generation:
+        command.extend(["--approved-authority-generation", authority_generation])
     if emergency_failover_autonomy:
         command.insert(1, "--emergency-failover-autonomy")
     try:
@@ -854,6 +869,7 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
     user = constraints["users"][0]
     target = constraints["targets"][0]
     source = ((packet.get("rollback_manifest") or {}).get("items") or [{}])[0].get("rollback_target", "")
+    packet_identity = operator_execution.packet_identity(packet)
     lease = operator_execution.create_execution_lease_from_packet(packet, source_preview=plan)
     lease_create_result = operator_execution.write_execution_lease(lease_file, lease)
     if not lease_create_result.get("ok"):
@@ -898,7 +914,12 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
         snapshot_root=snapshot_root,
         restore_barrier_file=restore_barrier_file,
         user=user,
+        source=source,
         target=target,
+        packet_id=str(packet_identity.get("packet_id") or ""),
+        operation_id=str(packet_identity.get("operation_id") or ""),
+        selected_move_hash=str(packet_identity.get("selected_move_hash") or ""),
+        authority_generation=str(packet_identity.get("authority_generation") or ""),
         emergency_failover_autonomy=True,
     )
     apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}
@@ -1047,6 +1068,7 @@ def execute_governed_transaction_with_guards(
     user = constraints["users"][0]
     target = constraints["targets"][0]
     source = ((packet.get("rollback_manifest") or {}).get("items") or [{}])[0].get("rollback_target", "")
+    packet_identity = operator_execution.packet_identity(packet)
     identity = (str(packet.get("packet_id") or ""), user, str(source or ""), target)
     if blocked_transaction_identities is not None and identity in blocked_transaction_identities:
         return transaction_stop(
@@ -1108,7 +1130,12 @@ def execute_governed_transaction_with_guards(
         snapshot_root=snapshot_root,
         restore_barrier_file=restore_barrier_file,
         user=user,
+        source=source,
         target=target,
+        packet_id=str(packet_identity.get("packet_id") or ""),
+        operation_id=str(packet_identity.get("operation_id") or ""),
+        selected_move_hash=str(packet_identity.get("selected_move_hash") or ""),
+        authority_generation=str(packet_identity.get("authority_generation") or ""),
     )
     apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}
     operation = dict(apply_payload.get("operation") or {})

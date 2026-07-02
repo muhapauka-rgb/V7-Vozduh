@@ -80,27 +80,49 @@ def write_json_atomic(path: Path, data: Any) -> None:
 @contextlib.contextmanager
 def service_matrix_writer_lock(matrix_file: Path, timeout_sec: int):
     if os.environ.get("V7_SERVICE_MATRIX_LOCK_HELD") == "1":
-        yield {"held": False, "inherited": True, "path": str(matrix_file.with_name("service-matrix.lock"))}
+        yield {
+            "held": False,
+            "inherited": True,
+            "path": str(matrix_file.with_name("service-matrix.lock")),
+            "waited_sec": 0.0,
+            "held_sec": 0.0,
+            "released": False,
+        }
         return
     lock_path = matrix_file.with_name("service-matrix.lock")
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     fd = os.open(lock_path, os.O_RDWR | os.O_CREAT, 0o600)
     started = time.time()
     acquired = False
+    lock_info = {
+        "held": False,
+        "inherited": False,
+        "path": str(lock_path),
+        "waited_sec": 0.0,
+        "held_sec": 0.0,
+        "released": False,
+    }
     try:
         while True:
             try:
                 fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 acquired = True
+                lock_info.update({
+                    "held": True,
+                    "waited_sec": round(time.time() - started, 3),
+                })
                 break
             except BlockingIOError:
                 if time.time() - started >= max(1, timeout_sec):
                     raise TimeoutError("service_matrix_lock_timeout")
                 time.sleep(0.25)
-        yield {"held": True, "inherited": False, "path": str(lock_path)}
+        held_started = time.time()
+        yield lock_info
     finally:
         if acquired:
+            lock_info["held_sec"] = round(time.time() - held_started, 3)
             fcntl.flock(fd, fcntl.LOCK_UN)
+            lock_info["released"] = True
         os.close(fd)
 
 
@@ -292,10 +314,9 @@ def route_class_fitness(matrix_row: dict[str, Any]) -> dict[str, Any]:
     return fitness
 
 
-def update_matrix(matrix_file: Path, egress_id: str, iface: str, item: dict[str, Any]) -> dict[str, Any]:
-    matrix = read_json(matrix_file, {"items": {}})
+def merge_matrix_item(matrix: dict[str, Any], egress_id: str, iface: str, item: dict[str, Any]) -> None:
     if not isinstance(matrix, dict):
-        matrix = {"items": {}}
+        return
     row = matrix.setdefault("items", {}).setdefault(egress_id, {})
     services = row.setdefault("services", {})
     services["telegram"] = {
@@ -337,8 +358,22 @@ def update_matrix(matrix_file: Path, egress_id: str, iface: str, item: dict[str,
     })
     row["route_class_fitness"] = route_class_fitness(row)
     matrix["updated"] = now_iso()
+
+
+def update_matrix_items(matrix_file: Path, items: dict[str, Any]) -> dict[str, Any]:
+    matrix = read_json(matrix_file, {"items": {}})
+    if not isinstance(matrix, dict):
+        matrix = {"items": {}}
+    for item in items.values():
+        merge_matrix_item(matrix, str(item.get("egress") or ""), str(item.get("interface") or ""), item)
     write_json_atomic(matrix_file, matrix)
     return matrix
+
+
+def update_matrix(matrix_file: Path, egress_id: str, iface: str, item: dict[str, Any]) -> dict[str, Any]:
+    return update_matrix_items(matrix_file, {
+        str(egress_id or ""): dict(item, egress=egress_id, interface=iface),
+    })
 
 
 def egress_items(state_dir: Path, only: str) -> list[dict[str, str]]:
@@ -478,8 +513,7 @@ def main() -> int:
             items[str(item.get("egress") or "")] = item
     try:
         with service_matrix_writer_lock(matrix_file, int(args.lock_timeout_sec)) as lock_info:
-            for item in items.values():
-                update_matrix(matrix_file, str(item.get("egress") or ""), str(item.get("interface") or ""), item)
+            update_matrix_items(matrix_file, items)
     except TimeoutError as exc:
         print(json.dumps({
             "schema_version": 1,

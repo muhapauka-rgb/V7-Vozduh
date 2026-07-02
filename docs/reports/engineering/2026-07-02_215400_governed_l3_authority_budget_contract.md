@@ -218,16 +218,23 @@ PASS
 
 Safe deploy was run through the existing deployment owner.
 
-Post-deploy verification:
+Post-deploy dry-run verification after apply:
 
 ```json
 {
   "final_verdict": "PASS",
   "deployment_required": false,
-  "blockers": [],
+  "blockers": []
+}
+```
+
+Actual production fingerprint read over SSH from `/opt/v7/runtime-fingerprint.json`:
+
+```json
+{
   "runtime_branch": "Updatesystem",
   "runtime_commit": "e390d924987f3283b2424deb133a4bbf963c2b7a",
-  "runtime_created_at": "2026-07-02T14:53:44+00:00"
+  "runtime_created_at": "2026-07-02T14:51:36+00:00"
 }
 ```
 
@@ -257,7 +264,7 @@ Deployed runtime files relevant to this task:
 
 Production remains bounded to one user per governed cycle.
 
-Current production systemd entrypoint:
+Actual production systemd entrypoint read over SSH:
 
 ```text
 ExecStart=/usr/local/bin/v7-governed-canary-dry-run-cycle --execute-l3-production-validation --confirm-l3-production-validation EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED --max-users 1
@@ -297,4 +304,3 @@ It only removes the incompatible hardcoded validation limit and proves that the 
 Run a separate Stage 1 certification task only after explicit authorization.
 
 That task should prove the existing authority budget has promoted beyond CANARY and then run a bounded production validation at the certified budget. Until then, production remains max_users=1.
-

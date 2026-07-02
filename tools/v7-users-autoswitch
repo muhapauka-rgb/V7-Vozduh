@@ -1362,6 +1362,10 @@ class AutoswitchPlanner:
         restore_barrier: dict[str, Any],
         approved_lock: dict[str, Any],
     ) -> dict[str, Any]:
+        authorized_budget = max(1, to_int(self.authority_budget_policy.get("current_allowed_user_budget"), 1))
+        selected_count = len(selected)
+        approved_count = to_int(approved_lock.get("selected_move_count"), selected_count)
+        clearance_max = to_int(restore_barrier.get("clearance_max_selected_moves"), authorized_budget)
         expected: list[dict[str, Any]] = [
             {
                 "condition": "l3_production_validation_mode",
@@ -1372,11 +1376,12 @@ class AutoswitchPlanner:
                 "applies_to_l3_production_validation": True,
             },
             {
-                "condition": "one_user_exactly",
-                "expected": 1,
-                "actual": len(selected),
+                "condition": "selected_moves_within_authorized_l3_budget",
+                "expected": True,
+                "actual": 1 <= selected_count <= authorized_budget,
                 "owner": "tools/v7-users-autoswitch",
                 "applies_to_l3_production_validation": True,
+                "authorized_l3_budget": authorized_budget,
             },
             {
                 "condition": "approved_plan_lock_valid",
@@ -1422,12 +1427,15 @@ class AutoswitchPlanner:
                 "applies_to_l3_production_validation": True,
             },
             {
-                "condition": "no_batch_movement",
+                "condition": "approved_batch_scope_within_authorized_l3_budget",
                 "expected": True,
-                "actual": to_int(restore_barrier.get("clearance_max_selected_moves"), 1) == 1
-                and to_int(approved_lock.get("selected_move_count"), len(selected)) == 1,
+                "actual": selected_count >= 1
+                and approved_count == selected_count
+                and selected_count <= clearance_max
+                and clearance_max <= authorized_budget,
                 "owner": "admin_core/operator_execution.py",
                 "applies_to_l3_production_validation": True,
+                "authorized_l3_budget": authorized_budget,
             },
         ]
         selected_users = [str(move.get("user_ip") or "") for move in selected]

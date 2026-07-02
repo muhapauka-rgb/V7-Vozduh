@@ -3044,10 +3044,11 @@ def l3_production_validation_runtime_action_transition(plan: dict[str, Any], *, 
     emergency_gate = safety.get("emergency_failover_autonomy") if isinstance(safety.get("emergency_failover_autonomy"), dict) else {}
     diagnostics = safety.get("selected_moves_diagnostics") if isinstance(safety.get("selected_moves_diagnostics"), dict) else {}
     errors: list[str] = []
-    if int(max_users) != 1:
-        errors.append("l3_validation_max_users_not_one")
-    if len(moves) != 1:
-        errors.append("l3_validation_selected_move_count_not_one")
+    max_users = max(1, int(max_users))
+    if len(moves) < 1:
+        errors.append("l3_validation_selected_move_count_missing")
+    if len(moves) > max_users:
+        errors.append("l3_validation_selected_move_count_above_max_users")
     for move in moves:
         if str(move.get("move_type") or "") != "failover":
             errors.append("l3_validation_move_type_not_failover")

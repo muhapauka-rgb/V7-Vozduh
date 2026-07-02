@@ -3604,13 +3604,22 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.prepare_l3_validation_envelope(root, users=2)
+            policy_path = root / "policy.json"
+            policy = json.loads(policy_path.read_text(encoding="utf-8"))
+            policy["authority_budget"] = {
+                "enabled": True,
+                "authority_class": "CANARY",
+                "certified_authority_class": "CANARY",
+                "current_allowed_user_budget": 1,
+            }
+            policy_path.write_text(json.dumps(policy), encoding="utf-8")
             planner = self.tool.AutoswitchPlanner(
                 self.args_for(root, ["--emergency-failover-autonomy", "--apply", "--mode", "guarded", "--target-egress", "vless", "--max-selected-moves", "2"])
             )
             plan = planner.plan()
             plan["apply_result"] = planner.apply(plan)
         self.assertFalse(plan["apply_result"].get("applied"))
-        self.assertIn("one_user_exactly", plan["safety"]["emergency_failover_autonomy"]["approved_production_validation_envelope"]["failed_conditions"])
+        self.assertIn("selected_moves_within_authorized_l3_budget", plan["safety"]["emergency_failover_autonomy"]["approved_production_validation_envelope"]["failed_conditions"])
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

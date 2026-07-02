@@ -104,7 +104,19 @@ class GovernedCanaryCliTest(unittest.TestCase):
             },
         }
 
-    def ready_l3_plan(self, *, user="10.7.0.5", source="vless", target="awg3"):
+    def ready_l3_plan(self, *, user="10.7.0.5", source="vless", target="awg3", moves=None, authority_budget=None):
+        if moves is None:
+            moves = [{
+                "user_ip": user,
+                "current_egress": source,
+                "recommended_egress": target,
+                "move_type": "failover",
+            }]
+        authority_budget = authority_budget or {
+            "current_allowed_user_budget": 1,
+            "authority_class": "CANARY",
+            "certified_authority_class": "CANARY",
+        }
         return {
             "operation": {
                 "runtime_snapshot_hash": "l3-runtime-snapshot",
@@ -124,36 +136,30 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     "snapshot_bundle_hash": "l3-snapshot-bundle",
                 },
                 "restore_barrier": {
-                    "clearance_selected_moves_before_guard": 1,
+                    "clearance_selected_moves_before_guard": len(moves),
                     "clearance_selected_moves_hash": "l3-selected-hash",
-                    "approved_candidate_moves_before_guard": [
-                        {
-                            "user_ip": user,
-                            "current_egress": source,
-                            "recommended_egress": target,
-                            "move_type": "failover",
-                        }
-                    ],
+                    "approved_candidate_moves_before_guard": moves,
                 },
                 "emergency_failover_autonomy": {
                     "enabled": True,
                 },
+                "authority_budget_gate": authority_budget,
                 "selected_moves_diagnostics": {
                     "emergency_failover_authorized": True,
                 },
             },
             "decisions": [
                 {
-                    "user_ip": user,
-                    "current_egress": source,
-                    "recommended_egress": target,
+                    "user_ip": move["user_ip"],
+                    "current_egress": move["current_egress"],
+                    "recommended_egress": move["recommended_egress"],
                     "action": "switch",
                     "move_type": "failover",
                     "reason": "CURRENT_CHANNEL_FAILED",
                     "important_services": ["telegram"],
                     "candidates": [
                         {
-                            "egress": target,
+                            "egress": move["recommended_egress"],
                             "safe_now": True,
                             "service_suitability": {
                                 "required_services_ok": True,
@@ -164,6 +170,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                         }
                     ],
                 }
+                for move in moves
             ],
         }
 
@@ -462,6 +469,177 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(locked_move["important_services"], ["telegram"])
         self.assertEqual(locked_move["candidates"][0]["egress"], "awg3")
         self.assertTrue(apply_calls[0]["emergency_failover_autonomy"])
+
+    def test_l3_production_validation_rejects_requested_batch_above_canary_budget(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root)
+            args.execute_l3_production_validation = True
+            args.confirm_l3_production_validation = "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED"
+            args.max_users = 5
+            original_plan = module.run_l3_production_validation_plan
+            try:
+                module.run_l3_production_validation_plan = lambda **kwargs: {
+                    "ok": True,
+                    "returncode": 0,
+                    "command": ["l3-plan"],
+                    "payload": self.ready_l3_plan(),
+                }
+                result = module.execute_l3_production_validation(
+                    args,
+                    state_dir=root / "state",
+                    event_dir=root / "events",
+                    snapshot_root=root / "state" / "intelligence",
+                    audit_dir=root / "audit",
+                    lease_file=root / "state" / "operator-execution-lease.json",
+                )
+            finally:
+                module.run_l3_production_validation_plan = original_plan
+
+        self.assertEqual(result["final_verdict"], "GOVERNED_TRANSACTION_STOPPED")
+        self.assertEqual(result["stop_reason"], "l3_production_validation_requested_users_above_authorized_budget")
+        self.assertEqual(result["authorized_l3_budget"]["authorized_l3_budget"], 1)
+        self.assertTrue(result["authorized_l3_budget"]["canary_default_preserved"])
+        self.assertFalse(result["apply_executed"])
+
+    def test_l3_production_validation_accepts_medium_budget_batch_without_single_user_override(self):
+        module = load_cli_module()
+        moves = [
+            {"user_ip": f"10.7.0.{idx}", "current_egress": "openvpn-failed", "recommended_egress": "vless", "move_type": "failover"}
+            for idx in range(2, 7)
+        ]
+        authority_budget = {
+            "current_allowed_user_budget": 5,
+            "authority_class": "MEDIUM_BATCH",
+            "certified_authority_class": "MEDIUM_BATCH",
+            "authority_lifecycle_state": "PROMOTED",
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root)
+            args.execute_l3_production_validation = True
+            args.confirm_l3_production_validation = "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED"
+            args.max_users = 5
+            apply_calls = []
+            original_plan = module.run_l3_production_validation_plan
+            original_apply = module.run_autoswitch_apply
+            try:
+                module.run_l3_production_validation_plan = lambda **kwargs: {
+                    "ok": True,
+                    "returncode": 0,
+                    "command": ["l3-plan"],
+                    "payload": self.ready_l3_plan(moves=moves, authority_budget=authority_budget),
+                }
+
+                def fake_apply(**kwargs):
+                    apply_calls.append(kwargs)
+                    return {
+                        "ok": True,
+                        "returncode": 0,
+                        "payload": {
+                            "operation": {
+                                "operation_id": "l3-runtime-batch-apply",
+                                "terminal_state": "SUCCESS",
+                                "terminal_reason": "l3_batch_validated",
+                            },
+                            "apply_result": {
+                                "applied": True,
+                                "results": [
+                                    {"user_ip": move["user_ip"], "from": move["current_egress"], "to": move["recommended_egress"], "rc": 0, "verify_rc": 0}
+                                    for move in moves
+                                ],
+                            },
+                            "l3_learning_closure": {
+                                "materialized": True,
+                                "capability_state": {
+                                    "production_proven": True,
+                                    "certified": False,
+                                    "active_capability": False,
+                                },
+                            },
+                        },
+                    }
+
+                module.run_autoswitch_apply = fake_apply
+                result = module.execute_l3_production_validation(
+                    args,
+                    state_dir=root / "state",
+                    event_dir=root / "events",
+                    snapshot_root=root / "state" / "intelligence",
+                    audit_dir=root / "audit",
+                    lease_file=root / "state" / "operator-execution-lease.json",
+                )
+            finally:
+                module.run_l3_production_validation_plan = original_plan
+                module.run_autoswitch_apply = original_apply
+
+        self.assertEqual(result["final_verdict"], "L3_PRODUCTION_PROVEN")
+        self.assertEqual(result["authorized_l3_budget"]["authorized_l3_budget"], 5)
+        self.assertEqual(result["transition"]["selected_move_count"], 5)
+        self.assertEqual(result["users"], [move["user_ip"] for move in moves])
+        self.assertEqual(result["users_moved"], 5)
+        self.assertFalse(result["one_execution_attempt"])
+        self.assertEqual(len(apply_calls), 1)
+        self.assertEqual(apply_calls[0]["max_users"], 5)
+        self.assertEqual(apply_calls[0]["user"], "")
+        self.assertEqual(apply_calls[0]["source"], "")
+        self.assertEqual(apply_calls[0]["target"], "")
+        self.assertTrue(apply_calls[0]["packet_id"])
+        self.assertTrue(apply_calls[0]["selected_move_hash"])
+
+    def test_l3_packet_constraints_reject_selected_count_above_authorized_budget(self):
+        module = load_cli_module()
+        packet = {
+            "constraints": {
+                "allowed_users": ["10.7.0.2", "10.7.0.3", "10.7.0.4"],
+                "allowed_targets": ["vless"],
+            },
+            "expected": {
+                "selected_move_count": 3,
+            },
+        }
+        transition = {
+            "status": "READY",
+            "selected_moves": [
+                {"user_ip": "10.7.0.2", "current_egress": "openvpn-failed", "recommended_egress": "vless", "move_type": "failover"},
+                {"user_ip": "10.7.0.3", "current_egress": "openvpn-failed", "recommended_egress": "vless", "move_type": "failover"},
+                {"user_ip": "10.7.0.4", "current_egress": "openvpn-failed", "recommended_egress": "vless", "move_type": "failover"},
+            ],
+        }
+
+        result = module.l3_packet_constraints_ok(packet, transition, 3, authorized_l3_budget=2)
+
+        self.assertFalse(result["ok"])
+        self.assertIn("l3_validation_requested_users_above_authorized_budget", result["errors"])
+        self.assertIn("selected_move_count_above_authorized_budget", result["errors"])
+
+    def test_l3_packet_constraints_accept_small_batch_two_users_with_small_budget(self):
+        module = load_cli_module()
+        packet = {
+            "constraints": {
+                "allowed_users": ["10.7.0.2", "10.7.0.3"],
+                "allowed_targets": ["vless"],
+            },
+            "expected": {
+                "selected_move_count": 2,
+            },
+        }
+        transition = {
+            "status": "READY",
+            "selected_moves": [
+                {"user_ip": "10.7.0.2", "current_egress": "openvpn-failed", "recommended_egress": "vless", "move_type": "failover"},
+                {"user_ip": "10.7.0.3", "current_egress": "openvpn-failed", "recommended_egress": "vless", "move_type": "failover"},
+            ],
+        }
+
+        result = module.l3_packet_constraints_ok(packet, transition, 2, authorized_l3_budget=2)
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["selected_move_count"], 2)
+        self.assertEqual(result["authorized_l3_budget"], 2)
 
     def test_a4_bounded_evidence_collection_requires_explicit_confirmation(self):
         module = load_cli_module()

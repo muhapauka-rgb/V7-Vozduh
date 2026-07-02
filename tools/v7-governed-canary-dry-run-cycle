@@ -41,6 +41,13 @@ DEFAULT_EVENT_DIR = Path("/opt/v7/events")
 SELECTED_MOVE_SEMANTIC_FIELDS = ("reason", "important_services", "candidates", "scores", "service_failover")
 
 
+def to_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def read_json(path: Path, default: Any) -> Any:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -557,6 +564,22 @@ def transaction_stop(reason: str, *, cycle: dict[str, Any] | None = None, **extr
     }
 
 
+def authorized_l3_budget_from_plan(plan: dict[str, Any]) -> dict[str, Any]:
+    safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
+    gate = safety.get("authority_budget_gate") if isinstance(safety.get("authority_budget_gate"), dict) else {}
+    budget = max(1, to_int(gate.get("current_allowed_user_budget"), 1))
+    return {
+        "schema_version": "v7.l3-authorized-budget.v1",
+        "authorized_l3_budget": budget,
+        "source": "plan.safety.authority_budget_gate.current_allowed_user_budget" if gate else "default_canary",
+        "authority_class": str(gate.get("authority_class") or "CANARY"),
+        "certified_authority_class": str(gate.get("certified_authority_class") or "CANARY"),
+        "authority_lifecycle_state": str(gate.get("authority_lifecycle_state") or ""),
+        "canary_default_preserved": not gate or budget == 1,
+        "owner": "tools/v7-governed-canary-dry-run-cycle",
+    }
+
+
 def transaction_packet_constraints_ok(packet: dict[str, Any], cycle: dict[str, Any], max_users: int) -> dict[str, Any]:
     constraints = packet.get("constraints") if isinstance(packet.get("constraints"), dict) else {}
     expected = packet.get("expected") if isinstance(packet.get("expected"), dict) else {}
@@ -595,9 +618,10 @@ def run_autoswitch_apply(
     event_dir: Path,
     snapshot_root: Path,
     restore_barrier_file: Path,
-    user: str,
-    target: str,
+    user: str = "",
+    target: str = "",
     source: str = "",
+    max_users: int = 1,
     packet_id: str = "",
     operation_id: str = "",
     selected_move_hash: str = "",
@@ -609,13 +633,7 @@ def run_autoswitch_apply(
         "--mode",
         "guarded",
         "--max-selected-moves",
-        "1",
-        "--user",
-        user,
-        "--source-egress",
-        source,
-        "--target-egress",
-        target,
+        str(max(1, int(max_users))),
         "--state-dir",
         str(state_dir),
         "--event-dir",
@@ -629,6 +647,12 @@ def run_autoswitch_apply(
         "--allow-pre-planner-refresh-with-apply",
         "--pretty",
     ]
+    if user:
+        command.extend(["--user", user])
+    if source:
+        command.extend(["--source-egress", source])
+    if target:
+        command.extend(["--target-egress", target])
     if packet_id:
         command.extend(["--approved-packet-id", packet_id])
     if operation_id:
@@ -697,103 +721,156 @@ def materialize_governed_transaction_feedback(
     packet_id = str(packet.get("packet_id") or "")
     selected_move_hash = str((packet.get("expected") or {}).get("selected_move_hash") or "")
     operation_terminal_state = str(operation.get("terminal_state") or "")
-    rollback_verdict = str(operation.get("rollback_verdict") or ("NOT_REQUIRED" if not rollback_attempted else ""))
-    if verification_passed and not rollback_attempted:
-        terminal_outcome_classification = "SUCCESS"
-    elif rollback_verdict in {"ROLLBACK_COMPLETED", "ROLLED_BACK"}:
-        terminal_outcome_classification = "ROLLBACK_SUCCESS"
-    elif rollback_attempted:
-        terminal_outcome_classification = "ROLLBACK_FAILURE"
-    else:
-        terminal_outcome_classification = "APPLY_FAILURE"
-    execution_result = {
-        "success": terminal_outcome_classification == "SUCCESS",
-        "result": "applied" if terminal_outcome_classification == "SUCCESS" else terminal_outcome_classification.lower(),
-        "terminal_state": operation_terminal_state,
-        "terminal_reason": str(operation.get("terminal_reason") or ""),
-        "terminal_outcome_classification": terminal_outcome_classification,
-        "packet_id": packet_id,
-        "decision_id": str(packet.get("decision_id") or ""),
-        "operation_id": str(packet.get("operation_id") or operation.get("operation_id") or ""),
-        "selected_move_hash": selected_move_hash,
-        "selected_moves": [{"user": user, "from": source, "target": target, "to": target}],
-        "apply_result": apply_result,
-        "runtime_mutation_performed": True,
-        "users_moved": len(apply_result.get("results") or []),
-    }
-    verification_result = {
-        "success": bool(verification_passed),
-        "result": "verified" if verification_passed else "failed",
-        "packet_id": packet_id,
-        "verification_passed": bool(verification_passed),
-        "user_outcome": {
-            "user": user,
-            "source_channel": source,
-            "target_channel": target,
-            "connected": bool(verification_passed),
-        },
-        "service_outcome": {
-            "target_channel": target,
-            "status": "ok" if verification_passed else "failed",
-        },
-    }
-    rollback_result = {
-        "rollback_required": bool(rollback_attempted),
-        "rollback_verdict": rollback_verdict,
-        "terminal_outcome_classification": terminal_outcome_classification,
-    }
-    contract = operator_execution_feedback.execution_feedback_contract(
-        user=user,
-        source_channel=source,
-        target_channel=target,
-        execution_result=execution_result,
-        verification_result=verification_result,
-        rollback_result=rollback_result,
-        recommendation_hash=selected_move_hash,
-        prediction_expected=1.0,
-        prediction_actual=1.0 if verification_passed else 0.0,
-        audit_reference=packet_id,
-        closure_reference=str(operation.get("operation_id") or packet.get("operation_id") or packet_id),
-        packet_id=packet_id,
-    )
-    records = operator_execution_feedback.materialized_feedback_records(contract)
-    append_jsonl(state_dir / "execution-events.jsonl", records["outcome"])
-    append_jsonl(state_dir / "runtime-trust.jsonl", records["trust"])
-    append_jsonl(state_dir / "execution-events.jsonl", records["prediction"])
-    append_jsonl(state_dir / "proposal-records.jsonl", records["recommendation"])
-    append_jsonl(state_dir / "closure-records.jsonl", records["closure"])
+    rows = [row for row in (apply_result.get("results") or []) if isinstance(row, dict)]
+    if not rows:
+        rows = [{
+            "user_ip": user,
+            "from": source,
+            "to": target,
+            "rc": 0 if verification_passed else 1,
+            "verify_rc": 0 if verification_passed else 1,
+            "rollback_attempted": rollback_attempted,
+        }]
+    per_user_feedback: list[dict[str, Any]] = []
+    record_keys: set[str] = set()
+    for row in rows:
+        row_user = str(row.get("user_ip") or user or "")
+        row_source = str(row.get("from") or source or "")
+        row_target = str(row.get("to") or target or "")
+        row_rollback_attempted = bool(row.get("rollback_attempted") or row.get("rollback_rc") is not None)
+        row_verification_passed = (
+            row.get("rc") in (None, 0)
+            and row.get("verify_rc") in (None, 0)
+            and row.get("service_verify_rc") in (None, 0)
+            and not row_rollback_attempted
+        )
+        row_rollback_verdict = str(row.get("rollback_verdict") or operation.get("rollback_verdict") or ("NOT_REQUIRED" if not row_rollback_attempted else ""))
+        terminal_outcome_classification = str(row.get("terminal_outcome_classification") or "")
+        if not terminal_outcome_classification:
+            if row_verification_passed:
+                terminal_outcome_classification = "SUCCESS"
+            elif row_rollback_verdict in {"ROLLBACK_COMPLETED", "ROLLED_BACK"}:
+                terminal_outcome_classification = "ROLLBACK_SUCCESS"
+            elif row_rollback_attempted:
+                terminal_outcome_classification = "ROLLBACK_FAILURE"
+            else:
+                terminal_outcome_classification = "APPLY_FAILURE"
+        execution_result = {
+            "success": terminal_outcome_classification == "SUCCESS",
+            "result": "applied" if terminal_outcome_classification == "SUCCESS" else terminal_outcome_classification.lower(),
+            "terminal_state": operation_terminal_state,
+            "terminal_reason": str(operation.get("terminal_reason") or ""),
+            "terminal_outcome_classification": terminal_outcome_classification,
+            "packet_id": packet_id,
+            "decision_id": str(packet.get("decision_id") or ""),
+            "operation_id": str(packet.get("operation_id") or operation.get("operation_id") or ""),
+            "selected_move_hash": selected_move_hash,
+            "selected_moves": [{"user": row_user, "from": row_source, "target": row_target, "to": row_target}],
+            "apply_result": {"applied": True, "results": [row]},
+            "runtime_mutation_performed": True,
+            "users_moved": 1,
+        }
+        verification_result = {
+            "success": bool(row_verification_passed),
+            "result": "verified" if row_verification_passed else "failed",
+            "packet_id": packet_id,
+            "verification_passed": bool(row_verification_passed),
+            "user_outcome": {
+                "user": row_user,
+                "source_channel": row_source,
+                "target_channel": row_target,
+                "connected": bool(row_verification_passed),
+            },
+            "service_outcome": {
+                "target_channel": row_target,
+                "status": "ok" if row_verification_passed else "failed",
+            },
+        }
+        rollback_result = {
+            "rollback_required": bool(row_rollback_attempted),
+            "rollback_verdict": row_rollback_verdict,
+            "terminal_outcome_classification": terminal_outcome_classification,
+        }
+        contract = operator_execution_feedback.execution_feedback_contract(
+            user=row_user,
+            source_channel=row_source,
+            target_channel=row_target,
+            execution_result=execution_result,
+            verification_result=verification_result,
+            rollback_result=rollback_result,
+            recommendation_hash=selected_move_hash,
+            prediction_expected=1.0,
+            prediction_actual=1.0 if row_verification_passed else 0.0,
+            audit_reference=packet_id,
+            closure_reference=str(operation.get("operation_id") or packet.get("operation_id") or packet_id),
+            packet_id=packet_id,
+        )
+        records = operator_execution_feedback.materialized_feedback_records(contract)
+        append_jsonl(state_dir / "execution-events.jsonl", records["outcome"])
+        append_jsonl(state_dir / "runtime-trust.jsonl", records["trust"])
+        append_jsonl(state_dir / "execution-events.jsonl", records["prediction"])
+        append_jsonl(state_dir / "proposal-records.jsonl", records["recommendation"])
+        append_jsonl(state_dir / "closure-records.jsonl", records["closure"])
+        record_keys.update(records)
+        per_user_feedback.append({
+            "user": row_user,
+            "source": row_source,
+            "target": row_target,
+            "feedback_id": contract.get("feedback_id", ""),
+            "outcome_status": contract.get("outcome_status", ""),
+            "terminal_outcome_classification": contract.get("terminal_outcome_classification", ""),
+            "outcome_quality": (contract.get("outcome_quality") or {}).get("outcome_quality", ""),
+            "learning_value": (contract.get("outcome_quality") or {}).get("learning_value", ""),
+            "knowledge_gained": bool((contract.get("knowledge_growth") or {}).get("knowledge_gained")),
+        })
+    first = per_user_feedback[0] if per_user_feedback else {}
     return {
         "materialized": True,
-        "feedback_id": contract.get("feedback_id", ""),
-        "outcome_status": contract.get("outcome_status", ""),
-        "terminal_outcome_classification": contract.get("terminal_outcome_classification", ""),
-        "outcome_quality": (contract.get("outcome_quality") or {}).get("outcome_quality", ""),
-        "learning_value": (contract.get("outcome_quality") or {}).get("learning_value", ""),
-        "knowledge_gained": bool((contract.get("knowledge_growth") or {}).get("knowledge_gained")),
-        "records_written": sorted(records),
+        "feedback_id": first.get("feedback_id", ""),
+        "outcome_status": first.get("outcome_status", ""),
+        "terminal_outcome_classification": first.get("terminal_outcome_classification", ""),
+        "outcome_quality": first.get("outcome_quality", ""),
+        "learning_value": first.get("learning_value", ""),
+        "knowledge_gained": any(bool(row.get("knowledge_gained")) for row in per_user_feedback),
+        "per_user_feedback": per_user_feedback,
+        "records_written": sorted(record_keys),
         "runtime_mutation_performed": False,
-        "users_moved": 0,
+        "users_moved": len(rows),
     }
 
 
-def l3_packet_constraints_ok(packet: dict[str, Any], transition: dict[str, Any], max_users: int) -> dict[str, Any]:
+def l3_packet_constraints_ok(
+    packet: dict[str, Any],
+    transition: dict[str, Any],
+    max_users: int,
+    *,
+    authorized_l3_budget: int = 1,
+) -> dict[str, Any]:
     constraints = packet.get("constraints") if isinstance(packet.get("constraints"), dict) else {}
     expected = packet.get("expected") if isinstance(packet.get("expected"), dict) else {}
     users = [str(item) for item in (constraints.get("allowed_users") or []) if str(item)]
     targets = [str(item) for item in (constraints.get("allowed_targets") or []) if str(item)]
     selected_count = int(expected.get("selected_move_count") or 0)
     moves = transition.get("selected_moves") if isinstance(transition.get("selected_moves"), list) else []
+    requested = max(1, int(max_users))
+    authorized = max(1, int(authorized_l3_budget))
     errors: list[str] = []
-    if int(max_users) != 1:
-        errors.append("l3_validation_max_users_not_one")
-    if selected_count != 1:
-        errors.append("selected_move_count_not_one")
-    if len(users) != 1:
-        errors.append("user_scope_not_one")
-    if len(targets) != 1:
-        errors.append("target_scope_not_one")
-    if len(moves) != 1:
-        errors.append("transition_selected_move_count_not_one")
+    if requested > authorized:
+        errors.append("l3_validation_requested_users_above_authorized_budget")
+    if selected_count < 1:
+        errors.append("selected_move_count_missing")
+    if selected_count > authorized:
+        errors.append("selected_move_count_above_authorized_budget")
+    if selected_count > requested:
+        errors.append("selected_move_count_above_requested_max_users")
+    if len(users) != selected_count:
+        errors.append("user_scope_mismatch_selected_move_count")
+    if not targets:
+        errors.append("target_scope_missing")
+    if len(targets) > selected_count:
+        errors.append("target_scope_exceeds_selected_move_count")
+    if len(moves) != selected_count:
+        errors.append("transition_selected_move_count_mismatch")
     for move in moves:
         if str(move.get("move_type") or "") != "failover":
             errors.append("transition_move_type_not_failover")
@@ -803,6 +880,8 @@ def l3_packet_constraints_ok(packet: dict[str, Any], transition: dict[str, Any],
         "users": users,
         "targets": targets,
         "selected_move_count": selected_count,
+        "requested_max_users": requested,
+        "authorized_l3_budget": authorized,
         "transition_status": str(transition.get("status") or ""),
     }
 
@@ -821,8 +900,7 @@ def execute_governed_transaction(args: argparse.Namespace, *, state_dir: Path, e
 def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Path, event_dir: Path, snapshot_root: Path, audit_dir: Path, lease_file: Path) -> dict[str, Any]:
     if args.confirm_l3_production_validation != "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED":
         return transaction_stop("l3_production_validation_confirmation_required")
-    if int(args.max_users) != 1:
-        return transaction_stop("l3_production_validation_max_users_must_be_one")
+    requested_max_users = max(1, int(args.max_users))
 
     existing_lease = operator_execution.load_execution_lease(lease_file)
     existing_state = operator_execution.execution_lease_state(existing_lease)
@@ -835,16 +913,30 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
         event_dir=event_dir,
         snapshot_root=snapshot_root,
         restore_barrier_file=restore_barrier_file,
-        max_users=1,
+        max_users=requested_max_users,
         pre_planner_refresh_command=str(args.pre_planner_refresh_command or "v7-intelligence-snapshot-refresh"),
     )
     plan = l3_plan_run.get("payload") if isinstance(l3_plan_run.get("payload"), dict) else {}
     if not plan:
         return transaction_stop("l3_production_validation_plan_unavailable", l3_plan_run=l3_plan_run)
+    authorized_budget = authorized_l3_budget_from_plan(plan)
+    authorized_l3_budget = int(authorized_budget.get("authorized_l3_budget") or 1)
+    if requested_max_users > authorized_l3_budget:
+        return transaction_stop(
+            "l3_production_validation_requested_users_above_authorized_budget",
+            l3_plan_run=l3_plan_run,
+            requested_max_users=requested_max_users,
+            authorized_l3_budget=authorized_budget,
+        )
 
-    transition = operator_execution_pipeline.l3_production_validation_runtime_action_transition(plan, max_users=1)
+    transition = operator_execution_pipeline.l3_production_validation_runtime_action_transition(plan, max_users=requested_max_users)
     if not transition.get("ok"):
-        return transaction_stop("l3_production_validation_transition_blocked", l3_plan_run=l3_plan_run, transition=transition)
+        return transaction_stop(
+            "l3_production_validation_transition_blocked",
+            l3_plan_run=l3_plan_run,
+            transition=transition,
+            authorized_l3_budget=authorized_budget,
+        )
 
     try:
         packet = operator_execution.packet_from_plan(
@@ -856,7 +948,12 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
     except Exception as exc:
         return transaction_stop("l3_packet_materialization_failed", l3_plan_run=l3_plan_run, transition=transition, error=str(exc))
 
-    constraints = l3_packet_constraints_ok(packet, transition, int(args.max_users))
+    constraints = l3_packet_constraints_ok(
+        packet,
+        transition,
+        requested_max_users,
+        authorized_l3_budget=authorized_l3_budget,
+    )
     if not constraints.get("ok"):
         return transaction_stop(
             "l3_transaction_scope_invalid",
@@ -864,11 +961,16 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
             transition=transition,
             packet=operator_execution.redact(packet),
             constraints=constraints,
+            authorized_l3_budget=authorized_budget,
         )
 
-    user = constraints["users"][0]
-    target = constraints["targets"][0]
-    source = ((packet.get("rollback_manifest") or {}).get("items") or [{}])[0].get("rollback_target", "")
+    users = constraints["users"]
+    targets = constraints["targets"]
+    rollback_items = (packet.get("rollback_manifest") or {}).get("items") or []
+    sources = [str(item.get("rollback_target") or "") for item in rollback_items if isinstance(item, dict) and str(item.get("rollback_target") or "")]
+    user = users[0] if users else ""
+    target = targets[0] if targets else ""
+    source = sources[0] if sources else ""
     packet_identity = operator_execution.packet_identity(packet)
     lease = operator_execution.create_execution_lease_from_packet(packet, source_preview=plan)
     lease_create_result = operator_execution.write_execution_lease(lease_file, lease)
@@ -913,9 +1015,10 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
         event_dir=event_dir,
         snapshot_root=snapshot_root,
         restore_barrier_file=restore_barrier_file,
-        user=user,
-        source=source,
-        target=target,
+        user=user if constraints["selected_move_count"] == 1 else "",
+        source=source if constraints["selected_move_count"] == 1 else "",
+        target=target if constraints["selected_move_count"] == 1 else "",
+        max_users=requested_max_users,
         packet_id=str(packet_identity.get("packet_id") or ""),
         operation_id=str(packet_identity.get("operation_id") or ""),
         selected_move_hash=str(packet_identity.get("selected_move_hash") or ""),
@@ -946,9 +1049,14 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
         "operation_id": packet.get("operation_id", ""),
         "selected_move_hash": (packet.get("expected") or {}).get("selected_move_hash", ""),
         "user": user,
+        "users": users,
         "source": source,
+        "sources": sorted(set(sources)),
         "target": target,
-        "one_execution_attempt": True,
+        "targets": targets,
+        "requested_max_users": requested_max_users,
+        "authorized_l3_budget": authorized_budget,
+        "one_execution_attempt": constraints["selected_move_count"] == 1,
         "runtime_mutation_performed": bool(apply_result.get("applied")),
         "restore_barrier_written_now": bool((clearance_result.get("clearance_result") or {}).get("ok")),
         "apply_executed": bool(apply_result.get("applied")),

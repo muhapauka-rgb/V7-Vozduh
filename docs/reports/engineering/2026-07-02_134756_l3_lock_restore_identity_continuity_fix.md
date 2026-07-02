@@ -138,4 +138,35 @@ First deploy:
   - `/usr/local/bin/v7-users-autoswitch`
   - `/usr/local/bin/v7-governed-canary-dry-run-cycle`
 
-Second deploy pending.
+Second deploy:
+
+- commit: `d526759da40b7e20a98f5ecaa0cb03d17f04326b`
+- safe-deploy apply: PASS
+- production hash matched local hash for `/usr/local/bin/v7-users-autoswitch`
+
+Second bounded governed validation after retry-budget correction:
+
+- baseline affected users on `openvpn-1779388847-d2ad7c`: 10
+- selected user: `10.7.0.2`
+- source: `openvpn-1779388847-d2ad7c`
+- target: `vless`
+- selected_move_hash: `6bcd509336032e43e4a612d51229c536e46cf4b97f08c8733ebaac974d67db3b`
+- runtime apply attempt: PERFORMED
+- route verification rc: 0
+- service verification rc: 1
+- terminal_state: `ROLLED_BACK`
+- terminal_reason: `verification_failed_rollback_completed`
+- terminal_outcome_classification: `ROLLBACK_SUCCESS`
+- users moved after rollback: 0
+- affected users remaining on source: 10
+
+Current breakpoint:
+
+The execution chain now reaches Runtime apply and rollback correctly. It does not reach mission SUCCESS because the selected target `vless` failed post-apply service verification. Runtime correctly rolled back the user to `openvpn-1779388847-d2ad7c`.
+
+Current production timer state:
+
+- `v7-users-autoswitch.timer`: inactive / dead
+- `v7-users-autoswitch.service`: inactive / dead
+
+Timer was not re-enabled because the latest real execution ended in rollback, not success.

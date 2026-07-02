@@ -80,9 +80,62 @@ No users were moved during implementation.
 
 ## Production Validation
 
-Pending deploy and one bounded governed validation cycle.
+First bounded governed validation after deploy:
+
+- service path: `v7-users-autoswitch.service`
+- owner command: `/usr/local/bin/v7-governed-canary-dry-run-cycle --execute-l3-production-validation --confirm-l3-production-validation EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED --max-users 1`
+- baseline affected users on `openvpn-1779388847-d2ad7c`: 10
+- selected user: `10.7.0.2`
+- source: `openvpn-1779388847-d2ad7c`
+- target: `awg3`
+- packet: `pkt_a649186324f24ab088d73e85`
+- operation: `govexec_36a08f459f517b9820e9d28f`
+- selected_move_hash: `a0eea5cccfabb892cf57ac29b13cd686b83e988a2e2df8c1377b7c602984779e`
+
+Identity continuity result:
+
+- approved plan lock validation: PASS
+- committed apply identity validation: PASS
+- selected user/source/target preserved: PASS
+- restore barrier hash/generation mismatch: NOT PRESENT
+
+New downstream breakpoint:
+
+- `emergency_failover_autonomy.ok=false`
+- blockers: `duplicate_apply_attempt`, `l3_retry_budget_exhausted`
+- previous_attempts: 50
+- retry_budget_per_incident: 1
+- apply result: not applied
+- users moved: 0
+
+Root cause of second breakpoint:
+
+`_l3_incident_attempt_count()` counted historical `DENIED` / no-execution attempts as retry-budget-consuming attempts. The production incident had accumulated many STOP_SAFE/no-execution records while the chain was being debugged, so the first post-fix approved one-user validation was blocked before apply even though the committed packet/lock identity was valid.
+
+Second correction:
+
+- `tools/v7-users-autoswitch::_l3_incident_attempt_count()` now counts only attempts that consumed Runtime retry budget.
+- `duplicate_apply_attempt` now considers only attempts that consumed retry budget.
+- `DENIED`, `DRY_RUN`, and `STOP_SAFE` no-execution attempts no longer burn the one approved production validation attempt.
+- Real applied attempts still consume retry budget and still block duplicate retries.
+
+Second correction tests:
+
+- `test_l3_retry_budget_ignores_denied_no_execution_attempts`: PASS
+- `test_l3_persistent_retry_budget_blocks_second_attempt`: PASS
+- `tests.unit.test_v7_users_autoswitch_policy`: 113 tests PASS
+- `tests.unit.test_governed_canary_cli tests.unit.test_operator_execution_packet`: 52 tests PASS
+- full unit discover: 649 tests PASS
 
 ## Deployment
 
-Pending.
+First deploy:
 
+- commit: `a39791db4cbf08ac988e054eb80b6c3ef43001a5`
+- safe-deploy preview: PASS
+- safe-deploy apply: PASS
+- production hashes matched local hashes for:
+  - `/usr/local/bin/v7-users-autoswitch`
+  - `/usr/local/bin/v7-governed-canary-dry-run-cycle`
+
+Second deploy pending.

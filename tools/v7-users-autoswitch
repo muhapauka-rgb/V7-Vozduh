@@ -810,7 +810,29 @@ class AutoswitchPlanner:
     def _l3_incident_attempt_count(self, incident_key: str) -> int:
         incidents = self.l3_runtime_state.get("incidents") if isinstance(self.l3_runtime_state.get("incidents"), dict) else {}
         incident = incidents.get(incident_key) if isinstance(incidents.get(incident_key), dict) else {}
-        return len([row for row in (incident.get("attempts") or []) if isinstance(row, dict)])
+        return len([
+            row
+            for row in (incident.get("attempts") or [])
+            if isinstance(row, dict) and self._l3_attempt_consumed_retry_budget(row)
+        ])
+
+    @staticmethod
+    def _l3_attempt_consumed_retry_budget(row: dict[str, Any]) -> bool:
+        terminal_state = str(row.get("terminal_state") or "")
+        terminal_outcome = str(row.get("terminal_outcome") or "")
+        return bool_value(row.get("applied")) or terminal_state in {
+            "APPLIED",
+            "ROLLED_BACK",
+            "ROLLBACK_FAILED",
+            "VERIFY_FAILED",
+            "FAILED",
+        } or terminal_outcome in {
+            "SUCCESS",
+            "ROLLBACK_SUCCESS",
+            "ROLLBACK_FAILURE",
+            "APPLY_FAILURE",
+            "VERIFY_FAILED",
+        }
 
     def _l3_external_wake_events(self, *, late_window_seconds: int) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
@@ -1060,7 +1082,7 @@ class AutoswitchPlanner:
             consumed_signatures = [
                 str(item.get("semantic_attempt_signature") or "")
                 for item in (existing.get("attempts") or [])
-                if isinstance(item, dict)
+                if isinstance(item, dict) and self._l3_attempt_consumed_retry_budget(item)
             ]
             if semantic_attempt_signature and semantic_attempt_signature in consumed_signatures:
                 blockers.append("duplicate_apply_attempt")

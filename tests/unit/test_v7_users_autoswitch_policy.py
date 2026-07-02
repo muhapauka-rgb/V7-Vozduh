@@ -2067,6 +2067,60 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertIn("l3_retry_budget_exhausted", second["safety"]["emergency_failover_autonomy"]["blockers"])
         self.assertEqual(second["summary"]["selected_moves"], 0)
 
+    def test_l3_retry_budget_ignores_denied_no_execution_attempts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True, "retry_budget_per_incident": 1},
+            )
+            first = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--mode", "guarded", "--apply"])
+            ).plan()
+            gate = first["safety"]["emergency_failover_autonomy"]
+            incident_key = gate["incident_key"]
+            signature = gate["semantic_attempt_signature"]
+            (root / "state" / "l3-runtime-state.json").write_text(
+                json.dumps({
+                    "schema_version": "v7.l3-runtime-state.v1",
+                    "incidents": {
+                        incident_key: {
+                            "incident_key": incident_key,
+                            "attempts": [
+                                {
+                                    "operation_id": "runtime-autoswitch-denied",
+                                    "selected_move_hash": first["operation"]["selected_move_hash"],
+                                    "semantic_attempt_signature": signature,
+                                    "terminal_outcome": "STOP_SAFE",
+                                    "terminal_state": "DENIED",
+                                    "applied": False,
+                                }
+                            ],
+                        }
+                    },
+                    "processed_event_ids": [],
+                    "capability": {},
+                }),
+                encoding="utf-8",
+            )
+            second = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--mode", "guarded", "--apply"])
+            ).plan()
+
+        second_gate = second["safety"]["emergency_failover_autonomy"]
+        self.assertTrue(second_gate["ok"])
+        self.assertEqual(second_gate["previous_attempts"], 0)
+        self.assertNotIn("l3_retry_budget_exhausted", second_gate["blockers"])
+        self.assertNotIn("duplicate_apply_attempt", second_gate["blockers"])
+        self.assertEqual(second["summary"]["selected_moves"], 1)
+
     def test_l3_recovery_before_apply_stops_safe(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

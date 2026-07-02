@@ -628,6 +628,42 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         )
         state_path.write_text(json.dumps(state), encoding="utf-8")
 
+    def add_failed_egress(self, root: Path, *, egress: str = "2") -> None:
+        registry_path = root / "state" / "egress.registry"
+        registry = registry_path.read_text(encoding="utf-8")
+        registry_path.write_text(
+            registry + f"id={egress} interface=v7two enabled=1 state=enabled role=GLOBAL_FAST\n",
+            encoding="utf-8",
+        )
+        state_path = root / "state" / "v7-state.json"
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        state.setdefault("egress", {})[egress] = {
+            "avg_mbps": 0,
+            "min_mbps": 0,
+            "stability": 0,
+            "code": "000",
+            "diagnose_severity": "FAIL",
+            "diagnose_reason": "interface_down_or_missing",
+        }
+        state_path.write_text(json.dumps(state), encoding="utf-8")
+        matrix_path = root / "state" / "service-matrix.json"
+        matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+        matrix.setdefault("items", {})[egress] = {
+            "services": {
+                "youtube": {"ok": True, "score": 100},
+                "instagram": {"ok": True, "score": 100},
+                "telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": "2999-01-01T00:00:00+00:00"},
+                "google": {"ok": True, "score": 100},
+                "google_auth": {"ok": True, "score": 100},
+            },
+            "route_class_fitness": {
+                "VIDEO_OPTIMIZED": {"status": "FAIL"},
+                "GLOBAL_STABLE": {"status": "FAIL"},
+                "GLOBAL_FAST": {"status": "FAIL"},
+            },
+        }
+        matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+
     def assert_operation_envelope(self, plan: dict) -> None:
         for key in ("schema_version", "summary", "safety", "decisions", "selected_moves"):
             self.assertIn(key, plan)
@@ -1426,6 +1462,146 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertTrue(gate["move_evidence"][0]["current_channel_failure"]["confirmed"])
         self.assertNotIn("required_service_failure_required", gate["blockers"])
         self.assertFalse(gate["broad_automation_enabled"])
+
+    def test_active_failed_source_incident_constrains_next_l3_selection(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=3,
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={
+                    "enabled": True,
+                    "max_users_per_run": 1,
+                    "max_users_per_channel": 1,
+                },
+            )
+            self.add_failed_egress(root, egress="2")
+            self.mark_current_channel_failed(root, egress="1")
+            (root / "state" / "users.registry").write_text(
+                "ip=10.0.0.2 current=2 table=100 enabled=1\n"
+                "ip=10.0.0.3 current=1 table=101 enabled=1\n"
+                "ip=10.0.0.4 current=1 table=102 enabled=1\n",
+                encoding="utf-8",
+            )
+            (root / "state" / "l3-runtime-state.json").write_text(
+                json.dumps({
+                    "schema_version": "v7.l3-runtime-state.v1",
+                    "incidents": {
+                        "incident-open-1": {
+                            "incident_key": "incident-open-1",
+                            "status": "OPEN",
+                            "authority_object": "EMERGENCY_FAILOVER_AUTONOMY",
+                            "failed_sources": ["1"],
+                            "incident_source": "1",
+                            "failed_required_services": [],
+                            "updated_at": "2999-01-01T00:00:00+00:00",
+                        }
+                    },
+                    "processed_event_ids": [],
+                    "capability": {},
+                }),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--emergency-failover-autonomy"]))
+            plan = planner.plan()
+
+        continuity = plan["safety"]["incident_source_continuity"]
+        gate = plan["safety"]["emergency_failover_autonomy"]
+        self.assertTrue(continuity["active"])
+        self.assertEqual(continuity["incident_source"], "1")
+        self.assertEqual(continuity["selected_candidates_after_filter"], 2)
+        self.assertEqual(plan["selected_moves"][0]["current_egress"], "1")
+        self.assertIn(plan["selected_moves"][0]["user_ip"], {"10.0.0.3", "10.0.0.4"})
+        self.assertEqual(plan["safety"]["l3_incident"]["incident_key"], "incident-open-1")
+        self.assertEqual(gate["selected_moves_after_gate"], 1)
+        self.assertEqual(plan["safety"]["l3_wake"]["decision"], "ACCEPT_WAKE")
+        self.assertIn("confirmed_current_channel_failure", plan["safety"]["l3_wake"]["accepted_wake_sources"])
+
+    def test_approved_plan_lock_rejects_non_incident_source_during_l3_continuation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, users=3)
+            self.add_failed_egress(root, egress="2")
+            self.mark_current_channel_failed(root, egress="1")
+            (root / "state" / "users.registry").write_text(
+                "ip=10.0.0.2 current=2 table=100 enabled=1\n"
+                "ip=10.0.0.3 current=1 table=101 enabled=1\n"
+                "ip=10.0.0.4 current=1 table=102 enabled=1\n",
+                encoding="utf-8",
+            )
+            bootstrap_args = self.args_for(root, ["--target-egress", "vless", "--max-selected-moves", "1"])
+            bootstrap = self.tool.AutoswitchPlanner(bootstrap_args).plan()
+            self.assertEqual(bootstrap["selected_moves"][0]["current_egress"], "2")
+            barrier = self.approved_restore_barrier_from_plan(bootstrap, max_selected_moves=1)
+            (root / "state" / "autoswitch-restore-barrier.json").write_text(json.dumps(barrier), encoding="utf-8")
+            policy_path = root / "policy.json"
+            policy = json.loads(policy_path.read_text(encoding="utf-8"))
+            policy["emergency_failover_autonomy"] = {"enabled": True, "max_users_per_run": 1, "max_users_per_channel": 1}
+            policy_path.write_text(json.dumps(policy), encoding="utf-8")
+            (root / "state" / "l3-runtime-state.json").write_text(
+                json.dumps({
+                    "schema_version": "v7.l3-runtime-state.v1",
+                    "incidents": {
+                        "incident-open-1": {
+                            "incident_key": "incident-open-1",
+                            "status": "OPEN",
+                            "authority_object": "EMERGENCY_FAILOVER_AUTONOMY",
+                            "failed_sources": ["1"],
+                            "incident_source": "1",
+                            "updated_at": "2999-01-01T00:00:00+00:00",
+                        }
+                    },
+                    "processed_event_ids": [],
+                    "capability": {},
+                }),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--apply", "--mode", "guarded", "--target-egress", "vless", "--max-selected-moves", "1"])
+            )
+            plan = planner.plan()
+
+        validation = plan["safety"]["restore_barrier"]["approved_plan_lock_validation"]
+        self.assertFalse(validation["ok"])
+        self.assertIn("approved_plan_lock_incident_source_mismatch", validation["reasons"])
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+
+    def test_l3_success_keeps_failed_source_incident_open_when_users_remain(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                users=2,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True},
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--mode", "guarded", "--apply"])
+            )
+            planner._run_switch = lambda ip, egress, reason: subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+            planner._verify_routes = lambda: subprocess.CompletedProcess(["v7-user-route-check"], 0, stdout="verify ok\n")
+            planner._verify_emergency_required_services = lambda move: subprocess.CompletedProcess(["v7-service-matrix-test"], 0, stdout="service ok\n")
+            planner._emit_terminal_audit = lambda audit: {**audit, "emitted": True, "status": "emitted"}
+            plan = planner.plan()
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+            runtime_state = json.loads((root / "state" / "l3-runtime-state.json").read_text(encoding="utf-8"))
+
+        incident = runtime_state["incidents"][plan["safety"]["l3_incident"]["incident_key"]]
+        self.assertEqual(incident["status"], "OPEN")
+        self.assertTrue(incident["incident_source_continuity"]["kept_open"])
+        self.assertEqual(incident["incident_source_continuity"]["scopes"][0]["affected_users_count"], 1)
 
     def test_observation_fail_does_not_legalize_timer_wake(self):
         with tempfile.TemporaryDirectory() as tmp:

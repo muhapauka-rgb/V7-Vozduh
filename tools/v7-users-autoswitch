@@ -834,6 +834,127 @@ class AutoswitchPlanner:
             "VERIFY_FAILED",
         }
 
+    def _l3_enabled_users_on_source(self, source: str, *, excluding_users: Optional[set[str]] = None) -> list[str]:
+        excluded = excluding_users or set()
+        return sorted(
+            user.ip
+            for user in self.users
+            if user.enabled and str(user.current) == source and user.ip not in excluded
+        )
+
+    def _l3_required_service_failures_for_source(self, source: str, *, required_services: Optional[list[str]] = None) -> list[dict[str, Any]]:
+        matrix_items = self.matrix.get("items") if isinstance(self.matrix.get("items"), dict) else {}
+        item = matrix_items.get(source) if isinstance(matrix_items.get(source), dict) else {}
+        services = item.get("services") if isinstance(item.get("services"), dict) else {}
+        failures: list[dict[str, Any]] = []
+        service_ids = normalize_service_ids(required_services or self._required_services())
+        if not service_ids:
+            service_ids = sorted(str(service) for service in services.keys() if str(service))
+        for service in service_ids:
+            row = services.get(service) if isinstance(services.get(service), dict) else {}
+            status = str(row.get("status") or "").upper()
+            truth_class = str(row.get("truth_class") or "")
+            if row.get("ok") is False or row.get("available") is False or truth_class == "PERSISTENT_FAIL" or status in {"DOWN", "FAIL", "ERROR", "NOT_STARTED"}:
+                failures.append({
+                    "service": service,
+                    "status": status or str(row.get("status") or ""),
+                    "truth_class": truth_class,
+                    "source_object": "service-matrix.json:items[].services",
+                })
+        return failures
+
+    def _l3_failed_source_scope(
+        self,
+        source: str,
+        *,
+        excluding_users: Optional[set[str]] = None,
+        required_services: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
+        egress = self.egress.get(source)
+        affected_users = self._l3_enabled_users_on_source(source, excluding_users=excluding_users)
+        severity = str((egress.severity if egress else "") or "").upper()
+        diagnose_reason = str((egress.diagnose_reason if egress else "") or "")
+        enabled = bool(egress and egress.enabled and str(egress.state).lower() not in {"disabled", "down"})
+        channel_failed = enabled and severity == "FAIL" and bool(affected_users)
+        service_failures = self._l3_required_service_failures_for_source(source, required_services=required_services)
+        service_failed = enabled and bool(service_failures) and bool(affected_users)
+        return {
+            "schema_version": "v7.l3-incident-source-scope.v1",
+            "source": source,
+            "enabled": enabled,
+            "affected_users": affected_users,
+            "affected_users_count": len(affected_users),
+            "source_failed": channel_failed or service_failed,
+            "current_channel_failure": channel_failed,
+            "required_service_failure": service_failed,
+            "diagnose_severity": severity,
+            "diagnose_reason": diagnose_reason,
+            "required_service_failures": service_failures,
+            "owner": "tools/v7-users-autoswitch",
+            "source_objects": [
+                "l3-runtime-state.json:incidents[].failed_sources",
+                "users.registry",
+                "v7-state.json",
+                "service-matrix.json",
+            ],
+        }
+
+    def _l3_active_incident_source_context(self) -> dict[str, Any]:
+        incidents = self.l3_runtime_state.get("incidents") if isinstance(self.l3_runtime_state.get("incidents"), dict) else {}
+        active_statuses = {"OPEN", "READY_FOR_EXECUTION", "INCIDENT_OPEN_STOP_SAFE", "STOP_SAFE", "SUSPENDED"}
+        candidates: list[dict[str, Any]] = []
+        for incident_key, row in incidents.items():
+            if not isinstance(row, dict):
+                continue
+            if str(row.get("authority_object") or "") != "EMERGENCY_FAILOVER_AUTONOMY":
+                continue
+            if str(row.get("status") or "") not in active_statuses:
+                continue
+            sources = [
+                str(item)
+                for item in (row.get("failed_sources") or ([row.get("incident_source")] if row.get("incident_source") else []))
+                if str(item)
+            ]
+            for source in sorted(set(sources)):
+                scope = self._l3_failed_source_scope(source, required_services=list(row.get("failed_required_services") or []))
+                if not bool_value(scope.get("source_failed")):
+                    continue
+                candidates.append({
+                    "incident_key": str(row.get("incident_key") or incident_key),
+                    "incident_source": source,
+                    "status": str(row.get("status") or ""),
+                    "updated_at": str(row.get("updated_at") or ""),
+                    "opened_at": str(row.get("opened_at") or ""),
+                    "failed_required_services": list(row.get("failed_required_services") or []),
+                    "scope": scope,
+                    "producer": "tools/v7-users-autoswitch._l3_close_incident_and_update_capability",
+                    "consumer": "tools/v7-users-autoswitch.plan",
+                    "owner": "tools/v7-users-autoswitch",
+                })
+        if not candidates:
+            return {
+                "schema_version": "v7.l3-incident-source-continuity.v1",
+                "active": False,
+                "reason": "no_active_failed_source_incident",
+            }
+        candidates.sort(key=lambda item: (parse_ts(item.get("updated_at")) or 0, parse_ts(item.get("opened_at")) or 0), reverse=True)
+        selected = candidates[0]
+        return {
+            "schema_version": "v7.l3-incident-source-continuity.v1",
+            "active": True,
+            "reason": "active_failed_source_incident",
+            "incident_key": selected["incident_key"],
+            "incident_source": selected["incident_source"],
+            "incident_status": selected["status"],
+            "failed_required_services": selected["failed_required_services"],
+            "affected_users": list((selected.get("scope") or {}).get("affected_users") or []),
+            "affected_users_count": to_int((selected.get("scope") or {}).get("affected_users_count"), 0),
+            "scope": selected["scope"],
+            "producer": selected["producer"],
+            "consumer": selected["consumer"],
+            "owner": selected["owner"],
+        }
+
     def _l3_external_wake_events(self, *, late_window_seconds: int) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
         paths = [
@@ -981,6 +1102,8 @@ class AutoswitchPlanner:
         approved_validation = restore_barrier.get("approved_plan_lock_validation") if isinstance(restore_barrier.get("approved_plan_lock_validation"), dict) else {}
         approved_envelope = self._approved_l3_production_validation_envelope(selected, restore_barrier, approved_validation)
         gate["approved_production_validation_envelope"] = approved_envelope
+        incident_source_continuity = self._l3_active_incident_source_context()
+        gate["incident_source_continuity"] = incident_source_continuity
         if not enabled:
             gate["wake"] = self._l3_wake_decision(policy, [])
             return selected, gate
@@ -998,7 +1121,10 @@ class AutoswitchPlanner:
 
         eligible: list[dict[str, Any]] = []
         per_move: list[dict[str, Any]] = []
+        incident_source = str(incident_source_continuity.get("incident_source") or "")
         for move in selected:
+            if bool_value(incident_source_continuity.get("active")) and str(move.get("current_egress") or "") != incident_source:
+                blockers.append("incident_source_selected_move_mismatch")
             evidence = self._emergency_failover_move_evidence(move)
             per_move.append(evidence)
             if evidence.get("ok"):
@@ -1057,12 +1183,24 @@ class AutoswitchPlanner:
         previous_attempts = 0
         semantic_attempt_signature = ""
         if failed_sources and incident_services:
-            incident_key = self._l3_incident_key(
-                source_channels=failed_sources,
-                services=incident_services,
-                authority=str(gate.get("mode") or "EMERGENCY_FAILOVER_AUTONOMY"),
-                generation=generation,
-            )["key"]
+            if (
+                bool_value(incident_source_continuity.get("active"))
+                and incident_source in failed_sources
+                and str(incident_source_continuity.get("incident_key") or "")
+            ):
+                incident_key = str(incident_source_continuity.get("incident_key") or "")
+                gate["incident_source_continuity"] = {
+                    **incident_source_continuity,
+                    "incident_key_reused": True,
+                    "incident_key_reuse_reason": "active_failed_source_incident_continuation",
+                }
+            else:
+                incident_key = self._l3_incident_key(
+                    source_channels=failed_sources,
+                    services=incident_services,
+                    authority=str(gate.get("mode") or "EMERGENCY_FAILOVER_AUTONOMY"),
+                    generation=generation,
+                )["key"]
             previous_attempts = self._l3_incident_attempt_count(incident_key)
             if bounded:
                 semantic_attempt_signature = sha256_json([
@@ -1075,17 +1213,22 @@ class AutoswitchPlanner:
                     }
                     for move in bounded
                 ])
-            if selected and previous_attempts >= gate["retry_budget_per_incident"]:
-                blockers.append("l3_retry_budget_exhausted")
             incidents = self.l3_runtime_state.get("incidents") if isinstance(self.l3_runtime_state.get("incidents"), dict) else {}
             existing = incidents.get(incident_key) if isinstance(incidents.get(incident_key), dict) else {}
-            consumed_signatures = [
-                str(item.get("semantic_attempt_signature") or "")
+            consumed_signature_attempts = [
+                item
                 for item in (existing.get("attempts") or [])
                 if isinstance(item, dict) and self._l3_attempt_consumed_retry_budget(item)
             ]
-            if semantic_attempt_signature and semantic_attempt_signature in consumed_signatures:
+            consumed_signatures = [str(item.get("semantic_attempt_signature") or "") for item in consumed_signature_attempts]
+            duplicate_consumed_attempts = [
+                item for item in consumed_signature_attempts
+                if semantic_attempt_signature and str(item.get("semantic_attempt_signature") or "") == semantic_attempt_signature
+            ]
+            if duplicate_consumed_attempts:
                 blockers.append("duplicate_apply_attempt")
+                if len(duplicate_consumed_attempts) >= gate["retry_budget_per_incident"]:
+                    blockers.append("l3_retry_budget_exhausted")
         gate["move_evidence"] = per_move
         gate["wake"] = wake
         gate["incident_key"] = incident_key
@@ -1384,6 +1527,7 @@ class AutoswitchPlanner:
             if bool_value((row.get("current_channel_failure") or {}).get("confirmed"))
         })
         failed_sources = sorted(set(failed_sources) | set(channel_failed_sources))
+        incident_source = failed_sources[0] if len(failed_sources) == 1 else ""
         failed_services = sorted({
             str(item.get("service") or "")
             for row in move_evidence
@@ -1815,6 +1959,8 @@ class AutoswitchPlanner:
         processed = set(str(item) for item in (self.l3_runtime_state.get("processed_event_ids") or []))
         collapsed_duplicates = [event_id for event_id in consumed_event_ids if event_id in processed]
         new_events = [event_id for event_id in consumed_event_ids if event_id not in processed]
+        record_failed_sources = list(gate.get("failed_sources") or [])
+        record_incident_source = str(record_failed_sources[0] if len(record_failed_sources) == 1 else "")
         return {
             "schema_version": "v7.l3-runtime-incident-record.v1",
             "incident_key": incident_key,
@@ -1826,7 +1972,8 @@ class AutoswitchPlanner:
             "closed_at": existing.get("closed_at", ""),
             "authority_object": "EMERGENCY_FAILOVER_AUTONOMY",
             "key_components": key_components,
-            "failed_sources": list(gate.get("failed_sources") or []),
+            "failed_sources": record_failed_sources,
+            "incident_source": record_incident_source,
             "failed_required_services": list(gate.get("failed_required_services") or []),
             "selected_users": [str(move.get("user_ip") or "") for move in selected if str(move.get("user_ip") or "")],
             "target_channels": [str(move.get("recommended_egress") or "") for move in selected if str(move.get("recommended_egress") or "")],
@@ -1877,6 +2024,7 @@ class AutoswitchPlanner:
             if bool_value((row.get("current_channel_failure") or {}).get("confirmed"))
         })
         failed_sources = sorted(set(failed_sources) | set(channel_failed_sources))
+        incident_source = failed_sources[0] if len(failed_sources) == 1 else ""
         failed_services = sorted({
             str(item.get("service") or "")
             for row in move_evidence
@@ -1923,6 +2071,8 @@ class AutoswitchPlanner:
             "allowed_reason": "CURRENT_CHANNEL_FAILED",
             "affected_users": affected_users,
             "failed_sources": failed_sources,
+            "incident_source": incident_source,
+            "incident_source_continuity": gate.get("incident_source_continuity", {}),
             "failed_required_services": failed_services,
             "confirmed_current_channel_failures": [
                 row.get("current_channel_failure")
@@ -5271,6 +5421,24 @@ class AutoswitchPlanner:
                 item for item in selection_source
                 if item.get("recommended_egress") == target_egress and item.get("current_egress") != target_egress
             ]
+        incident_source_continuity = self._l3_active_incident_source_context()
+        if bool_value(incident_source_continuity.get("active")):
+            incident_source = str(incident_source_continuity.get("incident_source") or "")
+            affected_users = set(str(item) for item in (incident_source_continuity.get("affected_users") or []) if str(item))
+            before_filter = len(selection_source)
+            selection_source = [
+                item for item in selection_source
+                if str(item.get("current_egress") or "") == incident_source
+                and (not affected_users or str(item.get("user_ip") or "") in affected_users)
+            ]
+            incident_source_continuity = {
+                **incident_source_continuity,
+                "selection_filter_applied": True,
+                "selected_candidates_before_filter": before_filter,
+                "selected_candidates_after_filter": len(selection_source),
+                "filter_condition": "selected_move.current_egress == incident_source",
+                "consumer": "tools/v7-users-autoswitch.plan",
+            }
         affected_candidate_moves = sum(
             1 for item in selection_source
             if item.get("recommended_egress") and item.get("recommended_egress") != item.get("current_egress")
@@ -5527,6 +5695,7 @@ class AutoswitchPlanner:
                 },
                 "restore_barrier": restore_barrier,
                 "restore_barrier_execution_gate": restore_barrier_execution_gate,
+                "incident_source_continuity": incident_source_continuity,
                 "emergency_failover_autonomy": emergency_failover_gate,
                 "l3_wake": emergency_failover_gate.get("wake", {}),
                 "l3_incident": l3_incident,
@@ -5582,6 +5751,8 @@ class AutoswitchPlanner:
                     "snapshot_gate_material_change": bool_value(intelligence_snapshot_gate.get("snapshot_gate_material_change")),
                     "approved_plan_lock_consumed": bool_value(intelligence_snapshot_gate.get("approved_plan_lock_consumed")),
                     "planner_recomputed_after_approval": False if approved_plan_lock.get("ok") else None,
+                    "incident_source_continuity_active": bool_value(incident_source_continuity.get("active")),
+                    "incident_source": str(incident_source_continuity.get("incident_source") or ""),
                 },
             },
             "summary": {
@@ -5851,6 +6022,10 @@ class AutoswitchPlanner:
             reasons.append("approved_plan_lock_source_scope_mismatch")
         if requested_target and locked_targets != [requested_target]:
             reasons.append("approved_plan_lock_target_scope_mismatch")
+        incident_source_continuity = self._l3_active_incident_source_context()
+        incident_source = str(incident_source_continuity.get("incident_source") or "")
+        if bool_value(incident_source_continuity.get("active")) and locked_sources != [incident_source]:
+            reasons.append("approved_plan_lock_incident_source_mismatch")
         committed_identity = self._committed_apply_identity_validation(
             restore_barrier,
             selected_hash=selected_hash,
@@ -5901,6 +6076,7 @@ class AutoswitchPlanner:
                 "selected_sources": locked_sources,
                 "selected_targets": locked_targets,
                 "committed_apply_identity": committed_identity,
+                "incident_source_continuity": incident_source_continuity,
             }
         return {
             "present": True,
@@ -5919,6 +6095,7 @@ class AutoswitchPlanner:
             "selected_targets": locked_targets,
             "selected_moves": selected,
             "committed_apply_identity": committed_identity,
+            "incident_source_continuity": incident_source_continuity,
         }
 
     def _runtime_source_hashes(self, *, from_disk: bool = False) -> dict[str, str]:
@@ -8329,9 +8506,45 @@ class AutoswitchPlanner:
         applied = bool_value(apply_result.get("applied"))
         closed = terminal in {"SUCCESS", "ROLLBACK_SUCCESS", "ROLLBACK_FAILURE", "APPLY_FAILURE", "VERIFY_FAILED"} or terminal_state in {"APPLIED", "ROLLED_BACK", "ROLLBACK_FAILED", "FAILED", "VERIFY_FAILED"}
         suspended = terminal == "STOP_SAFE" or terminal_state == "DENIED"
-        record["status"] = "CLOSED" if closed else ("SUSPENDED" if suspended else record.get("status", "OPEN"))
+        successful_moves = {
+            str(row.get("user_ip") or "")
+            for row in (apply_result.get("results") or [])
+            if isinstance(row, dict)
+            and str(row.get("terminal_outcome_classification") or "") == "SUCCESS"
+            and str(row.get("from") or "") in set(str(item) for item in (record.get("failed_sources") or []) if str(item))
+        }
+        continuation_scopes = [
+            self._l3_failed_source_scope(
+                str(source),
+                excluding_users=successful_moves,
+                required_services=list(record.get("failed_required_services") or []),
+            )
+            for source in (record.get("failed_sources") or [])
+            if str(source)
+        ]
+        active_continuations = [
+            scope for scope in continuation_scopes
+            if bool_value(scope.get("source_failed")) and to_int(scope.get("affected_users_count"), 0) > 0
+        ]
+        success_terminal = terminal == "SUCCESS" or terminal_state == "APPLIED"
+        keep_open_for_remaining_users = closed and success_terminal and bool(active_continuations)
+        record["incident_source_continuity"] = {
+            "schema_version": "v7.l3-incident-source-continuity.v1",
+            "active": bool(active_continuations),
+            "kept_open": keep_open_for_remaining_users,
+            "reason": "remaining_enabled_users_on_failed_incident_source" if keep_open_for_remaining_users else "terminal_closure_allowed",
+            "successful_users_excluded": sorted(successful_moves),
+            "scopes": continuation_scopes,
+            "owner": "tools/v7-users-autoswitch._l3_close_incident_and_update_capability",
+        }
+        if keep_open_for_remaining_users:
+            closed = False
+            suspended = False
+        record["status"] = "CLOSED" if closed else ("SUSPENDED" if suspended else "OPEN")
         if closed:
             record["closed_at"] = now_iso()
+        elif keep_open_for_remaining_users:
+            record["closed_at"] = ""
         record["terminal_outcome"] = terminal
         record["terminal_state"] = terminal_state
         record["terminal_reason"] = terminal_reason

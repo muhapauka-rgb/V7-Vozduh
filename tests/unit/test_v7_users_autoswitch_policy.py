@@ -1367,6 +1367,96 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertFalse(plan["summary"]["execution_blocked"])
         self.assertEqual(plan["selected_moves"][0]["execution_mode"], "emergency_failover")
 
+    def test_emergency_failover_without_approved_envelope_remains_single_user_bound(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                users=5,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                authority_budget={
+                    "authority_class": "SMALL_BATCH",
+                    "certified_authority_class": "SMALL_BATCH",
+                    "authority_lifecycle_state": "PROMOTED",
+                    "current_allowed_user_budget": 5,
+                },
+                emergency_failover_autonomy={
+                    "enabled": True,
+                    "max_users_per_run": 1,
+                    "max_users_per_channel": 1,
+                },
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--max-selected-moves", "5"])
+            )
+            plan = planner.plan()
+
+        gate = plan["safety"]["emergency_failover_autonomy"]
+        self.assertTrue(gate["ok"])
+        self.assertEqual(gate["selected_moves_before_gate"], 5)
+        self.assertEqual(gate["selected_moves_after_gate"], 1)
+        self.assertEqual(gate["effective_max_users_per_run"], 1)
+        self.assertEqual(plan["summary"]["selected_moves"], 1)
+
+    def test_approved_production_validation_envelope_preserves_batch_through_runtime_apply(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bootstrap = self.prepare_l3_validation_envelope(root, users=5)
+            args = self.args_for(
+                root,
+                [
+                    "--emergency-failover-autonomy",
+                    "--apply",
+                    "--verify",
+                    "--mode",
+                    "guarded",
+                    "--max-selected-moves",
+                    "5",
+                    "--approved-packet-id",
+                    "pkt-unit-test",
+                    "--approved-selected-move-hash",
+                    bootstrap["operation"]["selected_move_hash"],
+                ],
+            )
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+            switch_calls = []
+
+            def fake_run_switch(ip: str, egress: str, reason: str):
+                switch_calls.append((ip, egress, reason))
+                return subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+
+            planner._run_switch = fake_run_switch
+            planner._verify_routes = lambda: subprocess.CompletedProcess(["v7-user-route-check"], 0, stdout="verify ok\n")
+            planner._verify_emergency_required_services = lambda move: subprocess.CompletedProcess(["v7-service-matrix-test"], 0, stdout="service ok\n")
+            planner._emit_terminal_audit = lambda audit: {**audit, "emitted": True, "status": "emitted"}
+            plan["apply_result"] = planner.apply(plan)
+
+        gate = plan["safety"]["emergency_failover_autonomy"]
+        eligibility = plan["apply_result"]["l3_execution_eligibility"]
+        self.assertTrue(gate["ok"])
+        self.assertEqual(gate["decision"], "authorize_governed_production_validation_envelope")
+        self.assertEqual(gate["selected_moves_before_gate"], 5)
+        self.assertEqual(gate["selected_moves_after_gate"], 5)
+        self.assertEqual(gate["effective_max_users_per_run"], 5)
+        self.assertEqual(plan["summary"]["selected_moves"], 5)
+        self.assertEqual(len(plan["selected_moves"]), 5)
+        self.assertTrue(eligibility["ok"])
+        self.assertTrue(eligibility["approved_batch_scope"])
+        self.assertEqual(eligibility["approved_selected_move_count"], 5)
+        self.assertEqual(len(eligibility["checked_moves"]), 5)
+        self.assertTrue(plan["apply_result"]["applied"])
+        self.assertEqual(len(plan["apply_result"]["results"]), 5)
+        self.assertEqual(len(switch_calls), 5)
+        self.assertEqual({move["current_egress"] for move in plan["selected_moves"]}, {"1"})
+        self.assertEqual({call[2] for call in switch_calls}, {"failover"})
+
     def test_l3_wake_accepts_confirmed_service_failure_and_incident_consumes_planner_output(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

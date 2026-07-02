@@ -1295,6 +1295,21 @@ class AutoswitchPlanner:
 
         max_run = max(0, to_int(policy.get("max_users_per_run"), 1))
         max_channel = max(0, to_int(policy.get("max_users_per_channel"), max_run or 1))
+        if bool_value(approved_envelope.get("ok")):
+            approved_run_limit = max(0, min(
+                to_int(approved_envelope.get("selected_move_count"), len(eligible)),
+                to_int(approved_envelope.get("clearance_max_selected_moves"), len(eligible)),
+                to_int(approved_envelope.get("authorized_l3_budget"), len(eligible)),
+            ))
+            approved_target_counts: dict[str, int] = {}
+            for move in selected:
+                target = str(move.get("recommended_egress") or "")
+                if target:
+                    approved_target_counts[target] = approved_target_counts.get(target, 0) + 1
+            if approved_run_limit > 0:
+                max_run = approved_run_limit
+            if approved_target_counts:
+                max_channel = max(approved_target_counts.values())
         per_target_counts: dict[str, int] = {}
         bounded: list[dict[str, Any]] = []
         for move in eligible:
@@ -1380,11 +1395,17 @@ class AutoswitchPlanner:
         gate["semantic_attempt_signature"] = semantic_attempt_signature
         gate["failed_sources"] = failed_sources
         gate["failed_required_services"] = failed_services
+        gate["effective_max_users_per_run"] = max_run
+        gate["effective_max_users_per_channel"] = max_channel
         gate["blockers"] = sorted(set(blockers))
         gate["ok"] = bool(bounded) and not gate["blockers"]
         gate["selected_moves_after_gate"] = len(bounded) if gate["ok"] else 0
         if gate["ok"] and bool_value(approved_envelope.get("ok")):
-            gate["decision"] = "authorize_one_user_production_validation_envelope"
+            gate["decision"] = (
+                "authorize_governed_production_validation_envelope"
+                if len(bounded) > 1
+                else "authorize_one_user_production_validation_envelope"
+            )
             gate["authority_source"] = "current_approved_emergency_envelope"
             gate["production_validation_only"] = True
             gate["autonomy_certified"] = False
@@ -6602,6 +6623,16 @@ class AutoswitchPlanner:
         incident = safety.get("l3_incident") if isinstance(safety.get("l3_incident"), dict) else {}
         selected_hash = str(operation.get("selected_move_hash") or "")
         operation_id = str(operation.get("operation_id") or "")
+        restore_barrier = safety.get("restore_barrier") if isinstance(safety.get("restore_barrier"), dict) else {}
+        approved_lock = restore_barrier.get("approved_plan_lock_validation") if isinstance(restore_barrier.get("approved_plan_lock_validation"), dict) else {}
+        clearance_max_selected_moves = to_int(restore_barrier.get("clearance_max_selected_moves"), 0)
+        approved_selected_count = to_int(approved_lock.get("selected_move_count"), 0)
+        approved_batch_scope = (
+            bool_value(approved_lock.get("ok"))
+            and clearance_max_selected_moves > 0
+            and approved_selected_count > 0
+        )
+        max_allowed_selected = clearance_max_selected_moves if approved_batch_scope else 1
         live_users = {user.ip: user for user in self._load_users()}
         live_egress = self._load_egress()
         blockers: list[str] = []
@@ -6613,8 +6644,12 @@ class AutoswitchPlanner:
             blockers.append("l3_wake_not_accepted")
         if incident and str(incident.get("incident_state") or "") != "READY_FOR_EXECUTION":
             blockers.append("l3_incident_not_ready")
-        if len(selected) != 1:
-            blockers.append("l3_requires_exactly_one_selected_move")
+        if len(selected) < 1:
+            blockers.append("l3_requires_selected_move")
+        elif len(selected) > max_allowed_selected:
+            blockers.append("l3_selected_moves_exceed_approved_scope" if approved_batch_scope else "l3_requires_exactly_one_selected_move")
+        if approved_batch_scope and len(selected) != approved_selected_count:
+            blockers.append("l3_selected_move_count_mismatch")
         if not selected_hash:
             blockers.append("selected_move_hash_missing")
         if not operation_id:
@@ -6675,7 +6710,10 @@ class AutoswitchPlanner:
             "operation_id": operation_id,
             "selected_move_hash": selected_hash,
             "authority_generation": str(operation.get("planner_generation_id") or ""),
-            "restore_generation": str(((safety.get("restore_barrier") or {}).get("clearance_generation_id") or (safety.get("restore_barrier") or {}).get("approved_generation_id") or "")),
+            "restore_generation": str(restore_barrier.get("clearance_generation_id") or restore_barrier.get("approved_generation_id") or ""),
+            "approved_batch_scope": approved_batch_scope,
+            "max_allowed_selected_moves": max_allowed_selected,
+            "approved_selected_move_count": approved_selected_count,
             "packet_identity_preserved": True,
             "lease_identity_preserved": True,
             "new_execution_path_created": False,

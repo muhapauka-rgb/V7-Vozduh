@@ -1643,6 +1643,76 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(gate["selected_moves_after_gate"], 1)
         self.assertEqual(plan["safety"]["l3_wake"]["decision"], "ACCEPT_WAKE")
 
+    def test_current_channel_failure_source_wins_over_larger_service_only_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=5,
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={
+                    "enabled": True,
+                    "max_users_per_run": 1,
+                    "max_users_per_channel": 1,
+                },
+            )
+            self.mark_current_channel_failed(root, egress="1")
+            (root / "state" / "egress.registry").write_text(
+                (root / "state" / "egress.registry").read_text(encoding="utf-8")
+                + "id=2 interface=v7two enabled=1 state=enabled role=GLOBAL_FAST\n",
+                encoding="utf-8",
+            )
+            state_path = root / "state" / "v7-state.json"
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            state.setdefault("egress", {})["2"] = {
+                "avg_mbps": 80,
+                "min_mbps": 70,
+                "stability": 0.95,
+                "code": "200",
+                "diagnose_severity": "OK",
+                "diagnose_reason": "OK",
+            }
+            state_path.write_text(json.dumps(state), encoding="utf-8")
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix.setdefault("items", {})["2"] = {
+                "services": {
+                    "youtube": {"ok": True, "score": 100},
+                    "instagram": {"ok": True, "score": 100},
+                    "telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": "2999-01-01T00:00:00+00:00"},
+                    "google": {"ok": True, "score": 100},
+                    "google_auth": {"ok": True, "score": 100},
+                },
+                "route_class_fitness": {
+                    "VIDEO_OPTIMIZED": {"status": "FAIL"},
+                    "GLOBAL_STABLE": {"status": "OK"},
+                    "GLOBAL_FAST": {"status": "OK"},
+                },
+            }
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+            (root / "state" / "users.registry").write_text(
+                "ip=10.0.0.2 current=1 table=100 enabled=1\n"
+                "ip=10.0.0.3 current=1 table=101 enabled=1\n"
+                "ip=10.0.0.4 current=2 table=102 enabled=1\n"
+                "ip=10.0.0.5 current=2 table=103 enabled=1\n"
+                "ip=10.0.0.6 current=2 table=104 enabled=1\n",
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--emergency-failover-autonomy"]))
+            plan = planner.plan()
+
+        continuity = plan["safety"]["incident_source_continuity"]
+        self.assertTrue(continuity["active"])
+        self.assertEqual(continuity["incident_source"], "1")
+        self.assertTrue(continuity["scope"]["current_channel_failure"])
+        self.assertEqual(continuity["affected_users_count"], 2)
+        self.assertEqual(plan["selected_moves"][0]["current_egress"], "1")
+        self.assertIn(plan["selected_moves"][0]["user_ip"], {"10.0.0.2", "10.0.0.3"})
+
     def test_approved_plan_lock_rejects_non_incident_source_during_l3_continuation(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

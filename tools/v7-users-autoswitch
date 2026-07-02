@@ -976,7 +976,9 @@ class AutoswitchPlanner:
             }
         candidates.sort(
             key=lambda item: (
+                1 if bool_value((item.get("scope") or {}).get("current_channel_failure")) else 0,
                 to_int((item.get("scope") or {}).get("affected_users_count"), 0),
+                1 if bool_value((item.get("scope") or {}).get("required_service_failure")) else 0,
                 1 if str(item.get("continuity_source") or "") == "persisted_incident" else 0,
                 parse_ts(item.get("updated_at")) or 0,
                 str(item.get("incident_source") or ""),

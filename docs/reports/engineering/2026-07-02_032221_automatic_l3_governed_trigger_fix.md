@@ -99,12 +99,73 @@ OK
 
 ## Production Delivery Status
 
-Pending at report creation.
+Delivered.
+
+- Commit: `ea939c69903e16c9c9ad90f43573c669052bc650`
+- Branch: `Updatesystem`
+- Safe deploy dry-run: PASS
+- Safe deploy apply: PASS
+- Deployed service unit hash:
+  - local: `a4a6d477895ef723f3c3962ce3c965159655689b52cb154f457fa43890d183a2`
+  - production: `a4a6d477895ef723f3c3962ce3c965159655689b52cb154f457fa43890d183a2`
+- Production service command after deploy:
+
+```text
+ExecStart=/usr/local/bin/v7-governed-canary-dry-run-cycle --execute-l3-production-validation --confirm-l3-production-validation EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED --max-users 1
+```
+
+The existing production timer was enabled after deploy:
+
+```text
+systemctl enable --now v7-users-autoswitch.timer
+```
+
+Timer state after enable:
+
+- `v7-users-autoswitch.timer`: active
+- Triggered service owner: `v7-governed-canary-dry-run-cycle`
 
 ## Production Validation Status
 
-Pending at report creation.
+Automatic governed trigger validated in production.
+
+Observed timer-triggered process chain:
+
+```text
+v7-users-autoswitch.timer
+-> v7-users-autoswitch.service
+-> /usr/local/bin/v7-governed-canary-dry-run-cycle --execute-l3-production-validation ... --max-users 1
+-> /usr/local/bin/v7-users-autoswitch --emergency-failover-autonomy --mode guarded --max-selected-moves 1 --user 10.7.0.3 --target-egress awg0 --apply --verify
+```
+
+Successful production outcome:
+
+- user: `10.7.0.3`
+- source: `openvpn-1779388847-d2ad7c`
+- target: `awg0`
+- terminal state: `APPLIED`
+- terminal reason: `selected_moves_applied`
+- terminal outcome classification: `SUCCESS`
+- verification: PASS (`verify_rc=0`, `service_verify_rc=0`)
+- rollback required: false
+- registry after execution: `ip=10.7.0.3 current=awg0 table=1001 enabled=1`
+
+Remaining failed-source users after validation:
+
+- `openvpn-1779388847-d2ad7c` users in registry: `10`
+
+Subsequent automatic cycles invoked the same governed owner but stopped safely on existing downstream gates, including:
+
+- `approved_plan_lock_selected_moves_missing`
+- `dry_run_restore_barrier_clearance_generation_mismatch`
+- `dry_run_restore_barrier_clearance_selected_moves_hash_mismatch`
+
+This means the automatic trigger/scheduler defect is fixed. Remaining incomplete evacuation is now downstream plan-lock / restore-barrier continuity for subsequent users, not failure to invoke the governed L3 owner.
 
 ## Next Required Action
 
-Deploy the committed wiring fix with `tools/v7-safe-deploy`, then enable the existing `v7-users-autoswitch.timer` so the production automation loop can invoke the governed L3 owner.
+Investigate the next downstream blocker for subsequent automatic users:
+
+- owner: `admin_core/operator_execution.py` / restore barrier approved-plan-lock path
+- observed blocker: `approved_plan_lock_selected_moves_missing`
+- scope: continuation after the first timer-triggered governed success

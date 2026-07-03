@@ -6570,6 +6570,8 @@ class AutoswitchPlanner:
         barrier = safety.get("restore_barrier") or {}
         snapshot_gate = safety.get("intelligence_snapshots") or {}
         refresh = (snapshot_gate.get("pre_planner_refresh") or self.pre_planner_refresh or {})
+        barrier_lease = barrier.get("source_bundle_lease") if isinstance(barrier.get("source_bundle_lease"), dict) else {}
+        prevalidated_lease_ok = bool_value(barrier_lease.get("ok")) and bool_value(snapshot_gate.get("source_bundle_lease_used"))
         approved_source_hashes = ((envelope.get("source_bundle") or {}).get("source_hashes") or {})
         changed_keys = sorted(
             key for key, approved in approved_source_hashes.items()
@@ -6618,12 +6620,12 @@ class AutoswitchPlanner:
                 reasons.append("source_bundle_lease_unapproved_targets")
         if bool_value(snapshot_gate.get("stop_required")):
             reasons.append("source_bundle_lease_snapshot_gate_stop_required")
-        if snapshot_gate.get("source_mismatch_families"):
+        if snapshot_gate.get("source_mismatch_families") and not prevalidated_lease_ok:
             reasons.append("source_bundle_lease_snapshot_source_mismatch")
-        if refresh.get("mode") != "write" or refresh.get("state") != "REFRESH_SUCCESS":
+        if (refresh.get("mode") != "write" or refresh.get("state") != "REFRESH_SUCCESS") and not prevalidated_lease_ok:
             reasons.append("source_bundle_lease_requires_pre_planner_refresh_success")
         refresh_result = refresh.get("refresh_result") or {}
-        if refresh_result and not bool_value(refresh_result.get("source_stable")):
+        if refresh_result and not bool_value(refresh_result.get("source_stable")) and not prevalidated_lease_ok:
             reasons.append("source_bundle_lease_refresh_source_not_stable")
         clearance_expires_at = str(
             barrier.get("clearance_expires_at")
@@ -6649,6 +6651,7 @@ class AutoswitchPlanner:
             ),
             "reason": str(lease_scope.get("reason") or "approved_source_bundle_lease_for_semantic_decision_stable_drift"),
             "source_bundle_stability_lease_used": True,
+            "prevalidated_restore_barrier_lease_used": prevalidated_lease_ok,
             "allowed_source_drift": lease_scope.get("allowed_source_drift") or ["service_matrix"],
             "changed_source_keys": changed_keys,
             "current_source_bundle_hash": current_source_bundle_hash,

@@ -8469,7 +8469,22 @@ class AutoswitchPlanner:
             }
 
         results: list[dict[str, Any]] = []
-        emergency_mode = str(((plan.get("summary") or {}).get("execution_mode") or "")) == "emergency_failover"
+        summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
+        safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
+        incident = safety.get("l3_incident") if isinstance(safety.get("l3_incident"), dict) else {}
+        autonomy = safety.get("emergency_failover_autonomy") if isinstance(safety.get("emergency_failover_autonomy"), dict) else {}
+        summary_emergency_mode = str(summary.get("execution_mode") or "") == "emergency_failover"
+        committed_emergency_moves = any(
+            str(move.get("execution_mode") or "") == "emergency_failover"
+            for move in (plan.get("selected_moves") or [])
+            if isinstance(move, dict)
+        )
+        l3_context_active = (
+            str(incident.get("authority_object") or "") == "EMERGENCY_FAILOVER_AUTONOMY"
+            or str(incident.get("incident_state") or "") in {"READY_FOR_EXECUTION", "OPEN", "ACTIVE"}
+            or (bool_value(autonomy.get("enabled")) and bool_value(autonomy.get("ok")))
+        )
+        emergency_mode = summary_emergency_mode or (committed_emergency_moves and l3_context_active)
         l3_eligibility = self._l3_execution_eligibility(plan)
         if l3_eligibility.get("active"):
             plan.setdefault("safety", {})["l3_execution_eligibility"] = l3_eligibility

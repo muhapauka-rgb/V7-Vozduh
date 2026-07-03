@@ -3056,6 +3056,65 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertTrue(all(not row["rollback_attempted"] for row in plan["apply_result"]["results"]))
         self.assertTrue(all(row["terminal_outcome_classification"] == "SUCCESS" for row in plan["apply_result"]["results"]))
 
+    def test_committed_emergency_moves_keep_scoped_verification_without_summary_mode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            planner, plan, switch_calls = self.governed_source_bundle_lease_plan(root, users=2)
+            plan["safety"]["emergency_failover_autonomy"].update({
+                "enabled": True,
+                "ok": True,
+                "decision": "authorized",
+                "approved_production_validation_envelope": {"ok": True},
+            })
+            plan["safety"]["l3_wake"].update({"accepted": True, "decision": "ACCEPT_WAKE"})
+            plan["safety"]["l3_incident"].update({"incident_state": "READY_FOR_EXECUTION"})
+            committed_moves = json.loads(json.dumps(plan["selected_moves"]))
+            selected_users = [move["user_ip"] for move in committed_moves]
+            selected_targets = [move["recommended_egress"] for move in committed_moves]
+            plan["safety"]["restore_barrier"]["approved_plan_lock_validation"] = {
+                "present": True,
+                "ok": True,
+                "reason": "approved_plan_lock_valid",
+                "selected_move_hash": plan["operation"]["selected_move_hash"],
+                "selected_move_count": len(committed_moves),
+                "selected_moves": committed_moves,
+            }
+            plan["safety"]["restore_barrier"]["clearance_max_selected_moves"] = len(committed_moves)
+            plan["selected_moves"] = []
+            plan["summary"].pop("execution_mode", None)
+            plan["summary"]["selected_moves"] = 0
+            planner.emergency_failover_policy["require_fresh_evidence"] = False
+            verify_calls = []
+
+            def fake_verify_routes(user_ip: str = "", expected_egress: str = ""):
+                verify_calls.append((user_ip, expected_egress))
+                if not user_ip:
+                    return subprocess.CompletedProcess(["v7-user-route-check"], 1, stdout="global verify should not run\n")
+                return subprocess.CompletedProcess(
+                    ["v7-users-autoswitch", "--verify-user-route", user_ip, expected_egress],
+                    0,
+                    stdout=f"scoped verify ok {user_ip} {expected_egress}\n",
+                )
+
+            planner._verify_routes = fake_verify_routes
+            planner._verify_emergency_required_services = lambda move: subprocess.CompletedProcess(
+                ["v7-service-matrix-test"],
+                0,
+                stdout="service verify ok\n",
+            )
+            plan["apply_result"] = planner.apply(plan)
+
+        self.assertEqual([call[0] for call in switch_calls], selected_users)
+        self.assertEqual(verify_calls, list(zip(selected_users, selected_targets)))
+        self.assertNotEqual(plan["summary"].get("execution_mode"), "emergency_failover")
+        self.assertTrue(plan["apply_result"]["applied"])
+        self.assertTrue(all(row["route_verification_scope"] == "selected_user" for row in plan["apply_result"]["results"]))
+        self.assertEqual(
+            [row["route_verification_expected_egress"] for row in plan["apply_result"]["results"]],
+            selected_targets,
+        )
+        self.assertTrue(all(row["terminal_outcome_classification"] == "SUCCESS" for row in plan["apply_result"]["results"]))
+
     def test_global_route_verification_failure_does_not_quarantine_target(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -8497,7 +8497,7 @@ class AutoswitchPlanner:
                 "terminal_outcome_classification": "APPLY_FAILURE" if proc.returncode != 0 else "APPLY_COMPLETED_PENDING_VERIFICATION",
             }
             if proc.returncode == 0 and self.args.verify:
-                verify = self._verify_routes()
+                verify = self._verify_routes_for_apply(ip if emergency_mode else "")
                 row["verify_rc"] = verify.returncode
                 row["verify_output"] = verify.stdout[-4000:]
                 service_verify = None
@@ -9309,7 +9309,9 @@ class AutoswitchPlanner:
             env=env,
         )
 
-    def _verify_routes(self) -> subprocess.CompletedProcess[str]:
+    def _verify_routes(self, user_ip: str = "") -> subprocess.CompletedProcess[str]:
+        if user_ip:
+            return self._verify_user_route(user_ip)
         return subprocess.run(
             ["v7-user-route-check"],
             text=True,
@@ -9318,6 +9320,82 @@ class AutoswitchPlanner:
             check=False,
             timeout=20,
         )
+
+    def _verify_routes_for_apply(self, user_ip: str = "") -> subprocess.CompletedProcess[str]:
+        if not user_ip:
+            return self._verify_routes()
+        try:
+            return self._verify_routes(user_ip)  # type: ignore[misc]
+        except TypeError:
+            return self._verify_routes()
+
+    def _verify_user_route(self, user_ip: str) -> subprocess.CompletedProcess[str]:
+        argv = ["v7-users-autoswitch", "--verify-user-route", user_ip]
+        lines = ["===== V7 SCOPED USER ROUTE REALITY CHECK =====", now_iso(), f"user_ip={user_ip}"]
+        if not SAFE_IP_RE.match(user_ip):
+            lines.append(f"FAIL: unsafe user ip: {user_ip}")
+            return subprocess.CompletedProcess(argv, 1, stdout="\n".join(lines) + "\n")
+        users = {user.ip: user for user in self._load_users()}
+        user = users.get(user_ip)
+        if not user or not user.enabled:
+            lines.append(f"FAIL: user={user_ip} not found or disabled")
+            return subprocess.CompletedProcess(argv, 1, stdout="\n".join(lines) + "\n")
+        egress = self._load_egress().get(str(user.current))
+        if not egress or not egress.interface:
+            lines.append(f"FAIL: user={user_ip} unknown egress={user.current}")
+            return subprocess.CompletedProcess(argv, 1, stdout="\n".join(lines) + "\n")
+        assign_path = self.state_dir / f"user-{user_ip}.assign"
+        assign_egress = ""
+        try:
+            for raw in assign_path.read_text(encoding="utf-8").splitlines():
+                if raw.startswith("egress="):
+                    assign_egress = raw.split("=", 1)[1].strip()
+                    break
+        except OSError:
+            assign_egress = "missing"
+        lines.append(f"USER={user.ip} TABLE={user.table} REGISTRY_EGRESS={user.current} ASSIGN_EGRESS={assign_egress or 'missing'} EXPECTED_DEV={egress.interface}")
+        if assign_egress and assign_egress != "missing" and assign_egress != user.current:
+            lines.append(f"WARN: user={user.ip} registry/assign mismatch registry={user.current} assign={assign_egress}")
+        else:
+            lines.append(f"OK: user={user.ip} registry matches assignment")
+        route_rc = 0
+        try:
+            table_route = subprocess.run(
+                ["ip", "route", "show", "table", str(user.table)],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+                timeout=10,
+            )
+            route_get = subprocess.run(
+                ["ip", "route", "get", "8.8.8.8", "from", user.ip, "iif", "wg0"],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+                timeout=10,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            lines.append(f"FAIL: route verification command failed: {exc}")
+            return subprocess.CompletedProcess(argv, 1, stdout="\n".join(lines) + "\n")
+        lines.append(f"table_route={table_route.stdout.strip()}")
+        if f"default dev {egress.interface}" in table_route.stdout:
+            lines.append(f"OK: user={user.ip} table={user.table} default dev {egress.interface}")
+        else:
+            route_rc = 1
+            lines.append(f"FAIL: user={user.ip} table={user.table} does not default to {egress.interface}")
+        lines.append(f"route_get={route_get.stdout.strip()}")
+        if f"dev {egress.interface}" in route_get.stdout:
+            lines.append(f"OK: user={user.ip} route_get uses {egress.interface}")
+        elif "dev ens3" in route_get.stdout:
+            route_rc = 1
+            lines.append(f"FAIL: user={user.ip} route_get leaks to public ens3")
+        else:
+            route_rc = 1
+            lines.append(f"FAIL: user={user.ip} route_get unexpected")
+        lines.append("V7_SCOPED_USER_ROUTE_CHECK=" + ("OK" if route_rc == 0 else "FAIL"))
+        return subprocess.CompletedProcess(argv, route_rc, stdout="\n".join(lines) + "\n")
 
     def _verify_emergency_required_services(self, move: dict[str, Any]) -> subprocess.CompletedProcess[str]:
         target = str(move.get("recommended_egress") or "")

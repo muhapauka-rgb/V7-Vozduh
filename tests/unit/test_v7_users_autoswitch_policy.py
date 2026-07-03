@@ -2978,6 +2978,55 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertEqual(plan["closure_target"]["closure_state"], "VERIFIED_READY")
             self.assertEqual(plan["closure_target"]["closure_blocker"], "")
 
+    def test_emergency_batch_apply_uses_scoped_route_verification(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            planner, plan, switch_calls = self.governed_source_bundle_lease_plan(root, users=2)
+            plan["summary"]["execution_mode"] = "emergency_failover"
+            plan["safety"]["emergency_failover_autonomy"].update({
+                "enabled": True,
+                "ok": True,
+                "decision": "authorized",
+                "approved_production_validation_envelope": {"ok": True},
+            })
+            plan["safety"]["l3_wake"].update({"accepted": True, "decision": "ACCEPT_WAKE"})
+            plan["safety"]["l3_incident"].update({"incident_state": "READY_FOR_EXECUTION"})
+            plan["safety"]["restore_barrier"]["approved_plan_lock_validation"] = {
+                "ok": True,
+                "selected_move_count": len(plan["selected_moves"]),
+            }
+            plan["safety"]["restore_barrier"]["clearance_max_selected_moves"] = len(plan["selected_moves"])
+            for move in plan["selected_moves"]:
+                move["execution_mode"] = "emergency_failover"
+            planner.emergency_failover_policy["require_fresh_evidence"] = False
+            selected_users = [move["user_ip"] for move in plan["selected_moves"]]
+            verify_calls = []
+
+            def fake_verify_routes(user_ip: str = ""):
+                verify_calls.append(user_ip)
+                if not user_ip:
+                    return subprocess.CompletedProcess(["v7-user-route-check"], 1, stdout="global remaining users failed\n")
+                return subprocess.CompletedProcess(
+                    ["v7-users-autoswitch", "--verify-user-route", user_ip],
+                    0,
+                    stdout=f"scoped verify ok {user_ip}\n",
+                )
+
+            planner._verify_routes = fake_verify_routes
+            planner._verify_emergency_required_services = lambda move: subprocess.CompletedProcess(
+                ["v7-service-matrix-test"],
+                0,
+                stdout="service verify ok\n",
+            )
+            plan["apply_result"] = planner.apply(plan)
+
+        self.assertEqual([call[0] for call in switch_calls], selected_users)
+        self.assertEqual(verify_calls, selected_users)
+        self.assertTrue(plan["apply_result"]["applied"])
+        self.assertTrue(all(row["verify_rc"] == 0 for row in plan["apply_result"]["results"]))
+        self.assertTrue(all(not row["rollback_attempted"] for row in plan["apply_result"]["results"]))
+        self.assertTrue(all(row["terminal_outcome_classification"] == "SUCCESS" for row in plan["apply_result"]["results"]))
+
     def test_apply_partial_success_is_classified_without_new_execution_path(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

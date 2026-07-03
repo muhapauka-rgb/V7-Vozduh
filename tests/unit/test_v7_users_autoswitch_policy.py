@@ -5,6 +5,7 @@ import os
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 from typing import Optional
 
@@ -183,6 +184,33 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         plan["apply_result"] = planner.apply(plan)
         planner.finalize_operation(plan)
         return plan
+
+    def test_scoped_post_apply_route_verification_uses_expected_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, current_egress="1")
+            (root / "state" / "user-10.0.0.2.assign").write_text("egress=vless\n", encoding="utf-8")
+            planner = self.tool.AutoswitchPlanner(self.args_for(root))
+
+            def fake_run(cmd, **kwargs):
+                if cmd[:4] == ["ip", "route", "show", "table"]:
+                    return subprocess.CompletedProcess(cmd, 0, stdout="default dev tun0 scope link\n")
+                if cmd[:4] == ["ip", "route", "get", "8.8.8.8"]:
+                    return subprocess.CompletedProcess(
+                        cmd,
+                        0,
+                        stdout="8.8.8.8 from 10.0.0.2 dev tun0 table 100\n    cache iif wg0\n",
+                    )
+                return subprocess.CompletedProcess(cmd, 1, stdout="unexpected command\n")
+
+            with mock.patch.object(self.tool.subprocess, "run", side_effect=fake_run):
+                result = planner._verify_user_route("10.0.0.2", expected_egress="vless")
+
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("REGISTRY_EGRESS=1", result.stdout)
+        self.assertIn("ASSIGN_EGRESS=vless", result.stdout)
+        self.assertIn("EXPECTED_EGRESS=vless", result.stdout)
+        self.assertIn("V7_SCOPED_USER_ROUTE_CHECK=OK", result.stdout)
 
     def write_intelligence_snapshots(self, root: Path, *, ctr_channels: Optional[list[dict]] = None) -> Path:
         snapshot_root = root / "state" / "intelligence"
@@ -3000,16 +3028,17 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 move["execution_mode"] = "emergency_failover"
             planner.emergency_failover_policy["require_fresh_evidence"] = False
             selected_users = [move["user_ip"] for move in plan["selected_moves"]]
+            selected_targets = [move["recommended_egress"] for move in plan["selected_moves"]]
             verify_calls = []
 
-            def fake_verify_routes(user_ip: str = ""):
-                verify_calls.append(user_ip)
+            def fake_verify_routes(user_ip: str = "", expected_egress: str = ""):
+                verify_calls.append((user_ip, expected_egress))
                 if not user_ip:
                     return subprocess.CompletedProcess(["v7-user-route-check"], 1, stdout="global remaining users failed\n")
                 return subprocess.CompletedProcess(
-                    ["v7-users-autoswitch", "--verify-user-route", user_ip],
+                    ["v7-users-autoswitch", "--verify-user-route", user_ip, expected_egress],
                     0,
-                    stdout=f"scoped verify ok {user_ip}\n",
+                    stdout=f"scoped verify ok {user_ip} {expected_egress}\n",
                 )
 
             planner._verify_routes = fake_verify_routes
@@ -3021,7 +3050,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             plan["apply_result"] = planner.apply(plan)
 
         self.assertEqual([call[0] for call in switch_calls], selected_users)
-        self.assertEqual(verify_calls, selected_users)
+        self.assertEqual(verify_calls, list(zip(selected_users, selected_targets)))
         self.assertTrue(plan["apply_result"]["applied"])
         self.assertTrue(all(row["verify_rc"] == 0 for row in plan["apply_result"]["results"]))
         self.assertTrue(all(not row["rollback_attempted"] for row in plan["apply_result"]["results"]))

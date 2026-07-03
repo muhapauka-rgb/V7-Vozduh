@@ -8507,7 +8507,7 @@ class AutoswitchPlanner:
                 "terminal_outcome_classification": "APPLY_FAILURE" if proc.returncode != 0 else "APPLY_COMPLETED_PENDING_VERIFICATION",
             }
             if proc.returncode == 0 and self.args.verify:
-                verify = self._verify_routes_for_apply(ip if emergency_mode else "")
+                verify = self._verify_routes_for_apply(ip if emergency_mode else "", target if emergency_mode else "")
                 row["verify_rc"] = verify.returncode
                 row["verify_output"] = verify.stdout[-4000:]
                 row["route_verification_scope"] = "selected_user" if emergency_mode else "global"
@@ -9333,9 +9333,9 @@ class AutoswitchPlanner:
             env=env,
         )
 
-    def _verify_routes(self, user_ip: str = "") -> subprocess.CompletedProcess[str]:
+    def _verify_routes(self, user_ip: str = "", expected_egress: str = "") -> subprocess.CompletedProcess[str]:
         if user_ip:
-            return self._verify_user_route(user_ip)
+            return self._verify_user_route(user_ip, expected_egress)
         return subprocess.run(
             ["v7-user-route-check"],
             text=True,
@@ -9345,15 +9345,15 @@ class AutoswitchPlanner:
             timeout=20,
         )
 
-    def _verify_routes_for_apply(self, user_ip: str = "") -> subprocess.CompletedProcess[str]:
+    def _verify_routes_for_apply(self, user_ip: str = "", expected_egress: str = "") -> subprocess.CompletedProcess[str]:
         if not user_ip:
             return self._verify_routes()
         try:
-            return self._verify_routes(user_ip)  # type: ignore[misc]
+            return self._verify_routes(user_ip, expected_egress)  # type: ignore[misc]
         except TypeError:
             return self._verify_routes()
 
-    def _verify_user_route(self, user_ip: str) -> subprocess.CompletedProcess[str]:
+    def _verify_user_route(self, user_ip: str, expected_egress: str = "") -> subprocess.CompletedProcess[str]:
         argv = ["v7-users-autoswitch", "--verify-user-route", user_ip]
         lines = ["===== V7 SCOPED USER ROUTE REALITY CHECK =====", now_iso(), f"user_ip={user_ip}"]
         if not SAFE_IP_RE.match(user_ip):
@@ -9364,9 +9364,10 @@ class AutoswitchPlanner:
         if not user or not user.enabled:
             lines.append(f"FAIL: user={user_ip} not found or disabled")
             return subprocess.CompletedProcess(argv, 1, stdout="\n".join(lines) + "\n")
-        egress = self._load_egress().get(str(user.current))
+        expected_id = str(expected_egress or user.current)
+        egress = self._load_egress().get(expected_id)
         if not egress or not egress.interface:
-            lines.append(f"FAIL: user={user_ip} unknown egress={user.current}")
+            lines.append(f"FAIL: user={user_ip} unknown egress={expected_id}")
             return subprocess.CompletedProcess(argv, 1, stdout="\n".join(lines) + "\n")
         assign_path = self.state_dir / f"user-{user_ip}.assign"
         assign_egress = ""
@@ -9377,7 +9378,7 @@ class AutoswitchPlanner:
                     break
         except OSError:
             assign_egress = "missing"
-        lines.append(f"USER={user.ip} TABLE={user.table} REGISTRY_EGRESS={user.current} ASSIGN_EGRESS={assign_egress or 'missing'} EXPECTED_DEV={egress.interface}")
+        lines.append(f"USER={user.ip} TABLE={user.table} REGISTRY_EGRESS={user.current} ASSIGN_EGRESS={assign_egress or 'missing'} EXPECTED_EGRESS={expected_id} EXPECTED_DEV={egress.interface}")
         if assign_egress and assign_egress != "missing" and assign_egress != user.current:
             lines.append(f"WARN: user={user.ip} registry/assign mismatch registry={user.current} assign={assign_egress}")
         else:

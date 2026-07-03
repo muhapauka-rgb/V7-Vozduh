@@ -4989,6 +4989,9 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(plan["summary"]["selected_moves"], 2)
         self.assertEqual(plan["operation"]["selected_move_count"], 2)
         self.assertEqual(plan["operation"]["selected_move_hash"], validation["selected_move_hash"])
+        self.assertTrue(all(move["operation_id"] == plan["operation"]["operation_id"] for move in plan["selected_moves"]))
+        self.assertTrue(all(move["selected_move_hash"] == validation["selected_move_hash"] for move in plan["selected_moves"]))
+        self.assertTrue(all(move["execution_mode"] == "emergency_failover" for move in plan["selected_moves"]))
         rehydration = plan["safety"]["committed_selected_moves_rehydration"]
         self.assertTrue(rehydration["active"])
         self.assertEqual(rehydration["source"], "approved_plan_lock")

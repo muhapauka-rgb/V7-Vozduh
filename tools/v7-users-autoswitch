@@ -6327,6 +6327,9 @@ class AutoswitchPlanner:
                 envelope["snapshot_bundle_hash"] = str(barrier.get("approved_snapshot_bundle_hash") or "")
         for index, move in enumerate(selected):
             move.setdefault("selected_move_index", index)
+            move.setdefault("operation_id", str(operation.get("operation_id") or ""))
+            move.setdefault("selected_move_hash", str(operation.get("selected_move_hash") or ""))
+            move.setdefault("execution_mode", "emergency_failover")
         safety["committed_selected_moves_rehydration"] = {
             "active": True,
             "source": "approved_plan_lock",
@@ -6693,17 +6696,19 @@ class AutoswitchPlanner:
             and clearance_max_selected_moves > 0
             and approved_selected_count > 0
         )
+        approved_validation_envelope = gate.get("approved_production_validation_envelope") if isinstance(gate.get("approved_production_validation_envelope"), dict) else {}
+        approved_validation_scope = approved_batch_scope and bool_value(approved_validation_envelope.get("ok"))
         max_allowed_selected = clearance_max_selected_moves if approved_batch_scope else 1
         live_users = {user.ip: user for user in self._load_users()}
         live_egress = self._load_egress()
         blockers: list[str] = []
         checked_moves: list[dict[str, Any]] = []
 
-        if not bool_value(gate.get("ok")):
+        if not bool_value(gate.get("ok")) and not approved_validation_scope:
             blockers.append("l3_authority_gate_not_authorized")
         if wake and not bool_value(wake.get("accepted")):
             blockers.append("l3_wake_not_accepted")
-        if incident and str(incident.get("incident_state") or "") != "READY_FOR_EXECUTION":
+        if incident and str(incident.get("incident_state") or "") != "READY_FOR_EXECUTION" and not approved_validation_scope:
             blockers.append("l3_incident_not_ready")
         if len(selected) < 1:
             blockers.append("l3_requires_selected_move")

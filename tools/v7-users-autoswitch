@@ -6288,17 +6288,43 @@ class AutoswitchPlanner:
         approved_lock = barrier.get("approved_plan_lock_validation") if isinstance(barrier.get("approved_plan_lock_validation"), dict) else {}
         if not approved_lock.get("present") or not bool_value(approved_lock.get("ok")):
             return []
+        snapshot_gate = safety.get("intelligence_snapshots") if isinstance(safety.get("intelligence_snapshots"), dict) else {}
+        if (
+            bool_value(snapshot_gate.get("stop_required"))
+            or bool_value(snapshot_gate.get("snapshot_gate_material_change"))
+            or str(snapshot_gate.get("snapshot_gate_decision") or "") == "block_material_snapshot_change"
+        ):
+            return []
         selected = [copy.deepcopy(move) for move in (approved_lock.get("selected_moves") or []) if isinstance(move, dict)]
         if not selected:
             return []
         operation = plan.get("operation") if isinstance(plan.get("operation"), dict) else {}
         approved_hash = str(approved_lock.get("selected_move_hash") or "")
         operation_hash = str(operation.get("selected_move_hash") or "")
-        if operation_hash and approved_hash and operation_hash != approved_hash:
-            return []
         operation_count = to_int(operation.get("selected_move_count"), 0)
+        if operation_hash and operation_count and approved_hash and operation_hash != approved_hash:
+            return []
         if operation_count and operation_count != len(selected):
             return []
+        if approved_hash:
+            operation["selected_move_hash"] = approved_hash
+        operation["selected_move_count"] = len(selected)
+        envelope = safety.get("atomic_execution_envelope") if isinstance(safety.get("atomic_execution_envelope"), dict) else {}
+        approved_source_hashes = barrier.get("approved_source_hashes") if isinstance(barrier.get("approved_source_hashes"), dict) else {}
+        if envelope:
+            if approved_hash:
+                envelope["selected_move_hash"] = approved_hash
+                envelope["runtime_snapshot_hash"] = sha256_json({
+                    "users_registry_hash": str(approved_source_hashes.get("users_registry") or ""),
+                    "egress_registry_hash": str(approved_source_hashes.get("egress_registry") or ""),
+                    "selected_move_hash": approved_hash,
+                })
+            envelope["selected_move_count"] = len(selected)
+            if approved_source_hashes:
+                envelope["source_bundle_hash"] = str(barrier.get("approved_source_bundle_hash") or sha256_json(approved_source_hashes))
+                envelope.setdefault("source_bundle", {})["source_hashes"] = copy.deepcopy(approved_source_hashes)
+            if barrier.get("approved_snapshot_bundle_hash"):
+                envelope["snapshot_bundle_hash"] = str(barrier.get("approved_snapshot_bundle_hash") or "")
         for index, move in enumerate(selected):
             move.setdefault("selected_move_index", index)
         safety["committed_selected_moves_rehydration"] = {
@@ -6307,6 +6333,8 @@ class AutoswitchPlanner:
             "reason": "valid_approved_plan_lock_committed_selected_moves",
             "selected_move_count": len(selected),
             "selected_move_hash": approved_hash,
+            "operation_identity_restored": True,
+            "atomic_envelope_selected_identity_restored": bool(envelope),
             "owner": "tools/v7-users-autoswitch.apply",
             "new_execution_path_created": False,
         }

@@ -45,9 +45,12 @@ That is wrong for governed execution after approval. The approved plan lock is t
 2. Looks for a present and valid `approved_plan_lock_validation`.
 3. Verifies selected move hash and selected move count against the operation identity.
 4. Rehydrates committed selected moves from the approved lock.
-5. Continues through the existing Atomic Envelope, L3 Eligibility, Runtime Apply, Verification, and Rollback path.
+5. Restores `operation.selected_move_hash` and `operation.selected_move_count` from the approved lock when the fresh planner result rewrote them to the empty selected-move identity.
+6. Refuses rehydration if the intelligence snapshot gate reports a material STOP/source change.
+7. Continues through the existing Atomic Envelope, L3 Eligibility, Runtime Apply, Verification, and Rollback path.
 
 If the approved lock is missing, invalid, hash-mismatched, count-mismatched, or has no selected moves, the previous fail-closed behavior remains.
+If the snapshot gate reports material source change, the previous fail-closed behavior remains.
 
 ## Tests
 

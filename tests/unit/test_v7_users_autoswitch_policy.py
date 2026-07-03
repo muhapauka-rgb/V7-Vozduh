@@ -4987,9 +4987,12 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual([call[0] for call in switch_calls], validation["selected_users"])
         self.assertEqual(len(apply_result["results"]), 2)
         self.assertEqual(plan["summary"]["selected_moves"], 2)
+        self.assertEqual(plan["operation"]["selected_move_count"], 2)
+        self.assertEqual(plan["operation"]["selected_move_hash"], validation["selected_move_hash"])
         rehydration = plan["safety"]["committed_selected_moves_rehydration"]
         self.assertTrue(rehydration["active"])
         self.assertEqual(rehydration["source"], "approved_plan_lock")
+        self.assertTrue(rehydration["operation_identity_restored"])
         self.assertFalse(rehydration["new_execution_path_created"])
 
     def test_egress_disabled_is_hard_ineligible(self):

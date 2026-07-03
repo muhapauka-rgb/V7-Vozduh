@@ -1633,7 +1633,12 @@ class AutoswitchPlanner:
         current = next((row for row in candidates if str(row.get("egress") or "") == current_id), {})
         target = next((row for row in candidates if str(row.get("egress") or "") == target_id), {})
         current_channel_failure = self._current_channel_failure_evidence(current, user_ip=user_ip)
-        if current and bool_value(current.get("eligible")):
+        if not bool_value(current_channel_failure.get("confirmed")) and current_id:
+            controlled_current_failure = self._controlled_certification_failure_context(current_id, user_ip=user_ip)
+            if bool_value(controlled_current_failure.get("confirmed")):
+                current_channel_failure = controlled_current_failure
+        current_channel_failure_confirmed = bool_value(current_channel_failure.get("confirmed"))
+        if current and bool_value(current.get("eligible")) and not current_channel_failure_confirmed:
             blockers.append("current_candidate_still_eligible")
         if not target or not bool_value(target.get("eligible")):
             blockers.append("safe_target_required")
@@ -1656,14 +1661,14 @@ class AutoswitchPlanner:
                 or status in {"DOWN", "FAIL", "ERROR", "NOT_STARTED"}
             ):
                 current_failures.append(row)
-        if not current_failures and not bool_value(current_channel_failure.get("confirmed")):
+        if not current_failures and not current_channel_failure_confirmed:
             blockers.append("required_service_failure_required")
         if bool_value(self.emergency_failover_policy.get("require_fresh_evidence", True)):
             stale_failures = [
                 row for row in current_failures
                 if str(((row.get("freshness") or {}).get("state") or "")) not in {"FRESH", "AGING"}
             ]
-            if stale_failures:
+            if stale_failures and not current_channel_failure_confirmed:
                 blockers.append("fresh_service_failure_evidence_required")
             freshness_state = str(((current_channel_failure.get("freshness") or {}).get("state") or ""))
             if current_channel_failure and freshness_state not in {"FRESH", "AGING"}:

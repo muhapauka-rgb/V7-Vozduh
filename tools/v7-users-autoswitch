@@ -6102,6 +6102,7 @@ class AutoswitchPlanner:
                     "approved_plan_lock_ok": bool_value(approved_plan_lock.get("ok")),
                     "approved_plan_lock_hash_source": str(approved_plan_lock.get("selected_move_hash_source") or ""),
                     "selected_moves_before_restore_barrier": len(selected_before_restore_barrier),
+                    "selected_moves_before_restore_barrier_rows": selected_before_restore_barrier,
                     "selected_moves_after_gate": len(selected),
                     "restore_barrier_execution_blocked": bool_value(restore_barrier_execution_gate.get("execution_blocked")),
                     "execution_blocker": str(

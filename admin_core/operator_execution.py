@@ -315,6 +315,10 @@ def selected_moves_from_plan(plan):
     approved_candidates = barrier.get("approved_candidate_moves_before_guard") or []
     if not isinstance(approved_candidates, list):
         approved_candidates = []
+    diagnostics = ((plan.get("safety") or {}).get("selected_moves_diagnostics") or {})
+    pre_restore_rows = diagnostics.get("selected_moves_before_restore_barrier_rows") if isinstance(diagnostics, dict) else []
+    if not isinstance(pre_restore_rows, list):
+        pre_restore_rows = []
     decisions = plan.get("decisions") or []
     constraints = None
     semantic_rows_by_identity = {}
@@ -336,6 +340,9 @@ def selected_moves_from_plan(plan):
     elif approved_candidates:
         source_rows = approved_candidates
         source_kind = "approved_candidate_moves_before_guard"
+    elif pre_restore_rows:
+        source_rows = pre_restore_rows
+        source_kind = "selected_moves_before_restore_barrier_rows"
     else:
         source_rows = decisions
         source_kind = "decisions"

@@ -26,6 +26,7 @@ from admin_core.operator_execution import (
     resolve_under_repo,
     rollback_operational_compensation_contract,
     runtime_recheck,
+    selected_moves_from_plan,
     sha256_bytes,
     sha256_file,
     sha256_json,
@@ -1045,6 +1046,49 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(packet["constraints"]["allowed_users"], ["10.7.0.2", "10.7.0.3"])
         self.assertEqual(packet["constraints"]["allowed_targets"], ["vless"])
         self.assertEqual([item["user_ip"] for item in packet["approved_plan_lock"]["selected_moves"]], ["10.7.0.2", "10.7.0.3"])
+
+    def test_packet_from_plan_uses_diagnostic_pre_restore_rows_before_decision_fallback(self):
+        plan = self.movement_plan()
+        plan["selected_moves"] = []
+        plan["safety"]["restore_barrier"]["clearance_selected_moves_before_guard"] = 0
+        plan["safety"]["restore_barrier"]["approved_candidate_moves_before_guard"] = []
+        plan["safety"].setdefault("selected_moves_diagnostics", {})["selected_moves_before_restore_barrier_rows"] = [
+            {
+                "user_ip": "10.7.0.2",
+                "current_egress": "wireguard-incident",
+                "recommended_egress": "awg0",
+                "move_type": "failover",
+            },
+            {
+                "user_ip": "10.7.0.3",
+                "current_egress": "wireguard-incident",
+                "recommended_egress": "vless",
+                "move_type": "failover",
+            },
+        ]
+        plan["decisions"] = [
+            {
+                "user_ip": f"10.7.0.{idx}",
+                "current_egress": "wireguard-incident",
+                "recommended_egress": "awg0",
+                "action": "switch",
+                "move_type": "failover",
+            }
+            for idx in range(2, 7)
+        ]
+
+        selected = selected_moves_from_plan(plan)
+        packet = packet_from_plan(
+            plan,
+            approval_author="operator-a",
+            approval_reviewer="operator-b",
+        )
+
+        self.assertEqual(selected["selected_move_count"], 2)
+        self.assertEqual([move["user_ip"] for move in selected["moves"]], ["10.7.0.2", "10.7.0.3"])
+        self.assertEqual(packet["expected"]["selected_move_count"], 2)
+        self.assertEqual(packet["constraints"]["allowed_users"], ["10.7.0.2", "10.7.0.3"])
+        self.assertEqual(packet["constraints"]["allowed_targets"], ["awg0", "vless"])
 
     def test_packet_from_plan_recomputes_nonzero_envelope_for_pre_barrier_moves(self):
         plan = self.movement_plan()

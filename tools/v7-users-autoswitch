@@ -6282,6 +6282,36 @@ class AutoswitchPlanner:
             "incident_source_continuity": incident_source_continuity,
         }
 
+    def _committed_selected_moves_from_approved_plan_lock(self, plan: dict[str, Any]) -> list[dict[str, Any]]:
+        safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
+        barrier = safety.get("restore_barrier") if isinstance(safety.get("restore_barrier"), dict) else {}
+        approved_lock = barrier.get("approved_plan_lock_validation") if isinstance(barrier.get("approved_plan_lock_validation"), dict) else {}
+        if not approved_lock.get("present") or not bool_value(approved_lock.get("ok")):
+            return []
+        selected = [copy.deepcopy(move) for move in (approved_lock.get("selected_moves") or []) if isinstance(move, dict)]
+        if not selected:
+            return []
+        operation = plan.get("operation") if isinstance(plan.get("operation"), dict) else {}
+        approved_hash = str(approved_lock.get("selected_move_hash") or "")
+        operation_hash = str(operation.get("selected_move_hash") or "")
+        if operation_hash and approved_hash and operation_hash != approved_hash:
+            return []
+        operation_count = to_int(operation.get("selected_move_count"), 0)
+        if operation_count and operation_count != len(selected):
+            return []
+        for index, move in enumerate(selected):
+            move.setdefault("selected_move_index", index)
+        safety["committed_selected_moves_rehydration"] = {
+            "active": True,
+            "source": "approved_plan_lock",
+            "reason": "valid_approved_plan_lock_committed_selected_moves",
+            "selected_move_count": len(selected),
+            "selected_move_hash": approved_hash,
+            "owner": "tools/v7-users-autoswitch.apply",
+            "new_execution_path_created": False,
+        }
+        return selected
+
     def _runtime_source_hashes(self, *, from_disk: bool = False) -> dict[str, str]:
         matrix = read_json(self.state_dir / "service-matrix.json", {"items": {}}) if from_disk else (self.matrix or {})
         quality_summary = read_json(Path(self.args.quality_summary_file), {"items": {}}) if from_disk else (self.quality_summary or {})
@@ -8208,28 +8238,33 @@ class AutoswitchPlanner:
         if mode == "observe":
             return {"applied": False, "reason": "mode_observe_blocks_apply"}
         if not plan.get("selected_moves"):
-            safety = plan.get("safety") or {}
-            barrier = safety.get("restore_barrier") or {}
-            approved_lock = barrier.get("approved_plan_lock_validation") or {}
-            diagnostics = safety.get("selected_moves_diagnostics") or {}
-            if approved_lock.get("present"):
-                approved_lock_reason = str(approved_lock.get("reason") or "")
-                if bool_value(approved_lock.get("ok")):
-                    approved_lock_reason = ""
-                reason = str(
-                    approved_lock_reason
-                    or barrier.get("approved_plan_lock_blocker")
-                    or barrier.get("clearance_guard_reason")
-                    or "approved_plan_lock_selected_moves_missing"
-                )
-                return {
-                    "applied": False,
-                    "reason": "approved_plan_lock_selected_moves_missing",
-                    "unsafe_blocker": reason,
-                    "selected_moves_diagnostics": diagnostics,
-                    "approved_plan_lock_validation": approved_lock,
-                }
-            return {"applied": False, "reason": "no_selected_moves"}
+            committed_moves = self._committed_selected_moves_from_approved_plan_lock(plan)
+            if committed_moves:
+                plan["selected_moves"] = committed_moves
+                plan.setdefault("summary", {})["selected_moves"] = len(committed_moves)
+            else:
+                safety = plan.get("safety") or {}
+                barrier = safety.get("restore_barrier") or {}
+                approved_lock = barrier.get("approved_plan_lock_validation") or {}
+                diagnostics = safety.get("selected_moves_diagnostics") or {}
+                if approved_lock.get("present"):
+                    approved_lock_reason = str(approved_lock.get("reason") or "")
+                    if bool_value(approved_lock.get("ok")):
+                        approved_lock_reason = ""
+                    reason = str(
+                        approved_lock_reason
+                        or barrier.get("approved_plan_lock_blocker")
+                        or barrier.get("clearance_guard_reason")
+                        or "approved_plan_lock_selected_moves_missing"
+                    )
+                    return {
+                        "applied": False,
+                        "reason": "approved_plan_lock_selected_moves_missing",
+                        "unsafe_blocker": reason,
+                        "selected_moves_diagnostics": diagnostics,
+                        "approved_plan_lock_validation": approved_lock,
+                    }
+                return {"applied": False, "reason": "no_selected_moves"}
         atomic_validation = self._validate_atomic_execution_envelope(plan)
         plan.setdefault("safety", {})["atomic_execution_envelope_validation"] = atomic_validation
         if not atomic_validation.get("ok"):

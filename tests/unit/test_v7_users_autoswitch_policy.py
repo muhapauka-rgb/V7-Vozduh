@@ -4946,6 +4946,52 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(len(selected["moves"]), 2)
         self.assertNotEqual(selected["selected_move_hash"], operator_execution.EMPTY_SELECTED_MOVES_HASH)
 
+    def test_apply_uses_valid_approved_lock_moves_when_fresh_plan_selected_moves_empty(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=2,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={
+                    "authority_class": "MEDIUM_BATCH",
+                    "certified_authority_class": "MEDIUM_BATCH",
+                    "authority_lifecycle_state": "MEDIUM_BATCH_CERTIFIED",
+                    "current_allowed_user_budget": 5,
+                },
+            )
+            args = self.args_for(root, ["--apply", "--mode", "guarded", "--max-selected-moves", "2"])
+            bootstrap = self.tool.AutoswitchPlanner(args).plan()
+            self.assertEqual(len(bootstrap["selected_moves"]), 2)
+            barrier = self.approved_restore_barrier_from_plan(bootstrap, max_selected_moves=2)
+            (root / "state" / "autoswitch-restore-barrier.json").write_text(
+                json.dumps(barrier),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+            validation = plan["safety"]["restore_barrier"]["approved_plan_lock_validation"]
+            self.assertTrue(validation["ok"])
+            self.assertEqual(validation["selected_move_count"], 2)
+
+            plan["selected_moves"] = []
+            plan["summary"]["selected_moves"] = 0
+            switch_calls = []
+            planner._run_switch = lambda ip, egress, reason: switch_calls.append((ip, egress, reason)) or subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+            planner._verify_routes = lambda: subprocess.CompletedProcess(["v7-user-route-check"], 0, stdout="verify ok\n")
+            planner._verify_emergency_required_services = lambda move: subprocess.CompletedProcess(["v7-service-matrix-test"], 0, stdout="service ok\n")
+
+            apply_result = planner.apply(plan)
+
+        self.assertTrue(apply_result["applied"])
+        self.assertEqual([call[0] for call in switch_calls], validation["selected_users"])
+        self.assertEqual(len(apply_result["results"]), 2)
+        self.assertEqual(plan["summary"]["selected_moves"], 2)
+        rehydration = plan["safety"]["committed_selected_moves_rehydration"]
+        self.assertTrue(rehydration["active"])
+        self.assertEqual(rehydration["source"], "approved_plan_lock")
+        self.assertFalse(rehydration["new_execution_path_created"])
+
     def test_egress_disabled_is_hard_ineligible(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

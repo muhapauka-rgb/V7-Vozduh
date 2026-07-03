@@ -1725,6 +1725,9 @@ class AutoswitchPlanner:
     def _current_channel_failure_evidence(self, current: dict[str, Any], *, user_ip: str) -> dict[str, Any]:
         if not isinstance(current, dict) or not current:
             return {}
+        controlled = self._controlled_certification_failure_context(str(current.get("egress") or ""), user_ip=user_ip)
+        if bool_value(controlled.get("confirmed")):
+            return controlled
         severity = current.get("severity_classification") if isinstance(current.get("severity_classification"), dict) else {}
         reason = str(severity.get("reason") or "")
         hard_block = bool_value(severity.get("hard_block"))
@@ -1739,7 +1742,6 @@ class AutoswitchPlanner:
             and str(freshness.get("state") or "") in {"FRESH", "AGING"}
         )
         if not (hard_block or severity_value == "FAIL" or reason):
-            controlled = self._controlled_certification_failure_context(str(current.get("egress") or ""), user_ip=user_ip)
             return controlled if bool_value(controlled.get("confirmed")) else {}
         return {
             "schema_version": "v7.confirmed-current-channel-failure-evidence.v1",

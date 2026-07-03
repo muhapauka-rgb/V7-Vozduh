@@ -1625,6 +1625,65 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         )
         self.assertFalse(plan["safety"]["emergency_failover_autonomy"]["broad_automation_enabled"])
 
+    def test_controlled_certification_failure_overrides_ok_state_reason_before_apply(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=1,
+                egress_1_state="maintenance",
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={
+                    "enabled": True,
+                    "max_users_per_run": 1,
+                    "max_users_per_channel": 1,
+                },
+            )
+            egress_path = root / "state" / "egress.registry"
+            egress_path.write_text(
+                egress_path.read_text(encoding="utf-8").replace(
+                    "id=1 interface=v7one enabled=1 state=maintenance role=GLOBAL_FAST",
+                    "id=1 interface=v7one enabled=0 state=maintenance role=GLOBAL_FAST controlled_certification_source=1 certification_group=medium-batch",
+                ),
+                encoding="utf-8",
+            )
+            users_path = root / "state" / "users.registry"
+            users_path.write_text(
+                "\n".join(
+                    row + " certification_user=1 certification_group=medium-batch"
+                    for row in users_path.read_text(encoding="utf-8").strip().splitlines()
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            state_path = root / "state" / "v7-state.json"
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            state["egress"]["1"]["diagnose_severity"] = "OK"
+            state["egress"]["1"]["diagnose_reason"] = "OK"
+            state_path.write_text(json.dumps(state), encoding="utf-8")
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--max-selected-moves", "1"])
+            )
+            plan = planner.plan()
+            eligibility = planner._l3_execution_eligibility(plan)
+
+        wake = plan["safety"]["l3_wake"]
+        gate = plan["safety"]["emergency_failover_autonomy"]
+        self.assertEqual(wake["decision"], "ACCEPT_WAKE")
+        self.assertIn("confirmed_current_channel_failure", wake["accepted_wake_sources"])
+        self.assertNotIn("required_service_failure_required", gate["blockers"])
+        self.assertEqual(eligibility["decision"], "EXECUTE")
+        self.assertTrue(eligibility["ok"])
+        self.assertNotIn("source_recovered_before_apply", eligibility["blockers"])
+        self.assertEqual(
+            eligibility["checked_moves"][0]["live_evidence_blockers"],
+            [],
+        )
+
     def test_plain_maintenance_does_not_produce_confirmed_current_channel_failure(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

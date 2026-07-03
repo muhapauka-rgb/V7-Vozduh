@@ -72,6 +72,54 @@ class GovernedCanaryCliTest(unittest.TestCase):
         source_index = captured["command"].index("--source-egress")
         self.assertEqual(captured["command"][source_index + 1], "wireguard-1779454504-c43409")
 
+    def test_l3_restore_barrier_preflight_reset_archives_completed_lock_when_lease_inactive(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            barrier_path = root / "autoswitch-restore-barrier.json"
+            barrier = {
+                "owner": module.operator_execution.CANONICAL_CLEARANCE_OWNER,
+                "operation_id": "govexec-old",
+                "clearance_expected_selected_moves": 5,
+                "approved_plan_lock": {"lock_id": "apl-old"},
+            }
+            barrier_path.write_text(json.dumps(barrier), encoding="utf-8")
+
+            result = module.reset_completed_restore_barrier_for_fresh_l3_validation(
+                barrier_path,
+                {"active": False, "status": "EXECUTION_FINISHED"},
+            )
+            current = json.loads(barrier_path.read_text(encoding="utf-8"))
+            backup_exists = Path(result["backup_path"]).exists()
+
+        self.assertTrue(result["reset_performed"])
+        self.assertEqual(result["approved_operation_id"], "govexec-old")
+        self.assertEqual(result["approved_selected_move_count"], 5)
+        self.assertEqual(current, {})
+        self.assertTrue(backup_exists)
+
+    def test_l3_restore_barrier_preflight_reset_preserves_active_lease_lock(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            barrier_path = root / "autoswitch-restore-barrier.json"
+            barrier = {
+                "owner": module.operator_execution.CANONICAL_CLEARANCE_OWNER,
+                "operation_id": "govexec-active",
+                "approved_plan_lock": {"lock_id": "apl-active"},
+            }
+            barrier_path.write_text(json.dumps(barrier), encoding="utf-8")
+
+            result = module.reset_completed_restore_barrier_for_fresh_l3_validation(
+                barrier_path,
+                {"active": True, "status": "ACTIVE"},
+            )
+            current = json.loads(barrier_path.read_text(encoding="utf-8"))
+
+        self.assertFalse(result["reset_performed"])
+        self.assertEqual(result["reason"], "active_execution_lease_preserves_restore_barrier")
+        self.assertEqual(current["operation_id"], "govexec-active")
+
     def transaction_args(self, root: Path):
         return argparse.Namespace(
             state_dir=str(root / "state"),
@@ -500,6 +548,103 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(locked_move["important_services"], ["telegram"])
         self.assertEqual(locked_move["candidates"][0]["egress"], "awg3")
         self.assertTrue(apply_calls[0]["emergency_failover_autonomy"])
+
+    def test_l3_production_validation_resets_completed_barrier_before_fresh_batch_plan(self):
+        module = load_cli_module()
+        stale_moves = [
+            {"user_ip": f"10.7.0.{idx}", "current_egress": "openvpn-old", "recommended_egress": "vless", "move_type": "failover"}
+            for idx in range(2, 7)
+        ]
+        fresh_moves = [
+            {"user_ip": f"10.7.0.{idx}", "current_egress": "openvpn-failed", "recommended_egress": "vless", "move_type": "failover"}
+            for idx in range(16, 26)
+        ]
+        authority_budget = {
+            "current_allowed_user_budget": 10,
+            "authority_class": "MEDIUM_BATCH",
+            "certified_authority_class": "MEDIUM_BATCH",
+            "authority_lifecycle_state": "PROMOTED",
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root)
+            args.execute_l3_production_validation = True
+            args.confirm_l3_production_validation = "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED"
+            args.max_users = 10
+            stale_barrier = {
+                "owner": module.operator_execution.CANONICAL_CLEARANCE_OWNER,
+                "operation_id": "govexec-stale-five",
+                "clearance_expected_selected_moves": 5,
+                "approved_plan_lock": {"lock_id": "apl-stale-five", "selected_moves": stale_moves},
+            }
+            barrier_path = root / "state" / "autoswitch-restore-barrier.json"
+            barrier_path.write_text(json.dumps(stale_barrier), encoding="utf-8")
+            apply_calls = []
+            original_plan = module.run_l3_production_validation_plan
+            original_apply = module.run_autoswitch_apply
+            try:
+                def fake_plan(**kwargs):
+                    self.assertEqual(json.loads(barrier_path.read_text(encoding="utf-8")), {})
+                    return {
+                        "ok": True,
+                        "returncode": 0,
+                        "command": ["l3-plan"],
+                        "payload": self.ready_l3_plan(moves=fresh_moves, authority_budget=authority_budget),
+                    }
+
+                def fake_apply(**kwargs):
+                    apply_calls.append(kwargs)
+                    return {
+                        "ok": True,
+                        "returncode": 0,
+                        "payload": {
+                            "operation": {
+                                "operation_id": "l3-runtime-medium-apply",
+                                "terminal_state": "SUCCESS",
+                                "terminal_reason": "l3_medium_batch_validated",
+                            },
+                            "apply_result": {
+                                "applied": True,
+                                "results": [
+                                    {"user_ip": move["user_ip"], "from": move["current_egress"], "to": move["recommended_egress"], "rc": 0, "verify_rc": 0}
+                                    for move in fresh_moves
+                                ],
+                            },
+                            "l3_learning_closure": {
+                                "materialized": True,
+                                "capability_state": {
+                                    "production_proven": True,
+                                    "certified": False,
+                                    "active_capability": False,
+                                },
+                            },
+                        },
+                    }
+
+                module.run_l3_production_validation_plan = fake_plan
+                module.run_autoswitch_apply = fake_apply
+                result = module.execute_l3_production_validation(
+                    args,
+                    state_dir=root / "state",
+                    event_dir=root / "events",
+                    snapshot_root=root / "state" / "intelligence",
+                    audit_dir=root / "audit",
+                    lease_file=root / "state" / "operator-execution-lease.json",
+                )
+            finally:
+                module.run_l3_production_validation_plan = original_plan
+                module.run_autoswitch_apply = original_apply
+            barrier = json.loads(barrier_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(result["final_verdict"], "L3_PRODUCTION_PROVEN")
+        self.assertTrue(result["restore_barrier_preflight_reset"]["reset_performed"])
+        self.assertEqual(result["transition"]["selected_move_count"], 10)
+        self.assertEqual(result["users"], [move["user_ip"] for move in fresh_moves])
+        self.assertEqual(result["users_moved"], 10)
+        self.assertEqual(barrier["allowed_users"], [move["user_ip"] for move in fresh_moves])
+        self.assertEqual(len(apply_calls), 1)
+        self.assertEqual(apply_calls[0]["max_users"], 10)
 
     def test_l3_production_validation_rejects_learning_proven_when_verification_failed(self):
         module = load_cli_module()

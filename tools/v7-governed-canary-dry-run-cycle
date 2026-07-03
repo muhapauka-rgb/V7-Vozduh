@@ -567,6 +567,62 @@ def transaction_stop(reason: str, *, cycle: dict[str, Any] | None = None, **extr
     }
 
 
+def reset_completed_restore_barrier_for_fresh_l3_validation(
+    restore_barrier_file: Path,
+    execution_lease_state: dict[str, Any],
+) -> dict[str, Any]:
+    result = {
+        "schema_version": "v7.l3-restore-barrier-preflight-reset.v1",
+        "owner": "tools/v7-governed-canary-dry-run-cycle",
+        "active": False,
+        "reset_performed": False,
+        "reason": "no_completed_restore_barrier_to_reset",
+        "restore_barrier_file": str(restore_barrier_file),
+        "new_owner_created": False,
+        "new_runtime_path_created": False,
+    }
+    if bool(execution_lease_state.get("active")):
+        result["reason"] = "active_execution_lease_preserves_restore_barrier"
+        return result
+    current = read_json(restore_barrier_file, {})
+    if not isinstance(current, dict) or not current:
+        result["reason"] = "restore_barrier_empty_or_missing"
+        return result
+    if not isinstance(current.get("approved_plan_lock"), dict):
+        result["reason"] = "restore_barrier_has_no_approved_plan_lock"
+        return result
+    owner = str(current.get("owner") or "")
+    if owner and owner != operator_execution.CANONICAL_CLEARANCE_OWNER:
+        result["reason"] = "restore_barrier_owner_not_canonical_clearance_owner"
+        result["blocking_owner"] = owner
+        return result
+    try:
+        restore_barrier_file.parent.mkdir(parents=True, exist_ok=True)
+        backup_path = restore_barrier_file.with_name(
+            f"{restore_barrier_file.name}.completed-l3-{operator_execution.stable_id('rb', current)}.json"
+        )
+        backup_path.write_text(
+            json.dumps(current, ensure_ascii=True, sort_keys=True, separators=(",", ":")) + "\n",
+            encoding="utf-8",
+        )
+        restore_barrier_file.write_text("{}\n", encoding="utf-8")
+    except OSError as exc:
+        result["active"] = True
+        result["reason"] = "restore_barrier_preflight_reset_failed"
+        result["error"] = str(exc)
+        return result
+    result.update({
+        "active": True,
+        "reset_performed": True,
+        "reason": "completed_l3_restore_barrier_archived_before_fresh_validation",
+        "backup_path": str(backup_path),
+        "approved_plan_lock_id": str((current.get("approved_plan_lock") or {}).get("lock_id") or ""),
+        "approved_operation_id": str(current.get("operation_id") or ""),
+        "approved_selected_move_count": to_int(current.get("clearance_expected_selected_moves"), 0),
+    })
+    return result
+
+
 def authorized_l3_budget_from_plan(plan: dict[str, Any]) -> dict[str, Any]:
     safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
     gate = safety.get("authority_budget_gate") if isinstance(safety.get("authority_budget_gate"), dict) else {}
@@ -972,6 +1028,15 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
         return transaction_stop("active_execution_lease_exists", execution_lease_state=existing_state)
 
     restore_barrier_file = Path(args.restore_barrier_file) if args.restore_barrier_file else state_dir / "autoswitch-restore-barrier.json"
+    restore_barrier_preflight_reset = reset_completed_restore_barrier_for_fresh_l3_validation(
+        restore_barrier_file,
+        existing_state if isinstance(existing_state, dict) else {},
+    )
+    if restore_barrier_preflight_reset.get("reason") == "restore_barrier_preflight_reset_failed":
+        return transaction_stop(
+            "l3_restore_barrier_preflight_reset_failed",
+            restore_barrier_preflight_reset=restore_barrier_preflight_reset,
+        )
     l3_plan_run = run_l3_production_validation_plan(
         state_dir=state_dir,
         event_dir=event_dir,
@@ -1146,6 +1211,7 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
         "new_backlog_item_created": False,
         "transition": transition,
         "l3_plan_run": l3_plan_run,
+        "restore_barrier_preflight_reset": restore_barrier_preflight_reset,
         "execution_lease_create_result": lease_create_result,
         "clearance_result": clearance_result,
         "autoswitch_apply": apply_run,

@@ -1596,6 +1596,13 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 + "\n",
                 encoding="utf-8",
             )
+            state_path = root / "state" / "v7-state.json"
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            state["users"] = [
+                {"ip": f"10.0.0.{idx + 2}", "current": "1", "table": str(100 + idx), "enabled": "1"}
+                for idx in range(3)
+            ]
+            state_path.write_text(json.dumps(state), encoding="utf-8")
             planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--emergency-failover-autonomy", "--max-selected-moves", "2"]))
             plan = planner.plan()
 

@@ -772,6 +772,13 @@ def l3_production_validation_proof_quality(apply_run: dict[str, Any], apply_payl
     operation = apply_payload.get("operation") if isinstance(apply_payload.get("operation"), dict) else {}
     rows = [row for row in (apply_result.get("results") or []) if isinstance(row, dict)]
 
+    def row_verified(row: dict[str, Any]) -> bool:
+        if int(row.get("verify_rc", 1)) != 0:
+            return False
+        if row.get("service_verify_rc") is not None and int(row.get("service_verify_rc", 1)) != 0:
+            return False
+        return True
+
     if not apply_run.get("ok"):
         blockers.append("autoswitch_apply_command_failed")
     if not apply_result.get("applied"):
@@ -787,7 +794,7 @@ def l3_production_validation_proof_quality(apply_run: dict[str, Any], apply_payl
             "to": str(row.get("to") or ""),
         }
         for row in rows
-        if int(row.get("verify_rc", 1)) != 0
+        if not row_verified(row)
     ]
     if verification_failures:
         blockers.append("verification_failed")
@@ -813,7 +820,7 @@ def l3_production_validation_proof_quality(apply_run: dict[str, Any], apply_payl
             "to": str(row.get("to") or ""),
         }
         for row in rows
-        if int(row.get("verify_rc", 1)) == 0
+        if row_verified(row)
     ]
     return {
         "ok": not blockers,
@@ -1200,7 +1207,12 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
         "runtime_mutation_performed": bool(apply_result.get("applied")),
         "restore_barrier_written_now": bool((clearance_result.get("clearance_result") or {}).get("ok")),
         "apply_executed": bool(apply_result.get("applied")),
-        "verification_result": "PASS" if results and all(int(row.get("verify_rc", 1)) == 0 for row in results if isinstance(row, dict)) else ("NOT_RUN" if not results else "FAIL"),
+        "verification_result": "PASS" if results and all(
+            int(row.get("verify_rc", 1)) == 0
+            and (row.get("service_verify_rc") is None or int(row.get("service_verify_rc", 1)) == 0)
+            for row in results
+            if isinstance(row, dict)
+        ) else ("NOT_RUN" if not results else "FAIL"),
         "rollback_result": operation.get("rollback_verdict", "NOT_REQUIRED"),
         "production_proof_quality": production_proof_quality,
         "l3_learning_closure": l3_learning,

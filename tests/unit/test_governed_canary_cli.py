@@ -78,6 +78,34 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(module.autoswitch_apply_timeout_seconds(10), 360)
         self.assertEqual(module.autoswitch_apply_timeout_seconds(100), 900)
 
+    def test_l3_production_proof_counts_service_verify_failure_as_verification_failure(self):
+        module = load_cli_module()
+        proof = module.l3_production_validation_proof_quality(
+            {"ok": True, "returncode": 0},
+            {
+                "apply_result": {
+                    "applied": True,
+                    "results": [
+                        {
+                            "user_ip": "10.7.0.18",
+                            "from": "wireguard-1779454504-c43409",
+                            "to": "vless",
+                            "verify_rc": 0,
+                            "service_verify_rc": 1,
+                            "rollback_rc": 1,
+                        }
+                    ],
+                },
+                "operation": {"rollback_verdict": "ROLLBACK_FAILED"},
+            },
+        )
+
+        self.assertFalse(proof["ok"])
+        self.assertIn("verification_failed", proof["blockers"])
+        self.assertIn("rollback_failed", proof["blockers"])
+        self.assertEqual(proof["verified_success_count"], 0)
+        self.assertEqual(proof["verification_failures"][0]["user_ip"], "10.7.0.18")
+
     def test_run_autoswitch_apply_uses_batch_aware_timeout(self):
         module = load_cli_module()
         captured = {}

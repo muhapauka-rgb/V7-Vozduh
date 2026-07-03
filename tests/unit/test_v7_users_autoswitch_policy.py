@@ -2498,6 +2498,61 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertIn("emergency_failover_cooldown_active", plan["safety"]["emergency_failover_autonomy"]["blockers"])
         self.assertEqual(plan["summary"]["selected_moves"], 0)
 
+    def test_active_l3_failed_source_incident_cooldown_does_not_trap_affected_user(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                users=2,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "failover_quarantine": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True, "cooldown_seconds": 180, "max_users_per_run": 1, "max_users_per_channel": 1},
+            )
+            policy = json.loads((root / "policy.json").read_text(encoding="utf-8"))
+            policy["switch"]["cooldown_seconds"] = 180
+            (root / "policy.json").write_text(json.dumps(policy), encoding="utf-8")
+            (root / "events" / "switch-history.jsonl").write_text(
+                json.dumps({"ts": self.tool.now_iso(), "user_ip": "10.0.0.2", "from": "vless", "to": "1"}) + "\n",
+                encoding="utf-8",
+            )
+            (root / "state" / "l3-runtime-state.json").write_text(
+                json.dumps({
+                    "schema_version": "v7.l3-runtime-state.v1",
+                    "incidents": {
+                        "incident-open-1": {
+                            "incident_key": "incident-open-1",
+                            "status": "OPEN",
+                            "authority_object": "EMERGENCY_FAILOVER_AUTONOMY",
+                            "failed_sources": ["1"],
+                            "incident_source": "1",
+                            "failed_required_services": ["telegram"],
+                            "updated_at": "2999-01-01T00:00:00+00:00",
+                        }
+                    },
+                    "processed_event_ids": [],
+                    "capability": {},
+                }),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--emergency-failover-autonomy"]))
+            plan = planner.plan()
+
+        self.assertEqual(plan["summary"]["selected_moves"], 1)
+        move = plan["selected_moves"][0]
+        self.assertEqual(move["current_egress"], "1")
+        self.assertEqual(move["move_type"], "failover")
+        self.assertIn("l3_failed_source_cooldown_override", move["reason"])
+        gate = plan["safety"]["emergency_failover_autonomy"]
+        self.assertEqual(gate["selected_moves_after_gate"], 1)
+        self.assertNotIn("emergency_failover_cooldown_active", gate["blockers"])
+        self.assertIn("confirmed_current_channel_failure", plan["safety"]["l3_wake"]["accepted_wake_sources"])
+
     def test_emergency_failover_autonomy_blocks_stale_service_evidence(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

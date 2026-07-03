@@ -1119,6 +1119,66 @@ class AutoswitchPlanner:
             "owner": selected["owner"],
         }
 
+    def _l3_failed_source_cooldown_override_context(self, user_ip: str, current_egress: str) -> dict[str, Any]:
+        context = self._l3_active_incident_source_context()
+        requested_source = str(getattr(self.args, "source_egress", "") or "").strip()
+        if (
+            requested_source
+            and (
+                not bool_value(context.get("active"))
+                or str(context.get("incident_source") or "") != requested_source
+            )
+        ):
+            requested_scope = self._l3_failed_source_scope(requested_source)
+            if bool_value(requested_scope.get("source_failed")):
+                context = {
+                    "schema_version": "v7.l3-incident-source-continuity.v1",
+                    "active": True,
+                    "reason": "requested_failed_source_scope",
+                    "incident_key": "",
+                    "incident_source": requested_source,
+                    "incident_status": "OBSERVED",
+                    "failed_required_services": list(requested_scope.get("required_service_failures") or []),
+                    "affected_users": list(requested_scope.get("affected_users") or []),
+                    "affected_users_count": to_int(requested_scope.get("affected_users_count"), 0),
+                    "scope": requested_scope,
+                    "continuity_source": "requested_source_egress",
+                    "producer": "tools/v7-users-autoswitch._l3_failed_source_cooldown_override_context",
+                    "consumer": "tools/v7-users-autoswitch._decision_for_user",
+                    "owner": "tools/v7-users-autoswitch",
+                }
+        incident_source = str(context.get("incident_source") or "")
+        affected_users = {str(item) for item in (context.get("affected_users") or []) if str(item)}
+        scope = context.get("scope") if isinstance(context.get("scope"), dict) else {}
+        allowed = (
+            bool_value(context.get("active"))
+            and str(context.get("continuity_source") or "") == "persisted_incident"
+            and bool_value(scope.get("source_failed"))
+            and incident_source
+            and str(current_egress or "") == incident_source
+            and (not affected_users or str(user_ip or "") in affected_users)
+        )
+        if not allowed:
+            return {
+                "allowed": False,
+                "reason": "not_active_failed_source_incident_user",
+                "incident_source": incident_source,
+            }
+        return {
+            "schema_version": "v7.l3-failed-source-cooldown-override.v1",
+            "allowed": True,
+            "reason": "active_failed_source_incident_evacuation",
+            "incident_key": str(context.get("incident_key") or ""),
+            "incident_source": incident_source,
+            "user_ip": str(user_ip or ""),
+            "scope_source_failed": bool_value(scope.get("source_failed")),
+            "current_channel_failure": bool_value(scope.get("current_channel_failure")),
+            "required_service_failure": bool_value(scope.get("required_service_failure")),
+            "owner": "tools/v7-users-autoswitch",
+            "producer": "tools/v7-users-autoswitch._l3_active_incident_source_context",
+            "consumer": "tools/v7-users-autoswitch._decision_for_user/_emergency_failover_move_evidence",
+        }
+
     def _l3_external_wake_events(self, *, late_window_seconds: int) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
         paths = [
@@ -1604,12 +1664,14 @@ class AutoswitchPlanner:
             blockers.append("target_required_services_not_ready")
         cooldown = max(0, to_int(self.emergency_failover_policy.get("cooldown_seconds"), 180))
         cooldown_remaining = 0
+        cooldown_override = self._l3_failed_source_cooldown_override_context(user_ip, current_id)
         last = self.last_switch.get(user_ip)
         if cooldown > 0 and last:
             age = max(0.0, time.time() - last)
             if age < cooldown:
                 cooldown_remaining = int(cooldown - age)
-                blockers.append("emergency_failover_cooldown_active")
+                if not bool_value(cooldown_override.get("allowed")):
+                    blockers.append("emergency_failover_cooldown_active")
 
         return {
             "user_ip": user_ip,
@@ -1618,6 +1680,7 @@ class AutoswitchPlanner:
             "ok": not blockers,
             "blockers": sorted(set(blockers)),
             "cooldown_remaining_seconds": cooldown_remaining,
+            "cooldown_override": cooldown_override if bool_value(cooldown_override.get("allowed")) else {},
             "current_channel_failure": current_channel_failure,
             "current_failures": [
                 {
@@ -7484,6 +7547,8 @@ class AutoswitchPlanner:
         frozen, freeze_reason = self._user_frozen(user)
         if freeze_reason:
             reason.append(freeze_reason)
+        l3_cooldown_override = self._l3_failed_source_cooldown_override_context(user.ip, user.current)
+        l3_failover_cooldown_ok = cooldown_ok or bool_value(l3_cooldown_override.get("allowed"))
 
         if current and current.egress.canary_reserved and current.eligible:
             reason.append("canary_reserved_current_hold_requires_separate_drain_approval")
@@ -7501,12 +7566,14 @@ class AutoswitchPlanner:
                 failover_candidates.sort(key=lambda c: (c.eligible, c.score), reverse=True)
                 self._mark_best_available_pool(failover_candidates)
                 best_failover = next((c for c in failover_candidates if c.eligible), None)
-                if best_failover and best_failover.egress.id != user.current and cooldown_ok:
+                if best_failover and best_failover.egress.id != user.current and l3_failover_cooldown_ok:
                     action = "switch"
                     move_type = "failover"
                     recommended = best_failover.egress.id
                     recommended_score = best_failover.score
                     reason.append("current_egress_not_eligible")
+                    if not cooldown_ok and bool_value(l3_cooldown_override.get("allowed")):
+                        reason.append("l3_failed_source_cooldown_override")
                     if current and bool_value(self.restore_barrier.get("failover_quarantine")):
                         if bool_value(self.restore_barrier.get("post_ttl_blocking")):
                             reason.append("restore_barrier_post_ttl_execution_blocked")

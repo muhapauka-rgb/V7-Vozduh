@@ -42,6 +42,18 @@ The project now revolves around:
 - workflow orchestration evolution;
 - engineering automation that improves how V7 itself is built.
 
+The project now has two parallel strategic execution objectives inside the
+same Controlled Production Certification Program:
+
+1. Continue Capability Certification.
+2. Continuously automate the engineering process that performs Capability
+   Certification.
+
+Neither objective waits for the other. Capability Certification continues
+through the current ladder, while Engineering Automation continuously reduces
+the engineering effort required to earn the next capability. This is not a new
+project, not a parallel roadmap, and not a new architecture.
+
 ## 2. Project Philosophy
 
 These principles are permanent unless a canonical owner changes them through
@@ -149,7 +161,54 @@ Reality -> Evidence -> Capability -> Authority -> Production
   -> Certification -> Automation Audit -> Workflow Audit -> Next Mission
 ```
 
-## 3. System Architecture
+## 3. Current Strategic Initiatives
+
+V7 currently has three strategic initiatives, two active and one future.
+
+### Active: Capability Certification Program
+
+Purpose:
+
+Continue the governed certification ladder:
+
+```text
+CANARY
+  -> SMALL_BATCH
+  -> MEDIUM_BATCH
+  -> LARGE_BATCH
+  -> XLARGE_BATCH
+  -> FULL_INCIDENT
+  -> Routine Production Operation
+```
+
+This objective earns product capability through real controlled production
+execution, Authority recognition, Verification, Rollback / No-Rollback
+Closure, Learning, Production Restoration, and consumer synchronization.
+
+### Active: Engineering Automation Program
+
+Purpose:
+
+Every certification mission must reduce the engineering effort required for the
+next certification mission.
+
+Every repeated engineering workflow becomes a candidate for governed
+automation. Engineering Automation develops continuously during certification.
+It does not wait until certification is finished.
+
+This is an active execution stream inside the Controlled Production
+Certification Program. It does not create a new Runtime, Planner, Authority,
+Certification Program, OMP, truth source, roadmap, or execution path.
+
+### Not Started: Future Production Autonomy Expansion
+
+Purpose:
+
+Production autonomy grows only after certification proves it and Authority
+recognizes it. Future production autonomy must not be enabled simply because
+Engineering Automation or batch certification improved.
+
+## 4. System Architecture
 
 The current architecture is an evidence-driven governed routing control plane.
 
@@ -258,7 +317,7 @@ Breakpoint
   -> Resume interrupted certification phase
 ```
 
-## 4. Project Evolution
+## 5. Project Evolution
 
 The project evolved conceptually, not simply chronologically.
 
@@ -315,7 +374,7 @@ Obsolete ideas:
 - "Timer or cron is legal wake authority by itself."
 - "A new owner is acceptable before existing-owner proof."
 
-## 5. Current Certification State
+## 6. Current Certification State
 
 Current canonical certification ladder:
 
@@ -394,7 +453,7 @@ existing Authority owner with explicit confirmation to promote to
 `XLARGE_BATCH`, then resume Phase 6 and run the existing governed L3 owner with
 `--max-users 50` against the controlled incident source.
 
-## 6. Engineering Program
+## 7. Engineering Program
 
 Engineering work now follows the execution-completion shape:
 
@@ -436,7 +495,7 @@ The certification program continues after implementation. A patch is not a
 terminal outcome. Tests are not terminal. Deploy is not terminal. The phase is
 resumed and must reach PASS, HOLD, BLOCKED, or CANONICAL_IMPOSSIBILITY.
 
-## 7. Engineering Operating System
+## 8. Engineering Operating System
 
 The Engineering Operating System describes how V7 engineering work is
 performed. It is separate from architecture, Runtime, Planner, Authority, and
@@ -549,6 +608,37 @@ Engineering missions continue until a terminal engineering outcome exists:
 Do not stop at "root cause found". Do not stop at "patch ready". Do not stop at
 "tests pass". Do not stop at "deployed". Resume the interrupted phase.
 
+### Engineering Improvement Law
+
+Every engineering mission must ask:
+
+- What repeated engineering work occurred?
+- Can existing owners already automate it?
+- Can this workflow become a governed pipeline?
+- Can this automation improve the next certification mission?
+
+Every engineering mission must leave the engineering system more capable than
+before. This improvement may be an implemented owner extension, an Automation
+Candidate, a Pipeline Candidate, a classified debt item, or a proven reason
+that the work must remain manual.
+
+The active loop is:
+
+```text
+Certification Mission
+  -> Capability Earned
+  -> Automation Audit
+  -> Workflow Audit
+  -> Engineering Automation Audit
+  -> Automation Candidate
+  -> Pipeline Candidate
+  -> Engineering Improvement
+  -> Next Certification Mission
+```
+
+This loop is active now. It runs inside the existing Controlled Production
+Certification Program and must not create a separate automation program.
+
 ### Project Communication Rules
 
 Future Codex should communicate like an execution engineer:
@@ -585,7 +675,7 @@ Engineering Automation is not another Certification system.
 It is the natural evolution of the Controlled Production Certification Program.
 Its purpose is to automate engineering itself while preserving existing owners.
 
-Canonical future pipeline:
+Active target loop:
 
 ```text
 Breakpoint
@@ -640,7 +730,7 @@ Architecture change is always the final option. It is allowed only when the
 current architecture cannot legally express the required behavior after
 existing-owner discovery and extension have failed with proof.
 
-## 8. Automation Evolution
+## 9. Automation Evolution
 
 Automation Evolution is intrinsic to certification.
 
@@ -679,7 +769,7 @@ Program State / Passport views:
 Manual work is allowed when justified. Unexplained manual work is not allowed
 to disappear.
 
-## 9. Workflow Evolution
+## 10. Workflow Evolution
 
 Workflow Evolution audits sequences of manual actions, not only individual
 commands.
@@ -722,12 +812,23 @@ restore controlled source
 
 This is a Pipeline Candidate, not a reason to stop certification.
 
-## 10. Engineering Automation
+## 11. Engineering Automation
 
-Engineering Automation is the next evolution of the certification program. It
-is not a separate product and not a new architecture.
+Engineering Automation is ACTIVE.
 
-Long-term target pipeline:
+It is not a separate product and not a new architecture.
+
+It is no longer only a future idea. It is now a parallel strategic execution
+objective inside the Controlled Production Certification Program.
+
+Every engineering mission must now produce two outputs:
+
+1. Increase V7 capability.
+2. Reduce the engineering effort required to earn the next capability.
+
+This is now part of normal execution.
+
+Active target pipeline:
 
 ```text
 Breakpoint
@@ -757,7 +858,30 @@ The goal is that common certification engineering flows become governed
 pipelines. This must happen through existing owners and certification, not by
 adding hidden automation or bypassing safety.
 
-## 11. Current Automation Status
+## 12. Current Engineering Automation Target
+
+Current engineering objective:
+
+Transform the repeated certification engineering workflow into governed
+engineering pipelines.
+
+Current pipeline targets:
+
+- Breakpoint Investigation Pipeline
+- Owner Resolution Pipeline
+- Regression Pipeline
+- Deploy Pipeline
+- Resume Pipeline
+- Certification Preparation Pipeline
+- Authority Readiness Pipeline
+- Evidence Collection Pipeline
+- Consumer Synchronization Pipeline
+
+Do not implement these immediately by default. Identify them, classify them,
+track them, and gradually replace manual engineering work through existing
+owners as certification and safety permit.
+
+## 13. Current Automation Status
 
 Already automated or owner-callable:
 
@@ -788,7 +912,7 @@ Repeated workflows that should become governed pipelines:
 - evidence collection and report skeleton pipeline;
 - post-capability consumer synchronization pipeline.
 
-## 12. Current Owner Landscape
+## 14. Current Owner Landscape
 
 Significantly hardened during certification:
 
@@ -821,7 +945,7 @@ Owners that may deserve review after FULL_INCIDENT certification:
 Do not redesign the owner landscape during active certification unless an
 implementation proves a canonical contradiction.
 
-## 13. Current Project State
+## 15. Current Project State
 
 Current Phase:
 
@@ -829,10 +953,37 @@ Current Phase:
 Phase 6: XLARGE_BATCH Certification
 ```
 
+Current Certification Phase:
+
+```text
+Phase 6: XLARGE_BATCH Certification
+```
+
+Current Engineering Automation Phase:
+
+```text
+ACTIVE: identify, classify, and convert repeated certification engineering
+workflows into governed pipeline candidates through existing owners.
+```
+
 Current Capability:
 
 ```text
 LARGE_BATCH=25 certified; XLARGE_BATCH=50 pending.
+```
+
+Current Capability Target:
+
+```text
+XLARGE_BATCH=50 certification, then FULL_INCIDENT certification.
+```
+
+Current Engineering Automation Target:
+
+```text
+Transform repeated Phase certification workflows into governed engineering
+pipelines: certification preparation, Authority readiness, evidence collection,
+owner resolution, regression, deploy, resume, and consumer synchronization.
 ```
 
 Current Authority:
@@ -927,11 +1078,14 @@ Production Readiness:
 
 Engineering Automation Readiness:
 
+- Engineering Automation is active.
 - The target shape is clear.
 - The repeated workflows are known.
 - They are not yet implemented as single governed pipelines.
+- Each future engineering mission must produce both capability advancement and
+  engineering-process improvement evidence.
 
-## 14. Future Roadmap
+## 16. Future Roadmap
 
 This is not a new roadmap. It is the already-approved continuation.
 
@@ -943,12 +1097,6 @@ This is not a new roadmap. It is the already-approved continuation.
 4. If PASS, proceed to Phase 7 `FULL_INCIDENT`.
 5. Certify FULL_INCIDENT or prove canonical impossibility.
 6. Enter routine production operation only after FULL_INCIDENT and Authority recognition.
-
-### Engineering Automation
-
-Implement owner-mapped pipelines for repeated certification engineering
-workflows after they are justified and certified. Do not let engineering
-automation bypass production safety.
 
 ### Future Runtime Autonomy
 
@@ -963,11 +1111,12 @@ Production Restoration, and OMP.
 
 ### Future Engineering Evolution
 
-Use every implementation mission to improve both V7 and the engineering system.
-Pipeline candidates should be converted into governed tools only when existing
-owners and certification support them.
+Engineering Automation is already in progress and is no longer listed as
+future work. Future Engineering Evolution refers only to later improvements
+after the active Engineering Automation stream has produced certified governed
+pipelines.
 
-## 15. Immutable Rules
+## 17. Immutable Rules
 
 Never do the following:
 
@@ -1003,7 +1152,7 @@ Never do the following:
 - Never terminate an investigation because a blocker was found.
 - Never call a patch, deploy, report, or root cause the terminal project state.
 
-## 16. Handoff: How A Future Codex Continues
+## 18. Handoff: How A Future Codex Continues
 
 If you know nothing except this document, continue like this.
 

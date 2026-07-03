@@ -2553,6 +2553,74 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertNotIn("emergency_failover_cooldown_active", gate["blockers"])
         self.assertIn("confirmed_current_channel_failure", plan["safety"]["l3_wake"]["accepted_wake_sources"])
 
+    def test_requested_controlled_failed_source_cooldown_does_not_trap_certification_user(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                users=3,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "failover_quarantine": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True, "cooldown_seconds": 180, "max_users_per_run": 2, "max_users_per_channel": 2},
+                authority_budget={
+                    "authority_class": "SMALL_BATCH",
+                    "certified_authority_class": "SMALL_BATCH",
+                    "authority_lifecycle_state": "CERTIFIED",
+                    "current_allowed_user_budget": 2,
+                },
+            )
+            policy = json.loads((root / "policy.json").read_text(encoding="utf-8"))
+            policy["switch"]["cooldown_seconds"] = 180
+            (root / "policy.json").write_text(json.dumps(policy), encoding="utf-8")
+            egress_path = root / "state" / "egress.registry"
+            egress_path.write_text(
+                egress_path.read_text(encoding="utf-8").replace(
+                    "id=1 interface=v7one enabled=1 state=enabled role=GLOBAL_FAST",
+                    "id=1 interface=v7one enabled=0 role=GLOBAL_FAST controlled_certification_source=1 certification_group=medium-batch",
+                ),
+                encoding="utf-8",
+            )
+            users_path = root / "state" / "users.registry"
+            users_path.write_text(
+                "\n".join(
+                    row + " certification_user=1 certification_group=medium-batch"
+                    for row in users_path.read_text(encoding="utf-8").strip().splitlines()
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            state_path = root / "state" / "v7-state.json"
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            state["users"] = [
+                {"ip": f"10.0.0.{idx + 2}", "current": "1", "table": str(100 + idx), "enabled": "1"}
+                for idx in range(3)
+            ]
+            state_path.write_text(json.dumps(state), encoding="utf-8")
+            (root / "events" / "switch-history.jsonl").write_text(
+                "\n".join(
+                    json.dumps({"ts": self.tool.now_iso(), "user_ip": f"10.0.0.{idx + 2}", "from": "vless", "to": "1"})
+                    for idx in range(3)
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--max-selected-moves", "2", "--source-egress", "1"])
+            )
+            plan = planner.plan()
+
+        self.assertEqual(plan["summary"]["selected_moves"], 2)
+        self.assertEqual(plan["safety"]["l3_wake"]["decision"], "ACCEPT_WAKE")
+        self.assertIn("confirmed_current_channel_failure", plan["safety"]["l3_wake"]["accepted_wake_sources"])
+        self.assertTrue(all(move["current_egress"] == "1" for move in plan["selected_moves"]))
+        self.assertTrue(all("l3_failed_source_cooldown_override" in move["reason"] for move in plan["selected_moves"]))
+
     def test_emergency_failover_autonomy_blocks_stale_service_evidence(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

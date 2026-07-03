@@ -1122,11 +1122,13 @@ class AutoswitchPlanner:
     def _l3_failed_source_cooldown_override_context(self, user_ip: str, current_egress: str) -> dict[str, Any]:
         context = self._l3_active_incident_source_context()
         requested_source = str(getattr(self.args, "source_egress", "") or "").strip()
+        existing_scope = context.get("scope") if isinstance(context.get("scope"), dict) else {}
         if (
             requested_source
             and (
                 not bool_value(context.get("active"))
                 or str(context.get("incident_source") or "") != requested_source
+                or not bool_value(existing_scope.get("source_failed"))
             )
         ):
             requested_scope = self._l3_failed_source_scope(requested_source)
@@ -1150,9 +1152,15 @@ class AutoswitchPlanner:
         incident_source = str(context.get("incident_source") or "")
         affected_users = {str(item) for item in (context.get("affected_users") or []) if str(item)}
         scope = context.get("scope") if isinstance(context.get("scope"), dict) else {}
+        continuity_source = str(context.get("continuity_source") or "")
+        controlled_failure = scope.get("controlled_certification_failure") if isinstance(scope.get("controlled_certification_failure"), dict) else {}
+        cooldown_override_source_allowed = (
+            continuity_source in {"persisted_incident", "requested_source_egress"}
+            or (continuity_source == "confirmed_observation" and bool_value(controlled_failure.get("confirmed")))
+        )
         allowed = (
             bool_value(context.get("active"))
-            and str(context.get("continuity_source") or "") == "persisted_incident"
+            and cooldown_override_source_allowed
             and bool_value(scope.get("source_failed"))
             and incident_source
             and str(current_egress or "") == incident_source

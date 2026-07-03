@@ -671,6 +671,11 @@ def transaction_packet_constraints_ok(packet: dict[str, Any], cycle: dict[str, A
     }
 
 
+def autoswitch_apply_timeout_seconds(max_users: int) -> int:
+    users = max(1, int(max_users or 1))
+    return min(900, max(90, 60 + users * 30))
+
+
 def run_autoswitch_apply(
     *,
     state_dir: Path,
@@ -687,6 +692,7 @@ def run_autoswitch_apply(
     authority_generation: str = "",
     emergency_failover_autonomy: bool = False,
 ) -> dict[str, Any]:
+    timeout_seconds = autoswitch_apply_timeout_seconds(max_users)
     command = [
         str(planner_observe_executable()),
         "--mode",
@@ -723,7 +729,7 @@ def run_autoswitch_apply(
     if emergency_failover_autonomy:
         command.insert(1, "--emergency-failover-autonomy")
     try:
-        proc = subprocess.run(command, capture_output=True, text=True, timeout=90)
+        proc = subprocess.run(command, capture_output=True, text=True, timeout=timeout_seconds)
     except (OSError, subprocess.TimeoutExpired) as exc:
         return {
             "ok": False,
@@ -731,6 +737,7 @@ def run_autoswitch_apply(
             "returncode": 124,
             "error": str(exc),
             "payload": {},
+            "timeout_seconds": timeout_seconds,
         }
     try:
         payload = json.loads(proc.stdout)
@@ -743,6 +750,7 @@ def run_autoswitch_apply(
         "payload": payload if isinstance(payload, dict) else {},
         "stderr_tail": proc.stderr[-1200:],
         "stdout_tail": proc.stdout[-1200:] if not isinstance(payload, dict) else "",
+        "timeout_seconds": timeout_seconds,
     }
 
 

@@ -72,6 +72,44 @@ class GovernedCanaryCliTest(unittest.TestCase):
         source_index = captured["command"].index("--source-egress")
         self.assertEqual(captured["command"][source_index + 1], "wireguard-1779454504-c43409")
 
+    def test_autoswitch_apply_timeout_scales_with_batch_size(self):
+        module = load_cli_module()
+        self.assertEqual(module.autoswitch_apply_timeout_seconds(1), 90)
+        self.assertEqual(module.autoswitch_apply_timeout_seconds(10), 360)
+        self.assertEqual(module.autoswitch_apply_timeout_seconds(100), 900)
+
+    def test_run_autoswitch_apply_uses_batch_aware_timeout(self):
+        module = load_cli_module()
+        captured = {}
+
+        class FakeProc:
+            returncode = 0
+            stdout = "{}"
+            stderr = ""
+
+        def fake_run(command, **kwargs):
+            captured["command"] = command
+            captured["timeout"] = kwargs.get("timeout")
+            return FakeProc()
+
+        original_run = module.subprocess.run
+        try:
+            module.subprocess.run = fake_run
+            result = module.run_autoswitch_apply(
+                state_dir=Path("/state"),
+                event_dir=Path("/events"),
+                snapshot_root=Path("/state/intelligence"),
+                restore_barrier_file=Path("/state/autoswitch-restore-barrier.json"),
+                max_users=10,
+                emergency_failover_autonomy=True,
+            )
+        finally:
+            module.subprocess.run = original_run
+
+        self.assertEqual(captured["timeout"], 360)
+        self.assertEqual(result["timeout_seconds"], 360)
+        self.assertIn("--emergency-failover-autonomy", captured["command"])
+
     def test_l3_restore_barrier_preflight_reset_archives_completed_lock_when_lease_inactive(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

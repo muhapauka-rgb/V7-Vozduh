@@ -3715,6 +3715,7 @@ class AutoswitchPlanner:
             failed = [
                 item for item in failed_all
                 if str(item.get("verification_scope") or "") == "selected_user_route_check"
+                and str(item.get("verification_expected_egress") or "") == str(egress_id)
             ]
             row["incoming"] = incoming[-200:]
             row["failed_verifications"] = failed_all[-50:]
@@ -8511,6 +8512,8 @@ class AutoswitchPlanner:
                 row["verify_rc"] = verify.returncode
                 row["verify_output"] = verify.stdout[-4000:]
                 row["route_verification_scope"] = "selected_user" if emergency_mode else "global"
+                if emergency_mode:
+                    row["route_verification_expected_egress"] = target
                 service_verify = None
                 if verify.returncode == 0 and emergency_mode:
                     service_verify = self._verify_emergency_required_services(move)
@@ -9295,18 +9298,22 @@ class AutoswitchPlanner:
             if result.get("verify_rc") not in (None, 0):
                 failed = target_row.setdefault("failed_verifications", [])
                 verification_scope = "selected_user_route_check" if str(result.get("route_verification_scope") or "") == "selected_user" else "global_route_check"
-                failed.append({
+                failure_record = {
                     "ts": ts,
                     "user_ip": ip,
                     "verify_rc": result.get("verify_rc"),
                     "verification_scope": verification_scope,
                     "verification_failure_reason": str(result.get("verification_failure_reason") or ""),
-                })
+                }
+                if result.get("route_verification_expected_egress"):
+                    failure_record["verification_expected_egress"] = str(result.get("route_verification_expected_egress") or "")
+                failed.append(failure_record)
                 target_row["failed_verifications"] = failed[-50:]
                 scoped_failures = [
                     item for item in target_row["failed_verifications"]
                     if time.time() - parse_ts(item.get("ts")) <= 3600
                     and str(item.get("verification_scope") or "") == "selected_user_route_check"
+                    and str(item.get("verification_expected_egress") or "") == target
                 ]
                 if len(scoped_failures) >= to_int(self.safety_policy.get("egress_quarantine_failed_verifications_1h"), 2):
                     target_row["quarantine_until"] = self._future_iso(to_int(self.safety_policy.get("egress_quarantine_seconds"), 3600))

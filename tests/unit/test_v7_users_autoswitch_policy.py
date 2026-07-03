@@ -3104,6 +3104,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     "rc": 0,
                     "verify_rc": 1,
                     "route_verification_scope": "selected_user",
+                    "route_verification_expected_egress": "vless",
                     "verification_failure_reason": "route_verify_failed",
                 },
                 {
@@ -3114,6 +3115,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     "rc": 0,
                     "verify_rc": 1,
                     "route_verification_scope": "selected_user",
+                    "route_verification_expected_egress": "vless",
                     "verification_failure_reason": "route_verify_failed",
                 },
             ])
@@ -3124,6 +3126,48 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(target["quarantine_reason"], "selected_user_route_verification_failed")
         self.assertEqual(target["failed_verifications_1h"], 2)
         self.assertEqual(target["failed_verifications_1h_unattributed"], 0)
+
+    def test_legacy_selected_user_failures_without_expected_target_do_not_keep_quarantine(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            safety_path = root / "state" / "autoswitch-safety.json"
+            safety_path.write_text(
+                json.dumps({
+                    "schema_version": 1,
+                    "users": {},
+                    "egress": {
+                        "vless": {
+                            "failed_verifications": [
+                                {
+                                    "ts": "2999-01-01T00:00:00+00:00",
+                                    "user_ip": "10.0.0.2",
+                                    "verify_rc": 1,
+                                    "verification_scope": "selected_user_route_check",
+                                    "verification_failure_reason": "route_verify_failed",
+                                },
+                                {
+                                    "ts": "2999-01-01T00:00:01+00:00",
+                                    "user_ip": "10.0.0.3",
+                                    "verify_rc": 1,
+                                    "verification_scope": "selected_user_route_check",
+                                    "verification_failure_reason": "route_verify_failed",
+                                },
+                            ],
+                            "quarantine_until": "2999-01-01T01:00:00+00:00",
+                        }
+                    },
+                }),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root))
+            compacted = planner._load_safety()
+
+        target = compacted["egress"]["vless"]
+        self.assertIsNone(target.get("quarantine_until"))
+        self.assertEqual(target["failed_verifications_1h"], 0)
+        self.assertEqual(target["failed_verifications_1h_unattributed"], 2)
+        self.assertEqual(target["quarantine_clear_reason"], "unattributed_route_verification_not_counted")
 
     def test_legacy_unscoped_failed_verifications_do_not_keep_quarantine(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -2,21 +2,41 @@
 set -euo pipefail
 
 STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
-EGRESS_REG="${V7_USERS_REGISTRY:-$STATE_DIR/egress.registry}"
+EGRESS_REG="${V7_EGRESS_REGISTRY:-$STATE_DIR/egress.registry}"
+USERS_REG="${V7_USERS_REGISTRY:-$STATE_DIR/users.registry}"
 FLAGS="$STATE_DIR/egress-flags.state"
 EGRESS_ID="${1:-}"
 STATE="${2:-}"
 APPLY=0
 CONTROLLED_CERTIFICATION=0
+CERTIFICATION_USERS=""
+CERTIFICATION_GROUP="controlled-production"
 
 usage() {
-  echo "Usage: v7-egress-set-state <egress_id> <enabled|disabled|maintenance> [--apply] [--controlled-certification]" >&2
+  echo "Usage: v7-egress-set-state <egress_id> <enabled|disabled|maintenance|certification-scope> [--apply] [--controlled-certification] [--certification-users ip1,ip2] [--certification-group name]" >&2
 }
 
-for arg in "${@:3}"; do
+while [ "$#" -gt 2 ]; do
+  arg="$3"
   case "$arg" in
-    --apply) APPLY=1 ;;
-    --controlled-certification) CONTROLLED_CERTIFICATION=1 ;;
+    --apply)
+      APPLY=1
+      shift
+      ;;
+    --controlled-certification)
+      CONTROLLED_CERTIFICATION=1
+      shift
+      ;;
+    --certification-users)
+      [ "$#" -ge 4 ] || { echo "missing value for --certification-users" >&2; usage; exit 1; }
+      CERTIFICATION_USERS="$4"
+      shift 2
+      ;;
+    --certification-group)
+      [ "$#" -ge 4 ] || { echo "missing value for --certification-group" >&2; usage; exit 1; }
+      CERTIFICATION_GROUP="$4"
+      shift 2
+      ;;
     *)
       echo "unknown option: $arg" >&2
       usage
@@ -26,6 +46,14 @@ for arg in "${@:3}"; do
 done
 
 safe_id() {
+  [[ "${1:-}" =~ ^[A-Za-z0-9_.-]{1,64}$ ]]
+}
+
+safe_ip_list() {
+  [[ "${1:-}" =~ ^[0-9A-Fa-f:.,]+$ ]]
+}
+
+safe_group() {
   [[ "${1:-}" =~ ^[A-Za-z0-9_.-]{1,64}$ ]]
 }
 
@@ -216,9 +244,14 @@ rebuild_killswitch() {
 [ -n "$EGRESS_ID" ] && [ -n "$STATE" ] || { usage; exit 1; }
 safe_id "$EGRESS_ID" || { echo "unsafe egress id: $EGRESS_ID"; exit 1; }
 case "$STATE" in
-  enabled|disabled|maintenance) ;;
+  enabled|disabled|maintenance|certification-scope) ;;
   *) usage; exit 1 ;;
 esac
+safe_group "$CERTIFICATION_GROUP" || { echo "unsafe certification group: $CERTIFICATION_GROUP"; exit 1; }
+if [ "$STATE" = "certification-scope" ]; then
+  [ -n "$CERTIFICATION_USERS" ] || { echo "missing --certification-users for certification-scope"; exit 1; }
+  safe_ip_list "$CERTIFICATION_USERS" || { echo "unsafe certification users list"; exit 1; }
+fi
 
 line="$(grep "^id=${EGRESS_ID} " "$EGRESS_REG" 2>/dev/null || true)"
 [ -n "$line" ] || { echo "FAIL: egress not found: $EGRESS_ID"; exit 1; }
@@ -240,6 +273,95 @@ echo "type=$type"
 echo "interface=$ifname"
 echo "config=$config"
 echo "enabled_now=$enabled_now"
+
+if [ "$STATE" = "certification-scope" ]; then
+  [ -r "$USERS_REG" ] || { echo "FAIL: users registry not readable: $USERS_REG"; exit 1; }
+  missing_certification_users="$(tr ',' '\n' <<< "$CERTIFICATION_USERS" | awk 'NF {print}' | while read -r ip; do
+    awk -v ip="$ip" -v e="$EGRESS_ID" '
+      $0 ~ "enabled=1" {
+        row_ip=""; current=""
+        for (i=1;i<=NF;i++) {
+          if ($i ~ /^ip=/) row_ip=substr($i,4)
+          if ($i ~ /^current=/) current=substr($i,9)
+        }
+        if (row_ip == ip && current == e) found=1
+      }
+      END {exit(found ? 0 : 1)}
+    ' "$USERS_REG" || echo "$ip"
+  done | paste -sd ',' -)"
+  if [ -n "$missing_certification_users" ]; then
+    echo "ACTION=blocked"
+    echo "reason=certification_users_not_enabled_on_source"
+    echo "missing_or_wrong_source=$missing_certification_users"
+    exit 2
+  fi
+
+  echo "certification_group=$CERTIFICATION_GROUP"
+  echo "certification_users=$CERTIFICATION_USERS"
+  if [ "$APPLY" -ne 1 ]; then
+    echo "MODE=dry_run"
+    echo "would_mark_source=$EGRESS_ID"
+    tr ',' '\n' <<< "$CERTIFICATION_USERS" | awk 'NF {print "would_mark_user="$0}'
+    echo "ACTION=none"
+    echo "To apply: v7-egress-set-state $EGRESS_ID certification-scope --certification-users $CERTIFICATION_USERS --certification-group $CERTIFICATION_GROUP --apply"
+    exit 0
+  fi
+
+  backup_ts="$(date +%Y%m%d-%H%M%S)"
+  cp -a "$EGRESS_REG" "$EGRESS_REG.backup.v7-egress-certification-scope.$backup_ts"
+  cp -a "$USERS_REG" "$USERS_REG.backup.v7-egress-certification-scope.$backup_ts"
+
+  tmp_egress="$(mktemp "$STATE_DIR/.egress.registry.certification.XXXXXX")"
+  tmp_users="$(mktemp "$STATE_DIR/.users.registry.certification.XXXXXX")"
+
+  awk -v e="$EGRESS_ID" -v group="$CERTIFICATION_GROUP" '
+    function has_field(key,    i) {
+      for (i=1;i<=NF;i++) if ($i == key || $i ~ ("^" key "=")) return 1
+      return 0
+    }
+    {
+      if ($0 ~ ("^id=" e " ")) {
+        if (!has_field("controlled_certification_source")) $0=$0 " controlled_certification_source=1"
+        if (!has_field("certification_group")) $0=$0 " certification_group=" group
+      }
+      print
+    }
+  ' "$EGRESS_REG" > "$tmp_egress"
+
+  awk -v users_csv="$CERTIFICATION_USERS" -v group="$CERTIFICATION_GROUP" '
+    BEGIN {
+      n=split(users_csv, parts, ",")
+      for (i=1;i<=n;i++) wanted[parts[i]]=1
+    }
+    function has_field(key,    i) {
+      for (i=1;i<=NF;i++) if ($i == key || $i ~ ("^" key "=")) return 1
+      return 0
+    }
+    {
+      ip=""
+      for (i=1;i<=NF;i++) if ($i ~ /^ip=/) ip=substr($i,4)
+      if (wanted[ip]) {
+        if (!has_field("certification_user")) $0=$0 " certification_user=1"
+        if (!has_field("certification_group")) $0=$0 " certification_group=" group
+      }
+      print
+    }
+  ' "$USERS_REG" > "$tmp_users"
+
+  cat "$tmp_egress" > "$EGRESS_REG"
+  cat "$tmp_users" > "$USERS_REG"
+  rm -f "$tmp_egress" "$tmp_users"
+
+  if command -v v7-audit-log >/dev/null 2>&1; then
+    v7-audit-log "egress_certification_scope" "egress" "id=$EGRESS_ID group=$CERTIFICATION_GROUP users=$CERTIFICATION_USERS" object_type=egress object_id="$EGRESS_ID" result=OK >/dev/null 2>&1 || true
+  fi
+
+  echo "MODE=apply"
+  echo "ACTION=certification_scope_marked"
+  echo "egress_registry_backup=$EGRESS_REG.backup.v7-egress-certification-scope.$backup_ts"
+  echo "users_registry_backup=$USERS_REG.backup.v7-egress-certification-scope.$backup_ts"
+  exit 0
+fi
 
 if [ "$STATE" != "enabled" ]; then
   if command -v v7-egress-guard >/dev/null 2>&1; then

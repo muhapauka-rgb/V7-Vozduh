@@ -145,6 +145,109 @@ class V7EgressLifecycleGuardTest(unittest.TestCase):
             self.assertIn("reason=users_assigned", result.stdout)
             self.assertIn("ACTION=blocked", result.stdout)
 
+    def test_certification_scope_dry_run_does_not_write_markers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = self.write_state(
+                Path(tmp),
+                "id=wg1 protocol=wireguard type=interface interface=wg1 enabled=1 config=/tmp/wg1.conf\n",
+                "ip=10.7.0.2 current=wg1 table=100 enabled=1\n",
+            )
+
+            result = self.run_set_state(
+                state,
+                "wg1",
+                "certification-scope",
+                "--certification-users",
+                "10.7.0.2",
+                "--certification-group",
+                "medium-batch",
+            )
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("MODE=dry_run", result.stdout)
+            self.assertIn("would_mark_source=wg1", result.stdout)
+            self.assertNotIn("controlled_certification_source=1", (state / "egress.registry").read_text(encoding="utf-8"))
+            self.assertNotIn("certification_user=1", (state / "users.registry").read_text(encoding="utf-8"))
+
+    def test_certification_scope_blocks_user_not_on_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = self.write_state(
+                Path(tmp),
+                "id=wg1 protocol=wireguard type=interface interface=wg1 enabled=1 config=/tmp/wg1.conf\n",
+                "ip=10.7.0.2 current=vless table=100 enabled=1\n",
+            )
+
+            result = self.run_set_state(
+                state,
+                "wg1",
+                "certification-scope",
+                "--certification-users",
+                "10.7.0.2",
+                "--apply",
+            )
+
+            self.assertEqual(result.returncode, 2, result.stdout)
+            self.assertIn("reason=certification_users_not_enabled_on_source", result.stdout)
+
+    def test_certification_scope_apply_marks_source_and_users(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = self.write_state(
+                Path(tmp),
+                "id=wg1 protocol=wireguard type=interface interface=wg1 enabled=1 config=/tmp/wg1.conf\n",
+                "\n".join([
+                    "ip=10.7.0.2 current=wg1 table=100 enabled=1",
+                    "ip=10.7.0.3 current=wg1 table=101 enabled=1",
+                    "ip=10.7.0.4 current=vless table=102 enabled=1",
+                    "",
+                ]),
+            )
+
+            result = self.run_set_state(
+                state,
+                "wg1",
+                "certification-scope",
+                "--certification-users",
+                "10.7.0.2,10.7.0.3",
+                "--certification-group",
+                "medium-batch",
+                "--apply",
+            )
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("ACTION=certification_scope_marked", result.stdout)
+            egress = (state / "egress.registry").read_text(encoding="utf-8")
+            users = (state / "users.registry").read_text(encoding="utf-8")
+            self.assertIn("controlled_certification_source=1", egress)
+            self.assertIn("certification_group=medium-batch", egress)
+            self.assertIn("ip=10.7.0.2 current=wg1 table=100 enabled=1 certification_user=1 certification_group=medium-batch", users)
+            self.assertIn("ip=10.7.0.3 current=wg1 table=101 enabled=1 certification_user=1 certification_group=medium-batch", users)
+            self.assertIn("ip=10.7.0.4 current=vless table=102 enabled=1\n", users)
+
+    def test_certification_scope_then_controlled_maintenance_passes_guard(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = self.write_state(
+                Path(tmp),
+                "id=wg1 protocol=wireguard type=interface interface=wg1 enabled=1 config=/tmp/wg1.conf\n",
+                "ip=10.7.0.2 current=wg1 table=100 enabled=1\n",
+            )
+
+            mark = self.run_set_state(
+                state,
+                "wg1",
+                "certification-scope",
+                "--certification-users",
+                "10.7.0.2",
+                "--apply",
+            )
+            self.assertEqual(mark.returncode, 0, mark.stdout + mark.stderr)
+
+            maintenance = self.run_set_state(state, "wg1", "maintenance", "--controlled-certification")
+
+            self.assertEqual(maintenance.returncode, 0, maintenance.stdout + maintenance.stderr)
+            self.assertIn("V7_EGRESS_GUARD=OK", maintenance.stdout)
+            self.assertIn("reason=assigned_certification_users_scoped", maintenance.stdout)
+            self.assertIn("MODE=dry_run", maintenance.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

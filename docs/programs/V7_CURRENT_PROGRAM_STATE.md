@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Controlled Production Certification Program
-State captured: 2026-07-03T09:13:34+0700
-Source: Controlled Production Certification Program execution. Phase 0, Phase 1, Phase 2, and Phase 3 are PASS. Phase 4 MEDIUM_BATCH execution ran Owner Resolution for `v7-egress-guard reason=users_assigned`. Owner Resolution reached terminal classification `POLICY_PROHIBITION`; the required resolution was converted into an Engineering Mission and implemented locally through existing egress lifecycle owners. `v7-egress-guard` now has an explicit fail-closed controlled-certification path for marked Certification Sources with only marked Certification Users assigned; ordinary assigned-user lifecycle mutation remains blocked. `v7-egress-set-state` can invoke that controlled path only with explicit `--controlled-certification`. The existing safe deploy owner was extended locally to include the egress lifecycle executables in the approved deploy package. Tests passed. No production movement, source mutation, Runtime Apply, deployment, new owner, Planner, Runtime, Authority, Restore Barrier owner, execution path, truth source, or broad automation was created.
+State captured: 2026-07-03T09:18:43+0700
+Source: Controlled Production Certification Program execution. Phase 0, Phase 1, Phase 2, and Phase 3 are PASS. Phase 4 MEDIUM_BATCH execution ran Owner Resolution for `v7-egress-guard reason=users_assigned`. Owner Resolution reached terminal classification `POLICY_PROHIBITION`; the required resolution was converted into Engineering Missions. The controlled-certification guard extension and safe-deploy allowlist extension were committed, pushed, safely deployed, and post-deploy convergence is PASS at commit `20b888aeecba6ac4326a97cd9ff6c2437c2553a5`. The next implementation gap was marker materialization: production registry markers must not be handwritten, so `tools/v7-egress-set-state` was extended locally with a tested `certification-scope` action to mark Certification Source and Certification Users with backups and audit through the existing owner. No production marker materialization, source mutation, Runtime Apply, user movement, new owner, Planner, Runtime, Authority, Restore Barrier owner, execution path, truth source, or broad automation was created by the local marker extension.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -78,10 +78,10 @@ If Production Maturity produces `NO_CHANGE`, `BLOCK`, or `INVALID_EVIDENCE`, Cur
 
 | Field | Current Value |
 | --- | --- |
-| Current phase | `CONTROLLED_PRODUCTION_CERTIFICATION_PHASE4_IMPLEMENTATION_READY` |
+| Current phase | `CONTROLLED_PRODUCTION_CERTIFICATION_PHASE4_MARKER_OWNER_EXTENSION_LOCAL_READY` |
 | Architecture phase | `COMPLETE` |
-| Current stage | `MEDIUM_BATCH_CONTROLLED_SOURCE_EXTENSION_LOCAL_READY` |
-| Next stage | `PHASE4_SAFE_DEPLOY_AND_CONTROLLED_SOURCE_CERTIFICATION_MARKER_MATERIALIZATION` |
+| Current stage | `MEDIUM_BATCH_CERTIFICATION_MARKER_MATERIALIZATION_LOCAL_READY` |
+| Next stage | `PHASE4_SAFE_DEPLOY_MARKER_OWNER_EXTENSION_AND_MATERIALIZE_CERTIFICATION_SCOPE` |
 | autonomous_execution_program_status | `CANONICAL_INTEGRATED` |
 | autonomous_runtime_model_status | `CANONICAL_INTEGRATED` |
 | autonomy_architecture_status | `AUTONOMY_ARCHITECTURE_COMPLETE` |
@@ -92,35 +92,35 @@ If Production Maturity produces `NO_CHANGE`, `BLOCK`, or `INVALID_EVIDENCE`, Cur
 | l3_phase3_status | `COMPLETE` |
 | l3_implementation_status | `COMPLETE` |
 | runtime_operating_system_status | `STABLE_CANONICAL` |
-| Current bottleneck | `CONTROLLED_CERTIFICATION_EGRESS_LIFECYCLE_EXTENSION_LOCAL_READY_PENDING_SAFE_DEPLOY_AND_MARKER_MATERIALIZATION` |
+| Current bottleneck | `CERTIFICATION_MARKER_MATERIALIZATION_OWNER_EXTENSION_LOCAL_READY_PENDING_SAFE_DEPLOY` |
 | Blocking Owner | `v7-egress-guard` invoked through `v7-egress-set-state`. |
 | Owner Resolution State | `CLOSED_POLICY_PROHIBITION` |
 | Terminal Root Cause | `POLICY_PROHIBITION`: the existing egress lifecycle owner intentionally blocks maintenance/disabled while enabled users remain assigned. |
-| Required Resolution | Commit, push, and safe-deploy the existing-owner controlled-certification egress lifecycle extension; then materialize Certification Source / Certification User markers through existing production registry owners and resume Phase 4 from the interrupted MEDIUM_BATCH mission. |
-| Expected Next Engineering Step | `SAFE_DEPLOY_CONTROLLED_CERTIFICATION_EGRESS_LIFECYCLE_EXTENSION` |
-| Current highest leverage implementation | `CONTROLLED_CERTIFICATION_EGRESS_LIFECYCLE_EXTENSION_LOCAL_IMPLEMENTED_TESTED` |
-| Current highest leverage action | Deliver the local egress lifecycle extension through canonical git/GitHub/safe-deploy owners, verify deployed hashes, then use existing registry owners to mark the controlled Certification Source and Certification Users before resuming Phase 4 MEDIUM_BATCH. |
+| Required Resolution | Commit, push, and safe-deploy the existing-owner `certification-scope` marker materialization extension; then use that deployed owner to mark the controlled Certification Source and Certification Users before resuming Phase 4 from the interrupted MEDIUM_BATCH mission. |
+| Expected Next Engineering Step | `SAFE_DEPLOY_CERTIFICATION_MARKER_MATERIALIZATION_OWNER_EXTENSION` |
+| Current highest leverage implementation | `CERTIFICATION_MARKER_MATERIALIZATION_OWNER_EXTENSION_LOCAL_IMPLEMENTED_TESTED` |
+| Current highest leverage action | Deliver the marker materialization extension through canonical git/GitHub/safe-deploy owners, verify deployed hash for `/usr/local/bin/v7-egress-set-state`, then materialize the `wireguard-1779454504-c43409` medium-batch certification scope through the deployed owner. |
 | Current authority class | `POOL` |
 | authority_class | `POOL` |
 | authority_reason | Production policy currently authorized governed L3 budget 25; Phase 3 consumed only SMALL_BATCH max-users=5 and did not enable larger automatic batches. |
 | authority_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch` remain owners when a future governed action is explicitly approved. |
-| required_action | Keep current capability at SMALL_BATCH_CERTIFIED until the controlled-certification egress lifecycle extension is safely deployed, certification markers are materialized through existing owners, and Phase 4 MEDIUM_BATCH is resumed and certified. Do not run FULL_INCIDENT, production timer expansion, broad automation, authority bypass, Restore Barrier bypass, Runtime bypass, Planner bypass, synthetic evidence, new owner, unrelated user movement, or unmarked egress source mutation. |
+| required_action | Keep current capability at SMALL_BATCH_CERTIFIED until the marker materialization extension is safely deployed, certification markers are materialized through existing owners, controlled source degradation is performed through the guarded path, and Phase 4 MEDIUM_BATCH is resumed and certified. Do not run FULL_INCIDENT, production timer expansion, broad automation, authority bypass, Restore Barrier bypass, Runtime bypass, Planner bypass, synthetic evidence, new owner, unrelated user movement, or unmarked egress source mutation. |
 | non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
 | optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
-| Current reality limit | `CONTROLLED_INCIDENT_NOT_OPEN`: current active failed-source incident has three remaining users, while production has an eleven-user controlled-production candidate cohort on `wireguard-1779454504-c43409`; controlled source degradation now has a local tested owner extension but production still lacks deployed code and certification markers. |
-| Current safe next action | `SAFE_DEPLOY_CONTROLLED_CERTIFICATION_EGRESS_LIFECYCLE_EXTENSION` |
-| Current stop reason | `PHASE4_INTERRUPTED_PENDING_SAFE_DEPLOY_AND_MARKER_MATERIALIZATION`; the phase has not reached PASS because production still needs deployed owner extension and Certification Source/User markers before controlled degradation can be run. |
-| root_cause | `CONTROLLED_CERTIFICATION_SCOPE_NOT_AVAILABLE_IN_DEPLOYED_EGRESS_LIFECYCLE`: Controlled Production can provide the needed MEDIUM_BATCH cohort and Certification Pool is sufficient. The local owner extension now distinguishes Certification Users from ordinary users while preserving ordinary guard behavior; production remains blocked until deployment and marker materialization. |
+| Current reality limit | `CONTROLLED_INCIDENT_NOT_OPEN`: current active failed-source incident has three remaining users, while production has an eleven-user controlled-production candidate cohort on `wireguard-1779454504-c43409`; controlled source degradation guard is deployed, but marker materialization owner extension is local only. |
+| Current safe next action | `SAFE_DEPLOY_CERTIFICATION_MARKER_MATERIALIZATION_OWNER_EXTENSION` |
+| Current stop reason | `PHASE4_INTERRUPTED_PENDING_MARKER_OWNER_SAFE_DEPLOY_AND_MARKER_MATERIALIZATION`; the phase has not reached PASS because production still needs the deployed marker materialization action before controlled degradation can be run. |
+| root_cause | `CERTIFICATION_MARKERS_NOT_MATERIALIZED_BY_EXISTING_OWNER`: Controlled Production can provide the needed MEDIUM_BATCH cohort and Certification Pool is sufficient. Guard support is deployed; local marker materialization extension now provides the missing existing-owner registry writer, pending deployment. |
 | responsible_owner | Existing egress lifecycle and safety owners `v7-egress-set-state` / `v7-egress-guard`; governance owners OMP / Authority / Production Maturity. |
-| implementation_class | `LOCAL_IMPLEMENTATION_COMPLETE_PENDING_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION` |
-| next_engineering_task | `SAFE_DEPLOY_CONTROLLED_CERTIFICATION_EGRESS_LIFECYCLE_EXTENSION` |
-| expected_completion_evidence | Commit/push evidence, safe deploy PASS, deployed hashes for `/usr/local/bin/v7-egress-guard` and `/usr/local/bin/v7-egress-set-state`, production marker materialization evidence, controlled source degradation evidence, and Phase 4 MEDIUM_BATCH governed execution evidence. |
+| implementation_class | `LOCAL_MARKER_OWNER_EXTENSION_COMPLETE_PENDING_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION` |
+| next_engineering_task | `SAFE_DEPLOY_CERTIFICATION_MARKER_MATERIALIZATION_OWNER_EXTENSION` |
+| expected_completion_evidence | Commit/push evidence, second safe deploy PASS, deployed hash for `/usr/local/bin/v7-egress-set-state`, production certification-scope marker materialization evidence, controlled source degradation evidence, and Phase 4 MEDIUM_BATCH governed execution evidence. |
 | automation_debt_current | `0_UNCLASSIFIED`; current manual actions were classified in the Phase 2 execution report. |
 | automation_debt_delta | `created=1; closed=1; remaining_unclassified=0` |
 | workflow_debt_current | `0_UNCLASSIFIED`; the certification execution workflow was classified in the Phase 2 execution report. |
 | workflow_debt_delta | `created=1; closed=1; remaining_unclassified=0` |
 | synchronization_debt_delta | `created=1; closed=0; remaining_non_safety=1` |
-| owner_resolution_delta | `created=2; closed=2; terminal_classification=POLICY_PROHIBITION; deploy_owner_gap=OWNER_INVOCATION_MISSING_CLOSED_LOCALLY` |
+| owner_resolution_delta | `created=3; closed=3; terminal_classification=POLICY_PROHIBITION; deploy_owner_gap=OWNER_INVOCATION_MISSING_CLOSED_DEPLOYED; marker_owner_gap=IMPLEMENTATION_MISSING_CLOSED_LOCALLY` |
 | certification_infrastructure_state | `POOL_SUFFICIENT_FOR_MEDIUM_BATCH_BUT_MARKERS_NOT_MATERIALIZED_IN_PRODUCTION`; production has eleven enabled users on `wireguard-1779454504-c43409`; pool expansion is not the current blocker. |
 | current_pipeline_candidates | `CONTROLLED_CERTIFICATION_PHASE_EXECUTION_PIPELINE`; `CERTIFICATION_REPORT_AND_HISTORY_PROJECTION_PIPELINE`; `PASSPORT_AND_DEBT_METRIC_PROJECTION_PIPELINE` |
 | rt_phase1_status | `FULLY_COMPLETE`; RT1-RT8 are canonicalized through Runtime Model and consumed by OMP/report lifecycle. |

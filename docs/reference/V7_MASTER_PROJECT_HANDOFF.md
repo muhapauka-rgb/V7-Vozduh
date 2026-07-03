@@ -4,7 +4,8 @@ Status: `CANONICAL ENTRY POINT`
 Owner: OMP / Canonical Reference / Current Program State
 Last updated: 2026-07-03
 Current branch: `Updatesystem`
-Latest known local/GitHub production-aligned commit before this document: `91ec1e2b`
+Latest known production-aligned code commit: `66a276e9d805b12871f37e6fcc92d9376a4a45b3`
+Latest known local/GitHub handoff commit before this operating-system update: `baddbbe8`
 
 This document is the canonical first document for any future Codex instance
 working on V7.
@@ -435,7 +436,211 @@ The certification program continues after implementation. A patch is not a
 terminal outcome. Tests are not terminal. Deploy is not terminal. The phase is
 resumed and must reach PASS, HOLD, BLOCKED, or CANONICAL_IMPOSSIBILITY.
 
-## 7. Automation Evolution
+## 7. Engineering Operating System
+
+The Engineering Operating System describes how V7 engineering work is
+performed. It is separate from architecture, Runtime, Planner, Authority, and
+Certification. It tells future Codex instances how to think, investigate,
+communicate, and execute inside the existing V7 philosophy.
+
+### Engineering Thinking Rules
+
+Always investigate implementation before architecture. Most failures are
+owner-contract implementation defects, missing invocation, missing persistence,
+or policy blocks. Architecture change is the last option.
+
+Always find the earliest producer that violates a contract. Symptoms usually
+appear downstream. The root cause is the first broken invariant, not the first
+visible STOP.
+
+Never repair downstream before proving upstream is correct. If Runtime stops,
+prove whether Planner, Authority, Approved Plan Lock, Restore Barrier, packet,
+and committed selected move identity were correct first. If Planner looks
+wrong, prove whether Observation, Wake, Incident, policy, freshness, service
+matrix, load, safety, and retry evidence were correct first.
+
+Never fix symptoms. A blocker name, rollback reason, timeout, empty selected
+move list, or STOP_SAFE is a symptom until its producer, consumer, owner,
+contract, and first broken invariant are proven.
+
+Always preserve semantic identity. Keep operation id, incident source,
+planner generation, selected move hash, user, source, target, authority
+generation, restore generation, packet id, and report lineage stable. Do not
+switch to a newer, cleaner, easier, or more complete execution unless the
+current execution is canonically impossible or explicitly restarted with proof.
+
+Minimal existing-owner extension is preferred over new owners. Smaller bounded
+changes are preferred over broad rewrites. Every implementation must preserve
+existing contracts unless the canonical owner is intentionally updated first.
+
+### Root Cause Methodology
+
+Canonical investigation order:
+
+```text
+STOP
+  -> Current Program State
+  -> Production Evidence
+  -> Payload
+  -> Capability
+  -> Owner
+  -> Function
+  -> Producer
+  -> Consumer
+  -> Contract
+  -> First Broken Invariant
+  -> Root Cause
+  -> Owner Resolution
+  -> Implementation Mission
+  -> Patch
+  -> Regression
+  -> Deploy
+  -> Truth
+  -> Convergence
+  -> Resume Interrupted Phase
+```
+
+Root cause is always earlier than symptoms. A rollback can be caused by
+verification, but verification can be caused by stale evidence, lock contention,
+wrong probe attribution, wrong selected user, wrong target, wrong packet,
+Authority mismatch, Restore Barrier mismatch, or an upstream continuity break.
+The investigation ends only when the first factual contract violation is found
+or canonical impossibility is proven.
+
+### Completion First Law
+
+A capability is not complete because code exists.
+
+A capability is not complete because tests pass.
+
+A capability is not complete because documents exist.
+
+A capability becomes complete only when it is:
+
+- implemented;
+- integrated;
+- consumed;
+- used by another real owner;
+- producing outputs;
+- having its outputs consumed;
+- participating in an end-to-end production workflow;
+- enabling the next capability.
+
+Every capability must terminate by becoming the input of another capability.
+No isolated capability is considered complete. Reports, patches, tests, deploys,
+and root causes are intermediate states unless they feed the next real owner and
+advance the current program.
+
+### Execution Philosophy
+
+Every blocker automatically becomes the next engineering mission.
+
+Implementation defects are not reasons to stop. They become implementation
+work through the existing owner.
+
+Engineering missions continue until a terminal engineering outcome exists:
+
+- the interrupted certification phase resumes and reaches its terminal state;
+- an existing owner blocks by policy after Owner Resolution;
+- implementation is missing and becomes the next mission;
+- owner invocation is missing and becomes the next mission;
+- canonical impossibility is proven.
+
+Do not stop at "root cause found". Do not stop at "patch ready". Do not stop at
+"tests pass". Do not stop at "deployed". Resume the interrupted phase.
+
+### Project Communication Rules
+
+Future Codex should communicate like an execution engineer:
+
+- Prefer concise engineering communication.
+- Lead with current phase, current owner, current blocker, evidence, and next
+  legal step.
+- Avoid unnecessary architecture discussion.
+- Avoid unnecessary section proliferation.
+- Avoid proposing replacement architectures.
+- Avoid creating parallel roadmaps.
+- Avoid creating unnecessary documents.
+- Avoid suggesting new owners without proof.
+- Avoid stopping investigation prematurely.
+- Avoid asking the operator to perform work that existing owners can perform.
+- Complete as much engineering work autonomously as safely possible.
+
+Request operator intervention only when required by:
+
+- Authority;
+- Reality;
+- Policy;
+- Safety;
+- Canonical Impossibility.
+
+### Engineering Automation Vision
+
+Engineering Automation is not another Runtime.
+
+Engineering Automation is not another Planner.
+
+Engineering Automation is not another Certification system.
+
+It is the natural evolution of the Controlled Production Certification Program.
+Its purpose is to automate engineering itself while preserving existing owners.
+
+Canonical future pipeline:
+
+```text
+Breakpoint
+  -> Owner Resolution
+  -> Implementation Mission
+  -> Patch
+  -> Tests
+  -> Regression
+  -> Deploy
+  -> Truth
+  -> Convergence
+  -> Resume
+  -> Capability Earned
+  -> Automation Audit
+  -> Workflow Audit
+  -> Engineering Improvement
+  -> Next Engineering Mission
+```
+
+Every engineering mission must improve both:
+
+1. the product;
+2. the engineering system that develops the product.
+
+### Engineering Memory
+
+Important engineering discoveries must never remain only in reports or
+conversation history.
+
+Engineering Reports preserve history.
+
+Canonical owners preserve truth.
+
+Future Codex should search canonical knowledge before repeating
+investigations. If a durable rule exists only in a report, promote it into the
+single correct canonical owner. If a fact is only historical evidence, keep it
+in reports and cite it rather than turning it into a competing truth source.
+
+### Engineering Decision Hierarchy
+
+Preferred solution order:
+
+1. Reuse existing capability.
+2. Reuse existing owner.
+3. Extend existing owner.
+4. Reuse existing workflow.
+5. Create Pipeline Candidate.
+6. Implement through existing owner.
+7. Only then consider architecture change.
+
+Architecture change is always the final option. It is allowed only when the
+current architecture cannot legally express the required behavior after
+existing-owner discovery and extension have failed with proof.
+
+## 8. Automation Evolution
 
 Automation Evolution is intrinsic to certification.
 
@@ -474,7 +679,7 @@ Program State / Passport views:
 Manual work is allowed when justified. Unexplained manual work is not allowed
 to disappear.
 
-## 8. Workflow Evolution
+## 9. Workflow Evolution
 
 Workflow Evolution audits sequences of manual actions, not only individual
 commands.
@@ -517,7 +722,7 @@ restore controlled source
 
 This is a Pipeline Candidate, not a reason to stop certification.
 
-## 9. Engineering Automation
+## 10. Engineering Automation
 
 Engineering Automation is the next evolution of the certification program. It
 is not a separate product and not a new architecture.
@@ -552,7 +757,7 @@ The goal is that common certification engineering flows become governed
 pipelines. This must happen through existing owners and certification, not by
 adding hidden automation or bypassing safety.
 
-## 10. Current Automation Status
+## 11. Current Automation Status
 
 Already automated or owner-callable:
 
@@ -583,7 +788,7 @@ Repeated workflows that should become governed pipelines:
 - evidence collection and report skeleton pipeline;
 - post-capability consumer synchronization pipeline.
 
-## 11. Current Owner Landscape
+## 12. Current Owner Landscape
 
 Significantly hardened during certification:
 
@@ -616,7 +821,7 @@ Owners that may deserve review after FULL_INCIDENT certification:
 Do not redesign the owner landscape during active certification unless an
 implementation proves a canonical contradiction.
 
-## 12. Current Project State
+## 13. Current Project State
 
 Current Phase:
 
@@ -726,7 +931,7 @@ Engineering Automation Readiness:
 - The repeated workflows are known.
 - They are not yet implemented as single governed pipelines.
 
-## 13. Future Roadmap
+## 14. Future Roadmap
 
 This is not a new roadmap. It is the already-approved continuation.
 
@@ -762,7 +967,7 @@ Use every implementation mission to improve both V7 and the engineering system.
 Pipeline candidates should be converted into governed tools only when existing
 owners and certification support them.
 
-## 14. Immutable Rules
+## 15. Immutable Rules
 
 Never do the following:
 
@@ -798,7 +1003,7 @@ Never do the following:
 - Never terminate an investigation because a blocker was found.
 - Never call a patch, deploy, report, or root cause the terminal project state.
 
-## 15. Handoff: How A Future Codex Continues
+## 16. Handoff: How A Future Codex Continues
 
 If you know nothing except this document, continue like this.
 

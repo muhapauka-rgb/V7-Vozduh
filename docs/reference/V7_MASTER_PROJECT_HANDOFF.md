@@ -4,7 +4,7 @@ Status: `CANONICAL ENTRY POINT`
 Owner: OMP / Canonical Reference / Current Program State
 Last updated: 2026-07-03
 Current branch: `Updatesystem`
-Latest known production-aligned code commit: `66a276e9d805b12871f37e6fcc92d9376a4a45b3`
+Latest known production-aligned code commit: `3efcef12f1db4876ebf50fe960c845ab3d2ea850`
 Latest known local/GitHub handoff commit before this operating-system update: `baddbbe8`
 
 This document is the canonical first document for any future Codex instance
@@ -384,8 +384,8 @@ Current canonical certification ladder:
 | Stage 1 | SMALL_BATCH | 5 | CERTIFIED |
 | Stage 2 | MEDIUM_BATCH | 10 | CERTIFIED |
 | Stage 3 | LARGE_BATCH | 25 | CERTIFIED |
-| Stage 4 | XLARGE_BATCH | 50 | HOLD |
-| Stage 5 | FULL_INCIDENT | all remaining same-incident affected users | NOT REACHED |
+| Stage 4 | XLARGE_BATCH | 50 | CERTIFIED |
+| Stage 5 | FULL_INCIDENT | all remaining same-incident affected users | HOLD |
 
 ### Already Proven
 
@@ -396,17 +396,18 @@ Current canonical certification ladder:
 - Approved Plan Lock, packet identity, Restore Barrier, and Runtime Apply can preserve committed selected move identity.
 - Telegram sentinel lock scope was reduced enough to avoid prior verification timeout behavior.
 - Verification and no-rollback closure work for bounded governed execution.
-- CANARY, SMALL_BATCH, MEDIUM_BATCH, and LARGE_BATCH controlled production certifications have passed.
+- CANARY, SMALL_BATCH, MEDIUM_BATCH, LARGE_BATCH, and XLARGE_BATCH controlled production certifications have passed.
 - Phase 4 MEDIUM_BATCH moved 10 users from `wireguard-1779454504-c43409` with verification PASS.
 - Phase 5 LARGE_BATCH moved 25 users from `wireguard-1779454504-c43409` with verification PASS.
 - A second 25-user LARGE_BATCH evidence run for Phase 6 moved users `10.7.0.51` through `10.7.0.75` with verification PASS and no rollback.
-- The latest Authority owner continuity fix is deployed and converged at commit `66a276e9d805b12871f37e6fcc92d9376a4a45b3`.
+- Phase 6 XLARGE_BATCH crossed the legacy 25-user selection cap after the governed Authority budget fix and moved 48 eligible same-incident users with verification PASS and no rollback.
+- The latest Authority / governed owner fixes are deployed and converged at commit `3efcef12f1db4876ebf50fe960c845ab3d2ea850`.
 - The latest handoff/report commit before this document is `91ec1e2b`.
 
 ### Not Yet Proven
 
-- `XLARGE_BATCH=50` execution has not yet certified.
 - `FULL_INCIDENT` execution has not yet certified.
+- FULL_INCIDENT Authority promotion requires two successful XLARGE evidence operations with at least 50 users each and a 3600 second no-regression window.
 - Routine production operation after FULL_INCIDENT is not yet reached.
 - The repeated manual Phase 6 preparation/readiness workflow is not yet a single governed pipeline.
 
@@ -415,7 +416,7 @@ Current canonical certification ladder:
 Current Phase:
 
 ```text
-Phase 6: XLARGE_BATCH Certification
+Phase 7: FULL_INCIDENT Certification
 ```
 
 Current terminal state:
@@ -427,31 +428,35 @@ HOLD
 Current hold reason:
 
 ```text
-Authority requires a 3600 second no-regression window before promotion from
-canonical LARGE_BATCH=25 to XLARGE_BATCH=50.
+Authority requires two successful XLARGE_BATCH evidence operations with at
+least 50 users per run, complete feedback closure, and a 3600 second
+no-regression window before promotion from XLARGE_BATCH to FULL_INCIDENT.
 ```
 
-At the latest readiness check:
+At the latest FULL_INCIDENT readiness check:
 
-- Run 1 operation: `runtime_autoswitch_d2fc48ffe5590c23e2ac8950`
-- Run 1 users: `10.7.0.26` through `10.7.0.50`
-- Run 1 observed stability: 1717s / 3600s
-- Run 2 operation: `runtime_autoswitch_ffddc0afb57b4b2a6cd4e560`
-- Run 2 users: `10.7.0.51` through `10.7.0.75`
-- Run 2 observed stability: 183s / 3600s
-- Both runs had complete feedback and closure.
-- The remaining blocker was `xlarge_batch_evidence_validation_failed` because
-  the stability window was immature.
+- Phase 6 retry operation: `runtime_autoswitch_91f7f1d580392f423a231b45`
+- Phase 6 retry users moved / verified: 48
+- Phase 6 retry observed stability: 453s / 3600s at readiness probe time
+- Earlier Phase 6 defect-discovery operation: `runtime_autoswitch_5f0708ea1df9e3e7fb707e58`
+- Earlier Phase 6 users moved / verified: 25
+- Earlier Phase 6 observed stability: 1496s / 3600s at readiness probe time
+- Both operations had complete feedback closure for their moved users.
+- The remaining blocker was `full_incident_evidence_validation_failed` because
+  neither operation satisfies the FULL_INCIDENT promotion rule requiring at
+  least 50 users per successful XLARGE evidence run, and the no-regression
+  window was also immature.
 - The diagnostic also reported `missing_explicit_authority_promotion_confirmation`,
-  which is expected for a readiness probe.
+  which is expected for a readiness probe without explicit promotion approval.
 
 Current next action:
 
-Re-check Authority promotion readiness after both evidence operations have
-`stability_window_observed_seconds >= 3600`. If no regression appears, use the
-existing Authority owner with explicit confirmation to promote to
-`XLARGE_BATCH`, then resume Phase 6 and run the existing governed L3 owner with
-`--max-users 50` against the controlled incident source.
+Run Owner Resolution for the Phase 7 Authority evidence blocker. The required
+engineering mission is to produce or identify two valid XLARGE_BATCH evidence
+operations meeting the existing FULL_INCIDENT Authority promotion rule, without
+bypassing Authority or repeating completed phases as certification. If
+Controlled Production is used, it must use the existing governed path and a
+sufficient Certification Pool.
 
 ## 7. Engineering Program
 
@@ -950,13 +955,13 @@ implementation proves a canonical contradiction.
 Current Phase:
 
 ```text
-Phase 6: XLARGE_BATCH Certification
+Phase 7: FULL_INCIDENT Certification
 ```
 
 Current Certification Phase:
 
 ```text
-Phase 6: XLARGE_BATCH Certification
+Phase 7: FULL_INCIDENT Certification
 ```
 
 Current Engineering Automation Phase:
@@ -969,13 +974,13 @@ workflows into governed pipeline candidates through existing owners.
 Current Capability:
 
 ```text
-LARGE_BATCH=25 certified; XLARGE_BATCH=50 pending.
+XLARGE_BATCH=50 certified; FULL_INCIDENT pending Authority evidence.
 ```
 
 Current Capability Target:
 
 ```text
-XLARGE_BATCH=50 certification, then FULL_INCIDENT certification.
+FULL_INCIDENT certification.
 ```
 
 Current Engineering Automation Target:
@@ -989,24 +994,28 @@ owner resolution, regression, deploy, resume, and consumer synchronization.
 Current Authority:
 
 ```text
-Production raw authority state is legacy POOL=25.
-For forward promotion, existing Authority owner maps POOL=25 to canonical
-LARGE_BATCH=25. Promotion target is XLARGE_BATCH=50.
+Production authority state is XLARGE_BATCH=50.
+Promotion target is FULL_INCIDENT.
+FULL_INCIDENT readiness requires two valid XLARGE_BATCH evidence operations
+with at least 50 users per run, complete feedback closure, and a 3600 second
+no-regression window.
 ```
 
 Current Certification Status:
 
 ```text
 CANARY, SMALL_BATCH, MEDIUM_BATCH, LARGE_BATCH certified.
-XLARGE_BATCH in HOLD.
-FULL_INCIDENT not reached.
+XLARGE_BATCH certified.
+FULL_INCIDENT in HOLD.
 ```
 
 Current Engineering Mission:
 
 ```text
-Resume Phase 6 when Authority no-regression window matures.
-No code patch is currently required for the known blocker.
+Resolve the Phase 7 Authority evidence blocker by producing or identifying
+two valid XLARGE_BATCH evidence operations that satisfy the existing
+FULL_INCIDENT promotion rule. Do not bypass Authority, Runtime, Restore
+Barrier, Verification, Rollback, or Learning.
 ```
 
 Current Highest Priority:
@@ -1184,19 +1193,23 @@ Use Engineering Reports only as evidence for exact facts.
 
 Start from the latest certification report:
 
-- `docs/reports/engineering/2026-07-03_164505_phase6_xlarge_hold_no_regression_window.md`
+- `docs/reports/engineering/2026-07-03_183251_controlled_program_phase6_phase7_execution.md`
 
-Current phase is Phase 6. Do not start Phase 7 until Phase 6 reaches PASS.
+Current phase is Phase 7. Phase 6 XLARGE_BATCH reached PASS. Do not start
+routine production operation until Phase 7 FULL_INCIDENT reaches PASS or
+canonical impossibility is proven.
 
 ### Step 4. Resume The Interrupted Certification
 
-Re-check Authority promotion readiness on production using the existing owner.
-Do not patch unless the owner produces a new implementation defect.
+Run Owner Resolution for the FULL_INCIDENT Authority evidence blocker using the
+existing Authority owner. Do not patch unless the owner produces a new
+implementation defect.
 
-If readiness is still blocked only by the no-regression window, remain in HOLD.
-If readiness is valid and explicit confirmation is authorized, promote through
-the existing Authority owner and continue Phase 6 with a 50-user governed
-certification run.
+If readiness is blocked only by missing XLARGE evidence, use Controlled
+Production and the existing governed path to produce qualifying evidence if
+safety and Certification Pool owners allow it. If readiness becomes valid and
+explicit confirmation is authorized, promote through the existing Authority
+owner and continue Phase 7 FULL_INCIDENT certification.
 
 ### Step 5. Continue Engineering Work
 

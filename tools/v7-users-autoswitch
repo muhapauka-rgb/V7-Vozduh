@@ -8402,6 +8402,25 @@ class AutoswitchPlanner:
         incident_source_context: Optional[dict[str, Any]] = None,
     ) -> list[dict[str, Any]]:
         failover_limit = to_int(self.switch_policy.get("autoswitch_max_failover_per_run"), 25)
+        requested_max_selected_moves = to_int(getattr(self.args, "max_selected_moves", 0), 0)
+        incident_source_context = incident_source_context or {}
+        if (
+            bool_value(incident_source_context.get("active"))
+            and requested_max_selected_moves > failover_limit
+        ):
+            authority_budget = max(
+                0,
+                to_int(self.authority_budget_policy.get("current_allowed_user_budget"), failover_limit),
+            )
+            governed_failover_limit = min(requested_max_selected_moves, authority_budget)
+            if governed_failover_limit > failover_limit:
+                incident_source_context["failover_limit_raised_by_governed_authority"] = True
+                incident_source_context["base_failover_limit"] = failover_limit
+                incident_source_context["governed_failover_limit"] = governed_failover_limit
+                incident_source_context["requested_max_selected_moves"] = requested_max_selected_moves
+                incident_source_context["authority_allowed_user_budget"] = authority_budget
+                incident_source_context["failover_limit_raise_reason"] = "active_incident_governed_authority_budget"
+                failover_limit = governed_failover_limit
         if bool_value(self.service_signal_policy.get("restore_stage")):
             failover_limit = min(
                 failover_limit,

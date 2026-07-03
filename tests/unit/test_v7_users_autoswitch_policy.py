@@ -1145,6 +1145,116 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(gate["current_allowed_user_budget"], 1)
         self.assertTrue(gate["authority_cap_applied"])
 
+    def test_xlarge_governed_incident_selection_can_use_authority_budget_above_legacy_failover_cap(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=60,
+                egress_1_state="maintenance",
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                emergency_failover_autonomy={
+                    "enabled": True,
+                    "max_users_per_run": 50,
+                    "max_users_per_channel": 50,
+                },
+                authority_budget={
+                    "authority_class": "XLARGE_BATCH",
+                    "certified_authority_class": "XLARGE_BATCH",
+                    "authority_lifecycle_state": "PROMOTED",
+                    "current_allowed_user_budget": 50,
+                    "next_allowed_user_budget": 50,
+                },
+            )
+            egress_path = root / "state" / "egress.registry"
+            egress_path.write_text(
+                egress_path.read_text(encoding="utf-8").replace(
+                    "id=1 interface=v7one enabled=1 state=maintenance role=GLOBAL_FAST",
+                    "id=1 interface=v7one enabled=0 state=maintenance role=GLOBAL_FAST controlled_certification_source=1 certification_group=xlarge-batch",
+                ),
+                encoding="utf-8",
+            )
+            users_path = root / "state" / "users.registry"
+            users_path.write_text(
+                "\n".join(
+                    row + " certification_user=1 certification_group=xlarge-batch"
+                    for row in users_path.read_text(encoding="utf-8").strip().splitlines()
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            args = self.args_for(root, ["--emergency-failover-autonomy", "--max-selected-moves", "50"])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+
+        dynamic = plan["safety"]["dynamic_blast_radius"]
+        continuity = plan["safety"]["incident_source_continuity"]
+        gate = plan["safety"]["authority_budget_gate"]
+        self.assertEqual(plan["summary"]["candidate_moves_total"], 60)
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+        self.assertEqual(dynamic["requested_max_selected_moves"], 50)
+        self.assertEqual(dynamic["affected_candidate_moves"], 60)
+        self.assertEqual(dynamic["selected_after_policy_count"], 50)
+        self.assertEqual(dynamic["selected_after_authority_budget_count"], 50)
+        self.assertEqual(dynamic["authority_allowed_user_budget"], 50)
+        self.assertEqual(dynamic["scope"], "blocked_by_emergency_failover_autonomy_gate")
+        self.assertFalse(gate["authority_cap_applied"])
+        self.assertTrue(continuity["active"])
+        self.assertTrue(continuity["failover_limit_raised_by_governed_authority"])
+        self.assertEqual(continuity["base_failover_limit"], 25)
+        self.assertEqual(continuity["governed_failover_limit"], 50)
+
+    def test_legacy_failover_cap_still_applies_without_explicit_governed_batch_request(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=60,
+                egress_1_state="maintenance",
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                emergency_failover_autonomy={
+                    "enabled": True,
+                    "max_users_per_run": 50,
+                    "max_users_per_channel": 50,
+                },
+                authority_budget={
+                    "authority_class": "XLARGE_BATCH",
+                    "certified_authority_class": "XLARGE_BATCH",
+                    "authority_lifecycle_state": "PROMOTED",
+                    "current_allowed_user_budget": 50,
+                    "next_allowed_user_budget": 50,
+                },
+            )
+            egress_path = root / "state" / "egress.registry"
+            egress_path.write_text(
+                egress_path.read_text(encoding="utf-8").replace(
+                    "id=1 interface=v7one enabled=1 state=maintenance role=GLOBAL_FAST",
+                    "id=1 interface=v7one enabled=0 state=maintenance role=GLOBAL_FAST controlled_certification_source=1 certification_group=xlarge-batch",
+                ),
+                encoding="utf-8",
+            )
+            users_path = root / "state" / "users.registry"
+            users_path.write_text(
+                "\n".join(
+                    row + " certification_user=1 certification_group=xlarge-batch"
+                    for row in users_path.read_text(encoding="utf-8").strip().splitlines()
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--emergency-failover-autonomy"]))
+            plan = planner.plan()
+
+        dynamic = plan["safety"]["dynamic_blast_radius"]
+        continuity = plan["safety"]["incident_source_continuity"]
+        self.assertEqual(plan["summary"]["candidate_moves_total"], 60)
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+        self.assertEqual(dynamic["requested_max_selected_moves"], 0)
+        self.assertEqual(dynamic["selected_after_policy_count"], 25)
+        self.assertEqual(dynamic["selected_after_authority_budget_count"], 25)
+        self.assertEqual(dynamic["scope"], "blocked_by_emergency_failover_autonomy_gate")
+        self.assertNotIn("failover_limit_raised_by_governed_authority", continuity)
+
     def test_authority_budget_caps_prepared_small_batch_to_certified_canary(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -6709,7 +6709,14 @@ class AutoswitchPlanner:
         snapshot_gate = safety.get("intelligence_snapshots") or {}
         refresh = (snapshot_gate.get("pre_planner_refresh") or self.pre_planner_refresh or {})
         barrier_lease = barrier.get("source_bundle_lease") if isinstance(barrier.get("source_bundle_lease"), dict) else {}
-        prevalidated_lease_ok = bool_value(barrier_lease.get("ok")) and bool_value(snapshot_gate.get("source_bundle_lease_used"))
+        restore_barrier_prevalidated_lease = (
+            bool_value(barrier_lease.get("ok"))
+            and str(barrier.get("clearance_generation_reason") or "") == "restore_barrier_clearance_generation_match_source_bundle_lease"
+        )
+        prevalidated_lease_ok = bool_value(barrier_lease.get("ok")) and (
+            bool_value(snapshot_gate.get("source_bundle_lease_used"))
+            or restore_barrier_prevalidated_lease
+        )
         approved_source_hashes = ((envelope.get("source_bundle") or {}).get("source_hashes") or {})
         changed_keys = sorted(
             key for key, approved in approved_source_hashes.items()

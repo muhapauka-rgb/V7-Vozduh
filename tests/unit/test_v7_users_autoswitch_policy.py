@@ -3009,6 +3009,37 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(validation["changed_source_keys"], ["service_matrix"])
         self.assertEqual(validation["state"]["condition"], "SOURCE_BUNDLE_LEASE_VALID")
 
+    def test_governed_apply_accepts_restore_barrier_prevalidated_source_bundle_lease(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            planner, plan, switch_calls = self.governed_source_bundle_lease_plan(root)
+            plan.setdefault("safety", {}).setdefault("intelligence_snapshots", {}).pop("source_bundle_lease_used", None)
+            plan["safety"]["intelligence_snapshots"].pop("pre_planner_refresh", None)
+            planner.pre_planner_refresh = {}
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix_payload = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix_payload["items"]["1"]["services"]["youtube"]["score"] = 97
+            matrix_path.write_text(json.dumps(matrix_payload), encoding="utf-8")
+            plan["safety"]["restore_barrier"]["clearance_generation_reason"] = (
+                "restore_barrier_clearance_generation_match_source_bundle_lease"
+            )
+            plan["safety"]["restore_barrier"]["source_bundle_lease"] = {
+                "ok": True,
+                "reason": "restore_barrier_source_bundle_lease_service_matrix_only",
+                "changed_source_keys": ["service_matrix"],
+            }
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        self.assertTrue(plan["apply_result"]["applied"])
+        self.assertEqual(len(switch_calls), 2)
+        validation = plan["safety"]["atomic_execution_envelope_validation"]
+        self.assertTrue(validation["ok"])
+        self.assertTrue(validation["source_bundle_stability_lease_used"])
+        self.assertTrue(validation["prevalidated_restore_barrier_lease_used"])
+        self.assertEqual(validation["changed_source_keys"], ["service_matrix"])
+        self.assertEqual(validation["state"]["condition"], "SOURCE_BUNDLE_LEASE_VALID")
+
     def test_governed_apply_accepts_stable_bundle_without_lease(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

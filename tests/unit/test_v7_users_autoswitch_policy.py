@@ -2666,6 +2666,55 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(plan["safety"]["l3_incident"]["operator_surface"]["terminal_outcome"], "SUCCESS")
         self.assertEqual(plan["safety"]["l3_incident"]["operator_surface"]["next_action"], "close_outcome_and_report")
 
+    def test_emergency_service_verification_parent_timeout_includes_lock_timeout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={"enabled": True},
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(
+                    root,
+                    [
+                        "--emergency-failover-autonomy",
+                        "--mode",
+                        "guarded",
+                        "--apply",
+                        "--service-matrix-lock-timeout-sec",
+                        "17",
+                    ],
+                )
+            )
+            captured = {}
+            original_run = self.tool.subprocess.run
+
+            def fake_run(command, **kwargs):
+                captured["command"] = command
+                captured["timeout"] = kwargs.get("timeout")
+                return subprocess.CompletedProcess(command, 0, stdout="service ok\n")
+
+            try:
+                self.tool.subprocess.run = fake_run
+                proc = planner._verify_emergency_required_services({
+                    "recommended_egress": "vless",
+                    "important_services": ["telegram"],
+                })
+            finally:
+                self.tool.subprocess.run = original_run
+
+        self.assertEqual(proc.returncode, 0)
+        self.assertIn("--lock-timeout-sec", captured["command"])
+        self.assertEqual(captured["command"][captured["command"].index("--lock-timeout-sec") + 1], "17")
+        self.assertEqual(captured["timeout"], 27)
+
     def test_emergency_apply_service_verification_failure_rolls_back_and_stops(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

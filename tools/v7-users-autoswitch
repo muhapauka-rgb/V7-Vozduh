@@ -9518,6 +9518,8 @@ class AutoswitchPlanner:
         if not target or not services:
             return subprocess.CompletedProcess(["v7-service-matrix-test"], 1, stdout="missing target or services\n")
         timeout_sec = max(1, min(to_int(self.emergency_failover_policy.get("service_verify_timeout_seconds"), 5), 30))
+        lock_timeout_sec = max(1, to_int(getattr(self.args, "service_matrix_lock_timeout_sec", DEFAULT_SERVICE_MATRIX_LOCK_TIMEOUT_SECONDS), DEFAULT_SERVICE_MATRIX_LOCK_TIMEOUT_SECONDS))
+        command_timeout_sec = timeout_sec + lock_timeout_sec + 5
         outputs: list[str] = []
         for service in services:
             try:
@@ -9530,12 +9532,14 @@ class AutoswitchPlanner:
                         str(timeout_sec),
                         "--state-dir",
                         str(self.state_dir),
+                        "--lock-timeout-sec",
+                        str(lock_timeout_sec),
                     ],
                     text=True,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     check=False,
-                    timeout=timeout_sec + 5,
+                    timeout=command_timeout_sec,
                 )
             except (OSError, subprocess.TimeoutExpired) as exc:
                 return subprocess.CompletedProcess(["v7-service-matrix-test"], 1, stdout=f"service verify error: {exc}\n")

@@ -6369,6 +6369,65 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertEqual(after_policy["authority_budget"]["current_allowed_user_budget"], 50)
             self.assertEqual(after_policy["authority_budget"]["promotion_action"], "LARGE_BATCH_TO_XLARGE_BATCH")
 
+    def test_authority_promotion_to_full_incident_uses_existing_dynamic_authority_class(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir, truth, _audit = self.write_authority_test_binaries(root)
+            self.write_fixture(
+                root,
+                users=60,
+                authority_budget={
+                    "enabled": True,
+                    "authority_class": "XLARGE_BATCH",
+                    "certified_authority_class": "XLARGE_BATCH",
+                    "authority_lifecycle_state": "PROMOTED",
+                    "current_allowed_user_budget": 50,
+                    "next_allowed_user_budget": 50,
+                    "next_authority_class": "FULL_INCIDENT",
+                },
+            )
+            self.write_feedback_records(
+                root,
+                "runtime_autoswitch_xlarge_1",
+                [f"10.0.0.{idx}" for idx in range(2, 52)],
+                stability_window_seconds=3600,
+            )
+            self.write_feedback_records(
+                root,
+                "runtime_autoswitch_xlarge_2",
+                [f"10.2.1.{idx}" for idx in range(2, 52)],
+                stability_window_seconds=3600,
+            )
+            old_path = os.environ.get("PATH", "")
+            os.environ["PATH"] = f"{bin_dir}{os.pathsep}{old_path}"
+            try:
+                args = self.args_for(
+                    root,
+                    [
+                        "--promote-authority-to",
+                        "FULL_INCIDENT",
+                        "--authority-promotion-operation-id",
+                        "runtime_autoswitch_xlarge_1",
+                        "--authority-promotion-operation-id",
+                        "runtime_autoswitch_xlarge_2",
+                        "--confirm-authority-promotion",
+                        "PROMOTE_AUTHORITY_APPROVED",
+                        "--authority-promotion-truth-check-command",
+                        str(truth),
+                    ],
+                )
+                result = self.tool.AutoswitchPlanner(args).promote_authority("FULL_INCIDENT")
+            finally:
+                os.environ["PATH"] = old_path
+            after_policy = json.loads((root / "policy.json").read_text(encoding="utf-8"))
+            self.assertEqual(result["status"], "PROMOTED")
+            self.assertEqual(after_policy["authority_budget"]["authority_class"], "FULL_INCIDENT")
+            self.assertEqual(after_policy["authority_budget"]["current_allowed_user_budget"], 50)
+            self.assertEqual(after_policy["authority_budget"]["next_authority_class"], "FULL_INCIDENT")
+            self.assertEqual(after_policy["authority_budget"]["promotion_action"], "XLARGE_BATCH_TO_FULL_INCIDENT")
+            self.assertEqual(after_policy["authority_budget"]["promotion_evidence"]["successful_xlarge_batch_runs"], 2)
+            self.assertEqual(result["users_moved"], 0)
+
     def test_legacy_pool_promotion_is_not_canonical_next_after_large_batch(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

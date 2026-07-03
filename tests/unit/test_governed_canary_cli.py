@@ -501,6 +501,80 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(locked_move["candidates"][0]["egress"], "awg3")
         self.assertTrue(apply_calls[0]["emergency_failover_autonomy"])
 
+    def test_l3_production_validation_rejects_learning_proven_when_verification_failed(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root)
+            args.execute_l3_production_validation = True
+            args.confirm_l3_production_validation = "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED"
+            original_plan = module.run_l3_production_validation_plan
+            original_apply = module.run_autoswitch_apply
+            try:
+                module.run_l3_production_validation_plan = lambda **kwargs: {
+                    "ok": True,
+                    "returncode": 0,
+                    "command": ["l3-plan"],
+                    "payload": self.ready_l3_plan(),
+                }
+
+                def fake_apply(**kwargs):
+                    return {
+                        "ok": True,
+                        "returncode": 0,
+                        "payload": {
+                            "operation": {
+                                "operation_id": "l3-runtime-apply",
+                                "terminal_state": "SUCCESS",
+                                "terminal_reason": "learning_claimed_success",
+                            },
+                            "apply_result": {
+                                "applied": True,
+                                "results": [
+                                    {
+                                        "user_ip": "10.7.0.5",
+                                        "from": "vless",
+                                        "to": "awg3",
+                                        "verify_rc": 1,
+                                        "rollback_rc": 1,
+                                    }
+                                ],
+                            },
+                            "l3_learning_closure": {
+                                "materialized": True,
+                                "capability_state": {
+                                    "production_proven": True,
+                                    "certified": True,
+                                    "active_capability": True,
+                                },
+                            },
+                        },
+                    }
+
+                module.run_autoswitch_apply = fake_apply
+                result = module.execute_l3_production_validation(
+                    args,
+                    state_dir=root / "state",
+                    event_dir=root / "events",
+                    snapshot_root=root / "state" / "intelligence",
+                    audit_dir=root / "audit",
+                    lease_file=root / "state" / "operator-execution-lease.json",
+                )
+            finally:
+                module.run_l3_production_validation_plan = original_plan
+                module.run_autoswitch_apply = original_apply
+
+        self.assertEqual(result["final_verdict"], "STOP_SAFE")
+        self.assertEqual(result["transaction_status"], "STOP_SAFE")
+        self.assertEqual(result["stop_reason"], "l3_production_validation_downstream_proof_failed")
+        self.assertTrue(result["apply_executed"])
+        self.assertFalse(result["production_proven"])
+        self.assertEqual(result["verification_result"], "FAIL")
+        self.assertEqual(result["users_moved"], 0)
+        self.assertIn("verification_failed", result["production_proof_quality"]["blockers"])
+        self.assertIn("rollback_failed", result["production_proof_quality"]["blockers"])
+
     def test_l3_production_validation_rejects_requested_batch_above_canary_budget(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

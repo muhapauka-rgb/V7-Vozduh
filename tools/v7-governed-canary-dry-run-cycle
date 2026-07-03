@@ -702,6 +702,67 @@ def lease_terminal_status_from_apply(payload: dict[str, Any]) -> str:
     return "OPERATOR_CANCELLED"
 
 
+def l3_production_validation_proof_quality(apply_run: dict[str, Any], apply_payload: dict[str, Any]) -> dict[str, Any]:
+    blockers: list[str] = []
+    apply_result = apply_payload.get("apply_result") if isinstance(apply_payload.get("apply_result"), dict) else {}
+    operation = apply_payload.get("operation") if isinstance(apply_payload.get("operation"), dict) else {}
+    rows = [row for row in (apply_result.get("results") or []) if isinstance(row, dict)]
+
+    if not apply_run.get("ok"):
+        blockers.append("autoswitch_apply_command_failed")
+    if not apply_result.get("applied"):
+        blockers.append("runtime_apply_not_performed")
+    if not rows:
+        blockers.append("verification_results_missing")
+
+    verification_failures = [
+        {
+            "user_ip": str(row.get("user_ip") or row.get("user") or ""),
+            "verify_rc": row.get("verify_rc"),
+            "from": str(row.get("from") or ""),
+            "to": str(row.get("to") or ""),
+        }
+        for row in rows
+        if int(row.get("verify_rc", 1)) != 0
+    ]
+    if verification_failures:
+        blockers.append("verification_failed")
+
+    rollback_failures = [
+        {
+            "user_ip": str(row.get("user_ip") or row.get("user") or ""),
+            "rollback_rc": row.get("rollback_rc"),
+            "from": str(row.get("from") or ""),
+            "to": str(row.get("to") or ""),
+        }
+        for row in rows
+        if row.get("rollback_rc") is not None and int(row.get("rollback_rc", 1)) != 0
+    ]
+    rollback_verdict = str(operation.get("rollback_verdict") or "")
+    if rollback_failures or rollback_verdict in {"ROLLBACK_FAILED", "ROLLBACK_FAILURE", "CONTAINMENT_FAILED_OPERATOR_REVIEW_REQUIRED"}:
+        blockers.append("rollback_failed")
+
+    verified_successes = [
+        {
+            "user_ip": str(row.get("user_ip") or row.get("user") or ""),
+            "from": str(row.get("from") or ""),
+            "to": str(row.get("to") or ""),
+        }
+        for row in rows
+        if int(row.get("verify_rc", 1)) == 0
+    ]
+    return {
+        "ok": not blockers,
+        "blockers": sorted(set(blockers)),
+        "verified_success_count": len(verified_successes),
+        "verified_successes": verified_successes,
+        "verification_failures": verification_failures,
+        "rollback_failures": rollback_failures,
+        "apply_returncode": apply_run.get("returncode"),
+        "apply_ok": bool(apply_run.get("ok")),
+    }
+
+
 def materialize_governed_transaction_feedback(
     *,
     state_dir: Path,
@@ -1043,11 +1104,13 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
     results = apply_result.get("results") if isinstance(apply_result.get("results"), list) else []
     l3_learning = apply_payload.get("l3_learning_closure") if isinstance(apply_payload.get("l3_learning_closure"), dict) else {}
     capability_state = l3_learning.get("capability_state") if isinstance(l3_learning.get("capability_state"), dict) else {}
-    production_proven = bool(capability_state.get("production_proven"))
+    production_proof_quality = l3_production_validation_proof_quality(apply_run, apply_payload)
+    production_proven = bool(capability_state.get("production_proven")) and bool(production_proof_quality.get("ok"))
     return {
         "schema_version": "v7.l3-production-validation-execution.v1",
         "transaction_status": "COMPLETED" if production_proven else "STOP_SAFE",
         "final_verdict": "L3_PRODUCTION_PROVEN" if production_proven else "STOP_SAFE",
+        "stop_reason": "" if production_proven else "l3_production_validation_downstream_proof_failed",
         "fresh_packet_id": packet.get("packet_id", ""),
         "decision_id": packet.get("decision_id", ""),
         "operation_id": packet.get("operation_id", ""),
@@ -1066,12 +1129,13 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
         "apply_executed": bool(apply_result.get("applied")),
         "verification_result": "PASS" if results and all(int(row.get("verify_rc", 1)) == 0 for row in results if isinstance(row, dict)) else ("NOT_RUN" if not results else "FAIL"),
         "rollback_result": operation.get("rollback_verdict", "NOT_REQUIRED"),
+        "production_proof_quality": production_proof_quality,
         "l3_learning_closure": l3_learning,
         "capability_state": capability_state,
         "production_proven": production_proven,
         "certified": bool(capability_state.get("certified")),
         "active_capability": bool(capability_state.get("active_capability")),
-        "users_moved": len(results) if apply_result.get("applied") else 0,
+        "users_moved": int(production_proof_quality.get("verified_success_count") or 0) if apply_result.get("applied") else 0,
         "runtime_automation_enabled": False,
         "authority_expanded": False,
         "new_architecture_created": False,

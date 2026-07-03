@@ -2,8 +2,8 @@
 
 Status: active current state
 Program: Controlled Production Certification Program
-State captured: 2026-07-03T10:12:12+0700
-Source: Controlled Production Certification Program execution. Phase 0, Phase 1, Phase 2, and Phase 3 are PASS. Phase 4 MEDIUM_BATCH remains active. Real incident continuation for `openvpn-1779388847-d2ad7c` is now cleared: deployed governed L3 execution at commit `e16aba42d1187f7a851115467c021df7fb773238` moved `10.7.0.12`, `10.7.0.13`, and `10.7.0.15`, Verification PASS, transaction COMPLETED, and remaining users on that source are `0`. Phase 4 was resumed against controlled source `wireguard-1779454504-c43409`; controlled degradation was performed through `v7-egress-set-state maintenance --controlled-certification --apply`, but the governed run stopped before Restore Barrier/Runtime with payload `/tmp/v7_phase4_medium_batch_20260703T060314.json`: `candidate_moves_total=11`, `selected_moves=0`, `emergency_failed_sources=[]`, `l3_wake_decision=REJECT_WAKE`, `l3_incident_state=NO_INCIDENT_NO_EVIDENCE`. Required resolution was converted into an Engineering Mission and implemented locally in existing owner `tools/v7-users-autoswitch`: controlled certification source unavailability now materializes `confirmed_current_channel_failure` only when the source has `controlled_certification_source=1`, affected users have `certification_user=1`, the source is unavailable by existing registry state, and registry evidence is fresh. Plain maintenance remains non-executable and does not produce a legal L3 wake. Tests pass (`python3 -m unittest tests.unit.test_v7_users_autoswitch_policy`, `125` tests) and `py_compile` passes. Current blocker is commit/push/safe deploy and production resumption of Phase 4 MEDIUM_BATCH controlled certification. No new owner, Planner, Runtime, Authority, Restore Barrier owner, execution path, truth source, or broad automation was created.
+State captured: 2026-07-03T10:25:05+0700
+Source: Controlled Production Certification Program execution. Phase 0, Phase 1, Phase 2, and Phase 3 are PASS. Phase 4 MEDIUM_BATCH remains active. Controlled wake evidence fix was committed, pushed, safely deployed, and convergence reached PASS at commit `f286fe1eec6d34413009153e79fd76eef20e1d89`. Phase 4 resumed against controlled source `wireguard-1779454504-c43409`, but production payload `/tmp/v7_phase4_medium_batch_after_wake_fix_20260703T061544.json` showed `selected_moves=0` because `incident_source_continuity_active=true` pointed to unrelated source `awg3`, filtering out the requested controlled certification source before emergency evidence could be evaluated. Required resolution was converted into an Engineering Mission and implemented locally in existing owners: `tools/v7-governed-canary-dry-run-cycle` now passes `--approved-source` into the Planner preview as `--source-egress`, and `tools/v7-users-autoswitch` lets a requested failed source override an unrelated active incident source in both Planner selection and emergency gate evaluation. Tests pass (`python3 -m unittest tests.unit.test_v7_users_autoswitch_policy tests.unit.test_governed_canary_cli`, `148` tests) and `py_compile` passes. Current blocker is commit/push/safe deploy and production resumption of Phase 4 MEDIUM_BATCH with `--approved-source wireguard-1779454504-c43409`. No new owner, Planner, Runtime, Authority, Restore Barrier owner, execution path, truth source, or broad automation was created.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -78,10 +78,10 @@ If Production Maturity produces `NO_CHANGE`, `BLOCK`, or `INVALID_EVIDENCE`, Cur
 
 | Field | Current Value |
 | --- | --- |
-| Current phase | `CONTROLLED_PRODUCTION_CERTIFICATION_PHASE4_CONTROLLED_WAKE_EVIDENCE_LOCAL_READY` |
+| Current phase | `CONTROLLED_PRODUCTION_CERTIFICATION_PHASE4_REQUESTED_SOURCE_SCOPE_LOCAL_READY` |
 | Architecture phase | `COMPLETE` |
-| Current stage | `MEDIUM_BATCH_CERTIFICATION_CONTROLLED_WAKE_EVIDENCE_LOCAL_READY` |
-| Next stage | `PHASE4_SAFE_DEPLOY_CONTROLLED_WAKE_EVIDENCE_AND_RESUME_MEDIUM_BATCH` |
+| Current stage | `MEDIUM_BATCH_CERTIFICATION_REQUESTED_SOURCE_SCOPE_LOCAL_READY` |
+| Next stage | `PHASE4_SAFE_DEPLOY_REQUESTED_SOURCE_SCOPE_AND_RESUME_MEDIUM_BATCH` |
 | autonomous_execution_program_status | `CANONICAL_INTEGRATED` |
 | autonomous_runtime_model_status | `CANONICAL_INTEGRATED` |
 | autonomy_architecture_status | `AUTONOMY_ARCHITECTURE_COMPLETE` |
@@ -92,29 +92,29 @@ If Production Maturity produces `NO_CHANGE`, `BLOCK`, or `INVALID_EVIDENCE`, Cur
 | l3_phase3_status | `COMPLETE` |
 | l3_implementation_status | `COMPLETE` |
 | runtime_operating_system_status | `STABLE_CANONICAL` |
-| Current bottleneck | `CONTROLLED_CERTIFICATION_WAKE_EVIDENCE_LOCAL_READY_PENDING_SAFE_DEPLOY` |
-| Blocking Owner | `tools/v7-users-autoswitch` Wake / incident-source evidence producer. |
-| Owner Resolution State | `IMPLEMENTATION_DEFECT_CLOSED_LOCALLY_PENDING_SAFE_DEPLOY` |
-| Terminal Root Cause | `IMPLEMENTATION_DEFECT`: controlled certification degradation produced candidate failover proposals but did not materialize legal `confirmed_current_channel_failure` evidence for Wake/Incident. |
-| Required Resolution | Commit, push, and safe-deploy the existing-owner controlled certification wake evidence fix; then resume Phase 4 MEDIUM_BATCH from the interrupted controlled certification mission. |
-| Expected Next Engineering Step | `SAFE_DEPLOY_CONTROLLED_CERTIFICATION_WAKE_EVIDENCE_FIX` |
-| Current highest leverage implementation | `CONTROLLED_CERTIFICATION_WAKE_EVIDENCE_FIX_LOCAL_IMPLEMENTED_TESTED` |
-| Current highest leverage action | Deliver the controlled certification wake evidence fix through canonical git/GitHub/safe-deploy owners, verify convergence, re-open the controlled degradation through `v7-egress-set-state maintenance --controlled-certification --apply`, then run Phase 4 MEDIUM_BATCH governed validation. |
+| Current bottleneck | `REQUESTED_SOURCE_INCIDENT_SCOPE_LOCAL_READY_PENDING_SAFE_DEPLOY` |
+| Blocking Owner | `tools/v7-governed-canary-dry-run-cycle` source invocation and `tools/v7-users-autoswitch` incident-source continuity. |
+| Owner Resolution State | `OWNER_INVOCATION_MISSING_AND_IMPLEMENTATION_DEFECT_CLOSED_LOCALLY_PENDING_SAFE_DEPLOY` |
+| Terminal Root Cause | `OWNER_INVOCATION_MISSING`: governed L3 preview did not pass approved source into Planner; `IMPLEMENTATION_DEFECT`: autoswitch incident-source continuity allowed unrelated active incident source to override a requested failed source. |
+| Required Resolution | Commit, push, and safe-deploy the existing-owner requested-source scope fix; then resume Phase 4 MEDIUM_BATCH with `--approved-source wireguard-1779454504-c43409`. |
+| Expected Next Engineering Step | `SAFE_DEPLOY_REQUESTED_SOURCE_INCIDENT_SCOPE_FIX` |
+| Current highest leverage implementation | `REQUESTED_SOURCE_INCIDENT_SCOPE_FIX_LOCAL_IMPLEMENTED_TESTED` |
+| Current highest leverage action | Deliver the requested-source scope fix through canonical git/GitHub/safe-deploy owners, verify convergence, re-open the controlled degradation through `v7-egress-set-state maintenance --controlled-certification --apply`, then run Phase 4 MEDIUM_BATCH governed validation with `--approved-source wireguard-1779454504-c43409`. |
 | Current authority class | `POOL` |
 | authority_class | `POOL` |
 | authority_reason | Production policy currently authorized governed L3 budget 25; Phase 3 consumed only SMALL_BATCH max-users=5 and did not enable larger automatic batches. |
 | authority_owner | Existing governed transaction owner `tools/v7-governed-canary-dry-run-cycle`; packet/execution lease owner `admin_core/operator_execution.py`; apply/verify owner `tools/v7-users-autoswitch` remain owners when a future governed action is explicitly approved. |
-| required_action | Keep current capability at SMALL_BATCH_CERTIFIED until the controlled wake evidence fix is safely deployed, controlled source degradation is performed through the guarded path, and Phase 4 MEDIUM_BATCH is resumed and certified. Do not run FULL_INCIDENT, production timer expansion, broad automation, authority bypass, Restore Barrier bypass, Runtime bypass, Planner bypass, synthetic evidence, new owner, unrelated user movement, or unmarked egress source mutation. |
+| required_action | Keep current capability at SMALL_BATCH_CERTIFIED until the requested-source scope fix is safely deployed, controlled source degradation is performed through the guarded path, and Phase 4 MEDIUM_BATCH is resumed and certified. Do not run FULL_INCIDENT, production timer expansion, broad automation, authority bypass, Restore Barrier bypass, Runtime bypass, Planner bypass, synthetic evidence, new owner, unrelated user movement, or unmarked egress source mutation. |
 | non_blocking_optimization_note | `A4_MARGINAL_EVIDENCE_VALUE_RANKING`: future efficiency work to rank eligible candidates by expected evidence value before selection; not required for current A4 progress. |
 | optimization_status | `RECORDED_NOT_BLOCKING`; no new authority, no runtime automation, no batch movement, no formula/threshold change, no new backlog item. |
-| Current reality limit | `CONTROLLED_INCIDENT_NOT_OPEN`: production has an eleven-user controlled-production candidate cohort on `wireguard-1779454504-c43409`; certification markers are materialized and guard support is deployed, but controlled degraded source evidence needs the locally implemented Wake evidence fix deployed before Phase 4 can execute. |
-| Current safe next action | `SAFE_DEPLOY_CONTROLLED_CERTIFICATION_WAKE_EVIDENCE_FIX` |
-| Current stop reason | `PHASE4_INTERRUPTED_PENDING_CONTROLLED_WAKE_EVIDENCE_SAFE_DEPLOY`; the phase has not reached PASS because the controlled degraded source did not become a legal L3 incident before the local fix. |
-| root_cause | `CONTROLLED_CERTIFICATION_WAKE_EVIDENCE_NOT_MATERIALIZED`: Controlled Production can provide the needed MEDIUM_BATCH cohort and Certification Pool is sufficient; the missing bridge was controlled certification source-unavailable evidence into existing Wake/Incident owners. |
-| responsible_owner | Existing autoswitch Wake / incident source evidence owner `tools/v7-users-autoswitch`; governance owners OMP / Authority / Production Maturity. |
-| implementation_class | `LOCAL_CONTROLLED_WAKE_EVIDENCE_FIX_COMPLETE_PENDING_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION` |
-| next_engineering_task | `SAFE_DEPLOY_CONTROLLED_CERTIFICATION_WAKE_EVIDENCE_FIX` |
-| expected_completion_evidence | Commit/push evidence, safe deploy PASS, production convergence PASS, controlled source degradation evidence, `ACCEPT_WAKE` / `READY_FOR_EXECUTION` evidence for `wireguard-1779454504-c43409`, and Phase 4 MEDIUM_BATCH governed execution evidence. |
+| Current reality limit | `CONTROLLED_SOURCE_FILTERED_BY_UNRELATED_INCIDENT`: production has an eleven-user controlled-production candidate cohort on `wireguard-1779454504-c43409`; controlled wake evidence is deployed, but governed preview must preserve the approved source and autoswitch must not let unrelated active incident scope filter the requested failed source. |
+| Current safe next action | `SAFE_DEPLOY_REQUESTED_SOURCE_INCIDENT_SCOPE_FIX` |
+| Current stop reason | `PHASE4_INTERRUPTED_PENDING_REQUESTED_SOURCE_SCOPE_SAFE_DEPLOY`; the phase has not reached PASS because an unrelated active incident source filtered out the controlled source. |
+| root_cause | `REQUESTED_SOURCE_IDENTITY_NOT_PRESERVED_IN_L3_PREVIEW`: Controlled Production can provide the needed MEDIUM_BATCH cohort and Certification Pool is sufficient; the missing bridge was approved-source propagation and requested-source incident scope precedence. |
+| responsible_owner | Existing governed L3 owner `tools/v7-governed-canary-dry-run-cycle` and autoswitch incident-source owner `tools/v7-users-autoswitch`; governance owners OMP / Authority / Production Maturity. |
+| implementation_class | `LOCAL_REQUESTED_SOURCE_SCOPE_FIX_COMPLETE_PENDING_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION` |
+| next_engineering_task | `SAFE_DEPLOY_REQUESTED_SOURCE_INCIDENT_SCOPE_FIX` |
+| expected_completion_evidence | Commit/push evidence, safe deploy PASS, production convergence PASS, controlled source degradation evidence, source-scoped Planner selected moves for `wireguard-1779454504-c43409`, and Phase 4 MEDIUM_BATCH governed execution evidence. |
 | automation_debt_current | `0_UNCLASSIFIED`; current manual actions were classified in the Phase 2 execution report. |
 | automation_debt_delta | `created=1; closed=1; remaining_unclassified=0` |
 | workflow_debt_current | `0_UNCLASSIFIED`; the certification execution workflow was classified in the Phase 2 execution report. |

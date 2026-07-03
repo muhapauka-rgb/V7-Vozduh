@@ -41,6 +41,37 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 module.ROOT = original_root
                 module.__file__ = original_file
 
+    def test_l3_validation_plan_passes_approved_source_to_planner(self):
+        module = load_cli_module()
+        captured = {}
+
+        class FakeProc:
+            returncode = 0
+            stdout = "{}"
+            stderr = ""
+
+        def fake_run(command, **kwargs):
+            captured["command"] = command
+            return FakeProc()
+
+        original_run = module.subprocess.run
+        try:
+            module.subprocess.run = fake_run
+            module.run_l3_production_validation_plan(
+                state_dir=Path("/state"),
+                event_dir=Path("/events"),
+                snapshot_root=Path("/state/intelligence"),
+                restore_barrier_file=Path("/state/autoswitch-restore-barrier.json"),
+                max_users=10,
+                source="wireguard-1779454504-c43409",
+            )
+        finally:
+            module.subprocess.run = original_run
+
+        self.assertIn("--source-egress", captured["command"])
+        source_index = captured["command"].index("--source-egress")
+        self.assertEqual(captured["command"][source_index + 1], "wireguard-1779454504-c43409")
+
     def transaction_args(self, root: Path):
         return argparse.Namespace(
             state_dir=str(root / "state"),

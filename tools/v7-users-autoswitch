@@ -1267,6 +1267,32 @@ class AutoswitchPlanner:
         approved_envelope = self._approved_l3_production_validation_envelope(selected, restore_barrier, approved_validation)
         gate["approved_production_validation_envelope"] = approved_envelope
         incident_source_continuity = self._l3_active_incident_source_context()
+        requested_source = str(getattr(self.args, "source_egress", "") or "").strip()
+        if (
+            requested_source
+            and bool_value(incident_source_continuity.get("active"))
+            and str(incident_source_continuity.get("incident_source") or "") != requested_source
+        ):
+            requested_scope = self._l3_failed_source_scope(requested_source)
+            if bool_value(requested_scope.get("source_failed")):
+                incident_source_continuity = {
+                    "schema_version": "v7.l3-incident-source-continuity.v1",
+                    "active": True,
+                    "reason": "requested_failed_source_scope",
+                    "incident_key": "",
+                    "incident_source": requested_source,
+                    "incident_status": "OBSERVED",
+                    "failed_required_services": list(requested_scope.get("required_service_failures") or []),
+                    "affected_users": list(requested_scope.get("affected_users") or []),
+                    "affected_users_count": to_int(requested_scope.get("affected_users_count"), 0),
+                    "scope": requested_scope,
+                    "continuity_source": "requested_source_egress",
+                    "producer": "tools/v7-users-autoswitch._emergency_failover_authority_gate",
+                    "consumer": "tools/v7-users-autoswitch._emergency_failover_authority_gate",
+                    "owner": "tools/v7-users-autoswitch",
+                    "overrode_incident_source": str(incident_source_continuity.get("incident_source") or ""),
+                    "override_reason": "requested_source_egress_has_failed_source_scope",
+                }
         gate["incident_source_continuity"] = incident_source_continuity
         if not enabled:
             gate["wake"] = self._l3_wake_decision(policy, [])
@@ -5679,6 +5705,31 @@ class AutoswitchPlanner:
                 if item.get("recommended_egress") == target_egress and item.get("current_egress") != target_egress
             ]
         incident_source_continuity = self._l3_active_incident_source_context()
+        if (
+            source_egress
+            and bool_value(incident_source_continuity.get("active"))
+            and str(incident_source_continuity.get("incident_source") or "") != source_egress
+        ):
+            requested_scope = self._l3_failed_source_scope(source_egress)
+            if bool_value(requested_scope.get("source_failed")):
+                incident_source_continuity = {
+                    "schema_version": "v7.l3-incident-source-continuity.v1",
+                    "active": True,
+                    "reason": "requested_failed_source_scope",
+                    "incident_key": "",
+                    "incident_source": source_egress,
+                    "incident_status": "OBSERVED",
+                    "failed_required_services": list(requested_scope.get("required_service_failures") or []),
+                    "affected_users": list(requested_scope.get("affected_users") or []),
+                    "affected_users_count": to_int(requested_scope.get("affected_users_count"), 0),
+                    "scope": requested_scope,
+                    "continuity_source": "requested_source_egress",
+                    "producer": "tools/v7-users-autoswitch.plan",
+                    "consumer": "tools/v7-users-autoswitch.plan",
+                    "owner": "tools/v7-users-autoswitch",
+                    "overrode_incident_source": str(incident_source_continuity.get("incident_source") or ""),
+                    "override_reason": "requested_source_egress_has_failed_source_scope",
+                }
         if bool_value(incident_source_continuity.get("active")):
             incident_source = str(incident_source_continuity.get("incident_source") or "")
             affected_users = set(str(item) for item in (incident_source_continuity.get("affected_users") or []) if str(item))

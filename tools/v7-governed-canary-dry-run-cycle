@@ -190,6 +190,7 @@ def run_l3_production_validation_plan(
     snapshot_root: Path,
     restore_barrier_file: Path,
     max_users: int,
+    source: str = "",
     pre_planner_refresh_command: str = "v7-intelligence-snapshot-refresh",
 ) -> dict[str, Any]:
     command = [
@@ -213,6 +214,8 @@ def run_l3_production_validation_plan(
         str(restore_barrier_file),
         "--pretty",
     ]
+    if source:
+        command.extend(["--source-egress", source])
     try:
         proc = subprocess.run(command, capture_output=True, text=True, timeout=90)
     except (OSError, subprocess.TimeoutExpired) as exc:
@@ -914,6 +917,7 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
         snapshot_root=snapshot_root,
         restore_barrier_file=restore_barrier_file,
         max_users=requested_max_users,
+        source=str(args.approved_source or ""),
         pre_planner_refresh_command=str(args.pre_planner_refresh_command or "v7-intelligence-snapshot-refresh"),
     )
     plan = l3_plan_run.get("payload") if isinstance(l3_plan_run.get("payload"), dict) else {}

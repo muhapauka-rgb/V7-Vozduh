@@ -1288,6 +1288,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
                 restore_barrier={
                     "enabled": True,
+                    "failover_quarantine": True,
                     "expires_at": "2999-01-01T00:00:00+00:00",
                     "reason": "unit-test",
                 },
@@ -1562,6 +1563,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 egress_1_state="maintenance",
                 restore_barrier={
                     "enabled": True,
+                    "failover_quarantine": True,
                     "expires_at": "2999-01-01T00:00:00+00:00",
                     "reason": "unit-test",
                 },
@@ -1702,6 +1704,86 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(gate["selected_moves_after_gate"], 1)
         self.assertEqual(plan["safety"]["l3_wake"]["decision"], "ACCEPT_WAKE")
         self.assertIn("confirmed_current_channel_failure", plan["safety"]["l3_wake"]["accepted_wake_sources"])
+
+    def test_requested_failed_source_overrides_unrelated_active_incident_scope(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=3,
+                egress_1_state="maintenance",
+                restore_barrier={
+                    "enabled": True,
+                    "failover_quarantine": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={
+                    "enabled": True,
+                    "max_users_per_run": 2,
+                    "max_users_per_channel": 2,
+                },
+                authority_budget={
+                    "authority_class": "SMALL_BATCH",
+                    "certified_authority_class": "SMALL_BATCH",
+                    "authority_lifecycle_state": "CERTIFIED",
+                    "current_allowed_user_budget": 2,
+                },
+            )
+            self.add_failed_egress(root, egress="2")
+            egress_path = root / "state" / "egress.registry"
+            egress_path.write_text(
+                egress_path.read_text(encoding="utf-8").replace(
+                    "id=1 interface=v7one enabled=1 state=maintenance role=GLOBAL_FAST",
+                    "id=1 interface=v7one enabled=0 state=maintenance role=GLOBAL_FAST controlled_certification_source=1 certification_group=medium-batch",
+                ),
+                encoding="utf-8",
+            )
+            users_path = root / "state" / "users.registry"
+            users_path.write_text(
+                "ip=10.0.0.2 current=1 table=100 enabled=1 certification_user=1 certification_group=medium-batch\n"
+                "ip=10.0.0.3 current=1 table=101 enabled=1 certification_user=1 certification_group=medium-batch\n"
+                "ip=10.0.0.4 current=1 table=102 enabled=1 certification_user=1 certification_group=medium-batch\n"
+                "ip=10.0.1.2 current=2 table=200 enabled=1\n"
+                "ip=10.0.1.3 current=2 table=201 enabled=1\n"
+                "ip=10.0.1.4 current=2 table=202 enabled=1\n"
+                "ip=10.0.1.5 current=2 table=203 enabled=1\n"
+                "ip=10.0.1.6 current=2 table=204 enabled=1\n"
+                "ip=10.0.1.7 current=2 table=205 enabled=1\n",
+                encoding="utf-8",
+            )
+            (root / "state" / "l3-runtime-state.json").write_text(
+                json.dumps({
+                    "schema_version": "v7.l3-runtime-state.v1",
+                    "incidents": {
+                        "incident-open-2": {
+                            "incident_key": "incident-open-2",
+                            "status": "OPEN",
+                            "authority_object": "EMERGENCY_FAILOVER_AUTONOMY",
+                            "failed_sources": ["2"],
+                            "incident_source": "2",
+                            "failed_required_services": [],
+                            "updated_at": "2999-01-01T00:00:00+00:00",
+                        }
+                    },
+                    "processed_event_ids": [],
+                    "capability": {},
+                }),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(root, ["--emergency-failover-autonomy", "--max-selected-moves", "2", "--source-egress", "1"])
+            )
+            plan = planner.plan()
+
+        continuity = plan["safety"]["incident_source_continuity"]
+        self.assertTrue(continuity["active"])
+        self.assertEqual(continuity["incident_source"], "1")
+        self.assertEqual(continuity["continuity_source"], "requested_source_egress")
+        self.assertEqual(continuity["overrode_incident_source"], "2")
+        self.assertEqual(plan["summary"]["selected_moves"], 2)
+        self.assertTrue(all(move["current_egress"] == "1" for move in plan["selected_moves"]))
+        self.assertEqual(plan["safety"]["l3_wake"]["decision"], "ACCEPT_WAKE")
 
     def test_active_incident_skips_exhausted_semantic_attempt_and_selects_next_user(self):
         with tempfile.TemporaryDirectory() as tmp:

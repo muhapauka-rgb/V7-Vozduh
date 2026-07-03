@@ -3027,6 +3027,104 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertTrue(all(not row["rollback_attempted"] for row in plan["apply_result"]["results"]))
         self.assertTrue(all(row["terminal_outcome_classification"] == "SUCCESS" for row in plan["apply_result"]["results"]))
 
+    def test_global_route_verification_failure_does_not_quarantine_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--apply"]))
+            planner._update_safety_after_apply([
+                {
+                    "user_ip": "10.0.0.2",
+                    "from": "1",
+                    "to": "vless",
+                    "move_type": "failover",
+                    "rc": 0,
+                    "verify_rc": 1,
+                    "route_verification_scope": "global",
+                    "verification_failure_reason": "route_verify_failed",
+                },
+                {
+                    "user_ip": "10.0.0.3",
+                    "from": "1",
+                    "to": "vless",
+                    "move_type": "failover",
+                    "rc": 0,
+                    "verify_rc": 1,
+                    "route_verification_scope": "global",
+                    "verification_failure_reason": "route_verify_failed",
+                },
+            ])
+            safety = json.loads((root / "state" / "autoswitch-safety.json").read_text(encoding="utf-8"))
+
+        target = safety["egress"]["vless"]
+        self.assertIsNone(target.get("quarantine_until"))
+        self.assertEqual(target["failed_verifications_1h"], 0)
+        self.assertEqual(target["failed_verifications_1h_unattributed"], 2)
+
+    def test_selected_user_route_verification_failure_still_quarantines_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--apply"]))
+            planner._update_safety_after_apply([
+                {
+                    "user_ip": "10.0.0.2",
+                    "from": "1",
+                    "to": "vless",
+                    "move_type": "failover",
+                    "rc": 0,
+                    "verify_rc": 1,
+                    "route_verification_scope": "selected_user",
+                    "verification_failure_reason": "route_verify_failed",
+                },
+                {
+                    "user_ip": "10.0.0.3",
+                    "from": "1",
+                    "to": "vless",
+                    "move_type": "failover",
+                    "rc": 0,
+                    "verify_rc": 1,
+                    "route_verification_scope": "selected_user",
+                    "verification_failure_reason": "route_verify_failed",
+                },
+            ])
+            safety = json.loads((root / "state" / "autoswitch-safety.json").read_text(encoding="utf-8"))
+
+        target = safety["egress"]["vless"]
+        self.assertTrue(target.get("quarantine_until"))
+        self.assertEqual(target["quarantine_reason"], "selected_user_route_verification_failed")
+        self.assertEqual(target["failed_verifications_1h"], 2)
+        self.assertEqual(target["failed_verifications_1h_unattributed"], 0)
+
+    def test_legacy_unscoped_failed_verifications_do_not_keep_quarantine(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            safety_path = root / "state" / "autoswitch-safety.json"
+            safety_path.write_text(
+                json.dumps({
+                    "schema_version": 1,
+                    "users": {},
+                    "egress": {
+                        "vless": {
+                            "failed_verifications": [
+                                {"ts": "2999-01-01T00:00:00+00:00", "user_ip": "10.0.0.2", "verify_rc": 1},
+                                {"ts": "2999-01-01T00:00:01+00:00", "user_ip": "10.0.0.3", "verify_rc": 1},
+                            ],
+                            "quarantine_until": "2999-01-01T01:00:00+00:00",
+                        }
+                    },
+                }),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root))
+            target = planner.safety_state["egress"]["vless"]
+
+        self.assertIsNone(target.get("quarantine_until"))
+        self.assertEqual(target["quarantine_clear_reason"], "unattributed_route_verification_not_counted")
+        self.assertEqual(target["failed_verifications_1h"], 0)
+        self.assertEqual(target["failed_verifications_1h_unattributed"], 2)
+
     def test_apply_partial_success_is_classified_without_new_execution_path(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

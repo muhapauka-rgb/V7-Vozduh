@@ -3896,7 +3896,14 @@ class AutoswitchPlanner:
         state_users = self.state.get("users")
         registry_rows = parse_registry(self.state_dir / "users.registry")
         registry_by_ip = {str(row.get("ip", "")): row for row in registry_rows if row.get("ip")}
-        rows = state_users if isinstance(state_users, list) else registry_rows
+        if isinstance(state_users, list):
+            state_ips = {str(row.get("ip", "")) for row in state_users if isinstance(row, dict)}
+            rows = list(state_users) + [
+                row for row in registry_rows
+                if str(row.get("ip", "")) and str(row.get("ip", "")) not in state_ips
+            ]
+        else:
+            rows = registry_rows
         org_users = self._org_user_map()
         users: list[User] = []
         for row in rows:

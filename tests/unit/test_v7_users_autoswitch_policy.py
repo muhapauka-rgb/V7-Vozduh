@@ -1600,7 +1600,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             state = json.loads(state_path.read_text(encoding="utf-8"))
             state["users"] = [
                 {"ip": f"10.0.0.{idx + 2}", "current": "1", "table": str(100 + idx), "enabled": "1"}
-                for idx in range(3)
+                for idx in range(2)
             ]
             state_path.write_text(json.dumps(state), encoding="utf-8")
             planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--emergency-failover-autonomy", "--max-selected-moves", "2"]))
@@ -1614,6 +1614,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(incident["incident_state"], "READY_FOR_EXECUTION")
         self.assertEqual(incident["incident_source"], "1")
         self.assertEqual(incident["failed_sources"], ["1"])
+        self.assertEqual(incident["incident_source_continuity"]["affected_users_count"], 3)
         self.assertEqual(len(selected), 2)
         self.assertTrue(all(move["current_egress"] == "1" for move in selected))
         self.assertTrue(

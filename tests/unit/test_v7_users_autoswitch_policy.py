@@ -1553,6 +1553,97 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertNotIn("required_service_failure_required", gate["blockers"])
         self.assertFalse(gate["broad_automation_enabled"])
 
+    def test_controlled_certification_maintenance_produces_confirmed_current_channel_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=3,
+                egress_1_state="maintenance",
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={
+                    "enabled": True,
+                    "max_users_per_run": 2,
+                    "max_users_per_channel": 2,
+                },
+                authority_budget={
+                    "authority_class": "SMALL_BATCH",
+                    "certified_authority_class": "SMALL_BATCH",
+                    "authority_lifecycle_state": "CERTIFIED",
+                    "current_allowed_user_budget": 2,
+                },
+            )
+            egress_path = root / "state" / "egress.registry"
+            egress_path.write_text(
+                egress_path.read_text(encoding="utf-8").replace(
+                    "id=1 interface=v7one enabled=1 state=maintenance role=GLOBAL_FAST",
+                    "id=1 interface=v7one enabled=0 state=maintenance role=GLOBAL_FAST controlled_certification_source=1 certification_group=medium-batch",
+                ),
+                encoding="utf-8",
+            )
+            users_path = root / "state" / "users.registry"
+            users_path.write_text(
+                "\n".join(
+                    row + " certification_user=1 certification_group=medium-batch"
+                    for row in users_path.read_text(encoding="utf-8").strip().splitlines()
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--emergency-failover-autonomy", "--max-selected-moves", "2"]))
+            plan = planner.plan()
+
+        wake = plan["safety"]["l3_wake"]
+        incident = plan["safety"]["l3_incident"]
+        selected = plan["selected_moves"]
+        self.assertEqual(wake["decision"], "ACCEPT_WAKE")
+        self.assertIn("confirmed_current_channel_failure", wake["accepted_wake_sources"])
+        self.assertEqual(incident["incident_state"], "READY_FOR_EXECUTION")
+        self.assertEqual(incident["incident_source"], "1")
+        self.assertEqual(incident["failed_sources"], ["1"])
+        self.assertEqual(len(selected), 2)
+        self.assertTrue(all(move["current_egress"] == "1" for move in selected))
+        self.assertTrue(
+            all(
+                row["current_channel_failure"]["diagnose_reason"] == "controlled_certification_source_unavailable"
+                for row in plan["safety"]["emergency_failover_autonomy"]["move_evidence"]
+            )
+        )
+        self.assertFalse(plan["safety"]["emergency_failover_autonomy"]["broad_automation_enabled"])
+
+    def test_plain_maintenance_does_not_produce_confirmed_current_channel_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=3,
+                egress_1_state="maintenance",
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                emergency_failover_autonomy={
+                    "enabled": True,
+                    "max_users_per_run": 2,
+                    "max_users_per_channel": 2,
+                },
+            )
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--emergency-failover-autonomy", "--max-selected-moves", "2"]))
+            plan = planner.plan()
+
+        self.assertEqual(plan["safety"]["l3_wake"]["decision"], "REJECT_WAKE")
+        self.assertNotEqual(plan["summary"]["l3_incident_state"], "READY_FOR_EXECUTION")
+        self.assertEqual(plan["selected_moves"], [])
+        self.assertEqual(plan["summary"]["execution_blocker"], "emergency_failover_autonomy")
+        evidence = plan["safety"]["emergency_failover_autonomy"]["move_evidence"]
+        self.assertTrue(evidence)
+        self.assertTrue(all(not row["current_channel_failure"] for row in evidence))
+
     def test_active_failed_source_incident_constrains_next_l3_selection(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

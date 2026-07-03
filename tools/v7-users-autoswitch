@@ -988,20 +988,23 @@ class AutoswitchPlanner:
         severity = str((egress.severity if egress else "") or "").upper()
         diagnose_reason = str((egress.diagnose_reason if egress else "") or "")
         enabled = bool(egress and egress.enabled and str(egress.state).lower() not in {"disabled", "down"})
+        controlled_failure = self._controlled_certification_failure_context(source)
         channel_failed = enabled and severity == "FAIL" and bool(affected_users)
         service_failures = self._l3_required_service_failures_for_source(source, required_services=required_services)
         service_failed = enabled and bool(service_failures) and bool(affected_users)
+        controlled_channel_failed = bool_value(controlled_failure.get("confirmed"))
         return {
             "schema_version": "v7.l3-incident-source-scope.v1",
             "source": source,
             "enabled": enabled,
             "affected_users": affected_users,
             "affected_users_count": len(affected_users),
-            "source_failed": channel_failed or service_failed,
-            "current_channel_failure": channel_failed,
+            "source_failed": channel_failed or service_failed or controlled_channel_failed,
+            "current_channel_failure": channel_failed or controlled_channel_failed,
             "required_service_failure": service_failed,
             "diagnose_severity": severity,
             "diagnose_reason": diagnose_reason,
+            "controlled_certification_failure": controlled_failure,
             "required_service_failures": service_failures,
             "owner": "tools/v7-users-autoswitch",
             "source_objects": [
@@ -1624,6 +1627,75 @@ class AutoswitchPlanner:
             "runtime_behavior": "use_existing_observation" if age <= max_age else "fail_closed_if_required",
         }
 
+    def _file_freshness(self, path: Path) -> dict[str, Any]:
+        max_age = max(1, to_int(self.quality_policy.get("metrics_fresh_seconds"), DEFAULT_QUALITY_POLICY["metrics_fresh_seconds"]))
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            return {
+                "state": "UNKNOWN",
+                "age_seconds": None,
+                "max_age_seconds": max_age,
+                "path": str(path),
+                "runtime_behavior": "fail_closed_if_required",
+            }
+        age = max(0.0, time.time() - mtime)
+        return {
+            "state": "FRESH" if age <= max_age else "STALE",
+            "age_seconds": round(age, 3),
+            "max_age_seconds": max_age,
+            "path": str(path),
+            "observed_at": datetime.fromtimestamp(mtime, timezone.utc).isoformat(),
+            "runtime_behavior": "use_existing_production_registry" if age <= max_age else "fail_closed_if_required",
+        }
+
+    def _controlled_certification_failure_context(self, source: str, *, user_ip: str = "") -> dict[str, Any]:
+        egress = self.egress.get(source)
+        if not egress:
+            return {"confirmed": False, "reason": "source_not_found"}
+        registry = egress.raw.get("registry") if isinstance(egress.raw.get("registry"), dict) else {}
+        controlled_source = bool_value(registry.get("controlled_certification_source"))
+        egress_state = str(egress.state or "").lower()
+        source_unavailable = (not egress.enabled) or egress_state in {"maintenance", "disabled", "quarantine", "down"}
+        certification_users = sorted(
+            user.ip
+            for user in self.users
+            if user.enabled
+            and str(user.current) == source
+            and bool_value(user.raw.get("certification_user"))
+        )
+        user_in_scope = (not user_ip) or user_ip in set(certification_users)
+        freshness = self._file_freshness(self.state_dir / "egress.registry")
+        confirmed = (
+            controlled_source
+            and source_unavailable
+            and bool(certification_users)
+            and user_in_scope
+            and str(freshness.get("state") or "") in {"FRESH", "AGING"}
+        )
+        return {
+            "schema_version": "v7.controlled-certification-current-channel-failure.v1",
+            "confirmed": confirmed,
+            "wake_source": "confirmed_current_channel_failure",
+            "channel": source,
+            "controlled_certification": controlled_source,
+            "source_unavailable": source_unavailable,
+            "egress_enabled": bool(egress.enabled),
+            "egress_state": egress_state,
+            "affected_user": user_ip,
+            "certification_user_in_scope": user_in_scope,
+            "affected_users_on_channel": len(certification_users),
+            "certification_users": certification_users,
+            "diagnose_reason": "controlled_certification_source_unavailable",
+            "block_reason": f"egress_state_{egress_state}" if egress_state else "egress_disabled",
+            "freshness": freshness,
+            "producer": "tools/v7-users-autoswitch._controlled_certification_failure_context",
+            "source_object": "egress.registry:controlled_certification_source + users.registry:certification_user + egress.registry enabled/state",
+            "owner": "tools/v7-users-autoswitch",
+            "authority_expanded": False,
+            "runtime_apply_allowed_now": False,
+        }
+
     def _current_channel_failure_evidence(self, current: dict[str, Any], *, user_ip: str) -> dict[str, Any]:
         if not isinstance(current, dict) or not current:
             return {}
@@ -1641,7 +1713,8 @@ class AutoswitchPlanner:
             and str(freshness.get("state") or "") in {"FRESH", "AGING"}
         )
         if not (hard_block or severity_value == "FAIL" or reason):
-            return {}
+            controlled = self._controlled_certification_failure_context(str(current.get("egress") or ""), user_ip=user_ip)
+            return controlled if bool_value(controlled.get("confirmed")) else {}
         return {
             "schema_version": "v7.confirmed-current-channel-failure-evidence.v1",
             "confirmed": confirmed,
@@ -8114,6 +8187,9 @@ class AutoswitchPlanner:
             "stability": round(egress.stability, 3),
             "users": egress.users,
             "capacity_users": egress.capacity_users,
+            "enabled": egress.enabled,
+            "state": egress.state,
+            "controlled_certification_source": bool_value(egress.raw.get("registry", {}).get("controlled_certification_source")),
             "load": self._load_limits_for_egress(egress),
             "quality_history": {
                 "windows": self._quality_history(egress.id).get("windows", {}),

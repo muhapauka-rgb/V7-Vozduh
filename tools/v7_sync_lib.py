@@ -125,6 +125,20 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "v7-egress-guard",
+        "local_path": "tools/runtime-support/v7-egress-guard",
+        "remote_path": "/usr/local/bin/v7-egress-guard",
+        "mode": "0755",
+        "service": None,
+    },
+    {
+        "name": "v7-egress-set-state",
+        "local_path": "tools/v7-egress-set-state",
+        "remote_path": "/usr/local/bin/v7-egress-set-state",
+        "mode": "0755",
+        "service": None,
+    },
+    {
         "name": "v7-telegram-sentinel",
         "local_path": "tools/v7-telegram-sentinel",
         "remote_path": "/usr/local/bin/v7-telegram-sentinel",

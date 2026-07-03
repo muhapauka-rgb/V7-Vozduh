@@ -7,14 +7,23 @@ FLAGS="$STATE_DIR/egress-flags.state"
 EGRESS_ID="${1:-}"
 STATE="${2:-}"
 APPLY=0
-
-if [ "${3:-}" = "--apply" ]; then
-  APPLY=1
-fi
+CONTROLLED_CERTIFICATION=0
 
 usage() {
-  echo "Usage: v7-egress-set-state <egress_id> <enabled|disabled|maintenance> [--apply]" >&2
+  echo "Usage: v7-egress-set-state <egress_id> <enabled|disabled|maintenance> [--apply] [--controlled-certification]" >&2
 }
+
+for arg in "${@:3}"; do
+  case "$arg" in
+    --apply) APPLY=1 ;;
+    --controlled-certification) CONTROLLED_CERTIFICATION=1 ;;
+    *)
+      echo "unknown option: $arg" >&2
+      usage
+      exit 1
+      ;;
+  esac
+done
 
 safe_id() {
   [[ "${1:-}" =~ ^[A-Za-z0-9_.-]{1,64}$ ]]
@@ -234,7 +243,11 @@ echo "enabled_now=$enabled_now"
 
 if [ "$STATE" != "enabled" ]; then
   if command -v v7-egress-guard >/dev/null 2>&1; then
-    if ! v7-egress-guard "$EGRESS_ID"; then
+    guard_args=("$EGRESS_ID")
+    if [ "$CONTROLLED_CERTIFICATION" -eq 1 ]; then
+      guard_args+=("--controlled-certification")
+    fi
+    if ! v7-egress-guard "${guard_args[@]}"; then
       echo "ACTION=blocked"
       echo "Move assigned users away before disabling or maintenance."
       exit 2

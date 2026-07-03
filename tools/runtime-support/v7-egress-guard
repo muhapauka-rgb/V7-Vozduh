@@ -5,6 +5,11 @@ STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
 EGRESS_REG="$STATE_DIR/egress.registry"
 USERS_REG="$STATE_DIR/users.registry"
 EGRESS_ID="${1:-}"
+CONTROLLED_CERTIFICATION="${V7_CONTROLLED_CERTIFICATION:-0}"
+
+if [ "${2:-}" = "--controlled-certification" ]; then
+  CONTROLLED_CERTIFICATION=1
+fi
 
 if [ -z "$EGRESS_ID" ]; then
   echo "Usage: v7-egress-guard <egress_id>" >&2
@@ -33,6 +38,48 @@ assigned="$(awk -v e="$EGRESS_ID" '$0 ~ "enabled=1" {
 }' "$USERS_REG" 2>/dev/null || true)"
 
 if [ -n "$assigned" ]; then
+  if [ "$CONTROLLED_CERTIFICATION" = "1" ]; then
+    if ! echo "$line" | awk '{
+      ok=0
+      for (i=1;i<=NF;i++) {
+        if ($i == "controlled_certification_source=1") ok=1
+        if ($i == "certification_source=1") ok=1
+        if ($i == "certification_pool=1") ok=1
+        if ($i ~ /^certification_group=.+/) ok=1
+      }
+      exit(ok ? 0 : 1)
+    }'; then
+      echo "V7_EGRESS_GUARD=BLOCK"
+      echo "reason=controlled_certification_source_not_marked"
+      echo "$assigned" | sed 's/^/assigned_user=/'
+      exit 2
+    fi
+
+    non_certification_assigned="$(awk -v e="$EGRESS_ID" '$0 ~ "enabled=1" {
+      ip=""; current=""; certification=0
+      for (i=1;i<=NF;i++) {
+        if ($i ~ /^ip=/) {ip=substr($i,4)}
+        if ($i ~ /^current=/) {current=substr($i,9)}
+        if ($i == "certification_user=1") {certification=1}
+        if ($i == "certification_pool=1") {certification=1}
+        if ($i ~ /^certification_group=.+/) {certification=1}
+      }
+      if (current == e && certification != 1) {print ip}
+    }' "$USERS_REG" 2>/dev/null || true)"
+
+    if [ -n "$non_certification_assigned" ]; then
+      echo "V7_EGRESS_GUARD=BLOCK"
+      echo "reason=non_certification_users_assigned"
+      echo "$non_certification_assigned" | sed 's/^/assigned_user=/'
+      exit 2
+    fi
+
+    echo "V7_EGRESS_GUARD=OK"
+    echo "reason=assigned_certification_users_scoped"
+    echo "$assigned" | sed 's/^/assigned_certification_user=/'
+    exit 0
+  fi
+
   echo "V7_EGRESS_GUARD=BLOCK"
   echo "reason=users_assigned"
   echo "$assigned" | sed 's/^/assigned_user=/'

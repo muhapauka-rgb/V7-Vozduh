@@ -259,6 +259,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         omit: Optional[set[str]] = None,
         rollback_required: bool = False,
         stability_window_seconds: int = 0,
+        created_at: str = "",
     ) -> None:
         state = root / "state"
         omit = omit or set()
@@ -279,6 +280,8 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 "closure_reference": "VERIFIED_READY",
                 "stability_window_seconds": stability_window_seconds,
             }
+            if created_at:
+                base["created_at"] = created_at
             if "outcome" not in omit:
                 outcome_rows.append(
                     {
@@ -6198,6 +6201,63 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertEqual(after_policy["authority_budget"]["promotion_action"], "LARGE_BATCH_TO_XLARGE_BATCH")
             self.assertEqual(after_policy["authority_budget"]["promotion_evidence"]["successful_large_batch_runs"], 2)
             self.assertEqual(result["users_moved"], 0)
+
+    def test_legacy_pool_25_can_promote_to_xlarge_as_canonical_large_batch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir, truth, _audit = self.write_authority_test_binaries(root)
+            self.write_fixture(
+                root,
+                users=50,
+                authority_budget={
+                    "enabled": True,
+                    "authority_class": "POOL",
+                    "certified_authority_class": "POOL",
+                    "authority_lifecycle_state": "PROMOTED",
+                    "current_allowed_user_budget": 25,
+                    "next_allowed_user_budget": 25,
+                },
+            )
+            old_created_at = "2000-01-01T00:00:00+00:00"
+            self.write_feedback_records(
+                root,
+                "runtime_autoswitch_large_1",
+                [f"10.0.0.{idx}" for idx in range(2, 27)],
+                created_at=old_created_at,
+            )
+            self.write_feedback_records(
+                root,
+                "runtime_autoswitch_large_2",
+                [f"10.2.1.{idx}" for idx in range(2, 27)],
+                created_at=old_created_at,
+            )
+            old_path = os.environ.get("PATH", "")
+            os.environ["PATH"] = f"{bin_dir}{os.pathsep}{old_path}"
+            try:
+                args = self.args_for(
+                    root,
+                    [
+                        "--promote-authority-to",
+                        "XLARGE_BATCH",
+                        "--authority-promotion-operation-id",
+                        "runtime_autoswitch_large_1",
+                        "--authority-promotion-operation-id",
+                        "runtime_autoswitch_large_2",
+                        "--confirm-authority-promotion",
+                        "PROMOTE_AUTHORITY_APPROVED",
+                        "--authority-promotion-truth-check-command",
+                        str(truth),
+                    ],
+                )
+                result = self.tool.AutoswitchPlanner(args).promote_authority("XLARGE_BATCH")
+            finally:
+                os.environ["PATH"] = old_path
+            after_policy = json.loads((root / "policy.json").read_text(encoding="utf-8"))
+            self.assertEqual(result["status"], "PROMOTED")
+            self.assertEqual(result["legacy_authority_class_alias"]["canonical_authority_class"], "LARGE_BATCH")
+            self.assertEqual(after_policy["authority_budget"]["authority_class"], "XLARGE_BATCH")
+            self.assertEqual(after_policy["authority_budget"]["current_allowed_user_budget"], 50)
+            self.assertEqual(after_policy["authority_budget"]["promotion_action"], "LARGE_BATCH_TO_XLARGE_BATCH")
 
     def test_legacy_pool_promotion_is_not_canonical_next_after_large_batch(self):
         with tempfile.TemporaryDirectory() as tmp:

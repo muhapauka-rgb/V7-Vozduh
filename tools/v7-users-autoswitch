@@ -393,6 +393,13 @@ def min_authority_class(*classes: str) -> str:
     return min(normalized, key=lambda item: AUTHORITY_CLASS_RANK[item])
 
 
+def canonical_authority_class_for_promotion(value: Any, budget: Any = None) -> str:
+    authority_class = normalize_authority_class(value)
+    if authority_class == "POOL" and to_int(budget, AUTHORITY_CLASS_BUDGETS["POOL"]) <= AUTHORITY_CLASS_BUDGETS["LARGE_BATCH"]:
+        return "LARGE_BATCH"
+    return authority_class
+
+
 def sha256_file(path: Path) -> str:
     try:
         h = hashlib.sha256()
@@ -2550,10 +2557,16 @@ class AutoswitchPlanner:
             "runtime_truth_stability_window_seconds",
             "no_regression_window_seconds",
         ]
+        created_ts_values: list[float] = []
         for kind_records in records.values():
             for row in kind_records:
                 for key in row_keys:
                     values.append(to_int(row.get(key), 0))
+                created_ts = parse_ts(row.get("created_at"))
+                if created_ts > 0:
+                    created_ts_values.append(created_ts)
+        if created_ts_values:
+            values.append(max(0, int(time.time() - max(created_ts_values))))
         return max(values) if values else 0
 
     def _pool_equivalence_distribution_review(self) -> dict[str, Any]:
@@ -2802,7 +2815,15 @@ class AutoswitchPlanner:
         before_raw = dict((self.policy or {}).get("authority_budget") or {})
         current = normalize_authority_class(before_effective.get("authority_class"))
         certified = normalize_authority_class(before_effective.get("certified_authority_class"))
-        expected_next = AUTHORITY_CLASS_NEXT.get(current, current)
+        current_for_transition = canonical_authority_class_for_promotion(
+            current,
+            before_effective.get("current_allowed_user_budget"),
+        )
+        certified_for_transition = canonical_authority_class_for_promotion(
+            certified,
+            before_effective.get("current_allowed_user_budget"),
+        )
+        expected_next = AUTHORITY_CLASS_NEXT.get(current_for_transition, current_for_transition)
         result: dict[str, Any] = {
             "schema_version": "v7.authority-promotion-action.v1",
             "action": "authority_promotion",
@@ -2820,18 +2841,26 @@ class AutoswitchPlanner:
             "status": "DENIED",
             "blockers": [],
         }
+        if current_for_transition != current or certified_for_transition != certified:
+            result["legacy_authority_class_alias"] = {
+                "raw_authority_class": current,
+                "raw_certified_authority_class": certified,
+                "canonical_authority_class": current_for_transition,
+                "canonical_certified_authority_class": certified_for_transition,
+                "reason": "legacy_pool_25_maps_to_canonical_large_batch_for_forward_promotion",
+            }
         if getattr(self.args, "confirm_authority_promotion", "") != "PROMOTE_AUTHORITY_APPROVED":
             result["blockers"].append("missing_explicit_authority_promotion_confirmation")
-        if target != expected_next or target == current:
-            result["blockers"].append(f"invalid_target_authority_transition_{current}_to_{target}")
-        if current != certified:
+        if target != expected_next or target == current_for_transition:
+            result["blockers"].append(f"invalid_target_authority_transition_{current_for_transition}_to_{target}")
+        if current_for_transition != certified_for_transition:
             result["blockers"].append("runtime_authority_not_equal_to_certified_authority")
         rule = AUTHORITY_PROMOTION_RULES.get(target)
         result["promotion_rule"] = rule or {}
         if not rule:
             result["blockers"].append(f"unsupported_authority_promotion_target_{target.lower()}")
-        elif current != rule["from"]:
-            result["blockers"].append(f"invalid_rule_source_authority_{current}_for_{target}")
+        elif current_for_transition != rule["from"]:
+            result["blockers"].append(f"invalid_rule_source_authority_{current_for_transition}_for_{target}")
         elif target != "POOL" and len(operation_ids) < int(rule["required_successful_runs"]):
             result["blockers"].append(str(rule["count_blocker"]))
 

@@ -19744,6 +19744,29 @@ def _first_match(text, pattern, default="UNKNOWN"):
     return match.group(1).strip() if match else default
 
 
+def _operator_file_memo_entries():
+    text = _canonical_doc_text("docs/reference/V7_OPERATOR_FILE_MEMO.md")
+    entries = []
+    for line in (text or "").splitlines():
+        raw = line.strip()
+        if not raw.startswith("|") or raw.startswith("|---") or raw.lower().startswith("| category "):
+            continue
+        cells = [cell.strip().strip("`") for cell in raw.strip("|").split("|")]
+        if len(cells) < 5:
+            continue
+        category, path, responsibility, owner, update_when = cells[:5]
+        if not path or path.lower() == "file":
+            continue
+        entries.append({
+            "category": category,
+            "path": path,
+            "responsibility": responsibility,
+            "owner": owner,
+            "update_when": update_when,
+        })
+    return entries
+
+
 def omp_dashboard_response():
     cps = _canonical_doc_text("docs/programs/V7_CURRENT_PROGRAM_STATE.md")
     omp = _canonical_doc_text("docs/programs/OPERATIONAL_MATURITY_PROGRAM.md")
@@ -19770,7 +19793,13 @@ def omp_dashboard_response():
             "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
             "docs/reference/SYSTEM_MAP.md",
             "docs/reference/V7_CANONICAL_REFERENCE.md",
+            "docs/reference/V7_OPERATOR_FILE_MEMO.md",
         ],
+        "document_index": {
+            "source": "docs/reference/V7_OPERATOR_FILE_MEMO.md",
+            "update_rule": "Add durable project/canonical files here when they become operator-relevant.",
+            "entries": _operator_file_memo_entries(),
+        },
         "executive_view": {
             "title": "OMP Executive View",
             "overall_progress": overall_progress,
@@ -21462,10 +21491,12 @@ def html_page_v2():
         <button type="button" class="active" data-omp-view="executive" onclick="showOmpView('executive')">Executive View</button>
         <button type="button" data-omp-view="operator" onclick="showOmpView('operator')">Operator View</button>
         <button type="button" data-omp-view="engineering" onclick="showOmpView('engineering')">Engineering View</button>
+        <button type="button" data-omp-view="files" onclick="showOmpView('files')">Файлы</button>
       </div>
       <div class="omp-view active" data-omp-panel="executive" id="ompExecutiveView"></div>
       <div class="omp-view" data-omp-panel="operator" id="ompOperatorView"></div>
       <div class="omp-view" data-omp-panel="engineering" id="ompEngineeringView"></div>
+      <div class="omp-view" data-omp-panel="files" id="ompFilesView"></div>
     </div></section>
 
     <section id="tab-operator" class="tab-page"><div class="module-page">
@@ -23721,12 +23752,25 @@ def html_page_v2():
       rememberAdminRoute(name, workspace || WORKSPACE_DEFAULTS[name] || 'overview', mode);
     }
     function showOmpView(name='executive') {
-      const view = ['executive','operator','engineering'].includes(String(name)) ? String(name) : 'executive';
+      const view = ['executive','operator','engineering','files'].includes(String(name)) ? String(name) : 'executive';
       document.querySelectorAll('[data-omp-view]').forEach(b => b.classList.toggle('active', b.dataset.ompView === view));
       document.querySelectorAll('[data-omp-panel]').forEach(p => p.classList.toggle('active', p.dataset.ompPanel === view));
     }
     function ompCard(title='', value='', tone='info', detail='') {
       return `<article class="omp-card span-4"><h3>${esc(title)}</h3><strong>${esc(value || 'UNKNOWN')}</strong>${pill(tone === 'bad' ? 'blocked' : tone === 'ok' ? 'ready' : 'read-only', tone)}<p>${esc(detail || '')}</p></article>`;
+    }
+    function renderOmpDocumentIndex(index={}) {
+      const entries = index.entries || [];
+      const rows = entries.map(row => `<tr>
+        <td><strong>${esc(row.category || '')}</strong></td>
+        <td><code>${esc(row.path || '')}</code></td>
+        <td>${esc(row.responsibility || '')}</td>
+        <td>${esc(row.owner || '')}</td>
+        <td>${esc(row.update_when || '')}</td>
+      </tr>`).join('');
+      return `<article class="omp-card span-12"><h2>Памятка по файлам</h2><p>${esc(index.update_rule || '')}</p>
+        <table class="omp-table"><thead><tr><th>Тип</th><th>Файл</th><th>За что отвечает</th><th>Владелец</th><th>Когда обновлять</th></tr></thead><tbody>${rows || '<tr><td colspan="5">Индекс файлов пока не заполнен.</td></tr>'}</tbody></table>
+      </article>`;
     }
     function renderOmpDashboard() {
       const data = ompDashboard || {};
@@ -23768,6 +23812,11 @@ def html_page_v2():
           <tr><th>Canonical route</th><td>${esc(engineering.canonical_route_rule_present ? 'present' : 'pending canonical update')}</td></tr>
         </tbody></table></article>`,
         `<article class="omp-card span-12"><h2>Canonical Sources</h2><div class="omp-gate-list">${(data.sources || []).map(x => pill(x, 'muted')).join('')}</div><p>Same sources feed Executive, Operator, and Engineering views. No duplicated truth or duplicated read model.</p></article>`,
+      ].join('');
+      const filesHost = document.getElementById('ompFilesView');
+      if (filesHost) filesHost.innerHTML = [
+        renderOmpDocumentIndex(data.document_index || {}),
+        `<article class="omp-card span-12"><h2>Source</h2><div class="omp-gate-list">${pill((data.document_index || {}).source || 'docs/reference/V7_OPERATOR_FILE_MEMO.md', 'info')}</div><p>Это навигационная памятка для оператора; canonical truth остаётся в самих владельцах документов.</p></article>`,
       ].join('');
     }
     async function loadOmpDashboard(force=false) {

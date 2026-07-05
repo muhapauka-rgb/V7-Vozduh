@@ -1481,6 +1481,21 @@ def bounded_int_value(value, default, low, high):
     return max(low, min(high, number))
 
 
+def optional_limit_value(value, base=None, low=1, high=100000):
+    raw = value
+    if raw is None or str(raw).strip() == "":
+        raw = base
+    if raw is None or str(raw).strip() == "":
+        return ""
+    try:
+        number = int(str(raw).strip())
+    except (TypeError, ValueError):
+        return ""
+    if number <= 0:
+        return ""
+    return str(max(low, min(high, number)))
+
+
 def bool_flag_value(value, default="0"):
     if value is None or value == "":
         value = default
@@ -1514,8 +1529,8 @@ def egress_usage_policy_from_data(data=None, base=None):
         "role": role,
         "priority": str(bounded_int_value(data.get("priority") or base.get("priority"), role_meta.get("default_priority", 50), 1, 999)),
         "weight": str(bounded_int_value(data.get("weight") or base.get("weight"), role_meta.get("default_weight", 100), 0, 1000)),
-        "soft_limit": str(bounded_int_value(data.get("soft_limit") or base.get("soft_limit"), 1, 0, 100000)),
-        "hard_limit": str(bounded_int_value(data.get("hard_limit") or base.get("hard_limit"), 2, 0, 100000)),
+        "soft_limit": optional_limit_value(data.get("soft_limit"), base.get("soft_limit")),
+        "hard_limit": optional_limit_value(data.get("hard_limit"), base.get("hard_limit")),
         "manual_only": manual_only,
         "reserve_only": reserve_only,
         "service_tags": ",".join(service_tags),
@@ -18880,8 +18895,11 @@ def egress_assigned_user_rows(egress_id):
 
 
 def egress_registry_load_limit(registry, key, default_value):
+    raw = (registry or {}).get(key, "")
+    if raw is None or str(raw).strip() == "":
+        return 0
     try:
-        value = int(str((registry or {}).get(key, "") or default_value))
+        value = int(str(raw).strip())
     except (TypeError, ValueError):
         value = default_value
     return max(0, value)
@@ -20148,9 +20166,9 @@ def connect_page(result=None, error=None, form_data=None):
     .qr-public {{ display:grid; justify-items:center; gap:8px; margin-top:14px; padding:12px; border:1px solid var(--line); border-radius:8px; background:#10141a; color:var(--muted); font-size:12px; }}
     .qr-public img {{ width:168px; height:168px; background:#fff; border-radius:6px; padding:8px; }}
     .steps {{ margin:14px 0 0; padding-left:20px; color:var(--muted); }}
-	    .steps li {{ margin:6px 0; }}
-	    .hidden {{ display:none; }}
-	    .client-status {{ margin:10px 0 0; padding:0; list-style:none; border:1px solid var(--line); border-radius:8px; overflow:hidden; }}
+        .steps li {{ margin:6px 0; }}
+        .hidden {{ display:none; }}
+        .client-status {{ margin:10px 0 0; padding:0; list-style:none; border:1px solid var(--line); border-radius:8px; overflow:hidden; }}
     .client-status li {{ display:flex; justify-content:space-between; gap:10px; padding:8px 10px; border-top:1px solid var(--line); }}
     .client-status li:first-child {{ border-top:0; }}
     .client-status span {{ color:var(--muted); font-size:12px; text-align:right; }}
@@ -20158,12 +20176,12 @@ def connect_page(result=None, error=None, form_data=None):
     @media (max-width:520px) {{ .client-status li {{ display:block; }} .client-status span {{ display:block; text-align:left; margin-top:2px; }} }}
   </style>
 </head>
-	<body>
-	  <main>
-	    <h1>Подключиться</h1>
-	    <p class="muted">Введите данные, которые разрешил администратор. VPN-профиль будет выдан отдельным ключом доступа.</p>
-	    <div id="connectAsyncResult">{error_html}{result_html}</div>
-	    <form method="post" action="/connect" id="connectForm">
+    <body>
+      <main>
+        <h1>Подключиться</h1>
+        <p class="muted">Введите данные, которые разрешил администратор. VPN-профиль будет выдан отдельным ключом доступа.</p>
+        <div id="connectAsyncResult">{error_html}{result_html}</div>
+        <form method="post" action="/connect" id="connectForm">
       <label>Имя</label>
       <input name="name" required autocomplete="name" value="{name_value}">
       <label>Телефон</label>
@@ -20179,83 +20197,83 @@ def connect_page(result=None, error=None, form_data=None):
       </select>
       {client_status}
       <input type="hidden" name="mode" value="RU_LOCAL">
-	      <button type="submit" id="connectSubmit">Подключиться</button>
-	    </form>
-	  </main>
-	  <script>
-	    const form = document.getElementById('connectForm');
-	    const submit = document.getElementById('connectSubmit');
-	    const target = document.getElementById('connectAsyncResult');
-	    const esc = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[ch]));
-	    function showWait(message) {{
-	      target.innerHTML = `<div class="notice wait"><strong>Создаём профиль</strong><p>${{esc(message || 'Профиль поставлен в очередь. Можно не нажимать кнопку повторно.')}}</p></div>`;
-	    }}
-	    function showError(error) {{
-	      const msg = error?.message || error?.error || 'Не удалось создать профиль.';
-	      const code = error?.error || 'connect_error';
-	      target.innerHTML = `<div class="notice bad"><strong>${{esc(msg)}}</strong><p>Проверьте данные или обратитесь к администратору.</p><small>Код: ${{esc(code)}}</small></div>`;
-	      if (submit) {{ submit.disabled = false; submit.textContent = 'Подключиться'; }}
-	    }}
-	    function successHtml(result) {{
-	      const profile = result?.profile || {{}};
-	      const user = result?.user || {{}};
-	      const device = result?.device || {{}};
-	      const ttl = Number(profile.ttl_seconds || 0);
-	      const ttlText = ttl >= 60 ? `${{Math.floor(ttl / 60)}} мин.` : `${{ttl}} сек.`;
-	      const qr = profile.qr_url ? `<div class="qr-public"><img src="${{esc(profile.qr_url)}}" alt="QR для импорта профиля"><span>QR сканируется в приложении. Кнопка скачивает профиль вручную.</span></div>` : '';
-	      return `<section class="result">
-	        <div class="notice ok"><strong>Профиль готов</strong><p>Устройство создано. Скачайте профиль, импортируйте его в приложение и включите VPN.</p></div>
-	        <div class="summary">
-	          <div><span>Пользователь</span><strong>${{esc(user.display_name || '')}}</strong></div>
-	          <div><span>Организация</span><strong>${{esc(user.organization || '')}}</strong></div>
-	          <div><span>VPN IP</span><strong>${{esc(device.assigned_vpn_ip || '')}}</strong></div>
-	          <div><span>Приложение</span><strong>${{esc(device.vpn_client || '')}}</strong></div>
-	          <div><span>Профиль</span><strong>${{esc(profile.mode || '')}}</strong></div>
-	          <div><span>Ссылка</span><strong>одноразовая, ${{esc(ttlText)}}</strong></div>
-	        </div>
-	        <a class="primary" href="${{esc(profile.delivery_url || '#')}}">Получить профиль</a>
-	        ${{qr}}
-	        <div class="notice wait"><strong>После импорта</strong><p>Включите VPN в приложении. Оператор увидит первое подключение и маршрут в админке.</p></div>
-	      </section>`;
-	    }}
-	    async function pollStatus(url) {{
-	      for (let i = 0; i < 90; i++) {{
-	        await new Promise(resolve => setTimeout(resolve, i < 5 ? 1200 : 2500));
-	        const response = await fetch(url, {{headers: {{'Accept':'application/json'}}}});
-	        const payload = await response.json();
-	        if (payload.error) throw payload.error;
-	        const row = payload.result || {{}};
-	        if (row.status === 'completed') return row.result;
-	        if (row.status === 'failed') throw (row.error || {{error: row.reason || 'connect_failed'}});
-	        showWait(row.status === 'running' ? 'Профиль создаётся. Это нормально, если занимает несколько секунд.' : 'Заявка в очереди на выдачу профиля.');
-	      }}
-	      throw {{error:'connect_timeout', message:'Профиль создаётся дольше обычного. Обновите страницу статуса позже или обратитесь к администратору.'}};
-	    }}
-	    form?.addEventListener('submit', async (event) => {{
-	      event.preventDefault();
-	      if (submit) {{ submit.disabled = true; submit.textContent = 'Создаём'; }}
-	      showWait('Заявка принята. V7 готовит отдельный ключ и профиль.');
-	      try {{
-	        const body = Object.fromEntries(new FormData(form).entries());
-	        body.idempotency_key = body.idempotency_key || (crypto?.randomUUID ? crypto.randomUUID() : `connect-${{Date.now()}}-${{Math.random().toString(16).slice(2)}}`);
-	        const response = await fetch('/api/connect/start', {{
-	          method: 'POST',
-	          headers: {{'Content-Type':'application/json', 'Accept':'application/json'}},
-	          body: JSON.stringify(body)
-	        }});
-	        const payload = await response.json();
-	        if (payload.error) throw payload.error;
-	        let result = payload.result || {{}};
-	        if (response.status === 202 || result.status_url) result = await pollStatus(result.status_url);
-	        target.innerHTML = successHtml(result);
-	        form.classList.add('hidden');
-	      }} catch (error) {{
-	        showError(error);
-	      }}
-	    }});
-	  </script>
-	</body>
-	</html>"""
+          <button type="submit" id="connectSubmit">Подключиться</button>
+        </form>
+      </main>
+      <script>
+        const form = document.getElementById('connectForm');
+        const submit = document.getElementById('connectSubmit');
+        const target = document.getElementById('connectAsyncResult');
+        const esc = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[ch]));
+        function showWait(message) {{
+          target.innerHTML = `<div class="notice wait"><strong>Создаём профиль</strong><p>${{esc(message || 'Профиль поставлен в очередь. Можно не нажимать кнопку повторно.')}}</p></div>`;
+        }}
+        function showError(error) {{
+          const msg = error?.message || error?.error || 'Не удалось создать профиль.';
+          const code = error?.error || 'connect_error';
+          target.innerHTML = `<div class="notice bad"><strong>${{esc(msg)}}</strong><p>Проверьте данные или обратитесь к администратору.</p><small>Код: ${{esc(code)}}</small></div>`;
+          if (submit) {{ submit.disabled = false; submit.textContent = 'Подключиться'; }}
+        }}
+        function successHtml(result) {{
+          const profile = result?.profile || {{}};
+          const user = result?.user || {{}};
+          const device = result?.device || {{}};
+          const ttl = Number(profile.ttl_seconds || 0);
+          const ttlText = ttl >= 60 ? `${{Math.floor(ttl / 60)}} мин.` : `${{ttl}} сек.`;
+          const qr = profile.qr_url ? `<div class="qr-public"><img src="${{esc(profile.qr_url)}}" alt="QR для импорта профиля"><span>QR сканируется в приложении. Кнопка скачивает профиль вручную.</span></div>` : '';
+          return `<section class="result">
+            <div class="notice ok"><strong>Профиль готов</strong><p>Устройство создано. Скачайте профиль, импортируйте его в приложение и включите VPN.</p></div>
+            <div class="summary">
+              <div><span>Пользователь</span><strong>${{esc(user.display_name || '')}}</strong></div>
+              <div><span>Организация</span><strong>${{esc(user.organization || '')}}</strong></div>
+              <div><span>VPN IP</span><strong>${{esc(device.assigned_vpn_ip || '')}}</strong></div>
+              <div><span>Приложение</span><strong>${{esc(device.vpn_client || '')}}</strong></div>
+              <div><span>Профиль</span><strong>${{esc(profile.mode || '')}}</strong></div>
+              <div><span>Ссылка</span><strong>одноразовая, ${{esc(ttlText)}}</strong></div>
+            </div>
+            <a class="primary" href="${{esc(profile.delivery_url || '#')}}">Получить профиль</a>
+            ${{qr}}
+            <div class="notice wait"><strong>После импорта</strong><p>Включите VPN в приложении. Оператор увидит первое подключение и маршрут в админке.</p></div>
+          </section>`;
+        }}
+        async function pollStatus(url) {{
+          for (let i = 0; i < 90; i++) {{
+            await new Promise(resolve => setTimeout(resolve, i < 5 ? 1200 : 2500));
+            const response = await fetch(url, {{headers: {{'Accept':'application/json'}}}});
+            const payload = await response.json();
+            if (payload.error) throw payload.error;
+            const row = payload.result || {{}};
+            if (row.status === 'completed') return row.result;
+            if (row.status === 'failed') throw (row.error || {{error: row.reason || 'connect_failed'}});
+            showWait(row.status === 'running' ? 'Профиль создаётся. Это нормально, если занимает несколько секунд.' : 'Заявка в очереди на выдачу профиля.');
+          }}
+          throw {{error:'connect_timeout', message:'Профиль создаётся дольше обычного. Обновите страницу статуса позже или обратитесь к администратору.'}};
+        }}
+        form?.addEventListener('submit', async (event) => {{
+          event.preventDefault();
+          if (submit) {{ submit.disabled = true; submit.textContent = 'Создаём'; }}
+          showWait('Заявка принята. V7 готовит отдельный ключ и профиль.');
+          try {{
+            const body = Object.fromEntries(new FormData(form).entries());
+            body.idempotency_key = body.idempotency_key || (crypto?.randomUUID ? crypto.randomUUID() : `connect-${{Date.now()}}-${{Math.random().toString(16).slice(2)}}`);
+            const response = await fetch('/api/connect/start', {{
+              method: 'POST',
+              headers: {{'Content-Type':'application/json', 'Accept':'application/json'}},
+              body: JSON.stringify(body)
+            }});
+            const payload = await response.json();
+            if (payload.error) throw payload.error;
+            let result = payload.result || {{}};
+            if (response.status === 202 || result.status_url) result = await pollStatus(result.status_url);
+            target.innerHTML = successHtml(result);
+            form.classList.add('hidden');
+          }} catch (error) {{
+            showError(error);
+          }}
+        }});
+      </script>
+    </body>
+    </html>"""
 
 
 def html_page_v2():
@@ -21551,7 +21569,7 @@ def html_page_v2():
             <div class="advanced-egress-defaults" hidden>
               <label class="field">Роль маршрута<select id="v2EgressDraftRole"></select></label>
               <div class="inline-fields"><label class="field">Приоритет<input id="v2EgressDraftPriority" type="number" min="1" max="999" placeholder="20"></label><label class="field">Вес<input id="v2EgressDraftWeight" type="number" min="0" max="1000" placeholder="100"></label></div>
-              <div class="inline-fields"><label class="field">Мягкий лимит<input id="v2EgressDraftSoft" type="number" min="0" placeholder="1"></label><label class="field">Жёсткий лимит<input id="v2EgressDraftHard" type="number" min="0" placeholder="2"></label></div>
+              <div class="inline-fields"><label class="field">Мягкий лимит<input id="v2EgressDraftSoft" type="number" min="0" placeholder="pool default"></label><label class="field">Жёсткий лимит<input id="v2EgressDraftHard" type="number" min="0" placeholder="not capped"></label></div>
               <label class="field">Теги сервисов<input id="v2EgressDraftServiceTags" placeholder=""></label>
               <label class="field">Не использовать для<input id="v2EgressDraftExclude" placeholder=""></label>
               <label class="field"><input id="v2EgressDraftReserveOnly" type="checkbox" style="width:auto;height:auto"> Только резерв</label>
@@ -27372,12 +27390,12 @@ def html_page_v2():
           ],
         ));
       }
-      if (loadNeedsCheck) {
-        const limit = channelLoadLimit(row);
-        const usersCount = egressUserCount(id);
-        issues.push(channelProblemIssue(
-          'Разобрать нагрузку',
-          `${usersCount} пользователей назначено. Предпочтительный уровень ${limit.soft}, жёсткий предел ${limit.hard}. Новые назначения ограничены; текущие пользователи не отключаются автоматически, поэтому канал может продолжать работать для уже назначенных пользователей.`,
+          if (loadNeedsCheck) {
+            const limit = channelLoadLimit(row);
+            const usersCount = egressUserCount(id);
+            issues.push(channelProblemIssue(
+              'Разобрать нагрузку',
+              `${usersCount} пользователей назначено. Предпочтительный уровень ${limit.softLabel}, жёсткий предел ${limit.hardLabel}. Новые назначения ограничены только реальным load/capacity gate; текущие пользователи не отключаются автоматически, поэтому канал может продолжать работать для уже назначенных пользователей.`,
           [
             channelProblemAction('Показать пользователей', `toggleChannelUsers('${esc(id)}');closeDrawer()`, true),
             channelProblemAction('Сводка нагрузки', `openLoadMetricDetail()`),
@@ -27612,19 +27630,19 @@ def html_page_v2():
       if (health.tone === 'ok') return {check:'Stability', score:14, max:20, reason:lifecycle.text || 'Needs confirmation', problem:'Stability', working:['Connectivity'], problems:['Stability']};
       return {check:'Stability', score:8, max:20, reason:health.detail || 'Health check needs attention', problem:'Stability', working:[], problems:['Stability']};
     }
-    function channelSuitabilityCapacity(row={}) {
-      const id = row.id || '';
-      const count = egressUserCount(id);
-      const limit = channelLoadLimit(row);
-      const load = channelLoad(id, row.state || {});
-      if (/HARD|OVER/i.test(String(load || '')) || count > limit.hard) {
-        return {check:'Capacity', score:2, max:15, reason:`${count}/${limit.hard} hard limit`, problem:'Capacity', working:[], problems:['Capacity']};
-      }
-      if (/SOFT|LIMIT|WARN/i.test(String(load || '')) || count > limit.soft) {
-        return {check:'Capacity', score:9, max:15, reason:`${count}/${limit.soft} soft limit`, problem:'Capacity', working:[], problems:['Capacity']};
-      }
-      return {check:'Capacity', score:15, max:15, reason:`${count}/${limit.soft} users`, problem:'', working:['Capacity'], problems:[]};
-    }
+        function channelSuitabilityCapacity(row={}) {
+          const id = row.id || '';
+          const count = egressUserCount(id);
+          const limit = channelLoadLimit(row);
+          const load = channelLoad(id, row.state || {});
+          if (/HARD|OVER/i.test(String(load || '')) || (limit.hard > 0 && count > limit.hard)) {
+            return {check:'Capacity', score:2, max:15, reason: limit.hard > 0 ? `${count}/${limit.hard} hard limit` : `${count} users; ${limit.hardLabel}`, problem:'Capacity', working:[], problems:['Capacity']};
+          }
+          if (/SOFT|LIMIT|WARN/i.test(String(load || '')) || (limit.soft > 0 && count > limit.soft)) {
+            return {check:'Capacity', score:9, max:15, reason: limit.soft > 0 ? `${count}/${limit.soft} soft limit` : `${count} users; ${limit.softLabel}`, problem:'Capacity', working:[], problems:['Capacity']};
+          }
+          return {check:'Capacity', score:15, max:15, reason: limit.soft > 0 ? `${count}/${limit.soft} users` : `${count} users; ${limit.softLabel}`, problem:'', working:['Capacity'], problems:[]};
+        }
     function channelSuitabilityRoute(row={}) {
       const state = channelTopologyState(row);
       if (state.group === 'problem') return {check:'Route', score:2, max:15, reason:state.issue || 'Route readiness not confirmed', problem:'Route', working:[], problems:['Route']};
@@ -27835,14 +27853,14 @@ def html_page_v2():
         if (!service.failed.length) return `Сервисы: основные сервисы работают ${service.ok}/${service.total}.${optional}`;
         return `Сервисы: работают ${service.ok}/${service.total}. Недоступны: ${service.failed.slice(0, 4).join(', ')}.`;
       }
-      if (check === 'Capacity') {
-        const count = egressUserCount(id);
-        const limit = channelLoadLimit(row);
-        const rawState = channelLoad(id, row.state || {});
-        if (/HARD|OVER/i.test(String(rawState || '')) || count > limit.hard) return `Нагрузка: ${count} пользователей назначено. Новые назначения ограничены. Текущие пользователи не затронуты.`;
-        if (/SOFT|LIMIT|WARN/i.test(String(rawState || '')) || count > limit.soft) return `Нагрузка: ${count} пользователей назначено. Перед добавлением новых пользователей нужно оценить запас назначения.`;
-        return `Нагрузка: ${count} пользователей назначено. Можно принимать новых пользователей.`;
-      }
+          if (check === 'Capacity') {
+            const count = egressUserCount(id);
+            const limit = channelLoadLimit(row);
+            const rawState = channelLoad(id, row.state || {});
+            if (/HARD|OVER/i.test(String(rawState || '')) || (limit.hard > 0 && count > limit.hard)) return `Нагрузка: ${count} пользователей назначено. Жёсткий предел: ${limit.hardLabel}. Новые назначения ограничены. Текущие пользователи не затронуты.`;
+            if (/SOFT|LIMIT|WARN/i.test(String(rawState || '')) || (limit.soft > 0 && count > limit.soft)) return `Нагрузка: ${count} пользователей назначено. Предпочтительный уровень: ${limit.softLabel}. Перед добавлением новых пользователей нужно оценить запас назначения.`;
+            return `Нагрузка: ${count} пользователей назначено. Можно принимать новых пользователей.`;
+          }
       if (check === 'Route') return channelScoreExplanationText(row, item);
       if (check === 'Runtime') {
         const rd = row._detail?.runtime_readiness || (overview.egress_runtime_readiness || {})[id] || {};
@@ -28568,13 +28586,13 @@ def html_page_v2():
         if (Number(item.score || 0) >= Number(item.max || 0)) return 'Канал отвечает нормально, состояние выше минимального уровня.';
         return channelHealthDetailText(health.detail || 'Откройте логи канала: состояние не подтверждено свежими данными.');
       }
-      if (check === 'Capacity') {
-        const count = egressUserCount(id);
-        const limit = channelLoadLimit(row);
-        if (Number(item.score || 0) >= Number(item.max || 0)) return `${count} пользователей назначено; предпочтительный уровень ${limit.soft}. Новые назначения внутри лимита.`;
-        if (count >= Number(limit.hard || 0)) return `${count} пользователей назначено; жёсткий предел ${limit.hard}. Новые назначения ограничены, текущие пользователи не отключаются.`;
-        return `${count} пользователей назначено; предпочтительный уровень ${limit.soft}. Перед добавлением откройте пользователей канала.`;
-      }
+          if (check === 'Capacity') {
+            const count = egressUserCount(id);
+            const limit = channelLoadLimit(row);
+            if (Number(item.score || 0) >= Number(item.max || 0)) return `${count} пользователей назначено; предпочтительный уровень ${limit.softLabel}. Новые назначения внутри лимита.`;
+            if (limit.hard > 0 && count >= Number(limit.hard || 0)) return `${count} пользователей назначено; жёсткий предел ${limit.hardLabel}. Новые назначения ограничены, текущие пользователи не отключаются.`;
+            return `${count} пользователей назначено; предпочтительный уровень ${limit.softLabel}. Перед добавлением откройте пользователей канала.`;
+          }
       if (check === 'Route') {
         const evidence = channelScoreRouteEvidence(row);
         if (Number(item.score || 0) >= Number(item.max || 0)) return 'Готовность маршрута подтверждена текущими сигналами.';
@@ -28627,16 +28645,16 @@ def html_page_v2():
           ['Что это значит', channelScoreExplanationText(row, item)],
         ];
       }
-      if (check === 'Capacity') {
-        const count = egressUserCount(id);
-        const limit = channelLoadLimit(row);
-        return [
-          ['Назначено пользователей', String(count)],
-          ['Предпочтительный уровень', String(limit.soft)],
-          ['Жёсткий предел назначений', String(limit.hard)],
-          ['Что это значит', channelScoreExplanationText(row, item)],
-        ];
-      }
+          if (check === 'Capacity') {
+            const count = egressUserCount(id);
+            const limit = channelLoadLimit(row);
+            return [
+              ['Назначено пользователей', String(count)],
+              ['Предпочтительный уровень', String(limit.softLabel)],
+              ['Жёсткий предел назначений', String(limit.hardLabel)],
+              ['Что это значит', channelScoreExplanationText(row, item)],
+            ];
+          }
       if (check === 'Route') {
         const evidence = channelScoreRouteEvidence(row);
         return [
@@ -32309,9 +32327,23 @@ def html_page_v2():
     function channelLoadLimit(row={}) {
       const policy = overview.policy?.load || {};
       const reg = row.registry || {};
+      const softRaw = reg.soft_limit;
+      const hardRaw = reg.hard_limit;
+      const softExplicit = softRaw !== undefined && softRaw !== null && String(softRaw).trim() !== '';
+      const hardExplicit = hardRaw !== undefined && hardRaw !== null && String(hardRaw).trim() !== '';
+      const policySoft = Number(policy.soft_limit || 0);
+      const policyHard = Number(policy.hard_limit || 0);
+      const soft = softExplicit ? Number(softRaw || 0) : 0;
+      const hard = hardExplicit ? Number(hardRaw || 0) : 0;
       return {
-        soft: Number(reg.soft_limit || policy.soft_limit || 1),
-        hard: Number(reg.hard_limit || policy.hard_limit || 2),
+        soft: Number.isFinite(soft) ? Math.max(0, soft) : 0,
+        hard: Number.isFinite(hard) ? Math.max(0, hard) : 0,
+        policySoft: Number.isFinite(policySoft) ? Math.max(0, policySoft) : 0,
+        policyHard: Number.isFinite(policyHard) ? Math.max(0, policyHard) : 0,
+        softExplicit,
+        hardExplicit,
+        softLabel: softExplicit ? String(softRaw) : 'pool default',
+        hardLabel: hardExplicit ? String(hardRaw) : 'not capped',
       };
     }
     function openLoadMetricDetail() {
@@ -32320,7 +32352,7 @@ def html_page_v2():
         const count = egressUserCount(row.id);
         const limit = channelLoadLimit(row);
         const status = channelLoad(row.id, row.state || {});
-        return `<div class="load-row"><strong>${esc(row.id)}</strong><span>${esc(count)} / ${esc(limit.soft)} / ${esc(limit.hard)}</span>${pill(statusLabel(status), statusTone(status))}</div>`;
+        return `<div class="load-row"><strong>${esc(row.id)}</strong><span>${esc(count)} / ${esc(limit.softLabel)} / ${esc(limit.hardLabel)}</span>${pill(statusLabel(status), statusTone(status))}</div>`;
       }).join('');
       openCompactDrawer('Нагрузка', 'channel', drawerSection('Что происходит', `
         <div class="speed-result-main">

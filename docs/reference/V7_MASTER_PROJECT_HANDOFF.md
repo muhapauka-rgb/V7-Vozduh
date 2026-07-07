@@ -1,1245 +1,358 @@
 # V7 Master Project Handoff
 
 Status: `CANONICAL ENTRY POINT`
+
 Owner: OMP / Canonical Reference / Current Program State
-Last updated: 2026-07-03
-Current branch: `Updatesystem`
-Latest known production-aligned code commit: `3efcef12f1db4876ebf50fe960c845ab3d2ea850`
-Latest known local/GitHub handoff commit before this operating-system update: `baddbbe8`
 
-This document is the canonical first document for any future Codex instance
-working on V7.
+Last updated: 2026-07-07
 
-Assume all previous conversations are lost. Read this document first. Then use
-the referenced canonical owners and current evidence to resume the project
-without inventing a parallel architecture, roadmap, Runtime, Planner, Authority,
-truth source, or execution path.
+Stage 1 architecture status: `STAGE_1_ACCEPTED`, `STAGE_1_LOCKED`, `READY_FOR_STAGE_2`
 
-## 1. Project Purpose
+This document is the single entry point for any new ChatGPT conversation or engineer working on V7.
 
-V7 is no longer merely "a VPN".
+Assume all previous conversations are lost. Read this document first. It explains what V7 is, what is already proven, what is locked, what remains active, and which documents are canonical evidence.
 
-V7 is a governed production routing platform. Its product purpose is to keep
-users online by detecting failed or degraded connectivity, selecting legal
-targets, moving users through bounded authority, verifying outcomes, rolling
-back or closing safely, learning from the result, and increasing certified
-automation only after production evidence proves that the next capability is
-safe.
+Do not create another handoff. Do not create a parallel roadmap. Do not re-run Stage 1 by default.
 
-The core product is invisible reliable routing. The user should not need to
-understand whether their traffic uses OpenVPN, WireGuard, VLESS, or another
-channel. V7's responsibility is to observe reality, make a safe governed
-decision, execute through existing owners, verify the outcome, and improve.
+## 1. What V7 Is
 
-The project now revolves around:
+V7 is a governed production routing platform.
 
-- real production evidence;
-- safety-bounded authority;
-- controlled production certification;
-- capability earned through execution, not configuration;
-- no duplicate owners;
-- continuous automation evolution;
-- workflow orchestration evolution;
-- engineering automation that improves how V7 itself is built.
+It is not "just a VPN". VPN protocols are transport mechanisms. The actual product is reliable, evidence-driven routing continuity for users.
 
-The project now has two parallel strategic execution objectives inside the
-same Controlled Production Certification Program:
+V7 exists to keep users online when connectivity sources fail, degrade, recover, or become unsafe. It observes real production state, creates evidence, diagnoses the situation, selects legal routing actions, asks Authority for a bounded permission, applies only the approved action through Runtime, verifies the result, rolls back or closes safely, learns from the outcome, and gradually earns more autonomy.
 
-1. Continue Capability Certification.
-2. Continuously automate the engineering process that performs Capability
-   Certification.
+The product value is invisible reliability. The user should not care whether the current path is OpenVPN, WireGuard, VLESS, or another channel. V7's job is to preserve service continuity while preventing unsafe automatic movement.
 
-Neither objective waits for the other. Capability Certification continues
-through the current ladder, while Engineering Automation continuously reduces
-the engineering effort required to earn the next capability. This is not a new
-project, not a parallel roadmap, and not a new architecture.
+V7 is also an engineering platform. Its architecture deliberately improves the way the system is built: every manual action, repeated workflow, blocker, recovery, test, certification, and report becomes evidence for future automation and workflow simplification.
 
-## 2. Project Philosophy
+## 2. Current Project State
 
-These principles are permanent unless a canonical owner changes them through
-the existing architecture process.
+Stage 1 of the V7 Autonomous Engineering roadmap is complete.
+
+The complete Stage 1 architecture baseline has been accepted and locked:
+
+- Stage 1.1 Domain Certification processed all 26 architecture domains.
+- Stage 1.2 Recovery closed the only remaining NOT CERTIFIED domain, Domain 11 Diagnosis.
+- Stage 1.3 Corpus Audit proved the 26 domains form one complete and internally consistent architecture.
+- Final Stage 1 Architecture Acceptance passed.
+- Stage 1 is now the official canonical architectural foundation of V7.
+
+The current active architecture roadmap is Stage 2:
+
+```text
+Stage 2.1 Knowledge Inventory
+  -> Stage 2.2 Knowledge Extraction
+  -> Stage 2.3 Knowledge Deduplication
+  -> Stage 2.4 Knowledge Graph
+  -> Stage 2.5 V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md
+  -> Stage 2.6 Knowledge Acceptance
+  -> Stage 2.7 Knowledge Lock
+```
+
+After Stage 2, V7 continues through the existing OMP roadmap toward production autonomy.
+
+Do not treat old Stage 1 recovery tasks as active work. They are historical evidence.
+
+## 3. Current Maturity Snapshot
+
+| Area | Current maturity |
+|---|---|
+| Production maturity | Production execution and governed certification capabilities exist, but routine full production autonomy remains governed by OMP and Authority. Stage 1 architecture lock does not automatically grant new production authority. |
+| Autonomy maturity | Architecture for autonomous routing is complete and locked. Autonomy still expands only through evidence, certification, Authority, Runtime, Verification, Rollback / Closure, Learning, and OMP. |
+| Architecture maturity | Complete, accepted, and locked. Future architecture change is exceptional and must pass formal evolution procedures. |
+| Certification maturity | Stage 1 architecture certification corpus is complete: 26 certified domains, corpus audit PASS, final acceptance PASS. |
+| Implementation maturity | Core governed owners exist. Domain 11 Diagnosis recovery implementation is complete. Implementation work after Stage 1 must follow OMP and existing-owner discipline. |
+| Engineering maturity | Engineering work is governed by evidence, owner resolution, completion-first execution, automation audit, workflow audit, and canonical knowledge preservation. |
+| Governance maturity | OMP is the permanent operating program. Authority boundaries, Runtime boundaries, Current Program State, Production Maturity, SYSTEM_MAP, and Canonical Reference are the active governance surfaces. |
+| Project status | Stage 1 locked. Stage 2 knowledge pipeline is the next architecture-program step. Product execution continues through OMP. |
+
+## 4. Canonical Inputs
+
+Read these first when resuming V7:
+
+1. `docs/reference/V7_MASTER_PROJECT_HANDOFF.md`
+2. `docs/reports/research/V7_STAGE1_FINAL_ACCEPTANCE.md`
+3. `docs/reports/research/V7_STAGE1_CORPUS_AUDIT.md`
+4. `docs/reports/research/V7_PHASE1_DOMAIN_CERTIFICATION.md`
+5. `docs/reports/research/V7_PHASE1_ARCHITECT_SUMMARY.md`
+6. `docs/reports/research/V7_AUTONOMOUS_MODEL_KNOWLEDGE_CONSOLIDATION.md`
+7. `docs/reference/SYSTEM_MAP.md`
+8. `docs/reference/V7_CANONICAL_REFERENCE.md`
+9. `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`
+10. `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+
+Stage 1 recovery evidence:
+
+- `docs/reports/research/V7_STAGE1_DIAGNOSIS_RECOVERY_DISCOVERY.md`
+- `docs/reference/V7_DIAGNOSIS_RECORD_CONTRACT.md`
+- `docs/process/V7_DIAGNOSIS_IMPLEMENTATION_ACCEPTANCE.md`
+- `docs/reports/research/V7_STAGE1_DIAGNOSIS_IMPLEMENTATION_MISSION.md`
+- `docs/reports/engineering/V7_STAGE1_DIAGNOSIS_IMPLEMENTATION_REPORT.md`
+
+Important supporting references:
+
+- `docs/prompts/V7_DOMAIN_ARCHITECTURE_CERTIFICATION_PROMPT.md`
+- `docs/process/STAGE1_ACCEPTANCE_PROMPT.md`
+- `docs/reference/V7_AUTONOMOUS_OPERATING_SYSTEM.md`
+- `docs/reference/V7_SYSTEM_ARCHITECTURE.md`
+- `docs/reference/V7_RUNTIME_MODEL.md`
+- `docs/reference/V7_DECISION_MODEL.md`
+- relevant ADRs under `docs/decisions/`
+- Function Graph Appendix and JSON under `docs/reports/research/`
+- Research R1-R4 under `docs/reports/research/`
+
+Reports are evidence. Canonical owners preserve durable truth. Do not turn every report into a new owner.
+
+## 5. Locked Architecture
+
+The locked architecture contains exactly 26 domains:
+
+1. Business Objective
+2. System Laws
+3. Product Principles
+4. Reality Model
+5. Observation
+6. Health Evidence
+7. Intelligence
+8. Routing Intelligence
+9. Wake
+10. Incident
+11. Diagnosis
+12. Decision Model
+13. Policy
+14. Planner
+15. Authority
+16. Identity
+17. Runtime
+18. Execution
+19. Verification
+20. Rollback / Closure
+21. Learning
+22. Production Maturity
+23. Current Program State
+24. OMP
+25. Engineering Automation
+26. Continuous Self Evolution
+
+The architecture chain is:
+
+```text
+Business Objective
+  -> System Laws
+  -> Product Principles
+  -> Reality Model
+  -> Observation
+  -> Health Evidence
+  -> Intelligence
+  -> Routing Intelligence
+  -> Wake
+  -> Incident
+  -> Diagnosis
+  -> Decision Model
+  -> Policy
+  -> Planner
+  -> Authority
+  -> Identity
+  -> Runtime
+  -> Execution
+  -> Verification
+  -> Rollback / Closure
+  -> Learning
+  -> Production Maturity
+  -> Current Program State
+  -> OMP
+  -> Engineering Automation
+  -> Continuous Self Evolution
+```
+
+This structure is locked because:
+
+- every domain has a unique mission;
+- no current architectural responsibility appears twice;
+- no required responsibility is missing;
+- every domain has consumers;
+- producer / consumer chains are continuous;
+- Reality continuity is preserved;
+- Authority continuity is preserved;
+- implementation continuity is sufficient at architecture-audit level;
+- Domain 11 recovery closed the only Stage 1 blocker;
+- Stage 1.3 Corpus Audit passed;
+- Final Acceptance passed.
+
+Architecture Locked means:
+
+- do not add domains by default;
+- do not remove domains by default;
+- do not rename domains by default;
+- do not reorder domains by default;
+- do not re-certify Stage 1 by default;
+- do not create a duplicate architecture program;
+- future architecture evolution must pass formal evolution procedures.
+
+## 6. Stage 1 Result
+
+Stage 1 is complete.
+
+### Stage 1.1 Domain Certification
+
+The Architecture Certification Engine certified the full 26-domain corpus. The first terminal pass found one incomplete domain: Domain 11 Diagnosis.
+
+The finding was correct: the Diagnosis architecture was good, but implementation reality lacked one executable read-only Diagnosis / Owner Resolution projection.
+
+### Stage 1.2 Recovery
+
+Stage 1.2 did not redesign architecture.
+
+It completed:
+
+- recovery discovery;
+- Diagnosis Record Contract;
+- Diagnosis Implementation Acceptance;
+- minimal implementation mission;
+- implementation through existing owners;
+- tests;
+- implementation report;
+- targeted Domain 11 recertification.
+
+Domain 11 now has executable read-only evidence:
+
+- schema `v7.diagnosis-owner-resolution.v1`;
+- Diagnosis Record producer;
+- validator;
+- consumer projection;
+- governance projection;
+- tests for schema, unknown state, terminal classifications, first divergence, mutation boundary, consumers, and compatibility.
+
+Domain 11 final result: `CERTIFIED`.
+
+### Stage 1.3 Corpus Audit
+
+Stage 1.3 audited the corpus as one architecture.
+
+Result: `STAGE_1_3_PASS`.
+
+It found:
+
+- 0 critical blockers;
+- 0 major blockers;
+- 0 duplicate responsibilities;
+- 0 missing responsibilities;
+- 0 broken producer / consumer chains;
+- 0 authority-boundary breaks;
+- 0 reality-continuity breaks.
+
+It accepted two minor non-blocking risks:
+
+- historical superseded Domain 11 NOT CERTIFIED text remains in the append-only corpus;
+- static Function Graph evidence may need refresh after Domain 11 recovery.
+
+### Final Acceptance
+
+Final Stage 1 Acceptance result:
+
+```text
+STAGE_1_ACCEPTED
+STAGE_1_LOCKED
+READY_FOR_STAGE_2
+```
+
+The Stage 1 Architecture Certification Corpus is now the official canonical architectural foundation of V7.
+
+## 7. Current Roadmap
+
+The active architecture-program roadmap is Stage 2.
+
+### Stage 2.1 Knowledge Inventory
+
+Inventory all Stage 1 trusted knowledge, deltas, laws, boundaries, owner mappings, producer / consumer relationships, evidence references, and candidate canonical knowledge.
+
+### Stage 2.2 Knowledge Extraction
+
+Extract actual reusable architectural knowledge from the certification corpus. Do not recertify domains.
+
+### Stage 2.3 Knowledge Deduplication
+
+Collapse duplicated wording and repeated evidence into single canonical concepts while preserving meaning and provenance.
+
+### Stage 2.4 Knowledge Graph
+
+Build the graph of domains, laws, owners, producers, consumers, boundaries, evidence, gaps, decisions, and downstream canonical destinations.
+
+### Stage 2.5 V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md
+
+Create the canonical architecture knowledge document from the validated and deduplicated graph.
+
+### Stage 2.6 Knowledge Acceptance
+
+Independently verify that the extracted architecture knowledge is complete, consistent, traceable, and safe to use as canonical knowledge.
+
+### Stage 2.7 Knowledge Lock
+
+Lock the accepted knowledge baseline. After this, future work proceeds through OMP and formal evolution procedures.
+
+After Stage 2, continue the existing OMP roadmap toward production autonomy.
+
+## 8. What Has Been Completed
+
+Completed:
+
+- V7 product identity clarified: governed production routing platform, not merely VPN protocols.
+- Stage 1 Architecture Certification Engine created, evolved, locked, and executed.
+- 26-domain architecture tree materialized and frozen.
+- Domain Certification Corpus completed.
+- Architect Summary completed.
+- Domain 11 Diagnosis recovery completed.
+- Diagnosis Record Contract completed.
+- Diagnosis Implementation Acceptance completed.
+- Diagnosis implementation mission completed.
+- Diagnosis implementation completed through existing owners.
+- Domain 11 recertified as `CERTIFIED`.
+- Stage 1 Corpus Audit passed.
+- Stage 1 Final Acceptance passed.
+- Stage 1 locked as canonical architectural foundation.
+- Architecture Closed by Default remains active.
+- OMP remains the permanent operating program.
+- Existing Owner Law remains active.
+- Reality First remains active.
+- Authority and Runtime boundaries remain active.
+- Continuous Self Evolution remains part of the locked architecture.
+
+Completed historical work must not be reopened unless objective evidence proves corruption, contradiction, or a formally accepted evolution need.
+
+## 9. What Remains
+
+Active next work:
+
+- Stage 2.1 Knowledge Inventory.
+- Stage 2.2 Knowledge Extraction.
+- Stage 2.3 Knowledge Deduplication.
+- Stage 2.4 Knowledge Graph.
+- Stage 2.5 `V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md`.
+- Stage 2.6 Knowledge Acceptance.
+- Stage 2.7 Knowledge Lock.
+
+Operational and product work after Stage 2:
+
+- continue OMP;
+- continue production autonomy maturation through existing owners;
+- expand capability only through evidence, Authority, Runtime, Verification, Rollback / Closure, Learning, Production Maturity, and Current Program State;
+- convert repeated engineering workflows into governed pipelines only when safe and owner-mapped.
+
+Known non-blocking follow-up:
+
+- future Stage 2 or evidence-synchronization work should treat append-only historical Domain 11 NOT CERTIFIED text as superseded by Stage 1.2 terminal evidence;
+- refresh Function Graph evidence if Stage 2 requires current graph alignment with the Domain 11 implementation.
+
+## 10. System Laws And Invariants
 
 ### Reality First
 
-Real production reality overrides synthetic examples, guesses, report-only
-claims, stale artifacts, and planner-only assumptions. Mocks and dry runs can
-explain or prepare. They cannot certify production capability.
+Real production evidence wins over guesses, synthetic examples, stale reports, planner-only assumptions, and desired outcomes.
 
-### Discover -> Reuse -> Extend -> Create Only If Necessary
+### Existing Owner Law
 
-Every change starts by discovering the existing owner. Reuse that owner if it
-can express the capability. Extend it if a minimal owner-bounded extension is
-enough. Create a new owner only after proving no existing canonical owner can
-own the behavior.
-
-### Capability Earned
-
-Capability is not granted by a constant, a config value, or a document. It is
-earned when production execution proves that the existing chain can perform the
-capability safely and Authority recognizes it.
-
-### Execution Priority
-
-Reality and capability producers come first. Documentation, Passport, OMP,
-Production Maturity, Current Program State, dashboards, and reports synchronize
-with earned reality afterward unless an existing safety owner proves that
-synchronization is required before safe continuation.
-
-### Owner Resolution
-
-A blocking owner is never the final explanation. If an owner blocks execution,
-investigate until the block is classified as:
-
-- `POLICY_PROHIBITION`
-- `IMPLEMENTATION_MISSING`
-- `OWNER_INVOCATION_MISSING`
-- `IMPLEMENTATION_DEFECT`
-- `CANONICAL_IMPOSSIBILITY`
-
-All states except canonical impossibility become the next engineering mission.
-
-### Controlled Production
-
-Certification uses real production owners and real production execution
-contracts, but against dedicated Certification Users and controlled incidents
-when ordinary production incidents are unavailable or unsafe to use.
-
-### Controlled Evidence Generation
-
-If required certification evidence is missing, V7 must decide whether it can
-legally create real controlled production evidence. Waiting for random
-production incidents is a fallback, not the default strategy.
-
-### Certification Infrastructure
-
-Certification Users, Certification Groups, Certification Pools, controlled
-source readiness, and restoration readiness are permanent production assets of
-the certification program. The certification ladder must not outgrow the
-Certification Pool.
-
-### Automation Evolution
-
-Every manual action triggers an Automation Audit. Unexplained manual work is
-Automation Debt until it becomes automated, intentionally manual, blocked by
-future capability, not cost effective, or canonically impossible.
-
-### Workflow Evolution
-
-Every repeated manual workflow triggers a Workflow Audit. Unexplained manual
-orchestration is Workflow Debt until it becomes a governed pipeline,
-intentionally manual, blocked by future capability, not cost effective, or
-canonically impossible.
-
-### Engineering Reports
-
-Engineering Reports preserve evidence. They do not become roadmaps, truth
-sources, or owners. Reports are consumed by OMP, Production Maturity, Current
-Program State, canonical owners, and future investigations.
-
-### Canonical Knowledge
-
-Durable rules live in exactly one canonical owner. `SYSTEM_MAP` is an ownership
-lookup, not a second truth source. Engineering Reports are historical evidence.
-
-### OMP
-
-OMP is the operating program. It decides continuation, consumes capability and
-evidence, maps work to existing owners, and prevents duplicate roadmaps,
-parallel queues, and ownerless work.
-
-### No Duplicate Owners
-
-Do not create duplicate Runtime, Planner, Authority, Restore Barrier, Wake,
-Packet, Truth Source, Event Bus, OMP, or execution path.
-
-### Continuous Process
-
-Every process ends by becoming input to another process:
-
-```text
-Reality -> Evidence -> Capability -> Authority -> Production
-  -> Certification -> Automation Audit -> Workflow Audit -> Next Mission
-```
-
-## 3. Current Strategic Initiatives
-
-V7 currently has three strategic initiatives, two active and one future.
-
-### Active: Capability Certification Program
-
-Purpose:
-
-Continue the governed certification ladder:
-
-```text
-CANARY
-  -> SMALL_BATCH
-  -> MEDIUM_BATCH
-  -> LARGE_BATCH
-  -> XLARGE_BATCH
-  -> FULL_INCIDENT
-  -> Routine Production Operation
-```
-
-This objective earns product capability through real controlled production
-execution, Authority recognition, Verification, Rollback / No-Rollback
-Closure, Learning, Production Restoration, and consumer synchronization.
-
-### Active: Engineering Automation Program
-
-Purpose:
-
-Every certification mission must reduce the engineering effort required for the
-next certification mission.
-
-Every repeated engineering workflow becomes a candidate for governed
-automation. Engineering Automation develops continuously during certification.
-It does not wait until certification is finished.
-
-This is an active execution stream inside the Controlled Production
-Certification Program. It does not create a new Runtime, Planner, Authority,
-Certification Program, OMP, truth source, roadmap, or execution path.
-
-### Not Started: Future Production Autonomy Expansion
-
-Purpose:
-
-Production autonomy grows only after certification proves it and Authority
-recognizes it. Future production autonomy must not be enabled simply because
-Engineering Automation or batch certification improved.
-
-## 4. System Architecture
-
-The current architecture is an evidence-driven governed routing control plane.
-
-Canonical production chain:
-
-```text
-Observation
-  -> Wake
-  -> Incident
-  -> Planner
-  -> Authority
-  -> Approved Plan Lock
-  -> Restore Barrier
-  -> Runtime Apply
-  -> Verification
-  -> Rollback / No-Rollback Closure
-  -> Learning / Feedback
-  -> Production Restoration
-  -> Capability Earned
-  -> Consumer Synchronization
-  -> Authority Recognition
-  -> Next Certification Mission
-```
-
-### Major Owners
-
-| Owner | Responsibility |
-| --- | --- |
-| Observation | Produce real evidence about egress state, service health, quality, route state, and source failure. |
-| Wake | Convert legal real evidence into an allowed execution wake source. Timer, cron, blind polling, and synthetic wake are not authority by themselves. |
-| Incident | Materialize the failed-source incident and preserve `incident_source` while the source remains failed and affected users remain. |
-| Planner | Select eligible users and targets under incident, service, quality, load, safety, policy, retry, and identity constraints. |
-| Authority | Bound blast radius, approve class/budget, promote/demote capability, and reject unauthorized execution. |
-| Approved Plan Lock | Preserve the committed selected move identity that Authority approved. |
-| Restore Barrier | Validate committed move identity, generation, source, target, count, and hash before Runtime Apply. |
-| Runtime Apply | Mutate production routing only for the committed approved batch. |
-| Verification | Verify route and required service success for every moved user. |
-| Rollback / No-Rollback | Roll back, contain, or close no-rollback for every touched user. |
-| Learning / Feedback | Materialize outcome, trust, prediction, recommendation, and closure evidence. |
-| Production Restoration | Restore temporary certification topology and preserve historical evidence. |
-| OMP | Drive continuation, owner mapping, maturity consumption, capability progression, and no-duplication discipline. |
-| Production Maturity | Consume certified evidence and update production-readiness state. |
-| Current Program State | Preserve volatile current state and next action. |
-| Engineering Reports | Preserve historical proof, not live authority. |
-| SYSTEM_MAP | Own lookup and relationships, not implementation or truth. |
-
-### Capability Producers
-
-Capability Producers are owners whose successful production completion creates
-capability evidence: Observation, Wake, Incident, Planner, Authority, Approved
-Plan Lock, Restore Barrier, Runtime Apply, Verification, Rollback /
-No-Rollback, Production Restoration, and any required existing safety owner.
-
-### Capability Consumers
-
-Capability Consumers consume earned capability. They do not create it:
-Certification History, Passport view, OMP, Production Maturity, Current Program
-State, Coverage Matrix, Engineering Reports, dashboards, Automation Debt views,
-and Workflow Debt views.
-
-### Runtime Path
-
-Runtime is not a planner and not a truth source. Runtime consumes committed
-approved identity and either applies it safely or stops. It must not recompute
-a different selected move, bypass Authority, bypass Restore Barrier, or mutate
-outside the approved batch.
-
-### Authority Path
-
-Authority is the blast-radius and capability boundary. It owns the current
-allowed budget, promotion rules, evidence windows, confirmation requirements,
-demotion/hold behavior, and policy prohibitions.
-
-### Certification Path
-
-Certification proceeds through controlled production stages:
-
-```text
-CANARY=1 -> SMALL_BATCH=5 -> MEDIUM_BATCH=10
-  -> LARGE_BATCH=25 -> XLARGE_BATCH=50 -> FULL_INCIDENT
-```
-
-Each stage must use the same production chain. Larger stages do not create new
-execution paths; they increase authorized maximum users only after evidence
-supports promotion.
-
-### Automation And Workflow Paths
-
-Manual actions and repeated workflows are not ignored. They become Automation
-Debt or Workflow Debt and feed future automation/pipeline work through existing
-owners.
-
-### Engineering Path
-
-Engineering work is:
-
-```text
-Breakpoint
-  -> Owner Resolution
-  -> Implementation Mission
-  -> Patch existing owner
-  -> Tests
-  -> Regression
-  -> Safe Deploy
-  -> Truth / Convergence
-  -> Resume interrupted certification phase
-```
-
-## 5. Project Evolution
-
-The project evolved conceptually, not simply chronologically.
-
-### Initial VPN
-
-The first shape was a connectivity system with users assigned to channels. That
-was not enough: a VPN can carry traffic, but it does not by itself prove safe
-automatic restoration when channels fail.
-
-### Governed Runtime
-
-V7 introduced bounded execution through existing owners: selected moves,
-authority envelopes, packets, approved locks, restore barriers, runtime apply,
-verification, rollback, and learning. This solved the problem of unsafe
-mutation and made execution auditable.
-
-### Capability Certification
-
-The system then needed proof that capabilities are real. Certification replaced
-"configuration means capability" with "production evidence earns capability".
-This made Authority expansion evidence-based.
-
-### Controlled Production
-
-Waiting for random incidents at exact sizes was too slow and unsafe. Controlled
-Production lets V7 create real production conditions with dedicated
-Certification Users and controlled failed-source incidents while preserving
-Reality First.
-
-### Automation Evolution
-
-As manual operator work appeared, V7 made each manual action evidence for
-future automation. The goal is to reduce unnecessary manual effort without
-weakening safety.
-
-### Workflow Evolution
-
-Repeated sequences of manual commands became workflow objects. The goal is not
-just automating commands; it is replacing unnecessary orchestration with one
-governed pipeline when safety and ownership permit.
-
-### Engineering Automation
-
-Engineering itself is becoming a governed pipeline. Every breakpoint, fix,
-test, deploy, convergence check, report, audit, and certification resume should
-make both V7 and the V7 engineering system stronger.
-
-Obsolete ideas:
-
-- "V7 is a VPN."
-- "A report is enough to complete work."
-- "Finding a blocker is the mission."
-- "A configured value grants authority."
-- "Timer or cron is legal wake authority by itself."
-- "A new owner is acceptable before existing-owner proof."
-
-## 6. Current Certification State
-
-Current canonical certification ladder:
-
-| Stage | Capability | Max users | Current state |
-| --- | --- | ---: | --- |
-| Stage 0 | CANARY | 1 | CERTIFIED |
-| Stage 1 | SMALL_BATCH | 5 | CERTIFIED |
-| Stage 2 | MEDIUM_BATCH | 10 | CERTIFIED |
-| Stage 3 | LARGE_BATCH | 25 | CERTIFIED |
-| Stage 4 | XLARGE_BATCH | 50 | CERTIFIED |
-| Stage 5 | FULL_INCIDENT | all remaining same-incident affected users | HOLD |
-
-### Already Proven
-
-- Observation -> Wake bridge can create legal `confirmed_current_channel_failure` from real failed source evidence.
-- Governed trigger and heartbeat path can invoke the existing governed L3 owner.
-- Incident source continuity preserves the failed-source identity across cycles.
-- Retry-aware continuation excludes exhausted semantic attempts and selects remaining eligible users.
-- Approved Plan Lock, packet identity, Restore Barrier, and Runtime Apply can preserve committed selected move identity.
-- Telegram sentinel lock scope was reduced enough to avoid prior verification timeout behavior.
-- Verification and no-rollback closure work for bounded governed execution.
-- CANARY, SMALL_BATCH, MEDIUM_BATCH, LARGE_BATCH, and XLARGE_BATCH controlled production certifications have passed.
-- Phase 4 MEDIUM_BATCH moved 10 users from `wireguard-1779454504-c43409` with verification PASS.
-- Phase 5 LARGE_BATCH moved 25 users from `wireguard-1779454504-c43409` with verification PASS.
-- A second 25-user LARGE_BATCH evidence run for Phase 6 moved users `10.7.0.51` through `10.7.0.75` with verification PASS and no rollback.
-- Phase 6 XLARGE_BATCH crossed the legacy 25-user selection cap after the governed Authority budget fix and moved 48 eligible same-incident users with verification PASS and no rollback.
-- The latest Authority / governed owner fixes are deployed and converged at commit `3efcef12f1db4876ebf50fe960c845ab3d2ea850`.
-- The latest handoff/report commit before this document is `91ec1e2b`.
-
-### Not Yet Proven
-
-- `FULL_INCIDENT` execution has not yet certified.
-- FULL_INCIDENT Authority promotion requires two successful XLARGE evidence operations with at least 50 users each and a 3600 second no-regression window.
-- Routine production operation after FULL_INCIDENT is not yet reached.
-- The repeated manual Phase 6 preparation/readiness workflow is not yet a single governed pipeline.
-
-### Current Phase And Blocker
-
-Current Phase:
-
-```text
-Phase 7: FULL_INCIDENT Certification
-```
-
-Current terminal state:
-
-```text
-HOLD
-```
-
-Current hold reason:
-
-```text
-Authority requires two successful XLARGE_BATCH evidence operations with at
-least 50 users per run, complete feedback closure, and a 3600 second
-no-regression window before promotion from XLARGE_BATCH to FULL_INCIDENT.
-```
-
-At the latest FULL_INCIDENT readiness check:
-
-- Phase 6 retry operation: `runtime_autoswitch_91f7f1d580392f423a231b45`
-- Phase 6 retry users moved / verified: 48
-- Phase 6 retry observed stability: 453s / 3600s at readiness probe time
-- Earlier Phase 6 defect-discovery operation: `runtime_autoswitch_5f0708ea1df9e3e7fb707e58`
-- Earlier Phase 6 users moved / verified: 25
-- Earlier Phase 6 observed stability: 1496s / 3600s at readiness probe time
-- Both operations had complete feedback closure for their moved users.
-- The remaining blocker was `full_incident_evidence_validation_failed` because
-  neither operation satisfies the FULL_INCIDENT promotion rule requiring at
-  least 50 users per successful XLARGE evidence run, and the no-regression
-  window was also immature.
-- The diagnostic also reported `missing_explicit_authority_promotion_confirmation`,
-  which is expected for a readiness probe without explicit promotion approval.
-
-Current next action:
-
-Run Owner Resolution for the Phase 7 Authority evidence blocker. The required
-engineering mission is to produce or identify two valid XLARGE_BATCH evidence
-operations meeting the existing FULL_INCIDENT Authority promotion rule, without
-bypassing Authority or repeating completed phases as certification. If
-Controlled Production is used, it must use the existing governed path and a
-sufficient Certification Pool.
-
-## 7. Engineering Program
-
-Engineering work now follows the execution-completion shape:
-
-```text
-Breakpoint
-  -> freeze exact state
-  -> identify producer
-  -> identify consumer
-  -> identify owner
-  -> identify exact condition
-  -> prove why STOP occurred
-  -> classify blocker
-  -> Owner Resolution
-  -> Implementation Mission if needed
-  -> Patch existing owner
-  -> Tests
-  -> Regression Certification
-  -> Safe Deploy
-  -> Truth / Convergence
-  -> Resume interrupted phase
-  -> Capability Earned
-```
-
-Implementation defects are not architecture defects by default. If a canonical
-contract is clear and existing code fails to honor it, patch the existing owner.
-Only if implementation proves that the architecture itself cannot express the
-required legal behavior should Codex stop implementation and update the
-canonical document first.
-
-Engineering missions are created from current blockers:
-
-- `IMPLEMENTATION_DEFECT` becomes a correction mission against the existing owner.
-- `IMPLEMENTATION_MISSING` becomes a minimal extension mission.
-- `OWNER_INVOCATION_MISSING` becomes an owner invocation/pipeline mission.
-- `POLICY_PROHIBITION` becomes a hold or policy decision.
-- `CANONICAL_IMPOSSIBILITY` is the only permanent stop.
-
-The certification program continues after implementation. A patch is not a
-terminal outcome. Tests are not terminal. Deploy is not terminal. The phase is
-resumed and must reach PASS, HOLD, BLOCKED, or CANONICAL_IMPOSSIBILITY.
-
-## 8. Engineering Operating System
-
-The Engineering Operating System describes how V7 engineering work is
-performed. It is separate from architecture, Runtime, Planner, Authority, and
-Certification. It tells future Codex instances how to think, investigate,
-communicate, and execute inside the existing V7 philosophy.
-
-### Engineering Thinking Rules
-
-Always investigate implementation before architecture. Most failures are
-owner-contract implementation defects, missing invocation, missing persistence,
-or policy blocks. Architecture change is the last option.
-
-Always find the earliest producer that violates a contract. Symptoms usually
-appear downstream. The root cause is the first broken invariant, not the first
-visible STOP.
-
-Never repair downstream before proving upstream is correct. If Runtime stops,
-prove whether Planner, Authority, Approved Plan Lock, Restore Barrier, packet,
-and committed selected move identity were correct first. If Planner looks
-wrong, prove whether Observation, Wake, Incident, policy, freshness, service
-matrix, load, safety, and retry evidence were correct first.
-
-Never fix symptoms. A blocker name, rollback reason, timeout, empty selected
-move list, or STOP_SAFE is a symptom until its producer, consumer, owner,
-contract, and first broken invariant are proven.
-
-Always preserve semantic identity. Keep operation id, incident source,
-planner generation, selected move hash, user, source, target, authority
-generation, restore generation, packet id, and report lineage stable. Do not
-switch to a newer, cleaner, easier, or more complete execution unless the
-current execution is canonically impossible or explicitly restarted with proof.
-
-Minimal existing-owner extension is preferred over new owners. Smaller bounded
-changes are preferred over broad rewrites. Every implementation must preserve
-existing contracts unless the canonical owner is intentionally updated first.
-
-### Root Cause Methodology
-
-Canonical investigation order:
-
-```text
-STOP
-  -> Current Program State
-  -> Production Evidence
-  -> Payload
-  -> Capability
-  -> Owner
-  -> Function
-  -> Producer
-  -> Consumer
-  -> Contract
-  -> First Broken Invariant
-  -> Root Cause
-  -> Owner Resolution
-  -> Implementation Mission
-  -> Patch
-  -> Regression
-  -> Deploy
-  -> Truth
-  -> Convergence
-  -> Resume Interrupted Phase
-```
-
-Root cause is always earlier than symptoms. A rollback can be caused by
-verification, but verification can be caused by stale evidence, lock contention,
-wrong probe attribution, wrong selected user, wrong target, wrong packet,
-Authority mismatch, Restore Barrier mismatch, or an upstream continuity break.
-The investigation ends only when the first factual contract violation is found
-or canonical impossibility is proven.
-
-### Completion First Law
-
-A capability is not complete because code exists.
-
-A capability is not complete because tests pass.
-
-A capability is not complete because documents exist.
-
-A capability becomes complete only when it is:
-
-- implemented;
-- integrated;
-- consumed;
-- used by another real owner;
-- producing outputs;
-- having its outputs consumed;
-- participating in an end-to-end production workflow;
-- enabling the next capability.
-
-Every capability must terminate by becoming the input of another capability.
-No isolated capability is considered complete. Reports, patches, tests, deploys,
-and root causes are intermediate states unless they feed the next real owner and
-advance the current program.
-
-### Execution Philosophy
-
-Every blocker automatically becomes the next engineering mission.
-
-Implementation defects are not reasons to stop. They become implementation
-work through the existing owner.
-
-Engineering missions continue until a terminal engineering outcome exists:
-
-- the interrupted certification phase resumes and reaches its terminal state;
-- an existing owner blocks by policy after Owner Resolution;
-- implementation is missing and becomes the next mission;
-- owner invocation is missing and becomes the next mission;
-- canonical impossibility is proven.
-
-Do not stop at "root cause found". Do not stop at "patch ready". Do not stop at
-"tests pass". Do not stop at "deployed". Resume the interrupted phase.
-
-### Engineering Improvement Law
-
-Every engineering mission must ask:
-
-- What repeated engineering work occurred?
-- Can existing owners already automate it?
-- Can this workflow become a governed pipeline?
-- Can this automation improve the next certification mission?
-
-Every engineering mission must leave the engineering system more capable than
-before. This improvement may be an implemented owner extension, an Automation
-Candidate, a Pipeline Candidate, a classified debt item, or a proven reason
-that the work must remain manual.
-
-The active loop is:
-
-```text
-Certification Mission
-  -> Capability Earned
-  -> Automation Audit
-  -> Workflow Audit
-  -> Engineering Automation Audit
-  -> Automation Candidate
-  -> Pipeline Candidate
-  -> Engineering Improvement
-  -> Next Certification Mission
-```
-
-This loop is active now. It runs inside the existing Controlled Production
-Certification Program and must not create a separate automation program.
-
-### Project Communication Rules
-
-Future Codex should communicate like an execution engineer:
-
-- Prefer concise engineering communication.
-- Lead with current phase, current owner, current blocker, evidence, and next
-  legal step.
-- Avoid unnecessary architecture discussion.
-- Avoid unnecessary section proliferation.
-- Avoid proposing replacement architectures.
-- Avoid creating parallel roadmaps.
-- Avoid creating unnecessary documents.
-- Avoid suggesting new owners without proof.
-- Avoid stopping investigation prematurely.
-- Avoid asking the operator to perform work that existing owners can perform.
-- Complete as much engineering work autonomously as safely possible.
-
-Request operator intervention only when required by:
-
-- Authority;
-- Reality;
-- Policy;
-- Safety;
-- Canonical Impossibility.
-
-### Engineering Automation Vision
-
-Engineering Automation is not another Runtime.
-
-Engineering Automation is not another Planner.
-
-Engineering Automation is not another Certification system.
-
-It is the natural evolution of the Controlled Production Certification Program.
-Its purpose is to automate engineering itself while preserving existing owners.
-
-Active target loop:
-
-```text
-Breakpoint
-  -> Owner Resolution
-  -> Implementation Mission
-  -> Patch
-  -> Tests
-  -> Regression
-  -> Deploy
-  -> Truth
-  -> Convergence
-  -> Resume
-  -> Capability Earned
-  -> Automation Audit
-  -> Workflow Audit
-  -> Engineering Improvement
-  -> Next Engineering Mission
-```
-
-Every engineering mission must improve both:
-
-1. the product;
-2. the engineering system that develops the product.
-
-### Engineering Memory
-
-Important engineering discoveries must never remain only in reports or
-conversation history.
-
-Engineering Reports preserve history.
-
-Canonical owners preserve truth.
-
-Future Codex should search canonical knowledge before repeating
-investigations. If a durable rule exists only in a report, promote it into the
-single correct canonical owner. If a fact is only historical evidence, keep it
-in reports and cite it rather than turning it into a competing truth source.
-
-### Engineering Decision Hierarchy
-
-Preferred solution order:
-
-1. Reuse existing capability.
-2. Reuse existing owner.
-3. Extend existing owner.
-4. Reuse existing workflow.
-5. Create Pipeline Candidate.
-6. Implement through existing owner.
-7. Only then consider architecture change.
-
-Architecture change is always the final option. It is allowed only when the
-current architecture cannot legally express the required behavior after
-existing-owner discovery and extension have failed with proof.
-
-## 9. Automation Evolution
-
-Automation Evolution is intrinsic to certification.
-
-Loop:
-
-```text
-Manual Action
-  -> Automation Audit
-  -> Root Cause
-  -> Existing Owner Investigation
-  -> Automation Decision
-  -> Automation Candidate if justified
-  -> Implementation
-  -> Certification
-  -> Capability Earned
-  -> Automation Gap Closed
-```
-
-Automation Debt terminal states:
-
-- `AUTOMATED`
-- `INTENTIONALLY_MANUAL`
-- `BLOCKED_BY_FUTURE_CAPABILITY`
-- `NOT_COST_EFFECTIVE`
-- `CANONICAL_IMPOSSIBILITY`
-
-Automation metrics must be consumable by OMP / Production Maturity / Current
-Program State / Passport views:
-
-- Current Automation Debt
-- Automation Debt Created
-- Automation Debt Closed
-- Automation Debt Remaining
-- Trend
-
-Manual work is allowed when justified. Unexplained manual work is not allowed
-to disappear.
-
-## 10. Workflow Evolution
-
-Workflow Evolution audits sequences of manual actions, not only individual
-commands.
-
-Loop:
-
-```text
-Workflow
-  -> Workflow Investigation
-  -> Root Cause
-  -> Existing Owner Investigation
-  -> Pipeline Decision
-  -> Pipeline Candidate
-  -> Implementation
-  -> Certification
-  -> Capability Earned
-  -> Workflow Closed
-```
-
-Workflow Debt terminal states:
-
-- `PIPELINE_IMPLEMENTED`
-- `INTENTIONALLY_MANUAL`
-- `CANONICAL_IMPOSSIBILITY`
-- `NOT_COST_EFFECTIVE`
-- `BLOCKED_BY_FUTURE_CAPABILITY`
-
-The repeated current workflow is:
-
-```text
-restore controlled source
-  -> create Certification Users
-  -> mark certification scope
-  -> degrade controlled source
-  -> run governed validation
-  -> collect closure
-  -> collect registry readback
-  -> re-check Authority promotion
-```
-
-This is a Pipeline Candidate, not a reason to stop certification.
-
-## 11. Engineering Automation
-
-Engineering Automation is ACTIVE.
-
-It is not a separate product and not a new architecture.
-
-It is no longer only a future idea. It is now a parallel strategic execution
-objective inside the Controlled Production Certification Program.
-
-Every engineering mission must now produce two outputs:
-
-1. Increase V7 capability.
-2. Reduce the engineering effort required to earn the next capability.
-
-This is now part of normal execution.
-
-Active target pipeline:
-
-```text
-Breakpoint
-  -> Owner Resolution
-  -> Root Cause
-  -> Implementation Mission
-  -> Patch
-  -> Tests
-  -> Regression
-  -> Deploy
-  -> Truth
-  -> Convergence
-  -> Resume Interrupted Certification Mission
-  -> Capability Earned
-  -> Automation Audit
-  -> Workflow Audit
-  -> Engineering Automation Improvement
-  -> Next Engineering Mission
-```
-
-Every engineering mission should improve both:
-
-1. V7 production capability.
-2. The engineering system that develops V7.
-
-The goal is that common certification engineering flows become governed
-pipelines. This must happen through existing owners and certification, not by
-adding hidden automation or bypassing safety.
-
-## 12. Current Engineering Automation Target
-
-Current engineering objective:
-
-Transform the repeated certification engineering workflow into governed
-engineering pipelines.
-
-Current pipeline targets:
-
-- Breakpoint Investigation Pipeline
-- Owner Resolution Pipeline
-- Regression Pipeline
-- Deploy Pipeline
-- Resume Pipeline
-- Certification Preparation Pipeline
-- Authority Readiness Pipeline
-- Evidence Collection Pipeline
-- Consumer Synchronization Pipeline
-
-Do not implement these immediately by default. Identify them, classify them,
-track them, and gradually replace manual engineering work through existing
-owners as certification and safety permit.
-
-## 13. Current Automation Status
-
-Already automated or owner-callable:
-
-- safe deploy through `tools/v7-safe-deploy`;
-- convergence check through `tools/v7-convergence-status`;
-- governed L3 production validation through `v7-governed-canary-dry-run-cycle`;
-- autoswitch planning/apply logic through `tools/v7-users-autoswitch`;
-- authority promotion readiness and promotion through `tools/v7-users-autoswitch`;
-- controlled egress state mutation through `v7-egress-set-state`;
-- Certification User creation through `v7-user-create-from-ipam`;
-- route and service verification through existing verification owners;
-- closure and feedback materialization through existing feedback/learning owners.
-
-Still manual:
-
-- deciding when to re-run Authority promotion readiness after a stability window;
-- preparing the controlled certification pool for the next stage;
-- sequencing source restore, user creation, certification scope, degradation,
-  governed run, readback, and readiness review;
-- writing the final phase evidence report;
-- updating consumer views when not yet automated.
-
-Repeated workflows that should become governed pipelines:
-
-- Phase certification preparation pipeline;
-- Authority promotion readiness pipeline;
-- controlled certification pool expansion pipeline;
-- evidence collection and report skeleton pipeline;
-- post-capability consumer synchronization pipeline.
-
-## 14. Current Owner Landscape
-
-Significantly hardened during certification:
-
-- `tools/v7-users-autoswitch`: Planner, policy gates, Authority promotion,
-  retry-aware selection, incident continuation, Runtime Apply integration.
-- `v7-governed-canary-dry-run-cycle`: governed execution owner for controlled
-  L3 validation and batch certification.
-- Approved Plan Lock / packet / lease path: hardened around committed selected
-  move identity continuity.
-- Restore Barrier: hardened around source bundle, generation, selected move
-  hash, and committed identity validation.
-- Verification owners: hardened around service verification classification,
-  timeout/lock behavior, scoped route verification, and selected-user
-  attribution.
-- Controlled source and certification user owners: hardened through controlled
-  source degradation, marker materialization, IPAM user creation, and registry
-  readback.
-- Authority owner: hardened to interpret legacy `POOL=25` as canonical
-  `LARGE_BATCH=25` for forward promotion only, without increasing runtime
-  budget or creating a new owner.
-
-Owners that may deserve review after FULL_INCIDENT certification:
-
-- `tools/v7-users-autoswitch` may have excessive responsibility because it now
-  carries planner, policy, authority promotion, and runtime-adjacent behavior.
-  Do not split it before certification; review only after capability is earned.
-- governed certification orchestration is still a manual workflow over several
-  existing owners; it may become a pipeline through existing ownership.
-
-Do not redesign the owner landscape during active certification unless an
-implementation proves a canonical contradiction.
-
-## 15. Current Project State
-
-Current Phase:
-
-```text
-Phase 7: FULL_INCIDENT Certification
-```
-
-Current Certification Phase:
-
-```text
-Phase 7: FULL_INCIDENT Certification
-```
-
-Current Engineering Automation Phase:
-
-```text
-ACTIVE: identify, classify, and convert repeated certification engineering
-workflows into governed pipeline candidates through existing owners.
-```
-
-Current Capability:
-
-```text
-XLARGE_BATCH=50 certified; FULL_INCIDENT pending Authority evidence.
-```
-
-Current Capability Target:
-
-```text
-FULL_INCIDENT certification.
-```
-
-Current Engineering Automation Target:
-
-```text
-Transform repeated Phase certification workflows into governed engineering
-pipelines: certification preparation, Authority readiness, evidence collection,
-owner resolution, regression, deploy, resume, and consumer synchronization.
-```
-
-Current Authority:
-
-```text
-Production authority state is XLARGE_BATCH=50.
-Promotion target is FULL_INCIDENT.
-FULL_INCIDENT readiness requires two valid XLARGE_BATCH evidence operations
-with at least 50 users per run, complete feedback closure, and a 3600 second
-no-regression window.
-```
-
-Current Certification Status:
-
-```text
-CANARY, SMALL_BATCH, MEDIUM_BATCH, LARGE_BATCH certified.
-XLARGE_BATCH certified.
-FULL_INCIDENT in HOLD.
-```
-
-Current Engineering Mission:
-
-```text
-Resolve the Phase 7 Authority evidence blocker by producing or identifying
-two valid XLARGE_BATCH evidence operations that satisfy the existing
-FULL_INCIDENT promotion rule. Do not bypass Authority, Runtime, Restore
-Barrier, Verification, Rollback, or Learning.
-```
-
-Current Highest Priority:
-
-```text
-Re-check Authority promotion readiness, promote to XLARGE_BATCH if evidence is
-valid and explicit confirmation is authorized, then execute 50-user governed
-certification.
-```
-
-Current Hold Reason:
-
-```text
-3600 second no-regression window not yet elapsed for both LARGE_BATCH evidence
-operations at the latest check.
-```
-
-Current Next Action:
-
-```text
-Run the existing Authority readiness check:
-
-/usr/local/bin/v7-users-autoswitch --promote-authority-to XLARGE_BATCH \
-  --authority-promotion-operation-id runtime_autoswitch_d2fc48ffe5590c23e2ac8950 \
-  --authority-promotion-operation-id runtime_autoswitch_ffddc0afb57b4b2a6cd4e560 \
-  --pretty
-
-If evidence_valid becomes true, run the same existing owner with explicit
-Authority promotion confirmation, then continue Phase 6.
-```
-
-Current Pipeline Candidates:
-
-- Phase certification preparation pipeline.
-- Authority promotion readiness pipeline.
-- Certification Pool expansion pipeline.
-- Evidence readback/report pipeline.
-- Consumer synchronization pipeline.
-
-Automation Debt:
-
-- Manual Authority readiness polling.
-- Manual certification pool preparation.
-- Manual evidence collection.
-- Manual report generation.
-
-Workflow Debt:
-
-- Multi-command controlled certification run orchestration.
-- Multi-command owner-resolution/test/deploy/resume loop.
-
-Synchronization Debt:
-
-- Consumer views may lag capability evidence unless an existing safety owner
-  requires synchronization before progression. Record and classify any lag.
-
-Owner Resolution State:
-
-- Latest implementation defect in Authority promotion continuity was resolved
-  and deployed.
-- Current state is policy/evidence HOLD, not implementation defect.
-
-Production Readiness:
-
-- Safe deploy and convergence are operational.
-- Production/local/GitHub convergence was PASS at commit
-  `66a276e9d805b12871f37e6fcc92d9376a4a45b3` before the Phase 6 HOLD report.
-- Production certification has proven up to 25 users in one governed batch.
-
-Engineering Automation Readiness:
-
-- Engineering Automation is active.
-- The target shape is clear.
-- The repeated workflows are known.
-- They are not yet implemented as single governed pipelines.
-- Each future engineering mission must produce both capability advancement and
-  engineering-process improvement evidence.
-
-## 16. Future Roadmap
-
-This is not a new roadmap. It is the already-approved continuation.
-
-### Current Certification Program
-
-1. Resume Phase 6 after Authority stability window matures.
-2. Promote to `XLARGE_BATCH` through existing Authority owner if evidence is valid.
-3. Run `XLARGE_BATCH=50` governed certification.
-4. If PASS, proceed to Phase 7 `FULL_INCIDENT`.
-5. Certify FULL_INCIDENT or prove canonical impossibility.
-6. Enter routine production operation only after FULL_INCIDENT and Authority recognition.
-
-### Future Runtime Autonomy
-
-Runtime autonomy remains future until certification and Authority permit it.
-Do not enable broad automation merely because batch certification improves.
-
-### Future Production Autonomy
-
-Production autonomy should grow from certified action classes and Authority
-recognition. It must remain bounded by Reality First, Verification, Rollback,
-Production Restoration, and OMP.
-
-### Future Engineering Evolution
-
-Engineering Automation is already in progress and is no longer listed as
-future work. Future Engineering Evolution refers only to later improvements
-after the active Engineering Automation stream has produced certified governed
-pipelines.
-
-## 17. Immutable Rules
-
-Never do the following:
-
-- Never create a duplicate Runtime.
-- Never create a duplicate Planner.
-- Never create a duplicate Authority.
-- Never create a duplicate Restore Barrier owner.
-- Never create a duplicate Wake owner.
-- Never create a duplicate Packet owner.
-- Never create a duplicate OMP.
-- Never create a parallel execution path.
-- Never create a parallel truth source.
-- Never bypass Authority.
-- Never bypass Approved Plan Lock.
-- Never bypass Restore Barrier.
-- Never bypass Runtime.
-- Never bypass Verification.
-- Never bypass Rollback or closure.
-- Never synthesize production evidence.
-- Never treat dry run success as production certification.
-- Never treat timer, cron, or blind polling as authority by itself.
-- Never move ordinary customers as certification subjects.
-- Never broaden automation without certification and Authority.
-- Never increase max users beyond current Authority budget.
-- Never restart an execution from Observation when the protocol says resume
-  from the current breakpoint.
-- Never switch candidate, operation, source, selected move hash, or incident
-  silently.
-- Never make documentation synchronization block capability producers unless an
-  existing safety owner proves it must.
-- Never redesign architecture to avoid an implementation defect.
-- Never create a new owner before proving existing owners cannot own the need.
-- Never terminate an investigation because a blocker was found.
-- Never call a patch, deploy, report, or root cause the terminal project state.
-
-## 18. Handoff: How A Future Codex Continues
-
-If you know nothing except this document, continue like this.
-
-### Step 1. Establish Repository State
-
-Run:
-
-```text
-git status --short
-git log --oneline -8
-```
-
-Do not revert unrelated user changes. Stage only files you intentionally change.
-
-### Step 2. Read Current Canonical Owners
-
-Read:
-
-- `docs/reference/V7_MASTER_PROJECT_HANDOFF.md`
-- `docs/reference/capabilities/CONTROLLED_PRODUCTION_CERTIFICATION_PROGRAM.md`
-- `docs/reference/V7_EXECUTION_MISSION_PROTOCOL.md`
-- `docs/reference/V7_EXECUTION_COMPLETION_PROTOCOL.md`
-- `docs/reference/SYSTEM_MAP.md`
-- `docs/reference/V7_PRODUCTION_MATURITY_MODEL.md`
-
-Use Engineering Reports only as evidence for exact facts.
-
-### Step 3. Discover The Current Phase
-
-Start from the latest certification report:
-
-- `docs/reports/engineering/2026-07-03_183251_controlled_program_phase6_phase7_execution.md`
-
-Current phase is Phase 7. Phase 6 XLARGE_BATCH reached PASS. Do not start
-routine production operation until Phase 7 FULL_INCIDENT reaches PASS or
-canonical impossibility is proven.
-
-### Step 4. Resume The Interrupted Certification
-
-Run Owner Resolution for the FULL_INCIDENT Authority evidence blocker using the
-existing Authority owner. Do not patch unless the owner produces a new
-implementation defect.
-
-If readiness is blocked only by missing XLARGE evidence, use Controlled
-Production and the existing governed path to produce qualifying evidence if
-safety and Certification Pool owners allow it. If readiness becomes valid and
-explicit confirmation is authorized, promote through the existing Authority
-owner and continue Phase 7 FULL_INCIDENT certification.
-
-### Step 5. Continue Engineering Work
-
-For every STOP:
-
-```text
-STOP
-  -> breakpoint
-  -> Owner Resolution
-  -> terminal classification
-  -> implementation or policy route
-  -> tests
-  -> deploy if needed
-  -> convergence
-  -> resume same phase
-```
-
-Do not switch execution identity for convenience.
-
-### Step 6. Update Knowledge Correctly
-
-- Put historical proof in Engineering Reports.
-- Put durable rules in the relevant canonical owner.
-- Put volatile current state in Current Program State when required.
-- Let OMP and Production Maturity consume certified evidence.
-- Record Automation Debt, Workflow Debt, and Synchronization Debt when created.
-
-### Step 7. Avoid Architectural Regression
-
-Before adding any section, command, owner, artifact, pipeline, or automation:
+Before creating anything new:
 
 ```text
 DISCOVER
@@ -1248,6 +361,328 @@ DISCOVER
   -> CREATE ONLY IF NECESSARY
 ```
 
-The safest future Codex is not the one that writes the most code. It is the one
-that preserves identity, proves reality, reuses owners, finishes the current
-phase, and leaves the next Codex with less uncertainty than it inherited.
+New owners are allowed only when no existing canonical owner can legally own the responsibility.
+
+### Authority Boundary
+
+Authority owns permission, blast radius, capability budget, promotion, demotion, and policy prohibition. Authority does not observe reality, select arbitrary candidates, mutate routing, or verify outcomes.
+
+### Runtime Boundary
+
+Runtime is thin. It consumes committed approved identity and either applies safely or stops. Runtime does not invent decisions, replace Planner, bypass Authority, bypass Restore Barrier, bypass Verification, or create truth.
+
+### Decision != Execution
+
+Decision Model, Policy, and Planner prepare action. Runtime and Execution apply only after Authority and identity gates.
+
+### Verification Law
+
+A production action is not successful until Verification proves the outcome.
+
+### Rollback / Closure Law
+
+Every touched action must end in rollback, containment, no-rollback closure, success closure, or canonical terminal classification.
+
+### Diagnosis Law
+
+Diagnosis is read-only. It explains root cause and owner resolution from evidence. It does not mutate Runtime, Planner, Authority, Restore Barrier, users, or production state.
+
+### OMP Law
+
+OMP is the operating program. It maps work to owners, consumes maturity, prevents duplicate roadmaps, and continues execution.
+
+### Architecture Closed By Default
+
+Future architecture change is exceptional. It requires proof that existing OMP capabilities, canonical owners, SYSTEM_MAP, Canonical Reference, Runtime Model, Decision Model, policies, and backlog cannot express the required capability.
+
+### Prompt Evolution Law
+
+The Architecture Certification Engine is locked. Future prompt changes are allowed only when repeated execution evidence justifies them. The canonical standard requires real weakness evidence, not theoretical discussion.
+
+### Continuous Self Evolution
+
+Every meaningful project action should improve at least one of:
+
+- product capability;
+- automation capability;
+- workflow orchestration;
+- knowledge quality;
+- owner clarity;
+- future engineering leverage.
+
+## 11. Governance Model
+
+V7 governance is distributed but not ambiguous.
+
+| Surface | Role |
+|---|---|
+| Canonical Reference | Durable project meaning and canonical conclusions. |
+| SYSTEM_MAP | Owner and topology lookup. |
+| OMP | Permanent operating program and continuation owner. |
+| Current Program State | Volatile current state and next-action surface. |
+| Production Maturity | Evidence-consuming production maturity state. |
+| ADRs | Durable architectural decisions and rejected alternatives. |
+| Engineering Reports | Historical evidence and proof. |
+| Function Graph | Implementation reality and dependency evidence. |
+| Domain Certification Corpus | Stage 1 architecture evidence. |
+
+No single report becomes a new truth source by itself.
+
+No dashboard or summary may reinterpret canonical truth.
+
+## 12. Production And Runtime Model
+
+The canonical production execution chain remains:
+
+```text
+Observation
+  -> Wake
+  -> Incident
+  -> Diagnosis
+  -> Decision Model
+  -> Policy
+  -> Planner
+  -> Authority
+  -> Identity
+  -> Runtime
+  -> Execution
+  -> Verification
+  -> Rollback / Closure
+  -> Learning
+  -> Production Maturity
+  -> Current Program State
+  -> OMP
+```
+
+Important boundaries:
+
+- Observation does not decide.
+- Wake does not grant authority.
+- Incident does not execute.
+- Diagnosis does not mutate.
+- Planner does not apply.
+- Authority does not verify success.
+- Runtime does not plan.
+- Execution does not claim success.
+- Verification does not create authority.
+- Rollback / Closure is terminal safety.
+- Learning consumes outcomes; it does not rewrite history.
+- OMP routes continuation; it does not bypass production gates.
+
+## 13. PROJECT MEMORY
+
+This section preserves what Stage 1 taught as knowledge, not as a chronological diary.
+
+### Product Knowledge
+
+V7's product is reliable governed routing, not VPN protocol management.
+
+Users receive continuity. Operators receive controlled autonomy. Engineers receive a system whose future work can be routed through known owners instead of improvised from scratch.
+
+### Architecture Knowledge
+
+The 26-domain model is complete because each domain owns one responsibility and the full chain closes from Business Objective to Continuous Self Evolution.
+
+The architecture is intentionally explicit. It separates reality, evidence, diagnosis, decision, policy, planning, authority, identity, runtime, execution, verification, closure, learning, maturity, state, OMP, automation, and self-evolution because mixing these responsibilities creates unsafe production behavior.
+
+### Certification Knowledge
+
+Certification is not documentation approval. Certification is evidence-backed proof that architecture and implementation reality align well enough for the stated domain.
+
+Append-only certification history can contain superseded states. Consumers must read the latest terminal state, not the first historical state.
+
+### Domain 11 Knowledge
+
+Domain 11 was the only Stage 1 blocker. The problem was not architecture. The problem was missing executable implementation: V7 had reports and owner-resolution concepts, but lacked one canonical read-only Diagnosis / Owner Resolution Record.
+
+The fix proved an important rule: when architecture is correct and implementation is incomplete, do not redesign architecture. Extend the existing owner minimally and recertify.
+
+### World Convergence Knowledge
+
+V7 converges with mature engineering practice through:
+
+- observability before action;
+- evidence before confidence;
+- diagnosis before decision;
+- policy before execution;
+- authority before mutation;
+- bounded blast radius;
+- thin runtime;
+- post-action verification;
+- rollback / closure;
+- feedback and learning;
+- operational maturity;
+- controlled autonomy expansion.
+
+V7 does not copy another company. It independently expresses universal production engineering laws in a form suitable for autonomous routing.
+
+### Implementation Knowledge
+
+Implementation reality matters. Architecture is not accepted if Function Graph, tests, current code, or runtime owners contradict it.
+
+Read-only advisory surfaces are allowed. They must not mutate Runtime, expand Authority, rank execution directly, synthesize evidence, or become truth sources.
+
+### Governance Knowledge
+
+No duplicate owners. No duplicate Runtime. No duplicate Planner. No duplicate Authority. No duplicate OMP. No duplicate truth source.
+
+If a future task seems to need a new owner, first prove why existing owners cannot own it.
+
+### Evolution Knowledge
+
+Future work should simplify execution, not multiply documents. The correct path is usually:
+
+```text
+Reality
+  -> Evidence
+  -> Owner Resolution
+  -> Existing Owner
+  -> Implementation if needed
+  -> Verification
+  -> Engineering Report
+  -> Canonical Update if durable
+  -> Current Program State if volatile
+  -> Continue OMP
+```
+
+### Common Misunderstandings To Avoid
+
+- Do not confuse Stage 1 architecture lock with full production autonomy.
+- Do not treat reports as active roadmaps.
+- Do not treat historical `NOT CERTIFIED` text as current if later terminal evidence supersedes it.
+- Do not re-run Stage 1 because Stage 2 needs knowledge extraction.
+- Do not create `V7_MASTER_PROJECT_HANDOFF_V2`.
+- Do not use Function Graph staleness as an architecture failure unless current implementation evidence also contradicts the architecture.
+- Do not use documentation sync as a blocker for capability producers unless a safety owner requires it.
+- Do not let Runtime decide.
+- Do not let Planner execute.
+- Do not let Diagnosis mutate.
+- Do not let OMP become a duplicate Runtime.
+
+## 14. STARTING A NEW CHAT
+
+If a new ChatGPT session starts with zero context, do this:
+
+### Step 1. Read The Entry Point
+
+Read this file first:
+
+```text
+docs/reference/V7_MASTER_PROJECT_HANDOFF.md
+```
+
+Do not ask the user to restate history unless the requested work conflicts with the persisted state.
+
+### Step 2. Read The Stage 1 Terminal Evidence
+
+Read:
+
+```text
+docs/reports/research/V7_STAGE1_FINAL_ACCEPTANCE.md
+docs/reports/research/V7_STAGE1_CORPUS_AUDIT.md
+docs/reports/research/V7_PHASE1_DOMAIN_CERTIFICATION.md
+docs/reports/research/V7_PHASE1_ARCHITECT_SUMMARY.md
+```
+
+Assume Stage 1 is accepted and locked unless objective evidence proves corruption.
+
+### Step 3. Read Canonical Owners
+
+Read:
+
+```text
+docs/reference/SYSTEM_MAP.md
+docs/reference/V7_CANONICAL_REFERENCE.md
+docs/programs/OPERATIONAL_MATURITY_PROGRAM.md
+docs/programs/V7_CURRENT_PROGRAM_STATE.md
+```
+
+Use `SYSTEM_MAP` for ownership, `Canonical Reference` for durable meaning, `OMP` for continuation, and `Current Program State` for volatile current state.
+
+### Step 4. Understand What Is Historical
+
+Historical:
+
+- old Stage 1.1 Domain 11 NOT CERTIFIED state;
+- previous recovery prompts;
+- earlier handoff references to active Phase 6 / Phase 7 production certification as the main architecture-program task;
+- old roadmaps that Stage 1 acceptance superseded.
+
+Current:
+
+- Stage 1 locked baseline;
+- Stage 2 knowledge pipeline;
+- OMP as post-Stage-2 production-autonomy continuation.
+
+### Step 5. Do Not Recreate These
+
+Do not recreate:
+
+- Architecture Certification Engine;
+- Domain Certification Corpus;
+- Architecture Tree;
+- Stage 1 Corpus Audit;
+- Stage 1 Final Acceptance;
+- Diagnosis Record Contract;
+- Diagnosis Implementation Acceptance;
+- this handoff under a new filename;
+- OMP;
+- Runtime;
+- Planner;
+- Authority.
+
+### Step 6. Use Proven Assumptions
+
+Already proven:
+
+- 26-domain architecture is certified.
+- Stage 1 corpus is internally consistent.
+- Domain 11 recovery is closed.
+- Architecture is locked.
+- Future architecture change requires formal evolution.
+- Stage 2 is the next architecture-program step.
+- OMP remains the operating program after Stage 2.
+
+### Step 7. Start Work From The Right Place
+
+For architecture-program continuation, start at:
+
+```text
+Stage 2.1 Knowledge Inventory
+```
+
+For production/autonomy continuation, use OMP and Current Program State.
+
+For implementation work, use existing owners and acceptance contracts.
+
+For uncertainty, run discovery before inventing structure.
+
+## 15. Final Self Review
+
+Obsolete active roadmap removed:
+
+YES.
+
+Completed work still presented as future work:
+
+NO.
+
+Duplicated explanations collapsed:
+
+YES.
+
+Can a new engineer continue from this document alone:
+
+YES, with referenced canonical inputs.
+
+Important Stage 1 knowledge missing:
+
+NO.
+
+Current active roadmap:
+
+Stage 2.1 Knowledge Inventory -> Stage 2.2 Knowledge Extraction -> Stage 2.3 Knowledge Deduplication -> Stage 2.4 Knowledge Graph -> Stage 2.5 `V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` -> Stage 2.6 Knowledge Acceptance -> Stage 2.7 Knowledge Lock.
+
+Ready for seamless continuation:
+
+YES

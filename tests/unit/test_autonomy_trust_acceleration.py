@@ -1212,6 +1212,178 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertFalse(model["synthetic_evidence_created"])
         self.assertFalse(model["new_truth_source_created"])
 
+    def diagnosis_record(self, **overrides):
+        payload = {
+            "subject": {"type": "execution_block", "id": "domain_11_gap"},
+            "source_object": "docs/reports/research/V7_STAGE1_DIAGNOSIS_RECOVERY_DISCOVERY.md#root-cause",
+            "evidence_refs": [{
+                "type": "report",
+                "path": "docs/reports/research/V7_STAGE1_DIAGNOSIS_RECOVERY_DISCOVERY.md",
+                "section": "Root Cause of NOT CERTIFIED",
+            }],
+            "diagnosis_status": "PROVEN",
+            "symptom": {
+                "type": "certification_gap",
+                "value": "Domain 11 missing executable diagnosis projection",
+                "producer": "V7_PHASE1_DOMAIN_CERTIFICATION.md",
+            },
+            "root_cause": "diagnosis_owner_resolution_record_missing",
+            "root_cause_proven": True,
+            "unknown_state": "NONE",
+            "blocking_owner": "admin_core.autonomy_trust_acceleration",
+            "owner_resolution_state": "RESOLVED",
+            "terminal_classification": "IMPLEMENTATION_MISSING",
+            "required_resolution": "implement_v7_diagnosis_owner_resolution_record",
+            "confidence": "HIGH",
+            "evidence_quality": "HIGH",
+            "generated_at": "2026-07-07T00:00:00+00:00",
+        }
+        payload.update(overrides)
+        return accel.build_diagnosis_owner_resolution_record(**payload)
+
+    def test_diagnosis_owner_resolution_record_is_valid_read_only_contract(self):
+        record = self.diagnosis_record()
+        validation = accel.validate_diagnosis_owner_resolution_record(record)
+
+        self.assertEqual(record["schema_version"], "v7.diagnosis-owner-resolution.v1")
+        self.assertTrue(record["read_only"])
+        self.assertEqual(record["producer"], "admin_core.autonomy_trust_acceleration.build_diagnosis_owner_resolution_record")
+        self.assertTrue(validation["valid"])
+        self.assertEqual(validation["errors"], [])
+        self.assertFalse(record["mutation_boundary"]["runtime_apply_allowed"])
+        self.assertFalse(record["mutation_boundary"]["authority_expanded"])
+        self.assertFalse(record["mutation_boundary"]["restore_barrier_written"])
+        self.assertEqual(record["mutation_boundary"]["users_moved"], 0)
+        self.assertFalse(record["mutation_boundary"]["synthetic_evidence_created"])
+        self.assertFalse(record["mutation_boundary"]["new_owner_created"])
+        self.assertFalse(record["mutation_boundary"]["new_runtime_created"])
+        self.assertFalse(record["mutation_boundary"]["new_planner_created"])
+
+    def test_diagnosis_owner_resolution_record_preserves_unknown_without_fake_root_cause(self):
+        record = accel.build_diagnosis_owner_resolution_record(
+            subject={"type": "execution_block", "id": "unknown_gap"},
+            source_object="engineering_report:unknown",
+            evidence_refs=[],
+            diagnosis_status="NO_EVIDENCE",
+            symptom={
+                "type": "blocking_owner",
+                "value": "owner not proven",
+                "producer": "unit-test",
+            },
+            root_cause="tempting_but_unproven_guess",
+            root_cause_proven=False,
+            blocking_owner="UNKNOWN",
+            terminal_classification="UNKNOWN",
+            required_resolution="collect_missing_evidence",
+            generated_at="2026-07-07T00:00:00+00:00",
+        )
+        validation = accel.validate_diagnosis_owner_resolution_record(record)
+
+        self.assertEqual(record["root_cause"], "UNKNOWN")
+        self.assertFalse(record["root_cause_proven"])
+        self.assertEqual(record["unknown_state"], "MISSING_EVIDENCE")
+        self.assertTrue(validation["valid"])
+
+    def test_diagnosis_owner_resolution_terminal_classifications_are_canonical(self):
+        for terminal in [
+            "POLICY_PROHIBITION",
+            "IMPLEMENTATION_MISSING",
+            "OWNER_INVOCATION_MISSING",
+            "IMPLEMENTATION_DEFECT",
+            "CANONICAL_IMPOSSIBILITY",
+        ]:
+            with self.subTest(terminal=terminal):
+                record = self.diagnosis_record(terminal_classification=terminal)
+                validation = accel.validate_diagnosis_owner_resolution_record(record)
+                self.assertTrue(validation["valid"], validation["errors"])
+                self.assertEqual(record["terminal_classification"], terminal)
+                self.assertEqual(record["owner_resolution_state"], "RESOLVED")
+
+    def test_diagnosis_owner_resolution_first_divergence_requires_evidence_fields(self):
+        record = self.diagnosis_record(
+            first_divergence={
+                "producer": "Planner",
+                "consumer": "Runtime",
+                "field": "selected_moves_after_gate",
+                "before": 1,
+                "after": 0,
+                "evidence_ref": "docs/reports/research/domain11.md#first-divergence",
+            }
+        )
+        self.assertTrue(accel.validate_diagnosis_owner_resolution_record(record)["valid"])
+
+        invalid = json.loads(json.dumps(record))
+        invalid["first_divergence"] = {"producer": "Planner"}
+        validation = accel.validate_diagnosis_owner_resolution_record(invalid)
+        self.assertFalse(validation["valid"])
+        self.assertIn("first_divergence_missing:evidence_ref", validation["errors"])
+
+    def test_diagnosis_owner_resolution_validator_rejects_unsafe_or_unproven_records(self):
+        record = self.diagnosis_record()
+
+        wrong_schema = json.loads(json.dumps(record))
+        wrong_schema["schema_version"] = "wrong"
+        self.assertIn(
+            "invalid_schema_version",
+            accel.validate_diagnosis_owner_resolution_record(wrong_schema)["errors"],
+        )
+
+        no_evidence = json.loads(json.dumps(record))
+        no_evidence["evidence_refs"] = []
+        self.assertIn(
+            "proven_root_cause_requires_evidence_refs",
+            accel.validate_diagnosis_owner_resolution_record(no_evidence)["errors"],
+        )
+
+        bad_terminal = json.loads(json.dumps(record))
+        bad_terminal["terminal_classification"] = "BLOCKED_BY_SAFETY_OWNER"
+        self.assertIn(
+            "invalid_terminal_classification",
+            accel.validate_diagnosis_owner_resolution_record(bad_terminal)["errors"],
+        )
+
+        mutation = json.loads(json.dumps(record))
+        mutation["mutation_boundary"]["runtime_apply_allowed"] = True
+        self.assertIn(
+            "mutation_boundary_violation:runtime_apply_allowed",
+            accel.validate_diagnosis_owner_resolution_record(mutation)["errors"],
+        )
+
+        new_owner = json.loads(json.dumps(record))
+        new_owner["blocking_owner"] = "NEW_OWNER"
+        self.assertIn(
+            "blocking_owner_must_reuse_existing_owner",
+            accel.validate_diagnosis_owner_resolution_record(new_owner)["errors"],
+        )
+
+    def test_diagnosis_owner_resolution_consumer_projection_uses_same_record(self):
+        record = self.diagnosis_record()
+        projection = accel.build_diagnosis_owner_resolution_consumer_projection(record)
+
+        self.assertEqual(projection["schema_version"], "v7.diagnosis-owner-resolution.consumer-projection.v1")
+        self.assertTrue(projection["validation"]["valid"])
+        self.assertEqual(projection["projections"]["omp"]["source_record_id"], record["record_id"])
+        self.assertEqual(
+            projection["projections"]["current_program_state"]["blocking_owner"],
+            record["blocking_owner"],
+        )
+        self.assertEqual(
+            projection["projections"]["current_program_state"]["terminal_root_cause"],
+            record["root_cause"],
+        )
+        self.assertFalse(projection["projections"]["production_maturity"]["authority_granted"])
+        self.assertFalse(projection["projections"]["governance_check"]["recompute_diagnosis_truth"])
+        self.assertTrue(projection["projections"]["engineering_reports"]["embeddable_record"])
+        self.assertTrue(projection["projections"]["future_certification"]["recovery_gap_closed"])
+
+    def test_diagnosis_owner_resolution_validator_accepts_compatible_extensions(self):
+        record = self.diagnosis_record()
+        record["future_optional_field"] = {"ignored_by_v1": True}
+        validation = accel.validate_diagnosis_owner_resolution_record(record)
+
+        self.assertTrue(validation["valid"])
+        self.assertEqual(validation["errors"], [])
+
     def test_inventory_exposes_b5_observed_degradation_attribution(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

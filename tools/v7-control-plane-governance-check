@@ -10,8 +10,15 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from pathlib import Path
 from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from admin_core import autonomy_trust_acceleration  # noqa: E402
 
 
 HIGH_RISK = {
@@ -756,6 +763,53 @@ def read_text(path: Path) -> str:
         return path.read_text(encoding="utf-8", errors="replace")
     except FileNotFoundError:
         return ""
+
+
+def diagnosis_owner_resolution_projection_status() -> dict[str, Any]:
+    record = autonomy_trust_acceleration.build_diagnosis_owner_resolution_record(
+        subject={
+            "type": "governance_projection",
+            "id": "domain_11_diagnosis_owner_resolution_projection",
+        },
+        source_object="docs/reference/V7_DIAGNOSIS_RECORD_CONTRACT.md#consumer-contract",
+        evidence_refs=[
+            {
+                "type": "contract",
+                "path": "docs/reference/V7_DIAGNOSIS_RECORD_CONTRACT.md",
+                "section": "Consumer Contract",
+            },
+            {
+                "type": "acceptance",
+                "path": "docs/process/V7_DIAGNOSIS_IMPLEMENTATION_ACCEPTANCE.md",
+                "section": "Governance Projection",
+            },
+        ],
+        diagnosis_status="PROVEN",
+        symptom={
+            "type": "acceptance_requirement",
+            "value": "governance_check_must_expose_diagnosis_record",
+            "producer": "docs/process/V7_DIAGNOSIS_IMPLEMENTATION_ACCEPTANCE.md",
+        },
+        root_cause="governance_projection_required_by_domain_11_acceptance",
+        root_cause_proven=True,
+        unknown_state="NONE",
+        blocking_owner="NONE",
+        owner_resolution_state="NOT_REQUIRED",
+        terminal_classification="NONE",
+        required_resolution="NONE",
+        confidence="HIGH",
+        evidence_quality="HIGH",
+    )
+    projection = autonomy_trust_acceleration.build_diagnosis_owner_resolution_consumer_projection(record)
+    return {
+        "schema_version": "v7.governance-check.diagnosis-owner-resolution-projection.v1",
+        "read_only": True,
+        "runtime_commands_executed": False,
+        "recompute_diagnosis_truth": False,
+        "record": record,
+        "consumer_projection": projection["projections"]["governance_check"],
+        "validation": projection["validation"],
+    }
 
 
 def e8_rehearsal_status(docs_dir: Path) -> dict[str, Any]:
@@ -3324,6 +3378,7 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
     )
     e11_18_two_user_promotion_clean = e11_18_two_user_promotion_clean_status()
     e12_generation_token_hardening = e12_generation_token_hardening_status()
+    diagnosis_owner_resolution_projection = diagnosis_owner_resolution_projection_status()
     preview_artifacts = {name: path.is_file() if name != "fixtures" else path.is_dir() for name, path in PREVIEW_ARTIFACTS.items()}
     missing_preview_artifacts = [name for name, exists in preview_artifacts.items() if not exists]
     canary_preview_artifacts = {name: path.is_file() for name, path in CANARY_PREVIEW_ARTIFACTS.items()}
@@ -3338,6 +3393,7 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
         "tool": "v7-control-plane-governance-check",
         "read_only": True,
         "runtime_commands_executed": False,
+        "diagnosis_owner_resolution_projection": diagnosis_owner_resolution_projection,
         "runtime_enumeration": str(args.runtime_enumeration),
         "control_plane_docs_missing": missing_docs,
         "canary_readiness": {
@@ -5524,6 +5580,13 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
 def print_pretty(report: dict[str, Any]) -> None:
     print("V7 control-plane governance check (read-only)")
     print(f"runtime_commands_executed={report['runtime_commands_executed']}")
+    diagnosis_projection = report["diagnosis_owner_resolution_projection"]
+    print(
+        "diagnosis_owner_resolution_projection_schema="
+        f"{diagnosis_projection['record']['schema_version']}"
+    )
+    print(f"diagnosis_owner_resolution_projection_valid={diagnosis_projection['validation']['valid']}")
+    print("diagnosis_owner_resolution_recompute_truth=false")
     print(f"control_plane_docs_missing={len(report['control_plane_docs_missing'])}")
     canary = report["canary_readiness"]
     print(f"canary_docs_missing={len(canary['docs_missing'])}")

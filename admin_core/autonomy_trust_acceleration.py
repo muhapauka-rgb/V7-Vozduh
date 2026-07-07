@@ -8,6 +8,8 @@ evidence so operators know which real evidence to collect next.
 from __future__ import annotations
 
 import fnmatch
+import hashlib
+import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -228,6 +230,76 @@ DEFAULT_DELEGATED_AUTONOMY_POLICY = {
     "governed_learning_mode_allowed": False,
     "runtime_apply_enabled": False,
     "authority_expansion_performed": False,
+}
+
+DIAGNOSIS_OWNER_RESOLUTION_SCHEMA_VERSION = "v7.diagnosis-owner-resolution.v1"
+
+DIAGNOSIS_RECORD_PRODUCER = (
+    "admin_core.autonomy_trust_acceleration."
+    "build_diagnosis_owner_resolution_record"
+)
+
+DIAGNOSIS_RECORD_CONSUMERS = [
+    "OMP",
+    "Current Program State",
+    "Production Maturity",
+    "Engineering Reports",
+    "Engineering Automation",
+    "Governance Check",
+    "Future Certification",
+]
+
+DIAGNOSIS_STATUSES = {
+    "PROVEN",
+    "UNKNOWN",
+    "PARTIAL",
+    "NO_EVIDENCE",
+    "CONFLICTING_EVIDENCE",
+}
+
+DIAGNOSIS_UNKNOWN_STATES = {
+    "NONE",
+    "MISSING_EVIDENCE",
+    "STALE_EVIDENCE",
+    "CONFLICTING_EVIDENCE",
+    "NOT_INVESTIGATED",
+    "UNKNOWN_OWNER",
+}
+
+DIAGNOSIS_OWNER_RESOLUTION_STATES = {
+    "NOT_REQUIRED",
+    "REQUIRED",
+    "RESOLVED",
+    "UNKNOWN",
+}
+
+DIAGNOSIS_TERMINAL_CLASSIFICATIONS = {
+    "NONE",
+    "POLICY_PROHIBITION",
+    "IMPLEMENTATION_MISSING",
+    "OWNER_INVOCATION_MISSING",
+    "IMPLEMENTATION_DEFECT",
+    "CANONICAL_IMPOSSIBILITY",
+    "UNKNOWN",
+}
+
+DIAGNOSIS_CONFIDENCE_VALUES = {
+    "VERY_HIGH",
+    "HIGH",
+    "MEDIUM",
+    "LOW",
+    "UNKNOWN",
+}
+
+DIAGNOSIS_MUTATION_BOUNDARY = {
+    "runtime_apply_allowed": False,
+    "authority_expanded": False,
+    "restore_barrier_written": False,
+    "users_moved": 0,
+    "synthetic_evidence_created": False,
+    "new_owner_created": False,
+    "new_runtime_created": False,
+    "new_planner_created": False,
 }
 
 
@@ -8254,6 +8326,360 @@ def build_observed_degradation_attribution(
         "synthetic_evidence_created": False,
         "new_owner_created": False,
         "new_truth_source_created": False,
+    }
+
+
+def _diagnosis_upper(value: Any, default: str) -> str:
+    text = _text(value or default).upper()
+    return text or default
+
+
+def _diagnosis_refs(value: Any) -> list[Any]:
+    if isinstance(value, list):
+        return value
+    if value in (None, ""):
+        return []
+    return [value]
+
+
+def _diagnosis_record_id(payload: dict[str, Any]) -> str:
+    stable = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
+    digest = hashlib.sha256(stable.encode("utf-8")).hexdigest()[:16]
+    return f"diagnosis_owner_resolution_{digest}"
+
+
+def _diagnosis_mutation_boundary(value: dict[str, Any] | None = None) -> dict[str, Any]:
+    boundary = dict(DIAGNOSIS_MUTATION_BOUNDARY)
+    if isinstance(value, dict):
+        boundary.update(value)
+    return boundary
+
+
+def build_diagnosis_owner_resolution_record(
+    *,
+    subject: dict[str, Any],
+    source_object: Any,
+    evidence_refs: list[Any] | None = None,
+    diagnosis_status: str = "UNKNOWN",
+    symptom: dict[str, Any] | None = None,
+    root_cause: str | None = None,
+    root_cause_proven: bool = False,
+    unknown_state: str | None = None,
+    blocking_owner: str | None = "UNKNOWN",
+    owner_resolution_state: str | None = None,
+    terminal_classification: str | None = "UNKNOWN",
+    required_resolution: Any | None = None,
+    incident: dict[str, Any] | None = None,
+    operation_id: str | None = None,
+    packet_id: str | None = None,
+    selected_move_hash: str | None = None,
+    first_divergence: Any | None = None,
+    confidence: str = "UNKNOWN",
+    evidence_quality: str = "UNKNOWN",
+    hypotheses_rejected: list[Any] | None = None,
+    compatibility: dict[str, Any] | None = None,
+    backtesting: dict[str, Any] | None = None,
+    projection_refs: list[Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Build the read-only Domain 11 Diagnosis / Owner Resolution record.
+
+    The builder is a projection over caller-supplied evidence. It does not read
+    production state, recompute Planner/Runtime decisions, or perform mutation.
+    """
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    refs = _diagnosis_refs(evidence_refs)
+    status = _diagnosis_upper(diagnosis_status, "UNKNOWN")
+    terminal = _diagnosis_upper(terminal_classification, "UNKNOWN")
+    owner = _text(blocking_owner or "UNKNOWN")
+    cause_proven = bool(root_cause_proven)
+    cause = _text(root_cause or "UNKNOWN")
+    if not cause_proven:
+        cause = "UNKNOWN"
+
+    if unknown_state is None:
+        if status == "PROVEN" and cause_proven:
+            unknown = "NONE"
+        elif status == "NO_EVIDENCE" or not refs:
+            unknown = "MISSING_EVIDENCE"
+        elif status == "CONFLICTING_EVIDENCE":
+            unknown = "CONFLICTING_EVIDENCE"
+        else:
+            unknown = "NOT_INVESTIGATED"
+    else:
+        unknown = _diagnosis_upper(unknown_state, "UNKNOWN_OWNER")
+
+    if owner_resolution_state is None:
+        if terminal not in {"NONE", "UNKNOWN"}:
+            resolution_state = "RESOLVED"
+        elif owner not in {"", "NONE", "UNKNOWN"}:
+            resolution_state = "REQUIRED"
+        else:
+            resolution_state = "NOT_REQUIRED"
+    else:
+        resolution_state = _diagnosis_upper(owner_resolution_state, "UNKNOWN")
+
+    if required_resolution in (None, ""):
+        if resolution_state == "NOT_REQUIRED" and terminal in {"NONE", "UNKNOWN"}:
+            resolution = "NONE"
+        else:
+            resolution = "owner_resolution_required"
+    else:
+        resolution = required_resolution
+
+    symptom_payload = symptom if isinstance(symptom, dict) else {
+        "type": "UNKNOWN",
+        "value": "UNKNOWN",
+        "producer": DIAGNOSIS_RECORD_PRODUCER,
+    }
+    subject_payload = subject if isinstance(subject, dict) else {"type": "UNKNOWN", "id": _text(subject)}
+
+    stable_identity = {
+        "schema_version": DIAGNOSIS_OWNER_RESOLUTION_SCHEMA_VERSION,
+        "subject": subject_payload,
+        "source_object": source_object,
+        "evidence_refs": refs,
+        "diagnosis_status": status,
+        "symptom": symptom_payload,
+        "root_cause": cause,
+        "root_cause_proven": cause_proven,
+        "unknown_state": unknown,
+        "blocking_owner": owner,
+        "owner_resolution_state": resolution_state,
+        "terminal_classification": terminal,
+        "required_resolution": resolution,
+        "incident": incident,
+        "operation_id": operation_id,
+        "packet_id": packet_id,
+        "selected_move_hash": selected_move_hash,
+        "first_divergence": first_divergence,
+    }
+
+    record: dict[str, Any] = {
+        "schema_version": DIAGNOSIS_OWNER_RESOLUTION_SCHEMA_VERSION,
+        "record_id": _diagnosis_record_id(stable_identity),
+        "generated_at": generated,
+        "producer": DIAGNOSIS_RECORD_PRODUCER,
+        "read_only": True,
+        "subject": subject_payload,
+        "source_object": source_object,
+        "evidence_refs": refs,
+        "diagnosis_status": status,
+        "symptom": symptom_payload,
+        "root_cause": cause,
+        "root_cause_proven": cause_proven,
+        "unknown_state": unknown,
+        "blocking_owner": owner,
+        "owner_resolution_state": resolution_state,
+        "terminal_classification": terminal,
+        "required_resolution": resolution,
+        "consumers": list(DIAGNOSIS_RECORD_CONSUMERS),
+        "mutation_boundary": _diagnosis_mutation_boundary(),
+        "confidence": _diagnosis_upper(confidence, "UNKNOWN"),
+        "evidence_quality": _diagnosis_upper(evidence_quality, "UNKNOWN"),
+    }
+    if incident is not None:
+        record["incident"] = incident
+    if operation_id:
+        record["operation_id"] = _text(operation_id)
+    if packet_id:
+        record["packet_id"] = _text(packet_id)
+    if selected_move_hash:
+        record["selected_move_hash"] = _text(selected_move_hash)
+    if first_divergence is not None:
+        record["first_divergence"] = first_divergence
+    if hypotheses_rejected is not None:
+        record["hypotheses_rejected"] = hypotheses_rejected
+    if compatibility is not None:
+        record["compatibility"] = compatibility
+    if backtesting is not None:
+        record["backtesting"] = backtesting
+    if projection_refs is not None:
+        record["projection_refs"] = projection_refs
+    return record
+
+
+def validate_diagnosis_owner_resolution_record(record: dict[str, Any]) -> dict[str, Any]:
+    """Validate a Domain 11 Diagnosis Record without mutating any state."""
+    errors: list[str] = []
+    required = [
+        "schema_version",
+        "record_id",
+        "generated_at",
+        "producer",
+        "read_only",
+        "subject",
+        "source_object",
+        "evidence_refs",
+        "diagnosis_status",
+        "symptom",
+        "root_cause",
+        "root_cause_proven",
+        "unknown_state",
+        "blocking_owner",
+        "owner_resolution_state",
+        "terminal_classification",
+        "required_resolution",
+        "consumers",
+        "mutation_boundary",
+    ]
+    for field in required:
+        if field not in record:
+            errors.append(f"missing_required_field:{field}")
+
+    if record.get("schema_version") != DIAGNOSIS_OWNER_RESOLUTION_SCHEMA_VERSION:
+        errors.append("invalid_schema_version")
+    if record.get("read_only") is not True:
+        errors.append("read_only_must_be_true")
+
+    subject = record.get("subject")
+    if not isinstance(subject, dict) or not subject.get("type") or not subject.get("id"):
+        errors.append("subject_must_include_type_and_id")
+    symptom = record.get("symptom")
+    if not isinstance(symptom, dict) or not symptom.get("type") or not symptom.get("value") or not symptom.get("producer"):
+        errors.append("symptom_must_include_type_value_producer")
+    if not record.get("source_object"):
+        errors.append("source_object_required")
+
+    diagnosis_status = record.get("diagnosis_status")
+    if diagnosis_status not in DIAGNOSIS_STATUSES:
+        errors.append("invalid_diagnosis_status")
+    unknown_state = record.get("unknown_state")
+    if unknown_state not in DIAGNOSIS_UNKNOWN_STATES:
+        errors.append("invalid_unknown_state")
+    owner_resolution_state = record.get("owner_resolution_state")
+    if owner_resolution_state not in DIAGNOSIS_OWNER_RESOLUTION_STATES:
+        errors.append("invalid_owner_resolution_state")
+    terminal = record.get("terminal_classification")
+    if terminal not in DIAGNOSIS_TERMINAL_CLASSIFICATIONS:
+        errors.append("invalid_terminal_classification")
+    owner = _text(record.get("blocking_owner") or "")
+    if owner not in {"", "NONE", "UNKNOWN"} and terminal in {"NONE", "UNKNOWN"} and owner_resolution_state != "REQUIRED":
+        errors.append("blocking_owner_without_terminal_requires_owner_resolution")
+    if terminal not in {"NONE", "UNKNOWN"} and owner_resolution_state != "RESOLVED":
+        errors.append("terminal_classification_requires_resolved_owner_resolution")
+    if record.get("confidence") is not None and record.get("confidence") not in DIAGNOSIS_CONFIDENCE_VALUES:
+        errors.append("invalid_confidence")
+    if record.get("evidence_quality") is not None and record.get("evidence_quality") not in DIAGNOSIS_CONFIDENCE_VALUES:
+        errors.append("invalid_evidence_quality")
+
+    refs = record.get("evidence_refs")
+    if not isinstance(refs, list):
+        errors.append("evidence_refs_must_be_list")
+        refs = []
+    if diagnosis_status == "PROVEN" and not refs:
+        errors.append("proven_diagnosis_requires_evidence_refs")
+    if record.get("root_cause_proven") is True:
+        if record.get("root_cause") in ("", None, "UNKNOWN"):
+            errors.append("proven_root_cause_requires_named_root_cause")
+        if not refs:
+            errors.append("proven_root_cause_requires_evidence_refs")
+    if record.get("root_cause") not in ("", None, "UNKNOWN") and record.get("root_cause_proven") is not True:
+        errors.append("root_cause_claim_requires_root_cause_proven")
+    if terminal not in {"NONE", "UNKNOWN"} and not refs:
+        errors.append("terminal_classification_requires_evidence_refs")
+
+    first_divergence = record.get("first_divergence")
+    if isinstance(first_divergence, dict):
+        for field in ["producer", "consumer", "field", "before", "after", "evidence_ref"]:
+            if field not in first_divergence:
+                errors.append(f"first_divergence_missing:{field}")
+
+    boundary = record.get("mutation_boundary")
+    if not isinstance(boundary, dict):
+        errors.append("mutation_boundary_must_be_object")
+        boundary = {}
+    for field, expected in DIAGNOSIS_MUTATION_BOUNDARY.items():
+        if boundary.get(field) != expected:
+            errors.append(f"mutation_boundary_violation:{field}")
+
+    consumers = record.get("consumers")
+    if not isinstance(consumers, list) or not consumers:
+        errors.append("consumers_required")
+    else:
+        missing = [consumer for consumer in DIAGNOSIS_RECORD_CONSUMERS if consumer not in consumers]
+        for consumer in missing:
+            errors.append(f"missing_consumer:{consumer}")
+
+    if owner.upper() == "NEW_OWNER" or owner.startswith("new_"):
+        errors.append("blocking_owner_must_reuse_existing_owner")
+    if _text(record.get("producer")) != DIAGNOSIS_RECORD_PRODUCER:
+        errors.append("producer_must_be_existing_diagnosis_owner")
+
+    return {
+        "schema_version": "v7.diagnosis-owner-resolution.validation.v1",
+        "record_id": record.get("record_id"),
+        "valid": not errors,
+        "errors": errors,
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+        "authority_expanded": False,
+        "synthetic_evidence_created": False,
+        "new_owner_created": False,
+    }
+
+
+def build_diagnosis_owner_resolution_consumer_projection(record: dict[str, Any]) -> dict[str, Any]:
+    """Project one Diagnosis Record to existing downstream consumers."""
+    validation = validate_diagnosis_owner_resolution_record(record)
+    return {
+        "schema_version": "v7.diagnosis-owner-resolution.consumer-projection.v1",
+        "record_id": record.get("record_id"),
+        "source_schema_version": record.get("schema_version"),
+        "validation": validation,
+        "projections": {
+            "omp": {
+                "terminal_classification": record.get("terminal_classification"),
+                "required_resolution": record.get("required_resolution"),
+                "next_engineering_mission": record.get("required_resolution"),
+                "source_record_id": record.get("record_id"),
+            },
+            "current_program_state": {
+                "blocking_owner": record.get("blocking_owner"),
+                "owner_resolution_state": record.get("owner_resolution_state"),
+                "terminal_root_cause": record.get("root_cause"),
+                "required_resolution": record.get("required_resolution"),
+                "expected_next_engineering_step": record.get("required_resolution"),
+                "source_record_id": record.get("record_id"),
+            },
+            "production_maturity": {
+                "diagnosis_status": record.get("diagnosis_status"),
+                "evidence_quality": record.get("evidence_quality", "UNKNOWN"),
+                "confidence": record.get("confidence", "UNKNOWN"),
+                "authority_granted": False,
+                "source_record_id": record.get("record_id"),
+            },
+            "engineering_reports": {
+                "embeddable_record": True,
+                "record_id": record.get("record_id"),
+                "evidence_refs": record.get("evidence_refs", []),
+            },
+            "engineering_automation": {
+                "read_model_consumable": validation["valid"],
+                "diagnosis_status": record.get("diagnosis_status"),
+                "source_record_id": record.get("record_id"),
+            },
+            "governance_check": {
+                "projection_mode": "preserve_record_truth",
+                "recompute_diagnosis_truth": False,
+                "record_id": record.get("record_id"),
+                "schema_version": record.get("schema_version"),
+            },
+            "future_certification": {
+                "domain": "11 Diagnosis",
+                "recovery_gap_closed": validation["valid"],
+                "source_record_id": record.get("record_id"),
+            },
+        },
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+        "authority_expanded": False,
+        "synthetic_evidence_created": False,
+        "new_owner_created": False,
     }
 
 

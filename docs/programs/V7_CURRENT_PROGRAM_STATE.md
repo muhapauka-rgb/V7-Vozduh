@@ -2,14 +2,14 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-11T01:34:27+0700
-Source: Circuit Breaker Phase 3 deployed the canonical implementation, initialized the existing Admin Safe Mode v2 owner in `OPEN`, and certified the production deny paths without route mutation or user movement. OMP remains the active execution program and CPS remains the only live volatile state owner.
+State captured: 2026-07-11T06:36:42+0700
+Source: Circuit Breaker Phase 3A revalidated the previously admitted combined deploy. The accumulated `autonomy_trust_acceleration.py` delta is fully owner-mapped and certified as Stage 1 Diagnosis read-only projection plus Recovery B8/B9/B10-to-A6 read-only integration. Local, GitHub and production remain aligned; Safe Mode v2 remains `OPEN`. OMP remains the active execution program and CPS remains the only live volatile state owner.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-11T01:34:27+0700`
+Captured: `2026-07-11T06:36:42+0700`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -38,6 +38,10 @@ This section is the single live volatile current-state surface. Older production
 | `ADMIN_SAFE_MODE_LIVE_STATE` | `schema=v7.autonomous-execution-control.v2; state=OPEN; generation=aec_a78732b833c8df6b509432b1; scope=global` |
 | `CIRCUIT_BREAKER_IMPLEMENTATION_DEPLOY_COMMIT` | `319bac22f42ce4d0a36a2af0c1a5954a35fe0613` |
 | `CIRCUIT_BREAKER_DEPLOY_ID` | `deploy-z8-14-Updatesystem-319bac2-20260711T012454` |
+| `RECOVERY_ARTIFACT_ADMISSION` | `PASS` |
+| `RECOVERY_ARTIFACT_CERTIFICATION` | `RECOVERY_ARTIFACT_CERTIFICATION_STILL_VALID` |
+| `COMBINED_DEPLOY_ADMISSION` | `PASS; already deployed and revalidated, no duplicate runtime deploy required` |
+| `COMBINED_DEPLOY_REVALIDATION_REPORT` | `docs/reports/engineering/2026-07-11_063642_recovery_artifact_deploy_admission_and_circuit_breaker_phase3_continuation.md` |
 | `OMP_CONTROLLED_RUN_ALLOWED` | `YES; only as a separate Mission, not execution authority` |
 | `PRODUCTION_RUNTIME_IMPACT` | `Canonical runtime artifacts deployed; Admin API restarted; forward mutation remained blocked throughout certification.` |
 | `AUTHORITY_IMPACT` | `NONE` |

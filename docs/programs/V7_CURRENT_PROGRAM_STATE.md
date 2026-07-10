@@ -1,9 +1,86 @@
 # V7 Current Program State
 
 Status: active current state
-Program: Controlled Production Certification Program
-State captured: 2026-07-03T10:25:05+0700
-Source: Controlled Production Certification Program execution. Phase 0, Phase 1, Phase 2, and Phase 3 are PASS. Phase 4 MEDIUM_BATCH remains active. Controlled wake evidence fix was committed, pushed, safely deployed, and convergence reached PASS at commit `f286fe1eec6d34413009153e79fd76eef20e1d89`. Phase 4 resumed against controlled source `wireguard-1779454504-c43409`, but production payload `/tmp/v7_phase4_medium_batch_after_wake_fix_20260703T061544.json` showed `selected_moves=0` because `incident_source_continuity_active=true` pointed to unrelated source `awg3`, filtering out the requested controlled certification source before emergency evidence could be evaluated. Required resolution was converted into an Engineering Mission and implemented locally in existing owners: `tools/v7-governed-canary-dry-run-cycle` now passes `--approved-source` into the Planner preview as `--source-egress`, and `tools/v7-users-autoswitch` lets a requested failed source override an unrelated active incident source in both Planner selection and emergency gate evaluation. Tests pass (`python3 -m unittest tests.unit.test_v7_users_autoswitch_policy tests.unit.test_governed_canary_cli`, `148` tests) and `py_compile` passes. Current blocker is commit/push/safe deploy and production resumption of Phase 4 MEDIUM_BATCH with `--approved-source wireguard-1779454504-c43409`. No new owner, Planner, Runtime, Authority, Restore Barrier owner, execution path, truth source, or broad automation was created.
+Program: OMP Continuation
+State captured: 2026-07-10T00:00:00+0700
+Source: Stage 2 Knowledge Engineering closed with `LOCKED_KNOWLEDGE`. `ACTIVE_PROGRAM = OMP`; `PROGRAM_STATE = CLOSED` for Stage 2. The locked knowledge baseline is `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md`, accepted by `docs/reports/research/V7_STAGE2_6_KNOWLEDGE_ACCEPTANCE.md` and locked by `docs/reports/research/V7_STAGE2_7_KNOWLEDGE_LOCK.md`. Future architecture-knowledge work must consume the locked knowledge baseline before re-extracting Stage 1 reports. OMP remains the active execution program. This update changes no architecture, Runtime, Planner, Authority, routing, OMP behavior, production behavior, user assignment, owner, roadmap, or truth source.
+
+## 0. Authoritative Live Current State
+
+Status: `AUTHORITATIVE_LIVE_STATE`
+
+Captured: `2026-07-10T00:00:00+0700`
+
+This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
+
+| Field | Current Value |
+| --- | --- |
+| `ACTIVE_PROGRAM` | `OMP` |
+| `CURRENT_MODE` | `POST_STAGE_2_DISCOVERY_READY` |
+| `ARCHITECTURE_STATE` | `STAGE_1_ACCEPTED_AND_LOCKED` |
+| `KNOWLEDGE_STATE` | `LOCKED_KNOWLEDGE` |
+| `ACTIVE_EXECUTION_OWNER` | `OMP` |
+| `VOLATILE_STATE_OWNER` | `docs/programs/V7_CURRENT_PROGRAM_STATE.md` |
+| `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
+| `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
+| `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
+| `CURRENT_STOP_CONDITION` | `ACTIONABLE_BACKLOG_COMPLETE_FOR_PRIOR_IMPLEMENTATION_SCOPE` |
+| `CURRENT_ACTIVE_SCOPE` | `ENGINEERING_TRUTH_USAGE_ASSURANCE_DISCOVERY` |
+| `CURRENT_SAFE_NEXT_ACTION` | `RUN_ENGINEERING_TRUTH_USAGE_ASSURANCE_RESEARCH_DISCOVERY` |
+| `CURRENT_SCOPE_CLASS` | `DISCOVERY_ONLY` |
+| `FORBIDDEN_FOR_CURRENT_SCOPE` | New owner, new Engine, new Runtime, new Planner, new Truth System, new Scheduler, new architecture, or Engineering Confidence mechanism before world research proves a real V7 gap. |
+| `REQUIRED_WORKFLOW` | Handoff -> ECR -> Canonical Reference -> SYSTEM_MAP -> OMP -> Locked Knowledge -> Internal Discovery -> world research -> cross-system matrix -> V7 mapping. |
+| `PRODUCTION_RUNTIME_IMPACT` | `NONE` |
+| `AUTHORITY_IMPACT` | `NONE` |
+| `ROUTING_IMPACT` | `NONE` |
+| `USER_MOVEMENT` | `NO` |
+| `SECRET_HANDLING` | Runtime/server/admin credentials must not be written to repository files, reports, prompts, logs, or commits. |
+
+## Stage 2 Knowledge Baseline Closure
+
+| Field | Current Value |
+| --- | --- |
+| `STAGE_2_PROGRAM_STATE` | `CLOSED` |
+| `STAGE_2_TERMINAL_STATE` | `LOCKED_KNOWLEDGE` |
+| `STAGE_2_ACCEPTANCE_STATE` | `STAGE_2_KNOWLEDGE_ACCEPTED_WITH_MINOR_RISKS` |
+| `STAGE_2_LOCK_STATE` | `STAGE_2_KNOWLEDGE_LOCKED` |
+| `KNOWLEDGE_BASELINE` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
+| `KNOWLEDGE_GRAPH` | `docs/reports/research/V7_STAGE2_4_KNOWLEDGE_GRAPH.md` |
+| `KNOWLEDGE_ACCEPTANCE_REPORT` | `docs/reports/research/V7_STAGE2_6_KNOWLEDGE_ACCEPTANCE.md` |
+| `KNOWLEDGE_LOCK_REPORT` | `docs/reports/research/V7_STAGE2_7_KNOWLEDGE_LOCK.md` |
+| `CANONICAL_SYNCHRONIZATION` | `CANONICAL_SYNCHRONIZATION_COMPLETE` |
+| `CANONICAL_REFERENCE_SYNC` | `CANONICAL_REFERENCE_UPDATED` |
+| `SYSTEM_MAP_SYNC` | `SYSTEM_MAP_UPDATED` |
+| `CURRENT_PROGRAM_STATE_SYNC` | `CURRENT_PROGRAM_STATE_UPDATED` |
+| `OMP_HANDOFF` | `KNOWLEDGE_BASELINE_RECORDED` |
+| `ACTIVE_PROGRAM` | `OMP` |
+| `PROGRAM_STATE` | `CLOSED` |
+| `NEXT_STATE` | `READY_FOR_ENGINEERING_TRUTH_USAGE_ASSURANCE_DISCOVERY` |
+
+## Execution Certification Ladder State
+
+| Field | Current Value |
+| --- | --- |
+| `EXECUTION_CERTIFICATION_LADDER_STATE` | `L6_CONTINUOUS_MODE_ACTIVE_FOR_NO_MUTATION_AND_LEGAL_TERMINAL_EXECUTION_LANE` |
+| `EXECUTION_CERTIFICATION_L1` | `EXECUTION_CERTIFICATION_L1_PASS` |
+| `EXECUTION_CERTIFICATION_L2` | `EXECUTION_CERTIFICATION_L2_PASS` |
+| `EXECUTION_CERTIFICATION_L3` | `EXECUTION_CERTIFICATION_L3_PASS` |
+| `EXECUTION_CERTIFICATION_L4` | `EXECUTION_CERTIFICATION_L4_PASS` |
+| `EXECUTION_CERTIFICATION_L5` | `EXECUTION_CERTIFICATION_L5_PASS` |
+| `EXECUTION_CERTIFICATION_L6` | `EXECUTION_CERTIFICATION_L6_CONTINUOUS` |
+| `EXECUTION_CERTIFICATION_OWNER` | `OMP` |
+| `EXECUTION_CERTIFICATION_SOURCE` | `docs/reports/engineering/V7_EXECUTION_CERTIFICATION_LADDER_REAL_RUN_REPORT.md` |
+| `EXECUTION_CERTIFICATION_INVALIDATED_REPORT` | `docs/reports/engineering/V7_EXECUTION_CERTIFICATION_LADDER_L2_L6_RUN_REPORT.md` |
+| `EXECUTION_CERTIFICATION_INVALIDATION_REASON` | `PREVIOUS_L2_L6_RUN_COUNTED_CONTEXT_ARTIFACTS_AS_CANDIDATE_INSTANCES` |
+| `EXECUTION_CERTIFICATION_CANDIDATES_CONSUMED` | `25_REAL_BDP_DERIVED_IMPLEMENTATION_CANDIDATE_INSTANCES_PLUS_PRIOR_L1` |
+| `EXECUTION_CERTIFICATION_STOP_REASON` | `NONE` |
+| `EXECUTION_CERTIFICATION_CONTINUATION` | `CONTINUE_AUTOMATICALLY_THROUGH_OMP_FOR_NO_MUTATION_AND_LEGAL_TERMINAL_EXECUTION_LANE` |
+| `EXECUTION_CERTIFICATION_RUNTIME_IMPACT` | `NONE` |
+| `EXECUTION_CERTIFICATION_PRODUCTION_IMPACT` | `NONE` |
+| `EXECUTION_CERTIFICATION_AUTHORITY_IMPACT` | `NONE` |
+| `EXECUTION_CERTIFICATION_USER_MOVEMENT` | `NO` |
+
+Previous operational and capability snapshots remain below for OMP continuity and evidence. They are not live current-state commands unless restated in `0. Authoritative Live Current State`. Stage 2 closure does not certify, deploy, execute, or mutate production behavior.
 
 This file is volatile. Update it after every safe action or approved execution that changes bottleneck, highest leverage action, normalized authority class, metrics, packet, or stop reason.
 
@@ -74,7 +151,11 @@ Engineering Report
 
 If Production Maturity produces `NO_CHANGE`, `BLOCK`, or `INVALID_EVIDENCE`, Current Program State must preserve the blocker/no-change reason only when it changes volatile current state or current operator-facing context.
 
-## 1. Current State Summary
+## 1. Historical / Capability State Summary
+
+Status: `HISTORICAL_OR_CAPABILITY_CONTEXT`
+
+The following table preserves prior production/capability state for OMP continuity. It must not override `0. Authoritative Live Current State`.
 
 | Field | Current Value |
 | --- | --- |

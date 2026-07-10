@@ -29,6 +29,54 @@ Before commit and push after major logic work:
 5. Future audits must read this reference, relevant ADRs, and `docs/reference/SYSTEM_MAP.md` before auditing.
 6. Full autonomy architecture, dependency, maturity, and roadmap questions must read `docs/reference/V7_AUTONOMY_BLUEPRINT.md` before launching a new autonomy-wide audit.
 
+## Current State Consistency Rule
+
+There is exactly one authoritative volatile current-state owner:
+
+```text
+docs/programs/V7_CURRENT_PROGRAM_STATE.md
+```
+
+OMP owns scheduler, optimizer, lifecycle, authority, stop, and state-transition rules. OMP may preserve historical snapshots and examples, but those snapshots are evidence only and must not compete with CPS as live current state.
+
+If OMP, an Engineering Report, SYSTEM_MAP, dashboard text, or any historical section appears to contain a different `Current`, `Next`, `Highest`, `Focus`, `Target`, `Action`, `Status`, or similar volatile value, the value is live only when it is confirmed in CPS.
+
+Resolution order:
+
+1. Current Program State wins for volatile current state.
+2. OMP wins for scheduler / optimizer / lifecycle rules.
+3. Canonical Reference wins for durable truth.
+4. SYSTEM_MAP wins for owner topology.
+5. Engineering Reports preserve evidence and history.
+
+## Engineering Truth Lifecycle Rule
+
+Every engineering truth consumed by OMP, Codex, BDP, Mission, Engineering Intelligence, dashboards, or future automation must have:
+
+- truth source;
+- owner;
+- validity basis;
+- invalidation triggers;
+- revalidation route;
+- reuse rule.
+
+Having an owner, source, producer, or consumer is not enough to treat an object as current truth.
+
+Before reuse, the existing owner path must classify the object as:
+
+```text
+VALID
+REVALIDATION_REQUIRED
+HISTORICAL
+SUPERSEDED
+RETIRED
+NOT_APPLICABLE_WITH_REASON
+```
+
+If Product, Policy, Runtime, Capability, dependency, architecture, Production Reality, Authority, freshness, Decision Lifecycle, Behavior Chain, State Transition, Verification, Certification, Production Maturity, CPS, Canonical Reference, SYSTEM_MAP, Engineering Report correction, Re-open Trigger, or real evidence invalidates the object, OMP must not use it as current truth until the existing owner revalidates it.
+
+This rule reuses existing owners and lifecycle mechanisms. It creates no Truth Engine, Validity Engine, Runtime, Planner, owner, program, or architecture.
+
 Before launching any new audit, use Reference First:
 
 1. Read `docs/reference/V7_CANONICAL_REFERENCE.md`.
@@ -37,6 +85,33 @@ Before launching any new audit, use Reference First:
 4. Determine whether the answer already exists.
 
 A new audit is allowed only when the reference has no answer, the reference explicitly marks the area `UNKNOWN`, system behavior changed after the last verified commit, or evidence contradicts this canonical reference. Otherwise, update the reference if needed and do not create a new audit.
+
+## LOCKED_KNOWLEDGE_BASELINE
+
+Status: `LOCKED`
+
+Canonical owner:
+
+```text
+docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md
+```
+
+Stage 2 Knowledge Engineering converted the locked Stage 1 architecture into permanent engineering memory.
+
+Canonical verdict:
+
+```text
+LOCKED_KNOWLEDGE
+```
+
+Consumption rule:
+
+- When architecture knowledge matters, future engineering must consume `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` before re-reading reports or re-extracting Stage 1 evidence.
+- Reports remain provenance and evidence, not durable truth owners.
+- Historical and superseded states remain history; terminal truth wins.
+- Knowledge evolution after this lock must follow the Knowledge Evolution Law and existing owner/evidence procedures.
+
+This update records the Stage 2 lock result only. It does not change architecture, Runtime, Planner, Authority, OMP, owners, routing, production behavior, or Stage 1.
 
 ## ARCHITECTURAL_DESIGN_METHODOLOGY
 
@@ -146,8 +221,12 @@ Stable conclusions:
 30. State Transition Law: every meaningful engineering process must end in exactly one of two states: `STATE_TRANSITION_COMPLETED` or `STATE_TRANSITION_EXPLAINED`. No process may terminate with unexplained "no state change." If state changed is `NO`, `PARTIAL`, or `UNKNOWN`, the Engineering Report and OMP must identify Transition Blocker, Current State, Required State, Missing Preconditions, Responsible Owner, Required Capability, Required Evidence, Required Certification, Reality Limit, Authority Limit, Engineering Limit, Smallest Existing Next Action, and Expected State Transition.
 31. Continue OMP Law: when state cannot change, OMP must not stop at diagnosis. OMP must identify the smallest executable next action through existing owners, existing backlog, existing capability, existing Runtime, existing certification, and existing authority model. If no executable action is available inside current authority, OMP must record the smallest blocked next action and the exact prerequisite that must become true.
 32. Universal engineering law hierarchy is: Reality First -> Behavior Propagation Law -> State Transition Law -> Continue OMP Law. These laws are mandatory for all future documents, capabilities, modules, functions, and engineering work.
-33. Necessity Framework is the permanent reference for proving why a V7 component deserves to exist. Every document, capability, owner, module, function, service, CLI, API, read model, dashboard, or engineering process must be auditable for Existence Justification, Semantic Necessity, Consumer Value, System Effect, State Transition, Production Value, Creation Test, Removal Test, Merge Test, Chain Completion, Necessity Lifecycle, Necessity Certification, and a verdict of `REQUIRED`, `MERGE`, `REMOVE`, `INCOMPLETE`, `DEFERRED_BY_REALITY`, or `HISTORICAL`. It creates no Runtime, authority, planner, roadmap, truth source, backlog, capability program, or Production Maturity write.
-34. Necessity Lifecycle is: Idea -> Need Identified -> Creation Justified -> Implemented -> Integrated -> Necessity Verified -> Necessity Certified -> Locked -> Deprecated -> Historical -> Removed. Nothing may be created without Creation Test; nothing may remain permanently without Necessity Certification; nothing may become canonical solely because it was implemented.
+33. Intent Responsibility Resolution Law: before any `INTENT_GAP_DETECTED` is routed to BDP, OMP must identify an owner-mapped responsibility failure class and `last_responsible_link`, or record `UNKNOWN_WITH_REASON` with missing owner/evidence and the smallest existing next action. Generic Automation Gap routing without owner-mapped responsibility is forbidden.
+34. Necessity Framework is the permanent reference for proving why a V7 component deserves to exist. Every document, capability, owner, module, function, service, CLI, API, read model, dashboard, or engineering process must be auditable for Existence Justification, Semantic Necessity, Consumer Value, System Effect, State Transition, Production Value, Creation Test, Removal Test, Merge Test, Chain Completion, Necessity Lifecycle, Necessity Certification, and a verdict of `REQUIRED`, `MERGE`, `REMOVE`, `INCOMPLETE`, `DEFERRED_BY_REALITY`, or `HISTORICAL`. It creates no Runtime, authority, planner, roadmap, truth source, backlog, capability program, or Production Maturity write.
+35. Necessity Lifecycle is: Idea -> Need Identified -> Creation Justified -> Implemented -> Integrated -> Necessity Verified -> Necessity Certified -> Locked -> Deprecated -> Historical -> Removed. Nothing may be created without Creation Test; nothing may remain permanently without Necessity Certification; nothing may become canonical solely because it was implemented.
+36. Capability Maturity Protection Law: Necessity, Merge, Remove, Value Conservation, Collapse, Owner Elimination, Function Elimination, and architectural minimization must not alter an element that belongs to an unfinished capability. OMP must return `PROTECTED_BY_CAPABILITY_MATURITY` until the capability reaches completion, certification, lock, retirement, or another legal terminal consumer.
+37. Engineering Work In Progress Protection Law: Necessity, Merge, Remove, Value Conservation, Collapse, Owner/Function/Module/Document/Capability Elimination, and architectural minimization must not alter an engineering object that participates in any unfinished Mission, Candidate, Engineering Chain, Behavior Chain, State Transition, Verification, Certification, dependency, Root Cause, producer/consumer handoff, integration, BDP Discovery, or other existing unfinished lifecycle. OMP must return `PROTECTED_BY_ENGINEERING_WORK_IN_PROGRESS` until all related lifecycles reach existing terminal states or legal terminal consumers.
+38. Approved Future Dependency Protection Law: Necessity, Merge, Remove, Value Conservation, Collapse, Owner/Function/Module/Document/Capability Elimination, and architectural minimization must not alter an engineering object already required by an approved future Mission, Candidate, Engineering Chain, Capability, State Transition, Verification, Certification, Integration, Producer, Consumer, Behavior Chain, Runtime Transition, Depends On, Unblocks, Engineering Chain Dependency Projection, or other accepted execution dependency. OMP must return `PROTECTED_BY_APPROVED_FUTURE_DEPENDENCY` until the plan completes, is officially cancelled, is superseded, or reaches a legal terminal alternative.
 
 Re-audit rule:
 
@@ -813,10 +892,11 @@ Stable conclusions:
 12. Current Production milestone is `65%: Certification Half Complete`; next Production milestone is `80%: Runtime Production Ready`.
 13. Current highest implementation task is `IMPLEMENTATION_COMPLETE`; no actionable implementation backlog item remains.
 14. OMP must print `V7 PRODUCTION STATUS` after every execution.
-15. Current Production Status is: Engineering Maturity `100.0%`, Production Maturity `66.9%`, Current Autonomy Tier `TIER_1_GOVERNED`, Current Focus `IMPLEMENTATION_COMPLETE`, Backlog `34 / 34` actionable complete, Highest Priority Task `IMPLEMENTATION_COMPLETE`, Current Stop Condition `ACTIONABLE_BACKLOG_COMPLETE`.
-16. Future normal operator commands are `Continue OMP`, `Status`, `Approve packet`, and `Approve authority expansion`.
-17. OMP must never request a new roadmap or new implementation plan.
-18. Need New Owner remains `FALSE`.
+15. Current Production Status is: Engineering Maturity `100.0%`, Production Maturity `66.9%`, Current Autonomy Tier `TIER_1_GOVERNED`, prior implementation scope `IMPLEMENTATION_COMPLETE`, Backlog `34 / 34` actionable complete, Highest Priority Task for the prior implementation scope `IMPLEMENTATION_COMPLETE`, Current Stop Condition `ACTIONABLE_BACKLOG_COMPLETE_FOR_PRIOR_IMPLEMENTATION_SCOPE`.
+16. Current active strategic scope is `ENGINEERING_TRUTH_USAGE_ASSURANCE_DISCOVERY`; it is Discovery-only until world research and V7 mapping prove a real gap.
+17. Future normal operator commands are `Continue OMP`, `Status`, `Approve packet`, and `Approve authority expansion`.
+18. OMP must never request a new roadmap or new implementation plan.
+19. Need New Owner remains `FALSE`.
 
 ## V7_KERNEL_AND_STATE_SPLIT
 

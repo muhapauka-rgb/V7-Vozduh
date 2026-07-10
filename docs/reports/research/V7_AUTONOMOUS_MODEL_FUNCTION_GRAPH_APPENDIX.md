@@ -30494,6 +30494,72 @@ Scope note: `tests/unit/test_omp_document_index.py` appeared after the first Ste
 | `N3424` | `tests/unit/test_v7_users_autoswitch_policy.py:6015` | `V7UsersAutoswitchPolicyTest.test_canary_reserved_target_is_not_used_as_production_failover` | `TEST_ONLY` | test coverage |
 | `N3425` | `tests/unit/test_v7_users_autoswitch_policy.py:6028` | `V7UsersAutoswitchPolicyTest.test_current_user_on_canary_reserved_target_is_not_auto_drained` | `TEST_ONLY` | test coverage |
 
+## Domain 11 Synchronization Addendum
+
+Date: 2026-07-07
+
+Scope:
+
+This addendum updates only the Function Graph evidence for the completed Domain 11 Diagnosis recovery. It does not regenerate the original Step 1C baseline, renumber existing nodes, change Runtime, Planner, Authority, Restore Barrier, production routing, timers, deployment, or user movement.
+
+Reason:
+
+Stage 1.2 implemented the missing executable read-only Diagnosis / Owner Resolution projection after the original static Function Graph Appendix snapshot. The original baseline remains preserved; this addendum records the current Domain 11 delta.
+
+Source evidence:
+
+- `docs/reference/V7_DIAGNOSIS_RECORD_CONTRACT.md`
+- `docs/process/V7_DIAGNOSIS_IMPLEMENTATION_ACCEPTANCE.md`
+- `docs/reports/engineering/V7_STAGE1_DIAGNOSIS_IMPLEMENTATION_REPORT.md`
+- `admin_core/autonomy_trust_acceleration.py`
+- `tools/v7-control-plane-governance-check`
+- `tests/unit/test_autonomy_trust_acceleration.py`
+
+### Domain 11 Added / Updated Nodes
+
+| ID | Path:Line | Function / Constant | Domain | Type | What It Does | Calls / Consumes | Downstream / Consumers | Mutation | Authority | Closure | Tests | Autonomous Role | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `D11-SYNC-N0001` | `admin_core/autonomy_trust_acceleration.py:235` | `DIAGNOSIS_OWNER_RESOLUTION_SCHEMA_VERSION` | `admin_core` | `constant` | Defines schema `v7.diagnosis-owner-resolution.v1`. | Used by Domain 11 builder and validator. | Diagnosis Record consumers. | `NO` | `none` | `READ_ONLY_CLOSED` | Domain 11 unit tests | read-only schema contract | Existing owner extension; no new owner. |
+| `D11-SYNC-N0002` | `admin_core/autonomy_trust_acceleration.py:237` | `DIAGNOSIS_RECORD_PRODUCER` | `admin_core` | `constant` | Names the existing producer path. | Used by builder and validator. | Diagnosis Record, validation. | `NO` | `none` | `READ_ONLY_CLOSED` | Domain 11 unit tests | read-only producer identity | Prevents new-owner drift. |
+| `D11-SYNC-N0003` | `admin_core/autonomy_trust_acceleration.py:242` | `DIAGNOSIS_RECORD_CONSUMERS` | `admin_core` | `constant` | Defines intended consumers: OMP, CPS, Production Maturity, Engineering Reports, Engineering Automation, Governance Check, Future Certification. | Used by builder and validator. | Consumer projection. | `NO` | `none` | `READ_ONLY_CLOSED` | Domain 11 unit tests | read-only consumer contract | Preserves producer / consumer closure. |
+| `D11-SYNC-N0004` | `admin_core/autonomy_trust_acceleration.py:8332` | `_diagnosis_upper` | `admin_core` | `function` | Normalizes diagnosis enum strings. | `_text` | Domain 11 builder / validator logic. | `NO` | `none` | `LEAF_CLOSED` | Domain 11 unit tests | supporting helper | Read-only helper. |
+| `D11-SYNC-N0005` | `admin_core/autonomy_trust_acceleration.py:8337` | `_diagnosis_refs` | `admin_core` | `function` | Normalizes evidence references to a list. | list checks | Domain 11 builder. | `NO` | `none` | `LEAF_CLOSED` | Domain 11 unit tests | supporting helper | Read-only helper. |
+| `D11-SYNC-N0006` | `admin_core/autonomy_trust_acceleration.py:8345` | `_diagnosis_record_id` | `admin_core` | `function` | Builds stable content-derived Diagnosis Record id. | `json.dumps`, `hashlib.sha256` | Domain 11 builder. | `NO` | `none` | `LEAF_CLOSED` | Domain 11 unit tests | supporting helper | Deterministic id; no write path. |
+| `D11-SYNC-N0007` | `admin_core/autonomy_trust_acceleration.py:8351` | `_diagnosis_mutation_boundary` | `admin_core` | `function` | Produces explicit no-mutation boundary flags. | `DIAGNOSIS_MUTATION_BOUNDARY` | Domain 11 builder / validator. | `NO` | `none` | `LEAF_CLOSED` | Domain 11 unit tests | supporting helper | Preserves no Runtime / Authority / user movement boundary. |
+| `D11-SYNC-N0008` | `admin_core/autonomy_trust_acceleration.py:8358` | `build_diagnosis_owner_resolution_record` | `admin_core` | `function` | Produces read-only `v7.diagnosis-owner-resolution.v1` records from caller-supplied existing evidence. | `_diagnosis_refs`, `_diagnosis_upper`, `_text`, `_diagnosis_record_id`, `_diagnosis_mutation_boundary`, `datetime.now` | Validator, consumer projection, governance projection, OMP/CPS/PM/reports consumers. | `NO` | `none` | `READ_ONLY_CLOSED` | 7 focused Domain 11 tests; full `test_autonomy_trust_acceleration` suite | read-only Diagnosis / Owner Resolution producer | Does not read production state, recompute Planner/Runtime decisions, or mutate. |
+| `D11-SYNC-N0009` | `admin_core/autonomy_trust_acceleration.py:8502` | `validate_diagnosis_owner_resolution_record` | `admin_core` | `function` | Validates schema, evidence, owner-resolution, terminal classification, and mutation-boundary rules. | `DIAGNOSIS_*` constants, `_text` | Consumer projection, tests, governance projection. | `NO` | `none` | `READ_ONLY_CLOSED` | Domain 11 validation and negative tests | read-only validation owner | Rejects unsafe mutation flags, synthetic owner drift, unsupported root cause claims. |
+| `D11-SYNC-N0010` | `admin_core/autonomy_trust_acceleration.py:8624` | `build_diagnosis_owner_resolution_consumer_projection` | `admin_core` | `function` | Projects one Diagnosis Record to OMP, CPS, Production Maturity, Engineering Reports, Engineering Automation, Governance Check, and Future Certification. | `validate_diagnosis_owner_resolution_record`, `record.get` | Governance projection and future certification consumers. | `NO` | `none` | `READ_ONLY_CLOSED` | Domain 11 consumer projection tests | read-only consumer projection | Reuses same record; does not reinterpret diagnosis truth. |
+| `D11-SYNC-N0011` | `tools/v7-control-plane-governance-check:768` | `diagnosis_owner_resolution_projection_status` | `tool` | `function` | Exposes Domain 11 Diagnosis Record in governance check output. | `build_diagnosis_owner_resolution_record`, `build_diagnosis_owner_resolution_consumer_projection` | `build_report`, `print_pretty`, governance report consumers. | `NO` | `none` | `READ_ONLY_CLOSED` | Governance check pretty output evidence | read-only governance projection | `runtime_commands_executed=false`; `recompute_diagnosis_truth=false`. |
+| `D11-SYNC-N0012` | `tools/v7-control-plane-governance-check:3391` | `build_report` | `tool` | `function` | Adds `diagnosis_owner_resolution_projection` to read-only governance report. | `diagnosis_owner_resolution_projection_status` | `print_pretty`, JSON report consumers. | `NO` | `none` | `READ_ONLY_CLOSED` | Governance check evidence | read-only report projection | Modified existing owner only. |
+| `D11-SYNC-N0013` | `tools/v7-control-plane-governance-check:5580` | `print_pretty` | `tool` | `function` | Prints Domain 11 projection schema, validation state, and recompute guard. | `report["diagnosis_owner_resolution_projection"]` | Operator / engineering visibility. | `NO` | `none` | `READ_ONLY_CLOSED` | `python3 tools/v7-control-plane-governance-check --pretty` | read-only visibility | Prints `diagnosis_owner_resolution_recompute_truth=false`. |
+
+### Domain 11 Added Edges
+
+| Source | Target | Type | Meaning |
+|---|---|---|---|
+| `D11-SYNC-N0008` | `D11-SYNC-N0004` | call | Builder normalizes enum values. |
+| `D11-SYNC-N0008` | `D11-SYNC-N0005` | call | Builder normalizes evidence references. |
+| `D11-SYNC-N0008` | `D11-SYNC-N0006` | call | Builder creates stable record id. |
+| `D11-SYNC-N0008` | `D11-SYNC-N0007` | call | Builder attaches no-mutation boundary. |
+| `D11-SYNC-N0010` | `D11-SYNC-N0009` | call | Consumer projection validates the same record. |
+| `D11-SYNC-N0011` | `D11-SYNC-N0008` | call | Governance projection builds the Diagnosis Record. |
+| `D11-SYNC-N0011` | `D11-SYNC-N0010` | call | Governance projection exposes the consumer projection. |
+| `D11-SYNC-N0012` | `D11-SYNC-N0011` | call | Governance report includes Domain 11 projection. |
+| `D11-SYNC-N0013` | `D11-SYNC-N0012` | read | Pretty output reads report projection. |
+
+### Domain 11 Synchronization Verdict
+
+```text
+DOMAIN_11_FUNCTION_GRAPH_SYNC_COMPLETE
+NEW_DOMAIN_11_SYNC_NODES = 13
+NEW_DOMAIN_11_SYNC_EDGES = 9
+MUTATION_NODES_ADDED = 0
+AUTHORITY_NODES_ADDED = 0
+RUNTIME_APPLY_NODES_ADDED = 0
+USER_MOVEMENT_NODES_ADDED = 0
+NEW_OWNER_CREATED = FALSE
+```
+
 ## Machine Summary
 
 ```json

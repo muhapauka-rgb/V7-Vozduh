@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.0`
+Version: `4.16`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -11,7 +11,7 @@ This document is the permanent production operating program for V7. It replaces 
 
 Roadmaps, reports, ADRs, and reference files remain evidence and context. The complete autonomy roadmap lives inside this OMP. No additional roadmap document is required to drive V7 from current `TIER_1` governed autonomy to full production autonomy.
 
-This program decides the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically.
+This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
 V4 operating questions:
 
@@ -21,7 +21,7 @@ What authority tier is certified by real outcomes?
 What safe work can continue before an allowed stop condition?
 ```
 
-V2.1 adds architectural minimalism, semantic reuse, a new-owner gate, architecture duplication detection, and an explicit optimization engine. V2.2 adds Safety-Bounded Authority: trust decides autonomy tier, safety decides bounded action. V2.3 adds Kernel and State Split: permanent operating rules live in Kernel/OMP, volatile current state lives in Current Program State. V3.0 closes architecture-first work and activates implementation-first optimization. V4.0 finalizes OMP as the permanent Production Program and integrates autonomy maturity, implementation, authority evolution, continuous optimization, and continuous knowledge evolution into one operating loop. OMP always wins over free-form implementation ideas.
+V2.1 adds architectural minimalism, semantic reuse, a new-owner gate, architecture duplication detection, and an explicit optimization engine. V2.2 adds Safety-Bounded Authority: trust decides autonomy tier, safety decides bounded action. V2.3 adds Kernel and State Split: permanent operating rules live in Kernel/OMP, volatile current state lives in Current Program State. V3.0 closes architecture-first work and activates implementation-first optimization. V4.0 finalizes OMP as the permanent Production Program and integrates autonomy maturity, implementation, authority evolution, continuous optimization, and continuous knowledge evolution into one operating loop. V4.1 aligns OMP with AEP and BDP so certified Behaviour Discovery outputs can be consumed as implementation input without creating a new queue, owner, Runtime, Planner, or architecture. V4.2 adds Implementation Candidate Identity, Instance-based Mission admission, candidate merge, cohort safety, and reopen rules inside the existing OMP admission model. V4.3 defines the post-BDP-stabilization lifecycle: after BDP architecture is stable, further project evolution must start from OMP consumption and sequencing of existing BDP outputs, not from further BDP expansion unless `FUNDAMENTAL_BDP_ARCHITECTURE_GAP` is proven. V4.4 adds the canonical OMP Candidate Sequencing Algorithm inside existing OMP execution: OMP computes the best admissible Candidate sequence from certified BDP outputs, safety/authority/runtime/rollback boundaries, dependency order, coverage gain, Engineering Value, and System Engineering Value without creating a Planner or manual priority layer. V4.5 adds the OMP Decision Trace Contract: every OMP candidate decision must preserve an evidence-linked explanation of how the existing OMP decision was reached, without creating a Planner, Decision Engine, Recommendation Engine, new owner, or new architecture. V4.6 adds the Decision Reproducibility Law: identical canonical OMP decision inputs must produce identical Decision Trace, sequence, Mission Admission result, STOP, and final verdict, or OMP must stop with `NON_DETERMINISTIC_DECISION`. V4.7 adds the Automation Gap Closure Cycle: every STOP must be classified as a fundamental boundary or routed through existing BDP -> OMP candidate production and admission as a possible automation-removal Implementation Candidate Instance. V4.8 adds Engineering Intent Closure Validation inside Automation Gap Closure: a STOP-derived candidate closes an automation gap only when the original Engineering Intent is achieved, Current State matches Expected State, the original STOP disappears, and the Engineering Chain reaches a Legal Terminal Consumer. V4.9 adds universal Intent Gap Detection: Automation Gap Closure is triggered by any unfinished Engineering Intent, even when no explicit STOP occurred and execution/verification appeared to pass. V4.10 adds Intent Responsibility Resolution: every `INTENT_GAP_DETECTED` must identify the last responsible Engineering Chain link and owner-mapped responsibility class before routing specialized input to BDP. V4.11 adds OMP consumption of the existing Necessity Framework: every owner, capability, function, module, service, CLI, API, read model, dashboard, engineering process, or document must have a certified existence verdict before it can remain permanent. V4.12 adds Capability Maturity Protection: Necessity, merge, removal, value conservation, and architectural minimization cannot alter elements belonging to unfinished capabilities. V4.13 adds Engineering Work In Progress Protection: architectural minimization cannot alter any engineering object that participates in an unfinished Mission, Candidate, Engineering Chain, Behavior Chain, State Transition, Verification, Certification, dependency, root cause, producer/consumer handoff, integration, BDP Discovery, or other existing unfinished lifecycle. V4.14 adds Approved Future Dependency Protection: architectural minimization cannot alter objects already required by accepted future Missions, Candidates, Chains, Capability plans, State Transitions, Verification, Certification, integrations, producers, consumers, behavior chains, runtime transitions, Depends On / Unblocks, or other approved execution dependencies. V4.15 adds Current State Consistency: OMP owns rules and historical snapshots, while `docs/programs/V7_CURRENT_PROGRAM_STATE.md` is the only authoritative volatile current-state owner. V4.16 adds Engineering Truth Lifecycle: any reused engineering truth must have an owner, truth source, validity conditions, invalidation triggers, revalidation route, and reuse rule before OMP may consume it as current. OMP always wins over free-form implementation ideas.
 
 ## 1. Project Vision
 
@@ -70,6 +70,166 @@ OMP must not become a dumping ground for every packet or state update.
 
 Long packet/state payloads belong in Current Program State. OMP should keep only scheduler/optimizer rules and pointers unless scheduler meaning changes.
 
+### 2.1.1. Current State Consistency Law
+
+There must be exactly one authoritative volatile current state for V7:
+
+```text
+docs/programs/V7_CURRENT_PROGRAM_STATE.md
+```
+
+OMP owns:
+
+- scheduler rules;
+- optimizer rules;
+- lifecycle rules;
+- authority rules;
+- stop rules;
+- state transition rules;
+- historical snapshots required to explain why rules changed;
+- pointers to the authoritative current state.
+
+OMP does not own multiple live current states.
+
+Any OMP section, table, field, or sentence named `Current`, `Current Focus`, `Current Priority`, `Current Stage`, `Current Target`, `Current Action`, `Current Status`, `Next Step`, `Highest Priority`, `Highest Bottleneck`, `Highest Implementation Leverage`, or similar is one of:
+
+1. `PERMANENT_RULE` when it defines how OMP calculates current state;
+2. `CURRENT_PROGRAM_STATE_REFERENCE` when it points to CPS;
+3. `HISTORICAL_SNAPSHOT` when it preserves an earlier OMP state;
+4. `HISTORICAL_MILESTONE` when it records a completed phase, certification, or transition;
+5. `HISTORICAL_EXAMPLE` when it illustrates a rule;
+6. `DEPRECATED_CURRENT_STATE` when superseded by CPS or a later report.
+
+Only `CURRENT_PROGRAM_STATE_REFERENCE` may be consumed as live current state, and it must resolve to `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
+
+If OMP and CPS appear to disagree:
+
+```text
+CPS wins for volatile current state.
+OMP wins for scheduler / optimizer / lifecycle rules.
+Engineering Reports preserve historical evidence.
+Canonical Reference preserves durable truth.
+SYSTEM_MAP preserves owner topology.
+```
+
+Consumer rule:
+
+Codex, OMP Scheduler, BDP, Mission, Automation Gap Closure, Engineering Intelligence, dashboards, and any future consumer must read the live current state only from CPS. They may read OMP historical snapshots only as evidence, never as active state.
+
+No OMP historical snapshot may start implementation, Mission creation, automation, authority request, runtime action, or scheduler continuation unless the same state is confirmed in CPS.
+
+### 2.1.2. Engineering Truth Lifecycle Law
+
+Every engineering truth consumed by OMP must have a lifecycle.
+
+OMP must not consume an old engineering object as current truth only because the object has an owner, source, producer, or consumer. Before reuse, OMP must resolve whether the object is still valid under existing owners and existing lifecycle mechanisms.
+
+This law creates no new truth owner, Runtime, Planner, Truth Engine, Validity Engine, state engine, or architecture.
+
+It composes existing mechanisms:
+
+- Decision Lifecycle;
+- Decision Freshness;
+- Reference First;
+- Knowledge Plane;
+- Current Program State;
+- Engineering Reports;
+- Behavior Enforcement;
+- State Transition Law;
+- Capability Lifecycle;
+- Production Maturity;
+- Verification;
+- Certification;
+- Re-open Trigger;
+- Architecture Closed by Default;
+- Need New Owner Gate;
+- Semantic Reuse Audit.
+
+Engineering truth objects include existing objects only:
+
+- Capability;
+- Mission;
+- Engineering Report;
+- Canonical Reference entry;
+- Decision Trace;
+- Decision Fingerprint;
+- Current Program State field;
+- Production Maturity result;
+- Policy;
+- Verification result;
+- Certification result;
+- Behavior Contract;
+- State Transition;
+- Runtime Readiness result;
+- Engineering Knowledge;
+- any other existing canonical object consumed by OMP.
+
+For every reused engineering truth object, OMP must resolve:
+
+| Required field | Meaning |
+| --- | --- |
+| Truth Source | Existing canonical owner, CPS field, report evidence, runtime owner, policy, verification owner, certification owner, or other existing source. |
+| Owner | Existing owner responsible for confirming or invalidating the truth. |
+| Validity Basis | What makes the object true: acceptance, certification, fresh evidence, current state, terminal owner result, verified consumption, or canonical lock. |
+| Invalidation Triggers | Existing conditions that make the object no longer usable as current truth without revalidation. |
+| Revalidation Route | Existing owner, verification, certification, report correction, CPS update, policy review, or reference update that can confirm the truth again. |
+| Reuse Rule | Whether OMP may reuse it as current, reuse it as historical evidence only, require revalidation, or stop. |
+
+Allowed lifecycle states reuse existing V7 meanings:
+
+| State | Meaning |
+| --- | --- |
+| `VALID` | Existing owner confirms the object is still usable for the requested OMP consumption. |
+| `REVALIDATION_REQUIRED` | Existing trigger, drift, stale evidence, contradiction, changed dependency, changed authority, changed production reality, or confidence limit requires owner confirmation before reuse. |
+| `HISTORICAL` | Object remains evidence/history but is not current truth. |
+| `SUPERSEDED` | Later accepted owner evidence replaced the object. |
+| `RETIRED` | Object has no live consumer or was retired through an existing lifecycle. |
+| `NOT_APPLICABLE_WITH_REASON` | Object does not apply to the current task and the reason is recorded. |
+
+OMP must evaluate revalidation before consuming current truth if any of these existing events occurred:
+
+- Product meaning changed;
+- Policy changed;
+- Runtime changed;
+- Capability changed;
+- dependency changed;
+- architecture changed;
+- Production Reality changed;
+- Authority changed;
+- evidence freshness expired;
+- Decision Lifecycle invalidated the decision;
+- Decision Fingerprint no longer matches;
+- Behavior Chain status changed;
+- State Transition was not completed;
+- Verification failed, became stale, or was contradicted;
+- Certification was superseded, invalidated, or scoped differently;
+- Production Maturity returned `BLOCK`, `NO_CHANGE`, `PARTIAL_ACCEPT`, or `INVALID_EVIDENCE`;
+- Current Program State contradicts the object;
+- Canonical Reference superseded the object;
+- SYSTEM_MAP owner topology changed;
+- an Engineering Report correction exists;
+- an existing Re-open Trigger fired;
+- real evidence contradicts the object.
+
+Decision rule:
+
+| Lifecycle result | OMP action |
+| --- | --- |
+| `VALID` | Reuse through existing owner path. |
+| `REVALIDATION_REQUIRED` | Stop current consumption and route to the existing owner / verification / certification path before reuse. |
+| `HISTORICAL` | Use as evidence only; never as current truth. |
+| `SUPERSEDED` | Use the superseding object or stop if supersession path is unclear. |
+| `RETIRED` | Do not use for current execution unless a reactivation lifecycle exists. |
+| `NOT_APPLICABLE_WITH_REASON` | Exclude from current reasoning and record why. |
+
+If lifecycle cannot be resolved, OMP must return:
+
+```text
+TRUTH_LIFECYCLE_UNRESOLVED
+```
+
+and identify the smallest existing owner action required to resolve it.
+
 `Continue OMP` means: execute the complete Engineering Control Loop through existing owners until an allowed stop condition.
 
 ### Continue OMP Engineering Control Loop
@@ -95,8 +255,11 @@ The loop is:
 ```text
 Engineering Context Resolver
   -> Knowledge Consumption
+  -> Engineering Truth Lifecycle Evaluation
   -> Re-open Evaluation
+  -> BDP Implementation Candidate Consumption when present
   -> OMP Execution
+  -> Mission Formation
   -> Implementation / Audit / Certification / Verification
   -> Engineering Report
   -> Knowledge Promotion
@@ -110,10 +273,13 @@ Step responsibilities:
 | Step | Required behavior | Existing owner |
 | --- | --- | --- |
 | Engineering Context Resolver | Classify task, resolve minimum context, load only required owners. | `docs/reference/V7_CONTEXT_RESOLVER.md` |
-| Knowledge Consumption | Read Product Specification, Canonical Reference, SYSTEM_MAP, Audit Knowledge State, Current Program State, OMP, current Backlog item, and Runtime Model only if runtime relevant. | Knowledge Plane / OMP |
+| Knowledge Consumption | Read Product Specification, Canonical Reference, SYSTEM_MAP, Audit Knowledge State, Current Program State, OMP, current Mission / Backlog item, accepted BDP candidate when present, and Runtime Model only if runtime relevant. | Knowledge Plane / OMP |
+| Engineering Truth Lifecycle Evaluation | Resolve owner, truth source, validity basis, invalidation triggers, revalidation route, and reuse rule before any consumed object is used as current truth. | OMP + existing truth owner / verification / certification owner |
 | Re-open Evaluation | Determine whether knowledge is already verified, still current, stale, confidence-limited, or re-opened by trigger. | Knowledge Plane / Canonical Reference / relevant owner |
-| OMP Execution | Determine highest production-leverage existing backlog item; consume Product Evolution behavior inputs when meaningful; produce an OMP behavior decision; reuse existing owners; do not redesign. | OMP |
-| Implementation | Implement only existing backlog work when implementation is the resolved action and the OMP behavior decision allows execution; otherwise record blocked, deferred, rejected, or not-applicable result. | Implementation Backlog + existing code owner |
+| BDP Implementation Candidate Consumption when present | Consume accepted BDP Implementation Candidate Catalogue entries only as certified implementation input, never as a new queue or Discovery responsibility. | OMP + Behaviour Discovery Program output |
+| OMP Execution | Determine highest production-leverage accepted work item from the Implementation Backlog, existing owner, or certified BDP Implementation Candidate; after BDP architecture stabilization, use Candidate Coverage Matrix, Progress Projection, Engineering Chain Dependency Projection, Engineering Value, and System Engineering Value to select the optimal existing-candidate implementation sequence; consume Product Evolution behavior inputs when meaningful; produce an OMP behavior decision; reuse existing owners; do not redesign. | OMP |
+| Mission Formation | Convert an approved work item into an OMP Mission with Engineering Intent, expected closure, owner, dependencies, authority, verification, rollback, Runtime, production, and Codex handoff boundaries. | OMP |
+| Implementation | Implement only an approved OMP Mission when implementation is the resolved action and the OMP behavior decision allows execution; otherwise record blocked, deferred, rejected, or not-applicable result. | OMP Mission + existing code owner + Codex when assigned |
 | Verification | Run relevant tests, truth, convergence, runtime verification, documentation consistency, or knowledge consistency only when required by task class. | OMP + relevant verification owner |
 | Certification | Certify only when required by OMP capability, policy, action class, or production maturity. | OMP + certification owner |
 | Engineering Report | Create a Russian Engineering Report after every meaningful engineering action, including Product Evolution Field Validation, OMP behavior decision, new output, and Learning trigger when applicable. | OMP report lifecycle |
@@ -143,6 +309,8 @@ OMP explicitly consumes:
 
 | Canonical input | OMP consumption |
 | --- | --- |
+| `docs/programs/V7_AUTONOMOUS_EVOLUTION_PROGRAM.md` | Defines the strategic route from locked knowledge through Reality, BDP, Gap/implementation input, and OMP execution; OMP remains the execution operating system. |
+| `docs/programs/V7_BEHAVIOUR_DISCOVERY_PROGRAM.md` | Produces accepted Implementation Candidate Catalogue, Automation Break, Intent Closure, and coverage evidence that OMP may consume as implementation input after admission. |
 | `docs/reference/V7_AUTONOMOUS_EXECUTION_PROGRAM.md` | Defines when V7 may execute without an operator and the L3 -> L7 autonomy ladder. |
 | `docs/reference/V7_AUTONOMOUS_RUNTIME_MODEL.md` | Defines the stable Runtime Operating System, dispatcher/control-loop/state-machine contracts, Architecture Lock, Implementation Handoff, Runtime Stability Law, and implementation consumer ladder. |
 | `ARCHITECTURE_LOCKED_FOR_AUTONOMY_IMPLEMENTATION` | Blocks new Runtime, Planner, Authority, OMP, Governance, Truth Source, and roadmap creation by default. |
@@ -304,6 +472,411 @@ After every meaningful OMP step, OMP must verify:
 
 If verification fails, OMP must not declare the step complete.
 It must record `PARTIAL`, `BLOCKED`, `BROKEN`, or `UNKNOWN` with failure condition and recovery path.
+
+### Autonomous Engineering Cycle Execution Certification Ladder
+
+Status: `CANONICAL_OMP_EXTENSION`
+Owner: `OMP`
+Mode: `EXISTING_OWNER_PATH_ONLY`
+Need New Program: `FALSE`
+Need New Owner: `FALSE`
+Runtime impact: `NONE_BY_DEFAULT`
+Production impact: `NONE_BY_DEFAULT`
+Authority impact: `NONE_BY_DEFAULT`
+
+The Autonomous Engineering Cycle Execution Certification Ladder reuses OMP Behavior Enforcement, BDP Implementation Candidate Consumption, Mission Formation, Verification, Engineering Report, Knowledge Promotion, Current Program State update, OMP update, and existing canonical owner paths.
+
+It is not a new program, roadmap, queue, Runtime, Planner, owner, truth source, architecture, or implementation backlog.
+
+Purpose:
+
+```text
+Prove that BDP-derived Implementation Candidate Instances can move through:
+
+BDP
+  -> OMP
+  -> Mission
+  -> Codex
+  -> Implementation / No-Change / Hold
+  -> Verification
+  -> Outcome
+  -> Learning / No-Change
+  -> Engineering Report
+  -> Canonical Knowledge / CPS / SYSTEM_MAP update-or-no-change
+  -> Reality refresh-or-no-change
+  -> AEP re-consumption-or-no-change
+```
+
+The ladder exists because a structurally valid autonomous engineering cycle is not complete until concrete BDP-derived Candidate Instances are consumed by OMP and carried to legal terminal states with verified consumption.
+
+#### Ladder Ownership Decision
+
+OMP owns this ladder because:
+
+- BDP discovers and packages Candidate Instances but must not create Missions or execute work;
+- AEP routes strategic evolution but must not become the execution program;
+- Production Maturity consumes maturity impact but must not approve implementation or Runtime action;
+- Controlled Production Certification Program owns production/user-movement certification ladders, not documentation-only engineering-cycle proof;
+- OMP already owns candidate admission, mission formation, implementation discipline, verification, report lifecycle, knowledge promotion, CPS update, and continuation.
+
+#### Ladder Levels
+
+| Level | Required BDP-derived Candidate Instances | Purpose | Scope Limit |
+| --- | ---: | --- | --- |
+| `L1` | `1` | Prove one complete candidate cycle. | Prefer read-only, documentation/canonical sync, verification/no-change, report consumption, or CPS/report automation. |
+| `L2` | `2` | Prove repeatability across two independent Candidate Instances. | No production mutation unless existing authority already permits it. |
+| `L3` | `5` | Prove small batch repeatability and duplicate handling. | Cohort only if OMP Cohort Safety passes. |
+| `L4` | `10` | Prove medium batch repeatability and report/learning throughput. | Must preserve per-Instance terminal status. |
+| `L5` | `25` | Prove large engineering-cycle throughput under existing owners. | Requires explicit STOP_SAFE, rollback/no-change, and consumer synchronization evidence. |
+| `L6` | `continuous mode` | Prove sustained cycle operation through OMP continuation. | Must not bypass OMP admission, authority, verification, or owner consumption. |
+
+#### Per-Level Common Contract
+
+Every level must consume certified candidate evidence for every Candidate Instance.
+
+Execution Certification does not independently revalidate the Implementation Candidate Instance contract. Candidate reality is certified by BDP, and candidate admissibility is certified by OMP admission. Behavior completion is certified by the existing Behavior Enforcement Framework. The ladder verifies only that those certified results exist and may be used as Execution Ladder evidence.
+
+| Field | OMP rule |
+| --- | --- |
+| Entry Criteria | Previous level passed or L1 selected; candidate has required BDP / OMP certificates and is not a duplicate active Mission according to OMP admission evidence. |
+| Candidate Selection Rule | Prefer lowest-risk candidate that proves the missing engineering-cycle link; read-only/no-change/documentation synchronization before runtime or production work. |
+| Candidate Identity / Deduplication Rule | Consume OMP identity and duplicate-check evidence. Execution Certification must not resolve identity independently. |
+| OMP Admission Rule | Consume an existing OMP Admission Decision or route the candidate to OMP admission before counting it. Execution Certification must not rerun BDP Candidate Reality Gate or OMP admission checks as a third validator. |
+| Mission Creation Rule | Mission may be created only after OMP admission. A held, rejected, duplicate, merged, or not-applicable candidate is a legal terminal alternative only when evidence is recorded. |
+| Codex Boundary | Codex may act only as assigned implementation assistant for the admitted Mission and must not become owner, Runtime, Planner, Authority, or truth source. |
+| Implementation / No-Change / Hold Path | Produce implementation, explicit no-change, hold, rejection, or not-applicable result through existing owners. |
+| Verification Rule | Verify schema/docs/tests/runtime/owner state as required by task class; missing verification blocks PASS. |
+| Rollback / STOP_SAFE Rule | Runtime or production-affecting candidates require rollback/STOP_SAFE before implementation. Documentation-only candidates may record `ROLLBACK_NOT_APPLICABLE_WITH_REASON`. |
+| Outcome Rule | Classify as success, partial, no-change, failure, blocked, or not applicable. |
+| Learning / No-Change Rule | Record learning, no-change, insufficient evidence, blocker, or not applicable; Learning cannot mutate Runtime or authority. |
+| Engineering Report Rule | Every meaningful ladder action must create an Engineering Report with candidate, admission, execution, verification, outcome, learning, owner consumption, and terminal state. |
+| CPS / Canonical / SYSTEM_MAP Rule | Update only when the existing owner requires it; otherwise record explicit no-change with reason. |
+| Reality Refresh Rule | Refresh Reality only from verified evidence or record `REALITY_NO_CHANGE_WITH_REASON`. |
+| AEP Re-Consumption Rule | AEP re-consumption is satisfied by changed Reality, explicit no-change, or terminal alternative evidence routed through existing owners. |
+| Exit Criteria | Required number of Candidate Instances reached legal terminal state with verified consumption according to Behavior Enforcement Framework evidence. |
+| PASS Criteria | All required instances satisfy Behavior Chain Status `COMPLETE`, or have a legal terminal consumer with `Terminal Consumer Verified = PASS`, and have all required BDP / OMP certificates. |
+| HOLD Criteria | One or more candidates are valid but blocked by dependency, evidence, authority, verification, rollback, Runtime, production, owner, or consumer. |
+| FAIL Criteria | Candidate violates architecture, owner, Runtime, Planner, authority, production, evidence, or chain-closure rules; or required consumption cannot be proven. |
+
+#### Automatic-First Rule
+
+Execution Certification must be automatic wherever the candidate is machine-checkable and owner-mapped.
+
+Manual gates are legal only when the existing architecture already requires them:
+
+- authority boundary;
+- security boundary;
+- production mutation;
+- Runtime apply;
+- user movement;
+- rollback/containment risk;
+- owner acceptance where no machine-checkable owner state exists.
+
+If a manual gate is found where all required conditions are machine-checkable and owner-mapped, OMP must classify it as:
+
+```text
+AUTOMATION_BREAK
+```
+
+and may package it as a future BDP Implementation Candidate. OMP must not normalize unnecessary manual certification.
+
+#### Post-PASS Self-Continuation Rule
+
+Execution Certification Ladder is a self-continuing Engineering Chain.
+
+A level `PASS` is not a ladder stop.
+
+After any level returns `PASS`, OMP must automatically determine the next level and attempt to continue without waiting for operator direction.
+
+Canonical continuation:
+
+```text
+L1
+  -> PASS
+  -> automatic L2 continuation check
+  -> L2 certified candidate evidence consumption / selection / OMP admission evidence / mission / execution / verification / report / owner consumption
+  -> PASS
+  -> automatic L3 continuation check
+  -> ...
+  -> L6 continuous mode
+```
+
+OMP must not write `Prepare L2`, `Next allowed step`, `operator should decide`, or any equivalent non-terminal handoff after a level `PASS` unless a canonical OMP stop is present and recorded.
+
+After every level `PASS`, OMP must automatically:
+
+1. determine the next ladder level;
+2. determine the required number of independent Candidate Instances;
+3. find certified BDP-derived Candidate Instance records from accepted BDP output and OMP admission evidence; existing Reality, reports, Function Graph evidence, CPS, Canonical Knowledge, and owner paths may point to those records but must not be counted as candidates by themselves;
+4. if certified candidates are insufficient, invoke BDP minimal Discovery Economy mode to produce only the missing bounded Candidate Instances for OMP admission;
+5. consume Candidate Identity Resolution evidence from OMP;
+6. consume duplicate / merge / Cohort Safety evidence from OMP where applicable;
+7. verify that OMP Admission Decision exists;
+8. create Mission or legal terminal alternative only through OMP;
+9. execute through Codex / existing owner only when no canonical stop is present;
+10. verify;
+11. consume Behavior Chain Status from the existing Behavior Enforcement Framework;
+12. count Execution Candidate Evidence only when Behavior Chain Status is `COMPLETE` or legal terminal consumer verification is `PASS`;
+13. record outcome;
+14. record Learning / no-change / insufficient-evidence state;
+15. create Engineering Report;
+16. update or explicitly no-change CPS / Canonical Reference / SYSTEM_MAP / Production Maturity / affected owner;
+17. refresh Reality or explicitly record `REALITY_NO_CHANGE_WITH_REASON`;
+18. record AEP re-consumption or explicit `AEP_RECONSUMPTION_NO_CHANGE_WITH_REASON`;
+19. continue to the next level.
+
+If an already discovered candidate is not sufficient for the next level, lack of ready candidates is not a stop by itself. It triggers BDP minimal Discovery Economy mode.
+
+BDP minimal Discovery Economy mode must:
+
+- avoid unnecessary full Discovery;
+- search only for enough bounded Candidate Instances to satisfy the next ladder level;
+- preserve BDP boundaries;
+- produce Candidate Instances, hold reasons, or legal terminal alternatives;
+- return output to OMP for admission.
+
+OMP must not run BDP Discovery itself. OMP may invoke or consume BDP output through the existing AEP / BDP / OMP route.
+
+#### Execution Certification Candidate Certificate Consumption Rule
+
+Status: `CANONICAL`
+
+This rule replaces duplicate Execution Certification eligibility checking. It is not a new gate, owner, entity, program, or architecture.
+
+Execution Certification Ladder may count only certified BDP-derived Implementation Candidate Instances.
+
+Execution Certification does not validate whether a record is a valid Implementation Candidate Instance. That responsibility is already owned by:
+
+```text
+BDP
+  -> Candidate Reality Gate
+  -> OMP
+  -> Implementation Candidate Eligibility / Admission
+```
+
+Execution Certification verifies only whether the already certified Candidate Instance has the right to be used as Execution Ladder evidence.
+
+It also consumes the existing Behavior Enforcement Framework result as the only canonical proof that the Candidate really propagated through Producer, Consumer, Behavior Change, Next Output, and legal Terminal Consumer.
+
+Execution Certification has no independent completion model.
+
+Owner responsibility:
+
+| Responsibility | Owner |
+| --- | --- |
+| Candidate reality | BDP Candidate Reality Gate |
+| Candidate schema / current-reality / expected-reality evidence | BDP Candidate Reality Gate |
+| Candidate identity | OMP Candidate Identity Resolution |
+| Candidate admissibility | OMP Implementation Candidate Admission |
+| Terminal path | OMP admission / legal terminal alternative |
+| Mission or legal terminal alternative | OMP |
+| Behavior Chain completion | Behavior Enforcement Framework |
+| Legal terminal consumer verification | Behavior Enforcement Framework |
+| Use as Execution Ladder evidence | Execution Certification Ladder |
+
+Execution Certification must not re-analyze the following candidate substance when certified by BDP or OMP:
+
+- Engineering Chain;
+- Behaviour;
+- Engineering Intent;
+- Reality;
+- Authority;
+- Verification;
+- Terminal Path;
+- Current Reality;
+- Expected Reality;
+- owner / consumer suitability;
+- implementation readiness;
+- evidence sufficiency.
+
+Execution Certification must not independently verify the following Behavior Enforcement substance when certified by the Behavior Enforcement Framework:
+
+- Behavior;
+- Producer;
+- Consumer;
+- Output Produced;
+- Output Available;
+- Consumer Consumed Output;
+- Consumption Verified;
+- Behavior Changed;
+- Next Output Produced;
+- Terminal Consumer;
+- Terminal Consumer verification.
+
+A Candidate Instance may be counted as Execution Candidate Evidence only when all certificate requirements are true:
+
+| # | Consumption requirement |
+| ---: | --- |
+| 1 | `BDP Candidate Reality Gate = PASS`. |
+| 2 | `OMP Admission = PASS` or equivalent OMP admission / legal terminal alternative certificate. |
+| 3 | `Candidate Identity = RESOLVED`. |
+| 4 | `Candidate Terminal Path = RESOLVED`. |
+| 5 | `OMP Admission Decision = EXISTS`. |
+| 6 | `Behavior Chain Status = COMPLETE`, or legal terminal consumer exists with `Terminal Consumer Verified = PASS`. |
+
+If any required certificate is missing, Execution Certification must not count the record as Execution Candidate Evidence for L2-L6 certification.
+
+Missing certificate outcomes:
+
+| Outcome | Meaning |
+| --- | --- |
+| `EXECUTION_EVIDENCE_MISSING_BDP_REALITY_CERTIFICATE` | BDP Candidate Reality Gate PASS evidence is missing. Route back to BDP output, not Execution Certification validation. |
+| `EXECUTION_EVIDENCE_MISSING_OMP_ADMISSION_CERTIFICATE` | OMP admission / legal terminal alternative evidence is missing. Route to OMP admission, not Execution Certification validation. |
+| `EXECUTION_EVIDENCE_MISSING_IDENTITY_RESOLUTION` | OMP Candidate Identity Resolution evidence is missing. Route to OMP identity resolution, not Execution Certification validation. |
+| `EXECUTION_EVIDENCE_MISSING_TERMINAL_PATH` | OMP terminal path evidence is missing. Route to OMP admission / terminal alternative resolution. |
+| `EXECUTION_EVIDENCE_MISSING_ADMISSION_DECISION` | No OMP admission decision exists. The candidate cannot be counted until OMP records one. |
+| `EXECUTION_EVIDENCE_MISSING_BEHAVIOR_CHAIN_COMPLETION` | Behavior Chain Status is `PARTIAL`, `BLOCKED`, `BROKEN`, or `UNKNOWN`. The candidate cannot be counted until Behavior Enforcement records `COMPLETE` or legal terminal consumer verification. |
+| `EXECUTION_EVIDENCE_MISSING_TERMINAL_CONSUMER_VERIFICATION` | A legal terminal consumer is claimed but `Terminal Consumer Verified = PASS` is missing. |
+
+Certificate consumption lifecycle:
+
+```text
+BDP Candidate Reality Gate PASS
+  -> OMP Eligibility / Admission PASS or legal terminal alternative
+  -> Candidate Identity RESOLVED
+  -> Candidate Terminal Path RESOLVED
+  -> OMP Admission Decision EXISTS
+  -> Behavior Chain Status COMPLETE or Terminal Consumer Verified PASS
+  -> Execution Candidate Evidence COUNTABLE
+```
+
+Execution Certification may inspect certificate identifiers, status, owner, source, timestamp / report pointer, Behavior Chain Status, terminal consumer verification status, and provenance pointer. It must not perform a parallel field-by-field candidate or behavior-chain validation.
+
+#### Negative Candidate Rule
+
+Canonical owners, models, documents, reports, indexes, and context artifacts may support Candidate evidence.
+
+They must never be counted as Candidate Instances or Execution Candidate Evidence by themselves.
+
+They are excluded because they cannot carry both required owner certificates:
+
+```text
+BDP Candidate Reality Gate PASS
+OMP Admission Decision EXISTS
+```
+
+Forbidden as Candidate Instances:
+
+- OMP;
+- CPS;
+- SYSTEM_MAP;
+- Canonical Reference;
+- Runtime Model;
+- Decision Model;
+- Function Graph;
+- Engineering Chain Model;
+- Engineering Entity Model;
+- AEP;
+- AOS;
+- BDP program document;
+- STOP condition;
+- Engineering Report lifecycle;
+- Production Maturity Model;
+- any source of knowledge by itself;
+- any owner by itself;
+- any report by itself;
+- any document section by itself.
+
+Correct usage:
+
+```text
+Context artifact
+  -> evidence/source/owner/consumer/provenance
+  -> supports a real Candidate Instance
+```
+
+Incorrect usage:
+
+```text
+Context artifact
+  -> counted as Candidate Instance
+```
+
+If a previous ladder run counted context artifacts as Candidate Instances, OMP must invalidate that run for candidate semantics, preserve it as historical evidence, correct CPS, and require a valid BDP-derived rerun.
+
+#### Canonical Ladder STOP Conditions
+
+Execution Certification Ladder may stop only at a canonical OMP stop condition.
+
+Allowed stops:
+
+| Stop | Meaning |
+| --- | --- |
+| `STOP_SAFE` | Safety, rollback, verification, runtime, evidence, or no-action safety requires a safe stop. |
+| `ENGINEERING_AUTHORITY` | Capability, policy, authority, action-class, runtime capability, autonomous policy, or blast-radius approval is required. |
+| `OPERATIONAL_AUTHORITY` | Exact restore-barrier write, runtime apply, rollback apply, user movement, packet execution, or other exact production action approval is required. |
+| `REAL_WORLD_LIMIT` | Required evidence can be produced only by a real-world condition or observation that cannot be synthesized. |
+| `UNSAFE_IMPLEMENTATION` | Existing implementation path is unsafe, incomplete, contradictory, or loses required state. |
+| `FUNDAMENTAL_ARCHITECTURE_GAP` | Existing certified owners cannot satisfy the requirement after reuse/extension is proven impossible. |
+| Existing OMP stop | Another OMP stop already defined by OMP, Runtime, Authority, Verification, Production Maturity, or CPS and resolved to a legal terminal state. |
+
+Forbidden stops:
+
+- level `PASS`;
+- report created;
+- recommendation written;
+- operator handoff without authority boundary;
+- no ready candidate before minimal BDP Discovery Economy;
+- dashboard/read-model visibility;
+- future work;
+- TODO;
+- convenience;
+- uncertainty without owner/evidence classification.
+
+If continuation stops for any forbidden reason, OMP must classify the stop as:
+
+```text
+AUTOMATION_BREAK
+```
+
+and create or consume an Implementation Candidate through the existing BDP -> OMP chain.
+
+#### L1 Safe Candidate Preference
+
+L1 must select the first safe BDP-derived Candidate Instance using this order:
+
+1. read-only;
+2. documentation/canonical synchronization;
+3. Engineering Report automation;
+4. verification/no-change automation;
+5. CPS/report consumption automation;
+6. non-production-affecting;
+7. no user movement;
+8. no Runtime mutation;
+9. no authority expansion.
+
+If no existing Candidate Instance is ready, BDP may run in minimal Discovery Economy mode only to identify one bounded Candidate Instance. BDP must not perform unnecessary full Discovery.
+
+#### Ladder Level Verdicts And Continuation Semantics
+
+Allowed level verdicts:
+
+| Verdict | Meaning |
+| --- | --- |
+| `EXECUTION_CERTIFICATION_LADDER_READY` | Ladder definition exists and L1 has a selected candidate or legal Mission Proposal. This is not a stop if L1 can run automatically. |
+| `EXECUTION_CERTIFICATION_L1_PASS` | One BDP-derived Candidate Instance completed the full cycle or legal terminal alternative with verified consumption. This automatically triggers L2 continuation check. |
+| `EXECUTION_CERTIFICATION_L2_PASS` | Two BDP-derived Candidate Instances completed the required cycle or legal terminal alternatives. This automatically triggers L3 continuation check. |
+| `EXECUTION_CERTIFICATION_L3_PASS` | Five BDP-derived Candidate Instances completed the required cycle or legal terminal alternatives. This automatically triggers L4 continuation check. |
+| `EXECUTION_CERTIFICATION_L4_PASS` | Ten BDP-derived Candidate Instances completed the required cycle or legal terminal alternatives. This automatically triggers L5 continuation check. |
+| `EXECUTION_CERTIFICATION_L5_PASS` | Twenty-five BDP-derived Candidate Instances completed the required cycle or legal terminal alternatives. This automatically triggers L6 continuation check. |
+| `EXECUTION_CERTIFICATION_L6_CONTINUOUS` | Continuous mode is active and OMP continues until a canonical STOP. |
+| `EXECUTION_CERTIFICATION_LEVEL_HOLD` | Current level is valid but blocked by existing owner, authority, evidence, verification, rollback, Runtime, production, or consumer condition. Hold must name the canonical stop or Automation Break. |
+| `EXECUTION_CERTIFICATION_BLOCKED` | No legal existing-owner path can admit or terminally classify the candidate without architecture change. |
+
+`PASS` is a level result, not a ladder terminal state.
+
+Allowed ladder terminal states:
+
+```text
+L6_CONTINUOUS_MODE_ACTIVE
+STOP_SAFE
+ENGINEERING_AUTHORITY
+OPERATIONAL_AUTHORITY
+REAL_WORLD_LIMIT
+UNSAFE_IMPLEMENTATION
+FUNDAMENTAL_ARCHITECTURE_GAP
+EXISTING_OMP_STOP_WITH_REASON
+```
 
 ### State Transition Law
 
@@ -1037,7 +1610,7 @@ Document classes:
 | --- | --- | --- | --- |
 | `REFERENCE` | Permanent knowledge. | System Architecture, Runtime Model, Decision Model, Kernel, Context Resolver, Canonical Policy Library. | Frozen after certification; OMP does not edit during normal implementation. |
 | `PROGRAMS` | Drive execution. | OMP, Implementation Program, Current Program State. | Live and updated when execution or optimizer state changes. |
-| `IMPLEMENTATION` | The only engineering queue. | Implementation Backlog, Implementation Priority Model. | OMP selects work only from the backlog. |
+| `IMPLEMENTATION` | Approved mission and implementation registry. | Implementation Backlog, Implementation Priority Model, accepted OMP Missions. | OMP selects work only after admission from Backlog, existing owner, or certified BDP Implementation Candidate. |
 | `REPORTS` | Execution history and historical evidence only. | Certified reports and engineering reports under `docs/reports/engineering/`. | Not project documents; never planning, never backlog, never roadmap, never canonical owner. |
 | `ADR` | Permanent decisions. | Accepted ADRs. | Read-only decision constraints, never queue. |
 
@@ -1046,13 +1619,23 @@ Permanent rules:
 1. Reference documents are frozen after certification.
 2. The Canonical Policy Library is frozen after Stage 4 V7 Fit Analysis.
 3. OMP must never generate implementation work from policy documents.
-4. OMP generates implementation work only from:
+4. OMP may admit implementation work only from:
 
 ```text
 docs/programs/V7_IMPLEMENTATION_BACKLOG.md
+or
+certified BDP Implementation Candidate consumed by OMP
+or
+existing owner work explicitly accepted by OMP
 ```
 
-5. After every implementation:
+5. The Implementation Backlog is not a parallel discovery system and not a free-form idea source.
+
+6. The Implementation Backlog records approved OMP Missions, implementation state, owner mapping, priority, verification, and closure.
+
+7. A BDP Implementation Candidate is not a backlog, queue, owner, roadmap, or mission until OMP admits it.
+
+8. After every implementation:
 
 ```text
 Update backlog
@@ -1061,29 +1644,1260 @@ Update backlog
   -> Continue
 ```
 
-6. OMP must never ask:
+9. OMP must never ask:
 
 ```text
 What should I implement?
 ```
 
-It must always read:
+It must always resolve:
 
 ```text
-Highest unfinished backlog item
+Highest production-leverage admitted work item
 ```
 
-7. Reports never generate implementation.
-8. Policies never generate implementation.
-9. Architecture never generates implementation.
-10. Only the Implementation Backlog generates implementation.
-11. When the backlog becomes empty, OMP must answer:
+10. Reports never generate implementation.
+11. Policies never generate implementation.
+12. Architecture never generates implementation.
+13. BDP discovers candidates; OMP admits or rejects missions.
+14. Only an OMP-admitted Mission may proceed to implementation.
+15. When there is no admitted Mission, no accepted BDP Implementation Candidate, and no existing-owner work accepted by OMP, OMP must answer:
 
 ```text
 IMPLEMENTATION_COMPLETE
 ```
 
 and stop.
+
+This generic `IMPLEMENTATION_COMPLETE` stop is forbidden inside an active Execution Certification Ladder while the ladder state is below:
+
+```text
+L6_CONTINUOUS_MODE_ACTIVE
+```
+
+During active Execution Certification Ladder execution, lack of an admitted Mission, accepted BDP Candidate, or existing-owner work must trigger the ladder-specific continuation path:
+
+```text
+Post-PASS Self-Continuation Rule
+  -> next level determination
+  -> ready candidate search
+  -> BDP minimal Discovery Economy when candidates are insufficient
+  -> OMP admission
+  -> Mission / legal terminal alternative
+  -> execution / verification / report / owner consumption
+  -> continue
+```
+
+The ladder-specific rule has priority over generic `IMPLEMENTATION_COMPLETE` until the ladder reaches `L6_CONTINUOUS_MODE_ACTIVE` or a real canonical OMP stop is recorded.
+
+### 2.1.7.1. BDP Implementation Candidate Consumption Rule
+
+Status: `CANONICAL`
+
+OMP consumes BDP outputs. OMP does not perform BDP Discovery.
+
+Canonical chain:
+
+```text
+Reality
+  -> AEP
+  -> Behaviour Discovery Program
+  -> Implementation Candidate Catalogue
+  -> OMP
+  -> Mission
+  -> Codex
+  -> Implementation
+  -> Verification
+  -> Reality
+```
+
+BDP Implementation Candidate Catalogue is:
+
+- a BDP output;
+- certified implementation input;
+- evidence for OMP admission;
+- not a queue;
+- not a backlog;
+- not an owner;
+- not a roadmap;
+- not an execution permission.
+
+OMP must consume each Implementation Candidate through admission:
+
+```text
+Implementation Candidate
+  -> Candidate Evidence Review
+  -> Candidate Identity Resolution
+  -> Instance Duplicate Check
+  -> Candidate Merge / Cohort Safety Review
+  -> Existing Owner Check
+  -> Dependency Review
+  -> Authority Review
+  -> Verification Review
+  -> Rollback / STOP_SAFE Review
+  -> Runtime Boundary Review
+  -> Production Boundary Review
+  -> OMP Admission Decision
+  -> Mission or Rejection / Hold
+```
+
+Admission outcomes:
+
+| Outcome | Meaning |
+| --- | --- |
+| `MISSION_ACCEPTED` | Candidate becomes an OMP Mission and may be implemented through existing owners. |
+| `MISSION_HOLD` | Candidate is valid but blocked by missing dependency, evidence, authority, verification, rollback, Runtime, production, or owner extension. |
+| `MISSION_REJECTED` | Candidate violates architecture, owner, Runtime, Planner, authority, production, or evidence rules. |
+| `MISSION_NOT_APPLICABLE` | Candidate no longer needs implementation or has a legal terminal alternative. |
+
+#### BDP Architecture Stabilization Consumption Rule
+
+Status: `CANONICAL`
+
+When Behaviour Discovery Program reaches `BDP_ARCHITECTURE_STABLE` or an equivalent accepted state proving that its architecture can express the current engineering situation, OMP must treat BDP as a stable producer of implementation decision inputs.
+
+After that point, future project evolution must start with OMP consumption of BDP outputs, not with further expansion of BDP.
+
+Stable BDP outputs consumed by OMP include:
+
+- `Implementation Candidate Instance`;
+- `Candidate Coverage Matrix`;
+- `Progress Projection`;
+- `Engineering Chain Dependency Projection`;
+- `Engineering Value`;
+- `System Engineering Value`;
+- Verification evidence;
+- Authority evidence;
+- Rollback / `STOP_SAFE` evidence;
+- Engineering Chain and Producer -> Consumer evidence.
+
+Boundary rule:
+
+| Program | Responsibility |
+| --- | --- |
+| BDP | Discover what is happening, why it is happening, what is covered, what is blocked, what has engineering value, and what the next candidate step is. |
+| OMP | Decide what to do next, in what order, why that order is optimal, and how to maximize maturity gain through existing Candidate Instances. |
+
+OMP must not ask BDP to expand merely because a candidate is blocked, low maturity, high value, or on a critical path.
+
+BDP may be expanded only after OMP applies Architecture Closed by Default and proves:
+
+```text
+FUNDAMENTAL_BDP_ARCHITECTURE_GAP
+```
+
+`FUNDAMENTAL_BDP_ARCHITECTURE_GAP` requires proof that existing BDP mechanisms cannot express the engineering situation through:
+
+- Engineering Chain Discovery;
+- Behaviour Discovery;
+- Automation Readiness;
+- Implementation Readiness;
+- Engineering Intent Closure;
+- Engineering Logic Coverage;
+- Implementation Candidate Instance;
+- Candidate Classification;
+- Candidate Coverage Matrix;
+- Current View;
+- Progress Projection;
+- Engineering Value;
+- System Engineering Value;
+- Engineering Chain Dependency Projection.
+
+If the situation can be expressed by existing BDP outputs, OMP must consume those outputs and select implementation sequence through the existing OMP execution path.
+
+#### BDP-Derived Execution Sequencing Rule
+
+Status: `CANONICAL`
+
+OMP must choose the next implementation sequence from existing admitted or admissible `Implementation Candidate Instance` records.
+
+OMP must not use manual priority when certified BDP value and coverage data exist.
+
+OMP must rank candidate sequences using only existing evidence:
+
+- `Candidate Coverage Matrix`;
+- `Progress Projection`;
+- `Engineering Chain Dependency Projection`;
+- `Engineering Value`;
+- `System Engineering Value`;
+- Verification status;
+- Authority boundary;
+- Rollback / `STOP_SAFE` boundary;
+- Production boundary;
+- Runtime boundary;
+- Engineering Chain;
+- Producer -> Consumer path.
+
+OMP must answer:
+
+```text
+Which sequence of existing Candidate Instances maximizes maturity gain under current resources, authority boundaries, rollback boundaries, runtime boundaries, and production boundaries?
+```
+
+Sequence evaluation must include:
+
+| Evaluation Input | OMP use |
+| --- | --- |
+| `System Engineering Value` | Prefer candidates that unlock the largest verified system improvement without crossing stop boundaries. |
+| `Engineering Value` | Prefer candidates with direct coverage, automation, production, verification, and chain closure gain. |
+| `Engineering Chain Dependency Projection` | Order candidates so upstream dependencies, critical path blockers, and final-consumer blockers are handled before dependent candidates. |
+| `Progress Projection` | Choose candidates whose next legal status is reachable through existing owners and evidence. |
+| `Candidate Coverage Matrix` | Prefer work that improves weakest eligible class/depth cells when safety and authority are equal. |
+| Verification / Rollback / Authority / Runtime / Production evidence | Stop or hold candidates that cannot safely advance. |
+
+OMP must produce a sequence decision, not a new BDP request, when existing candidates and projections are sufficient.
+
+Allowed sequence decisions:
+
+| Decision | Meaning |
+| --- | --- |
+| `SEQUENCE_SELECTED` | OMP selected one or more Candidate Instances for Mission admission or cohort review. |
+| `SEQUENCE_HOLD` | No safe sequence can advance without resolving an existing blocker. |
+| `SEQUENCE_NOT_APPLICABLE` | Existing candidates do not require implementation or have legal terminal alternatives. |
+| `BDP_REFRESH_REQUIRED` | Existing BDP evidence is stale or insufficient, but the BDP architecture remains sufficient. |
+| `FUNDAMENTAL_BDP_ARCHITECTURE_GAP` | Existing BDP architecture cannot express the situation after Architecture Closed by Default proof. |
+
+OMP must not create a new queue, roadmap, owner, planner, runtime path, graph, or architecture from this sequencing rule.
+
+The output of sequencing is consumed by the existing OMP admission and Mission lifecycle only.
+
+#### OMP Candidate Sequencing Algorithm
+
+Status: `CANONICAL`
+
+The OMP Candidate Sequencing Algorithm is the official method for selecting the best implementation sequence from existing `Implementation Candidate Instance` records.
+
+It is not:
+
+- a new Planner;
+- a new architecture;
+- a new owner;
+- a new program;
+- a new queue;
+- a new Runtime;
+- a replacement for BDP;
+- a replacement for Mission Admission;
+- a replacement for Execution Certification.
+
+The algorithm reuses mature-system principles normalized for V7:
+
+| Mature-system principle | V7 OMP interpretation |
+| --- | --- |
+| Feasibility filtering before scoring | Invalid or unsafe candidates must be removed before value comparison. |
+| Policy and authority before execution | Authority boundaries outrank value. |
+| Health/readiness before traffic or work placement | Verification, rollback, runtime, and production readiness must exist before execution. |
+| Preference/scoring after eligibility | Engineering Value and System Engineering Value are used only after eligibility and safety pass. |
+| Dependency and reservation before binding | Upstream dependencies, critical path, rollback, and STOP-safe ability are resolved before Mission Admission. |
+| Deterministic tie-breaking | Equal candidates are ordered by evidence-backed chain position, unblock effect, maturity delta, and risk boundary; not manual priority. |
+| Post-decision verification | Sequence decision is incomplete until Mission Admission, execution, verification, and consumer behavior closure occur. |
+
+Canonical algorithm:
+
+```text
+Candidate Pool
+  -> Validity Filter
+  -> Safety Filter
+  -> Authority Filter
+  -> Runtime Filter
+  -> Rollback / STOP_SAFE Filter
+  -> Dependency Ordering
+  -> Critical Path Detection
+  -> Coverage Optimization
+  -> Engineering Value Evaluation
+  -> System Engineering Value Evaluation
+  -> Sequence Optimization
+  -> Mission Admission
+  -> Execution / Hold / Rejection / Not Applicable
+```
+
+OMP must choose a sequence, not merely a single best candidate, when more than one candidate exists.
+
+##### Candidate Pool
+
+Candidate Pool contains only existing records from:
+
+- admitted OMP Missions;
+- Implementation Backlog entries;
+- existing owner work accepted by OMP;
+- certified BDP-derived `Implementation Candidate Instance` records.
+
+Documents, owners, reports, rules, models, sections, Function Graph nodes, canonical sources, and context artifacts must not enter the Candidate Pool as candidates.
+
+##### Validity Filter
+
+Candidate may proceed only if it has:
+
+- Candidate Instance identity;
+- source / producer;
+- existing owner;
+- existing consumer or legal consumer gap;
+- current state;
+- expected state;
+- terminal path;
+- BDP certificate when BDP-derived;
+- OMP admission evidence or path to OMP admission.
+
+Failure output:
+
+```text
+SEQUENCE_HOLD_INVALID_CANDIDATE
+```
+
+##### Safety Filter
+
+Candidate may proceed only if:
+
+- Behavior Chain is complete or has legal terminal consumer path;
+- verification path exists or candidate is verification-building;
+- rollback / containment / `STOP_SAFE` exists where required;
+- production and runtime impact are explicit;
+- no hidden user movement, runtime apply, authority expansion, or production mutation is implied.
+
+Failure output:
+
+```text
+SEQUENCE_HOLD_UNSAFE
+```
+
+##### Authority Filter
+
+Candidate may proceed only inside current certified authority.
+
+If candidate requires authority not currently granted, OMP must return:
+
+```text
+ENGINEERING_AUTHORITY
+OPERATIONAL_AUTHORITY
+REAL_WORLD_LIMIT
+```
+
+as applicable.
+
+Authority blockers outrank Engineering Value, System Engineering Value, maturity gain, and critical-path position.
+
+##### Runtime Filter
+
+Runtime-affecting candidates may proceed only when the Runtime owner/path, action class, verification, rollback, and production boundary allow it.
+
+If not, OMP must hold the candidate rather than reclassify the work as architecture.
+
+##### Rollback / STOP_SAFE Filter
+
+Candidate may proceed only if rollback, containment, no-change terminal path, or `STOP_SAFE` is available for the action class.
+
+Lack of rollback does not create a Planner need.
+
+It produces:
+
+```text
+SEQUENCE_HOLD_ROLLBACK_BLOCKED
+```
+
+##### Dependency Ordering
+
+OMP must order candidates by Engineering Chain dependency evidence:
+
+1. candidates with no unresolved upstream dependencies;
+2. candidates that unblock the largest number of downstream candidates;
+3. candidates required by a final consumer path;
+4. candidates that resolve root causes shared by multiple blocked candidates;
+5. dependent candidates only after upstream blockers are resolved.
+
+Dependency order must come from `Engineering Chain Dependency Projection`, not from manual priority, file order, report order, or wording similarity.
+
+##### Critical Path Detection
+
+OMP must mark a candidate as critical path when it:
+
+- is on the longest unresolved Engineering Chain path to Production Certification;
+- is the only path to a required final consumer;
+- blocks a required authority, verification, rollback, runtime, production, or chain-closure transition;
+- or unlocks the highest downstream System Engineering Value.
+
+Critical-path candidates are not automatically executable.
+
+They still must pass safety, authority, runtime, rollback, and Mission Admission.
+
+##### Coverage Optimization
+
+OMP must compute expected coverage delta for each candidate sequence:
+
+| Delta | Source |
+| --- | --- |
+| `Engineering Maturity Delta` | Candidate Coverage Matrix and BDP project maturity navigation indicators. |
+| `Production Maturity Delta` | Production Maturity model, production evidence, and certification result. |
+| `Automation Coverage Delta` | Automation Coverage / Progress Projection. |
+| `Implementation Coverage Delta` | Candidate Coverage Matrix and Implementation Progress. |
+| `Verification Coverage Delta` | Verification evidence and Candidate Coverage Matrix. |
+| `Capability Closure Delta` | Behavior Chain, consumer closure, and Capability / Production Maturity evidence. |
+
+OMP must not hand-edit maturity deltas.
+
+##### Engineering Value Evaluation
+
+OMP must evaluate each candidate using certified BDP values:
+
+- `Coverage Gain`;
+- `Production Gain`;
+- `Automation Gain`;
+- `Verification Gain`;
+- `Chain Closure Gain`;
+- `Engineering Value`.
+
+If BDP values are missing or stale, OMP may return `BDP_REFRESH_REQUIRED`.
+
+##### System Engineering Value Evaluation
+
+OMP must evaluate system-level impact:
+
+- `System Engineering Value`;
+- `Unblocked Candidate Count`;
+- `Critical Path Impact`;
+- `Root Cause Impact`;
+- downstream maturity delta;
+- expected newly available candidates after execution.
+
+System Engineering Value may select the sequence among safe candidates, but it must not override authority, rollback, runtime, production, or verification blockers.
+
+##### Sequence Optimization
+
+OMP must select the sequence that maximizes verified maturity gain under current constraints.
+
+Sequence optimization rules:
+
+1. Reject invalid candidates before scoring.
+2. Hold unsafe candidates before scoring.
+3. Stop at authority boundary before scoring if authority is insufficient.
+4. Stop at runtime / rollback / production boundary when required.
+5. Prefer candidates that resolve upstream dependencies before downstream candidates.
+6. Prefer candidates that unlock more candidates when safety and authority are equal.
+7. Prefer candidates on the critical path when safety and authority are equal.
+8. Prefer higher System Engineering Value when dependency order does not decide.
+9. Prefer higher Engineering Value when System Engineering Value is equal.
+10. Prefer weakest Candidate Coverage Matrix cells when value and safety are equal.
+11. If all computed criteria are equal, choose the candidate with strongest verification evidence and smallest runtime / production blast radius.
+12. If still equal, return `SEQUENCE_HOLD_TIE_REQUIRES_EVIDENCE`, not manual priority.
+
+Fixed weights are forbidden unless they come from an existing canonical owner.
+
+Manual priority is forbidden when certified data exists.
+
+##### Required Sequence Decision Output
+
+Every sequence decision must answer:
+
+| Question | Required answer |
+| --- | --- |
+| Which candidate executes first? | Candidate Instance ID or hold/rejection/not-applicable reason. |
+| Why first? | Evidence-backed dependency, safety, authority, value, critical path, or coverage reason. |
+| What does it unblock? | Downstream Candidate IDs / chain conditions or `NONE`. |
+| What happens after execution? | Expected next Candidate Coverage Matrix update and next sequence candidate. |
+| How does Candidate Coverage Matrix change? | Cell delta or `NO_CHANGE_WITH_REASON`. |
+| How does Engineering Maturity change? | Computed delta or `NOT_APPLICABLE_WITH_REASON`. |
+| How does Production Maturity change? | Computed delta or `NOT_APPLICABLE_WITH_REASON`. |
+| Which candidates become available? | Candidate IDs or `NONE`. |
+| Which candidates remain blocked? | Candidate IDs and blockers. |
+| Which STOP applies if any? | `STOP_SAFE`, `ENGINEERING_AUTHORITY`, `OPERATIONAL_AUTHORITY`, `REAL_WORLD_LIMIT`, or `NONE`. |
+
+##### Mission Admission
+
+Only after sequence selection may OMP route the first selected candidate to Mission Admission.
+
+Sequence selection alone is not execution permission.
+
+Mission Admission remains the legal boundary between candidate analysis and implementation.
+
+##### Relationship With Execution Certification
+
+Execution Certification consumes completed Mission / legal terminal evidence.
+
+It does not choose the sequence.
+
+OMP Sequencing chooses the sequence; Mission Admission admits it; Execution Certification later verifies whether the cycle evidence can count for certification.
+
+#### OMP Decision Trace Contract
+
+Status: `CANONICAL`
+
+The OMP Decision Trace Contract is the mandatory explanation record for every OMP decision that evaluates, sequences, admits, holds, rejects, or marks an `Implementation Candidate Instance` as not applicable.
+
+It is an explanation of an already-made OMP decision.
+
+It is not:
+
+- a new Planner;
+- a new Decision Engine;
+- a new Recommendation Engine;
+- a new architecture;
+- a new owner;
+- a new program;
+- a new queue;
+- a new Runtime;
+- a new truth source;
+- a scoring override;
+- an execution permission.
+
+Decision Trace does not change the decision.
+
+Decision Trace records why the existing OMP Candidate Sequencing Algorithm, Mission Admission, authority model, safety model, runtime model, rollback model, Engineering Chain, and owner evidence produced the decision.
+
+##### Reused Decision Principles
+
+OMP Decision Trace reuses mature-system principles normalized for V7:
+
+| Mature-system principle | V7 OMP Decision Trace interpretation |
+| --- | --- |
+| Filtering before scoring | The trace must show which candidates passed or failed each eligibility filter before value comparison. |
+| Phase-based decision process | The trace must preserve the exact decision stage where a candidate moved forward, held, or stopped. |
+| Health and readiness gates | Verification, rollback, runtime, production, and safety evidence must be visible as gate outcomes. |
+| Policy and authority separation | Authority must be named separately from value, convenience, or implementation desire. |
+| Reservation before binding | Dependency, critical-path, rollback, and STOP-safe constraints must be resolved before Mission Admission. |
+| Explainable dashboards | Operator-facing explanation must be simple; engineering-facing explanation must preserve full evidence and owner trace. |
+| Runtime guard discipline | Runtime guard, safety, and rollback failures must produce explicit hold/block reasons instead of hidden scoring penalties. |
+
+##### Decision Trace Scope
+
+Decision Trace applies to:
+
+- OMP Candidate Sequencing decisions;
+- OMP Mission Admission decisions;
+- OMP hold, block, reject, and not-applicable decisions for Candidate Instances;
+- OMP decisions that select one candidate while leaving alternatives unselected;
+- OMP decisions that return an existing canonical STOP.
+
+Decision Trace must not duplicate:
+
+- BDP Candidate Reality Gate;
+- OMP Implementation Candidate Eligibility Gate;
+- Behavior Enforcement Framework;
+- Execution Certification;
+- Engineering Report narrative;
+- Production Maturity certification;
+- Runtime verification.
+
+Responsibility split:
+
+| Owner / mechanism | Responsibility | Decision Trace use |
+| --- | --- | --- |
+| BDP | Proves candidate reality and candidate substance. | Trace links to BDP certificate; it does not re-prove it. |
+| OMP Eligibility / Admission | Decides whether a candidate can enter OMP execution. | Trace records the admission result and reason. |
+| OMP Candidate Sequencing Algorithm | Selects the best legal sequence. | Trace records each stage outcome and decisive criteria. |
+| Behavior Enforcement Framework | Verifies behavior chain completeness. | Trace records the consumed behavior-chain result. |
+| Execution Certification | Certifies completed execution evidence. | Trace records whether execution evidence is later eligible; it does not certify it. |
+| Engineering Report | Saves historical action evidence. | Report links to Decision Trace and summarizes the decision. |
+| Dashboard | Displays read-only OMP state. | Dashboard consumes trace; it never decides. |
+
+##### Decision Trace Required Fields
+
+Every Decision Trace must include:
+
+| Field | Required value |
+| --- | --- |
+| Decision Trace ID | Stable identifier for this trace. |
+| OMP Decision ID | OMP decision or action identifier. |
+| Decision Timestamp | Timestamp or `UNKNOWN_WITH_REASON`. |
+| Candidate ID | Candidate Instance ID, or legal terminal alternative ID. |
+| Candidate Source | BDP Candidate Catalogue, BDP minimal Discovery Economy output, Implementation Backlog, admitted Mission, existing owner work, or `NOT_APPLICABLE_WITH_REASON`. |
+| Decision Status | `SELECTED`, `REJECTED`, `HELD`, `BLOCKED`, `NOT_APPLICABLE`, `ADMITTED`, `NOT_ADMITTED`, or `UNKNOWN`. |
+| Decision Stage | Current stage from the canonical Decision Stage list. |
+| Decision Result | Final result produced by OMP. |
+| Stage Outcome | `PASS`, `FAIL`, `HOLD`, `BLOCKED`, `NOT_APPLICABLE`, or `UNKNOWN`. |
+| Reason | Exact engineering reason for the stage outcome. |
+| Evidence | Existing evidence pointer or `UNKNOWN_WITH_REASON`. |
+| Owner | Existing owner responsible for the evidence or decision input. |
+| Authority | Authority state, boundary, or stop condition. |
+| Verification | Verification path or legal missing-verification reason. |
+| Rollback | Rollback, containment, no-change terminal path, `STOP_SAFE`, or blocker. |
+| Production | Production impact, maturity impact, or `NOT_APPLICABLE_WITH_REASON`. |
+| Runtime | Runtime impact or `NOT_APPLICABLE_WITH_REASON`. |
+| Engineering Chain | Chain segment, dependency, consumer closure state, or legal gap. |
+| Candidate Coverage Matrix Delta | Cell delta or `NO_CHANGE_WITH_REASON`. |
+| Engineering Maturity Delta | Computed delta or `NOT_APPLICABLE_WITH_REASON`. |
+| Production Maturity Delta | Computed delta or `NOT_APPLICABLE_WITH_REASON`. |
+| Unblocks | Downstream Candidate IDs, owner transitions, or `NONE_WITH_REASON`. |
+| Newly Available Candidates | Candidate IDs or `NONE_WITH_REASON`. |
+| Remaining Blockers | Candidate IDs and blockers or `NONE`. |
+| Re-admission Conditions | Conditions required for future admissibility or `NOT_APPLICABLE_WITH_REASON`. |
+| Alternative Analysis | Why non-selected candidates were not selected. |
+| Final Verdict | Final OMP decision verdict. |
+| Engineering Report Pointer | Engineering report path or `PENDING_REPORT_WITH_REASON`. |
+
+##### Canonical Decision Stages
+
+Each evaluated candidate must receive a stage outcome for every applicable stage:
+
+```text
+Candidate Pool
+  -> Validity Filter
+  -> Safety Filter
+  -> Authority Filter
+  -> Runtime Filter
+  -> Rollback Filter
+  -> Dependency Ordering
+  -> Critical Path
+  -> Coverage Optimization
+  -> Engineering Value
+  -> System Engineering Value
+  -> Sequence Optimization
+  -> Mission Admission
+  -> Final Decision
+```
+
+Allowed stage outcomes:
+
+| Outcome | Meaning |
+| --- | --- |
+| `PASS` | Candidate passed this stage through existing evidence and owner rules. |
+| `FAIL` | Candidate is eliminated by this stage. |
+| `HOLD` | Candidate may become admissible after an existing blocker is resolved. |
+| `BLOCKED` | Candidate cannot continue because an owner, authority, evidence, runtime, rollback, production, or consumer condition blocks it. |
+| `NOT_APPLICABLE` | Stage does not apply and the trace explains why. |
+| `UNKNOWN` | Required evidence is unavailable; OMP must not invent a reason. |
+
+Every non-`PASS` outcome must name:
+
+- eliminating stage;
+- exact filter or rule;
+- existing owner;
+- evidence pointer or missing-evidence reason;
+- whether the candidate can become admissible later;
+- smallest existing next action required for re-admission, or legal terminal alternative.
+
+##### Rejected Candidate Trace
+
+For every rejected candidate, Decision Trace must state:
+
+| Question | Required answer |
+| --- | --- |
+| Which stage eliminated it? | Canonical Decision Stage. |
+| Which filter or rule eliminated it? | Existing OMP / owner rule. |
+| Why was it eliminated? | Exact reason, not a summary preference. |
+| Can it become admissible later? | `YES`, `NO`, or `UNKNOWN_WITH_REASON`. |
+| What is needed? | Evidence, owner action, authority, verification, rollback, production readiness, consumer closure, or `NOT_APPLICABLE_WITH_REASON`. |
+
+##### Selected Candidate Trace
+
+For every selected candidate, Decision Trace must state:
+
+| Question | Required answer |
+| --- | --- |
+| Why was it selected? | Decisive criteria from existing OMP stages. |
+| Which criteria decided? | Safety, authority, dependency, critical path, coverage, Engineering Value, System Engineering Value, rollback, runtime, verification, or production boundary. |
+| What system effect is expected? | Engineering Chain, maturity, production, runtime, verification, rollback, or consumer effect. |
+| What does it unblock? | Candidate IDs, owner transitions, mission path, or `NONE_WITH_REASON`. |
+| Which candidates become newly available? | Candidate IDs or `NONE_WITH_REASON`. |
+| How does Candidate Coverage Matrix change? | Cell delta or `NO_CHANGE_WITH_REASON`. |
+| How does Engineering Maturity change? | Delta or `NOT_APPLICABLE_WITH_REASON`. |
+| How does Production Maturity change? | Delta or `NOT_APPLICABLE_WITH_REASON`. |
+
+##### Alternative Explanation Rule
+
+When OMP selects candidate `A` over candidates `B`, `C`, or others, the trace must explain the strongest evidence-backed reason each alternative was not selected.
+
+Alternative explanation must not be persuasive text.
+
+It must be one of:
+
+- failed earlier filter;
+- held by existing owner blocker;
+- lower dependency priority;
+- lower critical-path impact;
+- lower coverage gain;
+- lower Engineering Value;
+- lower System Engineering Value;
+- higher runtime / production / rollback risk;
+- authority boundary;
+- missing verification;
+- missing consumer closure;
+- equal criteria with stronger evidence needed;
+- legal terminal alternative.
+
+##### Decision Tree Projection
+
+Decision Trace must expose a deterministic decision-tree projection:
+
+```text
+Candidate
+  -> Filter
+  -> Reason
+  -> Next Filter
+  -> Reason
+  -> Final Verdict
+```
+
+The decision tree is a projection of existing OMP logic.
+
+It must not become:
+
+- a new graph;
+- a new planner;
+- a new recommendation engine;
+- a new score model;
+- a new execution owner.
+
+##### Traceability Rule
+
+Every Decision Trace step must link to an existing owner.
+
+Trace may reference only:
+
+- OMP;
+- BDP;
+- AEP when consumed by OMP;
+- Current Program State;
+- Canonical Reference;
+- SYSTEM_MAP;
+- Runtime Model;
+- Decision Model;
+- Production Maturity Model;
+- Engineering Entity Model;
+- Engineering Chain Model;
+- Function Graph as discovery / context evidence;
+- Engineering Reports as historical evidence;
+- implementation owners named by existing owner maps.
+
+Decision Trace must not create new rules.
+
+Decision Trace must not mutate owner truth.
+
+Decision Trace must not silently promote report evidence to canonical truth.
+
+##### Engineering Report Link Rule
+
+Every Engineering Report created after an OMP decision must include:
+
+- Decision Trace ID;
+- Decision Trace Summary;
+- selected candidate, if any;
+- held / rejected / not-applicable alternatives, if any;
+- decisive criteria;
+- final OMP decision;
+- link or pointer to the full Decision Trace when stored separately;
+- `NOT_APPLICABLE_WITH_REASON` when the action did not include an OMP decision.
+
+The Engineering Report remains historical evidence.
+
+Decision Trace remains the structured explanation of the OMP decision.
+
+##### Dashboard Readiness
+
+Decision Trace must be suitable for future OMP Dashboard consumption without creating dashboard authority.
+
+Operator View must be able to show:
+
+- what OMP selected;
+- why it selected it;
+- why alternatives were not selected;
+- whether the decision is safe, held, blocked, rejected, or not applicable;
+- next action or STOP;
+- source owner.
+
+Engineering View must be able to show:
+
+- full candidate-by-candidate stage trace;
+- all stage outcomes;
+- evidence and owner pointers;
+- authority, verification, rollback, runtime, production, and Engineering Chain context;
+- coverage and maturity deltas;
+- alternative analysis;
+- final verdict.
+
+Dashboard may display Decision Trace only as read-only explanation.
+
+It must never use Decision Trace to approve, rank, mutate Runtime, expand authority, certify evidence, create a queue, or replace OMP.
+
+#### Decision Reproducibility Law
+
+Status: `CANONICAL`
+
+Decision Reproducibility is the permanent OMP law that every OMP engineering decision must be explainable, reproducible, deterministic, and auditable from existing canonical inputs.
+
+It extends the OMP Decision Trace Contract.
+
+It does not create:
+
+- a new architecture;
+- a new Planner;
+- a new Decision Engine;
+- a new Replay Engine;
+- a new owner;
+- a new program;
+- a new model;
+- a new truth source;
+- a new Runtime path.
+
+Decision Reproducibility reuses:
+
+- OMP Candidate Sequencing Algorithm;
+- OMP Decision Trace Contract;
+- deterministic tie-breaking in Candidate Sequencing;
+- BDP Candidate Reality Gate certificates;
+- OMP Implementation Candidate Eligibility / Admission certificates;
+- Behavior Enforcement Framework;
+- Current Program State;
+- Authority, verification, rollback, runtime, production, and Engineering Chain owners;
+- Decision Lifecycle / Decision Freshness from Runtime Model;
+- Mission Replay and Scheduler Determinism from Execution Mission Protocol when OMP decision becomes an admitted Mission;
+- Engineering Reports as historical evidence only.
+
+##### Reproducibility Definition
+
+For any OMP decision, if OMP receives the same canonical inputs, it must produce the same decision.
+
+Canonical inputs are:
+
+| Input | Source |
+| --- | --- |
+| Candidate Pool | OMP-admissible candidate records from existing owners. |
+| BDP Certificate | BDP Candidate Reality Gate output when candidate is BDP-derived. |
+| OMP Certificate | OMP Eligibility / Admission certificate. |
+| Behavior Chain | Behavior Enforcement Framework result. |
+| Current Program State | `docs/programs/V7_CURRENT_PROGRAM_STATE.md`. |
+| Authority Boundary | Existing authority owner / OMP authority state. |
+| Verification | Existing verification owner / verification path. |
+| Rollback Boundary | Rollback, containment, no-change terminal path, or `STOP_SAFE` evidence. |
+| Production Boundary | Production Maturity / production owner evidence. |
+| Runtime Boundary | Runtime Model / runtime owner evidence where applicable. |
+| Engineering Chain | Engineering Chain owner, dependency, consumer, and terminal path evidence. |
+| Candidate Coverage Matrix | Existing BDP / OMP coverage evidence when applicable. |
+| Engineering Value | Certified candidate value input when present. |
+| System Engineering Value | Certified system-level value input when present. |
+| OMP Version | The exact OMP version used for the decision. |
+| Canonical owner versions / pointers | Existing canonical document or owner pointers used by the decision. |
+
+If these inputs are identical, OMP must produce identical:
+
+- Decision Trace;
+- Decision Fingerprint;
+- candidate filtering outcomes;
+- rejection reasons;
+- selection reasons;
+- final sequence;
+- Mission Admission result;
+- STOP result, if any;
+- Final Verdict.
+
+##### Decision Fingerprint
+
+Every OMP decision must produce a `Decision Fingerprint`.
+
+Decision Fingerprint is a deterministic identifier computed only from canonical OMP decision inputs.
+
+Decision Fingerprint may include:
+
+- normalized Candidate Pool IDs and candidate identities;
+- BDP Certificate IDs / hashes;
+- OMP Certificate IDs / hashes;
+- Behavior Chain status;
+- Current Program State pointer / state hash;
+- authority boundary;
+- verification boundary;
+- rollback boundary;
+- production boundary;
+- runtime boundary;
+- Engineering Chain dependency state;
+- Candidate Coverage Matrix state;
+- Engineering Value and System Engineering Value inputs;
+- OMP version;
+- canonical owner pointers used in the decision.
+
+Decision Fingerprint must not include:
+
+- random values;
+- wall-clock timestamps;
+- session IDs;
+- chat IDs;
+- unstable temporary identifiers;
+- generated prose;
+- file ordering unless normalized;
+- environment-specific path noise;
+- any value not owned by an existing canonical input.
+
+Timestamp may be recorded in Decision Trace for history, but it must not affect Decision Fingerprint.
+
+##### Decision Replay
+
+OMP must be able to replay a decision from its Decision Trace and canonical input snapshot.
+
+Decision Replay must reconstruct:
+
+- Candidate Pool;
+- every filter stage;
+- every stage outcome;
+- every rejection reason;
+- every selection reason;
+- alternative explanations;
+- final sequence;
+- Mission Admission result;
+- STOP result;
+- Final Verdict.
+
+Decision Replay result must be one of:
+
+| Result | Meaning |
+| --- | --- |
+| `REPLAY_PASS` | Replay reproduced the same Decision Fingerprint, Decision Trace, sequence, admission result, STOP, and final verdict. |
+| `REPLAY_FAIL` | Replay did not reproduce the same result. |
+| `REPLAY_BLOCKED_MISSING_INPUT` | A required canonical input is unavailable. |
+| `REPLAY_NOT_APPLICABLE` | The action did not include an OMP decision. |
+
+Replay is an audit function over existing OMP evidence.
+
+Replay must not decide, rank, admit, execute, certify, mutate Runtime, expand authority, or create a new candidate.
+
+##### Decision Drift
+
+Decision Drift exists when two OMP decisions for the same candidate set or mission context produce different outputs.
+
+Decision Drift is acceptable only when at least one canonical input changed.
+
+OMP must identify the changed input category:
+
+- Candidate Pool;
+- BDP Certificate;
+- OMP Certificate;
+- Behavior Chain;
+- Current Program State;
+- Authority Boundary;
+- Verification;
+- Rollback Boundary;
+- Production Boundary;
+- Runtime Boundary;
+- Engineering Chain;
+- Candidate Coverage Matrix;
+- Engineering Value;
+- System Engineering Value;
+- OMP Version;
+- canonical owner pointer;
+- other existing owner input.
+
+If no changed canonical input is identified, the decision is non-deterministic.
+
+##### Non-Deterministic Decision Stop
+
+OMP must never produce different decisions from identical canonical inputs.
+
+If replay detects different Decision Trace, sequence, Mission Admission, STOP, or Final Verdict for identical inputs, OMP must classify the situation as:
+
+```text
+NON_DETERMINISTIC_DECISION
+```
+
+and stop further execution until the source of non-determinism is identified and corrected through an existing owner.
+
+Allowed outputs after `NON_DETERMINISTIC_DECISION`:
+
+- `STOP_SAFE`;
+- `ENGINEERING_AUTHORITY`;
+- `REPLAY_BLOCKED_MISSING_INPUT`;
+- `EXISTING_OWNER_CORRECTION_REQUIRED`;
+- `FUNDAMENTAL_ARCHITECTURE_GAP` only if existing owners cannot express the defect after proof.
+
+OMP must not continue by manual preference, generated explanation, or operator convenience when deterministic replay fails.
+
+##### Decision Audit Requirements
+
+Decision Trace and Decision Replay together must answer at any time:
+
+| Question | Required answer |
+| --- | --- |
+| Why was this decision made? | Decision Trace stages, reasons, evidence, owners, and final verdict. |
+| Can it be repeated? | `REPLAY_PASS`, `REPLAY_FAIL`, `REPLAY_BLOCKED_MISSING_INPUT`, or `REPLAY_NOT_APPLICABLE`. |
+| Which inputs were used? | Canonical input snapshot and Decision Fingerprint components. |
+| What changed between two decisions? | Decision Drift explanation naming changed canonical inputs. |
+| Why did an alternative lose? | Alternative Explanation Rule from Decision Trace. |
+| Why did execution stop? | STOP result and owner-mapped reason. |
+
+##### Dashboard Reproducibility Readiness
+
+Future OMP Dashboard may display Decision Reproducibility fields as read-only evidence:
+
+- Decision Fingerprint;
+- Replay status;
+- Replay PASS / FAIL;
+- Decision Drift;
+- Difference Explanation;
+- changed canonical input category;
+- non-determinism stop reason.
+
+Dashboard must not compute decisions from these fields.
+
+Dashboard must not become the Replay owner, Decision owner, Planner, or truth source.
+
+##### Engineering Report Reproducibility Link
+
+Every Engineering Report created after an OMP decision must include:
+
+- Decision Fingerprint;
+- Replay Status;
+- Decision Drift status;
+- Difference Explanation when replay differs from a prior decision;
+- `NON_DETERMINISTIC_DECISION` when identical inputs produce different outputs;
+- `NOT_APPLICABLE_WITH_REASON` when the action did not include an OMP decision.
+
+#### Implementation Candidate Identity
+
+Status: `CANONICAL`
+
+OMP must prevent duplicate Missions by resolving the engineering identity of every accepted BDP Implementation Candidate before Mission creation.
+
+Implementation Candidate identity is not:
+
+- candidate title;
+- report heading;
+- file path;
+- function name;
+- class name;
+- document location;
+- wording similarity.
+
+Implementation Candidate identity is the normalized engineering meaning of the candidate as consumed by OMP.
+
+OMP must distinguish:
+
+| Identity level | Meaning | OMP rule |
+| --- | --- | --- |
+| `Implementation Candidate Class` | Reusable engineering problem pattern. | May be shared by multiple real situations. It must not automatically become one Mission. |
+| `Implementation Candidate Instance` | One concrete engineering situation that may require implementation. | This is the unit OMP admits, holds, rejects, marks not applicable, reopens, or converts into a Mission. |
+| `OMP Mission Identity` | OMP-admitted execution identity derived from one Candidate Instance or one safe Cohort of compatible Instances. | Prevents duplicate in-progress Missions and preserves implementation history. |
+
+Class examples:
+
+- `SERVICE_SPECIFIC_CHANNEL_FAILURE`;
+- `VERIFICATION_CHAIN_BREAK`;
+- `CONSUMER_CONFIRMATION_MISSING`;
+- `AUTHORITY_BOUNDARY_BLOCK`;
+- `ROLLBACK_UNCERTAINTY`.
+
+Instance examples:
+
+- Telegram fails for User A on Channel X during Evidence Window N;
+- YouTube fails for User B on Channel Y during Evidence Window M;
+- Verification is missing for Mission Z after implementation report R.
+
+Different Instances may share one Class. OMP must create, hold, reject, or close Missions by Instance, not by Class.
+
+#### Candidate Identity Components
+
+OMP must resolve identity through the minimum deterministic set of available components.
+
+Core identity components:
+
+| Component | Class / Instance role |
+| --- | --- |
+| Engineering Intent | Required for both Class and Instance. |
+| Automation Break | Required when the candidate comes from automation or Behaviour Discovery evidence. |
+| Affected Behaviour | Required when Behaviour is known; otherwise record `UNKNOWN_WITH_REASON`. |
+| Affected Capability | Required when capability is known; otherwise record `NOT_APPLICABLE_WITH_REASON`. |
+| Affected Owner | Required existing owner or `OWNER_EXTENSION_REQUIRED`. |
+| Affected Consumer | Required expected consumer or `CONSUMER_UNKNOWN_WITH_REASON`. |
+| Required Service | Class component when service-specific; Instance component when scoped to a concrete service case. |
+| Policy Context | Required when policy constrains action. |
+| Current State | Instance component. |
+| Expected State | Required intent component. |
+| Failure Mode | Class component when generalized; Instance component when evidence-specific. |
+| Evidence Window | Instance component. |
+| Runtime Context | Instance component when runtime relevant. |
+| User Scope | Instance component or `NOT_APPLICABLE_WITH_REASON`. |
+| Group Scope | Instance component or `NOT_APPLICABLE_WITH_REASON`. |
+| Channel Scope | Instance component or `NOT_APPLICABLE_WITH_REASON`. |
+| Verification Context | Required before Mission creation. |
+| Rollback Context | Required before implementation-bearing Mission creation. |
+| Authority Context | Required before Mission creation. |
+
+If identity cannot be resolved deterministically, OMP must return `MISSION_HOLD` with `IDENTITY_UNRESOLVED`.
+
+#### Candidate Class and Instance Rules
+
+OMP must apply these rules before creating a Mission:
+
+1. Same Class and same Instance identity means the candidate is a duplicate or reopen of the same real engineering situation.
+2. Same Class with different Instance identity means separate real engineering situations exist.
+3. Same title with different Instance identity must not be merged.
+4. Different title with same Instance identity must be merged or attached as additional evidence.
+5. Same affected function, file, or component is never sufficient to prove same Instance.
+6. Same Behaviour is never sufficient to prove same Instance when user, service, channel, evidence window, authority, verification, rollback, or runtime context differs.
+7. OMP may not create a Mission from a Class alone.
+8. OMP may create a Mission only from a Candidate Instance or from a safe Cohort Mission defined below.
+
+#### Instance Duplicate Check
+
+Before Mission creation OMP must check whether the Candidate Instance:
+
+- already exists as an accepted Mission;
+- is already in progress;
+- has already been implemented;
+- has already been verified and closed;
+- has been superseded by a later Instance or owner change;
+- is part of an existing Cohort Mission;
+- is rejected, held, or not applicable for a still-valid reason.
+
+Duplicate check outcomes:
+
+| Outcome | Meaning | OMP action |
+| --- | --- | --- |
+| `NEW_INSTANCE` | No equivalent Instance is known. | Continue admission. |
+| `DUPLICATE_INSTANCE` | Same Instance already exists and is not materially changed. | Attach evidence; do not create a new Mission. |
+| `ACTIVE_INSTANCE` | Same Instance is already in an active Mission. | Attach evidence; keep existing Mission. |
+| `CLOSED_INSTANCE_REPEAT` | Same Instance reappeared after closure. | Apply Reopen Rules. |
+| `SUPERSEDED_INSTANCE` | Same Instance is covered by a newer accepted Mission or terminal alternative. | Attach evidence to superseding record; do not create a duplicate Mission. |
+| `COHORT_MEMBER` | Instance is already covered by a safe Cohort Mission. | Attach evidence to Cohort Mission. |
+| `IDENTITY_UNRESOLVED` | Deterministic identity cannot be established. | `MISSION_HOLD`. |
+
+#### Candidate Merge Rule
+
+OMP may merge candidate evidence only when deterministic identity proves the same Candidate Instance.
+
+Merge preserves:
+
+- all source evidence;
+- all originating BDP candidate references;
+- all Engineering Intent references;
+- all affected Behaviour references;
+- all owner and consumer evidence;
+- all verification, rollback, authority, runtime, policy, and production context;
+- original discovery history.
+
+Merge must not:
+
+- erase different Instances;
+- merge by name similarity;
+- merge by shared Class only;
+- merge across different authority, verification, rollback, runtime, policy, user, group, channel, or evidence-window contexts unless Cohort Safety explicitly permits it.
+
+#### Cohort Mission Safety Rule
+
+OMP may combine multiple Candidate Instances into one Cohort Mission only when all of the following are true:
+
+- Engineering Intent is identical;
+- Automation Break is identical or not applicable for all members;
+- affected Behaviour and Capability are compatible;
+- required owner is identical;
+- required consumer is identical or explicitly compatible;
+- verification path is identical;
+- rollback / containment / `STOP_SAFE` path is identical;
+- authority boundary is identical;
+- policy context is identical;
+- runtime context is compatible;
+- blast radius permits combined handling;
+- per-Instance evidence remains traceable;
+- per-Instance terminal status can be recorded.
+
+If any condition fails, OMP must keep Missions separate.
+
+Cohort Mission is not a new queue, owner, Runtime, Planner, or architecture. It is only an OMP Mission form for safely handling multiple compatible Instances through one existing owner path.
+
+#### Implementation Candidate Lifecycle
+
+Every Candidate Instance consumed by OMP must have exactly one current lifecycle state:
+
+| State | Meaning |
+| --- | --- |
+| `DISCOVERED` | Produced by BDP or another accepted input owner but not normalized by OMP. |
+| `NORMALIZED` | Identity components resolved and Class / Instance distinction recorded. |
+| `MERGED` | Same Instance evidence attached to an existing record. |
+| `MISSION_CREATED` | OMP admitted the Instance or safe Cohort as a Mission. |
+| `IN_PROGRESS` | Mission has been assigned or is being executed. |
+| `IMPLEMENTED` | Implementation output exists. |
+| `VERIFIED` | Required verification evidence exists. |
+| `CLOSED` | Legal terminal consumer reached. |
+| `SUPERSEDED` | Later accepted Instance, owner change, or terminal alternative replaces the old record. |
+| `REOPENED` | Closed Instance became active again due to new evidence or recurrence. |
+
+Candidate Instance lifecycle is stored in the existing Mission / Backlog / report / CPS evidence surfaces as applicable. OMP must not create a parallel Candidate queue.
+
+Mission lifecycle is the OMP-admitted segment of Candidate Instance lifecycle:
+
+```text
+MISSION_CREATED
+  -> IN_PROGRESS
+  -> IMPLEMENTED
+  -> VERIFIED
+  -> CLOSED / SUPERSEDED / REOPENED / terminal hold
+```
+
+Mission lifecycle must never be used to identify a Candidate Class. It tracks execution of one Candidate Instance or one safe Cohort Mission after OMP admission.
+
+#### Mission Reopen Rules
+
+After `CLOSED`, a Candidate Instance may be found again.
+
+OMP must determine:
+
+| Reopen classification | Meaning | OMP action |
+| --- | --- | --- |
+| `NEW_INSTANCE` | Same Class, but different user, group, channel, service, evidence window, runtime, authority, verification, rollback, or policy context. | Run new admission and create a separate Mission if accepted. |
+| `REPEATED_INSTANCE` | Same Instance recurs after closure with materially same identity. | Reopen existing Mission lineage or create a reopened Mission record linked to the original closure. |
+| `REGRESSION` | Same Instance returns after verified implementation. | Reopen with regression evidence and verification owner. |
+| `SUPERSEDED_BY_CONTEXT` | Prior closure no longer applies because owner, policy, authority, runtime, or verification context changed. | Mark old record `SUPERSEDED`; run new admission. |
+| `NOT_APPLICABLE_REPEAT` | Repeat evidence does not require implementation because terminal alternative remains valid. | Preserve evidence; no Mission. |
+
+Reopen must preserve the original identity, closure evidence, repeat evidence, and reason for reopening.
+
+Every OMP Mission produced from BDP must preserve:
+
+- Behaviour;
+- Engineering Intent;
+- Automation Break when applicable;
+- Implementation Candidate ID;
+- Implementation Candidate Class;
+- Implementation Candidate Instance Identity;
+- Mission Identity;
+- Candidate lifecycle state;
+- duplicate check outcome;
+- merge or Cohort decision;
+- reopen classification when applicable;
+- Expected Intent Closure;
+- Owner;
+- Producer;
+- Consumer;
+- dependencies;
+- authority boundary;
+- verification path;
+- rollback / containment / `STOP_SAFE`;
+- Runtime impact;
+- production impact;
+- Codex handoff boundary;
+- terminal state.
+
+Mission handoff to Codex:
+
+```text
+OMP Mission
+  -> Codex Implementation Input
+  -> Existing Owner Implementation
+  -> Verification
+  -> Engineering Report
+  -> Current Program State
+  -> Reality / BDP evidence refresh when required
+```
+
+Codex is an implementation assistant for an approved OMP Mission. Codex is not a Runtime actor, owner, Planner, authority source, backlog owner, or production dependency.
+
+Backlog role after BDP alignment:
+
+- Backlog records admitted Mission state.
+- Backlog does not discover candidates.
+- Backlog does not replace BDP.
+- Backlog does not create a parallel queue.
+- Backlog does not self-authorize implementation.
+- OMP remains the only mission admission and sequencing authority.
+
+Continuous engineering after Mission completion:
+
+```text
+Mission Terminal State
+  -> Verification
+  -> Engineering Report
+  -> Current Program State
+  -> Reality evidence updated when applicable
+  -> BDP refresh when AEP/OMP/operator requires new Behaviour evidence
+  -> new Implementation Candidate Catalogue only if BDP produces one
+  -> OMP admission
+  -> next Mission or terminal stop
+```
+
+OMP may request or consume refreshed BDP output, but OMP must not run Discovery itself and must not automatically create a Mission from any refreshed candidate.
 
 World research must include all relevant successful systems and must not stop after the first example.
 Required sources include, where applicable: Cisco, Juniper, Arista, Cloudflare, Google, Google SRE, Google Traffic Engineering, Netflix, AWS, Azure, GCP, Kubernetes, Envoy, Istio, Linkerd, HAProxy, NGINX, Meta, Microsoft, Apple, OpenBSD PF, Linux routing, BGP, OSPF, IS-IS, MPLS, SD-WAN, IETF RFCs, academic papers, production postmortems, large-scale distributed systems, operator best practices, community consensus, and any other highly relevant industry source.
@@ -1718,6 +3532,10 @@ These laws are immutable unless a future ADR explicitly supersedes them:
 | Law 13 | Behavior Propagation Law. Every component must change the behavior of another existing component before completion. |
 | Law 14 | State Transition Law. Every verified behavior must either change system state or explain why state cannot yet change. |
 | Law 15 | Continue OMP Law. If state cannot change, OMP must identify the smallest executable next action through existing owners. |
+| Law 16 | Necessity Law. Every owner, capability, function, module, service, CLI, API, read model, dashboard, engineering process, or document must prove why it deserves to exist through the existing Necessity Framework before it can remain permanent. |
+| Law 17 | Capability Maturity Protection Law. No Necessity, Merge, Remove, Value Conservation, Collapse, Owner Elimination, Function Elimination, or architectural minimization may alter an element that belongs to an unfinished capability. |
+| Law 18 | Engineering Work In Progress Protection Law. No Necessity, Merge, Remove, Value Conservation, Collapse, Owner Elimination, Function Elimination, Module Elimination, Document Elimination, Capability Elimination, or architectural minimization may alter an engineering object that participates in any unfinished engineering lifecycle. |
+| Law 19 | Approved Future Dependency Protection Law. No Necessity, Merge, Remove, Value Conservation, Collapse, Owner Elimination, Function Elimination, Module Elimination, Document Elimination, Capability Elimination, or architectural minimization may alter an engineering object that is already required by an approved future execution plan or canonical dependency. |
 
 ### Architectural Design Methodology Execution
 
@@ -1854,6 +3672,513 @@ Current semantic reuse audit for OMP V4.0:
 | Extension strategy | Add production maturity ladder, authority evaluation, continuous optimization, continuous knowledge evolution, and permanent command surface to OMP. |
 | Need New Owner | `FALSE` |
 
+### 2.7.1 Necessity Framework Consumption
+
+Status: `CANONICAL_OMP_CONSUMPTION_RULE`.
+
+Canonical framework:
+
+```text
+docs/reference/V7_NECESSITY_FRAMEWORK.md
+```
+
+OMP does not create a Necessity Engine, Necessity Program, Necessity Planner, Necessity Runtime, new owner, graph, queue, or Candidate type.
+
+OMP consumes the existing Necessity Framework as the mandatory existence filter for:
+
+- owners;
+- capabilities;
+- functions;
+- modules;
+- services;
+- CLIs;
+- APIs;
+- read models;
+- dashboards;
+- engineering processes;
+- documents.
+
+Necessity Framework Consumption reuses:
+
+- Behavior Enforcement;
+- State Transition Verification;
+- Automation Gap Closure;
+- Intent Responsibility Resolution;
+- Need New Owner Gate;
+- Architecture Closed by Default;
+- Semantic Reuse Audit;
+- BDP candidate production;
+- OMP Mission admission.
+
+#### Engineering Work In Progress Protection
+
+Before any Necessity Analysis, Merge Test, Removal Test, Value Conservation, Collapse, Owner Elimination, Function Elimination, Module Elimination, Document Elimination, Capability Elimination, or architectural minimization, OMP must determine whether the object participates in unfinished engineering work.
+
+This is not a Protection Engine, Work Engine, Lifecycle Engine, new owner, new program, Runtime, Planner, graph, queue, or new architecture.
+
+It reuses:
+
+- Capability Lifecycle;
+- Mission Lifecycle;
+- Implementation Candidate lifecycle;
+- Engineering Chain;
+- Engineering Chain Dependency Projection;
+- `Depends On` and `Unblocks` relationships;
+- BDP Discovery outputs;
+- OMP Mission admission;
+- Automation Gap Closure;
+- Intent Responsibility Resolution;
+- Behavior Enforcement;
+- State Transition Verification;
+- Verification;
+- Certification;
+- Root Cause Engine;
+- SYSTEM_MAP owner mapping;
+- Current Program State;
+- Necessity Framework.
+
+Required pre-check:
+
+| Question | Required answer |
+| --- | --- |
+| Does the object participate in unfinished engineering work? | `YES`, `NO`, or `UNKNOWN_WITH_REASON`. |
+| Which lifecycle is unfinished? | Existing lifecycle name or `NONE`. |
+| Which owner owns the unfinished lifecycle? | Existing owner or `UNKNOWN_WITH_REASON`. |
+| What is the current lifecycle state? | Existing state from OMP / BDP / Mission / Chain / Verification / Certification / CPS. |
+| What must complete before minimization? | Exact completion, closure, verification, certification, consumer, or terminal condition. |
+| Is architectural minimization allowed? | `YES` only when no unfinished lifecycle remains. |
+
+An object is protected when at least one of the following is true:
+
+- related Capability is not complete / certified / locked / terminal;
+- Mission is active;
+- Engineering Chain is not complete;
+- Behavior Chain is not `COMPLETE`;
+- State Transition is not completed or explained;
+- Engineering Intent is not closed;
+- `Depends On` is open;
+- `Unblocks` is open;
+- Implementation Candidate is open, active, held, in progress, reopened, or not terminal;
+- object participates in open BDP Discovery;
+- object participates in open OMP Mission;
+- Verification is unfinished;
+- Certification is unfinished;
+- Root Cause is active;
+- expected Consumer is pending;
+- expected Producer is pending;
+- integration is unfinished;
+- any other existing engineering lifecycle involving the object has not reached its existing terminal state or legal terminal consumer.
+
+If any condition is true, OMP must return:
+
+```text
+PROTECTED_BY_ENGINEERING_WORK_IN_PROGRESS
+```
+
+`PROTECTED_BY_ENGINEERING_WORK_IN_PROGRESS` is a protection status, not a Necessity verdict and not a new lifecycle state.
+
+While protection is active, OMP must not perform:
+
+- `MERGE`;
+- `REMOVE`;
+- Collapse;
+- Value Conservation;
+- Necessity Removal;
+- Owner Elimination;
+- Function Elimination;
+- Module Elimination;
+- Document Elimination;
+- Capability Elimination;
+- any architectural minimization that changes or removes the protected object.
+
+OMP must record:
+
+- protected object;
+- unfinished lifecycle;
+- lifecycle owner;
+- lifecycle state;
+- open dependency / producer / consumer / verification / certification / root cause when applicable;
+- smallest existing next action;
+- exact terminal condition required before minimization can be reconsidered.
+
+If OMP cannot determine whether the object participates in unfinished engineering work, it must not proceed with minimization.
+
+Instead, OMP must route ordinary Implementation Candidate Instance work to resolve missing lifecycle mapping:
+
+```text
+Engineering work mapping unknown
+  -> BDP candidate production when discovery is required
+  -> OMP candidate consumption
+  -> Mission Admission
+  -> lifecycle mapping correction / hold / rejection / not applicable
+  -> verification
+  -> Engineering Report
+```
+
+Architectural minimization becomes allowed only after the object no longer participates in any unfinished engineering lifecycle.
+
+#### Approved Future Dependency Protection
+
+Before any Necessity Analysis, Merge Test, Removal Test, Value Conservation, Collapse, Owner Elimination, Function Elimination, Module Elimination, Document Elimination, Capability Elimination, or architectural minimization, OMP must determine whether the object is required by an approved future execution plan or canonical dependency.
+
+This is not a Protection Engine, Work Engine, Lifecycle Engine, new owner, new program, Runtime, Planner, graph, queue, or new architecture.
+
+It reuses:
+
+- Approved OMP Mission;
+- Approved Implementation Candidate;
+- Planned Mission;
+- Approved Engineering Chain;
+- Approved Capability;
+- Planned State Transition;
+- Approved Verification;
+- Approved Certification;
+- Planned Integration;
+- Planned Producer;
+- Planned Consumer;
+- Planned Behavior Chain;
+- Planned Runtime Transition;
+- `Depends On` and `Unblocks`;
+- Engineering Chain Dependency Projection;
+- Current Program State;
+- SYSTEM_MAP owner mapping;
+- OMP Mission admission;
+- BDP Candidate evidence;
+- Necessity Framework.
+
+Required pre-check:
+
+| Question | Required answer |
+| --- | --- |
+| Is the object part of an approved future execution plan? | `YES`, `NO`, or `UNKNOWN_WITH_REASON`. |
+| Which approved plan requires it? | Approved Mission, Candidate, Chain, Capability, Transition, Verification, Certification, Integration, Producer, Consumer, Behavior Chain, Runtime Transition, dependency, or `NONE`. |
+| Which owner approved or accepted the plan? | Existing owner or `UNKNOWN_WITH_REASON`. |
+| What future dependency uses the object? | Existing dependency name / edge / plan field. |
+| What must complete or be cancelled before minimization? | Plan completion, official cancellation, supersession, rejection, or legal terminal alternative. |
+| Is architectural minimization allowed? | `YES` only when no approved future dependency remains. |
+
+An object is protected when it is part of:
+
+- Approved OMP Mission;
+- Approved Implementation Candidate;
+- Planned Mission;
+- Approved Engineering Chain;
+- Approved Capability;
+- Planned State Transition;
+- Approved Verification;
+- Approved Certification;
+- Planned Integration;
+- Planned Producer;
+- Planned Consumer;
+- Planned Behavior Chain;
+- Planned Runtime Transition;
+- `Depends On`;
+- `Unblocks`;
+- Engineering Chain Dependency Projection;
+- any other existing canonical dependency accepted for future execution.
+
+If any approved future dependency exists, OMP must return:
+
+```text
+PROTECTED_BY_APPROVED_FUTURE_DEPENDENCY
+```
+
+`PROTECTED_BY_APPROVED_FUTURE_DEPENDENCY` is a protection status, not a Necessity verdict and not a new lifecycle state.
+
+While protection is active, OMP must not perform:
+
+- `MERGE`;
+- `REMOVE`;
+- Collapse;
+- Value Conservation;
+- Necessity Removal;
+- Owner Elimination;
+- Function Elimination;
+- Module Elimination;
+- Document Elimination;
+- Capability Elimination;
+- any architectural minimization that changes or removes the protected object.
+
+Protection may be removed only when the approved future plan:
+
+- completed successfully;
+- was officially cancelled through the existing OMP lifecycle;
+- was superseded by an approved replacement that no longer requires the object;
+- reached a legal terminal alternative.
+
+Protection must not be removed merely because the object has no current runtime use, current consumer, or current downstream value.
+
+OMP must record:
+
+- protected object;
+- approved future plan;
+- approving / accepting owner;
+- dependency type;
+- dependency evidence;
+- plan state;
+- required completion / cancellation / supersession / terminal condition;
+- smallest existing next action.
+
+If OMP cannot determine whether the object belongs to an approved future dependency, it must not proceed with minimization.
+
+Instead, OMP must route ordinary Implementation Candidate Instance work to resolve missing future dependency mapping:
+
+```text
+Future dependency mapping unknown
+  -> BDP candidate production when discovery is required
+  -> OMP candidate consumption
+  -> Mission Admission
+  -> dependency mapping correction / hold / rejection / not applicable
+  -> verification
+  -> Engineering Report
+```
+
+Unified protection rule:
+
+```text
+Object is protected if:
+  Engineering Work In Progress Protection = PROTECTED_BY_ENGINEERING_WORK_IN_PROGRESS
+  OR Approved Future Dependency Protection = PROTECTED_BY_APPROVED_FUTURE_DEPENDENCY
+```
+
+Only when both protections are clear may OMP continue to Necessity, Merge, Remove, Value Conservation, or another architectural minimization mechanism.
+
+#### Capability Maturity Protection
+
+Before any Necessity Analysis, Merge Test, Removal Test, Value Conservation, Collapse, Owner Elimination, Function Elimination, or architectural minimization, OMP must determine whether the element belongs to an existing capability.
+
+This is not a Protection Engine, Capability Engine, Lifecycle Engine, Optimization Engine, new owner, Runtime, Planner, graph, queue, or new program.
+
+It reuses:
+
+- Capability Management;
+- Capability status values;
+- Capability Certification;
+- Capability Lock;
+- Current Program State capability progress;
+- SYSTEM_MAP owner mapping;
+- Necessity Framework;
+- Architecture Closed by Default;
+- Need New Owner Gate;
+- Semantic Reuse Audit;
+- OMP.
+
+Required pre-check:
+
+| Question | Required answer |
+| --- | --- |
+| Is the element part of a capability? | `YES`, `NO`, or `UNKNOWN_WITH_REASON`. |
+| If yes, which capability? | Existing capability name. |
+| What is the capability status? | Existing Capability Management status. |
+| Is the capability complete/certified/locked? | `YES`, `NO`, or `UNKNOWN_WITH_REASON`. |
+| Is architectural minimization allowed? | `YES` only after completion/certification/lock, otherwise `NO`. |
+
+If the element is not part of a capability, OMP continues with ordinary Necessity Framework Consumption.
+
+If the element is part of a capability whose status is unfinished, OMP must return:
+
+```text
+PROTECTED_BY_CAPABILITY_MATURITY
+```
+
+`PROTECTED_BY_CAPABILITY_MATURITY` is a protection status, not a Necessity verdict and not a new lifecycle state.
+
+Unfinished capability states include:
+
+- `Idea`;
+- `Need Identified`;
+- `Creation Justified`;
+- `Implemented`;
+- `Integrated`;
+- `Necessity Verified`;
+- `IN_PROGRESS`;
+- `OPEN`;
+- `PARTIAL`;
+- `BLOCKED`;
+- `BROKEN`;
+- any existing capability status that has not reached capability completion, certification, lock, retirement, or another legal terminal consumer.
+
+While protection is active, OMP must not perform:
+
+- `MERGE`;
+- `REMOVE`;
+- Collapse;
+- Value Conservation;
+- Necessity Removal;
+- Owner Elimination;
+- Function Elimination;
+- any architectural minimization that changes or removes the protected element.
+
+OMP must record:
+
+- protected element;
+- capability name;
+- capability status;
+- remaining Definition of Done / certification blocker;
+- why the capability is still developing;
+- smallest existing next action.
+
+Architectural minimization becomes allowed only when the capability has reached an existing complete or terminal state, such as:
+
+- `COMPLETE`;
+- `Capability Certified`;
+- `LOCKED`;
+- `Capability Locked`;
+- `Capability Retired`;
+- another existing legal terminal consumer recorded by Capability Management.
+
+If OMP cannot determine whether the element belongs to a capability, it must not proceed with minimization.
+
+Instead, OMP must route ordinary Implementation Candidate Instance work to resolve missing capability mapping:
+
+```text
+Capability mapping unknown
+  -> BDP candidate production when discovery is required
+  -> OMP candidate consumption
+  -> Mission Admission
+  -> mapping correction / hold / rejection / not applicable
+  -> verification
+  -> Engineering Report
+```
+
+#### Mandatory Necessity Questions
+
+When an element is created, kept permanent, locked, merged, removed, deprecated, made historical, or promoted to canonical status, OMP must answer:
+
+| Question | Required answer |
+| --- | --- |
+| Why does the element exist? | Existence Justification from the Necessity Framework. |
+| What problem does it solve? | Unique engineering problem or `INCOMPLETE_WITH_REASON`. |
+| Who consumes it? | Existing consumer owner or `CONSUMER_MISSING`. |
+| What happens if it is removed? | Removal Test result. |
+| What happens if it is merged into an existing owner? | Merge Test result. |
+| Which existing owner can already provide the same value? | Owner name or `NONE_WITH_REASON`. |
+| Does its behavior reach Legal Terminal Consumer? | Chain Test result. |
+
+#### Mandatory Necessity Fields
+
+Every Necessity evaluation must record:
+
+| Field | Required value |
+| --- | --- |
+| `existence_justification` | Unique reason the element exists, not implementation history. |
+| `semantic_necessity` | Whether the element produces unique meaning/value. |
+| `consumer_value` | Existing consumer and consumed output. |
+| `system_effect` | Behavior change, blocked unsafe action, state update, certification, visibility, or `MISSING`. |
+| `state_transition_contribution` | `STATE_TRANSITION_COMPLETED`, `STATE_TRANSITION_EXPLAINED`, or blocker. |
+| `production_value` | Safety, Reliability, Performance, Knowledge, Decision Quality, Operator Effectiveness, Automation Readiness, Production Maturity, Business Objective, or `MISSING`. |
+| `creation_test` | `YES`, `NO`, or `NOT_APPLICABLE_WITH_REASON`. |
+| `removal_test` | What becomes impossible if the element is removed. |
+| `merge_test` | Existing owner merge possibility or `NO_WITH_REASON`. |
+| `chain_test` | Whether behavior reaches Legal Terminal Consumer. |
+| `necessity_verdict` | One allowed verdict. |
+| `necessity_certification_state` | Existing owner acceptance state. |
+
+#### Allowed Necessity Verdicts
+
+OMP may return only:
+
+| Verdict | Meaning |
+| --- | --- |
+| `REQUIRED` | Element creates unique downstream value that cannot be safely replaced by an existing owner. |
+| `MERGE` | Element is not semantically unique and should be merged into an existing owner. |
+| `REMOVE` | Element has no justified remaining purpose and removal does not remove behavior, state transition, or Production Value. |
+| `INCOMPLETE` | Element exists but does not yet create complete downstream value. |
+| `DEFERRED_BY_REALITY` | Element is necessary in principle, but current production reality does not justify active implementation. |
+| `HISTORICAL` | Element is preserved only as evidence and must not act as live owner, Runtime, Planner, roadmap, or truth source. |
+
+Any other result is architecturally incomplete.
+
+#### Necessity Lifecycle Consumption
+
+OMP consumes the existing lifecycle:
+
+```text
+Idea
+  -> Need Identified
+  -> Creation Justified
+  -> Implemented
+  -> Integrated
+  -> Necessity Verified
+  -> Necessity Certified
+  -> Locked
+  -> Deprecated
+  -> Historical
+  -> Removed
+```
+
+Nothing may be created without Creation Test.
+Nothing may remain permanent without Necessity Certification.
+Nothing may become canonical solely because it was implemented.
+
+#### MERGE / REMOVE Routing
+
+If Necessity verdict is `MERGE` or `REMOVE`, OMP must not create a new Candidate type.
+
+If existing architecture can express the work, OMP routes the result through the ordinary Implementation Candidate Instance path:
+
+```text
+Necessity verdict MERGE / REMOVE
+  -> BDP candidate production when behaviour/implementation discovery is required
+  -> OMP candidate consumption
+  -> Mission Admission
+  -> implementation / no-change / hold / rejection / not applicable
+  -> verification
+  -> Engineering Report
+  -> canonical owner update or explicit no-change
+```
+
+Merge and removal must preserve:
+
+- provenance;
+- owner mapping;
+- consumer behavior;
+- state transition;
+- Production Value;
+- historical evidence;
+- rollback / STOP_SAFE when runtime or production surfaces are affected.
+
+OMP must not remove or merge an element if the Removal Test shows lost required behavior, state transition, Production Value, or legal terminal consumer without a certified replacement.
+
+#### Trigger Rule
+
+Necessity Framework Consumption is mandatory when:
+
+- new owner, capability, function, module, service, CLI, API, read model, dashboard, process, or document is proposed;
+- an element is promoted to canonical status;
+- an element is locked;
+- an element is marked permanent;
+- duplicate, overlap, or semantic reuse pressure is detected;
+- removal, merge, deprecation, or historical-only status is proposed;
+- Value Conservation, Collapse, Owner Elimination, Function Elimination, or architectural minimization is proposed;
+- an object may participate in active Mission, open Candidate, incomplete Engineering Chain, incomplete Behavior Chain, open dependency, pending producer/consumer handoff, unfinished Verification, unfinished Certification, active Root Cause, or open BDP Discovery;
+- an object may be required by Approved OMP Mission, Approved Implementation Candidate, Planned Mission, Approved Engineering Chain, Approved Capability, Planned State Transition, Approved Verification, Approved Certification, Planned Integration, Planned Producer, Planned Consumer, Planned Behavior Chain, Planned Runtime Transition, Depends On, Unblocks, Engineering Chain Dependency Projection, or another approved future dependency;
+- Behavior Propagation, State Transition, Intent Responsibility Resolution, or Automation Gap Closure reveals an element with no verified consumer or no Production Value.
+
+#### Completion Rule
+
+An element is necessity-complete only when:
+
+```text
+Existence Justification
+  -> Semantic Necessity
+  -> Consumer Value
+  -> System Effect
+  -> State Transition Contribution
+  -> Production Value
+  -> Creation / Removal / Merge / Chain Test
+  -> Necessity Verdict
+  -> Necessity Certification
+```
+
+If any link is missing, OMP must classify the element as `INCOMPLETE`, `MERGE`, `REMOVE`, `DEFERRED_BY_REALITY`, or `HISTORICAL`, and must record the smallest existing next action.
+
+If Engineering Work In Progress Protection returns `PROTECTED_BY_ENGINEERING_WORK_IN_PROGRESS`, OMP must stop Necessity minimization for that object until every related engineering lifecycle reaches its existing terminal state or legal terminal consumer.
+
+If Approved Future Dependency Protection returns `PROTECTED_BY_APPROVED_FUTURE_DEPENDENCY`, OMP must stop Necessity minimization for that object until the approved future plan completes, is officially cancelled, is superseded by an approved replacement, or reaches a legal terminal alternative.
+
+If Capability Maturity Protection returns `PROTECTED_BY_CAPABILITY_MATURITY`, OMP must stop Necessity minimization for that element until the owning capability is complete, certified, locked, retired, or has another legal terminal consumer.
+
 ## 2.8. New Owner Gate
 
 Before creating any new owner, backlog item, policy, runtime path, architectural element, knowledge model, planner, engine, pipeline, API, CLI, storage, snapshot, or truth source, OMP must prove:
@@ -1905,17 +4230,17 @@ If an existing owner, capability, backlog item, policy, model, or reference cove
 - map the finding to that owner;
 - continue through the existing OMP;
 - extend the existing owner only;
-- avoid creating new architecture, owner, backlog item, policy, runtime path, planner, governance, execution, or truth source.
+- avoid creating new architecture, owner, queue, policy, runtime path, planner, governance, execution, or truth source.
 
-Only after complete mapping proves no existing canonical owner or backlog item can cover the finding may OMP propose `CREATE_NEW`. That proposal must include proof of impossible reuse and must stop for explicit operator review.
+Only after complete mapping proves no existing canonical owner, OMP Mission, accepted BDP Implementation Candidate, or backlog registry entry can cover the finding may OMP propose `CREATE_NEW`. That proposal must include proof of impossible reuse and must stop for explicit operator review.
 
 Permanent queue rule:
 
 OMP remains the single execution program.
 
-Implementation Backlog remains the single engineering queue.
+Implementation Backlog remains the single post-admission engineering registry. OMP Mission admission remains the single route from candidate to implementation.
 
-Reports, policies, reference documents, architecture documents, and canonical knowledge never generate implementation work directly. They may only update canonical owners or the existing Implementation Backlog through OMP.
+Reports, policies, reference documents, architecture documents, and canonical knowledge never generate implementation work directly. They may only update canonical owners or implementation registry state through OMP. BDP may generate Implementation Candidates, but OMP must admit them before implementation.
 
 Required gate output:
 
@@ -2510,7 +4835,7 @@ Production Autonomy | 0.0% | 100% | 100.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH
 Knowledge System | 100.0% | 100% | 0.0% | LOCKED | HIGH | MEDIUM_HIGH | None | Complete and locked under canonical knowledge rules.
 Observability | 63.0% | 100% | 37.0% | IN_PROGRESS | HIGH | MEDIUM_HIGH | B15, B17, C2 | Complete when operators and OMP can inspect all safety/runtime evidence without mutation.
 Decision Explainability | 25.0% | 100% | 75.0% | IN_PROGRESS | HIGH | HIGH | B1, B4, B13, B15, B17, C2 | Complete when every approval request explains the decision in Russian before Approve / Reject, using existing evidence owners only.
-Implementation Discipline | 100.0% | 100% | 0.0% | COMPLETE | VERY_HIGH | MEDIUM | None | Complete while Backlog remains the only live queue.
+Implementation Discipline | 100.0% | 100% | 0.0% | COMPLETE | VERY_HIGH | MEDIUM | None | Complete while OMP Mission admission remains the only path to implementation and Backlog remains the post-admission registry.
 Engineering Knowledge Preservation | 100.0% | 100% | 0.0% | LOCKED | HIGH | MEDIUM | None | Complete and locked while reference/report/ADR roles remain normalized.
 
 Current Capability
@@ -2541,7 +4866,7 @@ Initial capability registry:
 | Knowledge System | Preserve verified project knowledge and prevent repeated rediscovery. | `100.0` | `100` | `LOCKED` | Canonical Reference, Context Resolver, Research Framework, Policy Library, Document Lifecycle | `HIGH` | `MEDIUM_HIGH` | None current. | Current knowledge owners remain canonical and read-only under document lifecycle rules. | Industry consensus changes; `FUNDAMENTAL_ARCHITECTURE_GAP`; explicit operator request. |
 | Observability | Expose enough read-only truth for operators, OMP, Runtime, and certification. | `35.0` | `100` | `IN_PROGRESS` | Admin read models, trust/evidence inventory, truth/convergence | `HIGH` | `MEDIUM_HIGH` | `B1`, `B4`, `B9`, `B15`, `B17`, `C2` | Read-only evidence shows eligibility, rollback, stale reads, promotion quality, and runtime readiness. | Operator cannot diagnose; evidence disagreement; explicit operator request. |
 | Decision Explainability | Explain existing Runtime / OMP decisions to the operator before any approval request. | `25.0` | `100` | `IN_PROGRESS` | OMP, Current Program State, Runtime Model, evidence read models | `HIGH` | `HIGH` | `B1`, `B4`, `B13`, `B15`, `B17`, `C2` | Every approval request explains reason, evidence, expected value, risks, alternatives, and capability impact in Russian before Approve / Reject. | Operator cannot understand approval reason; explanation contradicts evidence; explicit operator request. |
-| Implementation Discipline | Ensure work flows only through Backlog, Priority Model, tests, truth, convergence, deployment, and certification. | `100.0` | `100` | `COMPLETE` | OMP, Implementation Backlog, Implementation Priority Model, Current Program State | `VERY_HIGH` | `MEDIUM` | None current. | OMP + Backlog + Current Program State remain sufficient for execution. | Backlog loses single-queue authority; operator requests process change. |
+| Implementation Discipline | Ensure work flows only through OMP Mission admission, Backlog registry, Priority Model, tests, truth, convergence, deployment, and certification. | `100.0` | `100` | `COMPLETE` | OMP, Implementation Backlog, Implementation Priority Model, Current Program State | `VERY_HIGH` | `MEDIUM` | None current. | OMP + Mission admission + Backlog registry + Current Program State remain sufficient for execution. | OMP Mission admission is bypassed; a parallel queue appears; operator requests process change. |
 | Engineering Knowledge Preservation | Freeze certified reference knowledge and keep reports/ADRs from becoming roadmaps. | `100.0` | `100` | `LOCKED` | Document Lifecycle, Canonical Reference, SYSTEM_MAP | `HIGH` | `MEDIUM` | None current. | Reference, report, ADR, policy, and backlog roles remain normalized. | Reference contradiction; material architecture change; explicit operator request. |
 
 Ideal Target State by capability:
@@ -2560,7 +4885,7 @@ Ideal Target State by capability:
 | Observability | Operators, OMP, and Runtime can inspect liveness, degradation, recovery, rollback, stale reads, eligibility, promotion readiness, and evidence quality without mutation. |
 | Decision Explainability | Operators receive a Russian, evidence-linked explanation of every approval request before Approve / Reject; the explanation covers reason, timing, user, source, target, passed gates, alternatives, risks, confidence, production value, and capability progress. |
 | Implementation Discipline | OMP always selects the highest unfinished backlog item, uses existing owners, verifies with tests/truth/convergence, marks completion, recalculates capability progress, and continues or stops only at allowed boundaries. |
-| Engineering Knowledge Preservation | Durable knowledge is promoted from reports into canonical owners; reports remain evidence, ADRs remain decisions, references remain knowledge, and Backlog remains the only engineering queue. |
+| Engineering Knowledge Preservation | Durable knowledge is promoted from reports into canonical owners; reports remain evidence, ADRs remain decisions, references remain knowledge, and Backlog remains the post-admission implementation registry. |
 
 Definition of Done by capability:
 
@@ -2577,8 +4902,8 @@ Definition of Done by capability:
 | Knowledge System | Context Resolver, Research Framework, Canonical Policy Library, Canonical Reference, SYSTEM_MAP, and Document Lifecycle preserve verified knowledge without creating duplicate owners. | All listed knowledge owners exist and are canonical. | None current. |
 | Observability | Operators and OMP can inspect liveness, degradation, recovery, rollback, stale reads, runtime eligibility, promotion readiness, and evidence quality without mutation. | Truth/convergence; admin read models; evidence inventory; service matrix. | B1/B4/B9/B13/B15/B17/C2 observability/read-model items. |
 | Decision Explainability | Every approval request explains the decision in Russian before Approve / Reject; explanations are generated from existing evidence owners; safety gates show passed/failed/unknown/not applicable; alternatives and keep-current-state reasoning are visible; expected Production Value, Capability Progress, and remaining risk are shown; missing evidence stops safely instead of producing persuasive text. | OMP owns the capability; Russian-only operator explanation requirements; Russian-only Engineering Report requirements. | A3/A6/B1/B4/B13/B15/B17/C2 must provide enough evidence/read-model coverage for complete operator-facing explanations and real governed validation. |
-| Implementation Discipline | OMP always selects highest unfinished backlog item, updates Current Program State, runs tests/truth/convergence, marks DONE, recalculates, and continues or stops only at allowed stop conditions. | Backlog; Priority Model; Root Cause Engine; normalized authority; document lifecycle; capability framework. | None current. |
-| Engineering Knowledge Preservation | Certified reference knowledge is frozen; reports and ADRs remain evidence; only Backlog drives implementation. | Canonical Reference; Document Lifecycle; SYSTEM_MAP ownership; no-reaudit triggers. | None current. |
+| Implementation Discipline | OMP always selects the highest production-leverage admitted Mission, updates Current Program State, runs tests/truth/convergence, marks terminal state, recalculates, and continues or stops only at allowed stop conditions. | OMP Mission admission; Backlog registry; Priority Model; Root Cause Engine; normalized authority; document lifecycle; capability framework. | None current. |
+| Engineering Knowledge Preservation | Certified reference knowledge is frozen; reports and ADRs remain evidence; only OMP-admitted Missions drive implementation. | Canonical Reference; Document Lifecycle; SYSTEM_MAP ownership; no-reaudit triggers. | None current. |
 
 ## 2.12.3.1. Master Integration Program
 
@@ -3038,7 +5363,11 @@ Applicable actions:
 - runtime investigation;
 - root cause analysis;
 - production action;
-- capability progress update.
+- capability progress update;
+- OMP behavior decision;
+- OMP Candidate Sequencing decision;
+- OMP Mission Admission decision;
+- OMP hold / block / reject / not-applicable decision.
 
 Report location:
 
@@ -3068,6 +5397,30 @@ Engineering Report must include:
 - Почему решение считается безопасным;
 - Почему решение считается полезным;
 - Почему система НЕ выбрала альтернативные варианты;
+- Decision Trace ID, or `NOT_APPLICABLE_WITH_REASON`;
+- Decision Trace Summary, when the action includes an OMP decision;
+- Selected Candidate, held / rejected / not-applicable alternatives, and decisive criteria when the action includes an OMP decision;
+- Decision Fingerprint, or `NOT_APPLICABLE_WITH_REASON`;
+- Replay Status, when the action includes an OMP decision;
+- Decision Drift status and Difference Explanation when replay differs from a prior OMP decision;
+- Automation Gap Closure status when the action includes a STOP or Intent Gap;
+- STOP Classification and Human Intervention Detection when the action includes a STOP;
+- Intent Gap Detection status after any completed Engineering Chain, Mission, Capability, Behavior, Execution, Verification, Certification, State Transition, Implementation, or OMP meaningful step;
+- Intent Gap Classification when Engineering Intent is not achieved;
+- Intent Responsibility Resolution status after any `INTENT_GAP_DETECTED`;
+- responsibility_failure_class;
+- last_responsible_link;
+- responsible_owner;
+- failed_contract_field;
+- expected_owner_behavior;
+- observed_owner_behavior;
+- missing_evidence;
+- smallest_existing_next_action;
+- BDP input specialization;
+- automation_feasibility_result;
+- STOP-derived or Intent-Gap-derived BDP input route, or `NOT_APPLICABLE_WITH_REASON`;
+- Engineering Intent Closure status when the action completes a STOP-derived or Intent-Gap-derived Candidate;
+- Original STOP / Intent Gap resolved, Expected State reached, Current State matches Expected State, and Legal Terminal Consumer verified when the action completes a STOP-derived or Intent-Gap-derived Candidate;
 - Impact on Runtime;
 - Impact on OMP;
 - Impact on Backlog;
@@ -3082,6 +5435,38 @@ Engineering Report must include:
 - Dashboard visibility impact;
 - Behavior Enforcement;
 - State Transition Verification;
+- Necessity Framework Consumption status when the action creates, keeps, locks, canonicalizes, merges, removes, deprecates, or historicalizes an element;
+- Approved Future Dependency Protection status before any Necessity, Merge, Remove, Value Conservation, Collapse, Owner Elimination, Function Elimination, Module Elimination, Document Elimination, Capability Elimination, or architectural minimization action;
+- protected_future_dependency_object;
+- approved_future_plan;
+- future_dependency_owner;
+- future_dependency_type;
+- future_dependency_state;
+- future_dependency_terminal_condition;
+- Engineering Work In Progress Protection status before any Necessity, Merge, Remove, Value Conservation, Collapse, Owner Elimination, Function Elimination, Module Elimination, Document Elimination, Capability Elimination, or architectural minimization action;
+- protected_engineering_object;
+- unfinished_engineering_lifecycle;
+- engineering_lifecycle_owner;
+- engineering_lifecycle_state;
+- engineering_wip_terminal_condition;
+- Capability Maturity Protection status before any Necessity, Merge, Remove, Value Conservation, Collapse, Owner Elimination, Function Elimination, or architectural minimization action;
+- protected_capability;
+- protected_element;
+- capability_maturity_status;
+- capability_mapping_status;
+- capability_completion_required_before_minimization;
+- existence_justification;
+- semantic_necessity;
+- consumer_value;
+- system_effect;
+- state_transition_contribution;
+- production_value;
+- creation_test;
+- removal_test;
+- merge_test;
+- chain_test;
+- necessity_verdict;
+- necessity_certification_state;
 - Product Evolution Review;
 - Product Evolution Field Validation;
 - Product Evolution OMP Behavior;
@@ -3331,7 +5716,7 @@ Production rule:
 | Current Program State | Current runtime/program situation. | `docs/programs/V7_CURRENT_PROGRAM_STATE.md`. |
 | Canonical Reference | Durable project truth. | `docs/reference/V7_CANONICAL_REFERENCE.md`. |
 | OMP | Execution program. | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`. |
-| Implementation Backlog | Single engineering queue. | `docs/programs/V7_IMPLEMENTATION_BACKLOG.md`. |
+| Implementation Backlog | Post-admission implementation registry for OMP Missions. | `docs/programs/V7_IMPLEMENTATION_BACKLOG.md`. |
 
 Mandatory engineering workflow:
 
@@ -3341,13 +5726,14 @@ Read Product Specification
   -> Read Canonical Reference
   -> Read Current Program State
   -> Read OMP
-  -> Read Implementation Backlog
+  -> Read current OMP Mission / Implementation Backlog registry
+  -> Read accepted BDP Implementation Candidate when present
   -> Determine:
        Already known?
        Still valid?
        Re-open required?
        Implementation required?
-  -> Continue only through existing owner / existing backlog path
+  -> Continue only through existing owner / OMP Mission path
 ```
 
 Mandatory audit workflow:
@@ -3858,7 +6244,7 @@ Latest OMP V2.3 duplication result:
 | `CERTIFIED` | Phase passed tests, truth, convergence, and evidence review. |
 | `COMPLETED` | Phase is certified and its results are absorbed into reference/program state. |
 
-## 4. Current Program
+## 4. Active Program Rule
 
 `Operational Maturity`
 
@@ -3879,9 +6265,13 @@ Current System State
   -> Next Best Action
 ```
 
-## 5. Current System State
+## 5. Historical System State Snapshot
 
-This section must be recalculated after every certification from canonical reference, system map, ADRs, and latest certified reports.
+Classification: `HISTORICAL_SNAPSHOT`.
+
+This section preserves an earlier recalculated OMP state. It must not be consumed as authoritative live current state unless the same value is present in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
+
+Live current state is resolved only from CPS.
 
 | Maturity Area | Current State | Evidence |
 | --- | --- | --- |
@@ -3894,7 +6284,11 @@ This section must be recalculated after every certification from canonical refer
 | Authority maturity | `OPERATIONAL_AUTHORITY_REACHED` | Production governed dry-run reaches exact packet approval boundary before restore-barrier write or apply. |
 | Operational maturity | `PRODUCTION_PROGRAM_ACTIVE` | OMP V4.0 optimizes production leverage through existing-owner implementation and authority evolution; no daemon, no autonomous apply, no user movement without authority. |
 
-## 6. Current Highest Bottleneck
+## 6. Historical Highest Bottleneck Snapshot
+
+Classification: `HISTORICAL_SNAPSHOT`.
+
+Live highest bottleneck is resolved only from `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
 Exactly one bottleneck:
 
@@ -3914,7 +6308,11 @@ Recompute rule:
 
 After every certification, classify bottlenecks across `Architecture`, `Knowledge`, `Decision`, `Outcome`, `Learning`, `Suitability`, `Prediction`, `Authority`, `Operational`, and `Scale`. Select exactly one class based on the largest maturity gain that cannot be obtained by already-certified safe automation.
 
-## 7. Current Highest Implementation Leverage
+## 7. Historical Highest Implementation Leverage Snapshot
+
+Classification: `HISTORICAL_SNAPSHOT`.
+
+Live HIL is resolved only from `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
 Implementation:
 
@@ -3979,7 +6377,11 @@ Expected implementation order:
 The old bottleneck action, governed candidate suitability outcome closure, remains the highest real-outcome action. The approval-to-execution lease binding defect is fixed and deployed; the current blocker is now an unsafe implementation defect inside the existing autoswitch owner.
 The current implementation-first optimizer must fix approved plan lock consumption through the intelligence snapshot gate before requesting another packet approval or attempting apply again.
 
-## 8. Current Authority Class
+## 8. Historical Authority Class Snapshot
+
+Classification: `HISTORICAL_SNAPSHOT`.
+
+Live authority class is resolved only from `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
 | Field | Current Value |
 | --- | --- |
@@ -4002,7 +6404,11 @@ Current production evidence:
 - `users_moved=0`;
 - `runtime_mutation=false`.
 
-## 9. Current Reality Limit
+## 9. Historical Reality Limit Snapshot
+
+Classification: `HISTORICAL_SNAPSHOT`.
+
+Live reality limit is resolved only from `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
 Current limit:
 
@@ -4113,6 +6519,14 @@ Required stop record:
 | Concrete implementation task | Backlog-ready task, not a recommendation. |
 | Expected completion evidence | Observable evidence required to close the task. |
 | Automatic continuation | Whether OMP may continue automatically after the task completes. |
+| Intent Gap Detection status | `INTENT_GAP_DETECTED`, `NO_INTENT_GAP`, `INTENT_GAP_UNKNOWN_WITH_REASON`, or `NOT_APPLICABLE_WITH_REASON`. |
+| Intent Responsibility Resolution status | `RESPONSIBILITY_RESOLVED`, `RESPONSIBILITY_UNKNOWN_WITH_REASON`, `BOUNDARY_CONFIRMED`, or `NOT_APPLICABLE_WITH_REASON`. |
+| Responsibility failure class | Failure class from Intent Responsibility Resolution, or `NOT_APPLICABLE_WITH_REASON`. |
+| Last responsible link | Owner-mapped last failed Engineering Chain link, or `UNKNOWN_WITH_REASON`. |
+| Automation Gap Closure status | `FUNDAMENTAL_ARCHITECTURE_BOUNDARY`, `STOP_DERIVED_BDP_INPUT_ROUTED`, `IMPLEMENTATION_CANDIDATE_CONSUMED`, or `AUTOMATION_GAP_CLOSURE_BLOCKED_WITH_REASON`. |
+| Engineering Intent Closure status | `INTENT_CLOSED`, `INTENT_NOT_CLOSED`, `FUNDAMENTAL_ARCHITECTURE_BOUNDARY`, or `NOT_APPLICABLE_WITH_REASON`. |
+| Human intervention classification | `FUNDAMENTAL_BOUNDARY`, `AUTOMATABLE_WITH_EXISTING_ARCHITECTURE`, `AUTHORITY_REQUIRED`, `REAL_WORLD_REQUIRED`, or `UNKNOWN_WITH_REASON`. |
+| BDP route decision | Existing BDP route to produce / update Candidate Instance, or `NOT_APPLICABLE_WITH_REASON`. |
 
 Automatic classification:
 
@@ -4135,6 +6549,539 @@ Root Cause Engine constraints:
 - never treat reports, policies, or architecture documents as implementation queues;
 - never expose only `UNSAFE_IMPLEMENTATION`, `REAL_WORLD_LIMIT`, legacy raw `AUTHORITY_BOUNDARY`, or `FUNDAMENTAL_ARCHITECTURE_GAP` as the OMP result.
 
+### Automation Gap Closure Cycle
+
+Status: `CANONICAL`
+
+Automation Gap Closure Cycle is the mandatory OMP continuation law for every unfinished Engineering Intent in any Engineering Chain.
+
+STOP is one possible signal of unfinished Engineering Intent.
+
+STOP is not the only trigger.
+
+It does not create:
+
+- a new program;
+- a new owner;
+- a new architecture;
+- a new Planner;
+- a new Runtime;
+- a new automation system;
+- an Automation Candidate;
+- an Automation Graph.
+
+It reuses:
+
+- Root Cause Engine;
+- Automatic-First Rule;
+- Architecture Closed by Default;
+- BDP Candidate Reality Gate;
+- BDP minimal Discovery Economy;
+- OMP Implementation Candidate Identity;
+- OMP Implementation Candidate Eligibility / Admission;
+- Mission Formation;
+- Behavior Enforcement Framework;
+- Execution Certification;
+- State Transition Verification;
+- Engineering Intent Closure Validation;
+- Intent Responsibility Resolution;
+- Engineering Report Lifecycle;
+- Current Program State;
+- existing authority, verification, rollback, runtime, production, and Engineering Chain owners.
+
+Purpose:
+
+```text
+Every Engineering Intent must automatically answer:
+
+Was the Engineering Intent achieved?
+If not, why not?
+Was there an explicit STOP?
+If yes, why did the STOP happen?
+Is it a fundamental system boundary?
+Or is it a non-automated engineering process inside existing architecture?
+Can existing owners/capabilities/missions/verification/authority/rollback/runtime/Engineering Chain express the fix?
+If yes, route intent-gap input to existing BDP -> OMP candidate production and admission.
+If no, prove the fundamental boundary before recording FUNDAMENTAL_ARCHITECTURE_GAP.
+```
+
+#### Intent Gap Detection
+
+After any completed Engineering Chain, Mission, Capability, Behavior, Execution, Verification, Certification, State Transition, Implementation, or OMP meaningful step, OMP must automatically determine whether the original Engineering Intent was achieved.
+
+This detection reuses Behavior Enforcement, State Transition Verification, Execution Certification, Automation Gap Closure, Engineering Intent Closure Validation, BDP, and OMP.
+
+It does not create an Intent Gap Engine, Automation Engine, Intent Monitor, Background Scanner, new program, or new owner.
+
+Intent Gap Detection must run even when:
+
+- function completed;
+- Execution returned `PASS`;
+- Verification returned `PASS`;
+- no explicit STOP exists;
+- implementation completed;
+- certification completed;
+- report was created.
+
+Any of the following conditions creates Automation Gap Analysis:
+
+| Condition | Meaning |
+| --- | --- |
+| Expected State does not match Current State | Formal success did not produce the intended state. |
+| Engineering Chain did not reach Legal Terminal Consumer | Chain remains incomplete. |
+| Behavior Chain is not `COMPLETE` | Behavior propagation is partial, blocked, broken, or unknown. |
+| Output Produced but Output Consumed is not verified | Existing output is not proven to affect consumer behavior. |
+| Consumer did not change behavior | Consumption did not produce the intended behavior. |
+| Next Output was not produced | Chain failed to continue. |
+| State Transition did not complete | Current state did not move to required / expected state. |
+| Root Cause still exists | Original cause remains. |
+| Automation Gap is not closed | Previous gap is still intermediate or blocked. |
+| Engineering Intent is not achieved | Declared intent remains unmet. |
+
+Allowed detection results:
+
+| Result | Meaning | Next action |
+| --- | --- | --- |
+| `NO_INTENT_GAP` | Intent achieved and no automation gap remains. | Continue OMP. |
+| `INTENT_GAP_DETECTED` | Intent not achieved, whether or not STOP exists. | Run Automation Gap Closure Cycle. |
+| `INTENT_GAP_UNKNOWN_WITH_REASON` | Evidence is insufficient to determine intent closure. | Hold with missing owner/evidence and smallest existing next action. |
+
+`INTENT_GAP_DETECTED` must trigger Automation Gap Closure.
+
+OMP must not treat a formal `PASS` as closure when Intent Gap Detection finds unmet intent.
+
+#### Intent Responsibility Resolution
+
+After every `INTENT_GAP_DETECTED`, OMP must resolve which Engineering Chain link last failed its contract before routing the gap into BDP.
+
+Intent Responsibility Resolution is not a Responsibility Engine, graph, owner, queue, Planner, Runtime, Intent Engine, Automation Engine, or new Candidate type.
+
+It reuses:
+
+- Behavior Enforcement fields;
+- State Transition Verification fields;
+- Root Cause Engine;
+- Engineering Intent Closure Validation;
+- Automation Gap Closure Cycle;
+- BDP Candidate Reality Gate;
+- Engineering Chain Dependency Projection;
+- Function Graph as discovery / context evidence only;
+- SYSTEM_MAP ownership mapping;
+- Current Program State.
+
+Intent Responsibility Resolution must answer:
+
+1. Which Engineering Intent was not achieved?
+2. Which Engineering Chain should have closed it?
+3. Which Producer should have produced Output?
+4. Was Output Produced?
+5. Was Output Available?
+6. Which Consumer should have consumed Output?
+7. Does Consumer exist?
+8. Did Consumer consume Output?
+9. Was Consumption verified?
+10. Did Consumer behavior change?
+11. Was Next Output produced?
+12. Was Legal Terminal Consumer reached?
+13. Which owner last failed its contract?
+14. Is the failure automatable or a fundamental / legal boundary?
+
+##### Responsibility Failure Classes
+
+Allowed responsibility failure classes:
+
+| Failure class | Meaning |
+| --- | --- |
+| `PRODUCER_OUTPUT_MISSING` | Producer should have produced Output, but Output is absent. |
+| `PRODUCER_OUTPUT_UNAVAILABLE` | Output exists but is unavailable to the Consumer. |
+| `CONSUMER_MISSING` | Expected Consumer is absent or not owner-mapped. |
+| `CONSUMER_DID_NOT_CONSUME` | Consumer exists but did not consume Output. |
+| `CONSUMPTION_NOT_VERIFIED` | Consumption is claimed or assumed but not proven. |
+| `CONSUMER_BEHAVIOR_NOT_CHANGED` | Consumer consumed Output, but behavior did not change. |
+| `NEXT_OUTPUT_NOT_PRODUCED` | Consumer behavior should have produced the next Output, but it did not. |
+| `LEGAL_TERMINAL_CONSUMER_NOT_REACHED` | Engineering Chain did not reach Legal Terminal Consumer. |
+| `STATE_TRANSITION_NOT_COMPLETED` | State Transition Verification did not complete. |
+| `EXPECTED_STATE_NOT_REACHED` | Expected State does not match Current State. |
+| `ROOT_CAUSE_STILL_EXISTS` | Original root cause remains. |
+| `VERIFICATION_FAILURE` | Verification owner did not confirm the required result. |
+| `ROLLBACK_OR_STOP_SAFE_BOUNDARY` | Progress is legally blocked by rollback, containment, or STOP_SAFE boundary. |
+| `RUNTIME_BOUNDARY` | Runtime boundary legally blocks continuation. |
+| `PRODUCTION_BOUNDARY` | Production boundary legally blocks continuation. |
+| `AUTHORITY_BOUNDARY` | Legal authority boundary is required before continuation. |
+| `REAL_WORLD_BOUNDARY` | Real event, observation, or production evidence is required. |
+| `FUNDAMENTAL_ARCHITECTURE_BOUNDARY` | Existing architecture cannot express the behavior after full reuse/extension proof. |
+| `UNKNOWN_WITH_REASON` | Evidence is insufficient; missing owner/evidence and smallest existing next action must be named. |
+
+##### Last Responsible Link
+
+Every Intent Gap must produce `last_responsible_link`.
+
+Required format:
+
+| Field | Required value |
+| --- | --- |
+| producer_owner | Existing producer owner or `UNKNOWN_WITH_REASON`. |
+| producer_output | Expected / actual output or `MISSING_WITH_REASON`. |
+| consumer_owner | Existing expected consumer or `MISSING_WITH_REASON`. |
+| expected_consumption | Required consumption action. |
+| expected_behavior_change | Required consumer behavior change. |
+| expected_next_output | Required next output. |
+| failure_class | Responsibility Failure Class. |
+| evidence_pointer | Existing evidence pointer or `UNKNOWN_WITH_REASON`. |
+| missing_evidence | Missing owner/evidence or `NONE`. |
+| responsible_owner | Existing owner responsible for the failed contract field. |
+| smallest_existing_next_action | Smallest existing action to resolve or prove boundary. |
+
+##### Resolution Order
+
+Intent Responsibility Resolution must inspect the chain in this order:
+
+```text
+Engineering Intent
+  -> Expected State
+  -> Engineering Chain
+  -> Producer
+  -> Output Produced
+  -> Output Available
+  -> Expected Consumer
+  -> Consumer Exists
+  -> Consumer Consumed Output
+  -> Consumption Verified
+  -> Consumer Behavior Changed
+  -> Next Output Produced
+  -> State Transition Completed
+  -> Legal Terminal Consumer
+  -> Intent Closed
+```
+
+At the first failed mandatory link, OMP must record:
+
+- `failure_class`;
+- `responsible_owner`;
+- evidence;
+- missing evidence;
+- automation feasibility;
+- BDP input specialization.
+
+##### Automatable Responsibility Classes
+
+If failure class is one of:
+
+- `PRODUCER_OUTPUT_MISSING`;
+- `PRODUCER_OUTPUT_UNAVAILABLE`;
+- `CONSUMER_MISSING`;
+- `CONSUMER_DID_NOT_CONSUME`;
+- `CONSUMPTION_NOT_VERIFIED`;
+- `CONSUMER_BEHAVIOR_NOT_CHANGED`;
+- `NEXT_OUTPUT_NOT_PRODUCED`;
+- `LEGAL_TERMINAL_CONSUMER_NOT_REACHED`;
+- `STATE_TRANSITION_NOT_COMPLETED`;
+- `EXPECTED_STATE_NOT_REACHED`;
+- `ROOT_CAUSE_STILL_EXISTS`;
+- `VERIFICATION_FAILURE`;
+
+and existing owners can express the correction, OMP must route a specialized input package to BDP.
+
+##### Boundary Responsibility Classes
+
+If failure class is one of:
+
+- `AUTHORITY_BOUNDARY`;
+- `REAL_WORLD_BOUNDARY`;
+- `RUNTIME_BOUNDARY`;
+- `PRODUCTION_BOUNDARY`;
+- `ROLLBACK_OR_STOP_SAFE_BOUNDARY`;
+
+OMP must not create a Candidate automatically and must not call the condition an Automation Gap by default.
+
+OMP must record the legal boundary and produce the exact authority, real-world, safety, runtime, production, rollback, or STOP_SAFE requirement.
+
+##### Unknown Responsibility
+
+If OMP cannot resolve responsibility, it must record:
+
+```text
+UNKNOWN_WITH_REASON
+```
+
+with:
+
+- missing owner;
+- missing evidence;
+- failed or unknown chain segment;
+- smallest existing next action.
+
+No generic Automation Gap may be routed to BDP while responsibility remains unknown.
+
+#### Cycle
+
+After each STOP or detected Intent Gap, OMP must automatically run:
+
+```text
+Engineering Intent
+  -> Intent Gap Detection
+  -> Intent Responsibility Resolution
+  -> STOP Classification if STOP exists
+  -> Intent Gap Classification if STOP does not exist
+  -> Root Cause Analysis
+  -> Human Intervention Detection
+  -> Architecture Boundary Check
+  -> Automation Feasibility Check
+  -> Reuse Existing Capability Check
+  -> STOP-Derived or Intent-Gap-Derived BDP Input Routing when automation is possible
+  -> Implementation Candidate Instance consumed by OMP when BDP produces it
+  -> Mission / Implementation / Verification / Execution Certification
+  -> Engineering Intent Closure Validation
+  -> Fundamental Boundary Confirmation when automation is impossible
+```
+
+#### STOP Classification
+
+OMP must classify every STOP as exactly one of:
+
+| Classification | Meaning | Required result |
+| --- | --- | --- |
+| `FUNDAMENTAL_ARCHITECTURE_BOUNDARY` | Existing architecture cannot express the needed behavior after reuse/extension proof. | Record proof and stop with existing canonical boundary. |
+| `AUTOMATABLE_WITH_EXISTING_ARCHITECTURE` | STOP is caused by a manual or non-automated engineering step that existing owners can express. | Route STOP-derived input to existing BDP -> OMP candidate path. |
+| `AUTHORITY_REQUIRED` | STOP is a legitimate authority boundary. | Produce exact authority decision context; do not create architecture. |
+| `REAL_WORLD_REQUIRED` | STOP requires real production observation or action that cannot be synthesized. | Produce exact real-world action / observation requirement. |
+| `UNKNOWN_WITH_REASON` | Required evidence is missing. | Hold with missing owner/evidence and smallest existing next action. |
+
+OMP must not leave a STOP or Intent Gap in an unexplained manual state.
+
+#### Intent Gap Classification Without STOP
+
+If no explicit STOP exists, OMP must classify the unfinished Engineering Intent by the failed closure condition:
+
+| Classification | Trigger |
+| --- | --- |
+| `EXPECTED_STATE_NOT_REACHED` | Expected State differs from Current State. |
+| `LEGAL_TERMINAL_CONSUMER_NOT_REACHED` | Engineering Chain did not reach Legal Terminal Consumer. |
+| `BEHAVIOR_CHAIN_NOT_COMPLETE` | Behavior Chain Status is not `COMPLETE`. |
+| `OUTPUT_NOT_CONSUMED` | Produced output lacks verified consumption. |
+| `CONSUMER_BEHAVIOR_NOT_CHANGED` | Consumer did not change behavior. |
+| `NEXT_OUTPUT_NOT_PRODUCED` | Chain did not produce the expected next output. |
+| `STATE_TRANSITION_NOT_COMPLETED` | State Transition Verification did not complete. |
+| `ROOT_CAUSE_STILL_EXISTS` | Original root cause remains. |
+| `AUTOMATION_GAP_NOT_CLOSED` | Existing automation gap remains intermediate or blocked. |
+| `ENGINEERING_INTENT_NOT_ACHIEVED` | Intent remains unmet for another owner-mapped reason. |
+
+#### Human Intervention Detection
+
+OMP must determine whether the STOP or Intent Gap requires human action because of:
+
+- legitimate operational authority;
+- legitimate engineering authority;
+- real-world evidence that cannot be synthesized;
+- safety / rollback / verification / runtime boundary;
+- missing owner evidence;
+- a manual process that could be automated using existing architecture.
+
+If the human step is legitimate authority or real-world evidence, it is not an automation gap.
+
+If the human step exists only because an engineering transition is not automated, it is an automation gap.
+
+#### Automation Feasibility Check
+
+Before classifying any STOP as fundamental, OMP must check whether the work can be expressed through existing:
+
+- owner;
+- capability;
+- Mission;
+- verification;
+- authority;
+- rollback;
+- Runtime;
+- Engineering Chain;
+- Behavior Chain;
+- Current Program State;
+- Production Maturity;
+- Engineering Report;
+- BDP Candidate production path.
+
+If any existing path can express the fix, `FUNDAMENTAL_ARCHITECTURE_GAP` is forbidden.
+
+#### STOP-Derived Or Intent-Gap-Derived BDP Input Routing
+
+OMP must not directly create an `Implementation Candidate Instance` when candidate production is owned by BDP.
+
+When a STOP or Intent Gap is automatable with existing architecture, OMP must automatically produce a STOP-derived or Intent-Gap-derived input package for the existing BDP route.
+
+The package must include:
+
+| Field | Required value |
+| --- | --- |
+| Origin ID / decision ID | Existing OMP stop, intent gap, chain, mission, behavior, verification, certification, state transition, or implementation identifier. |
+| Origin Type | `STOP`, `INTENT_GAP`, `BEHAVIOR_GAP`, `STATE_TRANSITION_GAP`, `EXECUTION_GAP`, `VERIFICATION_GAP`, `CERTIFICATION_GAP`, or `IMPLEMENTATION_GAP`. |
+| STOP Classification | Result of STOP Classification, or `NOT_APPLICABLE_NO_STOP`. |
+| Intent Gap Classification | Result of Intent Gap Classification, or `NOT_APPLICABLE_WITH_REASON`. |
+| Responsibility failure class | Intent Responsibility Resolution failure class, or `UNKNOWN_WITH_REASON`. |
+| Last responsible link | `last_responsible_link` record. |
+| Responsible owner | Owner responsible for the failed contract field. |
+| Failed contract field | Producer, Output, Consumer, Consumption, Behavior Change, Next Output, State Transition, Legal Terminal Consumer, Verification, Rollback, Runtime, Production, Authority, Real World, or Architecture field. |
+| Failed chain segment | Exact Engineering Chain segment that failed. |
+| Expected owner behavior | Owner behavior required by the contract. |
+| Observed owner behavior | Behavior observed in evidence. |
+| Missing evidence | Missing evidence or `NONE`. |
+| Smallest existing next action | Smallest existing next action to resolve or prove boundary. |
+| Root Cause | Root Cause Engine output. |
+| Human Intervention Detection | Whether the manual step is legitimate or automatable. |
+| Existing owner | Owner that can express or consume the fix. |
+| Affected Behaviour / Engineering Chain | Existing chain segment or `UNKNOWN_WITH_REASON`. |
+| Current state | Current observed state. |
+| Expected state | Desired state after automation removal. |
+| Verification context | Existing verification owner/path. |
+| Authority context | Existing authority boundary. |
+| Rollback / STOP_SAFE context | Existing rollback, containment, no-change path, or STOP_SAFE. |
+| Runtime / Production boundary | Existing boundary or `NOT_APPLICABLE_WITH_REASON`. |
+| Candidate production route | Existing BDP route that may produce Candidate Instance. |
+
+BDP must not receive only a generic `Automation Gap` when OMP can determine a concrete responsibility failure class.
+
+If responsibility can be resolved, OMP must specialize the BDP input by failure class and last responsible link.
+
+If responsibility cannot be resolved, OMP must record `UNKNOWN_WITH_REASON` with missing owner/evidence and smallest existing next action before any BDP routing.
+
+BDP may then produce:
+
+- `Implementation Candidate Instance`;
+- hold reason;
+- rejection reason;
+- not-applicable result;
+- legal terminal alternative.
+
+OMP consumes the resulting Candidate Instance only through existing OMP identity, eligibility, admission, sequencing, Mission, verification, report, and certification rules.
+
+#### Engineering Intent Closure Validation
+
+After any STOP-derived or Intent-Gap-derived `Implementation Candidate Instance` reaches Mission, Implementation, Verification, and Execution Certification, OMP must automatically validate whether the original Engineering Intent was actually achieved.
+
+This is not a new Intent Engine or Validation Engine.
+
+Engineering Intent Closure Validation reuses:
+
+- Engineering Intent from the Candidate Instance;
+- original STOP record;
+- Intent Gap Detection result when no STOP existed;
+- Root Cause Engine output;
+- Expected State from the STOP-derived or Intent-Gap-derived input package;
+- Current State from existing owners / CPS;
+- Behavior Enforcement Framework;
+- State Transition Verification;
+- Execution Certification;
+- Engineering Chain evidence;
+- Legal Terminal Consumer verification.
+
+Validation questions:
+
+| Question | Required answer |
+| --- | --- |
+| Did the original STOP disappear? | `YES`, `NO`, `UNKNOWN`, or `NOT_APPLICABLE_WITH_REASON`. |
+| Was the original Engineering Intent achieved? | `YES`, `NO`, `PARTIAL`, `UNKNOWN`, or `NOT_APPLICABLE_WITH_REASON`. |
+| Was Expected State reached? | `YES`, `NO`, `PARTIAL`, `UNKNOWN`, or `NOT_APPLICABLE_WITH_REASON`. |
+| Does Current State match Expected State? | `YES`, `NO`, `PARTIAL`, `UNKNOWN`, or `NOT_APPLICABLE_WITH_REASON`. |
+| Does the same STOP still exist? | `YES`, `NO`, `UNKNOWN`, or `NOT_APPLICABLE_WITH_REASON`. |
+| Does the same Intent Gap still exist? | `YES`, `NO`, `UNKNOWN`, or `NOT_APPLICABLE_WITH_REASON`. |
+| Did the Engineering Chain reach Legal Terminal Consumer? | `YES`, `NO`, `PARTIAL`, `UNKNOWN`, or `NOT_APPLICABLE_WITH_REASON`. |
+| Was Behavior Chain Status `COMPLETE` or legal terminal consumer verification `PASS`? | `YES`, `NO`, `PARTIAL`, `UNKNOWN`, or `NOT_APPLICABLE_WITH_REASON`. |
+
+Allowed validation results:
+
+| Result | Meaning | Next action |
+| --- | --- | --- |
+| `INTENT_CLOSED` | Engineering Intent is achieved, original STOP / Intent Gap disappeared, Expected State matches Current State, Engineering Chain reached Legal Terminal Consumer, and Automation Gap is closed. | Continue OMP. |
+| `INTENT_NOT_CLOSED` | Engineering Intent is not achieved, same STOP / Intent Gap still exists, Expected State does not match Current State, or Engineering Chain still breaks. | Automatically rerun Automation Gap Closure Cycle. |
+| `FUNDAMENTAL_ARCHITECTURE_BOUNDARY` | Closure cannot be expressed through existing owners after proof. | Stop with fundamental boundary proof. |
+
+STOP absence or STOP disappearance alone is not sufficient.
+
+Automation Gap is closed only when Engineering Intent is closed.
+
+If STOP disappears, never existed, or formal execution passes but the Engineering Intent remains unmet, OMP must classify:
+
+```text
+INTENT_NOT_CLOSED
+```
+
+and automatically rerun:
+
+```text
+STOP or unresolved Engineering Intent
+  -> Automation Gap Closure
+  -> BDP
+  -> OMP
+  -> Mission
+  -> Implementation
+  -> Verification
+  -> Execution Certification
+  -> Engineering Intent Closure Validation
+```
+
+The cycle repeats until:
+
+- `INTENT_CLOSED`; or
+- `FUNDAMENTAL_ARCHITECTURE_BOUNDARY`.
+
+No other final state is allowed for a STOP-derived automation gap.
+
+#### Fundamental Boundary Confirmation
+
+If automation is impossible, OMP must prove all of the following before recording a fundamental boundary:
+
+- no existing owner can express the behavior;
+- no existing capability can be extended;
+- no existing Mission path can execute it safely;
+- no existing verification path can prove it;
+- no existing authority model can authorize it;
+- no existing rollback / STOP_SAFE / containment path can protect it;
+- no existing Runtime boundary can represent it;
+- no existing Engineering Chain can consume it;
+- no existing BDP route can produce a valid Candidate Instance.
+
+Only after this proof may OMP record:
+
+```text
+FUNDAMENTAL_ARCHITECTURE_GAP
+```
+
+#### Completion Criteria
+
+Automation Gap Closure for a STOP or Intent Gap is complete only when it has one of these terminal states:
+
+| Terminal state | Meaning |
+| --- | --- |
+| `INTENT_CLOSED` | Original Engineering Intent is achieved, original STOP / Intent Gap is gone, Current State matches Expected State, and Legal Terminal Consumer is verified. |
+| `FUNDAMENTAL_ARCHITECTURE_BOUNDARY` | Fundamental boundary proof is recorded. |
+
+No third permanent state is allowed.
+
+`STOP_DERIVED_BDP_INPUT_ROUTED`, `IMPLEMENTATION_CANDIDATE_CONSUMED`, and `INTENT_NOT_CLOSED` are intermediate states, not final closure.
+
+`AUTOMATION_GAP_CLOSURE_BLOCKED_WITH_REASON` is temporary and must name the missing owner/evidence and smallest existing next action.
+
+#### Continuous Mode
+
+Automation Gap Closure Cycle runs after every new STOP and every detected unfinished Engineering Intent.
+
+The goal is not statistics, learning, or new feature discovery.
+
+The goal is to remove every non-fundamental manual engineering action that can be replaced by the existing architecture.
+
+OMP must continue to use the ordinary route:
+
+```text
+STOP-derived or Intent-Gap-derived input
+  -> BDP candidate production
+  -> OMP candidate consumption
+  -> Mission Admission
+  -> Execution / Hold / Rejection / Not Applicable
+  -> Verification
+  -> Execution Certification
+  -> Engineering Intent Closure Validation
+  -> Engineering Report
+  -> Certification
+```
+
 Current Program State storage:
 
 `docs/programs/V7_CURRENT_PROGRAM_STATE.md` must store:
@@ -4145,6 +7092,56 @@ Current Program State storage:
 - `authority_reason`;
 - `authority_owner`;
 - `required_action`;
+- `intent_gap_detection_status`;
+- `intent_gap_classification`;
+- `intent_responsibility_resolution_status`;
+- `responsibility_failure_class`;
+- `last_responsible_link`;
+- `failed_contract_field`;
+- `expected_owner_behavior`;
+- `observed_owner_behavior`;
+- `missing_evidence`;
+- `smallest_existing_next_action`;
+- `bdp_input_specialization`;
+- `automation_gap_closure_status`;
+- `engineering_intent_closure_status`;
+- `original_stop_resolved`;
+- `expected_state_reached`;
+- `current_state_matches_expected_state`;
+- `human_intervention_classification`;
+- `bdp_stop_input_route`;
+- `approved_future_dependency_protection_status`;
+- `protected_future_dependency_object`;
+- `approved_future_plan`;
+- `future_dependency_owner`;
+- `future_dependency_type`;
+- `future_dependency_state`;
+- `future_dependency_terminal_condition`;
+- `engineering_work_in_progress_protection_status`;
+- `protected_engineering_object`;
+- `unfinished_engineering_lifecycle`;
+- `engineering_lifecycle_owner`;
+- `engineering_lifecycle_state`;
+- `engineering_wip_terminal_condition`;
+- `capability_maturity_protection_status`;
+- `protected_capability`;
+- `protected_element`;
+- `capability_maturity_status`;
+- `capability_mapping_status`;
+- `capability_completion_required_before_minimization`;
+- `necessity_framework_consumption_status`;
+- `existence_justification`;
+- `semantic_necessity`;
+- `consumer_value`;
+- `system_effect`;
+- `state_transition_contribution`;
+- `production_value`;
+- `creation_test`;
+- `removal_test`;
+- `merge_test`;
+- `chain_test`;
+- `necessity_verdict`;
+- `necessity_certification_state`;
 - `implementation_class`;
 - `next_engineering_task`;
 - `expected_completion_evidence`.
@@ -4162,7 +7159,7 @@ Continuation rule:
 | `AUTHORITY` with `ENGINEERING_AUTHORITY` | Stop with exact engineering approval or authority expansion decision. |
 | `DOCUMENTATION` | Continue if documentation is the active backlog item and no runtime mutation occurs. |
 
-## 11. Implementation Optimization Target
+## 11. Implementation Optimization Target Rule
 
 The current target is no longer `Current Phase` and no longer `Architectural Completeness`.
 
@@ -4182,7 +7179,9 @@ OMP must rank potential targets across:
 - documentation required by implementation;
 - certification.
 
-Current optimization target:
+Current optimization target is a rule. The live target value is resolved from `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
+
+Historical optimization snapshot:
 
 | Field | Current Value |
 | --- | --- |
@@ -4497,7 +7496,11 @@ Details:
 | Governed Canary Knowledge-Gated Dry-Run Cycle | Production reaches legacy dry-run boundary; normalized OMP stop `OPERATIONAL_AUTHORITY`; no apply, no movement | `CERTIFIED` | `docs/reports/V7_GOVERNED_CANARY_KNOWLEDGE_GATED_AUTONOMOUS_DRY_RUN_CYCLE_REPORT.md` |
 | Runtime Latency Foundation | RT1-RT8 complete: Runtime Time Architecture, Reaction Latency, Thin Runtime Path Contract, live/precompute matrix, Engineering Report Latency Impact, Phase 2 Automation-Time Contract, Runtime Latency Engineering Review Checklist, and complete Phase 2 Automation Contract embedded through existing owners | `COMPLETED` | `docs/reference/V7_RUNTIME_MODEL.md`, `docs/reports/engineering/2026-06-28_003325_rt_phase1_runtime_latency_foundation.md`, `docs/reports/engineering/2026-06-28_004129_rt_phase1_extension_rt7_rt8.md` |
 
-## 22. Next Best Action
+## 22. Historical Next Best Action Snapshot
+
+Classification: `HISTORICAL_SNAPSHOT`.
+
+Live next best action is resolved only from `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
 `IMPLEMENT_READ_ONLY_RUNTIME_LIFECYCLE_PREVIEW`
 
@@ -4533,7 +7536,11 @@ If an exact restore-barrier write, apply, user movement, rollback apply, or prod
 
 If daemon, timer, event consumer mutation, autonomous execution, action-class expansion, blast-radius expansion, runtime capability expansion, autonomous policy approval, or authority expansion is required, stop at `ENGINEERING_AUTHORITY`.
 
-## 23. Next Best Action Entry Criteria
+## 23. Historical Next Best Action Entry Criteria
+
+Classification: `HISTORICAL_SNAPSHOT`.
+
+These entry criteria are preserved as historical evidence for the corresponding snapshot. Live entry criteria must be taken from CPS, an admitted Mission, or the current owner-backed OMP decision.
 
 | Entry Criterion | Required |
 | --- | --- |
@@ -4546,7 +7553,11 @@ If daemon, timer, event consumer mutation, autonomous execution, action-class ex
 | Tests | Focused tests must prove the lifecycle output is read-only and idempotency-aware. |
 | Safety | No daemon enablement, no timers, no event consumer mutation, no duplicate planner/governance/execution. |
 
-## 24. Program Certification
+## 24. Historical Program Certification Snapshot
+
+Classification: `HISTORICAL_SNAPSHOT`.
+
+This table preserves a prior OMP certification/status view. Live certification and blocker values are resolved from CPS and the latest accepted owner evidence.
 
 | Field | Current Value |
 | --- | --- |
@@ -5462,7 +8473,7 @@ RT Phase 2
 Purpose:
 Mature existing runtime capabilities through OMP without creating a new Runtime, Planner, World Model, Truth Source, Owner, Backlog, roadmap, dashboard authority, queue daemon, or automation path.
 
-Current execution order remains:
+Historical execution order snapshot:
 
 ```text
 A5 -> A6 -> B13 -> B16 -> Runtime Capability Maturation Program
@@ -5657,7 +8668,11 @@ RT2 graduates when all six workstreams are complete, explicitly deferred with sa
 No `RT3` program is created by default.
 Future runtime improvement after graduation proceeds through Product Evolution Review, Engineering Review, OMP, Backlog, production evidence, certification, and explicit authority where required.
 
-### 28.8 Current Status
+### 28.8 Historical RT2 Status Snapshot
+
+Classification: `HISTORICAL_SNAPSHOT`.
+
+Live RT2 / runtime capability state is resolved only from `docs/programs/V7_CURRENT_PROGRAM_STATE.md` and current owner evidence.
 
 RT2 Program Integration: `CANONICALIZED_DOCS_ONLY`.
 
@@ -5757,10 +8772,19 @@ Canonical OMP vocabulary for future work:
 | Term | Meaning |
 | --- | --- |
 | Discovery | Find current reality and existing owners. |
+| Behaviour Discovery | BDP-owned discovery of observed Behaviour, Automation Readiness, Intent Closure, Automation Breaks, Implementation Candidates, and Engineering Logic Coverage. OMP consumes accepted outputs only. |
 | Research | Collect mature outside practice through Research Framework. |
 | Fit Analysis | Compare research to V7 constraints, owners, product intent, and safety. |
 | Reuse | Use existing owner without new architecture. |
 | Extension | Add capability to an existing owner when reuse is insufficient. |
+| Implementation Candidate | Certified BDP implementation input that OMP may admit, hold, reject, or mark not applicable. It is not a queue, backlog, owner, or mission. |
+| Implementation Candidate Class | Reusable engineering problem pattern shared by one or more Candidate Instances. A Class alone never becomes a Mission. |
+| Implementation Candidate Instance | Concrete engineering situation identified by intent, break, affected Behaviour/capability/owner/consumer, state, scope, evidence, runtime, verification, rollback, authority, and policy context. This is the OMP admission unit. |
+| Candidate Merge | OMP evidence consolidation for the same Candidate Instance. It preserves all provenance and does not merge separate real situations. |
+| Cohort Mission | One OMP Mission that safely handles multiple compatible Candidate Instances only when intent, break, owner, consumer, verification, rollback, authority, policy, runtime, and blast radius are compatible. |
+| OMP Mission | OMP-admitted implementation unit with owner, intent, dependencies, authority, verification, rollback, Runtime, production, Codex handoff, and terminal state. |
+| Mission Identity | OMP execution identity derived from one Candidate Instance or one safe Cohort Mission; used to prevent duplicate active Missions. |
+| Automation Break | BDP evidence that existing logic stops before its engineering intent is achieved. It is not a certified Gap or OMP mission until OMP admits implementation work. |
 | Implementation | Change existing code/doc owner only after OMP placement. |
 | Verification | Prove behavior, truth, convergence, safety, and no unintended mutation. |
 | Certification | Close required evidence for capability, policy, action class, or maturity. |
@@ -5823,7 +8847,7 @@ MASTER 3 does not create a new canonicalization layer, integration layer, roadma
 
 | Test | Break attempt | Result | Required invariant |
 | --- | --- | --- | --- |
-| Duplicate Test | Split OMP into another roadmap/program or duplicate capability flow. | `FAILED_TO_BREAK`; duplicate would create conflicting scheduler/queue/authority. | OMP remains the only execution program; Backlog remains the only queue. |
+| Duplicate Test | Split OMP into another roadmap/program or duplicate capability flow. | `FAILED_TO_BREAK`; duplicate would create conflicting scheduler/queue/authority. | OMP remains the only execution program; Backlog remains the only post-admission implementation registry. |
 | Dependency Test | Remove ECR, Knowledge Plane, Backlog, Runtime Model, Decision Model, SYSTEM_MAP, Canonical Reference, CPS, reports, or truth/convergence. | `FAILED_TO_BREAK`; each removal loses placement, owner, state, evidence, or verification. | Dependencies are mandatory by task class and loaded through ECR. |
 | Completion Criteria Test | Mark stages complete without criteria. | `FAILED_TO_BREAK`; stage remains incomplete without owner, evidence, report, and canonical destination. | Every stage needs objective completion criteria. |
 | Evidence Test | Execute stages without evidence. | `FAILED_TO_BREAK`; OMP stops at safety, authority, certification, or real-world limit. | No evidence means no certification or authority promotion. |
@@ -5843,7 +8867,7 @@ MASTER 3 does not create a new canonicalization layer, integration layer, roadma
 OMP is resilient only while all invariants remain true:
 
 1. OMP is the only long-term execution program.
-2. Implementation Backlog is the only engineering queue.
+2. Implementation Backlog is the only post-admission implementation registry; BDP Implementation Candidate Catalogue is an input, not a queue.
 3. Current Program State owns volatile current state.
 4. Canonical Reference and SYSTEM_MAP own durable truth and owner lookup.
 5. Engineering Reports are historical evidence only and mandatory after meaningful work.
@@ -5875,7 +8899,7 @@ OMP is resilient only while all invariants remain true:
 | New rollback strategy | Rollback / Movement Protection | Restore barrier, rollback owners, Runtime Model | Governed proof, rollback/no-rollback evidence | Runtime Model / policies / SYSTEM_MAP |
 | New deployment model | Production Readiness | Safe deploy, truth/convergence, Production Maturity | Deploy verification, no unapproved mutation | CPS / Production Maturity / Canonical Reference |
 | New observability source | Observability / Knowledge System | Read-model/evidence owners, SYSTEM_MAP | Read-only evidence, freshness and source validation | SYSTEM_MAP / Canonical Reference |
-| New Research result | Research integration gate | Research Framework, Research Process, OMP | Fit Analysis, owner mapping, implementation only through Backlog if required | Canonical owner / OMP only when durable |
+| New Research result | Research integration gate | Research Framework, Research Process, OMP | Fit Analysis, owner mapping, implementation only through OMP Mission admission if required | Canonical owner / OMP only when durable |
 | New Client capability | Product Evolution Review / Business Operator Experience | Product Specification, policies, UI/read-model/routing owners | Backlog, tests, operator validation, production evidence | Product Specification / SYSTEM_MAP / Canonical Reference |
 | New Server capability | Product Evolution Review / Production Readiness | Product Specification, Runtime Model, deploy/runtime owners | Backlog, tests, safe deploy, truth/convergence | Runtime Model / SYSTEM_MAP / Production Maturity |
 
@@ -5888,7 +8912,7 @@ The correct growth action is:
 ```text
 Extend existing OMP section
   -> map to existing owner
-  -> update Backlog only through OMP when implementation is required
+  -> admit Mission through OMP when implementation is required
   -> report
   -> canonical update
   -> Current Program State
@@ -6119,7 +9143,8 @@ The only normal engineering workflow is:
 
 ```text
 OMP
-  -> Implementation Backlog or existing owner
+  -> admitted Mission from Implementation Backlog, existing owner, or BDP Implementation Candidate
+  -> Codex when assigned by OMP/operator
   -> Verification
   -> Engineering Report
   -> Canonical Update
@@ -6133,14 +9158,15 @@ Future architecture work is exceptional and must pass Architecture Closed by Def
 Capability lifecycle certification:
 
 ```text
-Idea
+Reality / AEP / BDP output or existing owner need
   -> Existing Owner Check
   -> Architecture Fit
   -> OMP Admission
   -> Capability Classification
   -> Owner Mapping
   -> Canonical Integration
-  -> Implementation Backlog or existing owner
+  -> OMP Mission
+  -> Codex when assigned by OMP/operator
   -> Implementation only after approval
   -> Verification / Certification
   -> Engineering Report
@@ -6157,7 +9183,7 @@ Governance mapping:
 | --- | --- |
 | Who approves? | OMP / operator approval where authority is required. |
 | Who owns? | Existing canonical owner identified by SYSTEM_MAP and OMP owner check. |
-| Who implements? | Existing owner or Implementation Backlog item selected by OMP. |
+| Who implements? | Existing owner through an OMP Mission; Codex may assist only when assigned by OMP/operator. |
 | Who certifies? | OMP, Production Maturity, policy/action-class owner, or affected canonical owner. |
 | Who preserves knowledge? | Exactly one canonical owner; reports remain evidence. |
 | Who updates Current Program State? | OMP through `docs/programs/V7_CURRENT_PROGRAM_STATE.md`. |

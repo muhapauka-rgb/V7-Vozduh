@@ -245656,7 +245656,7 @@
         "metadata.json",
         "registry_line",
         "users.registry",
-        "\u0441\u0442\u0440\u043e\u043a\u0430, \u043a\u043e\u0442\u043e\u0440\u0430\u044f \u0431\u0443\u0434\u0435\u0442 \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u0430 \u0432 /opt/v7/egress/state/egress.registry"
+        "строка, которая будет добавлена в /opt/v7/egress/state/egress.registry"
       ],
       "returns": true,
       "role": "operator/admin visibility",
@@ -246501,7 +246501,7 @@
       "reads": [
         "metadata.json",
         "xray_json",
-        "\u0420\u0430\u0431\u043e\u0447\u0438\u0435 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u0438 \u043d\u0435 \u0442\u0440\u043e\u043d\u0443\u0442\u044b. \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 egress.registry, \u043a\u043e\u043d\u0444\u043b\u0438\u043a\u0442 \u0438\u043c\u0435\u043d\u0438 \u0438 \u043f\u0440\u0430\u0432\u0430 \u0437\u0430\u043f\u0438\u0441\u0438."
+        "Рабочие пользователи не тронуты. Проверьте egress.registry, конфликт имени и права записи."
       ],
       "returns": true,
       "role": "supporting logic",
@@ -250378,7 +250378,7 @@
         "proposal-state-observation",
         "users.registry",
         "v7-state.json",
-        "\u041e\u0442\u043a\u0430\u0442 \u043a\u0430\u0436\u0434\u043e\u0433\u043e \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f \u0442\u043e\u043b\u044c\u043a\u043e \u043d\u0430 \u0435\u0433\u043e \u0438\u0441\u0445\u043e\u0434\u043d\u044b\u0439 channel \u0438\u0437 users.registry."
+        "Откат каждого пользователя только на его исходный channel из users.registry."
       ],
       "returns": true,
       "role": "supporting logic",
@@ -250484,8 +250484,8 @@
       "raises": false,
       "readonly": false,
       "reads": [
-        " \u0442\u0440\u0435\u0431\u0443\u0435\u0442 \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u043e\u0433\u043e review \u043f\u043e \u0442\u0435\u043a\u0443\u0449\u0435\u043c\u0443 state snapshot.",
-        "User state \u0442\u0440\u0435\u0431\u0443\u0435\u0442 review.",
+        " требует операторского review по текущему state snapshot.",
+        "User state требует review.",
         "users.registry",
         "v7-state.json"
       ],
@@ -252759,7 +252759,7 @@
       "raises": false,
       "readonly": false,
       "reads": [
-        "Route reality \u0440\u0430\u0441\u0445\u043e\u0434\u0438\u0442\u0441\u044f \u0441 registry: ",
+        "Route reality расходится с registry: ",
         "egress.registry",
         "runtime-state-missing",
         "runtime-state-stale",
@@ -333427,7 +333427,7 @@
         "recovery_state",
         "state",
         "terminal_preview_state",
-        "\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c recovery state."
+        "Проверить recovery state."
       ],
       "returns": true,
       "role": "test coverage",
@@ -333470,7 +333470,7 @@
         "ctr_state_requires_operator_review",
         "recovery_state",
         "state",
-        "\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c recovery state."
+        "Проверить recovery state."
       ],
       "returns": true,
       "role": "test coverage",
@@ -361805,5 +361805,398 @@
       "id": "S0013",
       "type": "timer"
     }
-  ]
+  ],
+  "domain_11_sync_addendum": {
+    "schema_version": "v7.function-graph.domain-11-sync-addendum.v1",
+    "date": "2026-07-07",
+    "scope": "Domain 11 Diagnosis recovery synchronization only; original Step 1C baseline entries and edges are preserved.",
+    "source_evidence": [
+      "docs/reference/V7_DIAGNOSIS_RECORD_CONTRACT.md",
+      "docs/process/V7_DIAGNOSIS_IMPLEMENTATION_ACCEPTANCE.md",
+      "docs/reports/engineering/V7_STAGE1_DIAGNOSIS_IMPLEMENTATION_REPORT.md",
+      "admin_core/autonomy_trust_acceleration.py",
+      "tools/v7-control-plane-governance-check",
+      "tests/unit/test_autonomy_trust_acceleration.py"
+    ],
+    "summary": {
+      "sync_nodes": 13,
+      "sync_edges": 9,
+      "mutation_nodes_added": 0,
+      "authority_nodes_added": 0,
+      "runtime_apply_nodes_added": 0,
+      "user_movement_nodes_added": 0,
+      "new_owner_created": false,
+      "baseline_renumbered": false,
+      "baseline_regenerated": false,
+      "verdict": "DOMAIN_11_FUNCTION_GRAPH_SYNC_COMPLETE"
+    },
+    "nodes": [
+      {
+        "id": "D11-SYNC-N0001",
+        "file": "admin_core/autonomy_trust_acceleration.py",
+        "line": 235,
+        "qualname": "DIAGNOSIS_OWNER_RESOLUTION_SCHEMA_VERSION",
+        "kind": "constant",
+        "domain": "admin_core",
+        "purpose": "Defines schema v7.diagnosis-owner-resolution.v1.",
+        "calls": [],
+        "consumes": [],
+        "downstream": [
+          "D11-SYNC-N0008",
+          "D11-SYNC-N0009",
+          "D11-SYNC-N0011"
+        ],
+        "mutation": false,
+        "authority": "none",
+        "closure": "READ_ONLY_CLOSED",
+        "role": "read-only schema contract",
+        "notes": "Existing owner extension; no new owner."
+      },
+      {
+        "id": "D11-SYNC-N0002",
+        "file": "admin_core/autonomy_trust_acceleration.py",
+        "line": 237,
+        "qualname": "DIAGNOSIS_RECORD_PRODUCER",
+        "kind": "constant",
+        "domain": "admin_core",
+        "purpose": "Names the existing Domain 11 producer path.",
+        "calls": [],
+        "consumes": [],
+        "downstream": [
+          "D11-SYNC-N0008",
+          "D11-SYNC-N0009"
+        ],
+        "mutation": false,
+        "authority": "none",
+        "closure": "READ_ONLY_CLOSED",
+        "role": "read-only producer identity",
+        "notes": "Prevents new-owner drift."
+      },
+      {
+        "id": "D11-SYNC-N0003",
+        "file": "admin_core/autonomy_trust_acceleration.py",
+        "line": 242,
+        "qualname": "DIAGNOSIS_RECORD_CONSUMERS",
+        "kind": "constant",
+        "domain": "admin_core",
+        "purpose": "Defines OMP, CPS, Production Maturity, reports, Engineering Automation, Governance Check, and future certification consumers.",
+        "calls": [],
+        "consumes": [],
+        "downstream": [
+          "D11-SYNC-N0008",
+          "D11-SYNC-N0009",
+          "D11-SYNC-N0010"
+        ],
+        "mutation": false,
+        "authority": "none",
+        "closure": "READ_ONLY_CLOSED",
+        "role": "read-only consumer contract",
+        "notes": "Preserves producer/consumer closure."
+      },
+      {
+        "id": "D11-SYNC-N0004",
+        "file": "admin_core/autonomy_trust_acceleration.py",
+        "line": 8332,
+        "qualname": "_diagnosis_upper",
+        "kind": "function",
+        "domain": "admin_core",
+        "purpose": "Normalizes diagnosis enum strings.",
+        "calls": [
+          "_text"
+        ],
+        "consumes": [],
+        "downstream": [
+          "D11-SYNC-N0008"
+        ],
+        "mutation": false,
+        "authority": "none",
+        "closure": "LEAF_CLOSED",
+        "role": "supporting helper",
+        "notes": "Read-only helper."
+      },
+      {
+        "id": "D11-SYNC-N0005",
+        "file": "admin_core/autonomy_trust_acceleration.py",
+        "line": 8337,
+        "qualname": "_diagnosis_refs",
+        "kind": "function",
+        "domain": "admin_core",
+        "purpose": "Normalizes evidence references to a list.",
+        "calls": [],
+        "consumes": [],
+        "downstream": [
+          "D11-SYNC-N0008"
+        ],
+        "mutation": false,
+        "authority": "none",
+        "closure": "LEAF_CLOSED",
+        "role": "supporting helper",
+        "notes": "Read-only helper."
+      },
+      {
+        "id": "D11-SYNC-N0006",
+        "file": "admin_core/autonomy_trust_acceleration.py",
+        "line": 8345,
+        "qualname": "_diagnosis_record_id",
+        "kind": "function",
+        "domain": "admin_core",
+        "purpose": "Builds stable content-derived Diagnosis Record id.",
+        "calls": [
+          "json.dumps",
+          "hashlib.sha256"
+        ],
+        "consumes": [],
+        "downstream": [
+          "D11-SYNC-N0008"
+        ],
+        "mutation": false,
+        "authority": "none",
+        "closure": "LEAF_CLOSED",
+        "role": "supporting helper",
+        "notes": "Deterministic id; no write path."
+      },
+      {
+        "id": "D11-SYNC-N0007",
+        "file": "admin_core/autonomy_trust_acceleration.py",
+        "line": 8351,
+        "qualname": "_diagnosis_mutation_boundary",
+        "kind": "function",
+        "domain": "admin_core",
+        "purpose": "Produces explicit no-mutation boundary flags.",
+        "calls": [
+          "dict",
+          "DIAGNOSIS_MUTATION_BOUNDARY"
+        ],
+        "consumes": [
+          "DIAGNOSIS_MUTATION_BOUNDARY"
+        ],
+        "downstream": [
+          "D11-SYNC-N0008"
+        ],
+        "mutation": false,
+        "authority": "none",
+        "closure": "LEAF_CLOSED",
+        "role": "supporting helper",
+        "notes": "Preserves no Runtime/Authority/user movement boundary."
+      },
+      {
+        "id": "D11-SYNC-N0008",
+        "file": "admin_core/autonomy_trust_acceleration.py",
+        "line": 8358,
+        "qualname": "build_diagnosis_owner_resolution_record",
+        "kind": "function",
+        "domain": "admin_core",
+        "purpose": "Produces read-only v7.diagnosis-owner-resolution.v1 records from caller-supplied existing evidence.",
+        "calls": [
+          "_diagnosis_refs",
+          "_diagnosis_upper",
+          "_text",
+          "_diagnosis_record_id",
+          "_diagnosis_mutation_boundary",
+          "datetime.now"
+        ],
+        "consumes": [
+          "caller_supplied_evidence_refs",
+          "DIAGNOSIS_* constants"
+        ],
+        "downstream": [
+          "D11-SYNC-N0009",
+          "D11-SYNC-N0010",
+          "D11-SYNC-N0011"
+        ],
+        "mutation": false,
+        "authority": "none",
+        "closure": "READ_ONLY_CLOSED",
+        "role": "read-only Diagnosis / Owner Resolution producer",
+        "notes": "Does not read production state, recompute Planner/Runtime decisions, or mutate."
+      },
+      {
+        "id": "D11-SYNC-N0009",
+        "file": "admin_core/autonomy_trust_acceleration.py",
+        "line": 8502,
+        "qualname": "validate_diagnosis_owner_resolution_record",
+        "kind": "function",
+        "domain": "admin_core",
+        "purpose": "Validates schema, evidence, owner-resolution, terminal classification, and mutation-boundary rules.",
+        "calls": [
+          "_text"
+        ],
+        "consumes": [
+          "DIAGNOSIS_* constants",
+          "record"
+        ],
+        "downstream": [
+          "D11-SYNC-N0010"
+        ],
+        "mutation": false,
+        "authority": "none",
+        "closure": "READ_ONLY_CLOSED",
+        "role": "read-only validation owner",
+        "notes": "Rejects unsafe mutation flags, synthetic owner drift, and unsupported root-cause claims."
+      },
+      {
+        "id": "D11-SYNC-N0010",
+        "file": "admin_core/autonomy_trust_acceleration.py",
+        "line": 8624,
+        "qualname": "build_diagnosis_owner_resolution_consumer_projection",
+        "kind": "function",
+        "domain": "admin_core",
+        "purpose": "Projects one Diagnosis Record to OMP, CPS, Production Maturity, reports, Engineering Automation, Governance Check, and future certification.",
+        "calls": [
+          "validate_diagnosis_owner_resolution_record",
+          "record.get"
+        ],
+        "consumes": [
+          "record"
+        ],
+        "downstream": [
+          "D11-SYNC-N0011"
+        ],
+        "mutation": false,
+        "authority": "none",
+        "closure": "READ_ONLY_CLOSED",
+        "role": "read-only consumer projection",
+        "notes": "Reuses same record; does not reinterpret diagnosis truth."
+      },
+      {
+        "id": "D11-SYNC-N0011",
+        "file": "tools/v7-control-plane-governance-check",
+        "line": 768,
+        "qualname": "diagnosis_owner_resolution_projection_status",
+        "kind": "function",
+        "domain": "tool",
+        "purpose": "Exposes Domain 11 Diagnosis Record in governance check output.",
+        "calls": [
+          "autonomy_trust_acceleration.build_diagnosis_owner_resolution_record",
+          "autonomy_trust_acceleration.build_diagnosis_owner_resolution_consumer_projection"
+        ],
+        "consumes": [
+          "V7_DIAGNOSIS_RECORD_CONTRACT",
+          "V7_DIAGNOSIS_IMPLEMENTATION_ACCEPTANCE"
+        ],
+        "downstream": [
+          "D11-SYNC-N0012"
+        ],
+        "mutation": false,
+        "authority": "none",
+        "closure": "READ_ONLY_CLOSED",
+        "role": "read-only governance projection",
+        "notes": "runtime_commands_executed=false; recompute_diagnosis_truth=false."
+      },
+      {
+        "id": "D11-SYNC-N0012",
+        "file": "tools/v7-control-plane-governance-check",
+        "line": 3391,
+        "qualname": "build_report",
+        "kind": "function_modified",
+        "domain": "tool",
+        "purpose": "Adds diagnosis_owner_resolution_projection to read-only governance report.",
+        "calls": [
+          "diagnosis_owner_resolution_projection_status"
+        ],
+        "consumes": [
+          "D11-SYNC-N0011"
+        ],
+        "downstream": [
+          "D11-SYNC-N0013",
+          "governance_report_consumers"
+        ],
+        "mutation": false,
+        "authority": "none",
+        "closure": "READ_ONLY_CLOSED",
+        "role": "read-only report projection",
+        "notes": "Modified existing owner only."
+      },
+      {
+        "id": "D11-SYNC-N0013",
+        "file": "tools/v7-control-plane-governance-check",
+        "line": 5580,
+        "qualname": "print_pretty",
+        "kind": "function_modified",
+        "domain": "tool",
+        "purpose": "Prints Domain 11 projection schema, validation state, and recompute guard.",
+        "calls": [
+          "report['diagnosis_owner_resolution_projection']"
+        ],
+        "consumes": [
+          "D11-SYNC-N0012"
+        ],
+        "downstream": [
+          "operator_visibility",
+          "engineering_visibility"
+        ],
+        "mutation": false,
+        "authority": "none",
+        "closure": "READ_ONLY_CLOSED",
+        "role": "read-only visibility",
+        "notes": "Prints diagnosis_owner_resolution_recompute_truth=false."
+      }
+    ],
+    "edges": [
+      {
+        "source": "D11-SYNC-N0008",
+        "target": "D11-SYNC-N0004",
+        "type": "call",
+        "meaning": "Builder normalizes enum values."
+      },
+      {
+        "source": "D11-SYNC-N0008",
+        "target": "D11-SYNC-N0005",
+        "type": "call",
+        "meaning": "Builder normalizes evidence references."
+      },
+      {
+        "source": "D11-SYNC-N0008",
+        "target": "D11-SYNC-N0006",
+        "type": "call",
+        "meaning": "Builder creates stable record id."
+      },
+      {
+        "source": "D11-SYNC-N0008",
+        "target": "D11-SYNC-N0007",
+        "type": "call",
+        "meaning": "Builder attaches no-mutation boundary."
+      },
+      {
+        "source": "D11-SYNC-N0010",
+        "target": "D11-SYNC-N0009",
+        "type": "call",
+        "meaning": "Consumer projection validates the same record."
+      },
+      {
+        "source": "D11-SYNC-N0011",
+        "target": "D11-SYNC-N0008",
+        "type": "call",
+        "meaning": "Governance projection builds the Diagnosis Record."
+      },
+      {
+        "source": "D11-SYNC-N0011",
+        "target": "D11-SYNC-N0010",
+        "type": "call",
+        "meaning": "Governance projection exposes the consumer projection."
+      },
+      {
+        "source": "D11-SYNC-N0012",
+        "target": "D11-SYNC-N0011",
+        "type": "call",
+        "meaning": "Governance report includes Domain 11 projection."
+      },
+      {
+        "source": "D11-SYNC-N0013",
+        "target": "D11-SYNC-N0012",
+        "type": "read",
+        "meaning": "Pretty output reads report projection."
+      }
+    ],
+    "tests": [
+      "tests.unit.test_autonomy_trust_acceleration.AutonomyTrustAccelerationTest.test_diagnosis_owner_resolution_record_is_valid_read_only_contract",
+      "tests.unit.test_autonomy_trust_acceleration.AutonomyTrustAccelerationTest.test_diagnosis_owner_resolution_record_preserves_unknown_without_fake_root_cause",
+      "tests.unit.test_autonomy_trust_acceleration.AutonomyTrustAccelerationTest.test_diagnosis_owner_resolution_terminal_classifications_are_canonical",
+      "tests.unit.test_autonomy_trust_acceleration.AutonomyTrustAccelerationTest.test_diagnosis_owner_resolution_first_divergence_requires_evidence_fields",
+      "tests.unit.test_autonomy_trust_acceleration.AutonomyTrustAccelerationTest.test_diagnosis_owner_resolution_validator_rejects_unsafe_or_unproven_records",
+      "tests.unit.test_autonomy_trust_acceleration.AutonomyTrustAccelerationTest.test_diagnosis_owner_resolution_consumer_projection_uses_same_record",
+      "tests.unit.test_autonomy_trust_acceleration.AutonomyTrustAccelerationTest.test_diagnosis_owner_resolution_validator_accepts_compatible_extensions",
+      "python3 tools/v7-control-plane-governance-check --pretty"
+    ]
+  }
 }

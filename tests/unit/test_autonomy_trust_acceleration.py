@@ -2310,6 +2310,145 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertFalse(certification["authority_expanded"])
         self.assertFalse(certification["apply_executed"])
 
+    def recovery_runtime_gate_inputs(self):
+        return {
+            "recovery_admission_certification": {
+                "schema_version": "v7.b8.recovery-admission-certification.v1",
+                "rows": [{
+                    "channel": "awg1",
+                    "certification_state": "CERTIFIED_FOR_RECOVERY_ADMISSION_REVIEW",
+                    "admission_state": "RECOVERED_WATCH",
+                    "blockers": [],
+                }],
+            },
+            "post_admission_observation_windows": {
+                "schema_version": "v7.b9.post-admission-observation-windows.v1",
+                "rows": [{
+                    "channel": "awg1",
+                    "verification_state": "POST_ADMISSION_WINDOWS_VERIFIED_READ_ONLY",
+                    "blockers": [],
+                }],
+            },
+            "recovery_slow_start_progression": {
+                "schema_version": "v7.b10.recovery-slow-start-progression.v1",
+                "rows": [{
+                    "channel": "awg1",
+                    "progression_state": "SLOW_START_PROGRESSION_READY_READ_ONLY",
+                    "safe_next_stage": "ONE_USER_GOVERNED_RECOVERY_REVIEW",
+                    "blockers": [],
+                }],
+            },
+        }
+
+    def build_a6_with_recovery(self, **overrides):
+        recovery = self.recovery_runtime_gate_inputs()
+        recovery.update(overrides)
+        return accel.build_runtime_eligibility_arbitration(
+            action_class_runtime_enablement={
+                "delegated_autonomy_runtime_eligibility": {
+                    "blockers": ["AUTHORITY_POLICY_NOT_APPROVED"],
+                    "runtime_can_execute_automatically": False,
+                    "stale_required_domains": [],
+                },
+                "enablement_readiness": {"missing_evidence": []},
+            },
+            class_level_blast_radius_certification={
+                "beyond_one_user_certified": True,
+                "current_one_user_guard_certified": True,
+            },
+            freshness_actionability={"domains": {}},
+            anti_flapping={"summary": {"blocked_users": 0}},
+            decision_outcome_closure={"closure_state": "COMPLETE"},
+            decision_outcome_learning={"knowledge_growth": {"knowledge_gained": 1}},
+            routing_recommendation_readiness={"blockers": []},
+            **recovery,
+        )
+
+    def test_a6_consumes_valid_b8_b9_b10_as_bounded_read_only_recovery_contract(self):
+        arbitration = self.build_a6_with_recovery()
+
+        gates = {row["gate"]: row for row in arbitration["gate_rows"]}
+        self.assertEqual(gates["recovery_admission"]["state"], "PASS")
+        integration = arbitration["recovery_runtime_integration"]
+        self.assertEqual(integration["state"], "READY_FOR_EXISTING_AUTHORITY_REVIEW_READ_ONLY")
+        self.assertEqual(integration["execution_owner"], "tools/v7-users-autoswitch")
+        self.assertEqual(integration["ready_channels"], ["awg1"])
+        self.assertEqual(integration["bounded_recovery_candidates"][0]["max_users"], 1)
+        self.assertTrue(integration["bounded_recovery_candidates"][0]["packet_lease_identity_required"])
+        self.assertTrue(integration["bounded_recovery_candidates"][0]["rollback_and_verification_required"])
+        self.assertTrue(integration["read_only"])
+        self.assertFalse(integration["runtime_mutation_performed"])
+        self.assertFalse(integration["runtime_apply_allowed"])
+        self.assertFalse(integration["direct_execution_allowed"])
+        self.assertFalse(integration["authority_created_by_recovery_evidence"])
+        self.assertEqual(integration["users_moved"], 0)
+        self.assertEqual(arbitration["runtime_execute_decision"], "STOP_SAFE")
+        self.assertIn("authority", arbitration["stop_gates"])
+        self.assertIn("runtime_apply", arbitration["stop_gates"])
+        self.assertFalse(arbitration["apply_executed"])
+        self.assertEqual(arbitration["users_moved"], 0)
+
+    def test_a6_recovery_gate_stops_when_b10_contract_is_missing(self):
+        arbitration = self.build_a6_with_recovery(recovery_slow_start_progression={})
+
+        self.assertIn("recovery_admission", arbitration["stop_gates"])
+        blockers = arbitration["recovery_runtime_integration"]["blockers"]
+        self.assertIn("b10_recovery_slow_start_progression_missing_or_unknown", blockers)
+        self.assertIn("b10_recovery_slow_start_progression_missing", blockers)
+        self.assertEqual(arbitration["runtime_execute_decision"], "STOP_SAFE")
+
+    def test_a6_recovery_gate_stops_on_failed_observation_verification(self):
+        recovery = self.recovery_runtime_gate_inputs()
+        recovery["post_admission_observation_windows"]["rows"][0].update({
+            "verification_state": "POST_ADMISSION_WINDOWS_NOT_VERIFIED",
+            "blockers": ["post_admission_quality_windows_missing:1h"],
+        })
+        arbitration = self.build_a6_with_recovery(**recovery)
+
+        self.assertIn("recovery_admission", arbitration["stop_gates"])
+        blockers = arbitration["recovery_runtime_integration"]["blockers"]
+        self.assertIn("b9_post_admission_observation_windows_not_verified", blockers)
+        self.assertIn("post_admission_quality_windows_missing:1h", blockers)
+
+    def test_a6_recovery_gate_preserves_upstream_stale_cooldown_and_quarantine_blocks(self):
+        recovery = self.recovery_runtime_gate_inputs()
+        recovery["recovery_admission_certification"]["rows"][0].update({
+            "certification_state": "NOT_CERTIFIED_COLLECT_REAL_EVIDENCE",
+            "blockers": [
+                "recovery_freshness_not_actionable",
+                "cooldown_active",
+                "quarantine_or_degraded_lifecycle",
+            ],
+        })
+        arbitration = self.build_a6_with_recovery(**recovery)
+
+        self.assertIn("recovery_admission", arbitration["stop_gates"])
+        blockers = arbitration["recovery_runtime_integration"]["blockers"]
+        self.assertIn("recovery_freshness_not_actionable", blockers)
+        self.assertIn("cooldown_active", blockers)
+        self.assertIn("quarantine_or_degraded_lifecycle", blockers)
+
+    def test_a6_non_recovery_routing_remains_compatible(self):
+        arbitration = self.build_a6_with_recovery(
+            recovery_admission_certification={
+                "schema_version": "v7.b8.recovery-admission-certification.v1",
+                "rows": [{
+                    "channel": "awg1",
+                    "certification_state": "CERTIFIED_FOR_RECOVERY_ADMISSION_REVIEW",
+                    "admission_state": "ELIGIBLE",
+                    "blockers": [],
+                }],
+            },
+        )
+
+        gates = {row["gate"]: row for row in arbitration["gate_rows"]}
+        self.assertEqual(gates["recovery_admission"]["state"], "NOT_APPLICABLE")
+        self.assertNotIn("recovery_admission", arbitration["stop_gates"])
+        self.assertEqual(
+            arbitration["recovery_runtime_integration"]["state"],
+            "NOT_APPLICABLE_NO_RECOVERY_CANDIDATE",
+        )
+
     def test_a6_runtime_eligibility_arbitration_is_read_only_stop_model(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -2350,10 +2489,13 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertIn("verification", gates)
         self.assertIn("learning", gates)
         self.assertIn("routing_readiness", gates)
+        self.assertIn("recovery_admission", gates)
         self.assertIn("runtime_apply", gates)
         self.assertEqual(gates["blast_radius"], "PASS")
         self.assertEqual(gates["authority"], "STOP")
         self.assertEqual(gates["runtime_apply"], "STOP")
+        self.assertEqual(gates["recovery_admission"], "NOT_APPLICABLE")
+        self.assertNotIn("recovery_admission", arbitration["stop_gates"])
         self.assertEqual(arbitration["runtime_execute_decision"], "STOP_SAFE")
         self.assertFalse(arbitration["runtime_apply_allowed"])
         self.assertFalse(arbitration["runtime_can_execute_automatically"])

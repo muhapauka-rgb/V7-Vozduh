@@ -1,20 +1,20 @@
 # POLICY_003_RECOVERY_ADMISSION
 
-Status: `V7_FIT_ANALYSIS_COMPLETE_IMPLEMENTATION_BACKLOG_READY`
+Status: `READ_ONLY_RUNTIME_INTEGRATION_CERTIFIED`
 Policy class: recovery admission
-Current lifecycle: `V7_FIT_ANALYSIS_COMPLETE`
-Next lifecycle: `IMPLEMENTATION_BACKLOG`
-Certification state: `RESEARCH_PENDING`
-Implementation state: `NOT_IMPLEMENTED`
+Current lifecycle: `READ_ONLY_RUNTIME_INTEGRATION_CERTIFIED`
+Next lifecycle: `PRODUCTION_AUTHORITY_AND_OUTCOME_CERTIFICATION`
+Certification state: `B8_B9_B10_A6_READ_ONLY_CERTIFIED`
+Implementation state: `DONE_READ_ONLY`
 Runtime automation enabled: `NO`
 
 ## Purpose
 
-This policy records world research for recovery admission.
+This policy records the world research, V7 adaptation, and current read-only integration state for recovery admission.
 
 Recovery admission means deciding when a previously failed or degraded channel, server, endpoint, route, service, or provider may safely receive traffic again.
 
-This document currently contains only the `FULL WORLD RESEARCH` stage. It does not yet define V7 consensus, V7 adaptation, runtime behavior, authority behavior, implementation, certification, or autonomous enablement.
+V7 implements recovery admission as a read-only staged chain: B8 certification, B9 post-admission observation, B10 one-user staged progression, and A6 Runtime Eligibility consumption. The chain does not grant Authority, enable Runtime apply, move users, or certify production autonomy.
 
 ## Problem
 
@@ -202,30 +202,31 @@ Status: `REALITY_AUDIT_COMPLETE`.
 
 Reality source:
 
-- owners: `admin_core/autonomy_trust_acceleration.py::build_recovery_admission`, freshness/actionability, restore/rollback, service/quality owners;
-- evidence: recovery admission is read-only, requires `ACTIONABLE_NOW`, currently sees no eligible production rows in local inventory; runtime automation `NO`.
+- owners: `admin_core/autonomy_trust_acceleration.py` B8/B9/B10 and A6 read models, freshness/actionability, restore/rollback, service/quality, authority, and autoswitch owners;
+- evidence: recovery admission remains read-only, requires actionable current evidence, and now reaches A6 as a fail-closed one-user recovery-review candidate; production admission and runtime automation remain `NO`.
 
 ### Consensus Reality Mapping
 
 | Consensus item | Reality status | Existing owner(s) | Existing implementation / evidence | Reuse opportunity | Gap |
 | --- | --- | --- | --- | --- | --- |
-| CS1: recovery admission requires repeated success/readiness. | `PARTIALLY_IMPLEMENTED` | `build_recovery_admission`. | Policy includes minimum successful checks and watch checks; not certified with real recovery outcomes. | Reuse recovery admission overlay. | `MODERATE_EXTENSION`: collect real recovery outcomes. |
+| CS1: recovery admission requires repeated success/readiness. | `DONE_READ_ONLY` | B8 recovery certification. | B8 requires repeated successful checks plus service, quality, freshness, and objective evidence. | Reuse B8. | Production outcome certification remains. |
 | CS2: liveness and readiness/admission are separate. | `FULLY_IMPLEMENTED` | Recovery admission, service/route/readiness models. | V7 separates current evidence, admission overlay, and runtime eligibility. | Reuse existing separation. | `CONFIGURATION_ONLY`: bind to canonical policy. |
-| CS3: recovered targets must continue to be observed. | `PARTIALLY_IMPLEMENTED` | Service matrix, quality compact, recovery admission. | Continued observation owners exist; closed recovery outcome evidence is incomplete. | Reuse service/quality refresh. | `SMALL_EXTENSION`: require post-admission observation window. |
-| CS4: slow start / gradual reintroduction is common when overload risk exists. | `PARTIALLY_IMPLEMENTED` | Blast-radius/action-class ladder. | One-user bounds exist; explicit slow-start recovery progression is not implemented. | Reuse action-class ladder and blast-radius gates. | `MODERATE_EXTENSION`: define recovery slow-start path. |
+| CS3: recovered targets must continue to be observed. | `DONE_READ_ONLY` | B9, service matrix, quality compact. | B9 verifies existing post-admission observation windows after B8 certification. | Reuse B9 and existing observation owners. | Real post-action production outcomes remain. |
+| CS4: slow start / gradual reintroduction is common when overload risk exists. | `DONE_READ_ONLY` | B10, A6, blast-radius/action-class ladder. | B10 maps recovery to one-user governed progression; A6 consumes it without apply. | Reuse B10, A6, and existing autoswitch owner. | Production authority and outcome certification remain. |
 | CS5: replacement instead of re-admission is common in replaceable infrastructure. | `UNKNOWN` | Planner/autoswitch. | V7 routes users/channels; provider replacement is outside current runtime scope. | Reuse planner if replacement concept maps to alternate target. | `DOCUMENTATION_ONLY`: V7 fit decision needed. |
-| CS6: time-based expiry alone is insufficient. | `PARTIALLY_IMPLEMENTED` | Freshness/actionability and recovery admission. | Freshness requires actionable evidence, not only time expiry; certification still pending. | Reuse freshness gate. | `SMALL_EXTENSION`: enforce in canonical recovery policy. |
+| CS6: time-based expiry alone is insufficient. | `DONE_READ_ONLY` | Freshness/actionability, B8, A6. | Recovery requires actionable evidence and explicit certification; timer expiry alone cannot pass A6. | Reuse existing freshness and recovery gates. | No read-only gap. |
 | CS7: DNS-level recovery is limited to new connections. | `NOT_IMPLEMENTED` | None required for current scope. | V7 does not currently use DNS failover as primary recovery mechanism. | Reuse only if future DNS owner appears. | `DOCUMENTATION_ONLY`: likely non-applicable. |
 
 ### Policy Coverage
 
 | Metric | Value |
 | --- | --- |
-| Implementation coverage | `48%` |
-| Reuse potential | `86%` |
-| Missing coverage | `52%` |
-| Complexity of remaining work | `MODERATE` |
-| Expected implementation risk | `MEDIUM` |
+| Read-only implementation coverage | `COMPLETE_FOR_B8_B9_B10_A6_PATH` |
+| Existing-owner reuse | `COMPLETE` |
+| Production authority coverage | `NOT_GRANTED` |
+| Real production outcome coverage | `NOT_CERTIFIED` |
+| Complexity of remaining work | `PRODUCTION_CERTIFICATION_ONLY` |
+| Expected implementation risk | `HIGH_IF_AUTHORITY_IS_LATER_GRANTED` |
 | Fundamental architecture gap | `NO` |
 
 ## V7 Fit Analysis
@@ -234,65 +235,69 @@ Status: `COMPLETE`.
 
 Policy decision: `ADAPT`.
 
-Recovery-admission practice fits V7, but V7 must adapt cloud/load-balancer recovery into channel re-admission, slow-start movement, anti-flap, and outcome-certified learning.
+Recovery-admission practice fits V7. The read-only implementation adapts cloud/load-balancer recovery into channel re-admission, one-user staged progression, anti-flap, and existing outcome/learning owners; production authority and outcome evidence remain separate later certifications.
 
 | Industry practice | Applicable to V7? | Decision | Why | Existing owner | Reuse path | Complexity | Expected production value | Priority |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Repeated success/readiness before recovery. | `YES` | `REUSE` | Recovery admission overlay exists and needs real outcome certification. | `build_recovery_admission`. | Collect and close real recovery outcomes. | `MODERATE_EXTENSION` | High: prevents premature return. | `B8` |
+| Repeated success/readiness before recovery. | `DONE_READ_ONLY` | `REUSE_COMPLETE` | B8 certifies repeated checks and readiness evidence without admitting traffic. | B8 recovery certification. | Collect and close real recovery outcomes before production authority. | `PRODUCTION_CERTIFICATION` | High: prevents premature return. | `B8_COMPLETE` |
 | Separate liveness from readiness/admission. | `YES` | `REUSE` | V7 already separates current evidence, admission, and runtime eligibility. | Recovery admission, service/route/readiness models. | Bind separation to canonical policy. | `NONE` | High: avoids binary health errors. | `B8` |
-| Continue observation after recovery. | `YES` | `ADAPT` | Existing observation owners need post-admission windows. | Service matrix, quality compact, recovery admission. | Require post-admission observation windows. | `SMALL_EXTENSION` | High: catches rebound failure. | `B9` |
-| Slow start / gradual reintroduction. | `YES` | `ADAPT` | V7 should map slow start to users/action classes, not traffic weights by default. | Blast-radius/action-class ladder. | Define recovery slow-start path. | `MODERATE_EXTENSION` | High: improves safe scale-up. | `B10` |
+| Continue observation after recovery. | `DONE_READ_ONLY` | `ADAPT_COMPLETE` | B9 verifies existing service and quality observation windows after B8. | B9, service matrix, quality compact. | Reuse existing observations; require real post-action outcomes later. | `PRODUCTION_CERTIFICATION` | High: catches rebound failure. | `B9_COMPLETE` |
+| Slow start / gradual reintroduction. | `DONE_READ_ONLY` | `ADAPT_COMPLETE` | B10 maps slow start to one-user action-class progression and A6 consumes it without apply. | B10, A6, blast-radius/action-class ladder. | Reuse existing autoswitch and authority owners for any later authorized action. | `PRODUCTION_CERTIFICATION` | High: improves safe scale-up. | `B10_COMPLETE` |
 | Replacement instead of re-admission. | `PARTIAL` | `REJECT_FOR_NOW` | Provider replacement is outside current runtime scope; alternate target selection already exists. | Planner/autoswitch. | Treat as future platform/provider operation. | `NONE` | Optional. | `D2` |
-| Time expiry alone insufficient. | `YES` | `REUSE` | Freshness actionability already requires actionable evidence. | Freshness/actionability and recovery admission. | Enforce in canonical recovery policy. | `SMALL_EXTENSION` | Medium high: blocks stale recovery. | `A2` |
+| Time expiry alone insufficient. | `DONE_READ_ONLY` | `REUSE_COMPLETE` | Freshness actionability and B8/A6 require current actionable evidence. | Freshness/actionability, B8, A6. | Preserve fail-closed freshness consumption. | `NONE` | Medium high: blocks stale recovery. | `A2_COMPLETE` |
 | DNS-level recovery limits. | `NO_FOR_CURRENT_SCOPE` | `REJECT` | V7 does not use DNS failover as the primary recovery model. | None required. | Keep as future DNS-platform option only. | `NONE` | Optional. | `D3` |
 
 Need New Owner: `FALSE`.
 
 ## V7 Adaptation
 
-`RESEARCH_PENDING`.
+`IMPLEMENTED_READ_ONLY`.
+
+V7 adapts slow start to governed user/action-class progression instead of introducing a traffic-weight ramp. The existing B8/B9/B10 owners prepare a recovery candidate for the existing A6 Runtime Eligibility and autoswitch authority path.
 
 ## Why V7 Differs
 
-`RESEARCH_PENDING`.
+V7 routes users across channels and already bounds mutation through action classes, blast radius, packet/lease identity, rollback, and governed autoswitch execution. Recovery therefore progresses through `ONE_USER_GOVERNED_RECOVERY_REVIEW`; it does not create a separate recovery executor or immediately restore full traffic.
 
 ## Runtime Behavior
 
-`RESEARCH_PENDING`.
+When B8 identifies a recovery candidate through recovered-watch context, A6 consumes B8 certification, B9 observation windows, and B10 staged progression as one fail-closed read-only gate. Missing, stale, blocked, contradictory, or unverified recovery evidence produces `STOP_SAFE`. A complete chain identifies the existing `tools/v7-users-autoswitch` execution owner and a maximum one-user candidate, but keeps `runtime_apply_allowed = false` and `direct_execution_allowed = false`.
+
+When no recovery candidate exists, including ordinary `ELIGIBLE` channel rows, the recovery gate is not applicable and non-recovery routing eligibility remains unchanged.
 
 ## Authority Behavior
 
-`RESEARCH_PENDING`.
+Recovery evidence never creates Authority. Any future apply requires the existing action-class, blast-radius, operator authority, packet/lease identity, and live recheck contracts. This policy does not expand authority or blast radius.
 
 ## Safety
 
-`RESEARCH_PENDING`.
+The chain remains `STOP_SAFE` for incomplete B8/B9/B10 contracts, stale or insufficient evidence, active cooldown, quarantine or target block, anti-flap denial, failed observation verification, missing rollback/verification readiness, identity mismatch, authority denial, or runtime-apply denial. The read-only recovery candidate is bounded to one user.
 
 ## Verification
 
-`RESEARCH_PENDING`.
+Unit and regression verification cover valid read-only B8/B9/B10 consumption, missing stages, failed observation windows, upstream freshness/cooldown/quarantine blockers, and non-recovery compatibility. Real production movement and production outcome evidence remain outside this certification.
 
 ## Rollback
 
-`RESEARCH_PENDING`.
+Future authorized execution must reuse the existing packet, lease, restore-barrier, verification, and autoswitch rollback owners. The recovery read model does not write restore barriers or invoke apply/rollback.
 
 ## Learning
 
-`RESEARCH_PENDING`.
+Observed terminal outcomes must continue through existing Verification, Closure, Learning, Production Maturity, CPS, and OMP paths. Recovery preparation does not create synthetic evidence or promote read-only candidates into learned truth.
 
 ## Implementation Owner
 
-Existing V7 owners must be reused.
-Potential owner mapping must be proven during later lifecycle stages.
+Existing owners are reused:
+
+- recovery preparation and A6 integration: `admin_core.autonomy_trust_acceleration`;
+- governed execution: `tools/v7-users-autoswitch`;
+- authority, packet/lease identity, restore barrier, verification, closure, learning, and production maturity: their existing canonical owners.
 
 ## Certification State
 
-`RESEARCH_PENDING`.
+`READ_ONLY_RUNTIME_INTEGRATION_CERTIFIED`.
 
-World research is complete.
-Consensus detection is pending.
-V7 adaptation is pending.
-Implementation is forbidden until later lifecycle stages permit it.
+World research, V7 fit, B8/B9/B10 preparation, and A6 read-only consumption are complete. Production execution authority, production movement, and real recovery outcome certification are not granted.
 
 ## References
 
@@ -312,6 +317,6 @@ Implementation is forbidden until later lifecycle stages permit it.
 
 ## Open Questions
 
-- Which recovery windows survive the next `INDUSTRY_CONSENSUS_DETECTION` stage?
-- Which recovery controls must be shared with anti-flap and freshness policies?
-- Which systems require capacity proof in addition to health proof?
+- Which existing authority mode may first permit a governed one-user recovery action?
+- What real production outcome evidence is required before recovery authority can mature?
+- Which capacity evidence must accompany health evidence for wider recovery stages?

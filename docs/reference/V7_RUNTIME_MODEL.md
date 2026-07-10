@@ -524,7 +524,9 @@ Status: `DONE_READ_ONLY`
 
 Owner: Runtime Model for the contract; OMP and `admin_core.autonomy_trust_acceleration` for the read-only implementation surface.
 
-`runtime_eligibility_arbitration` is the current A6 execute-or-stop read model. It consumes existing certified gate outputs for freshness, authority, blast radius, rollback/no-rollback, anti-flap, verification, learning, routing readiness, and runtime_apply. It may report `ELIGIBLE_READ_ONLY_PREVIEW` only as advisory state; it must not enable runtime apply, expand authority, write restore barriers, move users, create a new runtime path, or bypass live gates.
+`runtime_eligibility_arbitration` is the current A6 execute-or-stop read model. It consumes existing certified gate outputs for freshness, authority, blast radius, rollback/no-rollback, anti-flap, verification, learning, routing readiness, and runtime_apply. When B8 identifies a recovered-watch candidate, A6 also consumes the existing B8 recovery certification, B9 post-admission observation, and B10 staged progression contracts. An incomplete recovery chain produces `STOP_SAFE`; a complete chain produces only a one-user governed recovery-review candidate for the existing autoswitch owner. Recovery evidence cannot grant Authority or enable apply. With no recovery candidate, including ordinary eligible channels, the gate is not applicable and non-recovery routing behavior is unchanged.
+
+It may report `ELIGIBLE_READ_ONLY_PREVIEW` only as advisory state; it must not enable runtime apply, expand authority, write restore barriers, move users, create a new runtime path, or bypass live gates.
 
 Current canonical result: `STOP_SAFE` at authority/runtime_apply.
 

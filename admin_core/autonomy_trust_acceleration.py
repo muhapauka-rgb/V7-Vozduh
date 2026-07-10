@@ -3146,6 +3146,136 @@ def build_class_level_blast_radius_certification(
     }
 
 
+def _recovery_runtime_integration_gate(
+    recovery_admission_certification: dict[str, Any] | None,
+    post_admission_observation_windows: dict[str, Any] | None,
+    recovery_slow_start_progression: dict[str, Any] | None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    b8 = recovery_admission_certification if isinstance(recovery_admission_certification, dict) else {}
+    b9 = post_admission_observation_windows if isinstance(post_admission_observation_windows, dict) else {}
+    b10 = recovery_slow_start_progression if isinstance(recovery_slow_start_progression, dict) else {}
+    b8_rows = {
+        _b8_channel_key(row, index): row
+        for index, row in enumerate(b8.get("rows") or [])
+        if isinstance(row, dict)
+    }
+    b9_rows = {
+        _b8_channel_key(row, index): row
+        for index, row in enumerate(b9.get("rows") or [])
+        if isinstance(row, dict)
+    }
+    b10_rows = {
+        _b8_channel_key(row, index): row
+        for index, row in enumerate(b10.get("rows") or [])
+        if isinstance(row, dict)
+    }
+    channels = sorted(
+        channel
+        for channel, row in b8_rows.items()
+        if row.get("recovery_candidate") is True or row.get("admission_state") == "RECOVERED_WATCH"
+    )
+    if not channels:
+        evidence = {
+            "required": False,
+            "state": "NOT_APPLICABLE_NO_RECOVERY_CANDIDATE",
+            "channels": [],
+            "ready_channels": [],
+            "blocked_channels": [],
+            "bounded_recovery_candidates": [],
+            "blockers": [],
+            "execution_owner": "tools/v7-users-autoswitch",
+            "read_only": True,
+            "runtime_mutation_performed": False,
+            "runtime_apply_allowed": False,
+            "direct_execution_allowed": False,
+            "users_moved": 0,
+        }
+        return {
+            "gate": "recovery_admission",
+            "state": "NOT_APPLICABLE",
+            "owner": "B8/B9/B10 recovery owners",
+            "evidence": evidence,
+        }, evidence
+
+    schema_blockers = []
+    if b8.get("schema_version") != "v7.b8.recovery-admission-certification.v1":
+        schema_blockers.append("b8_recovery_admission_certification_missing_or_unknown")
+    if b9.get("schema_version") != "v7.b9.post-admission-observation-windows.v1":
+        schema_blockers.append("b9_post_admission_observation_windows_missing_or_unknown")
+    if b10.get("schema_version") != "v7.b10.recovery-slow-start-progression.v1":
+        schema_blockers.append("b10_recovery_slow_start_progression_missing_or_unknown")
+
+    rows = []
+    for channel in channels:
+        certification = b8_rows.get(channel) or {}
+        observation = b9_rows.get(channel) or {}
+        progression = b10_rows.get(channel) or {}
+        blockers = list(schema_blockers)
+        if not certification:
+            blockers.append("b8_recovery_admission_certification_missing")
+        elif certification.get("certification_state") != "CERTIFIED_FOR_RECOVERY_ADMISSION_REVIEW":
+            blockers.append("b8_recovery_admission_certification_not_ready")
+        blockers.extend(str(item) for item in certification.get("blockers") or [] if item)
+        if not observation:
+            blockers.append("b9_post_admission_observation_windows_missing")
+        elif observation.get("verification_state") != "POST_ADMISSION_WINDOWS_VERIFIED_READ_ONLY":
+            blockers.append("b9_post_admission_observation_windows_not_verified")
+        blockers.extend(str(item) for item in observation.get("blockers") or [] if item)
+        if not progression:
+            blockers.append("b10_recovery_slow_start_progression_missing")
+        elif progression.get("progression_state") != "SLOW_START_PROGRESSION_READY_READ_ONLY":
+            blockers.append("b10_recovery_slow_start_progression_not_ready")
+        if progression and progression.get("safe_next_stage") != "ONE_USER_GOVERNED_RECOVERY_REVIEW":
+            blockers.append("b10_one_user_governed_recovery_stage_not_ready")
+        blockers.extend(str(item) for item in progression.get("blockers") or [] if item)
+        blockers = sorted(set(blockers))
+        ready = not blockers
+        rows.append({
+            "channel": channel,
+            "state": "READY_FOR_EXISTING_AUTHORITY_REVIEW_READ_ONLY" if ready else "STOP_SAFE",
+            "blockers": blockers,
+            "b8_state": certification.get("certification_state", "MISSING"),
+            "b9_state": observation.get("verification_state", "MISSING"),
+            "b10_state": progression.get("progression_state", "MISSING"),
+            "safe_next_stage": progression.get("safe_next_stage", "BLOCKED"),
+            "execution_owner": "tools/v7-users-autoswitch",
+            "authority_owner": "existing OMP/action-class/blast-radius/operator authority",
+            "max_users": 1,
+            "packet_lease_identity_required": True,
+            "rollback_and_verification_required": True,
+            "runtime_apply_allowed": False,
+            "direct_execution_allowed": False,
+        })
+
+    blockers = sorted({blocker for row in rows for blocker in row["blockers"]})
+    ready_rows = [row for row in rows if row["state"] == "READY_FOR_EXISTING_AUTHORITY_REVIEW_READ_ONLY"]
+    evidence = {
+        "required": True,
+        "state": "READY_FOR_EXISTING_AUTHORITY_REVIEW_READ_ONLY" if not blockers else "STOP_SAFE",
+        "channels": rows,
+        "ready_channels": [row["channel"] for row in ready_rows],
+        "blocked_channels": [row["channel"] for row in rows if row["state"] == "STOP_SAFE"],
+        "bounded_recovery_candidates": ready_rows,
+        "blockers": blockers,
+        "execution_owner": "tools/v7-users-autoswitch",
+        "authority_owner": "existing OMP/action-class/blast-radius/operator authority",
+        "post_action_contract": "existing verification/closure/learning/Production Maturity/CPS/OMP path",
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "runtime_apply_allowed": False,
+        "direct_execution_allowed": False,
+        "users_moved": 0,
+        "authority_created_by_recovery_evidence": False,
+        "blast_radius_expanded": False,
+    }
+    return {
+        "gate": "recovery_admission",
+        "state": "PASS" if not blockers else "STOP",
+        "owner": "B8/B9/B10 recovery owners",
+        "evidence": evidence,
+    }, evidence
+
+
 def build_runtime_eligibility_arbitration(
     *,
     action_class_runtime_enablement: dict[str, Any],
@@ -3155,6 +3285,9 @@ def build_runtime_eligibility_arbitration(
     decision_outcome_closure: dict[str, Any],
     decision_outcome_learning: dict[str, Any],
     routing_recommendation_readiness: dict[str, Any],
+    recovery_admission_certification: dict[str, Any] | None = None,
+    post_admission_observation_windows: dict[str, Any] | None = None,
+    recovery_slow_start_progression: dict[str, Any] | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     """Expose A6 execute-or-stop arbitration without enabling Runtime."""
@@ -3169,6 +3302,11 @@ def build_runtime_eligibility_arbitration(
     learning_gained = int(knowledge_growth.get("knowledge_gained") or 0)
     routing_blockers = list(routing_recommendation_readiness.get("blockers") or [])
     blast_ready = bool(class_level_blast_radius_certification.get("beyond_one_user_certified"))
+    recovery_gate, recovery_integration = _recovery_runtime_integration_gate(
+        recovery_admission_certification,
+        post_admission_observation_windows,
+        recovery_slow_start_progression,
+    )
     gate_rows = [
         {
             "gate": "freshness",
@@ -3221,6 +3359,7 @@ def build_runtime_eligibility_arbitration(
             "owner": "routing_recommendation_readiness",
             "evidence": routing_blockers,
         },
+        recovery_gate,
         {
             "gate": "runtime_apply",
             "state": "STOP" if not delegated.get("runtime_can_execute_automatically") else "PASS",
@@ -3243,12 +3382,22 @@ def build_runtime_eligibility_arbitration(
         "runtime_apply_allowed": False,
         "runtime_can_execute_automatically": False,
         "authority_required_before_runtime_apply": True,
+        "recovery_runtime_integration": recovery_integration,
         "certified_gate_outputs_consumed": {
             "A1_hard_failure": True,
             "A2_freshness": True,
             "A3_rollback_no_rollback": "rollback_or_no_rollback" not in " ".join(missing_evidence),
             "A4_representative_outcomes": True,
             "A5_blast_radius": blast_ready,
+            "B8_recovery_admission": not recovery_integration["required"] or not any(
+                "b8_" in blocker for blocker in recovery_integration["blockers"]
+            ),
+            "B9_post_admission_observation": not recovery_integration["required"] or not any(
+                "b9_" in blocker for blocker in recovery_integration["blockers"]
+            ),
+            "B10_recovery_slow_start": not recovery_integration["required"] or not any(
+                "b10_" in blocker for blocker in recovery_integration["blockers"]
+            ),
         },
         "omp_output": {
             "a6_status": "READ_MODEL_IMPLEMENTED_STOPPED_BY_AUTHORITY" if authority_stop else "READ_MODEL_IMPLEMENTED",
@@ -12014,6 +12163,9 @@ def build_acceleration_inventory(
         decision_outcome_closure=decision_outcome_closure,
         decision_outcome_learning=decision_outcome_learning,
         routing_recommendation_readiness=routing_recommendation_readiness,
+        recovery_admission_certification=recovery_admission_certification,
+        post_admission_observation_windows=post_admission_observation_windows,
+        recovery_slow_start_progression=recovery_slow_start_progression,
         generated_at=generated,
     )
     stale_read_mutation_blocking = build_stale_read_mutation_blocking(

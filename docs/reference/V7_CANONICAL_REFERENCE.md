@@ -758,7 +758,7 @@ Known remaining gaps:
 
 1. Centralized hysteresis arbitration across hard failure, soft degradation, recovery, freshness, and anti-flap.
 2. Explicit per-user `AUTO` / `PINNED` / `MANUAL` routing control mode.
-3. Runtime consumption/authority for recovery slow-start.
+3. Production execution authority and real outcome evidence for recovery slow-start. Read-only B8/B9/B10 consumption by A6 is complete and points to the existing bounded autoswitch path without granting Authority or apply.
 4. Pool max-ejection / minimum-health mapping into V7-native capacity and blast-radius semantics.
 
 Reaudit rule:

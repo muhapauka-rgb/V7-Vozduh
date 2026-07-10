@@ -152,6 +152,16 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
 
     def args_for(self, root: Path, extra_args: Optional[list[str]] = None):
         parser = self.tool.build_arg_parser()
+        control_file = root / "safe-mode.json"
+        if not control_file.exists():
+            control_file.write_text(
+                json.dumps(self.tool.operator_execution.build_autonomous_execution_control_state(
+                    False,
+                    actor="unit-test",
+                    reason="unit-test-controlled-window",
+                )),
+                encoding="utf-8",
+            )
         base_args = [
             "--state-dir",
             str(root / "state"),
@@ -175,6 +185,8 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             str(root / "state" / "egress-load-summary.json"),
             "--restore-barrier-file",
             str(root / "state" / "autoswitch-restore-barrier.json"),
+            "--execution-control-file",
+            str(control_file),
         ]
         return parser.parse_args(base_args + list(extra_args or []))
 
@@ -184,6 +196,82 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         plan["apply_result"] = planner.apply(plan)
         planner.finalize_operation(plan)
         return plan
+
+    def test_execution_control_open_denies_apply_without_changing_plan(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+            )
+            args = self.args_for(root, ["--apply"])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+            selected_before = json.loads(json.dumps(plan.get("selected_moves") or []))
+            Path(args.execution_control_file).write_text(
+                json.dumps(self.tool.operator_execution.build_autonomous_execution_control_state(True, actor="owner", reason="stop")),
+                encoding="utf-8",
+            )
+            with mock.patch.object(planner, "_run_switch") as switch:
+                result = planner.apply(plan)
+
+        self.assertEqual(result["reason"], "autonomous_execution_control_stop_safe")
+        self.assertEqual(plan.get("selected_moves") or [], selected_before)
+        switch.assert_not_called()
+
+    def test_execution_control_generation_change_stops_remaining_batch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, users=2)
+            args = self.args_for(root, ["--apply", "--max-selected-moves", "2", "--no-verify"])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = {
+                "enabled": True,
+                "mode": "guarded",
+                "operation": {"operation_id": "op-batch", "selected_move_hash": "hash-batch"},
+                "selected_moves": [
+                    {"user_ip": "10.0.0.2", "current_egress": "1", "recommended_egress": "vless", "move_type": "rebalance"},
+                    {"user_ip": "10.0.0.3", "current_egress": "1", "recommended_egress": "vless", "move_type": "rebalance"},
+                ],
+                "summary": {"selected_moves": 2},
+                "safety": {},
+            }
+            original = planner._run_switch
+            calls = []
+
+            def switch_once(ip, egress, reason):
+                calls.append(ip)
+                Path(args.execution_control_file).write_text(
+                    json.dumps(self.tool.operator_execution.build_autonomous_execution_control_state(True, actor="owner", reason="batch stop")),
+                    encoding="utf-8",
+                )
+                return subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok")
+
+            planner._run_switch = switch_once
+            planner._validate_atomic_execution_envelope = lambda value: {"ok": True}
+            planner._l3_execution_eligibility = lambda value: {"ok": True, "active": False}
+            result = planner.apply(plan)
+            planner._run_switch = original
+
+        self.assertEqual(len(calls), 1)
+        self.assertTrue(result["remaining_forward_mutations_stopped"])
+
+    def test_execution_control_open_denies_authority_promotion_before_write(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            args = self.args_for(root, ["--promote-authority-to", "SMALL_BATCH"])
+            Path(args.execution_control_file).write_text(
+                json.dumps(self.tool.operator_execution.build_autonomous_execution_control_state(True, actor="owner", reason="stop")),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(args)
+            before = Path(args.policy_file).read_bytes()
+            result = planner.promote_authority("SMALL_BATCH")
+            after = Path(args.policy_file).read_bytes()
+
+        self.assertIn("autonomous_execution_control_denied", result["blockers"])
+        self.assertEqual(before, after)
 
     def test_scoped_post_apply_route_verification_uses_expected_target(self):
         with tempfile.TemporaryDirectory() as tmp:

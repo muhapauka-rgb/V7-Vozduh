@@ -690,6 +690,8 @@ def run_autoswitch_apply(
     operation_id: str = "",
     selected_move_hash: str = "",
     authority_generation: str = "",
+    breaker_generation: str = "",
+    execution_control_file: str = "",
     emergency_failover_autonomy: bool = False,
 ) -> dict[str, Any]:
     timeout_seconds = autoswitch_apply_timeout_seconds(max_users)
@@ -726,6 +728,10 @@ def run_autoswitch_apply(
         command.extend(["--approved-selected-move-hash", selected_move_hash])
     if authority_generation:
         command.extend(["--approved-authority-generation", authority_generation])
+    if breaker_generation:
+        command.extend(["--approved-breaker-generation", breaker_generation])
+    if execution_control_file:
+        command.extend(["--execution-control-file", execution_control_file])
     if emergency_failover_autonomy:
         command.insert(1, "--emergency-failover-autonomy")
     try:
@@ -1037,6 +1043,16 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
         return transaction_stop("l3_production_validation_confirmation_required")
     requested_max_users = max(1, int(args.max_users))
 
+    control_file = Path(getattr(args, "execution_control_file", operator_execution.DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE))
+    preflight_control = operator_execution.autonomous_execution_control_decision(
+        control_file,
+        mutation_kind="forward",
+        action_class="EMERGENCY_FAILOVER",
+        operation_id="l3-production-validation",
+    )
+    if not preflight_control.get("allowed_forward_mutation"):
+        return transaction_stop("autonomous_execution_control_denied_pre_lease", execution_control=preflight_control)
+
     existing_lease = operator_execution.load_execution_lease(lease_file)
     existing_state = operator_execution.execution_lease_state(existing_lease)
     if existing_state.get("active"):
@@ -1089,6 +1105,7 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
             approval_author=args.approval_author,
             approval_reviewer=args.approval_reviewer,
             ttl_seconds=args.ttl_seconds,
+            breaker_generation=str(preflight_control.get("generation") or ""),
         )
     except Exception as exc:
         return transaction_stop("l3_packet_materialization_failed", l3_plan_run=l3_plan_run, transition=transition, error=str(exc))
@@ -1155,6 +1172,26 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
             lease_terminalization=terminal,
         )
 
+    pre_apply_control = operator_execution.autonomous_execution_control_decision(
+        control_file,
+        mutation_kind="forward",
+        action_class="EMERGENCY_FAILOVER",
+        expected_generation=str(packet_identity.get("breaker_generation") or ""),
+        operation_id=str(packet_identity.get("operation_id") or ""),
+    )
+    if not pre_apply_control.get("allowed_forward_mutation"):
+        terminal = operator_execution.finish_execution_lease(
+            lease_file,
+            status="OPERATOR_CANCELLED",
+            reason="autonomous_execution_control_denied_pre_apply",
+            operation={"terminal_state": "STOP_SAFE", "terminal_reason": "execution_control_changed", "apply_result": {"applied": False, "results": []}},
+        )
+        return transaction_stop(
+            "autonomous_execution_control_denied_pre_apply",
+            execution_control=pre_apply_control,
+            lease_terminalization=terminal,
+        )
+
     apply_run = run_autoswitch_apply(
         state_dir=state_dir,
         event_dir=event_dir,
@@ -1168,6 +1205,8 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
         operation_id=str(packet_identity.get("operation_id") or ""),
         selected_move_hash=str(packet_identity.get("selected_move_hash") or ""),
         authority_generation=str(packet_identity.get("authority_generation") or ""),
+        breaker_generation=str(packet_identity.get("breaker_generation") or ""),
+        execution_control_file=str(control_file),
         emergency_failover_autonomy=True,
     )
     apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}
@@ -1255,6 +1294,16 @@ def execute_governed_transaction_with_guards(
     if int(args.max_users) != 1:
         return transaction_stop("transaction_max_users_must_be_one")
 
+    control_file = Path(getattr(args, "execution_control_file", operator_execution.DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE))
+    preflight_control = operator_execution.autonomous_execution_control_decision(
+        control_file,
+        mutation_kind="forward",
+        action_class="USER_SWITCH",
+        operation_id="governed-transaction",
+    )
+    if not preflight_control.get("allowed_forward_mutation"):
+        return transaction_stop("autonomous_execution_control_denied_pre_lease", execution_control=preflight_control)
+
     existing_lease = operator_execution.load_execution_lease(lease_file)
     existing_state = operator_execution.execution_lease_state(existing_lease)
     if existing_state.get("active"):
@@ -1319,6 +1368,7 @@ def execute_governed_transaction_with_guards(
             approval_author=args.approval_author,
             approval_reviewer=args.approval_reviewer,
             ttl_seconds=args.ttl_seconds,
+            breaker_generation=str(preflight_control.get("generation") or ""),
         )
     except Exception as exc:
         return transaction_stop("packet_materialization_failed", cycle=cycle, error=str(exc))
@@ -1386,6 +1436,22 @@ def execute_governed_transaction_with_guards(
             lease_terminalization=terminal,
         )
 
+    pre_apply_control = operator_execution.autonomous_execution_control_decision(
+        control_file,
+        mutation_kind="forward",
+        action_class="USER_SWITCH",
+        expected_generation=str(packet_identity.get("breaker_generation") or ""),
+        operation_id=str(packet_identity.get("operation_id") or ""),
+    )
+    if not pre_apply_control.get("allowed_forward_mutation"):
+        terminal = operator_execution.finish_execution_lease(
+            lease_file,
+            status="OPERATOR_CANCELLED",
+            reason="autonomous_execution_control_denied_pre_apply",
+            operation={"terminal_state": "STOP_SAFE", "terminal_reason": "execution_control_changed", "apply_result": {"applied": False, "results": []}},
+        )
+        return transaction_stop("autonomous_execution_control_denied_pre_apply", execution_control=pre_apply_control, lease_terminalization=terminal)
+
     apply_run = run_autoswitch_apply(
         state_dir=state_dir,
         event_dir=event_dir,
@@ -1398,6 +1464,8 @@ def execute_governed_transaction_with_guards(
         operation_id=str(packet_identity.get("operation_id") or ""),
         selected_move_hash=str(packet_identity.get("selected_move_hash") or ""),
         authority_generation=str(packet_identity.get("authority_generation") or ""),
+        breaker_generation=str(packet_identity.get("breaker_generation") or ""),
+        execution_control_file=str(control_file),
     )
     apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}
     operation = dict(apply_payload.get("operation") or {})
@@ -1661,6 +1729,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--approved-source", default="")
     parser.add_argument("--approved-target", default="")
     parser.add_argument("--approved-authority-generation", default="")
+    parser.add_argument("--execution-control-file", default=str(operator_execution.DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE))
     parser.add_argument("--pretty", action="store_true")
     return parser
 

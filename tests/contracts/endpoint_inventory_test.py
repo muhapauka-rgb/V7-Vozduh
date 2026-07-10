@@ -36,6 +36,33 @@ def endpoint(data, method, path):
 
 
 class EndpointInventoryContractTest(unittest.TestCase):
+    def test_admin_safe_mode_reuses_shared_fail_closed_owner_and_exposes_generation(self):
+        source = ADMIN_API.read_text(encoding="utf-8")
+        self.assertIn("operator_execution.autonomous_execution_control_state(SAFE_MODE_FILE)", source)
+        self.assertIn("operator_execution.build_autonomous_execution_control_state(", source)
+        self.assertIn('"admin_safe_mode": admin_safe_mode_state()', source)
+        self.assertIn('audit_admin(actor, "admin_safe_mode_set"', source)
+
+    def test_safe_mode_exceptions_are_explicitly_non_runtime_classified(self):
+        non_runtime = {
+            "/api/actions/closure-set",
+            "/api/actions/egress-draft-clash-create-proxy-draft",
+            "/api/actions/egress-draft-endpoint-create-managed-draft",
+            "/api/actions/egress-draft-post-enable-validation",
+            "/api/actions/execution-feedback-materialize",
+            "/api/actions/recommendation-approve",
+            "/api/actions/recommendation-ignore",
+            "/api/actions/shadow-autonomy-compare",
+        }
+        source = ADMIN_API.read_text(encoding="utf-8")
+        for path in non_runtime:
+            self.assertIn(path, source)
+        self.assertTrue(non_runtime.isdisjoint({
+            "/api/actions/autoswitch-apply-guarded",
+            "/api/actions/user-switch",
+            "/api/actions/authority-promotion",
+        }))
+
     def test_admin_api_still_compiles(self):
         py_compile.compile(str(ADMIN_API), cfile="/private/tmp/v7-admin-api-contract.pyc", doraise=True)
 

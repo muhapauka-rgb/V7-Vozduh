@@ -5,12 +5,16 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from admin_core.operator_execution import (
+    AUTONOMOUS_EXECUTION_CONTROL_SCHEMA,
     CANONICAL_CLEARANCE_OWNER,
     EMPTY_SELECTED_MOVES_HASH,
     PacketError,
     RUNTIME_ACTION_CREATE_CLEARANCE,
     RUNTIME_ACTION_ZERO_MOVE_GOVERNANCE,
     approved_packet_binding_status,
+    autonomous_execution_control_decision,
+    autonomous_execution_control_state,
+    build_autonomous_execution_control_state,
     cancel_execution_lease,
     containment_forward_fix_classification,
     create_execution_lease_from_packet,
@@ -19,6 +23,7 @@ from admin_core.operator_execution import (
     execution_lease_state,
     extract_packet_preview,
     finish_execution_lease,
+    material_state_from_packet,
     packet_from_preview,
     packet_identity,
     packet_from_plan,
@@ -83,6 +88,103 @@ def packet_template(state_dir, expires_delta=timedelta(hours=1)):
 
 
 class OperatorExecutionPacketTest(unittest.TestCase):
+    def test_autonomous_execution_control_is_fail_closed_and_generation_bound(self):
+        now = datetime.now(timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "safe-mode.json"
+            missing = autonomous_execution_control_decision(path, now=now)
+            path.write_text("{bad", encoding="utf-8")
+            malformed = autonomous_execution_control_decision(path, now=now)
+            closed = build_autonomous_execution_control_state(False, actor="owner", reason="controlled window", now=now)
+            write_json(path, closed)
+            allowed = autonomous_execution_control_decision(
+                path,
+                expected_generation=closed["generation"],
+                action_class="EMERGENCY_FAILOVER",
+                operation_id="op-1",
+                now=now,
+            )
+            mismatch = autonomous_execution_control_decision(
+                path,
+                expected_generation="aec_old",
+                action_class="EMERGENCY_FAILOVER",
+                operation_id="op-1",
+                now=now,
+            )
+            stale = autonomous_execution_control_decision(
+                path,
+                action_class="EMERGENCY_FAILOVER",
+                operation_id="op-1",
+                now=now + timedelta(seconds=901),
+            )
+
+        self.assertFalse(missing["allowed"])
+        self.assertFalse(malformed["allowed"])
+        self.assertTrue(allowed["allowed_forward_mutation"])
+        self.assertFalse(mismatch["allowed"])
+        self.assertIn("execution_control_generation_mismatch", mismatch["blockers"])
+        self.assertFalse(stale["allowed"])
+        self.assertIn("execution_control_closed_expired", stale["blockers"])
+        self.assertFalse(allowed["authority_granted"])
+
+    def test_autonomous_execution_control_open_persists_and_allows_only_certified_rollback(self):
+        now = datetime.now(timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "safe-mode.json"
+            opened = build_autonomous_execution_control_state(True, actor="owner", reason="incident", now=now)
+            write_json(path, opened)
+            forward = autonomous_execution_control_decision(path, action_class="USER_SWITCH", operation_id="op-1", now=now + timedelta(days=30))
+            rollback = autonomous_execution_control_decision(
+                path,
+                mutation_kind="rollback",
+                action_class="USER_SWITCH",
+                expected_generation=opened["generation"],
+                rollback_certified=True,
+                operation_id="op-1",
+                now=now + timedelta(days=30),
+            )
+            uncertified = autonomous_execution_control_decision(
+                path,
+                mutation_kind="rollback",
+                action_class="USER_SWITCH",
+                operation_id="op-1",
+                now=now,
+            )
+
+        self.assertEqual(opened["schema_version"], AUTONOMOUS_EXECUTION_CONTROL_SCHEMA)
+        self.assertFalse(forward["allowed"])
+        self.assertTrue(rollback["rollback_only_allowed"])
+        self.assertFalse(uncertified["allowed"])
+
+    def test_autonomous_execution_control_rejects_legacy_and_incomplete_state(self):
+        now = datetime.now(timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "safe-mode.json"
+            for payload in [
+                {"schema_version": 1, "enabled": False},
+                {"schema_version": AUTONOMOUS_EXECUTION_CONTROL_SCHEMA, "enabled": False, "state": "CLOSED"},
+            ]:
+                write_json(path, payload)
+                decision = autonomous_execution_control_decision(path, now=now)
+                self.assertFalse(decision["allowed"])
+
+    def test_breaker_generation_is_bound_to_packet_and_invalidates_lease(self):
+        packet = packet_from_plan(
+            self.movement_plan(),
+            approval_author="operator-a",
+            approval_reviewer="operator-b",
+            breaker_generation="aec_generation_one",
+        )
+        lease = create_execution_lease_from_packet(packet)
+        current = material_state_from_packet(packet)
+        current["breaker_generation"] = "aec_generation_two"
+        state = execution_lease_state(lease, current_material_state=current)
+
+        self.assertEqual(packet_identity(packet)["breaker_generation"], "aec_generation_one")
+        self.assertEqual(lease["immutable_packet_identity"]["breaker_generation"], "aec_generation_one")
+        self.assertEqual(state["status"], "INVALIDATED")
+        self.assertIn("breaker_generation", state["changed_fields"])
+
     def test_b15_containment_forward_fix_classification_matrix_is_read_only(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp)

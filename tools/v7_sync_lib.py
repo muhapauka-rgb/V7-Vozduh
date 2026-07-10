@@ -48,6 +48,13 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "v7-user-switch",
+        "local_path": "tools/runtime-support/v7-user-switch",
+        "remote_path": "/usr/local/bin/v7-user-switch",
+        "mode": "0755",
+        "service": None,
+    },
+    {
         "name": "v7-audit-log",
         "local_path": "tools/runtime-support/v7-audit-log",
         "remote_path": "/usr/local/bin/v7-audit-log",

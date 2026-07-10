@@ -88,6 +88,11 @@ class RuntimeSnapshotFastPathTest(unittest.TestCase):
 
     def args_for(self, root: Path, extra: Optional[List[str]] = None):
         parser = self.tool.build_arg_parser()
+        control_file = root / "safe-mode.json"
+        if not control_file.exists():
+            control_file.write_text(json.dumps(self.tool.operator_execution.build_autonomous_execution_control_state(
+                False, actor="unit-test", reason="unit-test-controlled-window"
+            )), encoding="utf-8")
         return parser.parse_args(
             [
                 "--state-dir", str(root / "state"),
@@ -102,6 +107,7 @@ class RuntimeSnapshotFastPathTest(unittest.TestCase):
                 "--vless-activity-file", str(root / "state" / "vless-activity.json"),
                 "--load-summary-file", str(root / "state" / "egress-load-summary.json"),
                 "--restore-barrier-file", str(root / "state" / "autoswitch-restore-barrier.json"),
+                "--execution-control-file", str(control_file),
             ] + list(extra or [])
         )
 

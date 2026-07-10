@@ -4,6 +4,7 @@ import json
 import argparse
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -187,6 +188,20 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(current["operation_id"], "govexec-active")
 
     def transaction_args(self, root: Path):
+        now = datetime.now(timezone.utc)
+        control_file = root / "safe-mode.json"
+        control_file.write_text(json.dumps({
+            "schema_version": "v7.autonomous-execution-control.v2",
+            "enabled": False,
+            "state": "CLOSED",
+            "scope": "global",
+            "generation": "aec_unit_test",
+            "updated_at": now.isoformat(),
+            "valid_until": (now + timedelta(seconds=900)).isoformat(),
+            "updated_by": "unit-test",
+            "reason": "unit-test-window",
+            "rollback_policy": "CERTIFIED_ROLLBACK_ONLY",
+        }), encoding="utf-8")
         return argparse.Namespace(
             state_dir=str(root / "state"),
             event_dir=str(root / "events"),
@@ -215,6 +230,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
             approved_source="",
             approved_target="",
             approved_authority_generation="",
+            execution_control_file=str(control_file),
             pretty=False,
         )
 
@@ -525,6 +541,28 @@ class GovernedCanaryCliTest(unittest.TestCase):
 
         self.assertEqual(result["final_verdict"], "GOVERNED_TRANSACTION_STOPPED")
         self.assertEqual(result["stop_reason"], "l3_production_validation_confirmation_required")
+        self.assertFalse(result["apply_executed"])
+
+    def test_l3_production_validation_open_breaker_stops_before_lease(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root)
+            args.execute_l3_production_validation = True
+            args.confirm_l3_production_validation = "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED"
+            state = module.operator_execution.build_autonomous_execution_control_state(True, actor="owner", reason="incident")
+            Path(args.execution_control_file).write_text(json.dumps(state), encoding="utf-8")
+            result = module.execute_l3_production_validation(
+                args,
+                state_dir=root / "state",
+                event_dir=root / "events",
+                snapshot_root=root / "state" / "intelligence",
+                audit_dir=root / "audit",
+                lease_file=root / "state" / "operator-execution-lease.json",
+            )
+
+        self.assertEqual(result["stop_reason"], "autonomous_execution_control_denied_pre_lease")
         self.assertFalse(result["apply_executed"])
 
     def test_l3_production_validation_routes_through_pipeline_before_apply(self):

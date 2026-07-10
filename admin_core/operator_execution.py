@@ -41,6 +41,17 @@ CANONICAL_CLEARANCE_OWNER = "admin_core/operator_execution.py"
 DEFAULT_CLEARANCE_TTL_SECONDS = 900
 EXECUTION_LEASE_SCHEMA = "v7.execution-lease.v1"
 DEFAULT_EXECUTION_LEASE_TTL_SECONDS = DEFAULT_CLEARANCE_TTL_SECONDS
+AUTONOMOUS_EXECUTION_CONTROL_SCHEMA = "v7.autonomous-execution-control.v2"
+DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE = Path("/etc/v7/admin/safe-mode.json")
+AUTONOMOUS_EXECUTION_ROLLBACK_POLICY = "CERTIFIED_ROLLBACK_ONLY"
+AUTONOMOUS_EXECUTION_ACTION_CLASSES = {
+    "AUTHORITY_PROMOTION",
+    "BOUNDED_REBALANCE",
+    "DEGRADATION_MOVEMENT",
+    "EMERGENCY_FAILOVER",
+    "RECOVERY_ADMISSION",
+    "USER_SWITCH",
+}
 LEASE_TERMINAL_STATUSES = {"EXECUTION_FINISHED", "ROLLBACK_FINISHED", "OPERATOR_CANCELLED"}
 SELECTED_MOVE_SEMANTIC_FIELDS = (
     "reason",
@@ -50,6 +61,7 @@ SELECTED_MOVE_SEMANTIC_FIELDS = (
     "service_failover",
 )
 MATERIAL_STATE_FIELDS = [
+    "breaker_generation",
     "selected_move_hash",
     "target_channel",
     "rollback_target",
@@ -70,6 +82,7 @@ APPROVED_PACKET_BINDING_FIELDS = [
     "source",
     "target",
     "authority_generation",
+    "breaker_generation",
 ]
 B15_CONTAINMENT_FORWARD_FIX_SCHEMA = "v7.b15-containment-forward-fix-classification.v1"
 C5_ROLLBACK_OPERATIONAL_COMPENSATION_SCHEMA = "v7.c5-rollback-operational-compensation.v1"
@@ -137,6 +150,138 @@ def canonical_json(data):
 
 def stable_id(prefix, payload):
     return f"{prefix}_{sha256_bytes(canonical_json(payload).encode('utf-8'))[:24]}"
+
+
+def build_autonomous_execution_control_state(enabled, *, actor, reason, now=None):
+    now = now or utc_now()
+    enabled = bool(enabled)
+    actor = str(actor or "admin").strip() or "admin"
+    reason = str(reason or "operator_control").strip()[:240] or "operator_control"
+    generation = stable_id("aec", {
+        "enabled": enabled,
+        "actor": actor,
+        "reason": reason,
+        "updated_at": now.isoformat(),
+        "nonce": secrets.token_hex(16),
+    })
+    return {
+        "schema_version": AUTONOMOUS_EXECUTION_CONTROL_SCHEMA,
+        "enabled": enabled,
+        "state": "OPEN" if enabled else "CLOSED",
+        "scope": "global",
+        "generation": generation,
+        "updated_at": now.isoformat(),
+        "valid_until": "" if enabled else (now + timedelta(seconds=DEFAULT_EXECUTION_LEASE_TTL_SECONDS)).isoformat(),
+        "updated_by": actor,
+        "reason": reason,
+        "rollback_policy": AUTONOMOUS_EXECUTION_ROLLBACK_POLICY,
+    }
+
+
+def autonomous_execution_control_state(path=DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE, *, now=None):
+    now = now or utc_now()
+    blockers = []
+    try:
+        data = read_json(path)
+    except PacketError:
+        data = {}
+        blockers.append("execution_control_missing_or_unreadable")
+    if not isinstance(data, dict):
+        data = {}
+        blockers.append("execution_control_not_object")
+    if data.get("schema_version") != AUTONOMOUS_EXECUTION_CONTROL_SCHEMA:
+        blockers.append("execution_control_schema_unknown")
+    enabled = data.get("enabled")
+    state = str(data.get("state") or "")
+    if not isinstance(enabled, bool):
+        blockers.append("execution_control_enabled_invalid")
+    expected_state = "OPEN" if enabled is True else ("CLOSED" if enabled is False else "")
+    if state not in {"OPEN", "CLOSED", "HALF_OPEN"} or state != expected_state:
+        blockers.append("execution_control_state_invalid")
+    if str(data.get("scope") or "") != "global":
+        blockers.append("execution_control_scope_unknown")
+    generation = str(data.get("generation") or "")
+    if not generation.startswith("aec_"):
+        blockers.append("execution_control_generation_invalid")
+    if not str(data.get("updated_by") or "").strip():
+        blockers.append("execution_control_actor_missing")
+    if not str(data.get("reason") or "").strip():
+        blockers.append("execution_control_reason_missing")
+    if data.get("rollback_policy") != AUTONOMOUS_EXECUTION_ROLLBACK_POLICY:
+        blockers.append("execution_control_rollback_policy_invalid")
+    try:
+        updated_at = parse_ts(data.get("updated_at"))
+        if updated_at > now + timedelta(minutes=5):
+            blockers.append("execution_control_updated_at_future")
+    except PacketError:
+        blockers.append("execution_control_updated_at_invalid")
+    valid_until = None
+    if state == "CLOSED":
+        try:
+            valid_until = parse_ts(data.get("valid_until"))
+            if now >= valid_until:
+                blockers.append("execution_control_closed_expired")
+        except PacketError:
+            blockers.append("execution_control_valid_until_invalid")
+    return {
+        **data,
+        "enabled": enabled is True,
+        "state": state or "UNKNOWN",
+        "generation": generation,
+        "valid": not blockers,
+        "blockers": sorted(set(blockers)),
+        "forward_mutation_allowed": not blockers and state == "CLOSED",
+        "read_only_allowed": True,
+        "valid_until": data.get("valid_until", ""),
+    }
+
+
+def autonomous_execution_control_decision(
+    path=DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE,
+    *,
+    mutation_kind="forward",
+    action_class="USER_SWITCH",
+    expected_generation="",
+    rollback_certified=False,
+    operation_id="",
+    now=None,
+):
+    state = autonomous_execution_control_state(path, now=now)
+    blockers = list(state.get("blockers") or [])
+    action_class = str(action_class or "").upper()
+    mutation_kind = str(mutation_kind or "").lower()
+    if action_class not in AUTONOMOUS_EXECUTION_ACTION_CLASSES:
+        blockers.append("execution_control_action_class_unknown")
+    if mutation_kind not in {"forward", "rollback"}:
+        blockers.append("execution_control_mutation_kind_unknown")
+    if expected_generation and expected_generation != state.get("generation"):
+        blockers.append("execution_control_generation_mismatch")
+    if mutation_kind == "rollback" and (not rollback_certified or not str(operation_id or "")):
+        blockers.append("execution_control_rollback_uncertified")
+    allowed_forward = not blockers and mutation_kind == "forward" and state.get("state") == "CLOSED"
+    allowed_rollback = not blockers and mutation_kind == "rollback" and bool(rollback_certified)
+    if mutation_kind == "forward" and state.get("state") != "CLOSED":
+        blockers.append("execution_control_forward_suspended")
+    return {
+        "schema_version": "v7.autonomous-execution-control-decision.v1",
+        "allowed": bool(allowed_forward or allowed_rollback),
+        "allowed_forward_mutation": bool(allowed_forward),
+        "rollback_only_allowed": bool(allowed_rollback),
+        "mutation_kind": mutation_kind,
+        "action_class": action_class,
+        "operation_id": str(operation_id or ""),
+        "state": state.get("state", "UNKNOWN"),
+        "scope": state.get("scope", ""),
+        "generation": state.get("generation", ""),
+        "updated_at": state.get("updated_at", ""),
+        "valid_until": state.get("valid_until", ""),
+        "updated_by": state.get("updated_by", ""),
+        "reason": state.get("reason", ""),
+        "blockers": sorted(set(blockers)),
+        "authority_granted": False,
+        "authority_expanded": False,
+        "planner_changed": False,
+    }
 
 
 def resolve_under_repo(path, repo_root):
@@ -492,6 +637,7 @@ def _packet_identity(packet):
         "operation_id": str(packet.get("operation_id") or ""),
         "decision_id": str(packet.get("decision_id") or ""),
         "authority_generation": str(packet.get("authority_generation") or expected.get("generation_id") or ""),
+        "breaker_generation": str(packet.get("breaker_generation") or ""),
         "selected_move_hash": str(expected.get("selected_move_hash") or ""),
         "selected_move_count": as_int(expected.get("selected_move_count"), 0),
         "user": str(lock_move.get("user_ip") or ((constraints.get("allowed_users") or [""])[0]) or ""),
@@ -518,6 +664,7 @@ def preview_packet_identity(preview):
         "operation_id": str(preview.get("operation_id") or ""),
         "decision_id": str(preview.get("decision_id") or ""),
         "authority_generation": str(selected.get("authority_generation") or ""),
+        "breaker_generation": str(preview.get("breaker_generation") or ""),
         "selected_move_hash": str(selected.get("selected_move_hash") or ""),
         "selected_move_count": as_int(selected.get("selected_move_count"), 0),
         "user": str(move.get("user_ip") or ""),
@@ -540,6 +687,7 @@ def approved_packet_binding_status(actual_identity, approved_identity):
     missing_fields = [
         field for field in APPROVED_PACKET_BINDING_FIELDS
         if not normalized_approved.get(field)
+        and not (field == "breaker_generation" and str(actual.get(field) or "") in {"", "UNBOUND_READ_ONLY"})
     ]
     mismatches = [
         {
@@ -883,6 +1031,7 @@ def _material_state_from_components(
     verification_prerequisites=None,
     destination_eligibility="",
     source_eligibility="",
+    breaker_generation="",
 ):
     return {
         "selected_move_hash": str(selected_move_hash or ""),
@@ -895,6 +1044,7 @@ def _material_state_from_components(
         "verification_prerequisites": _string_list(verification_prerequisites),
         "destination_eligibility": str(destination_eligibility or ""),
         "source_eligibility": str(source_eligibility or ""),
+        "breaker_generation": str(breaker_generation or ""),
     }
 
 
@@ -915,6 +1065,7 @@ def material_state_from_packet_preview(preview):
         verification_prerequisites=preview.get("verification_prerequisites") or preview.get("verification_required"),
         destination_eligibility=preview.get("destination_eligibility", "") or ("ELIGIBLE" if targets else "UNKNOWN"),
         source_eligibility=preview.get("source_eligibility", "") or ("ELIGIBLE" if users else "UNKNOWN"),
+        breaker_generation=preview.get("breaker_generation", ""),
     )
 
 
@@ -937,6 +1088,7 @@ def material_state_from_packet(packet):
         verification_prerequisites=packet.get("verification_prerequisites"),
         destination_eligibility=packet.get("destination_eligibility", "") or ("ELIGIBLE" if targets else "UNKNOWN"),
         source_eligibility=packet.get("source_eligibility", "") or ("ELIGIBLE" if users else "UNKNOWN"),
+        breaker_generation=packet.get("breaker_generation", ""),
     )
 
 
@@ -958,6 +1110,12 @@ def material_state_change_gate(lease, *, current_material_state=None, current_so
         lease.get("material_state") if isinstance(lease.get("material_state"), dict) else material_state_from_packet(lease.get("packet") or {})
     )
     current_state = _normalize_material_state(current_material_state) if isinstance(current_material_state, dict) else None
+    if (
+        current_state is not None
+        and approved_state.get("breaker_generation") == "UNBOUND_READ_ONLY"
+        and not current_state.get("breaker_generation")
+    ):
+        current_state["breaker_generation"] = "UNBOUND_READ_ONLY"
     changed_fields = []
     if current_state is not None:
         changed_fields = [
@@ -1948,7 +2106,7 @@ def selected_moves_from_preview(preview):
     }
 
 
-def packet_from_preview(preview, *, approval_author, approval_reviewer, ttl_seconds=DEFAULT_CLEARANCE_TTL_SECONDS):
+def packet_from_preview(preview, *, approval_author, approval_reviewer, ttl_seconds=DEFAULT_CLEARANCE_TTL_SECONDS, breaker_generation=""):
     preview = extract_packet_preview(preview)
     now = utc_now()
     expires_at = now + timedelta(seconds=max(1, as_int(ttl_seconds, DEFAULT_CLEARANCE_TTL_SECONDS)))
@@ -1986,6 +2144,7 @@ def packet_from_preview(preview, *, approval_author, approval_reviewer, ttl_seco
         "operation_id": operation_id,
         "decision_id": decision_id,
         "authority_generation": authority_generation,
+        "breaker_generation": str(breaker_generation or preview.get("breaker_generation") or "UNBOUND_READ_ONLY"),
         "selected_first_action": NONZERO_ACTION,
         "runtime_action": RUNTIME_ACTION_CREATE_CLEARANCE,
         "created_at": now.isoformat(),
@@ -2052,7 +2211,7 @@ def packet_from_preview(preview, *, approval_author, approval_reviewer, ttl_seco
     return packet
 
 
-def packet_from_plan(plan, *, approval_author, approval_reviewer, ttl_seconds=DEFAULT_CLEARANCE_TTL_SECONDS):
+def packet_from_plan(plan, *, approval_author, approval_reviewer, ttl_seconds=DEFAULT_CLEARANCE_TTL_SECONDS, breaker_generation=""):
     now = utc_now()
     expires_at = now + timedelta(seconds=max(1, as_int(ttl_seconds, DEFAULT_CLEARANCE_TTL_SECONDS)))
     selected = selected_moves_from_plan(plan)
@@ -2067,6 +2226,7 @@ def packet_from_plan(plan, *, approval_author, approval_reviewer, ttl_seconds=DE
         "selected_move_count": selected.get("selected_move_count"),
         "allowed_users": allowed_users,
         "allowed_targets": allowed_targets,
+        "breaker_generation": str(breaker_generation or plan.get("breaker_generation") or "UNBOUND_READ_ONLY"),
     }
     operation_id = stable_id("govexec", operation_payload)
     packet = {
@@ -2074,6 +2234,7 @@ def packet_from_plan(plan, *, approval_author, approval_reviewer, ttl_seconds=DE
         "packet_id": stable_id("pkt", {**operation_payload, "created_at": now.isoformat()}),
         "approval_id": stable_id("appr", {**operation_payload, "expires_at": expires_at.isoformat()}),
         "operation_id": operation_id,
+        "breaker_generation": operation_payload["breaker_generation"],
         "selected_first_action": NONZERO_ACTION,
         "runtime_action": RUNTIME_ACTION_CREATE_CLEARANCE,
         "created_at": now.isoformat(),
@@ -2164,9 +2325,27 @@ def main(argv=None):
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--pretty", action="store_true")
     parser.add_argument("--repo-root", default=".")
+    parser.add_argument("--check-autonomous-execution-control", action="store_true")
+    parser.add_argument("--execution-control-file", default=str(DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE))
+    parser.add_argument("--expected-breaker-generation", default="")
+    parser.add_argument("--mutation-kind", choices=("forward", "rollback"), default="forward")
+    parser.add_argument("--action-class", default="USER_SWITCH")
+    parser.add_argument("--operation-id", default="")
+    parser.add_argument("--rollback-certified", action="store_true")
     args = parser.parse_args(argv)
     repo_root = Path(args.repo_root).resolve()
     try:
+        if args.check_autonomous_execution_control:
+            result = autonomous_execution_control_decision(
+                Path(args.execution_control_file),
+                mutation_kind=args.mutation_kind,
+                action_class=args.action_class,
+                expected_generation=args.expected_breaker_generation,
+                rollback_certified=args.rollback_certified,
+                operation_id=args.operation_id,
+            )
+            print(json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True))
+            return 0 if result.get("allowed") else 2
         if args.cancel_execution_lease:
             if not args.execution_lease_file:
                 raise PacketError("execution_lease_file_required")

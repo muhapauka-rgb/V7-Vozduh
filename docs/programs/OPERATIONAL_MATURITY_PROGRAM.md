@@ -9511,3 +9511,22 @@ Adaptive read models must not decide, approve, rank execution, mutate Runtime, c
 Engineering Intelligence materialization is complete at the architecture/canonical level.
 Remaining work is future implementation and evidence collection only.
 Final canonical state: `MEASURED_UNDERSTOOD_RECOMMENDED_VALIDATION_MATERIALIZED_ADAPTIVE_ENGINEERING_READY`.
+
+## 35. Autonomous Execution Circuit Breaker Phase 2B Consumption
+
+Status: `IMPLEMENTATION_CERTIFIED_READ_ONLY`.
+
+OMP consumes the Phase 2B implementation certification through existing owners. Repository code and isolated tests close the known Admin, direct CLI, governed/systemd, batch, rollback, Authority-promotion, and low-level primitive bypasses. Admin Safe Mode remains the sole operator-controlled stop state; Runtime consumers fail closed and do not gain Authority.
+
+Production Maturity decision: `NO_CHANGE`. No deploy, production apply, user movement, Authority change, systemd change, production-state change, or real production outcome occurred.
+
+OMP decision:
+
+```text
+CURRENT_STEP = CIRCUIT_BREAKER_IMPLEMENTATION_CERTIFIED_READ_ONLY
+STOP_CONDITION = CIRCUIT_BREAKER_NOT_DEPLOYED_OR_PRODUCTION_VERIFIED
+NEXT_LEGAL_STEP = SEPARATE_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION_MISSION
+OMP_CONTROLLED_RUN_ALLOWED = NO
+```
+
+This section records execution-program consumption only. It changes no Runtime, Planner, Authority, lifecycle, capability, architecture, policy threshold, blast radius, or canonical circuit-breaker semantics.

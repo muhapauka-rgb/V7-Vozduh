@@ -2,21 +2,21 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-10T00:00:00+0700
-Source: Stage 2 Knowledge Engineering closed with `LOCKED_KNOWLEDGE`. `ACTIVE_PROGRAM = OMP`; `PROGRAM_STATE = CLOSED` for Stage 2. The locked knowledge baseline is `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md`, accepted by `docs/reports/research/V7_STAGE2_6_KNOWLEDGE_ACCEPTANCE.md` and locked by `docs/reports/research/V7_STAGE2_7_KNOWLEDGE_LOCK.md`. Future architecture-knowledge work must consume the locked knowledge baseline before re-extracting Stage 1 reports. OMP remains the active execution program. This update changes no architecture, Runtime, Planner, Authority, routing, OMP behavior, production behavior, user assignment, owner, roadmap, or truth source.
+State captured: 2026-07-11T00:00:00+0700
+Source: Circuit Breaker Phase 2B repository implementation and tests are certified read-only. No deploy, production apply, Authority promotion, user movement, systemd change, or production-state change occurred. OMP remains the active execution program and CPS remains the only live volatile state owner.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-10T00:00:00+0700`
+Captured: `2026-07-11T00:00:00+0700`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
 | Field | Current Value |
 | --- | --- |
 | `ACTIVE_PROGRAM` | `OMP` |
-| `CURRENT_MODE` | `POST_STAGE_2_DISCOVERY_READY` |
+| `CURRENT_MODE` | `CIRCUIT_BREAKER_IMPLEMENTATION_CERTIFIED_READ_ONLY` |
 | `ARCHITECTURE_STATE` | `STAGE_1_ACCEPTED_AND_LOCKED` |
 | `KNOWLEDGE_STATE` | `LOCKED_KNOWLEDGE` |
 | `ACTIVE_EXECUTION_OWNER` | `OMP` |
@@ -24,13 +24,16 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `ACTIONABLE_BACKLOG_COMPLETE_FOR_PRIOR_IMPLEMENTATION_SCOPE` |
-| `CURRENT_ACTIVE_SCOPE` | `ENGINEERING_TRUTH_USAGE_ASSURANCE_DISCOVERY` |
-| `CURRENT_SAFE_NEXT_ACTION` | `RUN_ENGINEERING_TRUTH_USAGE_ASSURANCE_RESEARCH_DISCOVERY` |
-| `CURRENT_SCOPE_CLASS` | `DISCOVERY_ONLY` |
-| `FORBIDDEN_FOR_CURRENT_SCOPE` | New owner, new Engine, new Runtime, new Planner, new Truth System, new Scheduler, new architecture, or Engineering Confidence mechanism before world research proves a real V7 gap. |
-| `REQUIRED_WORKFLOW` | Handoff -> ECR -> Canonical Reference -> SYSTEM_MAP -> OMP -> Locked Knowledge -> Internal Discovery -> world research -> cross-system matrix -> V7 mapping. |
-| `PRODUCTION_RUNTIME_IMPACT` | `NONE` |
+| `CURRENT_STOP_CONDITION` | `CIRCUIT_BREAKER_NOT_DEPLOYED_OR_PRODUCTION_VERIFIED` |
+| `CURRENT_ACTIVE_SCOPE` | `AUTONOMOUS_EXECUTION_CIRCUIT_BREAKER_PHASE_2B_CERTIFIED_READ_ONLY` |
+| `CURRENT_SAFE_NEXT_ACTION` | `RUN_SEPARATE_CIRCUIT_BREAKER_DEPLOY_AND_PRODUCTION_CERTIFICATION_MISSION` |
+| `CURRENT_SCOPE_CLASS` | `PRODUCTION_DEPLOY_AND_CERTIFICATION_REQUIRED` |
+| `FORBIDDEN_FOR_CURRENT_SCOPE` | Controlled OMP run, production apply, user movement, Authority promotion/expansion, blast-radius expansion, systemd enable/start, or production-state change before separate deploy and production verification. |
+| `REQUIRED_WORKFLOW` | ECR -> approved safe deploy -> truth/convergence -> production state initialization -> fail-closed non-mutating verification -> Engineering Report -> Production Maturity -> CPS -> OMP. |
+| `CIRCUIT_BREAKER_REPOSITORY_STATE` | `IMPLEMENTATION_CERTIFIED_READ_ONLY` |
+| `CIRCUIT_BREAKER_PRODUCTION_STATE` | `NOT_DEPLOYED_NOT_CERTIFIED` |
+| `OMP_CONTROLLED_RUN_ALLOWED` | `NO` |
+| `PRODUCTION_RUNTIME_IMPACT` | `NONE; implementation not deployed` |
 | `AUTHORITY_IMPACT` | `NONE` |
 | `ROUTING_IMPACT` | `NONE` |
 | `USER_MOVEMENT` | `NO` |

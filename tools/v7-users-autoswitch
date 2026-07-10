@@ -25,6 +25,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+from admin_core import operator_execution
+
 
 DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
 DEFAULT_POLICY_FILE = Path("/etc/v7/policy.json")
@@ -38,6 +40,7 @@ DEFAULT_RECONNECT_STATE_FILE = DEFAULT_STATE_DIR / "client-reconnect-state.json"
 DEFAULT_VLESS_ACTIVITY_FILE = DEFAULT_STATE_DIR / "vless-activity.json"
 DEFAULT_LOAD_SUMMARY_FILE = DEFAULT_STATE_DIR / "egress-load-summary.json"
 DEFAULT_RESTORE_BARRIER_FILE = DEFAULT_STATE_DIR / "autoswitch-restore-barrier.json"
+DEFAULT_EXECUTION_CONTROL_FILE = operator_execution.DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE
 DEFAULT_SERVICE_MATRIX_LOCK_TIMEOUT_SECONDS = 90
 ROLLBACK_PACKET_SCHEMA = "c2.autoswitch-rollback-packet.v1"
 SAFE_IP_RE = re.compile(r"^10\.(0|7)\.[0-9]{1,3}\.[0-9]{1,3}$")
@@ -736,6 +739,37 @@ class AutoswitchPlanner:
         self.reconnect_state = self._load_reconnect_state()
         self.reconnect_events = self._observe_reconnect_events()
         self._routing_intelligence_cache: dict[tuple[Any, ...], dict[str, Any]] = {}
+        self._active_execution_control: dict[str, Any] = {}
+
+    def _execution_action_class(self, move_type: str = "") -> str:
+        text = str(move_type or "").lower()
+        if "recover" in text or "reconnect" in text:
+            return "RECOVERY_ADMISSION"
+        if "rebalance" in text:
+            return "BOUNDED_REBALANCE"
+        if "degrad" in text:
+            return "DEGRADATION_MOVEMENT"
+        if "failover" in text or bool_value(getattr(self.args, "emergency_failover_autonomy", False)):
+            return "EMERGENCY_FAILOVER"
+        return "USER_SWITCH"
+
+    def _execution_control_decision(
+        self,
+        *,
+        mutation_kind: str,
+        action_class: str,
+        expected_generation: str = "",
+        rollback_certified: bool = False,
+        operation_id: str = "",
+    ) -> dict[str, Any]:
+        return operator_execution.autonomous_execution_control_decision(
+            Path(getattr(self.args, "execution_control_file", DEFAULT_EXECUTION_CONTROL_FILE)),
+            mutation_kind=mutation_kind,
+            action_class=action_class,
+            expected_generation=expected_generation,
+            rollback_certified=rollback_certified,
+            operation_id=operation_id,
+        )
 
     def _switch_policy(self) -> dict[str, Any]:
         sw = merge_defaults((self.policy or {}).get("switch", {}), DEFAULT_SWITCH_POLICY)
@@ -2841,6 +2875,15 @@ class AutoswitchPlanner:
             "status": "DENIED",
             "blockers": [],
         }
+        control = self._execution_control_decision(
+            mutation_kind="forward",
+            action_class="AUTHORITY_PROMOTION",
+            expected_generation=str(getattr(self.args, "approved_breaker_generation", "") or ""),
+            operation_id="authority-promotion",
+        )
+        result["execution_control"] = control
+        if not control.get("allowed_forward_mutation"):
+            result["blockers"].append("autonomous_execution_control_denied")
         if current_for_transition != current or certified_for_transition != certified:
             result["legacy_authority_class_alias"] = {
                 "raw_authority_class": current,
@@ -7203,6 +7246,16 @@ class AutoswitchPlanner:
             "rollback_count": len(items),
         }
         operation_payload["operation_id"] = "runtime_rollback_" + sha256_json(operation_payload)[:24]
+        control = self._execution_control_decision(
+            mutation_kind="rollback",
+            action_class="USER_SWITCH",
+            expected_generation=str(getattr(self.args, "approved_breaker_generation", "") or ""),
+            rollback_certified=not errors,
+            operation_id=str(source.get("operation_id") or ""),
+        )
+        if not control.get("rollback_only_allowed"):
+            errors.append("autonomous_execution_control_rollback_denied")
+        operation_payload["execution_control"] = control
         results: list[dict[str, Any]] = []
         if errors:
             operation_payload.update({
@@ -7217,7 +7270,20 @@ class AutoswitchPlanner:
             })
             rollback_result = {"applied": False, "reason": "dry_run", "results": []}
         else:
+            rollback_control_denied = False
             for item in items:
+                item_control = self._execution_control_decision(
+                    mutation_kind="rollback",
+                    action_class="USER_SWITCH",
+                    expected_generation=str(control.get("generation") or ""),
+                    rollback_certified=True,
+                    operation_id=str(source.get("operation_id") or ""),
+                )
+                if not item_control.get("rollback_only_allowed"):
+                    operation_payload.update({"terminal_state": "ROLLBACK_DENIED", "terminal_reason": "execution_control_changed"})
+                    rollback_control_denied = True
+                    break
+                self._active_execution_control = item_control
                 ip = str(item.get("user_ip") or "")
                 forward_target = str(item.get("forward_target") or "")
                 rollback_target = str(item.get("rollback_target") or "")
@@ -7245,7 +7311,10 @@ class AutoswitchPlanner:
                     row["verify_output"] = verify.stdout[-4000:]
                 results.append(row)
             self._update_safety_after_apply(results)
-            if any(row.get("rc") != 0 for row in results):
+            if rollback_control_denied:
+                terminal_state = "ROLLBACK_DENIED"
+                terminal_reason = "execution_control_changed"
+            elif any(row.get("rc") != 0 for row in results):
                 terminal_state = "ROLLBACK_FAILED"
                 terminal_reason = "rollback_switch_command_failed"
             elif any(row.get("verify_rc") not in (None, 0) for row in results):
@@ -7259,7 +7328,7 @@ class AutoswitchPlanner:
                 "terminal_reason": terminal_reason,
                 "rollback_verdict": terminal_state,
             })
-            rollback_result = {"applied": True, "results": results}
+            rollback_result = {"applied": bool(results), "results": results}
         audit = self._rollback_audit_reference(operation_payload, packet, rollback_result)
         if self.args.apply:
             audit = self._emit_terminal_audit(audit)
@@ -8588,6 +8657,15 @@ class AutoswitchPlanner:
                         "approved_plan_lock_validation": approved_lock,
                     }
                 return {"applied": False, "reason": "no_selected_moves"}
+        entry_control = self._execution_control_decision(
+            mutation_kind="forward",
+            action_class=self._execution_action_class((plan.get("selected_moves") or [{}])[0].get("move_type", "")),
+            expected_generation=str(getattr(self.args, "approved_breaker_generation", "") or ""),
+            operation_id=operation_id,
+        )
+        plan.setdefault("safety", {})["autonomous_execution_control"] = entry_control
+        if not entry_control.get("allowed_forward_mutation"):
+            return {"applied": False, "reason": "autonomous_execution_control_stop_safe", "execution_control": entry_control}
         atomic_validation = self._validate_atomic_execution_envelope(plan)
         plan.setdefault("safety", {})["atomic_execution_envelope_validation"] = atomic_validation
         if not atomic_validation.get("ok"):
@@ -8634,6 +8712,21 @@ class AutoswitchPlanner:
                 "l3_execution_eligibility": l3_eligibility,
             }
         for move in plan["selected_moves"]:
+            item_control = self._execution_control_decision(
+                mutation_kind="forward",
+                action_class=self._execution_action_class(move.get("move_type", "")),
+                expected_generation=str(entry_control.get("generation") or ""),
+                operation_id=operation_id,
+            )
+            if not item_control.get("allowed_forward_mutation"):
+                return {
+                    "applied": bool(results),
+                    "reason": "autonomous_execution_control_changed_during_batch",
+                    "results": results,
+                    "execution_control": item_control,
+                    "remaining_forward_mutations_stopped": True,
+                }
+            self._active_execution_control = item_control
             ip = move["user_ip"]
             target = move["recommended_egress"]
             current = move["current_egress"]
@@ -8671,6 +8764,21 @@ class AutoswitchPlanner:
                         if "timeout" in str(service_verify.stdout or "").lower():
                             row["verification_failure_reason"] = "required_service_verify_timeout"
                     row["rollback_attempted"] = True
+                    rollback_control = self._execution_control_decision(
+                        mutation_kind="rollback",
+                        action_class=self._execution_action_class(move.get("move_type", "")),
+                        expected_generation=str(item_control.get("generation") or ""),
+                        rollback_certified=True,
+                        operation_id=operation_id,
+                    )
+                    if not rollback_control.get("rollback_only_allowed"):
+                        row["rollback_rc"] = 2
+                        row["rollback_result"] = "DENIED"
+                        row["rollback_verdict"] = "ROLLBACK_DENIED"
+                        row["terminal_outcome_classification"] = "ROLLBACK_DENIED"
+                        results.append(row)
+                        continue
+                    self._active_execution_control = rollback_control
                     rollback = self._run_switch(ip, current, "rollback")
                     row["rollback_rc"] = rollback.returncode
                     row["rollback_output"] = rollback.stdout[-4000:]
@@ -9472,8 +9580,24 @@ class AutoswitchPlanner:
                 write_json_atomic(self.reconnect_state_file, self.reconnect_state)
 
     def _run_switch(self, ip: str, egress: str, reason: str) -> subprocess.CompletedProcess[str]:
+        control = dict(self._active_execution_control or {})
+        mutation_kind = "rollback" if reason == "rollback" else "forward"
+        live = self._execution_control_decision(
+            mutation_kind=mutation_kind,
+            action_class=str(control.get("action_class") or self._execution_action_class(reason)),
+            expected_generation=str(control.get("generation") or ""),
+            rollback_certified=mutation_kind == "rollback" and bool(control.get("rollback_only_allowed")),
+            operation_id=str(control.get("operation_id") or ""),
+        )
+        if not live.get("allowed"):
+            return subprocess.CompletedProcess(["v7-user-switch", ip, egress], 2, stdout="STOP_SAFE: autonomous execution control denied\n")
         env = os.environ.copy()
         env["V7_SWITCH_REASON"] = f"autoswitch_{reason}"
+        env["V7_EXECUTION_CONTROL_GENERATION"] = str(live.get("generation") or "")
+        env["V7_EXECUTION_MUTATION_KIND"] = mutation_kind
+        env["V7_EXECUTION_OPERATION_ID"] = str(live.get("operation_id") or "")
+        env["V7_EXECUTION_ACTION_CLASS"] = str(live.get("action_class") or "")
+        env["V7_EXECUTION_ROLLBACK_CERTIFIED"] = "1" if live.get("rollback_only_allowed") else "0"
         return subprocess.run(
             ["v7-user-switch", ip, egress],
             text=True,
@@ -9632,6 +9756,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--approved-operation-id", default="", help="Fail closed unless apply consumes this approved operation identity.")
     parser.add_argument("--approved-selected-move-hash", default="", help="Fail closed unless apply consumes this approved selected move hash.")
     parser.add_argument("--approved-authority-generation", default="", help="Fail closed unless apply consumes this approved authority generation.")
+    parser.add_argument("--approved-breaker-generation", default="", help="Fail closed unless apply consumes this autonomous execution control generation.")
+    parser.add_argument("--execution-control-file", default=str(DEFAULT_EXECUTION_CONTROL_FILE))
     parser.add_argument("--service", default="", help="Score candidates for one important service.")
     parser.add_argument("--route-class", default="", help="Override derived route class.")
     parser.add_argument("--max-selected-moves", type=int, default=0, help="Narrow selected moves to this maximum without raising policy limits.")

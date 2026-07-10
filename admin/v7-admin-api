@@ -29,7 +29,7 @@ from urllib.request import Request, urlopen
 
 from admin_core.events import extract_user_ip, infer_event_severity, parse_jsonl_lines
 from admin_core import admin_registry_views as registry_views
-from admin_core import diagnostic_views, operator_decision_surface, operator_execution_feedback, operator_execution_pipeline, operator_views, overview_views, performance_summaries, route_reality_views, route_views, runtime_read_views, service_views, shadow_autonomy, summary_builders
+from admin_core import diagnostic_views, operator_decision_surface, operator_execution, operator_execution_feedback, operator_execution_pipeline, operator_views, overview_views, performance_summaries, route_reality_views, route_views, runtime_read_views, service_views, shadow_autonomy, summary_builders
 from admin_core.registry_readers import parse_kv_line
 from admin_core.sanitize import redact
 from admin_core.time import age_sec, now_iso, parse_ts
@@ -16180,30 +16180,25 @@ def autoswitch_apply_guarded(actor, confirm="", target_egress="", source_egress=
 
 
 def admin_safe_mode_state():
-    data = read_json(SAFE_MODE_FILE, {})
-    if not isinstance(data, dict):
-        data = {}
+    data = operator_execution.autonomous_execution_control_state(SAFE_MODE_FILE)
     return redact({
-        "enabled": bool(data.get("enabled", False)),
-        "updated": data.get("updated"),
-        "updated_by": data.get("updated_by"),
-        "reason": data.get("reason", ""),
+        **data,
+        "updated": data.get("updated_at"),
         "blocked_actions": sorted(SAFE_MODE_BLOCKED_ACTIONS),
     })
 
 
 def admin_safe_mode_enabled():
-    return bool(admin_safe_mode_state().get("enabled"))
+    state = admin_safe_mode_state()
+    return bool(state.get("enabled")) or not bool(state.get("valid"))
 
 
 def set_admin_safe_mode(actor, enabled, reason=""):
-    data = {
-        "schema_version": 1,
-        "enabled": bool(enabled),
-        "updated": now_iso(),
-        "updated_by": actor or "admin",
-        "reason": str(reason or "")[:240],
-    }
+    data = operator_execution.build_autonomous_execution_control_state(
+        enabled,
+        actor=actor or "admin",
+        reason=reason,
+    )
     SAFE_MODE_FILE.parent.mkdir(parents=True, exist_ok=True)
     if SAFE_MODE_FILE.exists():
         backup = SAFE_MODE_FILE.with_name(f"{SAFE_MODE_FILE.name}.backup.v7-safe-mode.{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}")
@@ -38024,19 +38019,28 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self.send_connect(result=result, error=error, status=status, form_data=data)
             return
-        if path in SAFE_MODE_BLOCKED_ACTIONS and admin_safe_mode_enabled():
+        safe_mode = admin_safe_mode_state()
+        if path in SAFE_MODE_BLOCKED_ACTIONS and (bool(safe_mode.get("enabled")) or not bool(safe_mode.get("valid"))):
             session = self.require_auth(api=True)
             if not session:
                 return
             if not self.require_csrf(session):
                 return
             actor = session.get("sub", "admin")
-            audit_admin(actor, "admin_safe_mode_blocked", f"path={path}", object_type="admin_safe_mode", object_id=path, result="BLOCKED", severity="warning")
+            audit_admin(
+                actor,
+                "admin_safe_mode_blocked",
+                f"path={path} state={safe_mode.get('state')} generation={safe_mode.get('generation')} reason={safe_mode.get('reason')} updated_by={safe_mode.get('updated_by')}",
+                object_type="admin_safe_mode",
+                object_id=path,
+                result="BLOCKED",
+                severity="warning",
+            )
             self.send_json({
                 "error": "safe_mode_enabled",
                 "message": "Admin Safe Mode is enabled. This action is blocked until Safe Mode is disabled.",
                 "path": path,
-                "safe_mode": admin_safe_mode_state(),
+                "safe_mode": safe_mode,
             }, status=423)
             return
         if path in ACTION_MIN_ROLE:

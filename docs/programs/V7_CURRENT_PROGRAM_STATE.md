@@ -2,21 +2,21 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-11T00:00:00+0700
-Source: Circuit Breaker Phase 2B repository implementation and tests are certified read-only. No deploy, production apply, Authority promotion, user movement, systemd change, or production-state change occurred. OMP remains the active execution program and CPS remains the only live volatile state owner.
+State captured: 2026-07-11T01:34:27+0700
+Source: Circuit Breaker Phase 3 deployed the canonical implementation, initialized the existing Admin Safe Mode v2 owner in `OPEN`, and certified the production deny paths without route mutation or user movement. OMP remains the active execution program and CPS remains the only live volatile state owner.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-11T00:00:00+0700`
+Captured: `2026-07-11T01:34:27+0700`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
 | Field | Current Value |
 | --- | --- |
 | `ACTIVE_PROGRAM` | `OMP` |
-| `CURRENT_MODE` | `CIRCUIT_BREAKER_IMPLEMENTATION_CERTIFIED_READ_ONLY` |
+| `CURRENT_MODE` | `CIRCUIT_BREAKER_PRODUCTION_CERTIFIED_OPEN` |
 | `ARCHITECTURE_STATE` | `STAGE_1_ACCEPTED_AND_LOCKED` |
 | `KNOWLEDGE_STATE` | `LOCKED_KNOWLEDGE` |
 | `ACTIVE_EXECUTION_OWNER` | `OMP` |
@@ -24,16 +24,22 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `CIRCUIT_BREAKER_NOT_DEPLOYED_OR_PRODUCTION_VERIFIED` |
-| `CURRENT_ACTIVE_SCOPE` | `AUTONOMOUS_EXECUTION_CIRCUIT_BREAKER_PHASE_2B_CERTIFIED_READ_ONLY` |
-| `CURRENT_SAFE_NEXT_ACTION` | `RUN_SEPARATE_CIRCUIT_BREAKER_DEPLOY_AND_PRODUCTION_CERTIFICATION_MISSION` |
-| `CURRENT_SCOPE_CLASS` | `PRODUCTION_DEPLOY_AND_CERTIFICATION_REQUIRED` |
-| `FORBIDDEN_FOR_CURRENT_SCOPE` | Controlled OMP run, production apply, user movement, Authority promotion/expansion, blast-radius expansion, systemd enable/start, or production-state change before separate deploy and production verification. |
-| `REQUIRED_WORKFLOW` | ECR -> approved safe deploy -> truth/convergence -> production state initialization -> fail-closed non-mutating verification -> Engineering Report -> Production Maturity -> CPS -> OMP. |
+| `CURRENT_STOP_CONDITION` | `NONE_FOR_SEPARATE_CONTROLLED_RUN_MISSION_PLANNING` |
+| `CURRENT_ACTIVE_SCOPE` | `AUTONOMOUS_EXECUTION_CIRCUIT_BREAKER_PHASE_3_PRODUCTION_CERTIFIED` |
+| `CURRENT_SAFE_NEXT_ACTION` | `PREPARE_SEPARATE_GOVERNED_OMP_CONTROLLED_RUN_MISSION` |
+| `CURRENT_SCOPE_CLASS` | `CONTROLLED_RUN_SEPARATE_MISSION_READY` |
+| `FORBIDDEN_FOR_CURRENT_SCOPE` | Any controlled run, production apply, user movement, Authority promotion/expansion, blast-radius expansion, systemd enable/start, rollback apply, or transition to `CLOSED` inside the completed Phase 3 Mission. |
+| `REQUIRED_WORKFLOW` | Separate Mission -> ECR/current truth -> existing Authority and bounded scope -> authenticated operator window -> governed execution -> verification/rollback -> final `OPEN` -> outcome/learning/maturity/CPS/OMP. |
 | `CIRCUIT_BREAKER_REPOSITORY_STATE` | `IMPLEMENTATION_CERTIFIED_READ_ONLY` |
-| `CIRCUIT_BREAKER_PRODUCTION_STATE` | `NOT_DEPLOYED_NOT_CERTIFIED` |
-| `OMP_CONTROLLED_RUN_ALLOWED` | `NO` |
-| `PRODUCTION_RUNTIME_IMPACT` | `NONE; implementation not deployed` |
+| `CIRCUIT_BREAKER_PRODUCTION_STATE` | `DEPLOYED_CERTIFIED_OPEN` |
+| `CIRCUIT_BREAKER_PRODUCTION_CERTIFICATION` | `CIRCUIT_BREAKER_PRODUCTION_CERTIFIED` |
+| `CIRCUIT_BREAKER_CONTROLLED_RUN_GATE` | `PASS` |
+| `ENGINEERING_INTENT_CLOSURE` | `INTENT_CLOSED` |
+| `ADMIN_SAFE_MODE_LIVE_STATE` | `schema=v7.autonomous-execution-control.v2; state=OPEN; generation=aec_a78732b833c8df6b509432b1; scope=global` |
+| `CIRCUIT_BREAKER_IMPLEMENTATION_DEPLOY_COMMIT` | `319bac22f42ce4d0a36a2af0c1a5954a35fe0613` |
+| `CIRCUIT_BREAKER_DEPLOY_ID` | `deploy-z8-14-Updatesystem-319bac2-20260711T012454` |
+| `OMP_CONTROLLED_RUN_ALLOWED` | `YES; only as a separate Mission, not execution authority` |
+| `PRODUCTION_RUNTIME_IMPACT` | `Canonical runtime artifacts deployed; Admin API restarted; forward mutation remained blocked throughout certification.` |
 | `AUTHORITY_IMPACT` | `NONE` |
 | `ROUTING_IMPACT` | `NONE` |
 | `USER_MOVEMENT` | `NO` |

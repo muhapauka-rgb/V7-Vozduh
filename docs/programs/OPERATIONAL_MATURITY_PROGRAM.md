@@ -9530,3 +9530,18 @@ OMP_CONTROLLED_RUN_ALLOWED = NO
 ```
 
 This section records execution-program consumption only. It changes no Runtime, Planner, Authority, lifecycle, capability, architecture, policy threshold, blast radius, or canonical circuit-breaker semantics.
+
+## 36. Autonomous Execution Circuit Breaker Phase 3 Consumption
+
+Status: `PRODUCTION_CERTIFIED_OPEN`.
+
+OMP consumed the Phase 3 safe-deploy, production fail-closed evidence, Production Maturity `ACCEPT`, and CPS live state. The canonical implementation is deployed, local/GitHub/runtime truth is aligned, and Admin Safe Mode v2 remains `OPEN`. No Runtime apply, user movement, Authority expansion, Planner change, route mutation, restore-barrier write, execution lease, or rollback apply occurred.
+
+```text
+CIRCUIT_BREAKER_CONTROLLED_RUN_GATE = PASS
+OMP_CONTROLLED_RUN_ALLOWED = YES
+ENGINEERING_INTENT_CLOSURE = INTENT_CLOSED
+NEXT_LEGAL_STEP = PREPARE_SEPARATE_GOVERNED_OMP_CONTROLLED_RUN_MISSION
+```
+
+`YES` permits only a separate Mission to revalidate all existing Authority, Runtime, rollback, verification, blast-radius and operator-window gates. It does not authorize execution here. Phase 3 leaves the breaker `OPEN` and changes no OMP rule, owner, capability, lifecycle, policy threshold, Authority or runtime behavior beyond the already certified circuit-breaker enforcement.

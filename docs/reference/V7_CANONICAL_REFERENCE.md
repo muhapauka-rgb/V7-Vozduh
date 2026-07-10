@@ -887,6 +887,9 @@ Stable conclusions:
 7. Backlog completion increases only Production Maturity.
 8. Reference documents must never change Engineering Maturity after certification unless industry consensus changes, implementation proves `FUNDAMENTAL_ARCHITECTURE_GAP`, or the operator explicitly requests a reference update.
 9. OMP must recalculate both maturity dimensions after every implementation, deploy, truth, convergence, certification, production outcome, and authority decision.
+
+Items 10-16 preserve durable status context. They do not replace volatile execution state; CPS section `0. Authoritative Live Current State` remains authoritative for live scope, action, and stop condition.
+
 10. Current Engineering Maturity is `100.0%`; current Engineering status is `ENGINEERING_COMPLETE`.
 11. Current Production Maturity is `66.9%`; current remaining Production Maturity is `33.1%`.
 12. Current Production milestone is `65%: Certification Half Complete`; next Production milestone is `80%: Runtime Production Ready`.

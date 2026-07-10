@@ -686,6 +686,8 @@ Status: `CANONICAL_OWNERSHIP_LOOKUP`.
 The OMP Progress Dashboard is a read-only visualization model.
 It is not a new owner, Runtime, Planner, Truth Source, roadmap, capability program, authority surface, automation mode, queue, or implementation path.
 
+In this lookup, names containing `Current` identify dashboard concepts and their owners; they are not data values or independent state sources. CPS remains the producer of live dashboard values.
+
 | Dashboard concept | Canonical owner | Existing implementation/read owners | Must not own |
 | --- | --- | --- | --- |
 | Dashboard model and required sections | OMP | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md#243-omp-progress-dashboard-model` | Runtime behavior, authority, planning, certification, queue, truth source. |

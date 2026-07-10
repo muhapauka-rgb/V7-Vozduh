@@ -6273,7 +6273,9 @@ This section preserves an earlier recalculated OMP state. It must not be consume
 
 Live current state is resolved only from CPS.
 
-| Maturity Area | Current State | Evidence |
+Historical field names preserve snapshot terminology only. Live volatile state must be read from CPS.
+
+| Maturity Area | Snapshot State At Capture | Evidence |
 | --- | --- | --- |
 | Architecture maturity | `ARCHITECTURE_COMPLETE` | Final system architecture synthesis: remaining architectural weaknesses `0`; optional improvements are not implementation blockers. |
 | Knowledge maturity | `ADVANCED_BUT_NOT_AUTONOMY_COMPLETE` | Knowledge quality model exists; safety is autonomy-grade; several knowledge classes still need real outcomes, service/user/SLA fit depth, client observation, cohort/SLA scale, and aging/retirement. |
@@ -7559,7 +7561,9 @@ Classification: `HISTORICAL_SNAPSHOT`.
 
 This table preserves a prior OMP certification/status view. Live certification and blocker values are resolved from CPS and the latest accepted owner evidence.
 
-| Field | Current Value |
+Historical field names preserve snapshot terminology only. Live volatile state must be read from CPS.
+
+| Historical Field | Preserved Snapshot Value |
 | --- | --- |
 | Completed phases | Architecture foundation, Research Framework, Decision Model, Runtime Model, System Architecture, Implementation Phase activation, OMP Production Program integration. |
 | Certified phases | Decision Model; Runtime Model; System Architecture; governed knowledge-gated dry-run cycle; OMP Production Program rule set. |
@@ -7876,6 +7880,8 @@ Purpose:
 OMP must provide a permanent read-only dashboard model so an operator can understand current project state within one minute without reading historical reports.
 
 This dashboard model is not a Runtime, Planner, owner, truth source, roadmap, master program, capability program, authority surface, automation mode, implementation queue, or scoring engine. It consumes canonical owners only.
+
+This section defines presentation structure only. Live dashboard values are produced by CPS; labels such as `Current OMP State`, `Current Step`, and `Next Step` do not create a second Current State authority.
 
 Dashboard audit:
 

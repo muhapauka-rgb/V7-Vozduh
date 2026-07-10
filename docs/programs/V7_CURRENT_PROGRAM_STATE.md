@@ -157,7 +157,9 @@ Status: `HISTORICAL_OR_CAPABILITY_CONTEXT`
 
 The following table preserves prior production/capability state for OMP continuity. It must not override `0. Authoritative Live Current State`.
 
-| Field | Current Value |
+Historical field labels below preserve their at-capture wording. Live scope, action, and stop values are resolved only from `0. Authoritative Live Current State`.
+
+| Historical / Capability Field | Preserved Snapshot Value |
 | --- | --- |
 | Current phase | `CONTROLLED_PRODUCTION_CERTIFICATION_PHASE4_REQUESTED_SOURCE_SCOPE_LOCAL_READY` |
 | Architecture phase | `COMPLETE` |
@@ -426,6 +428,8 @@ Status: `ACTIVE_READ_ONLY_SNAPSHOT`.
 Source model: `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md#243-omp-progress-dashboard-model`.
 
 This snapshot is volatile. It displays current OMP state only and does not create authority, Runtime behavior, Planner behavior, automation, queue behavior, user movement, certification, or a new truth source.
+
+This is a CPS-owned derived dashboard display. Execution-facing current scope, safe next action, and stop condition are resolved only from `0. Authoritative Live Current State`; dashboard `Current step` and `Next step` labels do not replace those fields.
 
 Overall OMP progress:
 

@@ -142,6 +142,8 @@ Discover
 
 ### Current Strategic Direction
 
+This section is strategic reference context, not volatile task state. Before execution, resolve current scope and safe next action from `docs/programs/V7_CURRENT_PROGRAM_STATE.md` section `0. Authoritative Live Current State`.
+
 The next major strategic engineering step is not architecture expansion.
 
 The active strategic direction is research-first discovery of mature production routing and control-plane practices for deciding when existing engineering knowledge is reliable enough to change system behavior.

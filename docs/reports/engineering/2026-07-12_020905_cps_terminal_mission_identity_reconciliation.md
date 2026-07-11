@@ -134,7 +134,11 @@ Operational state is unchanged: packet `NONE_OPEN`, Authority `NONE`, Safe Mode 
 
 ## Deploy, Truth And Convergence
 
-Pending safe delivery. This section and final machine fields will be finalized after commit/push/deploy/truth/convergence.
+Implementation commit `053ae43bc08e10943587fcdf320372f04daea108` was pushed to `origin/Updatesystem`. Safe-deploy dry run and allowlist passed. Deploy `deploy-z8-14-Updatesystem-053ae43-20260712T021902` delivered only the changed existing validator owner `tools/v7_sync_lib.py`; service restart was not required.
+
+Post-deploy truth: `FULLY_ALIGNED`, Mission identity `MISSION_IDENTITY_MATCH`, all Mission-role/nonce/timestamp/pointer/anti-replay/selector checks `PASS`, contradictions `0`. Convergence: `ALIGNED`, diagnosis empty, deploy mismatches empty, local/GitHub/production commit `053ae43bc08e10943587fcdf320372f04daea108`. Repeated safe-deploy: `deployment_required=false`, blockers empty.
+
+Production Safe Mode read-only verification: state `OPEN`, generation `aec_a78732b833c8df6b509432b1`, unchanged. No packet, lease, barrier, Authority, Runtime apply, rollback or user movement occurred.
 
 ## Continue OMP Result
 
@@ -196,12 +200,12 @@ ROUTING_READINESS_STATE = PASS_CANDIDATE_SCOPED
 AUTHORITY_REQUIRED_NOW = YES
 OLD_PACKETS_REUSABLE = NO
 IMPLEMENTATION_CHANGED = YES
-DEPLOY_APPLIED = PENDING
-DEPLOY_ID = PENDING
+DEPLOY_APPLIED = YES
+DEPLOY_ID = deploy-z8-14-Updatesystem-053ae43-20260712T021902
 TARGETED_TESTS = 93/93 PASS
 FULL_TESTS = 838/838 PASS
-TRUTH_RESULT = PENDING
-CONVERGENCE_RESULT = PENDING
+TRUTH_RESULT = FULLY_ALIGNED
+CONVERGENCE_RESULT = ALIGNED
 PACKET_CREATED = NO
 LEASE_CREATED = NO
 RESTORE_BARRIER_WRITTEN = NO
@@ -214,5 +218,7 @@ STATE_TRANSITION_RESULT = PASS
 AUTOMATIC_CONTINUE_OMP_EXECUTED = YES
 NEXT_CANONICAL_STOP = OPERATIONAL_AUTHORITY
 NEXT_OMP_ACTION = REQUEST_NEW_OPERATIONAL_AUTHORITY_THEN_GENERATE_FRESH_PACKET
-FINAL_VERDICT = PENDING_SAFE_DELIVERY
+FINAL_VERDICT = CPS_MISSION_IDENTITY_RECONCILED_OPERATIONAL_AUTHORITY_READY
 ```
+
+`CPS_MISSION_IDENTITY_RECONCILED_OPERATIONAL_AUTHORITY_READY`

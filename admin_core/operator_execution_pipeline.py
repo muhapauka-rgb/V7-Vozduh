@@ -365,7 +365,14 @@ def recommendation_execution_contract(row: dict[str, Any]) -> dict[str, Any]:
         "user": user,
         "current_channel": current,
         "recommended_channel": target,
-        "source_hashes": source_hashes,
+        "confidence": candidate.get("confidence", 0.0),
+        "trust": candidate.get("trust", 0.0),
+        "risk": candidate.get("risk", 0.0),
+        "reason_summary": candidate.get("reason_summary", []),
+        "review_required": candidate.get("review_required", False),
+        "review_category": candidate.get("review_category", ""),
+        "review_severity": candidate.get("review_severity", ""),
+        "emergency_only": candidate.get("emergency_only", False),
     })[:24]
     return candidate
 

@@ -2,7 +2,7 @@
 
 Дата: `2026-07-11T18:43:57+0700`  
 Mission ID: `V7_OMP_MATERIAL_DECISION_CHURN_CLOSURE_V1`  
-Статус отчёта: `IMPLEMENTED_TESTED_PENDING_DEPLOY_CERTIFICATION`
+Статус отчёта: `DEPLOYED_INITIAL_STABILITY_EVIDENCE_COLLECTED`
 
 ## Summary
 
@@ -77,7 +77,9 @@ production mutation = NO
 
 ## Deploy And Production Certification
 
-Pending clean commit/push, safe deploy and 10-cycle post-deploy read-only stability certification. No Safe Mode change, active lease, restore barrier, service/timer change, Runtime apply or user movement is permitted.
+Initial deploy `deploy-z8-14-Updatesystem-f96f294-20260711T184730` delivered the semantic source binding at commit `f96f29486bb5df3608e7dc730220277da2dbc397`; direct production hashes matched and repeated safe-deploy returned `deployment_required=false`, truth `PASS`, convergence `FULLY_ALIGNED`.
+
+The first post-deploy 10-cycle series proved cycles 5-8 kept selected move `10.0.0.2 vless -> awg3`, Decision Fingerprint `993972...9d37` and semantic bundle `612ae1...1fc0` while raw snapshots changed. It also exposed one remaining non-authoritative identity defect: `candidate_hash` still included raw recommendation/source hashes and changed for the same semantic candidate. That field is now normalized in the same existing pipeline owner and requires a final deploy/certification pass. No Safe Mode change, active lease, restore barrier, service/timer change, Runtime apply or user movement occurred.
 
 ## Behavior Enforcement And State Transition Verification
 

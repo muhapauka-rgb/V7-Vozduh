@@ -1311,6 +1311,7 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         )
 
         self.assertNotEqual(first["packet_preview"]["packet_id"], refreshed["packet_preview"]["packet_id"])
+        self.assertEqual(first["candidate"]["candidate_hash"], refreshed["candidate"]["candidate_hash"])
         self.assertEqual(first["packet_preview"]["selected_move_hash"], refreshed["packet_preview"]["selected_move_hash"])
         self.assertEqual(first["packet_preview"]["decision_id"], refreshed["packet_preview"]["decision_id"])
         self.assertEqual(first["packet_preview"]["decision_commit"]["status"], "DECISION_COMMITTED")
@@ -1332,6 +1333,7 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         )
 
         self.assertNotEqual(first["packet_preview"]["selected_move_hash"], changed["packet_preview"]["selected_move_hash"])
+        self.assertNotEqual(first["candidate"]["candidate_hash"], changed["candidate"]["candidate_hash"])
         self.assertNotEqual(first["packet_preview"]["decision_id"], changed["packet_preview"]["decision_id"])
 
     def test_committed_preview_cli_lease_creation_does_not_rerun_planner_selection(self):

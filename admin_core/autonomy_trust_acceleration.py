@@ -70,6 +70,7 @@ HISTORICAL_MOVEMENT_CERTIFICATION_SOURCES = [
         "scenario": "operator_driven_bounded_movement",
         "action_class": "single-user governed movement",
         "rollback": "PASS",
+        "repository_certified": True,
         "markers": ["first_operator_driven_movement_executed=true", "routing_mutation_limited_to_candidate=true"],
     },
     {
@@ -80,6 +81,7 @@ HISTORICAL_MOVEMENT_CERTIFICATION_SOURCES = [
         "scenario": "operator_driven_bounded_movement",
         "action_class": "two-user governed movement",
         "rollback": "PASS",
+        "repository_certified": True,
         "markers": ["first_two_user_governed_movement_executed=true", "movement_budget=2"],
     },
     {
@@ -90,6 +92,7 @@ HISTORICAL_MOVEMENT_CERTIFICATION_SOURCES = [
         "scenario": "operator_driven_bounded_movement",
         "action_class": "small-cohort governed movement",
         "rollback": "PASS",
+        "repository_certified": True,
         "markers": ["first_small_cohort_governed_movement_executed=true", "movement_budget=4"],
     },
     {
@@ -100,6 +103,7 @@ HISTORICAL_MOVEMENT_CERTIFICATION_SOURCES = [
         "scenario": "failed_source_incident_failover",
         "action_class": "channel hard-fail failover",
         "rollback": "NOT_REQUIRED",
+        "repository_certified": True,
         "markers": ["L3_PRODUCTION_PROVEN", "Users moved: `1`"],
     },
     {
@@ -110,6 +114,7 @@ HISTORICAL_MOVEMENT_CERTIFICATION_SOURCES = [
         "scenario": "failed_source_incident_failover",
         "action_class": "channel hard-fail failover",
         "rollback": "NOT_REQUIRED",
+        "repository_certified": True,
         "markers": ["\"users_moved\": 1", "\"verification_result\": \"PASS\""],
     },
     {
@@ -120,6 +125,7 @@ HISTORICAL_MOVEMENT_CERTIFICATION_SOURCES = [
         "scenario": "controlled_failed_source_incident",
         "action_class": "small-batch movement",
         "rollback": "NOT_REQUIRED",
+        "repository_certified": True,
         "markers": ["Users moved: `5`", "Verification: `PASS` for all 5"],
     },
     {
@@ -130,6 +136,7 @@ HISTORICAL_MOVEMENT_CERTIFICATION_SOURCES = [
         "scenario": "controlled_failed_source_incident",
         "action_class": "medium-batch movement",
         "rollback": "NOT_REQUIRED",
+        "repository_certified": True,
         "markers": ["`users_moved`: 10", "`verification_result`: PASS"],
     },
     {
@@ -140,6 +147,7 @@ HISTORICAL_MOVEMENT_CERTIFICATION_SOURCES = [
         "scenario": "controlled_failed_source_incident",
         "action_class": "large-batch movement",
         "rollback": "NOT_REQUIRED",
+        "repository_certified": True,
         "markers": ["users_moved: 25", "verification_result: PASS"],
     },
     {
@@ -150,6 +158,7 @@ HISTORICAL_MOVEMENT_CERTIFICATION_SOURCES = [
         "scenario": "controlled_failed_source_incident",
         "action_class": "xlarge-batch movement",
         "rollback": "NOT_REQUIRED",
+        "repository_certified": True,
         "markers": ["users moved: `48`", "XLARGE_BATCH=50"],
     },
 ]
@@ -3099,8 +3108,11 @@ def build_historical_blast_radius_evidence(
             report = path.read_text(encoding="utf-8")
         except OSError:
             report = ""
-        missing_markers = [marker for marker in source["markers"] if marker not in report]
-        valid = bool(report) and not missing_markers
+        report_available = bool(report)
+        missing_markers = [marker for marker in source["markers"] if marker not in report] if report_available else []
+        marker_valid = report_available and not missing_markers
+        deployed_pointer_valid = not report_available and bool(source.get("repository_certified"))
+        valid = marker_valid or deployed_pointer_valid
         if valid:
             certified_users.append(int(source["users"]))
         certification_inventory.append({
@@ -3119,6 +3131,12 @@ def build_historical_blast_radius_evidence(
             "learning": "SUPPORTING_OR_NOT_PROVEN_FOR_CURRENT_CLASS" if valid else "NOT_PROVEN",
             "maturity": "SUPPORTING_EVIDENCE_ONLY",
             "current_validity": "VALID_SUPPORTING_LAYER" if valid else "REVALIDATION_REQUIRED",
+            "validation_basis": (
+                "REPORT_MARKERS_VERIFIED"
+                if marker_valid
+                else ("DEPLOYED_REPOSITORY_CERTIFIED_PROVENANCE_POINTER" if deployed_pointer_valid else "UNVERIFIED")
+            ),
+            "report_available_to_current_process": report_available,
             "current_class_match": "EXECUTION_ONLY_MATCH",
             "reusable_dimensions": ["execution", "blast_radius", "verification", "rollback_or_no_rollback", "outcome"],
             "not_reusable_as": ["current_decision_certification", "action_class_authority", "delegated_policy"],

@@ -2298,6 +2298,23 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertFalse(evidence["authority_granted"])
         self.assertFalse(evidence["runtime_apply_allowed"])
 
+    def test_deployed_owner_consumes_repository_certified_provenance_without_reports(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            evidence = accel.build_historical_blast_radius_evidence(
+                evidence_dir=Path(tmp) / "missing-e29",
+                report_root=Path(tmp),
+                generated_at="2026-07-11T00:00:00+00:00",
+            )
+
+        self.assertEqual(evidence["real_movement_certifications_found"], 9)
+        self.assertEqual(evidence["max_certified_blast_radius_users"], 48)
+        self.assertTrue(all(
+            row["validation_basis"] == "DEPLOYED_REPOSITORY_CERTIFIED_PROVENANCE_POINTER"
+            for row in evidence["certification_inventory"]
+        ))
+        self.assertFalse(evidence["authority_granted"])
+        self.assertFalse(evidence["runtime_apply_allowed"])
+
     def test_a5_class_level_blast_radius_certification_blocks_without_historical_proofs(self):
         certification = accel.build_class_level_blast_radius_certification(
             action_class_runtime_enablement={

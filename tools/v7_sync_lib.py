@@ -27,10 +27,172 @@ from typing import Any, Callable, Iterable, Optional
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "docs" / "track7" / "runtime-convergence" / "V7_TRUTH_MANIFEST.json"
 TRUTH_CHECK_PATH = ROOT / "tools" / "v7-truth-check"
+CPS_PATH = ROOT / "docs" / "programs" / "V7_CURRENT_PROGRAM_STATE.md"
 CANONICAL_BRANCH = "Updatesystem"
 REMOTE_NAME = "origin"
 DEPLOY_CONFIRMATION = "DEPLOY_V7_APPROVED"
 RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
+
+
+def _markdown_section(text: str, start: str, end: str = "") -> str:
+    start_at = text.find(start)
+    if start_at < 0:
+        return ""
+    end_at = text.find(end, start_at + len(start)) if end else -1
+    return text[start_at:end_at if end_at >= 0 else len(text)]
+
+
+def _markdown_field_table(section: str) -> dict[str, str]:
+    fields: dict[str, str] = {}
+    for line in section.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) < 2:
+            continue
+        key = cells[0].strip("`")
+        if not key or key in {"Field", "---"} or set(key) == {"-"}:
+            continue
+        fields[key] = cells[1].strip()
+    return fields
+
+
+def cps_live_state_consistency(cps_text: str) -> dict[str, Any]:
+    """Validate one atomic owner-backed CPS live projection across its consumers."""
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    registry = _markdown_field_table(_markdown_section(
+        cps_text,
+        "### Registry Metadata And Truth Lifecycle",
+        "### Active Protected Work In Progress",
+    ))
+    wip = _markdown_field_table(_markdown_section(
+        cps_text,
+        "### Active Protected Work In Progress",
+        "### Complete Or Locked Capability Records",
+    ))
+    sequence = _markdown_section(
+        cps_text,
+        "### Deterministic Execution Sequence",
+        "### Authority, Reality And Safety Stops",
+    )
+    errors: list[str] = []
+    for name, fields in (("live", live), ("registry", registry), ("wip", wip)):
+        if not fields:
+            errors.append(f"cps_{name}_projection_missing")
+
+    generation = live.get("CURRENT_STATE_GENERATION", "")
+    transition = live.get("CURRENT_TRANSITION_ID", "")
+    next_action = live.get("CURRENT_NEXT_ACTION_ID", "")
+    for key, value in (
+        ("CURRENT_STATE_GENERATION", generation),
+        ("CURRENT_TRANSITION_ID", transition),
+        ("CURRENT_NEXT_ACTION_ID", next_action),
+    ):
+        if not value:
+            errors.append(f"cps_{key.lower()}_missing")
+    if generation and {
+        generation,
+        registry.get("CURRENT_STATE_GENERATION", ""),
+        wip.get("current_state_generation", ""),
+    } != {generation}:
+        errors.append("cps_generation_divergence")
+    if transition and {
+        transition,
+        registry.get("CURRENT_TRANSITION_ID", ""),
+        wip.get("current_transition_id", ""),
+    } != {transition}:
+        errors.append("cps_transition_divergence")
+    if next_action and {
+        next_action,
+        registry.get("EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID", ""),
+        wip.get("smallest_existing_next_action_id", ""),
+    } != {next_action}:
+        errors.append("cps_next_action_divergence")
+
+    stop = live.get("CURRENT_STOP_CONDITION", "").strip("`")
+    wip_stop = wip.get("current_primary_stop", "").strip("`")
+    if stop != "OPERATIONAL_AUTHORITY" or wip_stop != stop:
+        errors.append("cps_current_stop_divergence")
+    if not live.get("AUTHORITY_REQUIRED_NOW", "").strip("`").startswith("YES"):
+        errors.append("cps_authority_required_not_yes")
+    if not wip.get("authority_required_now", "").strip("`").startswith("TRUE"):
+        errors.append("cps_wip_authority_required_not_true")
+    if not live.get("BINDING_STABILITY", "").strip("`").startswith("PASS"):
+        errors.append("cps_binding_stability_not_pass")
+    if live.get("OLD_PACKETS_REUSABLE", "").strip("`") != "NO":
+        errors.append("cps_old_packets_reusable")
+    if live.get("CURRENT_CLASS_OUTCOME", "").strip("`") != "ABSENT":
+        errors.append("cps_current_class_outcome_not_absent")
+    if live.get("CURRENT_ACTION_CLASS_STATE", "").strip("`") != "GOVERNED_ONLY":
+        errors.append("cps_action_class_state_divergence")
+    if "OPERATIONAL_AUTHORITY" not in live.get("AUTOMATIC_CONTINUE_OMP_RESULT", ""):
+        errors.append("cps_continue_omp_stop_divergence")
+    if "OPERATIONAL_AUTHORITY" not in live.get("OMP_CONTROLLED_RUN_ALLOWED", ""):
+        errors.append("cps_omp_consumption_divergence")
+
+    live_blob = "\n".join(live.values())
+    stale_markers = (
+        "READ_ONLY_BINDING_DIAGNOSIS_ONLY",
+        "stops at STOP_SAFE source/snapshot binding stability closure",
+        "close operation-scoped binding stability through existing owner",
+        "PRE_WRITE_SOURCE_SNAPSHOT_BINDING_STABILITY_CLOSURE",
+    )
+    for marker in stale_markers:
+        if marker in live_blob or marker in registry.get("EXACT_CURRENT_SMALLEST_NEXT_ACTION", "") or marker in wip.get("smallest_existing_next_action", ""):
+            errors.append(f"cps_stale_live_marker:{marker}")
+    invalidation = live.get("CONTROLLED_RUN_INVALIDATION_REASON", "")
+    if "SOURCE_SNAPSHOT_BUNDLE_DRIFT_" in invalidation and "SUPERSEDED/HISTORICAL" not in invalidation:
+        errors.append("cps_historical_invalidation_looks_live")
+
+    sequence_rows = [line for line in sequence.splitlines() if line.startswith("| `1` |")]
+    if len(sequence_rows) != 1:
+        errors.append("cps_sequence_position_1_missing_or_duplicate")
+    elif not all(token in sequence_rows[0] for token in (generation, transition, next_action, "OPERATIONAL_AUTHORITY")):
+        errors.append("cps_sequence_position_1_divergence")
+
+    historical = _markdown_section(cps_text, "## 1. Historical / Capability State Summary")
+    prohibited_headings = []
+    for line in historical.splitlines():
+        if not line.startswith("##"):
+            continue
+        lowered = line.lower()
+        if ("current" in lowered or "latest" in lowered) and "historical" not in lowered:
+            prohibited_headings.append(line)
+    if prohibited_headings:
+        errors.append("cps_historical_current_looking_headings")
+
+    return {
+        "schema": "v7-cps-live-state-consistency/v1",
+        "final_verdict": "PASS" if not errors else "NO-GO",
+        "status": "ATOMIC_CPS_LIVE_STATE_CONSISTENT" if not errors else "CPS_LIVE_STATE_CONTRADICTION_STOP_SAFE",
+        "errors": sorted(set(errors)),
+        "current_state_generation": generation,
+        "current_transition_id": transition,
+        "current_next_action_id": next_action,
+        "current_stop": stop,
+        "section_0_fields": len(live),
+        "registry_fields": len(registry),
+        "active_wip_fields": len(wip),
+        "historical_current_looking_headings": prohibited_headings,
+        "sequence_position_1": sequence_rows[0] if len(sequence_rows) == 1 else "",
+    }
+
+
+def current_cps_consistency(path: Path = CPS_PATH) -> dict[str, Any]:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return {
+            "schema": "v7-cps-live-state-consistency/v1",
+            "final_verdict": "NO-GO",
+            "status": "CPS_LIVE_STATE_CONTRADICTION_STOP_SAFE",
+            "errors": ["cps_unreadable"],
+        }
+    return cps_live_state_consistency(text)
 
 APPROVED_DEPLOY_FILES = [
     {

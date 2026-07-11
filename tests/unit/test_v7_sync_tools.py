@@ -41,6 +41,45 @@ class V7SyncToolsTest(unittest.TestCase):
         dirty = self.lib.classify_status(" M tools/v7-users-autoswitch")
         self.assertTrue(self.lib.dirty_requires_runtime_approval(dirty))
 
+    def test_current_cps_live_state_is_atomically_consistent(self):
+        result = self.lib.current_cps_consistency(ROOT / "docs" / "programs" / "V7_CURRENT_PROGRAM_STATE.md")
+        self.assertEqual(result["final_verdict"], "PASS")
+        self.assertEqual(result["status"], "ATOMIC_CPS_LIVE_STATE_CONSISTENT")
+        self.assertEqual(result["errors"], [])
+
+    def test_cps_consistency_rejects_stop_generation_and_stale_surface_divergence(self):
+        cps = (ROOT / "docs" / "programs" / "V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
+        stop_drift = cps.replace(
+            "| `current_primary_stop` | `OPERATIONAL_AUTHORITY` |",
+            "| `current_primary_stop` | `STOP_SAFE` |",
+            1,
+        )
+        result = self.lib.cps_live_state_consistency(stop_drift)
+        self.assertIn("cps_current_stop_divergence", result["errors"])
+
+        generation_drift = cps.replace(
+            "| `current_state_generation` | `cpsgen_V7_CPS_SYNC_V1_7F3C91A6D842` |",
+            "| `current_state_generation` | `stale_generation` |",
+            1,
+        )
+        result = self.lib.cps_live_state_consistency(generation_drift)
+        self.assertIn("cps_generation_divergence", result["errors"])
+
+        stale_surface = cps.replace(
+            "`OPERATIONAL_AUTHORITY_REQUEST_ONLY; no packet, admission or mutation in the current Mission`",
+            "`READ_ONLY_BINDING_DIAGNOSIS_ONLY`",
+            1,
+        )
+        result = self.lib.cps_live_state_consistency(stale_surface)
+        self.assertIn("cps_omp_consumption_divergence", result["errors"])
+        self.assertTrue(any(item.startswith("cps_stale_live_marker:") for item in result["errors"]))
+
+    def test_cps_consistency_rejects_current_looking_historical_heading(self):
+        cps = (ROOT / "docs" / "programs" / "V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
+        drift = cps.replace("## 7. Historical Stop Question", "## 7. Current Stop Question", 1)
+        result = self.lib.cps_live_state_consistency(drift)
+        self.assertIn("cps_historical_current_looking_headings", result["errors"])
+
     def test_commit_allows_documentation_only_dirty_as_non_blocking_category(self):
         dirty = self.lib.classify_status("?? PROGRAM_Z8_14_AUTOMATED_SOURCE_TO_PRODUCTION_SYNC_REPORT.md")
         self.assertFalse(self.lib.dirty_requires_runtime_approval(dirty))

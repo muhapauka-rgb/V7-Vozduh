@@ -664,6 +664,14 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = build_arg_parser().parse_args(argv)
     manifest = load_manifest(Path(args.manifest))
     result = combine_results(manifest, mode=selected_mode(args))
+    cps_consistency = sync_lib.current_cps_consistency(Path(args.cps))
+    result["cps_consistency"] = cps_consistency
+    if cps_consistency.get("final_verdict") != "PASS":
+        result["blockers"] = sorted(
+            set(result.get("blockers") or []) | set(cps_consistency.get("errors") or [])
+        )
+        result["final_verdict"] = "NO-GO"
+        result["convergence_status"] = "CPS_LIVE_STATE_CONTRADICTION_STOP_SAFE"
     identity_values = [args.mission_id, args.run_nonce, args.mission_start, args.mission_report]
     if any(identity_values):
         if not all(identity_values):

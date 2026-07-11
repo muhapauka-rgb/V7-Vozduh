@@ -2,21 +2,21 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-11T06:36:42+0700
-Source: Circuit Breaker Phase 3A revalidated the previously admitted combined deploy. The accumulated `autonomy_trust_acceleration.py` delta is fully owner-mapped and certified as Stage 1 Diagnosis read-only projection plus Recovery B8/B9/B10-to-A6 read-only integration. Local, GitHub and production remain aligned; Safe Mode v2 remains `OPEN`. OMP remains the active execution program and CPS remains the only live volatile state owner.
+State captured: 2026-07-11T09:45:17+0700
+Source: First Governed OMP Controlled Run Phase 4A selected one real bounded Candidate but stopped before operational authority. The current packet preview lacks complete source binding, routing readiness contains STOP_SAFE conditions, and existing owners do not yet prove an operation-scoped controlled window with guaranteed final `OPEN`. No production mutation occurred; Safe Mode v2 remains `OPEN`.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-11T06:36:42+0700`
+Captured: `2026-07-11T09:45:17+0700`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
 | Field | Current Value |
 | --- | --- |
 | `ACTIVE_PROGRAM` | `OMP` |
-| `CURRENT_MODE` | `CIRCUIT_BREAKER_PRODUCTION_CERTIFIED_OPEN` |
+| `CURRENT_MODE` | `CONTROLLED_RUN_PREPARATION_STOPPED_UNSAFE_IMPLEMENTATION` |
 | `ARCHITECTURE_STATE` | `STAGE_1_ACCEPTED_AND_LOCKED` |
 | `KNOWLEDGE_STATE` | `LOCKED_KNOWLEDGE` |
 | `ACTIVE_EXECUTION_OWNER` | `OMP` |
@@ -24,12 +24,12 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `NONE_FOR_SEPARATE_CONTROLLED_RUN_MISSION_PLANNING` |
-| `CURRENT_ACTIVE_SCOPE` | `AUTONOMOUS_EXECUTION_CIRCUIT_BREAKER_PHASE_3_PRODUCTION_CERTIFIED` |
-| `CURRENT_SAFE_NEXT_ACTION` | `PREPARE_SEPARATE_GOVERNED_OMP_CONTROLLED_RUN_MISSION` |
-| `CURRENT_SCOPE_CLASS` | `CONTROLLED_RUN_SEPARATE_MISSION_READY` |
-| `FORBIDDEN_FOR_CURRENT_SCOPE` | Any controlled run, production apply, user movement, Authority promotion/expansion, blast-radius expansion, systemd enable/start, rollback apply, or transition to `CLOSED` inside the completed Phase 3 Mission. |
-| `REQUIRED_WORKFLOW` | Separate Mission -> ECR/current truth -> existing Authority and bounded scope -> authenticated operator window -> governed execution -> verification/rollback -> final `OPEN` -> outcome/learning/maturity/CPS/OMP. |
+| `CURRENT_STOP_CONDITION` | `UNSAFE_IMPLEMENTATION_CONTROL_WINDOW_NOT_CLOSED` |
+| `CURRENT_ACTIVE_SCOPE` | `FIRST_GOVERNED_OMP_CONTROLLED_RUN_PHASE_4A_PREPARATION` |
+| `CURRENT_SAFE_NEXT_ACTION` | `IMPLEMENT_EXISTING_OWNER_ATOMIC_CONTROLLED_WINDOW_AND_PACKET_SOURCE_BINDING_THEN_RECERTIFY_PHASE_4A` |
+| `CURRENT_SCOPE_CLASS` | `ENGINEERING_AUTHORITY_REQUIRED` |
+| `FORBIDDEN_FOR_CURRENT_SCOPE` | Operational authority request, Safe Mode `CLOSED`, execution lease, restore-barrier write, Runtime apply, user movement, rollback apply, Authority/blast-radius expansion, systemd enable/start, synthetic evidence, or reuse of the rejected packet preview. |
+| `REQUIRED_WORKFLOW` | Existing Admin Safe Mode and governed execution owners -> operation-scoped generation-bound window -> guaranteed terminal `OPEN` -> complete packet source binding -> tests/certification -> fresh Phase 4A revalidation. |
 | `CIRCUIT_BREAKER_REPOSITORY_STATE` | `IMPLEMENTATION_CERTIFIED_READ_ONLY` |
 | `CIRCUIT_BREAKER_PRODUCTION_STATE` | `DEPLOYED_CERTIFIED_OPEN` |
 | `CIRCUIT_BREAKER_PRODUCTION_CERTIFICATION` | `CIRCUIT_BREAKER_PRODUCTION_CERTIFIED` |
@@ -42,8 +42,14 @@ This section is the single live volatile current-state surface. Older production
 | `RECOVERY_ARTIFACT_CERTIFICATION` | `RECOVERY_ARTIFACT_CERTIFICATION_STILL_VALID` |
 | `COMBINED_DEPLOY_ADMISSION` | `PASS; already deployed and revalidated, no duplicate runtime deploy required` |
 | `COMBINED_DEPLOY_REVALIDATION_REPORT` | `docs/reports/engineering/2026-07-11_063642_recovery_artifact_deploy_admission_and_circuit_breaker_phase3_continuation.md` |
-| `OMP_CONTROLLED_RUN_ALLOWED` | `YES; only as a separate Mission, not execution authority` |
-| `PRODUCTION_RUNTIME_IMPACT` | `Canonical runtime artifacts deployed; Admin API restarted; forward mutation remained blocked throughout certification.` |
+| `CONTROLLED_RUN_PREPARATION_REPORT` | `docs/reports/engineering/2026-07-11_094517_first_governed_omp_controlled_run_preparation.md` |
+| `CONTROLLED_RUN_CANDIDATE` | `candidate_7b48ef45c5f19af91a317fcd; user=10.0.0.2; vless->awg3; read-only evidence only` |
+| `CONTROLLED_RUN_PACKET_PREVIEW` | `pkt_preview_59a3c22747a4edb843be3863; REJECTED_FOR_PHASE4A_AUTHORITY` |
+| `CONTROLLED_WINDOW_CONTRACT` | `FAIL` |
+| `CONTROLLED_RUN_EXECUTION_AUTHORIZED` | `NO` |
+| `OMP_CONTROLLED_RUN_ALLOWED` | `NO; blocked until existing-owner controlled-window and packet-binding certification` |
+| `PARENT_ENGINEERING_INTENT` | `INTENT_BLOCKED_BY_ENGINEERING_AUTHORITY` |
+| `PRODUCTION_RUNTIME_IMPACT` | `NONE_THIS_MISSION; previously certified Runtime remains deployed; no service restart or production mutation in Phase 4A.` |
 | `AUTHORITY_IMPACT` | `NONE` |
 | `ROUTING_IMPACT` | `NONE` |
 | `USER_MOVEMENT` | `NO` |

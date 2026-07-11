@@ -9562,3 +9562,22 @@ NEXT_LEGAL_STEP = PREPARE_SEPARATE_GOVERNED_OMP_CONTROLLED_RUN_MISSION
 ```
 
 The current runtime delta is empty, so OMP does not request a duplicate deploy. This consumption changes no scheduler/optimizer rule, Runtime, Planner, Authority, capability, lifecycle, threshold, formula, blast radius or execution permission.
+
+## 38. First Governed OMP Controlled Run Phase 4A Consumption
+
+Status: `UNSAFE_IMPLEMENTATION`.
+
+OMP consumed current production truth and a read-only governed candidate cycle. Candidate `candidate_7b48ef45c5f19af91a317fcd` (`10.0.0.2`, `vless -> awg3`) is a real bounded one-user opportunity, but it is not admitted for operational authority. Existing packet preview `pkt_preview_59a3c22747a4edb843be3863` lacks complete source/snapshot binding, routing readiness contains STOP_SAFE conditions, and the current Admin Safe Mode plus governed execution owners do not prove an operation-scoped generation-bound window with mandatory final `OPEN` for every terminal path.
+
+```text
+CURRENT_STEP = CONTROLLED_RUN_PREPARATION_STOPPED_UNSAFE_IMPLEMENTATION
+STOP_CONDITION = UNSAFE_IMPLEMENTATION_CONTROL_WINDOW_NOT_CLOSED
+CANDIDATE_SELECTED = YES
+MISSION_ADMITTED = NO
+PACKET_PREPARED = NO
+CONTROLLED_WINDOW_CONTRACT = FAIL
+OMP_CONTROLLED_RUN_ALLOWED = NO
+NEXT_LEGAL_STEP = IMPLEMENT_EXISTING_OWNER_ATOMIC_CONTROLLED_WINDOW_AND_PACKET_SOURCE_BINDING_THEN_RECERTIFY_PHASE_4A
+```
+
+Production Maturity decision: `BLOCK`, score unchanged. Safe Mode remained `OPEN`; no operational Authority request, lease, restore barrier, apply, movement, rollback, systemd change or production mutation occurred. OMP rules, owners, capability, lifecycle, Runtime, Planner, Authority and blast radius are unchanged.

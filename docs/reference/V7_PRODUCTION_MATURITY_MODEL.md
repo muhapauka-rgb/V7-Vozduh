@@ -500,3 +500,11 @@ Decision: `NO_CHANGE`.
 Consumed evidence: `2026-07-11_063642_recovery_artifact_deploy_admission_and_circuit_breaker_phase3_continuation.md`.
 
 The historical accumulated delta in `admin_core/autonomy_trust_acceleration.py` was reconstructed from the verified pre-deploy blob and fully classified. Stage 1 Diagnosis / Owner Resolution and Recovery B8/B9/B10-to-A6 integration remain deterministic read-only existing-owner projections; they write no production state, grant no Authority, change no Planner, thresholds or formulas, and cannot bypass the deployed Circuit Breaker. Current local/GitHub/production hashes are aligned, Safe Mode remains `OPEN`, and no runtime mutation occurred during revalidation. The prior Phase 3 `ACCEPT` remains valid; no score or execution Authority changes.
+
+### First Governed OMP Controlled Run Phase 4A Decision
+
+Decision: `BLOCK`.
+
+Consumed evidence: `2026-07-11_094517_first_governed_omp_controlled_run_preparation.md`.
+
+One real one-user Candidate was selected read-only, but controlled-run admission is blocked. The packet preview lacks complete source/snapshot binding, live routing readiness contains STOP_SAFE conditions, and existing owners do not yet prove an operation-scoped generation-bound window with mandatory final Safe Mode `OPEN` for every terminal path. This block changes no Production Maturity score and does not invalidate the deployed Circuit Breaker certification. No operational Authority, Safe Mode transition, execution lease, restore barrier, Runtime apply, user movement, rollback apply or production outcome occurred.

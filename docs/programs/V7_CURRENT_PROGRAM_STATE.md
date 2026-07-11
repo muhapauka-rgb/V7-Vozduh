@@ -26,7 +26,7 @@ This section is the single live volatile current-state surface. Older production
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `APPROVED_PACKET_INVALIDATED_BY_SOURCE_DRIFT` |
 | `CURRENT_ACTIVE_SCOPE` | `FIRST_GOVERNED_OMP_CONTROLLED_RUN_PHASE_4A_RERUN` |
-| `CURRENT_SAFE_NEXT_ACTION` | `RERUN_FIRST_GOVERNED_OMP_CONTROLLED_RUN_PHASE_4A_FROM_FRESH_EVIDENCE` |
+| `CURRENT_SAFE_NEXT_ACTION` | `SAFE_DEPLOY_RECONCILED_ACTION_CLASS_READ_MODEL_WITHOUT_RUNTIME_EXECUTION_THEN_RERUN_PHASE_4A_FROM_FRESH_EVIDENCE` |
 | `CURRENT_SCOPE_CLASS` | `STALE_APPROVAL_INVALIDATED_STOP_SAFE` |
 | `CURRENT_ACTION_CLASS` | `single-user governed candidate failover` |
 | `CURRENT_ACTION_CLASS_STATE` | `GOVERNED_ONLY` |
@@ -42,8 +42,9 @@ This section is the single live volatile current-state surface. Older production
 | `CLASS_APPROVAL_READY` | `NO; do not repeat historical execution/blast/rollback ladder, close only the current decision-context outcome first` |
 | `DELEGATED_POLICY_ALREADY_VALID` | `NO` |
 | `HISTORICAL_CERTIFICATION_RECONCILIATION_REPORT` | `docs/reports/engineering/2026-07-11_171800_historical_autonomy_certification_reuse_and_action_class_authority_reconciliation.md` |
+| `HISTORICAL_CERTIFICATION_REUSE_DEPLOY_STATE` | `REPOSITORY_CERTIFIED; PRODUCTION_DEPLOY_REQUIRED for admin_core/autonomy_trust_acceleration.py; deployment prohibited in this no-production-mutation Mission` |
 | `FORBIDDEN_FOR_CURRENT_SCOPE` | Reuse or execution of invalidated packet `pkt_preview_c6a5b48c9ee7a80d20859071`; reuse of its approval; Safe Mode `CLOSED`; active lease, restore-barrier write, Runtime apply, user movement, rollback apply, Authority/blast-radius expansion, systemd enable/start, or synthetic evidence. |
-| `REQUIRED_WORKFLOW` | Fresh Phase 4A evidence -> new exact packet/source/snapshot identity -> new operational approve/reject decision. The invalidated approval cannot be revived. |
+| `REQUIRED_WORKFLOW` | Close the one-file existing-owner deploy delta without Runtime execution -> fresh Phase 4A evidence -> new exact packet/source/snapshot identity -> new operational approve/reject decision. The invalidated approval cannot be revived. |
 | `CIRCUIT_BREAKER_REPOSITORY_STATE` | `IMPLEMENTATION_CERTIFIED_READ_ONLY` |
 | `CIRCUIT_BREAKER_PRODUCTION_STATE` | `DEPLOYED_CERTIFIED_OPEN` |
 | `CIRCUIT_BREAKER_PRODUCTION_CERTIFICATION` | `CIRCUIT_BREAKER_PRODUCTION_CERTIFIED` |
@@ -131,7 +132,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
 | `OMP_CONTINUATION_POINTER` | consume this registry; preserve active WIP; select the first unresolved sequence position only |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `RERUN_FIRST_GOVERNED_OMP_CONTROLLED_RUN_PHASE_4A_FROM_FRESH_EVIDENCE` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `SAFE_DEPLOY_RECONCILED_ACTION_CLASS_READ_MODEL_WITHOUT_RUNTIME_EXECUTION_THEN_RERUN_PHASE_4A_FROM_FRESH_EVIDENCE` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -151,7 +152,7 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | `last_responsible_link` | invalidated approved packet -> fresh Phase 4A candidate/packet revalidation |
 | `responsible_owners` | Admin Safe Mode v2; `admin_core/operator_execution.py`; governed execution pipeline; packet/lease identity; autoswitch final gate; rollback, verification, outcome and learning owners |
 | `protected_objects` | Existing owners above; Phase 4A Candidate evidence lineage; current Circuit Breaker certification |
-| `smallest_existing_next_action` | `RERUN_FIRST_GOVERNED_OMP_CONTROLLED_RUN_PHASE_4A_FROM_FRESH_EVIDENCE` |
+| `smallest_existing_next_action` | deploy the reconciled existing read-model owner without execution, then rerun Phase 4A from fresh evidence |
 | `completion_condition` | exact packet admitted, one governed action reaches verification/rollback, mandatory final `OPEN`, outcome/learning/maturity/CPS/OMP consumption, Parent Intent closed or legal terminal stop |
 
 ### Complete Or Locked Capability Records

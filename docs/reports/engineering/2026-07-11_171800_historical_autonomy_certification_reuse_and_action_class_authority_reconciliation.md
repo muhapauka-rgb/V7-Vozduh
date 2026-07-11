@@ -131,6 +131,8 @@ Repository behavior changed only in the read-only evidence owner: previously unc
 
 Production Maturity decision: `NO_CHANGE`. Reconciliation improves evidence consumption but is not a new production outcome or authority grant. CPS section 0 now records reused certifications, current identity, promotion state, exact delta and unchanged active WIP. OMP scheduler/optimizer semantics already preserve completion-first WIP, so `OMP_CHANGE=NO_CHANGE`.
 
+Post-commit truth verification proved local/GitHub alignment at `52d4d33f7e4f850826fae767095f8229014d9ab0`. Production remains intentionally on `f541099ecba7dad108c15007e903f00a18963c47`; `v7-truth-check --all --json` classifies only `admin_core/autonomy_trust_acceleration.py` as `DEPLOY_REQUIRED`. This Mission forbids production mutation, so no safe-deploy apply or service restart was performed. Repository consumption is certified; production consumption remains an explicit deployment boundary and must use the existing safe-deploy owner in a separate allowed Mission.
+
 ## Engineering Intent Closure
 
 The non-consumption gap is resolved for reusable execution/safety layers. The broader intent cannot close because the current decision-context outcome and Authority decisions do not exist. Result: `INTENT_NOT_CLOSED`; only the exact delta remains. Active WIP continues first and must not repeat the historical certification ladder.
@@ -167,7 +169,7 @@ USER_MOVEMENT = NO
 AUTHORITY_CHANGE = NO
 PRODUCTION_MATURITY_DECISION = NO_CHANGE
 ENGINEERING_INTENT_CLOSURE = INTENT_NOT_CLOSED
-NEXT_OMP_ACTION = COLLECT_ONLY_EXACT_MISSING_REAL_EVIDENCE
+NEXT_OMP_ACTION = IMPLEMENT_EXACT_MISSING_CONSUMPTION_DELTA
 ```
 
-The next OMP action is not executed automatically. Operationally, this means preserving `CAP-U01` first and obtaining its one real current-class outcome through the existing fresh Phase 4A path; no historical movement proof is repeated.
+The next OMP action is not executed automatically. Before relying on the reconciled production read model, the existing safe-deploy owner must close the recorded one-file deploy delta under a Mission that permits production deployment. Active `CAP-U01` remains first; its one real current-class outcome must then use the fresh Phase 4A path, and no historical movement proof is repeated.

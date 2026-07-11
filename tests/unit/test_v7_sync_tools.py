@@ -121,6 +121,7 @@ class V7SyncToolsTest(unittest.TestCase):
 
     def test_approved_deploy_files_cover_runtime_package_and_perf4_dependencies(self):
         remote_paths = {item["remote_path"] for item in self.lib.APPROVED_DEPLOY_FILES}
+        self.assertIn("/usr/local/bin/v7_sync_lib.py", remote_paths)
         self.assertIn("/usr/local/bin/v7-users-autoswitch", remote_paths)
         self.assertIn("/usr/local/bin/v7-user-switch", remote_paths)
         self.assertIn("/etc/systemd/system/v7-users-autoswitch.service", remote_paths)

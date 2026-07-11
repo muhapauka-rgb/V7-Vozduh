@@ -196,6 +196,13 @@ def current_cps_consistency(path: Path = CPS_PATH) -> dict[str, Any]:
 
 APPROVED_DEPLOY_FILES = [
     {
+        "name": "v7_sync_lib.py",
+        "local_path": "tools/v7_sync_lib.py",
+        "remote_path": "/usr/local/bin/v7_sync_lib.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
         "name": "admin_core/__init__.py",
         "local_path": "admin_core/__init__.py",
         "remote_path": "/usr/local/bin/admin_core/__init__.py",

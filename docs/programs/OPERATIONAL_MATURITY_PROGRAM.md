@@ -8447,6 +8447,12 @@ When packet fields, metrics, or stop reason change, update `docs/programs/V7_CUR
 
 Update OMP only when scheduler/optimizer meaning changes.
 
+Before selecting any next capability or Mission, OMP must consume:
+
+`CPS -> Authoritative Unfinished Capability Closure Registry`.
+
+OMP must preserve protected active WIP first, select from the registry's unfinished deterministic sequence, and rerun reconciliation after every capability closure, legal stop, authority decision, production outcome, certification, owner revalidation, or accepted Candidate change. Historical OMP snapshots must never be used as current capability state. Capability details and percentages remain in CPS and their existing canonical owners, not in OMP.
+
 ## 27. Permanent Production Command Verdict
 
 V7 can continue production evolution using only:
@@ -9572,12 +9578,14 @@ OMP consumed current production truth and a read-only governed candidate cycle. 
 ```text
 CURRENT_STEP = CONTROLLED_RUN_PREPARATION_STOPPED_UNSAFE_IMPLEMENTATION
 STOP_CONDITION = UNSAFE_IMPLEMENTATION_CONTROL_WINDOW_NOT_CLOSED
+RESPONSIBILITY_CLASS = EXISTING_OWNER_IMPLEMENTATION_GAP
+AUTHORITY_REQUIRED_NOW = NO
 CANDIDATE_SELECTED = YES
 MISSION_ADMITTED = NO
 PACKET_PREPARED = NO
 CONTROLLED_WINDOW_CONTRACT = FAIL
 OMP_CONTROLLED_RUN_ALLOWED = NO
-NEXT_LEGAL_STEP = IMPLEMENT_EXISTING_OWNER_ATOMIC_CONTROLLED_WINDOW_AND_PACKET_SOURCE_BINDING_THEN_RECERTIFY_PHASE_4A
+NEXT_LEGAL_STEP = IMPLEMENT_AND_CERTIFY_OPERATION_SCOPED_CONTROLLED_WINDOW_AND_PACKET_SOURCE_BINDING
 ```
 
 Production Maturity decision: `BLOCK`, score unchanged. Safe Mode remained `OPEN`; no operational Authority request, lease, restore barrier, apply, movement, rollback, systemd change or production mutation occurred. OMP rules, owners, capability, lifecycle, Runtime, Planner, Authority and blast radius are unchanged.

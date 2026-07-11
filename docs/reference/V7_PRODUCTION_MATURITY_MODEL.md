@@ -508,3 +508,11 @@ Decision: `BLOCK`.
 Consumed evidence: `2026-07-11_094517_first_governed_omp_controlled_run_preparation.md`.
 
 One real one-user Candidate was selected read-only, but controlled-run admission is blocked. The packet preview lacks complete source/snapshot binding, live routing readiness contains STOP_SAFE conditions, and existing owners do not yet prove an operation-scoped generation-bound window with mandatory final Safe Mode `OPEN` for every terminal path. This block changes no Production Maturity score and does not invalidate the deployed Circuit Breaker certification. No operational Authority, Safe Mode transition, execution lease, restore barrier, Runtime apply, user movement, rollback apply or production outcome occurred.
+
+### OMP-Wide Unfinished Capability Closure Reconciliation Decision
+
+Decision: `NO_CHANGE`.
+
+Consumed evidence: `2026-07-11_100704_omp_unfinished_capability_closure_reconciliation.md`.
+
+The reconciliation materializes owner-backed capability visibility and deterministic continuation in CPS. It closes no production capability, changes no Production Maturity score, grants no Authority, and performs no Runtime or production mutation. The active Controlled Run remains blocked by an existing-owner implementation gap and retains the prior Phase 4A maturity block until that implementation is certified.

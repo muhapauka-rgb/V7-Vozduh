@@ -2,14 +2,14 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-11T09:45:17+0700
-Source: First Governed OMP Controlled Run Phase 4A selected one real bounded Candidate but stopped before operational authority. The current packet preview lacks complete source binding, routing readiness contains STOP_SAFE conditions, and existing owners do not yet prove an operation-scoped controlled window with guaranteed final `OPEN`. No production mutation occurred; Safe Mode v2 remains `OPEN`.
+State captured: 2026-07-11T10:07:04+0700
+Source: OMP-wide capability closure reconciliation materialized the single authoritative unfinished-capability registry. The active Controlled Run remains protected and first. Its primary stop is `UNSAFE_IMPLEMENTATION`, responsibility is an existing-owner implementation gap, and Authority is not required now. No production mutation occurred; Safe Mode v2 remains `OPEN`.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-11T09:45:17+0700`
+Captured: `2026-07-11T10:07:04+0700`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -26,15 +26,15 @@ This section is the single live volatile current-state surface. Older production
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `UNSAFE_IMPLEMENTATION_CONTROL_WINDOW_NOT_CLOSED` |
 | `CURRENT_ACTIVE_SCOPE` | `FIRST_GOVERNED_OMP_CONTROLLED_RUN_PHASE_4A_PREPARATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `IMPLEMENT_EXISTING_OWNER_ATOMIC_CONTROLLED_WINDOW_AND_PACKET_SOURCE_BINDING_THEN_RECERTIFY_PHASE_4A` |
-| `CURRENT_SCOPE_CLASS` | `ENGINEERING_AUTHORITY_REQUIRED` |
+| `CURRENT_SAFE_NEXT_ACTION` | `IMPLEMENT_AND_CERTIFY_OPERATION_SCOPED_CONTROLLED_WINDOW_AND_PACKET_SOURCE_BINDING` |
+| `CURRENT_SCOPE_CLASS` | `EXISTING_OWNER_IMPLEMENTATION_GAP` |
 | `FORBIDDEN_FOR_CURRENT_SCOPE` | Operational authority request, Safe Mode `CLOSED`, execution lease, restore-barrier write, Runtime apply, user movement, rollback apply, Authority/blast-radius expansion, systemd enable/start, synthetic evidence, or reuse of the rejected packet preview. |
 | `REQUIRED_WORKFLOW` | Existing Admin Safe Mode and governed execution owners -> operation-scoped generation-bound window -> guaranteed terminal `OPEN` -> complete packet source binding -> tests/certification -> fresh Phase 4A revalidation. |
 | `CIRCUIT_BREAKER_REPOSITORY_STATE` | `IMPLEMENTATION_CERTIFIED_READ_ONLY` |
 | `CIRCUIT_BREAKER_PRODUCTION_STATE` | `DEPLOYED_CERTIFIED_OPEN` |
 | `CIRCUIT_BREAKER_PRODUCTION_CERTIFICATION` | `CIRCUIT_BREAKER_PRODUCTION_CERTIFIED` |
 | `CIRCUIT_BREAKER_CONTROLLED_RUN_GATE` | `PASS` |
-| `ENGINEERING_INTENT_CLOSURE` | `INTENT_CLOSED` |
+| `CIRCUIT_BREAKER_ENGINEERING_INTENT_CLOSURE` | `INTENT_CLOSED` |
 | `ADMIN_SAFE_MODE_LIVE_STATE` | `schema=v7.autonomous-execution-control.v2; state=OPEN; generation=aec_a78732b833c8df6b509432b1; scope=global` |
 | `CIRCUIT_BREAKER_IMPLEMENTATION_DEPLOY_COMMIT` | `319bac22f42ce4d0a36a2af0c1a5954a35fe0613` |
 | `CIRCUIT_BREAKER_DEPLOY_ID` | `deploy-z8-14-Updatesystem-319bac2-20260711T012454` |
@@ -48,12 +48,186 @@ This section is the single live volatile current-state surface. Older production
 | `CONTROLLED_WINDOW_CONTRACT` | `FAIL` |
 | `CONTROLLED_RUN_EXECUTION_AUTHORIZED` | `NO` |
 | `OMP_CONTROLLED_RUN_ALLOWED` | `NO; blocked until existing-owner controlled-window and packet-binding certification` |
-| `PARENT_ENGINEERING_INTENT` | `INTENT_BLOCKED_BY_ENGINEERING_AUTHORITY` |
+| `CONTROLLED_RUN_PRIMARY_STOP` | `UNSAFE_IMPLEMENTATION` |
+| `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `EXISTING_OWNER_IMPLEMENTATION_GAP` |
+| `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `NO` |
+| `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_NOT_CLOSED` |
+| `PARENT_ENGINEERING_INTENT` | `INTENT_NOT_CLOSED` |
+| `ACTIVE_WIP_PROTECTED` | `TRUE; COMPLETION_FIRST; reorder forbidden` |
 | `PRODUCTION_RUNTIME_IMPACT` | `NONE_THIS_MISSION; previously certified Runtime remains deployed; no service restart or production mutation in Phase 4A.` |
 | `AUTHORITY_IMPACT` | `NONE` |
 | `ROUTING_IMPACT` | `NONE` |
 | `USER_MOVEMENT` | `NO` |
 | `SECRET_HANDLING` | Runtime/server/admin credentials must not be written to repository files, reports, prompts, logs, or commits. |
+
+## Authoritative Unfinished Capability Closure Registry
+
+Status: `AUTHORITATIVE_LIVE_DERIVED_REGISTRY`
+
+Owner: `CPS`
+
+Scheduler Consumer: `OMP`
+
+Generated From: existing canonical owners only
+
+Generated At: `2026-07-11T10:07:04+0700`
+
+Runtime Authority: `NONE`
+
+Production Authority: `NONE`
+
+This is the only authoritative live registry of unfinished V7 capability closure. It derives state from capability owners, Runtime/code truth, Production Maturity, certifications and accepted reports. It does not recalculate maturity, plan independently, create Candidates or Missions, grant Authority, permit Runtime apply, replace capability owners, or duplicate historical evidence.
+
+### Registry Metadata And Truth Lifecycle
+
+| Field | Value |
+| --- | --- |
+| `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
+| `CAPABILITIES_INVENTORIED` | `34` |
+| `COMPLETE_OR_LOCKED_CAPABILITIES` | `12` |
+| `UNFINISHED_CAPABILITIES` | `22` |
+| `OPEN_ENGINEERING_INTENTS` | `22` |
+| `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
+| `ACTIVE_MISSIONS` | `V7_FIRST_GOVERNED_OMP_CONTROLLED_RUN_PHASE_4A` only |
+| `OPEN_CANDIDATE_IDS` | `candidate_7b48ef45c5f19af91a317fcd` only; read-only lineage, not admitted |
+| `PRIOR_BDP_CANDIDATES` | `25` certified instances are terminal historical ladder evidence, not open work |
+| `BACKLOG_STATE` | `34/34 actionable COMPLETE`; no new backlog item |
+| `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
+| `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
+| `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
+| `OMP_CONTINUATION_POINTER` | consume this registry; preserve active WIP; select the first unresolved sequence position only |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `IMPLEMENT_AND_CERTIFY_OPERATION_SCOPED_CONTROLLED_WINDOW_AND_PACKET_SOURCE_BINDING` |
+
+For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
+
+### Active Protected Work In Progress
+
+| Field | Value |
+| --- | --- |
+| `capability_id` | `CAP-U01-FIRST-GOVERNED-CONTROLLED-RUN` |
+| `active_mission_id` | `V7_FIRST_GOVERNED_OMP_CONTROLLED_RUN_PHASE_4A` |
+| `candidate_id` | `candidate_7b48ef45c5f19af91a317fcd` |
+| `protected_by_active_wip` | `TRUE` |
+| `wip_priority_class` | `COMPLETION_FIRST` |
+| `active_wip_reorder_allowed` | `FALSE` |
+| `current_primary_stop` | `UNSAFE_IMPLEMENTATION` |
+| `responsibility_class` | `EXISTING_OWNER_IMPLEMENTATION_GAP` |
+| `authority_required_now` | `FALSE` |
+| `last_responsible_link` | Controlled-window implementation and packet source/snapshot binding before repository certification |
+| `responsible_owners` | Admin Safe Mode v2; `admin_core/operator_execution.py`; governed execution pipeline; packet/lease identity; autoswitch final gate; rollback, verification, outcome and learning owners |
+| `protected_objects` | Existing owners above; Phase 4A Candidate evidence lineage; current Circuit Breaker certification |
+| `smallest_existing_next_action` | `IMPLEMENT_AND_CERTIFY_OPERATION_SCOPED_CONTROLLED_WINDOW_AND_PACKET_SOURCE_BINDING` |
+| `completion_condition` | exact packet admitted, one governed action reaches verification/rollback, mandatory final `OPEN`, outcome/learning/maturity/CPS/OMP consumption, Parent Intent closed or legal terminal stop |
+
+### Complete Or Locked Capability Records
+
+| ID | Capability | Canonical owner | Status | Current % | Legal terminal consumer | Reopen trigger / evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `CAP-C01` | Knowledge System | Canonical Reference, ECR, Research/Policy owners | `LOCKED` | `100.0` | `Capability Locked` | Knowledge invalidation or accepted Knowledge Evolution; Canonical Reference |
+| `CAP-C02` | Implementation Discipline | OMP, Backlog, Priority Model, CPS | `COMPLETE` | `100.0` | `Capability Certified` | OMP bypass or parallel queue; Backlog `34/34` |
+| `CAP-C03` | Engineering Knowledge Preservation | Document Lifecycle, Canonical Reference, SYSTEM_MAP | `LOCKED` | `100.0` | `Capability Locked` | canonical contradiction or accepted evolution |
+| `CAP-C04` | OMP Capability Management | OMP | `COMPLETE` | `NOT_APPLICABLE_WITH_REASON: rule capability` | `Capability Certified` | capability lifecycle rule failure; OMP 2.12.3 |
+| `CAP-C05` | Capability Production / Transition Contracts | OMP | `COMPLETE` | `NOT_APPLICABLE_WITH_REASON: contract capability` | `Capability Certified` | producer/consumer contract failure; OMP 24.1/24.2 |
+| `CAP-C06` | Automation Gap Closure | OMP + BDP | `COMPLETE` | `NOT_APPLICABLE_WITH_REASON: continuous law` | `Runtime Ready For Next Cycle` | STOP cannot be classified/routed |
+| `CAP-C07` | Intent Gap Detection | OMP | `COMPLETE` | `NOT_APPLICABLE_WITH_REASON: continuous law` | `Runtime Ready For Next Cycle` | unfinished intent escapes detection |
+| `CAP-C08` | Intent Responsibility Resolution | OMP + existing owners | `COMPLETE` | `NOT_APPLICABLE_WITH_REASON: continuous law` | `Runtime Ready For Next Cycle` | last responsible link cannot be resolved |
+| `CAP-C09` | Behavior Enforcement | OMP + producer/consumer owners | `COMPLETE` | `NOT_APPLICABLE_WITH_REASON: framework capability` | `Capability Certified` | behavior chain falsely closes |
+| `CAP-C10` | State Transition Verification | OMP + transition owners | `COMPLETE` | `NOT_APPLICABLE_WITH_REASON: framework capability` | `Capability Certified` | unexplained no-change terminal state |
+| `CAP-C11` | Execution Certification Ladder | OMP + BDP candidate owners | `COMPLETE` | `L6_CONTINUOUS` | `Runtime Ready For Next Cycle` | candidate semantics invalidation; CPS ladder state |
+| `CAP-C12` | Autonomous Execution Circuit Breaker | Admin Safe Mode + execution owners | `COMPLETE` | `PRODUCTION_CERTIFIED` | `Capability Certified` | production hash/control failure; Phase 3 certification |
+
+All complete records have `open_intent_gap=FALSE`, verified canonical consumption, no implementation/integration/certification gap, and remain protected by their existing reopen triggers. Their detailed completed criteria and evidence remain with the named owners.
+
+### Unfinished Capability Closure Records
+
+The following joined table is the normalized live record. `Last link` represents the final unclosed producer -> consumer transition. `Stop` is the current legal boundary, not an authority grant.
+
+| ID | Capability | Canonical owner | Status | Current % / source confidence | Last responsible link | Gap / stop | Smallest existing next action | Depends on / unblocks |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `CAP-U01` | First Governed Controlled Run | Admin Safe Mode, execution packet/lease/pipeline, OMP | `BLOCKED` | `NOT_APPLICABLE_WITH_REASON: instance chain` | operation-scoped window + packet source/snapshot binding -> repository certification | implementation + integration; `UNSAFE_IMPLEMENTATION`; Authority `NO` | implement and certify operation-scoped controlled window and packet binding | first; unblocks U03/U04/U05/U07/U08/U09 |
+| `CAP-U02` | Movement Protection | OMP, Movement Protection Model, Runtime Model | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting `83/78` | certified gates -> real bounded movement behavior/outcome | runtime/production evidence | finish U01, consume first real outcome, revalidate owner percent | U01/U03/U04/U05/U06; unblocks U09 |
+| `CAP-U03` | Runtime Eligibility | Runtime Model, A6, final execution gate | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting `71/61` | read-only execute/stop arbitration -> production execution consumer | runtime consumption; `UNSAFE_IMPLEMENTATION` through U01 | consume certified window/packet path, then production-verify exact gate | U01/U06; unblocks U02/U09 |
+| `CAP-U04` | Authority Evolution | OMP, authority policy, action-class ladder | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting capability and maturity values | certified action-class evidence -> owner authority decision | authority evidence; future `ENGINEERING_AUTHORITY`, not current | evaluate action-class authority only after first outcome closure | U01/U05/U07; unblocks U09 |
+| `CAP-U05` | Rollback | restore barrier, rollback manifest, execution feedback | `PARTIAL` | `49.0`; owner-backed | rollback preview/readiness -> production verification/rollback terminal outcome | production evidence; `STOP_SAFE` when unavailable | exercise exact rollback/no-rollback contract inside admitted U01 run | U01; unblocks U02/U03/U09 |
+| `CAP-U06` | Recovery Admission | recovery admission, B8/B9/B10, A6 | `PARTIAL` | `78.0`; owner-backed | B8/B9/B10 read-only output -> Runtime Eligibility production consumer | runtime integration/evidence | after U01 certification, production-certify recovery consumption when real candidate exists | U01/U03; may stop `REAL_WORLD_LIMIT`; unblocks U02/U09 |
+| `CAP-U07` | Learning | feedback/learning, OMP, Canonical Reference | `PARTIAL` | `63.0`; owner-backed | real governed outcome -> learning/confidence/future recommendation | real outcome gap | consume U01 terminal outcome without synthetic evidence | U01; unblocks U04/U08/U09/U18-U22 |
+| `CAP-U08` | Production Readiness | Production Maturity, OMP, CPS | `PARTIAL` | `66.9`; maturity owner | certified work/outcomes -> maturity decision toward 100% | production outcome/certification | consume U01 certification/outcome; keep score owner-controlled | U01/U03-U07; unblocks U09 |
+| `CAP-U09` | Production Autonomy | OMP, Runtime Model, Authority Evolution | `BLOCKED` | `0.0`; maturity owner | bounded governed outcomes + authority -> autonomous Runtime consumer | authority/runtime/production evidence; `STOP_SAFE` | certify bounded autonomy only after U01-U08 closure evidence | U02-U08; terminal `PRODUCTION_AUTONOMY_CERTIFIED` |
+| `CAP-U10` | Observability | admin read models, evidence inventory, truth/convergence | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting `67/63/35` | read-only surfaces -> complete operator/runtime diagnostic consumption | integration/coverage | verify exact controlled-run gate/outcome visibility after U01 | U01/U03/U05; unblocks U11/U14 |
+| `CAP-U11` | Decision Explainability | OMP, CPS, Runtime Model, decision surfaces | `REVALIDATION_REQUIRED` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting `39/32/25` | evidence-linked explanation -> real approval consumer validation | owner revalidation + governed validation | reconcile owner percent, then validate Russian exact approval explanation after Phase 4A rerun | U01/U10; unblocks operational review quality |
+| `CAP-U12` | Runtime Capability Maturation / RT2 | Runtime Model, OMP, RT2-S1..S6 owners | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: maturity ladder` | read-only/advisory RT2 outputs -> production Runtime behavior/outcomes | implementation/production evidence | consume U01 result into RT2 measurement/recommendation loop | U01/U07/U10; unblocks U13/U14-U22 |
+| `CAP-U13` | Runtime Time Intelligence | Runtime Model, RT2-S1, RT2-S6, OMP | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: ten-level ladder` | canonicalized docs/read models -> measured production time behavior | implementation/evidence | measure U01 decision-to-terminal timing through existing owners | U01/U12; unblocks U17 |
+| `CAP-U14` | Engineering Intelligence: Observation | RT2-S1, observation/read-model owners | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: maturity state` | visible evidence -> complete current measurement set | evidence coverage | consume U01 gate/outcome observations | U01/U10/U12; unblocks U15-U22 |
+| `CAP-U15` | Engineering Intelligence: Process | Runtime Model, OMP, Engineering Reports | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: maturity state` | process model -> verified real process outcome | validation evidence | trace U01 from intent through legal terminal consumer | U01/U14; unblocks U18-U22 |
+| `CAP-U16` | Engineering Intelligence: Time | Runtime Time Intelligence, RT2-S1/S6 | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: maturity state` | time model -> production timing evidence | real evidence | measure U01 stages without moving computation into Runtime | U01/U13/U14; unblocks U18-U22 |
+| `CAP-U17` | Engineering Intelligence: Recommendation | RT2-S6, OMP | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: maturity state` | advisory recommendation -> implemented/observed recommendation outcome | consumer/outcome gap | produce and later validate recommendation from U01 outcome | U07/U14-U16; unblocks U18-U22 |
+| `CAP-U18` | Engineering Intelligence: Validation | OMP, outcome/verification owners | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: maturity state` | recommendation -> observed result/difference | real outcome gap | validate recommendation against U01 real terminal result | U07/U17; unblocks U19-U22 |
+| `CAP-U19` | Engineering Intelligence: Prediction | Prediction Evidence/Confidence owners | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: maturity state` | prediction -> reality comparison/confidence update | real outcome/history gap | compare U01 expected and observed result | U18; unblocks U20-U22 |
+| `CAP-U20` | Engineering Intelligence: Adaptation | Decision-to-Outcome-to-Learning, RT2-S6, OMP | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: maturity state` | validated outcome -> changed future recommendation quality | learning history gap | update future recommendation only after U18/U19 closure | U18/U19; unblocks U21/U22 |
+| `CAP-U21` | Self-Improving Engineering | OMP, RT2-S6, Production Maturity | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: maturity state` | adaptive recommendation evidence -> certified repeated improvement | repeated real outcomes; no Runtime self-modification | certify only after multiple validated adaptive cycles | U20; legal stop `REAL_WORLD_LIMIT` if outcomes absent |
+| `CAP-U22` | Engineering Intelligence: Outcome/Confidence Evolution | feedback, confidence, Production Maturity | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: maturity state` | closed outcomes -> durable confidence/evolution history | production evidence | consume U01 outcome and preserve confidence delta | U07/U18/U19; unblocks U20/U21 |
+
+For every unfinished row: `output_produced` is the current owner output described by `Last link`; `output_available=YES` except where U01 binding is missing; `consumer` is the owner after the arrow; `consumer_consumed_output=NO_OR_PARTIAL`; `consumption_verified=NO_OR_PARTIAL`; `behavior_changed=NO_OR_PARTIAL`; `expected_next_output` is the stated post-action output; `next_output_produced=NO`; `runtime_consumption` and `production_consumption` remain incomplete where required; `verification_state`, `certification_state`, `production_promotion_state`, and `terminal_consumer_verified` remain incomplete. `open_intent_gap=TRUE`; `responsibility_failure_class` is the named gap; `responsible_owner` is existing; `implementation_gap`, `integration_gap`, `certification_gap`, `runtime_consumption_gap`, `production_evidence_gap`, `authority_blocker`, `reality_blocker`, and `safety_blocker` apply only as stated. No row creates a new capability identity.
+
+### Open Engineering Intents And Last Responsible Links
+
+| Capability IDs | Open intent | Last responsible link / owner class |
+| --- | --- | --- |
+| `U01` | Prove one safe governed production action and close outcome | controlled window/packet binding; existing execution owners |
+| `U02-U06` | Turn certified movement, eligibility, authority, rollback and recovery knowledge into bounded production behavior | Runtime/Authority/verification consumers named above |
+| `U07-U09` | Turn real outcomes into learning, readiness and bounded autonomy | outcome -> learning -> maturity -> authority/runtime |
+| `U10-U11` | Make every gate and approval explanation operator-consumable and validated | read models -> real operator consumer |
+| `U12-U13` | Mature Runtime capability and time intelligence from canonical/read-only into measured production behavior | RT2/time outputs -> production consumers |
+| `U14-U22` | Close Engineering Intelligence through real recommendation, validation, prediction and adaptation outcomes | observation/recommendation -> real outcomes -> learning/maturity |
+
+### Deterministic Execution Sequence
+
+| Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
+| ---: | --- | --- | --- | --- | --- | --- |
+| `1` | `U01` Controlled Run WIP | protected active root blocker | implement operation-scoped window + packet source/snapshot binding | existing-owner implementation | `UNSAFE_IMPLEMENTATION` | implementation -> tests |
+| `2` | `U01` | consumes position 1 | repository tests and certification | verification | `STOP_SAFE` | certification -> OMP |
+| `3` | `U01` | certified code required | safe deploy and production certification | deployment/certification | `STOP_SAFE` | production truth -> CPS/OMP |
+| `4` | `U01` | fresh deployed evidence | rerun Phase 4A | governed read-only preparation | safety/reality stop | exact packet or legal stop -> OMP |
+| `5` | `U01` | only after admitted packet | exact operational-authority request | authority | `OPERATIONAL_AUTHORITY` | decision -> execution Mission |
+| `6` | `U01` | only after explicit approval | one governed action | guarded Runtime | `STOP_SAFE` | apply/no-apply -> verification |
+| `7` | `U01/U05` | terminal safety | verification/rollback/mandatory final `OPEN` | guarded verification | `STOP_SAFE` | terminal result -> outcome closure |
+| `8` | `U07/U08/U22` | consumes real terminal result | outcome, learning and maturity closure | no-mutation learning | `REAL_WORLD_LIMIT` if no outcome | learning/maturity -> CPS/OMP |
+| `9` | `U04` | needs outcome evidence | action-class Authority Evolution evaluation | engineering review | `ENGINEERING_AUTHORITY` when expansion is actually proposed | authority decision -> OMP |
+| `10` | `U06` | needs certified execution path and real recovery candidate | Recovery Admission Runtime consumption | existing-owner runtime certification | `REAL_WORLD_LIMIT/STOP_SAFE` | recovery result -> A6 |
+| `11` | `U03` | consumes positions 1-10 | Runtime Eligibility production closure | certification | `STOP_SAFE` | execute/stop behavior -> maturity |
+| `12` | `U05` | production evidence required | rollback production/authority closure | governed verification | `OPERATIONAL_AUTHORITY` only for exact action | rollback/no-rollback outcome -> maturity |
+| `13` | `U10/U11` | validate against real path | Explainability and Observability closure | read-only + operator validation | `OWNER_REVALIDATION_REQUIRED` | explanation/visibility -> operator/OMP |
+| `14` | `U02/U09` | downstream of safety/runtime/authority | Movement Protection and bounded Production Autonomy certification | guarded production | authority/safety boundary | bounded outcome -> maturity |
+| `15` | `U12/U13` | consumes real cycle evidence | RT2 and Runtime Time production maturation | measurement/recommendation | `REAL_WORLD_LIMIT` | timing/runtime evidence -> OMP |
+| `16` | `U14-U17` | upstream intelligence stages | close observation/process/time/recommendation consumption | read-only intelligence | evidence stop | recommendation -> validation |
+| `17` | `U18-U22` | downstream of real recommendations/outcomes | validation/prediction/adaptation/self-improving closure | learning/maturity | `REAL_WORLD_LIMIT` | adaptive evidence -> Production Maturity/OMP |
+
+Independent read-only work may run in parallel only when OMP proves it cannot touch active WIP files, Safe Mode, packet/lease, Runtime, production, Authority, CPS sequence or protected evidence. It may not preempt position 1.
+
+### Authority, Reality And Safety Stops
+
+| Stop | Current use |
+| --- | --- |
+| `UNSAFE_IMPLEMENTATION` | Active U01 primary stop; fix existing owners before any authority request. |
+| `ENGINEERING_AUTHORITY` | Future U04 only if actual authority expansion is proposed after evidence. |
+| `OPERATIONAL_AUTHORITY` | Future exact admitted packet/action only. |
+| `REAL_WORLD_LIMIT` | U06/U07/U18-U22 when required real candidates/outcomes do not exist. |
+| `STOP_SAFE` | Any failed/unknown live Runtime, verification, rollback, freshness, identity or safety gate. |
+
+### Owner Revalidation Requirements And Contradictions
+
+| Contradiction ID | Field | Sources / values | Authoritative owner | Safe resolution |
+| --- | --- | --- | --- | --- |
+| `CAP-CON-01` | Movement Protection % | CPS capability surfaces `83` and `78` | Movement Protection + OMP | preserve sources; `UNKNOWN_REVALIDATION_REQUIRED` |
+| `CAP-CON-02` | Runtime Eligibility % | CPS/OMP surfaces `71` and `61` | Runtime Model + OMP | preserve sources; owner revalidation |
+| `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
+| `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
+| `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
+| `CAP-CON-06` | Controlled Run responsibility | Phase 4A report says `INTENT_BLOCKED_BY_ENGINEERING_AUTHORITY`; implementation evidence says operator approval cannot close missing contract | CPS/OMP current state | historical value `SUPERSEDED`; current `EXISTING_OWNER_IMPLEMENTATION_GAP`, intent `INTENT_NOT_CLOSED` |
+| `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
+| `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
+
+No historical content is deleted. Numeric owner revalidation may update only this registry and the responsible canonical owner; it must not change Production Maturity score manually.
 
 ## Stage 2 Knowledge Baseline Closure
 

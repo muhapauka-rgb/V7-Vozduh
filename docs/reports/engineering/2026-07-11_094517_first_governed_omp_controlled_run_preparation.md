@@ -4,6 +4,8 @@
 Mission: `FIRST_GOVERNED_OMP_CONTROLLED_RUN_PHASE_4A`  
 Итог: `UNSAFE_IMPLEMENTATION`
 
+Classification supersession (`2026-07-11`): the historical `INTENT_BLOCKED_BY_ENGINEERING_AUTHORITY` wording in sections 21 and Final Verdict is superseded for live scheduling by CPS `Authoritative Unfinished Capability Closure Registry`. Current classification: `PRIMARY_STOP=UNSAFE_IMPLEMENTATION`, `ENGINEERING_INTENT_CLOSURE=INTENT_NOT_CLOSED`, `RESPONSIBILITY_CLASS=EXISTING_OWNER_IMPLEMENTATION_GAP`, `AUTHORITY_REQUIRED_NOW=NO`. Historical evidence below is preserved unchanged.
+
 ## 1. Summary
 
 Live production preflight выполнен read-only. Реальный one-user Candidate найден, однако Mission остановлена до operational authority: существующие owners не обеспечивают доказуемый operation-scoped controlled window с обязательным возвратом Safe Mode в `OPEN` на каждом terminal path. Packet preview также не имеет полного source binding. Production write, lease, restore barrier, apply и user movement не выполнялись.

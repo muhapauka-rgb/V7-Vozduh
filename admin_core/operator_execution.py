@@ -107,6 +107,8 @@ def parse_ts(value):
     if not value:
         raise PacketError("missing_timestamp")
     text = str(value).replace("Z", "+00:00")
+    if len(text) >= 5 and text[-5] in {"+", "-"} and text[-4:].isdigit():
+        text = text[:-2] + ":" + text[-2:]
     try:
         dt = datetime.fromisoformat(text)
     except ValueError as exc:

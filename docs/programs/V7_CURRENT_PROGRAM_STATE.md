@@ -2,21 +2,21 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-11T21:19:46+0700
-Source: Current-state reconciliation removed 12 stale live-looking CPS/registry values and certified one consistent CAP-U01 state. A fresh one-user candidate `10.7.0.5 awg0 -> vless` passed candidate-scoped readiness and reached marginal TIER_1 Operational Authority. Two permitted pre-write admissions (initial plus one rematerialization) stopped on source/snapshot bundle drift before lease, barrier or apply. Users hash and Safe Mode generation remained unchanged; no Runtime apply, rollback, user movement or Authority expansion occurred.
+State captured: 2026-07-11T23:42:01+0700
+Source: Mission `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` closed operation-scoped false invalidation through one shared semantic builder, bounded stable multi-source read and exact low-level revalidation. Deployment and 22 production read-only preview/admission cycles certified 10 consecutive stable Candidate cycles, zero unexplained mismatches and zero mixed-generation admissions. No packet, lease, barrier, Runtime apply, user movement or Authority expansion occurred.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-11T21:19:46+0700`
+Captured: `2026-07-11T23:42:01+0700`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
 | Field | Current Value |
 | --- | --- |
 | `ACTIVE_PROGRAM` | `OMP` |
-| `CURRENT_MODE` | `CURRENT_STATE_RECONCILED_OPERATIONAL_AUTHORITY_STOP_SAFE` |
+| `CURRENT_MODE` | `OPERATION_SCOPED_BINDING_STABILITY_CERTIFIED` |
 | `ARCHITECTURE_STATE` | `STAGE_1_ACCEPTED_AND_LOCKED` |
 | `KNOWLEDGE_STATE` | `LOCKED_KNOWLEDGE` |
 | `ACTIVE_EXECUTION_OWNER` | `OMP` |
@@ -24,10 +24,19 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `STOP_SAFE` |
-| `CURRENT_ACTIVE_SCOPE` | `PRE_WRITE_SOURCE_SNAPSHOT_BINDING_STABILITY_CLOSURE` |
-| `CURRENT_SAFE_NEXT_ACTION` | `REVALIDATE EXISTING OPERATION-SCOPED SOURCE/SNAPSHOT BINDING OWNER; EXPLAIN AND CLOSE REPEATED MATERIAL BUNDLE DRIFT BEFORE REQUESTING NEW OPERATIONAL AUTHORITY` |
-| `CURRENT_SCOPE_CLASS` | `EXISTING_OWNER_INTEGRATION_VERIFICATION` |
+| `CURRENT_STOP_CONDITION` | `OPERATIONAL_AUTHORITY` |
+| `CURRENT_ACTIVE_SCOPE` | `ONE_FRESH_CURRENT_CLASS_TRANSACTION` |
+| `CURRENT_SAFE_NEXT_ACTION` | `REQUEST NEW EXACT OPERATIONAL AUTHORITY; THEN GENERATE A NEW FRESH PACKET FOR ONE CURRENT-CLASS TRANSACTION; NEVER REUSE OLD PACKETS, HASHES OR AUTHORITY` |
+| `CURRENT_SCOPE_CLASS` | `OPERATIONAL_AUTHORITY_BOUNDARY` |
+| `CURRENT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
+| `CURRENT_RUN_NONCE` | `V7_BINDING_V3_9C7A4E1D6B2F` |
+| `CURRENT_MISSION_STATE` | `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED` |
+| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` |
+| `BINDING_STABILITY` | `PASS; 22 post-deploy read-only cycles, 10 consecutive stable Candidate cycles, zero unexplained mismatches, zero mixed-generation snapshots` |
+| `BINDING_SCHEMA` | `v7.operation-scoped-source-binding.v2; shared by preview, admission and low-level pre-mutation recheck` |
+| `MISSION_IDENTITY_GUARD` | `PASS; Mission ID + run nonce + start timestamp + report header/path + CPS identity fail-closed validation` |
+| `AUTHORITY_REQUIRED_NOW` | `YES; new exact Operational Authority only; this Mission granted none` |
+| `OLD_PACKETS_REUSABLE` | `NO` |
 | `CURRENT_ACTION_CLASS` | `single-user governed candidate failover` |
 | `CURRENT_ACTION_CLASS_STATE` | `GOVERNED_ONLY` |
 | `CURRENT_ACTION_CLASS_IDENTITY` | `EXACT_CURRENT_CLASS_RESOLVED`; historical controlled/hard-failure/operator-driven movements remain supporting execution/safety evidence only and are not current decision authority. |
@@ -35,9 +44,9 @@ This section is the single live volatile current-state surface. Older production
 | `HISTORICAL_CERTIFICATION_MAX_ACTUAL_USERS` | `48; XLARGE_BATCH budget 50 existed, but no exact 50-user real movement was proven` |
 | `HISTORICAL_CERTIFICATION_REUSABLE_LAYERS` | `execution path, bounded blast radius, verification, rollback/no-rollback, closed outcome` |
 | `HISTORICAL_CERTIFICATION_NOT_AUTHORITY` | `decision-context certification, Action-Class Authority and delegated policy remain ungranted` |
-| `ACTION_CLASS_NON_CONSUMPTION_ROOT_CAUSE` | `CURRENT_CLASS_OUTCOME_ABSENT_AND_PRE_WRITE_SOURCE_SNAPSHOT_BINDING_DRIFT; candidate-scoped readiness and marginal TIER_1 authority admission passed, but exact bundle identity changed twice before write` |
+| `ACTION_CLASS_NON_CONSUMPTION_ROOT_CAUSE` | `CURRENT_CLASS_OUTCOME_ABSENT; prior false source/snapshot invalidation is closed and certified, but no current-class production outcome exists` |
 | `ACTION_CLASS_PROMOTION_EVALUATION` | `PROMOTION_BLOCKED_WITH_EXACT_DELTA`; conditional Engineering Authority not consumed because live promotion gates did not pass. |
-| `ACTION_CLASS_EXACT_MISSING_DELTA` | `stabilize or correctly classify operation-scoped material source/snapshot binding for one fresh semantic candidate; then obtain new exact Operational Authority and perform one governed transaction, verification, outcome/learning, maturity evaluation and promotion recheck` |
+| `ACTION_CLASS_EXACT_MISSING_DELTA` | `obtain new exact Operational Authority; generate a new fresh packet; perform one governed transaction, verification, outcome/learning, maturity evaluation and promotion recheck` |
 | `COMPLETE_ROUTING_LIFECYCLE_REPORT` | `docs/reports/engineering/2026-07-11_201307_complete_routing_decision_execution_promotion_lifecycle_closure.md` |
 | `COMPLETE_ROUTING_LIFECYCLE_DEPLOY` | `commit 167fcb96465aaecba6e4611299422dae1f6e1f5c; deploy-z8-14-Updatesystem-167fcb9-20260711T201042; truth FULLY_ALIGNED` |
 | `ROUTING_READINESS_STATE` | `PASS_CANDIDATE_SCOPED; global inventory diagnostics are advisory_only and no longer cross-scope blockers` |
@@ -107,8 +116,8 @@ This section is the single live volatile current-state surface. Older production
 | `CONTROLLED_RUN_EXECUTION_AUTHORIZED` | `NO` |
 | `OMP_CONTROLLED_RUN_ALLOWED` | `READ_ONLY_BINDING_DIAGNOSIS_ONLY; no further admission or mutation under terminal Mission` |
 | `CONTROLLED_RUN_PRIMARY_STOP` | `STOP_SAFE` |
-| `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `EXISTING_OWNER_SOURCE_SNAPSHOT_BINDING_STABILITY` |
-| `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `NO; first close binding stability, then request new exact Operational Authority` |
+| `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `OPERATIONAL_AUTHORITY_FOR_ONE_FRESH_CURRENT_CLASS_TRANSACTION` |
+| `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `YES; request new exact Operational Authority; no packet may be generated before that separate Mission boundary` |
 | `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_NOT_CLOSED; exact current-class outcome remains absent` |
 | `PARENT_ENGINEERING_INTENT` | `INTENT_NOT_CLOSED` |
 | `ACTIVE_WIP_PROTECTED` | `TRUE; COMPLETION_FIRST; reorder forbidden` |
@@ -128,7 +137,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-11T21:19:46+0700`
+Generated At: `2026-07-11T23:42:01+0700`
 
 Runtime Authority: `NONE`
 
@@ -146,7 +155,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `UNFINISHED_CAPABILITIES` | `22` |
 | `OPEN_ENGINEERING_INTENTS` | `22` |
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
-| `ACTIVE_MISSIONS` | `NONE`; Mission `V7_OMP_CURRENT_STATE_RECONCILIATION_AND_U01_OUTCOME_CLOSURE_V1_20260711` is terminal `CURRENT_STATE_RECONCILED_OPERATIONAL_AUTHORITY_STOP_SAFE`; CAP-U01 remains protected active WIP. |
+| `ACTIVE_MISSIONS` | `NONE`; Mission `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` is terminal `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`; CAP-U01 remains protected active WIP at Operational Authority. |
 | `OPEN_CANDIDATE_IDS` | `NONE`; all observed packet previews are evidence only and discarded without Authority. |
 | `PRIOR_BDP_CANDIDATES` | `25` certified instances are terminal historical ladder evidence, not open work |
 | `BACKLOG_STATE` | `34/34 actionable COMPLETE`; no new backlog item |
@@ -154,7 +163,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
 | `OMP_CONTINUATION_POINTER` | consume this registry; preserve active WIP; select the first unresolved sequence position only |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `DIAGNOSE AND CLOSE REPEATED PRE-WRITE SOURCE/SNAPSHOT BUNDLE DRIFT THROUGH THE EXISTING BINDING OWNER; DO NOT RETRY OR REUSE MISSION IDENTITIES` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `REQUEST NEW EXACT OPERATIONAL AUTHORITY FOR ONE FRESH CURRENT-CLASS TRANSACTION; ONLY AFTER AUTHORITY GENERATE A NEW PACKET; NEVER REUSE OLD PACKETS, HASHES OR AUTHORITY` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -163,18 +172,18 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U01-FIRST-GOVERNED-CONTROLLED-RUN` |
-| `active_mission_id` | `NONE; last Mission V7_OMP_CURRENT_STATE_RECONCILIATION_AND_U01_OUTCOME_CLOSURE_V1_20260711 terminal CURRENT_STATE_RECONCILED_OPERATIONAL_AUTHORITY_STOP_SAFE` |
+| `active_mission_id` | `NONE; last Mission V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3 terminal MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED` |
 | `candidate_id` | `NONE_OPEN; latest preview discarded as evidence only` |
 | `protected_by_active_wip` | `TRUE` |
 | `wip_priority_class` | `COMPLETION_FIRST` |
 | `active_wip_reorder_allowed` | `FALSE` |
-| `current_primary_stop` | `STOP_SAFE` |
-| `responsibility_class` | `EXISTING_OWNER_SOURCE_SNAPSHOT_BINDING_STABILITY` |
-| `authority_required_now` | `FALSE; Mission admission Authority is exhausted and cannot cure material identity drift` |
+| `current_primary_stop` | `OPERATIONAL_AUTHORITY` |
+| `responsibility_class` | `EXISTING_OWNER_OPERATIONAL_AUTHORITY_FOR_ONE_FRESH_CURRENT_CLASS_TRANSACTION` |
+| `authority_required_now` | `TRUE; new exact Mission-scoped Operational Authority required; no current Authority exists` |
 | `last_responsible_link` | stable semantic Candidate -> stable operation-scoped source/snapshot bundle -> fresh packet admission |
 | `responsible_owners` | Admin Safe Mode v2; `admin_core/operator_execution.py`; governed execution pipeline; packet/lease identity; autoswitch final gate; rollback, verification, outcome and learning owners |
 | `protected_objects` | Existing owners above; Phase 4A Candidate evidence lineage; current Circuit Breaker certification |
-| `smallest_existing_next_action` | inspect which existing material projection changes across immediate read-only admissions; correct only proven non-material binding instability; test/deploy/certify before any new Authority request |
+| `smallest_existing_next_action` | request new exact Operational Authority; after approval discover a fresh Candidate and generate a new packet through existing owners; do not reuse historical identities |
 | `completion_condition` | exact packet admitted, one governed action reaches verification/rollback, mandatory final `OPEN`, outcome/learning/maturity/CPS/OMP consumption, Parent Intent closed or legal terminal stop |
 
 ### Complete Or Locked Capability Records

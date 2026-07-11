@@ -8,6 +8,12 @@ from admin_core import operator_execution
 
 
 class MissionReportIdentityGuardTest(unittest.TestCase):
+    def test_compact_timezone_offset_is_accepted(self):
+        self.assertEqual(
+            operator_execution.parse_ts("2026-07-11T22:53:21+0700").isoformat(),
+            "2026-07-11T15:53:21+00:00",
+        )
+
     def test_exact_new_identity_passes(self):
         with tempfile.TemporaryDirectory() as tmp:
             report = Path(tmp) / "report.md"

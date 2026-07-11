@@ -13,6 +13,8 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
+Latest consumed closure evidence: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`). Live continuation and the current Operational Authority stop are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
+
 V4 operating questions:
 
 ```text

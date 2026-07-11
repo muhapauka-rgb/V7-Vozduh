@@ -59,6 +59,10 @@ class V7UserSwitchCircuitBreakerTest(unittest.TestCase):
                 "V7_EXECUTION_MUTATION_KIND": "forward",
                 "V7_EXECUTION_OPERATION_ID": "op-test",
                 "V7_EXECUTION_ACTION_CLASS": "USER_SWITCH",
+                "V7_EXECUTION_SELECTED_MOVE_HASH": "move-test",
+                "V7_EXECUTION_SOURCE_BUNDLE_HASH": "source-test",
+                "V7_EXECUTION_SNAPSHOT_BUNDLE_HASH": "snapshot-test",
+                "V7_EXECUTION_MAX_USERS": "1",
             })
             result = subprocess.run([str(SCRIPT), "10.7.0.2", "vless"], env=env, text=True, capture_output=True)
             calls = ip_log.read_text(encoding="utf-8")

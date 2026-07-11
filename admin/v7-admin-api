@@ -16193,11 +16193,36 @@ def admin_safe_mode_enabled():
     return bool(state.get("enabled")) or not bool(state.get("valid"))
 
 
-def set_admin_safe_mode(actor, enabled, reason=""):
+def set_admin_safe_mode(
+    actor,
+    enabled,
+    reason="",
+    *,
+    operation_id="",
+    selected_move_hash="",
+    action_class="",
+    source_bundle_hash="",
+    snapshot_bundle_hash="",
+    max_users=0,
+):
+    if not enabled and not all([
+        str(operation_id or ""),
+        str(selected_move_hash or ""),
+        str(action_class or ""),
+        str(source_bundle_hash or ""),
+        str(snapshot_bundle_hash or ""),
+    ]):
+        raise operator_execution.PacketError("operation_scoped_controlled_window_bindings_required")
     data = operator_execution.build_autonomous_execution_control_state(
         enabled,
         actor=actor or "admin",
         reason=reason,
+        operation_id=operation_id,
+        selected_move_hash=selected_move_hash,
+        action_class=action_class,
+        source_bundle_hash=source_bundle_hash,
+        snapshot_bundle_hash=snapshot_bundle_hash,
+        max_users=max_users,
     )
     SAFE_MODE_FILE.parent.mkdir(parents=True, exist_ok=True)
     if SAFE_MODE_FILE.exists():
@@ -38134,7 +38159,21 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": f"safe_mode_requires_confirm_{expected}"}, status=400)
                 return
             actor = session.get("sub", "admin")
-            state = set_admin_safe_mode(actor, enabled, reason=data.get("reason", ""))
+            try:
+                state = set_admin_safe_mode(
+                    actor,
+                    enabled,
+                    reason=data.get("reason", ""),
+                    operation_id=data.get("operation_id", ""),
+                    selected_move_hash=data.get("selected_move_hash", ""),
+                    action_class=data.get("action_class", ""),
+                    source_bundle_hash=data.get("source_bundle_hash", ""),
+                    snapshot_bundle_hash=data.get("snapshot_bundle_hash", ""),
+                    max_users=data.get("max_users", 0),
+                )
+            except operator_execution.PacketError as exc:
+                self.send_json({"error": str(exc)}, status=400)
+                return
             audit_admin(actor, "admin_safe_mode_set", f"enabled={str(enabled).lower()}", object_type="admin_safe_mode", object_id="global", result="OK", severity="warning" if enabled else "info")
             self.send_json({"action": "safe_mode_set", "safe_mode": state, "overview": overview()})
         elif path == "/api/actions/closure-set":

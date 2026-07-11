@@ -761,6 +761,10 @@ class AutoswitchPlanner:
         expected_generation: str = "",
         rollback_certified: bool = False,
         operation_id: str = "",
+        selected_move_hash: str = "",
+        source_bundle_hash: str = "",
+        snapshot_bundle_hash: str = "",
+        max_users: int = 0,
     ) -> dict[str, Any]:
         return operator_execution.autonomous_execution_control_decision(
             Path(getattr(self.args, "execution_control_file", DEFAULT_EXECUTION_CONTROL_FILE)),
@@ -769,6 +773,10 @@ class AutoswitchPlanner:
             expected_generation=expected_generation,
             rollback_certified=rollback_certified,
             operation_id=operation_id,
+            selected_move_hash=selected_move_hash,
+            source_bundle_hash=source_bundle_hash,
+            snapshot_bundle_hash=snapshot_bundle_hash,
+            max_users=max_users,
         )
 
     def _switch_policy(self) -> dict[str, Any]:
@@ -8662,10 +8670,30 @@ class AutoswitchPlanner:
             action_class=self._execution_action_class((plan.get("selected_moves") or [{}])[0].get("move_type", "")),
             expected_generation=str(getattr(self.args, "approved_breaker_generation", "") or ""),
             operation_id=operation_id,
+            selected_move_hash=selected_hash,
+            source_bundle_hash=str(getattr(self.args, "approved_source_bundle_hash", "") or ""),
+            snapshot_bundle_hash=str(getattr(self.args, "approved_snapshot_bundle_hash", "") or ""),
+            max_users=max(0, to_int(getattr(self.args, "max_selected_moves", 0), 0)),
         )
         plan.setdefault("safety", {})["autonomous_execution_control"] = entry_control
         if not entry_control.get("allowed_forward_mutation"):
             return {"applied": False, "reason": "autonomous_execution_control_stop_safe", "execution_control": entry_control}
+        envelope = (plan.get("safety") or {}).get("atomic_execution_envelope") or {}
+        approved_binding_mismatches = []
+        if entry_control.get("scope") == "operation":
+            if str(getattr(self.args, "approved_selected_move_hash", "") or "") != selected_hash:
+                approved_binding_mismatches.append("selected_move_hash")
+            if str(getattr(self.args, "approved_source_bundle_hash", "") or "") != str(envelope.get("source_bundle_hash") or ""):
+                approved_binding_mismatches.append("source_bundle_hash")
+            if str(getattr(self.args, "approved_snapshot_bundle_hash", "") or "") != str(envelope.get("snapshot_bundle_hash") or ""):
+                approved_binding_mismatches.append("snapshot_bundle_hash")
+        if approved_binding_mismatches:
+            return {
+                "applied": False,
+                "reason": "approved_controlled_window_binding_mismatch",
+                "binding_mismatches": approved_binding_mismatches,
+                "execution_control": entry_control,
+            }
         atomic_validation = self._validate_atomic_execution_envelope(plan)
         plan.setdefault("safety", {})["atomic_execution_envelope_validation"] = atomic_validation
         if not atomic_validation.get("ok"):
@@ -8717,6 +8745,10 @@ class AutoswitchPlanner:
                 action_class=self._execution_action_class(move.get("move_type", "")),
                 expected_generation=str(entry_control.get("generation") or ""),
                 operation_id=operation_id,
+                selected_move_hash=selected_hash,
+                source_bundle_hash=str(getattr(self.args, "approved_source_bundle_hash", "") or ""),
+                snapshot_bundle_hash=str(getattr(self.args, "approved_snapshot_bundle_hash", "") or ""),
+                max_users=max(0, to_int(getattr(self.args, "max_selected_moves", 0), 0)),
             )
             if not item_control.get("allowed_forward_mutation"):
                 return {
@@ -9588,6 +9620,10 @@ class AutoswitchPlanner:
             expected_generation=str(control.get("generation") or ""),
             rollback_certified=mutation_kind == "rollback" and bool(control.get("rollback_only_allowed")),
             operation_id=str(control.get("operation_id") or ""),
+            selected_move_hash=str(control.get("selected_move_hash") or ""),
+            source_bundle_hash=str(control.get("source_bundle_hash") or ""),
+            snapshot_bundle_hash=str(control.get("snapshot_bundle_hash") or ""),
+            max_users=to_int(control.get("max_users"), 0),
         )
         if not live.get("allowed"):
             return subprocess.CompletedProcess(["v7-user-switch", ip, egress], 2, stdout="STOP_SAFE: autonomous execution control denied\n")
@@ -9597,6 +9633,10 @@ class AutoswitchPlanner:
         env["V7_EXECUTION_MUTATION_KIND"] = mutation_kind
         env["V7_EXECUTION_OPERATION_ID"] = str(live.get("operation_id") or "")
         env["V7_EXECUTION_ACTION_CLASS"] = str(live.get("action_class") or "")
+        env["V7_EXECUTION_SELECTED_MOVE_HASH"] = str(live.get("selected_move_hash") or "")
+        env["V7_EXECUTION_SOURCE_BUNDLE_HASH"] = str(live.get("source_bundle_hash") or "")
+        env["V7_EXECUTION_SNAPSHOT_BUNDLE_HASH"] = str(live.get("snapshot_bundle_hash") or "")
+        env["V7_EXECUTION_MAX_USERS"] = str(live.get("max_users") or "")
         env["V7_EXECUTION_ROLLBACK_CERTIFIED"] = "1" if live.get("rollback_only_allowed") else "0"
         return subprocess.run(
             ["v7-user-switch", ip, egress],
@@ -9757,6 +9797,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--approved-selected-move-hash", default="", help="Fail closed unless apply consumes this approved selected move hash.")
     parser.add_argument("--approved-authority-generation", default="", help="Fail closed unless apply consumes this approved authority generation.")
     parser.add_argument("--approved-breaker-generation", default="", help="Fail closed unless apply consumes this autonomous execution control generation.")
+    parser.add_argument("--approved-source-bundle-hash", default="", help="Fail closed unless apply consumes this approved source bundle hash.")
+    parser.add_argument("--approved-snapshot-bundle-hash", default="", help="Fail closed unless apply consumes this approved snapshot bundle hash.")
     parser.add_argument("--execution-control-file", default=str(DEFAULT_EXECUTION_CONTROL_FILE))
     parser.add_argument("--service", default="", help="Score candidates for one important service.")
     parser.add_argument("--route-class", default="", help="Override derived route class.")

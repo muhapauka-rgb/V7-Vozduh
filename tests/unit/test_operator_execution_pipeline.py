@@ -62,6 +62,11 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
 
     def governed_canary_surface(self, *, target="awg0", recommendation_hash="rec-canary-1", source_hash="source-canary-1"):
         return {
+            "controlled_execution_source_hashes": {
+                "users_registry": "users-canary-hash",
+                "egress_registry": "egress-canary-hash",
+            },
+            "controlled_execution_snapshot_bundle_hash": "snapshot-canary-hash",
             "users_by_ip": {
                 "10.7.0.5": {
                     "user": "10.7.0.5",
@@ -1368,6 +1373,12 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
                     rollback_item["forward_target"],
                     "--approved-authority-generation",
                     preview["authority_generation"],
+                    "--approved-source-bundle-hash",
+                    preview["source_bundle_hash"],
+                    "--approved-source-hashes-hash",
+                    preview["source_bundle_hash"],
+                    "--approved-snapshot-bundle-hash",
+                    preview["snapshot_bundle_hash"],
                 ],
                 capture_output=True,
                 text=True,

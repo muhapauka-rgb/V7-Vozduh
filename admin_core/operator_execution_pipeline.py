@@ -1827,6 +1827,30 @@ def autonomous_dry_run_model(
         "read_only": True,
     }
     canary_ready = bool(candidates) and not bool(gates.get("hard_stop"))
+    source_hashes = (
+        decision_surface.get("controlled_execution_source_hashes")
+        if isinstance(decision_surface.get("controlled_execution_source_hashes"), dict)
+        else {}
+    )
+    source_hashes = {str(key): str(value) for key, value in source_hashes.items() if str(key) and str(value)}
+    snapshot_bundle_hash = str(decision_surface.get("controlled_execution_snapshot_bundle_hash") or "")
+    source_bundle_hash = operator_execution.sha256_json(source_hashes) if source_hashes else ""
+    envelope_payload = {
+        "source_bundle_hash": source_bundle_hash,
+        "snapshot_bundle_hash": snapshot_bundle_hash,
+        "selected_move_hash": stable_hash({"candidates": candidates}) if candidates else "",
+    }
+    envelope_hash = stable_hash(envelope_payload) if source_hashes and snapshot_bundle_hash else ""
+    semantic_candidates = [
+        {
+            "user": row.get("user", ""),
+            "from": row.get("current_channel", ""),
+            "to": row.get("recommended_channel", ""),
+        }
+        for row in candidates
+        if isinstance(row, dict)
+    ]
+    planner_generation_id = "drygen_" + stable_hash({"candidates": semantic_candidates})[:24] if candidates else ""
     return {
         "schema_version": "v7.autonomous-apply-dry-run-simulation.v1",
         "autonomous_dry_run": True,
@@ -1853,6 +1877,18 @@ def autonomous_dry_run_model(
             "readiness": "READY_FOR_REVIEW" if candidates and not gates.get("hard_stop") else "BLOCKED",
         },
         "safety_gates": gates,
+        "safety": {
+            "generation": {"planner_generation_id": planner_generation_id},
+            "atomic_execution_envelope": {
+                "schema_version": "v7.atomic-execution-envelope.v1",
+                "envelope_id": "aee_" + envelope_hash[:24] if envelope_hash else "",
+                "envelope_hash": envelope_hash,
+                "source_bundle_hash": source_bundle_hash,
+                "snapshot_bundle_hash": snapshot_bundle_hash,
+                "source_bundle": {"source_hashes": source_hashes, "hash": source_bundle_hash},
+                "snapshot_bundle": {"hash": snapshot_bundle_hash},
+            },
+        },
         "autonomy_specific_evidence": autonomy_specific_evidence,
         "simulated_apply": apply_preview,
         "simulated_rollback": rollback_preview,
@@ -2052,10 +2088,22 @@ def _preview_packet_for_candidate(
     envelope = execution_envelope if isinstance(execution_envelope, dict) else {}
     source_bundle = envelope.get("source_bundle") if isinstance(envelope.get("source_bundle"), dict) else {}
     snapshot_bundle = envelope.get("snapshot_bundle") if isinstance(envelope.get("snapshot_bundle"), dict) else {}
+    source_hashes = {
+        str(key): str(value)
+        for key, value in (source_bundle.get("source_hashes") or {}).items()
+        if str(key) and str(value)
+    }
+    snapshot_bundle_hash = str(snapshot_bundle.get("hash") or envelope.get("snapshot_bundle_hash") or "")
+    binding_blockers = []
+    if not source_hashes:
+        binding_blockers.append("packet_source_hashes_missing")
+    if not snapshot_bundle_hash:
+        binding_blockers.append("packet_snapshot_bundle_hash_missing")
     return {
         "schema_version": "v7.governed-canary.packet-preview.v1",
         "owner": CANONICAL_PACKET_TOOL,
-        "status": "PACKET_PREVIEW_READY",
+        "status": "BLOCKED" if binding_blockers else "PACKET_PREVIEW_READY",
+        "blocker": ",".join(binding_blockers),
         "packet_id": packet_id,
         "operation_id": operation_id,
         "decision_id": decision_id,
@@ -2077,8 +2125,9 @@ def _preview_packet_for_candidate(
         "selected_move_hash": selected_move_hash,
         "allowed_users": [candidate.get("user", "")],
         "allowed_targets": [candidate.get("recommended_channel", "")],
-        "source_hashes": source_bundle.get("source_hashes") or {},
-        "snapshot_bundle_hash": snapshot_bundle.get("hash", ""),
+        "source_hashes": source_hashes,
+        "source_bundle_hash": operator_execution.sha256_json(source_hashes) if source_hashes else "",
+        "snapshot_bundle_hash": snapshot_bundle_hash,
         "approved_plan_lock_required": True,
         "approved_plan_lock_created_now": False,
         "wrong_user_protection": "allowed_users_bound_to_packet",
@@ -2101,6 +2150,7 @@ def _preview_packet_for_candidate(
         "packet_created_now": False,
         "runtime_mutation_performed": False,
         "execution_allowed_now": False,
+        "binding_complete": not binding_blockers,
     }
 
 

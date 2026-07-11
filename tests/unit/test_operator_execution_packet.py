@@ -23,6 +23,7 @@ from admin_core.operator_execution import (
     execution_lease_state,
     extract_packet_preview,
     finish_execution_lease,
+    finalize_autonomous_execution_control_window,
     material_state_from_packet,
     packet_from_preview,
     packet_identity,
@@ -167,6 +168,169 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 write_json(path, payload)
                 decision = autonomous_execution_control_decision(path, now=now)
                 self.assertFalse(decision["allowed"])
+
+    def test_operation_scoped_controlled_window_binds_exact_identity_and_one_user(self):
+        now = datetime.now(timezone.utc)
+        bindings = {
+            "operation_id": "op-bound",
+            "selected_move_hash": "move-bound",
+            "action_class": "USER_SWITCH",
+            "source_bundle_hash": "source-bound",
+            "snapshot_bundle_hash": "snapshot-bound",
+            "max_users": 1,
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "safe-mode.json"
+            closed = build_autonomous_execution_control_state(
+                False, actor="owner", reason="one operation", now=now, **bindings
+            )
+            write_json(path, closed)
+            allowed = autonomous_execution_control_decision(
+                path, expected_generation=closed["generation"], now=now, **bindings
+            )
+            mismatches = {}
+            for field, changed in {
+                "operation_id": "op-other",
+                "selected_move_hash": "move-other",
+                "action_class": "RECOVERY_ADMISSION",
+                "source_bundle_hash": "source-other",
+                "snapshot_bundle_hash": "snapshot-other",
+                "max_users": 2,
+            }.items():
+                candidate = dict(bindings)
+                candidate[field] = changed
+                mismatches[field] = autonomous_execution_control_decision(
+                    path, expected_generation=closed["generation"], now=now, **candidate
+                )
+
+        self.assertEqual(closed["scope"], "operation")
+        self.assertTrue(allowed["allowed_forward_mutation"])
+        for field, decision in mismatches.items():
+            self.assertFalse(decision["allowed"], field)
+            self.assertIn(f"execution_control_{field}_mismatch", decision["blockers"])
+
+    def test_controlled_window_finalization_is_expiry_safe_and_idempotent(self):
+        now = datetime.now(timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "safe-mode.json"
+            closed = build_autonomous_execution_control_state(
+                False,
+                actor="owner",
+                reason="expiring operation",
+                now=now,
+                operation_id="op-finalize",
+                selected_move_hash="move-finalize",
+                action_class="USER_SWITCH",
+                source_bundle_hash="source-finalize",
+                snapshot_bundle_hash="snapshot-finalize",
+                max_users=1,
+            )
+            write_json(path, closed)
+            first = finalize_autonomous_execution_control_window(
+                path,
+                expected_generation=closed["generation"],
+                operation_id="op-finalize",
+                now=now + timedelta(seconds=901),
+            )
+            second = finalize_autonomous_execution_control_window(
+                path,
+                expected_generation=closed["generation"],
+                operation_id="op-finalize",
+                now=now + timedelta(seconds=902),
+            )
+
+        self.assertTrue(first["final_open"])
+        self.assertEqual(first["after"]["state"], "OPEN")
+        self.assertTrue(second["final_open"])
+        self.assertTrue(second["idempotent"])
+
+    def test_every_controlled_window_terminal_class_uses_same_final_open_owner(self):
+        terminal_reasons = [
+            "success",
+            "deny_before_apply",
+            "stale_packet",
+            "generation_mismatch",
+            "source_hash_mismatch",
+            "snapshot_bundle_mismatch",
+            "timeout",
+            "verification_failure",
+            "rollback_success",
+            "rollback_failure",
+            "partial_failure",
+            "subprocess_failure",
+            "internal_exception",
+            "operator_cancellation",
+            "expired_controlled_window",
+            "process_restart_recovery",
+        ]
+        now = datetime.now(timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "safe-mode.json"
+            for reason in terminal_reasons:
+                closed = build_autonomous_execution_control_state(
+                    False,
+                    actor="owner",
+                    reason=reason,
+                    now=now,
+                    operation_id=f"op-{reason}",
+                    selected_move_hash=f"move-{reason}",
+                    action_class="USER_SWITCH",
+                    source_bundle_hash=f"source-{reason}",
+                    snapshot_bundle_hash=f"snapshot-{reason}",
+                    max_users=1,
+                )
+                write_json(path, closed)
+                result = finalize_autonomous_execution_control_window(
+                    path,
+                    expected_generation=closed["generation"],
+                    operation_id=f"op-{reason}",
+                    reason=reason,
+                    now=now + (timedelta(seconds=901) if reason == "expired_controlled_window" else timedelta()),
+                )
+                self.assertTrue(result["final_open"], reason)
+                self.assertEqual(result["after"]["state"], "OPEN", reason)
+
+    def test_restart_recovery_forces_malformed_state_to_valid_open(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "safe-mode.json"
+            path.write_text('{"schema_version":"broken","state":"CLOSED"}', encoding="utf-8")
+            result = finalize_autonomous_execution_control_window(
+                path,
+                actor="restart-recovery",
+                reason="malformed_state_fail_closed_recovery",
+                force_fail_closed_open=True,
+            )
+            recovered = autonomous_execution_control_state(path)
+
+        self.assertTrue(result["forced_fail_closed_recovery"])
+        self.assertTrue(result["final_open"])
+        self.assertTrue(recovered["valid"])
+        self.assertEqual(recovered["state"], "OPEN")
+
+    def test_strict_packet_requires_source_snapshot_and_binds_identity(self):
+        preview = self.preview_packet()
+        with self.assertRaisesRegex(PacketError, "source_hashes_missing"):
+            packet_from_preview(
+                preview,
+                approval_author="operator-a",
+                approval_reviewer="operator-b",
+                breaker_generation="aec_bound",
+                require_execution_binding=True,
+            )
+        preview["source_hashes"] = {"users_registry": "users", "egress_registry": "egress"}
+        preview["snapshot_bundle_hash"] = "snapshot"
+        packet = packet_from_preview(
+            preview,
+            approval_author="operator-a",
+            approval_reviewer="operator-b",
+            breaker_generation="aec_bound",
+            require_execution_binding=True,
+        )
+        identity = packet_identity(packet)
+        self.assertEqual(identity["source_bundle_hash"], sha256_json(preview["source_hashes"]))
+        self.assertEqual(identity["source_hashes_hash"], sha256_json(preview["source_hashes"]))
+        self.assertEqual(identity["snapshot_bundle_hash"], "snapshot")
+        self.assertEqual(identity["max_users"], 1)
 
     def test_breaker_generation_is_bound_to_packet_and_invalidates_lease(self):
         packet = packet_from_plan(

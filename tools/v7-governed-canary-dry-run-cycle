@@ -531,6 +531,11 @@ def approved_identity_from_args(args: argparse.Namespace) -> dict[str, str]:
         "source": str(args.approved_source or ""),
         "target": str(args.approved_target or ""),
         "authority_generation": str(args.approved_authority_generation or ""),
+        "breaker_generation": str(getattr(args, "approved_breaker_generation", "") or ""),
+        "source_bundle_hash": str(getattr(args, "approved_source_bundle_hash", "") or ""),
+        "source_hashes_hash": str(getattr(args, "approved_source_hashes_hash", "") or ""),
+        "snapshot_bundle_hash": str(getattr(args, "approved_snapshot_bundle_hash", "") or ""),
+        "max_users": str(getattr(args, "max_users", 0) or ""),
     }
 
 
@@ -691,6 +696,8 @@ def run_autoswitch_apply(
     selected_move_hash: str = "",
     authority_generation: str = "",
     breaker_generation: str = "",
+    source_bundle_hash: str = "",
+    snapshot_bundle_hash: str = "",
     execution_control_file: str = "",
     emergency_failover_autonomy: bool = False,
 ) -> dict[str, Any]:
@@ -730,6 +737,10 @@ def run_autoswitch_apply(
         command.extend(["--approved-authority-generation", authority_generation])
     if breaker_generation:
         command.extend(["--approved-breaker-generation", breaker_generation])
+    if source_bundle_hash:
+        command.extend(["--approved-source-bundle-hash", source_bundle_hash])
+    if snapshot_bundle_hash:
+        command.extend(["--approved-snapshot-bundle-hash", snapshot_bundle_hash])
     if execution_control_file:
         command.extend(["--execution-control-file", execution_control_file])
     if emergency_failover_autonomy:
@@ -1278,7 +1289,7 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
     }
 
 
-def execute_governed_transaction_with_guards(
+def _execute_governed_transaction_with_guards_inner(
     args: argparse.Namespace,
     *,
     state_dir: Path,
@@ -1295,14 +1306,9 @@ def execute_governed_transaction_with_guards(
         return transaction_stop("transaction_max_users_must_be_one")
 
     control_file = Path(getattr(args, "execution_control_file", operator_execution.DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE))
-    preflight_control = operator_execution.autonomous_execution_control_decision(
-        control_file,
-        mutation_kind="forward",
-        action_class="USER_SWITCH",
-        operation_id="governed-transaction",
-    )
-    if not preflight_control.get("allowed_forward_mutation"):
-        return transaction_stop("autonomous_execution_control_denied_pre_lease", execution_control=preflight_control)
+    preflight_state = operator_execution.autonomous_execution_control_state(control_file)
+    if not preflight_state.get("valid") or preflight_state.get("state") != "OPEN":
+        return transaction_stop("autonomous_execution_control_not_open_at_start", execution_control=preflight_state)
 
     existing_lease = operator_execution.load_execution_lease(lease_file)
     existing_state = operator_execution.execution_lease_state(existing_lease)
@@ -1320,6 +1326,17 @@ def execute_governed_transaction_with_guards(
         egress=egress,
         runtime_state=runtime_state,
         decision_records=records,
+    )
+    controlled_source_hashes = {
+        "users_registry": operator_execution.sha256_file(state_dir / "users.registry"),
+        "egress_registry": operator_execution.sha256_file(state_dir / "egress.registry"),
+        "runtime_state": operator_execution.sha256_file(state_dir / "v7-state.json"),
+        "candidate_suitability": operator_execution.sha256_file(snapshot_root / "candidate-suitability-summary.json"),
+    }
+    controlled_source_hashes = {key: value for key, value in controlled_source_hashes.items() if value}
+    surface["controlled_execution_source_hashes"] = controlled_source_hashes
+    surface["controlled_execution_snapshot_bundle_hash"] = (
+        operator_execution.sha256_json(controlled_source_hashes) if controlled_source_hashes else ""
     )
     shadow_history = read_jsonl_family(state_dir / "shadow-autonomy-decisions.jsonl")
     inventory = autonomy_trust_acceleration.build_acceleration_inventory(
@@ -1362,6 +1379,42 @@ def execute_governed_transaction_with_guards(
     if cycle.get("stop_reason") != "AUTHORITY_BOUNDARY" or packet_preview.get("status") != "PACKET_PREVIEW_READY":
         return transaction_stop("packet_not_ready", cycle=cycle, planner_observe=planner_observe)
 
+    preview_identity = operator_execution.preview_packet_identity(packet_preview)
+    approved_identity = approved_identity_from_args(args)
+    preview_binding = operator_execution.approved_packet_binding_status(preview_identity, approved_identity)
+    if not preview_binding.get("ok"):
+        return transaction_stop("approved_packet_binding_failed", cycle=cycle, approved_packet_binding=preview_binding)
+
+    source_hashes = packet_preview.get("source_hashes") if isinstance(packet_preview.get("source_hashes"), dict) else {}
+    source_bundle_hash = operator_execution.sha256_json(source_hashes) if source_hashes else ""
+    controlled_window = operator_execution.build_autonomous_execution_control_state(
+        False,
+        actor=str(args.approval_author or "operator"),
+        reason="governed_one_operation_window",
+        operation_id=str(packet_preview.get("operation_id") or ""),
+        selected_move_hash=str(packet_preview.get("selected_move_hash") or ""),
+        action_class="USER_SWITCH",
+        source_bundle_hash=source_bundle_hash,
+        snapshot_bundle_hash=str(packet_preview.get("snapshot_bundle_hash") or ""),
+        max_users=1,
+    )
+    operator_execution.write_json_atomic(control_file, controlled_window)
+    args._controlled_window_generation = str(controlled_window.get("generation") or "")
+    args._controlled_window_operation_id = str(controlled_window.get("operation_id") or "")
+    preflight_control = operator_execution.autonomous_execution_control_decision(
+        control_file,
+        mutation_kind="forward",
+        action_class="USER_SWITCH",
+        expected_generation=str(controlled_window.get("generation") or ""),
+        operation_id=str(packet_preview.get("operation_id") or ""),
+        selected_move_hash=str(packet_preview.get("selected_move_hash") or ""),
+        source_bundle_hash=source_bundle_hash,
+        snapshot_bundle_hash=str(packet_preview.get("snapshot_bundle_hash") or ""),
+        max_users=1,
+    )
+    if not preflight_control.get("allowed_forward_mutation"):
+        return transaction_stop("autonomous_execution_control_denied_pre_lease", execution_control=preflight_control)
+
     try:
         packet = operator_execution.packet_from_preview(
             packet_preview,
@@ -1369,9 +1422,19 @@ def execute_governed_transaction_with_guards(
             approval_reviewer=args.approval_reviewer,
             ttl_seconds=args.ttl_seconds,
             breaker_generation=str(preflight_control.get("generation") or ""),
+            require_execution_binding=True,
         )
     except Exception as exc:
         return transaction_stop("packet_materialization_failed", cycle=cycle, error=str(exc))
+
+    approved_materialized_identity = dict(approved_identity)
+    approved_materialized_identity["breaker_generation"] = str(preflight_control.get("generation") or "")
+    packet_binding = operator_execution.approved_packet_binding_status(
+        operator_execution.packet_identity(packet),
+        approved_materialized_identity,
+    )
+    if not packet_binding.get("ok"):
+        return transaction_stop("approved_packet_materialization_changed_identity", cycle=cycle, approved_packet_binding=packet_binding)
 
     constraints = transaction_packet_constraints_ok(packet, cycle, int(args.max_users))
     if not constraints.get("ok"):
@@ -1442,6 +1505,10 @@ def execute_governed_transaction_with_guards(
         action_class="USER_SWITCH",
         expected_generation=str(packet_identity.get("breaker_generation") or ""),
         operation_id=str(packet_identity.get("operation_id") or ""),
+        selected_move_hash=str(packet_identity.get("selected_move_hash") or ""),
+        source_bundle_hash=str(packet_identity.get("source_bundle_hash") or ""),
+        snapshot_bundle_hash=str(packet_identity.get("snapshot_bundle_hash") or ""),
+        max_users=1,
     )
     if not pre_apply_control.get("allowed_forward_mutation"):
         terminal = operator_execution.finish_execution_lease(
@@ -1465,6 +1532,8 @@ def execute_governed_transaction_with_guards(
         selected_move_hash=str(packet_identity.get("selected_move_hash") or ""),
         authority_generation=str(packet_identity.get("authority_generation") or ""),
         breaker_generation=str(packet_identity.get("breaker_generation") or ""),
+        source_bundle_hash=str(packet_identity.get("source_bundle_hash") or ""),
+        snapshot_bundle_hash=str(packet_identity.get("snapshot_bundle_hash") or ""),
         execution_control_file=str(control_file),
     )
     apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}
@@ -1529,6 +1598,86 @@ def execute_governed_transaction_with_guards(
         "autoswitch_apply": apply_run,
         "lease_terminalization": lease_terminalization,
     }
+
+
+def execute_governed_transaction_with_guards(
+    args: argparse.Namespace,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    snapshot_root: Path,
+    audit_dir: Path,
+    lease_file: Path,
+    required_a4_candidate_keys: set[tuple[str, str]] | None = None,
+    blocked_transaction_identities: set[tuple[str, str, str, str]] | None = None,
+) -> dict[str, Any]:
+    control_file = Path(getattr(args, "execution_control_file", operator_execution.DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE))
+    result: dict[str, Any] = {}
+    try:
+        args._controlled_window_generation = ""
+        args._controlled_window_operation_id = ""
+        initial_state = operator_execution.autonomous_execution_control_state(control_file)
+        if not initial_state.get("valid") or initial_state.get("state") != "OPEN":
+            recovery = operator_execution.finalize_autonomous_execution_control_window(
+                control_file,
+                actor="governed-execution-recovery",
+                reason="stale_or_invalid_controlled_window_recovered_before_fresh_run",
+                force_fail_closed_open=True,
+            )
+            result = transaction_stop(
+                "stale_or_invalid_controlled_window_recovered_open",
+                controlled_window_recovery=recovery,
+            )
+            return result
+        result = _execute_governed_transaction_with_guards_inner(
+            args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+            required_a4_candidate_keys=required_a4_candidate_keys,
+            blocked_transaction_identities=blocked_transaction_identities,
+        )
+        return result
+    except (Exception, KeyboardInterrupt) as exc:
+        result = transaction_stop("governed_transaction_internal_exception", error=f"{type(exc).__name__}:{exc}")
+        return result
+    finally:
+        state = operator_execution.autonomous_execution_control_state(control_file)
+        owned_generation = str(getattr(args, "_controlled_window_generation", "") or "")
+        owned_operation_id = str(getattr(args, "_controlled_window_operation_id", "") or "")
+        if owned_generation and owned_operation_id:
+            finalization = operator_execution.finalize_autonomous_execution_control_window(
+                control_file,
+                expected_generation=owned_generation,
+                operation_id=owned_operation_id,
+                actor="governed-execution-finalizer",
+                reason=str(result.get("stop_reason") or result.get("final_verdict") or "governed_transaction_terminal"),
+            )
+            result["controlled_window_finalization"] = finalization
+            result["safe_mode_final_state"] = str((finalization.get("after") or {}).get("state") or "UNKNOWN")
+            if not finalization.get("final_open"):
+                recovery = operator_execution.finalize_autonomous_execution_control_window(
+                    control_file,
+                    actor="governed-execution-recovery",
+                    reason="controlled_window_identity_changed_force_open",
+                    force_fail_closed_open=True,
+                )
+                result["controlled_window_recovery"] = recovery
+                result["safe_mode_final_state"] = str((recovery.get("after") or {}).get("state") or "UNKNOWN")
+                if not recovery.get("final_open"):
+                    result["transaction_status"] = "STOP_SAFE"
+                    result["final_verdict"] = "UNSAFE_IMPLEMENTATION"
+                    result["stop_reason"] = "controlled_window_final_open_failed"
+        else:
+            result["controlled_window_finalization"] = {
+                "ok": bool(state.get("valid") and state.get("state") == "OPEN"),
+                "idempotent": True,
+                "final_open": bool(state.get("valid") and state.get("state") == "OPEN"),
+                "after": state,
+            }
+            result["safe_mode_final_state"] = str(state.get("state") or "UNKNOWN")
 
 
 def current_a4_missing_candidate_keys(snapshot_root: Path, records: list[dict[str, Any]]) -> set[tuple[str, str]]:
@@ -1729,6 +1878,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--approved-source", default="")
     parser.add_argument("--approved-target", default="")
     parser.add_argument("--approved-authority-generation", default="")
+    parser.add_argument("--approved-breaker-generation", default="")
+    parser.add_argument("--approved-source-bundle-hash", default="")
+    parser.add_argument("--approved-source-hashes-hash", default="")
+    parser.add_argument("--approved-snapshot-bundle-hash", default="")
     parser.add_argument("--execution-control-file", default=str(operator_execution.DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE))
     parser.add_argument("--pretty", action="store_true")
     return parser

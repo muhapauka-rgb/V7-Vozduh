@@ -1,6 +1,7 @@
 import importlib.machinery
 import importlib.util
 import json
+import hashlib
 import argparse
 import tempfile
 import unittest
@@ -187,21 +188,23 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(result["reason"], "active_execution_lease_preserves_restore_barrier")
         self.assertEqual(current["operation_id"], "govexec-active")
 
-    def transaction_args(self, root: Path):
-        now = datetime.now(timezone.utc)
+    def transaction_args(self, root: Path, *, open_control: bool = False):
         control_file = root / "safe-mode.json"
+        now = datetime.now(timezone.utc)
         control_file.write_text(json.dumps({
             "schema_version": "v7.autonomous-execution-control.v2",
-            "enabled": False,
-            "state": "CLOSED",
+            "enabled": open_control,
+            "state": "OPEN" if open_control else "CLOSED",
             "scope": "global",
             "generation": "aec_unit_test",
             "updated_at": now.isoformat(),
-            "valid_until": (now + timedelta(seconds=900)).isoformat(),
+            "valid_until": "" if open_control else (now + timedelta(seconds=900)).isoformat(),
             "updated_by": "unit-test",
-            "reason": "unit-test-window",
+            "reason": "unit-test-open" if open_control else "unit-test-window",
             "rollback_policy": "CERTIFIED_ROLLBACK_ONLY",
         }), encoding="utf-8")
+        source_hashes = {"users_registry": "users-hash", "egress_registry": "egress-hash"}
+        source_hash = hashlib.sha256(json.dumps(source_hashes, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
         return argparse.Namespace(
             state_dir=str(root / "state"),
             event_dir=str(root / "events"),
@@ -222,14 +225,18 @@ class GovernedCanaryCliTest(unittest.TestCase):
             approval_reviewer="operator-b",
             ttl_seconds=600,
             pre_planner_refresh_command="v7-intelligence-snapshot-refresh",
-            approved_packet_id="",
-            approved_decision_id="",
-            approved_operation_id="",
-            approved_selected_move_hash="",
-            approved_user="",
-            approved_source="",
-            approved_target="",
-            approved_authority_generation="",
+            approved_packet_id="pkt_preview_test",
+            approved_decision_id="decision_commit_test",
+            approved_operation_id="govdry_test",
+            approved_selected_move_hash="hash_test",
+            approved_user="10.7.0.5",
+            approved_source="vless",
+            approved_target="awg3",
+            approved_authority_generation="authgen_test",
+            approved_breaker_generation="",
+            approved_source_bundle_hash=source_hash,
+            approved_source_hashes_hash=source_hash,
+            approved_snapshot_bundle_hash="snapshot-bundle-test",
             execution_control_file=str(control_file),
             pretty=False,
         )
@@ -246,6 +253,8 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "selected_move_count": 1,
             "allowed_users": [user],
             "allowed_targets": [target],
+            "source_hashes": {"users_registry": "users-hash", "egress_registry": "egress-hash"},
+            "snapshot_bundle_hash": "snapshot-bundle-test",
             "rollback_manifest_preview": {
                 "rollback_manifest_id": "rb_preview_test",
                 "items": [
@@ -366,7 +375,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.make_transaction_state(root)
-            args = self.transaction_args(root)
+            args = self.transaction_args(root, open_control=True)
             original_cycle = module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle
             original_apply = module.run_autoswitch_apply
             try:
@@ -398,6 +407,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     audit_dir=root / "audit",
                     lease_file=root / "state" / "operator-execution-lease.json",
                 )
+                final_control = module.operator_execution.autonomous_execution_control_state(args.execution_control_file)
                 lease = json.loads((root / "state" / "operator-execution-lease.json").read_text(encoding="utf-8"))
                 execution_rows = [
                     json.loads(line)
@@ -426,6 +436,9 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(result["users_moved"], 1)
         self.assertFalse(result["runtime_automation_enabled"])
         self.assertFalse(result["authority_expanded"])
+        self.assertEqual(result["safe_mode_final_state"], "OPEN")
+        self.assertTrue(result["controlled_window_finalization"]["final_open"])
+        self.assertEqual(final_control["state"], "OPEN")
         self.assertEqual(lease["status"], "EXECUTION_FINISHED")
         self.assertTrue(lease["apply_executed"])
         self.assertEqual(lease["users_moved"], 1)
@@ -507,7 +520,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.make_transaction_state(root)
-            args = self.transaction_args(root)
+            args = self.transaction_args(root, open_control=True)
             args.confirm_governed_transaction = ""
             result = module.execute_governed_transaction(
                 args,
@@ -527,7 +540,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.make_transaction_state(root)
-            args = self.transaction_args(root)
+            args = self.transaction_args(root, open_control=True)
             args.execute_l3_production_validation = True
             args.confirm_l3_production_validation = ""
             result = module.execute_l3_production_validation(
@@ -548,7 +561,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.make_transaction_state(root)
-            args = self.transaction_args(root)
+            args = self.transaction_args(root, open_control=True)
             args.execute_l3_production_validation = True
             args.confirm_l3_production_validation = "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED"
             state = module.operator_execution.build_autonomous_execution_control_state(True, actor="owner", reason="incident")
@@ -1256,7 +1269,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.make_transaction_state(root)
-            args = self.transaction_args(root)
+            args = self.transaction_args(root, open_control=True)
             original_surface = module.operator_decision_surface.build_operator_decision_surface
             original_snapshot = module.read_snapshot_family
             original_cycle = module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle
@@ -1308,7 +1321,8 @@ class GovernedCanaryCliTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.make_transaction_state(root)
-            args = self.transaction_args(root)
+            args = self.transaction_args(root, open_control=True)
+            args.approved_user = "10.7.0.8"
             original_surface = module.operator_decision_surface.build_operator_decision_surface
             original_snapshot = module.read_snapshot_family
             original_cycle = module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle
@@ -1388,7 +1402,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.make_transaction_state(root)
-            args = self.transaction_args(root)
+            args = self.transaction_args(root, open_control=True)
             original_cycle = module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle
             original_apply = module.run_autoswitch_apply
             try:
@@ -1426,7 +1440,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.make_transaction_state(root)
-            args = self.transaction_args(root)
+            args = self.transaction_args(root, open_control=True)
             original_cycle = module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle
             original_apply = module.run_autoswitch_apply
             try:

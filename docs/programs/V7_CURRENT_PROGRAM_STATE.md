@@ -2,21 +2,21 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-11T10:07:04+0700
-Source: OMP-wide capability closure reconciliation materialized the single authoritative unfinished-capability registry. The active Controlled Run remains protected and first. Its primary stop is `UNSAFE_IMPLEMENTATION`, responsibility is an existing-owner implementation gap, and Authority is not required now. No production mutation occurred; Safe Mode v2 remains `OPEN`.
+State captured: 2026-07-11T10:48:25+0700
+Source: operation-scoped controlled-window and packet source/snapshot binding implementation was certified read-only through existing owners. The active Controlled Run remains protected and first. Its current stop is `CONTROLLED_WINDOW_NOT_DEPLOYED_OR_PRODUCTION_CERTIFIED`; Authority is not required now. No production mutation occurred; Safe Mode v2 remains `OPEN`.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-11T10:07:04+0700`
+Captured: `2026-07-11T10:48:25+0700`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
 | Field | Current Value |
 | --- | --- |
 | `ACTIVE_PROGRAM` | `OMP` |
-| `CURRENT_MODE` | `CONTROLLED_RUN_PREPARATION_STOPPED_UNSAFE_IMPLEMENTATION` |
+| `CURRENT_MODE` | `CONTROLLED_WINDOW_IMPLEMENTATION_CERTIFIED_READ_ONLY` |
 | `ARCHITECTURE_STATE` | `STAGE_1_ACCEPTED_AND_LOCKED` |
 | `KNOWLEDGE_STATE` | `LOCKED_KNOWLEDGE` |
 | `ACTIVE_EXECUTION_OWNER` | `OMP` |
@@ -24,12 +24,12 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `UNSAFE_IMPLEMENTATION_CONTROL_WINDOW_NOT_CLOSED` |
+| `CURRENT_STOP_CONDITION` | `CONTROLLED_WINDOW_NOT_DEPLOYED_OR_PRODUCTION_CERTIFIED` |
 | `CURRENT_ACTIVE_SCOPE` | `FIRST_GOVERNED_OMP_CONTROLLED_RUN_PHASE_4A_PREPARATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `IMPLEMENT_AND_CERTIFY_OPERATION_SCOPED_CONTROLLED_WINDOW_AND_PACKET_SOURCE_BINDING` |
-| `CURRENT_SCOPE_CLASS` | `EXISTING_OWNER_IMPLEMENTATION_GAP` |
+| `CURRENT_SAFE_NEXT_ACTION` | `RUN_SEPARATE_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION_MISSION` |
+| `CURRENT_SCOPE_CLASS` | `DEPLOYMENT_AND_PRODUCTION_CERTIFICATION_REQUIRED` |
 | `FORBIDDEN_FOR_CURRENT_SCOPE` | Operational authority request, Safe Mode `CLOSED`, execution lease, restore-barrier write, Runtime apply, user movement, rollback apply, Authority/blast-radius expansion, systemd enable/start, synthetic evidence, or reuse of the rejected packet preview. |
-| `REQUIRED_WORKFLOW` | Existing Admin Safe Mode and governed execution owners -> operation-scoped generation-bound window -> guaranteed terminal `OPEN` -> complete packet source binding -> tests/certification -> fresh Phase 4A revalidation. |
+| `REQUIRED_WORKFLOW` | Separate safe deploy -> production provenance/convergence certification -> confirm live Safe Mode remains `OPEN` -> fresh Phase 4A revalidation. |
 | `CIRCUIT_BREAKER_REPOSITORY_STATE` | `IMPLEMENTATION_CERTIFIED_READ_ONLY` |
 | `CIRCUIT_BREAKER_PRODUCTION_STATE` | `DEPLOYED_CERTIFIED_OPEN` |
 | `CIRCUIT_BREAKER_PRODUCTION_CERTIFICATION` | `CIRCUIT_BREAKER_PRODUCTION_CERTIFIED` |
@@ -45,16 +45,16 @@ This section is the single live volatile current-state surface. Older production
 | `CONTROLLED_RUN_PREPARATION_REPORT` | `docs/reports/engineering/2026-07-11_094517_first_governed_omp_controlled_run_preparation.md` |
 | `CONTROLLED_RUN_CANDIDATE` | `candidate_7b48ef45c5f19af91a317fcd; user=10.0.0.2; vless->awg3; read-only evidence only` |
 | `CONTROLLED_RUN_PACKET_PREVIEW` | `pkt_preview_59a3c22747a4edb843be3863; REJECTED_FOR_PHASE4A_AUTHORITY` |
-| `CONTROLLED_WINDOW_CONTRACT` | `FAIL` |
+| `CONTROLLED_WINDOW_CONTRACT` | `IMPLEMENTATION_CERTIFIED_READ_ONLY; operation_id + selected_move_hash + max_users=1 + source/snapshot + breaker generation + terminal OPEN` |
 | `CONTROLLED_RUN_EXECUTION_AUTHORIZED` | `NO` |
-| `OMP_CONTROLLED_RUN_ALLOWED` | `NO; blocked until existing-owner controlled-window and packet-binding certification` |
-| `CONTROLLED_RUN_PRIMARY_STOP` | `UNSAFE_IMPLEMENTATION` |
-| `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `EXISTING_OWNER_IMPLEMENTATION_GAP` |
+| `OMP_CONTROLLED_RUN_ALLOWED` | `NO; blocked until separate safe deploy and production certification` |
+| `CONTROLLED_RUN_PRIMARY_STOP` | `CONTROLLED_WINDOW_NOT_DEPLOYED_OR_PRODUCTION_CERTIFIED` |
+| `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `DEPLOYMENT_AND_PRODUCTION_CERTIFICATION_REQUIRED` |
 | `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `NO` |
-| `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_NOT_CLOSED` |
+| `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_NOT_CLOSED; repository implementation sub-intent closed` |
 | `PARENT_ENGINEERING_INTENT` | `INTENT_NOT_CLOSED` |
 | `ACTIVE_WIP_PROTECTED` | `TRUE; COMPLETION_FIRST; reorder forbidden` |
-| `PRODUCTION_RUNTIME_IMPACT` | `NONE_THIS_MISSION; previously certified Runtime remains deployed; no service restart or production mutation in Phase 4A.` |
+| `PRODUCTION_RUNTIME_IMPACT` | `NONE_THIS_MISSION; repository implementation only; no deploy, restart, packet/lease, Safe Mode change, apply, rollback or user movement.` |
 | `AUTHORITY_IMPACT` | `NONE` |
 | `ROUTING_IMPACT` | `NONE` |
 | `USER_MOVEMENT` | `NO` |
@@ -70,7 +70,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-11T10:07:04+0700`
+Generated At: `2026-07-11T10:48:25+0700`
 
 Runtime Authority: `NONE`
 
@@ -96,7 +96,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
 | `OMP_CONTINUATION_POINTER` | consume this registry; preserve active WIP; select the first unresolved sequence position only |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `IMPLEMENT_AND_CERTIFY_OPERATION_SCOPED_CONTROLLED_WINDOW_AND_PACKET_SOURCE_BINDING` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `RUN_SEPARATE_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION_MISSION` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -110,13 +110,13 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | `protected_by_active_wip` | `TRUE` |
 | `wip_priority_class` | `COMPLETION_FIRST` |
 | `active_wip_reorder_allowed` | `FALSE` |
-| `current_primary_stop` | `UNSAFE_IMPLEMENTATION` |
-| `responsibility_class` | `EXISTING_OWNER_IMPLEMENTATION_GAP` |
+| `current_primary_stop` | `CONTROLLED_WINDOW_NOT_DEPLOYED_OR_PRODUCTION_CERTIFIED` |
+| `responsibility_class` | `DEPLOYMENT_AND_PRODUCTION_CERTIFICATION_REQUIRED` |
 | `authority_required_now` | `FALSE` |
-| `last_responsible_link` | Controlled-window implementation and packet source/snapshot binding before repository certification |
+| `last_responsible_link` | Certified repository implementation -> safe deploy -> production provenance/convergence certification |
 | `responsible_owners` | Admin Safe Mode v2; `admin_core/operator_execution.py`; governed execution pipeline; packet/lease identity; autoswitch final gate; rollback, verification, outcome and learning owners |
 | `protected_objects` | Existing owners above; Phase 4A Candidate evidence lineage; current Circuit Breaker certification |
-| `smallest_existing_next_action` | `IMPLEMENT_AND_CERTIFY_OPERATION_SCOPED_CONTROLLED_WINDOW_AND_PACKET_SOURCE_BINDING` |
+| `smallest_existing_next_action` | `RUN_SEPARATE_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION_MISSION` |
 | `completion_condition` | exact packet admitted, one governed action reaches verification/rollback, mandatory final `OPEN`, outcome/learning/maturity/CPS/OMP consumption, Parent Intent closed or legal terminal stop |
 
 ### Complete Or Locked Capability Records
@@ -144,7 +144,7 @@ The following joined table is the normalized live record. `Last link` represents
 
 | ID | Capability | Canonical owner | Status | Current % / source confidence | Last responsible link | Gap / stop | Smallest existing next action | Depends on / unblocks |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `CAP-U01` | First Governed Controlled Run | Admin Safe Mode, execution packet/lease/pipeline, OMP | `BLOCKED` | `NOT_APPLICABLE_WITH_REASON: instance chain` | operation-scoped window + packet source/snapshot binding -> repository certification | implementation + integration; `UNSAFE_IMPLEMENTATION`; Authority `NO` | implement and certify operation-scoped controlled window and packet binding | first; unblocks U03/U04/U05/U07/U08/U09 |
+| `CAP-U01` | First Governed Controlled Run | Admin Safe Mode, execution packet/lease/pipeline, OMP | `BLOCKED` | `NOT_APPLICABLE_WITH_REASON: instance chain` | certified repository implementation -> safe deploy/production certification -> fresh Phase 4A | deployment + certification; `CONTROLLED_WINDOW_NOT_DEPLOYED_OR_PRODUCTION_CERTIFIED`; Authority `NO` | run separate safe deploy and production certification Mission | first; unblocks U03/U04/U05/U07/U08/U09 |
 | `CAP-U02` | Movement Protection | OMP, Movement Protection Model, Runtime Model | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting `83/78` | certified gates -> real bounded movement behavior/outcome | runtime/production evidence | finish U01, consume first real outcome, revalidate owner percent | U01/U03/U04/U05/U06; unblocks U09 |
 | `CAP-U03` | Runtime Eligibility | Runtime Model, A6, final execution gate | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting `71/61` | read-only execute/stop arbitration -> production execution consumer | runtime consumption; `UNSAFE_IMPLEMENTATION` through U01 | consume certified window/packet path, then production-verify exact gate | U01/U06; unblocks U02/U09 |
 | `CAP-U04` | Authority Evolution | OMP, authority policy, action-class ladder | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting capability and maturity values | certified action-class evidence -> owner authority decision | authority evidence; future `ENGINEERING_AUTHORITY`, not current | evaluate action-class authority only after first outcome closure | U01/U05/U07; unblocks U09 |
@@ -184,15 +184,13 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `U01` Controlled Run WIP | protected active root blocker | implement operation-scoped window + packet source/snapshot binding | existing-owner implementation | `UNSAFE_IMPLEMENTATION` | implementation -> tests |
-| `2` | `U01` | consumes position 1 | repository tests and certification | verification | `STOP_SAFE` | certification -> OMP |
-| `3` | `U01` | certified code required | safe deploy and production certification | deployment/certification | `STOP_SAFE` | production truth -> CPS/OMP |
-| `4` | `U01` | fresh deployed evidence | rerun Phase 4A | governed read-only preparation | safety/reality stop | exact packet or legal stop -> OMP |
-| `5` | `U01` | only after admitted packet | exact operational-authority request | authority | `OPERATIONAL_AUTHORITY` | decision -> execution Mission |
-| `6` | `U01` | only after explicit approval | one governed action | guarded Runtime | `STOP_SAFE` | apply/no-apply -> verification |
-| `7` | `U01/U05` | terminal safety | verification/rollback/mandatory final `OPEN` | guarded verification | `STOP_SAFE` | terminal result -> outcome closure |
-| `8` | `U07/U08/U22` | consumes real terminal result | outcome, learning and maturity closure | no-mutation learning | `REAL_WORLD_LIMIT` if no outcome | learning/maturity -> CPS/OMP |
-| `9` | `U04` | needs outcome evidence | action-class Authority Evolution evaluation | engineering review | `ENGINEERING_AUTHORITY` when expansion is actually proposed | authority decision -> OMP |
+| `1` | `U01` Controlled Run WIP | protected active root blocker; repository implementation certified | safe deploy and production certification | deployment/certification | `CONTROLLED_WINDOW_NOT_DEPLOYED_OR_PRODUCTION_CERTIFIED` | production truth -> CPS/OMP |
+| `2` | `U01` | fresh deployed evidence required | rerun Phase 4A | governed read-only preparation | safety/reality stop | exact packet or legal stop -> OMP |
+| `3` | `U01` | only after admitted packet | exact operational-authority request | authority | `OPERATIONAL_AUTHORITY` | decision -> execution Mission |
+| `4` | `U01` | only after explicit approval | one governed action | guarded Runtime | `STOP_SAFE` | apply/no-apply -> verification |
+| `5` | `U01/U05` | terminal safety | verification/rollback/mandatory final `OPEN` | guarded verification | `STOP_SAFE` | terminal result -> outcome closure |
+| `6` | `U07/U08/U22` | consumes real terminal result | outcome, learning and maturity closure | no-mutation learning | `REAL_WORLD_LIMIT` if no outcome | learning/maturity -> CPS/OMP |
+| `7` | `U04` | needs outcome evidence | action-class Authority Evolution evaluation | engineering review | `ENGINEERING_AUTHORITY` when expansion is actually proposed | authority decision -> OMP |
 | `10` | `U06` | needs certified execution path and real recovery candidate | Recovery Admission Runtime consumption | existing-owner runtime certification | `REAL_WORLD_LIMIT/STOP_SAFE` | recovery result -> A6 |
 | `11` | `U03` | consumes positions 1-10 | Runtime Eligibility production closure | certification | `STOP_SAFE` | execute/stop behavior -> maturity |
 | `12` | `U05` | production evidence required | rollback production/authority closure | governed verification | `OPERATIONAL_AUTHORITY` only for exact action | rollback/no-rollback outcome -> maturity |
@@ -208,7 +206,7 @@ Independent read-only work may run in parallel only when OMP proves it cannot to
 
 | Stop | Current use |
 | --- | --- |
-| `UNSAFE_IMPLEMENTATION` | Active U01 primary stop; fix existing owners before any authority request. |
+| `CONTROLLED_WINDOW_NOT_DEPLOYED_OR_PRODUCTION_CERTIFIED` | Active U01 primary stop; deploy and certify the repository implementation before fresh Phase 4A or any authority request. |
 | `ENGINEERING_AUTHORITY` | Future U04 only if actual authority expansion is proposed after evidence. |
 | `OPERATIONAL_AUTHORITY` | Future exact admitted packet/action only. |
 | `REAL_WORLD_LIMIT` | U06/U07/U18-U22 when required real candidates/outcomes do not exist. |

@@ -63,6 +63,9 @@ SELECTED_MOVE_SEMANTIC_FIELDS = (
 MATERIAL_STATE_FIELDS = [
     "breaker_generation",
     "selected_move_hash",
+    "source_bundle_hash",
+    "source_hashes_hash",
+    "snapshot_bundle_hash",
     "target_channel",
     "rollback_target",
     "policy_generation",
@@ -83,6 +86,10 @@ APPROVED_PACKET_BINDING_FIELDS = [
     "target",
     "authority_generation",
     "breaker_generation",
+    "source_bundle_hash",
+    "source_hashes_hash",
+    "snapshot_bundle_hash",
+    "max_users",
 ]
 B15_CONTAINMENT_FORWARD_FIX_SCHEMA = "v7.b15-containment-forward-fix-classification.v1"
 C5_ROLLBACK_OPERATIONAL_COMPENSATION_SCHEMA = "v7.c5-rollback-operational-compensation.v1"
@@ -152,7 +159,19 @@ def stable_id(prefix, payload):
     return f"{prefix}_{sha256_bytes(canonical_json(payload).encode('utf-8'))[:24]}"
 
 
-def build_autonomous_execution_control_state(enabled, *, actor, reason, now=None):
+def build_autonomous_execution_control_state(
+    enabled,
+    *,
+    actor,
+    reason,
+    now=None,
+    operation_id="",
+    selected_move_hash="",
+    action_class="",
+    source_bundle_hash="",
+    snapshot_bundle_hash="",
+    max_users=0,
+):
     now = now or utc_now()
     enabled = bool(enabled)
     actor = str(actor or "admin").strip() or "admin"
@@ -164,11 +183,18 @@ def build_autonomous_execution_control_state(enabled, *, actor, reason, now=None
         "updated_at": now.isoformat(),
         "nonce": secrets.token_hex(16),
     })
-    return {
+    state = {
         "schema_version": AUTONOMOUS_EXECUTION_CONTROL_SCHEMA,
         "enabled": enabled,
         "state": "OPEN" if enabled else "CLOSED",
-        "scope": "global",
+        "scope": "global" if enabled or not all([
+            str(operation_id or ""),
+            str(selected_move_hash or ""),
+            str(action_class or ""),
+            str(source_bundle_hash or ""),
+            str(snapshot_bundle_hash or ""),
+            as_int(max_users, 0) == 1,
+        ]) else "operation",
         "generation": generation,
         "updated_at": now.isoformat(),
         "valid_until": "" if enabled else (now + timedelta(seconds=DEFAULT_EXECUTION_LEASE_TTL_SECONDS)).isoformat(),
@@ -176,6 +202,16 @@ def build_autonomous_execution_control_state(enabled, *, actor, reason, now=None
         "reason": reason,
         "rollback_policy": AUTONOMOUS_EXECUTION_ROLLBACK_POLICY,
     }
+    if not enabled and state["scope"] == "operation":
+        state.update({
+            "operation_id": str(operation_id or ""),
+            "selected_move_hash": str(selected_move_hash or ""),
+            "action_class": str(action_class or "").upper(),
+            "source_bundle_hash": str(source_bundle_hash or ""),
+            "snapshot_bundle_hash": str(snapshot_bundle_hash or ""),
+            "max_users": as_int(max_users, 0),
+        })
+    return state
 
 
 def autonomous_execution_control_state(path=DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE, *, now=None):
@@ -198,8 +234,24 @@ def autonomous_execution_control_state(path=DEFAULT_AUTONOMOUS_EXECUTION_CONTROL
     expected_state = "OPEN" if enabled is True else ("CLOSED" if enabled is False else "")
     if state not in {"OPEN", "CLOSED", "HALF_OPEN"} or state != expected_state:
         blockers.append("execution_control_state_invalid")
-    if str(data.get("scope") or "") != "global":
+    scope = str(data.get("scope") or "")
+    if state == "OPEN" and scope != "global":
         blockers.append("execution_control_scope_unknown")
+    if state == "CLOSED" and scope not in {"global", "operation"}:
+        blockers.append("execution_control_scope_unknown")
+    if state == "CLOSED" and scope == "operation":
+        if not str(data.get("operation_id") or "").strip():
+            blockers.append("execution_control_operation_id_missing")
+        if not str(data.get("selected_move_hash") or "").strip():
+            blockers.append("execution_control_selected_move_hash_missing")
+        if str(data.get("action_class") or "").upper() not in AUTONOMOUS_EXECUTION_ACTION_CLASSES:
+            blockers.append("execution_control_action_class_invalid")
+        if not str(data.get("source_bundle_hash") or "").strip():
+            blockers.append("execution_control_source_bundle_hash_missing")
+        if not str(data.get("snapshot_bundle_hash") or "").strip():
+            blockers.append("execution_control_snapshot_bundle_hash_missing")
+        if as_int(data.get("max_users"), 0) != 1:
+            blockers.append("execution_control_max_users_not_one")
     generation = str(data.get("generation") or "")
     if not generation.startswith("aec_"):
         blockers.append("execution_control_generation_invalid")
@@ -244,6 +296,10 @@ def autonomous_execution_control_decision(
     expected_generation="",
     rollback_certified=False,
     operation_id="",
+    selected_move_hash="",
+    source_bundle_hash="",
+    snapshot_bundle_hash="",
+    max_users=0,
     now=None,
 ):
     state = autonomous_execution_control_state(path, now=now)
@@ -256,12 +312,26 @@ def autonomous_execution_control_decision(
         blockers.append("execution_control_mutation_kind_unknown")
     if expected_generation and expected_generation != state.get("generation"):
         blockers.append("execution_control_generation_mismatch")
+    if mutation_kind == "forward" and state.get("scope") == "operation":
+        bindings = {
+            "operation_id": str(operation_id or ""),
+            "selected_move_hash": str(selected_move_hash or ""),
+            "action_class": action_class,
+            "source_bundle_hash": str(source_bundle_hash or ""),
+            "snapshot_bundle_hash": str(snapshot_bundle_hash or ""),
+            "max_users": as_int(max_users, 0),
+        }
+        for field, value in bindings.items():
+            if value in {"", 0}:
+                blockers.append(f"execution_control_{field}_missing")
+            elif value != state.get(field):
+                blockers.append(f"execution_control_{field}_mismatch")
     if mutation_kind == "rollback" and (not rollback_certified or not str(operation_id or "")):
         blockers.append("execution_control_rollback_uncertified")
-    allowed_forward = not blockers and mutation_kind == "forward" and state.get("state") == "CLOSED"
-    allowed_rollback = not blockers and mutation_kind == "rollback" and bool(rollback_certified)
     if mutation_kind == "forward" and state.get("state") != "CLOSED":
         blockers.append("execution_control_forward_suspended")
+    allowed_forward = not blockers and mutation_kind == "forward" and state.get("state") == "CLOSED"
+    allowed_rollback = not blockers and mutation_kind == "rollback" and bool(rollback_certified)
     return {
         "schema_version": "v7.autonomous-execution-control-decision.v1",
         "allowed": bool(allowed_forward or allowed_rollback),
@@ -270,6 +340,10 @@ def autonomous_execution_control_decision(
         "mutation_kind": mutation_kind,
         "action_class": action_class,
         "operation_id": str(operation_id or ""),
+        "selected_move_hash": str(selected_move_hash or ""),
+        "source_bundle_hash": str(source_bundle_hash or ""),
+        "snapshot_bundle_hash": str(snapshot_bundle_hash or ""),
+        "max_users": as_int(max_users, 0),
         "state": state.get("state", "UNKNOWN"),
         "scope": state.get("scope", ""),
         "generation": state.get("generation", ""),
@@ -281,6 +355,45 @@ def autonomous_execution_control_decision(
         "authority_granted": False,
         "authority_expanded": False,
         "planner_changed": False,
+    }
+
+
+def finalize_autonomous_execution_control_window(
+    path=DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE,
+    *,
+    expected_generation="",
+    operation_id="",
+    actor="governed-execution-finalizer",
+    reason="controlled_window_terminal_open",
+    now=None,
+    force_fail_closed_open=False,
+):
+    """Idempotently return an owned controlled window to fail-closed OPEN."""
+    now = now or utc_now()
+    before = autonomous_execution_control_state(path, now=now)
+    if before.get("valid") and before.get("state") == "OPEN":
+        return {"ok": True, "idempotent": True, "before": before, "after": before, "final_open": True}
+    blockers = []
+    if not force_fail_closed_open:
+        if str(expected_generation or "") != str(before.get("generation") or ""):
+            blockers.append("execution_control_finalization_generation_mismatch")
+        if str(operation_id or "") != str(before.get("operation_id") or ""):
+            blockers.append("execution_control_finalization_operation_mismatch")
+        if before.get("state") != "CLOSED":
+            blockers.append("execution_control_finalization_state_not_closed")
+    if blockers:
+        return {"ok": False, "idempotent": False, "before": before, "after": before, "final_open": False, "blockers": blockers}
+    opened = build_autonomous_execution_control_state(True, actor=actor, reason=reason, now=now)
+    write_json_atomic(path, opened)
+    after = autonomous_execution_control_state(path, now=now)
+    return {
+        "ok": bool(after.get("valid") and after.get("state") == "OPEN"),
+        "idempotent": False,
+        "forced_fail_closed_recovery": bool(force_fail_closed_open),
+        "before": before,
+        "after": after,
+        "final_open": bool(after.get("valid") and after.get("state") == "OPEN"),
+        "blockers": list(after.get("blockers") or []),
     }
 
 
@@ -407,8 +520,20 @@ def validate_nonzero_packet(packet, now):
         errors.append("atomic_execution_envelope_id_missing")
     if not expected.get("atomic_execution_envelope_hash"):
         errors.append("atomic_execution_envelope_hash_missing")
-    if not expected.get("source_bundle_hash"):
-        errors.append("source_bundle_hash_missing")
+    strict_binding = bool((packet.get("execution_metadata") or {}).get("operation_scoped_binding_required"))
+    if strict_binding:
+        if not expected.get("source_bundle_hash"):
+            errors.append("source_bundle_hash_missing")
+        source_hashes = expected.get("source_hashes") if isinstance(expected.get("source_hashes"), dict) else {}
+        normalized_source_hashes = {str(key): str(value) for key, value in source_hashes.items() if str(key) and str(value)}
+        if not normalized_source_hashes:
+            errors.append("source_hashes_missing")
+        elif sha256_json(normalized_source_hashes) != str(expected.get("source_bundle_hash") or ""):
+            errors.append("source_bundle_hash_mismatch")
+        if not expected.get("snapshot_bundle_hash"):
+            errors.append("snapshot_bundle_hash_missing")
+        if not str(packet.get("breaker_generation") or "") or packet.get("breaker_generation") == "UNBOUND_READ_ONLY":
+            errors.append("breaker_generation_unbound")
     rollback_manifest = packet.get("rollback_manifest") or {}
     rollback_items = rollback_manifest.get("items") or []
     if not rollback_manifest.get("rollback_manifest_id"):
@@ -632,12 +757,17 @@ def _packet_identity(packet):
     lock = packet.get("approved_plan_lock") if isinstance(packet.get("approved_plan_lock"), dict) else {}
     lock_moves = lock.get("selected_moves") if isinstance(lock.get("selected_moves"), list) else []
     lock_move = lock_moves[0] if lock_moves and isinstance(lock_moves[0], dict) else {}
+    source_hashes = expected.get("source_hashes") if isinstance(expected.get("source_hashes"), dict) else {}
     return {
         "packet_id": str(packet.get("packet_id") or ""),
         "operation_id": str(packet.get("operation_id") or ""),
         "decision_id": str(packet.get("decision_id") or ""),
         "authority_generation": str(packet.get("authority_generation") or expected.get("generation_id") or ""),
         "breaker_generation": str(packet.get("breaker_generation") or ""),
+        "source_bundle_hash": str(expected.get("source_bundle_hash") or ""),
+        "source_hashes_hash": sha256_json(source_hashes) if source_hashes else "",
+        "snapshot_bundle_hash": str(expected.get("snapshot_bundle_hash") or ""),
+        "max_users": as_int(constraints.get("selected_move_budget"), 0),
         "selected_move_hash": str(expected.get("selected_move_hash") or ""),
         "selected_move_count": as_int(expected.get("selected_move_count"), 0),
         "user": str(lock_move.get("user_ip") or ((constraints.get("allowed_users") or [""])[0]) or ""),
@@ -659,12 +789,17 @@ def preview_packet_identity(preview):
     moves = selected.get("moves") or []
     move = moves[0] if moves and isinstance(moves[0], dict) else {}
     rollback_preview = preview.get("rollback_manifest_preview") if isinstance(preview.get("rollback_manifest_preview"), dict) else {}
+    source_hashes = preview.get("source_hashes") if isinstance(preview.get("source_hashes"), dict) else {}
     return {
         "packet_id": str(preview.get("packet_id") or ""),
         "operation_id": str(preview.get("operation_id") or ""),
         "decision_id": str(preview.get("decision_id") or ""),
         "authority_generation": str(selected.get("authority_generation") or ""),
         "breaker_generation": str(preview.get("breaker_generation") or ""),
+        "source_bundle_hash": sha256_json(source_hashes) if source_hashes else "",
+        "source_hashes_hash": sha256_json(source_hashes) if source_hashes else "",
+        "snapshot_bundle_hash": str(preview.get("snapshot_bundle_hash") or ""),
+        "max_users": as_int(preview.get("selected_move_count"), 0),
         "selected_move_hash": str(selected.get("selected_move_hash") or ""),
         "selected_move_count": as_int(selected.get("selected_move_count"), 0),
         "user": str(move.get("user_ip") or ""),
@@ -1032,6 +1167,9 @@ def _material_state_from_components(
     destination_eligibility="",
     source_eligibility="",
     breaker_generation="",
+    source_bundle_hash="",
+    source_hashes_hash="",
+    snapshot_bundle_hash="",
 ):
     return {
         "selected_move_hash": str(selected_move_hash or ""),
@@ -1045,6 +1183,9 @@ def _material_state_from_components(
         "destination_eligibility": str(destination_eligibility or ""),
         "source_eligibility": str(source_eligibility or ""),
         "breaker_generation": str(breaker_generation or ""),
+        "source_bundle_hash": str(source_bundle_hash or ""),
+        "source_hashes_hash": str(source_hashes_hash or ""),
+        "snapshot_bundle_hash": str(snapshot_bundle_hash or ""),
     }
 
 
@@ -1054,6 +1195,7 @@ def material_state_from_packet_preview(preview):
     targets = _string_list(preview.get("allowed_targets"))
     users = _string_list(preview.get("allowed_users"))
     rollback_targets = _rollback_targets_from_manifest(rollback_preview)
+    source_hashes = preview.get("source_hashes") if isinstance(preview.get("source_hashes"), dict) else {}
     return _material_state_from_components(
         selected_move_hash=preview.get("selected_move_hash", ""),
         target_channel=targets,
@@ -1066,6 +1208,9 @@ def material_state_from_packet_preview(preview):
         destination_eligibility=preview.get("destination_eligibility", "") or ("ELIGIBLE" if targets else "UNKNOWN"),
         source_eligibility=preview.get("source_eligibility", "") or ("ELIGIBLE" if users else "UNKNOWN"),
         breaker_generation=preview.get("breaker_generation", ""),
+        source_bundle_hash=sha256_json(source_hashes) if source_hashes else "",
+        source_hashes_hash=sha256_json(source_hashes) if source_hashes else "",
+        snapshot_bundle_hash=preview.get("snapshot_bundle_hash", ""),
     )
 
 
@@ -1077,6 +1222,7 @@ def material_state_from_packet(packet):
     targets = _string_list(constraints.get("allowed_targets"))
     users = _string_list(constraints.get("allowed_users"))
     rollback_targets = _rollback_targets_from_manifest(rollback_manifest)
+    source_hashes = expected.get("source_hashes") if isinstance(expected.get("source_hashes"), dict) else {}
     return _material_state_from_components(
         selected_move_hash=expected.get("selected_move_hash", ""),
         target_channel=targets,
@@ -1089,6 +1235,9 @@ def material_state_from_packet(packet):
         destination_eligibility=packet.get("destination_eligibility", "") or ("ELIGIBLE" if targets else "UNKNOWN"),
         source_eligibility=packet.get("source_eligibility", "") or ("ELIGIBLE" if users else "UNKNOWN"),
         breaker_generation=packet.get("breaker_generation", ""),
+        source_bundle_hash=expected.get("source_bundle_hash", ""),
+        source_hashes_hash=sha256_json(source_hashes) if source_hashes else "",
+        snapshot_bundle_hash=expected.get("snapshot_bundle_hash", ""),
     )
 
 
@@ -2042,28 +2191,9 @@ def selected_moves_from_preview(preview):
             "move_type": "governed_canary",
         })
     preview_source_hashes = preview.get("source_hashes") if isinstance(preview.get("source_hashes"), dict) else {}
-    if preview_source_hashes:
-        source_hashes = {str(key): str(value) for key, value in preview_source_hashes.items() if str(value)}
-    else:
-        source_hashes = {
-            "preview_packet": sha256_json({
-                "packet_id": packet_id,
-                "operation_id": operation_id,
-                "decision_id": decision_id,
-                "authority_generation": authority_generation,
-                "selected_move_hash": selected_hash,
-            }),
-            "source_hash": str(preview.get("source_hash") or ""),
-            "recommendation_hash": str(preview.get("recommendation_hash") or ""),
-        }
-        source_hashes = {key: value for key, value in source_hashes.items() if value}
-    source_bundle_hash = sha256_json(source_hashes)
-    snapshot_bundle_hash = str(preview.get("snapshot_bundle_hash") or "") or sha256_json({
-        "preview_packet_id": packet_id,
-        "preview_operation_id": operation_id,
-        "selected_move_hash": selected_hash,
-        "selected_move_count": selected_count,
-    })
+    source_hashes = {str(key): str(value) for key, value in preview_source_hashes.items() if str(key) and str(value)}
+    source_bundle_hash = sha256_json(source_hashes) if source_hashes else ""
+    snapshot_bundle_hash = str(preview.get("snapshot_bundle_hash") or "")
     if source_hashes.get("users_registry") and source_hashes.get("egress_registry"):
         runtime_snapshot_hash = sha256_json({
             "users_registry_hash": source_hashes.get("users_registry", ""),
@@ -2106,7 +2236,15 @@ def selected_moves_from_preview(preview):
     }
 
 
-def packet_from_preview(preview, *, approval_author, approval_reviewer, ttl_seconds=DEFAULT_CLEARANCE_TTL_SECONDS, breaker_generation=""):
+def packet_from_preview(
+    preview,
+    *,
+    approval_author,
+    approval_reviewer,
+    ttl_seconds=DEFAULT_CLEARANCE_TTL_SECONDS,
+    breaker_generation="",
+    require_execution_binding=False,
+):
     preview = extract_packet_preview(preview)
     now = utc_now()
     expires_at = now + timedelta(seconds=max(1, as_int(ttl_seconds, DEFAULT_CLEARANCE_TTL_SECONDS)))
@@ -2200,6 +2338,7 @@ def packet_from_preview(preview, *, approval_author, approval_reviewer, ttl_seco
             "materialized_at": now.isoformat(),
             "semantic_identity_preserved": True,
             "execution_metadata_only_added": True,
+            "operation_scoped_binding_required": bool(require_execution_binding),
         },
         "governance_owner": CANONICAL_CLEARANCE_OWNER,
     }
@@ -2331,6 +2470,10 @@ def main(argv=None):
     parser.add_argument("--mutation-kind", choices=("forward", "rollback"), default="forward")
     parser.add_argument("--action-class", default="USER_SWITCH")
     parser.add_argument("--operation-id", default="")
+    parser.add_argument("--selected-move-hash", default="")
+    parser.add_argument("--source-bundle-hash", default="")
+    parser.add_argument("--snapshot-bundle-hash", default="")
+    parser.add_argument("--max-users", type=int, default=0)
     parser.add_argument("--rollback-certified", action="store_true")
     args = parser.parse_args(argv)
     repo_root = Path(args.repo_root).resolve()
@@ -2343,6 +2486,10 @@ def main(argv=None):
                 expected_generation=args.expected_breaker_generation,
                 rollback_certified=args.rollback_certified,
                 operation_id=args.operation_id,
+                selected_move_hash=args.selected_move_hash,
+                source_bundle_hash=args.source_bundle_hash,
+                snapshot_bundle_hash=args.snapshot_bundle_hash,
+                max_users=args.max_users,
             )
             print(json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True))
             return 0 if result.get("allowed") else 2

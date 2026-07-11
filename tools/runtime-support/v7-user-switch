@@ -51,11 +51,21 @@ CONTROL_GENERATION="${V7_EXECUTION_CONTROL_GENERATION:-}"
 MUTATION_KIND="${V7_EXECUTION_MUTATION_KIND:-}"
 OPERATION_ID="${V7_EXECUTION_OPERATION_ID:-}"
 ACTION_CLASS="${V7_EXECUTION_ACTION_CLASS:-}"
+SELECTED_MOVE_HASH="${V7_EXECUTION_SELECTED_MOVE_HASH:-}"
+SOURCE_BUNDLE_HASH="${V7_EXECUTION_SOURCE_BUNDLE_HASH:-}"
+SNAPSHOT_BUNDLE_HASH="${V7_EXECUTION_SNAPSHOT_BUNDLE_HASH:-}"
+MAX_USERS="${V7_EXECUTION_MAX_USERS:-}"
 CONTROL_FILE="${V7_ADMIN_SAFE_MODE_FILE:-/etc/v7/admin/safe-mode.json}"
 [ -n "$CONTROL_GENERATION" ] || { echo "STOP_SAFE: execution control generation missing"; exit 2; }
 [ -n "$MUTATION_KIND" ] || { echo "STOP_SAFE: execution mutation kind missing"; exit 2; }
 [ -n "$OPERATION_ID" ] || { echo "STOP_SAFE: execution operation id missing"; exit 2; }
 [ -n "$ACTION_CLASS" ] || { echo "STOP_SAFE: execution action class missing"; exit 2; }
+if [ "$MUTATION_KIND" = "forward" ]; then
+  [ -n "$SELECTED_MOVE_HASH" ] || { echo "STOP_SAFE: selected move hash missing"; exit 2; }
+  [ -n "$SOURCE_BUNDLE_HASH" ] || { echo "STOP_SAFE: source bundle hash missing"; exit 2; }
+  [ -n "$SNAPSHOT_BUNDLE_HASH" ] || { echo "STOP_SAFE: snapshot bundle hash missing"; exit 2; }
+  [ "$MAX_USERS" = "1" ] || { echo "STOP_SAFE: max users must equal one"; exit 2; }
+fi
 
 validator=(
   v7-operator-execution-packet
@@ -67,6 +77,14 @@ validator=(
   --operation-id "$OPERATION_ID"
   --json
 )
+if [ "$MUTATION_KIND" = "forward" ]; then
+  validator+=(
+    --selected-move-hash "$SELECTED_MOVE_HASH"
+    --source-bundle-hash "$SOURCE_BUNDLE_HASH"
+    --snapshot-bundle-hash "$SNAPSHOT_BUNDLE_HASH"
+    --max-users "$MAX_USERS"
+  )
+fi
 if [ "$MUTATION_KIND" = "rollback" ]; then
   [ "${V7_EXECUTION_ROLLBACK_CERTIFIED:-0}" = "1" ] || { echo "STOP_SAFE: rollback context uncertified"; exit 2; }
   validator+=(--rollback-certified)

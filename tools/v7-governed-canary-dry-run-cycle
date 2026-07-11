@@ -183,6 +183,29 @@ def run_planner_observe(state_dir: Path, event_dir: Path, snapshot_root: Path, m
     }
 
 
+def attach_controlled_execution_source_binding(
+    surface: dict[str, Any],
+    *,
+    state_dir: Path,
+    snapshot_root: Path,
+) -> dict[str, Any]:
+    source_hashes = {
+        "users_registry": operator_execution.sha256_file(state_dir / "users.registry"),
+        "egress_registry": operator_execution.sha256_file(state_dir / "egress.registry"),
+        "runtime_state": operator_execution.sha256_file(state_dir / "v7-state.json"),
+        "candidate_suitability": operator_execution.sha256_file(snapshot_root / "candidate-suitability-summary.json"),
+    }
+    source_hashes = {key: value for key, value in source_hashes.items() if value}
+    bundle_hash = operator_execution.sha256_json(source_hashes) if source_hashes else ""
+    surface["controlled_execution_source_hashes"] = source_hashes
+    surface["controlled_execution_snapshot_bundle_hash"] = bundle_hash
+    return {
+        "source_hashes": source_hashes,
+        "source_bundle_hash": bundle_hash,
+        "snapshot_bundle_hash": bundle_hash,
+    }
+
+
 def run_l3_production_validation_plan(
     *,
     state_dir: Path,
@@ -1327,17 +1350,7 @@ def _execute_governed_transaction_with_guards_inner(
         runtime_state=runtime_state,
         decision_records=records,
     )
-    controlled_source_hashes = {
-        "users_registry": operator_execution.sha256_file(state_dir / "users.registry"),
-        "egress_registry": operator_execution.sha256_file(state_dir / "egress.registry"),
-        "runtime_state": operator_execution.sha256_file(state_dir / "v7-state.json"),
-        "candidate_suitability": operator_execution.sha256_file(snapshot_root / "candidate-suitability-summary.json"),
-    }
-    controlled_source_hashes = {key: value for key, value in controlled_source_hashes.items() if value}
-    surface["controlled_execution_source_hashes"] = controlled_source_hashes
-    surface["controlled_execution_snapshot_bundle_hash"] = (
-        operator_execution.sha256_json(controlled_source_hashes) if controlled_source_hashes else ""
-    )
+    attach_controlled_execution_source_binding(surface, state_dir=state_dir, snapshot_root=snapshot_root)
     shadow_history = read_jsonl_family(state_dir / "shadow-autonomy-decisions.jsonl")
     inventory = autonomy_trust_acceleration.build_acceleration_inventory(
         snapshot_root=snapshot_root,
@@ -2009,6 +2022,7 @@ def main(argv=None) -> int:
         runtime_state=runtime_state,
         decision_records=records,
     )
+    attach_controlled_execution_source_binding(surface, state_dir=state_dir, snapshot_root=snapshot_root)
     shadow_history = read_jsonl_family(state_dir / "shadow-autonomy-decisions.jsonl")
     inventory = autonomy_trust_acceleration.build_acceleration_inventory(
         snapshot_root=snapshot_root,

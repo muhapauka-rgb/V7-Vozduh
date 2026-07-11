@@ -19,6 +19,37 @@ def load_cli_module():
 
 
 class GovernedCanaryCliTest(unittest.TestCase):
+    def test_read_only_surface_gets_controlled_execution_source_binding(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            snapshot_root = state_dir / "intelligence"
+            snapshot_root.mkdir(parents=True)
+            for path, content in {
+                state_dir / "users.registry": "ip=10.7.0.5 current=vless table=1005 enabled=1\n",
+                state_dir / "egress.registry": "id=vless enabled=1\n",
+                state_dir / "v7-state.json": '{"status":"ok"}\n',
+                snapshot_root / "candidate-suitability-summary.json": '{"status":"fresh"}\n',
+            }.items():
+                path.write_text(content, encoding="utf-8")
+            surface = {}
+
+            binding = module.attach_controlled_execution_source_binding(
+                surface,
+                state_dir=state_dir,
+                snapshot_root=snapshot_root,
+            )
+
+        self.assertEqual(len(binding["source_hashes"]), 4)
+        self.assertTrue(binding["source_bundle_hash"])
+        self.assertEqual(binding["snapshot_bundle_hash"], binding["source_bundle_hash"])
+        self.assertEqual(surface["controlled_execution_source_hashes"], binding["source_hashes"])
+        self.assertEqual(
+            surface["controlled_execution_snapshot_bundle_hash"],
+            binding["snapshot_bundle_hash"],
+        )
+
     def test_planner_executable_uses_repo_tool_when_available(self):
         module = load_cli_module()
         self.assertEqual(module.planner_observe_executable(), module.ROOT / "tools" / "v7-users-autoswitch")

@@ -1833,6 +1833,12 @@ def autonomous_dry_run_model(
         else {}
     )
     source_hashes = {str(key): str(value) for key, value in source_hashes.items() if str(key) and str(value)}
+    raw_source_hashes = (
+        decision_surface.get("controlled_execution_raw_source_hashes")
+        if isinstance(decision_surface.get("controlled_execution_raw_source_hashes"), dict)
+        else {}
+    )
+    raw_source_hashes = {str(key): str(value) for key, value in raw_source_hashes.items() if str(key) and str(value)}
     snapshot_bundle_hash = str(decision_surface.get("controlled_execution_snapshot_bundle_hash") or "")
     source_bundle_hash = operator_execution.sha256_json(source_hashes) if source_hashes else ""
     envelope_payload = {
@@ -1887,6 +1893,11 @@ def autonomous_dry_run_model(
                 "snapshot_bundle_hash": snapshot_bundle_hash,
                 "source_bundle": {"source_hashes": source_hashes, "hash": source_bundle_hash},
                 "snapshot_bundle": {"hash": snapshot_bundle_hash},
+                "raw_observability_source_bundle": {
+                    "source_hashes": raw_source_hashes,
+                    "hash": operator_execution.sha256_json(raw_source_hashes) if raw_source_hashes else "",
+                    "execution_binding": False,
+                },
             },
         },
         "autonomy_specific_evidence": autonomy_specific_evidence,

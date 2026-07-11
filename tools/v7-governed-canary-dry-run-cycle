@@ -189,20 +189,150 @@ def attach_controlled_execution_source_binding(
     state_dir: Path,
     snapshot_root: Path,
 ) -> dict[str, Any]:
-    source_hashes = {
+    raw_source_hashes = {
         "users_registry": operator_execution.sha256_file(state_dir / "users.registry"),
         "egress_registry": operator_execution.sha256_file(state_dir / "egress.registry"),
         "runtime_state": operator_execution.sha256_file(state_dir / "v7-state.json"),
         "candidate_suitability": operator_execution.sha256_file(snapshot_root / "candidate-suitability-summary.json"),
     }
+    raw_source_hashes = {key: value for key, value in raw_source_hashes.items() if value}
+    moves = (surface.get("batch_preview") or {}).get("users_to_move") or []
+    selected = moves[0] if moves and isinstance(moves[0], dict) else {}
+    user = str(selected.get("user") or selected.get("user_ip") or "")
+    source = str(selected.get("from") or selected.get("current_egress") or "")
+    target = str(selected.get("to") or selected.get("recommended_egress") or "")
+    runtime_state = read_json(state_dir / "v7-state.json", {})
+    suitability = read_json(snapshot_root / "candidate-suitability-summary.json", {})
+    users_registry = read_registry(state_dir / "users.registry")
+    egress_registry = read_registry(state_dir / "egress.registry")
+
+    runtime_projection = _runtime_decision_projection(runtime_state, user=user, source=source, target=target)
+    suitability_projection = _candidate_suitability_decision_projection(
+        suitability,
+        user=user,
+        source=source,
+        target=target,
+        selected=selected,
+    )
+    source_hashes = {
+        "users_registry": operator_execution.sha256_json([
+            row for row in users_registry if str(row.get("ip") or "") == user
+        ]) if user else "",
+        "egress_registry": operator_execution.sha256_json(sorted(
+            [
+                row for row in egress_registry
+                if str(row.get("id") or row.get("name") or "") in {source, target}
+            ],
+            key=lambda row: str(row.get("id") or row.get("name") or ""),
+        )) if source and target else "",
+        "runtime_state": operator_execution.sha256_json(runtime_projection) if runtime_projection else "",
+        "candidate_suitability": operator_execution.sha256_json(suitability_projection) if suitability_projection else "",
+    }
     source_hashes = {key: value for key, value in source_hashes.items() if value}
     bundle_hash = operator_execution.sha256_json(source_hashes) if source_hashes else ""
     surface["controlled_execution_source_hashes"] = source_hashes
     surface["controlled_execution_snapshot_bundle_hash"] = bundle_hash
+    surface["controlled_execution_raw_source_hashes"] = raw_source_hashes
+    surface["controlled_execution_source_materiality"] = {
+        "schema_version": "v7.controlled-execution-source-materiality.v1",
+        "strict_identity_sources": ["users_registry", "egress_registry"],
+        "semantic_material_sources": ["runtime_state", "candidate_suitability"],
+        "observability_only_hashes": sorted(raw_source_hashes),
+        "selected_identity": {"user": user, "source": source, "target": target},
+        "fail_closed_without_selected_identity": not bool(user and source and target),
+    }
     return {
         "source_hashes": source_hashes,
         "source_bundle_hash": bundle_hash,
         "snapshot_bundle_hash": bundle_hash,
+        "raw_source_hashes": raw_source_hashes,
+        "runtime_projection": runtime_projection,
+        "candidate_suitability_projection": suitability_projection,
+    }
+
+
+def _runtime_decision_projection(
+    runtime_state: dict[str, Any],
+    *,
+    user: str,
+    source: str,
+    target: str,
+) -> dict[str, Any]:
+    if not user or not source or not target or not isinstance(runtime_state, dict):
+        return {}
+    users = [
+        row for row in (runtime_state.get("users") or [])
+        if isinstance(row, dict) and str(row.get("ip") or "") == user
+    ]
+    desired = [
+        row for row in (runtime_state.get("user_desired_state") or [])
+        if isinstance(row, dict) and str(row.get("ip") or "") == user
+    ]
+    egress = runtime_state.get("egress") if isinstance(runtime_state.get("egress"), dict) else {}
+
+    def egress_projection(channel: str) -> dict[str, Any]:
+        row = egress.get(channel) if isinstance(egress.get(channel), dict) else {}
+        return {
+            key: row.get(key)
+            for key in (
+                "code", "diagnose_reason", "diagnose_severity", "load_status",
+                "avg_mbps", "min_mbps", "stability", "users",
+            )
+            if key in row
+        }
+
+    return {
+        "schema_version": "v7.runtime-decision-projection.v1",
+        "selected_identity": {"user": user, "source": source, "target": target},
+        "runtime_user": users,
+        "user_desired_state": desired,
+        "source_egress": egress_projection(source),
+        "target_egress": egress_projection(target),
+    }
+
+
+def _candidate_suitability_decision_projection(
+    suitability: dict[str, Any],
+    *,
+    user: str,
+    source: str,
+    target: str,
+    selected: dict[str, Any],
+) -> dict[str, Any]:
+    if not user or not source or not target or not isinstance(suitability, dict):
+        return {}
+    user_row = next(
+        (
+            row for row in (suitability.get("items") or [])
+            if isinstance(row, dict) and str(row.get("user") or "") == user
+        ),
+        {},
+    )
+    candidates = []
+    for row in user_row.get("candidates") if isinstance(user_row.get("candidates"), list) else []:
+        if not isinstance(row, dict) or str(row.get("channel") or "") not in {source, target}:
+            continue
+        candidates.append({
+            key: row.get(key)
+            for key in (
+                "user", "channel", "confidence", "suitability_score", "score_part",
+                "recommendation", "reason_breakdown", "authority",
+            )
+            if key in row
+        })
+    candidates.sort(key=lambda row: str(row.get("channel") or ""))
+    selected_projection = {
+        key: selected.get(key)
+        for key in ("user", "user_ip", "from", "to", "current_egress", "recommended_egress", "confidence", "risk", "reason", "reasons", "scores", "service_failover")
+        if key in selected
+    }
+    return {
+        "schema_version": "v7.candidate-suitability-decision-projection.v1",
+        "freshness_state": suitability.get("freshness_state"),
+        "runtime_decision_authority": user_row.get("runtime_decision_authority"),
+        "selected_identity": {"user": user, "source": source, "target": target},
+        "selected_move": selected_projection,
+        "source_and_target_candidates": candidates,
     }
 
 
@@ -1350,7 +1480,6 @@ def _execute_governed_transaction_with_guards_inner(
         runtime_state=runtime_state,
         decision_records=records,
     )
-    attach_controlled_execution_source_binding(surface, state_dir=state_dir, snapshot_root=snapshot_root)
     shadow_history = read_jsonl_family(state_dir / "shadow-autonomy-decisions.jsonl")
     inventory = autonomy_trust_acceleration.build_acceleration_inventory(
         snapshot_root=snapshot_root,
@@ -1381,6 +1510,8 @@ def _execute_governed_transaction_with_guards_inner(
                 planner_observe=planner_observe,
             )
         surface = merge_a4_gap_candidate_into_surface(surface, a4_goal_directed_selection)
+
+    attach_controlled_execution_source_binding(surface, state_dir=state_dir, snapshot_root=snapshot_root)
 
     cycle = operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle(
         events=events,
@@ -2022,7 +2153,6 @@ def main(argv=None) -> int:
         runtime_state=runtime_state,
         decision_records=records,
     )
-    attach_controlled_execution_source_binding(surface, state_dir=state_dir, snapshot_root=snapshot_root)
     shadow_history = read_jsonl_family(state_dir / "shadow-autonomy-decisions.jsonl")
     inventory = autonomy_trust_acceleration.build_acceleration_inventory(
         snapshot_root=snapshot_root,
@@ -2042,6 +2172,7 @@ def main(argv=None) -> int:
         planner_observe = run_planner_observe(state_dir, event_dir, snapshot_root, args.max_users)
         moves = selected_moves_from_planner_payload(planner_observe.get("payload", {}))
         surface = merge_planner_moves_into_surface(surface, moves)
+    attach_controlled_execution_source_binding(surface, state_dir=state_dir, snapshot_root=snapshot_root)
     cycle = operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle(
         events=events,
         decision_surface=surface,

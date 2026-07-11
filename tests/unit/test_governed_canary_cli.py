@@ -41,14 +41,110 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 snapshot_root=snapshot_root,
             )
 
-        self.assertEqual(len(binding["source_hashes"]), 4)
-        self.assertTrue(binding["source_bundle_hash"])
+        self.assertEqual(binding["source_hashes"], {})
+        self.assertFalse(binding["source_bundle_hash"])
         self.assertEqual(binding["snapshot_bundle_hash"], binding["source_bundle_hash"])
         self.assertEqual(surface["controlled_execution_source_hashes"], binding["source_hashes"])
         self.assertEqual(
             surface["controlled_execution_snapshot_bundle_hash"],
             binding["snapshot_bundle_hash"],
         )
+        self.assertEqual(len(binding["raw_source_hashes"]), 4)
+        self.assertTrue(surface["controlled_execution_source_materiality"]["fail_closed_without_selected_identity"])
+
+    def test_selected_decision_binding_ignores_non_material_snapshot_metadata(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            snapshot_root = state_dir / "intelligence"
+            snapshot_root.mkdir(parents=True)
+            users_registry = state_dir / "users.registry"
+            egress_registry = state_dir / "egress.registry"
+            users_registry.write_text("ip=10.0.0.2 current=vless table=100 enabled=1\nip=10.0.0.9 current=awg0 table=109 enabled=1\n", encoding="utf-8")
+            egress_registry.write_text("id=vless enabled=1\nid=awg3 enabled=1\nid=awg0 enabled=1\n", encoding="utf-8")
+            runtime = {
+                "updated": "2026-07-11T00:00:00Z",
+                "users": [{"ip": "10.0.0.2", "current": "vless", "enabled": "1"}],
+                "user_desired_state": [{"ip": "10.0.0.2", "current": "vless", "status": "OK"}],
+                "egress": {
+                    "vless": {"code": "200", "diagnose_reason": "OK", "diagnose_detail": "age=1", "load_status": "OK"},
+                    "awg3": {"code": "200", "diagnose_reason": "OK", "diagnose_detail": "age=2", "load_status": "OK"},
+                },
+            }
+            suitability = {
+                "generated_at": "2026-07-11T00:00:00Z",
+                "expires_at": "2026-07-11T00:02:00Z",
+                "freshness_state": "FRESH",
+                "items": [
+                    {"user": "10.0.0.2", "runtime_decision_authority": "none_snapshot_only", "candidates": [
+                        {"user": "10.0.0.2", "channel": "vless", "confidence": 0.4, "suitability_score": 70.0, "recommendation": "keep"},
+                        {"user": "10.0.0.2", "channel": "awg3", "confidence": 0.5, "suitability_score": 80.0, "recommendation": "prefer"},
+                    ]},
+                    {"user": "10.0.0.9", "candidates": [{"channel": "awg0", "suitability_score": 1.0}]},
+                ],
+            }
+            runtime_path = state_dir / "v7-state.json"
+            suitability_path = snapshot_root / "candidate-suitability-summary.json"
+            runtime_path.write_text(json.dumps(runtime), encoding="utf-8")
+            suitability_path.write_text(json.dumps(suitability), encoding="utf-8")
+            surface = {"batch_preview": {"users_to_move": [{"user": "10.0.0.2", "from": "vless", "to": "awg3", "confidence": 0.5}]}}
+            first = module.attach_controlled_execution_source_binding(surface, state_dir=state_dir, snapshot_root=snapshot_root)
+
+            runtime["updated"] = "2026-07-11T00:01:00Z"
+            runtime["egress"]["awg3"]["diagnose_detail"] = "age=62"
+            suitability["generated_at"] = "2026-07-11T00:01:00Z"
+            suitability["expires_at"] = "2026-07-11T00:03:00Z"
+            suitability["items"][1]["candidates"][0]["suitability_score"] = 99.0
+            users_registry.write_text("ip=10.0.0.2 current=vless table=100 enabled=1\nip=10.0.0.9 current=awg3 table=109 enabled=1\n", encoding="utf-8")
+            egress_registry.write_text("id=vless enabled=1\nid=awg3 enabled=1\nid=awg0 enabled=0\n", encoding="utf-8")
+            runtime_path.write_text(json.dumps(runtime), encoding="utf-8")
+            suitability_path.write_text(json.dumps(suitability), encoding="utf-8")
+            second = module.attach_controlled_execution_source_binding(surface, state_dir=state_dir, snapshot_root=snapshot_root)
+
+        self.assertEqual(first["source_hashes"], second["source_hashes"])
+        self.assertNotEqual(first["raw_source_hashes"], second["raw_source_hashes"])
+
+    def test_selected_decision_binding_invalidates_material_score_and_safety_changes(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            snapshot_root = state_dir / "intelligence"
+            snapshot_root.mkdir(parents=True)
+            (state_dir / "users.registry").write_text("ip=10.0.0.2 current=vless table=100 enabled=1\n", encoding="utf-8")
+            (state_dir / "egress.registry").write_text("id=vless enabled=1\nid=awg3 enabled=1\n", encoding="utf-8")
+            runtime = {
+                "users": [{"ip": "10.0.0.2", "current": "vless"}],
+                "user_desired_state": [{"ip": "10.0.0.2", "current": "vless", "status": "OK"}],
+                "egress": {"vless": {"code": "200", "load_status": "OK"}, "awg3": {"code": "200", "load_status": "OK"}},
+            }
+            suitability = {
+                "freshness_state": "FRESH",
+                "items": [{"user": "10.0.0.2", "runtime_decision_authority": "none_snapshot_only", "candidates": [
+                    {"user": "10.0.0.2", "channel": "vless", "suitability_score": 70.0},
+                    {"user": "10.0.0.2", "channel": "awg3", "suitability_score": 80.0},
+                ]}],
+            }
+            runtime_path = state_dir / "v7-state.json"
+            suitability_path = snapshot_root / "candidate-suitability-summary.json"
+            runtime_path.write_text(json.dumps(runtime), encoding="utf-8")
+            suitability_path.write_text(json.dumps(suitability), encoding="utf-8")
+            surface = {"batch_preview": {"users_to_move": [{"user": "10.0.0.2", "from": "vless", "to": "awg3"}]}}
+            first = module.attach_controlled_execution_source_binding(surface, state_dir=state_dir, snapshot_root=snapshot_root)
+            (state_dir / "users.registry").write_text("ip=10.0.0.2 current=awg0 table=100 enabled=1\n", encoding="utf-8")
+            identity_changed = module.attach_controlled_execution_source_binding(surface, state_dir=state_dir, snapshot_root=snapshot_root)
+            (state_dir / "users.registry").write_text("ip=10.0.0.2 current=vless table=100 enabled=1\n", encoding="utf-8")
+            suitability["items"][0]["candidates"][1]["suitability_score"] = 60.0
+            suitability_path.write_text(json.dumps(suitability), encoding="utf-8")
+            score_changed = module.attach_controlled_execution_source_binding(surface, state_dir=state_dir, snapshot_root=snapshot_root)
+            runtime["egress"]["awg3"]["load_status"] = "BLOCKED"
+            runtime_path.write_text(json.dumps(runtime), encoding="utf-8")
+            safety_changed = module.attach_controlled_execution_source_binding(surface, state_dir=state_dir, snapshot_root=snapshot_root)
+
+        self.assertNotEqual(first["source_hashes"]["users_registry"], identity_changed["source_hashes"]["users_registry"])
+        self.assertNotEqual(first["source_hashes"]["candidate_suitability"], score_changed["source_hashes"]["candidate_suitability"])
+        self.assertNotEqual(score_changed["source_hashes"]["runtime_state"], safety_changed["source_hashes"]["runtime_state"])
 
     def test_planner_executable_uses_repo_tool_when_available(self):
         module = load_cli_module()

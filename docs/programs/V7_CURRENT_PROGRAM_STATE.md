@@ -35,7 +35,7 @@ This section is the single live volatile current-state surface. Older production
 | `HISTORICAL_CERTIFICATION_MAX_ACTUAL_USERS` | `48; XLARGE_BATCH budget 50 existed, but no exact 50-user real movement was proven` |
 | `HISTORICAL_CERTIFICATION_REUSABLE_LAYERS` | `execution path, bounded blast radius, verification, rollback/no-rollback, closed outcome` |
 | `HISTORICAL_CERTIFICATION_NOT_AUTHORITY` | `decision-context certification, Action-Class Authority and delegated policy remain ungranted` |
-| `ACTION_CLASS_NON_CONSUMPTION_ROOT_CAUSE` | `CURRENT_CLASS_OUTCOME_ABSENT_AND_ROUTING_READINESS_BLOCKED; historical identity mapping is resolved for supporting dimensions but does not grant current decision authority` |
+| `ACTION_CLASS_NON_CONSUMPTION_ROOT_CAUSE` | `CURRENT_CLASS_OUTCOME_ABSENT_AND_OPERATIONAL_AUTHORITY_REQUIRED; candidate-scoped routing readiness is PASS, while historical identity mapping remains supporting evidence and does not grant current decision authority` |
 | `ACTION_CLASS_PROMOTION_EVALUATION` | `PROMOTION_BLOCKED_WITH_EXACT_DELTA`; conditional Engineering Authority not consumed because live promotion gates did not pass. |
 | `ACTION_CLASS_EXACT_MISSING_DELTA` | `candidate-scoped routing readiness is PASS; one fresh marginal TIER_1 suitability-based single-user transaction still requires exact Operational Authority because confidence=38.71, trust=44.03 and prediction=39.60 are below existing floor 70; then verification, outcome/learning, maturity evaluation and promotion recheck` |
 | `COMPLETE_ROUTING_LIFECYCLE_REPORT` | `docs/reports/engineering/2026-07-11_201307_complete_routing_decision_execution_promotion_lifecycle_closure.md` |
@@ -52,10 +52,10 @@ This section is the single live volatile current-state surface. Older production
 | `HISTORICAL_CERTIFICATION_REUSE_DEPLOY_ID` | `deploy-z8-14-Updatesystem-196fcb1-20260711T174423` |
 | `CURRENT_CLASS_OUTCOME_MISSION_REPORT` | `docs/reports/engineering/2026-07-11_174531_current_class_outcome_closure_and_omp_continuation.md` |
 | `FRESH_PHASE4A_ATTEMPTS` | `30 bounded churn/stability cycles plus current Action-Class Promotion read-only revalidations; no mutation` |
-| `CURRENT_CLASS_CANDIDATE_SELECTED` | `YES_READ_ONLY; 10.7.0.32 wireguard-1779454504-c43409 -> awg0; exact class and stable semantic decision, but preview discarded without Authority because routing readiness remained blocked` |
+| `CURRENT_CLASS_CANDIDATE_SELECTED` | `NONE_OPEN; lifecycle-audit preview 10.7.0.5 awg0 -> vless and all older previews are SUPERSEDED/HISTORICAL evidence only; select again from fresh production reality` |
 | `CURRENT_CLASS_OUTCOME` | `NO_ACTION; no production operation admitted` |
 | `CURRENT_CLASS_DELTA_CLOSED` | `NO` |
-| `AUTOMATIC_CONTINUE_OMP_RESULT` | `EXECUTED; existing service and intelligence evidence owners refreshed, fresh promotion revalidation repeated, same readiness blockers persisted; legal REAL_WORLD_LIMIT stop and active WIP preserved` |
+| `AUTOMATIC_CONTINUE_OMP_RESULT` | `EXECUTED_AFTER_LIFECYCLE_CLOSURE; CAP-U01 remains first and current stop is OPERATIONAL_AUTHORITY for one fresh marginal TIER_1 transaction` |
 | `CURRENT_ACTION_CLASS_PROMOTION_REPORT` | `docs/reports/engineering/2026-07-11_194202_current_action_class_promotion_to_bounded_authority.md` |
 | `CURRENT_CLASS_OUTCOME_STORE_AUDIT` | `18,036 execution-outcome records at final readback; all DRY_RUN / NO_EXECUTION; CURRENT_CLASS_OUTCOME_ABSENT` |
 | `CONDITIONAL_ENGINEERING_AUTHORITY_USED` | `NO; promotion and optional transaction conditions were not satisfied` |
@@ -65,8 +65,8 @@ This section is the single live volatile current-state surface. Older production
 | `MATERIAL_DECISION_CHURN_DEPLOY_COMMIT` | `62015c156fa2a528b36bdbfb3847f3b9f9ee57c2` |
 | `MATERIAL_DECISION_CHURN_DEPLOY_ID` | `deploy-z8-14-Updatesystem-62015c1-20260711T185443` |
 | `MATERIAL_DECISION_CHURN_REPORT` | `docs/reports/engineering/2026-07-11_184357_material_decision_churn_discovery_and_closure.md` |
-| `FORBIDDEN_FOR_CURRENT_SCOPE` | Reuse of older invalidated packets/approvals; Safe Mode `CLOSED`; execution lease, restore-barrier write, Runtime apply, user movement, rollback apply, Authority/blast-radius expansion, systemd enable/start, or synthetic evidence without a separate exact operational approval Mission. |
-| `REQUIRED_WORKFLOW` | Do not consume any retained preview. Revalidate existing routing-readiness owners from fresh production reality; only after every live safety/readiness gate passes may a new exact current-class packet be generated and separately admitted. |
+| `FORBIDDEN_FOR_CURRENT_SCOPE` | Reuse of older invalidated packets/approvals; any second user or second production write; batch/concurrency; Authority/blast-radius expansion; systemd enable/start; threshold reduction; synthetic evidence; or mutation outside Mission `V7_OMP_CURRENT_STATE_RECONCILIATION_AND_U01_OUTCOME_CLOSURE_V1_20260711`. |
+| `REQUIRED_WORKFLOW` | Reconcile current state, generate one new exact current-class packet from fresh production reality, consume Mission-scoped Operational Authority only if all hard gates pass, perform at most one write, verify/rollback, force final OPEN, close outcome/learning/maturity and recheck promotion. |
 | `CIRCUIT_BREAKER_REPOSITORY_STATE` | `IMPLEMENTATION_CERTIFIED_READ_ONLY` |
 | `CIRCUIT_BREAKER_PRODUCTION_STATE` | `DEPLOYED_CERTIFIED_OPEN` |
 | `CIRCUIT_BREAKER_PRODUCTION_CERTIFICATION` | `CIRCUIT_BREAKER_PRODUCTION_CERTIFIED` |
@@ -80,20 +80,20 @@ This section is the single live volatile current-state surface. Older production
 | `COMBINED_DEPLOY_ADMISSION` | `PASS; already deployed and revalidated, no duplicate runtime deploy required` |
 | `COMBINED_DEPLOY_REVALIDATION_REPORT` | `docs/reports/engineering/2026-07-11_063642_recovery_artifact_deploy_admission_and_circuit_breaker_phase3_continuation.md` |
 | `CONTROLLED_RUN_PREPARATION_REPORT` | `docs/reports/engineering/2026-07-11_094517_first_governed_omp_controlled_run_preparation.md` |
-| `CONTROLLED_RUN_CANDIDATE` | `NONE_OPEN; latest read-only evidence selected 10.7.0.32 wireguard-1779454504-c43409 -> awg0 but was discarded because promotion gates remained blocked` |
-| `CONTROLLED_RUN_PACKET_PREVIEW` | `NONE_OPEN; prior pkt_preview_ec8184d73f013b0d0cafe5c6 and Mission preview pkt_preview_d5be4fa4483ec7ac46ec4858 were evidence only and are not execution authority` |
-| `CONTROLLED_RUN_DECISION_ID` | `NONE_OPEN; latest evidence decision_commit_9611f5fbbb75168bcb70ba31 discarded without Authority` |
-| `CONTROLLED_RUN_OPERATION_ID` | `NONE_OPEN; latest evidence govdry_7ad366d1975c8d3903f40e8a not admitted` |
-| `CONTROLLED_RUN_SELECTED_MOVE_HASH` | `NONE_OPEN; latest evidence hash is non-authorizing provenance only` |
-| `CONTROLLED_RUN_AUTHORITY_GENERATION` | `NONE_OPEN; dry preview generation is not Authority` |
-| `CONTROLLED_RUN_SOURCE_BUNDLE_HASH` | `NONE_OPEN; regenerate from fresh production reality after readiness PASS` |
-| `CONTROLLED_RUN_SNAPSHOT_BUNDLE_HASH` | `NONE_OPEN; regenerate from fresh production reality after readiness PASS` |
-| `CONTROLLED_RUN_ROLLBACK_MANIFEST` | `NONE_OPEN; latest preview had exact rollback but was not admitted` |
-| `CONTROLLED_RUN_AUTHORITY_CLASS` | `NONE_CURRENT; Authority review is illegal while live readiness gates are blocked` |
+| `CONTROLLED_RUN_CANDIDATE` | `NONE_OPEN; all prior candidates are SUPERSEDED/HISTORICAL and cannot be reused` |
+| `CONTROLLED_RUN_PACKET_PREVIEW` | `NONE_OPEN; all prior packet previews are SUPERSEDED/HISTORICAL evidence only` |
+| `CONTROLLED_RUN_DECISION_ID` | `NONE_OPEN; regenerate only after fresh Candidate admission` |
+| `CONTROLLED_RUN_OPERATION_ID` | `NONE_OPEN; regenerate only after fresh Candidate admission` |
+| `CONTROLLED_RUN_SELECTED_MOVE_HASH` | `NONE_OPEN; regenerate only from fresh selected move` |
+| `CONTROLLED_RUN_AUTHORITY_GENERATION` | `MISSION_SCOPED_OPERATIONAL_AUTHORITY_AVAILABLE_CONDITIONALLY; no packet Authority exists before fresh admission` |
+| `CONTROLLED_RUN_SOURCE_BUNDLE_HASH` | `NONE_OPEN; regenerate from fresh production reality` |
+| `CONTROLLED_RUN_SNAPSHOT_BUNDLE_HASH` | `NONE_OPEN; regenerate from fresh production reality` |
+| `CONTROLLED_RUN_ROLLBACK_MANIFEST` | `NONE_OPEN; regenerate for the fresh exact operation` |
+| `CONTROLLED_RUN_AUTHORITY_CLASS` | `OPERATIONAL_AUTHORITY_CONDITIONAL_ONE_FRESH_MARGINAL_TIER1_TRANSACTION` |
 | `CONTROLLED_RUN_PACKET_EXPIRY` | `NOT_APPLICABLE; no packet materialized` |
 | `CONTROLLED_RUN_PHASE4A_RERUN_REPORT` | `docs/reports/engineering/2026-07-11_151253_first_governed_omp_controlled_run_preparation.md` |
-| `CONTROLLED_RUN_AUTHORITY_DECISION` | `NOT_GRANTED; conditional class-promotion Authority was not consumed and no packet-level execution Authority was created` |
-| `CONTROLLED_RUN_INVALIDATION_REASON` | `PROMOTION_GATES_NOT_ALL_PASS; retained previews discarded without mutation` |
+| `CONTROLLED_RUN_AUTHORITY_DECISION` | `MISSION_SCOPED_OPERATIONAL_AUTHORITY_PROVIDED_CONDITIONALLY; consume only after fresh exact packet and all hard pre-write gates PASS` |
+| `CONTROLLED_RUN_INVALIDATION_REASON` | `ALL_PRIOR_PREVIEWS_SUPERSEDED_BY_CURRENT_MISSION_FRESHNESS_REQUIREMENT` |
 | `CONTROLLED_RUN_AUTHORITY_ATTEMPT_REPORT` | `docs/reports/engineering/2026-07-11_161706_first_governed_omp_controlled_run_authority_revalidation_stop_safe.md` |
 | `CONTROLLED_WINDOW_CONTRACT` | `IMPLEMENTATION_CERTIFIED_READ_ONLY; operation_id + selected_move_hash + max_users=1 + source/snapshot + breaker generation + terminal OPEN` |
 | `CONTROLLED_WINDOW_REPOSITORY_STATE` | `IMPLEMENTATION_CERTIFIED` |
@@ -105,14 +105,14 @@ This section is the single live volatile current-state surface. Older production
 | `POST_CLOSED_REVALIDATION` | `CERTIFIED` |
 | `ALL_TERMINAL_PATHS_FINAL_OPEN` | `CERTIFIED` |
 | `CONTROLLED_RUN_EXECUTION_AUTHORIZED` | `NO` |
-| `OMP_CONTROLLED_RUN_ALLOWED` | `READ_ONLY_REVALIDATION_ONLY; execution prohibited while routing recommendation readiness is blocked` |
-| `CONTROLLED_RUN_PRIMARY_STOP` | `REAL_WORLD_LIMIT` |
-| `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `EXISTING_OWNER_EVIDENCE_READINESS` |
-| `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `NO; Authority cannot cure failed live readiness gates` |
+| `OMP_CONTROLLED_RUN_ALLOWED` | `ONE_FRESH_GOVERNED_TRANSACTION_CONDITIONALLY_ALLOWED_BY_CURRENT_MISSION; max_users=1; max_forward_apply_attempts=1; serial only` |
+| `CONTROLLED_RUN_PRIMARY_STOP` | `OPERATIONAL_AUTHORITY` |
+| `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `EXACT_ONE_TRANSACTION_OPERATIONAL_AUTHORITY` |
+| `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `YES_FOR_ONE_FRESH_MARGINAL_TIER1_TRANSACTION; not autonomy/class Authority` |
 | `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_NOT_CLOSED; exact current-class outcome remains absent` |
 | `PARENT_ENGINEERING_INTENT` | `INTENT_NOT_CLOSED` |
 | `ACTIVE_WIP_PROTECTED` | `TRUE; COMPLETION_FIRST; reorder forbidden` |
-| `PRODUCTION_RUNTIME_IMPACT` | `READ_ONLY_OWNER_DEPLOY_ONLY; no packet/lease/barrier, Safe Mode transition, Runtime apply, rollback or user movement.` |
+| `PRODUCTION_RUNTIME_IMPACT` | `PENDING_CONDITIONAL_ONE_TRANSACTION; no mutation performed at reconciliation stage` |
 | `AUTHORITY_IMPACT` | `NONE` |
 | `ROUTING_IMPACT` | `NONE` |
 | `USER_MOVEMENT` | `NO` |
@@ -146,7 +146,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `UNFINISHED_CAPABILITIES` | `22` |
 | `OPEN_ENGINEERING_INTENTS` | `22` |
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
-| `ACTIVE_MISSIONS` | `NONE`; complete routing lifecycle audit is terminal with implementation gaps closed, while `CAP-U01` remains protected active WIP at `OPERATIONAL_AUTHORITY`. |
+| `ACTIVE_MISSIONS` | `V7_OMP_CURRENT_STATE_RECONCILIATION_AND_U01_OUTCOME_CLOSURE_V1_20260711`; CAP-U01 remains protected active WIP at conditional one-transaction `OPERATIONAL_AUTHORITY`. |
 | `OPEN_CANDIDATE_IDS` | `NONE`; all observed packet previews are evidence only and discarded without Authority. |
 | `PRIOR_BDP_CANDIDATES` | `25` certified instances are terminal historical ladder evidence, not open work |
 | `BACKLOG_STATE` | `34/34 actionable COMPLETE`; no new backlog item |
@@ -163,7 +163,7 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U01-FIRST-GOVERNED-CONTROLLED-RUN` |
-| `active_mission_id` | `NONE; last mission V7_OMP_COMPLETE_ROUTING_LIFECYCLE_CLOSURE_V1_20260711 terminal COMPLETE_LIFECYCLE_AUDIT_GAPS_CLOSED_PROMOTION_DELTA_REMAINS` |
+| `active_mission_id` | `V7_OMP_CURRENT_STATE_RECONCILIATION_AND_U01_OUTCOME_CLOSURE_V1_20260711` |
 | `candidate_id` | `NONE_OPEN; latest preview discarded as evidence only` |
 | `protected_by_active_wip` | `TRUE` |
 | `wip_priority_class` | `COMPLETION_FIRST` |
@@ -242,7 +242,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `U01` Controlled Run WIP | protected active root; class-promotion revalidation found persistent routing-readiness blockers | wait for existing-owner readiness PASS, then generate a new exact packet | evidence readiness boundary | `REAL_WORLD_LIMIT`; `STOP_SAFE` on any mismatch | readiness PASS or legal stop -> OMP |
+| `1` | `U01` Controlled Run WIP | protected active root; candidate-scoped readiness PASS and implementation gaps closed | one new fresh exact packet under current Mission-scoped Operational Authority | one governed production outcome | `OPERATIONAL_AUTHORITY`; `STOP_SAFE` on any hard-gate or identity mismatch | outcome/learning/maturity/promotion -> CPS/OMP |
 | `4` | `U01` | only after explicit approval | one governed action | guarded Runtime | `STOP_SAFE` | apply/no-apply -> verification |
 | `5` | `U01/U05` | terminal safety | verification/rollback/mandatory final `OPEN` | guarded verification | `STOP_SAFE` | terminal result -> outcome closure |
 | `6` | `U07/U08/U22` | consumes real terminal result | outcome, learning and maturity closure | no-mutation learning | `REAL_WORLD_LIMIT` if no outcome | learning/maturity -> CPS/OMP |

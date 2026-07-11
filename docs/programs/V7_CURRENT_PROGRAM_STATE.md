@@ -2,21 +2,21 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-11T19:42:02+0700
-Source: Action-Class Promotion V2 reconciled current production evidence through existing owners. The exact class is resolved, nine historical movement certifications remain reusable, and decision stability remains certified. Canonical outcome stores contain no real current-class outcome, and fresh live revalidation still reports `routing_recommendation_readiness=BLOCKED`; therefore the optional certification transaction and class promotion were not admitted. No packet, lease, restore-barrier write, Runtime apply, rollback, user movement or Authority change occurred; Safe Mode v2 remains `OPEN`.
+State captured: 2026-07-11T20:13:07+0700
+Source: Complete routing lifecycle closure reused the existing Function Graph and lifecycle owners, closed stale Planner consumption, candidate/global readiness scope and non-executed outcome classification gaps, deployed commit `167fcb96`, and certified candidate-specific routing readiness `PASS`. A fresh one-user candidate reached `AUTHORITY_BOUNDARY`, but its confidence/trust/prediction remain below existing floors; no Mission mutation authority was activated. No lease, restore-barrier write, Runtime apply, rollback, user movement or Authority change occurred; Safe Mode v2 remains `OPEN`.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-11T19:42:02+0700`
+Captured: `2026-07-11T20:13:07+0700`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
 | Field | Current Value |
 | --- | --- |
 | `ACTIVE_PROGRAM` | `OMP` |
-| `CURRENT_MODE` | `CURRENT_ACTION_CLASS_PROMOTION_BLOCKED_EXACT_DELTA` |
+| `CURRENT_MODE` | `COMPLETE_ROUTING_LIFECYCLE_AUDIT_CLOSED_OPERATIONAL_AUTHORITY_REQUIRED` |
 | `ARCHITECTURE_STATE` | `STAGE_1_ACCEPTED_AND_LOCKED` |
 | `KNOWLEDGE_STATE` | `LOCKED_KNOWLEDGE` |
 | `ACTIVE_EXECUTION_OWNER` | `OMP` |
@@ -24,10 +24,10 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT` |
-| `CURRENT_ACTIVE_SCOPE` | `CURRENT_ACTION_CLASS_OUTCOME_AND_ROUTING_READINESS_EVIDENCE_CLOSURE` |
-| `CURRENT_SAFE_NEXT_ACTION` | `WAIT_FOR_OWNER_BACKED_ROUTING_RECOMMENDATION_READINESS; THEN RERUN FRESH CURRENT-CLASS PROMOTION EVALUATION` |
-| `CURRENT_SCOPE_CLASS` | `REAL_WORLD_LIMIT` |
+| `CURRENT_STOP_CONDITION` | `OPERATIONAL_AUTHORITY` |
+| `CURRENT_ACTIVE_SCOPE` | `ONE_FRESH_MARGINAL_TIER1_CURRENT_CLASS_TRANSACTION` |
+| `CURRENT_SAFE_NEXT_ACTION` | `REQUEST_EXACT_OPERATIONAL_APPROVAL; THEN GENERATE A NEW FRESH ONE-USER PACKET AND REVALIDATE ALL GATES BEFORE ANY WRITE` |
+| `CURRENT_SCOPE_CLASS` | `OPERATIONAL_AUTHORITY` |
 | `CURRENT_ACTION_CLASS` | `single-user governed candidate failover` |
 | `CURRENT_ACTION_CLASS_STATE` | `GOVERNED_ONLY` |
 | `CURRENT_ACTION_CLASS_IDENTITY` | `EXACT_CURRENT_CLASS_RESOLVED`; historical controlled/hard-failure/operator-driven movements remain supporting execution/safety evidence only and are not current decision authority. |
@@ -37,7 +37,12 @@ This section is the single live volatile current-state surface. Older production
 | `HISTORICAL_CERTIFICATION_NOT_AUTHORITY` | `decision-context certification, Action-Class Authority and delegated policy remain ungranted` |
 | `ACTION_CLASS_NON_CONSUMPTION_ROOT_CAUSE` | `CURRENT_CLASS_OUTCOME_ABSENT_AND_ROUTING_READINESS_BLOCKED; historical identity mapping is resolved for supporting dimensions but does not grant current decision authority` |
 | `ACTION_CLASS_PROMOTION_EVALUATION` | `PROMOTION_BLOCKED_WITH_EXACT_DELTA`; conditional Engineering Authority not consumed because live promotion gates did not pass. |
-| `ACTION_CLASS_EXACT_MISSING_DELTA` | `routing_recommendation_readiness must become PASS through existing owners (current blockers: service_user_sla_fit_not_clear, decision_outcome_closure_incomplete, recovery_admission_has_blocked_channels, freshness_not_actionable:capacity,service); then one real suitability-based single-user outcome and its learning consumption; explicit bounded class approval and existing-owner runtime policy binding` |
+| `ACTION_CLASS_EXACT_MISSING_DELTA` | `candidate-scoped routing readiness is PASS; one fresh marginal TIER_1 suitability-based single-user transaction still requires exact Operational Authority because confidence=38.71, trust=44.03 and prediction=39.60 are below existing floor 70; then verification, outcome/learning, maturity evaluation and promotion recheck` |
+| `COMPLETE_ROUTING_LIFECYCLE_REPORT` | `docs/reports/engineering/2026-07-11_201307_complete_routing_decision_execution_promotion_lifecycle_closure.md` |
+| `COMPLETE_ROUTING_LIFECYCLE_DEPLOY` | `commit 167fcb96465aaecba6e4611299422dae1f6e1f5c; deploy-z8-14-Updatesystem-167fcb9-20260711T201042; truth FULLY_ALIGNED` |
+| `ROUTING_READINESS_STATE` | `PASS_CANDIDATE_SCOPED; global inventory diagnostics are advisory_only and no longer cross-scope blockers` |
+| `ROUTING_LIFECYCLE_IMPLEMENTATION_GAPS` | `3 found; 3 closed; 0 remaining` |
+| `ROUTING_LIFECYCLE_COMPLETENESS` | `PASS; functions=872, call edges=2872, branches=4065, mutation entries=130, unconsumed required outputs=0, untested critical branches=0` |
 | `PACKET_APPROVAL_STILL_REQUIRED` | `YES; current class remains GOVERNED_ONLY` |
 | `CLASS_APPROVAL_READY` | `NO; do not repeat historical execution/blast/rollback ladder; current-class outcome is not the only remaining live delta` |
 | `DELEGATED_POLICY_ALREADY_VALID` | `NO` |
@@ -123,7 +128,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-11T19:42:02+0700`
+Generated At: `2026-07-11T20:13:07+0700`
 
 Runtime Authority: `NONE`
 
@@ -141,7 +146,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `UNFINISHED_CAPABILITIES` | `22` |
 | `OPEN_ENGINEERING_INTENTS` | `22` |
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
-| `ACTIVE_MISSIONS` | `NONE`; Action-Class Promotion V2 is terminal blocked, while `CAP-U01` remains protected active WIP. |
+| `ACTIVE_MISSIONS` | `NONE`; complete routing lifecycle audit is terminal with implementation gaps closed, while `CAP-U01` remains protected active WIP at `OPERATIONAL_AUTHORITY`. |
 | `OPEN_CANDIDATE_IDS` | `NONE`; all observed packet previews are evidence only and discarded without Authority. |
 | `PRIOR_BDP_CANDIDATES` | `25` certified instances are terminal historical ladder evidence, not open work |
 | `BACKLOG_STATE` | `34/34 actionable COMPLETE`; no new backlog item |
@@ -149,7 +154,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
 | `OMP_CONTINUATION_POINTER` | consume this registry; preserve active WIP; select the first unresolved sequence position only |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `WAIT_FOR_EXISTING_OWNER ROUTING_RECOMMENDATION_READINESS PASS; THEN RERUN FRESH CURRENT-CLASS PROMOTION EVALUATION` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `REQUEST EXACT OPERATIONAL AUTHORITY FOR ONE NEW FRESH MARGINAL TIER_1 CURRENT-CLASS TRANSACTION; REVALIDATE ALL GATES; NEVER REUSE THE AUDIT PREVIEW` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -158,18 +163,18 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U01-FIRST-GOVERNED-CONTROLLED-RUN` |
-| `active_mission_id` | `NONE; last mission V7_OMP_CURRENT_ACTION_CLASS_PROMOTION_V2_20260711 terminal PROMOTION_BLOCKED_WITH_EXACT_DELTA` |
+| `active_mission_id` | `NONE; last mission V7_OMP_COMPLETE_ROUTING_LIFECYCLE_CLOSURE_V1_20260711 terminal COMPLETE_LIFECYCLE_AUDIT_GAPS_CLOSED_PROMOTION_DELTA_REMAINS` |
 | `candidate_id` | `NONE_OPEN; latest preview discarded as evidence only` |
 | `protected_by_active_wip` | `TRUE` |
 | `wip_priority_class` | `COMPLETION_FIRST` |
 | `active_wip_reorder_allowed` | `FALSE` |
-| `current_primary_stop` | `REAL_WORLD_LIMIT` |
-| `responsibility_class` | `EXISTING_OWNER_EVIDENCE_READINESS` |
-| `authority_required_now` | `FALSE; current blockers must be closed by evidence owners before Authority review` |
-| `last_responsible_link` | existing routing-readiness owners -> all live gates PASS -> exact current-class real outcome -> learning -> bounded class authority |
+| `current_primary_stop` | `OPERATIONAL_AUTHORITY` |
+| `responsibility_class` | `EXACT_ONE_TRANSACTION_OPERATIONAL_AUTHORITY` |
+| `authority_required_now` | `TRUE; candidate readiness passes, but marginal TIER_1 execution requires explicit exact operational approval because autonomy floors do not pass` |
+| `last_responsible_link` | fresh exact marginal TIER_1 packet + Operational Authority -> one governed apply -> verification/outcome/learning -> maturity/promotion |
 | `responsible_owners` | Admin Safe Mode v2; `admin_core/operator_execution.py`; governed execution pipeline; packet/lease identity; autoswitch final gate; rollback, verification, outcome and learning owners |
 | `protected_objects` | Existing owners above; Phase 4A Candidate evidence lineage; current Circuit Breaker certification |
-| `smallest_existing_next_action` | wait for current owner-backed capacity/service/recovery readiness, then rerun fresh read-only promotion evaluation; do not reuse a packet |
+| `smallest_existing_next_action` | request exact Operational Authority; generate a new packet from fresh production reality; revalidate candidate readiness, floors, binding, rollback and verification; do not reuse the audit preview |
 | `completion_condition` | exact packet admitted, one governed action reaches verification/rollback, mandatory final `OPEN`, outcome/learning/maturity/CPS/OMP consumption, Parent Intent closed or legal terminal stop |
 
 ### Complete Or Locked Capability Records
@@ -197,7 +202,7 @@ The following joined table is the normalized live record. `Last link` represents
 
 | ID | Capability | Canonical owner | Status | Current % / source confidence | Last responsible link | Gap / stop | Smallest existing next action | Depends on / unblocks |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `CAP-U01` | First Governed Controlled Run | Admin Safe Mode, execution packet/lease/pipeline, OMP | `ACTIVE` | `NOT_APPLICABLE_WITH_REASON: instance chain` | routing readiness PASS -> fresh exact packet -> final live revalidation -> governed apply | `REAL_WORLD_LIMIT`; routing readiness blocked after owner refresh | wait for owner-backed readiness PASS, then rerun fresh promotion/transaction admission; preserve OPEN | first; unblocks U03/U04/U05/U07/U08/U09 |
+| `CAP-U01` | First Governed Controlled Run | Admin Safe Mode, execution packet/lease/pipeline, OMP | `ACTIVE` | `NOT_APPLICABLE_WITH_REASON: instance chain` | fresh exact marginal TIER_1 packet + Operational Authority -> governed apply | `OPERATIONAL_AUTHORITY`; candidate readiness PASS, confidence/trust/prediction below autonomy floors | request exact one-transaction authority, regenerate fresh packet, revalidate and preserve final OPEN | first; unblocks U03/U04/U05/U07/U08/U09 |
 | `CAP-U02` | Movement Protection | OMP, Movement Protection Model, Runtime Model | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting `83/78` | certified gates -> real bounded movement behavior/outcome | runtime/production evidence | finish U01, consume first real outcome, revalidate owner percent | U01/U03/U04/U05/U06; unblocks U09 |
 | `CAP-U03` | Runtime Eligibility | Runtime Model, A6, final execution gate | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting `71/61` | read-only execute/stop arbitration -> production execution consumer | runtime consumption; `UNSAFE_IMPLEMENTATION` through U01 | consume certified window/packet path, then production-verify exact gate | U01/U06; unblocks U02/U09 |
 | `CAP-U04` | Authority Evolution | OMP, authority policy, action-class ladder | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; historical safety layers reconciled | reusable historical execution/blast/rollback/outcome -> current suitability decision-context outcome -> owner authority decision | exact current-class outcome and class approval; future `ENGINEERING_AUTHORITY`, not current | finish U01 once; consume its outcome/learning; do not repeat historical proof ladder | U01/U07; unblocks U09 |
@@ -261,7 +266,7 @@ Independent read-only work may run in parallel only when OMP proves it cannot to
 | `REAL_WORLD_LIMIT_OR_EXCESSIVE_DECISION_CHURN` | Historical U01 stop; closed by owner-backed semantic binding and production stability certification. |
 | `OPERATIONAL_AUTHORITY` | Historical U01 packet boundary; no packet remains open after Action-Class Promotion V2 revalidation. |
 | `ENGINEERING_AUTHORITY` | Future U04 only if actual authority expansion is proposed after evidence. |
-| `REAL_WORLD_LIMIT` | Current U01 stop while owner-backed routing readiness is blocked; also applies to U06/U07/U18-U22 when required real candidates/outcomes do not exist. |
+| `REAL_WORLD_LIMIT` | Not the current U01 stop after lifecycle closure; remains valid for U06/U07/U18-U22 only when required real candidates/outcomes genuinely do not exist. |
 | `STOP_SAFE` | Any failed/unknown live Runtime, verification, rollback, freshness, identity or safety gate. |
 
 ### Owner Revalidation Requirements And Contradictions
@@ -273,7 +278,7 @@ Independent read-only work may run in parallel only when OMP proves it cannot to
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Initial Phase 4A report says `INTENT_BLOCKED_BY_ENGINEERING_AUTHORITY`; later implementation/certification closed the contract; old approval and churn stop are historical; semantic stability is production-certified | CPS/OMP current state | historical values `SUPERSEDED`; current boundary is `REAL_WORLD_LIMIT` because routing readiness remains blocked, while the controlled-run parent intent remains open until a real terminal outcome |
+| `CAP-CON-06` | Controlled Run responsibility | Initial Phase 4A report says `INTENT_BLOCKED_BY_ENGINEERING_AUTHORITY`; later implementation/certification closed the contract; old approval and churn stop are historical; semantic stability and candidate-scoped readiness are production-certified | CPS/OMP current state | historical values `SUPERSEDED`; current boundary is `OPERATIONAL_AUTHORITY` for one new exact marginal TIER_1 transaction; parent intent remains open until a real terminal outcome |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

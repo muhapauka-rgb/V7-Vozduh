@@ -908,7 +908,13 @@ def build_runtime_linkage(*, branch: str, commit: str, deploy_id: str) -> dict[s
     }
 
 
-def build_release_manifest(*, branch: str, commit: str, deploy_id: str) -> dict[str, Any]:
+def build_release_manifest(
+    *,
+    branch: str,
+    commit: str,
+    deploy_id: str,
+    service_restart_required: bool = False,
+) -> dict[str, Any]:
     return {
         "schema": "v7-release-manifest/v1",
         "created_at": utc_now(),
@@ -919,7 +925,7 @@ def build_release_manifest(*, branch: str, commit: str, deploy_id: str) -> dict[
         "runtime_linkage": "/opt/v7/runtime-linkage.json",
         "runtime_fingerprint": "/opt/v7/runtime-fingerprint.json",
         "rollback_manifest_required": True,
-        "service_restart_required": False,
+        "service_restart_required": bool(service_restart_required),
     }
 
 
@@ -1162,7 +1168,12 @@ def safe_deploy_plan(
 
     deploy_manifest = build_deploy_manifest(branch=branch, commit=commit, deploy_id=deploy_id)
     runtime_linkage = build_runtime_linkage(branch=branch, commit=commit, deploy_id=deploy_id)
-    release_manifest = build_release_manifest(branch=branch, commit=commit, deploy_id=deploy_id)
+    release_manifest = build_release_manifest(
+        branch=branch,
+        commit=commit,
+        deploy_id=deploy_id,
+        service_restart_required=bool(restart_admin_if_changed and changed_admin),
+    )
     planned_remote_paths = {
         "backup_root": f"/root/v7-deploy-backups/{deploy_id}",
         "release_dir": f"/opt/v7/ops/{deploy_id}",

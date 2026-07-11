@@ -68,6 +68,13 @@ class V7SyncToolsTest(unittest.TestCase):
         release = self.lib.build_release_manifest(branch="Updatesystem", commit="abc123", deploy_id="deploy-test")
         self.assertTrue(release["rollback_manifest_required"])
         self.assertFalse(release["service_restart_required"])
+        restart_release = self.lib.build_release_manifest(
+            branch="Updatesystem",
+            commit="abc123",
+            deploy_id="deploy-test-restart",
+            service_restart_required=True,
+        )
+        self.assertTrue(restart_release["service_restart_required"])
 
     def test_source_scan_rejects_force_push_literal(self):
         safety = self.lib.ensure_no_unsafe_tool_body([ROOT / "tools" / "v7-safe-push"])

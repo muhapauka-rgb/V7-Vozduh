@@ -207,9 +207,11 @@ All consumers resolve one stop, scope, action and Authority requirement. None co
 
 Implementation/CPS commit: `c777976699539b179cede53dba21b6da48c213f2`. Deploy integration closure commit: `de4ef591719ccb63529640f167433b2a91c74618`. Both were pushed to `origin/Updatesystem`.
 
+Full-prompt completion commit: `7cb0a443b8b681bebd72916100454259c12d095b`. It adds the normalized state builder, transaction-like atomic writer, CAP-U01/OMP/report validation and all 20 required tests. It was pushed to `origin/Updatesystem` and deployed as `deploy-z8-14-Updatesystem-7cb0a44-20260712T014223` without service restart.
+
 Safe-deploy dry run: `PASS`; allowlist `PASS`. Production deploy: `deploy-z8-14-Updatesystem-de4ef59-20260712T012025`; deployed files were only `v7_sync_lib.py` and `v7-truth-check`; service restart `false`. Repeated safe-deploy reported `changed=[]`.
 
-Final truth: `FULLY_ALIGNED`, blockers `0`. Convergence: `ALIGNED`, diagnosis `0`, deploy mismatches `0`. Mission identity: `MISSION_IDENTITY_MATCH`. CPS consistency: `ATOMIC_CPS_LIVE_STATE_CONSISTENT`, errors `0`. Production Safe Mode remains `OPEN` with unchanged generation `aec_a78732b833c8df6b509432b1`.
+Final truth: `FULLY_ALIGNED`, blockers `0`. Convergence: `ALIGNED`, diagnosis `0`, deploy mismatches `0`. Repeated deploy: `deployment_required=false`, changed files `0`. Mission identity: `MISSION_IDENTITY_MATCH`. CPS consistency: `PASS`, contradictions `0`, stale live projections `0`, registry/sequence `PASS`, Mission identity `PASS`, OMP pointer `PASS`. Production Safe Mode remains `OPEN` with unchanged generation `aec_a78732b833c8df6b509432b1`.
 
 ## Behavior And State Transition Closure
 
@@ -296,11 +298,11 @@ CURRENT_ACTION_CLASS_STATE = GOVERNED_ONLY
 OLD_PACKETS_REUSABLE = NO
 IMPLEMENTATION_CHANGED = YES
 DEPLOY_APPLIED = YES
-DEPLOY_ID = PENDING_FULL_PROMPT_DELTA_DEPLOY
+DEPLOY_ID = deploy-z8-14-Updatesystem-7cb0a44-20260712T014223
 TARGETED_TESTS = 73/73 PASS
 FULL_TESTS = 789/789 PASS
-TRUTH_RESULT = PENDING_FULL_PROMPT_DELTA_DEPLOY
-CONVERGENCE_RESULT = PENDING_FULL_PROMPT_DELTA_DEPLOY
+TRUTH_RESULT = FULLY_ALIGNED
+CONVERGENCE_RESULT = ALIGNED
 PACKET_CREATED = NO
 LEASE_CREATED = NO
 RESTORE_BARRIER_WRITTEN = NO
@@ -312,7 +314,7 @@ STATE_TRANSITION_RESULT = PASS
 AUTOMATIC_CONTINUE_OMP_EXECUTED = YES
 NEXT_CANONICAL_STOP = OPERATIONAL_AUTHORITY
 NEXT_OMP_ACTION = REQUEST_NEW_OPERATIONAL_AUTHORITY_THEN_GENERATE_FRESH_PACKET
-FINAL_VERDICT = PENDING_FULL_PROMPT_DELTA_DEPLOY
+FINAL_VERDICT = ATOMIC_CPS_RECONCILIATION_CERTIFIED_OPERATIONAL_AUTHORITY_READY
 ```
 
 `ATOMIC_CPS_RECONCILIATION_CERTIFIED_OPERATIONAL_AUTHORITY_READY`

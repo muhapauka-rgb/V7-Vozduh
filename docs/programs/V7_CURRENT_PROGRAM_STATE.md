@@ -2,21 +2,21 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-11T16:17:06+0700
-Source: exact Operational Authority was granted for the prepared Phase 4A packet, but mandatory pre-execution revalidation found source/snapshot drift. The approval was invalidated fail-closed before any state transition or execution command. The active Controlled Run remains protected and first; its next legal step is a fresh Phase 4A rerun. No active packet or lease was created, no restore barrier was written, and no Runtime apply, rollback or user movement occurred; Safe Mode v2 remains `OPEN`.
+State captured: 2026-07-11T17:18:00+0700
+Source: historical movement certifications were reconciled into the existing Action-Class Runtime Enablement owner. Nine real movement certifications prove reusable execution, blast-radius, verification, rollback/no-rollback and outcome layers through 48 actual users, but they do not certify the current suitability-based decision context or grant class/delegated Authority. The active Controlled Run remains protected and first; its next legal step remains a fresh Phase 4A rerun. No production mutation occurred; Safe Mode v2 remains `OPEN`.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-11T16:17:06+0700`
+Captured: `2026-07-11T17:18:00+0700`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
 | Field | Current Value |
 | --- | --- |
 | `ACTIVE_PROGRAM` | `OMP` |
-| `CURRENT_MODE` | `CONTROLLED_RUN_APPROVAL_INVALIDATED_STOP_SAFE` |
+| `CURRENT_MODE` | `HISTORICAL_CERTIFICATION_REUSE_RECONCILED_ACTIVE_WIP_PRESERVED` |
 | `ARCHITECTURE_STATE` | `STAGE_1_ACCEPTED_AND_LOCKED` |
 | `KNOWLEDGE_STATE` | `LOCKED_KNOWLEDGE` |
 | `ACTIVE_EXECUTION_OWNER` | `OMP` |
@@ -28,6 +28,20 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_ACTIVE_SCOPE` | `FIRST_GOVERNED_OMP_CONTROLLED_RUN_PHASE_4A_RERUN` |
 | `CURRENT_SAFE_NEXT_ACTION` | `RERUN_FIRST_GOVERNED_OMP_CONTROLLED_RUN_PHASE_4A_FROM_FRESH_EVIDENCE` |
 | `CURRENT_SCOPE_CLASS` | `STALE_APPROVAL_INVALIDATED_STOP_SAFE` |
+| `CURRENT_ACTION_CLASS` | `single-user governed candidate failover` |
+| `CURRENT_ACTION_CLASS_STATE` | `GOVERNED_ONLY` |
+| `CURRENT_ACTION_CLASS_IDENTITY` | `DECISION_CONTEXT_MISMATCH` against historical controlled/hard-failure/operator-driven movements; execution and safety layers are reusable, decision authority is not. |
+| `HISTORICAL_CERTIFICATIONS_REUSED` | `9 real movement certifications; 1, 1, 1, 2, 4, 5, 10, 25 and 48 actual users; provenance retained in existing reports` |
+| `HISTORICAL_CERTIFICATION_MAX_ACTUAL_USERS` | `48; XLARGE_BATCH budget 50 existed, but no exact 50-user real movement was proven` |
+| `HISTORICAL_CERTIFICATION_REUSABLE_LAYERS` | `execution path, bounded blast radius, verification, rollback/no-rollback, closed outcome` |
+| `HISTORICAL_CERTIFICATION_NOT_AUTHORITY` | `decision-context certification, Action-Class Authority and delegated policy remain ungranted` |
+| `ACTION_CLASS_NON_CONSUMPTION_ROOT_CAUSE` | `ACTION_CLASS_IDENTITY_NOT_MAPPED; existing owner previously consumed only limited E29 blast evidence and live outcome snapshots` |
+| `ACTION_CLASS_PROMOTION_EVALUATION` | `PROMOTION_BLOCKED_WITH_EXACT_DELTA` |
+| `ACTION_CLASS_EXACT_MISSING_DELTA` | `one real suitability-based single-user outcome for the current canonical class; its learning consumption; explicit class approval; approved delegated policy before autonomous Runtime` |
+| `PACKET_APPROVAL_STILL_REQUIRED` | `YES; current class remains GOVERNED_ONLY` |
+| `CLASS_APPROVAL_READY` | `NO; do not repeat historical execution/blast/rollback ladder, close only the current decision-context outcome first` |
+| `DELEGATED_POLICY_ALREADY_VALID` | `NO` |
+| `HISTORICAL_CERTIFICATION_RECONCILIATION_REPORT` | `docs/reports/engineering/2026-07-11_171800_historical_autonomy_certification_reuse_and_action_class_authority_reconciliation.md` |
 | `FORBIDDEN_FOR_CURRENT_SCOPE` | Reuse or execution of invalidated packet `pkt_preview_c6a5b48c9ee7a80d20859071`; reuse of its approval; Safe Mode `CLOSED`; active lease, restore-barrier write, Runtime apply, user movement, rollback apply, Authority/blast-radius expansion, systemd enable/start, or synthetic evidence. |
 | `REQUIRED_WORKFLOW` | Fresh Phase 4A evidence -> new exact packet/source/snapshot identity -> new operational approve/reject decision. The invalidated approval cannot be revived. |
 | `CIRCUIT_BREAKER_REPOSITORY_STATE` | `IMPLEMENTATION_CERTIFIED_READ_ONLY` |
@@ -75,7 +89,7 @@ This section is the single live volatile current-state surface. Older production
 | `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_NOT_CLOSED; approved packet legally stopped before execution` |
 | `PARENT_ENGINEERING_INTENT` | `INTENT_NOT_CLOSED` |
 | `ACTIVE_WIP_PROTECTED` | `TRUE; COMPLETION_FIRST; reorder forbidden` |
-| `PRODUCTION_RUNTIME_IMPACT` | `NONE_THIS_AUTHORITY_ATTEMPT; pre-execution read-only revalidation only; no packet/lease/barrier, Safe Mode change, Runtime apply, rollback or user movement.` |
+| `PRODUCTION_RUNTIME_IMPACT` | `NONE; historical evidence reconciliation is read-only; no packet/lease/barrier, Safe Mode change, Runtime apply, rollback or user movement.` |
 | `AUTHORITY_IMPACT` | `NONE` |
 | `ROUTING_IMPACT` | `NONE` |
 | `USER_MOVEMENT` | `NO` |
@@ -91,7 +105,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-11T16:17:06+0700`
+Generated At: `2026-07-11T17:18:00+0700`
 
 Runtime Authority: `NONE`
 
@@ -168,7 +182,7 @@ The following joined table is the normalized live record. `Last link` represents
 | `CAP-U01` | First Governed Controlled Run | Admin Safe Mode, execution packet/lease/pipeline, OMP | `ACTIVE` | `NOT_APPLICABLE_WITH_REASON: instance chain` | invalidated approved packet -> fresh Phase 4A candidate/packet revalidation | source/snapshot drift; `STOP_SAFE`; Authority `NO` | rerun Phase 4A from fresh evidence without execution | first; unblocks U03/U04/U05/U07/U08/U09 |
 | `CAP-U02` | Movement Protection | OMP, Movement Protection Model, Runtime Model | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting `83/78` | certified gates -> real bounded movement behavior/outcome | runtime/production evidence | finish U01, consume first real outcome, revalidate owner percent | U01/U03/U04/U05/U06; unblocks U09 |
 | `CAP-U03` | Runtime Eligibility | Runtime Model, A6, final execution gate | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting `71/61` | read-only execute/stop arbitration -> production execution consumer | runtime consumption; `UNSAFE_IMPLEMENTATION` through U01 | consume certified window/packet path, then production-verify exact gate | U01/U06; unblocks U02/U09 |
-| `CAP-U04` | Authority Evolution | OMP, authority policy, action-class ladder | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting capability and maturity values | certified action-class evidence -> owner authority decision | authority evidence; future `ENGINEERING_AUTHORITY`, not current | evaluate action-class authority only after first outcome closure | U01/U05/U07; unblocks U09 |
+| `CAP-U04` | Authority Evolution | OMP, authority policy, action-class ladder | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; historical safety layers reconciled | reusable historical execution/blast/rollback/outcome -> current suitability decision-context outcome -> owner authority decision | exact current-class outcome and class approval; future `ENGINEERING_AUTHORITY`, not current | finish U01 once; consume its outcome/learning; do not repeat historical proof ladder | U01/U07; unblocks U09 |
 | `CAP-U05` | Rollback | restore barrier, rollback manifest, execution feedback | `PARTIAL` | `49.0`; owner-backed | rollback preview/readiness -> production verification/rollback terminal outcome | production evidence; `STOP_SAFE` when unavailable | exercise exact rollback/no-rollback contract inside admitted U01 run | U01; unblocks U02/U03/U09 |
 | `CAP-U06` | Recovery Admission | recovery admission, B8/B9/B10, A6 | `PARTIAL` | `78.0`; owner-backed | B8/B9/B10 read-only output -> Runtime Eligibility production consumer | runtime integration/evidence | after U01 certification, production-certify recovery consumption when real candidate exists | U01/U03; may stop `REAL_WORLD_LIMIT`; unblocks U02/U09 |
 | `CAP-U07` | Learning | feedback/learning, OMP, Canonical Reference | `PARTIAL` | `63.0`; owner-backed | real governed outcome -> learning/confidence/future recommendation | real outcome gap | consume U01 terminal outcome without synthetic evidence | U01; unblocks U04/U08/U09/U18-U22 |

@@ -2137,6 +2137,12 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(enablement["runtime_capability_view"]["target_autonomy_mode"], "DELEGATED_AUTONOMY")
         self.assertEqual(enablement["enablement_readiness"]["stop_condition_if_promoted"], "AUTHORITY_BOUNDARY")
         self.assertIn("class-level authority_policy_approval", enablement["enablement_readiness"]["missing_evidence"])
+        self.assertNotIn("class-level blast_radius_certification", enablement["enablement_readiness"]["missing_evidence"])
+        self.assertNotIn("class-level rollback_or_no_rollback_certification", enablement["enablement_readiness"]["missing_evidence"])
+        self.assertIn("current-class suitability decision-context real outcome", enablement["enablement_readiness"]["missing_evidence"])
+        self.assertEqual(enablement["historical_certification_reuse"]["max_certified_user_count"], 48)
+        self.assertEqual(enablement["historical_certification_reuse"]["current_action_class_identity"], "DECISION_CONTEXT_MISMATCH")
+        self.assertEqual(enablement["promotion_recommendation"]["promotion_evaluation"], "PROMOTION_BLOCKED_WITH_EXACT_DELTA")
         self.assertNotIn(
             "missing_candidate_outcomes",
             " ".join(enablement["enablement_readiness"]["missing_evidence"]),
@@ -2273,6 +2279,24 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertFalse(certification["autonomy_enabled"])
         self.assertFalse(certification["new_owner_created"])
         self.assertFalse(certification["new_runtime_created"])
+
+    def test_historical_movement_certifications_reuse_layers_without_authority(self):
+        evidence = accel.build_historical_blast_radius_evidence(
+            generated_at="2026-07-11T00:00:00+00:00",
+        )
+
+        self.assertEqual(evidence["schema_version"], "v7.historical-blast-radius-evidence.v2")
+        self.assertEqual(evidence["historical_certifications_found"], 9)
+        self.assertEqual(evidence["real_movement_certifications_found"], 9)
+        self.assertEqual(evidence["max_certified_blast_radius_users"], 48)
+        self.assertEqual(evidence["current_action_class_identity"], "DECISION_CONTEXT_MISMATCH")
+        self.assertEqual(evidence["exact_current_class_real_outcomes"], 0)
+        self.assertTrue(evidence["reusable_dimensions"]["execution_path"])
+        self.assertTrue(evidence["reusable_dimensions"]["blast_radius"])
+        self.assertTrue(evidence["reusable_dimensions"]["rollback_or_no_rollback"])
+        self.assertFalse(evidence["reusable_dimensions"]["current_decision_context"])
+        self.assertFalse(evidence["authority_granted"])
+        self.assertFalse(evidence["runtime_apply_allowed"])
 
     def test_a5_class_level_blast_radius_certification_blocks_without_historical_proofs(self):
         certification = accel.build_class_level_blast_radius_certification(

@@ -59,6 +59,101 @@ ACTION_CLASS_LADDER = [
     ("pool-level movement", None, "NOT_CERTIFIED"),
 ]
 
+# Existing production evidence remains owned by its reports. This registry only
+# gives the current action-class owner stable provenance pointers and dimensions.
+HISTORICAL_MOVEMENT_CERTIFICATION_SOURCES = [
+    {
+        "certification_id": "E25.15",
+        "path": "BLOCK_E25_15_REFRESH_APPROVAL_PACKET_AFTER_REGISTRY_DRIFT_AND_RETRY_MOVEMENT_REPORT.md",
+        "date": "2026-05-28",
+        "users": 1,
+        "scenario": "operator_driven_bounded_movement",
+        "action_class": "single-user governed movement",
+        "rollback": "PASS",
+        "markers": ["first_operator_driven_movement_executed=true", "routing_mutation_limited_to_candidate=true"],
+    },
+    {
+        "certification_id": "E27.2",
+        "path": "BLOCK_E27_2_FIRST_TWO_USER_GOVERNED_MOVEMENT_REPORT.md",
+        "date": "2026-05-28",
+        "users": 2,
+        "scenario": "operator_driven_bounded_movement",
+        "action_class": "two-user governed movement",
+        "rollback": "PASS",
+        "markers": ["first_two_user_governed_movement_executed=true", "movement_budget=2"],
+    },
+    {
+        "certification_id": "E28.2",
+        "path": "BLOCK_E28_2_FIRST_SMALL_COHORT_GOVERNED_MOVEMENT_REPORT.md",
+        "date": "2026-05-29",
+        "users": 4,
+        "scenario": "operator_driven_bounded_movement",
+        "action_class": "small-cohort governed movement",
+        "rollback": "PASS",
+        "markers": ["first_small_cohort_governed_movement_executed=true", "movement_budget=4"],
+    },
+    {
+        "certification_id": "L3-ONE-USER-20260701",
+        "path": "docs/reports/engineering/2026-07-01_232858_execution_mission_success_l3_one_user_restored.md",
+        "date": "2026-07-01",
+        "users": 1,
+        "scenario": "failed_source_incident_failover",
+        "action_class": "channel hard-fail failover",
+        "rollback": "NOT_REQUIRED",
+        "markers": ["L3_PRODUCTION_PROVEN", "Users moved: `1`"],
+    },
+    {
+        "certification_id": "L3-INCIDENT-RETRY-20260702",
+        "path": "docs/reports/engineering/2026-07-02_211641_incident_retry_candidate_selection_fix.md",
+        "date": "2026-07-02",
+        "users": 1,
+        "scenario": "failed_source_incident_failover",
+        "action_class": "channel hard-fail failover",
+        "rollback": "NOT_REQUIRED",
+        "markers": ["\"users_moved\": 1", "\"verification_result\": \"PASS\""],
+    },
+    {
+        "certification_id": "PHASE3-SMALL-BATCH-20260703",
+        "path": "docs/reports/engineering/2026-07-03_001926_controlled_production_certification_program_execution.md",
+        "date": "2026-07-03",
+        "users": 5,
+        "scenario": "controlled_failed_source_incident",
+        "action_class": "small-batch movement",
+        "rollback": "NOT_REQUIRED",
+        "markers": ["Users moved: `5`", "Verification: `PASS` for all 5"],
+    },
+    {
+        "certification_id": "PHASE4-MEDIUM-BATCH-20260703",
+        "path": "docs/reports/engineering/2026-07-03_160522_phase4_medium_batch_certification_pass.md",
+        "date": "2026-07-03",
+        "users": 10,
+        "scenario": "controlled_failed_source_incident",
+        "action_class": "medium-batch movement",
+        "rollback": "NOT_REQUIRED",
+        "markers": ["`users_moved`: 10", "`verification_result`: PASS"],
+    },
+    {
+        "certification_id": "PHASE5-LARGE-BATCH-20260703",
+        "path": "docs/reports/engineering/2026-07-03_161914_phase5_large_batch_certification_pass.md",
+        "date": "2026-07-03",
+        "users": 25,
+        "scenario": "controlled_failed_source_incident",
+        "action_class": "large-batch movement",
+        "rollback": "NOT_REQUIRED",
+        "markers": ["users_moved: 25", "verification_result: PASS"],
+    },
+    {
+        "certification_id": "PHASE6-XLARGE-PARTIAL-20260703",
+        "path": "docs/reports/engineering/2026-07-03_183251_controlled_program_phase6_phase7_execution.md",
+        "date": "2026-07-03",
+        "users": 48,
+        "scenario": "controlled_failed_source_incident",
+        "action_class": "xlarge-batch movement",
+        "rollback": "NOT_REQUIRED",
+        "markers": ["users moved: `48`", "XLARGE_BATCH=50"],
+    },
+]
+
 ACTION_CLASS_FRESHNESS_WINDOWS = {
     "single-user governed candidate failover": {
         "service": 900,
@@ -2940,10 +3035,12 @@ def build_delegated_autonomy_runtime_eligibility(
 def build_historical_blast_radius_evidence(
     evidence_dir: Path | str | None = None,
     *,
+    report_root: Path | str | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
-    """Read existing historical scale proofs without treating them as authority."""
-    root = Path(evidence_dir) if evidence_dir is not None else Path("docs/track7/productization/e29-evidence")
+    """Read existing historical movement proofs without treating them as authority."""
+    repository_root = Path(report_root) if report_root is not None else Path(__file__).resolve().parents[1]
+    root = Path(evidence_dir) if evidence_dir is not None else repository_root / "docs/track7/productization/e29-evidence"
     files = {
         "scaling_review": root / "scaling-review.md",
         "governance_proof_matrix": root / "governance-proof-matrix.md",
@@ -2981,7 +3078,6 @@ def build_historical_blast_radius_evidence(
     scale_match = re.search(r"Current certified scale=(\d+) users", combined)
     if scale_match:
         certified_users.append(int(scale_match.group(1)))
-    max_certified = max(certified_users or [0])
     required_phrases = [
         "approval_packet_system_certified=true",
         "execution_time_recheck_certified=true",
@@ -2996,17 +3092,79 @@ def build_historical_blast_radius_evidence(
         "latest_runtime_checkers_ok=true",
     ]
     missing = [phrase for phrase in required_phrases if phrase not in combined]
+    certification_inventory = []
+    for source in HISTORICAL_MOVEMENT_CERTIFICATION_SOURCES:
+        path = repository_root / source["path"]
+        try:
+            report = path.read_text(encoding="utf-8")
+        except OSError:
+            report = ""
+        missing_markers = [marker for marker in source["markers"] if marker not in report]
+        valid = bool(report) and not missing_markers
+        if valid:
+            certified_users.append(int(source["users"]))
+        certification_inventory.append({
+            "certification_id": source["certification_id"],
+            "date": source["date"],
+            "real_or_read_only": "REAL_PRODUCTION_ACTION" if valid else "UNVERIFIED_POINTER",
+            "users": source["users"],
+            "action_class": source["action_class"],
+            "scenario": source["scenario"],
+            "policy": "existing governed movement / Authority / blast-radius / rollback policies",
+            "authority": "historical bounded operational authority",
+            "apply": "PASS" if valid else "NOT_PROVEN",
+            "verification": "PASS" if valid else "NOT_PROVEN",
+            "rollback": source["rollback"] if valid else "NOT_PROVEN",
+            "outcome": "CLOSED_SUCCESS" if valid else "NOT_PROVEN",
+            "learning": "SUPPORTING_OR_NOT_PROVEN_FOR_CURRENT_CLASS" if valid else "NOT_PROVEN",
+            "maturity": "SUPPORTING_EVIDENCE_ONLY",
+            "current_validity": "VALID_SUPPORTING_LAYER" if valid else "REVALIDATION_REQUIRED",
+            "current_class_match": "EXECUTION_ONLY_MATCH",
+            "reusable_dimensions": ["execution", "blast_radius", "verification", "rollback_or_no_rollback", "outcome"],
+            "not_reusable_as": ["current_decision_certification", "action_class_authority", "delegated_policy"],
+            "missing_markers": missing_markers,
+            "evidence": source["path"],
+        })
+    valid_certifications = [
+        row for row in certification_inventory
+        if row["current_validity"] == "VALID_SUPPORTING_LAYER"
+    ]
+    max_certified = max(certified_users or [0])
+    reusable_dimensions = {
+        "execution_path": bool(valid_certifications),
+        "blast_radius": any(int(row["users"]) >= 1 for row in valid_certifications),
+        "rollback_or_no_rollback": any(row["rollback"] in {"PASS", "NOT_REQUIRED"} for row in valid_certifications),
+        "verification": bool(valid_certifications),
+        "outcome": bool(valid_certifications),
+        "current_decision_context": False,
+        "action_class_authority": False,
+        "delegated_policy": False,
+    }
     return {
-        "schema_version": "v7.historical-blast-radius-evidence.v1",
+        "schema_version": "v7.historical-blast-radius-evidence.v2",
         "generated_at": generated_at or "",
         "owner": "docs/track7/productization/e29-evidence",
         "evidence_dir": str(root),
         "files_read": {name: str(path) for name, path in files.items() if contents.get(name)},
         "rows": rows,
+        "certification_inventory": certification_inventory,
+        "historical_certifications_found": len(certification_inventory),
+        "real_movement_certifications_found": len(valid_certifications),
         "max_certified_blast_radius_users": max_certified,
         "beyond_one_user_historical_evidence_exists": max_certified > 1,
         "required_historical_proofs_present": not missing,
         "missing_historical_proofs": missing,
+        "reusable_dimensions": reusable_dimensions,
+        "current_action_class": "single-user governed candidate failover",
+        "current_action_class_identity": "DECISION_CONTEXT_MISMATCH",
+        "exact_current_class_real_outcomes": 0,
+        "root_cause_of_non_consumption": "ACTION_CLASS_IDENTITY_NOT_MAPPED",
+        "exact_missing_delta": [
+            "real suitability-based single-user outcome for the current canonical action class",
+            "current-class learning consumption",
+            "explicit class approval",
+            "approved delegated policy before autonomous Runtime",
+        ],
         "evidence_role": "historical_certification_evidence_only",
         "authority_granted": False,
         "runtime_apply_allowed": False,
@@ -5680,6 +5838,7 @@ def build_action_class_runtime_enablement_model(
     autonomous_routing_evolution_program: dict[str, Any],
     hard_failure_classification: dict[str, Any] | None = None,
     action_class_freshness_windows: dict[str, Any] | None = None,
+    historical_certification_evidence: dict[str, Any] | None = None,
     packet_preview: dict[str, Any] | None = None,
     candidate: dict[str, Any] | None = None,
     generated_at: str | None = None,
@@ -5695,6 +5854,35 @@ def build_action_class_runtime_enablement_model(
         suitability_quality_model=suitability_quality_model,
         freshness_actionability=freshness_actionability,
     )
+    historical = historical_certification_evidence if isinstance(historical_certification_evidence, dict) else {}
+    reusable = historical.get("reusable_dimensions") if isinstance(historical.get("reusable_dimensions"), dict) else {}
+    historical_pointers = [
+        str(row.get("evidence") or "")
+        for row in (historical.get("certification_inventory") or [])
+        if isinstance(row, dict) and row.get("current_validity") == "VALID_SUPPORTING_LAYER"
+    ]
+    for pointer in historical_pointers:
+        _add_certification_signal(signal_taxonomy["categories"], "HISTORICAL_EVIDENCE", pointer)
+    if reusable.get("execution_path"):
+        _add_certification_signal(signal_taxonomy["categories"], "SUPPORTING_EVIDENCE", "historical_execution_path_certification_reused")
+    if reusable.get("blast_radius"):
+        _add_certification_signal(signal_taxonomy["categories"], "SUPPORTING_EVIDENCE", "historical_blast_radius_certification_reused")
+    if reusable.get("rollback_or_no_rollback"):
+        _add_certification_signal(signal_taxonomy["categories"], "SUPPORTING_EVIDENCE", "historical_rollback_or_no_rollback_certification_reused")
+    reusable_missing = {
+        "class-level blast_radius_certification": bool(reusable.get("blast_radius")),
+        "class-level rollback_or_no_rollback_certification": bool(reusable.get("rollback_or_no_rollback")),
+    }
+    mandatory = signal_taxonomy["categories"]["MANDATORY_CERTIFICATION_REQUIREMENT"]
+    signal_taxonomy["categories"]["MANDATORY_CERTIFICATION_REQUIREMENT"] = [
+        item for item in mandatory if not reusable_missing.get(item, False)
+    ]
+    if historical.get("current_action_class_identity") == "DECISION_CONTEXT_MISMATCH":
+        _add_certification_signal(
+            signal_taxonomy["categories"],
+            "MANDATORY_CERTIFICATION_REQUIREMENT",
+            "current-class suitability decision-context real outcome",
+        )
     hard_failure_state = str((hard_failure_classification or {}).get("classification") or "UNKNOWN")
     if hard_failure_state == "HARD_FAILURE_SUSPECTED":
         _add_certification_signal(signal_taxonomy["categories"], "RUNTIME_SAFETY_SIGNAL", "hard_failure_confirmation_required")
@@ -5771,6 +5959,18 @@ def build_action_class_runtime_enablement_model(
         },
         "states": ACTION_CLASS_ENABLEMENT_STATES,
         "certification_signal_taxonomy": signal_taxonomy,
+        "historical_certification_reuse": {
+            "source_schema": historical.get("schema_version", ""),
+            "certifications_found": historical.get("historical_certifications_found", 0),
+            "real_movement_certifications_found": historical.get("real_movement_certifications_found", 0),
+            "max_certified_user_count": historical.get("max_certified_blast_radius_users", 0),
+            "current_action_class_identity": historical.get("current_action_class_identity", "IDENTITY_UNRESOLVED"),
+            "reusable_dimensions": reusable,
+            "exact_missing_delta": list(historical.get("exact_missing_delta") or []),
+            "root_cause_of_non_consumption": historical.get("root_cause_of_non_consumption", "UNKNOWN_WITH_REASON"),
+            "authority_restored": False,
+            "promotion_performed": False,
+        },
         "program_wide_signal_taxonomy": CERTIFICATION_SIGNAL_CATEGORIES,
         "action_classes": class_rows,
         "current_action_class": first_class,
@@ -5829,6 +6029,11 @@ def build_action_class_runtime_enablement_model(
         },
         "promotion_recommendation": {
             "recommendation": "DO_NOT_ENABLE_RUNTIME_AUTOMATION",
+            "promotion_evaluation": (
+                "PROMOTION_BLOCKED_WITH_EXACT_DELTA"
+                if historical.get("current_action_class_identity") == "DECISION_CONTEXT_MISMATCH"
+                else "GOVERNED_ONLY_CORRECT"
+            ),
             "target_state": current["next_state"],
             "missing_evidence": missing_evidence,
             "supporting_evidence": signal_taxonomy["supporting_evidence"],
@@ -12121,6 +12326,7 @@ def build_acceleration_inventory(
     )
     surface_users = decision_surface.get("users") if isinstance(decision_surface.get("users"), list) else []
     first_candidate = surface_users[0] if surface_users and isinstance(surface_users[0], dict) else {}
+    historical_blast_radius_evidence = build_historical_blast_radius_evidence(generated_at=generated)
     action_class_runtime_enablement = build_action_class_runtime_enablement_model(
         canary_proximity=canary,
         candidate_outcome_reality_collection=candidate_outcome_reality_collection,
@@ -12131,10 +12337,10 @@ def build_acceleration_inventory(
         autonomous_routing_evolution_program=autonomous_routing_evolution_program,
         hard_failure_classification=hard_failure_classification,
         action_class_freshness_windows=action_class_freshness_windows,
+        historical_certification_evidence=historical_blast_radius_evidence,
         candidate=first_candidate,
         generated_at=generated,
     )
-    historical_blast_radius_evidence = build_historical_blast_radius_evidence(generated_at=generated)
     class_level_blast_radius_certification = build_class_level_blast_radius_certification(
         action_class_runtime_enablement=action_class_runtime_enablement,
         floor_forensics=floor_forensics,

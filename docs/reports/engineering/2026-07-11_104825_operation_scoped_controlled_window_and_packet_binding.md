@@ -1,7 +1,7 @@
 # Operation-Scoped Controlled Window And Packet Binding
 
-Дата: 2026-07-11T10:48:25+0700  
-Mission: `V7_OMP_CONTROLLED_WINDOW_AND_PACKET_BINDING_V1`  
+Дата: 2026-07-11T10:48:25+0700
+Mission: `V7_OMP_CONTROLLED_WINDOW_AND_PACKET_BINDING_V1`
 Режим: repository implementation и read-only certification; production mutation запрещена.
 
 ## Summary
@@ -14,7 +14,7 @@ Mission: `V7_OMP_CONTROLLED_WINDOW_AND_PACKET_BINDING_V1`
 
 Прочитаны Kernel, ECR, CPS section 0 и authoritative registry, OMP, Production Maturity, Canonical Reference, SYSTEM_MAP, Runtime/Decision models, backlog и два обязательных source reports. Code-level revalidation подтвердила gap в существующей цепочке Admin Safe Mode -> packet/lease -> pipeline -> governed coordinator -> autoswitch -> low-level switch. Новый owner, Runtime, Planner, Engine, lifecycle, capability, policy, roadmap или truth source не создан.
 
-`ARCHITECTURE_CLOSED_BY_DEFAULT = PASS`  
+`ARCHITECTURE_CLOSED_BY_DEFAULT = PASS`
 `NEW_OWNER_REQUIRED = NO`
 
 ## Existing Owners Reused

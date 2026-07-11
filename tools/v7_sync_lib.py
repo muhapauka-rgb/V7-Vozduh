@@ -19,6 +19,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional
@@ -28,10 +29,45 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "docs" / "track7" / "runtime-convergence" / "V7_TRUTH_MANIFEST.json"
 TRUTH_CHECK_PATH = ROOT / "tools" / "v7-truth-check"
 CPS_PATH = ROOT / "docs" / "programs" / "V7_CURRENT_PROGRAM_STATE.md"
+OMP_PATH = ROOT / "docs" / "programs" / "OPERATIONAL_MATURITY_PROGRAM.md"
 CANONICAL_BRANCH = "Updatesystem"
 REMOTE_NAME = "origin"
 DEPLOY_CONFIRMATION = "DEPLOY_V7_APPROVED"
 RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
+
+NORMALIZED_CPS_LIVE_STATE = {
+    "active_program": "OMP",
+    "current_mode": "OPERATION_SCOPED_BINDING_STABILITY_CERTIFIED",
+    "current_stop_condition": "OPERATIONAL_AUTHORITY",
+    "current_active_scope": "ONE_FRESH_CURRENT_CLASS_TRANSACTION",
+    "current_safe_next_action": "REQUEST NEW EXACT OPERATIONAL AUTHORITY; THEN GENERATE ONE NEW FRESH CURRENT-CLASS PACKET; NEVER REUSE HISTORICAL IDENTITIES",
+    "current_scope_class": "OPERATIONAL_AUTHORITY_BOUNDARY",
+    "current_mission_id": "V7_OMP_ATOMIC_CPS_RECONCILIATION_AND_CONSISTENCY_GUARD_V1",
+    "current_run_nonce": "V7_CPS_SYNC_V1_7F3C91A6D842",
+    "current_mission_state": "ATOMIC_CPS_RECONCILIATION_CERTIFIED_OPERATIONAL_AUTHORITY_READY",
+    "current_mission_report": "docs/reports/engineering/2026-07-12_011049_atomic_cps_live_state_reconciliation_and_consistency_guard.md",
+    "current_state_generation": "cpsgen_V7_CPS_SYNC_V1_7F3C91A6D842",
+    "current_transition_id": "BINDING_STABILITY_CERTIFIED_TO_OPERATIONAL_AUTHORITY_V1",
+    "current_next_action_id": "REQUEST_NEW_OPERATIONAL_AUTHORITY_THEN_GENERATE_FRESH_PACKET",
+    "binding_stability": "PASS",
+    "binding_schema": "v7.operation-scoped-source-binding.v2",
+    "routing_readiness_state": "PASS_CANDIDATE_SCOPED",
+    "authority_required_now": "YES",
+    "current_action_class": "single-user governed candidate failover",
+    "current_action_class_state": "GOVERNED_ONLY",
+    "old_packets_reusable": "NO",
+    "active_wip": "CAP-U01-FIRST-GOVERNED-CONTROLLED-RUN",
+    "responsibility_class": "EXACT_ONE_TRANSACTION_OPERATIONAL_AUTHORITY",
+    "last_responsible_link": "new exact Operational Authority -> fresh semantic Candidate -> stable operation-scoped binding v2 -> fresh packet admission -> one governed transaction -> verification/outcome/learning",
+    "smallest_existing_next_action": "request one new exact Mission-scoped Operational Authority; after approval generate a new fresh packet; never reuse old identities",
+    "parent_engineering_intent": "INTENT_NOT_CLOSED",
+}
+
+
+def normalized_cps_live_state(overrides: Optional[dict[str, str]] = None) -> dict[str, str]:
+    state = dict(NORMALIZED_CPS_LIVE_STATE)
+    state.update(overrides or {})
+    return state
 
 
 def _markdown_section(text: str, start: str, end: str = "") -> str:
@@ -57,7 +93,141 @@ def _markdown_field_table(section: str) -> dict[str, str]:
     return fields
 
 
-def cps_live_state_consistency(cps_text: str) -> dict[str, Any]:
+def _replace_section_field(text: str, start: str, end: str, key: str, value: str) -> str:
+    section = _markdown_section(text, start, end)
+    if not section:
+        raise ValueError(f"section_missing:{start}")
+    prefix = f"| `{key}` |"
+    matches = [line for line in section.splitlines() if line.startswith(prefix)]
+    if len(matches) != 1:
+        raise ValueError(f"field_missing_or_duplicate:{key}")
+    updated = section.replace(matches[0], f"| `{key}` | {value} |", 1)
+    return text.replace(section, updated, 1)
+
+
+def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]] = None) -> str:
+    """Build all CPS live projections from one normalized terminal result."""
+    state = normalized_cps_live_state(state)
+    live_values = {
+        "ACTIVE_PROGRAM": f"`{state['active_program']}`",
+        "CURRENT_MODE": f"`{state['current_mode']}`",
+        "CURRENT_STOP_CONDITION": f"`{state['current_stop_condition']}`",
+        "CURRENT_ACTIVE_SCOPE": f"`{state['current_active_scope']}`",
+        "CURRENT_SAFE_NEXT_ACTION": f"`{state['current_safe_next_action']}`",
+        "CURRENT_SCOPE_CLASS": f"`{state['current_scope_class']}`",
+        "CURRENT_STATE_GENERATION": f"`{state['current_state_generation']}`",
+        "CURRENT_TRANSITION_ID": f"`{state['current_transition_id']}`",
+        "CURRENT_NEXT_ACTION_ID": f"`{state['current_next_action_id']}`",
+        "CURRENT_MISSION_ID": f"`{state['current_mission_id']}`",
+        "CURRENT_RUN_NONCE": f"`{state['current_run_nonce']}`",
+        "CURRENT_MISSION_STATE": f"`{state['current_mission_state']}`",
+        "CURRENT_MISSION_REPORT": f"`{state['current_mission_report']}`",
+        "BINDING_STABILITY": f"`{state['binding_stability']}; 22 post-deploy read-only cycles, 10 consecutive stable Candidate cycles, zero unexplained mismatches, zero mixed-generation snapshots`",
+        "BINDING_SCHEMA": f"`{state['binding_schema']}; shared by preview, admission and low-level pre-mutation recheck`",
+        "ROUTING_READINESS_STATE": f"`{state['routing_readiness_state']}; global inventory diagnostics are advisory_only and no longer cross-scope blockers`",
+        "AUTHORITY_REQUIRED_NOW": "`YES; one new exact Operational Authority; no current Authority exists`",
+        "CURRENT_ACTION_CLASS": f"`{state['current_action_class']}`",
+        "CURRENT_ACTION_CLASS_STATE": f"`{state['current_action_class_state']}`",
+        "OLD_PACKETS_REUSABLE": f"`{state['old_packets_reusable']}`",
+        "CURRENT_CLASS_CANDIDATE_SELECTED": "`NONE_OPEN`",
+        "CURRENT_CLASS_OUTCOME": "`NO_ACTION`",
+        "CURRENT_CLASS_DELTA_CLOSED": "`NO`",
+        "PARENT_ENGINEERING_INTENT": f"`{state['parent_engineering_intent']}`",
+        "AUTOMATIC_CONTINUE_OMP_RESULT": "`EXECUTED; binding stability consumed; CAP-U01 preserved first; continuation reached OPERATIONAL_AUTHORITY; no packet or mutation created`",
+        "REQUIRED_WORKFLOW": "`request new exact Operational Authority; only after Authority discover fresh Candidate, generate fresh packet, revalidate all hard gates and execute at most one transaction`",
+        "OMP_CONTROLLED_RUN_ALLOWED": "`AUTHORITY_REQUEST_ONLY; no packet, lease, barrier or apply before a separate exact Operational Authority Mission`",
+        "CONTROLLED_RUN_PRIMARY_STOP": "`OPERATIONAL_AUTHORITY`",
+        "CONTROLLED_RUN_RESPONSIBILITY_CLASS": f"`{state['responsibility_class']}`",
+        "CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW": "`YES`",
+        "CONTROLLED_RUN_EXECUTION_AUTHORIZED": "`NO_CURRENT_AUTHORITY`",
+        "CONTROLLED_RUN_AUTHORITY_CLASS": "`NONE_CURRENT; new exact Operational Authority required now`",
+        "CONTROLLED_RUN_AUTHORITY_DECISION": "`NONE_CURRENT; previous admission Authority is terminal and non-reusable`",
+        "CONTROLLED_RUN_INVALIDATION_REASON": "`SUPERSEDED/HISTORICAL: SOURCE_SNAPSHOT_BUNDLE_DRIFT; gap closed by binding v2 certification`",
+    }
+    for key, value in live_values.items():
+        cps_text = _replace_section_field(
+            cps_text,
+            "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+            key,
+            value,
+        )
+
+    registry_values = {
+        "CURRENT_STATE_GENERATION": f"`{state['current_state_generation']}`",
+        "CURRENT_TRANSITION_ID": f"`{state['current_transition_id']}`",
+        "EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID": f"`{state['current_next_action_id']}`",
+        "CURRENT_STOP_CONDITION": f"`{state['current_stop_condition']}`",
+        "EXACT_CURRENT_SMALLEST_NEXT_ACTION": f"`{state['smallest_existing_next_action']}`",
+    }
+    for key, value in registry_values.items():
+        cps_text = _replace_section_field(
+            cps_text,
+            "### Registry Metadata And Truth Lifecycle",
+            "### Active Protected Work In Progress",
+            key,
+            value,
+        )
+
+    wip_values = {
+        "capability_id": f"`{state['active_wip']}`",
+        "current_state_generation": f"`{state['current_state_generation']}`",
+        "current_transition_id": f"`{state['current_transition_id']}`",
+        "smallest_existing_next_action_id": f"`{state['current_next_action_id']}`",
+        "current_primary_stop": f"`{state['current_stop_condition']}`",
+        "responsibility_class": f"`{state['responsibility_class']}`",
+        "authority_required_now": "`TRUE; new exact Mission-scoped Operational Authority required; no current Authority exists`",
+        "last_responsible_link": state["last_responsible_link"],
+        "smallest_existing_next_action": state["smallest_existing_next_action"],
+        "binding_stability": "`CERTIFIED`",
+        "completion_condition": "one governed action reaches verification/rollback, mandatory final `OPEN`, outcome/learning/maturity/CPS/OMP consumption",
+    }
+    for key, value in wip_values.items():
+        cps_text = _replace_section_field(
+            cps_text,
+            "### Active Protected Work In Progress",
+            "### Complete Or Locked Capability Records",
+            key,
+            value,
+        )
+
+    cap_section = _markdown_section(
+        cps_text,
+        "### Unfinished Capability Closure Records",
+        "### Open Engineering Intents And Last Responsible Links",
+    )
+    cap_rows = [line for line in cap_section.splitlines() if line.startswith("| `CAP-U01` |")]
+    if len(cap_rows) != 1:
+        raise ValueError("cap_u01_missing_or_duplicate")
+    cap_row = (
+        "| `CAP-U01` | First Governed Controlled Run | Admin Safe Mode, execution packet/lease/pipeline, OMP | `ACTIVE` | "
+        "`NOT_APPLICABLE_WITH_REASON: instance chain`; binding stability `CERTIFIED`; protected WIP `TRUE`; Authority required now `TRUE` | "
+        f"{state['last_responsible_link']} | `OPERATIONAL_AUTHORITY` | {state['smallest_existing_next_action']} | "
+        "first; completion requires verification/rollback, final OPEN, outcome/learning/maturity/CPS/OMP; unblocks U03/U04/U05/U07/U08/U09 |"
+    )
+    cps_text = cps_text.replace(cap_rows[0], cap_row, 1)
+
+    sequence = _markdown_section(cps_text, "### Deterministic Execution Sequence", "### Authority, Reality And Safety Stops")
+    rows = [line for line in sequence.splitlines() if line.startswith("| `1` |")]
+    if len(rows) != 1:
+        raise ValueError("sequence_position_1_missing_or_duplicate")
+    row = (
+        f"| `1` | `U01` Controlled Run WIP; `{state['current_state_generation']}`; `{state['current_transition_id']}` | "
+        "protected active root; binding v2 and candidate-scoped readiness certified; no packet or Authority open | "
+        f"`{state['current_next_action_id']}` | exact Operational Authority request only | `OPERATIONAL_AUTHORITY` | "
+        "after approval: fresh Candidate -> fresh packet -> final live revalidation -> one governed transaction -> "
+        "verification/rollback/final OPEN -> outcome/learning/maturity/promotion |"
+    )
+    return cps_text.replace(rows[0], row, 1)
+
+
+def cps_live_state_consistency(
+    cps_text: str,
+    *,
+    root: Path = ROOT,
+    omp_text: Optional[str] = None,
+    verify_external: bool = True,
+) -> dict[str, Any]:
     """Validate one atomic owner-backed CPS live projection across its consumers."""
     live = _markdown_field_table(_markdown_section(
         cps_text,
@@ -79,6 +249,11 @@ def cps_live_state_consistency(cps_text: str) -> dict[str, Any]:
         "### Deterministic Execution Sequence",
         "### Authority, Reality And Safety Stops",
     )
+    capabilities = _markdown_section(
+        cps_text,
+        "### Unfinished Capability Closure Records",
+        "### Open Engineering Intents And Last Responsible Links",
+    )
     errors: list[str] = []
     for name, fields in (("live", live), ("registry", registry), ("wip", wip)):
         if not fields:
@@ -94,6 +269,33 @@ def cps_live_state_consistency(cps_text: str) -> dict[str, Any]:
     ):
         if not value:
             errors.append(f"cps_{key.lower()}_missing")
+    normalized = normalized_cps_live_state()
+    exact_live = {
+        "ACTIVE_PROGRAM": normalized["active_program"],
+        "CURRENT_MODE": normalized["current_mode"],
+        "CURRENT_STOP_CONDITION": normalized["current_stop_condition"],
+        "CURRENT_ACTIVE_SCOPE": normalized["current_active_scope"],
+        "CURRENT_SCOPE_CLASS": normalized["current_scope_class"],
+        "CURRENT_MISSION_ID": normalized["current_mission_id"],
+        "CURRENT_RUN_NONCE": normalized["current_run_nonce"],
+        "CURRENT_MISSION_STATE": normalized["current_mission_state"],
+        "CURRENT_MISSION_REPORT": normalized["current_mission_report"],
+        "CURRENT_ACTION_CLASS": normalized["current_action_class"],
+        "CURRENT_ACTION_CLASS_STATE": normalized["current_action_class_state"],
+        "OLD_PACKETS_REUSABLE": normalized["old_packets_reusable"],
+        "PARENT_ENGINEERING_INTENT": normalized["parent_engineering_intent"],
+    }
+    for key, expected in exact_live.items():
+        if live.get(key, "").strip("`") != expected:
+            errors.append(f"cps_normalized_field_divergence:{key}")
+    for key, expected in (
+        ("BINDING_STABILITY", normalized["binding_stability"]),
+        ("BINDING_SCHEMA", normalized["binding_schema"]),
+        ("ROUTING_READINESS_STATE", normalized["routing_readiness_state"]),
+        ("AUTHORITY_REQUIRED_NOW", normalized["authority_required_now"]),
+    ):
+        if not live.get(key, "").strip("`").startswith(expected):
+            errors.append(f"cps_normalized_field_divergence:{key}")
     if generation and {
         generation,
         registry.get("CURRENT_STATE_GENERATION", ""),
@@ -115,24 +317,46 @@ def cps_live_state_consistency(cps_text: str) -> dict[str, Any]:
 
     stop = live.get("CURRENT_STOP_CONDITION", "").strip("`")
     wip_stop = wip.get("current_primary_stop", "").strip("`")
-    if stop != "OPERATIONAL_AUTHORITY" or wip_stop != stop:
+    registry_stop = registry.get("CURRENT_STOP_CONDITION", "").strip("`")
+    if stop != "OPERATIONAL_AUTHORITY" or wip_stop != stop or registry_stop != stop:
         errors.append("cps_current_stop_divergence")
     if not live.get("AUTHORITY_REQUIRED_NOW", "").strip("`").startswith("YES"):
         errors.append("cps_authority_required_not_yes")
     if not wip.get("authority_required_now", "").strip("`").startswith("TRUE"):
         errors.append("cps_wip_authority_required_not_true")
+    if wip.get("capability_id", "").strip("`") != normalized["active_wip"]:
+        errors.append("cps_active_wip_identity_divergence")
+    if wip.get("responsibility_class", "").strip("`") != normalized["responsibility_class"]:
+        errors.append("cps_wip_responsibility_class_divergence")
+    if wip.get("last_responsible_link", "") != normalized["last_responsible_link"]:
+        errors.append("cps_wip_last_responsible_link_divergence")
     if not live.get("BINDING_STABILITY", "").strip("`").startswith("PASS"):
         errors.append("cps_binding_stability_not_pass")
     if live.get("OLD_PACKETS_REUSABLE", "").strip("`") != "NO":
         errors.append("cps_old_packets_reusable")
-    if live.get("CURRENT_CLASS_OUTCOME", "").strip("`") != "ABSENT":
-        errors.append("cps_current_class_outcome_not_absent")
+    if live.get("CURRENT_CLASS_OUTCOME", "").strip("`") != "NO_ACTION":
+        errors.append("cps_current_class_outcome_not_no_action")
     if live.get("CURRENT_ACTION_CLASS_STATE", "").strip("`") != "GOVERNED_ONLY":
         errors.append("cps_action_class_state_divergence")
     if "OPERATIONAL_AUTHORITY" not in live.get("AUTOMATIC_CONTINUE_OMP_RESULT", ""):
         errors.append("cps_continue_omp_stop_divergence")
-    if "OPERATIONAL_AUTHORITY" not in live.get("OMP_CONTROLLED_RUN_ALLOWED", ""):
+    if not live.get("OMP_CONTROLLED_RUN_ALLOWED", "").strip("`").startswith("AUTHORITY_REQUEST_ONLY"):
         errors.append("cps_omp_consumption_divergence")
+    if live.get("CONTROLLED_RUN_EXECUTION_AUTHORIZED", "").strip("`") != "NO_CURRENT_AUTHORITY":
+        errors.append("cps_execution_authorized_without_current_authority")
+    if live.get("CONTROLLED_RUN_RESPONSIBILITY_CLASS", "").strip("`") != "EXACT_ONE_TRANSACTION_OPERATIONAL_AUTHORITY":
+        errors.append("cps_responsibility_class_divergence")
+    if live.get("CURRENT_ACTIVE_SCOPE", "").strip("`") == "ONE_FRESH_CURRENT_CLASS_TRANSACTION":
+        for key in (
+            "CONTROLLED_RUN_PACKET_PREVIEW",
+            "CONTROLLED_RUN_DECISION_ID",
+            "CONTROLLED_RUN_OPERATION_ID",
+            "CONTROLLED_RUN_SELECTED_MOVE_HASH",
+            "CONTROLLED_RUN_SOURCE_BUNDLE_HASH",
+            "CONTROLLED_RUN_SNAPSHOT_BUNDLE_HASH",
+        ):
+            if not live.get(key, "").strip("`").startswith("NONE_OPEN"):
+                errors.append(f"cps_historical_packet_identity_live:{key}")
 
     live_blob = "\n".join(live.values())
     stale_markers = (
@@ -151,8 +375,32 @@ def cps_live_state_consistency(cps_text: str) -> dict[str, Any]:
     sequence_rows = [line for line in sequence.splitlines() if line.startswith("| `1` |")]
     if len(sequence_rows) != 1:
         errors.append("cps_sequence_position_1_missing_or_duplicate")
-    elif not all(token in sequence_rows[0] for token in (generation, transition, next_action, "OPERATIONAL_AUTHORITY")):
-        errors.append("cps_sequence_position_1_divergence")
+    else:
+        sequence_cells = [cell.strip() for cell in sequence_rows[0].strip().strip("|").split("|")]
+        sequence_stop = sequence_cells[5].strip("`") if len(sequence_cells) > 5 else ""
+        if sequence_stop != stop or not all(token in sequence_rows[0] for token in (generation, transition, next_action)):
+            errors.append("cps_sequence_position_1_divergence")
+
+    cap_rows = [line for line in capabilities.splitlines() if line.startswith("| `CAP-U01` |")]
+    cap_u01 = cap_rows[0] if len(cap_rows) == 1 else ""
+    if len(cap_rows) != 1:
+        errors.append("cps_cap_u01_missing_or_duplicate")
+    else:
+        cap_cells = [cell.strip() for cell in cap_u01.strip().strip("|").split("|")]
+        cap_stop = cap_cells[6].strip("`") if len(cap_cells) > 6 else ""
+        cap_action = cap_cells[7] if len(cap_cells) > 7 else ""
+        if cap_stop != "OPERATIONAL_AUTHORITY":
+            errors.append("cps_cap_u01_stop_divergence")
+        if "binding stability `CERTIFIED`" not in cap_u01 or "protected WIP `TRUE`" not in cap_u01:
+            errors.append("cps_cap_u01_binding_not_certified")
+        if "bundle drifted" in cap_u01 or "diagnose existing binding" in cap_u01:
+            errors.append("cps_cap_u01_unresolved_binding_drift")
+        if "request one new exact Mission-scoped Operational Authority" not in cap_action:
+            errors.append("cps_cap_u01_next_action_divergence")
+        if wip.get("smallest_existing_next_action", "") != cap_action:
+            errors.append("cps_wip_cap_u01_next_action_divergence")
+        if "final OPEN" not in cap_u01 or "outcome/learning/maturity/CPS/OMP" not in cap_u01:
+            errors.append("cps_cap_u01_completion_divergence")
 
     historical = _markdown_section(cps_text, "## 1. Historical / Capability State Summary")
     prohibited_headings = []
@@ -165,11 +413,56 @@ def cps_live_state_consistency(cps_text: str) -> dict[str, Any]:
     if prohibited_headings:
         errors.append("cps_historical_current_looking_headings")
 
+    mission_identity_consistency = "NOT_CHECKED"
+    omp_pointer_consistency = "NOT_CHECKED"
+    if verify_external:
+        report_ref = live.get("CURRENT_MISSION_REPORT", "").strip("`")
+        report_path = root / report_ref
+        try:
+            report_lines = report_path.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            report_lines = []
+        expected_id = f"Mission ID: `{live.get('CURRENT_MISSION_ID', '').strip('`')}`"
+        expected_nonce = f"Run Nonce: `{live.get('CURRENT_RUN_NONCE', '').strip('`')}`"
+        if len(report_lines) < 2 or report_lines[0] != expected_id or report_lines[1] != expected_nonce:
+            errors.append("cps_current_mission_report_identity_mismatch")
+            mission_identity_consistency = "FAIL"
+        else:
+            mission_identity_consistency = "PASS"
+        if omp_text is None:
+            try:
+                omp_text = (root / "docs" / "programs" / "OPERATIONAL_MATURITY_PROGRAM.md").read_text(encoding="utf-8")
+            except OSError:
+                omp_text = ""
+        if (
+            report_ref
+            and report_ref in omp_text
+            and live.get("CURRENT_MISSION_STATE", "").strip("`") in omp_text
+            and "Live continuation and the current Operational Authority stop are owned only by CPS" in omp_text
+        ):
+            omp_pointer_consistency = "PASS"
+        else:
+            errors.append("cps_omp_pointer_mismatch")
+            omp_pointer_consistency = "FAIL"
+
+    unique_errors = sorted(set(errors))
+    stale_ids = [
+        item for item in unique_errors
+        if "stale" in item or "historical" in item or "unresolved_binding_drift" in item
+    ]
+
     return {
         "schema": "v7-cps-live-state-consistency/v1",
-        "final_verdict": "PASS" if not errors else "NO-GO",
-        "status": "ATOMIC_CPS_LIVE_STATE_CONSISTENT" if not errors else "CPS_LIVE_STATE_CONTRADICTION_STOP_SAFE",
-        "errors": sorted(set(errors)),
+        "final_verdict": "PASS" if not unique_errors else "NO-GO",
+        "status": "ATOMIC_CPS_LIVE_STATE_CONSISTENT" if not unique_errors else "CURRENT_STATE_CONSISTENCY_FAIL",
+        "current_state_consistency": "PASS" if not unique_errors else "FAIL",
+        "contradiction_count": len(unique_errors),
+        "contradiction_ids": unique_errors,
+        "stale_live_projection_count": len(stale_ids),
+        "registry_sequence_consistency": "PASS" if not any("sequence" in item or "cap_u01" in item or "next_action" in item for item in unique_errors) else "FAIL",
+        "mission_identity_consistency": mission_identity_consistency,
+        "omp_pointer_consistency": omp_pointer_consistency,
+        "errors": unique_errors,
         "current_state_generation": generation,
         "current_transition_id": transition,
         "current_next_action_id": next_action,
@@ -179,6 +472,7 @@ def cps_live_state_consistency(cps_text: str) -> dict[str, Any]:
         "active_wip_fields": len(wip),
         "historical_current_looking_headings": prohibited_headings,
         "sequence_position_1": sequence_rows[0] if len(sequence_rows) == 1 else "",
+        "cap_u01": cap_u01,
     }
 
 
@@ -193,6 +487,108 @@ def current_cps_consistency(path: Path = CPS_PATH) -> dict[str, Any]:
             "errors": ["cps_unreadable"],
         }
     return cps_live_state_consistency(text)
+
+
+def atomic_reconcile_cps(
+    path: Path = CPS_PATH,
+    *,
+    state: Optional[dict[str, str]] = None,
+    replace_func: Callable[[str, str], None] = os.replace,
+    post_write_hook: Optional[Callable[[Path], None]] = None,
+) -> dict[str, Any]:
+    """Render, validate, atomically replace, reread, and rollback CPS on failure."""
+    try:
+        original = path.read_text(encoding="utf-8")
+        candidate = build_normalized_cps_document(original, state)
+    except (OSError, ValueError) as exc:
+        return {
+            "ok": False,
+            "status": "CURRENT_STATE_CONSISTENCY_FAIL",
+            "errors": [f"cps_render_failed:{exc}"],
+            "previous_state_preserved": True,
+        }
+    precheck = cps_live_state_consistency(candidate, verify_external=False)
+    if precheck.get("final_verdict") != "PASS":
+        return {
+            "ok": False,
+            "status": "CURRENT_STATE_CONSISTENCY_FAIL",
+            "errors": precheck.get("errors") or [],
+            "previous_state_preserved": True,
+        }
+
+    temp_name = ""
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=str(path.parent),
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temp_name = handle.name
+            handle.write(candidate)
+            handle.flush()
+            os.fsync(handle.fileno())
+        replace_func(temp_name, str(path))
+        temp_name = ""
+        if post_write_hook:
+            post_write_hook(path)
+    except OSError as exc:
+        if temp_name:
+            try:
+                Path(temp_name).unlink()
+            except OSError:
+                pass
+        return {
+            "ok": False,
+            "status": "CPS_ATOMIC_WRITE_FAILED",
+            "errors": [str(exc)],
+            "previous_state_preserved": path.read_text(encoding="utf-8") == original,
+        }
+
+    try:
+        reread = path.read_text(encoding="utf-8")
+    except OSError:
+        reread = ""
+    postcheck = cps_live_state_consistency(reread, verify_external=False)
+    if reread != candidate or postcheck.get("final_verdict") != "PASS":
+        rollback_name = ""
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                dir=str(path.parent),
+                prefix=f".{path.name}.rollback.",
+                suffix=".tmp",
+                delete=False,
+            ) as handle:
+                rollback_name = handle.name
+                handle.write(original)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(rollback_name, str(path))
+            rollback_name = ""
+        finally:
+            if rollback_name:
+                try:
+                    Path(rollback_name).unlink()
+                except OSError:
+                    pass
+        return {
+            "ok": False,
+            "status": "CPS_POST_WRITE_REREAD_FAILED_ROLLED_BACK",
+            "errors": postcheck.get("errors") or ["cps_post_write_content_mismatch"],
+            "previous_state_preserved": path.read_text(encoding="utf-8") == original,
+        }
+    return {
+        "ok": True,
+        "status": "ATOMIC_CPS_UPDATE_APPLIED",
+        "errors": [],
+        "previous_state_preserved": False,
+        "post_write_reread": "PASS",
+        "consistency": postcheck,
+    }
 
 APPROVED_DEPLOY_FILES = [
     {

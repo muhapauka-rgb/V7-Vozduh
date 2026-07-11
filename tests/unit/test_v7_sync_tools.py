@@ -66,7 +66,7 @@ class V7SyncToolsTest(unittest.TestCase):
         self.assertIn("cps_generation_divergence", result["errors"])
 
         stale_surface = cps.replace(
-            "`OPERATIONAL_AUTHORITY_REQUEST_ONLY; no packet, admission or mutation in the current Mission`",
+            "`AUTHORITY_REQUEST_ONLY; no packet, lease, barrier or apply before a separate exact Operational Authority Mission`",
             "`READ_ONLY_BINDING_DIAGNOSIS_ONLY`",
             1,
         )

@@ -50,7 +50,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertIn("cps_old_packets_reusable", self.validate(drift)["errors"])
 
     def test_06_current_mission_report_identity_mismatch_fails(self):
-        drift = self.cps.replace("2026-07-12_011049_atomic_cps_live_state_reconciliation_and_consistency_guard.md", "missing-report.md", 1)
+        drift = self.cps.replace("2026-07-12_015221_omp_live_state_pointer_and_historical_stop_guard.md", "missing-report.md", 1)
         self.assertIn("cps_current_mission_report_identity_mismatch", self.validate(drift)["errors"])
 
     def test_07_registry_stop_differs_from_section_zero_fails(self):

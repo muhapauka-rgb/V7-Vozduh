@@ -13,7 +13,7 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed closure evidence: `docs/reports/engineering/2026-07-12_011049_atomic_cps_live_state_reconciliation_and_consistency_guard.md` (`ATOMIC_CPS_RECONCILIATION_CERTIFIED_OPERATIONAL_AUTHORITY_READY`). Its transition input is the accepted binding report `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`. Live continuation and the current Operational Authority stop are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
+Latest consumed closure evidence: `docs/reports/engineering/2026-07-12_015221_omp_live_state_pointer_and_historical_stop_guard.md` (`OMP_LIVE_STATE_POINTER_RECONCILED_OPERATIONAL_AUTHORITY_READY`). Its transition input is the accepted CPS reconciliation report `docs/reports/engineering/2026-07-12_011049_atomic_cps_live_state_reconciliation_and_consistency_guard.md`. Live continuation and the current Operational Authority stop are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
 V4 operating questions:
 
@@ -4587,6 +4587,13 @@ PRODUCTION_AUTONOMY_CERTIFIED
 
 OMP must print this block after every execution:
 
+### 2.12.2.1 Historical Production Status Example
+
+Classification: `HISTORICAL_EXAMPLE`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
+
 ```text
 V7 PRODUCTION STATUS
 
@@ -4666,6 +4673,10 @@ None for actionable implementation backlog
 Expected Next Milestone
 80%: Runtime Production Ready
 ```
+
+### 2.12.2.2 Permanent Production Status Rules
+
+Classification: `PERMANENT_RULE`.
 
 Progress calculation must be automatic.
 The displayed percentage must come from `docs/reference/V7_PRODUCTION_MATURITY_MODEL.md`.
@@ -5870,7 +5881,14 @@ Product Specification
 
 Nothing else is loaded unless OMP maps the current item to a specific owner or a re-open trigger fires.
 
-Current implementation optimizer result:
+### 2.12.3.2 Historical Implementation And Certification Trace
+
+Classification: `HISTORICAL_MILESTONE`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
+
+Historical implementation optimizer result:
 
 | Field | Current Value |
 | --- | --- |
@@ -6271,6 +6289,10 @@ Current System State
 
 Classification: `HISTORICAL_SNAPSHOT`.
 
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
+
 This section preserves an earlier recalculated OMP state. It must not be consumed as authoritative live current state unless the same value is present in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
 Live current state is resolved only from CPS.
@@ -6291,6 +6313,10 @@ Historical field names preserve snapshot terminology only. Live volatile state m
 ## 6. Historical Highest Bottleneck Snapshot
 
 Classification: `HISTORICAL_SNAPSHOT`.
+
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
 
 Live highest bottleneck is resolved only from `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
@@ -6315,6 +6341,10 @@ After every certification, classify bottlenecks across `Architecture`, `Knowledg
 ## 7. Historical Highest Implementation Leverage Snapshot
 
 Classification: `HISTORICAL_SNAPSHOT`.
+
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
 
 Live HIL is resolved only from `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
@@ -6385,6 +6415,10 @@ The current implementation-first optimizer must fix approved plan lock consumpti
 
 Classification: `HISTORICAL_SNAPSHOT`.
 
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
+
 Live authority class is resolved only from `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
 | Field | Current Value |
@@ -6411,6 +6445,10 @@ Current production evidence:
 ## 9. Historical Reality Limit Snapshot
 
 Classification: `HISTORICAL_SNAPSHOT`.
+
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
 
 Live reality limit is resolved only from `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
@@ -7398,7 +7436,12 @@ Permanent operator command surface:
 
 These commands are sufficient for future production operation unless a real implementation proves `FUNDAMENTAL_ARCHITECTURE_GAP`.
 
-## 16. Program Health
+## 16. Historical Program Health Snapshot
+
+Classification: `HISTORICAL_SNAPSHOT`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
 
 | Health Dimension | Current Value | Notes |
 | --- | --- | --- |
@@ -7411,6 +7454,11 @@ These commands are sufficient for future production operation unless a real impl
 | Current optimization velocity | `OPERATIONAL_AUTHORITY_AFTER_SAFE_REFRESH` | Safe service/quality/snapshot refresh completed through existing owners; real candidate outcome gain needs exact packet approval. |
 
 ## 17. Historical Phase Anchor
+
+Classification: `HISTORICAL_SNAPSHOT`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
 
 `GOVERNED_CANDIDATE_OUTCOME_EXECUTION_AND_CLOSURE`
 
@@ -7425,6 +7473,11 @@ Reason:
 The final architecture certification says V7 has no fundamental architecture gap. The governed dry-run reaches `OPERATIONAL_AUTHORITY` with packet preview, restore/rollback preview, verification plan, outcome closure plan, and learning path connected. The next maturity gain requires real governed candidate outcome evidence.
 
 ## 18. Historical Objective
+
+Classification: `HISTORICAL_SNAPSHOT`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
 
 Use existing owners to create and close one real governed candidate outcome only after explicit operator authority.
 
@@ -7455,6 +7508,8 @@ No autonomous apply is approved by this program state.
 
 ## 20. Stop Conditions
 
+Classification: `PERMANENT_RULE`.
+
 Only these stop conditions are allowed:
 
 1. `OPERATIONAL_AUTHORITY`
@@ -7465,11 +7520,18 @@ Only these stop conditions are allowed:
 
 Legacy raw `AUTHORITY_BOUNDARY` may appear in older reports or compatibility tool output, but OMP must normalize it before presenting status.
 
-Current blocker:
+### 20.1 Historical Stop Conditions Snapshot
+
+Classification: `HISTORICAL_SNAPSHOT`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
+
+Historical blocker:
 
 `UNSAFE_IMPLEMENTATION`
 
-Details:
+Historical details:
 
 - approval-to-execution lease binding is fixed, tested, deployed, and verified;
 - operator approved exact packet `pkt_preview_4eb137c926917c2761faadb4`;
@@ -7479,6 +7541,18 @@ Details:
 - guarded apply failed closed before movement because the existing autoswitch owner lost the approved selected move at the intelligence snapshot gate;
 - no additional operator approval is useful until this owner defect is fixed;
 - no new owner is required.
+
+### 20.2 Current Stop Reference
+
+Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
+Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `CPS_ONLY`
+Execution Authority: `NONE`
+Resolved current stop: `OPERATIONAL_AUTHORITY`
+Resolved current next action: `REQUEST_NEW_OPERATIONAL_AUTHORITY_THEN_GENERATE_FRESH_PACKET`
+Resolved packet: `NONE_OPEN`
+
+These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
 ## 21. Phase History
 
@@ -7503,6 +7577,10 @@ Details:
 ## 22. Historical Next Best Action Snapshot
 
 Classification: `HISTORICAL_SNAPSHOT`.
+
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
 
 Live next best action is resolved only from `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
@@ -7544,6 +7622,10 @@ If daemon, timer, event consumer mutation, autonomous execution, action-class ex
 
 Classification: `HISTORICAL_SNAPSHOT`.
 
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
+
 These entry criteria are preserved as historical evidence for the corresponding snapshot. Live entry criteria must be taken from CPS, an admitted Mission, or the current owner-backed OMP decision.
 
 | Entry Criterion | Required |
@@ -7560,6 +7642,10 @@ These entry criteria are preserved as historical evidence for the corresponding 
 ## 24. Historical Program Certification Snapshot
 
 Classification: `HISTORICAL_SNAPSHOT`.
+
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
 
 This table preserves a prior OMP certification/status view. Live certification and blocker values are resolved from CPS and the latest accepted owner evidence.
 
@@ -8018,7 +8104,14 @@ Dashboard sections:
 | Transition Explanation | Current stage -> Produced capability -> Why next stage unlocked -> Why later stages remain blocked. | OMP Capability Transition Contract. |
 | Capability Quality Future View | Capability Quality, Confidence, Readiness, Reliability as reserved read-model fields only. | Future existing-owner read models; no score until certified. |
 
-Current dashboard snapshot:
+### 24.3.1 Historical Dashboard Snapshot
+
+Classification: `HISTORICAL_SNAPSHOT`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
+
+Historical dashboard snapshot:
 
 | Area | Current display |
 | --- | --- |
@@ -8056,7 +8149,7 @@ Engineering Intelligence dashboard:
 | Validation | `UNDERSTOOD_PARTIAL_VALIDATION` | Engineering Intelligence Phase 2 owners. |
 | Adaptation | `ADAPTIVE_ENGINEERING_READY_IMPLEMENTATION_FUTURE` | Engineering Intelligence Phase 3 owners. |
 
-Current stop gates dashboard:
+Historical stop gates dashboard:
 
 | Gate | Display status | Why |
 | --- | --- | --- |
@@ -8077,6 +8170,10 @@ Capability quality future view:
 | Capability Confidence | `RESERVED_READ_MODEL_ONLY` | May display existing confidence only; cannot become authority. |
 | Capability Readiness | `RESERVED_READ_MODEL_ONLY` | May display readiness from canonical owners only. |
 | Capability Reliability | `RESERVED_READ_MODEL_ONLY` | May display reliability after verification/certification evidence exists. |
+
+### 24.3.2 Permanent Dashboard Rules
+
+Classification: `PERMANENT_RULE`.
 
 Dashboard rules:
 
@@ -8435,6 +8532,14 @@ using only real historical evidence.
 
 ## 26. Current Volatile State Pointer
 
+Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
+Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `CPS_ONLY`
+Execution Authority: `NONE`
+Resolved current stop: `OPERATIONAL_AUTHORITY`
+Resolved current next action: `REQUEST_NEW_OPERATIONAL_AUTHORITY_THEN_GENERATE_FRESH_PACKET`
+Latest consumed report: `docs/reports/engineering/2026-07-12_015221_omp_live_state_pointer_and_historical_stop_guard.md`
+
 Current volatile state lives in:
 
 `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
@@ -8685,6 +8790,10 @@ Future runtime improvement after graduation proceeds through Product Evolution R
 ### 28.8 Historical RT2 Status Snapshot
 
 Classification: `HISTORICAL_SNAPSHOT`.
+
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
 
 Live RT2 / runtime capability state is resolved only from `docs/programs/V7_CURRENT_PROGRAM_STATE.md` and current owner evidence.
 
@@ -9520,7 +9629,12 @@ Engineering Intelligence materialization is complete at the architecture/canonic
 Remaining work is future implementation and evidence collection only.
 Final canonical state: `MEASURED_UNDERSTOOD_RECOMMENDED_VALIDATION_MATERIALIZED_ADAPTIVE_ENGINEERING_READY`.
 
-## 35. Autonomous Execution Circuit Breaker Phase 2B Consumption
+## 35. Historical Autonomous Execution Circuit Breaker Phase 2B Consumption Milestone
+
+Classification: `HISTORICAL_MILESTONE`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
 
 Status: `IMPLEMENTATION_CERTIFIED_READ_ONLY`.
 
@@ -9539,7 +9653,12 @@ OMP_CONTROLLED_RUN_ALLOWED = NO
 
 This section records execution-program consumption only. It changes no Runtime, Planner, Authority, lifecycle, capability, architecture, policy threshold, blast radius, or canonical circuit-breaker semantics.
 
-## 36. Autonomous Execution Circuit Breaker Phase 3 Consumption
+## 36. Historical Autonomous Execution Circuit Breaker Phase 3 Consumption Milestone
+
+Classification: `HISTORICAL_MILESTONE`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
 
 Status: `PRODUCTION_CERTIFIED_OPEN`.
 
@@ -9554,7 +9673,12 @@ NEXT_LEGAL_STEP = PREPARE_SEPARATE_GOVERNED_OMP_CONTROLLED_RUN_MISSION
 
 `YES` permits only a separate Mission to revalidate all existing Authority, Runtime, rollback, verification, blast-radius and operator-window gates. It does not authorize execution here. Phase 3 leaves the breaker `OPEN` and changes no OMP rule, owner, capability, lifecycle, policy threshold, Authority or runtime behavior beyond the already certified circuit-breaker enforcement.
 
-## 37. Recovery Artifact Combined Deploy Revalidation Consumption
+## 37. Historical Recovery Artifact Combined Deploy Revalidation Consumption Milestone
+
+Classification: `HISTORICAL_MILESTONE`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
 
 Status: `ADMITTED_ALREADY_DEPLOYED_REVALIDATED`.
 
@@ -9571,7 +9695,12 @@ NEXT_LEGAL_STEP = PREPARE_SEPARATE_GOVERNED_OMP_CONTROLLED_RUN_MISSION
 
 The current runtime delta is empty, so OMP does not request a duplicate deploy. This consumption changes no scheduler/optimizer rule, Runtime, Planner, Authority, capability, lifecycle, threshold, formula, blast radius or execution permission.
 
-## 38. First Governed OMP Controlled Run Phase 4A Consumption
+## 38. Historical First Governed OMP Controlled Run Phase 4A Consumption Milestone
+
+Classification: `HISTORICAL_MILESTONE`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
 
 Status: `UNSAFE_IMPLEMENTATION`.
 

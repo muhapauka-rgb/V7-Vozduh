@@ -16,6 +16,7 @@ import importlib.machinery
 import importlib.util
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -42,10 +43,10 @@ NORMALIZED_CPS_LIVE_STATE = {
     "current_active_scope": "ONE_FRESH_CURRENT_CLASS_TRANSACTION",
     "current_safe_next_action": "REQUEST NEW EXACT OPERATIONAL AUTHORITY; THEN GENERATE ONE NEW FRESH CURRENT-CLASS PACKET; NEVER REUSE HISTORICAL IDENTITIES",
     "current_scope_class": "OPERATIONAL_AUTHORITY_BOUNDARY",
-    "current_mission_id": "V7_OMP_ATOMIC_CPS_RECONCILIATION_AND_CONSISTENCY_GUARD_V1",
-    "current_run_nonce": "V7_CPS_SYNC_V1_7F3C91A6D842",
-    "current_mission_state": "ATOMIC_CPS_RECONCILIATION_CERTIFIED_OPERATIONAL_AUTHORITY_READY",
-    "current_mission_report": "docs/reports/engineering/2026-07-12_011049_atomic_cps_live_state_reconciliation_and_consistency_guard.md",
+    "current_mission_id": "V7_OMP_LIVE_STATE_POINTER_AND_HISTORICAL_STOP_GUARD_V1",
+    "current_run_nonce": "V7_OMP_STOP_SYNC_V1_B84E72C19F36",
+    "current_mission_state": "OMP_LIVE_STATE_POINTER_RECONCILED_OPERATIONAL_AUTHORITY_READY",
+    "current_mission_report": "docs/reports/engineering/2026-07-12_015221_omp_live_state_pointer_and_historical_stop_guard.md",
     "current_state_generation": "cpsgen_V7_CPS_SYNC_V1_7F3C91A6D842",
     "current_transition_id": "BINDING_STABILITY_CERTIFIED_TO_OPERATIONAL_AUTHORITY_V1",
     "current_next_action_id": "REQUEST_NEW_OPERATIONAL_AUTHORITY_THEN_GENERATE_FRESH_PACKET",
@@ -91,6 +92,185 @@ def _markdown_field_table(section: str) -> dict[str, str]:
             continue
         fields[key] = cells[1].strip()
     return fields
+
+
+def _classified_markdown_blocks(text: str) -> list[dict[str, Any]]:
+    """Return H2/H3 blocks with explicit state-surface classification metadata."""
+    headings = list(re.finditer(r"(?m)^(#{2,3})\s+(.+?)\s*$", text))
+    blocks: list[dict[str, Any]] = []
+    for index, match in enumerate(headings):
+        level = len(match.group(1))
+        end = len(text)
+        for later in headings[index + 1:]:
+            if len(later.group(1)) <= level:
+                end = later.start()
+                break
+        body = text[match.end():end]
+        classification_match = re.search(
+            r"(?mi)^Classification:\s*`(PERMANENT_RULE|CURRENT_PROGRAM_STATE_REFERENCE|HISTORICAL_SNAPSHOT|HISTORICAL_MILESTONE|HISTORICAL_EXAMPLE|DEPRECATED_CURRENT_STATE)`\.?",
+            body[:1200],
+        )
+        blocks.append({
+            "start": match.start(),
+            "end": end,
+            "heading": match.group(2),
+            "level": level,
+            "body": body,
+            "classification": classification_match.group(1) if classification_match else "",
+        })
+    return blocks
+
+
+def omp_live_state_consistency(cps_text: str, omp_text: str) -> dict[str, Any]:
+    """Fail closed when OMP exposes volatile or historical state outside the CPS pointer."""
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    cps_stop = live.get("CURRENT_STOP_CONDITION", "").strip("`")
+    cps_next_action = live.get("CURRENT_NEXT_ACTION_ID", "").strip("`")
+    cps_report = live.get("CURRENT_MISSION_REPORT", "").strip("`")
+    blocks = _classified_markdown_blocks(omp_text)
+    contradictions: list[str] = []
+    historical_leaks: list[str] = []
+    unqualified: list[str] = []
+    stale_identities: list[str] = []
+
+    historical_classes = {"HISTORICAL_SNAPSHOT", "HISTORICAL_MILESTONE", "HISTORICAL_EXAMPLE"}
+    for block in blocks:
+        classification = block["classification"]
+        body = block["body"]
+        identity = re.sub(r"[^a-z0-9]+", "_", block["heading"].lower()).strip("_")
+        if classification in historical_classes:
+            required = (
+                "Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`",
+                "Scheduling Authority: `NONE`",
+                "Execution Authority: `NONE`",
+            )
+            for marker in required:
+                if marker not in body:
+                    historical_leaks.append(f"historical_metadata_missing:{identity}:{marker.split(':', 1)[0]}")
+            if re.search(r"(?mi)^Scheduling Authority:\s*`(?!NONE`)", body):
+                historical_leaks.append(f"historical_scheduling_authority_present:{identity}")
+            if re.search(r"(?mi)^Execution Authority:\s*`(?!NONE`)", body):
+                historical_leaks.append(f"historical_execution_authority_present:{identity}")
+            if re.search(r"(?mi)^MISSION_ADMITTED\s*=\s*YES\s*$", body):
+                historical_leaks.append(f"historical_mission_admission_present:{identity}")
+            if re.search(r"(?mi)^(?:OLD_PACKETS_REUSABLE|PACKET_REUSE)\s*=\s*YES\s*$", body):
+                historical_leaks.append(f"historical_packet_reuse_present:{identity}")
+
+    def block_for(position: int) -> Optional[dict[str, Any]]:
+        candidates = [block for block in blocks if block["start"] <= position < block["end"]]
+        return max(candidates, key=lambda item: item["level"]) if candidates else None
+
+    live_patterns = (
+        r"(?mi)^Current blocker:\s*$",
+        r"(?mi)^Current stop:\s*`?[^\n|]+",
+        r"(?mi)^Current next action:\s*[^\n]+",
+        r"(?mi)^CURRENT_STEP\s*=\s*[^\n]+",
+        r"(?mi)^STOP_CONDITION\s*=\s*[^\n]+",
+        r"(?mi)^NEXT_LEGAL_STEP\s*=\s*[^\n]+",
+        r"(?mi)^AUTHORITY_REQUIRED_NOW\s*=\s*[^\n]+",
+        r"(?mi)^PACKET_PREPARED\s*=\s*[^\n]+",
+    )
+    for pattern in live_patterns:
+        for match in re.finditer(pattern, omp_text):
+            block = block_for(match.start())
+            classification = block["classification"] if block else ""
+            if classification not in historical_classes | {"CURRENT_PROGRAM_STATE_REFERENCE", "PERMANENT_RULE"}:
+                value = match.group(0).strip().replace("\n", " ")
+                unqualified.append(f"unqualified:{match.start()}:{value[:96]}")
+
+    for match in re.finditer(r"\b(?:pkt_preview|execlease|rbclear)_[a-zA-Z0-9]+\b", omp_text):
+        block = block_for(match.start())
+        classification = block["classification"] if block else ""
+        if classification not in historical_classes:
+            stale_identities.append(f"stale_identity:{match.group(0)}")
+
+    section20 = _markdown_section(omp_text, "## 20. Stop Conditions", "## 21. Phase History")
+    if "### 20.1 Historical Stop Conditions Snapshot" not in section20:
+        contradictions.append("omp_section20_historical_snapshot_missing")
+    if "### 20.2 Current Stop Reference" not in section20:
+        contradictions.append("omp_section20_current_reference_missing")
+    if "Historical blocker:\n\n`UNSAFE_IMPLEMENTATION`" not in section20:
+        contradictions.append("omp_section20_historical_blocker_not_preserved")
+    if "Scheduling Authority: `NONE`" not in section20:
+        contradictions.append("omp_section20_historical_scheduling_authority_not_none")
+    section20_pointer = _markdown_section(section20, "### 20.2 Current Stop Reference")
+    section20_stop_match = re.search(r"(?m)^Resolved current stop:\s*`([^`]+)`", section20_pointer)
+    section20_next_match = re.search(r"(?m)^Resolved current next action:\s*`([^`]+)`", section20_pointer)
+    section20_pointer_ok = (
+        "Classification: `CURRENT_PROGRAM_STATE_REFERENCE`" in section20_pointer
+        and "Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`" in section20_pointer
+        and "Scheduling Authority: `CPS_ONLY`" in section20_pointer
+        and "Execution Authority: `NONE`" in section20_pointer
+        and bool(section20_stop_match and section20_stop_match.group(1) == cps_stop)
+        and bool(section20_next_match and section20_next_match.group(1) == cps_next_action)
+    )
+    if not section20_pointer_ok:
+        contradictions.append("omp_section20_current_pointer_mismatch")
+    if section20_stop_match and section20_stop_match.group(1) != cps_stop:
+        contradictions.append("omp_current_stop_divergence")
+    if section20_next_match and section20_next_match.group(1) != cps_next_action:
+        contradictions.append("omp_current_next_action_divergence")
+
+    pointer = _markdown_section(omp_text, "## 26. Current Volatile State Pointer", "## 27. Permanent Production Command Verdict")
+    pointer_classification = "CURRENT_PROGRAM_STATE_REFERENCE" if "Classification: `CURRENT_PROGRAM_STATE_REFERENCE`" in pointer else ""
+    stop_match = re.search(r"(?m)^Resolved current stop:\s*`([^`]+)`", pointer)
+    next_match = re.search(r"(?m)^Resolved current next action:\s*`([^`]+)`", pointer)
+    report_match = re.search(r"(?m)^Latest consumed report:\s*`([^`]+)`", pointer)
+    omp_stop = stop_match.group(1) if stop_match else ""
+    omp_next_action = next_match.group(1) if next_match else ""
+    omp_report = report_match.group(1) if report_match else ""
+    pointer_ok = (
+        pointer_classification == "CURRENT_PROGRAM_STATE_REFERENCE"
+        and "Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`" in pointer
+        and "Scheduling Authority: `CPS_ONLY`" in pointer
+        and "Execution Authority: `NONE`" in pointer
+        and omp_stop == cps_stop
+        and omp_next_action == cps_next_action
+        and section20_pointer_ok
+    )
+    report_pointer_ok = bool(cps_report and omp_report == cps_report and cps_report in omp_text[:3000])
+    if not pointer_ok:
+        contradictions.append("omp_current_pointer_mismatch")
+    if not report_pointer_ok:
+        contradictions.append("omp_report_pointer_mismatch")
+    if omp_stop and omp_stop != cps_stop:
+        contradictions.append("omp_current_stop_divergence")
+    if omp_next_action and omp_next_action != cps_next_action:
+        contradictions.append("omp_current_next_action_divergence")
+
+    contradiction_ids = sorted(set(contradictions + historical_leaks + unqualified + stale_identities))
+    errors: list[str] = []
+    if contradictions:
+        errors.append("OMP_CURRENT_POINTER_MISMATCH")
+    if unqualified:
+        errors.append("OMP_UNQUALIFIED_CURRENT_STATE")
+    if historical_leaks or stale_identities:
+        errors.append("OMP_HISTORICAL_STATE_LEAK")
+    if contradiction_ids:
+        errors.append("OMP_LIVE_STATE_CONTRADICTION_STOP_SAFE")
+    return {
+        "schema": "v7-omp-live-state-consistency/v1",
+        "final_verdict": "PASS" if not contradiction_ids else "NO-GO",
+        "omp_live_state_consistency": "PASS" if not contradiction_ids else "FAIL",
+        "omp_current_pointer_consistency": "PASS" if pointer_ok else "FAIL",
+        "omp_unqualified_live_heading_count": len(set(unqualified)),
+        "omp_historical_isolation": "PASS" if not historical_leaks and not stale_identities else "FAIL",
+        "omp_current_stop": omp_stop,
+        "cps_current_stop": cps_stop,
+        "omp_next_action": omp_next_action,
+        "cps_next_action": cps_next_action,
+        "omp_stale_identity_count": len(set(stale_identities)),
+        "omp_contradiction_count": len(contradiction_ids),
+        "omp_contradiction_ids": contradiction_ids,
+        "omp_report_pointer_consistency": "PASS" if report_pointer_ok else "FAIL",
+        "omp_section20_classification": "HISTORICAL_SNAPSHOT" if "### 20.1 Historical Stop Conditions Snapshot" in section20 else "MISSING",
+        "omp_section20_scheduling_authority": "NONE" if "Scheduling Authority: `NONE`" in section20 else "UNKNOWN",
+        "errors": errors,
+    }
 
 
 def _replace_section_field(text: str, start: str, end: str, key: str, value: str) -> str:
@@ -415,6 +595,22 @@ def cps_live_state_consistency(
 
     mission_identity_consistency = "NOT_CHECKED"
     omp_pointer_consistency = "NOT_CHECKED"
+    omp_consistency: dict[str, Any] = {
+        "omp_live_state_consistency": "NOT_CHECKED",
+        "omp_current_pointer_consistency": "NOT_CHECKED",
+        "omp_unqualified_live_heading_count": 0,
+        "omp_historical_isolation": "NOT_CHECKED",
+        "omp_current_stop": "",
+        "cps_current_stop": stop,
+        "omp_next_action": "",
+        "cps_next_action": next_action.strip("`"),
+        "omp_stale_identity_count": 0,
+        "omp_contradiction_count": 0,
+        "omp_contradiction_ids": [],
+        "omp_report_pointer_consistency": "NOT_CHECKED",
+        "omp_section20_classification": "NOT_CHECKED",
+        "omp_section20_scheduling_authority": "NOT_CHECKED",
+    }
     if verify_external:
         report_ref = live.get("CURRENT_MISSION_REPORT", "").strip("`")
         report_path = root / report_ref
@@ -445,6 +641,9 @@ def cps_live_state_consistency(
             errors.append("cps_omp_pointer_mismatch")
             omp_pointer_consistency = "FAIL"
 
+        omp_consistency = omp_live_state_consistency(cps_text, omp_text)
+        errors.extend(omp_consistency["errors"])
+
     unique_errors = sorted(set(errors))
     stale_ids = [
         item for item in unique_errors
@@ -462,6 +661,7 @@ def cps_live_state_consistency(
         "registry_sequence_consistency": "PASS" if not any("sequence" in item or "cap_u01" in item or "next_action" in item for item in unique_errors) else "FAIL",
         "mission_identity_consistency": mission_identity_consistency,
         "omp_pointer_consistency": omp_pointer_consistency,
+        **{key: value for key, value in omp_consistency.items() if key not in {"schema", "final_verdict", "errors"}},
         "errors": unique_errors,
         "current_state_generation": generation,
         "current_transition_id": transition,

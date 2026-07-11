@@ -105,7 +105,7 @@ Required behavior coverage includes deterministic same-input hash; timestamp/ref
 
 ## Safe delivery
 
-Implementation commit: `240fa59b0730207b3dbde9e7614aeb271f9262ac` on `Updatesystem`; pushed to `origin/Updatesystem`. Deploy allowlist `PASS`, safe-deploy dry run `PASS`, applied deploy `deploy-z8-14-Updatesystem-240fa59-20260711T232541`. No service restart was required. Repeated safe-deploy produced `changed=[]`; truth `FULLY_ALIGNED`, convergence `PASS`.
+Implementation commit: `240fa59b0730207b3dbde9e7614aeb271f9262ac`; terminal CPS/OMP commit: `c4152d08`. Both were pushed to `origin/Updatesystem`. Deploy allowlist `PASS`, safe-deploy dry run `PASS`, implementation deploy `deploy-z8-14-Updatesystem-240fa59-20260711T232541`, terminal identity-guard deploy `deploy-z8-14-Updatesystem-c4152d0-20260711T234705`. No service restart was required. Repeated safe-deploy produced `changed=[]`; truth `FULLY_ALIGNED`, convergence `PASS`.
 
 ## Post-deploy production stability
 
@@ -171,7 +171,7 @@ FALSE_INVALIDATION_REMOVED = YES
 MATERIAL_INVALIDATION_PRESERVED = YES
 IMPLEMENTATION_CHANGED = YES
 DEPLOY_APPLIED = YES
-DEPLOY_ID = deploy-z8-14-Updatesystem-240fa59-20260711T232541
+DEPLOY_ID = deploy-z8-14-Updatesystem-c4152d0-20260711T234705
 TARGETED_TESTS = PASS
 FULL_TESTS = 766/766 PASS
 PRODUCTION_STABILITY_CYCLES = 22

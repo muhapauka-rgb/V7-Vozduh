@@ -1562,6 +1562,27 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertFalse(lease_exists)
         self.assertFalse(barrier_exists)
 
+    def test_fresh_planner_result_replaces_stale_surface_candidate(self):
+        module = load_cli_module()
+        surface = {
+            "users_by_ip": {"10.7.0.5": {"current_channel": "vless"}},
+            "batch_preview": {
+                "users_to_move": [
+                    {"user": "10.7.0.5", "from": "vless", "to": "awg0"}
+                ]
+            },
+        }
+
+        refreshed = module.merge_planner_moves_into_surface(
+            surface,
+            [],
+            replace_existing=True,
+        )
+
+        self.assertEqual(refreshed["batch_preview"]["users_to_move"], [])
+        self.assertTrue(refreshed["batch_preview"]["planner_observe_authoritative"])
+        self.assertFalse(refreshed["batch_preview"]["stale_snapshot_candidates_retained"])
+
     def test_governed_transaction_stops_before_apply_when_no_gap_directed_candidate_is_available(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

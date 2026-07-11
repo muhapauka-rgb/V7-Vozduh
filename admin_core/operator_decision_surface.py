@@ -887,6 +887,16 @@ def build_channel_decision_rows(snapshot: dict[str, Any]) -> list[dict[str, Any]
 
 def build_batch_preview(user_rows: list[dict[str, Any]], knowledge_overlay: dict[str, Any] | None = None) -> dict[str, Any]:
     moves = [row for row in user_rows if row.get("recommendation") == "move_recommended"]
+    candidate_blockers = sorted({
+        str(blocker)
+        for row in moves
+        for blocker in (
+            list(row.get("blockers") or [])
+            + list(((row.get("knowledge_decision_overlay") or {}).get("blockers") or []))
+        )
+        if blocker
+    })
+    global_readiness = (knowledge_overlay or {}).get("routing_recommendation_readiness") or {}
     groups: dict[str, int] = {}
     for row in moves:
         key = f"{row.get('current_channel') or 'unknown'}->{row.get('recommended_channel') or 'unknown'}"
@@ -930,8 +940,17 @@ def build_batch_preview(user_rows: list[dict[str, Any]], knowledge_overlay: dict
         },
         "knowledge_decision_readiness": {
             "schema_version": "v7.knowledge-to-decision.batch-readiness.v1",
-            "routing_recommendation_readiness": ((knowledge_overlay or {}).get("routing_recommendation_readiness") or {}).get("readiness", "UNKNOWN"),
-            "blockers": ((knowledge_overlay or {}).get("routing_recommendation_readiness") or {}).get("blockers", []),
+            "scope": "selected_candidate_batch",
+            "blocking_power": "candidate_only",
+            "routing_recommendation_readiness": (
+                "READY_FOR_REVIEW" if moves and not candidate_blockers
+                else "NOT_READY_FOR_AUTONOMOUS_ROUTING" if candidate_blockers
+                else "NO_CANDIDATE"
+            ),
+            "blockers": candidate_blockers,
+            "global_inventory_readiness": global_readiness.get("readiness", "UNKNOWN"),
+            "global_inventory_blockers": list(global_readiness.get("blockers") or []),
+            "global_inventory_blocking_power": "advisory_only",
             "blocked_user_recommendations": sum(1 for row in user_rows if (row.get("knowledge_decision_overlay") or {}).get("status") == "BLOCKED_REVIEW_REQUIRED"),
             "decision_effectiveness": (knowledge_overlay or {}).get("decision_effectiveness", {}),
             "knowledge_growth": (knowledge_overlay or {}).get("knowledge_growth", {}),

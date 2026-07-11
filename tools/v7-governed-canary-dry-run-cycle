@@ -430,12 +430,22 @@ def selected_moves_from_planner_payload(payload: dict[str, Any]) -> list[dict[st
     return moves
 
 
-def merge_planner_moves_into_surface(surface: dict[str, Any], moves: list[dict[str, Any]]) -> dict[str, Any]:
-    if not moves:
-        return surface
+def merge_planner_moves_into_surface(
+    surface: dict[str, Any],
+    moves: list[dict[str, Any]],
+    *,
+    replace_existing: bool = False,
+) -> dict[str, Any]:
     out = dict(surface)
     batch = dict(out.get("batch_preview") or {})
-    if batch.get("users_to_move"):
+    if batch.get("users_to_move") and not replace_existing:
+        return out
+    if replace_existing:
+        batch["users_to_move"] = []
+        batch["planner_observe_authoritative"] = True
+        batch["stale_snapshot_candidates_retained"] = False
+    if not moves:
+        out["batch_preview"] = batch
         return out
     users_by_ip = dict(out.get("users_by_ip") or {})
     for move in moves:
@@ -1491,10 +1501,10 @@ def _execute_governed_transaction_with_guards_inner(
     surface["knowledge_quality_read_model"] = inventory.get("knowledge_quality_read_model", {})
     surface["decision_outcome_learning"] = inventory.get("decision_outcome_learning", {})
     planner_observe = {"skipped": True}
-    if not args.skip_planner_observe and not ((surface.get("batch_preview") or {}).get("users_to_move")):
+    if not args.skip_planner_observe:
         planner_observe = run_planner_observe(state_dir, event_dir, snapshot_root, 1)
         moves = selected_moves_from_planner_payload(planner_observe.get("payload", {}))
-        surface = merge_planner_moves_into_surface(surface, moves)
+        surface = merge_planner_moves_into_surface(surface, moves, replace_existing=True)
     a4_goal_directed_selection = {}
     if required_a4_candidate_keys is not None:
         a4_goal_directed_selection = select_a4_gap_reducing_candidate(
@@ -2164,14 +2174,10 @@ def main(argv=None) -> int:
     surface["knowledge_quality_read_model"] = inventory.get("knowledge_quality_read_model", {})
     surface["decision_outcome_learning"] = inventory.get("decision_outcome_learning", {})
     planner_observe = {"skipped": True}
-    if (
-        not active_execution_lease
-        and not args.skip_planner_observe
-        and not ((surface.get("batch_preview") or {}).get("users_to_move"))
-    ):
+    if not active_execution_lease and not args.skip_planner_observe:
         planner_observe = run_planner_observe(state_dir, event_dir, snapshot_root, args.max_users)
         moves = selected_moves_from_planner_payload(planner_observe.get("payload", {}))
-        surface = merge_planner_moves_into_surface(surface, moves)
+        surface = merge_planner_moves_into_surface(surface, moves, replace_existing=True)
     attach_controlled_execution_source_binding(surface, state_dir=state_dir, snapshot_root=snapshot_root)
     cycle = operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle(
         events=events,

@@ -9651,6 +9651,32 @@ def _closure_candidate_record(record: dict[str, Any]) -> bool:
     return any(metadata.get(field) not in (None, "", [], {}) for field in marker_fields)
 
 
+def _non_executed_outcome_record(record: dict[str, Any]) -> bool:
+    metadata = record.get("metadata") if isinstance(record.get("metadata"), dict) else {}
+    values = [
+        record.get("execution_mode"),
+        record.get("mode"),
+        record.get("transaction_status"),
+        record.get("outcome_status"),
+        metadata.get("execution_mode"),
+        metadata.get("mode"),
+        metadata.get("outcome_status"),
+    ]
+    markers = {str(value or "").strip().upper() for value in values}
+    explicitly_non_executed = bool(markers.intersection({
+        "DRY_RUN",
+        "NO_EXECUTION",
+        "PREVIEW_ONLY",
+        "READ_ONLY",
+    }))
+    flags_prove_no_execution = (
+        record.get("runtime_mutation_performed") is False
+        and record.get("apply_executed") is False
+        and int(record.get("users_moved") or 0) == 0
+    )
+    return explicitly_non_executed or flags_prove_no_execution
+
+
 def build_decision_outcome_closure(
     decision_records: list[dict[str, Any]] | None = None,
     *,
@@ -9660,10 +9686,12 @@ def build_decision_outcome_closure(
     generated = generated_at or datetime.now(timezone.utc).isoformat()
     rows: list[dict[str, Any]] = []
     source_count = len([row for row in (decision_records or []) if isinstance(row, dict)])
-    closure_candidates = [
+    marked_candidates = [
         row for row in (decision_records or [])
         if isinstance(row, dict) and _closure_candidate_record(row)
     ]
+    closure_candidates = [row for row in marked_candidates if not _non_executed_outcome_record(row)]
+    non_executed_ignored = len(marked_candidates) - len(closure_candidates)
     for index, record in enumerate(closure_candidates):
         missing = [field for field in VALID_OUTCOME_CLOSURE_FIELDS if not _closure_field_present(record, field)]
         evidence = intelligence_workers.normalize_outcome_evidence(record)
@@ -9687,6 +9715,7 @@ def build_decision_outcome_closure(
             "source_records_seen": source_count,
             "records_seen": len(rows),
             "non_closure_records_ignored": max(0, source_count - len(rows)),
+            "non_executed_outcome_records_ignored": non_executed_ignored,
             "valid_closures": valid,
             "missing_closure_records": len(rows) - valid,
             "real_outcomes_required": state != "COMPLETE",

@@ -2646,7 +2646,8 @@ def _knowledge_gate_rows(decision_surface: dict[str, Any], dry_run: dict[str, An
     rows: list[dict[str, Any]] = []
     for name, payload in gates:
         payload = payload if isinstance(payload, dict) else {}
-        blockers = list(payload.get("blockers") or readiness.get("blockers") or []) if name == "routing_recommendation_readiness" else list(payload.get("blockers") or [])
+        candidate_scoped = name == "routing_recommendation_readiness"
+        blockers = list(readiness.get("blockers") or []) if candidate_scoped else list(payload.get("blockers") or [])
         warnings = list(payload.get("warnings") or [])
         if blockers:
             impact = "BLOCKED"
@@ -2661,6 +2662,8 @@ def _knowledge_gate_rows(decision_surface: dict[str, Any], dry_run: dict[str, An
             "impact": impact,
             "blockers": blockers,
             "warnings": warnings,
+            "scope": "selected_candidate_batch" if candidate_scoped else "global_inventory",
+            "blocking_power": "candidate_only" if candidate_scoped else "advisory_only",
             "owner_reused": True,
             "runtime_mutation_performed": False,
         })

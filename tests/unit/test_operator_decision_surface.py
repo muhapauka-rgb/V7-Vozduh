@@ -435,6 +435,34 @@ class OperatorDecisionSurfaceTest(unittest.TestCase):
         self.assertFalse(gated["runtime_mutation_performed"])
         self.assertFalse(overlay["routing_recommendation_readiness"]["runtime_apply_allowed"])
 
+    def test_batch_readiness_scopes_global_inventory_blockers_as_advisory(self):
+        row = {
+            "user": "10.7.0.2",
+            "current_channel": "vless",
+            "recommended_channel": "awg0",
+            "recommendation": "move_recommended",
+            "blockers": [],
+            "knowledge_decision_overlay": {"blockers": []},
+        }
+        batch = surface.build_batch_preview(
+            [row],
+            {
+                "routing_recommendation_readiness": {
+                    "readiness": "NOT_READY_FOR_AUTONOMOUS_ROUTING",
+                    "blockers": ["recovery_admission_has_blocked_channels"],
+                }
+            },
+        )
+
+        readiness = batch["knowledge_decision_readiness"]
+        self.assertEqual(readiness["routing_recommendation_readiness"], "READY_FOR_REVIEW")
+        self.assertEqual(readiness["blockers"], [])
+        self.assertEqual(readiness["global_inventory_blocking_power"], "advisory_only")
+        self.assertEqual(
+            readiness["global_inventory_blockers"],
+            ["recovery_admission_has_blocked_channels"],
+        )
+
     def test_service_user_sla_fit_selects_safer_candidate(self):
         row = {
             "user": "10.7.0.2",

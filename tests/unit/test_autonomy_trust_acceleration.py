@@ -708,6 +708,23 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(complete["summary"]["non_closure_records_ignored"], 2)
         self.assertEqual(complete["summary"]["valid_closures"], 1)
 
+    def test_closure_ignores_explicit_non_executed_dry_run_records(self):
+        model = accel.build_decision_outcome_closure([
+            {
+                "recommendation_id": "r-preview",
+                "decision_id": "d-preview",
+                "outcome_status": "NO_EXECUTION",
+                "execution_mode": "DRY_RUN",
+                "runtime_mutation_performed": False,
+                "apply_executed": False,
+                "users_moved": 0,
+            }
+        ])
+
+        self.assertEqual(model["closure_state"], "ABSENT")
+        self.assertEqual(model["summary"]["records_seen"], 0)
+        self.assertEqual(model["summary"]["non_executed_outcome_records_ignored"], 1)
+
     def test_inventory_exposes_routing_foundation_top_level_keys(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

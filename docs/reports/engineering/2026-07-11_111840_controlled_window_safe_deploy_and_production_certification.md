@@ -1,8 +1,8 @@
 # Safe Deploy и Production Certification operation-scoped controlled window
 
-Дата: `2026-07-11T11:18:40+0700`  
-Mission ID: `V7_OMP_CONTROLLED_WINDOW_PRODUCTION_CERTIFICATION_V1`  
-Режим: safe deploy, read-only production certification, без controlled execution  
+Дата: `2026-07-11T11:18:40+0700`
+Mission ID: `V7_OMP_CONTROLLED_WINDOW_PRODUCTION_CERTIFICATION_V1`
+Режим: safe deploy, read-only production certification, без controlled execution
 Final Verdict: `CONTROLLED_WINDOW_PRODUCTION_CERTIFIED_OPEN`
 
 ## 1. Summary

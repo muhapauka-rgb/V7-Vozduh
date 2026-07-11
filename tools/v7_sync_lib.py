@@ -43,11 +43,25 @@ NORMALIZED_CPS_LIVE_STATE = {
     "current_active_scope": "ONE_FRESH_CURRENT_CLASS_TRANSACTION",
     "current_safe_next_action": "REQUEST NEW EXACT OPERATIONAL AUTHORITY; THEN GENERATE ONE NEW FRESH CURRENT-CLASS PACKET; NEVER REUSE HISTORICAL IDENTITIES",
     "current_scope_class": "OPERATIONAL_AUTHORITY_BOUNDARY",
-    "current_mission_id": "V7_OMP_LIVE_STATE_POINTER_AND_HISTORICAL_STOP_GUARD_V1",
-    "current_run_nonce": "V7_OMP_STOP_SYNC_V1_B84E72C19F36",
-    "current_mission_state": "OMP_LIVE_STATE_POINTER_RECONCILED_OPERATIONAL_AUTHORITY_READY",
-    "current_mission_report": "docs/reports/engineering/2026-07-12_015221_omp_live_state_pointer_and_historical_stop_guard.md",
-    "current_state_generation": "cpsgen_V7_CPS_SYNC_V1_7F3C91A6D842",
+    "current_execution_mission_id": "NONE",
+    "current_execution_mission_state": "NONE",
+    "latest_terminal_mission_id": "V7_OMP_CPS_TERMINAL_MISSION_IDENTITY_RECONCILIATION_V1",
+    "latest_terminal_run_nonce": "V7_CPS_MISSION_ID_V1_5D9A73C4E821",
+    "latest_terminal_mission_state": "CPS_MISSION_IDENTITY_RECONCILED_OPERATIONAL_AUTHORITY_READY",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-12_020905_cps_terminal_mission_identity_reconciliation.md",
+    "latest_terminal_mission_started_at": "2026-07-12T02:09:05+0700",
+    "previous_terminal_mission_id": "V7_OMP_LIVE_STATE_POINTER_AND_HISTORICAL_STOP_GUARD_V1",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-12_015221_omp_live_state_pointer_and_historical_stop_guard.md",
+    "authoritative_transition_input_mission_id": "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3",
+    "authoritative_transition_input_state": "MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED",
+    "authoritative_transition_input_report": "docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md",
+    "current_mission_role": "LATEST_TERMINAL_MISSION",
+    "current_mission_id": "V7_OMP_CPS_TERMINAL_MISSION_IDENTITY_RECONCILIATION_V1",
+    "current_run_nonce": "V7_CPS_MISSION_ID_V1_5D9A73C4E821",
+    "current_mission_state": "CPS_MISSION_IDENTITY_RECONCILED_OPERATIONAL_AUTHORITY_READY",
+    "current_mission_report": "docs/reports/engineering/2026-07-12_020905_cps_terminal_mission_identity_reconciliation.md",
+    "state_captured": "2026-07-12T02:09:42+0700",
+    "current_state_generation": "cpsgen_V7_CPS_MISSION_ID_V1_5D9A73C4E821",
     "current_transition_id": "BINDING_STABILITY_CERTIFIED_TO_OPERATIONAL_AUTHORITY_V1",
     "current_next_action_id": "REQUEST_NEW_OPERATIONAL_AUTHORITY_THEN_GENERATE_FRESH_PACKET",
     "binding_stability": "PASS",
@@ -273,6 +287,249 @@ def omp_live_state_consistency(cps_text: str, omp_text: str) -> dict[str, Any]:
     }
 
 
+def _cps_header_metadata(cps_text: str) -> dict[str, str]:
+    header = cps_text.partition("## 0. Authoritative Live Current State")[0]
+    values: dict[str, str] = {}
+    for line in header.splitlines():
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        values[key.strip()] = value.strip().strip("`")
+    return values
+
+
+def _parse_iso_timestamp(value: str) -> datetime:
+    if re.search(r"[+-]\d{4}$", value):
+        value = value[:-5] + value[-5:-2] + ":" + value[-2:]
+    return datetime.fromisoformat(value)
+
+
+def mission_role_consistency(
+    cps_text: str,
+    *,
+    root: Path = ROOT,
+    omp_text: Optional[str] = None,
+    verify_external: bool = True,
+) -> dict[str, Any]:
+    """Validate explicit current/latest/previous/transition Mission roles."""
+    state = normalized_cps_live_state()
+    header = _cps_header_metadata(cps_text)
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    registry = _markdown_field_table(_markdown_section(
+        cps_text,
+        "### Registry Metadata And Truth Lifecycle",
+        "### Active Protected Work In Progress",
+    ))
+    wip = _markdown_field_table(_markdown_section(
+        cps_text,
+        "### Active Protected Work In Progress",
+        "### Complete Or Locked Capability Records",
+    ))
+    contradictions: list[str] = []
+    role_ambiguities: list[str] = []
+    terminal_marked_active: list[str] = []
+
+    def plain(value: str) -> str:
+        return value.strip().strip("`")
+
+    latest = state["latest_terminal_mission_id"]
+    previous = state["previous_terminal_mission_id"]
+    transition_input = state["authoritative_transition_input_mission_id"]
+
+    header_checks = {
+        "State captured": state["state_captured"],
+        "Latest terminal Mission": latest,
+        "Latest terminal Mission state": state["latest_terminal_mission_state"],
+        "Latest terminal Mission report": state["latest_terminal_mission_report"],
+        "Authoritative transition input Mission": transition_input,
+    }
+    for key, expected in header_checks.items():
+        if header.get(key, "") != expected:
+            contradictions.append(f"cps_header_mismatch:{key}")
+
+    live_checks = {
+        "CURRENT_EXECUTION_MISSION_ID": state["current_execution_mission_id"],
+        "CURRENT_EXECUTION_MISSION_STATE": state["current_execution_mission_state"],
+        "LATEST_TERMINAL_MISSION_ID": latest,
+        "LATEST_TERMINAL_RUN_NONCE": state["latest_terminal_run_nonce"],
+        "LATEST_TERMINAL_MISSION_STATE": state["latest_terminal_mission_state"],
+        "LATEST_TERMINAL_MISSION_REPORT": state["latest_terminal_mission_report"],
+        "LATEST_TERMINAL_MISSION_STARTED_AT": state["latest_terminal_mission_started_at"],
+        "PREVIOUS_TERMINAL_MISSION_ID": previous,
+        "AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID": transition_input,
+        "AUTHORITATIVE_TRANSITION_INPUT_STATE": state["authoritative_transition_input_state"],
+        "AUTHORITATIVE_TRANSITION_INPUT_REPORT": state["authoritative_transition_input_report"],
+        "CURRENT_MISSION_ROLE": state["current_mission_role"],
+    }
+    for key, expected in live_checks.items():
+        if plain(live.get(key, "")) != expected:
+            contradictions.append(f"cps_section0_mismatch:{key}")
+
+    aliases = {
+        "CURRENT_MISSION_ID": "LATEST_TERMINAL_MISSION_ID",
+        "CURRENT_RUN_NONCE": "LATEST_TERMINAL_RUN_NONCE",
+        "CURRENT_MISSION_STATE": "LATEST_TERMINAL_MISSION_STATE",
+        "CURRENT_MISSION_REPORT": "LATEST_TERMINAL_MISSION_REPORT",
+    }
+    for alias, owner in aliases.items():
+        if plain(live.get(alias, "")) != plain(live.get(owner, "")):
+            role_ambiguities.append(f"mission_alias_divergence:{alias}:{owner}")
+
+    registry_checks = {
+        "ACTIVE_MISSIONS": "NONE",
+        "LATEST_TERMINAL_MISSION_ID": latest,
+        "LATEST_TERMINAL_MISSION_STATE": state["latest_terminal_mission_state"],
+        "LATEST_TERMINAL_MISSION_REPORT": state["latest_terminal_mission_report"],
+        "PREVIOUS_TERMINAL_MISSION_ID": previous,
+        "AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID": transition_input,
+    }
+    for key, expected in registry_checks.items():
+        if plain(registry.get(key, "")) != expected:
+            contradictions.append(f"cps_registry_mismatch:{key}")
+
+    wip_checks = {
+        "active_mission_id": "NONE",
+        "active_mission_state": "NONE",
+        "latest_terminal_mission_id": latest,
+        "latest_terminal_mission_state": state["latest_terminal_mission_state"],
+        "previous_terminal_mission_id": previous,
+        "authoritative_transition_input_mission_id": transition_input,
+    }
+    for key, expected in wip_checks.items():
+        if plain(wip.get(key, "")) != expected:
+            contradictions.append(f"cps_active_wip_mismatch:{key}")
+
+    active_execution = plain(live.get("CURRENT_EXECUTION_MISSION_ID", ""))
+    active_wip_mission = plain(wip.get("active_mission_id", ""))
+    if active_execution not in {"", "NONE"}:
+        terminal_marked_active.append(f"current_execution_mission_not_none:{active_execution}")
+    if active_wip_mission not in {"", "NONE"}:
+        terminal_marked_active.append(f"active_wip_mission_not_none:{active_wip_mission}")
+    if plain(registry.get("ACTIVE_MISSIONS", "")) == "NONE" and active_execution != "NONE":
+        role_ambiguities.append("active_missions_none_with_current_execution_mission")
+    if len({latest, previous, transition_input}) != 3:
+        role_ambiguities.append("mission_roles_not_distinct")
+
+    mission_report_pointer_consistency = "NOT_CHECKED"
+    mission_nonce_consistency = "NOT_CHECKED"
+    mission_timestamp_consistency = "NOT_CHECKED"
+    anti_replay_consistency = "NOT_CHECKED"
+    report_selector_consistency = "NOT_CHECKED"
+    omp_transition_input_consistency = "NOT_CHECKED"
+    if verify_external:
+        report_path = root / state["latest_terminal_mission_report"]
+        try:
+            report_text = report_path.read_text(encoding="utf-8")
+        except OSError:
+            report_text = ""
+        report_lines = report_text.splitlines()
+        expected_id = f"Mission ID: `{latest}`"
+        expected_nonce = f"Run Nonce: `{state['latest_terminal_run_nonce']}`"
+        id_ok = len(report_lines) >= 1 and report_lines[0] == expected_id
+        nonce_ok = len(report_lines) >= 2 and report_lines[1] == expected_nonce
+        if not id_ok:
+            contradictions.append("latest_terminal_report_mission_id_mismatch")
+        if not nonce_ok:
+            contradictions.append("latest_terminal_report_nonce_mismatch")
+        mission_nonce_consistency = "PASS" if nonce_ok else "FAIL"
+        report_selector_consistency = "PASS" if id_ok and nonce_ok else "FAIL"
+        projected_latest = plain(live.get("LATEST_TERMINAL_MISSION_ID", ""))
+        projected_previous = plain(live.get("PREVIOUS_TERMINAL_MISSION_ID", ""))
+        projected_transition = plain(live.get("AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID", ""))
+        anti_replay_consistency = "PASS" if (
+            id_ok
+            and nonce_ok
+            and projected_latest == latest
+            and projected_latest not in {projected_previous, projected_transition}
+        ) else "FAIL"
+        if anti_replay_consistency == "FAIL":
+            contradictions.append("anti_replay_selected_wrong_mission_role")
+
+        try:
+            captured = _parse_iso_timestamp(header.get("State captured", ""))
+            started = _parse_iso_timestamp(plain(live.get("LATEST_TERMINAL_MISSION_STARTED_AT", "")))
+            timestamp_ok = captured >= started
+        except ValueError:
+            timestamp_ok = False
+        mission_timestamp_consistency = "PASS" if timestamp_ok else "FAIL"
+        if not timestamp_ok:
+            contradictions.append("mission_timestamp_predates_start")
+
+        if omp_text is None:
+            try:
+                omp_text = OMP_PATH.read_text(encoding="utf-8")
+            except OSError:
+                omp_text = ""
+        latest_pointer_ok = (
+            state["latest_terminal_mission_report"] in omp_text[:5000]
+            and state["latest_terminal_mission_state"] in omp_text[:5000]
+            and f"Latest consumed report: `{state['latest_terminal_mission_report']}`" in omp_text
+        )
+        previous_pointer_ok = (
+            state["previous_terminal_mission_report"] in omp_text[:5000]
+            and f"Previous consumed report: `{state['previous_terminal_mission_report']}`" in omp_text
+        )
+        transition_pointer_ok = (
+            state["authoritative_transition_input_report"] in omp_text[:5000]
+            and transition_input in omp_text[:5000]
+            and f"Authoritative transition input report: `{state['authoritative_transition_input_report']}`" in omp_text
+        )
+        mission_report_pointer_consistency = "PASS" if latest_pointer_ok and previous_pointer_ok else "FAIL"
+        omp_transition_input_consistency = "PASS" if transition_pointer_ok else "FAIL"
+        if mission_report_pointer_consistency == "FAIL":
+            contradictions.append("omp_latest_or_previous_report_pointer_mismatch")
+        if omp_transition_input_consistency == "FAIL":
+            contradictions.append("omp_transition_input_pointer_mismatch")
+
+    contradiction_ids = sorted(set(contradictions + role_ambiguities + terminal_marked_active))
+    errors: list[str] = []
+    if role_ambiguities:
+        errors.append("MISSION_ROLE_AMBIGUITY_STOP_SAFE")
+    if terminal_marked_active:
+        errors.append("TERMINAL_MISSION_MARKED_ACTIVE_STOP_SAFE")
+    if any("latest_terminal" in item or "header_mismatch:Latest terminal" in item for item in contradictions):
+        errors.append("LATEST_TERMINAL_MISSION_MISMATCH")
+    if any("transition_input" in item for item in contradictions):
+        errors.append("TRANSITION_INPUT_ROLE_MISMATCH")
+    if mission_report_pointer_consistency == "FAIL":
+        errors.append("MISSION_REPORT_POINTER_MISMATCH")
+    if mission_nonce_consistency == "FAIL":
+        errors.append("MISSION_NONCE_MISMATCH")
+    if mission_timestamp_consistency == "FAIL":
+        errors.append("MISSION_TIMESTAMP_MISMATCH")
+    if contradiction_ids:
+        errors.append("CURRENT_STATE_CONSISTENCY_FAIL")
+
+    return {
+        "schema": "v7-mission-role-consistency/v1",
+        "final_verdict": "PASS" if not contradiction_ids else "NO-GO",
+        "mission_identity_consistency": "PASS" if not contradiction_ids else "FAIL",
+        "current_execution_mission_consistency": "PASS" if not terminal_marked_active else "FAIL",
+        "latest_terminal_mission_consistency": "PASS" if not any("latest_terminal" in item or "Latest terminal" in item for item in contradiction_ids) else "FAIL",
+        "transition_input_mission_consistency": "PASS" if not any("transition_input" in item for item in contradiction_ids) else "FAIL",
+        "previous_terminal_mission_consistency": "PASS" if not any("previous_terminal" in item for item in contradiction_ids) else "FAIL",
+        "mission_role_ambiguity_count": len(set(role_ambiguities)),
+        "terminal_mission_marked_active_count": len(set(terminal_marked_active)),
+        "mission_report_pointer_consistency": mission_report_pointer_consistency,
+        "mission_nonce_consistency": mission_nonce_consistency,
+        "mission_timestamp_consistency": mission_timestamp_consistency,
+        "mission_identity_contradiction_count": len(contradiction_ids),
+        "mission_identity_contradiction_ids": contradiction_ids,
+        "anti_replay_consistency": anti_replay_consistency,
+        "report_selector_consistency": report_selector_consistency,
+        "omp_transition_input_consistency": omp_transition_input_consistency,
+        "cps_header_identity_consistency": "PASS" if not any(item.startswith("cps_header_mismatch") for item in contradiction_ids) else "FAIL",
+        "cps_section0_identity_consistency": "PASS" if not any(item.startswith("cps_section0_mismatch") or item.startswith("mission_alias") for item in contradiction_ids) else "FAIL",
+        "registry_identity_consistency": "PASS" if not any(item.startswith("cps_registry_mismatch") for item in contradiction_ids) else "FAIL",
+        "active_wip_identity_consistency": "PASS" if not any(item.startswith("cps_active_wip_mismatch") for item in contradiction_ids) and not terminal_marked_active else "FAIL",
+        "errors": sorted(set(errors)),
+    }
+
+
 def _replace_section_field(text: str, start: str, end: str, key: str, value: str) -> str:
     section = _markdown_section(text, start, end)
     if not section:
@@ -288,6 +545,35 @@ def _replace_section_field(text: str, start: str, end: str, key: str, value: str
 def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]] = None) -> str:
     """Build all CPS live projections from one normalized terminal result."""
     state = normalized_cps_live_state(state)
+    header_values = {
+        "State captured": state["state_captured"],
+        "Latest terminal Mission": f"`{state['latest_terminal_mission_id']}`",
+        "Latest terminal Mission state": f"`{state['latest_terminal_mission_state']}`",
+        "Latest terminal Mission report": f"`{state['latest_terminal_mission_report']}`",
+        "Authoritative transition input Mission": f"`{state['authoritative_transition_input_mission_id']}`",
+        "Source": "this Mission reconciled Mission-role projections only; no operational state, packet, Authority, Runtime or routing change occurred.",
+    }
+    header, separator, remainder = cps_text.partition("## 0. Authoritative Live Current State")
+    for key, value in header_values.items():
+        pattern = rf"(?m)^{re.escape(key)}:.*$"
+        replacement = f"{key}: {value}"
+        if re.search(pattern, header):
+            header = re.sub(pattern, replacement, header, count=1)
+        else:
+            header = header.rstrip() + f"\n{replacement}\n\n"
+    cps_text = header + separator + remainder
+    cps_text = re.sub(
+        r"(?m)^Captured:\s*`[^`]+`$",
+        f"Captured: `{state['state_captured']}`",
+        cps_text,
+        count=1,
+    )
+    cps_text = re.sub(
+        r"(?m)^Generated At:\s*`[^`]+`$",
+        f"Generated At: `{state['state_captured']}`",
+        cps_text,
+        count=1,
+    )
     live_values = {
         "ACTIVE_PROGRAM": f"`{state['active_program']}`",
         "CURRENT_MODE": f"`{state['current_mode']}`",
@@ -298,10 +584,22 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "CURRENT_STATE_GENERATION": f"`{state['current_state_generation']}`",
         "CURRENT_TRANSITION_ID": f"`{state['current_transition_id']}`",
         "CURRENT_NEXT_ACTION_ID": f"`{state['current_next_action_id']}`",
+        "CURRENT_EXECUTION_MISSION_ID": f"`{state['current_execution_mission_id']}`",
+        "CURRENT_EXECUTION_MISSION_STATE": f"`{state['current_execution_mission_state']}`",
+        "LATEST_TERMINAL_MISSION_ID": f"`{state['latest_terminal_mission_id']}`",
+        "LATEST_TERMINAL_RUN_NONCE": f"`{state['latest_terminal_run_nonce']}`",
+        "LATEST_TERMINAL_MISSION_STATE": f"`{state['latest_terminal_mission_state']}`",
+        "LATEST_TERMINAL_MISSION_REPORT": f"`{state['latest_terminal_mission_report']}`",
+        "LATEST_TERMINAL_MISSION_STARTED_AT": f"`{state['latest_terminal_mission_started_at']}`",
+        "PREVIOUS_TERMINAL_MISSION_ID": f"`{state['previous_terminal_mission_id']}`",
+        "CURRENT_MISSION_ROLE": f"`{state['current_mission_role']}`",
         "CURRENT_MISSION_ID": f"`{state['current_mission_id']}`",
         "CURRENT_RUN_NONCE": f"`{state['current_run_nonce']}`",
         "CURRENT_MISSION_STATE": f"`{state['current_mission_state']}`",
         "CURRENT_MISSION_REPORT": f"`{state['current_mission_report']}`",
+        "AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID": f"`{state['authoritative_transition_input_mission_id']}`",
+        "AUTHORITATIVE_TRANSITION_INPUT_STATE": f"`{state['authoritative_transition_input_state']}`",
+        "AUTHORITATIVE_TRANSITION_INPUT_REPORT": f"`{state['authoritative_transition_input_report']}`",
         "BINDING_STABILITY": f"`{state['binding_stability']}; 22 post-deploy read-only cycles, 10 consecutive stable Candidate cycles, zero unexplained mismatches, zero mixed-generation snapshots`",
         "BINDING_SCHEMA": f"`{state['binding_schema']}; shared by preview, admission and low-level pre-mutation recheck`",
         "ROUTING_READINESS_STATE": f"`{state['routing_readiness_state']}; global inventory diagnostics are advisory_only and no longer cross-scope blockers`",
@@ -338,6 +636,12 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "CURRENT_TRANSITION_ID": f"`{state['current_transition_id']}`",
         "EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID": f"`{state['current_next_action_id']}`",
         "CURRENT_STOP_CONDITION": f"`{state['current_stop_condition']}`",
+        "ACTIVE_MISSIONS": "`NONE`",
+        "LATEST_TERMINAL_MISSION_ID": f"`{state['latest_terminal_mission_id']}`",
+        "LATEST_TERMINAL_MISSION_STATE": f"`{state['latest_terminal_mission_state']}`",
+        "LATEST_TERMINAL_MISSION_REPORT": f"`{state['latest_terminal_mission_report']}`",
+        "PREVIOUS_TERMINAL_MISSION_ID": f"`{state['previous_terminal_mission_id']}`",
+        "AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID": f"`{state['authoritative_transition_input_mission_id']}`",
         "EXACT_CURRENT_SMALLEST_NEXT_ACTION": f"`{state['smallest_existing_next_action']}`",
     }
     for key, value in registry_values.items():
@@ -354,6 +658,12 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "current_state_generation": f"`{state['current_state_generation']}`",
         "current_transition_id": f"`{state['current_transition_id']}`",
         "smallest_existing_next_action_id": f"`{state['current_next_action_id']}`",
+        "active_mission_id": "`NONE`",
+        "active_mission_state": "`NONE`",
+        "latest_terminal_mission_id": f"`{state['latest_terminal_mission_id']}`",
+        "latest_terminal_mission_state": f"`{state['latest_terminal_mission_state']}`",
+        "previous_terminal_mission_id": f"`{state['previous_terminal_mission_id']}`",
+        "authoritative_transition_input_mission_id": f"`{state['authoritative_transition_input_mission_id']}`",
         "current_primary_stop": f"`{state['current_stop_condition']}`",
         "responsibility_class": f"`{state['responsibility_class']}`",
         "authority_required_now": "`TRUE; new exact Mission-scoped Operational Authority required; no current Authority exists`",
@@ -456,10 +766,22 @@ def cps_live_state_consistency(
         "CURRENT_STOP_CONDITION": normalized["current_stop_condition"],
         "CURRENT_ACTIVE_SCOPE": normalized["current_active_scope"],
         "CURRENT_SCOPE_CLASS": normalized["current_scope_class"],
+        "CURRENT_EXECUTION_MISSION_ID": normalized["current_execution_mission_id"],
+        "CURRENT_EXECUTION_MISSION_STATE": normalized["current_execution_mission_state"],
+        "LATEST_TERMINAL_MISSION_ID": normalized["latest_terminal_mission_id"],
+        "LATEST_TERMINAL_RUN_NONCE": normalized["latest_terminal_run_nonce"],
+        "LATEST_TERMINAL_MISSION_STATE": normalized["latest_terminal_mission_state"],
+        "LATEST_TERMINAL_MISSION_REPORT": normalized["latest_terminal_mission_report"],
+        "LATEST_TERMINAL_MISSION_STARTED_AT": normalized["latest_terminal_mission_started_at"],
+        "PREVIOUS_TERMINAL_MISSION_ID": normalized["previous_terminal_mission_id"],
+        "CURRENT_MISSION_ROLE": normalized["current_mission_role"],
         "CURRENT_MISSION_ID": normalized["current_mission_id"],
         "CURRENT_RUN_NONCE": normalized["current_run_nonce"],
         "CURRENT_MISSION_STATE": normalized["current_mission_state"],
         "CURRENT_MISSION_REPORT": normalized["current_mission_report"],
+        "AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID": normalized["authoritative_transition_input_mission_id"],
+        "AUTHORITATIVE_TRANSITION_INPUT_STATE": normalized["authoritative_transition_input_state"],
+        "AUTHORITATIVE_TRANSITION_INPUT_REPORT": normalized["authoritative_transition_input_report"],
         "CURRENT_ACTION_CLASS": normalized["current_action_class"],
         "CURRENT_ACTION_CLASS_STATE": normalized["current_action_class_state"],
         "OLD_PACKETS_REUSABLE": normalized["old_packets_reusable"],
@@ -595,6 +917,13 @@ def cps_live_state_consistency(
 
     mission_identity_consistency = "NOT_CHECKED"
     omp_pointer_consistency = "NOT_CHECKED"
+    mission_roles = mission_role_consistency(
+        cps_text,
+        root=root,
+        omp_text=omp_text,
+        verify_external=False,
+    )
+    errors.extend(mission_roles["errors"])
     omp_consistency: dict[str, Any] = {
         "omp_live_state_consistency": "NOT_CHECKED",
         "omp_current_pointer_consistency": "NOT_CHECKED",
@@ -643,6 +972,14 @@ def cps_live_state_consistency(
 
         omp_consistency = omp_live_state_consistency(cps_text, omp_text)
         errors.extend(omp_consistency["errors"])
+        mission_roles = mission_role_consistency(
+            cps_text,
+            root=root,
+            omp_text=omp_text,
+            verify_external=True,
+        )
+        errors.extend(mission_roles["errors"])
+        mission_identity_consistency = mission_roles["mission_identity_consistency"]
 
     unique_errors = sorted(set(errors))
     stale_ids = [
@@ -660,6 +997,7 @@ def cps_live_state_consistency(
         "stale_live_projection_count": len(stale_ids),
         "registry_sequence_consistency": "PASS" if not any("sequence" in item or "cap_u01" in item or "next_action" in item for item in unique_errors) else "FAIL",
         "mission_identity_consistency": mission_identity_consistency,
+        **{key: value for key, value in mission_roles.items() if key not in {"schema", "final_verdict", "errors", "mission_identity_consistency"}},
         "omp_pointer_consistency": omp_pointer_consistency,
         **{key: value for key, value in omp_consistency.items() if key not in {"schema", "final_verdict", "errors"}},
         "errors": unique_errors,

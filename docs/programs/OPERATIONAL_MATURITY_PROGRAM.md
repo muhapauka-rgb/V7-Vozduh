@@ -13,7 +13,10 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed closure evidence: `docs/reports/engineering/2026-07-12_015221_omp_live_state_pointer_and_historical_stop_guard.md` (`OMP_LIVE_STATE_POINTER_RECONCILED_OPERATIONAL_AUTHORITY_READY`). Its transition input is the accepted CPS reconciliation report `docs/reports/engineering/2026-07-12_011049_atomic_cps_live_state_reconciliation_and_consistency_guard.md`. Live continuation and the current Operational Authority stop are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
+Latest consumed closure evidence: `docs/reports/engineering/2026-07-12_020905_cps_terminal_mission_identity_reconciliation.md` (`CPS_MISSION_IDENTITY_RECONCILED_OPERATIONAL_AUTHORITY_READY`).
+Previous consumed closure evidence: `docs/reports/engineering/2026-07-12_015221_omp_live_state_pointer_and_historical_stop_guard.md` (`OMP_LIVE_STATE_POINTER_RECONCILED_OPERATIONAL_AUTHORITY_READY`).
+Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
+Live continuation and the current Operational Authority stop are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
 V4 operating questions:
 
@@ -8538,7 +8541,9 @@ Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `OPERATIONAL_AUTHORITY`
 Resolved current next action: `REQUEST_NEW_OPERATIONAL_AUTHORITY_THEN_GENERATE_FRESH_PACKET`
-Latest consumed report: `docs/reports/engineering/2026-07-12_015221_omp_live_state_pointer_and_historical_stop_guard.md`
+Latest consumed report: `docs/reports/engineering/2026-07-12_020905_cps_terminal_mission_identity_reconciliation.md`
+Previous consumed report: `docs/reports/engineering/2026-07-12_015221_omp_live_state_pointer_and_historical_stop_guard.md`
+Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:
 

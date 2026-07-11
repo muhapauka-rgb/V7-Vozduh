@@ -50,8 +50,14 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertIn("cps_old_packets_reusable", self.validate(drift)["errors"])
 
     def test_06_current_mission_report_identity_mismatch_fails(self):
-        drift = self.cps.replace("2026-07-12_015221_omp_live_state_pointer_and_historical_stop_guard.md", "missing-report.md", 1)
-        self.assertIn("cps_current_mission_report_identity_mismatch", self.validate(drift)["errors"])
+        drift = self.lib._replace_section_field(
+            self.cps,
+            "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+            "CURRENT_MISSION_REPORT",
+            "`missing-report.md`",
+        )
+        self.assertIn("MISSION_ROLE_AMBIGUITY_STOP_SAFE", self.validate(drift)["errors"])
 
     def test_07_registry_stop_differs_from_section_zero_fails(self):
         marker = "| `CURRENT_STOP_CONDITION` | `OPERATIONAL_AUTHORITY` |"

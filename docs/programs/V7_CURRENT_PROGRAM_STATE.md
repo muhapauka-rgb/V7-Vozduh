@@ -2,14 +2,18 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-12T01:10:49+0700
-Source: Mission `V7_OMP_ATOMIC_CPS_RECONCILIATION_AND_CONSISTENCY_GUARD_V1` atomically materialized the accepted binding terminal result across CPS section 0, registry, protected WIP and deterministic sequence. The binding certification remains owner-backed transition input. No packet, Authority, lease, barrier, Runtime apply, user movement or Authority expansion occurred.
+State captured: 2026-07-12T02:09:42+0700
+Latest terminal Mission: `V7_OMP_CPS_TERMINAL_MISSION_IDENTITY_RECONCILIATION_V1`
+Latest terminal Mission state: `CPS_MISSION_IDENTITY_RECONCILED_OPERATIONAL_AUTHORITY_READY`
+Latest terminal Mission report: `docs/reports/engineering/2026-07-12_020905_cps_terminal_mission_identity_reconciliation.md`
+Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
+Source: this Mission reconciled Mission-role projections only; no operational state, packet, Authority, Runtime or routing change occurred.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-12T01:10:49+0700`
+Captured: `2026-07-12T02:09:42+0700`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -28,16 +32,26 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_ACTIVE_SCOPE` | `ONE_FRESH_CURRENT_CLASS_TRANSACTION` |
 | `CURRENT_SAFE_NEXT_ACTION` | `REQUEST NEW EXACT OPERATIONAL AUTHORITY; THEN GENERATE ONE NEW FRESH CURRENT-CLASS PACKET; NEVER REUSE HISTORICAL IDENTITIES` |
 | `CURRENT_SCOPE_CLASS` | `OPERATIONAL_AUTHORITY_BOUNDARY` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_CPS_SYNC_V1_7F3C91A6D842` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_CPS_MISSION_ID_V1_5D9A73C4E821` |
 | `CURRENT_TRANSITION_ID` | `BINDING_STABILITY_CERTIFIED_TO_OPERATIONAL_AUTHORITY_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `REQUEST_NEW_OPERATIONAL_AUTHORITY_THEN_GENERATE_FRESH_PACKET` |
 | `CURRENT_STATE_CONSISTENCY` | `PASS; section 0, registry, protected WIP and deterministic sequence share one generation and transition` |
-| `CURRENT_MISSION_ID` | `V7_OMP_LIVE_STATE_POINTER_AND_HISTORICAL_STOP_GUARD_V1` |
-| `CURRENT_RUN_NONCE` | `V7_OMP_STOP_SYNC_V1_B84E72C19F36` |
-| `CURRENT_MISSION_STATE` | `OMP_LIVE_STATE_POINTER_RECONCILED_OPERATIONAL_AUTHORITY_READY` |
-| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_015221_omp_live_state_pointer_and_historical_stop_guard.md` |
+| `CURRENT_EXECUTION_MISSION_ID` | `NONE` |
+| `CURRENT_EXECUTION_MISSION_STATE` | `NONE` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_CPS_TERMINAL_MISSION_IDENTITY_RECONCILIATION_V1` |
+| `LATEST_TERMINAL_RUN_NONCE` | `V7_CPS_MISSION_ID_V1_5D9A73C4E821` |
+| `LATEST_TERMINAL_MISSION_STATE` | `CPS_MISSION_IDENTITY_RECONCILED_OPERATIONAL_AUTHORITY_READY` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_020905_cps_terminal_mission_identity_reconciliation.md` |
+| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-12T02:09:05+0700` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_LIVE_STATE_POINTER_AND_HISTORICAL_STOP_GUARD_V1` |
+| `CURRENT_MISSION_ROLE` | `LATEST_TERMINAL_MISSION` |
+| `CURRENT_MISSION_ID` | `V7_OMP_CPS_TERMINAL_MISSION_IDENTITY_RECONCILIATION_V1` |
+| `CURRENT_RUN_NONCE` | `V7_CPS_MISSION_ID_V1_5D9A73C4E821` |
+| `CURRENT_MISSION_STATE` | `CPS_MISSION_IDENTITY_RECONCILED_OPERATIONAL_AUTHORITY_READY` |
+| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_020905_cps_terminal_mission_identity_reconciliation.md` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `AUTHORITATIVE_TRANSITION_INPUT_STATE` | `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED` |
+| `AUTHORITATIVE_TRANSITION_INPUT_REPORT` | `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` |
 | `BINDING_STABILITY` | `PASS; 22 post-deploy read-only cycles, 10 consecutive stable Candidate cycles, zero unexplained mismatches, zero mixed-generation snapshots` |
 | `BINDING_SCHEMA` | `v7.operation-scoped-source-binding.v2; shared by preview, admission and low-level pre-mutation recheck` |
 | `MISSION_IDENTITY_GUARD` | `PASS; Mission ID + run nonce + start timestamp + report header/path + CPS identity fail-closed validation` |
@@ -144,7 +158,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-12T01:10:49+0700`
+Generated At: `2026-07-12T02:09:42+0700`
 
 Runtime Authority: `NONE`
 
@@ -157,7 +171,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_CPS_SYNC_V1_7F3C91A6D842` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_CPS_MISSION_ID_V1_5D9A73C4E821` |
 | `CURRENT_TRANSITION_ID` | `BINDING_STABILITY_CERTIFIED_TO_OPERATIONAL_AUTHORITY_V1` |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `REQUEST_NEW_OPERATIONAL_AUTHORITY_THEN_GENERATE_FRESH_PACKET` |
 | `CURRENT_STOP_CONDITION` | `OPERATIONAL_AUTHORITY` |
@@ -166,7 +180,12 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `UNFINISHED_CAPABILITIES` | `22` |
 | `OPEN_ENGINEERING_INTENTS` | `22` |
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
-| `ACTIVE_MISSIONS` | `NONE`; Mission `V7_OMP_ATOMIC_CPS_RECONCILIATION_AND_CONSISTENCY_GUARD_V1` is terminal `ATOMIC_CPS_RECONCILIATION_CERTIFIED_OPERATIONAL_AUTHORITY_READY`; CAP-U01 remains protected active WIP at Operational Authority. |
+| `ACTIVE_MISSIONS` | `NONE` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_CPS_TERMINAL_MISSION_IDENTITY_RECONCILIATION_V1` |
+| `LATEST_TERMINAL_MISSION_STATE` | `CPS_MISSION_IDENTITY_RECONCILED_OPERATIONAL_AUTHORITY_READY` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_020905_cps_terminal_mission_identity_reconciliation.md` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_LIVE_STATE_POINTER_AND_HISTORICAL_STOP_GUARD_V1` |
+| `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `OPEN_CANDIDATE_IDS` | `NONE`; all observed packet previews are evidence only and discarded without Authority. |
 | `PRIOR_BDP_CANDIDATES` | `25` certified instances are terminal historical ladder evidence, not open work |
 | `BACKLOG_STATE` | `34/34 actionable COMPLETE`; no new backlog item |
@@ -183,10 +202,15 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U01-FIRST-GOVERNED-CONTROLLED-RUN` |
-| `current_state_generation` | `cpsgen_V7_CPS_SYNC_V1_7F3C91A6D842` |
+| `current_state_generation` | `cpsgen_V7_CPS_MISSION_ID_V1_5D9A73C4E821` |
 | `current_transition_id` | `BINDING_STABILITY_CERTIFIED_TO_OPERATIONAL_AUTHORITY_V1` |
 | `smallest_existing_next_action_id` | `REQUEST_NEW_OPERATIONAL_AUTHORITY_THEN_GENERATE_FRESH_PACKET` |
-| `active_mission_id` | `NONE; last Mission V7_OMP_ATOMIC_CPS_RECONCILIATION_AND_CONSISTENCY_GUARD_V1 terminal ATOMIC_CPS_RECONCILIATION_CERTIFIED_OPERATIONAL_AUTHORITY_READY` |
+| `active_mission_id` | `NONE` |
+| `active_mission_state` | `NONE` |
+| `latest_terminal_mission_id` | `V7_OMP_CPS_TERMINAL_MISSION_IDENTITY_RECONCILIATION_V1` |
+| `latest_terminal_mission_state` | `CPS_MISSION_IDENTITY_RECONCILED_OPERATIONAL_AUTHORITY_READY` |
+| `previous_terminal_mission_id` | `V7_OMP_LIVE_STATE_POINTER_AND_HISTORICAL_STOP_GUARD_V1` |
+| `authoritative_transition_input_mission_id` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `candidate_id` | `NONE_OPEN; latest preview discarded as evidence only` |
 | `protected_by_active_wip` | `TRUE` |
 | `wip_priority_class` | `COMPLETION_FIRST` |
@@ -266,7 +290,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `U01` Controlled Run WIP; `cpsgen_V7_CPS_SYNC_V1_7F3C91A6D842`; `BINDING_STABILITY_CERTIFIED_TO_OPERATIONAL_AUTHORITY_V1` | protected active root; binding v2 and candidate-scoped readiness certified; no packet or Authority open | `REQUEST_NEW_OPERATIONAL_AUTHORITY_THEN_GENERATE_FRESH_PACKET` | exact Operational Authority request only | `OPERATIONAL_AUTHORITY` | after approval: fresh Candidate -> fresh packet -> final live revalidation -> one governed transaction -> verification/rollback/final OPEN -> outcome/learning/maturity/promotion |
+| `1` | `U01` Controlled Run WIP; `cpsgen_V7_CPS_MISSION_ID_V1_5D9A73C4E821`; `BINDING_STABILITY_CERTIFIED_TO_OPERATIONAL_AUTHORITY_V1` | protected active root; binding v2 and candidate-scoped readiness certified; no packet or Authority open | `REQUEST_NEW_OPERATIONAL_AUTHORITY_THEN_GENERATE_FRESH_PACKET` | exact Operational Authority request only | `OPERATIONAL_AUTHORITY` | after approval: fresh Candidate -> fresh packet -> final live revalidation -> one governed transaction -> verification/rollback/final OPEN -> outcome/learning/maturity/promotion |
 | `4` | `U01` | only after explicit approval | one governed action | guarded Runtime | `STOP_SAFE` | apply/no-apply -> verification |
 | `5` | `U01/U05` | terminal safety | verification/rollback/mandatory final `OPEN` | guarded verification | `STOP_SAFE` | terminal result -> outcome closure |
 | `6` | `U07/U08/U22` | consumes real terminal result | outcome, learning and maturity closure | no-mutation learning | `REAL_WORLD_LIMIT` if no outcome | learning/maturity -> CPS/OMP |

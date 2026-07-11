@@ -2,21 +2,21 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-11T11:18:40+0700
-Source: the exact operation-scoped controlled-window implementation was safely deployed and production-certified through existing owners at commit `99b40f2802c68ce7b48c0c9262a10de91b64ef2b`, deploy `deploy-z8-14-Updatesystem-99b40f2-20260711T111335`. The active Controlled Run remains protected and first. Its next legal step is a separate fresh Phase 4A read-only rerun; Authority is not required now. No packet, lease, restore barrier, Runtime apply, rollback or user movement occurred; Safe Mode v2 remains `OPEN`.
+State captured: 2026-07-11T15:12:53+0700
+Source: fresh production Phase 4A revalidation selected one real governed Candidate and prepared a source/snapshot-bound packet preview through existing owners. The active Controlled Run remains protected and first at the exact `OPERATIONAL_AUTHORITY` boundary. No active packet or lease was created, no restore barrier was written, and no Runtime apply, rollback or user movement occurred; Safe Mode v2 remains `OPEN`.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-11T11:18:40+0700`
+Captured: `2026-07-11T15:12:53+0700`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
 | Field | Current Value |
 | --- | --- |
 | `ACTIVE_PROGRAM` | `OMP` |
-| `CURRENT_MODE` | `CONTROLLED_WINDOW_PRODUCTION_CERTIFIED_OPEN` |
+| `CURRENT_MODE` | `CONTROLLED_RUN_READY_FOR_OPERATIONAL_AUTHORITY` |
 | `ARCHITECTURE_STATE` | `STAGE_1_ACCEPTED_AND_LOCKED` |
 | `KNOWLEDGE_STATE` | `LOCKED_KNOWLEDGE` |
 | `ACTIVE_EXECUTION_OWNER` | `OMP` |
@@ -24,12 +24,12 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `NONE_FOR_PHASE_4A_RERUN_PREPARATION` |
-| `CURRENT_ACTIVE_SCOPE` | `FIRST_GOVERNED_CONTROLLED_RUN_PHASE_4A_RERUN` |
-| `CURRENT_SAFE_NEXT_ACTION` | `RERUN_FIRST_GOVERNED_OMP_CONTROLLED_RUN_PHASE_4A_FROM_FRESH_EVIDENCE` |
-| `CURRENT_SCOPE_CLASS` | `GOVERNED_READ_ONLY_PHASE_4A_RERUN_PREPARATION` |
-| `FORBIDDEN_FOR_CURRENT_SCOPE` | Reuse of the rejected packet preview, automatic controlled execution, Operational Authority request before a fresh exact packet is admitted, Safe Mode `CLOSED` outside the separately governed execution window, Runtime apply, user movement, rollback apply, Authority/blast-radius expansion, systemd enable/start, or synthetic evidence. |
-| `REQUIRED_WORKFLOW` | Fresh Phase 4A evidence -> exact candidate and packet revalidation -> legal stop or separate exact Operational Authority request. Do not execute inside the rerun Mission. |
+| `CURRENT_STOP_CONDITION` | `OPERATIONAL_AUTHORITY` |
+| `CURRENT_ACTIVE_SCOPE` | `FIRST_GOVERNED_OMP_CONTROLLED_RUN_AUTHORITY_BOUNDARY` |
+| `CURRENT_SAFE_NEXT_ACTION` | `REQUEST_EXACT_OPERATIONAL_AUTHORITY_FOR_PREPARED_PACKET` |
+| `CURRENT_SCOPE_CLASS` | `EXACT_PACKET_OPERATIONAL_AUTHORITY_REQUIRED` |
+| `FORBIDDEN_FOR_CURRENT_SCOPE` | Any execution without exact packet authority; planner/candidate/target regeneration under the prepared approval; Safe Mode `CLOSED` before a separately authorized execution Mission; active lease, restore-barrier write, Runtime apply, user movement, rollback apply, Authority/blast-radius expansion, systemd enable/start, or synthetic evidence. |
+| `REQUIRED_WORKFLOW` | Exact operational approve/reject decision for the prepared packet -> separate governed execution or rejection-closure Mission. Any source/snapshot/generation/truth drift invalidates the preview and requires fresh Phase 4A. |
 | `CIRCUIT_BREAKER_REPOSITORY_STATE` | `IMPLEMENTATION_CERTIFIED_READ_ONLY` |
 | `CIRCUIT_BREAKER_PRODUCTION_STATE` | `DEPLOYED_CERTIFIED_OPEN` |
 | `CIRCUIT_BREAKER_PRODUCTION_CERTIFICATION` | `CIRCUIT_BREAKER_PRODUCTION_CERTIFIED` |
@@ -43,8 +43,18 @@ This section is the single live volatile current-state surface. Older production
 | `COMBINED_DEPLOY_ADMISSION` | `PASS; already deployed and revalidated, no duplicate runtime deploy required` |
 | `COMBINED_DEPLOY_REVALIDATION_REPORT` | `docs/reports/engineering/2026-07-11_063642_recovery_artifact_deploy_admission_and_circuit_breaker_phase3_continuation.md` |
 | `CONTROLLED_RUN_PREPARATION_REPORT` | `docs/reports/engineering/2026-07-11_094517_first_governed_omp_controlled_run_preparation.md` |
-| `CONTROLLED_RUN_CANDIDATE` | `candidate_7b48ef45c5f19af91a317fcd; user=10.0.0.2; vless->awg3; read-only evidence only` |
-| `CONTROLLED_RUN_PACKET_PREVIEW` | `pkt_preview_59a3c22747a4edb843be3863; REJECTED_FOR_PHASE4A_AUTHORITY` |
+| `CONTROLLED_RUN_CANDIDATE` | `candidate_453ef91bcf1e5e662f9f0ca5; user=10.7.0.5; awg0->vless; SINGLE_USER_GOVERNED_CANDIDATE_FAILOVER; NEW_INSTANCE` |
+| `CONTROLLED_RUN_PACKET_PREVIEW` | `pkt_preview_c6a5b48c9ee7a80d20859071; PACKET_PREVIEW_READY; preview only, not execution authority` |
+| `CONTROLLED_RUN_DECISION_ID` | `decision_commit_fc77fe288714ff7f7839e0c7` |
+| `CONTROLLED_RUN_OPERATION_ID` | `govdry_2cef3491744976a995c1fec6` |
+| `CONTROLLED_RUN_SELECTED_MOVE_HASH` | `2ad1cc99e6751dce6e3c48f94f7e6d531378dde4315ec976b94fbb302f4f1832` |
+| `CONTROLLED_RUN_AUTHORITY_GENERATION` | `drygen_2b438bd864918f09a54322ed` |
+| `CONTROLLED_RUN_SOURCE_BUNDLE_HASH` | `defa92af0ebefa2d61bed02841240d452a114201e07584eb45afeac80be2ea10` |
+| `CONTROLLED_RUN_SNAPSHOT_BUNDLE_HASH` | `defa92af0ebefa2d61bed02841240d452a114201e07584eb45afeac80be2ea10` |
+| `CONTROLLED_RUN_ROLLBACK_MANIFEST` | `rb_preview_5706a27ae3c02255e0d707f8; rollback target=awg0` |
+| `CONTROLLED_RUN_AUTHORITY_CLASS` | `OPERATIONAL_AUTHORITY; TIER_1; MARGINAL_OPERATOR_REVIEW` |
+| `CONTROLLED_RUN_PACKET_EXPIRY` | `owner-issued 900 seconds only after approval/materialization; current preview invalidates on any bound evidence drift` |
+| `CONTROLLED_RUN_PHASE4A_RERUN_REPORT` | `docs/reports/engineering/2026-07-11_151253_first_governed_omp_controlled_run_preparation.md` |
 | `CONTROLLED_WINDOW_CONTRACT` | `IMPLEMENTATION_CERTIFIED_READ_ONLY; operation_id + selected_move_hash + max_users=1 + source/snapshot + breaker generation + terminal OPEN` |
 | `CONTROLLED_WINDOW_REPOSITORY_STATE` | `IMPLEMENTATION_CERTIFIED` |
 | `CONTROLLED_WINDOW_PRODUCTION_STATE` | `DEPLOYED_CERTIFIED_OPEN` |
@@ -55,14 +65,14 @@ This section is the single live volatile current-state surface. Older production
 | `POST_CLOSED_REVALIDATION` | `CERTIFIED` |
 | `ALL_TERMINAL_PATHS_FINAL_OPEN` | `CERTIFIED` |
 | `CONTROLLED_RUN_EXECUTION_AUTHORIZED` | `NO` |
-| `OMP_CONTROLLED_RUN_ALLOWED` | `YES_FOR_SEPARATE_PHASE_4A_RERUN_ONLY` |
-| `CONTROLLED_RUN_PRIMARY_STOP` | `NONE_FOR_PHASE_4A_RERUN_PREPARATION` |
-| `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `FRESH_EVIDENCE_REVALIDATION_REQUIRED` |
-| `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `NO` |
-| `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_NOT_CLOSED; repository implementation sub-intent closed` |
+| `OMP_CONTROLLED_RUN_ALLOWED` | `YES_FOR_EXACT_PREPARED_PACKET_AUTHORITY_REVIEW_ONLY` |
+| `CONTROLLED_RUN_PRIMARY_STOP` | `OPERATIONAL_AUTHORITY` |
+| `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `OPERATIONAL_AUTHORITY_REQUIRED` |
+| `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `YES; exact packet only` |
+| `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_NOT_CLOSED_PENDING_AUTHORITY_AND_EXECUTION` |
 | `PARENT_ENGINEERING_INTENT` | `INTENT_NOT_CLOSED` |
 | `ACTIVE_WIP_PROTECTED` | `TRUE; COMPLETION_FIRST; reorder forbidden` |
-| `PRODUCTION_RUNTIME_IMPACT` | `EXACT_CERTIFIED_ARTIFACTS_DEPLOYED; Admin-only restart; no packet/lease/barrier, Safe Mode change, Runtime apply, rollback or user movement.` |
+| `PRODUCTION_RUNTIME_IMPACT` | `READ_ONLY_COORDINATOR_BINDING_FIX_DEPLOYED; no restart, packet/lease/barrier, Safe Mode change, Runtime apply, rollback or user movement.` |
 | `AUTHORITY_IMPACT` | `NONE` |
 | `ROUTING_IMPACT` | `NONE` |
 | `USER_MOVEMENT` | `NO` |
@@ -78,7 +88,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-11T11:18:40+0700`
+Generated At: `2026-07-11T15:12:53+0700`
 
 Runtime Authority: `NONE`
 
@@ -97,14 +107,14 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `OPEN_ENGINEERING_INTENTS` | `22` |
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
 | `ACTIVE_MISSIONS` | `V7_FIRST_GOVERNED_OMP_CONTROLLED_RUN_PHASE_4A` only |
-| `OPEN_CANDIDATE_IDS` | `candidate_7b48ef45c5f19af91a317fcd` only; read-only lineage, not admitted |
+| `OPEN_CANDIDATE_IDS` | `candidate_453ef91bcf1e5e662f9f0ca5` only; exact prepared authority lineage, not execution authority |
 | `PRIOR_BDP_CANDIDATES` | `25` certified instances are terminal historical ladder evidence, not open work |
 | `BACKLOG_STATE` | `34/34 actionable COMPLETE`; no new backlog item |
 | `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
 | `OMP_CONTINUATION_POINTER` | consume this registry; preserve active WIP; select the first unresolved sequence position only |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `RERUN_FIRST_GOVERNED_OMP_CONTROLLED_RUN_PHASE_4A_FROM_FRESH_EVIDENCE` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `REQUEST_EXACT_OPERATIONAL_AUTHORITY_FOR_PREPARED_PACKET` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -114,17 +124,17 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | --- | --- |
 | `capability_id` | `CAP-U01-FIRST-GOVERNED-CONTROLLED-RUN` |
 | `active_mission_id` | `V7_FIRST_GOVERNED_OMP_CONTROLLED_RUN_PHASE_4A` |
-| `candidate_id` | `candidate_7b48ef45c5f19af91a317fcd` |
+| `candidate_id` | `candidate_453ef91bcf1e5e662f9f0ca5` |
 | `protected_by_active_wip` | `TRUE` |
 | `wip_priority_class` | `COMPLETION_FIRST` |
 | `active_wip_reorder_allowed` | `FALSE` |
-| `current_primary_stop` | `NONE_FOR_PHASE_4A_RERUN_PREPARATION` |
-| `responsibility_class` | `FRESH_EVIDENCE_REVALIDATION_REQUIRED` |
-| `authority_required_now` | `FALSE` |
-| `last_responsible_link` | production-certified controlled window -> fresh Phase 4A candidate/packet revalidation |
+| `current_primary_stop` | `OPERATIONAL_AUTHORITY` |
+| `responsibility_class` | `OPERATIONAL_AUTHORITY_REQUIRED` |
+| `authority_required_now` | `TRUE; exact packet only` |
+| `last_responsible_link` | exact source/snapshot-bound packet preview -> operational approve/reject decision |
 | `responsible_owners` | Admin Safe Mode v2; `admin_core/operator_execution.py`; governed execution pipeline; packet/lease identity; autoswitch final gate; rollback, verification, outcome and learning owners |
 | `protected_objects` | Existing owners above; Phase 4A Candidate evidence lineage; current Circuit Breaker certification |
-| `smallest_existing_next_action` | `RERUN_FIRST_GOVERNED_OMP_CONTROLLED_RUN_PHASE_4A_FROM_FRESH_EVIDENCE` |
+| `smallest_existing_next_action` | `REQUEST_EXACT_OPERATIONAL_AUTHORITY_FOR_PREPARED_PACKET` |
 | `completion_condition` | exact packet admitted, one governed action reaches verification/rollback, mandatory final `OPEN`, outcome/learning/maturity/CPS/OMP consumption, Parent Intent closed or legal terminal stop |
 
 ### Complete Or Locked Capability Records
@@ -152,7 +162,7 @@ The following joined table is the normalized live record. `Last link` represents
 
 | ID | Capability | Canonical owner | Status | Current % / source confidence | Last responsible link | Gap / stop | Smallest existing next action | Depends on / unblocks |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `CAP-U01` | First Governed Controlled Run | Admin Safe Mode, execution packet/lease/pipeline, OMP | `ACTIVE` | `NOT_APPLICABLE_WITH_REASON: instance chain` | production-certified controlled window -> fresh Phase 4A candidate/packet revalidation | fresh evidence required; no current authority stop | rerun Phase 4A from fresh evidence without execution | first; unblocks U03/U04/U05/U07/U08/U09 |
+| `CAP-U01` | First Governed Controlled Run | Admin Safe Mode, execution packet/lease/pipeline, OMP | `ACTIVE` | `NOT_APPLICABLE_WITH_REASON: instance chain` | exact source/snapshot-bound packet preview -> operational approve/reject decision | `OPERATIONAL_AUTHORITY`; exact packet only | request exact operational authority without execution | first; unblocks U03/U04/U05/U07/U08/U09 |
 | `CAP-U02` | Movement Protection | OMP, Movement Protection Model, Runtime Model | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting `83/78` | certified gates -> real bounded movement behavior/outcome | runtime/production evidence | finish U01, consume first real outcome, revalidate owner percent | U01/U03/U04/U05/U06; unblocks U09 |
 | `CAP-U03` | Runtime Eligibility | Runtime Model, A6, final execution gate | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting `71/61` | read-only execute/stop arbitration -> production execution consumer | runtime consumption; `UNSAFE_IMPLEMENTATION` through U01 | consume certified window/packet path, then production-verify exact gate | U01/U06; unblocks U02/U09 |
 | `CAP-U04` | Authority Evolution | OMP, authority policy, action-class ladder | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting capability and maturity values | certified action-class evidence -> owner authority decision | authority evidence; future `ENGINEERING_AUTHORITY`, not current | evaluate action-class authority only after first outcome closure | U01/U05/U07; unblocks U09 |
@@ -192,8 +202,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `U01` Controlled Run WIP | protected active root; repository implementation and production certification complete | rerun Phase 4A from fresh evidence | governed read-only preparation | safety/reality stop | exact packet or legal stop -> OMP |
-| `3` | `U01` | only after admitted packet | exact operational-authority request | authority | `OPERATIONAL_AUTHORITY` | decision -> execution Mission |
+| `1` | `U01` Controlled Run WIP | protected active root; exact packet prepared from fresh production evidence | request exact operational authority | authority | `OPERATIONAL_AUTHORITY` | approve/reject decision -> separate execution or rejection closure Mission |
 | `4` | `U01` | only after explicit approval | one governed action | guarded Runtime | `STOP_SAFE` | apply/no-apply -> verification |
 | `5` | `U01/U05` | terminal safety | verification/rollback/mandatory final `OPEN` | guarded verification | `STOP_SAFE` | terminal result -> outcome closure |
 | `6` | `U07/U08/U22` | consumes real terminal result | outcome, learning and maturity closure | no-mutation learning | `REAL_WORLD_LIMIT` if no outcome | learning/maturity -> CPS/OMP |
@@ -213,9 +222,8 @@ Independent read-only work may run in parallel only when OMP proves it cannot to
 
 | Stop | Current use |
 | --- | --- |
-| `NONE_FOR_PHASE_4A_RERUN_PREPARATION` | Active U01 has no deployment/certification stop; only the separate fresh read-only Phase 4A rerun is allowed now. |
+| `OPERATIONAL_AUTHORITY` | Active U01 exact packet is prepared; no mutation is legal until an explicit approve/reject decision and separate execution Mission. |
 | `ENGINEERING_AUTHORITY` | Future U04 only if actual authority expansion is proposed after evidence. |
-| `OPERATIONAL_AUTHORITY` | Future exact admitted packet/action only. |
 | `REAL_WORLD_LIMIT` | U06/U07/U18-U22 when required real candidates/outcomes do not exist. |
 | `STOP_SAFE` | Any failed/unknown live Runtime, verification, rollback, freshness, identity or safety gate. |
 
@@ -228,7 +236,7 @@ Independent read-only work may run in parallel only when OMP proves it cannot to
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Phase 4A report says `INTENT_BLOCKED_BY_ENGINEERING_AUTHORITY`; later implementation and production certification closed the missing contract | CPS/OMP current state | historical value `SUPERSEDED`; current next step is fresh Phase 4A revalidation, intent remains `INTENT_NOT_CLOSED` |
+| `CAP-CON-06` | Controlled Run responsibility | Initial Phase 4A report says `INTENT_BLOCKED_BY_ENGINEERING_AUTHORITY`; later implementation, production certification and fresh Phase 4A closed the missing contract | CPS/OMP current state | historical value `SUPERSEDED`; current boundary is exact `OPERATIONAL_AUTHORITY`, intent remains `INTENT_NOT_CLOSED_PENDING_AUTHORITY_AND_EXECUTION` |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

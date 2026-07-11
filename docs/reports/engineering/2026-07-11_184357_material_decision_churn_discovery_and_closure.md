@@ -2,7 +2,7 @@
 
 Дата: `2026-07-11T18:43:57+0700`  
 Mission ID: `V7_OMP_MATERIAL_DECISION_CHURN_CLOSURE_V1`  
-Статус отчёта: `DEPLOYED_INITIAL_STABILITY_EVIDENCE_COLLECTED`
+Статус отчёта: `MATERIAL_DECISION_CHURN_CLOSED_STABILITY_CERTIFIED`
 
 ## Summary
 
@@ -81,6 +81,17 @@ Initial deploy `deploy-z8-14-Updatesystem-f96f294-20260711T184730` delivered the
 
 The first post-deploy 10-cycle series proved cycles 5-8 kept selected move `10.0.0.2 vless -> awg3`, Decision Fingerprint `993972...9d37` and semantic bundle `612ae1...1fc0` while raw snapshots changed. It also exposed one remaining non-authoritative identity defect: `candidate_hash` still included raw recommendation/source hashes and changed for the same semantic candidate. That field is now normalized in the same existing pipeline owner and requires a final deploy/certification pass. No Safe Mode change, active lease, restore barrier, service/timer change, Runtime apply or user movement occurred.
 
+Final candidate identity normalization was deployed at commit `62015c156fa2a528b36bdbfb3847f3b9f9ee57c2`, deploy id `deploy-z8-14-Updatesystem-62015c1-20260711T185443`. Repeated safe-deploy returned `deployment_required=false`; truth/convergence were `PASS / FULLY_ALIGNED`.
+
+Final 10-cycle certification:
+
+- cycles 1-4: identical Candidate hash `789344...9d35`, move hash `dea805...8d12` and Decision Fingerprint `518abb...2c16`;
+- cycles 2-4: identical semantic bundle `64c57c...791a` while raw suitability snapshots changed;
+- later selected-decision switches had distinct selected move, Candidate and Decision fingerprints and therefore remained material/fail-closed;
+- no `NON_DETERMINISTIC_DECISION`, unexplained churn, lease, barrier, apply or movement.
+
+Production stability result: `DECISION_STABILITY_CERTIFIED`. False invalidation is removed; material invalidation is preserved.
+
 ## Behavior Enforcement And State Transition Verification
 
 Expected behavior change is limited to eliminating false packet invalidation from non-material byte drift. Selected identity, material runtime health/load, suitability decision values, action class, safety verdict and rollback/verification readiness remain fail-closed. Initial/final runtime mutation state remains unchanged.
@@ -91,4 +102,32 @@ Work remains inside active `CAP-U01`; no new capability or backlog item. Project
 
 ## Parent Intent And Continue OMP
 
-Parent intent remains `INTENT_NOT_CLOSED` until deploy and production stability certification. CPS/OMP synchronization and automatic `Continue OMP` will be performed only after certification, stopping at the next canonical Authority/real-world/safety boundary.
+Engineering Intent is `INTENT_CLOSED`. Automatic `Continue OMP` consumed CPS registry and reran fresh Phase 4A read-only. It reached `OPERATIONAL_AUTHORITY` with `10.0.0.2 vless -> awg0`, packet `pkt_preview_ec8184d73f013b0d0cafe5c6`, decision `decision_commit_518abb7de97b1cbec59f4ac7`, operation `govdry_0eb3bad4dc845bca212eaa98`, selected move hash `dea805...8d12` and bundle `1449da...1768`. No execution authority was granted and no mutation occurred. Active `CAP-U01` remains protected; next action is exact packet approval with final live revalidation.
+
+## Final Verdict
+
+```text
+MATERIAL_DECISION_CHURN_CLOSED_STABILITY_CERTIFIED
+ARCHITECTURE_CLOSED_BY_DEFAULT = PASS
+NEW_OWNER_REQUIRED = NO
+CHURN_CYCLES_OBSERVED = 30 bounded cycles plus one automatic Continue OMP cycle
+ROOT_CAUSE = MULTIPLE_ROOT_CAUSES
+NON_DETERMINISTIC_DECISION = NO
+SOURCE_MATERIALITY_RESOLVED = YES
+EXISTING_STABILITY_MECHANISMS_REUSED = YES
+IMPLEMENTATION_CHANGED = YES; existing coordinator/pipeline owners only
+DEPLOY_APPLIED = YES
+DEPLOY_ID = deploy-z8-14-Updatesystem-62015c1-20260711T185443
+DECISION_REPLAY = PASS
+FALSE_INVALIDATION_REMOVED = YES
+MATERIAL_INVALIDATION_PRESERVED = YES
+PRODUCTION_STABILITY_RESULT = DECISION_STABILITY_CERTIFIED
+SAFE_MODE_FINAL_STATE = OPEN
+RUNTIME_APPLY = NO
+USER_MOVEMENT = NO
+PRODUCTION_MATURITY_DECISION = NO_CHANGE; no real movement outcome and no manual score edit
+ENGINEERING_INTENT_CLOSURE = INTENT_CLOSED
+AUTOMATIC_CONTINUE_OMP_EXECUTED = YES
+NEXT_CANONICAL_STOP = OPERATIONAL_AUTHORITY
+NEXT_OMP_ACTION = AWAIT_EXACT_OPERATIONAL_AUTHORITY_FOR_FRESH_PACKET_WITH_FINAL_LIVE_REVALIDATION
+```

@@ -105,7 +105,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(first["source_hashes"], second["source_hashes"])
         self.assertNotEqual(first["raw_source_hashes"], second["raw_source_hashes"])
 
-    def test_selected_decision_binding_invalidates_material_score_and_safety_changes(self):
+    def test_selected_decision_binding_ignores_score_churn_and_invalidates_categorical_safety_changes(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -138,13 +138,17 @@ class GovernedCanaryCliTest(unittest.TestCase):
             suitability["items"][0]["candidates"][1]["suitability_score"] = 60.0
             suitability_path.write_text(json.dumps(suitability), encoding="utf-8")
             score_changed = module.attach_controlled_execution_source_binding(surface, state_dir=state_dir, snapshot_root=snapshot_root)
+            suitability["items"][0]["candidates"][1]["recommendation"] = "reject"
+            suitability_path.write_text(json.dumps(suitability), encoding="utf-8")
+            recommendation_changed = module.attach_controlled_execution_source_binding(surface, state_dir=state_dir, snapshot_root=snapshot_root)
             runtime["egress"]["awg3"]["load_status"] = "BLOCKED"
             runtime_path.write_text(json.dumps(runtime), encoding="utf-8")
             safety_changed = module.attach_controlled_execution_source_binding(surface, state_dir=state_dir, snapshot_root=snapshot_root)
 
         self.assertNotEqual(first["source_hashes"]["users_registry"], identity_changed["source_hashes"]["users_registry"])
-        self.assertNotEqual(first["source_hashes"]["candidate_suitability"], score_changed["source_hashes"]["candidate_suitability"])
-        self.assertNotEqual(score_changed["source_hashes"]["runtime_state"], safety_changed["source_hashes"]["runtime_state"])
+        self.assertEqual(first["source_hashes"]["candidate_suitability"], score_changed["source_hashes"]["candidate_suitability"])
+        self.assertNotEqual(score_changed["source_hashes"]["candidate_suitability"], recommendation_changed["source_hashes"]["candidate_suitability"])
+        self.assertNotEqual(recommendation_changed["source_hashes"]["runtime_state"], safety_changed["source_hashes"]["runtime_state"])
 
     def test_planner_executable_uses_repo_tool_when_available(self):
         module = load_cli_module()

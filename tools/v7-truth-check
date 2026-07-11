@@ -20,8 +20,12 @@ from typing import Any, Callable, Optional
 TOOLS_DIR = Path(__file__).resolve().parent
 if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
+ROOT_DIR = TOOLS_DIR.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 import v7_sync_lib as sync_lib
+from admin_core import operator_execution
 
 
 DEFAULT_MANIFEST = Path("docs/track7/runtime-convergence/V7_TRUTH_MANIFEST.json")
@@ -638,6 +642,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     mode.add_argument("--all", action="store_true", help="Run local, GitHub, and runtime-readonly framework checks.")
     parser.add_argument("--json", action="store_true", help="Emit JSON.")
     parser.add_argument("--manifest", default=str(DEFAULT_MANIFEST), help="Path to V7_TRUTH_MANIFEST.json.")
+    parser.add_argument("--mission-id", default="", help="Requested Mission ID for report identity validation.")
+    parser.add_argument("--run-nonce", default="", help="Requested unique Mission run nonce.")
+    parser.add_argument("--mission-start", default="", help="Mission start timestamp.")
+    parser.add_argument("--mission-report", default="", help="New Engineering Report path.")
+    parser.add_argument("--cps", default="docs/programs/V7_CURRENT_PROGRAM_STATE.md", help="CPS path for Mission identity validation.")
     return parser
 
 
@@ -655,6 +664,31 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = build_arg_parser().parse_args(argv)
     manifest = load_manifest(Path(args.manifest))
     result = combine_results(manifest, mode=selected_mode(args))
+    identity_values = [args.mission_id, args.run_nonce, args.mission_start, args.mission_report]
+    if any(identity_values):
+        if not all(identity_values):
+            identity = {
+                "ok": False,
+                "status": "MISSION_CONTEXT_MISMATCH_STOP_SAFE",
+                "errors": ["mission_identity_arguments_incomplete"],
+            }
+        else:
+            try:
+                cps_text = Path(args.cps).read_text(encoding="utf-8")
+            except OSError:
+                cps_text = ""
+            identity = operator_execution.mission_report_identity_guard(
+                requested_mission_id=args.mission_id,
+                requested_run_nonce=args.run_nonce,
+                mission_start_timestamp=args.mission_start,
+                report_path=Path(args.mission_report),
+                cps_text=cps_text,
+            )
+        result["mission_identity"] = identity
+        if not identity.get("ok"):
+            result["blockers"] = sorted(set(result.get("blockers") or []) | set(identity.get("errors") or []))
+            result["final_verdict"] = "NO-GO"
+            result["convergence_status"] = "MISSION_CONTEXT_MISMATCH_STOP_SAFE"
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
     else:

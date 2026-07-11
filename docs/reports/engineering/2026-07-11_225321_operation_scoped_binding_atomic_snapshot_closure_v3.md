@@ -1,0 +1,22 @@
+Mission ID: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
+Run Nonce: `V7_BINDING_V3_9C7A4E1D6B2F`
+
+# Operation-Scoped Binding Atomic Snapshot Closure V3
+
+Mission start: `2026-07-11T22:53:21+0700`
+
+## Identity Gate
+
+```text
+REQUESTED_MISSION_ID = V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3
+REQUESTED_RUN_NONCE = V7_BINDING_V3_9C7A4E1D6B2F
+ACTUAL_EXECUTION_MISSION_ID = V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3
+ACTUAL_EXECUTION_RUN_NONCE = V7_BINDING_V3_9C7A4E1D6B2F
+MISSION_START_TIMESTAMP = 2026-07-11T22:53:21+0700
+IS_EXACT_IDENTITY_MATCH = YES
+IS_REPLAY = NO
+IS_STALE_OUTPUT_CONTEXT = NO
+NEW_REPORT_PATH = docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md
+```
+
+This report was created after Mission start. Previous Mission reports are historical evidence only and cannot be selected as the current output.

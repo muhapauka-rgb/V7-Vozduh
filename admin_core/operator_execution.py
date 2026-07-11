@@ -139,6 +139,58 @@ def sha256_bytes(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def mission_report_identity_guard(
+    *,
+    requested_mission_id: str,
+    requested_run_nonce: str,
+    mission_start_timestamp: str,
+    report_path: Path,
+    cps_text: str,
+) -> dict[str, Any]:
+    """Reject a report that is not bound to the requested Mission execution."""
+    errors: list[str] = []
+    try:
+        report_text = report_path.read_text(encoding="utf-8")
+        stat = report_path.stat()
+    except OSError:
+        report_text = ""
+        stat = None
+        errors.append("report_missing")
+    expected_id = f"Mission ID: `{requested_mission_id}`"
+    expected_nonce = f"Run Nonce: `{requested_run_nonce}`"
+    lines = report_text.splitlines()
+    if len(lines) < 2 or lines[0] != expected_id:
+        errors.append("report_mission_id_mismatch")
+    if len(lines) < 2 or lines[1] != expected_nonce:
+        errors.append("report_run_nonce_mismatch")
+    try:
+        start = parse_ts(mission_start_timestamp).timestamp()
+    except PacketError:
+        start = 0.0
+    report_created_at = float(getattr(stat, "st_birthtime", 0.0) or getattr(stat, "st_ctime", 0.0)) if stat else 0.0
+    report_modified_at = float(getattr(stat, "st_mtime", 0.0)) if stat else 0.0
+    if start <= 0:
+        errors.append("mission_start_timestamp_invalid")
+    elif min(report_created_at or report_modified_at, report_modified_at) + 0.001 < start:
+        errors.append("report_predates_mission_start")
+    if requested_mission_id not in cps_text:
+        errors.append("cps_mission_id_mismatch")
+    if requested_run_nonce not in cps_text:
+        errors.append("cps_run_nonce_mismatch")
+    return {
+        "schema_version": "v7.mission-report-identity-guard.v1",
+        "ok": not errors,
+        "status": "MISSION_IDENTITY_MATCH" if not errors else "MISSION_CONTEXT_MISMATCH_STOP_SAFE",
+        "errors": errors,
+        "requested_mission_id": requested_mission_id,
+        "requested_run_nonce": requested_run_nonce,
+        "report_path": str(report_path),
+        "report_created_after_mission_start": "report_predates_mission_start" not in errors and stat is not None,
+        "report_identity_match": not any(item.startswith("report_") and item.endswith("mismatch") for item in errors),
+        "cps_identity_match": not any(item.startswith("cps_") for item in errors),
+    }
+
+
 def sha256_json(payload):
     encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return sha256_bytes(encoded)

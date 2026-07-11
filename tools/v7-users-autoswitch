@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from admin_core import operator_execution
+from admin_core import operation_scoped_binding, operator_execution
 
 
 DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
@@ -6660,6 +6660,17 @@ class AutoswitchPlanner:
             "egress_registry": sha256_file(self.state_dir / "egress.registry"),
         }
 
+    def _operation_scoped_source_binding(self, plan: dict[str, Any]) -> dict[str, Any]:
+        selected = next(
+            (row for row in (plan.get("selected_moves") or []) if isinstance(row, dict)),
+            {},
+        )
+        return operation_scoped_binding.read_binding(
+            state_dir=self.state_dir,
+            snapshot_root=self.intelligence_snapshot_root,
+            selected=selected,
+        )
+
     def _snapshot_source_bundle(self) -> dict[str, Any]:
         results = (self.intelligence_snapshots or {}).get("results") or {}
         bundle: dict[str, Any] = {}
@@ -6822,11 +6833,20 @@ class AutoswitchPlanner:
                 "reason": "atomic_execution_envelope_missing",
             }
         mismatches: list[str] = []
-        current_source_hashes = self._runtime_source_hashes(from_disk=True)
+        approved_source_hashes = ((envelope.get("source_bundle") or {}).get("source_hashes") or {})
+        operation_scoped = set(approved_source_hashes) == set(operation_scoped_binding.SOURCE_KEYS)
+        operation_binding = self._operation_scoped_source_binding(plan) if operation_scoped else {}
+        current_source_hashes = (
+            operation_binding.get("source_hashes") or {}
+            if operation_scoped
+            else self._runtime_source_hashes(from_disk=True)
+        )
         current_source_bundle_hash = sha256_json(current_source_hashes)
         current_runtime_snapshot_hash = self._runtime_snapshot_hash(selected_hash)
         if envelope.get("source_bundle_hash") != current_source_bundle_hash:
             mismatches.append("source_bundle_hash")
+        if operation_scoped and operation_binding.get("status") != "BOUND":
+            mismatches.append("mixed_generation_source_binding")
         if envelope.get("runtime_snapshot_hash") != current_runtime_snapshot_hash:
             mismatches.append("runtime_snapshot_hash")
         if envelope.get("selected_move_hash") != selected_hash:
@@ -6839,6 +6859,7 @@ class AutoswitchPlanner:
                 "state": self._atomicity_state("ENVELOPE_VALID", trigger="apply_validation"),
                 "current_source_bundle_hash": current_source_bundle_hash,
                 "current_runtime_snapshot_hash": current_runtime_snapshot_hash,
+                "operation_scoped_binding": operation_binding if operation_scoped else {},
             }
         condition = "SOURCE_CHANGED" if "source_bundle_hash" in mismatches else "ENVELOPE_MISMATCH"
         lease = self._source_bundle_stability_lease_validation(
@@ -6862,6 +6883,7 @@ class AutoswitchPlanner:
             "approved_source_hashes": ((envelope.get("source_bundle") or {}).get("source_hashes") or {}),
             "current_runtime_snapshot_hash": current_runtime_snapshot_hash,
             "approved_runtime_snapshot_hash": envelope.get("runtime_snapshot_hash", ""),
+            "operation_scoped_binding": operation_binding if operation_scoped else {},
         }
 
     def _source_bundle_stability_lease_validation(
@@ -6908,6 +6930,8 @@ class AutoswitchPlanner:
         allowed_users = sorted(str(item) for item in (barrier.get("allowed_users") or []))
         allowed_targets = sorted(str(item) for item in (barrier.get("allowed_targets") or []))
         reasons: list[str] = []
+        if set(approved_source_hashes) == set(operation_scoped_binding.SOURCE_KEYS):
+            reasons.append("operation_scoped_binding_requires_exact_semantic_revalidation")
         if sorted(mismatches) != ["source_bundle_hash"]:
             reasons.append("source_bundle_lease_requires_source_bundle_only_mismatch")
         if not lease_scope.get("ok"):

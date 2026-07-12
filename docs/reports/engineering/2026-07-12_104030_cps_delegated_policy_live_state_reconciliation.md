@@ -56,7 +56,9 @@ Post-change delegated-policy live-state check: `PASS`; stale Operational Authori
 
 ## Tests, Delivery And Certification
 
-Targeted CPS/OMP/policy suite: `120 PASS`. Full unittest discovery: `852 PASS`. Compile/import check и `git diff --check`: `PASS`. Deploy, final truth и convergence results будут материализованы после delivery. Production mutation этой Mission запрещена и не выполняется.
+Targeted CPS/OMP/policy suite: `120 PASS`. Full unittest discovery: `852 PASS`. Compile/import check и `git diff --check`: `PASS`.
+
+Closure commit: `e7d72176de37ac323e012337e3e18544f13f19ed`. Safe deploy: `deploy-z8-14-Updatesystem-e7d7217-20260712T104855`; planner/policy/restore-barrier/routing/user mutation: `NO`. Repeated deploy: `PASS`, `deployment_required=false`. Final truth: `PASS/FULLY_ALIGNED`; convergence: `ALIGNED`; local/GitHub/production commit aligned; contradictions `0`. Safe Mode remained `OPEN`; Runtime apply `NO`; users moved `0`.
 
 ## Final CPS/OMP State
 
@@ -93,9 +95,9 @@ CANDIDATE_APPROVAL_REQUIRED = NO
 PACKET_APPROVAL_REQUIRED = NO
 TARGETED_TESTS = 120 PASS
 FULL_TESTS = 852 PASS
-DEPLOY_ID = PENDING
-TRUTH_RESULT = PENDING
-CONVERGENCE_RESULT = PENDING
+DEPLOY_ID = deploy-z8-14-Updatesystem-e7d7217-20260712T104855
+TRUTH_RESULT = PASS/FULLY_ALIGNED
+CONVERGENCE_RESULT = ALIGNED
 RUNTIME_APPLY = NO
 USER_MOVEMENT = NO
 NEXT_OMP_ACTION = Continue OMP

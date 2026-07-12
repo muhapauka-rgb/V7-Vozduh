@@ -45,29 +45,29 @@ NORMALIZED_CPS_LIVE_STATE = {
     "current_scope_class": "BOUNDED_DELEGATED_POLICY",
     "current_execution_mission_id": "NONE",
     "current_execution_mission_state": "NONE",
-    "latest_terminal_mission_id": "CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V1",
-    "latest_terminal_run_nonce": "V7_CAP_U01_OUTCOME_V1_34AB1166A87E",
-    "latest_terminal_mission_state": "STOP_SAFE_RUNTIME_OR_POLICY_GATE",
-    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-12_101353_first_real_governed_outcome_closure.md",
-    "latest_terminal_mission_started_at": "2026-07-12T10:11:44+0700",
-    "previous_terminal_mission_id": "V7_OMP_BOUNDED_DELEGATED_AUTONOMY_AND_PACKET_APPROVAL_RETIREMENT_V1",
-    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-12_091320_bounded_delegated_autonomy_and_packet_approval_retirement.md",
+    "latest_terminal_mission_id": "V7_OMP_CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILIATION_V1",
+    "latest_terminal_run_nonce": "V7_CPS_DAP_SYNC_V1_6F2A9C84E173",
+    "latest_terminal_mission_state": "CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILED_CONTINUE_OMP_READY",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-12_104030_cps_delegated_policy_live_state_reconciliation.md",
+    "latest_terminal_mission_started_at": "2026-07-12T10:40:30+0700",
+    "previous_terminal_mission_id": "CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V1",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-12_101353_first_real_governed_outcome_closure.md",
     "authoritative_transition_input_mission_id": "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3",
     "authoritative_transition_input_state": "MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED",
     "authoritative_transition_input_report": "docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md",
     "current_mission_role": "LATEST_TERMINAL_MISSION",
-    "current_mission_id": "CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V1",
-    "current_run_nonce": "V7_CAP_U01_OUTCOME_V1_34AB1166A87E",
-    "current_mission_state": "STOP_SAFE_RUNTIME_OR_POLICY_GATE",
-    "current_mission_report": "docs/reports/engineering/2026-07-12_101353_first_real_governed_outcome_closure.md",
-    "state_captured": "2026-07-12T10:13:53+0700",
-    "current_state_generation": "cpsgen_V7_CAP_U01_OUTCOME_V1_34AB1166A87E",
-    "current_transition_id": "CAP_U01_FIRST_OUTCOME_ATTEMPT_STOP_SAFE_BINDING_MISMATCH_V1",
+    "current_mission_id": "V7_OMP_CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILIATION_V1",
+    "current_run_nonce": "V7_CPS_DAP_SYNC_V1_6F2A9C84E173",
+    "current_mission_state": "CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILED_CONTINUE_OMP_READY",
+    "current_mission_report": "docs/reports/engineering/2026-07-12_104030_cps_delegated_policy_live_state_reconciliation.md",
+    "state_captured": "2026-07-12T10:40:30+0700",
+    "current_state_generation": "cpsgen_V7_CPS_DAP_SYNC_V1_6F2A9C84E173",
+    "current_transition_id": "CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILIATION_V1",
     "current_next_action_id": "CONTINUE_OMP",
     "binding_stability": "PASS",
     "binding_schema": "v7.operation-scoped-source-binding.v2",
     "routing_readiness_state": "PASS_CANDIDATE_SCOPED",
-    "authority_required_now": "NO for actions inside approved policy",
+    "authority_required_now": "NO_INSIDE_APPROVED_POLICY",
     "current_action_class": "single-user governed candidate failover",
     "current_action_class_state": "GOVERNED_ONLY",
     "old_packets_reusable": "NO",
@@ -603,7 +603,7 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "BINDING_STABILITY": f"`{state['binding_stability']}; 22 post-deploy read-only cycles, 10 consecutive stable Candidate cycles, zero unexplained mismatches, zero mixed-generation snapshots`",
         "BINDING_SCHEMA": f"`{state['binding_schema']}; shared by preview, admission and low-level pre-mutation recheck`",
         "ROUTING_READINESS_STATE": f"`{state['routing_readiness_state']}; global inventory diagnostics are advisory_only and no longer cross-scope blockers`",
-        "AUTHORITY_REQUIRED_NOW": "`NO for actions inside approved policy; Engineering Authority remains required for expansion`",
+        "AUTHORITY_REQUIRED_NOW": "`NO_INSIDE_APPROVED_POLICY; Engineering Authority remains required for expansion`",
         "CURRENT_ACTION_CLASS": f"`{state['current_action_class']}`",
         "CURRENT_ACTION_CLASS_STATE": f"`{state['current_action_class_state']}`",
         "OLD_PACKETS_REUSABLE": f"`{state['old_packets_reusable']}`",
@@ -619,6 +619,7 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW": "`NO_INSIDE_APPROVED_POLICY`",
         "CONTROLLED_RUN_EXECUTION_AUTHORIZED": "`BOUNDED_POLICY_ONLY; exact one-user class; all live gates mandatory`",
         "CONTROLLED_RUN_AUTHORITY_CLASS": "`BOUNDED_DELEGATED_POLICY; expansion requires Engineering Authority`",
+        "CONTROLLED_RUN_AUTHORITY_GENERATION": "`POLICY_SCOPED; NO_PACKET_SPECIFIC_AUTHORITY_REQUIRED`",
         "CONTROLLED_RUN_AUTHORITY_DECISION": "`APPROVED_BOUNDED_SCOPE; packet-specific Authority is not reusable or required`",
         "CONTROLLED_RUN_INVALIDATION_REASON": "`SUPERSEDED/HISTORICAL: SOURCE_SNAPSHOT_BUNDLE_DRIFT; gap closed by binding v2 certification`",
     }
@@ -709,6 +710,169 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "verification/rollback/final OPEN -> outcome/learning/maturity/promotion |"
     )
     return cps_text.replace(rows[0], row, 1)
+
+
+def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -> dict[str, Any]:
+    """Reject stale packet-approval authority projections inside the approved policy."""
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    registry = _markdown_field_table(_markdown_section(
+        cps_text,
+        "### Registry Metadata And Truth Lifecycle",
+        "### Active Protected Work In Progress",
+    ))
+    wip = _markdown_field_table(_markdown_section(
+        cps_text,
+        "### Active Protected Work In Progress",
+        "### Complete Or Locked Capability Records",
+    ))
+    capabilities = _markdown_section(
+        cps_text,
+        "### Unfinished Capability Closure Records",
+        "### Open Engineering Intents And Last Responsible Links",
+    )
+    sequence = _markdown_section(
+        cps_text,
+        "### Deterministic Execution Sequence",
+        "### Authority, Reality And Safety Stops",
+    )
+    authority_stops = _markdown_section(
+        cps_text,
+        "### Authority, Reality And Safety Stops",
+        "### Owner Revalidation Requirements And Contradictions",
+    )
+    contradictions: list[str] = []
+    stale_operational: list[str] = []
+    stale_packet: list[str] = []
+    stale_candidate: list[str] = []
+
+    policy_active = (
+        live.get("CURRENT_MODE", "").strip("`") == "BOUNDED_DELEGATED_AUTONOMY_ACTIVE"
+        and live.get("DELEGATED_AUTONOMY_POLICY", "").strip("`") == "APPROVED"
+    )
+    if not policy_active:
+        contradictions.append("delegated_policy_live_state_not_active")
+
+    def require_no(field: str, bucket: list[str], contradiction: str) -> None:
+        if live.get(field, "").strip("`") != "NO":
+            bucket.append(field)
+            contradictions.append(contradiction)
+
+    require_no("CANDIDATE_APPROVAL_REQUIRED", stale_candidate, "delegated_policy_live_candidate_approval_required")
+    require_no("PACKET_APPROVAL_REQUIRED", stale_packet, "delegated_policy_live_packet_approval_required")
+    require_no("HASH_APPROVAL_REQUIRED", stale_packet, "delegated_policy_live_hash_approval_required")
+    if not live.get("PACKET_APPROVAL_STILL_REQUIRED", "").strip("`").startswith("NO inside approved policy"):
+        stale_packet.append("PACKET_APPROVAL_STILL_REQUIRED")
+        contradictions.append("delegated_policy_manual_packet_fallback_inside_policy")
+
+    authority_required = live.get("AUTHORITY_REQUIRED_NOW", "").strip("`")
+    if not authority_required.startswith("NO_INSIDE_APPROVED_POLICY"):
+        stale_operational.append("AUTHORITY_REQUIRED_NOW")
+        contradictions.append("delegated_policy_live_operational_authority_required")
+
+    authority_generation = live.get("CONTROLLED_RUN_AUTHORITY_GENERATION", "").strip("`")
+    expected_generation = "POLICY_SCOPED; NO_PACKET_SPECIFIC_AUTHORITY_REQUIRED"
+    if authority_generation != expected_generation:
+        stale_operational.append("CONTROLLED_RUN_AUTHORITY_GENERATION")
+        contradictions.append("delegated_policy_stale_exact_authority_generation_request")
+
+    authority_decision = live.get("CONTROLLED_RUN_AUTHORITY_DECISION", "").strip("`")
+    if not authority_decision.startswith("APPROVED_BOUNDED_SCOPE"):
+        stale_operational.append("CONTROLLED_RUN_AUTHORITY_DECISION")
+        contradictions.append("delegated_policy_authority_decision_not_bounded_scope")
+
+    cap_rows = [line for line in capabilities.splitlines() if line.startswith("| `CAP-U01` |")]
+    cap_u01 = cap_rows[0] if len(cap_rows) == 1 else ""
+    sequence_rows = [line for line in sequence.splitlines() if line.startswith("| `1` |")]
+    sequence_one = sequence_rows[0] if len(sequence_rows) == 1 else ""
+    sequence_four_rows = [line for line in sequence.splitlines() if line.startswith("| `4` | `U01` |")]
+    sequence_four = sequence_four_rows[0] if len(sequence_four_rows) == 1 else ""
+
+    if "explicit approval" in sequence_four.lower() or "operational_authority" in sequence_four.lower():
+        stale_operational.append("DETERMINISTIC_SEQUENCE_POSITION_4")
+        contradictions.append("delegated_policy_sequence_requires_explicit_approval")
+    if "fresh Candidate" not in sequence_one or "fresh packet" not in sequence_one or "policy admission" not in sequence_one:
+        contradictions.append("delegated_policy_sequence_workflow_missing")
+
+    authority_row = next(
+        (line for line in authority_stops.splitlines() if line.startswith("| `OPERATIONAL_AUTHORITY` |")),
+        "",
+    )
+    if "Current U01 stop" in authority_row:
+        stale_operational.append("AUTHORITY_REALITY_SAFETY_STOPS")
+        contradictions.append("delegated_policy_operational_authority_is_current_u01_stop")
+
+    cap_con_06 = next(
+        (line for line in cps_text.splitlines() if line.startswith("| `CAP-CON-06` |")),
+        "",
+    )
+    if "current boundary is `OPERATIONAL_AUTHORITY`" in cap_con_06:
+        stale_operational.append("CAP-CON-06")
+        contradictions.append("delegated_policy_cap_con_06_stale_operational_authority")
+
+    live_registry_blob = "\n".join((
+        _markdown_section(cps_text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry"),
+        _markdown_section(cps_text, "## Authoritative Unfinished Capability Closure Registry", "## 1. Historical / Capability State Summary"),
+    ))
+    for line in live_registry_blob.splitlines():
+        lowered = line.lower()
+        if "operational_authority" in lowered and "historical" in lowered and "SUPERSEDED/HISTORICAL" not in line:
+            stale_operational.append("UNCLASSIFIED_HISTORICAL_OPERATIONAL_AUTHORITY")
+            contradictions.append("historical_operational_authority_without_classification")
+            break
+
+    stop = live.get("CURRENT_STOP_CONDITION", "").strip("`")
+    if stop == "OPERATIONAL_AUTHORITY":
+        stale_operational.append("CURRENT_STOP_CONDITION")
+        contradictions.append("delegated_policy_current_stop_is_operational_authority")
+    registry_stop = registry.get("CURRENT_STOP_CONDITION", "").strip("`")
+    wip_stop = wip.get("current_primary_stop", "").strip("`")
+    cap_stop = ""
+    if cap_u01:
+        cells = [cell.strip() for cell in cap_u01.strip().strip("|").split("|")]
+        cap_stop = cells[6].strip("`") if len(cells) > 6 else ""
+    sequence_stop = ""
+    if sequence_one:
+        cells = [cell.strip() for cell in sequence_one.strip().strip("|").split("|")]
+        sequence_stop = cells[5].strip("`") if len(cells) > 5 else ""
+    stop_consistent = len({stop, registry_stop, wip_stop, cap_stop, sequence_stop}) == 1
+    if not stop_consistent:
+        contradictions.append("delegated_policy_cps_stop_divergence")
+
+    next_action = live.get("CURRENT_NEXT_ACTION_ID", "").strip("`")
+    next_consistent = (
+        next_action == "CONTINUE_OMP"
+        and registry.get("EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID", "").strip("`") == next_action
+        and wip.get("smallest_existing_next_action_id", "").strip("`") == next_action
+        and "`CONTINUE_OMP`" in sequence_one
+    )
+    if not next_consistent:
+        contradictions.append("delegated_policy_cps_next_action_divergence")
+
+    cap_consistent = bool(cap_u01 and stop in cap_u01 and "Continue OMP" in cap_u01 and "explicit approval" not in cap_u01.lower())
+    if not cap_consistent:
+        contradictions.append("delegated_policy_cap_u01_divergence")
+    sequence_consistent = bool(sequence_one and sequence_four and not any(item.startswith("delegated_policy_sequence") for item in contradictions))
+    if not sequence_consistent:
+        contradictions.append("delegated_policy_deterministic_sequence_divergence")
+
+    contradiction_ids = sorted(set(contradictions))
+    return {
+        "schema": "v7-delegated-policy-live-state-consistency/v1",
+        "delegated_policy_live_state_consistency": "PASS" if not contradiction_ids else "FAIL",
+        "stale_operational_authority_projection_count": len(set(stale_operational)),
+        "stale_packet_approval_projection_count": len(set(stale_packet)),
+        "stale_candidate_approval_projection_count": len(set(stale_candidate)),
+        "cps_stop_consistency": "PASS" if stop_consistent else "FAIL",
+        "cps_next_action_consistency": "PASS" if next_consistent else "FAIL",
+        "cap_u01_consistency": "PASS" if cap_consistent else "FAIL",
+        "deterministic_sequence_consistency": "PASS" if sequence_consistent else "FAIL",
+        "contradiction_count": len(contradiction_ids),
+        "contradiction_ids": contradiction_ids,
+    }
 
 
 def cps_live_state_consistency(
@@ -822,7 +986,7 @@ def cps_live_state_consistency(
     registry_stop = registry.get("CURRENT_STOP_CONDITION", "").strip("`")
     if stop != normalized["current_stop_condition"] or wip_stop != stop or registry_stop != stop:
         errors.append("cps_current_stop_divergence")
-    if not live.get("AUTHORITY_REQUIRED_NOW", "").strip("`").startswith("NO for actions inside approved policy"):
+    if not live.get("AUTHORITY_REQUIRED_NOW", "").strip("`").startswith("NO_INSIDE_APPROVED_POLICY"):
         errors.append("cps_authority_required_not_policy_bounded")
     if not wip.get("authority_required_now", "").strip("`").startswith("FALSE inside approved policy"):
         errors.append("cps_wip_authority_required_not_policy_bounded")
@@ -981,6 +1145,8 @@ def cps_live_state_consistency(
         errors.extend(mission_roles["errors"])
         mission_identity_consistency = mission_roles["mission_identity_consistency"]
 
+    delegated_live_state = delegated_policy_live_state_consistency(cps_text, omp_text or "")
+    errors.extend(delegated_live_state["contradiction_ids"])
     unique_errors = sorted(set(errors))
     stale_ids = [
         item for item in unique_errors
@@ -995,6 +1161,14 @@ def cps_live_state_consistency(
         "contradiction_count": len(unique_errors),
         "contradiction_ids": unique_errors,
         "stale_live_projection_count": len(stale_ids),
+        "delegated_policy_live_state_consistency": delegated_live_state["delegated_policy_live_state_consistency"],
+        "stale_operational_authority_projection_count": delegated_live_state["stale_operational_authority_projection_count"],
+        "stale_packet_approval_projection_count": delegated_live_state["stale_packet_approval_projection_count"],
+        "stale_candidate_approval_projection_count": delegated_live_state["stale_candidate_approval_projection_count"],
+        "cps_stop_consistency": delegated_live_state["cps_stop_consistency"],
+        "cps_next_action_consistency": delegated_live_state["cps_next_action_consistency"],
+        "cap_u01_consistency": delegated_live_state["cap_u01_consistency"],
+        "deterministic_sequence_consistency": delegated_live_state["deterministic_sequence_consistency"],
         "registry_sequence_consistency": "PASS" if not any("sequence" in item or "cap_u01" in item or "next_action" in item for item in unique_errors) else "FAIL",
         "mission_identity_consistency": mission_identity_consistency,
         **{key: value for key, value in mission_roles.items() if key not in {"schema", "final_verdict", "errors", "mission_identity_consistency"}},

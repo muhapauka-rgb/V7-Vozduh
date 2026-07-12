@@ -24,8 +24,8 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         cls.lib = load_lib()
         cls.cps = CPS.read_text(encoding="utf-8")
         cls.omp = OMP.read_text(encoding="utf-8")
-        cls.latest = "CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V1"
-        cls.previous = "V7_OMP_BOUNDED_DELEGATED_AUTONOMY_AND_PACKET_APPROVAL_RETIREMENT_V1"
+        cls.latest = "V7_OMP_CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILIATION_V1"
+        cls.previous = "CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V1"
         cls.transition = "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3"
 
     def validate(self, cps=None, omp=None, root=ROOT):
@@ -42,7 +42,7 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
     def temp_root_with_report(self, first, second):
         tmp = tempfile.TemporaryDirectory()
         root = Path(tmp.name)
-        report = root / "docs/reports/engineering/2026-07-12_101353_first_real_governed_outcome_closure.md"
+        report = root / "docs/reports/engineering/2026-07-12_104030_cps_delegated_policy_live_state_reconciliation.md"
         report.parent.mkdir(parents=True)
         report.write_text(f"{first}\n{second}\n", encoding="utf-8")
         return tmp, root
@@ -80,11 +80,11 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         self.assertEqual(self.validate(drift)["cps_header_identity_consistency"], "FAIL")
 
     def test_09_header_timestamp_predates_latest_start_fails(self):
-        drift = self.cps.replace("State captured: 2026-07-12T10:13:53+0700", "State captured: 2026-07-12T02:00:00+0700", 1)
+        drift = self.cps.replace("State captured: 2026-07-12T10:40:30+0700", "State captured: 2026-07-12T02:00:00+0700", 1)
         self.assertEqual(self.validate(drift)["mission_timestamp_consistency"], "FAIL")
 
     def test_10_latest_report_header_id_mismatch_fails(self):
-        tmp, root = self.temp_root_with_report("Mission ID: `OLD`", "Run Nonce: `V7_CAP_U01_OUTCOME_V1_34AB1166A87E`")
+        tmp, root = self.temp_root_with_report("Mission ID: `OLD`", "Run Nonce: `V7_CPS_DAP_SYNC_V1_6F2A9C84E173`")
         try:
             self.assertIn("latest_terminal_report_mission_id_mismatch", self.validate(root=root)["mission_identity_contradiction_ids"])
         finally:
@@ -98,7 +98,7 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
             tmp.cleanup()
 
     def test_12_omp_latest_closure_pointer_mismatch_fails(self):
-        drift = self.omp.replace("docs/reports/engineering/2026-07-12_101353_first_real_governed_outcome_closure.md", "docs/reports/engineering/stale.md", 1)
+        drift = self.omp.replace("docs/reports/engineering/2026-07-12_104030_cps_delegated_policy_live_state_reconciliation.md", "docs/reports/engineering/stale.md", 1)
         self.assertEqual(self.validate(omp=drift)["mission_report_pointer_consistency"], "FAIL")
 
     def test_13_omp_transition_input_pointer_mismatch_fails(self):

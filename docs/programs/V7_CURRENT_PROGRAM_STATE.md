@@ -2,10 +2,10 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-12T10:13:53+0700
-Latest terminal Mission: `CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V1`
-Latest terminal Mission state: `STOP_SAFE_RUNTIME_OR_POLICY_GATE`
-Latest terminal Mission report: `docs/reports/engineering/2026-07-12_101353_first_real_governed_outcome_closure.md`
+State captured: 2026-07-12T10:40:30+0700
+Latest terminal Mission: `V7_OMP_CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILIATION_V1`
+Latest terminal Mission state: `CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILED_CONTINUE_OMP_READY`
+Latest terminal Mission report: `docs/reports/engineering/2026-07-12_104030_cps_delegated_policy_live_state_reconciliation.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
 Source: bounded policy activation, safe delivery, production read-only certification and one terminal STOP_SAFE certification attempt.
 
@@ -13,7 +13,7 @@ Source: bounded policy activation, safe delivery, production read-only certifica
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-12T10:13:53+0700`
+Captured: `2026-07-12T10:40:30+0700`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -32,30 +32,30 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_ACTIVE_SCOPE` | `SINGLE_USER_FAILOVER_POLICY` |
 | `CURRENT_SAFE_NEXT_ACTION` | `CONTINUE OMP; EXISTING PLANNER MAY SELECT ONE FRESH ELIGIBLE CANDIDATE; GENERATE A FRESH PACKET; EXECUTE OR STOP_SAFE THROUGH EXISTING OWNERS` |
 | `CURRENT_SCOPE_CLASS` | `BOUNDED_DELEGATED_POLICY` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_CAP_U01_OUTCOME_V1_34AB1166A87E` |
-| `CURRENT_TRANSITION_ID` | `CAP_U01_FIRST_OUTCOME_ATTEMPT_STOP_SAFE_BINDING_MISMATCH_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_CPS_DAP_SYNC_V1_6F2A9C84E173` |
+| `CURRENT_TRANSITION_ID` | `CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILIATION_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `CONTINUE_OMP` |
 | `CURRENT_STATE_CONSISTENCY` | `PASS; section 0, registry, protected WIP and deterministic sequence share one generation and transition` |
 | `CURRENT_EXECUTION_MISSION_ID` | `NONE` |
 | `CURRENT_EXECUTION_MISSION_STATE` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V1` |
-| `LATEST_TERMINAL_RUN_NONCE` | `V7_CAP_U01_OUTCOME_V1_34AB1166A87E` |
-| `LATEST_TERMINAL_MISSION_STATE` | `STOP_SAFE_RUNTIME_OR_POLICY_GATE` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_101353_first_real_governed_outcome_closure.md` |
-| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-12T10:11:44+0700` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_BOUNDED_DELEGATED_AUTONOMY_AND_PACKET_APPROVAL_RETIREMENT_V1` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILIATION_V1` |
+| `LATEST_TERMINAL_RUN_NONCE` | `V7_CPS_DAP_SYNC_V1_6F2A9C84E173` |
+| `LATEST_TERMINAL_MISSION_STATE` | `CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILED_CONTINUE_OMP_READY` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_104030_cps_delegated_policy_live_state_reconciliation.md` |
+| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-12T10:40:30+0700` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V1` |
 | `CURRENT_MISSION_ROLE` | `LATEST_TERMINAL_MISSION` |
-| `CURRENT_MISSION_ID` | `CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V1` |
-| `CURRENT_RUN_NONCE` | `V7_CAP_U01_OUTCOME_V1_34AB1166A87E` |
-| `CURRENT_MISSION_STATE` | `STOP_SAFE_RUNTIME_OR_POLICY_GATE` |
-| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_101353_first_real_governed_outcome_closure.md` |
+| `CURRENT_MISSION_ID` | `V7_OMP_CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILIATION_V1` |
+| `CURRENT_RUN_NONCE` | `V7_CPS_DAP_SYNC_V1_6F2A9C84E173` |
+| `CURRENT_MISSION_STATE` | `CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILED_CONTINUE_OMP_READY` |
+| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_104030_cps_delegated_policy_live_state_reconciliation.md` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `AUTHORITATIVE_TRANSITION_INPUT_STATE` | `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED` |
 | `AUTHORITATIVE_TRANSITION_INPUT_REPORT` | `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` |
 | `BINDING_STABILITY` | `PASS; 22 post-deploy read-only cycles, 10 consecutive stable Candidate cycles, zero unexplained mismatches, zero mixed-generation snapshots` |
 | `BINDING_SCHEMA` | `v7.operation-scoped-source-binding.v2; shared by preview, admission and low-level pre-mutation recheck` |
 | `MISSION_IDENTITY_GUARD` | `PASS; Mission ID + run nonce + start timestamp + report header/path + CPS identity fail-closed validation` |
-| `AUTHORITY_REQUIRED_NOW` | `NO for actions inside approved policy; Engineering Authority remains required for expansion` |
+| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_APPROVED_POLICY; Engineering Authority remains required for expansion` |
 | `OLD_PACKETS_REUSABLE` | `NO` |
 | `CURRENT_ACTION_CLASS` | `single-user governed candidate failover` |
 | `CURRENT_ACTION_CLASS_STATE` | `GOVERNED_ONLY` |
@@ -125,14 +125,14 @@ This section is the single live volatile current-state surface. Older production
 | `CONTROLLED_RUN_DECISION_ID` | `NONE_OPEN; regenerate only after fresh Candidate admission` |
 | `CONTROLLED_RUN_OPERATION_ID` | `NONE_OPEN; regenerate only after fresh Candidate admission` |
 | `CONTROLLED_RUN_SELECTED_MOVE_HASH` | `NONE_OPEN; regenerate only from fresh selected move` |
-| `CONTROLLED_RUN_AUTHORITY_GENERATION` | `NONE_CURRENT; request a new exact generation in a separate Operational Authority Mission` |
+| `CONTROLLED_RUN_AUTHORITY_GENERATION` | `POLICY_SCOPED; NO_PACKET_SPECIFIC_AUTHORITY_REQUIRED` |
 | `CONTROLLED_RUN_SOURCE_BUNDLE_HASH` | `NONE_OPEN; regenerate from fresh production reality` |
 | `CONTROLLED_RUN_SNAPSHOT_BUNDLE_HASH` | `NONE_OPEN; regenerate from fresh production reality` |
 | `CONTROLLED_RUN_ROLLBACK_MANIFEST` | `NONE_OPEN; regenerate for the fresh exact operation` |
 | `CONTROLLED_RUN_AUTHORITY_CLASS` | `BOUNDED_DELEGATED_POLICY; expansion requires Engineering Authority` |
 | `CONTROLLED_RUN_PACKET_EXPIRY` | `NOT_APPLICABLE; no packet materialized` |
 | `CONTROLLED_RUN_PHASE4A_RERUN_REPORT` | `docs/reports/engineering/2026-07-11_151253_first_governed_omp_controlled_run_preparation.md` |
-| `CONTROLLED_RUN_AUTHORITY_DECISION` | `APPROVED_BOUNDED_SCOPE; packet-specific Authority is not reusable or required` |
+| `CONTROLLED_RUN_AUTHORITY_DECISION` | `APPROVED_BOUNDED_SCOPE` |
 | `CONTROLLED_RUN_INVALIDATION_REASON` | `SUPERSEDED/HISTORICAL: SOURCE_SNAPSHOT_BUNDLE_DRIFT; gap closed by binding v2 certification` |
 | `CONTROLLED_RUN_AUTHORITY_ATTEMPT_REPORT` | `docs/reports/engineering/2026-07-11_161706_first_governed_omp_controlled_run_authority_revalidation_stop_safe.md` |
 | `CONTROLLED_WINDOW_CONTRACT` | `IMPLEMENTATION_CERTIFIED_READ_ONLY; operation_id + selected_move_hash + max_users=1 + source/snapshot + breaker generation + terminal OPEN` |
@@ -168,7 +168,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-12T02:09:42+0700`
+Generated At: `2026-07-12T10:40:30+0700`
 
 Runtime Authority: `NONE`
 
@@ -181,8 +181,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_CAP_U01_OUTCOME_V1_34AB1166A87E` |
-| `CURRENT_TRANSITION_ID` | `CAP_U01_FIRST_OUTCOME_ATTEMPT_STOP_SAFE_BINDING_MISMATCH_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_CPS_DAP_SYNC_V1_6F2A9C84E173` |
+| `CURRENT_TRANSITION_ID` | `CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILIATION_V1` |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `CONTINUE_OMP` |
 | `CURRENT_STOP_CONDITION` | `SOURCE_SNAPSHOT_BINDING_MISMATCH` |
 | `CAPABILITIES_INVENTORIED` | `34` |
@@ -191,10 +191,10 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `OPEN_ENGINEERING_INTENTS` | `22` |
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
 | `ACTIVE_MISSIONS` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V1` |
-| `LATEST_TERMINAL_MISSION_STATE` | `STOP_SAFE_RUNTIME_OR_POLICY_GATE` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_101353_first_real_governed_outcome_closure.md` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_BOUNDED_DELEGATED_AUTONOMY_AND_PACKET_APPROVAL_RETIREMENT_V1` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILIATION_V1` |
+| `LATEST_TERMINAL_MISSION_STATE` | `CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILED_CONTINUE_OMP_READY` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_104030_cps_delegated_policy_live_state_reconciliation.md` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V1` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `OPEN_CANDIDATE_IDS` | `NONE`; all observed packet previews are evidence only and discarded without Authority. |
 | `PRIOR_BDP_CANDIDATES` | `25` certified instances are terminal historical ladder evidence, not open work |
@@ -212,14 +212,14 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U01-FIRST-GOVERNED-CONTROLLED-RUN` |
-| `current_state_generation` | `cpsgen_V7_CAP_U01_OUTCOME_V1_34AB1166A87E` |
-| `current_transition_id` | `CAP_U01_FIRST_OUTCOME_ATTEMPT_STOP_SAFE_BINDING_MISMATCH_V1` |
+| `current_state_generation` | `cpsgen_V7_CPS_DAP_SYNC_V1_6F2A9C84E173` |
+| `current_transition_id` | `CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILIATION_V1` |
 | `smallest_existing_next_action_id` | `CONTINUE_OMP` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
-| `latest_terminal_mission_id` | `CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V1` |
-| `latest_terminal_mission_state` | `STOP_SAFE_RUNTIME_OR_POLICY_GATE` |
-| `previous_terminal_mission_id` | `V7_OMP_BOUNDED_DELEGATED_AUTONOMY_AND_PACKET_APPROVAL_RETIREMENT_V1` |
+| `latest_terminal_mission_id` | `V7_OMP_CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILIATION_V1` |
+| `latest_terminal_mission_state` | `CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILED_CONTINUE_OMP_READY` |
+| `previous_terminal_mission_id` | `CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V1` |
 | `authoritative_transition_input_mission_id` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `candidate_id` | `NONE_OPEN; terminal fresh semantic Candidate 10.7.0.5 awg0 -> awg3 is historical evidence only` |
 | `protected_by_active_wip` | `TRUE` |
@@ -300,14 +300,14 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `U01` Controlled Run WIP; `cpsgen_V7_CAP_U01_OUTCOME_V1_34AB1166A87E`; `CAP_U01_FIRST_OUTCOME_ATTEMPT_STOP_SAFE_BINDING_MISMATCH_V1` | protected active root; latest fresh attempt stopped before mutation on source/snapshot binding mismatch; no packet open | `CONTINUE_OMP` | bounded delegated one-user transaction | `SOURCE_SNAPSHOT_BINDING_MISMATCH` | new fresh Candidate -> new fresh packet -> policy admission -> final live revalidation -> one transaction or legal no-action -> verification/rollback/final OPEN -> outcome/learning/maturity/promotion |
-| `4` | `U01` | only after explicit approval | one governed action | guarded Runtime | `STOP_SAFE` | apply/no-apply -> verification |
+| `1` | `U01` Controlled Run WIP; `cpsgen_V7_CPS_DAP_SYNC_V1_6F2A9C84E173`; `CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILIATION_V1` | protected active root; latest fresh attempt stopped before mutation on source/snapshot binding mismatch; no packet open | `CONTINUE_OMP` | bounded delegated one-user transaction | `SOURCE_SNAPSHOT_BINDING_MISMATCH` | fresh Candidate -> fresh packet -> policy admission -> live gates -> execute or STOP_SAFE -> verification/rollback/final OPEN -> outcome/learning/maturity/promotion |
+| `4` | `U01` | after delegated policy admission and all live gates | one governed action | guarded Runtime | `STOP_SAFE` | apply/no-apply -> verification |
 | `5` | `U01/U05` | terminal safety | verification/rollback/mandatory final `OPEN` | guarded verification | `STOP_SAFE` | terminal result -> outcome closure |
 | `6` | `U07/U08/U22` | consumes real terminal result | outcome, learning and maturity closure | no-mutation learning | `REAL_WORLD_LIMIT` if no outcome | learning/maturity -> CPS/OMP |
 | `7` | `U04` | needs outcome evidence | action-class Authority Evolution evaluation | engineering review | `ENGINEERING_AUTHORITY` when expansion is actually proposed | authority decision -> OMP |
 | `10` | `U06` | needs certified execution path and real recovery candidate | Recovery Admission Runtime consumption | existing-owner runtime certification | `REAL_WORLD_LIMIT/STOP_SAFE` | recovery result -> A6 |
 | `11` | `U03` | consumes positions 1-10 | Runtime Eligibility production closure | certification | `STOP_SAFE` | execute/stop behavior -> maturity |
-| `12` | `U05` | production evidence required | rollback production/authority closure | governed verification | `OPERATIONAL_AUTHORITY` only for exact action | rollback/no-rollback outcome -> maturity |
+| `12` | `U05` | production evidence required | rollback production/authority closure | governed verification | `OPERATIONAL_AUTHORITY` only for exact action outside the approved delegated policy | rollback/no-rollback outcome -> maturity |
 | `13` | `U10/U11` | validate against real path | Explainability and Observability closure | read-only + operator validation | `OWNER_REVALIDATION_REQUIRED` | explanation/visibility -> operator/OMP |
 | `14` | `U02/U09` | downstream of safety/runtime/authority | Movement Protection and bounded Production Autonomy certification | guarded production | authority/safety boundary | bounded outcome -> maturity |
 | `15` | `U12/U13` | consumes real cycle evidence | RT2 and Runtime Time production maturation | measurement/recommendation | `REAL_WORLD_LIMIT` | timing/runtime evidence -> OMP |
@@ -322,7 +322,7 @@ Independent read-only work may run in parallel only when OMP proves it cannot to
 | --- | --- |
 | `APPROVED_PACKET_INVALIDATED_BY_SOURCE_DRIFT` | Historical U01 stop: the old approval remains terminally invalid and cannot be reused. |
 | `REAL_WORLD_LIMIT_OR_EXCESSIVE_DECISION_CHURN` | Historical U01 stop; closed by owner-backed semantic binding and production stability certification. |
-| `OPERATIONAL_AUTHORITY` | Current U01 stop; request one new exact Mission-scoped Authority before fresh Candidate discovery or packet generation. |
+| `OPERATIONAL_AUTHORITY` | Outside-policy fallback only; not the current U01 stop and never required for Candidate/packet/hash approval inside `dap_default_tier1_readonly`. |
 | `ENGINEERING_AUTHORITY` | Future U04 only if actual authority expansion is proposed after evidence. |
 | `REAL_WORLD_LIMIT` | Not the current U01 stop after lifecycle closure; remains valid for U06/U07/U18-U22 only when required real candidates/outcomes genuinely do not exist. |
 | `STOP_SAFE` | Any failed/unknown live Runtime, verification, rollback, freshness, identity or safety gate. |
@@ -336,7 +336,7 @@ Independent read-only work may run in parallel only when OMP proves it cannot to
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Initial Phase 4A report says `INTENT_BLOCKED_BY_ENGINEERING_AUTHORITY`; later implementation/certification closed the contract; old approval and churn stop are historical; semantic stability and candidate-scoped readiness are production-certified | CPS/OMP current state | historical values `SUPERSEDED`; current boundary is `OPERATIONAL_AUTHORITY` for one new exact marginal TIER_1 transaction; parent intent remains open until a real terminal outcome |
+| `CAP-CON-06` | Controlled Run responsibility | Initial Phase 4A report says `INTENT_BLOCKED_BY_ENGINEERING_AUTHORITY`; later implementation/certification closed the contract; old approval and churn stop are `SUPERSEDED/HISTORICAL`; semantic stability and candidate-scoped readiness are production-certified | CPS/OMP current state | current stop is `SOURCE_SNAPSHOT_BINDING_MISMATCH`; current next action is `CONTINUE_OMP` through the approved bounded policy; parent intent remains open until a real terminal outcome |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

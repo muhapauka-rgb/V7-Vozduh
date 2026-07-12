@@ -78,6 +78,8 @@ OMP получил только указатель на этот terminal report
 
 Atomic CPS/OMP consistency validation: `PASS`; contradiction count `0`. Focused execution/policy suites: `332 PASS`; CPS/sync/truth suites: `94 PASS`; full regression suite: `844 PASS`. `git diff --check`: `PASS`.
 
+Closure commit: `0de77a8c63164e58c29869f4bb52171caff9a900`. Safe deploy: `deploy-z8-14-Updatesystem-0de77a8-20260712T102304`; service restart, routing mutation and user movement during deploy: `NO`. Repeated safe-deploy check: `PASS`, `deployment_required=false`. Final truth: `PASS`; convergence: `FULLY_ALIGNED`; local/GitHub/production commit aligned; CPS contradictions `0`; delegated-policy contradictions `0`.
+
 ## Intent Closure
 
 Approval-retirement intent остаётся закрытым. Полный CAP-U01 intent не закрыт: первый real verified governed outcome отсутствует. Последний незакрытый link остаётся `fresh packet -> final live binding -> mutation -> verification -> outcome/learning/maturity`.
@@ -103,8 +105,8 @@ PRODUCTION_MATURITY_RESULT = REMAIN_GOVERNED_ONLY
 ACTION_CLASS_PROMOTION_RESULT = PROMOTION_BLOCKED_WITH_EXACT_DELTA
 SAFE_MODE_FINAL_STATE = OPEN
 CPS_UPDATE_RESULT = PASS
-TRUTH_RESULT = PENDING_FINAL_VALIDATION
-CONVERGENCE_RESULT = PENDING_FINAL_VALIDATION
+TRUTH_RESULT = PASS
+CONVERGENCE_RESULT = FULLY_ALIGNED
 NEXT_OMP_ACTION = Continue OMP
 FINAL_VERDICT = STOP_SAFE_RUNTIME_OR_POLICY_GATE
 ```

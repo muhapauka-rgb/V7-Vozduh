@@ -2,18 +2,18 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-12T09:22:49+0700
-Latest terminal Mission: `V7_OMP_CPS_TERMINAL_MISSION_IDENTITY_RECONCILIATION_V1`
-Latest terminal Mission state: `CPS_MISSION_IDENTITY_RECONCILED_OPERATIONAL_AUTHORITY_READY`
-Latest terminal Mission report: `docs/reports/engineering/2026-07-12_020905_cps_terminal_mission_identity_reconciliation.md`
+State captured: 2026-07-12T09:44:40+0700
+Latest terminal Mission: `V7_OMP_BOUNDED_DELEGATED_AUTONOMY_AND_PACKET_APPROVAL_RETIREMENT_V1`
+Latest terminal Mission state: `DELEGATED_POLICY_CERTIFICATION_STOP_SAFE`
+Latest terminal Mission report: `docs/reports/engineering/2026-07-12_091320_bounded_delegated_autonomy_and_packet_approval_retirement.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
-Source: this Mission reconciled Mission-role projections only; no operational state, packet, Authority, Runtime or routing change occurred.
+Source: bounded policy activation, safe delivery, production read-only certification and one terminal STOP_SAFE certification attempt.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-12T09:22:49+0700`
+Captured: `2026-07-12T09:44:40+0700`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -38,17 +38,17 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_STATE_CONSISTENCY` | `PASS; section 0, registry, protected WIP and deterministic sequence share one generation and transition` |
 | `CURRENT_EXECUTION_MISSION_ID` | `NONE` |
 | `CURRENT_EXECUTION_MISSION_STATE` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_CPS_TERMINAL_MISSION_IDENTITY_RECONCILIATION_V1` |
-| `LATEST_TERMINAL_RUN_NONCE` | `V7_CPS_MISSION_ID_V1_5D9A73C4E821` |
-| `LATEST_TERMINAL_MISSION_STATE` | `CPS_MISSION_IDENTITY_RECONCILED_OPERATIONAL_AUTHORITY_READY` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_020905_cps_terminal_mission_identity_reconciliation.md` |
-| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-12T02:09:05+0700` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_LIVE_STATE_POINTER_AND_HISTORICAL_STOP_GUARD_V1` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_BOUNDED_DELEGATED_AUTONOMY_AND_PACKET_APPROVAL_RETIREMENT_V1` |
+| `LATEST_TERMINAL_RUN_NONCE` | `V7_DAP_RETIRE_PACKET_V1_8C4F2A91D673` |
+| `LATEST_TERMINAL_MISSION_STATE` | `DELEGATED_POLICY_CERTIFICATION_STOP_SAFE` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_091320_bounded_delegated_autonomy_and_packet_approval_retirement.md` |
+| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-12T09:13:20+0700` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_CPS_TERMINAL_MISSION_IDENTITY_RECONCILIATION_V1` |
 | `CURRENT_MISSION_ROLE` | `LATEST_TERMINAL_MISSION` |
-| `CURRENT_MISSION_ID` | `V7_OMP_CPS_TERMINAL_MISSION_IDENTITY_RECONCILIATION_V1` |
-| `CURRENT_RUN_NONCE` | `V7_CPS_MISSION_ID_V1_5D9A73C4E821` |
-| `CURRENT_MISSION_STATE` | `CPS_MISSION_IDENTITY_RECONCILED_OPERATIONAL_AUTHORITY_READY` |
-| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_020905_cps_terminal_mission_identity_reconciliation.md` |
+| `CURRENT_MISSION_ID` | `V7_OMP_BOUNDED_DELEGATED_AUTONOMY_AND_PACKET_APPROVAL_RETIREMENT_V1` |
+| `CURRENT_RUN_NONCE` | `V7_DAP_RETIRE_PACKET_V1_8C4F2A91D673` |
+| `CURRENT_MISSION_STATE` | `DELEGATED_POLICY_CERTIFICATION_STOP_SAFE` |
+| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_091320_bounded_delegated_autonomy_and_packet_approval_retirement.md` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `AUTHORITATIVE_TRANSITION_INPUT_STATE` | `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED` |
 | `AUTHORITATIVE_TRANSITION_INPUT_REPORT` | `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` |
@@ -187,10 +187,10 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `OPEN_ENGINEERING_INTENTS` | `22` |
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
 | `ACTIVE_MISSIONS` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_CPS_TERMINAL_MISSION_IDENTITY_RECONCILIATION_V1` |
-| `LATEST_TERMINAL_MISSION_STATE` | `CPS_MISSION_IDENTITY_RECONCILED_OPERATIONAL_AUTHORITY_READY` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_020905_cps_terminal_mission_identity_reconciliation.md` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_LIVE_STATE_POINTER_AND_HISTORICAL_STOP_GUARD_V1` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_BOUNDED_DELEGATED_AUTONOMY_AND_PACKET_APPROVAL_RETIREMENT_V1` |
+| `LATEST_TERMINAL_MISSION_STATE` | `DELEGATED_POLICY_CERTIFICATION_STOP_SAFE` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_091320_bounded_delegated_autonomy_and_packet_approval_retirement.md` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_CPS_TERMINAL_MISSION_IDENTITY_RECONCILIATION_V1` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `OPEN_CANDIDATE_IDS` | `NONE`; all observed packet previews are evidence only and discarded without Authority. |
 | `PRIOR_BDP_CANDIDATES` | `25` certified instances are terminal historical ladder evidence, not open work |
@@ -213,9 +213,9 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | `smallest_existing_next_action_id` | `CONTINUE_OMP` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
-| `latest_terminal_mission_id` | `V7_OMP_CPS_TERMINAL_MISSION_IDENTITY_RECONCILIATION_V1` |
-| `latest_terminal_mission_state` | `CPS_MISSION_IDENTITY_RECONCILED_OPERATIONAL_AUTHORITY_READY` |
-| `previous_terminal_mission_id` | `V7_OMP_LIVE_STATE_POINTER_AND_HISTORICAL_STOP_GUARD_V1` |
+| `latest_terminal_mission_id` | `V7_OMP_BOUNDED_DELEGATED_AUTONOMY_AND_PACKET_APPROVAL_RETIREMENT_V1` |
+| `latest_terminal_mission_state` | `DELEGATED_POLICY_CERTIFICATION_STOP_SAFE` |
+| `previous_terminal_mission_id` | `V7_OMP_CPS_TERMINAL_MISSION_IDENTITY_RECONCILIATION_V1` |
 | `authoritative_transition_input_mission_id` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `candidate_id` | `NONE_OPEN; latest preview discarded as evidence only` |
 | `protected_by_active_wip` | `TRUE` |

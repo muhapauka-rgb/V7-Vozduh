@@ -219,6 +219,46 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(plan.get("selected_moves") or [], selected_before)
         switch.assert_not_called()
 
+    def test_apply_binds_control_window_to_approved_packet_operation_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            args = self.args_for(root, [
+                "--apply", "--no-verify", "--max-selected-moves", "1",
+                "--approved-operation-id", "packet-operation-id",
+            ])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = {
+                "enabled": True,
+                "mode": "guarded",
+                "operation": {"operation_id": "runtime-operation-id", "selected_move_hash": "hash-one"},
+                "selected_moves": [
+                    {"user_ip": "10.0.0.2", "current_egress": "1", "recommended_egress": "vless", "move_type": "failover"},
+                ],
+                "summary": {"selected_moves": 1},
+                "safety": {"atomic_execution_envelope": {}},
+            }
+            allowed = {
+                "allowed": True,
+                "allowed_forward_mutation": True,
+                "generation": "control-generation",
+                "action_class": "EMERGENCY_FAILOVER",
+                "operation_id": "packet-operation-id",
+                "selected_move_hash": "hash-one",
+                "source_bundle_hash": "",
+                "snapshot_bundle_hash": "",
+                "max_users": 1,
+            }
+            with mock.patch.object(planner, "_execution_control_decision", return_value=allowed) as decision, mock.patch.object(
+                planner,
+                "_run_switch",
+                return_value=subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="", stderr=""),
+            ):
+                planner.apply(plan)
+
+        self.assertEqual(decision.call_args_list[0].kwargs["operation_id"], "packet-operation-id")
+        self.assertEqual(decision.call_args_list[1].kwargs["operation_id"], "packet-operation-id")
+
     def test_execution_control_generation_change_stops_remaining_batch(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -8654,6 +8654,7 @@ class AutoswitchPlanner:
         mode = str(plan.get("mode") or "observe")
         operation = plan.get("operation") or {}
         operation_id = str(operation.get("operation_id") or "")
+        control_operation_id = str(getattr(self.args, "approved_operation_id", "") or operation_id)
         selected_hash = str(operation.get("selected_move_hash") or "")
         if not self.args.apply:
             return {"applied": False, "reason": "dry_run"}
@@ -8693,7 +8694,7 @@ class AutoswitchPlanner:
             mutation_kind="forward",
             action_class=self._execution_action_class((plan.get("selected_moves") or [{}])[0].get("move_type", "")),
             expected_generation=str(getattr(self.args, "approved_breaker_generation", "") or ""),
-            operation_id=operation_id,
+            operation_id=control_operation_id,
             selected_move_hash=selected_hash,
             source_bundle_hash=str(getattr(self.args, "approved_source_bundle_hash", "") or ""),
             snapshot_bundle_hash=str(getattr(self.args, "approved_snapshot_bundle_hash", "") or ""),
@@ -8768,7 +8769,7 @@ class AutoswitchPlanner:
                 mutation_kind="forward",
                 action_class=self._execution_action_class(move.get("move_type", "")),
                 expected_generation=str(entry_control.get("generation") or ""),
-                operation_id=operation_id,
+                operation_id=control_operation_id,
                 selected_move_hash=selected_hash,
                 source_bundle_hash=str(getattr(self.args, "approved_source_bundle_hash", "") or ""),
                 snapshot_bundle_hash=str(getattr(self.args, "approved_snapshot_bundle_hash", "") or ""),

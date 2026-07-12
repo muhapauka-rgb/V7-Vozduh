@@ -45,24 +45,24 @@ NORMALIZED_CPS_LIVE_STATE = {
     "current_scope_class": "REAL_WORLD_EVIDENCE_BOUNDARY",
     "current_execution_mission_id": "NONE",
     "current_execution_mission_state": "NONE",
-    "latest_terminal_mission_id": "V7_OMP_MOVEMENT_PROTECTION_PRODUCTION_OUTCOME_REVALIDATION_V1",
-    "latest_terminal_run_nonce": "V7_MP_REVALIDATE_V1_6D0F3A9C2E71",
-    "latest_terminal_mission_state": "MOVEMENT_PROTECTION_PARTIAL_REAL_WORLD_LIMIT",
-    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-12_173529_movement_protection_outcome_revalidation.md",
-    "latest_terminal_mission_started_at": "2026-07-12T17:25:35+0700",
-    "previous_terminal_mission_id": "V7_OMP_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR_V1",
-    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-12_172534_exact_route_repair_and_first_governed_success.md",
+    "latest_terminal_mission_id": "V7_OMP_MOVEMENT_PROTECTION_REAL_WORLD_EVIDENCE_RECHECK_V1",
+    "latest_terminal_run_nonce": "V7_MP_EVIDENCE_RECHECK_V1_C2230564BAE4",
+    "latest_terminal_mission_state": "MOVEMENT_PROTECTION_REAL_WORLD_LIMIT_RECONFIRMED",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-12_180336_movement_protection_real_world_evidence_recheck.md",
+    "latest_terminal_mission_started_at": "2026-07-12T18:03:36+0700",
+    "previous_terminal_mission_id": "V7_OMP_MOVEMENT_PROTECTION_PRODUCTION_OUTCOME_REVALIDATION_V1",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-12_173529_movement_protection_outcome_revalidation.md",
     "authoritative_transition_input_mission_id": "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3",
     "authoritative_transition_input_state": "MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED",
     "authoritative_transition_input_report": "docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md",
     "current_mission_role": "LATEST_TERMINAL_MISSION",
-    "current_mission_id": "V7_OMP_MOVEMENT_PROTECTION_PRODUCTION_OUTCOME_REVALIDATION_V1",
-    "current_run_nonce": "V7_MP_REVALIDATE_V1_6D0F3A9C2E71",
-    "current_mission_state": "MOVEMENT_PROTECTION_PARTIAL_REAL_WORLD_LIMIT",
-    "current_mission_report": "docs/reports/engineering/2026-07-12_173529_movement_protection_outcome_revalidation.md",
-    "state_captured": "2026-07-12T17:35:29+0700",
-    "current_state_generation": "cpsgen_V7_MP_REVALIDATE_V1_6D0F3A9C2E71",
-    "current_transition_id": "MOVEMENT_PROTECTION_OUTCOME_REVALIDATION_V1",
+    "current_mission_id": "V7_OMP_MOVEMENT_PROTECTION_REAL_WORLD_EVIDENCE_RECHECK_V1",
+    "current_run_nonce": "V7_MP_EVIDENCE_RECHECK_V1_C2230564BAE4",
+    "current_mission_state": "MOVEMENT_PROTECTION_REAL_WORLD_LIMIT_RECONFIRMED",
+    "current_mission_report": "docs/reports/engineering/2026-07-12_180336_movement_protection_real_world_evidence_recheck.md",
+    "state_captured": "2026-07-12T18:03:36+0700",
+    "current_state_generation": "cpsgen_V7_MP_EVIDENCE_RECHECK_V1_C2230564BAE4",
+    "current_transition_id": "MOVEMENT_PROTECTION_REAL_WORLD_EVIDENCE_RECHECK_V1",
     "current_next_action_id": "WAIT_FOR_QUALIFYING_REAL_WORLD_MOVEMENT_EVIDENCE",
     "binding_stability": "PASS",
     "binding_schema": "v7.operation-scoped-source-binding.v2",
@@ -81,9 +81,9 @@ NORMALIZED_CPS_LIVE_STATE = {
     "current_class_outcome": "SUCCESS",
     "current_class_delta_closed": "YES",
     "current_class_outcome_evidence": "SUCCESS; 10.7.0.5 awg0 -> vless; global route verification PASS; feedback execfb_b287532347352c661799e985",
-    "verification_result": "PASS; global v7-user-route-check after exact repair and governed transaction",
-    "rollback_result": "NOT_REQUIRED; successful repair and governed transaction retained",
-    "learning_result": "MATERIALIZED; outcome SUCCESS; learning HIGH; outcome/prediction/trust/recommendation/closure records written",
+    "verification_result": "PASS; owner refresh completed, no qualifying closure evidence found, global v7-user-route-check remains OK",
+    "rollback_result": "NOT_REQUIRED; no Runtime apply or user movement occurred in this recheck",
+    "learning_result": "NO_NEW_MATERIAL_OUTCOME; 102 fresh records are NO_EXECUTION and do not change accepted maturity",
     "action_class_non_consumption_root_cause": "CLOSED; exact route integrity repaired and successful verified current-class outcome accepted",
     "action_class_promotion_evaluation": "NOT_REQUESTED; current action class remains GOVERNED_ONLY and no authority expansion is proposed",
     "action_class_exact_missing_delta": "NONE_FOR_CAP_U01; exact repair, global route verification and fresh governed SUCCESS are certified",
@@ -92,13 +92,13 @@ NORMALIZED_CPS_LIVE_STATE = {
     "certification_transaction_executed": "YES; exactly one fresh delegated transaction after exact route repair; mutation 1, verification PASS, rollback NOT_REQUIRED",
     "controlled_run_engineering_intent_closure": "INTENT_CLOSED; CAP-U01 certified from exact repair through governed SUCCESS, verification, learning and final OPEN",
     "production_maturity_decision": "PARTIAL_ACCEPT; CAP-U01 COMPLETE, CAP-U02 PARTIAL_REVALIDATED_FROM_REAL_SUCCESS, current action class remains GOVERNED_ONLY",
-    "production_runtime_impact": "EXACT_TWO_USER_REPAIR_PLUS_ONE_SUCCESSFUL_GOVERNED_USER_MOVE; global route integrity PASS",
+    "production_runtime_impact": "EVIDENCE_REFRESH_ONLY; service, quality and intelligence snapshots updated; no Runtime apply or user movement",
     "routing_impact": "10.7.0.5, 10.7.0.32 and 10.7.0.38 use vless/tun0 with verified policy routes",
-    "user_movement": "YES; exact repair users 10.7.0.32 and 10.7.0.38 plus governed user 10.7.0.5",
+    "user_movement": "NO; current Mission performed evidence refresh and read-only revalidation only",
     "admin_safe_mode_live_state": "schema=v7.autonomous-execution-control.v2; state=OPEN; generation=aec_dda6c420c87e99e97236883c; reason=GOVERNED_TRANSACTION_COMPLETED",
     "parent_engineering_intent": "INTENT_NOT_CLOSED; CAP-U01 closed and CAP-U02 is partial at a real-world evidence boundary",
-    "source_summary": "Movement Protection consumed the exact repair and first successful governed outcome; remaining full-capability evidence is not currently present.",
-    "automatic_continue_omp_result": "PROGRAM_TERMINAL_REACHED; U02 owner revalidation found a qualifying REAL_WORLD_LIMIT",
+    "source_summary": "Movement Protection owner refresh and production recheck found no qualifying U03/U04/U05/U06 closure evidence; the existing real-world boundary remains valid.",
+    "automatic_continue_omp_result": "PROGRAM_TERMINAL_RECONFIRMED; repeated no-progress fingerprint retained after owner-backed evidence refresh",
     "required_workflow": "wait for fresh qualifying evidence -> recheck U03/U04/U05/U06 owner outputs -> certify or retain PARTIAL -> resume deterministic sequence",
     "omp_controlled_run_allowed": "NO_CURRENT_EXECUTION; real-world evidence must appear before another governed movement is justified",
     "controlled_run_authority_required_now": "NO_INSIDE_APPROVED_POLICY",
@@ -114,13 +114,13 @@ NORMALIZED_CPS_LIVE_STATE = {
     "omp_continuation_required": "FALSE",
     "external_input_required": "TRUE",
     "external_input_type": "REAL_WORLD_LIMIT",
-    "transaction_terminal_class": "REVALIDATION_PARTIAL",
+    "transaction_terminal_class": "REVALIDATION_NO_PROGRESS",
     "program_terminal_class": "REAL_WORLD_LIMIT",
     "next_mission_formed": "TRUE",
-    "next_mission_id": "V7_OMP_MOVEMENT_PROTECTION_REAL_WORLD_EVIDENCE_RECHECK_V1",
+    "next_mission_id": "V7_OMP_MOVEMENT_PROTECTION_REAL_WORLD_EVIDENCE_RECHECK_V2",
     "premature_operator_return": "FALSE",
-    "continuation_iteration": "4",
-    "continuation_stop_reason": "MOVEMENT_PROTECTION_DEPENDENT_PRODUCTION_EVIDENCE_NOT_PRESENT",
+    "continuation_iteration": "5",
+    "continuation_stop_reason": "QUALIFYING_MOVEMENT_PROTECTION_EVIDENCE_STILL_ABSENT_AFTER_OWNER_REFRESH",
     "no_progress_fingerprint": "307ddb0b97fa51da0edfd2844cb84e6537a9049a6f9a777281e1ca9b7fee1d82",
 }
 
@@ -851,7 +851,27 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | "
         "`REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |"
     )
-    return cps_text.replace(position_five[0], rollback_sequence, 1)
+    cps_text = cps_text.replace(position_five[0], rollback_sequence, 1)
+
+    authority_stops = _markdown_section(
+        cps_text,
+        "### Authority, Reality And Safety Stops",
+        "### Owner Revalidation Requirements And Contradictions",
+    )
+    operational_rows = [line for line in authority_stops.splitlines() if line.startswith("| `OPERATIONAL_AUTHORITY` |")]
+    real_world_rows = [line for line in authority_stops.splitlines() if line.startswith("| `REAL_WORLD_LIMIT` |")]
+    if len(operational_rows) != 1 or len(real_world_rows) != 1:
+        raise ValueError("authority_stop_rows_missing_or_duplicate")
+    operational_row = (
+        "| `OPERATIONAL_AUTHORITY` | `SUPERSEDED/HISTORICAL`; U01 boundary for the completed exact two-user serial repair outside "
+        "`dap_default_tier1_readonly`; not current and not reusable. |"
+    )
+    real_world_row = (
+        "| `REAL_WORLD_LIMIT` | Current U02 program terminal: qualifying U03/U04/U05/U06 production evidence remains "
+        "absent after owner-backed service, quality, snapshot, Runtime and Recovery revalidation. |"
+    )
+    cps_text = cps_text.replace(operational_rows[0], operational_row, 1)
+    return cps_text.replace(real_world_rows[0], real_world_row, 1)
 
 
 def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -> dict[str, Any]:

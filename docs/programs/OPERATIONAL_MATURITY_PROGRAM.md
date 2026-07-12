@@ -13,8 +13,8 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed closure evidence: `docs/reports/engineering/2026-07-12_173529_movement_protection_outcome_revalidation.md` (`MOVEMENT_PROTECTION_PARTIAL_REAL_WORLD_LIMIT`).
-Previous consumed closure evidence: `docs/reports/engineering/2026-07-12_172534_exact_route_repair_and_first_governed_success.md` (`EXACT_ROUTE_REPAIR_AND_FIRST_GOVERNED_SUCCESS_CERTIFIED_CONTINUE_OMP_READY`).
+Latest consumed closure evidence: `docs/reports/engineering/2026-07-12_180336_movement_protection_real_world_evidence_recheck.md` (`MOVEMENT_PROTECTION_REAL_WORLD_LIMIT_RECONFIRMED`).
+Previous consumed closure evidence: `docs/reports/engineering/2026-07-12_173529_movement_protection_outcome_revalidation.md` (`MOVEMENT_PROTECTION_PARTIAL_REAL_WORLD_LIMIT`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -8590,8 +8590,8 @@ Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `REAL_WORLD_LIMIT`
 Resolved current next action: `WAIT_FOR_QUALIFYING_REAL_WORLD_MOVEMENT_EVIDENCE`
-Latest consumed report: `docs/reports/engineering/2026-07-12_173529_movement_protection_outcome_revalidation.md`
-Previous consumed report: `docs/reports/engineering/2026-07-12_172534_exact_route_repair_and_first_governed_success.md`
+Latest consumed report: `docs/reports/engineering/2026-07-12_180336_movement_protection_real_world_evidence_recheck.md`
+Previous consumed report: `docs/reports/engineering/2026-07-12_173529_movement_protection_outcome_revalidation.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

@@ -70,7 +70,7 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
         self.assertIn("omp_current_next_action_divergence", self.validate(drift)["omp_contradiction_ids"])
 
     def test_08_latest_consumed_report_mismatch_fails(self):
-        drift = self.omp.replace("docs/reports/engineering/2026-07-12_173529_movement_protection_outcome_revalidation.md", "docs/reports/engineering/stale.md", 1)
+        drift = self.omp.replace("docs/reports/engineering/2026-07-12_180336_movement_protection_real_world_evidence_recheck.md", "docs/reports/engineering/stale.md", 1)
         self.assertEqual(self.validate(drift)["omp_report_pointer_consistency"], "FAIL")
 
     def test_09_historical_section_cannot_create_mission(self):
@@ -117,7 +117,7 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
         ))
         self.assertTrue(live["CONTROLLED_RUN_PACKET_PREVIEW"].strip("`").startswith("NONE_OPEN"))
         self.assertTrue(live["CONTROLLED_RUN_EXECUTION_AUTHORIZED"].strip("`").startswith("NO_CURRENT_PACKET"))
-        self.assertTrue(live["USER_MOVEMENT"].strip("`").startswith("YES"))
+        self.assertTrue(live["USER_MOVEMENT"].strip("`").startswith("NO"))
         self.assertIn("state=OPEN", live["ADMIN_SAFE_MODE_LIVE_STATE"])
 
     def test_18_truth_consistency_is_go_only_when_omp_agrees(self):

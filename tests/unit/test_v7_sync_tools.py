@@ -58,7 +58,7 @@ class V7SyncToolsTest(unittest.TestCase):
         self.assertIn("cps_current_stop_divergence", result["errors"])
 
         generation_drift = cps.replace(
-            "| `current_state_generation` | `cpsgen_V7_MP_REVALIDATE_V1_6D0F3A9C2E71` |",
+            "| `current_state_generation` | `cpsgen_V7_MP_EVIDENCE_RECHECK_V1_C2230564BAE4` |",
             "| `current_state_generation` | `stale_generation` |",
             1,
         )

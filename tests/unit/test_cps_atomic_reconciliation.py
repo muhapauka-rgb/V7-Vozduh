@@ -146,8 +146,8 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertEqual(live["CONTROLLED_RUN_AUTHORITY_GENERATION"].strip("`"), "POLICY_SCOPED; NO_PACKET_SPECIFIC_AUTHORITY_REQUIRED")
         self.assertTrue(live["CONTROLLED_RUN_ROLLBACK_MANIFEST"].strip("`").startswith("NONE_OPEN"))
         self.assertTrue(live["CONTROLLED_RUN_EXECUTION_AUTHORIZED"].strip("`").startswith("NO_CURRENT_PACKET"))
-        self.assertTrue(live["PRODUCTION_RUNTIME_IMPACT"].strip("`").startswith("EXACT_TWO_USER_REPAIR_PLUS_ONE_SUCCESSFUL_GOVERNED_USER_MOVE"))
-        self.assertTrue(live["USER_MOVEMENT"].strip("`").startswith("YES"))
+        self.assertTrue(live["PRODUCTION_RUNTIME_IMPACT"].strip("`").startswith("EVIDENCE_REFRESH_ONLY"))
+        self.assertTrue(live["USER_MOVEMENT"].strip("`").startswith("NO"))
         self.assertIn("state=OPEN", live["ADMIN_SAFE_MODE_LIVE_STATE"])
 
     def test_21_approved_policy_with_packet_approval_required_fails(self):
@@ -227,6 +227,21 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertEqual(registry["UNFINISHED_CAPABILITIES"].strip("`"), "21")
         self.assertEqual(registry["OPEN_ENGINEERING_INTENTS"].strip("`"), "21")
         self.assertNotIn("| `U01` |", open_intents)
+
+    def test_30_repeated_real_world_limit_is_current_u02_not_u01(self):
+        stops = self.lib._markdown_section(
+            self.cps,
+            "### Authority, Reality And Safety Stops",
+            "### Owner Revalidation Requirements And Contradictions",
+        )
+        self.assertIn("Current U02 program terminal", stops)
+        self.assertNotIn("Current U01 program terminal", stops)
+        self.assertIn("`SUPERSEDED/HISTORICAL`; U01 boundary", stops)
+        live = self.lib._markdown_field_table(self.lib._markdown_section(
+            self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry"
+        ))
+        self.assertEqual(live["TRANSACTION_TERMINAL_CLASS"].strip("`"), "REVALIDATION_NO_PROGRESS")
+        self.assertEqual(live["NO_PROGRESS_FINGERPRINT"].strip("`"), "307ddb0b97fa51da0edfd2844cb84e6537a9049a6f9a777281e1ca9b7fee1d82")
 
 
 if __name__ == "__main__":

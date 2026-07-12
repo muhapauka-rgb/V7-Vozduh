@@ -98,7 +98,7 @@ class OmpSelfContinuationTest(unittest.TestCase):
         self.assertEqual(result["omp_continuation_required"], "FALSE")
         self.assertEqual(result["external_input_required"], "TRUE")
         self.assertEqual(result["external_input_type"], "REAL_WORLD_LIMIT")
-        self.assertEqual(result["continuation_iteration"], "4")
+        self.assertEqual(result["continuation_iteration"], "5")
 
     def test_materialized_external_boundary_cannot_be_marked_for_continuation(self):
         cps = CPS.read_text(encoding="utf-8").replace(

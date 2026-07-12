@@ -876,6 +876,87 @@ def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -
     }
 
 
+def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
+    """Fail closed when a transaction terminal is returned as a program terminal."""
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    required = (
+        "OMP_CONTINUATION_REQUIRED",
+        "EXTERNAL_INPUT_REQUIRED",
+        "EXTERNAL_INPUT_TYPE",
+        "TRANSACTION_TERMINAL_CLASS",
+        "PROGRAM_TERMINAL_CLASS",
+        "NEXT_MISSION_FORMED",
+        "NEXT_MISSION_ID",
+        "PREMATURE_OPERATOR_RETURN",
+        "CONTINUATION_ITERATION",
+        "CONTINUATION_STOP_REASON",
+        "NO_PROGRESS_FINGERPRINT",
+    )
+    values = {key: live.get(key, "").strip("`") for key in required}
+    errors: list[str] = []
+    errors.extend(
+        f"omp_self_continuation_field_missing:{key}"
+        for key, value in values.items()
+        if not value
+    )
+    continuation = values["OMP_CONTINUATION_REQUIRED"]
+    external = values["EXTERNAL_INPUT_REQUIRED"]
+    premature = values["PREMATURE_OPERATOR_RETURN"]
+    next_formed = values["NEXT_MISSION_FORMED"]
+    program_terminal = values["PROGRAM_TERMINAL_CLASS"]
+    external_type = values["EXTERNAL_INPUT_TYPE"]
+    next_action = live.get("CURRENT_NEXT_ACTION_ID", "").strip("`")
+    mission_state = live.get("CURRENT_MISSION_STATE", "").strip("`")
+    if continuation not in {"TRUE", "FALSE"}:
+        errors.append("omp_continuation_required_invalid")
+    if external not in {"TRUE", "FALSE"}:
+        errors.append("omp_external_input_required_invalid")
+    if premature != "FALSE":
+        errors.append("PREMATURE_OMP_RETURN_TO_OPERATOR")
+    if next_action == "CONTINUE_OMP" and external == "FALSE" and continuation != "TRUE":
+        errors.append("PREMATURE_OMP_RETURN_TO_OPERATOR")
+    if "CONTINUE_OMP_READY" in mission_state and external == "FALSE" and continuation != "TRUE":
+        errors.append("continue_omp_ready_misclassified_as_program_terminal")
+    if continuation == "TRUE":
+        if external != "FALSE" or program_terminal != "NONE":
+            errors.append("omp_continuation_program_terminal_conflict")
+        if next_formed != "TRUE" or values["NEXT_MISSION_ID"] in {"", "NONE"}:
+            errors.append("omp_next_mission_not_formed")
+    if external == "TRUE":
+        if continuation != "FALSE":
+            errors.append("omp_external_boundary_continuation_conflict")
+        if external_type in {"", "NONE"} or program_terminal in {"", "NONE"}:
+            errors.append("omp_external_boundary_unclassified")
+    try:
+        if int(values["CONTINUATION_ITERATION"]) < 1:
+            errors.append("omp_continuation_iteration_invalid")
+    except ValueError:
+        errors.append("omp_continuation_iteration_invalid")
+    if not re.fullmatch(r"[0-9a-f]{64}", values["NO_PROGRESS_FINGERPRINT"]):
+        errors.append("omp_no_progress_fingerprint_invalid")
+    unique = sorted(set(errors))
+    return {
+        "schema": "v7-omp-self-continuation-consistency/v1",
+        "final_verdict": "PASS" if not unique else "NO-GO",
+        "premature_operator_return_validator": "PASS" if "PREMATURE_OMP_RETURN_TO_OPERATOR" not in unique else "FAIL",
+        "omp_continuation_required": continuation,
+        "external_input_required": external,
+        "external_input_type": external_type,
+        "transaction_terminal_class": values["TRANSACTION_TERMINAL_CLASS"],
+        "program_terminal_class": program_terminal,
+        "next_mission_formed": next_formed,
+        "next_mission_id": values["NEXT_MISSION_ID"],
+        "continuation_iteration": values["CONTINUATION_ITERATION"],
+        "continuation_stop_reason": values["CONTINUATION_STOP_REASON"],
+        "no_progress_fingerprint": values["NO_PROGRESS_FINGERPRINT"],
+        "errors": unique,
+    }
+
+
 def cps_live_state_consistency(
     cps_text: str,
     *,

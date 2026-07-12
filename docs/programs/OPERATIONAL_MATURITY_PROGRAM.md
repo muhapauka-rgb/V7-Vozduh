@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.16`
+Version: `4.17`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -17,6 +17,8 @@ Latest consumed closure evidence: `docs/reports/engineering/2026-07-12_154709_fi
 Previous consumed closure evidence: `docs/reports/engineering/2026-07-12_105740_first_real_governed_outcome_closure_v2.md` (`STOP_SAFE_BINDING_CONSUMER_DEFECT_FIXED_DEPLOYED_CONTINUE_OMP_READY`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
+
+V4.17 adds the OMP Self-Continuation Contract: a transaction terminal closes only its transaction, while the existing Codex OMP execution consumer must continue the same Engineering Control Loop until a proven program terminal requires external input. It creates no daemon, queue, scheduler, Runtime, Planner, owner, or parallel execution path.
 
 V4 operating questions:
 
@@ -7304,12 +7306,7 @@ No future prompt may bypass OMP. OMP always wins over free-form implementation i
 
 ## 14. Automatic Continuation Rule
 
-Codex must continue automatically while the highest leverage action does not require:
-
-1. restore-barrier write;
-2. runtime apply;
-3. user movement;
-4. authority expansion.
+Codex must continue automatically while the highest leverage action does not require external input. Runtime apply, restore-barrier write, or one-user movement already admitted by an active approved delegated policy are not program terminals. Actions outside policy, authority or blast-radius expansion, missing real-world evidence, fundamental architecture boundaries, unresolved external access/security boundaries, and irreducible non-determinism remain program terminals.
 
 Codex must continue automatically through:
 
@@ -7328,13 +7325,7 @@ Codex must continue automatically through:
 13. outcome closure plan verification;
 14. learning path verification.
 
-Codex must stop only at:
-
-1. `OPERATIONAL_AUTHORITY`;
-2. `ENGINEERING_AUTHORITY`;
-3. `REAL_WORLD_LIMIT`;
-4. `UNSAFE_IMPLEMENTATION`;
-5. `FUNDAMENTAL_ARCHITECTURE_GAP`.
+Codex must stop only at a proven `PROGRAM_TERMINAL`: `OPERATIONAL_AUTHORITY` for an action outside active policy, `ENGINEERING_AUTHORITY`, `REAL_WORLD_LIMIT`, `FUNDAMENTAL_ARCHITECTURE_BOUNDARY`, unresolved external security/access input, or irreducible `NON_DETERMINISTIC_DECISION`. `STOP_SAFE`, `ROLLBACK_SUCCESS`, `NO_EXECUTION`, safe verification failure, recoverable `BUG`/`OWNER_EXTENSION`, route-integrity failure, packet invalidation, and freshness/binding mismatch are `TRANSACTION_TERMINAL` and must automatically continue through Root Cause Engine and Automation Gap Closure.
 
 Before stopping, Codex must run the Root Cause Engine and expose the structured stop record as the primary output.
 
@@ -7368,6 +7359,60 @@ READ KERNEL
 ```
 
 This replaces phase-first and roadmap-first thinking with optimization-first thinking.
+
+### 14.1 OMP Self-Continuation Contract
+
+Status: `CANONICAL_EXECUTABLE_CONSUMER_CONTRACT`
+
+Execution consumer: existing Codex OMP consumer governed by OMP, ECR and CPS. `admin_core/operator_execution_pipeline.py` remains a transaction owner and must not become a Mission scheduler. No daemon, queue, hidden retry worker, second Planner, or parallel executor is created.
+
+```text
+Mission terminal
+  -> classify TRANSACTION_TERMINAL or PROGRAM_TERMINAL
+  -> rollback/containment and mandatory final Safe Mode OPEN
+  -> outcome/learning/maturity
+  -> Engineering Report
+  -> atomic CPS update
+  -> read fresh CURRENT_NEXT_ACTION_ID
+  -> reconcile unfinished capability registry
+  -> Root Cause Engine / Automation Gap Closure when intent remains open
+  -> form and admit next Mission
+  -> execute next Mission
+  -> repeat until PROGRAM_TERMINAL
+```
+
+Transaction terminal classes are `STOP_SAFE`, `ROLLBACK_SUCCESS`, `NO_EXECUTION`, safe verification failure, recoverable `BUG`, recoverable `OWNER_EXTENSION`, route-integrity failure, packet invalidation, and freshness/binding mismatch. They close only the current transaction and cannot return control to the operator when an existing-owner next action remains executable.
+
+Program terminal classes are `ENGINEERING_AUTHORITY`, `OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY`, `REAL_WORLD_LIMIT`, `FUNDAMENTAL_ARCHITECTURE_BOUNDARY`, unresolved external `SECURITY_OR_ACCESS_INPUT`, and irreducible `NON_DETERMINISTIC_DECISION`. They return control exactly once with the precise external input required.
+
+Required CPS machine fields:
+
+```text
+OMP_CONTINUATION_REQUIRED
+EXTERNAL_INPUT_REQUIRED
+EXTERNAL_INPUT_TYPE
+TRANSACTION_TERMINAL_CLASS
+PROGRAM_TERMINAL_CLASS
+NEXT_MISSION_FORMED
+NEXT_MISSION_ID
+PREMATURE_OPERATOR_RETURN
+CONTINUATION_ITERATION
+CONTINUATION_STOP_REASON
+NO_PROGRESS_FINGERPRINT
+```
+
+Fail-closed law:
+
+```text
+CURRENT_NEXT_ACTION_ID = CONTINUE_OMP
+AND EXTERNAL_INPUT_REQUIRED = FALSE
+AND OMP_CONTINUATION_REQUIRED != TRUE
+=> PREMATURE_OMP_RETURN_TO_OPERATOR
+```
+
+A verdict containing `CONTINUE_OMP_READY` is intermediate when `EXTERNAL_INPUT_REQUIRED=FALSE`. The consumer must form the next Mission in the same invocation. Terminal packet, Candidate, decision, operation, lease and binding identities are never reused.
+
+No-progress protection reuses Mission identity, anti-replay, Decision Reproducibility, Root Cause Engine, Intent Responsibility Resolution and Automation Gap Closure. The deterministic fingerprint is computed from stop, responsible owner, Current State, Expected State and next action. Repeated fingerprints trigger owner-backed root-cause work, never blind production mutation retry or an operator `Continue OMP` retry request.
 
 ## 15. OMP Execution Contract For Codex
 

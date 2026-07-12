@@ -13,8 +13,8 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed closure evidence: `docs/reports/engineering/2026-07-12_154709_first_real_governed_outcome_closure_v3.md` (`ROLLBACK_SUCCESS_RUNTIME_ROUTE_INTEGRITY_STOP_CONTINUE_OMP_READY`).
-Previous consumed closure evidence: `docs/reports/engineering/2026-07-12_105740_first_real_governed_outcome_closure_v2.md` (`STOP_SAFE_BINDING_CONSUMER_DEFECT_FIXED_DEPLOYED_CONTINUE_OMP_READY`).
+Latest consumed closure evidence: `docs/reports/engineering/2026-07-12_162427_route_integrity_repair_authority_boundary.md` (`OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY`).
+Previous consumed closure evidence: `docs/reports/engineering/2026-07-12_162200_omp_self_continuation_and_premature_operator_return_closure.md` (`OMP_SELF_CONTINUATION_IMPLEMENTED_EXTERNAL_BOUNDARY_REACHED`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -7600,8 +7600,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `RUNTIME_ROUTE_INTEGRITY_FAILURE`
-Resolved current next action: `CONTINUE_OMP`
+Resolved current stop: `OPERATIONAL_AUTHORITY`
+Resolved current next action: `APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR`
 Resolved packet: `NONE_OPEN`
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -8588,10 +8588,10 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `RUNTIME_ROUTE_INTEGRITY_FAILURE`
-Resolved current next action: `CONTINUE_OMP`
-Latest consumed report: `docs/reports/engineering/2026-07-12_154709_first_real_governed_outcome_closure_v3.md`
-Previous consumed report: `docs/reports/engineering/2026-07-12_105740_first_real_governed_outcome_closure_v2.md`
+Resolved current stop: `OPERATIONAL_AUTHORITY`
+Resolved current next action: `APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR`
+Latest consumed report: `docs/reports/engineering/2026-07-12_162427_route_integrity_repair_authority_boundary.md`
+Previous consumed report: `docs/reports/engineering/2026-07-12_162200_omp_self_continuation_and_premature_operator_return_closure.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

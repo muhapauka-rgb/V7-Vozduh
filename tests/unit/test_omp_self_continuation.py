@@ -6,6 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 LIB = ROOT / "tools" / "v7_sync_lib.py"
 OMP = ROOT / "docs" / "programs" / "OPERATIONAL_MATURITY_PROGRAM.md"
+CPS = ROOT / "docs" / "programs" / "V7_CURRENT_PROGRAM_STATE.md"
 
 
 def load_lib():
@@ -90,6 +91,25 @@ class OmpSelfContinuationTest(unittest.TestCase):
         self.assertIn("### 14.1 OMP Self-Continuation Contract", text)
         self.assertIn("PREMATURE_OMP_RETURN_TO_OPERATOR", text)
         self.assertIn("OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY", text)
+
+    def test_materialized_cps_is_exact_external_program_terminal(self):
+        result = self.lib.omp_self_continuation_consistency(CPS.read_text(encoding="utf-8"))
+        self.assertEqual(result["final_verdict"], "PASS")
+        self.assertEqual(result["omp_continuation_required"], "FALSE")
+        self.assertEqual(result["external_input_required"], "TRUE")
+        self.assertEqual(result["external_input_type"], "OPERATIONAL_AUTHORITY")
+        self.assertEqual(result["continuation_iteration"], "2")
+
+    def test_materialized_external_boundary_cannot_be_marked_for_continuation(self):
+        cps = CPS.read_text(encoding="utf-8").replace(
+            "| `OMP_CONTINUATION_REQUIRED` | `FALSE` |",
+            "| `OMP_CONTINUATION_REQUIRED` | `TRUE` |",
+            1,
+        )
+        self.assertIn(
+            "omp_external_boundary_continuation_conflict",
+            self.lib.omp_self_continuation_consistency(cps)["errors"],
+        )
 
 
 if __name__ == "__main__":

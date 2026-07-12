@@ -2,18 +2,18 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-12T15:47:09+0700
-Latest terminal Mission: `CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V3`
-Latest terminal Mission state: `ROLLBACK_SUCCESS_RUNTIME_ROUTE_INTEGRITY_STOP_CONTINUE_OMP_READY`
-Latest terminal Mission report: `docs/reports/engineering/2026-07-12_154709_first_real_governed_outcome_closure_v3.md`
+State captured: 2026-07-12T16:24:27+0700
+Latest terminal Mission: `V7_OMP_ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1`
+Latest terminal Mission state: `OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY`
+Latest terminal Mission report: `docs/reports/engineering/2026-07-12_162427_route_integrity_repair_authority_boundary.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
-Source: bounded policy activation, safe delivery, production read-only certification and one terminal STOP_SAFE certification attempt.
+Source: OMP self-continuation certification followed by fresh route-integrity repair decomposition and exact external authority-boundary proof.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-12T15:47:09+0700`
+Captured: `2026-07-12T16:24:27+0700`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -28,34 +28,45 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `RUNTIME_ROUTE_INTEGRITY_FAILURE` |
-| `CURRENT_ACTIVE_SCOPE` | `ROUTE_INTEGRITY_REPAIR_PREPARATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `CONTINUE OMP; RESOLVE EXISTING ROUTE INTEGRITY BEFORE ANY NEW TRANSACTION; STOP BEFORE MUTATION WITHOUT AUTHORITY` |
-| `CURRENT_SCOPE_CLASS` | `BOUNDED_DELEGATED_POLICY` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_CAP_U01_OUTCOME_V3_678CF77D081C` |
-| `CURRENT_TRANSITION_ID` | `CAP_U01_ROLLBACK_SUCCESS_ROUTE_INTEGRITY_STOP_V3` |
-| `CURRENT_NEXT_ACTION_ID` | `CONTINUE_OMP` |
+| `CURRENT_STOP_CONDITION` | `OPERATIONAL_AUTHORITY` |
+| `CURRENT_ACTIVE_SCOPE` | `EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR` |
+| `CURRENT_SAFE_NEXT_ACTION` | `APPROVE OR REJECT ONE-TIME EXACT TWO-USER SERIAL ROUTE-INTEGRITY REPAIR; NO MUTATION BEFORE AUTHORITY` |
+| `CURRENT_SCOPE_CLASS` | `OUTSIDE_ACTIVE_DELEGATED_POLICY` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_ROUTE_REPAIR_AUTH_BOUNDARY_V1_A7086B0D3E7B` |
+| `CURRENT_TRANSITION_ID` | `ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR` |
+| `OMP_CONTINUATION_REQUIRED` | `FALSE` |
+| `EXTERNAL_INPUT_REQUIRED` | `TRUE` |
+| `EXTERNAL_INPUT_TYPE` | `OPERATIONAL_AUTHORITY` |
+| `TRANSACTION_TERMINAL_CLASS` | `ROLLBACK_SUCCESS` |
+| `PROGRAM_TERMINAL_CLASS` | `OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY` |
+| `NEXT_MISSION_FORMED` | `TRUE` |
+| `NEXT_MISSION_ID` | `V7_OMP_ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1` |
+| `PREMATURE_OPERATOR_RETURN` | `FALSE` |
+| `CONTINUATION_ITERATION` | `2` |
+| `CONTINUATION_STOP_REASON` | `TWO_USER_ROUTE_INTEGRITY_REPAIR_OUTSIDE_DAP_DEFAULT_TIER1_READONLY` |
+| `NO_PROGRESS_FINGERPRINT` | `9de9264320871de4460d1641bed72f634a0d6ed6a99d4099b6cbe45f9146aee7` |
 | `CURRENT_STATE_CONSISTENCY` | `PASS; section 0, registry, protected WIP and deterministic sequence share one generation and transition` |
 | `CURRENT_EXECUTION_MISSION_ID` | `NONE` |
 | `CURRENT_EXECUTION_MISSION_STATE` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V3` |
-| `LATEST_TERMINAL_RUN_NONCE` | `V7_CAP_U01_OUTCOME_V3_678CF77D081C` |
-| `LATEST_TERMINAL_MISSION_STATE` | `ROLLBACK_SUCCESS_RUNTIME_ROUTE_INTEGRITY_STOP_CONTINUE_OMP_READY` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_154709_first_real_governed_outcome_closure_v3.md` |
-| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-12T15:47:09+0700` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V2` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1` |
+| `LATEST_TERMINAL_RUN_NONCE` | `V7_ROUTE_REPAIR_AUTH_BOUNDARY_V1_A7086B0D3E7B` |
+| `LATEST_TERMINAL_MISSION_STATE` | `OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_162427_route_integrity_repair_authority_boundary.md` |
+| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-12T16:24:27+0700` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_SELF_CONTINUATION_AND_PREMATURE_OPERATOR_RETURN_CLOSURE_V1` |
 | `CURRENT_MISSION_ROLE` | `LATEST_TERMINAL_MISSION` |
-| `CURRENT_MISSION_ID` | `CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V3` |
-| `CURRENT_RUN_NONCE` | `V7_CAP_U01_OUTCOME_V3_678CF77D081C` |
-| `CURRENT_MISSION_STATE` | `ROLLBACK_SUCCESS_RUNTIME_ROUTE_INTEGRITY_STOP_CONTINUE_OMP_READY` |
-| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_154709_first_real_governed_outcome_closure_v3.md` |
+| `CURRENT_MISSION_ID` | `V7_OMP_ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1` |
+| `CURRENT_RUN_NONCE` | `V7_ROUTE_REPAIR_AUTH_BOUNDARY_V1_A7086B0D3E7B` |
+| `CURRENT_MISSION_STATE` | `OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY` |
+| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_162427_route_integrity_repair_authority_boundary.md` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `AUTHORITATIVE_TRANSITION_INPUT_STATE` | `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED` |
 | `AUTHORITATIVE_TRANSITION_INPUT_REPORT` | `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` |
 | `BINDING_STABILITY` | `PASS; 22 post-deploy read-only cycles, 10 consecutive stable Candidate cycles, zero unexplained mismatches, zero mixed-generation snapshots` |
 | `BINDING_SCHEMA` | `v7.operation-scoped-source-binding.v2; shared by preview, admission and low-level pre-mutation recheck` |
 | `MISSION_IDENTITY_GUARD` | `PASS; Mission ID + run nonce + start timestamp + report header/path + CPS identity fail-closed validation` |
-| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_APPROVED_POLICY; Engineering Authority remains required for expansion` |
+| `AUTHORITY_REQUIRED_NOW` | `YES_OUTSIDE_ACTIVE_POLICY; exact two-user repair is outside approved one-user policy` |
 | `OLD_PACKETS_REUSABLE` | `NO` |
 | `CURRENT_ACTION_CLASS` | `single-user governed candidate failover` |
 | `CURRENT_ACTION_CLASS_STATE` | `GOVERNED_ONLY` |
@@ -95,7 +106,7 @@ This section is the single live volatile current-state surface. Older production
 | `LEARNING_RESULT` | `MATERIALIZED; outcome=ROLLBACK_SUCCESS; learning value MEDIUM; outcome/prediction/trust/recommendation/closure records written` |
 | `PRODUCTION_MATURITY_DECISION` | `REMAIN_GOVERNED_ONLY; current-class verified outcome remains absent` |
 | `CURRENT_CLASS_DELTA_CLOSED` | `NO` |
-| `AUTOMATIC_CONTINUE_OMP_RESULT` | `BOUNDED_POLICY_ACTIVATED; CAP-U01 preserved first; normal operator command is Continue OMP; no packet is durable between transactions` |
+| `AUTOMATIC_CONTINUE_OMP_RESULT` | `PROGRAM_TERMINAL_REACHED; transaction terminal was consumed automatically; exact outside-policy authority boundary returned once` |
 | `HISTORICAL_ACTION_CLASS_PROMOTION_REPORT` | `docs/reports/engineering/2026-07-11_194202_current_action_class_promotion_to_bounded_authority.md`; `SUPERSEDED/HISTORICAL` context only. |
 | `HISTORICAL_CURRENT_CLASS_OUTCOME_STORE_AUDIT` | `18,036 execution-outcome records at historical readback; all DRY_RUN / NO_EXECUTION; CURRENT_CLASS_OUTCOME_ABSENT` |
 | `CONDITIONAL_ENGINEERING_AUTHORITY_USED` | `NO; no real outcome, promotion recheck not admitted` |
@@ -106,7 +117,7 @@ This section is the single live volatile current-state surface. Older production
 | `MATERIAL_DECISION_CHURN_DEPLOY_ID` | `deploy-z8-14-Updatesystem-62015c1-20260711T185443` |
 | `MATERIAL_DECISION_CHURN_REPORT` | `docs/reports/engineering/2026-07-11_184357_material_decision_churn_discovery_and_closure.md` |
 | `FORBIDDEN_FOR_CURRENT_SCOPE` | Reuse historical Candidate/packet/hash/Authority; more than one user; batch/concurrency; another action class; Authority/blast-radius expansion; systemd enable/start; threshold reduction; safety weakening; synthetic evidence. |
-| `REQUIRED_WORKFLOW` | `Continue OMP -> fresh existing-Planner Candidate -> fresh packet -> policy admission -> live gates -> one bounded transaction or STOP_SAFE -> verification/rollback -> final OPEN -> outcome/learning/maturity` |
+| `REQUIRED_WORKFLOW` | `operator authority decision -> fresh route evidence -> fresh owner-selected targets and identities -> exact two-user serial repair or STOP_SAFE -> global verification -> rollback/containment -> final OPEN -> outcome/learning/maturity` |
 | `CIRCUIT_BREAKER_REPOSITORY_STATE` | `IMPLEMENTATION_CERTIFIED_READ_ONLY` |
 | `CIRCUIT_BREAKER_PRODUCTION_STATE` | `DEPLOYED_CERTIFIED_OPEN` |
 | `CIRCUIT_BREAKER_PRODUCTION_CERTIFICATION` | `CIRCUIT_BREAKER_PRODUCTION_CERTIFIED` |
@@ -144,11 +155,11 @@ This section is the single live volatile current-state surface. Older production
 | `SNAPSHOT_BUNDLE_BINDING` | `CERTIFIED` |
 | `POST_CLOSED_REVALIDATION` | `CERTIFIED` |
 | `ALL_TERMINAL_PATHS_FINAL_OPEN` | `CERTIFIED` |
-| `CONTROLLED_RUN_EXECUTION_AUTHORIZED` | `BOUNDED_POLICY_ONLY; exact one-user class; all live gates mandatory` |
-| `OMP_CONTROLLED_RUN_ALLOWED` | `CONTINUE_OMP_BOUNDED_POLICY; fresh Candidate and packet only; one serial transaction or STOP_SAFE` |
-| `CONTROLLED_RUN_PRIMARY_STOP` | `RUNTIME_ROUTE_INTEGRITY_FAILURE` |
+| `CONTROLLED_RUN_EXECUTION_AUTHORIZED` | `NO_OUTSIDE_ACTIVE_POLICY; no repair packet or mutation is authorized` |
+| `OMP_CONTROLLED_RUN_ALLOWED` | `NO_OUTSIDE_ACTIVE_POLICY; exact two-user repair requires one-time Operational Authority` |
+| `CONTROLLED_RUN_PRIMARY_STOP` | `OPERATIONAL_AUTHORITY` |
 | `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `RUNTIME_ROUTE_INTEGRITY_REPAIR` |
-| `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_APPROVED_POLICY` |
+| `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `YES_OUTSIDE_ACTIVE_POLICY` |
 | `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_NOT_CLOSED; exact current-class outcome remains absent` |
 | `PARENT_ENGINEERING_INTENT` | `INTENT_NOT_CLOSED` |
 | `ACTIVE_WIP_PROTECTED` | `TRUE; COMPLETION_FIRST; reorder forbidden` |
@@ -168,7 +179,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-12T15:47:09+0700`
+Generated At: `2026-07-12T16:24:27+0700`
 
 Runtime Authority: `NONE`
 
@@ -181,20 +192,20 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_CAP_U01_OUTCOME_V3_678CF77D081C` |
-| `CURRENT_TRANSITION_ID` | `CAP_U01_ROLLBACK_SUCCESS_ROUTE_INTEGRITY_STOP_V3` |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `CONTINUE_OMP` |
-| `CURRENT_STOP_CONDITION` | `RUNTIME_ROUTE_INTEGRITY_FAILURE` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_ROUTE_REPAIR_AUTH_BOUNDARY_V1_A7086B0D3E7B` |
+| `CURRENT_TRANSITION_ID` | `ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR` |
+| `CURRENT_STOP_CONDITION` | `OPERATIONAL_AUTHORITY` |
 | `CAPABILITIES_INVENTORIED` | `34` |
 | `COMPLETE_OR_LOCKED_CAPABILITIES` | `12` |
 | `UNFINISHED_CAPABILITIES` | `22` |
 | `OPEN_ENGINEERING_INTENTS` | `22` |
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
 | `ACTIVE_MISSIONS` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V3` |
-| `LATEST_TERMINAL_MISSION_STATE` | `ROLLBACK_SUCCESS_RUNTIME_ROUTE_INTEGRITY_STOP_CONTINUE_OMP_READY` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_154709_first_real_governed_outcome_closure_v3.md` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V2` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1` |
+| `LATEST_TERMINAL_MISSION_STATE` | `OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_162427_route_integrity_repair_authority_boundary.md` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_SELF_CONTINUATION_AND_PREMATURE_OPERATOR_RETURN_CLOSURE_V1` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `OPEN_CANDIDATE_IDS` | `NONE`; all observed packet previews are evidence only and discarded without Authority. |
 | `PRIOR_BDP_CANDIDATES` | `25` certified instances are terminal historical ladder evidence, not open work |
@@ -203,7 +214,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
 | `OMP_CONTINUATION_POINTER` | consume this registry; preserve active WIP; select the first unresolved sequence position only |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | ``Continue OMP`; prepare exact two-user route-integrity repair; no mutation without authority` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | ``APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR`; one-time exact two-user serial repair only; no mutation before authority` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -212,28 +223,28 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U01-FIRST-GOVERNED-CONTROLLED-RUN` |
-| `current_state_generation` | `cpsgen_V7_CAP_U01_OUTCOME_V3_678CF77D081C` |
-| `current_transition_id` | `CAP_U01_ROLLBACK_SUCCESS_ROUTE_INTEGRITY_STOP_V3` |
-| `smallest_existing_next_action_id` | `CONTINUE_OMP` |
+| `current_state_generation` | `cpsgen_V7_ROUTE_REPAIR_AUTH_BOUNDARY_V1_A7086B0D3E7B` |
+| `current_transition_id` | `ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1` |
+| `smallest_existing_next_action_id` | `APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
-| `latest_terminal_mission_id` | `CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V3` |
-| `latest_terminal_mission_state` | `ROLLBACK_SUCCESS_RUNTIME_ROUTE_INTEGRITY_STOP_CONTINUE_OMP_READY` |
-| `previous_terminal_mission_id` | `CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V2` |
+| `latest_terminal_mission_id` | `V7_OMP_ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1` |
+| `latest_terminal_mission_state` | `OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY` |
+| `previous_terminal_mission_id` | `V7_OMP_SELF_CONTINUATION_AND_PREMATURE_OPERATOR_RETURN_CLOSURE_V1` |
 | `authoritative_transition_input_mission_id` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `candidate_id` | `NONE_OPEN; terminal Candidate 10.7.0.5 awg0 -> vless is historical non-reusable evidence only` |
 | `protected_by_active_wip` | `TRUE` |
 | `wip_priority_class` | `COMPLETION_FIRST` |
 | `active_wip_reorder_allowed` | `FALSE` |
-| `current_primary_stop` | `RUNTIME_ROUTE_INTEGRITY_FAILURE` |
+| `current_primary_stop` | `OPERATIONAL_AUTHORITY` |
 | `responsibility_class` | `RUNTIME_ROUTE_INTEGRITY_REPAIR` |
-| `authority_required_now` | `FALSE inside approved policy; TRUE only for expansion` |
+| `authority_required_now` | `TRUE for exact two-user repair outside approved one-user policy` |
 | `last_responsible_link` | global route verification -> two users assigned to disabled egress -> existing repair/authority owners |
 | `responsible_owners` | Admin Safe Mode v2; `admin_core/operator_execution.py`; governed execution pipeline; packet/lease identity; autoswitch final gate; rollback, verification, outcome and learning owners |
 | `protected_objects` | Existing owners above; Phase 4A Candidate evidence lineage; current Circuit Breaker certification |
-| `smallest_existing_next_action` | `Continue OMP`; prepare exact two-user route-integrity repair; no mutation without authority |
+| `smallest_existing_next_action` | `APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR`; one-time exact two-user serial repair only; no mutation before authority |
 | `binding_stability` | `CERTIFIED` |
-| `completion_condition` | one governed action reaches verification/rollback, mandatory final `OPEN`, outcome/learning/maturity/CPS/OMP consumption |
+| `completion_condition` | one exact authorized repair reaches global verification/rollback, mandatory final `OPEN`, outcome/learning/maturity/CPS/OMP consumption |
 
 ### Complete Or Locked Capability Records
 
@@ -260,7 +271,7 @@ The following joined table is the normalized live record. `Last link` represents
 
 | ID | Capability | Canonical owner | Status | Current % / source confidence | Last responsible link | Gap / stop | Smallest existing next action | Depends on / unblocks |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `CAP-U01` | First Governed Controlled Run | Admin Safe Mode, execution packet/lease/pipeline, OMP | `ACTIVE` | `NOT_APPLICABLE_WITH_REASON: instance chain`; binding stability `CERTIFIED`; protected WIP `TRUE`; bounded policy `APPROVED` | global route verification -> two users assigned to disabled egress -> existing repair/authority owners | `RUNTIME_ROUTE_INTEGRITY_FAILURE` | `Continue OMP`; prepare exact two-user route-integrity repair; no mutation without authority | first; completion requires verification/rollback, final OPEN, outcome/learning/maturity/CPS/OMP; unblocks U03/U04/U05/U07/U08/U09 |
+| `CAP-U01` | First Governed Controlled Run | Admin Safe Mode, execution packet/lease/pipeline, OMP | `ACTIVE` | `NOT_APPLICABLE_WITH_REASON: instance chain`; binding stability `CERTIFIED`; protected WIP `TRUE`; bounded policy `APPROVED` | global route verification -> two users assigned to disabled egress -> existing repair/authority owners | `OPERATIONAL_AUTHORITY` | `APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR`; one-time exact two-user serial repair only; no mutation before authority | first; completion requires verification/rollback, final OPEN, outcome/learning/maturity/CPS/OMP; unblocks U03/U04/U05/U07/U08/U09 |
 | `CAP-U02` | Movement Protection | OMP, Movement Protection Model, Runtime Model | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting `83/78` | certified gates -> real bounded movement behavior/outcome | runtime/production evidence | finish U01, consume first real outcome, revalidate owner percent | U01/U03/U04/U05/U06; unblocks U09 |
 | `CAP-U03` | Runtime Eligibility | Runtime Model, A6, final execution gate | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting `71/61` | read-only execute/stop arbitration -> production execution consumer | runtime consumption; `UNSAFE_IMPLEMENTATION` through U01 | consume certified window/packet path, then production-verify exact gate | U01/U06; unblocks U02/U09 |
 | `CAP-U04` | Authority Evolution | OMP, authority policy, action-class ladder | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; historical safety layers reconciled | reusable historical execution/blast/rollback/outcome -> current suitability decision-context outcome -> owner authority decision | exact current-class outcome and class approval; future `ENGINEERING_AUTHORITY`, not current | finish U01 once; consume its outcome/learning; do not repeat historical proof ladder | U01/U07; unblocks U09 |
@@ -300,7 +311,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `U01` Controlled Run WIP; `cpsgen_V7_CAP_U01_OUTCOME_V3_678CF77D081C`; `CAP_U01_ROLLBACK_SUCCESS_ROUTE_INTEGRITY_STOP_V3` | protected active root; binding v2 and bounded policy certified; no packet open | `CONTINUE_OMP` | bounded delegated one-user transaction | `RUNTIME_ROUTE_INTEGRITY_FAILURE` | fresh Candidate -> fresh packet -> policy admission -> final live revalidation -> one transaction or legal no-action -> verification/rollback/final OPEN -> outcome/learning/maturity/promotion |
+| `1` | `U01` Controlled Run WIP; `cpsgen_V7_ROUTE_REPAIR_AUTH_BOUNDARY_V1_A7086B0D3E7B`; `ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1` | protected active root; binding v2 and bounded policy certified; no packet open | `APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR` | exact two-user serial route-integrity repair pending one-time Operational Authority | `OPERATIONAL_AUTHORITY` | authority decision -> fresh repair identities -> serial two-user repair or STOP_SAFE -> global verification/rollback/final OPEN -> outcome/learning/maturity/promotion |
 | `4` | `U01` | after delegated policy admission and all live gates | one governed action | guarded Runtime | `STOP_SAFE` | apply/no-apply -> verification |
 | `5` | `U01/U05` | terminal safety | verification/rollback/mandatory final `OPEN` | guarded verification | `STOP_SAFE` | terminal result -> outcome closure |
 | `6` | `U07/U08/U22` | consumes real terminal result | outcome, learning and maturity closure | no-mutation learning | `REAL_WORLD_LIMIT` if no outcome | learning/maturity -> CPS/OMP |
@@ -322,7 +333,7 @@ Independent read-only work may run in parallel only when OMP proves it cannot to
 | --- | --- |
 | `APPROVED_PACKET_INVALIDATED_BY_SOURCE_DRIFT` | Historical U01 stop: the old approval remains terminally invalid and cannot be reused. |
 | `REAL_WORLD_LIMIT_OR_EXCESSIVE_DECISION_CHURN` | Historical U01 stop; closed by owner-backed semantic binding and production stability certification. |
-| `OPERATIONAL_AUTHORITY` | Outside-policy fallback only; not the current U01 stop and never required for Candidate/packet/hash approval inside `dap_default_tier1_readonly`. |
+| `OPERATIONAL_AUTHORITY` | Current U01 program terminal only for the exact two-user serial route-integrity repair outside `dap_default_tier1_readonly`; never required for Candidate/packet/hash approval inside the approved one-user policy. |
 | `ENGINEERING_AUTHORITY` | Future U04 only if actual authority expansion is proposed after evidence. |
 | `REAL_WORLD_LIMIT` | Not the current U01 stop after lifecycle closure; remains valid for U06/U07/U18-U22 only when required real candidates/outcomes genuinely do not exist. |
 | `STOP_SAFE` | Any failed/unknown live Runtime, verification, rollback, freshness, identity or safety gate. |
@@ -336,7 +347,7 @@ Independent read-only work may run in parallel only when OMP proves it cannot to
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Real bounded transaction reached `ROLLBACK_SUCCESS`; final OPEN and learning closure passed; successful verified move remains absent because global route integrity failed | CPS/OMP current state | current stop is `RUNTIME_ROUTE_INTEGRITY_FAILURE`; next `Continue OMP` must prepare existing-owner repair and stop before unauthorized mutation |
+| `CAP-CON-06` | Controlled Run responsibility | Real bounded transaction reached `ROLLBACK_SUCCESS`; final OPEN and learning closure passed; fresh route evidence proves two disabled-egress assignments cannot be repaired as independently verified one-user transactions | CPS/OMP current state | current program terminal is `OPERATIONAL_AUTHORITY`; exact one-time two-user serial repair is outside active policy and no mutation is authorized |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

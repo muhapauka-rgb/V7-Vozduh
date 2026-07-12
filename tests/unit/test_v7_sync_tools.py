@@ -50,7 +50,7 @@ class V7SyncToolsTest(unittest.TestCase):
     def test_cps_consistency_rejects_stop_generation_and_stale_surface_divergence(self):
         cps = (ROOT / "docs" / "programs" / "V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
         stop_drift = cps.replace(
-            "| `current_primary_stop` | `RUNTIME_ROUTE_INTEGRITY_FAILURE` |",
+            "| `current_primary_stop` | `OPERATIONAL_AUTHORITY` |",
             "| `current_primary_stop` | `STOP_SAFE` |",
             1,
         )
@@ -58,7 +58,7 @@ class V7SyncToolsTest(unittest.TestCase):
         self.assertIn("cps_current_stop_divergence", result["errors"])
 
         generation_drift = cps.replace(
-            "| `current_state_generation` | `cpsgen_V7_CAP_U01_OUTCOME_V3_678CF77D081C` |",
+            "| `current_state_generation` | `cpsgen_V7_ROUTE_REPAIR_AUTH_BOUNDARY_V1_A7086B0D3E7B` |",
             "| `current_state_generation` | `stale_generation` |",
             1,
         )
@@ -66,7 +66,7 @@ class V7SyncToolsTest(unittest.TestCase):
         self.assertIn("cps_generation_divergence", result["errors"])
 
         stale_surface = cps.replace(
-            "`CONTINUE_OMP_BOUNDED_POLICY; fresh Candidate and packet only; one serial transaction or STOP_SAFE`",
+            "`NO_OUTSIDE_ACTIVE_POLICY; exact two-user repair requires one-time Operational Authority`",
             "`READ_ONLY_BINDING_DIAGNOSIS_ONLY`",
             1,
         )

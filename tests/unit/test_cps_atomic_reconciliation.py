@@ -33,7 +33,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertNotEqual(self.validate(drift)["final_verdict"], "PASS")
 
     def test_02_operational_authority_with_stop_safe_projection_fails(self):
-        drift = self.cps.replace("| `current_primary_stop` | `NONE_OR_CURRENT_REAL_STOP` |", "| `current_primary_stop` | `STOP_SAFE` |", 1)
+        drift = self.cps.replace("| `current_primary_stop` | `SOURCE_SNAPSHOT_BINDING_MISMATCH` |", "| `current_primary_stop` | `STOP_SAFE` |", 1)
         self.assertIn("cps_current_stop_divergence", self.validate(drift)["errors"])
 
     def test_03_operational_authority_with_authority_required_no_fails(self):
@@ -60,7 +60,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertIn("MISSION_ROLE_AMBIGUITY_STOP_SAFE", self.validate(drift)["errors"])
 
     def test_07_registry_stop_differs_from_section_zero_fails(self):
-        marker = "| `CURRENT_STOP_CONDITION` | `NONE_OR_CURRENT_REAL_STOP` |"
+        marker = "| `CURRENT_STOP_CONDITION` | `SOURCE_SNAPSHOT_BINDING_MISMATCH` |"
         first = self.cps.find(marker)
         second = self.cps.find(marker, first + 1)
         drift = self.cps[:second] + self.cps[second:].replace(marker, "| `CURRENT_STOP_CONDITION` | `STOP_SAFE` |", 1)
@@ -68,7 +68,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
 
     def test_08_active_wip_next_action_differs_from_cap_u01_fails(self):
         drift = self.cps.replace(
-            "| `smallest_existing_next_action` | `Continue OMP`; no Candidate/packet/hash approval inside policy; never reuse old identities |",
+            "| `smallest_existing_next_action` | `Continue OMP`; generate all identities fresh; no Candidate/packet/hash approval inside policy |",
             "| `smallest_existing_next_action` | diagnose binding owner |",
             1,
         )
@@ -76,7 +76,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
 
     def test_09_sequence_position_one_stop_differs_fails(self):
         row = next(line for line in self.cps.splitlines() if line.startswith("| `1` | `U01` Controlled Run WIP"))
-        drift = self.cps.replace(row, row.replace("`NONE_OR_CURRENT_REAL_STOP`", "`STOP_SAFE`"), 1)
+        drift = self.cps.replace(row, row.replace("`SOURCE_SNAPSHOT_BINDING_MISMATCH`", "`STOP_SAFE`"), 1)
         self.assertIn("cps_sequence_position_1_divergence", self.validate(drift)["errors"])
 
     def test_10_explicit_historical_stale_values_pass(self):
@@ -85,7 +85,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
 
     def test_11_historical_binding_drift_does_not_affect_live_scheduling(self):
         self.assertIn("SUPERSEDED/HISTORICAL: SOURCE_SNAPSHOT_BUNDLE_DRIFT", self.cps)
-        self.assertEqual(self.validate(self.cps)["current_stop"], "NONE_OR_CURRENT_REAL_STOP")
+        self.assertEqual(self.validate(self.cps)["current_stop"], "SOURCE_SNAPSHOT_BINDING_MISMATCH")
 
     def test_12_single_normalized_state_generates_all_live_projections(self):
         rendered = self.lib.build_normalized_cps_document(self.cps)
@@ -112,7 +112,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
             before = path.read_text(encoding="utf-8")
             def corrupt(written):
                 text = written.read_text(encoding="utf-8")
-                written.write_text(text.replace("| `current_primary_stop` | `NONE_OR_CURRENT_REAL_STOP` |", "| `current_primary_stop` | `STOP_SAFE` |", 1), encoding="utf-8")
+                written.write_text(text.replace("| `current_primary_stop` | `SOURCE_SNAPSHOT_BINDING_MISMATCH` |", "| `current_primary_stop` | `STOP_SAFE` |", 1), encoding="utf-8")
             result = self.lib.atomic_reconcile_cps(path, post_write_hook=corrupt)
             self.assertEqual(result["status"], "CPS_POST_WRITE_REREAD_FAILED_ROLLED_BACK")
             self.assertTrue(result["previous_state_preserved"])

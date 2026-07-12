@@ -165,12 +165,14 @@ class BdpDevelopmentImpulseHandoffTest(unittest.TestCase):
         self.assertEqual(result["final_verdict"], "PASS")
         self.assertEqual(result["handoff_status"], "NO_ACTION_REQUIRED")
         self.assertEqual(result["candidate_count"], 0)
+        self.assertEqual(result["real_world_limit_intents_preserved"], 21)
 
     def test_self_continuation_consumes_current_bdp_no_action_result(self):
         result = self.lib.omp_self_continuation_consistency(CPS.read_text(encoding="utf-8"))
         self.assertEqual(result["final_verdict"], "PASS")
         self.assertEqual(result["bdp_development_impulse_status"], "NO_ACTION_REQUIRED")
         self.assertEqual(result["bdp_admission_decision"], "MISSION_NOT_APPLICABLE")
+        self.assertEqual(result["bdp_real_world_limit_intents_preserved"], 21)
 
 
 if __name__ == "__main__":

@@ -1846,6 +1846,11 @@ def bdp_development_impulse_from_cps(
         "## 0. Authoritative Live Current State",
         "## Authoritative Unfinished Capability Closure Registry",
     ))
+    registry = _markdown_field_table(_markdown_section(
+        cps_text,
+        "### Registry Metadata And Truth Lifecycle",
+        "### Active Protected Work In Progress",
+    ))
     dependency = capability_dependency_consistency(cps_text)
     if dependency["final_verdict"] != "PASS":
         return {
@@ -1863,7 +1868,7 @@ def bdp_development_impulse_from_cps(
             "final_verdict": "STOP_SAFE",
             "errors": list(dependency["errors"]),
         }
-    open_intents = live.get("OPEN_ENGINEERING_INTENTS", "0").strip("`")
+    open_intents = registry.get("OPEN_ENGINEERING_INTENTS", "0").strip("`")
     try:
         real_world_limit_intents = int(open_intents)
     except ValueError:
@@ -1945,6 +1950,7 @@ def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
         "handoff_status": "NOT_EVALUATED_NO_CAPABILITY_GRAPH",
         "candidate_count": 0,
         "admission_decision": "NONE",
+        "real_world_limit_intents_preserved": 0,
         "final_verdict": "PASS",
     }
     if "### Capability Dependency Graph And Execution Frontier" in cps_text:
@@ -1969,6 +1975,7 @@ def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
         "bdp_development_impulse_status": development_impulse["handoff_status"],
         "bdp_candidate_count": development_impulse["candidate_count"],
         "bdp_admission_decision": development_impulse["admission_decision"],
+        "bdp_real_world_limit_intents_preserved": development_impulse.get("real_world_limit_intents_preserved", 0),
         "errors": unique,
     }
 
@@ -2340,6 +2347,7 @@ def cps_live_state_consistency(
         "bdp_development_impulse_status": self_continuation["bdp_development_impulse_status"],
         "bdp_candidate_count": self_continuation["bdp_candidate_count"],
         "bdp_admission_decision": self_continuation["bdp_admission_decision"],
+        "bdp_real_world_limit_intents_preserved": self_continuation["bdp_real_world_limit_intents_preserved"],
         **{key: value for key, value in dependency_consistency.items() if key not in {"schema", "final_verdict", "errors"}},
         "registry_sequence_consistency": "PASS" if not any("sequence" in item or "cap_u01" in item or "active_capability" in item or "next_action" in item for item in unique_errors) else "FAIL",
         "mission_identity_consistency": mission_identity_consistency,

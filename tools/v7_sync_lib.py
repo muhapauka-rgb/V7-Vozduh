@@ -1531,6 +1531,354 @@ def heartbeat_boundary_dry_run(
     }
 
 
+BDP_CANDIDATE_REQUIRED_FIELDS = (
+    "primary_class",
+    "secondary_classes",
+    "execution_depth",
+    "engineering_intent",
+    "current_reality",
+    "expected_reality",
+    "engineering_chain",
+    "engineering_chain_segment",
+    "behaviour_instance",
+    "behaviour",
+    "automation_logic",
+    "automation_break",
+    "existing_rule",
+    "current_outcome",
+    "expected_outcome",
+    "intent_closure_state",
+    "owner",
+    "producer",
+    "consumer",
+    "evidence",
+    "implementation_scope",
+    "runtime_impact",
+    "production_impact",
+    "dependencies",
+    "verification",
+    "verification_context",
+    "rollback",
+    "authority",
+    "authority_context",
+    "terminal_path",
+    "implementation_readiness",
+    "omp_consumer",
+    "codex_readiness",
+)
+
+
+def _bdp_normalized_value(value: Any) -> Any:
+    if isinstance(value, str):
+        return " ".join(value.split()).casefold()
+    if isinstance(value, (list, tuple, set)):
+        return sorted(_bdp_normalized_value(item) for item in value)
+    if isinstance(value, dict):
+        return {
+            str(key): _bdp_normalized_value(value[key])
+            for key in sorted(value)
+        }
+    return value
+
+
+def _bdp_candidate_meaning(gap: dict[str, Any]) -> dict[str, Any]:
+    identity_fields = (
+        "primary_class",
+        "execution_depth",
+        "engineering_intent",
+        "current_reality",
+        "expected_reality",
+        "engineering_chain",
+        "engineering_chain_segment",
+        "behaviour_instance",
+        "automation_break",
+        "owner",
+        "consumer",
+        "implementation_scope",
+    )
+    return {
+        "identity_schema": "v7.bdp-candidate-meaning.v1",
+        **{
+            field: _bdp_normalized_value(gap[field])
+            for field in identity_fields
+        },
+    }
+
+
+def omp_candidate_admission_decision(candidate: dict[str, Any]) -> dict[str, Any]:
+    """Consume one BDP Candidate through the existing bounded OMP admission gates."""
+    missing = [
+        field
+        for field in ("candidate_instance_id", "identity_sha256", *BDP_CANDIDATE_REQUIRED_FIELDS)
+        if field not in candidate or candidate[field] is None or candidate[field] == ""
+    ]
+    errors: list[str] = []
+    if missing:
+        errors.extend(f"candidate_field_missing:{field}" for field in missing)
+
+    identity = str(candidate.get("identity_sha256") or "")
+    candidate_id = str(candidate.get("candidate_instance_id") or "")
+    if not re.fullmatch(r"[0-9a-f]{64}", identity):
+        errors.append("candidate_identity_hash_invalid")
+    if candidate_id != f"BDP-ICI-{identity[:24].upper()}":
+        errors.append("candidate_identity_id_mismatch")
+
+    if candidate.get("implementation_readiness") != "IMPLEMENTATION_READY":
+        errors.append("candidate_implementation_not_ready")
+    if candidate.get("runtime_impact") != "NONE":
+        errors.append("candidate_runtime_boundary_not_none")
+    if candidate.get("production_impact") != "NONE":
+        errors.append("candidate_production_boundary_not_none")
+    if candidate.get("dependencies") not in {"NONE", "COMPLETED", "EXISTING_CONTRACTS_READY"}:
+        errors.append("candidate_dependency_not_ready")
+    if candidate.get("intent_closure_state") != "AUTOMATION_BREAK":
+        errors.append("candidate_intent_closure_state_invalid")
+    if candidate.get("omp_consumer") != "OMP_CANDIDATE_ADMISSION":
+        errors.append("candidate_omp_consumer_invalid")
+    for field in (
+        "new_owner_required",
+        "new_backlog_required",
+        "new_runtime_required",
+        "new_architecture_required",
+        "authority_expansion_required",
+    ):
+        if candidate.get(field) is not False:
+            errors.append(f"candidate_boundary_invalid:{field}")
+
+    unique = sorted(set(errors))
+    accepted = not unique
+    return {
+        "schema": "v7-omp-candidate-admission-decision/v1",
+        "identity_result": "IDENTITY_VALID" if not any("identity" in item for item in unique) else "IDENTITY_INVALID",
+        "eligibility_result": "ELIGIBLE" if accepted else "REJECT",
+        "admission_decision": "MISSION_ACCEPTED" if accepted else "MISSION_REJECTED",
+        "mission_created": accepted,
+        "mission_state": "PREPARED_NOT_ACTIVE" if accepted else "NONE",
+        "mission_id": f"V7_OMP_BDP_{identity[:24].upper()}_V1" if accepted else "NONE",
+        "mission_executed": False,
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "authority_expansion": False,
+        "final_verdict": "PASS" if accepted else "STOP_SAFE",
+        "errors": unique,
+    }
+
+
+def bdp_development_impulse_handoff(
+    engineering_state: dict[str, Any],
+    *,
+    existing_candidates: Optional[Iterable[Any]] = None,
+) -> dict[str, Any]:
+    """Route one bounded owner-backed BDP gap to OMP, or return legal no-action."""
+    errors: list[str] = []
+    generation = str(engineering_state.get("state_generation") or "")
+    decision = str(engineering_state.get("discovery_economy_decision") or "")
+    gaps = engineering_state.get("engineering_gaps")
+    try:
+        real_world_limit_intents = int(engineering_state.get("real_world_limit_intents") or 0)
+        if real_world_limit_intents < 0:
+            raise ValueError
+    except (TypeError, ValueError):
+        real_world_limit_intents = 0
+        errors.append("bdp_real_world_limit_intents_invalid")
+    if not re.fullmatch(r"[A-Za-z0-9_.:-]{8,160}", generation):
+        errors.append("bdp_state_generation_invalid")
+    if decision != "DISCOVERY_NOT_REQUIRED_REUSE_EVIDENCE":
+        errors.append("bdp_discovery_economy_not_ready_for_reuse")
+    if not isinstance(gaps, list):
+        errors.append("bdp_engineering_gaps_invalid")
+
+    if errors:
+        return {
+            "schema": "v7-omp-bdp-development-impulse-handoff/v1",
+            "handoff_status": "STOP_SAFE",
+            "candidate_production_status": "NO_CANDIDATE",
+            "candidate_count": 0,
+            "candidate": None,
+            "admission_decision": "NONE",
+            "mission_created": False,
+            "mission_executed": False,
+            "runtime_impact": "NONE",
+            "production_impact": "NONE",
+            "authority_expansion": False,
+            "final_verdict": "STOP_SAFE",
+            "errors": sorted(set(errors)),
+        }
+
+    if not gaps:
+        return {
+            "schema": "v7-omp-bdp-development-impulse-handoff/v1",
+            "handoff_status": "NO_ACTION_REQUIRED",
+            "candidate_production_status": "NO_ACTION",
+            "candidate_count": 0,
+            "candidate": None,
+            "admission_decision": "MISSION_NOT_APPLICABLE",
+            "terminal_consumer": "OMP_NEXT_ACTION",
+            "mission_created": False,
+            "mission_executed": False,
+            "runtime_impact": "NONE",
+            "production_impact": "NONE",
+            "authority_expansion": False,
+            "real_world_limit_intents_preserved": real_world_limit_intents,
+            "final_verdict": "PASS",
+            "errors": [],
+        }
+
+    if len(gaps) != 1 or not isinstance(gaps[0], dict):
+        return {
+            "schema": "v7-omp-bdp-development-impulse-handoff/v1",
+            "handoff_status": "STOP_SAFE",
+            "candidate_production_status": "AMBIGUOUS_BOUNDED_SCOPE",
+            "candidate_count": 0,
+            "candidate": None,
+            "admission_decision": "NONE",
+            "mission_created": False,
+            "mission_executed": False,
+            "runtime_impact": "NONE",
+            "production_impact": "NONE",
+            "authority_expansion": False,
+            "final_verdict": "STOP_SAFE",
+            "errors": ["bdp_bounded_scope_requires_exactly_one_gap"],
+        }
+
+    gap = gaps[0]
+    missing = [
+        field
+        for field in BDP_CANDIDATE_REQUIRED_FIELDS
+        if field not in gap or gap[field] is None or gap[field] == ""
+    ]
+    for field in missing:
+        errors.append(f"bdp_gap_field_missing:{field}")
+    if gap.get("new_owner_required") is not False:
+        errors.append("bdp_gap_requires_new_owner")
+    if gap.get("new_architecture_required") is not False:
+        errors.append("bdp_gap_requires_new_architecture")
+    if errors:
+        return {
+            "schema": "v7-omp-bdp-development-impulse-handoff/v1",
+            "handoff_status": "STOP_SAFE",
+            "candidate_production_status": "INVALID_GAP",
+            "candidate_count": 0,
+            "candidate": None,
+            "admission_decision": "NONE",
+            "mission_created": False,
+            "mission_executed": False,
+            "runtime_impact": "NONE",
+            "production_impact": "NONE",
+            "authority_expansion": False,
+            "final_verdict": "STOP_SAFE",
+            "errors": sorted(set(errors)),
+        }
+
+    meaning = _bdp_candidate_meaning(gap)
+    encoded = json.dumps(meaning, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    identity = hashlib.sha256(encoded).hexdigest()
+    candidate_id = f"BDP-ICI-{identity[:24].upper()}"
+    candidate = {
+        "candidate_instance_id": candidate_id,
+        "identity_sha256": identity,
+        "meaning_fingerprint": identity,
+        "identity_schema": meaning["identity_schema"],
+        "state_generation": generation,
+        **gap,
+        "new_owner_required": False,
+        "new_backlog_required": False,
+        "new_runtime_required": False,
+        "new_architecture_required": False,
+        "authority_expansion_required": False,
+    }
+
+    existing_ids: set[str] = set()
+    existing_meanings: set[str] = set()
+    for item in existing_candidates or ():
+        if isinstance(item, str):
+            existing_ids.add(item)
+        elif isinstance(item, dict):
+            existing_ids.add(str(item.get("candidate_instance_id") or ""))
+            existing_meanings.add(str(item.get("meaning_fingerprint") or ""))
+    if candidate_id in existing_ids or identity in existing_meanings:
+        return {
+            "schema": "v7-omp-bdp-development-impulse-handoff/v1",
+            "handoff_status": "DUPLICATE_SUPPRESSED",
+            "candidate_production_status": "DUPLICATE_EXISTING_CANDIDATE",
+            "candidate_count": 0,
+            "candidate": None,
+            "existing_candidate_id": candidate_id,
+            "admission_decision": "MISSION_NOT_APPLICABLE",
+            "terminal_consumer": "EXISTING_CANDIDATE_LIFECYCLE",
+            "mission_created": False,
+            "mission_executed": False,
+            "runtime_impact": "NONE",
+            "production_impact": "NONE",
+            "authority_expansion": False,
+            "final_verdict": "PASS",
+            "errors": [],
+        }
+
+    admission = omp_candidate_admission_decision(candidate)
+    return {
+        "schema": "v7-omp-bdp-development-impulse-handoff/v1",
+        "handoff_status": "CANDIDATE_CONSUMED_BY_OMP" if admission["final_verdict"] == "PASS" else "STOP_SAFE",
+        "candidate_production_status": "ONE_DETERMINISTIC_CANDIDATE",
+        "candidate_count": 1,
+        "candidate": candidate,
+        "admission": admission,
+        "admission_decision": admission["admission_decision"],
+        "mission_created": admission["mission_created"],
+        "mission_executed": False,
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "authority_expansion": False,
+        "final_verdict": admission["final_verdict"],
+        "errors": admission["errors"],
+    }
+
+
+def bdp_development_impulse_from_cps(
+    cps_text: str,
+    *,
+    engineering_gaps: Optional[list[dict[str, Any]]] = None,
+    existing_candidates: Optional[Iterable[Any]] = None,
+) -> dict[str, Any]:
+    """Evaluate the BDP handoff from fresh CPS without mutating the CPS owner."""
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    dependency = capability_dependency_consistency(cps_text)
+    if dependency["final_verdict"] != "PASS":
+        return {
+            "schema": "v7-omp-bdp-development-impulse-handoff/v1",
+            "handoff_status": "STOP_SAFE",
+            "candidate_production_status": "INVALID_CPS_DEPENDENCY_STATE",
+            "candidate_count": 0,
+            "candidate": None,
+            "admission_decision": "NONE",
+            "mission_created": False,
+            "mission_executed": False,
+            "runtime_impact": "NONE",
+            "production_impact": "NONE",
+            "authority_expansion": False,
+            "final_verdict": "STOP_SAFE",
+            "errors": list(dependency["errors"]),
+        }
+    open_intents = live.get("OPEN_ENGINEERING_INTENTS", "0").strip("`")
+    try:
+        real_world_limit_intents = int(open_intents)
+    except ValueError:
+        real_world_limit_intents = 0
+    return bdp_development_impulse_handoff(
+        {
+            "state_generation": live.get("CURRENT_STATE_GENERATION", "").strip("`"),
+            "discovery_economy_decision": "DISCOVERY_NOT_REQUIRED_REUSE_EVIDENCE",
+            "engineering_gaps": list(engineering_gaps or ()),
+            "real_world_limit_intents": real_world_limit_intents,
+        },
+        existing_candidates=existing_candidates,
+    )
+
+
 def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
     """Fail closed when a transaction terminal is returned as a program terminal."""
     live = _markdown_field_table(_markdown_section(
@@ -1593,6 +1941,16 @@ def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
         errors.append("omp_continuation_iteration_invalid")
     if not re.fullmatch(r"[0-9a-f]{64}", values["NO_PROGRESS_FINGERPRINT"]):
         errors.append("omp_no_progress_fingerprint_invalid")
+    development_impulse: dict[str, Any] = {
+        "handoff_status": "NOT_EVALUATED_NO_CAPABILITY_GRAPH",
+        "candidate_count": 0,
+        "admission_decision": "NONE",
+        "final_verdict": "PASS",
+    }
+    if "### Capability Dependency Graph And Execution Frontier" in cps_text:
+        development_impulse = bdp_development_impulse_from_cps(cps_text)
+        if development_impulse["final_verdict"] != "PASS":
+            errors.append("omp_bdp_development_impulse_stop_safe")
     unique = sorted(set(errors))
     return {
         "schema": "v7-omp-self-continuation-consistency/v1",
@@ -1608,6 +1966,9 @@ def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
         "continuation_iteration": values["CONTINUATION_ITERATION"],
         "continuation_stop_reason": values["CONTINUATION_STOP_REASON"],
         "no_progress_fingerprint": values["NO_PROGRESS_FINGERPRINT"],
+        "bdp_development_impulse_status": development_impulse["handoff_status"],
+        "bdp_candidate_count": development_impulse["candidate_count"],
+        "bdp_admission_decision": development_impulse["admission_decision"],
         "errors": unique,
     }
 
@@ -1976,6 +2337,9 @@ def cps_live_state_consistency(
         "deterministic_sequence_consistency": delegated_live_state["deterministic_sequence_consistency"],
         "omp_self_continuation_consistency": self_continuation["final_verdict"],
         "premature_operator_return_validator": self_continuation["premature_operator_return_validator"],
+        "bdp_development_impulse_status": self_continuation["bdp_development_impulse_status"],
+        "bdp_candidate_count": self_continuation["bdp_candidate_count"],
+        "bdp_admission_decision": self_continuation["bdp_admission_decision"],
         **{key: value for key, value in dependency_consistency.items() if key not in {"schema", "final_verdict", "errors"}},
         "registry_sequence_consistency": "PASS" if not any("sequence" in item or "cap_u01" in item or "active_capability" in item or "next_action" in item for item in unique_errors) else "FAIL",
         "mission_identity_consistency": mission_identity_consistency,

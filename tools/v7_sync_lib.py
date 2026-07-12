@@ -1298,6 +1298,239 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
     }
 
 
+def heartbeat_boundary_dry_run(
+    cps_text: str,
+    contract: dict[str, Any],
+    *,
+    expected_automation_id: str,
+    expected_target_thread_id: str,
+    expected_project_id: str,
+    seen_event_ids: Optional[Iterable[str]] = None,
+    seen_wakeup_run_ids: Optional[Iterable[str]] = None,
+) -> dict[str, Any]:
+    """Evaluate a synthetic Codex heartbeat without mutation or Mission admission."""
+    required_fields = (
+        "AUTOMATION_ID",
+        "TARGET_THREAD_ID",
+        "PROJECT_ID",
+        "WAKEUP_RUN_ID",
+        "EVENT_ID",
+        "EVENT_OWNER",
+        "EVENT_SOURCE",
+        "EVENT_GENERATION",
+        "EVENT_TIME",
+        "FRESHNESS_RULE",
+        "DEPENDENCY_FINGERPRINT_BEFORE",
+        "DEPENDENCY_FINGERPRINT_AFTER",
+        "DEPENDENCY_CHANGED",
+        "TARGET_CAPABILITY",
+        "CURRENT_CPS_GENERATION",
+        "MISSION_SCOPE",
+        "AUTHORIZATION_SCOPE",
+        "REPLAY_PROTECTION",
+        "CONCURRENCY_CONTROL",
+        "ACTIVATION_RESULT",
+        "EVIDENCE_FRESHNESS_RESULT",
+        "EVIDENCE_SUFFICIENCY_RESULT",
+        "NO_RUNTIME_AUTHORITY",
+        "NO_USER_MOVEMENT_AUTHORITY",
+        "NO_PACKET_AUTHORITY",
+        "NO_CANDIDATE_AUTHORITY",
+    )
+    allowed_results = {
+        "NO_CHANGE_DEPENDENCY_UNCHANGED",
+        "NO_CHANGE_NO_WAITING_CAPABILITY",
+        "NO_CHANGE_EVIDENCE_INSUFFICIENT",
+        "NO_CHANGE_DUPLICATE_WAKEUP",
+        "NO_CHANGE_ALREADY_ACTIVE",
+        "STOP_SAFE_IDENTITY_FAILURE",
+        "STOP_SAFE_REPLAY_FAILURE",
+        "READY_FRONTIER_AVAILABLE_DRY_RUN_ONLY",
+    }
+    replay_model = (
+        "MISSION_IDENTITY+CPS_GENERATION+EVENT_ID+WAKEUP_RUN_ID+DEPENDENCY_FINGERPRINT"
+    )
+    concurrency_model = (
+        "CURRENT_EXECUTION_MISSION_ID+CURRENT_EXECUTION_MISSION_STATE+CURRENT_STATE_GENERATION"
+    )
+
+    errors: list[str] = []
+    contract_errors: list[str] = []
+    identity_errors: list[str] = []
+    replay_errors: list[str] = []
+    authority_errors: list[str] = []
+
+    for field in required_fields:
+        if field not in contract or contract[field] in {None, ""}:
+            contract_errors.append(f"heartbeat_field_missing:{field}")
+
+    event_id = str(contract.get("EVENT_ID") or "")
+    wakeup_run_id = str(contract.get("WAKEUP_RUN_ID") or "")
+    before = str(contract.get("DEPENDENCY_FINGERPRINT_BEFORE") or "")
+    after = str(contract.get("DEPENDENCY_FINGERPRINT_AFTER") or "")
+    if not re.fullmatch(r"[0-9a-f]{64}", event_id):
+        contract_errors.append("heartbeat_event_id_invalid")
+    if not re.fullmatch(r"[A-Za-z0-9_.:-]{8,160}", wakeup_run_id):
+        contract_errors.append("heartbeat_wakeup_run_id_invalid")
+    if not re.fullmatch(r"[0-9a-f]{64}", before):
+        contract_errors.append("heartbeat_dependency_fingerprint_before_invalid")
+    if not re.fullmatch(r"[0-9a-f]{64}", after):
+        contract_errors.append("heartbeat_dependency_fingerprint_after_invalid")
+    try:
+        _parse_iso_timestamp(str(contract.get("EVENT_TIME") or ""))
+    except (TypeError, ValueError):
+        contract_errors.append("heartbeat_event_time_invalid")
+    if contract.get("ACTIVATION_RESULT") != "PENDING_DRY_RUN":
+        contract_errors.append("heartbeat_activation_result_not_pending")
+    if contract.get("MISSION_SCOPE") != "HEARTBEAT_REENTRY_DRY_RUN_ONLY":
+        contract_errors.append("heartbeat_mission_scope_invalid")
+    if contract.get("REPLAY_PROTECTION") != replay_model:
+        contract_errors.append("heartbeat_replay_model_invalid")
+    if contract.get("CONCURRENCY_CONTROL") != concurrency_model:
+        contract_errors.append("heartbeat_concurrency_model_invalid")
+    if contract.get("DEPENDENCY_CHANGED") is not (before != after):
+        replay_errors.append("heartbeat_dependency_change_claim_invalid")
+
+    if contract.get("AUTOMATION_ID") != expected_automation_id:
+        identity_errors.append("heartbeat_automation_identity_mismatch")
+    if contract.get("TARGET_THREAD_ID") != expected_target_thread_id:
+        identity_errors.append("heartbeat_thread_identity_mismatch")
+    if contract.get("PROJECT_ID") != expected_project_id:
+        identity_errors.append("heartbeat_project_identity_mismatch")
+    if contract.get("EVENT_OWNER") != "CODEX_AUTOMATION_PLATFORM":
+        identity_errors.append("heartbeat_event_owner_invalid")
+    event_source = str(contract.get("EVENT_SOURCE") or "")
+    if not event_source or any(token in event_source.lower() for token in ("report", "chat")):
+        identity_errors.append("heartbeat_event_source_not_owner_backed")
+
+    for field in (
+        "NO_RUNTIME_AUTHORITY",
+        "NO_USER_MOVEMENT_AUTHORITY",
+        "NO_PACKET_AUTHORITY",
+        "NO_CANDIDATE_AUTHORITY",
+    ):
+        if contract.get(field) is not True:
+            authority_errors.append(f"heartbeat_authority_prohibition_invalid:{field}")
+    if contract.get("AUTHORIZATION_SCOPE") != "START_ENGINEERING_EXECUTION_CONTEXT_ONLY":
+        authority_errors.append("heartbeat_authorization_scope_expanded")
+
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    current_generation = live.get("CURRENT_STATE_GENERATION", "").strip("`")
+    active_mission_id = live.get("CURRENT_EXECUTION_MISSION_ID", "").strip("`")
+    active_mission_state = live.get("CURRENT_EXECUTION_MISSION_STATE", "").strip("`")
+    if contract.get("CURRENT_CPS_GENERATION") != current_generation:
+        replay_errors.append("heartbeat_cps_generation_stale")
+
+    seen_events = set(seen_event_ids or ())
+    seen_runs = set(seen_wakeup_run_ids or ())
+    duplicate = event_id in seen_events or wakeup_run_id in seen_runs
+
+    dependency = capability_dependency_consistency(cps_text)
+    graph_errors = list(dependency.get("errors") or [])
+    graph = _markdown_section(
+        cps_text,
+        "### Capability Dependency Graph And Execution Frontier",
+        "### Owner Revalidation Requirements And Contradictions",
+    )
+    rows: dict[str, dict[str, Any]] = {}
+    for line in graph.splitlines():
+        if not re.match(r"\| `CAP-U\d+` \|", line):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) != 12:
+            continue
+        capability_id = cells[0].strip("`")
+        rows[capability_id] = {
+            "state": cells[1].strip("`"),
+            "dependencies": set(re.findall(r"CAP-U\d+", cells[4])),
+        }
+
+    target = str(contract.get("TARGET_CAPABILITY") or "")
+    target_row = rows.get(target)
+    waiting = list(dependency.get("waiting_capabilities") or [])
+    ready_before = list(dependency.get("ready_capabilities") or [])
+    result = "NO_CHANGE_DEPENDENCY_UNCHANGED"
+    ready_after = list(ready_before)
+
+    if contract_errors or identity_errors or authority_errors:
+        result = "STOP_SAFE_IDENTITY_FAILURE"
+    elif duplicate:
+        result = "NO_CHANGE_DUPLICATE_WAKEUP"
+    elif replay_errors or graph_errors:
+        result = "STOP_SAFE_REPLAY_FAILURE"
+    elif active_mission_id not in {"", "NONE"} or active_mission_state not in {"", "NONE"}:
+        result = "NO_CHANGE_ALREADY_ACTIVE"
+    elif not target_row or target_row["state"] != "WAITING_EXTERNAL_DEPENDENCY":
+        result = "NO_CHANGE_NO_WAITING_CAPABILITY"
+    elif before == after:
+        result = "NO_CHANGE_DEPENDENCY_UNCHANGED"
+    elif contract.get("EVIDENCE_FRESHNESS_RESULT") != "PASS":
+        result = "NO_CHANGE_EVIDENCE_INSUFFICIENT"
+    elif contract.get("EVIDENCE_SUFFICIENCY_RESULT") != "SUFFICIENT":
+        result = "NO_CHANGE_EVIDENCE_INSUFFICIENT"
+    else:
+        incomplete_dependencies = {
+            item
+            for item in target_row["dependencies"]
+            if rows.get(item, {}).get("state") != "COMPLETED"
+        }
+        if incomplete_dependencies:
+            result = "NO_CHANGE_EVIDENCE_INSUFFICIENT"
+        else:
+            result = "READY_FRONTIER_AVAILABLE_DRY_RUN_ONLY"
+            ready_after = sorted(set(ready_before) | {target})
+
+    errors.extend(contract_errors)
+    errors.extend(identity_errors)
+    errors.extend(replay_errors)
+    errors.extend(authority_errors)
+    errors.extend(graph_errors)
+    validators = {
+        "heartbeat_contract_consistency": "PASS" if not contract_errors else "FAIL",
+        "heartbeat_identity_consistency": "PASS" if not identity_errors else "FAIL",
+        "heartbeat_replay_protection": "PASS" if not replay_errors and not duplicate else "FAIL",
+        "heartbeat_concurrency_protection": (
+            "PASS"
+            if active_mission_id in {"", "NONE"} and active_mission_state in {"", "NONE"}
+            else "BLOCKED"
+        ),
+        "heartbeat_no_authority_expansion": "PASS" if not authority_errors else "FAIL",
+        "heartbeat_no_runtime_authority": (
+            "PASS" if contract.get("NO_RUNTIME_AUTHORITY") is True else "FAIL"
+        ),
+        "heartbeat_no_mutation": "PASS",
+        "heartbeat_result_consistency": "PASS" if result in allowed_results else "FAIL",
+    }
+    return {
+        "schema": "v7-omp-heartbeat-boundary-dry-run/v1",
+        "adapter_status": "DRY_RUN_ONLY",
+        "activation_result": result,
+        "automation_enabled": False,
+        "runtime_impact": "NONE",
+        "authority_impact": "NONE",
+        "user_movement": "NONE",
+        "packet_created": False,
+        "candidate_created": False,
+        "mission_created": False,
+        "mission_executed": False,
+        "cps_mutated": False,
+        "report_created": False,
+        "git_changed": False,
+        "ready_frontier_before": ready_before,
+        "ready_frontier_after": ready_after,
+        "waiting_capabilities_preserved": waiting,
+        "target_capability": target,
+        "current_cps_generation": current_generation,
+        "validators": validators,
+        "final_verdict": "PASS" if not result.startswith("STOP_SAFE") else "STOP_SAFE",
+        "errors": sorted(set(errors)),
+    }
+
+
 def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
     """Fail closed when a transaction terminal is returned as a program terminal."""
     live = _markdown_field_table(_markdown_section(

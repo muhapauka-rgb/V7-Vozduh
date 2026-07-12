@@ -1157,25 +1157,9 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertFalse(cycle["non_authority_stop_requires_fix"])
         self.assertEqual(cycle["final_verdict"], "AUTONOMOUS_DRY_RUN_CYCLE_REACHES_AUTHORITY_BOUNDARY")
         approval_prompt = cycle["approval_prompt"]
-        self.assertEqual(approval_prompt["status"], "APPROVAL_PROMPT_READY")
-        self.assertEqual(approval_prompt["packet_preview_id"], cycle["packet_preview"]["packet_id"])
-        self.assertEqual(approval_prompt["operation_id"], cycle["packet_preview"]["operation_id"])
-        self.assertEqual(approval_prompt["selected_move_hash"], cycle["packet_preview"]["selected_move_hash"])
-        self.assertEqual(approval_prompt["user"], "10.7.0.5")
-        self.assertEqual(approval_prompt["current_channel"], "vless")
-        self.assertEqual(approval_prompt["target_channel"], "awg0")
-        self.assertEqual(approval_prompt["rollback_target"], "vless")
-        self.assertEqual(
-            approval_prompt["rollback_manifest_id"],
-            cycle["packet_preview"]["rollback_manifest_preview"]["rollback_manifest_id"],
-        )
-        self.assertEqual(approval_prompt["authority_tier"], cycle["decision"]["authority_tier"])
-        self.assertEqual(approval_prompt["authority_status"], cycle["decision"]["authority_status"])
-        self.assertIn("execute this exact governed packet", approval_prompt["allowed_action"])
-        self.assertIn("move any other user", approval_prompt["forbidden_actions"])
-        self.assertIn(cycle["packet_preview"]["packet_id"], approval_prompt["approval_command_text"])
-        self.assertIn(cycle["packet_preview"]["operation_id"], approval_prompt["approval_command_text"])
-        self.assertIn(cycle["packet_preview"]["selected_move_hash"], approval_prompt["approval_command_text"])
+        self.assertEqual(approval_prompt["status"], "RETIRED_BY_BOUNDED_DELEGATED_POLICY")
+        self.assertEqual(approval_prompt["operator_normal_command"], "Continue OMP")
+        self.assertNotIn("approval_command_text", approval_prompt)
         self.assertFalse(approval_prompt["runtime_mutation_performed"])
         self.assertFalse(approval_prompt["restore_barrier_written_now"])
         self.assertFalse(approval_prompt["apply_executed"])
@@ -1203,9 +1187,11 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(action_class["current_action_class"], "single-user governed candidate failover")
         self.assertEqual(action_class["current_state"], "GOVERNED_ONLY")
         self.assertEqual(action_class["next_promotion_target"], "CERTIFIED_FOR_CLASS_APPROVAL")
-        self.assertEqual(action_class["runtime_must_stop_at"], "AUTHORITY_BOUNDARY")
-        self.assertFalse(action_class["runtime_can_execute_automatically"])
-        self.assertFalse(action_class["runtime_apply_allowed_now"])
+        self.assertEqual(action_class["runtime_must_stop_at"], "")
+        self.assertTrue(action_class["runtime_can_execute_automatically"])
+        self.assertTrue(action_class["runtime_apply_allowed_now"])
+        self.assertFalse(action_class["candidate_approval_required"])
+        self.assertFalse(action_class["packet_approval_required"])
         self.assertEqual(action_class["packet_to_action_class_mapping"]["packet_id"], cycle["packet_preview"]["packet_id"])
         self.assertEqual(action_class["packet_to_action_class_mapping"]["operation_id"], cycle["packet_preview"]["operation_id"])
         self.assertEqual(action_class["packet_to_action_class_mapping"]["selected_move_hash"], cycle["packet_preview"]["selected_move_hash"])
@@ -1275,7 +1261,7 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertFalse(lifecycle["rollback_executed"])
         self.assertFalse(lifecycle["learning_written_now"])
 
-    def test_governed_canary_changed_packet_emits_fresh_approval_prompt(self):
+    def test_governed_canary_changed_packet_keeps_approval_prompt_retired(self):
         first = pipeline.governed_canary_knowledge_gated_dry_run_cycle(
             decision_surface=self.governed_canary_surface(target="awg0", recommendation_hash="rec-canary-1"),
             max_users=1,
@@ -1289,14 +1275,12 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
 
         self.assertEqual(first["stop_reason"], "AUTHORITY_BOUNDARY")
         self.assertEqual(changed["stop_reason"], "AUTHORITY_BOUNDARY")
-        self.assertEqual(first["approval_prompt"]["status"], "APPROVAL_PROMPT_READY")
-        self.assertEqual(changed["approval_prompt"]["status"], "APPROVAL_PROMPT_READY")
+        self.assertEqual(first["approval_prompt"]["status"], "RETIRED_BY_BOUNDED_DELEGATED_POLICY")
+        self.assertEqual(changed["approval_prompt"]["status"], "RETIRED_BY_BOUNDED_DELEGATED_POLICY")
         self.assertNotEqual(first["packet_preview"]["packet_id"], changed["packet_preview"]["packet_id"])
         self.assertNotEqual(first["packet_preview"]["selected_move_hash"], changed["packet_preview"]["selected_move_hash"])
-        self.assertNotEqual(first["approval_prompt"]["approval_command_text"], changed["approval_prompt"]["approval_command_text"])
-        self.assertNotIn(first["packet_preview"]["packet_id"], changed["approval_prompt"]["approval_command_text"])
-        self.assertIn(changed["packet_preview"]["packet_id"], changed["approval_prompt"]["approval_command_text"])
-        self.assertEqual(changed["approval_prompt"]["target_channel"], "awg3")
+        self.assertNotIn("approval_command_text", first["approval_prompt"])
+        self.assertNotIn("approval_command_text", changed["approval_prompt"])
 
     def test_same_semantic_governed_decision_keeps_committed_decision_id_when_packet_changes(self):
         first = pipeline.governed_canary_knowledge_gated_dry_run_cycle(
@@ -1417,7 +1401,7 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(refreshed["packet_preview"]["packet_id"], first["packet_preview"]["packet_id"])
         self.assertEqual(refreshed["packet_preview"]["selected_move_hash"], first["packet_preview"]["selected_move_hash"])
         self.assertEqual(refreshed["packet_preview"]["allowed_targets"], ["awg0"])
-        self.assertEqual(refreshed["approval_prompt"]["target_channel"], "awg0")
+        self.assertEqual(refreshed["approval_prompt"]["status"], "RETIRED_BY_BOUNDED_DELEGATED_POLICY")
         self.assertFalse(refreshed["execution_lease"]["material_state_change"])
         self.assertEqual(refreshed["execution_lease"]["lease_keep_reason"], "no_material_state_change")
         self.assertTrue(refreshed["packet_preview"]["planner_regeneration_blocked_by_execution_lease"])
@@ -1445,7 +1429,7 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertTrue(refreshed["execution_lease"]["material_state_change"])
         self.assertIn("target_channel", refreshed["execution_lease"]["changed_fields"])
         self.assertEqual(refreshed["packet_preview"]["allowed_targets"], ["awg3"])
-        self.assertEqual(refreshed["approval_prompt"]["target_channel"], "awg3")
+        self.assertEqual(refreshed["approval_prompt"]["status"], "RETIRED_BY_BOUNDED_DELEGATED_POLICY")
 
     def test_governed_canary_cycle_fails_non_authority_snapshot_stop(self):
         decision_surface = {

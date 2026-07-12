@@ -869,7 +869,7 @@ Runtime must verify every fresh packet against:
 If the packet does not match the approved class, Runtime must stop at `OPERATIONAL_AUTHORITY`, `ENGINEERING_AUTHORITY`, or `UNSAFE_IMPLEMENTATION` depending on whether the problem is missing exact production approval, missing engineering authority/policy/class approval, or identity/safety mismatch.
 
 This section does not enable runtime apply, autonomous execution, daemon/timer behavior, user movement, rollback apply, or authority expansion.
-It defines the future rule for when packet-level approval is no longer required for a certified class.
+It defines and now enforces the rule by which packet-level approval is not required inside the approved bounded one-user policy.
 
 ## Delegated Autonomy Policy Gate
 
@@ -906,15 +906,18 @@ Runtime may not decide:
 - lower confidence, trust, suitability, freshness, rollback, verification, anti-flap, or blast-radius requirements;
 - convert governed learning mode into production autonomy.
 
-Current default policy is read-only and not approved:
+Current default policy is approved for one bounded governed-learning class:
 
 ```text
 policy_id: dap_default_tier1_readonly
-state: NOT_APPROVED
-current_mode: CLASS_APPROVAL
+state: APPROVED
+current_mode: DELEGATED_AUTONOMY
 target_mode: DELEGATED_AUTONOMY
 max_users_per_action: 1
-runtime_apply_enabled: NO
+max_concurrent_transactions: 1
+candidate_and_packet_approval_required: NO
+runtime_apply_enabled: YES_WITHIN_EXACT_POLICY_ONLY
+self_expansion_allowed: NO
 ```
 
 ## Forbidden Inside Runtime
@@ -962,7 +965,7 @@ Runtime must not:
 | Read Decision Snapshot | Load existing decision output. | Decision id, action, subject, desired/current state, risk, blast radius. | Decision Model, decision surface | No decision, stale decision, unsupported vocabulary. |
 | Policy | Confirm desired state, action vocabulary, eligibility, and policy basis. | Policy gates, candidate ranking, desired state. | Planner / Autoswitch, OMP | Policy block or no eligible subject. |
 | Safety | Confirm evidence quality, health, freshness, blast radius, rollback target. | Knowledge snapshot, safety gates, restore preview. | Safety-Bounded Authority, Runtime Readiness | Safety block, freshness block, rollback missing. |
-| Authority | Confirm action-class authority, delegated policy bounds, packet-level fallback only if the class is still `GOVERNED_ONLY`, and certified policy bounds. | Action class state, delegated policy state, authority state, class approval or explicit packet approval when required. | OMP Autonomy Promotion Engine, Delegated Autonomy Policy preview, operator approval, Current Program State | `OPERATIONAL_AUTHORITY`, `ENGINEERING_AUTHORITY`, policy not approved, action class not approved for runtime, authority exceeded, policy changed, risk exceeds certified blast radius. |
+| Authority | Confirm action-class authority, delegated policy bounds, and packet-level fallback only when no approved policy covers the exact `GOVERNED_ONLY` action. | Action class state, delegated policy state, policy scope hash, class approval or explicit packet approval when required outside policy. | OMP Autonomy Promotion Engine, Delegated Autonomy Policy owner, packet owner, Current Program State | `OPERATIONAL_AUTHORITY`, `ENGINEERING_AUTHORITY`, policy not approved, authority exceeded, policy changed, risk exceeds certified blast radius. |
 | Packet | Generate or consume a fresh execution packet immediately before execution. | Packet id, selected move hash, generation, verification plan, action-class mapping. | Execution Packet owner | Packet invalid, stale, generation mismatch, class mismatch, authority mismatch, policy mismatch. |
 | Execute OR Stop | Execute only if authority and packet are valid; otherwise stop. | Approved exact action. | Existing governed execution owner | Stop reason present, no explicit apply approval. |
 | Verify | Verify mutation or no-op result. | Verification plan and runtime evidence. | Runtime Readiness, truth/convergence | Verification failed or inconclusive. |
@@ -1287,9 +1290,9 @@ If the key conflicts with current generation, Runtime stops with `STALE_DECISION
 
 ## Execution Lease
 
-After a governed packet reaches `READY_FOR_APPROVAL`, the existing packet owner may create an execution lease.
+After a governed packet reaches policy admission or explicit packet approval, the existing packet owner may create an execution lease.
 
-The execution lease binds operator approval to one immutable execution packet:
+The execution lease binds the applicable explicit packet or delegated policy authority to one immutable execution packet:
 
 - packet id;
 - decision id;
@@ -1301,7 +1304,7 @@ The execution lease binds operator approval to one immutable execution packet:
 - rollback manifest;
 - approved plan lock.
 
-While the lease is active, Runtime and OMP must not regenerate the decision, selected move hash, target, or execution packet. Planner refresh is allowed only as a freshness check. The executable packet is read from the lease and remains the approved packet.
+While the lease is active, Runtime and OMP must not regenerate the decision, selected move hash, target, or execution packet. Planner refresh is allowed only as a freshness check. The executable packet is read from the lease and remains the admitted packet. Delegated policy authority never removes packet identity or material-state binding.
 
 The lease may be invalidated only by:
 

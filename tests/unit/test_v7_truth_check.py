@@ -404,6 +404,43 @@ class V7TruthCheckTest(unittest.TestCase):
         payload = json.loads(json.dumps(result))
         self.assertEqual(payload["schema"], "v7-truth-check/v1")
 
+    def test_delegated_policy_consistency_is_machine_readable_and_fail_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            programs = root / "docs" / "programs"
+            programs.mkdir(parents=True)
+            (programs / "V7_CURRENT_PROGRAM_STATE.md").write_text(
+                "| `DELEGATED_AUTONOMY_POLICY` | `APPROVED` |\n"
+                "| `PACKET_APPROVAL_REQUIRED` | `NO` |\n"
+                "| `CANDIDATE_APPROVAL_REQUIRED` | `NO` |\n",
+                encoding="utf-8",
+            )
+            (programs / "OPERATIONAL_MATURITY_PROGRAM.md").write_text(
+                "| Policy state | `APPROVED` |\n"
+                "| Current mode | `DELEGATED_AUTONOMY` |\n"
+                "| Packet approval required | `NO` |\n",
+                encoding="utf-8",
+            )
+
+            result = self.tool.delegated_policy_consistency_check(root)
+
+            self.assertEqual(result["contradiction_count"], 0)
+            self.assertEqual(result["contradiction_ids"], [])
+            self.assertTrue(result["packet_approval_retired"])
+            self.assertTrue(result["candidate_approval_retired"])
+            self.assertTrue(result["policy_self_expansion_blocked"])
+            self.assertTrue(result["single_user_blast_radius_enforced"])
+            self.assertTrue(result["serial_execution_enforced"])
+            self.assertEqual(len(result["policy_scope_hash"]), 64)
+
+            (programs / "V7_CURRENT_PROGRAM_STATE.md").write_text(
+                "| `PACKET_APPROVAL_REQUIRED` | `YES` |\n",
+                encoding="utf-8",
+            )
+            failed = self.tool.delegated_policy_consistency_check(root)
+            self.assertIn("packet_approval_retired", failed["contradiction_ids"])
+            self.assertGreater(failed["contradiction_count"], 0)
+
     def test_github_mismatch_returns_no_go(self):
         manifest = self.manifest()
         result = self.tool.combine_results(

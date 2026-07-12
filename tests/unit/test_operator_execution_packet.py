@@ -557,6 +557,33 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             "read_only": True,
         }
 
+    def delegated_policy_authority(self):
+        normalized_scope = {
+            "allowed_action_classes": ["single-user governed candidate failover"],
+            "max_users_per_action": 1,
+            "max_concurrent_transactions": 1,
+            "required_anti_flap": "PASS",
+            "required_freshness": ["capacity", "quality", "route", "service"],
+            "required_verification": ["immediate_post_action_user_verification"],
+            "required_rollback": "class_level_rollback_or_certified_no_rollback_path",
+            "final_safe_mode": "OPEN",
+            "operator_packet_approval_required": False,
+        }
+        return {
+            "authority_basis": "DELEGATED_AUTONOMY_POLICY",
+            "policy_id": "dap_default_tier1_readonly",
+            "policy_scope_hash": sha256_json(normalized_scope),
+            "normalized_scope": normalized_scope,
+            "policy_state": "APPROVED",
+            "current_mode": "DELEGATED_AUTONOMY",
+            "action_class": "single-user governed candidate failover",
+            "max_users_per_transaction": 1,
+            "max_concurrent_transactions": 1,
+            "candidate_identity": "FRESH_ONLY",
+            "packet_reuse": "FORBIDDEN",
+            "self_expansion_allowed": False,
+        }
+
     def test_runtime_recheck_allows_record_only_for_matching_zero_packet(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -752,6 +779,40 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(packet["approved_plan_lock"]["decision_id"], preview["decision_id"])
         self.assertEqual(packet["approved_plan_lock"]["authority_generation"], preview["authority_generation"])
         self.assertEqual(packet["approved_plan_lock"]["selected_move_hash"], preview["selected_move_hash"])
+
+    def test_delegated_policy_packet_retires_operator_approval_but_preserves_lease_identity(self):
+        preview = self.preview_packet()
+        packet = packet_from_preview(
+            preview,
+            approval_author="",
+            approval_reviewer="",
+            delegated_policy_authority=self.delegated_policy_authority(),
+        )
+        lease = create_execution_lease_from_packet(packet, source_preview=preview)
+
+        self.assertEqual(packet["approvals"], [])
+        self.assertEqual(packet["delegated_policy_authority"]["authority_basis"], "DELEGATED_AUTONOMY_POLICY")
+        self.assertEqual(lease["immutable_packet_identity"]["packet_id"], preview["packet_id"])
+        self.assertEqual(lease["immutable_packet_identity"]["operation_id"], preview["operation_id"])
+        self.assertEqual(lease["immutable_packet_identity"]["selected_move_hash"], preview["selected_move_hash"])
+
+    def test_delegated_policy_packet_fails_closed_on_scope_expansion(self):
+        for field, value in (
+            ("max_users_per_transaction", 2),
+            ("max_concurrent_transactions", 2),
+            ("action_class", "small-batch movement"),
+            ("self_expansion_allowed", True),
+            ("packet_reuse", "ALLOWED"),
+        ):
+            authority = self.delegated_policy_authority()
+            authority[field] = value
+            with self.subTest(field=field), self.assertRaises(PacketError):
+                packet_from_preview(
+                    self.preview_packet(),
+                    approval_author="",
+                    approval_reviewer="",
+                    delegated_policy_authority=authority,
+                )
 
     def test_packet_from_full_governed_cycle_extracts_preview_identity(self):
         preview = self.preview_packet()

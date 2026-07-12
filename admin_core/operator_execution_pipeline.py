@@ -2265,6 +2265,25 @@ def _authority_boundary_approval_prompt(
             "users_moved": 0,
         }
 
+    selected_count = int(packet_preview.get("selected_move_count") or len(packet_preview.get("allowed_users") or []))
+    if selected_count == 1:
+        return {
+            "schema_version": "v7.governed-canary.authority-approval-prompt.v1",
+            "status": "RETIRED_BY_BOUNDED_DELEGATED_POLICY",
+            "reason": "operator_candidate_packet_and_hash_approval_not_required_inside_approved_one_user_policy",
+            "operator_normal_command": "Continue OMP",
+            "policy_id": "dap_default_tier1_readonly",
+            "allowed_action_class": "single-user governed candidate failover",
+            "max_users_per_transaction": 1,
+            "engineering_authority_required_for_expansion": True,
+            "read_only": True,
+            "preview_only": True,
+            "runtime_mutation_performed": False,
+            "restore_barrier_written_now": False,
+            "apply_executed": False,
+            "users_moved": 0,
+        }
+
     rollback_preview = packet_preview.get("rollback_manifest_preview") if isinstance(packet_preview.get("rollback_manifest_preview"), dict) else {}
     rollback_items = rollback_preview.get("items") if isinstance(rollback_preview.get("items"), list) else []
     rollback_item = rollback_items[0] if rollback_items and isinstance(rollback_items[0], dict) else {}
@@ -2562,6 +2581,11 @@ def _action_class_runtime_enablement_preview(
     else:
         action_class = "small-batch movement"
     state = "GOVERNED_ONLY" if action_class == "single-user governed candidate failover" else "NOT_CERTIFIED"
+    delegated_policy_scope = bool(
+        action_class == "single-user governed candidate failover"
+        and selected_count == 1
+        and stop_reason == "AUTHORITY_BOUNDARY"
+    )
     return {
         "schema_version": "v7.action-class-runtime-enablement-preview.v1",
         "owner": "admin_core/operator_execution_pipeline.py",
@@ -2579,17 +2603,20 @@ def _action_class_runtime_enablement_preview(
             "action_class": action_class,
         },
         "authority_to_action_class_mapping": {
-            "packet_approval": "authorizes one exact packet only",
-            "class_approval": "required before Runtime can execute the class automatically",
-            "current_authority": "packet-level governed authority only",
+            "packet_approval": "not required inside the approved bounded delegated policy",
+            "class_approval": "not required for bounded governed-learning inside the approved policy",
+            "delegated_autonomy_policy": "authorizes exactly one fresh one-user governed candidate failover transaction at a time",
+            "current_authority": "bounded delegated policy" if delegated_policy_scope else "no matching bounded policy authority",
             "authority_expansion_performed": False,
         },
         "current_action_class": action_class,
         "current_state": state,
         "next_promotion_target": "CERTIFIED_FOR_CLASS_APPROVAL" if state == "GOVERNED_ONLY" else "GOVERNED_ONLY",
-        "runtime_can_execute_automatically": False,
-        "runtime_must_stop_at": stop_reason or "AUTHORITY_BOUNDARY",
-        "runtime_apply_allowed_now": False,
+        "runtime_can_execute_automatically": delegated_policy_scope,
+        "runtime_must_stop_at": "" if delegated_policy_scope else (stop_reason or "AUTHORITY_BOUNDARY"),
+        "runtime_apply_allowed_now": delegated_policy_scope,
+        "candidate_approval_required": not delegated_policy_scope,
+        "packet_approval_required": not delegated_policy_scope,
         "read_only": True,
         "runtime_mutation_performed": False,
         "restore_barrier_written_now": False,

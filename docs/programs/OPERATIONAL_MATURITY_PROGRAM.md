@@ -16,7 +16,7 @@ This program defines how V7 resolves the current system state, highest bottlenec
 Latest consumed closure evidence: `docs/reports/engineering/2026-07-12_020905_cps_terminal_mission_identity_reconciliation.md` (`CPS_MISSION_IDENTITY_RECONCILED_OPERATIONAL_AUTHORITY_READY`).
 Previous consumed closure evidence: `docs/reports/engineering/2026-07-12_015221_omp_live_state_pointer_and_historical_stop_guard.md` (`OMP_LIVE_STATE_POINTER_RECONCILED_OPERATIONAL_AUTHORITY_READY`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
-Live continuation and the current Operational Authority stop are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
+Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
 V4 operating questions:
 
@@ -1258,7 +1258,7 @@ Action class states:
 | State | Meaning |
 | --- | --- |
 | `NOT_CERTIFIED` | The class lacks enough evidence, certification, owner wiring, safety, freshness, rollback/no-rollback, blast-radius, learning, trust, or authority basis. |
-| `GOVERNED_ONLY` | Temporary proof state. The class can be prepared or executed only as a governed action with explicit packet-level authority while class evidence is still insufficient. |
+| `GOVERNED_ONLY` | Temporary proof state. The class requires either explicit packet authority or an explicitly approved bounded governed-learning policy. The current one-user class uses the latter without class promotion. |
 | `CERTIFIED_FOR_CLASS_APPROVAL` | The class has enough real evidence for OMP to recommend operator approval of the class, but Runtime must not execute it autonomously yet. |
 | `CERTIFIED_FOR_BOUNDED_AUTONOMY` | The class has enough evidence and approved authority policy for bounded autonomous execution to be proposed. This still does not silently enable Runtime. |
 | `AUTONOMOUS_RUNTIME` | Runtime may execute this class automatically inside explicitly approved policy, authority, blast-radius, freshness, safety, rollback/no-rollback, verification, and learning bounds. Packet-level operator approval is retired for the class. |
@@ -1353,11 +1353,11 @@ Evidence needed for next promotion state:
 - certified rollback/no-rollback behavior for the class, not only one packet;
 - sustained blast-radius, safety, freshness, and anti-flap certification;
 - stronger suitability and source confidence;
-- explicit operator approval for the class before any packet-level approval can be removed.
+- explicit operator approval for the class, or explicit bounded governed-learning policy authority, before packet-level approval can be removed.
 
 Current runtime automation enabled:
 
-`NO`
+`POLICY_BOUNDED_ONLY`
 
 Current machine-readable path status:
 
@@ -1408,13 +1408,18 @@ Current default policy:
 | Field | Value |
 | --- | --- |
 | Policy id | `dap_default_tier1_readonly` |
-| Policy state | `NOT_APPROVED` |
-| Current mode | `CLASS_APPROVAL` |
+| Policy state | `APPROVED` |
+| Current mode | `DELEGATED_AUTONOMY` |
 | Target mode | `DELEGATED_AUTONOMY` |
 | Allowed first class | `single-user governed candidate failover` |
 | Max users per action | `1` |
-| Runtime apply enabled | `NO` |
+| Max concurrent transactions | `1` |
+| Candidate approval required | `NO` |
+| Packet approval required | `NO` |
+| Runtime apply enabled | `YES_WITHIN_APPROVED_POLICY_ONLY` |
 | Authority expanded | `NO` |
+
+The approved policy permits bounded governed-learning execution while the class remains `GOVERNED_ONLY`. It does not promote the class, authorize another class, permit concurrency, or increase blast radius. A fresh ephemeral packet, operation-scoped binding, live safety gates, serial execution lease, verification, rollback/no-rollback, outcome closure, learning, truth convergence, and final Safe Mode `OPEN` remain mandatory. Engineering Authority remains mandatory for every policy expansion.
 
 Runtime may execute automatically only if all are true:
 
@@ -3069,9 +3074,9 @@ A `TIER_1` governed action may be considered only when:
 - blast radius is bounded;
 - policy allows the action;
 - truth/convergence pass;
-- explicit operator approval exists.
+- explicit bounded policy authority exists.
 
-For `GOVERNED_ONLY`, the explicit approval may still be packet-level because the class is not certified yet.
+For `GOVERNED_ONLY`, explicit packet approval is the fallback only when no approved bounded governed-learning policy covers the exact action.
 For `CERTIFIED_FOR_CLASS_APPROVAL`, `CERTIFIED_FOR_BOUNDED_AUTONOMY`, or `AUTONOMOUS_RUNTIME`, OMP must prefer class authority and policy authority over repeating packet approval.
 
 This model does not authorize restore-barrier writes, runtime apply, user movement, rollback apply, daemon/timer enablement, authority expansion, floor changes, synthetic evidence, or new owners.
@@ -7434,7 +7439,6 @@ Permanent operator command surface:
 | --- | --- |
 | `Continue OMP` | Execute the complete Engineering Control Loop: ECR -> Knowledge Plane -> re-open evaluation -> OMP execution -> implementation/audit/certification/verification -> Engineering Report -> knowledge promotion -> Current Program State/OMP update -> next highest-leverage action, until an allowed stop condition. |
 | `Status` | Print the current `V7 PRODUCTION STATUS` block without changing runtime state. |
-| `Approve packet` | Approve one exact `GOVERNED_ONLY` packet while packet-level fallback is still required. |
 | `Approve authority expansion` | Approve a specific authority expansion only after OMP recommends it from certified evidence. |
 
 These commands are sufficient for future production operation unless a real implementation proves `FUNDAMENTAL_ARCHITECTURE_GAP`.
@@ -7551,8 +7555,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `OPERATIONAL_AUTHORITY`
-Resolved current next action: `REQUEST_NEW_OPERATIONAL_AUTHORITY_THEN_GENERATE_FRESH_PACKET`
+Resolved current stop: `NONE_OR_CURRENT_REAL_STOP`
+Resolved current next action: `CONTINUE_OMP`
 Resolved packet: `NONE_OPEN`
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -8539,8 +8543,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `OPERATIONAL_AUTHORITY`
-Resolved current next action: `REQUEST_NEW_OPERATIONAL_AUTHORITY_THEN_GENERATE_FRESH_PACKET`
+Resolved current stop: `NONE_OR_CURRENT_REAL_STOP`
+Resolved current next action: `CONTINUE_OMP`
 Latest consumed report: `docs/reports/engineering/2026-07-12_020905_cps_terminal_mission_identity_reconciliation.md`
 Previous consumed report: `docs/reports/engineering/2026-07-12_015221_omp_live_state_pointer_and_historical_stop_guard.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
@@ -8549,7 +8553,7 @@ Current volatile state lives in:
 
 `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 
-That file owns the current bottleneck, HLA, normalized authority class, reality limit, metrics, exact packet, stop reason, and exact approval question.
+That file owns the current bottleneck, HLA, normalized authority class, reality limit, metrics, ephemeral packet state, stop reason, and policy boundary.
 
 OMP owns the scheduler and optimizer rules.
 
@@ -8571,8 +8575,9 @@ V7 can continue production evolution using only:
 
 1. `Continue OMP`;
 2. `Status`;
-3. `Approve packet`;
-4. `Approve authority expansion`.
+3. `Approve authority expansion`.
+
+Candidate, packet, hash, decision and operation approval are not operator commands inside the approved bounded one-user policy.
 
 No additional roadmap document is required.
 

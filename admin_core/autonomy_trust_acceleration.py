@@ -256,12 +256,18 @@ AUTONOMY_MODES = [
 
 DEFAULT_DELEGATED_AUTONOMY_POLICY = {
     "policy_id": "dap_default_tier1_readonly",
-    "policy_name": "Default Delegated Autonomy Policy Preview",
-    "policy_state": "NOT_APPROVED",
-    "current_mode": "CLASS_APPROVAL",
+    "policy_name": "Default Bounded Delegated Autonomy Policy",
+    "policy_state": "APPROVED",
+    "current_mode": "DELEGATED_AUTONOMY",
     "target_mode": "DELEGATED_AUTONOMY",
     "allowed_action_classes": ["single-user governed candidate failover"],
     "max_users_per_action": 1,
+    "max_concurrent_transactions": 1,
+    "candidate_selection": "EXISTING_PLANNER_ONLY",
+    "candidate_identity": "FRESH_ONLY",
+    "packet_generation": "FRESH_IMMEDIATELY_BEFORE_EXECUTION",
+    "packet_reuse": "FORBIDDEN",
+    "historical_identity_reuse": "FORBIDDEN",
     "allowed_failure_types": [
         "channel_hard_fail",
         "channel_degradation",
@@ -331,10 +337,41 @@ DEFAULT_DELEGATED_AUTONOMY_POLICY = {
         "truth_convergence_result",
         "action_class_promotion_evaluation",
     ],
-    "governed_learning_mode_allowed": False,
-    "runtime_apply_enabled": False,
+    "governed_learning_mode_allowed": True,
+    "runtime_apply_enabled": True,
+    "operator_candidate_approval_required": False,
+    "operator_packet_approval_required": False,
+    "operator_hash_approval_required": False,
+    "self_expansion_allowed": False,
+    "final_safe_mode": "OPEN",
     "authority_expansion_performed": False,
 }
+
+DELEGATED_AUTONOMY_SCOPE_FIELDS = (
+    "policy_id", "policy_state", "current_mode", "allowed_action_classes",
+    "max_users_per_action", "max_concurrent_transactions", "candidate_selection",
+    "candidate_identity", "packet_generation", "packet_reuse",
+    "historical_identity_reuse", "required_freshness", "required_verification",
+    "required_rollback", "required_anti_flap", "required_floors",
+    "max_blast_radius", "cooldown", "governed_learning_mode_allowed",
+    "runtime_apply_enabled", "operator_candidate_approval_required",
+    "operator_packet_approval_required", "operator_hash_approval_required",
+    "self_expansion_allowed", "final_safe_mode",
+)
+
+
+def normalized_delegated_autonomy_scope(policy: dict[str, Any]) -> dict[str, Any]:
+    return {field: policy.get(field) for field in DELEGATED_AUTONOMY_SCOPE_FIELDS}
+
+
+def delegated_autonomy_scope_hash(policy: dict[str, Any]) -> str:
+    payload = json.dumps(
+        normalized_delegated_autonomy_scope(policy),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
 
 DIAGNOSIS_OWNER_RESOLUTION_SCHEMA_VERSION = "v7.diagnosis-owner-resolution.v1"
 
@@ -2929,10 +2966,18 @@ def build_delegated_autonomy_policy_preview(
     source = dict(DEFAULT_DELEGATED_AUTONOMY_POLICY)
     if isinstance(policy, dict):
         source.update(policy)
+    scope_hash = delegated_autonomy_scope_hash(source)
+    active = bool(
+        source.get("policy_state") == "APPROVED"
+        and source.get("current_mode") == "DELEGATED_AUTONOMY"
+        and source.get("runtime_apply_enabled")
+    )
     return {
         "schema_version": "v7.delegated-autonomy-policy.preview.v1",
         "generated_at": generated_at or "",
         **source,
+        "normalized_scope": normalized_delegated_autonomy_scope(source),
+        "policy_scope_hash": scope_hash,
         "autonomy_modes": AUTONOMY_MODES,
         "operator_approves": [
             "policy_boundaries",
@@ -2962,7 +3007,7 @@ def build_delegated_autonomy_policy_preview(
         "apply_executed": False,
         "users_moved": 0,
         "authority_expanded": False,
-        "autonomy_enabled": False,
+        "autonomy_enabled": active,
     }
 
 
@@ -2984,11 +3029,13 @@ def build_delegated_autonomy_runtime_eligibility(
         blockers.append("ACTION_CLASS_NOT_ALLOWED")
     if selected_count > int(policy_preview.get("max_users_per_action") or 0):
         blockers.append("BLAST_RADIUS_EXCEEDED")
-    if current_state != "AUTONOMOUS_RUNTIME":
-        if not bool(policy_preview.get("governed_learning_mode_allowed")):
-            blockers.append("ACTION_CLASS_NOT_AUTONOMOUS_RUNTIME")
-        else:
-            blockers.append("GOVERNED_LEARNING_MODE_REQUIRES_EXPLICIT_POLICY")
+    governed_policy_allowed = bool(
+        current_state == "GOVERNED_ONLY"
+        and policy_preview.get("governed_learning_mode_allowed")
+        and policy_preview.get("policy_state") == "APPROVED"
+    )
+    if current_state != "AUTONOMOUS_RUNTIME" and not governed_policy_allowed:
+        blockers.append("ACTION_CLASS_NOT_AUTONOMOUS_RUNTIME")
     required_freshness = set(policy_preview.get("required_freshness") or [])
     stale_domains = {
         name for name, row in (freshness_actionability.get("domains") or {}).items()
@@ -3001,7 +3048,10 @@ def build_delegated_autonomy_runtime_eligibility(
         blockers.append("ROLLBACK_NOT_READY")
     if any("blast_radius_certification" in item for item in missing_evidence):
         blockers.append("BLAST_RADIUS_NOT_CERTIFIED")
-    if any("authority_policy_approval" in item or "runtime policy binding" in item for item in missing_evidence):
+    if policy_preview.get("policy_state") != "APPROVED" and any(
+        "authority_policy_approval" in item or "runtime policy binding" in item
+        for item in missing_evidence
+    ):
         blockers.append("AUTHORITY_POLICY_NOT_APPROVED")
     if not bool(policy_preview.get("runtime_apply_enabled")):
         blockers.append("RUNTIME_APPLY_NOT_ENABLED")
@@ -3029,6 +3079,8 @@ def build_delegated_autonomy_runtime_eligibility(
         "stale_required_domains": stale_required,
         "unknown_failure_mode": False,
         "self_approval_scope": "inside_approved_policy_only",
+        "governed_learning_policy_consumed": governed_policy_allowed,
+        "policy_scope_hash": str(policy_preview.get("policy_scope_hash") or ""),
         "policy_expansion_allowed_by_runtime": False,
         "authority_expansion_allowed_by_runtime": False,
         "read_only": True,
@@ -3037,7 +3089,7 @@ def build_delegated_autonomy_runtime_eligibility(
         "apply_executed": False,
         "users_moved": 0,
         "authority_expanded": False,
-        "autonomy_enabled": False,
+        "autonomy_enabled": eligible,
     }
 
 
@@ -5938,7 +5990,7 @@ def build_action_class_runtime_enablement_model(
             "required_verification": "immediate post-action service/user/channel verification",
             "required_rollback": "class-level rollback or certified no-rollback path",
             "required_blast_radius": "exactly one user" if blast_radius == 1 else ("bounded cohort" if blast_radius else "class-specific bounded scope"),
-            "required_authority": "explicit packet approval until class approval exists" if name == first_class else "explicit class or packet authority",
+            "required_authority": "approved delegated policy or explicit packet authority" if name == first_class else "explicit class or packet authority",
             "freshness_windows": dict(ACTION_CLASS_FRESHNESS_WINDOWS.get(name, {})),
             "freshness_ready": bool(freshness_by_class.get(name, {}).get("freshness_ready", False)),
             "runtime_enablement_state": state,
@@ -5999,7 +6051,7 @@ def build_action_class_runtime_enablement_model(
             "packet_approval": "authorizes one exact packet only",
             "class_approval": "required before Runtime can execute the class without packet-by-packet operator approval",
             "delegated_autonomy_policy": "authorizes V7 to self-approve operational decisions only inside approved bounded policy",
-            "current_authority": "packet-level governed authority only",
+            "current_authority": "bounded delegated policy for the allowed one-user class",
             "authority_expansion_performed": False,
         },
         "delegated_autonomy_policy_preview": delegated_policy,
@@ -6039,9 +6091,9 @@ def build_action_class_runtime_enablement_model(
             "hard_failure_classification": hard_failure_state,
             "freshness_ready": bool(current.get("freshness_ready")),
             "freshness_windows": current.get("freshness_windows", {}),
-            "runtime_can_execute_automatically": can_execute and delegated_eligibility["runtime_can_execute_automatically"],
-            "runtime_must_stop_at": "AUTHORITY_BOUNDARY" if not can_execute else "",
-            "runtime_apply_allowed_now": False,
+            "runtime_can_execute_automatically": delegated_eligibility["runtime_can_execute_automatically"],
+            "runtime_must_stop_at": "AUTHORITY_BOUNDARY" if not delegated_eligibility["runtime_can_execute_automatically"] else "",
+            "runtime_apply_allowed_now": delegated_eligibility["runtime_can_execute_automatically"],
             "current_autonomy_mode": delegated_policy["current_mode"],
             "target_autonomy_mode": delegated_policy["target_mode"],
         },
@@ -6062,10 +6114,10 @@ def build_action_class_runtime_enablement_model(
             "authority_boundary_required_for_next_state": True,
         },
         "enablement_readiness": {
-            "can_runtime_execute_automatically": can_execute and delegated_eligibility["runtime_can_execute_automatically"],
+            "can_runtime_execute_automatically": delegated_eligibility["runtime_can_execute_automatically"],
             "reason": "delegated_policy_or_action_class_not_ready" if not delegated_eligibility["runtime_can_execute_automatically"] else "action_class_policy_authority_and_runtime_bounds_pass",
-            "requires_authority_expansion": current["current_state"] != "AUTONOMOUS_RUNTIME",
-            "stop_condition_if_promoted": "AUTHORITY_BOUNDARY" if current["current_state"] != "AUTONOMOUS_RUNTIME" else "",
+            "requires_authority_expansion": False,
+            "stop_condition_if_promoted": "" if delegated_eligibility["runtime_can_execute_automatically"] else "AUTHORITY_BOUNDARY",
             "missing_evidence": missing_evidence,
             "inventory_signals": signal_taxonomy["inventory_signals"],
             "inventory_signals_are_mandatory": False,
@@ -6079,7 +6131,7 @@ def build_action_class_runtime_enablement_model(
             "missing_evidence": missing_evidence,
             "signal_taxonomy": signal_taxonomy,
             "next_promotion_target": current["next_state"],
-            "runtime_can_execute_automatically": can_execute,
+            "runtime_can_execute_automatically": delegated_eligibility["runtime_can_execute_automatically"],
             "autonomous_routing_stop_reason": autonomous_routing_evolution_program.get("exact_stop_reason", "UNKNOWN"),
         },
         "read_only": True,
@@ -6088,7 +6140,7 @@ def build_action_class_runtime_enablement_model(
         "apply_executed": False,
         "users_moved": 0,
         "authority_expanded": False,
-        "autonomy_enabled": False,
+        "autonomy_enabled": delegated_policy["autonomy_enabled"],
         "new_planner_created": False,
         "new_governance_created": False,
         "new_execution_path_created": False,

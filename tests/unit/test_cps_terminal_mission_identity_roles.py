@@ -80,7 +80,7 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         self.assertEqual(self.validate(drift)["cps_header_identity_consistency"], "FAIL")
 
     def test_09_header_timestamp_predates_latest_start_fails(self):
-        drift = self.cps.replace("State captured: 2026-07-12T02:09:42+0700", "State captured: 2026-07-12T02:00:00+0700", 1)
+        drift = self.cps.replace("State captured: 2026-07-12T09:22:49+0700", "State captured: 2026-07-12T02:00:00+0700", 1)
         self.assertEqual(self.validate(drift)["mission_timestamp_consistency"], "FAIL")
 
     def test_10_latest_report_header_id_mismatch_fails(self):
@@ -127,17 +127,17 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         drift = self.replace_field(self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry", "CURRENT_MISSION_ID", f"`{self.previous}`")
         self.assertIn("MISSION_ROLE_AMBIGUITY_STOP_SAFE", self.validate(drift)["errors"])
 
-    def test_19_operational_state_is_unchanged(self):
+    def test_19_operational_state_is_bounded_policy_active(self):
         live = self.lib._markdown_field_table(self.lib._markdown_section(self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry"))
-        self.assertEqual(live["CURRENT_STOP_CONDITION"].strip("`"), "OPERATIONAL_AUTHORITY")
-        self.assertEqual(live["CURRENT_ACTIVE_SCOPE"].strip("`"), "ONE_FRESH_CURRENT_CLASS_TRANSACTION")
+        self.assertEqual(live["CURRENT_STOP_CONDITION"].strip("`"), "NONE_OR_CURRENT_REAL_STOP")
+        self.assertEqual(live["CURRENT_ACTIVE_SCOPE"].strip("`"), "SINGLE_USER_FAILOVER_POLICY")
         self.assertEqual(live["CURRENT_ACTION_CLASS_STATE"].strip("`"), "GOVERNED_ONLY")
 
     def test_20_no_candidate_packet_lease_barrier_apply_or_movement(self):
         live = self.lib._markdown_field_table(self.lib._markdown_section(self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry"))
         self.assertTrue(live["CURRENT_CLASS_CANDIDATE_SELECTED"].strip("`").startswith("NONE_OPEN"))
         self.assertTrue(live["CONTROLLED_RUN_PACKET_PREVIEW"].strip("`").startswith("NONE_OPEN"))
-        self.assertEqual(live["CONTROLLED_RUN_EXECUTION_AUTHORIZED"].strip("`"), "NO_CURRENT_AUTHORITY")
+        self.assertTrue(live["CONTROLLED_RUN_EXECUTION_AUTHORIZED"].strip("`").startswith("BOUNDED_POLICY_ONLY"))
         self.assertEqual(live["USER_MOVEMENT"].strip("`"), "NO")
 
     def test_21_cap_u01_remains_sequence_position_one(self):
@@ -145,8 +145,8 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         self.assertIn("`CAP-U01`", result["cap_u01"])
         self.assertIn("`U01` Controlled Run WIP", result["sequence_position_1"])
 
-    def test_22_current_stop_remains_operational_authority(self):
-        self.assertEqual(self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)["current_stop"], "OPERATIONAL_AUTHORITY")
+    def test_22_current_stop_is_live_reality_only(self):
+        self.assertEqual(self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)["current_stop"], "NONE_OR_CURRENT_REAL_STOP")
 
     def test_23_omp_historical_isolation_remains_pass(self):
         self.assertEqual(self.lib.omp_live_state_consistency(self.cps, self.omp)["omp_historical_isolation"], "PASS")

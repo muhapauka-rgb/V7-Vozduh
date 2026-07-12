@@ -347,6 +347,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
             execution_lease_file=str(root / "state" / "operator-execution-lease.json"),
             create_execution_lease=False,
             execute_governed_transaction=True,
+            execute_bounded_delegated_transaction=False,
             confirm_governed_transaction="EXECUTE_GOVERNED_TRANSACTION_APPROVED",
             execute_l3_production_validation=False,
             confirm_l3_production_validation="",
@@ -584,6 +585,67 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(execution_rows[0]["packet_id"], "pkt_preview_test")
         self.assertEqual(execution_rows[0]["outcome_quality"]["outcome_quality"], "SUCCESS")
         self.assertEqual(closure_rows[0]["closure_state"], "CLOSED")
+
+    def test_bounded_delegated_transaction_needs_no_packet_identity_or_operator_confirmation(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root, open_control=True)
+            args.execute_governed_transaction = False
+            args.execute_bounded_delegated_transaction = True
+            args.confirm_governed_transaction = ""
+            args.approval_author = ""
+            args.approval_reviewer = ""
+            for field in (
+                "approved_packet_id", "approved_decision_id", "approved_operation_id",
+                "approved_selected_move_hash", "approved_user", "approved_source",
+                "approved_target", "approved_authority_generation", "approved_source_bundle_hash",
+                "approved_source_hashes_hash", "approved_snapshot_bundle_hash",
+            ):
+                setattr(args, field, "")
+            original_cycle = module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle
+            original_apply = module.run_autoswitch_apply
+            try:
+                module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle = (
+                    lambda **kwargs: self.ready_cycle()
+                )
+                module.run_autoswitch_apply = lambda **kwargs: {
+                    "ok": True,
+                    "returncode": 0,
+                    "payload": {
+                        "operation": {"terminal_state": "APPLIED", "terminal_reason": "selected_moves_applied"},
+                        "apply_result": {
+                            "applied": True,
+                            "results": [{"user_ip": "10.7.0.5", "from": "vless", "to": "awg3", "verify_rc": 0}],
+                        },
+                    },
+                }
+                result = module.execute_governed_transaction(
+                    args,
+                    state_dir=root / "state",
+                    event_dir=root / "events",
+                    snapshot_root=root / "state" / "intelligence",
+                    audit_dir=root / "audit",
+                    lease_file=root / "state" / "operator-execution-lease.json",
+                )
+                lease = json.loads((root / "state" / "operator-execution-lease.json").read_text(encoding="utf-8"))
+            finally:
+                module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle = original_cycle
+                module.run_autoswitch_apply = original_apply
+
+        self.assertEqual(result["final_verdict"], "GOVERNED_TRANSACTION_COMPLETED")
+        self.assertTrue(result["runtime_automation_enabled"])
+        self.assertFalse(result["candidate_approval_required"])
+        self.assertFalse(result["packet_approval_required"])
+        self.assertTrue(result["delegated_policy_admission"]["allowed"])
+        self.assertEqual(lease["packet"]["approvals"], [])
+        self.assertEqual(
+            lease["packet"]["delegated_policy_authority"]["authority_basis"],
+            "DELEGATED_AUTONOMY_POLICY",
+        )
+        self.assertEqual(result["users_moved"], 1)
+        self.assertEqual(result["safe_mode_final_state"], "OPEN")
 
     def test_materialized_feedback_classifies_rollback_completed_as_rollback_success(self):
         module = load_cli_module()

@@ -38,11 +38,11 @@ RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
 
 NORMALIZED_CPS_LIVE_STATE = {
     "active_program": "OMP",
-    "current_mode": "OPERATION_SCOPED_BINDING_STABILITY_CERTIFIED",
-    "current_stop_condition": "OPERATIONAL_AUTHORITY",
-    "current_active_scope": "ONE_FRESH_CURRENT_CLASS_TRANSACTION",
-    "current_safe_next_action": "REQUEST NEW EXACT OPERATIONAL AUTHORITY; THEN GENERATE ONE NEW FRESH CURRENT-CLASS PACKET; NEVER REUSE HISTORICAL IDENTITIES",
-    "current_scope_class": "OPERATIONAL_AUTHORITY_BOUNDARY",
+    "current_mode": "BOUNDED_DELEGATED_AUTONOMY_ACTIVE",
+    "current_stop_condition": "NONE_OR_CURRENT_REAL_STOP",
+    "current_active_scope": "SINGLE_USER_FAILOVER_POLICY",
+    "current_safe_next_action": "CONTINUE OMP; EXISTING PLANNER MAY SELECT ONE FRESH ELIGIBLE CANDIDATE; GENERATE A FRESH PACKET; EXECUTE OR STOP_SAFE THROUGH EXISTING OWNERS",
+    "current_scope_class": "BOUNDED_DELEGATED_POLICY",
     "current_execution_mission_id": "NONE",
     "current_execution_mission_state": "NONE",
     "latest_terminal_mission_id": "V7_OMP_CPS_TERMINAL_MISSION_IDENTITY_RECONCILIATION_V1",
@@ -60,21 +60,21 @@ NORMALIZED_CPS_LIVE_STATE = {
     "current_run_nonce": "V7_CPS_MISSION_ID_V1_5D9A73C4E821",
     "current_mission_state": "CPS_MISSION_IDENTITY_RECONCILED_OPERATIONAL_AUTHORITY_READY",
     "current_mission_report": "docs/reports/engineering/2026-07-12_020905_cps_terminal_mission_identity_reconciliation.md",
-    "state_captured": "2026-07-12T02:09:42+0700",
-    "current_state_generation": "cpsgen_V7_CPS_MISSION_ID_V1_5D9A73C4E821",
-    "current_transition_id": "BINDING_STABILITY_CERTIFIED_TO_OPERATIONAL_AUTHORITY_V1",
-    "current_next_action_id": "REQUEST_NEW_OPERATIONAL_AUTHORITY_THEN_GENERATE_FRESH_PACKET",
+    "state_captured": "2026-07-12T09:22:49+0700",
+    "current_state_generation": "cpsgen_V7_DAP_RETIRE_PACKET_V1_8C4F2A91D673",
+    "current_transition_id": "GOVERNED_PACKET_APPROVAL_TO_BOUNDED_POLICY_AUTHORITY_V1",
+    "current_next_action_id": "CONTINUE_OMP",
     "binding_stability": "PASS",
     "binding_schema": "v7.operation-scoped-source-binding.v2",
     "routing_readiness_state": "PASS_CANDIDATE_SCOPED",
-    "authority_required_now": "YES",
+    "authority_required_now": "NO for actions inside approved policy",
     "current_action_class": "single-user governed candidate failover",
     "current_action_class_state": "GOVERNED_ONLY",
     "old_packets_reusable": "NO",
     "active_wip": "CAP-U01-FIRST-GOVERNED-CONTROLLED-RUN",
-    "responsibility_class": "EXACT_ONE_TRANSACTION_OPERATIONAL_AUTHORITY",
-    "last_responsible_link": "new exact Operational Authority -> fresh semantic Candidate -> stable operation-scoped binding v2 -> fresh packet admission -> one governed transaction -> verification/outcome/learning",
-    "smallest_existing_next_action": "request one new exact Mission-scoped Operational Authority; after approval generate a new fresh packet; never reuse old identities",
+    "responsibility_class": "BOUNDED_DELEGATED_POLICY_EXECUTION",
+    "last_responsible_link": "approved bounded policy -> fresh semantic Candidate -> stable operation-scoped binding v2 -> fresh packet admission -> one governed transaction or STOP_SAFE -> verification/outcome/learning",
+    "smallest_existing_next_action": "`Continue OMP`; no Candidate/packet/hash approval inside policy; never reuse old identities",
     "parent_engineering_intent": "INTENT_NOT_CLOSED",
 }
 
@@ -603,7 +603,7 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "BINDING_STABILITY": f"`{state['binding_stability']}; 22 post-deploy read-only cycles, 10 consecutive stable Candidate cycles, zero unexplained mismatches, zero mixed-generation snapshots`",
         "BINDING_SCHEMA": f"`{state['binding_schema']}; shared by preview, admission and low-level pre-mutation recheck`",
         "ROUTING_READINESS_STATE": f"`{state['routing_readiness_state']}; global inventory diagnostics are advisory_only and no longer cross-scope blockers`",
-        "AUTHORITY_REQUIRED_NOW": "`YES; one new exact Operational Authority; no current Authority exists`",
+        "AUTHORITY_REQUIRED_NOW": "`NO for actions inside approved policy; Engineering Authority remains required for expansion`",
         "CURRENT_ACTION_CLASS": f"`{state['current_action_class']}`",
         "CURRENT_ACTION_CLASS_STATE": f"`{state['current_action_class_state']}`",
         "OLD_PACKETS_REUSABLE": f"`{state['old_packets_reusable']}`",
@@ -611,15 +611,15 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "CURRENT_CLASS_OUTCOME": "`NO_ACTION`",
         "CURRENT_CLASS_DELTA_CLOSED": "`NO`",
         "PARENT_ENGINEERING_INTENT": f"`{state['parent_engineering_intent']}`",
-        "AUTOMATIC_CONTINUE_OMP_RESULT": "`EXECUTED; binding stability consumed; CAP-U01 preserved first; continuation reached OPERATIONAL_AUTHORITY; no packet or mutation created`",
-        "REQUIRED_WORKFLOW": "`request new exact Operational Authority; only after Authority discover fresh Candidate, generate fresh packet, revalidate all hard gates and execute at most one transaction`",
-        "OMP_CONTROLLED_RUN_ALLOWED": "`AUTHORITY_REQUEST_ONLY; no packet, lease, barrier or apply before a separate exact Operational Authority Mission`",
-        "CONTROLLED_RUN_PRIMARY_STOP": "`OPERATIONAL_AUTHORITY`",
+        "AUTOMATIC_CONTINUE_OMP_RESULT": "`BOUNDED_POLICY_ACTIVATED; CAP-U01 preserved first; normal operator command is Continue OMP; no packet is durable between transactions`",
+        "REQUIRED_WORKFLOW": "`Continue OMP -> fresh existing-Planner Candidate -> fresh packet -> policy admission -> live gates -> one bounded transaction or STOP_SAFE -> verification/rollback -> final OPEN -> outcome/learning/maturity`",
+        "OMP_CONTROLLED_RUN_ALLOWED": "`CONTINUE_OMP_BOUNDED_POLICY; fresh Candidate and packet only; one serial transaction or STOP_SAFE`",
+        "CONTROLLED_RUN_PRIMARY_STOP": f"`{state['current_stop_condition']}`",
         "CONTROLLED_RUN_RESPONSIBILITY_CLASS": f"`{state['responsibility_class']}`",
-        "CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW": "`YES`",
-        "CONTROLLED_RUN_EXECUTION_AUTHORIZED": "`NO_CURRENT_AUTHORITY`",
-        "CONTROLLED_RUN_AUTHORITY_CLASS": "`NONE_CURRENT; new exact Operational Authority required now`",
-        "CONTROLLED_RUN_AUTHORITY_DECISION": "`NONE_CURRENT; previous admission Authority is terminal and non-reusable`",
+        "CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW": "`NO_INSIDE_APPROVED_POLICY`",
+        "CONTROLLED_RUN_EXECUTION_AUTHORIZED": "`BOUNDED_POLICY_ONLY; exact one-user class; all live gates mandatory`",
+        "CONTROLLED_RUN_AUTHORITY_CLASS": "`BOUNDED_DELEGATED_POLICY; expansion requires Engineering Authority`",
+        "CONTROLLED_RUN_AUTHORITY_DECISION": "`APPROVED_BOUNDED_SCOPE; packet-specific Authority is not reusable or required`",
         "CONTROLLED_RUN_INVALIDATION_REASON": "`SUPERSEDED/HISTORICAL: SOURCE_SNAPSHOT_BUNDLE_DRIFT; gap closed by binding v2 certification`",
     }
     for key, value in live_values.items():
@@ -666,7 +666,7 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "authoritative_transition_input_mission_id": f"`{state['authoritative_transition_input_mission_id']}`",
         "current_primary_stop": f"`{state['current_stop_condition']}`",
         "responsibility_class": f"`{state['responsibility_class']}`",
-        "authority_required_now": "`TRUE; new exact Mission-scoped Operational Authority required; no current Authority exists`",
+        "authority_required_now": "`FALSE inside approved policy; TRUE only for expansion`",
         "last_responsible_link": state["last_responsible_link"],
         "smallest_existing_next_action": state["smallest_existing_next_action"],
         "binding_stability": "`CERTIFIED`",
@@ -691,8 +691,8 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         raise ValueError("cap_u01_missing_or_duplicate")
     cap_row = (
         "| `CAP-U01` | First Governed Controlled Run | Admin Safe Mode, execution packet/lease/pipeline, OMP | `ACTIVE` | "
-        "`NOT_APPLICABLE_WITH_REASON: instance chain`; binding stability `CERTIFIED`; protected WIP `TRUE`; Authority required now `TRUE` | "
-        f"{state['last_responsible_link']} | `OPERATIONAL_AUTHORITY` | {state['smallest_existing_next_action']} | "
+        "`NOT_APPLICABLE_WITH_REASON: instance chain`; binding stability `CERTIFIED`; protected WIP `TRUE`; bounded policy `APPROVED` | "
+        f"{state['last_responsible_link']} | `{state['current_stop_condition']}` | {state['smallest_existing_next_action']} | "
         "first; completion requires verification/rollback, final OPEN, outcome/learning/maturity/CPS/OMP; unblocks U03/U04/U05/U07/U08/U09 |"
     )
     cps_text = cps_text.replace(cap_rows[0], cap_row, 1)
@@ -703,9 +703,9 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         raise ValueError("sequence_position_1_missing_or_duplicate")
     row = (
         f"| `1` | `U01` Controlled Run WIP; `{state['current_state_generation']}`; `{state['current_transition_id']}` | "
-        "protected active root; binding v2 and candidate-scoped readiness certified; no packet or Authority open | "
-        f"`{state['current_next_action_id']}` | exact Operational Authority request only | `OPERATIONAL_AUTHORITY` | "
-        "after approval: fresh Candidate -> fresh packet -> final live revalidation -> one governed transaction -> "
+        "protected active root; binding v2 and bounded policy certified; no packet open | "
+        f"`{state['current_next_action_id']}` | bounded delegated one-user transaction | `{state['current_stop_condition']}` | "
+        "fresh Candidate -> fresh packet -> policy admission -> final live revalidation -> one transaction or legal no-action -> "
         "verification/rollback/final OPEN -> outcome/learning/maturity/promotion |"
     )
     return cps_text.replace(rows[0], row, 1)
@@ -820,12 +820,12 @@ def cps_live_state_consistency(
     stop = live.get("CURRENT_STOP_CONDITION", "").strip("`")
     wip_stop = wip.get("current_primary_stop", "").strip("`")
     registry_stop = registry.get("CURRENT_STOP_CONDITION", "").strip("`")
-    if stop != "OPERATIONAL_AUTHORITY" or wip_stop != stop or registry_stop != stop:
+    if stop != normalized["current_stop_condition"] or wip_stop != stop or registry_stop != stop:
         errors.append("cps_current_stop_divergence")
-    if not live.get("AUTHORITY_REQUIRED_NOW", "").strip("`").startswith("YES"):
-        errors.append("cps_authority_required_not_yes")
-    if not wip.get("authority_required_now", "").strip("`").startswith("TRUE"):
-        errors.append("cps_wip_authority_required_not_true")
+    if not live.get("AUTHORITY_REQUIRED_NOW", "").strip("`").startswith("NO for actions inside approved policy"):
+        errors.append("cps_authority_required_not_policy_bounded")
+    if not wip.get("authority_required_now", "").strip("`").startswith("FALSE inside approved policy"):
+        errors.append("cps_wip_authority_required_not_policy_bounded")
     if wip.get("capability_id", "").strip("`") != normalized["active_wip"]:
         errors.append("cps_active_wip_identity_divergence")
     if wip.get("responsibility_class", "").strip("`") != normalized["responsibility_class"]:
@@ -840,13 +840,13 @@ def cps_live_state_consistency(
         errors.append("cps_current_class_outcome_not_no_action")
     if live.get("CURRENT_ACTION_CLASS_STATE", "").strip("`") != "GOVERNED_ONLY":
         errors.append("cps_action_class_state_divergence")
-    if "OPERATIONAL_AUTHORITY" not in live.get("AUTOMATIC_CONTINUE_OMP_RESULT", ""):
+    if "BOUNDED_POLICY_ACTIVATED" not in live.get("AUTOMATIC_CONTINUE_OMP_RESULT", ""):
         errors.append("cps_continue_omp_stop_divergence")
-    if not live.get("OMP_CONTROLLED_RUN_ALLOWED", "").strip("`").startswith("AUTHORITY_REQUEST_ONLY"):
+    if not live.get("OMP_CONTROLLED_RUN_ALLOWED", "").strip("`").startswith("CONTINUE_OMP_BOUNDED_POLICY"):
         errors.append("cps_omp_consumption_divergence")
-    if live.get("CONTROLLED_RUN_EXECUTION_AUTHORIZED", "").strip("`") != "NO_CURRENT_AUTHORITY":
-        errors.append("cps_execution_authorized_without_current_authority")
-    if live.get("CONTROLLED_RUN_RESPONSIBILITY_CLASS", "").strip("`") != "EXACT_ONE_TRANSACTION_OPERATIONAL_AUTHORITY":
+    if not live.get("CONTROLLED_RUN_EXECUTION_AUTHORIZED", "").strip("`").startswith("BOUNDED_POLICY_ONLY"):
+        errors.append("cps_execution_authority_not_policy_bounded")
+    if live.get("CONTROLLED_RUN_RESPONSIBILITY_CLASS", "").strip("`") != "BOUNDED_DELEGATED_POLICY_EXECUTION":
         errors.append("cps_responsibility_class_divergence")
     if live.get("CURRENT_ACTIVE_SCOPE", "").strip("`") == "ONE_FRESH_CURRENT_CLASS_TRANSACTION":
         for key in (
@@ -891,13 +891,13 @@ def cps_live_state_consistency(
         cap_cells = [cell.strip() for cell in cap_u01.strip().strip("|").split("|")]
         cap_stop = cap_cells[6].strip("`") if len(cap_cells) > 6 else ""
         cap_action = cap_cells[7] if len(cap_cells) > 7 else ""
-        if cap_stop != "OPERATIONAL_AUTHORITY":
+        if cap_stop != normalized["current_stop_condition"]:
             errors.append("cps_cap_u01_stop_divergence")
         if "binding stability `CERTIFIED`" not in cap_u01 or "protected WIP `TRUE`" not in cap_u01:
             errors.append("cps_cap_u01_binding_not_certified")
         if "bundle drifted" in cap_u01 or "diagnose existing binding" in cap_u01:
             errors.append("cps_cap_u01_unresolved_binding_drift")
-        if "request one new exact Mission-scoped Operational Authority" not in cap_action:
+        if "Continue OMP" not in cap_action:
             errors.append("cps_cap_u01_next_action_divergence")
         if wip.get("smallest_existing_next_action", "") != cap_action:
             errors.append("cps_wip_cap_u01_next_action_divergence")
@@ -963,7 +963,7 @@ def cps_live_state_consistency(
             report_ref
             and report_ref in omp_text
             and live.get("CURRENT_MISSION_STATE", "").strip("`") in omp_text
-            and "Live continuation and the current Operational Authority stop are owned only by CPS" in omp_text
+            and "Live continuation and the current bounded delegated policy state are owned only by CPS" in omp_text
         ):
             omp_pointer_consistency = "PASS"
         else:

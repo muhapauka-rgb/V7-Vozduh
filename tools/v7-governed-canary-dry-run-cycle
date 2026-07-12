@@ -1116,6 +1116,74 @@ def execute_governed_transaction(args: argparse.Namespace, *, state_dir: Path, e
     )
 
 
+def bounded_delegated_policy_admission(packet_preview: dict[str, Any], cycle: dict[str, Any]) -> dict[str, Any]:
+    policy = autonomy_trust_acceleration.build_delegated_autonomy_policy_preview()
+    selected_count = int(packet_preview.get("selected_move_count") or len(packet_preview.get("allowed_users") or []))
+    action_class = "single-user governed candidate failover" if selected_count == 1 else "UNKNOWN_ACTION_CLASS"
+    blockers = []
+    exact_requirements = {
+        "policy_state": "APPROVED",
+        "current_mode": "DELEGATED_AUTONOMY",
+        "max_users_per_action": 1,
+        "max_concurrent_transactions": 1,
+        "candidate_selection": "EXISTING_PLANNER_ONLY",
+        "candidate_identity": "FRESH_ONLY",
+        "packet_generation": "FRESH_IMMEDIATELY_BEFORE_EXECUTION",
+        "packet_reuse": "FORBIDDEN",
+        "historical_identity_reuse": "FORBIDDEN",
+        "operator_candidate_approval_required": False,
+        "operator_packet_approval_required": False,
+        "operator_hash_approval_required": False,
+        "self_expansion_allowed": False,
+        "final_safe_mode": "OPEN",
+    }
+    for field, expected in exact_requirements.items():
+        if policy.get(field) != expected:
+            blockers.append(f"POLICY_{field.upper()}_MISMATCH")
+    if action_class not in set(policy.get("allowed_action_classes") or []):
+        blockers.append("ACTION_CLASS_NOT_ALLOWED")
+    if selected_count != 1:
+        blockers.append("BLAST_RADIUS_NOT_EXACTLY_ONE_USER")
+    if cycle.get("stop_reason") != "AUTHORITY_BOUNDARY" or packet_preview.get("status") != "PACKET_PREVIEW_READY":
+        blockers.append("LIVE_MACHINE_GATES_NOT_READY")
+    if not packet_preview.get("operation_id") or not packet_preview.get("decision_id"):
+        blockers.append("FRESH_OPERATION_IDENTITY_MISSING")
+    if not packet_preview.get("selected_move_hash"):
+        blockers.append("SELECTED_MOVE_BINDING_MISSING")
+    if not packet_preview.get("source_hashes") or not packet_preview.get("snapshot_bundle_hash"):
+        blockers.append("OPERATION_SCOPED_SOURCE_BINDING_MISSING")
+    rollback = packet_preview.get("rollback_manifest_preview") or {}
+    if not rollback.get("items"):
+        blockers.append("ROLLBACK_MANIFEST_MISSING")
+    blockers = list(dict.fromkeys(blockers))
+    authority = {
+        "authority_basis": "DELEGATED_AUTONOMY_POLICY",
+        "policy_id": str(policy.get("policy_id") or ""),
+        "policy_scope_hash": str(policy.get("policy_scope_hash") or ""),
+        "normalized_scope": dict(policy.get("normalized_scope") or {}),
+        "policy_state": str(policy.get("policy_state") or ""),
+        "current_mode": str(policy.get("current_mode") or ""),
+        "action_class": action_class,
+        "max_users_per_transaction": int(policy.get("max_users_per_action") or 0),
+        "max_concurrent_transactions": int(policy.get("max_concurrent_transactions") or 0),
+        "candidate_identity": str(policy.get("candidate_identity") or ""),
+        "packet_reuse": str(policy.get("packet_reuse") or ""),
+        "self_expansion_allowed": bool(policy.get("self_expansion_allowed")),
+        "engineering_authority_source": "V7_OMP_BOUNDED_DELEGATED_AUTONOMY_AND_PACKET_APPROVAL_RETIREMENT_V1",
+    }
+    return {
+        "schema_version": "v7.bounded-delegated-policy-admission.v1",
+        "allowed": not blockers,
+        "blockers": blockers,
+        "policy": policy,
+        "authority": authority,
+        "candidate_approval_required": False,
+        "packet_approval_required": False,
+        "hash_approval_required": False,
+        "live_machine_gates_preserved": True,
+    }
+
+
 def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Path, event_dir: Path, snapshot_root: Path, audit_dir: Path, lease_file: Path) -> dict[str, Any]:
     if args.confirm_l3_production_validation != "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED":
         return transaction_stop("l3_production_validation_confirmation_required")
@@ -1367,7 +1435,8 @@ def _execute_governed_transaction_with_guards_inner(
     required_a4_candidate_keys: set[tuple[str, str]] | None = None,
     blocked_transaction_identities: set[tuple[str, str, str, str]] | None = None,
 ) -> dict[str, Any]:
-    if args.confirm_governed_transaction != "EXECUTE_GOVERNED_TRANSACTION_APPROVED":
+    delegated_mode = bool(getattr(args, "execute_bounded_delegated_transaction", False))
+    if not delegated_mode and args.confirm_governed_transaction != "EXECUTE_GOVERNED_TRANSACTION_APPROVED":
         return transaction_stop("transaction_confirmation_required")
     if int(args.max_users) != 1:
         return transaction_stop("transaction_max_users_must_be_one")
@@ -1438,16 +1507,23 @@ def _execute_governed_transaction_with_guards_inner(
         return transaction_stop("packet_not_ready", cycle=cycle, planner_observe=planner_observe)
 
     preview_identity = operator_execution.preview_packet_identity(packet_preview)
-    approved_identity = approved_identity_from_args(args)
-    preview_binding = operator_execution.approved_packet_binding_status(preview_identity, approved_identity)
-    if not preview_binding.get("ok"):
-        return transaction_stop("approved_packet_binding_failed", cycle=cycle, approved_packet_binding=preview_binding)
+    delegated_admission = {}
+    approved_identity = {}
+    if delegated_mode:
+        delegated_admission = bounded_delegated_policy_admission(packet_preview, cycle)
+        if not delegated_admission.get("allowed"):
+            return transaction_stop("delegated_policy_admission_denied", cycle=cycle, delegated_policy_admission=delegated_admission)
+    else:
+        approved_identity = approved_identity_from_args(args)
+        preview_binding = operator_execution.approved_packet_binding_status(preview_identity, approved_identity)
+        if not preview_binding.get("ok"):
+            return transaction_stop("approved_packet_binding_failed", cycle=cycle, approved_packet_binding=preview_binding)
 
     source_hashes = packet_preview.get("source_hashes") if isinstance(packet_preview.get("source_hashes"), dict) else {}
     source_bundle_hash = operator_execution.sha256_json(source_hashes) if source_hashes else ""
     controlled_window = operator_execution.build_autonomous_execution_control_state(
         False,
-        actor=str(args.approval_author or "operator"),
+        actor=(str((delegated_admission.get("authority") or {}).get("policy_id") or "delegated-policy") if delegated_mode else str(args.approval_author or "operator")),
         reason="governed_one_operation_window",
         operation_id=str(packet_preview.get("operation_id") or ""),
         selected_move_hash=str(packet_preview.get("selected_move_hash") or ""),
@@ -1481,18 +1557,19 @@ def _execute_governed_transaction_with_guards_inner(
             ttl_seconds=args.ttl_seconds,
             breaker_generation=str(preflight_control.get("generation") or ""),
             require_execution_binding=True,
+            delegated_policy_authority=(delegated_admission.get("authority") if delegated_mode else None),
         )
     except Exception as exc:
         return transaction_stop("packet_materialization_failed", cycle=cycle, error=str(exc))
 
-    approved_materialized_identity = dict(approved_identity)
+    approved_materialized_identity = dict(preview_identity if delegated_mode else approved_identity)
     approved_materialized_identity["breaker_generation"] = str(preflight_control.get("generation") or "")
     packet_binding = operator_execution.approved_packet_binding_status(
         operator_execution.packet_identity(packet),
         approved_materialized_identity,
     )
     if not packet_binding.get("ok"):
-        return transaction_stop("approved_packet_materialization_changed_identity", cycle=cycle, approved_packet_binding=packet_binding)
+        return transaction_stop("fresh_packet_materialization_changed_identity", cycle=cycle, packet_binding=packet_binding)
 
     constraints = transaction_packet_constraints_ok(packet, cycle, int(args.max_users))
     if not constraints.get("ok"):
@@ -1640,7 +1717,11 @@ def _execute_governed_transaction_with_guards_inner(
         "feedback_materialization": feedback_materialization,
         "a4_evidence_updated": bool(feedback_materialization.get("materialized")),
         "users_moved": len(results) if apply_result.get("applied") else 0,
-        "runtime_automation_enabled": False,
+        "runtime_automation_enabled": delegated_mode,
+        "delegated_policy_admission": delegated_admission,
+        "candidate_approval_required": not delegated_mode,
+        "packet_approval_required": not delegated_mode,
+        "hash_approval_required": not delegated_mode,
         "authority_expanded": False,
         "new_architecture_created": False,
         "new_authority_created": False,
@@ -1916,6 +1997,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--execution-lease-file", default="")
     parser.add_argument("--create-execution-lease", action="store_true")
     parser.add_argument("--execute-governed-transaction", action="store_true")
+    parser.add_argument("--execute-bounded-delegated-transaction", action="store_true")
     parser.add_argument("--confirm-governed-transaction", default="")
     parser.add_argument("--execute-l3-production-validation", action="store_true")
     parser.add_argument("--confirm-l3-production-validation", default="")
@@ -1974,7 +2056,7 @@ def main(argv=None) -> int:
         )
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
         return 0 if result.get("final_verdict") == "L3_PRODUCTION_PROVEN" else 2
-    if args.execute_governed_transaction:
+    if args.execute_governed_transaction or args.execute_bounded_delegated_transaction:
         result = execute_governed_transaction(
             args,
             state_dir=state_dir,

@@ -480,6 +480,57 @@ def is_nonzero_clearance_packet(packet):
 
 
 def validate_approvals(packet, errors):
+    authority = packet.get("delegated_policy_authority")
+    if isinstance(authority, dict) and authority:
+        if authority.get("authority_basis") != "DELEGATED_AUTONOMY_POLICY":
+            errors.append("delegated_policy_authority_basis_invalid")
+        if not authority.get("policy_id"):
+            errors.append("delegated_policy_id_missing")
+        if not authority.get("policy_scope_hash"):
+            errors.append("delegated_policy_scope_hash_missing")
+        normalized_scope = authority.get("normalized_scope") if isinstance(authority.get("normalized_scope"), dict) else {}
+        if not normalized_scope:
+            errors.append("delegated_policy_normalized_scope_missing")
+        elif sha256_json(normalized_scope) != authority.get("policy_scope_hash"):
+            errors.append("delegated_policy_scope_hash_mismatch")
+        if authority.get("policy_state") != "APPROVED":
+            errors.append("delegated_policy_not_approved")
+        if authority.get("current_mode") != "DELEGATED_AUTONOMY":
+            errors.append("delegated_policy_mode_invalid")
+        if authority.get("action_class") != "single-user governed candidate failover":
+            errors.append("delegated_policy_action_class_invalid")
+        if as_int(authority.get("max_users_per_transaction"), 0) != 1:
+            errors.append("delegated_policy_blast_radius_invalid")
+        if as_int(authority.get("max_concurrent_transactions"), 0) != 1:
+            errors.append("delegated_policy_concurrency_invalid")
+        if authority.get("candidate_identity") != "FRESH_ONLY":
+            errors.append("delegated_policy_candidate_freshness_invalid")
+        if authority.get("packet_reuse") != "FORBIDDEN":
+            errors.append("delegated_policy_packet_reuse_invalid")
+        if authority.get("self_expansion_allowed") is not False:
+            errors.append("delegated_policy_self_expansion_invalid")
+        if normalized_scope:
+            if normalized_scope.get("allowed_action_classes") != ["single-user governed candidate failover"]:
+                errors.append("delegated_policy_normalized_action_classes_invalid")
+            if as_int(normalized_scope.get("max_users_per_action"), 0) != 1:
+                errors.append("delegated_policy_normalized_blast_radius_invalid")
+            if as_int(normalized_scope.get("max_concurrent_transactions"), 0) != 1:
+                errors.append("delegated_policy_normalized_concurrency_invalid")
+            if normalized_scope.get("required_anti_flap") != "PASS":
+                errors.append("delegated_policy_anti_flap_invalid")
+            if not normalized_scope.get("required_freshness"):
+                errors.append("delegated_policy_freshness_requirements_missing")
+            if not normalized_scope.get("required_verification"):
+                errors.append("delegated_policy_verification_requirements_missing")
+            if not normalized_scope.get("required_rollback"):
+                errors.append("delegated_policy_rollback_requirement_missing")
+            if normalized_scope.get("final_safe_mode") != "OPEN":
+                errors.append("delegated_policy_final_safe_mode_invalid")
+            if normalized_scope.get("operator_packet_approval_required") is not False:
+                errors.append("delegated_policy_packet_approval_not_retired")
+        if packet.get("approvals") not in ([], None):
+            errors.append("operator_approvals_present_for_delegated_packet")
+        return
     approvals = packet.get("approvals") or []
     if len(approvals) != 2:
         errors.append("dual_confirmation_missing")
@@ -2298,6 +2349,7 @@ def packet_from_preview(
     ttl_seconds=DEFAULT_CLEARANCE_TTL_SECONDS,
     breaker_generation="",
     require_execution_binding=False,
+    delegated_policy_authority=None,
 ):
     preview = extract_packet_preview(preview)
     now = utc_now()
@@ -2341,10 +2393,11 @@ def packet_from_preview(
         "runtime_action": RUNTIME_ACTION_CREATE_CLEARANCE,
         "created_at": now.isoformat(),
         "expires_at": expires_at.isoformat(),
-        "approvals": [
+        "approvals": [] if delegated_policy_authority else [
             {"operator_id": approval_author, "role": "approval_author", "confirmed_at": now.isoformat()},
             {"operator_id": approval_reviewer, "role": "approval_reviewer", "confirmed_at": now.isoformat()},
         ],
+        "delegated_policy_authority": copy.deepcopy(delegated_policy_authority or {}),
         "constraints": {
             "selected_move_budget": as_int(selected.get("selected_move_count"), 0),
             "allowed_users": allowed_users,

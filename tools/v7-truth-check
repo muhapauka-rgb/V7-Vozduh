@@ -25,7 +25,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 import v7_sync_lib as sync_lib
-from admin_core import operator_execution
+from admin_core import autonomy_trust_acceleration, operator_execution
 
 
 DEFAULT_MANIFEST = Path("docs/track7/runtime-convergence/V7_TRUTH_MANIFEST.json")
@@ -546,6 +546,54 @@ def assert_allowed_commands_are_readonly() -> None:
                 raise ValueError(f"forbidden command token in runtime allowlist: {token}")
 
 
+def delegated_policy_consistency_check(repo_root: Path) -> dict[str, Any]:
+    policy = autonomy_trust_acceleration.build_delegated_autonomy_policy_preview()
+    cps_path = repo_root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    omp_path = repo_root / "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md"
+    cps = cps_path.read_text(encoding="utf-8") if cps_path.exists() else ""
+    omp = omp_path.read_text(encoding="utf-8") if omp_path.exists() else ""
+    checks = {
+        "delegated_policy_consistency": bool(
+            policy.get("policy_state") == "APPROVED"
+            and policy.get("current_mode") == "DELEGATED_AUTONOMY"
+            and policy.get("allowed_action_classes") == ["single-user governed candidate failover"]
+        ),
+        "action_class_policy_consistency": policy.get("max_users_per_action") == 1,
+        "packet_approval_retired": bool(
+            policy.get("operator_packet_approval_required") is False
+            and "`PACKET_APPROVAL_REQUIRED` | `NO`" in cps
+        ),
+        "candidate_approval_retired": bool(
+            policy.get("operator_candidate_approval_required") is False
+            and "`CANDIDATE_APPROVAL_REQUIRED` | `NO`" in cps
+        ),
+        "policy_scope_hash_consistency": bool(policy.get("policy_scope_hash")),
+        "policy_self_expansion_blocked": policy.get("self_expansion_allowed") is False,
+        "fresh_packet_enforced": policy.get("packet_generation") == "FRESH_IMMEDIATELY_BEFORE_EXECUTION",
+        "historical_identity_reuse_blocked": policy.get("historical_identity_reuse") == "FORBIDDEN",
+        "single_user_blast_radius_enforced": policy.get("max_blast_radius") == {"users": 1},
+        "serial_execution_enforced": policy.get("max_concurrent_transactions") == 1,
+        "rollback_policy_consistency": bool(policy.get("required_rollback")),
+        "verification_policy_consistency": bool(policy.get("required_verification")),
+        "final_open_consistency": policy.get("final_safe_mode") == "OPEN",
+        "operator_approval_surface_consistency": "Packet approval required | `NO`" in omp,
+        "cps_omp_policy_consistency": bool(
+            "`DELEGATED_AUTONOMY_POLICY` | `APPROVED`" in cps
+            and "Policy state | `APPROVED`" in omp
+            and "Current mode | `DELEGATED_AUTONOMY`" in omp
+        ),
+    }
+    contradiction_ids = sorted(name for name, passed in checks.items() if not passed)
+    return {
+        "schema_version": "v7.delegated-policy-consistency.v1",
+        **checks,
+        "contradiction_count": len(contradiction_ids),
+        "contradiction_ids": contradiction_ids,
+        "policy_id": str(policy.get("policy_id") or ""),
+        "policy_scope_hash": str(policy.get("policy_scope_hash") or ""),
+    }
+
+
 def combine_results(
     manifest: dict[str, Any],
     *,
@@ -558,12 +606,14 @@ def combine_results(
     local = local_check(manifest, runner=runner, cwd=repo_root)
     github = github_check(manifest, local, runner=runner, cwd=repo_root) if mode in {"github", "all"} else {}
     runtime = runtime_readonly_check(manifest, local=local, runner=runner) if mode in {"runtime-readonly", "all"} else {}
+    delegated_policy = delegated_policy_consistency_check(repo_root)
 
     blockers: list[str] = []
     warnings: list[str] = []
     for section in (local, github, runtime):
         blockers.extend(section.get("blockers", []) if isinstance(section, dict) else [])
         warnings.extend(section.get("warnings", []) if isinstance(section, dict) else [])
+    blockers.extend(f"delegated_policy:{item}" for item in delegated_policy["contradiction_ids"])
 
     if mode == "local":
         final_verdict = local["final_verdict"]
@@ -605,6 +655,7 @@ def combine_results(
         "local": local,
         "github": github,
         "runtime": runtime,
+        "delegated_policy_consistency": delegated_policy,
     }
 
 

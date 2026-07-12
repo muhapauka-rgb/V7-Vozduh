@@ -178,13 +178,13 @@ Status: `REALITY_AUDIT_COMPLETE`.
 Reality source:
 
 - owners: OMP, Delegated Autonomy Policy preview, action-class runtime enablement, `admin_core/operator_execution.py`, restore barrier, safe deploy/truth tools;
-- evidence: default delegated policy `NOT_APPROVED`, current mode `CLASS_APPROVAL`, runtime apply disabled, authority expansion disabled, runtime may not approve policy expansion.
+- evidence: default delegated policy `APPROVED`, current mode `DELEGATED_AUTONOMY`, exactly one allowed one-user class, serial execution only, runtime apply allowed only inside the exact policy, authority expansion disabled, Runtime may not approve policy expansion.
 
 ### Consensus Reality Mapping
 
 | Consensus item | Reality status | Existing owner(s) | Existing implementation / evidence | Reuse opportunity | Gap |
 | --- | --- | --- | --- | --- | --- |
-| CS1: authority explicit, scoped, auditable, least-privilege. | `FULLY_IMPLEMENTED` | OMP, execution packet, restore barrier, truth/convergence. | Packet/class/policy boundaries and audit stores exist; runtime apply remains off. | Reuse authority boundary model. | `CONFIGURATION_ONLY`: approve policy/class when evidence is ready. |
+| CS1: authority explicit, scoped, auditable, least-privilege. | `FULLY_IMPLEMENTED` | OMP, delegated policy, execution packet/lease, restore barrier, truth/convergence. | Bounded policy permits one serial one-user class; every transaction remains packet-, lease- and live-gate-bound. | Reuse authority boundary model. | None inside approved scope; expansion remains Engineering Authority. |
 | CS2: runtime execution authority separated from authority expansion. | `FULLY_IMPLEMENTED` | Delegated policy preview, runtime eligibility. | Runtime cannot expand policy, blast radius, action classes, or authority. | Reuse existing model. | None. |
 | CS3: permission is not operational safety. | `FULLY_IMPLEMENTED` | Runtime eligibility, freshness, rollback, verification, blast gates. | Eligibility requires policy, freshness, rollback, verification, anti-flap, blast gates. | Reuse eligibility check. | None. |
 | CS4: policy/admission controls complement identity authorization. | `PARTIALLY_IMPLEMENTED` | OMP, runtime eligibility, planner gates. | Admission/safety gates exist; org policy/identity DB warnings remain for multi-tenant production. | Reuse planner/identity/policy owners. | `MODERATE_EXTENSION`: complete org/identity policy integration. |

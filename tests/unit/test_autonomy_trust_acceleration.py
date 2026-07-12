@@ -2127,7 +2127,7 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertFalse(program["apply_executed"])
         self.assertFalse(program["autonomy_enabled"])
 
-    def test_action_class_runtime_enablement_exposes_current_path_without_authority(self):
+    def test_action_class_runtime_enablement_exposes_approved_bounded_policy(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.populate_snapshots(root)
@@ -2150,7 +2150,7 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(enablement["next_promotion_target"], "CERTIFIED_FOR_CLASS_APPROVAL")
         self.assertFalse(enablement["runtime_capability_view"]["runtime_can_execute_automatically"])
         self.assertFalse(enablement["runtime_capability_view"]["runtime_apply_allowed_now"])
-        self.assertEqual(enablement["runtime_capability_view"]["current_autonomy_mode"], "CLASS_APPROVAL")
+        self.assertEqual(enablement["runtime_capability_view"]["current_autonomy_mode"], "DELEGATED_AUTONOMY")
         self.assertEqual(enablement["runtime_capability_view"]["target_autonomy_mode"], "DELEGATED_AUTONOMY")
         self.assertEqual(enablement["enablement_readiness"]["stop_condition_if_promoted"], "AUTHORITY_BOUNDARY")
         self.assertIn("class-level authority_policy_approval", enablement["enablement_readiness"]["missing_evidence"])
@@ -2173,16 +2173,21 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertFalse(enablement["downstream_certification_alignment"]["A6"]["inventory_coverage_is_runtime_blocker"])
         policy = enablement["delegated_autonomy_policy_preview"]
         self.assertEqual(policy["policy_id"], "dap_default_tier1_readonly")
-        self.assertEqual(policy["policy_state"], "NOT_APPROVED")
+        self.assertEqual(policy["policy_state"], "APPROVED")
         self.assertEqual(policy["max_blast_radius"]["users"], 1)
-        self.assertFalse(policy["runtime_apply_enabled"])
+        self.assertEqual(policy["max_concurrent_transactions"], 1)
+        self.assertTrue(policy["runtime_apply_enabled"])
+        self.assertFalse(policy["operator_candidate_approval_required"])
+        self.assertFalse(policy["operator_packet_approval_required"])
+        self.assertFalse(policy["self_expansion_allowed"])
+        self.assertEqual(len(policy["policy_scope_hash"]), 64)
         self.assertFalse(policy["authority_expanded"])
-        self.assertFalse(policy["autonomy_enabled"])
+        self.assertTrue(policy["autonomy_enabled"])
         eligibility = enablement["delegated_autonomy_runtime_eligibility"]
-        self.assertFalse(eligibility["runtime_may_self_approve_operational_decision"])
-        self.assertIn("POLICY_NOT_APPROVED", eligibility["blockers"])
-        self.assertIn("ACTION_CLASS_NOT_AUTONOMOUS_RUNTIME", eligibility["blockers"])
-        self.assertIn("RUNTIME_APPLY_NOT_ENABLED", eligibility["blockers"])
+        self.assertNotIn("POLICY_NOT_APPROVED", eligibility["blockers"])
+        self.assertNotIn("ACTION_CLASS_NOT_AUTONOMOUS_RUNTIME", eligibility["blockers"])
+        self.assertNotIn("RUNTIME_APPLY_NOT_ENABLED", eligibility["blockers"])
+        self.assertTrue(eligibility["governed_learning_policy_consumed"])
         self.assertFalse(eligibility["authority_expansion_allowed_by_runtime"])
         self.assertEqual(
             enablement["packet_to_action_class_mapping"]["action_class"],
@@ -2196,7 +2201,7 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertFalse(enablement["apply_executed"])
         self.assertEqual(enablement["users_moved"], 0)
         self.assertFalse(enablement["authority_expanded"])
-        self.assertFalse(enablement["autonomy_enabled"])
+        self.assertTrue(enablement["autonomy_enabled"])
         self.assertFalse(enablement["new_planner_created"])
         self.assertFalse(enablement["new_governance_created"])
         self.assertFalse(enablement["new_execution_path_created"])
@@ -2242,6 +2247,25 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertIn("BLAST_RADIUS_EXCEEDED", oversized["blockers"])
         self.assertFalse(oversized["apply_executed"])
         self.assertEqual(oversized["users_moved"], 0)
+
+    def test_delegated_policy_allows_governed_only_without_promoting_class(self):
+        policy = accel.build_delegated_autonomy_policy_preview()
+        eligibility = accel.build_delegated_autonomy_runtime_eligibility(
+            policy_preview=policy,
+            packet_mapping={
+                "action_class": "single-user governed candidate failover",
+                "selected_move_count": 1,
+            },
+            current_state="GOVERNED_ONLY",
+            missing_evidence=[],
+            freshness_actionability={"domains": {}},
+        )
+
+        self.assertTrue(eligibility["runtime_may_self_approve_operational_decision"])
+        self.assertTrue(eligibility["governed_learning_policy_consumed"])
+        self.assertEqual(eligibility["blockers"], [])
+        self.assertEqual(policy["policy_state"], "APPROVED")
+        self.assertFalse(policy["self_expansion_allowed"])
 
     def test_a5_class_level_blast_radius_certification_consumes_historical_proofs_read_only(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -2550,7 +2574,7 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertIn("recovery_admission", gates)
         self.assertIn("runtime_apply", gates)
         self.assertEqual(gates["blast_radius"], "PASS")
-        self.assertEqual(gates["authority"], "STOP")
+        self.assertEqual(gates["authority"], "PASS")
         self.assertEqual(gates["runtime_apply"], "STOP")
         self.assertEqual(gates["recovery_admission"], "NOT_APPLICABLE")
         self.assertNotIn("recovery_admission", arbitration["stop_gates"])

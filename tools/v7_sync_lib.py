@@ -39,31 +39,31 @@ RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
 NORMALIZED_CPS_LIVE_STATE = {
     "active_program": "OMP",
     "current_mode": "BOUNDED_DELEGATED_AUTONOMY_ACTIVE",
-    "current_stop_condition": "NONE",
-    "current_active_scope": "DEPENDENCY_AWARE_CAPABILITY_FRONTIER",
-    "current_safe_next_action": "EXECUTE CAP-U07 LEARNING OUTCOME CONSUMPTION THROUGH EXISTING OWNERS; PRESERVE WAITING CAP-U02/U05/U06",
-    "current_scope_class": "READY_EXECUTION_FRONTIER",
+    "current_stop_condition": "REAL_WORLD_LIMIT",
+    "current_active_scope": "LEARNING_REPRESENTATIVE_OUTCOME_EVIDENCE",
+    "current_safe_next_action": "WAIT FOR REPRESENTATIVE REAL GOVERNED OUTCOMES; RECHECK CAP-U07 ONLY AFTER OWNER-BACKED EVIDENCE CHANGE",
+    "current_scope_class": "REAL_WORLD_EVIDENCE_BOUNDARY",
     "current_execution_mission_id": "NONE",
     "current_execution_mission_state": "NONE",
-    "latest_terminal_mission_id": "V7_OMP_DEPENDENCY_GRAPH_AND_COMPLETION_ORDER_PROTECTION_V1",
-    "latest_terminal_run_nonce": "V7_OMP_DEP_GRAPH_V1_4E8B72C91D63",
-    "latest_terminal_mission_state": "OMP_DEPENDENCY_GRAPH_COMPLETION_ORDER_CERTIFIED",
-    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-12_193308_dependency_graph_completion_order_protection.md",
-    "latest_terminal_mission_started_at": "2026-07-12T19:33:08+0700",
-    "previous_terminal_mission_id": "V7_OMP_MOVEMENT_PROTECTION_REAL_WORLD_EVIDENCE_RECHECK_V1",
-    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-12_180336_movement_protection_real_world_evidence_recheck.md",
+    "latest_terminal_mission_id": "V7_OMP_CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1",
+    "latest_terminal_run_nonce": "V7_CAP_U07_LEARNING_V1_5070685E53FE",
+    "latest_terminal_mission_state": "CAP_U07_LEARNING_OUTCOME_CONSUMED_REAL_WORLD_LIMIT",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-12_200149_cap_u07_learning_outcome_consumption.md",
+    "latest_terminal_mission_started_at": "2026-07-12T20:01:49+0700",
+    "previous_terminal_mission_id": "V7_OMP_DEPENDENCY_GRAPH_AND_COMPLETION_ORDER_PROTECTION_V1",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-12_193308_dependency_graph_completion_order_protection.md",
     "authoritative_transition_input_mission_id": "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3",
     "authoritative_transition_input_state": "MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED",
     "authoritative_transition_input_report": "docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md",
     "current_mission_role": "LATEST_TERMINAL_MISSION",
-    "current_mission_id": "V7_OMP_DEPENDENCY_GRAPH_AND_COMPLETION_ORDER_PROTECTION_V1",
-    "current_run_nonce": "V7_OMP_DEP_GRAPH_V1_4E8B72C91D63",
-    "current_mission_state": "OMP_DEPENDENCY_GRAPH_COMPLETION_ORDER_CERTIFIED",
-    "current_mission_report": "docs/reports/engineering/2026-07-12_193308_dependency_graph_completion_order_protection.md",
-    "state_captured": "2026-07-12T19:33:08+0700",
-    "current_state_generation": "cpsgen_V7_OMP_DEP_GRAPH_V1_4E8B72C91D63",
-    "current_transition_id": "OMP_DEPENDENCY_GRAPH_COMPLETION_ORDER_PROTECTION_V1",
-    "current_next_action_id": "EXECUTE_CAP_U07_LEARNING_OUTCOME_CONSUMPTION",
+    "current_mission_id": "V7_OMP_CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1",
+    "current_run_nonce": "V7_CAP_U07_LEARNING_V1_5070685E53FE",
+    "current_mission_state": "CAP_U07_LEARNING_OUTCOME_CONSUMED_REAL_WORLD_LIMIT",
+    "current_mission_report": "docs/reports/engineering/2026-07-12_200149_cap_u07_learning_outcome_consumption.md",
+    "state_captured": "2026-07-12T20:01:49+0700",
+    "current_state_generation": "cpsgen_V7_CAP_U07_LEARNING_V1_5070685E53FE",
+    "current_transition_id": "CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1",
+    "current_next_action_id": "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES",
     "binding_stability": "PASS",
     "binding_schema": "v7.operation-scoped-source-binding.v2",
     "routing_readiness_state": "PASS_CANDIDATE_SCOPED",
@@ -73,25 +73,26 @@ NORMALIZED_CPS_LIVE_STATE = {
     "old_packets_reusable": "NO",
     "active_wip": "CAP-U07-LEARNING",
     "active_capability_id": "CAP-U07",
-    "active_capability_progress": "READY_FRONTIER; U01 dependency complete and real governed SUCCESS is available for owner consumption",
+    "active_capability_status": "WAITING_EXTERNAL_DEPENDENCY",
+    "active_capability_progress": "PARTIAL_REAL_OUTCOME_CONSUMED; exact U01 SUCCESS produced HIGH learning but representative real outcome evidence remains insufficient",
     "dependency_graph_version": "v7.omp-capability-dependency-graph.v1",
-    "current_execution_frontier": "CAP-U07",
-    "waiting_capabilities": "CAP-U02,CAP-U05,CAP-U06",
-    "ready_capabilities": "CAP-U07",
+    "current_execution_frontier": "NONE",
+    "waiting_capabilities": "CAP-U02,CAP-U05,CAP-U06,CAP-U07",
+    "ready_capabilities": "NONE",
     "blocked_capabilities": "CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22",
-    "continuation_decision": "CONTINUE_READY_FRONTIER",
-    "next_executable_capability": "CAP-U07",
-    "program_terminal_state": "NONE_READY_FRONTIER_EXISTS",
+    "continuation_decision": "PROGRAM_TERMINAL_REAL_WORLD_LIMIT",
+    "next_executable_capability": "NONE",
+    "program_terminal_state": "REAL_WORLD_LIMIT_READY_FRONTIER_EMPTY",
     "cap_u01_completion_report": "docs/reports/engineering/2026-07-12_172534_exact_route_repair_and_first_governed_success.md",
     "responsibility_class": "LEARNING",
     "last_responsible_link": "real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence",
-    "smallest_existing_next_action": "EXECUTE_CAP_U07_LEARNING_OUTCOME_CONSUMPTION; consume the certified U01 SUCCESS through existing Learning owners without synthetic evidence or Runtime mutation",
+    "smallest_existing_next_action": "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES; preserve exact U01 Learning evidence and recheck only after a new material outcome",
     "current_class_outcome": "SUCCESS",
     "current_class_delta_closed": "YES",
     "current_class_outcome_evidence": "SUCCESS; 10.7.0.5 awg0 -> vless; global route verification PASS; feedback execfb_b287532347352c661799e985",
-    "verification_result": "PASS; dependency graph, READY frontier, completion order and waiting-state validators certified",
+    "verification_result": "PASS; exact U01 outcome, prediction, trust, recommendation, learning and closure records agree",
     "rollback_result": "NOT_REQUIRED; governance-only change with no Runtime apply or user movement",
-    "learning_result": "READY_FOR_EXISTING_OWNER_CONSUMPTION; certified U01 SUCCESS is the CAP-U07 input",
+    "learning_result": "LEARNING_UPDATED_PARTIAL; feedback execfb_b287532347352c661799e985 -> learn_5070685e53fe93acdda4ce8a, HIGH, real and non-synthetic",
     "action_class_non_consumption_root_cause": "CLOSED; exact route integrity repaired and successful verified current-class outcome accepted",
     "action_class_promotion_evaluation": "NOT_REQUESTED; current action class remains GOVERNED_ONLY and no authority expansion is proposed",
     "action_class_exact_missing_delta": "NONE_FOR_CAP_U01; exact repair, global route verification and fresh governed SUCCESS are certified",
@@ -104,32 +105,32 @@ NORMALIZED_CPS_LIVE_STATE = {
     "routing_impact": "10.7.0.5, 10.7.0.32 and 10.7.0.38 use vless/tun0 with verified policy routes",
     "user_movement": "NO; current Mission performed evidence refresh and read-only revalidation only",
     "admin_safe_mode_live_state": "schema=v7.autonomous-execution-control.v2; state=OPEN; generation=aec_dda6c420c87e99e97236883c; reason=GOVERNED_TRANSACTION_COMPLETED",
-    "parent_engineering_intent": "INTENT_NOT_CLOSED; CAP-U02/U05/U06 are preserved WAITING while independent CAP-U07 is READY",
-    "source_summary": "Existing OMP dependency knowledge was materialized into the CPS graph; waiting capabilities no longer stop independent READY work.",
-    "automatic_continue_omp_result": "READY_FRONTIER_COMPUTED; CAP-U07 selected while CAP-U02/U05/U06 remain protected WAITING",
-    "required_workflow": "execute CAP-U07 through existing Learning owners -> recalculate dependency graph -> continue READY frontier or stop only when frontier is empty",
-    "omp_controlled_run_allowed": "NO_RUNTIME_EXECUTION; governance frontier selects CAP-U07 learning consumption only",
+    "parent_engineering_intent": "INTENT_NOT_CLOSED; CAP-U07 consumed one real success but representative Learning evidence remains a real-world dependency",
+    "source_summary": "CAP-U07 reused the exact U01 Learning chain; no duplicate evidence was written and the recalculated READY frontier is empty.",
+    "automatic_continue_omp_result": "PROGRAM_TERMINAL_REAL_WORLD_LIMIT; CAP-U02/U05/U06/U07 are WAITING and no independent READY capability remains",
+    "required_workflow": "wait for new material governed outcomes -> revalidate representative Learning and B13 consumption -> recalculate dependency graph",
+    "omp_controlled_run_allowed": "NO_CURRENT_EXECUTION; synthetic or forced outcomes are forbidden",
     "controlled_run_authority_required_now": "NO_INSIDE_APPROVED_POLICY",
     "controlled_run_execution_authorized": "NO_CURRENT_PACKET; no forced evidence generation or movement is authorized",
-    "wip_authority_required_now": "FALSE; CAP-U07 consumes existing evidence without Authority or Runtime mutation",
-    "sequence_execution_class": "existing-owner learning consumption",
-    "sequence_expected_output": "certified U01 outcome -> Learning closure evidence -> CAP-U04/U08/U12/U17/U22 dependency recalculation",
+    "wip_authority_required_now": "FALSE; current boundary is representative real evidence, not Authority",
+    "sequence_execution_class": "real-world evidence wait",
+    "sequence_expected_output": "new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation",
     "completion_condition": "Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass",
     "capabilities_inventoried": "34",
     "complete_or_locked_capabilities": "13",
     "unfinished_capabilities": "21",
     "open_engineering_intents": "21",
-    "omp_continuation_required": "TRUE",
-    "external_input_required": "FALSE",
-    "external_input_type": "NONE",
-    "transaction_terminal_class": "DEPENDENCY_GRAPH_CERTIFIED",
-    "program_terminal_class": "NONE",
+    "omp_continuation_required": "FALSE",
+    "external_input_required": "TRUE",
+    "external_input_type": "REAL_WORLD_LIMIT",
+    "transaction_terminal_class": "LEARNING_OUTCOME_CONSUMED_PARTIAL",
+    "program_terminal_class": "REAL_WORLD_LIMIT",
     "next_mission_formed": "TRUE",
-    "next_mission_id": "V7_OMP_CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1",
+    "next_mission_id": "V7_OMP_CAP_U07_LEARNING_OUTCOME_RECHECK_V2",
     "premature_operator_return": "FALSE",
-    "continuation_iteration": "6",
-    "continuation_stop_reason": "NONE_READY_FRONTIER_EXISTS",
-    "no_progress_fingerprint": "18b44a128761fda0235dce847c078cc7269519e6a41c1c73526c506f6fa33f6c",
+    "continuation_iteration": "7",
+    "continuation_stop_reason": "REPRESENTATIVE_REAL_LEARNING_OUTCOMES_ABSENT_AND_READY_FRONTIER_EMPTY",
+    "no_progress_fingerprint": "1b4bb8ba0f73324015ab844bec96d32aa38e545ba85b5d3db6e0857201cc7921",
 }
 
 
@@ -817,8 +818,8 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
     if len(active_rows) != 1:
         raise ValueError("active_capability_missing_or_duplicate")
     active_row = (
-        "| `CAP-U07` | Learning | feedback/learning, OMP, Canonical Reference | `ACTIVE` | "
-        f"`{state['active_capability_progress']}` | {state['last_responsible_link']} | `NONE` | "
+        f"| `CAP-U07` | Learning | feedback/learning, OMP, Canonical Reference | `{state['active_capability_status']}` | "
+        f"`{state['active_capability_progress']}` | {state['last_responsible_link']} | `{state['current_stop_condition']}` | "
         f"{state['smallest_existing_next_action']} | U01 complete; unblocks U04/U08/U09/U12/U17-U22 |"
     )
     cps_text = cps_text.replace(active_rows[0], active_row, 1)
@@ -852,9 +853,9 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
     if len(rows) != 1:
         raise ValueError("sequence_position_1_missing_or_duplicate")
     row = (
-        f"| `1` | `U07` Learning READY frontier; `{state['current_state_generation']}`; `{state['current_transition_id']}` | "
-        "U01 is COMPLETE; U07 is independent of waiting U02/U05/U06 and all required dependencies are complete | "
-        f"`{state['current_next_action_id']}` | {state['sequence_execution_class']} | `NONE` | "
+        f"| `1` | `U07` Learning WAITING WIP; `{state['current_state_generation']}`; `{state['current_transition_id']}` | "
+        "U01 Learning chain is consumed; representative real outcomes remain unavailable and no independent READY capability exists | "
+        f"`{state['current_next_action_id']}` | {state['sequence_execution_class']} | `{state['current_stop_condition']}` | "
         f"{state['sequence_expected_output']} |"
     )
     cps_text = cps_text.replace(rows[0], row, 1)
@@ -1263,6 +1264,13 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
             errors.append("ready_frontier_continuation_decision_invalid")
         if program_terminal_state != "NONE_READY_FRONTIER_EXISTS":
             errors.append("program_terminal_state_invalid_with_ready_frontier")
+    else:
+        if continuation != "FALSE" or external != "TRUE" or program_terminal in {"", "NONE"}:
+            errors.append("empty_frontier_without_program_terminal")
+        if not continuation_decision.startswith("PROGRAM_TERMINAL_"):
+            errors.append("empty_frontier_continuation_decision_invalid")
+        if not program_terminal_state.startswith(program_terminal):
+            errors.append("empty_frontier_program_terminal_state_invalid")
 
     errors.extend(dependency_violations)
     errors.extend(completion_violations)
@@ -1610,8 +1618,9 @@ def cps_live_state_consistency(
         cap_action = cap_cells[7] if len(cap_cells) > 7 else ""
         if cap_stop != normalized["current_stop_condition"]:
             errors.append("cps_active_capability_stop_divergence")
-        if "`ACTIVE`" not in active_capability:
-            errors.append("cps_active_capability_not_active")
+        expected_status = f"`{normalized['active_capability_status']}`"
+        if expected_status not in active_capability:
+            errors.append("cps_active_capability_status_divergence")
         if "bundle drifted" in active_capability or "diagnose existing binding" in active_capability:
             errors.append("cps_active_capability_unresolved_binding_drift")
         if normalized["current_next_action_id"] not in cap_action and not (

@@ -44,13 +44,30 @@ class OmpDependencyGraphCompletionOrderTest(unittest.TestCase):
             f"`{value}`",
         )
 
+    def as_u07_ready(self, text):
+        row = self.graph_row(text, "CAP-U07")
+        ready = row.replace("| `WAITING_EXTERNAL_DEPENDENCY` |", "| `READY` |", 1).replace(
+            "| `NO` | `NO` |", "| `YES` | `NO` |", 1
+        )
+        text = text.replace(row, ready, 1)
+        text = self.live_field(text, "CURRENT_EXECUTION_FRONTIER", "CAP-U07")
+        text = self.live_field(text, "WAITING_CAPABILITIES", "CAP-U02,CAP-U05,CAP-U06")
+        text = self.live_field(text, "READY_CAPABILITIES", "CAP-U07")
+        text = self.live_field(text, "CONTINUATION_DECISION", "CONTINUE_READY_FRONTIER")
+        text = self.live_field(text, "NEXT_EXECUTABLE_CAPABILITY", "CAP-U07")
+        text = self.live_field(text, "PROGRAM_TERMINAL_STATE", "NONE_READY_FRONTIER_EXISTS")
+        text = self.live_field(text, "OMP_CONTINUATION_REQUIRED", "TRUE")
+        text = self.live_field(text, "EXTERNAL_INPUT_REQUIRED", "FALSE")
+        text = self.live_field(text, "PROGRAM_TERMINAL_CLASS", "NONE")
+        return text
+
     def test_01_cap_u02_is_waiting_external_dependency(self):
         result = self.validate()
         self.assertIn("CAP-U02", result["waiting_capabilities"])
         self.assertEqual(result["waiting_state_consistency"], "PASS")
 
     def test_02_waiting_capability_does_not_stop_unrelated_ready_capability(self):
-        result = self.validate()
+        result = self.validate(self.as_u07_ready(self.cps))
         self.assertFalse(result["premature_program_stop"])
         self.assertEqual(result["execution_frontier"], ["CAP-U07"])
 
@@ -60,12 +77,12 @@ class OmpDependencyGraphCompletionOrderTest(unittest.TestCase):
         self.assertIn("CAP-U09", result["blocked_capabilities"])
 
     def test_04_independent_capability_is_executable(self):
-        row = self.graph_row(self.cps, "CAP-U07")
+        row = self.graph_row(self.as_u07_ready(self.cps), "CAP-U07")
         self.assertIn("| `READY` |", row)
         self.assertIn("| `YES` | `NO` |", row)
 
     def test_05_dependency_completion_recalculates_ready_frontier(self):
-        text = self.cps
+        text = self.as_u07_ready(self.cps)
         u07 = self.graph_row(text, "CAP-U07")
         u07_done = u07.replace("| `READY` |", "| `COMPLETED` |", 1).replace(
             "| `YES` | `NO` |", "| `NO` | `YES` |", 1
@@ -108,14 +125,15 @@ class OmpDependencyGraphCompletionOrderTest(unittest.TestCase):
         self.assertIn("waiting_mutation_path_present:CAP-U02", self.validate(drift)["errors"])
 
     def test_10_continue_omp_consumes_ready_frontier(self):
+        ready = self.as_u07_ready(self.cps)
         live = self.lib._markdown_field_table(self.lib._markdown_section(
-            self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry"
+            ready, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry"
         ))
         self.assertEqual(live["OMP_CONTINUATION_REQUIRED"].strip("`"), "TRUE")
         self.assertEqual(live["CONTINUATION_DECISION"].strip("`"), "CONTINUE_READY_FRONTIER")
 
     def test_11_program_cannot_stop_while_ready_frontier_exists(self):
-        drift = self.live_field(self.cps, "PROGRAM_TERMINAL_CLASS", "REAL_WORLD_LIMIT")
+        drift = self.live_field(self.as_u07_ready(self.cps), "PROGRAM_TERMINAL_CLASS", "REAL_WORLD_LIMIT")
         result = self.validate(drift)
         self.assertTrue(result["premature_program_stop"])
         self.assertIn("ready_frontier_stopped_program", result["errors"])

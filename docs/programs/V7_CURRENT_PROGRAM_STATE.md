@@ -2,18 +2,18 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-12T19:33:08+0700
-Latest terminal Mission: `V7_OMP_DEPENDENCY_GRAPH_AND_COMPLETION_ORDER_PROTECTION_V1`
-Latest terminal Mission state: `OMP_DEPENDENCY_GRAPH_COMPLETION_ORDER_CERTIFIED`
-Latest terminal Mission report: `docs/reports/engineering/2026-07-12_193308_dependency_graph_completion_order_protection.md`
+State captured: 2026-07-12T20:01:49+0700
+Latest terminal Mission: `V7_OMP_CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1`
+Latest terminal Mission state: `CAP_U07_LEARNING_OUTCOME_CONSUMED_REAL_WORLD_LIMIT`
+Latest terminal Mission report: `docs/reports/engineering/2026-07-12_200149_cap_u07_learning_outcome_consumption.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
-Source: Existing OMP dependency knowledge was materialized into the CPS graph; waiting capabilities no longer stop independent READY work.
+Source: CAP-U07 reused the exact U01 Learning chain; no duplicate evidence was written and the recalculated READY frontier is empty.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-12T19:33:08+0700`
+Captured: `2026-07-12T20:01:49+0700`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -28,46 +28,46 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `NONE` |
-| `CURRENT_ACTIVE_SCOPE` | `DEPENDENCY_AWARE_CAPABILITY_FRONTIER` |
-| `CURRENT_SAFE_NEXT_ACTION` | `EXECUTE CAP-U07 LEARNING OUTCOME CONSUMPTION THROUGH EXISTING OWNERS; PRESERVE WAITING CAP-U02/U05/U06` |
-| `CURRENT_SCOPE_CLASS` | `READY_EXECUTION_FRONTIER` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_OMP_DEP_GRAPH_V1_4E8B72C91D63` |
-| `CURRENT_TRANSITION_ID` | `OMP_DEPENDENCY_GRAPH_COMPLETION_ORDER_PROTECTION_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `EXECUTE_CAP_U07_LEARNING_OUTCOME_CONSUMPTION` |
+| `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT` |
+| `CURRENT_ACTIVE_SCOPE` | `LEARNING_REPRESENTATIVE_OUTCOME_EVIDENCE` |
+| `CURRENT_SAFE_NEXT_ACTION` | `WAIT FOR REPRESENTATIVE REAL GOVERNED OUTCOMES; RECHECK CAP-U07 ONLY AFTER OWNER-BACKED EVIDENCE CHANGE` |
+| `CURRENT_SCOPE_CLASS` | `REAL_WORLD_EVIDENCE_BOUNDARY` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_CAP_U07_LEARNING_V1_5070685E53FE` |
+| `CURRENT_TRANSITION_ID` | `CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` |
 | `DEPENDENCY_GRAPH_VERSION` | `v7.omp-capability-dependency-graph.v1` |
-| `CURRENT_EXECUTION_FRONTIER` | `CAP-U07` |
-| `WAITING_CAPABILITIES` | `CAP-U02,CAP-U05,CAP-U06` |
-| `READY_CAPABILITIES` | `CAP-U07` |
+| `CURRENT_EXECUTION_FRONTIER` | `NONE` |
+| `WAITING_CAPABILITIES` | `CAP-U02,CAP-U05,CAP-U06,CAP-U07` |
+| `READY_CAPABILITIES` | `NONE` |
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
-| `CONTINUATION_DECISION` | `CONTINUE_READY_FRONTIER` |
-| `NEXT_EXECUTABLE_CAPABILITY` | `CAP-U07` |
-| `PROGRAM_TERMINAL_STATE` | `NONE_READY_FRONTIER_EXISTS` |
-| `OMP_CONTINUATION_REQUIRED` | `TRUE` |
-| `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
-| `EXTERNAL_INPUT_TYPE` | `NONE` |
-| `TRANSACTION_TERMINAL_CLASS` | `DEPENDENCY_GRAPH_CERTIFIED` |
-| `PROGRAM_TERMINAL_CLASS` | `NONE` |
+| `CONTINUATION_DECISION` | `PROGRAM_TERMINAL_REAL_WORLD_LIMIT` |
+| `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
+| `PROGRAM_TERMINAL_STATE` | `REAL_WORLD_LIMIT_READY_FRONTIER_EMPTY` |
+| `OMP_CONTINUATION_REQUIRED` | `FALSE` |
+| `EXTERNAL_INPUT_REQUIRED` | `TRUE` |
+| `EXTERNAL_INPUT_TYPE` | `REAL_WORLD_LIMIT` |
+| `TRANSACTION_TERMINAL_CLASS` | `LEARNING_OUTCOME_CONSUMED_PARTIAL` |
+| `PROGRAM_TERMINAL_CLASS` | `REAL_WORLD_LIMIT` |
 | `NEXT_MISSION_FORMED` | `TRUE` |
-| `NEXT_MISSION_ID` | `V7_OMP_CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1` |
+| `NEXT_MISSION_ID` | `V7_OMP_CAP_U07_LEARNING_OUTCOME_RECHECK_V2` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
-| `CONTINUATION_ITERATION` | `6` |
-| `CONTINUATION_STOP_REASON` | `NONE_READY_FRONTIER_EXISTS` |
-| `NO_PROGRESS_FINGERPRINT` | `18b44a128761fda0235dce847c078cc7269519e6a41c1c73526c506f6fa33f6c` |
+| `CONTINUATION_ITERATION` | `7` |
+| `CONTINUATION_STOP_REASON` | `REPRESENTATIVE_REAL_LEARNING_OUTCOMES_ABSENT_AND_READY_FRONTIER_EMPTY` |
+| `NO_PROGRESS_FINGERPRINT` | `1b4bb8ba0f73324015ab844bec96d32aa38e545ba85b5d3db6e0857201cc7921` |
 | `CURRENT_STATE_CONSISTENCY` | `PASS; section 0, registry, protected WIP and deterministic sequence share one generation and transition` |
 | `CURRENT_EXECUTION_MISSION_ID` | `NONE` |
 | `CURRENT_EXECUTION_MISSION_STATE` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_DEPENDENCY_GRAPH_AND_COMPLETION_ORDER_PROTECTION_V1` |
-| `LATEST_TERMINAL_RUN_NONCE` | `V7_OMP_DEP_GRAPH_V1_4E8B72C91D63` |
-| `LATEST_TERMINAL_MISSION_STATE` | `OMP_DEPENDENCY_GRAPH_COMPLETION_ORDER_CERTIFIED` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_193308_dependency_graph_completion_order_protection.md` |
-| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-12T19:33:08+0700` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_MOVEMENT_PROTECTION_REAL_WORLD_EVIDENCE_RECHECK_V1` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1` |
+| `LATEST_TERMINAL_RUN_NONCE` | `V7_CAP_U07_LEARNING_V1_5070685E53FE` |
+| `LATEST_TERMINAL_MISSION_STATE` | `CAP_U07_LEARNING_OUTCOME_CONSUMED_REAL_WORLD_LIMIT` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_200149_cap_u07_learning_outcome_consumption.md` |
+| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-12T20:01:49+0700` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_DEPENDENCY_GRAPH_AND_COMPLETION_ORDER_PROTECTION_V1` |
 | `CURRENT_MISSION_ROLE` | `LATEST_TERMINAL_MISSION` |
-| `CURRENT_MISSION_ID` | `V7_OMP_DEPENDENCY_GRAPH_AND_COMPLETION_ORDER_PROTECTION_V1` |
-| `CURRENT_RUN_NONCE` | `V7_OMP_DEP_GRAPH_V1_4E8B72C91D63` |
-| `CURRENT_MISSION_STATE` | `OMP_DEPENDENCY_GRAPH_COMPLETION_ORDER_CERTIFIED` |
-| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_193308_dependency_graph_completion_order_protection.md` |
+| `CURRENT_MISSION_ID` | `V7_OMP_CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1` |
+| `CURRENT_RUN_NONCE` | `V7_CAP_U07_LEARNING_V1_5070685E53FE` |
+| `CURRENT_MISSION_STATE` | `CAP_U07_LEARNING_OUTCOME_CONSUMED_REAL_WORLD_LIMIT` |
+| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_200149_cap_u07_learning_outcome_consumption.md` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `AUTHORITATIVE_TRANSITION_INPUT_STATE` | `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED` |
 | `AUTHORITATIVE_TRANSITION_INPUT_REPORT` | `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` |
@@ -109,12 +109,12 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_CLASS_CANDIDATE_SELECTED` | `NONE_OPEN` |
 | `CURRENT_CLASS_OUTCOME` | `SUCCESS` |
 | `CURRENT_CLASS_OUTCOME_EVIDENCE` | `SUCCESS; 10.7.0.5 awg0 -> vless; global route verification PASS; feedback execfb_b287532347352c661799e985` |
-| `VERIFICATION_RESULT` | `PASS; dependency graph, READY frontier, completion order and waiting-state validators certified` |
+| `VERIFICATION_RESULT` | `PASS; exact U01 outcome, prediction, trust, recommendation, learning and closure records agree` |
 | `ROLLBACK_RESULT` | `NOT_REQUIRED; governance-only change with no Runtime apply or user movement` |
-| `LEARNING_RESULT` | `READY_FOR_EXISTING_OWNER_CONSUMPTION; certified U01 SUCCESS is the CAP-U07 input` |
+| `LEARNING_RESULT` | `LEARNING_UPDATED_PARTIAL; feedback execfb_b287532347352c661799e985 -> learn_5070685e53fe93acdda4ce8a, HIGH, real and non-synthetic` |
 | `PRODUCTION_MATURITY_DECISION` | `PARTIAL_ACCEPT; CAP-U01 COMPLETE, CAP-U02 PARTIAL_REVALIDATED_FROM_REAL_SUCCESS, current action class remains GOVERNED_ONLY` |
 | `CURRENT_CLASS_DELTA_CLOSED` | `YES` |
-| `AUTOMATIC_CONTINUE_OMP_RESULT` | `READY_FRONTIER_COMPUTED; CAP-U07 selected while CAP-U02/U05/U06 remain protected WAITING` |
+| `AUTOMATIC_CONTINUE_OMP_RESULT` | `PROGRAM_TERMINAL_REAL_WORLD_LIMIT; CAP-U02/U05/U06/U07 are WAITING and no independent READY capability remains` |
 | `HISTORICAL_ACTION_CLASS_PROMOTION_REPORT` | `docs/reports/engineering/2026-07-11_194202_current_action_class_promotion_to_bounded_authority.md`; `SUPERSEDED/HISTORICAL` context only. |
 | `HISTORICAL_CURRENT_CLASS_OUTCOME_STORE_AUDIT` | `18,036 execution-outcome records at historical readback; all DRY_RUN / NO_EXECUTION; CURRENT_CLASS_OUTCOME_ABSENT` |
 | `CONDITIONAL_ENGINEERING_AUTHORITY_USED` | `NO; successful outcome was completed inside existing bounded delegated policy` |
@@ -125,7 +125,7 @@ This section is the single live volatile current-state surface. Older production
 | `MATERIAL_DECISION_CHURN_DEPLOY_ID` | `deploy-z8-14-Updatesystem-62015c1-20260711T185443` |
 | `MATERIAL_DECISION_CHURN_REPORT` | `docs/reports/engineering/2026-07-11_184357_material_decision_churn_discovery_and_closure.md` |
 | `FORBIDDEN_FOR_CURRENT_SCOPE` | Reuse historical Candidate/packet/hash/Authority; more than one user; batch/concurrency; another action class; Authority/blast-radius expansion; systemd enable/start; threshold reduction; safety weakening; synthetic evidence. |
-| `REQUIRED_WORKFLOW` | `execute CAP-U07 through existing Learning owners -> recalculate dependency graph -> continue READY frontier or stop only when frontier is empty` |
+| `REQUIRED_WORKFLOW` | `wait for new material governed outcomes -> revalidate representative Learning and B13 consumption -> recalculate dependency graph` |
 | `CIRCUIT_BREAKER_REPOSITORY_STATE` | `IMPLEMENTATION_CERTIFIED_READ_ONLY` |
 | `CIRCUIT_BREAKER_PRODUCTION_STATE` | `DEPLOYED_CERTIFIED_OPEN` |
 | `CIRCUIT_BREAKER_PRODUCTION_CERTIFICATION` | `CIRCUIT_BREAKER_PRODUCTION_CERTIFIED` |
@@ -164,12 +164,12 @@ This section is the single live volatile current-state surface. Older production
 | `POST_CLOSED_REVALIDATION` | `CERTIFIED` |
 | `ALL_TERMINAL_PATHS_FINAL_OPEN` | `CERTIFIED` |
 | `CONTROLLED_RUN_EXECUTION_AUTHORIZED` | `NO_CURRENT_PACKET; no forced evidence generation or movement is authorized` |
-| `OMP_CONTROLLED_RUN_ALLOWED` | `NO_RUNTIME_EXECUTION; governance frontier selects CAP-U07 learning consumption only` |
-| `CONTROLLED_RUN_PRIMARY_STOP` | `NONE` |
+| `OMP_CONTROLLED_RUN_ALLOWED` | `NO_CURRENT_EXECUTION; synthetic or forced outcomes are forbidden` |
+| `CONTROLLED_RUN_PRIMARY_STOP` | `REAL_WORLD_LIMIT` |
 | `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `LEARNING` |
 | `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_APPROVED_POLICY` |
 | `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_CLOSED; CAP-U01 certified from exact repair through governed SUCCESS, verification, learning and final OPEN` |
-| `PARENT_ENGINEERING_INTENT` | `INTENT_NOT_CLOSED; CAP-U02/U05/U06 are preserved WAITING while independent CAP-U07 is READY` |
+| `PARENT_ENGINEERING_INTENT` | `INTENT_NOT_CLOSED; CAP-U07 consumed one real success but representative Learning evidence remains a real-world dependency` |
 | `ACTIVE_WIP_PROTECTED` | `TRUE; COMPLETION_FIRST; reorder forbidden` |
 | `PRODUCTION_RUNTIME_IMPACT` | `NONE; OMP/CPS continuation and validation semantics only` |
 | `AUTHORITY_IMPACT` | `NONE` |
@@ -187,7 +187,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-12T19:33:08+0700`
+Generated At: `2026-07-12T20:01:49+0700`
 
 Runtime Authority: `NONE`
 
@@ -200,20 +200,20 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_OMP_DEP_GRAPH_V1_4E8B72C91D63` |
-| `CURRENT_TRANSITION_ID` | `OMP_DEPENDENCY_GRAPH_COMPLETION_ORDER_PROTECTION_V1` |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `EXECUTE_CAP_U07_LEARNING_OUTCOME_CONSUMPTION` |
-| `CURRENT_STOP_CONDITION` | `NONE` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_CAP_U07_LEARNING_V1_5070685E53FE` |
+| `CURRENT_TRANSITION_ID` | `CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` |
+| `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT` |
 | `CAPABILITIES_INVENTORIED` | `34` |
 | `COMPLETE_OR_LOCKED_CAPABILITIES` | `13` |
 | `UNFINISHED_CAPABILITIES` | `21` |
 | `OPEN_ENGINEERING_INTENTS` | `21` |
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
 | `ACTIVE_MISSIONS` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_DEPENDENCY_GRAPH_AND_COMPLETION_ORDER_PROTECTION_V1` |
-| `LATEST_TERMINAL_MISSION_STATE` | `OMP_DEPENDENCY_GRAPH_COMPLETION_ORDER_CERTIFIED` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_193308_dependency_graph_completion_order_protection.md` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_MOVEMENT_PROTECTION_REAL_WORLD_EVIDENCE_RECHECK_V1` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1` |
+| `LATEST_TERMINAL_MISSION_STATE` | `CAP_U07_LEARNING_OUTCOME_CONSUMED_REAL_WORLD_LIMIT` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_200149_cap_u07_learning_outcome_consumption.md` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_DEPENDENCY_GRAPH_AND_COMPLETION_ORDER_PROTECTION_V1` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `OPEN_CANDIDATE_IDS` | `NONE`; all observed packet previews are evidence only and discarded without Authority. |
 | `PRIOR_BDP_CANDIDATES` | `25` certified instances are terminal historical ladder evidence, not open work |
@@ -222,7 +222,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
 | `OMP_CONTINUATION_POINTER` | consume this registry; preserve WAITING WIP; propagate dependency blocking; execute only the computed READY frontier |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `EXECUTE_CAP_U07_LEARNING_OUTCOME_CONSUMPTION; consume the certified U01 SUCCESS through existing Learning owners without synthetic evidence or Runtime mutation` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES; preserve exact U01 Learning evidence and recheck only after a new material outcome` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -231,26 +231,26 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_V7_OMP_DEP_GRAPH_V1_4E8B72C91D63` |
-| `current_transition_id` | `OMP_DEPENDENCY_GRAPH_COMPLETION_ORDER_PROTECTION_V1` |
-| `smallest_existing_next_action_id` | `EXECUTE_CAP_U07_LEARNING_OUTCOME_CONSUMPTION` |
+| `current_state_generation` | `cpsgen_V7_CAP_U07_LEARNING_V1_5070685E53FE` |
+| `current_transition_id` | `CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1` |
+| `smallest_existing_next_action_id` | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
-| `latest_terminal_mission_id` | `V7_OMP_DEPENDENCY_GRAPH_AND_COMPLETION_ORDER_PROTECTION_V1` |
-| `latest_terminal_mission_state` | `OMP_DEPENDENCY_GRAPH_COMPLETION_ORDER_CERTIFIED` |
-| `previous_terminal_mission_id` | `V7_OMP_MOVEMENT_PROTECTION_REAL_WORLD_EVIDENCE_RECHECK_V1` |
+| `latest_terminal_mission_id` | `V7_OMP_CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1` |
+| `latest_terminal_mission_state` | `CAP_U07_LEARNING_OUTCOME_CONSUMED_REAL_WORLD_LIMIT` |
+| `previous_terminal_mission_id` | `V7_OMP_DEPENDENCY_GRAPH_AND_COMPLETION_ORDER_PROTECTION_V1` |
 | `authoritative_transition_input_mission_id` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `candidate_id` | `NOT_APPLICABLE; CAP-U07 consumes accepted U01 outcome evidence and creates no routing Candidate` |
 | `protected_by_active_wip` | `TRUE` |
 | `wip_priority_class` | `COMPLETION_FIRST` |
 | `active_wip_reorder_allowed` | `FALSE` |
-| `current_primary_stop` | `NONE` |
+| `current_primary_stop` | `REAL_WORLD_LIMIT` |
 | `responsibility_class` | `LEARNING` |
-| `authority_required_now` | `FALSE; CAP-U07 consumes existing evidence without Authority or Runtime mutation` |
+| `authority_required_now` | `FALSE; current boundary is representative real evidence, not Authority` |
 | `last_responsible_link` | real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence |
 | `responsible_owners` | Existing feedback, decision-outcome learning, Production Maturity, CPS and OMP consumers |
 | `protected_objects` | Accepted U01 SUCCESS evidence; existing Learning owner contracts; CAP-U02/U05/U06 WAITING evidence and reentry conditions |
-| `smallest_existing_next_action` | EXECUTE_CAP_U07_LEARNING_OUTCOME_CONSUMPTION; consume the certified U01 SUCCESS through existing Learning owners without synthetic evidence or Runtime mutation |
+| `smallest_existing_next_action` | WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES; preserve exact U01 Learning evidence and recheck only after a new material outcome |
 | `binding_stability` | `CERTIFIED` |
 | `completion_condition` | Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass |
 
@@ -285,7 +285,7 @@ The following joined table is the normalized live record. `Last link` represents
 | `CAP-U04` | Authority Evolution | OMP, authority policy, action-class ladder | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; historical safety layers reconciled | reusable historical execution/blast/rollback/outcome -> current suitability decision-context outcome -> owner authority decision | exact current-class outcome and class approval; future `ENGINEERING_AUTHORITY`, not current | finish U01 once; consume its outcome/learning; do not repeat historical proof ladder | U01/U07; unblocks U09 |
 | `CAP-U05` | Rollback | restore barrier, rollback manifest, execution feedback | `PARTIAL` | `49.0`; owner-backed | rollback preview/readiness -> production verification/rollback terminal outcome | production evidence; `STOP_SAFE` when unavailable | exercise exact rollback/no-rollback contract inside admitted U01 run | U01; unblocks U02/U03/U09 |
 | `CAP-U06` | Recovery Admission | recovery admission, B8/B9/B10, A6 | `PARTIAL` | `78.0`; owner-backed | B8/B9/B10 read-only output -> Runtime Eligibility production consumer | runtime integration/evidence | after U01 certification, production-certify recovery consumption when real candidate exists | U01/U03; may stop `REAL_WORLD_LIMIT`; unblocks U02/U09 |
-| `CAP-U07` | Learning | feedback/learning, OMP, Canonical Reference | `ACTIVE` | `READY_FRONTIER; U01 dependency complete and real governed SUCCESS is available for owner consumption` | real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence | `NONE` | EXECUTE_CAP_U07_LEARNING_OUTCOME_CONSUMPTION; consume the certified U01 SUCCESS through existing Learning owners without synthetic evidence or Runtime mutation | U01 complete; unblocks U04/U08/U09/U12/U17-U22 |
+| `CAP-U07` | Learning | feedback/learning, OMP, Canonical Reference | `WAITING_EXTERNAL_DEPENDENCY` | `PARTIAL_REAL_OUTCOME_CONSUMED; exact U01 SUCCESS produced HIGH learning but representative real outcome evidence remains insufficient` | real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence | `REAL_WORLD_LIMIT` | WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES; preserve exact U01 Learning evidence and recheck only after a new material outcome | U01 complete; unblocks U04/U08/U09/U12/U17-U22 |
 | `CAP-U08` | Production Readiness | Production Maturity, OMP, CPS | `PARTIAL` | `66.9`; maturity owner | certified work/outcomes -> maturity decision toward 100% | production outcome/certification | consume U01 certification/outcome; keep score owner-controlled | U01/U03-U07; unblocks U09 |
 | `CAP-U09` | Production Autonomy | OMP, Runtime Model, Authority Evolution | `BLOCKED` | `0.0`; maturity owner | bounded governed outcomes + authority -> autonomous Runtime consumer | authority/runtime/production evidence; `STOP_SAFE` | certify bounded autonomy only after U01-U08 closure evidence | U02-U08; terminal `PRODUCTION_AUTONOMY_CERTIFIED` |
 | `CAP-U10` | Observability | admin read models, evidence inventory, truth/convergence | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting `67/63/35` | read-only surfaces -> complete operator/runtime diagnostic consumption | integration/coverage | verify exact controlled-run gate/outcome visibility after U01 | U01/U03/U05; unblocks U11/U14 |
@@ -318,7 +318,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `U07` Learning READY frontier; `cpsgen_V7_OMP_DEP_GRAPH_V1_4E8B72C91D63`; `OMP_DEPENDENCY_GRAPH_COMPLETION_ORDER_PROTECTION_V1` | U01 is COMPLETE; U07 is independent of waiting U02/U05/U06 and all required dependencies are complete | `EXECUTE_CAP_U07_LEARNING_OUTCOME_CONSUMPTION` | existing-owner learning consumption | `NONE` | certified U01 outcome -> Learning closure evidence -> CAP-U04/U08/U12/U17/U22 dependency recalculation |
+| `1` | `U07` Learning WAITING WIP; `cpsgen_V7_CAP_U07_LEARNING_V1_5070685E53FE`; `CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1` | U01 Learning chain is consumed; representative real outcomes remain unavailable and no independent READY capability exists | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |
 | `6` | `U07/U08/U22` | consumes real terminal result | outcome, learning and maturity closure | no-mutation learning | `REAL_WORLD_LIMIT` if no outcome | learning/maturity -> CPS/OMP |
@@ -359,7 +359,7 @@ This graph reuses the existing capability registry, Engineering Chain links and 
 | `CAP-U04` | `BLOCKED_BY_DEPENDENCY` | Authority Evolution from real learning | U07 learning -> authority owner | `CAP-U07` | `CAP-U02,CAP-U08,CAP-U09` | `CAP-U05,CAP-U06` | learning consumption incomplete | CAP-U07 completed | `NO` | `NO` | `ALL_DEPENDENCIES_COMPLETED+INTENT_CLOSED+CONSUMER_VERIFIED+EVIDENCE_CONSUMED+CPS_UPDATED` |
 | `CAP-U05` | `WAITING_EXTERNAL_DEPENDENCY` | Rollback/no-rollback production certification | governed outcome -> rollback owner | `CAP-U01` | `CAP-U02,CAP-U03,CAP-U08,CAP-U09,CAP-U10` | `CAP-U07` | `REAL_WORLD_LIMIT` | qualifying rollback or certified no-rollback outcome | `NO` | `NO` | `ALL_DEPENDENCIES_COMPLETED+INTENT_CLOSED+CONSUMER_VERIFIED+EVIDENCE_CONSUMED+CPS_UPDATED` |
 | `CAP-U06` | `WAITING_EXTERNAL_DEPENDENCY` | Recovery Admission production certification | B8/B9/B10 -> recovery certification owner | `CAP-U01` | `CAP-U02,CAP-U03,CAP-U08,CAP-U09` | `CAP-U07` | `REAL_WORLD_LIMIT` | qualifying recovered channel with service/quality windows | `NO` | `NO` | `ALL_DEPENDENCIES_COMPLETED+INTENT_CLOSED+CONSUMER_VERIFIED+EVIDENCE_CONSUMED+CPS_UPDATED` |
-| `CAP-U07` | `READY` | Consume real governed outcome into Learning | U01 outcome -> feedback/learning owner | `CAP-U01` | `CAP-U04,CAP-U08,CAP-U09,CAP-U12,CAP-U17,CAP-U18,CAP-U22` | `CAP-U02,CAP-U05,CAP-U06` | `NONE` | execute existing-owner consumer now | `YES` | `NO` | `ALL_DEPENDENCIES_COMPLETED+INTENT_CLOSED+CONSUMER_VERIFIED+EVIDENCE_CONSUMED+CPS_UPDATED` |
+| `CAP-U07` | `WAITING_EXTERNAL_DEPENDENCY` | Convert representative real outcomes into reliable future decisions | U01 outcome -> feedback/learning owner -> representative corpus | `CAP-U01` | `CAP-U04,CAP-U08,CAP-U09,CAP-U12,CAP-U17,CAP-U18,CAP-U22` | `CAP-U02,CAP-U05,CAP-U06` | `REAL_WORLD_LIMIT` | new material governed outcomes consumed by Learning and B13 owners | `NO` | `NO` | `ALL_DEPENDENCIES_COMPLETED+INTENT_CLOSED+CONSUMER_VERIFIED+EVIDENCE_CONSUMED+CPS_UPDATED` |
 | `CAP-U08` | `BLOCKED_BY_DEPENDENCY` | Production Readiness closure | U03-U07 evidence -> maturity owner | `CAP-U03,CAP-U04,CAP-U05,CAP-U06,CAP-U07` | `CAP-U09` | `NONE` | safety/authority/learning dependencies incomplete | all required dependencies completed | `NO` | `NO` | `ALL_DEPENDENCIES_COMPLETED+INTENT_CLOSED+CONSUMER_VERIFIED+EVIDENCE_CONSUMED+CPS_UPDATED` |
 | `CAP-U09` | `BLOCKED_BY_DEPENDENCY` | Production Autonomy certification | U02-U08 evidence -> Runtime/Authority | `CAP-U02,CAP-U03,CAP-U04,CAP-U05,CAP-U06,CAP-U07,CAP-U08` | `NONE` | `NONE` | bounded production dependencies incomplete | all required dependencies completed | `NO` | `NO` | `ALL_DEPENDENCIES_COMPLETED+INTENT_CLOSED+CONSUMER_VERIFIED+EVIDENCE_CONSUMED+CPS_UPDATED` |
 | `CAP-U10` | `BLOCKED_BY_DEPENDENCY` | Complete operational observability | U03/U05 evidence -> read-model consumers | `CAP-U03,CAP-U05` | `CAP-U11,CAP-U12,CAP-U14` | `CAP-U07` | runtime and rollback evidence incomplete | CAP-U03 and CAP-U05 completed | `NO` | `NO` | `ALL_DEPENDENCIES_COMPLETED+INTENT_CLOSED+CONSUMER_VERIFIED+EVIDENCE_CONSUMED+CPS_UPDATED` |

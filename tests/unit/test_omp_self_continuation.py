@@ -92,21 +92,19 @@ class OmpSelfContinuationTest(unittest.TestCase):
         self.assertIn("PREMATURE_OMP_RETURN_TO_OPERATOR", text)
         self.assertIn("OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY", text)
 
-    def test_materialized_cps_continues_ready_frontier(self):
+    def test_materialized_cps_stops_at_empty_frontier_real_world_limit(self):
         result = self.lib.omp_self_continuation_consistency(CPS.read_text(encoding="utf-8"))
         self.assertEqual(result["final_verdict"], "PASS")
-        self.assertEqual(result["omp_continuation_required"], "TRUE")
-        self.assertEqual(result["external_input_required"], "FALSE")
-        self.assertEqual(result["external_input_type"], "NONE")
-        self.assertEqual(result["continuation_iteration"], "6")
+        self.assertEqual(result["omp_continuation_required"], "FALSE")
+        self.assertEqual(result["external_input_required"], "TRUE")
+        self.assertEqual(result["external_input_type"], "REAL_WORLD_LIMIT")
+        self.assertEqual(result["continuation_iteration"], "7")
 
-    def test_materialized_ready_frontier_cannot_be_marked_program_terminal(self):
+    def test_materialized_external_boundary_cannot_be_marked_for_continuation(self):
         cps = CPS.read_text(encoding="utf-8")
-        cps = cps.replace("| `OMP_CONTINUATION_REQUIRED` | `TRUE` |", "| `OMP_CONTINUATION_REQUIRED` | `FALSE` |", 1)
-        cps = cps.replace("| `EXTERNAL_INPUT_REQUIRED` | `FALSE` |", "| `EXTERNAL_INPUT_REQUIRED` | `TRUE` |", 1)
-        cps = cps.replace("| `PROGRAM_TERMINAL_CLASS` | `NONE` |", "| `PROGRAM_TERMINAL_CLASS` | `REAL_WORLD_LIMIT` |", 1)
-        result = self.lib.capability_dependency_consistency(cps)
-        self.assertIn("ready_frontier_stopped_program", result["errors"])
+        cps = cps.replace("| `OMP_CONTINUATION_REQUIRED` | `FALSE` |", "| `OMP_CONTINUATION_REQUIRED` | `TRUE` |", 1)
+        result = self.lib.omp_self_continuation_consistency(cps)
+        self.assertIn("omp_external_boundary_continuation_conflict", result["errors"])
 
 
 if __name__ == "__main__":

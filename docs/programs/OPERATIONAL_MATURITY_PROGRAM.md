@@ -13,8 +13,8 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed closure evidence: `docs/reports/engineering/2026-07-12_193308_dependency_graph_completion_order_protection.md` (`OMP_DEPENDENCY_GRAPH_COMPLETION_ORDER_CERTIFIED`).
-Previous consumed closure evidence: `docs/reports/engineering/2026-07-12_180336_movement_protection_real_world_evidence_recheck.md` (`MOVEMENT_PROTECTION_REAL_WORLD_LIMIT_RECONFIRMED`).
+Latest consumed closure evidence: `docs/reports/engineering/2026-07-12_200149_cap_u07_learning_outcome_consumption.md` (`CAP_U07_LEARNING_OUTCOME_CONSUMED_REAL_WORLD_LIMIT`).
+Previous consumed closure evidence: `docs/reports/engineering/2026-07-12_193308_dependency_graph_completion_order_protection.md` (`OMP_DEPENDENCY_GRAPH_COMPLETION_ORDER_CERTIFIED`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -7642,8 +7642,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `NONE`
-Resolved current next action: `EXECUTE_CAP_U07_LEARNING_OUTCOME_CONSUMPTION`
+Resolved current stop: `REAL_WORLD_LIMIT`
+Resolved current next action: `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES`
 Resolved packet: `NONE_OPEN`
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -8630,10 +8630,10 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `NONE`
-Resolved current next action: `EXECUTE_CAP_U07_LEARNING_OUTCOME_CONSUMPTION`
-Latest consumed report: `docs/reports/engineering/2026-07-12_193308_dependency_graph_completion_order_protection.md`
-Previous consumed report: `docs/reports/engineering/2026-07-12_180336_movement_protection_real_world_evidence_recheck.md`
+Resolved current stop: `REAL_WORLD_LIMIT`
+Resolved current next action: `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES`
+Latest consumed report: `docs/reports/engineering/2026-07-12_200149_cap_u07_learning_outcome_consumption.md`
+Previous consumed report: `docs/reports/engineering/2026-07-12_193308_dependency_graph_completion_order_protection.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

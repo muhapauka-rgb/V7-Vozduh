@@ -36,7 +36,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertNotEqual(self.validate(drift)["final_verdict"], "PASS")
 
     def test_02_operational_authority_with_stop_safe_projection_fails(self):
-        drift = self.cps.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT` |", "| `current_primary_stop` | `STOP_SAFE` |", 1)
+        drift = self.cps.replace("| `current_primary_stop` | `NONE` |", "| `current_primary_stop` | `STOP_SAFE` |", 1)
         self.assertIn("cps_current_stop_divergence", self.validate(drift)["errors"])
 
     def test_03_operational_authority_with_authority_required_no_fails(self):
@@ -44,7 +44,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertIn("cps_authority_required_not_policy_bounded", self.validate(drift)["errors"])
 
     def test_04_binding_certified_with_unresolved_cap_u01_drift_fails(self):
-        drift = self.cps.replace("owner-backed production evidence available", "bundle drifted twice", 1)
+        drift = self.cps.replace("READY_FRONTIER; U01 dependency complete", "bundle drifted twice", 1)
         result = self.validate(drift)
         self.assertIn("cps_active_capability_unresolved_binding_drift", result["errors"])
 
@@ -63,7 +63,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertIn("MISSION_ROLE_AMBIGUITY_STOP_SAFE", self.validate(drift)["errors"])
 
     def test_07_registry_stop_differs_from_section_zero_fails(self):
-        marker = "| `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT` |"
+        marker = "| `CURRENT_STOP_CONDITION` | `NONE` |"
         first = self.cps.find(marker)
         second = self.cps.find(marker, first + 1)
         drift = self.cps[:second] + self.cps[second:].replace(marker, "| `CURRENT_STOP_CONDITION` | `STOP_SAFE` |", 1)
@@ -71,15 +71,15 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
 
     def test_08_active_wip_next_action_differs_from_cap_u01_fails(self):
         drift = self.cps.replace(
-            "| `smallest_existing_next_action` | WAIT_FOR_QUALIFYING_REAL_WORLD_MOVEMENT_EVIDENCE; rerun Continue OMP only to recheck fresh owner evidence, never to force a mutation |",
+            "| `smallest_existing_next_action` | EXECUTE_CAP_U07_LEARNING_OUTCOME_CONSUMPTION; consume the certified U01 SUCCESS through existing Learning owners without synthetic evidence or Runtime mutation |",
             "| `smallest_existing_next_action` | diagnose binding owner |",
             1,
         )
         self.assertIn("cps_wip_active_capability_next_action_divergence", self.validate(drift)["errors"])
 
     def test_09_sequence_position_one_stop_differs_fails(self):
-        row = next(line for line in self.cps.splitlines() if line.startswith("| `1` | `U02` Movement Protection WIP"))
-        drift = self.cps.replace(row, row.replace("`REAL_WORLD_LIMIT`", "`STOP_SAFE`"), 1)
+        row = next(line for line in self.cps.splitlines() if line.startswith("| `1` | `U07` Learning READY frontier"))
+        drift = self.cps.replace(row, row.replace("| `NONE` |", "| `STOP_SAFE` |", 1), 1)
         self.assertIn("cps_sequence_position_1_divergence", self.validate(drift)["errors"])
 
     def test_10_explicit_historical_stale_values_pass(self):
@@ -88,7 +88,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
 
     def test_11_historical_binding_drift_does_not_affect_live_scheduling(self):
         self.assertIn("SUPERSEDED/HISTORICAL: SOURCE_SNAPSHOT_BUNDLE_DRIFT", self.cps)
-        self.assertEqual(self.validate(self.cps)["current_stop"], "REAL_WORLD_LIMIT")
+        self.assertEqual(self.validate(self.cps)["current_stop"], "NONE")
 
     def test_12_single_normalized_state_generates_all_live_projections(self):
         rendered = self.lib.build_normalized_cps_document(self.cps)
@@ -115,7 +115,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
             before = path.read_text(encoding="utf-8")
             def corrupt(written):
                 text = written.read_text(encoding="utf-8")
-                written.write_text(text.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT` |", "| `current_primary_stop` | `STOP_SAFE` |", 1), encoding="utf-8")
+                written.write_text(text.replace("| `current_primary_stop` | `NONE` |", "| `current_primary_stop` | `STOP_SAFE` |", 1), encoding="utf-8")
             result = self.lib.atomic_reconcile_cps(path, post_write_hook=corrupt)
             self.assertEqual(result["status"], "CPS_POST_WRITE_REREAD_FAILED_ROLLED_BACK")
             self.assertTrue(result["previous_state_preserved"])
@@ -146,7 +146,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertEqual(live["CONTROLLED_RUN_AUTHORITY_GENERATION"].strip("`"), "POLICY_SCOPED; NO_PACKET_SPECIFIC_AUTHORITY_REQUIRED")
         self.assertTrue(live["CONTROLLED_RUN_ROLLBACK_MANIFEST"].strip("`").startswith("NONE_OPEN"))
         self.assertTrue(live["CONTROLLED_RUN_EXECUTION_AUTHORIZED"].strip("`").startswith("NO_CURRENT_PACKET"))
-        self.assertTrue(live["PRODUCTION_RUNTIME_IMPACT"].strip("`").startswith("EVIDENCE_REFRESH_ONLY"))
+        self.assertTrue(live["PRODUCTION_RUNTIME_IMPACT"].strip("`").startswith("NONE"))
         self.assertTrue(live["USER_MOVEMENT"].strip("`").startswith("NO"))
         self.assertIn("state=OPEN", live["ADMIN_SAFE_MODE_LIVE_STATE"])
 
@@ -228,20 +228,20 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertEqual(registry["OPEN_ENGINEERING_INTENTS"].strip("`"), "21")
         self.assertNotIn("| `U01` |", open_intents)
 
-    def test_30_repeated_real_world_limit_is_current_u02_not_u01(self):
+    def test_30_real_world_limit_is_capability_local_waiting_not_program_terminal(self):
         stops = self.lib._markdown_section(
             self.cps,
             "### Authority, Reality And Safety Stops",
             "### Owner Revalidation Requirements And Contradictions",
         )
-        self.assertIn("Current U02 program terminal", stops)
+        self.assertIn("Capability-local WAITING boundary for CAP-U02/U05/U06", stops)
         self.assertNotIn("Current U01 program terminal", stops)
         self.assertIn("`SUPERSEDED/HISTORICAL`; U01 boundary", stops)
         live = self.lib._markdown_field_table(self.lib._markdown_section(
             self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry"
         ))
-        self.assertEqual(live["TRANSACTION_TERMINAL_CLASS"].strip("`"), "REVALIDATION_NO_PROGRESS")
-        self.assertEqual(live["NO_PROGRESS_FINGERPRINT"].strip("`"), "307ddb0b97fa51da0edfd2844cb84e6537a9049a6f9a777281e1ca9b7fee1d82")
+        self.assertEqual(live["PROGRAM_TERMINAL_CLASS"].strip("`"), "NONE")
+        self.assertEqual(live["NEXT_EXECUTABLE_CAPABILITY"].strip("`"), "CAP-U07")
 
 
 if __name__ == "__main__":

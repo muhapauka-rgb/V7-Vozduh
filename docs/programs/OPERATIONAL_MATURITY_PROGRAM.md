@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.17`
+Version: `4.18`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -13,12 +13,14 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed closure evidence: `docs/reports/engineering/2026-07-12_180336_movement_protection_real_world_evidence_recheck.md` (`MOVEMENT_PROTECTION_REAL_WORLD_LIMIT_RECONFIRMED`).
-Previous consumed closure evidence: `docs/reports/engineering/2026-07-12_173529_movement_protection_outcome_revalidation.md` (`MOVEMENT_PROTECTION_PARTIAL_REAL_WORLD_LIMIT`).
+Latest consumed closure evidence: `docs/reports/engineering/2026-07-12_193308_dependency_graph_completion_order_protection.md` (`OMP_DEPENDENCY_GRAPH_COMPLETION_ORDER_CERTIFIED`).
+Previous consumed closure evidence: `docs/reports/engineering/2026-07-12_180336_movement_protection_real_world_evidence_recheck.md` (`MOVEMENT_PROTECTION_REAL_WORLD_LIMIT_RECONFIRMED`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
 V4.17 adds the OMP Self-Continuation Contract: a transaction terminal closes only its transaction, while the existing Codex OMP execution consumer must continue the same Engineering Control Loop until a proven program terminal requires external input. It creates no daemon, queue, scheduler, Runtime, Planner, owner, or parallel execution path.
+
+V4.18 adds Dependency-Aware Continuation and Completion Order Protection inside the same OMP/CPS consumer. A capability-local wait is preserved with its owner, evidence, fingerprint and reentry condition, but becomes a program terminal only when no independent READY capability exists. Completion requires all declared dependencies plus Engineering Intent closure, verified consumer consumption, evidence consumption and CPS propagation. No scheduler, queue, graph engine, Planner, Runtime, lifecycle or owner is created.
 
 V4 operating questions:
 
@@ -7374,7 +7376,9 @@ Mission terminal
   -> Engineering Report
   -> atomic CPS update
   -> read fresh CURRENT_NEXT_ACTION_ID
-  -> reconcile unfinished capability registry
+  -> reconcile unfinished capability registry and dependency graph
+  -> classify WAITING and propagate BLOCKED_BY_DEPENDENCY
+  -> calculate READY execution frontier
   -> Root Cause Engine / Automation Gap Closure when intent remains open
   -> form and admit next Mission
   -> execute next Mission
@@ -7384,6 +7388,36 @@ Mission terminal
 Transaction terminal classes are `STOP_SAFE`, `ROLLBACK_SUCCESS`, `NO_EXECUTION`, safe verification failure, recoverable `BUG`, recoverable `OWNER_EXTENSION`, route-integrity failure, packet invalidation, and freshness/binding mismatch. They close only the current transaction and cannot return control to the operator when an existing-owner next action remains executable.
 
 Program terminal classes are `ENGINEERING_AUTHORITY`, `OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY`, `REAL_WORLD_LIMIT`, `FUNDAMENTAL_ARCHITECTURE_BOUNDARY`, unresolved external `SECURITY_OR_ACCESS_INPUT`, and irreducible `NON_DETERMINISTIC_DECISION`. They return control exactly once with the precise external input required.
+
+`REAL_WORLD_LIMIT` and other external boundaries are capability-local while another independent READY capability exists. `WAITING_EXTERNAL_DEPENDENCY` is not a program terminal by itself. OMP may continue only through READY capabilities whose required dependencies are `COMPLETED`; dependents remain `BLOCKED_BY_DEPENDENCY`.
+
+Dependency-aware continuation algorithm:
+
+```text
+load CPS capability graph
+  -> remove COMPLETED from executable work
+  -> preserve WAITING with owner/evidence/fingerprint/reentry
+  -> propagate BLOCKED_BY_DEPENDENCY
+  -> compute deterministic READY frontier
+  -> execute first READY capability through existing owners
+  -> validate completion order
+  -> update CPS and recalculate
+  -> stop only when READY frontier is empty and a proven program boundary remains
+```
+
+Canonical dependency states are `READY`, `WAITING_EXTERNAL_DEPENDENCY`, `BLOCKED_BY_DEPENDENCY`, `EXECUTING`, `COMPLETED`, `FAILED_REQUIRES_REPAIR`, and `BLOCKED_AUTHORITY`. Historical snapshots cannot contribute graph state. A WAITING capability must define a reentry condition and cannot create a Candidate, packet, Authority request or mutation.
+
+Completion is legal only when:
+
+```text
+ALL_DEPENDENCIES_COMPLETED
+AND INTENT_CLOSED
+AND CONSUMER_VERIFIED
+AND EVIDENCE_CONSUMED
+AND CPS_UPDATED
+```
+
+Required fail-closed results are `DEPENDENCY_NOT_COMPLETED`, `COMPLETION_ORDER_VIOLATION`, `INTENT_CHAIN_INCOMPLETE`, `CONSUMER_MISSING`, and `EVIDENCE_NOT_CONSUMED`.
 
 Required CPS machine fields:
 
@@ -7399,6 +7433,14 @@ PREMATURE_OPERATOR_RETURN
 CONTINUATION_ITERATION
 CONTINUATION_STOP_REASON
 NO_PROGRESS_FINGERPRINT
+DEPENDENCY_GRAPH_VERSION
+CURRENT_EXECUTION_FRONTIER
+WAITING_CAPABILITIES
+READY_CAPABILITIES
+BLOCKED_CAPABILITIES
+CONTINUATION_DECISION
+NEXT_EXECUTABLE_CAPABILITY
+PROGRAM_TERMINAL_STATE
 ```
 
 Fail-closed law:
@@ -7600,8 +7642,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `REAL_WORLD_LIMIT`
-Resolved current next action: `WAIT_FOR_QUALIFYING_REAL_WORLD_MOVEMENT_EVIDENCE`
+Resolved current stop: `NONE`
+Resolved current next action: `EXECUTE_CAP_U07_LEARNING_OUTCOME_CONSUMPTION`
 Resolved packet: `NONE_OPEN`
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -8588,10 +8630,10 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `REAL_WORLD_LIMIT`
-Resolved current next action: `WAIT_FOR_QUALIFYING_REAL_WORLD_MOVEMENT_EVIDENCE`
-Latest consumed report: `docs/reports/engineering/2026-07-12_180336_movement_protection_real_world_evidence_recheck.md`
-Previous consumed report: `docs/reports/engineering/2026-07-12_173529_movement_protection_outcome_revalidation.md`
+Resolved current stop: `NONE`
+Resolved current next action: `EXECUTE_CAP_U07_LEARNING_OUTCOME_CONSUMPTION`
+Latest consumed report: `docs/reports/engineering/2026-07-12_193308_dependency_graph_completion_order_protection.md`
+Previous consumed report: `docs/reports/engineering/2026-07-12_180336_movement_protection_real_world_evidence_recheck.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

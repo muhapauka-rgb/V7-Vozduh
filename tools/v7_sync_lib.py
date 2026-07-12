@@ -39,31 +39,31 @@ RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
 NORMALIZED_CPS_LIVE_STATE = {
     "active_program": "OMP",
     "current_mode": "BOUNDED_DELEGATED_AUTONOMY_ACTIVE",
-    "current_stop_condition": "REAL_WORLD_LIMIT",
-    "current_active_scope": "MOVEMENT_PROTECTION_PRODUCTION_EVIDENCE",
-    "current_safe_next_action": "WAIT FOR QUALIFYING FRESH MOVEMENT-PROTECTION EVIDENCE; RECHECK THROUGH CONTINUE OMP WITHOUT FORCING MUTATION",
-    "current_scope_class": "REAL_WORLD_EVIDENCE_BOUNDARY",
+    "current_stop_condition": "NONE",
+    "current_active_scope": "DEPENDENCY_AWARE_CAPABILITY_FRONTIER",
+    "current_safe_next_action": "EXECUTE CAP-U07 LEARNING OUTCOME CONSUMPTION THROUGH EXISTING OWNERS; PRESERVE WAITING CAP-U02/U05/U06",
+    "current_scope_class": "READY_EXECUTION_FRONTIER",
     "current_execution_mission_id": "NONE",
     "current_execution_mission_state": "NONE",
-    "latest_terminal_mission_id": "V7_OMP_MOVEMENT_PROTECTION_REAL_WORLD_EVIDENCE_RECHECK_V1",
-    "latest_terminal_run_nonce": "V7_MP_EVIDENCE_RECHECK_V1_C2230564BAE4",
-    "latest_terminal_mission_state": "MOVEMENT_PROTECTION_REAL_WORLD_LIMIT_RECONFIRMED",
-    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-12_180336_movement_protection_real_world_evidence_recheck.md",
-    "latest_terminal_mission_started_at": "2026-07-12T18:03:36+0700",
-    "previous_terminal_mission_id": "V7_OMP_MOVEMENT_PROTECTION_PRODUCTION_OUTCOME_REVALIDATION_V1",
-    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-12_173529_movement_protection_outcome_revalidation.md",
+    "latest_terminal_mission_id": "V7_OMP_DEPENDENCY_GRAPH_AND_COMPLETION_ORDER_PROTECTION_V1",
+    "latest_terminal_run_nonce": "V7_OMP_DEP_GRAPH_V1_4E8B72C91D63",
+    "latest_terminal_mission_state": "OMP_DEPENDENCY_GRAPH_COMPLETION_ORDER_CERTIFIED",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-12_193308_dependency_graph_completion_order_protection.md",
+    "latest_terminal_mission_started_at": "2026-07-12T19:33:08+0700",
+    "previous_terminal_mission_id": "V7_OMP_MOVEMENT_PROTECTION_REAL_WORLD_EVIDENCE_RECHECK_V1",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-12_180336_movement_protection_real_world_evidence_recheck.md",
     "authoritative_transition_input_mission_id": "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3",
     "authoritative_transition_input_state": "MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED",
     "authoritative_transition_input_report": "docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md",
     "current_mission_role": "LATEST_TERMINAL_MISSION",
-    "current_mission_id": "V7_OMP_MOVEMENT_PROTECTION_REAL_WORLD_EVIDENCE_RECHECK_V1",
-    "current_run_nonce": "V7_MP_EVIDENCE_RECHECK_V1_C2230564BAE4",
-    "current_mission_state": "MOVEMENT_PROTECTION_REAL_WORLD_LIMIT_RECONFIRMED",
-    "current_mission_report": "docs/reports/engineering/2026-07-12_180336_movement_protection_real_world_evidence_recheck.md",
-    "state_captured": "2026-07-12T18:03:36+0700",
-    "current_state_generation": "cpsgen_V7_MP_EVIDENCE_RECHECK_V1_C2230564BAE4",
-    "current_transition_id": "MOVEMENT_PROTECTION_REAL_WORLD_EVIDENCE_RECHECK_V1",
-    "current_next_action_id": "WAIT_FOR_QUALIFYING_REAL_WORLD_MOVEMENT_EVIDENCE",
+    "current_mission_id": "V7_OMP_DEPENDENCY_GRAPH_AND_COMPLETION_ORDER_PROTECTION_V1",
+    "current_run_nonce": "V7_OMP_DEP_GRAPH_V1_4E8B72C91D63",
+    "current_mission_state": "OMP_DEPENDENCY_GRAPH_COMPLETION_ORDER_CERTIFIED",
+    "current_mission_report": "docs/reports/engineering/2026-07-12_193308_dependency_graph_completion_order_protection.md",
+    "state_captured": "2026-07-12T19:33:08+0700",
+    "current_state_generation": "cpsgen_V7_OMP_DEP_GRAPH_V1_4E8B72C91D63",
+    "current_transition_id": "OMP_DEPENDENCY_GRAPH_COMPLETION_ORDER_PROTECTION_V1",
+    "current_next_action_id": "EXECUTE_CAP_U07_LEARNING_OUTCOME_CONSUMPTION",
     "binding_stability": "PASS",
     "binding_schema": "v7.operation-scoped-source-binding.v2",
     "routing_readiness_state": "PASS_CANDIDATE_SCOPED",
@@ -71,19 +71,27 @@ NORMALIZED_CPS_LIVE_STATE = {
     "current_action_class": "single-user governed candidate failover",
     "current_action_class_state": "GOVERNED_ONLY",
     "old_packets_reusable": "NO",
-    "active_wip": "CAP-U02-MOVEMENT-PROTECTION",
-    "active_capability_id": "CAP-U02",
-    "active_capability_progress": "PARTIAL_REVALIDATED_FROM_REAL_SUCCESS",
+    "active_wip": "CAP-U07-LEARNING",
+    "active_capability_id": "CAP-U07",
+    "active_capability_progress": "READY_FRONTIER; U01 dependency complete and real governed SUCCESS is available for owner consumption",
+    "dependency_graph_version": "v7.omp-capability-dependency-graph.v1",
+    "current_execution_frontier": "CAP-U07",
+    "waiting_capabilities": "CAP-U02,CAP-U05,CAP-U06",
+    "ready_capabilities": "CAP-U07",
+    "blocked_capabilities": "CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22",
+    "continuation_decision": "CONTINUE_READY_FRONTIER",
+    "next_executable_capability": "CAP-U07",
+    "program_terminal_state": "NONE_READY_FRONTIER_EXISTS",
     "cap_u01_completion_report": "docs/reports/engineering/2026-07-12_172534_exact_route_repair_and_first_governed_success.md",
-    "responsibility_class": "MOVEMENT_PROTECTION",
-    "last_responsible_link": "single-user governed success -> remaining U03/U04/U05/U06 production-class evidence -> full Movement Protection certification",
-    "smallest_existing_next_action": "WAIT_FOR_QUALIFYING_REAL_WORLD_MOVEMENT_EVIDENCE; rerun Continue OMP only to recheck fresh owner evidence, never to force a mutation",
+    "responsibility_class": "LEARNING",
+    "last_responsible_link": "real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence",
+    "smallest_existing_next_action": "EXECUTE_CAP_U07_LEARNING_OUTCOME_CONSUMPTION; consume the certified U01 SUCCESS through existing Learning owners without synthetic evidence or Runtime mutation",
     "current_class_outcome": "SUCCESS",
     "current_class_delta_closed": "YES",
     "current_class_outcome_evidence": "SUCCESS; 10.7.0.5 awg0 -> vless; global route verification PASS; feedback execfb_b287532347352c661799e985",
-    "verification_result": "PASS; owner refresh completed, no qualifying closure evidence found, global v7-user-route-check remains OK",
-    "rollback_result": "NOT_REQUIRED; no Runtime apply or user movement occurred in this recheck",
-    "learning_result": "NO_NEW_MATERIAL_OUTCOME; 102 fresh records are NO_EXECUTION and do not change accepted maturity",
+    "verification_result": "PASS; dependency graph, READY frontier, completion order and waiting-state validators certified",
+    "rollback_result": "NOT_REQUIRED; governance-only change with no Runtime apply or user movement",
+    "learning_result": "READY_FOR_EXISTING_OWNER_CONSUMPTION; certified U01 SUCCESS is the CAP-U07 input",
     "action_class_non_consumption_root_cause": "CLOSED; exact route integrity repaired and successful verified current-class outcome accepted",
     "action_class_promotion_evaluation": "NOT_REQUESTED; current action class remains GOVERNED_ONLY and no authority expansion is proposed",
     "action_class_exact_missing_delta": "NONE_FOR_CAP_U01; exact repair, global route verification and fresh governed SUCCESS are certified",
@@ -92,36 +100,36 @@ NORMALIZED_CPS_LIVE_STATE = {
     "certification_transaction_executed": "YES; exactly one fresh delegated transaction after exact route repair; mutation 1, verification PASS, rollback NOT_REQUIRED",
     "controlled_run_engineering_intent_closure": "INTENT_CLOSED; CAP-U01 certified from exact repair through governed SUCCESS, verification, learning and final OPEN",
     "production_maturity_decision": "PARTIAL_ACCEPT; CAP-U01 COMPLETE, CAP-U02 PARTIAL_REVALIDATED_FROM_REAL_SUCCESS, current action class remains GOVERNED_ONLY",
-    "production_runtime_impact": "EVIDENCE_REFRESH_ONLY; service, quality and intelligence snapshots updated; no Runtime apply or user movement",
+    "production_runtime_impact": "NONE; OMP/CPS continuation and validation semantics only",
     "routing_impact": "10.7.0.5, 10.7.0.32 and 10.7.0.38 use vless/tun0 with verified policy routes",
     "user_movement": "NO; current Mission performed evidence refresh and read-only revalidation only",
     "admin_safe_mode_live_state": "schema=v7.autonomous-execution-control.v2; state=OPEN; generation=aec_dda6c420c87e99e97236883c; reason=GOVERNED_TRANSACTION_COMPLETED",
-    "parent_engineering_intent": "INTENT_NOT_CLOSED; CAP-U01 closed and CAP-U02 is partial at a real-world evidence boundary",
-    "source_summary": "Movement Protection owner refresh and production recheck found no qualifying U03/U04/U05/U06 closure evidence; the existing real-world boundary remains valid.",
-    "automatic_continue_omp_result": "PROGRAM_TERMINAL_RECONFIRMED; repeated no-progress fingerprint retained after owner-backed evidence refresh",
-    "required_workflow": "wait for fresh qualifying evidence -> recheck U03/U04/U05/U06 owner outputs -> certify or retain PARTIAL -> resume deterministic sequence",
-    "omp_controlled_run_allowed": "NO_CURRENT_EXECUTION; real-world evidence must appear before another governed movement is justified",
+    "parent_engineering_intent": "INTENT_NOT_CLOSED; CAP-U02/U05/U06 are preserved WAITING while independent CAP-U07 is READY",
+    "source_summary": "Existing OMP dependency knowledge was materialized into the CPS graph; waiting capabilities no longer stop independent READY work.",
+    "automatic_continue_omp_result": "READY_FRONTIER_COMPUTED; CAP-U07 selected while CAP-U02/U05/U06 remain protected WAITING",
+    "required_workflow": "execute CAP-U07 through existing Learning owners -> recalculate dependency graph -> continue READY frontier or stop only when frontier is empty",
+    "omp_controlled_run_allowed": "NO_RUNTIME_EXECUTION; governance frontier selects CAP-U07 learning consumption only",
     "controlled_run_authority_required_now": "NO_INSIDE_APPROVED_POLICY",
     "controlled_run_execution_authorized": "NO_CURRENT_PACKET; no forced evidence generation or movement is authorized",
-    "wip_authority_required_now": "FALSE; current boundary is missing real-world evidence, not authority",
-    "sequence_execution_class": "read-only evidence wait and owner recheck",
-    "sequence_expected_output": "fresh qualifying production evidence -> U03/U04/U05/U06 owner consumption -> Movement Protection certification or exact remaining gap",
-    "completion_condition": "Movement Protection closes only after dependent Runtime, Authority, Rollback and Recovery production evidence is owner-certified",
+    "wip_authority_required_now": "FALSE; CAP-U07 consumes existing evidence without Authority or Runtime mutation",
+    "sequence_execution_class": "existing-owner learning consumption",
+    "sequence_expected_output": "certified U01 outcome -> Learning closure evidence -> CAP-U04/U08/U12/U17/U22 dependency recalculation",
+    "completion_condition": "Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass",
     "capabilities_inventoried": "34",
     "complete_or_locked_capabilities": "13",
     "unfinished_capabilities": "21",
     "open_engineering_intents": "21",
-    "omp_continuation_required": "FALSE",
-    "external_input_required": "TRUE",
-    "external_input_type": "REAL_WORLD_LIMIT",
-    "transaction_terminal_class": "REVALIDATION_NO_PROGRESS",
-    "program_terminal_class": "REAL_WORLD_LIMIT",
+    "omp_continuation_required": "TRUE",
+    "external_input_required": "FALSE",
+    "external_input_type": "NONE",
+    "transaction_terminal_class": "DEPENDENCY_GRAPH_CERTIFIED",
+    "program_terminal_class": "NONE",
     "next_mission_formed": "TRUE",
-    "next_mission_id": "V7_OMP_MOVEMENT_PROTECTION_REAL_WORLD_EVIDENCE_RECHECK_V2",
+    "next_mission_id": "V7_OMP_CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1",
     "premature_operator_return": "FALSE",
-    "continuation_iteration": "5",
-    "continuation_stop_reason": "QUALIFYING_MOVEMENT_PROTECTION_EVIDENCE_STILL_ABSENT_AFTER_OWNER_REFRESH",
-    "no_progress_fingerprint": "307ddb0b97fa51da0edfd2844cb84e6537a9049a6f9a777281e1ca9b7fee1d82",
+    "continuation_iteration": "6",
+    "continuation_stop_reason": "NONE_READY_FRONTIER_EXISTS",
+    "no_progress_fingerprint": "18b44a128761fda0235dce847c078cc7269519e6a41c1c73526c506f6fa33f6c",
 }
 
 
@@ -630,6 +638,14 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "CURRENT_STATE_GENERATION": f"`{state['current_state_generation']}`",
         "CURRENT_TRANSITION_ID": f"`{state['current_transition_id']}`",
         "CURRENT_NEXT_ACTION_ID": f"`{state['current_next_action_id']}`",
+        "DEPENDENCY_GRAPH_VERSION": f"`{state['dependency_graph_version']}`",
+        "CURRENT_EXECUTION_FRONTIER": f"`{state['current_execution_frontier']}`",
+        "WAITING_CAPABILITIES": f"`{state['waiting_capabilities']}`",
+        "READY_CAPABILITIES": f"`{state['ready_capabilities']}`",
+        "BLOCKED_CAPABILITIES": f"`{state['blocked_capabilities']}`",
+        "CONTINUATION_DECISION": f"`{state['continuation_decision']}`",
+        "NEXT_EXECUTABLE_CAPABILITY": f"`{state['next_executable_capability']}`",
+        "PROGRAM_TERMINAL_STATE": f"`{state['program_terminal_state']}`",
         "CURRENT_EXECUTION_MISSION_ID": f"`{state['current_execution_mission_id']}`",
         "CURRENT_EXECUTION_MISSION_STATE": f"`{state['current_execution_mission_state']}`",
         "LATEST_TERMINAL_MISSION_ID": f"`{state['latest_terminal_mission_id']}`",
@@ -801,12 +817,24 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
     if len(active_rows) != 1:
         raise ValueError("active_capability_missing_or_duplicate")
     active_row = (
-        "| `CAP-U02` | Movement Protection | OMP, Movement Protection Model, Runtime Model | `ACTIVE` | "
-        f"`{state['active_capability_progress']}`; owner-backed production evidence available | "
-        f"{state['last_responsible_link']} | `{state['current_stop_condition']}` | {state['smallest_existing_next_action']} | "
-        "U01 complete; unblocks U03/U04/U05/U06/U09 |"
+        "| `CAP-U07` | Learning | feedback/learning, OMP, Canonical Reference | `ACTIVE` | "
+        f"`{state['active_capability_progress']}` | {state['last_responsible_link']} | `NONE` | "
+        f"{state['smallest_existing_next_action']} | U01 complete; unblocks U04/U08/U09/U12/U17-U22 |"
     )
     cps_text = cps_text.replace(active_rows[0], active_row, 1)
+
+    waiting_u02_rows = [line for line in cap_section.splitlines() if line.startswith("| `CAP-U02` |")]
+    if len(waiting_u02_rows) != 1:
+        raise ValueError("waiting_cap_u02_missing_or_duplicate")
+    waiting_u02_row = (
+        "| `CAP-U02` | Movement Protection | OMP, Movement Protection Model, Runtime Model | "
+        "`WAITING_EXTERNAL_DEPENDENCY` | `PARTIAL_REVALIDATED_FROM_REAL_SUCCESS`; owner-backed evidence and "
+        "no-progress fingerprint preserved | single-user governed success -> U03/U04/U05/U06 production-class "
+        "evidence -> full Movement Protection certification | `REAL_WORLD_LIMIT` | "
+        "WAIT_FOR_QUALIFYING_REAL_WORLD_MOVEMENT_EVIDENCE; no Candidate, packet, Authority request or forced mutation | "
+        "U03/U04/U05/U06 completion; unblocks U09 |"
+    )
+    cps_text = cps_text.replace(waiting_u02_rows[0], waiting_u02_row, 1)
 
     intents_section = _markdown_section(
         cps_text,
@@ -824,9 +852,9 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
     if len(rows) != 1:
         raise ValueError("sequence_position_1_missing_or_duplicate")
     row = (
-        f"| `1` | `U02` Movement Protection WIP; `{state['current_state_generation']}`; `{state['current_transition_id']}` | "
-        "U01 repair and successful outcome certified; completion-first registry advances to existing Movement Protection owner | "
-        f"`{state['current_next_action_id']}` | {state['sequence_execution_class']} | `{state['current_stop_condition']}` | "
+        f"| `1` | `U07` Learning READY frontier; `{state['current_state_generation']}`; `{state['current_transition_id']}` | "
+        "U01 is COMPLETE; U07 is independent of waiting U02/U05/U06 and all required dependencies are complete | "
+        f"`{state['current_next_action_id']}` | {state['sequence_execution_class']} | `NONE` | "
         f"{state['sequence_expected_output']} |"
     )
     cps_text = cps_text.replace(rows[0], row, 1)
@@ -867,8 +895,8 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "`dap_default_tier1_readonly`; not current and not reusable. |"
     )
     real_world_row = (
-        "| `REAL_WORLD_LIMIT` | Current U02 program terminal: qualifying U03/U04/U05/U06 production evidence remains "
-        "absent after owner-backed service, quality, snapshot, Runtime and Recovery revalidation. |"
+        "| `REAL_WORLD_LIMIT` | Capability-local WAITING boundary for CAP-U02/U05/U06; it becomes a program terminal "
+        "only when the READY execution frontier is empty. |"
     )
     cps_text = cps_text.replace(operational_rows[0], operational_row, 1)
     return cps_text.replace(real_world_rows[0], real_world_row, 1)
@@ -1064,6 +1092,204 @@ def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -
     }
 
 
+def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
+    """Validate the CPS-owned dependency graph and derive the executable frontier."""
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    graph = _markdown_section(
+        cps_text,
+        "### Capability Dependency Graph And Execution Frontier",
+        "### Owner Revalidation Requirements And Contradictions",
+    )
+    completed_section = _markdown_section(
+        cps_text,
+        "### Complete Or Locked Capability Records",
+        "### Unfinished Capability Closure Records",
+    )
+    unfinished_section = _markdown_section(
+        cps_text,
+        "### Unfinished Capability Closure Records",
+        "### Open Engineering Intents And Last Responsible Links",
+    )
+    errors: list[str] = []
+    if not graph:
+        errors.append("capability_dependency_graph_missing")
+
+    completed_ids = {
+        match.group(1)
+        for line in completed_section.splitlines()
+        if (match := re.match(r"\| `(CAP-[CU]\d+)` \|", line))
+    }
+    unfinished_ids = {
+        match.group(1)
+        for line in unfinished_section.splitlines()
+        if (match := re.match(r"\| `(CAP-U\d+)` \|", line))
+    }
+    expected_ids = {item for item in completed_ids | unfinished_ids if item.startswith("CAP-U")}
+    rows: dict[str, dict[str, Any]] = {}
+    for line in graph.splitlines():
+        if not re.match(r"\| `CAP-U\d+` \|", line):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) != 12:
+            errors.append("dependency_graph_row_shape_invalid")
+            continue
+        capability_id = cells[0].strip("`")
+        if capability_id in rows:
+            errors.append(f"dependency_graph_duplicate:{capability_id}")
+            continue
+        rows[capability_id] = {
+            "state": cells[1].strip("`"),
+            "engineering_intent": cells[2],
+            "producer_consumer": cells[3],
+            "dependencies": set(re.findall(r"CAP-U\d+", cells[4])),
+            "blocks": set(re.findall(r"CAP-U\d+", cells[5])),
+            "does_not_block": set(re.findall(r"CAP-U\d+", cells[6])),
+            "block_reason": cells[7],
+            "reentry": cells[8],
+            "execution_allowed": cells[9].strip("`"),
+            "completion_allowed": cells[10].strip("`"),
+            "completion_rule": cells[11].strip("`"),
+            "raw": line,
+        }
+
+    graph_ids = set(rows)
+    for missing in sorted(expected_ids - graph_ids):
+        errors.append(f"dependency_graph_capability_missing:{missing}")
+    for extra in sorted(graph_ids - expected_ids):
+        errors.append(f"dependency_graph_unknown_capability:{extra}")
+
+    valid_states = {
+        "READY",
+        "WAITING_EXTERNAL_DEPENDENCY",
+        "BLOCKED_BY_DEPENDENCY",
+        "EXECUTING",
+        "COMPLETED",
+        "FAILED_REQUIRES_REPAIR",
+        "BLOCKED_AUTHORITY",
+    }
+    completion_rule = "ALL_DEPENDENCIES_COMPLETED+INTENT_CLOSED+CONSUMER_VERIFIED+EVIDENCE_CONSUMED+CPS_UPDATED"
+    ready: list[str] = []
+    waiting: list[str] = []
+    blocked: list[str] = []
+    dependency_violations: list[str] = []
+    completion_violations: list[str] = []
+    for capability_id, row in sorted(rows.items()):
+        state = row["state"]
+        dependencies = row["dependencies"]
+        unknown_dependencies = dependencies - graph_ids
+        if state not in valid_states:
+            errors.append(f"dependency_state_invalid:{capability_id}")
+        if unknown_dependencies:
+            dependency_violations.append(f"dependency_unknown:{capability_id}")
+        incomplete_dependencies = {
+            item for item in dependencies
+            if rows.get(item, {}).get("state") != "COMPLETED"
+        }
+        if row["completion_rule"] != completion_rule:
+            completion_violations.append(f"completion_rule_invalid:{capability_id}")
+        if "ALL_DEPENDENCIES_COMPLETED" not in row["completion_rule"]:
+            completion_violations.append(f"DEPENDENCY_NOT_COMPLETED:{capability_id}")
+        if "INTENT_CLOSED" not in row["completion_rule"]:
+            completion_violations.append(f"INTENT_CHAIN_INCOMPLETE:{capability_id}")
+        if "CONSUMER_VERIFIED" not in row["completion_rule"]:
+            completion_violations.append(f"CONSUMER_MISSING:{capability_id}")
+        if "EVIDENCE_CONSUMED" not in row["completion_rule"]:
+            completion_violations.append(f"EVIDENCE_NOT_CONSUMED:{capability_id}")
+        if "CPS_UPDATED" not in row["completion_rule"]:
+            completion_violations.append(f"CPS_UPDATE_MISSING:{capability_id}")
+        if state == "COMPLETED":
+            if incomplete_dependencies:
+                completion_violations.append(f"DEPENDENCY_NOT_COMPLETED:{capability_id}")
+            if row["completion_allowed"] != "YES":
+                completion_violations.append(f"completion_not_allowed_for_completed:{capability_id}")
+            continue
+        if row["completion_allowed"] == "YES":
+            completion_violations.append(f"COMPLETION_ORDER_VIOLATION:{capability_id}")
+        if state == "READY":
+            ready.append(capability_id)
+            if incomplete_dependencies or row["execution_allowed"] != "YES":
+                dependency_violations.append(f"ready_with_incomplete_dependency:{capability_id}")
+        elif state == "WAITING_EXTERNAL_DEPENDENCY":
+            waiting.append(capability_id)
+            if row["execution_allowed"] != "NO":
+                dependency_violations.append(f"waiting_execution_allowed:{capability_id}")
+            if not row["reentry"] or row["reentry"].strip("`").upper() in {"NONE", "UNKNOWN"}:
+                dependency_violations.append(f"waiting_reentry_missing:{capability_id}")
+            lowered = row["raw"].lower()
+            if "create packet" in lowered or "request authority" in lowered:
+                dependency_violations.append(f"waiting_mutation_path_present:{capability_id}")
+        elif state in {"BLOCKED_BY_DEPENDENCY", "BLOCKED_AUTHORITY", "FAILED_REQUIRES_REPAIR"}:
+            blocked.append(capability_id)
+            if state == "BLOCKED_BY_DEPENDENCY" and not incomplete_dependencies:
+                dependency_violations.append(f"blocked_without_incomplete_dependency:{capability_id}")
+            if row["execution_allowed"] != "NO":
+                dependency_violations.append(f"blocked_execution_allowed:{capability_id}")
+        elif state == "EXECUTING":
+            if incomplete_dependencies or row["execution_allowed"] != "YES":
+                dependency_violations.append(f"executing_with_incomplete_dependency:{capability_id}")
+
+    if rows.get("CAP-U02", {}).get("state") != "WAITING_EXTERNAL_DEPENDENCY":
+        dependency_violations.append("cap_u02_not_waiting_external_dependency")
+    if rows.get("CAP-U01", {}).get("state") != "COMPLETED":
+        completion_violations.append("cap_u01_not_completed")
+
+    expected_projection = {
+        "DEPENDENCY_GRAPH_VERSION": "v7.omp-capability-dependency-graph.v1",
+        "CURRENT_EXECUTION_FRONTIER": ",".join(ready) or "NONE",
+        "WAITING_CAPABILITIES": ",".join(waiting) or "NONE",
+        "READY_CAPABILITIES": ",".join(ready) or "NONE",
+        "BLOCKED_CAPABILITIES": ",".join(blocked) or "NONE",
+        "NEXT_EXECUTABLE_CAPABILITY": ready[0] if ready else "NONE",
+    }
+    for key, expected in expected_projection.items():
+        if live.get(key, "").strip("`") != expected:
+            errors.append(f"dependency_frontier_projection_divergence:{key}")
+
+    continuation = live.get("OMP_CONTINUATION_REQUIRED", "").strip("`")
+    external = live.get("EXTERNAL_INPUT_REQUIRED", "").strip("`")
+    program_terminal = live.get("PROGRAM_TERMINAL_CLASS", "").strip("`")
+    continuation_decision = live.get("CONTINUATION_DECISION", "").strip("`")
+    program_terminal_state = live.get("PROGRAM_TERMINAL_STATE", "").strip("`")
+    premature_program_stop = False
+    if ready:
+        if continuation != "TRUE" or external != "FALSE" or program_terminal != "NONE":
+            premature_program_stop = True
+            errors.append("ready_frontier_stopped_program")
+        if continuation_decision != "CONTINUE_READY_FRONTIER":
+            errors.append("ready_frontier_continuation_decision_invalid")
+        if program_terminal_state != "NONE_READY_FRONTIER_EXISTS":
+            errors.append("program_terminal_state_invalid_with_ready_frontier")
+
+    errors.extend(dependency_violations)
+    errors.extend(completion_violations)
+    unique = sorted(set(errors))
+    return {
+        "schema": "v7-omp-capability-dependency-consistency/v1",
+        "dependency_graph_version": live.get("DEPENDENCY_GRAPH_VERSION", "").strip("`"),
+        "dependency_graph_consistency": "PASS" if not dependency_violations and not any("dependency_graph" in item for item in unique) else "FAIL",
+        "execution_frontier_validity": "PASS" if not any("frontier" in item or "execution_allowed" in item for item in unique) else "FAIL",
+        "completion_order_consistency": "PASS" if not completion_violations else "FAIL",
+        "waiting_state_consistency": "PASS" if not any("waiting" in item for item in unique) else "FAIL",
+        "program_terminal_validity": "PASS" if not premature_program_stop else "FAIL",
+        "premature_program_stop": premature_program_stop,
+        "capability_count": len(rows),
+        "waiting_capabilities": waiting,
+        "ready_capabilities": ready,
+        "blocked_capabilities": blocked,
+        "execution_frontier": ready,
+        "blocked_dependency_count": len(blocked),
+        "ready_capability_count": len(ready),
+        "dependency_violation_count": len(set(dependency_violations)),
+        "completion_order_violation_count": len(set(completion_violations)),
+        "final_verdict": "PASS" if not unique else "NO-GO",
+        "errors": unique,
+    }
+
+
 def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
     """Fail closed when a transaction terminal is returned as a program terminal."""
     live = _markdown_field_table(_markdown_section(
@@ -1239,6 +1465,14 @@ def cps_live_state_consistency(
         "CERTIFICATION_TRANSACTION_EXECUTED": normalized["certification_transaction_executed"],
         "CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE": normalized["controlled_run_engineering_intent_closure"],
         "PARENT_ENGINEERING_INTENT": normalized["parent_engineering_intent"],
+        "DEPENDENCY_GRAPH_VERSION": normalized["dependency_graph_version"],
+        "CURRENT_EXECUTION_FRONTIER": normalized["current_execution_frontier"],
+        "WAITING_CAPABILITIES": normalized["waiting_capabilities"],
+        "READY_CAPABILITIES": normalized["ready_capabilities"],
+        "BLOCKED_CAPABILITIES": normalized["blocked_capabilities"],
+        "CONTINUATION_DECISION": normalized["continuation_decision"],
+        "NEXT_EXECUTABLE_CAPABILITY": normalized["next_executable_capability"],
+        "PROGRAM_TERMINAL_STATE": normalized["program_terminal_state"],
         "OMP_CONTINUATION_REQUIRED": normalized["omp_continuation_required"],
         "EXTERNAL_INPUT_REQUIRED": normalized["external_input_required"],
         "EXTERNAL_INPUT_TYPE": normalized["external_input_type"],
@@ -1473,6 +1707,8 @@ def cps_live_state_consistency(
     errors.extend(delegated_live_state["contradiction_ids"])
     self_continuation = omp_self_continuation_consistency(cps_text)
     errors.extend(self_continuation["errors"])
+    dependency_consistency = capability_dependency_consistency(cps_text)
+    errors.extend(dependency_consistency["errors"])
     unique_errors = sorted(set(errors))
     stale_ids = [
         item for item in unique_errors
@@ -1498,6 +1734,7 @@ def cps_live_state_consistency(
         "deterministic_sequence_consistency": delegated_live_state["deterministic_sequence_consistency"],
         "omp_self_continuation_consistency": self_continuation["final_verdict"],
         "premature_operator_return_validator": self_continuation["premature_operator_return_validator"],
+        **{key: value for key, value in dependency_consistency.items() if key not in {"schema", "final_verdict", "errors"}},
         "registry_sequence_consistency": "PASS" if not any("sequence" in item or "cap_u01" in item or "active_capability" in item or "next_action" in item for item in unique_errors) else "FAIL",
         "mission_identity_consistency": mission_identity_consistency,
         **{key: value for key, value in mission_roles.items() if key not in {"schema", "final_verdict", "errors", "mission_identity_consistency"}},

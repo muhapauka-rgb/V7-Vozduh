@@ -24,8 +24,8 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         cls.lib = load_lib()
         cls.cps = CPS.read_text(encoding="utf-8")
         cls.omp = OMP.read_text(encoding="utf-8")
-        cls.latest = "V7_OMP_MOVEMENT_PROTECTION_REAL_WORLD_EVIDENCE_RECHECK_V1"
-        cls.previous = "V7_OMP_MOVEMENT_PROTECTION_PRODUCTION_OUTCOME_REVALIDATION_V1"
+        cls.latest = "V7_OMP_DEPENDENCY_GRAPH_AND_COMPLETION_ORDER_PROTECTION_V1"
+        cls.previous = "V7_OMP_MOVEMENT_PROTECTION_REAL_WORLD_EVIDENCE_RECHECK_V1"
         cls.transition = "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3"
 
     def validate(self, cps=None, omp=None, root=ROOT):
@@ -42,7 +42,7 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
     def temp_root_with_report(self, first, second):
         tmp = tempfile.TemporaryDirectory()
         root = Path(tmp.name)
-        report = root / "docs/reports/engineering/2026-07-12_180336_movement_protection_real_world_evidence_recheck.md"
+        report = root / "docs/reports/engineering/2026-07-12_193308_dependency_graph_completion_order_protection.md"
         report.parent.mkdir(parents=True)
         report.write_text(f"{first}\n{second}\n", encoding="utf-8")
         return tmp, root
@@ -80,11 +80,11 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         self.assertEqual(self.validate(drift)["cps_header_identity_consistency"], "FAIL")
 
     def test_09_header_timestamp_predates_latest_start_fails(self):
-        drift = self.cps.replace("State captured: 2026-07-12T18:03:36+0700", "State captured: 2026-07-12T02:00:00+0700", 1)
+        drift = self.cps.replace("State captured: 2026-07-12T19:33:08+0700", "State captured: 2026-07-12T02:00:00+0700", 1)
         self.assertEqual(self.validate(drift)["mission_timestamp_consistency"], "FAIL")
 
     def test_10_latest_report_header_id_mismatch_fails(self):
-        tmp, root = self.temp_root_with_report("Mission ID: `OLD`", "Run Nonce: `V7_MP_EVIDENCE_RECHECK_V1_C2230564BAE4`")
+        tmp, root = self.temp_root_with_report("Mission ID: `OLD`", "Run Nonce: `V7_OMP_DEP_GRAPH_V1_4E8B72C91D63`")
         try:
             self.assertIn("latest_terminal_report_mission_id_mismatch", self.validate(root=root)["mission_identity_contradiction_ids"])
         finally:
@@ -98,7 +98,7 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
             tmp.cleanup()
 
     def test_12_omp_latest_closure_pointer_mismatch_fails(self):
-        drift = self.omp.replace("docs/reports/engineering/2026-07-12_180336_movement_protection_real_world_evidence_recheck.md", "docs/reports/engineering/stale.md", 1)
+        drift = self.omp.replace("docs/reports/engineering/2026-07-12_193308_dependency_graph_completion_order_protection.md", "docs/reports/engineering/stale.md", 1)
         self.assertEqual(self.validate(omp=drift)["mission_report_pointer_consistency"], "FAIL")
 
     def test_13_omp_transition_input_pointer_mismatch_fails(self):
@@ -129,8 +129,8 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
 
     def test_19_operational_state_is_bounded_policy_active(self):
         live = self.lib._markdown_field_table(self.lib._markdown_section(self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry"))
-        self.assertEqual(live["CURRENT_STOP_CONDITION"].strip("`"), "REAL_WORLD_LIMIT")
-        self.assertEqual(live["CURRENT_ACTIVE_SCOPE"].strip("`"), "MOVEMENT_PROTECTION_PRODUCTION_EVIDENCE")
+        self.assertEqual(live["CURRENT_STOP_CONDITION"].strip("`"), "NONE")
+        self.assertEqual(live["CURRENT_ACTIVE_SCOPE"].strip("`"), "DEPENDENCY_AWARE_CAPABILITY_FRONTIER")
         self.assertEqual(live["CURRENT_ACTION_CLASS_STATE"].strip("`"), "GOVERNED_ONLY")
 
     def test_20_no_candidate_packet_lease_barrier_apply_or_movement(self):
@@ -140,15 +140,15 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         self.assertTrue(live["CONTROLLED_RUN_EXECUTION_AUTHORIZED"].strip("`").startswith("NO_CURRENT_PACKET"))
         self.assertTrue(live["USER_MOVEMENT"].strip("`").startswith("NO"))
 
-    def test_21_cap_u01_complete_and_u02_is_sequence_position_one(self):
+    def test_21_cap_u01_complete_and_u07_is_sequence_position_one(self):
         result = self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)
         self.assertIn("`CAP-U01`", result["cap_u01"])
         self.assertIn("`COMPLETE`", result["cap_u01"])
-        self.assertIn("`CAP-U02`", result["active_capability"])
-        self.assertIn("`U02` Movement Protection WIP", result["sequence_position_1"])
+        self.assertIn("`CAP-U07`", result["active_capability"])
+        self.assertIn("`U07` Learning READY frontier", result["sequence_position_1"])
 
     def test_22_current_stop_is_live_reality_only(self):
-        self.assertEqual(self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)["current_stop"], "REAL_WORLD_LIMIT")
+        self.assertEqual(self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)["current_stop"], "NONE")
 
     def test_23_omp_historical_isolation_remains_pass(self):
         self.assertEqual(self.lib.omp_live_state_consistency(self.cps, self.omp)["omp_historical_isolation"], "PASS")

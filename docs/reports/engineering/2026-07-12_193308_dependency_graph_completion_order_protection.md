@@ -68,8 +68,11 @@ PREMATURE_OPERATOR_RETURN = FALSE
 - full tests: `873/873 PASS`;
 - compile/import: `PASS` with isolated writable bytecode cache;
 - diff check: `PASS`;
-- deploy: pending;
-- truth/convergence: pending.
+- deploy: `PASS`; only existing validator consumer `/usr/local/bin/v7_sync_lib.py` changed; deploy `deploy-z8-14-Updatesystem-4e31d3e-20260712T194638`;
+- truth: `PASS`, `FULLY_ALIGNED`, CPS `PASS`, blockers `0`;
+- convergence: `PASS`, `ALIGNED`, deploy delta mismatches `0`;
+- production route integrity: `V7_USER_ROUTE_CHECK=OK`;
+- final Safe Mode: `OPEN`, generation `aec_dda6c420c87e99e97236883c`.
 
 No Runtime apply, routing mutation, user movement, Candidate, packet, Authority expansion, threshold change or safety-gate weakening is part of this Mission.
 

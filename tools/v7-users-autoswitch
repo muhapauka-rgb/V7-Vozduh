@@ -8705,18 +8705,23 @@ class AutoswitchPlanner:
             return {"applied": False, "reason": "autonomous_execution_control_stop_safe", "execution_control": entry_control}
         envelope = (plan.get("safety") or {}).get("atomic_execution_envelope") or {}
         approved_binding_mismatches = []
+        operation_binding: dict[str, Any] = {}
         if entry_control.get("scope") == "operation":
+            operation_binding = self._operation_scoped_source_binding(plan)
             if str(getattr(self.args, "approved_selected_move_hash", "") or "") != selected_hash:
                 approved_binding_mismatches.append("selected_move_hash")
-            if str(getattr(self.args, "approved_source_bundle_hash", "") or "") != str(envelope.get("source_bundle_hash") or ""):
+            if operation_binding.get("status") != "BOUND":
+                approved_binding_mismatches.append("operation_scoped_binding")
+            if str(getattr(self.args, "approved_source_bundle_hash", "") or "") != str(operation_binding.get("source_bundle_hash") or ""):
                 approved_binding_mismatches.append("source_bundle_hash")
-            if str(getattr(self.args, "approved_snapshot_bundle_hash", "") or "") != str(envelope.get("snapshot_bundle_hash") or ""):
+            if str(getattr(self.args, "approved_snapshot_bundle_hash", "") or "") != str(operation_binding.get("snapshot_bundle_hash") or ""):
                 approved_binding_mismatches.append("snapshot_bundle_hash")
         if approved_binding_mismatches:
             return {
                 "applied": False,
                 "reason": "approved_controlled_window_binding_mismatch",
                 "binding_mismatches": approved_binding_mismatches,
+                "operation_scoped_binding": operation_binding,
                 "execution_control": entry_control,
             }
         atomic_validation = self._validate_atomic_execution_envelope(plan)

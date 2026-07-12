@@ -259,6 +259,100 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(decision.call_args_list[0].kwargs["operation_id"], "packet-operation-id")
         self.assertEqual(decision.call_args_list[1].kwargs["operation_id"], "packet-operation-id")
 
+    def test_operation_controlled_window_consumes_operation_scoped_binding(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            args = self.args_for(root, [
+                "--apply", "--no-verify", "--max-selected-moves", "1",
+                "--approved-operation-id", "packet-operation-id",
+                "--approved-selected-move-hash", "hash-one",
+                "--approved-source-bundle-hash", "operation-source-hash",
+                "--approved-snapshot-bundle-hash", "operation-snapshot-hash",
+            ])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = {
+                "enabled": True,
+                "mode": "guarded",
+                "operation": {"operation_id": "runtime-operation-id", "selected_move_hash": "hash-one"},
+                "selected_moves": [
+                    {"user_ip": "10.0.0.2", "current_egress": "1", "recommended_egress": "vless", "move_type": "failover"},
+                ],
+                "summary": {"selected_moves": 1},
+                "safety": {
+                    "atomic_execution_envelope": {
+                        "source_bundle_hash": "generic-source-hash",
+                        "snapshot_bundle_hash": "generic-snapshot-hash",
+                    },
+                },
+            }
+            allowed = {
+                "allowed": True,
+                "allowed_forward_mutation": True,
+                "generation": "control-generation",
+                "scope": "operation",
+            }
+            operation_binding = {
+                "status": "BOUND",
+                "source_bundle_hash": "operation-source-hash",
+                "snapshot_bundle_hash": "operation-snapshot-hash",
+            }
+            with mock.patch.object(planner, "_execution_control_decision", return_value=allowed), mock.patch.object(
+                planner, "_operation_scoped_source_binding", return_value=operation_binding,
+            ), mock.patch.object(
+                planner, "_validate_atomic_execution_envelope", return_value={"ok": True},
+            ), mock.patch.object(
+                planner, "_run_switch", return_value=subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok", stderr=""),
+            ) as switch:
+                result = planner.apply(plan)
+
+        self.assertTrue(result["applied"])
+        switch.assert_called_once()
+
+    def test_operation_controlled_window_rejects_generic_envelope_hashes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            args = self.args_for(root, [
+                "--apply", "--no-verify", "--max-selected-moves", "1",
+                "--approved-operation-id", "packet-operation-id",
+                "--approved-selected-move-hash", "hash-one",
+                "--approved-source-bundle-hash", "generic-source-hash",
+                "--approved-snapshot-bundle-hash", "generic-snapshot-hash",
+            ])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = {
+                "enabled": True,
+                "mode": "guarded",
+                "operation": {"operation_id": "runtime-operation-id", "selected_move_hash": "hash-one"},
+                "selected_moves": [
+                    {"user_ip": "10.0.0.2", "current_egress": "1", "recommended_egress": "vless", "move_type": "failover"},
+                ],
+                "summary": {"selected_moves": 1},
+                "safety": {"atomic_execution_envelope": {}},
+            }
+            allowed = {
+                "allowed": True,
+                "allowed_forward_mutation": True,
+                "generation": "control-generation",
+                "scope": "operation",
+            }
+            operation_binding = {
+                "status": "BOUND",
+                "source_bundle_hash": "operation-source-hash",
+                "snapshot_bundle_hash": "operation-snapshot-hash",
+            }
+            with mock.patch.object(planner, "_execution_control_decision", return_value=allowed), mock.patch.object(
+                planner, "_operation_scoped_source_binding", return_value=operation_binding,
+            ), mock.patch.object(planner, "_run_switch") as switch:
+                result = planner.apply(plan)
+
+        self.assertFalse(result["applied"])
+        self.assertEqual(result["reason"], "approved_controlled_window_binding_mismatch")
+        self.assertEqual(result["binding_mismatches"], ["source_bundle_hash", "snapshot_bundle_hash"])
+        self.assertEqual(result["operation_scoped_binding"], operation_binding)
+        switch.assert_not_called()
+
     def test_execution_control_generation_change_stops_remaining_batch(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

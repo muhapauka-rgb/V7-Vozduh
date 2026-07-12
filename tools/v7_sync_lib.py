@@ -39,65 +39,89 @@ RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
 NORMALIZED_CPS_LIVE_STATE = {
     "active_program": "OMP",
     "current_mode": "BOUNDED_DELEGATED_AUTONOMY_ACTIVE",
-    "current_stop_condition": "OPERATIONAL_AUTHORITY",
-    "current_active_scope": "EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR",
-    "current_safe_next_action": "APPROVE OR REJECT ONE-TIME EXACT TWO-USER SERIAL ROUTE-INTEGRITY REPAIR; NO MUTATION BEFORE AUTHORITY",
-    "current_scope_class": "OUTSIDE_ACTIVE_DELEGATED_POLICY",
+    "current_stop_condition": "REAL_WORLD_LIMIT",
+    "current_active_scope": "MOVEMENT_PROTECTION_PRODUCTION_EVIDENCE",
+    "current_safe_next_action": "WAIT FOR QUALIFYING FRESH MOVEMENT-PROTECTION EVIDENCE; RECHECK THROUGH CONTINUE OMP WITHOUT FORCING MUTATION",
+    "current_scope_class": "REAL_WORLD_EVIDENCE_BOUNDARY",
     "current_execution_mission_id": "NONE",
     "current_execution_mission_state": "NONE",
-    "latest_terminal_mission_id": "V7_OMP_ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1",
-    "latest_terminal_run_nonce": "V7_ROUTE_REPAIR_AUTH_BOUNDARY_V1_A7086B0D3E7B",
-    "latest_terminal_mission_state": "OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY",
-    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-12_162427_route_integrity_repair_authority_boundary.md",
-    "latest_terminal_mission_started_at": "2026-07-12T16:24:27+0700",
-    "previous_terminal_mission_id": "V7_OMP_SELF_CONTINUATION_AND_PREMATURE_OPERATOR_RETURN_CLOSURE_V1",
-    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-12_162200_omp_self_continuation_and_premature_operator_return_closure.md",
+    "latest_terminal_mission_id": "V7_OMP_MOVEMENT_PROTECTION_PRODUCTION_OUTCOME_REVALIDATION_V1",
+    "latest_terminal_run_nonce": "V7_MP_REVALIDATE_V1_6D0F3A9C2E71",
+    "latest_terminal_mission_state": "MOVEMENT_PROTECTION_PARTIAL_REAL_WORLD_LIMIT",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-12_173529_movement_protection_outcome_revalidation.md",
+    "latest_terminal_mission_started_at": "2026-07-12T17:25:35+0700",
+    "previous_terminal_mission_id": "V7_OMP_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR_V1",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-12_172534_exact_route_repair_and_first_governed_success.md",
     "authoritative_transition_input_mission_id": "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3",
     "authoritative_transition_input_state": "MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED",
     "authoritative_transition_input_report": "docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md",
     "current_mission_role": "LATEST_TERMINAL_MISSION",
-    "current_mission_id": "V7_OMP_ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1",
-    "current_run_nonce": "V7_ROUTE_REPAIR_AUTH_BOUNDARY_V1_A7086B0D3E7B",
-    "current_mission_state": "OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY",
-    "current_mission_report": "docs/reports/engineering/2026-07-12_162427_route_integrity_repair_authority_boundary.md",
-    "state_captured": "2026-07-12T16:24:27+0700",
-    "current_state_generation": "cpsgen_V7_ROUTE_REPAIR_AUTH_BOUNDARY_V1_A7086B0D3E7B",
-    "current_transition_id": "ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1",
-    "current_next_action_id": "APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR",
+    "current_mission_id": "V7_OMP_MOVEMENT_PROTECTION_PRODUCTION_OUTCOME_REVALIDATION_V1",
+    "current_run_nonce": "V7_MP_REVALIDATE_V1_6D0F3A9C2E71",
+    "current_mission_state": "MOVEMENT_PROTECTION_PARTIAL_REAL_WORLD_LIMIT",
+    "current_mission_report": "docs/reports/engineering/2026-07-12_173529_movement_protection_outcome_revalidation.md",
+    "state_captured": "2026-07-12T17:35:29+0700",
+    "current_state_generation": "cpsgen_V7_MP_REVALIDATE_V1_6D0F3A9C2E71",
+    "current_transition_id": "MOVEMENT_PROTECTION_OUTCOME_REVALIDATION_V1",
+    "current_next_action_id": "WAIT_FOR_QUALIFYING_REAL_WORLD_MOVEMENT_EVIDENCE",
     "binding_stability": "PASS",
     "binding_schema": "v7.operation-scoped-source-binding.v2",
     "routing_readiness_state": "PASS_CANDIDATE_SCOPED",
-    "authority_required_now": "YES_OUTSIDE_ACTIVE_POLICY",
+    "authority_required_now": "NO_INSIDE_APPROVED_POLICY",
     "current_action_class": "single-user governed candidate failover",
     "current_action_class_state": "GOVERNED_ONLY",
     "old_packets_reusable": "NO",
-    "active_wip": "CAP-U01-FIRST-GOVERNED-CONTROLLED-RUN",
-    "responsibility_class": "RUNTIME_ROUTE_INTEGRITY_REPAIR",
-    "last_responsible_link": "global route verification -> two users assigned to disabled egress -> existing repair/authority owners",
-    "smallest_existing_next_action": "`APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR`; one-time exact two-user serial repair only; no mutation before authority",
-    "current_class_outcome": "ROLLBACK_SUCCESS",
-    "parent_engineering_intent": "INTENT_NOT_CLOSED",
-    "source_summary": "OMP self-continuation certification followed by fresh route-integrity repair decomposition and exact external authority-boundary proof.",
-    "automatic_continue_omp_result": "PROGRAM_TERMINAL_REACHED; transaction terminal was consumed automatically; exact outside-policy authority boundary returned once",
-    "required_workflow": "operator authority decision -> fresh route evidence -> fresh owner-selected targets and identities -> exact two-user serial repair or STOP_SAFE -> global verification -> rollback/containment -> final OPEN -> outcome/learning/maturity",
-    "omp_controlled_run_allowed": "NO_OUTSIDE_ACTIVE_POLICY; exact two-user repair requires one-time Operational Authority",
-    "controlled_run_authority_required_now": "YES_OUTSIDE_ACTIVE_POLICY",
-    "controlled_run_execution_authorized": "NO_OUTSIDE_ACTIVE_POLICY; no repair packet or mutation is authorized",
-    "wip_authority_required_now": "TRUE for exact two-user repair outside approved one-user policy",
-    "sequence_execution_class": "exact two-user serial route-integrity repair pending one-time Operational Authority",
-    "sequence_expected_output": "authority decision -> fresh repair identities -> serial two-user repair or STOP_SAFE -> global verification/rollback/final OPEN -> outcome/learning/maturity/promotion",
-    "completion_condition": "one exact authorized repair reaches global verification/rollback, mandatory final `OPEN`, outcome/learning/maturity/CPS/OMP consumption",
+    "active_wip": "CAP-U02-MOVEMENT-PROTECTION",
+    "active_capability_id": "CAP-U02",
+    "active_capability_progress": "PARTIAL_REVALIDATED_FROM_REAL_SUCCESS",
+    "cap_u01_completion_report": "docs/reports/engineering/2026-07-12_172534_exact_route_repair_and_first_governed_success.md",
+    "responsibility_class": "MOVEMENT_PROTECTION",
+    "last_responsible_link": "single-user governed success -> remaining U03/U04/U05/U06 production-class evidence -> full Movement Protection certification",
+    "smallest_existing_next_action": "WAIT_FOR_QUALIFYING_REAL_WORLD_MOVEMENT_EVIDENCE; rerun Continue OMP only to recheck fresh owner evidence, never to force a mutation",
+    "current_class_outcome": "SUCCESS",
+    "current_class_delta_closed": "YES",
+    "current_class_outcome_evidence": "SUCCESS; 10.7.0.5 awg0 -> vless; global route verification PASS; feedback execfb_b287532347352c661799e985",
+    "verification_result": "PASS; global v7-user-route-check after exact repair and governed transaction",
+    "rollback_result": "NOT_REQUIRED; successful repair and governed transaction retained",
+    "learning_result": "MATERIALIZED; outcome SUCCESS; learning HIGH; outcome/prediction/trust/recommendation/closure records written",
+    "action_class_non_consumption_root_cause": "CLOSED; exact route integrity repaired and successful verified current-class outcome accepted",
+    "action_class_promotion_evaluation": "NOT_REQUESTED; current action class remains GOVERNED_ONLY and no authority expansion is proposed",
+    "action_class_exact_missing_delta": "NONE_FOR_CAP_U01; exact repair, global route verification and fresh governed SUCCESS are certified",
+    "class_approval_ready": "NO_EXPANSION_REQUESTED; current class remains GOVERNED_ONLY at the CAP-U02 real-world evidence boundary",
+    "conditional_engineering_authority_used": "NO; successful outcome was completed inside existing bounded delegated policy",
+    "certification_transaction_executed": "YES; exactly one fresh delegated transaction after exact route repair; mutation 1, verification PASS, rollback NOT_REQUIRED",
+    "controlled_run_engineering_intent_closure": "INTENT_CLOSED; CAP-U01 certified from exact repair through governed SUCCESS, verification, learning and final OPEN",
+    "production_maturity_decision": "PARTIAL_ACCEPT; CAP-U01 COMPLETE, CAP-U02 PARTIAL_REVALIDATED_FROM_REAL_SUCCESS, current action class remains GOVERNED_ONLY",
+    "production_runtime_impact": "EXACT_TWO_USER_REPAIR_PLUS_ONE_SUCCESSFUL_GOVERNED_USER_MOVE; global route integrity PASS",
+    "routing_impact": "10.7.0.5, 10.7.0.32 and 10.7.0.38 use vless/tun0 with verified policy routes",
+    "user_movement": "YES; exact repair users 10.7.0.32 and 10.7.0.38 plus governed user 10.7.0.5",
+    "admin_safe_mode_live_state": "schema=v7.autonomous-execution-control.v2; state=OPEN; generation=aec_dda6c420c87e99e97236883c; reason=GOVERNED_TRANSACTION_COMPLETED",
+    "parent_engineering_intent": "INTENT_NOT_CLOSED; CAP-U01 closed and CAP-U02 is partial at a real-world evidence boundary",
+    "source_summary": "Movement Protection consumed the exact repair and first successful governed outcome; remaining full-capability evidence is not currently present.",
+    "automatic_continue_omp_result": "PROGRAM_TERMINAL_REACHED; U02 owner revalidation found a qualifying REAL_WORLD_LIMIT",
+    "required_workflow": "wait for fresh qualifying evidence -> recheck U03/U04/U05/U06 owner outputs -> certify or retain PARTIAL -> resume deterministic sequence",
+    "omp_controlled_run_allowed": "NO_CURRENT_EXECUTION; real-world evidence must appear before another governed movement is justified",
+    "controlled_run_authority_required_now": "NO_INSIDE_APPROVED_POLICY",
+    "controlled_run_execution_authorized": "NO_CURRENT_PACKET; no forced evidence generation or movement is authorized",
+    "wip_authority_required_now": "FALSE; current boundary is missing real-world evidence, not authority",
+    "sequence_execution_class": "read-only evidence wait and owner recheck",
+    "sequence_expected_output": "fresh qualifying production evidence -> U03/U04/U05/U06 owner consumption -> Movement Protection certification or exact remaining gap",
+    "completion_condition": "Movement Protection closes only after dependent Runtime, Authority, Rollback and Recovery production evidence is owner-certified",
+    "capabilities_inventoried": "34",
+    "complete_or_locked_capabilities": "13",
+    "unfinished_capabilities": "21",
+    "open_engineering_intents": "21",
     "omp_continuation_required": "FALSE",
     "external_input_required": "TRUE",
-    "external_input_type": "OPERATIONAL_AUTHORITY",
-    "transaction_terminal_class": "ROLLBACK_SUCCESS",
-    "program_terminal_class": "OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY",
+    "external_input_type": "REAL_WORLD_LIMIT",
+    "transaction_terminal_class": "REVALIDATION_PARTIAL",
+    "program_terminal_class": "REAL_WORLD_LIMIT",
     "next_mission_formed": "TRUE",
-    "next_mission_id": "V7_OMP_ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1",
+    "next_mission_id": "V7_OMP_MOVEMENT_PROTECTION_REAL_WORLD_EVIDENCE_RECHECK_V1",
     "premature_operator_return": "FALSE",
-    "continuation_iteration": "2",
-    "continuation_stop_reason": "TWO_USER_ROUTE_INTEGRITY_REPAIR_OUTSIDE_DAP_DEFAULT_TIER1_READONLY",
-    "no_progress_fingerprint": "9de9264320871de4460d1641bed72f634a0d6ed6a99d4099b6cbe45f9146aee7",
+    "continuation_iteration": "4",
+    "continuation_stop_reason": "MOVEMENT_PROTECTION_DEPENDENT_PRODUCTION_EVIDENCE_NOT_PRESENT",
+    "no_progress_fingerprint": "307ddb0b97fa51da0edfd2844cb84e6537a9049a6f9a777281e1ca9b7fee1d82",
 }
 
 
@@ -625,13 +649,24 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "BINDING_STABILITY": f"`{state['binding_stability']}; 22 post-deploy read-only cycles, 10 consecutive stable Candidate cycles, zero unexplained mismatches, zero mixed-generation snapshots`",
         "BINDING_SCHEMA": f"`{state['binding_schema']}; shared by preview, admission and low-level pre-mutation recheck`",
         "ROUTING_READINESS_STATE": f"`{state['routing_readiness_state']}; global inventory diagnostics are advisory_only and no longer cross-scope blockers`",
-        "AUTHORITY_REQUIRED_NOW": f"`{state['authority_required_now']}; exact two-user repair is outside approved one-user policy`",
+        "AUTHORITY_REQUIRED_NOW": f"`{state['authority_required_now']}; current boundary is real-world evidence, not authority`",
         "CURRENT_ACTION_CLASS": f"`{state['current_action_class']}`",
         "CURRENT_ACTION_CLASS_STATE": f"`{state['current_action_class_state']}`",
         "OLD_PACKETS_REUSABLE": f"`{state['old_packets_reusable']}`",
         "CURRENT_CLASS_CANDIDATE_SELECTED": "`NONE_OPEN`",
         "CURRENT_CLASS_OUTCOME": f"`{state['current_class_outcome']}`",
-        "CURRENT_CLASS_DELTA_CLOSED": "`NO`",
+        "CURRENT_CLASS_DELTA_CLOSED": f"`{state['current_class_delta_closed']}`",
+        "CURRENT_CLASS_OUTCOME_EVIDENCE": f"`{state['current_class_outcome_evidence']}`",
+        "ACTION_CLASS_NON_CONSUMPTION_ROOT_CAUSE": f"`{state['action_class_non_consumption_root_cause']}`",
+        "ACTION_CLASS_PROMOTION_EVALUATION": f"`{state['action_class_promotion_evaluation']}`",
+        "ACTION_CLASS_EXACT_MISSING_DELTA": f"`{state['action_class_exact_missing_delta']}`",
+        "CLASS_APPROVAL_READY": f"`{state['class_approval_ready']}`",
+        "CONDITIONAL_ENGINEERING_AUTHORITY_USED": f"`{state['conditional_engineering_authority_used']}`",
+        "CERTIFICATION_TRANSACTION_EXECUTED": f"`{state['certification_transaction_executed']}`",
+        "VERIFICATION_RESULT": f"`{state['verification_result']}`",
+        "ROLLBACK_RESULT": f"`{state['rollback_result']}`",
+        "LEARNING_RESULT": f"`{state['learning_result']}`",
+        "PRODUCTION_MATURITY_DECISION": f"`{state['production_maturity_decision']}`",
         "PARENT_ENGINEERING_INTENT": f"`{state['parent_engineering_intent']}`",
         "AUTOMATIC_CONTINUE_OMP_RESULT": f"`{state['automatic_continue_omp_result']}`",
         "REQUIRED_WORKFLOW": f"`{state['required_workflow']}`",
@@ -644,6 +679,11 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "CONTROLLED_RUN_AUTHORITY_GENERATION": "`POLICY_SCOPED; NO_PACKET_SPECIFIC_AUTHORITY_REQUIRED`",
         "CONTROLLED_RUN_AUTHORITY_DECISION": "`APPROVED_BOUNDED_SCOPE; packet-specific Authority is not reusable or required`",
         "CONTROLLED_RUN_INVALIDATION_REASON": "`SUPERSEDED/HISTORICAL: SOURCE_SNAPSHOT_BUNDLE_DRIFT; gap closed by binding v2 certification`",
+        "CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE": f"`{state['controlled_run_engineering_intent_closure']}`",
+        "PRODUCTION_RUNTIME_IMPACT": f"`{state['production_runtime_impact']}`",
+        "ROUTING_IMPACT": f"`{state['routing_impact']}`",
+        "USER_MOVEMENT": f"`{state['user_movement']}`",
+        "ADMIN_SAFE_MODE_LIVE_STATE": f"`{state['admin_safe_mode_live_state']}`",
         "OMP_CONTINUATION_REQUIRED": f"`{state['omp_continuation_required']}`",
         "EXTERNAL_INPUT_REQUIRED": f"`{state['external_input_required']}`",
         "EXTERNAL_INPUT_TYPE": f"`{state['external_input_type']}`",
@@ -670,6 +710,10 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "CURRENT_TRANSITION_ID": f"`{state['current_transition_id']}`",
         "EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID": f"`{state['current_next_action_id']}`",
         "CURRENT_STOP_CONDITION": f"`{state['current_stop_condition']}`",
+        "CAPABILITIES_INVENTORIED": f"`{state['capabilities_inventoried']}`",
+        "COMPLETE_OR_LOCKED_CAPABILITIES": f"`{state['complete_or_locked_capabilities']}`",
+        "UNFINISHED_CAPABILITIES": f"`{state['unfinished_capabilities']}`",
+        "OPEN_ENGINEERING_INTENTS": f"`{state['open_engineering_intents']}`",
         "ACTIVE_MISSIONS": "`NONE`",
         "LATEST_TERMINAL_MISSION_ID": f"`{state['latest_terminal_mission_id']}`",
         "LATEST_TERMINAL_MISSION_STATE": f"`{state['latest_terminal_mission_state']}`",
@@ -715,37 +759,104 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
             value,
         )
 
+    complete_section = _markdown_section(
+        cps_text,
+        "### Complete Or Locked Capability Records",
+        "### Unfinished Capability Closure Records",
+    )
+    completed_u01_row = (
+        "| `CAP-U01` | First Governed Controlled Run | Admin Safe Mode, execution packet/lease/pipeline, OMP | "
+        "`COMPLETE` | `100.0` | `Capability Certified` | Exact two-user route repair, first successful governed outcome, "
+        f"global verification, learning and final OPEN; `{state['cap_u01_completion_report']}` |"
+    )
+    complete_u01_rows = [line for line in complete_section.splitlines() if line.startswith("| `CAP-U01` |")]
+    if len(complete_u01_rows) > 1:
+        raise ValueError("complete_cap_u01_duplicate")
+    if complete_u01_rows:
+        cps_text = cps_text.replace(complete_u01_rows[0], completed_u01_row, 1)
+    else:
+        complete_rows = [line for line in complete_section.splitlines() if line.startswith("| `CAP-")]
+        if not complete_rows:
+            raise ValueError("complete_capability_rows_missing")
+        cps_text = cps_text.replace(complete_rows[-1], complete_rows[-1] + "\n" + completed_u01_row, 1)
+
     cap_section = _markdown_section(
         cps_text,
         "### Unfinished Capability Closure Records",
         "### Open Engineering Intents And Last Responsible Links",
     )
-    cap_rows = [line for line in cap_section.splitlines() if line.startswith("| `CAP-U01` |")]
-    if len(cap_rows) != 1:
-        raise ValueError("cap_u01_missing_or_duplicate")
-    cap_row = (
-        "| `CAP-U01` | First Governed Controlled Run | Admin Safe Mode, execution packet/lease/pipeline, OMP | `ACTIVE` | "
-        "`NOT_APPLICABLE_WITH_REASON: instance chain`; binding stability `CERTIFIED`; protected WIP `TRUE`; bounded policy `APPROVED` | "
+    unfinished_u01_rows = [line for line in cap_section.splitlines() if line.startswith("| `CAP-U01` |")]
+    if len(unfinished_u01_rows) > 1:
+        raise ValueError("unfinished_cap_u01_duplicate")
+    if unfinished_u01_rows:
+        cps_text = cps_text.replace(unfinished_u01_rows[0] + "\n", "", 1)
+        cap_section = _markdown_section(
+            cps_text,
+            "### Unfinished Capability Closure Records",
+            "### Open Engineering Intents And Last Responsible Links",
+        )
+
+    active_capability_id = state["active_capability_id"]
+    active_rows = [line for line in cap_section.splitlines() if line.startswith(f"| `{active_capability_id}` |")]
+    if len(active_rows) != 1:
+        raise ValueError("active_capability_missing_or_duplicate")
+    active_row = (
+        "| `CAP-U02` | Movement Protection | OMP, Movement Protection Model, Runtime Model | `ACTIVE` | "
+        f"`{state['active_capability_progress']}`; owner-backed production evidence available | "
         f"{state['last_responsible_link']} | `{state['current_stop_condition']}` | {state['smallest_existing_next_action']} | "
-        "first; completion requires verification/rollback, final OPEN, outcome/learning/maturity/CPS/OMP; unblocks U03/U04/U05/U07/U08/U09 |"
+        "U01 complete; unblocks U03/U04/U05/U06/U09 |"
     )
-    cps_text = cps_text.replace(cap_rows[0], cap_row, 1)
+    cps_text = cps_text.replace(active_rows[0], active_row, 1)
+
+    intents_section = _markdown_section(
+        cps_text,
+        "### Open Engineering Intents And Last Responsible Links",
+        "### Deterministic Execution Sequence",
+    )
+    closed_u01_intents = [line for line in intents_section.splitlines() if line.startswith("| `U01` |")]
+    if len(closed_u01_intents) > 1:
+        raise ValueError("open_intent_u01_duplicate")
+    if closed_u01_intents:
+        cps_text = cps_text.replace(closed_u01_intents[0] + "\n", "", 1)
 
     sequence = _markdown_section(cps_text, "### Deterministic Execution Sequence", "### Authority, Reality And Safety Stops")
     rows = [line for line in sequence.splitlines() if line.startswith("| `1` |")]
     if len(rows) != 1:
         raise ValueError("sequence_position_1_missing_or_duplicate")
     row = (
-        f"| `1` | `U01` Controlled Run WIP; `{state['current_state_generation']}`; `{state['current_transition_id']}` | "
-        "protected active root; binding v2 and bounded policy certified; no packet open | "
+        f"| `1` | `U02` Movement Protection WIP; `{state['current_state_generation']}`; `{state['current_transition_id']}` | "
+        "U01 repair and successful outcome certified; completion-first registry advances to existing Movement Protection owner | "
         f"`{state['current_next_action_id']}` | {state['sequence_execution_class']} | `{state['current_stop_condition']}` | "
         f"{state['sequence_expected_output']} |"
     )
-    return cps_text.replace(rows[0], row, 1)
+    cps_text = cps_text.replace(rows[0], row, 1)
+
+    sequence = _markdown_section(cps_text, "### Deterministic Execution Sequence", "### Authority, Reality And Safety Stops")
+    position_four = [line for line in sequence.splitlines() if line.startswith("| `4` |")]
+    if len(position_four) != 1:
+        raise ValueError("sequence_position_4_missing_or_duplicate")
+    completed_u01_sequence = (
+        "| `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | "
+        "none; do not repeat governed certification | terminal historical evidence | `NONE` | "
+        "certified outcome -> U02/U07/U08/U22 consumers |"
+    )
+    cps_text = cps_text.replace(position_four[0], completed_u01_sequence, 1)
+
+    sequence = _markdown_section(cps_text, "### Deterministic Execution Sequence", "### Authority, Reality And Safety Stops")
+    position_five = [line for line in sequence.splitlines() if line.startswith("| `5` |")]
+    if len(position_five) != 1:
+        raise ValueError("sequence_position_5_missing_or_duplicate")
+    rollback_sequence = (
+        "| `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | "
+        "wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | "
+        "`REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |"
+    )
+    return cps_text.replace(position_five[0], rollback_sequence, 1)
 
 
 def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -> dict[str, Any]:
     """Reject stale packet-approval authority projections inside the approved policy."""
+    normalized = normalized_cps_live_state()
     live = _markdown_field_table(_markdown_section(
         cps_text,
         "## 0. Authoritative Live Current State",
@@ -765,6 +876,16 @@ def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -
         cps_text,
         "### Unfinished Capability Closure Records",
         "### Open Engineering Intents And Last Responsible Links",
+    )
+    completed_capabilities = _markdown_section(
+        cps_text,
+        "### Complete Or Locked Capability Records",
+        "### Unfinished Capability Closure Records",
+    )
+    open_intents = _markdown_section(
+        cps_text,
+        "### Open Engineering Intents And Last Responsible Links",
+        "### Deterministic Execution Sequence",
     )
     sequence = _markdown_section(
         cps_text,
@@ -822,11 +943,13 @@ def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -
         stale_operational.append("CONTROLLED_RUN_AUTHORITY_DECISION")
         contradictions.append("delegated_policy_authority_decision_not_bounded_scope")
 
-    cap_rows = [line for line in capabilities.splitlines() if line.startswith("| `CAP-U01` |")]
-    cap_u01 = cap_rows[0] if len(cap_rows) == 1 else ""
+    active_capability_match = re.search(r"CAP-U\d+", wip.get("capability_id", ""))
+    active_capability_id = active_capability_match.group(0) if active_capability_match else ""
+    cap_rows = [line for line in capabilities.splitlines() if line.startswith(f"| `{active_capability_id}` |")]
+    active_capability = cap_rows[0] if len(cap_rows) == 1 else ""
     sequence_rows = [line for line in sequence.splitlines() if line.startswith("| `1` |")]
     sequence_one = sequence_rows[0] if len(sequence_rows) == 1 else ""
-    sequence_four_rows = [line for line in sequence.splitlines() if line.startswith("| `4` | `U01` |")]
+    sequence_four_rows = [line for line in sequence.splitlines() if line.startswith("| `4` |")]
     sequence_four = sequence_four_rows[0] if len(sequence_four_rows) == 1 else ""
 
     if "explicit approval" in sequence_four.lower() or "operational_authority" in sequence_four.lower():
@@ -835,7 +958,9 @@ def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -
     if external_program_terminal:
         if "authority decision" not in sequence_one or "serial two-user repair" not in sequence_one:
             contradictions.append("delegated_policy_external_boundary_workflow_missing")
-    elif "fresh Candidate" not in sequence_one or "fresh packet" not in sequence_one or "policy admission" not in sequence_one:
+    elif active_capability_id == "CAP-U01" and (
+        "fresh Candidate" not in sequence_one or "fresh packet" not in sequence_one or "policy admission" not in sequence_one
+    ):
         contradictions.append("delegated_policy_sequence_workflow_missing")
 
     authority_row = next(
@@ -872,8 +997,8 @@ def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -
     registry_stop = registry.get("CURRENT_STOP_CONDITION", "").strip("`")
     wip_stop = wip.get("current_primary_stop", "").strip("`")
     cap_stop = ""
-    if cap_u01:
-        cells = [cell.strip() for cell in cap_u01.strip().strip("|").split("|")]
+    if active_capability:
+        cells = [cell.strip() for cell in active_capability.strip().strip("|").split("|")]
         cap_stop = cells[6].strip("`") if len(cells) > 6 else ""
     sequence_stop = ""
     if sequence_one:
@@ -884,11 +1009,7 @@ def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -
         contradictions.append("delegated_policy_cps_stop_divergence")
 
     next_action = live.get("CURRENT_NEXT_ACTION_ID", "").strip("`")
-    expected_next_action = (
-        "APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR"
-        if external_program_terminal
-        else "CONTINUE_OMP"
-    )
+    expected_next_action = normalized["current_next_action_id"]
     next_consistent = (
         next_action == expected_next_action
         and registry.get("EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID", "").strip("`") == next_action
@@ -898,10 +1019,10 @@ def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -
     if not next_consistent:
         contradictions.append("delegated_policy_cps_next_action_divergence")
 
-    cap_action_token = "APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR" if external_program_terminal else "Continue OMP"
-    cap_consistent = bool(cap_u01 and stop in cap_u01 and cap_action_token in cap_u01)
+    cap_action_token = expected_next_action
+    cap_consistent = bool(active_capability and stop in active_capability and cap_action_token in active_capability)
     if not cap_consistent:
-        contradictions.append("delegated_policy_cap_u01_divergence")
+        contradictions.append("delegated_policy_active_capability_divergence")
     sequence_consistent = bool(sequence_one and sequence_four and not any(item.startswith("delegated_policy_sequence") for item in contradictions))
     if not sequence_consistent:
         contradictions.append("delegated_policy_deterministic_sequence_divergence")
@@ -915,6 +1036,7 @@ def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -
         "stale_candidate_approval_projection_count": len(set(stale_candidate)),
         "cps_stop_consistency": "PASS" if stop_consistent else "FAIL",
         "cps_next_action_consistency": "PASS" if next_consistent else "FAIL",
+        "active_capability_consistency": "PASS" if cap_consistent else "FAIL",
         "cap_u01_consistency": "PASS" if cap_consistent else "FAIL",
         "deterministic_sequence_consistency": "PASS" if sequence_consistent else "FAIL",
         "contradiction_count": len(contradiction_ids),
@@ -1036,6 +1158,16 @@ def cps_live_state_consistency(
         "### Unfinished Capability Closure Records",
         "### Open Engineering Intents And Last Responsible Links",
     )
+    completed_capabilities = _markdown_section(
+        cps_text,
+        "### Complete Or Locked Capability Records",
+        "### Unfinished Capability Closure Records",
+    )
+    open_intents = _markdown_section(
+        cps_text,
+        "### Open Engineering Intents And Last Responsible Links",
+        "### Deterministic Execution Sequence",
+    )
     errors: list[str] = []
     for name, fields in (("live", live), ("registry", registry), ("wip", wip)):
         if not fields:
@@ -1077,6 +1209,15 @@ def cps_live_state_consistency(
         "CURRENT_ACTION_CLASS": normalized["current_action_class"],
         "CURRENT_ACTION_CLASS_STATE": normalized["current_action_class_state"],
         "OLD_PACKETS_REUSABLE": normalized["old_packets_reusable"],
+        "CURRENT_CLASS_OUTCOME": normalized["current_class_outcome"],
+        "CURRENT_CLASS_DELTA_CLOSED": normalized["current_class_delta_closed"],
+        "ACTION_CLASS_NON_CONSUMPTION_ROOT_CAUSE": normalized["action_class_non_consumption_root_cause"],
+        "ACTION_CLASS_PROMOTION_EVALUATION": normalized["action_class_promotion_evaluation"],
+        "ACTION_CLASS_EXACT_MISSING_DELTA": normalized["action_class_exact_missing_delta"],
+        "CLASS_APPROVAL_READY": normalized["class_approval_ready"],
+        "CONDITIONAL_ENGINEERING_AUTHORITY_USED": normalized["conditional_engineering_authority_used"],
+        "CERTIFICATION_TRANSACTION_EXECUTED": normalized["certification_transaction_executed"],
+        "CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE": normalized["controlled_run_engineering_intent_closure"],
         "PARENT_ENGINEERING_INTENT": normalized["parent_engineering_intent"],
         "OMP_CONTINUATION_REQUIRED": normalized["omp_continuation_required"],
         "EXTERNAL_INPUT_REQUIRED": normalized["external_input_required"],
@@ -1093,6 +1234,24 @@ def cps_live_state_consistency(
     for key, expected in exact_live.items():
         if live.get(key, "").strip("`") != expected:
             errors.append(f"cps_normalized_field_divergence:{key}")
+    for key, expected in (
+        ("CAPABILITIES_INVENTORIED", normalized["capabilities_inventoried"]),
+        ("COMPLETE_OR_LOCKED_CAPABILITIES", normalized["complete_or_locked_capabilities"]),
+        ("UNFINISHED_CAPABILITIES", normalized["unfinished_capabilities"]),
+        ("OPEN_ENGINEERING_INTENTS", normalized["open_engineering_intents"]),
+    ):
+        if registry.get(key, "").strip("`") != expected:
+            errors.append(f"cps_registry_count_divergence:{key}")
+    complete_rows = [line for line in completed_capabilities.splitlines() if line.startswith("| `CAP-")]
+    unfinished_rows = [line for line in capabilities.splitlines() if line.startswith("| `CAP-")]
+    if len(complete_rows) != int(normalized["complete_or_locked_capabilities"]):
+        errors.append("cps_complete_capability_count_divergence")
+    if len(unfinished_rows) != int(normalized["unfinished_capabilities"]):
+        errors.append("cps_unfinished_capability_count_divergence")
+    if len(complete_rows) + len(unfinished_rows) != int(normalized["capabilities_inventoried"]):
+        errors.append("cps_inventory_total_divergence")
+    if any(line.startswith("| `U01` |") for line in open_intents.splitlines()):
+        errors.append("cps_closed_u01_still_open_intent")
     for key, expected in (
         ("BINDING_STABILITY", normalized["binding_stability"]),
         ("BINDING_SCHEMA", normalized["binding_schema"]),
@@ -1186,26 +1345,32 @@ def cps_live_state_consistency(
         if sequence_stop != stop or not all(token in sequence_rows[0] for token in (generation, transition, next_action)):
             errors.append("cps_sequence_position_1_divergence")
 
-    cap_rows = [line for line in capabilities.splitlines() if line.startswith("| `CAP-U01` |")]
-    cap_u01 = cap_rows[0] if len(cap_rows) == 1 else ""
+    active_capability_id = normalized["active_capability_id"]
+    cap_rows = [line for line in capabilities.splitlines() if line.startswith(f"| `{active_capability_id}` |")]
+    active_capability = cap_rows[0] if len(cap_rows) == 1 else ""
     if len(cap_rows) != 1:
-        errors.append("cps_cap_u01_missing_or_duplicate")
+        errors.append("cps_active_capability_missing_or_duplicate")
     else:
-        cap_cells = [cell.strip() for cell in cap_u01.strip().strip("|").split("|")]
+        cap_cells = [cell.strip() for cell in active_capability.strip().strip("|").split("|")]
         cap_stop = cap_cells[6].strip("`") if len(cap_cells) > 6 else ""
         cap_action = cap_cells[7] if len(cap_cells) > 7 else ""
         if cap_stop != normalized["current_stop_condition"]:
-            errors.append("cps_cap_u01_stop_divergence")
-        if "binding stability `CERTIFIED`" not in cap_u01 or "protected WIP `TRUE`" not in cap_u01:
-            errors.append("cps_cap_u01_binding_not_certified")
-        if "bundle drifted" in cap_u01 or "diagnose existing binding" in cap_u01:
-            errors.append("cps_cap_u01_unresolved_binding_drift")
-        if normalized["current_next_action_id"] not in cap_action:
-            errors.append("cps_cap_u01_next_action_divergence")
+            errors.append("cps_active_capability_stop_divergence")
+        if "`ACTIVE`" not in active_capability:
+            errors.append("cps_active_capability_not_active")
+        if "bundle drifted" in active_capability or "diagnose existing binding" in active_capability:
+            errors.append("cps_active_capability_unresolved_binding_drift")
+        if normalized["current_next_action_id"] not in cap_action and not (
+            normalized["current_next_action_id"] == "CONTINUE_OMP" and "Continue OMP" in cap_action
+        ):
+            errors.append("cps_active_capability_next_action_divergence")
         if wip.get("smallest_existing_next_action", "") != cap_action:
-            errors.append("cps_wip_cap_u01_next_action_divergence")
-        if "final OPEN" not in cap_u01 or "outcome/learning/maturity/CPS/OMP" not in cap_u01:
-            errors.append("cps_cap_u01_completion_divergence")
+            errors.append("cps_wip_active_capability_next_action_divergence")
+
+    completed_u01_rows = [line for line in completed_capabilities.splitlines() if line.startswith("| `CAP-U01` |")]
+    cap_u01 = completed_u01_rows[0] if len(completed_u01_rows) == 1 else ""
+    if len(completed_u01_rows) != 1 or "`COMPLETE`" not in cap_u01 or "`100.0`" not in cap_u01:
+        errors.append("cps_cap_u01_completion_divergence")
 
     historical = _markdown_section(cps_text, "## 1. Historical / Capability State Summary")
     prohibited_headings = []
@@ -1308,11 +1473,12 @@ def cps_live_state_consistency(
         "stale_candidate_approval_projection_count": delegated_live_state["stale_candidate_approval_projection_count"],
         "cps_stop_consistency": delegated_live_state["cps_stop_consistency"],
         "cps_next_action_consistency": delegated_live_state["cps_next_action_consistency"],
-        "cap_u01_consistency": delegated_live_state["cap_u01_consistency"],
+        "active_capability_consistency": delegated_live_state["active_capability_consistency"],
+        "cap_u01_consistency": "PASS" if "cps_cap_u01_completion_divergence" not in unique_errors else "FAIL",
         "deterministic_sequence_consistency": delegated_live_state["deterministic_sequence_consistency"],
         "omp_self_continuation_consistency": self_continuation["final_verdict"],
         "premature_operator_return_validator": self_continuation["premature_operator_return_validator"],
-        "registry_sequence_consistency": "PASS" if not any("sequence" in item or "cap_u01" in item or "next_action" in item for item in unique_errors) else "FAIL",
+        "registry_sequence_consistency": "PASS" if not any("sequence" in item or "cap_u01" in item or "active_capability" in item or "next_action" in item for item in unique_errors) else "FAIL",
         "mission_identity_consistency": mission_identity_consistency,
         **{key: value for key, value in mission_roles.items() if key not in {"schema", "final_verdict", "errors", "mission_identity_consistency"}},
         "omp_pointer_consistency": omp_pointer_consistency,
@@ -1327,6 +1493,7 @@ def cps_live_state_consistency(
         "active_wip_fields": len(wip),
         "historical_current_looking_headings": prohibited_headings,
         "sequence_position_1": sequence_rows[0] if len(sequence_rows) == 1 else "",
+        "active_capability": active_capability,
         "cap_u01": cap_u01,
     }
 

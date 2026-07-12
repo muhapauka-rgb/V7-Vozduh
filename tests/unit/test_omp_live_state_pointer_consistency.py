@@ -62,15 +62,15 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
         self.assertIn("OMP_CURRENT_POINTER_MISMATCH", self.validate(drift)["errors"])
 
     def test_06_current_stop_mismatch_fails(self):
-        drift = self.omp.replace("Resolved current stop: `OPERATIONAL_AUTHORITY`", "Resolved current stop: `UNSAFE_IMPLEMENTATION`", 1)
+        drift = self.omp.replace("Resolved current stop: `REAL_WORLD_LIMIT`", "Resolved current stop: `UNSAFE_IMPLEMENTATION`", 1)
         self.assertIn("omp_current_stop_divergence", self.validate(drift)["omp_contradiction_ids"])
 
     def test_07_current_next_action_mismatch_fails(self):
-        drift = self.omp.replace("Resolved current next action: `APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR`", "Resolved current next action: `DIAGNOSE_BINDING`", 1)
+        drift = self.omp.replace("Resolved current next action: `WAIT_FOR_QUALIFYING_REAL_WORLD_MOVEMENT_EVIDENCE`", "Resolved current next action: `DIAGNOSE_BINDING`", 1)
         self.assertIn("omp_current_next_action_divergence", self.validate(drift)["omp_contradiction_ids"])
 
     def test_08_latest_consumed_report_mismatch_fails(self):
-        drift = self.omp.replace("docs/reports/engineering/2026-07-12_162427_route_integrity_repair_authority_boundary.md", "docs/reports/engineering/stale.md", 1)
+        drift = self.omp.replace("docs/reports/engineering/2026-07-12_173529_movement_protection_outcome_revalidation.md", "docs/reports/engineering/stale.md", 1)
         self.assertEqual(self.validate(drift)["omp_report_pointer_consistency"], "FAIL")
 
     def test_09_historical_section_cannot_create_mission(self):
@@ -96,10 +96,11 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
         self.assertEqual(result["omp_current_pointer_consistency"], "PASS")
         self.assertEqual(result["omp_unqualified_live_heading_count"], 0)
 
-    def test_14_cap_u01_and_sequence_use_bounded_policy_state(self):
+    def test_14_cap_u01_complete_and_u02_sequence_use_live_state(self):
         cps_result = self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)
-        self.assertIn("| `OPERATIONAL_AUTHORITY` |", cps_result["cap_u01"])
-        self.assertIn("| `OPERATIONAL_AUTHORITY` |", cps_result["sequence_position_1"])
+        self.assertIn("`COMPLETE`", cps_result["cap_u01"])
+        self.assertIn("| `REAL_WORLD_LIMIT` |", cps_result["active_capability"])
+        self.assertIn("| `REAL_WORLD_LIMIT` |", cps_result["sequence_position_1"])
 
     def test_15_mission_identity_guard_remains_pass(self):
         result = self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)
@@ -115,14 +116,14 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
             self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry"
         ))
         self.assertTrue(live["CONTROLLED_RUN_PACKET_PREVIEW"].strip("`").startswith("NONE_OPEN"))
-        self.assertTrue(live["CONTROLLED_RUN_EXECUTION_AUTHORIZED"].strip("`").startswith("NO_OUTSIDE_ACTIVE_POLICY"))
-        self.assertEqual(live["USER_MOVEMENT"].strip("`"), "NO")
+        self.assertTrue(live["CONTROLLED_RUN_EXECUTION_AUTHORIZED"].strip("`").startswith("NO_CURRENT_PACKET"))
+        self.assertTrue(live["USER_MOVEMENT"].strip("`").startswith("YES"))
         self.assertIn("state=OPEN", live["ADMIN_SAFE_MODE_LIVE_STATE"])
 
     def test_18_truth_consistency_is_go_only_when_omp_agrees(self):
         good = self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)
         self.assertEqual(good["final_verdict"], "PASS")
-        drift = self.omp.replace("Resolved current stop: `OPERATIONAL_AUTHORITY`", "Resolved current stop: `REAL_WORLD_LIMIT`", 1)
+        drift = self.omp.replace("Resolved current stop: `REAL_WORLD_LIMIT`", "Resolved current stop: `STOP_SAFE`", 1)
         bad = self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=drift)
         self.assertEqual(bad["final_verdict"], "NO-GO")
 

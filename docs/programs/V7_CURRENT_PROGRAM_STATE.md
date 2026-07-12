@@ -2,18 +2,18 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-12T16:24:27+0700
-Latest terminal Mission: `V7_OMP_ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1`
-Latest terminal Mission state: `OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY`
-Latest terminal Mission report: `docs/reports/engineering/2026-07-12_162427_route_integrity_repair_authority_boundary.md`
+State captured: 2026-07-12T17:35:29+0700
+Latest terminal Mission: `V7_OMP_MOVEMENT_PROTECTION_PRODUCTION_OUTCOME_REVALIDATION_V1`
+Latest terminal Mission state: `MOVEMENT_PROTECTION_PARTIAL_REAL_WORLD_LIMIT`
+Latest terminal Mission report: `docs/reports/engineering/2026-07-12_173529_movement_protection_outcome_revalidation.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
-Source: OMP self-continuation certification followed by fresh route-integrity repair decomposition and exact external authority-boundary proof.
+Source: Movement Protection consumed the exact repair and first successful governed outcome; remaining full-capability evidence is not currently present.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-12T16:24:27+0700`
+Captured: `2026-07-12T17:35:29+0700`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -28,45 +28,45 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `OPERATIONAL_AUTHORITY` |
-| `CURRENT_ACTIVE_SCOPE` | `EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR` |
-| `CURRENT_SAFE_NEXT_ACTION` | `APPROVE OR REJECT ONE-TIME EXACT TWO-USER SERIAL ROUTE-INTEGRITY REPAIR; NO MUTATION BEFORE AUTHORITY` |
-| `CURRENT_SCOPE_CLASS` | `OUTSIDE_ACTIVE_DELEGATED_POLICY` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_ROUTE_REPAIR_AUTH_BOUNDARY_V1_A7086B0D3E7B` |
-| `CURRENT_TRANSITION_ID` | `ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR` |
+| `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT` |
+| `CURRENT_ACTIVE_SCOPE` | `MOVEMENT_PROTECTION_PRODUCTION_EVIDENCE` |
+| `CURRENT_SAFE_NEXT_ACTION` | `WAIT FOR QUALIFYING FRESH MOVEMENT-PROTECTION EVIDENCE; RECHECK THROUGH CONTINUE OMP WITHOUT FORCING MUTATION` |
+| `CURRENT_SCOPE_CLASS` | `REAL_WORLD_EVIDENCE_BOUNDARY` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_MP_REVALIDATE_V1_6D0F3A9C2E71` |
+| `CURRENT_TRANSITION_ID` | `MOVEMENT_PROTECTION_OUTCOME_REVALIDATION_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `WAIT_FOR_QUALIFYING_REAL_WORLD_MOVEMENT_EVIDENCE` |
 | `OMP_CONTINUATION_REQUIRED` | `FALSE` |
 | `EXTERNAL_INPUT_REQUIRED` | `TRUE` |
-| `EXTERNAL_INPUT_TYPE` | `OPERATIONAL_AUTHORITY` |
-| `TRANSACTION_TERMINAL_CLASS` | `ROLLBACK_SUCCESS` |
-| `PROGRAM_TERMINAL_CLASS` | `OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY` |
+| `EXTERNAL_INPUT_TYPE` | `REAL_WORLD_LIMIT` |
+| `TRANSACTION_TERMINAL_CLASS` | `REVALIDATION_PARTIAL` |
+| `PROGRAM_TERMINAL_CLASS` | `REAL_WORLD_LIMIT` |
 | `NEXT_MISSION_FORMED` | `TRUE` |
-| `NEXT_MISSION_ID` | `V7_OMP_ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1` |
+| `NEXT_MISSION_ID` | `V7_OMP_MOVEMENT_PROTECTION_REAL_WORLD_EVIDENCE_RECHECK_V1` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
-| `CONTINUATION_ITERATION` | `2` |
-| `CONTINUATION_STOP_REASON` | `TWO_USER_ROUTE_INTEGRITY_REPAIR_OUTSIDE_DAP_DEFAULT_TIER1_READONLY` |
-| `NO_PROGRESS_FINGERPRINT` | `9de9264320871de4460d1641bed72f634a0d6ed6a99d4099b6cbe45f9146aee7` |
+| `CONTINUATION_ITERATION` | `4` |
+| `CONTINUATION_STOP_REASON` | `MOVEMENT_PROTECTION_DEPENDENT_PRODUCTION_EVIDENCE_NOT_PRESENT` |
+| `NO_PROGRESS_FINGERPRINT` | `307ddb0b97fa51da0edfd2844cb84e6537a9049a6f9a777281e1ca9b7fee1d82` |
 | `CURRENT_STATE_CONSISTENCY` | `PASS; section 0, registry, protected WIP and deterministic sequence share one generation and transition` |
 | `CURRENT_EXECUTION_MISSION_ID` | `NONE` |
 | `CURRENT_EXECUTION_MISSION_STATE` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1` |
-| `LATEST_TERMINAL_RUN_NONCE` | `V7_ROUTE_REPAIR_AUTH_BOUNDARY_V1_A7086B0D3E7B` |
-| `LATEST_TERMINAL_MISSION_STATE` | `OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_162427_route_integrity_repair_authority_boundary.md` |
-| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-12T16:24:27+0700` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_SELF_CONTINUATION_AND_PREMATURE_OPERATOR_RETURN_CLOSURE_V1` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_MOVEMENT_PROTECTION_PRODUCTION_OUTCOME_REVALIDATION_V1` |
+| `LATEST_TERMINAL_RUN_NONCE` | `V7_MP_REVALIDATE_V1_6D0F3A9C2E71` |
+| `LATEST_TERMINAL_MISSION_STATE` | `MOVEMENT_PROTECTION_PARTIAL_REAL_WORLD_LIMIT` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_173529_movement_protection_outcome_revalidation.md` |
+| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-12T17:25:35+0700` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR_V1` |
 | `CURRENT_MISSION_ROLE` | `LATEST_TERMINAL_MISSION` |
-| `CURRENT_MISSION_ID` | `V7_OMP_ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1` |
-| `CURRENT_RUN_NONCE` | `V7_ROUTE_REPAIR_AUTH_BOUNDARY_V1_A7086B0D3E7B` |
-| `CURRENT_MISSION_STATE` | `OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY` |
-| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_162427_route_integrity_repair_authority_boundary.md` |
+| `CURRENT_MISSION_ID` | `V7_OMP_MOVEMENT_PROTECTION_PRODUCTION_OUTCOME_REVALIDATION_V1` |
+| `CURRENT_RUN_NONCE` | `V7_MP_REVALIDATE_V1_6D0F3A9C2E71` |
+| `CURRENT_MISSION_STATE` | `MOVEMENT_PROTECTION_PARTIAL_REAL_WORLD_LIMIT` |
+| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_173529_movement_protection_outcome_revalidation.md` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `AUTHORITATIVE_TRANSITION_INPUT_STATE` | `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED` |
 | `AUTHORITATIVE_TRANSITION_INPUT_REPORT` | `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` |
 | `BINDING_STABILITY` | `PASS; 22 post-deploy read-only cycles, 10 consecutive stable Candidate cycles, zero unexplained mismatches, zero mixed-generation snapshots` |
 | `BINDING_SCHEMA` | `v7.operation-scoped-source-binding.v2; shared by preview, admission and low-level pre-mutation recheck` |
 | `MISSION_IDENTITY_GUARD` | `PASS; Mission ID + run nonce + start timestamp + report header/path + CPS identity fail-closed validation` |
-| `AUTHORITY_REQUIRED_NOW` | `YES_OUTSIDE_ACTIVE_POLICY; exact two-user repair is outside approved one-user policy` |
+| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_APPROVED_POLICY; current boundary is real-world evidence, not authority` |
 | `OLD_PACKETS_REUSABLE` | `NO` |
 | `CURRENT_ACTION_CLASS` | `single-user governed candidate failover` |
 | `CURRENT_ACTION_CLASS_STATE` | `GOVERNED_ONLY` |
@@ -75,9 +75,9 @@ This section is the single live volatile current-state surface. Older production
 | `HISTORICAL_CERTIFICATION_MAX_ACTUAL_USERS` | `48; XLARGE_BATCH budget 50 existed, but no exact 50-user real movement was proven` |
 | `HISTORICAL_CERTIFICATION_REUSABLE_LAYERS` | `execution path, bounded blast radius, verification, rollback/no-rollback, closed outcome` |
 | `HISTORICAL_CERTIFICATION_NOT_AUTHORITY` | `decision-context certification, Action-Class Authority and delegated policy remain ungranted` |
-| `ACTION_CLASS_NON_CONSUMPTION_ROOT_CAUSE` | `SUCCESSFUL_VERIFIED_CURRENT_CLASS_OUTCOME_ABSENT; one real outcome ended ROLLBACK_SUCCESS because global route integrity failed` |
-| `ACTION_CLASS_PROMOTION_EVALUATION` | `PROMOTION_BLOCKED_WITH_EXACT_DELTA`; conditional Engineering Authority not consumed because live promotion gates did not pass. |
-| `ACTION_CLASS_EXACT_MISSING_DELTA` | `repair two users assigned to disabled egress through existing owners and authority; pass global route integrity; then run a new fresh governed transaction to successful verification` |
+| `ACTION_CLASS_NON_CONSUMPTION_ROOT_CAUSE` | `CLOSED; exact route integrity repaired and successful verified current-class outcome accepted` |
+| `ACTION_CLASS_PROMOTION_EVALUATION` | `NOT_REQUESTED; current action class remains GOVERNED_ONLY and no authority expansion is proposed` |
+| `ACTION_CLASS_EXACT_MISSING_DELTA` | `NONE_FOR_CAP_U01; exact repair, global route verification and fresh governed SUCCESS are certified` |
 | `COMPLETE_ROUTING_LIFECYCLE_REPORT` | `docs/reports/engineering/2026-07-11_201307_complete_routing_decision_execution_promotion_lifecycle_closure.md` |
 | `COMPLETE_ROUTING_LIFECYCLE_DEPLOY` | `commit 167fcb96465aaecba6e4611299422dae1f6e1f5c; deploy-z8-14-Updatesystem-167fcb9-20260711T201042; truth FULLY_ALIGNED` |
 | `ROUTING_READINESS_STATE` | `PASS_CANDIDATE_SCOPED; global inventory diagnostics are advisory_only and no longer cross-scope blockers` |
@@ -90,7 +90,7 @@ This section is the single live volatile current-state surface. Older production
 | `PACKET_APPROVAL_REQUIRED` | `NO` |
 | `HASH_APPROVAL_REQUIRED` | `NO` |
 | `PACKET_APPROVAL_STILL_REQUIRED` | `NO inside approved policy; manual packet fallback remains outside policy` |
-| `CLASS_APPROVAL_READY` | `NO; do not repeat historical execution/blast/rollback ladder; current-class outcome is not the only remaining live delta` |
+| `CLASS_APPROVAL_READY` | `NO_EXPANSION_REQUESTED; current class remains GOVERNED_ONLY at the CAP-U02 real-world evidence boundary` |
 | `DELEGATED_POLICY_ALREADY_VALID` | `YES; approved bounded scope; self-expansion forbidden` |
 | `HISTORICAL_CERTIFICATION_RECONCILIATION_REPORT` | `docs/reports/engineering/2026-07-11_171800_historical_autonomy_certification_reuse_and_action_class_authority_reconciliation.md` |
 | `HISTORICAL_CERTIFICATION_REUSE_DEPLOY_STATE` | `PRODUCTION_DEPLOYED_CERTIFIED; owner reports 9 real certifications and max actual scale 48` |
@@ -99,31 +99,31 @@ This section is the single live volatile current-state surface. Older production
 | `HISTORICAL_CURRENT_CLASS_OUTCOME_MISSION_REPORT` | `docs/reports/engineering/2026-07-11_174531_current_class_outcome_closure_and_omp_continuation.md`; `SUPERSEDED/HISTORICAL` evidence only. |
 | `HISTORICAL_PHASE4A_ATTEMPTS` | `30 bounded churn/stability cycles plus later binding revalidations; SUPERSEDED/HISTORICAL; no mutation` |
 | `CURRENT_CLASS_CANDIDATE_SELECTED` | `NONE_OPEN` |
-| `CURRENT_CLASS_OUTCOME` | `ROLLBACK_SUCCESS` |
-| `CURRENT_CLASS_OUTCOME_EVIDENCE` | `ROLLBACK_SUCCESS; packet pkt_preview_c6a5b48c9ee7a80d20859071; 10.7.0.5 awg0 -> vless -> awg0; global verification exposed two unrelated disabled-egress assignments` |
-| `VERIFICATION_RESULT` | `FAIL; global route check found 10.7.0.32 and 10.7.0.38 leaking to public ens3 from empty tables` |
-| `ROLLBACK_RESULT` | `ROLLBACK_COMPLETED; selected user 10.7.0.5 restored to awg0 and table 1003 verified` |
-| `LEARNING_RESULT` | `MATERIALIZED; outcome=ROLLBACK_SUCCESS; learning value MEDIUM; outcome/prediction/trust/recommendation/closure records written` |
-| `PRODUCTION_MATURITY_DECISION` | `REMAIN_GOVERNED_ONLY; current-class verified outcome remains absent` |
-| `CURRENT_CLASS_DELTA_CLOSED` | `NO` |
-| `AUTOMATIC_CONTINUE_OMP_RESULT` | `PROGRAM_TERMINAL_REACHED; transaction terminal was consumed automatically; exact outside-policy authority boundary returned once` |
+| `CURRENT_CLASS_OUTCOME` | `SUCCESS` |
+| `CURRENT_CLASS_OUTCOME_EVIDENCE` | `SUCCESS; 10.7.0.5 awg0 -> vless; global route verification PASS; feedback execfb_b287532347352c661799e985` |
+| `VERIFICATION_RESULT` | `PASS; global v7-user-route-check after exact repair and governed transaction` |
+| `ROLLBACK_RESULT` | `NOT_REQUIRED; successful repair and governed transaction retained` |
+| `LEARNING_RESULT` | `MATERIALIZED; outcome SUCCESS; learning HIGH; outcome/prediction/trust/recommendation/closure records written` |
+| `PRODUCTION_MATURITY_DECISION` | `PARTIAL_ACCEPT; CAP-U01 COMPLETE, CAP-U02 PARTIAL_REVALIDATED_FROM_REAL_SUCCESS, current action class remains GOVERNED_ONLY` |
+| `CURRENT_CLASS_DELTA_CLOSED` | `YES` |
+| `AUTOMATIC_CONTINUE_OMP_RESULT` | `PROGRAM_TERMINAL_REACHED; U02 owner revalidation found a qualifying REAL_WORLD_LIMIT` |
 | `HISTORICAL_ACTION_CLASS_PROMOTION_REPORT` | `docs/reports/engineering/2026-07-11_194202_current_action_class_promotion_to_bounded_authority.md`; `SUPERSEDED/HISTORICAL` context only. |
 | `HISTORICAL_CURRENT_CLASS_OUTCOME_STORE_AUDIT` | `18,036 execution-outcome records at historical readback; all DRY_RUN / NO_EXECUTION; CURRENT_CLASS_OUTCOME_ABSENT` |
-| `CONDITIONAL_ENGINEERING_AUTHORITY_USED` | `NO; no real outcome, promotion recheck not admitted` |
-| `CERTIFICATION_TRANSACTION_EXECUTED` | `YES; exactly one delegated transaction; mutation 1, verification FAIL, rollback completed, no second transaction` |
+| `CONDITIONAL_ENGINEERING_AUTHORITY_USED` | `NO; successful outcome was completed inside existing bounded delegated policy` |
+| `CERTIFICATION_TRANSACTION_EXECUTED` | `YES; exactly one fresh delegated transaction after exact route repair; mutation 1, verification PASS, rollback NOT_REQUIRED` |
 | `MATERIAL_DECISION_CHURN_ROOT_CAUSE` | `MULTIPLE_ROOT_CAUSES: real material recommendation transitions plus overbroad whole-file source binding, volatile non-material candidate identity and refresh-time producer contention` |
 | `MATERIAL_DECISION_CHURN_CLOSURE` | `INTENT_CLOSED; Decision Replay PASS; false invalidation removed; material invalidation preserved` |
 | `MATERIAL_DECISION_CHURN_DEPLOY_COMMIT` | `62015c156fa2a528b36bdbfb3847f3b9f9ee57c2` |
 | `MATERIAL_DECISION_CHURN_DEPLOY_ID` | `deploy-z8-14-Updatesystem-62015c1-20260711T185443` |
 | `MATERIAL_DECISION_CHURN_REPORT` | `docs/reports/engineering/2026-07-11_184357_material_decision_churn_discovery_and_closure.md` |
 | `FORBIDDEN_FOR_CURRENT_SCOPE` | Reuse historical Candidate/packet/hash/Authority; more than one user; batch/concurrency; another action class; Authority/blast-radius expansion; systemd enable/start; threshold reduction; safety weakening; synthetic evidence. |
-| `REQUIRED_WORKFLOW` | `operator authority decision -> fresh route evidence -> fresh owner-selected targets and identities -> exact two-user serial repair or STOP_SAFE -> global verification -> rollback/containment -> final OPEN -> outcome/learning/maturity` |
+| `REQUIRED_WORKFLOW` | `wait for fresh qualifying evidence -> recheck U03/U04/U05/U06 owner outputs -> certify or retain PARTIAL -> resume deterministic sequence` |
 | `CIRCUIT_BREAKER_REPOSITORY_STATE` | `IMPLEMENTATION_CERTIFIED_READ_ONLY` |
 | `CIRCUIT_BREAKER_PRODUCTION_STATE` | `DEPLOYED_CERTIFIED_OPEN` |
 | `CIRCUIT_BREAKER_PRODUCTION_CERTIFICATION` | `CIRCUIT_BREAKER_PRODUCTION_CERTIFIED` |
 | `CIRCUIT_BREAKER_CONTROLLED_RUN_GATE` | `PASS` |
 | `CIRCUIT_BREAKER_ENGINEERING_INTENT_CLOSURE` | `INTENT_CLOSED` |
-| `ADMIN_SAFE_MODE_LIVE_STATE` | `schema=v7.autonomous-execution-control.v2; state=OPEN; generation=aec_bf3d59bc51f46ab920374613; reason=GOVERNED_TRANSACTION_COMPLETED` |
+| `ADMIN_SAFE_MODE_LIVE_STATE` | `schema=v7.autonomous-execution-control.v2; state=OPEN; generation=aec_dda6c420c87e99e97236883c; reason=GOVERNED_TRANSACTION_COMPLETED` |
 | `CIRCUIT_BREAKER_IMPLEMENTATION_DEPLOY_COMMIT` | `319bac22f42ce4d0a36a2af0c1a5954a35fe0613` |
 | `CIRCUIT_BREAKER_DEPLOY_ID` | `deploy-z8-14-Updatesystem-319bac2-20260711T012454` |
 | `RECOVERY_ARTIFACT_ADMISSION` | `PASS` |
@@ -155,18 +155,18 @@ This section is the single live volatile current-state surface. Older production
 | `SNAPSHOT_BUNDLE_BINDING` | `CERTIFIED` |
 | `POST_CLOSED_REVALIDATION` | `CERTIFIED` |
 | `ALL_TERMINAL_PATHS_FINAL_OPEN` | `CERTIFIED` |
-| `CONTROLLED_RUN_EXECUTION_AUTHORIZED` | `NO_OUTSIDE_ACTIVE_POLICY; no repair packet or mutation is authorized` |
-| `OMP_CONTROLLED_RUN_ALLOWED` | `NO_OUTSIDE_ACTIVE_POLICY; exact two-user repair requires one-time Operational Authority` |
-| `CONTROLLED_RUN_PRIMARY_STOP` | `OPERATIONAL_AUTHORITY` |
-| `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `RUNTIME_ROUTE_INTEGRITY_REPAIR` |
-| `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `YES_OUTSIDE_ACTIVE_POLICY` |
-| `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_NOT_CLOSED; exact current-class outcome remains absent` |
-| `PARENT_ENGINEERING_INTENT` | `INTENT_NOT_CLOSED` |
+| `CONTROLLED_RUN_EXECUTION_AUTHORIZED` | `NO_CURRENT_PACKET; no forced evidence generation or movement is authorized` |
+| `OMP_CONTROLLED_RUN_ALLOWED` | `NO_CURRENT_EXECUTION; real-world evidence must appear before another governed movement is justified` |
+| `CONTROLLED_RUN_PRIMARY_STOP` | `REAL_WORLD_LIMIT` |
+| `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `MOVEMENT_PROTECTION` |
+| `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_APPROVED_POLICY` |
+| `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_CLOSED; CAP-U01 certified from exact repair through governed SUCCESS, verification, learning and final OPEN` |
+| `PARENT_ENGINEERING_INTENT` | `INTENT_NOT_CLOSED; CAP-U01 closed and CAP-U02 is partial at a real-world evidence boundary` |
 | `ACTIVE_WIP_PROTECTED` | `TRUE; COMPLETION_FIRST; reorder forbidden` |
-| `PRODUCTION_RUNTIME_IMPACT` | `ONE_FORWARD_MUTATION_AND_CERTIFIED_ROLLBACK; final selected-user route restored; two pre-existing route-integrity failures remain` |
+| `PRODUCTION_RUNTIME_IMPACT` | `EXACT_TWO_USER_REPAIR_PLUS_ONE_SUCCESSFUL_GOVERNED_USER_MOVE; global route integrity PASS` |
 | `AUTHORITY_IMPACT` | `NONE` |
-| `ROUTING_IMPACT` | `NONE` |
-| `USER_MOVEMENT` | `NO` |
+| `ROUTING_IMPACT` | `10.7.0.5, 10.7.0.32 and 10.7.0.38 use vless/tun0 with verified policy routes` |
+| `USER_MOVEMENT` | `YES; exact repair users 10.7.0.32 and 10.7.0.38 plus governed user 10.7.0.5` |
 | `SECRET_HANDLING` | Runtime/server/admin credentials must not be written to repository files, reports, prompts, logs, or commits. |
 
 ## Authoritative Unfinished Capability Closure Registry
@@ -179,7 +179,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-12T16:24:27+0700`
+Generated At: `2026-07-12T17:35:29+0700`
 
 Runtime Authority: `NONE`
 
@@ -192,20 +192,20 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_ROUTE_REPAIR_AUTH_BOUNDARY_V1_A7086B0D3E7B` |
-| `CURRENT_TRANSITION_ID` | `ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1` |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR` |
-| `CURRENT_STOP_CONDITION` | `OPERATIONAL_AUTHORITY` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_MP_REVALIDATE_V1_6D0F3A9C2E71` |
+| `CURRENT_TRANSITION_ID` | `MOVEMENT_PROTECTION_OUTCOME_REVALIDATION_V1` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `WAIT_FOR_QUALIFYING_REAL_WORLD_MOVEMENT_EVIDENCE` |
+| `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT` |
 | `CAPABILITIES_INVENTORIED` | `34` |
-| `COMPLETE_OR_LOCKED_CAPABILITIES` | `12` |
-| `UNFINISHED_CAPABILITIES` | `22` |
-| `OPEN_ENGINEERING_INTENTS` | `22` |
+| `COMPLETE_OR_LOCKED_CAPABILITIES` | `13` |
+| `UNFINISHED_CAPABILITIES` | `21` |
+| `OPEN_ENGINEERING_INTENTS` | `21` |
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
 | `ACTIVE_MISSIONS` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1` |
-| `LATEST_TERMINAL_MISSION_STATE` | `OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_162427_route_integrity_repair_authority_boundary.md` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_SELF_CONTINUATION_AND_PREMATURE_OPERATOR_RETURN_CLOSURE_V1` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_MOVEMENT_PROTECTION_PRODUCTION_OUTCOME_REVALIDATION_V1` |
+| `LATEST_TERMINAL_MISSION_STATE` | `MOVEMENT_PROTECTION_PARTIAL_REAL_WORLD_LIMIT` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-12_173529_movement_protection_outcome_revalidation.md` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR_V1` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `OPEN_CANDIDATE_IDS` | `NONE`; all observed packet previews are evidence only and discarded without Authority. |
 | `PRIOR_BDP_CANDIDATES` | `25` certified instances are terminal historical ladder evidence, not open work |
@@ -214,7 +214,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
 | `OMP_CONTINUATION_POINTER` | consume this registry; preserve active WIP; select the first unresolved sequence position only |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | ``APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR`; one-time exact two-user serial repair only; no mutation before authority` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `WAIT_FOR_QUALIFYING_REAL_WORLD_MOVEMENT_EVIDENCE; rerun Continue OMP only to recheck fresh owner evidence, never to force a mutation` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -222,29 +222,29 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 
 | Field | Value |
 | --- | --- |
-| `capability_id` | `CAP-U01-FIRST-GOVERNED-CONTROLLED-RUN` |
-| `current_state_generation` | `cpsgen_V7_ROUTE_REPAIR_AUTH_BOUNDARY_V1_A7086B0D3E7B` |
-| `current_transition_id` | `ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1` |
-| `smallest_existing_next_action_id` | `APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR` |
+| `capability_id` | `CAP-U02-MOVEMENT-PROTECTION` |
+| `current_state_generation` | `cpsgen_V7_MP_REVALIDATE_V1_6D0F3A9C2E71` |
+| `current_transition_id` | `MOVEMENT_PROTECTION_OUTCOME_REVALIDATION_V1` |
+| `smallest_existing_next_action_id` | `WAIT_FOR_QUALIFYING_REAL_WORLD_MOVEMENT_EVIDENCE` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
-| `latest_terminal_mission_id` | `V7_OMP_ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1` |
-| `latest_terminal_mission_state` | `OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY` |
-| `previous_terminal_mission_id` | `V7_OMP_SELF_CONTINUATION_AND_PREMATURE_OPERATOR_RETURN_CLOSURE_V1` |
+| `latest_terminal_mission_id` | `V7_OMP_MOVEMENT_PROTECTION_PRODUCTION_OUTCOME_REVALIDATION_V1` |
+| `latest_terminal_mission_state` | `MOVEMENT_PROTECTION_PARTIAL_REAL_WORLD_LIMIT` |
+| `previous_terminal_mission_id` | `V7_OMP_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR_V1` |
 | `authoritative_transition_input_mission_id` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `candidate_id` | `NONE_OPEN; terminal Candidate 10.7.0.5 awg0 -> vless is historical non-reusable evidence only` |
 | `protected_by_active_wip` | `TRUE` |
 | `wip_priority_class` | `COMPLETION_FIRST` |
 | `active_wip_reorder_allowed` | `FALSE` |
-| `current_primary_stop` | `OPERATIONAL_AUTHORITY` |
-| `responsibility_class` | `RUNTIME_ROUTE_INTEGRITY_REPAIR` |
-| `authority_required_now` | `TRUE for exact two-user repair outside approved one-user policy` |
-| `last_responsible_link` | global route verification -> two users assigned to disabled egress -> existing repair/authority owners |
+| `current_primary_stop` | `REAL_WORLD_LIMIT` |
+| `responsibility_class` | `MOVEMENT_PROTECTION` |
+| `authority_required_now` | `FALSE; current boundary is missing real-world evidence, not authority` |
+| `last_responsible_link` | single-user governed success -> remaining U03/U04/U05/U06 production-class evidence -> full Movement Protection certification |
 | `responsible_owners` | Admin Safe Mode v2; `admin_core/operator_execution.py`; governed execution pipeline; packet/lease identity; autoswitch final gate; rollback, verification, outcome and learning owners |
 | `protected_objects` | Existing owners above; Phase 4A Candidate evidence lineage; current Circuit Breaker certification |
-| `smallest_existing_next_action` | `APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR`; one-time exact two-user serial repair only; no mutation before authority |
+| `smallest_existing_next_action` | WAIT_FOR_QUALIFYING_REAL_WORLD_MOVEMENT_EVIDENCE; rerun Continue OMP only to recheck fresh owner evidence, never to force a mutation |
 | `binding_stability` | `CERTIFIED` |
-| `completion_condition` | one exact authorized repair reaches global verification/rollback, mandatory final `OPEN`, outcome/learning/maturity/CPS/OMP consumption |
+| `completion_condition` | Movement Protection closes only after dependent Runtime, Authority, Rollback and Recovery production evidence is owner-certified |
 
 ### Complete Or Locked Capability Records
 
@@ -262,6 +262,7 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | `CAP-C10` | State Transition Verification | OMP + transition owners | `COMPLETE` | `NOT_APPLICABLE_WITH_REASON: framework capability` | `Capability Certified` | unexplained no-change terminal state |
 | `CAP-C11` | Execution Certification Ladder | OMP + BDP candidate owners | `COMPLETE` | `L6_CONTINUOUS` | `Runtime Ready For Next Cycle` | candidate semantics invalidation; CPS ladder state |
 | `CAP-C12` | Autonomous Execution Circuit Breaker | Admin Safe Mode + execution owners | `COMPLETE` | `PRODUCTION_CERTIFIED` | `Capability Certified` | production hash/control failure; Phase 3 certification |
+| `CAP-U01` | First Governed Controlled Run | Admin Safe Mode, execution packet/lease/pipeline, OMP | `COMPLETE` | `100.0` | `Capability Certified` | Exact two-user route repair, first successful governed outcome, global verification, learning and final OPEN; `docs/reports/engineering/2026-07-12_172534_exact_route_repair_and_first_governed_success.md` |
 
 All complete records have `open_intent_gap=FALSE`, verified canonical consumption, no implementation/integration/certification gap, and remain protected by their existing reopen triggers. Their detailed completed criteria and evidence remain with the named owners.
 
@@ -271,8 +272,7 @@ The following joined table is the normalized live record. `Last link` represents
 
 | ID | Capability | Canonical owner | Status | Current % / source confidence | Last responsible link | Gap / stop | Smallest existing next action | Depends on / unblocks |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `CAP-U01` | First Governed Controlled Run | Admin Safe Mode, execution packet/lease/pipeline, OMP | `ACTIVE` | `NOT_APPLICABLE_WITH_REASON: instance chain`; binding stability `CERTIFIED`; protected WIP `TRUE`; bounded policy `APPROVED` | global route verification -> two users assigned to disabled egress -> existing repair/authority owners | `OPERATIONAL_AUTHORITY` | `APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR`; one-time exact two-user serial repair only; no mutation before authority | first; completion requires verification/rollback, final OPEN, outcome/learning/maturity/CPS/OMP; unblocks U03/U04/U05/U07/U08/U09 |
-| `CAP-U02` | Movement Protection | OMP, Movement Protection Model, Runtime Model | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting `83/78` | certified gates -> real bounded movement behavior/outcome | runtime/production evidence | finish U01, consume first real outcome, revalidate owner percent | U01/U03/U04/U05/U06; unblocks U09 |
+| `CAP-U02` | Movement Protection | OMP, Movement Protection Model, Runtime Model | `ACTIVE` | `PARTIAL_REVALIDATED_FROM_REAL_SUCCESS`; owner-backed production evidence available | single-user governed success -> remaining U03/U04/U05/U06 production-class evidence -> full Movement Protection certification | `REAL_WORLD_LIMIT` | WAIT_FOR_QUALIFYING_REAL_WORLD_MOVEMENT_EVIDENCE; rerun Continue OMP only to recheck fresh owner evidence, never to force a mutation | U01 complete; unblocks U03/U04/U05/U06/U09 |
 | `CAP-U03` | Runtime Eligibility | Runtime Model, A6, final execution gate | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting `71/61` | read-only execute/stop arbitration -> production execution consumer | runtime consumption; `UNSAFE_IMPLEMENTATION` through U01 | consume certified window/packet path, then production-verify exact gate | U01/U06; unblocks U02/U09 |
 | `CAP-U04` | Authority Evolution | OMP, authority policy, action-class ladder | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; historical safety layers reconciled | reusable historical execution/blast/rollback/outcome -> current suitability decision-context outcome -> owner authority decision | exact current-class outcome and class approval; future `ENGINEERING_AUTHORITY`, not current | finish U01 once; consume its outcome/learning; do not repeat historical proof ladder | U01/U07; unblocks U09 |
 | `CAP-U05` | Rollback | restore barrier, rollback manifest, execution feedback | `PARTIAL` | `49.0`; owner-backed | rollback preview/readiness -> production verification/rollback terminal outcome | production evidence; `STOP_SAFE` when unavailable | exercise exact rollback/no-rollback contract inside admitted U01 run | U01; unblocks U02/U03/U09 |
@@ -300,7 +300,6 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Capability IDs | Open intent | Last responsible link / owner class |
 | --- | --- | --- |
-| `U01` | Prove one safe governed production action and close outcome | controlled window/packet binding; existing execution owners |
 | `U02-U06` | Turn certified movement, eligibility, authority, rollback and recovery knowledge into bounded production behavior | Runtime/Authority/verification consumers named above |
 | `U07-U09` | Turn real outcomes into learning, readiness and bounded autonomy | outcome -> learning -> maturity -> authority/runtime |
 | `U10-U11` | Make every gate and approval explanation operator-consumable and validated | read models -> real operator consumer |
@@ -311,9 +310,9 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `U01` Controlled Run WIP; `cpsgen_V7_ROUTE_REPAIR_AUTH_BOUNDARY_V1_A7086B0D3E7B`; `ROUTE_INTEGRITY_REPAIR_AUTHORITY_BOUNDARY_V1` | protected active root; binding v2 and bounded policy certified; no packet open | `APPROVE_EXACT_TWO_USER_ROUTE_INTEGRITY_REPAIR` | exact two-user serial route-integrity repair pending one-time Operational Authority | `OPERATIONAL_AUTHORITY` | authority decision -> fresh repair identities -> serial two-user repair or STOP_SAFE -> global verification/rollback/final OPEN -> outcome/learning/maturity/promotion |
-| `4` | `U01` | after delegated policy admission and all live gates | one governed action | guarded Runtime | `STOP_SAFE` | apply/no-apply -> verification |
-| `5` | `U01/U05` | terminal safety | verification/rollback/mandatory final `OPEN` | guarded verification | `STOP_SAFE` | terminal result -> outcome closure |
+| `1` | `U02` Movement Protection WIP; `cpsgen_V7_MP_REVALIDATE_V1_6D0F3A9C2E71`; `MOVEMENT_PROTECTION_OUTCOME_REVALIDATION_V1` | U01 repair and successful outcome certified; completion-first registry advances to existing Movement Protection owner | `WAIT_FOR_QUALIFYING_REAL_WORLD_MOVEMENT_EVIDENCE` | read-only evidence wait and owner recheck | `REAL_WORLD_LIMIT` | fresh qualifying production evidence -> U03/U04/U05/U06 owner consumption -> Movement Protection certification or exact remaining gap |
+| `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
+| `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |
 | `6` | `U07/U08/U22` | consumes real terminal result | outcome, learning and maturity closure | no-mutation learning | `REAL_WORLD_LIMIT` if no outcome | learning/maturity -> CPS/OMP |
 | `7` | `U04` | needs outcome evidence | action-class Authority Evolution evaluation | engineering review | `ENGINEERING_AUTHORITY` when expansion is actually proposed | authority decision -> OMP |
 | `10` | `U06` | needs certified execution path and real recovery candidate | Recovery Admission Runtime consumption | existing-owner runtime certification | `REAL_WORLD_LIMIT/STOP_SAFE` | recovery result -> A6 |

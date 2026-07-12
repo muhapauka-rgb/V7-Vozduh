@@ -43,6 +43,8 @@ Focused tests: `254 PASS` до CPS synchronization; autoswitch policy suite `148
 
 Implementation commit: `a3ce04f80225eb7871e3d7d52d38c222ecf22f08`; GitHub `Updatesystem` выровнен. Safe deploy: `deploy-z8-14-Updatesystem-a3ce04f-20260712T093856`; repeated deploy returned `deployment_required=false`.
 
+Terminal closure и operation-ID consumer fix: commit `24f9a75e5136838ac4f4105fbfc67eeeb7b91d23`; production deploy `deploy-z8-14-Updatesystem-24f9a75-20260712T094955`. После deploy production hash `v7-users-autoswitch` совпал с repository owner; повторная transaction не выполнялась.
+
 Production read-only policy certification: `PASS`. Policy loaded from production owner; scope hash matched; only one allowed class; max users `1`; max concurrent `1`; Candidate/packet/hash approvals `false`; historical reuse forbidden; self-expansion false; Safe Mode `OPEN`. Pre-transaction eligibility correctly reported stale `capacity/route` evidence and did not grant mutation by read model.
 
 ## Automatic Certification Transaction

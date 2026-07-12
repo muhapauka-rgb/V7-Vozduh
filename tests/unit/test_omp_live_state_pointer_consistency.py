@@ -62,7 +62,7 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
         self.assertIn("OMP_CURRENT_POINTER_MISMATCH", self.validate(drift)["errors"])
 
     def test_06_current_stop_mismatch_fails(self):
-        drift = self.omp.replace("Resolved current stop: `SOURCE_SNAPSHOT_BINDING_MISMATCH`", "Resolved current stop: `UNSAFE_IMPLEMENTATION`", 1)
+        drift = self.omp.replace("Resolved current stop: `POST_FIX_FRESH_TRANSACTION_REQUIRED`", "Resolved current stop: `UNSAFE_IMPLEMENTATION`", 1)
         self.assertIn("omp_current_stop_divergence", self.validate(drift)["omp_contradiction_ids"])
 
     def test_07_current_next_action_mismatch_fails(self):
@@ -70,7 +70,7 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
         self.assertIn("omp_current_next_action_divergence", self.validate(drift)["omp_contradiction_ids"])
 
     def test_08_latest_consumed_report_mismatch_fails(self):
-        drift = self.omp.replace("docs/reports/engineering/2026-07-12_104030_cps_delegated_policy_live_state_reconciliation.md", "docs/reports/engineering/stale.md", 1)
+        drift = self.omp.replace("docs/reports/engineering/2026-07-12_105740_first_real_governed_outcome_closure_v2.md", "docs/reports/engineering/stale.md", 1)
         self.assertEqual(self.validate(drift)["omp_report_pointer_consistency"], "FAIL")
 
     def test_09_historical_section_cannot_create_mission(self):
@@ -98,8 +98,8 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
 
     def test_14_cap_u01_and_sequence_use_bounded_policy_state(self):
         cps_result = self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)
-        self.assertIn("| `SOURCE_SNAPSHOT_BINDING_MISMATCH` |", cps_result["cap_u01"])
-        self.assertIn("| `SOURCE_SNAPSHOT_BINDING_MISMATCH` |", cps_result["sequence_position_1"])
+        self.assertIn("| `POST_FIX_FRESH_TRANSACTION_REQUIRED` |", cps_result["cap_u01"])
+        self.assertIn("| `POST_FIX_FRESH_TRANSACTION_REQUIRED` |", cps_result["sequence_position_1"])
 
     def test_15_mission_identity_guard_remains_pass(self):
         result = self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)
@@ -122,7 +122,7 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
     def test_18_truth_consistency_is_go_only_when_omp_agrees(self):
         good = self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)
         self.assertEqual(good["final_verdict"], "PASS")
-        drift = self.omp.replace("Resolved current stop: `SOURCE_SNAPSHOT_BINDING_MISMATCH`", "Resolved current stop: `REAL_WORLD_LIMIT`", 1)
+        drift = self.omp.replace("Resolved current stop: `POST_FIX_FRESH_TRANSACTION_REQUIRED`", "Resolved current stop: `REAL_WORLD_LIMIT`", 1)
         bad = self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=drift)
         self.assertEqual(bad["final_verdict"], "NO-GO")
 

@@ -39,30 +39,30 @@ RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
 NORMALIZED_CPS_LIVE_STATE = {
     "active_program": "OMP",
     "current_mode": "BOUNDED_DELEGATED_AUTONOMY_ACTIVE",
-    "current_stop_condition": "POST_FIX_FRESH_TRANSACTION_REQUIRED",
-    "current_active_scope": "SINGLE_USER_FAILOVER_POLICY",
-    "current_safe_next_action": "CONTINUE OMP; EXISTING PLANNER MAY SELECT ONE FRESH ELIGIBLE CANDIDATE; GENERATE A FRESH PACKET; EXECUTE OR STOP_SAFE THROUGH EXISTING OWNERS",
+    "current_stop_condition": "RUNTIME_ROUTE_INTEGRITY_FAILURE",
+    "current_active_scope": "ROUTE_INTEGRITY_REPAIR_PREPARATION",
+    "current_safe_next_action": "CONTINUE OMP; RESOLVE EXISTING ROUTE INTEGRITY BEFORE ANY NEW TRANSACTION; STOP BEFORE MUTATION WITHOUT AUTHORITY",
     "current_scope_class": "BOUNDED_DELEGATED_POLICY",
     "current_execution_mission_id": "NONE",
     "current_execution_mission_state": "NONE",
-    "latest_terminal_mission_id": "CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V2",
-    "latest_terminal_run_nonce": "V7_CAP_U01_OUTCOME_V2_0CBFD6C64A8B",
-    "latest_terminal_mission_state": "STOP_SAFE_BINDING_CONSUMER_DEFECT_FIXED_DEPLOYED_CONTINUE_OMP_READY",
-    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-12_105740_first_real_governed_outcome_closure_v2.md",
-    "latest_terminal_mission_started_at": "2026-07-12T10:57:40+0700",
-    "previous_terminal_mission_id": "V7_OMP_CPS_DELEGATED_POLICY_LIVE_STATE_RECONCILIATION_V1",
-    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-12_104030_cps_delegated_policy_live_state_reconciliation.md",
+    "latest_terminal_mission_id": "CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V3",
+    "latest_terminal_run_nonce": "V7_CAP_U01_OUTCOME_V3_678CF77D081C",
+    "latest_terminal_mission_state": "ROLLBACK_SUCCESS_RUNTIME_ROUTE_INTEGRITY_STOP_CONTINUE_OMP_READY",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-12_154709_first_real_governed_outcome_closure_v3.md",
+    "latest_terminal_mission_started_at": "2026-07-12T15:47:09+0700",
+    "previous_terminal_mission_id": "CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V2",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-12_105740_first_real_governed_outcome_closure_v2.md",
     "authoritative_transition_input_mission_id": "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3",
     "authoritative_transition_input_state": "MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED",
     "authoritative_transition_input_report": "docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md",
     "current_mission_role": "LATEST_TERMINAL_MISSION",
-    "current_mission_id": "CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V2",
-    "current_run_nonce": "V7_CAP_U01_OUTCOME_V2_0CBFD6C64A8B",
-    "current_mission_state": "STOP_SAFE_BINDING_CONSUMER_DEFECT_FIXED_DEPLOYED_CONTINUE_OMP_READY",
-    "current_mission_report": "docs/reports/engineering/2026-07-12_105740_first_real_governed_outcome_closure_v2.md",
-    "state_captured": "2026-07-12T10:57:40+0700",
-    "current_state_generation": "cpsgen_V7_CAP_U01_OUTCOME_V2_0CBFD6C64A8B",
-    "current_transition_id": "CAP_U01_STOP_SAFE_BINDING_CONSUMER_FIX_V2",
+    "current_mission_id": "CAP-U01_FIRST_REAL_GOVERNED_OUTCOME_CLOSURE_V3",
+    "current_run_nonce": "V7_CAP_U01_OUTCOME_V3_678CF77D081C",
+    "current_mission_state": "ROLLBACK_SUCCESS_RUNTIME_ROUTE_INTEGRITY_STOP_CONTINUE_OMP_READY",
+    "current_mission_report": "docs/reports/engineering/2026-07-12_154709_first_real_governed_outcome_closure_v3.md",
+    "state_captured": "2026-07-12T15:47:09+0700",
+    "current_state_generation": "cpsgen_V7_CAP_U01_OUTCOME_V3_678CF77D081C",
+    "current_transition_id": "CAP_U01_ROLLBACK_SUCCESS_ROUTE_INTEGRITY_STOP_V3",
     "current_next_action_id": "CONTINUE_OMP",
     "binding_stability": "PASS",
     "binding_schema": "v7.operation-scoped-source-binding.v2",
@@ -72,9 +72,10 @@ NORMALIZED_CPS_LIVE_STATE = {
     "current_action_class_state": "GOVERNED_ONLY",
     "old_packets_reusable": "NO",
     "active_wip": "CAP-U01-FIRST-GOVERNED-CONTROLLED-RUN",
-    "responsibility_class": "BOUNDED_DELEGATED_POLICY_EXECUTION",
-    "last_responsible_link": "deployed operation-binding consumer fix -> fresh semantic Candidate -> fresh packet admission -> one governed transaction or STOP_SAFE -> verification/outcome/learning",
-    "smallest_existing_next_action": "`Continue OMP`; generate all identities fresh; no Candidate/packet/hash approval inside policy",
+    "responsibility_class": "RUNTIME_ROUTE_INTEGRITY_REPAIR",
+    "last_responsible_link": "global route verification -> two users assigned to disabled egress -> existing repair/authority owners",
+    "smallest_existing_next_action": "`Continue OMP`; prepare exact two-user route-integrity repair; no mutation without authority",
+    "current_class_outcome": "ROLLBACK_SUCCESS",
     "parent_engineering_intent": "INTENT_NOT_CLOSED",
 }
 
@@ -608,7 +609,7 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "CURRENT_ACTION_CLASS_STATE": f"`{state['current_action_class_state']}`",
         "OLD_PACKETS_REUSABLE": f"`{state['old_packets_reusable']}`",
         "CURRENT_CLASS_CANDIDATE_SELECTED": "`NONE_OPEN`",
-        "CURRENT_CLASS_OUTCOME": "`NO_ACTION`",
+        "CURRENT_CLASS_OUTCOME": f"`{state['current_class_outcome']}`",
         "CURRENT_CLASS_DELTA_CLOSED": "`NO`",
         "PARENT_ENGINEERING_INTENT": f"`{state['parent_engineering_intent']}`",
         "AUTOMATIC_CONTINUE_OMP_RESULT": "`BOUNDED_POLICY_ACTIVATED; CAP-U01 preserved first; normal operator command is Continue OMP; no packet is durable between transactions`",
@@ -1000,8 +1001,8 @@ def cps_live_state_consistency(
         errors.append("cps_binding_stability_not_pass")
     if live.get("OLD_PACKETS_REUSABLE", "").strip("`") != "NO":
         errors.append("cps_old_packets_reusable")
-    if live.get("CURRENT_CLASS_OUTCOME", "").strip("`") != "NO_ACTION":
-        errors.append("cps_current_class_outcome_not_no_action")
+    if live.get("CURRENT_CLASS_OUTCOME", "").strip("`") != normalized["current_class_outcome"]:
+        errors.append("cps_current_class_outcome_divergence")
     if live.get("CURRENT_ACTION_CLASS_STATE", "").strip("`") != "GOVERNED_ONLY":
         errors.append("cps_action_class_state_divergence")
     if "BOUNDED_POLICY_ACTIVATED" not in live.get("AUTOMATIC_CONTINUE_OMP_RESULT", ""):
@@ -1010,7 +1011,7 @@ def cps_live_state_consistency(
         errors.append("cps_omp_consumption_divergence")
     if not live.get("CONTROLLED_RUN_EXECUTION_AUTHORIZED", "").strip("`").startswith("BOUNDED_POLICY_ONLY"):
         errors.append("cps_execution_authority_not_policy_bounded")
-    if live.get("CONTROLLED_RUN_RESPONSIBILITY_CLASS", "").strip("`") != "BOUNDED_DELEGATED_POLICY_EXECUTION":
+    if live.get("CONTROLLED_RUN_RESPONSIBILITY_CLASS", "").strip("`") != normalized["responsibility_class"]:
         errors.append("cps_responsibility_class_divergence")
     if live.get("CURRENT_ACTIVE_SCOPE", "").strip("`") == "ONE_FRESH_CURRENT_CLASS_TRANSACTION":
         for key in (

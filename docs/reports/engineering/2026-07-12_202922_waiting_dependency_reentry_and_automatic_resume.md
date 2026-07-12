@@ -145,7 +145,10 @@ Current source-state validation before this report:
 - self-continuation consistency: `PASS`
 - local alignment: `PASS`
 - Runtime alignment: `PASS`
-- GitHub truth/convergence: not observed from the restricted sandbox; remote read failed
+- Post-delivery truth: `PASS`, `FULLY_ALIGNED`
+- Post-delivery convergence: `PASS`, `ALIGNED`
+- Local/GitHub evidence commit: `f31ae08852c5877819886d06143752e9f6c2c325`
+- Runtime commit remains `f6313e4c8dd05e20dca5dbf2ec4af353a34c1e72`; the only delta is this Engineering Report, classified `DOCS_ONLY_MISMATCH`, `deployment_required=false`, Runtime `PASS`
 
 Full regression:
 
@@ -176,8 +179,8 @@ CAP_U07_STATE = WAITING_EXTERNAL_DEPENDENCY
 TARGETED_TESTS = 54_PASS
 FULL_TESTS = 880_PASS
 DEPLOY_ID = NONE
-TRUTH_RESULT = LOCAL_PASS_RUNTIME_PASS_REMOTE_NOT_OBSERVED
-CONVERGENCE_RESULT = LOCAL_ALIGNED_RUNTIME_ALIGNED_REMOTE_NOT_OBSERVED
+TRUTH_RESULT = PASS_FULLY_ALIGNED
+CONVERGENCE_RESULT = PASS_ALIGNED_DOCS_ONLY_RUNTIME_DELTA
 NEXT_OMP_ACTION = EXPLICITLY_DECIDE_WHETHER_AN_EXTERNAL_CODEX_WAKEUP_OWNER_IS_ALLOWED; DO_NOT_ADD_ONE_IMPLICITLY
 FINAL_VERDICT = FUNDAMENTAL_ARCHITECTURE_BOUNDARY
 ```

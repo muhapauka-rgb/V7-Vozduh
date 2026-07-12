@@ -52,7 +52,10 @@ CAP-U04 and all other dependents remain blocked. CAP-U01 remains COMPLETE. Safe 
 - focused tests: `123/123 PASS`;
 - full tests: `873/873 PASS`;
 - compile/diff: `PASS`;
-- deploy: pending;
-- truth/convergence: pending.
+- deploy: `PASS`; existing validator consumer only; `deploy-z8-14-Updatesystem-918d6aa-20260712T200852`;
+- truth: `PASS`, `FULLY_ALIGNED`, CPS `PASS`, blockers `0`;
+- convergence: `PASS`, `ALIGNED`, deploy delta mismatches `0`;
+- route integrity: `V7_USER_ROUTE_CHECK=OK`;
+- final Safe Mode: `OPEN`, generation `aec_dda6c420c87e99e97236883c`.
 
 `CAP_U07_LEARNING_OUTCOME_CONSUMED_REAL_WORLD_LIMIT`

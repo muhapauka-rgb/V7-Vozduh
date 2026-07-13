@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.20`
+Version: `4.21`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -25,6 +25,8 @@ V4.18 adds Dependency-Aware Continuation and Completion Order Protection inside 
 V4.19 connects existing owner-backed Engineering Polygon Scenario sources to BDP minimal Discovery Economy and the existing L6 continuous lane. The bounded adapter evaluates current validator, dependency, replay, producer/consumer, STOP_SAFE, recovery, coverage, WIP and production-evidence surfaces; materializes only active Engineering Plane failures; deterministically selects one scenario; and routes it through the existing BDP Reality Gate and OMP admission. Historical artifacts and production-only evidence never become scenarios by themselves. This adds no Scenario Engine, queue, scheduler, owner, Runtime, Planner, lifecycle, truth source or backlog.
 
 V4.20 connects bounded proactive verification inputs from existing test, replay, STOP_SAFE, rollback, recovery, truth, dependency and producer/consumer owners to the same Engineering Polygon Scenario Supply. A proactive input is execution metadata, not a Candidate or production evidence. PASS records current contract coverage without a Scenario. Only a current reproducible mismatch may become a Scenario and continue through BDP Reality Gate and OMP admission. Execution is serial, deterministic, no-mutation and budget-bounded; it cannot grant authority, move users, apply packets, write restore barriers or earn Production Maturity. This adds no test engine, replay engine, scenario engine, queue, scheduler, owner, Runtime, Planner, lifecycle, truth source or backlog.
+
+V4.21 replaces finite seed exhaustion with deterministic Engineering Polygon corpus discovery and fallback continuation inside the same existing owners. The bounded consumer projects safe executable verification obligations from the current mapped owner corpus, fingerprints source, fixture, contract, owner implementation and dependencies, revalidates stale coverage, and continues serially until failure, budget boundary or proven full-current-corpus exhaustion. Budget exhaustion preserves the exact next input and is never a `REAL_WORLD_LIMIT`. This adds no corpus registry, test engine, queue, scheduler, owner, Runtime, Planner, lifecycle, truth source or backlog.
 
 V4 operating questions:
 
@@ -701,6 +703,33 @@ A report, historical defect, policy, test name, validator name or missing produc
 Selection is serial and deterministic: STOP_SAFE/safety negative paths; rollback/partial failure; current truth; producer/consumer confirmation; replay/duplicate; dependency order; recovery; authority/runtime/production boundary; executable historical regression; canonical coverage obligation; then engineering quality. One input is consumed per iteration. PASS creates no Scenario or Candidate. A flaky, unowned, unconsumed or boundary-crossing result stops safely. Only a reproducible current failure may use the existing result-to-scenario adapter.
 
 Coverage remains evidence under existing verification, OMP and report owners; it does not create a new registry. A previous PASS is current only until its owner-defined implementation, fixture, contract or dependency invalidation trigger fires. When the bounded input budget is reached, the legal stop is `PROACTIVE_INPUT_BUDGET_EXHAUSTED`; when all current proactive inputs and active scenario sources are exhausted, the unchanged capability frontier may return `REAL_WORLD_EVIDENCE_REQUIRED_AFTER_PROACTIVE_VERIFICATION_EXHAUSTION`.
+
+#### Engineering Polygon Fallback Continuation Rule
+
+Status: `CANONICAL_EXISTING_OWNER_INTEGRATION`
+
+A finite seed list cannot prove Engineering Polygon exhaustion. When fresh CPS has no READY capability, active Mission, Candidate, actionable real situation or active Engineering Polygon Scenario, the existing L6 consumer must discover the current safe executable verification corpus through mapped existing owners before returning a global `REAL_WORLD_LIMIT`.
+
+Canonical route:
+
+```text
+fresh CPS and dependency truth
+  -> deterministic existing-owner corpus discovery
+  -> safety and environment exclusion with exact reason
+  -> source / fixture / contract / owner / dependency fingerprint
+  -> FAIL_CURRENT, STALE or NOT_EVALUATED first
+  -> bounded serial verification
+  -> PASS_CURRENT and automatic next input
+  OR reproducible current mismatch -> Scenario -> BDP -> OMP admission
+  OR budget boundary with exact next input preserved
+  OR proven full-current-corpus exhaustion
+```
+
+Corpus order and identity must be deterministic and independent of filesystem enumeration order. Duplicate obligations are suppressed. A prior PASS is reusable only while its full revalidation fingerprint remains current. Unsafe, external, ambiguous, production-mutating or unmapped inputs are excluded with an explicit classification and do not count as evaluated coverage.
+
+Normal OMP work always preempts this fallback. The fallback may not create a queue, scheduler, registry, owner, Engine, Runtime, Planner, lifecycle, Authority, packet, Candidate or production evidence. It may not mutate Runtime, move users, write restore barriers, expand blast radius or earn Production Maturity.
+
+`PROACTIVE_INPUT_BUDGET_EXHAUSTED` is a continuation boundary, not a program terminal: the compact next-input projection must be materialized for the next existing OMP invocation. `REAL_WORLD_EVIDENCE_REQUIRED_AFTER_FULL_CURRENT_CORPUS_EXHAUSTION` is legal only when discovery is complete, every eligible current input is `PASS_CURRENT` or legally not applicable, no stale or unevaluated input remains, and no current Scenario was produced.
 
 #### Execution Certification Candidate Certificate Consumption Rule
 

@@ -2367,15 +2367,29 @@ PROACTIVE_VERIFICATION_INPUT_REQUIRED_FIELDS = (
 )
 
 PROACTIVE_VERIFICATION_PRIORITY = {
+    "STOP_SAFE_SAFETY": 10,
     "STOP_SAFE_SAFETY_NEGATIVE": 10,
     "ROLLBACK_PARTIAL_FAILURE": 20,
+    "CURRENT_TRUTH": 30,
     "TRUTH_CURRENT_STATE_CONSISTENCY": 30,
+    "PRODUCER_CONSUMER": 40,
     "PRODUCER_CONSUMER_CONFIRMATION": 40,
+    "REPLAY_DETERMINISM": 50,
     "REPLAY_DUPLICATE_PROTECTION": 50,
+    "DUPLICATE_IDEMPOTENCY": 55,
+    "DEPENDENCY_ORDER": 60,
     "DEPENDENCY_COMPLETION_ORDER": 60,
+    "RECOVERY": 70,
     "RECOVERY_POST_FAILURE": 70,
+    "BEHAVIOR_PROPAGATION": 72,
+    "STATE_TRANSITION": 74,
+    "AUTHORITY_BOUNDARY": 80,
+    "RUNTIME_BOUNDARY": 82,
+    "PRODUCTION_BOUNDARY": 84,
     "AUTHORITY_RUNTIME_PRODUCTION_BOUNDARY": 80,
+    "HISTORICAL_REGRESSION": 90,
     "HISTORICAL_EXECUTABLE_REGRESSION": 90,
+    "CANONICAL_RULE_COVERAGE": 100,
     "CANONICAL_COVERAGE_OBLIGATION": 100,
     "ENGINEERING_QUALITY": 110,
 }
@@ -2461,10 +2475,35 @@ def proactive_verification_input(source: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _proactive_coverage_state(
+    proactive_input: dict[str, Any],
+    coverage_record: Optional[dict[str, Any]],
+) -> str:
+    if not coverage_record:
+        return "NOT_EVALUATED"
+    result = str(coverage_record.get("last_result") or "NOT_EVALUATED")
+    current_fingerprint = str(proactive_input.get("revalidation_fingerprint") or proactive_input["deterministic_identity"])
+    evaluated_fingerprint = str(coverage_record.get("last_evaluated_fingerprint") or "")
+    if evaluated_fingerprint != current_fingerprint:
+        return "STALE_REVALIDATION_REQUIRED"
+    if result in {"PROACTIVE_VERIFICATION_PASS", "PASS_CURRENT"}:
+        return "PASS_CURRENT"
+    if result in {"PROACTIVE_VERIFICATION_FAIL", "FAIL_CURRENT"}:
+        return "FAIL_CURRENT"
+    if result in {"PROACTIVE_VERIFICATION_NON_DETERMINISTIC", "NON_DETERMINISTIC"}:
+        return "NON_DETERMINISTIC"
+    if result in {"PROACTIVE_VERIFICATION_BLOCKED", "BLOCKED"}:
+        return "BLOCKED"
+    if result in {"NOT_APPLICABLE", "PROACTIVE_VERIFICATION_NOT_APPLICABLE"}:
+        return "NOT_APPLICABLE"
+    return "NOT_EVALUATED"
+
+
 def select_proactive_verification_input(
     sources: Iterable[Any],
     *,
     evaluated_inputs: Optional[Iterable[Any]] = None,
+    coverage_records: Optional[dict[str, dict[str, Any]]] = None,
 ) -> dict[str, Any]:
     """Select one smallest deterministic existing-owner verification input."""
     materialized: list[dict[str, Any]] = []
@@ -2504,11 +2543,40 @@ def select_proactive_verification_input(
         elif isinstance(item, dict):
             evaluated_ids.add(str(item.get("proactive_input_id") or ""))
             evaluated_fingerprints.add(str(item.get("duplicate_fingerprint") or ""))
-    ordered = sorted(materialized, key=lambda row: (int(row["priority"]), str(row["deterministic_identity"])))
+    coverage_records = coverage_records or {}
+    state_rank = {
+        "FAIL_CURRENT": 0,
+        "STALE_REVALIDATION_REQUIRED": 1,
+        "NOT_EVALUATED": 2,
+        "BLOCKED": 3,
+        "NON_DETERMINISTIC": 4,
+        "PASS_CURRENT": 5,
+        "NOT_APPLICABLE": 6,
+    }
+    for row in materialized:
+        row["coverage_state"] = _proactive_coverage_state(
+            row,
+            coverage_records.get(str(row["proactive_input_id"])),
+        )
+        row["revalidation_required"] = row["coverage_state"] in {
+            "STALE_REVALIDATION_REQUIRED",
+            "FAIL_CURRENT",
+            "BLOCKED",
+            "NON_DETERMINISTIC",
+        }
+    ordered = sorted(
+        materialized,
+        key=lambda row: (
+            state_rank.get(str(row["coverage_state"]), 99),
+            int(row["priority"]),
+            str(row["deterministic_identity"]),
+        ),
+    )
     remaining = [
         row for row in ordered
         if row["proactive_input_id"] not in evaluated_ids
         and row["duplicate_fingerprint"] not in evaluated_fingerprints
+        and row["coverage_state"] not in {"PASS_CURRENT", "NOT_APPLICABLE"}
     ]
     selected = remaining[0] if remaining else None
     return {
@@ -2516,6 +2584,9 @@ def select_proactive_verification_input(
         "selection_status": "PROACTIVE_INPUT_SELECTED" if selected else "NO_ELIGIBLE_PROACTIVE_VERIFICATION_INPUT",
         "selected_input": selected,
         "eligible_input_count": len(materialized),
+        "current_pass_count": sum(1 for row in materialized if row["coverage_state"] == "PASS_CURRENT"),
+        "stale_input_count": sum(1 for row in materialized if row["coverage_state"] == "STALE_REVALIDATION_REQUIRED"),
+        "not_evaluated_count": sum(1 for row in materialized if row["coverage_state"] == "NOT_EVALUATED"),
         "remaining_distinct_input_count": len(remaining),
         "duplicate_input_count": len(ordered) - len(remaining),
         "excluded_inputs": excluded,
@@ -2644,9 +2715,7 @@ def proactive_verification_failure_scenario_source(
     }
 
 
-def discover_proactive_verification_inputs(*, root: Path = ROOT) -> dict[str, Any]:
-    """Map bounded representatives of existing executable verification owners."""
-    specs = (
+PROACTIVE_SEED_SPECS = (
         (
             "STOP_SAFE_SAFETY_NEGATIVE",
             "OPERATOR_EXECUTION_PIPELINE_VERIFICATION_OWNER",
@@ -2683,15 +2752,224 @@ def discover_proactive_verification_inputs(*, root: Path = ROOT) -> dict[str, An
             "tests.unit.test_omp_dependency_graph_completion_order.OmpDependencyGraphCompletionOrderTest.test_06_completion_order_violation_is_rejected",
             "Completion-order violations must be rejected by the existing dependency owner.",
         ),
-    )
+)
+
+PROACTIVE_CORPUS_MODULE_OWNERS = {
+    "test_omp_self_continuation": ("OMP_SELF_CONTINUATION_OWNER", "tools/v7_sync_lib.py"),
+    "test_omp_dependency_graph_completion_order": ("CPS_CAPABILITY_DEPENDENCY_OWNER", "tools/v7_sync_lib.py"),
+    "test_omp_live_state_pointer_consistency": ("OMP_CPS_POINTER_CONSISTENCY_OWNER", "tools/v7_sync_lib.py"),
+    "test_omp_heartbeat_boundary_adapter": ("OMP_HEARTBEAT_BOUNDARY_OWNER", "tools/v7_sync_lib.py"),
+    "test_bdp_development_impulse_handoff": ("BDP_DEVELOPMENT_IMPULSE_OWNER", "tools/v7_sync_lib.py"),
+    "test_operation_scoped_binding": ("OPERATION_SCOPED_BINDING_OWNER", "admin_core/operation_scoped_binding.py"),
+    "test_autonomy_trust_acceleration": ("AUTONOMY_TRUST_VERIFICATION_OWNER", "admin_core/autonomy_trust_acceleration.py"),
+    "test_operator_execution_pipeline": ("OPERATOR_EXECUTION_PIPELINE_VERIFICATION_OWNER", "admin_core/operator_execution_pipeline.py"),
+    "test_operator_observability": ("OPERATOR_OBSERVABILITY_OWNER", "admin_core/operator_observability.py"),
+    "test_intelligence_platform": ("INTELLIGENCE_PLATFORM_VERIFICATION_OWNER", "admin_core/intelligence_platform.py"),
+    "test_routing_brain": ("ROUTING_BRAIN_VERIFICATION_OWNER", "admin_core/routing_brain.py"),
+    "test_operator_decision_surface": ("OPERATOR_DECISION_SURFACE_OWNER", "admin_core/operator_decision_surface.py"),
+    "test_operator_execution_feedback": ("OPERATOR_EXECUTION_FEEDBACK_OWNER", "admin_core/operator_execution_feedback.py"),
+}
+
+PROACTIVE_CORPUS_CLASS_RULES = (
+    ("STOP_SAFE_SAFETY", ("stop_safe", "stops", "stop_", "fails_closed", "fail_closed", "hard_stop")),
+    ("ROLLBACK_PARTIAL_FAILURE", ("rollback", "partial_failure")),
+    ("CURRENT_TRUTH", ("current_state", "truth", "mixed_generation", "stale")),
+    ("PRODUCER_CONSUMER", ("producer", "consumer", "handoff")),
+    ("REPLAY_DETERMINISM", ("replay", "deterministic")),
+    ("DUPLICATE_IDEMPOTENCY", ("duplicate", "idempot")),
+    ("DEPENDENCY_ORDER", ("dependency", "completion_order", "frontier")),
+    ("RECOVERY", ("recovery", "recovered")),
+    ("BEHAVIOR_PROPAGATION", ("behavior", "behaviour", "propagation")),
+    ("STATE_TRANSITION", ("transition", "lifecycle")),
+    ("AUTHORITY_BOUNDARY", ("authority",)),
+    ("RUNTIME_BOUNDARY", ("runtime",)),
+    ("PRODUCTION_BOUNDARY", ("production",)),
+    ("HISTORICAL_REGRESSION", ("historical", "regression")),
+    ("CANONICAL_RULE_COVERAGE", ("canonical", "contract")),
+    ("ENGINEERING_QUALITY", ("quality", "coverage")),
+)
+
+PROACTIVE_CORPUS_FORBIDDEN_TOKENS = (
+    "subprocess",
+    "paramiko",
+    "requests.",
+    "urllib",
+    "socket.",
+    "systemctl",
+    "ssh ",
+    "/opt/v7",
+    "execute_runtime_action",
+    "user_switch",
+    "packet_apply",
+    "production_apply",
+    "restore_barrier_write",
+)
+
+PROACTIVE_CORPUS_SELF_TEST_MODULES = {
+    "test_omp_proactive_polygon_verification",
+    "test_omp_polygon_fallback_continuation",
+}
+
+PROACTIVE_SEED_CANONICAL_CLASSES = {
+    "STOP_SAFE_SAFETY_NEGATIVE": "STOP_SAFE_SAFETY",
+    "ROLLBACK_PARTIAL_FAILURE": "ROLLBACK_PARTIAL_FAILURE",
+    "TRUTH_CURRENT_STATE_CONSISTENCY": "CURRENT_TRUTH",
+    "PRODUCER_CONSUMER_CONFIRMATION": "PRODUCER_CONSUMER",
+    "REPLAY_DUPLICATE_PROTECTION": "DUPLICATE_IDEMPOTENCY",
+    "DEPENDENCY_COMPLETION_ORDER": "DEPENDENCY_ORDER",
+}
+
+
+def _sha256_text(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def proactive_corpus_fingerprint(inputs: Iterable[dict[str, Any]]) -> str:
+    payload = [
+        {
+            "proactive_input_id": item["proactive_input_id"],
+            "revalidation_fingerprint": item.get("revalidation_fingerprint", item["deterministic_identity"]),
+            "contract_class": item.get("contract_class", item["verification_class"]),
+        }
+        for item in sorted(inputs, key=lambda row: row["proactive_input_id"])
+    ]
+    return _sha256_text(json.dumps(payload, sort_keys=True, separators=(",", ":")))
+
+
+def _proactive_contract_class(method_name: str) -> str:
+    normalized = method_name.lower()
+    for contract_class, keywords in PROACTIVE_CORPUS_CLASS_RULES:
+        if any(keyword in normalized for keyword in keywords):
+            return contract_class
+    return "NOT_ELIGIBLE"
+
+
+def _proactive_method_exclusion(method_name: str, source: str) -> str:
+    normalized = f"{method_name}\n{source}".lower()
+    for token in PROACTIVE_CORPUS_FORBIDDEN_TOKENS:
+        if token in normalized:
+            return f"UNSAFE_OR_EXTERNAL_TOKEN:{token.strip()}"
+    if any(token in method_name.lower() for token in ("deploy", "real_runtime", "live_server", "network")):
+        return "ENVIRONMENT_OR_PRODUCTION_DEPENDENT"
+    return ""
+
+
+def _corpus_dependency_fingerprint(root: Path) -> str:
+    omp_text = (root / "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md").read_text(encoding="utf-8")
+    cps_text = (root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
+    omp_version = re.search(r"(?m)^Version:\s*`([^`]+)`", omp_text)
+    graph_version = re.search(r"(?m)^\| `DEPENDENCY_GRAPH_VERSION` \| `([^`]+)`", cps_text)
+    return _sha256_text("|".join((
+        omp_version.group(1) if omp_version else "UNKNOWN_OMP_VERSION",
+        graph_version.group(1) if graph_version else "UNKNOWN_DEPENDENCY_GRAPH",
+    )))
+
+
+def _proactive_source_from_method(
+    *,
+    root: Path,
+    module_name: str,
+    class_node: ast.ClassDef,
+    method_node: ast.FunctionDef,
+    file_text: str,
+    owner: str,
+    owner_path: str,
+    contract_class: str,
+    dependency_fingerprint: str,
+) -> dict[str, Any]:
+    selector = f"tests.unit.{module_name}.{class_node.name}.{method_node.name}"
+    relative = f"tests/unit/{module_name}.py"
+    method_source = ast.get_source_segment(file_text, method_node) or method_node.name
+    class_source = ast.get_source_segment(file_text, class_node) or class_node.name
+    owner_file = root / owner_path
+    owner_source = owner_file.read_text(encoding="utf-8") if owner_file.exists() else "MISSING_OWNER_IMPLEMENTATION"
+    target_contract = method_node.name.removeprefix("test_").replace("_", " ")
+    method_fingerprint = _sha256_text(method_source)
+    fixture_fingerprint = _sha256_text(class_source)
+    owner_fingerprint = _sha256_text(owner_source)
+    contract_fingerprint = _sha256_text(target_contract)
+    revalidation_fingerprint = _sha256_text("|".join((
+        owner_fingerprint,
+        method_fingerprint,
+        fixture_fingerprint,
+        contract_fingerprint,
+        dependency_fingerprint,
+    )))
+    identity = _sha256_text(f"{owner}|{selector}|{contract_class}|{target_contract}")
+    return {
+        "corpus_input_id": f"V7-POLYGON-CORPUS-{identity[:24].upper()}",
+        "source_owner": owner,
+        "execution_owner": "PYTHON_UNITTEST_EXISTING_VERIFICATION_OWNER",
+        "source_evidence": relative,
+        "module": module_name,
+        "class_name": class_node.name,
+        "method_or_entrypoint": method_node.name,
+        "target_contract": target_contract,
+        "contract_class": contract_class,
+        "engineering_intent": f"Proactively preserve existing owner contract: {target_contract}.",
+        "current_assumption": "The existing owner implementation still satisfies this executable contract.",
+        "expected_behavior": f"Existing unittest contract `{selector}` passes.",
+        "entrypoint": [sys.executable, "-m", "unittest", selector],
+        "input_or_fixture": selector,
+        "preconditions": "clean converged repository; isolated unittest; no external production access",
+        "observation_method": "exact unittest method assertion and process exit status",
+        "pass_criteria": "exact unittest method exits zero",
+        "fail_criteria": "exact unittest method fails reproducibly in the current checkout",
+        "result_consumer": "ENGINEERING_POLYGON_SCENARIO_SUPPLY",
+        "rollback_or_stop_safe": "isolated test-only mutation; STOP_SAFE on invalid, flaky or boundary-crossing result",
+        "mutation_boundary": "ISOLATED_TEST_ONLY",
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "authority_impact": "NONE",
+        "maturity_credit": "FORBIDDEN",
+        "user_movement": False,
+        "packet_apply": False,
+        "restore_barrier_write": False,
+        "revalidation_trigger": "owner, exact method, fixture, contract, dependency graph or OMP semantic version changes",
+        "verification_class": contract_class,
+        "source_classification": "ACTIVE_EXECUTABLE_NOT_CONSUMED",
+        "new_owner_required": False,
+        "new_architecture_required": False,
+        "method_fingerprint": method_fingerprint,
+        "owner_implementation_fingerprint": owner_fingerprint,
+        "fixture_fingerprint": fixture_fingerprint,
+        "contract_fingerprint": contract_fingerprint,
+        "dependency_fingerprint": dependency_fingerprint,
+        "revalidation_fingerprint": revalidation_fingerprint,
+        "last_result": "NOT_EVALUATED",
+        "last_evaluated_fingerprint": "NONE",
+        "revalidation_required": True,
+        "eligibility_status": "ELIGIBLE",
+        "exclusion_reason": "NONE",
+        "seed_input": False,
+    }
+
+
+def _proactive_seed_sources(root: Path, dependency_fingerprint: str) -> tuple[list[dict[str, Any]], list[str]]:
     sources: list[dict[str, Any]] = []
     missing: list[str] = []
-    for verification_class, owner, selector, expected in specs:
+    for verification_class, owner, selector, expected in PROACTIVE_SEED_SPECS:
         relative = Path(*selector.split(".")[:3]).with_suffix(".py")
         source_path = root / relative
         if not source_path.exists():
             missing.append(selector)
             continue
+        file_text = source_path.read_text(encoding="utf-8")
+        method_name = selector.rsplit(".", 1)[-1]
+        method_match = re.search(rf"(?ms)^\s+def\s+{re.escape(method_name)}\s*\(.*?(?=^\s+def\s+test_|^class\s+|\Z)", file_text)
+        method_fingerprint = _sha256_text(method_match.group(0) if method_match else method_name)
+        owner_path = PROACTIVE_CORPUS_MODULE_OWNERS.get(relative.stem, (owner, str(relative)))[1]
+        owner_file = root / owner_path
+        owner_fingerprint = _sha256_text(owner_file.read_text(encoding="utf-8") if owner_file.exists() else "MISSING")
+        fixture_fingerprint = _sha256_text(file_text)
+        contract_fingerprint = _sha256_text(expected)
+        revalidation_fingerprint = _sha256_text("|".join((
+            owner_fingerprint,
+            method_fingerprint,
+            fixture_fingerprint,
+            contract_fingerprint,
+            dependency_fingerprint,
+        )))
         sources.append({
             "source_owner": owner,
             "execution_owner": "PYTHON_UNITTEST_EXISTING_VERIFICATION_OWNER",
@@ -2720,17 +2998,247 @@ def discover_proactive_verification_inputs(*, root: Path = ROOT) -> dict[str, An
             "source_classification": "ACTIVE_EXECUTABLE_NOT_CONSUMED",
             "new_owner_required": False,
             "new_architecture_required": False,
+            "module": relative.stem,
+            "class_name": selector.split(".")[-2],
+            "method_or_entrypoint": method_name,
+            "contract_class": verification_class,
+            "mutation_boundary": "ISOLATED_TEST_ONLY",
+            "method_fingerprint": method_fingerprint,
+            "owner_implementation_fingerprint": owner_fingerprint,
+            "fixture_fingerprint": fixture_fingerprint,
+            "contract_fingerprint": contract_fingerprint,
+            "dependency_fingerprint": dependency_fingerprint,
+            "revalidation_fingerprint": revalidation_fingerprint,
+            "last_result": "NOT_EVALUATED",
+            "last_evaluated_fingerprint": "NONE",
+            "revalidation_required": True,
+            "eligibility_status": "ELIGIBLE",
+            "exclusion_reason": "NONE",
+            "seed_input": True,
         })
+    return sources, missing
+
+
+def discover_proactive_verification_inputs(*, root: Path = ROOT) -> dict[str, Any]:
+    """Project the current safe executable unittest corpus through existing owners."""
+    dependency_fingerprint = _corpus_dependency_fingerprint(root)
+    seed_sources, missing = _proactive_seed_sources(root, dependency_fingerprint)
+    seed_selectors = {str(item["input_or_fixture"]) for item in seed_sources}
+    eligible_by_class: dict[str, dict[str, Any]] = {}
+    excluded: list[dict[str, str]] = []
+    test_root = root / "tests/unit"
+    for source_path in sorted(test_root.glob("test_*.py"), key=lambda path: path.name):
+        module_name = source_path.stem
+        if module_name in PROACTIVE_CORPUS_SELF_TEST_MODULES:
+            excluded.append({"source": str(source_path.relative_to(root)), "reason": "ADAPTER_SELF_TEST_MODULE"})
+            continue
+        owner_mapping = PROACTIVE_CORPUS_MODULE_OWNERS.get(module_name)
+        if owner_mapping is None:
+            excluded.append({"source": str(source_path.relative_to(root)), "reason": "OWNER_NOT_MAPPED"})
+            continue
+        file_text = source_path.read_text(encoding="utf-8")
+        try:
+            tree = ast.parse(file_text, filename=str(source_path))
+        except SyntaxError:
+            excluded.append({"source": str(source_path.relative_to(root)), "reason": "SOURCE_PARSE_FAILURE"})
+            continue
+        owner, owner_path = owner_mapping
+        for class_node in (node for node in tree.body if isinstance(node, ast.ClassDef)):
+            for method_node in (node for node in class_node.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test_")):
+                selector = f"tests.unit.{module_name}.{class_node.name}.{method_node.name}"
+                if selector in seed_selectors:
+                    continue
+                contract_class = _proactive_contract_class(method_node.name)
+                if contract_class == "NOT_ELIGIBLE":
+                    excluded.append({"source": selector, "reason": "AMBIGUOUS_CONTRACT_SEMANTICS"})
+                    continue
+                method_source = ast.get_source_segment(file_text, method_node) or method_node.name
+                exclusion = _proactive_method_exclusion(method_node.name, method_source)
+                if exclusion:
+                    excluded.append({"source": selector, "reason": exclusion})
+                    continue
+                source = _proactive_source_from_method(
+                    root=root,
+                    module_name=module_name,
+                    class_node=class_node,
+                    method_node=method_node,
+                    file_text=file_text,
+                    owner=owner,
+                    owner_path=owner_path,
+                    contract_class=contract_class,
+                    dependency_fingerprint=dependency_fingerprint,
+                )
+                current = eligible_by_class.get(contract_class)
+                if current is None or source["input_or_fixture"] < current["input_or_fixture"]:
+                    if current is not None:
+                        excluded.append({"source": current["input_or_fixture"], "reason": "DUPLICATE_CONTRACT_CLASS_REPRESENTATIVE"})
+                    eligible_by_class[contract_class] = source
+                else:
+                    excluded.append({"source": selector, "reason": "DUPLICATE_CONTRACT_CLASS_REPRESENTATIVE"})
+    seed_classes = {
+        PROACTIVE_SEED_CANONICAL_CLASSES.get(str(item["verification_class"]), str(item["verification_class"]))
+        for item in seed_sources
+    }
+    automatic_sources = [
+        source for contract_class, source in sorted(eligible_by_class.items())
+        if contract_class not in seed_classes
+    ]
+    sources = seed_sources + automatic_sources
+    materialized = [proactive_verification_input(source) for source in sources]
+    invalid = [error for result in materialized if result["final_verdict"] != "PASS" for error in result["errors"]]
+    instances = [result["proactive_input"] for result in materialized if result["final_verdict"] == "PASS"]
+    corpus_fingerprint = proactive_corpus_fingerprint(instances)
     return {
-        "schema": "v7-proactive-verification-input-discovery/v1",
-        "audit_result": "PROACTIVE_INPUTS_EXIST_BUT_NOT_CONNECTED" if sources else "NO_EXECUTABLE_PROACTIVE_INPUTS_EXIST",
-        "mapped_input_count": len(sources),
+        "schema": "v7-proactive-verification-corpus-discovery/v2",
+        "audit_result": "SCALABLE_CURRENT_CORPUS_DISCOVERED" if instances else "NO_EXECUTABLE_PROACTIVE_INPUTS_EXIST",
+        "discovery_mode": "DETERMINISTIC_AST_EXISTING_OWNER_PROJECTION",
+        "mapped_input_count": len(instances),
+        "seed_input_count": len(seed_sources),
+        "automatic_input_count": len(automatic_sources),
         "proactive_inputs": sources,
         "missing_entrypoints": missing,
+        "excluded_input_count": len(excluded),
+        "excluded_inputs": sorted(excluded, key=lambda row: (row["reason"], row["source"])),
+        "corpus_discovery_complete": not missing and not invalid,
+        "corpus_fingerprint": corpus_fingerprint,
+        "exhaustion_scope": "FULL_CURRENT_ELIGIBLE_ENGINEERING_CORPUS",
         "historical_context_only_not_promoted": True,
         "production_only_evidence_excluded": True,
-        "final_verdict": "PASS" if sources and not missing else "STOP_SAFE",
-        "errors": [f"proactive_entrypoint_missing:{item}" for item in missing],
+        "final_verdict": "PASS" if instances and not missing and not invalid else "STOP_SAFE",
+        "errors": [f"proactive_entrypoint_missing:{item}" for item in missing] + invalid,
+    }
+
+
+def load_polygon_coverage_evidence(*, root: Path = ROOT) -> dict[str, dict[str, Any]]:
+    """Read compact coverage evidence from existing Engineering Reports."""
+    report_root = root / "docs/reports/engineering"
+    records: dict[str, dict[str, Any]] = {}
+    if not report_root.exists():
+        return records
+    marker = "POLYGON_COVERAGE_JSON:"
+    for path in sorted(report_root.glob("*_engineering_polygon_fallback_continuation.md")):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        marker_at = text.find(marker)
+        if marker_at < 0:
+            continue
+        block_start = text.find("```json", marker_at)
+        block_end = text.find("```", block_start + 7) if block_start >= 0 else -1
+        if block_start < 0 or block_end < 0:
+            continue
+        try:
+            payload = json.loads(text[block_start + 7:block_end].strip())
+        except (TypeError, ValueError):
+            continue
+        for item in payload.get("coverage", []):
+            if isinstance(item, dict) and item.get("proactive_input_id"):
+                records[str(item["proactive_input_id"])] = dict(item)
+    return records
+
+
+def accepted_seed_proactive_coverage(
+    discovery: dict[str, Any],
+    *,
+    root: Path = ROOT,
+    runner: Optional[Callable[[list[str], Optional[Path], int], dict[str, Any]]] = None,
+) -> dict[str, dict[str, Any]]:
+    """Reuse accepted seed PASS evidence only while its owner and fixture are unchanged."""
+    runner = runner or run_command
+    report_paths = (
+        root / "docs/reports/engineering/2026-07-14_005644_proactive_engineering_polygon_verification_integration.md",
+        root / "docs/reports/engineering/2026-07-14_012023_proactive_polygon_verification_exhaustion_continuation.md",
+    )
+    report_text = "\n".join(path.read_text(encoding="utf-8") for path in report_paths if path.exists())
+    records: dict[str, dict[str, Any]] = {}
+    for source in discovery.get("proactive_inputs", []):
+        if not source.get("seed_input"):
+            continue
+        method_name = str(source.get("method_or_entrypoint") or "")
+        if method_name not in report_text:
+            continue
+        source_path = str(source.get("source_evidence") or "")
+        owner_path = PROACTIVE_CORPUS_MODULE_OWNERS.get(str(source.get("module") or ""), ("", source_path))[1]
+        evidence_report = next((path for path in report_paths if path.exists() and method_name in path.read_text(encoding="utf-8")), None)
+        if evidence_report is None:
+            continue
+        commit_result = runner(
+            ["git", "log", "-1", "--format=%H", "--", str(evidence_report.relative_to(root))],
+            root,
+            30,
+        )
+        evidence_commit = str(commit_result.get("stdout") or "").strip()
+        if not commit_result.get("ok") or not evidence_commit:
+            continue
+        unchanged = runner(
+            ["git", "diff", "--quiet", evidence_commit, "--", source_path, owner_path],
+            root,
+            30,
+        )
+        if not unchanged.get("ok"):
+            continue
+        materialized = proactive_verification_input(source)
+        if materialized["final_verdict"] != "PASS":
+            continue
+        item = materialized["proactive_input"]
+        records[item["proactive_input_id"]] = {
+            "proactive_input_id": item["proactive_input_id"],
+            "last_result": "PASS_CURRENT",
+            "last_evaluated_fingerprint": item.get("revalidation_fingerprint", item["deterministic_identity"]),
+            "evidence_pointer": str(evidence_report.relative_to(root)),
+        }
+    return records
+
+
+def engineering_polygon_fallback_activation(
+    cps_text: str,
+    *,
+    active_scenario_count: int,
+    context: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    """Reuse CPS/OMP state to decide whether the engineering-only fallback may run."""
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    values = {
+        "ready_capabilities": live.get("READY_CAPABILITIES", "").strip("`"),
+        "active_mission": live.get("CURRENT_EXECUTION_MISSION_ID", "").strip("`"),
+        "current_stop": live.get("CURRENT_STOP_CONDITION", "").strip("`"),
+        "current_candidate_count": 0,
+        "actionable_real_situation": False,
+        "authority_or_security_terminal": False,
+    }
+    values.update(context or {})
+    reasons: list[str] = []
+    if values["ready_capabilities"] not in {"", "NONE"}:
+        reasons.append("READY_CAPABILITY_PREEMPTS_POLYGON")
+    if values["active_mission"] not in {"", "NONE"}:
+        reasons.append("ACTIVE_MISSION_PREEMPTS_POLYGON")
+    if int(values.get("current_candidate_count") or 0) > 0:
+        reasons.append("ACTIVE_CANDIDATE_PREEMPTS_POLYGON")
+    if active_scenario_count > 0:
+        reasons.append("ACTIVE_SCENARIO_PREEMPTS_PROACTIVE_FALLBACK")
+    if bool(values.get("actionable_real_situation")):
+        reasons.append("ACTIONABLE_REAL_SITUATION_PREEMPTS_POLYGON")
+    if bool(values.get("authority_or_security_terminal")):
+        reasons.append("AUTHORITY_OR_SECURITY_TERMINAL")
+    if values["current_stop"] not in {
+        "REAL_WORLD_LIMIT",
+        "PROACTIVE_INPUT_BUDGET_EXHAUSTED",
+        "WAITING_EXTERNAL_DEPENDENCY",
+    }:
+        reasons.append("CURRENT_STOP_DOES_NOT_ADMIT_FALLBACK")
+    return {
+        "schema": "v7-engineering-polygon-fallback-activation/v1",
+        "polygon_fallback_required": not reasons,
+        "polygon_fallback_active": not reasons,
+        "preemption_reasons": reasons,
+        "current_context": values,
+        "final_verdict": "PASS",
+        "errors": [],
     }
 
 
@@ -2738,18 +3246,28 @@ def bounded_proactive_engineering_polygon_run(
     cps_text: str,
     *,
     sources: Optional[Iterable[Any]] = None,
+    coverage_records: Optional[dict[str, dict[str, Any]]] = None,
+    fallback_context: Optional[dict[str, Any]] = None,
     runner: Optional[Callable[[list[str], Optional[Path], int], dict[str, Any]]] = None,
     root: Path = ROOT,
-    max_inputs: int = 5,
+    max_inputs: int = 20,
 ) -> dict[str, Any]:
-    """Execute a serial no-mutation proactive verification run through existing owners."""
+    """Execute bounded scalable polygon fallback through existing verification owners."""
     supplied_sources = None if sources is None else list(sources)
     discovery = discover_proactive_verification_inputs(root=root) if supplied_sources is None else {
-        "schema": "v7-proactive-verification-input-discovery/v1",
-        "audit_result": "PROACTIVE_INPUTS_EXIST_BUT_NOT_CONNECTED",
+        "schema": "v7-proactive-verification-corpus-discovery/v2",
+        "audit_result": "SUPPLIED_BOUNDED_CORPUS",
         "mapped_input_count": len(supplied_sources),
         "proactive_inputs": supplied_sources,
         "missing_entrypoints": [],
+        "excluded_input_count": 0,
+        "excluded_inputs": [],
+        "corpus_discovery_complete": True,
+        "corpus_fingerprint": _sha256_text(json.dumps(
+            sorted(str(item.get("input_or_fixture") or "") for item in supplied_sources if isinstance(item, dict)),
+            separators=(",", ":"),
+        )),
+        "exhaustion_scope": "FULL_CURRENT_ELIGIBLE_ENGINEERING_CORPUS",
         "final_verdict": "PASS",
         "errors": [],
     }
@@ -2762,18 +3280,55 @@ def bounded_proactive_engineering_polygon_run(
             "errors": discovery["errors"],
         }
     input_sources = discovery["proactive_inputs"]
+    current_scenarios = current_engineering_polygon_scenario_supply(cps_text, root=root)
+    activation = engineering_polygon_fallback_activation(
+        cps_text,
+        active_scenario_count=int(current_scenarios["discovery"]["active_source_count"]),
+        context=fallback_context,
+    )
+    if not activation["polygon_fallback_active"]:
+        return {
+            "schema": "v7-bounded-proactive-engineering-polygon-run/v2",
+            "audit_result": discovery["audit_result"],
+            "polygon_fallback_activated": False,
+            "activation": activation,
+            "stop_reason": "NORMAL_OMP_PATH_PREEMPTS_POLYGON",
+            "trace": [],
+            "runtime_impact": "NONE",
+            "production_impact": "NONE",
+            "authority_expansion": False,
+            "maturity_impact": "NONE",
+            "final_verdict": "PASS",
+            "errors": [],
+        }
+    coverage: dict[str, dict[str, Any]] = {}
+    if supplied_sources is None:
+        coverage.update(accepted_seed_proactive_coverage(discovery, root=root, runner=runner))
+        coverage.update(load_polygon_coverage_evidence(root=root))
+    coverage.update(coverage_records or {})
     evaluated: list[dict[str, Any]] = []
     trace: list[dict[str, Any]] = []
     scenarios = candidates = missions = 0
-    stop_reason = "NO_ELIGIBLE_PROACTIVE_VERIFICATION_INPUT"
-    for iteration in range(1, max(0, min(max_inputs, 5)) + 1):
-        selection = select_proactive_verification_input(input_sources, evaluated_inputs=evaluated)
+    stop_reason = "STOP_SAFE"
+    execution_budget = max(0, min(max_inputs, 20))
+    for iteration in range(1, execution_budget + 1):
+        selection = select_proactive_verification_input(
+            input_sources,
+            evaluated_inputs=evaluated,
+            coverage_records=coverage,
+        )
         if selection["final_verdict"] != "PASS":
             stop_reason = "STOP_SAFE"
             break
         selected = selection["selected_input"]
         if selected is None:
-            stop_reason = "REAL_WORLD_EVIDENCE_REQUIRED_AFTER_PROACTIVE_VERIFICATION_EXHAUSTION"
+            stop_reason = "REAL_WORLD_EVIDENCE_REQUIRED_AFTER_FULL_CURRENT_CORPUS_EXHAUSTION"
+            break
+        fresh_cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+        fresh_cps = fresh_cps_path.read_text(encoding="utf-8") if fresh_cps_path.exists() else cps_text
+        consistency = cps_live_state_consistency(fresh_cps, root=root, verify_external=False)
+        if consistency["final_verdict"] != "PASS":
+            stop_reason = "TRUTH_CONVERGENCE_FAILURE"
             break
         execution = execute_proactive_verification_input(selected, runner=runner, root=root)
         evaluated.append(selected)
@@ -2787,6 +3342,12 @@ def bounded_proactive_engineering_polygon_run(
             "mission_prepared": False,
         }
         if execution["execution_result"] == "PROACTIVE_VERIFICATION_PASS":
+            coverage[selected["proactive_input_id"]] = {
+                "proactive_input_id": selected["proactive_input_id"],
+                "last_result": "PROACTIVE_VERIFICATION_PASS",
+                "last_evaluated_fingerprint": selected.get("revalidation_fingerprint", selected["deterministic_identity"]),
+                "evidence_pointer": "CURRENT_BOUNDED_RUN",
+            }
             trace.append(row)
             stop_reason = "PROACTIVE_INPUT_BUDGET_EXHAUSTED"
             continue
@@ -2814,18 +3375,77 @@ def bounded_proactive_engineering_polygon_run(
         stop_reason = "CURRENT_FAILURE_MISSION_HOLD"
         break
     else:
-        if len(evaluated) < len(input_sources):
+        remaining_after_budget = select_proactive_verification_input(
+            input_sources,
+            evaluated_inputs=evaluated,
+            coverage_records=coverage,
+        )
+        if remaining_after_budget["selected_input"] is not None:
             stop_reason = "PROACTIVE_INPUT_BUDGET_EXHAUSTED"
         else:
-            stop_reason = "REAL_WORLD_EVIDENCE_REQUIRED_AFTER_PROACTIVE_VERIFICATION_EXHAUSTION"
+            stop_reason = "REAL_WORLD_EVIDENCE_REQUIRED_AFTER_FULL_CURRENT_CORPUS_EXHAUSTION"
+    final_selection = select_proactive_verification_input(
+        input_sources,
+        evaluated_inputs=evaluated,
+        coverage_records=coverage,
+    )
     passed = sum(1 for row in trace if row["execution_result"] == "PROACTIVE_VERIFICATION_PASS")
     failed = sum(1 for row in trace if row["execution_result"] == "PROACTIVE_VERIFICATION_FAIL")
+    materialized_inputs = [
+        result["proactive_input"]
+        for result in (proactive_verification_input(source) for source in input_sources)
+        if result["final_verdict"] == "PASS"
+    ]
+    coverage_states = {
+        item["proactive_input_id"]: _proactive_coverage_state(item, coverage.get(item["proactive_input_id"]))
+        for item in materialized_inputs
+    }
+    remaining_count = sum(
+        1 for state in coverage_states.values()
+        if state not in {"PASS_CURRENT", "NOT_APPLICABLE"}
+    )
+    exhaustion_proven = (
+        discovery.get("corpus_discovery_complete") is True
+        and remaining_count == 0
+        and int(current_scenarios["discovery"]["active_source_count"]) == 0
+        and stop_reason == "REAL_WORLD_EVIDENCE_REQUIRED_AFTER_FULL_CURRENT_CORPUS_EXHAUSTION"
+    )
+    continuation_projection = {
+        "POLYGON_FALLBACK_REQUIRED": remaining_count > 0,
+        "POLYGON_FALLBACK_ACTIVE": remaining_count > 0 and stop_reason == "PROACTIVE_INPUT_BUDGET_EXHAUSTED",
+        "POLYGON_CORPUS_FINGERPRINT": discovery["corpus_fingerprint"],
+        "POLYGON_CORPUS_TOTAL": discovery["mapped_input_count"],
+        "POLYGON_CORPUS_ELIGIBLE": len(materialized_inputs),
+        "POLYGON_CORPUS_EVALUATED": len(materialized_inputs) - remaining_count,
+        "POLYGON_CORPUS_REMAINING": remaining_count,
+        "POLYGON_NEXT_INPUT_ID": (
+            final_selection["selected_input"]["proactive_input_id"]
+            if final_selection.get("selected_input") else "NONE"
+        ),
+        "POLYGON_LAST_INPUT_ID": trace[-1]["proactive_input_id"] if trace else "NONE",
+        "POLYGON_LAST_RESULT": trace[-1]["execution_result"] if trace else "NONE",
+        "POLYGON_STOP_REASON": stop_reason,
+        "POLYGON_EXHAUSTION_PROVEN": exhaustion_proven,
+        "POLYGON_REVALIDATION_REQUIRED": sum(
+            1 for state in coverage_states.values()
+            if state in {"STALE_REVALIDATION_REQUIRED", "FAIL_CURRENT", "BLOCKED", "NON_DETERMINISTIC"}
+        ),
+    }
     return {
-        "schema": "v7-bounded-proactive-engineering-polygon-run/v1",
+        "schema": "v7-bounded-proactive-engineering-polygon-run/v2",
         "audit_result": discovery["audit_result"],
-        "actual_gap_classification": "PROACTIVE_INPUTS_EXIST_BUT_NOT_CONNECTED",
+        "actual_gap_classification": "STATIC_INPUT_CATALOGUE+PARTIAL_CORPUS_DISCOVERY+MISSING_FALLBACK_CONTINUATION+INCORRECT_EXHAUSTION_CLASSIFICATION",
+        "polygon_fallback_activated": True,
+        "activation": activation,
+        "corpus_discovery_complete": discovery.get("corpus_discovery_complete", True),
+        "corpus_fingerprint": discovery["corpus_fingerprint"],
+        "corpus_exhaustion_scope": discovery["exhaustion_scope"],
         "inputs_discovered": discovery["mapped_input_count"],
-        "inputs_eligible": len(input_sources),
+        "inputs_eligible": len(materialized_inputs),
+        "inputs_excluded": discovery.get("excluded_input_count", 0),
+        "inputs_previously_current": sum(1 for state in coverage_states.values() if state == "PASS_CURRENT") - passed,
+        "inputs_stale": sum(1 for state in coverage_states.values() if state == "STALE_REVALIDATION_REQUIRED"),
+        "inputs_not_evaluated": sum(1 for state in coverage_states.values() if state == "NOT_EVALUATED"),
         "inputs_executed": len(trace),
         "inputs_passed": passed,
         "inputs_failed": failed,
@@ -2836,25 +3456,23 @@ def bounded_proactive_engineering_polygon_run(
         "missions_completed": 0,
         "iterations_executed": len(trace),
         "trace": trace,
-        "coverage": [
-            {
-                "proactive_input_id": item["proactive_input_id"],
-                "target_contract": item["target_contract"],
-                "last_result": next(
-                    (row["execution_result"] for row in trace if row["proactive_input_id"] == item["proactive_input_id"]),
-                    "NOT_EVALUATED",
-                ),
-                "revalidation_trigger": item["revalidation_trigger"],
-            }
-            for item in evaluated
-        ],
+        "coverage": [coverage[key] for key in sorted(coverage)],
+        "corpus_remaining": remaining_count,
+        "next_corpus_input_id": (
+            final_selection["selected_input"]["proactive_input_id"]
+            if final_selection.get("selected_input") else "NONE"
+        ),
+        "exhaustion_proven": exhaustion_proven,
+        "continuation_projection": continuation_projection,
         "stop_reason": stop_reason,
         "protected_wip_preserved": True,
         "runtime_impact": "NONE",
         "production_impact": "NONE",
         "authority_expansion": False,
         "maturity_impact": "NONE",
-        "final_verdict": "PASS" if stop_reason not in {"STOP_SAFE", "NON_DETERMINISTIC_DECISION"} else "STOP_SAFE",
+        "final_verdict": "PASS" if stop_reason not in {
+            "STOP_SAFE", "NON_DETERMINISTIC_DECISION", "TRUTH_CONVERGENCE_FAILURE",
+        } else "STOP_SAFE",
         "errors": [],
     }
 

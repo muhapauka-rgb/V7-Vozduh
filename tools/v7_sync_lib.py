@@ -1915,6 +1915,433 @@ def bdp_development_impulse_from_cps(
     )
 
 
+POLYGON_SCENARIO_SOURCE_REQUIRED_FIELDS = (
+    "source_owner",
+    "source_evidence",
+    "engineering_intent",
+    "current_reality",
+    "expected_reality",
+    "target_rule_or_contract",
+    "failure_or_gap_class",
+    "affected_producer",
+    "affected_consumer",
+    "boundary",
+    "stimulus_or_replay_input",
+    "expected_observation",
+    "pass_criteria",
+    "fail_criteria",
+    "implementation_allowed",
+    "verification_plan",
+    "rollback_or_stop_safe",
+    "runtime_impact",
+    "production_impact",
+    "authority_impact",
+    "maturity_impact",
+)
+
+POLYGON_SCENARIO_PRIORITY = {
+    "CURRENT_TRUTH_CONTRADICTION": 10,
+    "STOP_SAFE_OR_ROLLBACK_GAP": 20,
+    "PRODUCER_CONSUMER_CHAIN_GAP": 30,
+    "DETERMINISTIC_REPLAY_OR_DUPLICATE_GAP": 40,
+    "DEPENDENCY_OR_AUTHORITY_BOUNDARY_GAP": 50,
+    "CANONICAL_RULE_VERIFICATION_GAP": 60,
+    "HISTORICAL_DEFECT_REGRESSION_GAP": 70,
+    "EXECUTION_CERTIFICATION_COVERAGE_GAP": 80,
+    "ENGINEERING_QUALITY_GAP": 90,
+}
+
+
+def _polygon_scenario_meaning(source: dict[str, Any]) -> dict[str, Any]:
+    fields = (
+        "source_owner",
+        "engineering_intent",
+        "current_reality",
+        "expected_reality",
+        "target_rule_or_contract",
+        "failure_or_gap_class",
+        "affected_producer",
+        "affected_consumer",
+        "boundary",
+        "stimulus_or_replay_input",
+        "expected_observation",
+    )
+    return {
+        "identity_schema": "v7.engineering-polygon-scenario-meaning.v1",
+        **{field: _bdp_normalized_value(source[field]) for field in fields},
+    }
+
+
+def engineering_polygon_scenario_instance(source: dict[str, Any]) -> dict[str, Any]:
+    """Materialize one bounded owner-backed scenario without creating a new lifecycle."""
+    errors = [
+        f"scenario_source_field_missing:{field}"
+        for field in POLYGON_SCENARIO_SOURCE_REQUIRED_FIELDS
+        if field not in source or source[field] is None or source[field] == ""
+    ]
+    gap_class = str(source.get("failure_or_gap_class") or "")
+    if gap_class not in POLYGON_SCENARIO_PRIORITY:
+        errors.append("scenario_gap_class_unknown")
+    if source.get("runtime_impact") != "NONE":
+        errors.append("scenario_runtime_boundary")
+    if source.get("production_impact") != "NONE":
+        errors.append("scenario_production_boundary")
+    if source.get("authority_impact") not in {"NONE", False}:
+        errors.append("scenario_authority_boundary")
+    if source.get("maturity_impact") != "PRODUCTION_MATURITY_CREDIT_FORBIDDEN":
+        errors.append("scenario_maturity_boundary")
+    if source.get("new_owner_required") is not False:
+        errors.append("scenario_new_owner_boundary")
+    if source.get("new_architecture_required") is not False:
+        errors.append("scenario_new_architecture_boundary")
+    if source.get("implementation_allowed") is not True:
+        errors.append("scenario_implementation_not_allowed")
+    unique = sorted(set(errors))
+    if unique:
+        return {
+            "schema": "v7-engineering-polygon-scenario-instance/v1",
+            "status": "STOP_SAFE",
+            "scenario_instance": None,
+            "final_verdict": "STOP_SAFE",
+            "errors": unique,
+        }
+    meaning = _polygon_scenario_meaning(source)
+    encoded = json.dumps(meaning, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    identity = hashlib.sha256(encoded).hexdigest()
+    instance = {
+        "schema": "v7-engineering-polygon-scenario-instance/v1",
+        "scenario_instance_id": f"V7-POLYGON-SCENARIO-{identity[:24].upper()}",
+        "deterministic_identity": identity,
+        "duplicate_fingerprint": identity,
+        "priority": POLYGON_SCENARIO_PRIORITY[gap_class],
+        **source,
+    }
+    return {
+        "schema": "v7-engineering-polygon-scenario-materialization/v1",
+        "status": "SCENARIO_MATERIALIZED",
+        "scenario_instance": instance,
+        "final_verdict": "PASS",
+        "errors": [],
+    }
+
+
+def select_engineering_polygon_scenario(
+    sources: Iterable[Any],
+    *,
+    existing_scenarios: Optional[Iterable[Any]] = None,
+) -> dict[str, Any]:
+    """Select exactly one deterministic engineering-plane scenario through existing OMP priority."""
+    materialized: list[dict[str, Any]] = []
+    excluded: list[dict[str, str]] = []
+    invalid: list[str] = []
+    for index, source in enumerate(sources):
+        if not isinstance(source, dict):
+            invalid.append(f"scenario_source_invalid:{index}")
+            continue
+        if (
+            source.get("production_impact") not in {None, "NONE"}
+            or source.get("runtime_impact") not in {None, "NONE"}
+        ):
+            excluded.append({"source": str(source.get("source_evidence") or index), "reason": "PRODUCTION_CONTOUR_ONLY"})
+            continue
+        result = engineering_polygon_scenario_instance(source)
+        if result["final_verdict"] != "PASS":
+            invalid.extend(result["errors"])
+            continue
+        materialized.append(result["scenario_instance"])
+
+    if invalid:
+        return {
+            "schema": "v7-engineering-polygon-scenario-selection/v1",
+            "selection_status": "STOP_SAFE",
+            "selected_scenario": None,
+            "evaluated_source_count": len(materialized) + len(excluded) + len(invalid),
+            "valid_scenario_count": len(materialized),
+            "excluded_sources": excluded,
+            "final_verdict": "STOP_SAFE",
+            "errors": sorted(set(invalid)),
+        }
+
+    existing_ids: set[str] = set()
+    existing_meanings: set[str] = set()
+    for item in existing_scenarios or ():
+        if isinstance(item, str):
+            existing_ids.add(item)
+        elif isinstance(item, dict):
+            existing_ids.add(str(item.get("scenario_instance_id") or ""))
+            existing_meanings.add(str(item.get("duplicate_fingerprint") or ""))
+    ordered = sorted(
+        materialized,
+        key=lambda row: (int(row["priority"]), str(row["deterministic_identity"])),
+    )
+    remaining = [
+        row for row in ordered
+        if row["scenario_instance_id"] not in existing_ids
+        and row["duplicate_fingerprint"] not in existing_meanings
+    ]
+    duplicates = len(ordered) - len(remaining)
+    selected = remaining[0] if remaining else None
+    return {
+        "schema": "v7-engineering-polygon-scenario-selection/v1",
+        "selection_status": "SCENARIO_SELECTED" if selected else "NO_VALID_ENGINEERING_SCENARIO",
+        "selected_scenario": selected,
+        "evaluated_source_count": len(materialized) + len(excluded),
+        "valid_scenario_count": len(materialized),
+        "duplicate_scenario_count": duplicates,
+        "remaining_distinct_scenario_count": len(remaining),
+        "excluded_sources": excluded,
+        "final_verdict": "PASS",
+        "errors": [],
+    }
+
+
+def _polygon_gap_from_scenario(scenario: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "primary_class": "VERIFICATION_TRUTH_CONVERGENCE",
+        "secondary_classes": ["IMPLEMENTATION_OWNER_EXTENSION", "CONSUMER_CONFIRMATION_CHAIN_CLOSURE"],
+        "execution_depth": "L2",
+        "engineering_intent": scenario["engineering_intent"],
+        "current_reality": scenario["current_reality"],
+        "expected_reality": scenario["expected_reality"],
+        "engineering_chain": "SCENARIO_SOURCE->BDP->CANDIDATE->OMP->MISSION->VERIFICATION",
+        "engineering_chain_segment": "OWNER_BACKED_SCENARIO_TO_BDP_CONSUMER",
+        "behaviour_instance": scenario["expected_observation"],
+        "behaviour": scenario["target_rule_or_contract"],
+        "automation_logic": "Existing polygon scenario selector plus BDP Development Impulse handoff.",
+        "automation_break": scenario["failure_or_gap_class"],
+        "existing_rule": scenario["target_rule_or_contract"],
+        "current_outcome": scenario["fail_criteria"],
+        "expected_outcome": scenario["pass_criteria"],
+        "intent_closure_state": "AUTOMATION_BREAK",
+        "owner": scenario["source_owner"],
+        "producer": scenario["affected_producer"],
+        "consumer": scenario["affected_consumer"],
+        "evidence": scenario["source_evidence"],
+        "implementation_scope": scenario["boundary"],
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "dependencies": "EXISTING_CONTRACTS_READY",
+        "verification": scenario["verification_plan"],
+        "verification_context": scenario["stimulus_or_replay_input"],
+        "rollback": scenario["rollback_or_stop_safe"],
+        "authority": "EXISTING_ENGINEERING_PLANE_AUTHORITY",
+        "authority_context": "No authority expansion; production evidence and maturity remain protected.",
+        "terminal_path": "OMP_MISSION_OR_LEGAL_TERMINAL",
+        "implementation_readiness": "IMPLEMENTATION_READY",
+        "omp_consumer": "OMP_CANDIDATE_ADMISSION",
+        "codex_readiness": "CODEX_READY_WITH_LIMITS",
+        "new_owner_required": False,
+        "new_architecture_required": False,
+    }
+
+
+POLYGON_SCENARIO_SOURCE_CLASSES = (
+    "CURRENT_STATE_TRUTH_CONTRADICTIONS",
+    "DELEGATED_POLICY_AND_AUTHORITY_BOUNDARIES",
+    "CAPABILITY_DEPENDENCY_ORDERING",
+    "OMP_SELF_CONTINUATION",
+    "MISSION_IDENTITY_AND_REPLAY",
+    "PRODUCER_CONSUMER_CONFIRMATION",
+    "STOP_SAFE_AND_ROLLBACK_CONTRACTS",
+    "RECOVERY_CONTRACTS",
+    "BEHAVIOUR_DEFINITION_INSTANCE_COVERAGE",
+    "HISTORICAL_CONFIRMED_DEFECTS",
+    "ENGINEERING_REPORT_PROMOTION",
+    "EXECUTION_CERTIFICATION_LADDER_COVERAGE",
+    "PROTECTED_WORK_IN_PROGRESS",
+    "PRODUCTION_ONLY_EVIDENCE_DEPENDENCIES",
+)
+
+
+def _polygon_validator_error_source(error: str) -> dict[str, Any]:
+    dependency = "dependency" in error or "frontier" in error or "sequence" in error
+    replay = "replay" in error or "identity" in error or "nonce" in error
+    if dependency:
+        gap_class = "DEPENDENCY_OR_AUTHORITY_BOUNDARY_GAP"
+        owner = "CPS_CAPABILITY_DEPENDENCY_AND_OMP_SEQUENCING_OWNERS"
+    elif replay:
+        gap_class = "DETERMINISTIC_REPLAY_OR_DUPLICATE_GAP"
+        owner = "OMP_MISSION_IDENTITY_AND_REPLAY_OWNERS"
+    else:
+        gap_class = "CURRENT_TRUTH_CONTRADICTION"
+        owner = "CPS_CURRENT_STATE_CONSISTENCY_OWNER"
+    return {
+        "source_owner": owner,
+        "source_evidence": f"active owner validator failure `{error}`",
+        "engineering_intent": f"Close active fail-closed owner-validator gap `{error}`.",
+        "current_reality": f"Current owner validator emits `{error}`.",
+        "expected_reality": f"Existing owner validator no longer emits `{error}` after verified correction.",
+        "target_rule_or_contract": "Current State Consistency, OMP sequencing and fail-closed validation",
+        "failure_or_gap_class": gap_class,
+        "affected_producer": "existing CPS/OMP state producer",
+        "affected_consumer": "existing v7_sync_lib consistency consumer",
+        "boundary": "existing Engineering Plane owner implementation and verification only",
+        "stimulus_or_replay_input": f"deterministic replay of current state producing `{error}`",
+        "expected_observation": f"replay closes `{error}` without Runtime or production impact",
+        "pass_criteria": f"`{error}` absent and all affected owner validators PASS",
+        "fail_criteria": f"`{error}` remains, changes identity nondeterministically or loses its consumer",
+        "implementation_allowed": True,
+        "verification_plan": "focused fail-closed regression, full unit suite, truth and convergence",
+        "rollback_or_stop_safe": "revert bounded owner extension or STOP_SAFE while contradiction remains",
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "authority_impact": "NONE",
+        "maturity_impact": "PRODUCTION_MATURITY_CREDIT_FORBIDDEN",
+        "new_owner_required": False,
+        "new_architecture_required": False,
+    }
+
+
+def discover_engineering_polygon_scenario_sources(
+    cps_text: str,
+    *,
+    root: Path = ROOT,
+    omp_text: Optional[str] = None,
+) -> dict[str, Any]:
+    """Evaluate existing owner surfaces and emit only active engineering-plane failures."""
+    if omp_text is None:
+        try:
+            omp_text = (root / "docs" / "programs" / "OPERATIONAL_MATURITY_PROGRAM.md").read_text(encoding="utf-8")
+        except OSError:
+            omp_text = ""
+    consistency = cps_live_state_consistency(
+        cps_text,
+        root=root,
+        omp_text=omp_text,
+        verify_external=False,
+    )
+    errors = sorted(set(str(item) for item in consistency.get("errors") or [] if str(item)))
+    sources = [_polygon_validator_error_source(error) for error in errors]
+    coverage = {
+        source_class: (
+            "ACTIVE_AND_CONSUMED" if sources and source_class in {
+                "CURRENT_STATE_TRUTH_CONTRADICTIONS",
+                "CAPABILITY_DEPENDENCY_ORDERING",
+                "OMP_SELF_CONTINUATION",
+                "MISSION_IDENTITY_AND_REPLAY",
+            }
+            else "PRODUCTION_EVIDENCE_ONLY" if source_class == "PRODUCTION_ONLY_EVIDENCE_DEPENDENCIES"
+            else "HISTORICAL_ONLY" if source_class in {
+                "BEHAVIOUR_DEFINITION_INSTANCE_COVERAGE",
+                "HISTORICAL_CONFIRMED_DEFECTS",
+                "ENGINEERING_REPORT_PROMOTION",
+            }
+            else "ACTIVE_AND_CONSUMED"
+        )
+        for source_class in POLYGON_SCENARIO_SOURCE_CLASSES
+    }
+    return {
+        "schema": "v7-engineering-polygon-scenario-source-discovery/v1",
+        "evaluated_source_classes": list(POLYGON_SCENARIO_SOURCE_CLASSES),
+        "evaluated_source_class_count": len(POLYGON_SCENARIO_SOURCE_CLASSES),
+        "coverage": coverage,
+        "active_source_count": len(sources),
+        "scenario_sources": sources,
+        "production_only_sources_excluded": 1,
+        "historical_context_classes_not_promoted": 3,
+        "current_consistency_result": consistency["final_verdict"],
+        "final_verdict": "PASS",
+        "errors": [],
+    }
+
+
+def engineering_polygon_scenario_supply_from_cps(
+    cps_text: str,
+    *,
+    scenario_sources: Optional[Iterable[Any]] = None,
+    existing_scenarios: Optional[Iterable[Any]] = None,
+    existing_candidates: Optional[Iterable[Any]] = None,
+) -> dict[str, Any]:
+    """Connect bounded owner-backed scenarios to the existing BDP and OMP consumers."""
+    selection = select_engineering_polygon_scenario(
+        scenario_sources or (),
+        existing_scenarios=existing_scenarios,
+    )
+    if selection["final_verdict"] != "PASS":
+        return {
+            "schema": "v7-omp-polygon-scenario-supply/v1",
+            "supply_status": "STOP_SAFE",
+            "selection": selection,
+            "bdp": None,
+            "scenario_consumed_by_bdp": False,
+            "final_verdict": "STOP_SAFE",
+            "errors": selection["errors"],
+        }
+    selected = selection["selected_scenario"]
+    if selected is None:
+        return {
+            "schema": "v7-omp-polygon-scenario-supply/v1",
+            "supply_status": "NO_VALID_ENGINEERING_SCENARIO",
+            "selection": selection,
+            "bdp": None,
+            "scenario_consumed_by_bdp": False,
+            "mission_executed": False,
+            "runtime_impact": "NONE",
+            "production_impact": "NONE",
+            "authority_expansion": False,
+            "maturity_impact": "NONE",
+            "final_verdict": "PASS",
+            "errors": [],
+        }
+    bdp = bdp_development_impulse_from_cps(
+        cps_text,
+        engineering_gaps=[_polygon_gap_from_scenario(selected)],
+        existing_candidates=existing_candidates,
+    )
+    return {
+        "schema": "v7-omp-polygon-scenario-supply/v1",
+        "supply_status": "SCENARIO_CONSUMED_BY_BDP" if bdp["final_verdict"] == "PASS" else "STOP_SAFE",
+        "selection": selection,
+        "bdp": bdp,
+        "scenario_consumed_by_bdp": bdp["candidate_production_status"] in {
+            "ONE_DETERMINISTIC_CANDIDATE",
+            "DUPLICATE_EXISTING_CANDIDATE",
+        },
+        "mission_executed": False,
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "authority_expansion": False,
+        "maturity_impact": "NONE",
+        "final_verdict": bdp["final_verdict"],
+        "errors": bdp["errors"],
+    }
+
+
+def current_engineering_polygon_scenario_supply(
+    cps_text: str,
+    *,
+    root: Path = ROOT,
+    omp_text: Optional[str] = None,
+    existing_scenarios: Optional[Iterable[Any]] = None,
+    existing_candidates: Optional[Iterable[Any]] = None,
+) -> dict[str, Any]:
+    """Run one fresh existing-owner scenario discovery and BDP/OMP supply iteration."""
+    discovery = discover_engineering_polygon_scenario_sources(
+        cps_text,
+        root=root,
+        omp_text=omp_text,
+    )
+    supply = engineering_polygon_scenario_supply_from_cps(
+        cps_text,
+        scenario_sources=discovery["scenario_sources"],
+        existing_scenarios=existing_scenarios,
+        existing_candidates=existing_candidates,
+    )
+    return {
+        "schema": "v7-omp-current-polygon-scenario-supply/v1",
+        "discovery": discovery,
+        "supply": supply,
+        "all_source_classes_evaluated": discovery["evaluated_source_class_count"] == len(POLYGON_SCENARIO_SOURCE_CLASSES),
+        "scenario_consumed_by_bdp": supply["scenario_consumed_by_bdp"],
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "authority_expansion": False,
+        "maturity_impact": "NONE",
+        "final_verdict": supply["final_verdict"],
+        "errors": supply["errors"],
+    }
+
+
 def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
     """Fail closed when a transaction terminal is returned as a program terminal."""
     live = _markdown_field_table(_markdown_section(

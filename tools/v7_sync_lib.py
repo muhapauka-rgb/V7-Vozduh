@@ -900,7 +900,27 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "only when the READY execution frontier is empty. |"
     )
     cps_text = cps_text.replace(operational_rows[0], operational_row, 1)
-    return cps_text.replace(real_world_rows[0], real_world_row, 1)
+    cps_text = cps_text.replace(real_world_rows[0], real_world_row, 1)
+
+    contradictions = _markdown_section(
+        cps_text,
+        "### Owner Revalidation Requirements And Contradictions",
+        "## Stage 2 Knowledge Baseline Closure",
+    )
+    cap_con_06_rows = [
+        line for line in contradictions.splitlines()
+        if line.startswith("| `CAP-CON-06` |")
+    ]
+    if len(cap_con_06_rows) != 1:
+        raise ValueError("cap_con_06_missing_or_duplicate")
+    cap_con_06_row = (
+        "| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair "
+        "and final OPEN as historical outcome context | CPS/OMP current state | "
+        f"current program terminal is `{state['program_terminal_class']}`; current stop is `{state['current_stop_condition']}`; "
+        "U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; "
+        f"current next action is `{state['current_next_action_id']}`; no mutation is authorized |"
+    )
+    return cps_text.replace(cap_con_06_rows[0], cap_con_06_row, 1)
 
 
 def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -> dict[str, Any]:
@@ -956,6 +976,8 @@ def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -
         and live.get("PROGRAM_TERMINAL_CLASS", "").strip("`")
         == "OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY"
     )
+    live_stop = live.get("CURRENT_STOP_CONDITION", "").strip("`")
+    live_program_terminal = live.get("PROGRAM_TERMINAL_CLASS", "").strip("`")
     policy_active = (
         live.get("CURRENT_MODE", "").strip("`") == "BOUNDED_DELEGATED_AUTONOMY_ACTIVE"
         and live.get("DELEGATED_AUTONOMY_POLICY", "").strip("`") == "APPROVED"
@@ -1024,7 +1046,16 @@ def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -
         (line for line in cps_text.splitlines() if line.startswith("| `CAP-CON-06` |")),
         "",
     )
-    if "current boundary is `OPERATIONAL_AUTHORITY`" in cap_con_06:
+    expected_cap_con_terminal = f"current program terminal is `{live_program_terminal}`"
+    if not cap_con_06:
+        contradictions.append("delegated_policy_cap_con_06_missing")
+    elif expected_cap_con_terminal not in cap_con_06:
+        contradictions.append("delegated_policy_cap_con_06_current_terminal_divergence")
+    if (
+        "OPERATIONAL_AUTHORITY" in cap_con_06
+        and live_program_terminal != "OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY"
+        and "`SUPERSEDED/HISTORICAL`" not in cap_con_06
+    ):
         stale_operational.append("CAP-CON-06")
         contradictions.append("delegated_policy_cap_con_06_stale_operational_authority")
 
@@ -1039,7 +1070,7 @@ def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -
             contradictions.append("historical_operational_authority_without_classification")
             break
 
-    stop = live.get("CURRENT_STOP_CONDITION", "").strip("`")
+    stop = live_stop
     if stop == "OPERATIONAL_AUTHORITY" and not external_program_terminal:
         stale_operational.append("CURRENT_STOP_CONDITION")
         contradictions.append("delegated_policy_current_stop_is_operational_authority")

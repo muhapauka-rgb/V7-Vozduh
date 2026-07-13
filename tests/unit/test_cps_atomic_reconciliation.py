@@ -243,6 +243,36 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertEqual(live["PROGRAM_TERMINAL_CLASS"].strip("`"), "REAL_WORLD_LIMIT")
         self.assertEqual(live["NEXT_EXECUTABLE_CAPABILITY"].strip("`"), "NONE")
 
+    def test_31_cap_con_06_matches_current_program_terminal(self):
+        row = next(line for line in self.cps.splitlines() if line.startswith("| `CAP-CON-06` |"))
+        self.assertIn("current program terminal is `REAL_WORLD_LIMIT`", row)
+        self.assertIn("`SUPERSEDED/HISTORICAL`", row)
+        self.assertEqual(self.delegated_validate(self.cps)["contradiction_count"], 0)
+
+    def test_32_cap_con_06_terminal_drift_fails_closed(self):
+        row = next(line for line in self.cps.splitlines() if line.startswith("| `CAP-CON-06` |"))
+        drifted_row = row.replace(
+            "current program terminal is `REAL_WORLD_LIMIT`",
+            "current program terminal is `OPERATIONAL_AUTHORITY`",
+            1,
+        ).replace("`SUPERSEDED/HISTORICAL`", "historical", 1)
+        result = self.delegated_validate(self.cps.replace(row, drifted_row, 1))
+        self.assertIn("delegated_policy_cap_con_06_current_terminal_divergence", result["contradiction_ids"])
+        self.assertIn("delegated_policy_cap_con_06_stale_operational_authority", result["contradiction_ids"])
+
+    def test_33_normalized_builder_repairs_cap_con_06_terminal_drift(self):
+        row = next(line for line in self.cps.splitlines() if line.startswith("| `CAP-CON-06` |"))
+        drift = self.cps.replace(
+            row,
+            "| `CAP-CON-06` | Controlled Run responsibility | stale | CPS/OMP current state | current program terminal is `OPERATIONAL_AUTHORITY` |",
+            1,
+        )
+        rendered = self.lib.build_normalized_cps_document(drift)
+        rendered_row = next(line for line in rendered.splitlines() if line.startswith("| `CAP-CON-06` |"))
+        self.assertIn("current program terminal is `REAL_WORLD_LIMIT`", rendered_row)
+        self.assertIn("`SUPERSEDED/HISTORICAL`", rendered_row)
+        self.assertEqual(self.delegated_validate(rendered)["contradiction_count"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

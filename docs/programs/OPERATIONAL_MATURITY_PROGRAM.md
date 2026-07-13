@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.19`
+Version: `4.20`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -23,6 +23,8 @@ V4.17 adds the OMP Self-Continuation Contract: a transaction terminal closes onl
 V4.18 adds Dependency-Aware Continuation and Completion Order Protection inside the same OMP/CPS consumer. A capability-local wait is preserved with its owner, evidence, fingerprint and reentry condition, but becomes a program terminal only when no independent READY capability exists. Completion requires all declared dependencies plus Engineering Intent closure, verified consumer consumption, evidence consumption and CPS propagation. No scheduler, queue, graph engine, Planner, Runtime, lifecycle or owner is created.
 
 V4.19 connects existing owner-backed Engineering Polygon Scenario sources to BDP minimal Discovery Economy and the existing L6 continuous lane. The bounded adapter evaluates current validator, dependency, replay, producer/consumer, STOP_SAFE, recovery, coverage, WIP and production-evidence surfaces; materializes only active Engineering Plane failures; deterministically selects one scenario; and routes it through the existing BDP Reality Gate and OMP admission. Historical artifacts and production-only evidence never become scenarios by themselves. This adds no Scenario Engine, queue, scheduler, owner, Runtime, Planner, lifecycle, truth source or backlog.
+
+V4.20 connects bounded proactive verification inputs from existing test, replay, STOP_SAFE, rollback, recovery, truth, dependency and producer/consumer owners to the same Engineering Polygon Scenario Supply. A proactive input is execution metadata, not a Candidate or production evidence. PASS records current contract coverage without a Scenario. Only a current reproducible mismatch may become a Scenario and continue through BDP Reality Gate and OMP admission. Execution is serial, deterministic, no-mutation and budget-bounded; it cannot grant authority, move users, apply packets, write restore barriers or earn Production Maturity. This adds no test engine, replay engine, scenario engine, queue, scheduler, owner, Runtime, Planner, lifecycle, truth source or backlog.
 
 V4 operating questions:
 
@@ -671,6 +673,34 @@ Only an active, concrete failure or verification gap with owner, producer, consu
 Selection is serial and deterministic: current truth contradiction; safety/rollback/STOP_SAFE; producer/consumer break; replay/duplicate; dependency/authority boundary; uncovered canonical rule; uncovered historical defect; ladder coverage; then lower-priority engineering quality. The selector prepares BDP input only. BDP remains Candidate producer, OMP remains admission/Mission owner, and Codex remains bounded implementation consumer.
 
 If every source class is evaluated and no valid current Engineering Plane occurrence exists, the legal scenario result is `NO_VALID_ENGINEERING_SCENARIO`. Only after that result may the unchanged capability frontier return `REAL_WORLD_EVIDENCE_REQUIRED_AFTER_ENGINEERING_SCENARIO_EXHAUSTION`.
+
+#### Proactive Verification Input Consumption Rule
+
+Status: `CANONICAL_EXISTING_OWNER_INTEGRATION`
+
+Before the L6 continuous lane declares engineering-only scenario supply exhausted, it may execute bounded proactive verification inputs owned by existing test, replay, rollback, recovery, STOP_SAFE, truth, dependency and producer/consumer verification surfaces.
+
+Canonical route:
+
+```text
+existing owner-backed verification obligation
+  -> deterministic bounded input selection
+  -> existing verification entrypoint
+  -> observed current behavior
+  -> PASS_CURRENT with no Scenario
+  OR
+  -> reproducible current contract mismatch
+  -> Engineering Polygon Scenario Instance
+  -> BDP Reality Gate
+  -> OMP identity / eligibility / admission
+  -> prepared Mission or legal terminal
+```
+
+A report, historical defect, policy, test name, validator name or missing production evidence is not executable input by itself. The input must name an existing owner, executable entrypoint, target contract, expected behavior, observation method, result consumer, pass/fail criteria and revalidation trigger. Runtime and production mutation, Authority expansion, user movement, packet apply, restore-barrier write and Production Maturity credit are forbidden.
+
+Selection is serial and deterministic: STOP_SAFE/safety negative paths; rollback/partial failure; current truth; producer/consumer confirmation; replay/duplicate; dependency order; recovery; authority/runtime/production boundary; executable historical regression; canonical coverage obligation; then engineering quality. One input is consumed per iteration. PASS creates no Scenario or Candidate. A flaky, unowned, unconsumed or boundary-crossing result stops safely. Only a reproducible current failure may use the existing result-to-scenario adapter.
+
+Coverage remains evidence under existing verification, OMP and report owners; it does not create a new registry. A previous PASS is current only until its owner-defined implementation, fixture, contract or dependency invalidation trigger fires. When the bounded input budget is reached, the legal stop is `PROACTIVE_INPUT_BUDGET_EXHAUSTED`; when all current proactive inputs and active scenario sources are exhausted, the unchanged capability frontier may return `REAL_WORLD_EVIDENCE_REQUIRED_AFTER_PROACTIVE_VERIFICATION_EXHAUSTION`.
 
 #### Execution Certification Candidate Certificate Consumption Rule
 

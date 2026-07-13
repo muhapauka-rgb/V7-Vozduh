@@ -2342,6 +2342,523 @@ def current_engineering_polygon_scenario_supply(
     }
 
 
+PROACTIVE_VERIFICATION_INPUT_REQUIRED_FIELDS = (
+    "source_owner",
+    "execution_owner",
+    "source_evidence",
+    "target_contract",
+    "engineering_intent",
+    "current_assumption",
+    "expected_behavior",
+    "entrypoint",
+    "input_or_fixture",
+    "preconditions",
+    "observation_method",
+    "pass_criteria",
+    "fail_criteria",
+    "result_consumer",
+    "rollback_or_stop_safe",
+    "runtime_impact",
+    "production_impact",
+    "authority_impact",
+    "maturity_credit",
+    "revalidation_trigger",
+    "verification_class",
+)
+
+PROACTIVE_VERIFICATION_PRIORITY = {
+    "STOP_SAFE_SAFETY_NEGATIVE": 10,
+    "ROLLBACK_PARTIAL_FAILURE": 20,
+    "TRUTH_CURRENT_STATE_CONSISTENCY": 30,
+    "PRODUCER_CONSUMER_CONFIRMATION": 40,
+    "REPLAY_DUPLICATE_PROTECTION": 50,
+    "DEPENDENCY_COMPLETION_ORDER": 60,
+    "RECOVERY_POST_FAILURE": 70,
+    "AUTHORITY_RUNTIME_PRODUCTION_BOUNDARY": 80,
+    "HISTORICAL_EXECUTABLE_REGRESSION": 90,
+    "CANONICAL_COVERAGE_OBLIGATION": 100,
+    "ENGINEERING_QUALITY": 110,
+}
+
+
+def _proactive_input_meaning(source: dict[str, Any]) -> dict[str, Any]:
+    fields = (
+        "source_owner",
+        "execution_owner",
+        "target_contract",
+        "engineering_intent",
+        "expected_behavior",
+        "entrypoint",
+        "input_or_fixture",
+        "result_consumer",
+        "verification_class",
+    )
+    return {
+        "identity_schema": "v7.proactive-verification-input-meaning.v1",
+        **{field: _bdp_normalized_value(source[field]) for field in fields},
+    }
+
+
+def proactive_verification_input(source: dict[str, Any]) -> dict[str, Any]:
+    """Validate bounded metadata for an existing verification owner."""
+    errors = [
+        f"proactive_input_field_missing:{field}"
+        for field in PROACTIVE_VERIFICATION_INPUT_REQUIRED_FIELDS
+        if field not in source or source[field] is None or source[field] == ""
+    ]
+    verification_class = str(source.get("verification_class") or "")
+    if verification_class not in PROACTIVE_VERIFICATION_PRIORITY:
+        errors.append("proactive_input_verification_class_unknown")
+    if source.get("runtime_impact") not in {"NONE", "READ_ONLY_ONLY"}:
+        errors.append("proactive_input_runtime_boundary")
+    if source.get("production_impact") != "NONE":
+        errors.append("proactive_input_production_boundary")
+    if source.get("authority_impact") not in {"NONE", False}:
+        errors.append("proactive_input_authority_boundary")
+    if source.get("maturity_credit") != "FORBIDDEN":
+        errors.append("proactive_input_maturity_boundary")
+    for field in ("user_movement", "packet_apply", "restore_barrier_write"):
+        if source.get(field) not in {False, "FORBIDDEN"}:
+            errors.append(f"proactive_input_{field}_boundary")
+    if source.get("new_owner_required") is not False:
+        errors.append("proactive_input_new_owner_boundary")
+    if source.get("new_architecture_required") is not False:
+        errors.append("proactive_input_new_architecture_boundary")
+    entrypoint = source.get("entrypoint")
+    if not isinstance(entrypoint, list) or len(entrypoint) < 4:
+        errors.append("proactive_input_entrypoint_invalid")
+    elif entrypoint[:3] != [sys.executable, "-m", "unittest"]:
+        errors.append("proactive_input_entrypoint_not_existing_unittest_owner")
+    elif not all(str(item).startswith("tests.unit.") for item in entrypoint[3:]):
+        errors.append("proactive_input_entrypoint_outside_unit_owner")
+    unique = sorted(set(errors))
+    if unique:
+        return {
+            "schema": "v7-proactive-verification-input/v1",
+            "status": "PROACTIVE_VERIFICATION_STOP_SAFE",
+            "proactive_input": None,
+            "final_verdict": "STOP_SAFE",
+            "errors": unique,
+        }
+    meaning = _proactive_input_meaning(source)
+    encoded = json.dumps(meaning, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    identity = hashlib.sha256(encoded).hexdigest()
+    instance = {
+        "schema": "v7-proactive-verification-input/v1",
+        "proactive_input_id": f"V7-PROACTIVE-INPUT-{identity[:24].upper()}",
+        "deterministic_identity": identity,
+        "duplicate_fingerprint": identity,
+        "priority": PROACTIVE_VERIFICATION_PRIORITY[verification_class],
+        "last_execution_result": "NOT_EVALUATED",
+        **source,
+    }
+    return {
+        "schema": "v7-proactive-verification-input-materialization/v1",
+        "status": "PROACTIVE_INPUT_ELIGIBLE",
+        "proactive_input": instance,
+        "final_verdict": "PASS",
+        "errors": [],
+    }
+
+
+def select_proactive_verification_input(
+    sources: Iterable[Any],
+    *,
+    evaluated_inputs: Optional[Iterable[Any]] = None,
+) -> dict[str, Any]:
+    """Select one smallest deterministic existing-owner verification input."""
+    materialized: list[dict[str, Any]] = []
+    excluded: list[dict[str, str]] = []
+    invalid: list[str] = []
+    for index, source in enumerate(sources):
+        if not isinstance(source, dict):
+            invalid.append(f"proactive_input_invalid:{index}")
+            continue
+        source_classification = str(source.get("source_classification") or "ACTIVE_EXECUTABLE_NOT_CONSUMED")
+        if source_classification in {"HISTORICAL_CONTEXT_ONLY", "PRODUCTION_ONLY", "NOT_EXECUTABLE"}:
+            excluded.append({
+                "source": str(source.get("source_evidence") or index),
+                "reason": source_classification,
+            })
+            continue
+        result = proactive_verification_input(source)
+        if result["final_verdict"] != "PASS":
+            invalid.extend(result["errors"])
+            continue
+        materialized.append(result["proactive_input"])
+    if invalid:
+        return {
+            "schema": "v7-proactive-verification-input-selection/v1",
+            "selection_status": "PROACTIVE_VERIFICATION_STOP_SAFE",
+            "selected_input": None,
+            "eligible_input_count": len(materialized),
+            "excluded_inputs": excluded,
+            "final_verdict": "STOP_SAFE",
+            "errors": sorted(set(invalid)),
+        }
+    evaluated_ids: set[str] = set()
+    evaluated_fingerprints: set[str] = set()
+    for item in evaluated_inputs or ():
+        if isinstance(item, str):
+            evaluated_ids.add(item)
+        elif isinstance(item, dict):
+            evaluated_ids.add(str(item.get("proactive_input_id") or ""))
+            evaluated_fingerprints.add(str(item.get("duplicate_fingerprint") or ""))
+    ordered = sorted(materialized, key=lambda row: (int(row["priority"]), str(row["deterministic_identity"])))
+    remaining = [
+        row for row in ordered
+        if row["proactive_input_id"] not in evaluated_ids
+        and row["duplicate_fingerprint"] not in evaluated_fingerprints
+    ]
+    selected = remaining[0] if remaining else None
+    return {
+        "schema": "v7-proactive-verification-input-selection/v1",
+        "selection_status": "PROACTIVE_INPUT_SELECTED" if selected else "NO_ELIGIBLE_PROACTIVE_VERIFICATION_INPUT",
+        "selected_input": selected,
+        "eligible_input_count": len(materialized),
+        "remaining_distinct_input_count": len(remaining),
+        "duplicate_input_count": len(ordered) - len(remaining),
+        "excluded_inputs": excluded,
+        "final_verdict": "PASS",
+        "errors": [],
+    }
+
+
+def execute_proactive_verification_input(
+    proactive_input: dict[str, Any],
+    *,
+    runner: Optional[Callable[[list[str], Optional[Path], int], dict[str, Any]]] = None,
+    root: Path = ROOT,
+) -> dict[str, Any]:
+    """Execute one existing unittest owner and classify its current observation."""
+    validation = proactive_verification_input({
+        key: value for key, value in proactive_input.items()
+        if key not in {"schema", "proactive_input_id", "deterministic_identity", "duplicate_fingerprint", "priority", "last_execution_result"}
+    })
+    if validation["final_verdict"] != "PASS":
+        return {
+            "schema": "v7-proactive-verification-execution/v1",
+            "execution_result": "PROACTIVE_VERIFICATION_STOP_SAFE",
+            "reproducible": False,
+            "observed_current_behavior": "input validation failed",
+            "evidence": validation,
+            "final_verdict": "STOP_SAFE",
+            "errors": validation["errors"],
+        }
+    runner = runner or run_command
+    command = list(proactive_input["entrypoint"])
+    first = runner(command, root, 120)
+    if first.get("ok"):
+        return {
+            "schema": "v7-proactive-verification-execution/v1",
+            "proactive_input_id": proactive_input["proactive_input_id"],
+            "execution_result": "PROACTIVE_VERIFICATION_PASS",
+            "reproducible": True,
+            "observed_current_behavior": "existing verification entrypoint passed",
+            "evidence": first,
+            "runtime_impact": "NONE",
+            "production_impact": "NONE",
+            "authority_expansion": False,
+            "maturity_impact": "NONE",
+            "final_verdict": "PASS",
+            "errors": [],
+        }
+    second = runner(command, root, 120)
+    first_signature = (first.get("rc"), first.get("stdout"), first.get("stderr"))
+    second_signature = (second.get("rc"), second.get("stdout"), second.get("stderr"))
+    reproducible = first_signature == second_signature
+    result = "PROACTIVE_VERIFICATION_FAIL" if reproducible else "PROACTIVE_VERIFICATION_NON_DETERMINISTIC"
+    return {
+        "schema": "v7-proactive-verification-execution/v1",
+        "proactive_input_id": proactive_input["proactive_input_id"],
+        "execution_result": result,
+        "reproducible": reproducible,
+        "observed_current_behavior": "existing verification entrypoint failed now",
+        "evidence": {"first": first, "replay": second},
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "authority_expansion": False,
+        "maturity_impact": "NONE",
+        "final_verdict": "PASS" if reproducible else "STOP_SAFE",
+        "errors": [] if reproducible else ["proactive_verification_non_deterministic"],
+    }
+
+
+def proactive_verification_failure_scenario_source(
+    proactive_input: dict[str, Any],
+    execution: dict[str, Any],
+) -> dict[str, Any]:
+    """Convert only a reproducible current failure to the existing scenario contract."""
+    errors = []
+    if execution.get("execution_result") != "PROACTIVE_VERIFICATION_FAIL":
+        errors.append("proactive_result_not_current_failure")
+    if execution.get("reproducible") is not True:
+        errors.append("proactive_failure_not_reproducible")
+    if not proactive_input.get("source_owner"):
+        errors.append("proactive_failure_owner_missing")
+    if not proactive_input.get("result_consumer"):
+        errors.append("proactive_failure_consumer_missing")
+    if proactive_input.get("runtime_impact") not in {"NONE", "READ_ONLY_ONLY"}:
+        errors.append("proactive_failure_runtime_boundary")
+    if proactive_input.get("production_impact") != "NONE":
+        errors.append("proactive_failure_production_boundary")
+    if errors:
+        return {
+            "schema": "v7-proactive-result-to-scenario/v1",
+            "conversion_status": "PROACTIVE_VERIFICATION_STOP_SAFE",
+            "scenario_source": None,
+            "final_verdict": "STOP_SAFE",
+            "errors": sorted(set(errors)),
+        }
+    source = {
+        "source_owner": proactive_input["source_owner"],
+        "source_evidence": f"current reproducible proactive failure {proactive_input['proactive_input_id']}",
+        "engineering_intent": proactive_input["engineering_intent"],
+        "current_reality": execution["observed_current_behavior"],
+        "expected_reality": proactive_input["expected_behavior"],
+        "target_rule_or_contract": proactive_input["target_contract"],
+        "failure_or_gap_class": "STOP_SAFE_OR_ROLLBACK_GAP" if proactive_input["priority"] <= 20 else "CANONICAL_RULE_VERIFICATION_GAP",
+        "affected_producer": proactive_input["execution_owner"],
+        "affected_consumer": proactive_input["result_consumer"],
+        "boundary": "existing verification owner and scenario-supply integration only",
+        "stimulus_or_replay_input": proactive_input["input_or_fixture"],
+        "expected_observation": proactive_input["expected_behavior"],
+        "pass_criteria": proactive_input["pass_criteria"],
+        "fail_criteria": proactive_input["fail_criteria"],
+        "implementation_allowed": True,
+        "verification_plan": f"rerun {proactive_input['input_or_fixture']} and affected owner suite",
+        "rollback_or_stop_safe": proactive_input["rollback_or_stop_safe"],
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "authority_impact": "NONE",
+        "maturity_impact": "PRODUCTION_MATURITY_CREDIT_FORBIDDEN",
+        "new_owner_required": False,
+        "new_architecture_required": False,
+    }
+    return {
+        "schema": "v7-proactive-result-to-scenario/v1",
+        "conversion_status": "CURRENT_FAILURE_SCENARIO_SOURCE_READY",
+        "scenario_source": source,
+        "final_verdict": "PASS",
+        "errors": [],
+    }
+
+
+def discover_proactive_verification_inputs(*, root: Path = ROOT) -> dict[str, Any]:
+    """Map bounded representatives of existing executable verification owners."""
+    specs = (
+        (
+            "STOP_SAFE_SAFETY_NEGATIVE",
+            "OPERATOR_EXECUTION_PIPELINE_VERIFICATION_OWNER",
+            "tests.unit.test_operator_execution_pipeline.OperatorExecutionPipelineTest.test_autonomous_dry_run_hard_stops_on_snapshot_mismatch",
+            "Autonomous dry-run snapshot mismatch must STOP_SAFE before mutation.",
+        ),
+        (
+            "ROLLBACK_PARTIAL_FAILURE",
+            "RECOVERY_ADMISSION_VERIFICATION_OWNER",
+            "tests.unit.test_autonomy_trust_acceleration.AutonomyTrustAccelerationTest.test_a6_recovery_gate_stops_on_failed_observation_verification",
+            "Recovery admission must stop when observation verification fails.",
+        ),
+        (
+            "TRUTH_CURRENT_STATE_CONSISTENCY",
+            "OPERATION_SCOPED_BINDING_OWNER",
+            "tests.unit.test_operation_scoped_binding.OperationScopedBindingTest.test_atomic_reader_retries_and_stops_on_persistent_mixed_generation",
+            "Atomic current-state reader must reject persistent mixed generations.",
+        ),
+        (
+            "PRODUCER_CONSUMER_CONFIRMATION",
+            "BDP_DEVELOPMENT_IMPULSE_OWNER",
+            "tests.unit.test_bdp_development_impulse_handoff.BdpDevelopmentImpulseHandoffTest.test_one_known_gap_produces_one_candidate_and_uses_admission",
+            "A known BDP gap must reach the existing OMP admission consumer.",
+        ),
+        (
+            "REPLAY_DUPLICATE_PROTECTION",
+            "BDP_CANDIDATE_IDENTITY_OWNER",
+            "tests.unit.test_bdp_development_impulse_handoff.BdpDevelopmentImpulseHandoffTest.test_repeated_identical_state_suppresses_duplicate",
+            "Repeated equivalent BDP state must suppress duplicate Candidates.",
+        ),
+        (
+            "DEPENDENCY_COMPLETION_ORDER",
+            "CPS_CAPABILITY_DEPENDENCY_OWNER",
+            "tests.unit.test_omp_dependency_graph_completion_order.OmpDependencyGraphCompletionOrderTest.test_06_completion_order_violation_is_rejected",
+            "Completion-order violations must be rejected by the existing dependency owner.",
+        ),
+    )
+    sources: list[dict[str, Any]] = []
+    missing: list[str] = []
+    for verification_class, owner, selector, expected in specs:
+        relative = Path(*selector.split(".")[:3]).with_suffix(".py")
+        source_path = root / relative
+        if not source_path.exists():
+            missing.append(selector)
+            continue
+        sources.append({
+            "source_owner": owner,
+            "execution_owner": "PYTHON_UNITTEST_EXISTING_VERIFICATION_OWNER",
+            "source_evidence": str(relative),
+            "target_contract": expected,
+            "engineering_intent": f"Proactively preserve contract: {expected}",
+            "current_assumption": "The existing owner implementation still satisfies its certified contract.",
+            "expected_behavior": expected,
+            "entrypoint": [sys.executable, "-m", "unittest", selector],
+            "input_or_fixture": selector,
+            "preconditions": "clean converged repository; no Runtime or production mutation",
+            "observation_method": "existing unittest assertion and process exit status",
+            "pass_criteria": "existing unittest exits zero",
+            "fail_criteria": "existing unittest fails reproducibly in the current checkout",
+            "result_consumer": "ENGINEERING_POLYGON_SCENARIO_SUPPLY",
+            "rollback_or_stop_safe": "no mutation; STOP_SAFE on invalid, flaky or boundary-crossing input",
+            "runtime_impact": "NONE",
+            "production_impact": "NONE",
+            "authority_impact": "NONE",
+            "maturity_credit": "FORBIDDEN",
+            "user_movement": False,
+            "packet_apply": False,
+            "restore_barrier_write": False,
+            "revalidation_trigger": "target implementation, fixture, expected contract or dependency fingerprint changes",
+            "verification_class": verification_class,
+            "source_classification": "ACTIVE_EXECUTABLE_NOT_CONSUMED",
+            "new_owner_required": False,
+            "new_architecture_required": False,
+        })
+    return {
+        "schema": "v7-proactive-verification-input-discovery/v1",
+        "audit_result": "PROACTIVE_INPUTS_EXIST_BUT_NOT_CONNECTED" if sources else "NO_EXECUTABLE_PROACTIVE_INPUTS_EXIST",
+        "mapped_input_count": len(sources),
+        "proactive_inputs": sources,
+        "missing_entrypoints": missing,
+        "historical_context_only_not_promoted": True,
+        "production_only_evidence_excluded": True,
+        "final_verdict": "PASS" if sources and not missing else "STOP_SAFE",
+        "errors": [f"proactive_entrypoint_missing:{item}" for item in missing],
+    }
+
+
+def bounded_proactive_engineering_polygon_run(
+    cps_text: str,
+    *,
+    sources: Optional[Iterable[Any]] = None,
+    runner: Optional[Callable[[list[str], Optional[Path], int], dict[str, Any]]] = None,
+    root: Path = ROOT,
+    max_inputs: int = 5,
+) -> dict[str, Any]:
+    """Execute a serial no-mutation proactive verification run through existing owners."""
+    supplied_sources = None if sources is None else list(sources)
+    discovery = discover_proactive_verification_inputs(root=root) if supplied_sources is None else {
+        "schema": "v7-proactive-verification-input-discovery/v1",
+        "audit_result": "PROACTIVE_INPUTS_EXIST_BUT_NOT_CONNECTED",
+        "mapped_input_count": len(supplied_sources),
+        "proactive_inputs": supplied_sources,
+        "missing_entrypoints": [],
+        "final_verdict": "PASS",
+        "errors": [],
+    }
+    if discovery["final_verdict"] != "PASS":
+        return {
+            "schema": "v7-bounded-proactive-engineering-polygon-run/v1",
+            "stop_reason": "STOP_SAFE",
+            "trace": [],
+            "final_verdict": "STOP_SAFE",
+            "errors": discovery["errors"],
+        }
+    input_sources = discovery["proactive_inputs"]
+    evaluated: list[dict[str, Any]] = []
+    trace: list[dict[str, Any]] = []
+    scenarios = candidates = missions = 0
+    stop_reason = "NO_ELIGIBLE_PROACTIVE_VERIFICATION_INPUT"
+    for iteration in range(1, max(0, min(max_inputs, 5)) + 1):
+        selection = select_proactive_verification_input(input_sources, evaluated_inputs=evaluated)
+        if selection["final_verdict"] != "PASS":
+            stop_reason = "STOP_SAFE"
+            break
+        selected = selection["selected_input"]
+        if selected is None:
+            stop_reason = "REAL_WORLD_EVIDENCE_REQUIRED_AFTER_PROACTIVE_VERIFICATION_EXHAUSTION"
+            break
+        execution = execute_proactive_verification_input(selected, runner=runner, root=root)
+        evaluated.append(selected)
+        row = {
+            "iteration": iteration,
+            "proactive_input_id": selected["proactive_input_id"],
+            "verification_class": selected["verification_class"],
+            "execution_result": execution["execution_result"],
+            "scenario_created": False,
+            "candidate_created": False,
+            "mission_prepared": False,
+        }
+        if execution["execution_result"] == "PROACTIVE_VERIFICATION_PASS":
+            trace.append(row)
+            stop_reason = "PROACTIVE_INPUT_BUDGET_EXHAUSTED"
+            continue
+        if execution["execution_result"] == "PROACTIVE_VERIFICATION_NON_DETERMINISTIC":
+            trace.append(row)
+            stop_reason = "NON_DETERMINISTIC_DECISION"
+            break
+        conversion = proactive_verification_failure_scenario_source(selected, execution)
+        if conversion["final_verdict"] != "PASS":
+            trace.append(row)
+            stop_reason = "STOP_SAFE"
+            break
+        supply = engineering_polygon_scenario_supply_from_cps(
+            cps_text,
+            scenario_sources=[conversion["scenario_source"]],
+        )
+        row["scenario_created"] = supply["selection"]["selected_scenario"] is not None
+        row["candidate_created"] = bool(supply.get("bdp") and supply["bdp"].get("candidate"))
+        row["mission_prepared"] = bool(supply.get("bdp") and supply["bdp"].get("admission", {}).get("mission_state") == "PREPARED_NOT_ACTIVE")
+        scenarios += int(row["scenario_created"])
+        candidates += int(row["candidate_created"])
+        missions += int(row["mission_prepared"])
+        row["supply_status"] = supply["supply_status"]
+        trace.append(row)
+        stop_reason = "CURRENT_FAILURE_MISSION_HOLD"
+        break
+    else:
+        if len(evaluated) < len(input_sources):
+            stop_reason = "PROACTIVE_INPUT_BUDGET_EXHAUSTED"
+        else:
+            stop_reason = "REAL_WORLD_EVIDENCE_REQUIRED_AFTER_PROACTIVE_VERIFICATION_EXHAUSTION"
+    passed = sum(1 for row in trace if row["execution_result"] == "PROACTIVE_VERIFICATION_PASS")
+    failed = sum(1 for row in trace if row["execution_result"] == "PROACTIVE_VERIFICATION_FAIL")
+    return {
+        "schema": "v7-bounded-proactive-engineering-polygon-run/v1",
+        "audit_result": discovery["audit_result"],
+        "actual_gap_classification": "PROACTIVE_INPUTS_EXIST_BUT_NOT_CONNECTED",
+        "inputs_discovered": discovery["mapped_input_count"],
+        "inputs_eligible": len(input_sources),
+        "inputs_executed": len(trace),
+        "inputs_passed": passed,
+        "inputs_failed": failed,
+        "inputs_blocked": 0,
+        "scenarios_created": scenarios,
+        "candidates_created": candidates,
+        "missions_accepted": missions,
+        "missions_completed": 0,
+        "iterations_executed": len(trace),
+        "trace": trace,
+        "coverage": [
+            {
+                "proactive_input_id": item["proactive_input_id"],
+                "target_contract": item["target_contract"],
+                "last_result": next(
+                    (row["execution_result"] for row in trace if row["proactive_input_id"] == item["proactive_input_id"]),
+                    "NOT_EVALUATED",
+                ),
+                "revalidation_trigger": item["revalidation_trigger"],
+            }
+            for item in evaluated
+        ],
+        "stop_reason": stop_reason,
+        "protected_wip_preserved": True,
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "authority_expansion": False,
+        "maturity_impact": "NONE",
+        "final_verdict": "PASS" if stop_reason not in {"STOP_SAFE", "NON_DETERMINISTIC_DECISION"} else "STOP_SAFE",
+        "errors": [],
+    }
+
+
 def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
     """Fail closed when a transaction terminal is returned as a program terminal."""
     live = _markdown_field_table(_markdown_section(

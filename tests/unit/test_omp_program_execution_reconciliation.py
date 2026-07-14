@@ -140,7 +140,7 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
         self.assertEqual(self.reconcile(), self.reconcile())
 
     def test_29_cps_receives_program_frontier(self):
-        self.assertIn("AEP_PHASE_3_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER", self.sources["cps"])
+        self.assertIn("OMP_REAL_CONSUMER_ACTIVATION", self.sources["cps"])
 
     def test_30_omp_consumes_program_frontier(self):
         self.assertIn("Program Execution And Consumption Reconciliation Rule", self.sources["omp"])

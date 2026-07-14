@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.23`
+Version: `4.24`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -13,8 +13,8 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed closure evidence: `docs/reports/engineering/2026-07-14_161705_aep_phase_3_acceptance_to_phase_5_continuation.md` (`AEP_PHASE_3_ACCEPTED_LOCKED_GAP_IMPLEMENTED_PHASE_5_CONTINUED`).
-Previous consumed closure evidence: `docs/reports/engineering/2026-07-14_103725_aep_phase_3_to_omp_mission_generation.md` (`AEP_PHASE_3_READY_FOR_INDEPENDENT_ACCEPTANCE`).
+Latest consumed closure evidence: `docs/reports/engineering/2026-07-14_172349_omp_functional_footprint_audit.md` (`OMP_FUNCTIONAL_FOOTPRINT_CORRECTED_NO_SAFE_ENTRYPOINT`).
+Previous consumed closure evidence: `docs/reports/engineering/2026-07-14_161705_aep_phase_3_acceptance_to_phase_5_continuation.md` (`SUPERSEDED_COMPLETION_CLAIMS; implementation evidence retained`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -31,6 +31,8 @@ V4.21 replaces finite seed exhaustion with deterministic Engineering Polygon cor
 V4.22 adds capability-closure reconciliation inside existing OMP Capability Management. `IMPLEMENTATION_COMPLETE` and a global `REAL_WORLD_LIMIT` are legal only after every current unfinished capability criterion is owner-classified and no safe executable engineering criterion remains. Actionable backlog completion proves implementation-scope closure only; it never proves output consumption, behavior change, intent closure, capability certification or production maturity. Capability-local real-world, authority and dependency waits cannot stop independent READY engineering work. CPS remains the sole volatile capability-state owner.
 
 V4.23 adds program execution and consumption reconciliation inside existing OMP continuation. A canonical program is complete only after every mandatory stage produced a valid output, independent acceptance and lock requirements passed, the required consumer confirmed consumption, the next state/output was produced, and terminal evidence exists. Document labels, organized/ready status, backlog completion, isolated tests, reports or partial mechanism reuse never prove program completion. A global `REAL_WORLD_LIMIT` is illegal while an independent safe program stage is READY, in progress, awaiting acceptance or awaiting consumer confirmation. CPS remains the sole volatile program-frontier owner.
+
+V4.24 adds Functional Footprint and Real Consumer Activation enforcement inside the same OMP continuation owner. Implemented, tested, deployed, documented or manually callable code is not automation. `COMPLETE_CONSUMED` requires a real non-test trigger, an active owner-correct entrypoint, actual invocation, consumer behavior change and a next output. Manual `Continue OMP` remains `CODEX_ASSISTED`; it is not independent engineering automation. A paused heartbeat, inactive adapter or unrelated production timer cannot satisfy the consumer contract. Activation remains fail-closed at the existing Engineering Authority boundary.
 
 V4 operating questions:
 
@@ -4961,6 +4963,8 @@ Before OMP accepts a program completion claim, `IMPLEMENTATION_COMPLETE`, `GLOBA
 
 Program document status and program execution status are separate. `ORGANIZED`, `READY`, `CANONICAL`, `ACTIVE`, an existing report, an implemented adapter, isolated tests or a completed implementation backlog do not prove that a program was activated, executed, accepted, consumed or terminally closed. A program file cannot certify its own execution merely by declaring a status.
 
+Functional footprint is part of completion evidence. OMP must prove all of: `REAL_TRIGGER_OCCURRED`, `REAL_ENTRYPOINT_INVOKED`, `RECONCILIATION_CALLED`, `CONSUMER_INVOKED`, `CONSUMER_BEHAVIOR_CHANGED`, and `NEXT_OUTPUT_CREATED`. A test call, shell call, manual Codex continuation, deployed library, paused automation or report claim cannot substitute for any missing proof. When no real caller exists, the maximum legal state is `IMPLEMENTED_MANUALLY_CALLABLE`; the next stage remains blocked and CPS must expose the exact activation boundary.
+
 Every mandatory stage must resolve to exactly one current execution state: not activated; ready; in progress; output missing; ready for acceptance; acceptance missing; consumer missing; consumption unconfirmed; complete and consumed; blocked by a real-world, Authority or dependency boundary; not applicable; superseded; or unknown with reason. A stage is complete only when its entry conditions passed, required output exists and validates, independent acceptance/lock obligations passed, the named consumer confirmed consumption, the state transition completed and the next output or legal terminal alternative exists.
 
 Program-level producer/consumer closure follows the existing route:
@@ -7749,8 +7753,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `NONE`
-Resolved current next action: `AEP_PHASE_6_PRODUCTION_CERTIFICATION_PREPARATION`
+Resolved current stop: `ENGINEERING_AUTHORITY`
+Resolved current next action: `OMP_REAL_CONSUMER_ACTIVATION_AUTHORITY_DECISION`
 Resolved packet: `NONE_OPEN`
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -8737,10 +8741,10 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `NONE`
-Resolved current next action: `AEP_PHASE_6_PRODUCTION_CERTIFICATION_PREPARATION`
-Latest consumed report: `docs/reports/engineering/2026-07-14_161705_aep_phase_3_acceptance_to_phase_5_continuation.md`
-Previous consumed report: `docs/reports/engineering/2026-07-14_103725_aep_phase_3_to_omp_mission_generation.md`
+Resolved current stop: `ENGINEERING_AUTHORITY`
+Resolved current next action: `OMP_REAL_CONSUMER_ACTIVATION_AUTHORITY_DECISION`
+Latest consumed report: `docs/reports/engineering/2026-07-14_172349_omp_functional_footprint_audit.md`
+Previous consumed report: `docs/reports/engineering/2026-07-14_161705_aep_phase_3_acceptance_to_phase_5_continuation.md` (`SUPERSEDED_COMPLETION_CLAIMS`)
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

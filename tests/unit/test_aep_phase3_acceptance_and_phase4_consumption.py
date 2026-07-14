@@ -114,16 +114,26 @@ class AepPhase3AcceptanceAndPhase4ConsumptionTest(unittest.TestCase):
         values.update(overrides)
         return "\n".join(f"{key} = {value}" for key, value in values.items())
 
-    def phase4_report(self):
-        return "\n".join((
+    def phase4_report(self, *, real_consumer=False):
+        lines = [
             f"MISSION_ID_CREATED = {MISSION_ID}",
             "OMP_ADMISSION_DECISION = MISSION_ACCEPTED",
             "IMPLEMENTATION_RESULT = COMPLETE_VERIFIED",
             "PHASE_3_TO_PHASE_4_CONSUMPTION_STATUS = PASS",
             "ENGINEERING_INTENT_CLOSURE_STATUS = CLOSED",
-        ))
+        ]
+        if real_consumer:
+            lines.extend((
+                "REAL_TRIGGER_OCCURRED = TRUE",
+                "REAL_ENTRYPOINT_INVOKED = TRUE",
+                "RECONCILIATION_CALLED = TRUE",
+                "CONSUMER_INVOKED = TRUE",
+                "CONSUMER_BEHAVIOR_CHANGED = TRUE",
+                "NEXT_OUTPUT_CREATED = TRUE",
+            ))
+        return "\n".join(lines)
 
-    def reconcile(self, *, locked=False, implemented=False, **overrides):
+    def reconcile(self, *, locked=False, implemented=False, real_consumer=False, **overrides):
         sources = dict(self.sources)
         if locked:
             sources.update({
@@ -132,7 +142,7 @@ class AepPhase3AcceptanceAndPhase4ConsumptionTest(unittest.TestCase):
                 "aep_phase3_lock": self.lock_report(),
             })
         if implemented:
-            sources["aep_phase4_execution"] = self.phase4_report()
+            sources["aep_phase4_execution"] = self.phase4_report(real_consumer=real_consumer)
         sources.update(overrides)
         return self.lib.program_execution_reconciliation(sources)
 
@@ -220,8 +230,8 @@ class AepPhase3AcceptanceAndPhase4ConsumptionTest(unittest.TestCase):
         second = self.lib.omp_candidate_admission_decision(self.candidate(), mission_id=MISSION_ID)
         self.assertEqual(first["decision_fingerprint"], second["decision_fingerprint"])
 
-    def test_19_phase4_consumer_confirmation_opens_phase5(self):
-        self.assertEqual(self.reconcile(locked=True, implemented=True)["aep_phase5_status"], "COMPLETE_CONSUMED")
+    def test_19_manual_implementation_does_not_open_phase5(self):
+        self.assertEqual(self.reconcile(locked=True, implemented=True)["aep_phase5_status"], "BLOCKED")
 
     def test_20_phase4_missing_consumer_confirmation_does_not_open_phase5(self):
         self.assertEqual(self.reconcile(locked=True, aep_phase4_execution="IMPLEMENTATION_RESULT = COMPLETE_VERIFIED")["aep_phase5_status"], "BLOCKED")
@@ -255,11 +265,29 @@ class AepPhase3AcceptanceAndPhase4ConsumptionTest(unittest.TestCase):
     def test_28_lock_fingerprint_is_deterministic(self):
         self.assertEqual(self.accepted()["phase3_lock_fingerprint"], LOCK_FP)
 
-    def test_29_engineering_intent_closes_after_consumer_confirmation(self):
-        self.assertTrue(self.reconcile(locked=True, implemented=True)["aep_phase4_consumed"])
+    def test_29_engineering_intent_requires_real_consumer_confirmation(self):
+        self.assertFalse(self.reconcile(locked=True, implemented=True)["aep_phase4_consumed"])
 
-    def test_30_next_omp_action_is_phase5_after_closure(self):
-        self.assertEqual(self.reconcile(locked=True, implemented=True)["executable_program_frontier"], ["AEP_PHASE_6_PRODUCTION_CERTIFICATION_PREPARATION"])
+    def test_30_next_omp_action_is_real_consumer_activation(self):
+        self.assertEqual(self.reconcile(locked=True, implemented=True)["executable_program_frontier"], ["OMP_REAL_CONSUMER_ACTIVATION"])
+
+    def test_31_real_consumer_proof_opens_phase5(self):
+        result = self.reconcile(locked=True, implemented=True, real_consumer=True)
+        self.assertTrue(result["aep_phase4_consumed"])
+        self.assertEqual(result["aep_phase5_status"], "COMPLETE_CONSUMED")
+
+    def test_32_each_real_consumer_proof_is_required(self):
+        full = self.phase4_report(real_consumer=True)
+        for token in (
+            "REAL_TRIGGER_OCCURRED = TRUE",
+            "REAL_ENTRYPOINT_INVOKED = TRUE",
+            "RECONCILIATION_CALLED = TRUE",
+            "CONSUMER_INVOKED = TRUE",
+            "CONSUMER_BEHAVIOR_CHANGED = TRUE",
+            "NEXT_OUTPUT_CREATED = TRUE",
+        ):
+            result = self.reconcile(locked=True, aep_phase4_execution=full.replace(token, ""))
+            self.assertFalse(result["aep_phase4_consumed"], token)
 
 
 if __name__ == "__main__":

@@ -2,11 +2,11 @@
 
 Status: `ORGANIZED`
 Document status: `ORGANIZED`
-Execution status: `PHASE_3_ACCEPTED_LOCKED_PHASE_4_CONSUMED_PHASE_5_COMPLETE`
-Current program state: `IMPLEMENTATION_READY; PHASE_6_READY_NOT_STARTED`
-Current execution evidence: `docs/reports/engineering/2026-07-14_161705_aep_phase_3_acceptance_to_phase_5_continuation.md`
+Execution status: `PHASE_3_ACCEPTED_LOCKED_PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE_PHASE_5_BLOCKED_REAL_CONSUMER`
+Current program state: `GAP_READY; REAL_CONSUMER_ACTIVATION_REQUIRES_ENGINEERING_AUTHORITY`
+Current execution evidence: `docs/reports/engineering/2026-07-14_172349_omp_functional_footprint_audit.md`
 Current acceptance state: `PHASE_3_ACCEPTED_LOCKED; aep3lock_f4e40b34f14e2743819e3a2e`
-Next legal stage: prepare Phase 6 Production Certification through existing OMP owners. Production Certification is not started or granted.
+Next legal stage: activate a real existing OMP consumer only after explicit Engineering Authority; Phase 6 remains blocked.
 Mode: `PROGRAM_ROUTE`
 Runtime impact: `NONE`
 Authority impact: `NONE`

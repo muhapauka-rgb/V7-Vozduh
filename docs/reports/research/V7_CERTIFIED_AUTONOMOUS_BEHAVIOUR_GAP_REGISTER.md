@@ -174,9 +174,10 @@ PHASE_3_ACCEPTANCE_STATUS = AEP_PHASE_3_GAP_REGISTER_ACCEPTED
 PHASE_3_LOCK_STATUS = LOCKED
 PHASE_3_LOCK_ID = aep3lock_f4e40b34f14e2743819e3a2e
 PHASE_3_LOCK_FINGERPRINT = f4e40b34f14e2743819e3a2e4bb61b6793493ba603f384a168f62bdff84c5e1d
-PHASE_4_STATUS = COMPLETE_CONSUMED
-OMP_CANDIDATES_CONSUMED = 1
+PHASE_4_STATUS = IMPLEMENTED_MANUALLY_CALLABLE
+OMP_CANDIDATES_ADMITTED = 1
+OMP_CANDIDATES_REAL_CONSUMED = 0
 OMP_MISSIONS_CREATED = 1
 ```
 
-Register принят независимым owner, locked и потреблён Phase 4. Candidate `BDP-ICI-7CFAE2C09DBC51947C9718E6` прошёл OMP admission; Mission `V7_OMP_PHASE_3_TO_PHASE_4_PROGRAM_CONSUMER_EXTENSION_V1` реализована и verified. Lock не предоставляет Runtime или production authority. Re-open допускается только при consumer regression, identity drift, lock mismatch или новом current evidence, меняющем gap identity.
+Register принят независимым owner и locked. Candidate `BDP-ICI-7CFAE2C09DBC51947C9718E6` прошёл OMP admission; Mission `V7_OMP_PHASE_3_TO_PHASE_4_PROGRAM_CONSUMER_EXTENSION_V1` реализована и verified, но реальный non-test consumer не подтверждён. Phase 4 остаётся `IMPLEMENTED_MANUALLY_CALLABLE`, Phase 5 заблокирована до реальной активации. Lock не предоставляет Runtime или production authority. Re-open допускается при consumer activation/regression, identity drift, lock mismatch или новом current evidence, меняющем gap identity.

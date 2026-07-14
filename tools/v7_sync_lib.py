@@ -37,43 +37,43 @@ DEPLOY_CONFIRMATION = "DEPLOY_V7_APPROVED"
 RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
 
 NORMALIZED_CPS_LIVE_STATE = {
-    "active_program": "AEP_PHASE_6_PRODUCTION_CERTIFICATION_PREPARATION_THROUGH_OMP",
+    "active_program": "OMP_FUNCTIONAL_FOOTPRINT_AND_REAL_CONSUMER_ACTIVATION",
     "current_mode": "BOUNDED_DELEGATED_AUTONOMY_ACTIVE",
-    "current_stop_condition": "NONE",
-    "current_active_scope": "AEP_PHASE_6_PRODUCTION_CERTIFICATION_PREPARATION",
-    "current_safe_next_action": "PREPARE PHASE 6 PRODUCTION CERTIFICATION THROUGH EXISTING OMP OWNERS WITHOUT STARTING PRODUCTION EXECUTION",
-    "current_scope_class": "PROGRAM_EXECUTION_FRONTIER",
+    "current_stop_condition": "ENGINEERING_AUTHORITY",
+    "current_active_scope": "OMP_REAL_CONSUMER_ACTIVATION",
+    "current_safe_next_action": "OBTAIN EXPLICIT ENGINEERING AUTHORITY TO ENABLE THE EXISTING PAUSED OMP HEARTBEAT OR WAIT FOR AN EXISTING OWNER-BACKED EVENT HOOK",
+    "current_scope_class": "ENGINEERING_AUTOMATION_BOUNDARY",
     "current_execution_mission_id": "NONE",
     "current_execution_mission_state": "NONE",
-    "latest_terminal_mission_id": "V7_AEP_PHASE_3_INDEPENDENT_ACCEPTANCE_AND_LOCK_V1",
-    "latest_terminal_run_nonce": "V7_AEP_PHASE_3_ACCEPTANCE_LOCK_V1_2F8C6D14A97E",
-    "latest_terminal_mission_state": "AEP_PHASE_3_ACCEPTED_LOCKED_GAP_IMPLEMENTED_PHASE_5_CONTINUED",
-    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-14_161705_aep_phase_3_acceptance_to_phase_5_continuation.md",
-    "latest_terminal_mission_started_at": "2026-07-14T16:17:05+0700",
-    "previous_terminal_mission_id": "V7_AEP_PHASE_3_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER_V1",
-    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-14_103725_aep_phase_3_to_omp_mission_generation.md",
+    "latest_terminal_mission_id": "V7_OMP_FUNCTIONAL_FOOTPRINT_AND_REAL_CONSUMER_ACTIVATION_V1",
+    "latest_terminal_run_nonce": "V7_OMP_FUNCTIONAL_FOOTPRINT_V1_6B2E9A4D17C8",
+    "latest_terminal_mission_state": "OMP_FUNCTIONAL_FOOTPRINT_CORRECTED_NO_SAFE_ENTRYPOINT",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-14_172349_omp_functional_footprint_audit.md",
+    "latest_terminal_mission_started_at": "2026-07-14T17:23:49+0700",
+    "previous_terminal_mission_id": "V7_AEP_PHASE_3_INDEPENDENT_ACCEPTANCE_AND_LOCK_V1",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-14_161705_aep_phase_3_acceptance_to_phase_5_continuation.md",
     "authoritative_transition_input_mission_id": "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3",
     "authoritative_transition_input_state": "MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED",
     "authoritative_transition_input_report": "docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md",
     "current_mission_role": "LATEST_TERMINAL_MISSION",
-    "current_mission_id": "V7_AEP_PHASE_3_INDEPENDENT_ACCEPTANCE_AND_LOCK_V1",
-    "current_run_nonce": "V7_AEP_PHASE_3_ACCEPTANCE_LOCK_V1_2F8C6D14A97E",
-    "current_mission_state": "AEP_PHASE_3_ACCEPTED_LOCKED_GAP_IMPLEMENTED_PHASE_5_CONTINUED",
-    "current_mission_report": "docs/reports/engineering/2026-07-14_161705_aep_phase_3_acceptance_to_phase_5_continuation.md",
-    "state_captured": "2026-07-14T16:17:05+0700",
-    "current_state_generation": "cpsgen_V7_AEP_P3_LOCK_P4_IMPL_V1_2F8C6D14A97E",
-    "current_transition_id": "AEP_PHASE_3_LOCKED_PHASE_4_CONSUMED_PHASE_5_COMPLETE_PHASE_6_READY_V1",
-    "current_next_action_id": "AEP_PHASE_6_PRODUCTION_CERTIFICATION_PREPARATION",
-    "current_program_stage": "AEP_PHASE_6_READY",
-    "current_program_execution_frontier": "AEP_PHASE_6_PRODUCTION_CERTIFICATION_PREPARATION",
-    "program_frontier_input": "Phase 3 is independently accepted and locked; Phase 4 admission and Phase 5 existing-owner structural integration are complete, verified and consumed; protected CAP-U07 remains capability-local WAITING WIP",
-    "program_frontier_owner": "existing AEP structural integration, OMP and CPS consumers",
-    "program_frontier_expected_output": "Phase 6 production certification preparation through existing owners; no production certification or execution without a separate admitted Mission",
+    "current_mission_id": "V7_OMP_FUNCTIONAL_FOOTPRINT_AND_REAL_CONSUMER_ACTIVATION_V1",
+    "current_run_nonce": "V7_OMP_FUNCTIONAL_FOOTPRINT_V1_6B2E9A4D17C8",
+    "current_mission_state": "OMP_FUNCTIONAL_FOOTPRINT_CORRECTED_NO_SAFE_ENTRYPOINT",
+    "current_mission_report": "docs/reports/engineering/2026-07-14_172349_omp_functional_footprint_audit.md",
+    "state_captured": "2026-07-14T17:23:49+0700",
+    "current_state_generation": "cpsgen_V7_OMP_FOOTPRINT_V1_6B2E9A4D17C8",
+    "current_transition_id": "OMP_FUNCTIONAL_FOOTPRINT_CORRECTED_NO_SAFE_ENTRYPOINT_V1",
+    "current_next_action_id": "OMP_REAL_CONSUMER_ACTIVATION_AUTHORITY_DECISION",
+    "current_program_stage": "AEP_PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE",
+    "current_program_execution_frontier": "OMP_REAL_CONSUMER_ACTIVATION",
+    "program_frontier_input": "Phase 3 is accepted and locked; Phase 4 implementation exists and is deployed but has zero real non-test callers; heartbeat is owner-backed but PAUSED",
+    "program_frontier_owner": "existing OMP, CPS, Codex Automation Platform and heartbeat boundary owners",
+    "program_frontier_expected_output": "explicit heartbeat enablement authority or a future owner-backed engineering event hook -> one real consumer cycle; otherwise remain fail-closed",
     "protected_capability_wip": "CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; preserved and not reordered",
     "binding_stability": "PASS",
     "binding_schema": "v7.operation-scoped-source-binding.v2",
     "routing_readiness_state": "PASS_CANDIDATE_SCOPED",
-    "authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
+    "authority_required_now": "ENGINEERING_AUTHORITY_FOR_EXISTING_HEARTBEAT_ENABLEMENT_ONLY",
     "current_action_class": "single-user governed candidate failover",
     "current_action_class_state": "GOVERNED_ONLY",
     "old_packets_reusable": "NO",
@@ -86,13 +86,13 @@ NORMALIZED_CPS_LIVE_STATE = {
     "waiting_capabilities": "CAP-U02,CAP-U05,CAP-U06,CAP-U07",
     "ready_capabilities": "NONE",
     "blocked_capabilities": "CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22",
-    "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
+    "continuation_decision": "ENGINEERING_AUTHORITY_REQUIRED",
     "next_executable_capability": "NONE",
-    "program_terminal_state": "NONE_PHASE_6_READY",
+    "program_terminal_state": "ENGINEERING_AUTHORITY_REAL_CONSUMER_ACTIVATION_REQUIRED",
     "cap_u01_completion_report": "docs/reports/engineering/2026-07-12_172534_exact_route_repair_and_first_governed_success.md",
     "responsibility_class": "LEARNING",
     "last_responsible_link": "real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence",
-    "smallest_existing_next_action": "prepare the bounded Phase 6 production certification Mission through existing OMP owners; preserve CAP-U07 evidence wait",
+    "smallest_existing_next_action": "decide whether to enable the existing paused OMP heartbeat for bounded engineering-only reentry; do not attach OMP to unrelated production timers",
     "current_class_outcome": "SUCCESS",
     "current_class_delta_closed": "YES",
     "current_class_outcome_evidence": "SUCCESS; 10.7.0.5 awg0 -> vless; global route verification PASS; feedback execfb_b287532347352c661799e985",
@@ -112,16 +112,16 @@ NORMALIZED_CPS_LIVE_STATE = {
     "user_movement": "NO; current Mission performed evidence refresh and read-only revalidation only",
     "admin_safe_mode_live_state": "schema=v7.autonomous-execution-control.v2; state=OPEN; generation=aec_dda6c420c87e99e97236883c; reason=GOVERNED_TRANSACTION_COMPLETED",
     "parent_engineering_intent": "INTENT_NOT_CLOSED; CAP-U07 consumed one real success but representative Learning evidence remains a real-world dependency",
-    "source_summary": "Independent Phase 3 acceptance locked the register; Phase 4 admitted one Candidate; Phase 5 implemented, verified and consumed the existing-owner program reconciliation extension; Phase 6 is ready but not started.",
-    "automatic_continue_omp_result": "CONTINUE_PROGRAM_FRONTIER; Phase 6 production certification preparation Mission formed",
-    "required_workflow": "verified Phase 5 structural integration closure -> Phase 6 production certification preparation through existing owners; preserve CAP-U07 wait",
+    "source_summary": "Functional footprint audit proved that Phase 4 code is deployed but manually callable only, Phase 5 has no real consumer, and the existing OMP heartbeat remains PAUSED.",
+    "automatic_continue_omp_result": "ENGINEERING_AUTHORITY_REQUIRED; no active independent engineering trigger exists",
+    "required_workflow": "explicitly authorize the existing bounded heartbeat or wait for an owner-backed engineering event hook -> invoke reconciliation -> verify consumer behavior change; preserve manual Continue OMP",
     "omp_controlled_run_allowed": "NO_CURRENT_EXECUTION; synthetic or forced outcomes are forbidden",
-    "controlled_run_authority_required_now": "NO_FOR_PREPARATION; any later production certification action requires its own existing authority and admitted Mission",
+    "controlled_run_authority_required_now": "NO_RUNTIME_AUTHORITY; current boundary is engineering heartbeat enablement only",
     "controlled_run_execution_authorized": "NO_CURRENT_PACKET; no forced evidence generation or movement is authorized",
     "wip_authority_required_now": "FALSE; current boundary is representative real evidence, not Authority",
-    "wip_current_primary_stop": "REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is AEP_PHASE_6_PRODUCTION_CERTIFICATION_PREPARATION",
+    "wip_current_primary_stop": "REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is OMP_REAL_CONSUMER_ACTIVATION at ENGINEERING_AUTHORITY",
     "wip_smallest_existing_next_action_id": "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES",
-    "wip_smallest_existing_next_action": "preserve CAP-U07 evidence unchanged while OMP prepares Phase 6 production certification",
+    "wip_smallest_existing_next_action": "preserve CAP-U07 evidence unchanged while OMP waits for a legal real engineering trigger",
     "sequence_execution_class": "real-world evidence wait",
     "sequence_expected_output": "new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation",
     "completion_condition": "Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass",
@@ -129,17 +129,25 @@ NORMALIZED_CPS_LIVE_STATE = {
     "complete_or_locked_capabilities": "13",
     "unfinished_capabilities": "21",
     "open_engineering_intents": "21",
-    "omp_continuation_required": "TRUE",
-    "external_input_required": "FALSE",
-    "external_input_type": "NONE",
-    "transaction_terminal_class": "AEP_PHASE_5_STRUCTURAL_INTEGRATION_COMPLETE",
-    "program_terminal_class": "NONE",
-    "next_mission_formed": "TRUE",
-    "next_mission_id": "V7_AEP_PHASE_6_PRODUCTION_CERTIFICATION_PREPARATION_V1",
+    "omp_continuation_required": "FALSE",
+    "external_input_required": "TRUE",
+    "external_input_type": "ENGINEERING_AUTHORITY",
+    "transaction_terminal_class": "FUNCTIONAL_FOOTPRINT_AUDIT_COMPLETE",
+    "program_terminal_class": "ENGINEERING_AUTHORITY",
+    "next_mission_formed": "FALSE",
+    "next_mission_id": "NONE",
     "premature_operator_return": "FALSE",
-    "continuation_iteration": "11",
-    "continuation_stop_reason": "BOUNDED_INVOCATION_PHASE6_PREPARATION_FORMED",
-    "no_progress_fingerprint": "2e9da8fd12931906aeb253bbf4b270498cbe27bad901f5ebd3a32eb95c64e73a",
+    "continuation_iteration": "12",
+    "continuation_stop_reason": "NO_SAFE_ACTIVE_REAL_ENGINEERING_ENTRYPOINT; EXISTING_HEARTBEAT_PAUSED",
+    "no_progress_fingerprint": "af4da50bbf3c94917e1c74e92c57a533b9ac465470013fb48ff44792454fee64",
+    "program_reconciliation_footprint_class": "DEPLOYED_MANUALLY_CALLABLE_ONLY",
+    "program_reconciliation_real_callers": "0",
+    "program_reconciliation_test_callers": "3",
+    "omp_automation_level": "CODEX_ASSISTED",
+    "heartbeat_status": "PAUSED",
+    "automation_enabled": "FALSE",
+    "aep_phase4_status": "IMPLEMENTED_MANUALLY_CALLABLE",
+    "aep_phase5_status": "BLOCKED_MISSING_REAL_CONSUMER",
 }
 
 
@@ -724,6 +732,14 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "CONTINUATION_ITERATION": f"`{state['continuation_iteration']}`",
         "CONTINUATION_STOP_REASON": f"`{state['continuation_stop_reason']}`",
         "NO_PROGRESS_FINGERPRINT": f"`{state['no_progress_fingerprint']}`",
+        "PROGRAM_RECONCILIATION_FOOTPRINT_CLASS": f"`{state['program_reconciliation_footprint_class']}`",
+        "PROGRAM_RECONCILIATION_REAL_CALLERS": f"`{state['program_reconciliation_real_callers']}`",
+        "PROGRAM_RECONCILIATION_TEST_CALLERS": f"`{state['program_reconciliation_test_callers']}`",
+        "OMP_AUTOMATION_LEVEL": f"`{state['omp_automation_level']}`",
+        "HEARTBEAT_STATUS": f"`{state['heartbeat_status']}`",
+        "AUTOMATION_ENABLED": f"`{state['automation_enabled']}`",
+        "AEP_PHASE_4_STATUS": f"`{state['aep_phase4_status']}`",
+        "AEP_PHASE_5_STATUS": f"`{state['aep_phase5_status']}`",
     }
     for key, value in live_values.items():
         cps_text = _replace_section_field(
@@ -1022,11 +1038,14 @@ def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -
     authority_required = live.get("AUTHORITY_REQUIRED_NOW", "").strip("`")
     phase2_acceptance_frontier = program_frontier == "AEP_PHASE_2_ACCEPTANCE"
     phase3_acceptance_frontier = program_frontier == "AEP_PHASE_3_INDEPENDENT_ACCEPTANCE"
+    real_consumer_activation_frontier = program_frontier == "OMP_REAL_CONSUMER_ACTIVATION"
     expected_authority = (
         "ENGINEERING_AUTHORITY_FOR_INDEPENDENT_AEP_PHASE_2_ACCEPTANCE_ONLY"
         if phase2_acceptance_frontier else
         "ENGINEERING_AUTHORITY_FOR_INDEPENDENT_AEP_PHASE_3_ACCEPTANCE_ONLY"
         if phase3_acceptance_frontier else
+        "ENGINEERING_AUTHORITY_FOR_EXISTING_HEARTBEAT_ENABLEMENT_ONLY"
+        if real_consumer_activation_frontier else
         "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE"
         if independent_program_frontier else
         "YES_OUTSIDE_ACTIVE_POLICY" if external_program_terminal else
@@ -1353,12 +1372,17 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                 "AEP_PHASE_2_ACCEPTANCE",
                 "AEP_PHASE_3_INDEPENDENT_ACCEPTANCE",
             }
-            if acceptance_frontier:
+            authority_frontier = acceptance_frontier or program_frontier == "OMP_REAL_CONSUMER_ACTIVATION"
+            if authority_frontier:
                 if continuation != "FALSE" or external != "TRUE" or program_terminal != "ENGINEERING_AUTHORITY":
                     errors.append("program_acceptance_frontier_external_boundary_invalid")
             elif continuation != "TRUE" or external != "FALSE" or program_terminal != "NONE":
                 errors.append("program_frontier_stopped_program")
-            expected_decision = "PROGRAM_ACCEPTANCE_REQUIRED" if acceptance_frontier else "CONTINUE_PROGRAM_FRONTIER"
+            expected_decision = (
+                "PROGRAM_ACCEPTANCE_REQUIRED" if acceptance_frontier else
+                "ENGINEERING_AUTHORITY_REQUIRED" if authority_frontier else
+                "CONTINUE_PROGRAM_FRONTIER"
+            )
             if continuation_decision != expected_decision:
                 errors.append("program_frontier_continuation_decision_invalid")
             if program_frontier == "AEP_PHASE_2_ACCEPTANCE":
@@ -1366,6 +1390,9 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                     errors.append("program_frontier_terminal_state_invalid")
             elif program_frontier == "AEP_PHASE_3_INDEPENDENT_ACCEPTANCE":
                 if program_terminal_state != "ENGINEERING_AUTHORITY_AEP_PHASE_3_ACCEPTANCE_REQUIRED":
+                    errors.append("program_frontier_terminal_state_invalid")
+            elif program_frontier == "OMP_REAL_CONSUMER_ACTIVATION":
+                if program_terminal_state != "ENGINEERING_AUTHORITY_REAL_CONSUMER_ACTIVATION_REQUIRED":
                     errors.append("program_frontier_terminal_state_invalid")
             elif not program_terminal_state.startswith("NONE_"):
                 errors.append("program_frontier_terminal_state_invalid")
@@ -1756,6 +1783,7 @@ def program_execution_reconciliation(sources: dict[str, Any]) -> dict[str, Any]:
             "PHASE_3_EXECUTED_READY_FOR_INDEPENDENT_ACCEPTANCE",
             "PHASE_3_ACCEPTED_LOCKED_PHASE_4_CONSUMED_PHASE_5_IN_PROGRESS",
             "PHASE_3_ACCEPTED_LOCKED_PHASE_4_CONSUMED_PHASE_5_COMPLETE",
+            "PHASE_3_ACCEPTED_LOCKED_PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE_PHASE_5_BLOCKED_REAL_CONSUMER",
         ))
         and "Current Revalidation" in phase2
     )
@@ -1822,11 +1850,20 @@ def program_execution_reconciliation(sources: dict[str, Any]) -> dict[str, Any]:
         "PHASE_3_LOCK_STATUS = LOCKED" in phase3_lock,
     ))
     phase4_no_mission = phase3_locked and phase3_certified_gap_count == 0
-    phase4_consumed = phase4_no_mission or all((
+    phase4_admitted = phase4_no_mission or all((
         phase3_locked,
         "MISSION_ID_CREATED = V7_OMP_PHASE_3_TO_PHASE_4_PROGRAM_CONSUMER_EXTENSION_V1" in phase4_execution,
         "OMP_ADMISSION_DECISION = MISSION_ACCEPTED" in phase4_execution,
     ))
+    real_consumer_verified = phase4_no_mission or all((
+        "REAL_TRIGGER_OCCURRED = TRUE" in phase4_execution,
+        "REAL_ENTRYPOINT_INVOKED = TRUE" in phase4_execution,
+        "RECONCILIATION_CALLED = TRUE" in phase4_execution,
+        "CONSUMER_INVOKED = TRUE" in phase4_execution,
+        "CONSUMER_BEHAVIOR_CHANGED = TRUE" in phase4_execution,
+        "NEXT_OUTPUT_CREATED = TRUE" in phase4_execution,
+    ))
+    phase4_consumed = phase4_admitted and real_consumer_verified
     phase5_complete = phase4_no_mission or all((
         phase4_consumed,
         "IMPLEMENTATION_RESULT = COMPLETE_VERIFIED" in phase4_execution,
@@ -1871,6 +1908,7 @@ def program_execution_reconciliation(sources: dict[str, Any]) -> dict[str, Any]:
             "program_id": "AEP", "stage_id": "PHASE_4",
             "status": (
                 "STAGE_COMPLETE_CONSUMED" if phase4_consumed
+                else "STAGE_IMPLEMENTED_MANUALLY_CALLABLE" if phase4_admitted
                 else "STAGE_READY_NOT_STARTED" if phase3_locked
                 else "STAGE_BLOCKED_DEPENDENCY"
             ),
@@ -1892,7 +1930,7 @@ def program_execution_reconciliation(sources: dict[str, Any]) -> dict[str, Any]:
             "program_id": "AEP", "type": "STRATEGIC_ROUTE", "document_status": _program_document_status(aep),
             "execution_status": (
                 "PHASE_6_READY" if phase5_complete
-                else "PHASE_5_READY" if phase4_consumed
+                else "PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE" if phase4_admitted
                 else "PHASE_4_READY" if phase3_locked
                 else "PHASE_3_READY_FOR_ACCEPTANCE" if phase3_executed
                 else "PHASE_3_READY" if phase2_accepted
@@ -1941,7 +1979,7 @@ def program_execution_reconciliation(sources: dict[str, Any]) -> dict[str, Any]:
         errors.append("aep_phase1_not_accepted")
     if not phase2_executed:
         errors.append("aep_phase2_output_missing_or_incomplete")
-    if "Version: `4.23`" not in omp:
+    if "Version: `4.24`" not in omp:
         errors.append("omp_program_reconciliation_version_missing")
     if "Program Execution And Consumption Reconciliation Rule" not in omp:
         errors.append("omp_program_reconciliation_rule_missing")
@@ -1956,7 +1994,7 @@ def program_execution_reconciliation(sources: dict[str, Any]) -> dict[str, Any]:
         errors.append("global_real_world_limit_illegal_while_program_stage_open")
     frontier = (
         ["AEP_PHASE_6_PRODUCTION_CERTIFICATION_PREPARATION"] if phase5_complete
-        else ["AEP_PHASE_5_STRUCTURAL_INTEGRATION_EXECUTION"] if phase4_consumed
+        else ["OMP_REAL_CONSUMER_ACTIVATION"] if phase4_admitted
         else ["V7_OMP_PHASE_3_TO_PHASE_4_PROGRAM_CONSUMER_EXTENSION_V1"] if phase3_locked
         else ["AEP_PHASE_3_INDEPENDENT_ACCEPTANCE"] if phase3_executed
         else ["AEP_PHASE_2_ACCEPTANCE"] if acceptance_boundary
@@ -1973,14 +2011,14 @@ def program_execution_reconciliation(sources: dict[str, Any]) -> dict[str, Any]:
         "stage2_status": "STAGE2_TERMINAL_COMPLETE" if stage2_complete else "STAGE2_INCOMPLETE",
         "aep_status": (
             "PHASE_6_READY" if phase5_complete
-            else "PHASE_5_READY" if phase4_consumed
+            else "PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE" if phase4_admitted
             else "PHASE_4_READY" if phase3_locked
             else "PHASE_3_READY_FOR_ACCEPTANCE" if phase3_executed
             else "PHASE_3_READY" if phase2_accepted
             else "PHASE_2_READY_FOR_ACCEPTANCE" if acceptance_boundary
             else "PARTIAL"
         ),
-        "aep_current_phase": "PHASE_6" if phase5_complete else "PHASE_5" if phase4_consumed else "PHASE_4" if phase3_locked else "PHASE_3" if phase2_accepted else "PHASE_2",
+        "aep_current_phase": "PHASE_6" if phase5_complete else "PHASE_4" if phase4_admitted or phase3_locked else "PHASE_3" if phase2_accepted else "PHASE_2",
         "aep_phase2_output_complete": phase2_output_complete,
         "aep_phase2_executed": phase2_executed,
         "aep_phase2_revalidated": phase2_revalidated,
@@ -1992,11 +2030,13 @@ def program_execution_reconciliation(sources: dict[str, Any]) -> dict[str, Any]:
         "aep_phase3_lock_fingerprint": lock_fingerprint,
         "aep_phase3_candidate_ids": phase3_candidate_ids if phase3_locked else [],
         "aep_phase3_certified_gap_count": phase3_certified_gap_count,
+        "aep_phase4_admitted": phase4_admitted,
         "aep_phase4_consumed": phase4_consumed,
-        "aep_phase4_status": "COMPLETE_CONSUMED" if phase4_consumed else "READY" if phase3_locked else "BLOCKED",
+        "aep_real_consumer_verified": real_consumer_verified,
+        "aep_phase4_status": "COMPLETE_CONSUMED" if phase4_consumed else "IMPLEMENTED_MANUALLY_CALLABLE" if phase4_admitted else "READY" if phase3_locked else "BLOCKED",
         "aep_phase5_status": "COMPLETE_CONSUMED" if phase5_complete else "READY" if phase4_consumed else "BLOCKED",
         "aep_phase6_status": "READY" if phase5_complete else "BLOCKED",
-        "aep_state": "IMPLEMENTATION_READY" if phase5_complete else "MISSIONS_READY" if phase4_consumed else "GAP_READY" if phase3_locked else "PHASE_3_READY_FOR_ACCEPTANCE" if phase3_executed else "CURRENT_READY",
+        "aep_state": "IMPLEMENTATION_READY" if phase5_complete else "GAP_READY" if phase4_admitted or phase3_locked else "PHASE_3_READY_FOR_ACCEPTANCE" if phase3_executed else "CURRENT_READY",
         "bdp_status": "BDP_EXECUTED_FOR_CURRENT_PROJECT_SCOPE" if bdp_project_scope_complete else "BDP_EXECUTED_FOR_LIMITED_SCENARIO_SCOPE",
         "bdp_required_passes_complete": bdp_project_scope_complete,
         "backlog_status": "34/34_DONE" if backlog_complete else "INCOMPLETE",
@@ -4840,6 +4880,87 @@ def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
     }
 
 
+def python_function_call_sites(root: Path, target: str) -> dict[str, Any]:
+    """Find source call sites and separate executable code from tests."""
+    call_sites: list[dict[str, Any]] = []
+    scanned = 0
+    for base in ("tools", "admin", "admin_core", "tests"):
+        directory = root / base
+        if not directory.exists():
+            continue
+        for path in sorted(item for item in directory.rglob("*") if item.is_file()):
+            if "__pycache__" in path.parts or path.suffix in {".pyc", ".json", ".md"}:
+                continue
+            try:
+                source = path.read_text(encoding="utf-8")
+                tree = ast.parse(source)
+            except (OSError, UnicodeDecodeError, SyntaxError):
+                continue
+            scanned += 1
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                called = node.func.id if isinstance(node.func, ast.Name) else node.func.attr if isinstance(node.func, ast.Attribute) else ""
+                if called != target:
+                    continue
+                relative = path.relative_to(root).as_posix()
+                call_sites.append({
+                    "path": relative,
+                    "line": getattr(node, "lineno", 0),
+                    "class": "TEST_ONLY" if relative.startswith("tests/") else "SOURCE_CALL_SITE",
+                })
+    real = [item for item in call_sites if item["class"] != "TEST_ONLY"]
+    tests = [item for item in call_sites if item["class"] == "TEST_ONLY"]
+    return {
+        "target": target,
+        "files_scanned": scanned,
+        "call_sites": call_sites,
+        "real_callers": real,
+        "test_callers": tests,
+        "real_caller_count": len(real),
+        "test_caller_count": len(tests),
+    }
+
+
+def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) -> dict[str, Any]:
+    """Reject automation claims that have no real non-test caller/consumer chain."""
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    calls = python_function_call_sites(root, "program_execution_reconciliation")
+    expected = {
+        "PROGRAM_RECONCILIATION_REAL_CALLERS": str(calls["real_caller_count"]),
+        "PROGRAM_RECONCILIATION_FOOTPRINT_CLASS": "DEPLOYED_MANUALLY_CALLABLE_ONLY",
+        "OMP_AUTOMATION_LEVEL": "CODEX_ASSISTED",
+        "HEARTBEAT_STATUS": "PAUSED",
+        "AUTOMATION_ENABLED": "FALSE",
+        "AEP_PHASE_4_STATUS": "IMPLEMENTED_MANUALLY_CALLABLE",
+        "AEP_PHASE_5_STATUS": "BLOCKED_MISSING_REAL_CONSUMER",
+    }
+    errors: list[str] = []
+    for field, value in expected.items():
+        if live.get(field, "").strip("`") != value:
+            errors.append(f"functional_footprint_mismatch:{field}")
+    live_blob = "\n".join(live.values())
+    if calls["real_caller_count"] == 0 and any(token in live_blob for token in (
+        "PHASE_5_COMPLETE", "PHASE_6_READY", "COMPLETE_CONSUMED", "REAL_ENGINEERING_AUTOMATION",
+    )):
+        errors.append("false_automation_completion_without_real_caller")
+    unique = sorted(set(errors))
+    return {
+        "schema": "v7-omp-functional-footprint-consistency/v1",
+        "final_verdict": "PASS" if not unique else "NO-GO",
+        "program_reconciliation_footprint_class": expected["PROGRAM_RECONCILIATION_FOOTPRINT_CLASS"],
+        "omp_automation_level": expected["OMP_AUTOMATION_LEVEL"],
+        "heartbeat_status": expected["HEARTBEAT_STATUS"],
+        "automation_enabled": False,
+        **calls,
+        "errors": unique,
+    }
+
+
 def cps_live_state_consistency(
     cps_text: str,
     *,
@@ -5186,6 +5307,8 @@ def cps_live_state_consistency(
     errors.extend(delegated_live_state["contradiction_ids"])
     self_continuation = omp_self_continuation_consistency(cps_text)
     errors.extend(self_continuation["errors"])
+    functional_footprint = omp_functional_footprint_consistency(cps_text, root=root)
+    errors.extend(functional_footprint["errors"])
     dependency_consistency = capability_dependency_consistency(cps_text)
     errors.extend(dependency_consistency["errors"])
     unique_errors = sorted(set(errors))
@@ -5212,6 +5335,8 @@ def cps_live_state_consistency(
         "cap_u01_consistency": "PASS" if "cps_cap_u01_completion_divergence" not in unique_errors else "FAIL",
         "deterministic_sequence_consistency": delegated_live_state["deterministic_sequence_consistency"],
         "omp_self_continuation_consistency": self_continuation["final_verdict"],
+        "omp_functional_footprint_consistency": functional_footprint["final_verdict"],
+        **{key: value for key, value in functional_footprint.items() if key not in {"schema", "final_verdict", "errors", "call_sites"}},
         "premature_operator_return_validator": self_continuation["premature_operator_return_validator"],
         "bdp_development_impulse_status": self_continuation["bdp_development_impulse_status"],
         "bdp_candidate_count": self_continuation["bdp_candidate_count"],

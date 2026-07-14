@@ -1,11 +1,16 @@
 # V7 Certified Autonomous Behaviour Gap Register
 
-Status: `AEP_PHASE_3_READY_FOR_INDEPENDENT_ACCEPTANCE`
+Status: `AEP_PHASE_3_GAP_REGISTER_ACCEPTED_LOCKED`
 Program: `docs/programs/V7_AUTONOMOUS_EVOLUTION_PROGRAM.md`
 Phase: `Phase 3 - Certified Autonomous Behaviour Gap Register`
 Execution Mission: `V7_AEP_PHASE_3_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER_V1`
 Run nonce: `V7_AEP_PHASE_3_GAP_REGISTER_V1_4C9E71A25B8D`
 Evidence cutoff: `2026-07-14T10:37:25+0700`
+Acceptance Mission: `V7_AEP_PHASE_3_INDEPENDENT_ACCEPTANCE_AND_LOCK_V1`
+Acceptance owner: `OPERATOR_ENGINEERING_AUTHORITY`
+Role separation: `PASS`
+Phase 3 lock: `aep3lock_f4e40b34f14e2743819e3a2e`
+Lock fingerprint: `f4e40b34f14e2743819e3a2e4bb61b6793493ba603f384a168f62bdff84c5e1d`
 
 ## 1. Input And Scope
 
@@ -165,11 +170,13 @@ DUPLICATES = 0
 UNKNOWN_GAPS = 0
 DISCOVERY_COMPLETENESS = PASS_CURRENT_ACCEPTED_SCOPE
 REGISTER_FINGERPRINT = b164319d05c8c70af130ef4b32066165b1a4e6b33fc7efad51f6d3d6e4e3b54f
-PHASE_3_ACCEPTANCE_STATUS = AEP_PHASE_3_READY_FOR_ACCEPTANCE
-PHASE_3_LOCK_STATUS = NOT_LOCKED
-PHASE_4_STATUS = LOCKED_PENDING_PHASE_3_ACCEPTANCE
-OMP_CANDIDATES_CONSUMED = 0
-OMP_MISSIONS_CREATED = 0
+PHASE_3_ACCEPTANCE_STATUS = AEP_PHASE_3_GAP_REGISTER_ACCEPTED
+PHASE_3_LOCK_STATUS = LOCKED
+PHASE_3_LOCK_ID = aep3lock_f4e40b34f14e2743819e3a2e
+PHASE_3_LOCK_FINGERPRINT = f4e40b34f14e2743819e3a2e4bb61b6793493ba603f384a168f62bdff84c5e1d
+PHASE_4_STATUS = COMPLETE_CONSUMED
+OMP_CANDIDATES_CONSUMED = 1
+OMP_MISSIONS_CREATED = 1
 ```
 
-Independent acceptance must verify this artifact and role separation. Until then it cannot authorize Phase 4, OMP admission or implementation.
+Register принят независимым owner, locked и потреблён Phase 4. Candidate `BDP-ICI-7CFAE2C09DBC51947C9718E6` прошёл OMP admission; Mission `V7_OMP_PHASE_3_TO_PHASE_4_PROGRAM_CONSUMER_EXTENSION_V1` реализована и verified. Lock не предоставляет Runtime или production authority. Re-open допускается только при consumer regression, identity drift, lock mismatch или новом current evidence, меняющем gap identity.

@@ -2,11 +2,11 @@
 
 Status: `ORGANIZED`
 Document status: `ORGANIZED`
-Execution status: `PHASE_3_EXECUTED_READY_FOR_INDEPENDENT_ACCEPTANCE`
-Current program state: `PHASE_3_READY_FOR_ACCEPTANCE`
-Current execution evidence: `docs/reports/research/V7_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER.md`
-Current acceptance state: `PHASE_3_ACCEPTANCE_REQUIRED; NOT_LOCKED`
-Next legal stage: independent Phase 3 acceptance and lock; Phase 4 remains locked until acceptance.
+Execution status: `PHASE_3_ACCEPTED_LOCKED_PHASE_4_CONSUMED_PHASE_5_COMPLETE`
+Current program state: `IMPLEMENTATION_READY; PHASE_6_READY_NOT_STARTED`
+Current execution evidence: `docs/reports/engineering/2026-07-14_161705_aep_phase_3_acceptance_to_phase_5_continuation.md`
+Current acceptance state: `PHASE_3_ACCEPTED_LOCKED; aep3lock_f4e40b34f14e2743819e3a2e`
+Next legal stage: prepare Phase 6 Production Certification through existing OMP owners. Production Certification is not started or granted.
 Mode: `PROGRAM_ROUTE`
 Runtime impact: `NONE`
 Authority impact: `NONE`
@@ -1422,8 +1422,8 @@ until owner, consumer, consumption evidence, terminal alternative, evidence, and
 | Manual Dependency Classification Matrix | FUTURE / EMBEDDED | OMP / CPS / evidence owners | Phase 2 | Phase 3 | `MANUAL_DEPENDENCY_CLASSIFIED` |
 | Structural Friction Inventory | FUTURE / EMBEDDED | OMP / SYSTEM_MAP / evidence owners | Phase 2 | Phase 3 | `STRUCTURAL_FRICTION_RECORDED` |
 | Evidence Map | FUTURE / EMBEDDED | evidence owners / report owners | Phase 2 | Phase 3 | `EVIDENCE_MAP_RECORDED` |
-| `docs/reports/research/V7_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER.md` | CURRENT_ACCEPTANCE_PENDING | OMP / CPS / certification owners | Phase 3 | independent Phase 3 acceptance, then Phase 4 | `AEP_PHASE_3_READY_FOR_INDEPENDENT_ACCEPTANCE`; fingerprint `b164319d05c8c70af130ef4b32066165b1a4e6b33fc7efad51f6d3d6e4e3b54f` |
-| OMP Mission Map | EXISTING_OWNER | OMP | Phase 4 | Phase 5 | `OMP_OWNED` |
+| `docs/reports/research/V7_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER.md` | CURRENT_ACCEPTED_LOCKED | OMP / CPS / certification owners | Phase 3 | Phase 4 | register `b164319d05c8c70af130ef4b32066165b1a4e6b33fc7efad51f6d3d6e4e3b54f`; lock `aep3lock_f4e40b34f14e2743819e3a2e` |
+| OMP Mission Map | CURRENT_CONSUMED | OMP | Phase 4 | Phase 5 | one Candidate admitted as `V7_OMP_PHASE_3_TO_PHASE_4_PROGRAM_CONSUMER_EXTENSION_V1`; verified and consumed |
 | `docs/reports/research/V7_AUTONOMOUS_MODEL_KNOWLEDGE_CONSOLIDATION.md` | EXISTS | Research reports / canonical owners referenced by the map | Existing research artifact | All phases as knowledge map | `KNOWLEDGE_MAP_NOT_TRUTH` |
 | `docs/reports/research/V7_AUTONOMOUS_MODEL_FUNCTION_GRAPH_APPENDIX.md` | EXISTS | Function Graph / reports | Existing research artifact | Phase 2 / Phase 5 | `DISCOVERY_INDEX_EVIDENCE` |
 | `docs/reports/research/V7_AUTONOMOUS_MODEL_FUNCTION_GRAPH_APPENDIX.json` | EXISTS | Function Graph / reports | Existing research artifact | Phase 2 / Phase 5 | `DISCOVERY_INDEX_EVIDENCE` |

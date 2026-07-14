@@ -2209,6 +2209,14 @@ Related ADR: `docs/decisions/ADR-FUTURE-EVIDENCE-INDEX-AND-FRESHNESS-MODEL.md`.
 - Consumer closure: AEP Phase 3 `CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER` is `READY` and must consume this locked Reality, its explicit unknowns and accepted AOS ideal model through existing AEP/BDP/OMP owners.
 - Re-open rule: only material implementation/owner-map change, fresh contradictory live evidence, identity/traceability conflict or an accepted correction may supersede this lock; silent mutation is forbidden.
 
+### 28.2 AEP Phase 3 Certified Autonomous Behaviour Gap Register Lock
+
+- Durable terminal truth: AEP Phase 3 register `b164319d05c8c70af130ef4b32066165b1a4e6b33fc7efad51f6d3d6e4e3b54f` is independently accepted and locked as `aep3lock_f4e40b34f14e2743819e3a2e` by `OPERATOR_ENGINEERING_AUTHORITY`, separate from `CODEX_PHASE_EXECUTION_OWNER`.
+- Accepted scope: 16 Behaviour Definitions, 28 Behaviour Instances, one certified `OMP_CONTINUATION_GAP`, and Candidate `BDP-ICI-7CFAE2C09DBC51947C9718E6`; legal Authority, Real World and dependency boundaries remain non-gaps.
+- Consumer closure: Candidate passed existing OMP admission, Mission `V7_OMP_PHASE_3_TO_PHASE_4_PROGRAM_CONSUMER_EXTENSION_V1` extended only the existing program reconciliation consumer, Phase 4 and Phase 5 are complete and consumed, and Phase 6 Production Certification preparation is the next legal frontier.
+- Safety boundary: this lock grants no Runtime apply, production mutation, authority expansion, packet execution or user movement and does not change Production Maturity.
+- Re-open rule: consumer regression, Candidate identity drift, stale or mismatched lock, new current evidence changing gap identity, or an orphan Phase 4 output; supersession requires a new accepted owner-backed artifact.
+
 ## 29. Runtime Capability Maturation Program / RT Phase 2
 
 - What it means: The old 12-stage RT Phase 2 plan is superseded by one six-workstream `Runtime Capability Maturation Program`. RT2 is not a Runtime replacement, Planner replacement, World Model replacement, Truth Source, Owner, Backlog, or parallel roadmap.

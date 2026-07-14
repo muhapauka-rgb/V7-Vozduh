@@ -125,10 +125,10 @@ class AepPhase2AcceptanceTest(unittest.TestCase):
         self.assertEqual(result["phase3_status"], "READY")
         self.assertNotIn("REAL_WORLD_LIMIT", result["acceptance_verdict"])
 
-    def test_28_cps_frontier_target_is_atomic_phase3_identity(self):
+    def test_28_cps_frontier_target_is_atomic_phase6_preparation(self):
         self.assertEqual(
             self.lib.NORMALIZED_CPS_LIVE_STATE["current_program_execution_frontier"],
-            "AEP_PHASE_3_INDEPENDENT_ACCEPTANCE",
+            "AEP_PHASE_6_PRODUCTION_CERTIFICATION_PREPARATION",
         )
 
     def test_29_self_continuation_forms_next_mission(self):

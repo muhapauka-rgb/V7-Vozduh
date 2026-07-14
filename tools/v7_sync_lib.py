@@ -37,43 +37,43 @@ DEPLOY_CONFIRMATION = "DEPLOY_V7_APPROVED"
 RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
 
 NORMALIZED_CPS_LIVE_STATE = {
-    "active_program": "AEP_PHASE_3_INDEPENDENT_ACCEPTANCE_THROUGH_OMP",
+    "active_program": "AEP_PHASE_6_PRODUCTION_CERTIFICATION_PREPARATION_THROUGH_OMP",
     "current_mode": "BOUNDED_DELEGATED_AUTONOMY_ACTIVE",
-    "current_stop_condition": "ENGINEERING_AUTHORITY",
-    "current_active_scope": "AEP_PHASE_3_GAP_REGISTER_INDEPENDENT_ACCEPTANCE",
-    "current_safe_next_action": "RUN INDEPENDENT AEP PHASE 3 ACCEPTANCE AND LOCK; DO NOT START PHASE 4 BEFORE ACCEPTANCE",
-    "current_scope_class": "PROGRAM_ACCEPTANCE_BOUNDARY",
+    "current_stop_condition": "NONE",
+    "current_active_scope": "AEP_PHASE_6_PRODUCTION_CERTIFICATION_PREPARATION",
+    "current_safe_next_action": "PREPARE PHASE 6 PRODUCTION CERTIFICATION THROUGH EXISTING OMP OWNERS WITHOUT STARTING PRODUCTION EXECUTION",
+    "current_scope_class": "PROGRAM_EXECUTION_FRONTIER",
     "current_execution_mission_id": "NONE",
     "current_execution_mission_state": "NONE",
-    "latest_terminal_mission_id": "V7_AEP_PHASE_3_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER_V1",
-    "latest_terminal_run_nonce": "V7_AEP_PHASE_3_GAP_REGISTER_V1_4C9E71A25B8D",
-    "latest_terminal_mission_state": "AEP_PHASE_3_READY_FOR_INDEPENDENT_ACCEPTANCE",
-    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-14_103725_aep_phase_3_to_omp_mission_generation.md",
-    "latest_terminal_mission_started_at": "2026-07-14T10:37:25+0700",
-    "previous_terminal_mission_id": "V7_AEP_PHASE_2_INDEPENDENT_ACCEPTANCE_AND_LOCK_V1",
-    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-14_100018_aep_phase_2_acceptance_and_lock.md",
+    "latest_terminal_mission_id": "V7_AEP_PHASE_3_INDEPENDENT_ACCEPTANCE_AND_LOCK_V1",
+    "latest_terminal_run_nonce": "V7_AEP_PHASE_3_ACCEPTANCE_LOCK_V1_2F8C6D14A97E",
+    "latest_terminal_mission_state": "AEP_PHASE_3_ACCEPTED_LOCKED_GAP_IMPLEMENTED_PHASE_5_CONTINUED",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-14_161705_aep_phase_3_acceptance_to_phase_5_continuation.md",
+    "latest_terminal_mission_started_at": "2026-07-14T16:17:05+0700",
+    "previous_terminal_mission_id": "V7_AEP_PHASE_3_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER_V1",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-14_103725_aep_phase_3_to_omp_mission_generation.md",
     "authoritative_transition_input_mission_id": "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3",
     "authoritative_transition_input_state": "MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED",
     "authoritative_transition_input_report": "docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md",
     "current_mission_role": "LATEST_TERMINAL_MISSION",
-    "current_mission_id": "V7_AEP_PHASE_3_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER_V1",
-    "current_run_nonce": "V7_AEP_PHASE_3_GAP_REGISTER_V1_4C9E71A25B8D",
-    "current_mission_state": "AEP_PHASE_3_READY_FOR_INDEPENDENT_ACCEPTANCE",
-    "current_mission_report": "docs/reports/engineering/2026-07-14_103725_aep_phase_3_to_omp_mission_generation.md",
-    "state_captured": "2026-07-14T10:37:25+0700",
-    "current_state_generation": "cpsgen_V7_AEP_P3_EXEC_V1_4C9E71A25B8D",
-    "current_transition_id": "AEP_PHASE_3_EXECUTED_READY_FOR_ACCEPTANCE_V1",
-    "current_next_action_id": "AEP_PHASE_3_INDEPENDENT_ACCEPTANCE",
-    "current_program_stage": "AEP_PHASE_3_READY_FOR_ACCEPTANCE",
-    "current_program_execution_frontier": "AEP_PHASE_3_INDEPENDENT_ACCEPTANCE",
-    "program_frontier_input": "Phase 3 gap register execution is complete with one certified gap and one Candidate; protected CAP-U07 remains capability-local WAITING WIP",
-    "program_frontier_owner": "existing AEP independent acceptance owner with OMP/CPS consumer",
-    "program_frontier_expected_output": "accepted locked Phase 3 register -> Phase 4 OMP consumer; hold/reject remains fail-closed",
+    "current_mission_id": "V7_AEP_PHASE_3_INDEPENDENT_ACCEPTANCE_AND_LOCK_V1",
+    "current_run_nonce": "V7_AEP_PHASE_3_ACCEPTANCE_LOCK_V1_2F8C6D14A97E",
+    "current_mission_state": "AEP_PHASE_3_ACCEPTED_LOCKED_GAP_IMPLEMENTED_PHASE_5_CONTINUED",
+    "current_mission_report": "docs/reports/engineering/2026-07-14_161705_aep_phase_3_acceptance_to_phase_5_continuation.md",
+    "state_captured": "2026-07-14T16:17:05+0700",
+    "current_state_generation": "cpsgen_V7_AEP_P3_LOCK_P4_IMPL_V1_2F8C6D14A97E",
+    "current_transition_id": "AEP_PHASE_3_LOCKED_PHASE_4_CONSUMED_PHASE_5_COMPLETE_PHASE_6_READY_V1",
+    "current_next_action_id": "AEP_PHASE_6_PRODUCTION_CERTIFICATION_PREPARATION",
+    "current_program_stage": "AEP_PHASE_6_READY",
+    "current_program_execution_frontier": "AEP_PHASE_6_PRODUCTION_CERTIFICATION_PREPARATION",
+    "program_frontier_input": "Phase 3 is independently accepted and locked; Phase 4 admission and Phase 5 existing-owner structural integration are complete, verified and consumed; protected CAP-U07 remains capability-local WAITING WIP",
+    "program_frontier_owner": "existing AEP structural integration, OMP and CPS consumers",
+    "program_frontier_expected_output": "Phase 6 production certification preparation through existing owners; no production certification or execution without a separate admitted Mission",
     "protected_capability_wip": "CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; preserved and not reordered",
     "binding_stability": "PASS",
     "binding_schema": "v7.operation-scoped-source-binding.v2",
     "routing_readiness_state": "PASS_CANDIDATE_SCOPED",
-    "authority_required_now": "ENGINEERING_AUTHORITY_FOR_INDEPENDENT_AEP_PHASE_3_ACCEPTANCE_ONLY",
+    "authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
     "current_action_class": "single-user governed candidate failover",
     "current_action_class_state": "GOVERNED_ONLY",
     "old_packets_reusable": "NO",
@@ -86,13 +86,13 @@ NORMALIZED_CPS_LIVE_STATE = {
     "waiting_capabilities": "CAP-U02,CAP-U05,CAP-U06,CAP-U07",
     "ready_capabilities": "NONE",
     "blocked_capabilities": "CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22",
-    "continuation_decision": "PROGRAM_ACCEPTANCE_REQUIRED",
+    "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
     "next_executable_capability": "NONE",
-    "program_terminal_state": "ENGINEERING_AUTHORITY_AEP_PHASE_3_ACCEPTANCE_REQUIRED",
+    "program_terminal_state": "NONE_PHASE_6_READY",
     "cap_u01_completion_report": "docs/reports/engineering/2026-07-12_172534_exact_route_repair_and_first_governed_success.md",
     "responsibility_class": "LEARNING",
     "last_responsible_link": "real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence",
-    "smallest_existing_next_action": "run independent AEP Phase 3 acceptance and lock; Phase 4 remains blocked; preserve CAP-U07 evidence wait",
+    "smallest_existing_next_action": "prepare the bounded Phase 6 production certification Mission through existing OMP owners; preserve CAP-U07 evidence wait",
     "current_class_outcome": "SUCCESS",
     "current_class_delta_closed": "YES",
     "current_class_outcome_evidence": "SUCCESS; 10.7.0.5 awg0 -> vless; global route verification PASS; feedback execfb_b287532347352c661799e985",
@@ -112,16 +112,16 @@ NORMALIZED_CPS_LIVE_STATE = {
     "user_movement": "NO; current Mission performed evidence refresh and read-only revalidation only",
     "admin_safe_mode_live_state": "schema=v7.autonomous-execution-control.v2; state=OPEN; generation=aec_dda6c420c87e99e97236883c; reason=GOVERNED_TRANSACTION_COMPLETED",
     "parent_engineering_intent": "INTENT_NOT_CLOSED; CAP-U07 consumed one real success but representative Learning evidence remains a real-world dependency",
-    "source_summary": "Phase 3 reviewed all locked Behaviour Reality, certified one current consumer gap, packaged one Candidate and stopped at the independent acceptance boundary.",
-    "automatic_continue_omp_result": "PROGRAM_ACCEPTANCE_REQUIRED; Phase 4 and Candidate admission remain legally locked",
-    "required_workflow": "independent AEP Phase 3 acceptance/lock -> if accepted, Phase 4 OMP Candidate admission and Mission generation; preserve CAP-U07 wait",
+    "source_summary": "Independent Phase 3 acceptance locked the register; Phase 4 admitted one Candidate; Phase 5 implemented, verified and consumed the existing-owner program reconciliation extension; Phase 6 is ready but not started.",
+    "automatic_continue_omp_result": "CONTINUE_PROGRAM_FRONTIER; Phase 6 production certification preparation Mission formed",
+    "required_workflow": "verified Phase 5 structural integration closure -> Phase 6 production certification preparation through existing owners; preserve CAP-U07 wait",
     "omp_controlled_run_allowed": "NO_CURRENT_EXECUTION; synthetic or forced outcomes are forbidden",
-    "controlled_run_authority_required_now": "NO_INSIDE_APPROVED_POLICY; current Engineering Authority is Phase 3 acceptance only",
+    "controlled_run_authority_required_now": "NO_FOR_PREPARATION; any later production certification action requires its own existing authority and admitted Mission",
     "controlled_run_execution_authorized": "NO_CURRENT_PACKET; no forced evidence generation or movement is authorized",
     "wip_authority_required_now": "FALSE; current boundary is representative real evidence, not Authority",
-    "wip_current_primary_stop": "REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is AEP_PHASE_3_INDEPENDENT_ACCEPTANCE",
+    "wip_current_primary_stop": "REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is AEP_PHASE_6_PRODUCTION_CERTIFICATION_PREPARATION",
     "wip_smallest_existing_next_action_id": "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES",
-    "wip_smallest_existing_next_action": "preserve CAP-U07 evidence unchanged while OMP completes independent AEP Phase 3 acceptance",
+    "wip_smallest_existing_next_action": "preserve CAP-U07 evidence unchanged while OMP prepares Phase 6 production certification",
     "sequence_execution_class": "real-world evidence wait",
     "sequence_expected_output": "new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation",
     "completion_condition": "Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass",
@@ -129,17 +129,17 @@ NORMALIZED_CPS_LIVE_STATE = {
     "complete_or_locked_capabilities": "13",
     "unfinished_capabilities": "21",
     "open_engineering_intents": "21",
-    "omp_continuation_required": "FALSE",
-    "external_input_required": "TRUE",
-    "external_input_type": "ENGINEERING_AUTHORITY",
-    "transaction_terminal_class": "AEP_PHASE_3_EXECUTION_COMPLETE",
-    "program_terminal_class": "ENGINEERING_AUTHORITY",
+    "omp_continuation_required": "TRUE",
+    "external_input_required": "FALSE",
+    "external_input_type": "NONE",
+    "transaction_terminal_class": "AEP_PHASE_5_STRUCTURAL_INTEGRATION_COMPLETE",
+    "program_terminal_class": "NONE",
     "next_mission_formed": "TRUE",
-    "next_mission_id": "V7_AEP_PHASE_3_INDEPENDENT_ACCEPTANCE_AND_LOCK_V1",
+    "next_mission_id": "V7_AEP_PHASE_6_PRODUCTION_CERTIFICATION_PREPARATION_V1",
     "premature_operator_return": "FALSE",
-    "continuation_iteration": "10",
-    "continuation_stop_reason": "AEP_PHASE_3_EXECUTION_REQUIRES_INDEPENDENT_ACCEPTANCE_AND_LOCK",
-    "no_progress_fingerprint": "03d7a6241a5b71e06eff8a664b96c555b1be69692889944953d43f568e1d150c",
+    "continuation_iteration": "11",
+    "continuation_stop_reason": "BOUNDED_INVOCATION_PHASE6_PREPARATION_FORMED",
+    "no_progress_fingerprint": "2e9da8fd12931906aeb253bbf4b270498cbe27bad901f5ebd3a32eb95c64e73a",
 }
 
 
@@ -1681,7 +1681,39 @@ def _program_document_status(text: str) -> str:
     return match.group(1).strip() if match else "UNKNOWN"
 
 
-def program_execution_reconciliation(sources: dict[str, str]) -> dict[str, Any]:
+def _phase_artifact_value(text: str, field: str) -> str:
+    """Read one assignment or Markdown-table value from an accepted phase artifact."""
+    assignment = re.search(
+        rf"(?m)^{re.escape(field)}\s*=\s*`?([^`\n]+?)`?\s*$",
+        text,
+    )
+    if assignment:
+        return assignment.group(1).strip()
+    table = re.search(
+        rf"(?m)^\|\s*`?{re.escape(field)}`?\s*\|\s*`?([^|`]+?)`?\s*\|\s*$",
+        text,
+    )
+    return table.group(1).strip() if table else ""
+
+
+def _aep_phase3_lock_fingerprint(
+    register_fingerprint: str,
+    acceptance_owner: str,
+    authority_scope_fingerprint: str,
+    candidate_ids: Iterable[str],
+) -> str:
+    payload = {
+        "schema": "v7.aep-phase3-lock.v1",
+        "register_fingerprint": register_fingerprint,
+        "acceptance_owner": acceptance_owner,
+        "authority_scope_fingerprint": authority_scope_fingerprint,
+        "candidate_ids": sorted(set(candidate_ids)),
+    }
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def program_execution_reconciliation(sources: dict[str, Any]) -> dict[str, Any]:
     """Reconcile canonical program stages, consumption, and the global stop."""
     stage2 = sources.get("stage2", "")
     aep = sources.get("aep", "")
@@ -1694,6 +1726,10 @@ def program_execution_reconciliation(sources: dict[str, str]) -> dict[str, Any]:
     phase2 = sources.get("aep_phase2", "")
     phase2_execution = sources.get("aep_phase2_execution", "")
     phase2_acceptance = sources.get("aep_phase2_acceptance", "")
+    phase3_register = sources.get("aep_phase3_register", "")
+    phase3_acceptance = sources.get("aep_phase3_acceptance", "")
+    phase3_lock = sources.get("aep_phase3_lock", "")
+    phase4_execution = sources.get("aep_phase4_execution", "")
     bdp_execution = sources.get("bdp_execution", "")
 
     stage2_complete = all(token in stage2 for token in (
@@ -1718,6 +1754,8 @@ def program_execution_reconciliation(sources: dict[str, str]) -> dict[str, Any]:
             "PHASE_2_REVALIDATED_READY_FOR_ACCEPTANCE",
             "PHASE_2_ACCEPTED_LOCKED_PHASE_3_READY",
             "PHASE_3_EXECUTED_READY_FOR_INDEPENDENT_ACCEPTANCE",
+            "PHASE_3_ACCEPTED_LOCKED_PHASE_4_CONSUMED_PHASE_5_IN_PROGRESS",
+            "PHASE_3_ACCEPTED_LOCKED_PHASE_4_CONSUMED_PHASE_5_COMPLETE",
         ))
         and "Current Revalidation" in phase2
     )
@@ -1731,6 +1769,70 @@ def program_execution_reconciliation(sources: dict[str, str]) -> dict[str, Any]:
             "NO_RUNTIME_MUTATION = TRUE",
         ))
     )
+    phase3_register_fingerprint = _phase_artifact_value(phase3_register, "REGISTER_FINGERPRINT")
+    phase3_register_status = _phase_artifact_value(phase3_register, "PHASE_3_ACCEPTANCE_STATUS")
+    phase3_candidate_ids = sorted(set(re.findall(r"BDP-ICI-[A-F0-9]{24}", phase3_register)))
+    phase3_certified_gap_raw = _phase_artifact_value(phase3_register, "CERTIFIED_GAPS")
+    try:
+        phase3_certified_gap_count = int(phase3_certified_gap_raw)
+    except (TypeError, ValueError):
+        phase3_certified_gap_count = -1
+    phase3_executed = all((
+        phase2_accepted,
+        bool(re.fullmatch(r"[0-9a-f]{64}", phase3_register_fingerprint)),
+        "TOTAL_BEHAVIOUR_DEFINITIONS_REVIEWED = 16" in phase3_register,
+        "TOTAL_BEHAVIOUR_INSTANCES_REVIEWED = 28" in phase3_register,
+        phase3_certified_gap_count >= 0,
+        len(phase3_candidate_ids) == phase3_certified_gap_count,
+    ))
+    acceptance_verdict = _phase_artifact_value(phase3_acceptance, "PHASE_3_ACCEPTANCE_VERDICT")
+    acceptance_owner = _phase_artifact_value(phase3_acceptance, "PHASE_3_ACCEPTANCE_OWNER")
+    authority_scope_fingerprint = _phase_artifact_value(phase3_acceptance, "AUTHORITY_SCOPE_FINGERPRINT")
+    acceptance_register_fingerprint = _phase_artifact_value(phase3_acceptance, "PHASE_3_REGISTER_FINGERPRINT")
+    acceptance_lock_id = _phase_artifact_value(phase3_acceptance, "PHASE_3_LOCK_ID")
+    acceptance_lock_fingerprint = _phase_artifact_value(phase3_acceptance, "PHASE_3_LOCK_FINGERPRINT")
+    lock_register_fingerprint = _phase_artifact_value(phase3_lock, "REGISTER_FINGERPRINT")
+    lock_id = _phase_artifact_value(phase3_lock, "PHASE_3_LOCK_ID")
+    lock_fingerprint = _phase_artifact_value(phase3_lock, "PHASE_3_LOCK_FINGERPRINT")
+    expected_phase3_lock_fingerprint = _aep_phase3_lock_fingerprint(
+        phase3_register_fingerprint,
+        acceptance_owner,
+        authority_scope_fingerprint,
+        phase3_candidate_ids,
+    ) if phase3_executed and acceptance_owner and authority_scope_fingerprint else ""
+    phase3_accepted = all((
+        phase3_executed,
+        acceptance_verdict in {
+            "AEP_PHASE_3_GAP_REGISTER_ACCEPTED",
+            "AEP_PHASE_3_GAP_REGISTER_ACCEPTED_WITH_MINOR_RISKS",
+        },
+        phase3_register_status in {
+            "AEP_PHASE_3_GAP_REGISTER_ACCEPTED",
+            "AEP_PHASE_3_GAP_REGISTER_ACCEPTED_WITH_MINOR_RISKS",
+        },
+        acceptance_register_fingerprint == phase3_register_fingerprint,
+    ))
+    phase3_locked = all((
+        phase3_accepted,
+        lock_register_fingerprint == phase3_register_fingerprint,
+        lock_fingerprint == expected_phase3_lock_fingerprint,
+        acceptance_lock_fingerprint == lock_fingerprint,
+        lock_id == f"aep3lock_{lock_fingerprint[:24]}",
+        acceptance_lock_id == lock_id,
+        "PHASE_3_LOCK_STATUS = LOCKED" in phase3_lock,
+    ))
+    phase4_no_mission = phase3_locked and phase3_certified_gap_count == 0
+    phase4_consumed = phase4_no_mission or all((
+        phase3_locked,
+        "MISSION_ID_CREATED = V7_OMP_PHASE_3_TO_PHASE_4_PROGRAM_CONSUMER_EXTENSION_V1" in phase4_execution,
+        "OMP_ADMISSION_DECISION = MISSION_ACCEPTED" in phase4_execution,
+    ))
+    phase5_complete = phase4_no_mission or all((
+        phase4_consumed,
+        "IMPLEMENTATION_RESULT = COMPLETE_VERIFIED" in phase4_execution,
+        "PHASE_3_TO_PHASE_4_CONSUMPTION_STATUS = PASS" in phase4_execution,
+        "ENGINEERING_INTENT_CLOSURE_STATUS = CLOSED" in phase4_execution,
+    ))
     bdp_passes = [f"BDP-P{index:02d}" for index in range(1, 20)]
     bdp_project_scope_complete = all(token in bdp_execution for token in bdp_passes)
     backlog = _actionable_backlog_statuses(backlog_text)
@@ -1755,11 +1857,33 @@ def program_execution_reconciliation(sources: dict[str, str]) -> dict[str, Any]:
             ),
         },
     ]
-    for phase in range(3, 8):
-        previous_complete = phase2_accepted if phase == 3 else False
+    aep_stages.extend((
+        {
+            "program_id": "AEP", "stage_id": "PHASE_3",
+            "status": (
+                "STAGE_COMPLETE_CONSUMED" if phase3_locked
+                else "STAGE_READY_FOR_ACCEPTANCE" if phase3_executed
+                else "STAGE_READY_NOT_STARTED" if phase2_accepted
+                else "STAGE_BLOCKED_DEPENDENCY"
+            ),
+        },
+        {
+            "program_id": "AEP", "stage_id": "PHASE_4",
+            "status": (
+                "STAGE_COMPLETE_CONSUMED" if phase4_consumed
+                else "STAGE_READY_NOT_STARTED" if phase3_locked
+                else "STAGE_BLOCKED_DEPENDENCY"
+            ),
+        },
+        {
+            "program_id": "AEP", "stage_id": "PHASE_5",
+            "status": "STAGE_COMPLETE_CONSUMED" if phase5_complete else "STAGE_READY_NOT_STARTED" if phase4_consumed else "STAGE_BLOCKED_DEPENDENCY",
+        },
+    ))
+    for phase in range(6, 8):
         aep_stages.append({
             "program_id": "AEP", "stage_id": f"PHASE_{phase}",
-            "status": "STAGE_READY_NOT_STARTED" if previous_complete else "STAGE_BLOCKED_DEPENDENCY",
+            "status": "STAGE_READY_NOT_STARTED" if phase == 6 and phase5_complete else "STAGE_BLOCKED_DEPENDENCY",
         })
 
     inventory = [
@@ -1767,7 +1891,11 @@ def program_execution_reconciliation(sources: dict[str, str]) -> dict[str, Any]:
         {
             "program_id": "AEP", "type": "STRATEGIC_ROUTE", "document_status": _program_document_status(aep),
             "execution_status": (
-                "PHASE_3_READY" if phase2_accepted
+                "PHASE_6_READY" if phase5_complete
+                else "PHASE_5_READY" if phase4_consumed
+                else "PHASE_4_READY" if phase3_locked
+                else "PHASE_3_READY_FOR_ACCEPTANCE" if phase3_executed
+                else "PHASE_3_READY" if phase2_accepted
                 else "READY_FOR_ACCEPTANCE" if phase2_revalidated
                 else "PARTIALLY_EXECUTED"
             ),
@@ -1817,10 +1945,21 @@ def program_execution_reconciliation(sources: dict[str, str]) -> dict[str, Any]:
         errors.append("omp_program_reconciliation_version_missing")
     if "Program Execution And Consumption Reconciliation Rule" not in omp:
         errors.append("omp_program_reconciliation_rule_missing")
+    phase3_evidence_present = any((phase3_acceptance, phase3_lock))
+    if phase3_evidence_present and not phase3_executed:
+        errors.append("aep_phase3_register_invalid")
+    if acceptance_verdict and not phase3_accepted:
+        errors.append("aep_phase3_acceptance_invalid")
+    if phase3_lock and not phase3_locked:
+        errors.append("aep_phase3_lock_invalid")
     if global_real_world_valid:
         errors.append("global_real_world_limit_illegal_while_program_stage_open")
     frontier = (
-        ["AEP_PHASE_2_ACCEPTANCE"] if acceptance_boundary
+        ["AEP_PHASE_6_PRODUCTION_CERTIFICATION_PREPARATION"] if phase5_complete
+        else ["AEP_PHASE_5_STRUCTURAL_INTEGRATION_EXECUTION"] if phase4_consumed
+        else ["V7_OMP_PHASE_3_TO_PHASE_4_PROGRAM_CONSUMER_EXTENSION_V1"] if phase3_locked
+        else ["AEP_PHASE_3_INDEPENDENT_ACCEPTANCE"] if phase3_executed
+        else ["AEP_PHASE_2_ACCEPTANCE"] if acceptance_boundary
         else ["AEP_PHASE_2_CURRENT_REALITY_REVALIDATION"] if missing_stage
         else ["AEP_PHASE_3_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER"]
     )
@@ -1832,12 +1971,32 @@ def program_execution_reconciliation(sources: dict[str, str]) -> dict[str, Any]:
         "program_stages_total": len(stages),
         "stage_counts": counts,
         "stage2_status": "STAGE2_TERMINAL_COMPLETE" if stage2_complete else "STAGE2_INCOMPLETE",
-        "aep_status": "PHASE_3_READY" if phase2_accepted else "PHASE_2_READY_FOR_ACCEPTANCE" if acceptance_boundary else "PARTIAL",
-        "aep_current_phase": "PHASE_3" if phase2_accepted else "PHASE_2",
+        "aep_status": (
+            "PHASE_6_READY" if phase5_complete
+            else "PHASE_5_READY" if phase4_consumed
+            else "PHASE_4_READY" if phase3_locked
+            else "PHASE_3_READY_FOR_ACCEPTANCE" if phase3_executed
+            else "PHASE_3_READY" if phase2_accepted
+            else "PHASE_2_READY_FOR_ACCEPTANCE" if acceptance_boundary
+            else "PARTIAL"
+        ),
+        "aep_current_phase": "PHASE_6" if phase5_complete else "PHASE_5" if phase4_consumed else "PHASE_4" if phase3_locked else "PHASE_3" if phase2_accepted else "PHASE_2",
         "aep_phase2_output_complete": phase2_output_complete,
         "aep_phase2_executed": phase2_executed,
         "aep_phase2_revalidated": phase2_revalidated,
         "aep_phase2_accepted": phase2_accepted,
+        "aep_phase3_executed": phase3_executed,
+        "aep_phase3_accepted": phase3_accepted,
+        "aep_phase3_locked": phase3_locked,
+        "aep_phase3_register_fingerprint": phase3_register_fingerprint,
+        "aep_phase3_lock_fingerprint": lock_fingerprint,
+        "aep_phase3_candidate_ids": phase3_candidate_ids if phase3_locked else [],
+        "aep_phase3_certified_gap_count": phase3_certified_gap_count,
+        "aep_phase4_consumed": phase4_consumed,
+        "aep_phase4_status": "COMPLETE_CONSUMED" if phase4_consumed else "READY" if phase3_locked else "BLOCKED",
+        "aep_phase5_status": "COMPLETE_CONSUMED" if phase5_complete else "READY" if phase4_consumed else "BLOCKED",
+        "aep_phase6_status": "READY" if phase5_complete else "BLOCKED",
+        "aep_state": "IMPLEMENTATION_READY" if phase5_complete else "MISSIONS_READY" if phase4_consumed else "GAP_READY" if phase3_locked else "PHASE_3_READY_FOR_ACCEPTANCE" if phase3_executed else "CURRENT_READY",
         "bdp_status": "BDP_EXECUTED_FOR_CURRENT_PROJECT_SCOPE" if bdp_project_scope_complete else "BDP_EXECUTED_FOR_LIMITED_SCENARIO_SCOPE",
         "bdp_required_passes_complete": bdp_project_scope_complete,
         "backlog_status": "34/34_DONE" if backlog_complete else "INCOMPLETE",
@@ -2159,6 +2318,8 @@ def aep_phase3_gap_certification(
     executor: str,
     acceptance_owner: str = "",
     operator_authority: bool = False,
+    acceptance_mission_id: str = "",
+    acceptance_run_nonce: str = "",
     existing_gap_ids: Optional[Iterable[str]] = None,
     existing_candidates: Optional[Iterable[Any]] = None,
 ) -> dict[str, Any]:
@@ -2314,6 +2475,27 @@ def aep_phase3_gap_certification(
     )
     execution_complete = not errors and len(dispositions) == len(candidate_inputs)
     accepted = execution_complete and role_separation
+    authority_scope_payload = {
+        "schema": "v7.aep-phase3-acceptance-authority-scope.v1",
+        "acceptance_mission_id": acceptance_mission_id,
+        "acceptance_run_nonce": acceptance_run_nonce,
+        "acceptance_owner": acceptance_owner,
+        "allowed": [
+            "INDEPENDENT_PHASE_3_REVIEW",
+            "PHASE_3_ACCEPTANCE_AND_LOCK",
+            "PHASE_4_OMP_ADMISSION",
+            "EXISTING_PROGRAM_RECONCILIATION_EXTENSION",
+        ],
+        "forbidden": [
+            "RUNTIME_MUTATION",
+            "PRODUCTION_MUTATION",
+            "AUTHORITY_EXPANSION",
+            "USER_MOVEMENT",
+        ],
+    }
+    authority_scope_fingerprint = hashlib.sha256(
+        json.dumps(authority_scope_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
     acceptance_status = "AEP_PHASE_3_GAP_REGISTER_ACCEPTED_WITH_MINOR_RISKS" if accepted and held else (
         "AEP_PHASE_3_GAP_REGISTER_ACCEPTED" if accepted else
         "AEP_PHASE_3_READY_FOR_ACCEPTANCE" if execution_complete else
@@ -2321,8 +2503,14 @@ def aep_phase3_gap_certification(
     )
     if execution_complete and not role_separation:
         holds.append("independent_phase_acceptance_required")
-    phase3_lock_id = f"aep3lock_{register_fingerprint[:24]}" if accepted else "NONE"
     candidates = [item["candidate"] for item in certified]
+    phase3_lock_fingerprint = _aep_phase3_lock_fingerprint(
+        register_fingerprint,
+        acceptance_owner,
+        authority_scope_fingerprint,
+        [item["candidate_instance_id"] for item in candidates],
+    ) if accepted else "NONE"
+    phase3_lock_id = f"aep3lock_{phase3_lock_fingerprint[:24]}" if accepted else "NONE"
     return {
         "schema": "v7-aep-phase3-gap-certification/v1",
         "phase3_input_readiness": "PASS" if phase2_ready else "FAIL",
@@ -2343,10 +2531,16 @@ def aep_phase3_gap_certification(
         "candidate_instances_ready": len(candidates),
         "candidate_instances_blocked": len(held),
         "register_fingerprint": register_fingerprint,
+        "phase3_executor": executor,
+        "phase3_acceptance_owner": acceptance_owner or "NONE",
+        "role_separation_status": "PASS" if role_separation else "HOLD",
+        "acceptance_mission_id": acceptance_mission_id or "NONE",
+        "acceptance_run_nonce": acceptance_run_nonce or "NONE",
+        "authority_scope_fingerprint": authority_scope_fingerprint,
         "phase3_acceptance_status": acceptance_status,
         "phase3_lock_status": "LOCKED" if accepted else "NOT_LOCKED",
         "phase3_lock_id": phase3_lock_id,
-        "phase3_lock_fingerprint": register_fingerprint if accepted else "NONE",
+        "phase3_lock_fingerprint": phase3_lock_fingerprint,
         "aep_state_after": "GAP_READY" if accepted else "PHASE_3_READY_FOR_ACCEPTANCE",
         "phase4_status": "READY" if accepted else "LOCKED_PENDING_PHASE_3_ACCEPTANCE",
         "omp_candidates_consumed": len(candidates) if accepted else 0,
@@ -2672,7 +2866,12 @@ def _bdp_candidate_meaning(gap: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def omp_candidate_admission_decision(candidate: dict[str, Any]) -> dict[str, Any]:
+def omp_candidate_admission_decision(
+    candidate: dict[str, Any],
+    *,
+    mission_id: str = "",
+    existing_candidate_ids: Optional[Iterable[str]] = None,
+) -> dict[str, Any]:
     """Consume one BDP Candidate through the existing bounded OMP admission gates."""
     missing = [
         field
@@ -2689,6 +2888,9 @@ def omp_candidate_admission_decision(candidate: dict[str, Any]) -> dict[str, Any
         errors.append("candidate_identity_hash_invalid")
     if candidate_id != f"BDP-ICI-{identity[:24].upper()}":
         errors.append("candidate_identity_id_mismatch")
+    duplicate = candidate_id in {str(item) for item in existing_candidate_ids or ()}
+    if duplicate:
+        errors.append("candidate_identity_duplicate")
 
     if candidate.get("implementation_readiness") != "IMPLEMENTATION_READY":
         errors.append("candidate_implementation_not_ready")
@@ -2714,14 +2916,29 @@ def omp_candidate_admission_decision(candidate: dict[str, Any]) -> dict[str, Any
 
     unique = sorted(set(errors))
     accepted = not unique
+    resolved_mission_id = mission_id or f"V7_OMP_BDP_{identity[:24].upper()}_V1"
+    decision_payload = {
+        "schema": "v7.omp-candidate-admission-trace.v1",
+        "candidate_instance_id": candidate_id,
+        "candidate_identity": identity,
+        "mission_id": resolved_mission_id if accepted else "NONE",
+        "decision": "MISSION_ACCEPTED" if accepted else "MISSION_NOT_APPLICABLE" if duplicate else "MISSION_REJECTED",
+        "errors": unique,
+    }
+    decision_fingerprint = hashlib.sha256(
+        json.dumps(decision_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
     return {
         "schema": "v7-omp-candidate-admission-decision/v1",
         "identity_result": "IDENTITY_VALID" if not any("identity" in item for item in unique) else "IDENTITY_INVALID",
         "eligibility_result": "ELIGIBLE" if accepted else "REJECT",
-        "admission_decision": "MISSION_ACCEPTED" if accepted else "MISSION_REJECTED",
+        "duplicate_check_result": "DUPLICATE" if duplicate else "UNIQUE",
+        "admission_decision": "MISSION_ACCEPTED" if accepted else "MISSION_NOT_APPLICABLE" if duplicate else "MISSION_REJECTED",
         "mission_created": accepted,
         "mission_state": "PREPARED_NOT_ACTIVE" if accepted else "NONE",
-        "mission_id": f"V7_OMP_BDP_{identity[:24].upper()}_V1" if accepted else "NONE",
+        "mission_id": resolved_mission_id if accepted else "NONE",
+        "decision_trace_id": f"ompdt_{decision_fingerprint[:24]}",
+        "decision_fingerprint": decision_fingerprint,
         "mission_executed": False,
         "runtime_impact": "NONE",
         "production_impact": "NONE",

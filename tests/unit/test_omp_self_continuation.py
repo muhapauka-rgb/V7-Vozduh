@@ -97,17 +97,18 @@ class OmpSelfContinuationTest(unittest.TestCase):
         self.assertIn("PREMATURE_OMP_RETURN_TO_OPERATOR", text)
         self.assertIn("OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY", text)
 
-    def test_materialized_cps_stops_at_independent_program_acceptance_boundary(self):
+    def test_materialized_cps_continues_at_phase3_program_frontier(self):
         result = self.lib.omp_self_continuation_consistency(CPS.read_text(encoding="utf-8"))
         self.assertEqual(result["final_verdict"], "PASS")
-        self.assertEqual(result["omp_continuation_required"], "FALSE")
-        self.assertEqual(result["external_input_required"], "TRUE")
-        self.assertEqual(result["external_input_type"], "ENGINEERING_AUTHORITY")
-        self.assertEqual(result["continuation_iteration"], "8")
+        self.assertEqual(result["omp_continuation_required"], "TRUE")
+        self.assertEqual(result["external_input_required"], "FALSE")
+        self.assertEqual(result["external_input_type"], "NONE")
+        self.assertEqual(result["continuation_iteration"], "9")
 
     def test_materialized_external_boundary_cannot_be_marked_for_continuation(self):
         cps = CPS.read_text(encoding="utf-8")
-        cps = cps.replace("| `OMP_CONTINUATION_REQUIRED` | `FALSE` |", "| `OMP_CONTINUATION_REQUIRED` | `TRUE` |", 1)
+        cps = cps.replace("| `EXTERNAL_INPUT_REQUIRED` | `FALSE` |", "| `EXTERNAL_INPUT_REQUIRED` | `TRUE` |", 1)
+        cps = cps.replace("| `EXTERNAL_INPUT_TYPE` | `NONE` |", "| `EXTERNAL_INPUT_TYPE` | `ENGINEERING_AUTHORITY` |", 1)
         result = self.lib.omp_self_continuation_consistency(cps)
         self.assertIn("omp_external_boundary_continuation_conflict", result["errors"])
 

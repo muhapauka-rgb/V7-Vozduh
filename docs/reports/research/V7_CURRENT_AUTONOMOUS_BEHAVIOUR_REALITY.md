@@ -1,10 +1,33 @@
 # V7 Current Autonomous Behaviour Reality
 
-Status: `PHASE_2_REVALIDATED_READY_FOR_ACCEPTANCE`
+Status: `CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY_ACCEPTED_LOCKED`
 Program: `docs/programs/V7_AUTONOMOUS_EVOLUTION_PROGRAM.md`
 Phase: `Phase 2 - Current Autonomous Behaviour Reality`
 Original execution date: `2026-07-08`
 Current revalidation date: `2026-07-14`
+
+## Acceptance And Reality Lock
+
+This is the only active AEP Phase 2 Current Autonomous Behaviour Reality artifact. The July 8 execution owner produced the baseline; the July 14 operator-scoped independent acceptance Mission verified and locked it through the existing AEP/OMP acceptance discipline.
+
+```text
+PHASE_2_EXECUTOR = CODEX_PHASE_EXECUTION_OWNER
+PHASE_2_ACCEPTANCE_OWNER = OPERATOR_ENGINEERING_AUTHORITY
+ROLE_SEPARATION_STATUS = PASS
+ACCEPTANCE_VERDICT = AEP_PHASE_2_ACCEPTED_WITH_MINOR_RISKS
+PHASE_2_LOCK_STATUS = LOCKED
+PHASE_2_LOCK_ID = aep2lock_128691e74c0b2087e1ffb0fc
+PHASE_2_LOCK_FINGERPRINT = 128691e74c0b2087e1ffb0fc26c64d6425ef68ec46af79a747f60bae28a73951
+CURRENT_AEP_STATE = CURRENT_READY
+PHASE_3_STATUS = READY
+PHASE_3_CONSUMER = V7_AEP_PHASE_3_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER_V1
+```
+
+Accepted scope: current repository and evidence-backed autonomous behaviour reality through the `2026-07-14T10:00:18+0700` evidence cutoff. This lock does not claim exhaustive live production truth or project-wide BDP P01-P19 terminal execution.
+
+Explicit unknowns and minor risks: live admin/runtime/production state was unavailable; representative production outcomes remain incomplete; generic rollback execution is not generalized from the certified no-rollback success. Phase 3 must preserve these dispositions and may not infer active truth from unavailable or historical evidence.
+
+Re-open triggers: material implementation or owner-map change; fresh live evidence contradicting an accepted Behaviour; identity or traceability conflict; accepted correction through the existing AEP/OMP lifecycle. Silent mutation is forbidden. A later accepted artifact may supersede this one only by preserving this lock identity, evidence provenance and explicit supersession reason.
 
 ## 0. Current Revalidation And Acceptance Boundary
 
@@ -15,9 +38,9 @@ Current stage state:
 ```text
 PHASE_2_EXECUTION = COMPLETE_WITH_CURRENT_REVALIDATION
 PHASE_2_OUTPUT = COMPLETE_FOR_CURRENT_REPOSITORY_SCOPE
-PHASE_2_ACCEPTANCE = REQUIRED_NOT_PERFORMED
-PHASE_2_LOCK = NOT_PERFORMED
-PHASE_3 = BLOCKED_BY_PHASE_2_ACCEPTANCE
+PHASE_2_ACCEPTANCE = AEP_PHASE_2_ACCEPTED_WITH_MINOR_RISKS
+PHASE_2_LOCK = LOCKED
+PHASE_3 = READY
 ```
 
 The July 8 evidence below remains the baseline. This section is the current delta and does not erase provenance. Current CPS, code, tests and accepted post-July-8 reports supersede stale point-in-time statements where they conflict.
@@ -127,12 +150,13 @@ Minor risks: BDP has no single exhaustive project-wide P01-P19 terminal run reco
 ```text
 PHASE_2_CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY_REVALIDATED
 PHASE_2_REVALIDATED_READY_FOR_ACCEPTANCE
-CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY_ACCEPTED = FALSE
-PHASE_LOCKED = FALSE
-NEXT_STAGE = INDEPENDENT_PHASE_2_ACCEPTANCE
+CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY_ACCEPTED = TRUE
+PHASE_ACCEPTED_WITH_MINOR_RISKS
+PHASE_LOCKED = TRUE
+NEXT_STAGE = AEP_PHASE_3_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER
 ```
 
-This revalidation is execution evidence, not self-acceptance. Phase 3 remains blocked until the existing AEP acceptance owner returns `PHASE_ACCEPTED` or `PHASE_ACCEPTED_WITH_MINOR_RISKS` and records Phase Lock.
+The revalidation remains execution evidence. Independent acceptance is recorded by the separate July 14 acceptance/lock report and consumes, rather than replaces, this evidence.
 
 ## 1. Reality Scope
 
@@ -541,7 +565,7 @@ Minor risks:
 Phase 3 readiness:
 
 ```text
-PHASE_3_READY_AFTER_OPERATOR_COMMAND
+PHASE_3_READY_FROM_LOCKED_PHASE_2_REALITY
 ```
 
 Phase 3 must use this report as input and must not reinterpret source inventory as a gap by itself. Only evidence-backed Autonomous Behaviour Gaps may be certified in Phase 3.

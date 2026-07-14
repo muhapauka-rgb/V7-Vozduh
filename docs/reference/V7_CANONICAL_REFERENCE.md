@@ -2201,6 +2201,14 @@ Related ADR: `docs/decisions/ADR-FUTURE-EVIDENCE-INDEX-AND-FRESHNESS-MODEL.md`.
 - Related reports / ADRs: `docs/reports/V7_FINAL_AUTONOMOUS_ROUTING_ARCHITECTURE_CERTIFICATION_REPORT.md`, `docs/reports/V7_MAXIMUM_REALITY_KNOWLEDGE_EXTRACTION_REPORT.md`, `docs/reports/V7_AUTONOMOUS_ROUTING_EVOLUTION_PROGRAM_REPORT.md`, `docs/reports/V7_AUTONOMOUS_KNOWLEDGE_GROWTH_PROGRAM_REPORT.md`, `docs/reports/V7_GOVERNED_CANARY_KNOWLEDGE_GATED_AUTONOMOUS_DRY_RUN_CYCLE_REPORT.md`, ADR-EVENT-DRIVEN-AUTONOMY, ADR-OBSERVED-OUTCOME-PRIMARY-TRUST.
 - Last verified commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`.
 
+### 28.1 AEP Phase 2 Current Autonomous Behaviour Reality Lock
+
+- Durable terminal truth: AEP Phase 2 `CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY` is independently accepted with explicit minor risks and locked as the only active Phase 2 Reality input.
+- Active artifact: `docs/reports/research/V7_CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY.md`; lock `aep2lock_128691e74c0b2087e1ffb0fc`; fingerprint `128691e74c0b2087e1ffb0fc26c64d6425ef68ec46af79a747f60bae28a73951`.
+- Accepted boundary: current repository and evidence-backed autonomous behaviour reality. It does not claim exhaustive live production truth, project-wide BDP P01-P19 terminal execution, generalized rollback execution, Runtime authority, production mutation, or Production Maturity promotion.
+- Consumer closure: AEP Phase 3 `CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER` is `READY` and must consume this locked Reality, its explicit unknowns and accepted AOS ideal model through existing AEP/BDP/OMP owners.
+- Re-open rule: only material implementation/owner-map change, fresh contradictory live evidence, identity/traceability conflict or an accepted correction may supersede this lock; silent mutation is forbidden.
+
 ## 29. Runtime Capability Maturation Program / RT Phase 2
 
 - What it means: The old 12-stage RT Phase 2 plan is superseded by one six-workstream `Runtime Capability Maturation Program`. RT2 is not a Runtime replacement, Planner replacement, World Model replacement, Truth Source, Owner, Backlog, or parallel roadmap.

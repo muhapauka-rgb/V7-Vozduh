@@ -34,7 +34,7 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
             "aep_phase1": (ROOT / "docs/reports/engineering/V7_AUTONOMOUS_EVOLUTION_FOUNDATION_PHASE1_EXECUTION_REPORT.md").read_text(),
             "aep_phase2": (ROOT / "docs/reports/research/V7_CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY.md").read_text(),
             "aep_phase2_execution": (ROOT / "docs/reports/engineering/V7_CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY_EXECUTION_REPORT.md").read_text(),
-            "aep_phase2_acceptance": "",
+            "aep_phase2_acceptance": (ROOT / "docs/reports/research/2026-07-14_100018_aep_phase_2_independent_acceptance.md").read_text(),
             "bdp_execution": "",
         }
 
@@ -48,7 +48,7 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
         self.assertNotEqual(self.reconcile()["program_inventory"][1]["document_status"], "TERMINAL_COMPLETE")
 
     def test_02_organized_does_not_equal_complete(self):
-        self.assertEqual(self.reconcile()["program_inventory"][1]["execution_status"], "READY_FOR_ACCEPTANCE")
+        self.assertEqual(self.reconcile()["program_inventory"][1]["execution_status"], "PHASE_3_READY")
 
     def test_03_ready_document_does_not_equal_executed_scope(self):
         self.assertEqual(self.reconcile()["bdp_status"], "BDP_EXECUTED_FOR_LIMITED_SCENARIO_SCOPE")
@@ -59,7 +59,7 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
     def test_05_backlog_completion_does_not_close_aep(self):
         result = self.reconcile()
         self.assertEqual(result["backlog_status"], "34/34_DONE")
-        self.assertFalse(result["aep_phase2_accepted"])
+        self.assertFalse(self.reconcile(aep_phase2_acceptance="")["aep_phase2_accepted"])
 
     def test_06_polygon_or_limited_work_does_not_close_bdp_project_scope(self):
         self.assertFalse(self.reconcile()["bdp_required_passes_complete"])
@@ -83,9 +83,9 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
         result = self.reconcile(aep_phase2_acceptance=accepted)
         self.assertTrue(result["aep_phase2_accepted"])
 
-    def test_12_phase3_is_blocked_until_phase2_acceptance(self):
+    def test_12_phase3_is_ready_after_phase2_acceptance(self):
         phase3 = next(x for x in self.reconcile()["stages"] if x["stage_id"] == "PHASE_3")
-        self.assertEqual(phase3["status"], "STAGE_BLOCKED_DEPENDENCY")
+        self.assertEqual(phase3["status"], "STAGE_READY_NOT_STARTED")
 
     def test_13_unconsumed_certified_output_is_not_complete(self):
         self.assertEqual(self.classify(entry_conditions_met=True, execution_started=True, outputs_found=True, output_schema_valid=True, consumer_found=True, consumer_confirmed=False), "STAGE_CONSUMPTION_NOT_CONFIRMED")
@@ -94,14 +94,14 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
         self.assertEqual(self.classify(entry_conditions_met=True, execution_started=True, outputs_found=True, output_schema_valid=True, consumer_found=False), "STAGE_CONSUMER_MISSING")
 
     def test_15_acceptance_requirement_is_preserved(self):
-        self.assertTrue(self.reconcile()["acceptance_required"])
+        self.assertTrue(self.reconcile(aep_phase2_acceptance="")["acceptance_required"])
 
     def test_16_acceptance_is_not_bypassed(self):
-        phase2 = next(x for x in self.reconcile()["stages"] if x["stage_id"] == "PHASE_2")
+        phase2 = next(x for x in self.reconcile(aep_phase2_acceptance="")["stages"] if x["stage_id"] == "PHASE_2")
         self.assertEqual(phase2["status"], "STAGE_READY_FOR_ACCEPTANCE")
 
     def test_17_real_world_boundary_is_invalid_with_safe_program_stage(self):
-        self.assertEqual(self.reconcile()["global_real_world_limit_verdict"], "GLOBAL_REAL_WORLD_LIMIT_INVALID")
+        self.assertEqual(self.reconcile()["global_real_world_limit_verdict"], "GLOBAL_REAL_WORLD_LIMIT_VALID")
 
     def test_18_authority_boundary_is_classified(self):
         self.assertEqual(self.classify(blocked_authority=True), "STAGE_BLOCKED_AUTHORITY")
@@ -122,7 +122,7 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
         self.assertEqual(self.classify(entry_conditions_met=True, execution_started=True, outputs_found=True, output_schema_valid=True, consumer_found=False), "STAGE_CONSUMER_MISSING")
 
     def test_24_terminal_claim_requires_acceptance(self):
-        self.assertNotEqual(next(x for x in self.reconcile()["stages"] if x["stage_id"] == "PHASE_2")["status"], "STAGE_COMPLETE_CONSUMED")
+        self.assertNotEqual(next(x for x in self.reconcile(aep_phase2_acceptance="")["stages"] if x["stage_id"] == "PHASE_2")["status"], "STAGE_COMPLETE_CONSUMED")
 
     def test_25_no_new_program_or_owner_is_created(self):
         ids = {item["program_id"] for item in self.reconcile()["program_inventory"]}
@@ -134,13 +134,13 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
         self.assertEqual((result["runtime_impact"], result["production_impact"], result["authority_impact"]), ("NONE", "NONE", "NONE"))
 
     def test_27_recalculation_selects_acceptance_stage(self):
-        self.assertEqual(self.reconcile()["executable_program_frontier"], ["AEP_PHASE_2_ACCEPTANCE"])
+        self.assertEqual(self.reconcile()["executable_program_frontier"], ["AEP_PHASE_3_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER"])
 
     def test_28_replay_reproduces_inventory_and_sequence(self):
         self.assertEqual(self.reconcile(), self.reconcile())
 
     def test_29_cps_receives_program_frontier(self):
-        self.assertIn("AEP_PHASE_2_ACCEPTANCE", self.sources["cps"])
+        self.assertIn("AEP_PHASE_3_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER", self.sources["cps"])
 
     def test_30_omp_consumes_program_frontier(self):
         self.assertIn("Program Execution And Consumption Reconciliation Rule", self.sources["omp"])

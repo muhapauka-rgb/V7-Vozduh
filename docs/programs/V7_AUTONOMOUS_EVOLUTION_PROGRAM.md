@@ -2,11 +2,11 @@
 
 Status: `ORGANIZED`
 Document status: `ORGANIZED`
-Execution status: `PHASE_2_REVALIDATED_READY_FOR_ACCEPTANCE`
-Current program state: `CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY_ACCEPTANCE_REQUIRED`
+Execution status: `PHASE_2_ACCEPTED_LOCKED_PHASE_3_READY`
+Current program state: `CURRENT_READY`
 Current execution evidence: `docs/reports/research/V7_CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY.md`
-Current acceptance state: `NOT_ACCEPTED_NOT_LOCKED`
-Next legal stage: independent Phase 2 Acceptance and Lock; Phase 3 remains blocked until that result.
+Current acceptance state: `PHASE_ACCEPTED_WITH_MINOR_RISKS; PHASE_LOCKED; aep2lock_128691e74c0b2087e1ffb0fc`
+Next legal stage: Phase 3 Certified Autonomous Behaviour Gap Register through existing AEP/BDP/OMP owners.
 Mode: `PROGRAM_ROUTE`
 Runtime impact: `NONE`
 Authority impact: `NONE`
@@ -1019,7 +1019,7 @@ Output:
 docs/reports/research/V7_CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY.md
 ```
 
-Status: create later during Phase 2, unless an accepted equivalent is found.
+Status: `CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY_ACCEPTED`; locked fingerprint `128691e74c0b2087e1ffb0fc26c64d6425ef68ec46af79a747f60bae28a73951`; only active Phase 2 Reality input for Phase 3.
 
 Required embedded outputs:
 
@@ -1070,7 +1070,7 @@ Output:
 CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER.md
 ```
 
-Status: create later during Phase 3.
+Status: `READY`; consume the accepted and locked Phase 2 Reality before any gap certification.
 
 ### Phase 4 - OMP Mission Generation
 
@@ -1402,7 +1402,7 @@ until owner, consumer, consumption evidence, terminal alternative, evidence, and
 | `docs/reference/V7_AUTONOMOUS_OPERATING_SYSTEM.md` | EXISTS | AOS / OMP / CPS / Production Maturity | Existing canonical target model | Phase 1 / Phase 2 | `CANONICAL_TARGET_MODEL` |
 | `docs/reference/V7_IDEAL_AUTONOMOUS_ROUTING_MODEL.md` | EXISTS | Ideal Routing Model owner | Existing target model | Phase 1 | `CANONICAL_ROUTING_TARGET` |
 | `V7_IDEAL_AUTONOMOUS_SYSTEM_MODEL.md` | NOT_CREATED | Phase 1 if needed | Future Phase 1 only if AOS is insufficient | Phase 2 | `NOT_REQUIRED_WHILE_AOS_SUFFICIENT` |
-| `docs/reports/research/V7_CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY.md` | FUTURE | CPS / OMP / evidence owners | Phase 2 | Phase 3 | `FUTURE_PHASE_ARTIFACT` |
+| `docs/reports/research/V7_CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY.md` | CURRENT | CPS / OMP / evidence owners | Phase 2 accepted and locked | Phase 3 | `CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY_ACCEPTED`; lock `aep2lock_128691e74c0b2087e1ffb0fc` |
 | Behaviour Instance Registry | FUTURE / EMBEDDED | CPS / OMP / evidence owners | Phase 2 | Phase 3 | `BEHAVIOUR_INSTANCES_RECORDED` |
 | Behaviour Aggregation Map | FUTURE / EMBEDDED | CPS / OMP / evidence owners | Phase 2 | Phase 3 | `BEHAVIOUR_AGGREGATION_RECORDED` |
 | Behaviour Catalogue | FUTURE / EMBEDDED | CPS / OMP / evidence owners | Phase 2 | Phase 3 | `BEHAVIOUR_CATALOGUE_RECORDED` |

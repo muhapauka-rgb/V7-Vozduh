@@ -22,7 +22,11 @@ class OmpPolygonFallbackContinuationTest(unittest.TestCase):
     def setUpClass(cls):
         cls.lib = load_lib()
         cls.cps = CPS.read_text(encoding="utf-8")
-        cls.cps = cls.cps.replace("| `CURRENT_STOP_CONDITION` | `ENGINEERING_AUTHORITY` |", "| `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT` |", 1)
+        cls.cps = cls.lib._replace_section_field(
+            cls.cps, "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+            "CURRENT_STOP_CONDITION", "`REAL_WORLD_LIMIT`",
+        )
         cls.lib.current_engineering_polygon_scenario_supply = lambda *args, **kwargs: {"discovery": {"active_source_count": 0}}
         cls.discovery = cls.lib.discover_proactive_verification_inputs()
 

@@ -37,7 +37,7 @@ DEPLOY_CONFIRMATION = "DEPLOY_V7_APPROVED"
 RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
 
 NORMALIZED_CPS_LIVE_STATE = {
-    "active_program": "OMP_FUNCTIONAL_FOOTPRINT_AND_REAL_CONSUMER_ACTIVATION",
+    "active_program": "OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT",
     "current_mode": "BOUNDED_DELEGATED_AUTONOMY_ACTIVE",
     "current_stop_condition": "ENGINEERING_AUTHORITY",
     "current_active_scope": "OMP_REAL_CONSUMER_ACTIVATION",
@@ -45,24 +45,24 @@ NORMALIZED_CPS_LIVE_STATE = {
     "current_scope_class": "ENGINEERING_AUTOMATION_BOUNDARY",
     "current_execution_mission_id": "NONE",
     "current_execution_mission_state": "NONE",
-    "latest_terminal_mission_id": "V7_OMP_FUNCTIONAL_FOOTPRINT_AND_REAL_CONSUMER_ACTIVATION_V1",
-    "latest_terminal_run_nonce": "V7_OMP_FUNCTIONAL_FOOTPRINT_V1_6B2E9A4D17C8",
-    "latest_terminal_mission_state": "OMP_FUNCTIONAL_FOOTPRINT_CORRECTED_NO_SAFE_ENTRYPOINT",
-    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-14_172349_omp_functional_footprint_audit.md",
-    "latest_terminal_mission_started_at": "2026-07-14T17:23:49+0700",
-    "previous_terminal_mission_id": "V7_AEP_PHASE_3_INDEPENDENT_ACCEPTANCE_AND_LOCK_V1",
-    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-14_161705_aep_phase_3_acceptance_to_phase_5_continuation.md",
+    "latest_terminal_mission_id": "V7_OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT_V1",
+    "latest_terminal_run_nonce": "V7_OMP_REAL_EFFECT_AUDIT_V1_94C7E2A16D5B",
+    "latest_terminal_mission_state": "PHASE2_TO_CURRENT_AUDIT_CORRECTED_ENGINEERING_AUTHORITY_REQUIRED",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-14_215106_phase2_to_current_real_effect_audit.md",
+    "latest_terminal_mission_started_at": "2026-07-14T21:51:06+0700",
+    "previous_terminal_mission_id": "V7_OMP_FUNCTIONAL_FOOTPRINT_AND_REAL_CONSUMER_ACTIVATION_V1",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-14_172349_omp_functional_footprint_audit.md",
     "authoritative_transition_input_mission_id": "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3",
     "authoritative_transition_input_state": "MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED",
     "authoritative_transition_input_report": "docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md",
     "current_mission_role": "LATEST_TERMINAL_MISSION",
-    "current_mission_id": "V7_OMP_FUNCTIONAL_FOOTPRINT_AND_REAL_CONSUMER_ACTIVATION_V1",
-    "current_run_nonce": "V7_OMP_FUNCTIONAL_FOOTPRINT_V1_6B2E9A4D17C8",
-    "current_mission_state": "OMP_FUNCTIONAL_FOOTPRINT_CORRECTED_NO_SAFE_ENTRYPOINT",
-    "current_mission_report": "docs/reports/engineering/2026-07-14_172349_omp_functional_footprint_audit.md",
-    "state_captured": "2026-07-14T17:23:49+0700",
-    "current_state_generation": "cpsgen_V7_OMP_FOOTPRINT_V1_6B2E9A4D17C8",
-    "current_transition_id": "OMP_FUNCTIONAL_FOOTPRINT_CORRECTED_NO_SAFE_ENTRYPOINT_V1",
+    "current_mission_id": "V7_OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT_V1",
+    "current_run_nonce": "V7_OMP_REAL_EFFECT_AUDIT_V1_94C7E2A16D5B",
+    "current_mission_state": "PHASE2_TO_CURRENT_AUDIT_CORRECTED_ENGINEERING_AUTHORITY_REQUIRED",
+    "current_mission_report": "docs/reports/engineering/2026-07-14_215106_phase2_to_current_real_effect_audit.md",
+    "state_captured": "2026-07-14T21:51:06+0700",
+    "current_state_generation": "cpsgen_V7_OMP_REAL_EFFECT_AUDIT_V1_94C7E2A16D5B",
+    "current_transition_id": "PHASE2_TO_CURRENT_AUDIT_CORRECTED_ENGINEERING_AUTHORITY_REQUIRED_V1",
     "current_next_action_id": "OMP_REAL_CONSUMER_ACTIVATION_AUTHORITY_DECISION",
     "current_program_stage": "AEP_PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE",
     "current_program_execution_frontier": "OMP_REAL_CONSUMER_ACTIVATION",
@@ -137,9 +137,9 @@ NORMALIZED_CPS_LIVE_STATE = {
     "next_mission_formed": "FALSE",
     "next_mission_id": "NONE",
     "premature_operator_return": "FALSE",
-    "continuation_iteration": "12",
+    "continuation_iteration": "13",
     "continuation_stop_reason": "NO_SAFE_ACTIVE_REAL_ENGINEERING_ENTRYPOINT; EXISTING_HEARTBEAT_PAUSED",
-    "no_progress_fingerprint": "af4da50bbf3c94917e1c74e92c57a533b9ac465470013fb48ff44792454fee64",
+    "no_progress_fingerprint": "82324a640c421f2448db7b099d58d4ed59a4fc1876fd2a2b8fd31e152c9d7dc2",
     "program_reconciliation_footprint_class": "DEPLOYED_MANUALLY_CALLABLE_ONLY",
     "program_reconciliation_real_callers": "0",
     "program_reconciliation_test_callers": "3",
@@ -148,6 +148,10 @@ NORMALIZED_CPS_LIVE_STATE = {
     "automation_enabled": "FALSE",
     "aep_phase4_status": "IMPLEMENTED_MANUALLY_CALLABLE",
     "aep_phase5_status": "BLOCKED_MISSING_REAL_CONSUMER",
+    "aep_phase6_status": "BLOCKED_BY_PHASE_5",
+    "mission_completion_evidence_gate": "ACTIVE_V1",
+    "current_completion_contract": "INTEGRATION_COMPLETION",
+    "current_completion_verdict": "INTEGRATION_INCOMPLETE",
 }
 
 
@@ -740,6 +744,10 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "AUTOMATION_ENABLED": f"`{state['automation_enabled']}`",
         "AEP_PHASE_4_STATUS": f"`{state['aep_phase4_status']}`",
         "AEP_PHASE_5_STATUS": f"`{state['aep_phase5_status']}`",
+        "AEP_PHASE_6_STATUS": f"`{state['aep_phase6_status']}`",
+        "MISSION_COMPLETION_EVIDENCE_GATE": f"`{state['mission_completion_evidence_gate']}`",
+        "CURRENT_COMPLETION_CONTRACT": f"`{state['current_completion_contract']}`",
+        "CURRENT_COMPLETION_VERDICT": f"`{state['current_completion_verdict']}`",
     }
     for key, value in live_values.items():
         cps_text = _replace_section_field(
@@ -1672,6 +1680,100 @@ PROGRAM_EXECUTION_REMAINING_STATUSES = {
 }
 
 
+COMPLETION_CONTRACTS = {
+    "ANALYSIS_COMPLETION": ("ANALYSIS_ARTIFACT_PROVEN", "EVIDENCE_TRACEABILITY_PROVEN"),
+    "DISCOVERY_COMPLETION": ("DISCOVERY_OUTPUT_PROVEN", "EVIDENCE_TRACEABILITY_PROVEN", "NEXT_OUTPUT_PROVEN"),
+    "ACCEPTANCE_COMPLETION": ("INDEPENDENT_ACCEPTANCE_PROVEN", "NEXT_OUTPUT_PROVEN"),
+    "DOCUMENTATION_COMPLETION": ("DOCUMENT_OWNER_ACCEPTED", "EVIDENCE_TRACEABILITY_PROVEN"),
+    "IMPLEMENTATION_COMPLETION": ("SOURCE_CHANGE_PROVEN", "FOCUSED_TESTS_PROVEN"),
+    "INTEGRATION_COMPLETION": (
+        "REAL_CALLER_PROVEN", "CONSUMER_PROVEN", "BEHAVIOR_CHANGE_PROVEN", "NEXT_OUTPUT_PROVEN",
+    ),
+    "AUTOMATION_COMPLETION": (
+        "INDEPENDENT_TRIGGER_PROVEN", "ENTRYPOINT_ACTIVE", "REAL_CALLER_PROVEN",
+        "CONSUMER_PROVEN", "BEHAVIOR_CHANGE_PROVEN", "NEXT_OUTPUT_PROVEN",
+        "IDEMPOTENCY_PROVEN", "DUPLICATE_SUPPRESSION_PROVEN",
+    ),
+    "RUNTIME_COMPLETION": (
+        "RUNTIME_PATH_ACTIVE", "RUNTIME_EFFECT_PROVEN", "VERIFICATION_PROVEN", "ROLLBACK_OR_STOP_SAFE_PROVEN",
+    ),
+    "PRODUCTION_COMPLETION": (
+        "PRODUCTION_EFFECT_PROVEN", "VERIFICATION_PROVEN", "CONSUMER_PROVEN",
+        "LEARNING_PROPAGATION_PROVEN", "NEXT_OUTPUT_PROVEN",
+    ),
+}
+
+
+def mission_completion_evidence_gate(contract: dict[str, Any]) -> dict[str, Any]:
+    """Classify Mission completion from its declared evidence contract."""
+    mission_type = str(contract.get("MISSION_TYPE") or "").upper()
+    completion_contract = str(contract.get("COMPLETION_CONTRACT") or "").upper()
+    required = list(COMPLETION_CONTRACTS.get(completion_contract, ()))
+    if contract.get("LOCK_REQUIRED"):
+        required.append("LOCK_PROVEN")
+    if contract.get("DEPLOY_REQUIRED"):
+        required.append("DEPLOY_PROVEN")
+
+    evidence_present = {field: contract.get(field) is True for field in required}
+    missing = [field for field in required if not evidence_present[field]]
+    legal_terminal = contract.get("LEGAL_TERMINAL") is True
+    legal_terminal_proven = all(contract.get(field) is True for field in (
+        "EVIDENCE_TRACEABILITY_PROVEN", "TERMINAL_OWNER_PROVEN",
+    ))
+
+    if not mission_type or completion_contract not in COMPLETION_CONTRACTS:
+        verdict = "COMPLETION_TRUTH_UNRESOLVED"
+    elif legal_terminal and legal_terminal_proven:
+        verdict = "COMPLETE_WITH_LEGAL_TERMINAL"
+    elif not missing:
+        verdict = (
+            "IMPLEMENTED_NOT_CONSUMED"
+            if completion_contract == "IMPLEMENTATION_COMPLETION"
+            else "COMPLETE_CONSUMED"
+            if completion_contract in {
+                "INTEGRATION_COMPLETION", "AUTOMATION_COMPLETION", "RUNTIME_COMPLETION", "PRODUCTION_COMPLETION",
+            }
+            else "COMPLETE_WITH_LEGAL_TERMINAL"
+        )
+    elif completion_contract == "IMPLEMENTATION_COMPLETION":
+        verdict = "IMPLEMENTED_NOT_CONSUMED"
+    elif completion_contract == "INTEGRATION_COMPLETION":
+        verdict = "INTEGRATION_INCOMPLETE"
+    elif completion_contract == "AUTOMATION_COMPLETION":
+        verdict = "AUTOMATION_INCOMPLETE"
+    elif completion_contract == "RUNTIME_COMPLETION":
+        verdict = "RUNTIME_INCOMPLETE"
+    elif completion_contract == "PRODUCTION_COMPLETION":
+        verdict = "PRODUCTION_INCOMPLETE"
+    else:
+        verdict = "PREPARED_NOT_CONSUMED"
+
+    return {
+        "schema": "v7-omp-mission-completion-evidence/v1",
+        "mission_type": mission_type or "UNKNOWN",
+        "completion_contract": completion_contract or "UNKNOWN",
+        "required_evidence": required,
+        "evidence_present": evidence_present,
+        "missing_evidence": missing,
+        "real_caller_required": "REAL_CALLER_PROVEN" in required,
+        "real_caller_proven": contract.get("REAL_CALLER_PROVEN") is True,
+        "consumer_required": "CONSUMER_PROVEN" in required,
+        "consumer_proven": contract.get("CONSUMER_PROVEN") is True,
+        "behavior_change_required": "BEHAVIOR_CHANGE_PROVEN" in required,
+        "behavior_change_proven": contract.get("BEHAVIOR_CHANGE_PROVEN") is True,
+        "next_output_required": "NEXT_OUTPUT_PROVEN" in required,
+        "next_output_proven": contract.get("NEXT_OUTPUT_PROVEN") is True,
+        "deploy_required": contract.get("DEPLOY_REQUIRED") is True,
+        "deploy_proven": contract.get("DEPLOY_PROVEN") is True,
+        "runtime_effect_required": "RUNTIME_EFFECT_PROVEN" in required,
+        "runtime_effect_proven": contract.get("RUNTIME_EFFECT_PROVEN") is True,
+        "production_effect_required": "PRODUCTION_EFFECT_PROVEN" in required,
+        "production_effect_proven": contract.get("PRODUCTION_EFFECT_PROVEN") is True,
+        "legal_terminal": legal_terminal and legal_terminal_proven,
+        "completion_verdict": verdict,
+    }
+
+
 def classify_program_stage(stage: dict[str, Any]) -> str:
     """Classify execution reality independently from a program document label."""
     if stage.get("superseded"):
@@ -1979,7 +2081,7 @@ def program_execution_reconciliation(sources: dict[str, Any]) -> dict[str, Any]:
         errors.append("aep_phase1_not_accepted")
     if not phase2_executed:
         errors.append("aep_phase2_output_missing_or_incomplete")
-    if "Version: `4.24`" not in omp:
+    if "Version: `4.25`" not in omp:
         errors.append("omp_program_reconciliation_version_missing")
     if "Program Execution And Consumption Reconciliation Rule" not in omp:
         errors.append("omp_program_reconciliation_rule_missing")
@@ -4930,6 +5032,14 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
         "## Authoritative Unfinished Capability Closure Registry",
     ))
     calls = python_function_call_sites(root, "program_execution_reconciliation")
+    completion_gate = mission_completion_evidence_gate({
+        "MISSION_TYPE": "INTEGRATION",
+        "COMPLETION_CONTRACT": "INTEGRATION_COMPLETION",
+        "REAL_CALLER_PROVEN": calls["real_caller_count"] > 0,
+        "CONSUMER_PROVEN": False,
+        "BEHAVIOR_CHANGE_PROVEN": False,
+        "NEXT_OUTPUT_PROVEN": False,
+    })
     expected = {
         "PROGRAM_RECONCILIATION_REAL_CALLERS": str(calls["real_caller_count"]),
         "PROGRAM_RECONCILIATION_FOOTPRINT_CLASS": "DEPLOYED_MANUALLY_CALLABLE_ONLY",
@@ -4938,6 +5048,10 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
         "AUTOMATION_ENABLED": "FALSE",
         "AEP_PHASE_4_STATUS": "IMPLEMENTED_MANUALLY_CALLABLE",
         "AEP_PHASE_5_STATUS": "BLOCKED_MISSING_REAL_CONSUMER",
+        "AEP_PHASE_6_STATUS": "BLOCKED_BY_PHASE_5",
+        "MISSION_COMPLETION_EVIDENCE_GATE": "ACTIVE_V1",
+        "CURRENT_COMPLETION_CONTRACT": "INTEGRATION_COMPLETION",
+        "CURRENT_COMPLETION_VERDICT": completion_gate["completion_verdict"],
     }
     errors: list[str] = []
     for field, value in expected.items():
@@ -4956,6 +5070,10 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
         "omp_automation_level": expected["OMP_AUTOMATION_LEVEL"],
         "heartbeat_status": expected["HEARTBEAT_STATUS"],
         "automation_enabled": False,
+        "mission_completion_evidence_gate_status": expected["MISSION_COMPLETION_EVIDENCE_GATE"],
+        "current_completion_contract": expected["CURRENT_COMPLETION_CONTRACT"],
+        "current_completion_verdict": completion_gate["completion_verdict"],
+        "completion_gate": completion_gate,
         **calls,
         "errors": unique,
     }

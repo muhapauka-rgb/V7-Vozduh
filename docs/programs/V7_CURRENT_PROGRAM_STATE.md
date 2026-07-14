@@ -2,10 +2,10 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-14T17:23:49+0700
-Latest terminal Mission: `V7_OMP_FUNCTIONAL_FOOTPRINT_AND_REAL_CONSUMER_ACTIVATION_V1`
-Latest terminal Mission state: `OMP_FUNCTIONAL_FOOTPRINT_CORRECTED_NO_SAFE_ENTRYPOINT`
-Latest terminal Mission report: `docs/reports/engineering/2026-07-14_172349_omp_functional_footprint_audit.md`
+State captured: 2026-07-14T21:51:06+0700
+Latest terminal Mission: `V7_OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT_V1`
+Latest terminal Mission state: `PHASE2_TO_CURRENT_AUDIT_CORRECTED_ENGINEERING_AUTHORITY_REQUIRED`
+Latest terminal Mission report: `docs/reports/engineering/2026-07-14_215106_phase2_to_current_real_effect_audit.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
 Source: Functional footprint audit proved that Phase 4 code is deployed but manually callable only, Phase 5 has no real consumer, and the existing OMP heartbeat remains PAUSED.
 
@@ -13,13 +13,13 @@ Source: Functional footprint audit proved that Phase 4 code is deployed but manu
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-14T17:23:49+0700`
+Captured: `2026-07-14T21:51:06+0700`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
 | Field | Current Value |
 | --- | --- |
-| `ACTIVE_PROGRAM` | `OMP_FUNCTIONAL_FOOTPRINT_AND_REAL_CONSUMER_ACTIVATION` |
+| `ACTIVE_PROGRAM` | `OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT` |
 | `CURRENT_MODE` | `BOUNDED_DELEGATED_AUTONOMY_ACTIVE` |
 | `ARCHITECTURE_STATE` | `STAGE_1_ACCEPTED_AND_LOCKED` |
 | `KNOWLEDGE_STATE` | `LOCKED_KNOWLEDGE` |
@@ -32,8 +32,8 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_ACTIVE_SCOPE` | `OMP_REAL_CONSUMER_ACTIVATION` |
 | `CURRENT_SAFE_NEXT_ACTION` | `OBTAIN EXPLICIT ENGINEERING AUTHORITY TO ENABLE THE EXISTING PAUSED OMP HEARTBEAT OR WAIT FOR AN EXISTING OWNER-BACKED EVENT HOOK` |
 | `CURRENT_SCOPE_CLASS` | `ENGINEERING_AUTOMATION_BOUNDARY` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_OMP_FOOTPRINT_V1_6B2E9A4D17C8` |
-| `CURRENT_TRANSITION_ID` | `OMP_FUNCTIONAL_FOOTPRINT_CORRECTED_NO_SAFE_ENTRYPOINT_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_OMP_REAL_EFFECT_AUDIT_V1_94C7E2A16D5B` |
+| `CURRENT_TRANSITION_ID` | `PHASE2_TO_CURRENT_AUDIT_CORRECTED_ENGINEERING_AUTHORITY_REQUIRED_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `OMP_REAL_CONSUMER_ACTIVATION_AUTHORITY_DECISION` |
 | `CURRENT_PROGRAM_STAGE` | `AEP_PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE` |
 | `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `OMP_REAL_CONSUMER_ACTIVATION` |
@@ -54,9 +54,9 @@ This section is the single live volatile current-state surface. Older production
 | `NEXT_MISSION_FORMED` | `FALSE` |
 | `NEXT_MISSION_ID` | `NONE` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
-| `CONTINUATION_ITERATION` | `12` |
+| `CONTINUATION_ITERATION` | `13` |
 | `CONTINUATION_STOP_REASON` | `NO_SAFE_ACTIVE_REAL_ENGINEERING_ENTRYPOINT; EXISTING_HEARTBEAT_PAUSED` |
-| `NO_PROGRESS_FINGERPRINT` | `af4da50bbf3c94917e1c74e92c57a533b9ac465470013fb48ff44792454fee64` |
+| `NO_PROGRESS_FINGERPRINT` | `82324a640c421f2448db7b099d58d4ed59a4fc1876fd2a2b8fd31e152c9d7dc2` |
 | `PROGRAM_RECONCILIATION_FOOTPRINT_CLASS` | `DEPLOYED_MANUALLY_CALLABLE_ONLY` |
 | `PROGRAM_RECONCILIATION_REAL_CALLERS` | `0` |
 | `PROGRAM_RECONCILIATION_TEST_CALLERS` | `3` |
@@ -65,20 +65,24 @@ This section is the single live volatile current-state surface. Older production
 | `AUTOMATION_ENABLED` | `FALSE` |
 | `AEP_PHASE_4_STATUS` | `IMPLEMENTED_MANUALLY_CALLABLE` |
 | `AEP_PHASE_5_STATUS` | `BLOCKED_MISSING_REAL_CONSUMER` |
+| `AEP_PHASE_6_STATUS` | `BLOCKED_BY_PHASE_5` |
+| `MISSION_COMPLETION_EVIDENCE_GATE` | `ACTIVE_V1` |
+| `CURRENT_COMPLETION_CONTRACT` | `INTEGRATION_COMPLETION` |
+| `CURRENT_COMPLETION_VERDICT` | `INTEGRATION_INCOMPLETE` |
 | `CURRENT_STATE_CONSISTENCY` | `PASS; section 0, registry, protected WIP and deterministic sequence share one generation and transition` |
 | `CURRENT_EXECUTION_MISSION_ID` | `NONE` |
 | `CURRENT_EXECUTION_MISSION_STATE` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_FUNCTIONAL_FOOTPRINT_AND_REAL_CONSUMER_ACTIVATION_V1` |
-| `LATEST_TERMINAL_RUN_NONCE` | `V7_OMP_FUNCTIONAL_FOOTPRINT_V1_6B2E9A4D17C8` |
-| `LATEST_TERMINAL_MISSION_STATE` | `OMP_FUNCTIONAL_FOOTPRINT_CORRECTED_NO_SAFE_ENTRYPOINT` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-14_172349_omp_functional_footprint_audit.md` |
-| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-14T17:23:49+0700` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_AEP_PHASE_3_INDEPENDENT_ACCEPTANCE_AND_LOCK_V1` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT_V1` |
+| `LATEST_TERMINAL_RUN_NONCE` | `V7_OMP_REAL_EFFECT_AUDIT_V1_94C7E2A16D5B` |
+| `LATEST_TERMINAL_MISSION_STATE` | `PHASE2_TO_CURRENT_AUDIT_CORRECTED_ENGINEERING_AUTHORITY_REQUIRED` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-14_215106_phase2_to_current_real_effect_audit.md` |
+| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-14T21:51:06+0700` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_FUNCTIONAL_FOOTPRINT_AND_REAL_CONSUMER_ACTIVATION_V1` |
 | `CURRENT_MISSION_ROLE` | `LATEST_TERMINAL_MISSION` |
-| `CURRENT_MISSION_ID` | `V7_OMP_FUNCTIONAL_FOOTPRINT_AND_REAL_CONSUMER_ACTIVATION_V1` |
-| `CURRENT_RUN_NONCE` | `V7_OMP_FUNCTIONAL_FOOTPRINT_V1_6B2E9A4D17C8` |
-| `CURRENT_MISSION_STATE` | `OMP_FUNCTIONAL_FOOTPRINT_CORRECTED_NO_SAFE_ENTRYPOINT` |
-| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-14_172349_omp_functional_footprint_audit.md` |
+| `CURRENT_MISSION_ID` | `V7_OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT_V1` |
+| `CURRENT_RUN_NONCE` | `V7_OMP_REAL_EFFECT_AUDIT_V1_94C7E2A16D5B` |
+| `CURRENT_MISSION_STATE` | `PHASE2_TO_CURRENT_AUDIT_CORRECTED_ENGINEERING_AUTHORITY_REQUIRED` |
+| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-14_215106_phase2_to_current_real_effect_audit.md` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `AUTHORITATIVE_TRANSITION_INPUT_STATE` | `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED` |
 | `AUTHORITATIVE_TRANSITION_INPUT_REPORT` | `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` |
@@ -211,8 +215,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_OMP_FOOTPRINT_V1_6B2E9A4D17C8` |
-| `CURRENT_TRANSITION_ID` | `OMP_FUNCTIONAL_FOOTPRINT_CORRECTED_NO_SAFE_ENTRYPOINT_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_OMP_REAL_EFFECT_AUDIT_V1_94C7E2A16D5B` |
+| `CURRENT_TRANSITION_ID` | `PHASE2_TO_CURRENT_AUDIT_CORRECTED_ENGINEERING_AUTHORITY_REQUIRED_V1` |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `OMP_REAL_CONSUMER_ACTIVATION_AUTHORITY_DECISION` |
 | `CURRENT_STOP_CONDITION` | `ENGINEERING_AUTHORITY` |
 | `CAPABILITIES_INVENTORIED` | `34` |
@@ -221,10 +225,10 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `OPEN_ENGINEERING_INTENTS` | `21` |
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
 | `ACTIVE_MISSIONS` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_FUNCTIONAL_FOOTPRINT_AND_REAL_CONSUMER_ACTIVATION_V1` |
-| `LATEST_TERMINAL_MISSION_STATE` | `OMP_FUNCTIONAL_FOOTPRINT_CORRECTED_NO_SAFE_ENTRYPOINT` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-14_172349_omp_functional_footprint_audit.md` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_AEP_PHASE_3_INDEPENDENT_ACCEPTANCE_AND_LOCK_V1` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT_V1` |
+| `LATEST_TERMINAL_MISSION_STATE` | `PHASE2_TO_CURRENT_AUDIT_CORRECTED_ENGINEERING_AUTHORITY_REQUIRED` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-14_215106_phase2_to_current_real_effect_audit.md` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_FUNCTIONAL_FOOTPRINT_AND_REAL_CONSUMER_ACTIVATION_V1` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `OPEN_CANDIDATE_IDS` | `NONE`; all observed packet previews are evidence only and discarded without Authority. |
 | `PRIOR_BDP_CANDIDATES` | `25` certified instances are terminal historical ladder evidence, not open work |
@@ -242,14 +246,14 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_V7_OMP_FOOTPRINT_V1_6B2E9A4D17C8` |
-| `current_transition_id` | `OMP_FUNCTIONAL_FOOTPRINT_CORRECTED_NO_SAFE_ENTRYPOINT_V1` |
+| `current_state_generation` | `cpsgen_V7_OMP_REAL_EFFECT_AUDIT_V1_94C7E2A16D5B` |
+| `current_transition_id` | `PHASE2_TO_CURRENT_AUDIT_CORRECTED_ENGINEERING_AUTHORITY_REQUIRED_V1` |
 | `smallest_existing_next_action_id` | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
-| `latest_terminal_mission_id` | `V7_OMP_FUNCTIONAL_FOOTPRINT_AND_REAL_CONSUMER_ACTIVATION_V1` |
-| `latest_terminal_mission_state` | `OMP_FUNCTIONAL_FOOTPRINT_CORRECTED_NO_SAFE_ENTRYPOINT` |
-| `previous_terminal_mission_id` | `V7_AEP_PHASE_3_INDEPENDENT_ACCEPTANCE_AND_LOCK_V1` |
+| `latest_terminal_mission_id` | `V7_OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT_V1` |
+| `latest_terminal_mission_state` | `PHASE2_TO_CURRENT_AUDIT_CORRECTED_ENGINEERING_AUTHORITY_REQUIRED` |
+| `previous_terminal_mission_id` | `V7_OMP_FUNCTIONAL_FOOTPRINT_AND_REAL_CONSUMER_ACTIVATION_V1` |
 | `authoritative_transition_input_mission_id` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `candidate_id` | `NOT_APPLICABLE; CAP-U07 consumes accepted U01 outcome evidence and creates no routing Candidate` |
 | `protected_by_active_wip` | `TRUE` |
@@ -329,7 +333,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `AEP_PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE` program frontier; `cpsgen_V7_OMP_FOOTPRINT_V1_6B2E9A4D17C8`; `OMP_FUNCTIONAL_FOOTPRINT_CORRECTED_NO_SAFE_ENTRYPOINT_V1` | Phase 3 is accepted and locked; Phase 4 implementation exists and is deployed but has zero real non-test callers; heartbeat is owner-backed but PAUSED | `OMP_REAL_CONSUMER_ACTIVATION_AUTHORITY_DECISION` | existing OMP, CPS, Codex Automation Platform and heartbeat boundary owners | `ENGINEERING_AUTHORITY` | explicit heartbeat enablement authority or a future owner-backed engineering event hook -> one real consumer cycle; otherwise remain fail-closed |
+| `1` | `AEP_PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE` program frontier; `cpsgen_V7_OMP_REAL_EFFECT_AUDIT_V1_94C7E2A16D5B`; `PHASE2_TO_CURRENT_AUDIT_CORRECTED_ENGINEERING_AUTHORITY_REQUIRED_V1` | Phase 3 is accepted and locked; Phase 4 implementation exists and is deployed but has zero real non-test callers; heartbeat is owner-backed but PAUSED | `OMP_REAL_CONSUMER_ACTIVATION_AUTHORITY_DECISION` | existing OMP, CPS, Codex Automation Platform and heartbeat boundary owners | `ENGINEERING_AUTHORITY` | explicit heartbeat enablement authority or a future owner-backed engineering event hook -> one real consumer cycle; otherwise remain fail-closed |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |

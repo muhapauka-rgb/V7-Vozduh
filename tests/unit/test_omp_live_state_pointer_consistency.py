@@ -70,7 +70,7 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
         self.assertIn("omp_current_next_action_divergence", self.validate(drift)["omp_contradiction_ids"])
 
     def test_08_latest_consumed_report_mismatch_fails(self):
-        drift = self.omp.replace("docs/reports/engineering/2026-07-14_172349_omp_functional_footprint_audit.md", "docs/reports/engineering/stale.md")
+        drift = self.omp.replace("docs/reports/engineering/2026-07-14_215106_phase2_to_current_real_effect_audit.md", "docs/reports/engineering/stale.md")
         self.assertEqual(self.validate(drift)["omp_report_pointer_consistency"], "FAIL")
 
     def test_09_historical_section_cannot_create_mission(self):

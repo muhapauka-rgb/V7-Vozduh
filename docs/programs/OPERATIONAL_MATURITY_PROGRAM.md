@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.24`
+Version: `4.25`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -13,8 +13,8 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed closure evidence: `docs/reports/engineering/2026-07-14_172349_omp_functional_footprint_audit.md` (`OMP_FUNCTIONAL_FOOTPRINT_CORRECTED_NO_SAFE_ENTRYPOINT`).
-Previous consumed closure evidence: `docs/reports/engineering/2026-07-14_161705_aep_phase_3_acceptance_to_phase_5_continuation.md` (`SUPERSEDED_COMPLETION_CLAIMS; implementation evidence retained`).
+Latest consumed closure evidence: `docs/reports/engineering/2026-07-14_215106_phase2_to_current_real_effect_audit.md` (`PHASE2_TO_CURRENT_AUDIT_CORRECTED_ENGINEERING_AUTHORITY_REQUIRED`).
+Previous consumed closure evidence: `docs/reports/engineering/2026-07-14_172349_omp_functional_footprint_audit.md` (`OMP_FUNCTIONAL_FOOTPRINT_CORRECTED_NO_SAFE_ENTRYPOINT`; retained current-footprint evidence).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -33,6 +33,8 @@ V4.22 adds capability-closure reconciliation inside existing OMP Capability Mana
 V4.23 adds program execution and consumption reconciliation inside existing OMP continuation. A canonical program is complete only after every mandatory stage produced a valid output, independent acceptance and lock requirements passed, the required consumer confirmed consumption, the next state/output was produced, and terminal evidence exists. Document labels, organized/ready status, backlog completion, isolated tests, reports or partial mechanism reuse never prove program completion. A global `REAL_WORLD_LIMIT` is illegal while an independent safe program stage is READY, in progress, awaiting acceptance or awaiting consumer confirmation. CPS remains the sole volatile program-frontier owner.
 
 V4.24 adds Functional Footprint and Real Consumer Activation enforcement inside the same OMP continuation owner. Implemented, tested, deployed, documented or manually callable code is not automation. `COMPLETE_CONSUMED` requires a real non-test trigger, an active owner-correct entrypoint, actual invocation, consumer behavior change and a next output. Manual `Continue OMP` remains `CODEX_ASSISTED`; it is not independent engineering automation. A paused heartbeat, inactive adapter or unrelated production timer cannot satisfy the consumer contract. Activation remains fail-closed at the existing Engineering Authority boundary.
+
+V4.25 adds the Mission Completion Evidence Gate inside existing OMP, Engineering Intent Closure, State Transition and truth/convergence owners. Every Mission declares one typed completion contract before promotion. Analysis, Discovery, Acceptance and Documentation may close at their exact legal evidence terminal; Implementation remains `IMPLEMENTED_NOT_CONSUMED` until consumption; Integration requires a real non-test caller, consumer, behavior change and next output; Automation additionally requires an independent trigger plus idempotency; Runtime and Production require their own live effects and verification. Tests, reports, deployment and manual Codex runs cannot promote a stronger class. `tools/v7-truth-check` consumes the validator through existing CPS functional-footprint consistency.
 
 V4 operating questions:
 
@@ -4983,6 +4985,25 @@ Stage 2 Locked Knowledge
 
 Any safe incomplete program stage enters the existing OMP execution frontier and preempts capability-local waits without erasing or reordering protected capability WIP. Broken output consumption is routed through existing owners; BDP is invoked only when fresh discovery is required. Global `REAL_WORLD_LIMIT` is legal only when no independent program stage is ready, in progress, acceptance-ready, or safely consumer-repairable. CPS is the sole volatile owner of the current program stage and program execution frontier. No parallel program registry, roadmap, backlog, queue, scheduler, Planner, Runtime, owner, lifecycle or truth source is created.
 
+#### Mission Completion Evidence Gate
+
+Status: `ACTIVE_EXISTING_OWNER_INTEGRATION`.
+
+Before OMP, AEP, BDP, CPS or a capability owner promotes a Mission to `COMPLETE`, `COMPLETE_CONSUMED`, `LOCKED`, `AUTOMATION_ACTIVE`, `PHASE_COMPLETE`, `CAPABILITY_COMPLETE` or `PROGRAM_TERMINAL`, the Mission must declare one primary contract: `ANALYSIS_COMPLETION`, `DISCOVERY_COMPLETION`, `ACCEPTANCE_COMPLETION`, `DOCUMENTATION_COMPLETION`, `IMPLEMENTATION_COMPLETION`, `INTEGRATION_COMPLETION`, `AUTOMATION_COMPLETION`, `RUNTIME_COMPLETION` or `PRODUCTION_COMPLETION`.
+
+The machine-checkable owner is `tools/v7_sync_lib.py::mission_completion_evidence_gate`, consumed by `omp_functional_footprint_consistency` and the existing `v7-truth-check` CPS path. It checks applicable real caller, consumer, behavior change, next output, deployment, Runtime, Production and legal-terminal evidence. Missing evidence fails closed to `PREPARED_NOT_CONSUMED`, `IMPLEMENTED_NOT_CONSUMED`, `INTEGRATION_INCOMPLETE`, `AUTOMATION_INCOMPLETE`, `RUNTIME_INCOMPLETE`, `PRODUCTION_INCOMPLETE` or `COMPLETION_TRUTH_UNRESOLVED`.
+
+Forbidden direct promotions:
+
+```text
+TESTS_PASS -> COMPLETE_CONSUMED
+DEPLOYED -> AUTOMATION_ACTIVE
+REPORT_CREATED -> CONSUMER_CONFIRMED
+MANUAL_CODEX_RUN -> SELF_CONTINUATION_ACTIVE
+```
+
+Acceptance and lock are not demoted for lacking Runtime effect when Runtime is outside their declared contract. An exact owner-backed legal terminal may close a Mission without implementation, but cannot claim a stronger effect class. Reports remain historical evidence; current caller and consumer truth wins. No new engine, owner, lifecycle, registry, queue, scheduler, Runtime, Planner or truth source is created.
+
 Historical capability baseline (non-authoritative; retained for provenance only):
 
 This baseline records the state when Capability Management was introduced. It has `scheduling_authority=NONE`, must not be read as current `IN_PROGRESS` state, and cannot override the CPS Authoritative Unfinished Capability Closure Registry.
@@ -8743,8 +8764,8 @@ Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `ENGINEERING_AUTHORITY`
 Resolved current next action: `OMP_REAL_CONSUMER_ACTIVATION_AUTHORITY_DECISION`
-Latest consumed report: `docs/reports/engineering/2026-07-14_172349_omp_functional_footprint_audit.md`
-Previous consumed report: `docs/reports/engineering/2026-07-14_161705_aep_phase_3_acceptance_to_phase_5_continuation.md` (`SUPERSEDED_COMPLETION_CLAIMS`)
+Latest consumed report: `docs/reports/engineering/2026-07-14_215106_phase2_to_current_real_effect_audit.md`
+Previous consumed report: `docs/reports/engineering/2026-07-14_172349_omp_functional_footprint_audit.md` (`OMP_FUNCTIONAL_FOOTPRINT_CORRECTED_NO_SAFE_ENTRYPOINT`)
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

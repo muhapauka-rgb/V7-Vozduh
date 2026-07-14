@@ -1,0 +1,143 @@
+{
+  "schema": "v7-omp-phase2-current-completion-ledger/v1",
+  "mission_id": "V7_OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT_V1",
+  "run_nonce": "V7_OMP_REAL_EFFECT_AUDIT_V1_94C7E2A16D5B",
+  "audit_start": {
+    "commit": "39f69b156cfb22e963d63b21d919d11a04637db1",
+    "phase_2_lock_id": "aep2lock_128691e74c0b2087e1ffb0fc",
+    "phase_2_lock_fingerprint": "128691e74c0b2087e1ffb0fc26c64d6425ef68ec46af79a747f60bae28a73951"
+  },
+  "audit_end": {
+    "commit": "54e5f80c2011a8a1a77f1228b17fd67984b2b0f6",
+    "cps_generation": "cpsgen_V7_OMP_FOOTPRINT_V1_6B2E9A4D17C8"
+  },
+  "inventory": {
+    "missions_audited": 7,
+    "commits_audited": 7,
+    "reports_audited": 14,
+    "files_changed_in_window": 31
+  },
+  "missions": [
+    {
+      "mission_id": "V7_AEP_PHASE_2_INDEPENDENT_ACCEPTANCE_AND_LOCK_V1",
+      "run_nonce": "V7_AEP_PHASE_2_ACCEPTANCE_LOCK_V1_8E4B17C29D6A",
+      "primary_type": "ACCEPTANCE",
+      "engineering_intent": "independently accept and lock current autonomous behaviour reality and unlock Phase 3",
+      "commit": "39f69b156cfb22e963d63b21d919d11a04637db1",
+      "expected_chain": "accepted Phase 2 artifact -> independent acceptance -> lock -> Phase 3 input",
+      "actual_chain": "accepted artifact -> acceptance PASS -> lock -> Phase 3 Mission formed",
+      "old_verdict": "AEP_PHASE_2_ACCEPTED_LOCKED_PHASE_3_READY",
+      "new_verdict": "COMPLETE_WITH_LEGAL_TERMINAL",
+      "changed": false,
+      "runtime_effect": false,
+      "production_effect": false,
+      "legal_terminal": "PHASE_3_CONSUMER_UNLOCKED"
+    },
+    {
+      "mission_id": "V7_AEP_PHASE_3_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER_V1",
+      "run_nonce": "V7_AEP_PHASE_3_GAP_REGISTER_V1_4C9E71A25B8D",
+      "primary_type": "DISCOVERY",
+      "engineering_intent": "certify current autonomous behaviour gaps and produce consumer-ready Candidate evidence",
+      "commit": "2a5d0fe947be66e9362da73a8a1df0d372ac1dcb",
+      "expected_chain": "Phase 2 lock -> gap certification -> register -> independent acceptance",
+      "actual_chain": "Phase 2 lock consumed -> one gap and Candidate produced -> acceptance Mission formed",
+      "old_verdict": "AEP_PHASE_3_READY_FOR_INDEPENDENT_ACCEPTANCE",
+      "new_verdict": "COMPLETE_WITH_LEGAL_TERMINAL",
+      "changed": false,
+      "runtime_effect": false,
+      "production_effect": false,
+      "legal_terminal": "INDEPENDENT_ACCEPTANCE_REQUIRED"
+    },
+    {
+      "mission_id": "V7_AEP_PHASE_3_INDEPENDENT_ACCEPTANCE_AND_LOCK_V1",
+      "run_nonce": "V7_AEP_PHASE_3_ACCEPTANCE_LOCK_V1_6D4A83B7E219",
+      "primary_type": "ACCEPTANCE",
+      "engineering_intent": "independently accept and lock Phase 3 register and admit its Candidate",
+      "commit": "b0e5721502bb643ead48d44e1b891343cfa50b78",
+      "expected_chain": "register -> acceptance -> lock -> OMP admission",
+      "actual_chain": "register accepted and locked -> Candidate admitted -> child implementation Mission created",
+      "old_verdict": "PASS",
+      "new_verdict": "COMPLETE_WITH_LEGAL_TERMINAL",
+      "changed": false,
+      "runtime_effect": false,
+      "production_effect": false,
+      "legal_terminal": "OMP_CANDIDATE_ADMITTED"
+    },
+    {
+      "mission_id": "V7_OMP_PHASE_3_TO_PHASE_4_PROGRAM_CONSUMER_EXTENSION_V1",
+      "run_nonce": "DERIVED_CHILD_MISSION_IDENTITY_IN_PARENT_REPORT",
+      "primary_type": "INTEGRATION",
+      "engineering_intent": "connect accepted Phase 3 output to a real OMP consumer and produce the next program output",
+      "commit": "b0e5721502bb643ead48d44e1b891343cfa50b78",
+      "expected_chain": "real trigger -> entrypoint -> program reconciliation -> OMP consumer behavior -> next output",
+      "actual_chain": "source implemented -> tests -> deploy -> manual Codex calls only; zero real non-test callers",
+      "old_verdict": "COMPLETE_VERIFIED/COMPLETE_CONSUMED",
+      "new_verdict": "INTEGRATION_INCOMPLETE",
+      "changed": true,
+      "missing_evidence": ["REAL_CALLER_PROVEN", "CONSUMER_PROVEN", "BEHAVIOR_CHANGE_PROVEN", "NEXT_OUTPUT_PROVEN"],
+      "root_causes": ["MANUAL_CODEX_CALL_TREATED_AS_AUTOMATION", "TEST_CALLER_TREATED_AS_REAL_CALLER", "NAMED_CONSUMER_WITHOUT_INVOCATION"],
+      "repair_id": "REPAIR-REAL-CONSUMER-ACTIVATION",
+      "legal_terminal": "ENGINEERING_AUTHORITY"
+    },
+    {
+      "mission_id": "V7_OMP_FUNCTIONAL_FOOTPRINT_AND_REAL_CONSUMER_ACTIVATION_V1",
+      "run_nonce": "V7_OMP_FUNCTIONAL_FOOTPRINT_V1_6B2E9A4D17C8",
+      "primary_type": "STATE_RECONCILIATION",
+      "engineering_intent": "replace claimed completion with actual caller/consumer truth",
+      "commit": "da31b4172bd4a5ea8bc5ca0ce627f3703f5f913f",
+      "expected_chain": "call-site audit -> current-state correction -> truth-check enforcement -> exact next boundary",
+      "actual_chain": "zero real callers proven -> Phase 4/5 corrected -> truth-check consumes footprint validator -> Engineering Authority boundary",
+      "old_verdict": "OMP_FUNCTIONAL_FOOTPRINT_CORRECTED_NO_SAFE_ENTRYPOINT",
+      "new_verdict": "COMPLETE_CONSUMED",
+      "changed": false,
+      "runtime_effect": false,
+      "production_effect": false,
+      "legal_terminal": "ENGINEERING_AUTHORITY"
+    },
+    {
+      "mission_id": "V7_OMP_EXTERNAL_REENTRY_HEARTBEAT_END_TO_END_VERIFICATION_V1",
+      "run_nonce": "V7_OMP_HEARTBEAT_E2E_VERIFICATION_V1_7A4D2E91C6B8",
+      "primary_type": "VERIFICATION",
+      "engineering_intent": "observe one real scheduled heartbeat and prove or reject E2E reentry",
+      "commit": "54e5f80c2011a8a1a77f1228b17fd67984b2b0f6",
+      "expected_chain": "scheduled trigger -> adapter -> reconciliation -> consumer -> next output",
+      "actual_chain": "automation PAUSED; zero run records; no scheduled trigger",
+      "old_verdict": "HEARTBEAT_DISABLED_OR_NOT_RUNNING",
+      "new_verdict": "COMPLETE_WITH_LEGAL_TERMINAL",
+      "changed": false,
+      "automation_effect": false,
+      "runtime_effect": false,
+      "production_effect": false,
+      "legal_terminal": "ENGINEERING_AUTHORITY"
+    },
+    {
+      "mission_id": "V7_OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT_V1",
+      "run_nonce": "V7_OMP_REAL_EFFECT_AUDIT_V1_94C7E2A16D5B",
+      "primary_type": "MIXED_WITH_PRIMARY_TYPE_ANALYSIS",
+      "engineering_intent": "reconcile all completion claims and activate a permanent typed evidence gate",
+      "commit": "PENDING_PUBLICATION",
+      "expected_chain": "audit -> typed gate -> truth-check consumer -> deterministic replay -> repair frontier",
+      "actual_chain": "audit complete -> typed gate connected to functional-footprint truth path -> replay complete -> real consumer activation held at authority",
+      "old_verdict": "NOT_APPLICABLE_NEW_MISSION",
+      "new_verdict": "COMPLETE_CONSUMED_PENDING_DEPLOY_CERTIFICATION",
+      "changed": true,
+      "runtime_effect": false,
+      "production_effect": false,
+      "legal_terminal": "ENGINEERING_AUTHORITY"
+    }
+  ],
+  "current_footprints": [
+    {"object": "program_execution_reconciliation", "real_callers": 0, "test_callers": 3, "class": "IMPLEMENTED_MANUALLY_CALLABLE", "necessity": "REQUIRED_BUT_NOT_CONSUMED"},
+    {"object": "capability_closure_reconciliation", "real_callers": 0, "test_callers": 1, "class": "REQUIRED_MANUAL_TOOL", "necessity": "REQUIRED_MANUAL_TOOL"},
+    {"object": "bounded_proactive_engineering_polygon_run", "real_callers": 0, "test_callers": 36, "class": "REQUIRED_MANUAL_TOOL", "necessity": "REQUIRED_MANUAL_TOOL"},
+    {"object": "heartbeat_boundary_dry_run", "real_callers": 0, "test_callers": 1, "class": "PREPARED_NOT_CONSUMED", "necessity": "REQUIRED_FUTURE_DEPENDENCY"},
+    {"object": "bdp_development_impulse_from_cps", "real_callers": 2, "test_callers": 3, "class": "CODEX_ASSISTED_CONSUMED", "necessity": "REQUIRED_AND_CONSUMED"},
+    {"object": "current_engineering_polygon_scenario_supply", "real_callers": 1, "test_callers": 2, "class": "CODEX_ASSISTED_CONSUMED", "necessity": "REQUIRED_AND_CONSUMED"},
+    {"object": "omp_self_continuation_consistency", "real_callers": 1, "test_callers": 6, "class": "REAL_ENGINEERING_ENTRYPOINT_CONSUMED", "necessity": "REQUIRED_AND_CONSUMED"},
+    {"object": "mission_completion_evidence_gate", "real_callers": 1, "class": "REAL_ENGINEERING_ENTRYPOINT_CONSUMED", "necessity": "REQUIRED_AND_CONSUMED"}
+  ],
+  "repairs": [
+    {"repair_id": "REPAIR-COMPLETION-EVIDENCE-GATE", "safe_to_execute": true, "selected": true, "status": "IMPLEMENTED_PENDING_DEPLOY_CERTIFICATION", "existing_owner": "OMP + truth/convergence"},
+    {"repair_id": "REPAIR-REAL-CONSUMER-ACTIVATION", "safe_to_execute": false, "selected": false, "status": "HELD_ENGINEERING_AUTHORITY", "existing_owner": "OMP + Codex Automation Platform + heartbeat boundary"}
+  ]
+}

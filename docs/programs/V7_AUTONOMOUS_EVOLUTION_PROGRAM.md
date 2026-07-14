@@ -3,6 +3,7 @@
 Status: `ORGANIZED`
 Document status: `ORGANIZED`
 Execution status: `PHASE_3_ACCEPTED_LOCKED_PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE_PHASE_5_BLOCKED_REAL_CONSUMER`
+Completion evidence status: `INTEGRATION_INCOMPLETE`; Phase 6 remains `BLOCKED_BY_PHASE_5`; evaluated by OMP Mission Completion Evidence Gate through current truth-check.
 Current program state: `GAP_READY; REAL_CONSUMER_ACTIVATION_REQUIRES_ENGINEERING_AUTHORITY`
 Current execution evidence: `docs/reports/engineering/2026-07-14_172349_omp_functional_footprint_audit.md`
 Current acceptance state: `PHASE_3_ACCEPTED_LOCKED; aep3lock_f4e40b34f14e2743819e3a2e`

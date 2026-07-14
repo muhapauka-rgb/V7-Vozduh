@@ -2216,6 +2216,7 @@ Related ADR: `docs/decisions/ADR-FUTURE-EVIDENCE-INDEX-AND-FRESHNESS-MODEL.md`.
 - Consumer state: Candidate passed existing OMP admission and Mission `V7_OMP_PHASE_3_TO_PHASE_4_PROGRAM_CONSUMER_EXTENSION_V1` extended the existing reconciliation implementation, but call-site audit found zero real non-test callers. Phase 4 is `IMPLEMENTED_MANUALLY_CALLABLE`; Phase 5 and Phase 6 remain blocked until a real owner-correct entrypoint invokes reconciliation, changes consumer behavior and produces the next output. Manual `Continue OMP` is `CODEX_ASSISTED`, not independent automation.
 - Safety boundary: this lock grants no Runtime apply, production mutation, authority expansion, packet execution or user movement and does not change Production Maturity.
 - Re-open rule: consumer regression, Candidate identity drift, stale or mismatched lock, new current evidence changing gap identity, or an orphan Phase 4 output; supersession requires a new accepted owner-backed artifact.
+- Completion truth: OMP V4.25 requires a typed Mission Completion Evidence Contract. Implementation, Integration, Automation, Runtime and Production are distinct effect classes. Tests, reports, deployment or manual Codex invocation cannot promote a stronger class. Current Phase 4 remains `IMPLEMENTED_MANUALLY_CALLABLE`; Phase 5 is `BLOCKED_MISSING_REAL_CONSUMER`; Phase 6 is blocked by Phase 5. The machine gate is consumed by existing truth/convergence owners.
 
 ## 29. Runtime Capability Maturation Program / RT Phase 2
 

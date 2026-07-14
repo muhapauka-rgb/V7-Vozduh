@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.22`
+Version: `4.23`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -13,8 +13,8 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed closure evidence: `docs/reports/engineering/2026-07-12_200149_cap_u07_learning_outcome_consumption.md` (`CAP_U07_LEARNING_OUTCOME_CONSUMED_REAL_WORLD_LIMIT`).
-Previous consumed closure evidence: `docs/reports/engineering/2026-07-12_193308_dependency_graph_completion_order_protection.md` (`OMP_DEPENDENCY_GRAPH_COMPLETION_ORDER_CERTIFIED`).
+Latest consumed closure evidence: `docs/reports/engineering/2026-07-14_093039_program_execution_and_consumption_reconciliation.md` (`PROGRAM_EXECUTION_RECONCILIATION_FOUND_ACCEPTANCE_BOUNDARY`).
+Previous consumed closure evidence: `docs/reports/engineering/2026-07-12_200149_cap_u07_learning_outcome_consumption.md` (`CAP_U07_LEARNING_OUTCOME_CONSUMED_REAL_WORLD_LIMIT`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -29,6 +29,8 @@ V4.20 connects bounded proactive verification inputs from existing test, replay,
 V4.21 replaces finite seed exhaustion with deterministic Engineering Polygon corpus discovery and fallback continuation inside the same existing owners. The bounded consumer projects safe executable verification obligations from the current mapped owner corpus, fingerprints source, fixture, contract, owner implementation and dependencies, revalidates stale coverage, and continues serially until failure, budget boundary or proven full-current-corpus exhaustion. Budget exhaustion preserves the exact next input and is never a `REAL_WORLD_LIMIT`. This adds no corpus registry, test engine, queue, scheduler, owner, Runtime, Planner, lifecycle, truth source or backlog.
 
 V4.22 adds capability-closure reconciliation inside existing OMP Capability Management. `IMPLEMENTATION_COMPLETE` and a global `REAL_WORLD_LIMIT` are legal only after every current unfinished capability criterion is owner-classified and no safe executable engineering criterion remains. Actionable backlog completion proves implementation-scope closure only; it never proves output consumption, behavior change, intent closure, capability certification or production maturity. Capability-local real-world, authority and dependency waits cannot stop independent READY engineering work. CPS remains the sole volatile capability-state owner.
+
+V4.23 adds program execution and consumption reconciliation inside existing OMP continuation. A canonical program is complete only after every mandatory stage produced a valid output, independent acceptance and lock requirements passed, the required consumer confirmed consumption, the next state/output was produced, and terminal evidence exists. Document labels, organized/ready status, backlog completion, isolated tests, reports or partial mechanism reuse never prove program completion. A global `REAL_WORLD_LIMIT` is illegal while an independent safe program stage is READY, in progress, awaiting acceptance or awaiting consumer confirmation. CPS remains the sole volatile program-frontier owner.
 
 V4 operating questions:
 
@@ -4951,6 +4953,32 @@ Scheduling authority: CPS-derived READY frontier consumed by OMP
 Historical OMP capability tables: context only; no current-state or scheduling authority
 ```
 
+#### Program Execution And Consumption Reconciliation Rule
+
+Status: `CANONICAL_EXISTING_OWNER_INTEGRATION`.
+
+Before OMP accepts a program completion claim, `IMPLEMENTATION_COMPLETE`, `GLOBAL_ENGINEERING_TERMINAL` or a global `REAL_WORLD_LIMIT`, it must reconcile every current canonical program and mandatory stage against the program's existing execution owner, state owner, acceptance owner, required outputs, required consumers, state transition and legal terminal evidence.
+
+Program document status and program execution status are separate. `ORGANIZED`, `READY`, `CANONICAL`, `ACTIVE`, an existing report, an implemented adapter, isolated tests or a completed implementation backlog do not prove that a program was activated, executed, accepted, consumed or terminally closed. A program file cannot certify its own execution merely by declaring a status.
+
+Every mandatory stage must resolve to exactly one current execution state: not activated; ready; in progress; output missing; ready for acceptance; acceptance missing; consumer missing; consumption unconfirmed; complete and consumed; blocked by a real-world, Authority or dependency boundary; not applicable; superseded; or unknown with reason. A stage is complete only when its entry conditions passed, required output exists and validates, independent acceptance/lock obligations passed, the named consumer confirmed consumption, the state transition completed and the next output or legal terminal alternative exists.
+
+Program-level producer/consumer closure follows the existing route:
+
+```text
+Stage 2 Locked Knowledge
+  -> AEP Foundation / accepted ideal model
+  -> Current Autonomous Behaviour Reality through existing BDP discovery
+  -> Certified Autonomous Behaviour Gap Register
+  -> OMP Mission Generation and Admission
+  -> existing-owner Implementation and Verification
+  -> Production Certification and Production Maturity
+  -> CPS
+  -> AEP continuous evolution / OMP continuation
+```
+
+Any safe incomplete program stage enters the existing OMP execution frontier and preempts capability-local waits without erasing or reordering protected capability WIP. Broken output consumption is routed through existing owners; BDP is invoked only when fresh discovery is required. Global `REAL_WORLD_LIMIT` is legal only when no independent program stage is ready, in progress, acceptance-ready, or safely consumer-repairable. CPS is the sole volatile owner of the current program stage and program execution frontier. No parallel program registry, roadmap, backlog, queue, scheduler, Planner, Runtime, owner, lifecycle or truth source is created.
+
 Historical capability baseline (non-authoritative; retained for provenance only):
 
 This baseline records the state when Capability Management was introduced. It has `scheduling_authority=NONE`, must not be read as current `IN_PROGRESS` state, and cannot override the CPS Authoritative Unfinished Capability Closure Registry.
@@ -7721,8 +7749,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `REAL_WORLD_LIMIT`
-Resolved current next action: `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES`
+Resolved current stop: `ENGINEERING_AUTHORITY`
+Resolved current next action: `AEP_PHASE_2_ACCEPTANCE`
 Resolved packet: `NONE_OPEN`
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -8709,10 +8737,10 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `REAL_WORLD_LIMIT`
-Resolved current next action: `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES`
-Latest consumed report: `docs/reports/engineering/2026-07-12_200149_cap_u07_learning_outcome_consumption.md`
-Previous consumed report: `docs/reports/engineering/2026-07-12_193308_dependency_graph_completion_order_protection.md`
+Resolved current stop: `ENGINEERING_AUTHORITY`
+Resolved current next action: `AEP_PHASE_2_ACCEPTANCE`
+Latest consumed report: `docs/reports/engineering/2026-07-14_093039_program_execution_and_consumption_reconciliation.md`
+Previous consumed report: `docs/reports/engineering/2026-07-12_200149_cap_u07_learning_outcome_consumption.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

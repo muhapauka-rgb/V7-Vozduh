@@ -1,9 +1,138 @@
 # V7 Current Autonomous Behaviour Reality
 
-Status: `PHASE_2_REALITY_REPORT`
+Status: `PHASE_2_REVALIDATED_READY_FOR_ACCEPTANCE`
 Program: `docs/programs/V7_AUTONOMOUS_EVOLUTION_PROGRAM.md`
 Phase: `Phase 2 - Current Autonomous Behaviour Reality`
-Date: `2026-07-08`
+Original execution date: `2026-07-08`
+Current revalidation date: `2026-07-14`
+
+## 0. Current Revalidation And Acceptance Boundary
+
+This existing Phase 2 artifact was revalidated through the existing AEP, BDP, OMP, CPS, source, test, truth and convergence owners after program-level execution reconciliation proved that the original output had never passed independent Phase Acceptance and Phase Lock.
+
+Current stage state:
+
+```text
+PHASE_2_EXECUTION = COMPLETE_WITH_CURRENT_REVALIDATION
+PHASE_2_OUTPUT = COMPLETE_FOR_CURRENT_REPOSITORY_SCOPE
+PHASE_2_ACCEPTANCE = REQUIRED_NOT_PERFORMED
+PHASE_2_LOCK = NOT_PERFORMED
+PHASE_3 = BLOCKED_BY_PHASE_2_ACCEPTANCE
+```
+
+The July 8 evidence below remains the baseline. This section is the current delta and does not erase provenance. Current CPS, code, tests and accepted post-July-8 reports supersede stale point-in-time statements where they conflict.
+
+### 0.1 BDP Discovery Economy And Pass Disposition
+
+The current trigger is an accepted AEP Phase 2 freshness/revalidation need. Reuse was preferred before fresh discovery. No second Reality artifact, owner, registry, backlog, queue or roadmap was created.
+
+| BDP pass | Current disposition | Current evidence/output |
+| --- | --- | --- |
+| `BDP-P01` | `REUSED_AND_REFRESHED` | Current repository surface, canonical program set and changed files were re-enumerated by the program reconciliation Mission. |
+| `BDP-P02` | `REUSED_AND_REFRESHED` | Current implementation and tests confirm BDP handoff, OMP admission/continuation, capability reconciliation and governed execution contracts. |
+| `BDP-P03` | `REUSED_EVIDENCE` | Existing Function Graph remains an implementation map; current direct source/consumer checks override stale graph edges. |
+| `BDP-P04` | `REUSED_AND_REFRESHED` | CPS is current state owner; truth/convergence confirms live runtime linkage without Runtime mutation. |
+| `BDP-P05` | `REUSED_EVIDENCE` | Existing Decision Model, OMP admission and delegated-policy decisions remain current. |
+| `BDP-P06` | `REUSED_AND_REFRESHED` | Current unit, truth and convergence verification paths are available. |
+| `BDP-P07` | `REUSED_EVIDENCE` | Existing rollback/no-rollback and final-OPEN contracts remain current. |
+| `BDP-P08` | `REUSED_AND_REFRESHED` | CAP-U01 real outcome reached feedback/learning; CAP-U07 still waits for representative real outcomes. |
+| `BDP-P09` | `REUSED_EVIDENCE` | OMP 4.23, delegated policy and authority boundaries remain applicable. |
+| `BDP-P10` | `REUSED_AND_REFRESHED` | BDP development impulse -> OMP admission -> Mission/NO_ACTION consumption is now implemented and verified. |
+| `BDP-P11` | `REUSED_AND_REFRESHED` | Safe-deploy/runtime linkage and convergence evidence are current; no production action was performed by Phase 2. |
+| `BDP-P12` | `REUSED_AND_REFRESHED` | Accepted post-July-8 reports provide controlled-run, BDP, polygon, capability and program reconciliation evidence. |
+| `BDP-P13` | `REUSED_EVIDENCE` | Locked architecture/knowledge and canonical boundaries remain valid. |
+| `BDP-P14` | `REUSED_AND_REFRESHED` | One real governed CAP-U01 success exists; representative multi-outcome evidence remains unavailable. |
+| `BDP-P15` | `REUSED_AND_REFRESHED` | Automation readiness is bounded: read-only/engineering continuation is automated; production action remains policy/gate bounded. |
+| `BDP-P16` | `NOT_APPLICABLE_FOR_PHASE_2` | Phase 2 records current Reality and cannot create implementation work. |
+| `BDP-P17` | `NOT_APPLICABLE_FOR_PHASE_2` | Intent-gap certification belongs to Phase 3/OMP after accepted Reality. |
+| `BDP-P18` | `NOT_APPLICABLE_FOR_PHASE_2` | Canonical capability progress remains CPS/Production Maturity owned, not Phase 2 owned. |
+| `BDP-P19` | `REUSED_AND_REFRESHED` | Current engineering chains below preserve producer, consumer, verification, outcome and terminal state. |
+
+This bounded pass disposition satisfies the current Phase 2 revalidation scope. It does not claim that BDP has completed one formal exhaustive P01-P19 run for every project Behaviour or reached project-wide terminal status.
+
+### 0.2 Behaviour Instance Registry Delta
+
+| ID | Behaviour Instance | Current evidence | Producer -> consumer -> terminal state |
+| --- | --- | --- | --- |
+| `BI-023` | BDP Development Impulse consumption | Current BDP/OMP integration implementation and tests | Engineering state -> BDP handoff -> OMP admission -> Candidate/Mission or certified `NO_ACTION_REQUIRED`. |
+| `BI-024` | OMP Self-Continuation and external re-entry boundary | Heartbeat adapter, dependency-event and self-continuation contracts | Terminal output -> fresh CPS read -> dependency validation -> OMP admission or legal no-change/stop. |
+| `BI-025` | Governed single-user production transaction | CAP-U01 accepted outcome, execution/verification/learning records | fresh evidence -> delegated policy gates -> Runtime apply -> verification -> outcome -> learning -> CPS/OMP. |
+| `BI-026` | Capability closure reconciliation | OMP 4.22/4.23 and deterministic validator tests | backlog/capability evidence -> CPS owner classification -> READY frontier or legal local wait. |
+| `BI-027` | Engineering Polygon fallback continuation | scenario supply/fallback reports and tests | current mapped verification obligation -> bounded scenario -> verification -> coverage/no-action -> OMP continuation. |
+| `BI-028` | Program execution reconciliation | OMP 4.23 and current reconciliation evidence | program stage output -> acceptance -> consumer confirmation -> next stage or legal terminal boundary. |
+
+### 0.3 Behaviour Aggregation, Catalogue And Coverage Delta
+
+| Behaviour Definition | Aggregated instances | Current existence | Coverage |
+| --- | --- | --- | --- |
+| `BD-003 OMP Mission Routing And Continuation` | `BI-004`, `BI-005`, `BI-023`, `BI-024`, `BI-026`, `BI-028` | `OBSERVED_INDEPENDENT` | `FULL_FOR_CURRENT_ENGINEERING_CONTINUATION_SCOPE` |
+| `BD-007 Runtime Apply And Movement Guard` | `BI-012`, `BI-025` | `OBSERVED_INDEPENDENT_BOUNDED` | `FULL_FOR_CERTIFIED_SINGLE_USER_CLASS` |
+| `BD-010 Learning And Outcome Feedback` | `BI-015`, `BI-025` | `OBSERVED_INDEPENDENT_PARTIAL_EVIDENCE` | `PARTIAL_REPRESENTATIVE_OUTCOMES_UNAVAILABLE` |
+| `BD-002 Source Discovery And Reality Modeling` | `BI-003`, `BI-006`, `BI-027` | `OBSERVED_INDEPENDENT` | `FULL_FOR_CURRENT_MAPPED_ENGINEERING_CORPUS` |
+| `BD-016 Program Execution And Consumption Reconciliation` | `BI-028` | `OBSERVED_INDEPENDENT` | `CURRENT_ENGINEERING_SCOPE` |
+
+The prior validation's `HYPOTHESIZED` classification for generic OMP consumption and guarded Runtime execution is superseded only for the exact bounded chains now proven. It is not generalized to every owner, action class or rollback path.
+
+### 0.4 Current Behaviour Graph Delta
+
+```text
+Current engineering state
+  -> BDP development impulse / bounded discovery
+  -> OMP admission and Mission lifecycle
+  -> existing-owner implementation or certified no-action
+  -> verification and Engineering Report
+  -> CPS/OMP continuation
+
+Fresh governed candidate
+  -> delegated policy and live safety gates
+  -> bounded Runtime apply
+  -> verification / rollback-or-no-rollback
+  -> outcome / learning / Production Maturity
+  -> CPS / OMP
+
+Canonical program output
+  -> independent acceptance and lock
+  -> named next-stage consumer
+  -> next program stage
+```
+
+No edge grants Authority, changes architecture, creates a scheduler, or permits synthetic production evidence.
+
+### 0.5 Current Automation State And Manual Dependencies
+
+| Area | Current automation state | Remaining manual/external boundary |
+| --- | --- | --- |
+| BDP -> OMP development impulse | `AUTOMATED_EXISTING_OWNER_HANDOFF` | Candidate execution still requires normal OMP admission. |
+| OMP continuation | `AUTOMATED_INSIDE_CODEX_EXECUTION_CONTEXT` | External wake remains platform-bound and recurring automation is not implied. |
+| Governed Runtime apply | `BOUNDED_DELEGATED_POLICY` | Fresh evidence and every live gate remain mandatory. |
+| Capability/program reconciliation | `DETERMINISTIC_TOOL_SUPPORTED` | Independent program acceptance remains required where the program contract says so. |
+| Learning | `AUTOMATED_FROM_REAL_RECORDS` | Representative real outcomes cannot be synthesized. |
+| AEP Phase 2 acceptance | `MANUAL_INDEPENDENT_ACCEPTANCE_BOUNDARY` | Separate acceptance/lock decision required before Phase 3. |
+
+### 0.6 Current Evidence Map And Foundation Verification
+
+Current evidence owners consumed: locked Stage 2 knowledge; accepted AOS reuse; AEP and BDP contracts; OMP 4.23; CPS live state and capability registry; SYSTEM_MAP; current source/tests; accepted BDP/controlled-run/polygon/capability reports; Production Maturity; truth and convergence state.
+
+Foundation result:
+
+```text
+FOUNDATION_ALREADY_SYNCHRONIZED
+FOUNDATION_READY_WITH_MINOR_RISKS
+```
+
+Minor risks: BDP has no single exhaustive project-wide P01-P19 terminal run record; representative production outcomes remain unavailable; generic rollback execution is not generalized from no-rollback success; Phase 2 independent acceptance and lock are still absent.
+
+### 0.7 Revalidation Verdict
+
+```text
+PHASE_2_CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY_REVALIDATED
+PHASE_2_REVALIDATED_READY_FOR_ACCEPTANCE
+CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY_ACCEPTED = FALSE
+PHASE_LOCKED = FALSE
+NEXT_STAGE = INDEPENDENT_PHASE_2_ACCEPTANCE
+```
+
+This revalidation is execution evidence, not self-acceptance. Phase 3 remains blocked until the existing AEP acceptance owner returns `PHASE_ACCEPTED` or `PHASE_ACCEPTED_WITH_MINOR_RISKS` and records Phase Lock.
 
 ## 1. Reality Scope
 

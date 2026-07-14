@@ -24,8 +24,8 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         cls.lib = load_lib()
         cls.cps = CPS.read_text(encoding="utf-8")
         cls.omp = OMP.read_text(encoding="utf-8")
-        cls.latest = "V7_OMP_CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1"
-        cls.previous = "V7_OMP_DEPENDENCY_GRAPH_AND_COMPLETION_ORDER_PROTECTION_V1"
+        cls.latest = "V7_OMP_PROGRAM_EXECUTION_AND_CONSUMPTION_RECONCILIATION_V1"
+        cls.previous = "V7_OMP_CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1"
         cls.transition = "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3"
 
     def validate(self, cps=None, omp=None, root=ROOT):
@@ -80,7 +80,7 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         self.assertEqual(self.validate(drift)["cps_header_identity_consistency"], "FAIL")
 
     def test_09_header_timestamp_predates_latest_start_fails(self):
-        drift = self.cps.replace("State captured: 2026-07-12T20:01:49+0700", "State captured: 2026-07-12T02:00:00+0700", 1)
+        drift = self.cps.replace("State captured: 2026-07-14T09:30:39+0700", "State captured: 2026-07-12T02:00:00+0700", 1)
         self.assertEqual(self.validate(drift)["mission_timestamp_consistency"], "FAIL")
 
     def test_10_latest_report_header_id_mismatch_fails(self):
@@ -129,8 +129,8 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
 
     def test_19_operational_state_is_bounded_policy_active(self):
         live = self.lib._markdown_field_table(self.lib._markdown_section(self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry"))
-        self.assertEqual(live["CURRENT_STOP_CONDITION"].strip("`"), "REAL_WORLD_LIMIT")
-        self.assertEqual(live["CURRENT_ACTIVE_SCOPE"].strip("`"), "LEARNING_REPRESENTATIVE_OUTCOME_EVIDENCE")
+        self.assertEqual(live["CURRENT_STOP_CONDITION"].strip("`"), "ENGINEERING_AUTHORITY")
+        self.assertEqual(live["CURRENT_ACTIVE_SCOPE"].strip("`"), "AEP_PHASE_2_CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY_ACCEPTANCE")
         self.assertEqual(live["CURRENT_ACTION_CLASS_STATE"].strip("`"), "GOVERNED_ONLY")
 
     def test_20_no_candidate_packet_lease_barrier_apply_or_movement(self):
@@ -145,10 +145,10 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         self.assertIn("`CAP-U01`", result["cap_u01"])
         self.assertIn("`COMPLETE`", result["cap_u01"])
         self.assertIn("`CAP-U07`", result["active_capability"])
-        self.assertIn("`U07` Learning WAITING WIP", result["sequence_position_1"])
+        self.assertIn("`AEP Phase 2 independent acceptance`", result["sequence_position_1"])
 
     def test_22_current_stop_is_live_reality_only(self):
-        self.assertEqual(self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)["current_stop"], "REAL_WORLD_LIMIT")
+        self.assertEqual(self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)["current_stop"], "ENGINEERING_AUTHORITY")
 
     def test_23_omp_historical_isolation_remains_pass(self):
         self.assertEqual(self.lib.omp_live_state_consistency(self.cps, self.omp)["omp_historical_isolation"], "PASS")

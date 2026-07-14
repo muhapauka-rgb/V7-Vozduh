@@ -1,6 +1,12 @@
 # V7 Autonomous Evolution Program
 
 Status: `ORGANIZED`
+Document status: `ORGANIZED`
+Execution status: `PHASE_2_REVALIDATED_READY_FOR_ACCEPTANCE`
+Current program state: `CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY_ACCEPTANCE_REQUIRED`
+Current execution evidence: `docs/reports/research/V7_CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY.md`
+Current acceptance state: `NOT_ACCEPTED_NOT_LOCKED`
+Next legal stage: independent Phase 2 Acceptance and Lock; Phase 3 remains blocked until that result.
 Mode: `PROGRAM_ROUTE`
 Runtime impact: `NONE`
 Authority impact: `NONE`

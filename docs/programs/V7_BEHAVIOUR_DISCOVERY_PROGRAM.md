@@ -1,6 +1,10 @@
 # V7 Behaviour Discovery Program
 
 Status: `CANONICAL_PROGRAM_READY_FOR_IMPLEMENTATION`
+Document status: `CANONICAL_PROGRAM_READY_FOR_IMPLEMENTATION`
+Execution status: `EXECUTED_FOR_LIMITED_SCENARIO_SCOPE; CURRENT_PROJECT_SCOPE_REVALIDATION_CONSUMED_BY_AEP_PHASE_2`
+Current consumer: `AEP Phase 2 Current Autonomous Behaviour Reality`
+Project-scope terminal status: `NOT_TERMINAL; formal P01-P19 run evidence is incomplete`
 Purpose: Permanent reproducible engineering mechanism for discovering V7 Engineering Chains, Autonomous Behaviour inside those chains, Automation-Ready Engineering Logic, Implementation-Ready engineering work, Engineering Intent Closure, and Engineering Logic Automation Coverage.
 Date: `2026-07-08`
 

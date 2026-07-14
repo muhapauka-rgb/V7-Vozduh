@@ -87,22 +87,23 @@ class OmpSelfContinuationTest(unittest.TestCase):
 
     def test_omp_contains_canonical_contract(self):
         text = OMP.read_text(encoding="utf-8")
-        self.assertIn("Version: `4.22`", text)
+        self.assertIn("Version: `4.23`", text)
         self.assertIn("### 14.1 OMP Self-Continuation Contract", text)
         self.assertIn("Engineering Polygon Scenario Supply Consumption Rule", text)
         self.assertIn("Proactive Verification Input Consumption Rule", text)
         self.assertIn("Engineering Polygon Fallback Continuation Rule", text)
         self.assertIn("Capability Closure Versus Implementation Complete Reconciliation Rule", text)
+        self.assertIn("Program Execution And Consumption Reconciliation Rule", text)
         self.assertIn("PREMATURE_OMP_RETURN_TO_OPERATOR", text)
         self.assertIn("OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY", text)
 
-    def test_materialized_cps_stops_at_empty_frontier_real_world_limit(self):
+    def test_materialized_cps_stops_at_independent_program_acceptance_boundary(self):
         result = self.lib.omp_self_continuation_consistency(CPS.read_text(encoding="utf-8"))
         self.assertEqual(result["final_verdict"], "PASS")
         self.assertEqual(result["omp_continuation_required"], "FALSE")
         self.assertEqual(result["external_input_required"], "TRUE")
-        self.assertEqual(result["external_input_type"], "REAL_WORLD_LIMIT")
-        self.assertEqual(result["continuation_iteration"], "7")
+        self.assertEqual(result["external_input_type"], "ENGINEERING_AUTHORITY")
+        self.assertEqual(result["continuation_iteration"], "8")
 
     def test_materialized_external_boundary_cannot_be_marked_for_continuation(self):
         cps = CPS.read_text(encoding="utf-8")

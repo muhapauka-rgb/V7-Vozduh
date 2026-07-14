@@ -37,37 +37,40 @@ DEPLOY_CONFIRMATION = "DEPLOY_V7_APPROVED"
 RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
 
 NORMALIZED_CPS_LIVE_STATE = {
-    "active_program": "OMP",
+    "active_program": "AEP_PHASE_2_ACCEPTANCE_THROUGH_OMP",
     "current_mode": "BOUNDED_DELEGATED_AUTONOMY_ACTIVE",
-    "current_stop_condition": "REAL_WORLD_LIMIT",
-    "current_active_scope": "LEARNING_REPRESENTATIVE_OUTCOME_EVIDENCE",
-    "current_safe_next_action": "WAIT FOR REPRESENTATIVE REAL GOVERNED OUTCOMES; RECHECK CAP-U07 ONLY AFTER OWNER-BACKED EVIDENCE CHANGE",
-    "current_scope_class": "REAL_WORLD_EVIDENCE_BOUNDARY",
+    "current_stop_condition": "ENGINEERING_AUTHORITY",
+    "current_active_scope": "AEP_PHASE_2_CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY_ACCEPTANCE",
+    "current_safe_next_action": "RUN INDEPENDENT AEP PHASE 2 ACCEPTANCE AND LOCK; DO NOT START PHASE 3 BEFORE ACCEPTANCE",
+    "current_scope_class": "PROGRAM_ACCEPTANCE_BOUNDARY",
     "current_execution_mission_id": "NONE",
     "current_execution_mission_state": "NONE",
-    "latest_terminal_mission_id": "V7_OMP_CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1",
-    "latest_terminal_run_nonce": "V7_CAP_U07_LEARNING_V1_5070685E53FE",
-    "latest_terminal_mission_state": "CAP_U07_LEARNING_OUTCOME_CONSUMED_REAL_WORLD_LIMIT",
-    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-12_200149_cap_u07_learning_outcome_consumption.md",
-    "latest_terminal_mission_started_at": "2026-07-12T20:01:49+0700",
-    "previous_terminal_mission_id": "V7_OMP_DEPENDENCY_GRAPH_AND_COMPLETION_ORDER_PROTECTION_V1",
-    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-12_193308_dependency_graph_completion_order_protection.md",
+    "latest_terminal_mission_id": "V7_OMP_PROGRAM_EXECUTION_AND_CONSUMPTION_RECONCILIATION_V1",
+    "latest_terminal_run_nonce": "V7_OMP_PROGRAM_EXECUTION_RECONCILIATION_V1_5A8C2E91D74B",
+    "latest_terminal_mission_state": "PROGRAM_EXECUTION_RECONCILIATION_FOUND_ACCEPTANCE_BOUNDARY",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-14_093039_program_execution_and_consumption_reconciliation.md",
+    "latest_terminal_mission_started_at": "2026-07-14T09:30:39+0700",
+    "previous_terminal_mission_id": "V7_OMP_CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-12_200149_cap_u07_learning_outcome_consumption.md",
     "authoritative_transition_input_mission_id": "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3",
     "authoritative_transition_input_state": "MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED",
     "authoritative_transition_input_report": "docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md",
     "current_mission_role": "LATEST_TERMINAL_MISSION",
-    "current_mission_id": "V7_OMP_CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1",
-    "current_run_nonce": "V7_CAP_U07_LEARNING_V1_5070685E53FE",
-    "current_mission_state": "CAP_U07_LEARNING_OUTCOME_CONSUMED_REAL_WORLD_LIMIT",
-    "current_mission_report": "docs/reports/engineering/2026-07-12_200149_cap_u07_learning_outcome_consumption.md",
-    "state_captured": "2026-07-12T20:01:49+0700",
-    "current_state_generation": "cpsgen_V7_CAP_U07_LEARNING_V1_5070685E53FE",
-    "current_transition_id": "CAP_U07_LEARNING_OUTCOME_CONSUMPTION_V1",
-    "current_next_action_id": "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES",
+    "current_mission_id": "V7_OMP_PROGRAM_EXECUTION_AND_CONSUMPTION_RECONCILIATION_V1",
+    "current_run_nonce": "V7_OMP_PROGRAM_EXECUTION_RECONCILIATION_V1_5A8C2E91D74B",
+    "current_mission_state": "PROGRAM_EXECUTION_RECONCILIATION_FOUND_ACCEPTANCE_BOUNDARY",
+    "current_mission_report": "docs/reports/engineering/2026-07-14_093039_program_execution_and_consumption_reconciliation.md",
+    "state_captured": "2026-07-14T09:30:39+0700",
+    "current_state_generation": "cpsgen_V7_PROGRAM_RECON_V1_5A8C2E91D74B",
+    "current_transition_id": "PROGRAM_EXECUTION_RECONCILIATION_PHASE2_ACCEPTANCE_BOUNDARY_V1",
+    "current_next_action_id": "AEP_PHASE_2_ACCEPTANCE",
+    "current_program_stage": "AEP_PHASE_2_READY_FOR_ACCEPTANCE",
+    "current_program_execution_frontier": "AEP_PHASE_2_ACCEPTANCE",
+    "protected_capability_wip": "CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; preserved and not reordered",
     "binding_stability": "PASS",
     "binding_schema": "v7.operation-scoped-source-binding.v2",
     "routing_readiness_state": "PASS_CANDIDATE_SCOPED",
-    "authority_required_now": "NO_INSIDE_APPROVED_POLICY",
+    "authority_required_now": "ENGINEERING_AUTHORITY_FOR_INDEPENDENT_AEP_PHASE_2_ACCEPTANCE_ONLY",
     "current_action_class": "single-user governed candidate failover",
     "current_action_class_state": "GOVERNED_ONLY",
     "old_packets_reusable": "NO",
@@ -80,13 +83,13 @@ NORMALIZED_CPS_LIVE_STATE = {
     "waiting_capabilities": "CAP-U02,CAP-U05,CAP-U06,CAP-U07",
     "ready_capabilities": "NONE",
     "blocked_capabilities": "CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22",
-    "continuation_decision": "PROGRAM_TERMINAL_REAL_WORLD_LIMIT",
+    "continuation_decision": "PROGRAM_ACCEPTANCE_REQUIRED",
     "next_executable_capability": "NONE",
-    "program_terminal_state": "REAL_WORLD_LIMIT_READY_FRONTIER_EMPTY",
+    "program_terminal_state": "ENGINEERING_AUTHORITY_AEP_PHASE_2_ACCEPTANCE_REQUIRED",
     "cap_u01_completion_report": "docs/reports/engineering/2026-07-12_172534_exact_route_repair_and_first_governed_success.md",
     "responsibility_class": "LEARNING",
     "last_responsible_link": "real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence",
-    "smallest_existing_next_action": "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES; preserve exact U01 Learning evidence and recheck only after a new material outcome",
+    "smallest_existing_next_action": "run independent AEP Phase 2 acceptance and lock; Phase 3 remains blocked; preserve CAP-U07 evidence wait",
     "current_class_outcome": "SUCCESS",
     "current_class_delta_closed": "YES",
     "current_class_outcome_evidence": "SUCCESS; 10.7.0.5 awg0 -> vless; global route verification PASS; feedback execfb_b287532347352c661799e985",
@@ -106,13 +109,16 @@ NORMALIZED_CPS_LIVE_STATE = {
     "user_movement": "NO; current Mission performed evidence refresh and read-only revalidation only",
     "admin_safe_mode_live_state": "schema=v7.autonomous-execution-control.v2; state=OPEN; generation=aec_dda6c420c87e99e97236883c; reason=GOVERNED_TRANSACTION_COMPLETED",
     "parent_engineering_intent": "INTENT_NOT_CLOSED; CAP-U07 consumed one real success but representative Learning evidence remains a real-world dependency",
-    "source_summary": "CAP-U07 reused the exact U01 Learning chain; no duplicate evidence was written and the recalculated READY frontier is empty.",
-    "automatic_continue_omp_result": "PROGRAM_TERMINAL_REAL_WORLD_LIMIT; CAP-U02/U05/U06/U07 are WAITING and no independent READY capability remains",
-    "required_workflow": "wait for new material governed outcomes -> revalidate representative Learning and B13 consumption -> recalculate dependency graph",
+    "source_summary": "Program reconciliation revalidated AEP Phase 2, preserved CAP-U07 WIP, and exposed the independent Phase 2 acceptance frontier.",
+    "automatic_continue_omp_result": "PROGRAM_ACCEPTANCE_REQUIRED; capability-local waits remain valid but do not justify a global REAL_WORLD_LIMIT",
+    "required_workflow": "independent AEP Phase 2 acceptance/lock -> if accepted, Phase 3 gap-register execution through existing owners; preserve CAP-U07 wait",
     "omp_controlled_run_allowed": "NO_CURRENT_EXECUTION; synthetic or forced outcomes are forbidden",
-    "controlled_run_authority_required_now": "NO_INSIDE_APPROVED_POLICY",
+    "controlled_run_authority_required_now": "NO_INSIDE_APPROVED_POLICY; current Engineering Authority is program acceptance only",
     "controlled_run_execution_authorized": "NO_CURRENT_PACKET; no forced evidence generation or movement is authorized",
     "wip_authority_required_now": "FALSE; current boundary is representative real evidence, not Authority",
+    "wip_current_primary_stop": "REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is AEP_PHASE_2_ACCEPTANCE",
+    "wip_smallest_existing_next_action_id": "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES",
+    "wip_smallest_existing_next_action": "preserve CAP-U07 evidence unchanged while OMP completes the independent AEP Phase 2 acceptance frontier",
     "sequence_execution_class": "real-world evidence wait",
     "sequence_expected_output": "new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation",
     "completion_condition": "Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass",
@@ -122,15 +128,15 @@ NORMALIZED_CPS_LIVE_STATE = {
     "open_engineering_intents": "21",
     "omp_continuation_required": "FALSE",
     "external_input_required": "TRUE",
-    "external_input_type": "REAL_WORLD_LIMIT",
-    "transaction_terminal_class": "LEARNING_OUTCOME_CONSUMED_PARTIAL",
-    "program_terminal_class": "REAL_WORLD_LIMIT",
+    "external_input_type": "ENGINEERING_AUTHORITY",
+    "transaction_terminal_class": "PROGRAM_RECONCILIATION_COMPLETE",
+    "program_terminal_class": "ENGINEERING_AUTHORITY",
     "next_mission_formed": "TRUE",
-    "next_mission_id": "V7_OMP_CAP_U07_LEARNING_OUTCOME_RECHECK_V2",
+    "next_mission_id": "V7_AEP_PHASE_2_CURRENT_REALITY_INDEPENDENT_ACCEPTANCE_V1",
     "premature_operator_return": "FALSE",
-    "continuation_iteration": "7",
-    "continuation_stop_reason": "REPRESENTATIVE_REAL_LEARNING_OUTCOMES_ABSENT_AND_READY_FRONTIER_EMPTY",
-    "no_progress_fingerprint": "1b4bb8ba0f73324015ab844bec96d32aa38e545ba85b5d3db6e0857201cc7921",
+    "continuation_iteration": "8",
+    "continuation_stop_reason": "AEP_PHASE_2_REVALIDATED_OUTPUT_REQUIRES_INDEPENDENT_ACCEPTANCE_AND_LOCK",
+    "no_progress_fingerprint": "1881806ebc2d60d1ba09fddf98831d526907ea79452db64b38b2b84fc121fc83",
 }
 
 
@@ -639,6 +645,9 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "CURRENT_STATE_GENERATION": f"`{state['current_state_generation']}`",
         "CURRENT_TRANSITION_ID": f"`{state['current_transition_id']}`",
         "CURRENT_NEXT_ACTION_ID": f"`{state['current_next_action_id']}`",
+        "CURRENT_PROGRAM_STAGE": f"`{state['current_program_stage']}`",
+        "CURRENT_PROGRAM_EXECUTION_FRONTIER": f"`{state['current_program_execution_frontier']}`",
+        "PROTECTED_CAPABILITY_WIP": f"`{state['protected_capability_wip']}`",
         "DEPENDENCY_GRAPH_VERSION": f"`{state['dependency_graph_version']}`",
         "CURRENT_EXECUTION_FRONTIER": f"`{state['current_execution_frontier']}`",
         "WAITING_CAPABILITIES": f"`{state['waiting_capabilities']}`",
@@ -752,18 +761,18 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "capability_id": f"`{state['active_wip']}`",
         "current_state_generation": f"`{state['current_state_generation']}`",
         "current_transition_id": f"`{state['current_transition_id']}`",
-        "smallest_existing_next_action_id": f"`{state['current_next_action_id']}`",
+        "smallest_existing_next_action_id": f"`{state['wip_smallest_existing_next_action_id']}`",
         "active_mission_id": "`NONE`",
         "active_mission_state": "`NONE`",
         "latest_terminal_mission_id": f"`{state['latest_terminal_mission_id']}`",
         "latest_terminal_mission_state": f"`{state['latest_terminal_mission_state']}`",
         "previous_terminal_mission_id": f"`{state['previous_terminal_mission_id']}`",
         "authoritative_transition_input_mission_id": f"`{state['authoritative_transition_input_mission_id']}`",
-        "current_primary_stop": f"`{state['current_stop_condition']}`",
+        "current_primary_stop": f"`{state['wip_current_primary_stop']}`",
         "responsibility_class": f"`{state['responsibility_class']}`",
         "authority_required_now": f"`{state['wip_authority_required_now']}`",
         "last_responsible_link": state["last_responsible_link"],
-        "smallest_existing_next_action": state["smallest_existing_next_action"],
+        "smallest_existing_next_action": state["wip_smallest_existing_next_action"],
         "binding_stability": "`CERTIFIED`",
         "completion_condition": state["completion_condition"],
     }
@@ -819,8 +828,8 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         raise ValueError("active_capability_missing_or_duplicate")
     active_row = (
         f"| `CAP-U07` | Learning | feedback/learning, OMP, Canonical Reference | `{state['active_capability_status']}` | "
-        f"`{state['active_capability_progress']}` | {state['last_responsible_link']} | `{state['current_stop_condition']}` | "
-        f"{state['smallest_existing_next_action']} | U01 complete; unblocks U04/U08/U09/U12/U17-U22 |"
+        f"`{state['active_capability_progress']}` | {state['last_responsible_link']} | `REAL_WORLD_LIMIT` | "
+        f"WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES; preserve accepted U01 Learning evidence and recheck only after a new material outcome | U01 complete; unblocks U04/U08/U09/U12/U17-U22 |"
     )
     cps_text = cps_text.replace(active_rows[0], active_row, 1)
 
@@ -978,6 +987,8 @@ def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -
     )
     live_stop = live.get("CURRENT_STOP_CONDITION", "").strip("`")
     live_program_terminal = live.get("PROGRAM_TERMINAL_CLASS", "").strip("`")
+    program_frontier = live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`")
+    independent_program_frontier = program_frontier not in {"", "NONE"}
     policy_active = (
         live.get("CURRENT_MODE", "").strip("`") == "BOUNDED_DELEGATED_AUTONOMY_ACTIVE"
         and live.get("DELEGATED_AUTONOMY_POLICY", "").strip("`") == "APPROVED"
@@ -998,7 +1009,12 @@ def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -
         contradictions.append("delegated_policy_manual_packet_fallback_inside_policy")
 
     authority_required = live.get("AUTHORITY_REQUIRED_NOW", "").strip("`")
-    expected_authority = "YES_OUTSIDE_ACTIVE_POLICY" if external_program_terminal else "NO_INSIDE_APPROVED_POLICY"
+    expected_authority = (
+        "ENGINEERING_AUTHORITY_FOR_INDEPENDENT_AEP_PHASE_2_ACCEPTANCE_ONLY"
+        if independent_program_frontier else
+        "YES_OUTSIDE_ACTIVE_POLICY" if external_program_terminal else
+        "NO_INSIDE_APPROVED_POLICY"
+    )
     if not authority_required.startswith(expected_authority):
         stale_operational.append("AUTHORITY_REQUIRED_NOW")
         contradictions.append("delegated_policy_live_operational_authority_required")
@@ -1084,7 +1100,11 @@ def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -
     if sequence_one:
         cells = [cell.strip() for cell in sequence_one.strip().strip("|").split("|")]
         sequence_stop = cells[5].strip("`") if len(cells) > 5 else ""
-    stop_consistent = len({stop, registry_stop, wip_stop, cap_stop, sequence_stop}) == 1
+    stop_consistent = (
+        len({stop, registry_stop, sequence_stop}) == 1
+        and (independent_program_frontier or len({stop, wip_stop, cap_stop}) == 1)
+        and (not independent_program_frontier or "REAL_WORLD_LIMIT" in wip_stop and "REAL_WORLD_LIMIT" in cap_stop)
+    )
     if not stop_consistent:
         contradictions.append("delegated_policy_cps_stop_divergence")
 
@@ -1093,14 +1113,27 @@ def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -
     next_consistent = (
         next_action == expected_next_action
         and registry.get("EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID", "").strip("`") == next_action
-        and wip.get("smallest_existing_next_action_id", "").strip("`") == next_action
+        and (
+            independent_program_frontier
+            or wip.get("smallest_existing_next_action_id", "").strip("`") == next_action
+        )
         and f"`{next_action}`" in sequence_one
     )
     if not next_consistent:
         contradictions.append("delegated_policy_cps_next_action_divergence")
 
     cap_action_token = expected_next_action
-    cap_consistent = bool(active_capability and stop in active_capability and cap_action_token in active_capability)
+    cap_consistent = bool(
+        active_capability
+        and (
+            independent_program_frontier
+            and "REAL_WORLD_LIMIT" in active_capability
+            and "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES" in active_capability
+            or not independent_program_frontier
+            and stop in active_capability
+            and cap_action_token in active_capability
+        )
+    )
     if not cap_consistent:
         contradictions.append("delegated_policy_active_capability_divergence")
     sequence_consistent = bool(sequence_one and sequence_four and not any(item.startswith("delegated_policy_sequence") for item in contradictions))
@@ -1286,6 +1319,8 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
     program_terminal = live.get("PROGRAM_TERMINAL_CLASS", "").strip("`")
     continuation_decision = live.get("CONTINUATION_DECISION", "").strip("`")
     program_terminal_state = live.get("PROGRAM_TERMINAL_STATE", "").strip("`")
+    program_frontier = live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`")
+    independent_program_frontier = program_frontier not in {"", "NONE"}
     premature_program_stop = False
     if ready:
         if continuation != "TRUE" or external != "FALSE" or program_terminal != "NONE":
@@ -1298,10 +1333,14 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
     else:
         if continuation != "FALSE" or external != "TRUE" or program_terminal in {"", "NONE"}:
             errors.append("empty_frontier_without_program_terminal")
-        if not continuation_decision.startswith("PROGRAM_TERMINAL_"):
+        if not independent_program_frontier and not continuation_decision.startswith("PROGRAM_TERMINAL_"):
             errors.append("empty_frontier_continuation_decision_invalid")
-        if not program_terminal_state.startswith(program_terminal):
+        if not independent_program_frontier and not program_terminal_state.startswith(program_terminal):
             errors.append("empty_frontier_program_terminal_state_invalid")
+        if independent_program_frontier and continuation_decision != "PROGRAM_ACCEPTANCE_REQUIRED":
+            errors.append("program_frontier_continuation_decision_invalid")
+        if independent_program_frontier and program_terminal != "ENGINEERING_AUTHORITY":
+            errors.append("program_frontier_terminal_invalid")
 
     errors.extend(dependency_violations)
     errors.extend(completion_violations)
@@ -1507,7 +1546,7 @@ def capability_closure_reconciliation(
         and bool(real_world_waits)
         and not ready_ids
     )
-    if "Version: `4.22`" not in omp_text:
+    if not re.search(r"Version: `4\.(?:2[2-9]|[3-9]\d)`", omp_text):
         errors.append("omp_capability_reconciliation_version_missing")
     if "Capability Closure Versus Implementation Complete Reconciliation Rule" not in omp_text:
         errors.append("omp_capability_reconciliation_rule_missing")
@@ -1557,6 +1596,198 @@ def capability_closure_reconciliation(
         "protected_wip_preserved": True,
         "final_verdict": "PASS" if not unique else "STOP_SAFE",
         "errors": unique,
+    }
+
+
+PROGRAM_EXECUTION_REMAINING_STATUSES = {
+    "STAGE_READY_NOT_STARTED",
+    "STAGE_IN_PROGRESS",
+    "STAGE_READY_FOR_ACCEPTANCE",
+    "STAGE_ACCEPTANCE_MISSING",
+    "STAGE_OUTPUT_MISSING",
+    "STAGE_CONSUMER_MISSING",
+    "STAGE_CONSUMPTION_NOT_CONFIRMED",
+}
+
+
+def classify_program_stage(stage: dict[str, Any]) -> str:
+    """Classify execution reality independently from a program document label."""
+    if stage.get("superseded"):
+        return "STAGE_SUPERSEDED"
+    if stage.get("not_applicable_reason"):
+        return "STAGE_NOT_APPLICABLE"
+    if stage.get("blocked_real_world"):
+        return "STAGE_BLOCKED_REAL_WORLD"
+    if stage.get("blocked_authority"):
+        return "STAGE_BLOCKED_AUTHORITY"
+    if stage.get("blocked_dependency"):
+        return "STAGE_BLOCKED_DEPENDENCY"
+    if not stage.get("entry_conditions_met", False):
+        return "STAGE_BLOCKED_DEPENDENCY"
+    if not stage.get("execution_started", False):
+        return "STAGE_READY_NOT_STARTED"
+    if not stage.get("outputs_found", False):
+        return "STAGE_OUTPUT_MISSING"
+    if not stage.get("output_schema_valid", False):
+        return "STAGE_IN_PROGRESS"
+    if stage.get("acceptance_required", False) and not stage.get("acceptance_found", False):
+        return "STAGE_READY_FOR_ACCEPTANCE"
+    if stage.get("consumer_required", True) and not stage.get("consumer_found", False):
+        return "STAGE_CONSUMER_MISSING"
+    if stage.get("consumer_required", True) and not stage.get("consumer_confirmed", False):
+        return "STAGE_CONSUMPTION_NOT_CONFIRMED"
+    if not stage.get("state_transition_complete", False):
+        return "STAGE_IN_PROGRESS"
+    return "STAGE_COMPLETE_CONSUMED"
+
+
+def _program_document_status(text: str) -> str:
+    match = re.search(r"^Status:\s*`?([^`\n]+)`?\s*$", text, re.MULTILINE)
+    return match.group(1).strip() if match else "UNKNOWN"
+
+
+def program_execution_reconciliation(sources: dict[str, str]) -> dict[str, Any]:
+    """Reconcile canonical program stages, consumption, and the global stop."""
+    stage2 = sources.get("stage2", "")
+    aep = sources.get("aep", "")
+    bdp = sources.get("bdp", "")
+    implementation = sources.get("implementation", "")
+    backlog_text = sources.get("backlog", "")
+    omp = sources.get("omp", "")
+    cps = sources.get("cps", "")
+    phase1 = sources.get("aep_phase1", "")
+    phase2 = sources.get("aep_phase2", "")
+    phase2_execution = sources.get("aep_phase2_execution", "")
+    phase2_acceptance = sources.get("aep_phase2_acceptance", "")
+    bdp_execution = sources.get("bdp_execution", "")
+
+    stage2_complete = all(token in stage2 for token in (
+        "CLOSED_LOCKED_KNOWLEDGE", "LOCKED_KNOWLEDGE", "Stage 2.7",
+    ))
+    phase1_complete = all(token in phase1 for token in (
+        "PHASE_ACCEPTED", "PHASE_LOCKED", "IDEAL_READY",
+    ))
+    phase2_required = (
+        "Behaviour Instance Registry", "Behaviour Aggregation", "Behaviour Definition Catalogue",
+        "Behaviour Coverage", "Behaviour Graph", "Behaviour Reality", "Automation State",
+        "Manual Dependency", "Evidence Map",
+    )
+    phase2_output_complete = all(token in phase2 for token in phase2_required)
+    phase2_executed = (
+        phase2_output_complete
+        and "PHASE_2_CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY_PASS" in phase2
+        and "PHASE_2_CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY_PASS" in phase2_execution
+    )
+    phase2_revalidated = "PHASE_2_REVALIDATED_READY_FOR_ACCEPTANCE" in aep and "Current Revalidation" in phase2
+    phase2_accepted = all(token in phase2_acceptance for token in (
+        "CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY_ACCEPTED", "PHASE_ACCEPTED", "PHASE_LOCKED",
+    ))
+    bdp_passes = [f"BDP-P{index:02d}" for index in range(1, 20)]
+    bdp_project_scope_complete = all(token in bdp_execution for token in bdp_passes)
+    backlog = _actionable_backlog_statuses(backlog_text)
+    actionable_ids = {
+        *(f"A{index}" for index in range(1, 7)),
+        *(f"B{index}" for index in range(1, 22)),
+        *(f"C{index}" for index in range(1, 8)),
+    }
+    backlog_complete = all(backlog.get(item) == "DONE" for item in actionable_ids)
+
+    aep_stages = [
+        {"program_id": "AEP", "stage_id": "FOUNDATION", "status": "STAGE_COMPLETE_CONSUMED" if phase1_complete else "STAGE_OUTPUT_MISSING"},
+        {"program_id": "AEP", "stage_id": "PHASE_1", "status": "STAGE_COMPLETE_CONSUMED" if phase1_complete else "STAGE_ACCEPTANCE_MISSING"},
+        {
+            "program_id": "AEP", "stage_id": "PHASE_2",
+            "status": (
+                "STAGE_COMPLETE_CONSUMED" if phase2_accepted
+                else "STAGE_READY_FOR_ACCEPTANCE" if phase2_executed and phase2_revalidated
+                else "STAGE_IN_PROGRESS" if phase2_executed
+                else "STAGE_READY_NOT_STARTED" if phase1_complete
+                else "STAGE_BLOCKED_DEPENDENCY"
+            ),
+        },
+    ]
+    for phase in range(3, 8):
+        previous_complete = phase2_accepted if phase == 3 else False
+        aep_stages.append({
+            "program_id": "AEP", "stage_id": f"PHASE_{phase}",
+            "status": "STAGE_READY_NOT_STARTED" if previous_complete else "STAGE_BLOCKED_DEPENDENCY",
+        })
+
+    inventory = [
+        {"program_id": "STAGE2", "type": "KNOWLEDGE_PROGRAM", "document_status": _program_document_status(stage2), "execution_status": "TERMINAL_COMPLETE" if stage2_complete else "PARTIALLY_EXECUTED"},
+        {"program_id": "AEP", "type": "STRATEGIC_ROUTE", "document_status": _program_document_status(aep), "execution_status": "READY_FOR_ACCEPTANCE" if phase2_revalidated and not phase2_accepted else "PARTIALLY_EXECUTED"},
+        {"program_id": "BDP", "type": "DISCOVERY_PROGRAM", "document_status": _program_document_status(bdp), "execution_status": "EXECUTED_FOR_CURRENT_PROJECT_SCOPE" if bdp_project_scope_complete else "PARTIALLY_EXECUTED"},
+        {"program_id": "IMPLEMENTATION_PROGRAM", "type": "SUPPORTING_REFERENCE", "document_status": _program_document_status(implementation), "execution_status": "TERMINAL_COMPLETE" if backlog_complete else "IN_PROGRESS"},
+        {"program_id": "IMPLEMENTATION_BACKLOG", "type": "IMPLEMENTATION_PROGRAM", "document_status": _program_document_status(backlog_text), "execution_status": "TERMINAL_COMPLETE" if backlog_complete else "IN_PROGRESS"},
+        {"program_id": "OMP", "type": "ACTIVE_EXECUTION_PROGRAM", "document_status": _program_document_status(omp), "execution_status": "IN_PROGRESS"},
+        {"program_id": "AUTONOMOUS_EXECUTION", "type": "SUPPORTING_REFERENCE", "document_status": _program_document_status(sources.get("autonomous_execution", "")), "execution_status": "CONSUMED_NOT_TERMINAL"},
+        {"program_id": "AUTONOMOUS_RUNTIME", "type": "SUPPORTING_REFERENCE", "document_status": _program_document_status(sources.get("autonomous_runtime", "")), "execution_status": "CONSUMED_NOT_TERMINAL"},
+        {"program_id": "CONTROLLED_PRODUCTION_CERTIFICATION", "type": "CERTIFICATION_PROGRAM", "document_status": _program_document_status(sources.get("controlled_certification", "")), "execution_status": "PARTIALLY_EXECUTED"},
+    ]
+    internal_programs = (
+        "EXECUTION_CERTIFICATION_LADDER", "BDP_DISCOVERY_ECONOMY", "SCENARIO_SUPPLY",
+        "PROACTIVE_VERIFICATION", "POLYGON_FALLBACK", "CAPABILITY_CLOSURE_RECONCILIATION",
+        "AUTOMATION_GAP_CLOSURE", "INTENT_GAP_DETECTION", "INTENT_RESPONSIBILITY_RESOLUTION",
+        "ENGINEERING_INTENT_CLOSURE", "NECESSITY_FRAMEWORK", "CAPABILITY_PRODUCTION",
+        "CAPABILITY_TRANSITION", "RT_PHASE_2", "PRE_PHASE_2_READINESS",
+        "AUTONOMY_PROMOTION", "DELEGATED_AUTONOMY", "PRODUCTION_PROMOTION_MATRIX",
+    )
+    inventory.extend({
+        "program_id": item, "type": "CAPABILITY_PROGRAM", "document_status": "CANONICAL",
+        "execution_status": "CONTINUOUSLY_CONSUMED" if item in {
+            "CAPABILITY_CLOSURE_RECONCILIATION", "AUTOMATION_GAP_CLOSURE", "INTENT_GAP_DETECTION",
+            "INTENT_RESPONSIBILITY_RESOLUTION", "CAPABILITY_PRODUCTION", "CAPABILITY_TRANSITION",
+        } else "PARTIALLY_EXECUTED",
+    } for item in internal_programs)
+
+    stages = ([{"program_id": "STAGE2", "stage_id": f"STAGE_2_{index}", "status": "STAGE_COMPLETE_CONSUMED" if stage2_complete else "STAGE_UNKNOWN_WITH_REASON"} for index in range(1, 8)] + aep_stages)
+    counts: dict[str, int] = {}
+    for stage in stages:
+        counts[stage["status"]] = counts.get(stage["status"], 0) + 1
+    current_stop = _markdown_field_table(_markdown_section(
+        cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
+    )).get("CURRENT_STOP_CONDITION", "").strip("`")
+    acceptance_boundary = phase2_executed and phase2_revalidated and not phase2_accepted
+    missing_stage = not phase2_accepted
+    global_real_world_valid = current_stop == "REAL_WORLD_LIMIT" and not missing_stage
+    errors: list[str] = []
+    if not stage2_complete:
+        errors.append("stage2_terminal_not_proven")
+    if not phase1_complete:
+        errors.append("aep_phase1_not_accepted")
+    if not phase2_executed:
+        errors.append("aep_phase2_output_missing_or_incomplete")
+    if "Version: `4.23`" not in omp:
+        errors.append("omp_program_reconciliation_version_missing")
+    if "Program Execution And Consumption Reconciliation Rule" not in omp:
+        errors.append("omp_program_reconciliation_rule_missing")
+    if global_real_world_valid:
+        errors.append("global_real_world_limit_illegal_while_program_stage_open")
+    frontier = ["AEP_PHASE_2_ACCEPTANCE"] if acceptance_boundary else (["AEP_PHASE_2_CURRENT_REALITY_REVALIDATION"] if missing_stage else [])
+    return {
+        "schema": "v7-omp-program-execution-reconciliation/v1",
+        "program_inventory": inventory,
+        "programs_discovered": len(inventory),
+        "stages": stages,
+        "program_stages_total": len(stages),
+        "stage_counts": counts,
+        "stage2_status": "STAGE2_TERMINAL_COMPLETE" if stage2_complete else "STAGE2_INCOMPLETE",
+        "aep_status": "PHASE_2_READY_FOR_ACCEPTANCE" if acceptance_boundary else "PARTIAL",
+        "aep_current_phase": "PHASE_2",
+        "aep_phase2_output_complete": phase2_output_complete,
+        "aep_phase2_executed": phase2_executed,
+        "aep_phase2_revalidated": phase2_revalidated,
+        "aep_phase2_accepted": phase2_accepted,
+        "bdp_status": "BDP_EXECUTED_FOR_CURRENT_PROJECT_SCOPE" if bdp_project_scope_complete else "BDP_EXECUTED_FOR_LIMITED_SCENARIO_SCOPE",
+        "bdp_required_passes_complete": bdp_project_scope_complete,
+        "backlog_status": "34/34_DONE" if backlog_complete else "INCOMPLETE",
+        "executable_program_frontier": frontier,
+        "executable_program_frontier_count": len(frontier),
+        "global_real_world_limit_verdict": "GLOBAL_REAL_WORLD_LIMIT_INVALID" if missing_stage else "GLOBAL_REAL_WORLD_LIMIT_VALID",
+        "acceptance_required": acceptance_boundary,
+        "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+        "final_verdict": "PASS" if not errors else "PROGRAM_STAGE_OPEN",
+        "errors": sorted(set(errors)),
     }
 
 
@@ -3777,7 +4008,21 @@ def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
         "real_world_limit_intents_preserved": 0,
         "final_verdict": "PASS",
     }
-    if "### Capability Dependency Graph And Execution Frontier" in cps_text:
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    program_frontier = live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`")
+    if program_frontier not in {"", "NONE"}:
+        development_impulse = {
+            "handoff_status": "NOT_EVALUATED_PROGRAM_FRONTIER_PREEMPTS_CAPABILITY_GRAPH",
+            "candidate_count": 0,
+            "admission_decision": "NONE",
+            "real_world_limit_intents_preserved": 1,
+            "final_verdict": "PASS",
+        }
+    elif "### Capability Dependency Graph And Execution Frontier" in cps_text:
         development_impulse = bdp_development_impulse_from_cps(cps_text)
         if development_impulse["final_verdict"] != "PASS":
             errors.append("omp_bdp_development_impulse_stop_safe")
@@ -3959,17 +4204,26 @@ def cps_live_state_consistency(
         wip.get("current_transition_id", ""),
     } != {transition}:
         errors.append("cps_transition_divergence")
-    if next_action and {
+    program_frontier = live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`")
+    independent_program_frontier = program_frontier not in {"", "NONE"}
+    next_projection = {
         next_action,
         registry.get("EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID", ""),
-        wip.get("smallest_existing_next_action_id", ""),
-    } != {next_action}:
+    }
+    if not independent_program_frontier:
+        next_projection.add(wip.get("smallest_existing_next_action_id", ""))
+    if next_action and next_projection != {next_action}:
         errors.append("cps_next_action_divergence")
 
     stop = live.get("CURRENT_STOP_CONDITION", "").strip("`")
     wip_stop = wip.get("current_primary_stop", "").strip("`")
     registry_stop = registry.get("CURRENT_STOP_CONDITION", "").strip("`")
-    if stop != normalized["current_stop_condition"] or wip_stop != stop or registry_stop != stop:
+    if (
+        stop != normalized["current_stop_condition"]
+        or registry_stop != stop
+        or (not independent_program_frontier and wip_stop != stop)
+        or (independent_program_frontier and "REAL_WORLD_LIMIT" not in wip_stop)
+    ):
         errors.append("cps_current_stop_divergence")
     if not live.get("AUTHORITY_REQUIRED_NOW", "").strip("`").startswith(normalized["authority_required_now"]):
         errors.append("cps_authority_required_not_policy_bounded")
@@ -3989,7 +4243,7 @@ def cps_live_state_consistency(
         errors.append("cps_current_class_outcome_divergence")
     if live.get("CURRENT_ACTION_CLASS_STATE", "").strip("`") != "GOVERNED_ONLY":
         errors.append("cps_action_class_state_divergence")
-    if normalized["automatic_continue_omp_result"] not in live.get("AUTOMATIC_CONTINUE_OMP_RESULT", ""):
+    if normalized["automatic_continue_omp_result"].split(";", 1)[0] not in live.get("AUTOMATIC_CONTINUE_OMP_RESULT", ""):
         errors.append("cps_continue_omp_stop_divergence")
     if not live.get("OMP_CONTROLLED_RUN_ALLOWED", "").strip("`").startswith(normalized["omp_controlled_run_allowed"].split(";", 1)[0]):
         errors.append("cps_omp_consumption_divergence")
@@ -4041,18 +4295,18 @@ def cps_live_state_consistency(
         cap_cells = [cell.strip() for cell in active_capability.strip().strip("|").split("|")]
         cap_stop = cap_cells[6].strip("`") if len(cap_cells) > 6 else ""
         cap_action = cap_cells[7] if len(cap_cells) > 7 else ""
-        if cap_stop != normalized["current_stop_condition"]:
+        if not independent_program_frontier and cap_stop != normalized["current_stop_condition"]:
             errors.append("cps_active_capability_stop_divergence")
         expected_status = f"`{normalized['active_capability_status']}`"
         if expected_status not in active_capability:
             errors.append("cps_active_capability_status_divergence")
         if "bundle drifted" in active_capability or "diagnose existing binding" in active_capability:
             errors.append("cps_active_capability_unresolved_binding_drift")
-        if normalized["current_next_action_id"] not in cap_action and not (
+        if not independent_program_frontier and normalized["current_next_action_id"] not in cap_action and not (
             normalized["current_next_action_id"] == "CONTINUE_OMP" and "Continue OMP" in cap_action
         ):
             errors.append("cps_active_capability_next_action_divergence")
-        if wip.get("smallest_existing_next_action", "") != cap_action:
+        if not independent_program_frontier and wip.get("smallest_existing_next_action", "") != cap_action:
             errors.append("cps_wip_active_capability_next_action_divergence")
 
     completed_u01_rows = [line for line in completed_capabilities.splitlines() if line.startswith("| `CAP-U01` |")]

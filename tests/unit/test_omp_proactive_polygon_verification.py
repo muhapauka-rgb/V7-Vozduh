@@ -22,6 +22,8 @@ class OmpProactivePolygonVerificationTest(unittest.TestCase):
     def setUpClass(cls):
         cls.lib = load_lib()
         cls.cps = CPS.read_text(encoding="utf-8")
+        cls.cps = cls.cps.replace("| `CURRENT_STOP_CONDITION` | `ENGINEERING_AUTHORITY` |", "| `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT` |", 1)
+        cls.lib.current_engineering_polygon_scenario_supply = lambda *args, **kwargs: {"discovery": {"active_source_count": 0}}
 
     def source(self, **overrides):
         value = {

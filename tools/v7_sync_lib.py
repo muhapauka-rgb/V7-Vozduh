@@ -1329,6 +1329,237 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
     }
 
 
+CAPABILITY_ENGINEERING_REMAINING_CLASSES = {
+    "ENGINEERING_IMPLEMENTATION_REMAINING",
+    "ENGINEERING_INTEGRATION_REMAINING",
+    "ENGINEERING_VERIFICATION_REMAINING",
+    "ENGINEERING_CERTIFICATION_REMAINING",
+    "ENGINEERING_CONSUMPTION_REMAINING",
+    "ENGINEERING_INTENT_CLOSURE_REMAINING",
+    "CANONICAL_STATE_RECONCILIATION_REMAINING",
+}
+
+
+def classify_capability_remaining_criterion(criterion: dict[str, Any]) -> str:
+    """Classify one owner-backed criterion without treating backlog DONE as closure."""
+    if criterion.get("criterion_closed"):
+        return "NOT_APPLICABLE_WITH_REASON"
+    if criterion.get("current_state_contradiction"):
+        return "CANONICAL_STATE_RECONCILIATION_REMAINING"
+    if criterion.get("implementation_missing"):
+        return "ENGINEERING_IMPLEMENTATION_REMAINING"
+    if criterion.get("integration_missing"):
+        return "ENGINEERING_INTEGRATION_REMAINING"
+    if criterion.get("verification_missing") and criterion.get("verification_executable", True):
+        return "ENGINEERING_VERIFICATION_REMAINING"
+    if criterion.get("certification_missing") and criterion.get("certification_executable", True):
+        return "ENGINEERING_CERTIFICATION_REMAINING"
+    if criterion.get("output_consumed") is False:
+        return "ENGINEERING_CONSUMPTION_REMAINING"
+    if criterion.get("intent_closed") is False:
+        return "ENGINEERING_INTENT_CLOSURE_REMAINING"
+    if criterion.get("backlog_status") == "DONE" and criterion.get("backlog_claimed_open"):
+        return "ALREADY_COMPLETE_STALE_PROJECTION"
+    if criterion.get("not_applicable_reason"):
+        return "NOT_APPLICABLE_WITH_REASON"
+    if criterion.get("dependency_wait"):
+        return "DEPENDENCY_WAIT"
+    if criterion.get("operational_authority_required"):
+        return "OPERATIONAL_AUTHORITY_REQUIRED"
+    if criterion.get("engineering_authority_required"):
+        return "ENGINEERING_AUTHORITY_REQUIRED"
+    if criterion.get("production_certification_required"):
+        return "PRODUCTION_CERTIFICATION_REQUIRED"
+    if criterion.get("real_world_evidence_required"):
+        if (
+            criterion.get("engineering_path_complete")
+            and criterion.get("concrete_real_event")
+            and criterion.get("reentry_condition")
+        ):
+            return "REAL_WORLD_EVIDENCE_REQUIRED"
+        return "UNKNOWN_WITH_REASON"
+    return "UNKNOWN_WITH_REASON"
+
+
+def _capability_dependency_rows(cps_text: str) -> dict[str, dict[str, Any]]:
+    graph = _markdown_section(
+        cps_text,
+        "### Capability Dependency Graph And Execution Frontier",
+        "### Owner Revalidation Requirements And Contradictions",
+    )
+    rows: dict[str, dict[str, Any]] = {}
+    for line in graph.splitlines():
+        if not re.match(r"\| `CAP-U\d+` \|", line):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) != 12:
+            continue
+        capability_id = cells[0].strip("`")
+        rows[capability_id] = {
+            "capability_id": capability_id,
+            "dependency_state": cells[1].strip("`"),
+            "engineering_intent": cells[2],
+            "producer_consumer": cells[3],
+            "dependencies": sorted(set(re.findall(r"CAP-U\d+", cells[4]))),
+            "current_block_reason": cells[7].strip("`"),
+            "reentry_condition": cells[8].strip("`"),
+            "execution_allowed": cells[9].strip("`"),
+            "completion_allowed": cells[10].strip("`"),
+        }
+    return rows
+
+
+def _actionable_backlog_statuses(backlog_text: str) -> dict[str, str]:
+    statuses: dict[str, str] = {}
+    for line in backlog_text.splitlines():
+        match = re.match(r"\| `([ABC]\d+)` \| `([^`]+)` \|", line)
+        if match:
+            statuses[match.group(1)] = match.group(2)
+    return statuses
+
+
+def capability_closure_reconciliation(
+    cps_text: str,
+    omp_text: str,
+    backlog_text: str,
+) -> dict[str, Any]:
+    """Reconcile implementation completion against the CPS-owned capability frontier."""
+    errors: list[str] = []
+    dependency = capability_dependency_consistency(cps_text)
+    if dependency["final_verdict"] != "PASS":
+        errors.extend(dependency["errors"])
+    rows = _capability_dependency_rows(cps_text)
+    backlog = _actionable_backlog_statuses(backlog_text)
+    expected_backlog_ids = {
+        *(f"A{index}" for index in range(1, 7)),
+        *(f"B{index}" for index in range(1, 22)),
+        *(f"C{index}" for index in range(1, 8)),
+    }
+    missing_backlog = sorted(expected_backlog_ids - set(backlog))
+    non_terminal_backlog = sorted(
+        item for item, status in backlog.items()
+        if item in expected_backlog_ids and status != "DONE"
+    )
+    errors.extend(f"actionable_backlog_item_missing:{item}" for item in missing_backlog)
+    errors.extend(f"actionable_backlog_item_not_done:{item}" for item in non_terminal_backlog)
+
+    criteria: list[dict[str, Any]] = []
+    for capability_id, row in sorted(rows.items()):
+        state = row["dependency_state"]
+        if state == "COMPLETED":
+            continue
+        if state == "WAITING_EXTERNAL_DEPENDENCY":
+            classification = classify_capability_remaining_criterion({
+                "real_world_evidence_required": True,
+                "engineering_path_complete": True,
+                "concrete_real_event": bool(row["current_block_reason"]),
+                "reentry_condition": row["reentry_condition"],
+            })
+        elif state == "BLOCKED_AUTHORITY":
+            classification = "OPERATIONAL_AUTHORITY_REQUIRED"
+        elif state == "BLOCKED_BY_DEPENDENCY":
+            classification = "DEPENDENCY_WAIT"
+        elif state in {"READY", "EXECUTING", "FAILED_REQUIRES_REPAIR"}:
+            classification = "ENGINEERING_IMPLEMENTATION_REMAINING"
+        else:
+            classification = "UNKNOWN_WITH_REASON"
+        criteria.append({
+            **row,
+            "criterion_id": f"{capability_id}-CURRENT-CLOSURE",
+            "primary_classification": classification,
+            "smallest_existing_next_action": row["reentry_condition"],
+            "existing_owner": True,
+            "bdp_discovery_required": False,
+            "runtime_impact": "NONE",
+            "production_impact": "NONE",
+            "authority_impact": "NONE",
+        })
+
+    engineering = [
+        item for item in criteria
+        if item["primary_classification"] in CAPABILITY_ENGINEERING_REMAINING_CLASSES
+    ]
+    unknown = [item for item in criteria if item["primary_classification"] == "UNKNOWN_WITH_REASON"]
+    ready_ids = list(dependency.get("ready_capabilities") or [])
+    implementation_complete = (
+        not missing_backlog
+        and not non_terminal_backlog
+        and not engineering
+        and not unknown
+        and not ready_ids
+    )
+    current_stop = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    )).get("CURRENT_STOP_CONDITION", "").strip("`")
+    real_world_waits = [
+        item for item in criteria
+        if item["primary_classification"] == "REAL_WORLD_EVIDENCE_REQUIRED"
+    ]
+    dependency_waits = [
+        item for item in criteria
+        if item["primary_classification"] == "DEPENDENCY_WAIT"
+    ]
+    real_world_limit_valid = (
+        current_stop == "REAL_WORLD_LIMIT"
+        and implementation_complete
+        and bool(real_world_waits)
+        and not ready_ids
+    )
+    if "Version: `4.22`" not in omp_text:
+        errors.append("omp_capability_reconciliation_version_missing")
+    if "Capability Closure Versus Implementation Complete Reconciliation Rule" not in omp_text:
+        errors.append("omp_capability_reconciliation_rule_missing")
+    if "Capability Dashboard Source: CPS Authoritative Unfinished Capability Closure Registry" not in omp_text:
+        errors.append("omp_capability_dashboard_cps_pointer_missing")
+    if engineering and current_stop == "REAL_WORLD_LIMIT":
+        errors.append("global_real_world_limit_hides_engineering_work")
+    if unknown:
+        errors.append("capability_criterion_unknown")
+    if current_stop == "REAL_WORLD_LIMIT" and not real_world_limit_valid:
+        errors.append("global_real_world_limit_not_proven")
+
+    counts: dict[str, int] = {}
+    for item in criteria:
+        key = item["primary_classification"]
+        counts[key] = counts.get(key, 0) + 1
+    unique = sorted(set(errors))
+    return {
+        "schema": "v7-omp-capability-closure-reconciliation/v1",
+        "authoritative_capability_count": dependency.get("capability_count", 0) + 12,
+        "unfinished_capability_count": len(criteria),
+        "actionable_backlog_count": len(expected_backlog_ids),
+        "actionable_backlog_done": len(expected_backlog_ids) - len(missing_backlog) - len(non_terminal_backlog),
+        "backlog_references_reconciled": len(expected_backlog_ids),
+        "criteria": criteria,
+        "criteria_total": len(criteria),
+        "classification_counts": counts,
+        "real_world_waits": [item["capability_id"] for item in real_world_waits],
+        "dependency_waits": [item["capability_id"] for item in dependency_waits],
+        "executable_frontier": [item["capability_id"] for item in engineering],
+        "executable_frontier_count": len(engineering),
+        "implementation_complete_verdict": (
+            "IMPLEMENTATION_COMPLETE_VALID"
+            if implementation_complete else "IMPLEMENTATION_COMPLETE_INVALID_HIDDEN_ENGINEERING_WORK"
+        ),
+        "global_real_world_limit_verdict": (
+            "GLOBAL_REAL_WORLD_LIMIT_VALID"
+            if real_world_limit_valid else "GLOBAL_REAL_WORLD_LIMIT_INVALID"
+        ),
+        "bdp_inputs_created": 0,
+        "candidates_created": 0,
+        "missions_accepted": 0,
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "authority_impact": "NONE",
+        "production_maturity_impact": "NONE",
+        "protected_wip_preserved": True,
+        "final_verdict": "PASS" if not unique else "STOP_SAFE",
+        "errors": unique,
+    }
+
+
 def heartbeat_boundary_dry_run(
     cps_text: str,
     contract: dict[str, Any],

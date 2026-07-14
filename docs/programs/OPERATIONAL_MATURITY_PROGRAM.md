@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.21`
+Version: `4.22`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -27,6 +27,8 @@ V4.19 connects existing owner-backed Engineering Polygon Scenario sources to BDP
 V4.20 connects bounded proactive verification inputs from existing test, replay, STOP_SAFE, rollback, recovery, truth, dependency and producer/consumer owners to the same Engineering Polygon Scenario Supply. A proactive input is execution metadata, not a Candidate or production evidence. PASS records current contract coverage without a Scenario. Only a current reproducible mismatch may become a Scenario and continue through BDP Reality Gate and OMP admission. Execution is serial, deterministic, no-mutation and budget-bounded; it cannot grant authority, move users, apply packets, write restore barriers or earn Production Maturity. This adds no test engine, replay engine, scenario engine, queue, scheduler, owner, Runtime, Planner, lifecycle, truth source or backlog.
 
 V4.21 replaces finite seed exhaustion with deterministic Engineering Polygon corpus discovery and fallback continuation inside the same existing owners. The bounded consumer projects safe executable verification obligations from the current mapped owner corpus, fingerprints source, fixture, contract, owner implementation and dependencies, revalidates stale coverage, and continues serially until failure, budget boundary or proven full-current-corpus exhaustion. Budget exhaustion preserves the exact next input and is never a `REAL_WORLD_LIMIT`. This adds no corpus registry, test engine, queue, scheduler, owner, Runtime, Planner, lifecycle, truth source or backlog.
+
+V4.22 adds capability-closure reconciliation inside existing OMP Capability Management. `IMPLEMENTATION_COMPLETE` and a global `REAL_WORLD_LIMIT` are legal only after every current unfinished capability criterion is owner-classified and no safe executable engineering criterion remains. Actionable backlog completion proves implementation-scope closure only; it never proves output consumption, behavior change, intent closure, capability certification or production maturity. Capability-local real-world, authority and dependency waits cannot stop independent READY engineering work. CPS remains the sole volatile capability-state owner.
 
 V4 operating questions:
 
@@ -4928,40 +4930,30 @@ Design
 19. Production Candidate is an OMP lifecycle state only. It means the intended capability output has passed implementation/test evidence and is ready to be sealed into canonical source through existing safe commit, safe push, truth, safe deploy, and convergence owners. It creates no deployment mechanics, owner, lifecycle, runtime path, authority, or document.
 20. The Production Promotion Matrix in the Capability Production Contract applies to L3, L4, L5, L6, L7, and any future capability. Capability-specific documents may define validation evidence, but OMP owns the reusable promotion sequence.
 
-Capability Dashboard must be printed in OMP Status:
+#### Capability Closure Versus Implementation Complete Reconciliation Rule
+
+Status: `CANONICAL_EXISTING_OWNER_INTEGRATION`.
+
+Before OMP accepts `IMPLEMENTATION_COMPLETE` or a global `REAL_WORLD_LIMIT`, it must reconcile every unfinished CPS capability criterion against its current owner, actionable Backlog state, producer/consumer closure, Behavior Chain, State Transition, Engineering Intent Closure, certification, Production Maturity consumption and exact legal terminal consumer.
+
+Each current criterion must have exactly one primary classification: engineering implementation, integration, verification, certification, consumption, intent closure or canonical reconciliation remaining; real-world evidence; operational or engineering Authority; production certification; dependency wait; stale completed projection; not applicable; or unknown with reason.
+
+`34/34 actionable COMPLETE` proves only that the current implementation backlog has no unfinished actionable item. A `DONE` item cannot close a capability unless the capability output is consumed, consumption is verified, behavior changes, the next output is produced, Engineering Intent closes and the legal terminal consumer accepts the result. Conversely, a completed backlog ID must not remain a live blocker merely because a historical capability table was not refreshed.
+
+Any safe engineering classification enters the existing responsibility -> BDP when Discovery is required -> Candidate -> OMP admission -> Mission -> Codex -> verification -> intent closure path. Real-world, Authority and dependency waits remain capability-local while any independent criterion is READY. Unknown or contradictory classification stops safely. No parallel registry, backlog, queue, scheduler, owner, Planner, Runtime, Engine or lifecycle is created.
+
+Capability Dashboard must be printed from the sole volatile owner:
 
 ```text
-Capability Dashboard
-
-Capability | Current % | Ideal % | Remaining % | Current Maturity | Production Impact | Autonomy Impact | Blocking Backlog Items | Completion Prediction
-Movement Protection | 83.0% | 100% | 17.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | Future authority/runtime/certification and production outcome evidence | Actionable backlog prerequisites are complete through C7; movement remains blocked until certified authority/runtime scope exists.
-Runtime Eligibility | 61.0% | 100% | 39.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | B17, B18, C1, C6 | Complete after Runtime can decide execute-or-stop from certified gates and related stale-read/lease semantics are certified.
-Authority Evolution | 68.0% | 100% | 32.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | B12, B16, B21, C3, C4 | Complete after action classes and delegated policy can replace repeated packet approval.
-Rollback | 49.0% | 100% | 51.0% | IN_PROGRESS | VERY_HIGH | HIGH | A3, B15, B16 | Complete after rollback/no-rollback class evidence and authority are certified; C5 compensation semantics are complete.
-Recovery Admission | 78.0% | 100% | 22.0% | IN_PROGRESS | HIGH | HIGH | D2, D3 if optional recovery scope changes | Complete after recovered channels are reintroduced through certified readiness and slow-start and optional recovery scope remains resolved or explicitly not applicable.
-Learning | 63.0% | 100% | 37.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3 | Complete after real outcomes reliably improve future decisions.
-Production Readiness | 66.9% | 100% | 33.1% | IN_PROGRESS | VERY_HIGH | HIGH | Future authority/runtime/certification and production outcome evidence | Complete at PRODUCTION_AUTONOMY_CERTIFIED.
-Production Autonomy | 0.0% | 100% | 100.0% | IN_PROGRESS | VERY_HIGH | VERY_HIGH | A3, A4, A5, A6, B10, B12, B16, C4 | Complete when Runtime operates inside certified policy and operator supervises.
-Knowledge System | 100.0% | 100% | 0.0% | LOCKED | HIGH | MEDIUM_HIGH | None | Complete and locked under canonical knowledge rules.
-Observability | 63.0% | 100% | 37.0% | IN_PROGRESS | HIGH | MEDIUM_HIGH | B15, B17, C2 | Complete when operators and OMP can inspect all safety/runtime evidence without mutation.
-Decision Explainability | 25.0% | 100% | 75.0% | IN_PROGRESS | HIGH | HIGH | B1, B4, B13, B15, B17, C2 | Complete when every approval request explains the decision in Russian before Approve / Reject, using existing evidence owners only.
-Implementation Discipline | 100.0% | 100% | 0.0% | COMPLETE | VERY_HIGH | MEDIUM | None | Complete while OMP Mission admission remains the only path to implementation and Backlog remains the post-admission registry.
-Engineering Knowledge Preservation | 100.0% | 100% | 0.0% | LOCKED | HIGH | MEDIUM | None | Complete and locked while reference/report/ADR roles remain normalized.
-
-Current Capability
-Action-Class Stage Certification / Authority Evolution / Production Readiness
-
-Current Backlog Item
-B12
-
-Completion Prediction
-B12 completes after the next action-class stage is implemented only from existing certification evidence, authority policy owners, and OMP without direct class promotion, Runtime apply, authority expansion, synthetic evidence, or user movement.
-
-Blocking Items
-B12 current; later authority, runtime apply, delegated policy, user-mode, and production autonomy work remains blocked by B16, B21, C3, C4, and remaining certification where applicable.
+Capability Dashboard Source: CPS Authoritative Unfinished Capability Closure Registry
+Live values: docs/programs/V7_CURRENT_PROGRAM_STATE.md
+Scheduling authority: CPS-derived READY frontier consumed by OMP
+Historical OMP capability tables: context only; no current-state or scheduling authority
 ```
 
-Initial capability registry:
+Historical capability baseline (non-authoritative; retained for provenance only):
+
+This baseline records the state when Capability Management was introduced. It has `scheduling_authority=NONE`, must not be read as current `IN_PROGRESS` state, and cannot override the CPS Authoritative Unfinished Capability Closure Registry.
 
 | Capability | Purpose | Current % | Target % | Current Status | Canonical Owner | Production Value | Autonomy Impact | Blocking Backlog Items | Expected Completion Point | Re-open Triggers |
 | --- | --- | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |
@@ -4998,6 +4990,8 @@ Ideal Target State by capability:
 | Engineering Knowledge Preservation | Durable knowledge is promoted from reports into canonical owners; reports remain evidence, ADRs remain decisions, references remain knowledge, and Backlog remains the post-admission implementation registry. |
 
 Definition of Done by capability:
+
+Definitions are durable. The `Completed Criteria` and `Remaining Criteria` columns below are the non-authoritative baseline captured when Capability Management was introduced. Current criterion classification, blockers, waits, percentages and closure state are owned only by the CPS Authoritative Unfinished Capability Closure Registry and its named capability owners.
 
 | Capability | Definition of Done | Completed Criteria | Remaining Criteria |
 | --- | --- | --- | --- |

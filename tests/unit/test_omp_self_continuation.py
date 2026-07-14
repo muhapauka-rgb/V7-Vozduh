@@ -87,11 +87,12 @@ class OmpSelfContinuationTest(unittest.TestCase):
 
     def test_omp_contains_canonical_contract(self):
         text = OMP.read_text(encoding="utf-8")
-        self.assertIn("Version: `4.21`", text)
+        self.assertIn("Version: `4.22`", text)
         self.assertIn("### 14.1 OMP Self-Continuation Contract", text)
         self.assertIn("Engineering Polygon Scenario Supply Consumption Rule", text)
         self.assertIn("Proactive Verification Input Consumption Rule", text)
         self.assertIn("Engineering Polygon Fallback Continuation Rule", text)
+        self.assertIn("Capability Closure Versus Implementation Complete Reconciliation Rule", text)
         self.assertIn("PREMATURE_OMP_RETURN_TO_OPERATOR", text)
         self.assertIn("OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY", text)
 

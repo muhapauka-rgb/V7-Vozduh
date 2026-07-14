@@ -13,7 +13,7 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed closure evidence: `docs/reports/engineering/2026-07-14_233300_omp_heartbeat_real_consumer_wiring.md` (`REPAIR_IMPLEMENTED_WAITING_SAFE_DEPLOY_AND_POST_REPAIR_NATURAL_RUN`).
+Latest consumed closure evidence: `docs/reports/engineering/2026-07-14_233300_omp_heartbeat_real_consumer_wiring.md` (`REPAIR_IMPLEMENTED_DEPLOY_BLOCKED_ENGINEERING_AUTHORITY`).
 Previous consumed closure evidence: `docs/reports/engineering/2026-07-14_215106_phase2_to_current_real_effect_audit.md` (`PHASE2_TO_CURRENT_AUDIT_CORRECTED_ENGINEERING_AUTHORITY_REQUIRED`; retained pre-activation truth).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
@@ -7774,8 +7774,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `NATURAL_SCHEDULED_RUN`
-Resolved current next action: `SAFE_DEPLOY_THEN_WAIT_POST_REPAIR_NATURAL_RUN`
+Resolved current stop: `ENGINEERING_AUTHORITY`
+Resolved current next action: `APPROVE_SAFE_DEPLOY_THEN_ENABLE_POST_REPAIR_NATURAL_RUN`
 Resolved packet: `NONE_OPEN`
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -8762,8 +8762,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `NATURAL_SCHEDULED_RUN`
-Resolved current next action: `SAFE_DEPLOY_THEN_WAIT_POST_REPAIR_NATURAL_RUN`
+Resolved current stop: `ENGINEERING_AUTHORITY`
+Resolved current next action: `APPROVE_SAFE_DEPLOY_THEN_ENABLE_POST_REPAIR_NATURAL_RUN`
 Latest consumed report: `docs/reports/engineering/2026-07-14_233300_omp_heartbeat_real_consumer_wiring.md`
 Previous consumed report: `docs/reports/engineering/2026-07-14_215106_phase2_to_current_real_effect_audit.md` (`PHASE2_TO_CURRENT_AUDIT_CORRECTED_ENGINEERING_AUTHORITY_REQUIRED`)
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`

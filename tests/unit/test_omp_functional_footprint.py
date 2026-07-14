@@ -34,7 +34,16 @@ class OmpFunctionalFootprintTest(unittest.TestCase):
         self.assertTrue(all(item["class"] == "TEST_ONLY" for item in result["test_callers"]))
 
     def test_current_cps_footprint_passes(self):
-        self.assertEqual(self.lib.omp_functional_footprint_consistency(self.cps, root=ROOT)["final_verdict"], "PASS")
+        result = self.lib.omp_functional_footprint_consistency(self.cps, root=ROOT)
+        self.assertEqual(result["final_verdict"], "PASS")
+        self.assertEqual(result["heartbeat_status"], "PAUSED")
+        self.assertFalse(result["automation_enabled"])
+
+    def test_inconsistent_heartbeat_state_pair_fails(self):
+        altered = self.cps.replace("| `AUTOMATION_ENABLED` | `FALSE` |", "| `AUTOMATION_ENABLED` | `TRUE` |", 1)
+        result = self.lib.omp_functional_footprint_consistency(altered, root=ROOT)
+        self.assertEqual(result["final_verdict"], "NO-GO")
+        self.assertIn("functional_footprint_heartbeat_state_pair_invalid", result["errors"])
 
     def test_false_complete_consumed_claim_fails(self):
         altered = self.cps.replace("`IMPLEMENTED_MANUALLY_CALLABLE`", "`COMPLETE_CONSUMED`", 1)

@@ -2,18 +2,18 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-14T23:33:00+0700
+State captured: 2026-07-15T00:10:00+0700
 Latest terminal Mission: `V7_OMP_HEARTBEAT_REAL_CONSUMER_WIRING_V1`
-Latest terminal Mission state: `REPAIR_IMPLEMENTED_WAITING_SAFE_DEPLOY_AND_POST_REPAIR_NATURAL_RUN`
+Latest terminal Mission state: `REPAIR_IMPLEMENTED_DEPLOY_BLOCKED_ENGINEERING_AUTHORITY`
 Latest terminal Mission report: `docs/reports/engineering/2026-07-14_233300_omp_heartbeat_real_consumer_wiring.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
-Source: The first natural heartbeat proved adapter-only execution; the admitted existing-owner repair is implemented and awaits safe deploy plus one post-repair natural run.
+Source: The first natural heartbeat proved adapter-only execution; the admitted existing-owner repair is implemented, committed and pushed, while safe deploy is blocked by the external Engineering Authority gate.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-14T23:33:00+0700`
+Captured: `2026-07-15T00:10:00+0700`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -28,13 +28,13 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `NATURAL_SCHEDULED_RUN` |
+| `CURRENT_STOP_CONDITION` | `ENGINEERING_AUTHORITY` |
 | `CURRENT_ACTIVE_SCOPE` | `OMP_HEARTBEAT_POST_REPAIR_NATURAL_RUN` |
-| `CURRENT_SAFE_NEXT_ACTION` | `SAFE DEPLOY THE ADMITTED HEARTBEAT REPAIR, THEN WAIT FOR EXACTLY ONE NATURAL 30-MINUTE RUN` |
+| `CURRENT_SAFE_NEXT_ACTION` | `OBTAIN EXPLICIT SAFE DEPLOY APPROVAL, DEPLOY THE ADMITTED HEARTBEAT REPAIR, THEN RE-ENABLE EXACTLY ONE NATURAL 30-MINUTE RUN` |
 | `CURRENT_SCOPE_CLASS` | `ENGINEERING_AUTOMATION_BOUNDARY` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_OMP_HEARTBEAT_REPAIR_V1_3E8A71D25C9F` |
-| `CURRENT_TRANSITION_ID` | `OMP_HEARTBEAT_REPAIR_IMPLEMENTED_WAITING_NATURAL_RUN_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `SAFE_DEPLOY_THEN_WAIT_POST_REPAIR_NATURAL_RUN` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_OMP_HEARTBEAT_DEPLOY_BLOCKED_V1_3E8A71D25C9F` |
+| `CURRENT_TRANSITION_ID` | `OMP_HEARTBEAT_REPAIR_DEPLOY_BLOCKED_ENGINEERING_AUTHORITY_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `APPROVE_SAFE_DEPLOY_THEN_ENABLE_POST_REPAIR_NATURAL_RUN` |
 | `CURRENT_PROGRAM_STAGE` | `AEP_PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE` |
 | `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `OMP_REAL_CONSUMER_ACTIVATION` |
 | `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; preserved and not reordered` |
@@ -43,27 +43,27 @@ This section is the single live volatile current-state surface. Older production
 | `WAITING_CAPABILITIES` | `CAP-U02,CAP-U05,CAP-U06,CAP-U07` |
 | `READY_CAPABILITIES` | `NONE` |
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
-| `CONTINUATION_DECISION` | `WAIT_EXTERNAL_TRIGGER` |
+| `CONTINUATION_DECISION` | `ENGINEERING_AUTHORITY_REQUIRED` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `WAITING_POST_REPAIR_NATURAL_SCHEDULED_RUN` |
+| `PROGRAM_TERMINAL_STATE` | `ENGINEERING_AUTHORITY_REAL_CONSUMER_ACTIVATION_REQUIRED` |
 | `OMP_CONTINUATION_REQUIRED` | `FALSE` |
 | `EXTERNAL_INPUT_REQUIRED` | `TRUE` |
-| `EXTERNAL_INPUT_TYPE` | `NATURAL_SCHEDULED_RUN` |
-| `TRANSACTION_TERMINAL_CLASS` | `REPAIR_IMPLEMENTED_WAITING_NATURAL_RUN` |
-| `PROGRAM_TERMINAL_CLASS` | `NATURAL_SCHEDULED_RUN` |
+| `EXTERNAL_INPUT_TYPE` | `ENGINEERING_AUTHORITY` |
+| `TRANSACTION_TERMINAL_CLASS` | `REPAIR_IMPLEMENTED_DEPLOY_BLOCKED_ENGINEERING_AUTHORITY` |
+| `PROGRAM_TERMINAL_CLASS` | `ENGINEERING_AUTHORITY` |
 | `NEXT_MISSION_FORMED` | `FALSE` |
 | `NEXT_MISSION_ID` | `NONE` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
 | `CONTINUATION_ITERATION` | `14` |
-| `CONTINUATION_STOP_REASON` | `REPAIR_IMPLEMENTED; SAFE_DEPLOY_THEN_POST_REPAIR_NATURAL_RUN_REQUIRED` |
+| `CONTINUATION_STOP_REASON` | `REPAIR_IMPLEMENTED_AND_PUSHED; SAFE_DEPLOY_REQUIRES_EXPLICIT_ENGINEERING_AUTHORITY` |
 | `NO_PROGRESS_FINGERPRINT` | `10a01e3c8583599a18700ef0c0a74e282e0b0afd2b9bec55a6369e864a8fa13a` |
-| `PROGRAM_RECONCILIATION_FOOTPRINT_CLASS` | `SOURCE_ENTRYPOINT_WIRED_AWAITING_NATURAL_RUN` |
+| `PROGRAM_RECONCILIATION_FOOTPRINT_CLASS` | `SOURCE_ENTRYPOINT_WIRED_PAUSED_DEPLOY_BLOCKED` |
 | `PROGRAM_RECONCILIATION_REAL_CALLERS` | `1` |
 | `PROGRAM_RECONCILIATION_TEST_CALLERS` | `3` |
 | `OMP_AUTOMATION_LEVEL` | `CODEX_ASSISTED` |
-| `HEARTBEAT_STATUS` | `ACTIVE` |
-| `AUTOMATION_ENABLED` | `TRUE` |
-| `HEARTBEAT_AUTOMATION_LEVEL` | `EXTERNAL_ENGINEERING_WAKEUP_ENTRYPOINT_WIRED_UNCERTIFIED` |
+| `HEARTBEAT_STATUS` | `PAUSED` |
+| `AUTOMATION_ENABLED` | `FALSE` |
+| `HEARTBEAT_AUTOMATION_LEVEL` | `EXTERNAL_ENGINEERING_WAKEUP_ENTRYPOINT_WIRED_DEPLOY_BLOCKED` |
 | `HEARTBEAT_LAST_WAKEUP_ID` | `019f616a-37d2-7103-9d34-3be847316197` |
 | `HEARTBEAT_LAST_EVENT_ID` | `18c01ddb3c6312617aa451b014b3762573a298c4a537985d816f236665579cc9` |
 | `HEARTBEAT_LAST_CPS_GENERATION` | `cpsgen_V7_OMP_REAL_EFFECT_AUDIT_V1_94C7E2A16D5B` |
@@ -81,14 +81,14 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_EXECUTION_MISSION_STATE` | `NONE` |
 | `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_HEARTBEAT_REAL_CONSUMER_WIRING_V1` |
 | `LATEST_TERMINAL_RUN_NONCE` | `V7_OMP_REAL_CONSUMER_ACTIVATION_V1_3E8A71D25C9F` |
-| `LATEST_TERMINAL_MISSION_STATE` | `REPAIR_IMPLEMENTED_WAITING_SAFE_DEPLOY_AND_POST_REPAIR_NATURAL_RUN` |
+| `LATEST_TERMINAL_MISSION_STATE` | `REPAIR_IMPLEMENTED_DEPLOY_BLOCKED_ENGINEERING_AUTHORITY` |
 | `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-14_233300_omp_heartbeat_real_consumer_wiring.md` |
 | `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-14T23:16:18+0700` |
 | `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT_V1` |
 | `CURRENT_MISSION_ROLE` | `LATEST_TERMINAL_MISSION` |
 | `CURRENT_MISSION_ID` | `V7_OMP_HEARTBEAT_REAL_CONSUMER_WIRING_V1` |
 | `CURRENT_RUN_NONCE` | `V7_OMP_REAL_CONSUMER_ACTIVATION_V1_3E8A71D25C9F` |
-| `CURRENT_MISSION_STATE` | `REPAIR_IMPLEMENTED_WAITING_SAFE_DEPLOY_AND_POST_REPAIR_NATURAL_RUN` |
+| `CURRENT_MISSION_STATE` | `REPAIR_IMPLEMENTED_DEPLOY_BLOCKED_ENGINEERING_AUTHORITY` |
 | `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-14_233300_omp_heartbeat_real_consumer_wiring.md` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `AUTHORITATIVE_TRANSITION_INPUT_STATE` | `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED` |
@@ -96,7 +96,7 @@ This section is the single live volatile current-state surface. Older production
 | `BINDING_STABILITY` | `PASS; 22 post-deploy read-only cycles, 10 consecutive stable Candidate cycles, zero unexplained mismatches, zero mixed-generation snapshots` |
 | `BINDING_SCHEMA` | `v7.operation-scoped-source-binding.v2; shared by preview, admission and low-level pre-mutation recheck` |
 | `MISSION_IDENTITY_GUARD` | `PASS; Mission ID + run nonce + start timestamp + report header/path + CPS identity fail-closed validation` |
-| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE; bounded operator Engineering Authority is active only for this heartbeat repair and natural-run certification` |
+| `AUTHORITY_REQUIRED_NOW` | `ENGINEERING_AUTHORITY_FOR_EXISTING_HEARTBEAT_ENABLEMENT_ONLY` |
 | `OLD_PACKETS_REUSABLE` | `NO` |
 | `CURRENT_ACTION_CLASS` | `single-user governed candidate failover` |
 | `CURRENT_ACTION_CLASS_STATE` | `GOVERNED_ONLY` |
@@ -136,7 +136,7 @@ This section is the single live volatile current-state surface. Older production
 | `LEARNING_RESULT` | `LEARNING_UPDATED_PARTIAL; feedback execfb_b287532347352c661799e985 -> learn_5070685e53fe93acdda4ce8a, HIGH, real and non-synthetic` |
 | `PRODUCTION_MATURITY_DECISION` | `PARTIAL_ACCEPT; CAP-U01 COMPLETE, CAP-U02 PARTIAL_REVALIDATED_FROM_REAL_SUCCESS, current action class remains GOVERNED_ONLY` |
 | `CURRENT_CLASS_DELTA_CLOSED` | `YES` |
-| `AUTOMATIC_CONTINUE_OMP_RESULT` | `WAITING_POST_REPAIR_NATURAL_RUN; no manual run may substitute` |
+| `AUTOMATIC_CONTINUE_OMP_RESULT` | `DEPLOY_BLOCKED_ENGINEERING_AUTHORITY; heartbeat paused before any post-repair natural run` |
 | `HISTORICAL_ACTION_CLASS_PROMOTION_REPORT` | `docs/reports/engineering/2026-07-11_194202_current_action_class_promotion_to_bounded_authority.md`; `SUPERSEDED/HISTORICAL` context only. |
 | `HISTORICAL_CURRENT_CLASS_OUTCOME_STORE_AUDIT` | `18,036 execution-outcome records at historical readback; all DRY_RUN / NO_EXECUTION; CURRENT_CLASS_OUTCOME_ABSENT` |
 | `CONDITIONAL_ENGINEERING_AUTHORITY_USED` | `NO; successful outcome was completed inside existing bounded delegated policy` |
@@ -147,7 +147,7 @@ This section is the single live volatile current-state surface. Older production
 | `MATERIAL_DECISION_CHURN_DEPLOY_ID` | `deploy-z8-14-Updatesystem-62015c1-20260711T185443` |
 | `MATERIAL_DECISION_CHURN_REPORT` | `docs/reports/engineering/2026-07-11_184357_material_decision_churn_discovery_and_closure.md` |
 | `FORBIDDEN_FOR_CURRENT_SCOPE` | Reuse historical Candidate/packet/hash/Authority; more than one user; batch/concurrency; another action class; Authority/blast-radius expansion; systemd enable/start; threshold reduction; safety weakening; synthetic evidence. |
-| `REQUIRED_WORKFLOW` | `safe deploy the existing read-only entrypoint -> wait one natural heartbeat -> verify reconciliation, consumer and legal terminal; preserve manual Continue OMP` |
+| `REQUIRED_WORKFLOW` | `explicitly approve safe deploy -> deploy the existing read-only entrypoint -> re-enable the same heartbeat -> wait one natural heartbeat -> verify reconciliation, consumer and legal terminal` |
 | `CIRCUIT_BREAKER_REPOSITORY_STATE` | `IMPLEMENTATION_CERTIFIED_READ_ONLY` |
 | `CIRCUIT_BREAKER_PRODUCTION_STATE` | `DEPLOYED_CERTIFIED_OPEN` |
 | `CIRCUIT_BREAKER_PRODUCTION_CERTIFICATION` | `CIRCUIT_BREAKER_PRODUCTION_CERTIFIED` |
@@ -187,7 +187,7 @@ This section is the single live volatile current-state surface. Older production
 | `ALL_TERMINAL_PATHS_FINAL_OPEN` | `CERTIFIED` |
 | `CONTROLLED_RUN_EXECUTION_AUTHORIZED` | `NO_CURRENT_PACKET; no forced evidence generation or movement is authorized` |
 | `OMP_CONTROLLED_RUN_ALLOWED` | `NO_CURRENT_EXECUTION; synthetic or forced outcomes are forbidden` |
-| `CONTROLLED_RUN_PRIMARY_STOP` | `NATURAL_SCHEDULED_RUN` |
+| `CONTROLLED_RUN_PRIMARY_STOP` | `ENGINEERING_AUTHORITY` |
 | `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `LEARNING` |
 | `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `NO_RUNTIME_AUTHORITY; current boundary is engineering heartbeat enablement only` |
 | `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_CLOSED; CAP-U01 certified from exact repair through governed SUCCESS, verification, learning and final OPEN` |
@@ -209,7 +209,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-14T23:33:00+0700`
+Generated At: `2026-07-15T00:10:00+0700`
 
 Runtime Authority: `NONE`
 
@@ -222,10 +222,10 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_OMP_HEARTBEAT_REPAIR_V1_3E8A71D25C9F` |
-| `CURRENT_TRANSITION_ID` | `OMP_HEARTBEAT_REPAIR_IMPLEMENTED_WAITING_NATURAL_RUN_V1` |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `SAFE_DEPLOY_THEN_WAIT_POST_REPAIR_NATURAL_RUN` |
-| `CURRENT_STOP_CONDITION` | `NATURAL_SCHEDULED_RUN` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_OMP_HEARTBEAT_DEPLOY_BLOCKED_V1_3E8A71D25C9F` |
+| `CURRENT_TRANSITION_ID` | `OMP_HEARTBEAT_REPAIR_DEPLOY_BLOCKED_ENGINEERING_AUTHORITY_V1` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `APPROVE_SAFE_DEPLOY_THEN_ENABLE_POST_REPAIR_NATURAL_RUN` |
+| `CURRENT_STOP_CONDITION` | `ENGINEERING_AUTHORITY` |
 | `CAPABILITIES_INVENTORIED` | `34` |
 | `COMPLETE_OR_LOCKED_CAPABILITIES` | `13` |
 | `UNFINISHED_CAPABILITIES` | `21` |
@@ -233,7 +233,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
 | `ACTIVE_MISSIONS` | `NONE` |
 | `LATEST_TERMINAL_MISSION_ID` | `V7_OMP_HEARTBEAT_REAL_CONSUMER_WIRING_V1` |
-| `LATEST_TERMINAL_MISSION_STATE` | `REPAIR_IMPLEMENTED_WAITING_SAFE_DEPLOY_AND_POST_REPAIR_NATURAL_RUN` |
+| `LATEST_TERMINAL_MISSION_STATE` | `REPAIR_IMPLEMENTED_DEPLOY_BLOCKED_ENGINEERING_AUTHORITY` |
 | `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-14_233300_omp_heartbeat_real_consumer_wiring.md` |
 | `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT_V1` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
@@ -244,7 +244,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
 | `OMP_CONTINUATION_POINTER` | consume the independent program frontier before capability-local waits; preserve CAP-U07 WAITING WIP and capability dependency order |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `decide whether to enable the existing paused OMP heartbeat for bounded engineering-only reentry; do not attach OMP to unrelated production timers` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `approve the already validated safe deploy, then re-enable the same heartbeat for one post-repair natural run` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -253,13 +253,13 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_V7_OMP_HEARTBEAT_REPAIR_V1_3E8A71D25C9F` |
-| `current_transition_id` | `OMP_HEARTBEAT_REPAIR_IMPLEMENTED_WAITING_NATURAL_RUN_V1` |
+| `current_state_generation` | `cpsgen_V7_OMP_HEARTBEAT_DEPLOY_BLOCKED_V1_3E8A71D25C9F` |
+| `current_transition_id` | `OMP_HEARTBEAT_REPAIR_DEPLOY_BLOCKED_ENGINEERING_AUTHORITY_V1` |
 | `smallest_existing_next_action_id` | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
 | `latest_terminal_mission_id` | `V7_OMP_HEARTBEAT_REAL_CONSUMER_WIRING_V1` |
-| `latest_terminal_mission_state` | `REPAIR_IMPLEMENTED_WAITING_SAFE_DEPLOY_AND_POST_REPAIR_NATURAL_RUN` |
+| `latest_terminal_mission_state` | `REPAIR_IMPLEMENTED_DEPLOY_BLOCKED_ENGINEERING_AUTHORITY` |
 | `previous_terminal_mission_id` | `V7_OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT_V1` |
 | `authoritative_transition_input_mission_id` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `candidate_id` | `NOT_APPLICABLE; CAP-U07 consumes accepted U01 outcome evidence and creates no routing Candidate` |
@@ -340,7 +340,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `AEP_PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE` program frontier; `cpsgen_V7_OMP_HEARTBEAT_REPAIR_V1_3E8A71D25C9F`; `OMP_HEARTBEAT_REPAIR_IMPLEMENTED_WAITING_NATURAL_RUN_V1` | first natural heartbeat reached the adapter and proved the missing reconciliation invocation; one source entrypoint is now wired but not naturally certified | `SAFE_DEPLOY_THEN_WAIT_POST_REPAIR_NATURAL_RUN` | existing OMP, CPS, Codex Automation Platform and heartbeat boundary owners | `NATURAL_SCHEDULED_RUN` | safe deploy -> one post-repair natural heartbeat -> reconciliation -> legal no-action or next output -> certification |
+| `1` | `AEP_PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE` program frontier; `cpsgen_V7_OMP_HEARTBEAT_DEPLOY_BLOCKED_V1_3E8A71D25C9F`; `OMP_HEARTBEAT_REPAIR_DEPLOY_BLOCKED_ENGINEERING_AUTHORITY_V1` | first natural heartbeat reached the adapter and proved the missing reconciliation invocation; one source entrypoint is now wired but not naturally certified | `APPROVE_SAFE_DEPLOY_THEN_ENABLE_POST_REPAIR_NATURAL_RUN` | existing OMP, CPS, Codex Automation Platform and heartbeat boundary owners | `ENGINEERING_AUTHORITY` | explicit deploy approval -> safe deploy -> one post-repair natural heartbeat -> reconciliation -> legal no-action or next output -> certification |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |
@@ -408,7 +408,7 @@ This graph reuses the existing capability registry, Engineering Chain links and 
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NATURAL_SCHEDULED_RUN`; current stop is `NATURAL_SCHEDULED_RUN`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `SAFE_DEPLOY_THEN_WAIT_POST_REPAIR_NATURAL_RUN`; no mutation is authorized |
+| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `ENGINEERING_AUTHORITY`; current stop is `ENGINEERING_AUTHORITY`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `APPROVE_SAFE_DEPLOY_THEN_ENABLE_POST_REPAIR_NATURAL_RUN`; no mutation is authorized |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

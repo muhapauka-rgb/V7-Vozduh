@@ -142,12 +142,12 @@ class OmpMissionCompletionEvidenceGateTest(unittest.TestCase):
 
     def test_29_current_cps_records_active_gate(self):
         self.assertIn("| `MISSION_COMPLETION_EVIDENCE_GATE` | `ACTIVE_V1` |", self.cps)
-        self.assertIn("| `CURRENT_COMPLETION_VERDICT` | `INTEGRATION_INCOMPLETE` |", self.cps)
+        self.assertIn("| `CURRENT_COMPLETION_VERDICT` | `AUTOMATION_INCOMPLETE` |", self.cps)
 
     def test_30_functional_footprint_consumes_gate(self):
         result = self.lib.omp_functional_footprint_consistency(self.cps, root=ROOT)
         self.assertEqual(result["mission_completion_evidence_gate_status"], "ACTIVE_V1")
-        self.assertEqual(result["current_completion_verdict"], "INTEGRATION_INCOMPLETE")
+        self.assertEqual(result["current_completion_verdict"], "AUTOMATION_INCOMPLETE")
 
 
 if __name__ == "__main__":

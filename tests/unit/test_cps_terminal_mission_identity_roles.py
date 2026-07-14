@@ -24,8 +24,8 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         cls.lib = load_lib()
         cls.cps = CPS.read_text(encoding="utf-8")
         cls.omp = OMP.read_text(encoding="utf-8")
-        cls.latest = "V7_OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT_V1"
-        cls.previous = "V7_OMP_FUNCTIONAL_FOOTPRINT_AND_REAL_CONSUMER_ACTIVATION_V1"
+        cls.latest = "V7_OMP_HEARTBEAT_REAL_CONSUMER_WIRING_V1"
+        cls.previous = "V7_OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT_V1"
         cls.transition = "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3"
 
     def validate(self, cps=None, omp=None, root=ROOT):
@@ -42,7 +42,7 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
     def temp_root_with_report(self, first, second):
         tmp = tempfile.TemporaryDirectory()
         root = Path(tmp.name)
-        report = root / "docs/reports/engineering/2026-07-14_215106_phase2_to_current_real_effect_audit.md"
+        report = root / "docs/reports/engineering/2026-07-14_233300_omp_heartbeat_real_consumer_wiring.md"
         report.parent.mkdir(parents=True)
         report.write_text(f"{first}\n{second}\n", encoding="utf-8")
         return tmp, root
@@ -80,11 +80,11 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         self.assertEqual(self.validate(drift)["cps_header_identity_consistency"], "FAIL")
 
     def test_09_header_timestamp_predates_latest_start_fails(self):
-        drift = self.cps.replace("State captured: 2026-07-14T21:51:06+0700", "State captured: 2026-07-12T02:00:00+0700", 1)
+        drift = self.cps.replace("State captured: 2026-07-14T23:33:00+0700", "State captured: 2026-07-12T02:00:00+0700", 1)
         self.assertEqual(self.validate(drift)["mission_timestamp_consistency"], "FAIL")
 
     def test_10_latest_report_header_id_mismatch_fails(self):
-        tmp, root = self.temp_root_with_report("Mission ID: `OLD`", "Run Nonce: `V7_AEP_PHASE_3_ACCEPTANCE_LOCK_V1_2F8C6D14A97E`")
+        tmp, root = self.temp_root_with_report("Mission ID: `OLD`", "Run Nonce: `V7_OMP_REAL_CONSUMER_ACTIVATION_V1_3E8A71D25C9F`")
         try:
             self.assertIn("latest_terminal_report_mission_id_mismatch", self.validate(root=root)["mission_identity_contradiction_ids"])
         finally:
@@ -98,7 +98,7 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
             tmp.cleanup()
 
     def test_12_omp_latest_closure_pointer_mismatch_fails(self):
-        drift = self.omp.replace("docs/reports/engineering/2026-07-14_215106_phase2_to_current_real_effect_audit.md", "docs/reports/engineering/stale.md")
+        drift = self.omp.replace("docs/reports/engineering/2026-07-14_233300_omp_heartbeat_real_consumer_wiring.md", "docs/reports/engineering/stale.md")
         self.assertEqual(self.validate(omp=drift)["mission_report_pointer_consistency"], "FAIL")
 
     def test_13_omp_transition_input_pointer_mismatch_fails(self):
@@ -129,8 +129,8 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
 
     def test_19_operational_state_is_bounded_policy_active(self):
         live = self.lib._markdown_field_table(self.lib._markdown_section(self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry"))
-        self.assertEqual(live["CURRENT_STOP_CONDITION"].strip("`"), "ENGINEERING_AUTHORITY")
-        self.assertEqual(live["CURRENT_ACTIVE_SCOPE"].strip("`"), "OMP_REAL_CONSUMER_ACTIVATION")
+        self.assertEqual(live["CURRENT_STOP_CONDITION"].strip("`"), "NATURAL_SCHEDULED_RUN")
+        self.assertEqual(live["CURRENT_ACTIVE_SCOPE"].strip("`"), "OMP_HEARTBEAT_POST_REPAIR_NATURAL_RUN")
         self.assertEqual(live["CURRENT_ACTION_CLASS_STATE"].strip("`"), "GOVERNED_ONLY")
 
     def test_20_no_candidate_packet_lease_barrier_apply_or_movement(self):
@@ -148,7 +148,7 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         self.assertIn("`AEP_PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE` program frontier", result["sequence_position_1"])
 
     def test_22_current_stop_is_live_reality_only(self):
-        self.assertEqual(self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)["current_stop"], "ENGINEERING_AUTHORITY")
+        self.assertEqual(self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)["current_stop"], "NATURAL_SCHEDULED_RUN")
 
     def test_23_omp_historical_isolation_remains_pass(self):
         self.assertEqual(self.lib.omp_live_state_consistency(self.cps, self.omp)["omp_historical_isolation"], "PASS")

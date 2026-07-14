@@ -24,9 +24,9 @@ class OmpFunctionalFootprintTest(unittest.TestCase):
         cls.lib = load_lib()
         cls.cps = CPS.read_text()
 
-    def test_current_repository_has_no_real_reconciliation_caller(self):
+    def test_current_repository_has_one_bounded_reconciliation_caller(self):
         result = self.lib.python_function_call_sites(ROOT, "program_execution_reconciliation")
-        self.assertEqual(result["real_caller_count"], 0)
+        self.assertEqual(result["real_caller_count"], 1)
         self.assertGreaterEqual(result["test_caller_count"], 3)
 
     def test_test_calls_are_not_real_consumers(self):
@@ -40,7 +40,7 @@ class OmpFunctionalFootprintTest(unittest.TestCase):
         altered = self.cps.replace("`IMPLEMENTED_MANUALLY_CALLABLE`", "`COMPLETE_CONSUMED`", 1)
         result = self.lib.omp_functional_footprint_consistency(altered, root=ROOT)
         self.assertEqual(result["final_verdict"], "NO-GO")
-        self.assertIn("false_automation_completion_without_real_caller", result["errors"])
+        self.assertIn("functional_footprint_mismatch:AEP_PHASE_4_STATUS", result["errors"])
 
     def test_false_real_automation_claim_fails(self):
         altered = self.cps.replace("`CODEX_ASSISTED`", "`REAL_ENGINEERING_AUTOMATION`", 1)

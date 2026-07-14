@@ -31,49 +31,51 @@ MANIFEST_PATH = ROOT / "docs" / "track7" / "runtime-convergence" / "V7_TRUTH_MAN
 TRUTH_CHECK_PATH = ROOT / "tools" / "v7-truth-check"
 CPS_PATH = ROOT / "docs" / "programs" / "V7_CURRENT_PROGRAM_STATE.md"
 OMP_PATH = ROOT / "docs" / "programs" / "OPERATIONAL_MATURITY_PROGRAM.md"
+HEARTBEAT_AUTOMATION_ID = "v7-omp-external-reentry-heartbeat"
+HEARTBEAT_TARGET_THREAD_ID = "019f4b9f-dda6-7762-b26c-3ab651f0a67c"
 CANONICAL_BRANCH = "Updatesystem"
 REMOTE_NAME = "origin"
 DEPLOY_CONFIRMATION = "DEPLOY_V7_APPROVED"
 RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
 
 NORMALIZED_CPS_LIVE_STATE = {
-    "active_program": "OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT",
+    "active_program": "OMP_HEARTBEAT_REAL_CONSUMER_WIRING",
     "current_mode": "BOUNDED_DELEGATED_AUTONOMY_ACTIVE",
-    "current_stop_condition": "ENGINEERING_AUTHORITY",
-    "current_active_scope": "OMP_REAL_CONSUMER_ACTIVATION",
-    "current_safe_next_action": "OBTAIN EXPLICIT ENGINEERING AUTHORITY TO ENABLE THE EXISTING PAUSED OMP HEARTBEAT OR WAIT FOR AN EXISTING OWNER-BACKED EVENT HOOK",
+    "current_stop_condition": "NATURAL_SCHEDULED_RUN",
+    "current_active_scope": "OMP_HEARTBEAT_POST_REPAIR_NATURAL_RUN",
+    "current_safe_next_action": "SAFE DEPLOY THE ADMITTED HEARTBEAT REPAIR, THEN WAIT FOR EXACTLY ONE NATURAL 30-MINUTE RUN",
     "current_scope_class": "ENGINEERING_AUTOMATION_BOUNDARY",
     "current_execution_mission_id": "NONE",
     "current_execution_mission_state": "NONE",
-    "latest_terminal_mission_id": "V7_OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT_V1",
-    "latest_terminal_run_nonce": "V7_OMP_REAL_EFFECT_AUDIT_V1_94C7E2A16D5B",
-    "latest_terminal_mission_state": "PHASE2_TO_CURRENT_AUDIT_CORRECTED_ENGINEERING_AUTHORITY_REQUIRED",
-    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-14_215106_phase2_to_current_real_effect_audit.md",
-    "latest_terminal_mission_started_at": "2026-07-14T21:51:06+0700",
-    "previous_terminal_mission_id": "V7_OMP_FUNCTIONAL_FOOTPRINT_AND_REAL_CONSUMER_ACTIVATION_V1",
-    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-14_172349_omp_functional_footprint_audit.md",
+    "latest_terminal_mission_id": "V7_OMP_HEARTBEAT_REAL_CONSUMER_WIRING_V1",
+    "latest_terminal_run_nonce": "V7_OMP_REAL_CONSUMER_ACTIVATION_V1_3E8A71D25C9F",
+    "latest_terminal_mission_state": "REPAIR_IMPLEMENTED_WAITING_SAFE_DEPLOY_AND_POST_REPAIR_NATURAL_RUN",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-14_233300_omp_heartbeat_real_consumer_wiring.md",
+    "latest_terminal_mission_started_at": "2026-07-14T23:16:18+0700",
+    "previous_terminal_mission_id": "V7_OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT_V1",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-14_215106_phase2_to_current_real_effect_audit.md",
     "authoritative_transition_input_mission_id": "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3",
     "authoritative_transition_input_state": "MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED",
     "authoritative_transition_input_report": "docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md",
     "current_mission_role": "LATEST_TERMINAL_MISSION",
-    "current_mission_id": "V7_OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT_V1",
-    "current_run_nonce": "V7_OMP_REAL_EFFECT_AUDIT_V1_94C7E2A16D5B",
-    "current_mission_state": "PHASE2_TO_CURRENT_AUDIT_CORRECTED_ENGINEERING_AUTHORITY_REQUIRED",
-    "current_mission_report": "docs/reports/engineering/2026-07-14_215106_phase2_to_current_real_effect_audit.md",
-    "state_captured": "2026-07-14T21:51:06+0700",
-    "current_state_generation": "cpsgen_V7_OMP_REAL_EFFECT_AUDIT_V1_94C7E2A16D5B",
-    "current_transition_id": "PHASE2_TO_CURRENT_AUDIT_CORRECTED_ENGINEERING_AUTHORITY_REQUIRED_V1",
-    "current_next_action_id": "OMP_REAL_CONSUMER_ACTIVATION_AUTHORITY_DECISION",
+    "current_mission_id": "V7_OMP_HEARTBEAT_REAL_CONSUMER_WIRING_V1",
+    "current_run_nonce": "V7_OMP_REAL_CONSUMER_ACTIVATION_V1_3E8A71D25C9F",
+    "current_mission_state": "REPAIR_IMPLEMENTED_WAITING_SAFE_DEPLOY_AND_POST_REPAIR_NATURAL_RUN",
+    "current_mission_report": "docs/reports/engineering/2026-07-14_233300_omp_heartbeat_real_consumer_wiring.md",
+    "state_captured": "2026-07-14T23:33:00+0700",
+    "current_state_generation": "cpsgen_V7_OMP_HEARTBEAT_REPAIR_V1_3E8A71D25C9F",
+    "current_transition_id": "OMP_HEARTBEAT_REPAIR_IMPLEMENTED_WAITING_NATURAL_RUN_V1",
+    "current_next_action_id": "SAFE_DEPLOY_THEN_WAIT_POST_REPAIR_NATURAL_RUN",
     "current_program_stage": "AEP_PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE",
     "current_program_execution_frontier": "OMP_REAL_CONSUMER_ACTIVATION",
-    "program_frontier_input": "Phase 3 is accepted and locked; Phase 4 implementation exists and is deployed but has zero real non-test callers; heartbeat is owner-backed but PAUSED",
+    "program_frontier_input": "first natural heartbeat reached the adapter and proved the missing reconciliation invocation; one source entrypoint is now wired but not naturally certified",
     "program_frontier_owner": "existing OMP, CPS, Codex Automation Platform and heartbeat boundary owners",
-    "program_frontier_expected_output": "explicit heartbeat enablement authority or a future owner-backed engineering event hook -> one real consumer cycle; otherwise remain fail-closed",
+    "program_frontier_expected_output": "safe deploy -> one post-repair natural heartbeat -> reconciliation -> legal no-action or next output -> certification",
     "protected_capability_wip": "CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; preserved and not reordered",
     "binding_stability": "PASS",
     "binding_schema": "v7.operation-scoped-source-binding.v2",
     "routing_readiness_state": "PASS_CANDIDATE_SCOPED",
-    "authority_required_now": "ENGINEERING_AUTHORITY_FOR_EXISTING_HEARTBEAT_ENABLEMENT_ONLY",
+    "authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE; bounded operator Engineering Authority is active only for this heartbeat repair and natural-run certification",
     "current_action_class": "single-user governed candidate failover",
     "current_action_class_state": "GOVERNED_ONLY",
     "old_packets_reusable": "NO",
@@ -86,9 +88,9 @@ NORMALIZED_CPS_LIVE_STATE = {
     "waiting_capabilities": "CAP-U02,CAP-U05,CAP-U06,CAP-U07",
     "ready_capabilities": "NONE",
     "blocked_capabilities": "CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22",
-    "continuation_decision": "ENGINEERING_AUTHORITY_REQUIRED",
+    "continuation_decision": "WAIT_EXTERNAL_TRIGGER",
     "next_executable_capability": "NONE",
-    "program_terminal_state": "ENGINEERING_AUTHORITY_REAL_CONSUMER_ACTIVATION_REQUIRED",
+    "program_terminal_state": "WAITING_POST_REPAIR_NATURAL_SCHEDULED_RUN",
     "cap_u01_completion_report": "docs/reports/engineering/2026-07-12_172534_exact_route_repair_and_first_governed_success.md",
     "responsibility_class": "LEARNING",
     "last_responsible_link": "real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence",
@@ -112,9 +114,9 @@ NORMALIZED_CPS_LIVE_STATE = {
     "user_movement": "NO; current Mission performed evidence refresh and read-only revalidation only",
     "admin_safe_mode_live_state": "schema=v7.autonomous-execution-control.v2; state=OPEN; generation=aec_dda6c420c87e99e97236883c; reason=GOVERNED_TRANSACTION_COMPLETED",
     "parent_engineering_intent": "INTENT_NOT_CLOSED; CAP-U07 consumed one real success but representative Learning evidence remains a real-world dependency",
-    "source_summary": "Functional footprint audit proved that Phase 4 code is deployed but manually callable only, Phase 5 has no real consumer, and the existing OMP heartbeat remains PAUSED.",
-    "automatic_continue_omp_result": "ENGINEERING_AUTHORITY_REQUIRED; no active independent engineering trigger exists",
-    "required_workflow": "explicitly authorize the existing bounded heartbeat or wait for an owner-backed engineering event hook -> invoke reconciliation -> verify consumer behavior change; preserve manual Continue OMP",
+    "source_summary": "The first natural heartbeat proved adapter-only execution; the admitted existing-owner repair is implemented and awaits safe deploy plus one post-repair natural run.",
+    "automatic_continue_omp_result": "WAITING_POST_REPAIR_NATURAL_RUN; no manual run may substitute",
+    "required_workflow": "safe deploy the existing read-only entrypoint -> wait one natural heartbeat -> verify reconciliation, consumer and legal terminal; preserve manual Continue OMP",
     "omp_controlled_run_allowed": "NO_CURRENT_EXECUTION; synthetic or forced outcomes are forbidden",
     "controlled_run_authority_required_now": "NO_RUNTIME_AUTHORITY; current boundary is engineering heartbeat enablement only",
     "controlled_run_execution_authorized": "NO_CURRENT_PACKET; no forced evidence generation or movement is authorized",
@@ -131,27 +133,34 @@ NORMALIZED_CPS_LIVE_STATE = {
     "open_engineering_intents": "21",
     "omp_continuation_required": "FALSE",
     "external_input_required": "TRUE",
-    "external_input_type": "ENGINEERING_AUTHORITY",
-    "transaction_terminal_class": "FUNCTIONAL_FOOTPRINT_AUDIT_COMPLETE",
-    "program_terminal_class": "ENGINEERING_AUTHORITY",
+    "external_input_type": "NATURAL_SCHEDULED_RUN",
+    "transaction_terminal_class": "REPAIR_IMPLEMENTED_WAITING_NATURAL_RUN",
+    "program_terminal_class": "NATURAL_SCHEDULED_RUN",
     "next_mission_formed": "FALSE",
     "next_mission_id": "NONE",
     "premature_operator_return": "FALSE",
-    "continuation_iteration": "13",
-    "continuation_stop_reason": "NO_SAFE_ACTIVE_REAL_ENGINEERING_ENTRYPOINT; EXISTING_HEARTBEAT_PAUSED",
-    "no_progress_fingerprint": "82324a640c421f2448db7b099d58d4ed59a4fc1876fd2a2b8fd31e152c9d7dc2",
-    "program_reconciliation_footprint_class": "DEPLOYED_MANUALLY_CALLABLE_ONLY",
-    "program_reconciliation_real_callers": "0",
+    "continuation_iteration": "14",
+    "continuation_stop_reason": "REPAIR_IMPLEMENTED; SAFE_DEPLOY_THEN_POST_REPAIR_NATURAL_RUN_REQUIRED",
+    "no_progress_fingerprint": "10a01e3c8583599a18700ef0c0a74e282e0b0afd2b9bec55a6369e864a8fa13a",
+    "program_reconciliation_footprint_class": "SOURCE_ENTRYPOINT_WIRED_AWAITING_NATURAL_RUN",
+    "program_reconciliation_real_callers": "1",
     "program_reconciliation_test_callers": "3",
     "omp_automation_level": "CODEX_ASSISTED",
-    "heartbeat_status": "PAUSED",
-    "automation_enabled": "FALSE",
+    "heartbeat_status": "ACTIVE",
+    "automation_enabled": "TRUE",
+    "heartbeat_automation_level": "EXTERNAL_ENGINEERING_WAKEUP_ENTRYPOINT_WIRED_UNCERTIFIED",
+    "heartbeat_last_wakeup_id": "019f616a-37d2-7103-9d34-3be847316197",
+    "heartbeat_last_event_id": "18c01ddb3c6312617aa451b014b3762573a298c4a537985d816f236665579cc9",
+    "heartbeat_last_cps_generation": "cpsgen_V7_OMP_REAL_EFFECT_AUDIT_V1_94C7E2A16D5B",
+    "heartbeat_last_dependency_fingerprint": "e3af94aa51639fca0e30d5b669f33341e552d9f7f7dfff678f25a00a6a8fc950",
+    "heartbeat_last_decision": "ADAPTER_CALLED_NO_RECONCILIATION",
+    "heartbeat_last_run_at": "2026-07-14T23:16:18.434+0700",
     "aep_phase4_status": "IMPLEMENTED_MANUALLY_CALLABLE",
     "aep_phase5_status": "BLOCKED_MISSING_REAL_CONSUMER",
     "aep_phase6_status": "BLOCKED_BY_PHASE_5",
     "mission_completion_evidence_gate": "ACTIVE_V1",
-    "current_completion_contract": "INTEGRATION_COMPLETION",
-    "current_completion_verdict": "INTEGRATION_INCOMPLETE",
+    "current_completion_contract": "AUTOMATION_COMPLETION",
+    "current_completion_verdict": "AUTOMATION_INCOMPLETE",
 }
 
 
@@ -742,6 +751,13 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "OMP_AUTOMATION_LEVEL": f"`{state['omp_automation_level']}`",
         "HEARTBEAT_STATUS": f"`{state['heartbeat_status']}`",
         "AUTOMATION_ENABLED": f"`{state['automation_enabled']}`",
+        "HEARTBEAT_AUTOMATION_LEVEL": f"`{state['heartbeat_automation_level']}`",
+        "HEARTBEAT_LAST_WAKEUP_ID": f"`{state['heartbeat_last_wakeup_id']}`",
+        "HEARTBEAT_LAST_EVENT_ID": f"`{state['heartbeat_last_event_id']}`",
+        "HEARTBEAT_LAST_CPS_GENERATION": f"`{state['heartbeat_last_cps_generation']}`",
+        "HEARTBEAT_LAST_DEPENDENCY_FINGERPRINT": f"`{state['heartbeat_last_dependency_fingerprint']}`",
+        "HEARTBEAT_LAST_DECISION": f"`{state['heartbeat_last_decision']}`",
+        "HEARTBEAT_LAST_RUN_AT": f"`{state['heartbeat_last_run_at']}`",
         "AEP_PHASE_4_STATUS": f"`{state['aep_phase4_status']}`",
         "AEP_PHASE_5_STATUS": f"`{state['aep_phase5_status']}`",
         "AEP_PHASE_6_STATUS": f"`{state['aep_phase6_status']}`",
@@ -1047,11 +1063,18 @@ def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -
     phase2_acceptance_frontier = program_frontier == "AEP_PHASE_2_ACCEPTANCE"
     phase3_acceptance_frontier = program_frontier == "AEP_PHASE_3_INDEPENDENT_ACCEPTANCE"
     real_consumer_activation_frontier = program_frontier == "OMP_REAL_CONSUMER_ACTIVATION"
+    heartbeat_reentry_active = (
+        real_consumer_activation_frontier
+        and live.get("HEARTBEAT_STATUS", "").strip("`") == "ACTIVE"
+        and live.get("AUTOMATION_ENABLED", "").strip("`") == "TRUE"
+    )
     expected_authority = (
         "ENGINEERING_AUTHORITY_FOR_INDEPENDENT_AEP_PHASE_2_ACCEPTANCE_ONLY"
         if phase2_acceptance_frontier else
         "ENGINEERING_AUTHORITY_FOR_INDEPENDENT_AEP_PHASE_3_ACCEPTANCE_ONLY"
         if phase3_acceptance_frontier else
+        "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE"
+        if heartbeat_reentry_active else
         "ENGINEERING_AUTHORITY_FOR_EXISTING_HEARTBEAT_ENABLEMENT_ONLY"
         if real_consumer_activation_frontier else
         "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE"
@@ -1381,13 +1404,22 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                 "AEP_PHASE_3_INDEPENDENT_ACCEPTANCE",
             }
             authority_frontier = acceptance_frontier or program_frontier == "OMP_REAL_CONSUMER_ACTIVATION"
-            if authority_frontier:
+            heartbeat_reentry_active = (
+                program_frontier == "OMP_REAL_CONSUMER_ACTIVATION"
+                and live.get("HEARTBEAT_STATUS", "").strip("`") == "ACTIVE"
+                and live.get("AUTOMATION_ENABLED", "").strip("`") == "TRUE"
+            )
+            if heartbeat_reentry_active:
+                if continuation != "FALSE" or external != "TRUE" or program_terminal != "NATURAL_SCHEDULED_RUN":
+                    errors.append("program_heartbeat_reentry_boundary_invalid")
+            elif authority_frontier:
                 if continuation != "FALSE" or external != "TRUE" or program_terminal != "ENGINEERING_AUTHORITY":
                     errors.append("program_acceptance_frontier_external_boundary_invalid")
             elif continuation != "TRUE" or external != "FALSE" or program_terminal != "NONE":
                 errors.append("program_frontier_stopped_program")
             expected_decision = (
                 "PROGRAM_ACCEPTANCE_REQUIRED" if acceptance_frontier else
+                "WAIT_EXTERNAL_TRIGGER" if heartbeat_reentry_active else
                 "ENGINEERING_AUTHORITY_REQUIRED" if authority_frontier else
                 "CONTINUE_PROGRAM_FRONTIER"
             )
@@ -1400,7 +1432,11 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                 if program_terminal_state != "ENGINEERING_AUTHORITY_AEP_PHASE_3_ACCEPTANCE_REQUIRED":
                     errors.append("program_frontier_terminal_state_invalid")
             elif program_frontier == "OMP_REAL_CONSUMER_ACTIVATION":
-                if program_terminal_state != "ENGINEERING_AUTHORITY_REAL_CONSUMER_ACTIVATION_REQUIRED":
+                expected_terminal_state = (
+                    "WAITING_POST_REPAIR_NATURAL_SCHEDULED_RUN" if heartbeat_reentry_active
+                    else "ENGINEERING_AUTHORITY_REAL_CONSUMER_ACTIVATION_REQUIRED"
+                )
+                if program_terminal_state != expected_terminal_state:
                     errors.append("program_frontier_terminal_state_invalid")
             elif not program_terminal_state.startswith("NONE_"):
                 errors.append("program_frontier_terminal_state_invalid")
@@ -2931,6 +2967,236 @@ def heartbeat_boundary_dry_run(
         "validators": validators,
         "final_verdict": "PASS" if not result.startswith("STOP_SAFE") else "STOP_SAFE",
         "errors": sorted(set(errors)),
+    }
+
+
+PROGRAM_EXECUTION_SOURCE_PATHS = {
+    "stage2": "docs/programs/V7_STAGE2_KNOWLEDGE_ENGINEERING_PROGRAM.md",
+    "aep": "docs/programs/V7_AUTONOMOUS_EVOLUTION_PROGRAM.md",
+    "bdp": "docs/programs/V7_BEHAVIOUR_DISCOVERY_PROGRAM.md",
+    "implementation": "docs/programs/V7_IMPLEMENTATION_PROGRAM.md",
+    "backlog": "docs/programs/V7_IMPLEMENTATION_BACKLOG.md",
+    "omp": "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md",
+    "cps": "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
+    "aep_phase1": "docs/reports/engineering/V7_AUTONOMOUS_EVOLUTION_FOUNDATION_PHASE1_EXECUTION_REPORT.md",
+    "aep_phase2": "docs/reports/research/V7_CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY.md",
+    "aep_phase2_execution": "docs/reports/engineering/V7_CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY_EXECUTION_REPORT.md",
+    "aep_phase2_acceptance": "docs/reports/research/2026-07-14_100018_aep_phase_2_independent_acceptance.md",
+    "aep_phase3_register": "docs/reports/research/V7_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER.md",
+    "aep_phase3_acceptance": "docs/reports/research/2026-07-14_161705_aep_phase_3_independent_acceptance.md",
+    "aep_phase3_lock": "docs/reports/research/2026-07-14_161705_aep_phase_3_gap_register_lock.md",
+    "aep_phase4_execution": "docs/reports/engineering/2026-07-14_161705_aep_phase_3_acceptance_to_phase_5_continuation.md",
+    "bdp_execution": "docs/reports/engineering/V7_BDP_ENGINEERING_CHAIN_ALIGNMENT_REPORT.md",
+}
+
+
+def load_program_execution_sources(root: Path = ROOT) -> dict[str, str]:
+    """Load the existing canonical program inputs for one fresh reconciliation."""
+    sources: dict[str, str] = {}
+    for owner, relative in PROGRAM_EXECUTION_SOURCE_PATHS.items():
+        path = root / relative
+        sources[owner] = path.read_text(encoding="utf-8")
+    return sources
+
+
+def heartbeat_dependency_fingerprint(cps_text: str) -> str:
+    """Fingerprint the owner-backed dependency graph consumed by the heartbeat."""
+    graph = _markdown_section(
+        cps_text,
+        "### Capability Dependency Graph And Execution Frontier",
+        "### Owner Revalidation Requirements And Contradictions",
+    )
+    return hashlib.sha256(graph.encode("utf-8")).hexdigest()
+
+
+def heartbeat_program_reentry(
+    *,
+    event_time: str,
+    automation_id: str = HEARTBEAT_AUTOMATION_ID,
+    target_thread_id: str = HEARTBEAT_TARGET_THREAD_ID,
+    project_id: str = "",
+    target_capability: str = "CAP-U07",
+    evidence_freshness_result: str = "PASS",
+    evidence_sufficiency_result: str = "INSUFFICIENT",
+    seen_event_ids: Optional[Iterable[str]] = None,
+    seen_wakeup_run_ids: Optional[Iterable[str]] = None,
+    root: Path = ROOT,
+) -> dict[str, Any]:
+    """Run one read-only heartbeat through adapter, reconciliation and consumer."""
+    resolved_project = project_id or str(root)
+    normalized_time = event_time[:-1] + "+00:00" if event_time.endswith("Z") else event_time
+    try:
+        _parse_iso_timestamp(normalized_time)
+    except (TypeError, ValueError):
+        return {
+            "schema": "v7-omp-heartbeat-program-reentry/v1",
+            "final_verdict": "STOP_SAFE",
+            "errors": ["heartbeat_event_time_invalid"],
+            "runtime_impact": "NONE",
+            "production_impact": "NONE",
+            "authority_impact": "NONE",
+        }
+
+    try:
+        sources = load_program_execution_sources(root)
+    except OSError as exc:
+        return {
+            "schema": "v7-omp-heartbeat-program-reentry/v1",
+            "final_verdict": "STOP_SAFE",
+            "errors": [f"program_execution_source_unreadable:{exc}"],
+            "runtime_impact": "NONE",
+            "production_impact": "NONE",
+            "authority_impact": "NONE",
+        }
+
+    cps_text = sources["cps"]
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    current_generation = live.get("CURRENT_STATE_GENERATION", "").strip("`")
+    current_dependency = heartbeat_dependency_fingerprint(cps_text)
+    previous_dependency = live.get("HEARTBEAT_LAST_DEPENDENCY_FINGERPRINT", "").strip("`")
+    if not re.fullmatch(r"[0-9a-f]{64}", previous_dependency):
+        previous_dependency = current_dependency
+
+    if seen_event_ids is None:
+        last_event_id = live.get("HEARTBEAT_LAST_EVENT_ID", "").strip("`")
+        seen_event_ids = [last_event_id] if re.fullmatch(r"[0-9a-f]{64}", last_event_id) else []
+
+    event_identity = hashlib.sha256(
+        f"{automation_id}|{target_thread_id}|{normalized_time}".encode("utf-8")
+    ).hexdigest()
+    wakeup_run_id = f"hb_{event_identity[:32]}"
+    contract = {
+        "AUTOMATION_ID": automation_id,
+        "TARGET_THREAD_ID": target_thread_id,
+        "PROJECT_ID": resolved_project,
+        "WAKEUP_RUN_ID": wakeup_run_id,
+        "EVENT_ID": event_identity,
+        "EVENT_OWNER": "CODEX_AUTOMATION_PLATFORM",
+        "EVENT_SOURCE": f"CODEX_AUTOMATION_PLATFORM:heartbeat:{automation_id}:{wakeup_run_id}",
+        "EVENT_GENERATION": current_generation,
+        "EVENT_TIME": normalized_time,
+        "FRESHNESS_RULE": "FRESH_PLATFORM_EVENT_AND_FRESH_CPS_READ",
+        "DEPENDENCY_FINGERPRINT_BEFORE": previous_dependency,
+        "DEPENDENCY_FINGERPRINT_AFTER": current_dependency,
+        "DEPENDENCY_CHANGED": previous_dependency != current_dependency,
+        "TARGET_CAPABILITY": target_capability,
+        "CURRENT_CPS_GENERATION": current_generation,
+        "MISSION_SCOPE": "HEARTBEAT_REENTRY_DRY_RUN_ONLY",
+        "AUTHORIZATION_SCOPE": "START_ENGINEERING_EXECUTION_CONTEXT_ONLY",
+        "REPLAY_PROTECTION": "MISSION_IDENTITY+CPS_GENERATION+EVENT_ID+WAKEUP_RUN_ID+DEPENDENCY_FINGERPRINT",
+        "CONCURRENCY_CONTROL": "CURRENT_EXECUTION_MISSION_ID+CURRENT_EXECUTION_MISSION_STATE+CURRENT_STATE_GENERATION",
+        "ACTIVATION_RESULT": "PENDING_DRY_RUN",
+        "EVIDENCE_FRESHNESS_RESULT": evidence_freshness_result,
+        "EVIDENCE_SUFFICIENCY_RESULT": evidence_sufficiency_result,
+        "NO_RUNTIME_AUTHORITY": True,
+        "NO_USER_MOVEMENT_AUTHORITY": True,
+        "NO_PACKET_AUTHORITY": True,
+        "NO_CANDIDATE_AUTHORITY": True,
+    }
+    adapter = heartbeat_boundary_dry_run(
+        cps_text,
+        contract,
+        expected_automation_id=HEARTBEAT_AUTOMATION_ID,
+        expected_target_thread_id=HEARTBEAT_TARGET_THREAD_ID,
+        expected_project_id=str(root),
+        seen_event_ids=seen_event_ids,
+        seen_wakeup_run_ids=seen_wakeup_run_ids,
+    )
+    activation = adapter["activation_result"]
+    skip_reconciliation = activation in {
+        "NO_CHANGE_DUPLICATE_WAKEUP",
+        "NO_CHANGE_ALREADY_ACTIVE",
+        "STOP_SAFE_IDENTITY_FAILURE",
+        "STOP_SAFE_REPLAY_FAILURE",
+    }
+    if skip_reconciliation:
+        return {
+            "schema": "v7-omp-heartbeat-program-reentry/v1",
+            "event_id": event_identity,
+            "wakeup_run_id": wakeup_run_id,
+            "fresh_cps_generation": current_generation,
+            "dependency_fingerprint": current_dependency,
+            "adapter": adapter,
+            "reconciliation_invoked": False,
+            "consumer_invoked": False,
+            "legal_terminal": activation.startswith("NO_CHANGE"),
+            "next_output": activation,
+            "final_verdict": adapter["final_verdict"],
+            "runtime_impact": "NONE",
+            "production_impact": "NONE",
+            "authority_impact": "NONE",
+            "errors": adapter["errors"],
+        }
+
+    reconciliation = program_execution_reconciliation(sources)
+    reconciliation_payload = json.dumps(
+        reconciliation, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    )
+    decision_payload = {
+        "schema": "v7.omp-heartbeat-consumer-decision.v1",
+        "event_id": event_identity,
+        "wakeup_run_id": wakeup_run_id,
+        "cps_generation": current_generation,
+        "adapter_result": activation,
+        "reconciliation_fingerprint": hashlib.sha256(reconciliation_payload.encode("utf-8")).hexdigest(),
+        "program_frontier": reconciliation.get("executable_program_frontier") or [],
+    }
+    decision_fingerprint = hashlib.sha256(
+        json.dumps(decision_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    reconciliation_ok = reconciliation.get("final_verdict") == "PASS"
+    legal_no_action = activation in {
+        "NO_CHANGE_DEPENDENCY_UNCHANGED",
+        "NO_CHANGE_NO_WAITING_CAPABILITY",
+        "NO_CHANGE_EVIDENCE_INSUFFICIENT",
+    }
+    ready = activation == "READY_FRONTIER_AVAILABLE_DRY_RUN_ONLY"
+    consumer_decision = (
+        "LEGAL_NO_ACTION" if reconciliation_ok and legal_no_action
+        else "READY_FRONTIER_AVAILABLE" if reconciliation_ok and ready
+        else "STOP_SAFE_RECONCILIATION_FAILURE"
+    )
+    next_output = (
+        "WAIT_FOR_OWNER_BACKED_DEPENDENCY_CHANGE" if consumer_decision == "LEGAL_NO_ACTION"
+        else (reconciliation.get("executable_program_frontier") or ["NONE"])[0]
+        if consumer_decision == "READY_FRONTIER_AVAILABLE"
+        else "STOP_SAFE"
+    )
+    errors = sorted(set(adapter.get("errors") or ()) | set(reconciliation.get("errors") or ()))
+    return {
+        "schema": "v7-omp-heartbeat-program-reentry/v1",
+        "event_id": event_identity,
+        "wakeup_run_id": wakeup_run_id,
+        "fresh_cps_generation": current_generation,
+        "dependency_fingerprint": current_dependency,
+        "adapter": adapter,
+        "reconciliation_invoked": True,
+        "reconciliation": reconciliation,
+        "decision_trace_id": f"omphb_{decision_fingerprint[:24]}",
+        "decision_fingerprint": decision_fingerprint,
+        "consumer": "OMP_HEARTBEAT_REENTRY_CONSUMER",
+        "consumer_invoked": True,
+        "consumer_decision": consumer_decision,
+        "consumer_behavior_change_or_legal_no_action": consumer_decision in {"LEGAL_NO_ACTION", "READY_FRONTIER_AVAILABLE"},
+        "next_output": next_output,
+        "legal_terminal": consumer_decision == "LEGAL_NO_ACTION",
+        "next_trigger_policy": "NATURAL_SCHEDULE_ONLY_NO_RECURSION",
+        "idempotency_key": f"{event_identity}:{wakeup_run_id}:{current_generation}:{current_dependency}",
+        "no_unbounded_recursion": True,
+        "mission_created": False,
+        "candidate_created": False,
+        "packet_created": False,
+        "cps_mutated": False,
+        "git_changed": False,
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "authority_impact": "NONE",
+        "final_verdict": "PASS" if consumer_decision != "STOP_SAFE_RECONCILIATION_FAILURE" else "STOP_SAFE",
+        "errors": errors,
     }
 
 
@@ -5032,9 +5298,12 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
         "## Authoritative Unfinished Capability Closure Registry",
     ))
     calls = python_function_call_sites(root, "program_execution_reconciliation")
+    entrypoint_wired = calls["real_caller_count"] > 0
     completion_gate = mission_completion_evidence_gate({
-        "MISSION_TYPE": "INTEGRATION",
-        "COMPLETION_CONTRACT": "INTEGRATION_COMPLETION",
+        "MISSION_TYPE": "AUTOMATION" if entrypoint_wired else "INTEGRATION",
+        "COMPLETION_CONTRACT": "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
+        "INDEPENDENT_TRIGGER_PROVEN": False,
+        "ENTRYPOINT_ACTIVE": entrypoint_wired,
         "REAL_CALLER_PROVEN": calls["real_caller_count"] > 0,
         "CONSUMER_PROVEN": False,
         "BEHAVIOR_CHANGE_PROVEN": False,
@@ -5042,15 +5311,18 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
     })
     expected = {
         "PROGRAM_RECONCILIATION_REAL_CALLERS": str(calls["real_caller_count"]),
-        "PROGRAM_RECONCILIATION_FOOTPRINT_CLASS": "DEPLOYED_MANUALLY_CALLABLE_ONLY",
+        "PROGRAM_RECONCILIATION_FOOTPRINT_CLASS": (
+            "SOURCE_ENTRYPOINT_WIRED_AWAITING_NATURAL_RUN" if entrypoint_wired
+            else "DEPLOYED_MANUALLY_CALLABLE_ONLY"
+        ),
         "OMP_AUTOMATION_LEVEL": "CODEX_ASSISTED",
-        "HEARTBEAT_STATUS": "PAUSED",
-        "AUTOMATION_ENABLED": "FALSE",
+        "HEARTBEAT_STATUS": "ACTIVE" if entrypoint_wired else "PAUSED",
+        "AUTOMATION_ENABLED": "TRUE" if entrypoint_wired else "FALSE",
         "AEP_PHASE_4_STATUS": "IMPLEMENTED_MANUALLY_CALLABLE",
         "AEP_PHASE_5_STATUS": "BLOCKED_MISSING_REAL_CONSUMER",
         "AEP_PHASE_6_STATUS": "BLOCKED_BY_PHASE_5",
         "MISSION_COMPLETION_EVIDENCE_GATE": "ACTIVE_V1",
-        "CURRENT_COMPLETION_CONTRACT": "INTEGRATION_COMPLETION",
+        "CURRENT_COMPLETION_CONTRACT": "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
         "CURRENT_COMPLETION_VERDICT": completion_gate["completion_verdict"],
     }
     errors: list[str] = []
@@ -5069,7 +5341,7 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
         "program_reconciliation_footprint_class": expected["PROGRAM_RECONCILIATION_FOOTPRINT_CLASS"],
         "omp_automation_level": expected["OMP_AUTOMATION_LEVEL"],
         "heartbeat_status": expected["HEARTBEAT_STATUS"],
-        "automation_enabled": False,
+        "automation_enabled": entrypoint_wired,
         "mission_completion_evidence_gate_status": expected["MISSION_COMPLETION_EVIDENCE_GATE"],
         "current_completion_contract": expected["CURRENT_COMPLETION_CONTRACT"],
         "current_completion_verdict": completion_gate["completion_verdict"],

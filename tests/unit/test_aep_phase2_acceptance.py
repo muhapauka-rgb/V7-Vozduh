@@ -128,7 +128,7 @@ class AepPhase2AcceptanceTest(unittest.TestCase):
     def test_28_cps_frontier_target_is_atomic_phase3_identity(self):
         self.assertEqual(
             self.lib.NORMALIZED_CPS_LIVE_STATE["current_program_execution_frontier"],
-            "AEP_PHASE_3_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER",
+            "AEP_PHASE_3_INDEPENDENT_ACCEPTANCE",
         )
 
     def test_29_self_continuation_forms_next_mission(self):

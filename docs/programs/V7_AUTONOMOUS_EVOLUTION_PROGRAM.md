@@ -2,11 +2,11 @@
 
 Status: `ORGANIZED`
 Document status: `ORGANIZED`
-Execution status: `PHASE_2_ACCEPTED_LOCKED_PHASE_3_READY`
-Current program state: `CURRENT_READY`
-Current execution evidence: `docs/reports/research/V7_CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY.md`
-Current acceptance state: `PHASE_ACCEPTED_WITH_MINOR_RISKS; PHASE_LOCKED; aep2lock_128691e74c0b2087e1ffb0fc`
-Next legal stage: Phase 3 Certified Autonomous Behaviour Gap Register through existing AEP/BDP/OMP owners.
+Execution status: `PHASE_3_EXECUTED_READY_FOR_INDEPENDENT_ACCEPTANCE`
+Current program state: `PHASE_3_READY_FOR_ACCEPTANCE`
+Current execution evidence: `docs/reports/research/V7_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER.md`
+Current acceptance state: `PHASE_3_ACCEPTANCE_REQUIRED; NOT_LOCKED`
+Next legal stage: independent Phase 3 acceptance and lock; Phase 4 remains locked until acceptance.
 Mode: `PROGRAM_ROUTE`
 Runtime impact: `NONE`
 Authority impact: `NONE`
@@ -1070,7 +1070,7 @@ Output:
 CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER.md
 ```
 
-Status: `READY`; consume the accepted and locked Phase 2 Reality before any gap certification.
+Status: `EXECUTION_COMPLETE_READY_FOR_ACCEPTANCE`; one current gap and one deterministic BDP Candidate Instance are recorded; independent Phase Acceptance is required before OMP consumption.
 
 ### Phase 4 - OMP Mission Generation
 
@@ -1422,7 +1422,7 @@ until owner, consumer, consumption evidence, terminal alternative, evidence, and
 | Manual Dependency Classification Matrix | FUTURE / EMBEDDED | OMP / CPS / evidence owners | Phase 2 | Phase 3 | `MANUAL_DEPENDENCY_CLASSIFIED` |
 | Structural Friction Inventory | FUTURE / EMBEDDED | OMP / SYSTEM_MAP / evidence owners | Phase 2 | Phase 3 | `STRUCTURAL_FRICTION_RECORDED` |
 | Evidence Map | FUTURE / EMBEDDED | evidence owners / report owners | Phase 2 | Phase 3 | `EVIDENCE_MAP_RECORDED` |
-| `CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER.md` | FUTURE | OMP / CPS / certification owners | Phase 3 | Phase 4 | `FUTURE_PHASE_ARTIFACT` |
+| `docs/reports/research/V7_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER.md` | CURRENT_ACCEPTANCE_PENDING | OMP / CPS / certification owners | Phase 3 | independent Phase 3 acceptance, then Phase 4 | `AEP_PHASE_3_READY_FOR_INDEPENDENT_ACCEPTANCE`; fingerprint `b164319d05c8c70af130ef4b32066165b1a4e6b33fc7efad51f6d3d6e4e3b54f` |
 | OMP Mission Map | EXISTING_OWNER | OMP | Phase 4 | Phase 5 | `OMP_OWNED` |
 | `docs/reports/research/V7_AUTONOMOUS_MODEL_KNOWLEDGE_CONSOLIDATION.md` | EXISTS | Research reports / canonical owners referenced by the map | Existing research artifact | All phases as knowledge map | `KNOWLEDGE_MAP_NOT_TRUTH` |
 | `docs/reports/research/V7_AUTONOMOUS_MODEL_FUNCTION_GRAPH_APPENDIX.md` | EXISTS | Function Graph / reports | Existing research artifact | Phase 2 / Phase 5 | `DISCOVERY_INDEX_EVIDENCE` |

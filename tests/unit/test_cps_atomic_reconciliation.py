@@ -36,11 +36,11 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertNotEqual(self.validate(drift)["final_verdict"], "PASS")
 
     def test_02_operational_authority_with_stop_safe_projection_fails(self):
-        drift = self.cps.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is AEP_PHASE_3_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER` |", "| `current_primary_stop` | `STOP_SAFE` |", 1)
+        drift = self.cps.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is AEP_PHASE_3_INDEPENDENT_ACCEPTANCE` |", "| `current_primary_stop` | `STOP_SAFE` |", 1)
         self.assertIn("cps_current_stop_divergence", self.validate(drift)["errors"])
 
     def test_03_operational_authority_with_authority_required_no_fails(self):
-        drift = self.cps.replace("| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE;", "| `AUTHORITY_REQUIRED_NOW` | `ENGINEERING_AUTHORITY_FOR_INDEPENDENT_AEP_PHASE_2_ACCEPTANCE_ONLY;", 1)
+        drift = self.cps.replace("| `AUTHORITY_REQUIRED_NOW` | `ENGINEERING_AUTHORITY_FOR_INDEPENDENT_AEP_PHASE_3_ACCEPTANCE_ONLY` |", "| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE` |", 1)
         self.assertIn("cps_authority_required_not_policy_bounded", self.validate(drift)["errors"])
 
     def test_04_binding_certified_with_unresolved_cap_u01_drift_fails(self):
@@ -74,15 +74,15 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
 
     def test_08_active_wip_next_action_differs_from_cap_u01_fails(self):
         drift = self.cps.replace(
-            "| `smallest_existing_next_action` | preserve CAP-U07 evidence unchanged while OMP executes the independent AEP Phase 3 program frontier |",
+            "| `smallest_existing_next_action` | preserve CAP-U07 evidence unchanged while OMP completes independent AEP Phase 3 acceptance |",
             "| `smallest_existing_next_action` | diagnose binding owner |",
             1,
         )
         self.assertEqual(self.validate(drift)["final_verdict"], "PASS")
 
     def test_09_sequence_position_one_stop_differs_fails(self):
-        row = next(line for line in self.cps.splitlines() if line.startswith("| `1` | `AEP_PHASE_3_READY` program frontier"))
-        drift = self.cps.replace(row, row.replace("| `NONE` |", "| `STOP_SAFE` |", 1), 1)
+        row = next(line for line in self.cps.splitlines() if line.startswith("| `1` | `AEP_PHASE_3_READY_FOR_ACCEPTANCE` program frontier"))
+        drift = self.cps.replace(row, row.replace("| `ENGINEERING_AUTHORITY` |", "| `STOP_SAFE` |", 1), 1)
         self.assertIn("cps_sequence_position_1_divergence", self.validate(drift)["errors"])
 
     def test_10_explicit_historical_stale_values_pass(self):
@@ -91,7 +91,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
 
     def test_11_historical_binding_drift_does_not_affect_live_scheduling(self):
         self.assertIn("SUPERSEDED/HISTORICAL: SOURCE_SNAPSHOT_BUNDLE_DRIFT", self.cps)
-        self.assertEqual(self.validate(self.cps)["current_stop"], "NONE")
+        self.assertEqual(self.validate(self.cps)["current_stop"], "ENGINEERING_AUTHORITY")
 
     def test_12_single_normalized_state_generates_all_live_projections(self):
         rendered = self.lib.build_normalized_cps_document(self.cps)
@@ -118,7 +118,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
             before = path.read_text(encoding="utf-8")
             def corrupt(written):
                 text = written.read_text(encoding="utf-8")
-                written.write_text(text.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is AEP_PHASE_3_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER` |", "| `current_primary_stop` | `STOP_SAFE` |", 1), encoding="utf-8")
+                written.write_text(text.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is AEP_PHASE_3_INDEPENDENT_ACCEPTANCE` |", "| `current_primary_stop` | `STOP_SAFE` |", 1), encoding="utf-8")
             result = self.lib.atomic_reconcile_cps(path, post_write_hook=corrupt)
             self.assertEqual(result["status"], "CPS_POST_WRITE_REREAD_FAILED_ROLLED_BACK")
             self.assertTrue(result["previous_state_preserved"])
@@ -243,19 +243,19 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         live = self.lib._markdown_field_table(self.lib._markdown_section(
             self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry"
         ))
-        self.assertEqual(live["PROGRAM_TERMINAL_CLASS"].strip("`"), "NONE")
+        self.assertEqual(live["PROGRAM_TERMINAL_CLASS"].strip("`"), "ENGINEERING_AUTHORITY")
         self.assertEqual(live["NEXT_EXECUTABLE_CAPABILITY"].strip("`"), "NONE")
 
     def test_31_cap_con_06_matches_current_program_terminal(self):
         row = next(line for line in self.cps.splitlines() if line.startswith("| `CAP-CON-06` |"))
-        self.assertIn("current program terminal is `NONE`", row)
+        self.assertIn("current program terminal is `ENGINEERING_AUTHORITY`", row)
         self.assertIn("`SUPERSEDED/HISTORICAL`", row)
         self.assertEqual(self.delegated_validate(self.cps)["contradiction_count"], 0)
 
     def test_32_cap_con_06_terminal_drift_fails_closed(self):
         row = next(line for line in self.cps.splitlines() if line.startswith("| `CAP-CON-06` |"))
         drifted_row = row.replace(
-            "current program terminal is `NONE`",
+            "current program terminal is `ENGINEERING_AUTHORITY`",
             "current program terminal is `OPERATIONAL_AUTHORITY`",
             1,
         ).replace("`SUPERSEDED/HISTORICAL`", "historical", 1)
@@ -272,7 +272,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         )
         rendered = self.lib.build_normalized_cps_document(drift)
         rendered_row = next(line for line in rendered.splitlines() if line.startswith("| `CAP-CON-06` |"))
-        self.assertIn("current program terminal is `NONE`", rendered_row)
+        self.assertIn("current program terminal is `ENGINEERING_AUTHORITY`", rendered_row)
         self.assertIn("`SUPERSEDED/HISTORICAL`", rendered_row)
         self.assertEqual(self.delegated_validate(rendered)["contradiction_count"], 0)
 

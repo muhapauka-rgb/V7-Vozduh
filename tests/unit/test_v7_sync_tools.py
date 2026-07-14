@@ -50,7 +50,7 @@ class V7SyncToolsTest(unittest.TestCase):
     def test_cps_consistency_rejects_stop_generation_and_stale_surface_divergence(self):
         cps = (ROOT / "docs" / "programs" / "V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
         stop_drift = cps.replace(
-            "| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is AEP_PHASE_3_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER` |",
+            "| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is AEP_PHASE_3_INDEPENDENT_ACCEPTANCE` |",
             "| `current_primary_stop` | `STOP_SAFE` |",
             1,
         )
@@ -58,7 +58,7 @@ class V7SyncToolsTest(unittest.TestCase):
         self.assertIn("cps_current_stop_divergence", result["errors"])
 
         generation_drift = cps.replace(
-            "| `current_state_generation` | `cpsgen_V7_AEP_P2_LOCK_V1_8E4B17C29D6A` |",
+            "| `current_state_generation` | `cpsgen_V7_AEP_P3_EXEC_V1_4C9E71A25B8D` |",
             "| `current_state_generation` | `stale_generation` |",
             1,
         )

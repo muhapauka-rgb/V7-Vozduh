@@ -11,6 +11,11 @@
     "commit": "54e5f80c2011a8a1a77f1228b17fd67984b2b0f6",
     "cps_generation": "cpsgen_V7_OMP_FOOTPRINT_V1_6B2E9A4D17C8"
   },
+  "publication": {
+    "implementation_commit": "530fca886e83e137ec68553303011f1211f16cda",
+    "deploy_id": "deploy-z8-14-Updatesystem-530fca8-20260714T221407",
+    "convergence": "FULLY_ALIGNED"
+  },
   "inventory": {
     "missions_audited": 7,
     "commits_audited": 7,
@@ -115,11 +120,11 @@
       "run_nonce": "V7_OMP_REAL_EFFECT_AUDIT_V1_94C7E2A16D5B",
       "primary_type": "MIXED_WITH_PRIMARY_TYPE_ANALYSIS",
       "engineering_intent": "reconcile all completion claims and activate a permanent typed evidence gate",
-      "commit": "PENDING_PUBLICATION",
+      "commit": "530fca886e83e137ec68553303011f1211f16cda",
       "expected_chain": "audit -> typed gate -> truth-check consumer -> deterministic replay -> repair frontier",
       "actual_chain": "audit complete -> typed gate connected to functional-footprint truth path -> replay complete -> real consumer activation held at authority",
       "old_verdict": "NOT_APPLICABLE_NEW_MISSION",
-      "new_verdict": "COMPLETE_CONSUMED_PENDING_DEPLOY_CERTIFICATION",
+      "new_verdict": "COMPLETE_CONSUMED",
       "changed": true,
       "runtime_effect": false,
       "production_effect": false,
@@ -137,7 +142,7 @@
     {"object": "mission_completion_evidence_gate", "real_callers": 1, "class": "REAL_ENGINEERING_ENTRYPOINT_CONSUMED", "necessity": "REQUIRED_AND_CONSUMED"}
   ],
   "repairs": [
-    {"repair_id": "REPAIR-COMPLETION-EVIDENCE-GATE", "safe_to_execute": true, "selected": true, "status": "IMPLEMENTED_PENDING_DEPLOY_CERTIFICATION", "existing_owner": "OMP + truth/convergence"},
+    {"repair_id": "REPAIR-COMPLETION-EVIDENCE-GATE", "safe_to_execute": true, "selected": true, "status": "DEPLOYED_CERTIFIED", "existing_owner": "OMP + truth/convergence"},
     {"repair_id": "REPAIR-REAL-CONSUMER-ACTIVATION", "safe_to_execute": false, "selected": false, "status": "HELD_ENGINEERING_AUTHORITY", "existing_owner": "OMP + Codex Automation Platform + heartbeat boundary"}
   ]
 }

@@ -11,6 +11,8 @@ from __future__ import annotations
 import argparse
 import ast
 import base64
+import contextlib
+import fcntl
 import hashlib
 import importlib.machinery
 import importlib.util
@@ -34,6 +36,11 @@ CPS_PATH = ROOT / "docs" / "programs" / "V7_CURRENT_PROGRAM_STATE.md"
 OMP_PATH = ROOT / "docs" / "programs" / "OPERATIONAL_MATURITY_PROGRAM.md"
 HEARTBEAT_AUTOMATION_ID = "v7-omp-external-reentry-heartbeat"
 HEARTBEAT_TARGET_THREAD_ID = "019f4b9f-dda6-7762-b26c-3ab651f0a67c"
+HEARTBEAT_SCHEDULE = "FREQ=MINUTELY;INTERVAL=30"
+EXTERNAL_REENTRY_LEASE_TTL_SECONDS = 20 * 60
+EXTERNAL_REENTRY_STANDARD_ENTRYPOINT = (
+    "tools/v7-truth-check --continue-omp --continue-omp-persist-cps --json"
+)
 CANONICAL_BRANCH = "Updatesystem"
 REMOTE_NAME = "origin"
 DEPLOY_CONFIRMATION = "DEPLOY_V7_APPROVED"
@@ -157,6 +164,16 @@ NORMALIZED_CPS_LIVE_STATE = {
     "heartbeat_last_dependency_fingerprint": "e3af94aa51639fca0e30d5b669f33341e552d9f7f7dfff678f25a00a6a8fc950",
     "heartbeat_last_decision": "ADAPTER_CALLED_NO_RECONCILIATION",
     "heartbeat_last_run_at": "2026-07-14T23:16:18.434+0700",
+    "background_automation_state": "EXTERNAL_REENTRY_IMPLEMENTATION_READY_NOT_YET_PLATFORM_CERTIFIED",
+    "external_reentry_owner": "CODEX_AUTOMATION_PLATFORM",
+    "external_reentry_schedule": HEARTBEAT_SCHEDULE,
+    "external_reentry_enabled": "FALSE",
+    "reentry_active_lease": "NONE",
+    "reentry_last_completed_id": "NONE",
+    "reentry_last_trigger_id": "NONE",
+    "reentry_last_trigger_at": "NONE",
+    "reentry_last_invocation_id": "NONE",
+    "reentry_platform_health": "NOT_YET_CERTIFIED",
     "aep_phase4_status": "IMPLEMENTED_MANUALLY_CALLABLE",
     "aep_phase5_status": "BLOCKED_MISSING_REAL_CONSUMER",
     "aep_phase6_status": "BLOCKED_BY_PHASE_5",
@@ -421,9 +438,10 @@ def mission_role_consistency(
     root: Path = ROOT,
     omp_text: Optional[str] = None,
     verify_external: bool = True,
+    expected_state: Optional[dict[str, str]] = None,
 ) -> dict[str, Any]:
     """Validate explicit current/latest/previous/transition Mission roles."""
-    state = normalized_cps_live_state()
+    state = normalized_cps_live_state(expected_state)
     header = _cps_header_metadata(cps_text)
     live = _markdown_field_table(_markdown_section(
         cps_text,
@@ -784,6 +802,16 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "HEARTBEAT_LAST_DEPENDENCY_FINGERPRINT": f"`{state['heartbeat_last_dependency_fingerprint']}`",
         "HEARTBEAT_LAST_DECISION": f"`{state['heartbeat_last_decision']}`",
         "HEARTBEAT_LAST_RUN_AT": f"`{state['heartbeat_last_run_at']}`",
+        "BACKGROUND_AUTOMATION_STATE": f"`{state['background_automation_state']}`",
+        "EXTERNAL_REENTRY_OWNER": f"`{state['external_reentry_owner']}`",
+        "EXTERNAL_REENTRY_SCHEDULE": f"`{state['external_reentry_schedule']}`",
+        "EXTERNAL_REENTRY_ENABLED": f"`{state['external_reentry_enabled']}`",
+        "REENTRY_ACTIVE_LEASE": f"`{state['reentry_active_lease']}`",
+        "REENTRY_LAST_COMPLETED_ID": f"`{state['reentry_last_completed_id']}`",
+        "REENTRY_LAST_TRIGGER_ID": f"`{state['reentry_last_trigger_id']}`",
+        "REENTRY_LAST_TRIGGER_AT": f"`{state['reentry_last_trigger_at']}`",
+        "REENTRY_LAST_INVOCATION_ID": f"`{state['reentry_last_invocation_id']}`",
+        "REENTRY_PLATFORM_HEALTH": f"`{state['reentry_platform_health']}`",
         "AEP_PHASE_4_STATUS": f"`{state['aep_phase4_status']}`",
         "AEP_PHASE_5_STATUS": f"`{state['aep_phase5_status']}`",
         "AEP_PHASE_6_STATUS": f"`{state['aep_phase6_status']}`",
@@ -2912,7 +2940,9 @@ def heartbeat_boundary_dry_run(
         contract_errors.append("heartbeat_event_time_invalid")
     if contract.get("ACTIVATION_RESULT") != "PENDING_DRY_RUN":
         contract_errors.append("heartbeat_activation_result_not_pending")
-    if contract.get("MISSION_SCOPE") != "HEARTBEAT_REENTRY_DRY_RUN_ONLY":
+    if contract.get("MISSION_SCOPE") not in {
+        "HEARTBEAT_REENTRY_DRY_RUN_ONLY", "EXTERNAL_STANDARD_CONTINUE_OMP_REENTRY",
+    }:
         contract_errors.append("heartbeat_mission_scope_invalid")
     if contract.get("REPLAY_PROTECTION") != replay_model:
         contract_errors.append("heartbeat_replay_model_invalid")
@@ -2941,7 +2971,9 @@ def heartbeat_boundary_dry_run(
     ):
         if contract.get(field) is not True:
             authority_errors.append(f"heartbeat_authority_prohibition_invalid:{field}")
-    if contract.get("AUTHORIZATION_SCOPE") != "START_ENGINEERING_EXECUTION_CONTEXT_ONLY":
+    if contract.get("AUTHORIZATION_SCOPE") not in {
+        "START_ENGINEERING_EXECUTION_CONTEXT_ONLY", "ENGINEERING_EXTERNAL_REENTRY_ONLY",
+    }:
         authority_errors.append("heartbeat_authorization_scope_expanded")
 
     live = _markdown_field_table(_markdown_section(
@@ -3100,6 +3132,190 @@ def heartbeat_dependency_fingerprint(cps_text: str) -> str:
     return hashlib.sha256(graph.encode("utf-8")).hexdigest()
 
 
+def _external_reentry_lease_path(root: Path) -> Path:
+    identity = hashlib.sha256(str(root.resolve()).encode("utf-8")).hexdigest()[:16]
+    return Path(tempfile.gettempdir()) / f"v7-omp-external-reentry-{identity}.lease.json"
+
+
+def _external_reentry_evidence_path(root: Path) -> Path:
+    return root / "docs/reports/engineering/evidence/V7_OMP_EXTERNAL_REENTRY_RUNS.jsonl"
+
+
+def _external_reentry_eligibility(live: dict[str, str]) -> dict[str, Any]:
+    """Evaluate the fresh-CPS, no-authority external reentry contract."""
+    value = lambda key: live.get(key, "").strip("`")
+    if value("OMP_CONTINUATION_REQUIRED") != "TRUE":
+        return {"eligible": False, "outcome": "REENTRY_NOT_REQUIRED", "reason": "continuation_not_required"}
+    if value("EXTERNAL_INPUT_REQUIRED") != "FALSE":
+        return {"eligible": False, "outcome": "REENTRY_BLOCKED_EXTERNAL_INPUT", "reason": value("EXTERNAL_INPUT_TYPE") or "external_input_required"}
+    authority = value("AUTHORITY_REQUIRED_NOW")
+    if not authority.startswith("NO_") and authority not in {"NO", "NONE"}:
+        return {"eligible": False, "outcome": "REENTRY_BLOCKED_PROGRAM_TERMINAL", "reason": f"authority_unresolved:{authority}"}
+    program_terminal = value("PROGRAM_TERMINAL_CLASS")
+    if program_terminal in {
+        "OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY", "NON_DETERMINISTIC_DECISION",
+        "SECURITY_OR_ACCESS_INPUT", "FUNDAMENTAL_EXTERNAL_REENTRY_PLATFORM_GAP",
+    }:
+        return {"eligible": False, "outcome": "REENTRY_BLOCKED_PROGRAM_TERMINAL", "reason": program_terminal}
+    active_id = value("CURRENT_EXECUTION_MISSION_ID")
+    active_state = value("CURRENT_EXECUTION_MISSION_STATE")
+    if active_id not in {"", "NONE"} or active_state not in {"", "NONE"}:
+        return {"eligible": False, "outcome": "REENTRY_ALREADY_ACTIVE", "reason": f"active_mission:{active_id}:{active_state}"}
+    if value("CURRENT_NEXT_ACTION_ID") != "CONTINUE_OMP" and value("NEXT_MISSION_ID") != "CONTINUE_OMP":
+        return {"eligible": False, "outcome": "REENTRY_NOT_REQUIRED", "reason": "next_action_not_continue_omp"}
+    if not value("CURRENT_STATE_GENERATION"):
+        return {"eligible": False, "outcome": "REENTRY_FAILED_SAFE", "reason": "cps_generation_missing"}
+    if program_terminal in {"", "NONE"}:
+        return {"eligible": False, "outcome": "REENTRY_ALREADY_ACTIVE", "reason": "previous_invocation_not_terminal"}
+    return {
+        "eligible": True,
+        "outcome": "REENTRY_ACQUIRED",
+        "reason": "fresh_cps_continue_omp_eligible",
+        "cps_generation": value("CURRENT_STATE_GENERATION"),
+    }
+
+
+def _external_reentry_acquire_lease(
+    *, lease_path: Path, lease_id: str, event_id: str, cps_generation: str,
+    now: datetime, owner: str = "CODEX_AUTOMATION_PLATFORM",
+) -> dict[str, Any]:
+    """Acquire a single-flight lease with bounded stale/process-death recovery."""
+    lease_path.parent.mkdir(parents=True, exist_ok=True)
+    recovered: Optional[dict[str, Any]] = None
+    for _attempt in range(2):
+        expires = now + timedelta(seconds=EXTERNAL_REENTRY_LEASE_TTL_SECONDS)
+        record = {
+            "schema": "v7.omp-external-reentry-lease.v1", "lease_id": lease_id,
+            "event_id": event_id, "owner": owner, "pid": os.getpid(),
+            "cps_generation": cps_generation, "started_at": now.isoformat(),
+            "expires_at": expires.isoformat(),
+        }
+        try:
+            descriptor = os.open(str(lease_path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        except FileExistsError:
+            try:
+                existing = json.loads(lease_path.read_text(encoding="utf-8"))
+                expiry = _parse_iso_timestamp(str(existing.get("expires_at", "")))
+            except (OSError, ValueError, TypeError, json.JSONDecodeError):
+                existing = {"lease_id": "UNKNOWN", "expires_at": "UNKNOWN"}
+                try:
+                    expiry = datetime.fromtimestamp(lease_path.stat().st_mtime, timezone.utc) + timedelta(seconds=EXTERNAL_REENTRY_LEASE_TTL_SECONDS)
+                except OSError:
+                    expiry = now + timedelta(seconds=EXTERNAL_REENTRY_LEASE_TTL_SECONDS)
+            if expiry > now:
+                return {"acquired": False, "outcome": "REENTRY_ALREADY_ACTIVE", "active_lease": existing, "stale_recovered": False}
+            try:
+                lease_path.unlink()
+            except FileNotFoundError:
+                pass
+            except OSError as exc:
+                return {"acquired": False, "outcome": "REENTRY_FAILED_SAFE", "errors": [f"stale_lease_unlink_failed:{exc}"]}
+            recovered = existing
+            continue
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+                json.dump(record, handle, ensure_ascii=False, sort_keys=True)
+                handle.write("\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+        except OSError as exc:
+            with contextlib.suppress(OSError):
+                lease_path.unlink()
+            return {"acquired": False, "outcome": "REENTRY_FAILED_SAFE", "errors": [f"lease_write_failed:{exc}"]}
+        return {
+            "acquired": True,
+            "outcome": "REENTRY_STALE_LEASE_RECOVERED" if recovered else "REENTRY_ACQUIRED",
+            "lease": record, "stale_recovered": recovered is not None, "recovered_lease": recovered,
+        }
+    return {"acquired": False, "outcome": "REENTRY_FAILED_SAFE", "errors": ["lease_acquire_retry_exhausted"]}
+
+
+def _external_reentry_run_standard_entrypoint(root: Path) -> dict[str, Any]:
+    command = [
+        str(root / "tools/v7-truth-check"), "--continue-omp",
+        "--continue-omp-persist-cps", "--json",
+    ]
+    try:
+        completed = subprocess.run(
+            command, cwd=str(root), text=True, capture_output=True,
+            timeout=FUTURE_SCALE_EXECUTION_MAX_SECONDS + 60, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {"final_verdict": "STOP_SAFE", "errors": [f"standard_entrypoint_failed:{exc}"]}
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError:
+        payload = {
+            "final_verdict": "STOP_SAFE", "errors": ["standard_entrypoint_non_json_output"],
+            "returncode": completed.returncode, "stderr": completed.stderr[-2000:],
+        }
+    payload["subprocess_returncode"] = completed.returncode
+    payload["exact_entrypoint"] = EXTERNAL_REENTRY_STANDARD_ENTRYPOINT
+    return payload
+
+
+def _append_external_reentry_evidence(path: Path, record: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+def external_reentry_completion_evidence_gate(
+    runs: Iterable[dict[str, Any]], *, automation_enabled: bool,
+    fsse04_deployed: bool, truth_passed: bool, convergence_passed: bool,
+    snapshot_equal: bool,
+) -> dict[str, Any]:
+    """Certify two owner-backed post-context reentries; labels alone never pass."""
+    records = list(runs)
+    independent = [
+        run for run in records
+        if run.get("platform_owner") == "CODEX_AUTOMATION_PLATFORM"
+        and run.get("no_user_prompt") is True
+        and run.get("prior_context_exited") is True
+        and run.get("standard_entrypoint_invoked") is True
+        and run.get("consumer_invoked") is True
+        and run.get("lease_released") is True
+        and run.get("no_overlap") is True
+        and run.get("reentry_outcome") in {"REENTRY_COMPLETED", "REENTRY_NOT_REQUIRED"}
+    ]
+    unique_events = {run.get("event_id") for run in independent if run.get("event_id")}
+    unique_invocations = {run.get("invocation_id") for run in independent if run.get("invocation_id")}
+    separated = len(independent) >= 2 and len(unique_events) >= 2 and len(unique_invocations) >= 2
+    behavior = bool(independent and independent[0].get("behavior_change") is True)
+    later_terminal = separated and bool(
+        independent[1].get("behavior_change") is True
+        or independent[1].get("reentry_outcome") == "REENTRY_NOT_REQUIRED"
+    )
+    checks = {
+        "FSSE04_DEPLOYED": fsse04_deployed,
+        "AUTOMATION_ENABLED": automation_enabled,
+        "TWO_SEPARATED_EXTERNAL_REENTRIES": separated,
+        "FIRST_REENTRY_BEHAVIOR_CHANGE": behavior,
+        "LATER_REENTRY_CONTINUED_OR_LEGAL_TERMINAL": later_terminal,
+        "TRUTH_PASS": truth_passed,
+        "CONVERGENCE_PASS": convergence_passed,
+        "SNAPSHOT_EQUAL": snapshot_equal,
+    }
+    missing = [key for key, passed in checks.items() if not passed]
+    return {
+        "schema": "v7.omp-external-reentry-completion-gate.v1",
+        "completion_contract": "AUTOMATION_COMPLETION",
+        "independent_reentry_count": len(independent),
+        "unique_event_count": len(unique_events),
+        "unique_invocation_count": len(unique_invocations),
+        "checks": checks, "missing_evidence": missing,
+        "completion_verdict": "PASS" if not missing else "INCOMPLETE",
+        "target_terminal": (
+            "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED"
+            if not missing else "NOT_CERTIFIED"
+        ),
+    }
+
+
 def heartbeat_program_reentry(
     *,
     event_time: str,
@@ -3111,9 +3327,14 @@ def heartbeat_program_reentry(
     evidence_sufficiency_result: str = "INSUFFICIENT",
     seen_event_ids: Optional[Iterable[str]] = None,
     seen_wakeup_run_ids: Optional[Iterable[str]] = None,
+    execute_continue_omp: bool = False,
+    continue_runner: Optional[Callable[[Path], dict[str, Any]]] = None,
+    lease_path: Optional[Path] = None,
+    evidence_path: Optional[Path] = None,
+    now: Optional[datetime] = None,
     root: Path = ROOT,
 ) -> dict[str, Any]:
-    """Run one read-only heartbeat through adapter, reconciliation and consumer."""
+    """Run the existing heartbeat owner; optionally perform independent OMP reentry."""
     resolved_project = project_id or str(root)
     normalized_time = event_time[:-1] + "+00:00" if event_time.endswith("Z") else event_time
     try:
@@ -3176,8 +3397,8 @@ def heartbeat_program_reentry(
         "DEPENDENCY_CHANGED": previous_dependency != current_dependency,
         "TARGET_CAPABILITY": target_capability,
         "CURRENT_CPS_GENERATION": current_generation,
-        "MISSION_SCOPE": "HEARTBEAT_REENTRY_DRY_RUN_ONLY",
-        "AUTHORIZATION_SCOPE": "START_ENGINEERING_EXECUTION_CONTEXT_ONLY",
+        "MISSION_SCOPE": "EXTERNAL_STANDARD_CONTINUE_OMP_REENTRY" if execute_continue_omp else "HEARTBEAT_REENTRY_DRY_RUN_ONLY",
+        "AUTHORIZATION_SCOPE": "ENGINEERING_EXTERNAL_REENTRY_ONLY" if execute_continue_omp else "START_ENGINEERING_EXECUTION_CONTEXT_ONLY",
         "REPLAY_PROTECTION": "MISSION_IDENTITY+CPS_GENERATION+EVENT_ID+WAKEUP_RUN_ID+DEPENDENCY_FINGERPRINT",
         "CONCURRENCY_CONTROL": "CURRENT_EXECUTION_MISSION_ID+CURRENT_EXECUTION_MISSION_STATE+CURRENT_STATE_GENERATION",
         "ACTIVATION_RESULT": "PENDING_DRY_RUN",
@@ -3198,6 +3419,18 @@ def heartbeat_program_reentry(
         seen_wakeup_run_ids=seen_wakeup_run_ids,
     )
     activation = adapter["activation_result"]
+    if execute_continue_omp:
+        pre_eligibility = _external_reentry_eligibility(live)
+        if not pre_eligibility["eligible"]:
+            return {
+                "schema": "v7-omp-external-reentry/v1", "event_id": event_identity,
+                "wakeup_run_id": wakeup_run_id, "fresh_cps_generation": current_generation,
+                "adapter": adapter, "eligibility": pre_eligibility,
+                "reentry_outcome": pre_eligibility["outcome"], "standard_entrypoint_invoked": False,
+                "consumer_invoked": False, "final_verdict": "PASS",
+                "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+                "errors": [],
+            }
     skip_reconciliation = activation in {
         "NO_CHANGE_DUPLICATE_WAKEUP",
         "NO_CHANGE_ALREADY_ACTIVE",
@@ -3214,6 +3447,8 @@ def heartbeat_program_reentry(
             "adapter": adapter,
             "reconciliation_invoked": False,
             "consumer_invoked": False,
+            "standard_entrypoint_invoked": False,
+            "reentry_outcome": "REENTRY_ALREADY_ACTIVE" if activation == "NO_CHANGE_ALREADY_ACTIVE" else "REENTRY_NOT_REQUIRED",
             "legal_terminal": activation.startswith("NO_CHANGE"),
             "next_output": activation,
             "final_verdict": adapter["final_verdict"],
@@ -3222,6 +3457,146 @@ def heartbeat_program_reentry(
             "authority_impact": "NONE",
             "errors": adapter["errors"],
         }
+
+    if execute_continue_omp:
+        eligibility = pre_eligibility
+        actual_now = now or datetime.now(timezone.utc)
+        if actual_now.tzinfo is None:
+            actual_now = actual_now.replace(tzinfo=timezone.utc)
+        actual_now = actual_now.astimezone(timezone.utc)
+        invocation_id = f"ompre_{hashlib.sha256(f'{event_identity}|{current_generation}'.encode()).hexdigest()[:24]}"
+        lease_id = f"omplease_{hashlib.sha256(f'{invocation_id}|{os.getpid()}'.encode()).hexdigest()[:24]}"
+        resolved_lease_path = lease_path or _external_reentry_lease_path(root)
+        lease_result = _external_reentry_acquire_lease(
+            lease_path=resolved_lease_path, lease_id=lease_id, event_id=event_identity,
+            cps_generation=current_generation, now=actual_now,
+        )
+        if not lease_result.get("acquired"):
+            return {
+                "schema": "v7-omp-external-reentry/v1", "event_id": event_identity,
+                "wakeup_run_id": wakeup_run_id, "fresh_cps_generation": current_generation,
+                "adapter": adapter, "eligibility": eligibility, "lease": lease_result,
+                "reentry_outcome": lease_result.get("outcome", "REENTRY_FAILED_SAFE"),
+                "standard_entrypoint_invoked": False, "consumer_invoked": False,
+                "final_verdict": "PASS" if lease_result.get("outcome") == "REENTRY_ALREADY_ACTIVE" else "STOP_SAFE",
+                "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+                "errors": lease_result.get("errors") or [],
+            }
+        lease_released = False
+        result: dict[str, Any]
+        try:
+            fresh_text = (root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
+            fresh_live = _markdown_field_table(_markdown_section(
+                fresh_text, "## 0. Authoritative Live Current State",
+                "## Authoritative Unfinished Capability Closure Registry",
+            ))
+            if fresh_live.get("CURRENT_STATE_GENERATION", "").strip("`") != current_generation:
+                result = {
+                    "schema": "v7-omp-external-reentry/v1", "reentry_outcome": "REENTRY_FAILED_SAFE",
+                    "final_verdict": "STOP_SAFE", "errors": ["cps_generation_compare_and_set_failed"],
+                    "standard_entrypoint_invoked": False, "consumer_invoked": False,
+                }
+            else:
+                active_generation = f"cpsgen_V7_REENTRY_ACTIVE_{event_identity[:12].upper()}"
+                active_state = normalized_cps_live_state({
+                    "state_captured": actual_now.isoformat(),
+                    "current_state_generation": active_generation,
+                    "current_transition_id": "EXTERNAL_REENTRY_LEASE_ACQUIRED_V1",
+                    "heartbeat_status": "ACTIVE", "automation_enabled": "TRUE",
+                    "heartbeat_automation_level": "EXTERNAL_STANDARD_CONTINUE_OMP_REENTRY_ACTIVE",
+                    "background_automation_state": "EXTERNAL_REENTRY_ACTIVE_AWAITING_TWO_NATURAL_RUNS",
+                    "external_reentry_enabled": "TRUE", "reentry_active_lease": lease_id,
+                    "reentry_last_trigger_id": event_identity, "reentry_last_trigger_at": actual_now.isoformat(),
+                    "reentry_last_invocation_id": invocation_id, "reentry_platform_health": "ACTIVE",
+                })
+                pre_update = atomic_reconcile_cps(root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", state=active_state)
+                if not pre_update.get("ok"):
+                    result = {
+                        "schema": "v7-omp-external-reentry/v1", "reentry_outcome": "REENTRY_FAILED_SAFE",
+                        "final_verdict": "STOP_SAFE", "errors": pre_update.get("errors") or ["atomic_pre_trigger_state_failed"],
+                        "standard_entrypoint_invoked": False, "consumer_invoked": False,
+                    }
+                else:
+                    runner = continue_runner or _external_reentry_run_standard_entrypoint
+                    continue_result = runner(root)
+                    continue_ok = (
+                        continue_result.get("final_verdict") in {"PASS", "BOUNDED_CONTINUATION"}
+                        and int(continue_result.get("subprocess_returncode", 0)) == 0
+                    )
+                    completed_at = datetime.now(timezone.utc)
+                    completed_generation = f"cpsgen_V7_REENTRY_COMPLETE_{event_identity[:12].upper()}"
+                    evidence_fingerprint = hashlib.sha256(
+                        json.dumps(continue_result, ensure_ascii=False, sort_keys=True, default=str).encode("utf-8")
+                    ).hexdigest()
+                    final_state = normalized_cps_live_state({
+                        "state_captured": completed_at.isoformat(),
+                        "current_state_generation": completed_generation,
+                        "current_transition_id": "EXTERNAL_REENTRY_COMPLETED_V1" if continue_ok else "EXTERNAL_REENTRY_FAILED_SAFE_V1",
+                        "heartbeat_status": "ACTIVE", "automation_enabled": "TRUE",
+                        "heartbeat_automation_level": "EXTERNAL_STANDARD_CONTINUE_OMP_REENTRY_ACTIVE",
+                        "heartbeat_last_wakeup_id": wakeup_run_id, "heartbeat_last_event_id": event_identity,
+                        "heartbeat_last_cps_generation": completed_generation,
+                        "heartbeat_last_dependency_fingerprint": current_dependency,
+                        "heartbeat_last_decision": "REENTRY_COMPLETED" if continue_ok else "REENTRY_FAILED_SAFE",
+                        "heartbeat_last_run_at": completed_at.isoformat(),
+                        "background_automation_state": "EXTERNAL_REENTRY_ACTIVE_AWAITING_TWO_NATURAL_RUNS",
+                        "external_reentry_enabled": "TRUE", "reentry_active_lease": "NONE",
+                        "reentry_last_completed_id": invocation_id if continue_ok else "NONE",
+                        "reentry_last_trigger_id": event_identity, "reentry_last_trigger_at": actual_now.isoformat(),
+                        "reentry_last_invocation_id": invocation_id,
+                        "reentry_platform_health": "PASS" if continue_ok else "FAILED_SAFE",
+                        "no_progress_fingerprint": evidence_fingerprint,
+                    })
+                    post_update = atomic_reconcile_cps(root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", state=final_state)
+                    post_ok = post_update.get("ok") is True and post_update.get("post_write_reread") == "PASS"
+                    transition_count = len(continue_result.get("transitions") or ())
+                    consumer_invoked = bool(continue_result.get("real_consumer")) or transition_count > 0
+                    result = {
+                        "schema": "v7-omp-external-reentry/v1", "event_id": event_identity,
+                        "wakeup_run_id": wakeup_run_id, "platform_owner": "CODEX_AUTOMATION_PLATFORM",
+                        "scheduled_event_time": normalized_time, "actual_execution_time": actual_now.isoformat(),
+                        "invocation_id": invocation_id, "lease_id": lease_id,
+                        "lease_acquisition_outcome": lease_result["outcome"],
+                        "stale_lease_recovered": lease_result.get("stale_recovered") is True,
+                        "cps_generation_before": current_generation, "cps_generation_active": active_generation,
+                        "cps_generation_after": completed_generation if post_ok else "POST_WRITE_FAILED",
+                        "standard_entrypoint": EXTERNAL_REENTRY_STANDARD_ENTRYPOINT,
+                        "standard_entrypoint_invoked": True,
+                        "real_caller": "continue_omp_engineering_control_loop",
+                        "real_consumer": continue_result.get("real_consumer", "OMP_PROGRAM_EXECUTION_RECONCILIATION"),
+                        "consumer_invoked": consumer_invoked, "internal_iteration_count": transition_count,
+                        "behavior_change": transition_count > 0 and post_ok,
+                        "next_output": continue_result.get("exact_next_operator_command") or continue_result.get("program_terminal"),
+                        "bounded_terminal": continue_result.get("program_terminal"),
+                        "continue_omp_result": continue_result, "atomic_pre_trigger_state": pre_update,
+                        "atomic_post_trigger_state": post_update,
+                        "reentry_outcome": "REENTRY_COMPLETED" if continue_ok and post_ok else "REENTRY_FAILED_SAFE",
+                        "no_overlap": True, "duplicate_suppression": True, "no_user_prompt": True,
+                        "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+                        "final_verdict": "PASS" if continue_ok and post_ok and consumer_invoked else "STOP_SAFE",
+                        "errors": [] if continue_ok and post_ok and consumer_invoked else sorted(set(
+                            (continue_result.get("errors") or []) + (post_update.get("errors") or [])
+                        )),
+                    }
+        finally:
+            try:
+                current_lease = json.loads(resolved_lease_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                current_lease = {}
+            if current_lease.get("lease_id") == lease_id:
+                with contextlib.suppress(OSError):
+                    resolved_lease_path.unlink()
+                lease_released = not resolved_lease_path.exists()
+        result["lease_released"] = lease_released
+        result["terminal_release"] = "PASS" if lease_released else "FAIL"
+        if not lease_released:
+            result["reentry_outcome"] = "REENTRY_FAILED_SAFE"
+            result["final_verdict"] = "STOP_SAFE"
+            result.setdefault("errors", []).append("terminal_lease_release_failed")
+        journal = evidence_path if evidence_path is not None else _external_reentry_evidence_path(root)
+        if journal:
+            _append_external_reentry_evidence(journal, result)
+        return result
 
     reconciliation = program_execution_reconciliation(sources)
     reconciliation_payload = json.dumps(
@@ -7579,6 +7954,7 @@ def cps_live_state_consistency(
         root=root,
         omp_text=omp_text,
         verify_external=False,
+        expected_state=expected_state,
     )
     errors.extend(mission_roles["errors"])
     omp_consistency: dict[str, Any] = {
@@ -7634,6 +8010,7 @@ def cps_live_state_consistency(
             root=root,
             omp_text=omp_text,
             verify_external=True,
+            expected_state=expected_state,
         )
         errors.extend(mission_roles["errors"])
         mission_identity_consistency = mission_roles["mission_identity_consistency"]

@@ -807,6 +807,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             target_capability=args.heartbeat_target_capability,
             seen_event_ids=args.heartbeat_seen_event_id,
             seen_wakeup_run_ids=args.heartbeat_seen_wakeup_id,
+            execute_continue_omp=True,
             root=ROOT_DIR,
         )
         if args.json:

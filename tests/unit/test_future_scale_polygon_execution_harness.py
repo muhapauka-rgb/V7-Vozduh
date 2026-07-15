@@ -69,6 +69,7 @@ class FutureScalePolygonExecutionHarnessTest(unittest.TestCase):
 
     def test_09_replay_is_semantically_deterministic(self):
         self.assertTrue(self.result["produced_outputs"]["replay_semantic_match"])
+        self.assertEqual(self.result["produced_outputs"]["replay_mode"], "SAME_OWNER_REPRESENTATIVE_DECISION_REPLAY")
         self.assertTrue(self.result["reproducibility_identity"].startswith("fsreplay_"))
 
     def test_10_forbidden_effects_are_absent(self):

@@ -4,6 +4,7 @@ import copy
 import importlib.util
 import json
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 import unittest
@@ -25,9 +26,11 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
     def setUpClass(cls):
         cls.lib = load_lib()
         cls.cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text()
-        cls.fsse02_cps = cls.cps.replace(
-            "| `CURRENT_PROGRAM_STAGE` | `FSSE_03_COMPLETE_FSSE_04_READY` |",
+        cls.fsse02_cps = re.sub(
+            r"(?m)^\| `CURRENT_PROGRAM_STAGE` \| `[^`]+` \|$",
             "| `CURRENT_PROGRAM_STAGE` | `FSSE_02_COMPLETE_FSSE_03_READY` |",
+            cls.cps,
+            count=1,
         )
         cls.corpus = cls.lib.load_future_scale_scenario_corpus()
         cls.scenario = cls.corpus["scenarios"][0]

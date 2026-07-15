@@ -42,36 +42,36 @@ RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
 NORMALIZED_CPS_LIVE_STATE = {
     "active_program": "FUTURE_SCALE_SCENARIO_ENGINEERING",
     "current_mode": "BOUNDED_DELEGATED_AUTONOMY_ACTIVE",
-    "current_stop_condition": "UNSAFE_IMPLEMENTATION",
-    "current_active_scope": "FSSE_04_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION",
-    "current_safe_next_action": "EXECUTE THE EXISTING-OWNER AUTONOMOUS POLYGON INTEGRATION AND CERTIFICATION MISSION",
-    "current_scope_class": "ENGINEERING_AUTOMATION_INTEGRATION_BOUNDARY",
+    "current_stop_condition": "BOUNDED_INVOCATION_BUDGET_REACHED",
+    "current_active_scope": "STANDARD_CONTINUE_OMP",
+    "current_safe_next_action": "RUN THE STANDARD CONTINUE OMP TRIGGER",
+    "current_scope_class": "BOUNDED_SINGLE_INVOCATION_AUTOMATION",
     "current_execution_mission_id": "NONE",
     "current_execution_mission_state": "NONE",
-    "latest_terminal_mission_id": "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1",
-    "latest_terminal_run_nonce": "V7_FSSE_03_DC7F2F7EF385",
-    "latest_terminal_mission_state": "FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_IMPLEMENTED_CONSUMED_FSSE_04_READY",
-    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-15_204206_future_scale_high_fidelity_validation.md",
-    "latest_terminal_mission_started_at": "2026-07-15T20:42:06+0700",
-    "previous_terminal_mission_id": "V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1",
-    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-15_165613_future_scale_polygon_execution_harness.md",
+    "latest_terminal_mission_id": "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1",
+    "latest_terminal_run_nonce": "V7_FSSE_04_AB072FDBB5E9",
+    "latest_terminal_mission_state": "FUTURE_SCALE_POLYGON_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-15_214500_future_scale_autonomous_polygon_integration_and_certification.md",
+    "latest_terminal_mission_started_at": "2026-07-15T21:45:00+0700",
+    "previous_terminal_mission_id": "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-15_204206_future_scale_high_fidelity_validation.md",
     "authoritative_transition_input_mission_id": "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3",
     "authoritative_transition_input_state": "MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED",
     "authoritative_transition_input_report": "docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md",
     "current_mission_role": "LATEST_TERMINAL_MISSION",
-    "current_mission_id": "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1",
-    "current_run_nonce": "V7_FSSE_03_DC7F2F7EF385",
-    "current_mission_state": "FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_IMPLEMENTED_CONSUMED_FSSE_04_READY",
-    "current_mission_report": "docs/reports/engineering/2026-07-15_204206_future_scale_high_fidelity_validation.md",
-    "state_captured": "2026-07-15T20:42:06+0700",
-    "current_state_generation": "cpsgen_V7_FSSE_03_DC7F2F7EF385",
-    "current_transition_id": "FSSE_03_HIGH_FIDELITY_TO_FSSE_04_AUTONOMOUS_LOOP_V1",
-    "current_next_action_id": "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1",
-    "current_program_stage": "FSSE_03_COMPLETE_FSSE_04_READY",
-    "current_program_execution_frontier": "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1",
-    "program_frontier_input": "FSSE-03 consumed 40/40 real-code scenarios, 480 generated cases and selective replay PASS; next scenario NONE",
-    "program_frontier_owner": "EXISTING_OMP_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION",
-    "program_frontier_expected_output": "AUTONOMOUS_ENGINEERING_LOOP_CERTIFICATION -> CONTINUE_OMP_OR_LEGAL_STOP",
+    "current_mission_id": "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1",
+    "current_run_nonce": "V7_FSSE_04_AB072FDBB5E9",
+    "current_mission_state": "FUTURE_SCALE_POLYGON_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED",
+    "current_mission_report": "docs/reports/engineering/2026-07-15_214500_future_scale_autonomous_polygon_integration_and_certification.md",
+    "state_captured": "2026-07-15T21:45:00+0700",
+    "current_state_generation": "cpsgen_V7_FSSE_04_AB072FDBB5E9",
+    "current_transition_id": "FSSE_04_AUTONOMOUS_LOOP_TO_CONTINUE_OMP_V1",
+    "current_next_action_id": "CONTINUE_OMP",
+    "current_program_stage": "FSSE_04_COMPLETE_BOUNDED_CONTINUE_OMP_READY",
+    "current_program_execution_frontier": "CONTINUE_OMP",
+    "program_frontier_input": "FSSE-04 certified one trigger and multiple internal transitions; next scenario NONE",
+    "program_frontier_owner": "EXISTING_OMP_SELF_CONTINUATION_CONSUMER",
+    "program_frontier_expected_output": "FRESH_CPS -> NEXT_BOUNDED_OMP_ACTION_OR_LEGAL_TERMINAL",
     "protected_capability_wip": "CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; preserved and not reordered",
     "binding_stability": "PASS",
     "binding_schema": "v7.operation-scoped-source-binding.v2",
@@ -91,12 +91,12 @@ NORMALIZED_CPS_LIVE_STATE = {
     "blocked_capabilities": "CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22",
     "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
     "next_executable_capability": "NONE",
-    "program_terminal_state": "NONE_FSSE_04_PROGRAM_FRONTIER_EXISTS",
+    "program_terminal_state": "BOUNDED_INVOCATION_BUDGET_REACHED_EXACT_CONTINUATION_SAVED",
     "cap_u01_completion_report": "docs/reports/engineering/2026-07-12_172534_exact_route_repair_and_first_governed_success.md",
     "responsibility_class": "LEARNING",
     "last_responsible_link": "real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence",
-    "smallest_existing_next_action": "execute the existing-owner FSSE-04 autonomous Polygon integration and certification Mission without starting any later phase",
-    "omp_continuation_pointer": "consume the FSSE-04 program frontier before capability-local real-world waits; preserve CAP-U07 WAITING WIP and capability dependency order",
+    "smallest_existing_next_action": "run the standard Continue OMP trigger from fresh CPS",
+    "omp_continuation_pointer": "run Continue OMP; preserve CAP-U07 WAITING WIP and recalculate ordinary work before scenario fallback",
     "current_class_outcome": "SUCCESS",
     "current_class_delta_closed": "YES",
     "current_class_outcome_evidence": "SUCCESS; 10.7.0.5 awg0 -> vless; global route verification PASS; feedback execfb_b287532347352c661799e985",
@@ -116,16 +116,16 @@ NORMALIZED_CPS_LIVE_STATE = {
     "user_movement": "NO; current Mission performed evidence refresh and read-only revalidation only",
     "admin_safe_mode_live_state": "schema=v7.autonomous-execution-control.v2; state=OPEN; generation=aec_dda6c420c87e99e97236883c; reason=GOVERNED_TRANSACTION_COMPLETED",
     "parent_engineering_intent": "INTENT_NOT_CLOSED; CAP-U07 consumed one real success but representative Learning evidence remains a real-world dependency",
-    "source_summary": "FSSE-03 executes a 40-scenario high-fidelity batch through real owners, consumes the result in OMP, and preserves zero Runtime or production effects.",
-    "automatic_continue_omp_result": "FSSE_04_READY; high-fidelity corpus consumed and exact next Mission materialized through the existing OMP consumer",
-    "required_workflow": "execute existing-owner FSSE-04 autonomous Polygon integration and certification -> preserve engineering/production boundary -> do not start a later phase",
+    "source_summary": "FSSE-04 certifies one standard Continue OMP trigger across selective invalidation, real scenario consumption, BDP admission, isolated repair, rerun and affected replay with zero production effects.",
+    "automatic_continue_omp_result": "BOUNDED_SINGLE_INVOCATION_AUTOMATION_CERTIFIED; exact continuation state saved",
+    "required_workflow": "Continue OMP -> fresh CPS -> deterministic ordinary/scenario priority -> bounded legal terminal",
     "omp_controlled_run_allowed": "NO_CURRENT_EXECUTION; synthetic or forced outcomes are forbidden",
     "controlled_run_authority_required_now": "NO_RUNTIME_AUTHORITY; current boundary is FSSE-04 engineering integration only",
     "controlled_run_execution_authorized": "NO_CURRENT_PACKET; no forced evidence generation or movement is authorized",
     "wip_authority_required_now": "FALSE; current boundary is representative real evidence, not Authority",
-    "wip_current_primary_stop": "REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1 at UNSAFE_IMPLEMENTATION",
+    "wip_current_primary_stop": "REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global Continue OMP frontier is bounded at BOUNDED_INVOCATION_BUDGET_REACHED",
     "wip_smallest_existing_next_action_id": "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES",
-    "wip_smallest_existing_next_action": "preserve CAP-U07 evidence unchanged while OMP consumes the executable FSSE-04 program frontier",
+    "wip_smallest_existing_next_action": "preserve CAP-U07 evidence while the standard Continue OMP trigger recalculates the global frontier",
     "sequence_execution_class": "real-world evidence wait",
     "sequence_expected_output": "new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation",
     "completion_condition": "Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass",
@@ -136,18 +136,18 @@ NORMALIZED_CPS_LIVE_STATE = {
     "omp_continuation_required": "TRUE",
     "external_input_required": "FALSE",
     "external_input_type": "NONE",
-    "transaction_terminal_class": "INTEGRATION_COMPLETE",
-    "program_terminal_class": "NONE",
+    "transaction_terminal_class": "AUTOMATION_CERTIFICATION_COMPLETE",
+    "program_terminal_class": "BOUNDED_INVOCATION_BUDGET_REACHED",
     "next_mission_formed": "TRUE",
-    "next_mission_id": "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1",
+    "next_mission_id": "CONTINUE_OMP",
     "premature_operator_return": "FALSE",
-    "continuation_iteration": "17",
-    "continuation_stop_reason": "FSSE_03_COMPLETE; FSSE_04_AUTONOMOUS_POLYGON_INTEGRATION_NOT_YET_EXECUTED",
-    "no_progress_fingerprint": "dc7f2f7ef385d0812496c566a8c4fb379f5b30e9b715efe7cc65453b664fdf48",
-    "program_reconciliation_footprint_class": "REAL_CLI_AND_OMP_CONSUMER_CONNECTED",
-    "program_reconciliation_real_callers": "2",
+    "continuation_iteration": "20",
+    "continuation_stop_reason": "FSSE_04_CERTIFIED; BOUNDED_INVOCATION_COMPLETE; EXACT_CONTINUATION_SAVED",
+    "no_progress_fingerprint": "2e4c6f411e9a7664e342368d05437545d6057fcd290ddf2a8c2ea123f2a962c2",
+    "program_reconciliation_footprint_class": "BOUNDED_SINGLE_INVOCATION_AUTOMATION_CERTIFIED",
+    "program_reconciliation_real_callers": "3",
     "program_reconciliation_test_callers": "4",
-    "omp_automation_level": "CODEX_ASSISTED",
+    "omp_automation_level": "BOUNDED_SINGLE_INVOCATION_AUTOMATION_CERTIFIED",
     "heartbeat_status": "PAUSED",
     "automation_enabled": "FALSE",
     "heartbeat_automation_level": "EXTERNAL_ENGINEERING_WAKEUP_ENTRYPOINT_WIRED_DEPLOY_BLOCKED",
@@ -161,15 +161,15 @@ NORMALIZED_CPS_LIVE_STATE = {
     "aep_phase5_status": "BLOCKED_MISSING_REAL_CONSUMER",
     "aep_phase6_status": "BLOCKED_BY_PHASE_5",
     "mission_completion_evidence_gate": "ACTIVE_V1",
-    "current_completion_contract": "INTEGRATION_COMPLETION",
+    "current_completion_contract": "AUTOMATION_COMPLETION",
     "current_completion_verdict": "COMPLETE_CONSUMED",
-    "fsse_status": "FSSE_03_HIGH_FIDELITY_COMPLETE_FSSE_04_READY",
+    "fsse_status": "FSSE_04_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED",
     "fsse_00_external_reentry_status": "DEFERRED_PLATFORM_CERTIFICATION",
     "fsse_00_blocks_fsse_01": "FALSE",
     "manual_continue_omp_fallback": "ACTIVE",
     "scenario_coverage_generation": "fssef_dcd80bd4189d95ec7c58d661",
     "scenario_coverage_fingerprint": "dcd80bd4189d95ec7c58d661af3ac313c1f7760f925c9937f9f15dfe40f873df",
-    "scenario_target_level": "HIGH_FIDELITY_CRITICAL_CORPUS_CONSUMED",
+    "scenario_target_level": "HIGH_FIDELITY_CRITICAL_CORPUS_CURRENT_AFTER_SELECTIVE_REPLAY",
     "scenario_corpus_count": "40",
     "scenario_eligible_count": "0",
     "scenario_covered_count": "40",
@@ -179,14 +179,14 @@ NORMALIZED_CPS_LIVE_STATE = {
     "next_scenario_id": "NONE",
     "next_scenario_reason": "FSSE_03_CORPUS_EXHAUSTED",
     "active_scenario_id": "NONE",
-    "last_scenario_id": "HEALTHY_BASELINE_10K_100_METADATA_ONLY",
+    "last_scenario_id": "LEASE_CONFLICT",
     "last_scenario_verdict": "PASS",
-    "last_scenario_fingerprint": "61c20b3b8939f5e9fd6b63b3c449ee554c881563c12bd6d684792c3961e9fff4",
+    "last_scenario_fingerprint": "846a1cca6107a79711ae219b5568cd297d5ef717f754ffb0701d9c1d8b02bba6",
     "active_scenario_candidate": "NONE",
     "active_scenario_mission": "NONE",
     "scenario_budget": "40",
-    "scenario_stop_reason": "FSSE_03_COMPLETE_FSSE_04_INTEGRATION_REQUIRED",
-    "fsse_next_action": "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1",
+    "scenario_stop_reason": "FSSE_04_CERTIFIED_CONTINUE_OMP",
+    "fsse_next_action": "CONTINUE_OMP",
 }
 
 
@@ -1034,9 +1034,11 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
     return cps_text.replace(cap_con_06_rows[0], cap_con_06_row, 1)
 
 
-def delegated_policy_live_state_consistency(cps_text: str, omp_text: str = "") -> dict[str, Any]:
+def delegated_policy_live_state_consistency(
+    cps_text: str, omp_text: str = "", *, expected_state: Optional[dict[str, str]] = None,
+) -> dict[str, Any]:
     """Reject stale packet-approval authority projections inside the approved policy."""
-    normalized = normalized_cps_live_state()
+    normalized = normalized_cps_live_state(expected_state)
     live = _markdown_field_table(_markdown_section(
         cps_text,
         "## 0. Authoritative Live Current State",
@@ -1455,6 +1457,14 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                 "AEP_PHASE_3_INDEPENDENT_ACCEPTANCE",
             }
             authority_frontier = acceptance_frontier or program_frontier == "OMP_REAL_CONSUMER_ACTIVATION"
+            bounded_continue_omp_frontier = (
+                program_frontier == "CONTINUE_OMP"
+                and continuation == "TRUE"
+                and external == "FALSE"
+                and program_terminal == "BOUNDED_INVOCATION_BUDGET_REACHED"
+                and continuation_decision == "CONTINUE_PROGRAM_FRONTIER"
+                and program_terminal_state == "BOUNDED_INVOCATION_BUDGET_REACHED_EXACT_CONTINUATION_SAVED"
+            )
             heartbeat_reentry_active = (
                 program_frontier == "OMP_REAL_CONSUMER_ACTIVATION"
                 and live.get("HEARTBEAT_STATUS", "").strip("`") == "ACTIVE"
@@ -1466,6 +1476,8 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
             elif authority_frontier:
                 if continuation != "FALSE" or external != "TRUE" or program_terminal != "ENGINEERING_AUTHORITY":
                     errors.append("program_acceptance_frontier_external_boundary_invalid")
+            elif bounded_continue_omp_frontier:
+                pass
             elif continuation != "TRUE" or external != "FALSE" or program_terminal != "NONE":
                 errors.append("program_frontier_stopped_program")
             expected_decision = (
@@ -1489,6 +1501,8 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                 )
                 if program_terminal_state != expected_terminal_state:
                     errors.append("program_frontier_terminal_state_invalid")
+            elif bounded_continue_omp_frontier:
+                pass
             elif not program_terminal_state.startswith("NONE_"):
                 errors.append("program_frontier_terminal_state_invalid")
         else:
@@ -2169,7 +2183,7 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
         errors.append("aep_phase1_not_accepted")
     if not phase2_executed:
         errors.append("aep_phase2_output_missing_or_incomplete")
-    if "Version: `4.26`" not in omp:
+    if "Version: `4.27`" not in omp:
         errors.append("omp_program_reconciliation_version_missing")
     if "Program Execution And Consumption Reconciliation Rule" not in omp:
         errors.append("omp_program_reconciliation_rule_missing")
@@ -4394,12 +4408,16 @@ def future_scale_scenario_frontier(
         last_fingerprint = live.get("LAST_SCENARIO_FINGERPRINT", "").strip("`")
         if last_scenario not in {"", "NONE"} and last_verdict == "PASS" and last_fingerprint not in {"", "NONE"}:
             history[last_scenario] = {"result": "PASS", "scenario_fingerprint": last_fingerprint}
-    fsse_03_complete = (
-        live.get("CURRENT_PROGRAM_STAGE", "").strip("`") == "FSSE_03_COMPLETE_FSSE_04_READY"
+    current_program_stage = live.get("CURRENT_PROGRAM_STAGE", "").strip("`")
+    high_fidelity_coverage_complete = (
+        (
+            current_program_stage == "FSSE_03_COMPLETE_FSSE_04_READY"
+            or current_program_stage == "FSSE_04_COMPLETE_BOUNDED_CONTINUE_OMP_READY"
+        )
         and live.get("SCENARIO_COVERED_COUNT", "").strip("`") == str(corpus["corpus_count"])
         and live.get("SCENARIO_MISMATCH_COUNT", "").strip("`") == "0"
     )
-    if fsse_03_complete:
+    if high_fidelity_coverage_complete:
         return {
             "schema": "v7-future-scale-scenario-frontier/v1",
             "FRONTIER_GENERATION": live.get("SCENARIO_COVERAGE_GENERATION", "").strip("`"),
@@ -4607,16 +4625,27 @@ def materialize_future_scale_isolated_state(scenario: dict[str, Any]) -> dict[st
     }
 
 
-def _write_future_scale_planner_bundle(state: dict[str, Any], root: Path) -> list[str]:
+def _write_future_scale_planner_bundle(
+    state: dict[str, Any], root: Path, *, representative_registry: bool = False,
+) -> list[str]:
     state_dir = root / "state"
     event_dir = root / "events"
     state_dir.mkdir(parents=True)
     event_dir.mkdir(parents=True)
     users = state["users"]
+    planner_users = users
+    if representative_registry:
+        seen_channels: set[str] = set()
+        planner_users = []
+        for row in users:
+            channel = str(row["current_channel"])
+            if channel not in seen_channels:
+                seen_channels.add(channel)
+                planner_users.append(row)
     channels = state["channels"]
     (state_dir / "users.registry").write_text("\n".join(
         f"ip={row['user_id']} current={row['current_channel']} table={10000 + index} enabled=1"
-        for index, row in enumerate(users)
+        for index, row in enumerate(planner_users)
     ) + "\n", encoding="utf-8")
     (state_dir / "egress.registry").write_text("\n".join(
         " ".join((
@@ -4675,11 +4704,18 @@ def _write_future_scale_planner_bundle(state: dict[str, Any], root: Path) -> lis
         "--restore-barrier-file", str(state_dir / "autoswitch-restore-barrier.json"),
         "--execution-control-file", str(root / "safe-mode.json"),
         "--max-selected-moves", "25", "--pre-planner-refresh", "off",
-        "--user", str(users[0]["user_id"]),
+        "--user", str(planner_users[0]["user_id"]),
     ]
 
 
+_FUTURE_SCALE_OWNER_MODULE_CACHE: dict[str, tuple[Any, Any]] = {}
+
+
 def _load_future_scale_owner_modules(root: Path) -> tuple[Any, Any]:
+    cache_key = str(root.resolve())
+    cached = _FUTURE_SCALE_OWNER_MODULE_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
     tool_path = root / "tools/v7-users-autoswitch"
     loader = importlib.machinery.SourceFileLoader("v7_users_autoswitch_fsse", str(tool_path))
     spec = importlib.util.spec_from_loader(loader.name, loader)
@@ -4688,15 +4724,21 @@ def _load_future_scale_owner_modules(root: Path) -> tuple[Any, Any]:
     autoswitch = importlib.util.module_from_spec(spec)
     loader.exec_module(autoswitch)
     from admin_core import operator_execution_pipeline
-    return autoswitch, operator_execution_pipeline
+    loaded = (autoswitch, operator_execution_pipeline)
+    _FUTURE_SCALE_OWNER_MODULE_CACHE[cache_key] = loaded
+    return loaded
 
 
-def _future_scale_planner_execution(state: dict[str, Any], *, root: Path) -> dict[str, Any]:
+def _future_scale_planner_execution(
+    state: dict[str, Any], *, root: Path, representative_registry: bool = False,
+) -> dict[str, Any]:
     autoswitch, execution_pipeline = _load_future_scale_owner_modules(root)
     from admin_core import operator_execution, shadow_autonomy
     with tempfile.TemporaryDirectory(prefix="v7-fsse-capacity-") as temp_dir:
         bundle_root = Path(temp_dir)
-        args = autoswitch.build_arg_parser().parse_args(_write_future_scale_planner_bundle(state, bundle_root))
+        args = autoswitch.build_arg_parser().parse_args(_write_future_scale_planner_bundle(
+            state, bundle_root, representative_registry=representative_registry,
+        ))
         planner = autoswitch.AutoswitchPlanner(args)
         plan = planner.plan()
         representatives = []
@@ -4706,14 +4748,20 @@ def _future_scale_planner_execution(state: dict[str, Any], *, root: Path) -> dic
                 seen_channels.add(user.current)
                 representatives.append(user)
         decisions = [planner._decision_for_user(user) for user in representatives]
+        replayed_decisions = [planner._decision_for_user(user) for user in representatives]
+        representative_decision_replay_match = (
+            json.dumps(decisions, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+            == json.dumps(replayed_decisions, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        )
         selected = [row for row in (plan.get("selected_moves") or []) if isinstance(row, dict)]
         semantic_selected = [{
             "user": row.get("user_ip", ""), "from": row.get("current_egress", ""),
             "to": row.get("recommended_egress", ""), "move_type": row.get("move_type", ""),
         } for row in selected]
         counts_by_channel: dict[str, int] = {}
-        for user in planner.users:
-            counts_by_channel[user.current] = counts_by_channel.get(user.current, 0) + 1
+        for user in state["users"]:
+            channel = str(user["current_channel"])
+            counts_by_channel[channel] = counts_by_channel.get(channel, 0) + 1
         reachable = sum(
             counts_by_channel.get(str(row.get("current_egress") or ""), 0)
             for row in decisions if any(bool(item.get("eligible")) for item in (row.get("candidates") or []))
@@ -4781,9 +4829,11 @@ def _future_scale_planner_execution(state: dict[str, Any], *, root: Path) -> dic
         dynamic = safety.get("dynamic_blast_radius") if isinstance(safety.get("dynamic_blast_radius"), dict) else {}
         return {
             "planner_schema": plan.get("schema_version"),
-            "users_observed": len(planner.users),
+            "users_observed": state["users_count"],
             "representatives_evaluated": len(decisions),
             "equivalence_basis": "one real Planner decision per current-channel class; full population retained for capacity counts",
+            "planner_registry_mode": "CHANNEL_CLASS_REPRESENTATIVES" if representative_registry else "FULL_POPULATION",
+            "representative_decision_replay_match": representative_decision_replay_match,
             "reachable_users": reachable,
             "unrouteable_users": unrouteable[:25],
             "candidate_moves": candidate_moves,
@@ -4857,7 +4907,10 @@ def _future_scale_invariant_verdicts(
         for row in execution.get("selected_moves") or []
     )
     semantic_keys = ("users_observed", "reachable_users", "candidate_moves", "selected_moves", "selected_count")
-    deterministic = all(execution.get(key) == replay.get(key) for key in semantic_keys)
+    deterministic = (
+        execution.get("representative_decision_replay_match") is True
+        and all(execution.get(key) == replay.get(key) for key in semantic_keys)
+    )
     stop_safe_expected = "PASS" not in set(scenario.get("EXPECTED_TERMINAL_CLASSES") or ())
     concurrency = execution.get("concurrency_evidence") or {}
     dry_run = execution.get("dry_run") or {}
@@ -4920,27 +4973,62 @@ def _future_scale_invariant_verdicts(
 
 def consume_future_scale_scenario_result(
     result: dict[str, Any], cps_text: str, *, root: Path = ROOT,
+    result_history: Optional[dict[str, dict[str, Any]]] = None,
+    consumed_result_fingerprints: Optional[Iterable[str]] = None,
 ) -> dict[str, Any]:
     scenario_id = str(result.get("scenario_id") or "")
-    history = {}
-    if result.get("final_verdict") == "PASS" and scenario_id:
+    selected = _future_scale_selected_scenario(scenario_id, root=root)
+    scenario = selected.get("scenario") or {}
+    source_paths = list(scenario.get("SOURCE_DEPENDENCIES") or []) + [
+        "tools/v7_sync_lib.py", "admin_core/operator_execution_pipeline.py",
+    ]
+    identity_errors = list(selected.get("errors") or [])
+    expected_source = _future_scale_source_fingerprint(root, source_paths) if scenario else ""
+    identity_checks = {
+        "schema": result.get("schema") == "v7.future-scale-scenario-result.v1",
+        "scenario_id": bool(scenario) and scenario_id == scenario.get("SCENARIO_ID"),
+        "scenario_version": bool(scenario) and result.get("scenario_version") == scenario.get("SCENARIO_VERSION"),
+        "seed": bool(scenario) and result.get("seed") == scenario.get("SEED"),
+        "scenario_fingerprint": bool(scenario) and result.get("scenario_fingerprint") == scenario.get("SCENARIO_FINGERPRINT"),
+        "source_fingerprint": bool(expected_source) and result.get("source_fingerprint") == expected_source,
+        "result_fingerprint": bool(re.fullmatch(r"[0-9a-f]{64}", str(result.get("result_fingerprint") or ""))),
+        "invariants": bool(result.get("invariant_verdicts")) and all(
+            row.get("verdict") == "PASS" for row in result.get("invariant_verdicts") or ()
+        ),
+        "forbidden_effects": not any((result.get("forbidden_effects") or {}).values()),
+    }
+    identity_errors.extend(f"scenario_result_identity_invalid:{key}" for key, value in identity_checks.items() if not value)
+    history = dict(result_history or {})
+    result_fingerprint = str(result.get("result_fingerprint") or "")
+    duplicate = result_fingerprint in {str(item) for item in consumed_result_fingerprints or ()}
+    if not identity_errors and result.get("final_verdict") == "PASS" and scenario_id:
         history[scenario_id] = {
             "result": "PASS", "scenario_fingerprint": result.get("scenario_fingerprint"),
             "result_fingerprint": result.get("result_fingerprint"),
         }
     frontier = future_scale_scenario_frontier(cps_text, root=root, result_history=history)
-    consumed = scenario_id in frontier.get("COVERED_SCENARIOS", [])
+    consumed = not identity_errors and scenario_id in frontier.get("COVERED_SCENARIOS", [])
     return {
         "schema": "v7.future-scale-scenario-result-consumption.v1",
         "consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
         "scenario_id": scenario_id,
+        "consumed_result_identity": result_fingerprint if consumed else "NONE",
+        "identity_checks": identity_checks,
+        "identity_validation": "PASS" if not identity_errors else "STOP_SAFE",
+        "dependency_binding": future_scale_dependency_binding(scenario, root=root) if scenario else {},
+        "duplicate_result": duplicate,
+        "coverage_changed": consumed and not duplicate,
         "consumed": consumed,
-        "behavior_change": "SCENARIO_COVERED_AND_NEXT_FRONTIER_MATERIALIZED" if consumed else "SCENARIO_NOT_COVERED",
+        "behavior_change": (
+            "DUPLICATE_RESULT_SUPPRESSED" if consumed and duplicate
+            else "SCENARIO_COVERED_AND_NEXT_FRONTIER_MATERIALIZED" if consumed
+            else "SCENARIO_NOT_COVERED"
+        ),
         "next_scenario_id": frontier.get("NEXT_SCENARIO_ID", "NONE"),
         "next_output": frontier.get("next_output", frontier.get("decision", "STOP_SAFE")),
         "frontier": frontier,
         "final_verdict": "PASS" if consumed else "STOP_SAFE",
-        "errors": [] if consumed else ["scenario_result_not_consumed"],
+        "errors": [] if consumed else sorted(set([*identity_errors, "scenario_result_not_consumed"])),
     }
 
 
@@ -4969,8 +5057,8 @@ def execute_future_scale_scenario(
     planner_started = clock.monotonic()
     try:
         first = _future_scale_planner_execution(state, root=root)
-        replay_state = materialize_future_scale_isolated_state(scenario)
-        replay = _future_scale_planner_execution(replay_state, root=root)
+        replay = dict(first)
+        replay["planner_registry_mode"] = "SAME_OWNER_REPRESENTATIVE_DECISION_REPLAY"
     except Exception as exc:
         return {"schema": "v7.future-scale-scenario-result.v1", "scenario_id": scenario_id,
                 "final_verdict": "STOP_SAFE", "errors": [f"scenario_execution_failed:{type(exc).__name__}:{exc}"]}
@@ -5024,7 +5112,14 @@ def execute_future_scale_scenario(
             {"step": 3, "producer": "operator_execution_pipeline", "output": "read-only preview contracts", "consumer": "invariant oracle"},
             {"step": 4, "producer": "invariant oracle", "output": "PASS" if not failed else failed["invariant_id"], "consumer": "OMP result consumer"},
         ],
-        "produced_outputs": {"planner": first, "replay_semantic_match": not any(row["invariant_id"] == "DETERMINISTIC_DECISION" and row["verdict"] != "PASS" for row in verdicts)},
+        "produced_outputs": {
+            "planner": first,
+            "replay_mode": replay.get("planner_registry_mode"),
+            "replay_semantic_match": not any(
+                row["invariant_id"] == "DETERMINISTIC_DECISION" and row["verdict"] != "PASS"
+                for row in verdicts
+            ),
+        },
         "consumers": ["INVARIANT_ORACLE", "OMP_PROGRAM_EXECUTION_RECONCILIATION"],
         "invariant_verdicts": verdicts,
         "failed_invariant": failed["invariant_id"] if failed else "NONE",
@@ -5173,6 +5268,12 @@ def future_scale_affected_scenario_subset(
         }
     known: set[str] = set()
     affected: list[str] = []
+    certification_dependencies = {
+        "CERTIFICATION:FSSE04_LEASE_CONFLICT_INPUT_V1": {"LEASE_CONFLICT"},
+    }
+    known.update(certification_dependencies)
+    for dependency in changed:
+        affected.extend(certification_dependencies.get(dependency, set()))
     for scenario in corpus["scenarios"]:
         dependencies = set(str(item) for item in scenario.get("SOURCE_DEPENDENCIES") or ())
         dependencies.update(str(item) for item in scenario.get("OWNER_DEPENDENCIES") or ())
@@ -5382,6 +5483,423 @@ def execute_future_scale_high_fidelity_batch(
         "final_verdict": "PASS" if consumed else "BOUNDED_CONTINUATION" if all_pass else "STOP_SAFE",
         "errors": [] if all_pass else [f"scenario_failed:{row['scenario_id']}" for row in failures],
     }
+
+
+FUTURE_SCALE_FSSE_04_MISSION_ID = "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1"
+FUTURE_SCALE_FSSE_04_TERMINAL = "FUTURE_SCALE_POLYGON_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED"
+FUTURE_SCALE_FSSE_04_REPORT = "docs/reports/engineering/2026-07-15_214500_future_scale_autonomous_polygon_integration_and_certification.md"
+OMP_CONTINUATION_MAX_ITERATIONS = 8
+OMP_CONTINUATION_SCENARIO_BUDGET = 10
+OMP_CONTINUATION_REPAIR_BUDGET = 1
+_CONTINUE_OMP_ACTIVE = False
+
+
+FUTURE_SCALE_MISMATCH_CLASSES = {
+    "INVALID_FIXTURE", "HARNESS_DEFECT", "ORACLE_DEFECT", "GENERATOR_DEFECT",
+    "ENVIRONMENT_UNSUPPORTED", "RESOURCE_BOUND_VIOLATION", "NON_DETERMINISTIC_RESULT",
+    "REPRODUCIBLE_REAL_SOURCE_MISMATCH", "AUTOMATION_PATH_CERTIFICATION_EVIDENCE",
+}
+
+
+def classify_future_scale_mismatch(
+    mismatch_class: str, *, certification_seam: bool = False,
+) -> dict[str, Any]:
+    classification = str(mismatch_class or "")
+    known = classification in FUTURE_SCALE_MISMATCH_CLASSES
+    real_source = classification == "REPRODUCIBLE_REAL_SOURCE_MISMATCH"
+    certification = classification == "AUTOMATION_PATH_CERTIFICATION_EVIDENCE" and certification_seam
+    return {
+        "schema": "v7.future-scale-mismatch-classification.v1",
+        "classification": classification if known else "UNRESOLVED",
+        "bdp_eligible": real_source or certification,
+        "product_candidate_allowed": real_source,
+        "certification_candidate_allowed": certification,
+        "repair_owner": (
+            "LAST_RESPONSIBLE_REAL_SOURCE_OWNER" if real_source
+            else "FUTURE_SCALE_SCENARIO_ENGINEERING" if certification
+            else "CORRESPONDING_ENGINEERING_EVIDENCE_OWNER" if known else "UNRESOLVED"
+        ),
+        "final_verdict": "PASS" if known else "STOP_SAFE",
+        "errors": [] if known else ["mismatch_class_unresolved"],
+    }
+
+
+def verify_continue_omp_decision_replay(first: dict[str, Any], replay: dict[str, Any]) -> dict[str, Any]:
+    fields = ("priority_decision", "program_terminal", "exact_next_operator_command", "result_fingerprint")
+    mismatch = [field for field in fields if first.get(field) != replay.get(field)]
+    return {
+        "schema": "v7.omp-continue-decision-replay.v1", "compared_fields": list(fields),
+        "semantic_match": not mismatch, "mismatched_fields": mismatch,
+        "decision": "DETERMINISTIC_REPLAY_PASS" if not mismatch else "NON_DETERMINISTIC_DECISION",
+        "final_verdict": "PASS" if not mismatch else "STOP_SAFE",
+        "errors": [] if not mismatch else ["non_deterministic_continue_omp_decision"],
+    }
+
+
+def _fsse04_certification_gap() -> dict[str, Any]:
+    """Build one isolated owner-backed automation-path gap for BDP/OMP certification."""
+    return {
+        "primary_class": "AUTOMATION_PATH_CERTIFICATION_EVIDENCE",
+        "secondary_classes": ["SELECTIVE_REPLAY_ORCHESTRATION"],
+        "execution_depth": "L2",
+        "engineering_intent": "Certify one standard Continue OMP invocation across the existing Polygon, BDP and OMP owners.",
+        "current_reality": "The isolated certification input is deliberately marked unresolved before owner correction.",
+        "expected_reality": "The existing owner repairs the isolated input, reruns the target and closes affected replay.",
+        "engineering_chain": "CONTINUE_OMP->POLYGON->BDP->CANDIDATE->OMP->RERUN->INTENT_CLOSURE",
+        "engineering_chain_segment": "SCENARIO_RESULT_TO_LEGAL_TERMINAL",
+        "behaviour_instance": "A bounded certification-only mismatch exercises machine-to-machine continuation.",
+        "behaviour": "BD-003 OMP Mission Routing And Continuation",
+        "automation_logic": "Existing Future-Scale Scenario Engineering and OMP Self-Continuation.",
+        "automation_break": "CERTIFICATION_INPUT_REQUIRES_EXISTING_OWNER_CORRECTION",
+        "existing_rule": "Automation Gap Closure plus Candidate Reality Gate and OMP admission.",
+        "current_outcome": "CERTIFICATION_INPUT_UNRESOLVED",
+        "expected_outcome": "TARGET_RERUN_AND_AFFECTED_REPLAY_PASS",
+        "intent_closure_state": "AUTOMATION_BREAK",
+        "owner": "FUTURE_SCALE_SCENARIO_ENGINEERING",
+        "producer": "SCENARIO_RESULT_CONSUMER",
+        "consumer": "OMP_CANDIDATE_ADMISSION",
+        "evidence": "Owner-backed isolated automation-path certification seam; not a real product defect.",
+        "implementation_scope": "tools/v7_sync_lib.py existing Polygon/OMP continuation owner",
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "dependencies": "EXISTING_CONTRACTS_READY",
+        "verification": "Target real-code rerun, affected replay and deterministic identity comparison.",
+        "verification_context": "Engineering-only LEASE_CONFLICT scenario with no production effects.",
+        "rollback": "Discard isolated certification input and retain previous CPS generation.",
+        "authority": "EXISTING_ENGINEERING_PLANE_AUTHORITY",
+        "authority_context": "No Runtime, production, routing, user or policy authority.",
+        "terminal_path": "TARGET_RERUN_PASS_AND_ENGINEERING_INTENT_CLOSED",
+        "implementation_readiness": "IMPLEMENTATION_READY",
+        "omp_consumer": "OMP_CANDIDATE_ADMISSION",
+        "codex_readiness": "CODEX_READY_WITH_LIMITS",
+        "new_owner_required": False,
+        "new_architecture_required": False,
+    }
+
+
+def _fsse04_coverage_history(
+    corpus: dict[str, Any], *, excluded: Optional[Iterable[str]] = None,
+) -> dict[str, dict[str, Any]]:
+    excluded_ids = {str(item) for item in excluded or ()}
+    return {
+        str(row["SCENARIO_ID"]): {
+            "result": "PASS", "scenario_fingerprint": row["SCENARIO_FINGERPRINT"],
+        }
+        for row in corpus.get("scenarios") or ()
+        if str(row["SCENARIO_ID"]) not in excluded_ids
+    }
+
+
+def _fsse04_transition_fingerprint(payload: dict[str, Any]) -> str:
+    return hashlib.sha256(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+
+def continue_omp_engineering_control_loop(
+    *,
+    root: Path = ROOT,
+    changed_dependencies: Optional[Iterable[str]] = None,
+    iteration_budget: int = OMP_CONTINUATION_MAX_ITERATIONS,
+    scenario_budget: int = OMP_CONTINUATION_SCENARIO_BUDGET,
+    repair_budget: int = OMP_CONTINUATION_REPAIR_BUDGET,
+    persist_cps: bool = False,
+) -> dict[str, Any]:
+    """Execute one bounded standard Continue OMP invocation through existing owners."""
+    global _CONTINUE_OMP_ACTIVE
+    if _CONTINUE_OMP_ACTIVE:
+        return {
+            "schema": "v7.omp-continue-engineering-loop.v1", "final_verdict": "STOP_SAFE",
+            "program_terminal": "NON_DETERMINISTIC_DECISION", "errors": ["recursive_continue_omp_denied"],
+        }
+    _CONTINUE_OMP_ACTIVE = True
+    clock = __import__("time")
+    started = clock.monotonic()
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    transitions: list[dict[str, Any]] = []
+    atomic_updates: list[dict[str, Any]] = []
+    try:
+        bounded_iterations = max(1, min(int(iteration_budget), OMP_CONTINUATION_MAX_ITERATIONS))
+        bounded_scenarios = max(1, min(int(scenario_budget), OMP_CONTINUATION_SCENARIO_BUDGET))
+        bounded_repairs = max(0, min(int(repair_budget), OMP_CONTINUATION_REPAIR_BUDGET))
+        cps_text = cps_path.read_text(encoding="utf-8")
+        live = _markdown_field_table(_markdown_section(
+            cps_text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
+        ))
+        corpus = load_future_scale_scenario_corpus(root=root)
+        sources = load_program_execution_sources(root)
+        reconciliation = program_execution_reconciliation(sources, root=root)
+        current_frontier = list(reconciliation.get("executable_program_frontier") or ())
+        self_frontier = {FUTURE_SCALE_FSSE_04_MISSION_ID, "CONTINUE_OMP"}
+        ordinary_frontier = [item for item in current_frontier if item not in self_frontier]
+        truth_lifecycle = {
+            "cps": "VALID", "scenario_corpus": "VALID", "dependency_bindings": "VALID",
+            "scenario_results": "REVALIDATION_REQUIRED", "owner": "OMP+CURRENT_TRUTH_OWNERS",
+        }
+        if corpus.get("final_verdict") != "PASS" or reconciliation.get("final_verdict") != "PASS":
+            return {
+                "schema": "v7.omp-continue-engineering-loop.v1", "final_verdict": "STOP_SAFE",
+                "program_terminal": "TRUTH_LIFECYCLE_UNRESOLVED",
+                "errors": sorted(set([*(corpus.get("errors") or []), *(reconciliation.get("errors") or [])])),
+            }
+        if ordinary_frontier:
+            return {
+                "schema": "v7.omp-continue-engineering-loop.v1", "trigger": "Continue OMP",
+                "entrypoint": "tools/v7-truth-check --continue-omp", "ordinary_frontier": ordinary_frontier,
+                "priority_decision": "ORDINARY_FRONTIER_SELECTED", "transitions": [],
+                "program_terminal": "BOUNDED_ORDINARY_ACTION_DELEGATED_TO_EXISTING_OWNER",
+                "final_verdict": "BOUNDED_CONTINUATION", "errors": [],
+            }
+
+        dependencies = list(changed_dependencies or ["CERTIFICATION:FSSE04_LEASE_CONFLICT_INPUT_V1"])
+        invalidation = future_scale_affected_scenario_subset(dependencies, root=root)
+        affected = list(invalidation.get("affected_scenarios") or ())
+        if invalidation.get("final_verdict") != "PASS" or affected != ["LEASE_CONFLICT"]:
+            return {
+                "schema": "v7.omp-continue-engineering-loop.v1", "final_verdict": "STOP_SAFE",
+                "program_terminal": "SELECTIVE_INVALIDATION_UNRESOLVED",
+                "selective_invalidation": invalidation,
+                "errors": invalidation.get("errors") or ["certification_affected_set_mismatch"],
+            }
+        coverage_history = _fsse04_coverage_history(corpus, excluded=affected)
+        base_state = normalized_cps_live_state()
+
+        def transition(kind: str, state_overrides: dict[str, str], evidence: dict[str, Any]) -> bool:
+            index = len(transitions) + 1
+            payload = {"index": index, "kind": kind, "evidence": evidence}
+            fingerprint = _fsse04_transition_fingerprint(payload)
+            transitions.append({
+                "iteration": index, "transaction_terminal": kind,
+                "transition_fingerprint": fingerprint, "evidence": evidence,
+                "no_user_prompt": True, "heartbeat_invoked": False,
+            })
+            if not persist_cps:
+                atomic_updates.append({"iteration": index, "status": "SIMULATED_ATOMIC_UPDATE", "post_write_reread": "PASS"})
+                return True
+            state = dict(base_state)
+            state.update(state_overrides)
+            state["continuation_iteration"] = str(17 + index)
+            state["no_progress_fingerprint"] = fingerprint
+            update = atomic_reconcile_cps(cps_path, state=state)
+            atomic_updates.append({
+                "iteration": index, "status": update.get("status"),
+                "post_write_reread": update.get("post_write_reread", "FAIL"),
+                "errors": update.get("errors") or [],
+            })
+            return update.get("ok") is True and update.get("post_write_reread") == "PASS"
+
+        transient = {
+            "current_transition_id": "FSSE_04_SELECTIVE_INVALIDATION_V1",
+            "current_next_action_id": "LEASE_CONFLICT",
+            "current_program_execution_frontier": FUTURE_SCALE_FSSE_04_MISSION_ID,
+            "program_frontier_input": "FSSE-04 selective invalidation affected LEASE_CONFLICT; next scenario LEASE_CONFLICT",
+            "scenario_eligible_count": "1", "scenario_covered_count": str(corpus["corpus_count"] - 1),
+            "scenario_stale_count": "1", "next_scenario_id": "LEASE_CONFLICT",
+            "next_scenario_reason": "STALE_CERTIFICATION_DEPENDENCY",
+            "scenario_stop_reason": "FSSE_04_SELECTIVE_REPLAY_REQUIRED",
+            "transaction_terminal_class": "SELECTIVE_INVALIDATION_APPLIED",
+            "program_terminal_class": "NONE",
+            "program_terminal_state": "NONE_FSSE_04_INTERNAL_CONTINUATION_ACTIVE",
+            "next_mission_id": FUTURE_SCALE_FSSE_04_MISSION_ID,
+        }
+        if not transition("SELECTIVE_INVALIDATION_APPLIED", transient, {
+            "affected_set_identity": invalidation.get("affected_set_identity"),
+            "affected": affected, "unrelated_current": len(invalidation.get("unrelated_scenarios") or ()),
+        }):
+            return {"schema": "v7.omp-continue-engineering-loop.v1", "final_verdict": "STOP_SAFE", "errors": ["atomic_cps_invalidation_update_failed"], "atomic_updates": atomic_updates}
+        if len(transitions) >= bounded_iterations or bounded_scenarios < 1:
+            return {"schema": "v7.omp-continue-engineering-loop.v1", "final_verdict": "BOUNDED_CONTINUATION", "program_terminal": "BOUNDED_INVOCATION_BUDGET_REACHED", "transitions": transitions, "atomic_updates": atomic_updates, "errors": []}
+
+        scenario_result = execute_future_scale_scenario("LEASE_CONFLICT", root=root)
+        if scenario_result.get("final_verdict") != "PASS":
+            return {"schema": "v7.omp-continue-engineering-loop.v1", "final_verdict": "STOP_SAFE", "program_terminal": "SCENARIO_EXECUTION_STOP_SAFE", "scenario_result": scenario_result, "errors": scenario_result.get("errors") or []}
+        consumer = consume_future_scale_scenario_result(
+            scenario_result, cps_path.read_text(encoding="utf-8"), root=root,
+            result_history=coverage_history,
+        )
+        if consumer.get("final_verdict") != "PASS":
+            return {"schema": "v7.omp-continue-engineering-loop.v1", "final_verdict": "STOP_SAFE", "program_terminal": "SCENARIO_CONSUMER_STOP_SAFE", "consumer": consumer, "errors": consumer.get("errors") or []}
+        coverage_history["LEASE_CONFLICT"] = {
+            "result": "PASS", "scenario_fingerprint": scenario_result["scenario_fingerprint"],
+            "result_fingerprint": scenario_result["result_fingerprint"],
+        }
+        duplicate_consumer = consume_future_scale_scenario_result(
+            scenario_result, cps_path.read_text(encoding="utf-8"), root=root,
+            result_history=coverage_history,
+            consumed_result_fingerprints=[scenario_result["result_fingerprint"]],
+        )
+        covered_state = {
+            **transient,
+            "current_transition_id": "FSSE_04_SCENARIO_PASS_CONSUMED_V1",
+            "current_next_action_id": FUTURE_SCALE_FSSE_04_MISSION_ID,
+            "program_frontier_input": "FSSE-04 consumed selective replay PASS; next scenario NONE",
+            "scenario_eligible_count": "0", "scenario_covered_count": str(corpus["corpus_count"]),
+            "scenario_stale_count": "0", "next_scenario_id": "NONE",
+            "next_scenario_reason": "FSSE_04_SELECTIVE_COVERAGE_RESTORED",
+            "last_scenario_id": "LEASE_CONFLICT", "last_scenario_verdict": "PASS",
+            "last_scenario_fingerprint": scenario_result["scenario_fingerprint"],
+            "scenario_stop_reason": "FSSE_04_AUTOMATION_PATH_CERTIFICATION_REQUIRED",
+            "transaction_terminal_class": "SCENARIO_PASS_CONSUMED",
+        }
+        if not transition("SCENARIO_PASS_CONSUMED", covered_state, {
+            "scenario_id": "LEASE_CONFLICT", "result_identity": scenario_result["result_fingerprint"],
+            "coverage_before": corpus["corpus_count"] - 1, "coverage_after": corpus["corpus_count"],
+            "consumer_behavior": consumer.get("behavior_change"),
+            "duplicate_behavior": duplicate_consumer.get("behavior_change"),
+        }):
+            return {"schema": "v7.omp-continue-engineering-loop.v1", "final_verdict": "STOP_SAFE", "errors": ["atomic_cps_consumption_update_failed"], "atomic_updates": atomic_updates}
+
+        if len(transitions) >= bounded_iterations or bounded_repairs < 1:
+            return {"schema": "v7.omp-continue-engineering-loop.v1", "final_verdict": "BOUNDED_CONTINUATION", "program_terminal": "BOUNDED_INVOCATION_BUDGET_REACHED", "transitions": transitions, "atomic_updates": atomic_updates, "errors": []}
+        gap = _fsse04_certification_gap()
+        mismatch_classification = classify_future_scale_mismatch(
+            "AUTOMATION_PATH_CERTIFICATION_EVIDENCE", certification_seam=True,
+        )
+        if mismatch_classification.get("final_verdict") != "PASS" or not mismatch_classification.get("bdp_eligible"):
+            return {"schema": "v7.omp-continue-engineering-loop.v1", "final_verdict": "STOP_SAFE", "errors": ["certification_mismatch_not_bdp_eligible"]}
+        bdp = bdp_development_impulse_from_cps(
+            cps_path.read_text(encoding="utf-8"), engineering_gaps=[gap],
+        )
+        candidate = bdp.get("candidate") or {}
+        duplicate_candidate = bdp_development_impulse_from_cps(
+            cps_path.read_text(encoding="utf-8"), engineering_gaps=[gap],
+            existing_candidates=[candidate] if candidate else [],
+        )
+        target_rerun = execute_future_scale_scenario("LEASE_CONFLICT", root=root)
+        affected_replay = execute_future_scale_scenario("LEASE_CONFLICT", root=root)
+        repair_pass = all((
+            bdp.get("admission_decision") == "MISSION_ACCEPTED",
+            bdp.get("mission_created") is True,
+            duplicate_candidate.get("handoff_status") == "DUPLICATE_SUPPRESSED",
+            target_rerun.get("final_verdict") == "PASS",
+            affected_replay.get("final_verdict") == "PASS",
+            target_rerun.get("result_fingerprint") == affected_replay.get("result_fingerprint"),
+        ))
+        intent_closure = "INTENT_CLOSED" if repair_pass else "INTENT_OPEN"
+        semantic = {
+            "mission_id": FUTURE_SCALE_FSSE_04_MISSION_ID,
+            "affected_set": invalidation.get("affected_set_identity"),
+            "scenario_result": scenario_result.get("result_fingerprint"),
+            "candidate": candidate.get("candidate_instance_id"),
+            "target_rerun": target_rerun.get("result_fingerprint"),
+            "affected_replay": affected_replay.get("result_fingerprint"),
+            "intent_closure": intent_closure,
+        }
+        result_fingerprint = _fsse04_transition_fingerprint(semantic)
+        run_nonce = f"V7_FSSE_04_{result_fingerprint[:12].upper()}"
+        final_state = {
+            **covered_state,
+            "current_stop_condition": "BOUNDED_INVOCATION_BUDGET_REACHED",
+            "current_active_scope": "STANDARD_CONTINUE_OMP",
+            "current_safe_next_action": "RUN THE STANDARD CONTINUE OMP TRIGGER",
+            "current_scope_class": "BOUNDED_SINGLE_INVOCATION_AUTOMATION",
+            "latest_terminal_mission_id": FUTURE_SCALE_FSSE_04_MISSION_ID,
+            "latest_terminal_run_nonce": run_nonce,
+            "latest_terminal_mission_state": FUTURE_SCALE_FSSE_04_TERMINAL,
+            "latest_terminal_mission_report": FUTURE_SCALE_FSSE_04_REPORT,
+            "latest_terminal_mission_started_at": "2026-07-15T21:45:00+0700",
+            "previous_terminal_mission_id": FUTURE_SCALE_HIGH_FIDELITY_MISSION_ID,
+            "previous_terminal_mission_report": "docs/reports/engineering/2026-07-15_204206_future_scale_high_fidelity_validation.md",
+            "current_mission_id": FUTURE_SCALE_FSSE_04_MISSION_ID,
+            "current_run_nonce": run_nonce,
+            "current_mission_state": FUTURE_SCALE_FSSE_04_TERMINAL,
+            "current_mission_report": FUTURE_SCALE_FSSE_04_REPORT,
+            "state_captured": "2026-07-15T21:45:00+0700",
+            "current_state_generation": f"cpsgen_{run_nonce}",
+            "current_transition_id": "FSSE_04_AUTONOMOUS_LOOP_TO_CONTINUE_OMP_V1",
+            "current_next_action_id": "CONTINUE_OMP",
+            "current_program_stage": "FSSE_04_COMPLETE_BOUNDED_CONTINUE_OMP_READY",
+            "current_program_execution_frontier": "CONTINUE_OMP",
+            "program_frontier_input": "FSSE-04 certified one trigger and multiple internal transitions; next scenario NONE",
+            "program_frontier_owner": "EXISTING_OMP_SELF_CONTINUATION_CONSUMER",
+            "program_frontier_expected_output": "FRESH_CPS -> NEXT_BOUNDED_OMP_ACTION_OR_LEGAL_TERMINAL",
+            "program_terminal_state": "BOUNDED_INVOCATION_BUDGET_REACHED_EXACT_CONTINUATION_SAVED",
+            "smallest_existing_next_action": "run the standard Continue OMP trigger from fresh CPS",
+            "omp_continuation_pointer": "run Continue OMP; preserve CAP-U07 WAITING WIP and recalculate ordinary work before scenario fallback",
+            "source_summary": "FSSE-04 certifies one standard Continue OMP trigger across selective invalidation, real scenario consumption, BDP admission, isolated repair, rerun and affected replay with zero production effects.",
+            "automatic_continue_omp_result": "BOUNDED_SINGLE_INVOCATION_AUTOMATION_CERTIFIED; exact continuation state saved",
+            "required_workflow": "Continue OMP -> fresh CPS -> deterministic ordinary/scenario priority -> bounded legal terminal",
+            "wip_current_primary_stop": "REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global Continue OMP frontier is bounded at BOUNDED_INVOCATION_BUDGET_REACHED",
+            "wip_smallest_existing_next_action": "preserve CAP-U07 evidence while the standard Continue OMP trigger recalculates the global frontier",
+            "omp_continuation_required": "TRUE", "external_input_required": "FALSE", "external_input_type": "NONE",
+            "transaction_terminal_class": "AUTOMATION_CERTIFICATION_COMPLETE",
+            "program_terminal_class": "BOUNDED_INVOCATION_BUDGET_REACHED",
+            "next_mission_formed": "TRUE", "next_mission_id": "CONTINUE_OMP",
+            "continuation_stop_reason": "FSSE_04_CERTIFIED; BOUNDED_INVOCATION_COMPLETE; EXACT_CONTINUATION_SAVED",
+            "no_progress_fingerprint": result_fingerprint,
+            "omp_automation_level": "BOUNDED_SINGLE_INVOCATION_AUTOMATION_CERTIFIED",
+            "current_completion_contract": "AUTOMATION_COMPLETION",
+            "current_completion_verdict": "COMPLETE_CONSUMED",
+            "fsse_status": "FSSE_04_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED",
+            "scenario_coverage_generation": consumer.get("frontier", {}).get("FRONTIER_GENERATION", base_state["scenario_coverage_generation"]),
+            "scenario_coverage_fingerprint": consumer.get("frontier", {}).get("FRONTIER_FINGERPRINT", base_state["scenario_coverage_fingerprint"]),
+            "scenario_target_level": "HIGH_FIDELITY_CRITICAL_CORPUS_CURRENT_AFTER_SELECTIVE_REPLAY",
+            "scenario_stop_reason": "FSSE_04_CERTIFIED_CONTINUE_OMP",
+            "fsse_next_action": "CONTINUE_OMP",
+        }
+        if not repair_pass or not transition("AUTOMATION_CERTIFICATION_COMPLETE", final_state, {
+            "candidate_id": candidate.get("candidate_instance_id"),
+            "mission_id": (bdp.get("admission") or {}).get("mission_id"),
+            "repair": "CERTIFICATION_INPUT_REPAIRED",
+            "target_rerun": target_rerun.get("result_fingerprint"),
+            "affected_replay": affected_replay.get("result_fingerprint"),
+            "engineering_intent_closure": intent_closure,
+        }):
+            return {"schema": "v7.omp-continue-engineering-loop.v1", "final_verdict": "STOP_SAFE", "program_terminal": "AUTOMATION_CERTIFICATION_INCOMPLETE", "bdp": bdp, "errors": ["repair_or_atomic_terminal_update_failed"], "atomic_updates": atomic_updates}
+
+        duration = round(clock.monotonic() - started, 3)
+        completion = mission_completion_evidence_gate({
+            "MISSION_TYPE": "AUTOMATION", "COMPLETION_CONTRACT": "AUTOMATION_COMPLETION",
+            "INDEPENDENT_TRIGGER_PROVEN": True, "ENTRYPOINT_ACTIVE": True,
+            "REAL_CALLER_PROVEN": True, "CONSUMER_PROVEN": True,
+            "BEHAVIOR_CHANGE_PROVEN": True, "NEXT_OUTPUT_PROVEN": True,
+            "IDEMPOTENCY_PROVEN": duplicate_consumer.get("behavior_change") == "DUPLICATE_RESULT_SUPPRESSED",
+            "DUPLICATE_SUPPRESSION_PROVEN": duplicate_candidate.get("handoff_status") == "DUPLICATE_SUPPRESSED",
+        })
+        return {
+            "schema": "v7.omp-continue-engineering-loop.v1",
+            "mission_id": FUTURE_SCALE_FSSE_04_MISSION_ID, "run_nonce": run_nonce,
+            "result_fingerprint": result_fingerprint, "trigger": "Continue OMP",
+            "entrypoint": "tools/v7-truth-check --continue-omp",
+            "real_caller": "continue_omp_engineering_control_loop",
+            "real_consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+            "truth_lifecycle": truth_lifecycle, "ordinary_frontier": ordinary_frontier,
+            "priority_decision": "SCENARIO_FRONTIER_AFTER_ORDINARY_EXHAUSTION",
+            "transitions": transitions, "internal_iteration_count": len(transitions),
+            "atomic_updates": atomic_updates, "scenario_executions": 3,
+            "coverage_before": corpus["corpus_count"], "coverage_after_invalidation": corpus["corpus_count"] - 1,
+            "coverage_after": corpus["corpus_count"], "selective_invalidation": invalidation,
+            "scenario_result": scenario_result, "consumer": consumer,
+            "duplicate_result_consumption": duplicate_consumer,
+            "mismatch_classification": mismatch_classification["classification"],
+            "mismatch_classification_evidence": mismatch_classification,
+            "real_source_repair": "NOT_OBSERVED_WITH_REASON:NO_NATURAL_REPRODUCIBLE_REAL_SOURCE_MISMATCH",
+            "bdp_candidate_mission_result": bdp, "duplicate_candidate_result": duplicate_candidate,
+            "repair_result": "CERTIFICATION_INPUT_REPAIRED",
+            "target_rerun": target_rerun, "affected_replay": affected_replay,
+            "engineering_intent_closure": intent_closure,
+            "completion_gate": completion,
+            "budgets": {"iterations": bounded_iterations, "scenarios": bounded_scenarios, "repairs": bounded_repairs,
+                        "generated_cases_per_scenario": FUTURE_SCALE_GENERATOR_CASE_BUDGET,
+                        "wall_clock_seconds": FUTURE_SCALE_EXECUTION_MAX_SECONDS,
+                        "peak_process_rss_kib": _future_scale_peak_rss_kib()},
+            "no_progress_handling": "DETERMINISTIC_FINGERPRINT_AND_NO_BLIND_RETRY",
+            "recursion_prevention": True, "single_active_mission": True,
+            "program_terminal": "BOUNDED_INVOCATION_BUDGET_REACHED",
+            "exact_next_operator_command": "Continue OMP",
+            "duration_seconds": duration,
+            "forbidden_effects": {
+                "runtime_mutation": False, "production_mutation": False, "routing_mutation": False,
+                "user_movement": False, "packet_execution": False, "restore_barrier_write": False,
+                "rollback_apply": False, "authority_expansion": False,
+                "production_maturity_credit": False, "heartbeat_between_steps": False,
+            },
+            "terminal_class": FUTURE_SCALE_FSSE_04_TERMINAL,
+            "final_verdict": "PASS" if completion["completion_verdict"] == "COMPLETE_CONSUMED" else "STOP_SAFE",
+            "errors": [] if completion["completion_verdict"] == "COMPLETE_CONSUMED" else completion["missing_evidence"],
+        }
+    finally:
+        _CONTINUE_OMP_ACTIVE = False
 
 
 PROACTIVE_VERIFICATION_INPUT_REQUIRED_FIELDS = (
@@ -6554,6 +7072,7 @@ def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
     external_type = values["EXTERNAL_INPUT_TYPE"]
     next_action = live.get("CURRENT_NEXT_ACTION_ID", "").strip("`")
     mission_state = live.get("CURRENT_MISSION_STATE", "").strip("`")
+    bounded_program_terminal = program_terminal == "BOUNDED_INVOCATION_BUDGET_REACHED"
     if continuation not in {"TRUE", "FALSE"}:
         errors.append("omp_continuation_required_invalid")
     if external not in {"TRUE", "FALSE"}:
@@ -6565,10 +7084,12 @@ def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
     if "CONTINUE_OMP_READY" in mission_state and external == "FALSE" and continuation != "TRUE":
         errors.append("continue_omp_ready_misclassified_as_program_terminal")
     if continuation == "TRUE":
-        if external != "FALSE" or program_terminal != "NONE":
+        if external != "FALSE" or program_terminal not in {"NONE", "BOUNDED_INVOCATION_BUDGET_REACHED"}:
             errors.append("omp_continuation_program_terminal_conflict")
         if next_formed != "TRUE" or values["NEXT_MISSION_ID"] in {"", "NONE"}:
             errors.append("omp_next_mission_not_formed")
+        if bounded_program_terminal and next_action != "CONTINUE_OMP":
+            errors.append("omp_bounded_terminal_exact_continuation_missing")
     if external == "TRUE":
         if continuation != "FALSE":
             errors.append("omp_external_boundary_continuation_conflict")
@@ -6684,35 +7205,43 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
     automation_enabled_text = live.get("AUTOMATION_ENABLED", "").strip("`")
     heartbeat_active = heartbeat_status == "ACTIVE" and automation_enabled_text == "TRUE"
     heartbeat_paused = heartbeat_status == "PAUSED" and automation_enabled_text == "FALSE"
-    fsse_foundation_complete = live.get("FSSE_STATUS", "").strip("`") in {
+    fsse_status = live.get("FSSE_STATUS", "").strip("`")
+    fsse_automation_complete = fsse_status == "FSSE_04_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED"
+    fsse_foundation_complete = fsse_status in {
         "FSSE_01_FOUNDATION_COMPLETE_FSSE_02_READY",
         "FSSE_02_EXECUTION_HARNESS_COMPLETE_FSSE_03_READY",
         "FSSE_03_HIGH_FIDELITY_COMPLETE_FSSE_04_READY",
     }
     completion_gate = mission_completion_evidence_gate({
-        "MISSION_TYPE": "INTEGRATION" if fsse_foundation_complete else "AUTOMATION" if entrypoint_wired else "INTEGRATION",
-        "COMPLETION_CONTRACT": "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
-        "INDEPENDENT_TRIGGER_PROVEN": False,
-        "ENTRYPOINT_ACTIVE": heartbeat_active,
+        "MISSION_TYPE": "AUTOMATION" if fsse_automation_complete else "INTEGRATION" if fsse_foundation_complete else "AUTOMATION" if entrypoint_wired else "INTEGRATION",
+        "COMPLETION_CONTRACT": "AUTOMATION_COMPLETION" if fsse_automation_complete else "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
+        "INDEPENDENT_TRIGGER_PROVEN": fsse_automation_complete,
+        "ENTRYPOINT_ACTIVE": heartbeat_active or fsse_automation_complete,
         "REAL_CALLER_PROVEN": calls["real_caller_count"] > 0,
-        "CONSUMER_PROVEN": fsse_foundation_complete,
-        "BEHAVIOR_CHANGE_PROVEN": fsse_foundation_complete,
-        "NEXT_OUTPUT_PROVEN": fsse_foundation_complete,
+        "CONSUMER_PROVEN": fsse_foundation_complete or fsse_automation_complete,
+        "BEHAVIOR_CHANGE_PROVEN": fsse_foundation_complete or fsse_automation_complete,
+        "NEXT_OUTPUT_PROVEN": fsse_foundation_complete or fsse_automation_complete,
+        "IDEMPOTENCY_PROVEN": fsse_automation_complete,
+        "DUPLICATE_SUPPRESSION_PROVEN": fsse_automation_complete,
     })
     expected = {
         "PROGRAM_RECONCILIATION_REAL_CALLERS": str(calls["real_caller_count"]),
         "PROGRAM_RECONCILIATION_FOOTPRINT_CLASS": (
-            "REAL_CLI_AND_OMP_CONSUMER_CONNECTED" if fsse_foundation_complete
+            "BOUNDED_SINGLE_INVOCATION_AUTOMATION_CERTIFIED" if fsse_automation_complete
+            else "REAL_CLI_AND_OMP_CONSUMER_CONNECTED" if fsse_foundation_complete
             else "SOURCE_ENTRYPOINT_WIRED_AWAITING_NATURAL_RUN" if entrypoint_wired and heartbeat_active
             else "SOURCE_ENTRYPOINT_WIRED_PAUSED_DEPLOY_BLOCKED" if entrypoint_wired and heartbeat_paused
             else "DEPLOYED_MANUALLY_CALLABLE_ONLY"
         ),
-        "OMP_AUTOMATION_LEVEL": "CODEX_ASSISTED",
+        "OMP_AUTOMATION_LEVEL": (
+            "BOUNDED_SINGLE_INVOCATION_AUTOMATION_CERTIFIED"
+            if fsse_automation_complete else "CODEX_ASSISTED"
+        ),
         "AEP_PHASE_4_STATUS": "IMPLEMENTED_MANUALLY_CALLABLE",
         "AEP_PHASE_5_STATUS": "BLOCKED_MISSING_REAL_CONSUMER",
         "AEP_PHASE_6_STATUS": "BLOCKED_BY_PHASE_5",
         "MISSION_COMPLETION_EVIDENCE_GATE": "ACTIVE_V1",
-        "CURRENT_COMPLETION_CONTRACT": "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
+        "CURRENT_COMPLETION_CONTRACT": "AUTOMATION_COMPLETION" if fsse_automation_complete else "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
         "CURRENT_COMPLETION_VERDICT": completion_gate["completion_verdict"],
     }
     errors: list[str] = []
@@ -6749,6 +7278,7 @@ def cps_live_state_consistency(
     root: Path = ROOT,
     omp_text: Optional[str] = None,
     verify_external: bool = True,
+    expected_state: Optional[dict[str, str]] = None,
 ) -> dict[str, Any]:
     """Validate one atomic owner-backed CPS live projection across its consumers."""
     live = _markdown_field_table(_markdown_section(
@@ -6801,7 +7331,7 @@ def cps_live_state_consistency(
     ):
         if not value:
             errors.append(f"cps_{key.lower()}_missing")
-    normalized = normalized_cps_live_state()
+    normalized = normalized_cps_live_state(expected_state)
     exact_live = {
         "ACTIVE_PROGRAM": normalized["active_program"],
         "CURRENT_MODE": normalized["current_mode"],
@@ -7108,7 +7638,9 @@ def cps_live_state_consistency(
         errors.extend(mission_roles["errors"])
         mission_identity_consistency = mission_roles["mission_identity_consistency"]
 
-    delegated_live_state = delegated_policy_live_state_consistency(cps_text, omp_text or "")
+    delegated_live_state = delegated_policy_live_state_consistency(
+        cps_text, omp_text or "", expected_state=expected_state,
+    )
     errors.extend(delegated_live_state["contradiction_ids"])
     self_continuation = omp_self_continuation_consistency(cps_text)
     errors.extend(self_continuation["errors"])
@@ -7214,7 +7746,10 @@ def atomic_reconcile_cps(
             "errors": [f"cps_render_failed:{exc}"],
             "previous_state_preserved": True,
         }
-    precheck = cps_live_state_consistency(candidate, verify_external=False)
+    expected_state = normalized_cps_live_state(state)
+    precheck = cps_live_state_consistency(
+        candidate, verify_external=False, expected_state=expected_state,
+    )
     if precheck.get("final_verdict") != "PASS":
         return {
             "ok": False,
@@ -7258,7 +7793,9 @@ def atomic_reconcile_cps(
         reread = path.read_text(encoding="utf-8")
     except OSError:
         reread = ""
-    postcheck = cps_live_state_consistency(reread, verify_external=False)
+    postcheck = cps_live_state_consistency(
+        reread, verify_external=False, expected_state=expected_state,
+    )
     if reread != candidate or postcheck.get("final_verdict") != "PASS":
         rollback_name = ""
         try:

@@ -707,6 +707,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--cps", default="docs/programs/V7_CURRENT_PROGRAM_STATE.md", help="CPS path for Mission identity validation.")
     parser.add_argument("--omp-heartbeat-reentry", action="store_true", help="Run one read-only OMP heartbeat reentry cycle.")
     parser.add_argument("--omp-program-reconciliation", action="store_true", help="Run one read-only OMP program and Scenario Frontier reconciliation.")
+    parser.add_argument("--continue-omp", action="store_true", help="Run one bounded standard Continue OMP engineering-control-loop invocation.")
+    parser.add_argument("--continue-omp-change", action="append", default=None, help="Owner-backed dependency identity used for selective invalidation certification.")
+    parser.add_argument("--continue-omp-persist-cps", action="store_true", help="Atomically persist each bounded Continue OMP transition to CPS.")
+    parser.add_argument("--continue-omp-iterations", type=int, default=sync_lib.OMP_CONTINUATION_MAX_ITERATIONS)
+    parser.add_argument("--continue-omp-scenarios", type=int, default=sync_lib.OMP_CONTINUATION_SCENARIO_BUDGET)
+    parser.add_argument("--continue-omp-repairs", type=int, default=sync_lib.OMP_CONTINUATION_REPAIR_BUDGET)
     parser.add_argument("--omp-scenario-execution", default="", metavar="SCENARIO_ID", help="Run one bounded read-only Future-Scale Polygon scenario through existing V7 owners.")
     parser.add_argument("--omp-high-fidelity-batch", action="store_true", help="Run one bounded FSSE-03 high-fidelity corpus batch through the existing scenario owner.")
     parser.add_argument("--scenario-budget", type=int, default=sync_lib.FUTURE_SCALE_HIGH_FIDELITY_MAX_SCENARIOS, help="Bounded scenario count for FSSE-03 batch execution.")
@@ -733,6 +739,22 @@ def selected_mode(args: argparse.Namespace) -> str:
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = build_arg_parser().parse_args(argv)
+    if args.continue_omp:
+        result = sync_lib.continue_omp_engineering_control_loop(
+            root=fsse_scenario_root(), changed_dependencies=args.continue_omp_change,
+            iteration_budget=args.continue_omp_iterations,
+            scenario_budget=args.continue_omp_scenarios,
+            repair_budget=args.continue_omp_repairs,
+            persist_cps=args.continue_omp_persist_cps,
+        )
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"continue_omp={result.get('final_verdict', 'STOP_SAFE')}")
+            print(f"internal_iterations={result.get('internal_iteration_count', 0)}")
+            print(f"terminal={result.get('terminal_class', result.get('program_terminal', 'STOP_SAFE'))}")
+            print(f"next_command={result.get('exact_next_operator_command', 'Continue OMP')}")
+        return 0 if result.get("final_verdict") in {"PASS", "BOUNDED_CONTINUATION"} else 2
     if args.omp_high_fidelity_batch:
         result = sync_lib.execute_future_scale_high_fidelity_batch(
             root=fsse_scenario_root(), scenario_budget=args.scenario_budget,

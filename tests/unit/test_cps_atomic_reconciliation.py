@@ -36,7 +36,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertNotEqual(self.validate(drift)["final_verdict"], "PASS")
 
     def test_02_engineering_authority_with_stop_safe_projection_fails(self):
-        drift = self.cps.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1 at UNSAFE_IMPLEMENTATION` |", "| `current_primary_stop` | `STOP_SAFE` |", 1)
+        drift = self.cps.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global Continue OMP frontier is bounded at BOUNDED_INVOCATION_BUDGET_REACHED` |", "| `current_primary_stop` | `STOP_SAFE` |", 1)
         self.assertIn("cps_wip_global_context_divergence", self.validate(drift)["errors"])
 
     def test_03_operational_authority_with_authority_required_no_fails(self):
@@ -74,15 +74,15 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
 
     def test_08_active_wip_next_action_context_drift_fails(self):
         drift = self.cps.replace(
-            "| `smallest_existing_next_action` | preserve CAP-U07 evidence unchanged while OMP consumes the executable FSSE-04 program frontier |",
+            "| `smallest_existing_next_action` | preserve CAP-U07 evidence while the standard Continue OMP trigger recalculates the global frontier |",
             "| `smallest_existing_next_action` | diagnose binding owner |",
             1,
         )
         self.assertIn("cps_wip_next_action_context_divergence", self.validate(drift)["errors"])
 
     def test_09_sequence_position_one_stop_differs_fails(self):
-        row = next(line for line in self.cps.splitlines() if line.startswith("| `1` | `FSSE_03_COMPLETE_FSSE_04_READY` program frontier"))
-        drift = self.cps.replace(row, row.replace("| `UNSAFE_IMPLEMENTATION` |", "| `STOP_SAFE` |", 1), 1)
+        row = next(line for line in self.cps.splitlines() if line.startswith("| `1` | `FSSE_04_COMPLETE_BOUNDED_CONTINUE_OMP_READY` program frontier"))
+        drift = self.cps.replace(row, row.replace("| `BOUNDED_INVOCATION_BUDGET_REACHED` |", "| `STOP_SAFE` |", 1), 1)
         self.assertIn("cps_sequence_position_1_divergence", self.validate(drift)["errors"])
 
     def test_10_explicit_historical_stale_values_pass(self):
@@ -91,7 +91,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
 
     def test_11_historical_binding_drift_does_not_affect_live_scheduling(self):
         self.assertIn("SUPERSEDED/HISTORICAL: SOURCE_SNAPSHOT_BUNDLE_DRIFT", self.cps)
-        self.assertEqual(self.validate(self.cps)["current_stop"], "UNSAFE_IMPLEMENTATION")
+        self.assertEqual(self.validate(self.cps)["current_stop"], "BOUNDED_INVOCATION_BUDGET_REACHED")
 
     def test_12_single_normalized_state_generates_all_live_projections(self):
         rendered = self.lib.build_normalized_cps_document(self.cps)
@@ -118,7 +118,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
             before = path.read_text(encoding="utf-8")
             def corrupt(written):
                 text = written.read_text(encoding="utf-8")
-                written.write_text(text.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1 at UNSAFE_IMPLEMENTATION` |", "| `current_primary_stop` | `STOP_SAFE` |", 1), encoding="utf-8")
+                written.write_text(text.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global Continue OMP frontier is bounded at BOUNDED_INVOCATION_BUDGET_REACHED` |", "| `current_primary_stop` | `STOP_SAFE` |", 1), encoding="utf-8")
             result = self.lib.atomic_reconcile_cps(path, post_write_hook=corrupt)
             self.assertEqual(result["status"], "CPS_POST_WRITE_REREAD_FAILED_ROLLED_BACK")
             self.assertTrue(result["previous_state_preserved"])
@@ -243,19 +243,19 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         live = self.lib._markdown_field_table(self.lib._markdown_section(
             self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry"
         ))
-        self.assertEqual(live["PROGRAM_TERMINAL_CLASS"].strip("`"), "NONE")
+        self.assertEqual(live["PROGRAM_TERMINAL_CLASS"].strip("`"), "BOUNDED_INVOCATION_BUDGET_REACHED")
         self.assertEqual(live["NEXT_EXECUTABLE_CAPABILITY"].strip("`"), "NONE")
 
     def test_31_cap_con_06_matches_current_program_terminal(self):
         row = next(line for line in self.cps.splitlines() if line.startswith("| `CAP-CON-06` |"))
-        self.assertIn("current program terminal is `NONE`", row)
+        self.assertIn("current program terminal is `BOUNDED_INVOCATION_BUDGET_REACHED`", row)
         self.assertIn("`SUPERSEDED/HISTORICAL`", row)
         self.assertEqual(self.delegated_validate(self.cps)["contradiction_count"], 0)
 
     def test_32_cap_con_06_terminal_drift_fails_closed(self):
         row = next(line for line in self.cps.splitlines() if line.startswith("| `CAP-CON-06` |"))
         drifted_row = row.replace(
-            "current program terminal is `NONE`",
+            "current program terminal is `BOUNDED_INVOCATION_BUDGET_REACHED`",
             "current program terminal is `OPERATIONAL_AUTHORITY`",
             1,
         ).replace("`SUPERSEDED/HISTORICAL`", "historical", 1)
@@ -272,7 +272,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         )
         rendered = self.lib.build_normalized_cps_document(drift)
         rendered_row = next(line for line in rendered.splitlines() if line.startswith("| `CAP-CON-06` |"))
-        self.assertIn("current program terminal is `NONE`", rendered_row)
+        self.assertIn("current program terminal is `BOUNDED_INVOCATION_BUDGET_REACHED`", rendered_row)
         self.assertIn("`SUPERSEDED/HISTORICAL`", rendered_row)
         self.assertEqual(self.delegated_validate(rendered)["contradiction_count"], 0)
 
@@ -280,14 +280,14 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         registry = self.lib._markdown_field_table(self.lib._markdown_section(
             self.cps, "### Registry Metadata And Truth Lifecycle", "### Active Protected Work In Progress"
         ))
-        self.assertEqual(registry["EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID"].strip("`"), "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1")
-        self.assertIn("FSSE-04", registry["EXACT_CURRENT_SMALLEST_NEXT_ACTION"])
+        self.assertEqual(registry["EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID"].strip("`"), "CONTINUE_OMP")
+        self.assertIn("Continue OMP", registry["EXACT_CURRENT_SMALLEST_NEXT_ACTION"])
 
     def test_35_registry_continuation_pointer_preempts_capability_wait(self):
         registry = self.lib._markdown_field_table(self.lib._markdown_section(
             self.cps, "### Registry Metadata And Truth Lifecycle", "### Active Protected Work In Progress"
         ))
-        self.assertIn("consume the FSSE-04 program frontier", registry["OMP_CONTINUATION_POINTER"])
+        self.assertIn("run Continue OMP", registry["OMP_CONTINUATION_POINTER"])
         self.assertIn("preserve CAP-U07 WAITING WIP", registry["OMP_CONTINUATION_POINTER"])
 
     def test_36_wip_local_wait_does_not_become_global_terminal(self):
@@ -295,8 +295,8 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
             self.cps, "### Active Protected Work In Progress", "### Complete Or Locked Capability Records"
         ))
         self.assertIn("REAL_WORLD_LIMIT_CAPABILITY_LOCAL", wip["current_primary_stop"])
-        self.assertIn("V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1", wip["current_primary_stop"])
-        self.assertIn("UNSAFE_IMPLEMENTATION", wip["current_primary_stop"])
+        self.assertIn("Continue OMP", wip["current_primary_stop"])
+        self.assertIn("BOUNDED_INVOCATION_BUDGET_REACHED", wip["current_primary_stop"])
 
     def test_37_program_stage_mismatch_fails_derived_projection_gate(self):
         drift = self.lib._replace_section_field(self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry", "CURRENT_PROGRAM_STAGE", "`STALE`")
@@ -318,8 +318,8 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
     def test_41_sequence_head_binds_scenario_and_execution_class(self):
         row = next(line for line in self.cps.splitlines() if line.startswith("| `1` |"))
         self.assertIn("next scenario NONE", row)
-        self.assertIn("EXISTING_OMP_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION", row)
-        self.assertIn("AUTONOMOUS_ENGINEERING_LOOP_CERTIFICATION", row)
+        self.assertIn("EXISTING_OMP_SELF_CONTINUATION_CONSUMER", row)
+        self.assertIn("NEXT_BOUNDED_OMP_ACTION_OR_LEGAL_TERMINAL", row)
 
     def test_42_current_derived_projection_gate_passes(self):
         result = self.validate(self.cps)

@@ -4,7 +4,7 @@ Status: `CANONICAL ENTRY POINT`
 
 Owner: OMP / Canonical Reference / Current Program State
 
-Handoff version: `V7_MASTER_PROJECT_HANDOFF_FSSE_04_READY_V1`
+Handoff version: `V7_MASTER_PROJECT_HANDOFF_FSSE_04_CERTIFIED_V1`
 
 Last updated: 2026-07-15
 
@@ -154,11 +154,11 @@ The exact current frontier is:
 FSSE-01 foundation COMPLETE_CONSUMED
   -> FSSE-02 execution harness COMPLETE_CONSUMED
   -> FSSE-03 high-fidelity validation COMPLETE_CONSUMED
-  -> FSSE-04 autonomous Polygon integration and certification READY
-  -> MISSION V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1
+  -> FSSE-04 autonomous Polygon integration and certification COMPLETE_CONSUMED
+  -> STANDARD COMMAND Continue OMP
 ```
 
-FSSE-03 executed and consumed a deterministic 40-scenario high-fidelity corpus through real owners, including 480 generated cases, the 10k/100 metadata envelope, lease/replay/concurrency evidence and dependency-selective replay. No reproducible real-source mismatch was found, so no BDP Candidate or Mission was created. FSSE-04 is the current engineering-only frontier; it was prepared but not started. It requires no external input and no new Authority. Heartbeat/external reentry certification is deferred at the Codex Automation Platform boundary and does not block FSSE. CAP-U07 remains protected capability-local `WAITING_EXTERNAL_DEPENDENCY` WIP and does not replace the active FSSE program frontier.
+FSSE-04 connects the standard `Continue OMP` trigger to the existing bounded OMP/Polygon consumer. One invocation evaluates ordinary work first, performs selective invalidation, executes and consumes a real-code scenario, restores coverage, exercises the existing BDP/Candidate/admission path through an isolated certification-only seam, reruns the target and affected subset, and saves exact continuation state. The certified scope is single-invocation automation only; background/platform-independent reentry is not claimed. Heartbeat remains deferred and CAP-U07 remains protected capability-local `WAITING_EXTERNAL_DEPENDENCY` WIP.
 
 ### Research First Rule
 
@@ -178,22 +178,22 @@ Fundamental mechanisms must not be built from intuition, naming preference, or l
 The exact next Mission is:
 
 ```text
-MISSION = V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1
-STOP = UNSAFE_IMPLEMENTATION
+COMMAND = Continue OMP
+STOP = BOUNDED_INVOCATION_BUDGET_REACHED
 ```
 
-The next thread must integrate and certify the existing Polygon loop through existing owners:
+The next thread must invoke the already-certified existing-owner loop:
 
 ```text
-FSSE-03 consumed high-fidelity result
-  -> existing Scenario Frontier and execution harness
-  -> existing BDP mismatch route and Candidate admission
-  -> existing OMP Mission consumer
-  -> autonomous engineering-loop integration evidence
-  -> certification or legal stop
+Continue OMP
+  -> fresh CPS
+  -> ordinary frontier priority
+  -> Scenario Frontier only after ordinary exhaustion
+  -> bounded internal transitions
+  -> exact legal terminal or saved continuation
 ```
 
-Do not repeat FSSE-01, FSSE-02 or FSSE-03, wait for heartbeat or production events, create another Polygon/owner, use toy decision logic as proof, start any phase after FSSE-04, or stop at schema/tests/report completion.
+Do not repeat FSSE-01 through FSSE-04, wait for heartbeat between internal steps, create another Polygon/owner, claim background automation, or bypass the standard `Continue OMP` command.
 
 ## 1. What V7 Is
 
@@ -259,30 +259,30 @@ Do not treat old Stage 1 recovery tasks as active work. They are historical evid
 This is a handoff projection only. CPS Section 0 remains authoritative if volatile state changes after this update.
 
 ```text
-LATEST_TERMINAL_MISSION = V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1
-LATEST_TERMINAL_RUN_NONCE = V7_FSSE_03_DC7F2F7EF385
-LATEST_TERMINAL_VERDICT = FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_IMPLEMENTED_CONSUMED_FSSE_04_READY
-LATEST_TERMINAL_REPORT = docs/reports/engineering/2026-07-15_204206_future_scale_high_fidelity_validation.md
+LATEST_TERMINAL_MISSION = V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1
+LATEST_TERMINAL_RUN_NONCE = V7_FSSE_04_AB072FDBB5E9
+LATEST_TERMINAL_VERDICT = FUTURE_SCALE_POLYGON_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED
+LATEST_TERMINAL_REPORT = docs/reports/engineering/2026-07-15_214500_future_scale_autonomous_polygon_integration_and_certification.md
 TRUTH_CONVERGENCE = PENDING_SAFE_DEPLOY_AND_FINAL_VERIFICATION
 
 ACTIVE_PROGRAM = FUTURE_SCALE_SCENARIO_ENGINEERING
-CURRENT_PROGRAM_STAGE = FSSE_03_COMPLETE_FSSE_04_READY
-CURRENT_ACTIVE_SCOPE = FSSE_04_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION
-CURRENT_PROGRAM_EXECUTION_FRONTIER = V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1
-CURRENT_NEXT_ACTION_ID = V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1
-NEXT_MISSION_ID = V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1
+CURRENT_PROGRAM_STAGE = FSSE_04_COMPLETE_BOUNDED_CONTINUE_OMP_READY
+CURRENT_ACTIVE_SCOPE = STANDARD_CONTINUE_OMP
+CURRENT_PROGRAM_EXECUTION_FRONTIER = CONTINUE_OMP
+CURRENT_NEXT_ACTION_ID = CONTINUE_OMP
+NEXT_MISSION_ID = CONTINUE_OMP
 NEXT_SCENARIO_ID = NONE
-CURRENT_STOP_CONDITION = UNSAFE_IMPLEMENTATION
+CURRENT_STOP_CONDITION = BOUNDED_INVOCATION_BUDGET_REACHED
 OMP_CONTINUATION_REQUIRED = TRUE
 EXTERNAL_INPUT_REQUIRED = FALSE
 AUTHORITY_REQUIRED_NOW = NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE
-FSSE_STATUS = FSSE_03_HIGH_FIDELITY_COMPLETE_FSSE_04_READY
+FSSE_STATUS = FSSE_04_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED
 FSSE_00_EXTERNAL_REENTRY_STATUS = DEFERRED_PLATFORM_CERTIFICATION
 FSSE_00_BLOCKS_FSSE_01 = FALSE
-OMP_AUTOMATION_LEVEL = CODEX_ASSISTED
+OMP_AUTOMATION_LEVEL = BOUNDED_SINGLE_INVOCATION_AUTOMATION_CERTIFIED
 MANUAL_CONTINUE_OMP_FALLBACK = ACTIVE
-CURRENT_STATE_GENERATION = cpsgen_V7_FSSE_03_DC7F2F7EF385
-CURRENT_TRANSITION_ID = FSSE_03_HIGH_FIDELITY_TO_FSSE_04_AUTONOMOUS_LOOP_V1
+CURRENT_STATE_GENERATION = cpsgen_V7_FSSE_04_AB072FDBB5E9
+CURRENT_TRANSITION_ID = FSSE_04_AUTONOMOUS_LOOP_TO_CONTINUE_OMP_V1
 SCENARIO_COVERAGE_GENERATION = fssef_dcd80bd4189d95ec7c58d661
 SCENARIO_COVERAGE_FINGERPRINT = dcd80bd4189d95ec7c58d661af3ac313c1f7760f925c9937f9f15dfe40f873df
 SCENARIO_CORPUS_COUNT = 40
@@ -292,10 +292,10 @@ SCENARIO_STALE_COUNT = 0
 SCENARIO_BLOCKED_COUNT = 0
 SCENARIO_MISMATCH_COUNT = 0
 SCENARIO_BUDGET = 40
-SCENARIO_STOP_REASON = FSSE_03_COMPLETE_FSSE_04_INTEGRATION_REQUIRED
+SCENARIO_STOP_REASON = FSSE_04_CERTIFIED_CONTINUE_OMP
 ```
 
-FSSE-03 terminal evidence is `docs/reports/engineering/2026-07-15_204206_future_scale_high_fidelity_validation.md`. Deploy/truth convergence must be read from CPS and the report; this handoff must not invent deployment evidence.
+FSSE-04 terminal evidence is `docs/reports/engineering/2026-07-15_214500_future_scale_autonomous_polygon_integration_and_certification.md`. Deploy/truth convergence must be read from CPS and the report; this handoff must not invent deployment evidence.
 
 ## 3. Current Maturity Snapshot
 

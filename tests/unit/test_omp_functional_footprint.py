@@ -26,7 +26,7 @@ class OmpFunctionalFootprintTest(unittest.TestCase):
 
     def test_current_repository_has_heartbeat_and_cli_reconciliation_callers(self):
         result = self.lib.python_function_call_sites(ROOT, "program_execution_reconciliation")
-        self.assertEqual(result["real_caller_count"], 2)
+        self.assertEqual(result["real_caller_count"], 3)
         self.assertGreaterEqual(result["test_caller_count"], 4)
 
     def test_test_calls_are_not_real_consumers(self):
@@ -52,7 +52,7 @@ class OmpFunctionalFootprintTest(unittest.TestCase):
         self.assertIn("functional_footprint_mismatch:AEP_PHASE_4_STATUS", result["errors"])
 
     def test_false_real_automation_claim_fails(self):
-        altered = self.cps.replace("`CODEX_ASSISTED`", "`REAL_ENGINEERING_AUTOMATION`", 1)
+        altered = self.cps.replace("| `OMP_AUTOMATION_LEVEL` | `BOUNDED_SINGLE_INVOCATION_AUTOMATION_CERTIFIED` |", "| `OMP_AUTOMATION_LEVEL` | `REAL_ENGINEERING_AUTOMATION` |", 1)
         result = self.lib.omp_functional_footprint_consistency(altered, root=ROOT)
         self.assertEqual(result["final_verdict"], "NO-GO")
 

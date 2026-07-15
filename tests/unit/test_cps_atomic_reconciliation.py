@@ -36,7 +36,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertNotEqual(self.validate(drift)["final_verdict"], "PASS")
 
     def test_02_engineering_authority_with_stop_safe_projection_fails(self):
-        drift = self.cps.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1 at UNSAFE_IMPLEMENTATION` |", "| `current_primary_stop` | `STOP_SAFE` |", 1)
+        drift = self.cps.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1 at UNSAFE_IMPLEMENTATION` |", "| `current_primary_stop` | `STOP_SAFE` |", 1)
         self.assertIn("cps_wip_global_context_divergence", self.validate(drift)["errors"])
 
     def test_03_operational_authority_with_authority_required_no_fails(self):
@@ -74,14 +74,14 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
 
     def test_08_active_wip_next_action_context_drift_fails(self):
         drift = self.cps.replace(
-            "| `smallest_existing_next_action` | preserve CAP-U07 evidence unchanged while OMP consumes the executable FSSE-02 program frontier |",
+            "| `smallest_existing_next_action` | preserve CAP-U07 evidence unchanged while OMP consumes the executable FSSE-03 program frontier |",
             "| `smallest_existing_next_action` | diagnose binding owner |",
             1,
         )
         self.assertIn("cps_wip_next_action_context_divergence", self.validate(drift)["errors"])
 
     def test_09_sequence_position_one_stop_differs_fails(self):
-        row = next(line for line in self.cps.splitlines() if line.startswith("| `1` | `FSSE_01_COMPLETE_FSSE_02_READY` program frontier"))
+        row = next(line for line in self.cps.splitlines() if line.startswith("| `1` | `FSSE_02_COMPLETE_FSSE_03_READY` program frontier"))
         drift = self.cps.replace(row, row.replace("| `UNSAFE_IMPLEMENTATION` |", "| `STOP_SAFE` |", 1), 1)
         self.assertIn("cps_sequence_position_1_divergence", self.validate(drift)["errors"])
 
@@ -118,7 +118,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
             before = path.read_text(encoding="utf-8")
             def corrupt(written):
                 text = written.read_text(encoding="utf-8")
-                written.write_text(text.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1 at UNSAFE_IMPLEMENTATION` |", "| `current_primary_stop` | `STOP_SAFE` |", 1), encoding="utf-8")
+                written.write_text(text.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1 at UNSAFE_IMPLEMENTATION` |", "| `current_primary_stop` | `STOP_SAFE` |", 1), encoding="utf-8")
             result = self.lib.atomic_reconcile_cps(path, post_write_hook=corrupt)
             self.assertEqual(result["status"], "CPS_POST_WRITE_REREAD_FAILED_ROLLED_BACK")
             self.assertTrue(result["previous_state_preserved"])
@@ -276,18 +276,18 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertIn("`SUPERSEDED/HISTORICAL`", rendered_row)
         self.assertEqual(self.delegated_validate(rendered)["contradiction_count"], 0)
 
-    def test_34_registry_smallest_action_is_fsse_02(self):
+    def test_34_registry_smallest_action_is_fsse_03(self):
         registry = self.lib._markdown_field_table(self.lib._markdown_section(
             self.cps, "### Registry Metadata And Truth Lifecycle", "### Active Protected Work In Progress"
         ))
-        self.assertEqual(registry["EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID"].strip("`"), "V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1")
-        self.assertIn("CAPACITY_BOUNDARY", registry["EXACT_CURRENT_SMALLEST_NEXT_ACTION"])
+        self.assertEqual(registry["EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID"].strip("`"), "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1")
+        self.assertIn("FSSE-03", registry["EXACT_CURRENT_SMALLEST_NEXT_ACTION"])
 
     def test_35_registry_continuation_pointer_preempts_capability_wait(self):
         registry = self.lib._markdown_field_table(self.lib._markdown_section(
             self.cps, "### Registry Metadata And Truth Lifecycle", "### Active Protected Work In Progress"
         ))
-        self.assertIn("consume the FSSE-02 program frontier", registry["OMP_CONTINUATION_POINTER"])
+        self.assertIn("consume the FSSE-03 program frontier", registry["OMP_CONTINUATION_POINTER"])
         self.assertIn("preserve CAP-U07 WAITING WIP", registry["OMP_CONTINUATION_POINTER"])
 
     def test_36_wip_local_wait_does_not_become_global_terminal(self):
@@ -295,7 +295,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
             self.cps, "### Active Protected Work In Progress", "### Complete Or Locked Capability Records"
         ))
         self.assertIn("REAL_WORLD_LIMIT_CAPABILITY_LOCAL", wip["current_primary_stop"])
-        self.assertIn("V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1", wip["current_primary_stop"])
+        self.assertIn("V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1", wip["current_primary_stop"])
         self.assertIn("UNSAFE_IMPLEMENTATION", wip["current_primary_stop"])
 
     def test_37_program_stage_mismatch_fails_derived_projection_gate(self):
@@ -317,9 +317,9 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
 
     def test_41_sequence_head_binds_scenario_and_execution_class(self):
         row = next(line for line in self.cps.splitlines() if line.startswith("| `1` |"))
-        self.assertIn("CAPACITY_BOUNDARY", row)
-        self.assertIn("EXISTING_OWNER_ENGINEERING_SCENARIO_IMPLEMENTATION", row)
-        self.assertIn("BOUNDED_ENGINEERING_SCENARIO_RESULT", row)
+        self.assertIn("HEALTHY_BASELINE_SMALL", row)
+        self.assertIn("EXISTING_OWNER_HIGH_FIDELITY_SCENARIO_VALIDATION", row)
+        self.assertIn("HIGH_FIDELITY_SCALE_CONCURRENCY_REPLAY_EVIDENCE", row)
 
     def test_42_current_derived_projection_gate_passes(self):
         result = self.validate(self.cps)

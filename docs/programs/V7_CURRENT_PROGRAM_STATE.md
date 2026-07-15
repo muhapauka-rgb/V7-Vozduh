@@ -2,18 +2,18 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-15T09:49:20+0700
-Latest terminal Mission: `V7_FUTURE_SCALE_POLYGON_FOUNDATION_V1`
-Latest terminal Mission state: `FUTURE_SCALE_POLYGON_FOUNDATION_IMPLEMENTED_CONSUMED_FSSE_02_READY`
-Latest terminal Mission report: `docs/reports/engineering/2026-07-15_094920_future_scale_polygon_foundation.md`
+State captured: 2026-07-15T16:56:13+0700
+Latest terminal Mission: `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1`
+Latest terminal Mission state: `FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_IMPLEMENTED_CONSUMED_FSSE_03_READY`
+Latest terminal Mission report: `docs/reports/engineering/2026-07-15_165613_future_scale_polygon_execution_harness.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
-Source: FSSE-01 reuses the existing Engineering Polygon and OMP reconciliation owners to produce a deterministic scenario frontier without Runtime or production effects.
+Source: FSSE-02 executes CAPACITY_BOUNDARY through real Planner and execution-preview owners, consumes PASS in OMP, and preserves zero Runtime or production effects.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-15T09:49:20+0700`
+Captured: `2026-07-15T16:56:13+0700`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -29,14 +29,14 @@ This section is the single live volatile current-state surface. Older production
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `UNSAFE_IMPLEMENTATION` |
-| `CURRENT_ACTIVE_SCOPE` | `FSSE_02_EXECUTION_HARNESS` |
-| `CURRENT_SAFE_NEXT_ACTION` | `IMPLEMENT AND CERTIFY THE EXISTING-OWNER FUTURE-SCALE POLYGON EXECUTION HARNESS` |
-| `CURRENT_SCOPE_CLASS` | `ENGINEERING_SCENARIO_BOUNDARY` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_FSSE_FOUNDATION_V1_6D29A4C81E7F` |
-| `CURRENT_TRANSITION_ID` | `FSSE_01_FOUNDATION_TO_FSSE_02_HARNESS_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1` |
-| `CURRENT_PROGRAM_STAGE` | `FSSE_01_COMPLETE_FSSE_02_READY` |
-| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1` |
+| `CURRENT_ACTIVE_SCOPE` | `FSSE_03_HIGH_FIDELITY_VALIDATION` |
+| `CURRENT_SAFE_NEXT_ACTION` | `EXECUTE THE EXISTING-OWNER FUTURE-SCALE HIGH-FIDELITY VALIDATION MISSION` |
+| `CURRENT_SCOPE_CLASS` | `ENGINEERING_HIGH_FIDELITY_VALIDATION_BOUNDARY` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_FSSE_02_56A0A59EC4CF` |
+| `CURRENT_TRANSITION_ID` | `FSSE_02_HARNESS_TO_FSSE_03_HIGH_FIDELITY_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1` |
+| `CURRENT_PROGRAM_STAGE` | `FSSE_02_COMPLETE_FSSE_03_READY` |
+| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1` |
 | `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; preserved and not reordered` |
 | `DEPENDENCY_GRAPH_VERSION` | `v7.omp-capability-dependency-graph.v1` |
 | `CURRENT_EXECUTION_FRONTIER` | `NONE` |
@@ -45,18 +45,18 @@ This section is the single live volatile current-state surface. Older production
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
 | `CONTINUATION_DECISION` | `CONTINUE_PROGRAM_FRONTIER` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `NONE_FSSE_02_PROGRAM_FRONTIER_EXISTS` |
+| `PROGRAM_TERMINAL_STATE` | `NONE_FSSE_03_PROGRAM_FRONTIER_EXISTS` |
 | `OMP_CONTINUATION_REQUIRED` | `TRUE` |
 | `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
 | `EXTERNAL_INPUT_TYPE` | `NONE` |
 | `TRANSACTION_TERMINAL_CLASS` | `INTEGRATION_COMPLETE` |
 | `PROGRAM_TERMINAL_CLASS` | `NONE` |
 | `NEXT_MISSION_FORMED` | `TRUE` |
-| `NEXT_MISSION_ID` | `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1` |
+| `NEXT_MISSION_ID` | `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
-| `CONTINUATION_ITERATION` | `15` |
-| `CONTINUATION_STOP_REASON` | `FSSE_01_COMPLETE; FSSE_02_EXECUTION_HARNESS_NOT_YET_IMPLEMENTED` |
-| `NO_PROGRESS_FINGERPRINT` | `78ab1f01d84288c6bdd2587c0d578556fe217558b664e00cd4b5deb32725f951` |
+| `CONTINUATION_ITERATION` | `16` |
+| `CONTINUATION_STOP_REASON` | `FSSE_02_COMPLETE; FSSE_03_HIGH_FIDELITY_VALIDATION_NOT_YET_EXECUTED` |
+| `NO_PROGRESS_FINGERPRINT` | `ddd7a4e7145666fc28c7b1b20062e3d35ae3c0b6f57328eced07587dafd43fd4` |
 | `PROGRAM_RECONCILIATION_FOOTPRINT_CLASS` | `REAL_CLI_AND_OMP_CONSUMER_CONNECTED` |
 | `PROGRAM_RECONCILIATION_REAL_CALLERS` | `2` |
 | `PROGRAM_RECONCILIATION_TEST_CALLERS` | `4` |
@@ -76,44 +76,44 @@ This section is the single live volatile current-state surface. Older production
 | `MISSION_COMPLETION_EVIDENCE_GATE` | `ACTIVE_V1` |
 | `CURRENT_COMPLETION_CONTRACT` | `INTEGRATION_COMPLETION` |
 | `CURRENT_COMPLETION_VERDICT` | `COMPLETE_CONSUMED` |
-| `FSSE_STATUS` | `FSSE_01_FOUNDATION_COMPLETE_FSSE_02_READY` |
+| `FSSE_STATUS` | `FSSE_02_EXECUTION_HARNESS_COMPLETE_FSSE_03_READY` |
 | `FSSE_00_EXTERNAL_REENTRY_STATUS` | `DEFERRED_PLATFORM_CERTIFICATION` |
 | `FSSE_00_BLOCKS_FSSE_01` | `FALSE` |
 | `MANUAL_CONTINUE_OMP_FALLBACK` | `ACTIVE` |
-| `SCENARIO_COVERAGE_GENERATION` | `fssef_78ab1f01d84288c6bdd2587c` |
-| `SCENARIO_COVERAGE_FINGERPRINT` | `78ab1f01d84288c6bdd2587c0d578556fe217558b664e00cd4b5deb32725f951` |
-| `SCENARIO_TARGET_LEVEL` | `SAFETY_BASELINE_FOUNDATION_READY` |
+| `SCENARIO_COVERAGE_GENERATION` | `fssef_ddd7a4e7145666fc28c7b1b2` |
+| `SCENARIO_COVERAGE_FINGERPRINT` | `ddd7a4e7145666fc28c7b1b20062e3d35ae3c0b6f57328eced07587dafd43fd4` |
+| `SCENARIO_TARGET_LEVEL` | `EXECUTION_HARNESS_CAPACITY_BOUNDARY_CONSUMED` |
 | `SCENARIO_CORPUS_COUNT` | `10` |
-| `SCENARIO_ELIGIBLE_COUNT` | `10` |
-| `SCENARIO_COVERED_COUNT` | `0` |
+| `SCENARIO_ELIGIBLE_COUNT` | `9` |
+| `SCENARIO_COVERED_COUNT` | `1` |
 | `SCENARIO_STALE_COUNT` | `0` |
 | `SCENARIO_BLOCKED_COUNT` | `0` |
 | `SCENARIO_MISMATCH_COUNT` | `0` |
-| `NEXT_SCENARIO_ID` | `CAPACITY_BOUNDARY` |
-| `NEXT_SCENARIO_REASON` | `invariants=BLAST_RADIUS_BOUND` |
+| `NEXT_SCENARIO_ID` | `HEALTHY_BASELINE_SMALL` |
+| `NEXT_SCENARIO_REASON` | `invariants=FINAL_OPEN_OR_STOP_SAFE` |
 | `ACTIVE_SCENARIO_ID` | `NONE` |
-| `LAST_SCENARIO_ID` | `NONE` |
-| `LAST_SCENARIO_VERDICT` | `NONE` |
-| `LAST_SCENARIO_FINGERPRINT` | `NONE` |
+| `LAST_SCENARIO_ID` | `CAPACITY_BOUNDARY` |
+| `LAST_SCENARIO_VERDICT` | `PASS` |
+| `LAST_SCENARIO_FINGERPRINT` | `0b656fefb0b80f178d6d8214fbe1dd19e33fc83f02e6cdba07dfb128a47a9a17` |
 | `ACTIVE_SCENARIO_CANDIDATE` | `NONE` |
 | `ACTIVE_SCENARIO_MISSION` | `NONE` |
 | `SCENARIO_BUDGET` | `10` |
-| `SCENARIO_STOP_REASON` | `FSSE_02_EXECUTION_HARNESS_REQUIRED` |
-| `FSSE_NEXT_ACTION` | `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1` |
+| `SCENARIO_STOP_REASON` | `FSSE_02_COMPLETE_FSSE_03_HIGH_FIDELITY_REQUIRED` |
+| `FSSE_NEXT_ACTION` | `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1` |
 | `CURRENT_STATE_CONSISTENCY` | `PASS; section 0, registry, protected WIP and deterministic sequence share one generation and transition` |
 | `CURRENT_EXECUTION_MISSION_ID` | `NONE` |
 | `CURRENT_EXECUTION_MISSION_STATE` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `V7_FUTURE_SCALE_POLYGON_FOUNDATION_V1` |
-| `LATEST_TERMINAL_RUN_NONCE` | `V7_FSSE_FOUNDATION_V1_6D29A4C81E7F` |
-| `LATEST_TERMINAL_MISSION_STATE` | `FUTURE_SCALE_POLYGON_FOUNDATION_IMPLEMENTED_CONSUMED_FSSE_02_READY` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-15_094920_future_scale_polygon_foundation.md` |
-| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-15T09:49:20+0700` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_HEARTBEAT_CANONICAL_DESCENDANT_DEPLOY_AND_EXTERNAL_REENTRY_CERTIFICATION_V2` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1` |
+| `LATEST_TERMINAL_RUN_NONCE` | `V7_FSSE_02_56A0A59EC4CF` |
+| `LATEST_TERMINAL_MISSION_STATE` | `FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_IMPLEMENTED_CONSUMED_FSSE_03_READY` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-15_165613_future_scale_polygon_execution_harness.md` |
+| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-15T16:56:13+0700` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_FUTURE_SCALE_POLYGON_FOUNDATION_V1` |
 | `CURRENT_MISSION_ROLE` | `LATEST_TERMINAL_MISSION` |
-| `CURRENT_MISSION_ID` | `V7_FUTURE_SCALE_POLYGON_FOUNDATION_V1` |
-| `CURRENT_RUN_NONCE` | `V7_FSSE_FOUNDATION_V1_6D29A4C81E7F` |
-| `CURRENT_MISSION_STATE` | `FUTURE_SCALE_POLYGON_FOUNDATION_IMPLEMENTED_CONSUMED_FSSE_02_READY` |
-| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-15_094920_future_scale_polygon_foundation.md` |
+| `CURRENT_MISSION_ID` | `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1` |
+| `CURRENT_RUN_NONCE` | `V7_FSSE_02_56A0A59EC4CF` |
+| `CURRENT_MISSION_STATE` | `FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_IMPLEMENTED_CONSUMED_FSSE_03_READY` |
+| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-15_165613_future_scale_polygon_execution_harness.md` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `AUTHORITATIVE_TRANSITION_INPUT_STATE` | `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED` |
 | `AUTHORITATIVE_TRANSITION_INPUT_REPORT` | `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` |
@@ -160,7 +160,7 @@ This section is the single live volatile current-state surface. Older production
 | `LEARNING_RESULT` | `LEARNING_UPDATED_PARTIAL; feedback execfb_b287532347352c661799e985 -> learn_5070685e53fe93acdda4ce8a, HIGH, real and non-synthetic` |
 | `PRODUCTION_MATURITY_DECISION` | `PARTIAL_ACCEPT; CAP-U01 COMPLETE, CAP-U02 PARTIAL_REVALIDATED_FROM_REAL_SUCCESS, current action class remains GOVERNED_ONLY` |
 | `CURRENT_CLASS_DELTA_CLOSED` | `YES` |
-| `AUTOMATIC_CONTINUE_OMP_RESULT` | `FSSE_02_READY; exact next Mission materialized through the existing OMP consumer` |
+| `AUTOMATIC_CONTINUE_OMP_RESULT` | `FSSE_03_READY; CAPACITY_BOUNDARY consumed and exact next Mission materialized through the existing OMP consumer` |
 | `HISTORICAL_ACTION_CLASS_PROMOTION_REPORT` | `docs/reports/engineering/2026-07-11_194202_current_action_class_promotion_to_bounded_authority.md`; `SUPERSEDED/HISTORICAL` context only. |
 | `HISTORICAL_CURRENT_CLASS_OUTCOME_STORE_AUDIT` | `18,036 execution-outcome records at historical readback; all DRY_RUN / NO_EXECUTION; CURRENT_CLASS_OUTCOME_ABSENT` |
 | `CONDITIONAL_ENGINEERING_AUTHORITY_USED` | `NO; successful outcome was completed inside existing bounded delegated policy` |
@@ -171,7 +171,7 @@ This section is the single live volatile current-state surface. Older production
 | `MATERIAL_DECISION_CHURN_DEPLOY_ID` | `deploy-z8-14-Updatesystem-62015c1-20260711T185443` |
 | `MATERIAL_DECISION_CHURN_REPORT` | `docs/reports/engineering/2026-07-11_184357_material_decision_churn_discovery_and_closure.md` |
 | `FORBIDDEN_FOR_CURRENT_SCOPE` | Reuse historical Candidate/packet/hash/Authority; more than one user; batch/concurrency; another action class; Authority/blast-radius expansion; systemd enable/start; threshold reduction; safety weakening; synthetic evidence. |
-| `REQUIRED_WORKFLOW` | `implement existing-owner FSSE-02 execution harness -> verify deterministic engineering scenario -> route mismatches through BDP/OMP` |
+| `REQUIRED_WORKFLOW` | `execute existing-owner FSSE-03 high-fidelity validation -> preserve engineering/production boundary -> prepare FSSE-04 only after completion` |
 | `CIRCUIT_BREAKER_REPOSITORY_STATE` | `IMPLEMENTATION_CERTIFIED_READ_ONLY` |
 | `CIRCUIT_BREAKER_PRODUCTION_STATE` | `DEPLOYED_CERTIFIED_OPEN` |
 | `CIRCUIT_BREAKER_PRODUCTION_CERTIFICATION` | `CIRCUIT_BREAKER_PRODUCTION_CERTIFIED` |
@@ -213,7 +213,7 @@ This section is the single live volatile current-state surface. Older production
 | `OMP_CONTROLLED_RUN_ALLOWED` | `NO_CURRENT_EXECUTION; synthetic or forced outcomes are forbidden` |
 | `CONTROLLED_RUN_PRIMARY_STOP` | `UNSAFE_IMPLEMENTATION` |
 | `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `LEARNING` |
-| `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `NO_RUNTIME_AUTHORITY; current boundary is FSSE-02 engineering implementation only` |
+| `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `NO_RUNTIME_AUTHORITY; current boundary is FSSE-03 engineering validation only` |
 | `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_CLOSED; CAP-U01 certified from exact repair through governed SUCCESS, verification, learning and final OPEN` |
 | `PARENT_ENGINEERING_INTENT` | `INTENT_NOT_CLOSED; CAP-U07 consumed one real success but representative Learning evidence remains a real-world dependency` |
 | `ACTIVE_WIP_PROTECTED` | `TRUE; COMPLETION_FIRST; reorder forbidden` |
@@ -233,7 +233,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-15T09:49:20+0700`
+Generated At: `2026-07-15T16:56:13+0700`
 
 Runtime Authority: `NONE`
 
@@ -246,9 +246,9 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_FSSE_FOUNDATION_V1_6D29A4C81E7F` |
-| `CURRENT_TRANSITION_ID` | `FSSE_01_FOUNDATION_TO_FSSE_02_HARNESS_V1` |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_FSSE_02_56A0A59EC4CF` |
+| `CURRENT_TRANSITION_ID` | `FSSE_02_HARNESS_TO_FSSE_03_HIGH_FIDELITY_V1` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1` |
 | `CURRENT_STOP_CONDITION` | `UNSAFE_IMPLEMENTATION` |
 | `CAPABILITIES_INVENTORIED` | `34` |
 | `COMPLETE_OR_LOCKED_CAPABILITIES` | `13` |
@@ -256,10 +256,10 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `OPEN_ENGINEERING_INTENTS` | `21` |
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
 | `ACTIVE_MISSIONS` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `V7_FUTURE_SCALE_POLYGON_FOUNDATION_V1` |
-| `LATEST_TERMINAL_MISSION_STATE` | `FUTURE_SCALE_POLYGON_FOUNDATION_IMPLEMENTED_CONSUMED_FSSE_02_READY` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-15_094920_future_scale_polygon_foundation.md` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_OMP_HEARTBEAT_CANONICAL_DESCENDANT_DEPLOY_AND_EXTERNAL_REENTRY_CERTIFICATION_V2` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1` |
+| `LATEST_TERMINAL_MISSION_STATE` | `FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_IMPLEMENTED_CONSUMED_FSSE_03_READY` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-15_165613_future_scale_polygon_execution_harness.md` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_FUTURE_SCALE_POLYGON_FOUNDATION_V1` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `OPEN_CANDIDATE_IDS` | `NONE`; all observed packet previews are evidence only and discarded without Authority. |
 | `PRIOR_BDP_CANDIDATES` | `25` certified instances are terminal historical ladder evidence, not open work |
@@ -267,8 +267,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
-| `OMP_CONTINUATION_POINTER` | consume the FSSE-02 program frontier before capability-local real-world waits; preserve CAP-U07 WAITING WIP and capability dependency order |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `implement and certify the existing-owner FSSE-02 Future-Scale Polygon execution harness for CAPACITY_BOUNDARY` |
+| `OMP_CONTINUATION_POINTER` | consume the FSSE-03 program frontier before capability-local real-world waits; preserve CAP-U07 WAITING WIP and capability dependency order |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `execute the existing-owner FSSE-03 high-fidelity validation Mission without starting FSSE-04` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -277,26 +277,26 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_V7_FSSE_FOUNDATION_V1_6D29A4C81E7F` |
-| `current_transition_id` | `FSSE_01_FOUNDATION_TO_FSSE_02_HARNESS_V1` |
+| `current_state_generation` | `cpsgen_V7_FSSE_02_56A0A59EC4CF` |
+| `current_transition_id` | `FSSE_02_HARNESS_TO_FSSE_03_HIGH_FIDELITY_V1` |
 | `smallest_existing_next_action_id` | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
-| `latest_terminal_mission_id` | `V7_FUTURE_SCALE_POLYGON_FOUNDATION_V1` |
-| `latest_terminal_mission_state` | `FUTURE_SCALE_POLYGON_FOUNDATION_IMPLEMENTED_CONSUMED_FSSE_02_READY` |
-| `previous_terminal_mission_id` | `V7_OMP_HEARTBEAT_CANONICAL_DESCENDANT_DEPLOY_AND_EXTERNAL_REENTRY_CERTIFICATION_V2` |
+| `latest_terminal_mission_id` | `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1` |
+| `latest_terminal_mission_state` | `FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_IMPLEMENTED_CONSUMED_FSSE_03_READY` |
+| `previous_terminal_mission_id` | `V7_FUTURE_SCALE_POLYGON_FOUNDATION_V1` |
 | `authoritative_transition_input_mission_id` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `candidate_id` | `NOT_APPLICABLE; CAP-U07 consumes accepted U01 outcome evidence and creates no routing Candidate` |
 | `protected_by_active_wip` | `TRUE` |
 | `wip_priority_class` | `COMPLETION_FIRST` |
 | `active_wip_reorder_allowed` | `FALSE` |
-| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1 at UNSAFE_IMPLEMENTATION` |
+| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1 at UNSAFE_IMPLEMENTATION` |
 | `responsibility_class` | `LEARNING` |
 | `authority_required_now` | `FALSE; current boundary is representative real evidence, not Authority` |
 | `last_responsible_link` | real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence |
 | `responsible_owners` | Existing feedback, decision-outcome learning, Production Maturity, CPS and OMP consumers |
 | `protected_objects` | Accepted U01 SUCCESS evidence; existing Learning owner contracts; CAP-U02/U05/U06 WAITING evidence and reentry conditions |
-| `smallest_existing_next_action` | preserve CAP-U07 evidence unchanged while OMP consumes the executable FSSE-02 program frontier |
+| `smallest_existing_next_action` | preserve CAP-U07 evidence unchanged while OMP consumes the executable FSSE-03 program frontier |
 | `binding_stability` | `CERTIFIED` |
 | `completion_condition` | Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass |
 
@@ -364,7 +364,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `FSSE_01_COMPLETE_FSSE_02_READY` program frontier; `cpsgen_V7_FSSE_FOUNDATION_V1_6D29A4C81E7F`; `FSSE_01_FOUNDATION_TO_FSSE_02_HARNESS_V1` | validated deterministic Future-Scale Scenario Corpus; input scenario CAPACITY_BOUNDARY | `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1` | EXISTING_OWNER_ENGINEERING_SCENARIO_IMPLEMENTATION | `UNSAFE_IMPLEMENTATION` | BOUNDED_ENGINEERING_SCENARIO_RESULT -> INVARIANT_VERDICT_THEN_BDP_OMP_CONTINUATION |
+| `1` | `FSSE_02_COMPLETE_FSSE_03_READY` program frontier; `cpsgen_V7_FSSE_02_56A0A59EC4CF`; `FSSE_02_HARNESS_TO_FSSE_03_HIGH_FIDELITY_V1` | FSSE-02 consumed CAPACITY_BOUNDARY PASS; preserved next scenario HEALTHY_BASELINE_SMALL | `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1` | EXISTING_OWNER_HIGH_FIDELITY_SCENARIO_VALIDATION | `UNSAFE_IMPLEMENTATION` | HIGH_FIDELITY_SCALE_CONCURRENCY_REPLAY_EVIDENCE -> FSSE_04_OR_LEGAL_STOP |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |
@@ -432,7 +432,7 @@ This graph reuses the existing capability registry, Engineering Chain links and 
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is `UNSAFE_IMPLEMENTATION`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1`; no mutation is authorized |
+| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is `UNSAFE_IMPLEMENTATION`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1`; no mutation is authorized |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

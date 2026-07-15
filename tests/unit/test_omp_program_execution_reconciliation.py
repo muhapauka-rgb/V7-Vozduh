@@ -140,8 +140,8 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
         self.assertEqual(self.reconcile(), self.reconcile())
 
     def test_29_cps_receives_program_frontier(self):
-        self.assertIn("V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1", self.sources["cps"])
-        self.assertIn("CAPACITY_BOUNDARY", self.sources["cps"])
+        self.assertIn("V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1", self.sources["cps"])
+        self.assertIn("HEALTHY_BASELINE_SMALL", self.sources["cps"])
         self.assertNotIn("global program frontier is OMP_REAL_CONSUMER_ACTIVATION", self.sources["cps"])
 
     def test_30_omp_consumes_program_frontier(self):

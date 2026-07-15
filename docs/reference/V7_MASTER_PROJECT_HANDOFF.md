@@ -4,7 +4,7 @@ Status: `CANONICAL ENTRY POINT`
 
 Owner: OMP / Canonical Reference / Current Program State
 
-Handoff version: `V7_MASTER_PROJECT_HANDOFF_FSSE_02_READY_V1`
+Handoff version: `V7_MASTER_PROJECT_HANDOFF_FSSE_03_READY_V1`
 
 Last updated: 2026-07-15
 
@@ -152,12 +152,13 @@ The exact current frontier is:
 
 ```text
 FSSE-01 foundation COMPLETE_CONSUMED
-  -> FSSE-02 execution harness READY
-  -> MISSION V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1
-  -> INPUT CAPACITY_BOUNDARY
+  -> FSSE-02 execution harness COMPLETE_CONSUMED
+  -> FSSE-03 high-fidelity validation READY
+  -> MISSION V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1
+  -> INPUT HEALTHY_BASELINE_SMALL
 ```
 
-FSSE-02 is engineering-only work inside existing owners. It requires no external input and no new Authority. Heartbeat/external reentry certification is deferred at the Codex Automation Platform boundary and does not block FSSE. CAP-U07 remains protected capability-local `WAITING_EXTERNAL_DEPENDENCY` WIP and does not replace the active FSSE program frontier.
+FSSE-02 executed `CAPACITY_BOUNDARY` through real Planner and execution-preview owners, produced a normalized result, passed eight canonical invariants and was consumed by OMP. FSSE-03 is the current engineering-only frontier. It requires no external input and no new Authority. Heartbeat/external reentry certification is deferred at the Codex Automation Platform boundary and does not block FSSE. CAP-U07 remains protected capability-local `WAITING_EXTERNAL_DEPENDENCY` WIP and does not replace the active FSSE program frontier.
 
 ### Research First Rule
 
@@ -177,23 +178,24 @@ Fundamental mechanisms must not be built from intuition, naming preference, or l
 The exact next Mission is:
 
 ```text
-MISSION = V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1
-INPUT_SCENARIO = CAPACITY_BOUNDARY
+MISSION = V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1
+INPUT_SCENARIO = HEALTHY_BASELINE_SMALL
 STOP = UNSAFE_IMPLEMENTATION
 ```
 
-The next thread must build and certify the real existing-owner execution harness:
+The next thread must execute and certify high-fidelity scale/concurrency validation through existing owners:
 
 ```text
-deterministic isolated state
-  -> real V7 observation/readiness/decision/planner/eligibility path
-  -> canonical invariant validation
-  -> normalized result
-  -> PASS or reproducible mismatch
-  -> existing BDP/OMP lifecycle when repair is required
+FSSE-02 execution harness
+  -> 10k/100 scale envelope and bounded performance
+  -> concurrency/leases/replay/single-flight/contention
+  -> deterministic ordering and selective invalidation
+  -> isolated network emulation/historical replay/shadow comparison where owner-safe
+  -> engineering-to-production evidence boundary
+  -> FSSE-04 readiness or legal stop
 ```
 
-Do not repeat FSSE-01, perform another foundation audit, wait for heartbeat or production events, create a simulator owner, use toy decision logic as proof, or stop at schema/tests/report completion.
+Do not repeat FSSE-01 or FSSE-02, wait for heartbeat or production events, create a simulator owner, use toy decision logic as proof, start FSSE-04, or stop at schema/tests/report completion.
 
 ## 1. What V7 Is
 
@@ -259,45 +261,43 @@ Do not treat old Stage 1 recovery tasks as active work. They are historical evid
 This is a handoff projection only. CPS Section 0 remains authoritative if volatile state changes after this update.
 
 ```text
-LATEST_RECONCILIATION_MISSION = V7_FSSE_01_CURRENT_STATE_AND_DERIVED_REGISTRY_CONSISTENCY_CORRECTION_V1
-LATEST_RECONCILIATION_RUN_NONCE = V7_FSSE_01_STATE_CONSISTENCY_V1_5C83A7E21D49
-LATEST_RECONCILIATION_VERDICT = FSSE_CURRENT_STATE_FULLY_ALIGNED_FSSE_02_READY
-LATEST_RECONCILIATION_REPORT = docs/reports/engineering/2026-07-15_153614_fsse_current_state_consistency_correction.md
-LATEST_RECONCILIATION_COMMIT = 8643b08d3dd7bf65cbd6d7508344a3e351b73edc
-LATEST_RECONCILIATION_DEPLOY = deploy-z8-14-Updatesystem-8643b08-20260715T153901
-TRUTH_CONVERGENCE = FULLY_ALIGNED
+LATEST_TERMINAL_MISSION = V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1
+LATEST_TERMINAL_RUN_NONCE = V7_FSSE_02_56A0A59EC4CF
+LATEST_TERMINAL_VERDICT = FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_IMPLEMENTED_CONSUMED_FSSE_03_READY
+LATEST_TERMINAL_REPORT = docs/reports/engineering/2026-07-15_165613_future_scale_polygon_execution_harness.md
+TRUTH_CONVERGENCE = LOCAL_IMPLEMENTATION_VERIFIED; DEPLOY_NOT_YET_CERTIFIED
 
 ACTIVE_PROGRAM = FUTURE_SCALE_SCENARIO_ENGINEERING
-CURRENT_PROGRAM_STAGE = FSSE_01_COMPLETE_FSSE_02_READY
-CURRENT_ACTIVE_SCOPE = FSSE_02_EXECUTION_HARNESS
-CURRENT_PROGRAM_EXECUTION_FRONTIER = V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1
-CURRENT_NEXT_ACTION_ID = V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1
-NEXT_MISSION_ID = V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1
-NEXT_SCENARIO_ID = CAPACITY_BOUNDARY
+CURRENT_PROGRAM_STAGE = FSSE_02_COMPLETE_FSSE_03_READY
+CURRENT_ACTIVE_SCOPE = FSSE_03_HIGH_FIDELITY_VALIDATION
+CURRENT_PROGRAM_EXECUTION_FRONTIER = V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1
+CURRENT_NEXT_ACTION_ID = V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1
+NEXT_MISSION_ID = V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1
+NEXT_SCENARIO_ID = HEALTHY_BASELINE_SMALL
 CURRENT_STOP_CONDITION = UNSAFE_IMPLEMENTATION
 OMP_CONTINUATION_REQUIRED = TRUE
 EXTERNAL_INPUT_REQUIRED = FALSE
 AUTHORITY_REQUIRED_NOW = NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE
-FSSE_STATUS = FSSE_01_FOUNDATION_COMPLETE_FSSE_02_READY
+FSSE_STATUS = FSSE_02_EXECUTION_HARNESS_COMPLETE_FSSE_03_READY
 FSSE_00_EXTERNAL_REENTRY_STATUS = DEFERRED_PLATFORM_CERTIFICATION
 FSSE_00_BLOCKS_FSSE_01 = FALSE
 OMP_AUTOMATION_LEVEL = CODEX_ASSISTED
 MANUAL_CONTINUE_OMP_FALLBACK = ACTIVE
-CURRENT_STATE_GENERATION = cpsgen_V7_FSSE_FOUNDATION_V1_6D29A4C81E7F
-CURRENT_TRANSITION_ID = FSSE_01_FOUNDATION_TO_FSSE_02_HARNESS_V1
-SCENARIO_COVERAGE_GENERATION = fssef_78ab1f01d84288c6bdd2587c
-SCENARIO_COVERAGE_FINGERPRINT = 78ab1f01d84288c6bdd2587c0d578556fe217558b664e00cd4b5deb32725f951
+CURRENT_STATE_GENERATION = cpsgen_V7_FSSE_02_56A0A59EC4CF
+CURRENT_TRANSITION_ID = FSSE_02_HARNESS_TO_FSSE_03_HIGH_FIDELITY_V1
+SCENARIO_COVERAGE_GENERATION = fssef_ddd7a4e7145666fc28c7b1b2
+SCENARIO_COVERAGE_FINGERPRINT = ddd7a4e7145666fc28c7b1b20062e3d35ae3c0b6f57328eced07587dafd43fd4
 SCENARIO_CORPUS_COUNT = 10
-SCENARIO_ELIGIBLE_COUNT = 10
-SCENARIO_COVERED_COUNT = 0
+SCENARIO_ELIGIBLE_COUNT = 9
+SCENARIO_COVERED_COUNT = 1
 SCENARIO_STALE_COUNT = 0
 SCENARIO_BLOCKED_COUNT = 0
 SCENARIO_MISMATCH_COUNT = 0
 SCENARIO_BUDGET = 10
-SCENARIO_STOP_REASON = FSSE_02_EXECUTION_HARNESS_REQUIRED
+SCENARIO_STOP_REASON = FSSE_02_COMPLETE_FSSE_03_HIGH_FIDELITY_REQUIRED
 ```
 
-FSSE-01 terminal evidence is `docs/reports/engineering/2026-07-15_094920_future_scale_polygon_foundation.md`, implementation commit `8f559ab5675b28df39067608d7d5453543841f3e`, deploy `deploy-z8-14-Updatesystem-8f559ab-20260715T103251`, and verdict `FUTURE_SCALE_POLYGON_FOUNDATION_IMPLEMENTED_CONSUMED_FSSE_02_READY`.
+FSSE-02 terminal evidence is `docs/reports/engineering/2026-07-15_165613_future_scale_polygon_execution_harness.md`. Deploy/truth convergence must be read from CPS and the report; this handoff must not invent deployment evidence.
 
 ## 3. Current Maturity Snapshot
 
@@ -520,18 +520,18 @@ The active volatile state and next allowed action must be read from CPS:
 docs/programs/V7_CURRENT_PROGRAM_STATE.md
 ```
 
-The active program frontier is Future-Scale Scenario Engineering. OMP V4.26 and CPS Section 0 resolve one exact next Mission: `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1` for `CAPACITY_BOUNDARY`.
+The active program frontier is Future-Scale Scenario Engineering. OMP V4.26 and CPS Section 0 resolve one exact next Mission: `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1`, preserving `HEALTHY_BASELINE_SMALL` as the next scenario.
 
 Compressed completion-first plan:
 
 | Position | Mission | Status |
 |---|---|---|
 | FSSE-01 | `V7_FUTURE_SCALE_POLYGON_FOUNDATION_V1` | `COMPLETE_CONSUMED` |
-| FSSE-02 | `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1` | `READY`, exact current frontier |
-| FSSE-03 | `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1` | Future after certified FSSE-02 completion |
+| FSSE-02 | `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1` | `COMPLETE_CONSUMED` |
+| FSSE-03 | `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1` | `READY`, exact current frontier |
 | FSSE-04 | `V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1` | Future final integration |
 
-FSSE-01 established ten deterministic owner-bound scenarios, 31 invariant identities, scenario identity/fingerprinting, a Scenario Frontier, CPS projection, and a real `tools/v7-truth-check -> program_execution_reconciliation` consumer. FSSE-02 must execute the current scenario through real V7 engineering paths and produce consumed behavior; another preparation-only cycle is forbidden.
+FSSE-01 established ten deterministic owner-bound scenarios, 31 invariant identities, scenario identity/fingerprinting, a Scenario Frontier, CPS projection, and a real `tools/v7-truth-check -> program_execution_reconciliation` consumer. FSSE-02 added the real non-test scenario entrypoint, deterministic 10k/100 isolated state, real Planner/execution-preview invocation, eight invariant verdicts, normalized result and consumed coverage transition. FSSE-03 must now add high-fidelity scale, concurrency, replay and isolated emulation evidence; another harness-preparation cycle is forbidden.
 
 Scenario evidence is engineering evidence. It may reveal defects, justify source repair and certify invariant behavior. It may not claim production outcome, grant Authority, mutate Runtime, move users, or increase Production Maturity.
 
@@ -613,8 +613,9 @@ Completed:
 - Continuous Self Evolution remains part of the locked architecture.
 - Mission Completion Evidence Gate is active. Tests, deployment, reports and CPS edits alone do not prove functional completion.
 - FSSE-01 Future-Scale Polygon Foundation is implemented, deployed and consumed.
+- FSSE-02 Future-Scale Polygon Execution Harness is implemented and consumed for `CAPACITY_BOUNDARY`.
 - FSSE current-state and derived-registry consistency correction is deployed and `FULLY_ALIGNED`.
-- `CAPACITY_BOUNDARY` is the deterministic first FSSE-02 scenario.
+- `CAPACITY_BOUNDARY` is covered with engineering PASS; `HEALTHY_BASELINE_SMALL` is the next deterministic scenario.
 
 Completed historical work must not be reopened unless objective evidence proves corruption, contradiction, or a formally accepted evolution need.
 
@@ -622,10 +623,10 @@ Completed historical work must not be reopened unless objective evidence proves 
 
 Active engineering execution work:
 
-- execute `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1` through existing Engineering Polygon, OMP, CPS, BDP and V7 code owners;
-- begin with `CAPACITY_BOUNDARY` and a deterministic isolated L1 state;
-- exercise real V7 observation/readiness/decision/planner/eligibility and invariant validators, not toy logic;
-- route a reproducible mismatch through the existing BDP -> Candidate -> OMP Mission lifecycle;
+- execute `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1` through existing Engineering Polygon, OMP, CPS, BDP and V7 code owners;
+- preserve `HEALTHY_BASELINE_SMALL` as the next scenario and extend evidence across the 10k/100 scale envelope;
+- validate performance, concurrency, leases, replay, single-flight, contention, deterministic ordering and owner-safe isolated emulation;
+- route only a reproducible real-source mismatch through the existing BDP -> Candidate -> OMP Mission lifecycle;
 - preserve no production mutation, no user movement, no Authority expansion and no Production Maturity credit;
 - continue immediately to the exact next scenario or legal owner-backed stop after consumed verification.
 
@@ -981,7 +982,7 @@ Reality
 
 The Phase 2-to-current retrospective proved that reports, tests and deployment can establish useful evidence without establishing real functional closure. A named consumer is insufficient unless it invokes and consumes the output. A manual Codex call is not independent automation. A state update without behavior change is not implementation completion.
 
-FSSE-01 satisfies integration completion because `tools/v7-truth-check` is a real non-test caller, `program_execution_reconciliation` is the real consumer, ordinary deferred work now produces a scenario frontier, and the exact next output is `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1`.
+FSSE-02 satisfies integration completion because `tools/v7-truth-check --omp-scenario-execution` is a real non-test caller, real V7 Planner and execution-preview owners are invoked, `OMP_PROGRAM_EXECUTION_RECONCILIATION` consumes the normalized PASS, coverage changes from 0 to 1, and the exact next Mission is `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1`.
 
 ### Common Misunderstandings To Avoid
 
@@ -1012,11 +1013,12 @@ Read in this order:
 
 1. `docs/reference/V7_MASTER_PROJECT_HANDOFF.md`;
 2. `docs/programs/V7_CURRENT_PROGRAM_STATE.md`, Section 0 only for live volatile state;
-3. `docs/reports/engineering/2026-07-15_153614_fsse_current_state_consistency_correction.md`;
-4. `docs/reports/engineering/2026-07-15_094920_future_scale_polygon_foundation.md`;
-5. the Future-Scale Scenario Engineering sections of `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`;
-6. `tools/v7_sync_lib.py`;
-7. `tests/scenarios/future_scale/foundation.json`.
+3. `docs/reports/engineering/2026-07-15_165613_future_scale_polygon_execution_harness.md`;
+4. `docs/reports/engineering/2026-07-15_153614_fsse_current_state_consistency_correction.md`;
+5. `docs/reports/engineering/2026-07-15_094920_future_scale_polygon_foundation.md`;
+6. the Future-Scale Scenario Engineering sections of `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`;
+7. `tools/v7_sync_lib.py`;
+8. `tests/scenarios/future_scale/foundation.json`.
 
 Use ECR before widening context. Use Canonical Reference for durable meaning, SYSTEM_MAP for owner topology, OMP for continuation, and Engineering Reports only as evidence. CPS Section 0 overrides all current-looking historical snapshots.
 
@@ -1027,21 +1029,21 @@ Discover -> Reuse -> Extend -> Implement
 Continue OMP
 
 MISSION:
-V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1
+V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1
 
 INPUT SCENARIO:
-CAPACITY_BOUNDARY
+HEALTHY_BASELINE_SMALL
 ```
 
 Required boundary:
 
-- do not repeat FSSE-01;
+- do not repeat FSSE-01 or FSSE-02;
 - do not reopen heartbeat as a blocker;
 - do not wait for production events;
 - do not start unrelated capability work;
 - do not create a new simulator, owner, Planner, Runtime, scheduler, queue or truth source;
 - do not use toy decision logic as proof;
-- do not stop at schema, tests, deployment or report creation;
+- do not start FSSE-04 or stop at schema, tests, deployment or report creation;
 - preserve CAP-U07 protected capability-local WIP;
 - preserve no Runtime mutation, no production mutation, no user movement, no Authority expansion and no Production Maturity credit.
 
@@ -1053,11 +1055,12 @@ Already proven and reusable:
 - CPS is the only volatile current-state owner;
 - Mission Completion Evidence Gate is active;
 - FSSE-01 is complete, deployed and consumed;
-- current-state consistency is fully aligned;
-- FSSE-02 is the only current program frontier;
+- FSSE-02 is complete and consumed for `CAPACITY_BOUNDARY`;
+- current-state consistency is locally aligned; deployment/convergence evidence remains owner-certified separately;
+- FSSE-03 is the only current program frontier;
 - `EXTERNAL_INPUT_REQUIRED = FALSE` and `OMP_CONTINUATION_REQUIRED = TRUE`;
-- scenario frontier generation is `fssef_78ab1f01d84288c6bdd2587c`;
-- current corpus fingerprint is `78ab1f01d84288c6bdd2587c0d578556fe217558b664e00cd4b5deb32725f951`.
+- scenario frontier generation is `fssef_ddd7a4e7145666fc28c7b1b2`;
+- current coverage fingerprint is `ddd7a4e7145666fc28c7b1b20062e3d35ae3c0b6f57328eced07587dafd43fd4`.
 
 Do not recreate this handoff under another filename. Do not run a broad architecture audit unless a formal Re-open Trigger exists.
 
@@ -1085,7 +1088,7 @@ NO.
 
 Current active roadmap:
 
-OMP execution through CPS and ECR; FSSE-02 execution harness for `CAPACITY_BOUNDARY` is the exact current frontier.
+OMP execution through CPS and ECR; FSSE-03 high-fidelity validation with preserved next scenario `HEALTHY_BASELINE_SMALL` is the exact current frontier.
 
 Ready for seamless continuation:
 

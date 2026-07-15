@@ -108,7 +108,7 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
 
     def test_14_scenario_frontier_opens_without_ordinary_work(self):
         result = self.lib.future_scale_scenario_frontier(self.cps)
-        self.assertEqual(result["decision"], "SCENARIO_FOUNDATION_READY_EXECUTION_HARNESS_REQUIRED")
+        self.assertEqual(result["decision"], "SCENARIO_READY")
         self.assertNotEqual(result["NEXT_SCENARIO_ID"], "NONE")
 
     def test_15_eligible_scenario_prevents_exhaustion(self):
@@ -149,9 +149,9 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
         self.assertFalse(result["authority_expansion"])
         self.assertEqual(result["maturity_impact"], "NONE")
 
-    def test_21_exact_fsse2_output_is_produced(self):
+    def test_21_exact_fsse3_output_is_produced_after_harness_consumption(self):
         result = self.lib.future_scale_scenario_frontier(self.cps)
-        self.assertEqual(result["next_output"], "V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1")
+        self.assertEqual(result["next_output"], "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1")
 
     def test_22_program_reconciliation_consumes_scenario_frontier(self):
         sources = self.lib.load_program_execution_sources()
@@ -161,7 +161,7 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
         )
         result = self.lib.program_execution_reconciliation(sources)
         self.assertTrue(result["scenario_frontier_consumer_invoked"])
-        self.assertIn(result["scenario_frontier_decision"], {"ORDINARY_FRONTIER_SELECTED", "SCENARIO_FOUNDATION_READY_EXECUTION_HARNESS_REQUIRED"})
+        self.assertIn(result["scenario_frontier_decision"], {"ORDINARY_FRONTIER_SELECTED", "SCENARIO_READY"})
 
     def test_23_real_truth_check_entrypoint_exists(self):
         source = (ROOT / "tools/v7-truth-check").read_text()

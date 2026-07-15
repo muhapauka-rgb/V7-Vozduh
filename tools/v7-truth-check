@@ -700,6 +700,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--cps", default="docs/programs/V7_CURRENT_PROGRAM_STATE.md", help="CPS path for Mission identity validation.")
     parser.add_argument("--omp-heartbeat-reentry", action="store_true", help="Run one read-only OMP heartbeat reentry cycle.")
     parser.add_argument("--omp-program-reconciliation", action="store_true", help="Run one read-only OMP program and Scenario Frontier reconciliation.")
+    parser.add_argument("--omp-scenario-execution", default="", metavar="SCENARIO_ID", help="Run one bounded read-only Future-Scale Polygon scenario through existing V7 owners.")
     parser.add_argument("--heartbeat-event-time", default="", help="Owner-backed platform heartbeat event timestamp.")
     parser.add_argument("--heartbeat-automation-id", default=sync_lib.HEARTBEAT_AUTOMATION_ID)
     parser.add_argument("--heartbeat-target-thread-id", default=sync_lib.HEARTBEAT_TARGET_THREAD_ID)
@@ -722,6 +723,16 @@ def selected_mode(args: argparse.Namespace) -> str:
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = build_arg_parser().parse_args(argv)
+    if args.omp_scenario_execution:
+        result = sync_lib.execute_future_scale_scenario(args.omp_scenario_execution, root=ROOT_DIR)
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"scenario_execution={result.get('final_verdict', 'STOP_SAFE')}")
+            print(f"scenario_id={result.get('scenario_id', args.omp_scenario_execution)}")
+            print(f"consumer={result.get('consumer_result', {}).get('final_verdict', 'STOP_SAFE')}")
+            print(f"next_output={result.get('next_output', 'STOP_SAFE')}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
     if args.omp_program_reconciliation:
         try:
             sources = sync_lib.load_program_execution_sources(ROOT_DIR)

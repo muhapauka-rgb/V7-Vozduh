@@ -68,9 +68,9 @@ NORMALIZED_CPS_LIVE_STATE = {
     "current_next_action_id": "V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1",
     "current_program_stage": "FSSE_01_COMPLETE_FSSE_02_READY",
     "current_program_execution_frontier": "V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1",
-    "program_frontier_input": "validated deterministic Future-Scale Scenario Corpus and invariant resolver consumed by OMP program reconciliation",
-    "program_frontier_owner": "existing OMP, CPS, Engineering Polygon and invariant validator owners",
-    "program_frontier_expected_output": "FSSE-02 existing-owner execution harness -> bounded engineering scenario result -> invariant verdict -> BDP/OMP continuation",
+    "program_frontier_input": "validated deterministic Future-Scale Scenario Corpus; input scenario CAPACITY_BOUNDARY",
+    "program_frontier_owner": "EXISTING_OWNER_ENGINEERING_SCENARIO_IMPLEMENTATION",
+    "program_frontier_expected_output": "BOUNDED_ENGINEERING_SCENARIO_RESULT -> INVARIANT_VERDICT_THEN_BDP_OMP_CONTINUATION",
     "protected_capability_wip": "CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; preserved and not reordered",
     "binding_stability": "PASS",
     "binding_schema": "v7.operation-scoped-source-binding.v2",
@@ -94,7 +94,8 @@ NORMALIZED_CPS_LIVE_STATE = {
     "cap_u01_completion_report": "docs/reports/engineering/2026-07-12_172534_exact_route_repair_and_first_governed_success.md",
     "responsibility_class": "LEARNING",
     "last_responsible_link": "real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence",
-    "smallest_existing_next_action": "approve the already validated safe deploy, then re-enable the same heartbeat for one post-repair natural run",
+    "smallest_existing_next_action": "implement and certify the existing-owner FSSE-02 Future-Scale Polygon execution harness for CAPACITY_BOUNDARY",
+    "omp_continuation_pointer": "consume the FSSE-02 program frontier before capability-local real-world waits; preserve CAP-U07 WAITING WIP and capability dependency order",
     "current_class_outcome": "SUCCESS",
     "current_class_delta_closed": "YES",
     "current_class_outcome_evidence": "SUCCESS; 10.7.0.5 awg0 -> vless; global route verification PASS; feedback execfb_b287532347352c661799e985",
@@ -121,9 +122,9 @@ NORMALIZED_CPS_LIVE_STATE = {
     "controlled_run_authority_required_now": "NO_RUNTIME_AUTHORITY; current boundary is FSSE-02 engineering implementation only",
     "controlled_run_execution_authorized": "NO_CURRENT_PACKET; no forced evidence generation or movement is authorized",
     "wip_authority_required_now": "FALSE; current boundary is representative real evidence, not Authority",
-    "wip_current_primary_stop": "REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is OMP_REAL_CONSUMER_ACTIVATION at ENGINEERING_AUTHORITY",
+    "wip_current_primary_stop": "REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1 at UNSAFE_IMPLEMENTATION",
     "wip_smallest_existing_next_action_id": "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES",
-    "wip_smallest_existing_next_action": "preserve CAP-U07 evidence unchanged while OMP waits for a legal real engineering trigger",
+    "wip_smallest_existing_next_action": "preserve CAP-U07 evidence unchanged while OMP consumes the executable FSSE-02 program frontier",
     "sequence_execution_class": "real-world evidence wait",
     "sequence_expected_output": "new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation",
     "completion_condition": "Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass",
@@ -837,6 +838,7 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "LATEST_TERMINAL_MISSION_REPORT": f"`{state['latest_terminal_mission_report']}`",
         "PREVIOUS_TERMINAL_MISSION_ID": f"`{state['previous_terminal_mission_id']}`",
         "AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID": f"`{state['authoritative_transition_input_mission_id']}`",
+        "OMP_CONTINUATION_POINTER": state["omp_continuation_pointer"],
         "EXACT_CURRENT_SMALLEST_NEXT_ACTION": f"`{state['smallest_existing_next_action']}`",
     }
     for key, value in registry_values.items():
@@ -5789,7 +5791,13 @@ def cps_live_state_consistency(
         "CURRENT_MODE": normalized["current_mode"],
         "CURRENT_STOP_CONDITION": normalized["current_stop_condition"],
         "CURRENT_ACTIVE_SCOPE": normalized["current_active_scope"],
+        "CURRENT_SAFE_NEXT_ACTION": normalized["current_safe_next_action"],
         "CURRENT_SCOPE_CLASS": normalized["current_scope_class"],
+        "CURRENT_STATE_GENERATION": normalized["current_state_generation"],
+        "CURRENT_TRANSITION_ID": normalized["current_transition_id"],
+        "CURRENT_NEXT_ACTION_ID": normalized["current_next_action_id"],
+        "CURRENT_PROGRAM_STAGE": normalized["current_program_stage"],
+        "CURRENT_PROGRAM_EXECUTION_FRONTIER": normalized["current_program_execution_frontier"],
         "CURRENT_EXECUTION_MISSION_ID": normalized["current_execution_mission_id"],
         "CURRENT_EXECUTION_MISSION_STATE": normalized["current_execution_mission_state"],
         "LATEST_TERMINAL_MISSION_ID": normalized["latest_terminal_mission_id"],
@@ -5838,6 +5846,12 @@ def cps_live_state_consistency(
         "CONTINUATION_ITERATION": normalized["continuation_iteration"],
         "CONTINUATION_STOP_REASON": normalized["continuation_stop_reason"],
         "NO_PROGRESS_FINGERPRINT": normalized["no_progress_fingerprint"],
+        "FSSE_STATUS": normalized["fsse_status"],
+        "FSSE_00_EXTERNAL_REENTRY_STATUS": normalized["fsse_00_external_reentry_status"],
+        "FSSE_00_BLOCKS_FSSE_01": normalized["fsse_00_blocks_fsse_01"],
+        "FSSE_NEXT_ACTION": normalized["fsse_next_action"],
+        "NEXT_SCENARIO_ID": normalized["next_scenario_id"],
+        "SCENARIO_STOP_REASON": normalized["scenario_stop_reason"],
     }
     for key, expected in exact_live.items():
         if live.get(key, "").strip("`") != expected:
@@ -5850,6 +5864,14 @@ def cps_live_state_consistency(
     ):
         if registry.get(key, "").strip("`") != expected:
             errors.append(f"cps_registry_count_divergence:{key}")
+    if registry.get("OMP_CONTINUATION_POINTER", "") != normalized["omp_continuation_pointer"]:
+        errors.append("cps_registry_omp_continuation_pointer_divergence")
+    if registry.get("EXACT_CURRENT_SMALLEST_NEXT_ACTION", "").strip("`") != normalized["smallest_existing_next_action"]:
+        errors.append("cps_registry_smallest_next_action_divergence")
+    if wip.get("current_primary_stop", "").strip("`") != normalized["wip_current_primary_stop"]:
+        errors.append("cps_wip_global_context_divergence")
+    if wip.get("smallest_existing_next_action", "") != normalized["wip_smallest_existing_next_action"]:
+        errors.append("cps_wip_next_action_context_divergence")
     complete_rows = [line for line in completed_capabilities.splitlines() if line.startswith("| `CAP-")]
     unfinished_rows = [line for line in capabilities.splitlines() if line.startswith("| `CAP-")]
     if len(complete_rows) != int(normalized["complete_or_locked_capabilities"]):
@@ -5959,7 +5981,10 @@ def cps_live_state_consistency(
     else:
         sequence_cells = [cell.strip() for cell in sequence_rows[0].strip().strip("|").split("|")]
         sequence_stop = sequence_cells[5].strip("`") if len(sequence_cells) > 5 else ""
-        if sequence_stop != stop or not all(token in sequence_rows[0] for token in (generation, transition, next_action)):
+        if sequence_stop != stop or not all(
+            token in sequence_rows[0]
+            for token in (generation, transition, next_action, normalized["next_scenario_id"], normalized["program_frontier_owner"])
+        ):
             errors.append("cps_sequence_position_1_divergence")
 
     active_capability_id = normalized["active_capability_id"]
@@ -6081,11 +6106,26 @@ def cps_live_state_consistency(
         if "stale" in item or "historical" in item or "unresolved_binding_drift" in item
     ]
 
+    projection_error_prefixes = (
+        "cps_normalized_field_divergence:",
+        "cps_registry_",
+        "cps_wip_",
+        "cps_generation_divergence",
+        "cps_transition_divergence",
+        "cps_next_action_divergence",
+        "cps_current_stop_divergence",
+        "cps_sequence_position_1_divergence",
+    )
+    projection_errors = [item for item in unique_errors if item.startswith(projection_error_prefixes)]
+
     return {
         "schema": "v7-cps-live-state-consistency/v1",
         "final_verdict": "PASS" if not unique_errors else "NO-GO",
         "status": "ATOMIC_CPS_LIVE_STATE_CONSISTENT" if not unique_errors else "CURRENT_STATE_CONSISTENCY_FAIL",
         "current_state_consistency": "PASS" if not unique_errors else "FAIL",
+        "current_state_derived_projection_consistency": "PASS" if not projection_errors else "FAIL",
+        "derived_projection_contradiction_count": len(projection_errors),
+        "derived_projection_contradiction_ids": projection_errors,
         "contradiction_count": len(unique_errors),
         "contradiction_ids": unique_errors,
         "stale_live_projection_count": len(stale_ids),

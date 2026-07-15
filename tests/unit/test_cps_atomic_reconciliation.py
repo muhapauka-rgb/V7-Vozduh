@@ -36,8 +36,8 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertNotEqual(self.validate(drift)["final_verdict"], "PASS")
 
     def test_02_engineering_authority_with_stop_safe_projection_fails(self):
-        drift = self.cps.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is OMP_REAL_CONSUMER_ACTIVATION at ENGINEERING_AUTHORITY` |", "| `current_primary_stop` | `STOP_SAFE` |", 1)
-        self.assertIn("cps_current_stop_divergence", self.validate(drift)["errors"])
+        drift = self.cps.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1 at UNSAFE_IMPLEMENTATION` |", "| `current_primary_stop` | `STOP_SAFE` |", 1)
+        self.assertIn("cps_wip_global_context_divergence", self.validate(drift)["errors"])
 
     def test_03_operational_authority_with_authority_required_no_fails(self):
         drift = self.cps.replace("| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE` |", "| `AUTHORITY_REQUIRED_NOW` | `YES_OUTSIDE_ACTIVE_POLICY` |", 1)
@@ -72,13 +72,13 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         )
         self.assertIn("cps_current_stop_divergence", self.validate(drift)["errors"])
 
-    def test_08_active_wip_next_action_differs_from_cap_u01_fails(self):
+    def test_08_active_wip_next_action_context_drift_fails(self):
         drift = self.cps.replace(
-            "| `smallest_existing_next_action` | preserve CAP-U07 evidence unchanged while OMP waits for a legal real engineering trigger |",
+            "| `smallest_existing_next_action` | preserve CAP-U07 evidence unchanged while OMP consumes the executable FSSE-02 program frontier |",
             "| `smallest_existing_next_action` | diagnose binding owner |",
             1,
         )
-        self.assertEqual(self.validate(drift)["final_verdict"], "PASS")
+        self.assertIn("cps_wip_next_action_context_divergence", self.validate(drift)["errors"])
 
     def test_09_sequence_position_one_stop_differs_fails(self):
         row = next(line for line in self.cps.splitlines() if line.startswith("| `1` | `FSSE_01_COMPLETE_FSSE_02_READY` program frontier"))
@@ -118,7 +118,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
             before = path.read_text(encoding="utf-8")
             def corrupt(written):
                 text = written.read_text(encoding="utf-8")
-                written.write_text(text.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is OMP_REAL_CONSUMER_ACTIVATION at ENGINEERING_AUTHORITY` |", "| `current_primary_stop` | `STOP_SAFE` |", 1), encoding="utf-8")
+                written.write_text(text.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1 at UNSAFE_IMPLEMENTATION` |", "| `current_primary_stop` | `STOP_SAFE` |", 1), encoding="utf-8")
             result = self.lib.atomic_reconcile_cps(path, post_write_hook=corrupt)
             self.assertEqual(result["status"], "CPS_POST_WRITE_REREAD_FAILED_ROLLED_BACK")
             self.assertTrue(result["previous_state_preserved"])
@@ -275,6 +275,56 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertIn("current program terminal is `NONE`", rendered_row)
         self.assertIn("`SUPERSEDED/HISTORICAL`", rendered_row)
         self.assertEqual(self.delegated_validate(rendered)["contradiction_count"], 0)
+
+    def test_34_registry_smallest_action_is_fsse_02(self):
+        registry = self.lib._markdown_field_table(self.lib._markdown_section(
+            self.cps, "### Registry Metadata And Truth Lifecycle", "### Active Protected Work In Progress"
+        ))
+        self.assertEqual(registry["EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID"].strip("`"), "V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1")
+        self.assertIn("CAPACITY_BOUNDARY", registry["EXACT_CURRENT_SMALLEST_NEXT_ACTION"])
+
+    def test_35_registry_continuation_pointer_preempts_capability_wait(self):
+        registry = self.lib._markdown_field_table(self.lib._markdown_section(
+            self.cps, "### Registry Metadata And Truth Lifecycle", "### Active Protected Work In Progress"
+        ))
+        self.assertIn("consume the FSSE-02 program frontier", registry["OMP_CONTINUATION_POINTER"])
+        self.assertIn("preserve CAP-U07 WAITING WIP", registry["OMP_CONTINUATION_POINTER"])
+
+    def test_36_wip_local_wait_does_not_become_global_terminal(self):
+        wip = self.lib._markdown_field_table(self.lib._markdown_section(
+            self.cps, "### Active Protected Work In Progress", "### Complete Or Locked Capability Records"
+        ))
+        self.assertIn("REAL_WORLD_LIMIT_CAPABILITY_LOCAL", wip["current_primary_stop"])
+        self.assertIn("V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1", wip["current_primary_stop"])
+        self.assertIn("UNSAFE_IMPLEMENTATION", wip["current_primary_stop"])
+
+    def test_37_program_stage_mismatch_fails_derived_projection_gate(self):
+        drift = self.lib._replace_section_field(self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry", "CURRENT_PROGRAM_STAGE", "`STALE`")
+        result = self.validate(drift)
+        self.assertEqual(result["current_state_derived_projection_consistency"], "FAIL")
+
+    def test_38_program_frontier_mismatch_fails_derived_projection_gate(self):
+        drift = self.lib._replace_section_field(self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry", "CURRENT_PROGRAM_EXECUTION_FRONTIER", "`HEARTBEAT_DEPLOY`")
+        self.assertEqual(self.validate(drift)["current_state_derived_projection_consistency"], "FAIL")
+
+    def test_39_fsse_status_mismatch_fails_derived_projection_gate(self):
+        drift = self.lib._replace_section_field(self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry", "FSSE_STATUS", "`FSSE_01_NOT_ADMITTED`")
+        self.assertEqual(self.validate(drift)["current_state_derived_projection_consistency"], "FAIL")
+
+    def test_40_next_scenario_mismatch_fails_derived_projection_gate(self):
+        drift = self.lib._replace_section_field(self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry", "NEXT_SCENARIO_ID", "`NONE`")
+        self.assertEqual(self.validate(drift)["current_state_derived_projection_consistency"], "FAIL")
+
+    def test_41_sequence_head_binds_scenario_and_execution_class(self):
+        row = next(line for line in self.cps.splitlines() if line.startswith("| `1` |"))
+        self.assertIn("CAPACITY_BOUNDARY", row)
+        self.assertIn("EXISTING_OWNER_ENGINEERING_SCENARIO_IMPLEMENTATION", row)
+        self.assertIn("BOUNDED_ENGINEERING_SCENARIO_RESULT", row)
+
+    def test_42_current_derived_projection_gate_passes(self):
+        result = self.validate(self.cps)
+        self.assertEqual(result["current_state_derived_projection_consistency"], "PASS")
+        self.assertEqual(result["derived_projection_contradiction_count"], 0)
 
 
 if __name__ == "__main__":

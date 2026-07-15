@@ -19759,6 +19759,26 @@ def _markdown_table_value(text, key, default="UNKNOWN"):
     return match.group(1).strip() if match else default
 
 
+def _markdown_section_table(text, start_heading, end_heading=""):
+    start = (text or "").find(start_heading)
+    if start < 0:
+        return {}
+    end = (text or "").find(end_heading, start + len(start_heading)) if end_heading else -1
+    section = (text or "")[start:end if end >= 0 else len(text or "")]
+    fields = {}
+    for line in section.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) < 2:
+            continue
+        key = cells[0].strip("`")
+        if not key or key in {"Field", "---"} or set(key) == {"-"}:
+            continue
+        fields[key] = cells[1].strip().strip("`")
+    return fields
+
+
 def _first_match(text, pattern, default="UNKNOWN"):
     match = re.search(pattern, text or "", re.MULTILINE)
     return match.group(1).strip() if match else default
@@ -19792,9 +19812,17 @@ def omp_dashboard_response():
     omp = _canonical_doc_text("docs/programs/OPERATIONAL_MATURITY_PROGRAM.md")
     system_map = _canonical_doc_text("docs/reference/SYSTEM_MAP.md")
     canonical = _canonical_doc_text("docs/reference/V7_CANONICAL_REFERENCE.md")
-    current_step = _markdown_table_value(cps, "Current step", _markdown_table_value(cps, "Current bottleneck"))
-    previous_step = _markdown_table_value(cps, "Previous Step", "B2_ADD_HARD_FAILURE_TIMER_RISK_CLASS_TO_POLICY_WINDOWS")
-    next_step = _markdown_table_value(cps, "Next step", _markdown_table_value(cps, "Current safe next action"))
+    live = _markdown_section_table(
+        cps,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    )
+    current_program = live.get("ACTIVE_PROGRAM", "UNKNOWN")
+    current_step = live.get("CURRENT_ACTIVE_SCOPE", "UNKNOWN")
+    previous_step = live.get("LATEST_TERMINAL_MISSION_ID", "UNKNOWN")
+    next_step = live.get("CURRENT_NEXT_ACTION_ID", "UNKNOWN")
+    current_stop = live.get("CURRENT_STOP_CONDITION", "UNKNOWN")
+    next_scenario = live.get("NEXT_SCENARIO_ID", "NONE")
     production_maturity = _markdown_table_value(cps, "Production maturity score", _first_match(cps, r"Production Maturity\s*\n([0-9.]+%)", "39.0 / 100"))
     overall_progress = _markdown_table_value(cps, "Implementation backlog", _first_match(cps, r"Overall `?([0-9]+\s*/\s*[0-9]+)`?", "10 / 34"))
     return {
@@ -19808,6 +19836,9 @@ def omp_dashboard_response():
         "duplicate_dashboard": False,
         "runtime_change": False,
         "authority_change": False,
+        "current_state_owner": "docs/programs/V7_CURRENT_PROGRAM_STATE.md#0-authoritative-live-current-state",
+        "current_state_generation": live.get("CURRENT_STATE_GENERATION", "UNKNOWN"),
+        "current_transition_id": live.get("CURRENT_TRANSITION_ID", "UNKNOWN"),
         "sources": [
             "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md",
             "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
@@ -19825,26 +19856,32 @@ def omp_dashboard_response():
             "overall_progress": overall_progress,
             "production_maturity": production_maturity,
             "current_stage": current_step,
-            "current_capability": _markdown_table_value(cps, "Current capability produced", "Hard-Failure Policy Windows from B2"),
-            "current_risks": _markdown_table_value(cps, "Current Risks", "No runtime apply, automation, authority expansion, timer change, synthetic evidence, or user movement."),
-            "current_recommendation": _markdown_table_value(cps, "Current Recommendation", _markdown_table_value(cps, "Current highest leverage action")),
+            "current_program": current_program,
+            "current_capability": live.get("FSSE_STATUS", "UNKNOWN"),
+            "current_risks": "No Runtime mutation, production mutation, user movement or authority expansion is authorized.",
+            "current_recommendation": live.get("CURRENT_SAFE_NEXT_ACTION", next_step),
         },
         "operator_view": {
+            "current_program": current_program,
             "current_step": current_step,
             "previous_step": previous_step,
             "next_step": next_step,
-            "current_stop": _markdown_table_value(cps, "Current stop", _markdown_table_value(cps, "Current stop reason")),
+            "next_scenario": next_scenario,
+            "current_stop": current_stop,
+            "external_input_required": live.get("EXTERNAL_INPUT_REQUIRED", "UNKNOWN"),
+            "omp_continuation_required": live.get("OMP_CONTINUATION_REQUIRED", "UNKNOWN"),
             "rt2_stage": _markdown_table_value(cps, "rt2_current_execution_status", "COMPLETE_READ_ONLY"),
             "engineering_intelligence": _markdown_table_value(cps, "engineering_intelligence_completion_status", "FINAL_CANONICAL_STATE"),
-            "produced_capability": _markdown_table_value(cps, "Produced Capability", "Hard-Failure Policy Windows from B2"),
-            "unlocked_capability": _markdown_table_value(cps, "Unlocked Capability", "B3"),
-            "blocked_capability": _markdown_table_value(cps, "Blocked Capability", "Runtime apply, automation, authority expansion, queue daemon, planner replacement, user movement."),
+            "produced_capability": live.get("CURRENT_COMPLETION_VERDICT", "UNKNOWN"),
+            "unlocked_capability": next_step,
+            "blocked_capability": "Runtime apply, production mutation, authority expansion and user movement.",
         },
         "engineering_view": {
-            "transition": _markdown_table_value(cps, "Transition Contract", "B2 -> B3"),
-            "produced_evidence": _markdown_table_value(cps, "Produced evidence", "hard_failure_policy_windows = DONE_READ_ONLY_OWNER_MAPPED"),
-            "consumed_evidence": _markdown_table_value(cps, "Current capability consumed", "B3 soft-degradation threshold vocabulary alignment"),
-            "owner_mapping": _markdown_table_value(cps, "Owner Mapping", "OMP, CPS, SYSTEM_MAP, Canonical Reference"),
+            "transition": live.get("CURRENT_TRANSITION_ID", "UNKNOWN"),
+            "produced_evidence": live.get("FSSE_STATUS", "UNKNOWN"),
+            "consumed_evidence": live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "UNKNOWN"),
+            "owner_mapping": "Existing OMP, CPS, Engineering Polygon and invariant validator owners.",
+            "next_scenario": next_scenario,
             "canonical_route_rule_present": "/admin/omp" in (omp + system_map + canonical),
             "sources_traceable": all(bool(text) for text in (cps, omp, system_map, canonical)),
         },

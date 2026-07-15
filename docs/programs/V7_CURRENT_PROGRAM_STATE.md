@@ -267,8 +267,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
-| `OMP_CONTINUATION_POINTER` | consume the independent program frontier before capability-local waits; preserve CAP-U07 WAITING WIP and capability dependency order |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `approve the already validated safe deploy, then re-enable the same heartbeat for one post-repair natural run` |
+| `OMP_CONTINUATION_POINTER` | consume the FSSE-02 program frontier before capability-local real-world waits; preserve CAP-U07 WAITING WIP and capability dependency order |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `implement and certify the existing-owner FSSE-02 Future-Scale Polygon execution harness for CAPACITY_BOUNDARY` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -290,13 +290,13 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | `protected_by_active_wip` | `TRUE` |
 | `wip_priority_class` | `COMPLETION_FIRST` |
 | `active_wip_reorder_allowed` | `FALSE` |
-| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is OMP_REAL_CONSUMER_ACTIVATION at ENGINEERING_AUTHORITY` |
+| `current_primary_stop` | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1 at UNSAFE_IMPLEMENTATION` |
 | `responsibility_class` | `LEARNING` |
 | `authority_required_now` | `FALSE; current boundary is representative real evidence, not Authority` |
 | `last_responsible_link` | real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence |
 | `responsible_owners` | Existing feedback, decision-outcome learning, Production Maturity, CPS and OMP consumers |
 | `protected_objects` | Accepted U01 SUCCESS evidence; existing Learning owner contracts; CAP-U02/U05/U06 WAITING evidence and reentry conditions |
-| `smallest_existing_next_action` | preserve CAP-U07 evidence unchanged while OMP waits for a legal real engineering trigger |
+| `smallest_existing_next_action` | preserve CAP-U07 evidence unchanged while OMP consumes the executable FSSE-02 program frontier |
 | `binding_stability` | `CERTIFIED` |
 | `completion_condition` | Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass |
 
@@ -364,7 +364,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `FSSE_01_COMPLETE_FSSE_02_READY` program frontier; `cpsgen_V7_FSSE_FOUNDATION_V1_6D29A4C81E7F`; `FSSE_01_FOUNDATION_TO_FSSE_02_HARNESS_V1` | validated deterministic Future-Scale Scenario Corpus and invariant resolver consumed by OMP program reconciliation | `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1` | existing OMP, CPS, Engineering Polygon and invariant validator owners | `UNSAFE_IMPLEMENTATION` | FSSE-02 existing-owner execution harness -> bounded engineering scenario result -> invariant verdict -> BDP/OMP continuation |
+| `1` | `FSSE_01_COMPLETE_FSSE_02_READY` program frontier; `cpsgen_V7_FSSE_FOUNDATION_V1_6D29A4C81E7F`; `FSSE_01_FOUNDATION_TO_FSSE_02_HARNESS_V1` | validated deterministic Future-Scale Scenario Corpus; input scenario CAPACITY_BOUNDARY | `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1` | EXISTING_OWNER_ENGINEERING_SCENARIO_IMPLEMENTATION | `UNSAFE_IMPLEMENTATION` | BOUNDED_ENGINEERING_SCENARIO_RESULT -> INVARIANT_VERDICT_THEN_BDP_OMP_CONTINUATION |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |

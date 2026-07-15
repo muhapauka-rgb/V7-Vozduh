@@ -29,7 +29,30 @@ class OmpDocumentIndexTest(unittest.TestCase):
         self.assertIn("docs/reference/V7_CANONICAL_REFERENCE.md", paths)
         self.assertEqual(index.get("source"), "docs/reference/V7_OPERATOR_FILE_MEMO.md")
 
+    def test_live_dashboard_uses_authoritative_section_zero(self):
+        response = self.admin_api.omp_dashboard_response()
+        operator = response["operator_view"]
+        self.assertEqual(operator["current_program"], "FUTURE_SCALE_SCENARIO_ENGINEERING")
+        self.assertEqual(operator["current_step"], "FSSE_02_EXECUTION_HARNESS")
+        self.assertEqual(operator["next_step"], "V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1")
+        self.assertEqual(operator["next_scenario"], "CAPACITY_BOUNDARY")
+        self.assertEqual(operator["current_stop"], "UNSAFE_IMPLEMENTATION")
+        self.assertEqual(operator["external_input_required"], "FALSE")
+        self.assertEqual(operator["omp_continuation_required"], "TRUE")
+
+    def test_historical_dashboard_cannot_override_live_dashboard(self):
+        response = self.admin_api.omp_dashboard_response()
+        rendered = repr({
+            "executive": response["executive_view"],
+            "operator": response["operator_view"],
+            "engineering": response["engineering_view"],
+        })
+        self.assertNotIn("ACTIONABLE_BACKLOG_COMPLETE", rendered)
+        self.assertNotIn("wait for explicit operator-approved scope", rendered)
+        self.assertNotIn("B2 -> B3", rendered)
+        self.assertEqual(response["current_state_generation"], "cpsgen_V7_FSSE_FOUNDATION_V1_6D29A4C81E7F")
+        self.assertEqual(response["current_transition_id"], "FSSE_01_FOUNDATION_TO_FSSE_02_HARNESS_V1")
+
 
 if __name__ == "__main__":
     unittest.main()
-

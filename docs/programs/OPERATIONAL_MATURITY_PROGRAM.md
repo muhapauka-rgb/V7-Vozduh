@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.25`
+Version: `4.26`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -13,8 +13,8 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed closure evidence: `docs/reports/engineering/2026-07-14_233300_omp_heartbeat_real_consumer_wiring.md` (`REPAIR_IMPLEMENTED_DEPLOY_BLOCKED_ENGINEERING_AUTHORITY`).
-Previous consumed closure evidence: `docs/reports/engineering/2026-07-14_215106_phase2_to_current_real_effect_audit.md` (`PHASE2_TO_CURRENT_AUDIT_CORRECTED_ENGINEERING_AUTHORITY_REQUIRED`; retained pre-activation truth).
+Latest consumed closure evidence: `docs/reports/engineering/2026-07-15_094920_future_scale_polygon_foundation.md` (`FUTURE_SCALE_POLYGON_FOUNDATION_IMPLEMENTED_CONSUMED_FSSE_02_READY`).
+Previous consumed closure evidence: `docs/reports/engineering/2026-07-15_090500_omp_heartbeat_external_reentry_certification.md` (`OMP_HEARTBEAT_NATURAL_RUN_FAILED`; deferred platform boundary).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -35,6 +35,8 @@ V4.23 adds program execution and consumption reconciliation inside existing OMP 
 V4.24 adds Functional Footprint and Real Consumer Activation enforcement inside the same OMP continuation owner. Implemented, tested, deployed, documented or manually callable code is not automation. `COMPLETE_CONSUMED` requires a real non-test trigger, an active owner-correct entrypoint, actual invocation, consumer behavior change and a next output. Manual `Continue OMP` remains `CODEX_ASSISTED`; it is not independent engineering automation. A paused heartbeat, inactive adapter or unrelated production timer cannot satisfy the consumer contract. Activation remains fail-closed at the existing Engineering Authority boundary.
 
 V4.25 adds the Mission Completion Evidence Gate inside existing OMP, Engineering Intent Closure, State Transition and truth/convergence owners. Every Mission declares one typed completion contract before promotion. Analysis, Discovery, Acceptance and Documentation may close at their exact legal evidence terminal; Implementation remains `IMPLEMENTED_NOT_CONSUMED` until consumption; Integration requires a real non-test caller, consumer, behavior change and next output; Automation additionally requires an independent trigger plus idempotency; Runtime and Production require their own live effects and verification. Tests, reports, deployment and manual Codex runs cannot promote a stronger class. `tools/v7-truth-check` consumes the validator through existing CPS functional-footprint consistency.
+
+V4.26 adds Future-Scale Scenario Engineering to the existing Engineering Polygon and OMP continuation owners. When ordinary safe engineering work is exhausted, OMP immediately builds a deterministic Scenario Frontier from owner-bound machine-readable scenarios, stable invariant identities, current source/dependency fingerprints and current coverage. Scenario results are Engineering Evidence only: they may expose reproducible defects and certify invariant behavior, but cannot claim production outcomes, grant Authority, mutate Runtime, move users or increase Production Maturity. A reproducible mismatch flows through the existing BDP -> Candidate -> OMP Mission lifecycle. No new Polygon, owner, Runtime, Planner, scheduler, queue, truth source or simulation platform is created.
 
 V4 operating questions:
 
@@ -738,6 +740,45 @@ Corpus order and identity must be deterministic and independent of filesystem en
 Normal OMP work always preempts this fallback. The fallback may not create a queue, scheduler, registry, owner, Engine, Runtime, Planner, lifecycle, Authority, packet, Candidate or production evidence. It may not mutate Runtime, move users, write restore barriers, expand blast radius or earn Production Maturity.
 
 `PROACTIVE_INPUT_BUDGET_EXHAUSTED` is a continuation boundary, not a program terminal: the compact next-input projection must be materialized for the next existing OMP invocation. `REAL_WORLD_EVIDENCE_REQUIRED_AFTER_FULL_CURRENT_CORPUS_EXHAUSTION` is legal only when discovery is complete, every eligible current input is `PASS_CURRENT` or legally not applicable, no stale or unevaluated input remains, and no current Scenario was produced.
+
+#### Future-Scale Scenario Engineering Contract
+
+Status: `CANONICAL_EXISTING_OWNER_INTEGRATION`
+
+Ordinary OMP work has priority: active Mission, accepted Candidate, READY capability, stale real verification and open safe Engineering Intent must be consumed before synthetic scenario work. When that ordinary frontier is exhausted, OMP must inspect the Scenario Frontier immediately and must not return a global `REAL_WORLD_LIMIT` while an uncovered or stale safe scenario exists.
+
+Canonical route:
+
+```text
+program_execution_reconciliation
+  -> ordinary frontier evaluation
+  -> Future-Scale Scenario Frontier
+  -> deterministic scenario identity and invariant binding
+  -> exact next scenario
+  -> existing OMP consumer
+  -> FSSE execution-harness next output or legal stop
+```
+
+Scenario, replay, load, emulation and fault-injection results are `ENGINEERING_SCENARIO_EVIDENCE`. They may reveal defects, produce BDP inputs, justify bounded code repair, and certify invariant, scale or concurrency behavior. They may not claim real user/provider behavior, grant Runtime or action-class Authority, increase Production Maturity, count as a production outcome, mutate Runtime or move users.
+
+A scenario is legal only when it has deterministic identity/version/seed/fingerprint, future-scale relevance, risk and engineering-value classes, stable invariant IDs, existing responsible owners, source and owner dependency bindings, expected legal terminals and explicit forbidden effects. Meaningless synthetic activity is forbidden.
+
+A previous PASS becomes stale when any bound scenario input, source, consumer, invariant, policy, topology model, generator, dependency or authority rule changes. Frontier exhaustion requires all eligible critical scenarios covered, stale results replayed, reproducible mismatches routed, the bounded budget consumed or a legal stop proven, and no higher-priority safe scenario remaining.
+
+Priority is deterministic and ordinal: safety; route loss/isolation; correlated failure; capacity collapse; stale/contradictory state; recovery/rollback; duplicate/replay/concurrency; future-scale coverage; performance; low-risk optimization. Ordinary OMP work always preempts this ordering.
+
+A reproducible mismatch must flow without report transcription:
+
+```text
+Scenario Result
+  -> invariant violation
+  -> deterministic reproduction
+  -> BDP input
+  -> Candidate
+  -> OMP Mission
+```
+
+Scenario batches and repair cycles continue internally inside the active OMP execution. External heartbeat is not an interval between scenario steps. Machine decisions are limited to `SCENARIO_FRONTIER_AVAILABLE`, `SCENARIO_FRONTIER_EXHAUSTED`, `SCENARIO_RESULT_STALE`, `SCENARIO_READY`, `SCENARIO_MISMATCH`, `SCENARIO_BUDGET_REACHED`, `SCENARIO_STOP_SAFE`, `ORDINARY_FRONTIER_SELECTED`, `SCENARIO_FOUNDATION_READY_EXECUTION_HARNESS_REQUIRED`, and `EXTERNAL_REALITY_REQUIRED_AFTER_ENGINEERING_EXHAUSTION`.
 
 #### Execution Certification Candidate Certificate Consumption Rule
 
@@ -7774,8 +7815,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `ENGINEERING_AUTHORITY`
-Resolved current next action: `APPROVE_SAFE_DEPLOY_THEN_ENABLE_POST_REPAIR_NATURAL_RUN`
+Resolved current stop: `UNSAFE_IMPLEMENTATION`
+Resolved current next action: `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1`
 Resolved packet: `NONE_OPEN`
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -8762,10 +8803,10 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `ENGINEERING_AUTHORITY`
-Resolved current next action: `APPROVE_SAFE_DEPLOY_THEN_ENABLE_POST_REPAIR_NATURAL_RUN`
-Latest consumed report: `docs/reports/engineering/2026-07-14_233300_omp_heartbeat_real_consumer_wiring.md`
-Previous consumed report: `docs/reports/engineering/2026-07-14_215106_phase2_to_current_real_effect_audit.md` (`PHASE2_TO_CURRENT_AUDIT_CORRECTED_ENGINEERING_AUTHORITY_REQUIRED`)
+Resolved current stop: `UNSAFE_IMPLEMENTATION`
+Resolved current next action: `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1`
+Latest consumed report: `docs/reports/engineering/2026-07-15_094920_future_scale_polygon_foundation.md`
+Previous consumed report: `docs/reports/engineering/2026-07-15_090500_omp_heartbeat_external_reentry_certification.md` (`OMP_HEARTBEAT_NATURAL_RUN_FAILED`; deferred platform boundary)
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

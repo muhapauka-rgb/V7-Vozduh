@@ -699,6 +699,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--mission-report", default="", help="New Engineering Report path.")
     parser.add_argument("--cps", default="docs/programs/V7_CURRENT_PROGRAM_STATE.md", help="CPS path for Mission identity validation.")
     parser.add_argument("--omp-heartbeat-reentry", action="store_true", help="Run one read-only OMP heartbeat reentry cycle.")
+    parser.add_argument("--omp-program-reconciliation", action="store_true", help="Run one read-only OMP program and Scenario Frontier reconciliation.")
     parser.add_argument("--heartbeat-event-time", default="", help="Owner-backed platform heartbeat event timestamp.")
     parser.add_argument("--heartbeat-automation-id", default=sync_lib.HEARTBEAT_AUTOMATION_ID)
     parser.add_argument("--heartbeat-target-thread-id", default=sync_lib.HEARTBEAT_TARGET_THREAD_ID)
@@ -721,6 +722,23 @@ def selected_mode(args: argparse.Namespace) -> str:
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = build_arg_parser().parse_args(argv)
+    if args.omp_program_reconciliation:
+        try:
+            sources = sync_lib.load_program_execution_sources(ROOT_DIR)
+            result = sync_lib.program_execution_reconciliation(sources, root=ROOT_DIR)
+        except OSError as exc:
+            result = {
+                "schema": "v7-omp-program-execution-reconciliation/v1",
+                "final_verdict": "STOP_SAFE",
+                "errors": [f"program_execution_source_unreadable:{exc}"],
+            }
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"program_reconciliation={result.get('final_verdict', 'STOP_SAFE')}")
+            print(f"scenario_frontier_decision={result.get('scenario_frontier_decision', 'SCENARIO_STOP_SAFE')}")
+            print(f"next_output={result.get('scenario_frontier_next_output', 'STOP_SAFE')}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
     if args.omp_heartbeat_reentry:
         result = sync_lib.heartbeat_program_reentry(
             event_time=args.heartbeat_event_time,

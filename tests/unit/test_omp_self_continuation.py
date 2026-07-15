@@ -87,7 +87,7 @@ class OmpSelfContinuationTest(unittest.TestCase):
 
     def test_omp_contains_canonical_contract(self):
         text = OMP.read_text(encoding="utf-8")
-        self.assertIn("Version: `4.25`", text)
+        self.assertIn("Version: `4.26`", text)
         self.assertIn("### 14.1 OMP Self-Continuation Contract", text)
         self.assertIn("Engineering Polygon Scenario Supply Consumption Rule", text)
         self.assertIn("Proactive Verification Input Consumption Rule", text)
@@ -97,17 +97,29 @@ class OmpSelfContinuationTest(unittest.TestCase):
         self.assertIn("PREMATURE_OMP_RETURN_TO_OPERATOR", text)
         self.assertIn("OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY", text)
 
-    def test_materialized_cps_waits_at_deploy_authority_boundary(self):
+    def test_materialized_cps_continues_to_fsse02(self):
         result = self.lib.omp_self_continuation_consistency(CPS.read_text(encoding="utf-8"))
         self.assertEqual(result["final_verdict"], "PASS")
-        self.assertEqual(result["omp_continuation_required"], "FALSE")
-        self.assertEqual(result["external_input_required"], "TRUE")
-        self.assertEqual(result["external_input_type"], "ENGINEERING_AUTHORITY")
-        self.assertEqual(result["continuation_iteration"], "14")
+        self.assertEqual(result["omp_continuation_required"], "TRUE")
+        self.assertEqual(result["external_input_required"], "FALSE")
+        self.assertEqual(result["external_input_type"], "NONE")
+        self.assertEqual(result["continuation_iteration"], "15")
 
     def test_materialized_external_boundary_cannot_be_marked_for_continuation(self):
         cps = CPS.read_text(encoding="utf-8")
-        cps = cps.replace("| `OMP_CONTINUATION_REQUIRED` | `FALSE` |", "| `OMP_CONTINUATION_REQUIRED` | `TRUE` |", 1)
+        for key, value in (
+            ("OMP_CONTINUATION_REQUIRED", "`TRUE`"),
+            ("EXTERNAL_INPUT_REQUIRED", "`TRUE`"),
+            ("EXTERNAL_INPUT_TYPE", "`ENGINEERING_AUTHORITY`"),
+            ("PROGRAM_TERMINAL_CLASS", "`ENGINEERING_AUTHORITY`"),
+        ):
+            cps = self.lib._replace_section_field(
+                cps,
+                "## 0. Authoritative Live Current State",
+                "## Authoritative Unfinished Capability Closure Registry",
+                key,
+                value,
+            )
         result = self.lib.omp_self_continuation_consistency(cps)
         self.assertIn("omp_external_boundary_continuation_conflict", result["errors"])
 

@@ -268,8 +268,11 @@ class AepPhase3AcceptanceAndPhase4ConsumptionTest(unittest.TestCase):
     def test_29_engineering_intent_requires_real_consumer_confirmation(self):
         self.assertFalse(self.reconcile(locked=True, implemented=True)["aep_phase4_consumed"])
 
-    def test_30_next_omp_action_is_real_consumer_activation(self):
-        self.assertEqual(self.reconcile(locked=True, implemented=True)["executable_program_frontier"], ["OMP_REAL_CONSUMER_ACTIVATION"])
+    def test_30_next_omp_action_is_fsse02_when_external_reentry_is_deferred(self):
+        self.assertEqual(
+            self.reconcile(locked=True, implemented=True)["executable_program_frontier"],
+            ["V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1"],
+        )
 
     def test_31_real_consumer_proof_opens_phase5(self):
         result = self.reconcile(locked=True, implemented=True, real_consumer=True)

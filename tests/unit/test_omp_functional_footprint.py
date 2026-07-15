@@ -24,10 +24,10 @@ class OmpFunctionalFootprintTest(unittest.TestCase):
         cls.lib = load_lib()
         cls.cps = CPS.read_text()
 
-    def test_current_repository_has_one_bounded_reconciliation_caller(self):
+    def test_current_repository_has_heartbeat_and_cli_reconciliation_callers(self):
         result = self.lib.python_function_call_sites(ROOT, "program_execution_reconciliation")
-        self.assertEqual(result["real_caller_count"], 1)
-        self.assertGreaterEqual(result["test_caller_count"], 3)
+        self.assertEqual(result["real_caller_count"], 2)
+        self.assertGreaterEqual(result["test_caller_count"], 4)
 
     def test_test_calls_are_not_real_consumers(self):
         result = self.lib.python_function_call_sites(ROOT, "program_execution_reconciliation")

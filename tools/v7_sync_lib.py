@@ -39,43 +39,43 @@ DEPLOY_CONFIRMATION = "DEPLOY_V7_APPROVED"
 RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
 
 NORMALIZED_CPS_LIVE_STATE = {
-    "active_program": "OMP_HEARTBEAT_REAL_CONSUMER_WIRING",
+    "active_program": "FUTURE_SCALE_SCENARIO_ENGINEERING",
     "current_mode": "BOUNDED_DELEGATED_AUTONOMY_ACTIVE",
-    "current_stop_condition": "ENGINEERING_AUTHORITY",
-    "current_active_scope": "OMP_HEARTBEAT_POST_REPAIR_NATURAL_RUN",
-    "current_safe_next_action": "OBTAIN EXPLICIT SAFE DEPLOY APPROVAL, DEPLOY THE ADMITTED HEARTBEAT REPAIR, THEN RE-ENABLE EXACTLY ONE NATURAL 30-MINUTE RUN",
-    "current_scope_class": "ENGINEERING_AUTOMATION_BOUNDARY",
+    "current_stop_condition": "UNSAFE_IMPLEMENTATION",
+    "current_active_scope": "FSSE_02_EXECUTION_HARNESS",
+    "current_safe_next_action": "IMPLEMENT AND CERTIFY THE EXISTING-OWNER FUTURE-SCALE POLYGON EXECUTION HARNESS",
+    "current_scope_class": "ENGINEERING_SCENARIO_BOUNDARY",
     "current_execution_mission_id": "NONE",
     "current_execution_mission_state": "NONE",
-    "latest_terminal_mission_id": "V7_OMP_HEARTBEAT_REAL_CONSUMER_WIRING_V1",
-    "latest_terminal_run_nonce": "V7_OMP_REAL_CONSUMER_ACTIVATION_V1_3E8A71D25C9F",
-    "latest_terminal_mission_state": "REPAIR_IMPLEMENTED_DEPLOY_BLOCKED_ENGINEERING_AUTHORITY",
-    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-14_233300_omp_heartbeat_real_consumer_wiring.md",
-    "latest_terminal_mission_started_at": "2026-07-14T23:16:18+0700",
-    "previous_terminal_mission_id": "V7_OMP_PHASE2_TO_CURRENT_REAL_EFFECT_AND_COMPLETION_TRUTH_AUDIT_V1",
-    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-14_215106_phase2_to_current_real_effect_audit.md",
+    "latest_terminal_mission_id": "V7_FUTURE_SCALE_POLYGON_FOUNDATION_V1",
+    "latest_terminal_run_nonce": "V7_FSSE_FOUNDATION_V1_6D29A4C81E7F",
+    "latest_terminal_mission_state": "FUTURE_SCALE_POLYGON_FOUNDATION_IMPLEMENTED_CONSUMED_FSSE_02_READY",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-15_094920_future_scale_polygon_foundation.md",
+    "latest_terminal_mission_started_at": "2026-07-15T09:49:20+0700",
+    "previous_terminal_mission_id": "V7_OMP_HEARTBEAT_CANONICAL_DESCENDANT_DEPLOY_AND_EXTERNAL_REENTRY_CERTIFICATION_V2",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-15_090500_omp_heartbeat_external_reentry_certification.md",
     "authoritative_transition_input_mission_id": "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3",
     "authoritative_transition_input_state": "MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED",
     "authoritative_transition_input_report": "docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md",
     "current_mission_role": "LATEST_TERMINAL_MISSION",
-    "current_mission_id": "V7_OMP_HEARTBEAT_REAL_CONSUMER_WIRING_V1",
-    "current_run_nonce": "V7_OMP_REAL_CONSUMER_ACTIVATION_V1_3E8A71D25C9F",
-    "current_mission_state": "REPAIR_IMPLEMENTED_DEPLOY_BLOCKED_ENGINEERING_AUTHORITY",
-    "current_mission_report": "docs/reports/engineering/2026-07-14_233300_omp_heartbeat_real_consumer_wiring.md",
-    "state_captured": "2026-07-15T00:10:00+0700",
-    "current_state_generation": "cpsgen_V7_OMP_HEARTBEAT_DEPLOY_BLOCKED_V1_3E8A71D25C9F",
-    "current_transition_id": "OMP_HEARTBEAT_REPAIR_DEPLOY_BLOCKED_ENGINEERING_AUTHORITY_V1",
-    "current_next_action_id": "APPROVE_SAFE_DEPLOY_THEN_ENABLE_POST_REPAIR_NATURAL_RUN",
-    "current_program_stage": "AEP_PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE",
-    "current_program_execution_frontier": "OMP_REAL_CONSUMER_ACTIVATION",
-    "program_frontier_input": "first natural heartbeat reached the adapter and proved the missing reconciliation invocation; one source entrypoint is now wired but not naturally certified",
-    "program_frontier_owner": "existing OMP, CPS, Codex Automation Platform and heartbeat boundary owners",
-    "program_frontier_expected_output": "explicit deploy approval -> safe deploy -> one post-repair natural heartbeat -> reconciliation -> legal no-action or next output -> certification",
+    "current_mission_id": "V7_FUTURE_SCALE_POLYGON_FOUNDATION_V1",
+    "current_run_nonce": "V7_FSSE_FOUNDATION_V1_6D29A4C81E7F",
+    "current_mission_state": "FUTURE_SCALE_POLYGON_FOUNDATION_IMPLEMENTED_CONSUMED_FSSE_02_READY",
+    "current_mission_report": "docs/reports/engineering/2026-07-15_094920_future_scale_polygon_foundation.md",
+    "state_captured": "2026-07-15T09:49:20+0700",
+    "current_state_generation": "cpsgen_V7_FSSE_FOUNDATION_V1_6D29A4C81E7F",
+    "current_transition_id": "FSSE_01_FOUNDATION_TO_FSSE_02_HARNESS_V1",
+    "current_next_action_id": "V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1",
+    "current_program_stage": "FSSE_01_COMPLETE_FSSE_02_READY",
+    "current_program_execution_frontier": "V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1",
+    "program_frontier_input": "validated deterministic Future-Scale Scenario Corpus and invariant resolver consumed by OMP program reconciliation",
+    "program_frontier_owner": "existing OMP, CPS, Engineering Polygon and invariant validator owners",
+    "program_frontier_expected_output": "FSSE-02 existing-owner execution harness -> bounded engineering scenario result -> invariant verdict -> BDP/OMP continuation",
     "protected_capability_wip": "CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; preserved and not reordered",
     "binding_stability": "PASS",
     "binding_schema": "v7.operation-scoped-source-binding.v2",
     "routing_readiness_state": "PASS_CANDIDATE_SCOPED",
-    "authority_required_now": "ENGINEERING_AUTHORITY_FOR_EXISTING_HEARTBEAT_ENABLEMENT_ONLY",
+    "authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
     "current_action_class": "single-user governed candidate failover",
     "current_action_class_state": "GOVERNED_ONLY",
     "old_packets_reusable": "NO",
@@ -88,9 +88,9 @@ NORMALIZED_CPS_LIVE_STATE = {
     "waiting_capabilities": "CAP-U02,CAP-U05,CAP-U06,CAP-U07",
     "ready_capabilities": "NONE",
     "blocked_capabilities": "CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22",
-    "continuation_decision": "ENGINEERING_AUTHORITY_REQUIRED",
+    "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
     "next_executable_capability": "NONE",
-    "program_terminal_state": "ENGINEERING_AUTHORITY_REAL_CONSUMER_ACTIVATION_REQUIRED",
+    "program_terminal_state": "NONE_FSSE_02_PROGRAM_FRONTIER_EXISTS",
     "cap_u01_completion_report": "docs/reports/engineering/2026-07-12_172534_exact_route_repair_and_first_governed_success.md",
     "responsibility_class": "LEARNING",
     "last_responsible_link": "real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence",
@@ -114,11 +114,11 @@ NORMALIZED_CPS_LIVE_STATE = {
     "user_movement": "NO; current Mission performed evidence refresh and read-only revalidation only",
     "admin_safe_mode_live_state": "schema=v7.autonomous-execution-control.v2; state=OPEN; generation=aec_dda6c420c87e99e97236883c; reason=GOVERNED_TRANSACTION_COMPLETED",
     "parent_engineering_intent": "INTENT_NOT_CLOSED; CAP-U07 consumed one real success but representative Learning evidence remains a real-world dependency",
-    "source_summary": "The first natural heartbeat proved adapter-only execution; the admitted existing-owner repair is implemented, committed and pushed, while safe deploy is blocked by the external Engineering Authority gate.",
-    "automatic_continue_omp_result": "DEPLOY_BLOCKED_ENGINEERING_AUTHORITY; heartbeat paused before any post-repair natural run",
-    "required_workflow": "explicitly approve safe deploy -> deploy the existing read-only entrypoint -> re-enable the same heartbeat -> wait one natural heartbeat -> verify reconciliation, consumer and legal terminal",
+    "source_summary": "FSSE-01 reuses the existing Engineering Polygon and OMP reconciliation owners to produce a deterministic scenario frontier without Runtime or production effects.",
+    "automatic_continue_omp_result": "FSSE_02_READY; exact next Mission materialized through the existing OMP consumer",
+    "required_workflow": "implement existing-owner FSSE-02 execution harness -> verify deterministic engineering scenario -> route mismatches through BDP/OMP",
     "omp_controlled_run_allowed": "NO_CURRENT_EXECUTION; synthetic or forced outcomes are forbidden",
-    "controlled_run_authority_required_now": "NO_RUNTIME_AUTHORITY; current boundary is engineering heartbeat enablement only",
+    "controlled_run_authority_required_now": "NO_RUNTIME_AUTHORITY; current boundary is FSSE-02 engineering implementation only",
     "controlled_run_execution_authorized": "NO_CURRENT_PACKET; no forced evidence generation or movement is authorized",
     "wip_authority_required_now": "FALSE; current boundary is representative real evidence, not Authority",
     "wip_current_primary_stop": "REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is OMP_REAL_CONSUMER_ACTIVATION at ENGINEERING_AUTHORITY",
@@ -131,20 +131,20 @@ NORMALIZED_CPS_LIVE_STATE = {
     "complete_or_locked_capabilities": "13",
     "unfinished_capabilities": "21",
     "open_engineering_intents": "21",
-    "omp_continuation_required": "FALSE",
-    "external_input_required": "TRUE",
-    "external_input_type": "ENGINEERING_AUTHORITY",
-    "transaction_terminal_class": "REPAIR_IMPLEMENTED_DEPLOY_BLOCKED_ENGINEERING_AUTHORITY",
-    "program_terminal_class": "ENGINEERING_AUTHORITY",
-    "next_mission_formed": "FALSE",
-    "next_mission_id": "NONE",
+    "omp_continuation_required": "TRUE",
+    "external_input_required": "FALSE",
+    "external_input_type": "NONE",
+    "transaction_terminal_class": "INTEGRATION_COMPLETE",
+    "program_terminal_class": "NONE",
+    "next_mission_formed": "TRUE",
+    "next_mission_id": "V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1",
     "premature_operator_return": "FALSE",
-    "continuation_iteration": "14",
-    "continuation_stop_reason": "REPAIR_IMPLEMENTED_AND_PUSHED; SAFE_DEPLOY_REQUIRES_EXPLICIT_ENGINEERING_AUTHORITY",
-    "no_progress_fingerprint": "10a01e3c8583599a18700ef0c0a74e282e0b0afd2b9bec55a6369e864a8fa13a",
-    "program_reconciliation_footprint_class": "SOURCE_ENTRYPOINT_WIRED_PAUSED_DEPLOY_BLOCKED",
-    "program_reconciliation_real_callers": "1",
-    "program_reconciliation_test_callers": "3",
+    "continuation_iteration": "15",
+    "continuation_stop_reason": "FSSE_01_COMPLETE; FSSE_02_EXECUTION_HARNESS_NOT_YET_IMPLEMENTED",
+    "no_progress_fingerprint": "78ab1f01d84288c6bdd2587c0d578556fe217558b664e00cd4b5deb32725f951",
+    "program_reconciliation_footprint_class": "REAL_CLI_AND_OMP_CONSUMER_CONNECTED",
+    "program_reconciliation_real_callers": "2",
+    "program_reconciliation_test_callers": "4",
     "omp_automation_level": "CODEX_ASSISTED",
     "heartbeat_status": "PAUSED",
     "automation_enabled": "FALSE",
@@ -159,8 +159,32 @@ NORMALIZED_CPS_LIVE_STATE = {
     "aep_phase5_status": "BLOCKED_MISSING_REAL_CONSUMER",
     "aep_phase6_status": "BLOCKED_BY_PHASE_5",
     "mission_completion_evidence_gate": "ACTIVE_V1",
-    "current_completion_contract": "AUTOMATION_COMPLETION",
-    "current_completion_verdict": "AUTOMATION_INCOMPLETE",
+    "current_completion_contract": "INTEGRATION_COMPLETION",
+    "current_completion_verdict": "COMPLETE_CONSUMED",
+    "fsse_status": "FSSE_01_FOUNDATION_COMPLETE_FSSE_02_READY",
+    "fsse_00_external_reentry_status": "DEFERRED_PLATFORM_CERTIFICATION",
+    "fsse_00_blocks_fsse_01": "FALSE",
+    "manual_continue_omp_fallback": "ACTIVE",
+    "scenario_coverage_generation": "fssef_78ab1f01d84288c6bdd2587c",
+    "scenario_coverage_fingerprint": "78ab1f01d84288c6bdd2587c0d578556fe217558b664e00cd4b5deb32725f951",
+    "scenario_target_level": "SAFETY_BASELINE_FOUNDATION_READY",
+    "scenario_corpus_count": "10",
+    "scenario_eligible_count": "10",
+    "scenario_covered_count": "0",
+    "scenario_stale_count": "0",
+    "scenario_blocked_count": "0",
+    "scenario_mismatch_count": "0",
+    "next_scenario_id": "CAPACITY_BOUNDARY",
+    "next_scenario_reason": "invariants=BLAST_RADIUS_BOUND",
+    "active_scenario_id": "NONE",
+    "last_scenario_id": "NONE",
+    "last_scenario_verdict": "NONE",
+    "last_scenario_fingerprint": "NONE",
+    "active_scenario_candidate": "NONE",
+    "active_scenario_mission": "NONE",
+    "scenario_budget": "10",
+    "scenario_stop_reason": "FSSE_02_EXECUTION_HARNESS_REQUIRED",
+    "fsse_next_action": "V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1",
 }
 
 
@@ -764,6 +788,30 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "MISSION_COMPLETION_EVIDENCE_GATE": f"`{state['mission_completion_evidence_gate']}`",
         "CURRENT_COMPLETION_CONTRACT": f"`{state['current_completion_contract']}`",
         "CURRENT_COMPLETION_VERDICT": f"`{state['current_completion_verdict']}`",
+        "FSSE_STATUS": f"`{state['fsse_status']}`",
+        "FSSE_00_EXTERNAL_REENTRY_STATUS": f"`{state['fsse_00_external_reentry_status']}`",
+        "FSSE_00_BLOCKS_FSSE_01": f"`{state['fsse_00_blocks_fsse_01']}`",
+        "MANUAL_CONTINUE_OMP_FALLBACK": f"`{state['manual_continue_omp_fallback']}`",
+        "SCENARIO_COVERAGE_GENERATION": f"`{state['scenario_coverage_generation']}`",
+        "SCENARIO_COVERAGE_FINGERPRINT": f"`{state['scenario_coverage_fingerprint']}`",
+        "SCENARIO_TARGET_LEVEL": f"`{state['scenario_target_level']}`",
+        "SCENARIO_CORPUS_COUNT": f"`{state['scenario_corpus_count']}`",
+        "SCENARIO_ELIGIBLE_COUNT": f"`{state['scenario_eligible_count']}`",
+        "SCENARIO_COVERED_COUNT": f"`{state['scenario_covered_count']}`",
+        "SCENARIO_STALE_COUNT": f"`{state['scenario_stale_count']}`",
+        "SCENARIO_BLOCKED_COUNT": f"`{state['scenario_blocked_count']}`",
+        "SCENARIO_MISMATCH_COUNT": f"`{state['scenario_mismatch_count']}`",
+        "NEXT_SCENARIO_ID": f"`{state['next_scenario_id']}`",
+        "NEXT_SCENARIO_REASON": f"`{state['next_scenario_reason']}`",
+        "ACTIVE_SCENARIO_ID": f"`{state['active_scenario_id']}`",
+        "LAST_SCENARIO_ID": f"`{state['last_scenario_id']}`",
+        "LAST_SCENARIO_VERDICT": f"`{state['last_scenario_verdict']}`",
+        "LAST_SCENARIO_FINGERPRINT": f"`{state['last_scenario_fingerprint']}`",
+        "ACTIVE_SCENARIO_CANDIDATE": f"`{state['active_scenario_candidate']}`",
+        "ACTIVE_SCENARIO_MISSION": f"`{state['active_scenario_mission']}`",
+        "SCENARIO_BUDGET": f"`{state['scenario_budget']}`",
+        "SCENARIO_STOP_REASON": f"`{state['scenario_stop_reason']}`",
+        "FSSE_NEXT_ACTION": f"`{state['fsse_next_action']}`",
     }
     for key, value in live_values.items():
         cps_text = _replace_section_field(
@@ -1878,7 +1926,7 @@ def _aep_phase3_lock_fingerprint(
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
-def program_execution_reconciliation(sources: dict[str, Any]) -> dict[str, Any]:
+def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = ROOT) -> dict[str, Any]:
     """Reconcile canonical program stages, consumption, and the global stop."""
     stage2 = sources.get("stage2", "")
     aep = sources.get("aep", "")
@@ -2104,9 +2152,10 @@ def program_execution_reconciliation(sources: dict[str, Any]) -> dict[str, Any]:
     counts: dict[str, int] = {}
     for stage in stages:
         counts[stage["status"]] = counts.get(stage["status"], 0) + 1
-    current_stop = _markdown_field_table(_markdown_section(
+    live_state = _markdown_field_table(_markdown_section(
         cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
-    )).get("CURRENT_STOP_CONDITION", "").strip("`")
+    ))
+    current_stop = live_state.get("CURRENT_STOP_CONDITION", "").strip("`")
     acceptance_boundary = phase2_executed and phase2_revalidated and not phase2_accepted
     missing_stage = not phase2_accepted
     global_real_world_valid = current_stop == "REAL_WORLD_LIMIT" and not missing_stage
@@ -2117,7 +2166,7 @@ def program_execution_reconciliation(sources: dict[str, Any]) -> dict[str, Any]:
         errors.append("aep_phase1_not_accepted")
     if not phase2_executed:
         errors.append("aep_phase2_output_missing_or_incomplete")
-    if "Version: `4.25`" not in omp:
+    if "Version: `4.26`" not in omp:
         errors.append("omp_program_reconciliation_version_missing")
     if "Program Execution And Consumption Reconciliation Rule" not in omp:
         errors.append("omp_program_reconciliation_rule_missing")
@@ -2139,6 +2188,23 @@ def program_execution_reconciliation(sources: dict[str, Any]) -> dict[str, Any]:
         else ["AEP_PHASE_2_CURRENT_REALITY_REVALIDATION"] if missing_stage
         else ["AEP_PHASE_3_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER"]
     )
+    fsse_external_reentry_deferred = (
+        live_state.get("FSSE_00_EXTERNAL_REENTRY_STATUS", "").strip("`")
+        == "DEFERRED_PLATFORM_CERTIFICATION"
+    )
+    ordinary_frontier_deferred = (
+        fsse_external_reentry_deferred
+        and frontier == ["OMP_REAL_CONSUMER_ACTIVATION"]
+        and live_state.get("CURRENT_EXECUTION_MISSION_ID", "").strip("`") in {"", "NONE"}
+        and live_state.get("READY_CAPABILITIES", "").strip("`") in {"", "NONE"}
+    )
+    scenario_frontier = future_scale_scenario_frontier(
+        cps,
+        root=root,
+        ordinary_work_available=bool(frontier) and not ordinary_frontier_deferred,
+    )
+    if scenario_frontier.get("decision") == "SCENARIO_FOUNDATION_READY_EXECUTION_HARNESS_REQUIRED":
+        frontier = [scenario_frontier["next_output"]]
     return {
         "schema": "v7-omp-program-execution-reconciliation/v1",
         "program_inventory": inventory,
@@ -2180,6 +2246,11 @@ def program_execution_reconciliation(sources: dict[str, Any]) -> dict[str, Any]:
         "backlog_status": "34/34_DONE" if backlog_complete else "INCOMPLETE",
         "executable_program_frontier": frontier,
         "executable_program_frontier_count": len(frontier),
+        "ordinary_frontier_deferred_platform_boundary": ordinary_frontier_deferred,
+        "scenario_frontier": scenario_frontier,
+        "scenario_frontier_decision": scenario_frontier.get("decision", "SCENARIO_STOP_SAFE"),
+        "scenario_frontier_consumer_invoked": True,
+        "scenario_frontier_next_output": scenario_frontier.get("next_output", "STOP_SAFE"),
         "global_real_world_limit_verdict": "GLOBAL_REAL_WORLD_LIMIT_INVALID" if missing_stage else "GLOBAL_REAL_WORLD_LIMIT_VALID",
         "acceptance_required": acceptance_boundary,
         "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
@@ -4003,6 +4074,299 @@ def current_engineering_polygon_scenario_supply(
     }
 
 
+FUTURE_SCALE_SCENARIO_CORPUS_PATH = "tests/scenarios/future_scale/foundation.json"
+FUTURE_SCALE_SCENARIO_REQUIRED_FIELDS = (
+    "SCENARIO_ID", "SCENARIO_VERSION", "TITLE", "RISK_CLASS", "ENGINEERING_VALUE_CLASS",
+    "TOPOLOGY_PROFILE", "USER_POPULATION_PROFILE", "CHANNEL_POPULATION_PROFILE",
+    "COHORT_PROFILE", "SERVICE_PROFILE", "CAPACITY_PROFILE", "TRAFFIC_PROFILE",
+    "INITIAL_STATE", "EVENT_TIMELINE", "TELEMETRY_PROFILE", "FAILURE_INJECTIONS",
+    "RECOVERY_EVENTS", "AUTHORITY_SCOPE", "INVARIANT_IDS", "EXPECTED_TERMINAL_CLASSES",
+    "FORBIDDEN_EFFECTS", "SEED", "SOURCE_DEPENDENCIES", "OWNER_DEPENDENCIES",
+    "SCENARIO_FINGERPRINT", "EXPECTED_SCALE_CLASS", "EVIDENCE_CLASS",
+)
+
+_INVARIANT_OWNER_GROUPS = {
+    "ROUTING_SAFETY_OWNER": (
+        "tools/v7-users-autoswitch",
+        "AutoswitchPlanner.plan and existing route/safety validators",
+        ("ROUTE_REACHABILITY", "NO_UNROUTED_ELIGIBLE_USER", "POLICY_ISOLATION", "COHORT_ISOLATION",
+         "CAPACITY_BOUND", "BLAST_RADIUS_BOUND", "NO_UNBOUNDED_FLAP", "ANTI_FLAP_PRESERVATION",
+         "HARD_FAILURE_OVERRIDE_SAFETY", "RECOVERY_ADMISSION_SAFETY", "RECOVERY_SLOW_START"),
+    ),
+    "EXECUTION_SAFETY_OWNER": (
+        "admin_core/operator_execution_pipeline.py",
+        "existing execution, rollback, containment and legal-terminal validators",
+        ("ROLLBACK_SAFETY", "NO_ROLLBACK_LEGAL_TERMINAL", "PARTIAL_EXECUTION_CONTAINMENT",
+         "FORWARD_FIX_CLASSIFICATION", "FINAL_OPEN_OR_STOP_SAFE"),
+    ),
+    "CPS_OMP_CONSISTENCY_OWNER": (
+        "tools/v7_sync_lib.py",
+        "cps_live_state_consistency and existing OMP identity/consumer validators",
+        ("STALE_MUTATION_DENIAL", "UNKNOWN_STATE_MUTATION_DENIAL", "DETERMINISTIC_DECISION",
+         "DUPLICATE_EVENT_SUPPRESSION", "DUPLICATE_MISSION_SUPPRESSION", "SINGLE_FLIGHT",
+         "LEASE_IDENTITY", "SOURCE_BINDING", "SNAPSHOT_FRESHNESS", "AUTHORITY_NON_EXPANSION",
+         "ACTION_CLASS_BOUND", "OUTPUT_CONSUMPTION", "NEXT_OUTPUT_PRODUCTION",
+         "PRODUCER_CONSUMER_CONTINUITY", "NO_SYNTHETIC_PRODUCTION_CREDIT"),
+    ),
+}
+
+
+def _future_scale_invariant_registry() -> dict[str, dict[str, str]]:
+    registry: dict[str, dict[str, str]] = {}
+    for owner, (path, validator, invariant_ids) in _INVARIANT_OWNER_GROUPS.items():
+        for invariant_id in invariant_ids:
+            registry[invariant_id] = {
+                "INVARIANT_ID": invariant_id,
+                "CANONICAL_OWNER": owner,
+                "SOURCE_PATH": path,
+                "INPUT_CONTRACT": "ENGINEERING_SCENARIO_STATE_AND_EVENT_TIMELINE",
+                "EXPECTED_PROPERTY": invariant_id,
+                "VERDICT_FUNCTION_OR_VALIDATOR": validator,
+                "EVIDENCE_FORMAT": "v7.future-scale-scenario-result.v1",
+                "FAILURE_CLASS": "REPRODUCIBLE_ENGINEERING_INVARIANT_MISMATCH",
+                "BDP_ELIGIBLE_ON_FAILURE": "TRUE",
+                "CURRENT_CALLERS": "Future-scale scenario validator/frontier; existing owner validator at FSSE-02 execution",
+            }
+    return registry
+
+
+FUTURE_SCALE_INVARIANTS = _future_scale_invariant_registry()
+
+
+def resolve_invariant(invariant_id: str) -> dict[str, Any]:
+    """Resolve stable invariant metadata without copying owner business logic."""
+    resolved = FUTURE_SCALE_INVARIANTS.get(str(invariant_id or ""))
+    return {
+        "schema": "v7-future-scale-invariant-resolution/v1",
+        "invariant_id": invariant_id,
+        "resolved": resolved is not None,
+        "contract": dict(resolved) if resolved else None,
+        "final_verdict": "PASS" if resolved else "STOP_SAFE",
+        "errors": [] if resolved else [f"unresolved_invariant:{invariant_id}"],
+    }
+
+
+def future_scale_scenario_fingerprint(scenario: dict[str, Any]) -> str:
+    meaningful = {
+        key: scenario.get(key)
+        for key in FUTURE_SCALE_SCENARIO_REQUIRED_FIELDS
+        if key != "SCENARIO_FINGERPRINT"
+    }
+    encoded = json.dumps(meaningful, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def future_scale_scenario_priority(scenario: dict[str, Any]) -> dict[str, str]:
+    """Reuse OMP ordinal priority semantics for deterministic scenario ordering."""
+    invariants = set(str(item) for item in scenario.get("INVARIANT_IDS") or ())
+    ordered_classes = (
+        ("P0_SAFETY", {"FINAL_OPEN_OR_STOP_SAFE", "AUTHORITY_NON_EXPANSION", "BLAST_RADIUS_BOUND"}),
+        ("P1_ROUTE_ISOLATION", {"ROUTE_REACHABILITY", "NO_UNROUTED_ELIGIBLE_USER", "POLICY_ISOLATION", "COHORT_ISOLATION"}),
+        ("P2_CORRELATED_FAILURE", {"HARD_FAILURE_OVERRIDE_SAFETY", "PARTIAL_EXECUTION_CONTAINMENT"}),
+        ("P3_CAPACITY", {"CAPACITY_BOUND"}),
+        ("P4_STALE_STATE", {"STALE_MUTATION_DENIAL", "UNKNOWN_STATE_MUTATION_DENIAL", "SNAPSHOT_FRESHNESS"}),
+        ("P5_RECOVERY_ROLLBACK", {"RECOVERY_ADMISSION_SAFETY", "RECOVERY_SLOW_START", "ROLLBACK_SAFETY"}),
+        ("P6_REPLAY_CONCURRENCY", {"DUPLICATE_EVENT_SUPPRESSION", "DUPLICATE_MISSION_SUPPRESSION", "SINGLE_FLIGHT", "LEASE_IDENTITY"}),
+        ("P7_FUTURE_SCALE", set()),
+    )
+    priority = "P7_FUTURE_SCALE"
+    reason = "future-scale coverage deficit"
+    rank = len(ordered_classes) - 1
+    for index, (candidate, owned) in enumerate(ordered_classes):
+        if owned and invariants & owned:
+            priority = candidate
+            reason = "invariants=" + ",".join(sorted(invariants & owned))
+            rank = index
+            break
+    payload = {
+        "scenario_id": scenario.get("SCENARIO_ID"),
+        "scenario_version": scenario.get("SCENARIO_VERSION"),
+        "priority": priority,
+        "reason": reason,
+    }
+    fingerprint = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    return {
+        "SCENARIO_PRIORITY": priority,
+        "PRIORITY_RANK": str(rank),
+        "PRIORITY_REASON": reason,
+        "PRIORITY_FINGERPRINT": fingerprint,
+    }
+
+
+def validate_future_scale_scenario(scenario: Any) -> dict[str, Any]:
+    errors: list[str] = []
+    if not isinstance(scenario, dict):
+        errors.append("scenario_not_object")
+        scenario = {}
+    for field in FUTURE_SCALE_SCENARIO_REQUIRED_FIELDS:
+        if field not in scenario or scenario[field] in (None, "", []):
+            errors.append(f"scenario_field_missing:{field}")
+    if scenario.get("EVIDENCE_CLASS") != "ENGINEERING_SCENARIO_EVIDENCE":
+        errors.append("scenario_evidence_class_invalid")
+    forbidden = set(str(item) for item in scenario.get("FORBIDDEN_EFFECTS") or ())
+    required_forbidden = {"RUNTIME_MUTATION", "PRODUCTION_MUTATION", "USER_MOVEMENT", "AUTHORITY_EXPANSION", "PRODUCTION_MATURITY_CREDIT"}
+    if not required_forbidden.issubset(forbidden):
+        errors.append("scenario_forbidden_effect_boundary_incomplete")
+    unresolved = [item for item in scenario.get("INVARIANT_IDS") or () if not resolve_invariant(str(item))["resolved"]]
+    errors.extend(f"unresolved_invariant:{item}" for item in unresolved)
+    try:
+        seed = int(scenario.get("SEED"))
+        if seed < 0:
+            errors.append("scenario_seed_invalid")
+    except (TypeError, ValueError):
+        errors.append("scenario_seed_invalid")
+    fingerprint = future_scale_scenario_fingerprint(scenario)
+    declared = str(scenario.get("SCENARIO_FINGERPRINT") or "")
+    if declared not in {"DERIVED", fingerprint}:
+        errors.append("scenario_fingerprint_mismatch")
+    normalized = dict(scenario)
+    normalized["SCENARIO_FINGERPRINT"] = fingerprint
+    normalized.update(future_scale_scenario_priority(normalized))
+    unique = sorted(set(errors))
+    return {
+        "schema": "v7-future-scale-scenario-validation/v1",
+        "scenario": normalized if not unique else None,
+        "valid": not unique,
+        "final_verdict": "PASS" if not unique else "STOP_SAFE",
+        "errors": unique,
+    }
+
+
+def load_future_scale_scenario_corpus(*, root: Path = ROOT) -> dict[str, Any]:
+    path = root / FUTURE_SCALE_SCENARIO_CORPUS_PATH
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return {
+            "schema": "v7-future-scale-scenario-corpus/v1", "scenarios": [],
+            "final_verdict": "STOP_SAFE", "errors": [f"scenario_corpus_unreadable:{exc}"],
+        }
+    raw = payload.get("scenarios") if isinstance(payload, dict) else None
+    if not isinstance(raw, list):
+        return {
+            "schema": "v7-future-scale-scenario-corpus/v1", "scenarios": [],
+            "final_verdict": "STOP_SAFE", "errors": ["scenario_corpus_list_missing"],
+        }
+    validated = [validate_future_scale_scenario(item) for item in raw]
+    errors = sorted({error for row in validated for error in row["errors"]})
+    scenarios = [row["scenario"] for row in validated if row["scenario"]]
+    identities = [(row["SCENARIO_ID"], row["SCENARIO_VERSION"]) for row in scenarios]
+    fingerprints = [row["SCENARIO_FINGERPRINT"] for row in scenarios]
+    if len(identities) != len(set(identities)):
+        errors.append("duplicate_scenario_id_version")
+    if len(fingerprints) != len(set(fingerprints)):
+        errors.append("duplicate_scenario_fingerprint")
+    corpus_payload = json.dumps(
+        sorted((row["SCENARIO_ID"], row["SCENARIO_VERSION"], row["SCENARIO_FINGERPRINT"]) for row in scenarios),
+        separators=(",", ":"),
+    )
+    return {
+        "schema": "v7-future-scale-scenario-corpus/v1",
+        "corpus_path": FUTURE_SCALE_SCENARIO_CORPUS_PATH,
+        "corpus_count": len(scenarios),
+        "corpus_fingerprint": hashlib.sha256(corpus_payload.encode()).hexdigest(),
+        "scenarios": scenarios,
+        "final_verdict": "PASS" if not errors else "STOP_SAFE",
+        "errors": sorted(set(errors)),
+    }
+
+
+def future_scale_scenario_frontier(
+    cps_text: str,
+    *,
+    root: Path = ROOT,
+    result_history: Optional[dict[str, dict[str, Any]]] = None,
+    ordinary_work_available: bool = False,
+    scenario_budget: int = 10,
+) -> dict[str, Any]:
+    """Build a no-mutation Future-Scale Scenario Frontier through existing Polygon/OMP owners."""
+    corpus = load_future_scale_scenario_corpus(root=root)
+    if corpus["final_verdict"] != "PASS":
+        return {
+            "schema": "v7-future-scale-scenario-frontier/v1", "decision": "SCENARIO_STOP_SAFE",
+            "final_verdict": "STOP_SAFE", "errors": corpus["errors"],
+        }
+    live = _markdown_field_table(_markdown_section(
+        cps_text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    history = result_history or {}
+    covered: list[str] = []
+    stale: list[str] = []
+    blocked: list[dict[str, str]] = []
+    eligible: list[dict[str, Any]] = []
+    active_scenario = live.get("ACTIVE_SCENARIO_ID", "").strip("`")
+    active_mission = live.get("CURRENT_EXECUTION_MISSION_ID", "").strip("`")
+    for scenario in corpus["scenarios"]:
+        scenario_id = scenario["SCENARIO_ID"]
+        missing_sources = [path for path in scenario["SOURCE_DEPENDENCIES"] if not (root / path).exists()]
+        if missing_sources:
+            blocked.append({"SCENARIO_ID": scenario_id, "REASON": "MISSING_SOURCE_DEPENDENCY:" + ",".join(missing_sources)})
+            continue
+        if active_scenario == scenario_id or (active_mission not in {"", "NONE"} and live.get("ACTIVE_SCENARIO_MISSION", "").strip("`") == active_mission):
+            blocked.append({"SCENARIO_ID": scenario_id, "REASON": "ACTIVE_DUPLICATE"})
+            continue
+        previous = history.get(scenario_id) or {}
+        if previous.get("result") == "PASS" and previous.get("scenario_fingerprint") == scenario["SCENARIO_FINGERPRINT"]:
+            covered.append(scenario_id)
+            continue
+        if previous:
+            stale.append(scenario_id)
+        eligible.append(scenario)
+    eligible.sort(key=lambda row: (
+        0 if row["SCENARIO_ID"] in stale else 1,
+        int(row["PRIORITY_RANK"]),
+        row["SCENARIO_FINGERPRINT"],
+    ))
+    bounded_budget = max(0, min(int(scenario_budget), 10))
+    selected = eligible[0] if eligible and bounded_budget else None
+    decision = (
+        "ORDINARY_FRONTIER_SELECTED" if ordinary_work_available
+        else "SCENARIO_FOUNDATION_READY_EXECUTION_HARNESS_REQUIRED" if selected
+        else "SCENARIO_BUDGET_REACHED" if eligible
+        else "SCENARIO_FRONTIER_EXHAUSTED"
+    )
+    generation_payload = {
+        "corpus": corpus["corpus_fingerprint"],
+        "eligible": [row["SCENARIO_FINGERPRINT"] for row in eligible],
+        "covered": covered,
+        "stale": stale,
+        "blocked": blocked,
+        "ordinary": ordinary_work_available,
+        "budget": bounded_budget,
+    }
+    frontier_fingerprint = hashlib.sha256(
+        json.dumps(generation_payload, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    return {
+        "schema": "v7-future-scale-scenario-frontier/v1",
+        "FRONTIER_GENERATION": f"fssef_{frontier_fingerprint[:24]}",
+        "FRONTIER_FINGERPRINT": frontier_fingerprint,
+        "ELIGIBLE_SCENARIOS": [row["SCENARIO_ID"] for row in eligible],
+        "STALE_SCENARIOS": stale,
+        "COVERED_SCENARIOS": covered,
+        "BLOCKED_SCENARIOS": blocked,
+        "NEXT_SCENARIO_ID": selected["SCENARIO_ID"] if selected and not ordinary_work_available else "NONE",
+        "NEXT_SCENARIO_REASON": selected["PRIORITY_REASON"] if selected and not ordinary_work_available else decision,
+        "CURRENT_TARGET_COVERAGE": "SAFETY_BASELINE_FOUNDATION_READY",
+        "FRONTIER_EXHAUSTED": not eligible,
+        "EXHAUSTION_REASON": "ALL_CURRENT_SCENARIOS_COVERED" if not eligible else "NOT_EXHAUSTED",
+        "SCENARIO_CORPUS_COUNT": corpus["corpus_count"],
+        "SCENARIO_BUDGET": bounded_budget,
+        "decision": decision,
+        "next_output": (
+            "V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1"
+            if decision == "SCENARIO_FOUNDATION_READY_EXECUTION_HARNESS_REQUIRED" else decision
+        ),
+        "real_consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "authority_expansion": False,
+        "maturity_impact": "NONE",
+        "final_verdict": "PASS",
+        "errors": [],
+    }
+
+
 PROACTIVE_VERIFICATION_INPUT_REQUIRED_FIELDS = (
     "source_owner",
     "execution_owner",
@@ -5303,20 +5667,25 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
     automation_enabled_text = live.get("AUTOMATION_ENABLED", "").strip("`")
     heartbeat_active = heartbeat_status == "ACTIVE" and automation_enabled_text == "TRUE"
     heartbeat_paused = heartbeat_status == "PAUSED" and automation_enabled_text == "FALSE"
+    fsse_foundation_complete = (
+        live.get("FSSE_STATUS", "").strip("`")
+        == "FSSE_01_FOUNDATION_COMPLETE_FSSE_02_READY"
+    )
     completion_gate = mission_completion_evidence_gate({
-        "MISSION_TYPE": "AUTOMATION" if entrypoint_wired else "INTEGRATION",
-        "COMPLETION_CONTRACT": "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
+        "MISSION_TYPE": "INTEGRATION" if fsse_foundation_complete else "AUTOMATION" if entrypoint_wired else "INTEGRATION",
+        "COMPLETION_CONTRACT": "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
         "INDEPENDENT_TRIGGER_PROVEN": False,
         "ENTRYPOINT_ACTIVE": heartbeat_active,
         "REAL_CALLER_PROVEN": calls["real_caller_count"] > 0,
-        "CONSUMER_PROVEN": False,
-        "BEHAVIOR_CHANGE_PROVEN": False,
-        "NEXT_OUTPUT_PROVEN": False,
+        "CONSUMER_PROVEN": fsse_foundation_complete,
+        "BEHAVIOR_CHANGE_PROVEN": fsse_foundation_complete,
+        "NEXT_OUTPUT_PROVEN": fsse_foundation_complete,
     })
     expected = {
         "PROGRAM_RECONCILIATION_REAL_CALLERS": str(calls["real_caller_count"]),
         "PROGRAM_RECONCILIATION_FOOTPRINT_CLASS": (
-            "SOURCE_ENTRYPOINT_WIRED_AWAITING_NATURAL_RUN" if entrypoint_wired and heartbeat_active
+            "REAL_CLI_AND_OMP_CONSUMER_CONNECTED" if fsse_foundation_complete
+            else "SOURCE_ENTRYPOINT_WIRED_AWAITING_NATURAL_RUN" if entrypoint_wired and heartbeat_active
             else "SOURCE_ENTRYPOINT_WIRED_PAUSED_DEPLOY_BLOCKED" if entrypoint_wired and heartbeat_paused
             else "DEPLOYED_MANUALLY_CALLABLE_ONLY"
         ),
@@ -5325,7 +5694,7 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
         "AEP_PHASE_5_STATUS": "BLOCKED_MISSING_REAL_CONSUMER",
         "AEP_PHASE_6_STATUS": "BLOCKED_BY_PHASE_5",
         "MISSION_COMPLETION_EVIDENCE_GATE": "ACTIVE_V1",
-        "CURRENT_COMPLETION_CONTRACT": "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
+        "CURRENT_COMPLETION_CONTRACT": "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
         "CURRENT_COMPLETION_VERDICT": completion_gate["completion_verdict"],
     }
     errors: list[str] = []

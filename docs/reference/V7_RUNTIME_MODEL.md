@@ -1963,3 +1963,9 @@ Learning consumed
 ```
 
 If any link is missing, Engineering Intelligence remains incomplete for that recommendation cycle.
+
+## Future-Scale Engineering Scenario Boundary
+
+The existing Engineering Polygon may model deterministic future-scale state and events before matching production outcomes exist. It reuses existing Runtime, routing, execution and consistency invariants by stable identity; it does not copy or replace their validators.
+
+`ENGINEERING_SCENARIO_EVIDENCE` is never Runtime authority, production truth, a user-movement instruction, rollback/apply permission or Production Maturity credit. A scenario mismatch may only become an engineering input for the existing BDP -> OMP lifecycle. Any later Runtime behavior remains governed by the ordinary fresh-evidence, authority, verification and closure contracts.

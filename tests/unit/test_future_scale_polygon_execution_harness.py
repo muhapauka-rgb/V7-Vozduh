@@ -98,6 +98,8 @@ class FutureScalePolygonExecutionHarnessTest(unittest.TestCase):
         source = (ROOT / "tools/v7-truth-check").read_text(encoding="utf-8")
         self.assertIn("--omp-scenario-execution", source)
         self.assertIn("execute_future_scale_scenario", source)
+        self.assertIn("V7_FSSE_SCENARIO_ROOT", source)
+        self.assertIn("root=fsse_scenario_root()", source)
 
 
 if __name__ == "__main__":

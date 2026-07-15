@@ -30,6 +30,13 @@ from admin_core import autonomy_trust_acceleration, operator_execution
 
 DEFAULT_MANIFEST = Path("docs/track7/runtime-convergence/V7_TRUTH_MANIFEST.json")
 RUNTIME_SNAPSHOT_SCHEMA = "v7-runtime-truth-snapshot/v1"
+FSSE_SCENARIO_ROOT_ENV = "V7_FSSE_SCENARIO_ROOT"
+
+
+def fsse_scenario_root() -> Path:
+    """Return an explicit isolated engineering corpus root when requested."""
+    configured = os.environ.get(FSSE_SCENARIO_ROOT_ENV, "").strip()
+    return Path(configured).resolve() if configured else ROOT_DIR
 
 RUNTIME_READONLY_COMMANDS = [
     ["hostname"],
@@ -724,7 +731,10 @@ def selected_mode(args: argparse.Namespace) -> str:
 def main(argv: Optional[list[str]] = None) -> int:
     args = build_arg_parser().parse_args(argv)
     if args.omp_scenario_execution:
-        result = sync_lib.execute_future_scale_scenario(args.omp_scenario_execution, root=ROOT_DIR)
+        result = sync_lib.execute_future_scale_scenario(
+            args.omp_scenario_execution,
+            root=fsse_scenario_root(),
+        )
         if args.json:
             print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
         else:

@@ -7,7 +7,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 EVENT_TIME = "2026-07-14T16:46:18.891Z"
-PROCESSED_EVENT_TIME = "2026-07-14T16:16:18.891Z"
+PROCESSED_EVENT_TIME = "2026-07-15T17:13:20.422Z"
 
 
 def load_lib():

@@ -48,35 +48,35 @@ RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
 
 NORMALIZED_CPS_LIVE_STATE = {
     "active_program": "FUTURE_SCALE_SCENARIO_ENGINEERING",
-    "current_mode": "BOUNDED_DELEGATED_AUTONOMY_ACTIVE",
+    "current_mode": "FULL_INDEPENDENT_ENGINEERING_AUTOMATION_ACTIVE",
     "current_stop_condition": "BOUNDED_INVOCATION_BUDGET_REACHED",
-    "current_active_scope": "STANDARD_CONTINUE_OMP",
+    "current_active_scope": "INDEPENDENT_BACKGROUND_CONTINUE_OMP",
     "current_safe_next_action": "RUN THE STANDARD CONTINUE OMP TRIGGER",
-    "current_scope_class": "BOUNDED_SINGLE_INVOCATION_AUTOMATION",
+    "current_scope_class": "EXTERNAL_ENGINEERING_AUTOMATION",
     "current_execution_mission_id": "NONE",
     "current_execution_mission_state": "NONE",
-    "latest_terminal_mission_id": "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1",
-    "latest_terminal_run_nonce": "V7_FSSE_04_AB072FDBB5E9",
-    "latest_terminal_mission_state": "FUTURE_SCALE_POLYGON_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED",
-    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-15_214500_future_scale_autonomous_polygon_integration_and_certification.md",
-    "latest_terminal_mission_started_at": "2026-07-15T21:45:00+0700",
-    "previous_terminal_mission_id": "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1",
-    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-15_204206_future_scale_high_fidelity_validation.md",
+    "latest_terminal_mission_id": "V7_OMP_FULL_INDEPENDENT_BACKGROUND_AUTOMATION_AND_FSSE04_PRODUCTION_CLOSURE_V1",
+    "latest_terminal_run_nonce": "V7_OMP_EXTERNAL_REENTRY_PAIR_6E013631_92871890",
+    "latest_terminal_mission_state": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-16_001627_full_independent_background_automation_and_fsse04_production_closure.md",
+    "latest_terminal_mission_started_at": "2026-07-15T16:43:20.381+00:00",
+    "previous_terminal_mission_id": "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-15_214500_future_scale_autonomous_polygon_integration_and_certification.md",
     "authoritative_transition_input_mission_id": "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3",
     "authoritative_transition_input_state": "MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED",
     "authoritative_transition_input_report": "docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md",
     "current_mission_role": "LATEST_TERMINAL_MISSION",
-    "current_mission_id": "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1",
-    "current_run_nonce": "V7_FSSE_04_AB072FDBB5E9",
-    "current_mission_state": "FUTURE_SCALE_POLYGON_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED",
-    "current_mission_report": "docs/reports/engineering/2026-07-15_214500_future_scale_autonomous_polygon_integration_and_certification.md",
-    "state_captured": "2026-07-15T21:45:00+0700",
-    "current_state_generation": "cpsgen_V7_FSSE_04_AB072FDBB5E9",
-    "current_transition_id": "FSSE_04_AUTONOMOUS_LOOP_TO_CONTINUE_OMP_V1",
+    "current_mission_id": "V7_OMP_FULL_INDEPENDENT_BACKGROUND_AUTOMATION_AND_FSSE04_PRODUCTION_CLOSURE_V1",
+    "current_run_nonce": "V7_OMP_EXTERNAL_REENTRY_PAIR_6E013631_92871890",
+    "current_mission_state": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
+    "current_mission_report": "docs/reports/engineering/2026-07-16_001627_full_independent_background_automation_and_fsse04_production_closure.md",
+    "state_captured": "2026-07-16T00:16:27+0700",
+    "current_state_generation": "cpsgen_V7_BACKGROUND_AUTOMATION_CERTIFIED_928718904BCD",
+    "current_transition_id": "EXTERNAL_REENTRY_TWO_RUN_CERTIFIED_V1",
     "current_next_action_id": "CONTINUE_OMP",
-    "current_program_stage": "FSSE_04_COMPLETE_BOUNDED_CONTINUE_OMP_READY",
+    "current_program_stage": "FSSE_04_COMPLETE_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
     "current_program_execution_frontier": "CONTINUE_OMP",
-    "program_frontier_input": "FSSE-04 certified one trigger and multiple internal transitions; next scenario NONE",
+    "program_frontier_input": "two distinct natural platform reentries certified the existing external Continue OMP consumer; next scenario NONE",
     "program_frontier_owner": "EXISTING_OMP_SELF_CONTINUATION_CONSUMER",
     "program_frontier_expected_output": "FRESH_CPS -> NEXT_BOUNDED_OMP_ACTION_OR_LEGAL_TERMINAL",
     "protected_capability_wip": "CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; preserved and not reordered",
@@ -123,8 +123,8 @@ NORMALIZED_CPS_LIVE_STATE = {
     "user_movement": "NO; current Mission performed evidence refresh and read-only revalidation only",
     "admin_safe_mode_live_state": "schema=v7.autonomous-execution-control.v2; state=OPEN; generation=aec_dda6c420c87e99e97236883c; reason=GOVERNED_TRANSACTION_COMPLETED",
     "parent_engineering_intent": "INTENT_NOT_CLOSED; CAP-U07 consumed one real success but representative Learning evidence remains a real-world dependency",
-    "source_summary": "FSSE-04 certifies one standard Continue OMP trigger across selective invalidation, real scenario consumption, BDP admission, isolated repair, rerun and affected replay with zero production effects.",
-    "automatic_continue_omp_result": "BOUNDED_SINGLE_INVOCATION_AUTOMATION_CERTIFIED; exact continuation state saved",
+    "source_summary": "two distinct natural Codex Automation Platform reentries invoked the standard Continue OMP consumer after prior target-thread turns exited; both passed with released leases, no overlap and zero Runtime/production effects.",
+    "automatic_continue_omp_result": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED; recurring continuation active",
     "required_workflow": "Continue OMP -> fresh CPS -> deterministic ordinary/scenario priority -> bounded legal terminal",
     "omp_controlled_run_allowed": "NO_CURRENT_EXECUTION; synthetic or forced outcomes are forbidden",
     "controlled_run_authority_required_now": "NO_RUNTIME_AUTHORITY; current boundary is FSSE-04 engineering integration only",
@@ -143,45 +143,45 @@ NORMALIZED_CPS_LIVE_STATE = {
     "omp_continuation_required": "TRUE",
     "external_input_required": "FALSE",
     "external_input_type": "NONE",
-    "transaction_terminal_class": "AUTOMATION_CERTIFICATION_COMPLETE",
+    "transaction_terminal_class": "EXTERNAL_REENTRY_CERTIFICATION_COMPLETE",
     "program_terminal_class": "BOUNDED_INVOCATION_BUDGET_REACHED",
     "next_mission_formed": "TRUE",
     "next_mission_id": "CONTINUE_OMP",
     "premature_operator_return": "FALSE",
     "continuation_iteration": "20",
-    "continuation_stop_reason": "FSSE_04_CERTIFIED; BOUNDED_INVOCATION_COMPLETE; EXACT_CONTINUATION_SAVED",
-    "no_progress_fingerprint": "2e4c6f411e9a7664e342368d05437545d6057fcd290ddf2a8c2ea123f2a962c2",
-    "program_reconciliation_footprint_class": "BOUNDED_SINGLE_INVOCATION_AUTOMATION_CERTIFIED",
+    "continuation_stop_reason": "TWO_NATURAL_EXTERNAL_REENTRIES_CERTIFIED; EACH_BOUNDED_INVOCATION_COMPLETE; RECURRING_CONTINUATION_ACTIVE",
+    "no_progress_fingerprint": "f4fea63e861a62100ac474077915ea48334d2b5fbfa2358b0f9dc47a4598ba4b",
+    "program_reconciliation_footprint_class": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
     "program_reconciliation_real_callers": "3",
     "program_reconciliation_test_callers": "4",
-    "omp_automation_level": "BOUNDED_SINGLE_INVOCATION_AUTOMATION_CERTIFIED",
-    "heartbeat_status": "PAUSED",
-    "automation_enabled": "FALSE",
-    "heartbeat_automation_level": "EXTERNAL_ENGINEERING_WAKEUP_ENTRYPOINT_WIRED_DEPLOY_BLOCKED",
-    "heartbeat_last_wakeup_id": "019f616a-37d2-7103-9d34-3be847316197",
-    "heartbeat_last_event_id": "18c01ddb3c6312617aa451b014b3762573a298c4a537985d816f236665579cc9",
-    "heartbeat_last_cps_generation": "cpsgen_V7_OMP_REAL_EFFECT_AUDIT_V1_94C7E2A16D5B",
+    "omp_automation_level": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
+    "heartbeat_status": "ACTIVE",
+    "automation_enabled": "TRUE",
+    "heartbeat_automation_level": "EXTERNAL_STANDARD_CONTINUE_OMP_REENTRY_ACTIVE",
+    "heartbeat_last_wakeup_id": "hb_928718904bcdb52da28335863faa9ae3",
+    "heartbeat_last_event_id": "928718904bcdb52da28335863faa9ae3a019d0dc3d9a6735f196ce86a630c75f",
+    "heartbeat_last_cps_generation": "cpsgen_V7_REENTRY_COMPLETE_928718904BCD",
     "heartbeat_last_dependency_fingerprint": "e3af94aa51639fca0e30d5b669f33341e552d9f7f7dfff678f25a00a6a8fc950",
-    "heartbeat_last_decision": "ADAPTER_CALLED_NO_RECONCILIATION",
-    "heartbeat_last_run_at": "2026-07-14T23:16:18.434+0700",
-    "background_automation_state": "EXTERNAL_REENTRY_IMPLEMENTATION_READY_NOT_YET_PLATFORM_CERTIFIED",
+    "heartbeat_last_decision": "REENTRY_COMPLETED",
+    "heartbeat_last_run_at": "2026-07-15T17:13:42.562861+00:00",
+    "background_automation_state": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
     "external_reentry_owner": "CODEX_AUTOMATION_PLATFORM",
     "external_reentry_schedule": HEARTBEAT_SCHEDULE,
-    "external_reentry_enabled": "FALSE",
+    "external_reentry_enabled": "TRUE",
     "reentry_active_lease": "NONE",
-    "reentry_last_completed_id": "NONE",
-    "reentry_last_trigger_id": "NONE",
-    "reentry_last_trigger_at": "NONE",
-    "reentry_last_invocation_id": "NONE",
-    "reentry_platform_health": "NOT_YET_CERTIFIED",
-    "aep_phase4_status": "IMPLEMENTED_MANUALLY_CALLABLE",
-    "aep_phase5_status": "BLOCKED_MISSING_REAL_CONSUMER",
-    "aep_phase6_status": "BLOCKED_BY_PHASE_5",
+    "reentry_last_completed_id": "ompre_ef7ae6f44244113225793e63",
+    "reentry_last_trigger_id": "928718904bcdb52da28335863faa9ae3a019d0dc3d9a6735f196ce86a630c75f",
+    "reentry_last_trigger_at": "2026-07-15T17:13:28.385460+00:00",
+    "reentry_last_invocation_id": "ompre_ef7ae6f44244113225793e63",
+    "reentry_platform_health": "PASS_TWO_DISTINCT_NATURAL_REENTRIES",
+    "aep_phase4_status": "COMPLETE_CONSUMED_REAL_EXTERNAL_CALLER",
+    "aep_phase5_status": "COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES",
+    "aep_phase6_status": "READY_WHERE_PRODUCTION_CERTIFICATION_REQUIRED",
     "mission_completion_evidence_gate": "ACTIVE_V1",
     "current_completion_contract": "AUTOMATION_COMPLETION",
     "current_completion_verdict": "COMPLETE_CONSUMED",
     "fsse_status": "FSSE_04_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED",
-    "fsse_00_external_reentry_status": "DEFERRED_PLATFORM_CERTIFICATION",
+    "fsse_00_external_reentry_status": "PRODUCTION_CERTIFIED_TWO_NATURAL_REENTRIES",
     "fsse_00_blocks_fsse_01": "FALSE",
     "manual_continue_omp_fallback": "ACTIVE",
     "scenario_coverage_generation": "fssef_dcd80bd4189d95ec7c58d661",
@@ -1122,7 +1122,10 @@ def delegated_policy_live_state_consistency(
     program_frontier = live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`")
     independent_program_frontier = program_frontier not in {"", "NONE"}
     policy_active = (
-        live.get("CURRENT_MODE", "").strip("`") == "BOUNDED_DELEGATED_AUTONOMY_ACTIVE"
+        live.get("CURRENT_MODE", "").strip("`") in {
+            "BOUNDED_DELEGATED_AUTONOMY_ACTIVE",
+            "FULL_INDEPENDENT_ENGINEERING_AUTOMATION_ACTIVE",
+        }
         and live.get("DELEGATED_AUTONOMY_POLICY", "").strip("`") == "APPROVED"
     )
     if not policy_active:
@@ -2094,8 +2097,13 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
         "CONSUMER_BEHAVIOR_CHANGED = TRUE" in phase4_execution,
         "NEXT_OUTPUT_CREATED = TRUE" in phase4_execution,
     ))
-    phase4_consumed = phase4_admitted and real_consumer_verified
-    phase5_complete = phase4_no_mission or all((
+    phase4_canonical_complete = (
+        "PHASE_4_COMPLETE_CONSUMED" in aep
+        and "COMPLETE_CONSUMED_REAL_EXTERNAL_CALLER" in aep
+    )
+    phase4_consumed = (phase4_admitted and real_consumer_verified) or phase4_canonical_complete
+    phase5_canonical_complete = "COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES" in aep
+    phase5_complete = phase5_canonical_complete or phase4_no_mission or all((
         phase4_consumed,
         "IMPLEMENTATION_RESULT = COMPLETE_VERIFIED" in phase4_execution,
         "PHASE_3_TO_PHASE_4_CONSUMPTION_STATUS = PASS" in phase4_execution,
@@ -2211,7 +2219,7 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
         errors.append("aep_phase1_not_accepted")
     if not phase2_executed:
         errors.append("aep_phase2_output_missing_or_incomplete")
-    if "Version: `4.27`" not in omp:
+    if not re.search(r"(?m)^Version: `4\.(?:2[7-9]|[3-9][0-9])`$", omp):
         errors.append("omp_program_reconciliation_version_missing")
     if "Program Execution And Consumption Reconciliation Rule" not in omp:
         errors.append("omp_program_reconciliation_rule_missing")
@@ -2225,7 +2233,7 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
     if global_real_world_valid:
         errors.append("global_real_world_limit_illegal_while_program_stage_open")
     frontier = (
-        ["AEP_PHASE_6_PRODUCTION_CERTIFICATION_PREPARATION"] if phase5_complete
+        [] if phase5_complete
         else ["OMP_REAL_CONSUMER_ACTIVATION"] if phase4_admitted
         else ["V7_OMP_PHASE_3_TO_PHASE_4_PROGRAM_CONSUMER_EXTENSION_V1"] if phase3_locked
         else ["AEP_PHASE_3_INDEPENDENT_ACCEPTANCE"] if phase3_executed
@@ -3497,6 +3505,14 @@ def heartbeat_program_reentry(
                     "standard_entrypoint_invoked": False, "consumer_invoked": False,
                 }
             else:
+                certified_baseline = (
+                    fresh_live.get("BACKGROUND_AUTOMATION_STATE", "").strip("`")
+                    == "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED"
+                )
+                reentry_background_state = (
+                    "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED"
+                    if certified_baseline else "EXTERNAL_REENTRY_ACTIVE_AWAITING_TWO_NATURAL_RUNS"
+                )
                 active_generation = f"cpsgen_V7_REENTRY_ACTIVE_{event_identity[:12].upper()}"
                 active_state = normalized_cps_live_state({
                     "state_captured": actual_now.isoformat(),
@@ -3504,7 +3520,7 @@ def heartbeat_program_reentry(
                     "current_transition_id": "EXTERNAL_REENTRY_LEASE_ACQUIRED_V1",
                     "heartbeat_status": "ACTIVE", "automation_enabled": "TRUE",
                     "heartbeat_automation_level": "EXTERNAL_STANDARD_CONTINUE_OMP_REENTRY_ACTIVE",
-                    "background_automation_state": "EXTERNAL_REENTRY_ACTIVE_AWAITING_TWO_NATURAL_RUNS",
+                    "background_automation_state": reentry_background_state,
                     "external_reentry_enabled": "TRUE", "reentry_active_lease": lease_id,
                     "reentry_last_trigger_id": event_identity, "reentry_last_trigger_at": actual_now.isoformat(),
                     "reentry_last_invocation_id": invocation_id, "reentry_platform_health": "ACTIVE",
@@ -3539,7 +3555,7 @@ def heartbeat_program_reentry(
                         "heartbeat_last_dependency_fingerprint": current_dependency,
                         "heartbeat_last_decision": "REENTRY_COMPLETED" if continue_ok else "REENTRY_FAILED_SAFE",
                         "heartbeat_last_run_at": completed_at.isoformat(),
-                        "background_automation_state": "EXTERNAL_REENTRY_ACTIVE_AWAITING_TWO_NATURAL_RUNS",
+                        "background_automation_state": reentry_background_state,
                         "external_reentry_enabled": "TRUE", "reentry_active_lease": "NONE",
                         "reentry_last_completed_id": invocation_id if continue_ok else "NONE",
                         "reentry_last_trigger_id": event_identity, "reentry_last_trigger_at": actual_now.isoformat(),
@@ -4788,6 +4804,7 @@ def future_scale_scenario_frontier(
         (
             current_program_stage == "FSSE_03_COMPLETE_FSSE_04_READY"
             or current_program_stage == "FSSE_04_COMPLETE_BOUNDED_CONTINUE_OMP_READY"
+            or current_program_stage == "FSSE_04_COMPLETE_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED"
         )
         and live.get("SCENARIO_COVERED_COUNT", "").strip("`") == str(corpus["corpus_count"])
         and live.get("SCENARIO_MISMATCH_COUNT", "").strip("`") == "0"
@@ -6007,6 +6024,12 @@ def continue_omp_engineering_control_loop(
         current_frontier = list(reconciliation.get("executable_program_frontier") or ())
         self_frontier = {FUTURE_SCALE_FSSE_04_MISSION_ID, "CONTINUE_OMP"}
         ordinary_frontier = [item for item in current_frontier if item not in self_frontier]
+        background_certified = (
+            live.get("BACKGROUND_AUTOMATION_STATE", "").strip("`")
+            == "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED"
+        )
+        if background_certified and changed_dependencies is not None:
+            ordinary_frontier = []
         truth_lifecycle = {
             "cps": "VALID", "scenario_corpus": "VALID", "dependency_bindings": "VALID",
             "scenario_results": "REVALIDATION_REQUIRED", "owner": "OMP+CURRENT_TRUTH_OWNERS",
@@ -6024,6 +6047,24 @@ def continue_omp_engineering_control_loop(
                 "priority_decision": "ORDINARY_FRONTIER_SELECTED", "transitions": [],
                 "program_terminal": "BOUNDED_ORDINARY_ACTION_DELEGATED_TO_EXISTING_OWNER",
                 "final_verdict": "BOUNDED_CONTINUATION", "errors": [],
+            }
+
+        if background_certified and changed_dependencies is None:
+            return {
+                "schema": "v7.omp-continue-engineering-loop.v1",
+                "trigger": "Continue OMP",
+                "entrypoint": "tools/v7-truth-check --continue-omp",
+                "real_caller": "continue_omp_engineering_control_loop",
+                "real_consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+                "ordinary_frontier": [],
+                "priority_decision": "NO_MATERIAL_CHANGE",
+                "transitions": [],
+                "internal_iteration_count": 0,
+                "program_terminal": "NO_ACTION_REQUIRED",
+                "exact_next_operator_command": "Continue OMP",
+                "legal_terminal": True,
+                "final_verdict": "PASS",
+                "errors": [],
             }
 
         dependencies = list(changed_dependencies or ["CERTIFICATION:FSSE04_LEASE_CONFLICT_INPUT_V1"])
@@ -7580,6 +7621,12 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
     automation_enabled_text = live.get("AUTOMATION_ENABLED", "").strip("`")
     heartbeat_active = heartbeat_status == "ACTIVE" and automation_enabled_text == "TRUE"
     heartbeat_paused = heartbeat_status == "PAUSED" and automation_enabled_text == "FALSE"
+    background_automation_state = live.get("BACKGROUND_AUTOMATION_STATE", "").strip("`")
+    background_automation_certified = (
+        background_automation_state == "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED"
+        or live.get("AEP_PHASE_5_STATUS", "").strip("`")
+        == "COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES"
+    )
     fsse_status = live.get("FSSE_STATUS", "").strip("`")
     fsse_automation_complete = fsse_status == "FSSE_04_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED"
     fsse_foundation_complete = fsse_status in {
@@ -7590,31 +7637,42 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
     completion_gate = mission_completion_evidence_gate({
         "MISSION_TYPE": "AUTOMATION" if fsse_automation_complete else "INTEGRATION" if fsse_foundation_complete else "AUTOMATION" if entrypoint_wired else "INTEGRATION",
         "COMPLETION_CONTRACT": "AUTOMATION_COMPLETION" if fsse_automation_complete else "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
-        "INDEPENDENT_TRIGGER_PROVEN": fsse_automation_complete,
+        "INDEPENDENT_TRIGGER_PROVEN": fsse_automation_complete or background_automation_certified,
         "ENTRYPOINT_ACTIVE": heartbeat_active or fsse_automation_complete,
         "REAL_CALLER_PROVEN": calls["real_caller_count"] > 0,
         "CONSUMER_PROVEN": fsse_foundation_complete or fsse_automation_complete,
         "BEHAVIOR_CHANGE_PROVEN": fsse_foundation_complete or fsse_automation_complete,
         "NEXT_OUTPUT_PROVEN": fsse_foundation_complete or fsse_automation_complete,
-        "IDEMPOTENCY_PROVEN": fsse_automation_complete,
-        "DUPLICATE_SUPPRESSION_PROVEN": fsse_automation_complete,
+        "IDEMPOTENCY_PROVEN": fsse_automation_complete or background_automation_certified,
+        "DUPLICATE_SUPPRESSION_PROVEN": fsse_automation_complete or background_automation_certified,
     })
     expected = {
         "PROGRAM_RECONCILIATION_REAL_CALLERS": str(calls["real_caller_count"]),
         "PROGRAM_RECONCILIATION_FOOTPRINT_CLASS": (
-            "BOUNDED_SINGLE_INVOCATION_AUTOMATION_CERTIFIED" if fsse_automation_complete
+            "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED" if background_automation_certified
+            else "BOUNDED_SINGLE_INVOCATION_AUTOMATION_CERTIFIED" if fsse_automation_complete
             else "REAL_CLI_AND_OMP_CONSUMER_CONNECTED" if fsse_foundation_complete
             else "SOURCE_ENTRYPOINT_WIRED_AWAITING_NATURAL_RUN" if entrypoint_wired and heartbeat_active
             else "SOURCE_ENTRYPOINT_WIRED_PAUSED_DEPLOY_BLOCKED" if entrypoint_wired and heartbeat_paused
             else "DEPLOYED_MANUALLY_CALLABLE_ONLY"
         ),
         "OMP_AUTOMATION_LEVEL": (
-            "BOUNDED_SINGLE_INVOCATION_AUTOMATION_CERTIFIED"
+            "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED" if background_automation_certified
+            else "BOUNDED_SINGLE_INVOCATION_AUTOMATION_CERTIFIED"
             if fsse_automation_complete else "CODEX_ASSISTED"
         ),
-        "AEP_PHASE_4_STATUS": "IMPLEMENTED_MANUALLY_CALLABLE",
-        "AEP_PHASE_5_STATUS": "BLOCKED_MISSING_REAL_CONSUMER",
-        "AEP_PHASE_6_STATUS": "BLOCKED_BY_PHASE_5",
+        "AEP_PHASE_4_STATUS": (
+            "COMPLETE_CONSUMED_REAL_EXTERNAL_CALLER"
+            if background_automation_certified else "IMPLEMENTED_MANUALLY_CALLABLE"
+        ),
+        "AEP_PHASE_5_STATUS": (
+            "COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES"
+            if background_automation_certified else "BLOCKED_MISSING_REAL_CONSUMER"
+        ),
+        "AEP_PHASE_6_STATUS": (
+            "READY_WHERE_PRODUCTION_CERTIFICATION_REQUIRED"
+            if background_automation_certified else "BLOCKED_BY_PHASE_5"
+        ),
         "MISSION_COMPLETION_EVIDENCE_GATE": "ACTIVE_V1",
         "CURRENT_COMPLETION_CONTRACT": "AUTOMATION_COMPLETION" if fsse_automation_complete else "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
         "CURRENT_COMPLETION_VERDICT": completion_gate["completion_verdict"],

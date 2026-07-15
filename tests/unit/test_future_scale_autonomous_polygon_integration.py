@@ -23,8 +23,9 @@ class FutureScaleAutonomousPolygonIntegrationTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.lib = load_lib()
-        cls.result = cls.lib.continue_omp_engineering_control_loop(root=ROOT)
-        cls.replay = cls.lib.continue_omp_engineering_control_loop(root=ROOT)
+        dependencies = ["CERTIFICATION:FSSE04_LEASE_CONFLICT_INPUT_V1"]
+        cls.result = cls.lib.continue_omp_engineering_control_loop(root=ROOT, changed_dependencies=dependencies)
+        cls.replay = cls.lib.continue_omp_engineering_control_loop(root=ROOT, changed_dependencies=dependencies)
 
     def test_01_standard_trigger(self):
         self.assertEqual(self.result["trigger"], "Continue OMP")
@@ -146,7 +147,11 @@ class FutureScaleAutonomousPolygonIntegrationTest(unittest.TestCase):
         self.assertLessEqual(self.result["budgets"]["repairs"], self.lib.OMP_CONTINUATION_REPAIR_BUDGET)
 
     def test_35_iteration_budget_preserves_continuation(self):
-        result = self.lib.continue_omp_engineering_control_loop(root=ROOT, iteration_budget=1)
+        result = self.lib.continue_omp_engineering_control_loop(
+            root=ROOT,
+            changed_dependencies=["CERTIFICATION:FSSE04_LEASE_CONFLICT_INPUT_V1"],
+            iteration_budget=1,
+        )
         self.assertEqual(result["final_verdict"], "BOUNDED_CONTINUATION")
         self.assertEqual(result["program_terminal"], "BOUNDED_INVOCATION_BUDGET_REACHED")
 

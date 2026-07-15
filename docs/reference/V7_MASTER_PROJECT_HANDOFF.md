@@ -4,9 +4,9 @@ Status: `CANONICAL ENTRY POINT`
 
 Owner: OMP / Canonical Reference / Current Program State
 
-Handoff version: `V7_MASTER_PROJECT_HANDOFF_FSSE_04_CERTIFIED_V1`
+Handoff version: `V7_MASTER_PROJECT_HANDOFF_BACKGROUND_AUTOMATION_CERTIFIED_V1`
 
-Last updated: 2026-07-15
+Last updated: 2026-07-16
 
 Stage 1 architecture status: `STAGE_1_ACCEPTED`, `STAGE_1_LOCKED`
 
@@ -155,10 +155,12 @@ FSSE-01 foundation COMPLETE_CONSUMED
   -> FSSE-02 execution harness COMPLETE_CONSUMED
   -> FSSE-03 high-fidelity validation COMPLETE_CONSUMED
   -> FSSE-04 autonomous Polygon integration and certification COMPLETE_CONSUMED
-  -> STANDARD COMMAND Continue OMP
+  -> two natural external reentries COMPLETE_CONSUMED
+  -> FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED
+  -> recurring STANDARD COMMAND Continue OMP
 ```
 
-FSSE-04 connects the standard `Continue OMP` trigger to the existing bounded OMP/Polygon consumer. One invocation evaluates ordinary work first, performs selective invalidation, executes and consumes a real-code scenario, restores coverage, exercises the existing BDP/Candidate/admission path through an isolated certification-only seam, reruns the target and affected subset, and saves exact continuation state. The certified scope is single-invocation automation only; background/platform-independent reentry is not claimed. Heartbeat remains deferred and CAP-U07 remains protected capability-local `WAITING_EXTERNAL_DEPENDENCY` WIP.
+FSSE-04 connects the standard `Continue OMP` trigger to the existing bounded OMP/Polygon consumer. The existing Codex Automation Platform heartbeat now owns independent external reentry: two distinct natural 30-minute scheduled events arrived after prior target-thread turns exited, invoked the standard consumer, released their leases without overlap and produced zero Runtime/production/Authority effects. Background engineering continuation is production-certified; CAP-U07 remains protected capability-local `WAITING_EXTERNAL_DEPENDENCY` WIP.
 
 ### Research First Rule
 
@@ -175,11 +177,12 @@ Fundamental mechanisms must not be built from intuition, naming preference, or l
 
 ### Immediate Next Task
 
-The exact next Mission is:
+The exact continuing action is:
 
 ```text
 COMMAND = Continue OMP
 STOP = BOUNDED_INVOCATION_BUDGET_REACHED
+REENTRY = EXISTING ACTIVE 30-MINUTE CODEX AUTOMATION PLATFORM HEARTBEAT
 ```
 
 The next thread must invoke the already-certified existing-owner loop:
@@ -193,7 +196,7 @@ Continue OMP
   -> exact legal terminal or saved continuation
 ```
 
-Do not repeat FSSE-01 through FSSE-04, wait for heartbeat between internal steps, create another Polygon/owner, claim background automation, or bypass the standard `Continue OMP` command.
+Do not repeat FSSE-01 through FSSE-04, create another heartbeat/Polygon/owner, bypass the standard `Continue OMP` command, or infer Runtime/production Authority from engineering automation certification.
 
 ## 1. What V7 Is
 
@@ -259,15 +262,15 @@ Do not treat old Stage 1 recovery tasks as active work. They are historical evid
 This is a handoff projection only. CPS Section 0 remains authoritative if volatile state changes after this update.
 
 ```text
-LATEST_TERMINAL_MISSION = V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1
-LATEST_TERMINAL_RUN_NONCE = V7_FSSE_04_AB072FDBB5E9
-LATEST_TERMINAL_VERDICT = FUTURE_SCALE_POLYGON_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED
-LATEST_TERMINAL_REPORT = docs/reports/engineering/2026-07-15_214500_future_scale_autonomous_polygon_integration_and_certification.md
-TRUTH_CONVERGENCE = PENDING_SAFE_DEPLOY_AND_FINAL_VERIFICATION
+LATEST_TERMINAL_MISSION = V7_OMP_FULL_INDEPENDENT_BACKGROUND_AUTOMATION_AND_FSSE04_PRODUCTION_CLOSURE_V1
+LATEST_TERMINAL_RUN_NONCE = V7_OMP_EXTERNAL_REENTRY_PAIR_6E013631_92871890
+LATEST_TERMINAL_VERDICT = FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED
+LATEST_TERMINAL_REPORT = docs/reports/engineering/2026-07-16_001627_full_independent_background_automation_and_fsse04_production_closure.md
+TRUTH_CONVERGENCE = FULLY_ALIGNED
 
 ACTIVE_PROGRAM = FUTURE_SCALE_SCENARIO_ENGINEERING
-CURRENT_PROGRAM_STAGE = FSSE_04_COMPLETE_BOUNDED_CONTINUE_OMP_READY
-CURRENT_ACTIVE_SCOPE = STANDARD_CONTINUE_OMP
+CURRENT_PROGRAM_STAGE = FSSE_04_COMPLETE_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED
+CURRENT_ACTIVE_SCOPE = INDEPENDENT_BACKGROUND_CONTINUE_OMP
 CURRENT_PROGRAM_EXECUTION_FRONTIER = CONTINUE_OMP
 CURRENT_NEXT_ACTION_ID = CONTINUE_OMP
 NEXT_MISSION_ID = CONTINUE_OMP
@@ -277,12 +280,12 @@ OMP_CONTINUATION_REQUIRED = TRUE
 EXTERNAL_INPUT_REQUIRED = FALSE
 AUTHORITY_REQUIRED_NOW = NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE
 FSSE_STATUS = FSSE_04_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED
-FSSE_00_EXTERNAL_REENTRY_STATUS = DEFERRED_PLATFORM_CERTIFICATION
+FSSE_00_EXTERNAL_REENTRY_STATUS = PRODUCTION_CERTIFIED_TWO_NATURAL_REENTRIES
 FSSE_00_BLOCKS_FSSE_01 = FALSE
-OMP_AUTOMATION_LEVEL = BOUNDED_SINGLE_INVOCATION_AUTOMATION_CERTIFIED
+OMP_AUTOMATION_LEVEL = FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED
 MANUAL_CONTINUE_OMP_FALLBACK = ACTIVE
-CURRENT_STATE_GENERATION = cpsgen_V7_FSSE_04_AB072FDBB5E9
-CURRENT_TRANSITION_ID = FSSE_04_AUTONOMOUS_LOOP_TO_CONTINUE_OMP_V1
+CURRENT_STATE_GENERATION = cpsgen_V7_BACKGROUND_AUTOMATION_CERTIFIED_928718904BCD
+CURRENT_TRANSITION_ID = EXTERNAL_REENTRY_TWO_RUN_CERTIFIED_V1
 SCENARIO_COVERAGE_GENERATION = fssef_dcd80bd4189d95ec7c58d661
 SCENARIO_COVERAGE_FINGERPRINT = dcd80bd4189d95ec7c58d661af3ac313c1f7760f925c9937f9f15dfe40f873df
 SCENARIO_CORPUS_COUNT = 40
@@ -295,7 +298,7 @@ SCENARIO_BUDGET = 40
 SCENARIO_STOP_REASON = FSSE_04_CERTIFIED_CONTINUE_OMP
 ```
 
-FSSE-04 terminal evidence is `docs/reports/engineering/2026-07-15_214500_future_scale_autonomous_polygon_integration_and_certification.md`. Deploy/truth convergence must be read from CPS and the report; this handoff must not invent deployment evidence.
+FSSE-04 evidence is `docs/reports/engineering/2026-07-15_214500_future_scale_autonomous_polygon_integration_and_certification.md`. Independent reentry closure evidence is `docs/reports/engineering/2026-07-16_001627_full_independent_background_automation_and_fsse04_production_closure.md` plus the append-only owner evidence registry.
 
 ## 3. Current Maturity Snapshot
 
@@ -518,7 +521,7 @@ The active volatile state and next allowed action must be read from CPS:
 docs/programs/V7_CURRENT_PROGRAM_STATE.md
 ```
 
-The active program frontier is Future-Scale Scenario Engineering. OMP V4.26 and CPS Section 0 resolve one exact next Mission: `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1`, preserving `HEALTHY_BASELINE_SMALL` as the next scenario.
+Future-Scale Scenario Engineering FSSE-01 through FSSE-04 is complete and consumed. OMP V4.28 and CPS Section 0 resolve recurring continuation through the existing Codex Automation Platform heartbeat and standard `Continue OMP` consumer.
 
 Compressed completion-first plan:
 
@@ -526,10 +529,11 @@ Compressed completion-first plan:
 |---|---|---|
 | FSSE-01 | `V7_FUTURE_SCALE_POLYGON_FOUNDATION_V1` | `COMPLETE_CONSUMED` |
 | FSSE-02 | `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1` | `COMPLETE_CONSUMED` |
-| FSSE-03 | `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1` | `READY`, exact current frontier |
-| FSSE-04 | `V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1` | Future final integration |
+| FSSE-03 | `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1` | `COMPLETE_CONSUMED` |
+| FSSE-04 | `V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1` | `COMPLETE_CONSUMED` |
+| External reentry | existing Codex Automation Platform heartbeat | `PRODUCTION_CERTIFIED_TWO_NATURAL_REENTRIES` |
 
-FSSE-01 established ten deterministic owner-bound scenarios, 31 invariant identities, scenario identity/fingerprinting, a Scenario Frontier, CPS projection, and a real `tools/v7-truth-check -> program_execution_reconciliation` consumer. FSSE-02 added the real non-test scenario entrypoint, deterministic 10k/100 isolated state, real Planner/execution-preview invocation, eight invariant verdicts, normalized result and consumed coverage transition. FSSE-03 must now add high-fidelity scale, concurrency, replay and isolated emulation evidence; another harness-preparation cycle is forbidden.
+FSSE-01 established the foundation; FSSE-02 connected the real-code harness; FSSE-03 consumed the 40-scenario high-fidelity corpus; FSSE-04 certified bounded multi-transition `Continue OMP`; two natural external reentries then certified independent background engineering continuation. No FSSE phase should be replayed without a formal re-open trigger.
 
 Scenario evidence is engineering evidence. It may reveal defects, justify source repair and certify invariant behavior. It may not claim production outcome, grant Authority, mutate Runtime, move users, or increase Production Maturity.
 
@@ -612,8 +616,10 @@ Completed:
 - Mission Completion Evidence Gate is active. Tests, deployment, reports and CPS edits alone do not prove functional completion.
 - FSSE-01 Future-Scale Polygon Foundation is implemented, deployed and consumed.
 - FSSE-02 Future-Scale Polygon Execution Harness is implemented and consumed for `CAPACITY_BOUNDARY`.
+- FSSE-03 high-fidelity validation and FSSE-04 autonomous Polygon integration are complete and consumed.
+- Two distinct natural external reentries certify independent background engineering continuation.
 - FSSE current-state and derived-registry consistency correction is deployed and `FULLY_ALIGNED`.
-- `CAPACITY_BOUNDARY` is covered with engineering PASS; `HEALTHY_BASELINE_SMALL` is the next deterministic scenario.
+- All 40 current high-fidelity scenarios are covered; the current next action is recurring `Continue OMP`.
 
 Completed historical work must not be reopened unless objective evidence proves corruption, contradiction, or a formally accepted evolution need.
 
@@ -621,16 +627,15 @@ Completed historical work must not be reopened unless objective evidence proves 
 
 Active engineering execution work:
 
-- execute `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1` through existing Engineering Polygon, OMP, CPS, BDP and V7 code owners;
-- preserve `HEALTHY_BASELINE_SMALL` as the next scenario and extend evidence across the 10k/100 scale envelope;
-- validate performance, concurrency, leases, replay, single-flight, contention, deterministic ordering and owner-safe isolated emulation;
-- route only a reproducible real-source mismatch through the existing BDP -> Candidate -> OMP Mission lifecycle;
-- preserve no production mutation, no user movement, no Authority expansion and no Production Maturity credit;
-- continue immediately to the exact next scenario or legal owner-backed stop after consumed verification.
+- continue OMP through the active existing heartbeat, which invokes the standard bounded `Continue OMP` consumer every 30 minutes;
+- resolve each fresh CPS state through ordinary OMP priority before Scenario Frontier work;
+- preserve idempotency, replay suppression, single-flight lease, exact target-thread/project identity and bounded legal terminals;
+- preserve no Runtime mutation, no user movement, no Authority expansion and no Production Maturity credit unless a separate authorized Mission grants them;
+- keep manual `Continue OMP` as the owner-backed fallback.
 
 Known non-blocking follow-up:
 
-- heartbeat/external reentry remains `DEFERRED_PLATFORM_CERTIFICATION`; manual `Continue OMP` remains active;
+- external reentry is production-certified for engineering-context continuation; it is not Runtime or routing autonomy;
 - CAP-U07 remains protected capability-local WIP at its real-world dependency boundary;
 - append-only historical Domain 11 NOT CERTIFIED text remains superseded by Stage 1.2 terminal evidence;
 - old Function Graph evidence should be used as discovery/index evidence unless current implementation evidence proves a contradiction.
@@ -982,6 +987,8 @@ The Phase 2-to-current retrospective proved that reports, tests and deployment c
 
 FSSE-02 satisfies integration completion because `tools/v7-truth-check --omp-scenario-execution` is a real non-test caller, real V7 Planner and execution-preview owners are invoked, `OMP_PROGRAM_EXECUTION_RECONCILIATION` consumes the normalized PASS, coverage changes from 0 to 1, and the exact next Mission is `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1`.
 
+Independent background automation satisfies automation completion because two distinct natural Codex Automation Platform events invoked the standard `Continue OMP` consumer after prior turns exited, used unique event/invocation identities, released leases without overlap, preserved idempotency/duplicate suppression and produced bounded next outputs with zero Runtime, production or Authority effects.
+
 ### Common Misunderstandings To Avoid
 
 - Do not confuse Stage 1 architecture lock with full production autonomy.
@@ -1000,7 +1007,7 @@ FSSE-02 satisfies integration completion because `tools/v7-truth-check --omp-sce
 - Do not let OMP become a duplicate Runtime.
 - Do not add Engineering Confidence, a new owner, a new engine, a new architecture, or OMP changes for Engineering Truth Usage before the required world research proves a real gap.
 - Do not treat passing FSSE schema/tests or a scenario report as an executed scenario consumer.
-- Do not reopen heartbeat as a blocker for FSSE; it remains deferred platform certification.
+- Do not recreate or manually duplicate the active certified heartbeat; it is the existing external reentry owner.
 - Do not wait for rare production events when the existing FSSE frontier can produce bounded engineering evidence.
 
 ## 14. STARTING A NEW CHAT
@@ -1011,12 +1018,11 @@ Read in this order:
 
 1. `docs/reference/V7_MASTER_PROJECT_HANDOFF.md`;
 2. `docs/programs/V7_CURRENT_PROGRAM_STATE.md`, Section 0 only for live volatile state;
-3. `docs/reports/engineering/2026-07-15_165613_future_scale_polygon_execution_harness.md`;
-4. `docs/reports/engineering/2026-07-15_153614_fsse_current_state_consistency_correction.md`;
-5. `docs/reports/engineering/2026-07-15_094920_future_scale_polygon_foundation.md`;
-6. the Future-Scale Scenario Engineering sections of `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`;
-7. `tools/v7_sync_lib.py`;
-8. `tests/scenarios/future_scale/foundation.json`.
+3. `docs/reports/engineering/2026-07-16_001627_full_independent_background_automation_and_fsse04_production_closure.md`;
+4. `docs/reports/engineering/2026-07-15_214500_future_scale_autonomous_polygon_integration_and_certification.md`;
+5. OMP V4.28 external reentry and Future-Scale sections;
+6. `tools/v7_sync_lib.py` and `tools/v7-truth-check`;
+7. `docs/reports/engineering/evidence/V7_OMP_EXTERNAL_REENTRY_RUNS.jsonl` only when external reentry evidence is required.
 
 Use ECR before widening context. Use Canonical Reference for durable meaning, SYSTEM_MAP for owner topology, OMP for continuation, and Engineering Reports only as evidence. CPS Section 0 overrides all current-looking historical snapshots.
 
@@ -1026,22 +1032,17 @@ Then execute:
 Discover -> Reuse -> Extend -> Implement
 Continue OMP
 
-MISSION:
-V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1
-
-INPUT SCENARIO:
-HEALTHY_BASELINE_SMALL
+ACTION:
+Continue OMP
 ```
 
 Required boundary:
 
-- do not repeat FSSE-01 or FSSE-02;
-- do not reopen heartbeat as a blocker;
-- do not wait for production events;
+- do not repeat FSSE-01 through FSSE-04;
+- do not recreate, pause or replace the certified heartbeat without a separate owner-authorized Mission;
 - do not start unrelated capability work;
 - do not create a new simulator, owner, Planner, Runtime, scheduler, queue or truth source;
 - do not use toy decision logic as proof;
-- do not start FSSE-04 or stop at schema, tests, deployment or report creation;
 - preserve CAP-U07 protected capability-local WIP;
 - preserve no Runtime mutation, no production mutation, no user movement, no Authority expansion and no Production Maturity credit.
 
@@ -1054,11 +1055,14 @@ Already proven and reusable:
 - Mission Completion Evidence Gate is active;
 - FSSE-01 is complete, deployed and consumed;
 - FSSE-02 is complete and consumed for `CAPACITY_BOUNDARY`;
-- current-state consistency is locally aligned; deployment/convergence evidence remains owner-certified separately;
-- FSSE-03 is the only current program frontier;
+- FSSE-03 and FSSE-04 are complete and consumed;
+- two distinct natural external reentries are production-certified;
+- AEP Phase 5 is `COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES`;
+- current-state consistency, truth, convergence and deployed snapshot are aligned;
+- recurring `Continue OMP` is the current program frontier;
 - `EXTERNAL_INPUT_REQUIRED = FALSE` and `OMP_CONTINUATION_REQUIRED = TRUE`;
-- scenario frontier generation is `fssef_ddd7a4e7145666fc28c7b1b2`;
-- current coverage fingerprint is `ddd7a4e7145666fc28c7b1b20062e3d35ae3c0b6f57328eced07587dafd43fd4`.
+- scenario frontier generation is `fssef_dcd80bd4189d95ec7c58d661`;
+- current coverage fingerprint is `dcd80bd4189d95ec7c58d661af3ac313c1f7760f925c9937f9f15dfe40f873df`.
 
 Do not recreate this handoff under another filename. Do not run a broad architecture audit unless a formal Re-open Trigger exists.
 
@@ -1086,7 +1090,7 @@ NO.
 
 Current active roadmap:
 
-OMP execution through CPS and ECR; FSSE-03 high-fidelity validation with preserved next scenario `HEALTHY_BASELINE_SMALL` is the exact current frontier.
+OMP execution through CPS and ECR; certified independent background reentry invokes the bounded standard `Continue OMP` frontier.
 
 Ready for seamless continuation:
 

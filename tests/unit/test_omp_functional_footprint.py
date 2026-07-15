@@ -36,23 +36,23 @@ class OmpFunctionalFootprintTest(unittest.TestCase):
     def test_current_cps_footprint_passes(self):
         result = self.lib.omp_functional_footprint_consistency(self.cps, root=ROOT)
         self.assertEqual(result["final_verdict"], "PASS")
-        self.assertEqual(result["heartbeat_status"], "PAUSED")
-        self.assertFalse(result["automation_enabled"])
+        self.assertEqual(result["heartbeat_status"], "ACTIVE")
+        self.assertTrue(result["automation_enabled"])
 
     def test_inconsistent_heartbeat_state_pair_fails(self):
-        altered = self.cps.replace("| `AUTOMATION_ENABLED` | `FALSE` |", "| `AUTOMATION_ENABLED` | `TRUE` |", 1)
+        altered = self.cps.replace("| `AUTOMATION_ENABLED` | `TRUE` |", "| `AUTOMATION_ENABLED` | `FALSE` |", 1)
         result = self.lib.omp_functional_footprint_consistency(altered, root=ROOT)
         self.assertEqual(result["final_verdict"], "NO-GO")
         self.assertIn("functional_footprint_heartbeat_state_pair_invalid", result["errors"])
 
     def test_false_complete_consumed_claim_fails(self):
-        altered = self.cps.replace("`IMPLEMENTED_MANUALLY_CALLABLE`", "`COMPLETE_CONSUMED`", 1)
+        altered = self.cps.replace("`COMPLETE_CONSUMED_REAL_EXTERNAL_CALLER`", "`IMPLEMENTED_MANUALLY_CALLABLE`", 1)
         result = self.lib.omp_functional_footprint_consistency(altered, root=ROOT)
         self.assertEqual(result["final_verdict"], "NO-GO")
         self.assertIn("functional_footprint_mismatch:AEP_PHASE_4_STATUS", result["errors"])
 
     def test_false_real_automation_claim_fails(self):
-        altered = self.cps.replace("| `OMP_AUTOMATION_LEVEL` | `BOUNDED_SINGLE_INVOCATION_AUTOMATION_CERTIFIED` |", "| `OMP_AUTOMATION_LEVEL` | `REAL_ENGINEERING_AUTOMATION` |", 1)
+        altered = self.cps.replace("| `OMP_AUTOMATION_LEVEL` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |", "| `OMP_AUTOMATION_LEVEL` | `REAL_ENGINEERING_AUTOMATION` |", 1)
         result = self.lib.omp_functional_footprint_consistency(altered, root=ROOT)
         self.assertEqual(result["final_verdict"], "NO-GO")
 

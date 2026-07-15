@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.27`
+Version: `4.28`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -13,8 +13,8 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed closure evidence: `docs/reports/engineering/2026-07-15_214500_future_scale_autonomous_polygon_integration_and_certification.md` (`FUTURE_SCALE_POLYGON_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED`).
-Previous consumed closure evidence: `docs/reports/engineering/2026-07-15_204206_future_scale_high_fidelity_validation.md` (`FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_IMPLEMENTED_CONSUMED_FSSE_04_READY`).
+Latest consumed closure evidence: `docs/reports/engineering/2026-07-16_001627_full_independent_background_automation_and_fsse04_production_closure.md` (`FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED`).
+Previous consumed closure evidence: `docs/reports/engineering/2026-07-15_214500_future_scale_autonomous_polygon_integration_and_certification.md` (`FUTURE_SCALE_POLYGON_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -39,6 +39,8 @@ V4.25 adds the Mission Completion Evidence Gate inside existing OMP, Engineering
 V4.26 adds Future-Scale Scenario Engineering to the existing Engineering Polygon and OMP continuation owners. When ordinary safe engineering work is exhausted, OMP immediately builds a deterministic Scenario Frontier from owner-bound machine-readable scenarios, stable invariant identities, current source/dependency fingerprints and current coverage. Scenario results are Engineering Evidence only: they may expose reproducible defects and certify invariant behavior, but cannot claim production outcomes, grant Authority, mutate Runtime, move users or increase Production Maturity. A reproducible mismatch flows through the existing BDP -> Candidate -> OMP Mission lifecycle. No new Polygon, owner, Runtime, Planner, scheduler, queue, truth source or simulation platform is created.
 
 V4.27 connects the standard `Continue OMP` trigger to a bounded single-invocation engineering loop inside the same OMP/Polygon owners. One invocation reads fresh CPS, evaluates ordinary work first, selectively invalidates dependency-bound coverage, executes real-code scenarios, validates and consumes results, updates the frontier atomically, routes an eligible mismatch through existing BDP/Candidate/admission owners, reruns the target and affected subset, and stops only at an exact bounded or legal terminal. It adds no scheduler, daemon, queue, Runtime, Planner, repair engine, Candidate owner or background reentry claim.
+
+V4.28 certifies the existing Codex Automation Platform heartbeat as the independent external reentry owner for the standard bounded `Continue OMP` consumer. Certification requires at least two distinct natural scheduled events after prior target-thread turns exited, unique event/invocation identities, active exact automation/thread/project binding, no overlap, lease release, real consumer invocation, behavior or legal-terminal output, idempotency, duplicate suppression, deployed FSSE-04 source, truth/convergence and runtime snapshot equality. The heartbeat starts engineering context only; it grants no Runtime, routing, packet, user, restore-barrier, rollback, Authority or Production Maturity effect. This creates no scheduler, daemon, queue, owner, Runtime or Planner.
 
 V4 operating questions:
 
@@ -784,7 +786,7 @@ Scenario batches and repair cycles continue internally inside the active OMP exe
 
 High-fidelity validation reuses the same owners to execute a bounded deterministic corpus through real code paths. It may generate scale cases, measure phase cost and resource envelopes, exercise existing lease/replay/concurrency/containment owners, bind results to source dependencies and selectively replay only invalidated scenarios. Its aggregate result is consumed by `OMP_PROGRAM_EXECUTION_RECONCILIATION`; complete current coverage with zero reproducible mismatch produces `V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1`. These results remain engineering evidence and never become production outcomes or hardware-equivalent capacity claims.
 
-The standard `Continue OMP` consumer may execute multiple internal safe transitions in one invocation. Every transition has a deterministic identity, bounded budget, atomic CPS update and post-write reread. Transaction PASS, selective invalidation, Scenario consumption, BDP input, Candidate admission, certification repair and affected replay do not return control while a safe next internal action remains. A bounded invocation terminal persists exact `CONTINUE_OMP` state and does not claim background automation; heartbeat remains the separate external reentry boundary.
+The standard `Continue OMP` consumer may execute multiple internal safe transitions in one invocation. Every transition has a deterministic identity, bounded budget, atomic CPS update and post-write reread. Transaction PASS, selective invalidation, Scenario consumption, BDP input, Candidate admission, certification repair and affected replay do not return control while a safe next internal action remains. A bounded invocation terminal persists exact `CONTINUE_OMP` state. The existing Codex Automation Platform heartbeat owns the separately certified external reentry boundary and may invoke the standard consumer only after exact identity, replay, concurrency, freshness and CPS gates pass.
 
 #### Execution Certification Candidate Certificate Consumption Rule
 
@@ -8811,8 +8813,8 @@ Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `BOUNDED_INVOCATION_BUDGET_REACHED`
 Resolved current next action: `CONTINUE_OMP`
-Latest consumed report: `docs/reports/engineering/2026-07-15_214500_future_scale_autonomous_polygon_integration_and_certification.md`
-Previous consumed report: `docs/reports/engineering/2026-07-15_204206_future_scale_high_fidelity_validation.md` (`FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_IMPLEMENTED_CONSUMED_FSSE_04_READY`)
+Latest consumed report: `docs/reports/engineering/2026-07-16_001627_full_independent_background_automation_and_fsse04_production_closure.md`
+Previous consumed report: `docs/reports/engineering/2026-07-15_214500_future_scale_autonomous_polygon_integration_and_certification.md` (`FUTURE_SCALE_POLYGON_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED`)
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

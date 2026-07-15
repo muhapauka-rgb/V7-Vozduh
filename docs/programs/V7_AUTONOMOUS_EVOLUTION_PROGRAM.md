@@ -2,12 +2,12 @@
 
 Status: `ORGANIZED`
 Document status: `ORGANIZED`
-Execution status: `PHASE_3_ACCEPTED_LOCKED_PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE_PHASE_5_BLOCKED_REAL_CONSUMER`
-Completion evidence status: `INTEGRATION_INCOMPLETE`; Phase 6 remains `BLOCKED_BY_PHASE_5`; evaluated by OMP Mission Completion Evidence Gate through current truth-check.
-Current program state: `GAP_READY; REAL_CONSUMER_ACTIVATION_REQUIRES_ENGINEERING_AUTHORITY`
-Current execution evidence: `docs/reports/engineering/2026-07-14_172349_omp_functional_footprint_audit.md`
+Execution status: `PHASE_3_ACCEPTED_LOCKED_PHASE_4_COMPLETE_CONSUMED_PHASE_5_COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES`
+Completion evidence status: `AUTOMATION_COMPLETE_CONSUMED`; Phase 6 is `READY_WHERE_PRODUCTION_CERTIFICATION_REQUIRED`; evaluated by OMP Mission Completion Evidence Gate and external reentry completion gate.
+Current program state: `REAL_EXTERNAL_CONSUMER_CERTIFIED; CONTINUOUS_OMP_REENTRY_ACTIVE`
+Current execution evidence: `docs/reports/engineering/2026-07-16_001627_full_independent_background_automation_and_fsse04_production_closure.md`
 Current acceptance state: `PHASE_3_ACCEPTED_LOCKED; aep3lock_f4e40b34f14e2743819e3a2e`
-Next legal stage: activate a real existing OMP consumer only after explicit Engineering Authority; Phase 6 remains blocked.
+Next legal stage: Phase 6 where production certification is required; otherwise continue OMP through the certified external reentry owner.
 Mode: `PROGRAM_ROUTE`
 Runtime impact: `NONE`
 Authority impact: `NONE`
@@ -1134,6 +1134,8 @@ Outputs:
 - Function Graph updates or evidence records when implementation relationships change;
 - CPS updates when current reality changes.
 
+Current owner-backed closure: `COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES`. The existing Codex Automation Platform heartbeat produced two distinct natural scheduled external events after the prior target-thread turns exited. Both invoked the standard existing `Continue OMP` entrypoint, consumed `OMP_PROGRAM_EXECUTION_RECONCILIATION`, changed or legally continued behavior, released their leases, had no overlap, and produced zero Runtime/production/Authority effects. This supersedes `BLOCKED_MISSING_REAL_CONSUMER`; Phase 6 is `READY_WHERE_PRODUCTION_CERTIFICATION_REQUIRED` and must retain its own production-evidence boundary.
+
 ### Phase 6 - Production Certification
 
 Purpose: certify production autonomy before autonomous operation expands. Production certification may certify autonomous execution of law-bound action classes only after situation interpretation and decision evidence are proven.
@@ -1424,7 +1426,7 @@ until owner, consumer, consumption evidence, terminal alternative, evidence, and
 | Structural Friction Inventory | FUTURE / EMBEDDED | OMP / SYSTEM_MAP / evidence owners | Phase 2 | Phase 3 | `STRUCTURAL_FRICTION_RECORDED` |
 | Evidence Map | FUTURE / EMBEDDED | evidence owners / report owners | Phase 2 | Phase 3 | `EVIDENCE_MAP_RECORDED` |
 | `docs/reports/research/V7_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER.md` | CURRENT_ACCEPTED_LOCKED | OMP / CPS / certification owners | Phase 3 | Phase 4 | register `b164319d05c8c70af130ef4b32066165b1a4e6b33fc7efad51f6d3d6e4e3b54f`; lock `aep3lock_f4e40b34f14e2743819e3a2e` |
-| OMP Mission Map | CURRENT_CONSUMED | OMP | Phase 4 | Phase 5 | one Candidate admitted as `V7_OMP_PHASE_3_TO_PHASE_4_PROGRAM_CONSUMER_EXTENSION_V1`; verified and consumed |
+| OMP Mission Map | CURRENT_CONSUMED | OMP | Phase 4 | Phase 5 | Candidate `V7_OMP_PHASE_3_TO_PHASE_4_PROGRAM_CONSUMER_EXTENSION_V1` is consumed by the real external heartbeat -> standard `Continue OMP` -> reconciliation chain; Phase 5 `COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES` |
 | `docs/reports/research/V7_AUTONOMOUS_MODEL_KNOWLEDGE_CONSOLIDATION.md` | EXISTS | Research reports / canonical owners referenced by the map | Existing research artifact | All phases as knowledge map | `KNOWLEDGE_MAP_NOT_TRUTH` |
 | `docs/reports/research/V7_AUTONOMOUS_MODEL_FUNCTION_GRAPH_APPENDIX.md` | EXISTS | Function Graph / reports | Existing research artifact | Phase 2 / Phase 5 | `DISCOVERY_INDEX_EVIDENCE` |
 | `docs/reports/research/V7_AUTONOMOUS_MODEL_FUNCTION_GRAPH_APPENDIX.json` | EXISTS | Function Graph / reports | Existing research artifact | Phase 2 / Phase 5 | `DISCOVERY_INDEX_EVIDENCE` |

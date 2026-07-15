@@ -81,7 +81,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertIn("cps_wip_next_action_context_divergence", self.validate(drift)["errors"])
 
     def test_09_sequence_position_one_stop_differs_fails(self):
-        row = next(line for line in self.cps.splitlines() if line.startswith("| `1` | `FSSE_04_COMPLETE_BOUNDED_CONTINUE_OMP_READY` program frontier"))
+        row = next(line for line in self.cps.splitlines() if line.startswith("| `1` | `FSSE_04_COMPLETE_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` program frontier"))
         drift = self.cps.replace(row, row.replace("| `BOUNDED_INVOCATION_BUDGET_REACHED` |", "| `STOP_SAFE` |", 1), 1)
         self.assertIn("cps_sequence_position_1_divergence", self.validate(drift)["errors"])
 

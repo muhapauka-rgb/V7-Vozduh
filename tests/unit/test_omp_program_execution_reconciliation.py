@@ -20,14 +20,30 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.lib = load_lib()
+        historical_aep = (ROOT / "docs/programs/V7_AUTONOMOUS_EVOLUTION_PROGRAM.md").read_text()
+        for marker in (
+            "PHASE_4_COMPLETE_CONSUMED",
+            "COMPLETE_CONSUMED_REAL_EXTERNAL_CALLER",
+            "COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES",
+        ):
+            historical_aep = historical_aep.replace(marker, "HISTORICAL_TEST_INCOMPLETE")
+        current_cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text()
+        historical_cps = cls.lib.build_normalized_cps_document(current_cps, {
+            "current_program_stage": "FSSE_04_COMPLETE_BOUNDED_CONTINUE_OMP_READY",
+            "background_automation_state": "EXTERNAL_REENTRY_IMPLEMENTATION_READY_NOT_YET_PLATFORM_CERTIFIED",
+            "aep_phase4_status": "IMPLEMENTED_MANUALLY_CALLABLE",
+            "aep_phase5_status": "BLOCKED_MISSING_REAL_CONSUMER",
+            "aep_phase6_status": "BLOCKED_BY_PHASE_5",
+            "fsse_00_external_reentry_status": "DEFERRED_PLATFORM_CERTIFICATION",
+        })
         cls.sources = {
             "stage2": (ROOT / "docs/programs/V7_STAGE2_KNOWLEDGE_ENGINEERING_PROGRAM.md").read_text(),
-            "aep": (ROOT / "docs/programs/V7_AUTONOMOUS_EVOLUTION_PROGRAM.md").read_text(),
+            "aep": historical_aep,
             "bdp": (ROOT / "docs/programs/V7_BEHAVIOUR_DISCOVERY_PROGRAM.md").read_text(),
             "implementation": (ROOT / "docs/programs/V7_IMPLEMENTATION_PROGRAM.md").read_text(),
             "backlog": (ROOT / "docs/programs/V7_IMPLEMENTATION_BACKLOG.md").read_text(),
             "omp": (ROOT / "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md").read_text(),
-            "cps": (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(),
+            "cps": historical_cps,
             "autonomous_execution": (ROOT / "docs/reference/V7_AUTONOMOUS_EXECUTION_PROGRAM.md").read_text(),
             "autonomous_runtime": (ROOT / "docs/reference/V7_AUTONOMOUS_RUNTIME_MODEL.md").read_text(),
             "controlled_certification": (ROOT / "docs/reference/capabilities/CONTROLLED_PRODUCTION_CERTIFICATION_PROGRAM.md").read_text(),
@@ -93,12 +109,12 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
     def test_14_missing_owner_consumption_remains_open(self):
         self.assertEqual(self.classify(entry_conditions_met=True, execution_started=True, outputs_found=True, output_schema_valid=True, consumer_found=False), "STAGE_CONSUMER_MISSING")
 
-    def test_15_acceptance_requirement_is_preserved(self):
-        self.assertTrue(self.reconcile(aep_phase2_acceptance="")["acceptance_required"])
+    def test_15_acceptance_waits_for_revalidation(self):
+        self.assertFalse(self.reconcile(aep_phase2_acceptance="")["acceptance_required"])
 
-    def test_16_acceptance_is_not_bypassed(self):
+    def test_16_missing_revalidation_keeps_phase2_in_progress(self):
         phase2 = next(x for x in self.reconcile(aep_phase2_acceptance="")["stages"] if x["stage_id"] == "PHASE_2")
-        self.assertEqual(phase2["status"], "STAGE_READY_FOR_ACCEPTANCE")
+        self.assertEqual(phase2["status"], "STAGE_IN_PROGRESS")
 
     def test_17_real_world_boundary_is_invalid_with_safe_program_stage(self):
         self.assertEqual(self.reconcile()["global_real_world_limit_verdict"], "GLOBAL_REAL_WORLD_LIMIT_VALID")

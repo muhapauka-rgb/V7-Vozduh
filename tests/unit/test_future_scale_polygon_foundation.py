@@ -164,7 +164,7 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
     def test_22_program_reconciliation_consumes_scenario_frontier(self):
         sources = self.lib.load_program_execution_sources()
         sources["cps"] = sources["cps"].replace(
-            "| `FSSE_00_EXTERNAL_REENTRY_STATUS` | `DEFERRED_PLATFORM_CERTIFICATION` |",
+            "| `FSSE_00_EXTERNAL_REENTRY_STATUS` | `PRODUCTION_CERTIFIED_TWO_NATURAL_REENTRIES` |",
             "| `FSSE_00_EXTERNAL_REENTRY_STATUS` | `DEFERRED_PLATFORM_CERTIFICATION` |",
         )
         result = self.lib.program_execution_reconciliation(sources)

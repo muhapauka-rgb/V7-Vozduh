@@ -28,14 +28,30 @@ class AepPhase3AcceptanceAndPhase4ConsumptionTest(unittest.TestCase):
         cls.lib = load_lib()
         cls.phase2 = (ROOT / "docs/reports/research/V7_CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY.md").read_text()
         cls.register = (ROOT / "docs/reports/research/V7_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER.md").read_text()
+        historical_aep = (ROOT / "docs/programs/V7_AUTONOMOUS_EVOLUTION_PROGRAM.md").read_text()
+        for marker in (
+            "PHASE_4_COMPLETE_CONSUMED",
+            "COMPLETE_CONSUMED_REAL_EXTERNAL_CALLER",
+            "COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES",
+        ):
+            historical_aep = historical_aep.replace(marker, "HISTORICAL_TEST_INCOMPLETE")
+        current_cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text()
+        historical_cps = cls.lib.build_normalized_cps_document(current_cps, {
+            "current_program_stage": "FSSE_04_COMPLETE_BOUNDED_CONTINUE_OMP_READY",
+            "background_automation_state": "EXTERNAL_REENTRY_IMPLEMENTATION_READY_NOT_YET_PLATFORM_CERTIFIED",
+            "aep_phase4_status": "IMPLEMENTED_MANUALLY_CALLABLE",
+            "aep_phase5_status": "BLOCKED_MISSING_REAL_CONSUMER",
+            "aep_phase6_status": "BLOCKED_BY_PHASE_5",
+            "fsse_00_external_reentry_status": "DEFERRED_PLATFORM_CERTIFICATION",
+        })
         cls.sources = {
             "stage2": (ROOT / "docs/programs/V7_STAGE2_KNOWLEDGE_ENGINEERING_PROGRAM.md").read_text(),
-            "aep": (ROOT / "docs/programs/V7_AUTONOMOUS_EVOLUTION_PROGRAM.md").read_text(),
+            "aep": historical_aep,
             "bdp": (ROOT / "docs/programs/V7_BEHAVIOUR_DISCOVERY_PROGRAM.md").read_text(),
             "implementation": (ROOT / "docs/programs/V7_IMPLEMENTATION_PROGRAM.md").read_text(),
             "backlog": (ROOT / "docs/programs/V7_IMPLEMENTATION_BACKLOG.md").read_text(),
             "omp": (ROOT / "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md").read_text(),
-            "cps": (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(),
+            "cps": historical_cps,
             "aep_phase1": (ROOT / "docs/reports/engineering/V7_AUTONOMOUS_EVOLUTION_FOUNDATION_PHASE1_EXECUTION_REPORT.md").read_text(),
             "aep_phase2": cls.phase2,
             "aep_phase2_execution": (ROOT / "docs/reports/engineering/V7_CURRENT_AUTONOMOUS_BEHAVIOUR_REALITY_EXECUTION_REPORT.md").read_text(),

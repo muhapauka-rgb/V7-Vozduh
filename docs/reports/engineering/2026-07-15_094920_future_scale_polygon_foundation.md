@@ -85,7 +85,9 @@ Scenario PASS не является production outcome. Reproducible mismatch м
 
 Focused foundation suite: `25/25 PASS`. Full unit suite: `1234/1234 PASS` за `338.430s`. Schema, unresolved invariant, deterministic/change-sensitive identity, seed replay, duplicate protection, evidence boundary, priority, frontier, active duplicate, exact output, real caller and OMP consumer покрыты. Python compilation and corpus JSON validation: `PASS`.
 
-Full regression, truth/convergence and deployed fingerprint results фиксируются финальной certification после commit/safe-deploy. Deploy разрешён только для read-only engineering and truth/OMP consumer code; Runtime and routing behavior не меняются.
+Safe deploy выполнен из `Updatesystem` commit `8f559ab5675b28df39067608d7d5453543841f3e` с deploy ID `deploy-z8-14-Updatesystem-8f559ab-20260715T103251`. Изменены только production-копии `v7_sync_lib.py` (`7568f8e94b665a80a1b931573977ccfff1cf0a530017754ec93bba00f6d74bce`) и `v7-truth-check` (`f27dbc0cbe159fda32e0b7ad6ddf817f44aa7577634dc75882a208be602061ae`). Runtime fingerprint validation: `PASS`; admin restart: `NO`; routing mutation, autoswitch apply, user movement, policy/planner и restore-barrier mutation: `NONE`.
+
+Post-deploy `tools/v7-truth-check --all --json`: `PASS`, state truth `KNOWN`, runtime truth `KNOWN`, convergence `FULLY_ALIGNED`, blockers `NONE`. `tools/v7-convergence-status --json`: local, GitHub и production `PASS` на одном commit `8f559ab5675b28df39067608d7d5453543841f3e`.
 
 ## Ограничение и точный handoff
 

@@ -156,11 +156,11 @@ FSSE-01 foundation COMPLETE_CONSUMED
   -> FSSE-03 high-fidelity validation COMPLETE_CONSUMED
   -> FSSE-04 autonomous Polygon integration and certification COMPLETE_CONSUMED
   -> two natural external reentries COMPLETE_CONSUMED
-  -> FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED
-  -> recurring STANDARD COMMAND Continue OMP
+  -> two natural external reentries COMPLETE_CONSUMED
+  -> SOURCE_CONVERGENCE_SAFE_DEPLOY_PENDING
 ```
 
-FSSE-04 connects the standard `Continue OMP` trigger to the existing bounded OMP/Polygon consumer. The existing Codex Automation Platform heartbeat now owns independent external reentry: two distinct natural 30-minute scheduled events arrived after prior target-thread turns exited, invoked the standard consumer, released their leases without overlap and produced zero Runtime/production/Authority effects. Background engineering continuation is production-certified; CAP-U07 remains protected capability-local `WAITING_EXTERNAL_DEPENDENCY` WIP.
+FSSE-04 connects the standard `Continue OMP` trigger to the existing bounded OMP/Polygon consumer. The existing Codex Automation Platform heartbeat now owns independent external reentry: two distinct natural 30-minute scheduled events arrived after prior target-thread turns exited, invoked the standard consumer, released their leases without overlap and produced zero Runtime/production/Authority effects. Automation evidence is complete and consumed. Local/GitHub must resolve to `CURRENT_CANONICAL_HEAD`; production remains at `81ec5ed6`, so production closure is fail-closed pending the canonical safe deploy; CAP-U07 remains protected capability-local `WAITING_EXTERNAL_DEPENDENCY` WIP.
 
 ### Research First Rule
 
@@ -180,20 +180,20 @@ Fundamental mechanisms must not be built from intuition, naming preference, or l
 The exact continuing action is:
 
 ```text
-COMMAND = Continue OMP
-STOP = BOUNDED_INVOCATION_BUDGET_REACHED
-REENTRY = EXISTING ACTIVE 30-MINUTE CODEX AUTOMATION PLATFORM HEARTBEAT
+COMMAND = AUTHORIZE CANONICAL SAFE DEPLOY FOR CURRENT_CANONICAL_HEAD
+STOP = ENGINEERING_AUTHORITY
+REENTRY = EXISTING ACTIVE 30-MINUTE CODEX AUTOMATION PLATFORM HEARTBEAT REMAINS ENABLED BUT DOES NOT GRANT DEPLOY AUTHORITY
 ```
 
-The next thread must invoke the already-certified existing-owner loop:
+The next thread must close only the existing safe-deploy boundary:
 
 ```text
-Continue OMP
-  -> fresh CPS
-  -> ordinary frontier priority
-  -> Scenario Frontier only after ordinary exhaustion
-  -> bounded internal transitions
-  -> exact legal terminal or saved continuation
+explicit safe-deploy Engineering Authority
+  -> tools/v7-safe-deploy for the exact canonical commit
+  -> truth --all
+  -> convergence
+  -> runtime snapshot equality
+  -> production-closure terminal reconciliation
 ```
 
 Do not repeat FSSE-01 through FSSE-04, create another heartbeat/Polygon/owner, bypass the standard `Continue OMP` command, or infer Runtime/production Authority from engineering automation certification.
@@ -264,28 +264,28 @@ This is a handoff projection only. CPS Section 0 remains authoritative if volati
 ```text
 LATEST_TERMINAL_MISSION = V7_OMP_FULL_INDEPENDENT_BACKGROUND_AUTOMATION_AND_FSSE04_PRODUCTION_CLOSURE_V1
 LATEST_TERMINAL_RUN_NONCE = V7_OMP_EXTERNAL_REENTRY_PAIR_6E013631_92871890
-LATEST_TERMINAL_VERDICT = FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED
+LATEST_TERMINAL_VERDICT = IMPLEMENTATION_COMPLETE_SAFE_DEPLOY_AUTHORITY_REQUIRED
 LATEST_TERMINAL_REPORT = docs/reports/engineering/2026-07-16_001627_full_independent_background_automation_and_fsse04_production_closure.md
-TRUTH_CONVERGENCE = FULLY_ALIGNED
+TRUTH_CONVERGENCE = LOCAL_GITHUB_ALIGNED_PRODUCTION_DEPLOY_REQUIRED
 
 ACTIVE_PROGRAM = FUTURE_SCALE_SCENARIO_ENGINEERING
-CURRENT_PROGRAM_STAGE = FSSE_04_COMPLETE_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED
-CURRENT_ACTIVE_SCOPE = INDEPENDENT_BACKGROUND_CONTINUE_OMP
-CURRENT_PROGRAM_EXECUTION_FRONTIER = CONTINUE_OMP
-CURRENT_NEXT_ACTION_ID = CONTINUE_OMP
-NEXT_MISSION_ID = CONTINUE_OMP
+CURRENT_PROGRAM_STAGE = FSSE_04_COMPLETE_EXTERNAL_REENTRY_DEPLOY_PENDING
+CURRENT_ACTIVE_SCOPE = SAFE_DEPLOY_CURRENT_CANONICAL_HEAD
+CURRENT_PROGRAM_EXECUTION_FRONTIER = SAFE_DEPLOY_CURRENT_CANONICAL_HEAD
+CURRENT_NEXT_ACTION_ID = AUTHORIZE_SAFE_DEPLOY_CURRENT_CANONICAL_HEAD
+NEXT_MISSION_ID = NONE
 NEXT_SCENARIO_ID = NONE
-CURRENT_STOP_CONDITION = BOUNDED_INVOCATION_BUDGET_REACHED
-OMP_CONTINUATION_REQUIRED = TRUE
-EXTERNAL_INPUT_REQUIRED = FALSE
-AUTHORITY_REQUIRED_NOW = NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE
+CURRENT_STOP_CONDITION = ENGINEERING_AUTHORITY
+OMP_CONTINUATION_REQUIRED = FALSE
+EXTERNAL_INPUT_REQUIRED = TRUE
+AUTHORITY_REQUIRED_NOW = ENGINEERING_AUTHORITY_FOR_SAFE_DEPLOY_CURRENT_CANONICAL_HEAD_ONLY
 FSSE_STATUS = FSSE_04_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED
-FSSE_00_EXTERNAL_REENTRY_STATUS = PRODUCTION_CERTIFIED_TWO_NATURAL_REENTRIES
+FSSE_00_EXTERNAL_REENTRY_STATUS = TWO_NATURAL_REENTRIES_CERTIFIED_SOURCE_DEPLOY_PENDING
 FSSE_00_BLOCKS_FSSE_01 = FALSE
-OMP_AUTOMATION_LEVEL = FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED
+OMP_AUTOMATION_LEVEL = TWO_NATURAL_REENTRIES_CERTIFIED_DEPLOY_PENDING
 MANUAL_CONTINUE_OMP_FALLBACK = ACTIVE
-CURRENT_STATE_GENERATION = cpsgen_V7_BACKGROUND_AUTOMATION_CERTIFIED_928718904BCD
-CURRENT_TRANSITION_ID = EXTERNAL_REENTRY_TWO_RUN_CERTIFIED_V1
+CURRENT_STATE_GENERATION = cpsgen_V7_BACKGROUND_AUTOMATION_DEPLOY_PENDING_928718904BCD
+CURRENT_TRANSITION_ID = EXTERNAL_REENTRY_TWO_RUN_VALIDATED_DEPLOY_PENDING_V1
 SCENARIO_COVERAGE_GENERATION = fssef_dcd80bd4189d95ec7c58d661
 SCENARIO_COVERAGE_FINGERPRINT = dcd80bd4189d95ec7c58d661af3ac313c1f7760f925c9937f9f15dfe40f873df
 SCENARIO_CORPUS_COUNT = 40
@@ -618,8 +618,8 @@ Completed:
 - FSSE-02 Future-Scale Polygon Execution Harness is implemented and consumed for `CAPACITY_BOUNDARY`.
 - FSSE-03 high-fidelity validation and FSSE-04 autonomous Polygon integration are complete and consumed.
 - Two distinct natural external reentries certify independent background engineering continuation.
-- FSSE current-state and derived-registry consistency correction is deployed and `FULLY_ALIGNED`.
-- All 40 current high-fidelity scenarios are covered; the current next action is recurring `Continue OMP`.
+- FSSE current-state and derived-registry consistency correction is implemented and committed; the current source delta still requires canonical safe deploy.
+- All 40 current high-fidelity scenarios are covered; the current next action is `AUTHORIZE_SAFE_DEPLOY_CURRENT_CANONICAL_HEAD`.
 
 Completed historical work must not be reopened unless objective evidence proves corruption, contradiction, or a formally accepted evolution need.
 
@@ -627,15 +627,15 @@ Completed historical work must not be reopened unless objective evidence proves 
 
 Active engineering execution work:
 
-- continue OMP through the active existing heartbeat, which invokes the standard bounded `Continue OMP` consumer every 30 minutes;
-- resolve each fresh CPS state through ordinary OMP priority before Scenario Frontier work;
-- preserve idempotency, replay suppression, single-flight lease, exact target-thread/project identity and bounded legal terminals;
-- preserve no Runtime mutation, no user movement, no Authority expansion and no Production Maturity credit unless a separate authorized Mission grants them;
-- keep manual `Continue OMP` as the owner-backed fallback.
+- obtain explicit Engineering Authority for the canonical safe deploy of `CURRENT_CANONICAL_HEAD`;
+- deploy only through `tools/v7-safe-deploy` and the existing allowlist;
+- verify truth `--all`, convergence and runtime snapshot equality;
+- then reconcile the existing production-closure Mission without replaying FSSE or the natural heartbeat evidence;
+- preserve no routing mutation, no user movement and no Authority expansion.
 
 Known non-blocking follow-up:
 
-- external reentry is production-certified for engineering-context continuation; it is not Runtime or routing autonomy;
+- two natural external reentries are certified automation evidence; current source convergence remains pending safe deploy and this is not Runtime or routing autonomy;
 - CAP-U07 remains protected capability-local WIP at its real-world dependency boundary;
 - append-only historical Domain 11 NOT CERTIFIED text remains superseded by Stage 1.2 terminal evidence;
 - old Function Graph evidence should be used as discovery/index evidence unless current implementation evidence proves a contradiction.
@@ -1056,11 +1056,11 @@ Already proven and reusable:
 - FSSE-01 is complete, deployed and consumed;
 - FSSE-02 is complete and consumed for `CAPACITY_BOUNDARY`;
 - FSSE-03 and FSSE-04 are complete and consumed;
-- two distinct natural external reentries are production-certified;
+- two distinct natural external reentries are certified owner-backed automation evidence;
 - AEP Phase 5 is `COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES`;
-- current-state consistency, truth, convergence and deployed snapshot are aligned;
-- recurring `Continue OMP` is the current program frontier;
-- `EXTERNAL_INPUT_REQUIRED = FALSE` and `OMP_CONTINUATION_REQUIRED = TRUE`;
+- current-state consistency and local/GitHub truth are aligned; production convergence and snapshot equality are pending safe deploy;
+- `SAFE_DEPLOY_CURRENT_CANONICAL_HEAD` is the current program frontier;
+- `EXTERNAL_INPUT_REQUIRED = TRUE` and `OMP_CONTINUATION_REQUIRED = FALSE` until deploy authority is granted;
 - scenario frontier generation is `fssef_dcd80bd4189d95ec7c58d661`;
 - current coverage fingerprint is `dcd80bd4189d95ec7c58d661af3ac313c1f7760f925c9937f9f15dfe40f873df`.
 

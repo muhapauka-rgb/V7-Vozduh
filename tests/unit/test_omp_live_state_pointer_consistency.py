@@ -62,11 +62,11 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
         self.assertIn("OMP_CURRENT_POINTER_MISMATCH", self.validate(drift)["errors"])
 
     def test_06_current_stop_mismatch_fails(self):
-        drift = self.omp.replace("Resolved current stop: `BOUNDED_INVOCATION_BUDGET_REACHED`", "Resolved current stop: `STOP_SAFE`", 1)
+        drift = self.omp.replace("Resolved current stop: `ENGINEERING_AUTHORITY`", "Resolved current stop: `STOP_SAFE`", 1)
         self.assertIn("omp_current_stop_divergence", self.validate(drift)["omp_contradiction_ids"])
 
     def test_07_current_next_action_mismatch_fails(self):
-        drift = self.omp.replace("Resolved current next action: `CONTINUE_OMP`", "Resolved current next action: `DIAGNOSE_BINDING`", 1)
+        drift = self.omp.replace("Resolved current next action: `AUTHORIZE_SAFE_DEPLOY_CURRENT_CANONICAL_HEAD`", "Resolved current next action: `DIAGNOSE_BINDING`", 1)
         self.assertIn("omp_current_next_action_divergence", self.validate(drift)["omp_contradiction_ids"])
 
     def test_08_latest_consumed_report_mismatch_fails(self):
@@ -100,7 +100,7 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
         cps_result = self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)
         self.assertIn("`COMPLETE`", cps_result["cap_u01"])
         self.assertIn("`CAP-U07`", cps_result["active_capability"])
-        self.assertIn("| `BOUNDED_INVOCATION_BUDGET_REACHED` |", cps_result["sequence_position_1"])
+        self.assertIn("| `ENGINEERING_AUTHORITY` |", cps_result["sequence_position_1"])
 
     def test_15_mission_identity_guard_remains_pass(self):
         result = self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)
@@ -123,7 +123,7 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
     def test_18_truth_consistency_is_go_only_when_omp_agrees(self):
         good = self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)
         self.assertEqual(good["final_verdict"], "PASS")
-        drift = self.omp.replace("Resolved current stop: `BOUNDED_INVOCATION_BUDGET_REACHED`", "Resolved current stop: `STOP_SAFE`", 1)
+        drift = self.omp.replace("Resolved current stop: `ENGINEERING_AUTHORITY`", "Resolved current stop: `STOP_SAFE`", 1)
         bad = self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=drift)
         self.assertEqual(bad["final_verdict"], "NO-GO")
 

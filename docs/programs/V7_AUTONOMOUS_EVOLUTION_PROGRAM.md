@@ -3,11 +3,11 @@
 Status: `ORGANIZED`
 Document status: `ORGANIZED`
 Execution status: `PHASE_3_ACCEPTED_LOCKED_PHASE_4_COMPLETE_CONSUMED_PHASE_5_COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES`
-Completion evidence status: `AUTOMATION_COMPLETE_CONSUMED`; Phase 6 is `READY_WHERE_PRODUCTION_CERTIFICATION_REQUIRED`; evaluated by OMP Mission Completion Evidence Gate and external reentry completion gate.
-Current program state: `REAL_EXTERNAL_CONSUMER_CERTIFIED; CONTINUOUS_OMP_REENTRY_ACTIVE`
+Completion evidence status: `AUTOMATION_COMPLETE_CONSUMED`; two natural reentries are certified, while the current production-closure Mission is `IMPLEMENTATION_COMPLETE_SAFE_DEPLOY_AUTHORITY_REQUIRED`.
+Current program state: `REAL_EXTERNAL_CONSUMER_CERTIFIED; SOURCE_CONVERGENCE_DEPLOY_PENDING`
 Current execution evidence: `docs/reports/engineering/2026-07-16_001627_full_independent_background_automation_and_fsse04_production_closure.md`
 Current acceptance state: `PHASE_3_ACCEPTED_LOCKED; aep3lock_f4e40b34f14e2743819e3a2e`
-Next legal stage: Phase 6 where production certification is required; otherwise continue OMP through the certified external reentry owner.
+Next legal stage: canonical safe deploy of `CURRENT_CANONICAL_HEAD`, then truth/convergence/snapshot-equality certification; Phase 6 remains ready where production certification is required.
 Mode: `PROGRAM_ROUTE`
 Runtime impact: `NONE`
 Authority impact: `NONE`
@@ -1134,7 +1134,7 @@ Outputs:
 - Function Graph updates or evidence records when implementation relationships change;
 - CPS updates when current reality changes.
 
-Current owner-backed closure: `COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES`. The existing Codex Automation Platform heartbeat produced two distinct natural scheduled external events after the prior target-thread turns exited. Both invoked the standard existing `Continue OMP` entrypoint, consumed `OMP_PROGRAM_EXECUTION_RECONCILIATION`, changed or legally continued behavior, released their leases, had no overlap, and produced zero Runtime/production/Authority effects. This supersedes `BLOCKED_MISSING_REAL_CONSUMER`; Phase 6 is `READY_WHERE_PRODUCTION_CERTIFICATION_REQUIRED` and must retain its own production-evidence boundary.
+Current owner-backed closure: `COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES`. The existing Codex Automation Platform heartbeat produced two distinct natural scheduled external events after the prior target-thread turns exited. Both invoked the standard existing `Continue OMP` entrypoint, consumed `OMP_PROGRAM_EXECUTION_RECONCILIATION`, changed or legally continued behavior, released their leases, had no overlap, and produced zero Runtime/production/Authority effects. This supersedes `BLOCKED_MISSING_REAL_CONSUMER`. Local and GitHub must resolve to `CURRENT_CANONICAL_HEAD`; production remains at `81ec5ed6`, so the separate production-closure Mission stops at `ENGINEERING_AUTHORITY` until safe deploy and convergence. Phase 6 remains `READY_WHERE_PRODUCTION_CERTIFICATION_REQUIRED` and retains its own production-evidence boundary.
 
 ### Phase 6 - Production Certification
 

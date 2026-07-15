@@ -52,7 +52,7 @@ class OmpFunctionalFootprintTest(unittest.TestCase):
         self.assertIn("functional_footprint_mismatch:AEP_PHASE_4_STATUS", result["errors"])
 
     def test_false_real_automation_claim_fails(self):
-        altered = self.cps.replace("| `OMP_AUTOMATION_LEVEL` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |", "| `OMP_AUTOMATION_LEVEL` | `REAL_ENGINEERING_AUTOMATION` |", 1)
+        altered = self.cps.replace("| `OMP_AUTOMATION_LEVEL` | `TWO_NATURAL_REENTRIES_CERTIFIED_DEPLOY_PENDING` |", "| `OMP_AUTOMATION_LEVEL` | `REAL_ENGINEERING_AUTOMATION` |", 1)
         result = self.lib.omp_functional_footprint_consistency(altered, root=ROOT)
         self.assertEqual(result["final_verdict"], "NO-GO")
 

@@ -24,8 +24,10 @@ class FutureScaleAutonomousPolygonIntegrationTest(unittest.TestCase):
     def setUpClass(cls):
         cls.lib = load_lib()
         dependencies = ["CERTIFICATION:FSSE04_LEASE_CONFLICT_INPUT_V1"]
-        cls.result = cls.lib.continue_omp_engineering_control_loop(root=ROOT, changed_dependencies=dependencies)
-        cls.replay = cls.lib.continue_omp_engineering_control_loop(root=ROOT, changed_dependencies=dependencies)
+        ordinary_exhausted = {"final_verdict": "PASS", "executable_program_frontier": []}
+        with mock.patch.object(cls.lib, "program_execution_reconciliation", return_value=ordinary_exhausted):
+            cls.result = cls.lib.continue_omp_engineering_control_loop(root=ROOT, changed_dependencies=dependencies)
+            cls.replay = cls.lib.continue_omp_engineering_control_loop(root=ROOT, changed_dependencies=dependencies)
 
     def test_01_standard_trigger(self):
         self.assertEqual(self.result["trigger"], "Continue OMP")
@@ -147,16 +149,20 @@ class FutureScaleAutonomousPolygonIntegrationTest(unittest.TestCase):
         self.assertLessEqual(self.result["budgets"]["repairs"], self.lib.OMP_CONTINUATION_REPAIR_BUDGET)
 
     def test_35_iteration_budget_preserves_continuation(self):
-        result = self.lib.continue_omp_engineering_control_loop(
-            root=ROOT,
-            changed_dependencies=["CERTIFICATION:FSSE04_LEASE_CONFLICT_INPUT_V1"],
-            iteration_budget=1,
-        )
+        ordinary_exhausted = {"final_verdict": "PASS", "executable_program_frontier": []}
+        with mock.patch.object(self.lib, "program_execution_reconciliation", return_value=ordinary_exhausted):
+            result = self.lib.continue_omp_engineering_control_loop(
+                root=ROOT,
+                changed_dependencies=["CERTIFICATION:FSSE04_LEASE_CONFLICT_INPUT_V1"],
+                iteration_budget=1,
+            )
         self.assertEqual(result["final_verdict"], "BOUNDED_CONTINUATION")
         self.assertEqual(result["program_terminal"], "BOUNDED_INVOCATION_BUDGET_REACHED")
 
     def test_36_unresolved_dependency_mapping_fails_closed(self):
-        result = self.lib.continue_omp_engineering_control_loop(root=ROOT, changed_dependencies=["UNKNOWN"])
+        ordinary_exhausted = {"final_verdict": "PASS", "executable_program_frontier": []}
+        with mock.patch.object(self.lib, "program_execution_reconciliation", return_value=ordinary_exhausted):
+            result = self.lib.continue_omp_engineering_control_loop(root=ROOT, changed_dependencies=["UNKNOWN"])
         self.assertEqual(result["final_verdict"], "STOP_SAFE")
         self.assertEqual(result["program_terminal"], "SELECTIVE_INVALIDATION_UNRESOLVED")
 

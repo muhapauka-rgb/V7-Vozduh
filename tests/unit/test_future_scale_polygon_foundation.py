@@ -163,9 +163,15 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
 
     def test_22_program_reconciliation_consumes_scenario_frontier(self):
         sources = self.lib.load_program_execution_sources()
-        sources["cps"] = sources["cps"].replace(
-            "| `FSSE_00_EXTERNAL_REENTRY_STATUS` | `PRODUCTION_CERTIFIED_TWO_NATURAL_REENTRIES` |",
-            "| `FSSE_00_EXTERNAL_REENTRY_STATUS` | `DEFERRED_PLATFORM_CERTIFICATION` |",
+        sources["cps"] = self.lib._replace_section_field(
+            sources["cps"], "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+            "CURRENT_PROGRAM_STAGE", "`FSSE_03_COMPLETE_FSSE_04_READY`",
+        )
+        sources["cps"] = self.lib._replace_section_field(
+            sources["cps"], "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+            "FSSE_00_EXTERNAL_REENTRY_STATUS", "`DEFERRED_PLATFORM_CERTIFICATION`",
         )
         result = self.lib.program_execution_reconciliation(sources)
         self.assertTrue(result["scenario_frontier_consumer_invoked"])

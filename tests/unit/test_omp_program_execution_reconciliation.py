@@ -158,7 +158,7 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
     def test_29_cps_receives_program_frontier(self):
         self.assertIn("V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1", self.sources["cps"])
         self.assertIn("FSSE_04_COMPLETE_BOUNDED_CONTINUE_OMP_READY", self.sources["cps"])
-        self.assertIn("CURRENT_PROGRAM_EXECUTION_FRONTIER` | `CONTINUE_OMP", self.sources["cps"])
+        self.assertIn("CURRENT_PROGRAM_EXECUTION_FRONTIER` | `SAFE_DEPLOY_CURRENT_CANONICAL_HEAD", self.sources["cps"])
         self.assertNotIn("global program frontier is OMP_REAL_CONSUMER_ACTIVATION", self.sources["cps"])
 
     def test_30_omp_consumes_program_frontier(self):

@@ -129,8 +129,8 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
 
     def test_19_operational_state_is_bounded_at_fsse04_integration(self):
         live = self.lib._markdown_field_table(self.lib._markdown_section(self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry"))
-        self.assertEqual(live["CURRENT_STOP_CONDITION"].strip("`"), "BOUNDED_INVOCATION_BUDGET_REACHED")
-        self.assertEqual(live["CURRENT_ACTIVE_SCOPE"].strip("`"), "INDEPENDENT_BACKGROUND_CONTINUE_OMP")
+        self.assertEqual(live["CURRENT_STOP_CONDITION"].strip("`"), "ENGINEERING_AUTHORITY")
+        self.assertEqual(live["CURRENT_ACTIVE_SCOPE"].strip("`"), "SAFE_DEPLOY_CURRENT_CANONICAL_HEAD")
         self.assertEqual(live["CURRENT_ACTION_CLASS_STATE"].strip("`"), "GOVERNED_ONLY")
 
     def test_20_no_candidate_packet_lease_barrier_apply_or_movement(self):
@@ -145,10 +145,10 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         self.assertIn("`CAP-U01`", result["cap_u01"])
         self.assertIn("`COMPLETE`", result["cap_u01"])
         self.assertIn("`CAP-U07`", result["active_capability"])
-        self.assertIn("`FSSE_04_COMPLETE_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` program frontier", result["sequence_position_1"])
+        self.assertIn("`FSSE_04_COMPLETE_EXTERNAL_REENTRY_DEPLOY_PENDING` program frontier", result["sequence_position_1"])
 
     def test_22_current_stop_is_live_reality_only(self):
-        self.assertEqual(self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)["current_stop"], "BOUNDED_INVOCATION_BUDGET_REACHED")
+        self.assertEqual(self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)["current_stop"], "ENGINEERING_AUTHORITY")
 
     def test_23_omp_historical_isolation_remains_pass(self):
         self.assertEqual(self.lib.omp_live_state_consistency(self.cps, self.omp)["omp_historical_isolation"], "PASS")

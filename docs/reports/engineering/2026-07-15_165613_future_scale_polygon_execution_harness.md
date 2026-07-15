@@ -88,11 +88,44 @@ Reproducible real-source mismatch не обнаружен. BDP Candidate и repa
 
 Scenario PASS не является production outcome и не подтверждает real provider/user behavior.
 
+## Production deploy и caller/consumer verification
+
+Штатный `tools/v7-safe-deploy` развернул FSSE-02 без дополнительных файлов:
+
+- implementation deploy: `e2c179fdd0d021706dcdab7328fee2e0100e4919`, `deploy-z8-14-Updatesystem-e2c179f-20260715T173342`;
+- production-entrypoint adapter deploy: `9e26016bb4037bf825597401597b99f25b7ca49b`, `deploy-z8-14-Updatesystem-9e26016-20260715T173924`;
+- первый manifest изменил только `tools/v7_sync_lib.py` и `tools/v7-truth-check`;
+- второй manifest изменил только `tools/v7-truth-check`; service restart не выполнялся.
+
+Production non-test caller:
+
+`V7_FSSE_SCENARIO_ROOT=<isolated_bundle> /usr/local/bin/v7-truth-check --omp-scenario-execution CAPACITY_BOUNDARY --json`
+
+Production result:
+
+- verdict: `PASS`; run nonce: `V7_FSSE_02_852B4B080F65`;
+- 10 000 users, 100 channels, 30 organizations, 150 cohorts;
+- 100 real Planner equivalence-class decisions; 10 000 reachable users; 4 000 capacity-driven candidates;
+- all 8 required invariants: `PASS`; failed invariant: `NONE`;
+- OMP consumer: `PASS`, `consumed=true`, `SCENARIO_COVERED_AND_NEXT_FRONTIER_MATERIALIZED`;
+- next scenario: `HEALTHY_BASELINE_SMALL`;
+- frontier generation: `fssef_ddd7a4e7145666fc28c7b1b2`;
+- frontier fingerprint: `ddd7a4e7145666fc28c7b1b20062e3d35ae3c0b6f57328eced07587dafd43fd4`;
+- exact next output: `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1`.
+
+Before/after aggregate hashes for users registry, egress registry, restore barrier, Safe Mode and policy files were identical: `fce22ebc6270131fabed09eaf2801730b1ae5252b9f6b6c4853eade8366f2ded`. Service/timer enablement hash was also unchanged: `bfcf2e9725181c799c49b12b73d1db79718380a0c37618ef3088bb6c2f724577`.
+
+Production result explicitly records `false` for Runtime mutation, production mutation, routing mutation, user movement, packet execution, restore-barrier write, rollback apply, Authority expansion and Production Maturity credit. CPS atomic reconcile returned `ATOMIC_CPS_UPDATE_APPLIED` with post-write reread `PASS`.
+
+Post-deploy truth and convergence: `FULLY_ALIGNED`; local, GitHub and production runtime snapshot all identify commit `9e26016bb4037bf825597401597b99f25b7ca49b`; deploy delta mismatches: `0`.
+
 ## Verification
 
 Focused FSSE foundation + execution suite: `39/39 PASS`.
 
 Full unit suite: `1259/1259 PASS` за `354.998s`.
+
+Production-entrypoint adapter focused regression: `37/37 PASS`.
 
 Python compilation, corpus JSON validation and `git diff --check`: `PASS`.
 

@@ -13,8 +13,8 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed closure evidence: `docs/reports/engineering/2026-07-15_165613_future_scale_polygon_execution_harness.md` (`FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_IMPLEMENTED_CONSUMED_FSSE_03_READY`).
-Previous consumed closure evidence: `docs/reports/engineering/2026-07-15_094920_future_scale_polygon_foundation.md` (`FUTURE_SCALE_POLYGON_FOUNDATION_IMPLEMENTED_CONSUMED_FSSE_02_READY`).
+Latest consumed closure evidence: `docs/reports/engineering/2026-07-15_204206_future_scale_high_fidelity_validation.md` (`FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_IMPLEMENTED_CONSUMED_FSSE_04_READY`).
+Previous consumed closure evidence: `docs/reports/engineering/2026-07-15_165613_future_scale_polygon_execution_harness.md` (`FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_IMPLEMENTED_CONSUMED_FSSE_03_READY`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -779,6 +779,8 @@ Scenario Result
 ```
 
 Scenario batches and repair cycles continue internally inside the active OMP execution. External heartbeat is not an interval between scenario steps. Machine decisions are limited to `SCENARIO_FRONTIER_AVAILABLE`, `SCENARIO_FRONTIER_EXHAUSTED`, `SCENARIO_RESULT_STALE`, `SCENARIO_READY`, `SCENARIO_MISMATCH`, `SCENARIO_BUDGET_REACHED`, `SCENARIO_STOP_SAFE`, `ORDINARY_FRONTIER_SELECTED`, `SCENARIO_FOUNDATION_READY_EXECUTION_HARNESS_REQUIRED`, and `EXTERNAL_REALITY_REQUIRED_AFTER_ENGINEERING_EXHAUSTION`.
+
+High-fidelity validation reuses the same owners to execute a bounded deterministic corpus through real code paths. It may generate scale cases, measure phase cost and resource envelopes, exercise existing lease/replay/concurrency/containment owners, bind results to source dependencies and selectively replay only invalidated scenarios. Its aggregate result is consumed by `OMP_PROGRAM_EXECUTION_RECONCILIATION`; complete current coverage with zero reproducible mismatch produces `V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1`. These results remain engineering evidence and never become production outcomes or hardware-equivalent capacity claims.
 
 #### Execution Certification Candidate Certificate Consumption Rule
 
@@ -7816,7 +7818,7 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `UNSAFE_IMPLEMENTATION`
-Resolved current next action: `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1`
+Resolved current next action: `V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1`
 Resolved packet: `NONE_OPEN`
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -8804,9 +8806,9 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `UNSAFE_IMPLEMENTATION`
-Resolved current next action: `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1`
-Latest consumed report: `docs/reports/engineering/2026-07-15_165613_future_scale_polygon_execution_harness.md`
-Previous consumed report: `docs/reports/engineering/2026-07-15_094920_future_scale_polygon_foundation.md` (`FUTURE_SCALE_POLYGON_FOUNDATION_IMPLEMENTED_CONSUMED_FSSE_02_READY`)
+Resolved current next action: `V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1`
+Latest consumed report: `docs/reports/engineering/2026-07-15_204206_future_scale_high_fidelity_validation.md`
+Previous consumed report: `docs/reports/engineering/2026-07-15_165613_future_scale_polygon_execution_harness.md` (`FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_IMPLEMENTED_CONSUMED_FSSE_03_READY`)
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

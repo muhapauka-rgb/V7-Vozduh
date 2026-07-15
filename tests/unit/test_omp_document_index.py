@@ -33,9 +33,9 @@ class OmpDocumentIndexTest(unittest.TestCase):
         response = self.admin_api.omp_dashboard_response()
         operator = response["operator_view"]
         self.assertEqual(operator["current_program"], "FUTURE_SCALE_SCENARIO_ENGINEERING")
-        self.assertEqual(operator["current_step"], "FSSE_03_HIGH_FIDELITY_VALIDATION")
-        self.assertEqual(operator["next_step"], "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1")
-        self.assertEqual(operator["next_scenario"], "HEALTHY_BASELINE_SMALL")
+        self.assertEqual(operator["current_step"], "FSSE_04_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION")
+        self.assertEqual(operator["next_step"], "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1")
+        self.assertEqual(operator["next_scenario"], "NONE")
         self.assertEqual(operator["current_stop"], "UNSAFE_IMPLEMENTATION")
         self.assertEqual(operator["external_input_required"], "FALSE")
         self.assertEqual(operator["omp_continuation_required"], "TRUE")
@@ -50,8 +50,8 @@ class OmpDocumentIndexTest(unittest.TestCase):
         self.assertNotIn("ACTIONABLE_BACKLOG_COMPLETE", rendered)
         self.assertNotIn("wait for explicit operator-approved scope", rendered)
         self.assertNotIn("B2 -> B3", rendered)
-        self.assertEqual(response["current_state_generation"], "cpsgen_V7_FSSE_02_56A0A59EC4CF")
-        self.assertEqual(response["current_transition_id"], "FSSE_02_HARNESS_TO_FSSE_03_HIGH_FIDELITY_V1")
+        self.assertEqual(response["current_state_generation"], "cpsgen_V7_FSSE_03_DC7F2F7EF385")
+        self.assertEqual(response["current_transition_id"], "FSSE_03_HIGH_FIDELITY_TO_FSSE_04_AUTONOMOUS_LOOP_V1")
 
 
 if __name__ == "__main__":

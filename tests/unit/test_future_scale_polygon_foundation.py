@@ -25,6 +25,10 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
     def setUpClass(cls):
         cls.lib = load_lib()
         cls.cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text()
+        cls.fsse02_cps = cls.cps.replace(
+            "| `CURRENT_PROGRAM_STAGE` | `FSSE_03_COMPLETE_FSSE_04_READY` |",
+            "| `CURRENT_PROGRAM_STAGE` | `FSSE_02_COMPLETE_FSSE_03_READY` |",
+        )
         cls.corpus = cls.lib.load_future_scale_scenario_corpus()
         cls.scenario = cls.corpus["scenarios"][0]
 
@@ -32,8 +36,9 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
         self.assertTrue(hasattr(self.lib, "bounded_proactive_engineering_polygon_run"))
         self.assertTrue(hasattr(self.lib, "current_engineering_polygon_scenario_supply"))
 
-    def test_02_seed_corpus_has_exact_bounded_count(self):
-        self.assertEqual(self.corpus["corpus_count"], 10)
+    def test_02_seed_corpus_has_bounded_high_fidelity_count(self):
+        self.assertGreaterEqual(self.corpus["corpus_count"], 25)
+        self.assertLessEqual(self.corpus["corpus_count"], 40)
         self.assertEqual(self.corpus["final_verdict"], "PASS")
 
     def test_03_all_required_invariants_resolve(self):
@@ -102,55 +107,55 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
         self.assertIn("scenario_forbidden_effect_boundary_incomplete", self.lib.validate_future_scale_scenario(scenario)["errors"])
 
     def test_13_ordinary_frontier_preempts_scenario(self):
-        result = self.lib.future_scale_scenario_frontier(self.cps, ordinary_work_available=True)
+        result = self.lib.future_scale_scenario_frontier(self.fsse02_cps, ordinary_work_available=True)
         self.assertEqual(result["decision"], "ORDINARY_FRONTIER_SELECTED")
         self.assertEqual(result["NEXT_SCENARIO_ID"], "NONE")
 
     def test_14_scenario_frontier_opens_without_ordinary_work(self):
-        result = self.lib.future_scale_scenario_frontier(self.cps)
+        result = self.lib.future_scale_scenario_frontier(self.fsse02_cps)
         self.assertEqual(result["decision"], "SCENARIO_READY")
         self.assertNotEqual(result["NEXT_SCENARIO_ID"], "NONE")
 
     def test_15_eligible_scenario_prevents_exhaustion(self):
-        result = self.lib.future_scale_scenario_frontier(self.cps)
+        result = self.lib.future_scale_scenario_frontier(self.fsse02_cps)
         self.assertFalse(result["FRONTIER_EXHAUSTED"])
         self.assertEqual(result["EXHAUSTION_REASON"], "NOT_EXHAUSTED")
 
     def test_16_stale_result_is_reselected(self):
         target = self.corpus["scenarios"][-1]
         history = {target["SCENARIO_ID"]: {"result": "PASS", "scenario_fingerprint": "old"}}
-        result = self.lib.future_scale_scenario_frontier(self.cps, result_history=history)
+        result = self.lib.future_scale_scenario_frontier(self.fsse02_cps, result_history=history)
         self.assertEqual(result["NEXT_SCENARIO_ID"], target["SCENARIO_ID"])
 
     def test_17_current_pass_is_covered(self):
         target = self.corpus["scenarios"][0]
         history = {target["SCENARIO_ID"]: {"result": "PASS", "scenario_fingerprint": target["SCENARIO_FINGERPRINT"]}}
-        result = self.lib.future_scale_scenario_frontier(self.cps, result_history=history)
+        result = self.lib.future_scale_scenario_frontier(self.fsse02_cps, result_history=history)
         self.assertIn(target["SCENARIO_ID"], result["COVERED_SCENARIOS"])
 
     def test_18_priority_is_deterministic(self):
-        first = self.lib.future_scale_scenario_frontier(self.cps)
-        second = self.lib.future_scale_scenario_frontier(self.cps)
+        first = self.lib.future_scale_scenario_frontier(self.fsse02_cps)
+        second = self.lib.future_scale_scenario_frontier(self.fsse02_cps)
         self.assertEqual((first["NEXT_SCENARIO_ID"], first["FRONTIER_FINGERPRINT"]), (second["NEXT_SCENARIO_ID"], second["FRONTIER_FINGERPRINT"]))
 
     def test_19_active_scenario_duplicate_is_blocked(self):
         target = self.corpus["scenarios"][0]["SCENARIO_ID"]
-        if "| `ACTIVE_SCENARIO_ID` |" in self.cps:
-            cps = self.cps.replace("| `ACTIVE_SCENARIO_ID` | `NONE` |", f"| `ACTIVE_SCENARIO_ID` | `{target}` |")
+        if "| `ACTIVE_SCENARIO_ID` |" in self.fsse02_cps:
+            cps = self.fsse02_cps.replace("| `ACTIVE_SCENARIO_ID` | `NONE` |", f"| `ACTIVE_SCENARIO_ID` | `{target}` |")
         else:
-            cps = self.cps.replace("| `CURRENT_EXECUTION_MISSION_ID` |", f"| `ACTIVE_SCENARIO_ID` | `{target}` |\n| `CURRENT_EXECUTION_MISSION_ID` |", 1)
+            cps = self.fsse02_cps.replace("| `CURRENT_EXECUTION_MISSION_ID` |", f"| `ACTIVE_SCENARIO_ID` | `{target}` |\n| `CURRENT_EXECUTION_MISSION_ID` |", 1)
         result = self.lib.future_scale_scenario_frontier(cps)
         self.assertTrue(any(row["SCENARIO_ID"] == target and row["REASON"] == "ACTIVE_DUPLICATE" for row in result["BLOCKED_SCENARIOS"]))
 
     def test_20_frontier_has_no_runtime_or_production_impact(self):
-        result = self.lib.future_scale_scenario_frontier(self.cps)
+        result = self.lib.future_scale_scenario_frontier(self.fsse02_cps)
         self.assertEqual(result["runtime_impact"], "NONE")
         self.assertEqual(result["production_impact"], "NONE")
         self.assertFalse(result["authority_expansion"])
         self.assertEqual(result["maturity_impact"], "NONE")
 
     def test_21_exact_fsse3_output_is_produced_after_harness_consumption(self):
-        result = self.lib.future_scale_scenario_frontier(self.cps)
+        result = self.lib.future_scale_scenario_frontier(self.fsse02_cps)
         self.assertEqual(result["next_output"], "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1")
 
     def test_22_program_reconciliation_consumes_scenario_frontier(self):
@@ -161,7 +166,8 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
         )
         result = self.lib.program_execution_reconciliation(sources)
         self.assertTrue(result["scenario_frontier_consumer_invoked"])
-        self.assertIn(result["scenario_frontier_decision"], {"ORDINARY_FRONTIER_SELECTED", "SCENARIO_READY"})
+        self.assertEqual(result["scenario_frontier_decision"], "SCENARIO_FRONTIER_EXHAUSTED")
+        self.assertEqual(result["executable_program_frontier"], [self.lib.FUTURE_SCALE_FSSE_04_OUTPUT])
 
     def test_23_real_truth_check_entrypoint_exists(self):
         source = (ROOT / "tools/v7-truth-check").read_text()

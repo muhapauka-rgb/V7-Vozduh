@@ -88,7 +88,7 @@ class FutureScalePolygonExecutionHarnessTest(unittest.TestCase):
         self.assertTrue(consumer["consumed"])
         self.assertEqual(consumer["behavior_change"], "SCENARIO_COVERED_AND_NEXT_FRONTIER_MATERIALIZED")
         self.assertNotEqual(consumer["next_scenario_id"], "CAPACITY_BOUNDARY")
-        self.assertNotEqual(consumer["next_scenario_id"], "NONE")
+        self.assertEqual(consumer["next_scenario_id"], "NONE")
 
     def test_13_result_is_engineering_evidence_only(self):
         self.assertEqual(self.result["evidence_class"], "ENGINEERING_SCENARIO_EVIDENCE")

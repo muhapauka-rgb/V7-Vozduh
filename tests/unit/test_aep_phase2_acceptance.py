@@ -125,10 +125,10 @@ class AepPhase2AcceptanceTest(unittest.TestCase):
         self.assertEqual(result["phase3_status"], "READY")
         self.assertNotIn("REAL_WORLD_LIMIT", result["acceptance_verdict"])
 
-    def test_28_cps_frontier_targets_fsse03_after_harness(self):
+    def test_28_cps_frontier_targets_fsse04_after_high_fidelity_consumption(self):
         self.assertEqual(
             self.lib.NORMALIZED_CPS_LIVE_STATE["current_program_execution_frontier"],
-            "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1",
+            "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1",
         )
 
     def test_29_self_continuation_forms_next_mission(self):

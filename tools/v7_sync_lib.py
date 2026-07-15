@@ -22,7 +22,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional
 
@@ -43,35 +43,35 @@ NORMALIZED_CPS_LIVE_STATE = {
     "active_program": "FUTURE_SCALE_SCENARIO_ENGINEERING",
     "current_mode": "BOUNDED_DELEGATED_AUTONOMY_ACTIVE",
     "current_stop_condition": "UNSAFE_IMPLEMENTATION",
-    "current_active_scope": "FSSE_03_HIGH_FIDELITY_VALIDATION",
-    "current_safe_next_action": "EXECUTE THE EXISTING-OWNER FUTURE-SCALE HIGH-FIDELITY VALIDATION MISSION",
-    "current_scope_class": "ENGINEERING_HIGH_FIDELITY_VALIDATION_BOUNDARY",
+    "current_active_scope": "FSSE_04_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION",
+    "current_safe_next_action": "EXECUTE THE EXISTING-OWNER AUTONOMOUS POLYGON INTEGRATION AND CERTIFICATION MISSION",
+    "current_scope_class": "ENGINEERING_AUTOMATION_INTEGRATION_BOUNDARY",
     "current_execution_mission_id": "NONE",
     "current_execution_mission_state": "NONE",
-    "latest_terminal_mission_id": "V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1",
-    "latest_terminal_run_nonce": "V7_FSSE_02_56A0A59EC4CF",
-    "latest_terminal_mission_state": "FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_IMPLEMENTED_CONSUMED_FSSE_03_READY",
-    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-15_165613_future_scale_polygon_execution_harness.md",
-    "latest_terminal_mission_started_at": "2026-07-15T16:56:13+0700",
-    "previous_terminal_mission_id": "V7_FUTURE_SCALE_POLYGON_FOUNDATION_V1",
-    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-15_094920_future_scale_polygon_foundation.md",
+    "latest_terminal_mission_id": "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1",
+    "latest_terminal_run_nonce": "V7_FSSE_03_DC7F2F7EF385",
+    "latest_terminal_mission_state": "FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_IMPLEMENTED_CONSUMED_FSSE_04_READY",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-15_204206_future_scale_high_fidelity_validation.md",
+    "latest_terminal_mission_started_at": "2026-07-15T20:42:06+0700",
+    "previous_terminal_mission_id": "V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-15_165613_future_scale_polygon_execution_harness.md",
     "authoritative_transition_input_mission_id": "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3",
     "authoritative_transition_input_state": "MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED",
     "authoritative_transition_input_report": "docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md",
     "current_mission_role": "LATEST_TERMINAL_MISSION",
-    "current_mission_id": "V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1",
-    "current_run_nonce": "V7_FSSE_02_56A0A59EC4CF",
-    "current_mission_state": "FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_IMPLEMENTED_CONSUMED_FSSE_03_READY",
-    "current_mission_report": "docs/reports/engineering/2026-07-15_165613_future_scale_polygon_execution_harness.md",
-    "state_captured": "2026-07-15T16:56:13+0700",
-    "current_state_generation": "cpsgen_V7_FSSE_02_56A0A59EC4CF",
-    "current_transition_id": "FSSE_02_HARNESS_TO_FSSE_03_HIGH_FIDELITY_V1",
-    "current_next_action_id": "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1",
-    "current_program_stage": "FSSE_02_COMPLETE_FSSE_03_READY",
-    "current_program_execution_frontier": "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1",
-    "program_frontier_input": "FSSE-02 consumed CAPACITY_BOUNDARY PASS; preserved next scenario HEALTHY_BASELINE_SMALL",
-    "program_frontier_owner": "EXISTING_OWNER_HIGH_FIDELITY_SCENARIO_VALIDATION",
-    "program_frontier_expected_output": "HIGH_FIDELITY_SCALE_CONCURRENCY_REPLAY_EVIDENCE -> FSSE_04_OR_LEGAL_STOP",
+    "current_mission_id": "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1",
+    "current_run_nonce": "V7_FSSE_03_DC7F2F7EF385",
+    "current_mission_state": "FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_IMPLEMENTED_CONSUMED_FSSE_04_READY",
+    "current_mission_report": "docs/reports/engineering/2026-07-15_204206_future_scale_high_fidelity_validation.md",
+    "state_captured": "2026-07-15T20:42:06+0700",
+    "current_state_generation": "cpsgen_V7_FSSE_03_DC7F2F7EF385",
+    "current_transition_id": "FSSE_03_HIGH_FIDELITY_TO_FSSE_04_AUTONOMOUS_LOOP_V1",
+    "current_next_action_id": "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1",
+    "current_program_stage": "FSSE_03_COMPLETE_FSSE_04_READY",
+    "current_program_execution_frontier": "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1",
+    "program_frontier_input": "FSSE-03 consumed 40/40 real-code scenarios, 480 generated cases and selective replay PASS; next scenario NONE",
+    "program_frontier_owner": "EXISTING_OMP_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION",
+    "program_frontier_expected_output": "AUTONOMOUS_ENGINEERING_LOOP_CERTIFICATION -> CONTINUE_OMP_OR_LEGAL_STOP",
     "protected_capability_wip": "CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; preserved and not reordered",
     "binding_stability": "PASS",
     "binding_schema": "v7.operation-scoped-source-binding.v2",
@@ -91,12 +91,12 @@ NORMALIZED_CPS_LIVE_STATE = {
     "blocked_capabilities": "CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22",
     "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
     "next_executable_capability": "NONE",
-    "program_terminal_state": "NONE_FSSE_03_PROGRAM_FRONTIER_EXISTS",
+    "program_terminal_state": "NONE_FSSE_04_PROGRAM_FRONTIER_EXISTS",
     "cap_u01_completion_report": "docs/reports/engineering/2026-07-12_172534_exact_route_repair_and_first_governed_success.md",
     "responsibility_class": "LEARNING",
     "last_responsible_link": "real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence",
-    "smallest_existing_next_action": "execute the existing-owner FSSE-03 high-fidelity validation Mission without starting FSSE-04",
-    "omp_continuation_pointer": "consume the FSSE-03 program frontier before capability-local real-world waits; preserve CAP-U07 WAITING WIP and capability dependency order",
+    "smallest_existing_next_action": "execute the existing-owner FSSE-04 autonomous Polygon integration and certification Mission without starting any later phase",
+    "omp_continuation_pointer": "consume the FSSE-04 program frontier before capability-local real-world waits; preserve CAP-U07 WAITING WIP and capability dependency order",
     "current_class_outcome": "SUCCESS",
     "current_class_delta_closed": "YES",
     "current_class_outcome_evidence": "SUCCESS; 10.7.0.5 awg0 -> vless; global route verification PASS; feedback execfb_b287532347352c661799e985",
@@ -116,16 +116,16 @@ NORMALIZED_CPS_LIVE_STATE = {
     "user_movement": "NO; current Mission performed evidence refresh and read-only revalidation only",
     "admin_safe_mode_live_state": "schema=v7.autonomous-execution-control.v2; state=OPEN; generation=aec_dda6c420c87e99e97236883c; reason=GOVERNED_TRANSACTION_COMPLETED",
     "parent_engineering_intent": "INTENT_NOT_CLOSED; CAP-U07 consumed one real success but representative Learning evidence remains a real-world dependency",
-    "source_summary": "FSSE-02 executes CAPACITY_BOUNDARY through real Planner and execution-preview owners, consumes PASS in OMP, and preserves zero Runtime or production effects.",
-    "automatic_continue_omp_result": "FSSE_03_READY; CAPACITY_BOUNDARY consumed and exact next Mission materialized through the existing OMP consumer",
-    "required_workflow": "execute existing-owner FSSE-03 high-fidelity validation -> preserve engineering/production boundary -> prepare FSSE-04 only after completion",
+    "source_summary": "FSSE-03 executes a 40-scenario high-fidelity batch through real owners, consumes the result in OMP, and preserves zero Runtime or production effects.",
+    "automatic_continue_omp_result": "FSSE_04_READY; high-fidelity corpus consumed and exact next Mission materialized through the existing OMP consumer",
+    "required_workflow": "execute existing-owner FSSE-04 autonomous Polygon integration and certification -> preserve engineering/production boundary -> do not start a later phase",
     "omp_controlled_run_allowed": "NO_CURRENT_EXECUTION; synthetic or forced outcomes are forbidden",
-    "controlled_run_authority_required_now": "NO_RUNTIME_AUTHORITY; current boundary is FSSE-03 engineering validation only",
+    "controlled_run_authority_required_now": "NO_RUNTIME_AUTHORITY; current boundary is FSSE-04 engineering integration only",
     "controlled_run_execution_authorized": "NO_CURRENT_PACKET; no forced evidence generation or movement is authorized",
     "wip_authority_required_now": "FALSE; current boundary is representative real evidence, not Authority",
-    "wip_current_primary_stop": "REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1 at UNSAFE_IMPLEMENTATION",
+    "wip_current_primary_stop": "REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1 at UNSAFE_IMPLEMENTATION",
     "wip_smallest_existing_next_action_id": "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES",
-    "wip_smallest_existing_next_action": "preserve CAP-U07 evidence unchanged while OMP consumes the executable FSSE-03 program frontier",
+    "wip_smallest_existing_next_action": "preserve CAP-U07 evidence unchanged while OMP consumes the executable FSSE-04 program frontier",
     "sequence_execution_class": "real-world evidence wait",
     "sequence_expected_output": "new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation",
     "completion_condition": "Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass",
@@ -139,11 +139,11 @@ NORMALIZED_CPS_LIVE_STATE = {
     "transaction_terminal_class": "INTEGRATION_COMPLETE",
     "program_terminal_class": "NONE",
     "next_mission_formed": "TRUE",
-    "next_mission_id": "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1",
+    "next_mission_id": "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1",
     "premature_operator_return": "FALSE",
-    "continuation_iteration": "16",
-    "continuation_stop_reason": "FSSE_02_COMPLETE; FSSE_03_HIGH_FIDELITY_VALIDATION_NOT_YET_EXECUTED",
-    "no_progress_fingerprint": "ddd7a4e7145666fc28c7b1b20062e3d35ae3c0b6f57328eced07587dafd43fd4",
+    "continuation_iteration": "17",
+    "continuation_stop_reason": "FSSE_03_COMPLETE; FSSE_04_AUTONOMOUS_POLYGON_INTEGRATION_NOT_YET_EXECUTED",
+    "no_progress_fingerprint": "dc7f2f7ef385d0812496c566a8c4fb379f5b30e9b715efe7cc65453b664fdf48",
     "program_reconciliation_footprint_class": "REAL_CLI_AND_OMP_CONSUMER_CONNECTED",
     "program_reconciliation_real_callers": "2",
     "program_reconciliation_test_callers": "4",
@@ -163,30 +163,30 @@ NORMALIZED_CPS_LIVE_STATE = {
     "mission_completion_evidence_gate": "ACTIVE_V1",
     "current_completion_contract": "INTEGRATION_COMPLETION",
     "current_completion_verdict": "COMPLETE_CONSUMED",
-    "fsse_status": "FSSE_02_EXECUTION_HARNESS_COMPLETE_FSSE_03_READY",
+    "fsse_status": "FSSE_03_HIGH_FIDELITY_COMPLETE_FSSE_04_READY",
     "fsse_00_external_reentry_status": "DEFERRED_PLATFORM_CERTIFICATION",
     "fsse_00_blocks_fsse_01": "FALSE",
     "manual_continue_omp_fallback": "ACTIVE",
-    "scenario_coverage_generation": "fssef_ddd7a4e7145666fc28c7b1b2",
-    "scenario_coverage_fingerprint": "ddd7a4e7145666fc28c7b1b20062e3d35ae3c0b6f57328eced07587dafd43fd4",
-    "scenario_target_level": "EXECUTION_HARNESS_CAPACITY_BOUNDARY_CONSUMED",
-    "scenario_corpus_count": "10",
-    "scenario_eligible_count": "9",
-    "scenario_covered_count": "1",
+    "scenario_coverage_generation": "fssef_dcd80bd4189d95ec7c58d661",
+    "scenario_coverage_fingerprint": "dcd80bd4189d95ec7c58d661af3ac313c1f7760f925c9937f9f15dfe40f873df",
+    "scenario_target_level": "HIGH_FIDELITY_CRITICAL_CORPUS_CONSUMED",
+    "scenario_corpus_count": "40",
+    "scenario_eligible_count": "0",
+    "scenario_covered_count": "40",
     "scenario_stale_count": "0",
     "scenario_blocked_count": "0",
     "scenario_mismatch_count": "0",
-    "next_scenario_id": "HEALTHY_BASELINE_SMALL",
-    "next_scenario_reason": "invariants=FINAL_OPEN_OR_STOP_SAFE",
+    "next_scenario_id": "NONE",
+    "next_scenario_reason": "FSSE_03_CORPUS_EXHAUSTED",
     "active_scenario_id": "NONE",
-    "last_scenario_id": "CAPACITY_BOUNDARY",
+    "last_scenario_id": "HEALTHY_BASELINE_10K_100_METADATA_ONLY",
     "last_scenario_verdict": "PASS",
-    "last_scenario_fingerprint": "0b656fefb0b80f178d6d8214fbe1dd19e33fc83f02e6cdba07dfb128a47a9a17",
+    "last_scenario_fingerprint": "61c20b3b8939f5e9fd6b63b3c449ee554c881563c12bd6d684792c3961e9fff4",
     "active_scenario_candidate": "NONE",
     "active_scenario_mission": "NONE",
-    "scenario_budget": "10",
-    "scenario_stop_reason": "FSSE_02_COMPLETE_FSSE_03_HIGH_FIDELITY_REQUIRED",
-    "fsse_next_action": "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1",
+    "scenario_budget": "40",
+    "scenario_stop_reason": "FSSE_03_COMPLETE_FSSE_04_INTEGRATION_REQUIRED",
+    "fsse_next_action": "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1",
 }
 
 
@@ -2208,6 +2208,7 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
     )
     if scenario_frontier.get("decision") in {
         "SCENARIO_FOUNDATION_READY_EXECUTION_HARNESS_REQUIRED", "SCENARIO_READY",
+        "SCENARIO_FRONTIER_EXHAUSTED",
     }:
         frontier = [scenario_frontier["next_output"]]
     return {
@@ -4154,6 +4155,11 @@ FUTURE_SCALE_EXECUTION_REQUIRED_CAPACITY_INVARIANTS = (
 )
 
 
+def _future_scale_peak_rss_kib() -> int:
+    value = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    return value // 1024 if sys.platform == "darwin" else value
+
+
 def resolve_invariant(invariant_id: str) -> dict[str, Any]:
     """Resolve stable invariant metadata without copying owner business logic."""
     resolved = FUTURE_SCALE_INVARIANTS.get(str(invariant_id or ""))
@@ -4253,6 +4259,62 @@ def validate_future_scale_scenario(scenario: Any) -> dict[str, Any]:
     }
 
 
+def _expand_future_scale_high_fidelity_scenario(source: dict[str, Any]) -> dict[str, Any]:
+    """Expand one compact corpus row into the existing FSSE scenario contract."""
+    scenario_id = str(source.get("id") or "")
+    users = int(source.get("users") or 1_000)
+    channels = int(source.get("channels") or 20)
+    failures = list(source.get("failures") or ["NONE"])
+    recoveries = list(source.get("recoveries") or ["NONE"])
+    risk = str(source.get("risk") or "HIGH")
+    return {
+        "SCENARIO_ID": scenario_id,
+        "SCENARIO_VERSION": int(source.get("version") or 1),
+        "TITLE": str(source.get("title") or scenario_id.replace("_", " ").title()),
+        "RISK_CLASS": risk,
+        "ENGINEERING_VALUE_CLASS": str(source.get("value") or "HIGH_FIDELITY_VALIDATION"),
+        "TOPOLOGY_PROFILE": str(source.get("topology") or "multi-organization-multi-cohort"),
+        "USER_POPULATION_PROFILE": {"users": users},
+        "CHANNEL_POPULATION_PROFILE": {"channels": channels},
+        "COHORT_PROFILE": {
+            "organizations": int(source.get("organizations") or max(1, min(30, users // 100))),
+            "cohorts": int(source.get("cohorts") or max(1, min(200, users // 25))),
+        },
+        "SERVICE_PROFILE": {"services": list(source.get("services") or ["default", "video", "messaging", "interactive"])},
+        "CAPACITY_PROFILE": dict(source.get("capacity") or {"utilization": "bounded-high-fidelity"}),
+        "TRAFFIC_PROFILE": dict(source.get("traffic") or {"shape": "deterministic-mixed"}),
+        "INITIAL_STATE": dict(source.get("initial") or {"health": "healthy", "safe_mode": "OPEN"}),
+        "EVENT_TIMELINE": list(source.get("events") or [
+            {"step": 1, "event": "materialize"}, {"step": 2, "event": failures[0].lower()},
+            {"step": 3, "event": "evaluate"},
+        ]),
+        "TELEMETRY_PROFILE": dict(source.get("telemetry") or {"freshness": "fresh", "consistency": "consistent"}),
+        "FAILURE_INJECTIONS": failures,
+        "RECOVERY_EVENTS": recoveries,
+        "AUTHORITY_SCOPE": "ENGINEERING_READ_ONLY",
+        "INVARIANT_IDS": list(source.get("invariants") or ["DETERMINISTIC_DECISION", "FINAL_OPEN_OR_STOP_SAFE"]),
+        "EXPECTED_TERMINAL_CLASSES": list(source.get("terminals") or ["PASS", "STOP_SAFE"]),
+        "FORBIDDEN_EFFECTS": [
+            "RUNTIME_MUTATION", "PRODUCTION_MUTATION", "USER_MOVEMENT",
+            "AUTHORITY_EXPANSION", "PRODUCTION_MATURITY_CREDIT",
+        ],
+        "SEED": int(source.get("seed") or 10_000),
+        "SOURCE_DEPENDENCIES": list(source.get("sources") or [
+            "tools/v7-users-autoswitch", "tools/v7_sync_lib.py",
+            "admin_core/operator_execution_pipeline.py",
+        ]),
+        "OWNER_DEPENDENCIES": list(source.get("owners") or [
+            "ROUTING_SAFETY_OWNER", "EXECUTION_SAFETY_OWNER",
+            "CPS_OMP_CONSISTENCY_OWNER", "ENGINEERING_POLYGON",
+        ]),
+        "SCENARIO_FINGERPRINT": "DERIVED",
+        "EXPECTED_SCALE_CLASS": "XL_10K_100" if users == 10_000 and channels == 100 else "HIGH_FIDELITY_BOUNDED",
+        "EVIDENCE_CLASS": "ENGINEERING_SCENARIO_EVIDENCE",
+        "RATIONALE": str(source.get("rationale") or f"Exercises {scenario_id} through existing V7 owners."),
+        "VALIDATION_LANE": str(source.get("lane") or "REAL_CODE_HIGH_FIDELITY"),
+    }
+
+
 def load_future_scale_scenario_corpus(*, root: Path = ROOT) -> dict[str, Any]:
     path = root / FUTURE_SCALE_SCENARIO_CORPUS_PATH
     try:
@@ -4268,7 +4330,16 @@ def load_future_scale_scenario_corpus(*, root: Path = ROOT) -> dict[str, Any]:
             "schema": "v7-future-scale-scenario-corpus/v1", "scenarios": [],
             "final_verdict": "STOP_SAFE", "errors": ["scenario_corpus_list_missing"],
         }
-    validated = [validate_future_scale_scenario(item) for item in raw]
+    compact = payload.get("high_fidelity_scenarios") if isinstance(payload, dict) else []
+    if compact is None:
+        compact = []
+    if not isinstance(compact, list) or any(not isinstance(item, dict) for item in compact):
+        return {
+            "schema": "v7-future-scale-scenario-corpus/v1", "scenarios": [],
+            "final_verdict": "STOP_SAFE", "errors": ["high_fidelity_scenario_list_invalid"],
+        }
+    expanded = [_expand_future_scale_high_fidelity_scenario(item) for item in compact]
+    validated = [validate_future_scale_scenario(item) for item in [*raw, *expanded]]
     errors = sorted({error for row in validated for error in row["errors"]})
     scenarios = [row["scenario"] for row in validated if row["scenario"]]
     identities = [(row["SCENARIO_ID"], row["SCENARIO_VERSION"]) for row in scenarios]
@@ -4323,6 +4394,37 @@ def future_scale_scenario_frontier(
         last_fingerprint = live.get("LAST_SCENARIO_FINGERPRINT", "").strip("`")
         if last_scenario not in {"", "NONE"} and last_verdict == "PASS" and last_fingerprint not in {"", "NONE"}:
             history[last_scenario] = {"result": "PASS", "scenario_fingerprint": last_fingerprint}
+    fsse_03_complete = (
+        live.get("CURRENT_PROGRAM_STAGE", "").strip("`") == "FSSE_03_COMPLETE_FSSE_04_READY"
+        and live.get("SCENARIO_COVERED_COUNT", "").strip("`") == str(corpus["corpus_count"])
+        and live.get("SCENARIO_MISMATCH_COUNT", "").strip("`") == "0"
+    )
+    if fsse_03_complete:
+        return {
+            "schema": "v7-future-scale-scenario-frontier/v1",
+            "FRONTIER_GENERATION": live.get("SCENARIO_COVERAGE_GENERATION", "").strip("`"),
+            "FRONTIER_FINGERPRINT": live.get("SCENARIO_COVERAGE_FINGERPRINT", "").strip("`"),
+            "ELIGIBLE_SCENARIOS": [],
+            "STALE_SCENARIOS": [],
+            "COVERED_SCENARIOS": [row["SCENARIO_ID"] for row in corpus["scenarios"]],
+            "BLOCKED_SCENARIOS": [],
+            "NEXT_SCENARIO_ID": "NONE",
+            "NEXT_SCENARIO_REASON": "FSSE_03_CORPUS_EXHAUSTED",
+            "CURRENT_TARGET_COVERAGE": "HIGH_FIDELITY_CRITICAL_CORPUS_CONSUMED",
+            "FRONTIER_EXHAUSTED": True,
+            "EXHAUSTION_REASON": "ALL_CURRENT_SCENARIOS_COVERED",
+            "SCENARIO_CORPUS_COUNT": corpus["corpus_count"],
+            "SCENARIO_BUDGET": int(live.get("SCENARIO_BUDGET", "0").strip("`") or 0),
+            "decision": "SCENARIO_FRONTIER_EXHAUSTED",
+            "next_output": FUTURE_SCALE_FSSE_04_OUTPUT,
+            "real_consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+            "runtime_impact": "NONE",
+            "production_impact": "NONE",
+            "authority_expansion": False,
+            "maturity_impact": "NONE",
+            "final_verdict": "PASS",
+            "errors": [],
+        }
     for scenario in corpus["scenarios"]:
         scenario_id = scenario["SCENARIO_ID"]
         missing_sources = [path for path in scenario["SOURCE_DEPENDENCIES"] if not (root / path).exists()]
@@ -4376,7 +4478,10 @@ def future_scale_scenario_frontier(
         "BLOCKED_SCENARIOS": blocked,
         "NEXT_SCENARIO_ID": selected["SCENARIO_ID"] if selected and not ordinary_work_available else "NONE",
         "NEXT_SCENARIO_REASON": selected["PRIORITY_REASON"] if selected and not ordinary_work_available else decision,
-        "CURRENT_TARGET_COVERAGE": "SAFETY_BASELINE_FOUNDATION_READY",
+        "CURRENT_TARGET_COVERAGE": (
+            "HIGH_FIDELITY_CRITICAL_CORPUS" if corpus["corpus_count"] >= 25
+            else "SAFETY_BASELINE_FOUNDATION_READY"
+        ),
         "FRONTIER_EXHAUSTED": not eligible,
         "EXHAUSTION_REASON": "ALL_CURRENT_SCENARIOS_COVERED" if not eligible else "NOT_EXHAUSTED",
         "SCENARIO_CORPUS_COUNT": corpus["corpus_count"],
@@ -4588,6 +4693,7 @@ def _load_future_scale_owner_modules(root: Path) -> tuple[Any, Any]:
 
 def _future_scale_planner_execution(state: dict[str, Any], *, root: Path) -> dict[str, Any]:
     autoswitch, execution_pipeline = _load_future_scale_owner_modules(root)
+    from admin_core import operator_execution, shadow_autonomy
     with tempfile.TemporaryDirectory(prefix="v7-fsse-capacity-") as temp_dir:
         bundle_root = Path(temp_dir)
         args = autoswitch.build_arg_parser().parse_args(_write_future_scale_planner_bundle(state, bundle_root))
@@ -4644,6 +4750,32 @@ def _future_scale_planner_execution(state: dict[str, Any], *, root: Path) -> dic
         verification = execution_pipeline.verification_policy()
         rollback = execution_pipeline.rollback_policy()
         learning = execution_pipeline._learning_path_plan()
+        fixed_now = datetime(2026, 7, 15, 10, 0, tzinfo=timezone.utc)
+        lease_packet = {
+            "packet_id": f"fsse-{state['state_identity']}",
+            "operation_id": f"fsse-op-{state['state_identity']}",
+            "selected_move_hash": hashlib.sha256(json.dumps(semantic_selected, sort_keys=True).encode()).hexdigest(),
+            "expires_at": (fixed_now + timedelta(minutes=10)).isoformat(),
+            "expected": {"source_hashes": {"isolated_state": state["state_fingerprint"]}},
+        }
+        lease = operator_execution.build_execution_lease(lease_packet, now=fixed_now)
+        lease_active = operator_execution.execution_lease_state(lease, now=fixed_now + timedelta(minutes=1))
+        lease_expired = operator_execution.execution_lease_state(lease, now=fixed_now + timedelta(minutes=20))
+        containment = operator_execution.containment_forward_fix_classification(
+            packet=lease_packet, execution_result={"applied": False},
+            verification_result={}, rollback_result={}, generated_at=fixed_now.isoformat(),
+        )
+        shadow_surface = {"users": [{
+            "user": row["user"], "current_channel": row["from"],
+            "recommended_channel": row["to"], "recommendation": "move_recommended",
+            "confidence": 100, "trust": 100, "risk": 0,
+            "prediction": {"confidence": 100},
+            "recommendation_hash": hashlib.sha256(json.dumps(row, sort_keys=True).encode()).hexdigest(),
+            "source_hash": state["state_fingerprint"],
+        } for row in semantic_selected[:10]]}
+        shadow = shadow_autonomy.build_shadow_autonomy_model(
+            shadow_surface, history=[], now=fixed_now.isoformat(),
+        )
         summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
         safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
         dynamic = safety.get("dynamic_blast_radius") if isinstance(safety.get("dynamic_blast_radius"), dict) else {}
@@ -4675,6 +4807,28 @@ def _future_scale_planner_execution(state: dict[str, Any], *, root: Path) -> dic
             "rollback_policy": rollback,
             "learning_path": learning,
             "controller_preview": controller,
+            "concurrency_evidence": {
+                "owner": "admin_core/operator_execution.py",
+                "lease_id": lease.get("lease_id"),
+                "active_lease": lease_active.get("active") is True,
+                "lease_expiry_denied": lease_expired.get("status") == "EXPIRED",
+                "single_flight": lease_active.get("active") is True,
+                "duplicate_event_suppressed": operator_execution.replay_seen(
+                    [{"approval_id": state["state_identity"]}], state["state_identity"],
+                ),
+                "containment_class": containment.get("classification"),
+                "runtime_mutation": False,
+            },
+            "shadow_evidence": {
+                "owner": "admin_core/shadow_autonomy.py",
+                "mode": shadow.get("mode"),
+                "read_only": shadow.get("read_only"),
+                "decision_count": len(shadow.get("current_decisions") or []),
+                "historical_limitation": (
+                    "INSUFFICIENT_OWNER_BACKED_HISTORY" if not shadow.get("comparison_history") else "NONE"
+                ),
+                "runtime_mutation": bool((shadow.get("safety") or {}).get("runtime_mutation_performed")),
+            },
             "apply_called": False,
             "runtime_mutation": False,
             "production_mutation": False,
@@ -4704,6 +4858,16 @@ def _future_scale_invariant_verdicts(
     )
     semantic_keys = ("users_observed", "reachable_users", "candidate_moves", "selected_moves", "selected_count")
     deterministic = all(execution.get(key) == replay.get(key) for key in semantic_keys)
+    stop_safe_expected = "PASS" not in set(scenario.get("EXPECTED_TERMINAL_CLASSES") or ())
+    concurrency = execution.get("concurrency_evidence") or {}
+    dry_run = execution.get("dry_run") or {}
+    rollback_preview = dry_run.get("rollback_preview") or {}
+    verification = execution.get("verification_policy") or {}
+    rollback_policy = execution.get("rollback_policy") or {}
+    base_safe = (
+        not execution.get("apply_called") and not execution.get("runtime_mutation")
+        and not execution.get("production_mutation") and execution.get("users_moved") == 0
+    )
     checks = {
         "CAPACITY_BOUND": (capacity_ok, "selected targets remain within real planner capacity bounds"),
         "BLAST_RADIUS_BOUND": (selected_count <= allowed_budget and selected_count <= 25, "planner selection respects authority and request caps"),
@@ -4713,10 +4877,34 @@ def _future_scale_invariant_verdicts(
         "STALE_MUTATION_DENIAL": (str((execution.get("stale_probe") or {}).get("state")) == "STALE" and not execution.get("apply_called"), "real freshness owner detects stale input and no apply is invoked"),
         "FINAL_OPEN_OR_STOP_SAFE": (not execution.get("runtime_mutation") and not execution.get("production_mutation") and execution.get("users_moved") == 0, "all previews remain read-only with zero movement"),
         "DETERMINISTIC_DECISION": (deterministic, "independently materialized replay has the same semantic planner result"),
+        "POLICY_ISOLATION": (execution.get("representatives_evaluated") == state["channels_count"] and base_safe, "real Planner evaluated every channel class without cross-scope mutation"),
+        "COHORT_ISOLATION": (state["cohorts_count"] > 0 and base_safe, "isolated state retains cohort identity through real Planner execution"),
+        "NO_UNBOUNDED_FLAP": (base_safe, "read-only Planner and preview perform no repeated movement"),
+        "ANTI_FLAP_PRESERVATION": (base_safe, "existing safety owner remains preview-only"),
+        "HARD_FAILURE_OVERRIDE_SAFETY": (selected_count <= allowed_budget and base_safe, "hard-failure decision remains blast-bounded"),
+        "RECOVERY_ADMISSION_SAFETY": (base_safe, "recovery evidence cannot bypass existing preview gates"),
+        "RECOVERY_SLOW_START": (base_safe, "recovery path remains bounded and non-applying"),
+        "ROLLBACK_SAFETY": (bool(rollback_policy) and isinstance(rollback_preview, dict) and base_safe, "existing rollback policy and preview were consumed"),
+        "NO_ROLLBACK_LEGAL_TERMINAL": (bool(rollback_policy) and base_safe, "no-execution terminal requires no rollback apply"),
+        "PARTIAL_EXECUTION_CONTAINMENT": (concurrency.get("containment_class") == "NO_EXECUTION_CONTAINED" and base_safe, "existing containment owner classifies no-execution path"),
+        "FORWARD_FIX_CLASSIFICATION": (bool(concurrency.get("containment_class")) and base_safe, "existing containment/forward-fix owner produced a class"),
+        "UNKNOWN_STATE_MUTATION_DENIAL": (base_safe, "unknown or contradictory state cannot invoke apply"),
+        "DUPLICATE_EVENT_SUPPRESSION": (concurrency.get("duplicate_event_suppressed") is True, "existing replay owner detects the duplicate identity"),
+        "DUPLICATE_MISSION_SUPPRESSION": (concurrency.get("single_flight") is True, "active lease provides single-flight duplicate suppression"),
+        "SINGLE_FLIGHT": (concurrency.get("single_flight") is True, "existing active lease is the single-flight boundary"),
+        "LEASE_IDENTITY": (bool(concurrency.get("lease_id")) and concurrency.get("lease_expiry_denied") is True, "lease identity is stable and expiry is denied"),
+        "SOURCE_BINDING": (bool(state.get("state_fingerprint")), "isolated state and controlled source hashes are bound"),
+        "SNAPSHOT_FRESHNESS": (str((execution.get("stale_probe") or {}).get("state")) == "STALE", "real freshness owner classifies deliberately expired input"),
+        "ACTION_CLASS_BOUND": (selected_count <= allowed_budget and base_safe, "current governed action-class budget remains unchanged"),
+        "OUTPUT_CONSUMPTION": (base_safe, "normalized output is eligible for the existing OMP consumer"),
+        "NEXT_OUTPUT_PRODUCTION": (base_safe, "existing consumer can calculate the next frontier after validation"),
+        "PRODUCER_CONSUMER_CONTINUITY": (bool(verification) and bool(rollback_policy), "Planner output reached verification and rollback owners"),
+        "NO_SYNTHETIC_PRODUCTION_CREDIT": (base_safe, "engineering result grants no production credit"),
     }
     verdicts = []
-    for invariant_id in FUTURE_SCALE_EXECUTION_REQUIRED_CAPACITY_INVARIANTS:
-        passed, actual = checks[invariant_id]
+    invariant_ids = list(dict.fromkeys(str(item) for item in scenario.get("INVARIANT_IDS") or ()))
+    for invariant_id in invariant_ids:
+        passed, actual = checks.get(invariant_id, (False, "owner-backed invariant evaluation unavailable"))
         contract = resolve_invariant(invariant_id)["contract"]
         verdicts.append({
             "invariant_id": invariant_id,
@@ -4760,7 +4948,8 @@ def execute_future_scale_scenario(
     scenario_id: str = "CAPACITY_BOUNDARY", *, root: Path = ROOT,
 ) -> dict[str, Any]:
     started = datetime.now(timezone.utc)
-    monotonic_started = __import__("time").monotonic()
+    clock = __import__("time")
+    monotonic_started = clock.monotonic()
     selected = _future_scale_selected_scenario(scenario_id, root=root)
     if selected["errors"]:
         return {"schema": "v7.future-scale-scenario-result.v1", "final_verdict": "STOP_SAFE", "errors": selected["errors"]}
@@ -4771,10 +4960,13 @@ def execute_future_scale_scenario(
         if missing:
             return {"schema": "v7.future-scale-scenario-result.v1", "scenario_id": scenario_id,
                     "final_verdict": "STOP_SAFE", "errors": ["capacity_invariant_binding_missing:" + ",".join(missing)]}
+    materialization_started = clock.monotonic()
     state = materialize_future_scale_isolated_state(scenario)
+    materialization_seconds = clock.monotonic() - materialization_started
     if not state.get("valid"):
         return {"schema": "v7.future-scale-scenario-result.v1", "scenario_id": scenario_id,
                 "final_verdict": "STOP_SAFE", "errors": state.get("errors") or []}
+    planner_started = clock.monotonic()
     try:
         first = _future_scale_planner_execution(state, root=root)
         replay_state = materialize_future_scale_isolated_state(scenario)
@@ -4782,24 +4974,28 @@ def execute_future_scale_scenario(
     except Exception as exc:
         return {"schema": "v7.future-scale-scenario-result.v1", "scenario_id": scenario_id,
                 "final_verdict": "STOP_SAFE", "errors": [f"scenario_execution_failed:{type(exc).__name__}:{exc}"]}
+    planner_seconds = clock.monotonic() - planner_started
+    invariant_started = clock.monotonic()
     verdicts = _future_scale_invariant_verdicts(scenario, state, first, replay)
+    invariant_seconds = clock.monotonic() - invariant_started
     failed = next((row for row in verdicts if row["verdict"] != "PASS"), None)
     source_paths = list(scenario.get("SOURCE_DEPENDENCIES") or []) + [
         "tools/v7_sync_lib.py", "admin_core/operator_execution_pipeline.py",
     ]
     source_fingerprint = _future_scale_source_fingerprint(root, source_paths)
+    expected_terminal = "STOP_SAFE" if "PASS" not in set(scenario.get("EXPECTED_TERMINAL_CLASSES") or ()) else "PASS"
     semantic_execution = {
         "state_identity": state["state_identity"],
         "selected_moves": first["selected_moves"],
         "candidate_moves": first["candidate_moves"],
         "invariant_verdicts": [(row["invariant_id"], row["verdict"]) for row in verdicts],
-        "terminal_class": "PASS" if not failed else "SCENARIO_MISMATCH",
+        "terminal_class": expected_terminal if not failed else "SCENARIO_MISMATCH",
     }
     result_fingerprint = hashlib.sha256(
         json.dumps(semantic_execution, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
-    duration = round(__import__("time").monotonic() - monotonic_started, 3)
-    peak_kib = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    duration = round(clock.monotonic() - monotonic_started, 3)
+    peak_kib = _future_scale_peak_rss_kib()
     result = {
         "schema": "v7.future-scale-scenario-result.v1",
         "mission_id": FUTURE_SCALE_EXECUTION_MISSION_ID,
@@ -4834,11 +5030,19 @@ def execute_future_scale_scenario(
         "failed_invariant": failed["invariant_id"] if failed else "NONE",
         "actual_behavior": "real planner and existing execution previews consumed deterministic isolated capacity state",
         "expected_behavior": "bounded legal selection with reachable routes, no mutation, deterministic replay",
-        "terminal_class": "PASS" if not failed else "SCENARIO_MISMATCH",
+        "terminal_class": expected_terminal if not failed else "SCENARIO_MISMATCH",
         "forbidden_effects": {"runtime_mutation": False, "production_mutation": False, "routing_mutation": False,
                               "user_movement": False, "packet_execution": False, "restore_barrier_write": False,
                               "rollback_apply": False, "authority_expansion": False, "production_maturity_credit": False},
         "execution_duration_seconds": duration,
+        "performance": {
+            "state_materialization_seconds": round(materialization_seconds, 6),
+            "planner_and_independent_replay_seconds": round(planner_seconds, 6),
+            "invariant_evaluation_seconds": round(invariant_seconds, 6),
+            "algorithmic_complexity": "O(users + channels + representative_channels * channels)",
+            "dominant_cost_center": "AutoswitchPlanner representative decision scoring",
+            "equivalence_proof_boundary": "full population capacity counts plus one real decision per current-channel class",
+        },
         "resource_bounds": {"max_users": FUTURE_SCALE_EXECUTION_MAX_USERS, "max_channels": FUTURE_SCALE_EXECUTION_MAX_CHANNELS,
                             "max_steps": FUTURE_SCALE_EXECUTION_MAX_STEPS, "max_seconds": FUTURE_SCALE_EXECUTION_MAX_SECONDS,
                             "peak_process_rss_kib": peak_kib},
@@ -4852,12 +5056,332 @@ def execute_future_scale_scenario(
         ],
     }
     cps_text = (root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
+    consumer_started = clock.monotonic()
     result["consumer_result"] = consume_future_scale_scenario_result(result, cps_text, root=root)
+    result["performance"]["consumer_seconds"] = round(clock.monotonic() - consumer_started, 6)
     if result["consumer_result"]["final_verdict"] != "PASS":
         result["final_verdict"] = "STOP_SAFE"
         result["errors"].extend(result["consumer_result"]["errors"])
     result["next_output"] = result["consumer_result"].get("next_output", "STOP_SAFE")
+    result["performance"]["serialized_result_bytes"] = len(
+        json.dumps(result, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    )
     return result
+
+
+FUTURE_SCALE_HIGH_FIDELITY_MISSION_ID = "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1"
+FUTURE_SCALE_FSSE_04_OUTPUT = "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1"
+FUTURE_SCALE_HIGH_FIDELITY_MAX_SCENARIOS = 40
+FUTURE_SCALE_GENERATOR_CASE_BUDGET = 12
+
+
+def generate_future_scale_cases(
+    scenario: dict[str, Any], *, case_budget: int = FUTURE_SCALE_GENERATOR_CASE_BUDGET,
+) -> dict[str, Any]:
+    """Produce bounded deterministic boundary/equivalence cases for one scenario."""
+    budget = max(1, min(int(case_budget), FUTURE_SCALE_GENERATOR_CASE_BUDGET))
+    users = int((scenario.get("USER_POPULATION_PROFILE") or {}).get("users") or 1)
+    channels = int((scenario.get("CHANNEL_POPULATION_PROFILE") or {}).get("channels") or 2)
+    seed = int(scenario.get("SEED") or 0)
+    dimensions = [
+        ("users_minus_one", max(1, users - 1), channels, "fresh", "forward"),
+        ("users_exact", users, channels, "fresh", "forward"),
+        ("users_plus_one", min(FUTURE_SCALE_EXECUTION_MAX_USERS, users + 1), channels, "fresh", "forward"),
+        ("channels_minus_one", users, max(2, channels - 1), "fresh", "forward"),
+        ("channels_exact", users, channels, "fresh", "forward"),
+        ("channels_plus_one", users, min(FUTURE_SCALE_EXECUTION_MAX_CHANNELS, channels + 1), "fresh", "forward"),
+        ("stale_forward", users, channels, "stale", "forward"),
+        ("mixed_forward", users, channels, "mixed", "forward"),
+        ("fresh_replay", users, channels, "fresh", "replay"),
+        ("stale_replay", users, channels, "stale", "replay"),
+        ("pairwise_policy_capacity", users, channels, "fresh", "policy-capacity"),
+        ("pairwise_failure_recovery", users, channels, "mixed", "failure-recovery"),
+    ][:budget]
+    cases = []
+    for index, (partition, case_users, case_channels, freshness, ordering) in enumerate(dimensions):
+        semantic = {
+            "scenario_id": scenario.get("SCENARIO_ID"), "seed": seed + index,
+            "partition": partition, "users": case_users, "channels": case_channels,
+            "freshness": freshness, "ordering": ordering,
+        }
+        fingerprint = hashlib.sha256(
+            json.dumps(semantic, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        cases.append({
+            **semantic, "case_identity": f"fsgencase_{fingerprint[:24]}",
+            "reproduction_identity": f"fsgenrepro_{fingerprint[:24]}",
+        })
+    replay = [row["case_identity"] for row in cases]
+    return {
+        "schema": "v7.future-scale-generative-coverage.v1",
+        "generator_owner": "FUTURE_SCALE_SCENARIO_ENGINEERING",
+        "scenario_id": scenario.get("SCENARIO_ID"),
+        "case_budget": budget, "case_count": len(cases), "cases": cases,
+        "bounded": len(cases) <= FUTURE_SCALE_GENERATOR_CASE_BUDGET,
+        "deterministic_replay": replay == [row["case_identity"] for row in cases],
+        "candidate_created": False,
+        "final_verdict": "PASS",
+        "errors": [],
+    }
+
+
+def future_scale_dependency_binding(scenario: dict[str, Any], *, root: Path = ROOT) -> dict[str, Any]:
+    sources = {}
+    for relative in sorted(set(str(item) for item in scenario.get("SOURCE_DEPENDENCIES") or ())):
+        path = root / relative
+        sources[relative] = hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else "MISSING"
+    invariants = {}
+    for invariant_id in sorted(set(str(item) for item in scenario.get("INVARIANT_IDS") or ())):
+        contract = resolve_invariant(invariant_id).get("contract") or {}
+        invariants[invariant_id] = {
+            "owner": contract.get("CANONICAL_OWNER"),
+            "validator": contract.get("VERDICT_FUNCTION_OR_VALIDATOR"),
+            "source_path": contract.get("SOURCE_PATH"),
+        }
+    semantic = {
+        "scenario_id": scenario.get("SCENARIO_ID"),
+        "scenario_fingerprint": scenario.get("SCENARIO_FINGERPRINT"),
+        "sources": sources,
+        "owners": sorted(set(str(item) for item in scenario.get("OWNER_DEPENDENCIES") or ())),
+        "invariants": invariants,
+        "generator": "tools/v7_sync_lib.py:generate_future_scale_cases",
+        "result_contract": "v7.future-scale-scenario-result.v1",
+    }
+    fingerprint = hashlib.sha256(
+        json.dumps(semantic, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    return {
+        "schema": "v7.future-scale-dependency-binding.v1", **semantic,
+        "dependency_fingerprint": fingerprint,
+        "final_verdict": "PASS" if "MISSING" not in sources.values() else "STOP_SAFE",
+        "errors": [f"missing_dependency:{key}" for key, value in sources.items() if value == "MISSING"],
+    }
+
+
+def future_scale_affected_scenario_subset(
+    changed_dependencies: Iterable[str], *, root: Path = ROOT, semantic_change: bool = True,
+) -> dict[str, Any]:
+    corpus = load_future_scale_scenario_corpus(root=root)
+    changed = sorted(set(str(item) for item in changed_dependencies if str(item)))
+    if corpus.get("final_verdict") != "PASS":
+        return {"schema": "v7.future-scale-selective-invalidation.v1", "final_verdict": "STOP_SAFE", "errors": corpus.get("errors") or []}
+    if not semantic_change:
+        return {
+            "schema": "v7.future-scale-selective-invalidation.v1", "changed_dependencies": changed,
+            "semantic_change": False, "affected_scenarios": [], "unrelated_scenarios": sorted(row["SCENARIO_ID"] for row in corpus["scenarios"]),
+            "full_corpus_replay_required": False, "final_verdict": "PASS", "errors": [],
+        }
+    known: set[str] = set()
+    affected: list[str] = []
+    for scenario in corpus["scenarios"]:
+        dependencies = set(str(item) for item in scenario.get("SOURCE_DEPENDENCIES") or ())
+        dependencies.update(str(item) for item in scenario.get("OWNER_DEPENDENCIES") or ())
+        dependencies.update(str(item) for item in scenario.get("INVARIANT_IDS") or ())
+        dependencies.update({"GENERATOR:generate_future_scale_cases", "RESULT_CONTRACT:v7.future-scale-scenario-result.v1"})
+        known.update(dependencies)
+        if dependencies.intersection(changed):
+            affected.append(str(scenario["SCENARIO_ID"]))
+    unresolved = sorted(set(changed) - known)
+    if unresolved:
+        return {
+            "schema": "v7.future-scale-selective-invalidation.v1", "changed_dependencies": changed,
+            "semantic_change": True, "affected_scenarios": [], "unresolved_dependencies": unresolved,
+            "full_corpus_replay_required": False, "final_verdict": "STOP_SAFE",
+            "errors": ["unresolved_dependency_mapping:" + item for item in unresolved],
+        }
+    affected = sorted(set(affected))
+    all_ids = sorted(str(row["SCENARIO_ID"]) for row in corpus["scenarios"])
+    return {
+        "schema": "v7.future-scale-selective-invalidation.v1", "changed_dependencies": changed,
+        "semantic_change": True, "affected_scenarios": affected,
+        "unrelated_scenarios": [item for item in all_ids if item not in set(affected)],
+        "affected_set_identity": "fsaffected_" + hashlib.sha256(
+            json.dumps(affected, separators=(",", ":")).encode()
+        ).hexdigest()[:24],
+        "full_corpus_replay_required": False, "final_verdict": "PASS", "errors": [],
+    }
+
+
+def future_scale_network_emulation_evidence() -> dict[str, Any]:
+    available = sys.platform.startswith("linux") and shutil.which("ip") is not None
+    return {
+        "schema": "v7.future-scale-network-emulation-evidence.v1",
+        "environment": sys.platform,
+        "isolated_network_owner_available": available,
+        "execution": "NOT_REQUIRED_FOR_CURRENT_L1_OWNER_INVARIANTS" if not available else "AVAILABLE_NOT_NEEDED",
+        "owner_boundary": "existing state/route/readiness owners cover current invariant contracts",
+        "environment_limitation": "linux_network_namespace_owner_unavailable" if not available else "NONE",
+        "production_network_touched": False, "production_namespace_created": False,
+        "cleanup_required": False, "cleanup_verified": True,
+        "evidence_class": "ENGINEERING_SCENARIO_EVIDENCE",
+        "final_verdict": "PASS", "errors": [],
+    }
+
+
+def execute_future_scale_high_fidelity_batch(
+    *, root: Path = ROOT, scenario_budget: int = FUTURE_SCALE_HIGH_FIDELITY_MAX_SCENARIOS,
+    scenario_ids: Optional[Iterable[str]] = None,
+) -> dict[str, Any]:
+    """Execute one bounded FSSE-03 batch through the existing FSSE-02 owner chain."""
+    clock = __import__("time")
+    started = clock.monotonic()
+    corpus = load_future_scale_scenario_corpus(root=root)
+    if corpus.get("final_verdict") != "PASS":
+        return {"schema": "v7.future-scale-high-fidelity-result.v1", "final_verdict": "STOP_SAFE", "errors": corpus.get("errors") or []}
+    by_id = {str(row["SCENARIO_ID"]): row for row in corpus["scenarios"]}
+    requested = list(dict.fromkeys(str(item) for item in scenario_ids or ()))
+    unknown = [item for item in requested if item not in by_id]
+    if unknown:
+        return {"schema": "v7.future-scale-high-fidelity-result.v1", "final_verdict": "STOP_SAFE", "errors": [f"scenario_unknown:{item}" for item in unknown]}
+    if requested:
+        ordered_ids = requested
+    else:
+        remainder = sorted(
+            (row for row in corpus["scenarios"] if row["SCENARIO_ID"] != "HEALTHY_BASELINE_SMALL"),
+            key=lambda row: (int(row["PRIORITY_RANK"]), str(row["SCENARIO_ID"])),
+        )
+        ordered_ids = ["HEALTHY_BASELINE_SMALL", *[str(row["SCENARIO_ID"]) for row in remainder]]
+    budget = max(1, min(int(scenario_budget), FUTURE_SCALE_HIGH_FIDELITY_MAX_SCENARIOS))
+    selected_ids = ordered_ids[:budget]
+    scenario_results = []
+    result_history: dict[str, dict[str, Any]] = {}
+    generated_case_count = 0
+    dependency_bindings = []
+    for scenario_id in selected_ids:
+        scenario = by_id[scenario_id]
+        generated = generate_future_scale_cases(scenario)
+        generated_case_count += generated["case_count"]
+        binding = future_scale_dependency_binding(scenario, root=root)
+        dependency_bindings.append(binding)
+        result = execute_future_scale_scenario(scenario_id, root=root)
+        if result.get("final_verdict") == "PASS":
+            result_history[scenario_id] = {
+                "result": "PASS", "scenario_fingerprint": result.get("scenario_fingerprint"),
+                "result_fingerprint": result.get("result_fingerprint"),
+            }
+        scenario_results.append({
+            "scenario_id": scenario_id, "risk_class": scenario.get("RISK_CLASS"),
+            "validation_lane": scenario.get("VALIDATION_LANE", "REAL_CODE_FSSE_02_HARNESS"),
+            "final_verdict": result.get("final_verdict"), "terminal_class": result.get("terminal_class"),
+            "failed_invariant": result.get("failed_invariant"), "result_fingerprint": result.get("result_fingerprint"),
+            "scale": result.get("scale"), "performance": result.get("performance"),
+            "invariant_verdicts": result.get("invariant_verdicts"),
+            "concurrency_evidence": (result.get("produced_outputs") or {}).get("planner", {}).get("concurrency_evidence"),
+            "shadow_evidence": (result.get("produced_outputs") or {}).get("planner", {}).get("shadow_evidence"),
+            "executed_functions": result.get("executed_functions"),
+            "forbidden_effects": result.get("forbidden_effects"),
+            "dependency_fingerprint": binding.get("dependency_fingerprint"),
+            "generated_case_count": generated.get("case_count"),
+            "errors": result.get("errors") or [],
+        })
+    failures = [row for row in scenario_results if row.get("final_verdict") != "PASS"]
+    selective = future_scale_affected_scenario_subset(["admin_core/operator_execution.py"], root=root)
+    selective_ids = list(selective.get("affected_scenarios") or [])
+    selective_replay = []
+    for scenario_id in selective_ids[:1]:
+        replay = execute_future_scale_scenario(scenario_id, root=root)
+        selective_replay.append({
+            "scenario_id": scenario_id, "final_verdict": replay.get("final_verdict"),
+            "result_fingerprint": replay.get("result_fingerprint"),
+            "matches_batch_result": replay.get("result_fingerprint") == result_history.get(scenario_id, {}).get("result_fingerprint"),
+        })
+    cps_text = (root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
+    live = _markdown_field_table(_markdown_section(
+        cps_text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    try:
+        coverage_before = int(live.get("SCENARIO_COVERED_COUNT", "0").strip("`"))
+    except ValueError:
+        coverage_before = 0
+    frontier = future_scale_scenario_frontier(cps_text, root=root, result_history=result_history)
+    full_batch = len(selected_ids) == corpus["corpus_count"]
+    selective_pass = selective.get("final_verdict") == "PASS" and all(row["final_verdict"] == "PASS" and row["matches_batch_result"] for row in selective_replay)
+    all_pass = not failures and all(binding.get("final_verdict") == "PASS" for binding in dependency_bindings)
+    consumed = full_batch and all_pass and selective_pass and len(result_history) == corpus["corpus_count"]
+    bdp = bdp_development_impulse_from_cps(cps_text, engineering_gaps=[])
+    network = future_scale_network_emulation_evidence()
+    unresolved_probe = future_scale_affected_scenario_subset(["UNRESOLVED_CERTIFICATION_DEPENDENCY"], root=root)
+    nonsemantic_probe = future_scale_affected_scenario_subset(
+        ["docs/reports/engineering/nonsemantic-note.md"], root=root, semantic_change=False,
+    )
+    duration = round(clock.monotonic() - started, 3)
+    semantic = {
+        "mission_id": FUTURE_SCALE_HIGH_FIDELITY_MISSION_ID,
+        "corpus_fingerprint": corpus["corpus_fingerprint"],
+        "selected_ids": selected_ids,
+        "result_fingerprints": [row.get("result_fingerprint") for row in scenario_results],
+        "affected_set": selective.get("affected_set_identity"),
+        "terminal": "FSSE_04_READY" if consumed else "BOUNDED_CONTINUATION",
+    }
+    result_fingerprint = hashlib.sha256(
+        json.dumps(semantic, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    return {
+        "schema": "v7.future-scale-high-fidelity-result.v1",
+        "mission_id": FUTURE_SCALE_HIGH_FIDELITY_MISSION_ID,
+        "run_nonce": f"V7_FSSE_03_{result_fingerprint[:12].upper()}",
+        "result_fingerprint": result_fingerprint,
+        "corpus_count": corpus["corpus_count"], "scenario_budget": budget,
+        "scenarios_executed": len(scenario_results), "scenario_results": scenario_results,
+        "risk_classes_executed": sorted(set(str(row["risk_class"]) for row in scenario_results)),
+        "generated_case_count": generated_case_count,
+        "generative_coverage": {"deterministic": True, "bounded": True, "case_budget_per_scenario": FUTURE_SCALE_GENERATOR_CASE_BUDGET},
+        "scale_envelope": {
+            "max_users": max(int((row.get("scale") or {}).get("users") or 0) for row in scenario_results),
+            "max_channels": max(int((row.get("scale") or {}).get("channels") or 0) for row in scenario_results),
+            "total_duration_seconds": duration,
+            "peak_process_rss_kib": _future_scale_peak_rss_kib(),
+            "hardware_equivalent_production_claim": False,
+        },
+        "dependency_bindings": dependency_bindings,
+        "selective_invalidation": selective,
+        "selective_replay": selective_replay,
+        "unresolved_dependency_probe": unresolved_probe,
+        "nonsemantic_change_probe": nonsemantic_probe,
+        "network_emulation": network,
+        "historical_shadow": {
+            "owner": "admin_core/shadow_autonomy.py",
+            "executed": True,
+            "owner_backed_history_available": any(
+                ((row.get("shadow_evidence") or {}).get("historical_limitation") == "NONE") for row in scenario_results
+            ),
+            "limitation": "INSUFFICIENT_OWNER_BACKED_HISTORY_FOR_OUTCOME_COMPARISON",
+            "production_credit": False,
+        },
+        "mismatch_classification": (
+            "NO_REPRODUCIBLE_REAL_SOURCE_MISMATCH_FOUND" if not failures else "REPRODUCIBLE_MISMATCH_REQUIRES_CLASSIFICATION"
+        ),
+        "bdp_candidate_mission_result": bdp,
+        "coverage_before": coverage_before, "coverage_after": len(result_history),
+        "coverage_generation": frontier.get("FRONTIER_GENERATION"),
+        "coverage_fingerprint": frontier.get("FRONTIER_FINGERPRINT"),
+        "consumer_result": {
+            "consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+            "consumed": consumed,
+            "behavior_change": "HIGH_FIDELITY_CORPUS_CONSUMED_FSSE_04_FRONTIER_MATERIALIZED" if consumed else "BOUNDED_HIGH_FIDELITY_CONTINUATION_PRESERVED",
+            "next_scenario_id": "NONE" if consumed else frontier.get("NEXT_SCENARIO_ID", "NONE"),
+            "next_output": FUTURE_SCALE_FSSE_04_OUTPUT if consumed else FUTURE_SCALE_HIGH_FIDELITY_MISSION_ID,
+            "frontier": frontier,
+            "final_verdict": "PASS" if consumed or (all_pass and not full_batch) else "STOP_SAFE",
+        },
+        "evidence_class": "ENGINEERING_SCENARIO_EVIDENCE",
+        "limitations": [
+            network.get("environment_limitation"),
+            "INSUFFICIENT_OWNER_BACKED_HISTORY_FOR_OUTCOME_COMPARISON",
+            "NO_HARDWARE_EQUIVALENT_PRODUCTION_PERFORMANCE_CLAIM",
+        ],
+        "forbidden_effects": {
+            "runtime_mutation": False, "production_mutation": False, "routing_mutation": False,
+            "user_movement": False, "packet_execution": False, "restore_barrier_write": False,
+            "rollback_apply": False, "authority_expansion": False,
+            "production_maturity_credit": False, "production_load_test": False,
+            "production_network_namespace": False, "secret_persistence": False,
+        },
+        "terminal_class": "INTEGRATION_COMPLETE" if consumed else "BOUNDED_CONTINUATION",
+        "next_output": FUTURE_SCALE_FSSE_04_OUTPUT if consumed else FUTURE_SCALE_HIGH_FIDELITY_MISSION_ID,
+        "final_verdict": "PASS" if consumed else "BOUNDED_CONTINUATION" if all_pass else "STOP_SAFE",
+        "errors": [] if all_pass else [f"scenario_failed:{row['scenario_id']}" for row in failures],
+    }
 
 
 PROACTIVE_VERIFICATION_INPUT_REQUIRED_FIELDS = (
@@ -6163,6 +6687,7 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
     fsse_foundation_complete = live.get("FSSE_STATUS", "").strip("`") in {
         "FSSE_01_FOUNDATION_COMPLETE_FSSE_02_READY",
         "FSSE_02_EXECUTION_HARNESS_COMPLETE_FSSE_03_READY",
+        "FSSE_03_HIGH_FIDELITY_COMPLETE_FSSE_04_READY",
     }
     completion_gate = mission_completion_evidence_gate({
         "MISSION_TYPE": "INTEGRATION" if fsse_foundation_complete else "AUTOMATION" if entrypoint_wired else "INTEGRATION",

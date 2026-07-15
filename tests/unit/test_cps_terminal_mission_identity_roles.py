@@ -24,8 +24,8 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         cls.lib = load_lib()
         cls.cps = CPS.read_text(encoding="utf-8")
         cls.omp = OMP.read_text(encoding="utf-8")
-        cls.latest = "V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1"
-        cls.previous = "V7_FUTURE_SCALE_POLYGON_FOUNDATION_V1"
+        cls.latest = "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1"
+        cls.previous = "V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1"
         cls.transition = "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3"
 
     def validate(self, cps=None, omp=None, root=ROOT):
@@ -42,7 +42,7 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
     def temp_root_with_report(self, first, second):
         tmp = tempfile.TemporaryDirectory()
         root = Path(tmp.name)
-        report = root / "docs/reports/engineering/2026-07-15_165613_future_scale_polygon_execution_harness.md"
+        report = root / "docs/reports/engineering/2026-07-15_204206_future_scale_high_fidelity_validation.md"
         report.parent.mkdir(parents=True)
         report.write_text(f"{first}\n{second}\n", encoding="utf-8")
         return tmp, root
@@ -80,7 +80,7 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         self.assertEqual(self.validate(drift)["cps_header_identity_consistency"], "FAIL")
 
     def test_09_header_timestamp_predates_latest_start_fails(self):
-        drift = self.cps.replace("State captured: 2026-07-15T16:56:13+0700", "State captured: 2026-07-12T02:00:00+0700", 1)
+        drift = self.cps.replace("State captured: 2026-07-15T20:42:06+0700", "State captured: 2026-07-12T02:00:00+0700", 1)
         self.assertEqual(self.validate(drift)["mission_timestamp_consistency"], "FAIL")
 
     def test_10_latest_report_header_id_mismatch_fails(self):
@@ -98,7 +98,7 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
             tmp.cleanup()
 
     def test_12_omp_latest_closure_pointer_mismatch_fails(self):
-        drift = self.omp.replace("docs/reports/engineering/2026-07-15_165613_future_scale_polygon_execution_harness.md", "docs/reports/engineering/stale.md")
+        drift = self.omp.replace("docs/reports/engineering/2026-07-15_204206_future_scale_high_fidelity_validation.md", "docs/reports/engineering/stale.md")
         self.assertEqual(self.validate(omp=drift)["mission_report_pointer_consistency"], "FAIL")
 
     def test_13_omp_transition_input_pointer_mismatch_fails(self):
@@ -127,10 +127,10 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         drift = self.replace_field(self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry", "CURRENT_MISSION_ID", f"`{self.previous}`")
         self.assertIn("MISSION_ROLE_AMBIGUITY_STOP_SAFE", self.validate(drift)["errors"])
 
-    def test_19_operational_state_is_bounded_at_fsse03_validation(self):
+    def test_19_operational_state_is_bounded_at_fsse04_integration(self):
         live = self.lib._markdown_field_table(self.lib._markdown_section(self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry"))
         self.assertEqual(live["CURRENT_STOP_CONDITION"].strip("`"), "UNSAFE_IMPLEMENTATION")
-        self.assertEqual(live["CURRENT_ACTIVE_SCOPE"].strip("`"), "FSSE_03_HIGH_FIDELITY_VALIDATION")
+        self.assertEqual(live["CURRENT_ACTIVE_SCOPE"].strip("`"), "FSSE_04_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION")
         self.assertEqual(live["CURRENT_ACTION_CLASS_STATE"].strip("`"), "GOVERNED_ONLY")
 
     def test_20_no_candidate_packet_lease_barrier_apply_or_movement(self):
@@ -145,7 +145,7 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         self.assertIn("`CAP-U01`", result["cap_u01"])
         self.assertIn("`COMPLETE`", result["cap_u01"])
         self.assertIn("`CAP-U07`", result["active_capability"])
-        self.assertIn("`FSSE_02_COMPLETE_FSSE_03_READY` program frontier", result["sequence_position_1"])
+        self.assertIn("`FSSE_03_COMPLETE_FSSE_04_READY` program frontier", result["sequence_position_1"])
 
     def test_22_current_stop_is_live_reality_only(self):
         self.assertEqual(self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)["current_stop"], "UNSAFE_IMPLEMENTATION")

@@ -66,11 +66,11 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
         self.assertIn("omp_current_stop_divergence", self.validate(drift)["omp_contradiction_ids"])
 
     def test_07_current_next_action_mismatch_fails(self):
-        drift = self.omp.replace("Resolved current next action: `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1`", "Resolved current next action: `DIAGNOSE_BINDING`", 1)
+        drift = self.omp.replace("Resolved current next action: `V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1`", "Resolved current next action: `DIAGNOSE_BINDING`", 1)
         self.assertIn("omp_current_next_action_divergence", self.validate(drift)["omp_contradiction_ids"])
 
     def test_08_latest_consumed_report_mismatch_fails(self):
-        drift = self.omp.replace("docs/reports/engineering/2026-07-15_165613_future_scale_polygon_execution_harness.md", "docs/reports/engineering/stale.md")
+        drift = self.omp.replace("docs/reports/engineering/2026-07-15_204206_future_scale_high_fidelity_validation.md", "docs/reports/engineering/stale.md")
         self.assertEqual(self.validate(drift)["omp_report_pointer_consistency"], "FAIL")
 
     def test_09_historical_section_cannot_create_mission(self):

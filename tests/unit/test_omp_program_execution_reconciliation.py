@@ -133,15 +133,15 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
         result = self.reconcile()
         self.assertEqual((result["runtime_impact"], result["production_impact"], result["authority_impact"]), ("NONE", "NONE", "NONE"))
 
-    def test_27_recalculation_selects_acceptance_stage(self):
-        self.assertEqual(self.reconcile()["executable_program_frontier"], ["AEP_PHASE_3_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER"])
+    def test_27_recalculation_selects_fsse04_program_frontier(self):
+        self.assertEqual(self.reconcile()["executable_program_frontier"], ["V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1"])
 
     def test_28_replay_reproduces_inventory_and_sequence(self):
         self.assertEqual(self.reconcile(), self.reconcile())
 
     def test_29_cps_receives_program_frontier(self):
-        self.assertIn("V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1", self.sources["cps"])
-        self.assertIn("HEALTHY_BASELINE_SMALL", self.sources["cps"])
+        self.assertIn("V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1", self.sources["cps"])
+        self.assertIn("FSSE_03_COMPLETE_FSSE_04_READY", self.sources["cps"])
         self.assertNotIn("global program frontier is OMP_REAL_CONSUMER_ACTIVATION", self.sources["cps"])
 
     def test_30_omp_consumes_program_frontier(self):

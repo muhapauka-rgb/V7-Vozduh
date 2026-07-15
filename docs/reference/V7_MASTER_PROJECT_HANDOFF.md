@@ -4,7 +4,9 @@ Status: `CANONICAL ENTRY POINT`
 
 Owner: OMP / Canonical Reference / Current Program State
 
-Last updated: 2026-07-10
+Handoff version: `V7_MASTER_PROJECT_HANDOFF_FSSE_02_READY_V1`
+
+Last updated: 2026-07-15
 
 Stage 1 architecture status: `STAGE_1_ACCEPTED`, `STAGE_1_LOCKED`
 
@@ -144,20 +146,18 @@ Discover
 
 This section is strategic reference context, not volatile task state. Before execution, resolve current scope and safe next action from `docs/programs/V7_CURRENT_PROGRAM_STATE.md` section `0. Authoritative Live Current State`.
 
-The next major strategic engineering step is not architecture expansion.
+The active program is `FUTURE_SCALE_SCENARIO_ENGINEERING`. FSSE makes the existing Engineering Polygon and OMP exercise real V7 code against bounded deterministic future-scale states instead of waiting for rare production situations that cannot occur at the current approximately 50-user / 5-channel scale.
 
-The active strategic direction is research-first discovery of mature production routing and control-plane practices for deciding when existing engineering knowledge is reliable enough to change system behavior.
-
-This research must happen before any architecture change, new owner, new engine, or new OMP mechanism is introduced for this topic.
-
-The topic is not to invent an "Engineering Confidence" owner by intuition. The topic is:
+The exact current frontier is:
 
 ```text
-How do mature production systems decide whether existing engineering
-knowledge can be trusted enough to change system behavior?
+FSSE-01 foundation COMPLETE_CONSUMED
+  -> FSSE-02 execution harness READY
+  -> MISSION V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1
+  -> INPUT CAPACITY_BOUNDARY
 ```
 
-The research scope must include Cisco, Juniper, Arista, Envoy, Istio, Kubernetes, Google SRE, Google Traffic Engineering, Cloudflare, AWS, Azure, GCP, relevant RFCs, and other mature control-plane systems.
+FSSE-02 is engineering-only work inside existing owners. It requires no external input and no new Authority. Heartbeat/external reentry certification is deferred at the Codex Automation Platform boundary and does not block FSSE. CAP-U07 remains protected capability-local `WAITING_EXTERNAL_DEPENDENCY` WIP and does not replace the active FSSE program frontier.
 
 ### Research First Rule
 
@@ -174,29 +174,26 @@ Fundamental mechanisms must not be built from intuition, naming preference, or l
 
 ### Immediate Next Task
 
-The immediate strategic next task is:
+The exact next Mission is:
 
 ```text
-Engineering Truth Usage / Engineering Assurance research
+MISSION = V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1
+INPUT_SCENARIO = CAPACITY_BOUNDARY
+STOP = UNSAFE_IMPLEMENTATION
 ```
 
-Purpose:
+The next thread must build and certify the real existing-owner execution harness:
 
 ```text
-Determine how mature production routing and control-plane systems decide
-whether existing engineering knowledge is reliable enough to change system
-behavior.
+deterministic isolated state
+  -> real V7 observation/readiness/decision/planner/eligibility path
+  -> canonical invariant validation
+  -> normalized result
+  -> PASS or reproducible mismatch
+  -> existing BDP/OMP lifecycle when repair is required
 ```
 
-Until that research is complete, the following are forbidden for this topic:
-
-- adding Engineering Confidence as a canonical mechanism;
-- adding a new owner;
-- adding a new engine;
-- adding new architecture;
-- changing OMP for this topic.
-
-Only Discovery is allowed.
+Do not repeat FSSE-01, perform another foundation audit, wait for heartbeat or production events, create a simulator owner, use toy decision logic as proof, or stop at schema/tests/report completion.
 
 ## 1. What V7 Is
 
@@ -256,6 +253,51 @@ docs/programs/V7_CURRENT_PROGRAM_STATE.md
 Architecture is complete by default. New architecture is allowed only after a proven `FUNDAMENTAL_ARCHITECTURE_GAP`.
 
 Do not treat old Stage 1 recovery tasks as active work. They are historical evidence.
+
+### Current FSSE Handoff Snapshot
+
+This is a handoff projection only. CPS Section 0 remains authoritative if volatile state changes after this update.
+
+```text
+LATEST_RECONCILIATION_MISSION = V7_FSSE_01_CURRENT_STATE_AND_DERIVED_REGISTRY_CONSISTENCY_CORRECTION_V1
+LATEST_RECONCILIATION_RUN_NONCE = V7_FSSE_01_STATE_CONSISTENCY_V1_5C83A7E21D49
+LATEST_RECONCILIATION_VERDICT = FSSE_CURRENT_STATE_FULLY_ALIGNED_FSSE_02_READY
+LATEST_RECONCILIATION_REPORT = docs/reports/engineering/2026-07-15_153614_fsse_current_state_consistency_correction.md
+LATEST_RECONCILIATION_COMMIT = 8643b08d3dd7bf65cbd6d7508344a3e351b73edc
+LATEST_RECONCILIATION_DEPLOY = deploy-z8-14-Updatesystem-8643b08-20260715T153901
+TRUTH_CONVERGENCE = FULLY_ALIGNED
+
+ACTIVE_PROGRAM = FUTURE_SCALE_SCENARIO_ENGINEERING
+CURRENT_PROGRAM_STAGE = FSSE_01_COMPLETE_FSSE_02_READY
+CURRENT_ACTIVE_SCOPE = FSSE_02_EXECUTION_HARNESS
+CURRENT_PROGRAM_EXECUTION_FRONTIER = V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1
+CURRENT_NEXT_ACTION_ID = V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1
+NEXT_MISSION_ID = V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1
+NEXT_SCENARIO_ID = CAPACITY_BOUNDARY
+CURRENT_STOP_CONDITION = UNSAFE_IMPLEMENTATION
+OMP_CONTINUATION_REQUIRED = TRUE
+EXTERNAL_INPUT_REQUIRED = FALSE
+AUTHORITY_REQUIRED_NOW = NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE
+FSSE_STATUS = FSSE_01_FOUNDATION_COMPLETE_FSSE_02_READY
+FSSE_00_EXTERNAL_REENTRY_STATUS = DEFERRED_PLATFORM_CERTIFICATION
+FSSE_00_BLOCKS_FSSE_01 = FALSE
+OMP_AUTOMATION_LEVEL = CODEX_ASSISTED
+MANUAL_CONTINUE_OMP_FALLBACK = ACTIVE
+CURRENT_STATE_GENERATION = cpsgen_V7_FSSE_FOUNDATION_V1_6D29A4C81E7F
+CURRENT_TRANSITION_ID = FSSE_01_FOUNDATION_TO_FSSE_02_HARNESS_V1
+SCENARIO_COVERAGE_GENERATION = fssef_78ab1f01d84288c6bdd2587c
+SCENARIO_COVERAGE_FINGERPRINT = 78ab1f01d84288c6bdd2587c0d578556fe217558b664e00cd4b5deb32725f951
+SCENARIO_CORPUS_COUNT = 10
+SCENARIO_ELIGIBLE_COUNT = 10
+SCENARIO_COVERED_COUNT = 0
+SCENARIO_STALE_COUNT = 0
+SCENARIO_BLOCKED_COUNT = 0
+SCENARIO_MISMATCH_COUNT = 0
+SCENARIO_BUDGET = 10
+SCENARIO_STOP_REASON = FSSE_02_EXECUTION_HARNESS_REQUIRED
+```
+
+FSSE-01 terminal evidence is `docs/reports/engineering/2026-07-15_094920_future_scale_polygon_foundation.md`, implementation commit `8f559ab5675b28df39067608d7d5453543841f3e`, deploy `deploy-z8-14-Updatesystem-8f559ab-20260715T103251`, and verdict `FUTURE_SCALE_POLYGON_FOUNDATION_IMPLEMENTED_CONSUMED_FSSE_02_READY`.
 
 ## 3. Current Maturity Snapshot
 
@@ -478,7 +520,20 @@ The active volatile state and next allowed action must be read from CPS:
 docs/programs/V7_CURRENT_PROGRAM_STATE.md
 ```
 
-The active strategic research direction is Engineering Truth Usage / Engineering Assurance. It is Discovery only until research proves a real gap.
+The active program frontier is Future-Scale Scenario Engineering. OMP V4.26 and CPS Section 0 resolve one exact next Mission: `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1` for `CAPACITY_BOUNDARY`.
+
+Compressed completion-first plan:
+
+| Position | Mission | Status |
+|---|---|---|
+| FSSE-01 | `V7_FUTURE_SCALE_POLYGON_FOUNDATION_V1` | `COMPLETE_CONSUMED` |
+| FSSE-02 | `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1` | `READY`, exact current frontier |
+| FSSE-03 | `V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1` | Future after certified FSSE-02 completion |
+| FSSE-04 | `V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1` | Future final integration |
+
+FSSE-01 established ten deterministic owner-bound scenarios, 31 invariant identities, scenario identity/fingerprinting, a Scenario Frontier, CPS projection, and a real `tools/v7-truth-check -> program_execution_reconciliation` consumer. FSSE-02 must execute the current scenario through real V7 engineering paths and produce consumed behavior; another preparation-only cycle is forbidden.
+
+Scenario evidence is engineering evidence. It may reveal defects, justify source repair and certify invariant behavior. It may not claim production outcome, grant Authority, mutate Runtime, move users, or increase Production Maturity.
 
 Stage 2 is not active execution work. It is the completed knowledge engineering route that produced `LOCKED_KNOWLEDGE`.
 
@@ -556,27 +611,28 @@ Completed:
 - Reality First remains active.
 - Authority and Runtime boundaries remain active.
 - Continuous Self Evolution remains part of the locked architecture.
+- Mission Completion Evidence Gate is active. Tests, deployment, reports and CPS edits alone do not prove functional completion.
+- FSSE-01 Future-Scale Polygon Foundation is implemented, deployed and consumed.
+- FSSE current-state and derived-registry consistency correction is deployed and `FULLY_ALIGNED`.
+- `CAPACITY_BOUNDARY` is the deterministic first FSSE-02 scenario.
 
 Completed historical work must not be reopened unless objective evidence proves corruption, contradiction, or a formally accepted evolution need.
 
 ## 9. What Remains
 
-Active production and execution work:
+Active engineering execution work:
 
-- continue OMP from CPS;
-- use ECR to resolve the minimal working set;
-- consume `LOCKED_KNOWLEDGE` before re-reading Stage 1 reports;
-- execute only through existing owners;
-- update Engineering Reports, Canonical Reference, SYSTEM_MAP, CPS, or OMP only when their ownership requires it.
-
-Immediate strategic research:
-
-- conduct Engineering Truth Usage / Engineering Assurance research across mature routing and control-plane systems;
-- determine how production systems decide whether existing engineering knowledge is safe enough to change system behavior;
-- do not add Engineering Confidence, owner, engine, architecture, or OMP change before research proves a real V7 gap.
+- execute `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1` through existing Engineering Polygon, OMP, CPS, BDP and V7 code owners;
+- begin with `CAPACITY_BOUNDARY` and a deterministic isolated L1 state;
+- exercise real V7 observation/readiness/decision/planner/eligibility and invariant validators, not toy logic;
+- route a reproducible mismatch through the existing BDP -> Candidate -> OMP Mission lifecycle;
+- preserve no production mutation, no user movement, no Authority expansion and no Production Maturity credit;
+- continue immediately to the exact next scenario or legal owner-backed stop after consumed verification.
 
 Known non-blocking follow-up:
 
+- heartbeat/external reentry remains `DEFERRED_PLATFORM_CERTIFICATION`; manual `Continue OMP` remains active;
+- CAP-U07 remains protected capability-local WIP at its real-world dependency boundary;
 - append-only historical Domain 11 NOT CERTIFIED text remains superseded by Stage 1.2 terminal evidence;
 - old Function Graph evidence should be used as discovery/index evidence unless current implementation evidence proves a contradiction.
 
@@ -614,6 +670,14 @@ Decision Model, Policy, and Planner prepare action. Runtime and Execution apply 
 ### Verification Law
 
 A production action is not successful until Verification proves the outcome.
+
+### Mission Completion Evidence Gate
+
+Mission completion evidence must match the declared Mission type. Source changes, passing tests, deployment, a report, a manual Codex call, or a CPS status edit cannot alone prove stronger functional completion.
+
+Integration completion requires a real non-test caller, a real consumer, verified consumption, behavior change and a next output. Automation additionally requires an independent real trigger, idempotency, duplicate suppression and a bounded legal terminal. Runtime and Production completion require their corresponding real effects, verification and owner acceptance.
+
+The gate is active in OMP and consumed by existing truth/convergence owners. Future threads must not repeat report/test-only OMP cycles.
 
 ### Rollback / Closure Law
 
@@ -760,6 +824,10 @@ Every meaningful project action should improve at least one of:
 - knowledge quality;
 - owner clarity;
 - future engineering leverage.
+
+### Future-Scale Scenario Evidence Boundary
+
+When ordinary safe engineering work is exhausted, OMP may continue through the existing Future-Scale Scenario Engineering frontier. Deterministic scenario evidence is engineering evidence only. It can reveal a reproducible defect and drive an existing-owner repair, but cannot become production truth, Runtime authority, action-class authority, user movement or Production Maturity credit.
 
 ## 11. Governance Model
 
@@ -909,6 +977,12 @@ Reality
   -> Continue OMP
 ```
 
+### Recent Completion-Truth Knowledge
+
+The Phase 2-to-current retrospective proved that reports, tests and deployment can establish useful evidence without establishing real functional closure. A named consumer is insufficient unless it invokes and consumes the output. A manual Codex call is not independent automation. A state update without behavior change is not implementation completion.
+
+FSSE-01 satisfies integration completion because `tools/v7-truth-check` is a real non-test caller, `program_execution_reconciliation` is the real consumer, ordinary deferred work now produces a scenario frontier, and the exact next output is `V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1`.
+
 ### Common Misunderstandings To Avoid
 
 - Do not confuse Stage 1 architecture lock with full production autonomy.
@@ -926,130 +1000,66 @@ Reality
 - Do not let Diagnosis mutate.
 - Do not let OMP become a duplicate Runtime.
 - Do not add Engineering Confidence, a new owner, a new engine, a new architecture, or OMP changes for Engineering Truth Usage before the required world research proves a real gap.
+- Do not treat passing FSSE schema/tests or a scenario report as an executed scenario consumer.
+- Do not reopen heartbeat as a blocker for FSSE; it remains deferred platform certification.
+- Do not wait for rare production events when the existing FSSE frontier can produce bounded engineering evidence.
 
 ## 14. STARTING A NEW CHAT
 
-If a new ChatGPT session starts with zero context, do this:
+### Current Entrypoint For A New Thread
 
-### Step 1. Read The Entry Point
+Read in this order:
 
-Read this file first:
+1. `docs/reference/V7_MASTER_PROJECT_HANDOFF.md`;
+2. `docs/programs/V7_CURRENT_PROGRAM_STATE.md`, Section 0 only for live volatile state;
+3. `docs/reports/engineering/2026-07-15_153614_fsse_current_state_consistency_correction.md`;
+4. `docs/reports/engineering/2026-07-15_094920_future_scale_polygon_foundation.md`;
+5. the Future-Scale Scenario Engineering sections of `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md`;
+6. `tools/v7_sync_lib.py`;
+7. `tests/scenarios/future_scale/foundation.json`.
 
-```text
-docs/reference/V7_MASTER_PROJECT_HANDOFF.md
-```
+Use ECR before widening context. Use Canonical Reference for durable meaning, SYSTEM_MAP for owner topology, OMP for continuation, and Engineering Reports only as evidence. CPS Section 0 overrides all current-looking historical snapshots.
 
-Do not ask the user to restate history unless the requested work conflicts with the persisted state.
-
-### Step 2. Determine Current Program State
-
-Read:
-
-```text
-docs/programs/V7_CURRENT_PROGRAM_STATE.md
-```
-
-CPS is the only authoritative volatile current-state owner. Do not use OMP historical snapshots, old reports, dashboards, or handoff prose as live current state unless CPS confirms them.
-
-### Step 3. Read Canonical Owners
-
-Read:
+Then execute:
 
 ```text
-docs/reference/V7_CANONICAL_REFERENCE.md
-docs/reference/SYSTEM_MAP.md
-docs/programs/OPERATIONAL_MATURITY_PROGRAM.md
-docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md
-```
-
-Use `Canonical Reference` for durable meaning, `SYSTEM_MAP` for ownership, `OMP` for continuation, `LOCKED_KNOWLEDGE` for architecture knowledge, and CPS for volatile state.
-
-### Step 4. Use ECR
-
-Use the Engineering Context Resolver before widening context:
-
-```text
-docs/reference/V7_CONTEXT_RESOLVER.md
-```
-
-Do not reread old reports unless ECR, CPS, OMP, Canonical Reference, SYSTEM_MAP, or the user's task requires specific evidence.
-
-### Step 5. Understand What Is Historical
-
-Historical:
-
-- old Stage 1.1 Domain 11 NOT CERTIFIED state;
-- previous recovery prompts;
-- earlier handoff references to active Phase 6 / Phase 7 production certification as the main architecture-program task;
-- old roadmaps that Stage 1 acceptance superseded;
-- old handoff language that presents Stage 2 as future work;
-- Stage 2 execution reports after `LOCKED_KNOWLEDGE`, except when provenance is needed;
-- any Engineering Report unless consumed by a canonical owner or needed as evidence.
-
-Current:
-
-- Stage 1 locked baseline;
-- Stage 2 locked knowledge baseline;
-- OMP as the only execution program;
-- CPS as the only volatile current-state owner;
-- Canonical Reference as durable truth owner;
-- SYSTEM_MAP as owner topology;
-- Research First Rule before any new fundamental mechanism.
-
-### Step 6. Do Not Recreate These
-
-Do not recreate:
-
-- Architecture Certification Engine;
-- Domain Certification Corpus;
-- Architecture Tree;
-- Stage 1 Corpus Audit;
-- Stage 1 Final Acceptance;
-- Diagnosis Record Contract;
-- Diagnosis Implementation Acceptance;
-- this handoff under a new filename;
-- OMP;
-- Runtime;
-- Planner;
-- Authority;
-- Canonical Reference;
-- SYSTEM_MAP;
-- Current Program State;
-- Engineering Confidence before research proves it is needed.
-
-### Step 7. Use Proven Assumptions
-
-Already proven:
-
-- 26-domain architecture is certified.
-- Stage 1 corpus is internally consistent.
-- Domain 11 recovery is closed.
-- Architecture is locked.
-- Stage 2 produced `LOCKED_KNOWLEDGE`.
-- `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` is the locked knowledge baseline.
-- Future architecture change requires proven `FUNDAMENTAL_ARCHITECTURE_GAP`.
-- OMP is the only execution program.
-- CPS is the only volatile current-state owner.
-
-### Step 8. Start Work From The Right Place
-
-For execution continuation, start at:
-
-```text
+Discover -> Reuse -> Extend -> Implement
 Continue OMP
+
+MISSION:
+V7_FUTURE_SCALE_POLYGON_EXECUTION_HARNESS_V1
+
+INPUT SCENARIO:
+CAPACITY_BOUNDARY
 ```
 
-For volatile current state, use CPS.
+Required boundary:
 
-For strategic Engineering Truth Usage / Engineering Assurance, run Discovery only.
+- do not repeat FSSE-01;
+- do not reopen heartbeat as a blocker;
+- do not wait for production events;
+- do not start unrelated capability work;
+- do not create a new simulator, owner, Planner, Runtime, scheduler, queue or truth source;
+- do not use toy decision logic as proof;
+- do not stop at schema, tests, deployment or report creation;
+- preserve CAP-U07 protected capability-local WIP;
+- preserve no Runtime mutation, no production mutation, no user movement, no Authority expansion and no Production Maturity credit.
 
-For production/autonomy continuation, use OMP, CPS, and existing owners.
+Already proven and reusable:
 
-For implementation work, use existing owners and acceptance contracts.
+- Stage 1 architecture is accepted and locked;
+- Stage 2 knowledge is locked;
+- OMP is the only execution operating system;
+- CPS is the only volatile current-state owner;
+- Mission Completion Evidence Gate is active;
+- FSSE-01 is complete, deployed and consumed;
+- current-state consistency is fully aligned;
+- FSSE-02 is the only current program frontier;
+- `EXTERNAL_INPUT_REQUIRED = FALSE` and `OMP_CONTINUATION_REQUIRED = TRUE`;
+- scenario frontier generation is `fssef_78ab1f01d84288c6bdd2587c`;
+- current corpus fingerprint is `78ab1f01d84288c6bdd2587c0d578556fe217558b664e00cd4b5deb32725f951`.
 
-For uncertainty, run Discovery before inventing structure.
-
-Do not run broad architecture audits unless a Re-open Trigger exists.
+Do not recreate this handoff under another filename. Do not run a broad architecture audit unless a formal Re-open Trigger exists.
 
 ## 15. Final Self Review
 
@@ -1075,7 +1085,7 @@ NO.
 
 Current active roadmap:
 
-OMP execution through CPS and ECR; strategic Engineering Truth Usage / Engineering Assurance research before any new fundamental mechanism.
+OMP execution through CPS and ECR; FSSE-02 execution harness for `CAPACITY_BOUNDARY` is the exact current frontier.
 
 Ready for seamless continuation:
 

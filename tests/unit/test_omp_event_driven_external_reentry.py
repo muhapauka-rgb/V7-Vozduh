@@ -73,6 +73,20 @@ class OmpEventDrivenExternalReentryTest(unittest.TestCase):
             "next_mission_formed": "TRUE",
             "next_mission_id": "CONTINUE_OMP",
             "continuation_stop_reason": "EVENT_REENTRY_TEST_READY; EXACT_CONTINUATION_SAVED",
+            "last_wake_request_id": "NONE",
+            "last_dispatched_wake_id": "NONE",
+            "pending_wake_id": "NONE",
+            "wake_source_cps_generation": "NONE",
+            "wake_transition_id": "NONE",
+            "wake_requested_at": "NONE",
+            "wake_dispatched_at": "NONE",
+            "wake_started_at": "NONE",
+            "wake_completed_at": "NONE",
+            "measured_wake_latency_ms": "NONE",
+            "watchdog_state": "ARMED_FALLBACK_ONLY",
+            "watchdog_fallback_count": "0",
+            "immediate_duplicate_suppression_count": "0",
+            "immediate_last_legal_terminal": "IMMEDIATE_REENTRY_NOT_REQUIRED",
         })
         state.update(overrides)
         return state

@@ -149,7 +149,7 @@ class OmpExternalReentryTest(unittest.TestCase):
 
     def test_duplicate_platform_event_is_suppressed(self):
         first = self.run_reentry()
-        duplicate = self.run_reentry()
+        duplicate = self.run_reentry(event_identity_override=first["event_id"])
         self.assertEqual(first["final_verdict"], "PASS")
         self.assertFalse(duplicate["standard_entrypoint_invoked"])
         self.assertIn(duplicate["adapter"]["activation_result"], {"NO_CHANGE_DUPLICATE_WAKEUP", "STOP_SAFE_REPLAY_FAILURE"})

@@ -37,6 +37,9 @@ OMP_PATH = ROOT / "docs" / "programs" / "OPERATIONAL_MATURITY_PROGRAM.md"
 HEARTBEAT_AUTOMATION_ID = "v7-omp-external-reentry-heartbeat"
 HEARTBEAT_TARGET_THREAD_ID = "019f4b9f-dda6-7762-b26c-3ab651f0a67c"
 HEARTBEAT_SCHEDULE = "FREQ=MINUTELY;INTERVAL=30"
+EVENT_DRIVEN_REENTRY_MODE = "EVENT_DRIVEN_WITH_WATCHDOG"
+EVENT_DRIVEN_WAKE_OWNER = "CODEX_AUTOMATION_PLATFORM_THREAD_SIGNAL"
+EVENT_DRIVEN_OMP_VERSION = "4.28"
 EXTERNAL_REENTRY_LEASE_TTL_SECONDS = 20 * 60
 EXTERNAL_REENTRY_STANDARD_ENTRYPOINT = (
     "tools/v7-truth-check --continue-omp --continue-omp-persist-cps --json"
@@ -168,6 +171,22 @@ NORMALIZED_CPS_LIVE_STATE = {
     "external_reentry_owner": "CODEX_AUTOMATION_PLATFORM",
     "external_reentry_schedule": HEARTBEAT_SCHEDULE,
     "external_reentry_enabled": "TRUE",
+    "external_reentry_mode": EVENT_DRIVEN_REENTRY_MODE,
+    "immediate_wake_owner": EVENT_DRIVEN_WAKE_OWNER,
+    "last_wake_request_id": "NONE",
+    "last_dispatched_wake_id": "NONE",
+    "pending_wake_id": "NONE",
+    "wake_source_cps_generation": "NONE",
+    "wake_transition_id": "NONE",
+    "wake_requested_at": "NONE",
+    "wake_dispatched_at": "NONE",
+    "wake_started_at": "NONE",
+    "wake_completed_at": "NONE",
+    "measured_wake_latency_ms": "NONE",
+    "watchdog_state": "ARMED_FALLBACK_ONLY",
+    "watchdog_fallback_count": "0",
+    "immediate_duplicate_suppression_count": "0",
+    "immediate_last_legal_terminal": "IMMEDIATE_REENTRY_NOT_REQUIRED",
     "reentry_active_lease": "NONE",
     "reentry_last_completed_id": "ompre_ef7ae6f44244113225793e63",
     "reentry_last_trigger_id": "928718904bcdb52da28335863faa9ae3a019d0dc3d9a6735f196ce86a630c75f",
@@ -806,6 +825,22 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "EXTERNAL_REENTRY_OWNER": f"`{state['external_reentry_owner']}`",
         "EXTERNAL_REENTRY_SCHEDULE": f"`{state['external_reentry_schedule']}`",
         "EXTERNAL_REENTRY_ENABLED": f"`{state['external_reentry_enabled']}`",
+        "EXTERNAL_REENTRY_MODE": f"`{state['external_reentry_mode']}`",
+        "IMMEDIATE_WAKE_OWNER": f"`{state['immediate_wake_owner']}`",
+        "LAST_WAKE_REQUEST_ID": f"`{state['last_wake_request_id']}`",
+        "LAST_DISPATCHED_WAKE_ID": f"`{state['last_dispatched_wake_id']}`",
+        "PENDING_WAKE_ID": f"`{state['pending_wake_id']}`",
+        "WAKE_SOURCE_CPS_GENERATION": f"`{state['wake_source_cps_generation']}`",
+        "WAKE_TRANSITION_ID": f"`{state['wake_transition_id']}`",
+        "WAKE_REQUESTED_AT": f"`{state['wake_requested_at']}`",
+        "WAKE_DISPATCHED_AT": f"`{state['wake_dispatched_at']}`",
+        "WAKE_STARTED_AT": f"`{state['wake_started_at']}`",
+        "WAKE_COMPLETED_AT": f"`{state['wake_completed_at']}`",
+        "MEASURED_WAKE_LATENCY_MS": f"`{state['measured_wake_latency_ms']}`",
+        "WATCHDOG_STATE": f"`{state['watchdog_state']}`",
+        "WATCHDOG_FALLBACK_COUNT": f"`{state['watchdog_fallback_count']}`",
+        "IMMEDIATE_DUPLICATE_SUPPRESSION_COUNT": f"`{state['immediate_duplicate_suppression_count']}`",
+        "IMMEDIATE_LAST_LEGAL_TERMINAL": f"`{state['immediate_last_legal_terminal']}`",
         "REENTRY_ACTIVE_LEASE": f"`{state['reentry_active_lease']}`",
         "REENTRY_LAST_COMPLETED_ID": f"`{state['reentry_last_completed_id']}`",
         "REENTRY_LAST_TRIGGER_ID": f"`{state['reentry_last_trigger_id']}`",
@@ -3149,6 +3184,238 @@ def load_program_execution_sources(root: Path = ROOT) -> dict[str, str]:
     return sources
 
 
+def _plain_live_value(live: dict[str, str], key: str) -> str:
+    return live.get(key, "").strip("`").strip()
+
+
+def event_driven_ready_frontier_fingerprint(live: dict[str, str]) -> str:
+    """Fingerprint only the owner-backed fields that make engineering work executable."""
+    payload = {
+        "current_execution_frontier": _plain_live_value(live, "CURRENT_EXECUTION_FRONTIER"),
+        "program_execution_frontier": _plain_live_value(live, "CURRENT_PROGRAM_EXECUTION_FRONTIER"),
+        "ready_capabilities": _plain_live_value(live, "READY_CAPABILITIES"),
+        "next_executable_capability": _plain_live_value(live, "NEXT_EXECUTABLE_CAPABILITY"),
+        "next_mission_formed": _plain_live_value(live, "NEXT_MISSION_FORMED"),
+        "next_mission_id": _plain_live_value(live, "NEXT_MISSION_ID"),
+        "next_scenario_id": _plain_live_value(live, "NEXT_SCENARIO_ID"),
+        "active_scenario_candidate": _plain_live_value(live, "ACTIVE_SCENARIO_CANDIDATE"),
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def event_driven_wake_identity(
+    live: dict[str, str], *, omp_version: str = EVENT_DRIVEN_OMP_VERSION,
+) -> str:
+    """Build a deterministic wake identity; time and randomness are deliberately excluded."""
+    payload = {
+        "cps_generation": _plain_live_value(live, "CURRENT_STATE_GENERATION"),
+        "transition_id": _plain_live_value(live, "CURRENT_TRANSITION_ID"),
+        "next_action_id": _plain_live_value(live, "CURRENT_NEXT_ACTION_ID"),
+        "ready_frontier_fingerprint": event_driven_ready_frontier_fingerprint(live),
+        "mission_id": _plain_live_value(live, "NEXT_MISSION_ID"),
+        "candidate_id": _plain_live_value(live, "ACTIVE_SCENARIO_CANDIDATE"),
+        "omp_version": omp_version,
+        "external_input_required": _plain_live_value(live, "EXTERNAL_INPUT_REQUIRED"),
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _event_driven_frontier_executable(live: dict[str, str]) -> bool:
+    values = {
+        _plain_live_value(live, "CURRENT_EXECUTION_FRONTIER"),
+        _plain_live_value(live, "CURRENT_PROGRAM_EXECUTION_FRONTIER"),
+        _plain_live_value(live, "READY_CAPABILITIES"),
+        _plain_live_value(live, "NEXT_EXECUTABLE_CAPABILITY"),
+        _plain_live_value(live, "NEXT_MISSION_ID"),
+        _plain_live_value(live, "NEXT_SCENARIO_ID"),
+        _plain_live_value(live, "ACTIVE_SCENARIO_CANDIDATE"),
+    }
+    return any(value not in {"", "NONE", "FALSE"} for value in values)
+
+
+def event_driven_external_wake_request(
+    previous_cps_text: str,
+    current_cps_text: str,
+    *,
+    requested_at: Optional[datetime] = None,
+    omp_version: str = EVENT_DRIVEN_OMP_VERSION,
+) -> dict[str, Any]:
+    """Detect one CPS transition and return a deterministic, non-blocking wake request."""
+    previous = _markdown_field_table(_markdown_section(
+        previous_cps_text, "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    current = _markdown_field_table(_markdown_section(
+        current_cps_text, "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    base = {
+        "schema": "v7.omp-event-driven-external-wake.v1",
+        "owner": EVENT_DRIVEN_WAKE_OWNER,
+        "mode": EVENT_DRIVEN_REENTRY_MODE,
+        "writer_blocking": False,
+        "runtime_impact": "NONE",
+        "routing_impact": "NONE",
+        "user_movement": "NONE",
+        "authority_impact": "NONE",
+        "production_maturity_impact": "NONE",
+    }
+    continuation = _plain_live_value(current, "OMP_CONTINUATION_REQUIRED")
+    external_input = _plain_live_value(current, "EXTERNAL_INPUT_REQUIRED")
+    authority = _plain_live_value(current, "AUTHORITY_REQUIRED_NOW")
+    if continuation != "TRUE":
+        return {**base, "outcome": "IMMEDIATE_REENTRY_NOT_REQUIRED", "dispatch_required": False, "reason": "continuation_not_required"}
+    if external_input != "FALSE":
+        return {**base, "outcome": "IMMEDIATE_REENTRY_SUPPRESSED_EXTERNAL_INPUT", "dispatch_required": False, "reason": "external_input_required"}
+    if not authority.startswith("NO_") and authority not in {"NO", "NONE"}:
+        return {**base, "outcome": "IMMEDIATE_REENTRY_SUPPRESSED_PROGRAM_TERMINAL", "dispatch_required": False, "reason": f"authority_unresolved:{authority}"}
+    if _plain_live_value(current, "REENTRY_ACTIVE_LEASE") not in {"", "NONE"}:
+        return {**base, "outcome": "IMMEDIATE_REENTRY_SUPPRESSED_ACTIVE_LEASE", "dispatch_required": False, "reason": "active_lease"}
+    if not _event_driven_frontier_executable(current):
+        return {**base, "outcome": "IMMEDIATE_REENTRY_NOT_REQUIRED", "dispatch_required": False, "reason": "ready_frontier_empty"}
+
+    false_to_true = (
+        _plain_live_value(previous, "OMP_CONTINUATION_REQUIRED") != "TRUE"
+        and continuation == "TRUE"
+    )
+    frontier_changed = (
+        event_driven_ready_frontier_fingerprint(previous)
+        != event_driven_ready_frontier_fingerprint(current)
+    )
+    if not false_to_true and not frontier_changed:
+        return {**base, "outcome": "IMMEDIATE_REENTRY_NOT_REQUIRED", "dispatch_required": False, "reason": "no_material_transition"}
+
+    event_id = event_driven_wake_identity(current, omp_version=omp_version)
+    if _plain_live_value(current, "LAST_DISPATCHED_WAKE_ID") == event_id:
+        return {**base, "outcome": "IMMEDIATE_REENTRY_ALREADY_DISPATCHED", "dispatch_required": False, "event_id": event_id, "reason": "event_identity_consumed"}
+    actual_time = requested_at or datetime.now(timezone.utc)
+    if actual_time.tzinfo is None:
+        actual_time = actual_time.replace(tzinfo=timezone.utc)
+    return {
+        **base,
+        "outcome": "IMMEDIATE_REENTRY_REQUESTED",
+        "dispatch_required": True,
+        "event_id": event_id,
+        "requested_at": actual_time.astimezone(timezone.utc).isoformat(),
+        "source_cps_generation": _plain_live_value(current, "CURRENT_STATE_GENERATION"),
+        "transition_id": _plain_live_value(current, "CURRENT_TRANSITION_ID"),
+        "next_action_id": _plain_live_value(current, "CURRENT_NEXT_ACTION_ID"),
+        "ready_frontier_fingerprint": event_driven_ready_frontier_fingerprint(current),
+        "target_thread_id": HEARTBEAT_TARGET_THREAD_ID,
+        "standard_entrypoint": EXTERNAL_REENTRY_STANDARD_ENTRYPOINT,
+        "trigger_reasons": sorted(set(
+            (["CONTINUATION_FALSE_TO_TRUE"] if false_to_true else [])
+            + (["READY_FRONTIER_CHANGED"] if frontier_changed else [])
+        )),
+    }
+
+
+def _event_driven_state_overrides(request: dict[str, Any]) -> dict[str, str]:
+    return {
+        "external_reentry_mode": EVENT_DRIVEN_REENTRY_MODE,
+        "immediate_wake_owner": EVENT_DRIVEN_WAKE_OWNER,
+        "last_wake_request_id": str(request["event_id"]),
+        "pending_wake_id": str(request["event_id"]),
+        "wake_source_cps_generation": str(request["source_cps_generation"]),
+        "wake_transition_id": str(request["transition_id"]),
+        "wake_requested_at": str(request["requested_at"]),
+        "watchdog_state": "ARMED_PENDING_IMMEDIATE_DISPATCH",
+        "immediate_last_legal_terminal": "IMMEDIATE_REENTRY_REQUESTED",
+    }
+
+
+def _normalized_state_from_live_cps(cps_text: str) -> dict[str, str]:
+    live = _markdown_field_table(_markdown_section(
+        cps_text, "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    state = normalized_cps_live_state()
+    for key in tuple(state):
+        projected = key.upper()
+        if projected in live:
+            state[key] = _plain_live_value(live, projected)
+    sequence = _markdown_section(
+        cps_text, "### Deterministic Execution Sequence", "### Authority, Reality And Safety Stops",
+    )
+    rows = [line for line in sequence.splitlines() if line.startswith("| `1` |")]
+    if len(rows) == 1:
+        cells = [cell.strip() for cell in rows[0].strip().strip("|").split("|")]
+        if len(cells) >= 7 and state["current_program_execution_frontier"] not in {"", "NONE"}:
+            state["program_frontier_input"] = cells[2]
+            state["program_frontier_owner"] = cells[4]
+            state["program_frontier_expected_output"] = cells[6]
+    return state
+
+
+def event_driven_wake_lifecycle(
+    path: Path,
+    *,
+    event_id: str,
+    phase: str,
+    occurred_at: Optional[datetime] = None,
+) -> dict[str, Any]:
+    """Persist dispatch failure/success without invoking OMP or changing Runtime."""
+    if not re.fullmatch(r"[0-9a-f]{64}", event_id):
+        return {"final_verdict": "STOP_SAFE", "outcome": "IMMEDIATE_REENTRY_FAILED_SAFE", "errors": ["event_identity_invalid"]}
+    try:
+        cps_text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return {"final_verdict": "STOP_SAFE", "outcome": "IMMEDIATE_REENTRY_FAILED_SAFE", "errors": [f"cps_unreadable:{exc}"]}
+    state = _normalized_state_from_live_cps(cps_text)
+    if state["last_dispatched_wake_id"] == event_id and phase.upper() == "DISPATCHED":
+        state["immediate_duplicate_suppression_count"] = str(int(state["immediate_duplicate_suppression_count"] or "0") + 1)
+        result = atomic_reconcile_cps(path, state=state)
+        return {
+            "final_verdict": "PASS" if result.get("ok") else "STOP_SAFE",
+            "outcome": "IMMEDIATE_REENTRY_ALREADY_DISPATCHED",
+            "event_id": event_id,
+            "atomic_update": result,
+            "errors": result.get("errors") or [],
+        }
+    if state["pending_wake_id"] != event_id:
+        return {"final_verdict": "STOP_SAFE", "outcome": "IMMEDIATE_REENTRY_FAILED_SAFE", "errors": ["pending_event_identity_mismatch"]}
+    actual = occurred_at or datetime.now(timezone.utc)
+    if actual.tzinfo is None:
+        actual = actual.replace(tzinfo=timezone.utc)
+    timestamp = actual.astimezone(timezone.utc).isoformat()
+    normalized_phase = phase.upper()
+    if normalized_phase == "DISPATCHED":
+        state.update({
+            "last_dispatched_wake_id": event_id,
+            "wake_dispatched_at": timestamp,
+            "watchdog_state": "ARMED_DISPATCHED_AWAITING_CONSUMER",
+            "immediate_last_legal_terminal": "IMMEDIATE_REENTRY_DISPATCHED",
+        })
+        outcome = "IMMEDIATE_REENTRY_DISPATCHED"
+    elif normalized_phase == "FAILED":
+        state.update({
+            "last_dispatched_wake_id": "NONE",
+            "wake_dispatched_at": "NONE",
+            "watchdog_state": "PENDING_WATCHDOG_RECOVERY",
+            "immediate_last_legal_terminal": "IMMEDIATE_REENTRY_FAILED_SAFE",
+        })
+        outcome = "IMMEDIATE_REENTRY_FAILED_SAFE"
+    else:
+        return {"final_verdict": "STOP_SAFE", "outcome": "IMMEDIATE_REENTRY_FAILED_SAFE", "errors": ["lifecycle_phase_invalid"]}
+    result = atomic_reconcile_cps(path, state=state)
+    return {
+        "schema": "v7.omp-event-driven-wake-lifecycle.v1",
+        "final_verdict": "PASS" if result.get("ok") else "STOP_SAFE",
+        "outcome": outcome if result.get("ok") else "IMMEDIATE_REENTRY_FAILED_SAFE",
+        "event_id": event_id,
+        "occurred_at": timestamp,
+        "writer_blocking": False,
+        "atomic_update": result,
+        "runtime_impact": "NONE",
+        "routing_impact": "NONE",
+        "user_movement": "NONE",
+        "authority_impact": "NONE",
+        "errors": result.get("errors") or [],
+    }
+
+
 def heartbeat_dependency_fingerprint(cps_text: str) -> str:
     """Fingerprint the owner-backed dependency graph consumed by the heartbeat."""
     graph = _markdown_section(
@@ -3359,6 +3626,8 @@ def heartbeat_program_reentry(
     lease_path: Optional[Path] = None,
     evidence_path: Optional[Path] = None,
     now: Optional[datetime] = None,
+    event_identity_override: str = "",
+    event_source_kind: str = "HEARTBEAT_WATCHDOG",
     root: Path = ROOT,
 ) -> dict[str, Any]:
     """Run the existing heartbeat owner; optionally perform independent OMP reentry."""
@@ -3395,6 +3664,25 @@ def heartbeat_program_reentry(
         "## Authoritative Unfinished Capability Closure Registry",
     ))
     current_generation = live.get("CURRENT_STATE_GENERATION", "").strip("`")
+    pending_wake_id = _plain_live_value(live, "PENDING_WAKE_ID")
+    last_dispatched_wake_id = _plain_live_value(live, "LAST_DISPATCHED_WAKE_ID")
+    watchdog_recovery = False
+    if execute_continue_omp and not event_identity_override and pending_wake_id not in {"", "NONE"}:
+        if last_dispatched_wake_id == pending_wake_id:
+            return {
+                "schema": "v7-omp-event-driven-watchdog/v1",
+                "event_id": pending_wake_id,
+                "reentry_outcome": "IMMEDIATE_REENTRY_ALREADY_DISPATCHED",
+                "standard_entrypoint_invoked": False,
+                "consumer_invoked": False,
+                "watchdog_fallback": False,
+                "final_verdict": "PASS",
+                "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+                "errors": [],
+            }
+        event_identity_override = pending_wake_id
+        event_source_kind = "WATCHDOG_LOST_WAKE_RECOVERY"
+        watchdog_recovery = True
     current_dependency = heartbeat_dependency_fingerprint(cps_text)
     previous_dependency = live.get("HEARTBEAT_LAST_DEPENDENCY_FINGERPRINT", "").strip("`")
     if not re.fullmatch(r"[0-9a-f]{64}", previous_dependency):
@@ -3404,10 +3692,19 @@ def heartbeat_program_reentry(
         last_event_id = live.get("HEARTBEAT_LAST_EVENT_ID", "").strip("`")
         seen_event_ids = [last_event_id] if re.fullmatch(r"[0-9a-f]{64}", last_event_id) else []
 
-    event_identity = hashlib.sha256(
+    if event_identity_override and not re.fullmatch(r"[0-9a-f]{64}", event_identity_override):
+        return {
+            "schema": "v7-omp-external-reentry/v1", "final_verdict": "STOP_SAFE",
+            "reentry_outcome": "IMMEDIATE_REENTRY_FAILED_SAFE",
+            "standard_entrypoint_invoked": False, "consumer_invoked": False,
+            "errors": ["event_identity_override_invalid"],
+            "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+        }
+    event_identity = event_identity_override or hashlib.sha256(
         f"{automation_id}|{target_thread_id}|{normalized_time}".encode("utf-8")
     ).hexdigest()
-    wakeup_run_id = f"hb_{event_identity[:32]}"
+    wakeup_prefix = "ew" if event_identity_override else "hb"
+    wakeup_run_id = f"{wakeup_prefix}_{event_identity[:32]}"
     contract = {
         "AUTOMATION_ID": automation_id,
         "TARGET_THREAD_ID": target_thread_id,
@@ -3415,7 +3712,7 @@ def heartbeat_program_reentry(
         "WAKEUP_RUN_ID": wakeup_run_id,
         "EVENT_ID": event_identity,
         "EVENT_OWNER": "CODEX_AUTOMATION_PLATFORM",
-        "EVENT_SOURCE": f"CODEX_AUTOMATION_PLATFORM:heartbeat:{automation_id}:{wakeup_run_id}",
+        "EVENT_SOURCE": f"CODEX_AUTOMATION_PLATFORM:{event_source_kind.lower()}:{automation_id}:{wakeup_run_id}",
         "EVENT_GENERATION": current_generation,
         "EVENT_TIME": normalized_time,
         "FRESHNESS_RULE": "FRESH_PLATFORM_EVENT_AND_FRESH_CPS_READ",
@@ -3543,6 +3840,24 @@ def heartbeat_program_reentry(
                     "external_reentry_enabled": "TRUE", "reentry_active_lease": lease_id,
                     "reentry_last_trigger_id": event_identity, "reentry_last_trigger_at": actual_now.isoformat(),
                     "reentry_last_invocation_id": invocation_id, "reentry_platform_health": "ACTIVE",
+                    "external_reentry_mode": EVENT_DRIVEN_REENTRY_MODE,
+                    "immediate_wake_owner": EVENT_DRIVEN_WAKE_OWNER,
+                    "last_wake_request_id": _plain_live_value(fresh_live, "LAST_WAKE_REQUEST_ID"),
+                    "last_dispatched_wake_id": event_identity if event_identity_override else _plain_live_value(fresh_live, "LAST_DISPATCHED_WAKE_ID"),
+                    "pending_wake_id": event_identity if event_identity_override else _plain_live_value(fresh_live, "PENDING_WAKE_ID"),
+                    "wake_source_cps_generation": _plain_live_value(fresh_live, "WAKE_SOURCE_CPS_GENERATION"),
+                    "wake_transition_id": _plain_live_value(fresh_live, "WAKE_TRANSITION_ID"),
+                    "wake_requested_at": _plain_live_value(fresh_live, "WAKE_REQUESTED_AT"),
+                    "wake_dispatched_at": (
+                        _plain_live_value(fresh_live, "WAKE_DISPATCHED_AT")
+                        if _plain_live_value(fresh_live, "WAKE_DISPATCHED_AT") not in {"", "NONE"}
+                        else actual_now.isoformat()
+                    ),
+                    "wake_started_at": actual_now.isoformat(),
+                    "watchdog_state": "WATCHDOG_RECOVERY_RUNNING" if watchdog_recovery else "IMMEDIATE_CONSUMER_RUNNING",
+                    "watchdog_fallback_count": _plain_live_value(fresh_live, "WATCHDOG_FALLBACK_COUNT") or "0",
+                    "immediate_duplicate_suppression_count": _plain_live_value(fresh_live, "IMMEDIATE_DUPLICATE_SUPPRESSION_COUNT") or "0",
+                    "immediate_last_legal_terminal": "IMMEDIATE_REENTRY_DISPATCHED",
                 })
                 pre_update = atomic_reconcile_cps(root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", state=active_state)
                 if not pre_update.get("ok"):
@@ -3559,6 +3874,15 @@ def heartbeat_program_reentry(
                         and int(continue_result.get("subprocess_returncode", 0)) == 0
                     )
                     completed_at = datetime.now(timezone.utc)
+                    requested_timestamp = _plain_live_value(fresh_live, "WAKE_REQUESTED_AT")
+                    try:
+                        requested_time = _parse_iso_timestamp(requested_timestamp)
+                        wake_latency_ms = max(0, int((actual_now - requested_time).total_seconds() * 1000))
+                    except (TypeError, ValueError):
+                        wake_latency_ms = 0
+                    fallback_count = int(_plain_live_value(fresh_live, "WATCHDOG_FALLBACK_COUNT") or "0")
+                    if watchdog_recovery:
+                        fallback_count += 1
                     completed_generation = f"cpsgen_V7_REENTRY_COMPLETE_{event_identity[:12].upper()}"
                     evidence_fingerprint = hashlib.sha256(
                         json.dumps(continue_result, ensure_ascii=False, sort_keys=True, default=str).encode("utf-8")
@@ -3581,6 +3905,26 @@ def heartbeat_program_reentry(
                         "reentry_last_invocation_id": invocation_id,
                         "reentry_platform_health": "PASS" if continue_ok else "FAILED_SAFE",
                         "no_progress_fingerprint": evidence_fingerprint,
+                        "external_reentry_mode": EVENT_DRIVEN_REENTRY_MODE,
+                        "immediate_wake_owner": EVENT_DRIVEN_WAKE_OWNER,
+                        "last_wake_request_id": _plain_live_value(fresh_live, "LAST_WAKE_REQUEST_ID"),
+                        "last_dispatched_wake_id": event_identity if event_identity_override else _plain_live_value(fresh_live, "LAST_DISPATCHED_WAKE_ID"),
+                        "pending_wake_id": "NONE" if continue_ok else event_identity,
+                        "wake_source_cps_generation": _plain_live_value(fresh_live, "WAKE_SOURCE_CPS_GENERATION"),
+                        "wake_transition_id": _plain_live_value(fresh_live, "WAKE_TRANSITION_ID"),
+                        "wake_requested_at": requested_timestamp or actual_now.isoformat(),
+                        "wake_dispatched_at": (
+                            _plain_live_value(fresh_live, "WAKE_DISPATCHED_AT")
+                            if _plain_live_value(fresh_live, "WAKE_DISPATCHED_AT") not in {"", "NONE"}
+                            else actual_now.isoformat()
+                        ),
+                        "wake_started_at": actual_now.isoformat(),
+                        "wake_completed_at": completed_at.isoformat(),
+                        "measured_wake_latency_ms": str(wake_latency_ms),
+                        "watchdog_state": "ARMED_FALLBACK_ONLY" if continue_ok else "PENDING_WATCHDOG_RECOVERY",
+                        "watchdog_fallback_count": str(fallback_count),
+                        "immediate_duplicate_suppression_count": _plain_live_value(fresh_live, "IMMEDIATE_DUPLICATE_SUPPRESSION_COUNT") or "0",
+                        "immediate_last_legal_terminal": "IMMEDIATE_REENTRY_COMPLETED" if continue_ok else "IMMEDIATE_REENTRY_FAILED_SAFE",
                     })
                     post_update = atomic_reconcile_cps(root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", state=final_state)
                     post_ok = post_update.get("ok") is True and post_update.get("post_write_reread") == "PASS"
@@ -3603,6 +3947,12 @@ def heartbeat_program_reentry(
                         "behavior_change": transition_count > 0 and post_ok,
                         "next_output": continue_result.get("exact_next_operator_command") or continue_result.get("program_terminal"),
                         "bounded_terminal": continue_result.get("program_terminal"),
+                        "trigger_mode": event_source_kind,
+                        "wake_requested_at": requested_timestamp,
+                        "wake_started_at": actual_now.isoformat(),
+                        "wake_completed_at": completed_at.isoformat(),
+                        "measured_wake_latency_ms": wake_latency_ms,
+                        "watchdog_recovery": watchdog_recovery,
                         "continue_omp_result": continue_result, "atomic_pre_trigger_state": pre_update,
                         "atomic_post_trigger_state": post_update,
                         "reentry_outcome": "REENTRY_COMPLETED" if continue_ok and post_ok else "REENTRY_FAILED_SAFE",
@@ -7847,6 +8197,22 @@ def cps_live_state_consistency(
         "PROGRAM_TERMINAL_CLASS": normalized["program_terminal_class"],
         "NEXT_MISSION_FORMED": normalized["next_mission_formed"],
         "NEXT_MISSION_ID": normalized["next_mission_id"],
+        "EXTERNAL_REENTRY_MODE": normalized["external_reentry_mode"],
+        "IMMEDIATE_WAKE_OWNER": normalized["immediate_wake_owner"],
+        "LAST_WAKE_REQUEST_ID": normalized["last_wake_request_id"],
+        "LAST_DISPATCHED_WAKE_ID": normalized["last_dispatched_wake_id"],
+        "PENDING_WAKE_ID": normalized["pending_wake_id"],
+        "WAKE_SOURCE_CPS_GENERATION": normalized["wake_source_cps_generation"],
+        "WAKE_TRANSITION_ID": normalized["wake_transition_id"],
+        "WAKE_REQUESTED_AT": normalized["wake_requested_at"],
+        "WAKE_DISPATCHED_AT": normalized["wake_dispatched_at"],
+        "WAKE_STARTED_AT": normalized["wake_started_at"],
+        "WAKE_COMPLETED_AT": normalized["wake_completed_at"],
+        "MEASURED_WAKE_LATENCY_MS": normalized["measured_wake_latency_ms"],
+        "WATCHDOG_STATE": normalized["watchdog_state"],
+        "WATCHDOG_FALLBACK_COUNT": normalized["watchdog_fallback_count"],
+        "IMMEDIATE_DUPLICATE_SUPPRESSION_COUNT": normalized["immediate_duplicate_suppression_count"],
+        "IMMEDIATE_LAST_LEGAL_TERMINAL": normalized["immediate_last_legal_terminal"],
         "PREMATURE_OPERATOR_RETURN": normalized["premature_operator_return"],
         "CONTINUATION_ITERATION": normalized["continuation_iteration"],
         "CONTINUATION_STOP_REASON": normalized["continuation_stop_reason"],
@@ -8197,9 +8563,20 @@ def atomic_reconcile_cps(
     post_write_hook: Optional[Callable[[Path], None]] = None,
 ) -> dict[str, Any]:
     """Render, validate, atomically replace, reread, and rollback CPS on failure."""
+    resolved_state = normalized_cps_live_state(state)
+    wake_request: dict[str, Any] = {
+        "schema": "v7.omp-event-driven-external-wake.v1",
+        "outcome": "IMMEDIATE_REENTRY_NOT_REQUIRED",
+        "dispatch_required": False,
+        "reason": "render_not_completed",
+    }
     try:
         original = path.read_text(encoding="utf-8")
-        candidate = build_normalized_cps_document(original, state)
+        candidate = build_normalized_cps_document(original, resolved_state)
+        wake_request = event_driven_external_wake_request(original, candidate)
+        if wake_request.get("dispatch_required") is True:
+            resolved_state.update(_event_driven_state_overrides(wake_request))
+            candidate = build_normalized_cps_document(original, resolved_state)
     except (OSError, ValueError) as exc:
         return {
             "ok": False,
@@ -8207,7 +8584,7 @@ def atomic_reconcile_cps(
             "errors": [f"cps_render_failed:{exc}"],
             "previous_state_preserved": True,
         }
-    expected_state = normalized_cps_live_state(state)
+    expected_state = resolved_state
     precheck = cps_live_state_consistency(
         candidate, verify_external=False, expected_state=expected_state,
     )
@@ -8293,6 +8670,7 @@ def atomic_reconcile_cps(
         "previous_state_preserved": False,
         "post_write_reread": "PASS",
         "consistency": postcheck,
+        "external_wake": wake_request,
     }
 
 APPROVED_DEPLOY_FILES = [

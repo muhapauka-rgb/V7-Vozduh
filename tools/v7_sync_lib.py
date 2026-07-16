@@ -233,10 +233,110 @@ NORMALIZED_CPS_LIVE_STATE = {
 }
 
 
-def normalized_cps_live_state(overrides: Optional[dict[str, str]] = None) -> dict[str, str]:
+EVENT_DRIVEN_REENTRY_DEPLOY_PENDING = "CERTIFICATION_EVIDENCE_COMPLETE_DEPLOY_PENDING"
+EVENT_DRIVEN_REENTRY_PRODUCTION_CERTIFIED = "EVENT_DRIVEN_EXTERNAL_REENTRY_PRODUCTION_CERTIFIED"
+
+
+def event_driven_external_reentry_completion_projection(
+    evidence: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    """Derive the external-reentry terminal without trusting a CPS label."""
+    evidence = dict(evidence or {})
+    required_true = (
+        "production_deploy_completed",
+        "external_platform_turn_occurred",
+        "standard_continue_omp_invoked",
+        "real_consumer_invoked",
+        "duplicate_suppression_passed",
+        "watchdog_recovery_passed",
+        "truth_passed",
+        "convergence_passed",
+        "snapshot_equality_passed",
+        "production_hashes_match",
+        "forbidden_effects_absent",
+    )
+    blockers = [key for key in required_true if evidence.get(key) is not True]
+    for key, expected in (
+        ("pending_wake_id", "NONE"),
+        ("active_lease", "NONE"),
+        ("overlap_count", "0"),
+    ):
+        if str(evidence.get(key, "")).strip() != expected:
+            blockers.append(key)
+    status = (
+        EVENT_DRIVEN_REENTRY_PRODUCTION_CERTIFIED
+        if not blockers
+        else EVENT_DRIVEN_REENTRY_DEPLOY_PENDING
+    )
+    return {
+        "schema": "v7-event-driven-external-reentry-completion-projection/v1",
+        "status": status,
+        "production_certified": not blockers,
+        "blockers": sorted(set(blockers)),
+    }
+
+
+def normalized_cps_live_state(
+    overrides: Optional[dict[str, str]] = None,
+    *,
+    completion_evidence: Optional[dict[str, Any]] = None,
+) -> dict[str, str]:
     state = dict(NORMALIZED_CPS_LIVE_STATE)
     state.update(overrides or {})
+    if completion_evidence is not None:
+        state["event_driven_external_reentry_status"] = (
+            event_driven_external_reentry_completion_projection(completion_evidence)["status"]
+        )
     return state
+
+
+def _event_driven_external_reentry_completion_evidence(
+    cps_text: str,
+    *,
+    root: Path = ROOT,
+) -> dict[str, Any]:
+    """Read the current CPS projection and its exact terminal evidence report."""
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    report_path = (
+        root
+        / "docs/reports/engineering/"
+        "2026-07-16_162845_event_driven_external_reentry_production_certification_closure.md"
+    )
+    try:
+        report = report_path.read_text(encoding="utf-8")
+    except OSError:
+        report = ""
+    duplicate_count = _plain_live_value(live, "IMMEDIATE_DUPLICATE_SUPPRESSION_COUNT")
+    return {
+        "production_deploy_completed": "- Production implementation deploy: `PASS`" in report,
+        "external_platform_turn_occurred": "- Platform start evidence: `thread.started` and `turn.started`" in report,
+        "standard_continue_omp_invoked": (
+            "- Standard entrypoint: `tools/v7-truth-check --continue-omp --continue-omp-persist-cps --json`."
+            in report
+        ),
+        "real_consumer_invoked": "- Real consumer: `OMP_PROGRAM_EXECUTION_RECONCILIATION`." in report,
+        "duplicate_suppression_passed": (
+            "- Duplicate suppression: `PASS`." in report
+            and duplicate_count.isdigit()
+            and int(duplicate_count) >= 1
+        ),
+        "watchdog_recovery_passed": (
+            "- Lost-wake recovery: `PASS`." in report
+            and _plain_live_value(live, "WATCHDOG_RECOVERY_RESULT") == "PASS"
+        ),
+        "truth_passed": "- Production truth: `FULLY_ALIGNED / PASS`." in report,
+        "convergence_passed": "- Production convergence: `ALIGNED / PASS`." in report,
+        "snapshot_equality_passed": "- Snapshot equality: `PASS`." in report,
+        "production_hashes_match": "- Production hashes match: `PASS`." in report,
+        "forbidden_effects_absent": "- Forbidden effects: `NONE`." in report,
+        "pending_wake_id": _plain_live_value(live, "PENDING_WAKE_ID"),
+        "active_lease": _plain_live_value(live, "REENTRY_ACTIVE_LEASE"),
+        "overlap_count": _plain_live_value(live, "OVERLAP_COUNT"),
+    }
 
 
 def _markdown_section(text: str, start: str, end: str = "") -> str:
@@ -699,7 +799,14 @@ def _replace_section_field(text: str, start: str, end: str, key: str, value: str
 
 def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]] = None) -> str:
     """Build all CPS live projections from one normalized terminal result."""
-    state = normalized_cps_live_state(state)
+    state = normalized_cps_live_state(
+        state,
+        completion_evidence=(
+            _event_driven_external_reentry_completion_evidence(cps_text)
+            if state is None
+            else None
+        ),
+    )
     header_values = {
         "State captured": state["state_captured"],
         "Latest terminal Mission": f"`{state['latest_terminal_mission_id']}`",
@@ -8171,7 +8278,15 @@ def cps_live_state_consistency(
     ):
         if not value:
             errors.append(f"cps_{key.lower()}_missing")
-    normalized = normalized_cps_live_state(expected_state)
+    completion_evidence = (
+        _event_driven_external_reentry_completion_evidence(cps_text, root=root)
+        if expected_state is None
+        else None
+    )
+    normalized = normalized_cps_live_state(
+        expected_state,
+        completion_evidence=completion_evidence,
+    )
     exact_live = {
         "ACTIVE_PROGRAM": normalized["active_program"],
         "CURRENT_MODE": normalized["current_mode"],

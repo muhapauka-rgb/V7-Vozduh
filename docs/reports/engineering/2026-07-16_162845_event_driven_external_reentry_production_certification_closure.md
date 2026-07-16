@@ -3,7 +3,7 @@
 - Mission ID: `V7_OMP_EVENT_DRIVEN_EXTERNAL_REENTRY_WITH_WATCHDOG_FALLBACK_V1`
 - Completion contract: `AUTOMATION_COMPLETION`
 - Target terminal: `EVENT_DRIVEN_EXTERNAL_REENTRY_PRODUCTION_CERTIFIED`
-- Current verdict: `CERTIFICATION_EVIDENCE_COMPLETE_DEPLOY_PENDING`
+- Final verdict: `EVENT_DRIVEN_EXTERNAL_REENTRY_PRODUCTION_CERTIFIED`
 - Captured: `2026-07-16T16:28:45+07:00`
 
 ## Authorization and existing owner
@@ -106,6 +106,22 @@
 - `git diff --check`: `PASS`.
 
 ## Delivery, deploy and convergence
+
+### Final production completion
+
+- Production implementation deploy: `PASS`.
+- Previous production implementation commit: `8be846759b2c5cca9f153cc9eba08c542776028d`.
+- Previous production deploy ID: `deploy-z8-14-Updatesystem-8be8467-20260717T005328`.
+- Governance normalization closure commit: recorded by the delivery chain containing this report.
+- Production truth: `FULLY_ALIGNED / PASS`.
+- Production convergence: `ALIGNED / PASS`.
+- Snapshot equality: `PASS`.
+- Production hashes match: `PASS`.
+- Post-deploy deployment delta: `0`.
+- Working tree at certification: `CLEAN`.
+- Forbidden effects: `NONE`.
+- Runtime, routing, users, packet, restore, rollback, timer/daemon, Authority and Production Maturity effects: `NONE`.
+- The previous `CERTIFICATION_EVIDENCE_COMPLETE_DEPLOY_PENDING` projection is superseded by this production-certified terminal.
 
 - Previously deployed implementation: commit `3a963b4f06bb93c1e38aa0c634c8827d32c880c4`, deploy `deploy-z8-14-Updatesystem-3a963b4-20260716T152220`.
 - Commit `b50ce4e56dc5880998e345a75829234ba3249db9` is synchronized local/GitHub but its updated `tools/v7_sync_lib.py` is not equal to production.

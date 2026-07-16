@@ -2,12 +2,12 @@
 
 Status: `ORGANIZED`
 Document status: `ORGANIZED`
-Execution status: `PHASE_3_ACCEPTED_LOCKED_PHASE_4_COMPLETE_CONSUMED_PHASE_5_STRUCTURAL_INTEGRATION_VERIFIED_COMPLETE_CONSUMED_PRODUCTION_CERTIFIED`
-Completion evidence status: `AUTOMATION_COMPLETE_CONSUMED_PRODUCTION_CERTIFIED`; two natural reentries, deployment, truth, convergence and snapshot equality are certified.
-Current program state: `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED`
-Current execution evidence: `docs/reports/engineering/2026-07-16_001627_full_independent_background_automation_and_fsse04_production_closure.md`
+Execution status: `PHASE_3_ACCEPTED_LOCKED_PHASE_4_COMPLETE_CONSUMED_PHASE_5_COMPLETE_PHASE_6_REAL_WORLD_LIMIT`
+Completion evidence status: `PHASE_6_NOT_COMPLETE`; two unique real outcomes were consumed, but representative interpretation, decision replay, learning and capability closure are insufficient for full or bounded production-autonomy certification.
+Current program state: `PHASE_6_REAL_WORLD_LIMIT`
+Current execution evidence: `docs/reports/engineering/2026-07-16_191336_aep_phase6_production_certification_final.md`
 Current acceptance state: `PHASE_3_ACCEPTED_LOCKED; aep3lock_f4e40b34f14e2743819e3a2e`
-Next legal stage: Phase 6 remains ready where separate production certification is required; normal operator command is `Status` and `Continue OMP` remains a manual fallback.
+Next legal stage: remain in Phase 6 and wait for a materially different owner-backed real outcome with complete situation interpretation and outcome-linked Decision Trace/replay evidence; Phase 7 is not started.
 Mode: `PROGRAM_ROUTE`
 Runtime impact: `NONE`
 Authority impact: `NONE`
@@ -1164,6 +1164,39 @@ started or completed by this Mission.
 ### Phase 6 - Production Certification
 
 Purpose: certify production autonomy before autonomous operation expands. Production certification may certify autonomous execution of law-bound action classes only after situation interpretation and decision evidence are proven.
+
+Current Phase 6 decision:
+
+```text
+PHASE_6_VERDICT = REAL_WORLD_LIMIT
+FULL_OR_BOUNDED_CERTIFICATION = NOT_ACCEPTED
+UNIQUE_REAL_OUTCOMES = 2
+CURRENT_ACTION_CLASS = single-user governed candidate failover
+CURRENT_ACTION_CLASS_VERDICT = PRODUCTION_EVIDENCE_PARTIAL
+LEARNING = LEARNING_PARTIAL_REPRESENTATIVE_EVIDENCE
+PRODUCTION_MATURITY = NO_CHANGE; 66.9/100; Production Autonomy 0
+PHASE_7 = PHASE_7_NOT_STARTED
+NEXT_ACTION = WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES
+```
+
+The production audit deduplicated one real verification-failure/rollback-success
+outcome and one later verified success/no-rollback outcome for the same user and
+action class. Verification, terminal outcome closure, feedback and learning
+consumption are real and reusable as class-supporting evidence. The production
+records do not contain a complete outcome-linked canonical situation
+interpretation snapshot, Decision Trace ID, canonical input snapshot and replay
+proof for both transactions. The two outcomes also do not provide meaningful
+user, failure-family, recovery, service or action-class variation. Therefore
+the class remains `PRODUCTION_EVIDENCE_PARTIAL`; neither
+`BOUNDED_PRODUCTION_CERTIFICATION_ACCEPTED` nor
+`PRODUCTION_AUTONOMY_CERTIFIED` is legal.
+
+No production action was generated during Phase 6 because fresh reconciliation
+found no current Candidate, packet or lease and no qualifying real situation.
+No user movement, route mutation, Runtime apply, rollback apply, Authority
+expansion or maturity-score edit occurred. The exact reentry condition is a new
+material non-synthetic governed outcome consumed by feedback and Learning, with
+complete interpretation and outcome-linked deterministic Decision Trace replay.
 
 Required Knowledge Categories:
 

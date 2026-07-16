@@ -105,7 +105,31 @@ This section is the single live volatile current-state surface. Older production
 | `REENTRY_PLATFORM_HEALTH` | `PASS` |
 | `AEP_PHASE_4_STATUS` | `COMPLETE_CONSUMED_REAL_EXTERNAL_CALLER` |
 | `AEP_PHASE_5_STATUS` | `COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES` |
-| `AEP_PHASE_6_STATUS` | `READY_WHERE_PRODUCTION_CERTIFICATION_REQUIRED` |
+| `AEP_PHASE_6_STATUS` | `REAL_WORLD_LIMIT` |
+| `PHASE_6_CERTIFICATION_STATUS` | `REAL_WORLD_LIMIT; production evidence audited and bounded certification not accepted` |
+| `PHASE_6_CURRENT_STEP` | `STEP_6_8_PHASE_TERMINAL_DECISION` |
+| `PHASE_6_CERTIFICATION_FRONTIER` | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` |
+| `PHASE_6_ACTIVE_ACTION_CLASS` | `single-user governed candidate failover` |
+| `PHASE_6_CURRENT_REAL_SITUATION` | `NONE; no fresh qualifying Candidate exists` |
+| `PHASE_6_CURRENT_CANDIDATE` | `NONE` |
+| `PHASE_6_CURRENT_PACKET` | `NONE` |
+| `PHASE_6_CURRENT_LEASE` | `NONE` |
+| `PHASE_6_INTERPRETATION_STATUS` | `INTERPRETATION_PARTIAL; two unique real outcomes lack a complete canonical interpretation snapshot` |
+| `PHASE_6_DECISION_CERTIFICATION_STATUS` | `INTERPRETATION_PARTIAL; outcome-linked canonical Decision Trace ID, input snapshot and production replay are incomplete` |
+| `PHASE_6_RUNTIME_ELIGIBILITY` | `NO_CURRENT_ELIGIBLE_ACTION; approved policy remains bounded to one user and one serial transaction` |
+| `PHASE_6_AUTHORITY_STATUS` | `INSIDE_EXISTING_POLICY_IF_ALL_LIVE_GATES_PASS; no expansion requested or granted` |
+| `PHASE_6_ROLLBACK_CERTIFICATION` | `ROLLBACK_EVIDENCE_PARTIAL; one unique rollback success and one unique verified no-rollback success for the same user/action class` |
+| `PHASE_6_VERIFICATION_STATUS` | `CERTIFIED_FOR_CLASS_APPROVAL_SUPPORT_ONLY; not autonomous decision certification` |
+| `PHASE_6_OUTCOME_STATUS` | `2 UNIQUE MATERIAL OUTCOMES; 1 ROLLBACK_SUCCESS + 1 SUCCESS; duplicate projections excluded` |
+| `PHASE_6_LEARNING_STATUS` | `LEARNING_PARTIAL_REPRESENTATIVE_EVIDENCE; success HIGH and rollback MEDIUM consumed, variation remains insufficient` |
+| `PHASE_6_CAPABILITY_ADVANCEMENT` | `NO_COMPLETION; CAP-U02/U05/U06/U07 wait for real evidence, CAP-U03/U04/U08/U09 remain dependency-blocked` |
+| `PHASE_6_PRODUCTION_MATURITY_DECISION` | `NO_CHANGE; owner value remains 66.9/100 and Production Autonomy remains 0` |
+| `PHASE_6_PENDING_EXTERNAL_INPUT` | `new material owner-backed real outcome with a complete interpretation and Decision Trace/replay chain` |
+| `PHASE_6_EXACT_STOP` | `REAL_WORLD_LIMIT` |
+| `PHASE_6_EXACT_NEXT_ACTION` | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` |
+| `PHASE_6_REENTRY_CONDITIONS` | `fresh non-synthetic materially different governed outcome; terminal feedback and learning consumption; complete interpretation snapshot; outcome-linked Decision Trace and deterministic replay` |
+| `PHASE_7_UNLOCK_STATUS` | `PHASE_7_NOT_STARTED; Phase 6 accepted terminal and required capability/learning/maturity closure are absent` |
+| `PHASE_6_FINAL_REPORT` | `docs/reports/engineering/2026-07-16_191336_aep_phase6_production_certification_final.md` |
 | `MISSION_COMPLETION_EVIDENCE_GATE` | `ACTIVE_V1` |
 | `CURRENT_COMPLETION_CONTRACT` | `AUTOMATION_COMPLETION` |
 | `CURRENT_COMPLETION_VERDICT` | `COMPLETE_CONSUMED` |

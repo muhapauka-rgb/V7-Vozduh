@@ -80,7 +80,7 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         self.assertEqual(self.validate(drift)["cps_header_identity_consistency"], "FAIL")
 
     def test_09_header_timestamp_predates_latest_start_fails(self):
-        drift = self.cps.replace("State captured: 2026-07-16T08:05:40+0700", "State captured: 2026-07-12T02:00:00+0700", 1)
+        drift = self.cps.replace("State captured: 2026-07-16T09:12:05.102738+00:00", "State captured: 2026-07-12T02:00:00+0700", 1)
         self.assertEqual(self.validate(drift)["mission_timestamp_consistency"], "FAIL")
 
     def test_10_latest_report_header_id_mismatch_fails(self):

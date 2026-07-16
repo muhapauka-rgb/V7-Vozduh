@@ -165,6 +165,23 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
     def test_30_omp_consumes_program_frontier(self):
         self.assertIn("Program Execution And Consumption Reconciliation Rule", self.sources["omp"])
 
+    def test_31_phase6_real_world_limit_is_consumed_and_phase7_stays_blocked(self):
+        aep = self.sources["aep"] + """
+COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES
+PHASE_6_VERDICT = REAL_WORLD_LIMIT
+FULL_OR_BOUNDED_CERTIFICATION = NOT_ACCEPTED
+PHASE_7 = PHASE_7_NOT_STARTED
+NEXT_ACTION = WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES
+"""
+        result = self.reconcile(aep=aep)
+        phase6 = next(item for item in result["stages"] if item["stage_id"] == "PHASE_6")
+        phase7 = next(item for item in result["stages"] if item["stage_id"] == "PHASE_7")
+        self.assertEqual(result["aep_status"], "PHASE_6_REAL_WORLD_LIMIT")
+        self.assertEqual(result["aep_phase6_status"], "REAL_WORLD_LIMIT")
+        self.assertEqual(phase6["status"], "STAGE_BLOCKED_REAL_WORLD")
+        self.assertEqual(phase7["status"], "STAGE_BLOCKED_DEPENDENCY")
+        self.assertEqual((result["runtime_impact"], result["production_impact"], result["authority_impact"]), ("NONE", "NONE", "NONE"))
+
 
 if __name__ == "__main__":
     unittest.main()

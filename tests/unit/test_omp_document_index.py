@@ -50,8 +50,8 @@ class OmpDocumentIndexTest(unittest.TestCase):
         self.assertNotIn("ACTIONABLE_BACKLOG_COMPLETE", rendered)
         self.assertNotIn("wait for explicit operator-approved scope", rendered)
         self.assertNotIn("B2 -> B3", rendered)
-        self.assertEqual(response["current_state_generation"], "cpsgen_V7_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED_928718904BCD")
-        self.assertEqual(response["current_transition_id"], "EXTERNAL_REENTRY_PRODUCTION_CERTIFIED_V1")
+        self.assertEqual(response["current_state_generation"], "cpsgen_V7_REENTRY_COMPLETE_02F861BCBC5C")
+        self.assertEqual(response["current_transition_id"], "EXTERNAL_REENTRY_COMPLETED_V1")
 
 
 if __name__ == "__main__":

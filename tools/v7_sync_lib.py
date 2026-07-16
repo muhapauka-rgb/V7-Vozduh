@@ -202,7 +202,7 @@ NORMALIZED_CPS_LIVE_STATE = {
     "reentry_platform_health": "PASS",
     "aep_phase4_status": "COMPLETE_CONSUMED_REAL_EXTERNAL_CALLER",
     "aep_phase5_status": "COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES",
-    "aep_phase6_status": "READY_WHERE_PRODUCTION_CERTIFICATION_REQUIRED",
+    "aep_phase6_status": "REAL_WORLD_LIMIT",
     "mission_completion_evidence_gate": "ACTIVE_V1",
     "current_completion_contract": "AUTOMATION_COMPLETION",
     "current_completion_verdict": "COMPLETE_CONSUMED",
@@ -2276,6 +2276,12 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
         "PHASE_3_TO_PHASE_4_CONSUMPTION_STATUS = PASS" in phase4_execution,
         "ENGINEERING_INTENT_CLOSURE_STATUS = CLOSED" in phase4_execution,
     ))
+    phase6_real_world_limit = phase5_complete and all(token in aep for token in (
+        "PHASE_6_VERDICT = REAL_WORLD_LIMIT",
+        "FULL_OR_BOUNDED_CERTIFICATION = NOT_ACCEPTED",
+        "PHASE_7 = PHASE_7_NOT_STARTED",
+        "NEXT_ACTION = WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES",
+    ))
     bdp_passes = [f"BDP-P{index:02d}" for index in range(1, 20)]
     bdp_project_scope_complete = all(token in bdp_execution for token in bdp_passes)
     backlog = _actionable_backlog_statuses(backlog_text)
@@ -2324,18 +2330,28 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
             "status": "STAGE_COMPLETE_CONSUMED" if phase5_complete else "STAGE_READY_NOT_STARTED" if phase4_consumed else "STAGE_BLOCKED_DEPENDENCY",
         },
     ))
-    for phase in range(6, 8):
-        aep_stages.append({
-            "program_id": "AEP", "stage_id": f"PHASE_{phase}",
-            "status": "STAGE_READY_NOT_STARTED" if phase == 6 and phase5_complete else "STAGE_BLOCKED_DEPENDENCY",
-        })
+    aep_stages.extend((
+        {
+            "program_id": "AEP", "stage_id": "PHASE_6",
+            "status": (
+                "STAGE_BLOCKED_REAL_WORLD" if phase6_real_world_limit
+                else "STAGE_READY_NOT_STARTED" if phase5_complete
+                else "STAGE_BLOCKED_DEPENDENCY"
+            ),
+        },
+        {
+            "program_id": "AEP", "stage_id": "PHASE_7",
+            "status": "STAGE_BLOCKED_DEPENDENCY",
+        },
+    ))
 
     inventory = [
         {"program_id": "STAGE2", "type": "KNOWLEDGE_PROGRAM", "document_status": _program_document_status(stage2), "execution_status": "TERMINAL_COMPLETE" if stage2_complete else "PARTIALLY_EXECUTED"},
         {
             "program_id": "AEP", "type": "STRATEGIC_ROUTE", "document_status": _program_document_status(aep),
             "execution_status": (
-                "PHASE_6_READY" if phase5_complete
+                "PHASE_6_REAL_WORLD_LIMIT" if phase6_real_world_limit
+                else "PHASE_6_READY" if phase5_complete
                 else "PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE" if phase4_admitted
                 else "PHASE_4_READY" if phase3_locked
                 else "PHASE_3_READY_FOR_ACCEPTANCE" if phase3_executed
@@ -2445,7 +2461,8 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
         "stage_counts": counts,
         "stage2_status": "STAGE2_TERMINAL_COMPLETE" if stage2_complete else "STAGE2_INCOMPLETE",
         "aep_status": (
-            "PHASE_6_READY" if phase5_complete
+            "PHASE_6_REAL_WORLD_LIMIT" if phase6_real_world_limit
+            else "PHASE_6_READY" if phase5_complete
             else "PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE" if phase4_admitted
             else "PHASE_4_READY" if phase3_locked
             else "PHASE_3_READY_FOR_ACCEPTANCE" if phase3_executed
@@ -2470,8 +2487,8 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
         "aep_real_consumer_verified": real_consumer_verified,
         "aep_phase4_status": "COMPLETE_CONSUMED" if phase4_consumed else "IMPLEMENTED_MANUALLY_CALLABLE" if phase4_admitted else "READY" if phase3_locked else "BLOCKED",
         "aep_phase5_status": "COMPLETE_CONSUMED" if phase5_complete else "READY" if phase4_consumed else "BLOCKED",
-        "aep_phase6_status": "READY" if phase5_complete else "BLOCKED",
-        "aep_state": "IMPLEMENTATION_READY" if phase5_complete else "GAP_READY" if phase4_admitted or phase3_locked else "PHASE_3_READY_FOR_ACCEPTANCE" if phase3_executed else "CURRENT_READY",
+        "aep_phase6_status": "REAL_WORLD_LIMIT" if phase6_real_world_limit else "READY" if phase5_complete else "BLOCKED",
+        "aep_state": "REAL_WORLD_LIMIT" if phase6_real_world_limit else "IMPLEMENTATION_READY" if phase5_complete else "GAP_READY" if phase4_admitted or phase3_locked else "PHASE_3_READY_FOR_ACCEPTANCE" if phase3_executed else "CURRENT_READY",
         "bdp_status": "BDP_EXECUTED_FOR_CURRENT_PROJECT_SCOPE" if bdp_project_scope_complete else "BDP_EXECUTED_FOR_LIMITED_SCENARIO_SCOPE",
         "bdp_required_passes_complete": bdp_project_scope_complete,
         "backlog_status": "34/34_DONE" if backlog_complete else "INCOMPLETE",
@@ -8184,7 +8201,7 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
             if background_automation_certified else "BLOCKED_MISSING_REAL_CONSUMER"
         ),
         "AEP_PHASE_6_STATUS": (
-            "READY_WHERE_PRODUCTION_CERTIFICATION_REQUIRED"
+            "REAL_WORLD_LIMIT"
             if background_automation_certified else "BLOCKED_BY_PHASE_5"
         ),
         "MISSION_COMPLETION_EVIDENCE_GATE": "ACTIVE_V1",

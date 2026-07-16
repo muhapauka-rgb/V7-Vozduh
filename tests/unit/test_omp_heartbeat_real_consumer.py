@@ -7,7 +7,6 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 EVENT_TIME = "2026-07-14T16:46:18.891Z"
-PROCESSED_EVENT_TIME = "2026-07-15T17:13:20.422Z"
 
 
 def load_lib():
@@ -58,8 +57,15 @@ class OmpHeartbeatRealConsumerTest(unittest.TestCase):
         self.assertFalse(duplicate["consumer_invoked"])
 
     def test_processed_platform_event_is_suppressed_from_cps_state(self):
+        cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text()
+        live = self.lib._markdown_field_table(self.lib._markdown_section(
+            cps,
+            "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+        ))
         duplicate = self.lib.heartbeat_program_reentry(
-            event_time=PROCESSED_EVENT_TIME,
+            event_time=EVENT_TIME,
+            event_identity_override=live["HEARTBEAT_LAST_EVENT_ID"].strip("`"),
             root=ROOT,
         )
         self.assertEqual(duplicate["adapter"]["activation_result"], "NO_CHANGE_DUPLICATE_WAKEUP")

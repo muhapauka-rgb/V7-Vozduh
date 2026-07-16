@@ -2,7 +2,7 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-16T08:36:25.167348+00:00
+State captured: 2026-07-16T09:12:05.102738+00:00
 Latest terminal Mission: `V7_OMP_FULL_INDEPENDENT_BACKGROUND_AUTOMATION_AND_FSSE04_PRODUCTION_CLOSURE_V1`
 Latest terminal Mission state: `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED`
 Latest terminal Mission report: `docs/reports/engineering/2026-07-16_001627_full_independent_background_automation_and_fsse04_production_closure.md`
@@ -13,7 +13,7 @@ Source: two distinct natural Codex Automation Platform reentries invoked the sta
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-16T08:36:25.167348+00:00`
+Captured: `2026-07-16T09:12:05.102738+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -32,7 +32,7 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_ACTIVE_SCOPE` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |
 | `CURRENT_SAFE_NEXT_ACTION` | `STATUS; WAIT FOR OWNER-BACKED REAL-WORLD LEARNING EVIDENCE` |
 | `CURRENT_SCOPE_CLASS` | `AUTOMATION_COMPLETION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_9762E38887B8` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_02F861BCBC5C` |
 | `CURRENT_TRANSITION_ID` | `EXTERNAL_REENTRY_COMPLETED_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` |
 | `CURRENT_PROGRAM_STAGE` | `FSSE_04_COMPLETE_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |
@@ -64,37 +64,44 @@ This section is the single live volatile current-state surface. Older production
 | `HEARTBEAT_STATUS` | `ACTIVE` |
 | `AUTOMATION_ENABLED` | `TRUE` |
 | `HEARTBEAT_AUTOMATION_LEVEL` | `EXTERNAL_STANDARD_CONTINUE_OMP_REENTRY_ACTIVE` |
-| `HEARTBEAT_LAST_WAKEUP_ID` | `ew_9762e38887b86915c8bb0f853e6a46b2` |
-| `HEARTBEAT_LAST_EVENT_ID` | `9762e38887b86915c8bb0f853e6a46b2c6b988f9cbd2ed166392fdce243f5e37` |
-| `HEARTBEAT_LAST_CPS_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_9762E38887B8` |
+| `HEARTBEAT_LAST_WAKEUP_ID` | `ew_02f861bcbc5c7501544dd52c6ae0f8ae` |
+| `HEARTBEAT_LAST_EVENT_ID` | `02f861bcbc5c7501544dd52c6ae0f8ae02db671c769a9291541ed4a07be82242` |
+| `HEARTBEAT_LAST_CPS_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_02F861BCBC5C` |
 | `HEARTBEAT_LAST_DEPENDENCY_FINGERPRINT` | `e3af94aa51639fca0e30d5b669f33341e552d9f7f7dfff678f25a00a6a8fc950` |
 | `HEARTBEAT_LAST_DECISION` | `REENTRY_COMPLETED` |
-| `HEARTBEAT_LAST_RUN_AT` | `2026-07-16T08:36:25.167348+00:00` |
+| `HEARTBEAT_LAST_RUN_AT` | `2026-07-16T09:12:05.102738+00:00` |
 | `BACKGROUND_AUTOMATION_STATE` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |
 | `EXTERNAL_REENTRY_OWNER` | `CODEX_AUTOMATION_PLATFORM` |
 | `EXTERNAL_REENTRY_SCHEDULE` | `FREQ=MINUTELY;INTERVAL=30` |
 | `EXTERNAL_REENTRY_ENABLED` | `TRUE` |
 | `EXTERNAL_REENTRY_MODE` | `EVENT_DRIVEN_WITH_WATCHDOG` |
+| `EVENT_DRIVEN_EXTERNAL_REENTRY_STATUS` | `CERTIFICATION_EVIDENCE_COMPLETE_DEPLOY_PENDING` |
+| `HEARTBEAT_ROLE` | `WATCHDOG_FALLBACK` |
 | `IMMEDIATE_WAKE_OWNER` | `CODEX_AUTOMATION_PLATFORM_THREAD_SIGNAL` |
-| `LAST_WAKE_REQUEST_ID` | `9762e38887b86915c8bb0f853e6a46b2c6b988f9cbd2ed166392fdce243f5e37` |
-| `LAST_DISPATCHED_WAKE_ID` | `9762e38887b86915c8bb0f853e6a46b2c6b988f9cbd2ed166392fdce243f5e37` |
+| `LAST_WAKE_REQUEST_ID` | `02f861bcbc5c7501544dd52c6ae0f8ae02db671c769a9291541ed4a07be82242` |
+| `LAST_DISPATCHED_WAKE_ID` | `02f861bcbc5c7501544dd52c6ae0f8ae02db671c769a9291541ed4a07be82242` |
+| `LAST_CONSUMED_WAKE_ID` | `02f861bcbc5c7501544dd52c6ae0f8ae02db671c769a9291541ed4a07be82242` |
 | `PENDING_WAKE_ID` | `NONE` |
-| `WAKE_SOURCE_CPS_GENERATION` | `cpsgen_V7_EVENT_DRIVEN_REENTRY_CERTIFICATION_3A963B4F` |
-| `WAKE_TRANSITION_ID` | `EVENT_DRIVEN_EXTERNAL_REENTRY_CERTIFICATION_READY_V1` |
-| `WAKE_REQUESTED_AT` | `2026-07-16T08:24:43.539568+00:00` |
-| `WAKE_DISPATCHED_AT` | `2026-07-16T08:36:21.673576+00:00` |
-| `WAKE_STARTED_AT` | `2026-07-16T08:36:21.673576+00:00` |
-| `WAKE_COMPLETED_AT` | `2026-07-16T08:36:25.167348+00:00` |
-| `MEASURED_WAKE_LATENCY_MS` | `698134` |
+| `WAKE_SOURCE_CPS_GENERATION` | `cpsgen_V7_EVENT_DRIVEN_REENTRY_RACE_CERTIFICATION_B50CE4E5` |
+| `WAKE_TRANSITION_ID` | `EVENT_DRIVEN_EXTERNAL_REENTRY_RACE_CERTIFICATION_B50CE4E5_READY_V1` |
+| `WAKE_REQUESTED_AT` | `2026-07-16T09:11:11.208794+00:00` |
+| `WAKE_DISPATCHED_AT` | `2026-07-16T09:11:42+00:00` |
+| `WAKE_STARTED_AT` | `2026-07-16T09:12:00.556459+00:00` |
+| `WAKE_COMPLETED_AT` | `2026-07-16T09:12:05.102738+00:00` |
+| `MEASURED_WAKE_LATENCY_MS` | `49347` |
+| `WRITER_BLOCKING_TIME_MS` | `3571.323` |
 | `WATCHDOG_STATE` | `ARMED_FALLBACK_ONLY` |
-| `WATCHDOG_FALLBACK_COUNT` | `1` |
-| `IMMEDIATE_DUPLICATE_SUPPRESSION_COUNT` | `0` |
+| `WATCHDOG_FALLBACK_COUNT` | `2` |
+| `WATCHDOG_RECOVERY_RESULT` | `PASS` |
+| `IMMEDIATE_INVOCATION_COUNT` | `2` |
+| `IMMEDIATE_DUPLICATE_SUPPRESSION_COUNT` | `1` |
+| `OVERLAP_COUNT` | `0` |
 | `IMMEDIATE_LAST_LEGAL_TERMINAL` | `IMMEDIATE_REENTRY_COMPLETED` |
 | `REENTRY_ACTIVE_LEASE` | `NONE` |
-| `REENTRY_LAST_COMPLETED_ID` | `ompre_7192c610a675d08918246dd2` |
-| `REENTRY_LAST_TRIGGER_ID` | `9762e38887b86915c8bb0f853e6a46b2c6b988f9cbd2ed166392fdce243f5e37` |
-| `REENTRY_LAST_TRIGGER_AT` | `2026-07-16T08:36:21.673576+00:00` |
-| `REENTRY_LAST_INVOCATION_ID` | `ompre_7192c610a675d08918246dd2` |
+| `REENTRY_LAST_COMPLETED_ID` | `ompre_48582de7f4b32845ad1e6cce` |
+| `REENTRY_LAST_TRIGGER_ID` | `02f861bcbc5c7501544dd52c6ae0f8ae02db671c769a9291541ed4a07be82242` |
+| `REENTRY_LAST_TRIGGER_AT` | `2026-07-16T09:12:00.556459+00:00` |
+| `REENTRY_LAST_INVOCATION_ID` | `ompre_48582de7f4b32845ad1e6cce` |
 | `REENTRY_PLATFORM_HEALTH` | `PASS` |
 | `AEP_PHASE_4_STATUS` | `COMPLETE_CONSUMED_REAL_EXTERNAL_CALLER` |
 | `AEP_PHASE_5_STATUS` | `COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES` |
@@ -259,7 +266,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-16T08:36:25.167348+00:00`
+Generated At: `2026-07-16T09:12:05.102738+00:00`
 
 Runtime Authority: `NONE`
 
@@ -272,7 +279,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_9762E38887B8` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_02F861BCBC5C` |
 | `CURRENT_TRANSITION_ID` | `EXTERNAL_REENTRY_COMPLETED_V1` |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` |
 | `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT` |
@@ -303,7 +310,7 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_V7_REENTRY_COMPLETE_9762E38887B8` |
+| `current_state_generation` | `cpsgen_V7_REENTRY_COMPLETE_02F861BCBC5C` |
 | `current_transition_id` | `EXTERNAL_REENTRY_COMPLETED_V1` |
 | `smallest_existing_next_action_id` | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` |
 | `active_mission_id` | `NONE` |
@@ -390,7 +397,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `U07` Learning WAITING WIP; `cpsgen_V7_REENTRY_COMPLETE_9762E38887B8`; `EXTERNAL_REENTRY_COMPLETED_V1` | U01 Learning chain is consumed; representative real outcomes remain unavailable; next scenario NONE; no independent READY capability exists | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait; EXISTING_OMP_CAPABILITY_RECONCILIATION_OWNER | `REAL_WORLD_LIMIT` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
+| `1` | `U07` Learning WAITING WIP; `cpsgen_V7_REENTRY_COMPLETE_02F861BCBC5C`; `EXTERNAL_REENTRY_COMPLETED_V1` | U01 Learning chain is consumed; representative real outcomes remain unavailable; next scenario NONE; no independent READY capability exists | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait; EXISTING_OMP_CAPABILITY_RECONCILIATION_OWNER | `REAL_WORLD_LIMIT` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |

@@ -112,27 +112,34 @@
 - Production implementation deploy: `PASS`.
 - Previous production implementation commit: `8be846759b2c5cca9f153cc9eba08c542776028d`.
 - Previous production deploy ID: `deploy-z8-14-Updatesystem-8be8467-20260717T005328`.
-- Governance normalization closure commit: recorded by the delivery chain containing this report.
+- Final normalization and production commit: `06f46a6ae3b07e678f0c5572cc56b1af786fded3`.
+- Final deploy ID: `deploy-z8-14-Updatesystem-06f46a6-20260717T015837`.
 - Production truth: `FULLY_ALIGNED / PASS`.
 - Production convergence: `ALIGNED / PASS`.
 - Snapshot equality: `PASS`.
 - Production hashes match: `PASS`.
 - Post-deploy deployment delta: `0`.
 - Working tree at certification: `CLEAN`.
+- Pending wake: `NONE`.
+- Active reentry lease: `NONE`.
+- Overlap count: `0`.
+- Heartbeat role: `WATCHDOG_FALLBACK`.
+- Exact Mission closure: `EVENT_DRIVEN_EXTERNAL_REENTRY_PRODUCTION_CERTIFIED`.
 - Forbidden effects: `NONE`.
 - Runtime, routing, users, packet, restore, rollback, timer/daemon, Authority and Production Maturity effects: `NONE`.
 - The previous `CERTIFICATION_EVIDENCE_COMPLETE_DEPLOY_PENDING` projection is superseded by this production-certified terminal.
 
-- Previously deployed implementation: commit `3a963b4f06bb93c1e38aa0c634c8827d32c880c4`, deploy `deploy-z8-14-Updatesystem-3a963b4-20260716T152220`.
-- Commit `b50ce4e56dc5880998e345a75829234ba3249db9` is synchronized local/GitHub but its updated `tools/v7_sync_lib.py` is not equal to production.
-- Current intended production delta remains only `tools/v7_sync_lib.py`.
-- A safe-deploy apply attempt was rejected by the external reviewer because the operator had not named exact commit `b50ce4e5` after that delta was discovered.
-- The focused correction in this continuation supersedes `b50ce4e5`; its exact commit is the delivery commit containing this report.
-- Final safe deploy: pending exact commit approval.
-- Final `tools/v7-truth-check --all --json`: pending clean committed/deployed state.
-- Final `tools/v7-convergence-status --json`: pending clean committed/deployed state.
-- Local/GitHub/production snapshot equality: pending deploy.
-- Target terminal `EVENT_DRIVEN_EXTERNAL_REENTRY_PRODUCTION_CERTIFIED`: not claimed before deploy/truth/convergence.
+### SUPERSEDED_INTERMEDIATE_STATE
+
+- Historical implementation: commit `3a963b4f06bb93c1e38aa0c634c8827d32c880c4`, deploy `deploy-z8-14-Updatesystem-3a963b4-20260716T152220`.
+- Historical pending delivery: commit `b50ce4e56dc5880998e345a75829234ba3249db9` had an updated `tools/v7_sync_lib.py` not yet equal to production.
+- Historical intended production delta: only `tools/v7_sync_lib.py`.
+- Historical approval stop: a safe-deploy attempt was rejected until the operator named the exact delivery commit.
+- Historical correction: the focused continuation superseded `b50ce4e5`.
+- Historical state: final safe deploy was pending exact commit approval.
+- Historical state: final truth and convergence were pending clean committed/deployed state.
+- Historical state: local/GitHub/production snapshot equality was pending deploy.
+- Historical state: target terminal was not claimed before deploy/truth/convergence.
 
 ## Effects and exact boundary
 
@@ -144,4 +151,4 @@
 - Rollback apply: `NONE`.
 - Authority expansion: `NONE`.
 - Production Maturity effect: `NONE`.
-- Exact remaining blocker: explicit production approval for the exact delivery commit through `tools/v7-safe-deploy`, followed by zero-delta truth/convergence and snapshot equality.
+- Exact remaining blocker: `NONE`; production deploy, zero-delta truth/convergence and snapshot equality passed.

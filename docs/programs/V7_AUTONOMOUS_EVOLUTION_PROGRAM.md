@@ -2,7 +2,7 @@
 
 Status: `ORGANIZED`
 Document status: `ORGANIZED`
-Execution status: `PHASE_3_ACCEPTED_LOCKED_PHASE_4_COMPLETE_CONSUMED_PHASE_5_COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES`
+Execution status: `PHASE_3_ACCEPTED_LOCKED_PHASE_4_COMPLETE_CONSUMED_PHASE_5_STRUCTURAL_INTEGRATION_VERIFIED_COMPLETE_CONSUMED_PRODUCTION_CERTIFIED`
 Completion evidence status: `AUTOMATION_COMPLETE_CONSUMED_PRODUCTION_CERTIFIED`; two natural reentries, deployment, truth, convergence and snapshot equality are certified.
 Current program state: `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED`
 Current execution evidence: `docs/reports/engineering/2026-07-16_001627_full_independent_background_automation_and_fsse04_production_closure.md`
@@ -1105,6 +1105,12 @@ docs/programs/OPERATIONAL_MATURITY_PROGRAM.md
 
 No independent mission roadmap may be created outside OMP.
 
+Current owner-backed Phase 4 closure: `COMPLETE_CONSUMED_REAL_EXTERNAL_CALLER`.
+The accepted Mission was consumed by the real event-driven external platform
+turn through the standard `Continue OMP` entrypoint and
+`OMP_PROGRAM_EXECUTION_RECONCILIATION`; the behavior/legal next output was
+produced and persisted without Runtime, routing, user or Authority effect.
+
 ### Phase 5 - Structural Integration Execution
 
 Purpose: integrate autonomous behaviour and law execution through existing owners.
@@ -1134,7 +1140,26 @@ Outputs:
 - Function Graph updates or evidence records when implementation relationships change;
 - CPS updates when current reality changes.
 
-Current owner-backed closure: `COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES`. The existing Codex Automation Platform heartbeat produced two distinct natural scheduled external events after the prior target-thread turns exited. Both invoked the standard existing `Continue OMP` entrypoint, consumed `OMP_PROGRAM_EXECUTION_RECONCILIATION`, changed behavior, released their leases, had no overlap, and produced zero Runtime/production/Authority effects. Commit `a8e6454f62699d0a2bea5eeccfb0b959cb6abf3e` was installed through canonical safe deploy `deploy-z8-14-Updatesystem-a8e6454-20260716T080226`; deploy delta is zero, truth is `FULLY_ALIGNED`, convergence is `ALIGNED`, and local/GitHub/production snapshots agree. This supersedes `BLOCKED_MISSING_REAL_CONSUMER` and the temporary deploy-authority stop. Phase 6 remains `READY_WHERE_PRODUCTION_CERTIFICATION_REQUIRED` and retains its own production-evidence boundary.
+Current owner-backed canonical closure: `COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES`,
+equivalent for this Phase 5 to
+`STRUCTURAL_INTEGRATION_VERIFIED_COMPLETE_CONSUMED_PRODUCTION_CERTIFIED`.
+The two natural heartbeat reentries remain accepted supporting evidence, but the
+normal continuation owner is now the event-driven Codex Automation Platform
+thread signal. A real separate platform turn invoked the standard
+`Continue OMP` entrypoint, consumed `OMP_PROGRAM_EXECUTION_RECONCILIATION`,
+produced the legal next output, cleared the pending wake, released the lease,
+suppressed duplicates, preserved serial execution with overlap count `0`, and
+proved watchdog lost-wake recovery. The heartbeat remains
+`WATCHDOG_FALLBACK` only. Normalization closure commit
+`06f46a6ae3b07e678f0c5572cc56b1af786fded3` was installed through canonical
+safe deploy `deploy-z8-14-Updatesystem-06f46a6-20260717T015837`; truth is
+`FULLY_ALIGNED / PASS`, convergence is `ALIGNED / PASS`, production hashes
+match, deployment delta is zero, and local/GitHub/production snapshots agree.
+Runtime, routing, users, packets, restore, rollback, Authority and Production
+Maturity were unchanged. This supersedes `BLOCKED_MISSING_REAL_CONSUMER`, the
+temporary deploy-authority stop, and the earlier heartbeat-primary narrative.
+Phase 6 remains `READY_WHERE_PRODUCTION_CERTIFICATION_REQUIRED`; it is not
+started or completed by this Mission.
 
 ### Phase 6 - Production Certification
 

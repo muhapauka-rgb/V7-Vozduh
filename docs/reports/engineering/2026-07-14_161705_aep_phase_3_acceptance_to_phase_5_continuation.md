@@ -73,6 +73,34 @@ DETERMINISTIC_REPLAY = TRUE
 
 No Runtime mutation, production action, Authority expansion or user movement was performed.
 
+## Production-consumed Phase 4 continuation evidence
+
+The previously admitted Phase 4 Mission was subsequently consumed by the
+production-certified event-driven external reentry chain:
+
+```text
+REAL_TRIGGER_OCCURRED = TRUE
+REAL_ENTRYPOINT_INVOKED = TRUE
+RECONCILIATION_CALLED = TRUE
+CONSUMER_INVOKED = TRUE
+CONSUMER_BEHAVIOR_CHANGED = TRUE
+NEXT_OUTPUT_CREATED = TRUE
+EVENT_DRIVEN_EXTERNAL_REENTRY_STATUS = EVENT_DRIVEN_EXTERNAL_REENTRY_PRODUCTION_CERTIFIED
+PENDING_WAKE_ID = NONE
+REENTRY_ACTIVE_LEASE = NONE
+OVERLAP_COUNT = 0
+HEARTBEAT_ROLE = WATCHDOG_FALLBACK
+NORMALIZATION_PRODUCTION_COMMIT = 06f46a6ae3b07e678f0c5572cc56b1af786fded3
+NORMALIZATION_DEPLOY_ID = deploy-z8-14-Updatesystem-06f46a6-20260717T015837
+TRUTH = FULLY_ALIGNED / PASS
+CONVERGENCE = ALIGNED / PASS
+SNAPSHOT_EQUALITY = PASS
+FORBIDDEN_EFFECTS = NONE
+```
+
+This production evidence supersedes the earlier manually-callable boundary. It
+does not start or complete Phase 6 and does not change Production Maturity.
+
 ## Publication and convergence
 
 ```text
